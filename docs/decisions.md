@@ -5967,3 +5967,49 @@ Codex UX-12. Plan: Fassung 4, WP-E — the last package.
   and Clear All's accessible name spells out the scope. The tool delete
   dialog is titled "Delete T12?" — the target in the title, not only in
   the body. Abort/Stop/E-Stop remain immediate.
+
+## 2026-09-22 evening — Review round 5: a save status per section and revision, a help popover placed from its real layout
+
+Codex implementation round 5 on the closed wave (`ac0f918`): UI-I12 and
+UI-I13, plus the UX-09 wording.
+
+- **A save's status is a ledger, not a flag.** `settingsSaveStatus.ts` kept
+  one global state and a set of request ids: the first ok reply that
+  emptied the set said "Saved" — over a refused keyboard save (another
+  section's ok wiped the error) and over a keyboard change still in the
+  300 ms debounce (the OLD revision's ok; the new one never sent — a 46 ms
+  window, three of three probes). Now every change is a REVISION per
+  section; a reply confirms or fails exactly the revision it was sent for;
+  a section reads saved only once its latest revision is confirmed; a
+  failed or blocked section stays in the header, named
+  (`Save failed — keyboard: …`), until its own retry succeeds; the header
+  shows the worst section (failure > block > saving > saved). A lost
+  connection fails every unconfirmed revision, in flight or in the
+  debounce, and leaves confirmed sections alone.
+- **The popover is measured after layout, in one coordinate space.**
+  `HelpIcon` positioned in `beforetoggle`, when the popover is still
+  display:none and reads 0 × 0: the fit check was vacuous and every popover
+  opened below its trigger — the Setup help ran 72 px off a 900 px
+  landscape and 716 px off a 1200 px portrait at 150 %. Under CSS zoom the
+  viewport-px rect was written as the element's own CSS px (×1.5 off), and
+  a stale inline `left` narrowed the shrink-to-fit box (309 for 336). Now
+  `beforetoggle` schedules the placement for the next animation frame —
+  after showPopover() put the element in the top layer, before that frame
+  paints — the inline left/top/max-* are reset, the popover's own rect is
+  the size, `helpPlacement.ts` (pure, unit-tested) decides below / above /
+  the roomier side with a capped height and an inner scroll, and the result
+  is divided by the CSS zoom (`currentCSSZoom`, else the rect/offset ratio).
+  The popover reads in body typography whatever `.sub` title it sits in:
+  the heading's uppercase and semibold inherit through the DOM even into
+  the top layer (`--fw-regular` joins the weight tokens).
+- **UX-09 is partial, and the plan says so.** Fassung 4 called
+  `MachineRadio` label-rooted; it is input-rooted like
+  MachineInput/Select/Slider and explains on pointer + title only. A
+  focusable explanation directly at a disabled input stays on the
+  follow-up list; the buttons and the section gate explain the same reason.
+- Tests: vitest `settingsSaveStatus.test.ts` (ten cases incl. the two
+  review sequences, superseded failures, two failed sections named),
+  `helpPlacement.test.ts`; e2e keyboard-guards: the two save sequences
+  against the mock's correlated replies (the pre-flush window sampled
+  until the second request is out) and the popover geometry at
+  1280 × 900, 900 × 1200 and 900 × 1200 at 150 % (touch, first opening).

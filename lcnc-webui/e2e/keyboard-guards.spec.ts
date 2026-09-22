@@ -448,6 +448,57 @@ test("help is a tap-friendly popover: the Setup help opens by click and by keybo
   expectNoMachineAction(await recordedCmds());
 });
 
+// UI-I13 (review round 5): a help popover is placed from its LAID-OUT size,
+// wholly inside the viewport, on its first opening — landscape, portrait,
+// portrait at 150 % — and reads in body typography, not the title's.
+test.describe("help popover geometry (touch)", () => {
+  test.use({ hasTouch: true });
+  for (const [width, height, zoom] of [[1280, 900, 1], [900, 1200, 1], [900, 1200, 1.5]] as const) {
+    test(`Help: Go to positions is wholly readable at ${width} × ${height}, zoom ${zoom}`, async ({ page }) => {
+      await page.setViewportSize({ width, height });
+      await openReady(page);
+      // The FIRST touch pointerdown flips `html.touch-device` (touchDetect.ts)
+      // and the layout re-flows to the touch variant mid-tap — the 20 px icon
+      // moves from under the finger and no click follows. Prime the mode with
+      // a neutral tap, so the popover is measured under the touch layout.
+      await page.locator("header.hdr").tap({ position: { x: 10, y: 10 } });
+      await expect(page.locator("html.touch-device")).toHaveCount(1);
+      await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
+      const help = page.getByRole("button", { name: "Help: Go to positions", exact: true });
+      await help.tap();
+      const popover = page.locator(".helpPopover").filter({ hasText: "Go to G30" });
+      await expect(popover).toBeVisible();
+      await settle(page);
+      const g = await popover.evaluate(el => {
+        const r = el.getBoundingClientRect();
+        const cs = getComputedStyle(el);
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        const text = range.getBoundingClientRect();
+        return { x: r.x, y: r.y, right: r.right, bottom: r.bottom, width: r.width, height: r.height,
+          vw: innerWidth, vh: innerHeight, scrollable: el.scrollHeight > el.clientHeight + 1,
+          textTop: text.top, textBottom: text.bottom,
+          transform: cs.textTransform, weight: cs.fontWeight, overflowY: cs.overflowY };
+      });
+      console.log(`HELP_GEOMETRY ${width}x${height}@${zoom}: ${JSON.stringify(g)}`);
+      expect(g.x, "left edge").toBeGreaterThanOrEqual(0);
+      expect(g.y, "top edge").toBeGreaterThanOrEqual(0);
+      expect(g.right, "right edge").toBeLessThanOrEqual(g.vw + 0.5);
+      expect(g.bottom, "bottom edge").toBeLessThanOrEqual(g.vh + 0.5);
+      expect(g.scrollable, "the whole text fits without an inner scroll").toBe(false);
+      expect(g.textTop, "first line inside the popover").toBeGreaterThanOrEqual(g.y - 0.5);
+      expect(g.textBottom, "last line inside the popover").toBeLessThanOrEqual(g.bottom + 0.5);
+      expect(g.transform).toBe("none");
+      expect(Number(g.weight)).toBeLessThan(600);
+      expect(g.overflowY).toBe("auto");
+      await help.tap();
+      await expect(popover).toBeHidden();
+      await settle(page);
+      expectNoMachineAction(await recordedCmds());
+    });
+  }
+});
+
 test("documented remainder: Tab leaves the dialog (no focus trap in this wave)", async ({ page }) => {
   await openReady(page);
   await page.getByRole("button", { name: "Tools", exact: true }).click();
@@ -553,11 +604,82 @@ test("settings save status: Saving… on a change, Saved on the gateway's ok, th
   await expect(status).toHaveText("Saving…");
   await expect.poll(saveReq).toMatch(/\S/);
   await ctl({ op: "raw", frame: { type: "reply", cmd: "save_settings", ok: false, error: "disk full", req_id: await saveReq() } });
-  await expect(status).toHaveText("Save failed — disk full");
+  await expect(status).toHaveText("Save failed — keyboard: disk full");
   // A foreign reply moves nothing.
   await ctl({ op: "raw", frame: { type: "reply", cmd: "save_settings", ok: true, req_id: "nobody-1" } });
   await page.waitForTimeout(100);
-  await expect(status).toHaveText("Save failed — disk full");
+  await expect(status).toHaveText("Save failed — keyboard: disk full");
+});
+
+test("settings save status (UI-I12): a failed section stays visible behind another section's ok; an old reply never says Saved for a newer change", async ({ page }) => {
+  // Review round 5: the status is a ledger per section and revision — a
+  // reply confirms only the revision it was sent for, and a failure stays
+  // until that section's own retry succeeds.
+  await openReady(page);
+  await page.getByTitle("Settings", { exact: true }).click();
+  const dialog = page.locator(".dialogOverlay").first();
+  const status = dialog.locator(".saveStatus");
+  const keyboardTab = dialog.getByRole("button", { name: "Keyboard", exact: true });
+  await keyboardTab.click();
+  const abortCell = dialog.locator("tr").filter({ hasText: "Abort" }).locator(".kbKeyCell");
+  const saves = async (section: string) => {
+    const sent = ((await ctl({ op: "lastCmds" })).cmds ?? []) as { cmd?: string; section?: string; req_id?: string }[];
+    return sent.filter(c => c.cmd === "save_settings" && c.section === section).map(c => c.req_id ?? "");
+  };
+  const reply = (req_id: string, ok: boolean, error?: string) =>
+    ctl({ op: "raw", frame: { type: "reply", cmd: "save_settings", req_id, ok, error } });
+  const rebind = async (key: string) => {
+    await ctl({ op: "clearCmds" });
+    await abortCell.click();
+    await page.keyboard.press(key);
+    await expect(abortCell).toHaveText(key);
+    await expect.poll(async () => (await saves("keyboard")).length).toBe(1);
+    return (await saves("keyboard"))[0];
+  };
+
+  // (1) keyboard F9 and display fullscreen both on the wire; keyboard refused, display ok.
+  const k1 = await rebind("F9");
+  await dialog.getByRole("button", { name: "Display", exact: true }).click();
+  await dialog.getByLabel("Start in fullscreen mode", { exact: true }).check();
+  await expect.poll(async () => (await saves("display")).length).toBe(1);
+  const d1 = (await saves("display"))[0];
+  await reply(k1, false, "keyboard save rejected");
+  await expect(status).toHaveText("Save failed — keyboard: keyboard save rejected");
+  await reply(d1, true);
+  await settle(page);
+  await page.waitForTimeout(100);
+  await expect(status, "the failed keyboard save stays visible behind the display's ok").toHaveText("Save failed — keyboard: keyboard save rejected");
+  // The section's own retry resolves it.
+  await keyboardTab.click();
+  const k2 = await rebind("F10");
+  await expect(status).toHaveText("Saving…");
+  await reply(k2, true);
+  await expect(status).toHaveText("Saved");
+
+  // (2) F9 on the wire, F10 in the debounce: the ok for F9 confirms F9 only.
+  const first = await rebind("F9");
+  await abortCell.click();
+  await page.keyboard.press("F10");
+  await expect(abortCell).toHaveText("F10");
+  await expect(status).toHaveText("Saving…");
+  await reply(first, true);
+  await settle(page);
+  // Sample until the second request is out (the 300 ms debounce): the
+  // header must never read Saved for a change that was never sent.
+  const samples: string[] = [];
+  let requests = 1;
+  const t0 = Date.now();
+  while (requests < 2 && Date.now() - t0 < 1500) {
+    samples.push(await status.innerText());
+    requests = (await saves("keyboard")).length;
+  }
+  console.log(`SAVE_OLD_REPLY ${samples.length} samples before the second request: ${JSON.stringify([...new Set(samples)])}`);
+  expect(samples.length).toBeGreaterThan(0);
+  expect([...new Set(samples)]).toEqual(["Saving…"]);
+  await expect.poll(async () => (await saves("keyboard")).length).toBe(2);
+  await expect(status).toHaveText("Saving…");
+  await reply((await saves("keyboard"))[1], true);
+  await expect(status).toHaveText("Saved");
 });
 
 test("keyboard tab: a capture edits a local copy, no page error, a server change refreshes it", async ({ page }) => {

@@ -887,16 +887,20 @@ Single-Root). Commits enden mit `Co-Authored-By: Claude Fable 5.1 <noreply@anthr
 - `useGateExplain(gate, disabled, reason?)` in `permissions.ts`: die Logik aus `MachineBtn.vue:63-90`
   (Grund aus `usePermissionReasons()` bzw. Prop, nur wenn armed, `explain()` → Message-Center,
   `explainLabel`, `explainKeydown`) als Composable; `MachineBtn` nutzt es ohne Verhaltensänderung.
-- Label-verwurzelte Controls (`MachineToggle`, `MachineRadio`): während gesperrt + Grund + armed
-  trägt das Wurzel-`<label>` `title`, `tabindex="0"`, `role="button"`, `aria-label="Why is this
+- Label-verwurzelte Controls (`MachineToggle` und das Plane-Radio-Label in `JogStrip` — **Korrektur
+  nach Codex-Runde 5, 22.09.2026:** `MachineRadio` selbst ist ein Input-Root, siehe nächster Punkt): während
+  gesperrt + Grund + armed trägt das Wurzel-`<label>` `title`, `tabindex="0"`, `role="button"`, `aria-label="Why is this
   unavailable? …"`, Click/Keydown → `explain` (genau das, was `JogStrip.vue:473-475` und
   `SetupStrip.vue:238` heute von Hand tun → durch das Composable ersetzen).
-- Input-verwurzelte Controls (`MachineInput`, `MachineSelect`, `MachineSlider`) **bleiben
+- Input-verwurzelte Controls (`MachineInput`, `MachineSelect`, `MachineSlider`, `MachineRadio`) **bleiben
   Single-Root** (ein Wrapper zöge `.mdiInput`/`input.setupInput` aufs Span): sie tragen `title`
   und `@pointerdown="explain"` — Chromium ≥ 116 und Firefox ≥ 105 stellen Pointer-Ereignisse an
   gesperrten Controls zu (die beiden Operator-Browser; Safari im Test-Doku als ungeprüft
   vermerkt). Ein gesperrtes Feld ist per Tastatur nicht erreichbar; das ist die dokumentierte
-  Grenze (der Abschnitts-Gate und die Buttons erklären denselben Grund).
+  Grenze (der Abschnitts-Gate und die Buttons erklären denselben Grund). **UX-09 ist damit teilweise
+  erfüllt** (Codex-Runde 5): Touch und Tastatur für Buttons und Label-Roots, nur Pointer + Titel für
+  gesperrte Input-Roots; das ursprünglich empfohlene fokussierbare Info-Control direkt am gesperrten
+  Feld ist nicht umgesetzt (Folge-Liste).
 - Tests: MDI-Feld gesperrt (`ready:false`, armed) → Tap zeigt den Grund im Message-Center;
   gesperrter Toggle per Tab erreichbar → Enter zeigt den Grund, Zustand unverändert; Space
   erreicht nie `cycle_start` (`explainKeydown` stoppt die Propagation).
@@ -986,3 +990,6 @@ Single-Root). Commits enden mit `Co-Authored-By: Claude Fable 5.1 <noreply@anthr
 - DOM-Umgebung für Vitest (`@vue/test-utils` + jsdom/happy-dom), damit Katalog-Komponenten wie
   `MachineInput` auch als Unit-Test prüfbar sind — heute nur e2e.
 - Physische Touchscreen-Abnahme (gate-t `main`).
+- UX-09-Rest (Codex-Runde 5): ein fokussierbares Info-/Sperr-Control direkt an gesperrten Input-Roots
+  (`MachineInput`, `MachineSelect`, `MachineSlider`, `MachineRadio`) — heute erklären sie per Pointer
+  und Titel; Tastatur und Safari sind die dokumentierte Grenze.

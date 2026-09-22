@@ -61,6 +61,7 @@
   --fs-3xl: 24px;
 
   /* Font weight */
+  --fw-regular: 400;
   --fw-medium: 500;
   --fw-semibold: 600;
   --fw-bold: 700;
@@ -1058,6 +1059,16 @@ label:has(input:disabled, select:disabled) {
   font-size: var(--fs-sm);
   line-height: 1.45;
   max-width: min(28rem, calc(100vw - var(--gap-panel)));
+  /* Body typography whatever title it sits in: a strip's `.sub` heading is
+     uppercase, semibold and letter-spaced, and the popover inherits that
+     through the DOM even in the top layer (round 5, UI-I13). */
+  font-weight: var(--fw-regular);
+  text-transform: none;
+  letter-spacing: normal;
+  /* Placed from its real size (HelpIcon.vue); when it fits on neither side
+     of its trigger its height is capped and the content scrolls here. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .popTitle {
   font-weight: var(--fw-semibold);
