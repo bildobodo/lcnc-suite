@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page, type Locator } from "@playwright/test";
 import { ctl, MOCK } from "./ctl";
 
 // WP0 / UI-03 — global keyboard shortcuts behind dialogs and fields.
@@ -451,22 +451,92 @@ test("help is a tap-friendly popover: the Setup help opens by click and by keybo
 // UI-I13 (review round 5): a help popover is placed from its LAID-OUT size,
 // wholly inside the viewport, on its first opening — landscape, portrait,
 // portrait at 150 % — and reads in body typography, not the title's.
+// Round 6: the taps are dispatched at MEASURED coordinates once the layout
+// has held still. Playwright's own scroll-into-view under CSS zoom re-scrolled
+// the strip between the two taps of one case in a loaded gate run (the icon
+// at 712 → 1171 px): the UA's light dismiss saw the first touch land beside
+// the trigger and closed the popover, the retried tap re-opened it, and the
+// close assertion failed without any product fault. The resize path is the
+// round-6 probe made regular.
+async function tapSteady(page: Page, target: Locator): Promise<{ x: number; y: number }> {
+  // Bring the target 24 px inside its scroll container's VISIBLE box, at the
+  // far edge (away from the sticky Safety section), in viewport px:
+  // `scrollIntoView` under CSS zoom works in layout units and left the icon
+  // at y = 1202 in a 1200 px viewport (measured, 150 %). The container is
+  // the one with overflow auto/scroll (the strip fieldset) — the `.sub`
+  // title above it "overflows" by the 20 px icon it holds.
+  const bringIn = () => target.evaluate(el => {
+    const z = (el as HTMLElement & { currentCSSZoom?: number }).currentCSSZoom ?? 1;
+    let sc: HTMLElement | null = el.parentElement;
+    while (sc && sc !== document.body) {
+      const cs = getComputedStyle(sc);
+      if (/auto|scroll/.test(cs.overflowX + cs.overflowY)) break;
+      sc = sc.parentElement;
+    }
+    if (!sc || sc === document.body) return "no scroll container";
+    const M = 24;
+    for (let i = 0; i < 4; i++) {
+      const r = el.getBoundingClientRect(), c = sc.getBoundingClientRect();
+      const bottom = Math.min(c.bottom, innerHeight), right = Math.min(c.right, innerWidth);
+      const top = Math.max(c.top, 0), left = Math.max(c.left, 0);
+      const dy = r.bottom > bottom - M || r.top < top + M ? r.bottom - (bottom - M) : 0;
+      const dx = r.right > right - M || r.left < left + M ? r.right - (right - M) : 0;
+      if (!dx && !dy) break;
+      sc.scrollTop += dy / z;
+      sc.scrollLeft += dx / z;
+    }
+    return `${sc.tagName.toLowerCase()} scrollLeft=${sc.scrollLeft.toFixed(0)} scrollTop=${sc.scrollTop.toFixed(0)}`;
+  });
+  let p = { x: 0, y: 0 };
+  let hit = { ok: false, at: null as string | null };
+  let where = "";
+  for (let round = 0; round < 3 && !hit.ok; round++) {
+    where = await bringIn();
+    let last = await target.boundingBox();
+    let still = 0;
+    const t0 = Date.now();
+    while (still < 3 && Date.now() - t0 < 5000) {
+      await page.waitForTimeout(100);
+      const b = await target.boundingBox();
+      still = b && last && Math.abs(b.x - last.x) < 0.5 && Math.abs(b.y - last.y) < 0.5 ? still + 1 : 0;
+      last = b;
+    }
+    expect(still, "the target held still for 300 ms before the tap").toBe(3);
+    p = { x: last!.x + last!.width / 2, y: last!.y + last!.height / 2 };
+    // No touch is dispatched until the point hits the target (a touch beside
+    // it is a light dismiss the UA performs before any interceptor).
+    hit = await target.evaluate((el, pt) => {
+      const at = document.elementFromPoint(pt.x, pt.y);
+      return { ok: !!at && (at === el || el.contains(at)), at: at ? `${at.tagName.toLowerCase()}.${(at as HTMLElement).className}` : null };
+    }, p);
+  }
+  expect(hit.ok, `the tap point ${p.x.toFixed(0)},${p.y.toFixed(0)} lies on the target (${where}), not on ${hit.at}`).toBe(true);
+  await page.touchscreen.tap(p.x, p.y);
+  return p;
+}
+
 test.describe("help popover geometry (touch)", () => {
   test.use({ hasTouch: true });
+
+  /** The touch layout, primed: the FIRST touch pointerdown flips
+   *  `html.touch-device` (touchDetect.ts) and the layout re-flows mid-tap —
+   *  a first tap on the 20 px icon yields no click. */
+  async function openTouch(page: Page, width: number, height: number) {
+    await page.setViewportSize({ width, height });
+    await openReady(page);
+    await page.locator("header.hdr").tap({ position: { x: 10, y: 10 } });
+    await expect(page.locator("html.touch-device")).toHaveCount(1);
+    return {
+      help: page.getByRole("button", { name: "Help: Go to positions", exact: true }),
+      popover: page.locator(".helpPopover").filter({ hasText: "Go to G30" }),
+    };
+  }
+
   for (const [width, height, zoom] of [[1280, 900, 1], [900, 1200, 1], [900, 1200, 1.5]] as const) {
     test(`Help: Go to positions is wholly readable at ${width} × ${height}, zoom ${zoom}`, async ({ page }) => {
-      await page.setViewportSize({ width, height });
-      await openReady(page);
-      // The FIRST touch pointerdown flips `html.touch-device` (touchDetect.ts)
-      // and the layout re-flows to the touch variant mid-tap — the 20 px icon
-      // moves from under the finger and no click follows. Prime the mode with
-      // a neutral tap, so the popover is measured under the touch layout.
-      await page.locator("header.hdr").tap({ position: { x: 10, y: 10 } });
-      await expect(page.locator("html.touch-device")).toHaveCount(1);
+      const { help, popover } = await openTouch(page, width, height);
       await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
-      const help = page.getByRole("button", { name: "Help: Go to positions", exact: true });
-      await help.tap();
-      const popover = page.locator(".helpPopover").filter({ hasText: "Go to G30" });
+      const at = await tapSteady(page, help);
       await expect(popover).toBeVisible();
       await settle(page);
       const g = await popover.evaluate(el => {
@@ -480,7 +550,7 @@ test.describe("help popover geometry (touch)", () => {
           textTop: text.top, textBottom: text.bottom,
           transform: cs.textTransform, weight: cs.fontWeight, overflowY: cs.overflowY };
       });
-      console.log(`HELP_GEOMETRY ${width}x${height}@${zoom}: ${JSON.stringify(g)}`);
+      console.log(`HELP_GEOMETRY ${width}x${height}@${zoom} tap ${at.x.toFixed(0)},${at.y.toFixed(0)}: ${JSON.stringify(g)}`);
       expect(g.x, "left edge").toBeGreaterThanOrEqual(0);
       expect(g.y, "top edge").toBeGreaterThanOrEqual(0);
       expect(g.right, "right edge").toBeLessThanOrEqual(g.vw + 0.5);
@@ -491,12 +561,34 @@ test.describe("help popover geometry (touch)", () => {
       expect(g.transform).toBe("none");
       expect(Number(g.weight)).toBeLessThan(600);
       expect(g.overflowY).toBe("auto");
-      await help.tap();
+      await tapSteady(page, help);
       await expect(popover).toBeHidden();
       await settle(page);
       expectNoMachineAction(await recordedCmds());
     });
   }
+
+  test("the open help follows a resize and re-opens inside the viewport", async ({ page }) => {
+    const { help, popover } = await openTouch(page, 900, 1200);
+    await tapSteady(page, help);
+    await expect(popover).toBeVisible();
+    for (const [w, h] of [[900, 700], [1280, 700], [900, 1200]] as const) {
+      await page.setViewportSize({ width: w, height: h });
+      await expect.poll(async () => {
+        const b = await popover.boundingBox();
+        return b ? { inside: b.x >= 0 && b.y >= 0 && b.x + b.width <= w + 0.5 && b.y + b.height <= h + 0.5, box: b } : null;
+      }, { message: `the open popover inside ${w} × ${h}` }).toMatchObject({ inside: true });
+    }
+    await tapSteady(page, help);
+    await expect(popover).toBeHidden();
+    await tapSteady(page, help);
+    await expect(popover).toBeVisible();
+    const b = (await popover.boundingBox())!;
+    expect(b.y).toBeGreaterThanOrEqual(0);
+    expect(b.y + b.height).toBeLessThanOrEqual(1200.5);
+    await settle(page);
+    expectNoMachineAction(await recordedCmds());
+  });
 });
 
 test("documented remainder: Tab leaves the dialog (no focus trap in this wave)", async ({ page }) => {
@@ -679,6 +771,54 @@ test("settings save status (UI-I12): a failed section stays visible behind anoth
   await expect.poll(async () => (await saves("keyboard")).length).toBe(2);
   await expect(status).toHaveText("Saving…");
   await reply((await saves("keyboard"))[1], true);
+  await expect(status).toHaveText("Saved");
+});
+
+test("settings save status (UI-I12 rest): a page-hide save goes by beacon and only the server's state confirms it", async ({ page }) => {
+  // Review round 6: a change still in the debounce when the page is hidden
+  // leaves through navigator.sendBeacon and its timer is cleared — no WS
+  // request, no correlated reply. The status is "unconfirmed" until the
+  // gateway's full settings blob carries the section: equal → Saved, a
+  // different one → not on the server (corrected by a later matching blob).
+  // Headless Chromium keeps the tab visible, so only the document's
+  // visibility is simulated; the production listener, the beacon, the HTTP
+  // request and the cache update run unchanged.
+  const beacons: { data: Record<string, any> }[] = [];
+  await page.route("**/settings/keyboard*", async route => {
+    beacons.push(route.request().postDataJSON());
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) });
+  });
+  await openReady(page);
+  await page.getByTitle("Settings", { exact: true }).click();
+  const dialog = page.locator(".dialogOverlay").first();
+  const status = dialog.locator(".saveStatus");
+  await dialog.getByRole("button", { name: "Keyboard", exact: true }).click();
+  const abortCell = dialog.locator("tr").filter({ hasText: "Abort" }).locator(".kbKeyCell");
+  await ctl({ op: "clearCmds" });
+  await abortCell.click();
+  await page.keyboard.press("F9");
+  await expect(status).toHaveText("Saving…");
+  await page.evaluate(() => {
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+    document.dispatchEvent(new Event("visibilitychange"));
+    Reflect.deleteProperty(document, "visibilityState");
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect.poll(() => beacons.length).toBe(1);
+  expect(beacons[0].data.mapping.abort).toBe("F9");
+  await expect(status).toHaveText("Sent on page hide — not yet confirmed (keyboard)");
+  // A blob with a different keyboard state (another client's broadcast
+  // before the beacon landed) is no confirmation — and it says so.
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { keyboard: { ...beacons[0].data, mapping: { ...beacons[0].data.mapping, abort: "F8" } } } } });
+  await expect(status).toHaveText("Save failed — keyboard: page-hide save not on the server — change it again");
+  // The gateway's blob after the HTTP save carries what was sent: confirmed.
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { keyboard: beacons[0].data } } });
+  await expect(status).toHaveText("Saved");
+  await expect(abortCell).toHaveText("F9");
+  await page.waitForTimeout(400);   // past the (cleared) 300 ms debounce
+  const wsSaves = (((await ctl({ op: "lastCmds" })).cmds ?? []) as { cmd?: string; section?: string }[])
+    .filter(c => c.cmd === "save_settings" && c.section === "keyboard");
+  expect(wsSaves, "the page-hide flush cancelled the debounce; no WS save follows").toHaveLength(0);
   await expect(status).toHaveText("Saved");
 });
 

@@ -16,7 +16,7 @@ import { ref } from "vue";
 import { decode as msgpackDecode } from "@msgpack/msgpack";
 import { type WsCommand, OPERATOR_ERROR, isQueueSafe } from "./lcnc";
 import { updateServerCache, loadDisplayDefaults, registerSettingsSaver } from "./defaults";
-import { noteSaveReply, noteSaveConnectionLost } from "./settingsSaveStatus";
+import { noteSaveReply, noteSaveConnectionLost, noteSaveServerState } from "./settingsSaveStatus";
 import { enableWakeLock, disableWakeLock } from "./wakeLock";
 import { applyHalshowSnapshot, applyHalshowUpdate, resetHalshow } from "./ws/halshowStore";
 import { emitTelemetry } from "./ws/telemetry";
@@ -306,6 +306,8 @@ function onFrame(data: string | ArrayBuffer) {
       handleToolTableChanged(msg);
     } else if (msg.type === "settings_changed" || msg.type === "settings_init") {
       updateServerCache(msg.settings);
+      // The full blob is the only confirmation a page-hide (sendBeacon) save gets (UX-08).
+      noteSaveServerState(msg.settings);
     } else if (msg.type === "halshow_snapshot") {
       applyHalshowSnapshot(msg);
     } else if (msg.type === "halshow_update") {

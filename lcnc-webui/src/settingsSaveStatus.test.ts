@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   saveStatus, saveStatusText, sectionSaveState, noteSavePending, noteSaveSent, noteSaveReply,
-  noteSaveBlocked, noteSaveFailed, noteSaveConnectionLost, resetSaveStatusForTests,
+  noteSaveBlocked, noteSaveFailed, noteSaveConnectionLost, noteSaveBeaconed, noteSaveServerState,
+  stableJson, resetSaveStatusForTests,
 } from "./settingsSaveStatus";
 
 // UX-08: the Settings header shows what the last save actually did — per
@@ -127,5 +128,69 @@ describe("settings save status", () => {
     noteSaveReply("r2", true);
     noteSaveConnectionLost();
     expect(saveStatusText()).toBe("Saved");
+  });
+
+  // Round 6 (UI-I12 rest): the page-hide path — sendBeacon, no reply.
+  const kb = { jogEnabled: false, mapping: { abort: "F9", cycle: " " } };
+
+  it("a page-hide beacon is unconfirmed until the server's blob shows it; an equal blob (any key order) confirms it", () => {
+    noteSavePending("keyboard");
+    noteSaveBeaconed("keyboard", kb, true);
+    expect(sectionSaveState("keyboard")).toBe("unconfirmed");
+    expect(saveStatusText()).toBe("Sent on page hide — not yet confirmed (keyboard)");
+    noteSaveServerState({ display: { theme: "auto" } });          // no keyboard in it: nothing
+    expect(sectionSaveState("keyboard")).toBe("unconfirmed");
+    noteSaveServerState({ keyboard: { mapping: { cycle: " ", abort: "F9" }, jogEnabled: false } });
+    expect(saveStatusText()).toBe("Saved");
+  });
+
+  it("a differing server blob is a failure that a later matching blob corrects", () => {
+    noteSavePending("keyboard");
+    noteSaveBeaconed("keyboard", kb, true);
+    noteSaveServerState({ keyboard: { ...kb, mapping: { ...kb.mapping, abort: "F8" } } });
+    expect(saveStatusText()).toBe("Save failed — keyboard: page-hide save not on the server — change it again");
+    noteSaveServerState({ keyboard: kb });
+    expect(saveStatusText()).toBe("Saved");
+  });
+
+  it("a refused hand-off is a failure; a lost connection leaves a beaconed revision unconfirmed for the reconnect's settings_init", () => {
+    noteSavePending("display");
+    noteSaveBeaconed("display", { theme: "dark" }, false);
+    expect(saveStatusText()).toBe("Save failed — display: not sent on page hide");
+    resetSaveStatusForTests();
+    noteSavePending("keyboard");
+    noteSaveBeaconed("keyboard", kb, true);
+    noteSaveConnectionLost();
+    expect(sectionSaveState("keyboard")).toBe("unconfirmed");
+    noteSaveServerState({ keyboard: kb });
+    expect(saveStatusText()).toBe("Saved");
+  });
+
+  it("a newer change supersedes the beacon; an old blob then confirms nothing", () => {
+    noteSavePending("keyboard");
+    noteSaveBeaconed("keyboard", kb, true);
+    noteSavePending("keyboard");                                   // the operator is back and changes again
+    expect(sectionSaveState("keyboard")).toBe("pending");
+    noteSaveSent("keyboard", "k2");
+    noteSaveReply("k2", true);
+    expect(saveStatusText()).toBe("Saved");
+    noteSaveServerState({ keyboard: kb });                          // the beacon's (older) state: nothing
+    expect(saveStatusText()).toBe("Saved");
+  });
+
+  it("unconfirmed ranks below a save in progress and above Saved", () => {
+    noteSavePending("keyboard"); noteSaveBeaconed("keyboard", kb, true);
+    noteSavePending("display"); noteSaveSent("display", "d1");
+    expect(saveStatusText()).toBe("Saving…");
+    noteSaveReply("d1", true);
+    expect(saveStatusText()).toBe("Sent on page hide — not yet confirmed (keyboard)");
+    noteSaveServerState({ keyboard: kb, display: {} });
+    expect(saveStatusText()).toBe("Saved");
+  });
+
+  it("stableJson is key-order independent and exact for nested values", () => {
+    expect(stableJson({ b: [1, { d: 2, c: "x" }], a: null })).toBe('{"a":null,"b":[1,{"c":"x","d":2}]}');
+    expect(stableJson({ a: 1, b: 2 })).toBe(stableJson({ b: 2, a: 1 }));
+    expect(stableJson({ a: 1 })).not.toBe(stableJson({ a: 1.5 }));
   });
 });

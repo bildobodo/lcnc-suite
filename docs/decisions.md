@@ -6013,3 +6013,40 @@ UI-I13, plus the UX-09 wording.
   against the mock's correlated replies (the pre-flush window sampled
   until the second request is out) and the popover geometry at
   1280 × 900, 900 × 1200 and 900 × 1200 at 150 % (touch, first opening).
+
+## 2026-09-22 night — Review round 6: the page-hide save is confirmed by the server's state; taps at measured coordinates
+
+Codex implementation round 6 on `7f50dd1`: UI-I12 rest, plus the unstable
+help-close case in the gate.
+
+- **A beacon is a hand-off, not a confirmation.** A change still in the
+  300 ms debounce when the page is hidden leaves through
+  `navigator.sendBeacon` (`flushPendingSaves`) and its timer is cleared —
+  no WS request and no correlated reply will ever settle that revision, so
+  the ledger read "Saving…" forever (Codex, 3/3). Now the flush notes the
+  hand-off: the revision is `unconfirmed` ("Sent on page hide — not yet
+  confirmed") until the gateway's next FULL settings blob carries the
+  section — `settings_changed` after the HTTP save (the status loop
+  broadcasts the whole store on every version bump), `settings_init` on a
+  reconnect. Equal to what was sent (stable JSON, key order free) → saved;
+  different → "page-hide save not on the server — change it again", an
+  error a later matching blob corrects (a broadcast raised by another
+  client can precede the beacon's own). A refused `sendBeacon()` is a
+  failure; a lost connection leaves a beaconed revision unconfirmed — its
+  transport was HTTP, the reconnect's blob decides. The store saves a
+  section verbatim (`settings_store.save_section`), so the comparison is
+  exact.
+- **The gate's unstable help close was the harness, not the product.**
+  In Codex's loaded full run the 150 % case failed at the CLOSING tap:
+  Playwright's own scroll-into-view under CSS zoom re-scrolled the strip
+  between the two taps (the icon at 712 → 1171 px), the UA's light dismiss
+  closed the popover on the first touch beside the trigger (it runs before
+  Playwright's hit-target interception can stop the event), and the
+  retried tap re-opened it. The regular cases now dispatch the touch at
+  MEASURED coordinates once the icon has held still for 300 ms
+  (`tapSteady`); Codex's resize-and-reopen probe is a regular case.
+- Tests: vitest `settingsSaveStatus.test.ts` (16 cases; the beacon path
+  incl. a differing then matching blob, a refused hand-off, connection
+  loss, supersession, `stableJson`), e2e keyboard-guards: the simulated
+  hidden/visible cycle with a routed beacon and the two blobs; the three
+  geometry cases with steady taps; the resize case.

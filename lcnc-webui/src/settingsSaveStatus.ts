@@ -11,11 +11,21 @@
 // one global state and a set of request ids: a foreign section's ok wiped
 // a failure, and an old reply said "Saved" while the next change was
 // still in the debounce. Driven by defaults.ts (pending / sent / blocked /
-// failed) and lcncWs.ts (the correlated reply, a lost connection). Pure
-// state — no transport.
+// failed, beaconed) and lcncWs.ts (the correlated reply, the server's
+// state, a lost connection). Pure state — no transport.
+//
+// The page-hide path (round 6, UI-I12 rest): a change still in the debounce
+// when the page is hidden goes out through `navigator.sendBeacon` and its
+// timer is cleared — no WS request, no correlated reply. Such a revision is
+// `unconfirmed` until the gateway's next full settings blob
+// (`settings_changed` after the save, `settings_init` on a reconnect)
+// carries the section: equal to what was sent → saved; different → not on
+// the server (an error that a later matching blob corrects — a broadcast
+// raised by another client can precede the beacon's own). `sendBeacon()`
+// returning true is a hand-off, never a confirmation.
 import { reactive } from "vue";
 
-export type SaveState = "idle" | "pending" | "saving" | "saved" | "error" | "blocked";
+export type SaveState = "idle" | "pending" | "saving" | "saved" | "error" | "blocked" | "unconfirmed";
 
 export const saveStatus = reactive({
   state: "idle" as SaveState,
@@ -36,6 +46,9 @@ interface SectionLedger {
   failedRev: number;
   failKind: "error" | "blocked";
   detail: string;
+  /** The latest revision handed to sendBeacon on page hide, and its data. */
+  beaconRev: number;
+  beaconJson: string;
 }
 
 const _sections = new Map<string, SectionLedger>();
@@ -45,13 +58,13 @@ const _inflight = new Map<string, { section: string; rev: number }>();
 function ledger(section: string): SectionLedger {
   let s = _sections.get(section);
   if (!s) {
-    s = { rev: 0, sentRev: 0, ackedRev: 0, failedRev: 0, failKind: "error", detail: "" };
+    s = { rev: 0, sentRev: 0, ackedRev: 0, failedRev: 0, failKind: "error", detail: "", beaconRev: 0, beaconJson: "" };
     _sections.set(section, s);
   }
   return s;
 }
 
-export type SectionSaveState = "pending" | "saving" | "saved" | "error" | "blocked";
+export type SectionSaveState = "pending" | "saving" | "saved" | "error" | "blocked" | "unconfirmed";
 
 /** One section's state, from its ledger — null while it never changed. */
 export function sectionSaveState(section: string): SectionSaveState | null {
@@ -59,25 +72,40 @@ export function sectionSaveState(section: string): SectionSaveState | null {
   if (!s || s.rev === 0) return null;
   if (s.ackedRev === s.rev) return "saved";
   if (s.failedRev === s.rev) return s.failKind;
+  if (s.beaconRev === s.rev) return "unconfirmed";
   return s.sentRev === s.rev ? "saving" : "pending";
 }
 
+/** JSON with sorted object keys, so a blob the gateway re-serialised
+ *  compares equal to the data this client sent. */
+export function stableJson(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(stableJson).join(",")}]`;
+  if (v && typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    return `{${Object.keys(o).sort().map(k => `${JSON.stringify(k)}:${stableJson(o[k])}`).join(",")}}`;
+  }
+  return JSON.stringify(v) ?? "null";
+}
+
 /** The header's status is the worst section: an unresolved failure or
- *  block outranks a save in progress, which outranks "Saved". */
+ *  block outranks a save in progress, which outranks an unconfirmed
+ *  page-hide save, which outranks "Saved". */
 function recompute(): void {
-  const errors: string[] = [], blocked: string[] = [], moving: string[] = [], saved: string[] = [];
+  const errors: string[] = [], blocked: string[] = [], moving: string[] = [], unconfirmed: string[] = [], saved: string[] = [];
   let anySent = false;
   for (const [name, s] of _sections) {
     const st = sectionSaveState(name);
     if (st === "error") errors.push(`${name}: ${s.detail}`);
     else if (st === "blocked") blocked.push(`${name}: ${s.detail}`);
     else if (st === "saving" || st === "pending") { moving.push(name); if (st === "saving") anySent = true; }
+    else if (st === "unconfirmed") unconfirmed.push(name);
     else if (st === "saved") saved.push(name);
   }
   if (errors.length) { saveStatus.state = "error"; saveStatus.detail = errors.join("; "); saveStatus.section = errors.map(e => e.split(":")[0]).join(", "); return; }
   if (blocked.length) { saveStatus.state = "blocked"; saveStatus.detail = blocked.join("; "); saveStatus.section = blocked.map(e => e.split(":")[0]).join(", "); return; }
   saveStatus.detail = "";
   if (moving.length) { saveStatus.state = anySent ? "saving" : "pending"; saveStatus.section = moving.join(", "); return; }
+  if (unconfirmed.length) { saveStatus.state = "unconfirmed"; saveStatus.detail = unconfirmed.join(", "); saveStatus.section = unconfirmed.join(", "); return; }
   if (saved.length) { saveStatus.state = "saved"; saveStatus.section = saved.join(", "); return; }
   saveStatus.state = "idle"; saveStatus.section = "";
 }
@@ -130,12 +158,47 @@ export function noteSaveReply(reqId: string, ok: boolean, error?: string): boole
   return true;
 }
 
+/** The latest revision left through sendBeacon on page hide (the debounce
+ *  timer is gone, no WS request follows): unconfirmed until the server's
+ *  state shows it; a refused hand-off is a failure. */
+export function noteSaveBeaconed(section: string, data: unknown, handedOff: boolean): void {
+  const s = ledger(section);
+  if (s.rev === 0) s.rev = 1;
+  if (!handedOff) {
+    s.failedRev = s.rev; s.failKind = "error"; s.detail = "not sent on page hide";
+  } else {
+    s.beaconRev = s.rev; s.beaconJson = stableJson(data);
+  }
+  recompute();
+}
+
+/** The gateway's full settings blob (settings_changed / settings_init):
+ *  the only confirmation a page-hide save can get. A section it carries
+ *  equal to the beaconed data is saved; a different one is not on the
+ *  server — corrected by a later blob that matches. */
+export function noteSaveServerState(settings: Record<string, unknown> | null | undefined): void {
+  if (!settings || typeof settings !== "object") return;
+  let moved = false;
+  for (const [name, s] of _sections) {
+    if (s.rev === 0 || s.beaconRev !== s.rev || s.ackedRev === s.rev) continue;
+    if (!Object.prototype.hasOwnProperty.call(settings, name)) continue;
+    if (stableJson(settings[name]) === s.beaconJson) {
+      s.ackedRev = s.rev;
+    } else if (s.failedRev !== s.rev) {
+      s.failedRev = s.rev; s.failKind = "error"; s.detail = "page-hide save not on the server — change it again";
+    }
+    moved = true;
+  }
+  if (moved) recompute();
+}
+
 /** The socket closed: every section whose latest revision is not confirmed
- *  is not saved — in flight or still in the debounce alike. */
+ *  is not saved — in flight or still in the debounce alike. A page-hide
+ *  save went by HTTP and waits for the server's state on reconnect. */
 export function noteSaveConnectionLost(): void {
   _inflight.clear();
   for (const s of _sections.values()) {
-    if (s.rev === 0 || s.ackedRev === s.rev || s.failedRev === s.rev) continue;
+    if (s.rev === 0 || s.ackedRev === s.rev || s.failedRev === s.rev || s.beaconRev === s.rev) continue;
     s.failedRev = s.rev; s.failKind = "error"; s.detail = "connection lost — not saved";
   }
   recompute();
@@ -149,6 +212,7 @@ export function saveStatusText(s: { state: SaveState; detail: string } = saveSta
     case "saved": return "Saved";
     case "error": return `Save failed — ${s.detail}`;
     case "blocked": return `Not saved — ${s.detail}`;
+    case "unconfirmed": return `Sent on page hide — not yet confirmed (${s.detail})`;
     default: return "";
   }
 }

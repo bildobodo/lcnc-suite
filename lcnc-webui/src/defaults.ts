@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import { withToken } from "./auth";
-import { noteSavePending, noteSaveSent, noteSaveBlocked, noteSaveFailed } from "./settingsSaveStatus";
+import { noteSavePending, noteSaveSent, noteSaveBlocked, noteSaveFailed, noteSaveBeaconed } from "./settingsSaveStatus";
 import { resetServerSettings } from "./lcncApi";
 import type { GamepadProfile } from "./gamepadProfile";
 
@@ -125,15 +125,20 @@ export function updateServerCache(data: Record<string, any>): void {
   settingsVersion.value++;
 }
 
-/** Flush pending debounced saves via sendBeacon (called on page hide). */
+/** Flush pending debounced saves via sendBeacon (called on page hide).
+ *  The status ledger learns of the hand-off (round 6, UI-I12 rest): the
+ *  revision is UNCONFIRMED until the gateway's next full settings blob
+ *  shows it — the debounce timer is cleared below, so no WS request and no
+ *  correlated reply will ever settle it; a refused hand-off is a failure. */
 function flushPendingSaves(): void {
   for (const [section, data] of _pendingSaves) {
     // sendBeacon can't set headers, so the token rides in the query string
     // (the require_token dependency accepts ?token= as well as the header).
-    navigator.sendBeacon(
+    const handedOff = navigator.sendBeacon(
       withToken(`/settings/${section}`),
       new Blob([JSON.stringify({ data })], { type: "application/json" }),
     );
+    noteSaveBeaconed(section, data, handedOff);
   }
   _pendingSaves.clear();
   for (const key of Object.keys(_saveTimers)) {
