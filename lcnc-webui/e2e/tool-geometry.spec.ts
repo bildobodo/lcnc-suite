@@ -235,7 +235,7 @@ test("delete waits for its own reply and shows a refusal in place", async ({ pag
   await openAdd(page);
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByTitle("Delete tool", { exact: true }).click();
-  const dialog = page.locator(".dialog", { hasText: "Delete Tool" });
+  const dialog = page.locator(".dialog", { hasText: /^Delete T\d+\?/ });
   await expect(dialog).toBeVisible();
   await dialog.getByRole("button", { name: "Delete", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "Deleting…", exact: true })).toBeDisabled();

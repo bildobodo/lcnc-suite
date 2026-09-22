@@ -5936,3 +5936,34 @@ Codex UX-09 and UX-11. Plan: Fassung 4, WP-D.
   The visual references were re-baselined with the icons in place.
 - Tests: keyboard-guards "a dimmed control explains itself …" and "help is a
   tap-friendly popover …".
+
+## 2026-09-22 — Confirmation patterns (WP-E of Fassung 4): every cancelled hold speaks, the arm-and-repeat counts down, destructive targets are named
+
+Codex UX-12. Plan: Fassung 4, WP-E — the last package.
+
+- **Every cancelled hold says so at the control.** Only a short tap showed
+  "Hold to activate"; a slide-off, a drag-scroll cancel, a gate closing
+  under the finger and a selection change cancelled the hold with a console
+  line and a half-drawn fill that vanished ("sometimes it doesn't"). Each
+  path now shows its own hint through the one app-wide `btnHint`; the
+  gate case names the reason the explain path knows (`Unavailable — Machine
+  off`). Hidden page and lost window focus stay console-only — nobody is
+  looking at the control then. The touch-hold spec asserts the slide-off
+  and the gate-closed hints, which it had claimed and not checked.
+- **The contract shows before the first press.** A hold button carries
+  `title="Hold to activate"` unless the caller names the action, and a
+  thin track along its bottom edge (`Btn.vue` `.holdable::before`, beside
+  the `.holding::after` fill it runs along; inside the box, no layout
+  cost). It lives next to the fill in Btn.vue rather than style.css: only
+  Btn renders holds. The visual references were re-baselined with the
+  track on the Setup strip's hold buttons.
+- **Arm-and-repeat counts down.** The gamepad wizard's Restart armed for
+  a second press and silently expired after 3 s; the label now reads
+  "Press again to restart (3 s)" and counts down each second
+  (`aria-live="polite"`), reverting at 0.
+- **Destructive targets are named.** Clear <fixture> / Clear All stay
+  hold-to-fire (operator decision 2026-09-19, no dialog); their titles say
+  "Hold to clear G54" / "Hold to clear all fixture offsets (G54–G59.3)"
+  and Clear All's accessible name spells out the scope. The tool delete
+  dialog is titled "Delete T12?" — the target in the title, not only in
+  the body. Abort/Stop/E-Stop remain immediate.

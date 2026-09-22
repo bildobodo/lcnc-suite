@@ -158,12 +158,21 @@ function cancelHold(reason: string) {
   disarmHoldGuards();
   console.warn(`[hold] ${props.type} cancelled after ${Math.round(performance.now() - holdStartTs)} ms: ${reason} (hold ${HOLD_FIRE_MS} ms to fire)`);
 }
+// EVERY cancelled hold says so AT the control (UX-12) — a half-drawn fill
+// that vanished used to be the only sign of a slide-off or a gate that
+// closed under the finger. Hidden page / lost window focus stay console-
+// only: nobody is looking at the control then.
 const cancelHoldUp = () => {
   if (holding.value) showHint('Hold to activate');
   cancelHold("released before the hold time");
 };
-const cancelHoldLeave = () => cancelHold("pointer left the button");
-const cancelHoldCancel = () => cancelHold("pointer cancelled (drag-scroll / gesture took it)");
+const cancelHoldLeave = () => { if (holding.value) showHint('Hold to activate — stay on the button'); cancelHold("pointer left the button"); };
+const cancelHoldCancel = () => { if (holding.value) showHint('Hold to activate — the page scrolled'); cancelHold("pointer cancelled (drag-scroll / gesture took it)"); };
+// A hold button announces its contract before it is ever pressed: the
+// hover title (unless the caller names the action) and the .holdable track
+// along its bottom edge (Btn.vue) that the fill runs along.
+const resolvedTitle = computed(() =>
+  (attrs.title as string | undefined) ?? (holdEnabled.value ? 'Hold to activate' : undefined));
 
 // A hold that loses the page (tab hidden, window blur) is over: the timer
 // must not fire later as a surprise. Listeners live only for the hold.
@@ -195,6 +204,7 @@ function onHoldPointerDown(e: PointerEvent) {
     disarmHoldGuards();
     // Gate may have closed mid-hold (disarm, probe started) — re-check.
     if (isDisabled.value) {
+      showHint(disabledReason.value ? `Unavailable — ${disabledReason.value}` : 'Unavailable now');
       console.warn(`[hold] ${props.type} not fired: gate '${def.value.gate}' closed during the hold`);
       return;
     }
@@ -207,12 +217,17 @@ function onHoldPointerDown(e: PointerEvent) {
 // target changing (selection moved, UI-02) or the gate closing — even if
 // it re-opens before the timer fires — cancels it. The check at timer
 // expiry alone let a 500 ms window retarget a hold.
-watch(() => props.holdKey, () => cancelHold("target changed during the hold"));
-watch(isDisabled, (off) => { if (off) cancelHold("gate closed during the hold"); });
+watch(() => props.holdKey, () => { if (holding.value) showHint('Selection changed — hold again'); cancelHold("target changed during the hold"); });
+watch(isDisabled, (off) => {
+  if (!off || !holding.value) return;
+  showHint(disabledReason.value ? `Unavailable — ${disabledReason.value}` : 'Unavailable now');
+  cancelHold("gate closed during the hold");
+});
 
 function onHoldPointerMove(e: PointerEvent) {
   if (!holding.value) return;
   if (Math.abs(e.clientX - holdStartX) > HOLD_MOVE_SLOP || Math.abs(e.clientY - holdStartY) > HOLD_MOVE_SLOP) {
+    showHint('Hold to activate — stay on the button');
     cancelHold("moved more than the slop");
   }
 }
@@ -266,7 +281,8 @@ onBeforeUnmount(() => { clearTimeout(holdTimer); disarmHoldGuards(); });
     :flashing="flashing"
     :warning="warning"
     :holding="holding"
-    :class="holdEnabled ? 'no-drag-scroll' : undefined"
+    :title="resolvedTitle"
+    :class="holdEnabled ? 'no-drag-scroll holdable' : undefined"
     :style="holdEnabled ? { '--hold-duration': HOLD_FIRE_MS + 'ms' } : undefined"
     @pointerdown="onHoldPointerDown"
     @pointermove="onHoldPointerMove"

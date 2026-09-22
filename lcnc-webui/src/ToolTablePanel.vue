@@ -646,7 +646,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
     <!-- Delete confirm dialog -->
       <div v-if="deletingTool != null" class="dialogOverlay" @click.self="cancelDelete">
         <div class="dialog">
-          <div class="dialogTitle danger">Delete Tool</div>
+          <div class="dialogTitle danger">Delete T{{ deletingTool }}?</div>
           <div class="dialogBody">
             Remove tool <strong>T{{ deletingTool }}</strong> from the tool table?
           </div>

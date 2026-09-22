@@ -70,13 +70,25 @@ test("a short tap sends nothing and says why; a complete hold sends exactly one 
 test("sliding off, a scroll-cancel and a hidden page cancel the hold; the next hold starts from zero", async ({ page }) => {
   const cdp = await open(page);
   const p = await centre(page, "Unhome All");
-  // Slide beyond the slop.
+  // Slide beyond the slop — and the control says so (UX-12).
   await touch(cdp, "touchStart", [p]);
   await page.waitForTimeout(150);
   await touch(cdp, "touchMove", [{ x: p.x + 40, y: p.y }]);
+  await expect(page.locator("[data-btn-hint]")).toHaveText("Hold to activate — stay on the button");
   await page.waitForTimeout(500);
   await touch(cdp, "touchEnd", []);
   expect(await recorded("unhome_all")).toBe(0);
+  // The gate closes under the finger: the hint names the reason, nothing fires.
+  await touch(cdp, "touchStart", [p]);
+  await page.waitForTimeout(150);
+  await ctl({ op: "status_delta", data: { permissions: { ...PERMS_ALL, zero: false }, permission_reasons: { zero: "Machine off" } } });
+  await expect(page.locator("[data-btn-hint]")).toHaveText("Unavailable — Machine off");
+  await page.waitForTimeout(500);
+  await touch(cdp, "touchEnd", []);
+  expect(await recorded("unhome_all")).toBe(0);
+  await ctl({ op: "status_delta", data: { permissions: PERMS_ALL, permission_reasons: {} } });
+  await expect(page.getByRole("button", { name: "Unhome All", exact: true })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Unhome All", exact: true })).toHaveAttribute("title", "Hold to activate");
   // touchCancel (the browser took the gesture for a scroll).
   await touch(cdp, "touchStart", [p]);
   await page.waitForTimeout(150);

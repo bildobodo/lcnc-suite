@@ -117,11 +117,14 @@ function clearAll() {
       <div class="actions row-tight">
         <Gate gate="probe">
           <div class="row-tight">
+            <!-- Both are hold-to-fire (operator decision 2026-09-19); the title
+                 names the hold and its target, the all-fixtures scope is spelled
+                 out (UX-12). -->
             <MachineBtn type="wcsClear" :disabled="!selectedWcs" reason="Select a coordinate system first"
-                        :hold-key="selectedWcs ?? ''" @click="clearSelected">
+                        :hold-key="selectedWcs ?? ''" :title="selectedWcs ? `Hold to clear ${selectedWcs}` : undefined" @click="clearSelected">
               Clear <span class="val-slot wcsSlot">{{ selectedWcs ?? '–' }}</span>
             </MachineBtn>
-            <MachineBtn type="wcsClearAll" hold-key="all" @click="clearAll">Clear All</MachineBtn>
+            <MachineBtn type="wcsClearAll" hold-key="all" aria-label="Clear all fixture offsets (G54–G59.3)" title="Hold to clear all fixture offsets (G54–G59.3)" @click="clearAll">Clear All</MachineBtn>
           </div>
         </Gate>
       </div>
