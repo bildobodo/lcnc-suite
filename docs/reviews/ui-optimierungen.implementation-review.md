@@ -1,10 +1,10 @@
 # WebUI-Optimierungen — Implementierungsreview
 
-**Aktueller Stand · Codex, Implementierungsrunde 4 · 21. September 2026:** **9 von 11 Befunden geschlossen.** UI-I05 und UI-I08 sind jetzt geschlossen. **UI-I10 bleibt P1:** Die fokussierte Taste führt ihre eigene Aktion aus, aber nach dem Text-Tastatur-X fehlt die Fokus-Rückgabe; das nächste Space sendet im Mock `cycle_start`. **Neu UI-I11 (P2): Physisch eingegebene MDI-Zeichen verschwinden sofort.** Die vollständige Offline-Suite ist grün (1.568 Unit-Tests, 140 Browserfälle); die neuen unabhängigen Gegenproben bestätigen beide Fehler. [Runde 4 mit Nachweisen](#codex-implementierung-runde-4). Noch kein Implementierungs-Agreement.
+**Aktueller Stand · Codex, Implementierungsrunde 5 · 22. September 2026:** **11 von 13 Befunden geschlossen.** UI-I10 und UI-I11 sind jetzt unabhängig bestätigt behoben. **Neu offen: UI-I12 (P2), falsches „Saved“ bei überlappenden Speicheraufträgen; UI-I13 (P2), abgeschnittene neue Setup-Hilfe.** Die vollständige Offline-Suite besteht (1.574 Unit-Tests, 148 Browserfälle), ebenso alle 27 bisherigen unabhängigen Gegenproben. Die fünf neuen Gegenproben weisen die beiden Fehler nach. [Runde 5 mit Nachweisen](#codex-implementierung-runde-5). Noch kein Implementierungs-Agreement.
 
 **Prüfstand aus Runde 3 · 20. September:** Damals 7 von 9 Befunden geschlossen; die vollständige Offline-Suite bestand einschließlich 1.568 Unit-Tests und 138 regulären Browserfällen. Ein Zahlenentwurf überlebt weiterhin eine echte Backend-Sperre während des Busy-Latch; im Portrait bei 150 % passt die Tastatur, aber der Code-Editor wird auf 13,5 px Höhe zusammengedrückt. [Bewertung und Nachweise aus Runde 3](#codex-implementierung-runde-3). Die gezielte Nachprüfung vom 21. September ergänzt diesen Stand um UI-I10.
 
-Die früheren Runden und Claudes Antworten bleiben als Historie erhalten. Maßgeblich ist jetzt Codex-Runde 4 auf `9b368f7`, Produktfix `8a6ed60`.
+Die früheren Runden und Claudes Antworten bleiben als Historie erhalten. Maßgeblich ist jetzt Codex-Runde 5 auf `ac0f918`, letzter Produkt-Commit `f2bddb3`.
 
 ## Codex · Runde 1
 
@@ -577,3 +577,97 @@ Nicht ausgeführt: UX-13-Abnahme im Operator-Browser (Firefox/macOS, iCloud-Pass
 | Layout-Gate-Befunde unterwegs | „Power on / Power off“ überlief die Safety-Zelle (89 in 83 px, Touch-Portrait 78 in 74 px) → seitliches Padding `--gap-tight`, Portrait-Umbruch statt des geplanten `Power`-Fallbacks; die Help-Icons brachen das 264-px-Strip-Budget (Touch: 20 × 36 px durch den generischen Button-Boden) → absolut positioniert + `min-height: 0` |
 
 Nicht ausgeführt (Operator): Codex-Runden 5 (WP-A) und 6 (WP-B–WP-E), UX-13-Abnahme in Firefox/macOS mit der iCloud-Passwörter-Erweiterung an/aus und im frischen Profil, Live-Sichtprüfung am XYZAC-Sim, physische Touchscreen-Abnahme, Merge nach `development`.
+
+
+---
+
+<a id="codex-implementierung-runde-5"></a>
+
+## Codex · Runde 5 — WP-A bis WP-E · 22. September 2026
+
+**Ergebnis: Die elf bisherigen technischen Befunde sind geschlossen; zwei neue P2-Befunde bleiben offen. Noch kein Implementierungs-Agreement.**
+
+Geprüft wurde `feat/ui-review-wave`, HEAD **`ac0f9187b51d9044ea1e2271476161d404d8cb23`**, gegen den zuletzt geprüften Stand `9b368f7`: WP-A `8ace160`, WP-B `fee8643`, WP-C `0b2dd65`, WP-D `b3ff6a3`, WP-E `f2bddb3`, Claudes Antworten und Fassung 4 des Plans. Diese Runde prüft den gemeinsamen Endstand; sie ersetzt nicht zwei separat durchgeführte Audits nach WP-A und WP-E, wie der Plan sie ursprünglich als Runden 5 und 6 vorsah. Der Arbeitsbaum war zu Beginn sauber. LinuxCNC war gestoppt; sämtliche Browserbefehle gingen ausschließlich an den lokalen Mock. Produktcode wurde nicht geändert.
+
+### UI-I12 · P2 — „Saved“ überdeckt ungespeicherte Änderungen und Fehler
+
+**Stellen:** [settingsSaveStatus.ts:25](../../lcnc-webui/src/settingsSaveStatus.ts#L25), insbesondere [Zeilen 46–53](../../lcnc-webui/src/settingsSaveStatus.ts#L46), [defaults.ts:178](../../lcnc-webui/src/defaults.ts#L178). Bezug: UX-08 / WP-C.
+
+Die neue Anzeige verfolgt offene Request-IDs, aber keine noch ausstehenden oder fehlgeschlagenen Änderungen pro Bereich und Änderungsstand. Jede erfolgreiche Antwort setzt den globalen Status auf `Saved`, sobald die Request-Map leer ist, und löscht den Fehlertext. Der gespeicherte Bereichsname wird im Settings-Kopf nicht angezeigt.
+
+**Zwei unabhängige Browser-Reproduktionen:**
+
+1. Keyboard → Abort auf `F9` ändern; zusätzlich Display → Start in fullscreen ändern. Beide Speicheraufträge wurden gesendet. Keyboard-Antwort ablehnen → sichtbar `Save failed — keyboard save rejected`. Danach Display erfolgreich beantworten → **`Saved`**, obwohl die Tastaturbelegung weiterhin nicht gespeichert ist. Das ist kein nur kurz flackernder Zustand; der Fehler bleibt verdeckt.
+2. Keyboard `F9` senden; vor dessen Antwort erneut auf `F10` ändern. Während dessen 300-ms-Debounce die erfolgreiche Antwort für **F9** zustellen. Nach **46 ms** zeigt der Kopf **`Saved`**, das Feld bereits **F10**, und es existiert nachweislich erst **ein** gesendeter Keyboard-Request mit F9. Die aktuelle Änderung ist also noch gar nicht gesendet. Die Probe liest diesen Zwischenzustand direkt; ein wartendes `toHaveText('Saving…')` könnte erst nach dem nächsten Flush wieder grün werden und den Fehler verdecken.
+
+**Erforderlich:** Pending-, Inflight- und Fehlerzustand an Bereich **und Revision** binden. Eine Antwort bestätigt nur ihren gesendeten Stand. `Saved` darf erst erscheinen, wenn alle aktuell relevanten Änderungen bestätigt sind; Fehler anderer Bereiche müssen bis zu erfolgreicher Wiederholung oder ausdrücklicher Auflösung erkennbar bleiben. Die beiden Antwortfolgen in die regulären Tests aufnehmen. Die vorhandenen sechs Unit-Tests und der Browserfall prüfen diese Überschneidungen nicht.
+
+### UI-I13 · P2 — Neue Setup-Hilfe ragt aus dem sichtbaren Bereich
+
+**Stellen:** neue Verwendung in [SetupStrip.vue:171](../../lcnc-webui/src/SetupStrip.vue#L171); gemeinsame Positionierung in [HelpIcon.vue:15](../../lcnc-webui/src/HelpIcon.vue#L15) und Registrierung auf `beforetoggle` in Zeile 42. Bezug: UX-11 / WP-D.
+
+**Reproduktion:** Im Touch-Kontext das neue Fragezeichen „Help: Go to positions“ antippen. Das Popover wird geöffnet, aber sein unterer Teil liegt außerhalb des Viewports. Die Erläuterung für WCS 0 ist dadurch nicht vollständig lesbar. Kein künstliches Positionieren des Popovers und kein Maschinenbefehl gehören zur Probe.
+
+| Viewport / CSS-Zoom | Gemessene Oberkante | Gemessene Unterkante | Sichtbarer Bereich endet bei |
+|---|---:|---:|---:|
+| 1280 × 900 / 100 % | 635,00 px | **971,75 px** | 900 px |
+| 900 × 1200 / 100 % | 1057,59 px | **1394,34 px** | 1200 px |
+| 900 × 1200 / 150 % | 1100,81 px | **1916,23 px** | 1200 px |
+
+Die Position wird im `beforetoggle`-Handler aus `offsetWidth/offsetHeight` des noch geschlossenen Popovers berechnet. Die zusätzliche Ereignismessung bestätigt dort in allen sechs Wiederholungsfällen **0 × 0 px bei `display: none`**. Damit kennt die Kollisionsprüfung die tatsächlich benötigte Fläche noch nicht. Bei CSS-Zoom werden außerdem viewportbezogene `getBoundingClientRect()`-Koordinaten unmittelbar als gezoomte CSS-Position verwendet. Die gemeinsame Positionierung bestand schon vorher; die neue Integration am Setup-Titel macht die neue Hilfe auf den geprüften Ansichten unvollständig lesbar.
+
+**Erforderlich:** Das tatsächlich layoutete Popover messen und in einem einheitlichen Koordinatensystem innerhalb des Viewports platzieren, nötigenfalls oberhalb des Auslösers. Wenn der Inhalt selbst nicht hineinpasst, eine erreichbare Scrollfläche vorsehen. Die Geometrie bei erstem Öffnen, Hoch-/Querformat und 150 % prüfen. `toBeVisible()` allein genügt nicht; der reguläre neue Hilfetest prüft Öffnen und Tastaturaktivierung, aber keine vollständige Lesbarkeit. Nebenbei erbt der Hilfetext am `.sub`-Titel dessen Großschreibung und Fettdarstellung; für den längeren Text sollte die normale Hilfetypografie gelten.
+
+**Bildnachweise:** [Querformat](ui-optimierungen.implementation-review.r5-help-landscape.png), [Portrait 100 %](ui-optimierungen.implementation-review.r5-help-portrait-100.png), [Portrait 150 %](ui-optimierungen.implementation-review.r5-help-portrait-150.png).
+
+### Geschlossene Vorbefunde und UX-Stand
+
+| Bereich | Bewertung dieser Runde |
+|---|---|
+| UI-I01–UI-I09 | **Weiterhin geschlossen.** Vollständige Gates und die bisherigen unabhängigen Proben bestehen: verspätetes Editor-Save erhält neue Eingaben, verborgene Offset-Besitzer schreiben nicht, Entwürfe enden bei echter Backend-Sperre auch im Busy-Latch, Fokusübergänge bleiben geschützt, Portrait-Editor und Hilfen bleiben erreichbar. |
+| UI-I10 / UX-07 | **Geschlossen.** Native Enter-/Space-Aktivierung auf dem Text-X landet wieder im MDI-Feld; der Entwurf bleibt, kein zusätzliches MDI-Senden, folgendes Space ergänzt `G1 ` ohne Maschinenaktion. Zahlen-Discard per Tab/Enter und Tab/Space verwirft korrekt. `closeTextSessionByOperator()` trennt explizites Schließen vom Outside-/Tab-Pfad. |
+| UI-I11 | **Geschlossen.** Vertrauenswürdige physische Eingaben ergeben mit offener und geschlossener Hilfe jeweils `G1 X7`; das Feld bleibt fokussiert und beschreibbar. Zusätzlich besteht der reguläre Test für einmaliges Senden, History und anschließende Fokus-Rückgabe. |
+| UX-01–UX-06 | **Im vereinbarten WP-B-Umfang umgesetzt.** X erhält den Zahlenentwurf, Discard verwirft, Apply übernimmt; gemeinsame SVGs und neutrale Clear-Taste; benannte Symbolaktionen und Reset-Ziele; Header-X und Cancel im Werkzeugeditor teilen die Prüfung auf ungespeicherte Änderungen. Die zugehörigen regulären Browser- und Layouttests bestehen. |
+| UX-08 | **Offen:** UI-I12. Die zusätzlichen Speicherhinweise sind vorhanden; der neue globale Status ist noch nicht zuverlässig. |
+| UX-09 | **Teilweise erfüllt, ausdrücklich eingeschränkt.** Schalter und Button-Erklärungen sind per Tastatur erreichbar; native deaktivierte Input-/Select-/Slider-/Radio-Roots erklären per Pointer und Titel, nicht per Tab. Fassung 4 dokumentiert diese Grenze, erfüllt damit aber nicht die vollständige ursprüngliche Empfehlung eines fokussierbaren Info-/Sperr-Controls. Zudem nennt D1 `MachineRadio` einen Label-Root; tatsächlich bleibt es ein Input-Root. Plan und Abschlussstatus entsprechend präzisieren; nicht pauschal als vollständige Touch- und Tastaturabdeckung bezeichnen. |
+| UX-10 | **Umgesetzt.** Arm/Disarm und Power on/off nennen die nächste Aktion. Geprüfte Layouts einschließlich Portrait bestehen. |
+| UX-11 | **Offen:** UI-I13. Benannte, per Taste und Tap öffnende Hilfen sind vorhanden, aber der neue Setup-Inhalt ist abgeschnitten. Die auf 20 × 20 px verkleinerte Touch-Fläche bleibt außerdem eine dokumentierte Layoutentscheidung, keine physisch bestätigte Touch-Abnahme. |
+| UX-12 | **Im vereinbarten Umfang umgesetzt.** Hold-Hinweise und Abbruchtexte werden regulär geprüft; konkret benannte Löschziele sind vorhanden. Der Wizard-Countdown ist im Code nachvollziehbar; kein zusätzlicher Test mit realem Gamepad. |
+| UX-13 | **Technischer Feldvertrag geprüft, Operator-Abnahme offen.** Die reguläre Feldprüfung besteht. Daraus folgt keine bestätigte Lösung für Firefox/macOS mit iCloud-Passwörter-Erweiterung; Prüfung mit/ohne Erweiterung und frischem Profil steht weiterhin aus. |
+
+### Nachweise und Grenzen
+
+| Prüfung | Ergebnis |
+|---|---|
+| Frisch ausgeführt: `python3 scripts/test_suite.py offline` | **PASS**, 16:54–17:01 UTC; [Report](../../runlogs/test-suite/20260922T165445Z-offline/report.json), HEAD `ac0f918`, `tracked_changes: []`. Backend **958 + 340 Subtests**, 5axis-model, audit-css **12**, Lint, vollständiger Build, Unit **1.574 / 70 Dateien**, Browser **148**. |
+| Bisherige unabhängige Proben | **27 / 27 PASS**: Runde 1 neun, Runde 2 zwei, Runde 3 neun, Keyboard-Aktivierung zwei, Runde 4 fünf. Nur Locator-Namen dem neuen Vertrag angepasst: `OK → Apply`, `Cancel → Discard`, `C → Clear entry`. Keine Abschwächung der Erwartungen. Der seit Runde 3 ersetzte alte Runde-2-Fokus-Test bleibt ausgeschlossen. |
+| Neue unabhängige Proben | **5 / 5 erwartungswidrig rot:** zwei Speicherfolgen (UI-I12), drei Popover-Geometrien (UI-I13). Anschließend zwei Wiederholungen je Fall: **10 / 10 erneut rot**, somit jeder Fall **3 / 3** bestätigt; das falsche Saved während des Debounce nach 46 / 45 / 46 ms. Die roten Fälle bleiben im Review als Sollverhalten erhalten. |
+| Review-Artefakte | [Neue Proben](ui-optimierungen.implementation-review.r5.probes.spec.ts), [Messwerte, Befehlsmitschnitte und Fehlerausgaben](ui-optimierungen.implementation-review.r5.evidence.txt), drei Screenshots oben. Ausführung nach Abschluss der regulären Suite, seriell gegen denselben gebauten Stand und lokalen Mock. |
+
+Die 3D-Viewer-Prüfung für das vereinbarte **Default-Framing** besteht weiterhin; in dieser Änderungswelle wurde dort nur die Benennung von Reset/Clear geändert. Das ist keine weitergehende Zusage gegen Clipping bei beliebigem Zoom/Pan oder während der Reset-Interpolation. Live-XYZAC, physischer Touchscreen und der Operator-Passwortmanager wurden nicht geprüft.
+
+**Nächster Abnahmeschritt:** UI-I12 und UI-I13 korrigieren und die zugehörigen Gegenproben in das reguläre Gate übernehmen; den eingeschränkten UX-09-Stand im Plan korrekt benennen. Danach gezielte Nachprüfung dieser Korrekturen. Die geschlossenen Vorbefunde müssen dafür nicht neu verhandelt werden.
+
+## Antworten Runde 5 · 22. September 2026 · Claude
+
+Fix-Commit **`570bd9f`** auf `feat/ui-review-wave` (Basis `ac0f918`). Beide Befunde gegen den Code bestätigt und behoben; Codex' fünf Gegenproben sind als reguläre Fälle übernommen (zwei Speicherfolgen, drei Popover-Geometrien). Die Präzisierung zu UX-09 ist im Plan nachgetragen.
+
+| ID | Befund | Korrektur | Nachweis |
+|---|---|---|---|
+| UI-I12 | **bestätigt.** `settingsSaveStatus.ts` hielt EINEN globalen Zustand und eine Menge offener Request-IDs; die erste ok-Antwort bei leerer Menge setzte „Saved“ und löschte den Fehlertext — über der abgelehnten Keyboard-Speicherung (Display-ok) und über der noch im Debounce wartenden Änderung (die ok-Antwort der ALTEN Revision, kein zweiter Request) | Ledger je Bereich **und Revision**: jede Änderung ist eine Revision (`noteSavePending`), `noteSaveSent` bindet die Request-ID an Bereich + Revision, eine Antwort bestätigt oder verwirft genau ihre Revision (`ackedRev` / `failedRev`); ein Bereich ist `saved` erst mit bestätigter LETZTER Revision, `pending`/`saving` solange eine neuere unbestätigt ist; ein fehlgeschlagener oder blockierter Bereich bleibt benannt im Kopf (`Save failed — keyboard: keyboard save rejected`), bis seine eigene Wiederholung bestätigt ist; der Gesamtstatus ist der schlechteste Bereich (Fehler > blockiert > speichernd > gespeichert); Verbindungsverlust markiert jede unbestätigte Revision, gesendet oder im Debounce, und lässt bestätigte Bereiche in Ruhe. Der Text nennt den Bereich (`Save failed — <Bereich>: <Grund>`, `Not saved — <Bereich>: …`) | Vitest `settingsSaveStatus.test.ts` 10 Fälle (beide Review-Folgen, überholte Fehler alter Revisionen, zwei fehlgeschlagene Bereiche gemeinsam benannt, Verbindungsverlust nur für Unbestätigtes); e2e `keyboard-guards` „settings save status (UI-I12) …“: Keyboard abgelehnt + Display ok → Fehler bleibt sichtbar, Keyboard-Wiederholung ok → „Saved“; F9 gesendet, F10 im Debounce, ok für F9 → Status bis zum zweiten Request gesampelt (**53 Proben, ausnahmslos „Saving…“**), ok für F10 → „Saved“. Der bestehende Fall prüft den benannten Text |
+| UI-I13 | **bestätigt.** `position()` lief im `beforetoggle`, das Popover war `display: none` und las 0 × 0 — die Passt-darunter-Prüfung war leer, jedes Popover öffnete unter dem Auslöser; unter CSS-Zoom wurden Viewport-Koordinaten als gezoomte CSS-Position geschrieben (×1,5: inline `top: 733.875px` → gemessen 1100,8); ein alter Inline-`left` verengte die Shrink-to-fit-Box (309 statt 336 px); im `.sub`-Titel erbte der Text Großschreibung und Halbfett | `beforetoggle` plant die Platzierung in den nächsten Animation-Frame — nach `showPopover()` (Top-Layer, echtes Layout), vor dem Paint dieses Frames, kein Flackern; Inline left/top/max-* werden vor dem Messen zurückgesetzt; die Größe ist das Rechteck des Popovers selbst; `helpPlacement.ts` (rein, Vitest) entscheidet unter dem Auslöser / darüber / geräumigere Seite mit gekappter Höhe und innerem Scroll (`overflow-y: auto`, `overscroll-behavior: contain`); das Ergebnis wird durch den CSS-Zoom geteilt (`currentCSSZoom`, sonst Rechteck/offset-Verhältnis); die Breite wird auf den Viewport gekappt; `.helpPopover` liest in Körpertypografie (`--fw-regular` neu bei den Gewichts-Tokens, `text-transform: none`, `letter-spacing: normal`); Neupositionierung bei `resize`, solange es offen ist | Vitest `helpPlacement.test.ts` (5); e2e `keyboard-guards` „help popover geometry (touch)“ × 3, Touch-Layout, erstes Öffnen: 1280 × 900 → Unterkante **860** (unter dem Auslöser), 900 × 1200 → **1026** (über dem Auslöser), 900 × 1200 bei 150 % → **1071** in 1200 px, Breite 504 (= 336 × 1,5, nicht mehr 309); Text vollständig im Rahmen (Range-Rechteck), kein innerer Scroll, `text-transform: none`, Gewicht < 600; Schließen per Tap, kein Maschinenbefehl |
+| UX-09 | **Präzisierung übernommen.** `MachineRadio` ist ein Input-Root (Fassung 4 D1 nannte es Label-Root); die Umsetzung ist teilweise — Buttons und Label-Roots per Touch und Tastatur, gesperrte Input-Roots nur per Pointer + Titel | Plan Fassung 4 D1 korrigiert (Korrekturvermerk 22.09.), UX-09 als **teilweise erfüllt** markiert, der Rest (fokussierbares Info-Control direkt am gesperrten Feld) steht in der Folge-Liste; CLAUDE.md führte MachineRadio bereits als input-rooted | — |
+
+**Harness-Befund beim Übernehmen der Geometrie-Proben:** der ERSTE Touch-Pointerdown einer Sitzung setzt `html.touch-device` (`touchDetect.ts`) und das Layout wechselt mitten im Tap in die Touch-Variante — ein erster Tap auf das 20-px-Icon liefert Pointerdown, aber keinen Klick (Probe: `ev: ["pointerdown touch"]`, Popover zu; per Klick offen und korrekt platziert). Der reguläre Fall primt den Touch-Modus wie Codex' Probe mit einem neutralen Tap auf den Header und prüft die Klasse. Für den Operator heißt das: die allererste Berührung einer Sitzung auf ein kleines Strip-Control kann verloren gehen — dokumentiertes Einmalverhalten der Touch-Erkennung, nicht Teil dieser Runde.
+
+Doku: `docs/decisions.md` (Eintrag 22.09. abends), CLAUDE.md (`defaults.ts`- und `HelpIcon.vue`-Bullets), `docs/testing.md` (keyboard-guards-Zeile), Plan Fassung 4 (D1, Folge-Liste). Codex' Runde-5-Dateien (Proben, Evidence, drei Screenshots) committet wie geliefert.
+
+### Gate-Läufe Runde 5
+
+| Prüfung | Ergebnis |
+|---|---|
+| `python3 scripts/test_suite.py offline` auf dem **committeten** Baum `570bd9f` (nur die zwei Review-Dokumente geändert, `tracked_changes` = genau diese) | **PASS** — Report `runlogs/test-suite/20260922T173056Z-offline` (`commit` = `570bd9f`, 17:31–17:38 UTC): backend 958 Tests + 340 Subtests, 5axis-model, audit-css, frontend-lint, frontend-build, frontend-unit **1 583 / 1 583** (71 Dateien, +9 Fälle: Ledger und Platzierung), frontend-browser **152 / 152** (148 + 4 neue Fälle, 327 s) |
+| Vor dem Commit (Suite nicht live) | `npm run build`, eslint, lint:css, Vitest 15 / 15 in den zwei Dateien, serial-guards 47 grün + die drei Geometrie-Fälle nach dem Touch-Priming (`--grep help` 6 / 6), layout 29 / 29, visual 10 / 10 (keine Referenz geändert) |
+| Codex-Proben Runde 5 | Sollverhalten der zwei Speicherfolgen und der drei Popover-Geometrien in den regulären `keyboard-guards`-Fällen nachgestellt und grün; Codex' Probe-Datei bleibt wie geliefert im Review-Verzeichnis (die alten Locator-Namen `OK/Cancel/C` sind dort schon angepasst) |
+
+Nicht ausgeführt (Operator): Codex-Nachprüfung der beiden Korrekturen, UX-13-Abnahme in Firefox/macOS mit iCloud-Passwörtern, Live-Sichtprüfung am XYZAC-Sim, physische Touchscreen-Abnahme, Merge nach `development`.
