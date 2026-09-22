@@ -5892,3 +5892,47 @@ Fassung 4, WP-C.
 - Tests: vitest `settingsSaveStatus.test.ts` (six transitions incl. two
   sections in flight, a foreign reply, connection loss), e2e in
   keyboard-guards with the mock's correlated replies.
+
+## 2026-09-21 late — Explanations reachable (WP-D of Fassung 4): one explain path for every control, help as a popover
+
+Codex UX-09 and UX-11. Plan: Fassung 4, WP-D.
+
+- **One explanation path.** MachineBtn explained a dimmed button (U-06 /
+  R-05: a `.btnTip` wrapper with title, tap and Enter/Space into the message
+  center); the five form controls only set `disabled`, and JogStrip and
+  SetupStrip hand-rolled the same pattern on two labels. `gateExplain.ts`
+  holds the rule once — the caller's reason while it disables the control,
+  else the gate's from the reason map, offered only while armed — and every
+  control uses it. Label-rooted controls (MachineToggle, the Plane radio's
+  label) carry the affordance on their root; input-rooted controls
+  (MachineInput, MachineSelect, MachineSlider, MachineRadio) must stay
+  single-root (a wrapper would move `.mdiInput` / `input.setupInput` off the
+  input) and cannot be focused while disabled — they explain on
+  `pointerdown` and carry the reason as their title. Chromium ≥ 116 and
+  Firefox ≥ 105 deliver pointer events to disabled form controls (the test
+  taps the disabled MDI line with a real pointer); keyboard reach for a
+  disabled input and Safari are the documented limits. A control's OWN gate
+  is what it explains: the Spindle strip's `ready` fieldset dims the coolant
+  toggle, but the toggle's reason is its `override` gate's — the test caught
+  the difference.
+- **Help is a popover, not a hover title.** `HelpIcon` gains `label`
+  (`Help: Kinematics frame`, `Help: Go to positions` — a page with several
+  helps no longer reads "Show help" repeatedly). The Kinematics-frame
+  explanation moved from a 300-character title on a span into a popover
+  with the three frames; the radios keep one-line titles. The three Go-to
+  destinations are explained on the Setup section title — the action row is
+  a three-cell grid with no room for a fourth element — and the buttons
+  keep their titles as hover complements. Escape while a popover is open is
+  E-Stop (capture) and closes it; expected, no registration needed.
+- **The icon sits out of the flow, and it is 20 px on touch.** A help icon
+  in a strip title costs height the 264 px section budget does not have:
+  the touchoff geometry probe and the layout gate caught the Setup rows
+  pushed out of the section. The icon is absolutely positioned at the
+  title's right edge (top-anchored; centred it overhung the section edge)
+  — and the probe found the touch icon 20 × 36: the generic touch button
+  floor (`min-height: 36px`) overrode the declared 20 px square, so the
+  icon reached 11.5 px into the first axis row. The touch rule now resets
+  the floor; every HelpIcon on touch is the 20 px it was declared to be.
+  The visual references were re-baselined with the icons in place.
+- Tests: keyboard-guards "a dimmed control explains itself …" and "help is a
+  tap-friendly popover …".

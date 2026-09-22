@@ -666,6 +666,10 @@ html.touch-device input[type="color"] {
 html.touch-device .helpIcon {
   width: 20px;
   height: 20px;
+  /* The generic touch button floor (min-height 36px) made this 20 × 36:
+     top-anchored beside a 16.5 px strip title it reached the next row
+     (layout gate, UX-11). The declared 20 px square is the size. */
+  min-height: 0;
 }
 
 /* Range inputs: the track stays a 6px bar, but the element grows to a

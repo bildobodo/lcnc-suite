@@ -5,6 +5,7 @@ import { INPUT_DEFS, INPUT_SIZE_STYLES, type InputType, type InputDef } from './
 import { openKeypad, keypadState, closeKeypadIf, newKeypadOwnerId } from './useNumberKeypad';
 import { openTextSession, closeTextSessionIf, returnFocusTo, inputSession, dropDraft, showInputGlyph, hideInputGlyph, placeInputGlyph, type TextTarget } from './inputSession';
 import { isTouchDevice } from './touchDetect';
+import { useGateExplain } from './gateExplain';
 import { connected } from './lcncWs';
 import type { EntryConstraints } from './mathEval';
 
@@ -36,6 +37,11 @@ const ownerCan = useOwnerPermissions();
 const def = computed((): InputDef => INPUT_DEFS[props.gate]);
 const isDisabled = computed(() => !can.value[def.value.gate] || props.disabled);
 const isNumber = computed(() => attrs.type === 'number');
+// Why it is dimmed (UX-09): input-rooted, so the reason rides the title and
+// a pointerdown (gateExplain.ts) — a disabled input cannot be focused.
+const { active: explainActive, reason: explainReason, explain } =
+  useGateExplain({ gate: () => def.value.gate, disabled: () => isDisabled.value });
+const fieldTitle = computed(() => (explainActive.value ? explainReason.value : (attrs.title as string | undefined)));
 
 const catalogStyle = computed(() => {
   const d = def.value;
@@ -243,6 +249,8 @@ defineExpose({ inputElement: () => textEl.value ?? inputEl.value });
     class="inputField"
     :class="{ 'keypad-active': isKeypadActive }"
     :data-input-area="ownerId"
+    :title="fieldTitle"
+    @pointerdown="explain"
     @click="openKeypadFromInput"
     @keydown.enter.prevent="openKeypadFromInput"
     @keydown.space.prevent="openKeypadFromInput"
@@ -267,6 +275,8 @@ defineExpose({ inputElement: () => textEl.value ?? inputEl.value });
     class="inputField"
     :class="{ 'keypad-active': isTextActive }"
     :data-input-area="ownerId"
+    :title="fieldTitle"
+    @pointerdown="explain"
     @input="onNativeInput"
     @click="onTextClick"
     @focus="onTextFocus"

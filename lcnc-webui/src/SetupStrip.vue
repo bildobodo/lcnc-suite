@@ -3,6 +3,7 @@ import { computed, inject, ref, watch, type Ref } from "vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineRadio from "./MachineRadio.vue";
+import HelpIcon from "./HelpIcon.vue";
 import { useAxes, isRotaryAxis } from "./useAxes";
 import { kinsModeChip, type OffDatum } from "./twpPose";
 import { touchoffTargetLabel, type TouchoffExpect } from "./useTouchoffMath";
@@ -164,7 +165,14 @@ function zeroAll() {
 
 <template>
   <div class="stripSection" ref="rootEl">
-    <div class="sub">Setup</div>
+    <!-- The Go-to destinations are explained by a tap-friendly help on the
+         section title (UX-11): the action row is a three-cell grid with no
+         room for a fourth element; the buttons keep their titles. -->
+    <div class="sub sectionHelp">Setup <HelpIcon label="Go to positions">
+      <strong>Go to G30</strong> — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only.
+      <br><strong>Go to MCS 0</strong> — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only.
+      <br><strong>Go to WCS 0</strong> — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available.
+    </HelpIcon></div>
     <div class="setupContent row-sections">
       <div class="setupControls stack-tight">
         <div class="axisGrids row-controls">
@@ -264,6 +272,14 @@ function zeroAll() {
 .setupInput { width: 100%; }
 /* Three equal cells across the whole grid (layout only): the goto row and
    the TWP action row are structurally identical. */
+/* The section help sits at the title's right edge OUT of the flow (UX-11):
+   the touch-sized icon (20 px) in a 16.5 px title row would push every row
+   below it out of the 264 px section budget — the touchoff geometry probe
+   and the layout gate caught it. Anchored to the title's TOP: centred it
+   overhung the section edge / the first axis row by 1.75 px; the 8 px gap
+   below the title absorbs the touch icon's extra 3.5 px. Layout only. */
+.sectionHelp { position: relative; }
+.sectionHelp :deep(.helpIcon) { position: absolute; right: 0; top: 0; }
 .actionRow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap-controls); }
 .aggregateRow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 /* Portrait has less width: destination labels wrap instead of clipping or

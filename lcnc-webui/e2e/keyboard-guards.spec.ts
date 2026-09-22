@@ -391,6 +391,63 @@ test("tool editor: header X and footer Cancel close an unchanged form at once an
   expectNoMachineAction(await recordedCmds());
 });
 
+test("a dimmed control explains itself: the MDI line on a tap, a coolant toggle on Tab + Enter; Space on either never starts the program", async ({ page }) => {
+  // UX-09: the one explanation path (gateExplain.ts) for every control, not
+  // only MachineBtn — input-rooted controls on pointerdown, label-rooted
+  // ones on tap and Enter/Space; the reason lands in the message center.
+  await openReady(page);
+  await ctl({ op: "status_delta", data: {
+    permissions: { ...PERMS_ALL, ready: false, run: false, override: false },
+    permission_reasons: { ready: "Home all axes first", run: "Home all axes first", override: "Machine off" },
+  } });
+  await page.getByRole("button", { name: "MDI", exact: true }).click();
+  const mdi = page.locator(".mdiInput");
+  await expect(mdi).toBeDisabled();
+  await expect(mdi).toHaveAttribute("title", "Home all axes first");
+  await ctl({ op: "clearCmds" });
+  await mdi.click({ force: true });   // a real pointerdown on the disabled line
+  const messagesBtn = page.getByRole("button", { name: /^Messages \(/ });
+  await messagesBtn.click();
+  const messages = page.locator(".dialogOverlay").last();
+  await expect(messages.getByText("Home all axes first").first()).toBeVisible();
+  await messages.getByRole("button", { name: "Close messages", exact: true }).click();
+  await expect(page.locator(".dialogOverlay")).toHaveCount(0);
+  // The Flood toggle (its OWN gate, override, closed with a reason — the
+  // Spindle Gate's fieldset cascade alone is not the toggle's reason): its
+  // label is a focusable affordance that says why; Enter explains, Space
+  // explains and is swallowed before the shortcut map.
+  const flood = page.locator(".toggleRow").filter({ hasText: "Flood" });
+  await expect(flood).toHaveAttribute("role", "button");
+  await expect(flood).toHaveAttribute("aria-label", "Why is this unavailable? Machine off");
+  await flood.focus();
+  await page.keyboard.press("Enter");
+  await page.keyboard.press(" ");
+  await settle(page);
+  expectNoMachineAction(await recordedCmds());
+  await messagesBtn.click();
+  await expect(page.locator(".dialogOverlay").last().getByText("Machine off")).toHaveCount(2);
+});
+
+test("help is a tap-friendly popover: the Setup help opens by click and by keyboard and never reaches the machine", async ({ page }) => {
+  // UX-11: explanations live in HelpIcon popovers named for their topic,
+  // not in hover titles a touch operator cannot reach.
+  await openReady(page);
+  const help = page.getByRole("button", { name: "Help: Go to positions", exact: true });
+  await help.click();
+  const popover = page.locator(".helpPopover").filter({ hasText: "Go to G30" });
+  await expect(popover).toBeVisible();
+  await help.click();
+  await expect(popover).toBeHidden();
+  await help.focus();
+  await ctl({ op: "clearCmds" });
+  await page.keyboard.press(" ");
+  await expect(popover).toBeVisible();
+  await page.keyboard.press("Enter");
+  await expect(popover).toBeHidden();
+  await settle(page);
+  expectNoMachineAction(await recordedCmds());
+});
+
 test("documented remainder: Tab leaves the dialog (no focus trap in this wave)", async ({ page }) => {
   await openReady(page);
   await page.getByRole("button", { name: "Tools", exact: true }).click();

@@ -2,10 +2,9 @@
 import { computed, inject, onBeforeUnmount, ref, useAttrs, useSlots, watch, type ComputedRef, type Ref, type StyleValue } from 'vue';
 import Btn from './Btn.vue';
 import { Square } from 'lucide-vue-next';
-import { usePermissions, usePermissionReasons, explainKeydown } from './permissions';
+import { usePermissions } from './permissions';
+import { useGateExplain } from './gateExplain';
 import { BUTTON_TYPES, HOLD_FIRE_MS, type ButtonType, type ButtonDef } from './machineControls';
-import { armed, pushMessage } from './lcncWs';
-import { OPERATOR_DISPLAY } from './lcnc';
 import { showBtnHint } from './btnHint';
 
 defineOptions({ inheritAttrs: false });
@@ -45,7 +44,6 @@ const props = withDefaults(defineProps<{
 
 const slots = useSlots();
 const can = usePermissions();
-const reasons = usePermissionReasons();
 // Provided by App.vue. Tests/standalone use of MachineBtn falls back to a
 // dummy ref so the inject doesn't throw — `whileProbing` simply has no
 // effect when no provider exists.
@@ -68,12 +66,16 @@ const useAbortDefault = computed(() => (props.type === 'abort' || props.type ===
 // in the message center. Not while disarmed: the whole UI is dimmed then and
 // Arm is the one obvious next step — wrapping every control for that would
 // be noise, not help.
-const disabledReason = computed<string | undefined>(() =>
-  props.disabled ? (props.reason ?? reasons.value[def.value.gate]) : reasons.value[def.value.gate]);
-const wrapped = computed(() => isDisabled.value && !!disabledReason.value && armed.value);
-function explain() {
-  if (wrapped.value && disabledReason.value) pushMessage(OPERATOR_DISPLAY, disabledReason.value);
-}
+// The rule lives in gateExplain.ts (UX-09) — the same one the input,
+// select, slider, toggle and radio controls use.
+const gateExplain = useGateExplain({
+  gate: () => def.value.gate,
+  disabled: () => isDisabled.value,
+  reason: () => (props.disabled ? props.reason : undefined),
+});
+const disabledReason = gateExplain.reason;
+const wrapped = gateExplain.active;
+const explain = gateExplain.explain;
 // R-05 (implementation review 2026-09-15): the wrapper carried the reason on
 // hover and on tap, which leaves a keyboard user tabbing straight past a
 // disabled control AND its explanation. While wrapped it is a focusable help
@@ -82,8 +84,7 @@ function explain() {
 // machine action remains unreachable; the wrapper appears only while the
 // control is disabled WITH a reason, so an enabled strip's tab order is
 // unchanged.
-const explainLabel = computed(() =>
-  disabledReason.value ? `Why is this unavailable? ${disabledReason.value}` : undefined);
+const explainLabel = gateExplain.label;
 const resolvedVariant = computed(() => props.variant ?? def.value.variant);
 const resolvedIcon = computed(() => props.icon ?? def.value.icon);
 const resolvedMuted = computed(() => props.muted ?? def.value.muted);
@@ -227,7 +228,7 @@ onBeforeUnmount(() => { clearTimeout(holdTimer); disarmHoldGuards(); });
 <template>
   <span v-if="wrapped" class="btnTip" :class="[wrapperAttrs.class, { 'btnTip--block': block }]" :style="wrapperAttrs.style"
         role="button" tabindex="0" :aria-label="explainLabel" :title="disabledReason"
-        @click="explain" @keydown="(e: KeyboardEvent) => explainKeydown(e, explain)">
+        @click="explain" @keydown="gateExplain.onKeydown">
     <Btn
       ref="btnRef"
       v-bind="passAttrs"

@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { usePermissions } from './permissions';
 import { INPUT_DEFS, INPUT_SIZE_STYLES, type InputType, type InputDef } from './machineControls';
+import { useGateExplain } from './gateExplain';
 
 // Match the other Machine* wrappers: bind $attrs explicitly on <select> rather
 // than letting Vue also fall them through to the root (which would double-bind).
@@ -16,6 +17,9 @@ const model = defineModel<string | number>();
 const can = usePermissions();
 const def = computed((): InputDef => INPUT_DEFS[props.gate]);
 const isDisabled = computed(() => !can.value[def.value.gate] || props.disabled);
+// Input-rooted: the reason on hover and on pointerdown (UX-09, gateExplain.ts).
+const { active: explainActive, reason: explainReason, explain } =
+  useGateExplain({ gate: () => def.value.gate, disabled: () => isDisabled.value });
 
 const catalogStyle = computed(() => {
   const d = def.value;
@@ -26,7 +30,8 @@ const catalogStyle = computed(() => {
 </script>
 
 <template>
-  <select v-bind="$attrs" v-model="model" :style="catalogStyle" :disabled="isDisabled" class="inputField">
+  <select v-bind="$attrs" v-model="model" :style="catalogStyle" :disabled="isDisabled" class="inputField"
+          :title="explainActive ? explainReason : ($attrs.title as string | undefined)" @pointerdown="explain">
     <slot />
   </select>
 </template>

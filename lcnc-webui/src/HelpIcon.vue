@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { useId, ref, onMounted, onBeforeUnmount } from 'vue'
 
+// The one tap-friendly help pattern (UX-11): a popover on a focusable
+// button, named for its topic so a page with several helps reads as
+// "Help: Kinematics frame", not "Show help" five times.
+defineProps<{ label?: string }>()
+
 const id = `hp-${useId()}`
 const btn = ref<HTMLButtonElement | null>(null)
 const pop = ref<HTMLDivElement | null>(null)
@@ -47,7 +52,8 @@ onBeforeUnmount(() => {
     type="button"
     class="helpIcon"
     :popovertarget="id"
-    aria-label="Show help"
+    :aria-label="label ? `Help: ${label}` : 'Show help'"
+    :title="label ? `Help: ${label}` : 'Show help'"
   >?</button>
   <div ref="pop" :id="id" popover="auto" class="helpPopover">
     <slot />
