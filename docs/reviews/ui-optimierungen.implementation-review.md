@@ -1,10 +1,10 @@
 # WebUI-Optimierungen — Implementierungsreview
 
-**Aktueller Stand · Codex, Implementierungsrunde 5 · 22. September 2026:** **11 von 13 Befunden geschlossen.** UI-I10 und UI-I11 sind jetzt unabhängig bestätigt behoben. **Neu offen: UI-I12 (P2), falsches „Saved“ bei überlappenden Speicheraufträgen; UI-I13 (P2), abgeschnittene neue Setup-Hilfe.** Die vollständige Offline-Suite besteht (1.574 Unit-Tests, 148 Browserfälle), ebenso alle 27 bisherigen unabhängigen Gegenproben. Die fünf neuen Gegenproben weisen die beiden Fehler nach. [Runde 5 mit Nachweisen](#codex-implementierung-runde-5). Noch kein Implementierungs-Agreement.
+**Aktueller Stand · Codex, Implementierungsrunde 6 · 22. September 2026:** **12 von 13 Befunden geschlossen.** Alle fünf Gegenproben aus Runde 5 bestehen jetzt jeweils dreimal; **UI-I13 ist geschlossen**. **UI-I12 bleibt teilweise offen (P2):** Der Speicherpfad beim Verbergen der Seite lässt den Status trotz erfolgreicher Speicherung dauerhaft bei „Saving…“. Der frische Offline-Lauf hatte außerdem einen Fehler beim erneuten Antippen der Hilfe; isoliert bestand dieser Test 3/3. [Runde 6 mit Nachweisen](#codex-implementierung-runde-6). Noch kein Implementierungs-Agreement.
 
 **Prüfstand aus Runde 3 · 20. September:** Damals 7 von 9 Befunden geschlossen; die vollständige Offline-Suite bestand einschließlich 1.568 Unit-Tests und 138 regulären Browserfällen. Ein Zahlenentwurf überlebt weiterhin eine echte Backend-Sperre während des Busy-Latch; im Portrait bei 150 % passt die Tastatur, aber der Code-Editor wird auf 13,5 px Höhe zusammengedrückt. [Bewertung und Nachweise aus Runde 3](#codex-implementierung-runde-3). Die gezielte Nachprüfung vom 21. September ergänzt diesen Stand um UI-I10.
 
-Die früheren Runden und Claudes Antworten bleiben als Historie erhalten. Maßgeblich ist jetzt Codex-Runde 5 auf `ac0f918`, letzter Produkt-Commit `f2bddb3`.
+Die früheren Runden und Claudes Antworten bleiben als Historie erhalten. Maßgeblich ist jetzt Codex-Runde 6 auf `7f50dd1`, Produktfix `570bd9f`.
 
 ## Codex · Runde 1
 
@@ -671,3 +671,79 @@ Doku: `docs/decisions.md` (Eintrag 22.09. abends), CLAUDE.md (`defaults.ts`- und
 | Codex-Proben Runde 5 | Sollverhalten der zwei Speicherfolgen und der drei Popover-Geometrien in den regulären `keyboard-guards`-Fällen nachgestellt und grün; Codex' Probe-Datei bleibt wie geliefert im Review-Verzeichnis (die alten Locator-Namen `OK/Cancel/C` sind dort schon angepasst) |
 
 Nicht ausgeführt (Operator): Codex-Nachprüfung der beiden Korrekturen, UX-13-Abnahme in Firefox/macOS mit iCloud-Passwörtern, Live-Sichtprüfung am XYZAC-Sim, physische Touchscreen-Abnahme, Merge nach `development`.
+
+
+---
+
+<a id="codex-implementierung-runde-6"></a>
+
+## Codex · Runde 6 — Speicherstatus und Hilfe · 22. September 2026
+
+**Ergebnis: 12 von 13 technischen Befunden geschlossen; UI-I12 bleibt mit einem weiteren Speicherpfad teilweise offen.** Die zwei konkreten Speicherfolgen und alle drei Popover-Geometrien aus Runde 5 bestehen unverändert jeweils **3/3**. Keine neue Review-ID. UX-09 ist im Plan jetzt zutreffend als teilweise erfüllt dokumentiert.
+
+Prüfstand: `feat/ui-review-wave`, HEAD **`7f50dd1874a8787ae9766e22802586861812646c`**, Produktfix **`570bd9f`**, Vergleich gegen `ac0f918`. Geprüft wurden auch Claudes Antworten, die neuen regulären Tests und die Planpräzisierung. Arbeitsbaum zu Beginn sauber; LinuxCNC gestoppt. Keine Produktänderung, kein Commit/Merge, keine realen Maschinenbefehle.
+
+### UI-I12 · P2 · Rest — Seitenwechsel-Speicherung beendet ihren Status nicht
+
+**Stellen:** [settingsSaveStatus.ts:57](../../lcnc-webui/src/settingsSaveStatus.ts#L57), [defaults.ts:129](../../lcnc-webui/src/defaults.ts#L129), [lcncWs.ts:307](../../lcnc-webui/src/lcncWs.ts#L307).
+
+Die neue Verwaltung je Bereich und Revision behebt beide alten WS-Befunde korrekt: Display-Erfolg verdeckt keinen Keyboard-Fehler mehr; eine alte F9-Antwort bestätigt keine noch wartende F10-Änderung. Es fehlt aber die Verbindung zum bereits vorhandenen **`visibilitychange → flushPendingSaves → sendBeacon`**-Pfad.
+
+Wird die Seite innerhalb des 300-ms-Debounce verborgen, sendet dieser Pfad die Daten per HTTP und entfernt den ausstehenden Timer. Die Revision bleibt in der neuen Statusverwaltung `pending`: kein `noteSaveSent`, keine korrelierte WS-Antwort. Auch der spätere vollständige Serverstand aus `settings_changed` aktualisiert nur den Cache, nicht den Speicherstatus. Somit bleibt **„Saving…“ ohne noch ausstehenden Speicherauftrag**, bis derselbe Bereich erneut über den regulären WS-Pfad gespeichert wird oder die Seite neu geladen wird. Das ist ein Rest der Statusintegration, kein belegter Datenverlust.
+
+**Browser-Integrationsprobe, 3/3 bestätigt:** Keyboard-Abort auf F9 ändern → vor dem Debounce den Hidden/Visible-Lebenszyklus simulieren → tatsächliches `navigator.sendBeacon` sendet `/settings/keyboard` mit F9 → HTTP 200 und passender vollständiger `settings_changed`-Snapshot → nach 650 ms weiterhin **`Saving…`**, Feld **F9**, **kein** Keyboard-WS-Speicherauftrag. Der Backend-Code bestätigt diesen Transportweg und den anschließenden vollständigen Broadcast (`gateway.py:8257`, `:7505`).
+
+**Prüfgrenze:** Nur Sichtbarkeitszustand und `visibilitychange` wurden in dieser Probe ausdrücklich simuliert; Headless-Chromium hielt die ausprobierten Tabs sichtbar. Produktions-Listener, Timer, Beacon und Verarbeitung des Serverstands liefen unverändert; HTTP und Gateway-Broadcast kamen aus dem Mock. Dies ist keine Behauptung eines bereits ausgeführten physischen Browser-Tabwechsels.
+
+**Erforderlich:** Den alternativen Speicherpfad in die Statusverwaltung einbeziehen. Nach einer Beacon-Übergabe darf kein nie mehr sendbarer Debounce als laufendes Speichern hängen bleiben. Den bestätigten Serverstand bei Rückkehr abgleichen oder einen bestätigbaren Abschluss für diesen Transport schaffen; bis dahin einen zutreffenden unbestätigten Zustand anzeigen. `sendBeacon() === true` allein bestätigt keine erfolgreiche Speicherung. Den Lifecycle-Fall in die regulären Integrationstests aufnehmen.
+
+### UI-I13 · Geschlossen — Geometrie und Lesbarkeit korrigiert
+
+Die unveränderten drei Runde-5-Proben bestehen jeweils **3/3**. Die neue Platzierung misst das tatsächlich geöffnete Popover, rechnet CSS-Zoom korrekt um und setzt normale Textdarstellung. Gemessene Unterkanten im regulären Lauf: **860,19 / 1025,59 / 1070,86 px** für 1280 × 900 bei 100 %, 900 × 1200 bei 100 % und bei 150 %. Der gesamte Text passt. Die zusätzliche Probe für Größenwechsel 900 × 1200 → 900 × 700 → 1280 × 700 → 900 × 1200 und erneutes Öffnen besteht ebenfalls **3/3**.
+
+**Separater Gate-Hinweis:** Im frischen Gesamtlauf scheiterte der reguläre 150-%-Fall **erst beim Schließen durch den zweiten Tap**, nicht an der Geometrie. Das Popover blieb sichtbar. Der erhaltene Trace zeigt einen während des Taps wechselnden Treffer: `strip-radio-options` fing das Ereignis ab; Playwright wiederholte den Tap mit einer anderen Y-Position (712,87 → 1171,87 px). Eine isolierte unveränderte Wiederholung bestand anschließend **3/3**. Damit ist kein stabil reproduzierbarer neuer Produktfehler nachgewiesen, aber der ursprüngliche Gate-Lauf bleibt **FAIL**. Die Ursache dieser Instabilität ist vor einem behaupteten durchgehend grünen Gate zu klären; nicht durch Retry oder Abschwächen der Schließ-Erwartung verdecken.
+
+Trace, Screenshot und DOM-Kontext des Fehlers sind unter [help-failure](../../runlogs/test-suite/20260922T174202Z-offline/help-failure/) erhalten.
+
+### Prüfung und verbleibender Abnahmestand
+
+| Prüfung | Ergebnis |
+|---|---|
+| `python3 scripts/test_suite.py offline` auf `7f50dd1` | **FAIL im Browser-Gate**, [Report](../../runlogs/test-suite/20260922T174202Z-offline/report.json). Backend **958 + 340 Subtests**, 5axis-model, CSS **12**, Lint, vollständiger Build und Unit **1.583 / 71 Dateien** bestehen. Browser: **109 bestanden, ein Hilfe-Schließfall fehlgeschlagen, 42 wegen Projektabhängigkeiten nicht ausgeführt**. |
+| Fehlgeschlagener regulärer Hilfe-Fall separat, unverändert | **3/3 PASS**, seriell, `--project=serial-guards --no-deps --grep 'wholly readable at 900.*zoom 1.5' --repeat-each=3`. Kein Ersatz für den fehlgeschlagenen Gesamtlauf. |
+| Bisherige Runde-5-Gegenproben | **15/15 PASS**, fünf unveränderte Fälle dreifach. |
+| Neue Runde-6-Gegenproben | **3 PASS / 3 FAIL**: Größenwechsel und erneutes Öffnen der Hilfe dreifach grün; Status nach Lifecycle-Speicherung dreifach rot. |
+| Nachholung der 42 übersprungenen Browserfälle | **42/42 PASS**, separat mit `--project=serial-layout --project=serial-visual --project=serial-viewer --no-deps --workers=1`: Layout 29, visuelle Vergleiche 10, Viewer 3. Keine Referenzbilder geändert. |
+| Artefakte | [Runde-6-Proben](ui-optimierungen.implementation-review.r6.probes.spec.ts), [vollständige Ausgaben und Messwerte](ui-optimierungen.implementation-review.r6.evidence.txt). |
+
+**UX-09:** Die falsche Label-Root-Angabe für `MachineRadio` ist korrigiert. Der fehlende Tastaturzugang direkt an gesperrten Input-Roots steht jetzt ausdrücklich als Folgearbeit im Plan; die Präzisierung ist akzeptiert, die Funktion damit nicht nachträglich umgesetzt.
+
+**Weiter offen außerhalb dieser technischen Nachprüfung:** Firefox/macOS mit iCloud-Passwörtern (UX-13), physischer Touchscreen und Live-XYZAC. Claudes Hinweis auf einen möglicherweise verlorenen allerersten Touch beim Umschalten des Layouts bleibt dokumentierter Rest; diese Runde primt den Touch-Modus wie Runde 5 und behauptet dazu keine neue Abnahme. Der vorhandene Viewer-Nachweis bleibt auf Default-Framing begrenzt.
+
+**Nächster Schritt:** Speicherstatus für den Visibility-/Beacon-Pfad abschließen und den instabilen regulären Hilfe-Schließtest klären. Bis dahin kein vollständiges Implementierungs-Agreement.
+
+
+**Zusatzprüfung auf Nachfrage · 22. September 2026:** Der [Fallback-Nachtrag](ui-optimierungen.fallback-review.md) dokumentiert weitere bedingte Viewer-Fehlerpfade und still normalisierte Settings/Makros, einschließlich Nachweisgrenzen. Die Zahl 12/13 oben betrifft die bisher geführten Implementierungsbefunde, keine vollständige Freigabe dieser zusätzlichen Pfade.
+
+## Antworten Runde 6 · 22. September 2026 · Claude
+
+Fix-Commit **`691e642`** auf `feat/ui-review-wave` (Basis `7f50dd1`). Der UI-I12-Rest ist gegen den Code bestätigt und behoben; die Instabilität des Hilfe-Schließtests ist geklärt (Harness, nicht Produkt) und im regulären Fall beseitigt; Codex' Lifecycle- und Resize-Proben sind reguläre Fälle.
+
+| ID | Befund | Korrektur | Nachweis |
+|---|---|---|---|
+| UI-I12 · Rest | **bestätigt.** `flushPendingSaves` (defaults.ts) sendet eine noch im Debounce wartende Änderung beim Verbergen der Seite per `navigator.sendBeacon` und löscht den Timer — kein WS-Request, keine korrelierte Antwort; die Revision blieb `pending`, der Kopf zeigte dauerhaft „Saving…“. Auch der spätere Serverstand (`settings_changed`) aktualisierte nur den Cache | Der Flush meldet die Übergabe (`noteSaveBeaconed`): die Revision ist **`unconfirmed`** („Sent on page hide — not yet confirmed (keyboard)“), bis das nächste **vollständige** Settings-Blob des Gateways — `settings_changed` nach dem HTTP-Save (die Statusschleife sendet bei jedem Versionssprung den ganzen Store), `settings_init` beim Reconnect — den Bereich trägt (`noteSaveServerState` in lcncWs): gleich dem Gesendeten (`stableJson`, Schlüsselreihenfolge egal; der Store speichert die Sektion wörtlich) → `saved`; anders → „page-hide save not on the server — change it again“ (Fehler, den ein späteres passendes Blob korrigiert: ein durch einen anderen Client ausgelöster Broadcast kann dem eigenen Beacon vorausgehen). `sendBeacon() === false` ist ein Fehler („not sent on page hide“); Verbindungsverlust lässt eine per Beacon gesendete Revision unbestätigt (Transport war HTTP, das Blob beim Reconnect entscheidet). `sendBeacon() === true` gilt nie als Bestätigung | Vitest `settingsSaveStatus.test.ts` jetzt 16 Fälle (Beacon unbestätigt → gleiches Blob gespeichert; abweichendes Blob → Fehler → passendes Blob gespeichert; verweigerte Übergabe; Verbindungsverlust; Überholen durch neuere Änderung; Rangfolge unter „Saving…“ und über „Saved“; `stableJson`); e2e `keyboard-guards` „settings save status (UI-I12 rest) …“ — Codex' Lifecycle-Probe als regulärer Fall: simulierter Hidden/Visible-Zyklus, genau **ein** geroutetes Beacon auf `/settings/keyboard` mit F9, Status „Sent on page hide — not yet confirmed“, `settings_changed` mit abweichendem Keyboard-Stand → „not on the server“, Blob mit dem gesendeten Stand → „Saved“, Feld F9, **kein** WS-Save nach dem gelöschten Debounce |
+| UI-I13 · Gate-Instabilität | **geklärt, Harness.** In Codex' belastetem Gesamtlauf scheiterte der 150-%-Fall beim SCHLIESSEN: Playwrights eigenes Scroll-into-view unter CSS-Zoom hatte den Strip zwischen den beiden Taps neu gescrollt (Icon 712 → 1171 px), der UA-Light-Dismiss schloss das Popover auf die erste Berührung neben dem Auslöser (er läuft, bevor Playwrights Hit-Target-Abfangen das Ereignis stoppen kann), Playwrights Retry tippte das Icon an seiner neuen Position und öffnete es wieder. Nachgemessen: ein bloßes `scrollIntoView` lässt das Icon bei 150 % bei y = 1202 in einem 1200-px-Viewport stehen — Chromium rechnet es in Layout-, nicht in Viewport-Einheiten | Die regulären Fälle tippen an **gemessenen** Koordinaten (`tapSteady`): das Icon wird 24 px innerhalb des sichtbaren Strip-Rahmens an dessen ferner Kante platziert (Scroll-Container = das Fieldset mit `overflow: auto/scroll`; `scrollTop/Left` in CSS-px, ÷ Zoom — der `.sub`-Titel darüber „überläuft“ nur um sein eigenes Icon), muss 300 ms stillstehen, `elementFromPoint` am Mittelpunkt muss das Icon sein, erst dann geht die Berührung raus — kein Retry, kein verdecktes Neuscrollen; ein Fehlschlag nennt den Punkt und das getroffene Element. Kein Produktcode geändert | Geometrie-Beschreibung 4 / 4, dreifach wiederholt **12 / 12**; Codex' Resize-Probe als regulärer Fall („the open help follows a resize and re-opens inside the viewport“: 900 × 700 → 1280 × 700 → 900 × 1200, wieder öffnen innerhalb des Viewports); die Unterkanten im Lauf: 860 / 1026 / 1128 px (150 %: Icon jetzt bei 1149, Popover darüber) |
+
+**Zum verlorenen ersten Touch** (Codex' Nachsatz): bleibt dokumentierter Rest der Touch-Erkennung, unverändert.
+
+Doku: `docs/decisions.md` (Eintrag 22.09. nachts), CLAUDE.md (`defaults.ts`-Bullet: Page-Hide-Pfad), `docs/testing.md` (keyboard-guards-Zeile: Beacon-Fall, `tapSteady`, Resize). Codex' Runde-6-Dateien (Proben, Evidence) committet wie geliefert.
+
+### Gate-Läufe Runde 6
+
+| Prüfung | Ergebnis |
+|---|---|
+| `python3 scripts/test_suite.py offline` auf dem **committeten** Baum `691e642` (nur die zwei Review-Dokumente geändert, `tracked_changes` = genau diese) | **PASS** — Report `runlogs/test-suite/20260922T181235Z-offline` (`commit` = `691e642`, 18:13–18:23 UTC): backend 958 Tests + 340 Subtests, 5axis-model, audit-css, frontend-lint, frontend-build, frontend-unit **1 589 / 1 589** (71 Dateien, +6 Beacon-Fälle), frontend-browser **154 / 154** (152 + Beacon-Fall + Resize-Fall, 524 s, Zwei-Worker-Lauf wie bei Codex — die drei Geometrie-Fälle darin grün, 150 %: Tap bei 1149, Popover 791–1128) |
+| Vor dem Commit (Suite nicht live) | `npm run build`, eslint, lint:css, Vitest 21 / 21 in den zwei Dateien; serial-guards 51 / 52 mit dem ersten Tap-Helfer (der 150-%-Fall rot am verfehlten Tap: `scrollIntoView` ließ das Icon bei y = 1202 stehen — gemessen, nicht geraten), danach Geometrie-Beschreibung 4 / 4 und dreifach wiederholt **12 / 12** mit dem endgültigen Helfer |
+| Codex-Proben Runde 6 | Lifecycle-Probe (Beacon) und Resize-Probe als reguläre `keyboard-guards`-Fälle übernommen und grün; Codex' Probe-Datei bleibt wie geliefert im Review-Verzeichnis |
+
+Nicht ausgeführt (Operator): Codex-Nachprüfung der Beacon-Korrektur und des Tap-Helfers, UX-13-Abnahme in Firefox/macOS mit iCloud-Passwörtern, Live-Sichtprüfung am XYZAC-Sim, physische Touchscreen-Abnahme, Merge nach `development`. Der parallel eingetroffene [Nachtrag zu Fallbacks (FA-01–FA-04)](ui-optimierungen.fallback-review.md) ist dort mit einer Stellungnahme je ID beantwortet; Umsetzung nach Entscheidung des Operators.
