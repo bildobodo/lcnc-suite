@@ -993,3 +993,8 @@ Single-Root). Commits enden mit `Co-Authored-By: Claude Fable 5.1 <noreply@anthr
 - UX-09-Rest (Codex-Runde 5): ein fokussierbares Info-/Sperr-Control direkt an gesperrten Input-Roots
   (`MachineInput`, `MachineSelect`, `MachineSlider`, `MachineRadio`) — heute erklären sie per Pointer
   und Titel; Tastatur und Safari sind die dokumentierte Grenze.
+- Stille Fallbacks (Codex-Nachtrag 22.09.2026, [ui-optimierungen.fallback-review.md](ui-optimierungen.fallback-review.md),
+  Operator-Entscheidung: eigene Welle nach dem Merge): FA-02 Kollisionsaussage bei nicht geladenen kollidierbaren
+  Teilen, FA-01 Vorschau-Ersatzmodus ohne Hinweis und veralteter `_pfAppliedMode`, FA-03 Reach-Anfrage nach Fehler
+  ohne Wiederholung, FA-04 stille Normalisierung gespeicherter Einstellungen, `console.error` wird nicht in die
+  Telemetrie geleitet (Kommentare berichtigen oder Forwarder).
