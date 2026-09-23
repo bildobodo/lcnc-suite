@@ -1,0 +1,30 @@
+Codex implementation review round 8 — 2026-09-23
+Command: python3 scripts/test_suite.py offline
+Report: runlogs/test-suite/20260923T171113Z-offline/report.json
+Commit: e5ad3dda173fb4e6d955de7d4370d558830fe46d
+Status: pass
+Started: 2026-09-23T17:11:13.793520+00:00
+Clean working tree at start; no product-source or baseline changes by this review.
+
+backend: pass (31.57 s)
+963 passed, 343 subtests passed in 31.34s
+5axis-model: pass (0.57 s)
+audit-css: pass (0.62 s)
+============================== 12 passed in 0.48s ==============================
+frontend-lint: pass (3.74 s)
+frontend-build: pass (9.78 s)
+frontend-unit: pass (26.53 s)
+Test Files  73 passed (73)
+Tests  1598 passed (1598)
+frontend-browser: pass (374.57 s)
+✓    9 [serial-tools] › e2e/example-tool-library.spec.ts:133:1 › a running import keeps its dialog: X, Cancel and the backdrop wait for the reply (UI-K16) (1.4s)
+✓   78 [serial-guards] › e2e/input-session.spec.ts:397:1 › UX-13 diagnosis: ?mdiField= changes exactly one attribute of the MDI line per variant; sending and focus return stay the same (14.0s)
+✓  111 [serial-guards] › e2e/keyboard-guards.spec.ts:825:1 › settings save status (UI-I12 round 7): a page-hide save that never landed reads as not saved, never Saved or pending for good (2.0s)
+✓  112 [serial-guards] › e2e/keyboard-guards.spec.ts:894:1 › closing Settings over a changed macro draft asks first, by every path (UI-K16) (2.3s)
+158 passed (6.2m)
+Independent ledger probe: 4/4 acceptance criteria passed
+Independent browser probe: 12/12 acceptance criteria passed
+Independent ui probe: 3/3 acceptance criteria passed
+Folder probe: five installed external links excluded; real/internal fixtures open; external file/dir links excluded.
+No LinuxCNC connection. Chromium mock checks do not certify Firefox/macOS + Apple Passwords.
+R7 probes reused with output/build metadata updated only; original evidence retained.

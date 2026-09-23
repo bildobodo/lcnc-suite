@@ -339,3 +339,18 @@ Die bisherigen FA-01–FA-04 bleiben wie vereinbart Folgearbeit zur Fehlerbehand
 | UI-K14 | Design-Welle | Inventar: Maschinenrollen behalten, visuelle Achsen straffen, Bausteine Control/FormField/ActionGroup/DialogFrame/InputHelperFrame |
 | UI-K17 | Design-Welle | Fünf feste Haupttabs + beschriftete Verfahrensauswahl als Ausgangspunkt; Off/FWD/REV als Optionsgruppe; die Schwelle für die Auswahl-Navigation und die Gesamtaufteilung bei starkem Zoom im Produkt messen |
 
+
+
+## Codex-Nachprüfung · Runde 8 · 23. September 2026
+
+**UI-K15 sowie UI-K16 (1)/(2) sind unabhängig nachgeprüft und akzeptiert.** Der Ordnerfilter
+schließt die fünf externen Links des installierten `nc_files` aus; interne Gegenbeispiele bleiben
+öffnbar. Im Browser behält eine dauerhafte Ablehnung die alte Liste ohne Retry, ein vorübergehender
+Fehler lässt sich erfolgreich wiederholen. Makroentwürfe bleiben auch nach Wechsel des
+Settings-Untertabs geschützt. Der Gamepad-Assistent ist jetzt zusätzlich mit simulierter Geräte-API
+geprüft: Keep editing erhält den Schritt, Discard führt die auslösende Header-Navigation aus.
+Der reguläre Importfall mit zurückgehaltener Antwort besteht im vollständigen Offline-Lauf.
+
+[Messungen, Gate und Nachweisgrenzen](ui-optimierungen.implementation-review.md#codex-implementierung-runde-8).
+**UI-K16 (3) / Fokusführung, UI-K01–K14/K17 bleiben Design-Welle** entsprechend der dokumentierten
+Entscheidung. Die geschlossenen Funktionsfehler bedeuten keine Abnahme dieser Gestaltungspunkte.

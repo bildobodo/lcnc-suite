@@ -1180,8 +1180,16 @@ Co-Authored-By-Zeile.
 - Bisherige Folge-Punkte (UX-09-Rest, Fokus-Trap, Vitest-DOM-Umgebung, erster Touch).
 
 **Umsetzungsstand (23.09.):** WP-F1 `72ca74a`, WP-F2 `358d6dc`, WP-F3 `c7a32ba`, WP-F4 `9360439`
-(siehe Implementierungsreview, „Antworten Runde 7“). WP-F5 wartet auf den Variantenbericht des Operators. **Abweichung:** WP-F2 zieht das Listing nicht in ein
+(siehe Implementierungsreview, „Antworten Runde 7“). WP-F5: Operator-Test ergab das Wort „code“ im MDI-Placeholder als Auslöser; Placeholder „MDI command (↑↓ history)“, Schalter entfernt. **Abweichung:** WP-F2 zieht das Listing nicht in ein
 neues Modul — `gateway.list_files` ist mit `fake_linuxcnc` bereits direkt testbar
 (`test_program_files.py`); der Filter sitzt im Listing selbst. **Zusatzbefund WP-F1:** der
 `.saveStatus`-Text war `nowrap` ohne `min-width` und begrub mit der langen Fehlermeldung die
 Settings-Tabs; behoben im selben Commit.
+
+
+**Codex-Nachprüfung · Runde 8 · 23.09.:** WP-F1 ist unabhängig abgeschlossen (UI-I12 Rest A/B;
+alle zwölf Runde-7-Browsergegenproben bestehen). WP-F2 und WP-F3 sind nachgeprüft, einschließlich
+Ordnerfehler/Retry, verborgenem Makroentwurf und Gamepad-Assistent. WP-F4 funktioniert als
+Diagnose-Schalter; **WP-F5 und der Operator-Nachweis zu UX-13 bleiben offen**. Das technische
+Agreement für UI-I01–UI-I13 ersetzt diese Abnahme nicht. [Runde 8 und vollständiges grünes
+Offline-Gate](ui-optimierungen.implementation-review.md#codex-implementierung-runde-8).

@@ -6097,3 +6097,20 @@ the merge; UX-13 by a diagnosis switch in the operator's browser.
   (UI-K11) belong to the design wave's DialogFrame; FA-01–FA-04 stay their
   own wave.
 
+## 2026-09-23 evening — UX-13 closed by the operator's variant test (WP-F5)
+
+The temporary `?mdiField=` switch (9360439) let the operator vary one
+feature of the MDI line at a time in the browser that showed the problem
+(Firefox/macOS, Apple Passwords extension). Round 1: of eight variants
+only `noplaceholder` stayed quiet. Round 2, placeholder texts: "MDI
+command (↑↓ history)" and "↑↓ history" quiet, "G-code (↑↓ history)" popped
+up. The trigger is the word "code" in the placeholder — the extension
+takes the field for a verification-code field; the tool search ("Search
+tools…") and the reference search ("Search codes, names, descriptions…",
+plural and a search field) never did. The MDI line reads "MDI command
+(↑↓ history)", the switch is removed, and the field-contract scan refuses
+the word "code" in any text-field placeholder. The general field contract
+(autocomplete=off etc.) stays: right for technical fields, but it was not
+what this extension keyed on — a reminder to find the trigger in the
+browser that shows the symptom before calling a heuristic fix done.
+

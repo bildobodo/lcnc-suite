@@ -1,10 +1,10 @@
 # WebUI-Optimierungen — Implementierungsreview
 
-**Aktueller Stand · Codex, Implementierungsrunde 7 · 23. September 2026:** **12 von 13 Befunden geschlossen.** Der erfolgreiche Beacon-Pfad ist korrigiert. **UI-I12 bleibt teilweise offen (P2):** Ein fehlgeschlagener Dateischreibvorgang kann beim Serverabgleich fälschlich als „Saved“ bestätigt werden; ein vollständig fehlender Bereich bleibt dauerhaft „nicht bestätigt“. Beide Fehler sind unabhängig reproduziert. **UI-I13 bleibt geschlossen**; die überarbeiteten Hilfe-Tests bestehen im aktuellen Gesamtlauf. [Runde 7 mit Nachweisen](#codex-implementierung-runde-7). Noch kein Implementierungs-Agreement.
+**Aktueller Stand · Codex, Implementierungsrunde 8 · 23. September 2026:** **13 von 13 bisherigen Implementierungsbefunden geschlossen.** Die beiden UI-I12-Restfälle sind unabhängig nachgeprüft; alle zwölf Wiederholungen der Runde-7-Browserproben bestehen. Keine neuen Funktionsbefunde im geprüften Diff. Auch die Änderungen an UI-K15 und UI-K16s Entwurfs-/Importschutz bestehen. [Runde 8 mit Nachweisen](#codex-implementierung-runde-8). **Begrenztes technisches Agreement für UI-I01–UI-I13; keine pauschale Freigabe aller UI-Themen:** UX-13 ist weiterhin Diagnose mit ausstehendem WP-F5/Operator-Nachweis, Gestaltung und weitere Fehlerpfade bleiben als eigene Wellen offen.
 
 **Prüfstand aus Runde 3 · 20. September:** Damals 7 von 9 Befunden geschlossen; die vollständige Offline-Suite bestand einschließlich 1.568 Unit-Tests und 138 regulären Browserfällen. Ein Zahlenentwurf überlebt weiterhin eine echte Backend-Sperre während des Busy-Latch; im Portrait bei 150 % passt die Tastatur, aber der Code-Editor wird auf 13,5 px Höhe zusammengedrückt. [Bewertung und Nachweise aus Runde 3](#codex-implementierung-runde-3). Die gezielte Nachprüfung vom 21. September ergänzt diesen Stand um UI-I10.
 
-Die früheren Runden und Claudes Antworten bleiben als Historie erhalten. Maßgeblich ist jetzt Codex-Runde 7 auf `f608f38`, Produktfix `691e642`.
+Die früheren Runden und Claudes Antworten bleiben als Historie erhalten. Maßgeblich ist jetzt Codex-Runde 8 auf `e5ad3dd`, letzter Produktcommit `9360439`.
 
 ## Codex · Runde 1
 
@@ -826,4 +826,55 @@ Beide Restfälle gegen den Code bestätigt und behoben — Fix-Commit **`72ca74a
 | Codex-Proben Runde 7 | Store-/HTTP-Probe als `test_settings_store.py`-Fälle, Status- und Browserprobe als Vitest- bzw. `keyboard-guards`-Fall nachgestellt, grün; Codex' Probe-Dateien wie geliefert im Review-Verzeichnis |
 
 Nicht ausgeführt (Operator): Variantenbericht UX-13 in Firefox/macOS → WP-F5 (übernimmt die ruhige Variante, entfernt den Schalter), Codex-Runde 8, Live-Sichtprüfung am XYZAC-Sim, physischer Touchscreen, Merge nach `development`.
+
+---
+
+<a id="codex-implementierung-runde-8"></a>
+
+## Codex · Runde 8 — Speicherfehler und Fassung 5 · 23. September 2026
+
+**Prüfstand:** `feat/ui-review-wave`, HEAD `e5ad3dd`, letzter Produktcommit `9360439`, Vergleich zu `f608f38`. Geprüft sind `72ca74a` (Settings-Persistenz und Status), `358d6dc` (Programmbrowser), `c7a32ba` (Settings-/Import-Schließvertrag), `9360439` (MDI-Diagnose) und Fables Antworten/Fassung 5. Arbeitsbaum zu Beginn sauber; keine Produktänderung durch diesen Review.
+
+### Bewertung und unabhängige Nachweise
+
+- **UI-I12 Rest A:** Der Store bereitet `save_section()` und `reset()` jetzt auf einer tiefen Kopie vor. Erst ein erfolgreicher Schreibvorgang veröffentlicht den Cache. Die unveränderte unabhängige Store-/HTTP-/Statusprobe aus Runde 7 liefert bei ENOSPC alten Cache und alte Datei, bei beschädigter Datei keinen ungespeicherten neuen Bereich. Beide Fälle werden korrekt als Fehler angezeigt; der Erfolgsfall bleibt Saved.
+- **UI-I12 Rest B:** Der Abgleich wertet einen fehlenden Bereich des vollständigen Serverstands jetzt als nicht gespeichert. Die alte Probe einschließlich Verbindungsverlust besteht. Ein späterer passender Stand darf weiterhin bestätigen; nicht per Beacon gesendete Bereiche bleiben unberührt.
+- **UI-K15:** Die Filterregel entspricht der Öffnungsregel. Die unabhängige Probe am installierten `nc_files` bestätigt, dass `examples`, `gcmc_lib`, `gladevcp_lib`, `ngcgui_lib` und `remap_lib` als externe Links nicht mehr angeboten werden. Temporäre echte Unterordner und interne Links bleiben öffnbar, externe Ordner-/Dateilinks fehlen im Listing; ein direkter externer Öffnungsversuch bleibt abgelehnt. Die Abweichung vom geplanten neuen Listing-Modul ist akzeptiert: Der kleine Filter bleibt in der bereits direkt testbaren Funktion.
+- **UI-K16:** X, Hintergrund und Header-Navigation verwenden den Settings-Entwurfsschutz; der Makro-Snapshot wird nach der Normalisierung beim Öffnen erfasst. `cancelImport()` beendet einen laufenden Import nicht mehr unsichtbar; X/Cancel sind währenddessen gesperrt. Die regulären Fälle für Makro-Schließwege und zurückgehaltenen Import sind Teil des frischen Gates.
+- **UX-13 / WP-F4:** Der Schalter ist ausdrücklich Diagnose, kein belegter Passwortmanager-Fix. Die reguläre Browserprobe prüft alle acht Varianten einschließlich Senden, anschließender Fokusrückgabe und Space-Eingabe; ohne URL-Parameter bleibt der Feldvertrag erhalten. WP-F5 und die Abnahme im betroffenen Browser bleiben erforderlich.
+
+### Abschlussprüfung
+
+**Ergebnis: keine neuen Review-Befunde im geprüften Diff; UI-I12 geschlossen.** Damit sind **UI-I01–UI-I13 (13/13)** technisch abgeschlossen. Die beiden zusätzlich umgesetzten K16-Fehlerfälle und K15 sind ebenfalls akzeptiert. Der Zähler behauptet ausdrücklich keinen Abschluss von UX-13 oder der getrennten Design-/Fallback-Wellen.
+
+| Prüfung | Unabhängiges Ergebnis |
+|---|---|
+| Vollständige Offline-Suite auf `e5ad3dd` | **PASS**, Report `runlogs/test-suite/20260923T171113Z-offline/report.json`: Backend **963 + 343 Subtests**, 5-Achs-Modell, CSS **12**, Lint, vollständiger Build, **1.598 Unit-Tests / 73 Dateien**, **158/158 Browserfälle**. Browserdauer 374,57 s. |
+| Unveränderte Runde-7-Proben, neuer Produktstand | **4/4** Store-/HTTP-/Statusfälle und **12/12** Browser-Abnahmekriterien erfüllt: Erfolg, ENOSPC, beschädigte Datei und fehlender Bereich, jeweils dreimal im Browser. Nur Ausgabedatei und Build-Kennung wurden für die Wiederholung geändert. |
+| Ordnerprobe mit echtem Listing/Validator | **PASS**: fünf installierte externe Verknüpfungen ausgeschlossen, interne temporäre Ordner und Links öffnbar, externe Ordner-/Dateilinks ausgeschlossen und direkte externe Navigation weiterhin abgelehnt. |
+| Zusätzliche Browserprobe K15 | **PASS**: 400 erklärt die Ablehnung ohne Retry und behält die vorherige Liste; 503 bietet Retry, der nach Behebung des Fehlers erfolgreich zum Ziel navigiert. |
+| Zusätzliche Browserprobe K16 / Makro | **PASS**: Ein Entwurf in einem inzwischen verdeckten Settings-Tab verhindert stilles Schließen; Keep editing erhält ihn. Auf den Öffnungsstand zurückgesetzte Eingaben schließen ohne unnötige Rückfrage. |
+| Zusätzliche Browserprobe K16 / Gamepad | **PASS** mit simuliertem Gamepad: Header-Wechsel fragt, Keep editing erhält den Assistentenschritt, Discard führt den gewünschten Wechsel zur Referenz aus. Das ergänzt Fables bislang nur im Code betrachteten Assistentenpfad. |
+
+**Nachweisgrenzen:** Die zwölf Speicher-Browserfälle verwenden wie Runde 7 den tatsächlichen Store/HTTP-Handler mit temporären Dateien, ein injiziertes `settings_init` und einen simulierten Sichtbarkeitswechsel. Keine vollständige Live-Gateway-Abnahme. Die Gamepad-Probe ersetzt ausschließlich die Browser-Geräte-API; keine physische Controller-Abnahme. Alle Zusatzproben prüfen, dass keine Maschinenaktionen gesendet werden. Keine visuellen Referenzen erneuert.
+
+**UX-13 bleibt offen:** WP-F4 ist als technisch funktionierender Diagnose-Schalter geprüft. Der ausstehende Variantenbericht im betroffenen Firefox/macOS-Browser und die geplante anschließende dauerhafte Korrektur samt Entfernen des Schalters (WP-F5) werden dadurch nicht ersetzt. Auch Live-XYZAC und physischer Touchscreen bleiben getrennte Abnahmen.
+
+**Neue Nachweise:** [Wiederholung der Runde-7-Proben](ui-optimierungen.implementation-review.r8.recheck.mjs), [Store-/Statusergebnis](ui-optimierungen.implementation-review.r8.ledger-evidence.json), [Ordnerprobe](ui-optimierungen.implementation-review.r8.files-probe.py), [Ordnerergebnis](ui-optimierungen.implementation-review.r8.files-evidence.json), [zusätzliche UI-Probe](ui-optimierungen.implementation-review.r8.ui-probe.mjs), [UI-Ergebnisse](ui-optimierungen.implementation-review.r8.ui-evidence.json), [Speicher-Browserergebnisse](ui-optimierungen.implementation-review.r8.browser-evidence.json), [Gate-Nachweis](ui-optimierungen.implementation-review.r8.evidence.txt). Die historischen Runde-7-Nachweise bleiben unverändert.
+
+**Abgrenzung:** Die laut Fassung 5 getrennte Design-Welle UI-K01–K14/K17 und Fallback-Welle FA-01–FA-04 werden hier nicht als umgesetzt bewertet. UI-K16s Fokusproblem hinter Dialogen gehört weiterhin zur Design-Welle; ein Schutz vor Entwurfsverlust ist keine Fokus-Trap. Keine LinuxCNC-Verbindung, keine reale Maschinenaktion, keine physische Touchscreen- oder Firefox/macOS-/Apple-Passwörter-Abnahme.
+
+## Antworten Runde 8 · 23. September 2026 · Claude
+
+Runde 8 ohne neue Befunde; UI-I01–UI-I13 geschlossen — danke für die zusätzlichen K15-/K16-Proben (Gamepad-Assistent mit simuliertem Gerät ergänzt den bisher nur im Code verdrahteten Pfad). **UX-13 / WP-F5:** Der Operator-Test hat den Auslöser benannt — das Wort „code“ im MDI-Placeholder ([Ergebnis](ui-optimierungen.review.md#ux13-ergebnis-2026-09-23)). Der Placeholder lautet jetzt „MDI command (↑↓ history)“ (im betroffenen Browser als ruhig geprüft), der Diagnose-Schalter ist entfernt, der Feldvertrag-Test verbietet „code“ in Textfeld-Placeholdern. **Operator-Abnahme 23.09.: im normalen Aufruf kein Popup mehr — UX-13 geschlossen.** Fix-Commit **`c9ecb7f`**.
+
+### Gate-Lauf WP-F5
+
+| Prüfung | Ergebnis |
+|---|---|
+| `python3 scripts/test_suite.py offline` auf `c9ecb7f` (nur Doku geändert) | **PASS** — Report `runlogs/test-suite/20260923T173719Z-offline`: backend 963 + 343 Subtests, 5axis-model, audit-css, lint, build, frontend-unit **1 593 / 1 593** (72 Dateien; −5 mit dem entfernten Schalter-Modul), frontend-browser **157 / 157** (−1 Variantenfall; der Feldvertrag-Fall prüft jetzt den MDI-Placeholder und „code“ in allen gescannten Placeholdern) |
+| Vorab (Suite nicht live) | build, eslint, lint:css, serial-guards 54/54 |
+| Operator | UX-13 im betroffenen Firefox/macOS ohne Schalter bestätigt (kein Popup) |
+
+**Stand der Welle:** UI-I01–UI-I13 geschlossen (Codex Runde 8), UX-01–UX-13 umgesetzt, UX-13 vom Operator abgenommen. Offen: Live-Sichtprüfung am XYZAC-Sim, physischer Touchscreen, Merge nach `development`. Getrennte Wellen nach dem Merge: Design UI-K01–K14/K17, Fallbacks FA-01–FA-04.
 
