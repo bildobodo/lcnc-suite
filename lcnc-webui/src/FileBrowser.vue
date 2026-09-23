@@ -5,6 +5,7 @@ import type { FileEntry, DirectoryListing } from "./lcncApi";
 import { usePermissions } from "./permissions";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
+import { browseFailure } from "./browseFailure";
 
 // Shared by Program and Tools. Parents only supply their listing/selection
 // operations; navigation, cancellation, file rows and layout stay identical.
@@ -42,8 +43,10 @@ async function browse(next = subdir.value) {
     if (listRef.value) listRef.value.scrollTop = 0;
   } catch (e) {
     if (controller.signal.aborted) return;
-    error.value = e instanceof Error ? e.message : "Could not list files";
-    failedDirectory.value = next;
+    // A permanent refusal offers no Retry (UI-K15); the last valid listing stays.
+    const failure = browseFailure(e);
+    error.value = failure.message;
+    failedDirectory.value = failure.retry ? next : null;
   } finally { busy.value = false; }
 }
 

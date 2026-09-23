@@ -8,6 +8,18 @@ function getBaseUrl(): string {
   return location.origin;
 }
 
+/** A refused HTTP request, with its status — callers decide whether a
+ *  retry can help (a 400 refusal is permanent; a 5xx or a lost network may
+ *  not be). The message stays the server's detail. */
+export class HttpError extends Error {
+  readonly status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "HttpError";
+    this.status = status;
+  }
+}
+
 async function throwHttpError(resp: Response): Promise<never> {
   // A non-JSON error body (proxy 502 HTML page, empty body) would make
   // resp.json() throw a SyntaxError that masks the real HTTP status. Fall
@@ -19,7 +31,7 @@ async function throwHttpError(resp: Response): Promise<never> {
   } catch {
     detail = undefined;
   }
-  throw new Error(detail || `HTTP ${resp.status}`);
+  throw new HttpError(detail || `HTTP ${resp.status}`, resp.status);
 }
 
 export interface FileEntry {

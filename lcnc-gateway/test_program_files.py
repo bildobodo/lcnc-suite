@@ -41,3 +41,36 @@ class ProgramFilesTest(unittest.TestCase):
                                          ["nested", "perfmatrix-big.ngc", "twp-demo.ngc"])
                         self.assertTrue(all(Path(entry["path"]).is_file()
                                             for entry in listing["entries"] if entry["type"] == "file"))
+
+    def test_listing_offers_only_what_opening_allows(self):
+        # UI-K15: links whose target lies outside the program folder are not
+        # listed (they could only be refused on the way in); real subfolders
+        # and links that stay inside are listed and open.
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            nc = base / "nc_files"
+            outside = base / "outside"
+            (nc / "real").mkdir(parents=True)
+            (nc / "real" / "inner.ngc").write_text("M2\n")
+            outside.mkdir()
+            (outside / "lib").mkdir()
+            (outside / "lib" / "far.ngc").write_text("M2\n")
+            (outside / "far.ngc").write_text("M2\n")
+            (nc / "examples").symlink_to(outside / "lib", target_is_directory=True)
+            (nc / "far-link.ngc").symlink_to(outside / "far.ngc")
+            (nc / "inside-link").symlink_to(nc / "real", target_is_directory=True)
+            (nc / "top.ngc").write_text("M2\n")
+            with patch.object(gateway, "get_nc_files_dir", return_value=str(nc)):
+                listing = gateway.list_files()
+                self.assertEqual([(e["name"], e["type"]) for e in listing["entries"]],
+                                 [("inside-link", "directory"), ("real", "directory"), ("top.ngc", "file")])
+                for entry in listing["entries"]:
+                    if entry["type"] == "directory":
+                        opened = gateway.list_files(entry["path"])
+                        self.assertEqual([e["name"] for e in opened["entries"]], ["inner.ngc"])
+                for refused in ["examples", "../outside", str(outside)]:
+                    with self.subTest(subdir=refused):
+                        with self.assertRaises(gateway.HTTPException) as ctx:
+                            gateway.list_files(refused)
+                        self.assertEqual(ctx.exception.status_code, 400)
+

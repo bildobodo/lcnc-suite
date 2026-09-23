@@ -6507,6 +6507,15 @@ def list_files(subdir: str = ""):
         for entry in sorted(os.scandir(browse_dir), key=lambda e: (not e.is_dir(), e.name.lower())):
             if entry.name.startswith("."):
                 continue
+            # The listing offers only what opening allows (UI-K15): a symlink
+            # whose target lies outside the program folder (nc_files ships
+            # links to /usr/share/linuxcnc/ncfiles) was listed — is_dir()
+            # follows links — and then refused as "Invalid directory" on the
+            # way in; a linked file would be refused by load_file the same
+            # way. Same rule as the open/load checks, applied per child (the
+            # tool-library browser already filters this way, tool_files.py).
+            if not validate_path_within(entry.path, nc_dir):
+                continue
             if entry.is_dir():
                 entries.append({
                     "name": entry.name,
