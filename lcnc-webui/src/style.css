@@ -1594,7 +1594,11 @@ label:has(input:disabled, select:disabled) {
 /* Save status (Settings header, UX-08): the honest state of the last
    server-side settings save — text carries the state, colour underlines it
    (--ok saved, --danger failed / blocked). */
-.saveStatus { font-size: var(--fs-sm); font-weight: var(--fw-semibold); white-space: nowrap; }
+/* Wraps (never nowrap): a failure names its section(s) and reason, and a
+   nowrap readout with no min-width took its whole length from the hint
+   beside it — the Settings header grew to a column of one-word lines and
+   buried the tabs (review round 7 e2e). */
+.saveStatus { font-size: var(--fs-sm); font-weight: var(--fw-semibold); min-width: 0; overflow-wrap: anywhere; }
 .saveStatus.saved { color: var(--ok); }
 .saveStatus.error, .saveStatus.blocked { color: var(--danger); }
 

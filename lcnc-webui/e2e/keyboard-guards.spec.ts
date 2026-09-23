@@ -822,6 +822,75 @@ test("settings save status (UI-I12 rest): a page-hide save goes by beacon and on
   await expect(status).toHaveText("Saved");
 });
 
+test("settings save status (UI-I12 round 7): a page-hide save that never landed reads as not saved, never Saved or pending for good", async ({ page }) => {
+  // Round 7 rest B: the settings blob is the COMPLETE store, so a beaconed
+  // section it lacks is not on the server. Rest A (the gateway cached an
+  // unwritten value and sent it back as if stored) is fixed in
+  // settings_store.py and pinned by test_settings_store.py; here the refused
+  // beacon's blob carries the STORED (old) value and must read as a failure.
+  let mode: "abort" | "refuse" = "abort";
+  const beacons: { data: Record<string, any> }[] = [];
+  await page.route("**/settings/keyboard*", async route => {
+    beacons.push(route.request().postDataJSON());
+    if (mode === "abort") await route.abort("failed");
+    else await route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ ok: false, error: "OSError: [Errno 28] No space left on device" }) });
+  });
+  await openReady(page);
+  await page.getByTitle("Settings", { exact: true }).click();
+  const dialog = page.locator(".dialogOverlay").first();
+  const status = dialog.locator(".saveStatus");
+  await dialog.getByRole("button", { name: "Keyboard", exact: true }).click();
+  const abortCell = dialog.locator("tr").filter({ hasText: "Abort" }).locator(".kbKeyCell");
+  const hideAndShow = () => page.evaluate(() => {
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+    document.dispatchEvent(new Event("visibilitychange"));
+    Reflect.deleteProperty(document, "visibilityState");
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  const wsKeyboardSaves = async () => (((await ctl({ op: "lastCmds" })).cmds ?? []) as { cmd?: string; section?: string }[])
+    .filter(c => c.cmd === "save_settings" && c.section === "keyboard").length;
+
+  // (B) the first beacon never arrives; the reconnect's blob has no keyboard section.
+  await ctl({ op: "clearCmds" });
+  await abortCell.click();
+  await page.keyboard.press("F9");
+  await expect(status).toHaveText("Saving…");
+  await hideAndShow();
+  await expect.poll(() => beacons.length).toBe(1);
+  await expect(status).toHaveText("Sent on page hide — not yet confirmed (keyboard)");
+  await ctl({ op: "raw", frame: { type: "settings_init", settings: {} } });
+  await expect(status).toHaveText("Save failed — keyboard: page-hide save not on the server — change it again");
+  await expect(abortCell).toHaveText("⌫");            // the stored default is what the page shows now
+  // The long failure wraps in the header; the hint keeps its lines and the
+  // tabs stay where they were (a nowrap status once buried them).
+  const head = await dialog.locator(".settingsHead").evaluate(el => {
+    const hint = el.querySelector(".hint")!.getBoundingClientRect();
+    const st = el.querySelector(".saveStatus")!.getBoundingClientRect();
+    const box = el.getBoundingClientRect();
+    return { hintWidth: hint.width, statusRight: st.right, boxRight: box.right, boxHeight: box.height };
+  });
+  expect(head.hintWidth, `hint width ${JSON.stringify(head)}`).toBeGreaterThan(150);
+  expect(head.statusRight).toBeLessThanOrEqual(head.boxRight + 0.5);
+  await page.waitForTimeout(400);
+  expect(await wsKeyboardSaves(), "no WS save follows the cleared debounce").toBe(0);
+
+  // (A) the beacon is refused (409); the blob carries the STORED F8, not the sent F9.
+  mode = "refuse";
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { keyboard: { jogEnabled: false, buttonsEnabled: true, mapping: { abort: "F8", cycle: " ", estop: "Escape" } } } } });
+  await expect(abortCell).toHaveText("F8");
+  await abortCell.click();
+  await page.keyboard.press("F9");
+  await expect(abortCell).toHaveText("F9");
+  await hideAndShow();
+  await expect.poll(() => beacons.length).toBe(2);
+  expect(beacons[1].data.mapping.abort).toBe("F9");
+  await expect(status).toHaveText("Sent on page hide — not yet confirmed (keyboard)");
+  await ctl({ op: "raw", frame: { type: "settings_init", settings: { keyboard: { jogEnabled: false, buttonsEnabled: true, mapping: { abort: "F8", cycle: " ", estop: "Escape" } } } } });
+  await expect(status).toHaveText("Save failed — keyboard: page-hide save not on the server — change it again");
+  await expect(abortCell).toHaveText("F8");
+  expect(await wsKeyboardSaves()).toBe(0);
+});
+
 test("keyboard tab: a capture edits a local copy, no page error, a server change refreshes it", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(e.message));

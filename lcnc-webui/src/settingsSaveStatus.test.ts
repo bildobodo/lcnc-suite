@@ -138,9 +138,29 @@ describe("settings save status", () => {
     noteSaveBeaconed("keyboard", kb, true);
     expect(sectionSaveState("keyboard")).toBe("unconfirmed");
     expect(saveStatusText()).toBe("Sent on page hide — not yet confirmed (keyboard)");
-    noteSaveServerState({ display: { theme: "auto" } });          // no keyboard in it: nothing
-    expect(sectionSaveState("keyboard")).toBe("unconfirmed");
     noteSaveServerState({ keyboard: { mapping: { cycle: " ", abort: "F9" }, jogEnabled: false } });
+    expect(saveStatusText()).toBe("Saved");
+  });
+
+  // Round 7 (UI-I12 rest B): the blob is the COMPLETE store — a section it
+  // lacks is not on the server, never "not yet known".
+  it("a complete blob without the beaconed section is a failure that a later matching blob corrects", () => {
+    noteSavePending("keyboard");
+    noteSaveBeaconed("keyboard", kb, true);
+    noteSaveServerState({ display: { theme: "auto" } });
+    expect(saveStatusText()).toBe("Save failed — keyboard: page-hide save not on the server — change it again");
+    noteSaveServerState({});
+    expect(sectionSaveState("keyboard")).toBe("error");
+    noteSaveServerState({ keyboard: kb, display: { theme: "auto" } });
+    expect(saveStatusText()).toBe("Saved");
+  });
+
+  it("a blob never touches a section that was not beaconed", () => {
+    noteSavePending("viewer"); noteSaveSent("viewer", "v1");
+    noteSaveServerState({});
+    expect(sectionSaveState("viewer")).toBe("saving");
+    noteSaveReply("v1", true);
+    noteSaveServerState({});
     expect(saveStatusText()).toBe("Saved");
   });
 

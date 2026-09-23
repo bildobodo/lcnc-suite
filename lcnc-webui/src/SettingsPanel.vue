@@ -903,8 +903,12 @@ function resetMachineColor(id: string) {
   margin-bottom: var(--gap-section);
   flex-shrink: 0;
   align-items: baseline;
+  flex-wrap: wrap;
 }
-.settingsHead > .hint { flex: 1; }
+/* The promise keeps a readable line; a long save status wraps below it
+   instead of squeezing it to one word per line. */
+.settingsHead > .hint { flex: 1 1 16rem; min-width: 0; }
+.settingsHead > .saveStatus { flex: 0 1 auto; }
 .macroEditActions > .hint { margin-right: auto; }
 .hint {
   font-size: var(--fs-sm);

@@ -173,16 +173,21 @@ export function noteSaveBeaconed(section: string, data: unknown, handedOff: bool
 }
 
 /** The gateway's full settings blob (settings_changed / settings_init):
- *  the only confirmation a page-hide save can get. A section it carries
- *  equal to the beaconed data is saved; a different one is not on the
- *  server — corrected by a later blob that matches. */
+ *  the only confirmation a page-hide save can get. The blob is COMPLETE —
+ *  the gateway always sends the whole per-INI store (see updateServerCache
+ *  in defaults.ts) — so a section it carries equal to the beaconed data is
+ *  saved, and a different or ABSENT one is not on the server (round 7,
+ *  UI-I12 rest B: skipping an absent section left a first beacon that never
+ *  arrived "unconfirmed" for good); a later blob that matches corrects it.
+ *  The store caches only written states (settings_store.py), so an equal
+ *  section is a stored one. */
 export function noteSaveServerState(settings: Record<string, unknown> | null | undefined): void {
   if (!settings || typeof settings !== "object") return;
   let moved = false;
   for (const [name, s] of _sections) {
     if (s.rev === 0 || s.beaconRev !== s.rev || s.ackedRev === s.rev) continue;
-    if (!Object.prototype.hasOwnProperty.call(settings, name)) continue;
-    if (stableJson(settings[name]) === s.beaconJson) {
+    const present = Object.prototype.hasOwnProperty.call(settings, name);
+    if (present && stableJson(settings[name]) === s.beaconJson) {
       s.ackedRev = s.rev;
     } else if (s.failedRev !== s.rev) {
       s.failedRev = s.rev; s.failKind = "error"; s.detail = "page-hide save not on the server — change it again";

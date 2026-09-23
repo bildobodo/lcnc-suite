@@ -7,7 +7,16 @@ watches to push settings_changed. The current-INI key is INJECTED (it derives
 from STAT, which this module must not import), as is an optional load-error
 callback — so the module stays linuxcnc/trace-free and unit-testable. Logic
 extracted verbatim from gateway.py; behavior unchanged.
+
+The cache only ever holds a WRITTEN state (review round 7, UI-I12 rest A):
+every change is prepared on a deep copy and becomes the cache only after
+the file write succeeded. A failed write (disk full, the refuse-to-clobber
+guard) leaves the cache — and so the next settings_init/settings_changed
+blob — at the last stored state: the WebUI reads an equal section in that
+blob as the confirmation of a page-hide (sendBeacon) save, so an unwritten
+value in the cache would have been reported "Saved".
 """
+import copy
 import json
 import threading
 from typing import Callable, Optional
@@ -68,18 +77,20 @@ class SettingsStore:
         return self._load_all().get(self._ini_key(), {})
 
     def save_section(self, section: str, data) -> None:
-        """Persist one section for the current INI config; bumps version."""
+        """Persist one section for the current INI config; bumps version.
+        Prepared on a copy: the cache changes only once the write succeeded."""
         with self._lock:
-            all_data = self._load_all()
+            all_data = copy.deepcopy(self._load_all())
             ini = self._ini_key()
             all_data.setdefault(ini, {})[section] = data
             self._save_all(all_data)
             self.version += 1
 
     def reset(self) -> None:
-        """Drop all settings for the current INI config; bumps version."""
+        """Drop all settings for the current INI config; bumps version.
+        Prepared on a copy: the cache changes only once the write succeeded."""
         with self._lock:
-            all_data = self._load_all()
+            all_data = copy.deepcopy(self._load_all())
             ini = self._ini_key()
             if ini in all_data:
                 del all_data[ini]
