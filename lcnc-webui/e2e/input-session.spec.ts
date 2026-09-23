@@ -394,52 +394,6 @@ test("physical typing into the MDI line is kept with the helper open and closed;
   expect((await cmds()).filter(c => c === "mdi")).toHaveLength(1);
 });
 
-test("UX-13 diagnosis: ?mdiField= changes exactly one attribute of the MDI line per variant; sending and focus return stay the same", async ({ page }) => {
-  // Temporary switch for the operator's Firefox/macOS + Apple Passwords
-  // test. Each variant differs from the shipped field in ONE feature; the
-  // message center names what is active; the MDI contract is untouched.
-  const cases: [string, Record<string, string | null>][] = [
-    ["base", { name: "mdiText", placeholder: "G-code command (↑↓ history)", "aria-label": "MDI command", type: "text", autocomplete: "off" }],
-    ["noname", { name: null, placeholder: "G-code command (↑↓ history)" }],
-    ["noplaceholder", { name: "mdiText", placeholder: null }],
-    ["nolabel", { "aria-label": null, name: "mdiText" }],
-    ["withid", { id: "mdi-command", name: "mdiText" }],
-    ["search", { type: "search", name: "mdiText" }],
-    ["combobox", { role: "combobox", "aria-autocomplete": "list" }],
-    ["acnope", { autocomplete: "nope", name: "mdiText" }],
-  ];
-  for (const [variant, expected] of cases) {
-    await ctl({ op: "reset" });
-    await page.goto(`${MOCK}?mdiField=${variant}`);
-    await expect(page.locator("input.setupInput").first()).toBeVisible();
-    await ctl({ op: "quiet", on: true });
-    await ctl({ op: "status_delta", data: { active_file: "/A.ngc", permissions: PERMS_ALL } });
-    await ctl({ op: "clearCmds" });
-    const mdi = await openMdi(page);
-    await expect(mdi).toHaveAttribute("data-mdi-variant", variant);
-    for (const [attr, value] of Object.entries(expected)) {
-      if (value === null) await expect(mdi, `${variant}: no ${attr}`).not.toHaveAttribute(attr);
-      else await expect(mdi, `${variant}: ${attr}`).toHaveAttribute(attr, value);
-    }
-    await page.keyboard.type("G1 X7");
-    await expect(mdi).toHaveValue("G1 X7");
-    await page.keyboard.press("Enter");
-    await expect.poll(async () => (await sentCmds()).filter(c => c.cmd === "mdi").map(c => c.text), `${variant}: one send`).toEqual(["G1 X7"]);
-    await expect(mdi).toBeFocused();
-    await page.keyboard.type(" ");
-    await expect(mdi).toHaveValue(" ");
-    expect((await cmds()).filter(c => c === "cycle_start"), `${variant}: Space typed`).toHaveLength(0);
-  }
-  // Without the parameter the line is the shipped one and says nothing.
-  await ctl({ op: "reset" });
-  await page.goto(MOCK);
-  await expect(page.locator("input.setupInput").first()).toBeVisible();
-  await ctl({ op: "status_delta", data: { active_file: "/A.ngc", permissions: PERMS_ALL } });
-  const plain = await openMdi(page);
-  await expect(plain).not.toHaveAttribute("data-mdi-variant");
-  await expect(plain).toHaveAttribute("name", "mdiText");
-});
-
 test("field contract: every text field is a technical field — no autofill, autocorrect, autocapitalize or spellcheck, a stable name and an accessible name", async ({ page }) => {
   // UX-13: the operator's browser offered the MDI line as a login field.
   // MachineInput sets the contract for every catalog text field; a caller's
@@ -458,10 +412,15 @@ test("field contract: every text field is a technical field — no autofill, aut
       await expect(f, where).toHaveAttribute("spellcheck", "false");
       expect(name, `${where}: name`).toMatch(/\S/);
       await expect(f, `${where}: accessible name`).toHaveAccessibleName(/\S/);
+      // UX-13: Apple Passwords (Firefox/macOS) takes a field whose placeholder
+      // holds the word "code" for a verification-code field — "G-code command"
+      // on the MDI line popped it up on every focus (operator's variant test).
+      expect(await f.getAttribute("placeholder") ?? "", `${where}: no word "code" in the placeholder`).not.toMatch(/\bcode\b/i);
       seen.add(`${where}:${name}`);
     }
   }
   await page.getByRole("button", { name: "MDI", exact: true }).click();
+  await expect(page.locator(".mdiInput")).toHaveAttribute("placeholder", "MDI command (↑↓ history)");
   await scan("MDI");
   await page.getByRole("button", { name: "Tools", exact: true }).click();
   await scan("Tools");

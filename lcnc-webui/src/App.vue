@@ -45,7 +45,6 @@ import { buildToolsetterVarMap } from "./toolsetterVars";
 import { useGamepad } from "./useGamepad";
 import { useMediaMql } from "./useMediaMql";
 import { useDialogState } from "./useDialogState";
-import { parseMdiFieldVariant, mdiFieldVariantMessage } from "./mdiFieldVariant";
 import { useMdiHistory } from "./useMdiHistory";
 import { useTouchoffMath } from "./useTouchoffMath";
 import { useMacros } from "./useMacros";
@@ -940,12 +939,6 @@ const {
   confirmCompToggle,
   cancelCompToggle,
 } = useDialogState({ markMessagesRead, send, fire, guardSettingsClose: p => guardSettingsClose(p) });
-
-// UX-13 diagnosis (temporary): `?mdiField=<variant>` changes one attribute
-// of the MDI line per variant so the operator can name the feature the
-// Apple Passwords extension keys on; the message center says what is active.
-const mdiVariant = parseMdiFieldVariant(location.search);
-onMounted(() => { if (mdiVariant) pushMessage(OPERATOR_DISPLAY, mdiFieldVariantMessage(mdiVariant)); });
 
 // Settings closes over a draft only after an explicit Discard (UI-K16): the
 // macro editor and the gamepad wizard are local to the panel and were lost
@@ -1911,10 +1904,12 @@ watch(viewerGcode, (newGcode) => {
                   :session-owner="MDI_OWNER"
                   :session-open="openMdiSession"
                   @keydown="onMdiKeydown"
-                  placeholder="G-code command (↑↓ history)"
-                  v-bind="mdiVariant?.attrs ?? {}"
-                  :data-mdi-variant="mdiVariant ? mdiVariant.names.join(',') || 'none' : undefined"
+                  placeholder="MDI command (↑↓ history)"
                 />
+                <!-- UX-13: never the word "code" in this placeholder — Apple
+                     Passwords (Firefox/macOS) read "G-code command" as a
+                     verification-code field and popped up on every focus
+                     (operator's variant test 2026-09-23). -->
                 <MachineBtn type="mdi" @click="handleMdiSend">Send</MachineBtn>
                 <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
               </div>
