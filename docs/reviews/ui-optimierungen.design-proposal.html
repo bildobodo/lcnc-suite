@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WebUI – Vorschlag für Layout und Kontrast</title>
+<style>
+:root { color-scheme:light; --bg:#fff; --surface:#f3f5f7; --fg:#213547; --muted:#526171; --border:#718096; --accent:#005fcc; --height:32px; --feed:#0072b2; --rapid:#9a6700; --bounds:#475569; --trace:#007f75; --selected:#7e22ce; --danger:#b91c1c; }
+html.dark {color-scheme:dark; --bg:#0b0f14;--surface:#18212d;--fg:#e6edf3;--muted:#aebccc;--border:#8c9cad;--accent:#79b8ff;--feed:#56b4e9;--rapid:#e69f00;--bounds:#cbd5e1;--trace:#2dd4bf;--selected:#d8b4fe;--danger:#ff8585;}
+html.touch {--height:44px}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif}main{max-width:1180px;padding:24px;margin:auto}h1{font-size:26px;margin:0 0 8px}h2{font-size:20px;margin:0 0 12px}h3{font-size:14px;margin:0 0 8px}p{margin:8px 0 16px}.muted{color:var(--muted)}.controls,.actions,.tabs{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.controls{padding:12px;background:var(--surface);border-radius:8px;margin:20px 0}.controls label{display:flex;align-items:center;gap:8px;min-height:32px;margin-right:16px}section{margin:28px 0}.comparison{display:grid;grid-template-columns:1fr 1fr;gap:20px}.card{border:1px solid var(--border);border-radius:8px;padding:16px;min-width:0}button,input,select{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--border);border-radius:4px}button{min-height:var(--height);padding:4px 12px;cursor:pointer}input:not([type=checkbox]),select{height:var(--height);padding:4px 8px;width:100%;min-width:0}input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent)}:focus-visible{outline:3px solid var(--accent);outline-offset:3px}.primary{background:var(--accent);color:var(--bg);font-weight:600}.danger{color:var(--danger)}.tabs{margin-bottom:12px}.tabs button[aria-selected=true]{border-bottom:3px solid var(--accent);font-weight:700}.group{border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:12px;background:var(--surface)}.group>h3{color:var(--muted)}.filter{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}.field{display:grid;gap:4px;min-width:0}.field label{font-size:12px;color:var(--muted)}.form-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}.span{grid-column:1/-1}.number{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px}.number input{text-align:right;font-variant-numeric:tabular-nums}.number span{color:var(--muted)}.dialog-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.dialog-head h2{margin:0}.dialog-head button{width:var(--height);padding:0}.footer{display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--border);padding-top:16px;margin-top:16px}.sample{height:240px;width:100%;display:block;background:var(--bg)}.sample .box{stroke:var(--bounds);stroke-width:2;fill:none}.sample .feed{stroke:var(--feed);stroke-width:2.5;fill:none}.sample .rapid{stroke:var(--rapid);stroke-dasharray:9 6;stroke-width:2.5;fill:none}.sample .selected{stroke:var(--selected);stroke-width:4;fill:none}.sample.current .box{stroke:#fff;stroke-width:1}.sample.current .feed{stroke:#22b8cf;stroke-width:1}.sample.current .rapid{stroke:#f5a623;stroke-width:1}.sample.current .selected{stroke:#f33;stroke-width:1}.sample .limits{stroke:var(--rapid);stroke-width:4;fill:none}.sample.current .limits{stroke:#fc0;stroke-width:1}.sample text{fill:var(--fg);font-size:12px}.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px}.legend span{display:flex;align-items:center;gap:6px}.line{width:24px;border-top:3px solid var(--feed)}.line.rapid{border-color:var(--rapid);border-top-style:dashed}.line.bounds{border-color:var(--bounds)}.line.selected{border-color:var(--selected);border-top-width:5px}.palette{width:100%;border-collapse:collapse}.palette th,.palette td{text-align:left;padding:8px;border-bottom:1px solid var(--border)}.swatch{display:inline-block;width:18px;height:18px;vertical-align:middle;margin-right:8px;border:1px solid var(--border)}.note{padding:12px;border-left:4px solid var(--accent);background:var(--surface)}[hidden]{display:none!important}html.grey .sample{filter:grayscale(1)}@media(max-width:760px){main{padding:16px}.comparison{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.span{grid-column:auto}}
+/* Navigation has its own shape; ordinary action buttons retain their borders. */
+.tab-shell{border:1px solid var(--border);border-radius:8px;min-width:0;background:var(--bg)}
+.tab-shell>.tabs-scroll>.tabs{border-radius:7px 7px 0 0}
+.tabs{flex-wrap:nowrap;align-items:stretch;gap:2px;overflow-x:auto;margin:0;padding:6px 8px 0;background:var(--surface);border-bottom:1px solid var(--border);scrollbar-width:thin}
+.tabs [role=tab]{flex:none;position:relative;white-space:nowrap;min-height:max(var(--height),38px);border:1px solid transparent;border-top:3px solid transparent;border-radius:6px 6px 0 0;background:transparent;padding:6px 14px;color:var(--muted)}
+.tabs [role=tab][aria-selected=true]{border-color:var(--border);border-top-color:var(--accent);border-bottom-color:var(--bg);background:var(--bg);color:var(--fg);font-weight:700;box-shadow:0 1px 0 var(--bg)}
+.tabs [role=tab]:hover{color:var(--fg);text-decoration:underline;text-underline-offset:4px}
+.tabs [role=tab]:focus-visible{outline:2px dashed var(--accent);outline-offset:-6px}
+.tab-body{padding:16px;min-width:0}
+.subtabs{background:var(--bg);padding:0;gap:8px;margin-bottom:16px;border-radius:0}
+.subtabs [role=tab]{border:0;border-bottom:3px solid transparent;border-radius:0;min-height:max(var(--height),36px);padding:8px 10px}
+.subtabs [role=tab][aria-selected=true]{border:0;border-bottom:3px solid var(--accent);box-shadow:none;background:var(--bg);color:var(--fg)}
+.tabs-scroll{display:flex;align-items:stretch;min-width:0}
+.tabs-scroll>.tabs{flex:1;min-width:0}
+.tabs-scroll:has(>.subtabs){margin-bottom:16px;border-bottom:1px solid var(--border)}
+.tabs-scroll>.subtabs{margin-bottom:0;border:0}
+.tab-scroll{flex:none;min-width:32px;padding:4px;background:var(--surface);border:0;border-radius:0;font-size:20px}
+.palette-scroll{max-width:100%;overflow-x:auto}
+.nav-example{margin:0 0 16px}.nav-example .tab-body{min-height:245px}
+.nav-context{font-weight:650;font-size:16px;margin:0 0 16px}
+.nav-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px;border:1px solid var(--border);border-radius:6px;background:var(--surface);margin-bottom:16px}
+.nav-actions>span{width:100%;font-size:12px;font-weight:600;color:var(--muted)}
+.nav-form{display:flex;align-items:end;gap:12px;flex-wrap:wrap}.nav-form .field{flex:1;min-width:150px}
+.nav-copy{max-width:76ch}.nav-copy p{margin-bottom:0}
+.workbench{--preview-width:522px;display:grid;grid-template-columns:minmax(0,1fr) var(--preview-width);gap:12px;align-items:start}
+.viewer-placeholder{min-width:0;border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface)}
+.viewer-placeholder .sample{height:220px}.viewer-placeholder p{font-size:12px;margin:8px 0 0}
+.panel-sizing{margin-top:0}.panel-sizing select{width:auto}
+.nav-example{width:100%;container-type:inline-size}
+.tab-choice{display:none}
+/* A compact candidate measured at the real side-pane's inner width.
+   The spacious first draft remains switchable for comparison. */
+.nav-example.compact .tab-body{padding:8px;min-height:0}
+.nav-example.compact .tabs{padding:0 4px;gap:0}
+.nav-example.compact .tabs [role=tab]{height:var(--height);min-height:var(--height);padding:3px 10px;font-size:13px;line-height:1.35}
+.nav-example.compact .subtabs{padding:0;gap:2px}
+.nav-example.compact .subtabs [role=tab]{padding:3px 8px}
+.nav-example.compact .tabs-scroll:has(>.subtabs){margin-bottom:8px}
+.nav-example.compact .tab-scroll{min-width:var(--height);min-height:var(--height)}
+.nav-example.compact .redundant-label{display:none}
+.nav-example.compact .nav-context{font-size:13px;margin:0 0 8px}
+.nav-example.compact .nav-actions{gap:6px;padding:6px;border-radius:4px;margin-bottom:8px}
+.nav-example.compact .nav-actions>span{font-size:12px}
+.nav-example.compact .nav-actions button{font-size:13px;padding:3px 8px}
+.nav-example.compact .nav-form{gap:8px}
+.nav-example.compact .nav-form .field{min-width:140px}
+.compact .tab-choice{min-height:var(--height);align-items:center;gap:6px;margin:0;padding:0 6px;background:var(--surface);border-bottom:1px solid var(--border);font-size:12px}
+.compact .tab-choice select{flex:1;min-width:0;width:100%;height:var(--height);font-size:13px}
+.compact .tab-body>.tab-choice{margin-bottom:8px}
+@container(max-width:319px){.compact .tabs-scroll{display:none}.compact .tab-choice{display:flex}.compact #nav-panel-probe>.tab-choice{margin-bottom:8px}}
+/* Recommended alternative: the five main tabs fit at the measured width;
+   the eight method names use a labelled picker, with no horizontal rail. */
+.nav-example.no-scroll #nav-panel-probe>.tabs-scroll{display:none}
+.nav-example.no-scroll #nav-panel-probe>.tab-choice{display:flex;margin-bottom:8px}
+.nav-example.no-scroll>.tabs-scroll .tab-scroll{display:none}
+.nav-example.no-scroll>.tabs-scroll>.tabs{overflow-x:visible}
+@container(max-width:399px){.nav-example.no-scroll>.tabs-scroll{display:none}.nav-example.no-scroll>.tab-choice{display:flex}}
+@media(max-width:850px){.workbench{display:flex;justify-content:flex-end}.workbench>.nav-example{width:min(100%,var(--preview-width));flex:none}.viewer-placeholder{display:none}}
+@media(forced-colors:active){.tabs [role=tab][aria-selected=true]{border-top-color:Highlight}.subtabs [role=tab][aria-selected=true]{border-bottom-color:Highlight}.tabs [role=tab]:focus-visible{outline-color:Highlight}}
+</style>
+<main>
+<h1>Einheitliches Layout, lesbare Farben</h1>
+<p class="muted">Diskussionsentwurf zum UI-Review vom 22. September 2026. Die Beispiele haben keine Verbindung zur Maschine.</p>
+<div class="controls" aria-label="Vorschau einstellen">
+<label><input id="dark" type="checkbox"> Dunkles Theme</label>
+<label><input id="touch" type="checkbox"> Große Bedienelemente</label>
+<label><input id="grey" type="checkbox"> Linien in Graustufen</label>
+</div>
+<section id="navigation" aria-labelledby="navigation-title">
+<h2 id="navigation-title">Registerkarten außen, Aktionen im gewählten Bereich</h2>
+<p class="muted">Empfehlung ohne horizontale Scrollnavigation: fünf sichtbare Haupttabs und eine beschriftete Auswahl für die acht Probing-Verfahren. Navigation und Aktionen behalten getrennte Formen und Bereiche.</p>
+<div class="controls panel-sizing">
+<label for="pane-width">Nutzbare Panelbreite <select id="pane-width"><option value="522">522 px · Querformat 100 %</option><option value="570">570 px · Hochformat 100 %</option><option value="271">271 px · Hochformat 150 %</option><option value="120">120 px · Hochformat 200 % · zu schmal</option></select></label>
+<label for="nav-style">Navigation <select id="nav-style"><option value="picker">Tabs + Verfahrensauswahl</option><option value="scroll">Frühere Scrolltabs · Vergleich</option></select></label>
+<label><input id="compact-tabs" type="checkbox" checked> Kompakte Fassung</label>
+</div>
+<div class="workbench" id="navigation-stage">
+<div class="viewer-placeholder"><h3>3D Viewer</h3><svg class="sample" viewBox="0 0 440 240" role="img" aria-label="Schematischer Viewer neben dem schmaleren Seitenpanel"></svg><p class="muted">Nur Größenvergleich. Das reale Höhenbudget hängt zusätzlich von Kopfzeile, Meldungen und Bedienleiste ab.</p></div>
+<div class="tab-shell nav-example compact no-scroll" id="navigation-example">
+<div class="tabs" role="tablist" aria-label="Arbeitsbereiche">
+<button id="nav-program" type="button" role="tab" aria-controls="nav-panel-program" aria-selected="false" tabindex="-1">Program</button>
+<button id="nav-mdi" type="button" role="tab" aria-controls="nav-panel-mdi" aria-selected="false" tabindex="-1">MDI</button>
+<button id="nav-probe" type="button" role="tab" aria-controls="nav-panel-probe" aria-selected="true">Probing</button>
+<button id="nav-offsets" type="button" role="tab" aria-controls="nav-panel-offsets" aria-selected="false" tabindex="-1">Offsets</button>
+<button id="nav-tools" type="button" role="tab" aria-controls="nav-panel-tools" aria-selected="false" tabindex="-1">Tools</button>
+</div>
+<div class="tab-body">
+<div id="nav-panel-program" role="tabpanel" aria-labelledby="nav-program" hidden>
+<p class="nav-context">Program · example.ngc</p>
+<div class="nav-actions" role="group" aria-label="Programmdatei"><span>Programmdatei</span><button type="button">Edit</button><button type="button">Reload</button><button type="button">Unload</button><button type="button">Browse</button><button type="button">Upload</button></div>
+<div class="nav-actions" role="group" aria-label="Programmlauf"><span>Programmlauf</span><button type="button" class="primary">▶ Start</button><button type="button">Pause</button><button type="button" class="danger">■ Abort</button></div>
+</div>
+<div id="nav-panel-mdi" role="tabpanel" aria-labelledby="nav-mdi" hidden>
+<p class="nav-context redundant-label">MDI · Einzelbefehl</p>
+<div class="nav-actions" role="group" aria-label="MDI-Eingabe"><div class="field" style="flex:1"><label for="nav-mdi-command">G-code command</label><input id="nav-mdi-command" name="demo-mdi-command" type="text" autocomplete="off" spellcheck="false" value="G0 X10"></div><button type="button" class="primary">Send</button><button type="button" class="danger">■ Abort</button></div>
+<h3>History</h3><p class="muted">Der Arbeitsbereich bleibt oben ausgewählt. Send ist eine Aktion innerhalb von MDI.</p>
+</div>
+<div id="nav-panel-probe" role="tabpanel" aria-labelledby="nav-probe">
+<div class="tabs subtabs" role="tablist" aria-label="Probing-Verfahren" id="probe-method-tabs">
+<button id="method-outside" type="button" role="tab" aria-controls="method-panel-outside" aria-selected="true">Outside</button>
+<button id="method-inside" type="button" role="tab" aria-controls="method-panel-inside" aria-selected="false" tabindex="-1">Inside</button>
+<button id="method-angle" type="button" role="tab" aria-controls="method-panel-angle" aria-selected="false" tabindex="-1">Angle</button>
+<button id="method-boss" type="button" role="tab" aria-controls="method-panel-boss" aria-selected="false" tabindex="-1">Boss/Pocket</button>
+<button id="method-ridge" type="button" role="tab" aria-controls="method-panel-ridge" aria-selected="false" tabindex="-1">Ridge/Valley</button>
+<button id="method-surface" type="button" role="tab" aria-controls="method-panel-surface" aria-selected="false" tabindex="-1">Surface</button>
+<button id="method-cal" type="button" role="tab" aria-controls="method-panel-cal" aria-selected="false" tabindex="-1">Calibrate</button>
+<button id="method-toolsetter" type="button" role="tab" aria-controls="method-panel-toolsetter" aria-selected="false" tabindex="-1">Toolsetter</button>
+</div>
+<div id="method-panel-outside" role="tabpanel" aria-labelledby="method-outside">
+<p class="nav-context redundant-label">Probing · Outside</p>
+<div class="nav-actions" role="group" aria-label="Outside-Aktionen"><span class="redundant-label">Aktionen · Outside</span><button type="button" class="primary">Probe X−</button><button type="button">Probe X+</button><button type="button">Probe Y−</button><button type="button">Probe Y+</button><button type="button" class="danger">■ Abort</button></div>
+<div class="nav-form"><div class="field"><label for="demo-distance">Travel distance · mm</label><input id="demo-distance" value="25.0"></div><div class="field"><label for="demo-feed">Probe feed · mm/min</label><input id="demo-feed" value="100"></div></div>
+</div>
+<div id="method-panels"></div>
+</div>
+<div id="nav-panel-offsets" role="tabpanel" aria-labelledby="nav-offsets" hidden>
+<p class="nav-context">Offsets · G54</p>
+<div class="nav-actions" role="group" aria-label="Offset-Aktionen"><span>Aktionen · G54</span><button type="button">Clear G54</button><button type="button">Clear all offsets</button></div>
+<p class="muted">G54–G59.3 bleiben eine Auswahl des Bezugssystems. Sie erhalten nur dann Tab-Semantik, wenn sie tatsächlich zwischen Inhaltsflächen wechseln.</p>
+</div>
+<div id="nav-panel-tools" role="tabpanel" aria-labelledby="nav-tools" hidden>
+<p class="nav-context redundant-label">Tools · Werkzeugverwaltung</p>
+<div class="nav-actions" role="group" aria-label="Werkzeugverwaltung"><span>Werkzeugverwaltung</span><button type="button">Add</button><button type="button">Browse</button><button type="button">Upload</button></div>
+<div class="nav-actions" role="group" aria-label="Aktives Werkzeug"><span>Werkzeug in der Spindel</span><button type="button">Measure current</button><button type="button">Unload</button><button type="button" class="danger">■ Abort</button></div>
+</div>
+</div>
+</div>
+</div>
+<p class="note" id="narrow-layout-note" hidden>Bei nur 120 px nutzbarer Breite reicht eine kompaktere Tab-Leiste nicht aus. Das Gesamtfenster muss seine Spaltenaufteilung ändern; diese Breite ist keine freigegebene Zielgröße für das Seitenpanel.</p>
+<div class="nav-copy"><p><strong>Bedienung:</strong> Pfeiltasten bewegen den Fokus innerhalb einer Tab-Leiste; Enter oder Leertaste wählen den Tab aus. Tab führt weiter in den Inhalt. Auswahl und Tastaturfokus haben unterschiedliche Markierungen. Alle Aktionsbuttons sind hier nur Anschauung.</p></div>
+<p class="muted" id="navigation-variant-note">Bei sehr schmalen Panels wird auch die Hauptnavigation zur Auswahl „Bereich“. Die Touch-Höhe bleibt 44 px. Der frühere Scrollentwurf ist nur zum Vergleich anwählbar.</p>
+</section>
+<section aria-labelledby="viewer-title">
+<h2 id="viewer-title">Pfadvorschau: Farben und Linien gemeinsam gestalten</h2>
+<div class="comparison">
+<div class="card"><h3>Bisherige Standardfarben</h3><svg id="old" class="sample current" viewBox="0 0 440 240" role="img" aria-label="Schema mit heutigen Farben: weiße Begrenzung, türkiser Vorschub, oranger Eilgang, rote Auswahl und gelbe Limitverletzung"></svg><p class="muted">Die weiße Begrenzung verschwindet im hellen Theme. Die übrigen Linien sind ebenfalls sehr hell.</p></div>
+<div class="card"><h3>Vorschlag mit Theme-Farben</h3><svg id="new" class="sample" viewBox="0 0 440 240" role="img" aria-label="Vorschlag: kontrastreiche Begrenzung, blauer Vorschub, gestrichelter Eilgang und breitere violette Auswahl und markierte Limitverletzung"></svg><div class="legend"><span><i class="line bounds"></i>Begrenzung</span><span><i class="line"></i>Vorschub</span><span><i class="line rapid"></i>Eilgang</span><span><i class="line selected"></i>Auswahl</span><span>⚠ Limit</span></div></div>
+</div>
+<p class="muted">Schematische SVG-Darstellung, kein neuer 3D-Renderer. Eilgang ist auch im bestehenden Viewer bereits gestrichelt. Die vorgeschlagene Linienbreite und die Erkennbarkeit auf Maschinenoberflächen müssen im echten Viewer geprüft werden.</p>
+<div class="palette-scroll" role="region" aria-label="Farbpalette vergleichen" tabindex="0"><table class="palette"><caption>Vorgeschlagene Farben und berechneter Kontrast zum jeweiligen Hintergrund</caption><thead><tr><th scope="col">Bedeutung</th><th scope="col">Farbe</th><th scope="col">Kontrast</th><th scope="col">Zusätzlich erkennbar an</th></tr></thead><tbody id="palette"></tbody></table></div>
+</section>
+<section aria-labelledby="layout-title">
+<h2 id="layout-title">Ein Aufbau für alle Arbeitsbereiche</h2>
+<div class="comparison">
+<div class="tab-shell">
+<div class="tabs" role="tablist" aria-label="Layoutbeispiele">
+<button id="tab-program" type="button" role="tab" aria-controls="panel-program" aria-selected="false" tabindex="-1">Program</button>
+<button id="tab-mdi" type="button" role="tab" aria-controls="panel-mdi" aria-selected="false" tabindex="-1">MDI</button>
+<button id="tab-tools" type="button" role="tab" aria-controls="panel-tools" aria-selected="true">Tools</button>
+</div>
+<div class="tab-body">
+<div id="panel-tools" role="tabpanel" aria-labelledby="tab-tools">
+<div class="group"><h3>Werkzeugverwaltung</h3><div class="actions"><button type="button">Add</button><button type="button">Browse</button><button type="button">Upload</button></div></div>
+<div class="group"><h3>Werkzeug in der Spindel · T416</h3><div class="actions"><button type="button">Measure current</button><button type="button">Unload</button><button type="button" class="danger">■ Abort</button></div></div>
+<div class="filter"><div class="field"><label for="search">Werkzeuge suchen</label><input id="search" placeholder="Nummer oder Beschreibung"></div><button type="button">Filter</button></div>
+<p>▸ T416 · Barrel cutter · Ø 12 mm</p><p class="muted">Nummer und Beschreibung zuerst. Weitere Spalten oder Details folgen nach verfügbarem Platz.</p>
+</div>
+<div id="panel-program" role="tabpanel" aria-labelledby="tab-program" hidden>
+<div class="group"><h3>Programmdatei</h3><div class="actions"><button type="button">Edit</button><button type="button">Reload</button><button type="button">Unload</button><button type="button">Browse</button><button type="button">Upload</button></div><p>File: example.ngc</p></div>
+<div class="group"><h3>Programmlauf</h3><div class="actions"><button type="button" class="primary">▶ Start</button><button type="button">Step</button><button type="button">Pause</button><button type="button" class="danger">■ Abort</button></div></div>
+<p class="muted">Gleiche Gruppenabstände und Kontrollhöhen wie bei Tools.</p>
+</div>
+<div id="panel-mdi" role="tabpanel" aria-labelledby="tab-mdi" hidden>
+<div class="group"><h3>MDI-Befehl</h3><div class="filter"><div class="field"><label for="mdi">G-code command</label><input id="mdi" value="G0 X10"></div><button type="button" class="primary">Send</button></div><div class="actions" style="margin-top:8px"><button type="button" class="danger">■ Abort</button></div></div>
+<h3>History</h3><p class="muted">Eingabe und Suche verwenden dieselbe Höhe; ihre Breite folgt der Aufgabe.</p>
+</div>
+</div>
+</div>
+<div class="card" aria-labelledby="form-title">
+<div class="dialog-head"><h2 id="form-title">Edit tool · T416</h2><button type="button" aria-label="Werkzeugeditor schließen">×</button></div>
+<h3>General</h3><div class="form-grid">
+<div class="field"><label for="tool">Tool number</label><input id="tool" value="416" inputmode="numeric"></div>
+<div class="field"><label for="pocket">Pocket</label><input id="pocket" value="7" inputmode="numeric"></div>
+<div class="field span"><label for="type">Type</label><select id="type"><option>Circle segment barrel</option><option>End mill</option></select></div>
+<div class="field span"><label for="description">Description</label><input id="description" value="Imported barrel cutter"></div>
+</div>
+<h3 style="margin-top:20px">Dimensions</h3><div class="form-grid">
+<div class="field"><label for="diameter">Diameter</label><div class="number"><input id="diameter" value="12.000" aria-describedby="diameter-unit"><span id="diameter-unit">mm</span></div></div>
+<div class="field"><label for="offset">Z offset</label><div class="number"><input id="offset" value="-42.300" aria-describedby="offset-unit"><span id="offset-unit">mm</span></div></div>
+<div class="field"><label for="length">Total length</label><div class="number"><input id="length" value="80.000" aria-describedby="length-unit"><span id="length-unit">mm</span></div></div>
+<div class="field"><label for="flute">Flute length</label><div class="number"><input id="flute" value="20.000" aria-describedby="flute-unit"><span id="flute-unit">mm</span></div></div>
+</div>
+<p class="muted">Beide Abschnitte verwenden dasselbe Raster. Typ und Beschreibung dürfen bewusst die ganze Zeile nutzen. Die Werkzeugvorschau folgt bei ausreichend Platz rechts, sonst einklappbar unter dem Formular.</p>
+<div class="footer"><button type="button">Cancel</button><button type="button" class="primary">Save</button></div>
+</div>
+</div>
+</section>
+<p class="note">Dieser Entwurf zeigt Layout und Farbrichtung. Er ist keine vollständige Werkzeugmaske und keine bestandene Barrierefreiheitsprüfung. Zustände wie gesperrt, Fehler, Fokus und geänderte Werte müssen im Produkt gesondert abgenommen werden.</p>
+</main>
+<script>
+const data=[['Maschinenbegrenzung','#475569','#cbd5e1','Geschlossener Rahmen'],['Vorschub','#0072b2','#56b4e9','Durchgezogene Linie'],['Eilgang','#9a6700','#e69f00','Gestrichelte Linie'],['Gefahrener Pfad','#007f75','#2dd4bf','Verlauf und Legende; weiteres Linienmerkmal prüfen'],['Auswahl','#7e22ce','#d8b4fe','Breitere Kontur und Zeilenbezug'],['Kollision','#b91c1c','#ff8585','Marker, Text und betroffene Zeile'],['Limitverletzung','#9a6700','#e69f00','Warnmarker und Zeilenbezug']];
+const scene='<path class="box" d="M55 95 235 40 380 100 205 165Z M55 95V165L205 220 380 155V100 M235 40V95L55 165 M235 95 380 155 M205 165V220"/><path class="feed" d="M95 154 231 113 248 120 112 161 129 168 265 127 282 134 146 175 163 182 299 141"/><path class="rapid" d="M75 85 95 154 M299 141 329 89"/><path class="selected" d="M129 168 265 127"/><path class="limits" d="M299 141 329 150"/><text x="336" y="155">⚠</text>';
+document.querySelectorAll('.sample').forEach(s=>s.innerHTML=scene);
+function luminance(hex){const c=hex.match(/[a-f0-9]{2}/gi).map(v=>parseInt(v,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);return c[0]*.2126+c[1]*.7152+c[2]*.0722}
+function update(){const dark=document.querySelector('#dark').checked;document.documentElement.classList.toggle('dark',dark);document.documentElement.classList.toggle('touch',document.querySelector('#touch').checked);document.documentElement.classList.toggle('grey',document.querySelector('#grey').checked);const bg=dark?'#0b0f14':'#ffffff';document.querySelector('#palette').innerHTML=data.map(([label,l,d,shape])=>{const c=dark?d:l;const a=luminance(c),b=luminance(bg);return `<tr><th scope="row">${label}</th><td><span class="swatch" style="background:${c}"></span>${c}</td><td>${((Math.max(a,b)+.05)/(Math.min(a,b)+.05)).toFixed(2)}:1</td><td>${shape}</td></tr>`}).join('')}
+document.querySelectorAll('.controls input').forEach(e=>e.addEventListener('change',update));update();
+// The extra panels are schematic; changing tabs never runs a machine action.
+document.querySelectorAll('#probe-method-tabs [role=tab]').forEach((tab,i)=>{
+  if(i===0)return;
+  const panel=document.createElement('div');panel.id=tab.getAttribute('aria-controls');
+  panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',tab.id);panel.hidden=true;
+  const heading=document.createElement('p');heading.className='nav-context redundant-label';heading.textContent=`Probing · ${tab.textContent}`;
+  const group=document.createElement('div');group.className='nav-actions';group.setAttribute('role','group');group.setAttribute('aria-label',`${tab.textContent}-Aktionen`);
+  const label=document.createElement('span');label.className='redundant-label';label.textContent=`Aktionen · ${tab.textContent}`;
+  const action=document.createElement('button');action.type='button';action.textContent='Messung starten';action.className='primary';
+  const abort=document.createElement('button');abort.type='button';abort.className='danger';abort.textContent='■ Abort';
+  group.append(label,action,abort);panel.append(heading,group);document.getElementById('method-panels').append(panel);
+});
+// Each tablist owns its own focus and selection. Arrow keys do not activate
+// tabs: explicit selection avoids unintentional owner/context changes.
+document.querySelectorAll('[role=tablist]').forEach((list,listIndex)=>{
+  const tabs=[...list.querySelectorAll(':scope > [role=tab]')];
+  if(!list.id)list.id=`demo-tablist-${listIndex}`;
+  const choice=document.createElement('label');choice.className='tab-choice';
+  const caption=document.createElement('span');caption.textContent=list.classList.contains('subtabs')?'Verfahren':'Bereich';
+  const menu=document.createElement('select');menu.id=`${list.id}-choice`;choice.htmlFor=menu.id;
+  tabs.forEach(t=>{const option=document.createElement('option');option.value=t.id;option.textContent=t.textContent;option.selected=t.getAttribute('aria-selected')==='true';menu.append(option)});
+  choice.append(caption,menu);
+  function reveal(tab){if(list.getClientRects().length)tab.scrollIntoView({block:'nearest',inline:'nearest',behavior:'instant'})}
+  function select(tab){tabs.forEach(t=>{const on=t===tab;t.setAttribute('aria-selected',String(on));t.tabIndex=on?0:-1;document.getElementById(t.getAttribute('aria-controls')).hidden=!on});menu.value=tab.id;reveal(tab)}
+  menu.addEventListener('change',()=>select(tabs.find(t=>t.id===menu.value)));
+  tabs.forEach((tab,i)=>{
+    tab.addEventListener('click',()=>select(tab));
+    tab.addEventListener('keydown',e=>{
+      let n;if(e.key==='ArrowRight')n=(i+1)%tabs.length;if(e.key==='ArrowLeft')n=(i+tabs.length-1)%tabs.length;if(e.key==='Home')n=0;if(e.key==='End')n=tabs.length-1;
+      if(n!==undefined){e.preventDefault();e.stopPropagation();tabs.forEach((t,j)=>t.tabIndex=j===n?0:-1);tabs[n].focus({preventScroll:true});reveal(tabs[n])}
+      if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();if(!e.repeat)select(tab)}
+    });
+  });
+  list.addEventListener('focusout',e=>{if(!list.contains(e.relatedTarget))tabs.forEach(t=>t.tabIndex=t.getAttribute('aria-selected')==='true'?0:-1)});
+  const wrapper=document.createElement('div');wrapper.className='tabs-scroll';list.before(wrapper);wrapper.append(list);
+  wrapper.after(choice);
+  const previous=document.createElement('button'),next=document.createElement('button');
+  [previous,next].forEach(b=>{b.type='button';b.className='tab-scroll';b.tabIndex=-1;b.setAttribute('aria-controls',list.id)});
+  previous.textContent='‹';previous.setAttribute('aria-label','Vorherige Registerkarten anzeigen');next.textContent='›';next.setAttribute('aria-label','Weitere Registerkarten anzeigen');
+  previous.addEventListener('click',()=>list.scrollBy({left:-180,behavior:'instant'}));next.addEventListener('click',()=>list.scrollBy({left:180,behavior:'instant'}));
+  wrapper.prepend(previous);wrapper.append(next);
+  function arrows(){const overflow=list.scrollWidth>list.clientWidth+1;previous.hidden=next.hidden=!overflow;previous.disabled=list.scrollLeft<=1;next.disabled=list.scrollLeft+list.clientWidth>=list.scrollWidth-1}
+  new ResizeObserver(arrows).observe(list);list.addEventListener('scroll',arrows);arrows();
+});
+function sizePanel(){const width=document.getElementById('pane-width').value;const noScroll=document.getElementById('nav-style').value==='picker';document.getElementById('navigation-stage').style.setProperty('--preview-width',`${width}px`);document.getElementById('navigation-example').classList.toggle('compact',document.getElementById('compact-tabs').checked);document.getElementById('navigation-example').classList.toggle('no-scroll',noScroll);document.getElementById('narrow-layout-note').hidden=Number(width)>=240;document.getElementById('navigation-variant-note').textContent=noScroll?'Die acht Verfahren stehen in einer beschrifteten Auswahl. Unter vorläufig 400 px Panelbreite wechselt auch die Hauptnavigation zu „Bereich“. Auswahl bleibt erhalten; die Touch-Höhe bleibt 44 px.':'Früherer Vergleichsentwurf: horizontale Scrolltabs; unter 320 px in der kompakten Fassung zwei Auswahllisten.'}
+document.getElementById('pane-width').addEventListener('change',sizePanel);document.getElementById('compact-tabs').addEventListener('change',sizePanel);document.getElementById('nav-style').addEventListener('change',sizePanel);sizePanel();
+</script>
+</html>

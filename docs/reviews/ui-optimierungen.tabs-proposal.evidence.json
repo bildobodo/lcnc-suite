@@ -1,0 +1,123 @@
+{
+  "date": "2026-09-23",
+  "target": "compact standalone design proposal, not product UI",
+  "profiles": [
+    {
+      "name": "light",
+      "width": 1400,
+      "dark": false,
+      "touch": false,
+      "pageOverflow": false,
+      "tabs": [
+        {
+          "name": "Arbeitsbereiche",
+          "height": 33,
+          "scrollWidth": 520,
+          "clientWidth": 520,
+          "minTabHeight": 32,
+          "selectedCount": 1,
+          "tabStops": 1
+        },
+        {
+          "name": "Probing-Verfahren",
+          "height": 42,
+          "scrollWidth": 604,
+          "clientWidth": 440,
+          "minTabHeight": 32,
+          "selectedCount": 1,
+          "tabStops": 1
+        }
+      ],
+      "screenshot": "docs/reviews/ui-optimierungen.consistency-tabs-light.png"
+    },
+    {
+      "name": "dark",
+      "width": 1400,
+      "dark": true,
+      "touch": false,
+      "pageOverflow": false,
+      "tabs": [
+        {
+          "name": "Arbeitsbereiche",
+          "height": 33,
+          "scrollWidth": 520,
+          "clientWidth": 520,
+          "minTabHeight": 32,
+          "selectedCount": 1,
+          "tabStops": 1
+        },
+        {
+          "name": "Probing-Verfahren",
+          "height": 42,
+          "scrollWidth": 604,
+          "clientWidth": 440,
+          "minTabHeight": 32,
+          "selectedCount": 1,
+          "tabStops": 1
+        }
+      ],
+      "screenshot": "docs/reviews/ui-optimierungen.consistency-tabs-dark.png"
+    },
+    {
+      "name": "touch-600",
+      "width": 600,
+      "dark": false,
+      "touch": true,
+      "pageOverflow": false,
+      "tabs": [
+        {
+          "name": "Arbeitsbereiche",
+          "height": 45,
+          "scrollWidth": 520,
+          "clientWidth": 520,
+          "minTabHeight": 44,
+          "selectedCount": 1,
+          "tabStops": 1
+        },
+        {
+          "name": "Probing-Verfahren",
+          "height": 54,
+          "scrollWidth": 604,
+          "clientWidth": 416,
+          "minTabHeight": 44,
+          "selectedCount": 1,
+          "tabStops": 1
+        }
+      ],
+      "screenshot": "docs/reviews/ui-optimierungen.consistency-tabs-touch-600.png"
+    },
+    {
+      "name": "touch-450",
+      "width": 450,
+      "dark": false,
+      "touch": true,
+      "pageOverflow": false,
+      "tabs": [
+        {
+          "name": "Arbeitsbereiche",
+          "height": 45,
+          "scrollWidth": 401,
+          "clientWidth": 401,
+          "minTabHeight": 44,
+          "selectedCount": 1,
+          "tabStops": 1
+        },
+        {
+          "name": "Probing-Verfahren",
+          "height": 54,
+          "scrollWidth": 604,
+          "clientWidth": 297,
+          "minTabHeight": 44,
+          "selectedCount": 1,
+          "tabStops": 1
+        }
+      ],
+      "screenshot": "docs/reviews/ui-optimierungen.consistency-tabs-touch-450.png"
+    }
+  ],
+  "forcedColorsSelection": {
+    "border": "solid",
+    "width": "3px"
+  },
+  "pageErrors": []
+}

@@ -1,0 +1,74 @@
+{
+  "method": "Unchanged list_files body, original validator; no HTTP server or LinuxCNC imports",
+  "local_root": "/home/cnc/linuxcnc/nc_files",
+  "local_directories": [
+    {
+      "name": "examples",
+      "listed": true,
+      "symlink": true,
+      "target": "/usr/share/linuxcnc/ncfiles",
+      "status": 400,
+      "error": "Invalid directory"
+    },
+    {
+      "name": "gcmc_lib",
+      "listed": true,
+      "symlink": true,
+      "target": "/usr/share/linuxcnc/ncfiles/gcmc_lib",
+      "status": 400,
+      "error": "Invalid directory"
+    },
+    {
+      "name": "gladevcp_lib",
+      "listed": true,
+      "symlink": true,
+      "target": "/usr/share/linuxcnc/ncfiles/gladevcp_lib",
+      "status": 400,
+      "error": "Invalid directory"
+    },
+    {
+      "name": "ngcgui_lib",
+      "listed": true,
+      "symlink": true,
+      "target": "/usr/share/linuxcnc/ncfiles/ngcgui_lib",
+      "status": 400,
+      "error": "Invalid directory"
+    },
+    {
+      "name": "remap_lib",
+      "listed": true,
+      "symlink": true,
+      "target": "/usr/share/linuxcnc/ncfiles/remap_lib",
+      "status": 400,
+      "error": "Invalid directory"
+    }
+  ],
+  "comparison": [
+    {
+      "name": "external-link",
+      "listed": true,
+      "symlink": true,
+      "target": "/tmp/ui-folder-review-87k3tagh/external",
+      "status": 400,
+      "error": "Invalid directory"
+    },
+    {
+      "name": "internal-link",
+      "listed": true,
+      "symlink": true,
+      "target": "/tmp/ui-folder-review-87k3tagh/nc_files/ordinary",
+      "open": "ok"
+    },
+    {
+      "name": "ordinary",
+      "listed": true,
+      "symlink": false,
+      "target": "/tmp/ui-folder-review-87k3tagh/nc_files/ordinary",
+      "open": "ok"
+    }
+  ],
+  "tools_listing_same_fixture": [
+    "internal-link",
+    "ordinary"
+  ]
+}

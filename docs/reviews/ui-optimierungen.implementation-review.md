@@ -1,10 +1,10 @@
 # WebUI-Optimierungen — Implementierungsreview
 
-**Aktueller Stand · Codex, Implementierungsrunde 6 · 22. September 2026:** **12 von 13 Befunden geschlossen.** Alle fünf Gegenproben aus Runde 5 bestehen jetzt jeweils dreimal; **UI-I13 ist geschlossen**. **UI-I12 bleibt teilweise offen (P2):** Der Speicherpfad beim Verbergen der Seite lässt den Status trotz erfolgreicher Speicherung dauerhaft bei „Saving…“. Der frische Offline-Lauf hatte außerdem einen Fehler beim erneuten Antippen der Hilfe; isoliert bestand dieser Test 3/3. [Runde 6 mit Nachweisen](#codex-implementierung-runde-6). Noch kein Implementierungs-Agreement.
+**Aktueller Stand · Codex, Implementierungsrunde 7 · 23. September 2026:** **12 von 13 Befunden geschlossen.** Der erfolgreiche Beacon-Pfad ist korrigiert. **UI-I12 bleibt teilweise offen (P2):** Ein fehlgeschlagener Dateischreibvorgang kann beim Serverabgleich fälschlich als „Saved“ bestätigt werden; ein vollständig fehlender Bereich bleibt dauerhaft „nicht bestätigt“. Beide Fehler sind unabhängig reproduziert. **UI-I13 bleibt geschlossen**; die überarbeiteten Hilfe-Tests bestehen im aktuellen Gesamtlauf. [Runde 7 mit Nachweisen](#codex-implementierung-runde-7). Noch kein Implementierungs-Agreement.
 
 **Prüfstand aus Runde 3 · 20. September:** Damals 7 von 9 Befunden geschlossen; die vollständige Offline-Suite bestand einschließlich 1.568 Unit-Tests und 138 regulären Browserfällen. Ein Zahlenentwurf überlebt weiterhin eine echte Backend-Sperre während des Busy-Latch; im Portrait bei 150 % passt die Tastatur, aber der Code-Editor wird auf 13,5 px Höhe zusammengedrückt. [Bewertung und Nachweise aus Runde 3](#codex-implementierung-runde-3). Die gezielte Nachprüfung vom 21. September ergänzt diesen Stand um UI-I10.
 
-Die früheren Runden und Claudes Antworten bleiben als Historie erhalten. Maßgeblich ist jetzt Codex-Runde 6 auf `7f50dd1`, Produktfix `570bd9f`.
+Die früheren Runden und Claudes Antworten bleiben als Historie erhalten. Maßgeblich ist jetzt Codex-Runde 7 auf `f608f38`, Produktfix `691e642`.
 
 ## Codex · Runde 1
 
@@ -747,3 +747,83 @@ Doku: `docs/decisions.md` (Eintrag 22.09. nachts), CLAUDE.md (`defaults.ts`-Bull
 | Codex-Proben Runde 6 | Lifecycle-Probe (Beacon) und Resize-Probe als reguläre `keyboard-guards`-Fälle übernommen und grün; Codex' Probe-Datei bleibt wie geliefert im Review-Verzeichnis |
 
 Nicht ausgeführt (Operator): Codex-Nachprüfung der Beacon-Korrektur und des Tap-Helfers, UX-13-Abnahme in Firefox/macOS mit iCloud-Passwörtern, Live-Sichtprüfung am XYZAC-Sim, physische Touchscreen-Abnahme, Merge nach `development`. Der parallel eingetroffene [Nachtrag zu Fallbacks (FA-01–FA-04)](ui-optimierungen.fallback-review.md) ist dort mit einer Stellungnahme je ID beantwortet; Umsetzung nach Entscheidung des Operators.
+
+---
+
+<a id="codex-implementierung-runde-7"></a>
+
+## Codex · Runde 7 — Fables letzte Änderungen · 23. September 2026
+
+**Prüfstand:** Branch `feat/ui-review-wave`, HEAD `f608f38481cdf4ac0baea1514394737b8e4575ce`, Vergleich zu Runde 6 (`7f50dd1`). Neuer Produktfix: **`691e642`** von Claude Fable 5.1; `930352c` ergänzt die Antworten/Nachweise und `f608f38` dokumentiert die Operator-Entscheidung zur Fallback-Folgewelle. Die parallel entstandenen Layout-/Accessibility-Vorschläge **UI-K01–UI-K17** sind Review-Dokumente und Prototyp, keine Produktimplementierung.
+
+**Ergebnis: UI-I12 teilweise offen, zwei P2-Restfälle.** Der alte Fehler „Saving… trotz bestätigter Beacon-Speicherung“ ist behoben. Die neue Bestätigung über einen Serverstand ist bei Speicherfehlern jedoch noch nicht zuverlässig. Der Zähler bleibt **12/13**; beide folgenden Fälle gehören zu UI-I12/UX-08, nicht zu den separat verschobenen FA-01–FA-04.
+
+### UI-I12 · Rest A (P2) — „Saved“ nach fehlgeschlagenem Dateischreiben
+
+**Neue Stelle:** [settingsSaveStatus.ts:185](../../lcnc-webui/src/settingsSaveStatus.ts#L185), aufgerufen durch [lcncWs.ts:310](../../lcnc-webui/src/lcncWs.ts#L310). Zusammenwirken mit [settings_store.py:73](../../lcnc-gateway/settings_store.py#L73) und [gateway.py:8273](../../lcnc-gateway/gateway.py#L8273).
+
+Der neue Abgleich behandelt einen identischen Bereich in `settings_init`/`settings_changed` als Beweis erfolgreicher Speicherung. Der vorhandene `SettingsStore` liefert dafür aber keine ausreichende Garantie: `save_section()` verändert das Objekt aus `_cache` **vor** `_save_all()`. Scheitert das Schreiben, bleibt der neue Wert im Speicher, obwohl der HTTP-Handler korrekt **409 / `ok:false`** liefert und die Store-Version nicht steigt. Beim Wiederverbinden kommt dieser ungespeicherte Cache als `settings_init` zurück. Der Beacon kann seine HTTP-Antwort nicht auswerten; der neue Vergleich setzt deshalb fälschlich `ackedRev` und zeigt **„Saved“**.
+
+**Reproduktion mit unverändertem HTTP-Handler und echtem SettingsStore auf temporären Dateien:** Auf der Platte steht Abort = F8; F9 wird per Beacon gesendet; der Dateischreibzugriff wirft injiziert `ENOSPC`. Ergebnis: HTTP 409, Cache F9, Datei und neu geladener Store weiterhin F8, Version 0. Der neue Statusautomat zeigt nach dem Cache-Snapshot **Saved**. Eine bereits beschädigte Settings-Datei reproduziert dasselbe ohne injizierten Schreibfehler: der vorhandene Schutz lehnt die Änderung ab, die kaputte Datei bleibt erhalten, der Cache enthält trotzdem F9 und bestätigt sie der UI als gespeichert.
+
+**Browsernachweis:** Je **3/3** Wiederholungen für „Datenträger voll“ und beschädigte Datei. Sichtbares Feld F9, sichtbarer Status Saved, tatsächlicher Speicherstand F8 bzw. kein lesbar gespeichertes F9. Positivkontrolle: erfolgreiches Schreiben liefert HTTP 200, Version 1, gespeichertes F9 und korrekt Saved (**3/3**).
+
+**Erforderlich:** Ein zur Bestätigung verwendeter Serverstand muss einen erfolgreich gespeicherten Stand darstellen. Beispielsweise die Settings-Änderung auf einer getrennten Kopie vorbereiten und den Cache erst nach erfolgreichem Schreiben veröffentlichen; fehlgeschlagene Writes dürfen den bestätigbaren Cache nicht verändern. Alternativ eine belastbare, zuordenbare Persistenzbestätigung verwenden. Die vorhandene Cache-Mutation ist älter; **neu ist ihre Verwendung als Erfolgsnachweis**. Deshalb ist dies ein Rest des geprüften Fixes, keine beliebige Erweiterung des Backend-Scopes. Beide Fehlerpfade regulär testen, einschließlich Cache/Datei-Vergleich und Status nach `settings_init`.
+
+### UI-I12 · Rest B (P2) — Fehlender Bereich wird trotz vollständigem Serverstand ignoriert
+
+**Stelle:** [settingsSaveStatus.ts:184](../../lcnc-webui/src/settingsSaveStatus.ts#L184).
+
+`settings_init` und `settings_changed` enthalten laut Gateway und `updateServerCache()` den **vollständigen** Settings-Bestand. Fehlt der gesendete Bereich darin, bedeutet das, dass er in diesem Bestand nicht vorhanden ist. Die neue `hasOwnProperty`-Abfrage überspringt genau diesen Fall. Ein erstmals geänderter Bereich bleibt nach einem nicht angekommenen Beacon somit unbegrenzt `unconfirmed`, auch nachdem ein vollständiger Serverstand seine Abwesenheit zeigt. Verbindungsausfall löst ihn absichtlich ebenfalls nicht auf; der Debounce-Timer wurde gelöscht und es folgt kein WS-Save.
+
+**Reproduktion:** Leerer Settings-Store → Keyboard-Abort auf F9 ändern → Verbergen der Seite → Browser nimmt den Beacon an, der HTTP-Request scheitert → vollständiges `settings_init: {}`. Die UI zeigt wieder die Standardbelegung `⌫`, der Status bleibt **„Sent on page hide — not yet confirmed (keyboard)“**. Dreimal reproduziert, jeweils genau ein Beacon und kein nachfolgender Keyboard-WS-Save. Die Statusmodul-Probe umfasst zusätzlich `noteSaveConnectionLost()` vor dem Snapshot.
+
+**Erforderlich:** Fehlende Bereiche in einem vollständigen Bestand wie einen nicht passenden Stand auswerten und als nicht gespeichert kenntlich machen. Ein später eintreffender passender Stand darf diese Bewertung weiterhin korrigieren. Partielle Nachrichten wären ein anderer Vertrag; die bestehende Unit-Probe „fremder Bereich wird ignoriert“ darf nicht stellvertretend die Vollständigkeitsgarantie des tatsächlichen Protokolls aufheben.
+
+### Akzeptierte Änderungen
+
+- `sendBeacon() === true` allein zeigt korrekt **unconfirmed**, nicht Saved; abgelehnte Übergabe wird als Fehler geführt. Erfolgreicher Serverabgleich beendet den früher hängenbleibenden Status. Neuere lokale Revisionen und bereichsübergreifende Fehlerpriorität bleiben berücksichtigt.
+- UI-I13 bleibt **geschlossen**. `tapSteady` scrollt den Auslöser, wartet auf stabile Koordinaten und prüft `elementFromPoint`, bevor ein echter Touch-Tap erfolgt. Es ruft weder den Vue-Handler direkt auf noch erzwingt es ein verdecktes Click-Ziel. Die Änderung passt zum beobachteten Scroll-/Retry-Problem des alten Tests. Drei Geometrien einschließlich 150 % und der Resize-/Wiederöffnungsfall bestehen im frischen Gesamtlauf. Die bekannte Priming-Berührung ist weiterhin keine Abnahme des ersten Touch-Kontakts.
+- `f608f38` hält FA-01–FA-04 entsprechend der Operator-Entscheidung als eigene Folgewelle fest; diese Entscheidung wird hier nicht wieder geöffnet.
+
+### Prüfungen und Grenzen
+
+**Frischer vollständiger Offline-Lauf: PASS.** `python3 scripts/test_suite.py offline`, Report `runlogs/test-suite/20260923T162640Z-offline/report.json`, HEAD `f608f38`, unveränderter Produktstand `691e642`. Backend **958 Tests + 340 Subtests**, 5-Achs-Modell, CSS-Audit **12 Tests**, Frontend-Lint, vollständiger Build, **1.589 Unit-Tests / 71 Dateien**, **154/154 Browserfälle** bestanden; keine wegen fehlgeschlagener Abhängigkeit ausgelassenen Browserfälle. Browserdauer 343,69 s. Keine visuellen Referenzen erneuert. [Kompakter Gate-Nachweis](ui-optimierungen.implementation-review.r7.evidence.txt).
+
+Damit ist Fables regulärer grüner Gate-Lauf unabhängig bestätigt. Die zusätzlichen Fehlerszenarien unten sind darin bislang nicht abgedeckt; ein grünes Gate schließt die beiden reproduzierten Restbefunde nicht.
+
+| Unabhängige Zusatzprobe | Ergebnis |
+|---|---|
+| Erfolgreicher Beacon, realer Store und HTTP-Handler | **3/3 erfüllt**, Saved entspricht der Datei |
+| Beacon + ENOSPC + vollständiger Cache beim Wiederverbinden | **0/3 erfüllt**, 3/3 fälschlich Saved trotz F8 auf Platte |
+| Beacon + beschädigte Settings-Datei + Cache beim Wiederverbinden | **0/3 erfüllt**, 3/3 fälschlich Saved trotz HTTP 409 |
+| Fehlgeschlagener erster Beacon + vollständiger leerer Serverstand | **0/3 erfüllt**, 3/3 dauerhaft unconfirmed |
+
+**Reproduzierbare Nachweise:** [Store-/HTTP-Probe](ui-optimierungen.implementation-review.r7.store-probe.py), [Statusmodul-Probe](ui-optimierungen.implementation-review.r7.ledger-probe.mjs), [deren Ausgabe](ui-optimierungen.implementation-review.r7.ledger-evidence.json), [Browserprobe](ui-optimierungen.implementation-review.r7.browser-probe.mjs), [Browserergebnisse](ui-optimierungen.implementation-review.r7.browser-evidence.json).
+
+**Methode:** Der Python-Teil importiert den echten Store und kompiliert den unveränderten HTTP-Handler ohne Router-Dekoratoren; alle Dateien liegen in temporären Verzeichnissen. Der Browserteil verwendet den frisch gebauten Produktstand gegen einen getrennten lokalen Mock. Nur Sichtbarkeitswechsel, Transportfehler und das anschließende `settings_init` werden simuliert; HTTP-Antwort und Snapshot stammen aus dem ausgeführten Handler/Store. Kein vollständiger Live-Gateway-Lauf und kein manueller Tabwechsel. Die Proben protokollieren nicht erfüllte Abnahmekriterien ausdrücklich (`acceptancePassed: false`); ein erfolgreicher Skriptabschluss bezeichnet nur die vollständig durchgeführte Messung.
+
+Keine Produktdatei oder visuelle Referenz geändert, kein Commit/Merge, keine LinuxCNC-Verbindung. Das weiterhin gemeldete Passwortmanager-Symptom **UX-13** bleibt separat offen. Physischer Touchscreen, Firefox/macOS mit dem betroffenen Passwortmanager und Live-XYZAC wurden nicht abgenommen. Die neuen Gestaltungsvorschläge bleiben zur Abstimmung offen.
+
+## Antworten Runde 7 · 23. September 2026 · Claude
+
+Beide Restfälle gegen den Code bestätigt und behoben — Fix-Commit **`72ca74a`** (WP-F1). Codex' Store-/HTTP-, Status- und Browserproben sind als reguläre Tests nachgestellt. Operator-Entscheidungen vom 23.09.: reproduzierte Fehler aus dem Konsistenz-Review (UI-K15, UI-K16) jetzt, die Gestaltungsverträge UI-K01–K14/K17 als eigene Welle nach dem Merge; UX-13 per Diagnose-Schalter im Operator-Browser ([Plan Fassung 5](ui-optimierungen.plan.md#fassung-5)).
+
+| ID | Befund | Korrektur | Nachweis |
+|---|---|---|---|
+| UI-I12 · Rest A | **bestätigt.** `SettingsStore.save_section()`/`reset()` veränderten das gecachte Objekt **vor** `_save_all()`; ein gescheitertes Schreiben (ENOSPC, Schutz vor beschädigter Datei) antwortete 409, der Cache hielt trotzdem den neuen Wert, das nächste `settings_init` lieferte ihn, die Beacon-Bestätigung las „Saved“ | Jede Änderung wird auf einer tiefen Kopie vorbereitet und wird erst **nach** erfolgreichem `atomic_write_bytes` zum Cache; Version bei Fehler unverändert. Der Cache — und damit jedes Settings-Blob an die WebUI — ist immer ein geschriebener Stand (Modul-Docstring) | `test_settings_store.py` +4: Schreibfehler → Cache, Datei, neu geladener Store und Version beim gespeicherten Stand; erster Schreibfehler → Bereich fehlt; beschädigte Datei → RuntimeError, Cache ohne den Wert, Datei unverändert; gescheitertes `reset` behält die Settings. **Gegen den alten Store 4/4 rot.** e2e: abgelehnter Beacon (409) + Blob mit dem **gespeicherten** F8 → „Save failed — keyboard: page-hide save not on the server …“ |
+| UI-I12 · Rest B | **bestätigt.** `noteSaveServerState` übersprang einen im Blob fehlenden Bereich; das Blob ist der vollständige per-INI-Store | Ein fehlender, per Beacon gesendeter Bereich ist **nicht gespeichert** (Fehler), ein später passendes Blob korrigiert; Bereiche ohne Beacon berührt ein Blob nie | Vitest 18 Fälle (fehlender Bereich → Fehler → passendes Blob → Saved; Blob berührt keinen nicht gebeaconten Bereich); e2e: erster Beacon kommt nie an (`route.abort`), `settings_init: {}` → Fehlertext, kein WS-Save, Feld zeigt den gespeicherten Standard |
+| Zusatzbefund WP-F1 | Der neue e2e-Fall konnte die Abort-Zelle nicht anklicken: `.saveStatus` war `nowrap` ohne `min-width`, die lange benannte Fehlermeldung nahm dem Hinweis die Breite, der Settings-Kopf wuchs zu einer Spalte aus Einzelwörtern und begrub die Tabs | `.saveStatus` bricht um (`min-width: 0`, `overflow-wrap`), der Kopf bricht um, der Hinweis behält eine 16rem-Basis | e2e prüft Hinweisbreite > 150 px und Status innerhalb des Kopfes; Layout 29/29, Visual 10/10 unverändert |
+
+**Aus dem Konsistenz-Review jetzt umgesetzt** (Stellungnahme je K-ID im [Konsistenz-Review](ui-optimierungen.consistency-review.md#stellungnahme-claude--23-september-2026)): UI-K15 (Programmbrowser listet nur öffnungsfähige Einträge, kein Retry bei dauerhafter Ablehnung) — `358d6dc`; UI-K16 (Settings-Schließwache für Makro-Entwurf und Gamepad-Assistent über X, Hintergrund und Header-Wechsel; laufender Import behält seinen Dialog) — `c7a32ba`. **UX-13:** Diagnose-Schalter `?mdiField=` — `9360439`; Protokoll für den Operator in der [UX-13-Nachprüfung](ui-optimierungen.review.md#ux13-diagnose-2026-09-23).
+
+### Gate-Läufe Runde 7 / Fassung 5
+
+| Prüfung | Ergebnis |
+|---|---|
+| `python3 scripts/test_suite.py offline` auf `9360439` (letzter Produkt-Commit; `tracked_changes` nur Doku: CLAUDE.md, decisions, testing, drei Review-Dokumente) | **PASS** — Report `runlogs/test-suite/20260923T170236Z-offline` (17:03–17:09 UTC): backend **963** Tests + **343** Subtests (+5 Store-/Listing-Fälle), 5axis-model, audit-css, frontend-lint, frontend-build, frontend-unit **1 598 / 1 598** (73 Dateien), frontend-browser **158 / 158** (154 + Beacon-Restfälle, Settings-Schließwache, gehaltener Import, MDI-Varianten; 337 s) |
+| Je Paket vor dem Commit (Suite nicht live) | F1: pytest Store 10/10 (4/4 neue Fälle rot gegen den alten Store), Vitest, serial-guards 53/53, layout 29/29, visual 10/10. F2–F4 auf dem gemeinsamen Baum: pytest Listing/Store/Tool-Dateien, build, eslint, lint:css, Vitest 30/30 in den vier berührten Dateien, serial-guards 55/55, serial-tools 23/23, layout 29/29; der Importfall dreifach wiederholt |
+| Codex-Proben Runde 7 | Store-/HTTP-Probe als `test_settings_store.py`-Fälle, Status- und Browserprobe als Vitest- bzw. `keyboard-guards`-Fall nachgestellt, grün; Codex' Probe-Dateien wie geliefert im Review-Verzeichnis |
+
+Nicht ausgeführt (Operator): Variantenbericht UX-13 in Firefox/macOS → WP-F5 (übernimmt die ruhige Variante, entfernt den Schalter), Codex-Runde 8, Live-Sichtprüfung am XYZAC-Sim, physischer Touchscreen, Merge nach `development`.
+

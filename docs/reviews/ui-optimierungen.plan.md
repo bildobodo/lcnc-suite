@@ -1,5 +1,13 @@
 # WebUI Review-Welle — Bugs, Design-Regeln, Regressions-Tooling
 
+**Neuer Erweiterungsvorschlag · 22. September 2026:** Auf Operator-Wunsch wurden Layoutkonsistenz, Formulare, Aktionsgruppen, Schließpositionen, Tokens und Barrierefreiheit einschließlich Viewer-Kontrasten geprüft. [UI-K01–UI-K17 mit Messwerten und vorgeschlagenen Abnahmekriterien](ui-optimierungen.consistency-review.md), [interaktiver Layout-/Farbentwurf](ui-optimierungen.design-proposal.html). Noch kein vereinbartes Umsetzungspaket; die folgenden Fassungen und ihr bisheriger Abnahmestand bleiben als Historie bestehen. Die separat verschobenen FA-01–FA-04 werden dadurch nicht in diese Welle zurückgeholt.
+
+**UX-13 · Operator-Nachtrag · 22. September 2026:** Die Passwort-Erkennung des MDI-Felds tritt weiterhin auf; der allgemeine HTML-Feldvertrag aus WP-A ist damit keine abgeschlossene Symptomkorrektur. Der lokale Build enthält die Attribute; MDI und drei Vergleichsfelder wurden ohne Passwortmanager im DOM geprüft. [Aktueller Befund und notwendige Gegenprobe im betroffenen Browser](ui-optimierungen.review.md#ux13-nachpruefung-2026-09-22). **UX-13 bleibt für die ursprüngliche Fehlklassifizierung offen.**
+
+**UI-K17 · Raumprüfung · 23. September 2026:** Der Tab-/Aktionsentwurf wurde am realen Seitenpanel nachgemessen und verdichtet: 522 px nutzbare Breite im Querformat bei 100 %, ca. 271 px im geprüften Hochformat bei 150 % CSS-Zoom. Der ursprüngliche großzügige Entwurf war dafür ungeeignet. Unter 320 px ist eine ausdrücklich beschriftete Navigationsauswahl vorgeschlagen; bei 120 px Restbreite muss die Gesamtaufteilung reagieren. [Maße, Grenzen und überarbeiteter Entwurf](ui-optimierungen.consistency-review.md#raumprüfung-des-seitenpanels--23-september-2026). Weiterhin Vorschlag, keine Produktfreigabe.
+
+**UI-K17 · anschließender Operator-Einwand gegen Scrollnavigation:** Aktuell empfohlen sind fünf feste Haupttabs und eine beschriftete Auswahl für die acht Probing-Verfahren; bei sehr schmalem Panel auch der Hauptbereich als Auswahl. Die frühere 320-px-Regel gehörte zum Scrollentwurf. [Alternativen und aktueller Vorschlag](ui-optimierungen.consistency-review.md#alternativen-zur-horizontalen-scrollnavigation--23-september-2026). Der lokale Entwurf zeigt diese Variante standardmäßig; die Scrollversion bleibt nur als Vergleich. Noch keine Festlegung für die Produktumsetzung.
+
 **Fassung 3 · 20. September 2026 · nach Codex-Review Runde 2 + Nutzer-Nachtrag UI-15
 (`docs/reviews/ui-optimierungen.review.md`).** Runde 1: alle 14 IDs übernommen. Runde 2: die
 fünf Nachschärfungen (UI-01, 06, 09, 11, 12) sind eingearbeitet und mit `[UI-nn R2]` markiert;
@@ -876,6 +884,13 @@ Single-Root). Commits enden mit `Co-Authored-By: Claude Fable 5.1 <noreply@anthr
 - Tests: Vitest für den Zustandsautomaten (pur); e2e: Viewer-Einstellung ändern → „Saving…“ →
   Mock-Reply ok → „Saved“; Reply `ok:false` → „Save failed: …“; vor `settings_init` → blocked-Text.
 
+**Codex-Nachprüfung · 23.09., Runde 7:** Der ergänzte Beacon-Pfad in `691e642` bestätigt den
+Erfolgsfall, ist bei Fehlern aber noch nicht abgeschlossen: Ein vor dem fehlgeschlagenen
+Dateischreiben veränderter Server-Cache kann fälschlich „Saved“ auslösen; ein im vollständigen
+Serverstand fehlender Bereich bleibt dauerhaft unbestätigt. [UI-I12-Restfälle und erforderliche
+Abnahmeproben](ui-optimierungen.implementation-review.md#codex-implementierung-runde-7).
+Das sind Restfälle des hier vereinbarten ehrlichen Speicherstatus, unabhängig von FA-01–FA-04.
+
 ---
 
 #### WP-D — Erklärungen erreichbar (UX-09, UX-11)
@@ -998,3 +1013,175 @@ Single-Root). Commits enden mit `Co-Authored-By: Claude Fable 5.1 <noreply@anthr
   Teilen, FA-01 Vorschau-Ersatzmodus ohne Hinweis und veralteter `_pfAppliedMode`, FA-03 Reach-Anfrage nach Fehler
   ohne Wiederholung, FA-04 stille Normalisierung gespeicherter Einstellungen, `console.error` wird nicht in die
   Telemetrie geleitet (Kommentare berichtigen oder Forwarder).
+
+---
+
+<a id="fassung-5"></a>
+
+## Fassung 5 · 23. September 2026 · Codex-Runde 7, Konsistenz-Fehler K15/K16, UX-13-Diagnose
+
+**23. September 2026 · Branch `feat/ui-review-wave` (Basis `development`, Merge nach `development`,
+nie `main`).** Stand `f608f38`, Produkt `691e642`. Fassung 4 (WP-A–E) und die Runden 5/6 sind
+umgesetzt; FA-01–FA-04 sind per Operator-Entscheidung eine eigene Welle nach dem Merge.
+
+### Kontext
+
+Neu eingegangen (alle unversioniert bzw. geändert im Arbeitsbaum):
+
+- **Codex-Runde 7** (`implementation-review.md` ab „Codex · Runde 7“, r7-Proben): 12/13, **UI-I12
+  mit zwei P2-Resten**. Beide im Code bestätigt:
+  - **Rest A** — `SettingsStore.save_section()` (`lcnc-gateway/settings_store.py:70`) mutiert das
+    `_cache`-Objekt **vor** `_save_all()`. Scheitert das Schreiben (ENOSPC, beschädigte Datei →
+    RuntimeError), antwortet HTTP korrekt 409, aber der Cache hält den neuen Wert; das nächste
+    `settings_init` liefert ihn, und `noteSaveServerState` meldet fälschlich „Saved“. `reset()` hat
+    dieselbe Form.
+  - **Rest B** — `noteSaveServerState` (`lcnc-webui/src/settingsSaveStatus.ts:184`) überspringt
+    einen im Blob fehlenden Bereich (`hasOwnProperty`). Das Blob ist vollständig (per-INI-Store), also
+    heißt „fehlt“ = nicht gespeichert; heute bleibt „unconfirmed“ für immer.
+- **Konsistenz-Review UI-K01–K17** (`consistency-review.md`, Entwurf `design-proposal.html`, viele
+  Proben/PNGs). Operator-Entscheidung: **reproduzierte Funktionsfehler jetzt, Gestaltung als eigene
+  Welle nach dem Merge.** Jetzt:
+  - **K15** — `list_files` (`gateway.py:6494`) listet Kinder, deren Symlink-Ziel außerhalb von
+    `nc_dir` liegt (`entry.is_dir()` folgt Links); Öffnen scheitert dann mit 400 „Invalid directory“,
+    `FileBrowser.vue:77-80` bietet Retry an. Der Tool-Browser filtert das bereits
+    (`lcnc-gateway/tool_files.py:19`, `path.resolve().is_relative_to(root)`).
+  - **K16 (1)** — Settings schließen (X `App.vue:2062`, Overlay `:2058`, Header-Wechsel über
+    `useDialogState.openDialog` → `closeAllDialogs`) verwirft einen offenen Makro-Entwurf
+    (`SettingsPanel.vue:49` `editingMacro`) ohne Rückfrage; der Gamepad-Assistent hängt am selben
+    Lebenszyklus.
+  - **K16 (2)** — `cancelImport()` (`ToolTablePanel.vue:526`) schließt die Importvorschau auch bei
+    `importBusy` (X, Cancel, Overlay `:794`); der Request läuft weiter.
+- **UX-13** — Operator: in Firefox/macOS **poppt der Apple-Passwortmanager am MDI-Feld weiterhin
+  auf**, andere Felder nicht (Chrome konnte die Seite nicht erreichen). Der Feldvertrag aus WP-A ist
+  im Build (Codex' DOM-Vergleich); welches Merkmal die Erweiterung auslöst, ist unbekannt.
+  Operator-Entscheidung: **Diagnose-Schalter per URL**, Varianten mit je einem Unterschied.
+
+**Rahmen (unverändert):** Suite nicht live für Build/Vitest/Playwright (`pgrep -af "[h]al_watchdog"`);
+Playwright bedient den gebauten dist; nie zwei Playwright-Läufe parallel; CLAUDE.md-Pre-Flight für
+jede `.vue`/`.css`-Änderung; Escape bleibt E-Stop; Commits enden mit der aktuellen
+Co-Authored-By-Zeile.
+
+### Arbeitspakete (je ein Commit + Gates)
+
+### WP-F1 — UI-I12 Rest A + B: nur gespeicherte Stände bestätigen, fehlende Bereiche melden
+
+- **Backend** (`settings_store.py`): `save_section` / `reset` arbeiten auf einer **Kopie**
+  (`copy.deepcopy(self._load_all())`), `_save_all` schreibt und setzt `self._cache` erst **nach**
+  erfolgreichem `atomic_write_bytes`; bei Ausnahme bleibt der Cache der alte Stand, Version
+  unverändert. Kein Verhalten für den Erfolgsfall geändert. Modul-Docstring um die Regel ergänzen
+  („der Cache ist immer ein geschriebener Stand — ein Snapshot bestätigt die UI“).
+- **Frontend** (`settingsSaveStatus.ts`): in `noteSaveServerState` fehlt ein Bereich im
+  vollständigen Blob → wie abweichender Stand (`failedRev`, „page-hide save not on the server —
+  change it again“); ein später passender Blob korrigiert weiter. Kommentar: Blob-Vollständigkeit
+  ist der Vertrag (`updateServerCache`-Kommentar in `defaults.ts`).
+- **Tests:** `lcnc-gateway/test_settings_store.py` — Schreibfehler per `patch` auf
+  `settings_store.atomic_write_bytes` (OSError ENOSPC) → `load()` alt, Datei alt, `version` 0;
+  beschädigte Datei → RuntimeError, `load()` enthält den neuen Wert nicht; `reset` mit
+  Schreibfehler ebenso. Vitest `settingsSaveStatus.test.ts` — „no keyboard in it: nothing“ wird zu
+  „fehlt → Fehler“, danach passender Blob → Saved. e2e `keyboard-guards.spec.ts` — Beacon-Route
+  `route.abort()` (Transportfehler), dann `settings_init: {}` → „Save failed — keyboard: page-hide
+  save not on the server …“, kein WS-Save; Rest A als e2e: Route antwortet 409, dann `settings_init`
+  mit altem F8 → Fehler (die Backend-Hälfte deckt der Store-Test).
+
+### WP-F2 — K15: Programmbrowser listet nur öffnbare Einträge
+
+- Listing in ein testbares Modul ziehen, analog `tool_files.py`: `program_files.list_entries(nc_dir,
+  subdir)` — Kinder, deren `realpath` nicht innerhalb von `nc_dir` liegt, werden ausgelassen
+  (Verzeichnisse **und** Dateien; `load_file`/Vorschau prüfen dieselbe Regel bereits,
+  `gateway.py:4218/6562`). `list_files` ruft es auf; 400/404/403 bleiben.
+- `FileBrowser.vue`: eine dauerhafte Ablehnung (HTTP 400) zeigt „Folder is outside the program
+  folder“ **ohne** Retry; Retry nur für vorübergehende Fehler (Netz, 5xx, 403/404 bleiben mit
+  passender Meldung).
+- **Tests:** `test_program_files.py` erweitern — echtes Unterverzeichnis, interner Link (öffnet),
+  externer Ordner- und Datei-Link (nicht gelistet), `..`/absoluter Pfad (400). Ein e2e-Fall nur, wenn
+  der Mock `/files` bedient; sonst reicht der Python-Test plus eine Vitest-Probe der Fehlerzuordnung.
+
+### WP-F3 — K16: Formular-Dialoge verlieren keinen Entwurf, laufender Import schließt nicht
+
+- **Settings-Schließvertrag:** `SettingsPanel` exponiert `unsavedDraft(): string | null` (Makro-Editor
+  weicht vom Öffnungs-Snapshot ab → „macro“; Gamepad-Assistent aktiv → „gamepad mapping“).
+  `App.vue` leitet **alle** Schließwege über eine Funktion `requestCloseSettings(then?)`: X, Overlay,
+  und `useDialogState.openDialog`/`openGcodeRef` bekommen einen Options-Hook `canLeaveSettings(proceed)`.
+  Ist ein Entwurf offen → Dialog „Discard changes?“ mit **Keep editing / Discard** (Muster
+  `ToolTablePanel.vue` `showEditDiscard`, `registerModal`), Discard führt den ursprünglichen Weg aus.
+  Unverändert → sofort wie heute. Automatisch gespeicherte Settings sind kein Entwurf.
+- **Import:** `cancelImport()` kehrt bei `importBusy` zurück (wie `cancelDelete`); X/Cancel tragen
+  während des Imports `:disabled` + Titel „Import in progress“; Overlay-Klick ist wirkungslos. Kein
+  vorgetäuschter Abbruch.
+- **Tests (e2e, `keyboard-guards` bzw. `serial-tools`):** Makro anlegen, Name/Command füllen → X,
+  Overlay, Header-Wechsel zur Referenz → jeweils Rückfrage, Keep editing behält den Entwurf, Discard
+  schließt; unverändert → sofort zu; Registry-Selbsttest deckt den neuen Dialog. Import mit per
+  `page.route` zurückgehaltener Antwort → X/Overlay/Cancel schließen nicht, nach Antwort normal.
+- Nicht jetzt (Design-Welle): Dialog-Fokusführung/`role=dialog` (K11), gemeinsamer `DialogFrame`.
+
+### WP-F4 — UX-13: Diagnose-Schalter für das MDI-Feld
+
+- Neues reines Modul `lcnc-webui/src/mdiFieldVariant.ts`: liest einmal `?mdiField=` (kommagetrennte
+  Liste) und liefert Attribut-Überschreibungen; unbekannte Namen werden gemeldet, nie still
+  ignoriert. Varianten, je **ein** Unterschied zum heutigen Feld:
+  `base` (heute) · `noname` (kein `name`) · `noplaceholder` · `withid` (`id="mdi-command"`) ·
+  `search` (`type="search"`) · `combobox` (`role="combobox"`, `aria-autocomplete="list"`).
+- `App.vue` MDI-`MachineInput`: `v-bind="mdiVariantAttrs"` (Aufrufer-Attribute gewinnen gegen die
+  Vorgaben, `MachineInput.vue` setzt sie davor). Eine Varianten-Meldung im Message-Center („MDI
+  field diagnostic: search“) und `data-mdi-variant` am Feld, damit der Operator sieht, was aktiv ist.
+  Senden, Verlauf, Fokusrückgabe und Tastatur bleiben unberührt.
+- **Tests:** Vitest für den Parser (Liste, Kombination, unbekannter Name); e2e: ohne Parameter
+  unverändert (Feldvertrag-Fall grün), je Variante Attribute gesetzt **und** `G1 X7` + Enter sendet
+  genau ein `mdi`, Space danach tippt.
+- **Operator-Protokoll** (in die Review-Antwort und in den Chat): Firefox/macOS mit
+  iCloud-Passwörter-Erweiterung, `http://<host>:8000/?mdiField=<variante>` je Variante neu laden,
+  MDI-Feld antippen/fokussieren, notieren ob das Popup kommt; Vergleich Werkzeugsuche. Danach
+  **WP-F5** (nach Rückmeldung, vor dem Merge): die ruhige Variante (oder Kombination) dauerhaft
+  übernehmen, Schalter entfernen, Feldvertrag-Test ergänzen. Kommt das Popup bei allen Varianten,
+  wird der Befund als Erweiterungsverhalten dokumentiert und mit dem Operator entschieden.
+
+### Doku und Review-Antworten (ein Doku-Commit nach dem Offline-Gate)
+
+- `docs/reviews/ui-optimierungen.plan.md` → **Fassung 5** anhängen (diese WPs, die drei
+  Operator-Entscheidungen vom 23.09., Design-Welle K01–K14/K17 in der Folge-Liste neben FA-01–04).
+- `implementation-review.md`: „Antworten Runde 7 · Claude“ je ID (UI-I12 Rest A/B) + Gate-Tabelle.
+- `consistency-review.md`: Stellungnahme je K-ID — K15/K16 umgesetzt (Commit), übrige als Design-Welle
+  mit kurzer Einordnung; UX-13-Nachprüfung in `review.md`: Diagnose-Schalter + Protokoll.
+- `review.md` Statuszeile; `docs/decisions.md` (Store-Cache nur nach Schreiben, fehlender Bereich =
+  nicht gespeichert, Programm-Listing = Öffnungsregel, Formular-Schließvertrag); CLAUDE.md-Bullets
+  (`defaults.ts`/Status, `SettingsPanel`/`App` Schließvertrag, Programmbrowser); `docs/testing.md`.
+- Codex' neue Dateien (r7-Proben/Evidence, Konsistenz-Review, Entwurf, Proben, PNGs, Inventar)
+  **wie geliefert** committen, zuerst lesen (Publikationsregel), nichts daran ändern.
+
+### Verifikation
+
+| Schritt | Gates (Suite nicht live) |
+|---|---|
+| F1 | `pytest lcnc-gateway/test_settings_store.py`, `npm run build`, `npm run lint`, Vitest (Status), `npx playwright test --project=serial-guards --no-deps --workers=1` |
+| F2 | `pytest lcnc-gateway/test_program_files.py`, build, lint, Vitest; e2e-Fall falls vorhanden |
+| F3 | build, lint, lint:css, `serial-guards`, `serial-tools`, `npm run test:layout` |
+| F4 | build, lint, Vitest (Parser), `serial-guards` (Feldvertrag + Varianten) |
+| Abschluss | `python3 scripts/test_suite.py offline` PASS auf dem letzten Produkt-Commit (Report `commit`, `tracked_changes` nur Review-Doku); Codex-Runde 8 |
+| Operator | UX-13-Varianten in Firefox/macOS → WP-F5; danach UX-13-Abnahme, Live-Sichtprüfung XYZAC-Sim, physischer Touchscreen, Merge nach `development` |
+
+### Risiken
+
+- `deepcopy` des ganzen Settings-Stores je Save: klein (KB), läuft im Executor; Erfolgsverhalten
+  unverändert, der bestehende Store-Test deckt es.
+- Fehlender Bereich = Fehler: gilt nur für per Beacon gesendete, unbestätigte Revisionen; ein Blob
+  vor dem ersten Speichern eines Bereichs berührt nichts.
+- `type="search"` in der Diagnose: Chromium leert ein Suchfeld auf Escape — Escape bleibt E-Stop
+  (Capture-Listener vorher); nur Diagnose, nicht dauerhaft ohne Prüfung.
+- Settings-Schließvertrag: `openDialog` wird asynchron (Rückfrage) — Aufrufer dürfen nicht annehmen,
+  dass Settings danach sofort zu ist; Header-Wechsel erst nach Discard.
+
+### Folge-Liste (nach dem Merge, je eigene Welle)
+
+- Design-Welle UI-K01–K14/K17: Eingabehilfen-Hülle mit festem Schließanker, räumliche Tastengruppen,
+  Kontrollhöhen, Formularraster, Aktionsgruppen, Header, Werkzeugtabelle, Viewer-/Syntaxpaletten je
+  Theme, Textkontraste, FormField/Labels, Dialog-Fokus, Tabs (fünf feste + Verfahrensauswahl),
+  Touch-/Hold-/Bewegungsregeln, Inventar.
+- Fallback-Welle FA-01–FA-04 + Telemetrie-Kommentare.
+- Bisherige Folge-Punkte (UX-09-Rest, Fokus-Trap, Vitest-DOM-Umgebung, erster Touch).
+
+**Umsetzungsstand (23.09.):** WP-F1 `72ca74a`, WP-F2 `358d6dc`, WP-F3 `c7a32ba`, WP-F4 `9360439`
+(siehe Implementierungsreview, „Antworten Runde 7“). WP-F5 wartet auf den Variantenbericht des Operators. **Abweichung:** WP-F2 zieht das Listing nicht in ein
+neues Modul — `gateway.list_files` ist mit `fake_linuxcnc` bereits direkt testbar
+(`test_program_files.py`); der Filter sitzt im Listing selbst. **Zusatzbefund WP-F1:** der
+`.saveStatus`-Text war `nowrap` ohne `min-width` und begrub mit der langen Fehlermeldung die
+Settings-Tabs; behoben im selben Commit.

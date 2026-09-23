@@ -1,0 +1,115 @@
+{
+  "date": "2026-09-23",
+  "productCommit": "691e642",
+  "scope": "Actual SettingsStore and HTTP handler, temporary files; unchanged frontend ledger; no LinuxCNC",
+  "results": [
+    {
+      "mode": "success",
+      "initial": {
+        "keyboard": {
+          "mapping": {
+            "abort": "F8"
+          }
+        }
+      },
+      "httpStatus": 200,
+      "response": {
+        "ok": true
+      },
+      "cacheAfterRequest": {
+        "keyboard": {
+          "mapping": {
+            "abort": "F9"
+          }
+        }
+      },
+      "freshStoreAfterRequest": {
+        "keyboard": {
+          "mapping": {
+            "abort": "F9"
+          }
+        }
+      },
+      "diskText": "{\n  \"review-ini\": {\n    \"keyboard\": {\n      \"mapping\": {\n        \"abort\": \"F9\"\n      }\n    }\n  }\n}",
+      "version": 1,
+      "actual": "saved",
+      "text": "Saved",
+      "expected": "saved",
+      "acceptancePassed": true
+    },
+    {
+      "mode": "disk-full",
+      "initial": {
+        "keyboard": {
+          "mapping": {
+            "abort": "F8"
+          }
+        }
+      },
+      "httpStatus": 409,
+      "response": {
+        "ok": false,
+        "error": "OSError: [Errno 28] No space left on device"
+      },
+      "cacheAfterRequest": {
+        "keyboard": {
+          "mapping": {
+            "abort": "F9"
+          }
+        }
+      },
+      "freshStoreAfterRequest": {
+        "keyboard": {
+          "mapping": {
+            "abort": "F8"
+          }
+        }
+      },
+      "diskText": "{\"review-ini\": {\"keyboard\": {\"mapping\": {\"abort\": \"F8\"}}}}",
+      "version": 0,
+      "actual": "saved",
+      "text": "Saved",
+      "expected": "error",
+      "acceptancePassed": false
+    },
+    {
+      "mode": "corrupt",
+      "initial": {},
+      "httpStatus": 409,
+      "response": {
+        "ok": false,
+        "error": "RuntimeError: settings.json failed to parse and was not overwritten; fix or remove the file and restart the gateway"
+      },
+      "cacheAfterRequest": {
+        "keyboard": {
+          "mapping": {
+            "abort": "F9"
+          }
+        }
+      },
+      "freshStoreAfterRequest": {},
+      "diskText": "{ not valid json",
+      "version": 0,
+      "actual": "saved",
+      "text": "Saved",
+      "expected": "error",
+      "acceptancePassed": false
+    },
+    {
+      "mode": "missing",
+      "initial": {},
+      "httpStatus": null,
+      "response": {
+        "networkFailure": true
+      },
+      "cacheAfterRequest": {},
+      "freshStoreAfterRequest": {},
+      "diskText": null,
+      "version": 0,
+      "actual": "unconfirmed",
+      "text": "Sent on page hide — not yet confirmed (keyboard)",
+      "expected": "error",
+      "acceptancePassed": false
+    }
+  ]
+}

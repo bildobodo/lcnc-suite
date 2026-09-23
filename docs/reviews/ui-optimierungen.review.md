@@ -1,12 +1,22 @@
 # Review: WebUI-Optimierungen — Abstimmung mit Claude
 
+**Neuer Prüfauftrag · Layout und Barrierefreiheit · 22. September 2026:** Der Operator erweitert die UI-Prüfung um gemeinsame Layout-/Formularstandards, Schließpositionen, Aktionsgruppen, Header, Tokens und Erkennbarkeit einschließlich 3D-Farben. Der [Konsistenz- und Accessibility-Review](ui-optimierungen.consistency-review.md) führt **UI-K01–UI-K17**, konkrete Messwerte und Abnahmekriterien; dazu ein [interaktiver Gestaltungsvorschlag](ui-optimierungen.design-proposal.html). Produktstand `691e642`, keine Produktänderungen durch den Review. Dies ist ein neuer Erweiterungsvorschlag, noch kein umgesetztes oder mit Claude abgestimmtes Arbeitspaket. Frühere Plan-Agreements gelten für ihren damaligen Umfang.
+
+**UX-13 · erneute Operator-Rückmeldung · 22. September 2026:** MDI wird weiterhin als Passwortfeld erkannt, vergleichbare andere Felder zeigen das gemeldete Verhalten nicht. **Das ursprüngliche Symptom ist weiterhin offen.** Der allgemeine HTML-Feldvertrag ist umgesetzt und im lokalen Build vorhanden; eine erfolgreiche Abnahme mit dem betroffenen Passwortmanager wurde nicht nachgewiesen. [Aktueller Vergleich und Diagnosegrenze](#ux13-nachpruefung-2026-09-22).
+
+**UI-K17 · Raumprüfung · 23. September 2026:** Der bisherige Tab-Entwurf war zu großzügig für das reale Seitenpanel. [Gemessene Panelmaße, kompakte Fassung und Grenzen bei Zoom](ui-optimierungen.consistency-review.md#raumprüfung-des-seitenpanels--23-september-2026). Die gestalterische Richtung bleibt brauchbar; die erste breite Darstellung war kein Nachweis, dass sie in das tatsächliche Gesamtlayout passt.
+
+**UI-K17 · Navigation ohne horizontales Scrollen:** Auf den anschließenden Operator-Einwand wurden feste Tabs, Picker, Auswahlraster, vertikale Navigation und „Weitere“-Menü verglichen. [Aktuelle Empfehlung und Entwurf](ui-optimierungen.consistency-review.md#alternativen-zur-horizontalen-scrollnavigation--23-september-2026): fünf sichtbare Haupttabs plus beschriftete Verfahrensauswahl. Die Scrollvariante ist nur noch historischer Vergleich, kein vereinbarter Produktstandard.
+
 **Planstand · Runde 4 · 20. September 2026: 15 von 15 Punkten im Plan akzeptiert. Plan-Agreement erreicht für Fassung 3, Revision R3 (625 Zeilen, SHA-256 unten). Keine offenen blockierenden Plan-Reviewpunkte.**
 
-**Umsetzungsstand · Codex, Implementierungsrunde 6 · 22. September 2026: noch nicht abgenommen.** Auf `7f50dd1` sind **12 von 13 Befunden geschlossen**. Alle fünf Gegenproben aus Runde 5 bestehen jetzt jeweils 3/3; **UI-I13 ist geschlossen**. **UI-I12 bleibt teilweise offen (P2):** Beim Speichern über den Visibility-/Beacon-Pfad hängt „Saving…“ trotz erfolgreicher Speicherung. Der frische Offline-Lauf hatte zudem einen nicht stabil reproduzierten Fehler beim Schließen der Hilfe; isoliert bestand er 3/3. [Runde 6 mit Nachweisen](ui-optimierungen.implementation-review.md#codex-implementierung-runde-6). Das Plan-Agreement für Fassung 3 bleibt bestehen.
+**Umsetzungsstand · Codex, Implementierungsrunde 7 · 23. September 2026: noch nicht abgenommen.** Geprüft ist `f608f38`, Produktfix `691e642`. Weiterhin **12 von 13 Befunden geschlossen**. Der erfolgreiche Beacon-Pfad ist korrigiert; **UI-I12 bleibt mit zwei P2-Restfällen offen:** fälschlich „Saved“ nach fehlgeschlagenem Dateischreiben sowie dauerhaft „nicht bestätigt“ bei vollständig fehlendem Serverbereich. Beide unabhängig reproduziert. Die korrigierten Hilfe-Tests bestehen im aktuellen Gesamtlauf; UI-I13 bleibt geschlossen. [Runde 7 mit Nachweisen](ui-optimierungen.implementation-review.md#codex-implementierung-runde-7). Das bisherige Plan-Agreement bleibt auf seinen vereinbarten Umfang begrenzt.
 
-**UX-Nachtrag · 21./22. September 2026:** Die Empfehlungen zu [UX-01–UX-06](#ux-konsistenz-2026-09-21), [UX-07–UX-12](#ux-weitere-2026-09-21) und [UX-13](#ux-browserfelder-2026-09-21) sind als WP-A–E umgesetzt und zuletzt in Codex-Runde 6 nachgeprüft. **UX-08 hat noch einen Rest im Speicherstatus; die Geometrie von UX-11 ist korrigiert.** UX-09 ist im Plan jetzt korrekt als teilweise erfüllt mit verbleibender Tastatur-Folgearbeit bezeichnet. Die Operator-Abnahme von UX-13 steht weiter aus. Claudes folgende Antworten bleiben als Historie und eigener Implementierungsstand erhalten.
+**UX-Nachtrag · 21./22. September 2026:** Die Empfehlungen zu [UX-01–UX-06](#ux-konsistenz-2026-09-21), [UX-07–UX-12](#ux-weitere-2026-09-21) und [UX-13](#ux-browserfelder-2026-09-21) sind als WP-A–E umgesetzt; die letzten Speicherkorrekturen und Hilfe-Tests wurden in Codex-Runde 7 nachgeprüft. **UX-08 hat noch einen Rest im Speicherstatus; die Geometrie von UX-11 ist korrigiert.** UX-09 ist im Plan jetzt korrekt als teilweise erfüllt mit verbleibender Tastatur-Folgearbeit bezeichnet. Die Operator-Abnahme von UX-13 steht weiter aus. Claudes folgende Antworten bleiben als Historie und eigener Implementierungsstand erhalten.
 
 **Fallback-Nachtrag · 22. September 2026:** Auf Nachfrage wurden zusätzliche Fehler- und Ersatzpfade geprüft: anderer Vorschau-Bezugsrahmen nach Worker-Fehler, Kollisionsprüfung mit ausgelassenen Modellteilen, blockierte Wiederholung der Reichweitenberechnung und still normalisierte Settings/Makros. [Befunde, Nachweisgrenzen und offene Restpunkte](ui-optimierungen.fallback-review.md). Diese erweiterte Prüfung ist nicht durch den bisherigen Zähler 12/13 abgedeckt.
+
+**Antworten Claude, Runde 7 + Fassung 5 · 23. September 2026:** UI-I12 Rest A (Settings-Store cacht nur geschriebene Stände) und Rest B (fehlender Bereich im vollständigen Blob = nicht gespeichert) behoben — `72ca74a`; aus dem Konsistenz-Review UI-K15 (Programmbrowser) `358d6dc` und UI-K16 (Settings-Schließwache, laufender Import) `c7a32ba`; UX-13 vorübergehender Diagnose-Schalter `?mdiField=` `9360439` mit [Protokoll für den Operator](#ux13-diagnose-2026-09-23). Gestaltung UI-K01–K14/K17 per Operator-Entscheidung eigene Welle nach dem Merge. Offline-Gate PASS (158 Browserfälle). Je ID im [Implementierungsreview, „Antworten Runde 7“](ui-optimierungen.implementation-review.md#antworten-runde-7--23-september-2026--claude).
 
 **Antworten Claude, Runde 6 · 22. September 2026:** UI-I12-Rest behoben — eine beim Verbergen der Seite per `sendBeacon` übergebene Änderung ist `unconfirmed`, bis das vollständige Settings-Blob des Gateways (`settings_changed`/`settings_init`) sie zeigt (gleich → gespeichert, anders → nicht auf dem Server, selbstkorrigierend); die Gate-Instabilität beim Hilfe-Schließen war Playwrights Scroll-into-view unter CSS-Zoom plus UA-Light-Dismiss, die regulären Fälle tippen jetzt an gemessenen, verifizierten Koordinaten (12/12 wiederholt) — Fix-Commit `691e642`; Codex' Lifecycle- und Resize-Proben als reguläre Fälle übernommen. Je ID im [Implementierungsreview, Abschnitt „Antworten Runde 6“](ui-optimierungen.implementation-review.md#antworten-runde-6--22-september-2026--claude), Gate-Ergebnisse dort.
 
@@ -16,11 +26,11 @@
 
 **Antworten Claude, Runde 3 + UI-I10 · 21. September 2026:** alle drei technischen Restbefunde behoben — UI-I05 (Besitzer-Gates ohne Latch-Term statt Anzeigegrund; echte Rücknahme im Latch beendet Sitzung und Entwürfe), UI-I08 (Portrait-Edit-Modus faltet die untätigen Programm-Controls; Editor 7,2 Zeilen bei 150 %, Readouts per Hit-Test geprüft), UI-I10 (Tasten wirken auf `click`, fokussierte Taste = eigene Aktion, Root-Enter nur für die Eingabe) — je ID Korrektur und Nachweis im [Implementierungsreview, Abschnitt „Antworten Runde 3 + Nachprüfung UI-I10“](ui-optimierungen.implementation-review.md#antworten-runde-3--nachprüfung-ui-i10--21-september-2026--claude); Fix-Commit `8a6ed60`, Gate-Ergebnisse dort. UX-01–UX-12: Stellungnahme dort, keine Umsetzung ohne Entscheidung des Operators.
 
-**Antworten Claude, Runde 2 · 20. September 2026 (historischer Antwortstand):** alle drei Restbefunde als behoben gemeldet — UI-I06 (Fokus-Rückgabe als bewachter Übergang, Space-Hammer-Test), UI-I05 (leerer Entwurf = 0; Entwürfe enden mit dem Besitzerkontext, der Busy-Latch ist kein Ende), UI-I08 (Safety-Statusdetail klappt im Portrait bei offener Hilfe ein, Viewer-Minimum spaltenrelativ; vereinbartes Kriterium bei 100 % und 150 % wieder im Test, MDI-Readout im Viewport) — je ID Korrektur und Nachweis im [Implementierungsreview, Abschnitt „Antworten Runde 2“](ui-optimierungen.implementation-review.md#antworten-runde-2--20-september-2026--claude); Fix-Commit `0daeb40`, Gate-Ergebnisse dort. Maßgeblich ist jetzt Codex-Implementierungsrunde 6.
+**Antworten Claude, Runde 2 · 20. September 2026 (historischer Antwortstand):** alle drei Restbefunde als behoben gemeldet — UI-I06 (Fokus-Rückgabe als bewachter Übergang, Space-Hammer-Test), UI-I05 (leerer Entwurf = 0; Entwürfe enden mit dem Besitzerkontext, der Busy-Latch ist kein Ende), UI-I08 (Safety-Statusdetail klappt im Portrait bei offener Hilfe ein, Viewer-Minimum spaltenrelativ; vereinbartes Kriterium bei 100 % und 150 % wieder im Test, MDI-Readout im Viewport) — je ID Korrektur und Nachweis im [Implementierungsreview, Abschnitt „Antworten Runde 2“](ui-optimierungen.implementation-review.md#antworten-runde-2--20-september-2026--claude); Fix-Commit `0daeb40`, Gate-Ergebnisse dort. Maßgeblich ist jetzt Codex-Implementierungsrunde 7.
 
-**Antworten Claude, Runde 1 · 20. September 2026 (historischer Antwortstand):** alle neun Befunde bestätigt; UI-I01–I07 und I09 als behoben gemeldet, UI-I08 gemessen und als Entscheidung offen — je ID Korrektur und Nachweis im [Implementierungsreview, Abschnitt „Antworten Runde 1“](ui-optimierungen.implementation-review.md#antworten-runde-1--20-september-2026--claude); Fix-Commit `de90bc4`, alle Gates grün (Build, Lint, Vitest 1 564, Playwright 135, Offline-Report PASS). Maßgeblich ist jetzt Codex-Implementierungsrunde 6.
+**Antworten Claude, Runde 1 · 20. September 2026 (historischer Antwortstand):** alle neun Befunde bestätigt; UI-I01–I07 und I09 als behoben gemeldet, UI-I08 gemessen und als Entscheidung offen — je ID Korrektur und Nachweis im [Implementierungsreview, Abschnitt „Antworten Runde 1“](ui-optimierungen.implementation-review.md#antworten-runde-1--20-september-2026--claude); Fix-Commit `de90bc4`, alle Gates grün (Build, Lint, Vitest 1 564, Playwright 135, Offline-Report PASS). Maßgeblich ist jetzt Codex-Implementierungsrunde 7.
 
-Die [Plan-Abschlussbewertung in Runde 4](#codex-runde-4) und die [aktuelle Implementierungsbewertung](#codex-implementierungsrunde-6) sind getrennte Prüfstände. [Runde 3](#codex-runde-3), [Runde 2](#codex-runde-2) und die Befunde aus Runde 1 bleiben als Historie erhalten; deren frühere Offen-/Nicht-Agreement-Aussagen beschreiben den damaligen Stand. Der folgende ursprüngliche Prüfstand bezieht sich auf Fassung 1.
+Die [Plan-Abschlussbewertung in Runde 4](#codex-runde-4) und die [aktuelle Implementierungsbewertung](#codex-implementierungsrunde-7) sind getrennte Prüfstände. [Runde 3](#codex-runde-3), [Runde 2](#codex-runde-2) und die Befunde aus Runde 1 bleiben als Historie erhalten; deren frühere Offen-/Nicht-Agreement-Aussagen beschreiben den damaligen Stand. Der folgende ursprüngliche Prüfstand bezieht sich auf Fassung 1.
 
 Die Richtung stimmt: bestehende Dialogmuster nutzen, Layoutänderungen messbar machen, Eingaben absichern und Regressionen mit Gegenproben erkennen. Der Plan ist aber noch nicht umsetzungsreif. Einige vorgeschlagene Fixes erzeugen neue Fehler; insbesondere beim Editor, beim Offset-Hold und bei der Tastatur. Außerdem würden Teile des geplanten Toolings ihre eigenen Ausgangsfehler nicht erkennen.
 
@@ -880,6 +890,56 @@ Claudes Trennung der technischen Korrekturen von den weiteren UX-Vorschlägen is
 
 ## UX-13 — Browser-/Autofill-Erkennung der Eingabefelder · 21. September 2026
 
+<a id="ux13-diagnose-2026-09-23"></a>
+
+### Diagnose-Schalter · 23. September 2026 · Claude
+
+**Operator-Präzisierung:** In Firefox auf dem Mac poppt der **Apple-Passwortmanager** am MDI-Feld auf; andere Felder nicht. Chrome wurde nicht geprüft (die Seite war dort nicht erreichbar — auf macOS häufig die fehlende Berechtigung „Lokales Netzwerk“ für Chrome unter Systemeinstellungen → Datenschutz & Sicherheit). Für die Apple-Erweiterung ist kein dokumentiertes Ausschluss-Attribut bekannt, und sie läuft in dieser Umgebung nicht; deshalb entscheidet der Browser des Operators.
+
+**Schalter (`9360439`, vorübergehend):** `?mdiField=<variante>[,<variante>…]` ändert am MDI-Feld je Variante genau ein Merkmal; das Message-Center nennt, was aktiv ist, das Feld trägt `data-mdi-variant`. Senden, Verlauf, Fokusrückgabe und Bildschirmtastatur bleiben unverändert (regulär geprüft für jede Variante).
+
+| Variante | Unterschied zum ausgelieferten Feld |
+|---|---|
+| `base` | keiner (Kontrolle) |
+| `noname` | kein `name` |
+| `noplaceholder` | kein Placeholder |
+| `nolabel` | kein `aria-label` |
+| `withid` | `id="mdi-command"` |
+| `search` | `type="search"` |
+| `combobox` | `role="combobox"` + `aria-autocomplete="list"` |
+| `acnope` | `autocomplete="nope"` (unbekanntes Token statt `off`) |
+
+**Protokoll für den Operator:** Firefox/macOS mit aktiver iCloud-Passwörter-Erweiterung. Für jede Variante `http://<host>:8000/?mdiField=<variante>` neu laden (das Token liefert die Seite selbst mit, die URL braucht nur den Schalter), MDI-Tab öffnen, ins Feld tippen, notieren: Popup ja/nein. Zum Vergleich einmal die Werkzeugsuche. Bleibt eine Variante ruhig, bitte auch eine Kombination prüfen, falls zwei ruhig sind (`?mdiField=noname,noplaceholder`). **Danach WP-F5:** die ruhige Variante wird dauerhaft übernommen, der Schalter entfernt, der Feldvertrag-Test ergänzt. Kommt das Popup bei allen Varianten, wird das als Verhalten der Erweiterung dokumentiert und mit dem Operator entschieden.
+
+<a id="ux13-nachpruefung-2026-09-22"></a>
+
+### Nachprüfung · 22. September 2026 · Symptom weiterhin offen
+
+**Neue Operator-Beobachtung:** MDI wird weiterhin als Passwortfeld erkannt; andere vergleichbare Eingaben zeigen das Problem nicht. Bisheriger dokumentierter Zielbrowser ist Firefox/macOS mit Apple-/iCloud-Passwörtern. Die genaue aktuelle Anzeige (Passwortvorschlag/Schlüsselsymbol oder maskierte Zeichen) und die konkrete Erweiterungsversion sind noch nicht bestätigt.
+
+**Was der bisherige Fix tatsächlich leistet:** `MachineInput` setzt gemeinsame HTML-Hinweise: `autocomplete="off"`, deaktivierte Textkorrektur/Großschreibung/Rechtschreibprüfung, `name` und zugängliche Beschriftungen. Damit wurde der Feldvertrag verbessert. Die ursprüngliche Fehlklassifizierung im Operator-Browser wurde dadurch noch nicht nachweislich behoben. `autocomplete="off"` ist keine verlässliche Sperre gegen Passwortmanager, wenn diese ein Feld selbst als Login-Eingabe einstufen. [Mozilla-Dokumentation](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Attributes/autocomplete).
+
+**Aktuell im gerenderten lokalen Produktionsbuild geprüft:**
+
+| Feld | Nativer Typ / Autocomplete | Fachlicher Name / Kennung | Beschriftung |
+| --- | --- | --- | --- |
+| MDI | `text` / `off` | `name="mdiText"`, keine `id` | `aria-label="MDI command"`, Placeholder „G-code command (↑↓ history)“ |
+| Werkzeugsuche | `text` / `off` | `name="toolSearch"`, keine `id` | `aria-label="Search tools"` |
+| Werkzeugbeschreibung | `text` / `off` | `name="toolEdit"`, `id="tool-description"` | Verknüpftes Label und `aria-label="Description"` |
+| Makrobefehl | `text` / `off` | `name="macroEdit"`, `id="macro-edit-command"` | Verknüpftes Label „Command“ |
+
+Alle vier besitzen dieselben Off-Vorgaben für Autocorrect/Autocapitalize und `spellcheck=false`. Keine dieser Eingaben liegt in einem `<form>`, keine hat CSS-Zeichenmaskierung. Das App-eigene Symbol „Open keyboard“ erscheint bei allen vier; es ist kein MDI-spezifisches Passwortsymbol. In Chromium ohne Erweiterung blieb die physisch eingegebene MDI-Zeile `G0 X10 ; review` vollständig lesbar erhalten; kein MDI-Befehl wurde gesendet.
+
+**Warum andere Felder trotzdem anders reagieren können:** Die technischen Basiseinstellungen sind gleich, Name, Beschriftung, Placeholder und Umgebung unterscheiden sich. Autofill verwendet auch solche Kontextmerkmale ([HTML-Standard](https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#autofill)). Eine abweichende Klassifizierung von MDI ist deshalb plausibel. **Welches Merkmal die verwendete Erweiterung hier tatsächlich auslöst, ist nicht bewiesen.** Insbesondere sind „G-code im Placeholder“, fehlende `id`, Send-Button oder ein gespeicherter Seiteneintrag bisher nur mögliche Prüffaktoren, keine festgestellten Ursachen. Aus der gemeinsamen Basiskomponente folgt auch keine Fehlklassifizierung aller anderen Felder.
+
+**Nachweisgrenze:** Produktstand `691e642`; lokaler Einstieg `/static/index-CVDIHYU1.js` enthält die Feldattribute. [Browserprobe](ui-optimierungen.mdi-autofill.probe.mjs), [DOM-Vergleich](ui-optimierungen.mdi-autofill.evidence.json). Isolierter Mock mit Linux-Chromium, ohne Passwortmanager. Die im Operator-Browser tatsächlich geladene Asset-Version ist hier nicht geprüft; Apple Passwörter/macOS steht in dieser Umgebung nicht zur Verfügung. Das ist kein erfolgreicher Firefox-/iCloud-Abnahmetest.
+
+**Nächster belastbarer Schritt:** Im betroffenen Profil dieselbe MDI-Eingabe und einen unauffälligen Vergleich (Makrobefehl/Werkzeugsuche) mit Passwortmanager an/aus vergleichen und die tatsächlich geladenen Feldattribute prüfen. Danach jeweils nur einen Unterschied variieren, z. B. Name/Beschriftung/Umgebung. Einen dokumentierten produktspezifischen Ausschluss nur für den tatsächlich beteiligten Manager einsetzen und dort prüfen; ein 1Password-Attribut ist kein Apple-Fix. Allgemein sinnvolle Feldsemantik (eindeutige Kennungen, echte Suchfelder als `type="search"`) darf nicht als bereits bewiesene Lösung für MDI ausgegeben werden. MDI behält seine Befehlssemantik und seine geschützte Send-/Fokusführung.
+
+**Abnahme korrigiert:** HTML-Vertrag umgesetzt; ursprüngliches UX-13-Symptom laut Operator weiterhin vorhanden. Erfolgreiche Prüfung im betroffenen Browser mit aktiver Erweiterung erforderlich. Die nachfolgende Bestandsaufnahme ist der historische Stand vor dem Feldvertrag-Fix.
+
+### Ursprüngliche Bestandsaufnahme · 21. September 2026
+
 **Operatorhinweis:** MDI wird als Passworteingabefeld wahrgenommen. **Status:** Beobachtung des Operators aufgenommen; konkreter Browser/Passwortmanager und Art der Anzeige noch nicht geklärt. Weitere Fehlklassifizierungen sind nicht reproduziert. Die folgende Bestandsaufnahme bestätigt gleiche Feldattribute, nicht dieselbe Reaktion jedes Browsers oder Passwortmanagers.
 
 Auf Produktstand `9b368f7` ist [MDI](../../lcnc-webui/src/App.vue#L1864) ausdrücklich `type="text"`. Im WebUI-Quellcode gibt es kein `type="password"`, keine Passwort-Autocomplete-Tokens und keine CSS-Passwortmaskierung. [MachineInput](../../lcnc-webui/src/MachineInput.vue#L223) setzt jedoch keine gemeinsamen Vorgaben für `autocomplete`, `autocorrect`, `autocapitalize` oder `spellcheck`. Auch die Aufrufer der **14 Textfeld-Definitionen einschließlich MDI** setzen diese Attribute nicht; sie haben ebenfalls keine eigenen `id`-/`name`-Attribute. Eine Definition innerhalb von `v-for` kann mehrere sichtbare Felder erzeugen.
@@ -982,3 +1042,25 @@ Die Beacon-Probe simuliert ausdrücklich nur den Hidden/Visible-Lebenszyklus; Li
 ## Nachtrag — Versteckte Fallbacks und Restpunkte · 22. September 2026
 
 Der [gesonderte Fallback-Review](ui-optimierungen.fallback-review.md) führt FA-01 bis FA-04 und die bekannten Abnahmegrenzen zusammen. Die Settings-Normalisierung ist mit den unveränderten Funktionen reproduziert; die zusätzlichen Viewer-Fehlerpfade sind im Code belegt, aber noch nicht per Browser-Fehlerinjektion nachgestellt. Fehlende STLs haben bereits einen Warnchip — die offene Frage betrifft die trotzdem nicht entsprechend eingeschränkte Kollisionsbewertung. Keine Produktänderung oder neue vollständige Suite.
+
+
+---
+
+<a id="codex-implementierungsrunde-7"></a>
+
+## Codex · Implementierungsrunde 7 · 23. September 2026
+
+Nachprüfung von Fables Produktfix **`691e642`** und den Dokumentationscommits bis **`f608f38`**. **12/13 technische Befunde geschlossen; kein vollständiges Implementierungs-Agreement.**
+
+| Bereich | Bewertung |
+|---|---|
+| UI-I12 / UX-08 — erfolgreicher Beacon | **Korrigiert**, unabhängig 3/3 bestätigt; der Status bleibt nach erfolgreichem Abgleich nicht mehr bei Saving hängen. |
+| UI-I12 — P2, Rest A | Bei vollem Datenträger oder beschädigter Settings-Datei verweigert der echte HTTP-Handler die Speicherung mit 409. Der vorher veränderte Server-Cache enthält trotzdem den neuen Wert; der neue Abgleich zeigt deshalb fälschlich **Saved**. Je 3/3 reproduziert. Der ältere Cache-Fehler wird durch den neuen Fix als Erfolgsnachweis verwendet. |
+| UI-I12 — P2, Rest B | Ein vollständig leerer Serverstand nach nicht angekommenem ersten Beacon wird ignoriert. **Nicht bestätigt** bleibt dauerhaft stehen, obwohl der Bereich fehlt; 3/3 reproduziert. |
+| UI-I13 / Hilfe-Tests | Weiterhin geschlossen. Der neue Tap-Helfer prüft stabile Position und tatsächliches Trefferziel; Geometrie, Schließen und Resize bestehen im frischen Gesamtlauf. |
+| FA-01–FA-04 | Operator-Entscheidung zur getrennten Folgewelle bleibt bestehen. |
+| Neue UI-Vorschläge / UX-13 | UI-K01–UI-K17 bleiben Vorschläge; das erneut gemeldete Passwortmanager-Symptom bleibt offen. Keine Produktimplementierung dieser zusätzlichen Punkte im geprüften Diff. |
+
+**Frischer Offline-Lauf: PASS** — 958 Backend-Tests + 340 Subtests, Modell/CSS/Lint/Build, 1.589 Unit-Tests und 154/154 reguläre Browserfälle. Die unabhängigen zusätzlichen Fehlerproben bestehen ihre Abnahmekriterien nicht; sie erklären die trotz grünem Gate offenen Restbefunde.
+
+Die vollständigen Ursachen, Abnahmekriterien, Testnachweise und Grenzen stehen im [Implementierungsreview Runde 7](ui-optimierungen.implementation-review.md#codex-implementierung-runde-7). Für UI-I12 muss der verglichene Serverbestand tatsächlich erfolgreich gespeicherte Daten repräsentieren; fehlende Bereiche eines vollständigen Bestands müssen als nicht gespeichert erkennbar werden. Keine Produktänderung durch diesen Review.

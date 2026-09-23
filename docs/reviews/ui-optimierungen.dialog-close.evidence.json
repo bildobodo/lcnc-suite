@@ -1,0 +1,123 @@
+{
+  "productCommit": "691e642",
+  "date": "2026-09-22",
+  "environment": "Isolated mock; Chromium desktop 1600x1000",
+  "cases": [
+    {
+      "name": "Settings",
+      "openAfterOutsideFocus": true,
+      "focus": {
+        "tag": "BUTTON",
+        "name": "G-code Reference",
+        "insideDialog": false
+      },
+      "openAfterHeaderBackgroundClick": true,
+      "openAfterBackdropClick": false
+    },
+    {
+      "name": "Messages",
+      "openAfterOutsideFocus": true,
+      "focus": {
+        "tag": "BUTTON",
+        "name": "G-code Reference",
+        "insideDialog": false
+      },
+      "openAfterHeaderBackgroundClick": true,
+      "openAfterBackdropClick": false
+    },
+    {
+      "name": "G-code reference",
+      "openAfterOutsideFocus": true,
+      "focus": {
+        "tag": "BUTTON",
+        "name": "G-code Reference",
+        "insideDialog": false
+      },
+      "openAfterHeaderBackgroundClick": true,
+      "openAfterBackdropClick": false
+    },
+    {
+      "name": "Shutdown confirmation (never confirmed)",
+      "openAfterOutsideFocus": true,
+      "focus": {
+        "tag": "BUTTON",
+        "name": "G-code Reference",
+        "insideDialog": false
+      },
+      "openAfterHeaderBackgroundClick": true,
+      "openAfterBackdropClick": true
+    },
+    {
+      "name": "Tool editor",
+      "openAfterOutsideFocus": true,
+      "focus": {
+        "tag": "BUTTON",
+        "name": "G-code Reference",
+        "insideDialog": false
+      },
+      "openAfterHeaderBackgroundClick": true,
+      "openAfterBackdropClick": true
+    },
+    {
+      "name": "Numpad",
+      "openAfterOutsideFocus": false,
+      "ownerDialogStillOpen": true
+    },
+    {
+      "name": "Text keyboard",
+      "openAfterOutsideFocus": false
+    },
+    {
+      "name": "Unsaved Settings macro",
+      "closeBy": "backdrop",
+      "discardQuestionVisible": false,
+      "draftFormLost": true
+    },
+    {
+      "name": "Unsaved Settings macro",
+      "closeBy": "header navigation",
+      "discardQuestionVisible": false,
+      "draftFormLost": true
+    },
+    {
+      "name": "Tool import with HTTP reply pending (stub only)",
+      "openAfterOutsideFocus": true,
+      "openAfterBackdropClick": false,
+      "requestFailure": null
+    }
+  ],
+  "toolEditorTab": {
+    "initialFocus": {
+      "tag": "BUTTON",
+      "name": "+ Add",
+      "insideDialog": false
+    },
+    "afterTab": {
+      "tag": "BUTTON",
+      "name": "Hide FilesBrowse",
+      "insideDialog": false
+    },
+    "stillOpen": true
+  },
+  "toolDirtyClose": {
+    "confirmationShown": true,
+    "backdropKeepsEditor": true,
+    "value": "Unsaved tool draft"
+  },
+  "helpAfterTab": {
+    "open": true,
+    "focus": {
+      "tag": "INPUT",
+      "name": "Touch off X · -",
+      "insideDialog": false
+    }
+  },
+  "helpAfterOutsideFocus": true,
+  "helpAfterOutsideClick": false,
+  "mockCommandCounts": {
+    "hello": 2,
+    "tab_visibility": 3,
+    "get_tool_table": 4,
+    "jog_stop": 3
+  }
+}

@@ -6050,3 +6050,50 @@ help-close case in the gate.
   loss, supersession, `stableJson`), e2e keyboard-guards: the simulated
   hidden/visible cycle with a routed beacon and the two blobs; the three
   geometry cases with steady taps; the resize case.
+
+## 2026-09-23 — Review round 7 and the consistency review's defects (Fassung 5, WP-F1–F4)
+
+Codex round 7 (UI-I12 rests A/B) and the two reproduced defects of the
+consistency review (UI-K15, UI-K16); operator decisions of 2026-09-23:
+defects now, the design contracts UI-K01–K14/K17 as their own wave after
+the merge; UX-13 by a diagnosis switch in the operator's browser.
+
+- **A settings blob shows only written states.** `SettingsStore` mutated
+  its cached dict before writing; a failed write (disk full, the
+  refuse-to-clobber guard) answered 409 but left the unwritten value in the
+  cache, the next `settings_init` carried it, and the page-hide
+  confirmation read "Saved". Every change is now prepared on a deep copy
+  and becomes the cache only after the write. Old mutation, new meaning:
+  the round-6 fix made the blob a confirmation.
+- **The blob is complete, so absence is an answer.** A beaconed section
+  missing from `settings_init`/`settings_changed` is not on the server
+  (error, corrected by a later matching blob) — skipping it left a lost
+  first beacon "unconfirmed" for good.
+- **A readout that can grow must wrap.** The named failure made the
+  nowrap `.saveStatus` take its width from the hint beside it; the Settings
+  header grew to one-word lines and buried the tabs (the new e2e case could
+  not click the Abort cell). The CLAUDE.md lesson about nowrap flex items,
+  again.
+- **List what can be opened.** `list_files` checked the opened folder but
+  listed every child; `entry.is_dir()` follows symlinks, so the shipped
+  `nc_files` links into `/usr/share/linuxcnc/ncfiles` were offered and then
+  refused as "Invalid directory" with a Retry that could only fail. The
+  listing now applies the open/load rule per child (the tool browser did
+  already), and a 400 offers no Retry (`browseFailure.ts`). Offering the
+  system examples would be a configured extra read root — never a bypass.
+- **Every way out of a form asks the same question.** The Settings macro
+  editor and the gamepad wizard live inside the Settings panel; X, the
+  backdrop and a header switch to another dialog unmounted them without a
+  word. One guard (`guardSettingsClose` in `useDialogState`, asked by
+  `openDialog` and `closeSettings`) shows the tool editor's "Discard
+  changes?". A running tool-library import keeps its dialog until the reply
+  — hiding it had cancelled nothing.
+- **UX-13 is diagnosed in the browser that shows it.** The field contract
+  (WP-A) did not stop the Apple Passwords extension on the MDI line. No
+  documented opt-out exists for it and the extension is not available
+  here, so `?mdiField=` offers one-feature variants; the operator's report
+  decides WP-F5 (adopt the quiet variant, remove the switch).
+- Deferred with reasons: dialog focus management and `role=dialog`
+  (UI-K11) belong to the design wave's DialogFrame; FA-01–FA-04 stay their
+  own wave.
+

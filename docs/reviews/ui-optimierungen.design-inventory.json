@@ -1,0 +1,249 @@
+{
+  "inventory": {
+    "global_custom_properties": 93,
+    "base_root_properties": 90,
+    "button_catalog_types": 73,
+    "static_machinebtn_tags": 241,
+    "raw_button_tags": 10,
+    "font_tokens": [
+      "--fs-2xl",
+      "--fs-2xs",
+      "--fs-3xl",
+      "--fs-base",
+      "--fs-lg",
+      "--fs-md",
+      "--fs-sm",
+      "--fs-xl",
+      "--fs-xs"
+    ],
+    "radius_tokens": [
+      "--radius-2xl",
+      "--radius-container",
+      "--radius-lg",
+      "--radius-md",
+      "--radius-pill",
+      "--radius-round",
+      "--radius-sm",
+      "--radius-xl"
+    ],
+    "gap_tokens": [
+      "--gap-controls",
+      "--gap-micro",
+      "--gap-panel",
+      "--gap-section",
+      "--gap-tight"
+    ],
+    "unreferenced_candidates": [
+      "--active-tool",
+      "--fs-3xl",
+      "--panel-h-portrait",
+      "--panel-min-h"
+    ],
+    "same_catalog_definition": [
+      [
+        "abort",
+        "bannerAbort"
+      ],
+      [
+        "mdi",
+        "dialogReady"
+      ],
+      [
+        "home",
+        "unhome",
+        "bannerHome"
+      ],
+      [
+        "probe",
+        "toolMeasure"
+      ],
+      [
+        "spindleFwd",
+        "spindleRev",
+        "twpClear"
+      ],
+      [
+        "spindleStop",
+        "dialogReadyDanger"
+      ],
+      [
+        "spindleIncrease",
+        "spindleDecrease"
+      ],
+      [
+        "flood",
+        "mist"
+      ],
+      [
+        "overridePreset",
+        "overrideReset"
+      ],
+      [
+        "fileOp",
+        "manage"
+      ],
+      [
+        "wcsClear",
+        "twpReorient"
+      ],
+      [
+        "arm",
+        "machineOn",
+        "numDel",
+        "numClr"
+      ],
+      [
+        "simTrip",
+        "dialogCancel",
+        "nav",
+        "surfaceRefresh",
+        "inlineMd",
+        "bannerAction"
+      ],
+      [
+        "close",
+        "listAction",
+        "headerIcon"
+      ],
+      [
+        "viewPreset",
+        "viewerQuickToggle",
+        "scrub",
+        "inline"
+      ],
+      [
+        "overlayToggle",
+        "inlineXs"
+      ],
+      [
+        "numKey",
+        "numOp"
+      ]
+    ]
+  },
+  "contrasts": {
+    "method": "WCAG sRGB source-colour ratios; not antialiased pixel measurements or a WCAG certification",
+    "themes": [
+      {
+        "theme": "light",
+        "viewer": {
+          "feed": 2.3795,
+          "rapid": 2.0268,
+          "bounds": 1.0,
+          "backplot": 3.1362,
+          "outside_limits": 1.512,
+          "selected": 3.6374
+        },
+        "syntax_against_bg_before_comment_opacity": {
+          "--syntax-mcode": 2.7832,
+          "--syntax-coord": 2.0377,
+          "--syntax-param": 1.4913,
+          "--syntax-comment": 3.3331
+        },
+        "muted_on_panel": 3.6124,
+        "info_on_bg": 2.9486
+      },
+      {
+        "theme": "dark",
+        "viewer": {
+          "feed": 8.0768,
+          "rapid": 9.4826,
+          "bounds": 19.2191,
+          "backplot": 6.1282,
+          "outside_limits": 12.7113,
+          "selected": 5.2837
+        },
+        "syntax_against_bg_before_comment_opacity": {
+          "--syntax-mcode": 6.9054,
+          "--syntax-coord": 9.4316,
+          "--syntax-param": 12.8878,
+          "--syntax-comment": 5.7662
+        },
+        "muted_on_panel": 6.0989,
+        "info_on_bg": 6.5181
+      },
+      {
+        "theme": "hc-light",
+        "viewer": {
+          "feed": 2.3795,
+          "rapid": 2.0268,
+          "bounds": 1.0,
+          "backplot": 3.1362,
+          "outside_limits": 1.512,
+          "selected": 3.6374
+        },
+        "syntax_against_bg_before_comment_opacity": {
+          "--syntax-mcode": 2.7832,
+          "--syntax-coord": 2.0377,
+          "--syntax-param": 1.4913,
+          "--syntax-comment": 3.3331
+        },
+        "muted_on_panel": 5.5181,
+        "info_on_bg": 6.6218
+      },
+      {
+        "theme": "hc-dark",
+        "viewer": {
+          "feed": 8.8252,
+          "rapid": 10.3613,
+          "bounds": 21.0,
+          "backplot": 6.696,
+          "outside_limits": 13.8891,
+          "selected": 5.7733
+        },
+        "syntax_against_bg_before_comment_opacity": {
+          "--syntax-mcode": 7.5453,
+          "--syntax-coord": 10.3055,
+          "--syntax-param": 14.082,
+          "--syntax-comment": 6.3005
+        },
+        "muted_on_panel": 7.3001,
+        "info_on_bg": 8.7588
+      }
+    ],
+    "proposed": [
+      {
+        "role": "bounds",
+        "light": "#475569",
+        "dark": "#CBD5E1",
+        "on_white": 7.5777,
+        "on_dark": 12.9448
+      },
+      {
+        "role": "feed",
+        "light": "#0072B2",
+        "dark": "#56B4E9",
+        "on_white": 5.1854,
+        "on_dark": 8.3291
+      },
+      {
+        "role": "rapid",
+        "light": "#9A6700",
+        "dark": "#E69F00",
+        "on_white": 4.8678,
+        "on_dark": 8.5332
+      },
+      {
+        "role": "backplot",
+        "light": "#007F75",
+        "dark": "#2DD4BF",
+        "on_white": 4.8921,
+        "on_dark": 10.3246
+      },
+      {
+        "role": "selected",
+        "light": "#7E22CE",
+        "dark": "#D8B4FE",
+        "on_white": 6.9833,
+        "on_dark": 10.872
+      },
+      {
+        "role": "collision",
+        "light": "#B91C1C",
+        "dark": "#FF8585",
+        "on_white": 6.47,
+        "on_dark": 8.1871
+      }
+    ]
+  }
+}

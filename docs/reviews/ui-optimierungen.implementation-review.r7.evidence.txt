@@ -1,0 +1,34 @@
+Codex implementation review round 7 — 2026-09-23
+Command: python3 scripts/test_suite.py offline
+Report: runlogs/test-suite/20260923T162640Z-offline/report.json
+Commit: f608f38481cdf4ac0baea1514394737b8e4575ce
+Status: pass
+Started: 2026-09-23T16:26:40.195267+00:00
+No product-source changes; review/prototype documents existed in working tree.
+
+backend: pass (30.88 s)
+958 passed, 340 subtests passed in 30.55s
+5axis-model: pass (0.67 s)
+audit-css: pass (0.62 s)
+============================== 12 passed in 0.48s ==============================
+frontend-lint: pass (4.21 s)
+frontend-build: pass (10.3 s)
+frontend-unit: pass (28.15 s)
+Test Files  71 passed (71)
+Tests  1589 passed (1589)
+frontend-browser: pass (343.69 s)
+HELP_GEOMETRY 1280x900@1 tap 1238,619: {"x":938,"y":635,"right":1274,"bottom":860.1875,"width":336,"height":225.1875,"vw":1280,"vh":900,"scrollable":false,"textTop":645,"textBottom":849.25,"transform":"none","weight":"400","overflowY":"auto"}
+✓   98 [serial-guards] › e2e/keyboard-guards.spec.ts:536:5 › help popover geometry (touch) › Help: Go to positions is wholly readable at 1280 × 900, zoom 1 (2.6s)
+HELP_GEOMETRY 900x1200@1 tap 259,1042: {"x":91,"y":800.40625,"right":427,"bottom":1025.59375,"width":336,"height":225.1875,"vw":900,"vh":1200,"scrollable":false,"textTop":810.40625,"textBottom":1014.65625,"transform":"none","weight":"400","overflowY":"auto"}
+✓   99 [serial-guards] › e2e/keyboard-guards.spec.ts:536:5 › help popover geometry (touch) › Help: Go to positions is wholly readable at 900 × 1200, zoom 1 (2.5s)
+HELP_GEOMETRY 900x1200@1.5 tap 394,1149: {"x":142,"y":790.890625,"right":646,"bottom":1127.875,"width":504,"height":336.984375,"vw":900,"vh":1200,"scrollable":false,"textTop":805.890625,"textBottom":1111.953125,"transform":"none","weight":"400","overflowY":"auto"}
+✓  100 [serial-guards] › e2e/keyboard-guards.spec.ts:536:5 › help popover geometry (touch) › Help: Go to positions is wholly readable at 900 × 1200, zoom 1.5 (3.3s)
+✓  101 [serial-guards] › e2e/keyboard-guards.spec.ts:571:3 › help popover geometry (touch) › the open help follows a resize and re-opens inside the viewport (3.0s)
+✓  108 [serial-guards] › e2e/keyboard-guards.spec.ts:777:1 › settings save status (UI-I12 rest): a page-hide save goes by beacon and only the server's state confirms it (1.8s)
+154 passed (5.7m)
+
+Independent probes: see r7.ledger-evidence.json and r7.browser-evidence.json.
+Acceptance: success 3/3; disk-full 0/3; corrupt file 0/3; missing section 0/3.
+Both write failures display Saved despite HTTP 409; missing section remains unconfirmed.
+HTTP/store fixture uses temporary files; visibility/settings_init are injected at the browser boundary.
+No LinuxCNC connection; no product files or visual baselines changed.

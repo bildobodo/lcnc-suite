@@ -1,0 +1,802 @@
+{
+  "date": "2026-09-23",
+  "productCommit": "691e642",
+  "zoomMethod": "CSS zoom, not native browser zoom",
+  "product": [
+    {
+      "name": "desktop",
+      "width": 1600,
+      "height": 1000,
+      "touch": false,
+      "tab": "Program",
+      "zoom": 1,
+      "pane": {
+        "width": 540,
+        "height": 577,
+        "top": 0
+      },
+      "contentWidth": 522,
+      "contentHeight": 559,
+      "mainTabs": {
+        "width": 522,
+        "height": 25,
+        "top": 9
+      },
+      "subTabs": {
+        "width": 0,
+        "height": 0,
+        "top": -115
+      },
+      "firstContent": {
+        "width": 0,
+        "height": 0,
+        "top": -115
+      },
+      "paneWithinViewport": true,
+      "paneRight": 1592,
+      "viewportWidth": 1600
+    },
+    {
+      "name": "desktop",
+      "width": 1600,
+      "height": 1000,
+      "touch": false,
+      "tab": "Program",
+      "zoom": 1.5,
+      "pane": {
+        "width": 540,
+        "height": 210.66666666666666,
+        "top": 0
+      },
+      "contentWidth": 522.6666660000001,
+      "contentHeight": 193.33333266666668,
+      "mainTabs": {
+        "width": 522.6666666666666,
+        "height": 24,
+        "top": 8.666666666666666
+      },
+      "subTabs": {
+        "width": 0,
+        "height": 0,
+        "top": -152
+      },
+      "firstContent": {
+        "width": 0,
+        "height": 0,
+        "top": -152
+      },
+      "paneWithinViewport": true,
+      "paneRight": 1588,
+      "viewportWidth": 1600
+    },
+    {
+      "name": "desktop",
+      "width": 1600,
+      "height": 1000,
+      "touch": false,
+      "tab": "Program",
+      "zoom": 2,
+      "pane": {
+        "width": 540,
+        "height": 44,
+        "top": 0
+      },
+      "contentWidth": 522,
+      "contentHeight": 26,
+      "mainTabs": {
+        "width": 522,
+        "height": 24.5,
+        "top": 9
+      },
+      "subTabs": {
+        "width": 0,
+        "height": 0,
+        "top": -153
+      },
+      "firstContent": {
+        "width": 0,
+        "height": 0,
+        "top": -153
+      },
+      "paneWithinViewport": false,
+      "paneRight": 2032,
+      "viewportWidth": 1600
+    },
+    {
+      "name": "desktop",
+      "width": 1600,
+      "height": 1000,
+      "touch": false,
+      "tab": "Probing",
+      "zoom": 1,
+      "pane": {
+        "width": 540,
+        "height": 577,
+        "top": 0
+      },
+      "contentWidth": 522,
+      "contentHeight": 559,
+      "mainTabs": {
+        "width": 522,
+        "height": 25,
+        "top": 9
+      },
+      "subTabs": {
+        "width": 522,
+        "height": 54,
+        "top": 38
+      },
+      "firstContent": {
+        "width": 522,
+        "height": 476,
+        "top": 92
+      },
+      "paneWithinViewport": true,
+      "paneRight": 1592,
+      "viewportWidth": 1600
+    },
+    {
+      "name": "desktop",
+      "width": 1600,
+      "height": 1000,
+      "touch": false,
+      "tab": "Probing",
+      "zoom": 1.5,
+      "pane": {
+        "width": 540,
+        "height": 210.66666666666666,
+        "top": 0
+      },
+      "contentWidth": 522.6666660000001,
+      "contentHeight": 193.33333266666668,
+      "mainTabs": {
+        "width": 522.6666666666666,
+        "height": 24,
+        "top": 8.666666666666666
+      },
+      "subTabs": {
+        "width": 522.6666666666666,
+        "height": 52,
+        "top": 36.666666666666664
+      },
+      "firstContent": {
+        "width": 522.6666666666666,
+        "height": 113.33333333333333,
+        "top": 88.66666666666667
+      },
+      "paneWithinViewport": true,
+      "paneRight": 1588,
+      "viewportWidth": 1600
+    },
+    {
+      "name": "desktop",
+      "width": 1600,
+      "height": 1000,
+      "touch": false,
+      "tab": "Probing",
+      "zoom": 2,
+      "pane": {
+        "width": 540,
+        "height": 44,
+        "top": 0
+      },
+      "contentWidth": 522,
+      "contentHeight": 26,
+      "mainTabs": {
+        "width": 522,
+        "height": 24.5,
+        "top": 9
+      },
+      "subTabs": {
+        "width": 522,
+        "height": 53,
+        "top": 37.5
+      },
+      "firstContent": {
+        "width": 522,
+        "height": 0,
+        "top": 90.5
+      },
+      "paneWithinViewport": false,
+      "paneRight": 2032,
+      "viewportWidth": 1600
+    },
+    {
+      "name": "landscape-touch",
+      "width": 1280,
+      "height": 800,
+      "touch": true,
+      "tab": "Program",
+      "zoom": 1,
+      "pane": {
+        "width": 540,
+        "height": 375,
+        "top": 0
+      },
+      "contentWidth": 522,
+      "contentHeight": 357,
+      "mainTabs": {
+        "width": 522,
+        "height": 36,
+        "top": 9
+      },
+      "subTabs": {
+        "width": 0,
+        "height": 0,
+        "top": -117
+      },
+      "firstContent": {
+        "width": 0,
+        "height": 0,
+        "top": -117
+      },
+      "paneWithinViewport": true,
+      "paneRight": 1272,
+      "viewportWidth": 1280
+    },
+    {
+      "name": "landscape-touch",
+      "width": 1280,
+      "height": 800,
+      "touch": true,
+      "tab": "Program",
+      "zoom": 1.5,
+      "pane": {
+        "width": 540,
+        "height": 76.66666666666667,
+        "top": 0
+      },
+      "contentWidth": 522.6666660000001,
+      "contentHeight": 59.33333266666668,
+      "mainTabs": {
+        "width": 522.6666666666666,
+        "height": 36,
+        "top": 8.666666666666666
+      },
+      "subTabs": {
+        "width": 0,
+        "height": 0,
+        "top": -152.66666666666666
+      },
+      "firstContent": {
+        "width": 0,
+        "height": 0,
+        "top": -152.66666666666666
+      },
+      "paneWithinViewport": false,
+      "paneRight": 1524,
+      "viewportWidth": 1280
+    },
+    {
+      "name": "landscape-touch",
+      "width": 1280,
+      "height": 800,
+      "touch": true,
+      "tab": "Program",
+      "zoom": 2,
+      "pane": {
+        "width": 540,
+        "height": 18,
+        "top": 0
+      },
+      "contentWidth": 522,
+      "contentHeight": 0,
+      "mainTabs": {
+        "width": 522,
+        "height": 36,
+        "top": 9
+      },
+      "subTabs": {
+        "width": 0,
+        "height": 0,
+        "top": -158
+      },
+      "firstContent": {
+        "width": 0,
+        "height": 0,
+        "top": -158
+      },
+      "paneWithinViewport": false,
+      "paneRight": 2032,
+      "viewportWidth": 1280
+    },
+    {
+      "name": "landscape-touch",
+      "width": 1280,
+      "height": 800,
+      "touch": true,
+      "tab": "Probing",
+      "zoom": 1,
+      "pane": {
+        "width": 540,
+        "height": 375,
+        "top": 0
+      },
+      "contentWidth": 522,
+      "contentHeight": 357,
+      "mainTabs": {
+        "width": 522,
+        "height": 36,
+        "top": 9
+      },
+      "subTabs": {
+        "width": 522,
+        "height": 76,
+        "top": 49
+      },
+      "firstContent": {
+        "width": 522,
+        "height": 241,
+        "top": 125
+      },
+      "paneWithinViewport": true,
+      "paneRight": 1272,
+      "viewportWidth": 1280
+    },
+    {
+      "name": "landscape-touch",
+      "width": 1280,
+      "height": 800,
+      "touch": true,
+      "tab": "Probing",
+      "zoom": 1.5,
+      "pane": {
+        "width": 540,
+        "height": 76.66666666666667,
+        "top": 0
+      },
+      "contentWidth": 522.6666660000001,
+      "contentHeight": 59.33333266666668,
+      "mainTabs": {
+        "width": 522.6666666666666,
+        "height": 36,
+        "top": 8.666666666666666
+      },
+      "subTabs": {
+        "width": 522.6666666666666,
+        "height": 76,
+        "top": 48.666666666666664
+      },
+      "firstContent": {
+        "width": 522.6666666666666,
+        "height": 0,
+        "top": 124.66666666666667
+      },
+      "paneWithinViewport": false,
+      "paneRight": 1524,
+      "viewportWidth": 1280
+    },
+    {
+      "name": "landscape-touch",
+      "width": 1280,
+      "height": 800,
+      "touch": true,
+      "tab": "Probing",
+      "zoom": 2,
+      "pane": {
+        "width": 540,
+        "height": 18,
+        "top": 0
+      },
+      "contentWidth": 522,
+      "contentHeight": 0,
+      "mainTabs": {
+        "width": 522,
+        "height": 36,
+        "top": 9
+      },
+      "subTabs": {
+        "width": 522,
+        "height": 76,
+        "top": 49
+      },
+      "firstContent": {
+        "width": 522,
+        "height": 0,
+        "top": 125
+      },
+      "paneWithinViewport": false,
+      "paneRight": 2032,
+      "viewportWidth": 1280
+    },
+    {
+      "name": "portrait-touch",
+      "width": 900,
+      "height": 1200,
+      "touch": true,
+      "tab": "Program",
+      "zoom": 1,
+      "pane": {
+        "width": 588,
+        "height": 524,
+        "top": 0
+      },
+      "contentWidth": 570,
+      "contentHeight": 506,
+      "mainTabs": {
+        "width": 570,
+        "height": 36,
+        "top": 9
+      },
+      "subTabs": {
+        "width": 0,
+        "height": 0,
+        "top": -668
+      },
+      "firstContent": {
+        "width": 0,
+        "height": 0,
+        "top": -668
+      },
+      "paneWithinViewport": true,
+      "paneRight": 892,
+      "viewportWidth": 900
+    },
+    {
+      "name": "portrait-touch",
+      "width": 900,
+      "height": 1200,
+      "touch": true,
+      "tab": "Program",
+      "zoom": 1.5,
+      "pane": {
+        "width": 288,
+        "height": 321.6666666666667,
+        "top": 0
+      },
+      "contentWidth": 270.66666599999996,
+      "contentHeight": 304.33333266666665,
+      "mainTabs": {
+        "width": 270.6666666666667,
+        "height": 76,
+        "top": 8.666666666666666
+      },
+      "subTabs": {
+        "width": 0,
+        "height": 0,
+        "top": -470.3333333333333
+      },
+      "firstContent": {
+        "width": 0,
+        "height": 0,
+        "top": -470.3333333333333
+      },
+      "paneWithinViewport": true,
+      "paneRight": 888,
+      "viewportWidth": 900
+    },
+    {
+      "name": "portrait-touch",
+      "width": 900,
+      "height": 1200,
+      "touch": true,
+      "tab": "Program",
+      "zoom": 2,
+      "pane": {
+        "width": 138,
+        "height": 188.25,
+        "top": 0
+      },
+      "contentWidth": 120,
+      "contentHeight": 170.25,
+      "mainTabs": {
+        "width": 120,
+        "height": 116,
+        "top": 9
+      },
+      "subTabs": {
+        "width": 0,
+        "height": 0,
+        "top": -403.75
+      },
+      "firstContent": {
+        "width": 0,
+        "height": 0,
+        "top": -403.75
+      },
+      "paneWithinViewport": true,
+      "paneRight": 884,
+      "viewportWidth": 900
+    },
+    {
+      "name": "portrait-touch",
+      "width": 900,
+      "height": 1200,
+      "touch": true,
+      "tab": "Probing",
+      "zoom": 1,
+      "pane": {
+        "width": 588,
+        "height": 524,
+        "top": 0
+      },
+      "contentWidth": 570,
+      "contentHeight": 506,
+      "mainTabs": {
+        "width": 570,
+        "height": 36,
+        "top": 9
+      },
+      "subTabs": {
+        "width": 570,
+        "height": 76,
+        "top": 49
+      },
+      "firstContent": {
+        "width": 570,
+        "height": 390,
+        "top": 125
+      },
+      "paneWithinViewport": true,
+      "paneRight": 892,
+      "viewportWidth": 900
+    },
+    {
+      "name": "portrait-touch",
+      "width": 900,
+      "height": 1200,
+      "touch": true,
+      "tab": "Probing",
+      "zoom": 1.5,
+      "pane": {
+        "width": 288,
+        "height": 321.6666666666667,
+        "top": 0
+      },
+      "contentWidth": 270.66666599999996,
+      "contentHeight": 304.33333266666665,
+      "mainTabs": {
+        "width": 270.6666666666667,
+        "height": 76,
+        "top": 8.666666666666666
+      },
+      "subTabs": {
+        "width": 270.6666666666667,
+        "height": 116,
+        "top": 88.66666666666667
+      },
+      "firstContent": {
+        "width": 270.6666666666667,
+        "height": 108.33333333333333,
+        "top": 204.66666666666666
+      },
+      "paneWithinViewport": true,
+      "paneRight": 888,
+      "viewportWidth": 900
+    },
+    {
+      "name": "portrait-touch",
+      "width": 900,
+      "height": 1200,
+      "touch": true,
+      "tab": "Probing",
+      "zoom": 2,
+      "pane": {
+        "width": 138,
+        "height": 188.25,
+        "top": 0
+      },
+      "contentWidth": 120,
+      "contentHeight": 170.25,
+      "mainTabs": {
+        "width": 120,
+        "height": 116,
+        "top": 9
+      },
+      "subTabs": {
+        "width": 120,
+        "height": 276,
+        "top": 129
+      },
+      "firstContent": {
+        "width": 120,
+        "height": 0,
+        "top": 405
+      },
+      "paneWithinViewport": true,
+      "paneRight": 884,
+      "viewportWidth": 900
+    }
+  ],
+  "proposal": [
+    {
+      "touch": false,
+      "requestedWidth": 522,
+      "compact": false,
+      "width": 522,
+      "height": 381,
+      "actionsTop": 170,
+      "actionsHeight": 124,
+      "fieldsTop": 310,
+      "fieldsHeight": 54,
+      "choiceVisible": 0,
+      "mainTabVisible": true,
+      "actionRows": 2,
+      "minActionHeight": 32,
+      "screenshot": null
+    },
+    {
+      "touch": false,
+      "requestedWidth": 522,
+      "compact": true,
+      "width": 522,
+      "height": 210,
+      "actionsTop": 93,
+      "actionsHeight": 46,
+      "fieldsTop": 147,
+      "fieldsHeight": 54,
+      "choiceVisible": 0,
+      "mainTabVisible": true,
+      "actionRows": 1,
+      "minActionHeight": 32,
+      "screenshot": null
+    },
+    {
+      "touch": false,
+      "requestedWidth": 570,
+      "compact": false,
+      "width": 570,
+      "height": 341,
+      "actionsTop": 170,
+      "actionsHeight": 84,
+      "fieldsTop": 270,
+      "fieldsHeight": 54,
+      "choiceVisible": 0,
+      "mainTabVisible": true,
+      "actionRows": 1,
+      "minActionHeight": 32,
+      "screenshot": null
+    },
+    {
+      "touch": false,
+      "requestedWidth": 570,
+      "compact": true,
+      "width": 570,
+      "height": 210,
+      "actionsTop": 93,
+      "actionsHeight": 46,
+      "fieldsTop": 147,
+      "fieldsHeight": 54,
+      "choiceVisible": 0,
+      "mainTabVisible": true,
+      "actionRows": 1,
+      "minActionHeight": 32,
+      "screenshot": null
+    },
+    {
+      "touch": false,
+      "requestedWidth": 271,
+      "compact": false,
+      "width": 271,
+      "height": 497,
+      "actionsTop": 180,
+      "actionsHeight": 164,
+      "fieldsTop": 360,
+      "fieldsHeight": 120,
+      "choiceVisible": 0,
+      "mainTabVisible": true,
+      "actionRows": 3,
+      "minActionHeight": 32,
+      "screenshot": null
+    },
+    {
+      "touch": false,
+      "requestedWidth": 271,
+      "compact": true,
+      "width": 271,
+      "height": 300,
+      "actionsTop": 83,
+      "actionsHeight": 84,
+      "fieldsTop": 175,
+      "fieldsHeight": 116,
+      "choiceVisible": 2,
+      "mainTabVisible": false,
+      "actionRows": 2,
+      "minActionHeight": 32,
+      "screenshot": null
+    },
+    {
+      "touch": true,
+      "requestedWidth": 522,
+      "compact": false,
+      "width": 522,
+      "height": 426,
+      "actionsTop": 179,
+      "actionsHeight": 148,
+      "fieldsTop": 343,
+      "fieldsHeight": 66,
+      "choiceVisible": 0,
+      "mainTabVisible": true,
+      "actionRows": 2,
+      "minActionHeight": 44,
+      "screenshot": "docs/reviews/ui-optimierungen.panel-density-522-touch-spacious.png"
+    },
+    {
+      "touch": true,
+      "requestedWidth": 522,
+      "compact": true,
+      "width": 522,
+      "height": 258,
+      "actionsTop": 117,
+      "actionsHeight": 58,
+      "fieldsTop": 183,
+      "fieldsHeight": 66,
+      "choiceVisible": 0,
+      "mainTabVisible": true,
+      "actionRows": 1,
+      "minActionHeight": 44,
+      "screenshot": "docs/reviews/ui-optimierungen.panel-density-522-touch-compact.png"
+    },
+    {
+      "touch": true,
+      "requestedWidth": 570,
+      "compact": false,
+      "width": 570,
+      "height": 374,
+      "actionsTop": 179,
+      "actionsHeight": 96,
+      "fieldsTop": 291,
+      "fieldsHeight": 66,
+      "choiceVisible": 0,
+      "mainTabVisible": true,
+      "actionRows": 1,
+      "minActionHeight": 44,
+      "screenshot": null
+    },
+    {
+      "touch": true,
+      "requestedWidth": 570,
+      "compact": true,
+      "width": 570,
+      "height": 258,
+      "actionsTop": 117,
+      "actionsHeight": 58,
+      "fieldsTop": 183,
+      "fieldsHeight": 66,
+      "choiceVisible": 0,
+      "mainTabVisible": true,
+      "actionRows": 1,
+      "minActionHeight": 44,
+      "screenshot": null
+    },
+    {
+      "touch": true,
+      "requestedWidth": 271,
+      "compact": false,
+      "width": 271,
+      "height": 566,
+      "actionsTop": 189,
+      "actionsHeight": 200,
+      "fieldsTop": 405,
+      "fieldsHeight": 144,
+      "choiceVisible": 0,
+      "mainTabVisible": true,
+      "actionRows": 3,
+      "minActionHeight": 44,
+      "screenshot": "docs/reviews/ui-optimierungen.panel-density-271-touch-spacious.png"
+    },
+    {
+      "touch": true,
+      "requestedWidth": 271,
+      "compact": true,
+      "width": 271,
+      "height": 372,
+      "actionsTop": 107,
+      "actionsHeight": 108,
+      "fieldsTop": 223,
+      "fieldsHeight": 140,
+      "choiceVisible": 2,
+      "mainTabVisible": false,
+      "actionRows": 2,
+      "minActionHeight": 44,
+      "screenshot": "docs/reviews/ui-optimierungen.panel-density-271-touch-compact.png"
+    }
+  ],
+  "pageErrors": [],
+  "limitations": [
+    "Mock without a loaded program; banner/strip state affects available height",
+    "Proposal panels are schematic, not the complete product forms",
+    "120 px pane width is not accepted as a usable layout",
+    "CSS zoom probes do not establish native Firefox/macOS zoom behavior"
+  ]
+}
