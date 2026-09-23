@@ -48,10 +48,12 @@ import { normalizeKinematics } from "./kinematics";
 import { activeFixturePose, RESERVED_FIXTURES } from "./activeFixtureFrame";
 import { fixtureOffDatum, stampAForFixture } from "../twpPose";
 
-/** g5x index (1..9) → fixture name; matches the gateway's _G5X_MAP. */
-export const G5X_NAMES = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"] as const;
+import { G5X_LABELS, g5xLabel } from "../wcs";
+
+/** g5x index (1..9) → fixture name; matches the gateway's _G5X_MAP (wcs.ts). */
+export const G5X_NAMES = G5X_LABELS;
 export function g5xName(idx: number): string {
-  return G5X_NAMES[idx - 1] ?? `G5x#${idx}`;
+  return g5xLabel(idx);
 }
 
 const DEFAULT_AXES = ["X", "Y", "Z", "A", "B", "C"];

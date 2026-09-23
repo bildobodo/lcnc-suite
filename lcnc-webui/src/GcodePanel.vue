@@ -1,17 +1,21 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import type { CollisionLineMark } from "./viewer/collision";
-import { listFiles, uploadFile, saveFile, fetchSubfile, type FileEntry } from "./lcncApi";
+import { listFiles, uploadFile, saveFile, fetchSubfile, UploadConflictError, type FileEntry } from "./lcncApi";
+import { registerModal } from "./modalRegistry";
+import { openTextSession, closeTextSessionIf, inputSession, EDITOR_OWNER, type TextTarget } from "./inputSession";
 import { splitSubLines, expansionAllowed, totalRows, rowAt, rowForMain, rowForSub, type SubExpansion } from "./subRows";
 import { usePermissions } from "./permissions";
-import { loadMachineDefaults, saveMachineDefaults, STEP_RPM } from "./defaults";
+import { loadMachineDefaults, saveMachineDefaults, settingsVersion, STEP_RPM } from "./defaults";
 import { scanToolchangesBefore, scanEntryPositionBefore, type RflToolchangeScan, type RflEntryScan, type RflRunOptions } from "./gcodeRfl";
 import { highlightGcode, type Token } from "./gcodeHighlight";
 import { limitViolationText, type LimitViolation } from "./ws/bulkData";
 import { isTouchDevice } from "./touchDetect";
-import { emitTelemetry } from "./lcncWs";
+import { useMediaMql } from "./useMediaMql";
+import { emitTelemetry, pushMessage } from "./lcncWs";
+import { OPERATOR_DISPLAY } from "./lcnc";
 import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
-import { Play, SkipForward, Pause } from "lucide-vue-next";
+import { Play, SkipForward, Pause, X } from "lucide-vue-next";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
@@ -366,6 +370,7 @@ async function browsePrograms(subdir: string, signal: AbortSignal) {
 }
 
 function selectFile(entry: FileEntry) {
+  if (editing.value) return;  // the editor's session owns the loaded program
   emit("loadFile", entry.path);
   showBrowser.value = false;
 }
@@ -379,19 +384,54 @@ function unloadFile() {
 }
 
 /** ---------- Upload ---------- */
-async function handleUpload(file: File) {
+// Name-conflict dialog (UI-09): the gateway never replaces an existing
+// program unless told to. Cancel / Rename (re-send under a new name) /
+// Replace (overwrite=1) — the operator decides, never the upload path.
+const uploadConflict = ref<{ file: File; filename: string; newName: string } | null>(null);
+registerModal(() => uploadConflict.value !== null);
+
+async function handleUpload(file: File, opts: { overwrite?: boolean; name?: string } = {}) {
+  if (editing.value) return;
   uploadError.value = null;
   loading.value = true;
   try {
-    const resp = await uploadFile(file);
+    const resp = await uploadFile(file, opts);
+    uploadConflict.value = null;
     emit("loadFile", resp.path);
     showBrowser.value = false;
   } catch (e: any) {
-    uploadError.value = `Upload failed: ${e.message}`;
+    if (e instanceof UploadConflictError) {
+      uploadConflict.value = { file, filename: e.filename, newName: e.filename };
+    } else {
+      uploadError.value = `Upload failed: ${e.message}`;
+    }
   } finally {
     loading.value = false;
   }
 }
+
+function uploadRename() {
+  const c = uploadConflict.value;
+  if (!c) return;
+  const name = c.newName.trim();
+  if (!name || name === c.filename) return;
+  uploadConflict.value = null;
+  handleUpload(c.file, { name });
+}
+
+function uploadReplace() {
+  const c = uploadConflict.value;
+  if (!c) return;
+  uploadConflict.value = null;
+  handleUpload(c.file, { overwrite: true, name: c.filename });
+}
+
+const uploadRenameValid = computed(() => {
+  const c = uploadConflict.value;
+  if (!c) return false;
+  const name = c.newName.trim();
+  return !!name && name !== c.filename && /\.(ngc|nc|gcode|tap|txt)$/i.test(name);
+});
 
 function onFileSelect(event: Event) {
   const input = event.target as HTMLInputElement;
@@ -412,7 +452,7 @@ function onDragLeave(_e: DragEvent) {
 
 function onDrop(e: DragEvent) {
   dragOver.value = false;
-  if (!can.value.setup) return;
+  if (!can.value.setup || editing.value) return;
   const file = e.dataTransfer?.files[0];
   if (file) handleUpload(file);
 }
@@ -420,6 +460,7 @@ function onDrop(e: DragEvent) {
 /** ---------- Run from line ---------- */
 const selectedLine = ref<number | null>(null);
 const showRunDialog = ref(false);
+registerModal(showRunDialog);
 const dialogSpindleDir = ref<"off" | "forward" | "reverse">("forward");
 const dialogSpindleSpeed = ref(10000);
 const dialogSafeZ = ref(true);
@@ -446,11 +487,18 @@ const rflBlocked = computed(() => {
   return !!s && s.count > 0 && rflPreTool.value === 0;
 });
 
-onMounted(() => {
+function readRflDefaults() {
   const mach = loadMachineDefaults();
   dialogSpindleDir.value = mach.rflSpindleDir;
   dialogSpindleSpeed.value = mach.rflSpindleRpm;
   dialogSafeZ.value = mach.rflSafeZ;
+}
+// Server-synced settings arrive after setup (settings_init on every WS
+// connect): re-read, or the dialog keeps a stale snapshot.
+watch(settingsVersion, readRflDefaults);
+
+onMounted(() => {
+  readRflDefaults();
   window.addEventListener("blur", dismissTooltip);
   window.addEventListener("resize", dismissTooltip);
 });
@@ -516,17 +564,55 @@ function confirmRunFromLine() {
 // size — the same virtualization principle as the read-only viewer above.
 const editing = ref(false);
 const editorHost = ref<HTMLDivElement | null>(null);
+// Portrait edit mode folds the file ops, the run controls and the progress
+// row: none can act while a session is open (Start/Step/Browse/Upload say
+// "Finish or discard the edit first"), and the side pane is what the
+// editor — the on-screen keyboard's readout — must fit in at 150 % on
+// 900 × 1200 (review round 3, UI-I08: 13.5 px were left for it). A
+// running or paused program brings the controls back (Pause/Abort must
+// stay reachable here; the banner carries Abort in any case).
+const isPortrait = useMediaMql("(orientation: portrait)");
+const compactEdit = computed(() => isPortrait.value && editing.value && !can.value.pause && !can.value.resume);
 const saving = ref(false);
 const saveError = ref<string | null>(null);
 let _editorView: any = null;
-let _deleteCharBackward: any = null;
+let _cm: { deleteCharBackward: any; undo: any; redo: any; cursorCharLeft: any; cursorCharRight: any; insertTab: any } | null = null;
+
+// ── Edit SESSION (WP0, UI-01) ──
+// The buffer belongs to the file it was opened on, never to "the loaded
+// program": saveEdit used to read props.activeFile before AND after the
+// HTTP call, so a program switch mid-edit saved buffer A into file B.
+// A session is {id, path, original}; every async continuation (CodeMirror
+// import, save reply) checks that ITS session is still the current one.
+interface EditSession { id: number; path: string; original: string }
+let _session: EditSession | null = null;
+let _sessionSeq = 0;
+const sessionPath = ref<string | null>(null);
+const sessionName = computed(() => sessionPath.value?.split("/").pop() ?? "");
+// External program change while editing: the buffer stays, a banner names
+// the conflict. "Keep editing" acknowledges THIS loaded file; a further
+// change raises it again.
+const conflictAckFile = ref<string | null>(null);
+const editConflict = computed(() =>
+  editing.value && sessionPath.value != null && props.activeFile !== sessionPath.value
+  && props.activeFile !== conflictAckFile.value);
+function keepEditing() { conflictAckFile.value = props.activeFile; }
+watch(() => props.activeFile, () => { if (!editing.value) conflictAckFile.value = null; });
 
 // App swaps the bottom strip for the G-code keypad while the editor is open.
 watch(editing, (v) => emit("editingChange", v));
 
+function _isDirty(): boolean {
+  return !!_editorView && !!_session && _editorView.state.doc.toString() !== _session.original;
+}
+
 async function enterEdit() {
-  if (!props.gcodeContent || !props.activeFile) return;
+  if (!props.gcodeContent || !props.activeFile || editing.value) return;
   saveError.value = null;
+  const session: EditSession = { id: ++_sessionSeq, path: props.activeFile, original: props.gcodeContent };
+  _session = session;
+  sessionPath.value = session.path;
+  conflictAckFile.value = null;
   editing.value = true;
   await nextTick();  // v-if mounts the host div
   if (!editorHost.value) return;
@@ -534,15 +620,19 @@ async function enterEdit() {
   try {
     // Dynamic import: CM6 stays out of the initial bundle (P6 pattern) — it loads
     // only when someone actually edits.
-    const [{ EditorState }, { EditorView, keymap, lineNumbers }, { defaultKeymap, history, historyKeymap, deleteCharBackward }, { gcodeEditorLanguage }] =
+    const [{ EditorState }, { EditorView, keymap, lineNumbers }, { defaultKeymap, history, historyKeymap, deleteCharBackward, undo, redo, cursorCharLeft, cursorCharRight, insertTab }, { gcodeEditorLanguage }] =
       await Promise.all([
         import("@codemirror/state"),
         import("@codemirror/view"),
         import("@codemirror/commands"),
         import("./gcodeCmLanguage"),
       ]);
-    _deleteCharBackward = deleteCharBackward;
-    if (!editing.value || !editorHost.value || _editorView) return;  // discarded while loading
+    _cm = { deleteCharBackward, undo, redo, cursorCharLeft, cursorCharRight, insertTab };
+    // Bound to the SESSION, not to props.activeFile: an external program
+    // change during the import leaves session A valid (its view is created
+    // with A's text and the conflict banner shows); only a discarded or
+    // replaced session aborts — the stale import installs nothing.
+    if (_session !== session || !editing.value || !editorHost.value || _editorView) return;
     const theme = EditorView.theme({
       "&": { backgroundColor: "var(--bg)", color: "var(--fg)", height: "100%" },
       ".cm-scroller": { fontFamily: "var(--font-mono)", overflow: "auto" },
@@ -555,7 +645,7 @@ async function enterEdit() {
     }, { dark: true });
     _editorView = new EditorView({
       state: EditorState.create({
-        doc: props.gcodeContent,
+        doc: session.original,
         extensions: [lineNumbers(), history(), keymap.of([...defaultKeymap, ...historyKeymap]), theme, gcodeEditorLanguage],
       }),
       parent: editorHost.value,
@@ -566,6 +656,10 @@ async function enterEdit() {
     // Focus on entry so the caret is visible immediately — without this
     // there is no insertion-point indication until the first tap/click.
     _editorView.focus();
+    // The editor is a CODE target of the strip keyboard from the moment it
+    // exists (Edit is the deliberate act); a tap into it re-opens a closed
+    // helper (WP8).
+    openEditorSession();
   } catch (e: any) {
     // No silent empty editor: a failed chunk load (offline, stale deploy) left
     // edit mode open with nothing in it and no message. Surface in the banner.
@@ -574,7 +668,7 @@ async function enterEdit() {
     return;
   }
   const _dt = performance.now() - _t;
-  if (_dt > 250) emitTelemetry("edit.seed_blocked", { ms: Math.round(_dt), bytes: props.gcodeContent.length });
+  if (_dt > 250) emitTelemetry("edit.seed_blocked", { ms: Math.round(_dt), bytes: session.original.length });
 }
 
 function _destroyEditor() {
@@ -582,43 +676,97 @@ function _destroyEditor() {
   _editorView = null;
 }
 
-// ── G-code keypad strip routing (App calls these while editing) ──
-function keypadInsert(text: string) {
-  const v = _editorView;
-  if (!v) return;
-  v.dispatch(v.state.replaceSelection(text));
-  v.focus();
+// ── The editor as a text-keyboard target (WP8) ──
+function editorTarget(): TextTarget {
+  const v = () => _editorView;
+  return {
+    insert(text) { const e = v(); if (!e) return; e.dispatch(e.state.replaceSelection(text)); e.focus(); },
+    backspace() { const e = v(); if (!e || !_cm) return; _cm.deleteCharBackward(e); e.focus(); },
+    enter() { const e = v(); if (!e) return; e.dispatch(e.state.replaceSelection("\n")); e.focus(); },
+    moveCursor(d) { const e = v(); if (!e || !_cm) return; (d < 0 ? _cm.cursorCharLeft : _cm.cursorCharRight)(e); e.focus(); },
+    undo() { const e = v(); if (!e || !_cm) return; _cm.undo(e); e.focus(); },
+    redo() { const e = v(); if (!e || !_cm) return; _cm.redo(e); e.focus(); },
+    tab() { const e = v(); if (!e || !_cm) return; _cm.insertTab(e); e.focus(); },
+    canConfirm: () => editing.value && !!_editorView,
+    isVisible: () => !!editorHost.value && editorHost.value.offsetParent !== null,
+    // Explicit close (the X key) hands focus to the content the view itself
+    // focuses — its DOM focus handler restores the selection.
+    focusEl: () => _editorView?.contentDOM ?? null,
+  };
 }
-function keypadBackspace() {
-  const v = _editorView;
-  if (!v || !_deleteCharBackward) return;
-  _deleteCharBackward(v);
-  v.focus();
+function openEditorSession() {
+  if (!editing.value || !_editorView) return;
+  openTextSession({ ownerId: EDITOR_OWNER, kind: "code", context: `Editor · ${sessionName.value}`, target: editorTarget(), enterLabel: "newline" });
 }
-defineExpose({ keypadInsert, keypadBackspace });
+function onEditorPointerUp() {
+  if (editing.value && _editorView && !(inputSession.kind && inputSession.ownerId === EDITOR_OWNER)) openEditorSession();
+}
 
-function discardEdit() {
+// Discard asks first when the buffer differs from what was opened; a clean
+// buffer closes at once.
+const showDiscardConfirm = ref(false);
+registerModal(showDiscardConfirm);
+
+function _endSession() {
+  closeTextSessionIf(EDITOR_OWNER);
   editing.value = false;
   saveError.value = null;
+  _session = null;
+  sessionPath.value = null;
+  conflictAckFile.value = null;
+  showDiscardConfirm.value = false;
   _destroyEditor();
 }
+
+function discardEdit() {
+  if (_isDirty()) { showDiscardConfirm.value = true; return; }
+  _endSession();
+}
+
+function confirmDiscard() { _endSession(); }
 
 onUnmounted(_destroyEditor);
 
 async function saveEdit() {
-  if (!props.activeFile || !_editorView) return;
+  const session = _session;
+  if (!session || !_editorView || saving.value) return;
+  const path = session.path;
+  const name = path.split("/").pop() ?? path;
   saving.value = true;
   saveError.value = null;
   try {
     // doc.toString() materializes the full text once at save — a one-off cost,
     // sent as a raw body (no JSON.stringify pass).
-    await saveFile(props.activeFile, _editorView.state.doc.toString());
-    editing.value = false;
-    _destroyEditor();
-    emit("loadFile", props.activeFile);
+    const text: string = _editorView.state.doc.toString();
+    await saveFile(path, text);
+    if (_session !== session) {
+      // A newer session replaced this one (or it was discarded) while the
+      // save was in flight: the file is saved, nothing else is touched.
+      pushMessage(OPERATOR_DISPLAY, `Saved ${name}`);
+      return;
+    }
+    session.original = text;
+    if (props.activeFile !== path) {
+      // External program change while saving: the editor stays on A, the
+      // banner keeps naming the conflict, and B is NOT reloaded from A.
+      pushMessage(OPERATOR_DISPLAY, `Saved ${name} — the loaded program is ${props.activeFile?.split("/").pop() ?? "another file"}`);
+      return;
+    }
+    if (_editorView && _editorView.state.doc.toString() !== text) {
+      // Typed while the save was in flight (implementation review UI-I02):
+      // the saved text is the new baseline, the newer edits stay in the
+      // editor as unsaved — the reply never destroys them. The loaded
+      // program is refreshed from the saved file as after any save.
+      pushMessage(OPERATOR_DISPLAY, `Saved ${name} — newer edits are still unsaved`);
+      emit("loadFile", path);
+      return;
+    }
+    _endSession();
+    emit("loadFile", path);
   } catch (e: any) {
-    saveError.value = `Save failed: ${e.message}`;
-    emitTelemetry("edit.save_failed", { file: props.activeFile, msg: String(e?.message ?? e) });
+    if (_session === session) saveError.value = `Save failed: ${e.message}`;
+    else pushMessage(OPERATOR_DISPLAY, `Save of ${name} failed: ${e?.message ?? e}`);
+    emitTelemetry("edit.save_failed", { file: path, msg: String(e?.message ?? e) });
   } finally {
     saving.value = false;
   }
@@ -628,20 +776,23 @@ async function saveEdit() {
 <template>
   <div class="container stack-controls" @dragover.prevent="onDragOver" @dragleave="onDragLeave" @drop.prevent="onDrop">
     <div class="header stack-tight">
-      <div class="headerActions">
+      <div v-if="!compactEdit" class="headerActions">
           <MachineBtn type="fileOp" class="actionBtn" @click="enterEdit" :disabled="!activeFile || editing">
             Edit
           </MachineBtn>
           <MachineBtn type="fileOp" class="actionBtn" @click="reloadFile" :disabled="!activeFile || loading || editing">
             Reload
           </MachineBtn>
-          <MachineBtn type="fileOp" class="actionBtn" @click="unloadFile" :disabled="!activeFile || loading">
+          <MachineBtn type="fileOp" class="actionBtn" @click="unloadFile" :disabled="!activeFile || loading || editing"
+            :reason="editing ? 'Finish or discard the edit first' : undefined">
             Unload
           </MachineBtn>
-          <MachineBtn type="fileOp" class="actionBtn" @click="toggleBrowser" :disabled="loading">
+          <MachineBtn type="fileOp" class="actionBtn" @click="toggleBrowser" :disabled="loading || editing"
+            :reason="editing ? 'Finish or discard the edit first' : undefined">
             <span class="stable-width"><span :class="{ alt: !showBrowser }">Hide Files</span><span :class="{ alt: showBrowser }">Browse</span></span>
           </MachineBtn>
-          <MachineBtn type="fileOp" class="actionBtn" @click="($refs.fileInput as HTMLInputElement).click()">
+          <MachineBtn type="fileOp" class="actionBtn" @click="($refs.fileInput as HTMLInputElement).click()" :disabled="editing"
+            :reason="editing ? 'Finish or discard the edit first' : undefined">
             Upload
           </MachineBtn>
           <input ref="fileInput" type="file" accept=".ngc,.nc,.gcode,.tap,.txt" @change="onFileSelect" hidden />
@@ -654,12 +805,14 @@ async function saveEdit() {
       </div>
     </div>
 
-    <!-- Program control -->
-    <div class="row-tight">
-      <MachineBtn type="start" class="ctrlBtn" @click="onStartClick" :disabled="!activeFile || editing">
+    <!-- Program control (folded in portrait edit mode — see compactEdit) -->
+    <div v-if="!compactEdit" class="row-tight">
+      <MachineBtn type="start" class="ctrlBtn" @click="onStartClick" :disabled="!activeFile || editing"
+        :reason="editing ? 'Finish or discard the edit first' : !activeFile ? 'No program loaded' : undefined">
         <Play :size="14" class="ctrlIcon" /> {{ selectedLine && selectedLine > 1 ? `Start L${selectedLine}` : 'Start' }}
       </MachineBtn>
-      <MachineBtn type="step" class="ctrlBtn" @click="emit('cycleStep')" :disabled="!(activeFile || can.resume) || editing">
+      <MachineBtn type="step" class="ctrlBtn" @click="emit('cycleStep')" :disabled="!(activeFile || can.resume) || editing"
+        :reason="editing ? 'Finish or discard the edit first' : !(activeFile || can.resume) ? 'No program loaded' : undefined">
         <SkipForward :size="14" class="ctrlIcon" /> Step
       </MachineBtn>
       <MachineBtn :type="isPaused ? 'resume' : 'pause'" class="ctrlBtn"
@@ -674,13 +827,13 @@ async function saveEdit() {
     </div>
 
     <!-- Progress bar -->
-    <div class="row-controls" v-if="gcodeContent">
+    <div class="row-controls" v-if="gcodeContent && !compactEdit">
       <div class="progressTrack">
         <div class="progressFill" :style="{ width: progressPercent + '%' }"></div>
       </div>
       <span class="progressLabel">
         <span class="val-slot" :style="{ '--slot-w': lineDigits + 'ch' }">{{ currentLine ?? 0 }}</span> / {{ lineCount }}
-        <span class="progressPct">(<span class="val-slot pctSlot">{{ progressPercent.toFixed(0) }}</span>%)</span>
+        <span class="progressPct">(<span class="val-slot pctSlot">{{ Math.round(progressPercent) }}</span>%)</span>
       </span>
       <!-- Attributed span (W4): a non-null currentLine alongside subName can
            only be the sub's call/trigger line (a trusted own-line point is
@@ -696,7 +849,7 @@ async function saveEdit() {
     <!-- Error banner -->
     <div v-if="uploadError" class="errorBanner">
         <span>{{ uploadError }}</span>
-        <MachineBtn type="close" @click="uploadError = null">&times;</MachineBtn>
+        <MachineBtn type="close" aria-label="Dismiss upload error" title="Dismiss upload error" @click="uploadError = null"><X :size="14" /></MachineBtn>
     </div>
 
     <!-- Soft-limit violations surface in the viewer's scrub bar (yellow
@@ -733,9 +886,18 @@ async function saveEdit() {
       <div v-if="editing" class="stack-controls editArea">
         <div v-if="saveError" class="errorBanner">
           <span>{{ saveError }}</span>
-          <MachineBtn type="close" @click="saveError = null">&times;</MachineBtn>
+          <MachineBtn type="close" aria-label="Dismiss save error" title="Dismiss save error" @click="saveError = null"><X :size="14" /></MachineBtn>
         </div>
-        <div ref="editorHost" class="editorHost"></div>
+        <!-- The loaded program changed under an open session: the buffer is
+             kept and stays bound to its file; nothing is saved elsewhere. -->
+        <div v-if="editConflict" class="warnBanner" data-edit-conflict>
+          <span>Program changed to {{ fileName }} — you are editing {{ sessionName }}</span>
+          <span class="row-tight">
+            <MachineBtn type="inline" @click="keepEditing">Keep editing</MachineBtn>
+            <MachineBtn type="inline" @click="discardEdit">Discard</MachineBtn>
+          </span>
+        </div>
+        <div ref="editorHost" class="editorHost" :data-input-area="EDITOR_OWNER" @pointerup="onEditorPointerUp"></div>
         <div class="editActions">
           <MachineBtn type="fileSave" class="actionBtn" @click="saveEdit" :disabled="saving">{{ saving ? 'Saving...' : 'Save' }}</MachineBtn>
           <MachineBtn type="fileOp" class="actionBtn" @click="discardEdit" :disabled="saving">Discard</MachineBtn>
@@ -795,12 +957,43 @@ async function saveEdit() {
       </div>
     </div>
 
+    <!-- Discard unsaved edits -->
+    <div v-if="showDiscardConfirm" class="dialogOverlay" @click.self="showDiscardConfirm = false">
+      <div class="dialog">
+        <div class="dialogTitle danger">Discard changes?</div>
+        <div class="dialogBody">{{ sessionName }} has unsaved changes.</div>
+        <div class="dialogActions">
+          <MachineBtn type="dialogCancel" @click="showDiscardConfirm = false">Cancel</MachineBtn>
+          <MachineBtn type="dialogDanger" @click="confirmDiscard">Discard</MachineBtn>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload name conflict (UI-09): the gateway refused to replace. -->
+    <div v-if="uploadConflict" class="dialogOverlay" @click.self="uploadConflict = null">
+      <div class="dialog">
+        <div class="dialogTitle danger">Program exists</div>
+        <div class="dialogBody">
+          <strong>{{ uploadConflict.filename }}</strong> already exists on the server.
+        </div>
+        <label class="uploadRename paramGrid">
+          <span>New name</span>
+          <MachineInput gate="uploadName" type="text" v-model="uploadConflict.newName" class="w-full" />
+        </label>
+        <Gate gate="setup" class="dialogActions">
+          <MachineBtn type="dialogCancel" @click="uploadConflict = null">Cancel</MachineBtn>
+          <MachineBtn type="fileOp" :disabled="!uploadRenameValid" @click="uploadRename">Rename</MachineBtn>
+          <MachineBtn type="reset" @click="uploadReplace">Replace</MachineBtn>
+        </Gate>
+      </div>
+    </div>
+
     <!-- Run from line confirmation dialog -->
     <div v-if="showRunDialog" class="dialogOverlay" @click.self="showRunDialog = false">
       <div class="dialog md runDialog">
         <div class="dialogHeader">
           <span class="dialogTitle">Run from Line {{ selectedLine }}</span>
-          <MachineBtn type="close" @click="showRunDialog = false">&times;</MachineBtn>
+          <MachineBtn type="close" aria-label="Close run-from-line" title="Close run-from-line" @click="showRunDialog = false"><X :size="14" /></MachineBtn>
         </div>
         <div class="dialogContent">
           <div class="dialogBody">
@@ -973,35 +1166,8 @@ async function saveEdit() {
 }
 
 
-/* Error banner */
-/* Warn-tier sibling of .errorBanner below (same structure, --warn tokens).
-   Used for "this information is not trustworthy" notices, as distinct from
-   an operation that failed. */
-.warnBanner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--gap-controls);
-  padding: var(--gap-tight) var(--gap-controls);
-  background: color-mix(in oklab, var(--warn) 15%, var(--panel));
-  border: 1px solid color-mix(in srgb, var(--warn) 25%, transparent);
-  border-radius: var(--radius-lg);
-  font-size: var(--fs-base);
-  color: var(--warn);
-}
-
-.errorBanner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--gap-controls);
-  padding: var(--gap-tight) var(--gap-controls);
-  background: color-mix(in oklab, var(--err) 15%, var(--panel));
-  border: 1px solid color-mix(in srgb, var(--err) 25%, transparent);
-  border-radius: var(--radius-lg);
-  font-size: var(--fs-base);
-  color: var(--danger);
-}
+/* .warnBanner / .errorBanner — global (style.css), shared with the tool
+   table, the file browser and the dialogs. */
 
 /* Code area wrapper */
 .codeArea {
@@ -1015,7 +1181,7 @@ async function saveEdit() {
 .dropOverlay {
   position: absolute;
   inset: 0;
-  z-index: 5;
+  z-index: var(--z-pane-overlay);
   align-items: center;
   justify-content: center;
   border: 2px dashed var(--info);
@@ -1106,6 +1272,14 @@ async function saveEdit() {
   justify-content: flex-end;
 }
 
+/* Upload-conflict rename row: label + field, left-aligned inside the
+   centred confirm dialog (layout only — .paramGrid supplies the look). */
+.uploadRename {
+  text-align: left;
+  margin-bottom: var(--gap-controls);
+}
+.uploadRename input { max-width: none; }
+
 /* Run from line */
 .codeLine.selectable {
   cursor: pointer;
@@ -1163,7 +1337,7 @@ async function saveEdit() {
 .gcodeTooltip {
   position: fixed;
   transform: translate(-50%, -100%) translateY(-6px);
-  z-index: 1000;
+  z-index: var(--z-modal);
   max-width: 320px;
   padding: var(--gap-tight) var(--gap-controls);
   border-radius: var(--radius-lg);

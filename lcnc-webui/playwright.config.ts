@@ -1,6 +1,11 @@
 import { defineConfig } from "@playwright/test";
 
 const toolSpecs = /(example-tool-library|freecad-import|tool-geometry|tool-holder|tool-import)\.spec\.ts/;
+// Guard specs (WP0/WP7/WP8): keyboard + editor session guards, touch hold,
+// input session — mock-global state (status deltas, recorded commands), one
+// file at a time under `serial-guards`. ONE filter for both the project's
+// testMatch and the chromium project's testIgnore (UI-15d).
+const guardSpecs = /(keyboard-guards|editor-guards|touch-hold|input-session)\.spec\.ts/;
 
 if (process.env.CI && process.argv.some(arg => arg.startsWith('--update-snapshots') || arg === '-u')) {
   throw new Error('CI must compare committed visual references, never update them.');
@@ -24,6 +29,11 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:4173",
     headless: true,
+    // Headless Chromium hides scrollbars by default, so no scrollbar BAND
+    // exists and the strip-band gate (WP4: the band must be reserved, the
+    // negative controls must see it vanish) would pass on nothing. Real
+    // Linux/Windows browsers show the band; so does the test browser.
+    launchOptions: { ignoreDefaultArgs: ["--hide-scrollbars"] },
     deviceScaleFactor: 1,
     locale: 'en-GB',
     timezoneId: 'UTC',
@@ -31,7 +41,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: "chromium", use: { browserName: "chromium" }, testIgnore: [/(lifecycle|viewer|nine-axis|touchoff|layout|layout-audit|visual)\.spec\.ts/, toolSpecs] },
+    { name: "chromium", use: { browserName: "chromium" }, testIgnore: [/(lifecycle|viewer|nine-axis|touchoff|layout|layout-audit|visual)\.spec\.ts/, toolSpecs, guardSpecs] },
     // Mock-global-state specs run strictly ONE FILE AT A TIME via project
     // dependency CHAINING. fullyParallel:false alone is NOT enough — it only
     // serializes tests within a file; separate files still land on parallel
@@ -78,9 +88,17 @@ export default defineConfig({
       fullyParallel: false,
     },
     {
-      name: "serial-layout",
+      name: "serial-guards",
       use: { browserName: "chromium" },
       dependencies: ["serial-touchoff"],
+      testMatch: guardSpecs,
+      fullyParallel: false,
+      workers: 1,
+    },
+    {
+      name: "serial-layout",
+      use: { browserName: "chromium" },
+      dependencies: ["serial-guards"],
       testMatch: /(?:layout|layout-audit)\.spec\.ts/,
       fullyParallel: false,
       workers: 1,

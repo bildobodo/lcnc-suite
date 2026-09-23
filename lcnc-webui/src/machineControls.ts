@@ -88,6 +88,11 @@ export const BUTTON_TYPES = {
 
   // WCS selection
   wcs:            { gate: 'probe',    variant: 'default', size: 'sm' },
+  // Offsets tab: clear one fixture / all — `clear_wcs` is probe-tier on the
+  // backend (command_policy), and a destructive write gets the same hold as
+  // Zero / Home (operator decision 2026-09-19).
+  wcsClear:       { gate: 'probe',    variant: 'default', size: 'md', hold: true },
+  wcsClearAll:    { gate: 'probe',    variant: 'danger',  size: 'md', hold: true },
   // TWP re-orient: re-solves the head at the current table pose. It MOVES the
   // rotaries, so it carries the probe tier (idle + homed + no eoffset), not
   // jogFrame's — a jog-frame switch is a stationary relabel, this is motion.
@@ -153,14 +158,18 @@ export const BUTTON_TYPES = {
   inlineMd:       { gate: 'always',  variant: 'default', size: 'md' },
   bannerAction:   { gate: 'always',  variant: 'default', size: 'md' },
   bannerAbort:    { gate: 'abort',   variant: 'danger',  size: 'md' },
-  bannerHome:     { gate: 'idle',    variant: 'default', size: 'md', hold: true },
+  // Banner Home All: `home_all` is ZERO-tier on the backend (idle + !eoffset).
+  bannerHome:     { gate: 'zero',    variant: 'default', size: 'md', hold: true },
+  // Manual tool-change confirm: meaningful only while iocontrol asks for one;
+  // the state gate is `armed` (it happens mid-program, never idle/ready).
+  toolChangeConfirm: { gate: 'armed', variant: 'primary', size: 'md' },
   headerIcon:     { gate: 'always',  variant: 'default', size: 'md',  icon: true },
 
   // ── Number keypad ──
   numKey:  { gate: 'always', variant: 'default', size: 'lg', mono: true },  // digits, decimal
   numOp:   { gate: 'always', variant: 'default', size: 'lg', mono: true },  // operators, ±, ( )
   numDel:  { gate: 'always', variant: 'default', size: 'lg' },              // ⌫ backspace
-  numClr:  { gate: 'always', variant: 'danger',  size: 'lg' },              // C clear
+  numClr:  { gate: 'always', variant: 'default', size: 'lg' },              // Clr — clears the unconfirmed entry only: no danger style (UX-03)
   numEq:   { gate: 'always', variant: 'primary', size: 'lg', mono: true },  // ═ evaluate
 } as const satisfies Record<string, ButtonDef>;
 
@@ -217,6 +226,9 @@ export const INPUT_DEFS = {
 
   // Toolsetter parameters
   toolsetterParam: { gate: 'always',   mono: true, align: 'right' },
+
+  // Program upload — the rename field in the name-conflict dialog (UI-09)
+  uploadName:      { gate: 'setup' },
 
   // Tool table editing
   toolEdit:        { gate: 'setup' },

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, inject, watch, type Ref, type ComputedRef } from "vue";
+import { registerModal } from "./modalRegistry";
 import { defaultPartHex } from "./viewer/palette";
 import TabPanel from "./TabPanel.vue";
 import Gate from "./Gate.vue";
@@ -22,9 +23,10 @@ import {
   STEP_RPM,
   loadKeyboardDefaults, type KeyboardDefaults, DEFAULT_KB_MAPPING,
 } from "./defaults";
+import { saveStatus, saveStatusText } from "./settingsSaveStatus";
 import type { MappingSource } from "./gamepadProfile";
 import { enableWakeLock, disableWakeLock } from "./wakeLock";
-import { ChevronUp, ChevronDown, Pencil, Trash2 } from "lucide-vue-next";
+import { ChevronUp, ChevronDown, Pencil, Trash2, RotateCcw } from "lucide-vue-next";
 import DebugTab from "./DebugTab.vue";
 import HalshowTab from "./HalshowTab.vue";
 import KeyboardTab from "./KeyboardTab.vue";
@@ -45,6 +47,20 @@ const updateMacros = inject<(macros: MacroDef[]) => void>("updateMacros", () => 
 // ─── Macros CRUD ────────────────────────────────────────────────
 const macros = ref<MacroDef[]>(loadMacrosDefaults().macros);
 const editingMacro = ref<MacroDef | null>(null);
+// The editor's state when it opened: closing Settings over a CHANGED draft
+// asks first (UI-K16) — every close path (X, backdrop, header navigation)
+// used to unmount this panel and lose the draft without a word.
+const macroSnapshot = ref("");
+function snapshotMacro() { macroSnapshot.value = JSON.stringify(editingMacro.value); }
+const gamepadTabRef = ref<{ wizardOpen: () => boolean } | null>(null);
+/** What closing Settings would throw away, in operator words — null when
+ *  nothing (settings themselves save automatically). */
+function unsavedDraft(): string | null {
+  if (editingMacro.value && JSON.stringify(editingMacro.value) !== macroSnapshot.value) return "The macro you are editing";
+  if (gamepadTabRef.value?.wizardOpen()) return "The gamepad mapping in progress";
+  return null;
+}
+defineExpose({ unsavedDraft });
 
 // Keep the macro's params in sync with the {placeholders} in its command as the
 // user types. A watcher (not a computed) owns this mutation; the template binds
@@ -66,6 +82,7 @@ function addMacro() {
     command: "",
     params: [],
   };
+  snapshotMacro();
 }
 
 function editMacro(m: MacroDef) {
@@ -75,6 +92,7 @@ function editMacro(m: MacroDef) {
   // (but drifted stored params) wouldn't otherwise sync the editor (review #4).
   copy.params = syncMacroParams(copy.command, copy.params);
   editingMacro.value = copy;
+  snapshotMacro();
 }
 
 function saveMacro() {
@@ -100,6 +118,7 @@ function deleteMacro(id: string) {
 // Deletion is confirmed via dialog — the trash button is a ~30px icon
 // target and macro deletion is irreversible.
 const macroDeleteId = ref<string | null>(null);
+registerModal(() => macroDeleteId.value !== null);
 const macroDeleteName = computed(() => macros.value.find(m => m.id === macroDeleteId.value)?.name ?? "");
 function confirmMacroDelete() {
   if (macroDeleteId.value) deleteMacro(macroDeleteId.value);
@@ -127,6 +146,8 @@ const props = defineProps<{
   gamepadMappingSource?: MappingSource | null;
   keyboardConfig?: KeyboardDefaults;
   initialTab?: string | null;
+  /** Teleport target for nested confirm dialogs (App: #content-dialog-area). */
+  dialogTarget?: string;
 }>();
 
 const emit = defineEmits<{
@@ -141,6 +162,7 @@ const emit = defineEmits<{
 
 // ─── Per-tab reset ──────────────────────────────────────────────
 const resetTarget = ref<string | null>(null);
+registerModal(() => resetTarget.value !== null);
 
 const resetLabels: Record<string, string> = {
   viewer: "3D Viewer", machine: "Machine",
@@ -484,7 +506,13 @@ function resetMachineColor(id: string) {
 
 <template>
   <div class="settings">
-    <div class="hint">Settings are saved automatically and shared across all connected clients.</div>
+    <!-- The promise and its proof (UX-08): changes save on the server as they
+         are made, except where a section shows Save/Cancel (macro editor,
+         gamepad wizard) — and the status says what the last save did. -->
+    <div class="settingsHead row-controls">
+      <div class="hint">Changes save automatically and are shared across all connected clients.</div>
+      <span class="saveStatus" :class="saveStatus.state" role="status" aria-live="polite">{{ saveStatusText(saveStatus) }}</span>
+    </div>
     <TabPanel :tabs="subTabs" v-model="activeTab" class="subTabs">
       <template #viewer>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
@@ -616,7 +644,7 @@ function resetMachineColor(id: string) {
                   @update:modelValue="onMachineColorChange(part.id, $event!)"
                 />
                 <span class="colorLabel">{{ formatPartLabel(part.id) }}</span>
-                <MachineBtn v-if="machineColors[part.id]" type="close" @click="resetMachineColor(part.id)">&times;</MachineBtn>
+                <MachineBtn v-if="machineColors[part.id]" type="listAction" :aria-label="`Reset color for ${formatPartLabel(part.id)}`" :title="`Reset color for ${formatPartLabel(part.id)}`" @click="resetMachineColor(part.id)"><RotateCcw :size="14" /></MachineBtn>
               </div>
             </div>
             <MachineToggle gate="viewerSetting" v-model="machineEdgesOn" @update:modelValue="setMachineEdges(machineEdgesOn); save()" label="Edge outline" />
@@ -681,9 +709,10 @@ function resetMachineColor(id: string) {
               gate="displaySetting"
               type="text"
               v-model="spindleLoadPin"
+              label="Spindle load HAL pin"
               @change="saveMachine()"
               placeholder="e.g. spindle-load-conv.load-percentage"
-              style="width: 100%"
+              class="w-full"
             />
           </div>
           <div class="sep"></div>
@@ -777,12 +806,12 @@ function resetMachineColor(id: string) {
               <div class="sub">{{ macros.some(m => m.id === editingMacro!.id) ? 'Edit' : 'New' }} Macro</div>
               <div class="stack-controls fieldGroup">
                 <div class="row-controls inputRow">
-                  <span class="inputLabel">Name</span>
-                  <MachineInput gate="macroEdit" type="text" v-model="editingMacro.name" placeholder="e.g. Face Top" />
+                  <label class="inputLabel" for="macro-edit-name">Name</label>
+                  <MachineInput id="macro-edit-name" gate="macroEdit" type="text" v-model="editingMacro.name" placeholder="e.g. Face Top" />
                 </div>
                 <div class="row-controls inputRow">
-                  <span class="inputLabel">Command</span>
-                  <MachineInput gate="macroEdit" type="text" v-model="editingMacro.command" placeholder="e.g. G0 Z{depth} F{feed}" />
+                  <label class="inputLabel" for="macro-edit-command">Command</label>
+                  <MachineInput id="macro-edit-command" gate="macroEdit" type="text" v-model="editingMacro.command" placeholder="e.g. G0 Z{depth} F{feed}" />
                 </div>
                 <div class="macroParamHint">
                   Use <code>{"{name}"}</code> for parameters. Users will be prompted for values.
@@ -792,12 +821,13 @@ function resetMachineColor(id: string) {
                   <div class="sub">Parameters</div>
                   <div v-for="p in editingMacro.params" :key="p.name" class="macroParamEditRow">
                     <code class="macroParamBadge">{{"{"}}{{ p.name }}{{"}"}}</code>
-                    <MachineInput gate="macroEdit" type="text" v-model="p.label" placeholder="Display label" />
-                    <MachineInput gate="macroEdit" type="text" v-model="p.default" placeholder="Default value" />
+                    <MachineInput gate="macroEdit" type="text" v-model="p.label" placeholder="Display label" :label="`${p.name} display label`" />
+                    <MachineInput gate="macroEdit" type="text" v-model="p.default" placeholder="Default value" :label="`${p.name} default value`" />
                   </div>
                 </div>
               </div>
               <div class="macroEditActions">
+                <div class="hint">Unsaved edit — Save or Cancel</div>
                 <MachineBtn type="dialogCancel" @click="editingMacro = null">Cancel</MachineBtn>
                 <MachineBtn type="dialogConfirm" @click="saveMacro" :disabled="!editingMacro.name.trim() || !editingMacro.command.trim()">Save</MachineBtn>
               </div>
@@ -813,6 +843,8 @@ function resetMachineColor(id: string) {
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
           <GamepadTab
+            ref="gamepadTabRef"
+            :dialogTarget="dialogTarget"
             :gamepad-config="props.gamepadConfig"
             :gamepad-connected="props.gamepadConnected"
             :gamepad-name="props.gamepadName"
@@ -884,11 +916,20 @@ function resetMachineColor(id: string) {
   flex-direction: column;
 }
 
+.settingsHead {
+  margin-bottom: var(--gap-section);
+  flex-shrink: 0;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+/* The promise keeps a readable line; a long save status wraps below it
+   instead of squeezing it to one word per line. */
+.settingsHead > .hint { flex: 1 1 16rem; min-width: 0; }
+.settingsHead > .saveStatus { flex: 0 1 auto; }
+.macroEditActions > .hint { margin-right: auto; }
 .hint {
   font-size: var(--fs-sm);
   opacity: var(--opacity-disabled);
-  margin-bottom: var(--gap-section);
-  flex-shrink: 0;
 }
 
 .resetRow {

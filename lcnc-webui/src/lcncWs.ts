@@ -16,6 +16,7 @@ import { ref } from "vue";
 import { decode as msgpackDecode } from "@msgpack/msgpack";
 import { type WsCommand, OPERATOR_ERROR, isQueueSafe } from "./lcnc";
 import { updateServerCache, loadDisplayDefaults, registerSettingsSaver } from "./defaults";
+import { noteSaveReply, noteSaveConnectionLost, noteSaveServerState } from "./settingsSaveStatus";
 import { enableWakeLock, disableWakeLock } from "./wakeLock";
 import { applyHalshowSnapshot, applyHalshowUpdate, resetHalshow } from "./ws/halshowStore";
 import { emitTelemetry } from "./ws/telemetry";
@@ -124,6 +125,7 @@ function onWorkerMessage(m: any) {
         code: m.code, reason: m.reason, clean: m.wasClean, since_attempt_ms: m.sinceAttemptMs,
       });
       connected.value = false;
+      noteSaveConnectionLost();   // a settings save in flight is not saved (UX-08)
       // Server-going-away close codes double as a shutdown signal: the
       // gateway closes 1001 on lifespan teardown, uvicorn closes 1012 on
       // graceful restart. The explicit server_shutdown frame is the richer
@@ -280,6 +282,8 @@ function onFrame(data: string | ArrayBuffer) {
       handleStatusError(msg);
     } else if (msg.type === "reply") {
       lastReply.value = msg;
+      // A settings save's reply moves the Settings header's status (UX-08).
+      if (typeof msg.req_id === "string") noteSaveReply(msg.req_id, msg.ok !== false, msg.error);
       if (msg.ok === false && msg.error) {
         pushMessage(OPERATOR_ERROR, `Command: ${msg.error}`);
       }
@@ -302,6 +306,8 @@ function onFrame(data: string | ArrayBuffer) {
       handleToolTableChanged(msg);
     } else if (msg.type === "settings_changed" || msg.type === "settings_init") {
       updateServerCache(msg.settings);
+      // The full blob is the only confirmation a page-hide (sendBeacon) save gets (UX-08).
+      noteSaveServerState(msg.settings);
     } else if (msg.type === "halshow_snapshot") {
       applyHalshowSnapshot(msg);
     } else if (msg.type === "halshow_update") {
@@ -309,15 +315,32 @@ function onFrame(data: string | ArrayBuffer) {
     }
 }
 
-export function send(obj: WsCommand) {
+// Request correlation (UI-12): every command carries a per-tab monotonic
+// `req_id`; the gateway echoes it on EVERY reply path (ok, ok:false,
+// preempted, superseded, queue-full), so a dialog matches the reply to the
+// command IT sent — `lastReply.cmd` alone cannot tell two sessions apart.
+const _tabId = Math.random().toString(36).slice(2, 8);
+let _reqSeq = 0;
+export function nextReqId(): string {
+  return `${_tabId}-${++_reqSeq}`;
+}
+
+/**
+ * Send a command. Returns the `req_id` it went out with, or null when
+ * NOTHING was handed to the transport (no worker yet) — a null never
+ * creates a pending state in a caller.
+ */
+export function send(obj: WsCommand): string | null {
   // Classify here (main thread) where the structured command is visible.
   // Mutating/motion commands must not be queued+replayed across a reconnect
   // (issue #18); the worker drops them if the socket is closed.
-  sendCommand(JSON.stringify(obj), obj.cmd, !isQueueSafe(obj.cmd));
+  const req_id = nextReqId();
+  const posted = sendCommand(JSON.stringify({ ...obj, req_id }), obj.cmd, !isQueueSafe(obj.cmd));
+  return posted ? req_id : null;
 }
 
-export function saveSettings(section: string, data: any) {
-  send({ cmd: "save_settings", section, data });
+export function saveSettings(section: string, data: any): string | null {
+  return send({ cmd: "save_settings", section, data });
 }
 // Let defaults.ts flush settings through us without importing this module (P6).
 registerSettingsSaver(saveSettings);

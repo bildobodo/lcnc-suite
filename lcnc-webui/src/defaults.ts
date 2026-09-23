@@ -1,5 +1,6 @@
 import { ref } from "vue";
 import { withToken } from "./auth";
+import { noteSavePending, noteSaveSent, noteSaveBlocked, noteSaveFailed, noteSaveBeaconed } from "./settingsSaveStatus";
 import { resetServerSettings } from "./lcncApi";
 import type { GamepadProfile } from "./gamepadProfile";
 
@@ -7,8 +8,10 @@ import type { GamepadProfile } from "./gamepadProfile";
 // WITHOUT importing lcncWs (which imports defaults) — removes the import cycle and
 // the ineffective-dynamic-import build warning (P6). Registered when lcncWs loads
 // (app startup), long before any user-triggered save flush.
-let _settingsSaver: ((section: string, data: any) => void) | null = null;
-export function registerSettingsSaver(fn: (section: string, data: any) => void): void {
+// The saver returns the `req_id` the save went out with (null = nothing
+// reached the transport) so the save status can follow the reply (UX-08).
+let _settingsSaver: ((section: string, data: any) => string | null) | null = null;
+export function registerSettingsSaver(fn: (section: string, data: any) => string | null): void {
   _settingsSaver = fn;
 }
 
@@ -122,15 +125,20 @@ export function updateServerCache(data: Record<string, any>): void {
   settingsVersion.value++;
 }
 
-/** Flush pending debounced saves via sendBeacon (called on page hide). */
+/** Flush pending debounced saves via sendBeacon (called on page hide).
+ *  The status ledger learns of the hand-off (round 6, UI-I12 rest): the
+ *  revision is UNCONFIRMED until the gateway's next full settings blob
+ *  shows it — the debounce timer is cleared below, so no WS request and no
+ *  correlated reply will ever settle it; a refused hand-off is a failure. */
 function flushPendingSaves(): void {
   for (const [section, data] of _pendingSaves) {
     // sendBeacon can't set headers, so the token rides in the query string
     // (the require_token dependency accepts ?token= as well as the header).
-    navigator.sendBeacon(
+    const handedOff = navigator.sendBeacon(
       withToken(`/settings/${section}`),
       new Blob([JSON.stringify({ data })], { type: "application/json" }),
     );
+    noteSaveBeaconed(section, data, handedOff);
   }
   _pendingSaves.clear();
   for (const key of Object.keys(_saveTimers)) {
@@ -173,8 +181,9 @@ export function loadSection<T>(key: string): T {
 
 /** Save a section. Routes server sections through WS, local sections to localStorage. */
 export function saveSection(key: string, data: any): void {
-  // Block saves until server data is confirmed (prevents overwriting with fallback zeros)
-  if (!serverSettingsReady.value) return;
+  // Block saves until server data is confirmed (prevents overwriting with
+  // fallback zeros) — visibly: the Settings header says so (UX-08).
+  if (!serverSettingsReady.value) { noteSaveBlocked(key, "waiting for server settings"); return; }
 
   const all = readAll();
   all[key] = data;
@@ -182,17 +191,21 @@ export function saveSection(key: string, data: any): void {
 
   // Track pending save for sendBeacon flush on page exit
   _pendingSaves.set(key, data);
+  noteSavePending(key);
   // Debounce server saves (camera sliders fire rapidly)
   clearTimeout(_saveTimers[key]);
   _saveTimers[key] = setTimeout(() => {
     _pendingSaves.delete(key);
     if (_settingsSaver) {
-      _settingsSaver(key, data);  // registered by lcncWs (avoids the import cycle)
+      const reqId = _settingsSaver(key, data);  // registered by lcncWs (avoids the import cycle)
+      if (reqId === null) noteSaveFailed(key, "not connected");
+      else noteSaveSent(key, reqId);
     } else {
       // No silent drop: lcncWs registers at module load, so this "can't happen" —
       // which is exactly why it must be loud if it does (the save would vanish).
       // console.error is captured by the error.console telemetry hook → auditable.
       console.error(`[settings] save DROPPED — no saver registered (section=${key})`);
+      noteSaveFailed(key, "no saver registered");
     }
   }, 300);
 }
@@ -680,6 +693,22 @@ export interface KeyboardDefaults {
   mapping: Record<KeyboardAction, string>;
 }
 
+/** The E-Stop key is reserved: Escape, everywhere, not re-bindable (operator
+ *  decision 2026-09-19). useKeyboardShortcuts handles it in a capture
+ *  listener; KeyboardTab shows it fixed. */
+export const ESTOP_KEY = "Escape";
+
+/** Pin `estop` to Escape and free Escape from any other action — applied on
+ *  load and on every save, so a stored mapping can never move E-Stop. */
+export function normalizeKeyboardMapping(mapping: Record<KeyboardAction, string>): Record<KeyboardAction, string> {
+  const out = { ...mapping };
+  for (const action of Object.keys(out) as KeyboardAction[]) {
+    if (action !== "estop" && out[action] === ESTOP_KEY) out[action] = "";
+  }
+  out.estop = ESTOP_KEY;
+  return out;
+}
+
 const KEYBOARD_FALLBACK: KeyboardDefaults = {
   jogEnabled: false,
   buttonsEnabled: true,
@@ -723,7 +752,7 @@ registerSection<KeyboardDefaults>("keyboard", KEYBOARD_FALLBACK, (saved, fb) => 
   return {
     jogEnabled: saved.jogEnabled ?? fb.jogEnabled,
     buttonsEnabled,
-    mapping,
+    mapping: normalizeKeyboardMapping(mapping),
   };
 });
 

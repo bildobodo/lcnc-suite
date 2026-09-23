@@ -1,0 +1,503 @@
+Codex Runde 6, 2026-09-22
+HEAD 7f50dd1874a8787ae9766e22802586861812646c / product 570bd9f
+All browser actions: built frontend + localhost mock. LinuxCNC stopped.
+R5 probes unchanged. R6 lifecycle visibility explicitly simulated; production sendBeacon, HTTP and WS handling used unchanged.
+RESIZED_HELP initial log width/height are the popover size (the later spread overwrote viewport fields); viewport sequence: 900x1200, 900x700, 1280x700, 900x1200. Logging keys clarified afterwards, assertions unchanged.
+
+
+=== Initial offline run: FAIL, 109 browser cases passed, 1 failed, 42 skipped. Report: runlogs/test-suite/20260922T174202Z-offline/report.json ===
+
+> lcnc-webui@0.0.0 test:e2e
+> playwright test
+
+[WebServer] (node:130507) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:130538) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 152 tests using 2 workers
+
+(node:130558) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:130557) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:130558) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:130557) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓    1 [chromium] › e2e/frames.spec.ts:21:1 › status_delta merges onto prior status and updates the rendered DRO (1.0s)
+  ✓    2 [chromium] › e2e/armed.spec.ts:12:1 › connected + armed + ready lifts default-deny on machine controls (1.0s)
+  ✓    4 [chromium] › e2e/frames.spec.ts:47:1 › halshow snapshot renders pins and halshow_update applies the delta (1.2s)
+[WebServer] 7:43:21 PM [vite] ws proxy error:
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8000
+[WebServer]     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+  ✓    3 [chromium] › e2e/frames.spec.ts:40:1 › pong drives the network-latency pill (1.7s)
+  ✓    5 [chromium] › e2e/smoke.spec.ts:7:1 › app shell mounts with no gateway connected (551ms)
+[WebServer] 7:43:22 PM [vite] ws proxy error:
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8000
+[WebServer]     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+  ✓    6 [chromium] › e2e/smoke.spec.ts:14:1 › default-deny: no armed gate is enabled while disconnected (586ms)
+[WebServer] 7:43:22 PM [vite] ws proxy error:
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8000
+[WebServer]     at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+  ✓    7 [chromium] › e2e/smoke.spec.ts:22:1 › Arm control stays reachable in the exempt slot (556ms)
+(node:130817) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:130817) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓    8 [serial-tools] › e2e/example-tool-library.spec.ts:80:1 › server library requires review and renders source shapes with nominal Z offsets (3.0s)
+  ✓    9 [serial-tools] › e2e/example-tool-library.spec.ts:133:1 › Upload opens the client picker directly without fetching server folders (996ms)
+  ✓   10 [serial-tools] › e2e/example-tool-library.spec.ts:149:1 › preview errors survive table refresh and can be dismissed and retried (1.3s)
+  ✓   11 [serial-tools] › e2e/example-tool-library.spec.ts:181:1 › a slow server folder does not block client import or cancel (1.2s)
+  ✓   12 [serial-tools] › e2e/example-tool-library.spec.ts:206:3 › server browser navigation, download retry and layout 1024x768 (1.7s)
+  ✓   13 [serial-tools] › e2e/example-tool-library.spec.ts:206:3 › server browser navigation, download retry and layout 900x1200 (1.7s)
+  ✓   14 [serial-tools] › e2e/freecad-import.spec.ts:19:1 › FreeCAD preview retains measured offsets, renders a custom shape, and explains new lengths (2.2s)
+  ✓   15 [serial-tools] › e2e/tool-geometry.spec.ts:60:1 › unverified geometry is visible in the table, editor and both import modes (1.6s)
+  ✓   16 [serial-tools] › e2e/tool-geometry.spec.ts:105:3 › desktop: the tool edit dialog keeps labels, fields and footer usable (1.5s)
+  ✓   17 [serial-tools] › e2e/tool-geometry.spec.ts:105:3 › compact: the tool edit dialog keeps labels, fields and footer usable (1.4s)
+  ✓   18 [serial-tools] › e2e/tool-geometry.spec.ts:105:3 › touch-landscape: the tool edit dialog keeps labels, fields and footer usable (1.4s)
+  ✓   19 [serial-tools] › e2e/tool-geometry.spec.ts:105:3 › touch-portrait: the tool edit dialog keeps labels, fields and footer usable (1.4s)
+  ✓   20 [serial-tools] › e2e/tool-geometry.spec.ts:161:1 › add: ok:false keeps the draft, a delayed ok closes, a double click sends once (2.4s)
+  ✓   21 [serial-tools] › e2e/tool-geometry.spec.ts:195:1 › an old session's late reply never closes a newer dialog (1.9s)
+  ✓   22 [serial-tools] › e2e/tool-geometry.spec.ts:220:1 › disconnect while saving: outcome unknown, no blind resend, draft kept (3.9s)
+  ✓   23 [serial-tools] › e2e/tool-geometry.spec.ts:234:1 › delete waits for its own reply and shows a refusal in place (1.6s)
+  ✓   24 [serial-tools] › e2e/tool-holder.spec.ts:56:1 › holder is opt-in in the library preview and never auto-attached to the live tool (2.9s)
+  ✓   25 [serial-tools] › e2e/tool-holder.spec.ts:87:1 › a tool-only export offers no holder toggle (1.2s)
+  ✓   26 [serial-tools] › e2e/tool-import.spec.ts:21:1 › existing tools default to reviewed metadata refresh, not full replacement (1.1s)
+  ✓   27 [serial-tools] › e2e/tool-import.spec.ts:43:1 › full replacement requires selecting that mode and shows length replacement (1.1s)
+  ✓   28 [serial-tools] › e2e/tool-import.spec.ts:61:1 › stale review stays visible as an error and never falls back to replacement (1.0s)
+  ✓   29 [serial-tools] › e2e/tool-import.spec.ts:78:1 › an all-conflict preview cannot submit a metadata refresh (1.0s)
+(node:131704) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:131704) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   30 [serial-lifecycle] › e2e/lifecycle.spec.ts:37:1 › reload while armed requests armed-resume with the same session id (1.5s)
+  ✓   31 [serial-lifecycle] › e2e/lifecycle.spec.ts:56:1 › explicit server_shutdown frame shows the shutdown banner (1.2s)
+  ✓   32 [serial-lifecycle] › e2e/lifecycle.spec.ts:71:1 › server-going-away close (1001) shows the shutdown banner without any frame (1.1s)
+(node:131857) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:131857) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   33 [serial-nine-axis] › e2e/nine-axis.spec.ts:27:1 › 9-axis machine: SetupStrip renders a zero/home group per axis, HUD shows all letters (1.4s)
+  ✓   34 [serial-nine-axis] › e2e/nine-axis.spec.ts:77:1 › lathe [X,Z]: renders exactly those axes — Z present, no phantom Y (995ms)
+  ✓   35 [serial-nine-axis] › e2e/nine-axis.spec.ts:88:1 › reset returns the mock to the XYZ baseline (1.2s)
+(node:131975) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:131975) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   36 [serial-touchoff] › e2e/touchoff.spec.ts:71:7 › strip layout › XYZ landscape: unhome preserves control geometry (2.8s)
+  ✓   37 [serial-touchoff] › e2e/touchoff.spec.ts:71:7 › strip layout › XYZ landscape touch: unhome preserves control geometry (1.9s)
+  ✓   38 [serial-touchoff] › e2e/touchoff.spec.ts:71:7 › strip layout › XYZ portrait touch: unhome preserves control geometry (1.7s)
+  ✓   39 [serial-touchoff] › e2e/touchoff.spec.ts:71:7 › strip layout › XYZAC landscape: unhome preserves control geometry (2.8s)
+  ✓   40 [serial-touchoff] › e2e/touchoff.spec.ts:71:7 › strip layout › XYZAC landscape touch: unhome preserves control geometry (1.8s)
+  ✓   41 [serial-touchoff] › e2e/touchoff.spec.ts:71:7 › strip layout › XYZAC portrait touch: unhome preserves control geometry (1.8s)
+  ✓   42 [serial-touchoff] › e2e/touchoff.spec.ts:71:7 › strip layout › XYZABC TWP landscape: unhome preserves control geometry (2.8s)
+  ✓   43 [serial-touchoff] › e2e/touchoff.spec.ts:71:7 › strip layout › XYZABC TWP landscape touch: unhome preserves control geometry (1.9s)
+  ✓   44 [serial-touchoff] › e2e/touchoff.spec.ts:71:7 › strip layout › XYZABC TWP portrait touch: unhome preserves control geometry (1.8s)
+  ✓   45 [serial-touchoff] › e2e/touchoff.spec.ts:167:1 › Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero XYZ stays open (1.7s)
+  ✓   46 [serial-touchoff] › e2e/touchoff.spec.ts:206:1 › Capture/Clear plane buttons: gate-driven, Clear needs a plane (or TOOL limbo) (1.1s)
+  ✓   47 [serial-touchoff] › e2e/touchoff.spec.ts:242:1 › TCP trunnion (switchable, not TWP): G59 selectable, no Plane frame, no Capture row (1.5s)
+  ✓   48 [serial-touchoff] › e2e/touchoff.spec.ts:270:1 › kinematics selector shows the FRAME the raw type means, and emits frames (1.5s)
+  ✓   49 [serial-touchoff] › e2e/touchoff.spec.ts:308:1 › keypad names its target; a frame/fixture change while open cancels it with a message (1.5s)
+  ✓   50 [serial-touchoff] › e2e/touchoff.spec.ts:341:1 › a disabled control explains itself to the keyboard, and sends no command (1.5s)
+  ✓   51 [serial-touchoff] › e2e/touchoff.spec.ts:387:1 › asking why never starts, pauses or resumes a program (1.6s)
+  ✓   52 [serial-touchoff] › e2e/touchoff.spec.ts:432:1 › Space on a focused control never reaches the Cycle Start shortcut (1.4s)
+  ✓   53 [serial-touchoff] › e2e/touchoff.spec.ts:468:1 › Space selects an ENABLED Plane radio; the explanation is only for the disabled one (1.4s)
+  ✓   54 [serial-touchoff] › e2e/touchoff.spec.ts:507:1 › a disabled control explains itself: the reason on hover and on tap (1.3s)
+  ✓   55 [serial-touchoff] › e2e/touchoff.spec.ts:545:1 › keypad refuses 1.2.3 on a touch-off field, shows empty as 0, confirms a valid value once (1.3s)
+  ✓   56 [serial-touchoff] › e2e/touchoff.spec.ts:580:1 › tool number field: minimum 1 and whole numbers only, on Enter and on OK (1.8s)
+  ✓   57 [serial-touchoff] › e2e/touchoff.spec.ts:632:1 › Offsets Clear: disabled without a real selection, hold-to-fire, hold cancels when the target moves (4.3s)
+  ✓   58 [serial-touchoff] › e2e/touchoff.spec.ts:682:1 › tool-change confirm: once per request, retry after a refusal, nothing without a request (1.5s)
+  ✓   59 [serial-touchoff] › e2e/touchoff.spec.ts:714:1 › surface map: empty state without a toast, error with retry, points load without a grid (1.7s)
+  ✓   60 [serial-touchoff] › e2e/touchoff.spec.ts:764:1 › keypad owner: dialog close, gate change and a second field end or retarget the session (1.8s)
+(node:132803) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:132803) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   61 [serial-guards] › e2e/editor-guards.spec.ts:66:1 › external program change keeps buffer A, shows the conflict, saves A only (2.1s)
+  ✓   62 [serial-guards] › e2e/editor-guards.spec.ts:96:1 › program change during a delayed save: no reload of the new program from A (1.8s)
+  ✓   63 [serial-guards] › e2e/editor-guards.spec.ts:123:1 › program change while CodeMirror is still loading: the view shows A and is usable (3.1s)
+  ✓   64 [serial-guards] › e2e/editor-guards.spec.ts:147:1 › a discarded session's pending import installs nothing (3.2s)
+  ✓   65 [serial-guards] › e2e/editor-guards.spec.ts:168:1 › an older save reply never touches a newer session (2.4s)
+  ✓   66 [serial-guards] › e2e/editor-guards.spec.ts:193:1 › discard: clean closes at once, dirty asks and Cancel keeps the edit (2.1s)
+  ✓   67 [serial-guards] › e2e/editor-guards.spec.ts:208:1 › an upload finishing after Edit raises the conflict, never loses the buffer (1.9s)
+  ✓   68 [serial-guards] › e2e/editor-guards.spec.ts:229:3 › upload name conflict › Cancel / Rename / Replace (2.0s)
+  ✓   69 [serial-guards] › e2e/input-session.spec.ts:83:1 › MDI → number → MDI: exactly one helper at a time, the title names the owner (2.1s)
+  ✓   70 [serial-guards] › e2e/input-session.spec.ts:120:1 › number A → number B: A is not confirmed, its draft returns marked as draft (1.6s)
+  ✓   71 [serial-guards] › e2e/input-session.spec.ts:144:1 › number → text → number keeps the draft; a tap outside hides the keypad, OK and Cancel return focus (2.3s)
+  ✓   72 [serial-guards] › e2e/input-session.spec.ts:186:1 › number keypad: X hides and keeps the draft (tap and Tab + Enter), Discard throws it away; both return focus, nothing is sent (1.7s)
+  ✓   73 [serial-guards] › e2e/input-session.spec.ts:220:1 › drafts: Clear is a draft of 0; a sibling's OK (busy latch) is not an owner end, the field's gate ending is (2.8s)
+  ✓   74 [serial-guards] › e2e/input-session.spec.ts:292:1 › tap outside, Tab outside (from the field and from a key) and Close hide the keyboard without confirming; a re-tap re-opens (2.5s)
+  ✓   75 [serial-guards] › e2e/input-session.spec.ts:338:1 › Send from the keyboard is the MDI path; Enter in a search field never reaches the machine (2.3s)
+  ✓   76 [serial-guards] › e2e/input-session.spec.ts:365:1 › physical typing into the MDI line is kept with the helper open and closed; Enter sends the whole line once, the history recalls it, on-screen keys append (2.0s)
+  ✓   77 [serial-guards] › e2e/input-session.spec.ts:397:1 › field contract: every text field is a technical field — no autofill, autocorrect, autocapitalize or spellcheck, a stable name and an accessible name (2.0s)
+  ✓   78 [serial-guards] › e2e/input-session.spec.ts:431:1 › editor → number → editor keeps the buffer; a hidden tab locks, not ends, the session (3.4s)
+  ✓   79 [serial-guards] › e2e/input-session.spec.ts:481:1 › offset cell: leaving the tab closes the keypad with its draft; only the visible cell's OK writes, once (2.1s)
+  ✓   80 [serial-guards] › e2e/input-session.spec.ts:516:1 › offset drafts end with the probe gate, not with a sibling cell's OK (2.8s)
+  ✓   81 [serial-guards] › e2e/input-session.spec.ts:575:3 › touch › touch-only entry of code, expressions, braces and an umlaut description; correction mid-text (9.1s)
+  ✓   82 [serial-guards] › e2e/input-session.spec.ts:626:1 › a page switch keeps the field's selection (1.8s)
+  ✓   83 [serial-guards] › e2e/input-session.spec.ts:638:3 › landscape light: every page fits the strip budget and never changes the frame (1.8s)
+  ✓   84 [serial-guards] › e2e/input-session.spec.ts:638:3 › landscape dark: every page fits the strip budget and never changes the frame (1.8s)
+  ✓   85 [serial-guards] › e2e/input-session.spec.ts:656:3 › portrait, touch › every page: 44 px keys, no overflow, reachable without scrolling at 100 % and 150 % (2.8s)
+EDITOR_LINES zoom 1: 22.41
+EDITOR_LINES zoom 1.5: 7.18
+  ✓   86 [serial-guards] › e2e/input-session.spec.ts:713:3 › portrait, touch › editor and search as owners: the readout stays visible and hit-testable at 100 % and 150 %; portrait edit mode folds the idle program controls (3.9s)
+  ✓   87 [serial-guards] › e2e/keyboard-guards.spec.ts:77:1 › positive control: Space on the bare page sends cycle_start (1.2s)
+  ✓   88 [serial-guards] › e2e/keyboard-guards.spec.ts:84:1 › number keypad open: Space/Backspace send nothing, Escape sends exactly estop (1.5s)
+  ✓   89 [serial-guards] › e2e/keyboard-guards.spec.ts:102:1 › keypad OK: Space through the whole focus return never starts the program; Escape still E-Stops (2.6s)
+  ✓   90 [serial-guards] › e2e/keyboard-guards.spec.ts:157:1 › a focused key acts as itself: Enter on Discard discards, Space on a digit appends, Enter on OK confirms once; text keys act on Enter/Space (3.3s)
+  ✓   91 [serial-guards] › e2e/keyboard-guards.spec.ts:222:1 › an explicit close by keyboard returns focus: Enter/Space on the keyboard's X, Done in a search field and the editor's X leave the owner focused; the next Space types, never starts the program (2.6s)
+  ✓   92 [serial-guards] › e2e/keyboard-guards.spec.ts:286:1 › repeated Escape in E-Stop never sends estop_reset (1.2s)
+  ✓   93 [serial-guards] › e2e/keyboard-guards.spec.ts:301:1 › settings dialog and key capture: only Escape passes, and it cancels the capture (1.7s)
+  ✓   94 [serial-guards] › e2e/keyboard-guards.spec.ts:335:1 › tool dialog, messages and reference dialogs block Space/Enter/Backspace (2.3s)
+  ✓   95 [serial-guards] › e2e/keyboard-guards.spec.ts:365:1 › tool editor: header X and footer Cancel close an unchanged form at once and ask when it was edited; Keep editing keeps the values (3.2s)
+  ✓   96 [serial-guards] › e2e/keyboard-guards.spec.ts:394:1 › a dimmed control explains itself: the MDI line on a tap, a coolant toggle on Tab + Enter; Space on either never starts the program (1.9s)
+  ✓   97 [serial-guards] › e2e/keyboard-guards.spec.ts:431:1 › help is a tap-friendly popover: the Setup help opens by click and by keyboard and never reaches the machine (1.6s)
+HELP_GEOMETRY 1280x900@1: {"x":472.40625,"y":635,"right":808.40625,"bottom":860.1875,"width":336,"height":225.1875,"vw":1280,"vh":900,"scrollable":false,"textTop":645,"textBottom":849.25,"transform":"none","weight":"400","overflowY":"auto"}
+  ✓   98 [serial-guards] › e2e/keyboard-guards.spec.ts:457:5 › help popover geometry (touch) › Help: Go to positions is wholly readable at 1280 × 900, zoom 1 (1.9s)
+HELP_GEOMETRY 900x1200@1: {"x":91,"y":800.40625,"right":427,"bottom":1025.59375,"width":336,"height":225.1875,"vw":900,"vh":1200,"scrollable":false,"textTop":810.40625,"textBottom":1014.65625,"transform":"none","weight":"400","overflowY":"auto"}
+  ✓   99 [serial-guards] › e2e/keyboard-guards.spec.ts:457:5 › help popover geometry (touch) › Help: Go to positions is wholly readable at 900 × 1200, zoom 1 (1.8s)
+HELP_GEOMETRY 900x1200@1.5: {"x":142,"y":733.875,"right":646,"bottom":1070.859375,"width":504,"height":336.984375,"vw":900,"vh":1200,"scrollable":false,"textTop":748.875,"textBottom":1054.9375,"transform":"none","weight":"400","overflowY":"auto"}
+  ✘  100 [serial-guards] › e2e/keyboard-guards.spec.ts:457:5 › help popover geometry (touch) › Help: Go to positions is wholly readable at 900 × 1200, zoom 1.5 (12.0s)
+(node:134000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:134000) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  101 [serial-guards] › e2e/keyboard-guards.spec.ts:502:1 › documented remainder: Tab leaves the dialog (no focus trap in this wave) (1.4s)
+  ✓  102 [serial-guards] › e2e/keyboard-guards.spec.ts:524:1 › editor open: Space never starts the program (1.8s)
+  ✓  103 [serial-guards] › e2e/keyboard-guards.spec.ts:541:1 › pause and resume via Space are unchanged (1.5s)
+  ✓  104 [serial-guards] › e2e/keyboard-guards.spec.ts:560:1 › a jog key released after a field opened mid-jog still sends jog_stop (1.6s)
+  ✓  105 [serial-guards] › e2e/keyboard-guards.spec.ts:580:1 › settings save status: Saving… on a change, Saved on the gateway's ok, the reason on ok:false (2.4s)
+SAVE_OLD_REPLY 34 samples before the second request: ["Saving…"]
+  ✓  106 [serial-guards] › e2e/keyboard-guards.spec.ts:614:1 › settings save status (UI-I12): a failed section stays visible behind another section's ok; an old reply never says Saved for a newer change (3.8s)
+  ✓  107 [serial-guards] › e2e/keyboard-guards.spec.ts:685:1 › keyboard tab: a capture edits a local copy, no page error, a server change refreshes it (1.9s)
+  ✓  108 [serial-guards] › e2e/touch-hold.spec.ts:53:1 › a short tap sends nothing and says why; a complete hold sends exactly one command (2.9s)
+  ✓  109 [serial-guards] › e2e/touch-hold.spec.ts:70:1 › sliding off, a scroll-cancel and a hidden page cancel the hold; the next hold starts from zero (5.8s)
+  ✓  110 [serial-guards] › e2e/touch-hold.spec.ts:124:1 › teleported tool dialog under touch: scroll the form, keypad on a field, confirm from the strip, footer reachable (2.7s)
+
+
+  1) [serial-guards] › e2e/keyboard-guards.spec.ts:457:5 › help popover geometry (touch) › Help: Go to positions is wholly readable at 900 × 1200, zoom 1.5 
+
+    Error: expect(locator).toBeHidden() failed
+
+    Locator:  locator('.helpPopover').filter({ hasText: 'Go to G30' })
+    Expected: hidden
+    Received: visible
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toBeHidden" with timeout 10000ms
+      - waiting for locator('.helpPopover').filter({ hasText: 'Go to G30' })
+        24 × locator resolved to <div id="hp-v-11" popover="auto" class="helpPopover">…</div>
+           - unexpected value "visible"
+
+
+      493 |       expect(g.overflowY).toBe("auto");
+      494 |       await help.tap();
+    > 495 |       await expect(popover).toBeHidden();
+          |                             ^
+      496 |       await settle(page);
+      497 |       expectNoMachineAction(await recordedCmds());
+      498 |     });
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/keyboard-guards.spec.ts:495:29
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/keyboard-guards-help-popov-841a9-able-at-900-×-1200-zoom-1-5-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/keyboard-guards-help-popov-841a9-able-at-900-×-1200-zoom-1-5-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/keyboard-guards-help-popov-841a9-able-at-900-×-1200-zoom-1-5-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/keyboard-guards-help-popov-841a9-able-at-900-×-1200-zoom-1-5-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [serial-guards] › e2e/keyboard-guards.spec.ts:457:5 › help popover geometry (touch) › Help: Go to positions is wholly readable at 900 × 1200, zoom 1.5 
+  42 did not run
+  109 passed (3.9m)
+
+=== Isolated regular help close case: 3/3 PASS ===
+[WebServer] (node:134755) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:134799) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:134811) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:134811) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+HELP_GEOMETRY 900x1200@1.5: {"x":142,"y":733.875,"right":646,"bottom":1070.859375,"width":504,"height":336.984375,"vw":900,"vh":1200,"scrollable":false,"textTop":748.875,"textBottom":1054.9375,"transform":"none","weight":"400","overflowY":"auto"}
+  ✓  1 [serial-guards] › e2e/keyboard-guards.spec.ts:457:5 › help popover geometry (touch) › Help: Go to positions is wholly readable at 900 × 1200, zoom 1.5 (1.6s)
+(node:134896) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:134896) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+HELP_GEOMETRY 900x1200@1.5: {"x":142,"y":733.875,"right":646,"bottom":1070.859375,"width":504,"height":336.984375,"vw":900,"vh":1200,"scrollable":false,"textTop":748.875,"textBottom":1054.9375,"transform":"none","weight":"400","overflowY":"auto"}
+  ✓  2 [serial-guards] › e2e/keyboard-guards.spec.ts:457:5 › help popover geometry (touch) › Help: Go to positions is wholly readable at 900 × 1200, zoom 1.5 (1.7s)
+(node:134985) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:134985) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+HELP_GEOMETRY 900x1200@1.5: {"x":142,"y":733.875,"right":646,"bottom":1070.859375,"width":504,"height":336.984375,"vw":900,"vh":1200,"scrollable":false,"textTop":748.875,"textBottom":1054.9375,"transform":"none","weight":"400","overflowY":"auto"}
+  ✓  3 [serial-guards] › e2e/keyboard-guards.spec.ts:457:5 › help popover geometry (touch) › Help: Go to positions is wholly readable at 900 × 1200, zoom 1.5 (1.7s)
+
+  3 passed (8.1s)
+
+=== Independent R5 + R6 cases, three runs each: 18 PASS / 3 FAIL ===
+[WebServer] (node:135347) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:135376) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 21 tests using 1 worker
+
+(node:135388) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:135388) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+MIXED_SAVE_REPLIES {"keyboard":{"cmd":"save_settings","section":"keyboard","data":{"jogEnabled":false,"buttonsEnabled":true,"mapping":{"jog_x+":"ArrowRight","jog_x-":"ArrowLeft","jog_y+":"ArrowUp","jog_y-":"ArrowDown","jog_z+":"PageUp","jog_z-":"PageDown","jog_a+":"]","jog_a-":"[","jog_b+":"'","jog_b-":";","jog_c+":"","jog_c-":"","jog_u+":"","jog_u-":"","jog_v+":"","jog_v-":"","jog_w+":"","jog_w-":"","estop":"Escape","cycle":" ","abort":"F9"}},"req_id":"htcv4h-5"},"display":{"cmd":"save_settings","section":"display","data":{"theme":"auto","startFullscreen":true,"keepAwake":true},"req_id":"htcv4h-6"},"text":"Save failed — keyboard: keyboard save rejected"}
+  ✓   1 [chromium] › e2e/audit-r5.probes.spec.ts:34:1 › a successful unrelated save must not erase a failed keyboard save (2.2s)
+PENDING_SAVE_OLD_REPLY {"elapsedMs":44,"text":"Saving…","requests":[{"cmd":"save_settings","section":"keyboard","data":{"jogEnabled":false,"buttonsEnabled":true,"mapping":{"jog_x+":"ArrowRight","jog_x-":"ArrowLeft","jog_y+":"ArrowUp","jog_y-":"ArrowDown","jog_z+":"PageUp","jog_z-":"PageDown","jog_a+":"]","jog_a-":"[","jog_b+":"'","jog_b-":";","jog_c+":"","jog_c-":"","jog_u+":"","jog_u-":"","jog_v+":"","jog_v-":"","jog_w+":"","jog_w-":"","estop":"Escape","cycle":" ","abort":"F9"}},"req_id":"o9rdsq-5"}],"key":"F10"}
+  ✓   2 [chromium] › e2e/audit-r5.probes.spec.ts:52:1 › an old reply must not claim Saved while the next keyboard change is still debouncing (1.7s)
+HELP_POPOVER_GEOMETRY {"zoom":1,"x":472.40625,"y":635,"width":336,"height":225.1875,"right":808.40625,"bottom":860.1875,"viewportWidth":1280,"viewportHeight":900,"text":"Go to G30 — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only. Go to MCS 0 — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only. Go to WCS 0 — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available. ","inline":"left: 472.406px; top: 635px;","beforeToggle":{"width":0,"height":0,"display":"none"}}
+  ✓   3 [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 1280x900 zoom 1 › the new Go to positions popover stays wholly readable on its first opening (1.3s)
+HELP_POPOVER_GEOMETRY {"zoom":1,"x":91,"y":800.40625,"width":336,"height":225.1875,"right":427,"bottom":1025.59375,"viewportWidth":900,"viewportHeight":1200,"text":"Go to G30 — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only. Go to MCS 0 — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only. Go to WCS 0 — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available. ","inline":"left: 91px; top: 800.406px;","beforeToggle":{"width":0,"height":0,"display":"none"}}
+  ✓   4 [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1 › the new Go to positions popover stays wholly readable on its first opening (1.3s)
+HELP_POPOVER_GEOMETRY {"zoom":1.5,"x":142,"y":733.875,"width":504,"height":336.984375,"right":646,"bottom":1070.859375,"viewportWidth":900,"viewportHeight":1200,"text":"Go to G30 — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only. Go to MCS 0 — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only. Go to WCS 0 — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available. ","inline":"left: 94.6667px; top: 489.25px;","beforeToggle":{"width":0,"height":0,"display":"none"}}
+  ✓   5 [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1.5 › the new Go to positions popover stays wholly readable on its first opening (1.4s)
+VISIBILITY_FLUSH_STATUS {"beacons":[{"data":{"jogEnabled":false,"buttonsEnabled":true,"mapping":{"jog_x+":"ArrowRight","jog_x-":"ArrowLeft","jog_y+":"ArrowUp","jog_y-":"ArrowDown","jog_z+":"PageUp","jog_z-":"PageDown","jog_a+":"]","jog_a-":"[","jog_b+":"'","jog_b-":";","jog_c+":"","jog_c-":"","jog_u+":"","jog_u-":"","jog_v+":"","jog_v-":"","jog_w+":"","jog_w-":"","estop":"Escape","cycle":" ","abort":"F9"}}}],"wsSaves":[],"status":"Saving…","key":"F9"}
+  ✘   6 [chromium] › e2e/audit-r6.probes.spec.ts:19:1 › confirmed settings from a visibility flush must not stay Saving forever (1.9s)
+(node:135579) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:135579) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+RESIZED_HELP {"width":336,"height":225.1875,"x":91,"y":800.40625,"right":427,"bottom":1025.59375,"triggerTop":1031.59375,"triggerBottom":1051.59375,"scrollable":false}
+RESIZED_HELP {"width":336,"height":225.1875,"x":558,"y":435,"right":894,"bottom":660.1875,"triggerTop":409,"triggerBottom":429,"scrollable":false}
+RESIZED_HELP {"width":336,"height":225.1875,"x":938,"y":435,"right":1274,"bottom":660.1875,"triggerTop":409,"triggerBottom":429,"scrollable":false}
+RESIZED_HELP {"width":336,"height":225.1875,"x":91,"y":787.90625,"right":427,"bottom":1013.09375,"triggerTop":1031.59375,"triggerBottom":1051.59375,"scrollable":false}
+  ✓   7 [chromium] › e2e/audit-r6.probes.spec.ts:59:3 › help lifecycle › resize while open and reopen keep the help inside the viewport (1.8s)
+(node:135662) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:135662) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+MIXED_SAVE_REPLIES {"keyboard":{"cmd":"save_settings","section":"keyboard","data":{"jogEnabled":false,"buttonsEnabled":true,"mapping":{"jog_x+":"ArrowRight","jog_x-":"ArrowLeft","jog_y+":"ArrowUp","jog_y-":"ArrowDown","jog_z+":"PageUp","jog_z-":"PageDown","jog_a+":"]","jog_a-":"[","jog_b+":"'","jog_b-":";","jog_c+":"","jog_c-":"","jog_u+":"","jog_u-":"","jog_v+":"","jog_v-":"","jog_w+":"","jog_w-":"","estop":"Escape","cycle":" ","abort":"F9"}},"req_id":"3mf7rm-5"},"display":{"cmd":"save_settings","section":"display","data":{"theme":"auto","startFullscreen":true,"keepAwake":true},"req_id":"3mf7rm-6"},"text":"Save failed — keyboard: keyboard save rejected"}
+  ✓   8 [chromium] › e2e/audit-r5.probes.spec.ts:34:1 › a successful unrelated save must not erase a failed keyboard save (2.3s)
+PENDING_SAVE_OLD_REPLY {"elapsedMs":45,"text":"Saving…","requests":[{"cmd":"save_settings","section":"keyboard","data":{"jogEnabled":false,"buttonsEnabled":true,"mapping":{"jog_x+":"ArrowRight","jog_x-":"ArrowLeft","jog_y+":"ArrowUp","jog_y-":"ArrowDown","jog_z+":"PageUp","jog_z-":"PageDown","jog_a+":"]","jog_a-":"[","jog_b+":"'","jog_b-":";","jog_c+":"","jog_c-":"","jog_u+":"","jog_u-":"","jog_v+":"","jog_v-":"","jog_w+":"","jog_w-":"","estop":"Escape","cycle":" ","abort":"F9"}},"req_id":"w3wmso-5"}],"key":"F10"}
+  ✓   9 [chromium] › e2e/audit-r5.probes.spec.ts:52:1 › an old reply must not claim Saved while the next keyboard change is still debouncing (1.7s)
+HELP_POPOVER_GEOMETRY {"zoom":1,"x":472.40625,"y":635,"width":336,"height":225.1875,"right":808.40625,"bottom":860.1875,"viewportWidth":1280,"viewportHeight":900,"text":"Go to G30 — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only. Go to MCS 0 — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only. Go to WCS 0 — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available. ","inline":"left: 472.406px; top: 635px;","beforeToggle":{"width":0,"height":0,"display":"none"}}
+  ✓  10 [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 1280x900 zoom 1 › the new Go to positions popover stays wholly readable on its first opening (1.5s)
+HELP_POPOVER_GEOMETRY {"zoom":1,"x":91,"y":800.40625,"width":336,"height":225.1875,"right":427,"bottom":1025.59375,"viewportWidth":900,"viewportHeight":1200,"text":"Go to G30 — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only. Go to MCS 0 — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only. Go to WCS 0 — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available. ","inline":"left: 91px; top: 800.406px;","beforeToggle":{"width":0,"height":0,"display":"none"}}
+  ✓  11 [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1 › the new Go to positions popover stays wholly readable on its first opening (1.5s)
+HELP_POPOVER_GEOMETRY {"zoom":1.5,"x":142,"y":733.875,"width":504,"height":336.984375,"right":646,"bottom":1070.859375,"viewportWidth":900,"viewportHeight":1200,"text":"Go to G30 — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only. Go to MCS 0 — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only. Go to WCS 0 — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available. ","inline":"left: 94.6667px; top: 489.25px;","beforeToggle":{"width":0,"height":0,"display":"none"}}
+  ✓  12 [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1.5 › the new Go to positions popover stays wholly readable on its first opening (1.6s)
+VISIBILITY_FLUSH_STATUS {"beacons":[{"data":{"jogEnabled":false,"buttonsEnabled":true,"mapping":{"jog_x+":"ArrowRight","jog_x-":"ArrowLeft","jog_y+":"ArrowUp","jog_y-":"ArrowDown","jog_z+":"PageUp","jog_z-":"PageDown","jog_a+":"]","jog_a-":"[","jog_b+":"'","jog_b-":";","jog_c+":"","jog_c-":"","jog_u+":"","jog_u-":"","jog_v+":"","jog_v-":"","jog_w+":"","jog_w-":"","estop":"Escape","cycle":" ","abort":"F9"}}}],"wsSaves":[],"status":"Saving…","key":"F9"}
+  ✘  13 [chromium] › e2e/audit-r6.probes.spec.ts:19:1 › confirmed settings from a visibility flush must not stay Saving forever (1.8s)
+(node:135856) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:135856) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+RESIZED_HELP {"width":336,"height":225.1875,"x":91,"y":800.40625,"right":427,"bottom":1025.59375,"triggerTop":1031.59375,"triggerBottom":1051.59375,"scrollable":false}
+RESIZED_HELP {"width":336,"height":225.1875,"x":558,"y":435,"right":894,"bottom":660.1875,"triggerTop":409,"triggerBottom":429,"scrollable":false}
+RESIZED_HELP {"width":336,"height":225.1875,"x":938,"y":435,"right":1274,"bottom":660.1875,"triggerTop":409,"triggerBottom":429,"scrollable":false}
+RESIZED_HELP {"width":336,"height":225.1875,"x":91,"y":787.90625,"right":427,"bottom":1013.09375,"triggerTop":1031.59375,"triggerBottom":1051.59375,"scrollable":false}
+  ✓  14 [chromium] › e2e/audit-r6.probes.spec.ts:59:3 › help lifecycle › resize while open and reopen keep the help inside the viewport (1.7s)
+(node:135942) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:135942) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+MIXED_SAVE_REPLIES {"keyboard":{"cmd":"save_settings","section":"keyboard","data":{"jogEnabled":false,"buttonsEnabled":true,"mapping":{"jog_x+":"ArrowRight","jog_x-":"ArrowLeft","jog_y+":"ArrowUp","jog_y-":"ArrowDown","jog_z+":"PageUp","jog_z-":"PageDown","jog_a+":"]","jog_a-":"[","jog_b+":"'","jog_b-":";","jog_c+":"","jog_c-":"","jog_u+":"","jog_u-":"","jog_v+":"","jog_v-":"","jog_w+":"","jog_w-":"","estop":"Escape","cycle":" ","abort":"F9"}},"req_id":"bwd6j0-5"},"display":{"cmd":"save_settings","section":"display","data":{"theme":"auto","startFullscreen":true,"keepAwake":true},"req_id":"bwd6j0-6"},"text":"Save failed — keyboard: keyboard save rejected"}
+  ✓  15 [chromium] › e2e/audit-r5.probes.spec.ts:34:1 › a successful unrelated save must not erase a failed keyboard save (2.4s)
+PENDING_SAVE_OLD_REPLY {"elapsedMs":45,"text":"Saving…","requests":[{"cmd":"save_settings","section":"keyboard","data":{"jogEnabled":false,"buttonsEnabled":true,"mapping":{"jog_x+":"ArrowRight","jog_x-":"ArrowLeft","jog_y+":"ArrowUp","jog_y-":"ArrowDown","jog_z+":"PageUp","jog_z-":"PageDown","jog_a+":"]","jog_a-":"[","jog_b+":"'","jog_b-":";","jog_c+":"","jog_c-":"","jog_u+":"","jog_u-":"","jog_v+":"","jog_v-":"","jog_w+":"","jog_w-":"","estop":"Escape","cycle":" ","abort":"F9"}},"req_id":"5pmcru-5"}],"key":"F10"}
+  ✓  16 [chromium] › e2e/audit-r5.probes.spec.ts:52:1 › an old reply must not claim Saved while the next keyboard change is still debouncing (1.9s)
+HELP_POPOVER_GEOMETRY {"zoom":1,"x":472.40625,"y":635,"width":336,"height":225.1875,"right":808.40625,"bottom":860.1875,"viewportWidth":1280,"viewportHeight":900,"text":"Go to G30 — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only. Go to MCS 0 — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only. Go to WCS 0 — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available. ","inline":"left: 472.406px; top: 635px;","beforeToggle":{"width":0,"height":0,"display":"none"}}
+  ✓  17 [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 1280x900 zoom 1 › the new Go to positions popover stays wholly readable on its first opening (1.4s)
+HELP_POPOVER_GEOMETRY {"zoom":1,"x":91,"y":800.40625,"width":336,"height":225.1875,"right":427,"bottom":1025.59375,"viewportWidth":900,"viewportHeight":1200,"text":"Go to G30 — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only. Go to MCS 0 — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only. Go to WCS 0 — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available. ","inline":"left: 91px; top: 800.406px;","beforeToggle":{"width":0,"height":0,"display":"none"}}
+  ✓  18 [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1 › the new Go to positions popover stays wholly readable on its first opening (1.5s)
+HELP_POPOVER_GEOMETRY {"zoom":1.5,"x":142,"y":733.875,"width":504,"height":336.984375,"right":646,"bottom":1070.859375,"viewportWidth":900,"viewportHeight":1200,"text":"Go to G30 — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only. Go to MCS 0 — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only. Go to WCS 0 — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available. ","inline":"left: 94.6667px; top: 489.25px;","beforeToggle":{"width":0,"height":0,"display":"none"}}
+  ✓  19 [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1.5 › the new Go to positions popover stays wholly readable on its first opening (1.6s)
+VISIBILITY_FLUSH_STATUS {"beacons":[{"data":{"jogEnabled":false,"buttonsEnabled":true,"mapping":{"jog_x+":"ArrowRight","jog_x-":"ArrowLeft","jog_y+":"ArrowUp","jog_y-":"ArrowDown","jog_z+":"PageUp","jog_z-":"PageDown","jog_a+":"]","jog_a-":"[","jog_b+":"'","jog_b-":";","jog_c+":"","jog_c-":"","jog_u+":"","jog_u-":"","jog_v+":"","jog_v-":"","jog_w+":"","jog_w-":"","estop":"Escape","cycle":" ","abort":"F9"}}}],"wsSaves":[],"status":"Saving…","key":"F9"}
+  ✘  20 [chromium] › e2e/audit-r6.probes.spec.ts:19:1 › confirmed settings from a visibility flush must not stay Saving forever (1.9s)
+(node:136164) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:136164) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+RESIZED_HELP {"width":336,"height":225.1875,"x":91,"y":800.40625,"right":427,"bottom":1025.59375,"triggerTop":1031.59375,"triggerBottom":1051.59375,"scrollable":false}
+RESIZED_HELP {"width":336,"height":225.1875,"x":558,"y":435,"right":894,"bottom":660.1875,"triggerTop":409,"triggerBottom":429,"scrollable":false}
+RESIZED_HELP {"width":336,"height":225.1875,"x":938,"y":435,"right":1274,"bottom":660.1875,"triggerTop":409,"triggerBottom":429,"scrollable":false}
+RESIZED_HELP {"width":336,"height":225.1875,"x":91,"y":787.90625,"right":427,"bottom":1013.09375,"triggerTop":1031.59375,"triggerBottom":1051.59375,"scrollable":false}
+  ✓  21 [chromium] › e2e/audit-r6.probes.spec.ts:59:3 › help lifecycle › resize while open and reopen keep the help inside the viewport (1.8s)
+
+
+  1) [chromium] › e2e/audit-r6.probes.spec.ts:19:1 › confirmed settings from a visibility flush must not stay Saving forever 
+
+    Error: no outstanding operation remains; server confirmed this current snapshot
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "Saved"
+    Received: "Saving…"
+
+      52 |   expect(wsSaves).toHaveLength(0); // the lifecycle flush cancelled the debounce
+      53 |   expect(seen.key).toBe('F9');
+    > 54 |   expect(seen.status, 'no outstanding operation remains; server confirmed this current snapshot').toBe('Saved');
+         |                                                                                                   ^
+      55 | });
+      56 |
+      57 | test.describe('help lifecycle', () => {
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-r6.probes.spec.ts:54:99
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/audit-r6.probes-confirmed--03074-ust-not-stay-Saving-forever-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/audit-r6.probes-confirmed--03074-ust-not-stay-Saving-forever-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/audit-r6.probes-confirmed--03074-ust-not-stay-Saving-forever-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/audit-r6.probes-confirmed--03074-ust-not-stay-Saving-forever-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e/audit-r6.probes.spec.ts:19:1 › confirmed settings from a visibility flush must not stay Saving forever 
+
+    Error: no outstanding operation remains; server confirmed this current snapshot
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "Saved"
+    Received: "Saving…"
+
+      52 |   expect(wsSaves).toHaveLength(0); // the lifecycle flush cancelled the debounce
+      53 |   expect(seen.key).toBe('F9');
+    > 54 |   expect(seen.status, 'no outstanding operation remains; server confirmed this current snapshot').toBe('Saved');
+         |                                                                                                   ^
+      55 | });
+      56 |
+      57 | test.describe('help lifecycle', () => {
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-r6.probes.spec.ts:54:99
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/audit-r6.probes-confirmed--03074-ust-not-stay-Saving-forever-chromium-repeat1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/audit-r6.probes-confirmed--03074-ust-not-stay-Saving-forever-chromium-repeat1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/audit-r6.probes-confirmed--03074-ust-not-stay-Saving-forever-chromium-repeat1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/audit-r6.probes-confirmed--03074-ust-not-stay-Saving-forever-chromium-repeat1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › e2e/audit-r6.probes.spec.ts:19:1 › confirmed settings from a visibility flush must not stay Saving forever 
+
+    Error: no outstanding operation remains; server confirmed this current snapshot
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "Saved"
+    Received: "Saving…"
+
+      52 |   expect(wsSaves).toHaveLength(0); // the lifecycle flush cancelled the debounce
+      53 |   expect(seen.key).toBe('F9');
+    > 54 |   expect(seen.status, 'no outstanding operation remains; server confirmed this current snapshot').toBe('Saved');
+         |                                                                                                   ^
+      55 | });
+      56 |
+      57 | test.describe('help lifecycle', () => {
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-r6.probes.spec.ts:54:99
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/audit-r6.probes-confirmed--03074-ust-not-stay-Saving-forever-chromium-repeat2/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/audit-r6.probes-confirmed--03074-ust-not-stay-Saving-forever-chromium-repeat2/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/audit-r6.probes-confirmed--03074-ust-not-stay-Saving-forever-chromium-repeat2/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/audit-r6.probes-confirmed--03074-ust-not-stay-Saving-forever-chromium-repeat2/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    [chromium] › e2e/audit-r6.probes.spec.ts:19:1 › confirmed settings from a visibility flush must not stay Saving forever 
+    [chromium] › e2e/audit-r6.probes.spec.ts:19:1 › confirmed settings from a visibility flush must not stay Saving forever 
+    [chromium] › e2e/audit-r6.probes.spec.ts:19:1 › confirmed settings from a visibility flush must not stay Saving forever 
+  18 passed (40.9s)
+
+
+=== Previously skipped projects, --no-deps --workers=1: 42/42 PASS ===
+[WebServer] (node:136541) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:136586) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 42 tests using 1 worker
+
+(node:136598) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:136598) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [serial-layout] › e2e/layout-audit.spec.ts:4:1 › layout guard finds injected overlaps, clipping, collapsed and missing controls (153ms)
+  ✓   2 [serial-layout] › e2e/layout-audit.spec.ts:24:1 › layout guard catches clipping by an inner container and tolerates intentional page scrolling (77ms)
+  ✓   3 [serial-layout] › e2e/layout.spec.ts:11:5 › 3axis-xyz desktop: control panels stay usable across machine states (2.8s)
+  ✓   4 [serial-layout] › e2e/layout.spec.ts:11:5 › 3axis-xyz compact: control panels stay usable across machine states (2.7s)
+  ✓   5 [serial-layout] › e2e/layout.spec.ts:11:5 › 3axis-xyz touch-landscape: control panels stay usable across machine states (3.1s)
+  ✓   6 [serial-layout] › e2e/layout.spec.ts:11:5 › 3axis-xyz touch-portrait: control panels stay usable across machine states (2.9s)
+  ✓   7 [serial-layout] › e2e/layout.spec.ts:11:5 › 5axis-xyzac desktop: control panels stay usable across machine states (3.4s)
+  ✓   8 [serial-layout] › e2e/layout.spec.ts:11:5 › 5axis-xyzac compact: control panels stay usable across machine states (3.3s)
+  ✓   9 [serial-layout] › e2e/layout.spec.ts:11:5 › 5axis-xyzac touch-landscape: control panels stay usable across machine states (3.3s)
+  ✓  10 [serial-layout] › e2e/layout.spec.ts:11:5 › 5axis-xyzac touch-portrait: control panels stay usable across machine states (3.2s)
+  ✓  11 [serial-layout] › e2e/layout.spec.ts:11:5 › 6axis-twp desktop: control panels stay usable across machine states (4.0s)
+  ✓  12 [serial-layout] › e2e/layout.spec.ts:11:5 › 6axis-twp compact: control panels stay usable across machine states (3.9s)
+  ✓  13 [serial-layout] › e2e/layout.spec.ts:11:5 › 6axis-twp touch-landscape: control panels stay usable across machine states (3.9s)
+  ✓  14 [serial-layout] › e2e/layout.spec.ts:11:5 › 6axis-twp touch-portrait: control panels stay usable across machine states (4.1s)
+  ✓  15 [serial-layout] › e2e/layout.spec.ts:42:1 › layout guard detects the original shrinking disabled-button regression (1.8s)
+  ✓  16 [serial-layout] › e2e/layout.spec.ts:56:3 › desktop: program browser shows its root and uses the available panel (2.2s)
+  ✓  17 [serial-layout] › e2e/layout.spec.ts:120:3 › desktop: tools reuse the program file browser with a full tool table (2.4s)
+  ✓  18 [serial-layout] › e2e/layout.spec.ts:56:3 › compact: program browser shows its root and uses the available panel (2.2s)
+  ✓  19 [serial-layout] › e2e/layout.spec.ts:120:3 › compact: tools reuse the program file browser with a full tool table (2.3s)
+  ✓  20 [serial-layout] › e2e/layout.spec.ts:56:3 › touch-landscape: program browser shows its root and uses the available panel (2.3s)
+  ✓  21 [serial-layout] › e2e/layout.spec.ts:120:3 › touch-landscape: tools reuse the program file browser with a full tool table (2.6s)
+  ✓  22 [serial-layout] › e2e/layout.spec.ts:56:3 › touch-portrait: program browser shows its root and uses the available panel (2.1s)
+  ✓  23 [serial-layout] › e2e/layout.spec.ts:120:3 › touch-portrait: tools reuse the program file browser with a full tool table (2.4s)
+  ✓  24 [serial-layout] › e2e/layout.spec.ts:206:3 › desktop: strip states keep the frame and the pinned controls invariant (4.2s)
+  ✓  25 [serial-layout] › e2e/layout.spec.ts:206:3 › compact: strip states keep the frame and the pinned controls invariant (4.2s)
+  ✓  26 [serial-layout] › e2e/layout.spec.ts:206:3 › touch-landscape: strip states keep the frame and the pinned controls invariant (4.3s)
+  ✓  27 [serial-layout] › e2e/layout.spec.ts:206:3 › touch-portrait: strip states keep the frame and the pinned controls invariant (4.3s)
+  ✓  28 [serial-layout] › e2e/layout.spec.ts:234:1 › negative control (landscape): an auto scrollbar band lets the keypad change the strip height (2.4s)
+  ✓  29 [serial-layout] › e2e/layout.spec.ts:254:1 › negative control (portrait): without the always-present band the keypad re-flows the pinned controls (2.5s)
+(node:137419) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:137419) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  30 [serial-visual] › e2e/visual.spec.ts:23:5 › 3axis-xyz desktop: Jog and Setup reference images (2.9s)
+  ✓  31 [serial-visual] › e2e/visual.spec.ts:23:5 › 3axis-xyz touch-portrait: Jog and Setup reference images (2.9s)
+  ✓  32 [serial-visual] › e2e/visual.spec.ts:23:5 › 5axis-xyzac desktop: Jog and Setup reference images (3.0s)
+  ✓  33 [serial-visual] › e2e/visual.spec.ts:23:5 › 5axis-xyzac touch-portrait: Jog and Setup reference images (3.0s)
+  ✓  34 [serial-visual] › e2e/visual.spec.ts:23:5 › 6axis-twp desktop: Jog and Setup reference images (3.6s)
+  ✓  35 [serial-visual] › e2e/visual.spec.ts:23:5 › 6axis-twp touch-portrait: Jog and Setup reference images (3.6s)
+  ✓  36 [serial-visual] › e2e/visual.spec.ts:60:3 › desktop: tool edit dialog reference image (2.7s)
+  ✓  37 [serial-visual] › e2e/visual.spec.ts:60:3 › compact: tool edit dialog reference image (2.5s)
+  ✓  38 [serial-visual] › e2e/visual.spec.ts:60:3 › touch-landscape: tool edit dialog reference image (2.4s)
+  ✓  39 [serial-visual] › e2e/visual.spec.ts:60:3 › touch-portrait: tool edit dialog reference image (2.3s)
+(node:137818) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:137818) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  40 [serial-viewer] › e2e/viewer.spec.ts:49:1 › a clean rebuild frees AND re-applies the loaded program's toolpath geometry (4.3s)
+  ✓  41 [serial-viewer] › e2e/viewer.spec.ts:121:1 › studio model keeps a themed, persistent ground grid through motion and rebuilds (4.4s)
+  ✓  42 [serial-viewer] › e2e/viewer.spec.ts:249:1 › default framing keeps the eye outside a bed/column model for every direction, preset, projection and reset (9.1s)
+
+  42 passed (2.2m)

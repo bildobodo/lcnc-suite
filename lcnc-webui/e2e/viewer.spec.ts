@@ -215,3 +215,111 @@ test("studio model keeps a themed, persistent ground grid through motion and reb
   await page.screenshot({ path: testInfo.outputPath("viewer-dark.png") });
   expect(errors).toEqual([]);
 });
+
+// ── Default framing outside the model (WP5, review C) ──
+// A bed/column model far larger than the travel box (the XYZAC class: 0.4 m
+// travel inside a 2.2 m machine). The default frame — build, presets, every
+// ViewCube direction, both projections and Reset's endpoint — must put the
+// eye OUTSIDE every non-stock part at max(travel rule, model sphere + near)
+// from the target. Dolly/pan/tween paths are deliberately not certified.
+const CUBE_DIRS: number[][] = [];
+for (const x of [-1, 0, 1]) for (const y of [-1, 0, 1]) for (const z of [-1, 0, 1]) if (x || y || z) CUBE_DIRS.push([x, y, z]);
+
+type PartBox = { id: string; min: number[]; max: number[] };
+function insidePart(pos: number[], parts: PartBox[], margin = 1): string | null {
+  for (const p of parts) {
+    if (pos[0]! > p.min[0]! - margin && pos[0]! < p.max[0]! + margin &&
+        pos[1]! > p.min[1]! - margin && pos[1]! < p.max[1]! + margin &&
+        pos[2]! > p.min[2]! - margin && pos[2]! < p.max[2]! + margin) return p.id;
+  }
+  return null;
+}
+const dist = (a: number[], b: number[]) => Math.hypot(a[0]! - b[0]!, a[1]! - b[1]!, a[2]! - b[2]!);
+const camera = (page: Page) => page.evaluate(() => window.__viewerDiag?.getCamera?.() ?? null);
+async function settledCamera(page: Page) {
+  let last = "";
+  await expect.poll(async () => {
+    const c = await camera(page);
+    const key = JSON.stringify(c?.position);
+    const stable = key === last; last = key; return stable;
+  }, { timeout: 5000, intervals: [120] }).toBe(true);
+  return (await camera(page))!;
+}
+
+test("default framing keeps the eye outside a bed/column model for every direction, preset, projection and reset", async ({ page }) => {
+  test.setTimeout(60_000);
+  const bed = new STLExporter().parse(new THREE.Mesh(new THREE.BoxGeometry(2000, 2400, 200)), { binary: true });
+  const column = new STLExporter().parse(new THREE.Mesh(new THREE.BoxGeometry(400, 400, 1800)), { binary: true });
+  await page.route("**/machine/bed.stl", route => route.fulfill({ contentType: "application/octet-stream", body: Buffer.from(bed.buffer) }));
+  await page.route("**/machine/column.stl", route => route.fulfill({ contentType: "application/octet-stream", body: Buffer.from(column.buffer) }));
+  await page.goto(MOCK);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready)).toBe(true);
+  const init = {
+    units: "mm", stl_base_url: "/machine/", axes: ["X", "Y", "Z"],
+    parts: [
+      { id: "bed", file: "bed.stl", group: "root", translate: [0, 400, -300], color: [0.4, 0.4, 0.4] },
+      { id: "column", file: "column.stl", group: "root", translate: [0, 1400, 500], color: [0.5, 0.5, 0.5] },
+    ],
+    groups: [{ id: "head", parent: "root" }],
+    kinematics: [],
+    workGroup: "root", toolGroup: "head",
+    machine_bounds: { origin: [-200, -70, -30], size: [400, 140, 130] },
+  };
+  await ctl({ op: "setViewerInit", data: { ...init, _rev: 901 } });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getPartBounds?.().length ?? 0)).toBe(2);
+  await ctl({ op: "status_delta", data: { joint_pos: [0, 0, 0] } });   // the first-status reframe
+  const parts = (await page.evaluate(() => window.__viewerDiag!.getPartBounds!()))!;
+  const frameBox = (await page.evaluate(() => window.__viewerDiag!.getFrameBox!()))!;
+  const cam0 = await settledCamera(page);
+  const centre = [0, 1, 2].map(i => (frameBox.min[i]! + frameBox.max[i]!) / 2);
+  expect(dist(cam0.target, centre)).toBeLessThan(1);
+  // Model sphere about the target from the parts' corners.
+  let R = 0;
+  for (const p of parts) for (let i = 0; i < 8; i++) {
+    const c = [i & 1 ? p.max[0]! : p.min[0]!, i & 2 ? p.max[1]! : p.min[1]!, i & 4 ? p.max[2]! : p.min[2]!];
+    R = Math.max(R, dist(c, cam0.target));
+  }
+  const maxDim = Math.max(...[0, 1, 2].map(i => frameBox.max[i]! - frameBox.min[i]!));
+  const expected = Math.max(2.345 * maxDim, 1.05 * R + cam0.near);
+  const d0 = dist(cam0.position, cam0.target);
+  expect(Math.abs(d0 - expected), `default distance ${d0} vs ${expected}`).toBeLessThan(1.5);
+  expect(insidePart(cam0.position, parts)).toBeNull();
+  expect(cam0.minDistance).toBeCloseTo(cam0.near * 20, 6);
+
+  // 26 ViewCube directions at the framing distance.
+  for (const dir of CUBE_DIRS) {
+    await page.evaluate(d => window.__viewerDiag!.setViewDirection!(d), dir);
+    const c = (await camera(page))!;
+    expect(insidePart(c.position, parts), `direction ${dir.join(",")} at ${c.position.map(v => v.toFixed(0))}`).toBeNull();
+    expect(Math.abs(dist(c.position, c.target) - d0)).toBeLessThan(1.5);
+  }
+  // Presets (animated) and Reset's endpoint.
+  for (const preset of ["top", "bottom", "front", "back", "left", "right", "iso", "dimetric", "reset"]) {
+    await page.evaluate(p => window.__viewerDiag!.setView!(p), preset);
+    const c = await settledCamera(page);
+    expect(insidePart(c.position, parts), `preset ${preset}`).toBeNull();
+  }
+  const afterReset = await settledCamera(page);
+  expect(Math.abs(dist(afterReset.position, afterReset.target) - expected)).toBeLessThan(1.5);
+  // The OTHER projection (the settings default is parallel, so the first
+  // switch lands on perspective): same pose, still outside; Reset lands
+  // there again; then back to the default.
+  const startOrtho = cam0.ortho;
+  await page.evaluate(() => window.__viewerDiag!.switchProjection!());
+  expect((await camera(page))!.ortho).toBe(!startOrtho);
+  await page.evaluate(() => window.__viewerDiag!.setView!("reset"));
+  const other = await settledCamera(page);
+  expect(insidePart(other.position, parts)).toBeNull();
+  expect(Math.abs(dist(other.position, other.target) - expected)).toBeLessThan(1.5);
+  await page.evaluate(() => window.__viewerDiag!.switchProjection!());
+  expect((await camera(page))!.ortho).toBe(startOrtho);
+
+  // Negative control: the OLD travel-box distance from diagonally below
+  // puts the eye inside the bed — the fixture discriminates.
+  const oldDistance = 2.345 * maxDim;
+  await page.evaluate(({ dir, d }) => window.__viewerDiag!.setViewDirection!(dir, d), { dir: [1, -1, -0.4], d: oldDistance });
+  const inside = (await camera(page))!;
+  expect(insidePart(inside.position, parts)).toBe("bed");
+  await page.evaluate(() => window.__viewerDiag!.setView!("reset"));
+  expect(insidePart((await settledCamera(page)).position, parts)).toBeNull();
+});

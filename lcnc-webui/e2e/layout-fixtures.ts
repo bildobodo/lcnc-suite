@@ -97,6 +97,127 @@ export async function openLayout(page: Page, profile: Profile, viewport: LayoutV
   await page.evaluate(() => document.fonts.ready);
 }
 
+// ── Strip states (WP4, UI-08) ──
+// Everything the bottom strip can SHOW instead of, or next to, its six
+// sections — and every banner/bar that changes the rows above it. The
+// layout gate enters each state from the homed baseline and requires the
+// frame (strip / viewer / content, outer AND inner sizes) and the
+// always-visible reference controls to stay put.
+export type StripState = 'keypad-setup' | 'keypad-panel' | 'gcode-keypad' | 'macro-bar'
+  | 'banner-estop' | 'banner-unhomed' | 'banner-message' | 'kins-chip';
+export const STRIP_STATES: StripState[] = ['keypad-setup', 'keypad-panel', 'gcode-keypad', 'macro-bar',
+  'banner-estop', 'banner-unhomed', 'banner-message', 'kins-chip'];
+
+/** Reference controls that stay visible in a state: the pinned Safety
+ * section always, plus the keypad's OWNER section (it keeps its place
+ * right of Safety while the others hide). */
+export function stripStateRefs(state: StripState): string[] {
+  if (state === 'keypad-setup') return [PANELS.safety, PANELS.setup];
+  return [PANELS.safety];
+}
+
+/** Frame dimensions a state may legitimately change: a macro bar takes a
+ * row above the strip in landscape (viewer and content lose height, the
+ * strip moves up) and a column beside it in portrait (viewer and content
+ * lose width and move right). Nothing else, ever. */
+export function stripStateExempt(state: StripState, portrait = false): string[] {
+  if (state !== 'macro-bar') return [];
+  return portrait
+    ? ['viewer.x', 'viewer.width', 'viewer.clientWidth', 'content.x', 'content.width', 'content.clientWidth']
+    : ['viewer.height', 'viewer.clientHeight', 'content.height', 'content.clientHeight', 'strip.y'];
+}
+
+const MACRO_FIXTURE = { macros: [{ id: 'm1', name: 'Face Top', command: 'G0 Z5', params: [] }] };
+
+async function keypadCancel(page: Page) {
+  const strip = page.locator('.nkStrip');
+  if (await strip.count()) {
+    await strip.getByRole('button', { name: 'Discard', exact: true }).click();
+    await expect(strip).toHaveCount(0);
+  }
+}
+
+export async function enterStripState(page: Page, profile: Profile, state: StripState) {
+  switch (state) {
+    case 'keypad-setup':
+      await page.locator('input.setupInput').first().click();
+      await expect(page.locator('.nkStrip')).toBeVisible();
+      break;
+    case 'keypad-panel':
+      await page.getByRole('button', { name: 'Tools', exact: true }).click();
+      await page.getByRole('button', { name: '+ Add', exact: true }).click();
+      await expect(page.locator('.editDialog')).toBeVisible();
+      await page.locator('.editDialog input.inputField').first().click();
+      await expect(page.locator('.nkStrip')).toBeVisible();
+      break;
+    case 'gcode-keypad':
+      await page.getByRole('button', { name: 'MDI', exact: true }).click();
+      await page.locator('.mdiInput').click();
+      await expect(page.locator('.tkStrip')).toBeVisible();
+      break;
+    case 'macro-bar':
+      await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { macros: MACRO_FIXTURE } } });
+      await expect(page.locator('.macroBar')).toBeVisible();
+      await expect(page.locator('.macroBar').getByRole('button', { name: 'Face Top', exact: true })).toBeVisible();
+      break;
+    case 'banner-estop':
+      await setLayoutState(page, profile, 'estop');
+      break;
+    case 'banner-unhomed':
+      await setLayoutState(page, profile, 'unhomed');
+      break;
+    case 'banner-message':
+      await ctl({ op: 'raw', frame: { type: 'reply', cmd: 'layout-probe', ok: false, error: 'Layout probe message — a long operator message that the banner must fit without moving its actions' } });
+      await expect(page.locator('.statusBanner')).toContainText('Layout probe message');
+      break;
+    case 'kins-chip':
+      await ctl({ op: 'setKins', kins: { module: 'xyzac-trt-kins', type: 'xyzac-trt', identity_first: true, params: {} } });
+      await ctl({ op: 'status_delta', data: { kins_type: 1 } });
+      await expect(page.locator('.kinsChip')).toBeVisible();
+      break;
+  }
+  await settleLayout(page);
+}
+
+export async function leaveStripState(page: Page, profile: Profile, state: StripState) {
+  switch (state) {
+    case 'keypad-setup':
+      await keypadCancel(page);
+      break;
+    case 'keypad-panel':
+      await keypadCancel(page);
+      await page.locator('.editDialog').getByRole('button', { name: 'Cancel', exact: true }).click();
+      await expect(page.locator('.editDialog')).toHaveCount(0);
+      await page.getByRole('button', { name: 'Program', exact: true }).click();
+      break;
+    case 'gcode-keypad':
+      // A pointerdown outside the MDI tab and the keyboard ends the session.
+      await page.locator('header.hdr').dispatchEvent('pointerdown', { button: 0 });
+      await expect(page.locator('.tkStrip')).toHaveCount(0);
+      await page.getByRole('button', { name: 'Program', exact: true }).click();
+      break;
+    case 'macro-bar':
+      await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { macros: { macros: [] } } } });
+      await expect(page.locator('.macroBar')).toHaveCount(0);
+      break;
+    case 'banner-estop':
+    case 'banner-unhomed':
+      await setLayoutState(page, profile, 'homed');
+      break;
+    case 'banner-message':
+      break;   // expires on its own (5 s); the next state does not depend on it
+    case 'kins-chip':
+      await ctl({ op: 'setKins', kins: profile.kins });
+      await ctl({ op: 'status_delta', data: { kins_type: profile.kins ? 0 : null } });
+      // The chip is a FIXED slot on switchable-kins machines (WP6, P2): it
+      // stays rendered — "MACHINE" under identity kinematics — so the WCS
+      // radios never shift; leaving the mode means it no longer reads TCP.
+      await expect(page.locator('.kinsChip')).not.toHaveText(/TCP/);
+      break;
+  }
+  await settleLayout(page);
+}
+
 export async function settleLayout(page: Page) {
   // Render after WebSocket delivery + Vue update. Assertions on the state
   // marker in each spec establish that delivery happened before these frames.

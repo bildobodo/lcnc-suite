@@ -12,6 +12,14 @@ export function fmtCoord(val: number | null | undefined, axis?: string): string 
   return val.toFixed(3);
 }
 
+/** Coordinate as an editable VALUE — same precision as fmtCoord (3 linear,
+ *  2 rotary) but no unit suffix and "" for null, so a keypad or input
+ *  receives a clean numeric string. */
+export function fmtAxisValue(val: number | null | undefined, axis: string): string {
+  if (val == null || !Number.isFinite(val)) return "";
+  return isRotaryAxis(axis) ? val.toFixed(2) : val.toFixed(3);
+}
+
 /** Fixed-decimal number — configurable precision, "---" for null */
 export function fmtNum(val: number | null | undefined, decimals = 4): string {
   if (val == null) return "---";

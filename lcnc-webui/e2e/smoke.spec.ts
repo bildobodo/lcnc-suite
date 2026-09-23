@@ -23,5 +23,5 @@ test("Arm control stays reachable in the exempt slot", async ({ page }) => {
   await page.goto("/");
   // SafetyStrip (Arm / E-Stop) lives in the Gate's #exempt slot, so it must be
   // present and NOT inside the disabled fieldset.
-  await expect(page.getByText("Arm", { exact: true }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Arm", exact: true })).toBeVisible();
 });

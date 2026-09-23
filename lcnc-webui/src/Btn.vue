@@ -174,6 +174,20 @@ html.touch-device .b.muted:active:not(:disabled) { opacity: 1; }
 @keyframes hold-fill {
   to { transform: scaleX(1); }
 }
+/* Hold affordance BEFORE the first press (UX-12): a thin track along the
+   bottom edge of every hold-to-fire button — the fill above runs along it,
+   so the operator sees the contract without a failed tap first. Inside
+   the button's box: no layout cost. */
+.b.holdable::before {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 2px;
+  border-radius: inherit;
+  background: var(--hl-active);
+  opacity: var(--opacity-subtle);
+  pointer-events: none;
+}
 
 /* ---- Block ---- */
 .block { width: 100%; }

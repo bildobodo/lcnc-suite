@@ -22,7 +22,10 @@ export interface AxisEntry {
   kind: "linear" | "rotary";
 }
 
-export const PRIMARY_LETTERS: ReadonlySet<string> = new Set(["X", "Y", "Z"]);
+/** Axis set assumed before `viewer_init` arrives (disconnected UI). Every
+ *  pre-init fallback reads this — never a local ["X","Y","Z"] literal. */
+export const DEFAULT_AXES: readonly string[] = ["X", "Y", "Z"];
+export const PRIMARY_LETTERS: ReadonlySet<string> = new Set(DEFAULT_AXES);
 export const ROTARY_LETTERS: ReadonlySet<string> = new Set(["A", "B", "C"]);
 export const UVW_LETTERS: ReadonlySet<string> = new Set(["U", "V", "W"]);
 

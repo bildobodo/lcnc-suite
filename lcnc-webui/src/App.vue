@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
 import type { CollisionLineMark } from "./viewer/collision";
-import { applyClientOverlay, applyClientOverlayReasons, PERMISSIONS_KEY, PERMISSION_REASONS_KEY, FIRE_KEY, type Permissions, type PermissionReasons } from "./permissions";
+import { applyClientOverlay, applyClientOverlayReasons, PERMISSIONS_KEY, OWNER_PERMISSIONS_KEY, PERMISSION_REASONS_KEY, FIRE_KEY, type Permissions, type PermissionReasons } from "./permissions";
 import { simMode } from "./simMode";
 import { twpPoseOriented, twpPoseStale, twpDatumStale, fixtureOffDatum, stampAForFixture, poseAbcOf } from "./twpPose";
 import { semanticKinsMode } from "./viewer/kins";
@@ -19,8 +19,7 @@ import SafetyStrip from "./SafetyStrip.vue";
 import JogStrip from "./JogStrip.vue";
 import StatsDonut from "./StatsDonut.vue";
 import SetupStrip from "./SetupStrip.vue";
-import GcodeKeypadStrip from "./GcodeKeypadStrip.vue";
-import { isTouchDevice } from "./touchDetect";
+import TextKeypadStrip from "./TextKeypadStrip.vue";
 import OverridesStrip from "./OverridesStrip.vue";
 import SpindleStrip from "./SpindleStrip.vue";
 import ToolStrip from "./ToolStrip.vue";
@@ -32,13 +31,15 @@ import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import { highlightGcode } from "./gcodeHighlight";
-import { fmtElapsed, fmtDuration, fmtDist, fmtSize, fmtProgressTimes } from "./format";
+import { fmtElapsed, fmtDuration, fmtDist, fmtSize, fmtProgressTimes, fmtNum } from "./format";
 import type { GcodeStats } from "./GcodePanel.vue";
 import type { LimitViolation } from "./ws/bulkData";
-import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, ClipboardCopy, Expand, Shrink } from "lucide-vue-next";
+import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, ClipboardCopy, Expand, Shrink, X } from "lucide-vue-next";
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import NumberKeypadStrip from "./NumberKeypadStrip.vue";
+import FloatingOverlays from "./FloatingOverlays.vue";
 import { keypadState } from "./useNumberKeypad";
+import { activeKind, openTextSession, closeTextSessionIf, lockTextSessionIf, EDITOR_OWNER, type TextTarget, returnFocusTo } from "./inputSession";
 import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, saveGamepadDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type Layer, type TrackMode, type Projection } from "./defaults";
 import { buildToolsetterVarMap } from "./toolsetterVars";
 import { useGamepad } from "./useGamepad";
@@ -48,6 +49,8 @@ import { useMdiHistory } from "./useMdiHistory";
 import { useTouchoffMath } from "./useTouchoffMath";
 import { useMacros } from "./useMacros";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
+import { modalOpen, registerModal } from "./modalRegistry";
+import { g5xLabel as fixtureLabel } from "./wcs";
 import { forceStopAllJogs, initJogPointerSafety, destroyJogPointerSafety, activeJogKeys } from "./useJogPointers";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
@@ -323,29 +326,29 @@ const {
   // MDI is a state-changing command: route it through the ONE client path so
   // it carries the permission re-check and the busy latch, like every other
   // `mdi` call site (issue #31 — it was raw here and gated at every other).
-} = useMdiHistory({ fire: (c) => { fire(c, 'ready'); } });
+} = useMdiHistory({
+  fire: (c) => { fire(c, 'ready'); },
+  // The send disables the line for the busy latch and drops its focus: the
+  // guarded return keeps the shortcut map closed until the line holds focus
+  // again (or the operator moved on) — the next keystroke is MDI, never a
+  // shortcut (review round 4).
+  afterSend: () => returnFocusTo(_mdiInputEl()),
+});
 
-// ── G-code keypad strip (touch text entry for MDI + G-code editor) ──
-// Shown in the bottom strip in place of Jog/Overrides/Spindle/Tool while
-// the MDI field is focused or the editor is open; Safety and Setup stay.
-// Keypad keys fire on pointerdown.prevent, so pressing them never blurs
-// the MDI input. MDI focus wins over an open editor (last interaction).
-const mdiKeypadActive = ref(false);
+// ── Input helpers in the bottom strip (WP8, UI-15) ──
+// ONE session (inputSession.ts): the number keypad OR the text/code
+// keyboard, owned by one target. The strip is derived from it alone —
+// `mdiKeypadActive` / `gcodeEditActive` / `keypadState.open` used to be
+// three competing truths (an open number keypad hid the code keyboard even
+// with an active text target). The editor still reports `editingChange` for
+// the keyboard-shortcut guard (Cycle Start never runs an edited buffer).
 const gcodeEditActive = ref(false);
-// Editor mode requires the Program tab to be VISIBLE — an editor left open
-// in a background tab must not hold the strip hostage (operator-reported:
-// "setup does not come back"). It re-appears when the tab does.
-const gcodeKeypadMode = computed<"mdi" | "editor" | null>(() =>
-  mdiKeypadActive.value ? "mdi"
-  : gcodeEditActive.value && activeTab.value === "gcode" ? "editor"
-  : null
-);
 
-// Number keypad swap-in: like the G-code keypad, it replaces the strip
-// sections — except the section that owns the trigger field (identified by
-// the data-strip attribute on each strip component), which stays visible so
-// the operator keeps context and can retarget between its fields. Sidepanel/
-// dialog triggers have no owning section → only SafetyStrip + keypad remain.
+// Number keypad swap-in: it replaces the strip sections except the section
+// that owns the trigger field (data-strip on each strip component), which
+// stays visible so the operator keeps context and can retarget between its
+// fields. Sidepanel/dialog triggers have no owning section → only
+// SafetyStrip + keypad remain. The text keyboard replaces every section.
 const numKeypadOwner = computed(() =>
   keypadState.open
     ? keypadState.trigger?.closest("[data-strip]")?.getAttribute("data-strip") ?? null
@@ -355,64 +358,68 @@ const numKeypadOwner = computed(() =>
 // section hidden, it lands directly right of the owner (or of SafetyStrip)
 // without any reordering logic.
 function stripVis(section: string): boolean {
-  if (gcodeKeypadMode.value) return false;
-  if (!keypadState.open) return true;
-  return numKeypadOwner.value === section;
+  const k = activeKind.value;
+  if (k === "code" || k === "text") return false;
+  if (k === "number") return numKeypadOwner.value === section;
+  return true;
 }
 
-// MDI keypad dismissal: blur alone can't close it — tapping empty space
-// doesn't move focus off the input (only focusable targets do), so a
-// document-level tap anywhere outside the MDI tab and the keypad ends the
-// session explicitly.
-function onDocPointerDownDismissKeypad(e: PointerEvent) {
-  if (!mdiKeypadActive.value) return;
-  const t = e.target as HTMLElement | null;
-  if (t?.closest(".gkStrip, .mdiTab")) return;
-  mdiKeypadActive.value = false;
-  _mdiInputEl()?.blur();
-}
 const mdiInputRef = ref<any>(null);
-const gcodePanelRef = ref<any>(null);
 
 function _mdiInputEl(): HTMLInputElement | null {
-  const el = mdiInputRef.value?.$el;
+  // MachineInput exposes its <input> (its single root, so `$el` is the
+  // same element — the accessor is the explicit API).
+  const el = mdiInputRef.value?.inputElement?.() ?? mdiInputRef.value?.$el;
   if (el instanceof HTMLInputElement) return el;
   return el?.querySelector?.("input") ?? null;
 }
 
-function gkInsert(text: string) {
-  if (gcodeKeypadMode.value === "editor") { gcodePanelRef.value?.keypadInsert(text); return; }
-  const el = _mdiInputEl();
-  const cur = mdiText.value;
-  const start = el?.selectionStart ?? cur.length;
-  const end = el?.selectionEnd ?? cur.length;
-  mdiText.value = cur.slice(0, start) + text + cur.slice(end);
-  nextTick(() => {
-    const p = start + text.length;
-    el?.setSelectionRange(p, p);
-  });
+// The MDI line as a CODE target: Enter = Send (the gated MDI path), Clr
+// clears the line; the physical keyboard keeps working in parallel.
+const MDI_OWNER = "mdi-input";
+function mdiTarget(): TextTarget {
+  return {
+    insert(text) {
+      const el = _mdiInputEl();
+      const cur = mdiText.value;
+      const start = el?.selectionStart ?? cur.length;
+      const end = el?.selectionEnd ?? cur.length;
+      mdiText.value = cur.slice(0, start) + text + cur.slice(end);
+      nextTick(() => { const p = start + text.length; el?.setSelectionRange(p, p); });
+    },
+    backspace() {
+      const el = _mdiInputEl();
+      const cur = mdiText.value;
+      let start = el?.selectionStart ?? cur.length;
+      const end = el?.selectionEnd ?? cur.length;
+      if (start === end && start > 0) start -= 1;
+      if (start === end) return;
+      mdiText.value = cur.slice(0, start) + cur.slice(end);
+      nextTick(() => el?.setSelectionRange(start, start));
+    },
+    enter() { handleMdiSend(); },
+    clear() { mdiText.value = ""; },
+    moveCursor(d) {
+      const el = _mdiInputEl();
+      if (!el) return;
+      const p = Math.max(0, Math.min(mdiText.value.length, (el.selectionStart ?? 0) + d));
+      el.setSelectionRange(p, p);
+    },
+    canConfirm: () => !!permissions.value.ready,
+    isVisible: () => { const el = _mdiInputEl(); return !!el && el.offsetParent !== null; },
+    focusEl: _mdiInputEl,
+  };
 }
-
-function gkBackspace() {
-  if (gcodeKeypadMode.value === "editor") { gcodePanelRef.value?.keypadBackspace(); return; }
-  const el = _mdiInputEl();
-  const cur = mdiText.value;
-  let start = el?.selectionStart ?? cur.length;
-  const end = el?.selectionEnd ?? cur.length;
-  if (start === end && start > 0) start -= 1;
-  if (start === end) return;
-  mdiText.value = cur.slice(0, start) + cur.slice(end);
-  nextTick(() => el?.setSelectionRange(start, start));
+function openMdiSession() {
+  if (!permissions.value.ready) return;
+  openTextSession({ ownerId: MDI_OWNER, kind: "code", context: "MDI", target: mdiTarget(), enterLabel: "Send" });
 }
-
-function gkEnter() {
-  if (gcodeKeypadMode.value === "editor") { gcodePanelRef.value?.keypadInsert("\n"); return; }
-  handleMdiSend();
-}
-
-function gkClear() {
-  if (gcodeKeypadMode.value === "mdi") mdiText.value = "";
-}
+// Hidden-but-mounted owners (tab switch): the editor's and the MDI line's
+// sessions LOCK while their tab is not visible — helper hidden, draft kept.
+watch(activeTab, (tab) => {
+  lockTextSessionIf(EDITOR_OWNER, tab !== "gcode");
+  lockTextSessionIf(MDI_OWNER, tab !== "mdi");
+});
 
 // Viewer state (initialized from saved defaults, persisted on every change)
 const viewerLayers = reactive<Record<Layer, boolean>>({ ..._vd.layers });
@@ -574,6 +581,25 @@ const permissions = computed(() => {
   return next;
 });
 provide(PERMISSIONS_KEY, permissions);
+// The same gates WITHOUT the busy debounce — what an input OWNER's context
+// (MachineInput, OffsetPanel cells) lives by: a real backend revocation ends
+// it even inside the latch, the latch alone never does (review round 3,
+// UI-I05). Memoized like `permissions`.
+let _prevOwnerPerms: Permissions | null = null;
+const ownerPermissions = computed(() => {
+  const next = applyClientOverlay(st.value.permissions, armed.value, false, simMode.value);
+  const keys = Object.keys(next) as (keyof typeof next)[];
+  if (_prevOwnerPerms && keys.every(k => _prevOwnerPerms![k] === next[k])) return _prevOwnerPerms;
+  _prevOwnerPerms = next;
+  return next;
+});
+provide(OWNER_PERMISSIONS_KEY, ownerPermissions);
+// MachineBtn shows "Busy — try again" at the control when this latch would
+// drop its click (fire()); read-only for children.
+provide("busy", busy);
+// Gate closes → the MDI session ends (its value could not be sent anyway).
+// (Declared after `permissions`: the watch getter runs at setup time.)
+watch(() => permissions.value.ready, (ok) => { if (!ok) closeTextSessionIf(MDI_OWNER, "MDI unavailable"); });
 // Why each closed gate is closed (U-06): the backend's reasons under the
 // client-local overlay's own — what a dimmed control shows on hover and
 // says on tap (MachineBtn), and what fire() reports when it drops a send.
@@ -708,17 +734,8 @@ _clockHandle = setInterval(_updateClock, 1000);
 onUnmounted(() => { if (_clockHandle) clearInterval(_clockHandle); });
 
 /** ---------- display helpers for machine states ---------- */
-// G5x work coordinate system (G54, G55, etc.)
-const g5xLabel = computed(() => {
-  const idx = st.value.g5x_index;
-  if (idx == null) return "-";
-  // LinuxCNC g5x_index is 1-based: 1=G54, 2=G55, 3=G56, 4=G57, 5=G58, 6=G59, 7=G59.1, 8=G59.2, 9=G59.3
-  if (idx >= 1 && idx <= 6) return `G${53 + idx}`;
-  if (idx === 7) return "G59.1";
-  if (idx === 8) return "G59.2";
-  if (idx === 9) return "G59.3";
-  return `G5x[${idx}]`;
-});
+// G5x work coordinate system (G54, G55, etc.) — one source: wcs.ts.
+const g5xLabel = computed(() => fixtureLabel(st.value.g5x_index));
 
 // Override values (raw 0.0-2.0 scale). Returns null until status delivers a
 // real value — never synthesise a default. The watchers below guard with
@@ -762,9 +779,22 @@ const activeMcodes = computed(() => {
 // Tool change dialog (global — tool changes can happen from any context)
 const toolChangeRequested = computed(() => !!st.value.tool_change_requested);
 const toolChangeTool = computed(() => st.value.tool_change_tool ?? null);
-// Discrete confirm action — route through fire() so an accidental double-click
-// is debounced (issue #31). No gate: it happens mid tool-change, not at idle.
-function confirmToolChange() { fire({ cmd: "confirm_tool_change" }); }
+// Confirm exactly once per request (UI-05): `confirmSent` holds the req_id
+// of the confirm that actually went out (fire() returns null when nothing
+// was sent — never a pending). It clears when the request ends, when the
+// gateway refuses it (retry allowed) and on disconnect. Gate `armed`: the
+// change happens mid-program, never at idle/ready.
+const confirmSent = ref<string | null>(null);
+function confirmToolChange() {
+  if (!toolChangeRequested.value || confirmSent.value) return;
+  const id = fire({ cmd: "confirm_tool_change" }, 'armed');
+  if (id) confirmSent.value = id;
+}
+watch(toolChangeRequested, (req) => { if (!req) confirmSent.value = null; });
+watch(lastReply, (r) => {
+  if (r && confirmSent.value && r.req_id === confirmSent.value && r.ok === false) confirmSent.value = null;
+});
+watch(connected, (c) => { if (!c) confirmSent.value = null; });
 
 const feedSlider = ref(100);
 const spindleSlider = ref(100);
@@ -899,6 +929,7 @@ const {
   gcodeRefInitialSearch,
   messagesDialogOpen,
   openDialog,
+  closeSettings,
   openSettingsTab,
   openGcodeRef,
   showShutdownConfirm,
@@ -907,7 +938,24 @@ const {
   requestCompToggle,
   confirmCompToggle,
   cancelCompToggle,
-} = useDialogState({ markMessagesRead, send });
+} = useDialogState({ markMessagesRead, send, fire, guardSettingsClose: p => guardSettingsClose(p) });
+
+// Settings closes over a draft only after an explicit Discard (UI-K16): the
+// macro editor and the gamepad wizard are local to the panel and were lost
+// by every close path. Settings themselves save automatically — no ask.
+const settingsPanelRef = ref<{ unsavedDraft: () => string | null } | null>(null);
+const settingsDiscard = ref<{ what: string; proceed: () => void } | null>(null);
+function guardSettingsClose(proceed: () => void): boolean {
+  const what = settingsPanelRef.value?.unsavedDraft() ?? null;
+  if (!what) return false;
+  settingsDiscard.value = { what, proceed };
+  return true;
+}
+function confirmSettingsDiscard() {
+  const pending = settingsDiscard.value;
+  settingsDiscard.value = null;
+  pending?.proceed();
+}
 
 // Macro state + execution. See useMacros.ts. The provide() call below has
 // to run here in App.vue's setup so SettingsPanel (the consumer) sees it
@@ -925,7 +973,11 @@ const toolTableRef = ref<InstanceType<typeof ToolTablePanel> | null>(null);
 // The vars must land before the M600 that reads them — one latch, in order.
 function measureAuto() {
   const t = st.value.tool_number;
-  if (!permissions.value.machineFrame || st.value.probing || !t) return;
+  if (!t) { pushMessage(OPERATOR_ERROR, "Measure Current — no tool loaded"); return; }
+  if (!permissions.value.machineFrame || st.value.probing) {
+    pushMessage(OPERATOR_ERROR, `Measure Current not sent — ${permissionReasons.value.machineFrame ?? (st.value.probing ? "a probe is running" : "not available")}`);
+    return;
+  }
   fireBatch([
     { cmd: "set_probe_vars", vars: buildToolsetterVarMap() },
     { cmd: "mdi", text: `T${t} M600` },
@@ -933,7 +985,10 @@ function measureAuto() {
 }
 
 function unloadTool() {
-  if (!permissions.value.machineFrame) return;
+  if (!permissions.value.machineFrame) {
+    pushMessage(OPERATOR_ERROR, `Unload not sent — ${permissionReasons.value.machineFrame ?? "not available"}`);
+    return;
+  }
   const mode = loadMachineDefaults().toolChangeMode;
   if (mode === "m600") {
     fireBatch([
@@ -1053,13 +1108,11 @@ function checkAutoDisarm() {
 onMounted(() => {
   document.addEventListener("pointerdown", noteActivity, { capture: true, passive: true });
   document.addEventListener("keydown", noteActivity, { capture: true, passive: true });
-  document.addEventListener("pointerdown", onDocPointerDownDismissKeypad, { capture: true, passive: true });
   autoDisarmTimer = window.setInterval(checkAutoDisarm, 30_000);
 });
 onUnmounted(() => {
   document.removeEventListener("pointerdown", noteActivity, true);
   document.removeEventListener("keydown", noteActivity, true);
-  document.removeEventListener("pointerdown", onDocPointerDownDismissKeypad, true);
   clearInterval(autoDisarmTimer);
 });
 
@@ -1098,7 +1151,7 @@ onMounted(attachScrollFades);
 watch(() => userMacros.value.length, () => nextTick(attachScrollFades));
 // Strip content swaps (keypad in/out) change scrollWidth without resizing
 // the strip itself — re-check the edge fades.
-watch([gcodeKeypadMode, () => keypadState.open], () => nextTick(attachScrollFades));
+watch(activeKind, () => nextTick(attachScrollFades));
 onUnmounted(() => {
   fadeRo?.disconnect();
   fadeRo = null;
@@ -1216,12 +1269,12 @@ watch(spindleSpeed, (v) => {
  *
  * A drop is logged, not silent — the same honesty rule the backend follows.
  */
-async function fire(payload: any, gate?: keyof Permissions, cooldownMs?: number) {
+function fire(payload: any, gate?: keyof Permissions, cooldownMs?: number): string | null {
   const cmd = String(payload?.cmd ?? "");
   const neverDebounced = isNeverDebounced(cmd);
   if (busy.value && !neverDebounced) {
     console.warn(`[fire] ${cmd} dropped: another command is settling`);
-    return;
+    return null;
   }
   if (gate && !permissions.value[gate]) {
     // Loud in the message center too (U-06): a control that looked live and
@@ -1229,13 +1282,13 @@ async function fire(payload: any, gate?: keyof Permissions, cooldownMs?: number)
     const why = permissionReasons.value[gate] ?? `gate '${gate}' is closed`;
     console.warn(`[fire] ${cmd} dropped: gate '${gate}' is closed`);
     pushMessage(OPERATOR_ERROR, `${cmd} not sent — ${why}`);
-    return;
+    return null;
   }
   const hold = cooldownMs ?? cooldownFor(cmd);
-  if (hold <= 0) { send(payload); return; }   // no latch: nothing to release
+  if (hold <= 0) return send(payload);   // no latch: nothing to release
   busy.value = true;
   try {
-    send(payload);
+    return send(payload);
   } finally {
     window.setTimeout(() => (busy.value = false), hold);
   }
@@ -1280,12 +1333,13 @@ provide(FIRE_KEY, fire);
 // Touch-off math + Z-eoffset compensation. See useTouchoffMath.ts.
 const { setAxis, setAll, setG5x } = useTouchoffMath({ axes, fire });
 
+// Homing is ZERO-tier on the backend (idle + !eoffset), not idle.
 function homeAll() {
-  fire({ cmd: "home_all" }, 'idle');
+  fire({ cmd: "home_all" }, 'zero');
 }
 
 function unhomeAll() {
-  fire({ cmd: "unhome_all" }, 'idle');
+  fire({ cmd: "unhome_all" }, 'zero');
 }
 
 // Joint letters outside their own soft-limit window (status
@@ -1302,11 +1356,11 @@ const homedJoints = computed<boolean[]>(() => {
 });
 
 function homeAxis(joint: number) {
-  fire({ cmd: "home", joint }, 'idle');
+  fire({ cmd: "home", joint }, 'zero');
 }
 
 function unhomeAxis(joint: number) {
-  fire({ cmd: "unhome", joint }, 'idle');
+  fire({ cmd: "unhome", joint }, 'zero');
 }
 
 
@@ -1410,11 +1464,24 @@ const {
   axes,
   permissions,
   canEstop,
-  canResetEstop,
   activeFile,
+  modalOpen,
+  editing: gcodeEditActive,
   send,
   fire,
 });
+
+// Every dialog App renders registers its open state (WP0, UI-03): while any
+// is open — or the keypad — the shortcut map lets only E-Stop through.
+registerModal(statsDialogOpen);
+registerModal(settingsDialogOpen);
+registerModal(() => settingsDiscard.value !== null);
+registerModal(messagesDialogOpen);
+// gcodeRefOpen: GcodeReferenceDialog renders the overlay and registers itself.
+registerModal(showShutdownConfirm);
+registerModal(toolChangeRequested);
+registerModal(() => macroParamDialog.value !== null);
+registerModal(() => compConfirmPending.value !== null);
 
 /** ---------- gamepad jogging ---------- */
 const gamepadConfig = ref<GamepadDefaults>(loadGamepadDefaults());
@@ -1540,19 +1607,64 @@ const surfacePoints = ref<[number, number, number][] | null>(null);
 /** ---------- Compensation grid (from compensation.py) ---------- */
 const compGrid = ref<{ x: number[]; y: number[]; zi: number[][]; method: number } | null>(null);
 
+// One state per channel (UI-10): the owner knows whether a request is in
+// flight, whether the answer was "nothing recorded yet" (a state, shown as
+// an empty state — never a toast) or a real failure (shown with the reason
+// and a Retry). Correlated by req_id, so a stale reply cannot flip it.
+type SurfaceLoad = "unknown" | "loading" | "empty" | "ready" | "error";
+const surfaceState = reactive({
+  points: "unknown" as SurfaceLoad, pointsError: null as string | null,
+  grid: "unknown" as SurfaceLoad, gridError: null as string | null,
+});
+let _probeReq: string | null = null;
+let _gridReq: string | null = null;
+
 function requestProbeResults() {
-  send({ cmd: "get_probe_results" });
+  const id = send({ cmd: "get_probe_results" });
+  if (id) { _probeReq = id; surfaceState.points = "loading"; }
 }
 
+// Independent of the grid: a missing grid never blocks the points.
 function requestCompGrid() {
-  send({ cmd: "get_comp_grid" });
+  const id = send({ cmd: "get_comp_grid" });
+  if (id) { _gridReq = id; surfaceState.grid = "loading"; }
 }
 
 // Listen for get_probe_results / get_comp_grid replies
 watch(lastReply, (r: any) => {
-  if (r?.ok && r.points) surfacePoints.value = r.points;
-  if (r?.ok && r.comp_grid) compGrid.value = r.comp_grid;
+  if (!r) return;
+  if (r.req_id && r.req_id === _probeReq) {
+    _probeReq = null;
+    if (r.ok) {
+      surfacePoints.value = Array.isArray(r.points) ? r.points : [];
+      surfaceState.points = surfacePoints.value!.length ? "ready" : "empty";
+      surfaceState.pointsError = null;
+    } else {
+      surfaceState.points = "error";
+      surfaceState.pointsError = r.error ?? "unknown error";
+    }
+  } else if (r.ok && r.points) {
+    surfacePoints.value = r.points;   // pushed by another path — data only
+  }
+  if (r.req_id && r.req_id === _gridReq) {
+    _gridReq = null;
+    if (r.ok) {
+      compGrid.value = r.comp_grid ?? null;
+      surfaceState.grid = r.comp_grid ? "ready" : "empty";
+      surfaceState.gridError = null;
+    } else {
+      surfaceState.grid = "error";
+      surfaceState.gridError = r.error ?? "unknown error";
+    }
+  } else if (r.ok && r.comp_grid) {
+    compGrid.value = r.comp_grid;
+  }
 }, { flush: "sync" });
+watch(connected, (c) => {
+  if (c) return;
+  if (_probeReq) { _probeReq = null; surfaceState.points = "error"; surfaceState.pointsError = "connection lost"; }
+  if (_gridReq) { _gridReq = null; surfaceState.grid = "error"; surfaceState.gridError = "connection lost"; }
+});
 
 /** ---------- G-code stats watcher ---------- */
 // Content is fetched over HTTP by lcncWs (see gcodeContent ref). Here we only
@@ -1671,14 +1783,16 @@ watch(viewerGcode, (newGcode) => {
           </span>
         </Transition>
       </div>
+      <!-- Abort is ALWAYS the last action: a stop must not move when a
+           message count or a Refresh appears beside it (P2). -->
       <div class="bannerActions row-controls">
         <MachineBtn v-if="safetyTrip" type="dialogConfirm" @click="acknowledgeSafetyTrip">Acknowledge</MachineBtn>
-        <MachineBtn v-if="bannerShowAbort" type="bannerAbort" @click="fire({ cmd: 'abort' }, 'abort')" />
         <MachineBtn v-if="machineState === 'unhomed'" type="bannerHome" @click="homeAll">Home All</MachineBtn>
         <MachineBtn v-if="unreadCount > 0" type="bannerAction" @click="messagesDialogOpen = true; markMessagesRead()">
           {{ unreadCount }} message{{ unreadCount === 1 ? '' : 's' }}
         </MachineBtn>
         <MachineBtn v-if="needsRefresh" type="bannerAction" @click="reloadPage">Refresh</MachineBtn>
+        <MachineBtn v-if="bannerShowAbort" type="bannerAbort" @click="fire({ cmd: 'abort' }, 'abort')" />
       </div>
     </div>
 
@@ -1709,7 +1823,6 @@ watch(viewerGcode, (newGcode) => {
         <TabPanel :tabs="contentTabs" :modelValue="activeTab" @update:modelValue="activeTab = $event">
           <template #gcode>
             <GcodePanel
-              ref="gcodePanelRef"
               :activeFile="activeFile"
               :gcodeContent="gcodeContent"
               :gcodeStats="gcodeStats"
@@ -1756,44 +1869,53 @@ watch(viewerGcode, (newGcode) => {
               :compGridVersion="st.comp_grid_version ?? 0"
               :surfacePoints="surfacePoints"
               :compGrid="compGrid"
+              :surfaceState="surfaceState"
               :surfaceLayerVisible="viewerLayers.surface"
               :rotaryTilted="st.rotary_at_zero === false"
               @toggleSurfaceLayer="(on: boolean) => { viewerLayers.surface = on; viewerRef?.setLayerVisible?.('surface', on); saveViewerDefaults({ ...loadViewerDefaults(), layers: { ...loadViewerDefaults().layers, surface: on } }); }"
               @mdi="fire({ cmd: 'mdi', text: $event }, 'machineFrame')"
               @abort="fire({ cmd: 'abort' }, 'abort')"
               @simTrip="send({ cmd: 'simulate_probe_trip' })"
-              @setProbeVars="fire({ cmd: 'set_probe_vars', vars: $event }, 'setup')"
+              @setProbeVars="fire({ cmd: 'set_probe_vars', vars: $event }, 'ready')"
               @runProbe="onRunProbe($event)"
               @getProbeResults="requestProbeResults"
               @getCompGrid="requestCompGrid"
               @setCompensation="requestCompToggle"
-              @setCompMethod="send({ cmd: 'set_compensation_method', method: $event })"
+              @setCompMethod="fire({ cmd: 'set_compensation_method', method: $event }, 'probe')"
             />
           </template>
 
           <template #mdi>
             <div class="mdiTab stack-controls">
               <div class="mdiRow">
+                <!-- v-model, like every other text field: one ref (mdiText) is the
+                     line's single source — physical typing, the on-screen keys
+                     (mdiTarget) and the history all write it. `:value` + `@input`
+                     against MachineInput's own model left two writers on the
+                     element and lost every typed character (review round 4,
+                     UI-I11). Enter sends on keydown (onMdiKeydown). -->
                 <MachineInput
                   ref="mdiInputRef"
                   gate="mdiText"
                   type="text"
                   class="mdiInput"
-                  :value="mdiText"
-                  :inputmode="isTouchDevice ? 'none' : undefined"
-                  @input="mdiText = ($event.target as HTMLInputElement).value"
-                  @keyup.enter="handleMdiSend"
+                  v-model="mdiText"
+                  label="MDI command"
+                  :session-owner="MDI_OWNER"
+                  :session-open="openMdiSession"
                   @keydown="onMdiKeydown"
-                  @focus="mdiKeypadActive = true"
-                  @blur="mdiKeypadActive = false"
-                  placeholder="G-code command (↑↓ history)"
+                  placeholder="MDI command (↑↓ history)"
                 />
+                <!-- UX-13: never the word "code" in this placeholder — Apple
+                     Passwords (Firefox/macOS) read "G-code command" as a
+                     verification-code field and popped up on every focus
+                     (operator's variant test 2026-09-23). -->
                 <MachineBtn type="mdi" @click="handleMdiSend">Send</MachineBtn>
                 <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
               </div>
               <div class="mdiHistoryHeader">
                 <span class="sub">History</span>
-                <MachineBtn type="dialogCancel" @click="clearMdiHistory" :disabled="mdiHistory.length === 0">Clear</MachineBtn>
+                <MachineBtn type="inlineMd" aria-label="Clear MDI history" title="Clear MDI history" @click="clearMdiHistory" :disabled="mdiHistory.length === 0">Clear</MachineBtn>
               </div>
               <div class="codeViewer mdiHistoryList scroll-thin fade-scroll">
                 <div v-for="(entry, i) in mdiHistory" :key="entry.id"
@@ -1819,6 +1941,7 @@ watch(viewerGcode, (newGcode) => {
               :eoffsetEnabled="!!st.eoffset_enabled"
               :rotationXy="st.rotation_xy ?? null"
               :wcsTable="st.wcs_table ?? []"
+              :linearUnit="linearUnit"
             />
           </template>
 
@@ -1827,7 +1950,7 @@ watch(viewerGcode, (newGcode) => {
               <div class="toolTabActions stack-controls">
                 <div class="toolTabRow stack-controls">
                   <div class="row-tight">
-                    <MachineBtn type="toolMeasure" @click="measureAuto">Measure Current</MachineBtn>
+                    <MachineBtn type="toolMeasure" :disabled="!st.tool_number" reason="No tool loaded" @click="measureAuto">Measure Current</MachineBtn>
                     <MachineBtn type="toolUnload" @click="unloadTool">Unload</MachineBtn>
                     <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
                   </div>
@@ -1864,7 +1987,7 @@ watch(viewerGcode, (newGcode) => {
           <div class="dialog md statsDialog">
             <div class="dialogHeader">
               <span class="dialogTitle">Program Stats</span>
-              <MachineBtn type="close" @click="statsDialogOpen = false">&times;</MachineBtn>
+              <MachineBtn type="close" aria-label="Close program stats" title="Close program stats" @click="statsDialogOpen = false"><X :size="14" /></MachineBtn>
             </div>
             <div class="dialogContent stack-sections scroll-thin fade-scroll">
               <StatsDonut :stats="gcodeStats" />
@@ -1955,14 +2078,16 @@ watch(viewerGcode, (newGcode) => {
       <!-- Dialogs — inside content area so strip stays accessible beneath -->
 
       <!-- Settings dialog -->
-      <div v-if="settingsDialogOpen" class="dialogOverlay" @click.self="settingsDialogOpen = false">
+      <div v-if="settingsDialogOpen" class="dialogOverlay" @click.self="closeSettings">
         <div class="dialog lg dialog-full">
           <div class="dialogHeader">
             <span class="dialogTitle">Settings</span>
-            <MachineBtn type="close" @click="settingsDialogOpen = false">&times;</MachineBtn>
+            <MachineBtn type="close" aria-label="Close settings" title="Close settings" @click="closeSettings"><X :size="14" /></MachineBtn>
           </div>
           <div class="dialogContent">
             <SettingsPanel
+              ref="settingsPanelRef"
+              dialog-target="#content-dialog-area"
               :initialTab="settingsInitialTab"
               :gamepadConnected="gamepad.gamepadConnected.value"
               :gamepadName="gamepad.gamepadName.value"
@@ -1980,6 +2105,18 @@ watch(viewerGcode, (newGcode) => {
         </div>
       </div>
 
+      <!-- Closing Settings over a local draft (UI-K16) — the tool editor's ask. -->
+      <div v-if="settingsDiscard" class="dialogOverlay" @click.self="settingsDiscard = null">
+        <div class="dialog">
+          <div class="dialogTitle danger">Discard changes?</div>
+          <div class="dialogBody">{{ settingsDiscard.what }} has unsaved changes.</div>
+          <div class="dialogActions">
+            <MachineBtn type="dialogCancel" @click="settingsDiscard = null">Keep editing</MachineBtn>
+            <MachineBtn type="dialogDanger" @click="confirmSettingsDiscard">Discard</MachineBtn>
+          </div>
+        </div>
+      </div>
+
       <!-- G-code reference dialog -->
       <GcodeReferenceDialog :open="gcodeRefOpen" :initialSearch="gcodeRefInitialSearch" @close="gcodeRefOpen = false" />
 
@@ -1991,7 +2128,7 @@ watch(viewerGcode, (newGcode) => {
             <div class="row-tight">
               <MachineBtn type="inline" @click="copyAllMessages" :disabled="messages.length === 0">Copy All</MachineBtn>
               <MachineBtn type="inline" @click="clearAllMessages" :disabled="messages.length === 0">Clear All</MachineBtn>
-              <MachineBtn type="close" @click="messagesDialogOpen = false; markMessagesRead()">&times;</MachineBtn>
+              <MachineBtn type="close" aria-label="Close messages" title="Close messages" @click="messagesDialogOpen = false; markMessagesRead()"><X :size="14" /></MachineBtn>
             </div>
           </div>
           <div class="dialogContent stack-tight scroll-thin fade-scroll">
@@ -2013,7 +2150,7 @@ watch(viewerGcode, (newGcode) => {
           <div class="dialogTitle">{{ !toolChangeTool ? 'Remove Tool from Spindle' : 'Load Tool into Spindle' }}</div>
           <div class="dialogBody">
             <template v-if="toolChangeTool">
-              <strong>T{{ toolChangeTool }}</strong><template v-if="st.tool_change_info"> D{{ st.tool_change_info.D?.toFixed(3) ?? '—' }} Z{{ st.tool_change_info.Z?.toFixed(3) ?? '—' }}</template><br>
+              <strong>T{{ toolChangeTool }}</strong><template v-if="st.tool_change_info"> D{{ fmtNum(st.tool_change_info.D, 3) }} Z{{ fmtNum(st.tool_change_info.Z, 3) }}</template><br>
               <template v-if="st.tool_change_info?.description">{{ st.tool_change_info.description }}<br></template>
               Insert tool and press Confirm
             </template>
@@ -2022,8 +2159,10 @@ watch(viewerGcode, (newGcode) => {
             </template>
           </div>
           <div class="dialogActions">
+            <MachineBtn type="toolChangeConfirm" :disabled="!toolChangeRequested || !!confirmSent"
+                        :reason="confirmSent ? 'Confirmation sent — waiting for the controller' : undefined"
+                        @click="confirmToolChange">{{ confirmSent ? 'Confirming…' : 'Confirm' }}</MachineBtn>
             <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
-            <MachineBtn type="dialogBase" @click="confirmToolChange">Confirm</MachineBtn>
           </div>
         </div>
       </div>
@@ -2034,8 +2173,9 @@ watch(viewerGcode, (newGcode) => {
           <div class="dialogBody">
             <div class="stack-controls">
               <div v-for="p in macroParamDialog.macro.params" :key="p.name" class="row-controls">
-                <label class="macroParamLabel">{{ p.label || p.name }}</label>
+                <label class="macroParamLabel" :for="`macro-param-${p.name}`">{{ p.label || p.name }}</label>
                 <MachineInput
+                  :id="`macro-param-${p.name}`"
                   gate="macroParam"
                   v-model="macroParamDialog.values[p.name]"
                   @keydown.enter="confirmMacroParams"
@@ -2072,7 +2212,7 @@ watch(viewerGcode, (newGcode) => {
             </template>
             <template v-else-if="st.eoffset_z != null">
               Z axis will move by approximately
-              <strong>{{ (st.eoffset_z * -1).toFixed(4) }}</strong> mm.<br>
+              <strong>{{ fmtNum(st.eoffset_z * -1, 4) }}</strong> mm.<br>
               Ensure tool is clear of the workpiece.
             </template>
             <template v-else>
@@ -2102,7 +2242,7 @@ watch(viewerGcode, (newGcode) => {
     </Gate>
 
     <!-- ══ Bottom Action Strip — default-deny Gate, SafetyStrip exempt + sticky ══ -->
-    <Gate gate="armed" class="strip bordered-panel scroll-thin">
+    <Gate gate="armed" class="strip bordered-panel scroll-thin" tabindex="-1">
       <template #exempt>
       <SafetyStrip
         :armed="armed"
@@ -2157,7 +2297,7 @@ watch(viewerGcode, (newGcode) => {
         @update:jogIncrement="jogIncrement = $event"
         @resetJogVel="jogVel = defaultJogVel"
         @resetAngularJogVel="angularJogVel = defaultAngularJogVel"
-        @modeChange="send({ cmd: 'set_mode', mode: $event })"
+        @modeChange="fire({ cmd: 'set_mode', mode: $event }, 'idle')"
       />
 
       <SetupStrip
@@ -2193,20 +2333,12 @@ watch(viewerGcode, (newGcode) => {
         @goToZero="fire({ cmd: 'go_to_zero' }, 'goZero')"
       />
 
-      <!-- G-code keypad: replaces every strip section except SafetyStrip
-           while the MDI field is focused or the G-code editor is open —
-           none of them are usable mid-typing, and the active WCS stays
-           visible in the HUD. SafetyStrip is pinned first, so nothing
-           shifts when the keypad swaps in/out. -->
-      <GcodeKeypadStrip
-        v-if="gcodeKeypadMode && !keypadState.open"
-        :axes="axes"
-        :mode="gcodeKeypadMode"
-        @key="gkInsert"
-        @backspace="gkBackspace"
-        @enter="gkEnter"
-        @clear="gkClear"
-      />
+      <!-- Text/code keyboard: replaces every strip section except
+           SafetyStrip while a text session is open (MDI line, editor,
+           search/description fields) — none of them are usable mid-typing,
+           and the active WCS stays visible in the HUD. SafetyStrip is
+           pinned first, so nothing shifts when the keyboard swaps in/out. -->
+      <TextKeypadStrip v-if="activeKind === 'code' || activeKind === 'text'" :axes="axes" />
 
       <OverridesStrip
         v-show="stripVis('overrides')"
@@ -2263,7 +2395,7 @@ watch(viewerGcode, (newGcode) => {
       <!-- Number keypad: swaps in like the G-code keypad, but keeps the
            section that owns the edited field visible (see stripVis). Last in
            DOM so it renders directly right of whichever section survives. -->
-      <NumberKeypadStrip v-if="keypadState.open" />
+      <NumberKeypadStrip v-if="keypadState.open" v-show="!keypadState.locked" />
 
       <!-- Scroll-edge affordance: fades in at the far edge while strip
            sections are scrolled out of view (strip-more class, JS-toggled).
@@ -2271,6 +2403,8 @@ watch(viewerGcode, (newGcode) => {
       <div class="stripFade" aria-hidden="true"></div>
     </Gate><!-- /strip -->
 
+    <!-- The app-wide floating hint and keyboard glyph (single instances). -->
+    <FloatingOverlays />
   </div>
 </template>
 <style scoped>
@@ -2317,6 +2451,10 @@ watch(viewerGcode, (newGcode) => {
   border-radius: var(--radius-container);
 }
 
+/* Programmatic focus target (the keypad's fallback when the field that
+   opened it is gone): no ring — that focus operates nothing. */
+.strip:focus { outline: none; }
+
 .strip {
   display: flex;
   /* Auto height, sized by the fixed --strip-section-h sections: the
@@ -2332,7 +2470,15 @@ watch(viewerGcode, (newGcode) => {
      element */
   padding: var(--gap-controls) var(--gap-controls) var(--gap-controls) 0;
   gap: var(--gap-controls);
-  overflow-x: auto;
+  /* ALWAYS reserve the horizontal scrollbar band (WP4, review B): with
+     `auto`, opening the number keypad hides every non-owner section, the
+     overflow disappears, the band (8–11 px, UA-defined) goes with it and
+     the strip gets shorter — the viewer pane grew every time the keypad
+     opened. `scroll` keeps the band whether or not there is overflow, so
+     the strip's height is invariant across keypad/keyboard swaps.
+     (scrollbar-gutter only reserves the BLOCK-axis band — it cannot fix
+     this axis.) The e2e layout gate injects `auto` as a negative control. */
+  overflow-x: scroll;
   overflow-y: hidden;
   border-radius: var(--radius-container);
 }
@@ -2362,7 +2508,7 @@ watch(viewerGcode, (newGcode) => {
   opacity: 0;
   transition: opacity 0.2s;
   pointer-events: none;
-  z-index: 1;
+  z-index: var(--z-raised);
 }
 .strip > .stripFade,
 .macroBar > .stripFade { right: 0; }
@@ -2645,7 +2791,7 @@ watch(viewerGcode, (newGcode) => {
   color: var(--danger);
 }
 
-.safetyDialog { z-index: 1010; }
+.safetyDialog { z-index: var(--z-modal-top); }
 
 /* ─── MDI tab ─── */
 .mdiTab {
@@ -2730,7 +2876,16 @@ watch(viewerGcode, (newGcode) => {
     width: 280px;
     flex-direction: column;
     overflow-x: hidden;
-    overflow-y: auto;
+    /* Portrait scrolls vertically: the vertical band is ALWAYS present so
+       hiding sections (keypad open) never widens the inner column and
+       re-flows every control in it (the root box stayed 280 px — only the
+       INNER width moved, which a bounding-box compare cannot see, UI-08).
+       `overflow-y: scroll`, not `scrollbar-gutter: stable`: the strip is a
+       <fieldset> (Gate), whose scroll container is its anonymous inner box,
+       and Chromium does not reserve the gutter there — the sticky Safety
+       section measured 252 → 262 px when the overflow vanished (layout
+       gate, 2026-09-20). Same rule as landscape's `overflow-x: scroll`. */
+    overflow-y: scroll;
     /* scroll axis is vertical here: top padding moves into the sticky
        SafetyStrip, left padding is restored (no horizontal scroll) */
     padding: 0 var(--gap-controls) var(--gap-controls) var(--gap-controls);

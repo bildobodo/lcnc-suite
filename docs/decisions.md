@@ -5569,3 +5569,548 @@ historical goldens or tolerances were relaxed. Operator guidance, plane probing,
 M600 measurement and touchscreen/performance acceptance remain separate work.
 PR #41's example content is incorporated by this change; the source PR was
 still open and draft when checked on 2026-09-19.
+
+
+## 2026-09-20 — WebUI review wave: keyboard, editor session, keypad contract, strip band, camera, offsets
+
+Branch `feat/ui-review-wave` (from `development`), plan agreed with a
+four-round external review (`docs/reviews/ui-optimierungen.review.md`).
+Operator decisions of 2026-09-19 recorded here as the rules they became:
+
+- **Escape is reserved for E-Stop** and not re-bindable; E-Stop RESET is a
+  button only. The E-Stop key handler is a capture listener registered at
+  App setup so no child can swallow it (the Keyboard tab's key capture used
+  to). Behind any dialog or the number keypad the global shortcut map lets
+  nothing but E-Stop through (`modalRegistry.ts`; every `.dialogOverlay`
+  registers, the guard spec compares registry and DOM). Space/Enter belong
+  to whatever has focus; Cycle Start needs gate `run` and no open editor;
+  jog key-up is never filtered.
+- **The editor buffer belongs to its file** (`{id, path, original}`): an
+  external program change raises a conflict banner, Save writes only the
+  session's file, CodeMirror's view creation is bound to the session,
+  Discard asks when dirty. Browse/Unload/Upload are disabled while editing.
+- **Keypad field contract**: one number token per literal (`1.2.3` is
+  refused, never prefix-parsed), `validateEntry()` is the single
+  admissibility check for readout, OK and `confirm()` (min/max/integer,
+  never clamped); empty is 0, shown as "= 0". Sessions have an owner
+  (`ownerId`), the owner's veto at confirm, focus returns to the owner.
+- **Upload never replaces silently**: `POST /upload?overwrite=0|1`, the
+  no-replace publish is an `os.link` (409 on a clash, exactly one winner of
+  two concurrent uploads), a filesystem that cannot link REFUSES — no copy
+  fallback, since it would expose a partial file under the final name.
+- **Request correlation**: every command carries a per-tab `req_id`; the
+  gateway echoes it on every reply path (ok, invalid, arm, preempted,
+  superseded, queue-full). Dialogs close only on THEIR reply; `send()` /
+  `fire()` return the id or null (nothing sent → never a pending).
+- **Strip band always reserved**: landscape `overflow-x: scroll`, portrait
+  `overflow-y: scroll` (not `scrollbar-gutter: stable`: the strip is a
+  `<fieldset>` whose inner scroll box ignores the gutter in Chromium — the
+  sticky Safety section measured 252 → 262 px when the overflow vanished).
+  The layout gate measures the frame's outer and inner sizes across every
+  strip state, with two negative controls, in a test browser that SHOWS
+  scrollbar bands (`ignoreDefaultArgs: ["--hide-scrollbars"]` — headless
+  Chromium hides them, which had made the whole gate vacuous).
+- **Default camera framing** = max(travel rule, model sphere + near) about
+  the travel box's centre, for both projections and Reset's endpoint; the
+  promise is the DEFAULT frame only (no camera-collision system).
+  `polygonOffset` untouched.
+- **Offsets Clear / Clear All** are hold-to-fire (probe tier) like Zero /
+  Home; a hold is bound to its target (`holdKey`) and its gate for its whole
+  duration; a short tap says "Hold to activate", a busy-latch drop says
+  "Busy — try again" at the control.
+- **Gates follow the backend** (home* → zero, set_probe_vars → ready,
+  clear_wcs/set_wcs → probe, confirm_tool_change → armed, sent once per
+  request); no raw `send()` for a state-changing command remains in the
+  panels. A missing compensation grid is a state (`ok, comp_grid: null`),
+  not an error toast.
+- **Design system**: z-index scale, `.dialog.md.wide`, `.overlay-card.warn`,
+  `.btnHint`, `.warnBanner`/`.errorBanner` global, `--viewcube-size`,
+  `wcs.ts`, `DEFAULT_AXES`; the CSS linter is nesting-aware, parses
+  `color-mix()` arguments and has fixtures pinned in the offline gate.
+
+Implementation review round 1 (Codex, same day, UI-I01–I09) added three
+rules:
+
+- **Catalog components are single-root.** A Teleport next to the button in
+  `MachineBtn` (the hint) and next to the input in `MachineInput` (the
+  glyph) made both fragment roots; Vue then no longer stamps the parent's
+  scoped-CSS id on the rendered element, so every `.nkKey`/`.tkKey`/
+  `.safetyBtn`/`.mdiInput` rule silently stopped applying. The hint and the
+  glyph are ONE app-wide element each (`btnHint.ts`, `inputSession.ts
+  inputGlyph`), rendered once by `FloatingOverlays.vue`.
+- **Leaving an input session is decided by the pointer first.** A
+  pointerdown outside every input area hides the helper (number keypad and
+  text keyboard alike); focus ARRIVING outside the owner's area (Tab out of
+  the field or out of a key, in either direction) hides it too. A
+  pointerdown on another owner's field is a switch, not a leave: hiding on
+  the pointerdown re-flowed the strip between finger-down and finger-up
+  (the number keypad's owner section moves when the other sections return)
+  and the click landed on a different control. Consequently a tab TAP
+  closes the helper (draft kept); the hidden-owner LOCK is the backstop for
+  non-pointer hiding only. The owner's veto is asked fresh at confirm
+  (DOM visibility is not reactive), and an offset cell is its own owner.
+- **Portrait text keyboard at 150 % on 900 × 1200 does not fit** without
+  scrolling: the sticky SafetyStrip (263 px) and the wrapped header (90 px)
+  leave ~370 px under the title, six 44-px content rows alone need 284.
+  Measured, not claimed: page/action/navigation rows stay within the
+  viewport, 2.5 content rows sit below the fold and are reached by the
+  strip's own scroll. Folding the navigation row (−48 px) cannot close a
+  ~120 px gap; a smaller key or a wider strip is excluded by the plan, so
+  the acceptance rule for 150 % is recorded as this measurement — open
+  with the reviewer.
+
+## 2026-09-20 evening — Implementation review round 2: the focus return is a guarded transition, drafts end with their owner, the portrait keyboard fits at 150 %
+
+Codex's second round (docs/reviews/ui-optimierungen.implementation-review.md)
+closed six of nine findings and kept three open; all three are fixed here.
+
+- **The focus return after keypad OK/Cancel is a guarded transition**
+  (UI-I06, raised to P1). The field's own confirm disables it for the busy
+  latch, the DOM `disabled` lands a render later and drops the focus the
+  field just took; between the latch's end and the fixed 300 ms re-focus
+  timer the document was unfocused — and an unfocused document is where the
+  shortcut map reads Space as Cycle Start (`touchoff` followed by
+  `cycle_start`, 3 of 3 in the review's probe). `returnFocusTo`
+  (inputSession.ts) sets `focusReturn.pending`, which the modal guard
+  includes (nothing but E-Stop passes), until focus has LANDED: on the field
+  as soon as it can hold it again, on whatever the operator focused
+  meanwhile (another owner is never robbed), or on the strip when the field
+  is gone or not focusable — decided per animation frame against the live
+  DOM, 2 s backstop, no fixed delay. The regular test hammers Space from the
+  confirm until the field holds focus.
+- **A draft ends with its OWNER's context, and the busy latch is not an
+  end** (UI-I05). `''` is a draft (the entry after C is the value 0, shown
+  "= 0"); `closeKeypadIf(owner)` drops the owner's draft whether or not it
+  holds the keypad and closes only its own session; `dropDrafts(match)`
+  ends a panel's cells at once (OffsetPanel gate end / unmount). Making the
+  drop owner-scoped exposed a rule the wave had left implicit: the busy
+  latch after ANY `fire()` closes every busy gate for 200 ms, so "disabled
+  = owner end" would have wiped every filed draft on every neighbour's OK
+  (and the UI-15 draft rule would have been void). "Gate end" is now
+  `!can[gate] && reason !== CLIENT_REASONS.settling` — the client overlay
+  already names the latch. Side effect, intended: the active session no
+  longer dies to a sibling's command latch either.
+- **The portrait keyboard fits at 150 % on 900 × 1200 — by folding the
+  Safety detail, and the readout stays in view** (UI-I08). The plan's
+  criterion (`bottom(.tkStrip) ≤ innerHeight` at 100 % and 150 %) is back
+  in the test. What fits it: SafetyStrip folds its status detail (172 CSS
+  px) while a helper is open in portrait — title and the three safety
+  buttons stay, the banner names the machine state. A four-row compact form
+  was measured first and rejected: it fits with a three-line header
+  (1173/1200) and misses by 17 px with a four-line one (1218/1200), and the
+  header's wrap count at 600 CSS px follows its pill texts (the NET latency
+  pill flipped it between two runs). The fold leaves ≥ 47 CSS px for that.
+  Second finding of the same measurement: the MDI line — the keyboard's
+  readout — sat below the fold at 150 %, because the portrait viewer's
+  fixed 500 px floor left the side pane 126 px (less than its two-line tab
+  row). The floor is `min(500px, 45%)` of the content column now (not
+  binding at 100 % on the fixture — references unchanged); a percentage,
+  not `vh`, because Chromium does not scale viewport units under CSS `zoom`
+  (the tests' 150 % emulation). Not claimed, measured: a NUMBER keypad
+  under its strip owner section at 150 % (Setup 343 + keypad 313 CSS px)
+  still needs the strip's scroll — the plan never promised it.
+
+## 2026-09-21 — Implementation review round 3 + UI-I10: owner gates without the latch, keys act on click, portrait edit mode folds
+
+Codex's third round (docs/reviews/ui-optimierungen.implementation-review.md)
+kept two P2 findings open and its follow-up audit added a P1; all three are
+fixed here. The UX proposals it filed alongside (UX-01–UX-12) are decisions
+for the operator and were not implemented.
+
+- **An input owner's context follows the OWNER gates, not the displayed
+  reason** (UI-I05). Round 2 exempted the busy latch by reading the reason
+  map, where "settling" outranks a backend reason — so a real revocation
+  INSIDE the 200 ms latch was invisible and a draft outlived its context.
+  `OWNER_PERMISSIONS_KEY` / `useOwnerPermissions()` is the backend's
+  classes under armed and sim WITHOUT the latch term; `MachineInput`
+  (`ownerEnded`) and `OffsetPanel` (`gateEnded`) watch that. The latch
+  alone still keeps drafts; a revocation inside it ends session and drafts.
+  Harness fact: the status store applies frames per animation frame, so a
+  close and re-open within one frame is no state — the regression tests
+  space the two frames 50 ms apart.
+- **Keys act on click** (UI-I10, P1). Both helpers' keys acted on
+  `pointerdown`, and the number keypad's root confirmed on Enter whatever
+  key held focus: real Tab to Cancel + Enter sent the touch-off; Enter/Space
+  on a Tab-focused text key did nothing. Now every key acts on the CLICK —
+  the one event a pointer and the keyboard produce, exactly once — with
+  `pointerdown` default-prevented so a press never moves focus off the
+  owner field or the keypad root; the root handles Enter/Space only while
+  no key holds focus (the entry itself). Escape stays E-Stop, the shortcut
+  map keeps handing activation keys to the focused element, the modal
+  guard stays up.
+- **Portrait edit mode folds the idle program controls** (UI-I08, second
+  half). With the editor as the keyboard's owner, the side pane at 150 % on
+  900 × 1200 had 13.5 px left for the editor host — the first line was
+  clipped by `overflow: hidden` while a viewport-rectangle check passed.
+  `compactEdit = isPortrait && editing && !can.pause && !can.resume` folds
+  the file ops (all disabled by the session guard), the run controls
+  (Start/Step say "Finish or discard the edit first") and the progress row;
+  a running or paused program brings Pause/Abort back, and the banner
+  carries Abort in any case. Measured: 7.2 editor lines visible at 150 %
+  (22.4 at 100 %), first line, Save, Discard and the reference search field
+  hit at their centres. Landscape is unchanged. The acceptance judges
+  readouts by `elementFromPoint`, never by `toBeInViewport` alone.
+
+## 2026-09-21 evening — Implementation review round 4: an explicit close returns focus, the MDI line has one writer, text fields carry a field contract
+
+Codex's fourth round (docs/reviews/ui-optimierungen.implementation-review.md,
+"Codex · Implementierungsrunde 4") confirmed UI-I05 and UI-I08 closed, left
+the UI-I10 close path open (P1) and added UI-I11 (P2); the operator's report
+that the MDI line is offered as a login field (Firefox on macOS with the
+Apple password manager) became UX-13. Plan: Fassung 4 of
+docs/reviews/ui-optimierungen.plan.md — this is WP-A of five packages; the
+UX packages (X + Discard on the number keypad, action labels on Arm/Power,
+save status, reachable disable reasons and help, hold hints) follow as
+WP-B … WP-E, one commit each.
+
+- **An explicit close returns focus through the guarded transition.** The
+  text keyboard's X activated by Tab + Enter/Space unmounted with focus on
+  it: focus fell to `body`, the helper's modal guard fell with the session,
+  and the next Space sent `cycle_start` (Codex, 6/6). `TextTarget` gained
+  `focusEl()` (the owner's element — the field, the CodeMirror content) and
+  `closeTextSessionByOperator` reads it BEFORE the session ends and hands it
+  to `returnFocusTo`, the same rAF-polled transition the number keypad uses
+  (`focusReturn.pending` keeps the guard up until focus has landed). Only
+  the X and a plain text field's Done take this path; the leave paths
+  (outside pointerdown, focus arriving outside, a switch) never pull focus
+  back — that would rob a target the operator chose. A pointer close
+  already holds focus on the field and ends at the first frame.
+- **The MDI line sends on keydown and hands focus back after a send.** The
+  line sent on `keyup.enter`: after the focus return, the keyup of the very
+  Enter that activated the X would have landed in the line and sent the
+  draft the operator was only closing the helper on. `onMdiKeydown` sends
+  on keydown (`e.repeat` and an IME's committing Enter never send) and the
+  keyup meets no handler. The send also disables the line for the busy
+  latch and drops the focus it held — an unfocused document is where Space
+  is Cycle Start (the UI-I06 class) — so `useMdiHistory`'s `afterSend`
+  returns focus through the same guarded transition; the regression test
+  turned this up when ArrowDown after a send met no field.
+- **One writer per text field.** The MDI line was the only text caller
+  bound `:value` + `@input`; `MachineInput`'s text branch carried
+  `v-model="model"` beside `v-bind="attrs"` — two writers on one element:
+  `useModel` ran local-mode for a `value` caller (its emit reached nobody),
+  `vModelText.mounted` blanked the field and `patchProps` re-asserted the
+  caller's `value` on every patch. Every physically typed character was
+  lost (Codex, 3/3). The MDI line is `v-model` like every other text field
+  (one ref for the physical keyboard, the on-screen keys and the history),
+  and the text branch is attrs-first with ONE writer like the number
+  branch: `:value` = the caller's `value` if it passes one, else the model;
+  the native input event writes the model (`update:modelValue` for
+  v-model callers), a `:value` caller's own `onInput` stays bound through
+  the attrs. IME composition is write-through on purpose: skipping model
+  writes while composing would let an unrelated patch clobber the
+  composition. The commit names the topology, not a losing interleaving —
+  the interleaving could not be pinned statically; the regression test is
+  the arbiter.
+- **Field contract (UX-13).** Every catalog input is a technical field:
+  `autocomplete="off"`, `autocorrect="off"`, `autocapitalize="off"`,
+  `spellcheck="false"`, `name` = the catalog key (`mdiText`, `search`,
+  `toolEdit`, …) and an accessible name — `aria-label` from the `label`
+  prop (which reached only the helper's heading before) or a wired
+  `<label for>` (tool editor, macro editor, macro run dialog). 0 of 14 text
+  fields had an accessible name; 1 of 14 a wired label. No manager-specific
+  attribute (`data-1p-ignore` is 1Password's). NOT claimed: that the
+  password manager stops offering the line — `autocomplete="off"` binds no
+  manager; the acceptance is the operator's, in Firefox/macOS with the
+  iCloud Passwords extension on and off and in a fresh profile.
+- Tests: keyboard-guards "an explicit close by keyboard returns focus …"
+  (X by Enter and by Space, Done, the editor's X; the next Space types),
+  input-session "physical typing into the MDI line …" and "field contract:
+  …" (a DOM scan across four surfaces, ≥ 4 fields). No component unit
+  test: `@vue/test-utils`/jsdom are not in the tree (Vitest runs in the
+  node environment) — a DOM environment is a separate decision.
+
+## 2026-09-21 late — UX action contract (WP-B of Fassung 4): X hides, Discard discards, every close is named
+
+Codex's UX addendum (docs/reviews/ui-optimierungen.review.md, UX-01–UX-06)
+with the operator's decisions of 2026-09-21. Plan: Fassung 4, WP-B.
+
+- **Both helpers close the same way.** The number keypad had two leave
+  semantics (Cancel discarded, outside/Tab kept) and no close at all; the
+  text keyboard's X only hid. Now: the X hides and KEEPS the entry as the
+  owner's draft on both helpers (`closeKeypad(true)` + the guarded focus
+  return), `Discard` is the number keypad's explicit throw-away (the old
+  Cancel), `Apply` confirms (was OK — visible label = the action, UX-04).
+  Layout without a new row: landscape column 6 = X · Discard · ═ · Apply
+  (Apply one row, was two), portrait row 5 = X · Discard (2 cells) · ═ ·
+  Apply; `.nkKey` drops the size's horizontal padding like `.tkKey` (a word
+  in a 44 px cell had 16 px). `Clr` (was the red `C`) is neutral — it clears
+  the unconfirmed entry, no danger — and every key carries an accessible
+  name (UX-03); the text keyboard's Enter for plain text reads `Done`.
+- **A close is a named control.** 17 `type="close"` buttons rendered a bare
+  `×` (announced "times"); three of them were not closes. Every close
+  carries a Lucide `X` at 14 px (16 px grew each dialog header by 2 px —
+  the visual references caught it) and a contextual `aria-label`/`title`;
+  `scripts/audit-scoped-css.py` gained the `CLOSE` category with a fixture
+  in the audit-css gate, so a nameless close fails the offline run. Remove
+  binding (KeyboardTab) is a `Trash2`, Reset color (Settings) a `RotateCcw`,
+  both named for their target (UX-02/UX-05).
+- **The tool editor asks before discarding.** Header X and footer Cancel
+  run one check: unchanged → close; edited (snapshot on open) → "Discard
+  changes?" with Keep editing / Discard, the G-code editor's dialog,
+  registered as a modal (UX-02).
+- **Reset/Clear name their target** in the accessible name — Reset view,
+  Clear backplot, Reset feed/spindle/rapid override to 100 % (visible
+  `100 %`), Clear MDI history (an inline action, no longer the dialogCancel
+  type), Reset E-Stop — the visible word stays short where the context is
+  unambiguous (UX-06).
+- Tests: keypad labels re-pinned (Discard/Apply/Clear entry), the `×` regex
+  in the guard specs is `Close .*`, new cases for the keypad X (tap and
+  Tab + Enter) and the tool editor's ask (by click and by touch), the
+  audit fixture `close.vue`.
+
+## 2026-09-21 late — State and saving (WP-C of Fassung 4): Arm/Power name the next action, a settings save has a visible outcome
+
+Codex UX-08 and UX-10 with the operator's decision of 2026-09-21. Plan:
+Fassung 4, WP-C.
+
+- **Arm and Machine Power are labelled with the next action.** `Armed`
+  (a state, on a button whose click disarms, tooltip "Disarm") and `On`
+  (click turns the machine off, no tooltip) become `Arm`/`Disarm` and
+  `Power on`/`Power off` in the same `stable-width` pair, the pattern
+  E-Stop/Reset already had; the state stays visible in the ok variant,
+  the header pill and the status rows. The unacknowledged-trip case is the
+  button's `reason` (tap/keyboard explanation) instead of a title. The
+  smoke test pins the button by role and name; the layout gate re-measured
+  the strip with the longer words: POWER OFF needed 89 px in an 83 px
+  button, so the safety buttons drop the size's 12 px side padding to
+  the tight token (78 px in 74 px remained in the 280 px portrait column,
+  where the label now wraps onto two lines — the row grows for all three,
+  inside the 150 % portrait budget the input-session test measures).
+- **A settings save is never silent.** `saveSection` was fire-and-forget:
+  a 300 ms debounce into a send whose reply nobody read, a silent return
+  before the server's settings arrived, a console line when no saver was
+  registered — under a header promising "saved automatically". A pure
+  status module (`settingsSaveStatus.ts`) now holds what the last save
+  did: pending → saving (the saver returns the `req_id`) → saved / error
+  from the correlated reply that lcncWs routes by `req_id`; blocked before
+  the server's settings; error on a null send or a lost connection. The
+  Settings header shows it (`.saveStatus`, a global pattern: text carries
+  the state, --ok/--danger underline it) next to a promise that names its
+  exceptions; the macro editor says "Unsaved edit — Save or Cancel" in its
+  action row (the gamepad wizard already has Save Profile).
+- Tests: vitest `settingsSaveStatus.test.ts` (six transitions incl. two
+  sections in flight, a foreign reply, connection loss), e2e in
+  keyboard-guards with the mock's correlated replies.
+
+## 2026-09-21 late — Explanations reachable (WP-D of Fassung 4): one explain path for every control, help as a popover
+
+Codex UX-09 and UX-11. Plan: Fassung 4, WP-D.
+
+- **One explanation path.** MachineBtn explained a dimmed button (U-06 /
+  R-05: a `.btnTip` wrapper with title, tap and Enter/Space into the message
+  center); the five form controls only set `disabled`, and JogStrip and
+  SetupStrip hand-rolled the same pattern on two labels. `gateExplain.ts`
+  holds the rule once — the caller's reason while it disables the control,
+  else the gate's from the reason map, offered only while armed — and every
+  control uses it. Label-rooted controls (MachineToggle, the Plane radio's
+  label) carry the affordance on their root; input-rooted controls
+  (MachineInput, MachineSelect, MachineSlider, MachineRadio) must stay
+  single-root (a wrapper would move `.mdiInput` / `input.setupInput` off the
+  input) and cannot be focused while disabled — they explain on
+  `pointerdown` and carry the reason as their title. Chromium ≥ 116 and
+  Firefox ≥ 105 deliver pointer events to disabled form controls (the test
+  taps the disabled MDI line with a real pointer); keyboard reach for a
+  disabled input and Safari are the documented limits. A control's OWN gate
+  is what it explains: the Spindle strip's `ready` fieldset dims the coolant
+  toggle, but the toggle's reason is its `override` gate's — the test caught
+  the difference.
+- **Help is a popover, not a hover title.** `HelpIcon` gains `label`
+  (`Help: Kinematics frame`, `Help: Go to positions` — a page with several
+  helps no longer reads "Show help" repeatedly). The Kinematics-frame
+  explanation moved from a 300-character title on a span into a popover
+  with the three frames; the radios keep one-line titles. The three Go-to
+  destinations are explained on the Setup section title — the action row is
+  a three-cell grid with no room for a fourth element — and the buttons
+  keep their titles as hover complements. Escape while a popover is open is
+  E-Stop (capture) and closes it; expected, no registration needed.
+- **The icon sits out of the flow, and it is 20 px on touch.** A help icon
+  in a strip title costs height the 264 px section budget does not have:
+  the touchoff geometry probe and the layout gate caught the Setup rows
+  pushed out of the section. The icon is absolutely positioned at the
+  title's right edge (top-anchored; centred it overhung the section edge)
+  — and the probe found the touch icon 20 × 36: the generic touch button
+  floor (`min-height: 36px`) overrode the declared 20 px square, so the
+  icon reached 11.5 px into the first axis row. The touch rule now resets
+  the floor; every HelpIcon on touch is the 20 px it was declared to be.
+  The visual references were re-baselined with the icons in place.
+- Tests: keyboard-guards "a dimmed control explains itself …" and "help is a
+  tap-friendly popover …".
+
+## 2026-09-22 — Confirmation patterns (WP-E of Fassung 4): every cancelled hold speaks, the arm-and-repeat counts down, destructive targets are named
+
+Codex UX-12. Plan: Fassung 4, WP-E — the last package.
+
+- **Every cancelled hold says so at the control.** Only a short tap showed
+  "Hold to activate"; a slide-off, a drag-scroll cancel, a gate closing
+  under the finger and a selection change cancelled the hold with a console
+  line and a half-drawn fill that vanished ("sometimes it doesn't"). Each
+  path now shows its own hint through the one app-wide `btnHint`; the
+  gate case names the reason the explain path knows (`Unavailable — Machine
+  off`). Hidden page and lost window focus stay console-only — nobody is
+  looking at the control then. The touch-hold spec asserts the slide-off
+  and the gate-closed hints, which it had claimed and not checked.
+- **The contract shows before the first press.** A hold button carries
+  `title="Hold to activate"` unless the caller names the action, and a
+  thin track along its bottom edge (`Btn.vue` `.holdable::before`, beside
+  the `.holding::after` fill it runs along; inside the box, no layout
+  cost). It lives next to the fill in Btn.vue rather than style.css: only
+  Btn renders holds. The visual references were re-baselined with the
+  track on the Setup strip's hold buttons.
+- **Arm-and-repeat counts down.** The gamepad wizard's Restart armed for
+  a second press and silently expired after 3 s; the label now reads
+  "Press again to restart (3 s)" and counts down each second
+  (`aria-live="polite"`), reverting at 0.
+- **Destructive targets are named.** Clear <fixture> / Clear All stay
+  hold-to-fire (operator decision 2026-09-19, no dialog); their titles say
+  "Hold to clear G54" / "Hold to clear all fixture offsets (G54–G59.3)"
+  and Clear All's accessible name spells out the scope. The tool delete
+  dialog is titled "Delete T12?" — the target in the title, not only in
+  the body. Abort/Stop/E-Stop remain immediate.
+
+## 2026-09-22 evening — Review round 5: a save status per section and revision, a help popover placed from its real layout
+
+Codex implementation round 5 on the closed wave (`ac0f918`): UI-I12 and
+UI-I13, plus the UX-09 wording.
+
+- **A save's status is a ledger, not a flag.** `settingsSaveStatus.ts` kept
+  one global state and a set of request ids: the first ok reply that
+  emptied the set said "Saved" — over a refused keyboard save (another
+  section's ok wiped the error) and over a keyboard change still in the
+  300 ms debounce (the OLD revision's ok; the new one never sent — a 46 ms
+  window, three of three probes). Now every change is a REVISION per
+  section; a reply confirms or fails exactly the revision it was sent for;
+  a section reads saved only once its latest revision is confirmed; a
+  failed or blocked section stays in the header, named
+  (`Save failed — keyboard: …`), until its own retry succeeds; the header
+  shows the worst section (failure > block > saving > saved). A lost
+  connection fails every unconfirmed revision, in flight or in the
+  debounce, and leaves confirmed sections alone.
+- **The popover is measured after layout, in one coordinate space.**
+  `HelpIcon` positioned in `beforetoggle`, when the popover is still
+  display:none and reads 0 × 0: the fit check was vacuous and every popover
+  opened below its trigger — the Setup help ran 72 px off a 900 px
+  landscape and 716 px off a 1200 px portrait at 150 %. Under CSS zoom the
+  viewport-px rect was written as the element's own CSS px (×1.5 off), and
+  a stale inline `left` narrowed the shrink-to-fit box (309 for 336). Now
+  `beforetoggle` schedules the placement for the next animation frame —
+  after showPopover() put the element in the top layer, before that frame
+  paints — the inline left/top/max-* are reset, the popover's own rect is
+  the size, `helpPlacement.ts` (pure, unit-tested) decides below / above /
+  the roomier side with a capped height and an inner scroll, and the result
+  is divided by the CSS zoom (`currentCSSZoom`, else the rect/offset ratio).
+  The popover reads in body typography whatever `.sub` title it sits in:
+  the heading's uppercase and semibold inherit through the DOM even into
+  the top layer (`--fw-regular` joins the weight tokens).
+- **UX-09 is partial, and the plan says so.** Fassung 4 called
+  `MachineRadio` label-rooted; it is input-rooted like
+  MachineInput/Select/Slider and explains on pointer + title only. A
+  focusable explanation directly at a disabled input stays on the
+  follow-up list; the buttons and the section gate explain the same reason.
+- Tests: vitest `settingsSaveStatus.test.ts` (ten cases incl. the two
+  review sequences, superseded failures, two failed sections named),
+  `helpPlacement.test.ts`; e2e keyboard-guards: the two save sequences
+  against the mock's correlated replies (the pre-flush window sampled
+  until the second request is out) and the popover geometry at
+  1280 × 900, 900 × 1200 and 900 × 1200 at 150 % (touch, first opening).
+
+## 2026-09-22 night — Review round 6: the page-hide save is confirmed by the server's state; taps at measured coordinates
+
+Codex implementation round 6 on `7f50dd1`: UI-I12 rest, plus the unstable
+help-close case in the gate.
+
+- **A beacon is a hand-off, not a confirmation.** A change still in the
+  300 ms debounce when the page is hidden leaves through
+  `navigator.sendBeacon` (`flushPendingSaves`) and its timer is cleared —
+  no WS request and no correlated reply will ever settle that revision, so
+  the ledger read "Saving…" forever (Codex, 3/3). Now the flush notes the
+  hand-off: the revision is `unconfirmed` ("Sent on page hide — not yet
+  confirmed") until the gateway's next FULL settings blob carries the
+  section — `settings_changed` after the HTTP save (the status loop
+  broadcasts the whole store on every version bump), `settings_init` on a
+  reconnect. Equal to what was sent (stable JSON, key order free) → saved;
+  different → "page-hide save not on the server — change it again", an
+  error a later matching blob corrects (a broadcast raised by another
+  client can precede the beacon's own). A refused `sendBeacon()` is a
+  failure; a lost connection leaves a beaconed revision unconfirmed — its
+  transport was HTTP, the reconnect's blob decides. The store saves a
+  section verbatim (`settings_store.save_section`), so the comparison is
+  exact.
+- **The gate's unstable help close was the harness, not the product.**
+  In Codex's loaded full run the 150 % case failed at the CLOSING tap:
+  Playwright's own scroll-into-view under CSS zoom re-scrolled the strip
+  between the two taps (the icon at 712 → 1171 px), the UA's light dismiss
+  closed the popover on the first touch beside the trigger (it runs before
+  Playwright's hit-target interception can stop the event), and the
+  retried tap re-opened it. The regular cases now dispatch the touch at
+  MEASURED coordinates once the icon has held still for 300 ms
+  (`tapSteady`); Codex's resize-and-reopen probe is a regular case.
+- Tests: vitest `settingsSaveStatus.test.ts` (16 cases; the beacon path
+  incl. a differing then matching blob, a refused hand-off, connection
+  loss, supersession, `stableJson`), e2e keyboard-guards: the simulated
+  hidden/visible cycle with a routed beacon and the two blobs; the three
+  geometry cases with steady taps; the resize case.
+
+## 2026-09-23 — Review round 7 and the consistency review's defects (Fassung 5, WP-F1–F4)
+
+Codex round 7 (UI-I12 rests A/B) and the two reproduced defects of the
+consistency review (UI-K15, UI-K16); operator decisions of 2026-09-23:
+defects now, the design contracts UI-K01–K14/K17 as their own wave after
+the merge; UX-13 by a diagnosis switch in the operator's browser.
+
+- **A settings blob shows only written states.** `SettingsStore` mutated
+  its cached dict before writing; a failed write (disk full, the
+  refuse-to-clobber guard) answered 409 but left the unwritten value in the
+  cache, the next `settings_init` carried it, and the page-hide
+  confirmation read "Saved". Every change is now prepared on a deep copy
+  and becomes the cache only after the write. Old mutation, new meaning:
+  the round-6 fix made the blob a confirmation.
+- **The blob is complete, so absence is an answer.** A beaconed section
+  missing from `settings_init`/`settings_changed` is not on the server
+  (error, corrected by a later matching blob) — skipping it left a lost
+  first beacon "unconfirmed" for good.
+- **A readout that can grow must wrap.** The named failure made the
+  nowrap `.saveStatus` take its width from the hint beside it; the Settings
+  header grew to one-word lines and buried the tabs (the new e2e case could
+  not click the Abort cell). The CLAUDE.md lesson about nowrap flex items,
+  again.
+- **List what can be opened.** `list_files` checked the opened folder but
+  listed every child; `entry.is_dir()` follows symlinks, so the shipped
+  `nc_files` links into `/usr/share/linuxcnc/ncfiles` were offered and then
+  refused as "Invalid directory" with a Retry that could only fail. The
+  listing now applies the open/load rule per child (the tool browser did
+  already), and a 400 offers no Retry (`browseFailure.ts`). Offering the
+  system examples would be a configured extra read root — never a bypass.
+- **Every way out of a form asks the same question.** The Settings macro
+  editor and the gamepad wizard live inside the Settings panel; X, the
+  backdrop and a header switch to another dialog unmounted them without a
+  word. One guard (`guardSettingsClose` in `useDialogState`, asked by
+  `openDialog` and `closeSettings`) shows the tool editor's "Discard
+  changes?". A running tool-library import keeps its dialog until the reply
+  — hiding it had cancelled nothing.
+- **UX-13 is diagnosed in the browser that shows it.** The field contract
+  (WP-A) did not stop the Apple Passwords extension on the MDI line. No
+  documented opt-out exists for it and the extension is not available
+  here, so `?mdiField=` offers one-feature variants; the operator's report
+  decides WP-F5 (adopt the quiet variant, remove the switch).
+- Deferred with reasons: dialog focus management and `role=dialog`
+  (UI-K11) belong to the design wave's DialogFrame; FA-01–FA-04 stay their
+  own wave.
+
+## 2026-09-23 evening — UX-13 closed by the operator's variant test (WP-F5)
+
+The temporary `?mdiField=` switch (9360439) let the operator vary one
+feature of the MDI line at a time in the browser that showed the problem
+(Firefox/macOS, Apple Passwords extension). Round 1: of eight variants
+only `noplaceholder` stayed quiet. Round 2, placeholder texts: "MDI
+command (↑↓ history)" and "↑↓ history" quiet, "G-code (↑↓ history)" popped
+up. The trigger is the word "code" in the placeholder — the extension
+takes the field for a verification-code field; the tool search ("Search
+tools…") and the reference search ("Search codes, names, descriptions…",
+plural and a search field) never did. The MDI line reads "MDI command
+(↑↓ history)", the switch is removed, and the field-contract scan refuses
+the word "code" in any text-field placeholder. The general field contract
+(autocomplete=off etc.) stays: right for technical fields, but it was not
+what this extension keyed on — a reminder to find the trigger in the
+browser that shows the symptom before calling a heuristic fix done.
+

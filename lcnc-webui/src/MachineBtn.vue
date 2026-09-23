@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, ref, useAttrs, useSlots, type ComputedRef, type StyleValue } from 'vue';
+import { computed, inject, onBeforeUnmount, ref, useAttrs, useSlots, watch, type ComputedRef, type Ref, type StyleValue } from 'vue';
 import Btn from './Btn.vue';
 import { Square } from 'lucide-vue-next';
-import { usePermissions, usePermissionReasons, explainKeydown } from './permissions';
+import { usePermissions } from './permissions';
+import { useGateExplain } from './gateExplain';
 import { BUTTON_TYPES, HOLD_FIRE_MS, type ButtonType, type ButtonDef } from './machineControls';
-import { armed, pushMessage } from './lcncWs';
-import { OPERATOR_DISPLAY } from './lcnc';
+import { showBtnHint } from './btnHint';
 
 defineOptions({ inheritAttrs: false });
 
@@ -27,6 +27,10 @@ const props = withDefaults(defineProps<{
   /** Why THIS instance is disabled when its own `disabled` prop closes it
    *  (U-06) — the catalog gate's reason is looked up automatically. */
   reason?: string;
+  /** Identity of the hold's TARGET (the selected WCS, the axis…): when it
+   *  changes during a hold the hold is cancelled — a new, complete hold is
+   *  needed for the new target (UI-02). */
+  holdKey?: string;
 }>(), {
   // Catalog-aware props: undefined means "use catalog default"
   // Vue coerces absent booleans to false — we need undefined to detect "not passed"
@@ -40,11 +44,13 @@ const props = withDefaults(defineProps<{
 
 const slots = useSlots();
 const can = usePermissions();
-const reasons = usePermissionReasons();
 // Provided by App.vue. Tests/standalone use of MachineBtn falls back to a
 // dummy ref so the inject doesn't throw — `whileProbing` simply has no
 // effect when no provider exists.
 const probing = inject<ComputedRef<boolean>>('probing', computed(() => false));
+// App.vue's busy latch: a click while it is set is dropped by fire() —
+// say so at the control instead of only on the console.
+const busy = inject<Ref<boolean>>('busy', ref(false));
 const def = computed(() => BUTTON_TYPES[props.type] as ButtonDef);
 const isDisabled = computed(() =>
   !can.value[def.value.gate]
@@ -60,12 +66,16 @@ const useAbortDefault = computed(() => (props.type === 'abort' || props.type ===
 // in the message center. Not while disarmed: the whole UI is dimmed then and
 // Arm is the one obvious next step — wrapping every control for that would
 // be noise, not help.
-const disabledReason = computed<string | undefined>(() =>
-  props.disabled ? (props.reason ?? reasons.value[def.value.gate]) : reasons.value[def.value.gate]);
-const wrapped = computed(() => isDisabled.value && !!disabledReason.value && armed.value);
-function explain() {
-  if (wrapped.value && disabledReason.value) pushMessage(OPERATOR_DISPLAY, disabledReason.value);
-}
+// The rule lives in gateExplain.ts (UX-09) — the same one the input,
+// select, slider, toggle and radio controls use.
+const gateExplain = useGateExplain({
+  gate: () => def.value.gate,
+  disabled: () => isDisabled.value,
+  reason: () => (props.disabled ? props.reason : undefined),
+});
+const disabledReason = gateExplain.reason;
+const wrapped = gateExplain.active;
+const explain = gateExplain.explain;
 // R-05 (implementation review 2026-09-15): the wrapper carried the reason on
 // hover and on tap, which leaves a keyboard user tabbing straight past a
 // disabled control AND its explanation. While wrapped it is a focusable help
@@ -74,8 +84,7 @@ function explain() {
 // machine action remains unreachable; the wrapper appears only while the
 // control is disabled WITH a reason, so an enabled strip's tab order is
 // unchanged.
-const explainLabel = computed(() =>
-  disabledReason.value ? `Why is this unavailable? ${disabledReason.value}` : undefined);
+const explainLabel = gateExplain.label;
 const resolvedVariant = computed(() => props.variant ?? def.value.variant);
 const resolvedIcon = computed(() => props.icon ?? def.value.icon);
 const resolvedMuted = computed(() => props.muted ?? def.value.muted);
@@ -96,9 +105,30 @@ let holdStartX = 0;
 let holdStartY = 0;
 const HOLD_MOVE_SLOP = 10; // px
 
+// ── Transient hint (review "Hold verständlich") ──
+// "Hold to activate" after a short tap on a hold button; "Busy — try again"
+// when the busy latch will drop the click. ONE app-wide hint (btnHint.ts,
+// rendered by FloatingOverlays.vue): a per-button Teleport made this
+// component a fragment root, which strips every parent's scoped CSS from
+// the rendered button (implementation review UI-I07).
+const btnRef = ref<{ $el?: HTMLElement } | null>(null);
+function showHint(text: string) { showBtnHint(btnRef.value?.$el, text); }
+const STOP_TYPES = new Set(['abort', 'bannerAbort', 'estop', 'arm', 'machineOn']);
+function busyWillDrop(): boolean {
+  return busy.value && def.value.gate !== 'always' && !STOP_TYPES.has(props.type);
+}
+
 const passAttrs = computed(() => {
   let a: Record<string, unknown> = attrs;
   if (holdEnabled.value) { const { onClick: _onClick, ...rest } = a; a = rest; }
+  else if (typeof a.onClick === 'function' || Array.isArray(a.onClick)) {
+    // Machine-action buttons: note a busy-latch drop at the control.
+    const orig = a.onClick;
+    a = { ...a, onClick: (e: Event) => {
+      if (busyWillDrop()) showHint('Busy — try again');
+      if (Array.isArray(orig)) orig.forEach((f: (e: Event) => void) => f(e)); else (orig as (e: Event) => void)(e);
+    } };
+  }
   // Wrapped: class/style belong to the wrapper (it is the layout item now —
   // a grid placement like .spanAll must land on it).
   if (wrapped.value) { const { class: _c, style: _s, ...rest } = a; a = rest; }
@@ -125,11 +155,37 @@ function cancelHold(reason: string) {
   if (!holding.value) return;
   clearTimeout(holdTimer);
   holding.value = false;
+  disarmHoldGuards();
   console.warn(`[hold] ${props.type} cancelled after ${Math.round(performance.now() - holdStartTs)} ms: ${reason} (hold ${HOLD_FIRE_MS} ms to fire)`);
 }
-const cancelHoldUp = () => cancelHold("released before the hold time");
-const cancelHoldLeave = () => cancelHold("pointer left the button");
-const cancelHoldCancel = () => cancelHold("pointer cancelled (drag-scroll / gesture took it)");
+// EVERY cancelled hold says so AT the control (UX-12) — a half-drawn fill
+// that vanished used to be the only sign of a slide-off or a gate that
+// closed under the finger. Hidden page / lost window focus stay console-
+// only: nobody is looking at the control then.
+const cancelHoldUp = () => {
+  if (holding.value) showHint('Hold to activate');
+  cancelHold("released before the hold time");
+};
+const cancelHoldLeave = () => { if (holding.value) showHint('Hold to activate — stay on the button'); cancelHold("pointer left the button"); };
+const cancelHoldCancel = () => { if (holding.value) showHint('Hold to activate — the page scrolled'); cancelHold("pointer cancelled (drag-scroll / gesture took it)"); };
+// A hold button announces its contract before it is ever pressed: the
+// hover title (unless the caller names the action) and the .holdable track
+// along its bottom edge (Btn.vue) that the fill runs along.
+const resolvedTitle = computed(() =>
+  (attrs.title as string | undefined) ?? (holdEnabled.value ? 'Hold to activate' : undefined));
+
+// A hold that loses the page (tab hidden, window blur) is over: the timer
+// must not fire later as a surprise. Listeners live only for the hold.
+const cancelHoldHidden = () => { if (document.visibilityState === 'hidden') cancelHold("page hidden during the hold"); };
+const cancelHoldBlur = () => cancelHold("window lost focus during the hold");
+function armHoldGuards() {
+  document.addEventListener('visibilitychange', cancelHoldHidden);
+  window.addEventListener('blur', cancelHoldBlur);
+}
+function disarmHoldGuards() {
+  document.removeEventListener('visibilitychange', cancelHoldHidden);
+  window.removeEventListener('blur', cancelHoldBlur);
+}
 
 function onHoldPointerDown(e: PointerEvent) {
   if (!holdEnabled.value || e.button !== 0) return;
@@ -141,21 +197,37 @@ function onHoldPointerDown(e: PointerEvent) {
   holdStartY = e.clientY;
   holdStartTs = performance.now();
   holding.value = true;
+  armHoldGuards();
   clearTimeout(holdTimer);
   holdTimer = window.setTimeout(() => {
     holding.value = false;
+    disarmHoldGuards();
     // Gate may have closed mid-hold (disarm, probe started) — re-check.
     if (isDisabled.value) {
+      showHint(disabledReason.value ? `Unavailable — ${disabledReason.value}` : 'Unavailable now');
       console.warn(`[hold] ${props.type} not fired: gate '${def.value.gate}' closed during the hold`);
       return;
     }
+    if (busyWillDrop()) showHint('Busy — try again');
     callClickHandler(e);
   }, HOLD_FIRE_MS);
 }
 
+// A hold is bound to its target and its gate for its whole duration: the
+// target changing (selection moved, UI-02) or the gate closing — even if
+// it re-opens before the timer fires — cancels it. The check at timer
+// expiry alone let a 500 ms window retarget a hold.
+watch(() => props.holdKey, () => { if (holding.value) showHint('Selection changed — hold again'); cancelHold("target changed during the hold"); });
+watch(isDisabled, (off) => {
+  if (!off || !holding.value) return;
+  showHint(disabledReason.value ? `Unavailable — ${disabledReason.value}` : 'Unavailable now');
+  cancelHold("gate closed during the hold");
+});
+
 function onHoldPointerMove(e: PointerEvent) {
   if (!holding.value) return;
   if (Math.abs(e.clientX - holdStartX) > HOLD_MOVE_SLOP || Math.abs(e.clientY - holdStartY) > HOLD_MOVE_SLOP) {
+    showHint('Hold to activate — stay on the button');
     cancelHold("moved more than the slop");
   }
 }
@@ -165,14 +237,15 @@ function onHoldContextMenu(e: Event) {
   if (holdEnabled.value) e.preventDefault();
 }
 
-onBeforeUnmount(() => clearTimeout(holdTimer));
+onBeforeUnmount(() => { clearTimeout(holdTimer); disarmHoldGuards(); });
 </script>
 
 <template>
   <span v-if="wrapped" class="btnTip" :class="[wrapperAttrs.class, { 'btnTip--block': block }]" :style="wrapperAttrs.style"
         role="button" tabindex="0" :aria-label="explainLabel" :title="disabledReason"
-        @click="explain" @keydown="(e: KeyboardEvent) => explainKeydown(e, explain)">
+        @click="explain" @keydown="gateExplain.onKeydown">
     <Btn
+      ref="btnRef"
       v-bind="passAttrs"
       :variant="resolvedVariant"
       :size="def.size"
@@ -193,6 +266,7 @@ onBeforeUnmount(() => clearTimeout(holdTimer));
   </span>
   <Btn
     v-else
+    ref="btnRef"
     v-bind="passAttrs"
     :variant="resolvedVariant"
     :size="def.size"
@@ -207,7 +281,8 @@ onBeforeUnmount(() => clearTimeout(holdTimer));
     :flashing="flashing"
     :warning="warning"
     :holding="holding"
-    :class="holdEnabled ? 'no-drag-scroll' : undefined"
+    :title="resolvedTitle"
+    :class="holdEnabled ? 'no-drag-scroll holdable' : undefined"
     :style="holdEnabled ? { '--hold-duration': HOLD_FIRE_MS + 'ms' } : undefined"
     @pointerdown="onHoldPointerDown"
     @pointermove="onHoldPointerMove"

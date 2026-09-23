@@ -31,7 +31,13 @@
   --panel-min-w-wide: 540px;
   --panel-min-h: 400px;
   --panel-h-portrait: 500px;
-  --viewer-min-h-portrait: 500px;
+  /* Portrait viewer floor: 500 px, or 45 % of the content column when that
+     is less — at 150 % zoom on 900 × 1200 (800 CSS px tall) a fixed 500 px
+     left the side pane 126 px, less than its tab row, and the MDI line —
+     the on-screen keyboard's readout — fell below the fold (review UI-I08).
+     Column-relative, not vh: Chromium does not scale viewport units under
+     CSS `zoom` (the test's 150 % emulation), a percentage follows both. */
+  --viewer-min-h-portrait: min(500px, 45%);
 
   /* Font stacks
    * --font-sans is the UI default — every interactive element inherits this.
@@ -52,9 +58,13 @@
   --fs-lg: 14px;
   --fs-xl: 16px;
   --fs-2xl: 20px;
+  /* The help icon's square (HelpIcon.vue): a title that anchors it out of
+     the flow reserves exactly this much beside its text. */
+  --help-icon-size: calc(var(--fs-xs) * 1.3);
   --fs-3xl: 24px;
 
   /* Font weight */
+  --fw-regular: 400;
   --fw-medium: 500;
   --fw-semibold: 600;
   --fw-bold: 700;
@@ -142,6 +152,18 @@
   /* Action-rail minimum width — the wider grid track holding word-labeled
      keys (Send, Clear, Cancel, OK) beside the square character keys. */
   --key-action-w: 70px;
+
+  /* z-index scale — every stacking literal reads one of these (WP1). */
+  --z-base:         0;    /* the viewer host / a stacking-context root */
+  --z-raised:       1;    /* sticky cells, viewer overlays, thumb over track */
+  --z-fade:         2;    /* scroll-edge fades */
+  --z-pane-overlay: 5;    /* drop target over a pane */
+  --z-float:        10;   /* floating cards on the viewer (PIP, sim bar) */
+  --z-banner:       11;   /* transient banner above the floating cards */
+  --z-modal:        1000; /* dialog overlays, popovers, hover cards */
+  --z-modal-top:    1010; /* safety dialogs above every other dialog */
+  /* ViewCube edge (CSS px) — ThreeViewer's quick grid offsets by it. */
+  --viewcube-size: 140px;
 
   /* Shadows */
   --shadow-sm:  0 4px 12px rgba(0, 0, 0, 0.15);  /* popovers, floating panels, PIP */
@@ -600,6 +622,7 @@ html.touch-device {
   --fs-2xs: 10px;
   --fs-xs: 11px;
   --range-thumb: 20px;
+  --help-icon-size: 20px;
 }
 
 html.touch-device button,
@@ -646,8 +669,10 @@ html.touch-device input[type="color"] {
 }
 
 html.touch-device .helpIcon {
-  width: 20px;
-  height: 20px;
+  /* The generic touch button floor (min-height 36px) made this 20 × 36:
+     top-anchored beside a 16.5 px strip title it reached the next row
+     (layout gate, UX-11). The declared 20 px square is the size. */
+  min-height: 0;
 }
 
 /* Range inputs: the track stays a 6px bar, but the element grows to a
@@ -719,6 +744,47 @@ label:has(input:disabled, select:disabled) {
    carries the reason: title for hover, click for touch (MachineBtn). The
    disabled child is taken out of hit-testing so the wrapper always receives
    the event, in every browser. Promoted from ScrubBar's scoped rule. */
+/* Keyboard glyph beside a FOCUSED text field on non-touch devices (WP8,
+   UI-15a): opens the on-screen keyboard explicitly — opening is never bound
+   to focus. FloatingOverlays.vue renders it once, fixed at the focused
+   field's right edge (inputSession.ts inputGlyph), so the field's own
+   layout never changes and MachineInput stays a single-root component. */
+.inputAction {
+  position: fixed;
+  z-index: var(--z-float);
+  transform: translate(-100%, -50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--panel);
+  color: var(--fg);
+  opacity: var(--opacity-secondary);
+  cursor: pointer;
+}
+.inputAction:hover,
+.inputAction:focus-visible { opacity: 1; background: var(--hl-hover); }
+
+/* Transient hint at a control (WP6, review "Hold verständlich"): a short tap
+   on a hold-to-fire button says "Hold to activate", a click that the busy
+   latch dropped says "Busy — try again" — for ~1.5 s, above the control.
+   Rendered once by FloatingOverlays.vue (btnHint.ts) so it never changes
+   the control's own layout and MachineBtn stays a single-root component;
+   chrome from .overlay-card. */
+.btnHint {
+  position: fixed;
+  z-index: var(--z-modal-top);
+  transform: translate(-50%, -100%);
+  padding: var(--gap-tight) var(--gap-controls);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
 .btnTip { display: inline-flex; }
 .btnTip--block { display: flex; width: 100%; }
 .btnTip > :disabled {
@@ -785,7 +851,7 @@ label:has(input:disabled, select:disabled) {
   opacity: 0;
   transition: opacity 0.2s;
   pointer-events: none;
-  z-index: 2;
+  z-index: var(--z-fade);
 }
 /* Eased ramp, not linear: stays light through most of the height and
    commits to opaque only near the edge — the edge itself reaches full
@@ -861,6 +927,32 @@ label:has(input:disabled, select:disabled) {
   letter-spacing: 0.5px;
 }
 
+/* Inline banners for a panel or dialog: an operation that failed
+   (.errorBanner) and information that is not trustworthy (.warnBanner).
+   Same structure, danger / warn tokens; the text on the left, an optional
+   action (close, retry) on the right. Promoted from GcodePanel (used by the
+   tool table, the file browser and the dialogs too). */
+.warnBanner,
+.errorBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap-controls);
+  padding: var(--gap-tight) var(--gap-controls);
+  border-radius: var(--radius-lg);
+  font-size: var(--fs-base);
+}
+.warnBanner {
+  background: color-mix(in oklab, var(--warn) 15%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--warn) 25%, transparent);
+  color: var(--warn);
+}
+.errorBanner {
+  background: color-mix(in oklab, var(--err) 15%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--err) 25%, transparent);
+  color: var(--danger);
+}
+
 .sep {
   height: 1px;
   background: var(--border);
@@ -879,18 +971,15 @@ label:has(input:disabled, select:disabled) {
 
 /* Simulation-mode banner (viewer overlay) — must be unmissable: while it
    shows, the 3D model poses along the program, NOT the live machine, and
-   machine controls are locked (permissions.ts SIM_GATES). */
+   machine controls are locked (permissions.ts SIM_GATES). Chrome from
+   .overlay-card.warn (the template carries both classes); layout here. */
 .simBanner {
   position: absolute;
   top: var(--gap-section);   /* the viewer-overlay offset (HUD, sim bar) */
   left: 50%;
   transform: translateX(-50%);
-  z-index: 11;
+  z-index: var(--z-banner);
   padding: var(--gap-tight) var(--gap-panel);
-  background: color-mix(in oklab, var(--warn) 25%, var(--panel));
-  border: 1px solid var(--warn);
-  border-radius: var(--radius-lg);
-  color: var(--warn);
   font-weight: var(--fw-semibold);
   letter-spacing: 0.5px;
   white-space: nowrap;
@@ -931,7 +1020,7 @@ label:has(input:disabled, select:disabled) {
   min-width: 140px;
   max-height: calc(100vh - 32px);
   overflow-y: auto;
-  z-index: 1000;
+  z-index: var(--z-modal);
 }
 
 .helpIcon {
@@ -944,8 +1033,8 @@ label:has(input:disabled, select:disabled) {
   font-size: var(--fs-xs);
   font-weight: var(--fw-bold);
   line-height: 1;
-  width: 1.3em;
-  height: 1.3em;
+  width: var(--help-icon-size);
+  height: var(--help-icon-size);
   flex: 0 0 auto;
   padding: 0;
   cursor: pointer;
@@ -972,6 +1061,16 @@ label:has(input:disabled, select:disabled) {
   font-size: var(--fs-sm);
   line-height: 1.45;
   max-width: min(28rem, calc(100vw - var(--gap-panel)));
+  /* Body typography whatever title it sits in: a strip's `.sub` heading is
+     uppercase, semibold and letter-spaced, and the popover inherits that
+     through the DOM even in the top layer (round 5, UI-I13). */
+  font-weight: var(--fw-regular);
+  text-transform: none;
+  letter-spacing: normal;
+  /* Placed from its real size (HelpIcon.vue); when it fits on neither side
+     of its trigger its height is capped and the content scrolls here. */
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .popTitle {
   font-weight: var(--fw-semibold);
@@ -993,7 +1092,7 @@ label:has(input:disabled, select:disabled) {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
 }
 
 .dialog {
@@ -1021,6 +1120,13 @@ label:has(input:disabled, select:disabled) {
 .dialog.md > .dialogActions {
   padding: var(--gap-controls) var(--gap-section);
   margin-top: 0;
+}
+
+/* Wide mid-tier: structured content with two columns or a preview beside a
+   form (tool edit, library import). Same internals as .dialog.md. */
+.dialog.md.wide {
+  width: 760px;
+  max-width: calc(100% - 2 * var(--gap-panel));
 }
 
 .dialog.lg {
@@ -1305,7 +1411,7 @@ label:has(input:disabled, select:disabled) {
 .safetyStrip {
   position: sticky;
   left: 0;
-  z-index: 1;
+  z-index: var(--z-raised);
   background: var(--panel);
   padding-left: var(--gap-controls);
 }
@@ -1354,6 +1460,13 @@ label:has(input:disabled, select:disabled) {
   border-radius: var(--radius-xl);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
+}
+/* Warn-tinted overlay card: the sim banner and the STL-failed chip — one
+   chrome for every "attention" overlay on the viewer. */
+.overlay-card.warn {
+  background: color-mix(in oklab, var(--warn) 20%, var(--panel));
+  border-color: var(--warn);
+  color: var(--warn);
 }
 
 /* ── Display utilities ── */
@@ -1419,6 +1532,7 @@ label:has(input:disabled, select:disabled) {
 .radio-label    { display: flex; align-items: center; gap: var(--gap-tight); font-size: var(--fs-base); cursor: pointer; white-space: nowrap; }
 
 /* Stable-width toggle: both labels overlap in same grid cell; hidden one sizes but doesn't show */
+.w-full         { width: 100%; }
 .stable-width   { display: inline-grid; }
 .stable-width > * { grid-area: 1 / 1; display: flex; align-items: center; justify-content: center; }
 .stable-width > .alt { visibility: hidden; }
@@ -1478,6 +1592,17 @@ label:has(input:disabled, select:disabled) {
 
 /* Safety button label */
 .btn-label-sm   { font-size: var(--fs-xs); font-weight: var(--fw-semibold); text-transform: uppercase; }
+
+/* Save status (Settings header, UX-08): the honest state of the last
+   server-side settings save — text carries the state, colour underlines it
+   (--ok saved, --danger failed / blocked). */
+/* Wraps (never nowrap): a failure names its section(s) and reason, and a
+   nowrap readout with no min-width took its whole length from the hint
+   beside it — the Settings header grew to a column of one-word lines and
+   buried the tabs (review round 7 e2e). */
+.saveStatus { font-size: var(--fs-sm); font-weight: var(--fw-semibold); min-width: 0; overflow-wrap: anywhere; }
+.saveStatus.saved { color: var(--ok); }
+.saveStatus.error, .saveStatus.blocked { color: var(--danger); }
 
 /* Empty state (no data / drag target) */
 .emptyState { text-align: center; opacity: var(--opacity-muted); font-size: var(--fs-md); }
@@ -1546,7 +1671,7 @@ label:has(input:disabled, select:disabled) {
   position: sticky;
   top: 0;
   background: var(--panel);
-  z-index: 1;
+  z-index: var(--z-raised);
 }
 
 .dataTable th {

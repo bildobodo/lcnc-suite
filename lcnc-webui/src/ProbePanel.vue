@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, inject, onMounted, onUnmounted, watch, type Ref } from "vue";
+import { registerModal } from "./modalRegistry";
 import MachineBtn from "./MachineBtn.vue";
 import { fmtNum } from "./format";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
@@ -26,6 +27,8 @@ const props = defineProps<{
   compGridVersion: number;
   surfacePoints: [number, number, number][] | null;
   compGrid: { x: number[]; y: number[]; zi: number[][]; method: number } | null;
+  /** Owner's per-channel load state (App.vue, UI-10): the panel only renders it. */
+  surfaceState?: { points: string; pointsError: string | null; grid: string; gridError: string | null };
   surfaceLayerVisible: boolean;
   /** A configured rotary is off zero (backend `rotary_at_zero === false`), so
    *  an ACTIVE surface map is no longer valid for the tool's orientation. Only
@@ -57,6 +60,7 @@ const probeView = ref<"outside" | "inside" | "boss" | "ridge" | "angle" | "cal" 
 
 // ─── Reset confirmation ──────────────────────────────────────────
 const resetTarget = ref<string | null>(null);
+registerModal(() => resetTarget.value !== null);
 function confirmReset() {
   const target = resetTarget.value;
   resetTarget.value = null;
@@ -1147,17 +1151,33 @@ function fmtR(key: string): string {
 
       <div class="row-sections">
         <div ref="surfaceContainer" class="surface3d no-drag-scroll">
-          <div v-if="!surfacePoints?.length" class="emptyState">No scan data</div>
+          <!-- State, not silence (UI-10): loading, nothing recorded yet, or a
+               failure with its reason and a retry — never a toast for an
+               absent file. -->
+          <div v-if="!surfacePoints?.length && surfaceState?.points === 'loading'" class="emptyState">Loading surface map…</div>
+          <div v-else-if="surfaceState?.points === 'error'" class="noteWarn stack-tight surfaceError" role="alert">
+            <span>Surface points: {{ surfaceState.pointsError }}</span>
+            <MachineBtn type="surfaceRefresh" @click="emit('getProbeResults')">Retry</MachineBtn>
+          </div>
+          <div v-else-if="!surfacePoints?.length" class="emptyState">No surface map recorded yet</div>
         </div>
         <div class="compPanel stack-controls">
           <MachineBtn type="surfaceScan" @click="runSurfaceScan">Start Scan</MachineBtn>
-          <MachineBtn type="surfaceRefresh" @click="refreshSurface">Reload Data</MachineBtn>
+          <MachineBtn type="surfaceRefresh" @click="refreshSurface"
+                      :title="surfaceState?.points === 'loading' || surfaceState?.grid === 'loading' ? 'Loading…' : 'Reload the recorded points and the compensation grid'">
+            {{ surfaceState?.points === 'loading' || surfaceState?.grid === 'loading' ? 'Loading…' : 'Reload Data' }}
+          </MachineBtn>
+          <div v-if="surfaceState?.grid === 'error'" class="noteWarn stack-tight" role="alert">
+            <span>Grid: {{ surfaceState.gridError }}</span>
+            <MachineBtn type="surfaceRefresh" @click="emit('getCompGrid')">Retry</MachineBtn>
+          </div>
+          <div v-else-if="surfaceState?.grid === 'empty'" class="label-muted">No compensation grid yet</div>
           <div class="sep"></div>
           <div class="row-tight">
             <span class="compDot" :class="{ on: eoffsetEnabled }"></span>
             <span>Compensation: <b class="stable-width"><span :class="{ alt: !eoffsetEnabled }">ON</span><span :class="{ alt: eoffsetEnabled }">OFF</span></b></span>
           </div>
-          <span v-if="eoffsetZ != null" class="compValue mono">Z: {{ eoffsetZ.toFixed(4) }}</span>
+          <span v-if="eoffsetZ != null" class="compValue mono">Z: {{ fmtNum(eoffsetZ, 4) }}</span>
           <div class="sep"></div>
           <div class="sub">Method</div>
           <div class="radioGroup">
@@ -1522,4 +1542,9 @@ function fmtR(key: string): string {
   position: relative;
 }
 
+
+/* Surface-map error notice inside the 3D box: layout only. */
+.surfaceError {
+  align-items: flex-start;
+}
 </style>

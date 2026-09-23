@@ -3,6 +3,8 @@ import { computed } from "vue";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import { Lock, LockOpen, TriangleAlert, Power } from "lucide-vue-next";
+import { activeKind } from "./inputSession";
+import { useMediaMql } from "./useMediaMql";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
   TASK_MODE_MANUAL, TASK_MODE_AUTO, TASK_MODE_MDI,
@@ -61,6 +63,21 @@ const overridesActive = computed(() =>
   || (props.spindleOverride != null && Math.round(props.spindleOverride * 100) !== 100)
   || (props.rapidOverride != null && Math.round(props.rapidOverride * 100) !== 100)
 );
+
+// Portrait with an input helper open: the status detail folds away and the
+// section is its title and the three safety buttons. The detail (172 CSS
+// px) is what left the portrait keyboard 97 px below the fold at 150 % on
+// 900 × 1200 (implementation review UI-I08); a four-row form was measured
+// too and misses by 11 px whenever the header wraps one line more (its
+// wrap count at 600 CSS px follows the pill texts — it flipped between two
+// measurements), so the fold is the form with margin (≥ 47 px).
+// What the detail said stays readable: the banner above names the machine
+// state (IDLE / RUNNING / NOT HOMED / E-STOP / OFF), E-Stop and power are
+// the buttons' own labels; Motion, Elapsed, overrides and the active codes
+// return when the helper closes. The safety buttons never move (WP4 pinned
+// controls); landscape is unchanged (fixed section height).
+const isPortrait = useMediaMql("(orientation: portrait)");
+const compact = computed(() => isPortrait.value && activeKind.value !== null);
 </script>
 
 <template>
@@ -70,18 +87,21 @@ const overridesActive = computed(() =>
       <div class="btnGate">
         <!-- Gateway rejects arm while a safety trip is unacknowledged; mirror
              that here so the greyed button points at the recovery path
-             (Acknowledge) instead of a rejected click. Disarm stays allowed. -->
+             (Acknowledge) instead of a rejected click. Disarm stays allowed.
+             The label is the NEXT ACTION (Arm / Disarm), like E-Stop / Reset
+             — the state stays visible in the variant, the header pill and
+             the status rows (UX-10, operator decision 2026-09-21). -->
         <MachineBtn
           type="arm"
           :variant="armed ? 'ok' : 'default'"
           :disabled="busy || (!armed && tripUnacked)"
-          :title="armed ? 'Disarm' : (tripUnacked ? 'Acknowledge the safety trip first' : 'Arm')"
+          :reason="!armed && tripUnacked ? 'Acknowledge the safety trip first' : undefined"
           @click="emit('arm', !armed)"
           class="safetyBtn"
           block
         >
           <component :is="armed ? LockOpen : Lock" :size="18" />
-          <span class="btn-label-sm stable-width"><span :class="{ alt: !armed }">Armed</span><span :class="{ alt: armed }">Arm</span></span>
+          <span class="btn-label-sm stable-width"><span :class="{ alt: armed }">Arm</span><span :class="{ alt: !armed }">Disarm</span></span>
         </MachineBtn>
       </div>
 
@@ -90,6 +110,8 @@ const overridesActive = computed(() =>
           type="estop"
           :flashing="isEstop"
           :disabled="!(isEstop ? canResetEstop : canEstop)"
+          :aria-label="isEstop ? 'Reset E-Stop' : undefined"
+          :title="isEstop ? 'Reset E-Stop' : undefined"
           @click="isEstop ? emit('estopReset') : emit('estop')"
           class="safetyBtn"
           block
@@ -108,13 +130,13 @@ const overridesActive = computed(() =>
           block
         >
           <Power :size="18" />
-          <span class="btn-label-sm stable-width"><span :class="{ alt: !isEnabled }">On</span><span :class="{ alt: isEnabled }">Off</span></span>
+          <span class="btn-label-sm stable-width"><span :class="{ alt: isEnabled }">Power on</span><span :class="{ alt: !isEnabled }">Power off</span></span>
         </MachineBtn>
       </Gate>
     </div>
 
     <!-- Machine Status Detail -->
-    <div class="statusDetail inset-panel scroll-thin">
+    <div v-if="!compact" class="statusDetail inset-panel scroll-thin">
       <div class="statusCols">
         <div class="statusCol stack-tight">
           <div class="statusRow"><span class="label-muted md">E-Stop</span><span class="val-status md" :class="isEstop ? 'bad' : 'ok'"><span class="stable-width"><span :class="{ alt: !isEstop }">TRUE</span><span :class="{ alt: isEstop }">FALSE</span></span></span></div>
@@ -168,6 +190,17 @@ const overridesActive = computed(() =>
   justify-content: center;
   gap: var(--gap-tight);
   flex: 1;
+  /* Three buttons share the sticky section: the action words (POWER OFF,
+     DISARM — UX-10) need the width the size's 12 px side padding took
+     (89 px of content in an 83 px box, layout gate). Layout only. */
+  padding-left: var(--gap-tight);
+  padding-right: var(--gap-tight);
+}
+/* Portrait: the 280 px column gives each button ~74 px — POWER OFF (78 px)
+   wraps onto two lines instead of clipping; the row grows for all three
+   (block buttons stretch), which the 150 % portrait budget test measures. */
+@media (orientation: portrait) {
+  .safetyBtn .btn-label-sm { white-space: normal; text-align: center; }
 }
 /* ── Status detail ── */
 .statusDetail {

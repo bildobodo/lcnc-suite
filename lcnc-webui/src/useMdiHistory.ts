@@ -24,6 +24,12 @@ interface UseMdiHistoryOptions {
    *  visible here: MDI starts machine motion and must carry the permission
    *  re-check and busy latch like every other `mdi` call site (issue #31). */
   fire: (cmd: WsCommand) => void;
+  /** Runs after a send left the line: the caller hands focus back to the
+   *  field through the guarded transition — the field's own send disables
+   *  it for the busy latch, which drops the focus it held, and an unfocused
+   *  document is where Space is Cycle Start (the number keypad's UI-I06
+   *  class; review round 4 turned it up on the MDI line). */
+  afterSend?: () => void;
 }
 
 export function useMdiHistory(opts: UseMdiHistoryOptions) {
@@ -57,6 +63,7 @@ export function useMdiHistory(opts: UseMdiHistoryOptions) {
     mdiSavedInput.value = "";
     opts.fire({ cmd: "mdi", text: cmd });
     mdiText.value = "";
+    opts.afterSend?.();
   }
 
   function clearMdiHistory() {
@@ -67,6 +74,17 @@ export function useMdiHistory(opts: UseMdiHistoryOptions) {
   }
 
   function onMdiKeydown(e: KeyboardEvent) {
+    // Send on KEYDOWN, not keyup: an Enter keydown on a focused on-screen
+    // key (the keyboard's X) activates that key, and after the guarded
+    // focus return its keyup would land here — a keyup handler sent the
+    // draft the operator was only closing the helper on (review round 4,
+    // UI-I10). Auto-repeat and an IME's committing Enter never send.
+    if (e.key === "Enter") {
+      if (e.repeat || e.isComposing || e.keyCode === 229) return;
+      e.preventDefault();
+      handleMdiSend();
+      return;
+    }
     if (e.key === "ArrowDown") {
       e.preventDefault();
       e.stopPropagation();

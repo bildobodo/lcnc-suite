@@ -38,7 +38,8 @@ const emit = defineEmits<{
         <MachineBtn type="spindleRev" :active="isReverse" @click="emit('spindleRev', rpmInput)">
           <span class="btn-label"><RotateCcw :size="14" /> Rev</span>
         </MachineBtn>
-        <MachineBtn type="spindleStop" :active="isSpinning" :disabled="!isSpinning" @click="emit('spindleStop')">
+        <MachineBtn type="spindleStop" :active="isSpinning" :disabled="!isSpinning"
+                    :reason="!isSpinning ? 'Spindle is already stopped' : undefined" @click="emit('spindleStop')">
           <span class="btn-label"><Square :size="14" /> Stop</span>
         </MachineBtn>
         <MachineBtn type="spindleFwd" :active="isForward" @click="emit('spindleFwd', rpmInput)">
@@ -84,6 +85,10 @@ const emit = defineEmits<{
 /* .coolToggles — replaced by row-sections utility (same shape) */
 
 @media (orientation: portrait) {
-  .spDirRow > * { flex: 1; }
+  /* Three equal columns. Not `> * { flex: 1 }`: a flex share is added to
+     each item's padding+border, so a disabled button's reason wrapper (a
+     padding-less span) came out 11 px narrower than its neighbours and the
+     row re-flowed on every spindle state change (layout gate, 2026-09-20). */
+  .spDirRow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 </style>

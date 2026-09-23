@@ -8,6 +8,18 @@ function getBaseUrl(): string {
   return location.origin;
 }
 
+/** A refused HTTP request, with its status — callers decide whether a
+ *  retry can help (a 400 refusal is permanent; a 5xx or a lost network may
+ *  not be). The message stays the server's detail. */
+export class HttpError extends Error {
+  readonly status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "HttpError";
+    this.status = status;
+  }
+}
+
 async function throwHttpError(resp: Response): Promise<never> {
   // A non-JSON error body (proxy 502 HTML page, empty body) would make
   // resp.json() throw a SyntaxError that masks the real HTTP status. Fall
@@ -19,7 +31,7 @@ async function throwHttpError(resp: Response): Promise<never> {
   } catch {
     detail = undefined;
   }
-  throw new Error(detail || `HTTP ${resp.status}`);
+  throw new HttpError(detail || `HTTP ${resp.status}`, resp.status);
 }
 
 export interface FileEntry {
@@ -154,14 +166,39 @@ export async function resetServerSettings(): Promise<void> {
   if (!resp.ok) await throwHttpError(resp);
 }
 
-export async function uploadFile(file: File): Promise<UploadResponse> {
+/** A program with that name already exists and `overwrite` was not set
+ *  (HTTP 409, UI-09). The caller asks the operator: Cancel / Rename / Replace. */
+export class UploadConflictError extends Error {
+  readonly filename: string;
+  constructor(filename: string) {
+    super(`A program named ${filename} already exists`);
+    this.name = "UploadConflictError";
+    this.filename = filename;
+  }
+}
+
+/**
+ * Upload a program. The gateway never replaces an existing file unless
+ * `overwrite` is set; a name clash is a 409 surfaced as UploadConflictError.
+ * `name` re-sends the same content under a different file name (Rename).
+ */
+export async function uploadFile(file: File, opts: { overwrite?: boolean; name?: string } = {}): Promise<UploadResponse> {
   const formData = new FormData();
-  formData.append("file", file);
-  const resp = await fetch(`${getBaseUrl()}/upload`, {
+  formData.append("file", file, opts.name ?? file.name);
+  const url = `${getBaseUrl()}/upload${opts.overwrite ? "?overwrite=1" : ""}`;
+  const resp = await fetch(url, {
     method: "POST",
     headers: authHeaders(),
     body: formData,
   });
+  if (resp.status === 409) {
+    let filename = opts.name ?? file.name;
+    try {
+      const body = await resp.json();
+      if (typeof body?.detail?.filename === "string") filename = body.detail.filename;
+    } catch { /* keep the requested name */ }
+    throw new UploadConflictError(filename);
+  }
   if (!resp.ok) await throwHttpError(resp);
   return resp.json();
 }

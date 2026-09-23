@@ -1,0 +1,3 @@
+{"section":"machine","input":{"toolChangeMode":"invalid","rflSpindleDir":"invalid","spindleFeedbackUnit":"invalid","autoDisarmMin":-1},"loaded":{"toolChangeMode":"m6g43","runFromLine":false,"rflSpindleDir":"forward","rflSpindleRpm":10000,"rflSafeZ":true,"spindleFeedbackUnit":"rps","spindleLoadPin":"","autoDisarmMin":10},"warnings":[]}
+{"section":"macros","input":{"macros":[{"id":"valid","name":"OK","command":"G0 X0"},{"id":"invalid","name":"broken","command":123}]},"loaded":{"macros":[{"id":"valid","name":"OK","command":"G0 X0","params":[]}]},"warnings":[]}
+{"section":"macros","input":{"macros":"malformed"},"loaded":{"macros":[]},"warnings":[]}

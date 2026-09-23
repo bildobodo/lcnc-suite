@@ -13,8 +13,11 @@ import {
   type RawBinding, type StickBinding, type RawSample,
 } from "./gamepadProfile";
 import MachineBtn from "./MachineBtn.vue";
+import { registerModal } from "./modalRegistry";
 
 const props = defineProps<{ gamepadName: string }>();
+// The wizard IS its overlay: mounted means open (WP0 modal guard).
+registerModal(() => true);
 const emit = defineEmits<{
   (e: "save", profile: GamepadProfile): void;
   (e: "cancel"): void;
@@ -180,6 +183,33 @@ function skip() {
   advance();
 }
 
+// Restart throws captures away: it arms for a second press (a nested
+// confirm overlay inside this dialog would be clipped), and the button is
+// ALWAYS rendered (disabled with nothing captured) so Skip / Save Profile
+// keep their slot (P2).
+// The armed state shows its remaining time (UX-12): "Press again to restart
+// (3 s)" counts down each second and reverts at 0 — an arm-and-repeat that
+// silently expired read as a button that sometimes did nothing.
+const restartArmed = ref(false);
+const restartRemaining = ref(0);
+let restartTimer = 0;
+function disarmRestart() { restartArmed.value = false; restartRemaining.value = 0; clearInterval(restartTimer); }
+function requestRestart() {
+  if (capturedCount.value === 0) return;
+  if (!restartArmed.value) {
+    restartArmed.value = true;
+    restartRemaining.value = 3;
+    clearInterval(restartTimer);
+    restartTimer = window.setInterval(() => {
+      restartRemaining.value -= 1;
+      if (restartRemaining.value <= 0) disarmRestart();
+    }, 1000);
+    return;
+  }
+  disarmRestart();
+  restart();
+}
+
 function restart() {
   capButtons.value = {};
   capSticks.value = {};
@@ -201,7 +231,7 @@ function save() {
 }
 
 onMounted(() => { timer = window.setInterval(tick, 50); });
-onBeforeUnmount(() => { window.clearInterval(timer); });
+onBeforeUnmount(() => { window.clearInterval(timer); clearInterval(restartTimer); });
 </script>
 
 <template>
@@ -227,9 +257,10 @@ onBeforeUnmount(() => { window.clearInterval(timer); });
       </div>
       <div class="dialogActions">
         <MachineBtn type="dialogCancel" @click="emit('cancel')">Cancel</MachineBtn>
-        <MachineBtn v-if="capturedCount > 0" type="inlineMd" @click="restart">Restart</MachineBtn>
+        <MachineBtn type="inlineMd" :disabled="capturedCount === 0" reason="Nothing captured yet"
+                    :warning="restartArmed" aria-live="polite" @click="requestRestart">{{ restartArmed ? `Press again to restart (${restartRemaining} s)` : 'Restart' }}</MachineBtn>
         <MachineBtn v-if="phase !== 'done'" type="inlineMd" @click="skip">Skip</MachineBtn>
-        <MachineBtn v-if="phase === 'done'" type="dialogConfirm" @click="save">Save Profile</MachineBtn>
+        <MachineBtn v-else type="dialogConfirm" @click="save">Save Profile</MachineBtn>
       </div>
     </div>
   </div>

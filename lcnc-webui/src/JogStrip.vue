@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { usePermissionReasons, explainKeydown } from "./permissions";
-import { pushMessage } from "./lcncWs";
-import { OPERATOR_DISPLAY } from "./lcnc";
+import { usePermissionReasons } from "./permissions";
 import { computed, inject, ref, watch, onMounted, onUnmounted, type Ref, type Component } from "vue";
 import { send } from "./lcncWs";
 import { usePermissions } from "./permissions";
@@ -11,6 +9,8 @@ import { useAxes } from "./useAxes";
 import MachineBtn from "./MachineBtn.vue";
 import MachineRadio from "./MachineRadio.vue";
 import MachineSlider from "./MachineSlider.vue";
+import HelpIcon from "./HelpIcon.vue";
+import { useGateExplain } from "./gateExplain";
 import { TASK_MODE_MANUAL, TASK_MODE_AUTO, TASK_MODE_MDI } from "./lcnc";
 import {
   ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
@@ -82,9 +82,10 @@ const planeTitle = computed(() => {
     ? "TOOL kinematics — the plane frame is from the LAST orient and the table has moved since: Z is NOT the face normal. Press Orient to restore it."
     : "TOOL kinematics — jog in the tilted work plane, Z along the tool axis as of the last orient (Orient again after moving the table). Switching re-seeds the preview (a brief progress flash is expected)";
 });
-function explainPlane() {
-  if (!can.value.planeFrame) pushMessage(OPERATOR_DISPLAY, planeTitle.value);
-}
+// The dimmed Plane radio explains itself through the one path every
+// control uses (gateExplain.ts, UX-09) — its label root carries it.
+const { active: planeExplainActive, label: planeExplainLabel, explain: explainPlane, onKeydown: planeExplainKey } =
+  useGateExplain({ gate: () => "planeFrame", disabled: () => !can.value.planeFrame, reason: () => (can.value.planeFrame ? undefined : planeTitle.value) });
 
 const isDisabled = computed(() => !can.value[INPUT_DEFS.jogWheel.gate] || props.jogDisabled);
 
@@ -408,13 +409,13 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
       <div class="speedGroup row-sections strip-slider-group">
         <div class="speedCol stack-controls">
           <span class="label-muted">{{ abcAxes.length > 0 ? 'Linear' : 'Speed' }}</span>
-          <span class="val-mono val-slot">{{ (jogVel * 60).toFixed(0) }}</span>
+          <span class="val-mono val-slot">{{ Math.round(jogVel * 60) }}</span>
           <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minJogVel" :max="maxJogVel" :step="0.1" :modelValue="jogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }" class="vSlider" />
           <MachineBtn type="jogSpeedReset" :disabled="isDisabled" @click="emit('resetJogVel')">Reset</MachineBtn>
         </div>
         <div v-if="abcAxes.length > 0" class="speedCol stack-controls">
           <span class="label-muted">Rotary</span>
-          <span class="val-mono val-slot">{{ (angularJogVel * 60).toFixed(0) }}°</span>
+          <span class="val-mono val-slot">{{ Math.round(angularJogVel * 60) }}°</span>
           <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minAngularJogVel" :max="maxAngularJogVel" :step="0.1" :modelValue="angularJogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:angularJogVel', v) }" class="vSlider" />
           <MachineBtn type="jogSpeedReset" :disabled="isDisabled" @click="emit('resetAngularJogVel')">Reset</MachineBtn>
         </div>
@@ -465,14 +466,20 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
           </div>
           <template v-if="kinsType != null">
             <div class="strip-radio-group stack-tight">
-              <span class="label-muted" title="Selects the machine's KINEMATICS — for jogging, MDI and programs alike: Machine (identity), TCP (world XYZ rides the table) or the tilted Plane (which also selects G59). The M-code each frame uses is this machine's own remap. Not the Manual/MDI/Auto task mode above.">Kinematics frame</span>
+              <!-- The explanation is a tap-friendly help, not a hover title (UX-11). -->
+              <span class="label-muted sectionHelp">Kinematics frame <HelpIcon label="Kinematics frame">
+                Selects the machine's <strong>kinematics</strong> — for jogging, MDI and programs alike; the M-code each frame uses is this machine's own remap, not the Manual/MDI/Auto task mode above.
+                <br><strong>Machine</strong> — identity kinematics: jog along the machine axes.
+                <br><strong>TCP</strong> — X/Y/Z are the work frame riding the table: jogging A keeps the tool tip on the workpiece (position only; the head orientation does not follow). Switching re-seeds the preview (a brief progress flash is expected).
+                <br><strong>Plane</strong> — the tilted work plane (which also selects G59): Z along the tool axis as of the last orient — orient again after moving the table; a stale plane is flagged on the radio.
+              </HelpIcon></span>
               <div class="strip-radio-options">
                 <label class="radio-label" title="Identity kinematics — jog along machine axes"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="0" @update:modelValue="emit('setKinsMode', 0)" /> Machine</label>
                 <label class="radio-label" title="TCP kinematics — X/Y/Z are the work frame riding the table: jogging A keeps the tool tip on the workpiece (position only; the head orientation does not follow). Switching re-seeds the preview (a brief progress flash is expected)"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="1" @update:modelValue="emit('setKinsMode', 1)" /> TCP</label>
                 <label v-if="twpCapable" class="radio-label" :class="{ 'val-status': true, warn: twpStale, muted: !twpOriented }" :title="planeTitle"
-                       :tabindex="can.planeFrame ? undefined : 0" :role="can.planeFrame ? undefined : 'button'"
-                       :aria-label="can.planeFrame ? undefined : `Why is the Plane frame unavailable? ${planeTitle}`"
-                       @click="explainPlane" @keydown="(e: KeyboardEvent) => { if (!can.planeFrame) explainKeydown(e, explainPlane); }"><MachineRadio gate="planeFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="2" @update:modelValue="emit('setKinsMode', 2)" /> Plane{{ twpStale ? ' (stale)' : '' }}</label>
+                       :tabindex="planeExplainActive ? 0 : undefined" :role="planeExplainActive ? 'button' : undefined"
+                       :aria-label="planeExplainActive ? planeExplainLabel : undefined"
+                       @click="explainPlane" @keydown="planeExplainKey"><MachineRadio gate="planeFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="2" @update:modelValue="emit('setKinsMode', 2)" /> Plane{{ twpStale ? ' (stale)' : '' }}</label>
               </div>
             </div>
           </template>
@@ -483,6 +490,19 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 </template>
 
 <style scoped>
+/* The frame help sits at the label's right edge out of the flow (UX-11):
+   a touch-sized icon in the label line would grow the radio group past the
+   section budget; anchored to the label's top, the 4 px stack gap absorbs
+   the touch icon's extra 3.5 px. Layout only; the popover is fixed.
+   Out of the flow it adds no width, and the label IS the column's widest
+   content — the padding reserves the icon's square beside the text (it
+   covered "frame" on the live XYZAC sim). */
+.sectionHelp {
+  position: relative;
+  display: block;
+  padding-right: calc(var(--help-icon-size) + var(--gap-tight));
+}
+.sectionHelp :deep(.helpIcon) { position: absolute; right: 0; top: 0; }
 .jogContent > * { flex-shrink: 0; }
 
 /* ── Left: XY grid + Z + extra axes ── */
@@ -597,7 +617,9 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 
   /* XY grid: full width, square via aspect-ratio */
   .jogBtns  { flex-wrap: wrap; align-self: auto; gap: var(--gap-controls); }
-  .xyWrap   { flex: 0 0 100%; width: 100% !important; aspect-ratio: 1; height: auto; }
+  /* No !important: the JS inline size is cleared in portrait (xySize → 0,
+     see the isPortrait watcher), so this rule is the only width source. */
+  .xyWrap   { flex: 0 0 100%; width: 100%; aspect-ratio: 1; height: auto; }
 
   /* Axis area below the pad: 4 equal columns — Z leftmost at the same
      width as the others, ABC / UVW pairs fill columns 2-4 (one band row
@@ -621,5 +643,10 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 
   /* Hide the vertical divider between step/mode (modeColSep is inside strip-radio-grid) */
   .modeColSep { display: none; }
+
+  /* The labels share ONE max-content column here: the frame label with its
+     reserved icon square widened it and every option row wrapped once more.
+     Broken as "Kinematics / frame" it is narrower than before the reserve. */
+  .sectionHelp { white-space: normal; width: min-content; }
 }
 </style>

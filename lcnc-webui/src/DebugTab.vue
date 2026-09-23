@@ -45,7 +45,11 @@ const timingComponents: { key: keyof Omit<import("./lcncWs").TimingStats, "count
         <div class="timingRow timingHeader">
           <span>Component</span><span>Last</span><span>Min</span><span>Max</span><span>Mean</span><span>Std</span>
         </div>
-        <div v-for="comp in timingComponents" :key="comp.key" class="timingRow" :class="{ timingTotal: comp.key === 'rt' || comp.key === 'cycle' }">
+        <template v-for="comp in timingComponents" :key="comp.key">
+        <!-- Group break between the RT and the cycle totals: the global
+             divider, not a border rule on the row. -->
+        <div v-if="comp.key === 'cycle'" class="sep"></div>
+        <div class="timingRow" :class="{ timingTotal: comp.key === 'rt' || comp.key === 'cycle' }">
           <span>{{ comp.label }}</span>
           <span>{{ (timingStats[comp.key] as TimingComponentStats).last }}{{ comp.unit ?? 'ms' }}</span>
           <span>{{ (timingStats[comp.key] as TimingComponentStats).min }}{{ comp.unit ?? 'ms' }}</span>
@@ -53,6 +57,7 @@ const timingComponents: { key: keyof Omit<import("./lcncWs").TimingStats, "count
           <span>{{ (timingStats[comp.key] as TimingComponentStats).mean }}{{ comp.unit ?? 'ms' }}</span>
           <span>{{ (timingStats[comp.key] as TimingComponentStats).std }}{{ comp.unit ?? 'ms' }}</span>
         </div>
+        </template>
       </div>
       <div v-else class="muted">Waiting for data…</div>
       <div class="row-controls debugActions">
@@ -96,22 +101,20 @@ const timingComponents: { key: keyof Omit<import("./lcncWs").TimingStats, "count
 .timingHeader {
   opacity: var(--opacity-muted);
   font-weight: var(--fw-semibold);
-  border-bottom: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;  /* audit-ok: table header rule, not a section separator */
   padding-bottom: var(--gap-micro);
   margin-bottom: var(--gap-micro);
 }
 
 .timingTotal {
-  border-bottom: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;  /* audit-ok: totals underline (table rule) */
   padding-bottom: var(--gap-tight);
   margin-bottom: var(--gap-micro);
   font-weight: var(--fw-semibold);
 }
 
-.timingTotal + .timingRow:not(.timingTotal) ~ .timingTotal {
-  border-top: 1px solid currentColor;
-  padding-top: var(--gap-tight);
-  margin-top: var(--gap-controls);
+.timingTable > .sep {
+  margin: var(--gap-controls) 0 var(--gap-tight);
 }
 
 .muted {

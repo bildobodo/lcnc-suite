@@ -1,0 +1,306 @@
+Review stand
+============
+2026-09-20
+feat/ui-review-wave
+c0da512fd9d0b5023242b8ff0cdb901df6094428
+Browser results: isolated Vite diagnosis bundle, not a successful typechecked release build.
+
+npm run build (exit 2)
+======================
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+src/App.vue(360,7): error TS6133: 'gcodePanelRef' is declared but its value is never read.
+src/MachineInput.vue(228,8): error TS2322: Type 'string | undefined' is not assignable to type '"none" | "search" | "text" | "email" | "tel" | "url" | "numeric" | "decimal" | undefined'.
+  Type 'string' is not assignable to type '"none" | "search" | "text" | "email" | "tel" | "url" | "numeric" | "decimal" | undefined'.
+src/ThreeViewer.vue(635,3): error TS18047: 'scene' is possibly 'null'.
+src/ThreeViewer.vue(654,3): error TS18047: 'scene' is possibly 'null'.
+
+npm run lint (exit 0)
+=====================
+> lcnc-webui@0.0.0 lint
+> eslint . && npm run lint:css
+
+
+> lcnc-webui@0.0.0 lint:css
+> python3 ../scripts/audit-scoped-css.py
+
+OK: no definite scoped-CSS leaks, no token drift. (use --all to see ROOT? candidates)
+
+Vitest (exit 1)
+===============
+FAIL  src/commandPath.test.ts > one client path per command > no stale entries in the raw-only classifications
+AssertionError: add_tool is no longer sent raw — drop it from DOM_GATED_ONLY: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/commandPath.test.ts:106:86
+    104|     for (const c of DOM_GATED_ONLY) {
+    105|       expect(fired.has(c), `${c} is fired now — drop it from DOM_GATED…
+    106|       expect(raw.has(c), `${c} is no longer sent raw — drop it from DO…
+       |                                                                                      ^
+    107|     }
+    108|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/lcncWs.exports.test.ts > lcncWs export surface > value-export name set matches the snapshot exactly
+AssertionError: expected [ 'acknowledgeSafetyTrip', …(41) ] to deeply equal [ 'acknowledgeSafetyTrip', …(40) ]
+
+- Expected
++ Received
+
+@@ -17,10 +17,11 @@
+    "latency",
+    "lcncError",
+    "markMessagesRead",
+    "messages",
+    "networkLatency",
++   "nextReqId",
+    "previewLoadError",
+    "previewParseError",
+    "previewRefresh",
+    "previewRefreshElapsedMs",
+    "previewRefreshLabel",
+
+ ❯ src/lcncWs.exports.test.ts:48:40
+     46| describe("lcncWs export surface", () => {
+     47|   it("value-export name set matches the snapshot exactly", () => {
+     48|     expect(Object.keys(lcncWs).sort()).toEqual(VALUE_EXPORTS);
+       |                                        ^
+     49|   });
+     50|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/textKeyboardPages.test.ts > text keyboard pages (UI-15b) > fills spare letter cells from I J K P R Q H D L N O E in order
+AssertionError: expected [ 'X', 'Y', 'Z', 'I', 'J', 'K' ] to deeply equal [ 'I', 'J', 'K', 'P', 'R', 'Q' ]
+
+- Expected
++ Received
+
+  [
++   "X",
++   "Y",
++   "Z",
+    "I",
+    "J",
+    "K",
+-   "P",
+-   "R",
+-   "Q",
+  ]
+
+ ❯ src/textKeyboardPages.test.ts:35:31
+     33|   it("fills spare letter cells from I J K P R Q H D L N O E in order",…
+     34|     const xyz = codePage(["X", "Y", "Z"]).filter(Boolean) as string[];
+     35|     expect(xyz.slice(17, 23)).toEqual(["I", "J", "K", "P", "R", "Q"]);
+       |                               ^
+     36|     const nine = codePage(["X", "Y", "Z", "A", "B", "C", "U", "V", "W"…
+     37|     expect(nine).not.toContain("I");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  3 failed | 65 passed (68)
+      Tests  3 failed | 1561 passed (1564)
+   Start at  12:42:21
+   Duration  30.48s (transform 1.46s, setup 0ms, import 3.60s, tests 39.40s, environment 3ms)
+
+Targeted backend / CSS pytest (exit 0)
+======================================
+..................................                                       [100%]
+[GC] +16469ms gen=2 duration=15.4ms collected=582 uncollectable=0
+[GC] +16481ms gen=2 duration=11.6ms collected=0 uncollectable=0
+[GC] +16491ms gen=2 duration=10.4ms collected=0 uncollectable=0
+[GC] +16503ms gen=2 duration=11.6ms collected=0 uncollectable=0
+[GC] +16512ms gen=2 duration=9.5ms collected=0 uncollectable=0
+[GC] +16522ms gen=2 duration=9.7ms collected=0 uncollectable=0
+
+Playwright list (exit 0)
+========================
+[serial-guards] › editor-guards.spec.ts:66:1 › external program change keeps buffer A, shows the conflict, saves A only
+  [serial-guards] › editor-guards.spec.ts:96:1 › program change during a delayed save: no reload of the new program from A
+  [serial-guards] › editor-guards.spec.ts:123:1 › program change while CodeMirror is still loading: the view shows A and is usable
+  [serial-guards] › editor-guards.spec.ts:147:1 › a discarded session's pending import installs nothing
+  [serial-guards] › editor-guards.spec.ts:168:1 › an older save reply never touches a newer session
+  [serial-guards] › editor-guards.spec.ts:193:1 › discard: clean closes at once, dirty asks and Cancel keeps the edit
+  [serial-guards] › editor-guards.spec.ts:208:1 › an upload finishing after Edit raises the conflict, never loses the buffer
+  [serial-guards] › editor-guards.spec.ts:229:3 › upload name conflict › Cancel / Rename / Replace
+  [serial-guards] › input-session.spec.ts:61:1 › MDI → number → MDI: exactly one helper at a time, the title names the owner
+  [serial-guards] › input-session.spec.ts:80:1 › number A → number B: A is not confirmed, its draft returns marked as draft
+  [serial-guards] › input-session.spec.ts:101:1 › tap outside, Tab outside and Close hide the keyboard without confirming; a re-tap re-opens
+  [serial-guards] › input-session.spec.ts:134:1 › Send from the keyboard is the MDI path; Enter in a search field never reaches the machine
+  [serial-guards] › input-session.spec.ts:159:1 › editor → number → editor keeps the buffer; a hidden tab locks, not ends, the session
+  [serial-guards] › input-session.spec.ts:194:1 › touch-only entry of code, expressions, braces and an umlaut description; correction mid-text
+  [serial-guards] › input-session.spec.ts:237:1 › a page switch keeps the field's selection
+  [serial-guards] › input-session.spec.ts:249:3 › landscape light: every page fits the strip budget and never changes the frame
+  [serial-guards] › input-session.spec.ts:249:3 › landscape dark: every page fits the strip budget and never changes the frame
+  [serial-guards] › input-session.spec.ts:267:3 › portrait, touch › every page: 44 px keys, no overflow, reachable without scrolling at 100 % and 150 %
+  [serial-guards] › keyboard-guards.spec.ts:74:1 › positive control: Space on the bare page sends cycle_start
+  [serial-guards] › keyboard-guards.spec.ts:81:1 › number keypad open: Space/Backspace send nothing, Escape sends exactly estop
+  [serial-guards] › keyboard-guards.spec.ts:99:1 › repeated Escape in E-Stop never sends estop_reset
+  [serial-guards] › keyboard-guards.spec.ts:114:1 › settings dialog and key capture: only Escape passes, and it cancels the capture
+  [serial-guards] › keyboard-guards.spec.ts:148:1 › tool dialog, messages and reference dialogs block Space/Enter/Backspace
+  [serial-guards] › keyboard-guards.spec.ts:178:1 › documented remainder: Tab leaves the dialog (no focus trap in this wave)
+  [serial-guards] › keyboard-guards.spec.ts:195:1 › editor open: Space never starts the program
+  [serial-guards] › keyboard-guards.spec.ts:212:1 › pause and resume via Space are unchanged
+  [serial-guards] › keyboard-guards.spec.ts:229:1 › a jog key released after a field opened mid-jog still sends jog_stop
+  [serial-guards] › keyboard-guards.spec.ts:249:1 › keyboard tab: a capture edits a local copy, no page error, a server change refreshes it
+  [serial-guards] › touch-hold.spec.ts:53:1 › a short tap sends nothing and says why; a complete hold sends exactly one command
+  [serial-guards] › touch-hold.spec.ts:70:1 › sliding off, a scroll-cancel and a hidden page cancel the hold; the next hold starts from zero
+  [serial-guards] › touch-hold.spec.ts:112:1 › teleported tool dialog under touch: scroll the form, keypad on a field, confirm from the strip, footer reachable
+Total: 133 tests in 19 files
+
+Input-session cases 1-6 (exit 1)
+================================
+✘   1 [serial-guards] › e2e/input-session.spec.ts:61:1 › MDI → number → MDI: exactly one helper at a time, the title names the owner (30.4s)
+  ✓   2 [serial-guards] › e2e/input-session.spec.ts:80:1 › number A → number B: A is not confirmed, its draft returns marked as draft (1.4s)
+  ✓   3 [serial-guards] › e2e/input-session.spec.ts:101:1 › tap outside, Tab outside and Close hide the keyboard without confirming; a re-tap re-opens (1.7s)
+  ✘   4 [serial-guards] › e2e/input-session.spec.ts:134:1 › Send from the keyboard is the MDI path; Enter in a search field never reaches the machine (30.4s)
+  ✘   5 [serial-guards] › e2e/input-session.spec.ts:159:1 › editor → number → editor keeps the buffer; a hidden tab locks, not ends, the session (30.4s)
+  ✘   6 [serial-guards] › e2e/input-session.spec.ts:194:1 › touch-only entry of code, expressions, braces and an umlaut description; correction mid-text (30.4s)
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Error: locator.dispatchEvent: Test timeout of 30000ms exceeded.
+    Error: locator.dispatchEvent: Test timeout of 30000ms exceeded.
+    Error: locator.dispatchEvent: Test timeout of 30000ms exceeded.
+  4 failed
+  4 did not run
+  2 passed (2.1m)
+
+Input-session remaining 4 cases (exit 1)
+========================================
+✓  1 [serial-guards] › e2e/input-session.spec.ts:237:1 › a page switch keeps the field's selection (1.3s)
+  ✘  2 [serial-guards] › e2e/input-session.spec.ts:249:3 › landscape light: every page fits the strip budget and never changes the frame (1.4s)
+  ✘  3 [serial-guards] › e2e/input-session.spec.ts:249:3 › landscape dark: every page fits the strip budget and never changes the frame (1.5s)
+  ✘  4 [serial-guards] › e2e/input-session.spec.ts:267:3 › portrait, touch › every page: 44 px keys, no overflow, reachable without scrolling at 100 % and 150 % (1.5s)
+    Error: tk-light-Code keys: layout defects
+    Clear line: content 44 × 42, box 42 × 42
+    Code keys: content 53 × 42, box 42 × 42
+    ABC keys: content 48 × 42, box 42 × 42
+    123 keys: content 47 × 42, box 42 × 42
+    #+= keys: content 51 × 42, box 42 × 42
+    +     "detail": "Clear line: content 44 × 42, box 42 × 42",
+    +     "detail": "Code keys: content 53 × 42, box 42 × 42",
+    +     "detail": "ABC keys: content 48 × 42, box 42 × 42",
+    +     "detail": "123 keys: content 47 × 42, box 42 × 42",
+    +     "detail": "#+= keys: content 51 × 42, box 42 × 42",
+    Error: tk-dark-Code keys: layout defects
+    Clear line: content 44 × 42, box 42 × 42
+    Code keys: content 53 × 42, box 42 × 42
+    ABC keys: content 48 × 42, box 42 × 42
+    123 keys: content 47 × 42, box 42 × 42
+    #+= keys: content 51 × 42, box 42 × 42
+    +     "detail": "Clear line: content 44 × 42, box 42 × 42",
+    +     "detail": "Code keys: content 53 × 42, box 42 × 42",
+    +     "detail": "ABC keys: content 48 × 42, box 42 × 42",
+    +     "detail": "123 keys: content 47 × 42, box 42 × 42",
+    +     "detail": "#+= keys: content 51 × 42, box 42 × 42",
+    Error: tk-portrait-1-Code keys: layout defects
+    Send the MDI command: content 53 × 42, box 42 × 42
+    Space: content 55 × 42, box 42 × 42
+    Clear line: content 44 × 42, box 42 × 42
+    Code keys: content 53 × 42, box 42 × 42
+    ABC keys: content 48 × 42, box 42 × 42
+    123 keys: content 47 × 42, box 42 × 42
+    #+= keys: content 51 × 42, box 42 × 42
+    +     "detail": "Send the MDI command: content 53 × 42, box 42 × 42",
+    +     "detail": "Space: content 55 × 42, box 42 × 42",
+    +     "detail": "Clear line: content 44 × 42, box 42 × 42",
+    +     "detail": "Code keys: content 53 × 42, box 42 × 42",
+    +     "detail": "ABC keys: content 48 × 42, box 42 × 42",
+    +     "detail": "123 keys: content 47 × 42, box 42 × 42",
+    +     "detail": "#+= keys: content 51 × 42, box 42 × 42",
+  3 failed
+  1 passed (7.8s)
+
+Camera case (exit 1)
+====================
+✘  1 [serial-viewer] › e2e/viewer.spec.ts:249:1 › default framing keeps the eye outside a bed/column model for every direction, preset, projection and reset (7.1s)
+    Error: expect(received).toBe(expected) // Object.is equality
+    Expected: true
+    Received: false
+    > 306 |   expect((await camera(page))!.ortho).toBe(true);
+  1 failed
+
+Review probes: eight cases, 7 expected assertions fail / 1 control passes
+=========================================================================
+[WebServer] (node:194064) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 8 tests using 1 worker
+
+(node:194076) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:194076) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+NUMBER_OUTSIDE 1
+  ✘  1 ../../../../tmp/ui-review-harness/probes.spec.ts:13:5 › number closes on outside pointer (1.8s)
+(node:194157) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:194157) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+RETURNED_DRAFT 12.345
+  ✘  2 ../../../../tmp/ui-review-harness/probes.spec.ts:22:5 › number draft survives number to text and back (2.1s)
+(node:194238) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:194238) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+NUMBER_FOCUS <body>
+    <div id="app" data-v-app=""><div data-v-0bdafaf0="" class="wrap stack-controls"><header data-v-0bdafaf0="" class="hdr"><div data-v-0bdafaf0="" class=
+  ✘  3 ../../../../tmp/ui-review-harness/probes.spec.ts:36:5 › number confirm returns focus to its original field (1.9s)
+(node:194311) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:194311) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+HIDDEN_OFFSET {"openN":1,"cmds":{"ok":true,"op":"lastCmds","cmds":[{"cmd":"get_tool_table","req_id":"1p0zs5-3"},{"cmd":"get_tool_table","req_id":"1p0zs5-4"},{"cmd":"set_wcs","target":"G54","x":17,"req_id":"1p0zs5-5"}]}}
+  ✘  4 ../../../../tmp/ui-review-harness/probes.spec.ts:46:5 › hidden offset owner cannot confirm a write (1.2s)
+(node:194392) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:194392) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+SAVE_AFTER_TYPING {"body":"G0 X0\nM2\n","editors":0}
+  ✘  5 ../../../../tmp/ui-review-harness/probes.spec.ts:60:5 › save response preserves edits typed after the request (2.8s)
+(node:194474) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:194474) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+TEXT_BUTTON_TAB_OUT {
+  active: '<button data-v-906476cc="" class="b-icon md" title="Messages (0)"><svg data-v-0bdafaf0="" xmlns="http://www.w3.org/2000/svg" width="22" height="22" vi',
+  keyboard: true
+}
+  ✘  6 ../../../../tmp/ui-review-harness/probes.spec.ts:85:5 › Tab out from a keyboard button closes the text helper (1.9s)
+(node:194548) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:194548) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+SEARCH_KEY_HIT {
+  hit: '<button data-v-906476cc="" class="b lg default mono tkKey" aria-label="g" title="g">g</button>',
+  keyboard: true
+}
+  ✓  7 ../../../../tmp/ui-review-harness/probes.spec.ts:103:7 › real touch › reference search can receive a real keyboard tap (1.4s)
+PORTRAIT_ACTUAL_BOUNDS { bottom: 1335.875, top: 644.125, inner: 1200 }
+  ✘  8 ../../../../tmp/ui-review-harness/probes.spec.ts:118:7 › real touch › portrait at 150 percent keeps the full helper within the viewport (1.1s)
+
+Review probe: scoped sizing, expected assertion fails
+=====================================================
+[WebServer] (node:195344) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:195356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:195356) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+KEY_SCOPED_STYLES {
+  scopes: [ 'data-v-fe29bc54', 'data-v-0bdafaf0' ],
+  buttonAttrs: [ 'data-v-906476cc', 'class', 'aria-label', 'title' ],
+  paddingLeft: '14px',
+  gridRow: 'auto'
+}
+  ✘  1 ../../../../tmp/ui-review-harness/probes.spec.ts:101:5 › keyboard button keeps its parent scoped sizing rules (906ms)

@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { loadCameraDefaults, saveCameraDefaults, settingsVersion } from "./defaults";
 import MachineBtn from "./MachineBtn.vue";
+import { X } from "lucide-vue-next";
 
 const props = defineProps<{ visible: boolean }>();
 const emit = defineEmits<{ (e: "close"): void }>();
@@ -214,10 +215,10 @@ onMounted(() => {
     <div class="dialogHeader compact pipDragHandle" @pointerdown="onDragStart">
       <span class="dialogTitle">Camera</span>
       <div class="row-tight">
-        <MachineBtn type="close" @click.stop="toggleMinimize" :title="minimized ? 'Expand' : 'Minimize'">
+        <MachineBtn type="close" @click.stop="toggleMinimize" :aria-label="minimized ? 'Expand camera' : 'Minimize camera'" :title="minimized ? 'Expand camera' : 'Minimize camera'">
           {{ minimized ? '□' : '−' }}
         </MachineBtn>
-        <MachineBtn type="close" @click.stop="close" title="Close">&times;</MachineBtn>
+        <MachineBtn type="close" @click.stop="close" aria-label="Close camera" title="Close camera"><X :size="14" /></MachineBtn>
       </div>
     </div>
 
@@ -257,7 +258,7 @@ onMounted(() => {
 <style scoped>
 .cameraPip {
   position: absolute;
-  z-index: 10;
+  z-index: var(--z-float);
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-2xl);

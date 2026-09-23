@@ -1,0 +1,103 @@
+{
+  "date": "2026-09-22",
+  "productCommit": "691e642",
+  "entry": "/static/index-CVDIHYU1.js",
+  "environment": "Linux Chromium; isolated mock; no browser extensions or Apple Passwords",
+  "userReport": "MDI is still perceived as a password field; other fields do not exhibit the reported behavior",
+  "fields": [
+    {
+      "name": "MDI",
+      "type": "text",
+      "attributes": {
+        "id": null,
+        "name": "mdiText",
+        "type": "text",
+        "autocomplete": "off",
+        "autocorrect": "off",
+        "autocapitalize": "off",
+        "spellcheck": "false",
+        "aria-label": "MDI command",
+        "placeholder": "G-code command (↑↓ history)",
+        "inputmode": null
+      },
+      "labels": [],
+      "parentTag": "DIV",
+      "parentClass": "mdiRow",
+      "inForm": false,
+      "textSecurity": "none"
+    },
+    {
+      "name": "Tool search",
+      "type": "text",
+      "attributes": {
+        "id": null,
+        "name": "toolSearch",
+        "type": "text",
+        "autocomplete": "off",
+        "autocorrect": "off",
+        "autocapitalize": "off",
+        "spellcheck": "false",
+        "aria-label": "Search tools",
+        "placeholder": "Search tools…",
+        "inputmode": null
+      },
+      "labels": [],
+      "parentTag": "DIV",
+      "parentClass": "container stack-controls compact",
+      "inForm": false,
+      "textSecurity": "none"
+    },
+    {
+      "name": "Tool description",
+      "type": "text",
+      "attributes": {
+        "id": "tool-description",
+        "name": "toolEdit",
+        "type": "text",
+        "autocomplete": "off",
+        "autocorrect": "off",
+        "autocapitalize": "off",
+        "spellcheck": "false",
+        "aria-label": "Description",
+        "placeholder": null,
+        "inputmode": null
+      },
+      "labels": [
+        "Description"
+      ],
+      "parentTag": "DIV",
+      "parentClass": "paramGrid editGrid",
+      "inForm": false,
+      "textSecurity": "none"
+    },
+    {
+      "name": "Macro command",
+      "type": "text",
+      "attributes": {
+        "id": "macro-edit-command",
+        "name": "macroEdit",
+        "type": "text",
+        "autocomplete": "off",
+        "autocorrect": "off",
+        "autocapitalize": "off",
+        "spellcheck": "false",
+        "aria-label": null,
+        "placeholder": "e.g. G0 Z{depth} F{feed}",
+        "inputmode": null
+      },
+      "labels": [
+        "Command"
+      ],
+      "parentTag": "DIV",
+      "parentClass": "row-controls inputRow",
+      "inForm": false,
+      "textSecurity": "none"
+    }
+  ],
+  "mdiTyped": "G0 X10 ; review",
+  "mdiCommandsSent": 0,
+  "limitations": [
+    "DOM contract and typing only; no proof of password-manager classification",
+    "The build loaded in the operator browser has not been inspected"
+  ]
+}

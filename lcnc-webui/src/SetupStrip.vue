@@ -3,6 +3,7 @@ import { computed, inject, ref, watch, type Ref } from "vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineRadio from "./MachineRadio.vue";
+import HelpIcon from "./HelpIcon.vue";
 import { useAxes, isRotaryAxis } from "./useAxes";
 import { kinsModeChip, type OffDatum } from "./twpPose";
 import { touchoffTargetLabel, type TouchoffExpect } from "./useTouchoffMath";
@@ -10,14 +11,13 @@ import { keypadState, closeKeypad } from "./useNumberKeypad";
 import { usePermissions, explainKeydown } from "./permissions";
 import { pushMessage } from "./lcncWs";
 import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "./lcnc";
+import { G5X_LABELS, RESERVED_WCS } from "./wcs";
+import { fmtAxisValue } from "./format";
 
 // Match HUD precision (3 decimals linear, 2 rotary) without the unit suffix
-// so the keypad parser still receives a clean numeric string. (Deliberately
-// NOT fmtCoord: no ° suffix here.)
-function fmtAxisInput(val: number | undefined, letter: string): string {
-  if (val == null || !Number.isFinite(val)) return "";
-  return isRotaryAxis(letter) ? val.toFixed(2) : val.toFixed(3);
-}
+// so the keypad parser still receives a clean numeric string — format.ts
+// fmtAxisValue (deliberately NOT fmtCoord: no ° suffix here).
+const fmtAxisInput = fmtAxisValue;
 
 const props = defineProps<{
   axes: string[];
@@ -117,12 +117,12 @@ const axisChunks = computed(() => {
   return out;
 });
 
-const g5xOptions = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"];
+const g5xOptions = G5X_LABELS;
 // G59..G59.3 are the TWP remap's scratch rows — g53x_core rewrites them at
 // every orient, and a touch-off into them evaporates (XYZ) or poisons the
 // next orient (A/B/C). On a TWP machine (switchable kins present) they are
 // not an operator choice; the Plane jog frame selects G59 itself.
-const RESERVED_WCS = new Set(["G59", "G59.1", "G59.2", "G59.3"]);
+// (RESERVED_WCS lives in wcs.ts — one source with the labels.)
 function wcsReserved(g: string): boolean {
   return isTwpMachine.value && RESERVED_WCS.has(g);
 }
@@ -165,7 +165,14 @@ function zeroAll() {
 
 <template>
   <div class="stripSection" ref="rootEl">
-    <div class="sub">Setup</div>
+    <!-- The Go-to destinations are explained by a tap-friendly help on the
+         section title (UX-11): the action row is a three-cell grid with no
+         room for a fourth element; the buttons keep their titles. -->
+    <div class="sub sectionHelp">Setup <HelpIcon label="Go to positions">
+      <strong>Go to G30</strong> — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only.
+      <br><strong>Go to MCS 0</strong> — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only.
+      <br><strong>Go to WCS 0</strong> — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available.
+    </HelpIcon></div>
     <div class="setupContent row-sections">
       <div class="setupControls stack-tight">
         <div class="axisGrids row-controls">
@@ -204,6 +211,7 @@ function zeroAll() {
           <!-- Orient: works from a DEFINED plane (first orient) and
                re-orients after a table move. Hold-to-fire: the rotaries MOVE. -->
           <MachineBtn type="twpReorient" :disabled="!twpDefined" @click="emit('twpOrient')"
+                      :reason="!twpDefined ? 'Define a plane first (Capture plane, G68.2 / G68.3)' : undefined"
                       :title="!twpDefined
                         ? 'Define a plane first (Capture plane, G68.2 / G68.3)'
                         : twpStale
@@ -214,6 +222,7 @@ function zeroAll() {
           <!-- Clear plane: plain G69 — idempotent, restores identity kins +
                G54, moves nothing. Also the TOOL-kins-limbo recovery. -->
           <MachineBtn type="twpClear" :disabled="!twpDefined && kinsMode !== 2"
+                      :reason="!twpDefined && kinsMode !== 2 ? 'No plane defined — nothing to clear' : undefined"
                       @click="emit('twpClear')"
                       :title="twpDefined
                         ? 'Discard the tilted work plane (G69): back to identity kinematics and G54.'
@@ -225,8 +234,10 @@ function zeroAll() {
 
       <div class="wcsCol stack-tight strip-radio-group">
         <span class="label-muted">WCS</span>
-        <span v-if="kinsChip" class="val-status kinsChip" :class="kinsChip.cls"
-              :title="kinsChip.title">{{ kinsChip.text }}</span>
+        <!-- Fixed slot on switchable-kins machines: the chip appearing must
+             not push the WCS radios down (P2). -->
+        <span v-if="isSwitchable" class="val-status kinsChip" :class="kinsChip?.cls"
+              :title="kinsChip?.title">{{ kinsChip?.text ?? '\u00a0' }}</span>
         <div class="strip-radio-options wcsOptions">
           <label v-for="g in g5xOptions" :key="g" class="radio-label" :title="wcsReserved(g) ? RESERVED_TITLE : undefined"
                  :tabindex="wcsReserved(g) ? 0 : undefined" :role="wcsReserved(g) ? 'button' : undefined"
@@ -261,6 +272,14 @@ function zeroAll() {
 .setupInput { width: 100%; }
 /* Three equal cells across the whole grid (layout only): the goto row and
    the TWP action row are structurally identical. */
+/* The section help sits at the title's right edge OUT of the flow (UX-11):
+   the touch-sized icon (20 px) in a 16.5 px title row would push every row
+   below it out of the 264 px section budget — the touchoff geometry probe
+   and the layout gate caught it. Anchored to the title's TOP: centred it
+   overhung the section edge / the first axis row by 1.75 px; the 8 px gap
+   below the title absorbs the touch icon's extra 3.5 px. Layout only. */
+.sectionHelp { position: relative; }
+.sectionHelp :deep(.helpIcon) { position: absolute; right: 0; top: 0; }
 .actionRow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap-controls); }
 .aggregateRow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 /* Portrait has less width: destination labels wrap instead of clipping or
@@ -284,7 +303,10 @@ function zeroAll() {
 
 @media (orientation: portrait) {
   .setupContent { flex-direction: column; }
-  /* Narrow input column to fit 280px strip width */
-  .setupGrid { grid-template-columns: 70px 1fr 1fr; }
+  /* Narrow input column to fit the 280 px strip column: 280 − 2 × 8 padding
+     − border − the reserved scrollbar band (~14 px, WP4) ≈ 248 px inside;
+     "Unhome X" needs 84 px, so the input column and the grid gap give way
+     (--gap-tight is the minimum between clickables): (248 − 64 − 8) / 2 = 88. */
+  .setupGrid { grid-template-columns: 64px 1fr 1fr; gap: var(--gap-tight); }
 }
 </style>

@@ -1,0 +1,2431 @@
+{
+  "product_commit": "691e642",
+  "documentation_head_at_end": "f608f38",
+  "mock_only": true,
+  "measurement_notes": "CSS px at 100%; settings_init supplied; desktop 1600x1000, touch landscape1280x800, portrait900x1200. AX counts include the strip/background; not only dialog controls. Viewer fixture has no STL and shows a preview-version warning.",
+  "geometry": [
+    {
+      "profile": "desktop",
+      "state": "program",
+      "metrics": {
+        ".hdrBtns button": [
+          {
+            "tag": "BUTTON",
+            "text": "Messages (0)",
+            "class": "b-icon md",
+            "x": 1321.796875,
+            "y": 14.5,
+            "width": 38,
+            "height": 34,
+            "font": "12px",
+            "padding": "6px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgba(0, 0, 0, 0)",
+            "opacity": "0.6",
+            "role": null,
+            "ariaLabel": null,
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "BUTTON",
+            "text": "G-code Reference",
+            "class": "b-icon md",
+            "x": 1367.796875,
+            "y": 14.5,
+            "width": 38,
+            "height": 34,
+            "font": "12px",
+            "padding": "6px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgba(0, 0, 0, 0)",
+            "opacity": "0.6",
+            "role": null,
+            "ariaLabel": null,
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "BUTTON",
+            "text": "Settings",
+            "class": "b-icon md",
+            "x": 1413.796875,
+            "y": 14.5,
+            "width": 38,
+            "height": 34,
+            "font": "12px",
+            "padding": "6px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgba(0, 0, 0, 0)",
+            "opacity": "0.6",
+            "role": null,
+            "ariaLabel": null,
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "BUTTON",
+            "text": "Fullscreen",
+            "class": "b-icon md",
+            "x": 1459.796875,
+            "y": 14.5,
+            "width": 38,
+            "height": 34,
+            "font": "12px",
+            "padding": "6px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgba(0, 0, 0, 0)",
+            "opacity": "0.6",
+            "role": null,
+            "ariaLabel": null,
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "BUTTON",
+            "text": "Shut Down",
+            "class": "b-icon md hdrShutdown",
+            "x": 1505.796875,
+            "y": 8,
+            "width": 86.203125,
+            "height": 47,
+            "font": "12px",
+            "padding": "6px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgba(0, 0, 0, 0)",
+            "opacity": "0.6",
+            "role": null,
+            "ariaLabel": null,
+            "labelledBy": null,
+            "labels": []
+          }
+        ]
+      }
+    },
+    {
+      "profile": "desktop",
+      "state": "mdi",
+      "metrics": {
+        ".mdiInput": [
+          {
+            "tag": "INPUT",
+            "text": "MDI command",
+            "class": "mdiInput inputField",
+            "x": 1061,
+            "y": 153,
+            "width": 369.265625,
+            "height": 32,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "MDI command",
+            "labelledBy": null,
+            "labels": []
+          }
+        ]
+      }
+    },
+    {
+      "profile": "desktop",
+      "state": "keyboard",
+      "metrics": {
+        ".tkClose": [
+          {
+            "tag": "BUTTON",
+            "text": "Close keyboard",
+            "class": "b lg default mono tkKey tkClose",
+            "x": 1129.5,
+            "y": 925.5,
+            "width": 44,
+            "height": 44,
+            "font": "13px",
+            "padding": "10px 0px",
+            "radius": "8px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(249, 249, 249)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Close keyboard",
+            "labelledBy": null,
+            "labels": []
+          }
+        ]
+      }
+    },
+    {
+      "profile": "desktop",
+      "state": "tools",
+      "metrics": {
+        ".toolSearch": [
+          {
+            "tag": "INPUT",
+            "text": "Search tools",
+            "class": "toolSearch inputField",
+            "x": 1061,
+            "y": 260.5,
+            "width": 522,
+            "height": 28,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Search tools",
+            "labelledBy": null,
+            "labels": []
+          }
+        ]
+      }
+    },
+    {
+      "profile": "desktop",
+      "state": "tool-editor",
+      "metrics": {
+        ".editDialog .inputField": [
+          {
+            "tag": "INPUT",
+            "text": "Tool #",
+            "class": "inputField",
+            "x": 503.65625,
+            "y": 215.5,
+            "width": 100,
+            "height": 28,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Tool #",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Pocket",
+            "class": "inputField",
+            "x": 503.65625,
+            "y": 247.5,
+            "width": 100,
+            "height": 28,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Pocket",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "SELECT",
+            "text": "-End MillReamerBallBull NoseDrillBlock DrillCenter DrillChamferCorner Chamfer End MillCircle Se",
+            "class": "full inputField",
+            "x": 503.65625,
+            "y": 279.5,
+            "width": 465.34375,
+            "height": 26,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": null,
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Description",
+            "class": "full inputField",
+            "x": 503.65625,
+            "y": 309.5,
+            "width": 465.34375,
+            "height": 28,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Description",
+            "labelledBy": null,
+            "labels": [
+              "Description"
+            ]
+          },
+          {
+            "tag": "INPUT",
+            "text": "Diameter",
+            "class": "inputField",
+            "x": 503.65625,
+            "y": 341.5,
+            "width": 100,
+            "height": 28,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Diameter",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Z Offset",
+            "class": "inputField",
+            "x": 503.65625,
+            "y": 373.5,
+            "width": 100,
+            "height": 28,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Z Offset",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Flutes",
+            "class": "inputField",
+            "x": 503.65625,
+            "y": 405.5,
+            "width": 100,
+            "height": 28,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Flutes",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Material",
+            "class": "full inputField",
+            "x": 503.65625,
+            "y": 437.5,
+            "width": 465.34375,
+            "height": 28,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Material",
+            "labelledBy": null,
+            "labels": [
+              "Material"
+            ]
+          },
+          {
+            "tag": "INPUT",
+            "text": "Total Length",
+            "class": "inputField",
+            "x": 508.140625,
+            "y": 502,
+            "width": 100,
+            "height": 28,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Total Length",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Length Below Holder",
+            "class": "inputField",
+            "x": 783.03125,
+            "y": 502,
+            "width": 100,
+            "height": 28,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Length Below Holder",
+            "labelledBy": null,
+            "labels": [
+              "Below Holder"
+            ]
+          },
+          {
+            "tag": "INPUT",
+            "text": "Flute Length",
+            "class": "inputField",
+            "x": 508.140625,
+            "y": 534,
+            "width": 100,
+            "height": 28,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Flute Length",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Shaft \u00d8",
+            "class": "inputField",
+            "x": 783.03125,
+            "y": 534,
+            "width": 100,
+            "height": 28,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Shaft \u00d8",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Corner R",
+            "class": "inputField",
+            "x": 508.140625,
+            "y": 566,
+            "width": 100,
+            "height": 28,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Corner R",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Tip \u00d8",
+            "class": "inputField",
+            "x": 783.03125,
+            "y": 566,
+            "width": 100,
+            "height": 28,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Tip \u00d8",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Taper",
+            "class": "inputField",
+            "x": 508.140625,
+            "y": 598,
+            "width": 100,
+            "height": 28,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Taper",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Point",
+            "class": "inputField",
+            "x": 783.03125,
+            "y": 598,
+            "width": 100,
+            "height": 28,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Point",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Holder",
+            "class": "full spanRest inputField",
+            "x": 508.140625,
+            "y": 630,
+            "width": 460.859375,
+            "height": 28,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Holder",
+            "labelledBy": null,
+            "labels": [
+              "Holder"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "profile": "desktop",
+      "state": "numpad",
+      "metrics": {
+        ".nkClose": [
+          {
+            "tag": "BUTTON",
+            "text": "Close keyboard",
+            "class": "b lg default mono nkKey nkClose",
+            "x": 1025.5,
+            "y": 772.5,
+            "width": 70,
+            "height": 44,
+            "font": "13px",
+            "padding": "10px 0px",
+            "radius": "8px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(249, 249, 249)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Close keyboard",
+            "labelledBy": null,
+            "labels": []
+          }
+        ]
+      }
+    },
+    {
+      "profile": "touch-landscape",
+      "state": "program",
+      "metrics": {
+        ".hdrBtns button": [
+          {
+            "tag": "BUTTON",
+            "text": "Messages (0)",
+            "class": "b-icon md",
+            "x": 986.78125,
+            "y": 14.5,
+            "width": 40,
+            "height": 36,
+            "font": "12px",
+            "padding": "6px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgba(0, 0, 0, 0)",
+            "opacity": "0.6",
+            "role": null,
+            "ariaLabel": null,
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "BUTTON",
+            "text": "G-code Reference",
+            "class": "b-icon md",
+            "x": 1034.78125,
+            "y": 14.5,
+            "width": 40,
+            "height": 36,
+            "font": "12px",
+            "padding": "6px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgba(0, 0, 0, 0)",
+            "opacity": "0.6",
+            "role": null,
+            "ariaLabel": null,
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "BUTTON",
+            "text": "Settings",
+            "class": "b-icon md",
+            "x": 1082.78125,
+            "y": 14.5,
+            "width": 40,
+            "height": 36,
+            "font": "12px",
+            "padding": "6px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgba(0, 0, 0, 0)",
+            "opacity": "0.6",
+            "role": null,
+            "ariaLabel": null,
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "BUTTON",
+            "text": "Fullscreen",
+            "class": "b-icon md",
+            "x": 1130.78125,
+            "y": 14.5,
+            "width": 40,
+            "height": 36,
+            "font": "12px",
+            "padding": "6px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgba(0, 0, 0, 0)",
+            "opacity": "0.6",
+            "role": null,
+            "ariaLabel": null,
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "BUTTON",
+            "text": "Shut Down",
+            "class": "b-icon md hdrShutdown",
+            "x": 1178.78125,
+            "y": 8,
+            "width": 93.21875,
+            "height": 49,
+            "font": "12px",
+            "padding": "6px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgba(0, 0, 0, 0)",
+            "opacity": "0.6",
+            "role": null,
+            "ariaLabel": null,
+            "labelledBy": null,
+            "labels": []
+          }
+        ]
+      }
+    },
+    {
+      "profile": "touch-landscape",
+      "state": "mdi",
+      "metrics": {
+        ".mdiInput": [
+          {
+            "tag": "INPUT",
+            "text": "MDI command",
+            "class": "mdiInput inputField",
+            "x": 741,
+            "y": 166,
+            "width": 369.265625,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "MDI command",
+            "labelledBy": null,
+            "labels": []
+          }
+        ]
+      }
+    },
+    {
+      "profile": "touch-landscape",
+      "state": "keyboard",
+      "metrics": {
+        ".tkClose": [
+          {
+            "tag": "BUTTON",
+            "text": "Close keyboard",
+            "class": "b lg default mono tkKey tkClose",
+            "x": 969.5,
+            "y": 725.5,
+            "width": 44,
+            "height": 44,
+            "font": "13px",
+            "padding": "10px 0px",
+            "radius": "8px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(249, 249, 249)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Close keyboard",
+            "labelledBy": null,
+            "labels": []
+          }
+        ]
+      }
+    },
+    {
+      "profile": "touch-landscape",
+      "state": "tools",
+      "metrics": {
+        ".toolSearch": [
+          {
+            "tag": "INPUT",
+            "text": "Search tools",
+            "class": "toolSearch inputField",
+            "x": 741,
+            "y": 281.5,
+            "width": 522,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Search tools",
+            "labelledBy": null,
+            "labels": []
+          }
+        ]
+      }
+    },
+    {
+      "profile": "touch-landscape",
+      "state": "tool-editor",
+      "metrics": {
+        ".editDialog .inputField": [
+          {
+            "tag": "INPUT",
+            "text": "Tool #",
+            "class": "inputField",
+            "x": 343.65625,
+            "y": 227.5,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Tool #",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Pocket",
+            "class": "inputField",
+            "x": 343.65625,
+            "y": 267.5,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Pocket",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "SELECT",
+            "text": "-End MillReamerBallBull NoseDrillBlock DrillCenter DrillChamferCorner Chamfer End MillCircle Se",
+            "class": "full inputField",
+            "x": 343.65625,
+            "y": 307.5,
+            "width": 465.34375,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": null,
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Description",
+            "class": "full inputField",
+            "x": 343.65625,
+            "y": 347.5,
+            "width": 465.34375,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Description",
+            "labelledBy": null,
+            "labels": [
+              "Description"
+            ]
+          },
+          {
+            "tag": "INPUT",
+            "text": "Diameter",
+            "class": "inputField",
+            "x": 343.65625,
+            "y": 387.5,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Diameter",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Z Offset",
+            "class": "inputField",
+            "x": 343.65625,
+            "y": 427.5,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Z Offset",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Flutes",
+            "class": "inputField",
+            "x": 343.65625,
+            "y": 467.5,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Flutes",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Material",
+            "class": "full inputField",
+            "x": 343.65625,
+            "y": 507.5,
+            "width": 465.34375,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Material",
+            "labelledBy": null,
+            "labels": [
+              "Material"
+            ]
+          },
+          {
+            "tag": "INPUT",
+            "text": "Total Length",
+            "class": "inputField",
+            "x": 348.140625,
+            "y": 580,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Total Length",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Length Below Holder",
+            "class": "inputField",
+            "x": 623.03125,
+            "y": 580,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Length Below Holder",
+            "labelledBy": null,
+            "labels": [
+              "Below Holder"
+            ]
+          },
+          {
+            "tag": "INPUT",
+            "text": "Flute Length",
+            "class": "inputField",
+            "x": 348.140625,
+            "y": 620,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Flute Length",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Shaft \u00d8",
+            "class": "inputField",
+            "x": 623.03125,
+            "y": 620,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Shaft \u00d8",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Corner R",
+            "class": "inputField",
+            "x": 348.140625,
+            "y": 660,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Corner R",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Tip \u00d8",
+            "class": "inputField",
+            "x": 623.03125,
+            "y": 660,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Tip \u00d8",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Taper",
+            "class": "inputField",
+            "x": 348.140625,
+            "y": 700,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Taper",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Point",
+            "class": "inputField",
+            "x": 623.03125,
+            "y": 700,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Point",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Holder",
+            "class": "full spanRest inputField",
+            "x": 348.140625,
+            "y": 740,
+            "width": 460.859375,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Holder",
+            "labelledBy": null,
+            "labels": [
+              "Holder"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "profile": "touch-landscape",
+      "state": "numpad",
+      "metrics": {
+        ".nkClose": [
+          {
+            "tag": "BUTTON",
+            "text": "Close keyboard",
+            "class": "b lg default mono nkKey nkClose",
+            "x": 865.5,
+            "y": 577.5,
+            "width": 70,
+            "height": 44,
+            "font": "13px",
+            "padding": "10px 0px",
+            "radius": "8px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(249, 249, 249)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Close keyboard",
+            "labelledBy": null,
+            "labels": []
+          }
+        ]
+      }
+    },
+    {
+      "profile": "touch-portrait",
+      "state": "program",
+      "metrics": {
+        ".hdrBtns button": [
+          {
+            "tag": "BUTTON",
+            "text": "Messages (0)",
+            "class": "b-icon md",
+            "x": 606.78125,
+            "y": 51.5,
+            "width": 40,
+            "height": 36,
+            "font": "12px",
+            "padding": "6px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgba(0, 0, 0, 0)",
+            "opacity": "0.6",
+            "role": null,
+            "ariaLabel": null,
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "BUTTON",
+            "text": "G-code Reference",
+            "class": "b-icon md",
+            "x": 654.78125,
+            "y": 51.5,
+            "width": 40,
+            "height": 36,
+            "font": "12px",
+            "padding": "6px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgba(0, 0, 0, 0)",
+            "opacity": "0.6",
+            "role": null,
+            "ariaLabel": null,
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "BUTTON",
+            "text": "Settings",
+            "class": "b-icon md",
+            "x": 702.78125,
+            "y": 51.5,
+            "width": 40,
+            "height": 36,
+            "font": "12px",
+            "padding": "6px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgba(0, 0, 0, 0)",
+            "opacity": "0.6",
+            "role": null,
+            "ariaLabel": null,
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "BUTTON",
+            "text": "Fullscreen",
+            "class": "b-icon md",
+            "x": 750.78125,
+            "y": 51.5,
+            "width": 40,
+            "height": 36,
+            "font": "12px",
+            "padding": "6px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgba(0, 0, 0, 0)",
+            "opacity": "0.6",
+            "role": null,
+            "ariaLabel": null,
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "BUTTON",
+            "text": "Shut Down",
+            "class": "b-icon md hdrShutdown",
+            "x": 798.78125,
+            "y": 45,
+            "width": 93.21875,
+            "height": 49,
+            "font": "12px",
+            "padding": "6px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgba(0, 0, 0, 0)",
+            "opacity": "0.6",
+            "role": null,
+            "ariaLabel": null,
+            "labelledBy": null,
+            "labels": []
+          }
+        ]
+      }
+    },
+    {
+      "profile": "touch-portrait",
+      "state": "mdi",
+      "metrics": {
+        ".mdiInput": [
+          {
+            "tag": "INPUT",
+            "text": "MDI command",
+            "class": "mdiInput inputField",
+            "x": 313,
+            "y": 717,
+            "width": 417.265625,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "MDI command",
+            "labelledBy": null,
+            "labels": []
+          }
+        ]
+      }
+    },
+    {
+      "profile": "touch-portrait",
+      "state": "keyboard",
+      "metrics": {
+        ".tkClose": [
+          {
+            "tag": "BUTTON",
+            "text": "Close keyboard",
+            "class": "b lg default mono tkKey tkClose",
+            "x": 209,
+            "y": 299,
+            "width": 44,
+            "height": 44,
+            "font": "13px",
+            "padding": "10px 0px",
+            "radius": "8px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(249, 249, 249)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Close keyboard",
+            "labelledBy": null,
+            "labels": []
+          }
+        ]
+      }
+    },
+    {
+      "profile": "touch-portrait",
+      "state": "tools",
+      "metrics": {
+        ".toolSearch": [
+          {
+            "tag": "INPUT",
+            "text": "Search tools",
+            "class": "toolSearch inputField",
+            "x": 313,
+            "y": 832.5,
+            "width": 570,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Search tools",
+            "labelledBy": null,
+            "labels": []
+          }
+        ]
+      }
+    },
+    {
+      "profile": "touch-portrait",
+      "state": "tool-editor",
+      "metrics": {
+        ".editDialog .inputField": [
+          {
+            "tag": "INPUT",
+            "text": "Tool #",
+            "class": "inputField",
+            "x": 407.65625,
+            "y": 264.5,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Tool #",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Pocket",
+            "class": "inputField",
+            "x": 407.65625,
+            "y": 304.5,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Pocket",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "SELECT",
+            "text": "-End MillReamerBallBull NoseDrillBlock DrillCenter DrillChamferCorner Chamfer End MillCircle Se",
+            "class": "full inputField",
+            "x": 407.65625,
+            "y": 344.5,
+            "width": 441.34375,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": null,
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Description",
+            "class": "full inputField",
+            "x": 407.65625,
+            "y": 384.5,
+            "width": 441.34375,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Description",
+            "labelledBy": null,
+            "labels": [
+              "Description"
+            ]
+          },
+          {
+            "tag": "INPUT",
+            "text": "Diameter",
+            "class": "inputField",
+            "x": 407.65625,
+            "y": 424.5,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Diameter",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Z Offset",
+            "class": "inputField",
+            "x": 407.65625,
+            "y": 464.5,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Z Offset",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Flutes",
+            "class": "inputField",
+            "x": 407.65625,
+            "y": 504.5,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Flutes",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Material",
+            "class": "full inputField",
+            "x": 407.65625,
+            "y": 544.5,
+            "width": 441.34375,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Material",
+            "labelledBy": null,
+            "labels": [
+              "Material"
+            ]
+          },
+          {
+            "tag": "INPUT",
+            "text": "Total Length",
+            "class": "inputField",
+            "x": 412.140625,
+            "y": 617,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Total Length",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Length Below Holder",
+            "class": "inputField",
+            "x": 675.03125,
+            "y": 617,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Length Below Holder",
+            "labelledBy": null,
+            "labels": [
+              "Below Holder"
+            ]
+          },
+          {
+            "tag": "INPUT",
+            "text": "Flute Length",
+            "class": "inputField",
+            "x": 412.140625,
+            "y": 657,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Flute Length",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Shaft \u00d8",
+            "class": "inputField",
+            "x": 675.03125,
+            "y": 657,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Shaft \u00d8",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Corner R",
+            "class": "inputField",
+            "x": 412.140625,
+            "y": 697,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Corner R",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Tip \u00d8",
+            "class": "inputField",
+            "x": 675.03125,
+            "y": 697,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Tip \u00d8",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Taper",
+            "class": "inputField",
+            "x": 412.140625,
+            "y": 737,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Taper",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Point",
+            "class": "inputField",
+            "x": 675.03125,
+            "y": 737,
+            "width": 100,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Point",
+            "labelledBy": null,
+            "labels": []
+          },
+          {
+            "tag": "INPUT",
+            "text": "Holder",
+            "class": "full spanRest inputField",
+            "x": 412.140625,
+            "y": 777,
+            "width": 436.859375,
+            "height": 36,
+            "font": "12px",
+            "padding": "4px 8px",
+            "radius": "4px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(255, 255, 255)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Holder",
+            "labelledBy": null,
+            "labels": [
+              "Holder"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "profile": "touch-portrait",
+      "state": "numpad",
+      "metrics": {
+        ".nkClose": [
+          {
+            "tag": "BUTTON",
+            "text": "Close keyboard",
+            "class": "b lg default mono nkKey nkClose",
+            "x": 17,
+            "y": 535,
+            "width": 44,
+            "height": 44,
+            "font": "13px",
+            "padding": "10px 0px",
+            "radius": "8px",
+            "color": "rgb(33, 53, 71)",
+            "background": "rgb(249, 249, 249)",
+            "opacity": "1",
+            "role": null,
+            "ariaLabel": "Close keyboard",
+            "labelledBy": null,
+            "labels": []
+          }
+        ]
+      }
+    }
+  ],
+  "accessibility": {
+    "focusedSlider": {
+      "focusVisible": true,
+      "outline": "rgb(157, 150, 142) none 3px",
+      "boxShadow": "none"
+    },
+    "toolDialogInitialFocus": {
+      "tag": "BUTTON",
+      "text": "+ Add",
+      "class": "b md default",
+      "aria": null,
+      "insideDialog": false
+    },
+    "toolDialogFirstTab": {
+      "tag": "BUTTON",
+      "text": "Hide FilesBrowse",
+      "class": "b md default",
+      "aria": null,
+      "insideDialog": false
+    },
+    "toolDialogAccessibility": {
+      "controls": [
+        {
+          "role": "slider",
+          "name": "",
+          "value": 10
+        },
+        {
+          "role": "radio",
+          "name": "Manual"
+        },
+        {
+          "role": "radio",
+          "name": "MDI"
+        },
+        {
+          "role": "radio",
+          "name": "Auto"
+        },
+        {
+          "role": "textbox",
+          "name": "Touch off X \u00b7 -",
+          "value": "12.345"
+        },
+        {
+          "role": "textbox",
+          "name": "Touch off Y \u00b7 -",
+          "value": "1.000"
+        },
+        {
+          "role": "textbox",
+          "name": "Touch off Z \u00b7 -",
+          "value": "-5.500"
+        },
+        {
+          "role": "textbox",
+          "name": "Search tools"
+        },
+        {
+          "role": "radio",
+          "name": "Cont"
+        },
+        {
+          "role": "radio",
+          "name": ".001"
+        },
+        {
+          "role": "radio",
+          "name": ".01"
+        },
+        {
+          "role": "radio",
+          "name": ".1"
+        },
+        {
+          "role": "radio",
+          "name": "1"
+        },
+        {
+          "role": "radio",
+          "name": "G54"
+        },
+        {
+          "role": "radio",
+          "name": "G55"
+        },
+        {
+          "role": "radio",
+          "name": "G56"
+        },
+        {
+          "role": "radio",
+          "name": "G57"
+        },
+        {
+          "role": "radio",
+          "name": "G58"
+        },
+        {
+          "role": "radio",
+          "name": "G59"
+        },
+        {
+          "role": "radio",
+          "name": "G59.1"
+        },
+        {
+          "role": "radio",
+          "name": "G59.2"
+        },
+        {
+          "role": "radio",
+          "name": "G59.3"
+        },
+        {
+          "role": "slider",
+          "name": "",
+          "value": 100
+        },
+        {
+          "role": "slider",
+          "name": "",
+          "value": 100
+        },
+        {
+          "role": "slider",
+          "name": "",
+          "value": 100
+        },
+        {
+          "role": "textbox",
+          "name": "",
+          "value": "1000"
+        },
+        {
+          "role": "checkbox",
+          "name": "Flood"
+        },
+        {
+          "role": "checkbox",
+          "name": "Mist"
+        },
+        {
+          "role": "textbox",
+          "name": "Tool #",
+          "value": "1"
+        },
+        {
+          "role": "textbox",
+          "name": "Pocket",
+          "value": "1"
+        },
+        {
+          "role": "combobox",
+          "name": "",
+          "value": "-"
+        },
+        {
+          "role": "textbox",
+          "name": "Description"
+        },
+        {
+          "role": "textbox",
+          "name": "Diameter",
+          "value": "0"
+        },
+        {
+          "role": "textbox",
+          "name": "Z Offset",
+          "value": "0"
+        },
+        {
+          "role": "textbox",
+          "name": "Flutes"
+        },
+        {
+          "role": "textbox",
+          "name": "Material"
+        },
+        {
+          "role": "textbox",
+          "name": "Total Length"
+        },
+        {
+          "role": "textbox",
+          "name": "Length Below Holder"
+        },
+        {
+          "role": "textbox",
+          "name": "Flute Length"
+        },
+        {
+          "role": "textbox",
+          "name": "Shaft \u00d8"
+        },
+        {
+          "role": "textbox",
+          "name": "Corner R"
+        },
+        {
+          "role": "textbox",
+          "name": "Tip \u00d8"
+        },
+        {
+          "role": "textbox",
+          "name": "Taper"
+        },
+        {
+          "role": "textbox",
+          "name": "Point"
+        },
+        {
+          "role": "textbox",
+          "name": "Holder"
+        },
+        {
+          "role": "combobox",
+          "name": "",
+          "value": "Type"
+        }
+      ],
+      "dialogs": [],
+      "tabs": []
+    },
+    "settingsAccessibility": {
+      "controls": [
+        {
+          "role": "slider",
+          "name": "",
+          "value": 10
+        },
+        {
+          "role": "radio",
+          "name": "Manual"
+        },
+        {
+          "role": "radio",
+          "name": "MDI"
+        },
+        {
+          "role": "radio",
+          "name": "Auto"
+        },
+        {
+          "role": "textbox",
+          "name": "Touch off X \u00b7 -",
+          "value": "12.345"
+        },
+        {
+          "role": "textbox",
+          "name": "Touch off Y \u00b7 -",
+          "value": "1.000"
+        },
+        {
+          "role": "textbox",
+          "name": "Touch off Z \u00b7 -",
+          "value": "-5.500"
+        },
+        {
+          "role": "textbox",
+          "name": "Search tools"
+        },
+        {
+          "role": "radio",
+          "name": "Cont"
+        },
+        {
+          "role": "radio",
+          "name": ".001"
+        },
+        {
+          "role": "radio",
+          "name": ".01"
+        },
+        {
+          "role": "radio",
+          "name": ".1"
+        },
+        {
+          "role": "radio",
+          "name": "1"
+        },
+        {
+          "role": "radio",
+          "name": "G54"
+        },
+        {
+          "role": "radio",
+          "name": "G55"
+        },
+        {
+          "role": "radio",
+          "name": "G56"
+        },
+        {
+          "role": "radio",
+          "name": "G57"
+        },
+        {
+          "role": "radio",
+          "name": "G58"
+        },
+        {
+          "role": "radio",
+          "name": "G59"
+        },
+        {
+          "role": "radio",
+          "name": "G59.1"
+        },
+        {
+          "role": "radio",
+          "name": "G59.2"
+        },
+        {
+          "role": "radio",
+          "name": "G59.3"
+        },
+        {
+          "role": "slider",
+          "name": "",
+          "value": 100
+        },
+        {
+          "role": "slider",
+          "name": "",
+          "value": 100
+        },
+        {
+          "role": "slider",
+          "name": "",
+          "value": 100
+        },
+        {
+          "role": "textbox",
+          "name": "",
+          "value": "1000"
+        },
+        {
+          "role": "checkbox",
+          "name": "Flood"
+        },
+        {
+          "role": "checkbox",
+          "name": "Mist"
+        },
+        {
+          "role": "radio",
+          "name": "Perspective"
+        },
+        {
+          "role": "radio",
+          "name": "Parallel"
+        },
+        {
+          "role": "radio",
+          "name": "None"
+        },
+        {
+          "role": "radio",
+          "name": "Tool"
+        },
+        {
+          "role": "radio",
+          "name": "WCS"
+        },
+        {
+          "role": "radio",
+          "name": "Path on part"
+        },
+        {
+          "role": "radio",
+          "name": "Programmed XYZ"
+        },
+        {
+          "role": "radio",
+          "name": "Small"
+        },
+        {
+          "role": "radio",
+          "name": "Normal"
+        },
+        {
+          "role": "radio",
+          "name": "Large"
+        },
+        {
+          "role": "radio",
+          "name": "X-Large"
+        },
+        {
+          "role": "textbox",
+          "name": "",
+          "value": "50"
+        },
+        {
+          "role": "textbox",
+          "name": "",
+          "value": "50"
+        },
+        {
+          "role": "slider",
+          "name": "",
+          "value": 0.800000011920929
+        },
+        {
+          "role": "checkbox",
+          "name": "Backplot"
+        },
+        {
+          "role": "checkbox",
+          "name": "Toolpath"
+        },
+        {
+          "role": "checkbox",
+          "name": "Work Zero"
+        },
+        {
+          "role": "checkbox",
+          "name": "Work Plane"
+        },
+        {
+          "role": "checkbox",
+          "name": "Surface"
+        },
+        {
+          "role": "checkbox",
+          "name": "Toolpath Bounds"
+        },
+        {
+          "role": "checkbox",
+          "name": "Machine Bounds"
+        },
+        {
+          "role": "checkbox",
+          "name": "Machine Reach"
+        },
+        {
+          "role": "checkbox",
+          "name": "Part Reach"
+        },
+        {
+          "role": "checkbox",
+          "name": "Machine"
+        },
+        {
+          "role": "checkbox",
+          "name": "Ground Grid"
+        },
+        {
+          "role": "checkbox",
+          "name": "Tool"
+        },
+        {
+          "role": "checkbox",
+          "name": "HUD"
+        },
+        {
+          "role": "checkbox",
+          "name": "Machine position"
+        },
+        {
+          "role": "checkbox",
+          "name": "Tool context"
+        },
+        {
+          "role": "checkbox",
+          "name": "Feed & spindle"
+        },
+        {
+          "role": "checkbox",
+          "name": "Spindle load bar"
+        },
+        {
+          "role": "checkbox",
+          "name": "Always on top"
+        },
+        {
+          "role": "checkbox",
+          "name": "Crosshair"
+        },
+        {
+          "role": "checkbox",
+          "name": "Circle"
+        },
+        {
+          "role": "checkbox",
+          "name": "Grid"
+        },
+        {
+          "role": "combobox",
+          "name": "",
+          "value": "Type"
+        }
+      ],
+      "dialogs": [],
+      "tabs": []
+    },
+    "probingAccessibility": {
+      "controls": [
+        {
+          "role": "slider",
+          "name": "",
+          "value": 10
+        },
+        {
+          "role": "radio",
+          "name": "Manual"
+        },
+        {
+          "role": "radio",
+          "name": "MDI"
+        },
+        {
+          "role": "radio",
+          "name": "Auto"
+        },
+        {
+          "role": "textbox",
+          "name": "Touch off X \u00b7 -",
+          "value": "12.345"
+        },
+        {
+          "role": "textbox",
+          "name": "Touch off Y \u00b7 -",
+          "value": "1.000"
+        },
+        {
+          "role": "textbox",
+          "name": "Touch off Z \u00b7 -",
+          "value": "-5.500"
+        },
+        {
+          "role": "radio",
+          "name": "Cont"
+        },
+        {
+          "role": "radio",
+          "name": ".001"
+        },
+        {
+          "role": "radio",
+          "name": ".01"
+        },
+        {
+          "role": "radio",
+          "name": ".1"
+        },
+        {
+          "role": "radio",
+          "name": "1"
+        },
+        {
+          "role": "radio",
+          "name": "G54"
+        },
+        {
+          "role": "radio",
+          "name": "G55"
+        },
+        {
+          "role": "radio",
+          "name": "G56"
+        },
+        {
+          "role": "radio",
+          "name": "G57"
+        },
+        {
+          "role": "radio",
+          "name": "G58"
+        },
+        {
+          "role": "radio",
+          "name": "G59"
+        },
+        {
+          "role": "radio",
+          "name": "G59.1"
+        },
+        {
+          "role": "radio",
+          "name": "G59.2"
+        },
+        {
+          "role": "radio",
+          "name": "G59.3"
+        },
+        {
+          "role": "slider",
+          "name": "",
+          "value": 100
+        },
+        {
+          "role": "slider",
+          "name": "",
+          "value": 100
+        },
+        {
+          "role": "slider",
+          "name": "",
+          "value": 100
+        },
+        {
+          "role": "textbox",
+          "name": "",
+          "value": "1000"
+        },
+        {
+          "role": "checkbox",
+          "name": "Flood"
+        },
+        {
+          "role": "checkbox",
+          "name": "Mist"
+        },
+        {
+          "role": "textbox",
+          "name": "",
+          "value": "99"
+        },
+        {
+          "role": "textbox",
+          "name": "",
+          "value": "50"
+        },
+        {
+          "role": "textbox",
+          "name": "",
+          "value": "1000"
+        },
+        {
+          "role": "textbox",
+          "name": "",
+          "value": "200"
+        },
+        {
+          "role": "textbox",
+          "name": "",
+          "value": "10"
+        },
+        {
+          "role": "textbox",
+          "name": "",
+          "value": "2"
+        },
+        {
+          "role": "textbox",
+          "name": "",
+          "value": "10"
+        },
+        {
+          "role": "textbox",
+          "name": "",
+          "value": "2"
+        },
+        {
+          "role": "textbox",
+          "name": "",
+          "value": "0"
+        },
+        {
+          "role": "textbox",
+          "name": "",
+          "value": "5"
+        },
+        {
+          "role": "checkbox",
+          "name": "Auto Zero"
+        },
+        {
+          "role": "checkbox",
+          "name": "Set Rotation"
+        }
+      ],
+      "dialogs": [],
+      "tabs": []
+    },
+    "themes": [
+      {
+        "theme": "light",
+        "tokens": {
+          "--bg": "#ffffff",
+          "--panel": "#f5f5f5",
+          "--fg": "#213547",
+          "--info": "#569cd6",
+          "--ok": "#1a9a1a",
+          "--danger": "#cc3333",
+          "--warn": "#f5a623",
+          "--syntax-mcode": "#c586c0",
+          "--syntax-coord": "#4ec9b0",
+          "--syntax-param": "#9cdcfe",
+          "--syntax-comment": "#6a9955",
+          "--border": "rgba(0,0,0,.12)",
+          "--opacity-muted": ".6"
+        },
+        "label": {
+          "color": "rgb(33, 53, 71)",
+          "opacity": "0.6",
+          "font": "13px"
+        }
+      },
+      {
+        "theme": "dark",
+        "tokens": {
+          "--bg": "#0b0f14",
+          "--panel": "#121821",
+          "--fg": "#e6edf3",
+          "--info": "#569cd6",
+          "--ok": "#1a9a1a",
+          "--danger": "#cc3333",
+          "--warn": "#f5a623",
+          "--syntax-mcode": "#c586c0",
+          "--syntax-coord": "#4ec9b0",
+          "--syntax-param": "#9cdcfe",
+          "--syntax-comment": "#6a9955",
+          "--border": "rgba(255,255,255,.12)",
+          "--opacity-muted": ".6"
+        },
+        "label": {
+          "color": "rgb(230, 237, 243)",
+          "opacity": "0.6",
+          "font": "13px"
+        }
+      },
+      {
+        "theme": "hc-light",
+        "tokens": {
+          "--bg": "#ffffff",
+          "--panel": "#f0f0f0",
+          "--fg": "#000000",
+          "--info": "#0055cc",
+          "--ok": "#0a7a0a",
+          "--danger": "#bb0000",
+          "--warn": "#c47800",
+          "--syntax-mcode": "#c586c0",
+          "--syntax-coord": "#4ec9b0",
+          "--syntax-param": "#9cdcfe",
+          "--syntax-comment": "#6a9955",
+          "--border": "rgba(0,0,0,.45)",
+          "--opacity-muted": ".6"
+        },
+        "label": {
+          "color": "rgb(0, 0, 0)",
+          "opacity": "0.6",
+          "font": "13px"
+        }
+      },
+      {
+        "theme": "hc-dark",
+        "tokens": {
+          "--bg": "#000000",
+          "--panel": "#0a0a0a",
+          "--fg": "#ffffff",
+          "--info": "#66aaff",
+          "--ok": "#33dd33",
+          "--danger": "#ff3333",
+          "--warn": "#ffcc00",
+          "--syntax-mcode": "#c586c0",
+          "--syntax-coord": "#4ec9b0",
+          "--syntax-param": "#9cdcfe",
+          "--syntax-comment": "#6a9955",
+          "--border": "rgba(255,255,255,.45)",
+          "--opacity-muted": ".6"
+        },
+        "label": {
+          "color": "rgb(255, 255, 255)",
+          "opacity": "0.6",
+          "font": "13px"
+        }
+      }
+    ]
+  }
+}

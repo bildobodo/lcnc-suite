@@ -4,6 +4,7 @@ import gzip
 import json
 import math
 import time
+import errno
 import os
 import subprocess
 import tempfile
@@ -3436,7 +3437,11 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             config_dir = os.path.dirname(ini_path) if ini_path else ""
             path = os.path.join(config_dir, "probe-results-grid.json")
             if not os.path.isfile(path):
-                return {"ok": False, "error": "No grid file"}
+                # No grid yet (nothing scanned) is a STATE, not a failure:
+                # every ok:false lands in the operator's message center, and
+                # "Reload Data" on a fresh machine raised "No grid file" each
+                # time (UI-10). A damaged grid file below stays an error.
+                return {"ok": True, "comp_grid": None, "reason": "no grid file"}
 
             def _load_grid():
                 with open(path, "r") as f:
@@ -6072,7 +6077,47 @@ def _safe_unlink(path: str) -> None:
 _upload_file_opener = os.fdopen
 
 
-async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int) -> int:
+# errno values that mean "this filesystem cannot hard-link" — the no-replace
+# publish is then REFUSED rather than emulated (a copy fallback would expose a
+# partial file under the final name, breaking the never-a-partial-file
+# contract). ENOTSUP/EOPNOTSUPP alias on Linux; both spelled out for clarity.
+_LINK_UNSUPPORTED_ERRNOS = frozenset(
+    e for e in (
+        getattr(errno, "EPERM", None), getattr(errno, "ENOTSUP", None),
+        getattr(errno, "EOPNOTSUPP", None), getattr(errno, "EXDEV", None),
+        getattr(errno, "EMLINK", None),
+    ) if e is not None
+)
+
+
+def _publish_no_replace(tmp: str, dest_path: str) -> None:
+    """Publish ``tmp`` as ``dest_path`` WITHOUT replacing an existing file.
+
+    ``os.link`` is atomic and fails with EEXIST when the name is taken — so two
+    concurrent uploads of the same name race to exactly one winner. The temp is
+    unlinked by the caller either way. Raises HTTPException 409 on a name clash
+    and 500 (traced ``upload.no_replace_unsupported``) when the filesystem
+    cannot link; the destination never exists partially on either path.
+    """
+    try:
+        os.link(tmp, dest_path)
+    except FileExistsError:
+        raise HTTPException(status_code=409, detail={
+            "error": "exists", "filename": os.path.basename(dest_path),
+        })
+    except OSError as e:
+        if e.errno in _LINK_UNSUPPORTED_ERRNOS:
+            _trace.emit("upload.no_replace_unsupported", level="error",
+                        dest=dest_path, errno=e.errno, msg=str(e))
+            raise HTTPException(
+                status_code=500,
+                detail="filesystem does not support atomic no-replace publish",
+            )
+        raise
+
+
+async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
+                               replace: bool = True) -> int:
     """Stream an async iterator of byte chunks to ``dest_path`` atomically and
     bounded, keeping the event loop free. Shared core for ``POST /upload``
     (multipart) and ``PUT /save`` (raw body) — one machinery, not two.
@@ -6084,7 +6129,9 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int) -> int:
 
     Bounded: rejects with 413 the instant the running byte count exceeds
     ``max_bytes`` (no oversized buffering). Atomic + durable: writes to a
-    ``.part`` temp in the destination dir, fsyncs, then ``os.replace`` — and
+    ``.part`` temp in the destination dir, fsyncs, then publishes — with
+    ``os.replace`` when ``replace`` is set, else ``os.link`` which refuses an
+    existing name with 409 (UI-09: an upload never silently overwrites) — and
     removes the temp on ANY failure, so LinuxCNC never sees a partial file.
     Returns the number of bytes written.
     """
@@ -6113,8 +6160,13 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int) -> int:
                 await loop.run_in_executor(io_ex, lambda: (f.flush(), os.fsync(f.fileno())))
             finally:
                 await loop.run_in_executor(io_ex, f.close)
-            await loop.run_in_executor(io_ex, os.replace, tmp, dest_path)
-            tmp = None  # published — don't unlink in finally
+            if replace:
+                await loop.run_in_executor(io_ex, os.replace, tmp, dest_path)
+                tmp = None  # published — don't unlink in finally
+            else:
+                await loop.run_in_executor(io_ex, _publish_no_replace, tmp, dest_path)
+                # linked — the temp name is unlinked in finally; the data is
+                # already durable under dest_path.
             return written
         finally:
             if tmp is not None:
@@ -6124,7 +6176,8 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int) -> int:
 
 
 async def _atomic_stream_upload(file: "UploadFile", dest_path: str,
-                                max_bytes: int, chunk_size: int = 1 << 20) -> int:
+                                max_bytes: int, chunk_size: int = 1 << 20,
+                                replace: bool = True) -> int:
     """Multipart-upload adapter over _atomic_stream_write: reads are async
     (Starlette's threadpool — yields to the loop between chunks)."""
     async def _chunks():
@@ -6133,12 +6186,17 @@ async def _atomic_stream_upload(file: "UploadFile", dest_path: str,
             if not chunk:
                 return
             yield chunk
-    return await _atomic_stream_write(_chunks(), dest_path, max_bytes)
+    return await _atomic_stream_write(_chunks(), dest_path, max_bytes, replace=replace)
 
 
 @app.post("/upload", dependencies=[Depends(require_token)])
-async def upload_gcode(file: UploadFile = File(...)):
-    """Upload a G-code file to the NC files directory."""
+async def upload_gcode(file: UploadFile = File(...), overwrite: int = Query(0)):
+    """Upload a G-code file to the NC files directory.
+
+    ``overwrite=0`` (default) never replaces an existing program: a name clash
+    answers 409 ``{"error": "exists", "filename"}`` and the client asks the
+    operator (Cancel / Rename / Replace). ``overwrite=1`` replaces atomically.
+    """
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")
 
@@ -6156,7 +6214,8 @@ async def upload_gcode(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Invalid filename")
 
     try:
-        size = await _atomic_stream_upload(file, dest_path, MAX_UPLOAD_SIZE)
+        size = await _atomic_stream_upload(file, dest_path, MAX_UPLOAD_SIZE,
+                                           replace=bool(overwrite))
     except HTTPException:
         raise
     except Exception as e:
@@ -6447,6 +6506,15 @@ def list_files(subdir: str = ""):
     try:
         for entry in sorted(os.scandir(browse_dir), key=lambda e: (not e.is_dir(), e.name.lower())):
             if entry.name.startswith("."):
+                continue
+            # The listing offers only what opening allows (UI-K15): a symlink
+            # whose target lies outside the program folder (nc_files ships
+            # links to /usr/share/linuxcnc/ncfiles) was listed — is_dir()
+            # follows links — and then refused as "Invalid directory" on the
+            # way in; a linked file would be refused by load_file the same
+            # way. Same rule as the open/load checks, applied per child (the
+            # tool-library browser already filters this way, tool_files.py).
+            if not validate_path_within(entry.path, nc_dir):
                 continue
             if entry.is_dir():
                 entries.append({
@@ -6924,6 +6992,13 @@ def _preempt_inflight(by: str, from_client: int) -> int:
     return len(victims)
 
 
+def _req_echo(msg: Dict[str, Any]) -> Dict[str, Any]:
+    """`{"req_id": …}` to splice into a reply when the command carried one
+    (UI-12 request correlation), else `{}` — replies never invent an id."""
+    rid = msg.get("req_id") if isinstance(msg, dict) else None
+    return {"req_id": rid} if rid is not None else {}
+
+
 async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Dict[str, Any]) -> None:
     """ONE queued command for ONE client — run by that client's cmd_worker in
     ws_endpoint, never by the reader (2026-09-03, see _WS_CMD_QUEUE_MAX).
@@ -6936,6 +7011,12 @@ async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Di
     time. `handle_command` resolves as a module global so tests can stand
     in a slow/raising handler.
     """
+    # Request correlation (UI-12): a client that must match a reply to the
+    # command it sent puts a `req_id` on the wire; EVERY reply path echoes it
+    # verbatim (ok, ok:false, invalid, preempted, superseded, queue-full —
+    # the last three live in the worker/reader below). Commands without one
+    # get replies without one, so older clients see no change.
+    _echo = _req_echo(msg)
     if msg.get("cmd") == "arm":
         want_armed = bool(msg.get("armed", False))
         # Re-arm gate: operator must acknowledge a sticky safety trip
@@ -6944,8 +7025,10 @@ async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Di
         if want_armed and _unacked_trip is not None:
             await ws_send_json(ws, {
                 "type": "reply",
+                "cmd": "arm",
                 "ok": False,
                 "error": "Safety trip not acknowledged",
+                **_echo,
             })
             return
         _was_armed = client.armed
@@ -6978,7 +7061,7 @@ async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Di
                 "safety.explicit_armed",
                 client_id=client_id,
             )
-        await ws_send_json(ws, {"type": "reply", "ok": True, "armed": client.armed})
+        await ws_send_json(ws, {"type": "reply", "cmd": "arm", "ok": True, "armed": client.armed, **_echo})
         return
 
     _set_phase(f"handle_command cmd={msg.get('cmd', '?')} client#{client_id}")
@@ -7006,7 +7089,7 @@ async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Di
             _bulk.preview_version += 1
             _bulk.last_file = None
             _bulk.last_mtime = None
-    await ws_send_json(ws, {"type": "reply", "cmd": msg.get("cmd"), **reply})
+    await ws_send_json(ws, {"type": "reply", "cmd": msg.get("cmd"), **_echo, **reply})
 
 
 @app.websocket("/ws")
@@ -7628,6 +7711,7 @@ async def ws_endpoint(ws: WebSocket):
                 _set_phase(f"ws.worker.idle client#{client_id}")
                 _wmsg, _enq = await cmd_queue.get()
                 _wcmd = _wmsg.get("cmd")
+                _wecho = _req_echo(_wmsg)
                 client.cmd_inflight = _wcmd
                 client.cmd_inflight_since_mono = time.monotonic()
                 client.cmd_preempted_by = None
@@ -7662,7 +7746,7 @@ async def ws_endpoint(ws: WebSocket):
                                         cmd=_wcmd, by=_by, ran_ms=_ran_ms)
                             try:
                                 await ws_send_json(ws, {"type": "reply", "cmd": _wcmd, "ok": False,
-                                                        "error": f"Preempted by {_by}"})
+                                                        "error": f"Preempted by {_by}", **_wecho})
                             except Exception as _we2:  # noqa: BLE001
                                 _trace.emit("ws.command_error_reply_failed", level="warn",
                                             client_id=client_id, cmd=_wcmd, exc=type(_we2).__name__)
@@ -7687,7 +7771,7 @@ async def ws_endpoint(ws: WebSocket):
                                     cmd=_wcmd, exc=type(_we).__name__, msg=str(_we))
                         try:
                             await ws_send_json(ws, {"type": "reply", "cmd": _wcmd, "ok": False,
-                                                    "error": f"{type(_we).__name__}: {_we}"})
+                                                    "error": f"{type(_we).__name__}: {_we}", **_wecho})
                         except Exception as _we2:  # noqa: BLE001
                             _trace.emit("ws.command_error_reply_failed", level="warn",
                                         client_id=client_id, cmd=_wcmd, exc=type(_we2).__name__)
@@ -7835,17 +7919,21 @@ async def ws_endpoint(ws: WebSocket):
                 continue
 
             if msg.get("cmd") == "save_settings":
+                # The Settings header's save status matches THIS reply to the
+                # save it sent by req_id (UX-08): every path echoes it, or the
+                # header reads "Saving…" forever on a real gateway.
+                _secho = {"cmd": "save_settings", **_req_echo(msg)}
                 section = msg.get("section", "")
                 if section not in _VALID_SETTINGS_SECTIONS:
-                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": f"Unknown settings section: {section}"})
+                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": f"Unknown settings section: {section}", **_secho})
                     continue
                 _loop = asyncio.get_event_loop()
                 try:
                     await _loop.run_in_executor(None, save_settings_section, section, msg.get("data"))
                 except Exception as _se:
-                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": f"{type(_se).__name__}: {_se}"})
+                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": f"{type(_se).__name__}: {_se}", **_secho})
                     continue
-                await ws_send_json(ws, {"type": "reply", "ok": True})
+                await ws_send_json(ws, {"type": "reply", "ok": True, **_secho})
                 continue
 
             if msg.get("cmd") == "client_diag":
@@ -7956,7 +8044,7 @@ async def ws_endpoint(ws: WebSocket):
                     cmd_queue.put_nowait((_qm, _qt))
                 for _qm, _qt in _sup:
                     await ws_send_json(ws, {"type": "reply", "cmd": _qm.get("cmd"), "ok": False,
-                                            "error": f"Superseded by {_rcmd}"})
+                                            "error": f"Superseded by {_rcmd}", **_req_echo(_qm)})
                 if _sup:
                     _trace.emit("ws.command_superseded", level="warn", client_id=client_id,
                                 by=_rcmd, count=len(_sup), cmds=[m.get("cmd") for m, _ in _sup])
@@ -7969,7 +8057,8 @@ async def ws_endpoint(ws: WebSocket):
                             inflight_ms=(round((time.monotonic() - client.cmd_inflight_since_mono) * 1000)
                                          if client.cmd_inflight else None))
                 await ws_send_json(ws, {"type": "reply", "cmd": _rcmd, "ok": False,
-                                        "error": f"Command queue full ({_depth} pending) — command dropped"})
+                                        "error": f"Command queue full ({_depth} pending) — command dropped",
+                                        **_req_echo(msg)})
                 continue
             _set_phase(f"ws.enqueue cmd={_rcmd} client#{client_id}")
             cmd_queue.put_nowait((msg, time.monotonic()))

@@ -33,7 +33,7 @@ import type { CollisionResult } from "./viewer/collision";
 import { EVENT_NONE } from "./viewer/eventIndex";
 import { mergedSweptFraction } from "./viewer/sweepMerge";
 import { limitViolationText } from "./ws/bulkData";
-import { fmtElapsed } from "./format";
+import { fmtElapsed, fmtNum } from "./format";
 import { Play, Pause, X, Triangle, Circle } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
@@ -1021,7 +1021,7 @@ onUnmounted(() => {
             <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
                         @click="jumpTo(targetAfter(hitTargets, sPos))">&#9654;</MachineBtn>
           </span>
-          <span class="navTarget val-status mono">{{ nextHitT ? "→ " + (nextHitT.line ? "L" + nextHitT.line : "entry") + (nextHitT.reentry ? " (re-entry)" : "") + (nextHitT.rapid ? " (rapid)" : "") + ((nextHitT.dist ?? 0) > 0.001 ? ` ~${nextHitT.dist!.toFixed(1)}mm` : "") + ((nextHitT.spanEndLine ?? nextHitT.line) > nextHitT.line ? ` … through L${nextHitT.spanEndLine}` : "") : "" }}</span>
+          <span class="navTarget val-status mono">{{ nextHitT ? "→ " + (nextHitT.line ? "L" + nextHitT.line : "entry") + (nextHitT.reentry ? " (re-entry)" : "") + (nextHitT.rapid ? " (rapid)" : "") + ((nextHitT.dist ?? 0) > 0.001 ? ` ~${fmtNum(nextHitT.dist, 1)}mm` : "") + ((nextHitT.spanEndLine ?? nextHitT.line) > nextHitT.line ? ` … through L${nextHitT.spanEndLine}` : "") : "" }}</span>
           <span v-if="collisionBusy" class="val-status muted" title="The collision check is still running — positions refine when it ends">so far</span>
           <span v-else-if="collisionStopped && collisionResumable" class="val-status warn" :title="stoppedTitle">in {{ pctOf(collisionStopped.covered) }} swept</span>
         </template>
@@ -1067,7 +1067,7 @@ onUnmounted(() => {
   left: var(--gap-section);
   right: var(--gap-section);
   bottom: var(--gap-section);
-  z-index: 10;
+  z-index: var(--z-float);
   padding: var(--gap-tight) var(--gap-controls);
 }
 .scrubRow {
@@ -1093,7 +1093,7 @@ onUnmounted(() => {
   /* Above the overlays: the thumb covers the tick/band under it (it IS at
      that position) and nothing paints across the thumb. */
   position: relative;
-  z-index: 1;
+  z-index: var(--z-raised);
 }
 /* Timeline overlays, all non-interactive, every one on the thumb-centre
    travel (half --range-thumb .. width − half; inline left/width — see the

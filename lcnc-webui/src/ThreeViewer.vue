@@ -14,8 +14,9 @@ import {
 import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
 import { INTERP_IDLE } from "./lcnc";
-import { fmtCoord, fmtProgressTimes, fmtRpm } from "./format";
-import { useAxes } from "./useAxes";
+import { fmtCoord, fmtProgressTimes, fmtRpm, fmtNum } from "./format";
+import { framePose as defaultFramePose, DEFAULT_FRAME_DIR } from "./viewer/cameraFraming";
+import { useAxes, DEFAULT_AXES } from "./useAxes";
 import { recordApply, recordRafTick, recordRender, setViewerPerfContext, setViewerPerfGl } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
 import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
@@ -624,18 +625,73 @@ function resetBackplot() {
   backplot.reset();
 }
 
+// ── Default framing (WP5, review C) ──
+// The radius of the machine MODEL (every non-stock mesh's world AABB
+// corners) about a point — measured after scene.updateMatrixWorld(true),
+// at the pose the scene is in. The travel box alone framed the XYZAC sim's
+// 0.4 m envelope 0.94 m away while its 2.2 m base lay under the eye.
+const _corner = new THREE.Vector3();
+function _modelRadiusAbout(center: THREE.Vector3): number {
+  if (!scene) return 0;
+  scene.updateMatrixWorld(true);
+  let r = 0;
+  for (const mesh of machineMeshes) {
+    if (mesh.userData.stock) continue;
+    const geom = mesh.geometry;
+    if (!geom.boundingBox) geom.computeBoundingBox();
+    const bb = geom.boundingBox!;
+    for (let i = 0; i < 8; i++) {
+      _corner.set(i & 1 ? bb.max.x : bb.min.x, i & 2 ? bb.max.y : bb.min.y, i & 4 ? bb.max.z : bb.min.z);
+      _corner.applyMatrix4(mesh.matrixWorld);
+      r = Math.max(r, _corner.distanceTo(center));
+    }
+  }
+  return r;
+}
+
+/** World AABB per non-stock part — the e2e camera gate's "outside every
+ *  part" oracle (window.__viewerDiag.getPartBounds). */
+function _partWorldBounds(): { id: string; min: number[]; max: number[] }[] {
+  if (!scene) return [];
+  scene.updateMatrixWorld(true);
+  const out: { id: string; min: number[]; max: number[] }[] = [];
+  const box = new THREE.Box3();
+  for (const mesh of machineMeshes) {
+    if (mesh.userData.stock) continue;
+    box.setFromObject(mesh);
+    out.push({ id: String(mesh.userData.partId), min: box.min.toArray(), max: box.max.toArray() });
+  }
+  return out;
+}
+
+/** The ONE default pose for a travel box: target = its centre, eye along
+ *  the default direction at max(travel rule, model sphere + near), near/far
+ *  and the orbit floor from cameraFraming.ts — for both projections. */
+function _framePose(box: THREE.Box3) {
+  const size = new THREE.Vector3(); box.getSize(size);
+  const center = new THREE.Vector3(); box.getCenter(center);
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const radius = _modelRadiusAbout(center);
+  const pose = defaultFramePose([center.x, center.y, center.z], maxDim, radius);
+  return { center, maxDim, radius, pose, position: new THREE.Vector3(...pose.position) };
+}
+
+function _applyFrameLimits(near: number, far: number, minDistance: number) {
+  if (!camera || !controls) return;
+  camera.near = near;
+  camera.far = far;
+  controls.minDistance = minDistance;
+}
+
 // Frame camera to show the given bounding box.
 // Handles both PerspectiveCamera (moves camera) and OrthographicCamera (sets frustum).
 function frameToBounds(box: THREE.Box3) {
   if (!camera || !controls || box.isEmpty()) return;
-  const size = new THREE.Vector3(); box.getSize(size);
-  const center = new THREE.Vector3(); box.getCenter(center);
-  const maxDim = Math.max(size.x, size.y, size.z);
+  const { center, maxDim, pose, position } = _framePose(box);
 
   controls.target.copy(center);
   camera.up.set(0, 0, 1);
-  camera.near = Math.max(0.1, maxDim / 1000);
-  camera.far  = Math.max(200000, maxDim * 20);
+  _applyFrameLimits(pose.near, pose.far, pose.minDistance);
 
   if (camera instanceof THREE.OrthographicCamera) {
     const aspect = host.value ? (host.value.clientWidth / host.value.clientHeight) || 1 : 1;
@@ -643,11 +699,8 @@ function frameToBounds(box: THREE.Box3) {
     camera.top    =  halfH;  camera.bottom = -halfH;
     camera.right  =  halfH * aspect; camera.left = -halfH * aspect;
     camera.zoom   = 1;
-    camera.position.set(center.x + maxDim, center.y - maxDim, center.z + maxDim);
-  } else {
-    // 1.5× offset → distance ≈ 2.35 × maxDim, fills ~90% of 45° FOV
-    camera.position.set(center.x + maxDim * 1.5, center.y - maxDim * 1.5, center.z + maxDim);
   }
+  camera.position.copy(position);
 
   camera.updateProjectionMatrix();
   controls.update();
@@ -749,17 +802,16 @@ let _frameTween: FrameTween | null = null;
 
 function tweenFrameToBounds(box: THREE.Box3) {
   if (!camera || !controls || box.isEmpty()) return;
-  const size = new THREE.Vector3(); box.getSize(size);
-  const center = new THREE.Vector3(); box.getCenter(center);
-  const maxDim = Math.max(size.x, size.y, size.z);
+  const { center, maxDim, pose, position } = _framePose(box);
 
   // near/far don't need lerping — they only affect culling planes. Set immediately.
-  camera.near = Math.max(0.1, maxDim / 1000);
-  camera.far  = Math.max(200000, maxDim * 20);
+  // The ENDPOINT is the default pose (outside the model); the linear path
+  // between the current eye and it is not certified — see cameraFraming.ts.
+  _applyFrameLimits(pose.near, pose.far, pose.minDistance);
 
   const tgtEnd = center.clone();
   const upEnd = new THREE.Vector3(0, 0, 1);
-  let posEnd: THREE.Vector3;
+  const posEnd: THREE.Vector3 = position;
   let ortho: FrameTween["ortho"] = null;
 
   if (camera instanceof THREE.OrthographicCamera) {
@@ -772,9 +824,6 @@ function tweenFrameToBounds(box: THREE.Box3) {
       leftStart: camera.left, leftEnd: -halfH * aspect,
       zoomStart: camera.zoom, zoomEnd: 1,
     };
-    posEnd = new THREE.Vector3(center.x + maxDim, center.y - maxDim, center.z + maxDim);
-  } else {
-    posEnd = new THREE.Vector3(center.x + maxDim * 1.5, center.y - maxDim * 1.5, center.z + maxDim);
   }
 
   _frameTween = {
@@ -1524,6 +1573,7 @@ async function buildFromInit(init: ViewerInit) {
 
       const mesh = new THREE.Mesh(geom, mat);
       mesh.userData.partId = p.id;  // tag for live color updates
+      mesh.userData.stock = !!p.stock;  // excluded from the default-framing model sphere
       const t = p.translate ?? p.t;
       if (t) mesh.position.set(t[0] * _unitScale, t[1] * _unitScale, t[2] * _unitScale);
       const r = p.rotate ?? p.r;
@@ -1568,6 +1618,29 @@ async function buildFromInit(init: ViewerInit) {
         meshCount: machineMeshes.length,
         boundsValid: !autoBox.isEmpty(),
         timestamp: Date.now(),
+        // Camera gate (WP5): where the eye is, where the parts are, and the
+        // same view entry points the ViewCube / presets use.
+        getCamera: () => camera && controls ? {
+          position: camera.position.toArray(), target: controls.target.toArray(),
+          near: camera.near, far: camera.far, ortho: camera instanceof THREE.OrthographicCamera,
+          minDistance: controls.minDistance,
+        } : null,
+        getPartBounds: _partWorldBounds,
+        getFrameBox: () => { const b = _boundsWorldBox(); return b ? { min: b.min.toArray(), max: b.max.toArray() } : null; },
+        setView: (p: string) => setView(p as ViewPreset),
+        setViewDirection: (dir: number[], distance?: number) => {
+          if (!camera || !controls) return;
+          if (distance != null) {
+            const d = new THREE.Vector3(dir[0]!, dir[1]!, dir[2]!).normalize();
+            camera.position.copy(controls.target).addScaledVector(d, distance);
+            controls.update();
+            requestRender();
+            return;
+          }
+          applyViewDirection(new THREE.Vector3(dir[0]!, dir[1]!, dir[2]!), new THREE.Vector3(0, 0, 1), false);
+        },
+        switchProjection,
+        defaultFrameDir: [...DEFAULT_FRAME_DIR],
         getAppearance: () => ({
           grid: groundGrid ? {
             visible: groundGrid.visible,
@@ -3565,7 +3638,7 @@ watch(
 // Format coordinate for HUD display
 // formatCoord → fmtCoord imported from format.ts
 
-const hudAxes = computed(() => props.axes ?? ["X", "Y", "Z"]);
+const hudAxes = computed(() => props.axes ?? [...DEFAULT_AXES]);
 // One grid row per axis in machine order — primary/abc/uvw grouping is not
 // needed in the tabular HUD, entries already carry letter + status index.
 const { entries: hudEntries } = useAxes(hudAxes);
@@ -3834,8 +3907,8 @@ defineExpose({
         {{ hudMode.text }} · {{ props.g5xLabel || '-' }}<template v-if="hudPlaneWord"> · {{ hudPlaneWord }}</template>
       </div>
 
-      <div v-if="vst?.eoffset_enabled" class="hudWarn">Comp Z {{ vst.eoffset_z != null ? vst.eoffset_z.toFixed(3) : '---' }}</div>
-      <div v-if="vst?.rotation_xy" class="hudWarn">Rotation {{ vst.rotation_xy.toFixed(1) }}°</div>
+      <div v-if="vst?.eoffset_enabled" class="hudWarn">Comp Z {{ fmtNum(vst.eoffset_z, 3) }}</div>
+      <div v-if="vst?.rotation_xy" class="hudWarn">Rotation {{ fmtNum(vst.rotation_xy, 1) }}°</div>
       <div v-if="foreignWcs.length" class="hudWarn">Program cuts in {{ foreignWcs.join(', ') }} — {{ props.g5xLabel }} active</div>
       <div v-if="rewrittenWcs.length" class="hudWarn">Program writes {{ rewrittenWcs.join(', ') }} — its preview ignores live edits there</div>
       <div v-if="kinsEndWarn" class="hudWarn" :title="kinsEndWarn.title">{{ kinsEndWarn.text }}</div>
@@ -3857,7 +3930,7 @@ defineExpose({
       <div v-else-if="previewWcsStale" class="hudWarn"
         title="A fixture this program uses was touched off after it was parsed — the gateway re-parses once the interpreter is idle and the offsets have settled">Preview uses older offsets — re-parses when idle</div>
       <div v-if="previewTloStale" class="hudWarn"
-        :title="`Parsed with T${previewTloStale.tool} length ${previewTloStale.parsed.toFixed(3)}, table now ${previewTloStale.live.toFixed(3)} — line limit flags are stale until the gateway re-parses (idle)`">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parses when idle</div>
+        :title="`Parsed with T${previewTloStale.tool} length ${fmtNum(previewTloStale.parsed, 3)}, table now ${fmtNum(previewTloStale.live, 3)} — line limit flags are stale until the gateway re-parses (idle)`">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parses when idle</div>
       <div v-if="toolpathOverflow" class="hudWarn"
         title="The per-line soft-limit validator flagged these moves — the same source as the marked lines in the program panel and the scrub bar's ◀ N limits ▶, which jumps between them (simulation mode, machine off). Validated against the offsets at parse time; a touch-off re-parses automatically.">{{ toolpathOverflowCount }} soft-limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
     </div>
@@ -3870,8 +3943,8 @@ defineExpose({
 
     <!-- Quick-access grid under the ViewCube: Reset, Clear, PIP, Settings -->
     <div class="viewerQuickGrid">
-      <MachineBtn type="viewPreset" @click="setView('reset')">Reset</MachineBtn>
-      <MachineBtn type="viewPreset" @click="resetBackplot">Clear</MachineBtn>
+      <MachineBtn type="viewPreset" aria-label="Reset view" title="Reset view" @click="setView('reset')">Reset</MachineBtn>
+      <MachineBtn type="viewPreset" aria-label="Clear backplot" title="Clear backplot" @click="resetBackplot">Clear</MachineBtn>
       <MachineBtn type="viewerQuickToggle" :selected="pipVisible" @click="togglePip" title="Show/hide camera">
         <Camera :size="14" />
       </MachineBtn>
@@ -3885,7 +3958,7 @@ defineExpose({
 
     <!-- SIMULATION mode banner — unmissable: the model is posed along the
          program, NOT the machine, and motion controls are locked. -->
-    <div v-if="simMode" class="simBanner">
+    <div v-if="simMode" class="simBanner overlay-card warn">
       SIMULATION &mdash; model shows the program, not the machine
     </div>
 
@@ -3907,7 +3980,7 @@ defineExpose({
     />
 
     <!-- STL load failure chip (bottom-left, never blocks render) -->
-    <div v-if="failedParts.length" class="stlFailedChip" :title="failedParts.join(', ')">
+    <div v-if="failedParts.length" class="stlFailedChip overlay-card warn" :title="failedParts.join(', ')">
       {{ failedParts.length }} machine part{{ failedParts.length === 1 ? '' : 's' }} failed to load (see console)
     </div>
 
@@ -3921,35 +3994,34 @@ defineExpose({
   height: 100%;
 }
 
-/* Quick-access 2×2 grid under the ViewCube (cube bottom edge ≈ 152px). */
+/* Quick-access 2×2 grid under the ViewCube: the cube sits --gap-section
+   from the top and is --viewcube-size tall (one token, ViewCube.vue reads
+   the same one), the grid starts --gap-tight below its bottom edge. */
 .viewerQuickGrid {
   position: absolute;
-  z-index: 1;
-  top: 156px;
+  z-index: var(--z-raised);
+  top: calc(var(--gap-section) + var(--viewcube-size) + var(--gap-tight));
   right: var(--gap-section);
-  width: 140px;
+  width: var(--viewcube-size);
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--gap-tight);
 }
 
+/* Chrome from the global .overlay-card.warn — layout only here. */
 .stlFailedChip {
   position: absolute;
-  z-index: 1;
+  z-index: var(--z-raised);
   bottom: var(--gap-section);
   left: var(--gap-section);
   padding: var(--gap-tight) var(--gap-controls);
-  border-radius: var(--radius-xl);
-  background: color-mix(in oklab, var(--warn) 20%, var(--panel));
-  border: 1px solid var(--warn);
-  color: var(--warn);
   font-size: var(--fs-base);
   pointer-events: auto;
 }
 
 .viewerHost {
   position: relative;
-  z-index: 0;
+  z-index: var(--z-base);
   width: 100%;
   height: 100%;
   border-radius: var(--radius-container);
@@ -3966,7 +4038,7 @@ defineExpose({
    the HUD, the quick grid, the STL chip, the sim bar and banner alike. */
 .hud {
   position: absolute;
-  z-index: 1;
+  z-index: var(--z-raised);
   top: var(--gap-section);
   left: var(--gap-section);
   max-width: calc(100% - 2 * var(--gap-section));

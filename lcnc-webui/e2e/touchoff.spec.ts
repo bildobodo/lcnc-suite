@@ -214,7 +214,7 @@ test("Capture/Clear plane buttons: gate-driven, Clear needs a plane (or TOOL lim
       kins_type: 0, g5x_index: 1, twp_defined: false,
       permissions: { ...PERMS_ALL },
     } });
-    const capture = page.getByRole("button", { name: "Capture plane" });
+    const capture = page.getByRole("button", { name: "Capture plane", exact: true });
     const clear = page.getByRole("button", { name: "Clear plane" });
     await expect(capture).toBeVisible();
     await expect(capture).not.toBeDisabled();
@@ -253,13 +253,13 @@ test("TCP trunnion (switchable, not TWP): G59 selectable, no Plane frame, no Cap
     // The kins-frame selector exists (Machine / TCP) but never offers Plane.
     await expect(page.locator('input[name="jogFrame"][value="0"]')).toHaveCount(1);
     await expect(page.locator('input[name="jogFrame"][value="2"]')).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Capture plane" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Capture plane", exact: true })).toHaveCount(0);
     await expect(page.locator('input[name="wcs"][value="G59"]')).not.toBeDisabled();
     await expect(page.locator('input[name="wcs"][value="G59.3"]')).not.toBeDisabled();
     // The TWP stack: same status, now G59 is reserved and Plane is offered.
     await ctlSend({ op: "setKins", kins: TRSRN });
     await expect(page.locator('input[name="jogFrame"][value="2"]')).toHaveCount(1);
-    await expect(page.getByRole("button", { name: "Capture plane" })).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "Capture plane", exact: true })).toHaveCount(1);
     await expect(page.locator('input[name="wcs"][value="G59"]')).toBeDisabled();
   } finally {
     await ctlSend({ op: "quiet", on: false });
@@ -458,7 +458,7 @@ test("Space on a focused control never reaches the Cycle Start shortcut", async 
     await page.keyboard.press(" ");
     await expect(page.getByText(/^Messages \(\d+\)$/)).toBeVisible();
     expectNoMachineAction(await recordedCmds());
-    await page.getByRole("button", { name: "×", exact: true }).first().click();
+    await page.getByRole("button", { name: "Close messages", exact: true }).click();
   } finally {
     await ctlSend({ op: "quiet", on: false });
     await ctlSend({ op: "reset" });
@@ -530,6 +530,264 @@ test("a disabled control explains itself: the reason on hover and on tap", async
     await ctlSend({ op: "status_delta", data: { permissions: { ...PERMS_ALL }, permission_reasons: {} } });
     await expect(btn).not.toBeDisabled();
     await expect(page.locator(".btnTip", { has: btn })).toHaveCount(0);
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});
+
+// ── WP0 / UI-11: the keypad's field contract ──────────────────────────────
+// ONE admissibility check feeds the readout, the OK button and confirm():
+// an invalid expression (`1.2.3` used to confirm as 1.2 through parseFloat's
+// prefix), a constraint violation and a fraction in an integer field are not
+// confirmable by touch OR by physical Enter, and send nothing.
+
+test("keypad refuses 1.2.3 on a touch-off field, shows empty as 0, confirms a valid value once", async ({ page }) => {
+  await page.goto(MOCK);
+  const zInput = page.locator("input.setupInput").nth(2);
+  await expect(zInput).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    await ctlSend({ op: "status_delta", data: { permissions: PERMS_ALL } });
+    await ctlSend({ op: "clearCmds" });
+    await zInput.click();
+    const strip = page.locator(".nkStrip");
+    await expect(strip).toBeVisible();
+    // Fresh entry replaces the pre-filled value.
+    await page.keyboard.type("1.2.3");
+    await expect(strip.locator(".nkExpr")).toHaveText("1.2.3");
+    await expect(strip.locator(".nkPreview")).toHaveText("invalid");
+    const ok = strip.getByRole("button", { name: "Apply", exact: true });
+    await expect(ok).toBeDisabled();
+    await page.keyboard.press("Enter");
+    await expect(strip).toBeVisible();
+    expect(await recordedCmds()).not.toContain("touchoff");
+    // C → empty → "= 0" is visible, not implied.
+    await strip.getByRole("button", { name: "Clear entry", exact: true }).click();
+    await expect(strip.locator(".nkPreview")).toHaveText("= 0");
+    await expect(ok).toBeEnabled();
+    await page.keyboard.type("5");
+    await page.keyboard.press("Enter");
+    await expect(strip).toHaveCount(0);
+    const cmds = await recordedCmds();
+    expect(cmds.filter(c => c === "touchoff")).toHaveLength(1);
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});
+
+test("tool number field: minimum 1 and whole numbers only, on Enter and on OK", async ({ page }) => {
+  await page.goto(MOCK);
+  await expect(page.locator("input.setupInput").first()).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    await page.getByRole("button", { name: "Tools", exact: true }).click();
+    await page.getByRole("button", { name: "+ Add", exact: true }).click();
+    const dialog = page.locator(".dialogOverlay").last();
+    const toolNo = dialog.locator("label", { hasText: "Tool #" }).locator("xpath=following-sibling::input[1]");
+    const before = await toolNo.inputValue();
+    await toolNo.click();
+    const strip = page.locator(".nkStrip");
+    await expect(strip).toBeVisible();
+    await expect(strip.locator(".sub")).toContainText("Tool #");
+    const ok = strip.getByRole("button", { name: "Apply", exact: true });
+    await page.keyboard.type("0");
+    await expect(strip.locator(".nkPreview")).toContainText("minimum 1");
+    await expect(ok).toBeDisabled();
+    await page.keyboard.press("Enter");
+    await expect(strip).toBeVisible();
+    // A real press on the disabled OK (force: no actionability wait) does nothing.
+    await ok.click({ force: true });
+    await expect(strip).toBeVisible();
+    await expect(toolNo).toHaveValue(before);
+    await strip.getByRole("button", { name: "Clear entry", exact: true }).click();
+    await expect(strip.locator(".nkPreview")).toContainText("= 0 · minimum 1");
+    await page.keyboard.type("2.5");
+    await expect(strip.locator(".nkPreview")).toContainText("whole number required");
+    await page.keyboard.press("Enter");
+    await expect(strip).toBeVisible();
+    await strip.getByRole("button", { name: "Clear entry", exact: true }).click();
+    await page.keyboard.type("3");
+    await page.keyboard.press("Enter");
+    await expect(strip).toHaveCount(0);
+    await expect(toolNo).toHaveValue("3");
+    // Focus returned to the field that opened the keypad.
+    await expect(toolNo).toBeFocused();
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});
+
+// ── WP6: hold target binding, hold hint, tool-change confirm, surface states, keypad owner ──
+
+async function holdOn(page: Page, locator: ReturnType<Page["locator"]>, ms: number) {
+  const box = (await locator.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(ms);
+}
+
+test("Offsets Clear: disabled without a real selection, hold-to-fire, hold cancels when the target moves", async ({ page }) => {
+  await page.goto(MOCK);
+  await expect(page.locator("input.setupInput").first()).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    // The default fixture ships no wcs_table; setAxes fills the nine rows.
+    await ctlSend({ op: "setAxes", axes: ["X", "Y", "Z"] });
+    // No g5x_index yet → the label is "-" → nothing selected → Clear disabled with a reason.
+    await page.getByRole("button", { name: "Offsets", exact: true }).click();
+    const clear = page.getByRole("button", { name: /^Clear (–|G5)/ });
+    await expect(clear).toBeDisabled();
+    await expect(page.locator(".btnTip", { has: clear })).toHaveAttribute("title", /Select a coordinate system/);
+    // The active fixture selects itself once the status names one.
+    await ctlSend({ op: "status_delta", data: { g5x_index: 2, permissions: PERMS_ALL } });
+    await expect(clear).toBeEnabled();
+    await expect(clear).toHaveText(/Clear\s+G55/);
+    await ctlSend({ op: "clearCmds" });
+    // A tap is not a hold: hint shown, nothing sent.
+    await clear.click();
+    await expect(page.locator("[data-btn-hint]")).toHaveText("Hold to activate");
+    await page.waitForTimeout(300);
+    expect(await recordedCmds()).not.toContain("clear_wcs");
+    // Selection moves mid-hold (pin another row) → cancelled, nothing sent.
+    await holdOn(page, clear, 200);
+    await page.locator("tbody tr", { hasText: "G57" }).locator("td").first().dispatchEvent("click");
+    await page.waitForTimeout(600);
+    await page.mouse.up();
+    expect(await recordedCmds()).not.toContain("clear_wcs");
+    await expect(clear).toHaveText(/Clear\s+G57/);
+    // Gate closes during the hold → cancelled even though it re-opens.
+    await holdOn(page, clear, 150);
+    await ctlSend({ op: "status_delta", data: { permissions: { ...PERMS_ALL, probe: false } } });
+    await page.waitForTimeout(100);
+    await ctlSend({ op: "status_delta", data: { permissions: PERMS_ALL } });
+    await page.waitForTimeout(500);
+    await page.mouse.up();
+    expect(await recordedCmds()).not.toContain("clear_wcs");
+    // A complete hold sends exactly one clear_wcs for the pinned target.
+    await holdOn(page, clear, 700);
+    await page.mouse.up();
+    const sent = await ctlSend({ op: "lastCmds" }) as { cmds?: { cmd?: string; target?: string }[] };
+    const clears = (sent.cmds ?? []).filter(c => c.cmd === "clear_wcs");
+    expect(clears).toHaveLength(1);
+    expect(clears[0]!.target).toBe("G57");
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});
+
+test("tool-change confirm: once per request, retry after a refusal, nothing without a request", async ({ page }) => {
+  await page.goto(MOCK);
+  await expect(page.locator("input.setupInput").first()).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    await ctlSend({ op: "status_delta", data: { tool_change_requested: true, tool_change_tool: 3, permissions: PERMS_ALL } });
+    const dialog = page.locator(".safetyDialog .dialog", { hasText: "Load Tool into Spindle" });
+    await expect(dialog).toBeVisible();
+    await ctlSend({ op: "clearCmds" });
+    const confirm = dialog.getByRole("button", { name: /Confirm/ });
+    await confirm.click();
+    await expect(dialog.getByRole("button", { name: "Confirming…", exact: true })).toBeDisabled();
+    await confirm.click({ force: true }).catch(() => {});
+    await page.waitForTimeout(200);
+    const sent = await ctlSend({ op: "lastCmds" }) as { cmds?: { cmd?: string; req_id?: string }[] };
+    const confirms = (sent.cmds ?? []).filter(c => c.cmd === "confirm_tool_change");
+    expect(confirms).toHaveLength(1);
+    // Refusal → the button comes back; a second confirm goes out.
+    await ctlSend({ op: "raw", frame: { type: "reply", cmd: "confirm_tool_change", req_id: confirms[0]!.req_id, ok: false, error: "not pending" } });
+    await expect(dialog.getByRole("button", { name: "Confirm", exact: true })).toBeEnabled();
+    await dialog.getByRole("button", { name: "Confirm", exact: true }).click();
+    await expect.poll(async () => ((await ctlSend({ op: "lastCmds" })).cmds ?? []).filter((c: any) => c.cmd === "confirm_tool_change").length).toBe(2);
+    // Request ends → dialog gone; nothing more is sent.
+    await ctlSend({ op: "status_delta", data: { tool_change_requested: false, tool_change_tool: null } });
+    await expect(dialog).toHaveCount(0);
+    expect(((await ctlSend({ op: "lastCmds" })).cmds ?? []).filter((c: any) => c.cmd === "confirm_tool_change").length).toBe(2);
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});
+
+test("surface map: empty state without a toast, error with retry, points load without a grid", async ({ page }) => {
+  await page.goto(MOCK);
+  await expect(page.locator("input.setupInput").first()).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    await ctlSend({ op: "status_delta", data: { permissions: PERMS_ALL } });
+    await page.getByRole("button", { name: "Probing", exact: true }).click();
+    await page.getByRole("button", { name: "Surface", exact: true }).click();
+    const messages = page.getByRole("button", { name: /^Messages \(/ });
+    const before = await messages.getAttribute("title");
+    await ctlSend({ op: "clearCmds" });
+    await page.getByRole("button", { name: /Reload Data|Loading…/ }).click();
+    const sent = async () => ((await ctlSend({ op: "lastCmds" })).cmds ?? []) as { cmd?: string; req_id?: string }[];
+    // The panel's own auto-fetch (view change, points/grid version) may send
+    // a request after the click: the App correlates replies with the LATEST
+    // request, so the test answers the latest one too.
+    const last = async (cmd: string) => [...(await sent())].reverse().find(c => c.cmd === cmd)!;
+    await expect.poll(async () => (await sent()).some(c => c.cmd === "get_probe_results") && (await sent()).some(c => c.cmd === "get_comp_grid")).toBe(true);
+    const points = await last("get_probe_results");
+    const grid = await last("get_comp_grid");
+    // No grid yet is a STATE (ok, comp_grid null): empty text, no message.
+    await ctlSend({ op: "raw", frame: { type: "reply", cmd: "get_comp_grid", req_id: grid.req_id, ok: true, comp_grid: null, reason: "no grid file" } });
+    await ctlSend({ op: "raw", frame: { type: "reply", cmd: "get_probe_results", req_id: points.req_id, ok: true, points: [] } });
+    await expect(page.getByText("No surface map recorded yet", { exact: true })).toBeVisible();
+    await expect(page.getByText("No compensation grid yet", { exact: true })).toBeVisible();
+    expect(await messages.getAttribute("title")).toBe(before);
+    // A damaged grid file is an error with a retry; the points still load.
+    await ctlSend({ op: "clearCmds" });
+    await page.getByRole("button", { name: /Reload Data|Loading…/ }).click();
+    await expect.poll(async () => (await sent()).length).toBeGreaterThanOrEqual(2);
+    const points2 = await last("get_probe_results");
+    // Points first: their arrival activates the surface viewer, which asks
+    // for the grid once more — the LATEST grid request is the one whose
+    // reply the panel shows, so it is answered after the points landed.
+    await ctlSend({ op: "raw", frame: { type: "reply", cmd: "get_probe_results", req_id: points2.req_id, ok: true, points: [[0, 0, 0], [10, 0, 0.1], [0, 10, -0.1], [10, 10, 0]] } });
+    await expect(page.getByText("No surface map recorded yet", { exact: true })).toHaveCount(0);
+    await page.waitForTimeout(300);
+    const grid2 = await last("get_comp_grid");
+    await ctlSend({ op: "raw", frame: { type: "reply", cmd: "get_comp_grid", req_id: grid2.req_id, ok: false, error: "Invalid grid file" } });
+    await expect(page.getByText(/Grid: Invalid grid file/)).toBeVisible();
+    await expect(page.getByText("No surface map recorded yet", { exact: true })).toHaveCount(0);
+    await ctlSend({ op: "clearCmds" });
+    await page.getByRole("button", { name: "Retry", exact: true }).click();
+    await expect.poll(async () => (await sent()).map(c => c.cmd)).toContain("get_comp_grid");
+  } finally {
+    await ctlSend({ op: "quiet", on: false });
+    await ctlSend({ op: "reset" });
+  }
+});
+
+test("keypad owner: dialog close, gate change and a second field end or retarget the session", async ({ page }) => {
+  await page.goto(MOCK);
+  await expect(page.locator("input.setupInput").first()).toBeVisible();
+  await ctlSend({ op: "quiet", on: true });
+  try {
+    await ctlSend({ op: "status_delta", data: { permissions: PERMS_ALL } });
+    await page.getByRole("button", { name: "Tools", exact: true }).click();
+    await page.getByRole("button", { name: "+ Add", exact: true }).click();
+    const dialog = page.locator(".editDialog");
+    const field = (name: string) => dialog.locator("label", { hasText: name }).locator("xpath=following-sibling::input[1]");
+    await field("Diameter").click();
+    const strip = page.locator(".nkStrip");
+    await expect(strip.locator(".sub")).toHaveText("New tool · Diameter · mm");
+    // Second field retargets: the header names it, the first draft is not confirmed.
+    await page.keyboard.type("12");
+    await field("Flutes").click();
+    await expect(strip.locator(".sub")).toHaveText("New tool · Flutes");
+    await expect(field("Diameter")).toHaveValue("0");
+    // Closing the dialog while the keypad is open ends the session.
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(strip).toHaveCount(0);
+    // Gate change while open on a strip field closes it too.
+    await page.locator("input.setupInput").first().click();
+    await expect(strip).toBeVisible();
+    await ctlSend({ op: "status_delta", data: { permissions: { ...PERMS_ALL, touchoff: false } } });
+    await expect(strip).toHaveCount(0);
+    await ctlSend({ op: "status_delta", data: { permissions: PERMS_ALL } });
   } finally {
     await ctlSend({ op: "quiet", on: false });
     await ctlSend({ op: "reset" });

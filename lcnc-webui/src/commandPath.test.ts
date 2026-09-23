@@ -50,12 +50,13 @@ const NO_GATE_NEEDED = new Set([
  * classifies it. Same discipline as the gateway's INLINE_EXEMPT.
  */
 const DOM_GATED_ONLY = new Set([
-  "add_tool", "save_tool", "delete_tool", "renumber_tool",  // ToolTablePanel
-  "set_wcs", "clear_wcs",                                   // OffsetPanel
-  "set_compensation",                                       // useDialogState (confirm dialog)
-  "set_compensation_method", "simulate_probe_trip",         // ProbePanel via App
+  // The tool-table writes (add/save/delete/renumber), the WCS writes
+  // (set_wcs/clear_wcs), set_compensation (useDialogState's `fire` option),
+  // set_compensation_method and set_mode moved onto fire() in the UI review
+  // wave (WP3/WP6, 2026-09-20) and left this ratchet.
+  "simulate_probe_trip",                                    // ProbePanel via App
   "set_feed_override", "set_spindle_override", "set_rapid_override",
-  "set_mode", "shutdown",
+  "shutdown",
 ]);
 
 function collect(re: RegExp): Map<string, Set<string>> {

@@ -106,6 +106,9 @@ def offline_commands(component):
     if component in ("all", "backend"):
         commands.append(("backend", [python(), "-m", "pytest"], ROOT / "lcnc-gateway"))
         commands.append(("5axis-model", [python(), str(ROOT / "scripts/test_5axis_xyzac.py")], ROOT))
+        # Explicit: the backend pytest runs in lcnc-gateway with testpaths=["."]
+        # and never discovers scripts/ — the CSS linter's own pins ride here.
+        commands.append(("audit-css", [python(), "-m", "pytest", str(ROOT / "scripts/test_audit_scoped_css.py")], ROOT))
     if component in ("all", "frontend"):
         for name, cmd in (("lint", ["npm", "run", "lint"]),
                           ("build", ["npm", "run", "build"]),

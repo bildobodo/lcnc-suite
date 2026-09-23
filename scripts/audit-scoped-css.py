@@ -40,9 +40,33 @@ WS-C extension — design-token drift checks over every .vue <style> block
   STACK      — scoped rule re-implementing a stack utility: display:flex +
                flex-direction:column + gap:var(--gap-X) → use stack-X class.
 
+  HLPCT      — a --hl-* token (a COLOUR: color-mix of fg into button-bg) used
+               in the PERCENT slot of a color-mix() argument (`var(--fg)
+               var(--hl-hover)`) — the browser drops the whole declaration.
+               Parsed per argument, never by regex over the raw value.
+  ZINDEX     — `z-index: <number>` literal in a .vue style block (vs --z-*).
+  IMPORTANT  — `!important` in a .vue style block.
+  INLINE     — a static `style="…"` attribute in the <template> (`:style`
+               bindings are fine — they carry computed layout values).
+  TOFIXED    — `.toFixed(` inside the <template> (formatting belongs in
+               format.ts, the ONE place a number becomes text).
+  CLOSE      — `<MachineBtn type="close"` without an `aria-label`: a close
+               control is named for its context ("Close settings",
+               "Dismiss upload error"), never announced as "times" (UX-05).
+
+The <template> range is NESTING-AWARE: a nested `<template v-if>` /
+`<template #slot>` no longer ends the scan at its `</template>` (App.vue's
+template used to be cut at line 1743 of 2275).
+
 Escape hatch: `/* audit-ok: <reason> */` on the declaration line or the line
-above suppresses that finding — same spirit as the backend `safe-silent`
-convention: the exemption is visible and greppable at the site.
+above (or `<!-- audit-ok: <reason> -->` in the template) suppresses that
+finding — same spirit as the backend `safe-silent` convention: the exemption
+is visible and greppable at the site.
+
+CLI: `audit-scoped-css.py [--all] [--paths FILE ...]`. Without `--paths`
+every .vue under lcnc-webui/src (recursively) is scanned; with it only the
+given files — the fixtures under scripts/test_fixtures/audit_css/ and
+scripts/test_audit_scoped_css.py keep every category honest.
 
 Manual `border-bottom` separators are deliberately NOT checked: every current
 use is legit (table row underlines, a resize-corner glyph, totals rules) and
@@ -100,7 +124,35 @@ def scoped_classes(path: str) -> frozenset[str]:
 
 @lru_cache(maxsize=None)
 def template_range(path: str) -> tuple[int, int] | None:
-    return block_range(read(path), r"<template>", "</template>")
+    """1-indexed (start, end) of the SFC's top-level <template> block.
+
+    Nesting-aware: `<template v-if>` / `<template #slot>` inside the root
+    template open a nested block whose `</template>` must NOT end the range
+    (block_range stopped at the first close tag — App.vue's template was
+    cut at 1743 of 2275 lines, and every template check after that line
+    was blind).
+    """
+    lines = read(path).splitlines()
+    start = None
+    depth = 0
+    open_re = re.compile(r"<template(?=[\s>])")
+    close_re = re.compile(r"</template\s*>")
+    for i, line in enumerate(lines, 1):
+        if start is None:
+            if re.match(r"^<template(?=[\s>])", line):
+                start = i
+                depth = 1
+                # a root template that also closes on its own line
+                depth += len(open_re.findall(line)) - 1
+                depth -= len(close_re.findall(line))
+                if depth == 0:
+                    return (start, i)
+            continue
+        depth += len(open_re.findall(line))
+        depth -= len(close_re.findall(line))
+        if depth <= 0:
+            return (start, i)
+    return None
 
 
 @lru_cache(maxsize=None)
@@ -178,6 +230,118 @@ def _audit_ok(lines: list[str], idx: int) -> bool:
     return "audit-ok:" in here or "audit-ok:" in above
 
 
+def _split_args(inner: str) -> list[str]:
+    """Split a function's argument text on top-level commas (depth-aware)."""
+    args, depth, cur = [], 0, []
+    for ch in inner:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        if ch == "," and depth == 0:
+            args.append("".join(cur).strip())
+            cur = []
+        else:
+            cur.append(ch)
+    if "".join(cur).strip():
+        args.append("".join(cur).strip())
+    return args
+
+
+def _color_mix_calls(val: str) -> list[str]:
+    """Inner argument text of every color-mix(...) call in a value."""
+    out = []
+    pos = 0
+    while True:
+        k = val.find("color-mix(", pos)
+        if k < 0:
+            return out
+        i = k + len("color-mix(")
+        depth = 1
+        j = i
+        while j < len(val) and depth:
+            if val[j] == "(":
+                depth += 1
+            elif val[j] == ")":
+                depth -= 1
+            j += 1
+        out.append(val[i : j - 1])
+        pos = j
+
+
+def _arg_tokens(arg: str) -> list[str]:
+    """Top-level whitespace-separated tokens of one color-mix argument
+    (`var(--fg) 12%` → ['var(--fg)', '12%'])."""
+    toks, depth, cur = [], 0, []
+    for ch in arg:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        if ch.isspace() and depth == 0:
+            if cur:
+                toks.append("".join(cur))
+                cur = []
+        else:
+            cur.append(ch)
+    if cur:
+        toks.append("".join(cur))
+    return toks
+
+
+def hl_in_percent_slot(val: str) -> list[str]:
+    """Arguments of color-mix() where a --hl-* token stands in the PERCENT
+    position (after a colour token). `var(--hl-hover)` as the colour itself
+    is valid. Returns the offending argument texts."""
+    bad = []
+    for inner in _color_mix_calls(val):
+        args = _split_args(inner)
+        for arg in args[1:]:  # args[0] is the `in <colorspace>` method
+            toks = _arg_tokens(arg)
+            for tok in toks[1:]:
+                if tok.startswith("var(--hl-"):
+                    bad.append(arg)
+                    break
+    return bad
+
+
+def _template_audit_ok(lines: list[str], idx: int) -> bool:
+    here = lines[idx]
+    above = lines[idx - 1] if idx > 0 else ""
+    return "audit-ok:" in here or "audit-ok:" in above
+
+
+def template_findings(path: str) -> list[tuple[str, int, str]]:
+    """INLINE (static style=), TOFIXED (number formatting) and CLOSE (an
+    unnamed close control) inside the SFC's top-level template — nothing
+    outside it (script/style)."""
+    findings: list[tuple[str, int, str]] = []
+    tpl = template_range(path)
+    if not tpl:
+        return findings
+    lines = read(path).splitlines()
+    for ln in range(tpl[0], tpl[1] + 1):
+        line = lines[ln - 1]
+        idx = ln - 1
+        if _template_audit_ok(lines, idx):
+            continue
+        # a static style attribute: `style="…"` not preceded by `:` or `v-bind`
+        if re.search(r'(?<![:\w-])style="', line):
+            findings.append(("INLINE", ln, "static style=\"…\" — use a utility class (.w-full) or a scoped layout rule"))
+        if ".toFixed(" in line:
+            findings.append(("TOFIXED", ln, ".toFixed( in the template — format through format.ts"))
+        # a close control without an accessible name: read the whole tag (it
+        # may span lines) and look for aria-label / :aria-label on it
+        if '<MachineBtn' in line and 'type="close"' in line:
+            tag, j = line, idx
+            while ">" not in tag and j + 1 < len(lines):
+                j += 1
+                tag += " " + lines[j]
+            if "aria-label" not in tag:
+                findings.append(("CLOSE", ln, 'type="close" without aria-label — name the close for its context ("Close settings", "Dismiss upload error")'))
+    return findings
+
+
 def token_findings(path: str) -> list[tuple[str, int, str]]:
     """(category, lineno, message) per drift site in one .vue file.
 
@@ -234,6 +398,16 @@ def token_findings(path: str) -> list[tuple[str, int, str]]:
                     r"var\(--[\w-]+\s*,\s*#[0-9a-fA-F]{3,8}", val
                 ):
                     flag("TOKEN", i, f"{prop}: {val} — bare hex; use a semantic var")
+
+                for bad in hl_in_percent_slot(val):
+                    flag("HLPCT", i, f"{prop}: `{bad}` — --hl-* is a colour, not a percentage; "
+                                     "use --hl-surface / --hl-surface-info or the token as the colour")
+
+                if prop == "z-index" and re.fullmatch(r"-?\d+", val):
+                    flag("ZINDEX", i, f"z-index: {val} — use a --z-* token")
+
+                if "!important" in val:
+                    flag("IMPORTANT", i, f"{prop}: {val} — resolve by specificity, not !important")
 
                 if ":deep(" in selector and _DEEP_VISUAL.match(f"{prop}:"):
                     flag("DEEP", i, f"visual '{prop}' via :deep() in `{selector}`")
@@ -295,19 +469,15 @@ def token_findings(path: str) -> list[tuple[str, int, str]]:
     return findings
 
 
-def main(argv: list[str]) -> int:
-    show_all = "--all" in argv
-
-    os.chdir(repo_root())
-    if not SRC.is_dir() or not STYLE.is_file():
-        print(f"missing {SRC} or {STYLE}", file=sys.stderr)
-        return 2
-
-    vue_files = sorted(SRC.glob("*.vue"))
+def run(vue_files: list[Path], show_all: bool = False, style: Path | None = None) -> tuple[list, list, int]:
+    """Scan `vue_files`: (leak findings, drift findings, definite-leak count).
+    Drift findings are (category, file, line, message). `style` is the global
+    stylesheet whose classes exempt a scoped class from the leak check."""
+    vue_files = sorted(vue_files)
     # Capture every class token in style.css, including those buried in compound
     # selectors like `.dialog.lg` or `.val-status.warn`. Top-line-only would miss
     # these and produce dozens of false positives.
-    global_classes = set(re.findall(rf"\.({TAG})", STYLE.read_text()))
+    global_classes = set(re.findall(rf"\.({TAG})", style.read_text())) if style and style.is_file() else set()
 
     findings = []
     for def_file in vue_files:
@@ -329,26 +499,47 @@ def main(argv: list[str]) -> int:
                         else "DEFINITE"
                     )
                     findings.append((sev, str(use_file), ln, name, str(def_file), tag))
-
     findings.sort()
-    definite = 0
+    definite = sum(1 for f in findings if f[0] == "DEFINITE")
+
+    drift = []
+    for f in vue_files:
+        for cat, ln, msg in token_findings(str(f)) + template_findings(str(f)):
+            drift.append((cat, str(f), ln, msg))
+    drift.sort(key=lambda d: (d[1], d[2], d[0]))
+    return findings, drift, definite
+
+
+def main(argv: list[str]) -> int:
+    show_all = "--all" in argv
+
+    if "--paths" in argv:
+        paths = [Path(a) for a in argv[argv.index("--paths") + 1 :] if not a.startswith("--")]
+        if not paths:
+            print("--paths needs at least one .vue file", file=sys.stderr)
+            return 2
+        style = Path(repo_root()) / STYLE
+        vue_files = [p.resolve() for p in paths]
+    else:
+        os.chdir(repo_root())
+        if not SRC.is_dir() or not STYLE.is_file():
+            print(f"missing {SRC} or {STYLE}", file=sys.stderr)
+            return 2
+        vue_files = sorted(SRC.rglob("*.vue"))
+        style = STYLE
+
+    findings, drift, definite = run(vue_files, show_all, style)
     for sev, f, ln, name, dfile, tag in findings:
-        if sev == "DEFINITE":
-            definite += 1
         if sev == "DEFINITE" or show_all:
             print(
                 f"{sev:<9} {f}:{ln:<4} .{name:<24} on <{tag}>  (scoped in {dfile})"
             )
-
-    drift = 0
-    for f in vue_files:
-        for cat, ln, msg in token_findings(str(f)):
-            drift += 1
-            print(f"{cat:<9} {f}:{ln:<4} {msg}")
+    for cat, f, ln, msg in drift:
+        print(f"{cat:<9} {f}:{ln:<4} {msg}")
 
     if definite or drift:
         print(
-            f"\nFAIL: {definite} definite scoped-CSS leak(s), {drift} token-drift finding(s).",
+            f"\nFAIL: {definite} definite scoped-CSS leak(s), {len(drift)} token-drift finding(s).",
             file=sys.stderr,
         )
         return 1

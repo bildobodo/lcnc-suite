@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
+import { registerModal } from "./modalRegistry";
 import { GCODE_REFERENCE, GCODE_GROUPS, type GcodeEntry } from "./gcodeReference";
 import MachineBtn from "./MachineBtn.vue";
+import { X } from "lucide-vue-next";
 import MachineInput from "./MachineInput.vue";
 import MachineSelect from "./MachineSelect.vue";
 
 const props = defineProps<{ open: boolean; initialSearch?: string }>();
 const emit = defineEmits<{ (e: "close"): void }>();
+registerModal(() => props.open);
 
 const search = ref("");
 const filterGroup = ref("");
@@ -49,13 +52,14 @@ function toggleSort(key: "code" | "name") {
     <div class="dialog lg dialog-full">
       <div class="dialogHeader">
         <span class="dialogTitle">G-code Reference</span>
-        <MachineBtn type="close" @click="emit('close')">&times;</MachineBtn>
+        <MachineBtn type="close" aria-label="Close reference" title="Close reference" @click="emit('close')"><X :size="14" /></MachineBtn>
       </div>
       <div class="stack-controls refContent">
         <MachineInput
           gate="search"
           type="text"
           v-model="search"
+          label="Search G-code reference"
           placeholder="Search codes, names, descriptions…"
           class="refSearch"
         />
@@ -154,10 +158,11 @@ function toggleSort(key: "code" | "name") {
   opacity: var(--opacity-muted);
 }
 
-.refEmpty {
+/* Specificity over `.refTable td` (0,1,1) instead of !important. */
+.refTable td.refEmpty {
   text-align: center;
   opacity: var(--opacity-muted);
-  padding: var(--gap-panel) !important;
+  padding: var(--gap-panel);
 }
 
 .refFooter {

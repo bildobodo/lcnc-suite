@@ -1,0 +1,740 @@
+Codex Runde 5, 2026-09-22, HEAD ac0f9187b51d9044ea1e2271476161d404d8cb23
+Offline report: runlogs/test-suite/20260922T165445Z-offline/report.json — PASS
+Independent probes: 27 previous PASS; 5 new FAIL (2 save cases, 3 help geometries).
+Temporary old-probe locator mappings only: OK -> Apply; Cancel -> Discard; C -> Clear entry.
+Excluded obsolete R2 focus-gap case, replaced by stronger R3 cases.
+All commands against built frontend + localhost mock; no LinuxCNC.
+
+=== Initial independent browser run ===
+[WebServer] (node:109789) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:109824) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 32 tests using 1 worker
+
+(node:109836) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:109836) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+NUMERIC_CANCEL_ENTER {"focusedCancel":true,"commands":[{"cmd":"get_tool_table","req_id":"9yixa2-3"},{"cmd":"get_tool_table","req_id":"9yixa2-4"}]}
+  ✓   1 [chromium] › e2e/audit-keyboard-activation.spec.ts:19:1 › real Tab to numeric Cancel then Enter cancels without confirming the value (1.7s)
+TEXT_CLOSE_ACTIVATION {"countAfterEnter":0,"countAfterSpace":0,"closedByPointer":true}
+  ✓   2 [chromium] › e2e/audit-keyboard-activation.spec.ts:41:1 › focused Close keyboard button responds to native Enter like its pointer action (1.4s)
+NUMBER_OUTSIDE 0
+  ✓   3 [chromium] › e2e/audit-r1.probes.spec.ts:21:1 › number closes on outside pointer (1.1s)
+RETURNED_DRAFT 123
+  ✓   4 [chromium] › e2e/audit-r1.probes.spec.ts:30:1 › number draft survives number to text and back (1.3s)
+NUMBER_FOCUS <body>
+    <div id="app" data-v-app=""><div data-v-80412ffa="" class="wrap stack-controls"><header data-v-80412ffa="" class="hdr"><div data-v-80412ffa="" class=
+  ✓   5 [chromium] › e2e/audit-r1.probes.spec.ts:44:1 › number confirm returns focus to its original field (1.4s)
+HIDDEN_OFFSET {"openN":0,"cmds":{"ok":true,"op":"lastCmds","cmds":[{"cmd":"get_tool_table","req_id":"q0uo4h-3"},{"cmd":"get_tool_table","req_id":"q0uo4h-4"}]}}
+  ✓   6 [chromium] › e2e/audit-r1.probes.spec.ts:54:1 › hidden offset owner cannot confirm a write (1.4s)
+SAVE_AFTER_TYPING {"body":"G0 X0\nM2\n","editors":1}
+  ✓   7 [chromium] › e2e/audit-r1.probes.spec.ts:68:1 › save response preserves edits typed after the request (2.1s)
+TEXT_BUTTON_TAB_OUT {
+  active: '<button data-v-70ec0702="" data-v-80412ffa="" class="b-icon md" title="Messages (0)"><svg data-v-80412ffa="" xmlns="http://www.w3.org/2000/svg" width=',
+  keyboard: false
+}
+  ✓   8 [chromium] › e2e/audit-r1.probes.spec.ts:94:1 › Tab out from a keyboard button closes the text helper (1.3s)
+KEY_SCOPED_STYLES {
+  scopes: [ 'data-v-8196bad9', 'data-v-80412ffa' ],
+  buttonAttrs: [
+    'data-v-70ec0702',
+    'data-v-8196bad9',
+    'class',
+    'aria-label',
+    'title'
+  ],
+  paddingLeft: '0px',
+  gridRow: '3 / 5'
+}
+  ✓   9 [chromium] › e2e/audit-r1.probes.spec.ts:110:1 › keyboard button keeps its parent scoped sizing rules (1.2s)
+SEARCH_KEY_HIT {
+  hit: '<button data-v-70ec0702="" data-v-8196bad9="" class="b lg default mono tkKey" aria-label="g" title="g">g</button>',
+  keyboard: true
+}
+  ✓  10 [chromium] › e2e/audit-r1.probes.spec.ts:127:3 › real touch › reference search can receive a real keyboard tap (1.3s)
+PORTRAIT_ACTUAL_BOUNDS { bottom: 1093.5, top: 401.75, inner: 1200 }
+  ✓  11 [chromium] › e2e/audit-r1.probes.spec.ts:143:3 › real touch › portrait at 150 percent keeps the full helper within the viewport (1.3s)
+EMPTY_DRAFT {"original":"12.345","returned":"0","draft":1}
+  ✓  12 [chromium] › e2e/audit-r2.probes.spec.ts:20:1 › Clear remains an unconfirmed zero draft after switching number to text (1.4s)
+DRAFT_AFTER_GATE {"original":"10.1230","returned":"10.123","draft":0}
+  ✓  13 [chromium] › e2e/audit-r2.probes.spec.ts:37:1 › Offset draft ends when its gate closes while another cell owns the keypad (1.6s)
+BODY_KEY_OBSERVATIONS [{"key":" ","trusted":true,"body":true,"guard":true,"disabled":true},{"key":"Backspace","trusted":true,"body":true,"guard":true,"disabled":true},{"key":" ","trusted":true,"body":true,"guard":true,"disabled":true},{"key":"Backspace","trusted":true,"body":true,"guard":true,"disabled":true},{"key":" ","trusted":true,"body":true,"guard":true,"disabled":true},{"key":"Backspace","trusted":true,"body":true,"guard":true,"disabled":true},{"key":" ","trusted":true,"body":true,"guard":true,"disabled":true},{"key":"Backspace","trusted":true,"body":true,"guard":true,"disabled":true},{"key":" ","trusted":true,"body":true,"guard":true,"disabled":true},{"key":"Backspace","trusted":true,"body":true,"guard":true,"disabled":true},{"key":" ","trusted":true,"body":true,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":false,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":false,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false}]
+  ✓  14 [chromium] › e2e/audit-r3.probes.spec.ts:33:3 › focus return 1: trusted Space/Backspace on body stay guarded; Escape works (2.1s)
+BODY_KEY_OBSERVATIONS [{"key":" ","trusted":true,"body":true,"guard":true,"disabled":true},{"key":"Backspace","trusted":true,"body":true,"guard":true,"disabled":true},{"key":" ","trusted":true,"body":true,"guard":true,"disabled":true},{"key":"Backspace","trusted":true,"body":true,"guard":true,"disabled":true},{"key":" ","trusted":true,"body":true,"guard":true,"disabled":true},{"key":"Backspace","trusted":true,"body":true,"guard":true,"disabled":true},{"key":" ","trusted":true,"body":true,"guard":true,"disabled":true},{"key":"Backspace","trusted":true,"body":true,"guard":true,"disabled":true},{"key":" ","trusted":true,"body":true,"guard":true,"disabled":true},{"key":"Backspace","trusted":true,"body":true,"guard":true,"disabled":true},{"key":" ","trusted":true,"body":true,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":true,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":false,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false}]
+  ✓  15 [chromium] › e2e/audit-r3.probes.spec.ts:33:3 › focus return 2: trusted Space/Backspace on body stay guarded; Escape works (2.0s)
+BODY_KEY_OBSERVATIONS [{"key":" ","trusted":true,"body":true,"guard":true,"disabled":true},{"key":"Backspace","trusted":true,"body":true,"guard":true,"disabled":true},{"key":" ","trusted":true,"body":true,"guard":true,"disabled":true},{"key":"Backspace","trusted":true,"body":true,"guard":true,"disabled":true},{"key":" ","trusted":true,"body":true,"guard":true,"disabled":true},{"key":"Backspace","trusted":true,"body":true,"guard":true,"disabled":true},{"key":" ","trusted":true,"body":true,"guard":true,"disabled":true},{"key":"Backspace","trusted":true,"body":true,"guard":true,"disabled":true},{"key":" ","trusted":true,"body":true,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":true,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":false,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false},{"key":" ","trusted":true,"body":false,"guard":true,"disabled":false},{"key":"Backspace","trusted":true,"body":false,"guard":true,"disabled":false}]
+  ✓  16 [chromium] › e2e/audit-r3.probes.spec.ts:33:3 › focus return 3: trusted Space/Backspace on body stay guarded; Escape works (2.0s)
+  ✓  17 [chromium] › e2e/audit-r3.probes.spec.ts:86:1 › a different field chosen during focus return keeps its focus and text session (1.8s)
+  ✓  18 [chromium] › e2e/audit-r3.probes.spec.ts:105:1 › an offset cell that cannot hold focus falls back to the strip, never body (1.6s)
+BACKEND_GATE_DURING_BUSY {"elapsed":145,"returned":"12.345","drafts":0}
+  ✓  19 [chromium] › e2e/audit-r3.probes.spec.ts:121:1 › a real backend gate closure during the busy latch ends parked drafts (1.4s)
+PORTRAIT_OWNER_PAGE {"owner":"MDI","pageName":"Code keys","top":401.75,"bottom":1093.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"MDI","pageName":"ABC keys","top":446.75,"bottom":1138.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"MDI","pageName":"123 keys","top":446.75,"bottom":1138.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"MDI","pageName":"#+= keys","top":446.75,"bottom":1138.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_READOUT {"owner":"MDI","hit":true,"target":{"x":469,"y":861,"width":178.90625,"height":54,"top":861,"right":647.90625,"bottom":915,"left":469},"covering":"<input data-v-80412ffa=\"\" autocomplete=\"off\" autocorrect=\"off\" autocapitalize=\"off\" spellcheck=\"false\" name=\"mdiText\" aria-label=\"MDI command\" type=\"text\" class=\"mdiInput inputField keypad-active\" pla"}
+  ✓  20 [chromium] › e2e/audit-r3.probes.spec.ts:149:5 › portrait readout and real touch › MDI: readout and every keyboard page remain usable at 150 percent (2.2s)
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"Code keys","top":446.75,"bottom":1138.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"ABC keys","top":446.75,"bottom":1138.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"123 keys","top":446.75,"bottom":1138.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"#+= keys","top":446.75,"bottom":1138.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_READOUT {"owner":"editor","hit":true,"target":{"x":499,"y":934.25,"width":376,"height":25.1875,"top":934.25,"right":875,"bottom":959.4375,"left":499},"covering":"<div class=\"cm-line\"><span class=\"ͼ5\">G0</span> <span class=\"ͼ7\">X0</span></div>","host":{"x":469,"y":928.25,"width":406,"height":180.75,"top":928.25,"right":875,"bottom":1109,"left":469},"scroller":{"x":469,"y":928.25,"width":406,"height":180.75,"top":928.25,"right":875,"bottom":1109,"left":469},"actions":{"x":469,"y":1121,"width":406,"height":54,"top":1121,"right":875,"bottom":1175,"left":469}}
+  ✓  21 [chromium] › e2e/audit-r3.probes.spec.ts:149:5 › portrait readout and real touch › editor: readout and every keyboard page remain usable at 150 percent (2.3s)
+PORTRAIT_OWNER_PAGE {"owner":"search","pageName":"Code keys","top":401.75,"bottom":1093.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"search","pageName":"ABC keys","top":446.75,"bottom":1138.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"search","pageName":"123 keys","top":446.75,"bottom":1138.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"search","pageName":"#+= keys","top":446.75,"bottom":1138.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_READOUT {"owner":"search","hit":true,"target":{"x":505,"y":425.296875,"width":334,"height":54,"top":425.296875,"right":839,"bottom":479.296875,"left":505},"covering":"<input data-v-21bdbfd3=\"\" autocomplete=\"off\" autocorrect=\"off\" autocapitalize=\"off\" spellcheck=\"false\" name=\"search\" aria-label=\"Search G-code reference\" type=\"text\" placeholder=\"Search codes, names, "}
+  ✓  22 [chromium] › e2e/audit-r3.probes.spec.ts:149:5 › portrait readout and real touch › search: readout and every keyboard page remain usable at 150 percent (2.3s)
+NUMERIC_CANCEL_SPACE {"draft":false,"commands":[{"cmd":"get_tool_table","req_id":"rd59hu-3"},{"cmd":"get_tool_table","req_id":"rd59hu-4"}]}
+  ✓  23 [chromium] › e2e/audit-r4.probes.spec.ts:46:1 › native Space on tab-focused numeric Cancel discards without any command (1.5s)
+TEXT_CLOSE_NEXT_SPACE {"key":"Enter","afterClose":{"body":false,"active":"<input data-v-80412ffa=\"\" autocomplete=\"off\" autocorrect=\"off\" autocapitalize=\"off\" spellcheck=\"false\" name=\"mdiText\" aria-label=\"MDI command\" type=\"text\" class","guard":false},"beforeSpace":[],"afterSpace":[],"value":"G1 "}
+  ✓  24 [chromium] › e2e/audit-r4.probes.spec.ts:65:1 › Enter on text Close returns focus; the next Space must not start a program (2.0s)
+TEXT_CLOSE_NEXT_SPACE {"key":"Space","afterClose":{"body":false,"active":"<input data-v-80412ffa=\"\" autocomplete=\"off\" autocorrect=\"off\" autocapitalize=\"off\" spellcheck=\"false\" name=\"mdiText\" aria-label=\"MDI command\" type=\"text\" class","guard":false},"beforeSpace":[],"afterSpace":[],"value":"G1 "}
+  ✓  25 [chromium] › e2e/audit-r4.probes.spec.ts:65:1 › Space on text Close returns focus; the next Space must not start a program (2.0s)
+PHYSICAL_MDI_ENTRY {"seen":[{"helperOpen":true,"value":"G","focused":true,"disabled":false,"readonly":false},{"helperOpen":true,"value":"G1","focused":true,"disabled":false,"readonly":false},{"helperOpen":true,"value":"G1 ","focused":true,"disabled":false,"readonly":false},{"helperOpen":true,"value":"G1 X","focused":true,"disabled":false,"readonly":false},{"helperOpen":true,"value":"G1 X7","focused":true,"disabled":false,"readonly":false},{"helperOpen":false,"value":"G","focused":true,"disabled":false,"readonly":false},{"helperOpen":false,"value":"G1","focused":true,"disabled":false,"readonly":false},{"helperOpen":false,"value":"G1 ","focused":true,"disabled":false,"readonly":false},{"helperOpen":false,"value":"G1 X","focused":true,"disabled":false,"readonly":false},{"helperOpen":false,"value":"G1 X7","focused":true,"disabled":false,"readonly":false}],"finalValues":["G1 X7","G1 X7"],"events":[{"value":"G","trusted":true,"inputType":"insertText"},{"value":"G1","trusted":true,"inputType":"insertText"},{"value":"G1 ","trusted":true,"inputType":"insertText"},{"value":"G1 X","trusted":true,"inputType":"insertText"},{"value":"G1 X7","trusted":true,"inputType":"insertText"},{"value":"G","trusted":true,"inputType":"insertText"},{"value":"G1","trusted":true,"inputType":"insertText"},{"value":"G1 ","trusted":true,"inputType":"insertText"},{"value":"G1 X","trusted":true,"inputType":"insertText"},{"value":"G1 X7","trusted":true,"inputType":"insertText"}],"searchValue":"g1","commands":[{"cmd":"get_tool_table","req_id":"s6275h-3"},{"cmd":"get_tool_table","req_id":"s6275h-4"}]}
+  ✓  26 [chromium] › e2e/audit-r4.probes.spec.ts:104:1 › physical MDI typing retains characters with either helper state; plain search is a control (1.8s)
+PORTRAIT_EDITOR_R4 {"lines":7.176178660049628,"firstLineAndActionsHit":true}
+PORTRAIT_RUNNING_CONTROLS {"paused":false,"abortAndPauseResumeHit":true}
+PORTRAIT_RUNNING_CONTROLS {"paused":true,"abortAndPauseResumeHit":true}
+  ✓  27 [chromium] › e2e/audit-r4.probes.spec.ts:147:3 › portrait fold and readout › 150 percent editor is usable; external run/pause brings back controls and retains the draft (2.0s)
+MIXED_SAVE_REPLIES {"keyboard":{"cmd":"save_settings","section":"keyboard","data":{"jogEnabled":false,"buttonsEnabled":true,"mapping":{"jog_x+":"ArrowRight","jog_x-":"ArrowLeft","jog_y+":"ArrowUp","jog_y-":"ArrowDown","jog_z+":"PageUp","jog_z-":"PageDown","jog_a+":"]","jog_a-":"[","jog_b+":"'","jog_b-":";","jog_c+":"","jog_c-":"","jog_u+":"","jog_u-":"","jog_v+":"","jog_v-":"","jog_w+":"","jog_w-":"","estop":"Escape","cycle":" ","abort":"F9"}},"req_id":"gkyrys-5"},"display":{"cmd":"save_settings","section":"display","data":{"theme":"auto","startFullscreen":true,"keepAwake":true},"req_id":"gkyrys-6"},"text":"Saved"}
+  ✘  28 [chromium] › e2e/audit-r5.probes.spec.ts:34:1 › a successful unrelated save must not erase a failed keyboard save (12.2s)
+(node:110650) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:110650) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PENDING_SAVE_OLD_REPLY {"elapsedMs":46,"text":"Saved","requests":[{"cmd":"save_settings","section":"keyboard","data":{"jogEnabled":false,"buttonsEnabled":true,"mapping":{"jog_x+":"ArrowRight","jog_x-":"ArrowLeft","jog_y+":"ArrowUp","jog_y-":"ArrowDown","jog_z+":"PageUp","jog_z-":"PageDown","jog_a+":"]","jog_a-":"[","jog_b+":"'","jog_b-":";","jog_c+":"","jog_c-":"","jog_u+":"","jog_u-":"","jog_v+":"","jog_v-":"","jog_w+":"","jog_w-":"","estop":"Escape","cycle":" ","abort":"F9"}},"req_id":"t8th8v-5"}],"key":"F10"}
+  ✘  29 [chromium] › e2e/audit-r5.probes.spec.ts:52:1 › an old reply must not claim Saved while the next keyboard change is still debouncing (1.8s)
+(node:110739) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:110739) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+HELP_POPOVER_GEOMETRY {"zoom":1,"x":640.40625,"y":635,"width":336,"height":336.75,"right":976.40625,"bottom":971.75,"viewportWidth":1280,"viewportHeight":900,"text":"Go to G30 — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only. Go to MCS 0 — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only. Go to WCS 0 — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available. ","inline":"top: 635px; left: 640.406px;"}
+  ✘  30 [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 1280x900 zoom 1 › the new Go to positions popover stays wholly readable on its first opening (1.6s)
+(node:110825) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:110825) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+HELP_POPOVER_GEOMETRY {"zoom":1,"x":259,"y":1057.59375,"width":336,"height":336.75,"right":595,"bottom":1394.34375,"viewportWidth":900,"viewportHeight":1200,"text":"Go to G30 — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only. Go to MCS 0 — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only. Go to WCS 0 — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available. ","inline":"top: 1057.59px; left: 259px;"}
+  ✘  31 [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1 › the new Go to positions popover stays wholly readable on its first opening (1.6s)
+(node:110946) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:110946) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+HELP_POPOVER_GEOMETRY {"zoom":1.5,"x":591,"y":1100.8125,"width":309,"height":815.421875,"right":900,"bottom":1916.234375,"viewportWidth":900,"viewportHeight":1200,"text":"Go to G30 — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only. Go to MCS 0 — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only. Go to WCS 0 — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available. ","inline":"top: 733.875px; left: 394px;"}
+  ✘  32 [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1.5 › the new Go to positions popover stays wholly readable on its first opening (1.5s)
+
+
+  1) [chromium] › e2e/audit-r5.probes.spec.ts:34:1 › a successful unrelated save must not erase a failed keyboard save 
+
+    Error: the failed keyboard changes remain unsaved
+
+    expect(locator).toContainText(expected) failed
+
+    Locator: locator('.dialogOverlay').first().locator('.saveStatus')
+    Expected substring: "keyboard save rejected"
+    Received string:    "Saved"
+    Timeout: 10000ms
+
+    Call log:
+      - the failed keyboard changes remain unsaved with timeout 10000ms
+      - waiting for locator('.dialogOverlay').first().locator('.saveStatus')
+        24 × locator resolved to <span role="status" data-v-e1993b85="" aria-live="polite" class="saveStatus saved">Saved</span>
+           - unexpected value "Saved"
+
+
+      47 |   await page.waitForTimeout(100);
+      48 |   console.log('MIXED_SAVE_REPLIES', JSON.stringify({ keyboard, display, text: await status.innerText() }));
+    > 49 |   await expect(status, 'the failed keyboard changes remain unsaved').toContainText('keyboard save rejected');
+         |                                                                      ^
+      50 | });
+      51 |
+      52 | test('an old reply must not claim Saved while the next keyboard change is still debouncing', async ({ page }) => {
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-r5.probes.spec.ts:49:70
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-a-successf-28ee9-rase-a-failed-keyboard-save-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/audit-r5.probes-a-successf-28ee9-rase-a-failed-keyboard-save-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-a-successf-28ee9-rase-a-failed-keyboard-save-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/audit-r5.probes-a-successf-28ee9-rase-a-failed-keyboard-save-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e/audit-r5.probes.spec.ts:52:1 › an old reply must not claim Saved while the next keyboard change is still debouncing 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "Saving…"
+    Received: "Saved"
+
+      69 |   expect(snapshot.requests).toHaveLength(1);
+      70 |   expect(snapshot.key).toBe('F10');
+    > 71 |   expect(snapshot.text).toBe('Saving…');
+         |                         ^
+      72 | });
+      73 |
+      74 | for (const [width, height, zoom] of [[1280, 900, 1], [900, 1200, 1], [900, 1200, 1.5]]) {
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-r5.probes.spec.ts:71:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-an-old-rep-b5b2a--change-is-still-debouncing-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/audit-r5.probes-an-old-rep-b5b2a--change-is-still-debouncing-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-an-old-rep-b5b2a--change-is-still-debouncing-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/audit-r5.probes-an-old-rep-b5b2a--change-is-still-debouncing-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 1280x900 zoom 1 › the new Go to positions popover stays wholly readable on its first opening 
+
+    Error: expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 900
+    Received:    971.75
+
+       96 |       expect.soft(geometry.y).toBeGreaterThanOrEqual(0);
+       97 |       expect.soft(geometry.right).toBeLessThanOrEqual(width);
+    >  98 |       expect.soft(geometry.bottom).toBeLessThanOrEqual(height);
+          |                                    ^
+       99 |     });
+      100 |   });
+      101 | }
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-r5.probes.spec.ts:98:36
+
+    attachment #1: help (image/png) ────────────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-1280x-b72c4-adable-on-its-first-opening-chromium/attachments/help-b8add6d83c543feba7f298d32ab49469bebc6415.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-1280x-b72c4-adable-on-its-first-opening-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/audit-r5.probes-help-1280x-b72c4-adable-on-its-first-opening-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-1280x-b72c4-adable-on-its-first-opening-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/audit-r5.probes-help-1280x-b72c4-adable-on-its-first-opening-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1 › the new Go to positions popover stays wholly readable on its first opening 
+
+    Error: expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 1200
+    Received:    1394.34375
+
+       96 |       expect.soft(geometry.y).toBeGreaterThanOrEqual(0);
+       97 |       expect.soft(geometry.right).toBeLessThanOrEqual(width);
+    >  98 |       expect.soft(geometry.bottom).toBeLessThanOrEqual(height);
+          |                                    ^
+       99 |     });
+      100 |   });
+      101 | }
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-r5.probes.spec.ts:98:36
+
+    attachment #1: help (image/png) ────────────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-900x1-1a726-adable-on-its-first-opening-chromium/attachments/help-397e25891a314f3bd99aef3e189825e16ac52edb.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-900x1-1a726-adable-on-its-first-opening-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/audit-r5.probes-help-900x1-1a726-adable-on-its-first-opening-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-900x1-1a726-adable-on-its-first-opening-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/audit-r5.probes-help-900x1-1a726-adable-on-its-first-opening-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1.5 › the new Go to positions popover stays wholly readable on its first opening 
+
+    Error: expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 1200
+    Received:    1916.234375
+
+       96 |       expect.soft(geometry.y).toBeGreaterThanOrEqual(0);
+       97 |       expect.soft(geometry.right).toBeLessThanOrEqual(width);
+    >  98 |       expect.soft(geometry.bottom).toBeLessThanOrEqual(height);
+          |                                    ^
+       99 |     });
+      100 |   });
+      101 | }
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-r5.probes.spec.ts:98:36
+
+    attachment #1: help (image/png) ────────────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-900x1-7e0c8-adable-on-its-first-opening-chromium/attachments/help-d88b734d26a44ac1fc9ae701d812d7351003a147.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-900x1-7e0c8-adable-on-its-first-opening-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/audit-r5.probes-help-900x1-7e0c8-adable-on-its-first-opening-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-900x1-7e0c8-adable-on-its-first-opening-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/audit-r5.probes-help-900x1-7e0c8-adable-on-its-first-opening-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5 failed
+    [chromium] › e2e/audit-r5.probes.spec.ts:34:1 › a successful unrelated save must not erase a failed keyboard save 
+    [chromium] › e2e/audit-r5.probes.spec.ts:52:1 › an old reply must not claim Saved while the next keyboard change is still debouncing 
+    [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 1280x900 zoom 1 › the new Go to positions popover stays wholly readable on its first opening 
+    [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1 › the new Go to positions popover stays wholly readable on its first opening 
+    [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1.5 › the new Go to positions popover stays wholly readable on its first opening 
+  27 passed (1.1m)
+
+
+=== Repeat run: --repeat-each=2, all 10 fail for the same product findings ===
+[WebServer] (node:111558) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:111583) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 10 tests using 1 worker
+
+(node:111599) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:111599) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+MIXED_SAVE_REPLIES {"keyboard":{"cmd":"save_settings","section":"keyboard","data":{"jogEnabled":false,"buttonsEnabled":true,"mapping":{"jog_x+":"ArrowRight","jog_x-":"ArrowLeft","jog_y+":"ArrowUp","jog_y-":"ArrowDown","jog_z+":"PageUp","jog_z-":"PageDown","jog_a+":"]","jog_a-":"[","jog_b+":"'","jog_b-":";","jog_c+":"","jog_c-":"","jog_u+":"","jog_u-":"","jog_v+":"","jog_v-":"","jog_w+":"","jog_w-":"","estop":"Escape","cycle":" ","abort":"F9"}},"req_id":"vvij48-5"},"display":{"cmd":"save_settings","section":"display","data":{"theme":"auto","startFullscreen":true,"keepAwake":true},"req_id":"vvij48-6"},"text":"Saved"}
+  ✘   1 [chromium] › e2e/audit-r5.probes.spec.ts:34:1 › a successful unrelated save must not erase a failed keyboard save (12.1s)
+(node:111724) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:111724) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PENDING_SAVE_OLD_REPLY {"elapsedMs":45,"text":"Saved","requests":[{"cmd":"save_settings","section":"keyboard","data":{"jogEnabled":false,"buttonsEnabled":true,"mapping":{"jog_x+":"ArrowRight","jog_x-":"ArrowLeft","jog_y+":"ArrowUp","jog_y-":"ArrowDown","jog_z+":"PageUp","jog_z-":"PageDown","jog_a+":"]","jog_a-":"[","jog_b+":"'","jog_b-":";","jog_c+":"","jog_c-":"","jog_u+":"","jog_u-":"","jog_v+":"","jog_v-":"","jog_w+":"","jog_w-":"","estop":"Escape","cycle":" ","abort":"F9"}},"req_id":"3qq7zb-5"}],"key":"F10"}
+  ✘   2 [chromium] › e2e/audit-r5.probes.spec.ts:52:1 › an old reply must not claim Saved while the next keyboard change is still debouncing (1.8s)
+(node:111813) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:111813) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+HELP_POPOVER_GEOMETRY {"zoom":1,"x":640.40625,"y":635,"width":336,"height":336.75,"right":976.40625,"bottom":971.75,"viewportWidth":1280,"viewportHeight":900,"text":"Go to G30 — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only. Go to MCS 0 — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only. Go to WCS 0 — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available. ","inline":"top: 635px; left: 640.406px;","beforeToggle":{"width":0,"height":0,"display":"none"}}
+  ✘   3 [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 1280x900 zoom 1 › the new Go to positions popover stays wholly readable on its first opening (1.5s)
+(node:111893) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:111893) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+HELP_POPOVER_GEOMETRY {"zoom":1,"x":259,"y":1057.59375,"width":336,"height":336.75,"right":595,"bottom":1394.34375,"viewportWidth":900,"viewportHeight":1200,"text":"Go to G30 — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only. Go to MCS 0 — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only. Go to WCS 0 — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available. ","inline":"top: 1057.59px; left: 259px;","beforeToggle":{"width":0,"height":0,"display":"none"}}
+  ✘   4 [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1 › the new Go to positions popover stays wholly readable on its first opening (1.4s)
+(node:111971) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:111971) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+HELP_POPOVER_GEOMETRY {"zoom":1.5,"x":591,"y":1100.8125,"width":309,"height":815.421875,"right":900,"bottom":1916.234375,"viewportWidth":900,"viewportHeight":1200,"text":"Go to G30 — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only. Go to MCS 0 — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only. Go to WCS 0 — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available. ","inline":"top: 733.875px; left: 394px;","beforeToggle":{"width":0,"height":0,"display":"none"}}
+  ✘   5 [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1.5 › the new Go to positions popover stays wholly readable on its first opening (1.6s)
+(node:112058) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:112058) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+MIXED_SAVE_REPLIES {"keyboard":{"cmd":"save_settings","section":"keyboard","data":{"jogEnabled":false,"buttonsEnabled":true,"mapping":{"jog_x+":"ArrowRight","jog_x-":"ArrowLeft","jog_y+":"ArrowUp","jog_y-":"ArrowDown","jog_z+":"PageUp","jog_z-":"PageDown","jog_a+":"]","jog_a-":"[","jog_b+":"'","jog_b-":";","jog_c+":"","jog_c-":"","jog_u+":"","jog_u-":"","jog_v+":"","jog_v-":"","jog_w+":"","jog_w-":"","estop":"Escape","cycle":" ","abort":"F9"}},"req_id":"q3kst3-5"},"display":{"cmd":"save_settings","section":"display","data":{"theme":"auto","startFullscreen":true,"keepAwake":true},"req_id":"q3kst3-6"},"text":"Saved"}
+  ✘   6 [chromium] › e2e/audit-r5.probes.spec.ts:34:1 › a successful unrelated save must not erase a failed keyboard save (12.2s)
+(node:112185) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:112185) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+PENDING_SAVE_OLD_REPLY {"elapsedMs":46,"text":"Saved","requests":[{"cmd":"save_settings","section":"keyboard","data":{"jogEnabled":false,"buttonsEnabled":true,"mapping":{"jog_x+":"ArrowRight","jog_x-":"ArrowLeft","jog_y+":"ArrowUp","jog_y-":"ArrowDown","jog_z+":"PageUp","jog_z-":"PageDown","jog_a+":"]","jog_a-":"[","jog_b+":"'","jog_b-":";","jog_c+":"","jog_c-":"","jog_u+":"","jog_u-":"","jog_v+":"","jog_v-":"","jog_w+":"","jog_w-":"","estop":"Escape","cycle":" ","abort":"F9"}},"req_id":"1pneu0-5"}],"key":"F10"}
+  ✘   7 [chromium] › e2e/audit-r5.probes.spec.ts:52:1 › an old reply must not claim Saved while the next keyboard change is still debouncing (1.9s)
+(node:112272) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:112272) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+HELP_POPOVER_GEOMETRY {"zoom":1,"x":640.40625,"y":635,"width":336,"height":336.75,"right":976.40625,"bottom":971.75,"viewportWidth":1280,"viewportHeight":900,"text":"Go to G30 — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only. Go to MCS 0 — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only. Go to WCS 0 — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available. ","inline":"top: 635px; left: 640.406px;","beforeToggle":{"width":0,"height":0,"display":"none"}}
+  ✘   8 [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 1280x900 zoom 1 › the new Go to positions popover stays wholly readable on its first opening (1.6s)
+(node:112353) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:112353) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+HELP_POPOVER_GEOMETRY {"zoom":1,"x":259,"y":1057.59375,"width":336,"height":336.75,"right":595,"bottom":1394.34375,"viewportWidth":900,"viewportHeight":1200,"text":"Go to G30 — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only. Go to MCS 0 — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only. Go to WCS 0 — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available. ","inline":"top: 1057.59px; left: 259px;","beforeToggle":{"width":0,"height":0,"display":"none"}}
+  ✘   9 [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1 › the new Go to positions popover stays wholly readable on its first opening (1.7s)
+(node:112440) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:112440) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+HELP_POPOVER_GEOMETRY {"zoom":1.5,"x":591,"y":1100.8125,"width":309,"height":815.421875,"right":900,"bottom":1916.234375,"viewportWidth":900,"viewportHeight":1200,"text":"Go to G30 — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only. Go to MCS 0 — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only. Go to WCS 0 — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available. ","inline":"top: 733.875px; left: 394px;","beforeToggle":{"width":0,"height":0,"display":"none"}}
+  ✘  10 [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1.5 › the new Go to positions popover stays wholly readable on its first opening (1.5s)
+
+
+  1) [chromium] › e2e/audit-r5.probes.spec.ts:34:1 › a successful unrelated save must not erase a failed keyboard save 
+
+    Error: the failed keyboard changes remain unsaved
+
+    expect(locator).toContainText(expected) failed
+
+    Locator: locator('.dialogOverlay').first().locator('.saveStatus')
+    Expected substring: "keyboard save rejected"
+    Received string:    "Saved"
+    Timeout: 10000ms
+
+    Call log:
+      - the failed keyboard changes remain unsaved with timeout 10000ms
+      - waiting for locator('.dialogOverlay').first().locator('.saveStatus')
+        24 × locator resolved to <span role="status" data-v-e1993b85="" aria-live="polite" class="saveStatus saved">Saved</span>
+           - unexpected value "Saved"
+
+
+      47 |   await page.waitForTimeout(100);
+      48 |   console.log('MIXED_SAVE_REPLIES', JSON.stringify({ keyboard, display, text: await status.innerText() }));
+    > 49 |   await expect(status, 'the failed keyboard changes remain unsaved').toContainText('keyboard save rejected');
+         |                                                                      ^
+      50 | });
+      51 |
+      52 | test('an old reply must not claim Saved while the next keyboard change is still debouncing', async ({ page }) => {
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-r5.probes.spec.ts:49:70
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-a-successf-28ee9-rase-a-failed-keyboard-save-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/audit-r5.probes-a-successf-28ee9-rase-a-failed-keyboard-save-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-a-successf-28ee9-rase-a-failed-keyboard-save-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/audit-r5.probes-a-successf-28ee9-rase-a-failed-keyboard-save-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [chromium] › e2e/audit-r5.probes.spec.ts:52:1 › an old reply must not claim Saved while the next keyboard change is still debouncing 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "Saving…"
+    Received: "Saved"
+
+      69 |   expect(snapshot.requests).toHaveLength(1);
+      70 |   expect(snapshot.key).toBe('F10');
+    > 71 |   expect(snapshot.text).toBe('Saving…');
+         |                         ^
+      72 | });
+      73 |
+      74 | for (const [width, height, zoom] of [[1280, 900, 1], [900, 1200, 1], [900, 1200, 1.5]]) {
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-r5.probes.spec.ts:71:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-an-old-rep-b5b2a--change-is-still-debouncing-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/audit-r5.probes-an-old-rep-b5b2a--change-is-still-debouncing-chromium/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-an-old-rep-b5b2a--change-is-still-debouncing-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/audit-r5.probes-an-old-rep-b5b2a--change-is-still-debouncing-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 1280x900 zoom 1 › the new Go to positions popover stays wholly readable on its first opening 
+
+    Error: expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 900
+    Received:    971.75
+
+      104 |       expect.soft(geometry.y).toBeGreaterThanOrEqual(0);
+      105 |       expect.soft(geometry.right).toBeLessThanOrEqual(width);
+    > 106 |       expect.soft(geometry.bottom).toBeLessThanOrEqual(height);
+          |                                    ^
+      107 |     });
+      108 |   });
+      109 | }
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-r5.probes.spec.ts:106:36
+
+    attachment #1: help (image/png) ────────────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-1280x-b72c4-adable-on-its-first-opening-chromium/attachments/help-b8add6d83c543feba7f298d32ab49469bebc6415.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-1280x-b72c4-adable-on-its-first-opening-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/audit-r5.probes-help-1280x-b72c4-adable-on-its-first-opening-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-1280x-b72c4-adable-on-its-first-opening-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/audit-r5.probes-help-1280x-b72c4-adable-on-its-first-opening-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1 › the new Go to positions popover stays wholly readable on its first opening 
+
+    Error: expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 1200
+    Received:    1394.34375
+
+      104 |       expect.soft(geometry.y).toBeGreaterThanOrEqual(0);
+      105 |       expect.soft(geometry.right).toBeLessThanOrEqual(width);
+    > 106 |       expect.soft(geometry.bottom).toBeLessThanOrEqual(height);
+          |                                    ^
+      107 |     });
+      108 |   });
+      109 | }
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-r5.probes.spec.ts:106:36
+
+    attachment #1: help (image/png) ────────────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-900x1-1a726-adable-on-its-first-opening-chromium/attachments/help-397e25891a314f3bd99aef3e189825e16ac52edb.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-900x1-1a726-adable-on-its-first-opening-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/audit-r5.probes-help-900x1-1a726-adable-on-its-first-opening-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-900x1-1a726-adable-on-its-first-opening-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/audit-r5.probes-help-900x1-1a726-adable-on-its-first-opening-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1.5 › the new Go to positions popover stays wholly readable on its first opening 
+
+    Error: expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 1200
+    Received:    1916.234375
+
+      104 |       expect.soft(geometry.y).toBeGreaterThanOrEqual(0);
+      105 |       expect.soft(geometry.right).toBeLessThanOrEqual(width);
+    > 106 |       expect.soft(geometry.bottom).toBeLessThanOrEqual(height);
+          |                                    ^
+      107 |     });
+      108 |   });
+      109 | }
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-r5.probes.spec.ts:106:36
+
+    attachment #1: help (image/png) ────────────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-900x1-7e0c8-adable-on-its-first-opening-chromium/attachments/help-d88b734d26a44ac1fc9ae701d812d7351003a147.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-900x1-7e0c8-adable-on-its-first-opening-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/audit-r5.probes-help-900x1-7e0c8-adable-on-its-first-opening-chromium/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-900x1-7e0c8-adable-on-its-first-opening-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/audit-r5.probes-help-900x1-7e0c8-adable-on-its-first-opening-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [chromium] › e2e/audit-r5.probes.spec.ts:34:1 › a successful unrelated save must not erase a failed keyboard save 
+
+    Error: the failed keyboard changes remain unsaved
+
+    expect(locator).toContainText(expected) failed
+
+    Locator: locator('.dialogOverlay').first().locator('.saveStatus')
+    Expected substring: "keyboard save rejected"
+    Received string:    "Saved"
+    Timeout: 10000ms
+
+    Call log:
+      - the failed keyboard changes remain unsaved with timeout 10000ms
+      - waiting for locator('.dialogOverlay').first().locator('.saveStatus')
+        24 × locator resolved to <span role="status" data-v-e1993b85="" aria-live="polite" class="saveStatus saved">Saved</span>
+           - unexpected value "Saved"
+
+
+      47 |   await page.waitForTimeout(100);
+      48 |   console.log('MIXED_SAVE_REPLIES', JSON.stringify({ keyboard, display, text: await status.innerText() }));
+    > 49 |   await expect(status, 'the failed keyboard changes remain unsaved').toContainText('keyboard save rejected');
+         |                                                                      ^
+      50 | });
+      51 |
+      52 | test('an old reply must not claim Saved while the next keyboard change is still debouncing', async ({ page }) => {
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-r5.probes.spec.ts:49:70
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-a-successf-28ee9-rase-a-failed-keyboard-save-chromium-repeat1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/audit-r5.probes-a-successf-28ee9-rase-a-failed-keyboard-save-chromium-repeat1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-a-successf-28ee9-rase-a-failed-keyboard-save-chromium-repeat1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/audit-r5.probes-a-successf-28ee9-rase-a-failed-keyboard-save-chromium-repeat1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  7) [chromium] › e2e/audit-r5.probes.spec.ts:52:1 › an old reply must not claim Saved while the next keyboard change is still debouncing 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "Saving…"
+    Received: "Saved"
+
+      69 |   expect(snapshot.requests).toHaveLength(1);
+      70 |   expect(snapshot.key).toBe('F10');
+    > 71 |   expect(snapshot.text).toBe('Saving…');
+         |                         ^
+      72 | });
+      73 |
+      74 | for (const [width, height, zoom] of [[1280, 900, 1], [900, 1200, 1], [900, 1200, 1.5]]) {
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-r5.probes.spec.ts:71:25
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-an-old-rep-b5b2a--change-is-still-debouncing-chromium-repeat1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/audit-r5.probes-an-old-rep-b5b2a--change-is-still-debouncing-chromium-repeat1/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-an-old-rep-b5b2a--change-is-still-debouncing-chromium-repeat1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/audit-r5.probes-an-old-rep-b5b2a--change-is-still-debouncing-chromium-repeat1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  8) [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 1280x900 zoom 1 › the new Go to positions popover stays wholly readable on its first opening 
+
+    Error: expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 900
+    Received:    971.75
+
+      104 |       expect.soft(geometry.y).toBeGreaterThanOrEqual(0);
+      105 |       expect.soft(geometry.right).toBeLessThanOrEqual(width);
+    > 106 |       expect.soft(geometry.bottom).toBeLessThanOrEqual(height);
+          |                                    ^
+      107 |     });
+      108 |   });
+      109 | }
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-r5.probes.spec.ts:106:36
+
+    attachment #1: help (image/png) ────────────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-1280x-b72c4-adable-on-its-first-opening-chromium-repeat1/attachments/help-df85b3343662bd2f87460253df0372e6d321ab92.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-1280x-b72c4-adable-on-its-first-opening-chromium-repeat1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/audit-r5.probes-help-1280x-b72c4-adable-on-its-first-opening-chromium-repeat1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-1280x-b72c4-adable-on-its-first-opening-chromium-repeat1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/audit-r5.probes-help-1280x-b72c4-adable-on-its-first-opening-chromium-repeat1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  9) [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1 › the new Go to positions popover stays wholly readable on its first opening 
+
+    Error: expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 1200
+    Received:    1394.34375
+
+      104 |       expect.soft(geometry.y).toBeGreaterThanOrEqual(0);
+      105 |       expect.soft(geometry.right).toBeLessThanOrEqual(width);
+    > 106 |       expect.soft(geometry.bottom).toBeLessThanOrEqual(height);
+          |                                    ^
+      107 |     });
+      108 |   });
+      109 | }
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-r5.probes.spec.ts:106:36
+
+    attachment #1: help (image/png) ────────────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-900x1-1a726-adable-on-its-first-opening-chromium-repeat1/attachments/help-f7b02857c84a6091c40d3607a70ce31c5a5a2c11.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-900x1-1a726-adable-on-its-first-opening-chromium-repeat1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/audit-r5.probes-help-900x1-1a726-adable-on-its-first-opening-chromium-repeat1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-900x1-1a726-adable-on-its-first-opening-chromium-repeat1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/audit-r5.probes-help-900x1-1a726-adable-on-its-first-opening-chromium-repeat1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  10) [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1.5 › the new Go to positions popover stays wholly readable on its first opening 
+
+    Error: expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 1200
+    Received:    1916.234375
+
+      104 |       expect.soft(geometry.y).toBeGreaterThanOrEqual(0);
+      105 |       expect.soft(geometry.right).toBeLessThanOrEqual(width);
+    > 106 |       expect.soft(geometry.bottom).toBeLessThanOrEqual(height);
+          |                                    ^
+      107 |     });
+      108 |   });
+      109 | }
+        at /home/cnc/lcnc-suite/lcnc-webui/e2e/audit-r5.probes.spec.ts:106:36
+
+    attachment #1: help (image/png) ────────────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-900x1-7e0c8-adable-on-its-first-opening-chromium-repeat1/attachments/help-e1c632ca4e15407bbaeca2b0ec2ef78fbbcd5ca7.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-900x1-7e0c8-adable-on-its-first-opening-chromium-repeat1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/audit-r5.probes-help-900x1-7e0c8-adable-on-its-first-opening-chromium-repeat1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/audit-r5.probes-help-900x1-7e0c8-adable-on-its-first-opening-chromium-repeat1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/audit-r5.probes-help-900x1-7e0c8-adable-on-its-first-opening-chromium-repeat1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  10 failed
+    [chromium] › e2e/audit-r5.probes.spec.ts:34:1 › a successful unrelated save must not erase a failed keyboard save 
+    [chromium] › e2e/audit-r5.probes.spec.ts:52:1 › an old reply must not claim Saved while the next keyboard change is still debouncing 
+    [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 1280x900 zoom 1 › the new Go to positions popover stays wholly readable on its first opening 
+    [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1 › the new Go to positions popover stays wholly readable on its first opening 
+    [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1.5 › the new Go to positions popover stays wholly readable on its first opening 
+    [chromium] › e2e/audit-r5.probes.spec.ts:34:1 › a successful unrelated save must not erase a failed keyboard save 
+    [chromium] › e2e/audit-r5.probes.spec.ts:52:1 › an old reply must not claim Saved while the next keyboard change is still debouncing 
+    [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 1280x900 zoom 1 › the new Go to positions popover stays wholly readable on its first opening 
+    [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1 › the new Go to positions popover stays wholly readable on its first opening 
+    [chromium] › e2e/audit-r5.probes.spec.ts:77:5 › help 900x1200 zoom 1.5 › the new Go to positions popover stays wholly readable on its first opening 

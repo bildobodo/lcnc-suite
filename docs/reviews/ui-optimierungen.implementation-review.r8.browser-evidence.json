@@ -1,0 +1,241 @@
+{
+  "date": "2026-09-23",
+  "productCommit": "9360439",
+  "scope": "Built frontend, Chromium, isolated mock; actual HTTP handler/store via temporary-file fixture; visibility and settings_init injection; no LinuxCNC",
+  "results": [
+    {
+      "mode": "success",
+      "repeat": 1,
+      "beacons": 1,
+      "httpStatus": 200,
+      "response": {
+        "ok": true
+      },
+      "sentKey": "F9",
+      "field": "F9",
+      "cacheKey": "F9",
+      "persistedKey": "F9",
+      "version": 1,
+      "actual": "Saved",
+      "expected": "Saved",
+      "acceptancePassed": true,
+      "wsSaves": 0,
+      "unexpectedCommands": 0
+    },
+    {
+      "mode": "success",
+      "repeat": 2,
+      "beacons": 1,
+      "httpStatus": 200,
+      "response": {
+        "ok": true
+      },
+      "sentKey": "F9",
+      "field": "F9",
+      "cacheKey": "F9",
+      "persistedKey": "F9",
+      "version": 1,
+      "actual": "Saved",
+      "expected": "Saved",
+      "acceptancePassed": true,
+      "wsSaves": 0,
+      "unexpectedCommands": 0
+    },
+    {
+      "mode": "success",
+      "repeat": 3,
+      "beacons": 1,
+      "httpStatus": 200,
+      "response": {
+        "ok": true
+      },
+      "sentKey": "F9",
+      "field": "F9",
+      "cacheKey": "F9",
+      "persistedKey": "F9",
+      "version": 1,
+      "actual": "Saved",
+      "expected": "Saved",
+      "acceptancePassed": true,
+      "wsSaves": 0,
+      "unexpectedCommands": 0
+    },
+    {
+      "mode": "disk-full",
+      "repeat": 1,
+      "beacons": 1,
+      "httpStatus": 409,
+      "response": {
+        "ok": false,
+        "error": "OSError: [Errno 28] No space left on device"
+      },
+      "sentKey": "F9",
+      "field": "F8",
+      "cacheKey": "F8",
+      "persistedKey": "F8",
+      "version": 0,
+      "actual": "Save failed — keyboard: page-hide save not on the server — change it again",
+      "expected": "Save failed / Not saved",
+      "acceptancePassed": true,
+      "wsSaves": 0,
+      "unexpectedCommands": 0
+    },
+    {
+      "mode": "disk-full",
+      "repeat": 2,
+      "beacons": 1,
+      "httpStatus": 409,
+      "response": {
+        "ok": false,
+        "error": "OSError: [Errno 28] No space left on device"
+      },
+      "sentKey": "F9",
+      "field": "F8",
+      "cacheKey": "F8",
+      "persistedKey": "F8",
+      "version": 0,
+      "actual": "Save failed — keyboard: page-hide save not on the server — change it again",
+      "expected": "Save failed / Not saved",
+      "acceptancePassed": true,
+      "wsSaves": 0,
+      "unexpectedCommands": 0
+    },
+    {
+      "mode": "disk-full",
+      "repeat": 3,
+      "beacons": 1,
+      "httpStatus": 409,
+      "response": {
+        "ok": false,
+        "error": "OSError: [Errno 28] No space left on device"
+      },
+      "sentKey": "F9",
+      "field": "F8",
+      "cacheKey": "F8",
+      "persistedKey": "F8",
+      "version": 0,
+      "actual": "Save failed — keyboard: page-hide save not on the server — change it again",
+      "expected": "Save failed / Not saved",
+      "acceptancePassed": true,
+      "wsSaves": 0,
+      "unexpectedCommands": 0
+    },
+    {
+      "mode": "corrupt",
+      "repeat": 1,
+      "beacons": 1,
+      "httpStatus": 409,
+      "response": {
+        "ok": false,
+        "error": "RuntimeError: settings.json failed to parse and was not overwritten; fix or remove the file and restart the gateway"
+      },
+      "sentKey": "F9",
+      "field": "⌫",
+      "cacheKey": null,
+      "persistedKey": null,
+      "version": 0,
+      "actual": "Save failed — keyboard: page-hide save not on the server — change it again",
+      "expected": "Save failed / Not saved",
+      "acceptancePassed": true,
+      "wsSaves": 0,
+      "unexpectedCommands": 0
+    },
+    {
+      "mode": "corrupt",
+      "repeat": 2,
+      "beacons": 1,
+      "httpStatus": 409,
+      "response": {
+        "ok": false,
+        "error": "RuntimeError: settings.json failed to parse and was not overwritten; fix or remove the file and restart the gateway"
+      },
+      "sentKey": "F9",
+      "field": "⌫",
+      "cacheKey": null,
+      "persistedKey": null,
+      "version": 0,
+      "actual": "Save failed — keyboard: page-hide save not on the server — change it again",
+      "expected": "Save failed / Not saved",
+      "acceptancePassed": true,
+      "wsSaves": 0,
+      "unexpectedCommands": 0
+    },
+    {
+      "mode": "corrupt",
+      "repeat": 3,
+      "beacons": 1,
+      "httpStatus": 409,
+      "response": {
+        "ok": false,
+        "error": "RuntimeError: settings.json failed to parse and was not overwritten; fix or remove the file and restart the gateway"
+      },
+      "sentKey": "F9",
+      "field": "⌫",
+      "cacheKey": null,
+      "persistedKey": null,
+      "version": 0,
+      "actual": "Save failed — keyboard: page-hide save not on the server — change it again",
+      "expected": "Save failed / Not saved",
+      "acceptancePassed": true,
+      "wsSaves": 0,
+      "unexpectedCommands": 0
+    },
+    {
+      "mode": "missing",
+      "repeat": 1,
+      "beacons": 1,
+      "httpStatus": null,
+      "response": {
+        "networkFailure": true
+      },
+      "sentKey": "F9",
+      "field": "⌫",
+      "cacheKey": null,
+      "persistedKey": null,
+      "version": 0,
+      "actual": "Save failed — keyboard: page-hide save not on the server — change it again",
+      "expected": "Save failed / Not saved",
+      "acceptancePassed": true,
+      "wsSaves": 0,
+      "unexpectedCommands": 0
+    },
+    {
+      "mode": "missing",
+      "repeat": 2,
+      "beacons": 1,
+      "httpStatus": null,
+      "response": {
+        "networkFailure": true
+      },
+      "sentKey": "F9",
+      "field": "⌫",
+      "cacheKey": null,
+      "persistedKey": null,
+      "version": 0,
+      "actual": "Save failed — keyboard: page-hide save not on the server — change it again",
+      "expected": "Save failed / Not saved",
+      "acceptancePassed": true,
+      "wsSaves": 0,
+      "unexpectedCommands": 0
+    },
+    {
+      "mode": "missing",
+      "repeat": 3,
+      "beacons": 1,
+      "httpStatus": null,
+      "response": {
+        "networkFailure": true
+      },
+      "sentKey": "F9",
+      "field": "⌫",
+      "cacheKey": null,
+      "persistedKey": null,
+      "version": 0,
+      "actual": "Save failed — keyboard: page-hide save not on the server — change it again",
+      "expected": "Save failed / Not saved",
+      "acceptancePassed": true,
+      "wsSaves": 0,
+      "unexpectedCommands": 0
+    }
+  ]
+}

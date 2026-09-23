@@ -1,0 +1,413 @@
+Codex implementation audit round 4 — 2026-09-21
+Branch: feat/ui-review-wave
+Reviewed HEAD: 9b368f78084961a191a9d3106fd11166c11a2a7c
+Product fix: 8a6ed60; difference from fix to HEAD consists only of the two review documents.
+Initial working tree clean. Host process check for LinuxCNC/hal_watchdog/milltask/linuxcncsvr: no matches, exit 1.
+No LinuxCNC start/stop or real machine commands. Offline tests and localhost mock only.
+FRESH FULL GATE: python3 scripts/test_suite.py offline — exit 0
+Report directory: /home/cnc/lcnc-suite/runlogs/test-suite/20260921T184057Z-offline
+{
+  "mode": "offline",
+  "started": "2026-09-21T18:40:57.766559+00:00",
+  "root": "/home/cnc/lcnc-suite",
+  "gates": [
+    {
+      "name": "backend",
+      "command": [
+        "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest"
+      ],
+      "cwd": "/home/cnc/lcnc-suite/lcnc-gateway",
+      "log": "backend.log",
+      "started": "2026-09-21T18:40:57.770408+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 30.35,
+      "finished": "2026-09-21T18:41:28.118104+00:00",
+      "notes": []
+    },
+    {
+      "name": "5axis-model",
+      "command": [
+        "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3",
+        "/home/cnc/lcnc-suite/scripts/test_5axis_xyzac.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite",
+      "log": "5axis-model.log",
+      "started": "2026-09-21T18:41:28.118379+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.57,
+      "finished": "2026-09-21T18:41:28.686116+00:00",
+      "notes": []
+    },
+    {
+      "name": "audit-css",
+      "command": [
+        "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite/scripts/test_audit_scoped_css.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite",
+      "log": "audit-css.log",
+      "started": "2026-09-21T18:41:28.686324+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.57,
+      "finished": "2026-09-21T18:41:29.254841+00:00",
+      "notes": []
+    },
+    {
+      "name": "frontend-lint",
+      "command": [
+        "npm",
+        "run",
+        "lint"
+      ],
+      "cwd": "/home/cnc/lcnc-suite/lcnc-webui",
+      "log": "frontend-lint.log",
+      "started": "2026-09-21T18:41:29.255032+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 3.65,
+      "finished": "2026-09-21T18:41:32.901119+00:00",
+      "notes": []
+    },
+    {
+      "name": "frontend-build",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "cwd": "/home/cnc/lcnc-suite/lcnc-webui",
+      "log": "frontend-build.log",
+      "started": "2026-09-21T18:41:32.901368+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 9.53,
+      "finished": "2026-09-21T18:41:42.435799+00:00",
+      "notes": []
+    },
+    {
+      "name": "frontend-unit",
+      "command": [
+        "npm",
+        "test"
+      ],
+      "cwd": "/home/cnc/lcnc-suite/lcnc-webui",
+      "log": "frontend-unit.log",
+      "started": "2026-09-21T18:41:42.436097+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 26.46,
+      "finished": "2026-09-21T18:42:08.900630+00:00",
+      "notes": []
+    },
+    {
+      "name": "frontend-browser",
+      "command": [
+        "npm",
+        "run",
+        "test:e2e"
+      ],
+      "cwd": "/home/cnc/lcnc-suite/lcnc-webui",
+      "log": "frontend-browser.log",
+      "started": "2026-09-21T18:42:08.901129+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 353.37,
+      "finished": "2026-09-21T18:48:02.266459+00:00",
+      "notes": []
+    }
+  ],
+  "commit": "9b368f78084961a191a9d3106fd11166c11a2a7c",
+  "tracked_changes": [],
+  "runner_sha256": "705e6e79a6be911d052d25c882469f2e1080036b458fde4380844b7df8eacc6e",
+  "status": "pass",
+  "changed_file_sha256": {},
+  "not_run": [],
+  "finished": "2026-09-21T18:48:02.267241+00:00"
+}
+
+backend:
+........................................................................ [ 62%]
+........................................................................ [ 69%]
+.................................................................... [ 76%]
+........................................................................ [ 84%]
+............................................................................ [ 92%]
+........................................................................ [ 99%]
+..                                                                       [100%]
+958 passed, 340 subtests passed in 30.09s
+[GC] +30041ms gen=2 duration=37.9ms collected=1461 uncollectable=0
+[GC] +30058ms gen=2 duration=16.3ms collected=0 uncollectable=0
+[GC] +30076ms gen=2 duration=18.6ms collected=0 uncollectable=0
+[GC] +30090ms gen=2 duration=13.7ms collected=0 uncollectable=0
+[GC] +30103ms gen=2 duration=12.4ms collected=0 uncollectable=0
+[GC] +30119ms gen=2 duration=15.8ms collected=0 uncollectable=0
+
+5axis-model:
+test_all_guide_blocks_stay_on_rails (__main__.XYZACAcceptance.test_all_guide_blocks_stay_on_rails) ... ok
+test_cold_start_positions_are_inside_limits_before_homing (__main__.XYZACAcceptance.test_cold_start_positions_are_inside_limits_before_homing) ... ok
+test_config_and_closed_export_manifest (__main__.XYZACAcceptance.test_config_and_closed_export_manifest) ... ok
+test_frame_tree_matches_linuxcnc_with_tool_compensation (__main__.XYZACAcceptance.test_frame_tree_matches_linuxcnc_with_tool_compensation) ... 8000 frame/oracle comparisons + inverse roundtrips; worst error 1.14e-13 mm; 3723 TCP demo poses inside joint limits
+ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.542s
+
+OK
+
+audit-css:
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0
+rootdir: /home/cnc/lcnc-suite
+plugins: anyio-4.13.0
+collected 11 items
+
+scripts/test_audit_scoped_css.py ...........                             [100%]
+
+============================== 11 passed in 0.47s ==============================
+
+frontend-lint:
+
+> lcnc-webui@0.0.0 lint
+> eslint . && npm run lint:css
+
+
+> lcnc-webui@0.0.0 lint:css
+> python3 ../scripts/audit-scoped-css.py
+
+OK: no definite scoped-CSS leaks, no token drift. (use --all to see ROOT? candidates)
+
+frontend-build:
+dist/static/msgpack-BkQaaVuN.js                13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                  28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                  48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                  50.88 kB │ gzip:  17.70 kB
+dist/static/ThreeViewer-CFfjZUFI.js           120.84 kB │ gzip:  45.46 kB
+dist/static/index-o9DEOgyx.js                 200.76 kB │ gzip:  65.35 kB
+dist/static/index-DQfCHJMM.js                 526.09 kB │ gzip: 164.54 kB
+dist/static/three-CfffMm-P.js                 865.77 kB │ gzip: 237.89 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 4.35s
+
+frontend-unit:
+
+> lcnc-webui@0.0.0 test
+> vitest run
+
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite/lcnc-webui
+
+
+ Test Files  69 passed (69)
+      Tests  1568 passed (1568)
+   Start at  20:41:42
+   Duration  26.25s (transform 1.66s, setup 0ms, import 3.94s, tests 35.84s, environment 3ms)
+
+
+frontend-browser:
+  ✓  133 [serial-visual] › e2e/visual.spec.ts:23:5 › 6axis-twp touch-portrait: Jog and Setup reference images (3.4s)
+  ✓  134 [serial-visual] › e2e/visual.spec.ts:60:3 › desktop: tool edit dialog reference image (2.7s)
+  ✓  135 [serial-visual] › e2e/visual.spec.ts:60:3 › compact: tool edit dialog reference image (2.8s)
+  ✓  136 [serial-visual] › e2e/visual.spec.ts:60:3 › touch-landscape: tool edit dialog reference image (2.5s)
+  ✓  137 [serial-visual] › e2e/visual.spec.ts:60:3 › touch-portrait: tool edit dialog reference image (2.2s)
+(node:26615) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:26615) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  138 [serial-viewer] › e2e/viewer.spec.ts:49:1 › a clean rebuild frees AND re-applies the loaded program's toolpath geometry (4.1s)
+  ✓  139 [serial-viewer] › e2e/viewer.spec.ts:121:1 › studio model keeps a themed, persistent ground grid through motion and rebuilds (4.0s)
+  ✓  140 [serial-viewer] › e2e/viewer.spec.ts:249:1 › default framing keeps the eye outside a bed/column model for every direction, preset, projection and reset (8.7s)
+
+  140 passed (5.9m)
+
+INDEPENDENT PROBE RUNS (serial; never concurrent with the full suite)
+Historical source copies unchanged: round 1 (9 cases), round 2 (2 cases), round 3 (9 cases), UI-I10 original (2 cases).
+The obsolete round-2 "Space during the delayed numeric focus return" test is excluded, as in round 3; the stronger three round-3 focus-return cases replace it.
+
+Run 1 — audit-r4-probes.log — exit 1, 22 passed / 3 failed.
+All 22 historical probes pass. Three new prototype cases fail:
+- Numeric Cancel Space: correct behavior, but the assertion incorrectly counted get_tool_table reads as machine actions. Fixed only that oracle.
+- Text Close Enter: helper closes, owner is not focused (actual product finding).
+- Portrait external run/pause: controls return and are hittable, but the test compares innerText to textContent. Fixed to useInnerText: true.
+Prototype source: audit-r4-initial.probes.spec.ts in the report directory.
+
+Run 2 — audit-r4-confirmation.log — exit 1, 12 passed / 6 failed.
+Four positive cases each pass 3 times: backend gate during busy, original portrait editor readout, numeric Cancel Space, portrait run/pause controls and retained editor draft.
+The two new text-close cases fail 3 times each BEFORE close: physical MDI typing does not survive, so their G1 X17 ; draft precondition cannot be prepared that way. This revealed UI-I11 and is NOT counted as six close/shortcut reproductions.
+Source at that run: audit-r4-confirmation.probes.spec.ts in the report directory.
+
+Run 3 — audit-r4-text.log — exit 1, 3 failed.
+Close precondition now uses the working on-screen G and 1 keys. Enter and Space on Close each leave body focused, guard false; a subsequent trusted Space sends cycle_start. A separate physical MDI test logs every character disappearing while focus remains at the enabled, writable MDI field.
+Source at that run: audit-r4-text.probes.spec.ts in the report directory.
+
+Run 4 — audit-r4-text-repeat.log — exit 1, 9 failed.
+Final source: docs/reviews/ui-optimierungen.implementation-review.r4.probes.spec.ts.
+Enter-close and Space-close each repeated 3 times. Before the next Space: no state-changing command. After it: exactly cycle_start, MDI value still G1, body focus and guard false observed without manipulating either after close.
+Physical MDI input repeated 3 times, each with helper open AND closed. Native trusted input events contain characters G, 1, space, X, 7; the field is empty after every update. Search control receives g1 correctly in all three runs.
+The native-input observer is read-only; no component state, event handler, guard or focus-return timing was modified.
+Only get_tool_table reads are excluded from state-changing command assertions. Raw commands remain logged.
+
+
+audit-r4-probes.log
+COMMAND: npx playwright test audit-r1.probes.spec.ts audit-r2.probes.spec.ts audit-r3.probes.spec.ts audit-keyboard-activation.spec.ts audit-r4.probes.spec.ts --project=chromium --no-deps --workers=1 --grep-invert 'Space during the delayed numeric focus return' --reporter=list
+SHA256: 31d9d92e3bffc786df38899b5f385cb9294bea7f45683537f06554431898b22e
+NUMERIC_CANCEL_ENTER {"focusedCancel":true,"commands":[{"cmd":"get_tool_table","req_id":"l0sj81-3"},{"cmd":"get_tool_table","req_id":"l0sj81-4"}]}
+  ✓   1 [chromium] › e2e/audit-keyboard-activation.spec.ts:19:1 › real Tab to numeric Cancel then Enter cancels without confirming the value (1.6s)
+TEXT_CLOSE_ACTIVATION {"countAfterEnter":0,"countAfterSpace":0,"closedByPointer":true}
+  ✓   2 [chromium] › e2e/audit-keyboard-activation.spec.ts:41:1 › focused Close keyboard button responds to native Enter like its pointer action (1.4s)
+  ✓   3 [chromium] › e2e/audit-r1.probes.spec.ts:21:1 › number closes on outside pointer (1.2s)
+  ✓   4 [chromium] › e2e/audit-r1.probes.spec.ts:30:1 › number draft survives number to text and back (1.4s)
+  ✓   5 [chromium] › e2e/audit-r1.probes.spec.ts:44:1 › number confirm returns focus to its original field (1.4s)
+  ✓   6 [chromium] › e2e/audit-r1.probes.spec.ts:54:1 › hidden offset owner cannot confirm a write (1.4s)
+SAVE_AFTER_TYPING {"body":"G0 X0\nM2\n","editors":1}
+  ✓   7 [chromium] › e2e/audit-r1.probes.spec.ts:68:1 › save response preserves edits typed after the request (2.3s)
+  ✓   8 [chromium] › e2e/audit-r1.probes.spec.ts:94:1 › Tab out from a keyboard button closes the text helper (1.3s)
+  ✓   9 [chromium] › e2e/audit-r1.probes.spec.ts:110:1 › keyboard button keeps its parent scoped sizing rules (1.1s)
+  ✓  10 [chromium] › e2e/audit-r1.probes.spec.ts:127:3 › real touch › reference search can receive a real keyboard tap (1.5s)
+PORTRAIT_ACTUAL_BOUNDS { bottom: 1074.5, top: 382.75, inner: 1200 }
+  ✓  11 [chromium] › e2e/audit-r1.probes.spec.ts:143:3 › real touch › portrait at 150 percent keeps the full helper within the viewport (1.3s)
+EMPTY_DRAFT {"original":"12.345","returned":"0","draft":1}
+  ✓  12 [chromium] › e2e/audit-r2.probes.spec.ts:20:1 › Clear remains an unconfirmed zero draft after switching number to text (1.4s)
+DRAFT_AFTER_GATE {"original":"10.1230","returned":"10.123","draft":0}
+  ✓  13 [chromium] › e2e/audit-r2.probes.spec.ts:37:1 › Offset draft ends when its gate closes while another cell owns the keypad (1.5s)
+BODY_KEY_SUMMARY {"bodyEvents": 6, "allTrustedAndGuarded": true, "includesEnabledField": true}
+  ✓  14 [chromium] › e2e/audit-r3.probes.spec.ts:33:3 › focus return 1: trusted Space/Backspace on body stay guarded; Escape works (2.0s)
+BODY_KEY_SUMMARY {"bodyEvents": 14, "allTrustedAndGuarded": true, "includesEnabledField": true}
+  ✓  15 [chromium] › e2e/audit-r3.probes.spec.ts:33:3 › focus return 2: trusted Space/Backspace on body stay guarded; Escape works (2.0s)
+BODY_KEY_SUMMARY {"bodyEvents": 5, "allTrustedAndGuarded": true, "includesEnabledField": true}
+  ✓  16 [chromium] › e2e/audit-r3.probes.spec.ts:33:3 › focus return 3: trusted Space/Backspace on body stay guarded; Escape works (2.0s)
+  ✓  17 [chromium] › e2e/audit-r3.probes.spec.ts:86:1 › a different field chosen during focus return keeps its focus and text session (1.7s)
+  ✓  18 [chromium] › e2e/audit-r3.probes.spec.ts:105:1 › an offset cell that cannot hold focus falls back to the strip, never body (1.6s)
+BACKEND_GATE_DURING_BUSY {"elapsed":114,"returned":"12.345","drafts":0}
+  ✓  19 [chromium] › e2e/audit-r3.probes.spec.ts:121:1 › a real backend gate closure during the busy latch ends parked drafts (1.5s)
+PORTRAIT_OWNER_PAGE {"owner":"MDI","pageName":"Code keys","top":382.75,"bottom":1074.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"MDI","pageName":"ABC keys","top":382.75,"bottom":1074.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"MDI","pageName":"123 keys","top":382.75,"bottom":1074.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"MDI","pageName":"#+= keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_READOUT {"owner":"MDI","hit":true,"target":{"x":469,"y":861,"width":178.90625,"height":54,"top":861,"right":647.90625,"bottom":915,"left":469},"covering":"<input data-v-d7b55e87=\"\" type=\"text\" class=\"mdiInput inputField keypad-active\" placeholder=\"G-code command (↑↓ history)\" lang=\"en\" data-input-area=\"mdi-input\" value=\"\" inputmode=\"none\">"}
+  ✓  20 [chromium] › e2e/audit-r3.probes.spec.ts:149:5 › portrait readout and real touch › MDI: readout and every keyboard page remain usable at 150 percent (2.0s)
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"Code keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"ABC keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"123 keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"#+= keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_READOUT {"owner":"editor","hit":true,"target":{"x":499,"y":934.25,"width":376,"height":25.1875,"top":934.25,"right":875,"bottom":959.4375,"left":499},"covering":"<div class=\"cm-line\"><span class=\"ͼ5\">G0</span> <span class=\"ͼ7\">X0</span></div>","host":{"x":469,"y":928.25,"width":406,"height":180.75,"top":928.25,"right":875,"bottom":1109,"left":469},"scroller":{"x":469,"y":928.25,"width":406,"height":180.75,"top":928.25,"right":875,"bottom":1109,"left":469},"actions":{"x":469,"y":1121,"width":406,"height":54,"top":1121,"right":875,"bottom":1175,"left":469}}
+  ✓  21 [chromium] › e2e/audit-r3.probes.spec.ts:149:5 › portrait readout and real touch › editor: readout and every keyboard page remain usable at 150 percent (2.2s)
+PORTRAIT_OWNER_PAGE {"owner":"search","pageName":"Code keys","top":382.75,"bottom":1099.25,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"search","pageName":"ABC keys","top":427.75,"bottom":1144.25,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"search","pageName":"123 keys","top":427.75,"bottom":1144.25,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"search","pageName":"#+= keys","top":427.75,"bottom":1144.25,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_READOUT {"owner":"search","hit":true,"target":{"x":505,"y":425.296875,"width":334,"height":54,"top":425.296875,"right":839,"bottom":479.296875,"left":505},"covering":"<input data-v-df64f724=\"\" type=\"text\" placeholder=\"Search codes, names, descriptions…\" class=\"refSearch inputField keypad-active\" inputmode=\"none\" lang=\"en\" data-input-area=\"text-17\">"}
+  ✓  22 [chromium] › e2e/audit-r3.probes.spec.ts:149:5 › portrait readout and real touch › search: readout and every keyboard page remain usable at 150 percent (2.2s)
+  ✘  23 [chromium] › e2e/audit-r4.probes.spec.ts:44:1 › native Space on tab-focused numeric Cancel discards without any command (1.6s)
+  ✘  24 [chromium] › e2e/audit-r4.probes.spec.ts:62:1 › Enter and Space each close a freshly opened text helper and retain its owner value (12.2s)
+PORTRAIT_EDITOR_R4 {"lines":7.176178660049628,"firstLineAndActionsHit":true}
+  ✘  25 [chromium] › e2e/audit-r4.probes.spec.ts:89:3 › portrait fold and readout › 150 percent editor is usable; external run/pause brings back controls and retains the draft (12.2s)
+  3 failed
+  22 passed (1.1m)
+
+audit-r4-confirmation.log
+COMMAND: npx playwright test audit-r4.probes.spec.ts audit-r3.probes.spec.ts --project=chromium --no-deps --workers=1 --repeat-each=3 --grep 'native Space|on text Close|150 percent editor|a real backend gate|editor: readout' --reporter=list
+SHA256: 53395b29288b25e5c2c249eebaf0212b836693d22752348d861cf1766ae33cca
+BACKEND_GATE_DURING_BUSY {"elapsed":98,"returned":"12.345","drafts":0}
+  ✓   1 [chromium] › e2e/audit-r3.probes.spec.ts:121:1 › a real backend gate closure during the busy latch ends parked drafts (1.5s)
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"Code keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"ABC keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"123 keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"#+= keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_READOUT {"owner":"editor","hit":true,"target":{"x":499,"y":934.25,"width":376,"height":25.1875,"top":934.25,"right":875,"bottom":959.4375,"left":499},"covering":"<div class=\"cm-line\"><span class=\"ͼ5\">G0</span> <span class=\"ͼ7\">X0</span></div>","host":{"x":469,"y":928.25,"width":406,"height":180.75,"top":928.25,"right":875,"bottom":1109,"left":469},"scroller":{"x":469,"y":928.25,"width":406,"height":180.75,"top":928.25,"right":875,"bottom":1109,"left":469},"actions":{"x":469,"y":1121,"width":406,"height":54,"top":1121,"right":875,"bottom":1175,"left":469}}
+  ✓   2 [chromium] › e2e/audit-r3.probes.spec.ts:149:5 › portrait readout and real touch › editor: readout and every keyboard page remain usable at 150 percent (2.1s)
+NUMERIC_CANCEL_SPACE {"draft":false,"commands":[{"cmd":"get_tool_table","req_id":"4tdrnd-3"},{"cmd":"get_tool_table","req_id":"4tdrnd-4"}]}
+  ✓   3 [chromium] › e2e/audit-r4.probes.spec.ts:46:1 › native Space on tab-focused numeric Cancel discards without any command (1.5s)
+  ✘   4 [chromium] › e2e/audit-r4.probes.spec.ts:65:1 › Enter on text Close returns focus; the next Space must not start a program (11.5s)
+  ✘   5 [chromium] › e2e/audit-r4.probes.spec.ts:65:1 › Space on text Close returns focus; the next Space must not start a program (11.1s)
+PORTRAIT_EDITOR_R4 {"lines":7.176178660049628,"firstLineAndActionsHit":true}
+PORTRAIT_RUNNING_CONTROLS {"paused":false,"abortAndPauseResumeHit":true}
+PORTRAIT_RUNNING_CONTROLS {"paused":true,"abortAndPauseResumeHit":true}
+  ✓   6 [chromium] › e2e/audit-r4.probes.spec.ts:105:3 › portrait fold and readout › 150 percent editor is usable; external run/pause brings back controls and retains the draft (2.0s)
+BACKEND_GATE_DURING_BUSY {"elapsed":123,"returned":"12.345","drafts":0}
+  ✓   7 [chromium] › e2e/audit-r3.probes.spec.ts:121:1 › a real backend gate closure during the busy latch ends parked drafts (1.6s)
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"Code keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"ABC keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"123 keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"#+= keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_READOUT {"owner":"editor","hit":true,"target":{"x":499,"y":934.25,"width":376,"height":25.1875,"top":934.25,"right":875,"bottom":959.4375,"left":499},"covering":"<div class=\"cm-line\"><span class=\"ͼ5\">G0</span> <span class=\"ͼ7\">X0</span></div>","host":{"x":469,"y":928.25,"width":406,"height":180.75,"top":928.25,"right":875,"bottom":1109,"left":469},"scroller":{"x":469,"y":928.25,"width":406,"height":180.75,"top":928.25,"right":875,"bottom":1109,"left":469},"actions":{"x":469,"y":1121,"width":406,"height":54,"top":1121,"right":875,"bottom":1175,"left":469}}
+  ✓   8 [chromium] › e2e/audit-r3.probes.spec.ts:149:5 › portrait readout and real touch › editor: readout and every keyboard page remain usable at 150 percent (2.2s)
+NUMERIC_CANCEL_SPACE {"draft":false,"commands":[{"cmd":"get_tool_table","req_id":"g2yo90-3"},{"cmd":"get_tool_table","req_id":"g2yo90-4"}]}
+  ✓   9 [chromium] › e2e/audit-r4.probes.spec.ts:46:1 › native Space on tab-focused numeric Cancel discards without any command (1.5s)
+  ✘  10 [chromium] › e2e/audit-r4.probes.spec.ts:65:1 › Enter on text Close returns focus; the next Space must not start a program (11.1s)
+  ✘  11 [chromium] › e2e/audit-r4.probes.spec.ts:65:1 › Space on text Close returns focus; the next Space must not start a program (11.6s)
+PORTRAIT_EDITOR_R4 {"lines":7.176178660049628,"firstLineAndActionsHit":true}
+PORTRAIT_RUNNING_CONTROLS {"paused":false,"abortAndPauseResumeHit":true}
+PORTRAIT_RUNNING_CONTROLS {"paused":true,"abortAndPauseResumeHit":true}
+  ✓  12 [chromium] › e2e/audit-r4.probes.spec.ts:105:3 › portrait fold and readout › 150 percent editor is usable; external run/pause brings back controls and retains the draft (2.1s)
+BACKEND_GATE_DURING_BUSY {"elapsed":122,"returned":"12.345","drafts":0}
+  ✓  13 [chromium] › e2e/audit-r3.probes.spec.ts:121:1 › a real backend gate closure during the busy latch ends parked drafts (1.6s)
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"Code keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"ABC keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"123 keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_OWNER_PAGE {"owner":"editor","pageName":"#+= keys","top":427.75,"bottom":1119.5,"height":1200,"scroll":0,"misses":[]}
+PORTRAIT_READOUT {"owner":"editor","hit":true,"target":{"x":499,"y":934.25,"width":376,"height":25.1875,"top":934.25,"right":875,"bottom":959.4375,"left":499},"covering":"<div class=\"cm-line\"><span class=\"ͼ5\">G0</span> <span class=\"ͼ7\">X0</span></div>","host":{"x":469,"y":928.25,"width":406,"height":180.75,"top":928.25,"right":875,"bottom":1109,"left":469},"scroller":{"x":469,"y":928.25,"width":406,"height":180.75,"top":928.25,"right":875,"bottom":1109,"left":469},"actions":{"x":469,"y":1121,"width":406,"height":54,"top":1121,"right":875,"bottom":1175,"left":469}}
+  ✓  14 [chromium] › e2e/audit-r3.probes.spec.ts:149:5 › portrait readout and real touch › editor: readout and every keyboard page remain usable at 150 percent (2.3s)
+NUMERIC_CANCEL_SPACE {"draft":false,"commands":[{"cmd":"get_tool_table","req_id":"zz2t0z-3"},{"cmd":"get_tool_table","req_id":"zz2t0z-4"}]}
+  ✓  15 [chromium] › e2e/audit-r4.probes.spec.ts:46:1 › native Space on tab-focused numeric Cancel discards without any command (1.5s)
+  ✘  16 [chromium] › e2e/audit-r4.probes.spec.ts:65:1 › Enter on text Close returns focus; the next Space must not start a program (11.1s)
+  ✘  17 [chromium] › e2e/audit-r4.probes.spec.ts:65:1 › Space on text Close returns focus; the next Space must not start a program (11.6s)
+PORTRAIT_EDITOR_R4 {"lines":8.069478908188586,"firstLineAndActionsHit":true}
+PORTRAIT_RUNNING_CONTROLS {"paused":false,"abortAndPauseResumeHit":true}
+PORTRAIT_RUNNING_CONTROLS {"paused":true,"abortAndPauseResumeHit":true}
+  ✓  18 [chromium] › e2e/audit-r4.probes.spec.ts:105:3 › portrait fold and readout › 150 percent editor is usable; external run/pause brings back controls and retains the draft (2.1s)
+  6 failed
+  12 passed (1.6m)
+
+audit-r4-text.log
+COMMAND: npx playwright test audit-r4.probes.spec.ts --project=chromium --no-deps --workers=1 --grep 'on text Close|physical MDI' --reporter=list
+SHA256: f225c69ead52226cc5753b69705ac7f9f233455f5ab48b5c5c9ea358ce239e7f
+TEXT_CLOSE_NEXT_SPACE {"key":"Enter","afterClose":{"body":true,"active":"<body>\n    <div id=\"app\" data-v-app=\"\"><div data-v-d7b55e87=\"\" class=\"wrap stack-controls\"><header data-v-d7b55e87=\"\" class=\"hdr\"><div data-v-d7b55e87=\"\" class=","guard":false},"beforeSpace":[],"afterSpace":[{"cmd":"cycle_start","req_id":"p97g2h-5"}],"value":"G1"}
+  ✘  1 [chromium] › e2e/audit-r4.probes.spec.ts:65:1 › Enter on text Close returns focus; the next Space must not start a program (2.0s)
+TEXT_CLOSE_NEXT_SPACE {"key":"Space","afterClose":{"body":true,"active":"<body>\n    <div id=\"app\" data-v-app=\"\"><div data-v-d7b55e87=\"\" class=\"wrap stack-controls\"><header data-v-d7b55e87=\"\" class=\"hdr\"><div data-v-d7b55e87=\"\" class=","guard":false},"beforeSpace":[],"afterSpace":[{"cmd":"cycle_start","req_id":"dpof50-5"}],"value":"G1"}
+  ✘  2 [chromium] › e2e/audit-r4.probes.spec.ts:65:1 › Space on text Close returns focus; the next Space must not start a program (2.0s)
+PHYSICAL_MDI_ENTRY {"seen":[{"value":"","focused":true,"disabled":false,"readonly":false,"active":"<input data-v-d7b55e87=\"\" type=\"text\" class=\"mdiInput inputField keypad-active\" placeholder=\"G-code command (↑↓ history)"},{"value":"","focused":true,"disabled":false,"readonly":false,"active":"<input data-v-d7b55e87=\"\" type=\"text\" class=\"mdiInput inputField keypad-active\" placeholder=\"G-code command (↑↓ history)"},{"value":"","focused":true,"disabled":false,"readonly":false,"active":"<input data-v-d7b55e87=\"\" type=\"text\" class=\"mdiInput inputField keypad-active\" placeholder=\"G-code command (↑↓ history)"},{"value":"","focused":true,"disabled":false,"readonly":false,"active":"<input data-v-d7b55e87=\"\" type=\"text\" class=\"mdiInput inputField keypad-active\" placeholder=\"G-code command (↑↓ history)"},{"value":"","focused":true,"disabled":false,"readonly":false,"active":"<input data-v-d7b55e87=\"\" type=\"text\" class=\"mdiInput inputField keypad-active\" placeholder=\"G-code command (↑↓ history)"}],"commands":[{"cmd":"get_tool_table","req_id":"vqv6d2-3"},{"cmd":"get_tool_table","req_id":"vqv6d2-4"}]}
+  ✘  3 [chromium] › e2e/audit-r4.probes.spec.ts:104:1 › physical MDI typing retains characters with the helper open (11.4s)
+  3 failed
+
+audit-r4-text-repeat.log
+COMMAND: npx playwright test audit-r4.probes.spec.ts --project=chromium --no-deps --workers=1 --repeat-each=3 --grep 'on text Close|physical MDI' --reporter=list
+SHA256: e9c51fd022665623ddf518be5e52f5da73cf68d28750d59b41f2d2e673ea9ea0
+TEXT_CLOSE_NEXT_SPACE {"key":"Enter","afterClose":{"body":true,"active":"<body>\n    <div id=\"app\" data-v-app=\"\"><div data-v-d7b55e87=\"\" class=\"wrap stack-controls\"><header data-v-d7b55e87=\"\" class=\"hdr\"><div data-v-d7b55e87=\"\" class=","guard":false},"beforeSpace":[],"afterSpace":[{"cmd":"cycle_start","req_id":"mkeaww-5"}],"value":"G1"}
+  ✘  1 [chromium] › e2e/audit-r4.probes.spec.ts:65:1 › Enter on text Close returns focus; the next Space must not start a program (2.1s)
+TEXT_CLOSE_NEXT_SPACE {"key":"Space","afterClose":{"body":true,"active":"<body>\n    <div id=\"app\" data-v-app=\"\"><div data-v-d7b55e87=\"\" class=\"wrap stack-controls\"><header data-v-d7b55e87=\"\" class=\"hdr\"><div data-v-d7b55e87=\"\" class=","guard":false},"beforeSpace":[],"afterSpace":[{"cmd":"cycle_start","req_id":"rb6d2e-5"}],"value":"G1"}
+  ✘  2 [chromium] › e2e/audit-r4.probes.spec.ts:65:1 › Space on text Close returns focus; the next Space must not start a program (2.0s)
+PHYSICAL_MDI_ENTRY {"seen":[{"helperOpen":true,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":true,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":true,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":true,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":true,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":false,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":false,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":false,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":false,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":false,"value":"","focused":true,"disabled":false,"readonly":false}],"finalValues":["",""],"events":[{"value":"G","trusted":true,"inputType":"insertText"},{"value":"1","trusted":true,"inputType":"insertText"},{"value":" ","trusted":true,"inputType":"insertText"},{"value":"X","trusted":true,"inputType":"insertText"},{"value":"7","trusted":true,"inputType":"insertText"},{"value":"G","trusted":true,"inputType":"insertText"},{"value":"1","trusted":true,"inputType":"insertText"},{"value":" ","trusted":true,"inputType":"insertText"},{"value":"X","trusted":true,"inputType":"insertText"},{"value":"7","trusted":true,"inputType":"insertText"}],"searchValue":"g1","commands":[{"cmd":"get_tool_table","req_id":"q2bzh9-3"},{"cmd":"get_tool_table","req_id":"q2bzh9-4"}]}
+  ✘  3 [chromium] › e2e/audit-r4.probes.spec.ts:104:1 › physical MDI typing retains characters with either helper state; plain search is a control (1.9s)
+TEXT_CLOSE_NEXT_SPACE {"key":"Enter","afterClose":{"body":true,"active":"<body>\n    <div id=\"app\" data-v-app=\"\"><div data-v-d7b55e87=\"\" class=\"wrap stack-controls\"><header data-v-d7b55e87=\"\" class=\"hdr\"><div data-v-d7b55e87=\"\" class=","guard":false},"beforeSpace":[],"afterSpace":[{"cmd":"cycle_start","req_id":"xj1k7w-5"}],"value":"G1"}
+  ✘  4 [chromium] › e2e/audit-r4.probes.spec.ts:65:1 › Enter on text Close returns focus; the next Space must not start a program (2.1s)
+TEXT_CLOSE_NEXT_SPACE {"key":"Space","afterClose":{"body":true,"active":"<body>\n    <div id=\"app\" data-v-app=\"\"><div data-v-d7b55e87=\"\" class=\"wrap stack-controls\"><header data-v-d7b55e87=\"\" class=\"hdr\"><div data-v-d7b55e87=\"\" class=","guard":false},"beforeSpace":[],"afterSpace":[{"cmd":"cycle_start","req_id":"3u1m8t-5"}],"value":"G1"}
+  ✘  5 [chromium] › e2e/audit-r4.probes.spec.ts:65:1 › Space on text Close returns focus; the next Space must not start a program (2.1s)
+PHYSICAL_MDI_ENTRY {"seen":[{"helperOpen":true,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":true,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":true,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":true,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":true,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":false,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":false,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":false,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":false,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":false,"value":"","focused":true,"disabled":false,"readonly":false}],"finalValues":["",""],"events":[{"value":"G","trusted":true,"inputType":"insertText"},{"value":"1","trusted":true,"inputType":"insertText"},{"value":" ","trusted":true,"inputType":"insertText"},{"value":"X","trusted":true,"inputType":"insertText"},{"value":"7","trusted":true,"inputType":"insertText"},{"value":"G","trusted":true,"inputType":"insertText"},{"value":"1","trusted":true,"inputType":"insertText"},{"value":" ","trusted":true,"inputType":"insertText"},{"value":"X","trusted":true,"inputType":"insertText"},{"value":"7","trusted":true,"inputType":"insertText"}],"searchValue":"g1","commands":[{"cmd":"get_tool_table","req_id":"yopie8-3"},{"cmd":"get_tool_table","req_id":"yopie8-4"}]}
+  ✘  6 [chromium] › e2e/audit-r4.probes.spec.ts:104:1 › physical MDI typing retains characters with either helper state; plain search is a control (1.9s)
+TEXT_CLOSE_NEXT_SPACE {"key":"Enter","afterClose":{"body":true,"active":"<body>\n    <div id=\"app\" data-v-app=\"\"><div data-v-d7b55e87=\"\" class=\"wrap stack-controls\"><header data-v-d7b55e87=\"\" class=\"hdr\"><div data-v-d7b55e87=\"\" class=","guard":false},"beforeSpace":[],"afterSpace":[{"cmd":"cycle_start","req_id":"ov9mgr-5"}],"value":"G1"}
+  ✘  7 [chromium] › e2e/audit-r4.probes.spec.ts:65:1 › Enter on text Close returns focus; the next Space must not start a program (2.7s)
+TEXT_CLOSE_NEXT_SPACE {"key":"Space","afterClose":{"body":true,"active":"<body>\n    <div id=\"app\" data-v-app=\"\"><div data-v-d7b55e87=\"\" class=\"wrap stack-controls\"><header data-v-d7b55e87=\"\" class=\"hdr\"><div data-v-d7b55e87=\"\" class=","guard":false},"beforeSpace":[],"afterSpace":[{"cmd":"cycle_start","req_id":"h3rfrh-5"}],"value":"G1"}
+  ✘  8 [chromium] › e2e/audit-r4.probes.spec.ts:65:1 › Space on text Close returns focus; the next Space must not start a program (2.1s)
+PHYSICAL_MDI_ENTRY {"seen":[{"helperOpen":true,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":true,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":true,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":true,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":true,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":false,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":false,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":false,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":false,"value":"","focused":true,"disabled":false,"readonly":false},{"helperOpen":false,"value":"","focused":true,"disabled":false,"readonly":false}],"finalValues":["",""],"events":[{"value":"G","trusted":true,"inputType":"insertText"},{"value":"1","trusted":true,"inputType":"insertText"},{"value":" ","trusted":true,"inputType":"insertText"},{"value":"X","trusted":true,"inputType":"insertText"},{"value":"7","trusted":true,"inputType":"insertText"},{"value":"G","trusted":true,"inputType":"insertText"},{"value":"1","trusted":true,"inputType":"insertText"},{"value":" ","trusted":true,"inputType":"insertText"},{"value":"X","trusted":true,"inputType":"insertText"},{"value":"7","trusted":true,"inputType":"insertText"}],"searchValue":"g1","commands":[{"cmd":"get_tool_table","req_id":"lmee71-3"},{"cmd":"get_tool_table","req_id":"lmee71-4"}]}
+  ✘  9 [chromium] › e2e/audit-r4.probes.spec.ts:104:1 › physical MDI typing retains characters with either helper state; plain search is a control (1.9s)
+  9 failed
+
+RESULT: 9/11 technical findings closed. UI-I05 and UI-I08 closed. UI-I10 remains P1 (text-close focus / next Space); UI-I11 newly discovered P2 (physical MDI input).
+UI-I11 value/input connection predates the current fix; no claim that 8a6ed60 introduced it.
+UX proposals 01–06 and 08–12 remain unimplemented; UX-07 partially open with UI-I10.
+Live XYZAC and physical touchscreen acceptance not performed. Viewer default-framing test passes, not a claim about arbitrary zoom/pan clipping.
+Product code, plan and visual reference baselines unchanged. Temporary e2e copies removed after the runs.
+
+Review artifact SHA256:
+bb41afe10e50d6d90fdf70b996bab52722c36a4270ca43e1958c2d1e7a8dda49  ui-optimierungen.implementation-review.r4.probes.spec.ts
+c25e9fe9e7277c342710cd753bce1e663bd6de71a8a898364b9700551934b799  ui-optimierungen.implementation-review.r4-editor-150.png

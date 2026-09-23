@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { fmtSize } from "./format";
 import type { FileEntry, DirectoryListing } from "./lcncApi";
 import { usePermissions } from "./permissions";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
+import { browseFailure } from "./browseFailure";
 
 // Shared by Program and Tools. Parents only supply their listing/selection
 // operations; navigation, cancellation, file rows and layout stay identical.
@@ -41,8 +43,10 @@ async function browse(next = subdir.value) {
     if (listRef.value) listRef.value.scrollTop = 0;
   } catch (e) {
     if (controller.signal.aborted) return;
-    error.value = e instanceof Error ? e.message : "Could not list files";
-    failedDirectory.value = next;
+    // A permanent refusal offers no Retry (UI-K15); the last valid listing stays.
+    const failure = browseFailure(e);
+    error.value = failure.message;
+    failedDirectory.value = failure.retry ? next : null;
   } finally { busy.value = false; }
 }
 
@@ -59,11 +63,8 @@ async function select(entry: FileEntry) {
   } finally { busy.value = false; }
 }
 
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+// File sizes: format.ts fmtSize (one formatter, not a local copy).
+const formatSize = fmtSize;
 
 onMounted(() => browse());
 </script>
@@ -140,6 +141,7 @@ onMounted(() => browse());
 .fileEntryName { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fileSize { font-size: var(--fs-sm); opacity: var(--opacity-muted); flex-shrink: 0; }
 .emptyBrowser { padding: var(--gap-section); text-align: center; font-size: var(--fs-base); opacity: var(--opacity-muted); }
-.errorBanner { padding: var(--gap-tight) var(--gap-controls); color: var(--danger); font-size: var(--fs-base); flex-shrink: 0; }
+/* Chrome from the global .errorBanner; layout only here. */
+.errorBanner { flex-shrink: 0; }
 .errorBanner span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 </style>
