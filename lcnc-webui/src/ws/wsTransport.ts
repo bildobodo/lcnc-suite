@@ -75,6 +75,21 @@ export function persistArmedForReload(armedNow: boolean): void {
 
 let wsWorker: Worker | null = null;
 
+// Worker supervision (2026-09-23). A page once emitted ws.client_env and then
+// made no connection attempt for four minutes — the worker never started and
+// nothing said so (Worker had no error handler). A worker that fails to load,
+// or has not spoken within WORKER_START_TIMEOUT_MS, is reported and respawned
+// with a doubling delay. An error AFTER the worker has spoken is reported only:
+// it is alive and its socket owns its own reconnect.
+const WORKER_START_TIMEOUT_MS = 8000;
+const WORKER_RESPAWN_MIN_MS = 2000;
+const WORKER_RESPAWN_MAX_MS = 10_000;
+let _url = "";
+let _onEvent: ((m: any) => void) | null = null;
+let _startTimer: ReturnType<typeof setTimeout> | null = null;
+let _respawnTimer: ReturnType<typeof setTimeout> | null = null;
+let _respawnDelay = WORKER_RESPAWN_MIN_MS;
+
 /**
  * Compute the WS endpoint URL. In dev the page is served by Vite (:5173), and
  * a proxied /ws would relay the client heartbeat through the single-threaded
@@ -105,16 +120,65 @@ export function buildWsUrl(): string {
  */
 export function connectTransport(url: string, onEvent: (m: any) => void): void {
   terminateTransport();
-  wsWorker = new Worker(new URL("../wsWorker.ts", import.meta.url), { type: "module" });
-  wsWorker.onmessage = (ev: MessageEvent) => onEvent(ev.data);
-  wsWorker.postMessage({
+  _url = url;
+  _onEvent = onEvent;
+  _respawnDelay = WORKER_RESPAWN_MIN_MS;
+  spawnWorker();
+}
+
+function clearStartTimer(): void {
+  if (_startTimer !== null) { clearTimeout(_startTimer); _startTimer = null; }
+}
+
+function spawnWorker(): void {
+  const w = new Worker(new URL("../wsWorker.ts", import.meta.url), { type: "module" });
+  wsWorker = w;
+  let heard = false;
+  w.onmessage = (ev: MessageEvent) => {
+    if (!heard) {
+      heard = true;
+      clearStartTimer();
+      _respawnDelay = WORKER_RESPAWN_MIN_MS;
+    }
+    _onEvent?.(ev.data);
+  };
+  w.onerror = (ev: ErrorEvent) => {
+    const msg = String(ev?.message || "worker failed to load");
+    if (heard) {
+      _onEvent?.({ type: "error", kind: "worker_uncaught", msg });
+    } else {
+      ev?.preventDefault?.();
+      failWorker(w, "worker_load_failed", msg);
+    }
+  };
+  w.onmessageerror = () => {
+    _onEvent?.({ type: "error", kind: "worker_messageerror", msg: "undeserializable message from worker" });
+  };
+  _startTimer = setTimeout(() => {
+    _startTimer = null;
+    if (!heard) failWorker(w, "worker_start_timeout", `no message within ${WORKER_START_TIMEOUT_MS} ms`);
+  }, WORKER_START_TIMEOUT_MS);
+  w.postMessage({
     type: "connect",
-    url,
+    url: _url,
     session: _sessionId,
     resumeArmed: _prevArmed,
     hidden: typeof document !== "undefined" ? document.hidden : false,
   });
   _prevArmed = false; // handed to the worker; reset for the next close→open
+}
+
+function failWorker(w: Worker, kind: string, msg: string): void {
+  if (w !== wsWorker) return;   // superseded by a newer spawn or a teardown
+  clearStartTimer();
+  _onEvent?.({ type: "error", kind, msg: `${msg}; respawn in ${_respawnDelay} ms` });
+  try { w.terminate(); } catch { /* safe-silent: it is being replaced either way */ }
+  wsWorker = null;
+  _respawnTimer = setTimeout(() => {
+    _respawnTimer = null;
+    if (_onEvent) spawnWorker();
+  }, _respawnDelay);
+  _respawnDelay = Math.min(_respawnDelay * 2, WORKER_RESPAWN_MAX_MS);
 }
 
 /**
@@ -151,6 +215,9 @@ export function captureArmedForResume(armedNow: boolean): void {
 
 /** Tear down the worker (HMR dispose, reconnect-from-scratch). */
 export function terminateTransport(): void {
+  clearStartTimer();
+  if (_respawnTimer !== null) { clearTimeout(_respawnTimer); _respawnTimer = null; }
+  _onEvent = null;
   if (wsWorker) {
     try { wsWorker.postMessage({ type: "close" }); } catch { /* ignore */ }
     wsWorker.terminate();
