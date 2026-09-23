@@ -894,3 +894,12 @@ Erste Sichtprüfung am laufenden XYZAC-Sim (Firefox/macOS, Maus; physischer Touc
 | build, eslint + lint:css, vitest | grün; **1 593 / 1 593** (72 Dateien) |
 | `serial-guards` (inkl. Hilfe-Geometrie), `serial-layout` | **54/54**, **29/29** |
 | Live-Messung (Vite, laufender Sim) | Beschriftung endet 4 px vor dem Symbol, Maus und Touch |
+
+**Nachtrag Hochformat (`776ee69`):** Das volle Offline-Gate auf `d0059f2` fiel in vier Jog-Bildvergleichen durch — zu Recht: Im Hochformat teilen sich die Beschriftungen EINE `max-content`-Spalte, die freigehaltene Symbolbreite verbreiterte sie, und jede Optionsreihe brach einmal mehr um (Step drei Reihen, Plane neben TCP). Die Frame-Beschriftung ist dort jetzt `min-content` („Kinematics / frame“), schmaler als vor dem Fix; das alte Referenzbild zeigte das Symbol übrigens auch im Hochformat auf „frame“. Neun Jog-Referenzbilder nach Sichtprüfung erneuert (Desktop: nur das Symbol neben der Beschriftung; Hochformat: alte Reihenzahl), kein Setup-Bild betroffen.
+
+| Prüfung | Ergebnis |
+|---|---|
+| `python3 scripts/test_suite.py offline` auf `776ee69` | **PASS** — Report `runlogs/test-suite/20260923T183108Z-offline`: backend **964** + 343 Subtests (+1 Echo-Fall), 5axis-model, audit-css, lint, build, frontend-unit **1 593 / 1 593**, frontend-browser **157 / 157** |
+| Operator | „Saving → Saved“ am live neu gestarteten Gateway bestätigt |
+
+**Stand:** Welle abgeschlossen; Merge `feat/ui-review-wave` → `development`. Physischer Touchscreen bleibt Bedingung der `main`-Promotion. Folgewellen nach dem Merge: Design UI-K01–K14/K17/K18, Fallbacks FA-01–FA-04.
