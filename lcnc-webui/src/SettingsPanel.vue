@@ -47,6 +47,20 @@ const updateMacros = inject<(macros: MacroDef[]) => void>("updateMacros", () => 
 // ─── Macros CRUD ────────────────────────────────────────────────
 const macros = ref<MacroDef[]>(loadMacrosDefaults().macros);
 const editingMacro = ref<MacroDef | null>(null);
+// The editor's state when it opened: closing Settings over a CHANGED draft
+// asks first (UI-K16) — every close path (X, backdrop, header navigation)
+// used to unmount this panel and lose the draft without a word.
+const macroSnapshot = ref("");
+function snapshotMacro() { macroSnapshot.value = JSON.stringify(editingMacro.value); }
+const gamepadTabRef = ref<{ wizardOpen: () => boolean } | null>(null);
+/** What closing Settings would throw away, in operator words — null when
+ *  nothing (settings themselves save automatically). */
+function unsavedDraft(): string | null {
+  if (editingMacro.value && JSON.stringify(editingMacro.value) !== macroSnapshot.value) return "The macro you are editing";
+  if (gamepadTabRef.value?.wizardOpen()) return "The gamepad mapping in progress";
+  return null;
+}
+defineExpose({ unsavedDraft });
 
 // Keep the macro's params in sync with the {placeholders} in its command as the
 // user types. A watcher (not a computed) owns this mutation; the template binds
@@ -68,6 +82,7 @@ function addMacro() {
     command: "",
     params: [],
   };
+  snapshotMacro();
 }
 
 function editMacro(m: MacroDef) {
@@ -77,6 +92,7 @@ function editMacro(m: MacroDef) {
   // (but drifted stored params) wouldn't otherwise sync the editor (review #4).
   copy.params = syncMacroParams(copy.command, copy.params);
   editingMacro.value = copy;
+  snapshotMacro();
 }
 
 function saveMacro() {
@@ -827,6 +843,7 @@ function resetMachineColor(id: string) {
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
           <GamepadTab
+            ref="gamepadTabRef"
             :dialogTarget="dialogTarget"
             :gamepad-config="props.gamepadConfig"
             :gamepad-connected="props.gamepadConnected"

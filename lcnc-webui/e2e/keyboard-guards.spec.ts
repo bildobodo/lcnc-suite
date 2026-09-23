@@ -891,6 +891,59 @@ test("settings save status (UI-I12 round 7): a page-hide save that never landed 
   expect(await wsKeyboardSaves()).toBe(0);
 });
 
+test("closing Settings over a changed macro draft asks first, by every path (UI-K16)", async ({ page }) => {
+  // The macro editor is local to the Settings panel: its X, the backdrop
+  // and a header switch to another dialog all unmounted it and lost the
+  // draft without a word. Now each path asks "Discard changes?"; Keep
+  // editing keeps the draft, Discard carries out the original navigation.
+  await openReady(page);
+  const openMacros = async () => {
+    await page.getByTitle("Settings", { exact: true }).click();
+    const settings = page.locator(".dialogOverlay").filter({ has: page.locator(".dialogTitle", { hasText: "Settings" }) });
+    await settings.getByRole("button", { name: "Macros", exact: true }).click();
+    return settings;
+  };
+  const ask = page.locator(".dialog").filter({ has: page.locator(".dialogTitle", { hasText: "Discard changes?" }) });
+  let settings = await openMacros();
+  // An untouched new macro is no draft: X closes at once.
+  await settings.getByRole("button", { name: "Add Macro", exact: true }).click();
+  await settings.getByRole("button", { name: "Close settings", exact: true }).click();
+  await expect(settings).toHaveCount(0);
+  await expect(ask).toHaveCount(0);
+
+  settings = await openMacros();
+  await settings.getByRole("button", { name: "Add Macro", exact: true }).click();
+  await settings.locator("#macro-edit-name").fill("Face top");
+  await settings.locator("#macro-edit-command").fill("G0 Z{depth}");
+  const paths: [string, () => Promise<void>][] = [
+    ["X", () => settings.getByRole("button", { name: "Close settings", exact: true }).click()],
+    ["backdrop", () => settings.click({ position: { x: 4, y: 4 } })],
+    ["header", () => page.getByTitle("G-code Reference", { exact: true }).click()],
+  ];
+  const modalCount = () => page.evaluate(() => (window as any).__modalRegistry.count() as number);
+  const base = await modalCount();
+  for (const [path, close] of paths) {
+    await close();
+    await expect(ask, `${path} asks`).toBeVisible();
+    await expect(ask).toContainText("The macro you are editing has unsaved changes.");
+    expect(await modalCount(), "the ask is a registered modal of its own").toBe(base + 1);
+    await ask.getByRole("button", { name: "Keep editing", exact: true }).click();
+    await expect(ask).toHaveCount(0);
+    await expect(settings, `${path}: Keep editing keeps Settings open`).toBeVisible();
+    await expect(settings.locator("#macro-edit-name")).toHaveValue("Face top");
+  }
+  // Discard carries out the navigation that asked: here, the reference opens.
+  await page.getByTitle("G-code Reference", { exact: true }).click();
+  await ask.getByRole("button", { name: "Discard", exact: true }).click();
+  await expect(settings).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: "Search G-code reference", exact: true })).toBeVisible();
+  settings = await openMacros();
+  await expect(settings.locator("#macro-edit-name")).toHaveCount(0);
+  await expect(settings.getByRole("button", { name: "Add Macro", exact: true })).toBeVisible();
+  await settle(page);
+  expectNoMachineAction(await recordedCmds());
+});
+
 test("keyboard tab: a capture edits a local copy, no page error, a server change refreshes it", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", e => errors.push(e.message));

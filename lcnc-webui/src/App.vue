@@ -929,6 +929,7 @@ const {
   gcodeRefInitialSearch,
   messagesDialogOpen,
   openDialog,
+  closeSettings,
   openSettingsTab,
   openGcodeRef,
   showShutdownConfirm,
@@ -937,7 +938,24 @@ const {
   requestCompToggle,
   confirmCompToggle,
   cancelCompToggle,
-} = useDialogState({ markMessagesRead, send, fire });
+} = useDialogState({ markMessagesRead, send, fire, guardSettingsClose: p => guardSettingsClose(p) });
+
+// Settings closes over a draft only after an explicit Discard (UI-K16): the
+// macro editor and the gamepad wizard are local to the panel and were lost
+// by every close path. Settings themselves save automatically — no ask.
+const settingsPanelRef = ref<{ unsavedDraft: () => string | null } | null>(null);
+const settingsDiscard = ref<{ what: string; proceed: () => void } | null>(null);
+function guardSettingsClose(proceed: () => void): boolean {
+  const what = settingsPanelRef.value?.unsavedDraft() ?? null;
+  if (!what) return false;
+  settingsDiscard.value = { what, proceed };
+  return true;
+}
+function confirmSettingsDiscard() {
+  const pending = settingsDiscard.value;
+  settingsDiscard.value = null;
+  pending?.proceed();
+}
 
 // Macro state + execution. See useMacros.ts. The provide() call below has
 // to run here in App.vue's setup so SettingsPanel (the consumer) sees it
@@ -1457,6 +1475,7 @@ const {
 // is open — or the keypad — the shortcut map lets only E-Stop through.
 registerModal(statsDialogOpen);
 registerModal(settingsDialogOpen);
+registerModal(() => settingsDiscard.value !== null);
 registerModal(messagesDialogOpen);
 // gcodeRefOpen: GcodeReferenceDialog renders the overlay and registers itself.
 registerModal(showShutdownConfirm);
@@ -2055,14 +2074,15 @@ watch(viewerGcode, (newGcode) => {
       <!-- Dialogs — inside content area so strip stays accessible beneath -->
 
       <!-- Settings dialog -->
-      <div v-if="settingsDialogOpen" class="dialogOverlay" @click.self="settingsDialogOpen = false">
+      <div v-if="settingsDialogOpen" class="dialogOverlay" @click.self="closeSettings">
         <div class="dialog lg dialog-full">
           <div class="dialogHeader">
             <span class="dialogTitle">Settings</span>
-            <MachineBtn type="close" aria-label="Close settings" title="Close settings" @click="settingsDialogOpen = false"><X :size="14" /></MachineBtn>
+            <MachineBtn type="close" aria-label="Close settings" title="Close settings" @click="closeSettings"><X :size="14" /></MachineBtn>
           </div>
           <div class="dialogContent">
             <SettingsPanel
+              ref="settingsPanelRef"
               dialog-target="#content-dialog-area"
               :initialTab="settingsInitialTab"
               :gamepadConnected="gamepad.gamepadConnected.value"
@@ -2077,6 +2097,18 @@ watch(viewerGcode, (newGcode) => {
               @setKeyboardConfig="setKeyboardConfig"
               @setRunFromLine="runFromLineEnabled = $event"
               @setGamepadConfig="setGamepadConfig" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Closing Settings over a local draft (UI-K16) — the tool editor's ask. -->
+      <div v-if="settingsDiscard" class="dialogOverlay" @click.self="settingsDiscard = null">
+        <div class="dialog">
+          <div class="dialogTitle danger">Discard changes?</div>
+          <div class="dialogBody">{{ settingsDiscard.what }} has unsaved changes.</div>
+          <div class="dialogActions">
+            <MachineBtn type="dialogCancel" @click="settingsDiscard = null">Keep editing</MachineBtn>
+            <MachineBtn type="dialogDanger" @click="confirmSettingsDiscard">Discard</MachineBtn>
           </div>
         </div>
       </div>

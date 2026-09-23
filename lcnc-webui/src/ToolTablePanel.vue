@@ -524,6 +524,10 @@ async function confirmImport() {
 }
 
 function cancelImport() {
+  // A running import is not cancelled by hiding its dialog (UI-K16): the
+  // request would go on unseen. Every close path (X, Cancel, backdrop) waits
+  // for the reply, like cancelDelete does for a pending delete.
+  if (importBusy.value) return;
   importPreview.value = null;
   importSkipped.value = [];
   importFile.value = null;
@@ -795,7 +799,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
         <div class="dialog md wide importDialog">
           <div class="dialogHeader">
             <span class="dialogTitle">{{ importSummary.isExample ? 'Example Tool Library' : `Import ${importSource} Tool Library` }}</span>
-            <MachineBtn type="close" aria-label="Close import preview" title="Close import preview" @click="cancelImport"><X :size="14" /></MachineBtn>
+            <MachineBtn type="close" aria-label="Close import preview" :title="importBusy ? 'Import in progress' : 'Close import preview'" :disabled="importBusy" @click="cancelImport"><X :size="14" /></MachineBtn>
           </div>
           <div class="dialogContent">
             <div v-if="importSummary.isExample" class="importStats">
@@ -856,7 +860,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
             </div>
           </div>
           <Gate gate="setup" class="dialogActions">
-            <MachineBtn type="dialogCancel" @click="cancelImport">Cancel</MachineBtn>
+            <MachineBtn type="dialogCancel" :disabled="importBusy" :title="importBusy ? 'Import in progress' : undefined" @click="cancelImport">Cancel</MachineBtn>
             <MachineBtn v-if="importError && importFile" type="fileOp" :disabled="importBusy"
               @click="previewImportFile(importFile)">Preview again</MachineBtn>
             <MachineBtn type="fileSave" @click="requestImport" :disabled="!canConfirmImport">

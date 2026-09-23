@@ -130,6 +130,40 @@ test("server library requires review and renders source shapes with nominal Z of
   expect(errors).toEqual([]);
 });
 
+test("a running import keeps its dialog: X, Cancel and the backdrop wait for the reply (UI-K16)", async ({ page }) => {
+  // Hiding the dialog cancelled nothing — the request went on unseen. The
+  // close paths now wait for the reply, like a pending tool delete does.
+  let release: () => void = () => {};
+  const held = new Promise<void>(r => { release = r; });
+  await serverFiles(page);
+  await page.route("**/import-tool-library", route => route.fulfill({ json: preview }));
+  await page.route("**/import-tool-library/apply", async route => {
+    await held;
+    await route.fulfill({ json: { ok: true, added: 36, skipped: 0 } });
+  });
+  await openTools(page);
+  await selectServerFile(page);
+  const overlay = page.locator(".dialogOverlay").filter({ has: page.locator(".importDialog") });
+  await expect(overlay).toBeVisible();
+  await page.getByLabel("Import mode").selectOption("replace");
+  await page.getByRole("button", { name: "Replace table", exact: true }).click();
+  const replaceConfirm = page.locator(".dialog", { hasText: "Replace entire tool table?" });
+  if (await replaceConfirm.count()) await replaceConfirm.getByRole("button", { name: "Replace table", exact: true }).click();
+  await expect(overlay.getByText("Importing...", { exact: true })).toBeVisible();
+  const close = overlay.getByRole("button", { name: "Close import preview", exact: true });
+  const cancel = overlay.getByRole("button", { name: "Cancel", exact: true });
+  await expect(close).toBeDisabled();
+  await expect(close).toHaveAttribute("title", "Import in progress");
+  await expect(cancel).toBeDisabled();
+  await overlay.click({ position: { x: 4, y: 4 } });
+  await page.waitForTimeout(200);
+  await expect(overlay, "the backdrop does not hide a running import").toBeVisible();
+  release();
+  // The reply decides: a successful import closes the preview itself and reports.
+  await expect(page.getByText(/Imported 36 tools/)).toBeVisible();
+  await expect(overlay).toHaveCount(0);
+});
+
 test("Upload opens the client picker directly without fetching server folders", async ({ page }) => {
   let applies = 0, listings = 0;
   await page.route("**/tool-library-files?*", route => { listings++; return route.fulfill({ status: 404 }); });

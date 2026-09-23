@@ -81,6 +81,9 @@ function onGpMappingChanged() {
 
 // ── Per-controller mapping profiles ──
 const showWizard = ref(false);
+// Settings asks before it closes over a running wizard (UI-K16): the wizard
+// lives and dies with this tab's parent dialog.
+defineExpose({ wizardOpen: () => showWizard.value });
 const hasProfile = computed(() =>
   !!(props.gamepadName && props.gamepadConfig?.profiles?.[props.gamepadName]));
 
