@@ -643,5 +643,10 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 
   /* Hide the vertical divider between step/mode (modeColSep is inside strip-radio-grid) */
   .modeColSep { display: none; }
+
+  /* The labels share ONE max-content column here: the frame label with its
+     reserved icon square widened it and every option row wrapped once more.
+     Broken as "Kinematics / frame" it is narrower than before the reserve. */
+  .sectionHelp { white-space: normal; width: min-content; }
 }
 </style>
