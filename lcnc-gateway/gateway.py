@@ -7919,17 +7919,21 @@ async def ws_endpoint(ws: WebSocket):
                 continue
 
             if msg.get("cmd") == "save_settings":
+                # The Settings header's save status matches THIS reply to the
+                # save it sent by req_id (UX-08): every path echoes it, or the
+                # header reads "Saving…" forever on a real gateway.
+                _secho = {"cmd": "save_settings", **_req_echo(msg)}
                 section = msg.get("section", "")
                 if section not in _VALID_SETTINGS_SECTIONS:
-                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": f"Unknown settings section: {section}"})
+                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": f"Unknown settings section: {section}", **_secho})
                     continue
                 _loop = asyncio.get_event_loop()
                 try:
                     await _loop.run_in_executor(None, save_settings_section, section, msg.get("data"))
                 except Exception as _se:
-                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": f"{type(_se).__name__}: {_se}"})
+                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": f"{type(_se).__name__}: {_se}", **_secho})
                     continue
-                await ws_send_json(ws, {"type": "reply", "ok": True})
+                await ws_send_json(ws, {"type": "reply", "ok": True, **_secho})
                 continue
 
             if msg.get("cmd") == "client_diag":

@@ -58,6 +58,9 @@
   --fs-lg: 14px;
   --fs-xl: 16px;
   --fs-2xl: 20px;
+  /* The help icon's square (HelpIcon.vue): a title that anchors it out of
+     the flow reserves exactly this much beside its text. */
+  --help-icon-size: calc(var(--fs-xs) * 1.3);
   --fs-3xl: 24px;
 
   /* Font weight */
@@ -619,6 +622,7 @@ html.touch-device {
   --fs-2xs: 10px;
   --fs-xs: 11px;
   --range-thumb: 20px;
+  --help-icon-size: 20px;
 }
 
 html.touch-device button,
@@ -665,8 +669,6 @@ html.touch-device input[type="color"] {
 }
 
 html.touch-device .helpIcon {
-  width: 20px;
-  height: 20px;
   /* The generic touch button floor (min-height 36px) made this 20 × 36:
      top-anchored beside a 16.5 px strip title it reached the next row
      (layout gate, UX-11). The declared 20 px square is the size. */
@@ -1031,8 +1033,8 @@ label:has(input:disabled, select:disabled) {
   font-size: var(--fs-xs);
   font-weight: var(--fw-bold);
   line-height: 1;
-  width: 1.3em;
-  height: 1.3em;
+  width: var(--help-icon-size);
+  height: var(--help-icon-size);
   flex: 0 0 auto;
   padding: 0;
   cursor: pointer;

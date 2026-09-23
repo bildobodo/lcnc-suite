@@ -554,3 +554,31 @@ class TestReqIdEcho(unittest.TestCase):
                     sup = sorted(f.get("req_id") for f in mdi if f.get("error") == "Superseded by abort")
                     self.assertEqual(sup, sorted(f"r{i}" for i in range(1, n - 1)), sup)
                     client.portal.call(ev.set)
+
+    def test_save_settings_echoes_on_every_path(self):
+        """The reader answers save_settings itself (not the command worker);
+        its replies once carried no req_id and the Settings header, which
+        matches a save to its reply by id, read "Saving…" forever (UX-08)."""
+        saved = []
+
+        def fake_save(section, data):
+            if data == "boom":
+                raise OSError(28, "No space left on device")
+            saved.append((section, data))
+        orig = gateway.save_settings_section
+        gateway.save_settings_section = fake_save
+        try:
+            with _Harness():
+                with TestClient(gateway.app) as client:
+                    with client.websocket_connect("/ws") as ws:
+                        for rid, section, data, ok in (("s-ok", "viewer", {"a": 1}, True),
+                                                       ("s-io", "viewer", "boom", False),
+                                                       ("s-bad", "nope", {}, False)):
+                            ws.send_json({"cmd": "save_settings", "section": section,
+                                          "data": data, "req_id": rid})
+                            fr = _drain(ws, 4.0, 0.5, stop=lambda f: _is_reply(f, "save_settings"))[-1][1]
+                            self.assertEqual(fr.get("req_id"), rid, fr)
+                            self.assertEqual(fr.get("ok"), ok, fr)
+        finally:
+            gateway.save_settings_section = orig
+        self.assertEqual(saved, [("viewer", {"a": 1})])

@@ -493,8 +493,15 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 /* The frame help sits at the label's right edge out of the flow (UX-11):
    a touch-sized icon in the label line would grow the radio group past the
    section budget; anchored to the label's top, the 4 px stack gap absorbs
-   the touch icon's extra 3.5 px. Layout only; the popover is fixed. */
-.sectionHelp { position: relative; display: block; }
+   the touch icon's extra 3.5 px. Layout only; the popover is fixed.
+   Out of the flow it adds no width, and the label IS the column's widest
+   content — the padding reserves the icon's square beside the text (it
+   covered "frame" on the live XYZAC sim). */
+.sectionHelp {
+  position: relative;
+  display: block;
+  padding-right: calc(var(--help-icon-size) + var(--gap-tight));
+}
 .sectionHelp :deep(.helpIcon) { position: absolute; right: 0; top: 0; }
 .jogContent > * { flex-shrink: 0; }
 
