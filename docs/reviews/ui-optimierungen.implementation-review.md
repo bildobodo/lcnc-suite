@@ -878,3 +878,19 @@ Runde 8 ohne neue Befunde; UI-I01–UI-I13 geschlossen — danke für die zusät
 
 **Stand der Welle:** UI-I01–UI-I13 geschlossen (Codex Runde 8), UX-01–UX-13 umgesetzt, UX-13 vom Operator abgenommen. Offen: Live-Sichtprüfung am XYZAC-Sim, physischer Touchscreen, Merge nach `development`. Getrennte Wellen nach dem Merge: Design UI-K01–K14/K17, Fallbacks FA-01–FA-04.
 
+
+## Live-Sichtprüfung · 23. September 2026 · Operator + Claude
+
+Erste Sichtprüfung am laufenden XYZAC-Sim (Firefox/macOS, Maus; physischer Touchscreen steht dem Operator nicht zur Verfügung und bleibt eine Bedingung der `main`-Promotion, nicht des Merges nach `development`). Zwei Fehler, beide sofort behoben:
+
+- **„Saving…“ blieb stehen (UX-08, Gateway).** Der Reader beantwortet `save_settings` selbst, nicht der Command-Worker — und dieser Pfad setzte weder `req_id` noch `cmd` in die Antwort. Die Settings-Kopfzeile ordnet eine Antwort ihrer Speicherung über die `req_id` zu, also las sie am echten Gateway für immer „Saving…“. Alle Browserfälle (auch Codex' Runde-7/8-Proben) spielen die Antwort per Mock mit `req_id` ein; die Backend-Tests prüften den Echo nur auf den Worker-Pfaden (`TestReqIdEcho`). Fix: alle drei Antwortwege (ok, Schreibfehler, unbekannter Bereich) tragen `cmd` + `req_id`. Neuer Test `test_save_settings_echoes_on_every_path` (rot ohne Fix: die Antwort kommt nie mit `req_id` an). Wirkt nach dem nächsten Suite-Neustart.
+- **Hilfe-Symbol überdeckt „Kinematics frame“ (UX-11, JogStrip).** Das Symbol liegt absichtlich außerhalb des Flusses (ein Touch-Symbol in der Zeile würde die Radiogruppe über das Abschnittsbudget treiben) und trägt deshalb keine Breite bei; die Beschriftung ist der breiteste Inhalt der Spalte, das Symbol lag auf den letzten 13 px (Maus) bzw. 20 px (Touch) des Worts „frame“. Fix: neuer Token `--help-icon-size` (eine Quelle für die Symbolgröße, Touch 20 px), die Beschriftung reserviert ihn plus `--gap-tight` rechts. Am Live-Sim nachgemessen: Text endet 4 px vor dem Symbol, Maus und Touch. Der Setup-Titel ist abschnittsbreit und war nicht betroffen.
+
+**Operator-Beobachtung für die Design-Welle (neu, UI-K18):** Die Erklärungen am Control kommen auf drei Wegen — Hilfe als `?`-Popover, abgebrochener Hold als Hinweis direkt am Button, Sperrgrund eines gedimmten Controls im Message-Center. Der Sperrgrund ist die Ausnahme: Er antwortet auf eine Berührung des Controls, erscheint aber weit entfernt in einem Protokoll. Vorschlag für die Design-Welle: zwei Kanäle nach Anlass — **am Control** alles, was eine Berührung auslöst (Hold-Hinweis, Sperrgrund; derselbe `btnHint`), **auf Abruf** die Hilfe (`?`); das Message-Center bleibt für Maschinen- und Systemereignisse. Nicht in dieser Welle.
+
+| Prüfung (Fix-Commit `a3c35b4`) | Ergebnis |
+|---|---|
+| `pytest test_ws_command_worker.py test_settings_store.py` | 26/26; der neue Echo-Fall rot gegen den alten Gateway |
+| build, eslint + lint:css, vitest | grün; **1 593 / 1 593** (72 Dateien) |
+| `serial-guards` (inkl. Hilfe-Geometrie), `serial-layout` | **54/54**, **29/29** |
+| Live-Messung (Vite, laufender Sim) | Beschriftung endet 4 px vor dem Symbol, Maus und Touch |

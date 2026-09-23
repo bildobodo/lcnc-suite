@@ -1176,6 +1176,9 @@ Co-Authored-By-Zeile.
   Kontrollhöhen, Formularraster, Aktionsgruppen, Header, Werkzeugtabelle, Viewer-/Syntaxpaletten je
   Theme, Textkontraste, FormField/Labels, Dialog-Fokus, Tabs (fünf feste + Verfahrensauswahl),
   Touch-/Hold-/Bewegungsregeln, Inventar.
+  Dazu **UI-K18** (Operator, Live-Sichtprüfung 23.09.): ein Rückmeldekanal je Anlass — was eine
+  Berührung auslöst (Hold-Hinweis, Sperrgrund) erscheint am Control, Hilfe auf Abruf per `?`,
+  das Message-Center nur für Maschinen-/Systemereignisse (heute landet der Sperrgrund dort).
 - Fallback-Welle FA-01–FA-04 + Telemetrie-Kommentare.
 - Bisherige Folge-Punkte (UX-09-Rest, Fokus-Trap, Vitest-DOM-Umgebung, erster Touch).
 
