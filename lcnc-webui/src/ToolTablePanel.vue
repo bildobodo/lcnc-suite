@@ -626,17 +626,17 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
       empty-text="No tool libraries found" :load-directory="listToolLibraries" :select-file="selectLibrary" />
 
     <!-- Error banner -->
-    <div v-if="tableError" class="errorBanner row-controls" role="alert">
+    <div v-if="tableError" class="statusNote error" role="alert">
       <span>{{ tableError }}</span>
-      <MachineBtn type="manage" :disabled="loading" @click="fetchTools">Retry</MachineBtn>
+      <MachineBtn type="retry" :disabled="loading" @click="fetchTools">Retry</MachineBtn>
     </div>
-    <div v-if="importError && !importPreview" class="errorBanner row-controls" role="alert">
+    <div v-if="importError && !importPreview" class="statusNote error" role="alert">
       <span>{{ importError }}</span>
       <MachineBtn type="close" aria-label="Dismiss import error" title="Dismiss import error" @click="importError = null"><X :size="14" /></MachineBtn>
     </div>
 
     <!-- Import result banner -->
-    <div v-if="importResult" class="importBanner">
+    <div v-if="importResult" class="statusNote ok" role="status">
       <template v-if="importResult.updated != null">
         Updated metadata for {{ importResult.updated }} tools. Measured offsets and table diameters retained.
       </template>
@@ -654,7 +654,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
           <div class="dialogBody">
             Remove tool <strong>T{{ deletingTool }}</strong> from the tool table?
           </div>
-          <div v-if="deleteError" class="errorBanner" role="alert"><span>{{ deleteError }}</span></div>
+          <div v-if="deleteError" class="statusNote error" role="alert"><span>{{ deleteError }}</span></div>
           <Gate gate="setup" class="dialogActions">
             <MachineBtn type="dialogCancel" :disabled="!!deleteSession" @click="cancelDelete">Cancel</MachineBtn>
             <MachineBtn type="reset" :disabled="!!deleteSession" @click="confirmDelete">{{ deleteSession ? 'Deleting…' : 'Delete' }}</MachineBtn>
@@ -676,7 +676,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
           </div>
 
           <div class="dialogContent scroll-thin stack-sections">
-            <div v-if="editError" class="errorBanner" role="alert"><span>{{ editError }}</span></div>
+            <div v-if="editError" class="statusNote error" role="alert"><span>{{ editError }}</span></div>
 
             <div class="editColumns row-sections">
               <!-- Fields: two sections, each a .paramGrid; the preview column
@@ -771,7 +771,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
 
             <!-- Geometry notice (FreeCAD / approximate preview): a full-width
                  row under BOTH columns, never wrapped into the preview column. -->
-            <div v-if="editNotice" class="noteWarn editNotice">{{ editNotice }}</div>
+            <div v-if="editNotice" class="statusNote warn editNotice" role="alert">{{ editNotice }}</div>
           </div>
 
           <Gate gate="setup" class="dialogActions">
@@ -826,9 +826,9 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
               </template>
               {{ importSummary.replacementNotice }}
             </div>
-            <div v-if="importMode === 'metadata' && importRefreshError" class="importWarn">{{ importRefreshError }}</div>
-            <div v-if="importError" class="importWarn">{{ importError }}</div>
-            <div v-if="importSkipped.length" class="importWarn">
+            <div v-if="importMode === 'metadata' && importRefreshError" class="statusNote error" role="alert">{{ importRefreshError }}</div>
+            <div v-if="importError" class="statusNote error" role="alert">{{ importError }}</div>
+            <div v-if="importSkipped.length" class="statusNote warn" role="alert">
               {{ importSkipped.length }} tools skipped — duplicate tool numbers
               (T{{ [...new Set(importSkipped.map(s => s.T))].join(', T') }}).
               Fix numbering in {{ importSource }} and re-export.
@@ -988,19 +988,6 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
 
 /* .actions — replaced by row-tight utility (same shape) */
 
-.importBanner {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-controls);
-  background: color-mix(in oklab, var(--ok) 20%, var(--bg));
-  color: var(--ok);
-  padding: var(--gap-tight) var(--gap-controls);
-  border-radius: var(--radius-xl);
-  font-size: var(--fs-base);
-  margin-bottom: var(--gap-tight);
-  flex-shrink: 0;
-}
-
 /* ---- Edit dialog (layout only; chrome = .dialog.md.wide + .paramGrid) ---- */
 .editColumns {
   flex-wrap: wrap;   /* the preview column drops below the fields when narrow */
@@ -1036,12 +1023,6 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
 .importStats {
   font-size: var(--fs-base);
   opacity: var(--opacity-muted);
-  margin-bottom: var(--gap-controls);
-}
-
-.importWarn {
-  font-size: var(--fs-base);
-  color: var(--warn);
   margin-bottom: var(--gap-controls);
 }
 

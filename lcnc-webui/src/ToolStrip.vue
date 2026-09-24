@@ -57,7 +57,12 @@ const currentToolData = computed(() =>
     <div class="stripSection">
       <div class="sub">Tool</div>
       <MachineBtn type="nav" @click="emit('openToolTable')" block>Tool Table</MachineBtn>
-      <div v-if="tableError" class="noteWarn" role="alert">Tool table: {{ tableError }}</div>
+      <!-- the tool table's read failure looks and acts like it does in the
+           Tools tab: an error note with a re-read (design wave D1, UI-N28) -->
+      <div v-if="tableError" class="statusNote error" role="alert">
+        <span>Tool table: {{ tableError }}</span>
+        <MachineBtn type="retry" @click="fetchTools">Retry</MachineBtn>
+      </div>
 
       <div v-if="currentTool > 0" class="toolInfo inset-panel stack-tight">
         <div class="statusRow"><span class="label-muted md">Tool</span><span class="val-status md mono">T{{ currentTool }}</span></div>

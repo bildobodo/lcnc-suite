@@ -1019,11 +1019,6 @@ function resetMachineColor(id: string) {
   text-align: right;
 }
 
-.settingDesc {
-  font-size: var(--fs-base);
-  opacity: var(--opacity-muted);
-  margin-bottom: var(--gap-section);
-}
 
 
 .rflDefaults {

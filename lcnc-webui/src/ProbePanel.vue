@@ -76,6 +76,17 @@ type GridOp = {
   description: string;
 };
 
+// The description line under a probe grid (design wave D1, UI-N34): the
+// last operation touched or focused, with its trigger; a hint until then.
+const gridOpDesc = ref<string | null>(null);
+const gridOpHint = computed(() =>
+  gridOpDesc.value ? `${gridOpDesc.value} — hold to probe` : "Touch an operation to see what it probes — hold to run it");
+function noteGridOp(e: Event) {
+  const cell = (e.target as HTMLElement | null)?.closest?.("[data-op-desc]") as HTMLElement | null;
+  if (cell?.dataset.opDesc) gridOpDesc.value = cell.dataset.opDesc;
+}
+watch(() => probeView.value, () => { gridOpDesc.value = null; });
+
 const outsideGrid: GridOp[] = [
   { id: "bl", label: "BL",  macro: "probe_back_left_top_corner",   description: "Back-left corner" },
   { id: "b",  label: "B",   macro: "probe_back_top_side",          description: "Back edge" },
@@ -716,19 +727,25 @@ function fmtR(key: string): string {
       <div class="gridSection stack-sections">
       <div class="stack-controls">
         <div class="sub">Probe Operation</div>
-        <div class="gridWrap">
+        <div class="gridWrap" @pointerdown.capture="noteGridOp" @focusin="noteGridOp">
           <MachineBtn
             v-for="op in outsideGrid"
             :key="op.id"
-            type="probe"
+            type="probeCell"
             class="gridCell"
             :class="{ probing: probing && activeGridOp === op.id }"
             :title="op.description"
+            :aria-label="op.description"
+            :data-op-desc="op.description"
             @click="runGridProbe(op)"
           >
             <CornerGlyph mode="outside" :corner="op.id" />
           </MachineBtn>
         </div>
+        <!-- What the touched / focused operation does — the glyph alone says
+             nothing on a touchscreen, and a title never shows there (design
+             wave D1, UI-N34). A tap on a hold-to-fire cell runs nothing. -->
+        <div class="settingDesc probeOpDesc" aria-live="polite">{{ gridOpHint }}</div>
       </div>
       </div>
     </template>
@@ -738,19 +755,25 @@ function fmtR(key: string): string {
       <div class="gridSection stack-sections">
       <div class="stack-controls">
         <div class="sub">Probe Operation</div>
-        <div class="gridWrap">
+        <div class="gridWrap" @pointerdown.capture="noteGridOp" @focusin="noteGridOp">
           <MachineBtn
             v-for="op in insideGrid"
             :key="op.id"
-            type="probe"
+            type="probeCell"
             class="gridCell"
             :class="{ probing: probing && activeGridOp === op.id }"
             :title="op.description"
+            :aria-label="op.description"
+            :data-op-desc="op.description"
             @click="runGridProbe(op)"
           >
             <CornerGlyph mode="inside" :corner="op.id" />
           </MachineBtn>
         </div>
+        <!-- What the touched / focused operation does — the glyph alone says
+             nothing on a touchscreen, and a title never shows there (design
+             wave D1, UI-N34). A tap on a hold-to-fire cell runs nothing. -->
+        <div class="settingDesc probeOpDesc" aria-live="polite">{{ gridOpHint }}</div>
       </div>
       </div>
     </template>
@@ -760,14 +783,16 @@ function fmtR(key: string): string {
       <div class="gridSection stack-sections">
       <div class="stack-controls">
         <div class="sub">Probe Operation</div>
-        <div class="gridWrap bossGrid">
+        <div class="gridWrap bossGrid" @pointerdown.capture="noteGridOp" @focusin="noteGridOp">
           <MachineBtn
             v-for="op in bossGrid"
             :key="op.id"
-            type="probe"
+            type="probeCell"
             class="gridCell"
             :class="{ probing: probing && activeGridOp === op.id }"
             :title="op.description"
+            :aria-label="op.description"
+            :data-op-desc="op.description"
             @click="runBossProbe(op)"
           >
             <!-- Round Boss: solid circle workpiece, probe at CENTER, arrows inward tips at surface -->
@@ -832,15 +857,19 @@ function fmtR(key: string): string {
             </svg>
           </MachineBtn>
         </div>
+        <!-- What the touched / focused operation does — the glyph alone says
+             nothing on a touchscreen, and a title never shows there (design
+             wave D1, UI-N34). A tap on a hold-to-fire cell runs nothing. -->
+        <div class="settingDesc probeOpDesc" aria-live="polite">{{ gridOpHint }}</div>
       </div>
 
       <!-- Hint parameters (inline) -->
       <div class="inlineParams">
-        <label>Diameter<HelpIcon>Approximate pocket/bore diameter for initial positioning. Extends max XY travel to reach the far edge. Set to 0 for blind probing, or to the approximate diameter to speed up the cycle. (#3025)</HelpIcon></label>
+        <label>Diameter<HelpIcon label="Diameter">Approximate pocket/bore diameter for initial positioning. Extends max XY travel to reach the far edge. Set to 0 for blind probing, or to the approximate diameter to speed up the cycle. (#3025)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.diameterHint" min="0" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>X Hint<HelpIcon>Approximate X size of a boss or pocket feature. Helps pre-position probes for faster measurement. Set to 0 for fully blind probing. (#3026)</HelpIcon></label>
+        <label>X Hint<HelpIcon label="X Hint">Approximate X size of a boss or pocket feature. Helps pre-position probes for faster measurement. Set to 0 for fully blind probing. (#3026)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.xHintBP" min="0" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>Y Hint<HelpIcon>Approximate Y size of a boss or pocket feature. Helps pre-position probes for faster measurement. Set to 0 for fully blind probing. (#3027)</HelpIcon></label>
+        <label>Y Hint<HelpIcon label="Y Hint">Approximate Y size of a boss or pocket feature. Helps pre-position probes for faster measurement. Set to 0 for fully blind probing. (#3027)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.yHintBP" min="0" :step="STEP_DEFAULT" @change="saveParams" />
       </div>
       </div>
@@ -851,14 +880,16 @@ function fmtR(key: string): string {
       <div class="gridSection stack-sections">
       <div class="stack-controls">
         <div class="sub">Probe Operation</div>
-        <div class="gridWrap angleGrid">
+        <div class="gridWrap angleGrid" @pointerdown.capture="noteGridOp" @focusin="noteGridOp">
           <MachineBtn
             v-for="op in angleGrid"
             :key="op.id"
-            type="probe"
+            type="probeCell"
             class="gridCell"
             :class="{ probing: probing && activeGridOp === op.id }"
             :title="op.description"
+            :aria-label="op.description"
+            :data-op-desc="op.description"
             @click="runAngleProbe(op)"
           >
             <!-- Top Front (F): 56×56 square, arrows ↑ from below, crosshair on bottom edge -->
@@ -938,11 +969,15 @@ function fmtR(key: string): string {
             </svg>
           </MachineBtn>
         </div>
+        <!-- What the touched / focused operation does — the glyph alone says
+             nothing on a touchscreen, and a title never shows there (design
+             wave D1, UI-N34). A tap on a hold-to-fire cell runs nothing. -->
+        <div class="settingDesc probeOpDesc" aria-live="polite">{{ gridOpHint }}</div>
       </div>
 
       <!-- Angle parameters (inline) -->
       <div class="inlineParams">
-        <label>Edge Width<HelpIcon>Width of the ridge or valley feature being probed. Used to position probes on opposite sides of the feature. Set to actual measured width. (#3024)</HelpIcon></label>
+        <label>Edge Width<HelpIcon label="Edge Width">Width of the ridge or valley feature being probed. Used to position probes on opposite sides of the feature. Set to actual measured width. (#3024)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.edgeWidth" min="0.1" :step="STEP_DEFAULT" @change="saveParams" />
       </div>
       </div>
@@ -956,7 +991,7 @@ function fmtR(key: string): string {
         <div class="sub">Round Hole</div>
         <div class="row-sections">
           <div class="calBtnPair">
-            <MachineBtn type="probe" class="gridCell" title="Round hole — edge start" @click="runCalProbe('probe_cal_round_pocket')">
+            <MachineBtn type="probeCell" class="gridCell" title="Round hole — edge start" @click="runCalProbe('probe_cal_round_pocket')">
               <svg viewBox="0 0 80 80" class="gridIcon">
                 <path d="M0 0H80V80H0Z M40 18a22 22 0 1 0 0 44a22 22 0 1 0 0-44Z" fill-rule="evenodd" class="workpiece" />
                 <circle cx="5" cy="40" r="3" class="probeTip" />
@@ -967,7 +1002,7 @@ function fmtR(key: string): string {
                 <circle cx="40" cy="40" r="2.5" class="crosshair" />
               </svg>
             </MachineBtn>
-            <MachineBtn type="probe" class="gridCell" title="Round boss — outside start" @click="runCalProbe('probe_cal_round_boss')">
+            <MachineBtn type="probeCell" class="gridCell" title="Round boss — outside start" @click="runCalProbe('probe_cal_round_boss')">
               <svg viewBox="0 0 80 80" class="gridIcon">
                 <circle cx="40" cy="40" r="22" class="workpiece" />
                 <polygon points="40,18 35,9 45,9" class="arrowHead" />
@@ -981,7 +1016,7 @@ function fmtR(key: string): string {
           </div>
           <div class="calParamStacked stack-tight">
             <div class="calParamRow">
-              <label>Diameter<HelpIcon>Known diameter of the calibration ring or pocket. Used by calibration routines to compute the probe tip offset. Use a precision ring gauge for best results. (#3033)</HelpIcon></label>
+              <label>Diameter<HelpIcon label="Diameter">Known diameter of the calibration ring or pocket. Used by calibration routines to compute the probe tip offset. Use a precision ring gauge for best results. (#3033)</HelpIcon></label>
               <MachineInput gate="probeParam" type="number" v-model.number="params.calDiameter" min="0" :step="STEP_DEFAULT" @change="saveParams" />
             </div>
           </div>
@@ -993,7 +1028,7 @@ function fmtR(key: string): string {
         <div class="sub">Rectangular Pocket</div>
         <div class="row-sections">
           <div class="calBtnPair">
-            <MachineBtn type="probe" class="gridCell" title="Rect pocket — edge start" @click="runCalProbe('probe_cal_square_pocket')">
+            <MachineBtn type="probeCell" class="gridCell" title="Rect pocket — edge start" @click="runCalProbe('probe_cal_square_pocket')">
               <svg viewBox="0 0 80 80" class="gridIcon">
                 <path d="M0 0H80V80H0Z M15 15H65V65H15Z" fill-rule="evenodd" class="workpiece" />
                 <circle cx="5" cy="40" r="3" class="probeTip" />
@@ -1004,7 +1039,7 @@ function fmtR(key: string): string {
                 <circle cx="40" cy="40" r="2.5" class="crosshair" />
               </svg>
             </MachineBtn>
-            <MachineBtn type="probe" class="gridCell" title="Rect boss — outside start" @click="runCalProbe('probe_cal_square_boss')">
+            <MachineBtn type="probeCell" class="gridCell" title="Rect boss — outside start" @click="runCalProbe('probe_cal_square_boss')">
               <svg viewBox="0 0 80 80" class="gridIcon">
                 <rect x="15" y="15" width="50" height="50" class="workpiece" />
                 <polygon points="40,15 35,6 45,6" class="arrowHead" />
@@ -1018,11 +1053,11 @@ function fmtR(key: string): string {
           </div>
           <div class="calParamStacked stack-tight">
             <div class="calParamRow">
-              <label>X Width<HelpIcon>Known X width of a rectangular calibration reference block. (#3034)</HelpIcon></label>
+              <label>X Width<HelpIcon label="X Width">Known X width of a rectangular calibration reference block. (#3034)</HelpIcon></label>
               <MachineInput gate="probeParam" type="number" v-model.number="params.xCalWidth" min="0" :step="STEP_DEFAULT" @change="saveParams" />
             </div>
             <div class="calParamRow">
-              <label>Y Width<HelpIcon>Known Y width of a rectangular calibration reference block. (#3035)</HelpIcon></label>
+              <label>Y Width<HelpIcon label="Y Width">Known Y width of a rectangular calibration reference block. (#3035)</HelpIcon></label>
               <MachineInput gate="probeParam" type="number" v-model.number="params.yCalWidth" min="0" :step="STEP_DEFAULT" @change="saveParams" />
             </div>
           </div>
@@ -1049,14 +1084,16 @@ function fmtR(key: string): string {
       <div class="gridSection stack-sections">
       <div class="stack-controls">
         <div class="sub">Probe Operation</div>
-        <div class="gridWrap bossGrid">
+        <div class="gridWrap bossGrid" @pointerdown.capture="noteGridOp" @focusin="noteGridOp">
           <MachineBtn
             v-for="op in ridgeGrid"
             :key="op.id"
-            type="probe"
+            type="probeCell"
             class="gridCell"
             :class="{ probing: probing && activeGridOp === op.id }"
             :title="op.description"
+            :aria-label="op.description"
+            :data-op-desc="op.description"
             @click="runRidgeProbe(op)"
           >
             <!-- Ridge X: vertical bar, 2 horizontal arrows inward, probe+crosshair at center -->
@@ -1113,13 +1150,17 @@ function fmtR(key: string): string {
             </svg>
           </MachineBtn>
         </div>
+        <!-- What the touched / focused operation does — the glyph alone says
+             nothing on a touchscreen, and a title never shows there (design
+             wave D1, UI-N34). A tap on a hold-to-fire cell runs nothing. -->
+        <div class="settingDesc probeOpDesc" aria-live="polite">{{ gridOpHint }}</div>
       </div>
 
       <!-- Hint parameters (inline) -->
       <div class="inlineParams">
-        <label>X Hint<HelpIcon>Approximate X width of the ridge or valley feature. Used to position probes on opposite sides. Set to approximate feature width. (#3028)</HelpIcon></label>
+        <label>X Hint<HelpIcon label="X Hint">Approximate X width of the ridge or valley feature. Used to position probes on opposite sides. Set to approximate feature width. (#3028)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.xHintRV" min="0" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>Y Hint<HelpIcon>Approximate Y width of the ridge or valley feature. Used to position probes on opposite sides. Set to approximate feature width. (#3029)</HelpIcon></label>
+        <label>Y Hint<HelpIcon label="Y Hint">Approximate Y width of the ridge or valley feature. Used to position probes on opposite sides. Set to approximate feature width. (#3029)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.yHintRV" min="0" :step="STEP_DEFAULT" @change="saveParams" />
       </div>
       </div>
@@ -1129,21 +1170,21 @@ function fmtR(key: string): string {
     <template v-else-if="probeView === 'surface'">
       <div class="paramGrid twoCol surfaceGrid">
         <div class="sub span">Scan Grid</div>
-        <label>X Min<HelpIcon>Scan grid minimum X bound in work coordinates. Must be less than X Max. Defines the left edge of the probing area. (#3050)</HelpIcon></label>
+        <label>X Min<HelpIcon label="X Min">Scan grid minimum X bound in work coordinates. Must be less than X Max. Defines the left edge of the probing area. (#3050)</HelpIcon></label>
         <MachineInput gate="scanParam" type="number" v-model.number="params.scanX0" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>X Max<HelpIcon>Scan grid maximum X bound in work coordinates. Must be greater than X Min. Defines the right edge of the probing area. (#3051)</HelpIcon></label>
+        <label>X Max<HelpIcon label="X Max">Scan grid maximum X bound in work coordinates. Must be greater than X Min. Defines the right edge of the probing area. (#3051)</HelpIcon></label>
         <MachineInput gate="scanParam" type="number" v-model.number="params.scanX1" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>Y Min<HelpIcon>Scan grid minimum Y bound in work coordinates. Must be less than Y Max. Defines the front edge of the probing area. (#3052)</HelpIcon></label>
+        <label>Y Min<HelpIcon label="Y Min">Scan grid minimum Y bound in work coordinates. Must be less than Y Max. Defines the front edge of the probing area. (#3052)</HelpIcon></label>
         <MachineInput gate="scanParam" type="number" v-model.number="params.scanY0" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>Y Max<HelpIcon>Scan grid maximum Y bound in work coordinates. Must be greater than Y Min. Defines the back edge of the probing area. (#3053)</HelpIcon></label>
+        <label>Y Max<HelpIcon label="Y Max">Scan grid maximum Y bound in work coordinates. Must be greater than Y Min. Defines the back edge of the probing area. (#3053)</HelpIcon></label>
         <MachineInput gate="scanParam" type="number" v-model.number="params.scanY1" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>X Probes<HelpIcon>Number of probe points along X. Minimum 2. Point spacing = (X Max - X Min) / (count - 1). (#3054)</HelpIcon></label>
+        <label>X Probes<HelpIcon label="X Probes">Number of probe points along X. Minimum 2. Point spacing = (X Max - X Min) / (count - 1). (#3054)</HelpIcon></label>
         <MachineInput gate="scanParam" type="number" v-model.number="params.scanXProbes" min="2" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>Y Probes<HelpIcon>Number of probe points along Y. Minimum 2. Point spacing = (Y Max - Y Min) / (count - 1). (#3055)</HelpIcon></label>
+        <label>Y Probes<HelpIcon label="Y Probes">Number of probe points along Y. Minimum 2. Point spacing = (Y Max - Y Min) / (count - 1). (#3055)</HelpIcon></label>
         <MachineInput gate="scanParam" type="number" v-model.number="params.scanYProbes" min="2" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>Safe Z<HelpIcon>Safe Z height in work coordinates for retraction between scan probe points. Set above the highest point of the workpiece plus clearance for clamps. (#3058)</HelpIcon></label>
+        <label>Safe Z<HelpIcon label="Safe Z">Safe Z height in work coordinates for retraction between scan probe points. Set above the highest point of the workpiece plus clearance for clamps. (#3058)</HelpIcon></label>
         <MachineInput gate="scanParam" type="number" v-model.number="params.scanSafeZ" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>Probe Depth<HelpIcon>Maximum downward probe distance from current Z. Always positive. Set larger than the deepest surface valley expected. (#3059)</HelpIcon></label>
+        <label>Probe Depth<HelpIcon label="Probe Depth">Maximum downward probe distance from current Z. Always positive. Set larger than the deepest surface valley expected. (#3059)</HelpIcon></label>
         <MachineInput gate="scanParam" type="number" v-model.number="params.scanDepthZ" min="0.1" :step="STEP_DEFAULT" @change="saveParams" />
       </div>
 
@@ -1155,9 +1196,9 @@ function fmtR(key: string): string {
                failure with its reason and a retry — never a toast for an
                absent file. -->
           <div v-if="!surfacePoints?.length && surfaceState?.points === 'loading'" class="emptyState">Loading surface map…</div>
-          <div v-else-if="surfaceState?.points === 'error'" class="noteWarn stack-tight surfaceError" role="alert">
+          <div v-else-if="surfaceState?.points === 'error'" class="statusNote error surfaceError" role="alert">
             <span>Surface points: {{ surfaceState.pointsError }}</span>
-            <MachineBtn type="surfaceRefresh" @click="emit('getProbeResults')">Retry</MachineBtn>
+            <MachineBtn type="retry" @click="emit('getProbeResults')">Retry</MachineBtn>
           </div>
           <div v-else-if="!surfacePoints?.length" class="emptyState">No surface map recorded yet</div>
         </div>
@@ -1167,9 +1208,9 @@ function fmtR(key: string): string {
                       :title="surfaceState?.points === 'loading' || surfaceState?.grid === 'loading' ? 'Loading…' : 'Reload the recorded points and the compensation grid'">
             {{ surfaceState?.points === 'loading' || surfaceState?.grid === 'loading' ? 'Loading…' : 'Reload Data' }}
           </MachineBtn>
-          <div v-if="surfaceState?.grid === 'error'" class="noteWarn stack-tight" role="alert">
+          <div v-if="surfaceState?.grid === 'error'" class="statusNote error" role="alert">
             <span>Grid: {{ surfaceState.gridError }}</span>
-            <MachineBtn type="surfaceRefresh" @click="emit('getCompGrid')">Retry</MachineBtn>
+            <MachineBtn type="retry" @click="emit('getCompGrid')">Retry</MachineBtn>
           </div>
           <div v-else-if="surfaceState?.grid === 'empty'" class="label-muted">No compensation grid yet</div>
           <div class="sep"></div>
@@ -1198,7 +1239,7 @@ function fmtR(key: string): string {
           <MachineToggle gate="compToggle" :modelValue="eoffsetEnabled"
             :disabled="probing || (!eoffsetEnabled && !can.surfaceComp)"
             @update:modelValue="onCompToggle" label="Enable Compensation" />
-          <div v-if="eoffsetEnabled && rotaryTilted" class="noteWarn">
+          <div v-if="eoffsetEnabled && rotaryTilted" class="statusNote warn" role="alert">
             Compensation active with a rotary off zero — the Z shim does not
             tilt with the tool and is no longer valid for this orientation.
           </div>
@@ -1209,37 +1250,37 @@ function fmtR(key: string): string {
 
       <div class="paramGrid twoCol surfaceGrid">
         <div class="sub span">Parameters</div>
-        <label>Probe Tool #<HelpIcon>Tool number of the probe. Must match the tool loaded in the spindle before any probing operation. (#3014)</HelpIcon></label>
+        <label>Probe Tool #<HelpIcon label="Probe Tool #">Tool number of the probe. Must match the tool loaded in the spindle before any probing operation. (#3014)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.probeTool" min="1" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>Slow Feed<HelpIcon>Feed rate for the refined slow probe pass. Set to 0 to skip the slow pass entirely — faster but less accurate. (#3015)</HelpIcon></label>
+        <label>Slow Feed<HelpIcon label="Slow Feed">Feed rate for the refined slow probe pass. Set to 0 to skip the slow pass entirely — faster but less accurate. (#3015)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.slowFr" min="0" :step="STEP_FEED" @change="saveParams" />
 
-        <label>Traverse Feed<HelpIcon>Feed rate for non-probing positioning moves between probe points. Does not affect probe accuracy. (#3017)</HelpIcon></label>
+        <label>Traverse Feed<HelpIcon label="Traverse Feed">Feed rate for non-probing positioning moves between probe points. Does not affect probe accuracy. (#3017)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.traverseFr" min="1" :step="STEP_FEED" @change="saveParams" />
 
-        <label>Fast Feed<HelpIcon>Feed rate for initial fast probe contact. Higher values are faster but reduce repeatability. (#3016)</HelpIcon></label>
+        <label>Fast Feed<HelpIcon label="Fast Feed">Feed rate for initial fast probe contact. Higher values are faster but reduce repeatability. (#3016)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.fastFr" min="1" :step="STEP_FEED" @change="saveParams" />
 
-        <label>Max X/Y Travel<HelpIcon>Maximum lateral travel before probe aborts if no contact is made. Safety limit — set slightly larger than the expected edge distance. (#3018)</HelpIcon></label>
+        <label>Max X/Y Travel<HelpIcon label="Max X/Y Travel">Maximum lateral travel before probe aborts if no contact is made. Safety limit — set slightly larger than the expected edge distance. (#3018)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.maxXYDistance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>X/Y Clearance<HelpIcon>Retract distance in X/Y after each edge contact before the next move. Prevents the probe tip from scraping the feature wall. (#3019)</HelpIcon></label>
+        <label>X/Y Clearance<HelpIcon label="X/Y Clearance">Retract distance in X/Y after each edge contact before the next move. Prevents the probe tip from scraping the feature wall. (#3019)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.xyClearance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>Max Z Travel<HelpIcon>Maximum downward travel before probe aborts if no contact. Safety limit to prevent crashes. Set slightly larger than expected distance to surface. (#3020)</HelpIcon></label>
+        <label>Max Z Travel<HelpIcon label="Max Z Travel">Maximum downward travel before probe aborts if no contact. Safety limit to prevent crashes. Set slightly larger than expected distance to surface. (#3020)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.maxZDistance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>Z Clearance<HelpIcon>Retract height above the workpiece between Z probe passes. Also controls slow probe depth (2× this value). (#3021)</HelpIcon></label>
+        <label>Z Clearance<HelpIcon label="Z Clearance">Retract height above the workpiece between Z probe passes. Also controls slow probe depth (2× this value). (#3021)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.zClearance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>Extra Probe Depth<HelpIcon>Additional depth added to the slow probe pass beyond Z clearance. Ensures solid re-contact on rough surfaces. Increase if slow probe misses contact. (#3022)</HelpIcon></label>
+        <label>Extra Probe Depth<HelpIcon label="Extra Probe Depth">Additional depth added to the slow probe pass beyond Z clearance. Ensures solid re-contact on rough surfaces. Increase if slow probe misses contact. (#3022)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.extraProbeDepth" min="0" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>Step Off Width<HelpIcon>Distance the probe steps away from an edge before approaching perpendicular for measurement. Ensures a clean, straight-on contact. (#3023)</HelpIcon></label>
+        <label>Step Off Width<HelpIcon label="Step Off Width">Distance the probe steps away from an edge before approaching perpendicular for measurement. Ensures a clean, straight-on contact. (#3023)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.stepOffWidth" min="0.1" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>Calibration Offset<HelpIcon>Probe tip radius calibration offset. Compensates for the difference between electrical trigger point and true tip center. Set via calibration routines — do not guess. (#3032)</HelpIcon></label>
+        <label>Calibration Offset<HelpIcon label="Calibration Offset">Probe tip radius calibration offset. Compensates for the difference between electrical trigger point and true tip center. Set via calibration routines — do not guess. (#3032)</HelpIcon></label>
         <span class="calOffsetReadonly mono">{{ fmtNum(params.calOffset) }}</span>
       </div>
     </template>
@@ -1262,37 +1303,37 @@ function fmtR(key: string): string {
     <div class="stack-controls">
       <div class="sub">Parameters</div>
       <div class="paramGrid twoCol">
-        <label>Probe Tool #<HelpIcon>Tool number of the probe. Must match the tool loaded in the spindle before any probing operation. (#3014)</HelpIcon></label>
+        <label>Probe Tool #<HelpIcon label="Probe Tool #">Tool number of the probe. Must match the tool loaded in the spindle before any probing operation. (#3014)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.probeTool" min="1" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>Slow Feed<HelpIcon>Feed rate for the refined slow probe pass. Set to 0 to skip the slow pass entirely — faster but less accurate. (#3015)</HelpIcon></label>
+        <label>Slow Feed<HelpIcon label="Slow Feed">Feed rate for the refined slow probe pass. Set to 0 to skip the slow pass entirely — faster but less accurate. (#3015)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.slowFr" min="0" :step="STEP_FEED" @change="saveParams" />
 
-        <label>Traverse Feed<HelpIcon>Feed rate for non-probing positioning moves between probe points. Does not affect probe accuracy. (#3017)</HelpIcon></label>
+        <label>Traverse Feed<HelpIcon label="Traverse Feed">Feed rate for non-probing positioning moves between probe points. Does not affect probe accuracy. (#3017)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.traverseFr" min="1" :step="STEP_FEED" @change="saveParams" />
 
-        <label>Fast Feed<HelpIcon>Feed rate for initial fast probe contact. Higher values are faster but reduce repeatability. (#3016)</HelpIcon></label>
+        <label>Fast Feed<HelpIcon label="Fast Feed">Feed rate for initial fast probe contact. Higher values are faster but reduce repeatability. (#3016)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.fastFr" min="1" :step="STEP_FEED" @change="saveParams" />
 
-        <label>Max X/Y Travel<HelpIcon>Maximum lateral travel before probe aborts if no contact is made. Safety limit — set slightly larger than the expected edge distance. (#3018)</HelpIcon></label>
+        <label>Max X/Y Travel<HelpIcon label="Max X/Y Travel">Maximum lateral travel before probe aborts if no contact is made. Safety limit — set slightly larger than the expected edge distance. (#3018)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.maxXYDistance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>X/Y Clearance<HelpIcon>Retract distance in X/Y after each edge contact before the next move. Prevents the probe tip from scraping the feature wall. (#3019)</HelpIcon></label>
+        <label>X/Y Clearance<HelpIcon label="X/Y Clearance">Retract distance in X/Y after each edge contact before the next move. Prevents the probe tip from scraping the feature wall. (#3019)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.xyClearance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>Max Z Travel<HelpIcon>Maximum downward travel before probe aborts if no contact. Safety limit to prevent crashes. Set slightly larger than expected distance to surface. (#3020)</HelpIcon></label>
+        <label>Max Z Travel<HelpIcon label="Max Z Travel">Maximum downward travel before probe aborts if no contact. Safety limit to prevent crashes. Set slightly larger than expected distance to surface. (#3020)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.maxZDistance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>Z Clearance<HelpIcon>Retract height above the workpiece between Z probe passes. Also controls slow probe depth (2× this value). (#3021)</HelpIcon></label>
+        <label>Z Clearance<HelpIcon label="Z Clearance">Retract height above the workpiece between Z probe passes. Also controls slow probe depth (2× this value). (#3021)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.zClearance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>Extra Probe Depth<HelpIcon>Additional depth added to the slow probe pass beyond Z clearance. Ensures solid re-contact on rough surfaces. Increase if slow probe misses contact. (#3022)</HelpIcon></label>
+        <label>Extra Probe Depth<HelpIcon label="Extra Probe Depth">Additional depth added to the slow probe pass beyond Z clearance. Ensures solid re-contact on rough surfaces. Increase if slow probe misses contact. (#3022)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.extraProbeDepth" min="0" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>Step Off Width<HelpIcon>Distance the probe steps away from an edge before approaching perpendicular for measurement. Ensures a clean, straight-on contact. (#3023)</HelpIcon></label>
+        <label>Step Off Width<HelpIcon label="Step Off Width">Distance the probe steps away from an edge before approaching perpendicular for measurement. Ensures a clean, straight-on contact. (#3023)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.stepOffWidth" min="0.1" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>Calibration Offset<HelpIcon>Probe tip radius calibration offset. Compensates for the difference between electrical trigger point and true tip center. Set via calibration routines — do not guess. (#3032)</HelpIcon></label>
+        <label>Calibration Offset<HelpIcon label="Calibration Offset">Probe tip radius calibration offset. Compensates for the difference between electrical trigger point and true tip center. Set via calibration routines — do not guess. (#3032)</HelpIcon></label>
         <span class="calOffsetReadonly mono">{{ fmtNum(params.calOffset) }}</span>
       </div>
     </div>
@@ -1373,9 +1414,14 @@ function fmtR(key: string): string {
 
 /* .section — uses stack-controls utility */
 
-/* Fixed-height section so grid + params don't shift when switching tabs */
+/* A floor, not a fixed height: grid + params stay put between the
+   sub-tabs that fit it, and a taller one (inline params + the operation
+   description, which wraps on a narrow panel) grows instead of laying its
+   last row over the Parameters separator (design wave D1 live look; the
+   layout sweep's overflowing-box check). D3 reorganizes this panel. */
 .gridSection {
-  height: 360px;
+  min-height: 360px;
+  flex: none;   /* a flex child of the scroller: never shrunk below its content */
 }
 
 /* Grids (centered) */
@@ -1461,12 +1507,12 @@ function fmtR(key: string): string {
 }
 
 
+/* The cell's SLOT only (square in its grid column); its interior is the
+   catalog's `probeCell` size — a class on a MachineBtn lands on the .btnTip
+   wrapper while the cell is dimmed, and interior styling there shrank and
+   distorted the cells (design wave D1 live look). */
 .gridCell {
   aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
 }
 
 .gridCell.probing {

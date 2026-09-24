@@ -87,7 +87,7 @@ from gateway_util import (
     wcs_stamp_decision,
     PROV_STAMPED,
 )
-from command_policy import check_command, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic
+from command_policy import NOT_ARMED, check_command, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -3132,7 +3132,7 @@ async def _jog_stop_for_client() -> None:
 
 def require_armed(armed: bool):
     if not armed:
-        raise PermissionError("Not armed")
+        raise PermissionError(NOT_ARMED)
 
 
 def require_no_eoffset():

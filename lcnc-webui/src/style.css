@@ -777,11 +777,12 @@ label:has(input:disabled, select:disabled) {
    chrome from .overlay-card. */
 .btnHint {
   position: fixed;
+  /* Placed from its rendered size by FloatingOverlays.vue (above the
+     control, else below, clamped to the viewport — UI-D08). Chrome: the
+     help card above. */
+  left: 0;
+  top: 0;
   z-index: var(--z-modal-top);
-  transform: translate(-50%, -100%);
-  padding: var(--gap-tight) var(--gap-controls);
-  font-size: var(--fs-sm);
-  white-space: nowrap;
   pointer-events: none;
 }
 
@@ -790,8 +791,15 @@ label:has(input:disabled, select:disabled) {
 .btnTip > :disabled {
   pointer-events: none;
   /* The wrapper takes the grid/flex slot when a reason is shown. Its
-     button must fill that slot just as the unwrapped control did. */
+     button must fill that slot just as the unwrapped control did — which
+     holds only while a class on a MachineBtn PLACES it (flex, grid,
+     width, aspect-ratio) and never styles its interior (padding, content
+     alignment): the class lands on this wrapper. Interior comes from the
+     catalog size (design wave D1 live look — the probe cells). The side
+     panel and strip layout sweeps compare every control's footprint
+     dimmed against enabled. */
   flex: 1;
+  min-width: 0;
 }
 /* The wrapper is the only focusable thing left when a control is disabled
    (R-05), so it takes the same focus ring as the other help affordance. */
@@ -910,9 +918,9 @@ label:has(input:disabled, select:disabled) {
   letter-spacing: 0.5px;
 }
 
-/* Inline warning note — a wrapped sentence explaining why something on this
-   panel is currently invalid or unsafe, sitting next to the control it is
-   about. For a transient overlay use .statusBanner / .simBanner instead. */
+/* Inline warning TEXT — a warning clause inside a sentence or a table row
+   (a span). A block message is a .statusNote (design wave D1); the text
+   roles replace this class in D10. */
 .noteWarn {
   font-size: var(--fs-sm);
   color: var(--warn);
@@ -927,13 +935,24 @@ label:has(input:disabled, select:disabled) {
   letter-spacing: 0.5px;
 }
 
-/* Inline banners for a panel or dialog: an operation that failed
-   (.errorBanner) and information that is not trustworthy (.warnBanner).
-   Same structure, danger / warn tokens; the text on the left, an optional
-   action (close, retry) on the right. Promoted from GcodePanel (used by the
-   tool table, the file browser and the dialogs too). */
-.warnBanner,
-.errorBanner {
+/* A section's always-true description line (design wave D1, UI-N32): the
+   inline help channel — a field's own help is a HelpIcon, a hover title is
+   only a name. Promoted from three identical scoped copies (Settings,
+   Keyboard, Gamepad). */
+.settingDesc {
+  font-size: var(--fs-base);
+  opacity: var(--opacity-muted);
+  margin-bottom: var(--gap-section);
+}
+
+/* ONE inline message pattern (design wave D1, UI-N28–N31): the result of
+   an operation, shown where it began — `.statusNote.error` (it failed),
+   `.statusNote.warn` (not trustworthy / needs attention), `.statusNote.ok`
+   (it worked). The text on the left, an optional action (Retry, a close X
+   for a persistent note) on the right. Error and warn notes carry
+   role="alert". Replaces .errorBanner / .warnBanner / .importBanner and the
+   block uses of .noteWarn. */
+.statusNote {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -941,16 +960,22 @@ label:has(input:disabled, select:disabled) {
   padding: var(--gap-tight) var(--gap-controls);
   border-radius: var(--radius-lg);
   font-size: var(--fs-base);
+  white-space: normal;
 }
-.warnBanner {
+.statusNote.warn {
   background: color-mix(in oklab, var(--warn) 15%, var(--panel));
   border: 1px solid color-mix(in srgb, var(--warn) 25%, transparent);
   color: var(--warn);
 }
-.errorBanner {
+.statusNote.error {
   background: color-mix(in oklab, var(--err) 15%, var(--panel));
   border: 1px solid color-mix(in srgb, var(--err) 25%, transparent);
   color: var(--danger);
+}
+.statusNote.ok {
+  background: color-mix(in oklab, var(--ok) 15%, var(--panel));
+  border: 1px solid color-mix(in srgb, var(--ok) 25%, transparent);
+  color: var(--ok);
 }
 
 .sep {
@@ -1048,11 +1073,17 @@ label:has(input:disabled, select:disabled) {
   border-color: var(--info);
 }
 .helpIcon:focus-visible { outline: 2px solid var(--info); outline-offset: 1px; }
-.helpPopover {
-  position: fixed;
-  inset: auto;
-  margin: 0;
-  padding: var(--gap-controls) var(--gap-section);
+/* ONE look for everything that explains a control (design wave D1 live
+   look): the "?" help popover and the control hint (a dimmed control's
+   reason, "Hold to activate") are the same card. Body typography whatever
+   it sits in — a strip's `.sub` heading is uppercase, semibold and
+   letter-spaced, a HUD row or a stats label does not wrap, and the card
+   inherits all of that through the DOM even in the top layer (round 5,
+   UI-I13; a HUD help once opened as one endless line with a sideways
+   scroll). */
+.helpPopover,
+.btnHint {
+  padding: var(--gap-tight) var(--gap-controls);
   border-radius: var(--radius-lg);
   background: var(--panel);
   border: 1px solid var(--border);
@@ -1060,16 +1091,22 @@ label:has(input:disabled, select:disabled) {
   color: var(--fg);
   font-size: var(--fs-sm);
   line-height: 1.45;
-  max-width: min(28rem, calc(100vw - var(--gap-panel)));
-  /* Body typography whatever title it sits in: a strip's `.sub` heading is
-     uppercase, semibold and letter-spaced, and the popover inherits that
-     through the DOM even in the top layer (round 5, UI-I13). */
+  max-width: min(24rem, calc(100vw - var(--gap-panel)));
   font-weight: var(--fw-regular);
   text-transform: none;
   letter-spacing: normal;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.helpPopover {
+  position: fixed;
+  inset: auto;
+  margin: 0;
   /* Placed from its real size (HelpIcon.vue); when it fits on neither side
      of its trigger its height is capped and the content scrolls here. */
   overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
 }
 .popTitle {

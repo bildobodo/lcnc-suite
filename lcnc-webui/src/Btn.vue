@@ -1,7 +1,7 @@
 <script setup lang="ts">
 defineProps<{
   variant?: "default" | "primary" | "ok" | "warn" | "danger" | "estop";
-  size?: "xs" | "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg" | "cell";
   icon?: boolean;
   inline?: boolean;
   block?: boolean;
@@ -58,6 +58,11 @@ html:not(.touch-device) .b:hover:not(:disabled) { background: var(--hl-hover); }
 .xs { padding: 2px 8px; font-size: var(--fs-xs); }
 .sm { padding: 5px 10px; font-size: var(--fs-sm); }
 .md { padding: 8px 12px; font-size: var(--fs-base); }
+/* A square glyph cell (the probe grids): the glyph fills the button. Its
+   interior lives HERE, not in the caller's class — a class on a MachineBtn
+   places it (slot), because a dimmed button's class lands on its .btnTip
+   wrapper (design wave D1 live look: the probe cells shrank under TCP). */
+.cell { padding: 4px; font-size: var(--fs-base); }
 .lg { padding: 10px 14px; font-size: var(--fs-md); }
 
 /* Touch: min-heights come from the global button rule in style.css

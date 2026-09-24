@@ -394,7 +394,8 @@ test("tool editor: header X and footer Cancel close an unchanged form at once an
 test("a dimmed control explains itself: the MDI line on a tap, a coolant toggle on Tab + Enter; Space on either never starts the program", async ({ page }) => {
   // UX-09: the one explanation path (gateExplain.ts) for every control, not
   // only MachineBtn — input-rooted controls on pointerdown, label-rooted
-  // ones on tap and Enter/Space; the reason lands in the message center.
+  // ones on tap and Enter/Space; the reason is told at the control (design
+  // wave D1), never in the message log.
   await openReady(page);
   await ctl({ op: "status_delta", data: {
     permissions: { ...PERMS_ALL, ready: false, run: false, override: false },
@@ -406,12 +407,8 @@ test("a dimmed control explains itself: the MDI line on a tap, a coolant toggle 
   await expect(mdi).toHaveAttribute("title", "Home all axes first");
   await ctl({ op: "clearCmds" });
   await mdi.click({ force: true });   // a real pointerdown on the disabled line
-  const messagesBtn = page.getByRole("button", { name: /^Messages \(/ });
-  await messagesBtn.click();
-  const messages = page.locator(".dialogOverlay").last();
-  await expect(messages.getByText("Home all axes first").first()).toBeVisible();
-  await messages.getByRole("button", { name: "Close messages", exact: true }).click();
-  await expect(page.locator(".dialogOverlay")).toHaveCount(0);
+  const hint = page.locator("[data-btn-hint]");
+  await expect(hint).toHaveText("Home all axes first");
   // The Flood toggle (its OWN gate, override, closed with a reason — the
   // Spindle Gate's fieldset cascade alone is not the toggle's reason): its
   // label is a focusable affordance that says why; Enter explains, Space
@@ -421,11 +418,14 @@ test("a dimmed control explains itself: the MDI line on a tap, a coolant toggle 
   await expect(flood).toHaveAttribute("aria-label", "Why is this unavailable? Machine off");
   await flood.focus();
   await page.keyboard.press("Enter");
+  await expect(hint).toHaveText("Machine off");
   await page.keyboard.press(" ");
+  await expect(hint).toHaveText("Machine off");
   await settle(page);
   expectNoMachineAction(await recordedCmds());
-  await messagesBtn.click();
-  await expect(page.locator(".dialogOverlay").last().getByText("Machine off")).toHaveCount(2);
+  // Nothing of it reached the message log.
+  await page.getByRole("button", { name: /^Messages \(/ }).click();
+  await expect(page.locator(".dialogOverlay").last().getByText(/Home all axes first|Machine off/)).toHaveCount(0);
 });
 
 test("help is a tap-friendly popover: the Setup help opens by click and by keyboard and never reaches the machine", async ({ page }) => {

@@ -360,21 +360,17 @@ test("a disabled control explains itself to the keyboard, and sends no command",
     await expect(tip).toHaveAttribute("aria-label", /Why is this unavailable\?.*Machine frame/);
     await tip.focus();
     await expect(tip).toBeFocused();
+    // The reason is told at the control (design wave D1) — and only there.
+    const hint = page.locator("[data-btn-hint]");
     await page.keyboard.press("Enter");
-    const messages = page.getByRole("button", { name: /^Messages \(/ });
-    await messages.click();
-    await expect(page.locator(".msgText").first()).toContainText("select the Machine frame");
-    await messages.click();
+    await expect(hint).toContainText("select the Machine frame");
     // Space explains too — and neither key reaches the machine. (Escape is
     // deliberately NOT used to close anything here: it is the E-Stop
     // shortcut, which fires from anywhere by design.)
     await ctlSend({ op: "clearCmds" });
-    await tip.focus();
     await page.keyboard.press(" ");
-    await messages.click();
-    await expect(page.locator(".msgText")).toHaveCount(2);
+    await expect(hint).toContainText("select the Machine frame");
     expectNoMachineAction(await recordedCmds());
-    await messages.click();
     // Enabled again: no wrapper, so the tab order is the plain control's.
     await ctlSend({ op: "status_delta", data: { permissions: { ...PERMS_ALL }, permission_reasons: {} } });
     await expect(page.locator(".btnTip", { has: btn })).toHaveCount(0);
@@ -411,10 +407,7 @@ test("asking why never starts, pauses or resumes a program", async ({ page }) =>
       await ctlSend({ op: "clearCmds" });
       await tip.focus();
       await page.keyboard.press(" ");
-      const messages = page.getByRole("button", { name: /^Messages \(/ });
-      await messages.click();
-      await expect(page.locator(".msgText").first()).toContainText("select the Machine frame");
-      await messages.click();
+      await expect(page.locator("[data-btn-hint]")).toContainText("select the Machine frame");
       expectNoMachineAction(await recordedCmds());
       // Enter is the other activation key.
       await ctlSend({ op: "clearCmds" });
@@ -522,9 +515,13 @@ test("a disabled control explains itself: the reason on hover and on tap", async
     const messages = page.getByRole("button", { name: /^Messages \(/ });
     const before = await messages.getAttribute("title");
     await tip.click();
-    await expect(messages).not.toHaveAttribute("title", before ?? "");
+    // Design wave D1 (UI-K18, operator decisions 2026-09-23/24): the reason
+    // is told AT the control and nowhere else — the log is for machine
+    // information, the unread count stays.
+    await expect(page.locator("[data-btn-hint]")).toContainText("under TCP");
+    await expect(messages).toHaveAttribute("title", before ?? "");
     await messages.click();
-    await expect(page.locator(".msgText").first()).toContainText("under TCP");
+    await expect(page.locator(".msgText").filter({ hasText: "under TCP" })).toHaveCount(0);
     // Open again: no wrapper, plain button.
     await page.keyboard.press("Escape");
     await ctlSend({ op: "status_delta", data: { permissions: { ...PERMS_ALL }, permission_reasons: {} } });

@@ -36,6 +36,7 @@ import { limitViolationText } from "./ws/bulkData";
 import { fmtElapsed, fmtDist } from "./format";
 import { Play, Pause, X, Triangle, Circle } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
+import HelpIcon from "./HelpIcon.vue";
 import MachineSlider from "./MachineSlider.vue";
 import MachineToggle from "./MachineToggle.vue";
 
@@ -108,6 +109,12 @@ const entryTrack = shallowRef<ScrubTrack | null>(null);
 const track = computed(() => entryTrack.value ?? baseTrack.value);
 const running = computed(() => (st.value.interp_state ?? INTERP_IDLE) !== INTERP_IDLE);
 const machineOff = computed(() => !st.value.is_enabled);
+// Why a findings stop is unavailable — told at the button through the one
+// explain path (design wave D1, UI-N32), not a hover title on a wrapper.
+const SIM_OFF_REASON = "Machine on — power off to simulate";
+const hitNavReason = computed(() => (!simMode.value && !machineOff.value ? SIM_OFF_REASON : undefined));
+const violationNavReason = computed(() =>
+  !violationTargets.value.length ? "No limit violation to jump to" : hitNavReason.value);
 // Visible whenever a track exists — during a real run the bar is a
 // READ-ONLY display (all controls are dead via the existing gating): live
 // playhead on the estimate axis, findings/tool marks as look-ahead.
@@ -709,6 +716,26 @@ const hits = computed(() => shownResult.value?.hits ?? []);
 // program" alone.
 const routeWord = computed(() =>
   baseTrack.value && track.value !== baseTrack.value ? "route (entry move + program)" : "program");
+// The verdict's "why" in ONE help (design wave D1, UI-N32): how much was
+// checked, what stopped it, which contacts were excluded and whether the
+// guarantee holds — it used to ride four long hover titles, invisible on a
+// touchscreen. The verdict words stay short.
+const verdictDetail = computed<string>(() => {
+  const r = shownResult.value;
+  if (!r) return "";
+  const parts: string[] = [];
+  const stopped = props.collisionStopped;
+  if (props.collisionBusy) parts.push("The collision check is still running — the positions refine when it ends.");
+  else if (stopped && props.collisionResumable) parts.push(stoppedTitle.value);
+  else if (r.truncated) parts.push(`Checked ${pctOf(r.truncated.covered)} of the ${routeWord.value} (${r.truncated.reason === "samples" ? "sample backstop" : r.truncated.reason}) — the rest is UNCHECKED.`);
+  if (r.pairCount === 0) parts.push("No body pair moves relative to another — nothing to check.");
+  else parts.push(`${r.samples} samples over ${r.pairCount} body pairs.`);
+  if (hits.value.length) parts.push("A collision stop poses the model at its first contact (simulation mode, machine off).");
+  if (r.staticContacts.length) parts.push(`In contact from the start (excluded): ${r.staticContacts.map(c => c.a + "/" + c.b).join(", ")}.`);
+  if (sweepCaveat.value) parts.push(`Not certified: ${sweepCaveat.value}`);
+  return parts.join(" ");
+});
+
 // Reasons this sweep's no-missed-crossing guarantee does NOT hold. Null when
 // it does. Both cases mean the same thing to an operator — the result is a
 // sample, not a proof — so they share one marker rather than hiding one of
@@ -976,25 +1003,22 @@ onUnmounted(() => {
          timeline position). Buttons keep CONSTANT labels and every
          variable-width readout sits AFTER the last button of its group, so
          click positions never shift while stepping through or while a sweep
-         changes state. Wrappers carry tooltips (WebKit doesn't hover
-         disabled buttons). The sweep itself has no control here (2026-09-13):
+         changes state. A disabled stop says WHY at the button (MachineBtn's
+         reason → explain path, design wave D1); the titles are hover names. The sweep itself has no control here (2026-09-13):
          its progress is the timeline's swept band. -->
     <div class="row-controls scrubRow">
       <template v-if="violations && violations.length">
-        <span class="btnTip" title="Previous soft-limit violation (from the current timeline position)">
-          <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)"
+        <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)" title="Previous soft-limit violation (from the current timeline position)"
+                      :reason="violationNavReason"
                       @click="jumpTo(targetBefore(violationTargets, sPos))">&#9664;</MachineBtn>
-        </span>
-        <span class="btnTip" :title="violationsTitle">
-          <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)"
+        <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)" :title="violationsTitle"
+                      :reason="violationNavReason"
                       @click="jumpTo(nextViolationT)">
             {{ violationsTotal }} limit violation{{ violationsTotal === 1 ? "" : "s" }}
           </MachineBtn>
-        </span>
-        <span class="btnTip" title="Next soft-limit violation">
-          <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)"
+        <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)" title="Next soft-limit violation"
+                      :reason="violationNavReason"
                       @click="jumpTo(targetAfter(violationTargets, sPos))">&#9654;</MachineBtn>
-        </span>
         <span class="navTarget val-status mono">{{ nextViolationT ? "→ L" + nextViolationT.line : "" }}</span>
         <div class="sep-v"></div>
       </template>
@@ -1006,21 +1030,18 @@ onUnmounted(() => {
       <template v-if="shownResult">
         <span v-if="shownResult.pairCount === 0" class="val-status muted" title="No body pair moves relative to another — nothing to check">No moving pairs</span>
         <template v-else-if="hits.length">
-          <span class="btnTip" title="Previous collision (from the current timeline position)">
-            <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
+          <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff" title="Previous collision (from the current timeline position)"
+                        :reason="hitNavReason"
                         @click="jumpTo(targetBefore(hitTargets, sPos))">&#9664;</MachineBtn>
-          </span>
-          <span class="btnTip"
-                :title="`Collision hits — click to simulate the next one${!simMode && !machineOff ? ' (turn the machine OFF first)' : ''}${shownResult.staticContacts.length ? `\nIn contact from the start (excluded): ${shownResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
-            <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
-                        @click="jumpTo(nextHitT)">
-              {{ hitTargets.length }} collision{{ hitTargets.length === 1 ? "" : "s" }}
-            </MachineBtn>
-          </span>
-          <span class="btnTip" title="Next collision">
-            <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
+          <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
+                      title="Simulate the next collision"
+                      :reason="hitNavReason"
+                      @click="jumpTo(nextHitT)">
+            {{ hitTargets.length }} collision{{ hitTargets.length === 1 ? "" : "s" }}
+          </MachineBtn>
+          <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff" title="Next collision"
+                        :reason="hitNavReason"
                         @click="jumpTo(targetAfter(hitTargets, sPos))">&#9654;</MachineBtn>
-          </span>
           <span class="navTarget val-status mono">{{ nextHitT ? "→ " + (nextHitT.line ? "L" + nextHitT.line : "entry") + (nextHitT.reentry ? " (re-entry)" : "") + (nextHitT.rapid ? " (rapid)" : "") + ((nextHitT.dist ?? 0) > 0.001 ? ` ~${fmtDist(nextHitT.dist ?? 0, linearUnit)}` : "") + ((nextHitT.spanEndLine ?? nextHitT.line) > nextHitT.line ? ` … through L${nextHitT.spanEndLine}` : "") : "" }}</span>
           <span v-if="collisionBusy" class="val-status muted" title="The collision check is still running — positions refine when it ends">so far</span>
           <span v-else-if="collisionStopped && collisionResumable" class="val-status warn" :title="stoppedTitle">in {{ pctOf(collisionStopped.covered) }} swept</span>
@@ -1030,16 +1051,17 @@ onUnmounted(() => {
           No collision in {{ pctOf(collisionStopped.covered) }} swept
         </span>
         <span v-else-if="shownResult.truncated" class="val-status warn"
-              :title="`No collision in the ${pctOf(shownResult.truncated.covered)} of the ${routeWord} swept (${shownResult.truncated.reason === 'samples' ? 'sample backstop' : shownResult.truncated.reason}) — the rest is UNCHECKED (${shownResult.samples} samples, ${shownResult.pairCount} pairs)`">
+              title="Part of the program is unchecked — see the collision check help">
           No collision in {{ pctOf(shownResult.truncated.covered) }} swept
         </span>
-        <span v-else class="val-status ok" :title="`${shownResult.samples} samples, ${shownResult.pairCount} pairs${shownResult.staticContacts.length ? `; in contact from the start (excluded): ${shownResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
+        <span v-else class="val-status ok" title="No collision in the whole program">
           Clear
         </span>
         <!-- Shown on BOTH branches: a sweep that found clashes is no more
              certified than one that found none, so the caveat cannot live
              only next to "clear". -->
-        <span v-if="sweepCaveat" class="val-status warn" :title="sweepCaveat">*</span>
+        <span v-if="sweepCaveat" class="val-status warn" title="Not certified — see the collision check help">*</span>
+        <HelpIcon label="Collision check">{{ verdictDetail }}</HelpIcon>
       </template>
 
       <template v-if="nextTool">

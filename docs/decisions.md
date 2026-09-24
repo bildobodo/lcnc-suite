@@ -6114,3 +6114,50 @@ the word "code" in any text-field placeholder. The general field contract
 what this extension keyed on — a reminder to find the trigger in the
 browser that shows the symptom before calling a heuristic fix done.
 
+
+## 2026-09-24 — Design wave WP-D1: one feedback channel per trigger
+
+The live look of 2026-09-23 (UI-K18) found three answers to one question:
+a help "?", a hold hint above the button, and — for a dimmed control — its
+reason taking over the status line. The rule now (operator decision
+2026-09-23): what a touch triggers answers AT THE CONTROL; the result of an
+operation shows INLINE where it began (`.statusNote`); machine and system
+state is the BANNER; the message center is the PROTOCOL.
+
+- A dimmed control's reason is the control hint, placed from its rendered
+  size inside the window (above, else below, clamped, zoom-aware), at most
+  1.5–4 s by length and closed by the next touch or key anywhere. The
+  plan's "quiet log entry" was dropped at the live look (operator
+  2026-09-24): the message log is reserved for machine information, so a
+  tap on a dimmed control writes nothing there. The hint and the "?" help
+  popover are one card, which always wraps.
+- Reasons are short — "why — what to do" in at most 60 characters, the
+  same text a denied command replies (gateway `REASON_MAX_CHARS`, swept
+  over random machine states; client `CLIENT_REASONS`; the CSS audit's
+  `LONG_REASON`). The old ones ran to 190 characters of explanation.
+- A class on a MachineBtn places it and never styles its interior: the
+  `.btnTip` wrapper of a dimmed button takes the class, and interior
+  styling there shrank and distorted the probe cells under TCP. Equal-share
+  rows are grid tracks, not `flex: 1` (a flex basis of 0 floors at the
+  button's padding, which the wrapper lacks). The layout sweep now covers
+  the side panel's tabs and Probing sub-tabs in every machine state, with
+  two new checks: content spilling out of a box that neither grows nor
+  scrolls (the probe grid's Edge Width row on the Parameters separator)
+  and a control crossing a separator.
+- Refinement of N22: machine messages (`(MSG, …)`, NML errors) still take
+  over the status line — they are machine state the operator must see; only
+  the UI's own quiet entries stay off it.
+- The banner has two tiers: red for safety, machine and connection, warn
+  for program, preview and configuration. Each line is the state plus one
+  recovery verb; the why (formerly a title only) is on top of the message
+  center, which a tap on the banner opens. Every way out marks it read.
+- A failed read explains itself in place; Retry only where retrying can
+  help: the folder browser keeps `browseFailure` (400 = permanent, no
+  Retry, the last listing stays); the tool table and the surface-map reads
+  have no permanent class — their failures are transient — so they carry
+  the one ungated `retry` button, the same in the Tools tab and the Tool
+  strip (the strip had none).
+- Explanations left the hover titles (invisible on a touchscreen): probe
+  operations have a visible description line under the grid, stats rows,
+  HUD warnings and the collision verdict carry `HelpIcon`s, and the CSS
+  audit's `LONG_TITLE` category refuses a title over 90 characters.

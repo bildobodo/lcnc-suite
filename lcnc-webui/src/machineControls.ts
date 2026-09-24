@@ -7,7 +7,7 @@ export type ControlGate = keyof Permissions;
 export interface ButtonDef {
   gate: ControlGate;
   variant: 'default' | 'primary' | 'ok' | 'warn' | 'danger' | 'estop';
-  size: 'xs' | 'sm' | 'md' | 'lg';
+  size: 'xs' | 'sm' | 'md' | 'lg' | 'cell';
   icon?: boolean;
   muted?: boolean;
   inline?: boolean;
@@ -48,6 +48,8 @@ export const BUTTON_TYPES = {
 
   // Probe
   probe:          { gate: 'machineFrame',    variant: 'default', size: 'md', whileProbing: true, hold: true },
+  // A probe-grid cell: the probe cycle's gate and hold, a square glyph cell.
+  probeCell:      { gate: 'machineFrame',    variant: 'default', size: 'cell', whileProbing: true, hold: true },
   probeReset:     { gate: 'probe',    variant: 'danger',  size: 'md', whileProbing: true },
   // Surface-map scan: `probe` plus every rotary parked at zero. The map is a
   // machine-Z shim valid only with the tool normal to the mapped surface and
@@ -153,10 +155,20 @@ export const BUTTON_TYPES = {
   listAction:     { gate: 'always',  variant: 'default', size: 'md',  icon: true },
   nav:            { gate: 'always',  variant: 'default', size: 'md' },
   inline:         { gate: 'always',  variant: 'default', size: 'sm' },
+  // Discard in an inline note is the same destructive choice as in a
+  // dialog — danger wherever it appears (design wave D1, UI-N31).
+  inlineDanger:   { gate: 'always',  variant: 'danger',  size: 'sm' },
+  // Re-reading after a failed read never needs a permission: the ONE retry
+  // type of every .statusNote (design wave D1, UI-N28).
+  retry:          { gate: 'always',  variant: 'default', size: 'md' },
   surfaceRefresh: { gate: 'always',  variant: 'default', size: 'md' },
   inlineXs:       { gate: 'always',  variant: 'default', size: 'xs' },
   inlineMd:       { gate: 'always',  variant: 'default', size: 'md' },
   bannerAction:   { gate: 'always',  variant: 'default', size: 'md' },
+  // Banner buttons are ONE family (design wave D1, UI-N25): the trip
+  // acknowledgement and the program reload are banner actions too.
+  bannerAck:      { gate: 'always',  variant: 'primary', size: 'md' },
+  bannerReload:   { gate: 'setup',   variant: 'default', size: 'md' },
   bannerAbort:    { gate: 'abort',   variant: 'danger',  size: 'md' },
   // Banner Home All: `home_all` is ZERO-tier on the backend (idle + !eoffset).
   bannerHome:     { gate: 'zero',    variant: 'default', size: 'md', hold: true },

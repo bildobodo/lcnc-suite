@@ -168,10 +168,16 @@ export function applyClientOverlay(
  *  overlay's own reasons. Open gates are absent. */
 export type PermissionReasons = Partial<Record<keyof Permissions, string>>;
 
+/** The longest reason a dimmed control may give: "why — what to do", never
+ *  an abstract (design wave D1 live look). The gateway's rules keep the same
+ *  cap (command_policy.REASON_MAX_CHARS); the CSS audit's LONG_REASON checks
+ *  the literal `reason` props in the templates. */
+export const REASON_MAX_CHARS = 60;
+
 export const CLIENT_REASONS = {
   notArmed: "Not armed — press Arm",
-  settling: "Settling — a command is still in flight",
-  sim: "Simulation mode — exit the simulation for machine actions",
+  settling: "Busy — the last command is still running",
+  sim: "Simulation mode — exit the simulation first",
 } as const;
 
 /** The reasons twin of applyClientOverlay: the client-local terms explain

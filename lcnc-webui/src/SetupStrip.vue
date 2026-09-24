@@ -10,7 +10,8 @@ import { touchoffTargetLabel, type TouchoffExpect } from "./useTouchoffMath";
 import { keypadState, closeKeypad } from "./useNumberKeypad";
 import { usePermissions, explainKeydown } from "./permissions";
 import { pushMessage } from "./lcncWs";
-import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "./lcnc";
+import { explainAt } from "./gateExplain";
+import { OPERATOR_ERROR } from "./lcnc";
 import { G5X_LABELS, RESERVED_WCS } from "./wcs";
 import { fmtAxisValue } from "./format";
 
@@ -126,7 +127,7 @@ const g5xOptions = G5X_LABELS;
 function wcsReserved(g: string): boolean {
   return isTwpMachine.value && RESERVED_WCS.has(g);
 }
-const RESERVED_TITLE = "Reserved for the tilted-work-plane remap — rewritten by every orient. Touch off into G54–G58; the Plane jog frame selects G59 itself.";
+const RESERVED_TITLE = "Reserved for the tilted work plane — use G54–G58";
 
 // Kins-mode chip (P3 operator surface): the silent-mode-traversal trap —
 // the TWP demo parks the machine in TOOL kins (M2 restores G54, not the
@@ -167,7 +168,8 @@ function zeroAll() {
   <div class="stripSection" ref="rootEl">
     <!-- The Go-to destinations are explained by a tap-friendly help on the
          section title (UX-11): the action row is a three-cell grid with no
-         room for a fourth element; the buttons keep their titles. -->
+         room for a fourth element; the buttons keep SHORT hover names — the
+         explanation lives here once (design wave D1, UI-N33). -->
     <div class="sub sectionHelp">Setup <HelpIcon label="Go to positions">
       <strong>Go to G30</strong> — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only.
       <br><strong>Go to MCS 0</strong> — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only.
@@ -185,7 +187,7 @@ function zeroAll() {
           </div>
         </div>
         <div class="actionRow aggregateRow">
-          <MachineBtn type="zero" @click="zeroAll()" :title="isSwitchable ? 'Zero the LINEAR axes only (rotary offsets are set per axis, Machine frame + G54 only)' : undefined">{{ zeroAllLabel }}</MachineBtn>
+          <MachineBtn type="zero" @click="zeroAll()" :title="isSwitchable ? 'Zero the linear axes only' : undefined">{{ zeroAllLabel }}</MachineBtn>
           <MachineBtn :type="isHomed ? 'unhome' : 'home'" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome All</span></span></MachineBtn>
         </div>
         <!-- Action rows: three EQUAL cells spanning the grid (never one
@@ -195,9 +197,9 @@ function zeroAll() {
              moving, "Home" read as reference homing. MCS/WCS = machine /
              work coordinate system, the WCS selector's own term. -->
         <div class="actionRow">
-          <MachineBtn type="goTo" @click="emit('goToG30')" title="MOVES to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only — rotaries untouched. Machine frame only.">Go to G30</MachineBtn>
-          <MachineBtn type="goTo" @click="emit('goToHome')" title="MOVES to MACHINE ZERO (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered) — the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only.">Go to MCS 0</MachineBtn>
-          <MachineBtn type="goZero" @click="emit('goToZero')" title="MOVES to WORK ZERO. Machine frame: Z to machine top (G53 Z0 — skipped when Z is already at or above it, never lowered), table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance (never lowered), then X0 Y0 in the plane, rotaries untouched. TCP: not available.">Go to WCS 0</MachineBtn>
+          <MachineBtn type="goTo" @click="emit('goToG30')" title="Hold to move to the G30 position">Go to G30</MachineBtn>
+          <MachineBtn type="goTo" @click="emit('goToHome')" title="Hold to move to machine zero">Go to MCS 0</MachineBtn>
+          <MachineBtn type="goZero" @click="emit('goToZero')" title="Hold to move to work zero">Go to WCS 0</MachineBtn>
         </div>
         <div v-if="isTwpMachine" class="actionRow">
           <!-- Capture plane: the one-button manual definition — align the
@@ -211,7 +213,7 @@ function zeroAll() {
           <!-- Orient: works from a DEFINED plane (first orient) and
                re-orients after a table move. Hold-to-fire: the rotaries MOVE. -->
           <MachineBtn type="twpReorient" :disabled="!twpDefined" @click="emit('twpOrient')"
-                      :reason="!twpDefined ? 'Define a plane first (Capture plane, G68.2 / G68.3)' : undefined"
+                      :reason="!twpDefined ? 'No plane defined — capture one first' : undefined"
                       :title="!twpDefined
                         ? 'Define a plane first (Capture plane, G68.2 / G68.3)'
                         : twpStale
@@ -242,8 +244,8 @@ function zeroAll() {
           <label v-for="g in g5xOptions" :key="g" class="radio-label" :title="wcsReserved(g) ? RESERVED_TITLE : undefined"
                  :tabindex="wcsReserved(g) ? 0 : undefined" :role="wcsReserved(g) ? 'button' : undefined"
                  :aria-label="wcsReserved(g) ? `Why is ${g} unavailable? ${RESERVED_TITLE}` : undefined"
-                 @click="wcsReserved(g) && pushMessage(OPERATOR_DISPLAY, RESERVED_TITLE)"
-                 @keydown="(e: KeyboardEvent) => wcsReserved(g) && explainKeydown(e, () => pushMessage(OPERATOR_DISPLAY, RESERVED_TITLE))">
+                 @click="(e: MouseEvent) => wcsReserved(g) && explainAt(e, RESERVED_TITLE)"
+                 @keydown="(e: KeyboardEvent) => wcsReserved(g) && explainKeydown(e, () => explainAt(e, RESERVED_TITLE))">
             <MachineRadio gate="wcsSelect" name="wcs" :value="g" :modelValue="g5xLabel" :disabled="wcsReserved(g)" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('setG5x', String(v)) }" />
             <span :class="{ muted: wcsReserved(g) }">{{ g }}</span>
           </label>

@@ -23,6 +23,7 @@ import TextKeypadStrip from "./TextKeypadStrip.vue";
 import OverridesStrip from "./OverridesStrip.vue";
 import SpindleStrip from "./SpindleStrip.vue";
 import ToolStrip from "./ToolStrip.vue";
+import HelpIcon from "./HelpIcon.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import ToolTablePanel from "./ToolTablePanel.vue";
 import ProbePanel from "./ProbePanel.vue";
@@ -190,6 +191,48 @@ const TRIP_REASON_LABELS: Record<string, string> = {
 const safetyTripReasonLabel = computed(() =>
   safetyTrip.value ? (TRIP_REASON_LABELS[safetyTrip.value.reason] ?? safetyTrip.value.reason) : '');
 
+// ONE banner line for the machine/system conditions (design wave D1,
+// UI-N23/N24/N26): the state and its one recovery verb on the line, the
+// "why" in `detail` — shown as the title AND at the top of the message
+// center, which a tap on the banner opens (touch has no hover). Two tiers:
+// `error` for safety, machine and connection, `warn` for the program, the
+// preview and the configuration. A recovery that IS a UI action is a banner
+// button (Acknowledge, Reload program, Refresh); the others say what to do.
+interface BannerLine { key: string; tier: "error" | "warn"; text: string; detail?: string }
+const bannerLine = computed<BannerLine | null>(() => {
+  if (safetyTrip.value) return { key: "safety", tier: "error",
+    text: `SAFETY TRIPPED (${safetyTripReasonLabel.value}) — Acknowledge, re-Arm if needed, then E-Stop Reset`,
+    detail: "The HAL watchdog latched E-Stop. Acknowledge the trip, Arm again if this client lost it, then press E-Stop Reset — in that order." };
+  if (safetyChainIncomplete.value) return { key: "safety-chain", tier: "error",
+    text: `SAFETY CHAIN INCOMPLETE — ${safetyChainIncomplete.value} — restart the suite`,
+    detail: `Safety chain incomplete: ${safetyChainIncomplete.value}. Check HALFILE hallib/lcnc_webui.hal, then restart the suite.` };
+  if (serverShuttingDown.value) return { key: "shutdown", tier: "error",
+    text: "Server shutting down — start LinuxCNC again to reconnect",
+    detail: "The gateway is shutting down with its LinuxCNC session. Start LinuxCNC again; this page reconnects by itself." };
+  if (readerStale.value) return { key: "reader-stale", tier: "error",
+    text: "HAL reader stale — restart the suite if it persists",
+    detail: "The HAL reader has not delivered a snapshot for 2 s — UI values may be out of date. If it persists the LinuxCNC session may have ended: restart the suite." };
+  if (jointsBeyondLimit.value.length) return { key: "beyond-limit", tier: "error",
+    text: `Joint ${jointsBeyondLimit.value.join(", ")} beyond its soft limit — jog it back inside`,
+    detail: "Every other move is refused while a joint sits beyond its soft limit. Jog it back inside — the jog runs in joint mode until it is." };
+  if (configWarning.value) return { key: "config-warning", tier: "warn",
+    text: `Config fallback — ${configWarning.value.reason} — fix the INI, then restart the suite`,
+    detail: `The gateway runs on a fallback: ${configWarning.value.reason}. Fix the INI and restart the suite; until then the affected feature shows defaults.` };
+  if (previewLoadError.value) return { key: "preview-error", tier: "warn",
+    text: "3D preview load failed — reload the program",
+    detail: "The viewer could not load the preview payload. Reload the program; restart the suite if it persists." };
+  if (previewParseError.value) return { key: "parse-error", tier: "warn",
+    text: `Program won't parse — ${previewParseError.value}`,
+    detail: `No preview or simulation until it parses — fix the program or load one posted for this machine. ${previewParseError.value}` };
+  if (previewRefusal.value) return { key: "preview-refused", tier: "warn",
+    text: `Preview stopped — ${previewRefusal.value.text}`,
+    detail: `The preview runs from the machine's live state (active work offset, kinematics) and stopped here; a run would stop at the same place. No preview or simulation until it parses. ${previewRefusal.value.text}` };
+  if (needsRefresh.value) return { key: "refresh", tier: "warn",
+    text: "LinuxCNC is back — refresh the page",
+    detail: "LinuxCNC reported an error and has recovered. Refresh the page so every panel reloads the machine's current state." };
+  return null;
+});
+
 // Preview re-parse banner (2026-09-05): elapsed is the client's own clock
 // since first sight (statusStore ticks it); the bar never reaches 100 % on
 // its own — only the publish ends it. Expected = the gateway's last
@@ -285,9 +328,13 @@ const bannerMessage = ref<string | null>(null);
 const bannerMessageKind = ref(0);
 let _bannerMsgTimer: ReturnType<typeof setTimeout> | null = null;
 
+// A new message takes over the status line for 5 s — unless it is a quiet
+// protocol entry (design wave D1, UI-N22: a dimmed control's reason is told
+// AT the control; a local confirmation does not displace the machine state).
 watch(() => messages.value.length, (newLen, oldLen) => {
   if (newLen > oldLen) {
     const msg = messages.value[newLen - 1]!;
+    if (msg.quiet) return;
     bannerMessage.value = msg.text;
     bannerMessageKind.value = msg.kind;
     if (_bannerMsgTimer) clearTimeout(_bannerMsgTimer);
@@ -929,6 +976,8 @@ const {
   gcodeRefInitialSearch,
   messagesDialogOpen,
   openDialog,
+  openMessages,
+  closeMessages,
   closeSettings,
   openSettingsTab,
   openGcodeRef,
@@ -1707,7 +1756,7 @@ watch(viewerGcode, (newGcode) => {
         <div v-if="keyboardConfig.jogEnabled || keyboardConfig.buttonsEnabled" class="pill ok" title="Keyboard shortcuts active"><Keyboard :size="14" /></div>
 
         <div class="hdrBtns row-controls">
-          <MachineBtn type="headerIcon" :warning="unreadCount > 0" :title="'Messages (' + unreadCount + ')'" @click="openDialog('messages')">
+          <MachineBtn type="headerIcon" :warning="unreadCount > 0" :title="'Messages (' + unreadCount + ')'" @click="messagesDialogOpen ? closeMessages() : openMessages()">
             <MessageSquare :size="22" />
           </MachineBtn>
           <MachineBtn type="headerIcon" title="G-code Reference" @click="openGcodeRef()">
@@ -1729,47 +1778,14 @@ watch(viewerGcode, (newGcode) => {
     </header>
 
     <div class="statusBanner" :class="{ 'banner-pulse': bannerFlashMode === 'pulse', 'banner-flash': bannerFlashMode === 'flash' }" :style="{ '--state-color': `var(${machineStateColor})` }">
-      <div class="bannerContent" @click="messagesDialogOpen = true; markMessagesRead()">
+      <div class="bannerContent" @click="openMessages">
         <Transition name="banner-fade" mode="out-in">
           <!-- Every banner carries its recovery path — an operator must
                never have to guess whether waiting, a UI action, or a
                suite restart is the way out (no auto-recovery implied). -->
-          <span v-if="safetyTrip" :key="'safety'" class="bannerError">
-            SAFETY TRIPPED ({{ safetyTripReasonLabel }}) — Acknowledge, re-Arm if needed, then E-Stop Reset
-          </span>
-          <!-- Short form: the state and its ONE recovery verb; the why and
-               the detail ride the title (operator, 2026-09-12: the long
-               forms ran past the window and pushed the action buttons
-               off the banner). -->
-          <span v-else-if="safetyChainIncomplete" :key="'safety-chain'" class="bannerError"
-                :title="'Safety chain incomplete: ' + safetyChainIncomplete + '. Check HALFILE hallib/lcnc_webui.hal, then restart the suite.'">
-            SAFETY CHAIN INCOMPLETE — {{ safetyChainIncomplete }} — restart the suite
-          </span>
-          <span v-else-if="serverShuttingDown" :key="'shutdown'" class="bannerError">
-            Server shutting down — start LinuxCNC again to reconnect
-          </span>
-          <span v-else-if="readerStale" :key="'reader-stale'" class="bannerError"
-                title="The HAL reader has not delivered a snapshot for 2 s — UI values may be out of date. If it persists the LinuxCNC session may have ended: restart the suite.">
-            HAL reader stale — restart the suite if it persists
-          </span>
-          <span v-else-if="configWarning" :key="'config-warning'" class="bannerError">
-            Config fallback — {{ configWarning.reason }} — fix the INI, then restart the suite
-          </span>
-          <span v-else-if="jointsBeyondLimit.length" :key="'beyond-limit'" class="bannerError"
-                title="Every other move is refused while a joint sits beyond its soft limit. Jog it back inside — the jog runs in joint mode until it is.">
-            Joint {{ jointsBeyondLimit.join(', ') }} beyond its soft limit — jog it back inside
-          </span>
-          <span v-else-if="previewLoadError" :key="'preview-error'" class="bannerError"
-                title="The viewer could not load the preview payload. Reload the G-code file; restart the suite if it persists.">
-            3D preview load failed — reload the program
-          </span>
-          <span v-else-if="previewParseError" :key="'parse-error'" class="bannerError"
-                :title="'No preview or simulation until it parses — fix the program or load one posted for this machine. ' + previewParseError">
-            Program won't parse — {{ previewParseError }}
-          </span>
-          <span v-else-if="previewRefusal" :key="'preview-refused'" class="bannerError"
-                :title="'The preview runs from the machine\'s live state (active work offset, kinematics) and stopped here; a run would stop at the same place. No preview or simulation until it parses. ' + previewRefusal.text">
-            Preview stopped — {{ previewRefusal.text }}
+          <span v-if="bannerLine" :key="bannerLine.key" :class="bannerLine.tier === 'error' ? 'bannerError' : 'bannerWarn'"
+                :title="bannerLine.detail">
+            {{ bannerLine.text }}
           </span>
           <span v-else-if="previewRefresh" :key="'preview-refresh'" class="bannerProgress" :title="previewRefreshTitle">
             <span>Re-parsing · {{ previewRefreshLabel(previewRefresh.reason) }} · {{ previewRefreshFile }}{{ previewRefresh.queued ? ' · queued' : '' }}</span>
@@ -1786,9 +1802,10 @@ watch(viewerGcode, (newGcode) => {
       <!-- Abort is ALWAYS the last action: a stop must not move when a
            message count or a Refresh appears beside it (P2). -->
       <div class="bannerActions row-controls">
-        <MachineBtn v-if="safetyTrip" type="dialogConfirm" @click="acknowledgeSafetyTrip">Acknowledge</MachineBtn>
+        <MachineBtn v-if="safetyTrip" type="bannerAck" @click="acknowledgeSafetyTrip">Acknowledge</MachineBtn>
+        <MachineBtn v-if="bannerLine?.key === 'preview-error' && activeFile" type="bannerReload" @click="loadFile(activeFile)">Reload program</MachineBtn>
         <MachineBtn v-if="machineState === 'unhomed'" type="bannerHome" @click="homeAll">Home All</MachineBtn>
-        <MachineBtn v-if="unreadCount > 0" type="bannerAction" @click="messagesDialogOpen = true; markMessagesRead()">
+        <MachineBtn v-if="unreadCount > 0" type="bannerAction" @click="openMessages">
           {{ unreadCount }} message{{ unreadCount === 1 ? '' : 's' }}
         </MachineBtn>
         <MachineBtn v-if="needsRefresh" type="bannerAction" @click="reloadPage">Refresh</MachineBtn>
@@ -2025,46 +2042,41 @@ watch(viewerGcode, (newGcode) => {
               <div class="stack-controls">
                 <div class="sub">Tools &amp; Feeds</div>
                 <div class="statsGrid">
-                  <span class="statsLabel">Tool changes</span>
+                  <span class="statsLabel">Tool Changes</span>
                   <span class="statsValue mono">{{ gcodeStats.toolChanges }}</span>
-                  <span class="statsLabel">Tools used</span>
+                  <span class="statsLabel">Tools Used</span>
                   <span class="statsValue mono">{{ gcodeStats.toolsUsed.length ? gcodeStats.toolsUsed.map(t => 'T' + t).join(', ') : 'None' }}</span>
-                  <span class="statsLabel">Feed rates</span>
+                  <span class="statsLabel">Feed Rates</span>
                   <span class="statsValue mono">{{ gcodeStats.feedRates.length ? gcodeStats.feedRates.join(', ') : 'None' }}</span>
-                  <span class="statsLabel">File size</span>
+                  <span class="statsLabel">File Size</span>
                   <span class="statsValue mono">{{ fmtSize(gcodeStats.fileSize) }}</span>
-                  <span class="statsLabel">Soft limits</span>
+                  <span class="statsLabel">Soft Limits</span>
                   <span class="statsValue val-status" :class="softLimitStatus.cls">
                     {{ softLimitStatus.text }}
                   </span>
                   <template v-if="kinsFlipStatus">
-                    <span class="statsLabel">Kins frames</span>
-                    <span class="statsValue val-status" :class="kinsFlipStatus.cls"
-                          title="Unresolved: a kinematics switch this client has no twin for — those segments keep uncorrected geometry. Carry spans: geometry after a frame relabel was corrected assuming uncommanded axes HELD; canon replay cannot tell that from a command to the same stale value.">
+                    <!-- The why of a stats row is a HelpIcon on its label, never
+                         only a title (design wave D1, UI-N32). -->
+                    <span class="statsLabel">Kins Frames <HelpIcon label="Kins frames">Unresolved: a kinematics switch this client has no twin for — those segments keep uncorrected geometry. Carry spans: geometry after a frame relabel was corrected assuming uncommanded axes HELD; canon replay cannot tell that from a command to the same stale value.</HelpIcon></span>
+                    <span class="statsValue val-status" :class="kinsFlipStatus.cls">
                       {{ kinsFlipStatus.text }}
                     </span>
                   </template>
                   <template v-if="gcodeKinsEndMode !== 0">
-                    <span class="statsLabel">Kinematics at end</span>
-                    <span class="statsValue val-status warn"
-                          :title="'The program\'s last kinematics switch leaves type ' + gcodeKinsEnd + ' in effect. M2 restores G54 but not the kinematics pin, so after the run the machine stays in this frame and Cycle Start is refused until the Machine frame is restored.'">
+                    <span class="statsLabel">Kinematics at End <HelpIcon label="Kinematics at end">The program's last kinematics switch leaves type {{ gcodeKinsEnd }} in effect. M2 restores G54 but not the kinematics pin, so after the run the machine stays in this frame and Cycle Start is refused until the Machine frame is restored.</HelpIcon></span>
+                    <span class="statsValue val-status warn">
                       {{ gcodeKinsEndMode === 1 ? 'TCP' : gcodeKinsEndMode === 2 ? 'TOOL (plane)' : 'unsupported' }} — not restored before M2 ({{ gcodeKinsEndMode === 2 ? 'add G69, or select the Machine frame' : 'select the Machine frame' }})
                     </span>
                   </template>
                   <template v-if="previewRefusal">
-                    <span class="statsLabel">Parse</span>
-                    <span class="statsValue val-status warn"
-                          title="A kinematics/TWP remap refused the program in the preview, which runs from the machine's live state (active work offset, kinematics). A run would refuse the same line.">
+                    <span class="statsLabel">Parse <HelpIcon label="Parse">A kinematics/TWP remap refused the program in the preview, which runs from the machine's live state (active work offset, kinematics). A run would refuse the same line.</HelpIcon></span>
+                    <span class="statsValue val-status warn">
                       refused — {{ previewRefusal.text }}
                     </span>
                   </template>
                   <template v-if="gcodeUnmarkedSubs.length">
-                    <span class="statsLabel">Line tracking</span>
-                    <span class="statsValue val-status muted"
-                          :title="'Called subroutine' + (gcodeUnmarkedSubs.length === 1 ? '' : 's') + ' '
-                            + gcodeUnmarkedSubs.map(n => n + '.ngc').join(', ')
-                            + ' carr' + (gcodeUnmarkedSubs.length === 1 ? 'ies' : 'y')
-                            + ' no WEBUI_SUB markers — the line highlight may be unreliable during their motion'">
+                    <span class="statsLabel">Line Tracking <HelpIcon label="Line tracking">Called subroutine{{ gcodeUnmarkedSubs.length === 1 ? '' : 's' }} {{ gcodeUnmarkedSubs.map(n => n + '.ngc').join(', ') }} carr{{ gcodeUnmarkedSubs.length === 1 ? 'ies' : 'y' }} no WEBUI_SUB markers — the line highlight may be unreliable during their motion.</HelpIcon></span>
+                    <span class="statsValue val-status muted">
                       {{ gcodeUnmarkedSubs.map(n => n + '.ngc').join(', ') }} unmarked
                     </span>
                   </template>
@@ -2121,17 +2133,22 @@ watch(viewerGcode, (newGcode) => {
       <GcodeReferenceDialog :open="gcodeRefOpen" :initialSearch="gcodeRefInitialSearch" @close="gcodeRefOpen = false" />
 
       <!-- Messages dialog -->
-      <div v-if="messagesDialogOpen" class="dialogOverlay" @click.self="messagesDialogOpen = false">
+      <div v-if="messagesDialogOpen" class="dialogOverlay" @click.self="closeMessages">
         <div class="dialog lg dialog-full">
           <div class="dialogHeader">
             <span class="dialogTitle">Messages ({{ messages.length }})</span>
             <div class="row-tight">
               <MachineBtn type="inline" @click="copyAllMessages" :disabled="messages.length === 0">Copy All</MachineBtn>
               <MachineBtn type="inline" @click="clearAllMessages" :disabled="messages.length === 0">Clear All</MachineBtn>
-              <MachineBtn type="close" aria-label="Close messages" title="Close messages" @click="messagesDialogOpen = false; markMessagesRead()"><X :size="14" /></MachineBtn>
+              <MachineBtn type="close" aria-label="Close messages" title="Close messages" @click="closeMessages"><X :size="14" /></MachineBtn>
             </div>
           </div>
           <div class="dialogContent stack-tight scroll-thin fade-scroll">
+            <!-- The banner's current condition with its "why" — a tap on the
+                 banner lands here (UI-N26: nothing essential only in a title). -->
+            <div v-if="bannerLine" class="statusNote" :class="bannerLine.tier" role="alert">
+              <span><strong>{{ bannerLine.text }}</strong><template v-if="bannerLine.detail"><br>{{ bannerLine.detail }}</template></span>
+            </div>
             <div v-for="msg in [...messages].reverse()" :key="msg.id" class="msgItem" :class="msgKindClass(msg.kind)">
               <span class="msgTime">{{ msgFormatTime(msg.ts) }}</span>
               <span class="msgKind">{{ msgKindLabel(msg.kind) }}</span>
@@ -2678,6 +2695,11 @@ watch(viewerGcode, (newGcode) => {
 }
 .bannerError {
   color: var(--danger);
+}
+/* Program, preview and configuration problems (design wave D1, UI-N23):
+   the warn tier — red is kept for safety, machine and connection. */
+.bannerWarn {
+  color: var(--warn);
 }
 
 .bannerActions {

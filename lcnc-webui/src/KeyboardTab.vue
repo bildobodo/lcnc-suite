@@ -263,9 +263,4 @@ onUnmounted(() => {
 /* settingDesc is also used in SettingsPanel; duplicated here so the
    description text under the section header keeps its muted styling
    without requiring a global utility. */
-.settingDesc {
-  font-size: var(--fs-base);
-  opacity: var(--opacity-muted);
-  margin-bottom: var(--gap-section);
-}
 </style>

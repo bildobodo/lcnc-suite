@@ -15,17 +15,22 @@ export interface Placement {
   side: "below" | "above";
 }
 
-export function placePopover(trigger: Box, size: Size, viewport: Size, margin: number): Placement {
+/** `prefer` picks the first side tried: a help popover opens below its
+ *  trigger, a control hint above it (the finger covers the control from
+ *  below — design wave D1, UI-D08). */
+export function placePopover(trigger: Box, size: Size, viewport: Size, margin: number,
+                             prefer: "below" | "above" = "below"): Placement {
   const triggerBottom = trigger.top + trigger.height;
   const below = viewport.height - margin - (triggerBottom + margin);
   const above = trigger.top - margin - margin;
   let side: "below" | "above";
   let top: number;
   let maxHeight: number | null = null;
-  if (size.height <= below) {
-    side = "below"; top = triggerBottom + margin;
-  } else if (size.height <= above) {
+  const fitsBelow = size.height <= below, fitsAbove = size.height <= above;
+  if (fitsAbove && (prefer === "above" || !fitsBelow)) {
     side = "above"; top = trigger.top - margin - size.height;
+  } else if (fitsBelow) {
+    side = "below"; top = triggerBottom + margin;
   } else if (below >= above) {
     side = "below"; top = triggerBottom + margin; maxHeight = Math.max(0, below);
   } else {
@@ -35,4 +40,14 @@ export function placePopover(trigger: Box, size: Size, viewport: Size, margin: n
   if (left + size.width > viewport.width - margin) left = viewport.width - size.width - margin;
   if (left < margin) left = margin;
   return { top, left, maxHeight, side };
+}
+
+/** The CSS zoom an element renders under: `currentCSSZoom` where the browser
+ *  has it, else the ratio of the element's two measures; 1 without zoom.
+ *  Viewport px (getBoundingClientRect) ÷ this = the element's own CSS px. */
+export function cssZoomOf(el: HTMLElement): number {
+  const z = (el as HTMLElement & { currentCSSZoom?: number }).currentCSSZoom;
+  if (typeof z === "number" && z > 0) return z;
+  const w = el.offsetWidth;
+  return w > 0 ? el.getBoundingClientRect().width / w : 1;
 }

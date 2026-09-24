@@ -62,8 +62,9 @@ const useAbortDefault = computed(() => (props.type === 'abort' || props.type ===
 // swallows pointer events, so hover titles never showed and a tap did
 // nothing — the reason lived only in a denial the button could not send.
 // While disabled WITH a reason the button is wrapped in a .btnTip span
-// carrying the title (hover) and a tap handler (touch) that puts the reason
-// in the message center. Not while disarmed: the whole UI is dimmed then and
+// carrying the title (hover) and a tap handler (touch) that tells the reason
+// at the button and files it quietly in the message center (design wave D1,
+// UI-K18). Not while disarmed: the whole UI is dimmed then and
 // Arm is the one obvious next step — wrapping every control for that would
 // be noise, not help.
 // The rule lives in gateExplain.ts (UX-09) — the same one the input,
@@ -112,7 +113,9 @@ const HOLD_MOVE_SLOP = 10; // px
 // component a fragment root, which strips every parent's scoped CSS from
 // the rendered button (implementation review UI-I07).
 const btnRef = ref<{ $el?: HTMLElement } | null>(null);
-function showHint(text: string) { showBtnHint(btnRef.value?.$el, text); }
+// The anchor is a getter: a closing gate swaps the Btn into its .btnTip
+// wrapper in the same flush, and the hint is placed after that render.
+function showHint(text: string) { showBtnHint(() => btnRef.value?.$el, text); }
 const STOP_TYPES = new Set(['abort', 'bannerAbort', 'estop', 'arm', 'machineOn']);
 function busyWillDrop(): boolean {
   return busy.value && def.value.gate !== 'always' && !STOP_TYPES.has(props.type);

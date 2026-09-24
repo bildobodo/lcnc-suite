@@ -235,15 +235,6 @@ const rawSummary = computed(() => {
 </template>
 
 <style scoped>
-/* settingDesc is shared with KeyboardTab + SettingsPanel — duplicated
-   here for the same reason (scoped CSS doesn't cross component boundaries).
-   Worth promoting to global in a future cleanup. */
-.settingDesc {
-  font-size: var(--fs-base);
-  opacity: var(--opacity-muted);
-  margin-bottom: var(--gap-section);
-}
-
 /* okText was previously defined only in App.vue's scoped CSS — meaning
    the green-when-connected styling for the connection status label was
    silently broken (App.vue's scope id doesn't reach SettingsPanel's

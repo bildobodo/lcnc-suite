@@ -113,6 +113,16 @@ def test_unit_literal_hit_mustache_and_template_literal_formatter_ok(audit):
     assert hits == [("UNIT_LITERAL", 7), ("UNIT_LITERAL", 8)], hits
 
 
+def test_long_title_static_and_bound_literal_hit_short_and_computed_ok(audit):
+    hits = _drift(audit, "long_title.vue")
+    assert hits == [("LONG_TITLE", 7), ("LONG_TITLE", 8)], hits
+
+
+def test_long_reason_template_literal_and_script_constant_hit_short_ok(audit):
+    hits = _drift(audit, "long_reason.vue")
+    assert sorted(hits) == [("LONG_REASON", 3), ("LONG_REASON", 9)], hits
+
+
 def test_clean_fixture_has_no_findings(audit):
     assert _drift(audit, "clean.vue") == []
 

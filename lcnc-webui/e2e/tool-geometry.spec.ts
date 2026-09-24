@@ -179,7 +179,7 @@ test("add: ok:false keeps the draft, a delayed ok closes, a double click sends o
   await expect(dialog.getByRole("button", { name: "Saving…", exact: true })).toBeVisible();
   // Our ok:false: draft stays, reason shown, buttons live again.
   await ctl({ type: "reply", cmd: "add_tool", req_id: sent!.req_id, ok: false, error: "Tool number in use" });
-  await expect(dialog.locator(".errorBanner")).toContainText("Tool number in use");
+  await expect(dialog.locator(".statusNote.error")).toContainText("Tool number in use");
   await expect(desc).toHaveValue("draft description");
   await expect(add).toBeEnabled();
   // Second attempt: a delayed ok closes the dialog.
@@ -200,7 +200,7 @@ test("an old session's late reply never closes a newer dialog", async ({ page })
   const [first] = await toolCmds("add_tool");
   // Session A's reply is refused → A stays open; the operator cancels A …
   await ctl({ type: "reply", cmd: "add_tool", req_id: first!.req_id, ok: false, error: "refused" });
-  await expect(dialog.locator(".errorBanner")).toContainText("refused");
+  await expect(dialog.locator(".statusNote.error")).toContainText("refused");
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(dialog).toHaveCount(0);
   // … opens session B and sends it.
@@ -223,7 +223,7 @@ test("disconnect while saving: outcome unknown, no blind resend, draft kept", as
   await dialog.getByRole("button", { name: "Add", exact: true }).click();
   await expect.poll(async () => (await toolCmds("add_tool")).length).toBe(1);
   await ctlOp({ op: "shutdownClose" });
-  await expect(dialog.locator(".errorBanner")).toContainText("outcome unknown");
+  await expect(dialog.locator(".statusNote.error")).toContainText("outcome unknown");
   await expect(dialog.getByRole("button", { name: "Add", exact: true })).toBeEnabled();
   // The client reconnects on its own; nothing was re-sent meanwhile.
   await expect(page.locator('fieldset[data-gate="armed"]').first()).not.toBeDisabled({ timeout: 15_000 });
@@ -242,7 +242,7 @@ test("delete waits for its own reply and shows a refusal in place", async ({ pag
   await expect.poll(async () => (await toolCmds("delete_tool")).length).toBe(1);
   const [sent] = await toolCmds("delete_tool");
   await ctl({ type: "reply", cmd: "delete_tool", req_id: sent!.req_id, ok: false, error: "Tool is in the spindle" });
-  await expect(dialog.locator(".errorBanner")).toContainText("in the spindle");
+  await expect(dialog.locator(".statusNote.error")).toContainText("in the spindle");
   await dialog.getByRole("button", { name: "Delete", exact: true }).click();
   await expect.poll(async () => (await toolCmds("delete_tool")).length).toBe(2);
   const second = (await toolCmds("delete_tool"))[1]!;

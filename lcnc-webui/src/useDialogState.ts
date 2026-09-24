@@ -67,6 +67,23 @@ export function useDialogState(opts: UseDialogStateOptions) {
     }
   }
 
+  /** The message center from the banner, its unread count or the header
+   *  icon — ONE way in (design wave D1, UI-N27): the guarded navigation path
+   *  (a Settings draft is asked about first), and it OPENS — a second tap on
+   *  the banner does not close what the first opened (the header icon
+   *  toggles: open → closeMessages). */
+  function openMessages() {
+    if (messagesDialogOpen.value) { opts.markMessagesRead(); return; }
+    openDialog("messages");
+  }
+
+  /** ONE way out of the message center: X and backdrop alike mark the
+   *  messages read (the backdrop used to leave them unread). */
+  function closeMessages() {
+    messagesDialogOpen.value = false;
+    opts.markMessagesRead();
+  }
+
   /** The Settings dialog's own X and backdrop — the same guarded close. */
   function closeSettings() {
     const close = () => { settingsDialogOpen.value = false; };
@@ -122,6 +139,8 @@ export function useDialogState(opts: UseDialogStateOptions) {
     messagesDialogOpen,
     closeAllDialogs,
     openDialog,
+    openMessages,
+    closeMessages,
     closeSettings,
     openSettingsTab,
     openGcodeRef,

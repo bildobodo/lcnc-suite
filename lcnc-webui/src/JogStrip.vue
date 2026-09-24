@@ -75,12 +75,15 @@ const planeTitle = computed(() => {
   if (!can.value.planeFrame && reasons.value.planeFrame) return reasons.value.planeFrame;
   if (!props.twpOriented) {
     return props.twpDefined
-      ? "Plane defined but the head has not been oriented — press Orient (or G53.1) first. A bare M430 would jog on whatever frame the kins pins last held."
-      : "No tilted work plane defined (G68.2 / G68.3) — nothing to jog in yet";
+      ? "Head not aligned with the plane — press Orient"
+      : "No plane defined — Capture one or run G68.2";
   }
+  // Enabled: a short hover name — the frames are explained ONCE, in the
+  // Kinematics Frame help (design wave D1, UI-N33); the stale case keeps
+  // its one-line warning.
   return props.twpStale
-    ? "TOOL kinematics — the plane frame is from the LAST orient and the table has moved since: Z is NOT the face normal. Press Orient to restore it."
-    : "TOOL kinematics — jog in the tilted work plane, Z along the tool axis as of the last orient (Orient again after moving the table). Switching re-seeds the preview (a brief progress flash is expected)";
+    ? "Plane is stale — the table moved since the last orient: press Orient"
+    : "TOOL kinematics — jog in the tilted work plane";
 });
 // The dimmed Plane radio explains itself through the one path every
 // control uses (gateExplain.ts, UX-09) — its label root carries it.
@@ -478,7 +481,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               </HelpIcon></span>
               <div class="strip-radio-options">
                 <label class="radio-label" title="Identity kinematics — jog along machine axes"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="0" @update:modelValue="emit('setKinsMode', 0)" /> Machine</label>
-                <label class="radio-label" title="TCP kinematics — X/Y/Z are the work frame riding the table: jogging A keeps the tool tip on the workpiece (position only; the head orientation does not follow). Switching re-seeds the preview (a brief progress flash is expected)"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="1" @update:modelValue="emit('setKinsMode', 1)" /> TCP</label>
+                <label class="radio-label" title="TCP kinematics — jog in the work frame"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="1" @update:modelValue="emit('setKinsMode', 1)" /> TCP</label>
                 <label v-if="twpCapable" class="radio-label" :class="{ 'val-status': true, warn: twpStale, muted: !twpOriented }" :title="planeTitle"
                        :tabindex="planeExplainActive ? 0 : undefined" :role="planeExplainActive ? 'button' : undefined"
                        :aria-label="planeExplainActive ? planeExplainLabel : undefined"

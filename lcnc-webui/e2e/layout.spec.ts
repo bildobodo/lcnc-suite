@@ -39,6 +39,53 @@ for (const profile of PROFILES) {
   }
 }
 
+// The side panel's tabs under every machine state (design wave D1 live
+// look): a gate closing with a reason wraps a button in its explain span,
+// and that wrapper must not move, resize or distort anything — the probe
+// grid's cells shrank and lost their square under TCP (machineFrame closes)
+// while the strip-only sweep above never looked at the side panel. The
+// state list includes the kinematics modes on purpose: a mode may change a
+// label, never a control's footprint here.
+const SIDE_TABS: { tab: string; sub?: string }[] = [
+  { tab: 'Program' }, { tab: 'MDI' }, { tab: 'Offsets' }, { tab: 'Tools' },
+  ...['Outside', 'Inside', 'Angle', 'Boss/Pocket', 'Ridge/Valley', 'Surface', 'Calibrate', 'Toolsetter']
+    .map(sub => ({ tab: 'Probing', sub })),
+];
+
+for (const profile of PROFILES) {
+  for (const viewport of VIEWPORTS) {
+    test(`${profile.name} ${viewport.name}: side panel tabs keep every control's footprint across machine states`, async ({ page }, info) => {
+      test.setTimeout(180_000);
+      await openLayout(page, profile, viewport);
+      const states: LayoutState[] = ['unhomed', 'off', 'estop', 'disarmed', 'running', 'paused'];
+      if (profile.kins) states.push('tcp');
+      if (profile.name === '6axis-twp') states.push('plane', 'plane-stale');
+      const side = page.locator('.sidePane');
+      // Every tab and state is measured before the verdict, so one run lists
+      // every defect rather than the first.
+      const found: string[] = [];
+      for (const { tab, sub } of SIDE_TABS) {
+        await setLayoutState(page, profile, 'homed');
+        await side.getByRole('button', { name: tab, exact: true }).click();
+        if (sub) await side.getByRole('button', { name: sub, exact: true }).click();
+        await settleLayout(page);
+        const name = sub ? `${tab}/${sub}` : tab;
+        const base = await measureLayout(side, name);
+        found.push(...base.issues.map(i => `${name}: ${i.kind} — ${i.detail}`));
+        for (const state of states) {
+          await setLayoutState(page, profile, state);
+          const snapshot = await measureLayout(side, `${name}@${state}`);
+          const issues = [...snapshot.issues.filter(i => !base.issues.some(b => b.detail === i.detail)),
+            ...layoutChanges(base, snapshot)];
+          if (issues.length) await assertLayout(side, snapshot, info, issues).catch(() => {});
+          found.push(...issues.map(i => `${name}@${state}: ${i.kind} — ${i.detail}`));
+        }
+      }
+      expect(found, found.join('\n')).toEqual([]);
+    });
+  }
+}
+
 test('layout guard detects the original shrinking disabled-button regression', async ({ page }) => {
   await openLayout(page, PROFILES[1], VIEWPORTS[0]);
   const root = page.locator('[data-strip="jog"]');

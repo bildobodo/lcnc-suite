@@ -13,7 +13,7 @@ import { limitViolationText, type LimitViolation } from "./ws/bulkData";
 import { isTouchDevice } from "./touchDetect";
 import { useMediaMql } from "./useMediaMql";
 import { emitTelemetry, pushMessage } from "./lcncWs";
-import { OPERATOR_DISPLAY } from "./lcnc";
+import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "./lcnc";
 import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
 import { Play, SkipForward, Pause, X } from "lucide-vue-next";
 import Gate from "./Gate.vue";
@@ -741,8 +741,9 @@ async function saveEdit() {
     await saveFile(path, text);
     if (_session !== session) {
       // A newer session replaced this one (or it was discarded) while the
-      // save was in flight: the file is saved, nothing else is touched.
-      pushMessage(OPERATOR_DISPLAY, `Saved ${name}`);
+      // save was in flight: the file is saved, nothing else is touched — a
+      // quiet protocol entry, the operator has moved on (design wave D1).
+      pushMessage(OPERATOR_DISPLAY, `Saved ${name}`, "log");
       return;
     }
     session.original = text;
@@ -765,7 +766,9 @@ async function saveEdit() {
     emit("loadFile", path);
   } catch (e: any) {
     if (_session === session) saveError.value = `Save failed: ${e.message}`;
-    else pushMessage(OPERATOR_DISPLAY, `Save of ${name} failed: ${e?.message ?? e}`);
+    // A failure is never DISPLAY severity (design wave D1, UI-N29): inline
+    // while its session is open, else an error in the message center.
+    else pushMessage(OPERATOR_ERROR, `Save of ${name} failed: ${e?.message ?? e}`);
     emitTelemetry("edit.save_failed", { file: path, msg: String(e?.message ?? e) });
   } finally {
     saving.value = false;
@@ -806,7 +809,7 @@ async function saveEdit() {
     </div>
 
     <!-- Program control (folded in portrait edit mode — see compactEdit) -->
-    <div v-if="!compactEdit" class="row-tight">
+    <div v-if="!compactEdit" class="ctrlRow">
       <MachineBtn type="start" class="ctrlBtn" @click="onStartClick" :disabled="!activeFile || editing"
         :reason="editing ? 'Finish or discard the edit first' : !activeFile ? 'No program loaded' : undefined">
         <Play :size="14" class="ctrlIcon" /> {{ selectedLine && selectedLine > 1 ? `Start L${selectedLine}` : 'Start' }}
@@ -847,7 +850,7 @@ async function saveEdit() {
     </div>
 
     <!-- Error banner -->
-    <div v-if="uploadError" class="errorBanner">
+    <div v-if="uploadError" class="statusNote error" role="alert">
         <span>{{ uploadError }}</span>
         <MachineBtn type="close" aria-label="Dismiss upload error" title="Dismiss upload error" @click="uploadError = null"><X :size="14" /></MachineBtn>
     </div>
@@ -878,23 +881,23 @@ async function saveEdit() {
 
       <!-- Line numbers belong to a called sub / remap, not this file: the run
            highlight is suppressed rather than pointed at an unrelated line. -->
-      <div v-if="linesUntrustedReason" class="warnBanner">
+      <div v-if="linesUntrustedReason" class="statusNote warn" role="alert">
         <span>Line highlight off — {{ linesUntrustedReason }}</span>
       </div>
 
       <!-- Edit mode -->
       <div v-if="editing" class="stack-controls editArea">
-        <div v-if="saveError" class="errorBanner">
+        <div v-if="saveError" class="statusNote error" role="alert">
           <span>{{ saveError }}</span>
           <MachineBtn type="close" aria-label="Dismiss save error" title="Dismiss save error" @click="saveError = null"><X :size="14" /></MachineBtn>
         </div>
         <!-- The loaded program changed under an open session: the buffer is
              kept and stays bound to its file; nothing is saved elsewhere. -->
-        <div v-if="editConflict" class="warnBanner" data-edit-conflict>
+        <div v-if="editConflict" class="statusNote warn" role="alert" data-edit-conflict>
           <span>Program changed to {{ fileName }} — you are editing {{ sessionName }}</span>
           <span class="row-tight">
             <MachineBtn type="inline" @click="keepEditing">Keep editing</MachineBtn>
-            <MachineBtn type="inline" @click="discardEdit">Discard</MachineBtn>
+            <MachineBtn type="inlineDanger" @click="discardEdit">Discard</MachineBtn>
           </span>
         </div>
         <div ref="editorHost" class="editorHost" :data-input-area="EDITOR_OWNER" @pointerup="onEditorPointerUp"></div>
@@ -1033,7 +1036,7 @@ async function saveEdit() {
           </div>
           <div v-else-if="rflBlocked" class="dialogSection">
             <div class="sub">Unsupported Start Line</div>
-            <div class="dialogBody errorBanner">
+            <div class="statusNote error" role="alert">
               {{ (rflScan?.count ?? 0) > 1
                 ? `${rflScan?.count} tool changes lie before this line — run-from-line across multiple tool changes is unsupported. Start before the first or after the last tool change.`
                 : `A tool change before this line has no determinable tool number (or is T0) — offsets cannot be guaranteed. Choose a different start line.` }}
@@ -1092,11 +1095,17 @@ async function saveEdit() {
 
 /* .controlRow — uses row-tight utility */
 
-.ctrlBtn {
-  flex: 1;
-  display: flex;
+/* Four equal GRID tracks, not `flex: 1`: a flex basis of 0 floors at each
+   button's padding + border, which the .btnTip wrapper of a dimmed button
+   does not have — a dimmed Start came out 9 px narrower than its enabled
+   self (design wave D1 live look; the side-panel layout sweep). A track
+   gives the button and its wrapper the same width by construction; its
+   floor is the label's full width (a button clips its overflow, so a bare
+   1fr track would squeeze "Pause/Resume" in touch landscape). */
+.ctrlRow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(max-content, 1fr)) auto;
   align-items: center;
-  justify-content: center;
   gap: var(--gap-tight);
 }
 
@@ -1166,8 +1175,8 @@ async function saveEdit() {
 }
 
 
-/* .warnBanner / .errorBanner — global (style.css), shared with the tool
-   table, the file browser and the dialogs. */
+/* .statusNote (error / warn) — global (style.css), the one inline message
+   pattern shared with the tool table, the file browser and the dialogs. */
 
 /* Code area wrapper */
 .codeArea {

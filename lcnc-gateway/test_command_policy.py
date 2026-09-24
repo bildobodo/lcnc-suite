@@ -284,7 +284,7 @@ class TestCheckCommand(unittest.TestCase):
         self.assertIsNotNone(check_command("simulate_probe_trip", state(armed=False)))
 
     def test_not_armed_reason(self):
-        self.assertEqual(check_command("cycle_start", state(armed=False)), "Not armed")
+        self.assertEqual(check_command("cycle_start", state(armed=False)), "Not armed — press Arm")
 
     def test_unknown_command_not_policy_denied(self):
         self.assertIsNone(check_command("totally_made_up", state(armed=False)))
@@ -341,7 +341,7 @@ class TestTouchoffRoute(unittest.TestCase):
         for g in RESERVED_FIXTURES:
             route, reason = touchoff_route(self.twp(g5x_index=g), ("Z",))
             self.assertIsNone(route, g)
-            self.assertIn("scratch", reason)
+            self.assertIn("reserved", reason)
 
     def test_rotary_identity_g54_only(self):
         self.assertEqual(touchoff_route(self.twp(g5x_index=1), ("A",)), ("mdi", None))
@@ -388,7 +388,7 @@ class TestTouchoffRoute(unittest.TestCase):
         # The remap's to_storage_frame admits kins 1 only at A=0; the UI
         # refuses where the remap would, not three steps later.
         route, reason = touchoff_route(self.twp(kins_type=1, a_at_zero=False), ("Z",))
-        self.assertIsNone(route); self.assertIn("A=0", reason)
+        self.assertIsNone(route); self.assertIn("A at 0", reason)
 
     def test_tcp_reserved_rows_refused(self):
         route, _ = touchoff_route(self.twp(kins_type=1, g5x_index=6), ("Z",))
@@ -451,7 +451,7 @@ class TestTwpCapture(unittest.TestCase):
         # A TCP trunnion is switchable but has no G68.2 / G53.x remap: the
         # button must not exist there, and the gate says why (TWP-08b).
         reason = twp_capture_check(self._capture_state(twp_capable=False))
-        self.assertIsNotNone(reason); self.assertIn("TWP", reason)
+        self.assertIsNotNone(reason); self.assertIn("No plane capture", reason)
 
     def test_defaults_are_closed(self):
         # A builder that forgets the capture fields gets a refusal, never an
@@ -474,7 +474,7 @@ class TestTwpCapture(unittest.TestCase):
 
     def test_refuses_non_switchable_machine(self):
         # A plain mill: neither switchable nor TWP-capable.
-        self.assertIn("TWP machine",
+        self.assertIn("No plane capture",
                       twp_capture_check(self._capture_state(kins_switchable=False,
                                                             twp_capable=False)))
 
@@ -502,7 +502,7 @@ class TestTwpCapture(unittest.TestCase):
 
     def test_refuses_rotary_offsets(self):
         r = twp_capture_check(self._capture_state(rotary_offsets_clean=False))
-        self.assertIn("rotary", r)
+        self.assertIn("Rotary offset", r)
 
     def test_refuses_g92_xyz(self):
         r = twp_capture_check(self._capture_state(g92_xyz_clean=False))
@@ -544,7 +544,7 @@ class TestSingleSource(unittest.TestCase):
             if gate == "always":
                 self.assertIsNone(r, f"{cmd!r} should be unconditional")
             else:
-                self.assertEqual(r, "Not armed", f"{cmd!r}")
+                self.assertEqual(r, "Not armed — press Arm", f"{cmd!r}")
 
     def test_deny_message_names_a_genuinely_unmet_requirement(self):
         # For a denied command, the returned message must be one of that gate's
@@ -783,7 +783,7 @@ class TestSemanticKins(unittest.TestCase):
         self.assertEqual(semantic_kins(self._trt(0, True)), 0)
         self.assertEqual(semantic_kins(self._trt(1, True)), 1)
         self.assertIsNone(machine_frame_required(self._trt(0, True)))
-        self.assertIn("TCP", machine_frame_required(self._trt(1, True)))
+        self.assertIn("Machine frame only", machine_frame_required(self._trt(1, True)))
 
     def test_trsrn_raw_modes_pass_through(self):
         for raw in (0, 1, 2):
@@ -796,12 +796,12 @@ class TestSemanticKins(unittest.TestCase):
         for fn in (machine_frame_required, kins_runnable):
             msg = fn(s)
             self.assertIsNotNone(msg, fn.__name__)
-            self.assertIn("no policy rule", msg)
+            self.assertIn("unsupported", msg)
             self.assertNotIn("unknown", msg)
         route, reason = touchoff_route(s, ("Z",))
-        self.assertIsNone(route); self.assertIn("no policy rule", reason)
+        self.assertIsNone(route); self.assertIn("unsupported", reason)
         lines, why = goto_zero_plan(s, 0.0, 25.0)
-        self.assertIsNone(lines); self.assertIn("no policy rule", why)
+        self.assertIsNone(lines); self.assertIn("unsupported", why)
         # Unknown stays unknown — a different refusal.
         self.assertIsNone(semantic_kins(self._trt(None, True)))
         self.assertIn("unknown", machine_frame_required(self._trt(None, True)))
@@ -822,12 +822,12 @@ class TestPlaneFrame(unittest.TestCase):
 
     def test_plane_frame_needs_capability_definition_and_alignment(self):
         self.assertIsNone(plane_frame_check(self._s()))
-        self.assertIn("Not a TWP machine", plane_frame_check(self._s(twp_capable=False)))
+        self.assertIn("No Plane frame", plane_frame_check(self._s(twp_capable=False)))
         self.assertIn("unknown", plane_frame_check(self._s(kins_type=None)))
-        self.assertIn("No tilted work plane", plane_frame_check(self._s(twp_defined=False)))
+        self.assertIn("No plane defined", plane_frame_check(self._s(twp_defined=False)))
         self.assertIn("Orient", plane_frame_check(self._s(twp_aligned=False)))
         # A plain mill: the first rule, never a later one.
-        self.assertIn("Not a TWP machine", plane_frame_check(state()))
+        self.assertIn("No Plane frame", plane_frame_check(state()))
 
     def test_gate_and_check_agree(self):
         for over in (dict(), dict(twp_capable=False), dict(kins_type=None),
@@ -872,7 +872,7 @@ class TestPermissionReasons(unittest.TestCase):
         self.assertIn("TCP", permission_reasons(s)["goZero"])
         s2 = state(is_homed=False)
         self.assertEqual(permission_reasons(s2)["ready"], check_command("mdi", s2))
-        self.assertEqual(permission_reasons(s2)["ready"], "Machine not homed")
+        self.assertEqual(permission_reasons(s2)["ready"], "Not homed — press Home All")
 
 if __name__ == "__main__":
     unittest.main()
@@ -898,23 +898,23 @@ class TestKinsRunnable(unittest.TestCase):
 
     def test_plane_kins_without_a_plane_refuses(self):
         r = kins_runnable(self._twp(twp_active=False, g5x_index=1))
-        self.assertIn("no active plane", r)
+        self.assertIn("without a plane", r)
         self.assertFalse(evaluate_permissions(self._twp(twp_active=False, g5x_index=1))["run"])
 
     def test_plane_kins_with_g54_selected_refuses_the_post_m2_state(self):
         # The live 2026-09-03 state: M2 restored G54, kins stayed 2, plane active.
         s = self._twp(g5x_index=1)
         r = kins_runnable(s)
-        self.assertIn("G54", r)
-        self.assertIn("M430", r)
+        self.assertIn("without G59", r)
+        self.assertIn("select Plane", r)
         p = evaluate_permissions(s)
         self.assertFalse(p["run"])
         self.assertTrue(p["ready"])   # MDI (M428/M430/G69) stays available to fix it
 
     def test_check_command_names_the_exact_reason(self):
         s = self._twp(g5x_index=1)
-        self.assertIn("G54", check_command("cycle_start", s))
-        self.assertIn("G54", check_command("auto_run", s))
+        self.assertIn("without G59", check_command("cycle_start", s))
+        self.assertIn("without G59", check_command("auto_run", s))
         self.assertIsNone(check_command("cycle_start", self._twp()))
 
     def test_unknown_kins_type_on_a_switchable_machine_refuses(self):
@@ -936,8 +936,8 @@ class TestMachineFrameAndGoZero(unittest.TestCase):
     def test_machine_frame_rule(self):
         self.assertIsNone(machine_frame_required(state()))                      # plain machine
         self.assertIsNone(machine_frame_required(self._twp(kins_type=0)))
-        self.assertIn("Machine frame required", machine_frame_required(self._twp(kins_type=1)))
-        self.assertIn("Machine frame required", machine_frame_required(self._twp()))
+        self.assertIn("Machine frame only", machine_frame_required(self._twp(kins_type=1)))
+        self.assertIn("Machine frame only", machine_frame_required(self._twp()))
         self.assertIn("unknown", machine_frame_required(self._twp(kins_type=None)))
         p = evaluate_permissions(self._twp())
         self.assertFalse(p["machineFrame"]); self.assertTrue(p["ready"])
@@ -988,10 +988,10 @@ class TestMachineFrameAndGoZero(unittest.TestCase):
 
     def test_go_zero_refusals(self):
         self.assertIn("TCP", goto_zero_plan(self._twp(kins_type=1), 0.0, 25.0)[1])
-        self.assertIn("Plane frame", goto_zero_plan(self._twp(g5x_index=1), 0.0, 25.0)[1])
+        self.assertIn("select Plane", goto_zero_plan(self._twp(g5x_index=1), 0.0, 25.0)[1])
         self.assertIn("Plane", goto_zero_plan(self._twp(twp_active=False), 0.0, 25.0)[1])
         self.assertIn("unknown", goto_zero_plan(self._twp(kins_type=None), 0.0, 25.0)[1])
-        self.assertIn("Clearance", goto_zero_plan(self._twp(), None, float("nan"))[1])
+        self.assertIn("clearance", goto_zero_plan(self._twp(), None, float("nan"))[1])
         p = evaluate_permissions(self._twp(kins_type=1))
         self.assertFalse(p["goZero"])
         self.assertTrue(evaluate_permissions(self._twp())["goZero"])
@@ -1151,3 +1151,42 @@ class TestShippedRemapsDeclareTheirKinsTypes(unittest.TestCase):
 
     def test_the_tcp_trunnion_selects_its_world_kins_with_m428(self):
         self.assertEqual(self._cmds("."), {1: "M428", 0: "M429", 2: "M430"})
+
+
+class TestReasonLength(unittest.TestCase):
+    """Every operator reason is short — "why — what to do" in at most
+    REASON_MAX_CHARS (design wave D1 live look, operator: "a short info why,
+    not an abstract"). The reasons are what a dimmed control says at the
+    touch and what a denied command replies; a sweep over random machine
+    states reaches every rule, every composite branch (touch-off route,
+    → Zero plan, runnable, machine frame) and the stamp refusals."""
+
+    def test_every_reason_fits_the_cap(self):
+        import dataclasses, random
+        import command_policy as cp
+        rng = random.Random(20260924)
+        seen = {}
+        fields = dataclasses.fields(MachineState)
+        for _ in range(20000):
+            kw = {}
+            for f in fields:
+                if f.name == "kins_type":
+                    kw[f.name] = rng.choice([None, 0, 1, 2, 3])
+                elif f.name == "g5x_index":
+                    kw[f.name] = rng.choice([None, 1, 2, 6, 7])
+                else:
+                    kw[f.name] = rng.random() < 0.5
+            s = MachineState(**kw)
+            texts = list(permission_reasons(s).values())
+            texts += [cp.touchoff_route(s, (l,))[1] for l in ("X", "A")]
+            texts += [cp.kins_runnable(s), cp.machine_frame_required(s),
+                      plane_frame_check(s), twp_capture_check(s)]
+            for stamp in (None, {"kins": 1, "a": 0}, {"kins": 2, "a": 0}, {"kins": "x"}):
+                texts.append(cp.goto_zero_plan(s, 0.0, 5.0, stamp)[1])
+            for t in texts:
+                if t:
+                    seen.setdefault(t, s)
+        too_long = sorted(t for t in seen if len(t) > cp.REASON_MAX_CHARS)
+        self.assertEqual(too_long, [], "reasons over the cap")
+        # the sweep really reached the composite branches
+        self.assertGreater(len(seen), 30, sorted(seen))

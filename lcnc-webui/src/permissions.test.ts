@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { applyClientOverlayReasons, CLIENT_REASONS, explainKeydown } from "./permissions";
+import { applyClientOverlayReasons, CLIENT_REASONS, REASON_MAX_CHARS, explainKeydown } from "./permissions";
 import { applyClientOverlay, type MachinePermissions } from "./permissions";
 
 // The policy itself (which machine state opens which gate) now lives on the
@@ -196,5 +196,11 @@ describe("explainKeydown (R-05 access, R-06 containment)", () => {
       expect(calls.prevented).toBe(0);
       expect(calls.stopped).toBe(0);
     }
+  });
+});
+
+describe("reason length (design wave D1 live look)", () => {
+  it("every client-local reason is a short 'why — what to do'", () => {
+    for (const text of Object.values(CLIENT_REASONS)) expect(text.length, text).toBeLessThanOrEqual(REASON_MAX_CHARS);
   });
 });

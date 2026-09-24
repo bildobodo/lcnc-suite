@@ -77,9 +77,9 @@ onMounted(() => browse());
       <span class="browserPath" :title="browserPath">{{ browserPath }}</span>
     </div>
     <div class="sep"></div>
-    <div v-if="error" class="errorBanner row-controls" role="alert">
+    <div v-if="error" class="statusNote error" role="alert">
       <span>{{ error }}</span>
-      <MachineBtn v-if="failedDirectory !== null" type="fileOp" :disabled="busy"
+      <MachineBtn v-if="failedDirectory !== null" type="retry" :disabled="busy"
         @click="browse(failedDirectory)">Retry</MachineBtn>
     </div>
     <div ref="listRef" class="fileList scroll-thin fade-scroll">
@@ -141,7 +141,7 @@ onMounted(() => browse());
 .fileEntryName { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fileSize { font-size: var(--fs-sm); opacity: var(--opacity-muted); flex-shrink: 0; }
 .emptyBrowser { padding: var(--gap-section); text-align: center; font-size: var(--fs-base); opacity: var(--opacity-muted); }
-/* Chrome from the global .errorBanner; layout only here. */
-.errorBanner { flex-shrink: 0; }
-.errorBanner span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+/* Chrome from the global .statusNote; layout only here. */
+.statusNote { flex-shrink: 0; }
+.statusNote span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 </style>

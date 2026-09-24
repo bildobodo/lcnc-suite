@@ -19,7 +19,23 @@ export interface LcncMessage {
   kind: number;     // See NML_ERROR..OPERATOR_DISPLAY constants in lcnc.ts
   text: string;
   ts: number;       // Date.now() when received
+  /** A quiet protocol entry ("log" mode): never takes over the status line. */
+  quiet?: boolean;
 }
+
+/**
+ * How a UI message reaches the operator (design wave D1, UI-K18/N22):
+ *  - "notify" — the message center counts it and the status line shows it
+ *    for a few seconds (errors, events the operator must notice — and every
+ *    MACHINE message, e.g. a program's (MSG, …), arrives this way);
+ *  - "status" — the status line shows it, uncounted (run-from-line progress);
+ *  - "log"    — a quiet protocol entry: uncounted, never on the status line
+ *    (a local confirmation the operator has moved on from, e.g. an editor
+ *    save that finished after its session closed). A dimmed control's
+ *    reason is NOT logged at all — it is told at the control; the log is
+ *    for machine information (operator, D1 live look).
+ */
+export type MessageMode = "notify" | "status" | "log";
 
 export interface WsStatus {
   data?: Record<string, any>;
@@ -166,13 +182,12 @@ export const messages = ref<LcncMessage[]>(_stored);
 export const unreadCount = ref(_stored.length);
 let _nextMsgId = _stored.length > 0 ? Math.max(..._stored.map(m => m.id)) + 1 : 1;
 
-/**
- * Append to the message center. countUnread=false is the RFL-progress case:
- * informational display lines that must not light the unread badge.
- */
-export function pushMessage(kind: number, text: string, countUnread = true): void {
-  messages.value = [...messages.value, { id: _nextMsgId++, kind, text, ts: Date.now() }];
-  if (countUnread) unreadCount.value++;
+/** Append to the message center in one of the three modes (MessageMode). */
+export function pushMessage(kind: number, text: string, mode: MessageMode = "notify"): void {
+  const entry: LcncMessage = { id: _nextMsgId++, kind, text, ts: Date.now() };
+  if (mode === "log") entry.quiet = true;
+  messages.value = [...messages.value, entry];
+  if (mode === "notify") unreadCount.value++;
   persistMessages(messages.value);
 }
 
@@ -428,7 +443,7 @@ export function handleStatusMessage(msg: any): void {
     if (rfl.ok === false) {
       pushMessage(OPERATOR_ERROR, `Run-from-line ${rfl.phase}: ${rfl.error || "failed"}`);
     } else if (phaseText[rfl.phase]) {
-      pushMessage(OPERATOR_DISPLAY, phaseText[rfl.phase]!, false);
+      pushMessage(OPERATOR_DISPLAY, phaseText[rfl.phase]!, "status");
     }
   }
 

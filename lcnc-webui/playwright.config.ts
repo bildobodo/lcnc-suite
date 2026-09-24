@@ -1,11 +1,12 @@
 import { defineConfig } from "@playwright/test";
 
 const toolSpecs = /(example-tool-library|freecad-import|tool-geometry|tool-holder|tool-import)\.spec\.ts/;
-// Guard specs (WP0/WP7/WP8): keyboard + editor session guards, touch hold,
-// input session — mock-global state (status deltas, recorded commands), one
-// file at a time under `serial-guards`. ONE filter for both the project's
+// Guard specs (WP0/WP7/WP8, design wave D1): keyboard + editor session
+// guards, touch hold, input session, feedback channels — mock-global state
+// (status deltas, recorded commands), one file at a time under
+// `serial-guards`. ONE filter for both the project's
 // testMatch and the chromium project's testIgnore (UI-15d).
-const guardSpecs = /(keyboard-guards|editor-guards|touch-hold|input-session)\.spec\.ts/;
+const guardSpecs = /(keyboard-guards|editor-guards|touch-hold|input-session|feedback-channels)\.spec\.ts/;
 
 if (process.env.CI && process.argv.some(arg => arg.startsWith('--update-snapshots') || arg === '-u')) {
   throw new Error('CI must compare committed visual references, never update them.');

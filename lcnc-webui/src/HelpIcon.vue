@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useId, ref, onMounted, onBeforeUnmount } from 'vue'
-import { placePopover } from './helpPlacement'
+import { placePopover, cssZoomOf } from './helpPlacement'
 
 // The one tap-friendly help pattern (UX-11): a popover on a focusable
 // button, named for its topic so a page with several helps reads as
@@ -17,13 +17,8 @@ const MARGIN = 6
 // this): getBoundingClientRect() and window.innerWidth/Height are viewport
 // px, the element's own left/top/max-height are its CSS px — one factor
 // apart. `currentCSSZoom` where the browser has it, else the ratio of the
-// two measures of a laid-out element; 1 without zoom.
-function zoomOf(el: HTMLElement): number {
-  const z = (el as HTMLElement & { currentCSSZoom?: number }).currentCSSZoom
-  if (typeof z === 'number' && z > 0) return z
-  const w = el.offsetWidth
-  return w > 0 ? el.getBoundingClientRect().width / w : 1
-}
+// two measures of a laid-out element; 1 without zoom (`cssZoomOf`,
+// shared with the control hint in helpPlacement.ts).
 
 // Placement reads the popover AS LAID OUT in the top layer: the first
 // version positioned it in `beforetoggle`, while it was still display:none
@@ -43,7 +38,7 @@ function position() {
   p.style.top = '0px'
   p.style.maxHeight = ''
   p.style.maxWidth = ''
-  const z = zoomOf(p)
+  const z = cssZoomOf(p)
   const vw = window.innerWidth
   const vh = window.innerHeight
   let size = p.getBoundingClientRect()

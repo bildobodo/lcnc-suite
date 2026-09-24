@@ -48,4 +48,14 @@ describe("help popover placement", () => {
     const at = placePopover({ left: 0, top: 2, width: 20, height: 20 }, { width: 336, height: 2000 }, { width: 400, height: 30 }, M);
     expect(at.maxHeight).toBeGreaterThanOrEqual(0);
   });
+
+  it("prefers above for a control hint and falls back below at the top edge (UI-D08)", () => {
+    const hint = { width: 240, height: 40 };
+    const mid = placePopover({ left: 400, top: 500, width: 80, height: 36 }, hint, { width: 1280, height: 900 }, M, "above");
+    expect(mid).toMatchObject({ side: "above", top: 500 - M - 40, maxHeight: null });
+    const top = placePopover({ left: 400, top: 20, width: 80, height: 36 }, hint, { width: 1280, height: 900 }, M, "above");
+    expect(top).toMatchObject({ side: "below", top: 20 + 36 + M, maxHeight: null });
+    const edge = placePopover({ left: 1260, top: 500, width: 20, height: 20 }, hint, { width: 1280, height: 900 }, M, "above");
+    expect(edge.left + hint.width).toBeLessThanOrEqual(1280 - M);
+  });
 });

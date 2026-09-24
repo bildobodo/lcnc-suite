@@ -356,10 +356,16 @@ describe("mergeStatusPatch", () => {
 describe("message center", () => {
   it("push/dismiss/clear/markRead drive the refs and persist to localStorage", () => {
     pushMessage(OPERATOR_ERROR, "one");
-    pushMessage(OPERATOR_DISPLAY, "two", false);
+    pushMessage(OPERATOR_DISPLAY, "two", "status");
     expect(messages.value.map(m => m.text)).toEqual(["one", "two"]);
     expect(unreadCount.value).toBe(1);
     expect(JSON.parse(localStorage.getItem("lcnc-messages")!)).toHaveLength(2);
+    // "log" (design wave D1): a quiet protocol entry — kept, uncounted, and
+    // marked so the status line never takes it over.
+    pushMessage(OPERATOR_DISPLAY, "three", "log");
+    expect(unreadCount.value).toBe(1);
+    expect(messages.value.map(m => [m.text, !!m.quiet])).toEqual([["one", false], ["two", false], ["three", true]]);
+    dismissMessage(messages.value[2]!.id);
 
     markMessagesRead();
     expect(unreadCount.value).toBe(0);

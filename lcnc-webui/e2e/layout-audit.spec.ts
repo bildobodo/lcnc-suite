@@ -30,3 +30,23 @@ test('layout guard catches clipping by an inner container and tolerates intentio
   await page.locator('#clip').evaluate(el => { el.style.width = '30px'; });
   expect((await measureLayout(root, 'fixture')).issues.map(i => i.kind)).toContain('clipped-control');
 });
+
+test('layout guard finds content spilling out of a fixed-height box and a control lying on a separator', async ({ page }) => {
+  // Design wave D1 live look: the probe grid's fixed-height section outgrew
+  // its 360 px when a description line joined it, and the Edge Width row lay
+  // on the Parameters separator — neither is an overlap of two controls.
+  await page.setContent(`<style>
+    #panel { width: 300px; display: flex; flex-direction: column; gap: 8px; }
+    .section { height: 120px; display: flex; flex-direction: column; gap: 8px; }
+    .sep { height: 1px; background: #888; }
+    input, button { height: 36px; flex: none; }
+    .help { position: absolute; top: 0; right: -30px; width: 20px; height: 20px; }
+  </style><div id="panel"><div class="section" style="position: relative"><button>Probe</button><input><span class="help"></span></div>
+    <div class="sep"></div><button>Next</button></div>`);
+  const root = page.locator('#panel');
+  expect((await measureLayout(root, 'fixture')).issues).toEqual([]);
+  await page.locator('.section').evaluate(el => { el.style.height = '60px'; });
+  const kinds = (await measureLayout(root, 'fixture')).issues.map(i => i.kind);
+  expect(kinds).toContain('overflowing-box');
+  expect(kinds).toContain('crosses-separator');
+});

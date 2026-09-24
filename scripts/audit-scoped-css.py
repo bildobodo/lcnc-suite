@@ -57,6 +57,17 @@ WS-C extension — design-token drift checks over every .vue <style> block
                text, placeholders, labels): the UI writes "…" (design wave
                D0, UI-N01). A spread (`{ ...x }`, `(...args)`) is not text
                and never matches.
+  LONG_TITLE — a `title` longer than 90 characters on an element in the
+               <template> (a static title, or the longest string literal of a
+               bound one): an explanation belongs in a HelpIcon, a
+               .settingDesc line or the explain path — a hover title never
+               shows on a touchscreen (design wave D1, UI-N32/N33).
+  LONG_REASON — a dimmed control's reason longer than 60 characters: a
+               `reason="…"` / `:reason="…"` literal in the <template> (the
+               longest string literal of a bound one) or a `*_REASON` / `*_TITLE`
+               string constant in the <script>. A reason is "why — what to
+               do", never an abstract (design wave D1 live look; the gateway's
+               command_policy.REASON_MAX_CHARS keeps the same cap).
   UNIT_LITERAL — a unit glued to an interpolation in the <template>
                (`{{ v }}mm`, `${v}%`, `{{ v }} ms`): units come from their
                source and a formatter (fmtPct/fmtQty/fmtDist/fmtUnit in
@@ -317,6 +328,14 @@ def hl_in_percent_slot(val: str) -> list[str]:
 # word; a spread ("{ ...x", "(...a", ", ...b") is preceded by punctuation or
 # space and followed by an identifier, so it never matches.
 ELLIPSIS_RE = re.compile(r"(?<=[A-Za-z0-9)\]])\.\.\.(?![A-Za-z_$(\[{])")
+# title="…" / :title="…" on one line; a bound title is measured by its
+# longest string literal (the prose part of the expression)
+TITLE_RE = re.compile(r'(?<![\w-])(:?)title="([^"]*)"')
+STRING_LIT_RE = re.compile(r"'((?:[^'\\]|\\.)*)'|`((?:[^`\\]|\\.)*)`")
+LONG_TITLE_MAX = 90
+REASON_RE = re.compile(r'(?<![\w-])(:?)reason="([^"]*)"')
+REASON_CONST_RE = re.compile(r'const\s+[A-Z0-9_]*(?:REASON|TITLE)[A-Z0-9_]*\s*=\s*(["\'`])((?:(?!\1).)*)\1')
+LONG_REASON_MAX = 60
 # a unit right after a mustache or a template-literal interpolation
 UNIT_LITERAL_RE = re.compile(r"(?:\}\}|\$\{[^}]*\})\s?(?:mm|ms|%)(?![\w/])")
 
@@ -348,6 +367,20 @@ def template_findings(path: str) -> list[tuple[str, int, str]]:
             findings.append(("TOFIXED", ln, ".toFixed( in the template — format through format.ts"))
         if ELLIPSIS_RE.search(line):
             findings.append(("ELLIPSIS", ln, 'ASCII "..." in the template — write "…"'))
+        for m_t in TITLE_RE.finditer(line):
+            bound, text = m_t.group(1) == ":", m_t.group(2)
+            longest = (max((len(m.group(1) or m.group(2) or "") for m in STRING_LIT_RE.finditer(text)), default=0)
+                       if bound else len(text))
+            if longest > LONG_TITLE_MAX:
+                findings.append(("LONG_TITLE", ln, f"title of {longest} chars — move the explanation into a HelpIcon / .settingDesc / the explain path"))
+                break
+        for m_r in REASON_RE.finditer(line):
+            bound, text = m_r.group(1) == ":", m_r.group(2)
+            longest = (max((len(m.group(1) or m.group(2) or "") for m in STRING_LIT_RE.finditer(text)), default=0)
+                       if bound else len(text))
+            if longest > LONG_REASON_MAX:
+                findings.append(("LONG_REASON", ln, f"reason of {longest} chars — say why and what to do in {LONG_REASON_MAX}"))
+                break
         m_unit = UNIT_LITERAL_RE.search(line)
         # a CSS length inside a :style binding is layout, not a readout
         if m_unit and ":style=" not in line[:m_unit.start()]:
@@ -361,6 +394,15 @@ def template_findings(path: str) -> list[tuple[str, int, str]]:
                 tag += " " + lines[j]
             if "aria-label" not in tag:
                 findings.append(("CLOSE", ln, 'type="close" without aria-label — name the close for its context ("Close settings", "Dismiss upload error")'))
+    # A reason / title constant in the <script> (the SetupStrip reserved-row
+    # reason, the ScrubBar simulation reason): the same cap as the literals.
+    for idx, line in enumerate(lines):
+        ln = idx + 1
+        if tpl[0] <= ln <= tpl[1] or _template_audit_ok(lines, idx):
+            continue
+        for m_c in REASON_CONST_RE.finditer(line):
+            if len(m_c.group(2)) > LONG_REASON_MAX:
+                findings.append(("LONG_REASON", ln, f"reason constant of {len(m_c.group(2))} chars — say why and what to do in {LONG_REASON_MAX}"))
     return findings
 
 

@@ -38,11 +38,11 @@ def _payload(**over):
 
 
 # Reasons check_command/_deny_reason can return — used to assert a reply is (or
-# is not) a policy denial without coupling to exact wording.
-POLICY_DENIALS = {
-    "Not armed", "E-stop active", "Machine not on", "Machine not homed",
-    "Machine not idle",
-}
+# is not) a policy denial without coupling to exact wording: read from the
+# rules themselves, so a reworded reason cannot silently drop out of the set.
+import command_policy as _cp
+POLICY_DENIALS = {r[1] for r in (_cp._R_ARMED, _cp._R_NOT_ESTOP, _cp._R_ENABLED,
+                                 _cp._R_HOMED, _cp._R_IDLE)}
 
 
 class _RecordingCmd:
@@ -143,7 +143,7 @@ class TestDispatchEnforcement(unittest.TestCase):
     def test_not_armed_denied(self):
         r = self._send({"cmd": "cycle_start"}, armed=False)
         self.assertFalse(r["ok"])
-        self.assertEqual(r["error"], "Not armed")
+        self.assertEqual(r["error"], _cp._R_ARMED[1])
 
     def test_machine_on_denied_in_estop(self):
         r = self._send({"cmd": "machine_on"}, estop=True)
@@ -997,7 +997,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         # no plane
         r = self._send({"cmd": "set_kins_mode", "mode": 2}, kins_type=0, g5x_index=1,
                        **{**self.ALIGNED, "twp_defined": False})
-        self.assertFalse(r["ok"]); self.assertIn("No tilted work plane", r["error"])
+        self.assertFalse(r["ok"]); self.assertIn("No plane defined", r["error"])
         self.assertEqual(self._mdi_lines(), [])
         # an out-of-range mode is a payload rejection, not a silent M-code
         r = self._send({"cmd": "set_kins_mode", "mode": 3}, kins_type=0, g5x_index=1)

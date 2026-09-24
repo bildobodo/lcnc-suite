@@ -42,6 +42,7 @@ import { createSurfaceController } from "./viewer/surfaceController";
 import { createToolpathController, type ToolpathCtx } from "./viewer/toolpathController";
 import type { ViewerCtx } from "./viewer/viewerContext";
 import { createMachineLighting, MACHINE_SURFACE, createGroundGrid, updateGroundGridColors, createMachineEdgeMaterial } from "./viewer/sceneAppearance";
+import HelpIcon from "./HelpIcon.vue";
 import ViewCube from "./ViewCube.vue";
 import MachineBtn from "./MachineBtn.vue";
 import CameraPip from "./CameraPip.vue";
@@ -3911,28 +3912,26 @@ defineExpose({
       <div v-if="vst?.rotation_xy" class="hudWarn">Rotation {{ fmtNum(vst.rotation_xy, 1) }}°</div>
       <div v-if="foreignWcs.length" class="hudWarn">Program cuts in {{ foreignWcs.join(', ') }} — {{ props.g5xLabel }} active</div>
       <div v-if="rewrittenWcs.length" class="hudWarn">Program writes {{ rewrittenWcs.join(', ') }} — its preview ignores live edits there</div>
-      <div v-if="kinsEndWarn" class="hudWarn" :title="kinsEndWarn.title">{{ kinsEndWarn.text }}</div>
+      <!-- A HUD warning's "why" is a HelpIcon beside it (design wave D1,
+           UI-N32): the HUD ignores the pointer, so a title never showed on a
+           touchscreen; the icon alone takes taps (.hudWarn .helpIcon). -->
+      <div v-if="kinsEndWarn" class="hudWarn">{{ kinsEndWarn.text }} <HelpIcon label="Program ends in kinematics">{{ kinsEndWarn.title }}</HelpIcon></div>
       <!-- Stale-preview chips are REPORTS, not actions (operator, 2026-09-12:
            "what still clickable warnings do we have? is it needed?"). The
            gateway owns every re-parse decision — the schema edge once per
            file, the offset / tool-length drift edges when idle — so a click
            here could only race an edge about to fire, or repeat a schema
            parse that already failed. One source decides; the HUD says so. -->
-      <div v-if="previewSchemaStale" class="hudWarn"
-        :title="`Payload format ${previewSchemaStale.got ?? 'unstamped (older gateway)'}; this UI expects ${EXPECTED_PREVIEW_SCHEMA}. The gateway re-parses once with the installed code; if this stays, the install is half-upgraded — restart the suite.`">Preview from a different suite version — re-parsing; if it stays, restart the suite</div>
+      <div v-if="previewSchemaStale" class="hudWarn">Preview from a different suite version — re-parsing; if it stays, restart the suite <HelpIcon label="Preview version">Payload format {{ previewSchemaStale.got ?? 'unstamped (older gateway)' }}; this UI expects {{ EXPECTED_PREVIEW_SCHEMA }}. The gateway re-parses once with the installed code; if this stays, the install is half-upgraded — restart the suite.</HelpIcon></div>
       <!-- Same bar as the status banner (one fraction, previewRefreshPct):
            a fixed-width track under the chip, numbers in the tooltip. -->
       <template v-if="previewRefresh">
-        <div class="hudWarn"
-          :title="'The gateway is re-parsing the program (' + previewRefresh.reason + ') — ' + fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms) + '. The drawn path, soft-limit marks and simulation are stale until it lands.'">Preview re-parsing · {{ previewRefreshLabel(previewRefresh.reason) }}</div>
+        <div class="hudWarn">Preview re-parsing · {{ previewRefreshLabel(previewRefresh.reason) }} <HelpIcon label="Preview re-parsing">The gateway is re-parsing the program ({{ previewRefresh.reason }}) — {{ fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms) }}. The drawn path, limit marks and simulation are stale until it lands.</HelpIcon></div>
         <div class="progressTrack" :title="fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms)"><div class="progressFill" :style="{ width: previewRefreshPct + '%' }"></div></div>
       </template>
-      <div v-else-if="previewWcsStale" class="hudWarn"
-        title="A work offset this program uses was touched off after it was parsed — the gateway re-parses once the interpreter is idle and the offsets have settled">Preview uses older offsets — re-parses when idle</div>
-      <div v-if="previewTloStale" class="hudWarn"
-        :title="`Parsed with T${previewTloStale.tool} length ${fmtNum(previewTloStale.parsed, 3)}, table now ${fmtNum(previewTloStale.live, 3)} — line limit flags are stale until the gateway re-parses (idle)`">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parses when idle</div>
-      <div v-if="toolpathOverflow" class="hudWarn"
-        title="The per-line soft-limit validator flagged these moves — the same source as the marked lines in the program panel and the scrub bar's ◀ N limit violations ▶, which jumps between them (simulation mode, machine off). Validated against the offsets at parse time; a touch-off re-parses automatically.">{{ toolpathOverflowCount }} limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
+      <div v-else-if="previewWcsStale" class="hudWarn">Preview uses older offsets — re-parses when idle <HelpIcon label="Preview offsets">A work offset this program uses was touched off after it was parsed — the gateway re-parses once the interpreter is idle and the offsets have settled.</HelpIcon></div>
+      <div v-if="previewTloStale" class="hudWarn">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parses when idle <HelpIcon label="Preview tool length">Parsed with T{{ previewTloStale.tool }} length {{ fmtNum(previewTloStale.parsed, 3) }}, table now {{ fmtNum(previewTloStale.live, 3) }} — line limit flags are stale until the gateway re-parses (idle).</HelpIcon></div>
+      <div v-if="toolpathOverflow" class="hudWarn">{{ toolpathOverflowCount }} limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }} <HelpIcon label="Limit violations">The per-line soft-limit validator flagged these moves — the same source as the marked lines in the program panel and the scrub bar's ◀ N limit violations ▶, which jumps between them (simulation mode, machine off). Validated against the offsets at parse time; a touch-off re-parses automatically.</HelpIcon></div>
     </div>
 
     <!-- View navigation cube (top-right) -->
@@ -4129,6 +4128,9 @@ defineExpose({
   opacity: var(--opacity-subtle);
 }
 
+/* The HUD ignores the pointer (the camera works through it); the one thing
+   in it that takes a tap is a warning's help icon (design wave D1). */
+.hudWarn :deep(.helpIcon) { pointer-events: auto; }
 .hudWarn {
   font-size: calc(var(--fs-md) * var(--hud-scale));
   font-weight: var(--fw-medium);

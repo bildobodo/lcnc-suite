@@ -66,11 +66,14 @@ export async function measureLayout(root: Locator, name: string,
       // Inputs may intentionally scroll their value; button labels must fit.
       if (el.tagName === 'BUTTON' && (el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1))
         issue('clipped-label', `${label}: content ${el.scrollWidth} × ${el.scrollHeight}, box ${el.clientWidth} × ${el.clientHeight}`);
-      for (let parent = el.parentElement; parent && parent !== element; parent = parent.parentElement) {
+      // auto/scroll is intentional navigation, hidden/clip is not navigable.
+      // Judged on the part a scroll can bring into view: a control below the
+      // fold of an inner scroller is reached by that scroll, whatever hidden
+      // box surrounds the scroller (the side panel's .tab-content).
+      if (!scrolledOut) for (let parent = el.parentElement; parent && parent !== element; parent = parent.parentElement) {
         const css = getComputedStyle(parent), clip = parent.getBoundingClientRect();
-        // auto/scroll is intentional navigation, hidden/clip is not navigable.
-        if ((['hidden', 'clip'].includes(css.overflowX) && (rect.left < clip.left - 1 || rect.right > clip.right + 1)) ||
-            (['hidden', 'clip'].includes(css.overflowY) && (rect.top < clip.top - 1 || rect.bottom > clip.bottom + 1)))
+        if ((['hidden', 'clip'].includes(css.overflowX) && (vis.left < clip.left - 1 || vis.right > clip.right + 1)) ||
+            (['hidden', 'clip'].includes(css.overflowY) && (vis.top < clip.top - 1 || vis.bottom > clip.bottom + 1)))
           issue('clipped-control', `${label} is clipped by ${parent.tagName.toLowerCase()}.${parent.className}`);
       }
       visible.push({ x: vis.left - bounds.x, y: vis.top - bounds.y, width: vis.right - vis.left, height: vis.bottom - vis.top });
@@ -86,6 +89,41 @@ export async function measureLayout(root: Locator, name: string,
         if (dx > 1 && dy > 1) issues.push({ kind: 'overlap', controls: [controls[i]!.id, controls[j]!.id],
           detail: `${controls[i]!.label} overlaps ${controls[j]!.label} by ${dx.toFixed(1)} × ${dy.toFixed(1)}px` });
       }
+    }
+    // A separator crossed by a control: content that ran past its section
+    // lies on the rule that ends it (the probe grid's Edge Width row sat on
+    // the Parameters separator — design wave D1 live look).
+    const rules = [...element.querySelectorAll<HTMLElement>('.sep')].filter(el => el.getClientRects().length)
+      .map(el => el.getBoundingClientRect());
+    controls.forEach((c, i) => {
+      if (c.scrolledOut) return;
+      const a = visible[i]!;
+      for (const r of rules) {
+        const dx = Math.min(a.x + a.width, r.right - bounds.x) - Math.max(a.x, r.left - bounds.x);
+        const dy = Math.min(a.y + a.height, r.bottom - bounds.y) - Math.max(a.y, r.top - bounds.y);
+        if (dx > 1 && dy > 0) issues.push({ kind: 'crosses-separator', controls: [c.id],
+          detail: `${c.label} lies on a separator (${dx.toFixed(1)}px wide)` });
+      }
+    });
+    // Content that spills out of a box which neither grows nor scrolls: a
+    // fixed-height section whose content outgrew it lays its last row over
+    // whatever follows. Out-of-flow children (absolute/fixed) are excluded —
+    // an anchored help icon is placed there on purpose.
+    for (const box of element.querySelectorAll<HTMLElement>('*')) {
+      if (!box.getClientRects().length) continue;
+      const css = getComputedStyle(box);
+      if (css.overflowY !== 'visible' || css.display === 'inline' || box.clientHeight === 0) continue;
+      let bottom = -Infinity;
+      for (const child of box.children) {
+        const cs = getComputedStyle(child);
+        if (cs.position === 'absolute' || cs.position === 'fixed' || cs.display === 'none') continue;
+        const r = child.getBoundingClientRect();
+        if (r.height > 0) bottom = Math.max(bottom, r.bottom);   // a collapsing margin is no spill
+      }
+      const inner = box.getBoundingClientRect().bottom - (parseFloat(css.borderBottomWidth) || 0)
+        - (parseFloat(css.paddingBottom) || 0);
+      if (bottom > inner + 1) issues.push({ kind: 'overflowing-box', controls: [],
+        detail: `${box.tagName.toLowerCase()}.${[...box.classList].join('.')}: content ends ${(bottom - inner).toFixed(1)}px below its box` });
     }
     if (!controls.length) issues.push({ kind: 'empty', controls: [], detail: `${name}: no visible controls` });
     return { name, width: bounds.width, height: bounds.height, controls, issues };

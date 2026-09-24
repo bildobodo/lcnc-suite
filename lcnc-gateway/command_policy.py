@@ -105,21 +105,31 @@ class MachineState:
 # MUST stay in lockstep with lcnc-webui/src/permissions.ts applyClientOverlay.
 # The frontend `!busy` term is intentionally absent here (see module docstring),
 # which only ever makes these gates more permissive than the UI, never less.
-_R_ARMED = (lambda s: s.armed, "Not armed")
-_R_NOT_ESTOP = (lambda s: not s.is_estop, "E-stop active")
-_R_ENABLED = (lambda s: s.is_enabled, "Machine not on")
-_R_IDLE = (lambda s: s.is_idle, "Machine not idle")
-_R_HOMED = (lambda s: s.is_homed, "Machine not homed")
+# Operator reasons are SHORT: "why — what to do" in at most 60 characters
+# (design wave D1 live look, operator: "a short info why, not an abstract").
+# They are what a dimmed control says at the touch AND what a denied command
+# replies; the long explanations live in the docs and the help popovers.
+# test_command_policy.TestReasonLength sweeps every state for the cap.
+REASON_MAX_CHARS = 60
+_KINS_UNKNOWN = "Kinematics mode unknown — HAL reader stale"
+_MACHINE_FRAME_ONLY = "Machine frame only — select Machine"
+_HEAD_NOT_ALIGNED = "Head not aligned with the plane — press Orient"
+NOT_ARMED = "Not armed — press Arm"
+
+_R_ARMED = (lambda s: s.armed, NOT_ARMED)
+_R_NOT_ESTOP = (lambda s: not s.is_estop, "E-Stop active — reset E-Stop first")
+_R_ENABLED = (lambda s: s.is_enabled, "Machine off — press Power on")
+_R_IDLE = (lambda s: s.is_idle, "Machine busy — wait until it is idle")
+_R_HOMED = (lambda s: s.is_homed, "Not homed — press Home All")
 _R_NO_EOFFSET = (lambda s: not s.eoffset_enabled,
-                 "Surface compensation active — clear the eoffset first")
+                 "Surface compensation on — switch it off first")
 _R_ROTARY_ZERO = (lambda s: s.rotary_at_zero,
-                  "Rotary axis not at zero — surface-map Z compensation is a "
-                  "3-axis feature (the map does not tilt or ride the platter)")
-_R_RUNNING = (lambda s: s.is_running, "No program running to pause")
+                  "Rotary not at 0 — surface maps are 3-axis only")
+_R_RUNNING = (lambda s: s.is_running, "No program running")
 _R_NOT_PAUSED = (lambda s: not s.is_paused, "Program already paused")
-_R_PAUSED = (lambda s: s.is_paused, "No program paused to resume")
+_R_PAUSED = (lambda s: s.is_paused, "No program paused")
 _R_READY_OR_PAUSED = (lambda s: (s.is_idle and s.is_homed) or s.is_paused,
-                      "Must be homed and idle, or paused, to step")
+                      "Step needs a homed idle machine, or a pause")
 
 
 # ---------------------------------------------------------------------------
@@ -211,8 +221,7 @@ def raw_kins_for_semantic(semantic: int, twp_capable: bool,
 
 
 def _unsupported_mode_msg(s: MachineState) -> str:
-    return (f"Kinematics mode {s.kins_type} has no policy rule on this kins "
-            f"family — select the Machine (identity) frame first")
+    return f"Kinematics mode {s.kins_type} unsupported — select Machine"
 
 
 def touchoff_route(s: MachineState, letters):
@@ -229,33 +238,26 @@ def touchoff_route(s: MachineState, letters):
             return None, f"{l!r} is not an axis letter"
     k = semantic_kins(s)
     if k is None:
-        return None, "Kinematics mode unknown (reader stale) — touch-off refused"
+        return None, _KINS_UNKNOWN
     if k == 3:
         return None, _unsupported_mode_msg(s)
     if s.g5x_index is None:
-        return None, "Active fixture unknown — touch-off refused"
+        return None, "Active work offset unknown — HAL reader stale"
     if any(l in ROTARY_LETTERS for l in ls):
         if k != 0:
-            return None, ("Rotary touch-off needs the Machine (identity) jog "
-                          "frame — a rotary offset under TCP/Plane kinematics "
-                          "displaces the orient move")
+            return None, "Rotary touch-off needs the Machine frame"
         if s.g5x_index != 1:
-            return None, "Rotary offsets are allowed in G54 only"
+            return None, "Rotary touch-off works in G54 only"
     if k == 2:
         if not s.twp_active:
-            return None, ("Plane jog frame without an active plane — Orient "
-                          "first (G53.x), or switch to the Machine frame")
+            return None, "No active plane — press Orient or select Machine"
         if s.g5x_index != 6:
-            return None, ("Plane mode expects G59 (the plane fixture) active "
-                          "— select the Plane frame again")
+            return None, "Plane frame needs G59 — select Plane again"
         return "plane", None
     if s.twp_capable and s.g5x_index in RESERVED_FIXTURES:
-        return None, ("G59–G59.3 are TWP scratch rows rewritten by every "
-                      "orient — touch off into G54–G58")
+        return None, "G59–G59.3 are reserved — touch off in G54–G58"
     if k == 1 and not s.a_at_zero:
-        return None, ("TCP touch-off needs the table at A=0 (the fixture is "
-                      "stored as a table-frame point) — jog A to 0 or use "
-                      "the Machine frame")
+        return None, "TCP touch-off needs A at 0 — jog A to 0 or select Machine"
     if k not in (0, 1):
         return None, _unsupported_mode_msg(s)
     return "mdi", None
@@ -276,16 +278,13 @@ def kins_runnable(s: MachineState) -> Optional[str]:
     k = semantic_kins(s)
     if k is None:
         # Same reading as touchoff_route: unknown is not identity.
-        return "Kinematics mode unknown (reader stale) — start refused"
+        return _KINS_UNKNOWN
     if k == 3:
         return _unsupported_mode_msg(s)
     if k == 2 and not s.twp_active:
-        return ("Plane kinematics is active with no active plane — select the "
-                "Machine frame or G69 before starting")
+        return "Plane kinematics without a plane — select Machine"
     if k == 2 and s.g5x_index is not None and s.g5x_index != 6:
-        return ("Plane kinematics is active but G54 (not G59, the plane fixture) "
-                "is selected — a program ended with TOOL kinematics on. Select the "
-                "Plane frame again (M430 selects G59), or the Machine frame / G69")
+        return "Plane kinematics without G59 — select Plane or Machine"
     return None
 
 
@@ -302,12 +301,11 @@ def machine_frame_required(s: MachineState) -> Optional[str]:
     zero, what will happen?"). Pure."""
     k = semantic_kins(s)
     if k is None:
-        return "Kinematics mode unknown (reader stale) — refused"
+        return _KINS_UNKNOWN
     if k == 3:
         return _unsupported_mode_msg(s)
     if k != 0:
-        return ("Machine frame required — G53 moves are tilted-frame moves under "
-                "TCP or Plane kinematics; select the Machine frame first")
+        return _MACHINE_FRAME_ONLY
     return None
 
 
@@ -315,8 +313,7 @@ def machine_frame_required(s: MachineState) -> Optional[str]:
 # (R-01: the shipped trt remaps M428 to its world kins), so operator wording
 # names the frame — the JogStrip radio and the typed set_kins_mode command
 # own the number.
-_R_MACHINE_FRAME = (lambda s: machine_frame_required(s) is None,
-                    "Machine frame required — select the Machine frame first")
+_R_MACHINE_FRAME = (lambda s: machine_frame_required(s) is None, _MACHINE_FRAME_ONLY)
 
 
 def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,
@@ -351,7 +348,7 @@ def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,
     machine top nor the tool axis is a world axis there. Pure; unit-tested."""
     k = semantic_kins(s)
     if k is None:
-        return None, "Kinematics mode unknown (reader stale) — refused"
+        return None, _KINS_UNKNOWN
     if k == 3:
         return None, _unsupported_mode_msg(s)
     if k == 0:
@@ -361,32 +358,28 @@ def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,
                 sk = int(round(float(stamp.get("kins") or 0)))
                 a = float(stamp.get("a") or 0.0)
             except (TypeError, ValueError):
-                return None, "Fixture provenance unreadable — refused"
+                return None, "Work offset record unreadable — touch off again"
         if sk not in (None, 0):
-            return None, (f"The active fixture was touched off in "
-                          f"{'TCP' if sk == 1 else 'Plane'} kinematics — its numbers are not "
-                          f"machine coordinates; select that frame, or touch off again here")
+            return None, (f"Offset set in {'TCP' if sk == 1 else 'Plane'} — "
+                          f"select {'TCP' if sk == 1 else 'Plane'} or touch off again")
         if not math.isfinite(a):
-            return None, "Fixture provenance unreadable — refused"
+            return None, "Work offset record unreadable — touch off again"
         return [f"O<go_to_zero> CALL [{a:.4f}]"], None
     if k == 1:
-        return None, ("Go to WCS 0 under TCP: neither the machine top nor the tool axis is a "
-                      "world axis here — select the Machine frame or the Plane frame first")
+        return None, "Not in TCP — select Machine or Plane"
     if not s.twp_active or s.g5x_index != 6:
-        return None, ("Plane kinematics without its plane fixture — select the Plane frame "
-                      "again (M430), or the Machine frame / G69")
+        return None, "Plane kinematics without G59 — select Plane or Machine"
     if not s.twp_aligned:
         # The retract is "along the tool axis" only while the head still
         # points where the last orient put it (TWP-04).
-        return None, ("Head not aligned with the plane (a rotary moved since the last "
-                      "orient, or no orient yet) — press Orient before Go to WCS 0")
+        return None, _HEAD_NOT_ALIGNED
     if not math.isfinite(float(clearance)) or float(clearance) < 0:
-        return None, "Clearance unreadable — refused"
+        return None, "Retract clearance unreadable"
     return [f"O<twp_goto_zero> CALL [{float(clearance):.4f}] [{1 if metric else 0}]"], None
 
 
 _R_GOZERO = (lambda s: goto_zero_plan(s, 0.0, 0.0)[1] is None,
-             "Go to WCS 0 (→ Zero) is not available under this kinematics mode")
+             "Not in this kinematics mode — select Machine")
 
 
 #: Plane-frame admission (TWP-04), ordered — ONE source for the handler's
@@ -396,13 +389,11 @@ _R_GOZERO = (lambda s: goto_zero_plan(s, 0.0, 0.0)[1] is None,
 #: defined and the head is still aligned with it.
 _PLANE_FRAME_RULES = (
     (lambda s: s.twp_capable,
-     "Not a TWP machine — there is no Plane frame"),
-    (lambda s: s.kins_type is not None,
-     "Kinematics mode unknown (reader stale) — Plane frame refused"),
+     "No Plane frame on this machine"),
+    (lambda s: s.kins_type is not None, _KINS_UNKNOWN),
     (lambda s: s.twp_defined,
-     "No tilted work plane defined (G68.2 / G68.3 or Capture) — nothing to jog in"),
-    (lambda s: s.twp_aligned,
-     "Head not aligned with the plane — press Orient (G53.x) before selecting the Plane frame"),
+     "No plane defined — Capture one or run G68.2"),
+    (lambda s: s.twp_aligned, _HEAD_NOT_ALIGNED),
 )
 
 
@@ -417,18 +408,15 @@ def plane_frame_check(s: MachineState) -> Optional[str]:
 
 
 _R_RUNNABLE = (lambda s: kins_runnable(s) is None,
-               "Kinematics state not runnable (Plane kinematics without its plane "
-               "or fixture) — select the Machine frame / G69, or the Plane frame")
+               "Plane kinematics without a plane — select Machine")
 
 
 _R_TOUCHOFF_LINEAR = (
     lambda s: touchoff_route(s, ("X",))[0] is not None,
-    "Touch-off refused here: on a TWP machine G59–G59.3 are scratch rows (use G54–G58); "
-    "Plane mode needs an active plane with G59 selected; TCP needs A=0; "
-    "an unknown kinematics mode refuses")
+    "No touch-off in this frame or work offset")
 _R_TOUCHOFF_ROTARY = (
     lambda s: touchoff_route(s, ("A",))[0] is not None,
-    "Rotary touch-off is allowed in the Machine jog frame and G54 only")
+    "Rotary touch-off: Machine frame and G54 only")
 
 
 #: Capture-plane admission rules, ordered — ONE source for three consumers:
@@ -441,21 +429,18 @@ _TWP_CAPTURE_RULES = (
     # Capability, not switchability: a TCP trunnion is switchable and has no
     # G68.2 / G53.x remap to capture with (TWP-08b).
     (lambda s: s.twp_capable,
-     "Not a TWP machine — plane capture needs the xyzacb-trsrn TWP stack"),
-    (lambda s: s.kins_type is not None,
-     "Kinematics mode unknown (reader stale) — capture refused"),
+     "No plane capture on this machine"),
+    (lambda s: s.kins_type is not None, _KINS_UNKNOWN),
     (lambda s: s.g5x_index is not None,
-     "Active fixture unknown — capture refused"),
+     "Active work offset unknown — HAL reader stale"),
     (lambda s: not s.twp_defined,
      "A plane is already defined — press Clear plane first"),
     (lambda s: s.g5x_index == 1,
-     "Capture defines the plane on the G54 datum — select G54 first "
-     "(G59–G59.3 are TWP scratch rows)"),
+     "Capture works on G54 — select G54 first"),
     (lambda s: s.rotary_offsets_clean,
-     "A rotary (A/B/C) work or G92 offset is in effect — clear it "
-     "(G10 L2 P1 A0 B0 C0 / G92.1) before capturing"),
+     "Rotary offset active — clear A/B/C offsets and G92"),
     (lambda s: s.g92_xyz_clean,
-     "A G92 X/Y/Z offset is in effect — G92.1 before capturing"),
+     "G92 offset active — run G92.1 first"),
 )
 
 
@@ -553,6 +538,10 @@ def _gate_reason(gate: str, s: MachineState) -> Optional[str]:
                 return machine_frame_required(s) or message
             if ok is _R_GOZERO[0]:
                 return goto_zero_plan(s, 0.0, 0.0)[1] or message
+            if ok is _R_TOUCHOFF_LINEAR[0]:
+                return touchoff_route(s, ("X",))[1] or message
+            if ok is _R_TOUCHOFF_ROTARY[0]:
+                return touchoff_route(s, ("A",))[1] or message
             return message
     return None
 

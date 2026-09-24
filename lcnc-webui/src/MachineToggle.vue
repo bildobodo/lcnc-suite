@@ -48,6 +48,6 @@ function onChange(e: Event) {
       :checked="modelValue ?? false"
       @change="onChange"
       :disabled="isDisabled">
-    {{ label }}<HelpIcon v-if="help">{{ help }}</HelpIcon>
+    {{ label }}<HelpIcon v-if="help" :label="label">{{ help }}</HelpIcon>
   </label>
 </template>
