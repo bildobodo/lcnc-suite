@@ -16,7 +16,8 @@ tab is connected) and prints, per launcher-started gateway and per page:
              (after it, only the 10 s backstop can close a held attempt)
   probes     ws.probe phases the page reported (down / still_down / up)
 
-A page is one document: t_wall_ms - t_perf_ms (its navigation start).
+A page is one document: its telemetry `page` id (older traces: its
+navigation start, t_wall_ms - t_perf_ms).
 Baseline before the gate — boots 09-19 21:59 and 09-23 19:46: the first Mac
 Firefox tab connected 58 s / 41 s after the boot; pages loaded meanwhile read
 "never" (reloaded while waiting) or 16.1 / 6.2 s, each with held_to 1–4.
@@ -45,6 +46,13 @@ def _default_log_dir() -> str:
         return lcnc_paths.resolve()[0]
     except Exception:  # safe-silent: fall back to the resolver's documented default
         return os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "runlogs")
+
+
+PAGE_GAP_MS = 100.0
+
+
+def _origin(e: dict) -> float:
+    return e["t_wall_ms"] - e["t_perf_ms"]
 
 
 def _hms(ms: float) -> str:
@@ -87,29 +95,46 @@ def report(boots: dict[int, float], rows: list[dict], last: int | None) -> int:
     if not order:
         print("no launcher-started gateway in the trace")
         return 1
-    # A page's browser is known from its ws.client_env, which may have reached
-    # an EARLIER gateway's trace window (the page outlived that gateway).
-    ua_of: dict[int, str] = {}
+    # One page = one document. Telemetry carries its `page` id since
+    # 2026-09-24; older events only have the navigation start
+    # (t_wall_ms - t_perf_ms), which jitters ~1 ms within a page — cluster those
+    # by gap. (Two machines' clocks can still put two tabs within the gap: the
+    # reason the id exists.)
+    origins = sorted({_origin(e) for e in rows if "page" not in e})
+    cluster: dict[float, float] = {}
+    for i, o in enumerate(origins):
+        prev = origins[i - 1] if i else None
+        cluster[o] = cluster[prev] if prev is not None and o - prev <= PAGE_GAP_MS else o
+
+    def key(e: dict) -> str:
+        return f"id:{e['page']}" if "page" in e else f"t:{cluster[_origin(e)]}"
+
+    loaded_at: dict[str, float] = {}
+    ua_of: dict[str, str] = {}
     for e in rows:
+        k = key(e)
+        loaded_at[k] = min(loaded_at.get(k, float("inf")), _origin(e))
+        # A page's browser is known from its ws.client_env, which may have
+        # reached an EARLIER gateway's trace window (the page outlived it).
         if e["tag"] == "browser.ws.client_env":
-            ua_of[round((e["t_wall_ms"] - e["t_perf_ms"]) / 1000)] = _ua(e.get("ua", ""))
+            ua_of[k] = _ua(e.get("ua", ""))
     held_total = 0
     for i, (pid, boot) in enumerate(order):
         end = order[i + 1][1] if i + 1 < len(order) else float("inf")
-        pages: dict[int, list[dict]] = defaultdict(list)
+        pages: dict[str, list[dict]] = defaultdict(list)
         for e in rows:
             if e.get("pid") == pid:
-                pages[round((e["t_wall_ms"] - e["t_perf_ms"]) / 1000)].append(e)
+                pages[key(e)].append(e)
         print(f"\ngateway pid {pid}  boot {_hms(boot)}")
         if not pages:
             print("  (no browser telemetry)")
             continue
         print(f"  {'page loaded':<15} {'browser':<13} {'open_s':>7} {'attempts':>8} {'held_to':>7}  probes")
-        for origin, evs in sorted(pages.items()):
+        for k, evs in sorted(pages.items(), key=lambda kv: loaded_at[kv[0]]):
             evs.sort(key=lambda e: e["t_wall_ms"])
-            ua = ua_of.get(origin, "?")
-            loaded = min(e["t_wall_ms"] - e["t_perf_ms"] for e in evs)   # unrounded
-            since = max(boot, loaded)
+            ua = ua_of.get(k, "?")
+            origin = loaded_at[k]
+            since = max(boot, origin)
             up = [e for e in evs if boot <= e["t_wall_ms"] < end]
             opens = [e for e in up if e["tag"] == "browser.ws.open"]
             attempts = sum(1 for e in up if e["tag"] == "browser.ws.connect.attempt")
@@ -118,7 +143,7 @@ def report(boots: dict[int, float], rows: list[dict], last: int | None) -> int:
             held_total += held
             probes = ",".join(e.get("phase", "?") for e in up if e["tag"] == "browser.ws.probe")
             open_s = f"{(opens[0]['t_wall_ms'] - since) / 1000:.1f}" if opens else "never"
-            print(f"  {_hms(origin * 1000):<15} {ua:<13} {open_s:>7} {attempts:>8} {held:>7}  {probes or '-'}")
+            print(f"  {_hms(origin):<15} {ua:<13} {open_s:>7} {attempts:>8} {held:>7}  {probes or '-'}")
     print(f"\nheld attempts while a gateway was up: {held_total}")
     return 0
 

@@ -6167,3 +6167,15 @@ Network" privacy permission for Chrome, an operator setting, not the suite.
 Measurement: `scripts/ws_reconnect_report.py` — per gateway boot and page,
 seconds to the first open, attempts, and attempts the browser held
 (`held_to`).
+
+Live result (2026-09-24, suite run from the fix branch, LinuxCNC off 8.5 min
+with Mac Firefox, Mac Chrome and VM Firefox tabs open): the old Mac Firefox
+tab probed 479 times, reported `up` and opened its socket 0.8 s after the
+gateway's boot (12 ms handshake); the tabs Vite then reloaded opened 0.8 /
+0.9 / 0.6 s after their load; no attempt was held (`held_to` 0). The same
+test on the old code the evening before: the Mac Firefox tab's attempts 45–51
+were all held and cancelled, it connected only after Vite's reload, ~31 s
+after the boot. Chrome was fast either way (it has no cross-port per-IP
+queue). Telemetry events now carry a per-document `page` id: the report had
+merged two tabs whose navigation starts, on two machines' clocks, fell within
+the same instant.

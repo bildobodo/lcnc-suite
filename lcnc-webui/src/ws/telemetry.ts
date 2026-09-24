@@ -22,6 +22,11 @@ const _TELEMETRY_MAX_QUEUE = 200;
 const _TELEMETRY_FLUSH_MS = 2000;
 const _TELEMETRY_BATCH_MAX = 32;
 let _telemetryFlushScheduled = false;
+// One id per document, on every event: the trace tells tabs apart without
+// guessing from t_wall_ms - t_perf_ms — two tabs reloaded by the same Vite
+// restart on two machines' clocks can start within milliseconds of each other
+// (scripts/ws_reconnect_report.py, 2026-09-24).
+const _PAGE_ID = Math.random().toString(36).slice(2, 10);
 
 export function emitTelemetry(kind: string, fields: Record<string, any> = {}): void {
   // performance.timing isn't valid for our wall-aligned ms but Date.now is;
@@ -30,6 +35,7 @@ export function emitTelemetry(kind: string, fields: Record<string, any> = {}): v
     kind,
     t_wall_ms: Date.now(),
     t_perf_ms: Math.round(performance.now()),
+    page: _PAGE_ID,
     ...fields,
   };
   _telemetryQueue.push(evt);

@@ -40,6 +40,9 @@ describe("telemetry batcher", () => {
     expect(evts.map(e => e.kind)).toEqual(["a", "b"]);
     expect(evts[0]).toMatchObject({ kind: "a", n: 1 });
     expect(evts[0]!.t_wall_ms).toBeTypeOf("number");
+    // One page id per document, identical on every event.
+    expect(evts[0]!.page).toMatch(/^[a-z0-9]+$/);
+    expect(evts[1]!.page).toBe(evts[0]!.page);
   });
 
   it("flushes early when the queue hits the 32-event batch size", () => {
