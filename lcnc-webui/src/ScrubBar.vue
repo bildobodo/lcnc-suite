@@ -33,7 +33,7 @@ import type { CollisionResult } from "./viewer/collision";
 import { EVENT_NONE } from "./viewer/eventIndex";
 import { mergedSweptFraction } from "./viewer/sweepMerge";
 import { limitViolationText } from "./ws/bulkData";
-import { fmtElapsed, fmtNum } from "./format";
+import { fmtElapsed, fmtDist } from "./format";
 import { Play, Pause, X, Triangle, Circle } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
@@ -441,7 +441,7 @@ const posLabel = computed(() => {
   if (track.value?.timeBased) {
     return `${fmtElapsed(Math.floor(sPos.value))}/${fmtElapsed(Math.floor(cumMax.value))}`;
   }
-  return `${pct.value}%`;
+  return `${pct.value} %`;
 });
 
 /** ---------- run-time display (unified timeline phase 2 + review P3) ---------- */
@@ -988,7 +988,7 @@ onUnmounted(() => {
         <span class="btnTip" :title="violationsTitle">
           <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)"
                       @click="jumpTo(nextViolationT)">
-            {{ violationsTotal }} limit{{ violationsTotal === 1 ? "" : "s" }}
+            {{ violationsTotal }} limit violation{{ violationsTotal === 1 ? "" : "s" }}
           </MachineBtn>
         </span>
         <span class="btnTip" title="Next soft-limit violation">
@@ -1004,7 +1004,7 @@ onUnmounted(() => {
            from the unrefined partial). Parked/truncated with no hits is "no
            clash in N % swept" — never "clear" for a part-swept program. -->
       <template v-if="shownResult">
-        <span v-if="shownResult.pairCount === 0" class="val-status muted" title="No body pair moves relative to another — nothing to check">no moving pairs</span>
+        <span v-if="shownResult.pairCount === 0" class="val-status muted" title="No body pair moves relative to another — nothing to check">No moving pairs</span>
         <template v-else-if="hits.length">
           <span class="btnTip" title="Previous collision (from the current timeline position)">
             <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
@@ -1014,27 +1014,27 @@ onUnmounted(() => {
                 :title="`Collision hits — click to simulate the next one${!simMode && !machineOff ? ' (turn the machine OFF first)' : ''}${shownResult.staticContacts.length ? `\nIn contact from the start (excluded): ${shownResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
             <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
                         @click="jumpTo(nextHitT)">
-              {{ hitTargets.length }} clash{{ hitTargets.length === 1 ? "" : "es" }}
+              {{ hitTargets.length }} collision{{ hitTargets.length === 1 ? "" : "s" }}
             </MachineBtn>
           </span>
           <span class="btnTip" title="Next collision">
             <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
                         @click="jumpTo(targetAfter(hitTargets, sPos))">&#9654;</MachineBtn>
           </span>
-          <span class="navTarget val-status mono">{{ nextHitT ? "→ " + (nextHitT.line ? "L" + nextHitT.line : "entry") + (nextHitT.reentry ? " (re-entry)" : "") + (nextHitT.rapid ? " (rapid)" : "") + ((nextHitT.dist ?? 0) > 0.001 ? ` ~${fmtNum(nextHitT.dist, 1)}mm` : "") + ((nextHitT.spanEndLine ?? nextHitT.line) > nextHitT.line ? ` … through L${nextHitT.spanEndLine}` : "") : "" }}</span>
+          <span class="navTarget val-status mono">{{ nextHitT ? "→ " + (nextHitT.line ? "L" + nextHitT.line : "entry") + (nextHitT.reentry ? " (re-entry)" : "") + (nextHitT.rapid ? " (rapid)" : "") + ((nextHitT.dist ?? 0) > 0.001 ? ` ~${fmtDist(nextHitT.dist ?? 0, linearUnit)}` : "") + ((nextHitT.spanEndLine ?? nextHitT.line) > nextHitT.line ? ` … through L${nextHitT.spanEndLine}` : "") : "" }}</span>
           <span v-if="collisionBusy" class="val-status muted" title="The collision check is still running — positions refine when it ends">so far</span>
           <span v-else-if="collisionStopped && collisionResumable" class="val-status warn" :title="stoppedTitle">in {{ pctOf(collisionStopped.covered) }} swept</span>
         </template>
-        <span v-else-if="collisionBusy" class="val-status muted" title="The collision check is still running">no clash so far</span>
+        <span v-else-if="collisionBusy" class="val-status muted" title="The collision check is still running">No collision so far</span>
         <span v-else-if="collisionStopped && collisionResumable" class="val-status warn" :title="stoppedTitle">
-          no clash in {{ pctOf(collisionStopped.covered) }} swept
+          No collision in {{ pctOf(collisionStopped.covered) }} swept
         </span>
         <span v-else-if="shownResult.truncated" class="val-status warn"
-              :title="`No clash in the ${pctOf(shownResult.truncated.covered)} of the ${routeWord} swept (${shownResult.truncated.reason === 'samples' ? 'sample backstop' : shownResult.truncated.reason}) — the rest is UNCHECKED (${shownResult.samples} samples, ${shownResult.pairCount} pairs)`">
-          no clash in {{ pctOf(shownResult.truncated.covered) }} swept
+              :title="`No collision in the ${pctOf(shownResult.truncated.covered)} of the ${routeWord} swept (${shownResult.truncated.reason === 'samples' ? 'sample backstop' : shownResult.truncated.reason}) — the rest is UNCHECKED (${shownResult.samples} samples, ${shownResult.pairCount} pairs)`">
+          No collision in {{ pctOf(shownResult.truncated.covered) }} swept
         </span>
         <span v-else class="val-status ok" :title="`${shownResult.samples} samples, ${shownResult.pairCount} pairs${shownResult.staticContacts.length ? `; in contact from the start (excluded): ${shownResult.staticContacts.map(c => c.a + '/' + c.b).join(', ')}` : ''}`">
-          clear
+          Clear
         </span>
         <!-- Shown on BOTH branches: a sweep that found clashes is no more
              certified than one that found none, so the caveat cannot live

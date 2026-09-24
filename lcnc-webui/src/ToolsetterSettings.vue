@@ -162,24 +162,24 @@ watch(settingsVersion, () => { loadTsParams(); });
     <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.traverseFeed" min="1" :step="STEP_FEED" @change="saveTsParams" />
     <label>Max Z Travel<HelpIcon>Maximum downward travel before the probe aborts if no contact. Safety limit to prevent crashes if the touch plate is missing. (#3007)</HelpIcon></label>
     <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.maxZTravel" min="1" :step="STEP_DEFAULT" @change="saveTsParams" />
-    <label>Retract Dist<HelpIcon>Distance the tool retracts upward after fast probe contact before the slow pass begins. The slow pass probes 2× this distance. (#3009)</HelpIcon></label>
+    <label>Retract Distance<HelpIcon>Distance the tool retracts upward after fast probe contact before the slow pass begins. The slow pass probes 2× this distance. (#3009)</HelpIcon></label>
     <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.retractDist" min="0.1" :step="STEP_DEFAULT" @change="saveTsParams" />
-    <label>Spindle Zero H<HelpIcon>G53 Z distance from spindle nose to touch plate surface with no tool loaded. Reference for zero-length tools. Measure carefully during initial setup. (#3010)</HelpIcon></label>
+    <label>Spindle Zero Height<HelpIcon>G53 Z distance from spindle nose to touch plate surface with no tool loaded. Reference for zero-length tools. Measure carefully during initial setup. (#3010)</HelpIcon></label>
     <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.spindleZeroHeight" min="0" :step="STEP_DEFAULT" @change="saveTsParams" />
 
     <div class="sep span"></div>
 
     <!-- Options -->
     <div class="sub span">Options</div>
-    <label>Tool Min Dist<HelpIcon>Safety clearance between the expected tool tip position and the touch plate when using tool table pre-positioning. Increase for widely varying tool lengths. (#3104)</HelpIcon></label>
+    <label>Tool Min Distance<HelpIcon>Safety clearance between the expected tool tip position and the touch plate when using tool table pre-positioning. Increase for widely varying tool lengths. (#3104)</HelpIcon></label>
     <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.toolMinDis" min="0" :step="STEP_DEFAULT" @change="saveTsParams" />
     <label>Extra Retries<HelpIcon>Number of extra retry attempts if probe contact fails. Each failure pauses for operator correction before retrying. Set to 0 for ATC. (#3109)</HelpIcon></label>
     <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.addReps" min="0" :step="STEP_DEFAULT" @change="saveTsParams" />
     <div class="toggleGrid span">
       <MachineToggle gate="toolsetterParam" v-model="tsUseToolTable" label="Use Tool Table" help="When enabled, uses the tool table length to calculate a closer probe start height — faster for known tools. Disable during initial setup or if tool table data is unreliable. (#3103)" />
       <MachineToggle gate="toolsetterParam" v-model="tsGoBackToStart" label="Return to Start" help="After measurement, return to the XYZ position where M600 was called. Disable only if the tool change is at the end of a program. (#3106)" />
-      <MachineToggle gate="toolsetterParam" v-model="tsDisablePrePos" label="Skip G30 Pre-Pos" help="Skip the G30 pre-positioning move before traveling to the touch plate. Faster, but risks collision with clamps or fixtures on uncluttered machines only. (#3108)" />
-      <MachineToggle gate="toolsetterParam" v-model="tsLastTry" label="Last Try w/o Table" help="On the final retry attempt, ignore tool table offsets and use spindle zero height instead. Provides a fallback for tools with incorrect table entries. (#3110)" />
+      <MachineToggle gate="toolsetterParam" v-model="tsDisablePrePos" label="Skip G30 Pre-Position" help="Skip the G30 pre-positioning move before traveling to the touch plate. Faster, but risks collision with clamps or fixtures on uncluttered machines only. (#3108)" />
+      <MachineToggle gate="toolsetterParam" v-model="tsLastTry" label="Last Try Without Table" help="On the final retry attempt, ignore tool table offsets and use spindle zero height instead. Provides a fallback for tools with incorrect table entries. (#3110)" />
     </div>
     <label>Brake After<HelpIcon>Pause after tool measurement: None = continue immediately, M00 = mandatory stop (press Cycle Start to resume), M01 = optional stop (active only when block delete is off). (#3105)</HelpIcon></label>
     <div class="radioGroup inline spanRow">
@@ -198,7 +198,7 @@ watch(settingsVersion, () => { loadTsParams(); });
     <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.offsetDiameter" min="0" :step="STEP_DEFAULT" @change="saveTsParams" />
     <label>Offset %<HelpIcon>Percentage of tool diameter to offset the probe position. Example: 20% on a large tool offsets the probe position by 20% of the diameter from center. (#3112)</HelpIcon></label>
     <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.offsetValue" min="0" max="100" :step="STEP_DEFAULT" @change="saveTsParams" />
-    <label>Offset Dir<HelpIcon>Axis direction to offset the probe position for large tools: X−, X+, Y−, or Y+. Choose based on your machine layout to avoid clamp or fixture collisions. (#3013)</HelpIcon></label>
+    <label>Offset Direction<HelpIcon>Axis direction to offset the probe position for large tools: X−, X+, Y−, or Y+. Choose based on your machine layout to avoid clamp or fixture collisions. (#3013)</HelpIcon></label>
     <div class="radioGroup inline spanRow">
       <label v-for="d in [0, 1, 2, 3]" :key="d"><MachineRadio gate="toolsetterParam" name="offsetDirection" :value="d" v-model.number="tsParams.offsetDirection" @update:modelValue="saveTsParams()" /> {{ OFFSET_DIR_LABELS[d] }}</label>
     </div>
@@ -211,7 +211,7 @@ watch(settingsVersion, () => { loadTsParams(); });
     <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.finderTouchX" :step="STEP_DEFAULT" @change="saveTsParams" />
     <label>Finder Y<HelpIcon>Y position (G53) of a secondary edge-finder reference point. Used only when the selected tool matches the probe tool number. (#3114)</HelpIcon></label>
     <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.finderTouchY" :step="STEP_DEFAULT" @change="saveTsParams" />
-    <label>Finder Z Diff<HelpIcon>Height difference between the edge-finder reference surface and the normal touch plate surface. May be negative if the reference is lower. (#3115)</HelpIcon></label>
+    <label>Finder Z Difference<HelpIcon>Height difference between the edge-finder reference surface and the normal touch plate surface. May be negative if the reference is lower. (#3115)</HelpIcon></label>
     <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.finderDiffZ" :step="STEP_DEFAULT" @change="saveTsParams" />
     <span></span><span></span>
     <label>Probe Tool #<HelpIcon>Probe tool number, shared with the Probing tab. Must match the tool loaded in the spindle before any probe operation. (#3014)</HelpIcon></label>

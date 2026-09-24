@@ -53,6 +53,14 @@ WS-C extension — design-token drift checks over every .vue <style> block
   CLOSE      — `<MachineBtn type="close"` without an `aria-label`: a close
                control is named for its context ("Close settings",
                "Dismiss upload error"), never announced as "times" (UX-05).
+  ELLIPSIS   — an ASCII "..." after a word in the <template> (visible
+               text, placeholders, labels): the UI writes "…" (design wave
+               D0, UI-N01). A spread (`{ ...x }`, `(...args)`) is not text
+               and never matches.
+  UNIT_LITERAL — a unit glued to an interpolation in the <template>
+               (`{{ v }}mm`, `${v}%`, `{{ v }} ms`): units come from their
+               source and a formatter (fmtPct/fmtQty/fmtDist/fmtUnit in
+               format.ts), never a literal next to a number (UI-N02–N04).
 
 The <template> range is NESTING-AWARE: a nested `<template v-if>` /
 `<template #slot>` no longer ends the scan at its `</template>` (App.vue's
@@ -305,6 +313,14 @@ def hl_in_percent_slot(val: str) -> list[str]:
     return bad
 
 
+# "word..." / "3..." / ")..." — an ellipsis written as three dots after a
+# word; a spread ("{ ...x", "(...a", ", ...b") is preceded by punctuation or
+# space and followed by an identifier, so it never matches.
+ELLIPSIS_RE = re.compile(r"(?<=[A-Za-z0-9)\]])\.\.\.(?![A-Za-z_$(\[{])")
+# a unit right after a mustache or a template-literal interpolation
+UNIT_LITERAL_RE = re.compile(r"(?:\}\}|\$\{[^}]*\})\s?(?:mm|ms|%)(?![\w/])")
+
+
 def _template_audit_ok(lines: list[str], idx: int) -> bool:
     here = lines[idx]
     above = lines[idx - 1] if idx > 0 else ""
@@ -312,9 +328,9 @@ def _template_audit_ok(lines: list[str], idx: int) -> bool:
 
 
 def template_findings(path: str) -> list[tuple[str, int, str]]:
-    """INLINE (static style=), TOFIXED (number formatting) and CLOSE (an
-    unnamed close control) inside the SFC's top-level template — nothing
-    outside it (script/style)."""
+    """INLINE (static style=), TOFIXED (number formatting), CLOSE (an
+    unnamed close control), ELLIPSIS and UNIT_LITERAL inside the SFC's
+    top-level template — nothing outside it (script/style)."""
     findings: list[tuple[str, int, str]] = []
     tpl = template_range(path)
     if not tpl:
@@ -330,6 +346,12 @@ def template_findings(path: str) -> list[tuple[str, int, str]]:
             findings.append(("INLINE", ln, "static style=\"…\" — use a utility class (.w-full) or a scoped layout rule"))
         if ".toFixed(" in line:
             findings.append(("TOFIXED", ln, ".toFixed( in the template — format through format.ts"))
+        if ELLIPSIS_RE.search(line):
+            findings.append(("ELLIPSIS", ln, 'ASCII "..." in the template — write "…"'))
+        m_unit = UNIT_LITERAL_RE.search(line)
+        # a CSS length inside a :style binding is layout, not a readout
+        if m_unit and ":style=" not in line[:m_unit.start()]:
+            findings.append(("UNIT_LITERAL", ln, "unit literal glued to an interpolation — format it through format.ts (fmtPct/fmtQty/fmtDist/fmtUnit)"))
         # a close control without an accessible name: read the whole tag (it
         # may span lines) and look for aria-label / :aria-label on it
         if '<MachineBtn' in line and 'type="close"' in line:

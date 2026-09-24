@@ -709,7 +709,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
                     <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.flutes" min="0" integer
                       label="Flutes" :context="fieldContext('Flutes', 'count')" />
                     <label for="tool-material">Material</label>
-                    <MachineInput id="tool-material" gate="toolEdit" type="text" v-model="editForm.material" placeholder="hss, carbide..." class="full"
+                    <MachineInput id="tool-material" gate="toolEdit" type="text" v-model="editForm.material" placeholder="hss, carbide…" class="full"
                       label="Material" :context="fieldContext('Material', 'count')" />
                   </div>
                 </div>
@@ -763,7 +763,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
                   />
                 </div>
                 <MachineToggle v-if="hasNominalHolder" gate="toolEdit"
-                  v-model="showNominalHolder" label="Show Fusion holder"
+                  v-model="showNominalHolder" label="Show Fusion Holder"
                   help="Nominal library assembly. Actual stickout depends on clamping; this preview does not change measured offsets or the machine view." />
                 <span class="label-muted">{{ showNominalHolder && hasNominalHolder ? 'Nominal Fusion assembly' : 'Tool only' }}</span>
               </div>
@@ -841,7 +841,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
                   <br />
                   <template v-if="t.reason">Skipped: {{ t.reason }}.</template>
                   <template v-else>Update metadata; keep Z {{ fmtCell(t.Z ?? 0, 3) }}.</template>
-                  Ø{{ t.current_diameter == null ? '-' : fmtCell(t.current_diameter, 3) }} → {{ importSource }} Ø{{ fmtCell(t.D, 3) }}
+                  Ø{{ fmtCell(t.current_diameter, 3) }} → {{ importSource }} Ø{{ fmtCell(t.D, 3) }}
                   <span v-if="toolPreviewNotice(importPreviewByNumber.get(t.T), unitsPerMm)" class="noteWarn">
                     <br />{{ toolPreviewNotice(importPreviewByNumber.get(t.T), unitsPerMm) }}
                   </span>
@@ -864,7 +864,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
             <MachineBtn v-if="importError && importFile" type="fileOp" :disabled="importBusy"
               @click="previewImportFile(importFile)">Preview again</MachineBtn>
             <MachineBtn type="fileSave" @click="requestImport" :disabled="!canConfirmImport">
-              {{ importBusy ? 'Importing...' : importMode === 'metadata' ? 'Update metadata' : 'Replace table' }}
+              {{ importBusy ? 'Importing…' : importMode === 'metadata' ? 'Update metadata' : 'Replace table' }}
             </MachineBtn>
           </Gate>
         </div>

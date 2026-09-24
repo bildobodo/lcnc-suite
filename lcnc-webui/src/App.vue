@@ -31,7 +31,7 @@ import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import { highlightGcode } from "./gcodeHighlight";
-import { fmtElapsed, fmtDuration, fmtDist, fmtSize, fmtProgressTimes, fmtNum } from "./format";
+import { fmtElapsed, fmtDuration, fmtDist, fmtSize, fmtProgressTimes, fmtNum, fmtQty } from "./format";
 import type { GcodeStats } from "./GcodePanel.vue";
 import type { LimitViolation } from "./ws/bulkData";
 import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, ClipboardCopy, Expand, Shrink, X } from "lucide-vue-next";
@@ -1699,8 +1699,8 @@ watch(viewerGcode, (newGcode) => {
         <div class="pill" :class="connected ? 'ok' : 'bad'">
           <span class="stable-width"><span :class="{ alt: !connected }">WS connected</span><span :class="{ alt: connected }">WS disconnected</span></span>
         </div>
-        <div v-if="connected && networkLatency != null" class="pill" title="Network latency">Net <span class="mono pill-ms">{{ networkLatency }}</span>ms</div>
-        <div v-if="connected && latency != null" class="pill" title="Round-trip latency">Ping <span class="mono pill-ms">{{ latency }}</span>ms</div>
+        <div v-if="connected && networkLatency != null" class="pill" title="Network latency">Net <span class="mono pill-ms">{{ networkLatency }}</span> ms</div>
+        <div v-if="connected && latency != null" class="pill" title="Round-trip latency">Ping <span class="mono pill-ms">{{ latency }}</span> ms</div>
         <div class="pill" :class="lcncError ? 'bad' : (configName ? 'ok' : '')">{{ lcncLabel }}</div>
         <div class="pill" :class="armed ? 'armed' : 'disarmed'"><span class="stable-width"><span :class="{ alt: !armed }">ARMED</span><span :class="{ alt: armed }">DISARMED</span></span></div>
         <div v-if="gamepad.gamepadConnected.value" class="pill ok" :title="gamepad.gamepadName.value"><Gamepad2 :size="14" /></div>
@@ -1768,7 +1768,7 @@ watch(viewerGcode, (newGcode) => {
             Program won't parse — {{ previewParseError }}
           </span>
           <span v-else-if="previewRefusal" :key="'preview-refused'" class="bannerError"
-                :title="'The preview runs from the machine\'s live state (active fixture, kinematics) and stopped here; a run would stop at the same place. No preview or simulation until it parses. ' + previewRefusal.text">
+                :title="'The preview runs from the machine\'s live state (active work offset, kinematics) and stopped here; a run would stop at the same place. No preview or simulation until it parses. ' + previewRefusal.text">
             Preview stopped — {{ previewRefusal.text }}
           </span>
           <span v-else-if="previewRefresh" :key="'preview-refresh'" class="bannerProgress" :title="previewRefreshTitle">
@@ -2030,7 +2030,7 @@ watch(viewerGcode, (newGcode) => {
                   <span class="statsLabel">Tools used</span>
                   <span class="statsValue mono">{{ gcodeStats.toolsUsed.length ? gcodeStats.toolsUsed.map(t => 'T' + t).join(', ') : 'None' }}</span>
                   <span class="statsLabel">Feed rates</span>
-                  <span class="statsValue mono">{{ gcodeStats.feedRates.length ? gcodeStats.feedRates.join(', ') : '-' }}</span>
+                  <span class="statsValue mono">{{ gcodeStats.feedRates.length ? gcodeStats.feedRates.join(', ') : 'None' }}</span>
                   <span class="statsLabel">File size</span>
                   <span class="statsValue mono">{{ fmtSize(gcodeStats.fileSize) }}</span>
                   <span class="statsLabel">Soft limits</span>
@@ -2054,7 +2054,7 @@ watch(viewerGcode, (newGcode) => {
                   <template v-if="previewRefusal">
                     <span class="statsLabel">Parse</span>
                     <span class="statsValue val-status warn"
-                          title="A kinematics/TWP remap refused the program in the preview, which runs from the machine's live state (active fixture, kinematics). A run would refuse the same line.">
+                          title="A kinematics/TWP remap refused the program in the preview, which runs from the machine's live state (active work offset, kinematics). A run would refuse the same line.">
                       refused — {{ previewRefusal.text }}
                     </span>
                   </template>
@@ -2212,7 +2212,7 @@ watch(viewerGcode, (newGcode) => {
             </template>
             <template v-else-if="st.eoffset_z != null">
               Z axis will move by approximately
-              <strong>{{ fmtNum(st.eoffset_z * -1, 4) }}</strong> mm.<br>
+              <strong>{{ fmtQty(st.eoffset_z * -1, linearUnit) }}</strong>.<br>
               Ensure tool is clear of the workpiece.
             </template>
             <template v-else>
@@ -2389,6 +2389,7 @@ watch(viewerGcode, (newGcode) => {
         :currentTool="st.tool_number ?? 0"
         :toolDiameter="st.tool_diameter ?? null"
         :toolLength="st.tool_length ?? null"
+        :linearUnit="linearUnit"
         @openToolTable="activeTab = 'tools'"
       />
 

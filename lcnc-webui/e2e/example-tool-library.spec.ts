@@ -149,7 +149,7 @@ test("a running import keeps its dialog: X, Cancel and the backdrop wait for the
   await page.getByRole("button", { name: "Replace table", exact: true }).click();
   const replaceConfirm = page.locator(".dialog", { hasText: "Replace entire tool table?" });
   if (await replaceConfirm.count()) await replaceConfirm.getByRole("button", { name: "Replace table", exact: true }).click();
-  await expect(overlay.getByText("Importing...", { exact: true })).toBeVisible();
+  await expect(overlay.getByText("Importing…", { exact: true })).toBeVisible();
   const close = overlay.getByRole("button", { name: "Close import preview", exact: true });
   const cancel = overlay.getByRole("button", { name: "Cancel", exact: true });
   await expect(close).toBeDisabled();

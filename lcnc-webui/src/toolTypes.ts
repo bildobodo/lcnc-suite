@@ -1,3 +1,5 @@
+import { NO_VALUE } from "./format";
+
 export const TOOL_TYPE_LABELS: Record<string, string> = {
   endmill: "End Mill",
   reamer: "Reamer",
@@ -28,6 +30,6 @@ export const TOOL_TYPE_LABELS: Record<string, string> = {
 };
 
 export function toolTypeLabel(t: string | undefined | null): string {
-  if (!t) return "---";
+  if (!t) return NO_VALUE;
   return TOOL_TYPE_LABELS[t] || t;
 }

@@ -62,9 +62,9 @@ export async function setLayoutState(page: Page, profile: Profile, state: Layout
   const status = (label: string) => page.locator('.safetyStrip .statusRow')
     .filter({ has: page.locator('.label-muted', { hasText: new RegExp(`^${label}$`) }) })
     .locator('.stable-width > span:not(.alt)');
-  await expect(status('E-Stop')).toHaveText(state === 'estop' ? 'TRUE' : 'FALSE');
-  await expect(status('Enabled')).toHaveText(['off', 'estop'].includes(state) ? 'FALSE' : 'TRUE');
-  await expect(status('Homed')).toHaveText(isHomed ? 'TRUE' : 'FALSE');
+  await expect(status('E-Stop')).toHaveText(state === 'estop' ? 'ACTIVE' : 'CLEAR');
+  await expect(status('Power')).toHaveText(['off', 'estop'].includes(state) ? 'OFF' : 'ON');
+  await expect(status('Axes')).toHaveText(isHomed ? 'HOMED' : 'UNHOMED');
   await expect(status('Mode')).toHaveText(['running', 'paused'].includes(state) ? 'AUTO' : 'MANUAL');
   await expect(status('Interp')).toHaveText(state === 'running' ? 'RUNNING' : state === 'paused' ? 'PAUSED' : 'IDLE');
   await expect(page.locator(`.pill.${state === 'disarmed' ? 'disarmed' : 'armed'}`)).toHaveCount(1);

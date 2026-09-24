@@ -14,7 +14,7 @@ import {
 import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
 import { INTERP_IDLE } from "./lcnc";
-import { fmtCoord, fmtProgressTimes, fmtRpm, fmtNum } from "./format";
+import { fmtCoord, fmtProgressTimes, fmtRpm, fmtNum, fmtPct, NO_VALUE } from "./format";
 import { framePose as defaultFramePose, DEFAULT_FRAME_DIR } from "./viewer/cameraFraming";
 import { useAxes, DEFAULT_AXES } from "./useAxes";
 import { recordApply, recordRafTick, recordRender, setViewerPerfContext, setViewerPerfGl } from "./viewerPerf";
@@ -3646,10 +3646,10 @@ const hudCfg = computed(() => viewerDefaults.hud);
 
 // Feed/spindle grid-row values (current_vel is units/s → units/min)
 const hudFeed = computed(() =>
-  vst.value?.current_vel != null ? (vst.value.current_vel * 60).toFixed(1) : "---",
+  vst.value?.current_vel != null ? (vst.value.current_vel * 60).toFixed(1) : NO_VALUE,
 );
 const hudLoad = computed(() =>
-  vst.value?.spindle_load != null ? `${Math.round(vst.value.spindle_load)}%` : "",
+  vst.value?.spindle_load != null ? fmtPct(vst.value.spindle_load / 100) : "",
 );
 
 const spindleLoadZone = computed(() => {
@@ -3872,7 +3872,7 @@ defineExpose({
     <div v-show="hudVisible" class="hud hudCard overlay-card stack-tight" :class="`hudScale-${hudCfg.scale}`">
       <div class="hudGrid" :class="{ noMach: !hudCfg.showMachine }">
         <span class="hudHead"></span>
-        <span class="hudHead">Work · {{ props.g5xLabel || '-' }}</span>
+        <span class="hudHead">Work · {{ props.g5xLabel || NO_VALUE }}</span>
         <span v-if="hudCfg.showMachine" class="hudHead">Machine</span>
         <template v-for="a in hudEntries" :key="a.letter">
           <span class="hudAxis">{{ a.letter }}</span>
@@ -3893,7 +3893,7 @@ defineExpose({
       <template v-if="hudCfg.showTool">
         <div class="sep"></div>
         <div class="hudCtx">
-          <span>T{{ vst?.tool_number ?? '–' }}</span><span>Ø{{ fmtCoord(vst?.tool_diameter) }}</span><span>L{{ fmtCoord(vst?.tool_length) }}</span>
+          <span>T{{ vst?.tool_number ?? NO_VALUE }}</span><span>Ø{{ fmtCoord(vst?.tool_diameter) }}</span><span>L{{ fmtCoord(vst?.tool_length) }}</span>
         </div>
       </template>
       <div v-if="hudCfg.showLoadBar && vst?.spindle_load != null" class="loadBar" :class="spindleLoadZone">
@@ -3904,7 +3904,7 @@ defineExpose({
            readout, the tool line and the load bar are the readout; the chip
            and the warnings are the "what to know" block — keep them together). -->
       <div v-if="hudMode" class="hudMode val-status" :class="hudMode.cls" :title="hudMode.title">
-        {{ hudMode.text }} · {{ props.g5xLabel || '-' }}<template v-if="hudPlaneWord"> · {{ hudPlaneWord }}</template>
+        {{ hudMode.text }} · {{ props.g5xLabel || NO_VALUE }}<template v-if="hudPlaneWord"> · {{ hudPlaneWord }}</template>
       </div>
 
       <div v-if="vst?.eoffset_enabled" class="hudWarn">Comp Z {{ fmtNum(vst.eoffset_z, 3) }}</div>
@@ -3928,11 +3928,11 @@ defineExpose({
         <div class="progressTrack" :title="fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms)"><div class="progressFill" :style="{ width: previewRefreshPct + '%' }"></div></div>
       </template>
       <div v-else-if="previewWcsStale" class="hudWarn"
-        title="A fixture this program uses was touched off after it was parsed — the gateway re-parses once the interpreter is idle and the offsets have settled">Preview uses older offsets — re-parses when idle</div>
+        title="A work offset this program uses was touched off after it was parsed — the gateway re-parses once the interpreter is idle and the offsets have settled">Preview uses older offsets — re-parses when idle</div>
       <div v-if="previewTloStale" class="hudWarn"
         :title="`Parsed with T${previewTloStale.tool} length ${fmtNum(previewTloStale.parsed, 3)}, table now ${fmtNum(previewTloStale.live, 3)} — line limit flags are stale until the gateway re-parses (idle)`">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parses when idle</div>
       <div v-if="toolpathOverflow" class="hudWarn"
-        title="The per-line soft-limit validator flagged these moves — the same source as the marked lines in the program panel and the scrub bar's ◀ N limits ▶, which jumps between them (simulation mode, machine off). Validated against the offsets at parse time; a touch-off re-parses automatically.">{{ toolpathOverflowCount }} soft-limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
+        title="The per-line soft-limit validator flagged these moves — the same source as the marked lines in the program panel and the scrub bar's ◀ N limit violations ▶, which jumps between them (simulation mode, machine off). Validated against the offsets at parse time; a touch-off re-parses automatically.">{{ toolpathOverflowCount }} limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
     </div>
 
     <!-- View navigation cube (top-right) -->
@@ -3981,7 +3981,7 @@ defineExpose({
 
     <!-- STL load failure chip (bottom-left, never blocks render) -->
     <div v-if="failedParts.length" class="stlFailedChip overlay-card warn" :title="failedParts.join(', ')">
-      {{ failedParts.length }} machine part{{ failedParts.length === 1 ? '' : 's' }} failed to load (see console)
+      {{ failedParts.length }} machine part{{ failedParts.length === 1 ? '' : 's' }} failed to load — check the model files
     </div>
 
   </div>

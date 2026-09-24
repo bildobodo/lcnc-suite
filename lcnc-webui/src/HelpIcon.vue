@@ -4,7 +4,7 @@ import { placePopover } from './helpPlacement'
 
 // The one tap-friendly help pattern (UX-11): a popover on a focusable
 // button, named for its topic so a page with several helps reads as
-// "Help: Kinematics frame", not "Show help" five times.
+// "Help: Kinematics Frame", not "Show help" five times.
 defineProps<{ label?: string }>()
 
 const id = `hp-${useId()}`

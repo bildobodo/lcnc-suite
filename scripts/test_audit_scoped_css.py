@@ -103,6 +103,16 @@ def test_close_without_aria_label_hit_named_and_multiline_ok_audit_ok_suppressed
     assert hits == [("CLOSE", 7)], hits
 
 
+def test_ellipsis_hit_unicode_and_spread_ok_audit_ok_suppressed(audit):
+    hits = _drift(audit, "ellipsis.vue")
+    assert hits == [("ELLIPSIS", 7)], hits
+
+
+def test_unit_literal_hit_mustache_and_template_literal_formatter_ok(audit):
+    hits = _drift(audit, "unit_literal.vue")
+    assert hits == [("UNIT_LITERAL", 7), ("UNIT_LITERAL", 8)], hits
+
+
 def test_clean_fixture_has_no_findings(audit):
     assert _drift(audit, "clean.vue") == []
 

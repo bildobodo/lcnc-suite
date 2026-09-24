@@ -20,6 +20,7 @@ import MachineSelect from "./MachineSelect.vue";
 import GamepadLiveInput from "./GamepadLiveInput.vue";
 import GamepadMapWizard from "./GamepadMapWizard.vue";
 import { registerModal } from "./modalRegistry";
+import { fmtPct, NO_VALUE } from "./format";
 
 const props = defineProps<{
   /** Teleport target for confirm dialogs (SettingsPanel forwards App's). */
@@ -122,7 +123,7 @@ const rawButtons = inject<Ref<boolean[]>>("gamepadButtons", ref([]));
 const rawSummary = computed(() => {
   const pressed = rawButtons.value.flatMap((p, i) => (p ? [i] : []));
   const axes = rawAxes.value.map(v => v.toFixed(2)).join(" ");
-  return `buttons: ${pressed.length ? pressed.join(",") : "—"}  axes: ${axes || "—"}`;
+  return `buttons: ${pressed.length ? pressed.join(",") : NO_VALUE}  axes: ${axes || NO_VALUE}`;
 });
 </script>
 
@@ -188,7 +189,7 @@ const rawSummary = computed(() => {
           :modelValue="gamepadConfig?.deadZone ?? 0.15"
           @update:modelValue="(v: number | undefined) => emit('setGamepadConfig', { ...gamepadConfig!, deadZone: v ?? 0.15 })"
         />
-        <span class="sliderVal">{{ Math.round((gamepadConfig?.deadZone ?? 0.15) * 100) }}%</span>
+        <span class="sliderVal">{{ fmtPct(gamepadConfig?.deadZone ?? 0.15) }}</span>
       </div>
       <div v-if="gamepadConnected">
         <div class="settingDesc">Move sticks and press buttons to verify mapping.</div>

@@ -1,13 +1,16 @@
-// Null placeholder conventions:
-//   "---" for display values (DRO, stats, probe results)
-//   "-"   for table cells (compact)
-//   "0.0000" for editable offset values (must show a number)
+// Null placeholder convention (design wave D0, UI-N05): ONE placeholder,
+// NO_VALUE ("—"), for every DISPLAY of a missing value — readouts, stats,
+// table cells, the HUD. Editable values never show it: fmtAxisValue gives ""
+// and an input keeps a number or an empty entry.
 
 import { isRotaryAxis } from "./useAxes";
 
+/** The one display placeholder for a missing value (never an input value). */
+export const NO_VALUE = "\u2014";
+
 /** Coordinate display — 3 decimals linear, 2° rotary */
 export function fmtCoord(val: number | null | undefined, axis?: string): string {
-  if (val == null || !Number.isFinite(val)) return "---";
+  if (val == null || !Number.isFinite(val)) return NO_VALUE;
   if (axis && isRotaryAxis(axis)) return val.toFixed(2) + "°";
   return val.toFixed(3);
 }
@@ -20,18 +23,18 @@ export function fmtAxisValue(val: number | null | undefined, axis: string): stri
   return isRotaryAxis(axis) ? val.toFixed(2) : val.toFixed(3);
 }
 
-/** Fixed-decimal number — configurable precision, "---" for null */
+/** Fixed-decimal number — configurable precision, NO_VALUE for null */
 export function fmtNum(val: number | null | undefined, decimals = 4): string {
-  if (val == null) return "---";
+  if (val == null) return NO_VALUE;
   const x = Number(val);
-  return Number.isFinite(x) ? x.toFixed(decimals) : "---";
+  return Number.isFinite(x) ? x.toFixed(decimals) : NO_VALUE;
 }
 
-/** Table cell number — compact "-" for null */
+/** Table cell number — NO_VALUE for null/empty */
 export function fmtCell(val: any, decimals = 4): string {
-  if (val == null || val === "") return "-";
+  if (val == null || val === "") return NO_VALUE;
   const x = Number(val);
-  return Number.isFinite(x) ? x.toFixed(decimals) : "-";
+  return Number.isFinite(x) ? x.toFixed(decimals) : NO_VALUE;
 }
 
 /** Offset value — em-dash when source is null/missing, fixed-4 otherwise.
@@ -42,14 +45,14 @@ export function fmtCell(val: any, decimals = 4): string {
  * inside an editable cell should treat "—" as read-only / not user-edited.
  */
 export function fmtOffset(val: number | null | undefined): string {
-  if (val == null || !Number.isFinite(val)) return "—";
+  if (val == null || !Number.isFinite(val)) return NO_VALUE;
   return val.toFixed(4);
 }
 
 /** RPM display — plain rounded integer. No locale grouping: thousands
  *  separators (e.g. Swiss 1'400) appear nowhere else in the UI. */
 export function fmtRpm(val: number | null): string {
-  if (val == null) return "---";
+  if (val == null) return NO_VALUE;
   return String(Math.round(val));
 }
 
@@ -84,6 +87,32 @@ export function fmtDuration(secs: number): string {
 /** Distance with unit suffix — 1 decimal */
 export function fmtDist(val: number, unit: string): string {
   return `${val.toFixed(1)} ${unit}`;
+}
+
+/** Percentage of a RATIO (1 = 100 %) — "120 %", the unit set off by a
+ *  space like every other unit (UI-N03); NO_VALUE for a missing value. */
+export function fmtPct(ratio: number | null | undefined, decimals = 0): string {
+  if (ratio == null || !Number.isFinite(ratio)) return NO_VALUE;
+  return `${(ratio * 100).toFixed(decimals)} %`;
+}
+
+/** Milliseconds — "12 ms" (UI-N04); NO_VALUE for a missing value. */
+export function fmtMs(ms: number | null | undefined, decimals = 0): string {
+  if (ms == null || !Number.isFinite(ms)) return NO_VALUE;
+  return `${ms.toFixed(decimals)} ms`;
+}
+
+/** A number with its unit ("12.0000 mm"); NO_VALUE — without a unit — for
+ *  a missing value (design wave D0, UI-N02). */
+export function fmtQty(val: number | null | undefined, unit: string, decimals = 4): string {
+  if (val == null || !Number.isFinite(val)) return NO_VALUE;
+  return fmtUnit(val.toFixed(decimals), unit);
+}
+
+/** A value and its unit, set off by a space (design wave D0) — the unit is
+ *  omitted when empty, never glued to the number. */
+export function fmtUnit(value: string | number, unit: string): string {
+  return unit ? `${value} ${unit}` : String(value);
 }
 
 /** File size — B/KB/MB */

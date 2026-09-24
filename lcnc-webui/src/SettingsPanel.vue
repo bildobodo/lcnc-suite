@@ -24,6 +24,7 @@ import {
   loadKeyboardDefaults, type KeyboardDefaults, DEFAULT_KB_MAPPING,
 } from "./defaults";
 import { saveStatus, saveStatusText } from "./settingsSaveStatus";
+import { fmtPct } from "./format";
 import type { MappingSource } from "./gamepadProfile";
 import { enableWakeLock, disableWakeLock } from "./wakeLock";
 import { ChevronUp, ChevronDown, Pencil, Trash2, RotateCcw } from "lucide-vue-next";
@@ -279,8 +280,8 @@ const HUD_SCALES: { value: HudScale; label: string }[] = [
 ];
 
 const HUD_TOGGLES: { key: keyof Omit<HudDefaults, "scale">; label: string }[] = [
-  { key: "showMachine", label: "Machine position" },
-  { key: "showTool", label: "Tool context" },
+  { key: "showMachine", label: "Machine Position" },
+  { key: "showTool", label: "Tool Context" },
   { key: "showFeedSpindle", label: "Feed & spindle" },
   { key: "showLoadBar", label: "Spindle load bar" },
 ];
@@ -444,7 +445,7 @@ const subTabs = [
   { id: "macros", label: "Macros" },
   { id: "gamepad", label: "Gamepad" },
   { id: "keyboard", label: "Keyboard" },
-  { id: "halshow", label: "Halshow" },
+  { id: "halshow", label: "HAL" },
   { id: "debug", label: "Debug" },
 ];
 const activeTab = ref("viewer");
@@ -467,7 +468,7 @@ function onColorChange(key: keyof ColorDefaults, value: string) {
 
 const colorFields: { key: keyof ColorDefaults; label: string }[] = [
   { key: "feed", label: "Toolpath" },
-  { key: "rapid", label: "Fast Feed" },
+  { key: "rapid", label: "Rapid" },
   { key: "backplot", label: "Backplot" },
   { key: "bounds", label: "Machine Bounds" },
   { key: "toolpathBounds", label: "Toolpath Bounds" },
@@ -582,7 +583,7 @@ function resetMachineColor(id: string) {
             gate="viewerSetting"
             :modelValue="pathOnTop"
             @update:modelValue="onPathOnTopChange($event!)"
-            label="Always on top"
+            label="Always on Top"
           />
         </div>
 
@@ -607,7 +608,7 @@ function resetMachineColor(id: string) {
           <div class="row-controls">
             <span class="camOverlayLabel">Opacity</span>
             <MachineSlider gate="cameraSetting" class="camOverlaySlider" :min="0" :max="1" :step="0.05" v-model="camOverlayOpacity" @update:modelValue="saveCamTracked" />
-            <span class="camOverlayValue">{{ Math.round(camOverlayOpacity * 100) }}%</span>
+            <span class="camOverlayValue">{{ fmtPct(camOverlayOpacity) }}</span>
           </div>
           <div class="row-controls">
             <span class="inputLabel">Color</span>
@@ -647,7 +648,7 @@ function resetMachineColor(id: string) {
                 <MachineBtn v-if="machineColors[part.id]" type="listAction" :aria-label="`Reset color for ${formatPartLabel(part.id)}`" :title="`Reset color for ${formatPartLabel(part.id)}`" @click="resetMachineColor(part.id)"><RotateCcw :size="14" /></MachineBtn>
               </div>
             </div>
-            <MachineToggle gate="viewerSetting" v-model="machineEdgesOn" @update:modelValue="setMachineEdges(machineEdgesOn); save()" label="Edge outline" />
+            <MachineToggle gate="viewerSetting" v-model="machineEdgesOn" @update:modelValue="setMachineEdges(machineEdgesOn); save()" label="Edge Outline" />
           </div>
         </div>
 
@@ -709,7 +710,7 @@ function resetMachineColor(id: string) {
               gate="displaySetting"
               type="text"
               v-model="spindleLoadPin"
-              label="Spindle load HAL pin"
+              label="Spindle Load HAL Pin"
               @change="saveMachine()"
               placeholder="e.g. spindle-load-conv.load-percentage"
               class="w-full"
@@ -731,9 +732,10 @@ function resetMachineColor(id: string) {
               <div class="settingDesc">Default spindle preset for run-from-line dialog.</div>
               <div class="rflRow">
                 <div class="radioGroup inline">
+                  <!-- the spindle strip's order and words: Rev · Off · Fwd (UI-N14) -->
+                  <label><MachineRadio gate="displaySetting" name="rflSpindleDir" v-model="rflSpindleDir" value="reverse" @update:modelValue="saveMachine()" /> Rev</label>
                   <label><MachineRadio gate="displaySetting" name="rflSpindleDir" v-model="rflSpindleDir" value="off" @update:modelValue="saveMachine()" /> Off</label>
-                  <label><MachineRadio gate="displaySetting" name="rflSpindleDir" v-model="rflSpindleDir" value="forward" @update:modelValue="saveMachine()" /> FWD</label>
-                  <label><MachineRadio gate="displaySetting" name="rflSpindleDir" v-model="rflSpindleDir" value="reverse" @update:modelValue="saveMachine()" /> REV</label>
+                  <label><MachineRadio gate="displaySetting" name="rflSpindleDir" v-model="rflSpindleDir" value="forward" @update:modelValue="saveMachine()" /> Fwd</label>
                 </div>
                 <div v-if="rflSpindleDir !== 'off'" class="row-tight rflRpm">
                   <label>RPM</label>

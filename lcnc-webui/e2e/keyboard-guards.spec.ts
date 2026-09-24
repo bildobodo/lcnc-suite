@@ -287,7 +287,7 @@ test("repeated Escape in E-Stop never sends estop_reset", async ({ page }) => {
   await openReady(page);
   await ctl({ op: "status_delta", data: { estop: true, is_estop: true } });
   await expect(page.locator(".safetyStrip .statusRow").filter({ hasText: "E-Stop" })
-    .locator(".stable-width > span:not(.alt)")).toHaveText("TRUE");
+    .locator(".stable-width > span:not(.alt)")).toHaveText("ACTIVE");
   await ctl({ op: "clearCmds" });
   await focusBody(page);
   await page.keyboard.press("Escape");
@@ -319,7 +319,7 @@ test("settings dialog and key capture: only Escape passes, and it cancels the ca
   // Binding another action: Escape is NOT captured — it E-Stops and cancels.
   const cycleCell = dialog.locator("tr").filter({ hasText: "Cycle Start" }).locator(".kbKeyCell");
   await cycleCell.click();
-  await expect(cycleCell).toHaveText("Press a key...");
+  await expect(cycleCell).toHaveText("Press a key…");
   await ctl({ op: "clearCmds" });
   await page.keyboard.press("Escape");
   await expect.poll(recordedCmds).toContain("estop");

@@ -638,7 +638,7 @@ test("Offsets Clear: disabled without a real selection, hold-to-fire, hold cance
     await ctlSend({ op: "setAxes", axes: ["X", "Y", "Z"] });
     // No g5x_index yet → the label is "-" → nothing selected → Clear disabled with a reason.
     await page.getByRole("button", { name: "Offsets", exact: true }).click();
-    const clear = page.getByRole("button", { name: /^Clear (–|G5)/ });
+    const clear = page.getByRole("button", { name: /^Clear (—|G5)/ });
     await expect(clear).toBeDisabled();
     await expect(page.locator(".btnTip", { has: clear })).toHaveAttribute("title", /Select a coordinate system/);
     // The active fixture selects itself once the status names one.

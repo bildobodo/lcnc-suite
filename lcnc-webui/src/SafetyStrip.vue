@@ -5,6 +5,7 @@ import MachineBtn from "./MachineBtn.vue";
 import { Lock, LockOpen, TriangleAlert, Power } from "lucide-vue-next";
 import { activeKind } from "./inputSession";
 import { useMediaMql } from "./useMediaMql";
+import { NO_VALUE } from "./format";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
   TASK_MODE_MANUAL, TASK_MODE_AUTO, TASK_MODE_MDI,
@@ -44,7 +45,7 @@ const modeLabel = computed(() => {
     case TASK_MODE_MANUAL: return "MANUAL";
     case TASK_MODE_AUTO: return "AUTO";
     case TASK_MODE_MDI: return "MDI";
-    default: return "---";
+    default: return NO_VALUE;
   }
 });
 
@@ -54,7 +55,7 @@ const interpLabel = computed(() => {
     case INTERP_READING: return "RUNNING";
     case INTERP_PAUSED: return "PAUSED";
     case INTERP_WAITING: return "WAITING";
-    default: return "---";
+    default: return NO_VALUE;
   }
 });
 
@@ -135,18 +136,19 @@ const compact = computed(() => isPortrait.value && activeKind.value !== null);
       </Gate>
     </div>
 
-    <!-- Machine Status Detail -->
+    <!-- Machine Status Detail — state WORDS, the banner's vocabulary (ACTIVE/CLEAR,
+         ON/OFF, HOMED/UNHOMED), never TRUE/FALSE (design wave D0, UI-N06) -->
     <div v-if="!compact" class="statusDetail inset-panel scroll-thin">
       <div class="statusCols">
         <div class="statusCol stack-tight">
-          <div class="statusRow"><span class="label-muted md">E-Stop</span><span class="val-status md" :class="isEstop ? 'bad' : 'ok'"><span class="stable-width"><span :class="{ alt: !isEstop }">TRUE</span><span :class="{ alt: isEstop }">FALSE</span></span></span></div>
-          <div class="statusRow"><span class="label-muted md">Enabled</span><span class="val-status md" :class="isEnabled ? 'ok' : 'muted'"><span class="stable-width"><span :class="{ alt: !isEnabled }">TRUE</span><span :class="{ alt: isEnabled }">FALSE</span></span></span></div>
-          <div class="statusRow"><span class="label-muted md">Homed</span><span class="val-status md" :class="isHomed ? 'ok' : 'bad'"><span class="stable-width"><span :class="{ alt: !isHomed }">TRUE</span><span :class="{ alt: isHomed }">FALSE</span></span></span></div>
-          <div class="statusRow"><span class="label-muted md">Overrides</span><span class="val-status md" :class="overridesActive ? 'warn' : ''"><span class="stable-width"><span :class="{ alt: !overridesActive }">ACTIVE</span><span :class="{ alt: overridesActive }">---</span></span></span></div>
+          <div class="statusRow"><span class="label-muted md">E-Stop</span><span class="val-status md" :class="isEstop ? 'bad' : 'ok'"><span class="stable-width"><span :class="{ alt: !isEstop }">ACTIVE</span><span :class="{ alt: isEstop }">CLEAR</span></span></span></div>
+          <div class="statusRow"><span class="label-muted md">Power</span><span class="val-status md" :class="isEnabled ? 'ok' : 'muted'"><span class="stable-width"><span :class="{ alt: !isEnabled }">ON</span><span :class="{ alt: isEnabled }">OFF</span></span></span></div>
+          <div class="statusRow"><span class="label-muted md">Axes</span><span class="val-status md" :class="isHomed ? 'ok' : 'bad'"><span class="stable-width"><span :class="{ alt: !isHomed }">HOMED</span><span :class="{ alt: isHomed }">UNHOMED</span></span></span></div>
+          <div class="statusRow"><span class="label-muted md">Overrides</span><span class="val-status md" :class="overridesActive ? 'warn' : ''"><span class="stable-width"><span :class="{ alt: !overridesActive }">ACTIVE</span><span :class="{ alt: overridesActive }">NONE</span></span></span></div>
         </div>
         <div class="statusCol stack-tight">
-          <div class="statusRow"><span class="label-muted md">Mode</span><span class="val-status md"><span class="stable-width"><span :class="{ alt: modeLabel !== 'MANUAL' }">MANUAL</span><span :class="{ alt: modeLabel !== 'AUTO' }">AUTO</span><span :class="{ alt: modeLabel !== 'MDI' }">MDI</span><span :class="{ alt: modeLabel !== '---' }">---</span></span></span></div>
-          <div class="statusRow"><span class="label-muted md">Interp</span><span class="val-status md"><span class="stable-width"><span :class="{ alt: interpLabel !== 'IDLE' }">IDLE</span><span :class="{ alt: interpLabel !== 'RUNNING' }">RUNNING</span><span :class="{ alt: interpLabel !== 'PAUSED' }">PAUSED</span><span :class="{ alt: interpLabel !== 'WAITING' }">WAITING</span><span :class="{ alt: interpLabel !== '---' }">---</span></span></span></div>
+          <div class="statusRow"><span class="label-muted md">Mode</span><span class="val-status md"><span class="stable-width"><span :class="{ alt: modeLabel !== 'MANUAL' }">MANUAL</span><span :class="{ alt: modeLabel !== 'AUTO' }">AUTO</span><span :class="{ alt: modeLabel !== 'MDI' }">MDI</span><span :class="{ alt: modeLabel !== NO_VALUE }">{{ NO_VALUE }}</span></span></span></div>
+          <div class="statusRow"><span class="label-muted md">Interp</span><span class="val-status md"><span class="stable-width"><span :class="{ alt: interpLabel !== 'IDLE' }">IDLE</span><span :class="{ alt: interpLabel !== 'RUNNING' }">RUNNING</span><span :class="{ alt: interpLabel !== 'PAUSED' }">PAUSED</span><span :class="{ alt: interpLabel !== 'WAITING' }">WAITING</span><span :class="{ alt: interpLabel !== NO_VALUE }">{{ NO_VALUE }}</span></span></span></div>
           <div class="statusRow"><span class="label-muted md">Motion</span><span class="val-status md"><span class="stable-width"><span :class="{ alt: !isTeleop }">WORLD</span><span :class="{ alt: isTeleop }">JOINT</span></span></span></div>
           <div class="statusRow"><span class="label-muted md">Elapsed</span><span class="val-status md mono">{{ elapsed }}</span></div>
         </div>

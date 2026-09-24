@@ -131,7 +131,7 @@ const halStats = computed(() => ({
         </MachineBtn>
       </div>
       <div class="row-tight">
-        <MachineInput gate="search" type="text" class="halSearchInput" v-model="halSearch" label="Search HAL" placeholder="Search..." />
+        <MachineInput gate="search" type="text" class="halSearchInput" v-model="halSearch" label="Search HAL" placeholder="Search HAL…" />
       </div>
     </div>
 

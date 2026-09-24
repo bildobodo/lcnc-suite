@@ -105,7 +105,7 @@ test("program change during a delayed save: no reload of the new program from A"
   await enterEdit(page);
   await typeIntoEditor(page, "(edited)");
   await page.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Saving...", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Saving…", exact: true })).toBeVisible();
   await loadProgram(page, "/B.ngc");
   await expect(page.locator("[data-edit-conflict]")).toBeVisible();
   await expect.poll(() => release !== null).toBe(true);

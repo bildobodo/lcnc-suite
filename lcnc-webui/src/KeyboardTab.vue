@@ -164,7 +164,7 @@ onUnmounted(() => {
               <td class="kbKeyCell"
                   :class="{ listening: listeningAction === action }"
                   @click="startCapture(action)">
-                {{ listeningAction === action ? 'Press a key...' : formatKeyName(kbConfig.mapping[action]) }}
+                {{ listeningAction === action ? 'Press a key…' : formatKeyName(kbConfig.mapping[action]) }}
               </td>
               <td class="kbUnbind">
                 <MachineBtn type="listAction" v-if="kbConfig.mapping[action]" :aria-label="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" :title="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" @click.stop="unbindKey(action)"><Trash2 :size="14" /></MachineBtn>
@@ -176,7 +176,7 @@ onUnmounted(() => {
                 <td class="kbKeyCell"
                     :class="{ listening: listeningAction === action }"
                     @click="startCapture(action)">
-                  {{ listeningAction === action ? 'Press a key...' : formatKeyName(kbConfig.mapping[action]) }}
+                  {{ listeningAction === action ? 'Press a key…' : formatKeyName(kbConfig.mapping[action]) }}
                 </td>
                 <td class="kbUnbind">
                   <MachineBtn type="listAction" v-if="kbConfig.mapping[action]" :aria-label="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" :title="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" @click.stop="unbindKey(action)"><Trash2 :size="14" /></MachineBtn>
@@ -197,7 +197,7 @@ onUnmounted(() => {
               <td class="kbKeyCell"
                   :class="{ listening: listeningAction === action }"
                   @click="startCapture(action)">
-                {{ listeningAction === action ? 'Press a key...' : formatKeyName(kbConfig.mapping[action]) }}
+                {{ listeningAction === action ? 'Press a key…' : formatKeyName(kbConfig.mapping[action]) }}
               </td>
               <td class="kbUnbind">
                 <MachineBtn type="listAction" v-if="kbConfig.mapping[action]" :aria-label="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" :title="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" @click.stop="unbindKey(action)"><Trash2 :size="14" /></MachineBtn>

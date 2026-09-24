@@ -3,13 +3,15 @@
 // _G5X_MAP. Everything that names a fixture derives from here: the status
 // label, the WCS selector, the offsets table, the viewer's fixture markers.
 
+import { NO_VALUE } from "./format";
+
 export const G5X_LABELS = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"] as const;
 export type G5xLabel = (typeof G5X_LABELS)[number];
 
-/** g5x index (1..9) → fixture name; "-" while status has none, and an honest
+/** g5x index (1..9) → fixture name; NO_VALUE while status has none, and an honest
  *  `G5x#n` for an index outside the table (never a silent G54). */
 export function g5xLabel(idx: number | null | undefined): string {
-  if (idx == null) return "-";
+  if (idx == null) return NO_VALUE;
   return G5X_LABELS[idx - 1] ?? `G5x#${idx}`;
 }
 

@@ -2,6 +2,7 @@
 import { ref } from "vue";
 import { timingStats, resetTimingStats, getTimingCsv, send, status, lastReply, type TimingComponentStats } from "./lcncWs";
 import MachineBtn from "./MachineBtn.vue";
+import { fmtUnit } from "./format";
 
 const timingLogActive = ref(false);
 
@@ -51,11 +52,11 @@ const timingComponents: { key: keyof Omit<import("./lcncWs").TimingStats, "count
         <div v-if="comp.key === 'cycle'" class="sep"></div>
         <div class="timingRow" :class="{ timingTotal: comp.key === 'rt' || comp.key === 'cycle' }">
           <span>{{ comp.label }}</span>
-          <span>{{ (timingStats[comp.key] as TimingComponentStats).last }}{{ comp.unit ?? 'ms' }}</span>
-          <span>{{ (timingStats[comp.key] as TimingComponentStats).min }}{{ comp.unit ?? 'ms' }}</span>
-          <span>{{ (timingStats[comp.key] as TimingComponentStats).max }}{{ comp.unit ?? 'ms' }}</span>
-          <span>{{ (timingStats[comp.key] as TimingComponentStats).mean }}{{ comp.unit ?? 'ms' }}</span>
-          <span>{{ (timingStats[comp.key] as TimingComponentStats).std }}{{ comp.unit ?? 'ms' }}</span>
+          <span>{{ fmtUnit((timingStats[comp.key] as TimingComponentStats).last, comp.unit ?? 'ms') }}</span>
+          <span>{{ fmtUnit((timingStats[comp.key] as TimingComponentStats).min, comp.unit ?? 'ms') }}</span>
+          <span>{{ fmtUnit((timingStats[comp.key] as TimingComponentStats).max, comp.unit ?? 'ms') }}</span>
+          <span>{{ fmtUnit((timingStats[comp.key] as TimingComponentStats).mean, comp.unit ?? 'ms') }}</span>
+          <span>{{ fmtUnit((timingStats[comp.key] as TimingComponentStats).std, comp.unit ?? 'ms') }}</span>
         </div>
         </template>
       </div>

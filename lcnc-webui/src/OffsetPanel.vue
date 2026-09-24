@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onUnmounted } from "vue";
 import { usePermissions, useFire, useOwnerPermissions } from "./permissions";
-import { fmtOffset } from "./format";
+import { fmtOffset, NO_VALUE } from "./format";
 import { openKeypad, closeKeypadIf, keypadState, newKeypadOwnerId, dropDrafts } from "./useNumberKeypad";
 import { G5X_LABELS } from "./wcs";
 import MachineBtn from "./MachineBtn.vue";
@@ -113,7 +113,7 @@ function clearAll() {
   <div ref="panelEl" class="offsetPanel stack-sections">
     <!-- Header -->
     <div class="header row-controls">
-      <span class="sub">Work Coordinate Offsets</span>
+      <span class="sub">Work Offsets</span>
       <div class="actions row-tight">
         <Gate gate="probe">
           <div class="row-tight">
@@ -122,9 +122,9 @@ function clearAll() {
                  out (UX-12). -->
             <MachineBtn type="wcsClear" :disabled="!selectedWcs" reason="Select a coordinate system first"
                         :hold-key="selectedWcs ?? ''" :title="selectedWcs ? `Hold to clear ${selectedWcs}` : undefined" @click="clearSelected">
-              Clear <span class="val-slot wcsSlot">{{ selectedWcs ?? '–' }}</span>
+              Clear <span class="val-slot wcsSlot">{{ selectedWcs ?? NO_VALUE }}</span>
             </MachineBtn>
-            <MachineBtn type="wcsClearAll" hold-key="all" aria-label="Clear all fixture offsets (G54–G59.3)" title="Hold to clear all fixture offsets (G54–G59.3)" @click="clearAll">Clear All</MachineBtn>
+            <MachineBtn type="wcsClearAll" hold-key="all" aria-label="Clear all work offsets (G54–G59.3)" title="Hold to clear all work offsets (G54–G59.3)" @click="clearAll">Clear All</MachineBtn>
           </div>
         </Gate>
       </div>
@@ -196,7 +196,7 @@ function clearAll() {
   flex-shrink: 0;
 }
 
-/* The selected-fixture label is a fixed slot: "G59.3" and "–" must not
+/* The selected-fixture label is a fixed slot: "G59.3" and "—" must not
    resize the button (the row's other button would shift). */
 .wcsSlot { --slot-w: 5ch; text-align: left; }
 

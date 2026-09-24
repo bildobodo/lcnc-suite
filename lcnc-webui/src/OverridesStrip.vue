@@ -2,6 +2,7 @@
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
+import { fmtPct } from "./format";
 import { STEP_OVERRIDE, STEP_RAPID_OVERRIDE } from "./defaults";
 
 const props = defineProps<{
@@ -37,19 +38,19 @@ function onRapidSlider(v: number) { emit('update:rapidSlider', v); }
     <div class="ovrSection row-sections strip-slider-group">
       <div class="ovrCol stack-controls strip-slider-row">
         <span class="label-muted">Feed</span>
-        <span class="val-mono val-slot" :class="{ warn: feedSlider !== 100 }">{{ feedSlider }}%</span>
+        <span class="val-mono val-slot" :class="{ warn: feedSlider !== 100 }">{{ fmtPct(feedSlider / 100) }}</span>
         <MachineSlider gate="feedOverride" :modelValue="feedSlider" @update:model-value="onFeedSlider(Number($event))" @change="emit('feedChange')" :min="0" :max="maxFeedOverride" :step="STEP_OVERRIDE" :disabled="!feedOvrEnabled" class="vSlider" />
         <MachineBtn type="overrideReset" aria-label="Reset feed override to 100 %" title="Reset feed override to 100 %" @click="emit('overridePreset', 'feed', 100)">100 %</MachineBtn>
       </div>
       <div class="ovrCol stack-controls strip-slider-row">
         <span class="label-muted">Spindle</span>
-        <span class="val-mono val-slot" :class="{ warn: spindleSlider !== 100 }">{{ spindleSlider }}%</span>
+        <span class="val-mono val-slot" :class="{ warn: spindleSlider !== 100 }">{{ fmtPct(spindleSlider / 100) }}</span>
         <MachineSlider gate="spindleOverride" :modelValue="spindleSlider" @update:model-value="onSpindleSlider(Number($event))" @change="emit('spindleSliderChange')" :min="minSpindleOverride" :max="maxSpindleOverride" :step="STEP_OVERRIDE" :disabled="!spindleOvrEnabled" class="vSlider" />
         <MachineBtn type="overrideReset" aria-label="Reset spindle override to 100 %" title="Reset spindle override to 100 %" @click="emit('overridePreset', 'spindle', 100)">100 %</MachineBtn>
       </div>
       <div class="ovrCol stack-controls strip-slider-row">
         <span class="label-muted">Rapid</span>
-        <span class="val-mono val-slot" :class="{ warn: rapidSlider !== 100 }">{{ rapidSlider }}%</span>
+        <span class="val-mono val-slot" :class="{ warn: rapidSlider !== 100 }">{{ fmtPct(rapidSlider / 100) }}</span>
         <MachineSlider gate="rapidOverride" :modelValue="rapidSlider" @update:model-value="onRapidSlider(Number($event))" @change="emit('rapidChange')" :min="25" :max="100" :step="STEP_RAPID_OVERRIDE" :disabled="!rapidOvrAvailable" class="vSlider" />
         <MachineBtn type="overrideReset" aria-label="Reset rapid override to 100 %" title="Reset rapid override to 100 %" @click="emit('overridePreset', 'rapid', 100)">100 %</MachineBtn>
       </div>
@@ -64,9 +65,9 @@ function onRapidSlider(v: number) { emit('update:rapidSlider', v); }
   height: 100%;
   justify-content: center;
 }
-/* Override percents tick while dragging — fixed slot ("120%" = 4ch + slack)
+/* Override percents tick while dragging — fixed slot ("120 %" = 5ch + slack)
    keeps the readout from re-centering on every digit-count change. */
-.ovrCol .val-slot { --slot-w: 4.5ch; }
+.ovrCol .val-slot { --slot-w: 5.5ch; }
 .vSlider {
   flex: 1;
   min-height: 0;

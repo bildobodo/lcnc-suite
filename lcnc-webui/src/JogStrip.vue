@@ -409,13 +409,15 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
       <div class="speedGroup row-sections strip-slider-group">
         <div class="speedCol stack-controls">
           <span class="label-muted">{{ abcAxes.length > 0 ? 'Linear' : 'Speed' }}</span>
-          <span class="val-mono val-slot">{{ Math.round(jogVel * 60) }}</span>
+          <!-- value + unit in ONE cell (a portrait grid row keeps its four
+               cells); the unit follows its source (design wave D0, UI-N02) -->
+          <span class="jogSpeedVal stack-micro"><span class="val-mono val-slot">{{ Math.round(jogVel * 60) }}</span><span class="label-muted">{{ linearUnit }}/min</span></span>
           <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minJogVel" :max="maxJogVel" :step="0.1" :modelValue="jogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }" class="vSlider" />
           <MachineBtn type="jogSpeedReset" :disabled="isDisabled" @click="emit('resetJogVel')">Reset</MachineBtn>
         </div>
         <div v-if="abcAxes.length > 0" class="speedCol stack-controls">
           <span class="label-muted">Rotary</span>
-          <span class="val-mono val-slot">{{ Math.round(angularJogVel * 60) }}°</span>
+          <span class="jogSpeedVal stack-micro"><span class="val-mono val-slot">{{ Math.round(angularJogVel * 60) }}</span><span class="label-muted">°/min</span></span>
           <MachineSlider gate="jogSpeed" :disabled="isDisabled" :min="minAngularJogVel" :max="maxAngularJogVel" :step="0.1" :modelValue="angularJogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:angularJogVel', v) }" class="vSlider" />
           <MachineBtn type="jogSpeedReset" :disabled="isDisabled" @click="emit('resetAngularJogVel')">Reset</MachineBtn>
         </div>
@@ -423,7 +425,8 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 
       <div class="radioGrid row-sections strip-radio-grid">
         <div class="stepCol stack-tight strip-radio-group">
-          <span class="label-muted">Step</span>
+          <!-- one increment for every axis: mm (in) on linear, ° on rotary -->
+          <span class="label-muted">Step ({{ abcAxes.length > 0 ? `${linearUnit} / °` : linearUnit }})</span>
           <div class="strip-radio-options">
             <label v-for="opt in incrementOptions" :key="opt.value" class="radio-label">
               <MachineRadio gate="jogIncrement" name="jogStep" :value="opt.value" :modelValue="jogIncrement" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('update:jogIncrement', Number(v)) }" />
@@ -467,7 +470,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
           <template v-if="kinsType != null">
             <div class="strip-radio-group stack-tight">
               <!-- The explanation is a tap-friendly help, not a hover title (UX-11). -->
-              <span class="label-muted sectionHelp">Kinematics frame <HelpIcon label="Kinematics frame">
+              <span class="label-muted sectionHelp">Kinematics Frame <HelpIcon label="Kinematics Frame">
                 Selects the machine's <strong>kinematics</strong> — for jogging, MDI and programs alike; the M-code each frame uses is this machine's own remap, not the Manual/MDI/Auto task mode above.
                 <br><strong>Machine</strong> — identity kinematics: jog along the machine axes.
                 <br><strong>TCP</strong> — X/Y/Z are the work frame riding the table: jogging A keeps the tool tip on the workpiece (position only; the head orientation does not follow). Switching re-seeds the preview (a brief progress flash is expected).

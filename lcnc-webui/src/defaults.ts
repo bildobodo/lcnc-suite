@@ -518,7 +518,7 @@ export const GAMEPAD_ACTIONS: { value: GamepadAction; label: string }[] = [
   { value: "home_all", label: "Home All" },
   { value: "z_mod", label: "Z Modifier (D-pad)" },
   { value: "dead_man", label: "Dead Man (hold to jog)" },
-  { value: "none", label: "Unassigned" },
+  { value: "none", label: "None" },
 ];
 
 export interface GamepadMapping {
@@ -549,22 +549,6 @@ export const DEFAULT_MAPPING: GamepadMapping = {
   btn_start: "none",
   btn_ls: "none",
   btn_rs: "none",
-};
-
-/** Short display labels for actions (used in diagram). */
-export const ACTION_LABELS: Record<GamepadAction, string> = {
-  start: "Start",
-  pause: "Pause",
-  resume: "Resume",
-  abort: "Abort",
-  estop: "E-Stop",
-  spindle_stop: "Spdl Stop",
-  flood_toggle: "Flood",
-  mist_toggle: "Mist",
-  home_all: "Home",
-  z_mod: "Z Mod",
-  dead_man: "Dead Man",
-  none: "",
 };
 
 export interface GamepadDefaults {

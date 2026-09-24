@@ -1129,13 +1129,13 @@ function fmtR(key: string): string {
     <template v-else-if="probeView === 'surface'">
       <div class="paramGrid twoCol surfaceGrid">
         <div class="sub span">Scan Grid</div>
-        <label>X0<HelpIcon>Scan grid minimum X bound in work coordinates. Must be less than X Max. Defines the left edge of the probing area. (#3050)</HelpIcon></label>
+        <label>X Min<HelpIcon>Scan grid minimum X bound in work coordinates. Must be less than X Max. Defines the left edge of the probing area. (#3050)</HelpIcon></label>
         <MachineInput gate="scanParam" type="number" v-model.number="params.scanX0" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>X1<HelpIcon>Scan grid maximum X bound in work coordinates. Must be greater than X Min. Defines the right edge of the probing area. (#3051)</HelpIcon></label>
+        <label>X Max<HelpIcon>Scan grid maximum X bound in work coordinates. Must be greater than X Min. Defines the right edge of the probing area. (#3051)</HelpIcon></label>
         <MachineInput gate="scanParam" type="number" v-model.number="params.scanX1" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>Y0<HelpIcon>Scan grid minimum Y bound in work coordinates. Must be less than Y Max. Defines the front edge of the probing area. (#3052)</HelpIcon></label>
+        <label>Y Min<HelpIcon>Scan grid minimum Y bound in work coordinates. Must be less than Y Max. Defines the front edge of the probing area. (#3052)</HelpIcon></label>
         <MachineInput gate="scanParam" type="number" v-model.number="params.scanY0" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>Y1<HelpIcon>Scan grid maximum Y bound in work coordinates. Must be greater than Y Min. Defines the back edge of the probing area. (#3053)</HelpIcon></label>
+        <label>Y Max<HelpIcon>Scan grid maximum Y bound in work coordinates. Must be greater than Y Min. Defines the back edge of the probing area. (#3053)</HelpIcon></label>
         <MachineInput gate="scanParam" type="number" v-model.number="params.scanY1" :step="STEP_DEFAULT" @change="saveParams" />
         <label>X Probes<HelpIcon>Number of probe points along X. Minimum 2. Point spacing = (X Max - X Min) / (count - 1). (#3054)</HelpIcon></label>
         <MachineInput gate="scanParam" type="number" v-model.number="params.scanXProbes" min="2" :step="STEP_DEFAULT" @change="saveParams" />
@@ -1197,7 +1197,7 @@ function fmtR(key: string): string {
                chooses which one applies to which direction. -->
           <MachineToggle gate="compToggle" :modelValue="eoffsetEnabled"
             :disabled="probing || (!eoffsetEnabled && !can.surfaceComp)"
-            @update:modelValue="onCompToggle" label="Enable Comp" />
+            @update:modelValue="onCompToggle" label="Enable Compensation" />
           <div v-if="eoffsetEnabled && rotaryTilted" class="noteWarn">
             Compensation active with a rotary off zero — the Z shim does not
             tilt with the tool and is no longer valid for this orientation.
@@ -1212,25 +1212,25 @@ function fmtR(key: string): string {
         <label>Probe Tool #<HelpIcon>Tool number of the probe. Must match the tool loaded in the spindle before any probing operation. (#3014)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.probeTool" min="1" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>Probe Slow FRate<HelpIcon>Feed rate for the refined slow probe pass. Set to 0 to skip the slow pass entirely — faster but less accurate. (#3015)</HelpIcon></label>
+        <label>Slow Feed<HelpIcon>Feed rate for the refined slow probe pass. Set to 0 to skip the slow pass entirely — faster but less accurate. (#3015)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.slowFr" min="0" :step="STEP_FEED" @change="saveParams" />
 
-        <label>Probe Traverse FR<HelpIcon>Feed rate for non-probing positioning moves between probe points. Does not affect probe accuracy. (#3017)</HelpIcon></label>
+        <label>Traverse Feed<HelpIcon>Feed rate for non-probing positioning moves between probe points. Does not affect probe accuracy. (#3017)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.traverseFr" min="1" :step="STEP_FEED" @change="saveParams" />
 
-        <label>Probe Fast FRate<HelpIcon>Feed rate for initial fast probe contact. Higher values are faster but reduce repeatability. (#3016)</HelpIcon></label>
+        <label>Fast Feed<HelpIcon>Feed rate for initial fast probe contact. Higher values are faster but reduce repeatability. (#3016)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.fastFr" min="1" :step="STEP_FEED" @change="saveParams" />
 
-        <label>Max X/Y Distance<HelpIcon>Maximum lateral travel before probe aborts if no contact is made. Safety limit — set slightly larger than the expected edge distance. (#3018)</HelpIcon></label>
+        <label>Max X/Y Travel<HelpIcon>Maximum lateral travel before probe aborts if no contact is made. Safety limit — set slightly larger than the expected edge distance. (#3018)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.maxXYDistance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
 
         <label>X/Y Clearance<HelpIcon>Retract distance in X/Y after each edge contact before the next move. Prevents the probe tip from scraping the feature wall. (#3019)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.xyClearance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>Max Z Distance<HelpIcon>Maximum downward travel before probe aborts if no contact. Safety limit to prevent crashes. Set slightly larger than expected distance to surface. (#3020)</HelpIcon></label>
+        <label>Max Z Travel<HelpIcon>Maximum downward travel before probe aborts if no contact. Safety limit to prevent crashes. Set slightly larger than expected distance to surface. (#3020)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.maxZDistance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>Z Clearance<HelpIcon>Retract height above the workpiece between Z probe passes. Also controls slow probe depth (2x this value). (#3021)</HelpIcon></label>
+        <label>Z Clearance<HelpIcon>Retract height above the workpiece between Z probe passes. Also controls slow probe depth (2× this value). (#3021)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.zClearance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
 
         <label>Extra Probe Depth<HelpIcon>Additional depth added to the slow probe pass beyond Z clearance. Ensures solid re-contact on rough surfaces. Increase if slow probe misses contact. (#3022)</HelpIcon></label>
@@ -1239,7 +1239,7 @@ function fmtR(key: string): string {
         <label>Step Off Width<HelpIcon>Distance the probe steps away from an edge before approaching perpendicular for measurement. Ensures a clean, straight-on contact. (#3023)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.stepOffWidth" min="0.1" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>Cal Offset<HelpIcon>Probe tip radius calibration offset. Compensates for the difference between electrical trigger point and true tip center. Set via calibration routines — do not guess. (#3032)</HelpIcon></label>
+        <label>Calibration Offset<HelpIcon>Probe tip radius calibration offset. Compensates for the difference between electrical trigger point and true tip center. Set via calibration routines — do not guess. (#3032)</HelpIcon></label>
         <span class="calOffsetReadonly mono">{{ fmtNum(params.calOffset) }}</span>
       </div>
     </template>
@@ -1265,25 +1265,25 @@ function fmtR(key: string): string {
         <label>Probe Tool #<HelpIcon>Tool number of the probe. Must match the tool loaded in the spindle before any probing operation. (#3014)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.probeTool" min="1" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>Probe Slow FRate<HelpIcon>Feed rate for the refined slow probe pass. Set to 0 to skip the slow pass entirely — faster but less accurate. (#3015)</HelpIcon></label>
+        <label>Slow Feed<HelpIcon>Feed rate for the refined slow probe pass. Set to 0 to skip the slow pass entirely — faster but less accurate. (#3015)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.slowFr" min="0" :step="STEP_FEED" @change="saveParams" />
 
-        <label>Probe Traverse FR<HelpIcon>Feed rate for non-probing positioning moves between probe points. Does not affect probe accuracy. (#3017)</HelpIcon></label>
+        <label>Traverse Feed<HelpIcon>Feed rate for non-probing positioning moves between probe points. Does not affect probe accuracy. (#3017)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.traverseFr" min="1" :step="STEP_FEED" @change="saveParams" />
 
-        <label>Probe Fast FRate<HelpIcon>Feed rate for initial fast probe contact. Higher values are faster but reduce repeatability. (#3016)</HelpIcon></label>
+        <label>Fast Feed<HelpIcon>Feed rate for initial fast probe contact. Higher values are faster but reduce repeatability. (#3016)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.fastFr" min="1" :step="STEP_FEED" @change="saveParams" />
 
-        <label>Max X/Y Distance<HelpIcon>Maximum lateral travel before probe aborts if no contact is made. Safety limit — set slightly larger than the expected edge distance. (#3018)</HelpIcon></label>
+        <label>Max X/Y Travel<HelpIcon>Maximum lateral travel before probe aborts if no contact is made. Safety limit — set slightly larger than the expected edge distance. (#3018)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.maxXYDistance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
 
         <label>X/Y Clearance<HelpIcon>Retract distance in X/Y after each edge contact before the next move. Prevents the probe tip from scraping the feature wall. (#3019)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.xyClearance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>Max Z Distance<HelpIcon>Maximum downward travel before probe aborts if no contact. Safety limit to prevent crashes. Set slightly larger than expected distance to surface. (#3020)</HelpIcon></label>
+        <label>Max Z Travel<HelpIcon>Maximum downward travel before probe aborts if no contact. Safety limit to prevent crashes. Set slightly larger than expected distance to surface. (#3020)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.maxZDistance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>Z Clearance<HelpIcon>Retract height above the workpiece between Z probe passes. Also controls slow probe depth (2x this value). (#3021)</HelpIcon></label>
+        <label>Z Clearance<HelpIcon>Retract height above the workpiece between Z probe passes. Also controls slow probe depth (2× this value). (#3021)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.zClearance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
 
         <label>Extra Probe Depth<HelpIcon>Additional depth added to the slow probe pass beyond Z clearance. Ensures solid re-contact on rough surfaces. Increase if slow probe misses contact. (#3022)</HelpIcon></label>
@@ -1292,7 +1292,7 @@ function fmtR(key: string): string {
         <label>Step Off Width<HelpIcon>Distance the probe steps away from an edge before approaching perpendicular for measurement. Ensures a clean, straight-on contact. (#3023)</HelpIcon></label>
         <MachineInput gate="probeParam" type="number" v-model.number="params.stepOffWidth" min="0.1" :step="STEP_DEFAULT" @change="saveParams" />
 
-        <label>Cal Offset<HelpIcon>Probe tip radius calibration offset. Compensates for the difference between electrical trigger point and true tip center. Set via calibration routines — do not guess. (#3032)</HelpIcon></label>
+        <label>Calibration Offset<HelpIcon>Probe tip radius calibration offset. Compensates for the difference between electrical trigger point and true tip center. Set via calibration routines — do not guess. (#3032)</HelpIcon></label>
         <span class="calOffsetReadonly mono">{{ fmtNum(params.calOffset) }}</span>
       </div>
     </div>

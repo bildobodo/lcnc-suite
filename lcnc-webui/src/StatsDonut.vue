@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { fmtDist } from "./format";
+import { fmtDist, fmtPct } from "./format";
 import type { GcodeStats } from "./GcodePanel.vue";
 
 /**
@@ -32,7 +32,7 @@ const segments = computed(() => {
       color: item.color,
       label: item.label,
       value: item.value,
-      pct: Math.round(pct * 100),
+      pct,
       dasharray: `${len} ${DONUT_C - len}`,
       dashoffset: -offset,
     });
@@ -55,14 +55,14 @@ const segments = computed(() => {
         :stroke-dashoffset="seg.dashoffset"
         transform="rotate(-90 50 50)"
       >
-        <title>{{ seg.label }} — {{ stats ? fmtDist(seg.value, stats.unit) : '' }} ({{ seg.pct }}%)</title>
+        <title>{{ seg.label }} — {{ stats ? fmtDist(seg.value, stats.unit) : '' }} ({{ fmtPct(seg.pct) }})</title>
       </circle>
     </svg>
     <div class="donutLegend stack-tight">
       <div v-for="seg in segments" :key="seg.label" class="row-tight">
         <span class="legendDot" :style="{ background: seg.color }"></span>
         <span>{{ seg.label }}</span>
-        <span class="legendPct mono">{{ seg.pct }}%</span>
+        <span class="legendPct mono">{{ fmtPct(seg.pct) }}</span>
       </div>
     </div>
   </div>

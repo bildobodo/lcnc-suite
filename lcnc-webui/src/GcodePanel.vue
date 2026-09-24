@@ -143,7 +143,7 @@ function onTokenClick(ev: MouseEvent, token: Token) {
 function dismissTooltip() { tooltip.value = null; }
 
 const fileName = computed(() => {
-  if (!props.activeFile) return "No file loaded";
+  if (!props.activeFile) return "No program loaded";
   return props.activeFile.split("/").pop() || props.activeFile;
 });
 
@@ -899,7 +899,7 @@ async function saveEdit() {
         </div>
         <div ref="editorHost" class="editorHost" :data-input-area="EDITOR_OWNER" @pointerup="onEditorPointerUp"></div>
         <div class="editActions">
-          <MachineBtn type="fileSave" class="actionBtn" @click="saveEdit" :disabled="saving">{{ saving ? 'Saving...' : 'Save' }}</MachineBtn>
+          <MachineBtn type="fileSave" class="actionBtn" @click="saveEdit" :disabled="saving">{{ saving ? 'Saving…' : 'Save' }}</MachineBtn>
           <MachineBtn type="fileOp" class="actionBtn" @click="discardEdit" :disabled="saving">Discard</MachineBtn>
         </div>
       </div>

@@ -47,10 +47,10 @@ test("pong drives the network-latency pill", async ({ page }) => {
 test("halshow snapshot renders pins and halshow_update applies the delta", async ({ page }) => {
   await page.goto(MOCK);
   await page.getByTitle("Settings", { exact: true }).click();
-  await page.getByRole("button", { name: "Halshow" }).click();
+  await page.getByRole("button", { name: "HAL", exact: true }).click();
   // Opening the tab sends {cmd:"halshow_live", on:true}; the mock answers
   // with the snapshot. Search to get the flat list (tree starts collapsed).
-  await page.locator(".halPane").getByPlaceholder("Search...").fill("mock.counter");
+  await page.locator(".halPane").getByPlaceholder("Search HAL…").fill("mock.counter");
   const value = page.locator(".halRow .halValue").first();
   await expect(value).toHaveText("0");
   await ctlSend({ op: "raw", frame: { type: "halshow_update", pins: { "mock.counter": "17" } } });
