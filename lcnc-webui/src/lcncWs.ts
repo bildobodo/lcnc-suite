@@ -150,12 +150,18 @@ function onWorkerMessage(m: any) {
 
     case "attempt":
       emitTelemetry("ws.connect.attempt", {
-        attempt: m.attempt, last_close_code: m.lastCloseCode, gap_ms: m.gapMs,
+        attempt: m.attempt, last_close_code: m.lastCloseCode, gap_ms: m.gapMs, probed: m.probed,
       });
       break;
 
     case "reconnecting":
       // No-op: the subsequent "attempt" carries the telemetry on actual retry.
+      break;
+
+    case "probe":
+      // The worker's HTTP reconnect gate (GET /ready) changed state: down (first
+      // failed probe of an outage), still_down (≤ 1/min), up (the socket opens next).
+      emitTelemetry("ws.probe", { phase: m.phase, probes: m.probes, down_ms: m.downMs });
       break;
 
     case "hbsent":

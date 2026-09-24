@@ -1,7 +1,7 @@
 // Unit tests for ws/wsTransport.ts (A1.4) — worker lifecycle, message shapes
 // and URL building pinned at extraction time from the lcncWs.ts monolith.
 import "../testGlobals";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 class FakeWorker {
   static instances: FakeWorker[] = [];
@@ -9,6 +9,8 @@ class FakeWorker {
   posted: any[] = [];
   terminated = false;
   onmessage: ((ev: { data: any }) => void) | null = null;
+  onerror: ((ev: any) => void) | null = null;
+  onmessageerror: (() => void) | null = null;
   constructor(url: URL) {
     this.url = url;
     FakeWorker.instances.push(this);
@@ -106,5 +108,60 @@ describe("transport lifecycle", () => {
     expect(w.terminated).toBe(true);
     expect(w.posted.some((m: any) => m.type === "close")).toBe(true);
     expect(() => sendCommand("{}", "heartbeat", false)).not.toThrow();
+  });
+});
+
+describe("worker supervision", () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { terminateTransport(); vi.useRealTimers(); });
+
+  it("a worker that fails to load is reported and respawned with a fresh connect", () => {
+    const events: any[] = [];
+    connectTransport("ws://x/ws", (m) => events.push(m));
+    const w1 = lastWorker();
+    w1.onerror!({ message: "load failed", preventDefault() {} });
+    expect(w1.terminated).toBe(true);
+    expect(events).toEqual([expect.objectContaining({ type: "error", kind: "worker_load_failed" })]);
+    expect(sendCommand("{}", "heartbeat", false)).toBe(false);   // nothing to post to meanwhile
+    vi.advanceTimersByTime(1_999);
+    expect(FakeWorker.instances).toHaveLength(1);
+    vi.advanceTimersByTime(1);
+    expect(FakeWorker.instances).toHaveLength(2);
+    expect(lastWorker().posted[0]).toMatchObject({ type: "connect", url: "ws://x/ws" });
+  });
+
+  it("a worker that stays silent 8 s is reported and respawned; the delay doubles", () => {
+    const events: any[] = [];
+    connectTransport("ws://x/ws", (m) => events.push(m));
+    vi.advanceTimersByTime(8_000);
+    expect(events[events.length - 1]).toMatchObject({ kind: "worker_start_timeout" });
+    expect(FakeWorker.instances[0]!.terminated).toBe(true);
+    vi.advanceTimersByTime(2_000);                        // respawn #1
+    expect(FakeWorker.instances).toHaveLength(2);
+    vi.advanceTimersByTime(8_000);                        // silent again
+    vi.advanceTimersByTime(3_999);
+    expect(FakeWorker.instances).toHaveLength(2);
+    vi.advanceTimersByTime(1);                            // 4 s this time
+    expect(FakeWorker.instances).toHaveLength(3);
+  });
+
+  it("a worker that has spoken is never respawned — an error is only reported", () => {
+    const events: any[] = [];
+    connectTransport("ws://x/ws", (m) => events.push(m));
+    const w = lastWorker();
+    w.onmessage!({ data: { type: "attempt", attempt: 1 } });
+    w.onerror!({ message: "boom", preventDefault() {} });
+    vi.advanceTimersByTime(30_000);
+    expect(w.terminated).toBe(false);
+    expect(FakeWorker.instances).toHaveLength(1);
+    expect(events[events.length - 1]).toMatchObject({ type: "error", kind: "worker_uncaught" });
+  });
+
+  it("terminateTransport cancels a pending respawn", () => {
+    connectTransport("ws://x/ws", () => {});
+    lastWorker().onerror!({ message: "load failed", preventDefault() {} });
+    terminateTransport();
+    vi.advanceTimersByTime(30_000);
+    expect(FakeWorker.instances).toHaveLength(1);
   });
 });

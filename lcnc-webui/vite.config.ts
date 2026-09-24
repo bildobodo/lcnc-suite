@@ -1,9 +1,13 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { httpRestartPing } from './viteHttpRestartPing'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue()],
+  // httpRestartPing: dev only — Vite's restart ping over HTTP, so it cannot
+  // hold the browser's one-connecting-WebSocket-per-IP slot the gateway socket
+  // needs after a suite restart (see viteHttpRestartPing.ts).
+  plugins: [vue(), httpRestartPing()],
   build: {
     assetsDir: 'static',  // avoid conflict with gateway /assets mount (machine STLs)
     rollupOptions: {

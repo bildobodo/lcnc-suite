@@ -6114,3 +6114,68 @@ the word "code" in any text-field placeholder. The general field contract
 what this extension keyed on — a reminder to find the trigger in the
 browser that shows the symptom before calling a heuristic fix done.
 
+
+## 2026-09-23 night — Tabs reconnect through an HTTP gate, not by blind WebSocket retries
+
+Operator report: after a fresh suite start or a LinuxCNC restart tabs sat on
+"Disconnected — reconnecting automatically", existing tabs often never came
+back, a manual refresh helped only sometimes. The trace (browser telemetry +
+gateway, every launcher start since 09-19) showed reconnect attempts hanging
+exactly 3001–3017 ms — even against a CLOSED port, which answers with an
+immediate reset — and the first Mac Firefox tab connecting 58 s / 41 s after
+the boot (09-19 21:59, 09-23 19:46); three manual reloads in a row failed the
+same way.
+
+Cause, from Firefox's `nsWSAdmissionManager` (source read, not guessed):
+every failed WebSocket connection is remembered per IP:port in the BROWSER
+process — 200–400 ms, ×1.5 per failure, capped at 60 s, kept across reloads,
+cleared only by a successful connection — and the next attempt is held for
+that long; and only ONE WebSocket per IP ADDRESS, across ports, may be
+connecting or held at a time. The worker retried the socket every 5 s through
+an outage, which ran the hold to 60 s; after the restart its 3 s connect
+timeout cancelled every held attempt before it reached the network. In dev,
+Vite 7's "Polling for restart" ping — a WebSocket to :5173 with no timeout —
+sat in the same per-IP slot and queued the gateway socket (:8000) behind it.
+The 3 s timeout itself dated from the Vite-proxied socket, which no longer
+exists (the socket goes straight to the gateway).
+
+Decision: after a close the worker (`wsWorker.ts`) asks `GET /ready` over
+plain HTTP — an empty 204, no token, its own `Access-Control-Allow-Origin: *`
+so no origin allow-list can make it read "down" forever, off the per-request
+trace like /telemetry — and opens the socket only once it answers (500 ms
+after a dropped connection, 2 s after a failed attempt, then every 1 s).
+HTTP never feeds the WebSocket backoff. The first connection of a page stays
+a direct socket. The connect backstop is 10 s: a held socket is legitimate,
+closing it only restarts the wait. The probe reports transitions only
+(`ws.probe` down / still_down ≤ 1/min / up with the outage length). A
+dev-only Vite plugin (`viteHttpRestartPing.ts`, operator decision) rewrites
+the client's ping to the HTTP ping Vite's server still answers
+(`Accept: text/x-vite-ping` → 204); a Vite update that changes the ping fails
+the transform and its test against the installed client — never a silent
+no-op.
+
+Second defect in the same trace: one page emitted `ws.client_env` and then
+made no connection attempt for four minutes — the worker never started and
+the Worker had no error handler. `wsTransport.ts` now reports a worker that
+fails to load or stays silent 8 s and respawns it (2 s, doubling to 10 s); an
+error after the worker has spoken is reported only.
+
+Chrome on the Mac never loaded the page at all (no Chrome/macOS user agent in
+any trace since 09-19) while Firefox on the same Mac did: macOS's "Local
+Network" privacy permission for Chrome, an operator setting, not the suite.
+
+Measurement: `scripts/ws_reconnect_report.py` — per gateway boot and page,
+seconds to the first open, attempts, and attempts the browser held
+(`held_to`).
+
+Live result (2026-09-24, suite run from the fix branch, LinuxCNC off 8.5 min
+with Mac Firefox, Mac Chrome and VM Firefox tabs open): the old Mac Firefox
+tab probed 479 times, reported `up` and opened its socket 0.8 s after the
+gateway's boot (12 ms handshake); the tabs Vite then reloaded opened 0.8 /
+0.9 / 0.6 s after their load; no attempt was held (`held_to` 0). The same
+test on the old code the evening before: the Mac Firefox tab's attempts 45–51
+were all held and cancelled, it connected only after Vite's reload, ~31 s
+after the boot. Chrome was fast either way (it has no cross-port per-IP
+queue). Telemetry events now carry a per-document `page` id: the report had
+merged two tabs whose navigation starts, on two machines' clocks, fell within
+the same instant.
