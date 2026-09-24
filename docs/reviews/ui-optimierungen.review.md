@@ -1,5 +1,13 @@
 # Review: WebUI-Optimierungen — Abstimmung mit Claude
 
+**Aktueller Anschluss · 23. September 2026:** Die bisherige UI-Welle ist mit `0019da5` nach
+`development` gemergt; die Abschlussnachweise stehen am Ende des
+[Implementierungsreviews](ui-optimierungen.implementation-review.md). Die folgende frühere
+Merge-Prüfung ist historisch. Für die neue Design-Welle gelten der
+[separate Plan, Fassung 3](ui-design-welle.plan.md) und das [Planreview Runde 3](ui-design-welle.review.md#codex-runde-3).
+**Plan-Agreement: UI-D01–UI-D09 sind auf Planebene akzeptiert (9/9).** Geometrieprüfung,
+Implementierungsreviews und Abschlussabnahmen folgen wie im Plan vorgesehen.
+
 **Merge-Prüfung · Codex · 23. September 2026:** Der Operator bestätigt UX-13 als gelöst; damit besteht kein bekannter offener Funktionsbefund mehr im vereinbarten Umfang. Der finale WP-F5-Diff (Placeholder „MDI command (↑↓ history)“, Diagnosecode entfernt, Feldvertrag-Test angepasst) ist im Arbeitsbaum vorhanden, aber noch nicht committet. Der letzte grüne Offline-Lauf gilt für `e5ad3dd` **vor** diesem Diff. **Noch keine endgültige Merge-Freigabe:** Abschlusscommit und grünes Gate auf diesem Stand fehlen; die geplante Live-Sichtprüfung am XYZAC-Sim ist weiterhin nicht dokumentiert. Lokales `development` ist Vorfahr des Branches (0/34 abweichende Commits). Die getrennten Design-/Fallback-Wellen blockieren diesen Merge nach `development` nicht; physischer Touchscreen bleibt die gesonderte Abnahme für `main`.
 
 **Neuer Prüfauftrag · Layout und Barrierefreiheit · 22. September 2026:** Der Operator erweitert die UI-Prüfung um gemeinsame Layout-/Formularstandards, Schließpositionen, Aktionsgruppen, Header, Tokens und Erkennbarkeit einschließlich 3D-Farben. Der [Konsistenz- und Accessibility-Review](ui-optimierungen.consistency-review.md) führt **UI-K01–UI-K17**, konkrete Messwerte und Abnahmekriterien; dazu ein [interaktiver Gestaltungsvorschlag](ui-optimierungen.design-proposal.html). Produktstand `691e642`, keine Produktänderungen durch den Review. Dies war zunächst ein Erweiterungsvorschlag. Aktueller Umfang laut Fassung 5: UI-K15 sowie UI-K16s Entwurfs-/Importschutz sind umgesetzt und in Runde 8 nachgeprüft; die übrigen Gestaltungsverträge bilden eine eigene Welle. Frühere Plan-Agreements gelten für ihren damaligen Umfang.

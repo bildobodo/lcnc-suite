@@ -1,5 +1,12 @@
 # WebUI — Layoutkonsistenz, Standards und Barrierefreiheit
 
+**Neue Design-Welle · 23. September 2026:** Nach dem Merge der vorigen UI-Welle liegt ein
+[eigener Plan, Fassung 3](ui-design-welle.plan.md) mit [separatem Planreview, Runde 3](ui-design-welle.review.md#codex-runde-3)
+vor. **Plan-Agreement: UI-D01–UI-D09 sind auf Planebene akzeptiert (9/9).** Geometrie und
+Umsetzung bleiben nach dem vereinbarten Ablauf zu prüfen. Der neue Plan hält die Operator-Entscheidung
+für ein **festes 4×2-Probing-Raster** fest. Das ersetzt die unten dokumentierte Picker-Empfehlung
+als Ausgangsvariante; deren Messungen bleiben historische Vergleichswerte.
+
 **Codex · 22. September 2026 · Produktstand `691e642`, Branch `feat/ui-review-wave`.** Während der Prüfung kamen ausschließlich die Dokumentations-Commits `930352c` und `f608f38` hinzu. Neuer Prüfauftrag des Operators: einheitliche Bedienführung, Formulare, Aktionsgruppen, Buttons/Tokens sowie Kontraste und Barrierefreiheit einschließlich 3D-Viewer.
 
 **Bewertung:** Die Beispiele sind berechtigt. Zentrale Komponenten und Tokens existieren bereits; es fehlen vor allem verbindliche Regeln, wie daraus ganze Bedienbereiche zusammengesetzt werden. Dazu kommen nachgewiesene Kontrast- und Zugänglichkeitslücken. Das gehört fachlich zur UI. Dieser Nachtrag erweitert den bisherigen Auftrag; er ist kein bereits vereinbarter oder umgesetzter Plan und keine Rücknahme der früheren, engeren Nachweise.
