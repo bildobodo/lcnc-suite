@@ -211,6 +211,12 @@ const compact = computed(() => isPortrait.value && activeKind.value !== null);
   min-width: 0;
   overflow: auto;
 }
+/* Portrait: the status columns need 240 px of the 280 px column's 236–246
+   (see .statusCols in style.css); the side padding gives 8 of them back.
+   Layout only — the inset panel keeps its look. */
+@media (orientation: portrait) {
+  .statusDetail { padding-inline: var(--gap-tight); }
+}
 .codesRow {
   /* Prevent codes from widening the strip — wrap within status column width */
   width: 0;

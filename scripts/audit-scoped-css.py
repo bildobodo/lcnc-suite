@@ -73,6 +73,16 @@ WS-C extension — design-token drift checks over every .vue <style> block
                or a static `help="…"` prop in the <template>. A "?" says what
                the value is and the one rule the operator needs — nobody
                reads an abstract (design wave D1 live look).
+  MEDIA_SHADOW — a declaration inside an @media / @supports / @container
+               block that a LATER rule outside any such block, with the
+               identical selector, sets again (the same property or a
+               shorthand covering it): same specificity, the later one wins,
+               so the conditional declaration never applies. Scanned in every
+               .vue style block AND in style.css (the tokens' exemption does
+               not cover this). The portrait rules of the sticky Safety
+               section were dead for seven weeks this way — its content sat
+               8 px further in than every other section (design wave D1 live
+               look).
   UNIT_LITERAL — a unit glued to an interpolation in the <template>
                (`{{ v }}mm`, `${v}%`, `{{ v }} ms`): units come from their
                source and a formatter (fmtPct/fmtQty/fmtDist/fmtUnit in
@@ -556,10 +566,103 @@ def token_findings(path: str) -> list[tuple[str, int, str]]:
     return findings
 
 
-def run(vue_files: list[Path], show_all: bool = False, style: Path | None = None) -> tuple[list, list, int]:
+# A later shorthand overrides an earlier longhand completely; a later longhand
+# overrides only its own part of an earlier shorthand (the rest still applies),
+# so only this direction makes a conditional declaration dead.
+_SHORTHANDS: dict[str, tuple[str, ...]] = {}
+for _sh, _parts in {
+    "padding": ("top", "right", "bottom", "left", "inline", "block", "inline-start", "inline-end", "block-start", "block-end"),
+    "margin": ("top", "right", "bottom", "left", "inline", "block", "inline-start", "inline-end", "block-start", "block-end"),
+    "overflow": ("x", "y"),
+    "gap": (),
+    "flex": ("grow", "shrink", "basis"),
+    "border": ("top", "right", "bottom", "left", "width", "style", "color"),
+    "background": ("color", "image", "position", "size", "repeat"),
+    "mask": ("image", "position", "size", "repeat"),
+    "-webkit-mask": ("image", "position", "size", "repeat"),
+    "grid-template": ("columns", "rows", "areas"),
+}.items():
+    for _p in _parts:
+        _SHORTHANDS.setdefault(f"{_sh}-{_p}", ())
+        _SHORTHANDS[f"{_sh}-{_p}"] += (_sh,)
+for _p in ("top", "right", "bottom", "left"):
+    _SHORTHANDS[_p] = ("inset",)
+for _p in ("row-gap", "column-gap"):
+    _SHORTHANDS[_p] = ("gap",)
+
+
+def _split_selectors(prelude: str) -> list[str]:
+    parts, depth, cur = [], 0, ""
+    for ch in prelude:
+        if ch in "([":
+            depth += 1
+        elif ch in ")]":
+            depth -= 1
+        if ch == "," and depth == 0:
+            parts.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    parts.append(cur)
+    return [re.sub(r"\s+", " ", p.strip()) for p in parts if p.strip()]
+
+
+def media_shadow_findings(path: str) -> list[tuple[str, int, str]]:
+    """MEDIA_SHADOW per dead conditional declaration in one .vue file's
+    style blocks, or in one .css file."""
+    blocks = [(1, read(path))] if path.endswith(".css") else _style_blocks(path)
+    findings: list[tuple[str, int, str]] = []
+    for block_start, body in blocks:
+        raw = body.splitlines()
+        text = re.sub(r"/\*.*?\*/", lambda m: re.sub(r"[^\n]", " ", m.group(0)), body, flags=re.S)
+        # (conditions, selector, property, 0-based line, important)
+        decls: list[tuple[tuple[str, ...], str, str, int, bool]] = []
+
+        def walk(i: int, end: int, cond: tuple[str, ...]) -> None:
+            while i < end:
+                j = text.find("{", i)
+                if j < 0 or j >= end:
+                    return
+                depth, k = 1, j + 1
+                while k < end and depth:
+                    depth += {"{": 1, "}": -1}.get(text[k], 0)
+                    k += 1
+                prelude = text[i:j].split(";")[-1].strip()
+                if re.match(r"@(media|supports|container)\b", prelude):
+                    walk(j + 1, k - 1, cond + (re.sub(r"\s+", " ", prelude),))
+                elif not prelude.startswith("@"):  # @keyframes, @font-face: not rules
+                    sels = _split_selectors(prelude)
+                    pos = j + 1
+                    for decl in text[j + 1 : k - 1].split(";"):
+                        m = re.match(r"\s*([-a-zA-Z]+)\s*:(.*)", decl, re.S)
+                        if m:
+                            line = text.count("\n", 0, pos + m.start(1))
+                            for s in sels:
+                                decls.append((cond, s, m.group(1).lower(), line, "!important" in m.group(2)))
+                        pos += len(decl) + 1
+                i = k
+
+        walk(0, len(text), ())
+        for n, (cond, sel, prop, line, important) in enumerate(decls):
+            if not cond or important or _audit_ok(raw, line):
+                continue
+            covers = {prop, *_SHORTHANDS.get(prop, ())}
+            for cond2, sel2, prop2, line2, _ in decls[n + 1 :]:
+                if not cond2 and sel2 == sel and prop2 in covers:
+                    findings.append(("MEDIA_SHADOW", block_start + line,
+                                     f"{sel} {{ {prop} }} in {cond[-1]} never applies — "
+                                     f"line {block_start + line2} sets {prop2} later outside it"))
+                    break
+    return findings
+
+
+def run(vue_files: list[Path], show_all: bool = False, style: Path | None = None,
+        stylesheets: list[Path] = ()) -> tuple[list, list, int]:
     """Scan `vue_files`: (leak findings, drift findings, definite-leak count).
     Drift findings are (category, file, line, message). `style` is the global
-    stylesheet whose classes exempt a scoped class from the leak check."""
+    stylesheet whose classes exempt a scoped class from the leak check;
+    `stylesheets` are .css files scanned for MEDIA_SHADOW (style.css in a
+    full run)."""
     vue_files = sorted(vue_files)
     # Capture every class token in style.css, including those buried in compound
     # selectors like `.dialog.lg` or `.val-status.warn`. Top-line-only would miss
@@ -591,7 +694,10 @@ def run(vue_files: list[Path], show_all: bool = False, style: Path | None = None
 
     drift = []
     for f in vue_files:
-        for cat, ln, msg in token_findings(str(f)) + template_findings(str(f)):
+        for cat, ln, msg in token_findings(str(f)) + template_findings(str(f)) + media_shadow_findings(str(f)):
+            drift.append((cat, str(f), ln, msg))
+    for f in stylesheets:
+        for cat, ln, msg in media_shadow_findings(str(f)):
             drift.append((cat, str(f), ln, msg))
     drift.sort(key=lambda d: (d[1], d[2], d[0]))
     return findings, drift, definite
@@ -603,10 +709,11 @@ def main(argv: list[str]) -> int:
     if "--paths" in argv:
         paths = [Path(a) for a in argv[argv.index("--paths") + 1 :] if not a.startswith("--")]
         if not paths:
-            print("--paths needs at least one .vue file", file=sys.stderr)
+            print("--paths needs at least one .vue or .css file", file=sys.stderr)
             return 2
         style = Path(repo_root()) / STYLE
-        vue_files = [p.resolve() for p in paths]
+        vue_files = [p.resolve() for p in paths if p.suffix != ".css"]
+        stylesheets = [p.resolve() for p in paths if p.suffix == ".css"]
     else:
         os.chdir(repo_root())
         if not SRC.is_dir() or not STYLE.is_file():
@@ -614,8 +721,9 @@ def main(argv: list[str]) -> int:
             return 2
         vue_files = sorted(SRC.rglob("*.vue"))
         style = STYLE
+        stylesheets = [STYLE]
 
-    findings, drift, definite = run(vue_files, show_all, style)
+    findings, drift, definite = run(vue_files, show_all, style, stylesheets)
     for sev, f, ln, name, dfile, tag in findings:
         if sev == "DEFINITE" or show_all:
             print(

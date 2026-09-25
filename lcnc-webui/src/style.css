@@ -1373,29 +1373,7 @@ label:has(input:disabled, select:disabled) {
 @media (orientation: portrait) {
   /* In portrait each section is auto-height (strip scrolls vertically) */
   .stripSection { height: auto; }
-  /* SafetyStrip: sticky at top of vertical scroll instead of left;
-     the interior scroll-side padding moves to the top edge accordingly */
-  .safetyStrip {
-    top: 0;
-    left: auto;
-    padding-left: 0;
-    padding-top: var(--gap-controls);
-  }
-  /* Vertical scroller: near-edge fade hangs below the pinned SafetyStrip */
-  .safetyStrip::after {
-    top: auto;
-    right: 0;
-    left: 0;
-    bottom: calc(-2 * var(--gap-panel));
-    width: auto;
-    height: calc(2 * var(--gap-panel));
-    -webkit-mask-image: linear-gradient(to bottom,
-      black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
-      rgba(0, 0, 0, 0.15) 60%, transparent 100%);
-    mask-image: linear-gradient(to bottom,
-      black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
-      rgba(0, 0, 0, 0.15) 60%, transparent 100%);
-  }
+  /* The sticky SafetyStrip's portrait rules follow its base rules below. */
 }
 
 /* ─── Portrait strip layout utilities ─────────────────────────────────────
@@ -1512,6 +1490,36 @@ label:has(input:disabled, select:disabled) {
   opacity: 1;
 }
 
+/* Portrait: sticky at the top of the vertical scroll instead of the left;
+   the interior scroll-side padding moves to the top edge, and the near-edge
+   fade hangs below the pinned section. This block must FOLLOW the base
+   rules above — same specificity, the later rule wins. Before them it never
+   applied (7 weeks: the section sat 8 px further in than every other one,
+   the fade kept its landscape geometry). The CSS audit's MEDIA_SHADOW
+   category fails the gate on that order. */
+@media (orientation: portrait) {
+  .safetyStrip {
+    top: 0;
+    left: auto;
+    padding-left: 0;
+    padding-top: var(--gap-controls);
+  }
+  .safetyStrip::after {
+    top: auto;
+    right: 0;
+    left: 0;
+    bottom: calc(-2 * var(--gap-panel));
+    width: auto;
+    height: calc(2 * var(--gap-panel));
+    -webkit-mask-image: linear-gradient(to bottom,
+      black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
+      rgba(0, 0, 0, 0.15) 60%, transparent 100%);
+    mask-image: linear-gradient(to bottom,
+      black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
+      rgba(0, 0, 0, 0.15) 60%, transparent 100%);
+  }
+}
+
 .bordered-panel {
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
@@ -1571,7 +1579,16 @@ label:has(input:disabled, select:disabled) {
   gap: var(--gap-controls);
 }
 /* Two-column status layout: equal columns split by a subtle rule
-   (safety detail) */
+   (safety detail). Every value is sized at its widest state word
+   (.stable-width), so the columns need the same width in every state. In
+   the 13 px test font they needed 256 px of a 256 px landscape box and of a
+   236–246 px portrait one (the 280 px strip column; the touch scrollbar band
+   takes 10) — they scrolled sideways by up to 20 px (design wave D1 live
+   look). The rule and the label–value gap sit at --gap-tight, and SafetyStrip
+   narrows the box's side padding in portrait: 240 px of need, 4 px reserve
+   on the tablet and 16 px in landscape. Stacking the columns in portrait
+   was measured and rejected: the pinned section grew 261 → 360 px, and at
+   150 % to 540 of the strip's 603 px. */
 .statusCols {
   display: flex;
   gap: 0;
@@ -1581,9 +1598,10 @@ label:has(input:disabled, select:disabled) {
 }
 .statusCol + .statusCol {
   border-left: 1px solid var(--border-subtle);
-  padding-left: var(--gap-controls);
-  margin-left: var(--gap-controls);
+  padding-left: var(--gap-tight);
+  margin-left: var(--gap-tight);
 }
+.statusCols .statusRow { gap: var(--gap-tight); }
 
 /* Status key/value pairs (safety detail, spindle readouts) */
 .val-status        { font-size: var(--fs-sm); font-weight: var(--fw-semibold); text-align: right; }

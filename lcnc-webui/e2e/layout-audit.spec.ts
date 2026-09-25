@@ -50,3 +50,22 @@ test('layout guard finds content spilling out of a fixed-height box and a contro
   expect(kinds).toContain('overflowing-box');
   expect(kinds).toContain('crosses-separator');
 });
+
+test('layout guard finds a sliver scroll anywhere and any sideways scroll inside the strip', async ({ page }) => {
+  // Design wave D1 live look: the portrait Safety section scrolled sideways —
+  // its status columns overflowed by 10 px, past the sliver window, and in
+  // the strip nothing is meant to scroll sideways.
+  await page.setContent(`<style>
+    .box { width: 200px; height: 60px; overflow: auto; }
+    .wide { height: 20px; }
+  </style><div class="strip"><div id="section"><div class="box"><div class="wide" style="width: 200px"></div></div></div></div>
+    <div id="panel"><div class="box"><div class="wide" style="width: 200px"></div></div></div>`);
+  const section = page.locator('#section'), panel = page.locator('#panel');
+  expect((await measureLayout(section, 'fixture', 'div')).issues).toEqual([]);
+  expect((await measureLayout(panel, 'fixture', 'div')).issues).toEqual([]);
+  await page.locator('.wide').evaluateAll(els => els.forEach(el => { el.style.width = '210px'; }));
+  expect((await measureLayout(section, 'fixture', 'div')).issues.map(i => i.kind)).toContain('sideways-scroll');
+  expect((await measureLayout(panel, 'fixture', 'div')).issues).toEqual([]);   // a panel may scroll 10 px
+  await page.locator('.wide').evaluateAll(els => els.forEach(el => { el.style.width = '202px'; }));
+  expect((await measureLayout(panel, 'fixture', 'div')).issues.map(i => i.kind)).toContain('sliver-scroll');
+});

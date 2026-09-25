@@ -128,6 +128,20 @@ def test_long_help_slot_and_prop_hit_short_and_multiline_ok(audit):
     assert sorted(hits) == [("LONG_HELP", 3), ("LONG_HELP", 5)], hits
 
 
+def test_media_shadow_same_prop_and_later_shorthand_hit(audit):
+    # .a padding-left (same prop), .c from a selector list, .d under a later
+    # `padding` shorthand. Not: .a top (never set again), .b, .e (a later
+    # longhand leaves the rest of the shorthand alive), .f (!important), .g
+    # (audit-ok), .h (the media rule comes last), the @keyframes body.
+    hits = [h for h in _drift(audit, "media_shadow.vue") if h[0] == "MEDIA_SHADOW"]
+    assert sorted(hits) == [("MEDIA_SHADOW", 7), ("MEDIA_SHADOW", 8), ("MEDIA_SHADOW", 9)], hits
+
+
+def test_media_shadow_scans_stylesheets(audit):
+    _, drift, _ = audit.run([], style=STYLE, stylesheets=[FIXTURES / "media_shadow.css"])
+    assert [(c, ln) for c, _f, ln, _m in drift] == [("MEDIA_SHADOW", 2)], drift
+
+
 def test_clean_fixture_has_no_findings(audit):
     assert _drift(audit, "clean.vue") == []
 
@@ -135,6 +149,6 @@ def test_clean_fixture_has_no_findings(audit):
 def test_production_sources_scan_clean(audit):
     files = sorted((ROOT / "lcnc-webui/src").rglob("*.vue"))
     assert files, "no .vue sources found"
-    leaks, drift, definite = audit.run(files, style=STYLE)
+    leaks, drift, definite = audit.run(files, style=STYLE, stylesheets=[STYLE])
     assert definite == 0, [l for l in leaks if l[0] == "DEFINITE"]
     assert drift == [], drift

@@ -1,0 +1,4 @@
+@supports (zoom: 1) {
+  .x { height: auto; }
+}
+.x { height: 10px; }

@@ -129,12 +129,19 @@ export async function measureLayout(root: Locator, name: string,
     // drag) for a pixel or two is a layout that almost fits, never content
     // to navigate (the portrait safety section scrolled 1 px sideways —
     // design wave D1 live look). Real scrolling content overflows by more.
+    // Inside the bottom strip NOTHING scrolls sideways (the strip itself is
+    // the horizontal scroller): there any sideways overflow is a layout that
+    // does not fit — the Safety status columns overflowed by 10 px, beyond
+    // the sliver window, and no check saw it.
+    const inStrip = !!element.closest('.strip');
     for (const box of [element, ...element.querySelectorAll<HTMLElement>('*')]) {
       if (!box.getClientRects().length) continue;
       const css = getComputedStyle(box);
       const dx = box.scrollWidth - box.clientWidth, dy = box.scrollHeight - box.clientHeight;
       const where = `${box.tagName.toLowerCase()}.${[...box.classList].join('.')}`;
-      if (['auto', 'scroll'].includes(css.overflowX) && dx > 0 && dx <= 4)
+      if (inStrip && ['auto', 'scroll'].includes(css.overflowX) && dx > 0)
+        issues.push({ kind: 'sideways-scroll', controls: [], detail: `${where}: scrolls ${dx}px sideways inside the strip` });
+      else if (['auto', 'scroll'].includes(css.overflowX) && dx > 0 && dx <= 4)
         issues.push({ kind: 'sliver-scroll', controls: [], detail: `${where}: scrolls ${dx}px sideways` });
       if (['auto', 'scroll'].includes(css.overflowY) && dy > 0 && dy <= 4)
         issues.push({ kind: 'sliver-scroll', controls: [], detail: `${where}: scrolls ${dy}px vertically` });

@@ -137,6 +137,52 @@ for (const viewport of VIEWPORTS) {
   });
 }
 
+// Portrait stacks the strip's sections in ONE column: every section's
+// content spans the same x range, the pinned Safety section included, and its
+// near-edge fade hangs BELOW it across the column (operator, D1 live look:
+// the Safety section started 8 px further in than Jog — its portrait rules
+// sat before the base rule in style.css and never applied, the fade kept its
+// landscape geometry off the right edge). Its two status columns fit side by
+// side with a reserve (they scrolled sideways), and the pinned section stays
+// a quarter of the strip: stacking the columns fitted them too, but the
+// section grew to 35 % of the strip at 100 % and 90 % at 150 %.
+for (const viewport of VIEWPORTS.filter(v => v.height > v.width)) {
+  test(`${viewport.name}: the strip sections share one content column`, async ({ page }) => {
+    await openLayout(page, PROFILES[0]!, viewport);
+    await setLayoutState(page, PROFILES[0]!, 'homed');
+    const { spans, fade, status, share } = await page.locator('.strip').evaluate(strip => {
+      const spans: Record<string, string> = {};
+      for (const sec of strip.querySelectorAll<HTMLElement>('.stripSection')) {
+        if (sec.parentElement?.closest('.stripSection')) continue;
+        const r = sec.getBoundingClientRect(), cs = getComputedStyle(sec);
+        const left = r.left + parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft);
+        const right = r.right - parseFloat(cs.borderRightWidth) - parseFloat(cs.paddingRight);
+        const name = sec.closest('[data-strip]')?.getAttribute('data-strip') ?? [...sec.classList].join('.');
+        spans[name] = `${Math.round(left)}..${Math.round(right)}`;
+      }
+      const safety = strip.querySelector<HTMLElement>('.safetyStrip')!;
+      const after = getComputedStyle(safety, '::after');
+      const detail = safety.querySelector<HTMLElement>('.statusDetail')!, cols = detail.querySelector<HTMLElement>('.statusCols')!;
+      const dcs = getComputedStyle(detail);
+      const room = detail.clientWidth - parseFloat(dcs.paddingLeft) - parseFloat(dcs.paddingRight);
+      const saved = cols.style.cssText;
+      cols.style.width = 'max-content';
+      const need = cols.getBoundingClientRect().width;
+      cols.style.cssText = saved;
+      return { spans, fade: { width: Math.round(parseFloat(after.width)), section: Math.round(safety.getBoundingClientRect().width), top: after.top, bottom: after.bottom },
+        status: { room, need: Math.round(need * 10) / 10, rows: [...cols.children].map(c => Math.round(c.getBoundingClientRect().top)) },
+        share: safety.getBoundingClientRect().height / strip.clientHeight };
+    });
+    expect(Object.keys(spans).length, JSON.stringify(spans)).toBeGreaterThanOrEqual(6);
+    expect(new Set(Object.values(spans)).size, `section content spans: ${JSON.stringify(spans)}`).toBe(1);
+    expect(fade.width, `Safety fade ${JSON.stringify(fade)}`).toBe(fade.section);
+    expect(parseFloat(fade.bottom), `Safety fade ${JSON.stringify(fade)}`).toBeLessThan(0);
+    expect(new Set(status.rows).size, `status columns side by side: ${JSON.stringify(status)}`).toBe(1);
+    expect(status.room - status.need, `status columns' reserve: ${JSON.stringify(status)}`).toBeGreaterThanOrEqual(2);
+    expect(share, 'the pinned Safety section\'s share of the strip').toBeLessThanOrEqual(0.3);
+  });
+}
+
 test('layout guard detects the original shrinking disabled-button regression', async ({ page }) => {
   await openLayout(page, PROFILES[1], VIEWPORTS[0]);
   const root = page.locator('[data-strip="jog"]');

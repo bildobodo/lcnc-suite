@@ -6289,3 +6289,45 @@ state is the BANNER; the message center is the PROTOCOL.
   Offsets tab on its first full run: the 5-axis table (6 value columns)
   was 4 px wider than the reference pane (60 + 6 × 76 = 516 in 512). The
   name column is 56 px now (its widest label, "G59.3", needs 36 + padding).
+
+### Live look, second round — the portrait Safety section (2026-09-25)
+
+The operator saw no sideways scrollbar after a restart, but a large gap on
+the left of the portrait Safety section: Jog's buttons sat closer to the edge.
+
+- Root cause: source order. The portrait rules for `.safetyStrip` (padding,
+  sticky edge, the near-edge fade) stood in `style.css` BEFORE its base
+  rules — same specificity, so the base won and every portrait declaration
+  it also set was dead: since `7621cb7` (2026-08-07) the section's content
+  started 8 px further in than every other section, since `19f4147`
+  (2026-08-08) its scroll fade kept the landscape geometry (off the right
+  edge) instead of hanging below the pinned section. The block now follows
+  the base rules. No footprint check could see it: a rule that never
+  applies leaves no changing control behind.
+- The sideways scroll WAS real, and larger than a sliver: the two status
+  columns (sized at their widest state words) need 255.8 px in the 13 px
+  test font — 0.2 px of reserve in the 256 px landscape box, 10–20 px short
+  in portrait (254 px, minus 8 for the dead padding, minus 10 for the touch
+  scrollbar band). `scrollWidth − clientWidth` reads 2–12 px because it
+  leaves out the end padding. The earlier probe looked only for 1–6 px and
+  reported "not reproduced" — wrong; overlay scrollbars (macOS, GTK) hide
+  the bar until one scrolls, and a narrower platform font shrinks the
+  overflow to the operator's 1 px.
+- Fix: the rule between the columns and the label–value gap inside them at
+  `--gap-tight`, the status box's side padding `--gap-tight` in portrait:
+  240 px of need, 4 px reserve on the touch tablet, 14–16 px elsewhere.
+  Stacking the columns in portrait fitted them too and was rejected by
+  measurement: the pinned section grew 261 → 360 px, at 150 % to 540 of the
+  strip's 603 px (63 px left to scroll the other sections through).
+- Guards, each red on its defect first: the CSS audit's `MEDIA_SHADOW` (a
+  declaration in an `@media`/`@supports`/`@container` block that a later
+  same-selector rule outside one overrides, shorthands included; scans
+  `style.css` too) — 8 hits on the old order; the layout audit's
+  `sideways-scroll` (any sideways overflow inside the strip) — 12 px on the
+  old layout; `layout.spec` portrait: one content column for every section,
+  the fade below the pinned section, the status columns side by side with
+  ≥ 2 px reserve, the pinned section ≤ 30 % of the strip (35 % stacked).
+- Open: which face `system-ui` resolves to in Firefox on macOS (the operator
+  sees a different font than in Chrome). Asked for the rendered font names;
+  a web font would be a D8 decision.
+
