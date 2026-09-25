@@ -5977,7 +5977,9 @@ async def trace_http(request: Request, call_next):
     # event batches). Emitting http.start + http.end for each one floods the
     # trace bus and was itself measurable event-loop load (P0.3). Skip the
     # routine pair for it; still surface slow (>50 ms) or error completions.
-    is_telemetry = path == "/telemetry"
+    # /ready is the browsers' reconnect probe (1 Hz per tab while a WS is
+    # down) — the same class.
+    is_telemetry = path in ("/telemetry", "/ready")
     if not is_telemetry:
         _trace.emit("http.start", path=path, method=method, peer=peer)
     status = 0
@@ -6005,6 +6007,18 @@ async def trace_http(request: Request, call_next):
 
 app.mount("/assets", StaticFiles(directory=str(MACHINE_DIR), html=False), name="assets")
 
+
+
+@app.get("/ready")
+async def ready():
+    # The WS client's reconnect gate (wsWorker.ts): after a close the browser
+    # asks here over plain HTTP before it opens a socket again, because every
+    # FAILED WebSocket attempt feeds the browser's own reconnect backoff (up to
+    # 60 s in Firefox). No token and no information — an empty 204 — and its
+    # own `Access-Control-Allow-Origin: *`, so the probe from the Vite dev page
+    # (:5173, any LAN host) is readable whatever the origin allow-list says; a
+    # probe that CORS rejects would look like "down" forever.
+    return Response(status_code=204, headers={"Access-Control-Allow-Origin": "*"})
 
 
 @app.get("/health")

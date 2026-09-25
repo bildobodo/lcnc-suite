@@ -32,7 +32,8 @@ let wantConnected = false;
 let hbTimer: ReturnType<typeof setInterval> | null = null;
 let bufferTimer: ReturnType<typeof setInterval> | null = null;
 let connectTimer: ReturnType<typeof setTimeout> | null = null;
-let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let probeTimer: ReturnType<typeof setTimeout> | null = null;
+let probeAbort: AbortController | null = null;
 
 // Commands that arrive before the socket is OPEN are queued and flushed after
 // the handshake (hello/tab_visibility) so hello is always the first frame.
@@ -43,6 +44,39 @@ let attempt = 0;
 let lastAttemptAt = 0;
 let lastCloseAt = 0;
 let lastCloseCode = 0;
+
+// Reconnect gate (2026-09-23). A WebSocket attempt against a gateway that is
+// down is not free: Firefox remembers every failed WS connection per IP:port
+// in the BROWSER process (200 ms × 1.5ⁿ, capped at 60 s, survives page
+// reloads, cleared only by a successful connection) and holds the next
+// attempt for that long; it also lets only ONE WebSocket per IP ADDRESS —
+// across ports — be connecting or held at a time. Retrying the socket every
+// few seconds through an outage therefore ran the hold up to 60 s, and after
+// the restart the old 3 s connect timeout cancelled every held attempt before
+// it reached the network: tabs sat 35–58 s on "reconnecting" (trace
+// 2026-09-19/23), reloads included. After a close we now ask the gateway over
+// plain HTTP (`GET /ready`, which the WS backoff never sees) and open the
+// socket only once it answers.
+const CONNECT_TIMEOUT_MS = 10_000;
+const PROBE_AFTER_DROP_MS = 500;      // an established connection dropped
+const PROBE_AFTER_FAIL_MS = 2000;     // an attempt never opened (old cadence)
+const PROBE_INTERVAL_MS = 1000;
+const PROBE_TIMEOUT_MS = 2000;
+const PROBE_DOWN_REPORT_MS = 60_000;  // "still down" at most once a minute
+let probes = 0;                       // probes in the current outage
+let downSince = 0;                    // first failed probe of this outage, 0 = none failed
+let lastDownReport = 0;
+let probeGen = 0;                     // invalidates a probe answered after teardown
+
+/** `ws(s)://host:port/ws?token=…` → `http(s)://host:port/ready` (no token: no preflight). */
+export function readyUrlFor(wsUrl: string): string {
+  const u = new URL(wsUrl);
+  u.protocol = u.protocol === "wss:" ? "https:" : "http:";
+  u.pathname = "/ready";
+  u.search = "";
+  u.hash = "";
+  return u.href;
+}
 
 // End-to-end stall visibility (#35): the heartbeat timer lives in this worker so
 // it's decoupled from the main thread — but the worker still shares CPU cores
@@ -150,7 +184,56 @@ function clearConnectTimer() {
   if (connectTimer !== null) { clearTimeout(connectTimer); connectTimer = null; }
 }
 
-function openSocket() {
+function stopProbe() {
+  probeGen++;
+  if (probeTimer !== null) { clearTimeout(probeTimer); probeTimer = null; }
+  if (probeAbort) { probeAbort.abort(); probeAbort = null; }
+}
+
+function scheduleProbe(delayMs: number) {
+  if (probeTimer !== null) clearTimeout(probeTimer);
+  probeTimer = setTimeout(runProbe, delayMs);
+}
+
+function runProbe() {
+  probeTimer = null;
+  if (!wantConnected || !cfg) return;
+  const gen = probeGen;
+  probes++;
+  const ctl = new AbortController();
+  probeAbort = ctl;
+  const timeout = setTimeout(() => ctl.abort(), PROBE_TIMEOUT_MS);
+  // Any HTTP answer means the gateway's port is serving — the WS attempt will
+  // not be a refused connection. Only a network error / timeout is "down".
+  fetch(readyUrlFor(cfg.url), { cache: "no-store", credentials: "omit", signal: ctl.signal })
+    .then(() => true, () => false)
+    .then((up) => {
+      clearTimeout(timeout);
+      if (gen !== probeGen || !wantConnected) return;   // torn down meanwhile
+      probeAbort = null;
+      const now = performance.now();
+      if (up) {
+        if (downSince) post({ type: "probe", phase: "up", probes, downMs: Math.round(now - downSince) });
+        probes = 0;
+        downSince = 0;
+        openSocket(true);
+        return;
+      }
+      if (!downSince) {
+        downSince = now;
+        lastDownReport = now;
+        post({ type: "probe", phase: "down", probes, downMs: 0 });
+      } else if (now - lastDownReport >= PROBE_DOWN_REPORT_MS) {
+        // Reaches the trace only when telemetry can reach the gateway — i.e.
+        // exactly when the probe itself is what fails (the unreported case).
+        lastDownReport = now;
+        post({ type: "probe", phase: "still_down", probes, downMs: Math.round(now - downSince) });
+      }
+      scheduleProbe(PROBE_INTERVAL_MS);
+    });
+}
+
+function openSocket(probed = false) {
   if (!cfg) return;
   attempt++;
   lastAttemptAt = performance.now();
@@ -159,22 +242,26 @@ function openSocket() {
     attempt,
     lastCloseCode,
     gapMs: lastCloseAt ? Math.round(performance.now() - lastCloseAt) : 0,
+    probed,
   });
 
   ws = new WebSocket(cfg.url);
   ws.binaryType = "arraybuffer";
+  let opened = false;
 
-  // Connect-attempt timeout: a proxy (e.g. Vite dev) can hold an upstream
-  // upgrade open indefinitely while the gateway is down — the socket sits in
-  // CONNECTING with no error. Force-close after 3 s so onclose fires and the
-  // 2 s reconnect cadence takes over.
+  // Connect-attempt backstop for a path that swallows the SYN. Deliberately
+  // long: the browser may legitimately HOLD a CONNECTING socket — its failure
+  // backoff, or its one-connecting-WebSocket-per-IP queue behind another
+  // socket to the same host (Vite's HMR on :5173 in dev) — and closing a held
+  // socket only restarts the wait (the old 3 s value never let one through).
   connectTimer = setTimeout(() => {
     if (ws && ws.readyState === WebSocket.CONNECTING) {
       try { ws.close(); } catch { /* ignore */ }
     }
-  }, 3000);
+  }, CONNECT_TIMEOUT_MS);
 
   ws.onopen = () => {
+    opened = true;
     clearConnectTimer();
     post({ type: "open", attempt, dtMs: Math.round(performance.now() - lastAttemptAt) });
     attempt = 0;
@@ -235,9 +322,10 @@ function openSocket() {
       sinceAttemptMs: Math.round(performance.now() - lastAttemptAt),
     });
     if (wantConnected) {
-      post({ type: "reconnecting", attempt: attempt + 1, gapMs: 2000 });
-      if (reconnectTimer !== null) clearTimeout(reconnectTimer);
-      reconnectTimer = setTimeout(() => { if (wantConnected) openSocket(); }, 2000);
+      // Reconnect through the HTTP gate, never by another blind WS attempt.
+      const gapMs = opened ? PROBE_AFTER_DROP_MS : PROBE_AFTER_FAIL_MS;
+      post({ type: "reconnecting", attempt: attempt + 1, gapMs });
+      scheduleProbe(gapMs);
     }
   };
 }
@@ -247,7 +335,9 @@ function teardown() {
   stopHeartbeat();
   stopBufferSampler();
   clearConnectTimer();
-  if (reconnectTimer !== null) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+  stopProbe();
+  probes = 0;
+  downSince = 0;
   preOpenQueue.length = 0;
   if (ws) {
     ws.onclose = null; // prevent the reconnect path from firing on our own close
