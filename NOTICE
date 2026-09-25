@@ -127,3 +127,13 @@ TWP 45 wall-gantry example (2026):
   already credited above. No DMU/manufacturer meshes or photographs included.
   Linear-guide outer dimensions reference THK SRG100LC; the simplified
   solids are independently generated, not manufacturer CAD.
+
+Inter typeface (bundled UI font, 2026):
+   Authors:   The Inter Project Authors (Rasmus Andersson)
+   License:   SIL Open Font License 1.1
+   Source:    https://github.com/rsms/inter (release v4.1)
+
+   lcnc-webui/src/assets/fonts/InterVariable.woff2 (the UI, unmodified) and
+   Inter-Regular.woff (the 3D text labels; the release's Inter-Regular.ttf
+   re-wrapped as WOFF, glyphs unmodified). The licence is bundled beside
+   them as OFL.txt.

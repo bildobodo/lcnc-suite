@@ -1,3 +1,21 @@
+/* The UI font ships WITH the app (operator decision 2026-09-25): every
+   browser on every machine renders the same face with the same metrics, so
+   the layout tests measure what the operator sees. The system font differed
+   per machine (San Francisco on macOS, DejaVu Sans on Linux — no semibold, so
+   36 semibold places rendered bold there — Segoe UI on Windows), and a layout
+   with zero reserve fitted on one and scrolled on another. Inter (SIL OFL
+   1.1, assets/fonts/OFL.txt), the variable face: every weight in one local
+   file, no network. `block`: a local file loads in milliseconds, and a
+   swap would re-flow every strip once. The 3D labels (troika) and the
+   ViewCube read the same face (viewer/labelFont.ts, ViewCube.vue). */
+@font-face {
+  font-family: "Inter";
+  src: url("./assets/fonts/InterVariable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+
 :root {
   font-family: var(--font-sans);
   font-size: var(--fs-base);
@@ -41,12 +59,14 @@
 
   /* Font stacks
    * --font-sans is the UI default — every interactive element inherits this.
+   * Its face is the bundled Inter (@font-face above); the system fonts after it
+   * only catch a glyph Inter lacks (the keypad's "═").
    * --font-mono is reserved for code surfaces (G-code program viewer/editor,
    * G-code reference dialog, debug timing dumps, keyboard chord cells).
    * For numeric column alignment elsewhere, use `font-variant-numeric: tabular-nums`
    * (or the `.mono` / `.val-mono` utility classes) — sans + tabular-nums keeps
    * digits aligned without breaking visual cohesion. */
-  --font-sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace;
 
   /* Type scale */

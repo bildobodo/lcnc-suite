@@ -49,6 +49,12 @@ function readPalette(): Palette {
   };
 }
 
+// The UI's own face (the bundled Inter, style.css): a canvas does not wait
+// for a web font, so the faces are drawn again once it has loaded.
+function fontSans(): string {
+  return getComputedStyle(document.documentElement).getPropertyValue("--font-sans").trim() || "sans-serif";
+}
+
 function makeFaceTexture(label: string, p: Palette): THREE.CanvasTexture {
   const px = 256;
   const c = document.createElement("canvas");
@@ -60,7 +66,7 @@ function makeFaceTexture(label: string, p: Palette): THREE.CanvasTexture {
   ctx.lineWidth = 6;
   ctx.strokeRect(3, 3, px - 6, px - 6);
   ctx.fillStyle = p.label;
-  ctx.font = `bold ${Math.floor(px * 0.20)}px sans-serif`;
+  ctx.font = `bold ${Math.floor(px * 0.20)}px ${fontSans()}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(label, px / 2, px / 2);
@@ -282,6 +288,7 @@ onMounted(() => {
   });
   themeMql = window.matchMedia("(prefers-color-scheme: dark)");
   themeMql.addEventListener("change", onThemeMqlChange);
+  void document.fonts?.load(`bold 51px ${fontSans()}`).then(() => { if (cubeRoot) rebuildPalette(); });
 
   tick();
 });

@@ -4,6 +4,7 @@ import { computed, inject, onMounted, onUnmounted, reactive, ref, shallowRef, to
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Text } from "troika-three-text";
+import { LABEL_FONT_URL } from "./viewer/labelFont";
 import { buildToolGeometries, type ToolMeta } from "./toolGeometry";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
@@ -586,6 +587,7 @@ let _partGroupMap: Record<string, string | null> = {};  // partId → group
 
 function mkTextLabel(text: string, color: string, fontSize: number): Text {
   const t = new Text();
+  t.font = LABEL_FONT_URL;
   t.text = text;
   t.fontSize = fontSize;
   t.color = color;

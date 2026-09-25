@@ -13,6 +13,7 @@ import ToolsetterSettings from "./ToolsetterSettings.vue";
 import CornerGlyph from "./CornerGlyph.vue";
 import Gate from "./Gate.vue";
 import HelpIcon from "./HelpIcon.vue";
+import { LABEL_FONT_URL } from "./viewer/labelFont";
 
 const props = defineProps<{
   probing: boolean;
@@ -558,6 +559,7 @@ function render3DSurface(pts: [number, number, number][]) {
           const sy = p[1] - yMin - yRange / 2;
           const sz = (p[2] - zMin) / zRange * zScale;
           const lbl = new Text();
+          lbl.font = LABEL_FONT_URL;
           lbl.text = p[2].toFixed(3);
           lbl.fontSize = labelFs;
           lbl.color = fgColor;
@@ -599,6 +601,7 @@ function render3DSurface(pts: [number, number, number][]) {
         ["Z", AXIS_CSS.z, new THREE.Vector3(0, 0, arrowLen * 1.15)],
       ] as [string, string, InstanceType<typeof THREE.Vector3>][]) {
         const lbl = new Text();
+        lbl.font = LABEL_FONT_URL;
         lbl.text = text;
         lbl.fontSize = axisFs;
         lbl.color = color;

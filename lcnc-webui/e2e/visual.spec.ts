@@ -1,20 +1,12 @@
-import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import { ctl } from './ctl';
 import { assertLayout, measureLayout } from './layout-audit';
 import { openLayout, PANELS, PROFILES, setLayoutState, settleLayout, VIEWPORTS, type LayoutState } from './layout-fixtures';
 
-// Test-only font assets; production keeps its native system font. Pin both
-// weights so a CI runner's installed fonts cannot silently change the goldens.
-const font = (name: string) => readFileSync(new URL(`./fonts/${name}.ttf`, import.meta.url)).toString('base64');
-const fontCss = `
-  @font-face { font-family: LayoutReference; font-weight: 400;
-    src: url(data:font/ttf;base64,${font('DejaVuSans')}); }
-  @font-face { font-family: LayoutReference; font-weight: 700;
-    src: url(data:font/ttf;base64,${font('DejaVuSans-Bold')}); }
-  html, body, button, input, select, textarea, .strip * { font-family: LayoutReference !important; }
-`;
+// The product bundles its UI font (Inter, style.css @font-face), so the
+// references render the face the operator sees on every machine — the
+// test-only DejaVu pin this spec injected until 2026-09-25 is gone.
 
 test.afterEach(async () => { await ctl({ op: 'reset' }); });
 
@@ -24,8 +16,6 @@ for (const profile of PROFILES) {
       // One Linux reference set, not silently generated per developer OS.
       test.skip(process.platform !== 'linux', 'Visual references use Linux Chromium; geometry tests are portable.');
       await openLayout(page, profile, viewport);
-      await page.addStyleTag({ content: fontCss });
-      await page.evaluate(() => document.fonts.ready);
       const states: LayoutState[] = ['homed', 'unhomed'];
       if (profile.name === '6axis-twp') states.push('plane-stale');
       for (const state of states) {
@@ -60,8 +50,6 @@ for (const viewport of VIEWPORTS) {
   test(`${viewport.name}: tool edit dialog reference image`, async ({ page }, info) => {
     test.skip(process.platform !== 'linux', 'Visual references use Linux Chromium; geometry tests are portable.');
     await openLayout(page, PROFILES[0], viewport);
-    await page.addStyleTag({ content: fontCss });
-    await page.evaluate(() => document.fonts.ready);
     await page.getByRole('button', { name: 'Tools', exact: true }).click();
     await expect.poll(async () => {
       await ctl({ op: 'raw', frame: { type: 'reply', cmd: 'get_tool_table', ok: true, tools: [barrel] } });

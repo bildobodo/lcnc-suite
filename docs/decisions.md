@@ -6334,3 +6334,47 @@ the left of the portrait Safety section: Jog's buttons sat closer to the edge.
   sees a different font than in Chrome). Asked for the rendered font names;
   a web font would be a D8 decision.
 
+### The UI font ships with the app (2026-09-25, operator decision)
+
+The operator could not name the fonts their browsers render and asked
+whether we had not already fixed the font to be browser-independent. We
+had not: since 0841e59 (2026-09-19) the visual references injected a
+test-only DejaVu Sans, while the product used each machine's system font —
+San Francisco on macOS, DejaVu Sans on the Linux VM (no semibold: the 36
+semibold places rendered bold there), Segoe UI on Windows. The layout tests
+measured DejaVu, the operator saw San Francisco; the Safety status columns
+had zero reserve in one and scrolled in the other. Decision (offered with
+DejaVu, later-in-D8 and keep-system as alternatives): bundle Inter, now.
+
+- Inter 4.1 (SIL OFL 1.1), the variable WOFF2 (352 KB, weights 100–900)
+  behind one `@font-face` in `style.css`, first in `--font-sans`,
+  `font-display: block` (a local file loads in milliseconds; a swap would
+  re-flow every strip once). The full face, not a latin subset: the UI uses
+  arrows, triangles, ×, ⏎ and °, and a per-glyph fallback would bring the
+  per-OS metrics back. The one UI glyph Inter lacks is the keypad's "═".
+- Found on the way: troika-three-text labels had no font. troika then
+  resolves its fonts through unicode-font-resolver from cdn.jsdelivr.net at
+  run time — on a machine without internet the toolpath-bounds, probe and
+  plane labels never laid out (proved: with every foreign request aborted,
+  no glyph atlas appeared). Every `new Text()` now sets `LABEL_FONT_URL`, a
+  static Inter Regular WOFF (196 KB; troika reads no WOFF2 and no variable
+  axes). Guards: the viewer spec aborts and records every request to
+  another host and requires the labels' glyph atlas; `labelFont.test.ts`
+  scans every `new Text()` for the assignment (the probe surface map has no
+  e2e path). The ViewCube's canvas used `sans-serif`; it reads the same
+  stack and redraws once the face has loaded.
+- The references and the layout tests now render the shipped face; the
+  test-only DejaVu files are gone. Inter is narrower than DejaVu, its line
+  box a little taller: buttons grew about 1 px, the portrait Step radios fit
+  three per row. All 32 references renewed after a side-by-side look at 9
+  of them (one per profile and viewport, both plane-stale Setup images, two
+  tool dialogs); every image also passes the layout audit.
+- Noticed while comparing: the TWP chip's "?" (added in D1) was missing
+  from the desktop plane-stale reference and still passed — a 12 px icon
+  is under the comparison's 0.2 % pixel tolerance, and the layout audit
+  counts `button`/`input`/`select`/`textarea`, not a `span role="button"`.
+  Follow-up for D10: count `[role="button"]` in the audit's controls.
+- Open question to the operator: the code surfaces (G-code viewer and
+  editor, reference dialog) keep the system monospace; bundling one too
+  (e.g. JetBrains Mono, OFL) would make them identical as well.
+

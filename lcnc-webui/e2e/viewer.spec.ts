@@ -118,6 +118,31 @@ test("a clean rebuild frees AND re-applies the loaded program's toolpath geometr
   }
 });
 
+// An offline machine: the UI and the viewer load everything from the
+// gateway. The 3D text labels (troika) had no font set, and troika then
+// resolves its fonts from cdn.jsdelivr.net at run time — without internet
+// the toolpath-bounds, probe and plane labels never rendered (found
+// 2026-09-25 with the bundled UI font). Every request to another host is
+// aborted and recorded; the loaded program's labels must still lay out (the
+// glyph atlas is a texture that exists only once a label has glyphs).
+test("the viewer fetches nothing from outside the gateway (an offline machine)", async ({ page, context }) => {
+  const outside: string[] = [];
+  await context.route(url => !["localhost", "127.0.0.1"].includes(url.hostname) && url.protocol.startsWith("http"), route => {
+    outside.push(route.request().url());
+    return route.abort();
+  });
+  await page.goto(MOCK);
+  await expect.poll(() => page.evaluate(() => !!window.__viewerLeakProbe), { timeout: 15000 }).toBe(true);
+  const textures = () => page.evaluate(() => window.__viewerLeakProbe?.()?.textures ?? -1);
+  const before = await textures();
+  await ctl({ op: "loadGcode" });
+  await expect.poll(() => geometries(page), { timeout: 15000, intervals: [150] }).toBeGreaterThan(0);
+  await settledGeometries(page);
+  await expect.poll(textures, { timeout: 15000, message: "no label glyph atlas: the labels never laid out" })
+    .toBeGreaterThan(before);
+  expect(outside, "requests to hosts other than the gateway").toEqual([]);
+});
+
 // NOTE: H3 (tool-marker single-owner) is NOT guarded here. renderer.info only
 // counts GPU-uploaded geometry, and a leaked tool marker's geometry stays flat
 // in the probe (tool geometry is small / visibility- and render-on-demand-
