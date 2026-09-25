@@ -473,12 +473,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
           <template v-if="kinsType != null">
             <div class="strip-radio-group stack-tight">
               <!-- The explanation is a tap-friendly help, not a hover title (UX-11). -->
-              <span class="label-muted sectionHelp">Kinematics Frame <HelpIcon label="Kinematics Frame">
-                Selects the machine's <strong>kinematics</strong> — for jogging, MDI and programs alike; the M-code each frame uses is this machine's own remap, not the Manual/MDI/Auto task mode above.
-                <br><strong>Machine</strong> — identity kinematics: jog along the machine axes.
-                <br><strong>TCP</strong> — X/Y/Z are the work frame riding the table: jogging A keeps the tool tip on the workpiece (position only; the head orientation does not follow). Switching re-seeds the preview (a brief progress flash is expected).
-                <br><strong>Plane</strong> — the tilted work plane (which also selects G59): Z along the tool axis as of the last orient — orient again after moving the table; a stale plane is flagged on the radio.
-              </HelpIcon></span>
+              <span class="label-muted sectionHelp">Kinematics Frame <HelpIcon label="Kinematics Frame"><strong>Machine</strong> — machine axes<br><strong>TCP</strong> — the tip stays on the part as A turns<br><strong>Plane</strong> — tilted plane (G59); re-orient after A moves</HelpIcon></span>
               <div class="strip-radio-options">
                 <label class="radio-label" title="Identity kinematics — jog along machine axes"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="0" @update:modelValue="emit('setKinsMode', 0)" /> Machine</label>
                 <label class="radio-label" title="TCP kinematics — jog in the work frame"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="1" @update:modelValue="emit('setKinsMode', 1)" /> TCP</label>
@@ -602,9 +597,12 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   align-items: center;
   justify-content: center;
 }
-/* Jog speed ticks while dragging the slider — fixed slot ("10000" = 5ch,
-   rotary adds °) keeps the readout from re-centering per digit change. */
-.speedCol .val-slot { --slot-w: 5.5ch; }
+/* Jog speed ticks while dragging the slider — a fixed slot ("10000" =
+   5ch) keeps the neighbours still per digit change. Value and unit are
+   CENTRED over the slider (operator, D1 live look: the right-aligned
+   number and the left-aligned unit sat off its axis). */
+.speedCol .val-slot { --slot-w: 5.5ch; text-align: center; }
+.jogSpeedVal { align-items: center; }
 .vSlider {
   flex: 1;
   min-height: 0;

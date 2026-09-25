@@ -650,7 +650,7 @@ const sweepToolTitle = computed(() => {
 const stoppedTitle = computed(() => {
   const st = props.collisionStopped;
   if (!st) return "";
-  return `The collision check is parked at ${pctOf(st.covered)} of the program — a rotary axis moved. It continues by itself once the pose settles and the preview is unchanged; the rest is UNCHECKED until then.`;
+  return `Paused at ${pctOf(st.covered)} — a rotary moved. Continues once it settles; the rest is unchecked.`;
 });
 
 // Sim toggle v-model: the parent-authoritative MachineToggle resets its DOM
@@ -723,17 +723,17 @@ const routeWord = computed(() =>
 const verdictDetail = computed<string>(() => {
   const r = shownResult.value;
   if (!r) return "";
+  // Short and precise (operator, D1 live look: "nobody reads an abstract").
   const parts: string[] = [];
   const stopped = props.collisionStopped;
-  if (props.collisionBusy) parts.push("The collision check is still running — the positions refine when it ends.");
+  if (props.collisionBusy) parts.push("Still checking — positions refine when it ends.");
   else if (stopped && props.collisionResumable) parts.push(stoppedTitle.value);
-  else if (r.truncated) parts.push(`Checked ${pctOf(r.truncated.covered)} of the ${routeWord.value} (${r.truncated.reason === "samples" ? "sample backstop" : r.truncated.reason}) — the rest is UNCHECKED.`);
-  if (r.pairCount === 0) parts.push("No body pair moves relative to another — nothing to check.");
-  else parts.push(`${r.samples} samples over ${r.pairCount} body pairs.`);
-  if (hits.value.length) parts.push("A collision stop poses the model at its first contact (simulation mode, machine off).");
-  if (r.staticContacts.length) parts.push(`In contact from the start (excluded): ${r.staticContacts.map(c => c.a + "/" + c.b).join(", ")}.`);
-  if (sweepCaveat.value) parts.push(`Not certified: ${sweepCaveat.value}`);
-  return parts.join(" ");
+  else if (r.truncated) parts.push(`${pctOf(r.truncated.covered)} checked — the rest is unchecked.`);
+  if (r.pairCount === 0) parts.push("No parts move against each other — nothing to check.");
+  if (hits.value.length) parts.push("A stop shows the first contact (machine off).");
+  if (r.staticContacts.length) parts.push(`${r.staticContacts.length} contact${r.staticContacts.length === 1 ? "" : "s"} at the start ignored.`);
+  if (sweepCaveat.value) parts.push(`Not certified: ${sweepCaveat.value}.`);
+  return parts.join(" ") || "Tool and machine parts checked against each other along the whole program.";
 });
 
 // Reasons this sweep's no-missed-crossing guarantee does NOT hold. Null when
@@ -938,7 +938,7 @@ onUnmounted(() => {
            parent-authoritative model snaps it back if entry is refused. -->
       <MachineToggle gate="simToggle" v-model="simToggleModel" label="Sim"
                      :disabled="!simMode && !machineOff"
-                     help="Simulation poses the 3D model along the program instead of the live machine. Requires the machine to be OFF; while active, all machine controls are locked until you switch back." />
+                     help="Poses the 3D model along the program. Machine must be OFF; machine controls lock until you exit." />
 
       <MachineBtn type="scrub" :disabled="!simMode && !machineOff"
                   :title="playing ? 'Pause playback' : 'Play the program through the machine model'"
@@ -1020,6 +1020,10 @@ onUnmounted(() => {
                       :reason="violationNavReason"
                       @click="jumpTo(targetAfter(violationTargets, sPos))">&#9654;</MachineBtn>
         <span class="navTarget val-status mono">{{ nextViolationT ? "→ L" + nextViolationT.line : "" }}</span>
+        <!-- Both findings explain themselves HERE, where they are navigated
+             (operator, D1 live look: the limits' "?" sat in the HUD, the
+             collisions' in this bar). -->
+        <HelpIcon label="Limit violations">Moves beyond a soft limit, checked with the offsets as parsed. ◀ ▶ step through them with the machine off.</HelpIcon>
         <div class="sep-v"></div>
       </template>
 
@@ -1092,6 +1096,10 @@ onUnmounted(() => {
   z-index: var(--z-float);
   padding: var(--gap-tight) var(--gap-controls);
 }
+/* The collision verdict's "?" sits --gap-tight from its verdict like every
+   help icon (its own margin); in this row the flex gap already spaces
+   siblings, so the margin gives the difference back. Layout only. */
+.scrubRow > :deep(.helpIcon) { margin-inline-start: calc(var(--gap-tight) - var(--gap-controls)); }
 .scrubRow {
   align-items: center;
 }

@@ -417,6 +417,10 @@ test("a dimmed control explains itself: the MDI line on a tap, a coolant toggle 
   await expect(flood).toHaveAttribute("role", "button");
   await expect(flood).toHaveAttribute("aria-label", "Why is this unavailable? Machine off");
   await flood.focus();
+  // Focus may scroll the strip to the toggle; that scroll event lands a
+  // frame later and closes any hint (a hint never outlives a scroll) — let
+  // it land before the key asks.
+  await settle(page);
   await page.keyboard.press("Enter");
   await expect(hint).toHaveText("Machine off");
   await page.keyboard.press(" ");
@@ -434,7 +438,7 @@ test("help is a tap-friendly popover: the Setup help opens by click and by keybo
   await openReady(page);
   const help = page.getByRole("button", { name: "Help: Go to positions", exact: true });
   await help.click();
-  const popover = page.locator(".helpPopover").filter({ hasText: "Go to G30" });
+  const popover = page.locator(".helpPopover").filter({ hasText: "tool-change position" });
   await expect(popover).toBeVisible();
   await help.click();
   await expect(popover).toBeHidden();
@@ -528,7 +532,7 @@ test.describe("help popover geometry (touch)", () => {
     await expect(page.locator("html.touch-device")).toHaveCount(1);
     return {
       help: page.getByRole("button", { name: "Help: Go to positions", exact: true }),
-      popover: page.locator(".helpPopover").filter({ hasText: "Go to G30" }),
+      popover: page.locator(".helpPopover").filter({ hasText: "tool-change position" }),
     };
   }
 

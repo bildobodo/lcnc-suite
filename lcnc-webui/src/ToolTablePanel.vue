@@ -764,7 +764,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
                 </div>
                 <MachineToggle v-if="hasNominalHolder" gate="toolEdit"
                   v-model="showNominalHolder" label="Show Fusion Holder"
-                  help="Nominal library assembly. Actual stickout depends on clamping; this preview does not change measured offsets or the machine view." />
+                  help="Library holder at nominal stickout — changes neither measured offsets nor the machine view." />
                 <span class="label-muted">{{ showNominalHolder && hasNominalHolder ? 'Nominal Fusion assembly' : 'Tool only' }}</span>
               </div>
             </div>

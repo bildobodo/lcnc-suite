@@ -170,11 +170,7 @@ function zeroAll() {
          section title (UX-11): the action row is a three-cell grid with no
          room for a fourth element; the buttons keep SHORT hover names — the
          explanation lives here once (design wave D1, UI-N33). -->
-    <div class="sub sectionHelp">Setup <HelpIcon label="Go to positions">
-      <strong>Go to G30</strong> — moves to the G30 position: Z up to machine top first (never lowered), then X/Y, then Z. X/Y/Z only, rotaries untouched. Machine frame only.
-      <br><strong>Go to MCS 0</strong> — moves to machine zero (G53 X0 Y0 Z0, rotaries to 0; Z up first, never lowered): the machine coordinate origin, not reference homing and not the INI home positions. Machine frame only.
-      <br><strong>Go to WCS 0</strong> — moves to work zero. Machine frame: Z to machine top (skipped when already at or above it, never lowered), the table back to the fixture's touch-off angle, then X/Y to work zero. Plane frame: retract along the tool axis to a clearance, then X0 Y0 in the plane, rotaries untouched. TCP: not available.
-    </HelpIcon></div>
+    <div class="sub sectionHelp">Setup <HelpIcon label="Go to positions"><strong>G30</strong> — the tool-change position<br><strong>MCS 0</strong> — machine zero<br><strong>WCS 0</strong> — program zero<br>Z always goes up first, never down.</HelpIcon></div>
     <div class="setupContent row-sections">
       <div class="setupControls stack-tight">
         <div class="axisGrids row-controls">
@@ -235,11 +231,16 @@ function zeroAll() {
       </div>
 
       <div class="wcsCol stack-tight strip-radio-group">
-        <span class="label-muted">WCS</span>
-        <!-- Fixed slot on switchable-kins machines: the chip appearing must
-             not push the WCS radios down (P2). -->
-        <span v-if="isSwitchable" class="val-status kinsChip" :class="kinsChip?.cls"
-              :title="kinsChip?.title">{{ kinsChip?.text ?? '\u00a0' }}</span>
+        <!-- "WCS" and the chip stack in ONE head cell: in portrait the group is
+             a row, and the chip's "?" beside "WCS" narrowed the radios to two
+             per row (visual reference, design wave D1 live look). -->
+        <div class="wcsHead stack-tight">
+          <span class="label-muted">WCS</span>
+          <!-- Fixed slot on switchable-kins machines: the chip appearing must
+               not push the WCS radios down (P2). -->
+          <span v-if="isSwitchable" class="val-status kinsChip" :class="kinsChip?.cls"
+                :title="kinsChip?.title">{{ kinsChip?.text ?? '\u00a0' }}<HelpIcon v-if="kinsChip?.help" label="Kinematics state">{{ kinsChip.help }}</HelpIcon></span>
+        </div>
         <div class="strip-radio-options wcsOptions">
           <label v-for="g in g5xOptions" :key="g" class="radio-label" :title="wcsReserved(g) ? RESERVED_TITLE : undefined"
                  :tabindex="wcsReserved(g) ? 0 : undefined" :role="wcsReserved(g) ? 'button' : undefined"
@@ -288,9 +289,11 @@ function zeroAll() {
    changing the track sizes when a disabled-reason wrapper appears. */
 .actionRow :deep(button) { white-space: normal; }
 .wcsCol { justify-content: flex-start; }
+.wcsHead { flex-shrink: 0; }
 /* Chip inherits .val-status visuals; only the alignment is local (the
    column reads left-to-right, not right-aligned like status rows). */
-.kinsChip { text-align: left; }
+/* text + "?" one centred row: the icon never drops onto a line of its own */
+.kinsChip { text-align: left; display: flex; align-items: center; }
 
 @media (orientation: landscape) {
   /* Nine fixtures plus the mode chip exceed the strip height on touch.

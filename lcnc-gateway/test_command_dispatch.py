@@ -1008,7 +1008,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         gateway._twp_capable = lambda: True   # the TWP stack (trsrn)
         r = self._send({"cmd": "go_to_zero"}, kins_type=1, twp_active=False, g5x_index=1)
         self.assertFalse(r["ok"])
-        self.assertIn("TCP", r["error"])
+        self.assertEqual(r["error"], "Machine frame and Plane only")
 
     def test_touchoff_refuses_when_expect_disagrees_with_live_state(self):
         # U-03: the keypad was opened under Plane · G59; by confirm time the

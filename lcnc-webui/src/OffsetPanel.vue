@@ -212,7 +212,7 @@ function clearAll() {
      cells compressed until digits collided. Give each value column a
      usable minimum and let the .scroll-thin wrap scroll horizontally;
      3-axis tables stay narrower than the pane and render as before. */
-  min-width: calc(60px + var(--val-cols, 4) * 76px);
+  min-width: calc(56px + var(--val-cols, 4) * 76px);
 }
 
 /* Override global dataTable sizing for larger tab layout */
@@ -223,7 +223,10 @@ function clearAll() {
   font-variant-numeric: tabular-nums;
 }
 
-.colName { width: 60px; }
+/* The widest name ("G59.3") needs 36 px + padding. 60 px pushed the 5-axis
+   table (6 value columns) 4 px past the reference pane: a sideways
+   scrollbar for a sliver (layout sweep, sliver-scroll). */
+.colName { width: 56px; }
 
 .tableWrap td.offLabel {
   text-align: left;

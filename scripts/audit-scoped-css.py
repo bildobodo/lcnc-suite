@@ -68,6 +68,11 @@ WS-C extension — design-token drift checks over every .vue <style> block
                string constant in the <script>. A reason is "why — what to
                do", never an abstract (design wave D1 live look; the gateway's
                command_policy.REASON_MAX_CHARS keeps the same cap).
+  LONG_HELP  — a help text longer than 120 characters: the slot of a
+               `<HelpIcon>` (tags stripped, an interpolation counted as 6)
+               or a static `help="…"` prop in the <template>. A "?" says what
+               the value is and the one rule the operator needs — nobody
+               reads an abstract (design wave D1 live look).
   UNIT_LITERAL — a unit glued to an interpolation in the <template>
                (`{{ v }}mm`, `${v}%`, `{{ v }} ms`): units come from their
                source and a formatter (fmtPct/fmtQty/fmtDist/fmtUnit in
@@ -336,6 +341,15 @@ LONG_TITLE_MAX = 90
 REASON_RE = re.compile(r'(?<![\w-])(:?)reason="([^"]*)"')
 REASON_CONST_RE = re.compile(r'const\s+[A-Z0-9_]*(?:REASON|TITLE)[A-Z0-9_]*\s*=\s*(["\'`])((?:(?!\1).)*)\1')
 LONG_REASON_MAX = 60
+HELP_SLOT_RE = re.compile(r'<HelpIcon\b[^>]*>(.*?)</HelpIcon>', re.S)
+HELP_PROP_RE = re.compile(r'(?<![\w:-])help="([^"]*)"')
+LONG_HELP_MAX = 120
+
+
+def _help_len(text: str) -> int:
+    text = re.sub(r"\{\{.*?\}\}", "\u2026" * 6, text, flags=re.S)
+    text = re.sub(r"<[^>]+>", " ", text)
+    return len(re.sub(r"\s+", " ", text).strip())
 # a unit right after a mustache or a template-literal interpolation
 UNIT_LITERAL_RE = re.compile(r"(?:\}\}|\$\{[^}]*\})\s?(?:mm|ms|%)(?![\w/])")
 
@@ -394,6 +408,15 @@ def template_findings(path: str) -> list[tuple[str, int, str]]:
                 tag += " " + lines[j]
             if "aria-label" not in tag:
                 findings.append(("CLOSE", ln, 'type="close" without aria-label — name the close for its context ("Close settings", "Dismiss upload error")'))
+    # A help text, which may span lines: measured over the whole template.
+    body = "\n".join(lines[tpl[0] - 1:tpl[1]])
+    for m_h in list(HELP_SLOT_RE.finditer(body)) + list(HELP_PROP_RE.finditer(body)):
+        ln = tpl[0] + body.count("\n", 0, m_h.start())
+        if _template_audit_ok(lines, ln - 1):
+            continue
+        n = _help_len(m_h.group(1))
+        if n > LONG_HELP_MAX:
+            findings.append(("LONG_HELP", ln, f"help text of {n} chars — what the value is and the one rule, in {LONG_HELP_MAX}"))
     # A reason / title constant in the <script> (the SetupStrip reserved-row
     # reason, the ScrubBar simulation reason): the same cap as the literals.
     for idx, line in enumerate(lines):

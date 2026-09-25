@@ -2057,25 +2057,25 @@ watch(viewerGcode, (newGcode) => {
                   <template v-if="kinsFlipStatus">
                     <!-- The why of a stats row is a HelpIcon on its label, never
                          only a title (design wave D1, UI-N32). -->
-                    <span class="statsLabel">Kins Frames <HelpIcon label="Kins frames">Unresolved: a kinematics switch this client has no twin for — those segments keep uncorrected geometry. Carry spans: geometry after a frame relabel was corrected assuming uncommanded axes HELD; canon replay cannot tell that from a command to the same stale value.</HelpIcon></span>
+                    <span class="statsLabel">Kins Frames<HelpIcon label="Kins frames">Unresolved: no model for a kinematics switch, geometry uncorrected. Carried: corrected assuming untouched axes held.</HelpIcon></span>
                     <span class="statsValue val-status" :class="kinsFlipStatus.cls">
                       {{ kinsFlipStatus.text }}
                     </span>
                   </template>
                   <template v-if="gcodeKinsEndMode !== 0">
-                    <span class="statsLabel">Kinematics at End <HelpIcon label="Kinematics at end">The program's last kinematics switch leaves type {{ gcodeKinsEnd }} in effect. M2 restores G54 but not the kinematics pin, so after the run the machine stays in this frame and Cycle Start is refused until the Machine frame is restored.</HelpIcon></span>
+                    <span class="statsLabel">Kinematics at End<HelpIcon label="Kinematics at end">M2 keeps this kinematics mode — Cycle Start stays refused until the Machine frame is selected.</HelpIcon></span>
                     <span class="statsValue val-status warn">
                       {{ gcodeKinsEndMode === 1 ? 'TCP' : gcodeKinsEndMode === 2 ? 'TOOL (plane)' : 'unsupported' }} — not restored before M2 ({{ gcodeKinsEndMode === 2 ? 'add G69, or select the Machine frame' : 'select the Machine frame' }})
                     </span>
                   </template>
                   <template v-if="previewRefusal">
-                    <span class="statsLabel">Parse <HelpIcon label="Parse">A kinematics/TWP remap refused the program in the preview, which runs from the machine's live state (active work offset, kinematics). A run would refuse the same line.</HelpIcon></span>
+                    <span class="statsLabel">Parse<HelpIcon label="Parse">The preview refused this line from the machine's live state — a run would refuse it too.</HelpIcon></span>
                     <span class="statsValue val-status warn">
                       refused — {{ previewRefusal.text }}
                     </span>
                   </template>
                   <template v-if="gcodeUnmarkedSubs.length">
-                    <span class="statsLabel">Line Tracking <HelpIcon label="Line tracking">Called subroutine{{ gcodeUnmarkedSubs.length === 1 ? '' : 's' }} {{ gcodeUnmarkedSubs.map(n => n + '.ngc').join(', ') }} carr{{ gcodeUnmarkedSubs.length === 1 ? 'ies' : 'y' }} no WEBUI_SUB markers — the line highlight may be unreliable during their motion.</HelpIcon></span>
+                    <span class="statsLabel">Line Tracking<HelpIcon label="Line tracking">Subroutines without WEBUI_SUB markers — the line highlight may be off during their moves.</HelpIcon></span>
                     <span class="statsValue val-status muted">
                       {{ gcodeUnmarkedSubs.map(n => n + '.ngc').join(', ') }} unmarked
                     </span>

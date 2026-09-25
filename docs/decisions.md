@@ -6226,3 +6226,66 @@ state is the BANNER; the message center is the PROTOCOL.
   operations have a visible description line under the grid, stats rows,
   HUD warnings and the collision verdict carry `HelpIcon`s, and the CSS
   audit's `LONG_TITLE` category refuses a title over 90 characters.
+
+### Live look, second round (2026-09-25)
+
+- The probe-operation description line under the grids is gone again
+  (operator: the glyphs are self-explanatory; it also grew the section).
+  The grid section is a fixed 360 px (`flex: none`), and `layout.spec`
+  checks that the parameters start at one height in every grid sub-tab —
+  the Angle tab's Edge Width row had moved them 29 px down.
+- One look for the "?". It was muted inside `.paramGrid` labels, `.sub`,
+  `.label-muted`, the calibration/inline-param labels and stats labels,
+  because those dimmed the whole box with `opacity`, which multiplies into
+  every child. Muted TEXT in a box that holds a "?" is now a colour
+  (`color-mix(currentColor var(--mix-muted), transparent)`, the same
+  ratio). A DISABLED label keeps opacity — it must compose with a colour of
+  its own (the stale Plane radio is warn-coloured and dimmed; a colour rule
+  lost to `.val-status.warn` in the first attempt, caught by the visual
+  references) — so MachineToggle holds its "?" beside the label, not in it.
+  The icon brings its own `--gap-tight`; the three spacings seen (0, 4 and
+  8 px) were containers spacing it.
+- The "?" is a `span role="button"`: a `<button>` inside a disabled Gate is
+  disabled, so help went dead and dimmed with its section. Reading help is
+  no machine action. A disabled toggle's label was `pointer-events: none`,
+  so its tap never explained why it was dimmed; it is tappable now.
+- Help texts say what the value is and the one rule, in at most 120
+  characters (the CSS audit's `LONG_HELP`, and 140 for the rendered text in
+  the popover sweep). All 80 were rewritten; the longest was 704. Touch Z's
+  was wrong: #3102 is the G53 Z of the setter surface (usually negative),
+  not an approach height.
+- Both program findings explain themselves where they are navigated: the
+  limit violations' "?" moved from the HUD into the sim bar, next to the
+  collision verdict's. The kinematics chip (`kinsModeChip`, Setup strip and
+  HUD) carries a short `help` on its warning states, shown as a "?" — "off
+  datum" had its explanation only in a 400-character title.
+- A mode restriction is phrased positively: "Machine frame and Plane only"
+  instead of "Not in TCP — select Machine or Plane", which read as a
+  statement about the current mode (operator's example). The same for the
+  Machine-frame and rotary touch-off reasons.
+- Jog-speed value and unit are centred over their sliders (the number was
+  right-aligned in its fixed slot, the unit line left-aligned).
+- New guards: the help-icon "one look" sweep (effective opacity, colour,
+  enabled, gap after the label, including a disarmed pass that must still
+  open help), the jog-readout centring check, the parameters-in-place check,
+  the `sliver-scroll` audit kind. Each was red on the defect it guards.
+- A text and its "?" are one centred flex row wherever the "?" follows text
+  in a box of its own (the kinematics chip, the HUD mode and warning lines,
+  stats labels, the inline probe labels, `.textWithHelp` for the toggle text
+  and a heading). `vertical-align: middle` centres on the x-height — 1.25 px
+  below uppercase chip text in Firefox — and an inline box is a line-break
+  opportunity, so a narrow chip could drop the "?" onto a line of its own
+  (operator: "not on the same line"). The look sweep now also measures the
+  kinematics chip and the HUD line in the "off datum" state, and the "?"
+  centre against the text's.
+- In portrait the Setup strip's work-offset group is a row; the chip's "?"
+  beside "WCS" narrowed the radios to two per row (+32 px, caught by the
+  visual references). "WCS" now stacks above the chip in one head cell: the
+  section is as tall as before or shorter, three radios per row.
+- Not reproduced: a 1 px sideways scroll of the portrait safety section.
+  Ten portrait sizes at DPR 1 and 2, in Firefox and Chromium, with mock and
+  live data, including fractional overflow the rounded `scrollWidth`
+  hides. But the new `sliver-scroll` check found the same class in the
+  Offsets tab on its first full run: the 5-axis table (6 value columns)
+  was 4 px wider than the reference pane (60 + 6 × 76 = 516 in 512). The
+  name column is 56 px now (its widest label, "G59.3", needs 36 + padding).

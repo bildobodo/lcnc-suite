@@ -112,7 +112,7 @@ class MachineState:
 # test_command_policy.TestReasonLength sweeps every state for the cap.
 REASON_MAX_CHARS = 60
 _KINS_UNKNOWN = "Kinematics mode unknown — HAL reader stale"
-_MACHINE_FRAME_ONLY = "Machine frame only — select Machine"
+_MACHINE_FRAME_ONLY = "Machine frame only"
 _HEAD_NOT_ALIGNED = "Head not aligned with the plane — press Orient"
 NOT_ARMED = "Not armed — press Arm"
 
@@ -245,9 +245,9 @@ def touchoff_route(s: MachineState, letters):
         return None, "Active work offset unknown — HAL reader stale"
     if any(l in ROTARY_LETTERS for l in ls):
         if k != 0:
-            return None, "Rotary touch-off needs the Machine frame"
+            return None, "Rotary touch-off: Machine frame only"
         if s.g5x_index != 1:
-            return None, "Rotary touch-off works in G54 only"
+            return None, "Rotary touch-off: G54 only"
     if k == 2:
         if not s.twp_active:
             return None, "No active plane — press Orient or select Machine"
@@ -366,7 +366,7 @@ def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,
             return None, "Work offset record unreadable — touch off again"
         return [f"O<go_to_zero> CALL [{a:.4f}]"], None
     if k == 1:
-        return None, "Not in TCP — select Machine or Plane"
+        return None, "Machine frame and Plane only"
     if not s.twp_active or s.g5x_index != 6:
         return None, "Plane kinematics without G59 — select Plane or Machine"
     if not s.twp_aligned:
@@ -379,7 +379,7 @@ def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,
 
 
 _R_GOZERO = (lambda s: goto_zero_plan(s, 0.0, 0.0)[1] is None,
-             "Not in this kinematics mode — select Machine")
+             "Machine frame and Plane only")
 
 
 #: Plane-frame admission (TWP-04), ordered — ONE source for the handler's

@@ -125,6 +125,20 @@ export async function measureLayout(root: Locator, name: string,
       if (bottom > inner + 1) issues.push({ kind: 'overflowing-box', controls: [],
         detail: `${box.tagName.toLowerCase()}.${[...box.classList].join('.')}: content ends ${(bottom - inner).toFixed(1)}px below its box` });
     }
+    // A scroll box that overflows by a sliver: a scrollbar (and a sideways
+    // drag) for a pixel or two is a layout that almost fits, never content
+    // to navigate (the portrait safety section scrolled 1 px sideways —
+    // design wave D1 live look). Real scrolling content overflows by more.
+    for (const box of [element, ...element.querySelectorAll<HTMLElement>('*')]) {
+      if (!box.getClientRects().length) continue;
+      const css = getComputedStyle(box);
+      const dx = box.scrollWidth - box.clientWidth, dy = box.scrollHeight - box.clientHeight;
+      const where = `${box.tagName.toLowerCase()}.${[...box.classList].join('.')}`;
+      if (['auto', 'scroll'].includes(css.overflowX) && dx > 0 && dx <= 4)
+        issues.push({ kind: 'sliver-scroll', controls: [], detail: `${where}: scrolls ${dx}px sideways` });
+      if (['auto', 'scroll'].includes(css.overflowY) && dy > 0 && dy <= 4)
+        issues.push({ kind: 'sliver-scroll', controls: [], detail: `${where}: scrolls ${dy}px vertically` });
+    }
     if (!controls.length) issues.push({ kind: 'empty', controls: [], detail: `${name}: no visible controls` });
     return { name, width: bounds.width, height: bounds.height, controls, issues };
   }, { name, selector });

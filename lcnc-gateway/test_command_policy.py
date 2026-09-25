@@ -869,7 +869,7 @@ class TestPermissionReasons(unittest.TestCase):
         s = state(kins_switchable=True, twp_capable=True, kins_type=1, g5x_index=1)
         self.assertEqual(permission_reasons(s)["goZero"], check_command("go_to_zero", s))
         self.assertEqual(permission_reasons(s)["machineFrame"], check_command("tool_change", s))
-        self.assertIn("TCP", permission_reasons(s)["goZero"])
+        self.assertEqual(permission_reasons(s)["goZero"], "Machine frame and Plane only")
         s2 = state(is_homed=False)
         self.assertEqual(permission_reasons(s2)["ready"], check_command("mdi", s2))
         self.assertEqual(permission_reasons(s2)["ready"], "Not homed — press Home All")
@@ -987,7 +987,7 @@ class TestMachineFrameAndGoZero(unittest.TestCase):
         self.assertIn("Orient", check_command("go_to_zero", self._twp(twp_aligned=False)))
 
     def test_go_zero_refusals(self):
-        self.assertIn("TCP", goto_zero_plan(self._twp(kins_type=1), 0.0, 25.0)[1])
+        self.assertEqual(goto_zero_plan(self._twp(kins_type=1), 0.0, 25.0)[1], "Machine frame and Plane only")
         self.assertIn("select Plane", goto_zero_plan(self._twp(g5x_index=1), 0.0, 25.0)[1])
         self.assertIn("Plane", goto_zero_plan(self._twp(twp_active=False), 0.0, 25.0)[1])
         self.assertIn("unknown", goto_zero_plan(self._twp(kins_type=None), 0.0, 25.0)[1])
@@ -995,7 +995,7 @@ class TestMachineFrameAndGoZero(unittest.TestCase):
         p = evaluate_permissions(self._twp(kins_type=1))
         self.assertFalse(p["goZero"])
         self.assertTrue(evaluate_permissions(self._twp())["goZero"])
-        self.assertIn("TCP", check_command("go_to_zero", self._twp(kins_type=1)))
+        self.assertEqual(check_command("go_to_zero", self._twp(kins_type=1)), "Machine frame and Plane only")
 
 
 class TestTouchoffExpectCheck(unittest.TestCase):

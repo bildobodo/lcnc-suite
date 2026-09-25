@@ -3,12 +3,21 @@ import { useId, ref, onMounted, onBeforeUnmount } from 'vue'
 import { placePopover, cssZoomOf } from './helpPlacement'
 
 // The one tap-friendly help pattern (UX-11): a popover on a focusable
-// button, named for its topic so a page with several helps reads as
+// trigger, named for its topic so a page with several helps reads as
 // "Help: Kinematics Frame", not "Show help" five times.
+//
+// The trigger is a `span role="button"`, not a <button> (design wave D1
+// live look): a <button> inside a Gate's disabled fieldset is disabled —
+// the help went dead and dimmed with its section, although reading help is
+// never a machine action. A span is outside the fieldset's disabled
+// cascade; it toggles its popover itself (no `popovertarget`, which only
+// buttons carry) and cancels its click, so a "?" inside a toggle's label
+// never flips the toggle and never triggers the label's own tap-to-explain.
 defineProps<{ label?: string }>()
 
 const id = `hp-${useId()}`
-const btn = ref<HTMLButtonElement | null>(null)
+const btn = ref<HTMLElement | null>(null)
+const open = ref(false)
 const pop = ref<HTMLDivElement | null>(null)
 
 const MARGIN = 6
@@ -57,12 +66,36 @@ function position() {
 }
 
 function onBeforeToggle(e: Event) {
-  if ((e as ToggleEvent).newState === 'open') {
+  open.value = (e as ToggleEvent).newState === 'open'
+  if (open.value) {
     requestAnimationFrame(position)
     window.addEventListener('resize', position)
   } else {
     window.removeEventListener('resize', position)
   }
+}
+
+// A press on the trigger is OUTSIDE the popover, so light dismiss has
+// closed an open popover by the time the click arrives (a <button> is
+// exempt as its invoker; a span is not): the state at pointerdown decides —
+// open then means this tap closes it.
+let openAtPress = false
+function onPointerDown() { openAtPress = !!pop.value?.matches(':popover-open') }
+function toggle() {
+  const p = pop.value
+  if (!p) return
+  const wasOpen = openAtPress || p.matches(':popover-open')
+  openAtPress = false
+  if (wasOpen) { if (p.matches(':popover-open')) p.hidePopover() }
+  else p.showPopover()
+}
+function onKeydown(e: KeyboardEvent) {
+  if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return
+  // Enter / Space act on the focused trigger only — the shortcut map never
+  // sees them (Space is Cycle Start there).
+  e.preventDefault()
+  e.stopPropagation()
+  if (!e.repeat) toggle()
 }
 
 onMounted(() => {
@@ -75,14 +108,20 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <button
+  <span
     ref="btn"
-    type="button"
     class="helpIcon"
-    :popovertarget="id"
+    role="button"
+    tabindex="0"
+    aria-haspopup="dialog"
+    :aria-controls="id"
+    :aria-expanded="open"
     :aria-label="label ? `Help: ${label}` : 'Show help'"
     :title="label ? `Help: ${label}` : 'Show help'"
-  >?</button>
+    @pointerdown="onPointerDown"
+    @click.prevent.stop="toggle"
+    @keydown="onKeydown"
+  >?</span>
   <div ref="pop" :id="id" popover="auto" class="helpPopover">
     <slot />
   </div>

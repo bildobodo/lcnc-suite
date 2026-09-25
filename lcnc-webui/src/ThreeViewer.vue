@@ -36,7 +36,7 @@ import type { CollisionBody, CollisionResult, CollisionLineMark } from "./viewer
 import { partCollides } from "./viewer/collision";
 import { mergeEntryResult } from "./viewer/sweepMerge";
 import { planEntryCheck } from "./viewer/sweepEntry";
-import { previewSchemaMismatch, parseTloMismatch, EXPECTED_PREVIEW_SCHEMA, type ScrubTrack } from "./ws/bulkData";
+import { previewSchemaMismatch, parseTloMismatch, type ScrubTrack } from "./ws/bulkData";
 import { createBackplotController } from "./viewer/backplotController";
 import { createSurfaceController } from "./viewer/surfaceController";
 import { createToolpathController, type ToolpathCtx } from "./viewer/toolpathController";
@@ -235,10 +235,9 @@ const kinsEndWarn = computed<{ text: string; title: string } | null>(() => {
   const m = semanticKinsMode(k, viewerInit.value?.kins);
   if (m === 0) return null;
   const mode = m === 1 ? "TCP" : m === 2 ? "TOOL (plane)" : `an unsupported (type ${k})`;
-  const fix = m === 2 ? "G69, or select the Machine frame," : "select the Machine frame";
   return {
     text: `Program ends in ${mode} kinematics — ${m === 2 ? "add G69" : "restore the Machine frame"} before M2`,
-    title: `The program's last kinematics switch leaves switchkins type ${k} in effect. M2 restores G54 but not the kinematics pin, so after the run the machine stays in the ${mode} frame and Cycle Start is refused until the Machine frame is restored — ${fix} before M2.`,
+    title: "M2 keeps this kinematics mode — Cycle Start stays refused until the Machine frame is selected.",
   };
 });
 
@@ -3905,7 +3904,7 @@ defineExpose({
            readout, the tool line and the load bar are the readout; the chip
            and the warnings are the "what to know" block — keep them together). -->
       <div v-if="hudMode" class="hudMode val-status" :class="hudMode.cls" :title="hudMode.title">
-        {{ hudMode.text }} · {{ props.g5xLabel || NO_VALUE }}<template v-if="hudPlaneWord"> · {{ hudPlaneWord }}</template>
+        {{ hudMode.text }} · {{ props.g5xLabel || NO_VALUE }}<template v-if="hudPlaneWord"> · {{ hudPlaneWord }}</template><HelpIcon v-if="hudMode.help" label="Kinematics state">{{ hudMode.help }}</HelpIcon>
       </div>
 
       <div v-if="vst?.eoffset_enabled" class="hudWarn">Comp Z {{ fmtNum(vst.eoffset_z, 3) }}</div>
@@ -3915,23 +3914,23 @@ defineExpose({
       <!-- A HUD warning's "why" is a HelpIcon beside it (design wave D1,
            UI-N32): the HUD ignores the pointer, so a title never showed on a
            touchscreen; the icon alone takes taps (.hudWarn .helpIcon). -->
-      <div v-if="kinsEndWarn" class="hudWarn">{{ kinsEndWarn.text }} <HelpIcon label="Program ends in kinematics">{{ kinsEndWarn.title }}</HelpIcon></div>
+      <div v-if="kinsEndWarn" class="hudWarn">{{ kinsEndWarn.text }}<HelpIcon label="Program ends in kinematics">{{ kinsEndWarn.title }}</HelpIcon></div>
       <!-- Stale-preview chips are REPORTS, not actions (operator, 2026-09-12:
            "what still clickable warnings do we have? is it needed?"). The
            gateway owns every re-parse decision — the schema edge once per
            file, the offset / tool-length drift edges when idle — so a click
            here could only race an edge about to fire, or repeat a schema
            parse that already failed. One source decides; the HUD says so. -->
-      <div v-if="previewSchemaStale" class="hudWarn">Preview from a different suite version — re-parsing; if it stays, restart the suite <HelpIcon label="Preview version">Payload format {{ previewSchemaStale.got ?? 'unstamped (older gateway)' }}; this UI expects {{ EXPECTED_PREVIEW_SCHEMA }}. The gateway re-parses once with the installed code; if this stays, the install is half-upgraded — restart the suite.</HelpIcon></div>
+      <div v-if="previewSchemaStale" class="hudWarn">Preview from a different suite version — re-parsing; if it stays, restart the suite<HelpIcon label="Preview version">The preview comes from another suite version. It re-parses once; if this stays, restart the suite.</HelpIcon></div>
       <!-- Same bar as the status banner (one fraction, previewRefreshPct):
            a fixed-width track under the chip, numbers in the tooltip. -->
       <template v-if="previewRefresh">
-        <div class="hudWarn">Preview re-parsing · {{ previewRefreshLabel(previewRefresh.reason) }} <HelpIcon label="Preview re-parsing">The gateway is re-parsing the program ({{ previewRefresh.reason }}) — {{ fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms) }}. The drawn path, limit marks and simulation are stale until it lands.</HelpIcon></div>
+        <div class="hudWarn">Preview re-parsing · {{ previewRefreshLabel(previewRefresh.reason) }}<HelpIcon label="Preview re-parsing">Path, limit marks and simulation update when it lands — {{ fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms) }}.</HelpIcon></div>
         <div class="progressTrack" :title="fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms)"><div class="progressFill" :style="{ width: previewRefreshPct + '%' }"></div></div>
       </template>
-      <div v-else-if="previewWcsStale" class="hudWarn">Preview uses older offsets — re-parses when idle <HelpIcon label="Preview offsets">A work offset this program uses was touched off after it was parsed — the gateway re-parses once the interpreter is idle and the offsets have settled.</HelpIcon></div>
-      <div v-if="previewTloStale" class="hudWarn">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parses when idle <HelpIcon label="Preview tool length">Parsed with T{{ previewTloStale.tool }} length {{ fmtNum(previewTloStale.parsed, 3) }}, table now {{ fmtNum(previewTloStale.live, 3) }} — line limit flags are stale until the gateway re-parses (idle).</HelpIcon></div>
-      <div v-if="toolpathOverflow" class="hudWarn">{{ toolpathOverflowCount }} limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }} <HelpIcon label="Limit violations">The per-line soft-limit validator flagged these moves — the same source as the marked lines in the program panel and the scrub bar's ◀ N limit violations ▶, which jumps between them (simulation mode, machine off). Validated against the offsets at parse time; a touch-off re-parses automatically.</HelpIcon></div>
+      <div v-else-if="previewWcsStale" class="hudWarn">Preview uses older offsets — re-parses when idle<HelpIcon label="Preview offsets">A work offset changed after parsing — re-parses once the machine is idle.</HelpIcon></div>
+      <div v-if="previewTloStale" class="hudWarn">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parses when idle<HelpIcon label="Preview tool length">T{{ previewTloStale.tool }} was {{ fmtNum(previewTloStale.parsed, 3) }} when parsed, now {{ fmtNum(previewTloStale.live, 3) }} — re-parses once idle.</HelpIcon></div>
+      <div v-if="toolpathOverflow" class="hudWarn">{{ toolpathOverflowCount }} limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
     </div>
 
     <!-- View navigation cube (top-right) -->
@@ -4114,6 +4113,9 @@ defineExpose({
 .hudMode {
   font-size: calc(var(--fs-md) * var(--hud-scale));
   text-align: left;
+  /* text + "?" one centred row (the icon never drops onto a line of its own) */
+  display: flex;
+  align-items: center;
   width: 0;
   min-width: 100%;
   white-space: normal;
@@ -4130,10 +4132,12 @@ defineExpose({
 
 /* The HUD ignores the pointer (the camera works through it); the one thing
    in it that takes a tap is a warning's help icon (design wave D1). */
-.hudWarn :deep(.helpIcon) { pointer-events: auto; }
+.hudWarn :deep(.helpIcon), .hudMode :deep(.helpIcon) { pointer-events: auto; }
 .hudWarn {
   font-size: calc(var(--fs-md) * var(--hud-scale));
   font-weight: var(--fw-medium);
+  display: flex;
+  align-items: center;
   color: var(--warn);
   /* The card is shrink-to-fit, so a long single-line chip used to set the
      card's width (the DRO grid followed it out to the viewer edge). A

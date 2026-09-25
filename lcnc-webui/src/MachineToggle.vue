@@ -41,13 +41,19 @@ function onChange(e: Event) {
 </script>
 
 <template>
-  <label class="toggleRow" :title="explainActive ? explainReason : undefined"
-         :tabindex="explainActive ? 0 : undefined" :role="explainActive ? 'button' : undefined"
-         :aria-label="explainActive ? explainLabel : undefined" @click="explain" @keydown="explainKey">
-    <input v-bind="$attrs" type="checkbox" class="toggle"
-      :checked="modelValue ?? false"
-      @change="onChange"
-      :disabled="isDisabled">
-    {{ label }}<HelpIcon v-if="help" :label="label">{{ help }}</HelpIcon>
-  </label>
+  <!-- The row carries the explanation of a dimmed toggle; the LABEL (switch
+       + text) dims, the "?" beside it never does: an ancestor's opacity would
+       reach it, and help stays readable while the toggle is dimmed (design
+       wave D1 live look). -->
+  <span class="toggleRow" :title="explainActive ? explainReason : undefined"
+        :tabindex="explainActive ? 0 : undefined" :role="explainActive ? 'button' : undefined"
+        :aria-label="explainActive ? explainLabel : undefined" @click="explain" @keydown="explainKey">
+    <label>
+      <input v-bind="$attrs" type="checkbox" class="toggle"
+        :checked="modelValue ?? false"
+        @change="onChange"
+        :disabled="isDisabled">
+      {{ label }}
+    </label><HelpIcon v-if="help" :label="label">{{ help }}</HelpIcon>
+  </span>
 </template>

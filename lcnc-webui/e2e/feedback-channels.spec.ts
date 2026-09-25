@@ -180,7 +180,7 @@ test("the hint closes on the next touch or key anywhere, and it is the same card
   });
   const hintCard = await card("[data-btn-hint]");
   await page.getByRole("button", { name: "Help: Go to positions", exact: true }).click();
-  const popover = page.locator(".helpPopover").filter({ hasText: "Go to G30" });
+  const popover = page.locator(".helpPopover").filter({ hasText: "tool-change position" });
   await expect(popover).toBeVisible();
   expect(await card(".helpPopover:popover-open")).toBe(hintCard);
   expectNoMachineAction(await recordedCmds());
@@ -334,6 +334,10 @@ test("every help popover wraps and stays inside the window, in every tab", async
       await expect.poll(async () => pop.evaluate((el, vp) => {
         const r = el.getBoundingClientRect();
         if (el.scrollWidth > el.clientWidth + 1) return `scrolls sideways (${el.scrollWidth} > ${el.clientWidth})`;
+        // short and precise, rendered (interpolations included): the audit's
+        // LONG_HELP holds the authored text to 120
+        const n = (el.textContent ?? "").replace(/\s+/g, " ").trim().length;
+        if (n > 140) return `${n} characters — an abstract, not a help`;
         if (r.left < 0 || r.top < 0 || r.right > vp.width + 0.5 || r.bottom > vp.height + 0.5) return "outside the window";
         return "ok";
       }, vp), { message: name }).toBe("ok");
@@ -378,4 +382,110 @@ test("every help popover wraps and stays inside the window, in every tab", async
   });
   expect(wraps).toMatchObject({ ws: "normal", tt: "none" });
   expect(wraps.sw).toBeLessThanOrEqual(wraps.cw + 1);
+});
+
+// Operator (D1 live look): some "?" looked muted, some not, all of them
+// clickable — and some sat flush against their label. ONE look: the icon's
+// EFFECTIVE opacity (an ancestor's opacity multiplies into a child and no
+// child rule can undo it) and colour are the same everywhere, the icon is
+// never disabled by a gate (reading help is not a machine action), and it
+// keeps the same gap after the text it explains.
+test("every help icon has one look: full opacity, one colour, enabled, the same gap after its label", async ({ page }) => {
+  test.setTimeout(180_000);
+  await openReady(page);
+  await ctl({ op: "quiet", on: false });
+  type Look = { name: string; opacity: number; color: string; background: string; border: string; disabled: boolean; gap: number | null; lift: number | null };
+  const looks: Look[] = [];
+  async function sweep(view: string, root = page.locator("body")) {
+    const icons = root.locator(".helpIcon:visible");
+    const n = await icons.count();
+    for (let i = 0; i < n; i++) {
+      const icon = icons.nth(i);
+      const name = `${view} · ${await icon.getAttribute("aria-label")}`;
+      const look = await icon.evaluate(el => {
+        let opacity = 1;
+        for (let e: Element | null = el; e; e = e.parentElement) opacity *= parseFloat(getComputedStyle(e).opacity);
+        const cs = getComputedStyle(el);
+        // The text it explains: the nearest preceding non-blank text node on
+        // the same line (a label's own text, or a sibling span's).
+        let gap: number | null = null, lift: number | null = null;
+        const box = el.getBoundingClientRect();
+        const walker = document.createTreeWalker(el.parentElement!.parentElement ?? document.body, NodeFilter.SHOW_TEXT);
+        let last: DOMRect | null = null;
+        for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+          if (el.contains(t)) break;
+          if (!(t.textContent ?? "").trim()) continue;
+          if (!(el.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_PRECEDING)) break;
+          // up to its last VISIBLE character: a trailing space in the
+          // template is part of the gap the eye sees
+          const text = t.textContent ?? "";
+          const end = text.replace(/\s+$/, "").length;
+          const r = document.createRange(); r.setStart(t, Math.max(0, end - 1)); r.setEnd(t, end);
+          const rects = [...r.getClientRects()];
+          const rr = rects[rects.length - 1];
+          if (rr && rr.bottom > box.top && rr.top < box.bottom && rr.right <= box.left + 0.5) last = rr;
+        }
+        // a strip title pins its icon to the right edge on purpose
+        const pinned = ["absolute", "fixed"].includes(getComputedStyle(el).position);
+        if (last && !pinned) {
+          gap = Math.round((box.left - last.right) * 10) / 10;
+          // centred on the text's line, not hanging below it
+          lift = Math.round(((last.top + last.bottom) / 2 - (box.top + box.bottom) / 2) * 10) / 10;
+        }
+        return { opacity: Math.round(opacity * 100) / 100, color: cs.color, background: cs.backgroundColor,
+                 border: cs.borderTopColor, disabled: (el as HTMLButtonElement).disabled || el.matches(":disabled"), gap, lift };
+      });
+      looks.push({ name, ...look });
+    }
+  }
+  const side = page.locator(".sidePane");
+  await sweep("strips", page.locator(".strip"));
+  for (const tab of ["Program", "MDI", "Offsets", "Tools"]) {
+    await side.getByRole("button", { name: tab, exact: true }).click();
+    await sweep(tab, side);
+  }
+  await side.getByRole("button", { name: "Probing", exact: true }).click();
+  for (const sub of ["Outside", "Inside", "Angle", "Boss/Pocket", "Ridge/Valley", "Surface", "Calibrate", "Toolsetter"]) {
+    await side.getByRole("button", { name: sub, exact: true }).click();
+    await sweep(`Probing/${sub}`, side);
+  }
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  const settings = page.locator(".dialogOverlay").last();
+  for (const tab of ["3D Viewer", "Machine", "Display", "Macros", "Gamepad", "Keyboard"]) {
+    await settings.getByRole("button", { name: tab, exact: true }).click();
+    await sweep(`Settings/${tab}`, settings);
+  }
+  await settings.getByRole("button", { name: "Close settings", exact: true }).click();
+  // Gated: disarmed, the whole content sits in a disabled fieldset. Help is
+  // no machine action — the same "?" looks the same and still opens.
+  // (The sub-tabs are gated too: switch while armed, measure disarmed.)
+  for (const sub of ["Outside", "Calibrate", "Toolsetter"]) {
+    await side.getByRole("button", { name: sub, exact: true }).click();
+    await ctl({ op: "status_delta", armed: false, data: {} });
+    await expect(page.locator(".pill.disarmed")).toHaveCount(1);
+    await sweep(`disarmed Probing/${sub}`, side);
+    const gated = side.locator(".helpIcon:visible").first();
+    await gated.click();
+    await expect(page.locator(".helpPopover:popover-open"), `${sub}: a gated section's help still opens`).toHaveCount(1);
+    await gated.click();
+    await expect(page.locator(".helpPopover:popover-open")).toHaveCount(0);
+    await ctl({ op: "status_delta", armed: true, data: {} });
+    await expect(page.locator(".pill.armed")).toHaveCount(1);
+  }
+  // The kinematics chip in its warning states (Setup strip + HUD): only a
+  // switchable-kins machine shows it — the table off the touch-off angle.
+  await ctl({ op: "setAxes", axes: ["X", "Y", "Z", "A", "C"] });
+  await ctl({ op: "setKins", kins: { module: "xyzac-trt-kins", type: "xyzac-trt", identity_first: true, params: {} } });
+  await ctl({ op: "status_delta", data: { kins_type: 0, g5x_index: 1, wcs_prov_a: [0, 0, 0, 0, 0, 0, 0, 0, 0], rotary_abc: [20, 0, 0] } });
+  await expect(page.locator(".kinsChip")).toContainText("off datum");
+  await sweep("kins chip", page.locator(".kinsChip"));
+  await sweep("HUD", page.locator(".hudMode"));
+  expect(looks.some(l => l.name.startsWith("HUD")), "the HUD chip carries its help").toBe(true);
+  expect(looks.length).toBeGreaterThan(40);
+  const ref = looks[0]!;
+  const bad = looks.filter(l =>
+    l.opacity !== 1 || l.disabled || l.color !== ref.color || l.background !== ref.background || l.border !== ref.border
+    || (l.gap !== null && (l.gap < 3 || l.gap > 6)) || (l.lift !== null && Math.abs(l.lift) > 1.5));
+  const report = bad.map(l => `${l.name}: opacity ${l.opacity}${l.disabled ? ", DISABLED" : ""}, gap ${l.gap}, off-centre ${l.lift}, ${l.color}`).join("\n");
+  expect(bad.length, `help icons off the one look:\n${report}`).toBe(0);
 });

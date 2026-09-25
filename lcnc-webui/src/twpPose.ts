@@ -138,7 +138,10 @@ export function twpDatumStale(
  * both hold, so nothing is hidden by the colour choice.
  */
 export type ChipCls = "ok" | "warn" | "bad" | "muted";
-export interface KinsModeChip { text: string; cls: ChipCls; title: string }
+/** `title` is a short hover NAME; `help` — present on the warn/bad states
+ *  only — is the short why + what to do, shown as a "?" beside the chip (a
+ *  title never shows on a touchscreen; design wave D1 live look). */
+export interface KinsModeChip { text: string; cls: ChipCls; title: string; help?: string }
 
 /** The W1 stamp A of the ACTIVE fixture (1-based g5x index into the 9-list
  *  the payload carries as `wcs_prov_a`); null = no stamp / no data. */
@@ -180,7 +183,7 @@ export function fixtureOffDatum(
 
 import { g5xName } from "./viewer/programZero";
 
-const DATUM_MOVED_TITLE = "The G54 datum was touched off AFTER this plane was defined — the plane and the next Orient still use the old datum. Capture again (after Clear plane) to accept the new datum, or re-run G68.2.";
+const DATUM_MOVED_HELP = "G54 was touched off after the plane was defined — Clear plane and Capture again, or re-run G68.2.";
 
 export function kinsModeChip(i: {
   kinsType: number | null | undefined;
@@ -197,8 +200,7 @@ export function kinsModeChip(i: {
   if (k == null) return null;
   let chip: KinsModeChip;
   if (k === 1) {
-    chip = { text: "TCP", cls: "ok",
-      title: "Tool-center-point kinematics active — programmed XYZ is the tool tip" };
+    chip = { text: "TCP", cls: "ok", title: "TCP kinematics — programmed XYZ is the tool tip" };
   } else if (k === 2) {
     // What is stale is the ORIENT, not the plane: relabelling coordinates
     // cannot swing the head, so a table move leaves the tool off-normal even
@@ -211,36 +213,38 @@ export function kinsModeChip(i: {
     // the colour is bad either way and the text lists both.
     const fx = i.g5xIndex == null || !Number.isFinite(i.g5xIndex) ? null : Math.round(i.g5xIndex);
     const wrongFixture = !!i.twpActive && fx != null && fx !== 6;
-    const wrongFixtureTitle = fx == null ? "" :
-      `Plane kinematics is active but ${g5xName(fx)} is selected, not G59 (the plane fixture): the DRO and jogs are in the tilted frame against the wrong offsets. A program that ended with M2 left TOOL kinematics on. Select the Plane frame again (M430 selects G59), or G69 / the Machine frame.`;
+    const wrongFixtureHelp = fx == null ? "" :
+      `Plane kinematics with ${g5xName(fx)} selected, not G59 — select Plane again (M430) or the Machine frame.`;
     if (i.twpStale) {
-      chip = { text: i.twpActive ? "TWP" : "TOOL", cls: "bad",
-        title: "Tool orientation STALE — the A table has moved since G53.x oriented the head, so the tool is no longer normal to the plane. The plane itself still follows the workpiece. Press Orient to re-solve the head at the current table pose." };
+      chip = { text: i.twpActive ? "TWP" : "TOOL", cls: "bad", title: "Tool orientation stale",
+        help: "The table moved since the last orient — the tool is off the plane normal. Press Orient." };
       if (wrongFixture) {
-        chip = { text: `${chip.text} · ${g5xName(fx!)}`, cls: "bad", title: `${chip.title} (Also: ${wrongFixtureTitle})` };
+        chip = { text: `${chip.text} · ${g5xName(fx!)}`, cls: "bad", title: "Tool orientation stale, wrong work offset",
+                 help: `${chip.help} Also: ${g5xName(fx!)} is selected, not G59.` };
       }
     } else if (wrongFixture) {
-      chip = { text: `TWP · ${g5xName(fx!)}`, cls: "bad", title: wrongFixtureTitle };
+      chip = { text: `TWP · ${g5xName(fx!)}`, cls: "bad", title: "Plane kinematics on the wrong work offset", help: wrongFixtureHelp };
     } else if (i.twpActive) {
-      chip = { text: "TWP", cls: "warn",
-        title: "Tilted work plane ACTIVE — X/Y/Z jogs move in the tilted plane (Z along the tool axis). A touch-off here sets the WORKPIECE datum (G54) through the plane; rotary touch-off needs the Machine frame. G69 cancels." };
+      chip = { text: "TWP", cls: "warn", title: "Tilted work plane active",
+        help: "X/Y/Z jog in the tilted plane; a touch-off sets G54 through it. G69 cancels." };
     } else {
       // No plane under TOOL kins: jogs follow whatever frame the kins pins
       // last held — a trap, not a caution.
-      chip = { text: "TOOL", cls: "bad",
-        title: "TOOL kinematics active without an active plane — X/Y/Z jogs move along the last plane frame, not machine axes. G69 restores machine kinematics." };
+      chip = { text: "TOOL", cls: "bad", title: "Tool kinematics without a plane",
+        help: "Jogs follow the last plane frame, not the machine axes. G69 restores the Machine frame." };
     }
   } else {
-    chip = { text: "MACHINE", cls: "muted",
-      title: "Identity kinematics — X/Y/Z jogs move along machine axes" };
+    chip = { text: "MACHINE", cls: "muted", title: "Machine kinematics — jogs move the machine axes" };
     if (i.offDatum) {
       const o = i.offDatum;
+      const fx = i.g5xIndex == null || !Number.isFinite(i.g5xIndex) ? null : Math.round(i.g5xIndex);
+      const name = fx == null ? "The work offset" : g5xName(fx);
       chip = {
         text: "MACHINE · off datum",
         cls: "warn",
-        title: `The active fixture was established with the table at A ${o.stampA.toFixed(2)}°`
-          + (o.stamped ? "" : " (no provenance stamp — the A=0 rule applies)")
-          + ` and A is now ${o.liveA.toFixed(2)}°. Under machine kinematics a fixture is a fixed point in the room, so it is no longer on the part. In the 3D view the fixture triad rides the part; the muted 'program zero (machine)' marker is where program zero is in the room right now. Return A to the touch-off angle, switch to TCP (the fixture rides the table there), or touch off again here.`,
+        title: "Off datum — A is not at the touch-off angle",
+        help: `${name} ${o.stamped ? `set at A ${o.stampA.toFixed(2)}°` : "has no A stamp (A 0° assumed)"}, A now ${o.liveA.toFixed(2)}° — `
+          + "runs at 'program zero (machine)'. Return A, use TCP or touch off.",
       };
     }
   }
@@ -248,7 +252,8 @@ export function kinsModeChip(i: {
     chip = {
       text: `${chip.text} · datum moved`,
       cls: chip.cls === "bad" ? "bad" : "warn",
-      title: `${DATUM_MOVED_TITLE}${chip.cls === "bad" ? " (Also: " + chip.title + ")" : ""}`,
+      title: "Datum moved since the plane was defined",
+      help: `${DATUM_MOVED_HELP}${chip.help ? " Also: " + chip.help : ""}`,
     };
   }
   return chip;

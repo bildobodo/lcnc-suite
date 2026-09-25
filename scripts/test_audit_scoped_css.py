@@ -123,6 +123,11 @@ def test_long_reason_template_literal_and_script_constant_hit_short_ok(audit):
     assert sorted(hits) == [("LONG_REASON", 3), ("LONG_REASON", 9)], hits
 
 
+def test_long_help_slot_and_prop_hit_short_and_multiline_ok(audit):
+    hits = _drift(audit, "long_help.vue")
+    assert sorted(hits) == [("LONG_HELP", 3), ("LONG_HELP", 5)], hits
+
+
 def test_clean_fixture_has_no_findings(audit):
     assert _drift(audit, "clean.vue") == []
 

@@ -122,8 +122,8 @@ describe("kinsModeChip priority table", () => {
   it("Plane kins with G54 selected (the M2 trap, live 2026-09-03) → bad 'TWP · G54'", () => {
     const c = kinsModeChip({ kinsType: 2, twpActive: true, twpStale: false, g5xIndex: 1 })!;
     expect(c).toMatchObject({ text: "TWP · G54", cls: "bad" });
-    expect(c.title).toContain("G54 is selected, not G59");
-    expect(c.title).toContain("M430");
+    expect(c.help).toContain("G54 selected, not G59");
+    expect(c.help).toContain("M430");
   });
   it("Plane kins with G59 selected → the normal amber TWP (unchanged)", () => {
     expect(kinsModeChip({ kinsType: 2, twpActive: true, g5xIndex: 6 })).toMatchObject({ text: "TWP", cls: "warn" });
@@ -134,11 +134,11 @@ describe("kinsModeChip priority table", () => {
   it("unknown fixture index → no wrong-fixture claim", () => {
     expect(kinsModeChip({ kinsType: 2, twpActive: true, g5xIndex: null })).toMatchObject({ text: "TWP", cls: "warn" });
   });
-  it("head-stale AND G54 selected → bad, text and title carry both claims", () => {
+  it("head-stale AND G54 selected → bad, text and help carry both claims", () => {
     const c = kinsModeChip({ kinsType: 2, twpActive: true, twpStale: true, g5xIndex: 1 })!;
     expect(c).toMatchObject({ text: "TWP · G54", cls: "bad" });
-    expect(c.title).toContain("STALE");
-    expect(c.title).toContain("not G59");
+    expect(c.help).toContain("Press Orient");
+    expect(c.help).toContain("not G59");
   });
   it("wrong fixture is a PLANE claim: TOOL kins without a plane ignores g5xIndex", () => {
     expect(kinsModeChip({ kinsType: 2, twpActive: false, g5xIndex: 1 })!.text).toBe("TOOL");
@@ -158,7 +158,8 @@ describe("kinsModeChip priority table", () => {
     const c = kinsModeChip({ kinsType: 2, twpActive: true, twpStale: true, twpDatumMoved: true })!;
     expect(c.cls).toBe("bad");
     expect(c.text).toBe("TWP · datum moved");
-    expect(c.title).toContain("STALE");
+    expect(c.help).toContain("Capture again");
+    expect(c.help).toContain("Press Orient");
   });
   it("datum moved on identity kins → 'MACHINE · datum moved'", () => {
     expect(kinsModeChip({ kinsType: 0, twpDatumMoved: true })).toMatchObject({ text: "MACHINE · datum moved", cls: "warn" });
@@ -166,17 +167,17 @@ describe("kinsModeChip priority table", () => {
   it("rounds a raw float kins type", () => {
     expect(kinsModeChip({ kinsType: 1.0 })!.text).toBe("TCP");
   });
-  it("off datum on identity → 'MACHINE · off datum' warn, title quotes both angles", () => {
-    const c = kinsModeChip({ kinsType: 0, offDatum: { stampA: 0, liveA: -5.149, stamped: true } })!;
+  it("off datum on identity → 'MACHINE · off datum' warn, its help quotes both angles and the marker", () => {
+    const c = kinsModeChip({ kinsType: 0, g5xIndex: 1, offDatum: { stampA: 0, liveA: -5.149, stamped: true } })!;
     expect(c).toMatchObject({ text: "MACHINE · off datum", cls: "warn" });
-    expect(c.title).toContain("0.00°");
-    expect(c.title).toContain("-5.15°");
-    expect(c.title).not.toContain("no provenance stamp");
-    expect(c.title).toContain("program zero (machine)");
+    expect(c.help).toContain("G54 set at A 0.00°");
+    expect(c.help).toContain("-5.15°");
+    expect(c.help).not.toContain("no A stamp");
+    expect(c.help).toContain("program zero (machine)");
   });
-  it("off datum without a stamp says so in the title", () => {
+  it("off datum without a stamp says so in its help", () => {
     const c = kinsModeChip({ kinsType: 0, offDatum: { stampA: 0, liveA: 20, stamped: false } })!;
-    expect(c.title).toContain("no provenance stamp");
+    expect(c.help).toContain("no A stamp");
   });
   it("off datum AND datum moved on identity → text lists both", () => {
     const c = kinsModeChip({ kinsType: 0, twpDatumMoved: true, offDatum: { stampA: 0, liveA: 20, stamped: true } })!;
@@ -236,5 +237,22 @@ describe("fixtureOffDatum", () => {
   });
   it("rounds a raw float kins type", () => {
     expect(fixtureOffDatum(0.0, 0, 20)).not.toBeNull();
+  });
+});
+
+describe("kinsModeChip help texts are short (design wave D1 live look)", () => {
+  it("every single-state help fits 120 characters; no help on the plain states", () => {
+    const states = [
+      { kinsType: 1 }, { kinsType: 0 }, { kinsType: 2, twpActive: false },
+      { kinsType: 2, twpActive: true, g5xIndex: 1 }, { kinsType: 2, twpActive: true },
+      { kinsType: 2, twpActive: true, twpStale: true }, { kinsType: 0, twpDatumMoved: true },
+      { kinsType: 0, g5xIndex: 1, offDatum: { stampA: -120.25, liveA: -115.75, stamped: false } },
+    ];
+    for (const st of states) {
+      const c = kinsModeChip(st)!;
+      if (c.cls === "ok" || c.cls === "muted") expect(c.help, c.text).toBeUndefined();
+      else expect(c.help!.length, `${c.text}: ${c.help}`).toBeLessThanOrEqual(120);
+      expect(c.title.length, c.text).toBeLessThanOrEqual(60);
+    }
   });
 });

@@ -73,6 +73,14 @@
   --opacity-subtle: 0.3;    /* separators, faint visual dividers */
   --opacity-disabled: 0.4;
   --opacity-muted: 0.6;     /* secondary/dimmed text, sample counts, waiting states */
+  /* Muted TEXT in a box that holds a "?" (labels, .sub, .label-muted,
+     .statsLabel) is a colour, not an opacity: an ancestor's opacity
+     multiplies into every child and no child rule can undo it — the "?"
+     inside a muted label looked muted while fully usable (design wave D1
+     live look). The same ratio as --opacity-muted, mixed into the inherited
+     colour. A DISABLED label keeps opacity (it must compose with a colour of
+     its own, e.g. a warn status) and never holds a "?". */
+  --mix-muted: 60%;
   --opacity-secondary: 0.8; /* dialog body text, syntax comments, icon hover */
 
   /* Syntax highlighting */
@@ -593,18 +601,34 @@ textarea:disabled {
   opacity: var(--opacity-muted);
 }
 
+/* A text and its "?" as ONE centred row (the MachineToggle text, a heading
+   with help): the icon never drops onto a line of its own, and it centres on
+   the text — `vertical-align: middle` centres on the x-height, below
+   uppercase text (operator, D1 live look). */
+.textWithHelp { display: flex; align-items: center; }
+
+/* MachineToggle: the row (explanation of a dimmed toggle) holds the label
+   (switch + text) and the "?" beside it. */
 .toggleRow {
   display: flex;
   align-items: center;
-  gap: var(--gap-controls);
   font-size: var(--fs-md);
-  cursor: pointer;
   user-select: none;
 }
+.toggleRow > label {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-controls);
+  cursor: pointer;
+}
 
+/* A disabled toggle's label dims and stays TAPPABLE — the tap is its reason
+   (MachineToggle's explain). It used to be `pointer-events: none`: a tap on
+   a dimmed toggle said nothing (design wave D1 live look). Opacity, not a
+   colour: it composes with a label's own colour; the "?" sits outside it. */
 label:has(input.toggle:disabled) {
   opacity: var(--opacity-disabled);
-  pointer-events: none;
+  cursor: not-allowed;
 }
 
 /* ═══ Touch sizing layer ═══════════════════════════════════════════════
@@ -913,7 +937,7 @@ label:has(input:disabled, select:disabled) {
 .sub {
   font-size: var(--fs-sm);
   font-weight: var(--fw-semibold);
-  opacity: var(--opacity-muted);
+  color: color-mix(in oklab, currentColor var(--mix-muted), transparent);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -1021,10 +1045,9 @@ label:has(input:disabled, select:disabled) {
 .paramGrid.twoCol { grid-template-columns: auto 1fr auto 1fr; }
 .paramGrid > label {
   font-size: var(--fs-sm);
-  opacity: var(--opacity-muted);
+  color: color-mix(in oklab, currentColor var(--mix-muted), transparent);
   display: inline-flex;
   align-items: center;
-  gap: var(--gap-tight);
 }
 .paramGrid input { max-width: 100px; }
 
@@ -1048,8 +1071,16 @@ label:has(input:disabled, select:disabled) {
   z-index: var(--z-modal);
 }
 
+/* The icon brings its own gap to the text it explains (ONE gap everywhere:
+   a container's flex gap, a space in the template and no gap at all gave
+   three looks); a container never spaces it. Inline in running text it
+   centres on the line. It is a span role="button" (HelpIcon.vue): never
+   disabled by a Gate. */
 .helpIcon {
   appearance: none;
+  margin-inline-start: var(--gap-tight);
+  vertical-align: middle;
+  user-select: none;
   background: color-mix(in oklab, var(--info) 15%, transparent);
   border: 1px solid color-mix(in oklab, var(--info) 40%, transparent);
   border-radius: var(--radius-round);
@@ -1525,7 +1556,7 @@ label:has(input:disabled, select:disabled) {
 }
 
 /* Muted label (section headers, units, field labels) */
-.label-muted    { font-size: var(--fs-2xs); opacity: var(--opacity-muted); white-space: nowrap; }
+.label-muted    { font-size: var(--fs-2xs); color: color-mix(in oklab, currentColor var(--mix-muted), transparent); white-space: nowrap; }
 /* Opacity-only muting — dims without changing type size (e.g. the reserved-
    WCS radio text, which must stay --fs-base with its siblings). */
 .muted          { opacity: var(--opacity-muted); }
@@ -1582,7 +1613,9 @@ label:has(input:disabled, select:disabled) {
   gap: var(--gap-tight) var(--gap-controls);
 }
 .statsLabel {
-  opacity: var(--opacity-muted);
+  color: color-mix(in oklab, currentColor var(--mix-muted), transparent);   /* holds a "?" */
+  display: flex;
+  align-items: center;
 }
 .statsValue {
   text-align: right;

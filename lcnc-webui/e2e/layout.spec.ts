@@ -86,6 +86,57 @@ for (const profile of PROFILES) {
   }
 }
 
+// The jog speed readouts sit centred over their sliders (operator, D1 live
+// look: the right-aligned number and the unit line sat off the slider's
+// axis). Landscape, where the sliders stand upright under their readouts.
+for (const viewport of VIEWPORTS.filter(v => v.width > v.height)) {
+  test(`${viewport.name}: the jog speed value and unit are centred over their slider`, async ({ page }) => {
+    const profile = PROFILES.find(p => (p.axes as readonly string[]).includes('A'))!;
+    await openLayout(page, profile, viewport);
+    await setLayoutState(page, profile, 'homed');
+    const cols = page.locator('[data-strip="jog"] .speedCol');
+    await expect(cols).toHaveCount(2);
+    for (let i = 0; i < 2; i++) {
+      const off = await cols.nth(i).evaluate(col => {
+        const mid = (el: Element | Range) => { const r = el.getBoundingClientRect(); return r.left + r.width / 2; };
+        const textMid = (el: Element) => { const r = document.createRange(); r.selectNodeContents(el); return mid(r); };
+        const slider = mid(col.querySelector('input[type="range"]')!);
+        const [value, unit] = [...col.querySelectorAll('.jogSpeedVal > span')];
+        return { value: textMid(value!) - slider, unit: textMid(unit!) - slider };
+      });
+      expect(Math.abs(off.value), `column ${i} value off by ${off.value.toFixed(1)}px`).toBeLessThanOrEqual(1);
+      expect(Math.abs(off.unit), `column ${i} unit off by ${off.unit.toFixed(1)}px`).toBeLessThanOrEqual(1);
+    }
+  });
+}
+
+// The parameters under a probe grid stay where they are when the sub-tab
+// changes (operator, D1 live look: the Angle tab's Edge Width row pushed
+// them down, and the operation description line grew the section). Every
+// sub-tab with a probe grid starts what follows the grid at one height.
+for (const viewport of VIEWPORTS) {
+  test(`${viewport.name}: the probe grid sub-tabs keep the parameters in place`, async ({ page }) => {
+    await openLayout(page, PROFILES[0]!, viewport);
+    await setLayoutState(page, PROFILES[0]!, 'homed');
+    const side = page.locator('.sidePane');
+    await side.getByRole('button', { name: 'Probing', exact: true }).click();
+    const tops: Record<string, number> = {};
+    for (const sub of ['Outside', 'Inside', 'Angle', 'Boss/Pocket', 'Ridge/Valley', 'Calibrate']) {
+      await side.getByRole('button', { name: sub, exact: true }).click();
+      await settleLayout(page);
+      const grid = side.locator('.gridSection');
+      if (!await grid.count()) continue;
+      tops[sub] = await grid.evaluate(el => {
+        el.closest('.scroll-thin, .tab-content')?.scrollTo?.(0, 0);
+        const next = el.nextElementSibling as HTMLElement | null;
+        return Math.round((next ?? el).getBoundingClientRect()[next ? 'top' : 'bottom']);
+      });
+    }
+    expect(Object.keys(tops).length, JSON.stringify(tops)).toBeGreaterThanOrEqual(5);
+    expect(new Set(Object.values(tops)).size, `where the parameters start: ${JSON.stringify(tops)}`).toBe(1);
+  });
+}
+
 test('layout guard detects the original shrinking disabled-button regression', async ({ page }) => {
   await openLayout(page, PROFILES[1], VIEWPORTS[0]);
   const root = page.locator('[data-strip="jog"]');
