@@ -136,4 +136,13 @@ Inter typeface (bundled UI font, 2026):
    lcnc-webui/src/assets/fonts/InterVariable.woff2 (the UI, unmodified) and
    Inter-Regular.woff (the 3D text labels; the release's Inter-Regular.ttf
    re-wrapped as WOFF, glyphs unmodified). The licence is bundled beside
-   them as OFL.txt.
+   them as OFL-Inter.txt.
+
+JetBrains Mono typeface (bundled code font, 2026):
+   Authors:   The JetBrains Mono Project Authors
+   License:   SIL Open Font License 1.1
+   Source:    https://github.com/JetBrains/JetBrainsMono (release v2.304)
+
+   lcnc-webui/src/assets/fonts/JetBrainsMono-Regular.woff2 and
+   JetBrainsMono-SemiBold.woff2, unmodified. The licence is bundled beside
+   them as OFL-JetBrainsMono.txt.

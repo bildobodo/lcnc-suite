@@ -6374,7 +6374,14 @@ DejaVu, later-in-D8 and keep-system as alternatives): bundle Inter, now.
   is under the comparison's 0.2 % pixel tolerance, and the layout audit
   counts `button`/`input`/`select`/`textarea`, not a `span role="button"`.
   Follow-up for D10: count `[role="button"]` in the audit's controls.
-- Open question to the operator: the code surfaces (G-code viewer and
-  editor, reference dialog) keep the system monospace; bundling one too
-  (e.g. JetBrains Mono, OFL) would make them identical as well.
+- The code surfaces followed on the operator's yes (same day): JetBrains
+  Mono 2.304 (SIL OFL 1.1), the static regular and semibold WOFF2 (92 and
+  94 KB) — the syntax highlighting uses exactly those two weights, no
+  italic — first in `--font-mono`. It covers every character the code
+  surfaces show but an em space. `bundledFonts.test.ts` requires both font
+  stacks to start with a bundled family and every face's file to exist.
+- Operator decision the same evening: Start, Resume, Step and Run from
+  line's action become hold-to-fire in D6 (`holdKey` = the program, plus
+  the line for Run from line); Pause and Abort stay taps; the Space
+  shortcut stays instant (K13 follow-up). Recorded in the plan's D6.
 

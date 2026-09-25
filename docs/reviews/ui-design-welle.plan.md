@@ -375,6 +375,21 @@ Net/Ping/Clients in einen Detail-Popover.
   ein neuer voller Hold führt genau den sichtbaren Befehl einmal aus.
 - Parameteränderung während des Execute-Holds analog.
 
+**Programmstart** (Operator-Entscheidung 25. September 2026, aus der zweiten D1-Sichtprüfung:
+„warum startet ein Programm augenblicklich und nicht mit einem Longpress?“):
+
+- **Start, Resume, Step** und der Ausführen-Button von **Run from line** lösen per Halten aus, wie
+  jede andere Bewegung (UX-12).
+  - `holdKey` = geladenes Programm (Pfad + Revision), bei Run from line zusätzlich die Zeile: ein
+    Programmwechsel oder eine andere Zeile während des Haltens bricht mit „Selection changed — hold
+    again“ ab.
+- **Pause und Abort bleiben ein Tipp.** Ein Stopp darf nie warten.
+- **Die Leertaste** (Cycle Start) bleibt sofort, weil man eine Taste nicht wie einen Button hält; die
+  Tastaturalternative für Hold-Aktionen bleibt der Folge-Punkt K13.
+- **Wächter** (e2e): kurzer Tipp → kein Befehl, Hinweis „Hold to activate“; voller Hold → genau ein
+  Befehl; Pointer-Abbruch; Gate-Verlust; Programm- bzw. Zeilenwechsel während des Haltens; Pause und
+  Abort weiter mit einem Tipp.
+
 ### WP-D7 — Eingabehilfen (UI-K01, K02; Operator-Entscheidung 4)
 
 **X oben rechts:**

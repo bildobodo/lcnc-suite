@@ -4,14 +4,31 @@
    per machine (San Francisco on macOS, DejaVu Sans on Linux — no semibold, so
    36 semibold places rendered bold there — Segoe UI on Windows), and a layout
    with zero reserve fitted on one and scrolled on another. Inter (SIL OFL
-   1.1, assets/fonts/OFL.txt), the variable face: every weight in one local
-   file, no network. `block`: a local file loads in milliseconds, and a
+   1.1, assets/fonts/OFL-Inter.txt), the variable face: every weight in one
+   local file, no network. `block`: a local file loads in milliseconds, and a
    swap would re-flow every strip once. The 3D labels (troika) and the
-   ViewCube read the same face (viewer/labelFont.ts, ViewCube.vue). */
+   ViewCube read the same face (viewer/labelFont.ts, ViewCube.vue). The code
+   surfaces get JetBrains Mono the same way (operator, same day; OFL 1.1,
+   OFL-JetBrainsMono.txt): regular and semibold, the two weights the syntax
+   highlighting uses — a bolder request takes the semibold. */
 @font-face {
   font-family: "Inter";
   src: url("./assets/fonts/InterVariable.woff2") format("woff2");
   font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("./assets/fonts/JetBrainsMono-Regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("./assets/fonts/JetBrainsMono-SemiBold.woff2") format("woff2");
+  font-weight: 600;
   font-style: normal;
   font-display: block;
 }
@@ -62,12 +79,13 @@
    * Its face is the bundled Inter (@font-face above); the system fonts after it
    * only catch a glyph Inter lacks (the keypad's "═").
    * --font-mono is reserved for code surfaces (G-code program viewer/editor,
-   * G-code reference dialog, debug timing dumps, keyboard chord cells).
+   * G-code reference dialog, debug timing dumps, keyboard chord cells); its
+   * face is the bundled JetBrains Mono (@font-face above).
    * For numeric column alignment elsewhere, use `font-variant-numeric: tabular-nums`
    * (or the `.mono` / `.val-mono` utility classes) — sans + tabular-nums keeps
    * digits aligned without breaking visual cohesion. */
   --font-sans: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace;
+  --font-mono: "JetBrains Mono", ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', monospace;
 
   /* Type scale */
   --fs-2xs: 9px;

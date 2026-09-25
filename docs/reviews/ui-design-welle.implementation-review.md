@@ -240,7 +240,8 @@ Nachtrag nach dem Neustart (25.09.): kein Scrollbalken mehr zu sehen, aber im Po
   zurückgezogen. Die Oberfläche liefert jetzt Inter selbst mit (lokal, SIL OFL); Tests und Referenzbilder
   messen genau diese Schrift. Dabei gefunden: Die 3D-Beschriftungen luden ihre Schrift zur Laufzeit von
   cdn.jsdelivr.net — ohne Internet fehlten sie. Wächter: Viewer-Spec ohne fremde Hosts, Quelltext-Scan
-  jeder `new Text()`. Offen: Monospace für die Code-Flächen ebenfalls mitliefern?
+  jeder `new Text()`. Die Code-Flächen liefern ebenso JetBrains Mono mit (Operator-Ja am selben Abend).
+- Operator-Entscheidung 25.09.: Start, Resume, Step und Run from line lösen in D6 per Halten aus (Plan, D6).
 
 - Zwei Harness-Fallen: Die seriellen Playwright-Projekte hängen voneinander ab; ein einzelner Spec
   startet sonst alle vorgelagerten Projekte (`--no-deps`). Specs zweier serieller Projekte mit

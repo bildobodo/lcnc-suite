@@ -156,8 +156,8 @@ The UI font is the one the product ships (Inter, `src/assets/fonts/`, SIL
 OFL): references, geometry tests and every operator's browser render the same
 face, so a layout reserve measured here holds on the operator's machine.
 Until 2026-09-25 the references injected a test-only DejaVu Sans while the
-product used each machine's system font. Code surfaces use the system
-monospace (`--font-mono`), which is DejaVu Sans Mono on the Linux runners.
+product used each machine's system font. The code surfaces ship
+JetBrains Mono the same way (`--font-mono`).
 The sticky Safety panel and scroll-edge shadows are hidden only during
 Jog/Setup capture so they cannot obscure the panel being compared. Geometry
 tests still inspect the normal application, including Safety.
