@@ -28,17 +28,22 @@ type Page = import("@playwright/test").Page;
 const geometries = (page: Page) =>
   page.evaluate(() => window.__viewerLeakProbe?.()?.geometries ?? -1);
 
-// Poll until the geometry count is the same on two reads ~250 ms apart, then
-// return it — a settled value immune to mid-rebuild / mid-fetch transients.
+// Poll until the geometry count has held for a full second (five reads
+// ~250 ms apart), then return it — a settled value immune to mid-rebuild /
+// mid-fetch transients. Two equal reads were not enough under load (a
+// VM-local browser on the live UI, load 5-6 on 4 cores): the rebuild's
+// asynchronous tail — the program re-apply, the edge worker, the GPU upload
+// on the next frame — paused longer than 250 ms, and the spec counted a
+// plateau half-way ("lost the preview" / "accumulated" in 3 of 4 runs; after
+// a quiet second the count was back every time: no leak, no lost re-apply).
 async function settledGeometries(page: Page): Promise<number> {
-  let last = -999;
+  const reads: number[] = [];
   await expect.poll(async () => {
-    const now = await geometries(page);
-    const stable = now >= 0 && now === last;
-    last = now;
-    return stable;
-  }, { timeout: 15000, intervals: [250] }).toBe(true);
-  return last;
+    reads.push(await geometries(page));
+    const tail = reads.slice(-5);
+    return tail.length === 5 && tail[0]! >= 0 && tail.every(n => n === tail[0]);
+  }, { timeout: 20000, intervals: [250] }).toBe(true);
+  return reads[reads.length - 1]!;
 }
 
 // The mock-gateway is shared by every spec; reset to pristine before each test.
@@ -64,6 +69,28 @@ test("a clean rebuild frees AND re-applies the loaded program's toolpath geometr
   await ctl({ op: "loadGcode" });
   await expect.poll(() => geometries(page), { timeout: 15000, intervals: [150] })
     .toBeGreaterThan(empty + 1);
+  // POLL while RE-SENDING rebuildInit — a single broadcast can race the
+  // page's WS readiness under full-suite load (the earlier intermittent
+  // flake); each rebuildInit bumps _rev so it always forces a real rebuild.
+  // Completion signal: buildFromInit stamps a fresh __viewerDiag.timestamp.
+  const rebuild = async (what: string) => {
+    const prevTs = await page.evaluate(() => window.__viewerDiag?.timestamp ?? 0);
+    await expect.poll(async () => {
+      await ctl({ op: "rebuildInit" });
+      return page.evaluate(() =>
+        (window.__viewerDiag?.ready && window.__viewerDiag?.timestamp) || 0);
+    }, {
+      timeout: 15000, intervals: [200],
+      message: `${what}: rebuildInit never completed a rebuild`,
+    }).toBeGreaterThan(prevTs);
+  };
+  // One warm-up rebuild before the baseline: the glyph atlas is lazy, and
+  // under load it was still not uploaded after a quiet second — the baseline
+  // read 74 and the first honest rebuild 76 ("accumulated", 2026-09-25). A
+  // leak or a lost re-apply still moves every counted cycle below; a re-apply
+  // lost on EVERY rebuild would lower this baseline too, and the chunk count
+  // right after it (>= 48 over empty) goes red.
+  await rebuild("warm-up");
   const loaded = await settledGeometries(page);
   // The mock feed zigzags through every cell of the controller's 8 × 8 chunk
   // grid, so the program is drawn as 64 level-0 chunk geometries (plus rapid
@@ -81,19 +108,7 @@ test("a clean rebuild frees AND re-applies the loaded program's toolpath geometr
   //  * A rebuild that loses the preview (no re-apply after
   //    toolpath.forgetAfterSceneClear) settles at ~loaded-3 → lower bound RED.
   for (let i = 0; i < 4; i++) {
-    // POLL while RE-SENDING rebuildInit — a single broadcast can race the
-    // page's WS readiness under full-suite load (the earlier intermittent
-    // flake); each rebuildInit bumps _rev so it always forces a real rebuild.
-    // Completion signal: buildFromInit stamps a fresh __viewerDiag.timestamp.
-    const prevTs = await page.evaluate(() => window.__viewerDiag?.timestamp ?? 0);
-    await expect.poll(async () => {
-      await ctl({ op: "rebuildInit" });
-      return page.evaluate(() =>
-        (window.__viewerDiag?.ready && window.__viewerDiag?.timestamp) || 0);
-    }, {
-      timeout: 15000, intervals: [200],
-      message: `cycle ${i}: rebuildInit never completed a rebuild`,
-    }).toBeGreaterThan(prevTs);
+    await rebuild(`cycle ${i}`);
     const rebuilt = await settledGeometries(page);
 
     expect(rebuilt, `cycle ${i}: rebuild lost the program preview (re-apply missing)`)
