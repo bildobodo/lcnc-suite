@@ -1587,8 +1587,8 @@ label:has(input:disabled, select:disabled) {
    look). The rule and the label–value gap sit at --gap-tight, and SafetyStrip
    narrows the box's side padding in portrait: 240 px of need, 4 px reserve
    on the tablet and 16 px in landscape. Stacking the columns in portrait
-   was measured and rejected: the pinned section grew 261 → 360 px, and at
-   150 % to 540 of the strip's 603 px. */
+   was measured and rejected: the pinned section grew from 25 to 35 % of
+   the strip, at 150 % from 45 to 60 % (365 of 604 CSS px). */
 .statusCols {
   display: flex;
   gap: 0;

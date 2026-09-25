@@ -145,7 +145,7 @@ for (const viewport of VIEWPORTS) {
 // landscape geometry off the right edge). Its two status columns fit side by
 // side with a reserve (they scrolled sideways), and the pinned section stays
 // a quarter of the strip: stacking the columns fitted them too, but the
-// section grew to 35 % of the strip at 100 % and 90 % at 150 %.
+// section grew to 35 % of the strip at 100 % and 60 % at 150 %.
 for (const viewport of VIEWPORTS.filter(v => v.height > v.width)) {
   test(`${viewport.name}: the strip sections share one content column`, async ({ page }) => {
     await openLayout(page, PROFILES[0]!, viewport);
@@ -180,6 +180,24 @@ for (const viewport of VIEWPORTS.filter(v => v.height > v.width)) {
     expect(new Set(status.rows).size, `status columns side by side: ${JSON.stringify(status)}`).toBe(1);
     expect(status.room - status.need, `status columns' reserve: ${JSON.stringify(status)}`).toBeGreaterThanOrEqual(2);
     expect(share, 'the pinned Safety section\'s share of the strip').toBeLessThanOrEqual(0.3);
+    // The same page at 150 % (CSS zoom, as the budget specs emulate it): the
+    // strip keeps its 280 px column while the viewport shrinks to 800 CSS px,
+    // so the pinned section's share grows — 45 % today, 60 % with the columns
+    // stacked. Measured, not assumed to follow from the 100 % bound; both
+    // heights from getBoundingClientRect (one unit — a zoomed rect over an
+    // unzoomed clientHeight once read "90 %").
+    const zoomed = await page.locator('.strip').evaluate(async strip => {
+      document.documentElement.style.zoom = '1.5';
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const safety = strip.querySelector<HTMLElement>('.safetyStrip')!;
+      const detail = safety.querySelector<HTMLElement>('.statusDetail')!;
+      const out = { share: safety.getBoundingClientRect().height / strip.getBoundingClientRect().height,
+        over: detail.scrollWidth - detail.clientWidth };
+      document.documentElement.style.zoom = '';
+      return out;
+    });
+    expect(zoomed.over, 'status detail sideways overflow at 150 %').toBe(0);
+    expect(zoomed.share, 'the pinned Safety section\'s share of the strip at 150 %').toBeLessThanOrEqual(0.55);
   });
 }
 

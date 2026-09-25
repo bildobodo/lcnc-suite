@@ -6317,8 +6317,10 @@ the left of the portrait Safety section: Jog's buttons sat closer to the edge.
   `--gap-tight`, the status box's side padding `--gap-tight` in portrait:
   240 px of need, 4 px reserve on the touch tablet, 14–16 px elsewhere.
   Stacking the columns in portrait fitted them too and was rejected by
-  measurement: the pinned section grew 261 → 360 px, at 150 % to 540 of the
-  strip's 603 px (63 px left to scroll the other sections through).
+  measurement: the pinned section grew from 25 to 35 % of the strip, at
+  150 % from 45 to 60 % (365 of 604 CSS px). The first record of this said
+  "540 of 603 px" — a unit mix (the section's zoomed rect over the strip's
+  unzoomed clientHeight), caught when the 150 % guard would not go red.
 - Guards, each red on its defect first: the CSS audit's `MEDIA_SHADOW` (a
   declaration in an `@media`/`@supports`/`@container` block that a later
   same-selector rule outside one overrides, shorthands included; scans
@@ -6326,7 +6328,8 @@ the left of the portrait Safety section: Jog's buttons sat closer to the edge.
   `sideways-scroll` (any sideways overflow inside the strip) — 12 px on the
   old layout; `layout.spec` portrait: one content column for every section,
   the fade below the pinned section, the status columns side by side with
-  ≥ 2 px reserve, the pinned section ≤ 30 % of the strip (35 % stacked).
+  ≥ 2 px reserve, the pinned section ≤ 30 % of the strip (35 % stacked) and
+  ≤ 55 % at 150 % (60 % stacked), no sideways overflow at 150 %.
 - Open: which face `system-ui` resolves to in Firefox on macOS (the operator
   sees a different font than in Chrome). Asked for the rendered font names;
   a web font would be a D8 decision.
