@@ -1802,14 +1802,17 @@ watch(viewerGcode, (newGcode) => {
       <!-- Abort is ALWAYS the last action: a stop must not move when a
            message count or a Refresh appears beside it (P2). -->
       <div class="bannerActions row-controls">
-        <MachineBtn v-if="safetyTrip" type="bannerAck" @click="acknowledgeSafetyTrip">Acknowledge</MachineBtn>
+        <!-- data-dialog-reachable: in Tab reach from inside an open dialog
+             (modalRegistry focus scope, UI-D01) — the trip acknowledgement
+             and the running program's Abort, nothing else of the banner. -->
+        <MachineBtn v-if="safetyTrip" type="bannerAck" data-dialog-reachable @click="acknowledgeSafetyTrip">Acknowledge</MachineBtn>
         <MachineBtn v-if="bannerLine?.key === 'preview-error' && activeFile" type="bannerReload" @click="loadFile(activeFile)">Reload program</MachineBtn>
         <MachineBtn v-if="machineState === 'unhomed'" type="bannerHome" @click="homeAll">Home All</MachineBtn>
         <MachineBtn v-if="unreadCount > 0" type="bannerAction" @click="openMessages">
           {{ unreadCount }} message{{ unreadCount === 1 ? '' : 's' }}
         </MachineBtn>
         <MachineBtn v-if="needsRefresh" type="bannerAction" @click="reloadPage">Refresh</MachineBtn>
-        <MachineBtn v-if="bannerShowAbort" type="bannerAbort" @click="fire({ cmd: 'abort' }, 'abort')" />
+        <MachineBtn v-if="bannerShowAbort" type="bannerAbort" data-dialog-reachable @click="fire({ cmd: 'abort' }, 'abort')" />
       </div>
     </div>
 
@@ -2814,7 +2817,6 @@ watch(viewerGcode, (newGcode) => {
   color: var(--danger);
 }
 
-.safetyDialog { z-index: var(--z-modal-top); }
 
 /* ─── MDI tab ─── */
 .mdiTab {

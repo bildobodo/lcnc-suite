@@ -108,7 +108,17 @@ export const activeKind = computed<SessionKind | null>(() => {
 export const focusReturn = reactive({ pending: false });
 let _returnSeq = 0;
 const FOCUS_RETURN_MAX_MS = 2000;
-function fallbackFocus(): void { document.querySelector<HTMLElement>(".strip")?.focus(); }
+// Where a return that cannot land goes: the topmost dialog while one is open
+// (modalRegistry registers it — this module never imports the registry),
+// else the strip. Never `body`: an unfocused document is where Space is
+// Cycle Start.
+let _focusFallback: (() => HTMLElement | null) | null = null;
+export function setFocusFallback(fn: () => HTMLElement | null): void { _focusFallback = fn; }
+function fallbackFocus(): void {
+  const el = _focusFallback?.();
+  if (el?.isConnected) { el.focus(); return; }
+  document.querySelector<HTMLElement>(".strip")?.focus();
+}
 function canHold(t: HTMLElement): boolean {
   return t.isConnected && t.offsetParent !== null && !t.matches(":disabled");
 }
@@ -200,6 +210,25 @@ export function closeTextSessionIf(ownerId: string, reason?: string): boolean {
   if (!inputSession.kind || inputSession.ownerId !== ownerId) return false;
   endText(reason);
   return true;
+}
+
+/** A dialog opened over `parent` (the dialog below it, or the panels): the
+ *  input helper of a field INSIDE it PAUSES — never an owner end (design
+ *  wave D2, UI-D06). The number keypad hides and files its entry as the
+ *  owner's draft, the empty one included (`hideKeypad` = `closeKeypad(true)`,
+ *  its onCancel runs, nothing is applied); a text session leaves the way an
+ *  outside tap does (the text stays in the field's model, focus is not pulled
+ *  back). `closeKeypadIf` / `closeTextSessionIf` stay reserved for a real
+ *  context end — `closeKeypadIf` drops the draft even without an open
+ *  session. Other owners' helpers are untouched, and the covered field is
+ *  unreachable meanwhile through the topmost dialog's focus scope and its
+ *  scrim, not through `locked` (the visibility poll rewrites that every
+ *  300 ms). */
+export function pauseInputIn(parent: Element | null, reason: string): void {
+  if (!parent) return;
+  if (keypadState.open && keypadState.trigger && parent.contains(keypadState.trigger)) hideKeypad(reason);
+  const el = inputSession.target?.focusEl?.() ?? null;
+  if (inputSession.kind && el && parent.contains(el)) closeTextSession(reason);
 }
 
 /** Hidden-but-mounted owner: keep the session, hide the helper. */
