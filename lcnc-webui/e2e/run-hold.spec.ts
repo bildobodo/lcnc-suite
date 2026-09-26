@@ -206,6 +206,49 @@ test("a line selection belongs to its program: another program clears it", async
   await expect(page.getByRole("button", { name: "Start", exact: true }), "B's Start is no run from A's line").toBeVisible();
 });
 
+// ── Two independent option groups, two native names (UI-DI07) ──
+// The Run-from-line dialog's spindle preset and Settings' DEFAULT preset
+// shared the native radio name `rflSpindleDir`: mounting Settings (any
+// section) unchecked the dialog's choice while its model still held it —
+// the sent preset and the visible one disagreed.
+const PRESETS = [["reverse", "Rev"], ["off", "Stop"], ["forward", "Fwd"]] as const;
+const checkedIn = (group: Locator) => group.locator("label").filter({ has: group.page().locator("input:checked") });
+
+test("the Run-from-line preset and Settings' default preset never uncheck each other — both orders, every value", async ({ page }) => {
+  await ready(page, { machine: { runFromLine: true, rflSpindleDir: "forward", rflSpindleRpm: 8000 } });
+  const runGroup = page.getByRole("radiogroup", { name: "Spindle preset", exact: true });
+  const defaultGroup = page.getByRole("radiogroup", { name: "Default Spindle Preset", exact: true });
+  for (const [value, label] of PRESETS) {
+    for (const order of ["dialog first", "settings first"]) {
+      await ctl({ op: "clearCmds" });
+      if (order === "settings first") {
+        // Settings mounted and closed before the dialog opens.
+        await page.getByRole("button", { name: "Settings", exact: true }).click();
+        await page.getByRole("button", { name: "Close settings", exact: true }).click();
+      }
+      await page.locator(".codeLine").nth(2).click();
+      await page.getByRole("button", { name: "Start L3", exact: true }).click();
+      await runGroup.getByText(label, { exact: true }).click();
+      await expect(checkedIn(runGroup)).toHaveText(label);
+      // Settings over the dialog, on a section other than Machine, then Machine.
+      await page.getByRole("button", { name: "Settings", exact: true }).click();
+      const sections = page.getByRole("tablist", { name: "Settings sections", exact: true });
+      await sections.getByRole("tab", { name: "Display", exact: true }).click();
+      await expect(checkedIn(runGroup), `${order}, ${label}: under Settings`).toHaveText(label);
+      await sections.getByRole("tab", { name: "Machine", exact: true }).click();
+      await expect(checkedIn(defaultGroup), "Settings shows the saved default").toHaveText("Fwd");
+      await expect(checkedIn(runGroup), `${order}, ${label}: beside the default group`).toHaveText(label);
+      await page.getByRole("button", { name: "Close settings", exact: true }).click();
+      await expect(checkedIn(runGroup), `${order}, ${label}: after Settings`).toHaveText(label);
+      // The visible choice is the sent one.
+      await press(page, page.getByRole("dialog", { name: "Run from Line 3", exact: true })
+        .getByRole("button", { name: "Run from Line 3", exact: true }), HOLD_MS);
+      await expect.poll(async () => (await sent()).filter(c => c.cmd === "auto_run")
+        .map(c => (c as { spindle_dir?: string }).spindle_dir ?? "off")).toEqual([value]);
+    }
+  }
+});
+
 test("a macro without parameters runs on a hold; a command saved during the hold cancels it, the next hold runs the new one once", async ({ page }) => {
   await ready(page, { macros: MACROS });
   const park = page.locator(".macroBar").getByRole("button", { name: "Park", exact: true });

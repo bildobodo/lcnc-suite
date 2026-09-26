@@ -739,9 +739,9 @@ function resetMachineColor(id: string) {
                 <template #default="{ group }">
                   <!-- the spindle strip's order and words: Rev · Stop · Fwd (UI-N14) -->
                   <div v-bind="group" class="radioGroup inline">
-                    <label><MachineRadio gate="displaySetting" name="rflSpindleDir" v-model="rflSpindleDir" value="reverse" @update:modelValue="saveMachine()" /> Rev</label>
-                    <label><MachineRadio gate="displaySetting" name="rflSpindleDir" v-model="rflSpindleDir" value="off" @update:modelValue="saveMachine()" /> Stop</label>
-                    <label><MachineRadio gate="displaySetting" name="rflSpindleDir" v-model="rflSpindleDir" value="forward" @update:modelValue="saveMachine()" /> Fwd</label>
+                    <label><MachineRadio gate="displaySetting" name="rflDefaultSpindleDir" v-model="rflSpindleDir" value="reverse" @update:modelValue="saveMachine()" /> Rev</label>
+                    <label><MachineRadio gate="displaySetting" name="rflDefaultSpindleDir" v-model="rflSpindleDir" value="off" @update:modelValue="saveMachine()" /> Stop</label>
+                    <label><MachineRadio gate="displaySetting" name="rflDefaultSpindleDir" v-model="rflSpindleDir" value="forward" @update:modelValue="saveMachine()" /> Fwd</label>
                   </div>
                 </template>
               </FormField>

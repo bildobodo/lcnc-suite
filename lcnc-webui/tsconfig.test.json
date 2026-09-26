@@ -34,6 +34,7 @@
   "include": [
     "src/shims.d.ts",
     "src/bundledFonts.test.ts",
+    "src/radioNames.test.ts",
     "src/exampleToolLibrary.test.ts",
     "src/freecadGeometry.test.ts",
     "src/toolGeometry.test.ts",

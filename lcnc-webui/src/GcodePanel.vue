@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, useId, watch } from "vue";
 import type { CollisionLineMark } from "./viewer/collision";
 import { listFiles, uploadFile, saveFile, fetchSubfile, UploadConflictError, type FileEntry } from "./lcncApi";
 import DialogFrame from "./DialogFrame.vue";
@@ -467,6 +467,10 @@ function onDrop(e: DragEvent) {
 const selectedLine = ref<number | null>(null);
 const showRunDialog = ref(false);
 const dialogSpindleDir = ref<"off" | "forward" | "reverse">("forward");
+// The dialog's OWN native radio name: Settings' default preset is another
+// group — with one shared name, mounting Settings unchecked the dialog's
+// choice while its model kept it (implementation review round 4, UI-DI07).
+const rflDirName = `rflRunSpindleDir${useId()}`;
 const dialogSpindleSpeed = ref(10000);
 const dialogSafeZ = ref(true);
 // Toolchange scan for the RFL × M600 guard (see gcodeRfl.ts): refreshed each
@@ -1089,9 +1093,9 @@ async function saveEdit() {
             <div class="sub">Spindle Preset</div>
             <!-- One option group, the spindle strip's order (design wave D3, N50/N14) -->
             <div class="radioGroup inline" role="radiogroup" aria-label="Spindle preset">
-              <label><MachineRadio gate="displaySetting" name="rflSpindleDir" :modelValue="dialogSpindleDir" value="reverse" @update:modelValue="dialogSpindleDir = 'reverse'" /> Rev</label>
-              <label><MachineRadio gate="displaySetting" name="rflSpindleDir" :modelValue="dialogSpindleDir" value="off" @update:modelValue="dialogSpindleDir = 'off'" /> Stop</label>
-              <label><MachineRadio gate="displaySetting" name="rflSpindleDir" :modelValue="dialogSpindleDir" value="forward" @update:modelValue="dialogSpindleDir = 'forward'" /> Fwd</label>
+              <label><MachineRadio gate="displaySetting" :name="rflDirName" :modelValue="dialogSpindleDir" value="reverse" @update:modelValue="dialogSpindleDir = 'reverse'" /> Rev</label>
+              <label><MachineRadio gate="displaySetting" :name="rflDirName" :modelValue="dialogSpindleDir" value="off" @update:modelValue="dialogSpindleDir = 'off'" /> Stop</label>
+              <label><MachineRadio gate="displaySetting" :name="rflDirName" :modelValue="dialogSpindleDir" value="forward" @update:modelValue="dialogSpindleDir = 'forward'" /> Fwd</label>
             </div>
             <FormField v-if="dialogSpindleDir !== 'off'" label="Spindle Speed" unit="RPM" class="rpmField">
               <template #default="{ input }">
