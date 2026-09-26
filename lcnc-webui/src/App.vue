@@ -1053,6 +1053,7 @@ function confirmSettingsDiscard() {
 const {
   userMacros,
   macroParamDialog,
+  dialogMacro,
   updateMacros,
   runMacro,
   confirmMacroParams,
@@ -2265,10 +2266,13 @@ watch(viewerGcode, (newGcode) => {
           </template>
       </DialogFrame>
 
-      <DialogFrame v-if="macroParamDialog" kind="form" size="md" :title="macroParamDialog.macro.name">
+      <DialogFrame v-if="macroParamDialog" kind="form" size="md" :title="macroParamDialog.name">
           <div class="dialogContent">
-            <div class="formGrid">
-              <FormField v-for="p in macroParamDialog.macro.params" :key="p.name" :label="p.label || p.name">
+            <!-- The macro is read live (UI-DI08): removed in Settings or by
+                 another client while open, it has nothing left to run -->
+            <div v-if="!dialogMacro" class="statusNote warn" role="alert">This macro was removed — nothing to run.</div>
+            <div v-else class="formGrid">
+              <FormField v-for="p in dialogMacro.params" :key="p.name" :label="p.label || p.name">
                 <template #default="{ input }">
                   <MachineInput
                     v-bind="input"
@@ -2279,13 +2283,14 @@ watch(viewerGcode, (newGcode) => {
                 </template>
               </FormField>
             </div>
-            <code class="macroPreview">{{ macroPreview() }}</code>
+            <code v-if="dialogMacro" class="macroPreview">{{ macroPreview() }}</code>
           </div>
           <template #actions>
             <MachineBtn type="dialogCancel" @click="macroParamDialog = null">Cancel</MachineBtn>
             <!-- A hold bound to the macro, its command and these values: an edit
                  or a save from another client during the hold cancels it -->
-            <MachineBtn type="macroExecute" class="macroExecute" :hold-key="macroExecuteKey()" @click="confirmMacroParams">Execute</MachineBtn>
+            <MachineBtn type="macroExecute" class="macroExecute" :hold-key="macroExecuteKey()" :disabled="!dialogMacro"
+                        :reason="dialogMacro ? undefined : 'Macro removed — nothing to run'" @click="confirmMacroParams">Execute</MachineBtn>
           </template>
       </DialogFrame>
 

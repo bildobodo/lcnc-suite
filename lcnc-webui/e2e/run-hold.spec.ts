@@ -270,6 +270,59 @@ test("a macro without parameters runs on a hold; a command saved during the hold
   await expect.poll(async () => (await sent()).filter(c => c.cmd === "mdi").map(c => c.text)).toEqual(["G53 G0 Z-5"]);
 });
 
+// ── The parameter dialog follows its macro (UI-DI08) ──
+// The dialog held a COPY of the macro: a revision saved during the Execute
+// hold ran the old command. It now reads the macro live by id — a new
+// command, a new parameter set or the macro's removal cancels the hold;
+// entered values stay, a new parameter shows its default, and the next
+// complete hold runs exactly the visible command once.
+const faceTop = (over: Record<string, unknown>) => ({ macros: { macros: [MACROS.macros[0], { ...MACROS.macros[1], ...over }] } });
+
+test("a macro revision saved during the dialog's Execute hold cancels it; the next hold runs the visible command once", async ({ page }) => {
+  await ready(page, { macros: MACROS });
+  const hint = page.locator("[data-btn-hint]");
+  const dialog = page.getByRole("dialog");
+  const execute = dialog.getByRole("button", { name: "Execute", exact: true });
+  const mdi = async () => (await sent()).filter(c => c.cmd === "mdi").map(c => c.text);
+
+  // 1. A new command (and name) for the same id.
+  await page.locator(".macroBar").getByRole("button", { name: "Face Top", exact: true }).click();
+  await holdWhile(page, execute, () => ctl({ op: "raw", frame: { type: "settings_changed",
+    settings: faceTop({ name: "Face Deep", command: "G0 Z-{depth} F{feed}" }) } }));
+  await expect(hint).toHaveText("Selection changed — hold again");
+  expect(await mdi(), "the old command did not run").toEqual([]);
+  await expect(page.getByRole("dialog", { name: "Face Deep", exact: true })).toBeVisible();
+  await expect(dialog.locator(".macroPreview")).toHaveText("G0 Z-5 F100");
+  await press(page, execute, HOLD_MS);
+  await expect.poll(mdi).toEqual(["G0 Z-5 F100"]);
+
+  // 2. A new parameter: the entered value stays, the new one shows its default.
+  await ctl({ op: "clearCmds" });
+  await page.locator(".macroBar").getByRole("button", { name: "Face Deep", exact: true }).click();
+  await dialog.getByRole("textbox", { name: "Feed", exact: true }).fill("250");
+  await holdWhile(page, execute, () => ctl({ op: "raw", frame: { type: "settings_changed",
+    settings: faceTop({ name: "Face Deep", command: "G0 Z-{depth} F{feed} S{spd}",
+      params: [...MACROS.macros[1].params, { name: "spd", label: "Speed", default: "7" }] }) } }));
+  expect(await mdi(), "a new parameter set cancels").toEqual([]);
+  await expect(dialog.getByRole("textbox", { name: "Feed", exact: true }), "the entered value stays").toHaveValue("250");
+  await expect(dialog.getByRole("textbox", { name: "Speed", exact: true }), "the new parameter's default").toHaveValue("7");
+  await expect(dialog.locator(".macroPreview")).toHaveText("G0 Z-5 F250 S7");
+  await press(page, execute, HOLD_MS);
+  await expect.poll(mdi).toEqual(["G0 Z-5 F250 S7"]);
+
+  // 3. The macro removed: the hold ends, nothing runs, the dialog says so.
+  await ctl({ op: "clearCmds" });
+  await page.locator(".macroBar").getByRole("button", { name: "Face Deep", exact: true }).click();
+  await holdWhile(page, execute, () => ctl({ op: "raw", frame: { type: "settings_changed",
+    settings: { macros: { macros: [MACROS.macros[0]] } } } }));
+  await page.waitForTimeout(200);
+  expect(await mdi(), "a removed macro runs nothing").toEqual([]);
+  await expect(dialog.getByRole("alert")).toContainText("removed");
+  await expect(execute).toBeDisabled();
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+});
+
 test("a macro with parameters opens on a tap; Enter moves on and never executes; Execute is a hold bound to the values", async ({ page }) => {
   await ready(page, { macros: MACROS });
   await page.locator(".macroBar").getByRole("button", { name: "Face Top", exact: true }).click();
