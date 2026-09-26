@@ -62,6 +62,14 @@ const PREVIEW = msgpackEncode({
   file: "/leak.ngc",
   ...zigzag(),
   rapid: [[0, 0, 5], [0, 0, 0]],
+  // The parse worker's program statistics (gcode_parse_worker.py): the
+  // Program panel offers its Stats dialog only when a payload carries them.
+  stats: {
+    feedMoves: 64, rapidMoves: 1, linearMoves: 64, arcMoves: 0,
+    feedDist: 1280, rapidDist: 5, linearDist: 1280, arcDist: 0,
+    feedTime: 768, rapidTime: 1, totalTime: 769,
+    feedRates: [100], toolChanges: 0, toolsUsed: [], unit: "mm", fileSize: 2048,
+  },
 });
 
 const server = createServer(async (req, res) => {

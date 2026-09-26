@@ -1200,6 +1200,10 @@ label:has(input:disabled, select:disabled) {
   justify-content: center;
   z-index: var(--z-modal);
 }
+/* Per-dialog box sizes: global, because DialogFrame renders the box and a
+   caller's scoped rule never reaches it (box-class). */
+.dialog.statsDialog { min-width: 340px; max-width: 480px; }
+
 /* A machine flow (tool change, shutdown, compensation) sits above every
    other dialog. Global: DialogFrame renders the overlay (kind "flow"), so a
    caller's scoped rule would never reach it. */

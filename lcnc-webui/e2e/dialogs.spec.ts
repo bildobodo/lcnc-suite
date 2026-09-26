@@ -138,10 +138,14 @@ async function focusPlace(page: Page, dialog: Locator): Promise<string> {
 }
 
 /** Tab and Shift+Tab walk only the topmost dialog, its own helper, the
- *  safety strip and the banner's Abort / Acknowledge (UI-D01). */
+ *  safety strip and the banner's Abort / Acknowledge (UI-D01). Backwards
+ *  first: the initial focus sits early in the dialog, so Shift+Tab wraps to
+ *  the scope's end (the safety strip) within a few steps even in Settings —
+ *  forward first, 24 steps never left a large dialog and the return trip
+ *  walked the same stops back. */
 async function expectTabScope(page: Page, dialog: Locator, steps = 24) {
   const seen: Record<string, number> = {};
-  for (const key of ["Tab", "Shift+Tab"]) {
+  for (const key of ["Shift+Tab", "Tab"]) {
     for (let i = 0; i < steps; i++) {
       await page.keyboard.press(key);
       const place = await focusPlace(page, dialog);

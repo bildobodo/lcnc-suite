@@ -30,6 +30,7 @@ import ProbePanel from "./ProbePanel.vue";
 import OffsetPanel from "./OffsetPanel.vue";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
+import DialogFrame from "./DialogFrame.vue";
 import MachineInput from "./MachineInput.vue";
 import { highlightGcode } from "./gcodeHighlight";
 import { fmtElapsed, fmtDuration, fmtDist, fmtSize, fmtProgressTimes, fmtNum, fmtQty } from "./format";
@@ -50,7 +51,7 @@ import { useMdiHistory } from "./useMdiHistory";
 import { useTouchoffMath } from "./useTouchoffMath";
 import { useMacros } from "./useMacros";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
-import { modalOpen, registerModal } from "./modalRegistry";
+import { modalOpen } from "./modalRegistry";
 import { g5xLabel as fixtureLabel } from "./wcs";
 import { forceStopAllJogs, initJogPointerSafety, destroyJogPointerSafety, activeJogKeys } from "./useJogPointers";
 import {
@@ -1520,17 +1521,12 @@ const {
   fire,
 });
 
-// Every dialog App renders registers its open state (WP0, UI-03): while any
-// is open — or the keypad — the shortcut map lets only E-Stop through.
-registerModal(statsDialogOpen);
-registerModal(settingsDialogOpen);
-registerModal(() => settingsDiscard.value !== null);
-registerModal(messagesDialogOpen);
-// gcodeRefOpen: GcodeReferenceDialog renders the overlay and registers itself.
-registerModal(showShutdownConfirm);
-registerModal(toolChangeRequested);
-registerModal(() => macroParamDialog.value !== null);
-registerModal(() => compConfirmPending.value !== null);
+// Every dialog App renders is a DialogFrame, which registers itself in the
+// modal registry and the dialog stack while it is mounted (design wave D2):
+// while any is open — or the keypad — the shortcut map lets only E-Stop
+// through.
+/** The message center's Clear All asks first (N47). */
+const clearMessagesAsk = ref(false);
 
 /** ---------- gamepad jogging ---------- */
 const gamepadConfig = ref<GamepadDefaults>(loadGamepadDefaults());
@@ -2003,12 +1999,8 @@ watch(viewerGcode, (newGcode) => {
         </TabPanel>
 
         <!-- Program stats dialog -->
-        <div v-if="statsDialogOpen && gcodeStats" class="dialogOverlay" @click.self="statsDialogOpen = false">
-          <div class="dialog md statsDialog">
-            <div class="dialogHeader">
-              <span class="dialogTitle">Program Stats</span>
-              <MachineBtn type="close" aria-label="Close program stats" title="Close program stats" @click="statsDialogOpen = false"><X :size="14" /></MachineBtn>
-            </div>
+        <DialogFrame v-if="statsDialogOpen && gcodeStats" kind="info" size="md" box-class="statsDialog"
+                     title="Program Stats" close-label="Close program stats" @close="statsDialogOpen = false">
             <div class="dialogContent stack-sections scroll-thin fade-scroll">
               <StatsDonut :stats="gcodeStats" />
 
@@ -2086,19 +2078,14 @@ watch(viewerGcode, (newGcode) => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+        </DialogFrame>
       </div>
 
       <!-- Dialogs — inside content area so strip stays accessible beneath -->
 
       <!-- Settings dialog -->
-      <div v-if="settingsDialogOpen" class="dialogOverlay" @click.self="closeSettings">
-        <div class="dialog lg dialog-full">
-          <div class="dialogHeader">
-            <span class="dialogTitle">Settings</span>
-            <MachineBtn type="close" aria-label="Close settings" title="Close settings" @click="closeSettings"><X :size="14" /></MachineBtn>
-          </div>
+      <DialogFrame v-if="settingsDialogOpen" kind="host" size="lg" full title="Settings" close-label="Close settings"
+                   initial-focus="button.selected" @close="closeSettings">
           <div class="dialogContent">
             <SettingsPanel
               ref="settingsPanelRef"
@@ -2117,35 +2104,27 @@ watch(viewerGcode, (newGcode) => {
               @setRunFromLine="runFromLineEnabled = $event"
               @setGamepadConfig="setGamepadConfig" />
           </div>
-        </div>
-      </div>
+      </DialogFrame>
 
       <!-- Closing Settings over a local draft (UI-K16) — the tool editor's ask. -->
-      <div v-if="settingsDiscard" class="dialogOverlay" @click.self="settingsDiscard = null">
-        <div class="dialog">
-          <div class="dialogTitle danger">Discard changes?</div>
-          <div class="dialogBody">{{ settingsDiscard.what }} has unsaved changes.</div>
-          <div class="dialogActions">
-            <MachineBtn type="dialogCancel" @click="settingsDiscard = null">Keep editing</MachineBtn>
-            <MachineBtn type="dialogDanger" @click="confirmSettingsDiscard">Discard</MachineBtn>
-          </div>
-        </div>
-      </div>
+      <DialogFrame v-if="settingsDiscard" kind="confirm" title="Discard changes?" danger @close="settingsDiscard = null">
+        <div class="dialogBody">{{ settingsDiscard.what }} has unsaved changes.</div>
+        <template #actions>
+          <MachineBtn type="dialogCancel" @click="settingsDiscard = null">Keep editing</MachineBtn>
+          <MachineBtn type="dialogDanger" @click="confirmSettingsDiscard">Discard</MachineBtn>
+        </template>
+      </DialogFrame>
 
       <!-- G-code reference dialog -->
       <GcodeReferenceDialog :open="gcodeRefOpen" :initialSearch="gcodeRefInitialSearch" @close="gcodeRefOpen = false" />
 
       <!-- Messages dialog -->
-      <div v-if="messagesDialogOpen" class="dialogOverlay" @click.self="closeMessages">
-        <div class="dialog lg dialog-full">
-          <div class="dialogHeader">
-            <span class="dialogTitle">Messages ({{ messages.length }})</span>
-            <div class="row-tight">
-              <MachineBtn type="inline" @click="copyAllMessages" :disabled="messages.length === 0">Copy All</MachineBtn>
-              <MachineBtn type="inline" @click="clearAllMessages" :disabled="messages.length === 0">Clear All</MachineBtn>
-              <MachineBtn type="close" aria-label="Close messages" title="Close messages" @click="closeMessages"><X :size="14" /></MachineBtn>
-            </div>
-          </div>
+      <DialogFrame v-if="messagesDialogOpen" kind="info" size="lg" full :title="`Messages (${messages.length})`"
+                   close-label="Close messages" @close="closeMessages">
+          <template #header>
+            <MachineBtn type="inline" @click="copyAllMessages" :disabled="messages.length === 0">Copy All</MachineBtn>
+            <MachineBtn type="inline" @click="clearMessagesAsk = true" :disabled="messages.length === 0">Clear All</MachineBtn>
+          </template>
           <div class="dialogContent stack-tight scroll-thin fade-scroll">
             <!-- The banner's current condition with its "why" — a tap on the
                  banner lands here (UI-N26: nothing essential only in a title). -->
@@ -2156,18 +2135,28 @@ watch(viewerGcode, (newGcode) => {
               <span class="msgTime">{{ msgFormatTime(msg.ts) }}</span>
               <span class="msgKind">{{ msgKindLabel(msg.kind) }}</span>
               <span class="msgText">{{ msg.text }}</span>
-              <MachineBtn type="listAction" @click="copyMessage(msg)" title="Copy"><ClipboardCopy :size="12" /></MachineBtn>
-              <MachineBtn type="listAction" @click="dismissMessage(msg.id)" title="Dismiss">&times;</MachineBtn>
+              <MachineBtn type="listAction" @click="copyMessage(msg)" title="Copy" aria-label="Copy message"><ClipboardCopy :size="12" /></MachineBtn>
+              <MachineBtn type="listAction" @click="dismissMessage(msg.id)" title="Dismiss" aria-label="Dismiss message"><X :size="12" /></MachineBtn>
             </div>
             <div v-if="messages.length === 0" class="msgEmpty">No messages</div>
           </div>
-        </div>
-      </div>
+      </DialogFrame>
+
+      <!-- Clear All asks first (N47): the message center is the protocol. -->
+      <DialogFrame v-if="clearMessagesAsk" kind="confirm" title="Clear all messages?" danger @close="clearMessagesAsk = false">
+        <div class="dialogBody">All {{ messages.length }} messages leave the log. This cannot be undone.</div>
+        <template #actions>
+          <MachineBtn type="dialogCancel" @click="clearMessagesAsk = false">Cancel</MachineBtn>
+          <MachineBtn type="dialogDanger" @click="clearAllMessages(); clearMessagesAsk = false">Clear All</MachineBtn>
+        </template>
+      </DialogFrame>
 
       <!-- Safety confirmation dialogs — z-index 1010 to always appear above other dialogs -->
-      <div v-if="toolChangeRequested" class="dialogOverlay safetyDialog">
-        <div class="dialog">
-          <div class="dialogTitle">{{ !toolChangeTool ? 'Remove Tool from Spindle' : 'Load Tool into Spindle' }}</div>
+      <!-- Both actions are machine actions: focus starts on the container, so
+           no button sits under Enter / Space (Anhang B); Abort is the cancel
+           side, left (N40). -->
+      <DialogFrame v-if="toolChangeRequested" kind="flow" class="safetyDialog" initial-focus="container"
+                   :title="!toolChangeTool ? 'Remove Tool from Spindle' : 'Load Tool into Spindle'">
           <div class="dialogBody">
             <template v-if="toolChangeTool">
               <strong>T{{ toolChangeTool }}</strong><template v-if="st.tool_change_info"> D{{ fmtNum(st.tool_change_info.D, 3) }} Z{{ fmtNum(st.tool_change_info.Z, 3) }}</template><br>
@@ -2178,19 +2167,16 @@ watch(viewerGcode, (newGcode) => {
               Remove tool and press Confirm
             </template>
           </div>
-          <div class="dialogActions">
+          <template #actions>
+            <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
             <MachineBtn type="toolChangeConfirm" :disabled="!toolChangeRequested || !!confirmSent"
                         :reason="confirmSent ? 'Confirmation sent — waiting for the controller' : undefined"
                         @click="confirmToolChange">{{ confirmSent ? 'Confirming…' : 'Confirm' }}</MachineBtn>
-            <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
-          </div>
-        </div>
-      </div>
+          </template>
+      </DialogFrame>
 
-      <div v-if="macroParamDialog" class="dialogOverlay" @click.self="macroParamDialog = null">
-        <div class="dialog">
-          <div class="dialogTitle">{{ macroParamDialog.macro.name }}</div>
-          <div class="dialogBody">
+      <DialogFrame v-if="macroParamDialog" kind="form" size="md" :title="macroParamDialog.macro.name">
+          <div class="dialogContent">
             <div class="stack-controls">
               <div v-for="p in macroParamDialog.macro.params" :key="p.name" class="row-controls">
                 <label class="macroParamLabel" :for="`macro-param-${p.name}`">{{ p.label || p.name }}</label>
@@ -2204,27 +2190,22 @@ watch(viewerGcode, (newGcode) => {
             </div>
             <code class="macroPreview">{{ macroPreview() }}</code>
           </div>
-          <div class="dialogActions">
+          <template #actions>
             <MachineBtn type="dialogCancel" @click="macroParamDialog = null">Cancel</MachineBtn>
             <MachineBtn type="dialogReady" @click="confirmMacroParams">Execute</MachineBtn>
-          </div>
-        </div>
-      </div>
+          </template>
+      </DialogFrame>
 
-      <div v-if="showShutdownConfirm" class="dialogOverlay safetyDialog">
-        <div class="dialog">
-          <div class="dialogTitle danger">Shut Down LinuxCNC?</div>
-          <div class="dialogBody">This will stop all motion and exit LinuxCNC.</div>
-          <div class="dialogActions">
-            <MachineBtn type="dialogCancel" @click="showShutdownConfirm = false">Cancel</MachineBtn>
-            <MachineBtn type="shutdown" @click="send({ cmd: 'shutdown' }); showShutdownConfirm = false">Shut Down</MachineBtn>
-          </div>
-        </div>
-      </div>
+      <DialogFrame v-if="showShutdownConfirm" kind="flow" class="safetyDialog" title="Shut Down LinuxCNC?" danger>
+        <div class="dialogBody">This will stop all motion and exit LinuxCNC.</div>
+        <template #actions>
+          <MachineBtn type="dialogCancel" @click="showShutdownConfirm = false">Cancel</MachineBtn>
+          <MachineBtn type="shutdown" @click="send({ cmd: 'shutdown' }); showShutdownConfirm = false">Shut Down</MachineBtn>
+        </template>
+      </DialogFrame>
 
-      <div v-if="compConfirmPending !== null" class="dialogOverlay safetyDialog">
-        <div class="dialog">
-          <div class="dialogTitle">{{ compConfirmPending ? 'Enable' : 'Disable' }} Compensation</div>
+      <DialogFrame v-if="compConfirmPending !== null" kind="flow" class="safetyDialog"
+                   :title="compConfirmPending ? 'Enable surface compensation?' : 'Disable surface compensation?'">
           <div class="dialogBody">
             <template v-if="compConfirmPending">
               Z axis will move based on the surface compensation map.<br>
@@ -2244,12 +2225,11 @@ watch(viewerGcode, (newGcode) => {
               Ensure tool is clear of the workpiece.
             </template>
           </div>
-          <div class="dialogActions">
+          <template #actions>
             <MachineBtn type="dialogCancel" @click="cancelCompToggle">Cancel</MachineBtn>
-            <MachineBtn type="dialogReady" @click="confirmCompToggle">Confirm</MachineBtn>
-          </div>
-        </div>
-      </div>
+            <MachineBtn type="dialogReady" @click="confirmCompToggle">{{ compConfirmPending ? 'Enable' : 'Disable' }}</MachineBtn>
+          </template>
+      </DialogFrame>
     </Gate><!-- /content (outer gate) -->
 
     <!-- ══ Macro Bar — thin row of user macro buttons ══ -->
@@ -2774,10 +2754,6 @@ watch(viewerGcode, (newGcode) => {
 /* ---- Stats dialog ----
    (.statsGrid/.donut/.legendDot etc. are global — see style.css and
     StatsDonut.vue) */
-.statsDialog {
-  min-width: 340px;
-  max-width: 480px;
-}
 
 /* ---- Messages dialog ---- */
 .msgItem {
