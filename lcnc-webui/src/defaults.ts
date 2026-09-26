@@ -498,6 +498,20 @@ export function saveCameraDefaults(data: CameraDefaults): void {
   saveSection("camera", data);
 }
 
+// ─── Input bindings: the shared command names ────────────────────
+// ONE list for the commands the keyboard and the gamepad both bind, so an
+// action reads the same in both binding tables (design wave D4, UI-N69).
+// The split differs on purpose and stays: the keyboard's one Cycle key
+// toggles start / pause / resume, the gamepad has a button for each.
+export const INPUT_COMMAND_LABELS = {
+  cycle: "Cycle Start / Pause / Resume",
+  start: "Cycle Start / Resume",
+  pause: "Pause",
+  resume: "Resume",
+  abort: "Abort",
+  estop: "E-Stop",
+} as const;
+
 // ─── Gamepad section ─────────────────────────────────────────────
 
 /** Actions assignable to gamepad buttons. */
@@ -507,11 +521,11 @@ export type GamepadAction =
   | "z_mod" | "dead_man" | "none";
 
 export const GAMEPAD_ACTIONS: { value: GamepadAction; label: string }[] = [
-  { value: "start", label: "Cycle Start / Resume" },
-  { value: "pause", label: "Pause" },
-  { value: "resume", label: "Resume" },
-  { value: "abort", label: "Abort" },
-  { value: "estop", label: "E-Stop" },
+  { value: "start", label: INPUT_COMMAND_LABELS.start },
+  { value: "pause", label: INPUT_COMMAND_LABELS.pause },
+  { value: "resume", label: INPUT_COMMAND_LABELS.resume },
+  { value: "abort", label: INPUT_COMMAND_LABELS.abort },
+  { value: "estop", label: INPUT_COMMAND_LABELS.estop },
   { value: "spindle_stop", label: "Spindle Stop" },
   { value: "flood_toggle", label: "Flood Toggle" },
   { value: "mist_toggle", label: "Mist Toggle" },
@@ -650,9 +664,9 @@ function _jogEntries(value: (l: KbAxisLetter, dir: "+" | "-") => string): Record
 
 export const KEYBOARD_ACTION_LABELS: Record<KeyboardAction, string> = {
   ..._jogEntries((l, d) => `Jog ${l.toUpperCase()}${d}`),
-  estop: "E-Stop",
-  cycle: "Cycle Start / Pause / Resume",
-  abort: "Abort",
+  estop: INPUT_COMMAND_LABELS.estop,
+  cycle: INPUT_COMMAND_LABELS.cycle,
+  abort: INPUT_COMMAND_LABELS.abort,
 } as Record<KeyboardAction, string>;
 
 const ALL_KB_ACTIONS = Object.keys(KEYBOARD_ACTION_LABELS) as KeyboardAction[];

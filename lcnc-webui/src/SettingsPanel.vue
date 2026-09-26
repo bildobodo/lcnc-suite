@@ -848,7 +848,7 @@ function resetMachineColor(id: string) {
               </div>
             </div>
 
-            <MachineBtn v-if="!editingMacro && macros.length < 20" type="inline" @click="addMacro">Add Macro</MachineBtn>
+            <MachineBtn v-if="!editingMacro && macros.length < 20" type="inlineMd" @click="addMacro">Add Macro</MachineBtn>
 
           </div>
         </div>
@@ -946,12 +946,6 @@ function resetMachineColor(id: string) {
   opacity: var(--opacity-disabled);
 }
 
-.resetRow {
-  flex-shrink: 0;
-  padding-top: var(--gap-section);
-  display: flex;
-  justify-content: flex-end;
-}
 
 /* .section — replaced by stack-controls utility (same shape) */
 

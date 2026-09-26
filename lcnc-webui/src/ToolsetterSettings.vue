@@ -245,9 +245,10 @@ watch(settingsVersion, () => { loadTsParams(); });
       <template #help>Tool number of the probe (shared with Probing) — load it before probing.</template>
     </FormField>
 
-    <div class="sep"></div>
-
-    <MachineBtn type="reset" class="wide" @click="emit('resetSection', 'toolsetter')">Reset Toolsetter</MachineBtn>
+    <!-- A reset sits at the end of its section, right (design wave D4, N65) -->
+    <div class="resetRow wide">
+      <MachineBtn type="reset" @click="emit('resetSection', 'toolsetter')">Reset Toolsetter</MachineBtn>
+    </div>
   </div>
 </template>
 

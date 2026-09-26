@@ -148,7 +148,7 @@ onUnmounted(() => {
       <div class="sub">Keyboard</div>
       <div class="settingDesc">Allow keyboard keys to control the machine. E-Stop is always active regardless of these settings.</div>
       <MachineToggle gate="inputConfig" v-model="kbConfig.jogEnabled" @update:modelValue="saveKb()" label="Enable keyboard jogging" />
-      <MachineToggle gate="inputConfig" v-model="kbConfig.buttonsEnabled" @update:modelValue="saveKb()" label="Enable keyboard shortcuts" />
+      <MachineToggle gate="inputConfig" v-model="kbConfig.buttonsEnabled" @update:modelValue="saveKb()" label="Enable keyboard commands" />
     </div>
 
     <template v-if="kbConfig.jogEnabled || kbConfig.buttonsEnabled">
@@ -158,6 +158,9 @@ onUnmounted(() => {
         <div class="sub">Key Bindings</div>
         <div class="dataTable">
         <table>
+          <!-- Action | binding, like the gamepad's table (UI-N68). No header
+               row: .dataTable's sticky head covered the top row inside the
+               scrolling Settings page. -->
           <tbody>
             <tr v-for="action in LINEAR_JOG_ACTIONS" :key="action" :class="{ inactive: !kbConfig.jogEnabled }">
               <td class="kbMapAction">{{ KEYBOARD_ACTION_LABELS[action] }}</td>

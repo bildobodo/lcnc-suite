@@ -161,6 +161,13 @@ export const BUTTON_TYPES = {
   dialogConfirm:  { gate: 'always',  variant: 'primary', size: 'md' },
   dialogDanger:   { gate: 'always',  variant: 'danger',  size: 'md' },
   listAction:     { gate: 'always',  variant: 'default', size: 'md',  icon: true },
+  // A list row's pencil / Trash2 whose action needs the setup class (the
+  // tool table's edit and delete): the listAction look, the action's gate
+  // (design wave D4, UI-N67).
+  listActionSetup: { gate: 'setup',  variant: 'default', size: 'md',  icon: true },
+  // Removing a gamepad profile: destructive, outside a dialog, and like
+  // the rest of the gamepad configuration never gated (UI-N71).
+  profileRemove:  { gate: 'always',  variant: 'danger',  size: 'md' },
   nav:            { gate: 'always',  variant: 'default', size: 'md' },
   inline:         { gate: 'always',  variant: 'default', size: 'sm' },
   // Discard in an inline note is the same destructive choice as in a

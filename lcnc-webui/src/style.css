@@ -1176,6 +1176,14 @@ label:has(input:disabled, select:disabled) {
 }
 .formField > .inputField,
 .formField > input[type="range"] { width: 100%; min-width: 0; }
+/* A reset to defaults (design wave D4, UI-N65): ONE place — the end of
+   its section, right-aligned — and one confirm under the button's gate. */
+.resetRow {
+  flex-shrink: 0;
+  padding-top: var(--gap-section);
+  display: flex;
+  justify-content: flex-end;
+}
 /* A read-only value in a form (an <output>, named by the label's `for`). */
 .formValue {
   min-height: var(--control-h);

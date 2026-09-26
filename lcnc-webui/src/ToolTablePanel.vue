@@ -944,14 +944,17 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
               <span v-if="toolPreviewNotice(tool, unitsPerMm)" class="noteWarn"><br />{{ tool.source_format === "freecad" ? "Imported geometry" : "Approximate preview" }}</span>
             </td>
             <td class="colAction colEdit">
-              <MachineBtn type="manage" @click.stop="openEdit(tool)" title="Edit tool"><Pencil :size="14" /></MachineBtn>
+              <MachineBtn type="listActionSetup" @click.stop="openEdit(tool)" title="Edit tool" :aria-label="`Edit T${tool.T}`"><Pencil :size="14" /></MachineBtn>
             </td>
             <td class="colAction">
+              <!-- A list row's pencil / Trash2 (UI-N67): the listAction look,
+                   the setup gate; the delete asks (it cannot be undone). -->
               <MachineBtn
                 v-if="tool.T !== currentTool"
-                type="reset"
+                type="listActionSetup"
                 @click.stop="requestDelete(tool.T)"
                 title="Delete tool"
+                :aria-label="`Delete T${tool.T}`"
               ><Trash2 :size="14" /></MachineBtn>
             </td>
           </tr>

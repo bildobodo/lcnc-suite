@@ -1058,7 +1058,9 @@ function fmtR(key: string): string {
             <label><MachineRadio gate="probeParam" name="calAxis" :value="2" v-model.number="calAxis" /> Y Error</label>
           </div>
         </div>
-        <MachineBtn type="probeReset" @click="resetCal">Reset Calibration</MachineBtn>
+        <div class="resetRow">
+          <MachineBtn type="probeReset" @click="resetCal">Reset Calibration</MachineBtn>
+        </div>
       </div>
       </div>
     </template>
@@ -1288,14 +1290,17 @@ function fmtR(key: string): string {
   <!-- The question names its object (N43); Cancel sits outside the action's
        own gate, so the dialog always closes (N42: danger + the old gate). -->
   <DialogFrame v-if="resetTarget" kind="confirm" danger
-               :title="resetTarget === 'cal' ? 'Reset probe calibration?' : 'Reset toolsetter settings?'"
+               :title="resetTarget === 'cal' ? 'Reset probe calibration?' : 'Reset Toolsetter settings?'"
                @close="resetTarget = null">
     <div class="dialogBody">{{ resetTarget === 'cal'
       ? 'Zeroes the probe tip calibration offset; every later probe measurement uses it. This cannot be undone.'
       : 'Restores the toolsetter settings to their defaults. This cannot be undone.' }}</div>
     <template #actions>
       <MachineBtn type="dialogCancel" @click="resetTarget = null">Cancel</MachineBtn>
-      <Gate :gate="resetTarget === 'cal' ? 'ready' : 'safety'" class="row-controls">
+      <!-- The action's own gate, the one its button has (N65): a confirm
+           looser than its button (ready / safety) let a Reset through that
+           the button would no longer offer. -->
+      <Gate :gate="resetTarget === 'cal' ? 'probe' : 'setup'" class="row-controls">
         <MachineBtn type="dialogDanger" @click="confirmReset">Reset</MachineBtn>
       </Gate>
     </template>

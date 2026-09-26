@@ -6631,3 +6631,41 @@ Plan Fassung 3 WP-D4, second part (K04, N60–N64, N66).
   macro parameters and every Settings section (macro editor open, run
   from line on, gamepad buttons on) at the DR viewports; a colour picker
   without its label turns it red.
+
+### WP-D4c — resets and list editors (2026-09-26)
+
+Plan Fassung 3 WP-D4, third part (N65, N67–N71).
+
+- A reset to defaults has ONE place (N65): the end of its section,
+  right-aligned (`.resetRow`, now global), one confirm, and the confirm
+  keeps its BUTTON'S gate. The toolsetter's confirm sat on `safety` and
+  the calibration's on `ready`, looser than their buttons (`setup`,
+  `probe`): a Reset stayed available in an open confirm after the machine
+  had closed the button's class. Now `setup` and `probe` — the only gate
+  change, and it tightens.
+- List rows (N67): the tool table's pencil and Trash2 are the listAction
+  look with the action's `setup` gate (`listActionSetup`) and name their
+  target ("Edit T5", "Delete T5"); the delete keeps its confirm (a tool
+  row cannot be undone), a keyboard binding's remove does not (rebinding
+  restores it).
+- Binding tables (N68) read Action | binding in both; the gamepad's
+  columns are swapped to match. No header row: `.dataTable`'s sticky head
+  covered the top row inside the scrolling Settings page (the key-capture
+  cell under it could no longer be clicked — the save-status guards).
+- One list of command names (N69): `INPUT_COMMAND_LABELS` feeds both
+  tables, the toggles are "Enable … jogging" / "Enable … commands" in
+  both tabs, the sections "Key Bindings" / "Button Bindings". The split
+  stays deliberate: the keyboard's one Cycle key toggles start / pause /
+  resume, the gamepad has a button for each — changing what a key does is
+  not a layout change.
+- Gamepad inversion per stick axis the machine has (N70, `useAxes`): an XZ
+  machine shows no "Invert Y".
+- Add buttons one size (N71: Add Macro md like the tools' Add); Remove
+  Profile has its own danger type (`profileRemove`) with the unchanged
+  gate `always`, instead of the dialog's `dialogDanger` outside a dialog.
+- Not changed, recorded for later: a keyboard binding is captured by
+  clicking its key CELL (a `td`), which the keyboard cannot reach. Making
+  it a button touches the capture's own Space / Enter handling next to the
+  E-Stop key and needs its own guard.
+- Guard: two `forms.spec` tests (the reset rule; the list editors),
+  mutation-checked three ways.

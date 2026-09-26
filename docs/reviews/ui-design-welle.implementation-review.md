@@ -478,6 +478,77 @@ FormFields. Enter in einem Makro-Parameter führt bis D6 weiter aus.
 - **Referenzbilder:** Die 4 Werkzeugeditor-Bilder wurden nach Sichtprüfung erneuert (ein Raster,
   Einheiten im Kopf); die übrigen sind unverändert.
 
+### WP-D4c — Zurücksetzen und Listen-Editoren · 26. September 2026
+
+**Zurücksetzen (N65):**
+- **Ein Platz:** am Ende des eigenen Abschnitts, rechtsbündig (`.resetRow`, jetzt global).
+- **Eine Rückfrage.**
+- **Die Rückfrage behält das Gate ihres Buttons.**
+  - Toolsetter: Die Rückfrage stand bisher auf `safety`, der Button auf `setup`.
+  - Kalibrierung: Die Rückfrage stand auf `ready`, der Button auf `probe`.
+  - Ein „Reset“ blieb in einer offenen Rückfrage bedienbar, nachdem die Maschine die Klasse des Buttons
+    geschlossen hatte.
+  - Jetzt `setup` bzw. `probe`. Das ist die einzige Gate-Änderung, und sie verschärft.
+
+**Listen-Editoren:**
+- **Zeilenaktionen (N67):**
+  - Stift und `Trash2` der Werkzeugtabelle sehen aus wie jede andere Zeilenaktion, mit dem
+    `setup`-Gate der Aktion (`listActionSetup`).
+  - Sie nennen ihr Ziel („Edit T5“, „Delete T5“).
+  - Löschen fragt weiter nach, weil eine Werkzeugzeile nicht wiederherstellbar ist.
+- **Spaltenreihenfolge (N68):** Beide Belegungstabellen lesen Aktion | Belegung. Eine Kopfzeile wurde
+  wieder entfernt: Der klebende Tabellenkopf von `.dataTable` verdeckte in der scrollenden
+  Settings-Seite die oberste Zeile, und die Speicherstatus-Tests erreichten die Tastenzelle darunter
+  nicht mehr.
+- **Eine Namensliste (N69):**
+  - `INPUT_COMMAND_LABELS` speist beide Tabellen.
+  - Die Schalter heißen in beiden Reitern „Enable … jogging“ / „Enable … commands“.
+  - Die Aufteilung bleibt bewusst verschieden: Die eine Cycle-Taste der Tastatur wechselt zwischen
+    Start, Pause und Fortsetzen; das Gamepad hat je eine Taste. Was eine Taste tut, ist keine
+    Layout-Frage.
+- **Gamepad-Umkehr (N70):** nur für die Stick-Achsen, die die Maschine hat (`useAxes`).
+- **Hinzufügen und Profil entfernen (N71):**
+  - „Add Macro“ hat dieselbe Größe wie „Add“ bei den Werkzeugen.
+  - „Remove Profile“ hat einen eigenen danger-Typ mit unverändertem Gate `always`.
+
+**Offen, notiert:** Eine Tastenbelegung wird über einen Klick auf die Tastenzelle (`td`) erfasst, die
+die Tastatur nicht erreicht. Ein Button daraus berührt die eigene Space/Enter-Behandlung der Erfassung
+direkt neben der E-Stop-Taste und braucht einen eigenen Wächter.
+
+**Wächter:**
+- Zwei Tests in `forms.spec`: die Reset-Regel und die Listen-Editoren.
+- Gegenproben, alle rot: Rückfrage mit dem alten, lockereren Gate; Umkehr fest auf X/Y/Z; Löschen
+  wieder mit dem Reset-Typ.
+- Kontrollhöhen je Dichte misst `forms.spec` (Desktop und Touch), nicht `layout.spec` wie im Plan
+  genannt; `layout.spec` misst weiter das Navigationsbudget und die Formularzeilen.
+
+**Nachmessung mit den echten Formularen** (Codex Runde 3: die DR-Zahlen mit der echten D3/D4-Navigation
+und den echten Formularen wiederholen):
+
+| Zustand | Feldhöhe (Label + Feld) | Abstand der Zeilen | Probing-Inhalt | ganze Zeilen |
+|---|---|---|---|---|
+| Desktop 1600×1000 | 51 px | 58 px | 459 px | 7,9 |
+| Touch quer 1280×800 | 66 px | 74 px | 211 px | **2,95** |
+| Touch hoch 900×1200 | 66 px | 74 px | 361 px | 4,9 |
+| Touch hoch 150 % | 66 px | 74 px | 241 px | 3,4 |
+
+- Die DR hatte 70 px je Zeile einschließlich Abstand angenommen. Auf Touch sind es 74 px, weil das „?“
+  (20 px) die Label-Zeile höher macht als ihren Text.
+- **Verbindlich waren drei Zeilen bei 150 % Hochformat; das ist erfüllt.** Für Touch quer nannte die DR
+  „rund 3“. Es sind 2,95: Der dritten Zeile fehlen 3 px.
+- **Behebung in D6:** Dort wird die Trefferfläche des HelpIcons unsichtbar vergrößert (Plan WP-D6).
+  Danach bestimmt der Text die Höhe der Label-Zeile, und drei Zeilen passen.
+- `layout.spec` rechnet jetzt mit der gemessenen Feldhöhe statt mit der angenommenen Konstante. Die
+  geforderte Zeilenzahl steht je Zustand im Test: 3, bis D6 für Touch quer 2,9.
+
+**Gates:**
+- build und lint grün; Vitest **1627/1627**.
+- Playwright, alle Projekte einzeln: **233/233**.
+  - `serial-guards` 103 und `serial-layout` 55 nach der letzten Änderung erneut.
+  - Die übrigen Projekte liefen davor. Die letzte Änderung (Kopfzeilen der Belegungstabellen entfernt)
+    berührt sie nicht.
+- **Referenzbilder:** unverändert, 10/10.
+
 ---
 
 ## Codex Implementierungsreview Runde 1

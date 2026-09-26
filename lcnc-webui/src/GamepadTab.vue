@@ -22,6 +22,8 @@ import GamepadLiveInput from "./GamepadLiveInput.vue";
 import GamepadMapWizard from "./GamepadMapWizard.vue";
 import DialogFrame from "./DialogFrame.vue";
 import { fmtPct, NO_VALUE } from "./format";
+import { viewerInit } from "./lcncWs";
+import { useAxes, DEFAULT_AXES } from "./useAxes";
 
 const props = defineProps<{
   gamepadConfig: GamepadDefaults | undefined;
@@ -61,18 +63,15 @@ const gpButtonsEnabled = computed({
   get: () => props.gamepadConfig?.buttonsEnabled ?? false,
   set: (v: boolean) => { emit('setGamepadConfig', { ...props.gamepadConfig!, buttonsEnabled: v }); },
 });
-const gpInvertX = computed({
-  get: () => props.gamepadConfig?.invertX ?? false,
-  set: (v: boolean) => { emit('setGamepadConfig', { ...props.gamepadConfig!, invertX: v }); },
-});
-const gpInvertY = computed({
-  get: () => props.gamepadConfig?.invertY ?? false,
-  set: (v: boolean) => { emit('setGamepadConfig', { ...props.gamepadConfig!, invertY: v }); },
-});
-const gpInvertZ = computed({
-  get: () => props.gamepadConfig?.invertZ ?? false,
-  set: (v: boolean) => { emit('setGamepadConfig', { ...props.gamepadConfig!, invertZ: v }); },
-});
+// Axis inversion for the axes the sticks jog (X, Y, Z — by letter), only
+// those the machine has (useAxes, UI-N70): an XZ lathe gets no "Invert Y".
+const { primary: stickAxes } = useAxes(computed(() => viewerInit.value?.axes ?? [...DEFAULT_AXES]));
+type InvertKey = "invertX" | "invertY" | "invertZ";
+const invertKey = (letter: string) => `invert${letter}` as InvertKey;
+function isInverted(letter: string): boolean { return props.gamepadConfig?.[invertKey(letter)] ?? false; }
+function setInverted(letter: string, v: boolean) {
+  emit('setGamepadConfig', { ...props.gamepadConfig!, [invertKey(letter)]: v });
+}
 
 function onGpMappingChanged() {
   if (!props.gamepadConfig) return;
@@ -130,7 +129,7 @@ const rawSummary = computed(() => {
       <div class="sub">Gamepad</div>
       <div class="settingDesc">Use an Xbox, PlayStation, or standard gamepad to control the machine.</div>
       <MachineToggle gate="inputConfig" v-model="gpJogEnabled" label="Enable gamepad jogging" />
-      <MachineToggle gate="inputConfig" v-model="gpButtonsEnabled" label="Enable gamepad buttons" />
+      <MachineToggle gate="inputConfig" v-model="gpButtonsEnabled" label="Enable gamepad commands" />
     </div>
 
     <div class="sep"></div>
@@ -146,7 +145,7 @@ const rawSummary = computed(() => {
         </div>
         <div class="row-controls">
           <MachineBtn type="inlineMd" @click="showWizard = true">Map Buttons…</MachineBtn>
-          <MachineBtn v-if="hasProfile" type="dialogDanger" @click="requestRemoveProfile">Remove Profile</MachineBtn>
+          <MachineBtn v-if="hasProfile" type="profileRemove" @click="requestRemoveProfile">Remove Profile</MachineBtn>
           <DialogFrame v-if="removeConfirm" kind="confirm" title="Remove profile?" danger @close="removeConfirm = false">
             <div class="dialogBody">The button and stick mapping for <strong>{{ gamepadName }}</strong> will be deleted. This cannot be undone.</div>
             <template #actions>
@@ -164,9 +163,8 @@ const rawSummary = computed(() => {
     <div v-if="gamepadConfig?.jogEnabled" class="stack-controls">
       <div class="sub">Axis Inversion</div>
       <div class="settingDesc">Flip axis direction if your gamepad moves the wrong way.</div>
-      <MachineToggle gate="inputConfig" v-model="gpInvertX" label="Invert X" />
-      <MachineToggle gate="inputConfig" v-model="gpInvertY" label="Invert Y" />
-      <MachineToggle gate="inputConfig" v-model="gpInvertZ" label="Invert Z" />
+      <MachineToggle v-for="a in stickAxes" :key="a.letter" gate="inputConfig" :label="`Invert ${a.letter}`"
+                     :modelValue="isInverted(a.letter)" @update:modelValue="setInverted(a.letter, $event)" />
     </div>
 
     <div class="sep" v-if="gamepadConfig?.jogEnabled"></div>
@@ -196,15 +194,15 @@ const rawSummary = computed(() => {
     <div class="sep" v-if="gamepadConfig?.buttonsEnabled"></div>
 
     <div v-if="gamepadConfig?.buttonsEnabled" class="stack-controls">
-      <div class="sub">Button Mapping</div>
+      <div class="sub">Button Bindings</div>
       <div class="dataTable">
       <table>
+        <!-- Action | binding, like the keyboard's table (UI-N68) -->
         <tbody>
-          <tr><td class="gpMapKey">Left Stick</td><td>XY continuous jog (proportional)</td></tr>
-          <tr><td class="gpMapKey">Right Stick Y</td><td>Z continuous jog (proportional)</td></tr>
-          <tr><td class="gpMapKey">D-pad</td><td>XY discrete jog (full speed)</td></tr>
+          <tr><td>XY continuous jog (proportional)</td><td class="gpMapKey">Left Stick</td></tr>
+          <tr><td>Z continuous jog (proportional)</td><td class="gpMapKey">Right Stick Y</td></tr>
+          <tr><td>XY discrete jog (full speed)</td><td class="gpMapKey">D-pad</td></tr>
           <tr v-for="(label, key) in GP_BTN_LABELS" :key="key">
-            <td class="gpMapKey">{{ label }}</td>
             <td>
               <MachineSelect
                 gate="inputConfig"
@@ -216,6 +214,7 @@ const rawSummary = computed(() => {
                 <option v-for="a in GAMEPAD_ACTIONS" :key="a.value" :value="a.value">{{ a.label }}</option>
               </MachineSelect>
             </td>
+            <td class="gpMapKey">{{ label }}</td>
           </tr>
         </tbody>
       </table>

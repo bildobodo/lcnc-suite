@@ -200,3 +200,67 @@ test("a probe field carries its unit — the machine's linear unit, in its descr
   await expect(pad.getByRole("button", { name: "Apply", exact: true })).toBeDisabled();
   await pad.getByRole("button", { name: "Discard", exact: true }).click();
 });
+
+test("a reset sits at the end of its section, right, and its confirm keeps its button's gate", async ({ page }) => {
+  // UI-N65: one place, one confirm, the action's own gate. The toolsetter's
+  // confirm used to sit on `safety` and the calibration's on `ready` —
+  // looser than their buttons (setup / probe): a Reset stayed available in
+  // an open confirm after the machine had closed the button's class.
+  await ready(page, false);
+  await page.getByRole("tab", { name: "Probing", exact: true }).click();
+  await page.getByRole("tab", { name: "Toolsetter", exact: true }).click();
+  const reset = page.getByRole("button", { name: "Reset Toolsetter", exact: true });
+  const [b, form] = [await reset.boundingBox(), await page.locator(".tsPanel").boundingBox()];
+  expect(Math.abs(b!.x + b!.width - (form!.x + form!.width)), "right edge of its section").toBeLessThan(1.5);
+  await reset.click();
+  const ask = page.getByRole("dialog", { name: "Reset Toolsetter settings?", exact: true });
+  await expect(ask.getByRole("button", { name: "Reset", exact: true })).toBeEnabled();
+  await ctl({ op: "status_delta", data: { permissions: { ...PERMS_ALL, setup: false } } });
+  await expect(ask.getByRole("button", { name: "Reset", exact: true })).toBeDisabled();
+  await expect(ask.getByRole("button", { name: "Cancel", exact: true })).toBeEnabled();
+  await ask.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(ask).toHaveCount(0);
+
+  await ctl({ op: "status_delta", data: { permissions: PERMS_ALL } });
+  await page.getByRole("tab", { name: "Calibrate", exact: true }).click();
+  await page.getByRole("button", { name: "Reset Calibration", exact: true }).click();
+  const cal = page.getByRole("dialog", { name: "Reset probe calibration?", exact: true });
+  await expect(cal.getByRole("button", { name: "Reset", exact: true })).toBeEnabled();
+  await ctl({ op: "status_delta", data: { permissions: { ...PERMS_ALL, probe: false } } });
+  await expect(cal.getByRole("button", { name: "Reset", exact: true })).toBeDisabled();
+  await cal.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(cal).toHaveCount(0);
+});
+
+test("list editors: one row-action look, action before binding, gamepad inversion from the machine's axes", async ({ page }) => {
+  await ready(page, false, "mm", { gamepad: { jogEnabled: true, buttonsEnabled: true }, keyboard: { jogEnabled: true, buttonsEnabled: true } });
+  // The tool table's pencil / Trash2 (UI-N67): named for their target, the
+  // same look as every other list row's actions.
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
+  await expect.poll(async () => {
+    await ctl({ op: "raw", frame: { type: "reply", cmd: "get_tool_table", ok: true, tools: [TOOL, { ...TOOL, T: 7, P: 7 }] } });
+    return page.getByRole("button", { name: "Edit T7", exact: true }).count();
+  }).toBe(1);
+  const edit = page.getByRole("button", { name: "Edit T7", exact: true });
+  const del = page.getByRole("button", { name: "Delete T7", exact: true });
+  const look = (b: typeof edit) => b.evaluate(e => [...e.classList].filter(c => !c.startsWith("data-")).sort().join(" "));
+  expect(await look(del)).toBe(await look(edit));
+
+  // Both binding tables read Action | binding (UI-N68).
+  await page.getByTitle("Settings", { exact: true }).click();
+  const settings = page.getByRole("dialog", { name: "Settings", exact: true });
+  const firstRow = () => settings.locator('[role="tabpanel"]:visible tbody tr').first().locator("td");
+  await settings.getByRole("tab", { name: "Keyboard", exact: true }).click();
+  await expect(firstRow().first()).toHaveText(/^Jog /);
+  await expect(firstRow().nth(1)).toHaveClass(/kbKeyCell/);
+  await settings.getByRole("tab", { name: "Gamepad", exact: true }).click();
+  await expect(firstRow().first()).toHaveText(/jog/);
+  await expect(firstRow().nth(1)).toHaveText("Left Stick");
+  const padRow = settings.locator('[role="tabpanel"]:visible tbody tr').filter({ has: page.getByRole("combobox") }).first().locator("td");
+  await expect(padRow.first().getByRole("combobox")).toHaveCount(1);
+  // Inversion per stick axis the machine has (UI-N70): XYZ, then an XZ lathe.
+  const inverts = async () => (await settings.locator("label").filter({ hasText: /Invert [A-Z]/ }).allTextContents()).map(t => t.trim());
+  await expect.poll(inverts).toEqual(["Invert X", "Invert Y", "Invert Z"]);
+  await ctl({ op: "setViewerInit", data: { ...viewerInit("mm"), axes: ["X", "Z"] } });
+  await expect.poll(inverts).toEqual(["Invert X", "Invert Z"]);
+});

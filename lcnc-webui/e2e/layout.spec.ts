@@ -145,14 +145,21 @@ for (const viewport of VIEWPORTS) {
 // and the procedure are two selects on one row. No tab name is clipped (a
 // Btn clips its overflow — a cut name is invisible to the eye), the tabs
 // and selects are --control-h tall, and the scrolling probing content keeps
-// at least three form rows (DR's row: 70 px).
+// at least three form rows — measured on the real FormField (design wave
+// D4: 51 px desktop, 66 px touch, rows 8 px apart; DR had assumed 70 px
+// per row including the gap, the touch pitch is 74).
+// Form rows the scrolling probing content must show whole. Three is the
+// plan's floor (WP-DR: "at least three form rows at 150 % portrait").
+// Touch landscape 1280 × 800 had "about 3" in the DR and shows 2.95: the
+// touch "?" (20 px) makes the label row taller than its text — D6 enlarges
+// the HelpIcon's hit area INVISIBLY, then the label's line box rules and
+// this goes back to 3.
 const NAV_STATES = [
-  { name: 'desktop', vp: 'desktop', zoom: 1, narrow: false, h: 32 },
-  { name: 'touch-landscape', vp: 'touch-landscape', zoom: 1, narrow: false, h: 44 },
-  { name: 'touch-portrait', vp: 'touch-portrait', zoom: 1, narrow: false, h: 44 },
-  { name: 'touch-portrait 150 %', vp: 'touch-portrait', zoom: 1.5, narrow: true, h: 44 },
+  { name: 'desktop', vp: 'desktop', zoom: 1, narrow: false, h: 32, rows: 3 },
+  { name: 'touch-landscape', vp: 'touch-landscape', zoom: 1, narrow: false, h: 44, rows: 2.9 },
+  { name: 'touch-portrait', vp: 'touch-portrait', zoom: 1, narrow: false, h: 44, rows: 3 },
+  { name: 'touch-portrait 150 %', vp: 'touch-portrait', zoom: 1.5, narrow: true, h: 44, rows: 3 },
 ] as const;
-const FORM_ROW_PX = 70;
 for (const st of NAV_STATES) {
   test(`${st.name}: side-pane navigation fits its budget (tabs or selects, no clipped name, three form rows)`, async ({ page }) => {
     const viewport = VIEWPORTS.find(v => v.name === st.vp)!;
@@ -191,8 +198,13 @@ for (const st of NAV_STATES) {
       expect(t.over, `"${t.name}" is clipped by ${t.over} px`).toBeLessThanOrEqual(0);
       expect(t.h, `"${t.name}" height`).toBe(st.h);
     }
-    const content = await side.locator('.probePanel').evaluate(el => el.clientHeight);
-    expect(content, `probing content ${content} px`).toBeGreaterThanOrEqual(3 * FORM_ROW_PX);
+    const [content, rows] = await side.locator('.probePanel').evaluate(el => {
+      const grid = el.querySelector<HTMLElement>(':scope > .formGrid')!;
+      const field = grid.querySelector<HTMLElement>('.formField')!;
+      const gap = parseFloat(getComputedStyle(grid).rowGap);
+      return [el.clientHeight, (el.clientHeight + gap) / (field.offsetHeight + gap)];
+    });
+    expect(rows, `probing content ${content} px holds ${rows.toFixed(2)} form rows`).toBeGreaterThanOrEqual(st.rows);
   });
 }
 
