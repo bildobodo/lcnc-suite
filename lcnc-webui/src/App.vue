@@ -494,14 +494,20 @@ function openMdiSession() {
 }
 // Hidden-but-mounted owners (tab switch): the editor's and the MDI line's
 // sessions LOCK while their tab is not visible — helper hidden, draft kept.
+// A tab switch is never a machine action — but a jog still running (a jog
+// key held while a tab is clicked) stops (design wave D3). Only then:
+// stopAllJog sends jog_stop per axis whenever jogging is allowed. The main
+// tab AND the Probing procedure (grid or narrow select) — the procedure used
+// to keep jogging until the keyup (implementation review round 4, UI-DI11).
+function stopJogOnNavigation() {
+  if (keyboardJogActive.value || activeJogKeys.size > 0) stopAllJog();
+}
 watch(activeTab, (tab) => {
   lockTextSessionIf(EDITOR_OWNER, tab !== "gcode");
   lockTextSessionIf(MDI_OWNER, tab !== "mdi");
-  // A tab switch is never a machine action — but a jog still running
-  // (a jog key held while a tab is clicked) stops (design wave D3). Only
-  // then: stopAllJog sends jog_stop per axis whenever jogging is allowed.
-  if (keyboardJogActive.value || activeJogKeys.size > 0) stopAllJog();
+  stopJogOnNavigation();
 });
+watch(probeView, stopJogOnNavigation);
 
 // Viewer state (initialized from saved defaults, persisted on every change)
 const viewerLayers = reactive<Record<Layer, boolean>>({ ..._vd.layers });

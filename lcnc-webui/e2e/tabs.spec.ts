@@ -131,6 +131,46 @@ test("arrows move focus, Enter selects; every navigation key stays in the list �
   expect(await cmds(), "selecting a tab is no machine action").toEqual([]);
 });
 
+test("a navigation key with a modifier on a focused tab never reaches the jog map (UI-DI06)", async ({ page }) => {
+  // The list used to return BEFORE consuming a key with Ctrl / Alt / Meta:
+  // the global map matches `e.key` alone, so Ctrl+ArrowRight on the
+  // focused Program tab sent jog_cont. Every navigation key on a tab is
+  // the list's — with or without a modifier; only the bare key moves focus.
+  await ready(page);
+  const KEYS = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"];
+  const MODS = ["Control", "Alt", "Meta", "Shift"];
+  const lists: [string, () => Promise<void>, string][] = [
+    ["Side panel", async () => {}, "Program"],
+    ["Probing procedure", async () => { await page.getByRole("tab", { name: "Probing", exact: true }).click(); }, "Outside"],
+  ];
+  for (const [list, open, first] of lists) {
+    await open();
+    const tab = page.getByRole("tablist", { name: list, exact: true }).getByRole("tab", { name: first, exact: true });
+    for (const key of KEYS) {
+      for (const mod of MODS) {
+        await tab.focus();
+        await page.keyboard.press(`${mod}+${key}`);
+        if (mod !== "Shift") await expect(tab, `${mod}+${key} on ${list} moves nothing`).toBeFocused();
+      }
+    }
+    await settle(page);
+    expect(await cmds(), `${list}: modified navigation keys`).toEqual([]);
+  }
+  // Settings' sub-tabs: behind a dialog nothing but E-Stop passes anyway.
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  const sub = page.getByRole("tablist", { name: "Settings sections", exact: true }).getByRole("tab").first();
+  for (const key of KEYS) for (const mod of MODS) { await sub.focus(); await page.keyboard.press(`${mod}+${key}`); }
+  await settle(page);
+  expect(await cmds(), "Settings: modified navigation keys").toEqual([]);
+  await page.getByRole("button", { name: "Close settings", exact: true }).click();
+  // Control: outside a list the bound key still jogs.
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.down("ArrowRight");
+  await expect.poll(cmds, "control: ArrowRight on an unfocused page jogs").toContain("jog_cont");
+  await page.keyboard.up("ArrowRight");
+  await expect.poll(cmds).toContain("jog_stop");
+});
+
 test("Probing's 4 × 2 grid: Left / Right in reading order across rows, Up / Down change the row", async ({ page }) => {
   await ready(page);
   await page.getByRole("tab", { name: "Probing", exact: true }).click();
@@ -176,6 +216,43 @@ test("a tab switch sends nothing — but a jog still running stops", async ({ pa
   await side.getByRole("tab", { name: "Offsets", exact: true }).click();
   await expect.poll(cmds, "the running jog stops at the switch").toContain("jog_stop");
   await page.keyboard.up("ArrowRight");
+});
+
+test("a Probing procedure switch stops a running jog like a main tab — in the grid and in the narrow select (UI-DI11)", async ({ page }) => {
+  // The stop hung on the main tab only: Outside → Inside with ArrowRight
+  // held kept jogging until the keyup.
+  await ready(page);
+  await page.getByRole("tab", { name: "Probing", exact: true }).click();
+  const probe = page.getByRole("tablist", { name: "Probing procedure", exact: true });
+  for (const name of ["Inside", "Angle", "Toolsetter", "Outside"]) {
+    await probe.getByRole("tab", { name, exact: true }).click();
+  }
+  await settle(page);
+  expect(await cmds(), "switching procedures without a jog").toEqual([]);
+
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.down("ArrowRight");
+  await expect.poll(cmds).toEqual(["jog_cont"]);
+  await probe.getByRole("tab", { name: "Inside", exact: true }).click();
+  await expect.poll(cmds, "the running jog stops at the procedure switch, before the keyup").toContain("jog_stop");
+  await page.keyboard.up("ArrowRight");
+
+  // Narrow: the procedure is a select.
+  await page.setViewportSize({ width: 900, height: 1200 });
+  await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
+  const procedure = page.getByRole("combobox", { name: "Probing procedure", exact: true });
+  await expect(procedure).toBeVisible();
+  await ctl({ op: "clearCmds" });
+  await procedure.selectOption("angle");
+  await settle(page);
+  expect(await cmds(), "a select switch without a jog").toEqual([]);
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.down("ArrowRight");
+  await expect.poll(cmds).toEqual(["jog_cont"]);
+  await procedure.selectOption("surface");
+  await expect.poll(cmds, "the narrow select stops it too").toContain("jog_stop");
+  await page.keyboard.up("ArrowRight");
+  await page.evaluate(() => { document.documentElement.style.zoom = ""; });
 });
 
 test("a hidden panel is not focusable", async ({ page }) => {

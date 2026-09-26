@@ -50,8 +50,14 @@ const stop = (id: T) =>
   props.modelValue === id || (!props.tabs.some(t => t.id === props.modelValue) && props.tabs[0]?.id === id);
 
 function onKeydown(e: KeyboardEvent) {
-  if (!NAV_KEYS.has(e.key) || e.altKey || e.ctrlKey || e.metaKey) return;
+  if (!NAV_KEYS.has(e.key)) return;
+  // Every navigation key on a tab is the list's, WITH a modifier too: the
+  // shortcut map matches `e.key` alone and returns only on
+  // defaultPrevented — Ctrl/Alt/Meta+Arrow on a focused tab used to jog
+  // (implementation review round 4, UI-DI06). Only the bare key (or Shift)
+  // moves focus.
   e.preventDefault();
+  if (e.altKey || e.ctrlKey || e.metaKey) return;
   const list = [...(root.value?.querySelectorAll<HTMLElement>('[role="tab"]') ?? [])];
   const at = list.findIndex(el => el === document.activeElement);
   if (at < 0) return;
