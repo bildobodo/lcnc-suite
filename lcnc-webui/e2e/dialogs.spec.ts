@@ -645,3 +645,40 @@ test("UI-D06: a dialog over a field's keypad pauses it — the draft survives un
   await expect(field).toHaveValue(before);
   expect((await cmds()).filter(c => c !== "estop")).toEqual([]);
 });
+
+test("closing a whole stack returns focus once, to the control that opened the bottom dialog — Space sends nothing", async ({ page }) => {
+  // Settings → a dirty macro draft → X asks → Discard unmounts BOTH frames in
+  // one tick: the ask's own return target (Settings' X) is gone, the Settings
+  // return must win and land on the header button, never on body (where
+  // Space is Cycle Start). Same for the tool editor's Cancel → Discard.
+  await ready(page, { macros: MACROS });
+  const opener = page.getByTitle("Settings", { exact: true });
+  const settings = await openSettingsTab(page, "Macros");
+  await settings.getByRole("button", { name: "Add Macro", exact: true }).click();
+  await settings.locator("#macro-edit-name").fill("Face top");
+  await settings.getByRole("button", { name: "Close settings", exact: true }).click();
+  const ask = page.getByRole("dialog", { name: "Discard changes?", exact: true });
+  await ask.getByRole("button", { name: "Discard", exact: true }).click();
+  await expect(settings).toHaveCount(0);
+  await expect(opener, "focus returns to the header's Settings button").toBeFocused();
+  // Space activates the focused button (Settings opens again) — never the
+  // machine: no command.
+  await ctl({ op: "clearCmds" });
+  await page.keyboard.press(" ");
+  await settle(page);
+  expect(await cmds(), "Space after the stack closed").toEqual([]);
+  const again = page.getByRole("dialog", { name: "Settings", exact: true });
+  if (await again.count()) await again.getByRole("button", { name: "Close settings", exact: true }).click();
+  await expect(again).toHaveCount(0);
+
+  await openTools(page);
+  const add = page.getByRole("button", { name: "+ Add", exact: true });
+  await add.click();
+  const editor = page.getByRole("dialog", { name: "Add Tool", exact: true });
+  await editor.locator("label", { hasText: "Description" }).locator("xpath=following-sibling::input[1]").fill("draft");
+  await editor.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByRole("dialog", { name: "Discard changes?", exact: true }).getByRole("button", { name: "Discard", exact: true }).click();
+  await expect(editor).toHaveCount(0);
+  await expect(add, "focus returns to + Add").toBeFocused();
+  await expectRegistryMatchesDom(page);
+});
