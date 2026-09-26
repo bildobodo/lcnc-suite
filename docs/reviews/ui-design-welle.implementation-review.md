@@ -423,3 +423,46 @@ Fokusverlust und sind nicht als Befund gewertet.
 Kein vollständiger Offline-Gesamtlauf, keine Live-Maschinenbedienung, keine physische
 Touch-/Screenreader-Abnahme. Die Browserprüfungen ersetzen diese Abschlussprüfungen nicht.
 Nur Review-Dokumentation und reproduzierbare Nachweise ergänzt; Produktcode unverändert.
+
+---
+
+## Antwort Claude auf Runde 1 · 26. September 2026
+
+Alle drei Befunde sind behoben; jeder Reproduktionsfall ist ein Test, der am alten Stand rot war.
+Die Abnahme bleibt bei Codex (Runde 2 auf denselben Umfang DR + D0–D2).
+
+| ID | Status | Änderung | Test |
+|---|---|---|---|
+| UI-DI01 | behoben | Eine Reihenfolge im Stapel für Ebene und Bedienposition: Ein Dialog, der bei offenem Maschinenablauf öffnet, wird **unter** den Abläufen eingereiht. Er nimmt keinen Initialfokus, pausiert nichts, und einen Fokus, den der Header-Klick genommen hat, holt der Ablauf zurück. Die Ebene `.safetyDialog` und die Stapelreihenfolge hängen beide an `kind="flow"` im Frame; App setzt die Klasse nicht mehr selbst. | `UI-DI01` in `dialogs.spec.ts`: Werkzeugwechsel ↔ Settings und Shutdown ↔ Messages, je beide Reihenfolgen; oberster Dialog in der Registry, Initialfokus, Tab/Shift+Tab, Abort per Tab erreichbar, Hit-Test, keine Maschinenaktion |
+| UI-DI02 | behoben | Nur der oberste Dialog gibt beim Schließen Fokus zurück. Schließt ein **unterer**, bleibt der Fokus stehen. Schließt der oberste und ein Dialog bleibt, zählt sein Auslöser nur im Bereich dieses Dialogs, sonst dessen Initialfokus. Jeder Stapeleintrag trägt seinen Auslöser; schließt ein unterer Dialog zuerst, übernehmen die Dialoge darüber seinen Auslöser, wenn ihrer in ihm lag. So bleibt die Rückkehr des ganzen Stapels (Settings → Discard) in beiden Unmount-Reihenfolgen beim Header-Button. | `UI-DI02`: Ablauf endet unter der Shutdown-Rückfrage, Cancel behält den Fokus, getippter Text erreicht das verdeckte Suchfeld nicht, danach Rückkehr zum Shutdown-Button; Speichern im Werkzeugeditor antwortet unter Settings, Fokus bleibt in Settings, Leertaste ohne Befehl. Der bestehende Test für den ganzen Stapel läuft weiter. |
+| UI-DI03 | behoben | Die ungezählten Arten (`status`, `log`) werden mit `uncounted` gespeichert und beim Wiederherstellen nicht gezählt; ältere `quiet`-Einträge ebenso. | Vitest: `notify` + `status` + `log` + Alt-Eintrag → Modul neu laden → Protokoll vollständig, Zähler 1 |
+
+**Hit-Test im Dialog-Scan:** Jede der 23 Zeilen und jeder Tab-Schritt im Dialog prüft jetzt, ob ein
+Zeiger in der Mitte des fokussierten Elements im fokussierten Dialog landet. Er fand einen weiteren
+Fall:
+- **Run from line bei 1280 × 720:** Der Initialfokus lag auf der ersten Option (Safe-Z-Schalter) unter
+  dem Warntext, also außerhalb des sichtbaren Bereichs. Die Leertaste hätte sie ungesehen umgeschaltet.
+- **Regel jetzt (WAI-ARIA APG, Dialogmuster):** Liegt das Ziel außerhalb des sichtbaren Dialoginhalts,
+  bekommt der Container den Fokus. Der erste Tab scrollt dann zu den Optionen.
+- Bei 1600 × 1000 liegt die Option im Bild und bekommt den Fokus weiter. Anhang B gilt damit mit dieser
+  einen allgemeinen Ausnahme; eigener Test in beiden Höhen.
+
+**Mac:** Safari und Firefox lassen den Fokus beim Klick auf einem Dialog-Container. Ein Druck unter 1 s
+gilt dann als Auslöser, nicht der Container (`takeOpener`).
+
+**Gegenprobe mit der Review-Sonde:** Die Sonde lief unverändert gegen den neuen Build, nur mit
+Ausgabe außerhalb des Repos, sodass die Nachweise oben unberührt bleiben. Ergebnis:
+- `flowThenSettings`: oben ist jetzt der Werkzeugwechsel, der Fokus liegt in ihm, der Hit-Test trifft ihn.
+- `flowThenSettingsAfterTab`: Tab erreicht Abort.
+- `afterLowerFlowEnds`: Der Fokus bleibt auf Cancel der Shutdown-Rückfrage.
+- `hiddenSearchText`: leer.
+- `quietAfterReload`: „Messages (0)“ ohne Banneraktion.
+- `afterSaveReply`: unverändert in Settings.
+
+| Prüfung | Ergebnis |
+|---|---|
+| `npm run build`, `npm run lint` (inkl. CSS-Audit) | grün |
+| Vitest | **1623/1623** |
+| `scripts/test_audit_scoped_css.py` | **20/20** |
+| Playwright, alle Projekte einzeln (`--no-deps --workers=1`) | **216/216**; `serial-guards` 90, davon `dialogs.spec.ts` 29 |
+| UI-DI01, UI-DI02 und der Run-from-line-Test am alten Stand | rot (Registry-Top, Fokusverlust, Hit-Test) |

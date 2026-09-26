@@ -6431,3 +6431,49 @@ rest, then the audit guard.
 - Enter in a macro parameter field still executes; D6 changes that with
   the macro hold.
 
+
+### WP-D2 — Codex implementation review round 1 (2026-09-26)
+
+Round 1 on DR + D0–D2 found two stack defects (P2) and one D1 remainder
+(P3); all three are fixed.
+
+- **UI-DI01: one order for the layer and the operating position.** A
+  machine flow painted above every dialog (`--z-modal-top`), but the stack
+  took the LAST pushed dialog as the top. Settings opened from the header
+  while a tool change was up became the "top" behind the flow: its tabs
+  held keyboard focus under the flow's scrim, and the flow's Abort and
+  Confirm were outside the Tab scope. Now the stack itself keeps the flows
+  above: a dialog opened while a flow is up is inserted below the flows,
+  takes no initial focus and pauses nothing, and focus that a header click
+  took goes back to the flow. The `.safetyDialog` tier and the stack order
+  both derive from `kind="flow"` inside DialogFrame (App no longer passes
+  the class by hand), so they cannot drift apart. The alternative — refuse
+  a second dialog while a flow is up — would have changed what the header
+  does; the chosen rule shows Settings once the flow ends.
+- **UI-DI02: only the topmost returns focus.** Every frame returned focus
+  to its opener on unmount. When the machine ended a tool change under a
+  Shutdown confirm, the tool change sent focus to the Tools search field
+  behind the scrim, and typed text changed it. Now a lower dialog closing
+  under a surviving top leaves focus alone; the topmost closing with a
+  dialog left returns to its opener only inside that dialog's scope, else
+  to the new top's initial focus. Each stack entry carries its opener, and
+  a lower dialog closing first re-points every opener above that lay
+  inside it, so the whole-stack return (Settings → Discard) lands on the
+  header button whichever sibling Vue unmounts first.
+- **Found by the new hit test:** Run from line focused its first option
+  (the safe-Z toggle) under its warning text at 1280 × 720 — scrolled out
+  of view, so Space would have flipped it unseen. The initial focus now
+  follows the WAI-ARIA APG dialog pattern: a target outside the visible
+  part of the dialog's content gives way to the container. At 1600 × 1000
+  the first option is in view and still takes focus.
+- **Mac opener:** macOS Safari and Firefox leave focus on a dialog
+  container when a control is clicked; a press under 1 s old is the opener
+  then (`takeOpener`), not the container.
+- **UI-DI03:** a restored message history counted every entry as unread;
+  the uncounted modes (`status`, `log`) are stored with `uncounted` and
+  stay uncounted after a reload.
+- Guards: the dialog scan's hit test (every row and every Tab stop in the
+  dialog), `UI-DI01` (tool change ↔ Settings, Shutdown ↔ Messages, both
+  orders), `UI-DI02` (a flow ending under a flow with typed text, a save
+  replying under Settings with Space), the RFL initial-focus test at two
+  heights, and the message-restore vitest.

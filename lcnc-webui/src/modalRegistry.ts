@@ -50,33 +50,90 @@ export function registerModal(isOpen: Ref<boolean> | (() => boolean)): void {
 // unreachable, and a modal <dialog> turns Escape (E-Stop) into a cancel. A
 // pointer still reaches the strips below the content area by design.
 export type DialogKind = "info" | "confirm" | "form" | "host" | "flow";
-interface DialogEntry { id: string; kind: DialogKind; el: () => HTMLElement | null }
+export interface DialogEntry {
+  id: string;
+  kind: DialogKind;
+  el: () => HTMLElement | null;
+  /** Where focus goes when this dialog becomes the operating position
+   *  without a return target of its own (its initial focus, Anhang B). */
+  initial: () => HTMLElement | null;
+  /** The control focus returns to when this dialog closes. A LOWER dialog
+   *  that closes first re-points it when it lay inside that dialog. */
+  opener: HTMLElement | null;
+}
 const stack = shallowReactive<DialogEntry[]>([]);
+
+// ONE order decides everything a stack decides — the visible layer, the
+// operating position (initial focus, Tab scope, the helper pause, the focus
+// fallback) and where focus returns (implementation review UI-DI01): a
+// machine flow (kind "flow" — the `.safetyDialog` tier, --z-modal-top, is
+// bound to the same kind in DialogFrame) stays above every other dialog, so
+// a dialog opened while a flow is up (the header stays reachable by
+// pointer) is inserted BELOW the flows. Within a tier the order is the
+// mount order, which is also the DOM order the Teleport appends in — the
+// later overlay paints on top at an equal z-index.
+export function pushDialog(entry: DialogEntry): void {
+  const firstFlow = stack.findIndex(e => e.kind === "flow");
+  stack.splice(entry.kind === "flow" || firstFlow < 0 ? stack.length : firstFlow, 0, entry);
+}
+
+/** Remove a dialog; `wasTop` tells whether it was the operating position.
+ *  A LOWER dialog closing hands its opener to every dialog above it whose
+ *  own opener lay inside it (that control goes with it): the stack's
+ *  eventual return still lands on the control that opened the bottom of
+ *  what is left, whichever of two siblings Vue unmounts first. */
+export function popDialog(id: string): { wasTop: boolean } {
+  const i = stack.findIndex(e => e.id === id);
+  if (i < 0) return { wasTop: false };
+  const [gone] = stack.splice(i, 1);
+  const wasTop = i === stack.length;
+  const box = gone!.el();
+  if (!wasTop && box) {
+    for (let k = i; k < stack.length; k++) {
+      const o = stack[k]!.opener;
+      if (o && box.contains(o)) stack[k]!.opener = gone!.opener;
+    }
+  }
+  return { wasTop };
+}
 
 /** The topmost open dialog, or null. */
 export const topDialog = computed(() => stack[stack.length - 1] ?? null);
 
-export function pushDialog(entry: DialogEntry): () => void {
-  stack.push(entry);
-  return () => { const i = stack.findIndex(e => e.id === entry.id); if (i >= 0) stack.splice(i, 1); };
+/** The element of the dialog directly beneath `id` (whose input helper
+ *  pauses when `id` opens over it), or null. */
+export function dialogBelowEl(id: string): HTMLElement | null {
+  const i = stack.findIndex(e => e.id === id);
+  return i > 0 ? stack[i - 1]!.el() : null;
 }
 
-/** The element of the topmost dialog other than `exceptId` (the one below a
- *  dialog that is opening), or null. */
-export function topDialogEl(exceptId: string): HTMLElement | null {
-  for (let i = stack.length - 1; i >= 0; i--) if (stack[i]!.id !== exceptId) return stack[i]!.el();
-  return null;
+/** True when `el` is inside the topmost dialog's focus scope: the dialog,
+ *  its own input helper, the safety strip, the banner's Abort / Acknowledge. */
+export function inDialogScope(el: Element | null): boolean {
+  const top = topDialog.value?.el();
+  if (!top || !el) return false;
+  if (top.contains(el) || el.closest(".safetyStrip, [data-dialog-reachable]")) return true;
+  const area = el.closest("[data-input-area]")?.getAttribute("data-input-area");
+  return !!area && !!top.querySelector(`[data-input-area="${CSS.escape(area)}"]`);
 }
 
 // The control that opened a dialog: the focused element, else the control
 // under the last pointer press (Safari and Firefox on macOS do not focus a
-// button on click).
+// button on click). There a dialog CONTAINER keeps focus through a click on
+// a control (its X, a header button): a press within the last second is the
+// opener then, not the container that merely held focus.
 let lastPressed: HTMLElement | null = null;
+let lastPressedAt = 0;
+const OPENER_PRESS_MS = 1000;
 const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
 export function takeOpener(): HTMLElement | null {
   const a = document.activeElement as HTMLElement | null;
-  if (a && a !== document.body && a !== document.documentElement) return a;
-  return lastPressed?.isConnected ? lastPressed : null;
+  const pressed = lastPressed?.isConnected ? lastPressed : null;
+  if (a && a !== document.body && a !== document.documentElement) {
+    if (a.getAttribute("role") === "dialog" && pressed && performance.now() - lastPressedAt < OPENER_PRESS_MS) return pressed;
+    return a;
+  }
+  return pressed;
 }
 
 function tabbable(root: Element): HTMLElement[] {
@@ -134,11 +191,13 @@ if (typeof document !== "undefined") {
   document.addEventListener("pointerdown", (e) => {
     const t = e.target as Element | null;
     lastPressed = (t?.closest?.(FOCUSABLE) as HTMLElement | null) ?? null;
+    lastPressedAt = performance.now();
   }, { capture: true, passive: true });
   document.addEventListener("keydown", onTabKey, true);
   // A focus return that cannot land on its control lands on the topmost
-  // dialog, never outside its scope (inputSession's fallback reads this).
-  setFocusFallback(() => topDialog.value?.el() ?? null);
+  // dialog's initial focus, never outside its scope (inputSession's
+  // fallback reads this).
+  setFocusFallback(() => topDialog.value?.initial() ?? null);
 }
 
 // Diagnostics hook for the guard spec's DOM-vs-registry self-test and the

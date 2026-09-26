@@ -137,6 +137,26 @@ async function focusPlace(page: Page, dialog: Locator): Promise<string> {
   }, handle);
 }
 
+/** The dialog holding keyboard focus is the one on screen: a pointer at
+ *  the focused element's centre hits that dialog, never the scrim of
+ *  another one over it (implementation review UI-DI01). An element
+ *  scrolled out of the viewport has no centre to probe and passes. */
+async function expectFocusVisible(page: Page, dialog: Locator, what = "focus") {
+  const handle = await dialog.elementHandle();
+  const verdict = await page.evaluate((d) => {
+    const a = document.activeElement as HTMLElement | null;
+    if (!a || !d!.contains(a)) return "focus is not in the dialog";
+    const r = a.getBoundingClientRect();
+    const x = r.x + r.width / 2, y = r.y + r.height / 2;
+    if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) return "ok";
+    const hit = document.elementFromPoint(x, y);
+    if (hit && d!.contains(hit)) return "ok";
+    const over = hit?.closest(".dialogOverlay")?.querySelector(".dialogTitle")?.textContent?.trim();
+    return `covered by ${over ?? hit?.tagName ?? "nothing"}`;
+  }, handle);
+  expect(verdict, what).toBe("ok");
+}
+
 /** Tab and Shift+Tab walk only the topmost dialog, its own helper, the
  *  safety strip and the banner's Abort / Acknowledge (UI-D01). Backwards
  *  first: the initial focus sits early in the dialog, so Shift+Tab wraps to
@@ -150,6 +170,7 @@ async function expectTabScope(page: Page, dialog: Locator, steps = 24) {
       await page.keyboard.press(key);
       const place = await focusPlace(page, dialog);
       expect(place, `${key} #${i + 1}`).toMatch(/^(dialog|helper|safety|banner)$/);
+      if (place === "dialog") await expectFocusVisible(page, dialog, `${key} #${i + 1} on screen`);
       seen[place] = (seen[place] ?? 0) + 1;
     }
   }
@@ -342,7 +363,10 @@ const ROWS: Row[] = [
   {
     id: "13 Run from line", title: /^Run from Line \d+$/, tier: "md", backdrop: "stays",
     settings: { machine: { runFromLine: true } },
-    focus: firstField, actions: ["Cancel", /^Run from Line/ as unknown as string],
+    // At 1280 × 720 its warning text fills the box and the first option lies
+    // below it: the container (the initial focus never hides the beginning;
+    // the tall case is its own test below).
+    focus: (d) => d, actions: ["Cancel", /^Run from Line/ as unknown as string],
     open: async (page) => {
       await loadProgram(page);
       await page.locator(".codeLine").nth(2).click();
@@ -493,6 +517,7 @@ for (const row of ROWS) {
     }
 
     await expect(row.focus(dialog, page), "initial focus (Anhang B)").toBeFocused();
+    await expectFocusVisible(page, dialog, "the initial focus is on screen");
 
     await expectTabScope(page, dialog);
 
@@ -681,4 +706,174 @@ test("closing a whole stack returns focus once, to the control that opened the b
   await expect(editor).toHaveCount(0);
   await expect(add, "focus returns to + Add").toBeFocused();
   await expectRegistryMatchesDom(page);
+});
+
+// ── Implementation review round 1 (Codex, 2026-09-26) ──
+
+const topId = (page: Page) => page.evaluate(() => (window as any).__modalRegistry.top?.() ?? null);
+
+test("UI-DI01: a machine flow stays the operating position whichever dialog opened first — layer, focus and Tab scope agree", async ({ page }) => {
+  await ready(page);
+  const toolChange = page.getByRole("dialog", { name: "Load Tool into Spindle", exact: true });
+  const settings = page.getByRole("dialog", { name: "Settings", exact: true });
+  const shutdown = page.getByRole("dialog", { name: "Shut Down LinuxCNC?", exact: true });
+  const messages = page.getByRole("dialog", { name: /^Messages/ });
+  const requestToolChange = () => ctl({ op: "status_delta", data: { tool_change_requested: true, tool_change_tool: 5 } });
+  const endToolChange = () => ctl({ op: "status_delta", data: { tool_change_requested: false } });
+  const expectOperating = async (d: Locator, focus: Locator) => {
+    await expect.poll(() => topId(page), "the registry's top is the visible dialog").toBe(await d.getAttribute("id"));
+    await expect(focus).toBeFocused();
+    await expectFocusVisible(page, d);
+    await expectTabScope(page, d, 8);
+    await expectRegistryMatchesDom(page);
+  };
+  const tabReaches = async (d: Locator, name: string) => {
+    for (let i = 0; i < 12; i++) {
+      await page.keyboard.press("Tab");
+      if (await d.getByRole("button", { name, exact: true }).evaluate(el => el === document.activeElement)) return;
+    }
+    throw new Error(`Tab never reached ${name}`);
+  };
+
+  // 1. Tool change first, then Settings from the header (a pointer reaches
+  //    the header): Settings waits BEHIND the flow — no focus, no scope.
+  await requestToolChange();
+  await expect(toolChange).toBeVisible();
+  await page.getByTitle("Settings", { exact: true }).click();
+  await expect(settings).toHaveCount(1);
+  await expectOperating(toolChange, toolChange);
+  await tabReaches(toolChange, "Abort");
+  // The flow ends: Settings is the operating position now.
+  await endToolChange();
+  await expect(toolChange).toHaveCount(0);
+  await expect.poll(() => topId(page)).toBe(await settings.getAttribute("id"));
+  await expect.poll(() => focusPlace(page, settings)).toBe("dialog");
+  await expectFocusVisible(page, settings);
+  await settings.getByRole("button", { name: "Close settings", exact: true }).click();
+  await expect(settings).toHaveCount(0);
+
+  // 2. Settings first, then the tool change: the flow on top, focus back
+  //    in Settings when it ends.
+  await page.getByTitle("Settings", { exact: true }).click();
+  await expect(settings).toBeVisible();
+  await requestToolChange();
+  await expectOperating(toolChange, toolChange);
+  await endToolChange();
+  await expect(toolChange).toHaveCount(0);
+  await expect.poll(() => focusPlace(page, settings)).toBe("dialog");
+  await expectFocusVisible(page, settings);
+  await settings.getByRole("button", { name: "Close settings", exact: true }).click();
+  await expect(settings).toHaveCount(0);
+
+  // 3. Shutdown first, then Messages from the header: Messages waits behind.
+  await page.getByTitle("Shut Down LinuxCNC", { exact: true }).click();
+  await expect(shutdown).toBeVisible();
+  await page.getByTitle(/^Messages \(\d+\)$/).click();
+  await expect(messages).toHaveCount(1);
+  await expectOperating(shutdown, shutdown.getByRole("button", { name: "Cancel", exact: true }));
+  await shutdown.getByRole("button", { name: "Cancel", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(shutdown).toHaveCount(0);
+  await expect.poll(() => focusPlace(page, messages)).toBe("dialog");
+  await expectFocusVisible(page, messages);
+  await messages.getByRole("button", { name: "Close messages", exact: true }).click();
+  await expect(messages).toHaveCount(0);
+
+  // 4. Messages first, then Shutdown: the flow on top; its Cancel hands
+  //    focus to Messages, not to the header button behind nothing.
+  await page.getByTitle(/^Messages \(\d+\)$/).click();
+  await expect(messages).toBeVisible();
+  await page.getByTitle("Shut Down LinuxCNC", { exact: true }).click();
+  await expectOperating(shutdown, shutdown.getByRole("button", { name: "Cancel", exact: true }));
+  await shutdown.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(shutdown).toHaveCount(0);
+  await expect.poll(() => focusPlace(page, messages)).toBe("dialog");
+  await messages.getByRole("button", { name: "Close messages", exact: true }).click();
+
+  await ctl({ op: "clearCmds" });
+  await settle(page);
+  expect((await cmds()).filter(c => c !== "estop"), "no machine action").toEqual([]);
+});
+
+test("UI-DI02: a lower dialog closing under a surviving top leaves focus in the top — typed text never reaches the hidden panel", async ({ page }) => {
+  await ready(page);
+  await openTools(page);
+  const search = page.locator("input.toolSearch");
+  await search.click();
+  const toolChange = page.getByRole("dialog", { name: "Load Tool into Spindle", exact: true });
+  const shutdown = page.getByRole("dialog", { name: "Shut Down LinuxCNC?", exact: true });
+  const cancel = shutdown.getByRole("button", { name: "Cancel", exact: true });
+
+  // Two flows: the tool change (machine) under the Shutdown confirm.
+  await ctl({ op: "status_delta", data: { tool_change_requested: true, tool_change_tool: 5 } });
+  await expect(toolChange).toBeVisible();
+  const shutdownBtn = page.getByTitle("Shut Down LinuxCNC", { exact: true });
+  await shutdownBtn.click();
+  await expect(cancel).toBeFocused();
+  // The machine ends the tool change while the confirm stays.
+  await ctl({ op: "status_delta", data: { tool_change_requested: false } });
+  await expect(toolChange).toHaveCount(0);
+  await settle(page);
+  await expect(cancel, "focus stays on the surviving top").toBeFocused();
+  await expectFocusVisible(page, shutdown);
+  // No space in the text: Space on the focused Cancel would activate it.
+  await page.keyboard.type("invisible");
+  await expect(search, "the hidden search field is untouched").toHaveValue("");
+  await expectRegistryMatchesDom(page);
+  // The confirm closes last: back to the control that opened it.
+  await cancel.click();
+  await expect(shutdown).toHaveCount(0);
+  await expect(shutdownBtn).toBeFocused();
+
+  // An asynchronous success closes a LOWER form: the tool editor's save
+  // replies while Settings (opened meanwhile from the header) is on top.
+  const add = page.getByRole("button", { name: "+ Add", exact: true });
+  await add.click();
+  const editor = page.getByRole("dialog", { name: "Add Tool", exact: true });
+  await editor.getByRole("button", { name: "Add", exact: true }).click();
+  let save: { req_id?: string } | undefined;
+  await expect.poll(async () => {
+    const sent = await ctl({ op: "lastCmds" }) as { cmds?: { cmd?: string; req_id?: string }[] };
+    save = (sent.cmds ?? []).find(c => c.cmd === "add_tool");
+    return !!save;
+  }).toBe(true);
+  await page.getByTitle("Settings", { exact: true }).click();
+  const settings = page.getByRole("dialog", { name: "Settings", exact: true });
+  await expect(settings).toBeVisible();
+  await expect.poll(() => focusPlace(page, settings)).toBe("dialog");
+  await ctl({ op: "raw", frame: { type: "reply", cmd: "add_tool", req_id: save!.req_id, ok: true } });
+  await expect(editor).toHaveCount(0);
+  await settle(page);
+  expect(await focusPlace(page, settings), "focus stays in Settings").toBe("dialog");
+  await expectFocusVisible(page, settings);
+  await ctl({ op: "clearCmds" });
+  await page.keyboard.press(" ");
+  await settle(page);
+  expect(await cmds(), "Space after the lower close").toEqual([]);
+  await expectRegistryMatchesDom(page);
+});
+
+test("the initial focus never hides the beginning of a dialog: Run from line focuses its first option only while it is in view", async ({ page }) => {
+  const openRfl = async () => {
+    await ready(page, { machine: { runFromLine: true } });
+    await loadProgram(page);
+    await page.locator(".codeLine").nth(2).click();
+    await page.getByRole("button", { name: /^Start L\d+$/ }).click();
+    const d = page.getByRole("dialog", { name: /^Run from Line \d+$/ });
+    await expect(d).toBeVisible();
+    return d;
+  };
+  const scrollTop = (d: Locator) => d.locator(".dialogContent").evaluate(el => el.scrollTop);
+  // Tall content area: the first option is in view and takes focus.
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  let d = await openRfl();
+  await expect(firstField(d)).toBeFocused();
+  await expectFocusVisible(page, d);
+  await d.getByRole("button", { name: "Cancel", exact: true }).click();
+  // Short content area: the container, the warning text stays at the top.
+  await page.setViewportSize({ width: 1280, height: 720 });
+  d = await openRfl();
+  await expect(d).toBeFocused();
+  expect(await scrollTop(d), "the beginning stays in view").toBe(0);
+  await d.getByRole("button", { name: "Cancel", exact: true }).click();
 });

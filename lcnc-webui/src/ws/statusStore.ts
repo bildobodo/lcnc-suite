@@ -21,6 +21,9 @@ export interface LcncMessage {
   ts: number;       // Date.now() when received
   /** A quiet protocol entry ("log" mode): never takes over the status line. */
   quiet?: boolean;
+  /** Never counted as unread ("status" and "log" modes) — also not when the
+   *  history is restored after a reload (implementation review UI-DI03). */
+  uncounted?: boolean;
 }
 
 /**
@@ -179,13 +182,17 @@ function persistMessages(msgs: LcncMessage[]) {
 
 const _stored = loadStoredMessages();
 export const messages = ref<LcncMessage[]>(_stored);
-export const unreadCount = ref(_stored.length);
+// A restored history counts what was counted when it arrived: the
+// uncounted modes stay uncounted across a reload (UI-DI03; `quiet` alone
+// marks a "log" entry persisted before the `uncounted` flag).
+export const unreadCount = ref(_stored.filter(m => !m.uncounted && !m.quiet).length);
 let _nextMsgId = _stored.length > 0 ? Math.max(..._stored.map(m => m.id)) + 1 : 1;
 
 /** Append to the message center in one of the three modes (MessageMode). */
 export function pushMessage(kind: number, text: string, mode: MessageMode = "notify"): void {
   const entry: LcncMessage = { id: _nextMsgId++, kind, text, ts: Date.now() };
   if (mode === "log") entry.quiet = true;
+  if (mode !== "notify") entry.uncounted = true;
   messages.value = [...messages.value, entry];
   if (mode === "notify") unreadCount.value++;
   persistMessages(messages.value);

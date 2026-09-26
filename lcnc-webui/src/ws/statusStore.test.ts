@@ -377,6 +377,25 @@ describe("message center", () => {
   });
 });
 
+describe("message center restore (implementation review UI-DI03)", () => {
+  it("a reload counts only what was counted: log and status entries stay uncounted, notify entries count", async () => {
+    pushMessage(OPERATOR_ERROR, "counted");
+    pushMessage(OPERATOR_DISPLAY, "progress", "status");
+    pushMessage(OPERATOR_DISPLAY, "Saved A.ngc", "log");
+    const persisted = localStorage.getItem("lcnc-messages")!;
+    // A "log" entry persisted before the `uncounted` flag carried only `quiet`.
+    const legacy = JSON.parse(persisted);
+    legacy.push({ id: 99, kind: OPERATOR_DISPLAY, text: "old quiet", ts: 1, quiet: true });
+    localStorage.setItem("lcnc-messages", JSON.stringify(legacy));
+    vi.resetModules();
+    const fresh = await import("./statusStore");
+    expect(fresh.messages.value.map(m => m.text)).toEqual(["counted", "progress", "Saved A.ngc", "old quiet"]);
+    expect(fresh.unreadCount.value).toBe(1);
+    fresh.clearAllMessages();
+    clearAllMessages();
+  });
+});
+
 describe("timing stats", () => {
   it("timing-bearing statuses recompute stats; CSV includes frame samples", () => {
     noteFrameSample("ws_bytes", 512);

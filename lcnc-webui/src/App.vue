@@ -2153,7 +2153,7 @@ watch(viewerGcode, (newGcode) => {
       <!-- Both actions are machine actions: focus starts on the container, so
            no button sits under Enter / Space (Anhang B); Abort is the cancel
            side, left (N40). -->
-      <DialogFrame v-if="toolChangeRequested" kind="flow" class="safetyDialog" initial-focus="container"
+      <DialogFrame v-if="toolChangeRequested" kind="flow" initial-focus="container"
                    :title="!toolChangeTool ? 'Remove Tool from Spindle' : 'Load Tool into Spindle'">
           <div class="dialogBody">
             <template v-if="toolChangeTool">
@@ -2194,7 +2194,7 @@ watch(viewerGcode, (newGcode) => {
           </template>
       </DialogFrame>
 
-      <DialogFrame v-if="showShutdownConfirm" kind="flow" class="safetyDialog" title="Shut Down LinuxCNC?" danger>
+      <DialogFrame v-if="showShutdownConfirm" kind="flow" title="Shut Down LinuxCNC?" danger>
         <div class="dialogBody">This will stop all motion and exit LinuxCNC.</div>
         <template #actions>
           <MachineBtn type="dialogCancel" @click="showShutdownConfirm = false">Cancel</MachineBtn>
@@ -2202,7 +2202,7 @@ watch(viewerGcode, (newGcode) => {
         </template>
       </DialogFrame>
 
-      <DialogFrame v-if="compConfirmPending !== null" kind="flow" class="safetyDialog"
+      <DialogFrame v-if="compConfirmPending !== null" kind="flow"
                    :title="compConfirmPending ? 'Enable surface compensation?' : 'Disable surface compensation?'">
           <div class="dialogBody">
             <template v-if="compConfirmPending">
