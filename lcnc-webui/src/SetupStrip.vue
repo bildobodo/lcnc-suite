@@ -54,6 +54,10 @@ const props = defineProps<{
   // Active fixture 1..9: under Plane kinematics anything but G59 is the
   // stranded post-M2 state the chip must call out (twpPose.ts).
   g5xIndex?: number | null;
+  // The number keypad is open for one of this section's fields: in portrait
+  // the section keeps only its axis rows (design wave D7) — the keypad and
+  // the field it edits must share the strip column at 150 %.
+  entryOpen?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -165,7 +169,7 @@ function zeroAll() {
 </script>
 
 <template>
-  <div class="stripSection" ref="rootEl">
+  <div class="stripSection" :class="{ entryOpen }" ref="rootEl">
     <!-- The Go-to destinations are explained by a tap-friendly help on the
          section title (UX-11): the action row is a three-cell grid with no
          room for a fourth element; the buttons keep SHORT hover names — the
@@ -182,7 +186,10 @@ function zeroAll() {
             </template>
           </div>
         </div>
-        <div class="actionRow aggregateRow">
+        <!-- Folded in portrait while the keypad edits an axis field (D7):
+             none of these acts on a value being typed, and at 150 % the
+             column could not hold the edited field above the keypad. -->
+        <div class="actionRow aggregateRow foldOnEntry">
           <MachineBtn type="zero" @click="zeroAll()" :title="isSwitchable ? 'Zero the linear axes only' : undefined">{{ zeroAllLabel }}</MachineBtn>
           <MachineBtn :type="isHomed ? 'unhome' : 'home'" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome All</span></span></MachineBtn>
         </div>
@@ -192,12 +199,12 @@ function zeroAll() {
              verb (review 2026-09-14 D-02): an arrow said nothing about
              moving, "Home" read as reference homing. MCS/WCS = machine /
              work coordinate system, the WCS selector's own term. -->
-        <div class="actionRow">
+        <div class="actionRow foldOnEntry">
           <MachineBtn type="goTo" @click="emit('goToG30')" title="Hold to move to the G30 position">Go to G30</MachineBtn>
           <MachineBtn type="goTo" @click="emit('goToHome')" title="Hold to move to machine zero">Go to MCS 0</MachineBtn>
           <MachineBtn type="goZero" @click="emit('goToZero')" title="Hold to move to work zero">Go to WCS 0</MachineBtn>
         </div>
-        <div v-if="isTwpMachine" class="actionRow">
+        <div v-if="isTwpMachine" class="actionRow foldOnEntry">
           <!-- Capture plane: the one-button manual definition — align the
                spindle normal to the face (TCP jog), tip on the datum point,
                press. The backend gate (twp_capture_check) dims it with the
@@ -230,7 +237,7 @@ function zeroAll() {
         </div>
       </div>
 
-      <div class="wcsCol stack-tight strip-radio-group">
+      <div class="wcsCol stack-tight strip-radio-group foldOnEntry">
         <!-- "WCS" and the chip stack in ONE head cell: in portrait the group is
              a row, and the chip's "?" beside "WCS" narrowed the radios to two
              per row (visual reference, design wave D1 live look). -->
@@ -258,6 +265,13 @@ function zeroAll() {
 
 <style scoped>
 .setupContent > * { flex-shrink: 0; }
+/* Portrait with the keypad on an axis field: the axis rows and the keypad
+   (next in the column) — the field being edited stays in view at 150 %
+   (design wave D7: the Zero All / Go-to / WCS rows pushed it under the
+   sticky Safety section while the column showed the whole keypad). */
+@media (orientation: portrait) {
+  .entryOpen .foldOnEntry { display: none; }
+}
 .axisGrids { align-items: start; }
 .setupGrid {
   flex: 1;

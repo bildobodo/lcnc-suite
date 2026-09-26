@@ -2421,6 +2421,7 @@ watch(viewerGcode, (newGcode) => {
         :twpDatumMoved="twpDatumMoved"
         :twpOffDatum="twpOffDatum"
         :g5xIndex="st.g5x_index ?? null"
+        :entryOpen="numKeypadOwner === 'setup'"
         @twpOrient="twpReorient"
         @twpCapture="twpCapture"
         @twpClear="twpClear"

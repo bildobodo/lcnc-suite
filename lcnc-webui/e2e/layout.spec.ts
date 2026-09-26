@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { ctl } from './ctl';
 import { measureLayout, assertLayout, layoutChanges, measureFrame, frameChanges, type LayoutSnapshot } from './layout-audit';
 import { PROFILES, VIEWPORTS, PANELS, openLayout, setLayoutState, settleLayout, type LayoutState,
-  STRIP_STATES, enterStripState, leaveStripState, stripStateRefs, stripStateExempt } from './layout-fixtures';
+  STRIP_STATES, enterStripState, leaveStripState, stripStateRefs, stripStateExempt, SETUP_AXIS_ROWS } from './layout-fixtures';
 
 test.afterEach(async () => { await ctl({ op: 'reset' }); });
 
@@ -639,13 +639,14 @@ for (const viewport of VIEWPORTS) {
     await openLayout(page, profile, viewport);
     const frame0 = await measureFrame(page);
     const refs0: Record<string, LayoutSnapshot> = {};
-    for (const sel of [PANELS.safety, PANELS.setup]) refs0[sel] = await measureLayout(page.locator(sel), sel);
+    for (const sel of [PANELS.safety, PANELS.setup, SETUP_AXIS_ROWS]) refs0[sel] = await measureLayout(page.locator(sel), sel);
+    const portrait = viewport.height > viewport.width;
     const evidence: { state: string; frame: unknown; issues: unknown[] }[] = [];
     try {
       for (const state of STRIP_STATES) {
         await enterStripState(page, profile, state);
-        const issues = frameChanges(frame0, await measureFrame(page), stripStateExempt(state, viewport.height > viewport.width));
-        for (const sel of stripStateRefs(state)) {
+        const issues = frameChanges(frame0, await measureFrame(page), stripStateExempt(state, portrait));
+        for (const sel of stripStateRefs(state, portrait)) {
           const root = page.locator(sel);
           const snap = await measureLayout(root, sel);
           issues.push(...snap.issues, ...layoutChanges(refs0[sel]!, snap));

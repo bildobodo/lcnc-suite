@@ -754,6 +754,62 @@ nach drei statt vier Werten um.
 - Playwright **247/247**; `serial-guards` 111 und `serial-layout` 61.
 - Die Guards liefen nach der Korrektur der Trefferfläche erneut.
 
+
+### WP-D7 — Eingabehilfen · 26. September 2026
+
+**Zuerst gemessen** (beide Hilfen, Quer- und Hochformat):
+- **X:** Das Zahlenfeld hatte das X im Querformat oben rechts, aber 70 px breit, im Hochformat unten
+  links. Die Texttastatur hatte es im Querformat unten rechts, im Hochformat schon oben rechts.
+- **Code-Seite:** Kein Ziffernblock. Das Querformat las spaltenweise, das Hochformat zeilenweise;
+  auch ABC lief im Querformat die Spalten hinab.
+- Kein Test prüfte die Position des X, und für das Zahlenfeld gab es keine 150-%-Prüfung.
+
+**Umgesetzt:**
+- **X oben rechts, 44 × 44, überall** (Operator-Entscheidung 4):
+  - Das **Zahlenfeld** führt seine Anzeige als erste Rasterzeile mit dem X rechts daneben.
+  - Querformat: Discard, ═ und Apply (zwei Zeilen hoch, wie Enter der Texttastatur) bilden die
+    sechste Spalte. Hochformat: Discard (2), ═ und Apply (2) bilden die unterste Zeile.
+  - Im Querformat sind beide Hilfen nun fünf Tastenzeilen hoch (236 px unter dem Titel). Gemessen
+    sind beide 264 px, auf dem Desktop wie auf Touch.
+  - Die **Texttastatur** setzt das X an den Kopf ihrer Seitenleiste bzw. das Ende ihrer Seitenzeile.
+  - Die DOM-Reihenfolge bleibt; das X bleibt letzter Tab-Stopp.
+- **Seiten zeilenweise, Code-Seite in Blöcken** (`codePage(axes, cols)`):
+  - Links der Ziffernblock 7 8 9 / 4 5 6 / 1 2 3 / 0 . -.
+  - Daneben, im Hochformat auch darunter, der Buchstabenblock: G M T F S, die Achsen, die Füllung.
+  - Danach ; ( ) #.
+  - Innere Lesereihenfolge in beiden Ausrichtungen gleich; ABC liest a b c … über die Zeilen.
+- **150 % im Hochformat verdeckt das Besitzerfeld nicht:**
+  - Das Zahlenfeld für ein DRO-Feld der Setup-Leiste schob die bearbeitete Zeile unter die klebende
+    Safety-Sektion, sobald die Spalte das ganze Zahlenfeld zeigte. Zero All, Go-to und der WCS-Block
+    lagen dazwischen. Das bestand schon vor D7 und fiel dem neuen Wächter auf.
+  - Jetzt behält Setup im Hochformat, solange sein Zahlenfeld offen ist, nur die Achszeilen. Zum
+    Umspringen zwischen Feldern bleiben sie bedienbar. Das folgt dem Muster der Texttastatur, die
+    alle Sektionen außer Safety ersetzt.
+  - Gemessen: Bis sechs Achsen bleiben erste und letzte Achse im Blick.
+  - **Grenze:** Bei neun Achsen und 150 % gerät die erste Zeile unter die Safety-Sektion.
+- **Harness-Falle:** Der erste Touch einer Sitzung schaltet auf Touch-Maße. Die Leiste springt unter
+  dem Finger, und ein Tipp auf ein DRO-Feld im Hochformat traf daneben. Die Tests schalten deshalb
+  zuerst mit einem neutralen Tipp um.
+
+**Wächter** (`input-session.spec`, Touch):
+- X-Anker in vier Kombinationen (zwei Hilfen × zwei Ausrichtungen, Code und ABC): 44 × 44, kein
+  Control darüber oder rechts davon.
+- Code-Seite in beiden Ausrichtungen: 7 8 9 / 4 5 6 / 1 2 3 / 0 . - als Block. Die Buchstaben lesen
+  G M T F S X Y Z I J K P R Q, ABC liest a–z ä ö ü ß.
+- Zahlenfeld bei 100 % und 150 % im Hochformat, mit einem Feld der Leiste und einem Feld des
+  Seitenpanels als Besitzer: Tasten ≥ 44 px, Zahlenfeld im Viewport, Besitzerfeld sichtbar und im
+  Hit-Test nicht verdeckt; dazu erste und letzte Achse bei sechs Achsen.
+- `textKeyboardPages.test`: die Blöcke in beiden Breiten und dieselbe Reihenfolge.
+- **Gegenproben:** Am alten Stand sind X-Anker und Code-Block rot. Ohne das Einklappen der
+  Setup-Zeilen ist der 150-%-Fall rot („owner field is not covered“).
+
+**Gates:**
+- build, lint und Vitest (**1635**) grün.
+- Playwright **260/260** über alle neun Projekte; `serial-guards` 122 und `serial-layout` 63.
+- Der Strip-State-Test (`layout.spec`) nimmt im Hochformat für „keypad-setup“ die Achszeilen der
+  Setup-Sektion als Referenz statt der ganzen Sektion. Ihre Controls stehen weiterhin exakt am Platz,
+  der Rahmen ist unverändert. Das Einklappen ist die beabsichtigte Änderung.
+- Keine Referenzbilder geändert (keines zeigt eine Eingabehilfe).
 ---
 
 ## Codex Implementierungsreview Runde 1

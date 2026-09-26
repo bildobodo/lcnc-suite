@@ -213,20 +213,22 @@ function onKeydown(e: KeyboardEvent) {
     @keydown="onKeydown"
   >
     <div class="sub">{{ heading }}</div>
-    <!-- Expression display — .inputField look, so the entry target is
-         unmistakable (it's the same visual as the field being edited).
-         Single line: result preview left, expression pinned right — the
-         expression never moves when the preview appears, and an
-         overflowing expression clips at its left (oldest) end. -->
-    <div class="inputField nkDisplay row-tight">
-      <span v-if="isDraft" class="nkPreview label-muted" data-draft>draft</span>
-      <span class="nkPreview" :class="{ invalid: previewInvalid }">{{ previewText }}</span>
-      <span class="nkExpr">{{ displayExpr }}</span>
-    </div>
-    <!-- One grid holds keys AND actions so orientation can reorder them:
-         landscape puts the actions in a 6th column, portrait moves them to
-         a full-width bottom row (X | Discard | ═ | Apply). -->
+    <!-- One grid holds the readout, the keys AND the actions (design wave
+         D7): the readout heads it with the X at its right — the helper's
+         top-right key in both orientations, as in the text keyboard; the
+         other actions take a 6th column in landscape and the bottom row in
+         portrait (Discard | ═ | Apply). -->
     <div class="nkGrid">
+        <!-- Expression display — .inputField look, so the entry target is
+             unmistakable (it's the same visual as the field being edited).
+             Single line: result preview left, expression pinned right — the
+             expression never moves when the preview appears, and an
+             overflowing expression clips at its left (oldest) end. -->
+        <div class="inputField nkDisplay row-tight">
+          <span v-if="isDraft" class="nkPreview label-muted" data-draft>draft</span>
+          <span class="nkPreview" :class="{ invalid: previewInvalid }">{{ previewText }}</span>
+          <span class="nkExpr">{{ displayExpr }}</span>
+        </div>
         <!-- Row 1 -->
         <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('7')" @contextmenu.prevent>7</MachineBtn>
         <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('8')" @contextmenu.prevent>8</MachineBtn>
@@ -287,18 +289,22 @@ function onKeydown(e: KeyboardEvent) {
   opacity: var(--opacity-secondary);
 }
 /* Fixed --key-size square keys (shared with TextKeypadStrip) — identical
-   in both orientations. Actions live in the same grid, explicitly placed
-   in a 6th column; keys auto-place around them. */
+   in both orientations. The readout and the actions are explicitly placed;
+   the keys auto-place around them (rows 2–5). Landscape: the readout over
+   the five key columns, the X 44 × 44 at the right end of the action
+   column, Discard · ═ · Apply (two rows, like the text keyboard's Enter)
+   under it — five rows, the text keyboard's height. */
 .nkGrid {
   display: grid;
   grid-template-columns: repeat(5, var(--key-size)) minmax(var(--key-action-w), auto);
   grid-auto-rows: var(--key-size);
   gap: var(--gap-tight);
 }
-.nkClose   { grid-column: 6; grid-row: 1; }
+.nkDisplay { grid-column: 1 / 6; grid-row: 1; min-height: 0; }
+.nkClose   { grid-column: 6; grid-row: 1; width: var(--key-size); justify-self: end; }
 .nkDiscard { grid-column: 6; grid-row: 2; }
 .nkEq      { grid-column: 6; grid-row: 3; }
-.nkOk      { grid-column: 6; grid-row: 4; }
+.nkOk      { grid-column: 6; grid-row: 4 / 6; }
 .nkKey {
   min-height: 0; /* grid rows own the height — override the touch layer's button floor */
   /* Word keys (Discard, Apply, Clr) in a --key-size cell: the cell owns the
@@ -308,15 +314,14 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 @media (orientation: portrait) {
-  /* Reorder: the actions column becomes a full-width bottom row
-     (X | Discard | ═ | Apply) so the grid is 5 key columns wide instead of
-     6 — it must fit the narrow strip without horizontal overflow. */
+  /* Five key columns (the narrow strip): the readout over four, the X in
+     the fifth — still the top-right key — and the other actions a
+     full-width bottom row (Discard | ═ | Apply). */
   .nkGrid { grid-template-columns: repeat(5, var(--key-size)); }
-  .nkClose   { grid-column: 1;     grid-row: 5; }
-  .nkDiscard { grid-column: 2 / 4; grid-row: 5; }
-  .nkEq      { grid-column: 4;     grid-row: 5; }
-  .nkOk      { grid-column: 5;     grid-row: 5; }
-  /* The display tracks the grid width so both edges align. */
-  .nkDisplay { max-width: calc(5 * var(--key-size) + 4 * var(--gap-tight)); }
+  .nkDisplay { grid-column: 1 / 5; }
+  .nkClose   { grid-column: 5;     grid-row: 1; }
+  .nkDiscard { grid-column: 1 / 3; grid-row: 6; }
+  .nkEq      { grid-column: 3;     grid-row: 6; }
+  .nkOk      { grid-column: 4 / 6; grid-row: 6; }
 }
 </style>

@@ -108,11 +108,16 @@ export type StripState = 'keypad-setup' | 'keypad-panel' | 'gcode-keypad' | 'mac
 export const STRIP_STATES: StripState[] = ['keypad-setup', 'keypad-panel', 'gcode-keypad', 'macro-bar',
   'banner-estop', 'banner-unhomed', 'banner-message', 'kins-chip'];
 
+/** The Setup section's axis rows: in PORTRAIT all it keeps while the
+ * keypad edits one of its fields (design wave D7 — Zero All, Go to and the
+ * WCS block fold so the edited field stays in view at 150 %). */
+export const SETUP_AXIS_ROWS = '[data-strip="setup"] .axisGrids';
+
 /** Reference controls that stay visible in a state: the pinned Safety
  * section always, plus the keypad's OWNER section (it keeps its place
- * right of Safety while the others hide). */
-export function stripStateRefs(state: StripState): string[] {
-  if (state === 'keypad-setup') return [PANELS.safety, PANELS.setup];
+ * right of Safety while the others hide; in portrait its axis rows). */
+export function stripStateRefs(state: StripState, portrait = false): string[] {
+  if (state === 'keypad-setup') return [PANELS.safety, portrait ? SETUP_AXIS_ROWS : PANELS.setup];
   return [PANELS.safety];
 }
 

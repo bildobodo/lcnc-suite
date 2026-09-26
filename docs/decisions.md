@@ -6896,3 +6896,30 @@ Each fix proven red first.
 - Found by the new harness, left for D9: at 150 % portrait the viewer
   HUD's warn text extends below the viewer over the top of the side pane.
 
+### WP-D7 — the input helpers (2026-09-26)
+
+Plan Fassung 3 WP-D7 (UI-K01, K02, operator decision 4).
+
+- The close X is each helper's top-right key, 44 × 44, in landscape and
+  portrait. The number keypad's readout heads its grid with the X beside
+  it (landscape: Discard · ═ · Apply (two rows) down column 6; portrait:
+  Discard (2) · ═ · Apply (2) the bottom row) — both helpers are now five
+  key rows high in landscape (264 px measured, desktop and touch). The
+  text keyboard's X heads its page rail / ends its page row. DOM order and
+  the Tab order unchanged.
+- Every keyboard page reads row by row in both orientations (landscape ran
+  down the columns). The Code page is laid out in blocks for the grid's
+  width: the digit block 7 8 9 / 4 5 6 / 1 2 3 / 0 . - left, the letters
+  (commands, axes, fill) beside and — portrait — below it, ; ( ) # after;
+  one inner reading order.
+- Found by the new guard (pre-existing): at 150 % portrait the number
+  keypad for a Setup axis field pushed that field under the sticky Safety
+  section — Zero All, Go to and the WCS block sat between the axis rows
+  and the keypad. In portrait, while the keypad edits one of its fields,
+  Setup keeps only its axis rows (the text keyboard's precedent: it
+  replaces every section but Safety). Up to six axes both ends stay in
+  view; nine axes at 150 % portrait is a named limit.
+- Harness trap: the session's FIRST touch switches the layout to touch
+  sizes and moves the strip under the finger — a tap on a portrait DRO
+  field landed beside it. Touch specs tap a neutral spot first.
+

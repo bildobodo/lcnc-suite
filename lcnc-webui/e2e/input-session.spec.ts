@@ -786,3 +786,159 @@ test.describe("portrait, touch", () => {
     expectNoMachineAction(await cmds());
   });
 });
+
+// ── Design wave D7 (UI-K01 / K02, operator decision 4): the input helpers ──
+//   - the close X is each helper's TOP-RIGHT key, 44 × 44, in landscape AND
+//     portrait (it sat bottom-left in the portrait keypad and bottom-right
+//     in the landscape keyboard);
+//   - the Code page is laid out in blocks, the digits 7 8 9 / 4 5 6 /
+//     1 2 3 / 0 . - in both orientations, the letters in one reading order;
+//   - the number keypad at 150 % portrait keeps its keys, stays in the
+//     viewport and never covers its owner field.
+test.describe("D7, touch", () => {
+  test.use({ hasTouch: true });
+  const VIEWPORTS = [{ name: "landscape", width: 1280, height: 800 }, { name: "portrait", width: 900, height: 1200 }];
+  /** Open in touch mode: the session's FIRST touch switches the layout to
+   *  touch sizes, which moves the strip under the finger (a tap on a DRO
+   *  field in portrait landed beside it) — a neutral tap first. */
+  async function openTouch(page: Page, viewport: { width: number; height: number }) {
+    await open(page, viewport);
+    await page.touchscreen.tap(2, 2);
+    await expect(page.locator("html")).toHaveClass(/touch-device/);
+  }
+
+  /** The helper's X against every other control in it. */
+  function xAnchor(helper: Locator) {
+    return helper.evaluate(el => {
+      const shown = (b: Element) => (b as HTMLElement).offsetParent !== null;
+      const controls = [...el.querySelectorAll("button, .nkDisplay")].filter(shown).map(b => ({ b, r: b.getBoundingClientRect() }));
+      const x = controls.find(c => c.b.getAttribute("aria-label") === "Close keyboard")!;
+      const others = controls.filter(c => c !== x);
+      return { w: x.r.width, h: x.r.height,
+        above: others.filter(c => c.r.top < x.r.top - 0.5).map(c => c.b.getAttribute("aria-label") ?? c.b.className),
+        right: others.filter(c => c.r.right > x.r.right + 0.5).map(c => c.b.getAttribute("aria-label") ?? c.b.className) };
+    });
+  }
+
+  test("the X is each helper's top-right key, 44 × 44 — number keypad and text keyboard, landscape and portrait", async ({ page }) => {
+    for (const vp of VIEWPORTS) {
+      await openTouch(page, vp);
+      await page.locator("input.setupInput").first().tap();
+      const nk = page.locator(".nkStrip");
+      await expect(nk).toBeVisible();
+      const n = await xAnchor(nk);
+      expect([n.w, n.h], `${vp.name} number keypad: X is 44 × 44`).toEqual([44, 44]);
+      expect(n.above, `${vp.name} number keypad: nothing above the X`).toEqual([]);
+      expect(n.right, `${vp.name} number keypad: nothing right of the X`).toEqual([]);
+      await tapKey(nk, "Close keyboard");
+      await expect(nk).toHaveCount(0);
+
+      await page.getByRole("tab", { name: "MDI", exact: true }).tap();
+      await page.locator(".mdiInput").tap();
+      const tk = page.locator(".tkStrip");
+      await expect(tk).toBeVisible();
+      for (const p of ["Code keys", "ABC keys"]) {
+        await tapKey(tk, p);
+        const t = await xAnchor(tk);
+        expect([t.w, t.h], `${vp.name} keyboard ${p}: X is 44 × 44`).toEqual([44, 44]);
+        expect(t.above, `${vp.name} keyboard ${p}: nothing above the X`).toEqual([]);
+        expect(t.right, `${vp.name} keyboard ${p}: nothing right of the X`).toEqual([]);
+      }
+      await tapKey(tk, "Close keyboard");
+      await expect(tk).toHaveCount(0);
+    }
+    expectNoMachineAction(await cmds());
+  });
+
+  test("the Code page: the digit block 7 8 9 / 4 5 6 / 1 2 3 / 0 . - in both orientations, the letters in one reading order; every page reads row by row", async ({ page }) => {
+    for (const vp of VIEWPORTS) {
+      await openTouch(page, vp);
+      await page.getByRole("tab", { name: "MDI", exact: true }).tap();
+      await page.locator(".mdiInput").tap();
+      const tk = page.locator(".tkStrip");
+      await expect(tk).toBeVisible();
+      const grid = (await tk.locator(".tkContent").evaluate(el => [...el.querySelectorAll("button")].map(b => {
+        const r = b.getBoundingClientRect();
+        return { k: b.textContent!.trim(), x: Math.round(r.left), y: Math.round(r.top) };
+      })));
+      const at = (k: string) => grid.find(g => g.k === k)!;
+      for (const row of [["7", "8", "9"], ["4", "5", "6"], ["1", "2", "3"], ["0", ".", "-"]]) {
+        expect(new Set(row.map(k => at(k).y)).size, `${vp.name}: ${row.join(" ")} is one row`).toBe(1);
+      }
+      for (const col of [["7", "4", "1", "0"], ["8", "5", "2", "."], ["9", "6", "3", "-"]]) {
+        expect(new Set(col.map(k => at(k).x)).size, `${vp.name}: ${col.join(" ")} is one column`).toBe(1);
+      }
+      expect(at("4").y > at("7").y && at("1").y > at("4").y && at("0").y > at("1").y, `${vp.name}: 7 8 9 on top`).toBe(true);
+      const reading = [...grid].sort((a, b) => a.y - b.y || a.x - b.x);
+      expect(reading.filter(g => /^[A-Z]$/.test(g.k)).map(g => g.k).join(" "), `${vp.name}: the letters`)
+        .toBe("G M T F S X Y Z I J K P R Q");
+      // ABC reads a b c … across the rows.
+      await tapKey(tk, "ABC keys");
+      const abc = (await tk.locator(".tkContent").evaluate(el => [...el.querySelectorAll("button")].map(b => {
+        const r = b.getBoundingClientRect();
+        return { k: b.textContent!.trim(), x: Math.round(r.left), y: Math.round(r.top) };
+      }))).sort((a, b) => a.y - b.y || a.x - b.x).map(g => g.k).join("");
+      expect(abc, `${vp.name}: ABC in reading order`).toBe("abcdefghijklmnopqrstuvwxyzäöüß");
+    }
+  });
+
+  test("the number keypad at 100 % and 150 % portrait: 44 px keys, within the viewport, its owner field in view and not covered", async ({ page }) => {
+    await openTouch(page, { width: 900, height: 1200 });
+    for (const zoom of ["1", "1.5"]) {
+      await page.evaluate(z => { document.documentElement.style.zoom = z; }, zoom);
+      for (const owner of ["strip", "side pane"]) {
+        let field: Locator;
+        if (owner === "strip") field = page.locator("input.setupInput").first();
+        else {
+          if (zoom === "1") await page.getByRole("tab", { name: "Probing", exact: true }).tap();
+          else await page.getByRole("combobox", { name: "Side panel", exact: true }).selectOption("probe");
+          field = page.locator(".probePanel .formGrid input").first();
+        }
+        await field.scrollIntoViewIfNeeded();
+        await field.tap();
+        const nk = page.locator(".nkStrip");
+        await expect(nk).toBeVisible();
+        const snap = await measureLayout(nk, `nk-portrait-${zoom}-${owner}`);
+        const min = 43 * Number(zoom);
+        for (const c of snap.controls) {
+          expect(c.width, `${owner} ${zoom}: ${c.label}`).toBeGreaterThanOrEqual(min);
+          expect(c.height, `${owner} ${zoom}: ${c.label}`).toBeGreaterThanOrEqual(min);
+        }
+        const box = (await nk.boundingBox())!;
+        expect(box.y + box.height, `${owner} ${zoom}: keypad within the viewport`).toBeLessThanOrEqual(await page.evaluate(() => innerHeight) + 1);
+        await expect(field, `${owner} ${zoom}: the owner field in view`).toBeInViewport();
+        expect(await field.evaluate(f => {
+          const r = f.getBoundingClientRect();
+          const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          return f === at || f.contains(at);
+        }), `${owner} ${zoom}: the owner field is not covered`).toBe(true);
+        await tapKey(nk, "Discard");
+        await expect(nk).toHaveCount(0);
+      }
+    }
+    // Six axes (the TWP machine): the first and the last axis field stay in
+    // view with the whole keypad at 150 % — Setup keeps only its axis rows
+    // while the keypad edits one. (Nine axes at 150 % portrait lose the
+    // first rows under the Safety section: a named limit.)
+    await ctl({ op: "setAxes", axes: ["X", "Y", "Z", "A", "B", "C"] });
+    await expect(page.locator("input.setupInput")).toHaveCount(6);
+    for (const i of [0, 5]) {
+      const field = page.locator("input.setupInput").nth(i);
+      await field.scrollIntoViewIfNeeded();
+      await field.tap();
+      const nk = page.locator(".nkStrip");
+      await expect(nk).toBeVisible();
+      const box = (await nk.boundingBox())!;
+      expect(box.y + box.height, `six axes, field ${i}: keypad within the viewport`).toBeLessThanOrEqual(await page.evaluate(() => innerHeight) + 1);
+      expect(await field.evaluate(f => {
+        const r = f.getBoundingClientRect();
+        const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return f === at || f.contains(at);
+      }), `six axes, field ${i}: in view, not covered`).toBe(true);
+      await tapKey(nk, "Discard");
+      await expect(nk).toHaveCount(0);
+    }
+    await page.evaluate(() => { document.documentElement.style.zoom = ""; });
+    expectNoMachineAction(await cmds());
+  });
+});

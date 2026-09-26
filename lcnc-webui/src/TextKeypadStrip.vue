@@ -7,18 +7,26 @@
 // every page has the same cell count so switching never changes the
 // strip's height. Landscape: 5 rows × 6 columns + three rails inside the
 // 260.5 px budget; portrait: title → pages → actions → navigation → 6 rows.
+// The close X is the helper's TOP-RIGHT key in both orientations, as in the
+// number keypad (design wave D7): the top of the page rail in landscape,
+// the end of the page row in portrait. Every page reads row by row; the
+// Code page's blocks follow the grid's width (textKeyboardPages.ts).
 import { computed } from "vue";
 import { X, ArrowBigUp, Delete, CornerDownLeft, ArrowLeft, ArrowRight, Undo2, Redo2 } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import { inputSession, closeTextSessionByOperator } from "./inputSession";
 import { pageKeys, PAGE_ORDER, PAGE_LABELS, type KeyPage } from "./textKeyboardPages";
+import { useMediaMql } from "./useMediaMql";
 
 const props = defineProps<{
   /** Axis letters from viewer_init (useAxes upstream) — never hardcoded. */
   axes: string[];
 }>();
 
-const keys = computed(() => pageKeys(inputSession.page, props.axes, inputSession.shift));
+// The content grid is 6 keys wide in landscape, 5 in portrait (the CSS
+// below); the Code page lays its blocks out for that width.
+const portrait = useMediaMql("(orientation: portrait)");
+const keys = computed(() => pageKeys(inputSession.page, props.axes, inputSession.shift, portrait.value ? 5 : 6));
 const target = computed(() => inputSession.target);
 const enterTitle = computed(() =>
   inputSession.enterLabel === "Send" ? "Send the MDI command"
@@ -92,7 +100,8 @@ function keyLabel(k: string): string {
                     @pointerdown.prevent @click="target?.clear?.()" @contextmenu.prevent>Clr</MachineBtn>
       </div>
 
-      <!-- Page rail / row: Code · ABC · 123 · #+= · close. -->
+      <!-- Page rail / row: Code · ABC · 123 · #+= · close — the X placed
+           top-right (CSS), last in the Tab order. -->
       <div class="tkPages">
         <MachineBtn v-for="p in PAGE_ORDER" :key="p" type="numOp" class="tkKey" :selected="inputSession.page === p"
                     :aria-pressed="inputSession.page === p" :aria-label="`${PAGE_LABELS[p]} keys`" :title="`${PAGE_LABELS[p]} keys`"
@@ -121,8 +130,7 @@ function keyLabel(k: string): string {
   grid-area: content;
   display: grid;
   grid-template-rows: repeat(5, var(--key-size));
-  grid-auto-flow: column;
-  grid-auto-columns: var(--key-size);
+  grid-template-columns: repeat(6, var(--key-size));
   gap: var(--gap-tight);
 }
 .tkActions {
@@ -144,6 +152,9 @@ function keyLabel(k: string): string {
 }
 .tkNav { grid-area: nav; }
 .tkPages { grid-area: pages; }
+/* The X heads the page rail: the helper's top-right key (the pages fill
+   rows 2–5 around it). */
+.tkClose { grid-row: 1; }
 .tkKey {
   min-height: 0; /* grid rows own the height — override the touch layer's button floor */
   padding-left: 0;
@@ -162,9 +173,7 @@ function keyLabel(k: string): string {
   }
   .tkContent {
     grid-template-rows: repeat(6, var(--key-size));
-    grid-auto-flow: row;
     grid-template-columns: repeat(5, var(--key-size));
-    grid-auto-columns: auto;
   }
   .tkActions {
     grid-template-rows: var(--key-size);
@@ -179,5 +188,7 @@ function keyLabel(k: string): string {
     grid-template-columns: repeat(5, var(--key-size));
     grid-auto-flow: column;
   }
+  /* The end of the page row — the top-right key here too. */
+  .tkClose { grid-row: 1; grid-column: 5; }
 }
 </style>
