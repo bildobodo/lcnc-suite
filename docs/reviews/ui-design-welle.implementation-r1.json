@@ -1,0 +1,159 @@
+{
+  "flowThenSettings": {
+    "top": "Settings",
+    "focus": "3D Viewer",
+    "focusTag": "BUTTON",
+    "focusDialog": "Settings",
+    "visibleOverlayAtFocus": "Load Tool into Spindle",
+    "dialogs": [
+      {
+        "title": "Load Tool into Spindle",
+        "zIndex": "1010"
+      },
+      {
+        "title": "Settings",
+        "zIndex": "1000"
+      }
+    ]
+  },
+  "flowThenSettingsAfterTab": {
+    "top": "Settings",
+    "focus": "Machine",
+    "focusTag": "BUTTON",
+    "focusDialog": "Settings",
+    "visibleOverlayAtFocus": "Load Tool into Spindle",
+    "dialogs": [
+      {
+        "title": "Load Tool into Spindle",
+        "zIndex": "1010"
+      },
+      {
+        "title": "Settings",
+        "zIndex": "1000"
+      }
+    ]
+  },
+  "beforeSaveReply": {
+    "top": "Settings",
+    "focus": "3D Viewer",
+    "focusTag": "BUTTON",
+    "focusDialog": "Settings",
+    "visibleOverlayAtFocus": "Settings",
+    "dialogs": [
+      {
+        "title": "Add Tool",
+        "zIndex": "1000"
+      },
+      {
+        "title": "Settings",
+        "zIndex": "1000"
+      }
+    ]
+  },
+  "afterSaveReply": {
+    "top": "Settings",
+    "focus": "3D Viewer",
+    "focusTag": "BUTTON",
+    "focusDialog": "Settings",
+    "visibleOverlayAtFocus": "Settings",
+    "dialogs": [
+      {
+        "title": "Settings",
+        "zIndex": "1000"
+      }
+    ]
+  },
+  "afterSpace": {
+    "top": "Settings",
+    "focus": "3D Viewer",
+    "focusTag": "BUTTON",
+    "focusDialog": "Settings",
+    "visibleOverlayAtFocus": "Settings",
+    "dialogs": [
+      {
+        "title": "Settings",
+        "zIndex": "1000"
+      }
+    ]
+  },
+  "commands": [
+    {
+      "cmd": "get_tool_table",
+      "req_id": "v85mcq-3"
+    },
+    {
+      "cmd": "get_tool_table",
+      "req_id": "v85mcq-4"
+    },
+    {
+      "cmd": "add_tool",
+      "tool_number": 6,
+      "pocket": 6,
+      "diameter": 0,
+      "z_offset": 0,
+      "remark": "",
+      "description": "",
+      "type": "",
+      "flutes": null,
+      "oal": null,
+      "flute_length": null,
+      "corner_radius": null,
+      "body_length": null,
+      "shaft_diameter": null,
+      "taper_angle": null,
+      "point_angle": null,
+      "tip_diameter": null,
+      "material": null,
+      "holder": null,
+      "req_id": "v85mcq-5"
+    },
+    {
+      "cmd": "get_tool_table",
+      "req_id": "v85mcq-6"
+    }
+  ],
+  "beforeLowerFlowEnds": {
+    "top": "Shut Down LinuxCNC?",
+    "focus": "Cancel",
+    "focusTag": "BUTTON",
+    "focusDialog": "Shut Down LinuxCNC?",
+    "visibleOverlayAtFocus": "Shut Down LinuxCNC?",
+    "dialogs": [
+      {
+        "title": "Load Tool into Spindle",
+        "zIndex": "1010"
+      },
+      {
+        "title": "Shut Down LinuxCNC?",
+        "zIndex": "1010"
+      }
+    ]
+  },
+  "afterLowerFlowEnds": {
+    "top": "Shut Down LinuxCNC?",
+    "focus": "Search tools",
+    "focusTag": "INPUT",
+    "focusDialog": null,
+    "visibleOverlayAtFocus": "Shut Down LinuxCNC?",
+    "dialogs": [
+      {
+        "title": "Shut Down LinuxCNC?",
+        "zIndex": "1010"
+      }
+    ]
+  },
+  "hiddenSearchText": "invisible edit",
+  "quietAfterReload": {
+    "header": "Messages (1)",
+    "bannerActions": "1 message",
+    "persisted": [
+      {
+        "id": 1,
+        "kind": 6,
+        "text": "Saved A.ngc",
+        "ts": 1790409081434,
+        "quiet": true
+      }
+    ]
+  }
+}

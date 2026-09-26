@@ -1,5 +1,10 @@
 # Review: WebUI Design-Welle — Abstimmung mit Claude / Fable
 
+**Umsetzungsreview · 26. September 2026:** Die implementierten Pakete DR + D0–D2 sind separat
+geprüft: [Codex Implementierungsreview Runde 1](ui-design-welle.implementation-review.md#codex-implementierungsreview-runde-1).
+Zwei offene D2-Befunde (P2) und ein D1-Restpunkt (P3); noch kein Implementierungs-Agreement.
+Der folgende Planreviewstand bleibt gültig.
+
 **Aktueller Stand · Runde 3 · Fassung 3 · 23. September 2026: Plan-Agreement.**
 **UI-D01–UI-D09 sind auf Planebene akzeptiert (9/9).** Der Pausenpfad erhält nun den
 Numpad-Entwurf; auch die vier Präzisierungen aus Runde 2 sind übernommen.

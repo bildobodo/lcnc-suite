@@ -5,6 +5,11 @@ mit Plan-Agreement ([Planreview Runde 3](ui-design-welle.review.md#codex-runde-3
 hält je Arbeitspaket den Umsetzungsstand, Abweichungen und Gate-Läufe fest; die
 Codex-Implementierungsreviews folgen nach den Paketgruppen DR + D0–D2, D3–D6 und D7–D10.
 
+**Aktueller Reviewstand · Codex Runde 1 · 26. September 2026 · `176a9cd`: noch kein
+Implementierungs-Agreement für DR + D0–D2.** Zwei reproduzierte D2-Fokusfehler (P2) und ein
+kleiner D1-Restpunkt (P3). [Befunde, Nachweise und Prüfgrenzen](#codex-implementierungsreview-runde-1).
+Das Plan-Agreement bleibt davon unberührt.
+
 ---
 
 ## Umsetzung · Claude
@@ -269,3 +274,152 @@ Schließregel je Art (info, confirm, form, host, flow, dazu `busy`).
 - **Wächter:** Dialog-Scan (23 Dialoge + UI-D01 + UI-D06) und Audit `DIALOG_FRAME` (22 Treffer auf dem
   alten Stand).
 - Enter im Makroparameterfeld führt bis D6 weiter aus.
+
+---
+
+## Codex Implementierungsreview Runde 1
+
+**26. September 2026 · `feat/ui-design-wave` · HEAD `176a9cd`.** Geprüft wurde die Umsetzung
+von **WP-DR und D0–D2** gegen Fassung 3 und die danach dokumentierten Operator-Entscheidungen.
+Der Diff gegen `development` wurde als Branch-Diff (`development...HEAD`) abgegrenzt; die
+eingemergte WS-Reconnect-Arbeit ist kein neuer UI-Befund.
+
+**Ergebnis: noch kein Implementierungs-Agreement.** Die gemeinsamen Bausteine und die
+Standardfälle funktionieren in den ausgeführten Prüfungen. Der Dialogstapel garantiert aber
+noch nicht in jeder Öffnungs-/Schließreihenfolge, dass die sichtbare Oberfläche auch den
+Tastaturfokus besitzt. UI-DI01 und UI-DI02 sind vor Abnahme von D2 zu beheben.
+
+| ID | Priorität | Paket | Befund | Status |
+|---|---|---|---|---|
+| UI-DI01 | P2 | D2 | Sichtbarer Maschinenablauf und aktiver Fokus-Stapel können auseinanderlaufen | offen |
+| UI-DI02 | P2 | D2 | Schließen eines unteren Dialogs zieht Fokus aus dem noch offenen oberen Dialog | offen |
+| UI-DI03 | P3 | D1 | Stille Protokolleinträge werden nach Seitenneuladen als neue Meldungen gezählt | offen |
+
+Die IDs dieser Umsetzung sind von den Planbefunden **UI-D01–D09** getrennt.
+
+### UI-DI01 — Sichtbare Ebene und Fokus-Stapel müssen dieselbe Reihenfolge verwenden
+
+**Stellen:** `lcnc-webui/src/modalRegistry.ts:57–67`, `DialogFrame.vue:94–98` und
+`style.css:1209–1212`.
+
+**Reproduktion im gebauten UI:** Werkzeugwechsel anfordern → über den weiterhin erreichbaren
+Header **Settings** öffnen → Tab drücken. Der Werkzeugwechsel bleibt mit z-index **1010**
+sichtbar vor Settings (**1000**). Die Registry meldet jedoch **Settings** als obersten Dialog;
+der Fokus startet auf dessen „3D Viewer“ und wandert mit Tab zu „Machine“. Ein Hit-Test am
+fokussierten Element trifft den Scrim des Werkzeugwechsels. Die Tastatur bedient damit den
+verdeckten Dialog; Abort/Confirm des sichtbaren Werkzeugwechsels gehören nicht zum Tab-Bereich.
+
+**Ursache:** Die Registry nimmt ausschließlich den zuletzt angehängten Eintrag. Die visuelle
+Priorität für `flow` wird unabhängig davon in CSS festgelegt; auch der Initialfokus prüft diese
+Priorität nicht. Die bestehende Reihenfolge „Formular → Werkzeugwechsel“ im Test erkennt den
+umgekehrten Fall nicht.
+
+**Korrekturziel:** Eine gemeinsame Reihenfolge für sichtbare Ebene, aktiven Dialog,
+Initialfokus, Pausieren der Eingabehilfe und Tab-Bereich. Bleiben Maschinenabläufe immer vorne,
+darf ein später geöffneter normaler Dialog ihren Fokusbereich nicht übernehmen. Nur den
+z-index-Wert anzuheben oder nur den Tab-Handler anzupassen reicht nicht für diesen Vertrag.
+
+**Abnahme:** Beide Öffnungsreihenfolgen prüfen, mindestens Werkzeugwechsel ↔ Settings und
+Shutdown ↔ Referenz/Messages. Initialfokus und Tab/Shift+Tab gehören zum tatsächlich vordersten
+Dialog; sein Abbruch bleibt erreichbar. Zusätzlich zum Registry-/DOM-Zählvergleich den
+sichtbaren Empfänger mit einem Hit-Test prüfen. E-Stop bleibt global; keine fremde Aktion.
+
+**Nachweis:** [JSON](ui-design-welle.implementation-r1.json), Schlüssel
+`flowThenSettings` / `flowThenSettingsAfterTab`, und
+[Bild](ui-design-welle.implementation-r1-flow.png).
+
+### UI-DI02 — Ein unterer Dialog darf beim Schließen den oberen Fokus nicht zurückziehen
+
+**Stellen:** `lcnc-webui/src/DialogFrame.vue:101–105` und `inputSession.ts:134–149`.
+
+**Reproduktion im gebauten UI:** Tools öffnen und das Suchfeld fokussieren → der Controller
+fordert einen Werkzeugwechsel an → im Header die Shutdown-Rückfrage öffnen → der Controller
+beendet den Werkzeugwechsel, während die Shutdown-Rückfrage offen bleibt. Vorher sind
+sichtbarer Dialog, Registry und Fokus konsistent: **Shut Down LinuxCNC? / Cancel**. Danach
+bleibt derselbe Dialog sichtbar und in der Registry oben, aber der Fokus liegt im verdeckten
+**Search tools**. Physisch über `page.keyboard.type` eingegebener Text verändert dieses Feld;
+die Sonde liest dort anschließend `invisible edit`.
+
+Dieser Fall verwendet zwei `flow`-Dialoge derselben visuellen Stufe. Er tritt daher unabhängig
+vom Prioritätskonflikt UI-DI01 auf. Das Ende des Werkzeugwechsels wird im Mock ausschließlich
+als Statusänderung zugestellt, wie bei einem von anderer Stelle beendeten Ablauf.
+
+**Ursache:** Jeder Frame ruft beim Unmount bedingungslos `returnFocusTo(opener)` auf. Der
+Rückkehrhelfer fokussiert einen noch gültigen Auslöser sofort; er prüft nicht, ob dieser zum
+aktiven Dialogbereich gehört. Der neue Ersatzpunkt „oberster Dialog“ greift nur, wenn das alte
+Ziel nicht mehr geeignet ist. Hier lebt das Suchfeld weiter.
+
+**Korrekturziel:** Die Rückgabe muss berücksichtigen, welcher Dialog schließt und wem der
+aktuelle Fokus gehört. Entfernen eines unteren Eintrags erhält den Fokus im oberen Dialog.
+Ein altes Rückkehrziel darf einen weiterhin aktiven Dialogbereich nicht umgehen. Die bereits
+abgesicherte Rückkehr beim Schließen eines ganzen Stapels muss dabei erhalten bleiben.
+
+**Abnahme:** Obige Folge einschließlich Texteingabe nach dem Statuswechsel; Fokus bleibt auf
+Cancel oder im erlaubten Bereich der Shutdown-Rückfrage, Suchtext unverändert. Dazu untere
+Dialoge bei asynchroner Erfolgsantwort und entferntem/gesperrtem Auslöser schließen; die
+bestehenden Prüfungen für Kind → Elternteil und kompletter Stapel → Auslöser weiterführen.
+
+**Nachweis:** [JSON](ui-design-welle.implementation-r1.json), Schlüssel
+`beforeLowerFlowEnds` / `afterLowerFlowEnds` / `hiddenSearchText`, und
+[Bild](ui-design-welle.implementation-r1-lower-flow.png).
+
+### UI-DI03 — „log“ bleibt beim Wiederherstellen nicht still
+
+**Stellen:** `lcnc-webui/src/ws/statusStore.ts:181–195`; Erzeuger eines solchen Eintrags:
+`GcodePanel.vue:742`.
+
+`pushMessage(..., "log")` speichert `quiet: true` und erhöht zunächst keinen Zähler. Beim
+Seitenstart wird `unreadCount` jedoch aus **allen** gespeicherten Einträgen initialisiert.
+Ein einzelner persistierter Eintrag in genau dieser Form erzeugt nach Neuladen **Messages (1)**
+und die Banneraktion **1 message**. Die eigentliche Statuszeile wird nicht überschrieben.
+
+Das widerspricht der neuen Kanalregel „log = ungezählt“. Die Probe verwendet ausdrücklich
+einen gespeicherten Testeintrag; der vorausgehende verwaiste Editor-Speichervorgang wurde hier
+nicht als kompletter Browserablauf nachgestellt.
+
+**Korrekturziel / Abnahme:** Stille Einträge auch bei der Wiederherstellung vom Zähler
+ausschließen. Test mit `pushMessage(..., "log")` → Persistieren → Modul-/Seitenneustart:
+Eintrag bleibt im Protokoll, Zähler bleibt null. Ein normaler `notify`-Eintrag muss weiter
+gezählt werden. [JSON-Nachweis](ui-design-welle.implementation-r1.json): `quietAfterReload`.
+
+### Paketbewertung und bewusst abgegrenzte Arbeit
+
+| Paket | Bewertung dieser Runde |
+|---|---|
+| DR | Die dokumentierte Platzrechnung, benannten Zoomgrenzen und Operator-Wahl des Schmalmodus sind als Grundlage nachvollziehbar. Das ist die Geometrieentscheidung vor D3/D4, noch keine Abnahme der neuen Navigation. D3/D4 müssen ihre tatsächlichen Elemente mit den jetzt gebündelten Schriften erneut gegen das Budget messen. |
+| D0 | In Codeabgleich und gezielten Tests kein weiterer Blocker gefunden. Gemeinsamer Platzhalter, Prozentformatierung und Einheitenquellen sind vorhanden. Formular-Einheiten für Probe/Toolsetter sind ausdrücklich nach D4 verschoben. |
+| D1 | Reguläre Kanal-, Hilfe-, Retry- und Layoutprüfungen grün. UI-DI03 bleibt als kleiner Restpunkt. Kein stiller Logeintrag bei Sperrgründen ist die dokumentierte Operator-Entscheidung und kein Planverstoß. |
+| D2 | Die 23 Dialoge verwenden den gemeinsamen Frame; Einzelvertrag, Safety-Erreichbarkeit und Entwurfspause bestehen die vorhandenen Tests. Stapelverhalten wegen UI-DI01/02 noch nicht abgenommen. |
+
+Der schmale Picker-Modus, die entfernte Probe-Beschreibungszeile, lokale Inter-/JetBrains-Mono-
+Schriften und vorgezogene Safety-Layoutkorrekturen sind dokumentierte Entscheidungen.
+Makro-Enter und Hold für Programmaktionen gehören weiterhin zu D6. D3–D10, neue Theme-Paletten,
+Viewer-Kontrast und die spätere einheitliche Formular-/Aktionsgestaltung sind nicht Gegenstand
+dieser Paketabnahme.
+
+### Ausgeführte Prüfungen und Grenzen
+
+Alle Prüfungen liefen gegen den frischen Build von `176a9cd`, mit einem Browser zur Zeit und
+niedriger Prozesspriorität. Der laufende XYZAC-Simulator und der echte Gateway auf Port 8000
+wurden nicht angesprochen oder neu gestartet.
+
+| Prüfung | Ergebnis |
+|---|---|
+| `npm run build` | grün; bestehender Hinweis zu großen Bundles |
+| `npm run lint`, einschließlich CSS-Audit | grün |
+| 8 gezielte Vitest-Dateien: Format, Hint/Platzierung, Status-Store, Permissions, TWP-Hilfen, lokale Schriften | **112/112** grün |
+| Gateway `test_command_policy.py` + `test_command_dispatch.py` mit Fake-Controller | **214/214** grün |
+| `scripts/test_audit_scoped_css.py` | **20/20** grün |
+| Playwright `dialogs.spec.ts` + `feedback-channels.spec.ts`, `serial-guards --no-deps --workers=1` | **33/33** grün |
+| Gezielte `layout.spec.ts`-Fälle: 5-Achs-Seitenpanels Desktop/Hochformat in allen Zuständen, Jog-Zentrierung, Probing-Parameterposition, Safety-Spalten inkl. 150 % | **10/10** grün |
+| Unabhängige [Review-Sonde](ui-design-welle.implementation-r1.probe.mjs), Chromium am isolierten Mock `127.0.0.1:4188` | UI-DI01/02 und UI-DI03 reproduziert; JSON und Bilder oben verlinkt |
+| `git diff --check` | grün |
+
+Der erste Gateway-Testlauf hing innerhalb der Sandbox und wurde beendet; der zeitlich
+begrenzte Wiederholungslauf außerhalb der Sandbox mit `fake_linuxcnc` lief grün durch.
+Die zusätzlichen asynchronen Save-/Add-Proben zeigten in den getesteten Folgen **keinen**
+Fokusverlust und sind nicht als Befund gewertet.
+
+Kein vollständiger Offline-Gesamtlauf, keine Live-Maschinenbedienung, keine physische
+Touch-/Screenreader-Abnahme. Die Browserprüfungen ersetzen diese Abschlussprüfungen nicht.
+Nur Review-Dokumentation und reproduzierbare Nachweise ergänzt; Produktcode unverändert.
