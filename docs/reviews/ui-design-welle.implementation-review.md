@@ -5,11 +5,12 @@ mit Plan-Agreement ([Planreview Runde 3](ui-design-welle.review.md#codex-runde-3
 hält je Arbeitspaket den Umsetzungsstand, Abweichungen und Gate-Läufe fest; die
 Codex-Implementierungsreviews folgen nach den Paketgruppen DR + D0–D2, D3–D6 und D7–D10.
 
-**Aktueller Reviewstand · Codex Runde 2 · 26. September 2026 · `f73c2a9`: UI-DI01–03
-geschlossen; noch kein Implementierungs-Agreement für DR + D0–D2.** Ein neuer D2-Restbefund
-**UI-DI04 (P2)** betrifft die Fokusrückgabe nach Disarm.
-[Nachprüfung, Nachweise und Prüfgrenzen](#codex-implementierungsreview-runde-2).
-Das Plan-Agreement bleibt davon unberührt; Runde 1 unten ist der historische Prüfstand.
+**Aktueller Reviewstand · Codex Runde 3 · 26. September 2026 · `13e12e9`:
+Implementierungs-Agreement für DR + D0–D2. UI-DI01–04 sind geschlossen.**
+Keine neuen Befunde im geprüften Umfang.
+[Nachprüfung, Nachweise und Prüfgrenzen](#codex-implementierungsreview-runde-3).
+Das Agreement gilt für diese Paketgruppe; die späteren Pakete und ihre Abnahmen bleiben offen.
+Runde 1 und 2 unten sind historische Prüfstände.
 
 ---
 
@@ -603,3 +604,82 @@ Ausgabe außerhalb des Repos. Ergebnis:
 | `npm run build`, `npm run lint` (inkl. CSS-Audit) | grün |
 | Vitest | **1623/1623** |
 | Playwright, alle Projekte einzeln (`--no-deps --workers=1`) | **217/217**; `serial-guards` 91, davon `dialogs.spec.ts` 30 |
+
+---
+
+## Codex Implementierungsreview Runde 3
+
+**26. September 2026 · `feat/ui-design-wave` · HEAD `13e12e9`.** Nachprüfung der Antwort auf
+Runde 2 und der seitdem geänderten Produktstellen in `DialogFrame.vue`, `inputSession.ts`
+und `modalRegistry.ts` samt neuem Browsertest. Umfang weiterhin **DR + D0–D2**.
+
+**Ergebnis: UI-DI04 ist behoben und geschlossen. Keine neuen Befunde im geprüften Umfang.
+Implementierungs-Agreement für DR + D0–D2.** Die geschlossenen Befunde UI-DI01–03 bleiben
+auch in der erneuten unabhängigen Gegenprobe geschlossen.
+
+| ID | Ergebnis der Nachprüfung | Status |
+|---|---|---|
+| UI-DI01 | Werkzeugwechsel bleibt bei nachträglich geöffneten Settings zugleich sichtbarer und aktiver Dialog; Tab erreicht Abort. Beide Stapelreihenfolgen bestehen weiterhin die Browsertests. | geschlossen |
+| UI-DI02 | Beim Ende des unteren Ablaufs bleibt Cancel der darüberliegenden Shutdown-Rückfrage fokussiert; das verdeckte Suchfeld bleibt leer. Auch die asynchrone Add-Antwort belässt den Fokus in Settings. | geschlossen |
+| UI-DI03 | Der persistierte alte `quiet`-Eintrag erzeugt nach Neuladen weiterhin `Messages (0)` und keine Banneraktion. | geschlossen |
+| UI-DI04 | Nach Disarm und beendetem Werkzeugwechsel landet der Fokus auf dem Settings-Container und bleibt dort, auch nach 2,2 s. Bereits gesperrt geöffnete Settings und beide G-code-Reference-Fälle bestehen den neuen Test. | geschlossen |
+
+### Nachprüfung UI-DI04
+
+Die Korrektur erfüllt das Ziel aus Runde 2:
+
+- `initialTarget` verwirft nun auch bei expliziten Selektoren durch das übergeordnete
+  Fieldset gesperrte Ziele (`:disabled`) sowie nicht gerenderte Ziele. Der Dialog-Container
+  übernimmt. Die Sichtbarkeitsregel für Run from line bleibt erhalten und besteht ihren Test.
+- `fallbackFocus` prüft die tatsächliche Fokuslandung, bevor die Rückgabe als erfolgreich gilt.
+- Fällt der Fokus beim Sperren eines bereits fokussierten Feldes auf `body`, setzt die Registry
+  ihn im nächsten Frame auf den obersten Dialog-Container. Eine laufende Fokusrückgabe und
+  ein bereits auf einem anderen Control gelandeter Fokus bleiben unberührt.
+
+Der neue Test `UI-DI04` in `e2e/dialogs.spec.ts` deckt vier Fälle ab: Settings unter einem
+endenden Werkzeugwechsel nach Disarm; Settings bereits im Disarm-Zustand öffnen;
+G-code Reference unter einem endenden Werkzeugwechsel nach Disarm; und das Sperren des
+fokussierten Suchfelds in einer allein geöffneten G-code Reference. Der Container bleibt
+jeweils auch nach 600 ms fokussiert; Tab erreicht die Safety-Leiste.
+
+Die **unabhängige Sonde aus Runde 2** bestätigt die ursprüngliche Fehlerfolge zusätzlich:
+`disarmedAfterFlowEnds` und `disarmedAfterBackstop` zeigen beide `DIV` in Settings,
+der Hit-Test trifft Settings. Das ursprünglich ausgewählte Initialziel ist nachweislich
+weiter gesperrt (`candidateDisabled: true`), bei weiterhin aktivem Modal-Schutz.
+Space, Enter und Backspace erzeugen keine Befehle; Escape erzeugt genau `estop`.
+
+**Nachweise:** [Sonde aus Runde 2](ui-design-welle.implementation-r2.probe.mjs),
+[neues JSON](ui-design-welle.implementation-r3.json) und
+[Bild des verbleibenden Dialogs](ui-design-welle.implementation-r3-disarmed.png).
+Die Sonde wurde inhaltlich unverändert ausgeführt; lediglich Modulauflösung und
+Ausgabepräfix wurden für die temporäre Kopie angepasst. Die historischen Nachweise aus
+Runde 1 und 2 bleiben unverändert.
+
+### Ausgeführte Prüfungen und Umfang des Agreements
+
+| Prüfung am Stand `13e12e9` | Ergebnis |
+|---|---|
+| `npm run build` | grün; bestehender Hinweis zu großen Bundles |
+| `npm run lint` einschließlich CSS-Audit | grün |
+| `vitest run src/useNumberKeypad.test.ts --maxWorkers=1` | **4/4** grün; Entwurfs-Lebenszyklus, die Fokusabnahme erfolgt im Browser |
+| Playwright `dialogs.spec.ts` + `keyboard-guards.spec.ts`, `serial-guards --no-deps --workers=1` | **55/55** grün: 30 Dialog- und 25 Tastaturtests |
+| Unabhängige Review-Sonde am Mock `127.0.0.1:4188` | UI-DI01–04 bestätigt behoben; inklusive verzögerter Add-Antwort, 2,2-s-Wartezeit und Gegenprobe der Tastaturbefehle |
+| `git diff --check` | grün |
+
+Die im Claude-Bericht genannten vollständigen 1623 Unit- und 217 Browsertests wurden in
+dieser Runde nicht nochmals vollständig ausgeführt. Backend, D0-Formatierung und Layoutregeln
+wurden durch die Nachbesserung nicht funktional geändert.
+
+Das Agreement schließt die Review-Befunde dieser Paketgruppe. Die im Plan vorgesehenen
+Pakete **D3–D6 und D7–D10** einschließlich ihrer Geometrie- und Abschlussprüfungen bleiben
+ausstehend; daraus folgt noch keine Merge-Freigabe für die gesamte Design-Welle. Die
+Referenzmessungen aus DR ersetzen nicht die Messung der später umgesetzten Navigation und
+Formulare. Die bewusst auf D4 verschobenen Feldeinheiten für Probing und Toolsetter bleiben
+Teil dieses Pakets.
+
+Alle Browserprüfungen liefen in Chromium nacheinander mit niedriger Prozesspriorität gegen
+isolierte Mocks. Der laufende XYZAC-Simulator und der echte Gateway wurden nicht angesprochen
+oder neu gestartet; der zusätzliche Review-Mock wurde anschließend beendet. Keine physische
+Touch-/Screenreader- oder macOS-Safari-/Firefox-Abnahme. Das in Claudes Antwort genannte
+Fokusverhalten gesperrter Controls auf diesen Browsern bleibt eine Prüfgrenze der Live-Abnahme.
+Nur Review-Dokumentation und Nachweise geändert, kein Produktcode.
