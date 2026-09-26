@@ -586,7 +586,10 @@ function onToolTap(tool: Tool, e: MouseEvent) {
   hoverTool.value = tool;
 }
 
-defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, importBusy });
+// The loaded tool's row, for the Tools tab's object line (design wave D5).
+const currentDescription = computed(() =>
+  tools.value.find(t => t.T === props.currentTool)?.description ?? "");
+defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, importBusy, currentDescription });
 </script>
 
 <template>

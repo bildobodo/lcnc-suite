@@ -549,6 +549,56 @@ und den echten Formularen wiederholen):
     berührt sie nicht.
 - **Referenzbilder:** unverändert, 10/10.
 
+### WP-D5a — ein Muster für die Köpfe der Tabs · 26. September 2026
+
+**Muster** (`.panelHead`, `.panelObject`, `.actionGroup` in style.css). Jeder Tab ordnet seine Teile in
+einer Reihenfolge, jede Zeile optional, keine Karte um eine Gruppe:
+1. Objektzeile: worauf der Tab wirkt und sein Zustand.
+2. Maschinenaktionen, **Abort als letzter Button am rechten Rand** (N80). Das ist der eine Platz über
+   Program, MDI, Probing und Tools.
+3. Verwaltung.
+4. Suche/Filter.
+5. Inhalt.
+6. Inline-Rückmeldung.
+
+**Plan vor K05-Wortlaut:** Der Plan (Fassung 3) nummeriert Objekt, Maschinenaktionen, Verwaltung; der
+K05-Vorschlag nennt Objekt und Verwaltung vor der Ausführung. Umgesetzt ist die Plan-Reihenfolge, weil
+der Plan das vereinbarte Dokument ist.
+
+**Was sich für den Bediener verschiebt:**
+- **Program:**
+  - Edit / Reload / Unload / Files / Upload stehen jetzt unter Start / Step / Pause / Abort.
+  - M01 und /BD stehen links von Abort (bisher rechts davon).
+  - „File:“ entfällt; der Programmname ist die Objektzeile.
+- **Tools:** „In spindle · T5 · Beschreibung“ mit dem Probe-Zustand in der Objektzeile, dann Measure /
+  Unload / Abort, dann Add / Files / Upload.
+- **Ein Umschalter „Files“** (N82) statt eines Buttons mit zwei Namen („Browse“ / „Hide Files“).
+  Gedrückt (`aria-pressed`, ausgewählte Optik), solange der Browser zu sehen ist; in Program und Tools.
+- **Offsets** behält seine eine Kopfzeile (Titel links, Clear rechts). Es hat keine Maschinenaktion,
+  die Zeile ist bereits Objekt plus Verwaltung.
+
+**Gefunden durch den neuen Wächter:**
+- Bei 150 % Hochformat (271 px) brauchte die Program-Steuerzeile 489 px. Abort lag schon vor D5
+  außerhalb des Panels.
+- Eine Container-Abfrage ordnet die Zeile unter 400 px in zwei Spalten: die Laufoptionen oben, dann
+  Start · Step, dann Pause · Abort.
+
+**Wächter:**
+- `layout.spec` prüft in allen vier DR-Zuständen:
+  - Jeder Tab mit Abort hat genau einen, am rechten Rand seiner Aktionsgruppe.
+  - Rechts davon liegt nichts Bedienbares in derselben Zeile.
+  - Die Kopfzeilen halten die Reihenfolge Objekt → Maschinenaktionen → Verwaltung.
+- Gegenprobe: Abort vor den Laufoptionen (die alte Reihenfolge) macht ihn rot.
+
+**Gates:**
+- build und lint grün.
+- Playwright, alle Projekte einzeln: **237/237**.
+  - `serial-layout` 59, davon 4 neue Tests; Chromium 7.
+  - Beide liefen nach der letzten Korrektur erneut: Die Objektzeile hatte eine Mindesthöhe, die dem
+    Werkzeug-Dateibrowser auf Touch eine halbe Zeile nahm.
+  - `frames.spec` fiel im ersten Gesamtlauf einmal aus; einzeln und im Wiederholungslauf grün.
+- **Referenzbilder:** unverändert, 10/10.
+
 ---
 
 ## Codex Implementierungsreview Runde 1

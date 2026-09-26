@@ -284,7 +284,7 @@ test("a refused folder keeps the last listing and offers no Retry; a transient f
       : [{ name: "sub", type: "directory", path: "sub" }, { name: "a.ngc", type: "file", path: "a.ngc", size: 20 }] } });
   });
   await openReady(page);
-  await page.getByRole("button", { name: "Browse", exact: true }).click();
+  await page.getByRole("button", { name: "Files", exact: true }).click();
   const browser = page.getByRole("region", { name: "Server programs" });
   await expect(browser.getByRole("button", { name: "a.ngc", exact: true })).toBeVisible();
 

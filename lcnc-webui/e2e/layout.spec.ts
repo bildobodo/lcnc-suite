@@ -208,6 +208,61 @@ for (const st of NAV_STATES) {
   });
 }
 
+// The tab pattern (design wave D5, UI-K05 / N80): every tab with machine
+// actions closes its action group with Abort AT THE RIGHT EDGE — the one
+// place across tabs, wherever the row wraps — nothing interactive sits to
+// its right on its line, and a tab's head keeps the pattern's order (the
+// object line, then the machine actions, then management: top to bottom
+// in DOM order).
+for (const st of NAV_STATES) {
+  test(`${st.name}: Abort closes its action group at the right edge in every tab, the head keeps its order`, async ({ page }) => {
+    const viewport = VIEWPORTS.find(v => v.name === st.vp)!;
+    await openLayout(page, PROFILES[1]!, viewport);
+    if (st.zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, st.zoom);
+    const side = page.locator('.sidePane');
+    const problems: string[] = [];
+    for (const tab of ['Program', 'MDI', 'Probing', 'Tools']) {
+      if (st.narrow) await page.getByRole('combobox', { name: 'Side panel', exact: true }).selectOption({ label: tab });
+      else await side.getByRole('tab', { name: tab, exact: true }).click();
+      await settleLayout(page);
+      problems.push(...await side.evaluate((el, tab) => {
+        const out: string[] = [];
+        const shown = (e: Element) => (e as HTMLElement).offsetParent !== null;
+        const aborts = [...el.querySelectorAll<HTMLElement>('button')].filter(b => shown(b) && b.textContent?.trim() === 'Abort');
+        if (aborts.length !== 1) out.push(`${tab}: ${aborts.length} Abort buttons`);
+        for (const a of aborts) {
+          const box = (a.closest('.btnTip') as HTMLElement | null) ?? a;
+          const group = a.closest<HTMLElement>('.actionGroup');
+          if (!group) { out.push(`${tab}: Abort outside an .actionGroup`); continue; }
+          const ar = box.getBoundingClientRect();
+          const gr = group.getBoundingClientRect();
+          const cs = getComputedStyle(group);
+          const right = gr.right - parseFloat(cs.paddingRight) - parseFloat(cs.borderRightWidth);
+          if (Math.abs(ar.right - right) > 1) out.push(`${tab}: Abort ends ${(right - ar.right).toFixed(1)} px before its group's right edge`);
+          for (const c of group.querySelectorAll<HTMLElement>('button, input, select, [role="button"]')) {
+            if (c === a || box.contains(c) || !shown(c)) continue;
+            const cr = c.getBoundingClientRect();
+            if (cr.left >= ar.right - 1 && cr.top < ar.bottom && cr.bottom > ar.top)
+              out.push(`${tab}: "${(c.textContent ?? '').trim() || c.getAttribute('aria-label') || c.closest('label')?.textContent?.trim()}" sits right of Abort`);
+          }
+        }
+        for (const head of el.querySelectorAll<HTMLElement>('.panelHead')) {
+          if (!shown(head)) continue;
+          const rows = [...head.children].filter(shown) as HTMLElement[];
+          for (let i = 1; i < rows.length; i++) {
+            if (rows[i]!.getBoundingClientRect().top < rows[i - 1]!.getBoundingClientRect().bottom - 0.5)
+              out.push(`${tab}: head row ${i + 1} (${rows[i]!.className}) is not below row ${i} (${rows[i - 1]!.className})`);
+          }
+          const object = rows.findIndex(r => r.classList.contains('panelObject'));
+          if (object > 0) out.push(`${tab}: the object line is not the head's first row`);
+        }
+        return out;
+      }, tab));
+    }
+    expect(problems, problems.join('\n')).toEqual([]);
+  });
+}
+
 // Portrait stacks the strip's sections in ONE column: every section's
 // content spans the same x range, the pinned Safety section included, and its
 // near-edge fade hangs BELOW it across the column (operator, D1 live look:
@@ -301,9 +356,9 @@ for (const viewport of VIEWPORTS) {
     });
     await openLayout(page, PROFILES[1], viewport);
     const panel = page.locator('.sidePane .container').filter({ has: page.locator('.codeArea') });
-    const toolbar = panel.locator('.headerActions');
+    const toolbar = panel.locator('.programManage');
     const before = await measureLayout(toolbar, 'program-toolbar');
-    await panel.getByRole('button', { name: 'Browse', exact: true }).click();
+    await panel.getByRole('button', { name: 'Files', exact: true }).click();
     const browser = panel.getByRole('region', { name: 'Server programs' });
     await expect(browser.locator('.browserPath')).toHaveText(ncDir);
     await expect(browser.getByText('perfmatrix-big.ngc', { exact: true })).toBeVisible();
@@ -362,7 +417,7 @@ for (const viewport of VIEWPORTS) {
       directory, subdir: '', entries: entries('json'),
     } }));
     await openLayout(page, PROFILES[1], viewport);
-    await page.getByRole('button', { name: 'Browse', exact: true }).click();
+    await page.getByRole('button', { name: 'Files', exact: true }).click();
     const program = page.getByRole('region', { name: 'Server programs' });
     await expect(program.getByRole('button', { name: 'example-0.ngc', exact: true })).toBeVisible();
     const fileStyle = (el: Element) => {
@@ -371,7 +426,7 @@ for (const viewport of VIEWPORTS) {
         padding: s.padding, border: s.borderWidth, radius: s.borderRadius, background: s.backgroundColor };
     };
     const programStyle = await program.locator('.fileItem').first().evaluate(fileStyle);
-    await page.getByRole('button', { name: 'Hide Files', exact: true }).click();
+    await page.getByRole('button', { name: 'Files', exact: true }).click();
     await page.getByRole('tab', { name: 'Tools', exact: true }).click();
     const tab = page.locator('.toolsTab');
     const table = tab.locator('.tableWrap');
@@ -386,7 +441,7 @@ for (const viewport of VIEWPORTS) {
     expect(Math.abs((await actions.boundingBox())!.x
       - (await tab.getByRole('button', { name: 'Measure Current', exact: true }).boundingBox())!.x)).toBeLessThan(1);
     await expect(tab.getByRole('button', { name: /Refresh/ })).toHaveCount(0);
-    await tab.getByRole('button', { name: 'Browse', exact: true }).click();
+    await tab.getByRole('button', { name: 'Files', exact: true }).click();
     const browser = tab.getByRole('region', { name: 'Server tool libraries' });
     await expect(browser.getByRole('button', { name: 'example-0.json', exact: true })).toBeVisible();
     await expect(browser.locator('.browserPath')).toHaveText(directory);
@@ -420,13 +475,13 @@ for (const viewport of VIEWPORTS) {
       return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
     })).toBe(true);
     // The pane must keep its allocated height even with just one library file.
-    await tab.getByRole('button', { name: 'Hide Files', exact: true }).click();
+    await tab.getByRole('button', { name: 'Files', exact: true }).click();
     await expect(table).toBeVisible();
     await expect(table.locator('tbody tr')).toHaveCount(36);
     await page.route('**/tool-library-files?*', route => route.fulfill({ json: {
       directory, subdir: '', entries: entries('json').slice(0, 1),
     } }));
-    await tab.getByRole('button', { name: 'Browse', exact: true }).click();
+    await tab.getByRole('button', { name: 'Files', exact: true }).click();
     await expect(browser.locator('.fileItem')).toHaveCount(1);
     expect((await browser.boundingBox())!.height).toBeCloseTo(geometry.height, 0);
   });

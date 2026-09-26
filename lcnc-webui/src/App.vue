@@ -1947,7 +1947,8 @@ watch(viewerGcode, (newGcode) => {
 
           <template #mdi>
             <div class="mdiTab stack-controls">
-              <div class="mdiRow">
+              <!-- Machine actions (design wave D5): the line, Send, Abort last -->
+              <div class="mdiRow actionGroup">
                 <!-- v-model, like every other text field: one ref (mdiText) is the
                      line's single source — physical typing, the on-screen keys
                      (mdiTarget) and the history all write it. `:value` + `@input`
@@ -1971,7 +1972,7 @@ watch(viewerGcode, (newGcode) => {
                      verification-code field and popped up on every focus
                      (operator's variant test 2026-09-23). -->
                 <MachineBtn type="mdi" @click="handleMdiSend">Send</MachineBtn>
-                <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
+                <MachineBtn type="abort" class="actionEnd" @click="fire({ cmd: 'abort' }, 'abort')" />
               </div>
               <div class="mdiHistoryHeader">
                 <span class="sub">History</span>
@@ -2007,27 +2008,33 @@ watch(viewerGcode, (newGcode) => {
 
           <template #tools>
             <div class="toolsTab">
-              <div class="toolTabActions stack-controls">
-                <div class="toolTabRow stack-controls">
-                  <div class="row-tight">
-                    <MachineBtn type="toolMeasure" :disabled="!st.tool_number" reason="No tool loaded" @click="measureAuto">Measure Current</MachineBtn>
-                    <MachineBtn type="toolUnload" @click="unloadTool">Unload</MachineBtn>
-                    <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
-                  </div>
-                  <div class="row-tight toolTabManage">
-                    <MachineBtn type="manage" @click="toolTableRef?.openAdd()">+ Add</MachineBtn>
-                    <MachineBtn type="fileOp" :disabled="toolTableRef?.importBusy" @click="toolTableRef?.toggleImportBrowser()">
-                      <span class="stable-width"><span :class="{ alt: !toolTableRef?.showImportBrowser }">Hide Files</span><span :class="{ alt: toolTableRef?.showImportBrowser }">Browse</span></span>
-                    </MachineBtn>
-                    <MachineBtn type="fileOp" :disabled="toolTableRef?.importBusy" @click="toolTableRef?.uploadLibrary()">Upload</MachineBtn>
+              <!-- The tab's pattern (design wave D5, UI-K05): the tool in the
+                   spindle and the probe's state, the machine actions with Abort
+                   last at the right edge, then the table's management. -->
+              <div class="panelHead toolsHead">
+                <div class="panelObject">
+                  <span class="label-muted md">In spindle</span>
+                  <span class="toolInSpindle mono">{{ st.tool_number ? `T${st.tool_number}` : 'No tool loaded' }}</span>
+                  <span v-if="st.tool_number && toolTableRef?.currentDescription" class="toolInSpindleDesc">{{ toolTableRef.currentDescription }}</span>
+                  <div class="row-tight probeState">
+                    <span class="statusDot" :class="probeIndicatorClass"></span>
+                    <span class="label-muted md">Probe</span>
+                    <span class="statusDot" :class="probeStatusClass"></span>
+                    <span class="label-muted md mono">{{ probeStatus }}</span>
+                    <MachineBtn v-if="isDev" type="simTrip" @click="send({ cmd: 'simulate_probe_trip' })">Sim Trip</MachineBtn>
                   </div>
                 </div>
-                <div class="row-tight">
-                  <span class="statusDot" :class="probeIndicatorClass"></span>
-                  <span class="label-muted md">Probe</span>
-                  <span class="statusDot" :class="probeStatusClass"></span>
-                  <span class="label-muted md mono">{{ probeStatus }}</span>
-                  <MachineBtn v-if="isDev" type="simTrip" @click="send({ cmd: 'simulate_probe_trip' })">Sim Trip</MachineBtn>
+                <div class="actionGroup">
+                  <MachineBtn type="toolMeasure" :disabled="!st.tool_number" reason="No tool loaded" @click="measureAuto">Measure Current</MachineBtn>
+                  <MachineBtn type="toolUnload" @click="unloadTool">Unload</MachineBtn>
+                  <MachineBtn type="abort" class="actionEnd" @click="fire({ cmd: 'abort' }, 'abort')" />
+                </div>
+                <div class="actionGroup toolTabManage">
+                  <MachineBtn type="manage" @click="toolTableRef?.openAdd()">+ Add</MachineBtn>
+                  <!-- ONE files toggle (N82): pressed while the library browser shows -->
+                  <MachineBtn type="fileOp" :selected="!!toolTableRef?.showImportBrowser" :aria-pressed="!!toolTableRef?.showImportBrowser"
+                              :disabled="toolTableRef?.importBusy" @click="toolTableRef?.toggleImportBrowser()">Files</MachineBtn>
+                  <MachineBtn type="fileOp" :disabled="toolTableRef?.importBusy" @click="toolTableRef?.uploadLibrary()">Upload</MachineBtn>
                 </div>
               </div>
               <ToolTablePanel
@@ -2876,19 +2883,18 @@ watch(viewerGcode, (newGcode) => {
   flex: 1;
   min-height: 0;
 }
-
-.toolTabActions {
-  padding: var(--gap-tight) 0;
-  flex-shrink: 0;
+.toolsHead { padding-top: var(--gap-tight); }
+.toolInSpindle { font-weight: var(--fw-semibold); }
+.toolInSpindleDesc {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+.probeState { margin-inline-start: auto; flex-shrink: 0; }
 
-.toolTabRow {
-  align-items: flex-start;
-}
 
-.toolTabManage {
-  flex-wrap: wrap;
-}
+
 
 /* ── Portrait layout ─────────────────────────────────────────── */
 @media (orientation: portrait) {

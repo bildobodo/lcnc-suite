@@ -6669,3 +6669,34 @@ Plan Fassung 3 WP-D4, third part (N65, N67–N71).
   E-Stop key and needs its own guard.
 - Guard: two `forms.spec` tests (the reset rule; the list editors),
   mutation-checked three ways.
+
+### WP-D5a — one pattern for the tabs' heads (2026-09-26)
+
+Plan Fassung 3 WP-D5 (UI-K05, N80–N82), first part.
+
+- Every side-pane tab lays out its parts in ONE order, each an optional
+  row, no card around any of them (`.panelHead`, `.panelObject`,
+  `.actionGroup` in style.css): what the tab acts on and its state, the
+  machine actions with Abort LAST at the row's right edge (N80 — the one
+  place across Program, MDI, Probing and Tools), then management, then
+  search / filter, the content, inline feedback.
+- The plan's numbering (object, machine actions, management) over K05's
+  wording (object and management before execution): the plan is the
+  agreed document. For the operator this moves Program's Edit / Reload /
+  Unload / Files / Upload BELOW Start / Step / Pause / Abort, and M01 /
+  /BD sit left of Abort (they sat right of it). "File:" is gone; the
+  program's name is the object line.
+- Tools: "In spindle · T5 · <description>" with the probe's state on the
+  object line, Measure / Unload / Abort, then Add / Files / Upload.
+- One files toggle (N82): "Browse" / "Hide Files" was one button with two
+  names; now "Files", pressed (`aria-pressed`, the selected look) while
+  the browser shows, in Program and Tools.
+- Found by the new guard: at 150 % portrait (271 px) Program's control
+  row needed 489 px — Abort sat off the pane before D5 already. A
+  container query re-flows it below 400 px into two columns (the run
+  options on top, Start · Step, Pause · Abort).
+- Offsets keeps its one head row (title left, the Clear actions right): it
+  has no machine action, and the row already is object + management.
+- Guard: `layout.spec` — in all four DR states, every tab with Abort has
+  exactly one, at its action group's right edge, nothing interactive to
+  its right on its line, and the head rows keep the pattern's order.

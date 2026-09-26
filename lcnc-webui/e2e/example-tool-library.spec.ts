@@ -61,7 +61,7 @@ async function serverFiles(page: Page) {
 }
 
 async function selectServerFile(page: Page) {
-  await page.getByRole("button", { name: "Browse", exact: true }).click();
+  await page.getByRole("button", { name: "Files", exact: true }).click();
   const browser = page.getByRole("region", { name: "Server tool libraries" });
   await expect(browser).toBeVisible();
   await expect(browser.getByRole("status")).toHaveCount(0);
@@ -220,14 +220,14 @@ test("a slow server folder does not block client import or cancel", async ({ pag
   });
   await page.route("**/import-tool-library", route => route.fulfill({ json: preview }));
   await openTools(page);
-  await page.getByRole("button", { name: "Browse", exact: true }).click();
+  await page.getByRole("button", { name: "Files", exact: true }).click();
   const dialog = page.getByRole("region", { name: "Server tool libraries" });
   await expect(dialog.getByRole("status")).toHaveText("Loading…");
   await expect(page.getByRole("button", { name: "Upload", exact: true })).toBeEnabled();
-  await page.getByRole("button", { name: "Hide Files", exact: true }).click();
+  await page.getByRole("button", { name: "Files", exact: true }).click();
   release?.();
   await expect(dialog).toHaveCount(0);
-  await page.getByRole("button", { name: "Browse", exact: true }).click();
+  await page.getByRole("button", { name: "Files", exact: true }).click();
   await expect(dialog.getByRole("status")).toHaveText("Loading…");
   await selectClientFile(page);
   release?.();
@@ -248,7 +248,7 @@ for (const viewport of [{ width: 1024, height: 768 }, { width: 900, height: 1200
     await openTools(page);
     const actions = page.locator('.toolTabManage');
     const before = await measureLayout(actions, 'tool-file-actions');
-    await page.getByRole("button", { name: "Browse", exact: true }).click();
+    await page.getByRole("button", { name: "Files", exact: true }).click();
     const dialog = page.getByRole("region", { name: "Server tool libraries" });
     await expect(dialog.locator(".browserPath")).toHaveText("/server/nc_files");
     await expect(dialog.getByRole("button", { name: "cutters", exact: true })).toBeVisible();
@@ -256,7 +256,7 @@ for (const viewport of [{ width: 1024, height: 768 }, { width: 900, height: 1200
     const after = await measureLayout(actions, 'tool-file-actions');
     await assertLayout(actions, after, test.info(), layoutChanges(before, after));
     // File access stays inline; the two toolbar actions remain reachable.
-    await page.getByRole("button", { name: "Hide Files", exact: true }).click({ trial: true });
+    await page.getByRole("button", { name: "Files", exact: true }).click({ trial: true });
     await page.getByRole("button", { name: "Upload", exact: true }).click({ trial: true });
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await dialog.screenshot({ path: test.info().outputPath("server-browser.png") });

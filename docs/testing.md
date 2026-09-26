@@ -74,6 +74,14 @@ spec must pass alone AND inside the full `npm run test:e2e`.
 
 ## Frame / strip states (layout gate)
 
+`layout.spec.ts` also guards the side pane's patterns in the four DR states
+(desktop, touch landscape, touch portrait, 150 % portrait): the navigation
+budget (tabs or the narrow selects, no clipped name, the probing content
+holds its form rows — measured on the real FormField), and the tab pattern
+(design wave D5, N80): every tab with Abort has exactly one, at its action
+group's right edge with nothing interactive to its right, and a tab's head
+rows keep the order object line → machine actions → management.
+
 `layout.spec.ts` (serial-layout) measures the FRAME — the strip, the viewer
 pane and the content area, bounding box AND `clientWidth`/`clientHeight` —
 and enters every state the bottom strip can show: the number keypad from a

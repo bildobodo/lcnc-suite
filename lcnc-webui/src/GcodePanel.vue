@@ -777,54 +777,60 @@ async function saveEdit() {
 
 <template>
   <div class="container stack-controls" @dragover.prevent="onDragOver" @dragleave="onDragLeave" @drop.prevent="onDrop">
-    <div class="header stack-tight">
-      <div v-if="!compactEdit" class="headerActions">
-          <MachineBtn type="fileOp" class="actionBtn" @click="enterEdit" :disabled="!activeFile || editing">
-            Edit
-          </MachineBtn>
-          <MachineBtn type="fileOp" class="actionBtn" @click="reloadFile" :disabled="!activeFile || loading || editing">
-            Reload
-          </MachineBtn>
-          <MachineBtn type="fileOp" class="actionBtn" @click="unloadFile" :disabled="!activeFile || loading || editing"
-            :reason="editing ? 'Finish or discard the edit first' : undefined">
-            Unload
-          </MachineBtn>
-          <MachineBtn type="fileOp" class="actionBtn" @click="toggleBrowser" :disabled="loading || editing"
-            :reason="editing ? 'Finish or discard the edit first' : undefined">
-            <span class="stable-width"><span :class="{ alt: !showBrowser }">Hide Files</span><span :class="{ alt: showBrowser }">Browse</span></span>
-          </MachineBtn>
-          <MachineBtn type="fileOp" class="actionBtn" @click="($refs.fileInput as HTMLInputElement).click()" :disabled="editing"
-            :reason="editing ? 'Finish or discard the edit first' : undefined">
-            Upload
-          </MachineBtn>
-          <input ref="fileInput" type="file" accept=".ngc,.nc,.gcode,.tap,.txt" @change="onFileSelect" hidden />
-        </div>
-      <div class="fileInfo">
-        <span class="label">File:</span>
+    <!-- The tab's pattern (design wave D5, UI-K05): what it acts on, the
+         machine actions with Abort last at the right edge, then management.
+         Portrait edit mode folds both action rows (compactEdit). -->
+    <div class="panelHead">
+      <div class="panelObject">
         <div class="fileName">{{ fileName }}</div>
         <span class="fileMeta" v-if="gcodeContent">{{ lineCount }} lines</span>
         <MachineBtn v-if="gcodeStats" type="inline" class="actionBtn" @click="emit('showStats')">Stats</MachineBtn>
       </div>
-    </div>
 
-    <!-- Program control (folded in portrait edit mode — see compactEdit) -->
-    <div v-if="!compactEdit" class="ctrlRow">
-      <MachineBtn type="start" class="ctrlBtn" @click="onStartClick" :disabled="!activeFile || editing"
-        :reason="editing ? 'Finish or discard the edit first' : !activeFile ? 'No program loaded' : undefined">
-        <Play :size="14" class="ctrlIcon" /> {{ selectedLine && selectedLine > 1 ? `Start L${selectedLine}` : 'Start' }}
-      </MachineBtn>
-      <MachineBtn type="step" class="ctrlBtn" @click="emit('cycleStep')" :disabled="!(activeFile || can.resume) || editing"
-        :reason="editing ? 'Finish or discard the edit first' : !(activeFile || can.resume) ? 'No program loaded' : undefined">
-        <SkipForward :size="14" class="ctrlIcon" /> Step
-      </MachineBtn>
-      <MachineBtn :type="isPaused ? 'resume' : 'pause'" class="ctrlBtn"
-        @click="isPaused ? emit('cycleResume') : emit('cyclePause')">
-        <span class="stable-width"><span :class="{ alt: isPaused }"><Pause :size="14" class="ctrlIcon" /> Pause</span><span :class="{ alt: !isPaused }"><Play :size="14" class="ctrlIcon" /> Resume</span></span>
-      </MachineBtn>
-      <MachineBtn type="abort" class="ctrlBtn" @click="emit('abort')" />
-      <div class="row-tight switchToggles">
-        <MachineToggle gate="optionalStop" v-model="optionalStopModel" label="M01" />
-        <MachineToggle gate="blockDelete" v-model="blockDeleteModel" label="/BD" />
+      <!-- Program control -->
+      <div v-if="!compactEdit" class="ctrlRow actionGroup">
+        <MachineBtn type="start" class="ctrlBtn" @click="onStartClick" :disabled="!activeFile || editing"
+          :reason="editing ? 'Finish or discard the edit first' : !activeFile ? 'No program loaded' : undefined">
+          <Play :size="14" class="ctrlIcon" /> {{ selectedLine && selectedLine > 1 ? `Start L${selectedLine}` : 'Start' }}
+        </MachineBtn>
+        <MachineBtn type="step" class="ctrlBtn" @click="emit('cycleStep')" :disabled="!(activeFile || can.resume) || editing"
+          :reason="editing ? 'Finish or discard the edit first' : !(activeFile || can.resume) ? 'No program loaded' : undefined">
+          <SkipForward :size="14" class="ctrlIcon" /> Step
+        </MachineBtn>
+        <MachineBtn :type="isPaused ? 'resume' : 'pause'" class="ctrlBtn"
+          @click="isPaused ? emit('cycleResume') : emit('cyclePause')">
+          <span class="stable-width"><span :class="{ alt: isPaused }"><Pause :size="14" class="ctrlIcon" /> Pause</span><span :class="{ alt: !isPaused }"><Play :size="14" class="ctrlIcon" /> Resume</span></span>
+        </MachineBtn>
+        <!-- The run options sit before Abort: Abort closes the row (N80) -->
+        <div class="row-tight switchToggles">
+          <MachineToggle gate="optionalStop" v-model="optionalStopModel" label="M01" />
+          <MachineToggle gate="blockDelete" v-model="blockDeleteModel" label="/BD" />
+        </div>
+        <MachineBtn type="abort" class="ctrlBtn" @click="emit('abort')" />
+      </div>
+
+      <!-- Program management -->
+      <div v-if="!compactEdit" class="actionGroup programManage">
+        <MachineBtn type="fileOp" class="actionBtn" @click="enterEdit" :disabled="!activeFile || editing">
+          Edit
+        </MachineBtn>
+        <MachineBtn type="fileOp" class="actionBtn" @click="reloadFile" :disabled="!activeFile || loading || editing">
+          Reload
+        </MachineBtn>
+        <MachineBtn type="fileOp" class="actionBtn" @click="unloadFile" :disabled="!activeFile || loading || editing"
+          :reason="editing ? 'Finish or discard the edit first' : undefined">
+          Unload
+        </MachineBtn>
+        <!-- ONE files toggle (N82): pressed while the browser shows -->
+        <MachineBtn type="fileOp" class="actionBtn" :selected="showBrowser" :aria-pressed="showBrowser" @click="toggleBrowser"
+          :disabled="loading || editing" :reason="editing ? 'Finish or discard the edit first' : undefined">
+          Files
+        </MachineBtn>
+        <MachineBtn type="fileOp" class="actionBtn" @click="($refs.fileInput as HTMLInputElement).click()" :disabled="editing"
+          :reason="editing ? 'Finish or discard the edit first' : undefined">
+          Upload
+        </MachineBtn>
+        <input ref="fileInput" type="file" accept=".ngc,.nc,.gcode,.tap,.txt" @change="onFileSelect" hidden />
       </div>
     </div>
 
@@ -1081,14 +1087,11 @@ async function saveEdit() {
 <style scoped>
 .container {
   height: 100%;
+  /* The narrow side pane (150 % portrait: 271 px) re-flows the control
+     row below — a container query, the pane's own width decides. */
+  container-type: inline-size;
 }
 
-.header {
-  padding: var(--gap-controls) var(--gap-section);
-  background: color-mix(in oklab, var(--panel) 50%, transparent);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-}
 
 /* .controlRow — uses row-tight utility */
 
@@ -1101,9 +1104,17 @@ async function saveEdit() {
    1fr track would squeeze "Pause/Resume" in touch landscape). */
 .ctrlRow {
   display: grid;
-  grid-template-columns: repeat(4, minmax(max-content, 1fr)) auto;
+  grid-template-columns: repeat(3, minmax(max-content, 1fr)) auto minmax(max-content, 1fr);
   align-items: center;
   gap: var(--gap-tight);
+}
+/* Narrow pane (< 400 px, the DR threshold): one row needed 489 px at 150 %
+   portrait and Abort sat off the pane. Two columns — the run options on
+   top, then Start · Step, Pause · Abort: Abort still closes the group at
+   its right edge (N80). */
+@container (max-width: 399px) {
+  .ctrlRow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ctrlRow > .switchToggles { grid-row: 1; grid-column: 1 / -1; }
 }
 
 .switchBtn {
@@ -1138,12 +1149,6 @@ async function saveEdit() {
   margin-left: auto;
 }
 
-.fileInfo {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-controls);
-  min-width: 0;
-}
 
 
 .fileName {
@@ -1154,12 +1159,6 @@ async function saveEdit() {
   text-overflow: ellipsis;
 }
 
-.headerActions {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-tight);
-  flex-shrink: 0;
-}
 
 .fileMeta {
   font-size: var(--fs-base);

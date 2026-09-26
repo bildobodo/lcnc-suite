@@ -88,7 +88,7 @@ test("external program change keeps buffer A, shows the conflict, saves A only",
   await expect(page.locator(".cm-content")).toBeVisible();
   expect(await loadFileCmds()).toEqual([]);
   // Browse/Unload/Upload are disabled for the session's duration.
-  await expect(page.getByRole("button", { name: "Browse", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Files", exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Unload", exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Upload", exact: true })).toBeDisabled();
 });

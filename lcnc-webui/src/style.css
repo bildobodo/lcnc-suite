@@ -1176,6 +1176,39 @@ label:has(input:disabled, select:disabled) {
 }
 .formField > .inputField,
 .formField > input[type="range"] { width: 100%; min-width: 0; }
+/* ── A tab's pattern (design wave D5, UI-K05, plan WP-D5) ──
+   Every side-pane tab lays out its parts in ONE order, each an optional
+   row, no card around any of them:
+     1 .panelObject   what the tab acts on and its state (the program, the
+                      tool in the spindle)
+     2 .actionGroup   machine actions — Abort LAST, at the row's right edge
+                      (N80; the ONE place across tabs)
+     3 .actionGroup   management (edit, files, upload)
+     4 the search / filter row
+     5 the content (it scrolls)
+     6 inline feedback (.statusNote) */
+.panelHead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-controls);
+  flex-shrink: 0;
+  min-width: 0;
+}
+.panelObject {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-controls);
+  min-width: 0;
+}
+.actionGroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-tight);
+}
+/* Abort closes its group at the right edge, wherever the row wraps. */
+.actionGroup > .actionEnd { margin-inline-start: auto; }
+
 /* A reset to defaults (design wave D4, UI-N65): ONE place — the end of
    its section, right-aligned — and one confirm under the button's gate. */
 .resetRow {

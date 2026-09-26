@@ -701,7 +701,7 @@ function fmtR(key: string): string {
     <div class="stack-sections probePanel scroll-thin fade-scroll" role="tabpanel" :id="tabIds('probe', probeView).panel"
          :aria-labelledby="narrow ? undefined : tabIds('probe', probeView).tab" :aria-label="narrow ? probeViewLabel : undefined">
     <!-- Control bar (hidden for toolsetter view) -->
-    <div v-if="probeView !== 'toolsetter'" class="controlBar">
+    <div v-if="probeView !== 'toolsetter'" class="controlBar actionGroup">
       <MachineToggle gate="probeParam" v-model="autoZero" label="Auto Zero" @update:model-value="saveParams" />
       <MachineToggle gate="probeParam" v-model="setRotation" label="Set Rotation" />
       <div class="controlBarRight">
