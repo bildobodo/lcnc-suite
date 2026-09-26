@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Text } from "troika-three-text";
 import { LABEL_FONT_URL } from "./viewer/labelFont";
+import { resolveViewerPalette, type ViewerPalette } from "./viewer/viewerPalette";
 import { buildToolGeometries, type ToolMeta } from "./toolGeometry";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
@@ -57,6 +58,12 @@ const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
 // Deep-reactive so template bindings (e.g. HUD opacity) update when the
 // settingsVersion watcher refreshes the values from the server.
 const viewerDefaults = reactive(loadViewerDefaults());
+// The palette as drawn (design wave D8c, UI-K08): the theme's --viewer-*
+// roles, the operator's colours over them in Custom mode — ONE resolver
+// (viewer/viewerPalette.ts), re-resolved on a theme switch and on every
+// settings change (refreshPalette). Nothing here keeps a colour of its own.
+const readRootToken = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name);
+let palette: ViewerPalette = resolveViewerPalette(readRootToken, viewerDefaults);
 
 // ─── Camera PIP visibility ───────────────────────────────────────
 const pipVisible = ref(loadCameraDefaults().pipVisible);
@@ -514,7 +521,7 @@ const toolpath = createToolpathController({
   billboardLabels: _billboardLabels,
   makeLabel: mkTextLabel,
   disposeObject,
-  colors: () => viewerDefaults.colors,
+  colors: () => palette,
   axisCss: AXIS_CSS,
   overflow: toolpathOverflow,
   overflowCount: toolpathOverflowCount,
@@ -1123,8 +1130,8 @@ MAT.frame.color.setHex(MACHINE_PALETTE.frame);
 MAT.axisX.color.setHex(MACHINE_PALETTE.x);
 MAT.axisY.color.setHex(MACHINE_PALETTE.y);
 MAT.axisZ.color.setHex(MACHINE_PALETTE.z);
-MAT.tool.color.setHex(0xc0c0c0);  // silver shaft
-MAT.cutter.color.setHex(0xffdd00); // gold cutter
+MAT.tool.color.set(palette.tool);      // shaft
+MAT.cutter.color.set(palette.cutter);  // cutter
 
 // Mark every shared MAT.* instance so disposeObject (viewer/disposal.ts) never
 // frees them: one instance is reused across every rebuild and across machine
@@ -1420,7 +1427,7 @@ function ensureCoreGroups(init: ViewerInit) {
   // ---- Backplot line (tool history in WORK coordinates) ----
   // Rebuild under the fresh _workGrp (reassigned each rebuild); the controller
   // replaces its prior line (clearScene already disposed the old one).
-  backplot.build(_workGrp!, viewerDefaults.colors.backplot ?? "#ff00ff", !pathAlwaysOnTop);
+  backplot.build(_workGrp!, palette.backplot, !pathAlwaysOnTop);
 
   // Default tool until the next viewer_state tick rebuilds the real one
   // (_currentToolNum was reset above, so a loaded tool re-triggers needsRebuild).
@@ -1432,7 +1439,7 @@ function ensureCoreGroups(init: ViewerInit) {
 
   // --- Machine bounds box — wireframe edges only ---
   {
-    const boundsColor = viewerDefaults.colors.bounds ?? "#ffffff";
+    const boundsColor = palette.bounds;
     const boxGeom = new THREE.BoxGeometry(1, 1, 1);
     const edgeGeom = new THREE.EdgesGeometry(boxGeom);
     boxGeom.dispose();
@@ -1440,6 +1447,7 @@ function ensureCoreGroups(init: ViewerInit) {
       edgeGeom,
       new THREE.LineBasicMaterial({ color: boundsColor })
     );
+    (machineBoundsMesh.material as THREE.Material).userData.role = "bounds";
     // MACHINE frame, never the rotating work group: the clip planes that
     // decide the yellow outside-bounds overlay live there (7a04909), and the
     // box that stayed under _workGrp swung with A while the clipping did not
@@ -1452,8 +1460,8 @@ function ensureCoreGroups(init: ViewerInit) {
   if (_reachRoomOn || _reachPartOn) _reachRequest();
 
   // Apply tool colors
-  MAT.tool.color.set(viewerDefaults.colors.tool ?? "#c0c0c0");
-  MAT.cutter.color.set(viewerDefaults.colors.cutter ?? "#ffdd00");
+  MAT.tool.color.set(palette.tool);
+  MAT.cutter.color.set(palette.cutter);
 }
 
 /**
@@ -1648,6 +1656,26 @@ async function buildFromInit(init: ViewerInit) {
         },
         switchProjection,
         defaultFrameDir: [...DEFAULT_FRAME_DIR],
+        // The palette as resolved and as DRAWN (design wave D8c): per role
+        // the colour of the first material carrying that role in the scene
+        // (materials are tagged userData.role), the tool's shared MATs and
+        // the emissive of a tinted (collision) mesh.
+        getPalette: () => {
+          const drawn: Record<string, string> = {};
+          scene?.traverse(o => {
+            const m = (o as THREE.Mesh).material as (THREE.Material & { color?: THREE.Color }) | undefined;
+            const role = m?.userData?.role as string | undefined;
+            if (role && m?.color && !(role in drawn)) drawn[role] = "#" + m.color.getHexString();
+          });
+          drawn.tool = "#" + MAT.tool.color.getHexString();
+          drawn.cutter = "#" + MAT.cutter.color.getHexString();
+          const tinted = [...machineMeshes, toolCutterMesh, toolBodyMesh].find(mm => mm?.userData._clashOn);
+          if (tinted) drawn.collision = "#" + (tinted.material as THREE.MeshStandardMaterial).emissive.getHexString();
+          return { resolved: { ...palette }, drawn, mode: viewerDefaults.paletteMode };
+        },
+        // Put a part under the collision tint (or take it off) without a
+        // sweep — the palette spec checks the tint follows a theme switch.
+        tintPart: (id: string, on: boolean) => { for (const m of _clashMeshes(id)) _tintMesh(m, on); requestRender(); },
         getAppearance: () => ({
           grid: groundGrid ? {
             visible: groundGrid.visible,
@@ -3056,7 +3084,7 @@ function _reachBuildMeshes() {
   const d = _reachData;
   const roomParent = machineFrameGrp ?? _workGrp;
   if (!d || !roomParent) { requestRender(); return; }
-  const color = viewerDefaults.colors.bounds ?? "#ffffff";
+  const color = palette.bounds;
   reachRoomMesh = _reachSolidGroup(d.roomLines, color);
   reachRoomMesh.visible = _reachRoomOn;
   roomParent.add(reachRoomMesh);
@@ -3143,11 +3171,12 @@ let _scrubTrackRef: ScrubTrack | null = null;
 let _scrubCum: number | null = null;
 
 // ---- Clash-pair tint: while the scrub sits on a line with a reported
-// collision, the involved bodies glow danger-red (emissive add — works on
-// any base/vertex color). Shared materials (MAT.*, auto part materials)
-// are clone-swapped per mesh and restored on clear, so nothing leaks into
-// other parts and user color overrides stay untouched. ----
-let _dangerHex: number | null = null;
+// collision, the involved bodies glow in the collision role (emissive add —
+// works on any base/vertex color). Shared materials (MAT.*, auto part
+// materials) are clone-swapped per mesh and restored on clear, so nothing
+// leaks into other parts and user color overrides stay untouched. The tint
+// is the palette's, re-read on a theme switch (it used to be cached once:
+// the first theme's --danger for the rest of the session). ----
 const _clashOnIds = new Set<string>();
 
 function _clashMeshes(id: string): THREE.Mesh[] {
@@ -3170,10 +3199,7 @@ function _tintMesh(mesh: THREE.Mesh, on: boolean) {
     } else {
       mesh.userData._preClashEmissive = mat.emissive.getHex();
     }
-    if (_dangerHex == null) {
-      _dangerHex = cssColor("--danger", "#cc3333").getHex();
-    }
-    mat.emissive.setHex(_dangerHex);
+    mat.emissive.set(palette.collision);
     mesh.userData._clashOn = true;
   } else {
     if (!mesh.userData._clashOn) return;
@@ -3391,6 +3417,7 @@ function updateSceneTheme() {
   if (scene) scene.background = background;
   if (groundGrid) updateGroundGridColors(groundGrid, background, foreground);
   for (const edge of _machineEdgeLines) (edge.material as THREE.LineBasicMaterial).color.copy(foreground);
+  refreshPalette();                         // Automatic follows the theme; the finding roles always
   toolpath.setStale(pathStaleNow.value);   // the muted mix follows the background
   requestRender();
 }
@@ -3499,12 +3526,10 @@ function applyViewerDefaults() {
   const wantOrtho = viewerDefaults.projection === "parallel";
   if (isOrtho.value !== wantOrtho) switchProjection();
 
-  // Live-updatable materials: colors on shared MAT instances propagate immediately.
-  MAT.tool.color.set(viewerDefaults.colors.tool ?? "#c0c0c0");
-  MAT.cutter.color.set(viewerDefaults.colors.cutter ?? "#ffdd00");
-  // Toolpath/backplot/bounds line colors live too (they used to apply only at
-  // line-creation time, so a colour change needed a program reload).
-  applyPathColors(viewerDefaults.colors);
+  // The palette (mode, custom colours) — onto the live lines and the shared
+  // MAT instances (they used to apply only at line-creation time, so a
+  // colour change needed a program reload).
+  refreshPalette();
 
   // Per-part color overrides — re-apply via setMachinePartColor, which clones
   // on write (a direct mat.color.set here tinted the shared MAT.axis*/frame
@@ -3820,28 +3845,35 @@ function setMachineEdges(on: boolean) {
   requestRender();
 }
 
-function setToolColors(toolColor: string | null, cutterColor: string | null) {
-  if (toolColor) MAT.tool.color.set(toolColor);
-  if (cutterColor) MAT.cutter.color.set(cutterColor);
+/** Re-resolve the palette (theme tokens, mode, custom colours) and put it
+ *  on every live object: the toolpath streams, the limit overlay and the
+ *  selected segment (toolpath controller), the backplot, both bounds boxes,
+ *  the reach outlines, the tool materials and a collision tint on screen.
+ *  Objects built later read `palette` at creation. */
+function refreshPalette() {
+  palette = resolveViewerPalette(readRootToken, viewerDefaults);
+  toolpath.setColors(palette);
+  backplot.setColor(palette.backplot);
+  if (machineBoundsMesh) (machineBoundsMesh.material as THREE.LineBasicMaterial).color.set(palette.bounds);
+  for (const g of [reachRoomMesh, reachPartMesh]) g?.traverse(o => { const m = (o as THREE.Mesh).material as THREE.Material & { color?: THREE.Color }; m?.color?.set(palette.bounds); });
+  MAT.tool.color.set(palette.tool);
+  MAT.cutter.color.set(palette.cutter);
+  for (const mesh of [...machineMeshes, toolCutterMesh, toolBodyMesh]) {
+    if (mesh?.userData._clashOn) (mesh.material as THREE.MeshStandardMaterial).emissive.set(palette.collision);
+  }
   requestRender();
 }
 
-// Live-update the per-program toolpath/backplot/bounds line colors on whatever
-// lines currently exist (null-guarded; lines built later read the saved value
-// at creation). Overflow/highlight lines keep their fixed warning colors.
-type PathColors = { feed?: string; rapid?: string; backplot?: string; bounds?: string; toolpathBounds?: string };
-function applyPathColors(c: PathColors) {
-  toolpath.setColors({ feed: c.feed, rapid: c.rapid, toolpathBounds: c.toolpathBounds });
-  if (c.backplot) backplot.setColor(c.backplot);
-  if (machineBoundsMesh && c.bounds) (machineBoundsMesh.material as THREE.LineBasicMaterial).color.set(c.bounds);
-  if (c.bounds) for (const g of [reachRoomMesh, reachPartMesh]) g?.traverse(o => { const m = (o as THREE.Mesh).material as THREE.Material & { color?: THREE.Color }; m?.color?.set(c.bounds!); });
+/** Settings changed a colour or the palette mode: the saved section is in
+ *  the settings cache already (saveSection writes it before the debounce),
+ *  the server's echo re-applies it once more. */
+function applyPaletteFromSettings() {
+  Object.assign(viewerDefaults, loadViewerDefaults());
+  refreshPalette();
 }
 
-/** Exposed instant path-colour update (parity with setToolColors). */
-function setPathColors(c: PathColors) {
-  applyPathColors(c);
-  requestRender();
-}
+/** The palette as drawn (Settings' legend and its first switch to Custom). */
+function currentPalette(): ViewerPalette { return { ...palette }; }
 
 // Getter passed to ViewCube — runs every frame so it tracks camera replacement
 // (perspective ↔ ortho swap re-binds the local `camera` variable).
@@ -3860,8 +3892,8 @@ defineExpose({
   isOrtho,
   setMachinePartColor,
   setMachineEdges,
-  setToolColors,
-  setPathColors,
+  applyPaletteFromSettings,
+  currentPalette,
 });
 
 

@@ -138,6 +138,26 @@
   --syntax-coord: #006955;
   --syntax-param: #236482;
   --syntax-comment: #3b6825;
+  /* Viewer palette (design wave D8c, UI-K08): what WebGL draws, per theme —
+     literal hex (ThreeViewer's cssColor reads no color-mix). A line lies on
+     the scene background AND on the lit machine (a table top renders
+     ≈ #e0e0e0 in every theme): each line role ≥ 3 : 1 on both (on --bg
+     ≥ 4.5 in HC), so the dark themes draw MID-light lines, not pastels that
+     vanish on the part; the path roles differ in hue AND lightness, ≥ 0.12
+     apart in OKLab (themeTokens.test.ts). Rapid is dashed as well; limits
+     keep the warn family everywhere (overlay, timeline marks, line numbers).
+     Tool and cutter are lit meshes — no line contrast applies. Settings'
+     Automatic palette reads these; Custom replaces the seven user roles. */
+  --viewer-feed: #005dbd;
+  --viewer-rapid: #007531;
+  --viewer-backplot: #ba02b4;
+  --viewer-limit: #9a6000;
+  --viewer-selection: #111111;
+  --viewer-collision: #c20012;
+  --viewer-bounds: #475569;
+  --viewer-toolpath-bounds: #007531;
+  --viewer-tool: #9aa0a6;
+  --viewer-cutter: #d4a800;
 
   /* Highlight tiers (fg mixed into button-bg) */
   --hl-hover: color-mix(in oklab, var(--fg) 12%, var(--button-bg));
@@ -272,6 +292,16 @@
     --syntax-coord: #4ec9b0;
     --syntax-param: #9cdcfe;
     --syntax-comment: #7baa66;
+    --viewer-feed: #0066cd;
+    --viewer-rapid: #00863b;
+    --viewer-backplot: #cd00c6;
+    --viewer-limit: #ad6d00;
+    --viewer-selection: #008b96;
+    --viewer-collision: #db0016;
+    --viewer-bounds: #64748b;
+    --viewer-toolpath-bounds: #00863b;
+    --viewer-tool: #c0c0c0;
+    --viewer-cutter: #ffdd00;
   }
 }
 
@@ -294,6 +324,16 @@
   --syntax-coord: #006955;
   --syntax-param: #236482;
   --syntax-comment: #3b6825;
+  --viewer-feed: #005dbd;
+  --viewer-rapid: #007531;
+  --viewer-backplot: #ba02b4;
+  --viewer-limit: #9a6000;
+  --viewer-selection: #111111;
+  --viewer-collision: #c20012;
+  --viewer-bounds: #475569;
+  --viewer-toolpath-bounds: #007531;
+  --viewer-tool: #9aa0a6;
+  --viewer-cutter: #d4a800;
 }
 
 :root[data-theme="dark"] {
@@ -315,6 +355,16 @@
   --syntax-coord: #4ec9b0;
   --syntax-param: #9cdcfe;
   --syntax-comment: #7baa66;
+  --viewer-feed: #0066cd;
+  --viewer-rapid: #00863b;
+  --viewer-backplot: #cd00c6;
+  --viewer-limit: #ad6d00;
+  --viewer-selection: #008b96;
+  --viewer-collision: #db0016;
+  --viewer-bounds: #64748b;
+  --viewer-toolpath-bounds: #00863b;
+  --viewer-tool: #c0c0c0;
+  --viewer-cutter: #ffdd00;
 }
 
 /* High-contrast overrides — boost surfaces AND semantic colors */
@@ -346,6 +396,16 @@
   --syntax-coord: #005c48;
   --syntax-param: #125674;
   --syntax-comment: #2f5b16;
+  --viewer-feed: #003d82;
+  --viewer-rapid: #004b1e;
+  --viewer-backplot: #7d0079;
+  --viewer-limit: #6c4c02;
+  --viewer-selection: #000000;
+  --viewer-collision: #860009;
+  --viewer-bounds: #333d4a;
+  --viewer-toolpath-bounds: #004b1e;
+  --viewer-tool: #8a8f96;
+  --viewer-cutter: #b38f00;
 }
 
 :root[data-theme="hc-dark"] {
@@ -376,6 +436,16 @@
   --syntax-coord: #4ec9b0;
   --syntax-param: #9cdcfe;
   --syntax-comment: #7bab66;
+  --viewer-feed: #007af0;
+  --viewer-rapid: #00903f;
+  --viewer-backplot: #da08d3;
+  --viewer-limit: #b17000;
+  --viewer-selection: #008b96;
+  --viewer-collision: #f5001b;
+  --viewer-bounds: #6b7a8f;
+  --viewer-toolpath-bounds: #00903f;
+  --viewer-tool: #d0d0d0;
+  --viewer-cutter: #ffe14d;
 }
 
 html, body {
@@ -1997,6 +2067,16 @@ label:has(input:disabled, select:disabled) {
   color: var(--fg-muted);
   margin-left: auto;
 }
+/* A line sample in a legend (Settings › 3D Viewer › Colors, design wave
+   D8c): the role's colour as the inline `color`, a 3 px rule as wide as the
+   colour picker it stands in for (the rows align in both modes); `.dashed`
+   for a dashed stream (rapid). */
+.legendLine {
+  width: 32px;
+  flex-shrink: 0;
+  border-top: 3px solid currentColor;
+}
+.legendLine.dashed { border-top-style: dashed; }
 
 /* Program progress bar (G-code panel). Track flexes to fill its row; fill
    width is driven inline from progress %. */

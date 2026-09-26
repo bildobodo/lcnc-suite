@@ -1,5 +1,6 @@
 import { ref } from "vue";
 import { withToken } from "./auth";
+import { mergeViewerSection } from "./viewerSection";
 import { noteSavePending, noteSaveSent, noteSaveBlocked, noteSaveFailed, noteSaveBeaconed } from "./settingsSaveStatus";
 import { resetServerSettings } from "./lcncApi";
 import type { GamepadProfile } from "./gamepadProfile";
@@ -42,6 +43,11 @@ export interface ColorDefaults {
   cutter: string;
 }
 
+/** The viewer palette's mode (design wave D8c, UI-D05) — for the WHOLE
+ *  palette, stored explicitly: "auto" draws the theme's `--viewer-*` roles
+ *  (viewer/viewerPalette.ts), "custom" the colours in `colors`. */
+export type PaletteMode = "auto" | "custom";
+
 export type HudScale = "sm" | "md" | "lg" | "xl";
 
 export interface HudDefaults {
@@ -59,7 +65,10 @@ export type PreviewMode = "part" | "programmed";
 
 export interface ViewerDefaults {
   layers: Record<Layer, boolean>;
-  colors: ColorDefaults;
+  paletteMode: PaletteMode;
+  /** The Custom palette. Kept while Automatic is chosen (Custom → Automatic
+   *  → Custom brings it back); empty until Custom was chosen once. */
+  colors: Partial<ColorDefaults>;
   machineColors: Record<string, string>;
   machineEdges: boolean;
   trackingMode: TrackMode;
@@ -222,7 +231,8 @@ export const HUD_FALLBACK: HudDefaults = {
 
 const VIEWER_FALLBACK: ViewerDefaults = {
   layers: { backplot: true, toolpath: true, machine: true, bounds: true, toolpathBounds: false, reachRoom: false, reachPart: false, workzero: true, hud: true, surface: true, tool: true, workplane: true, groundGrid: true },
-  colors: { feed: "#22b8cf", rapid: "#f5a623", backplot: "#ff00ff", bounds: "#ffffff", toolpathBounds: "#f5a623", tool: "#c0c0c0", cutter: "#ffdd00" },
+  paletteMode: "auto",
+  colors: {},
   machineColors: {},
   machineEdges: true,
   trackingMode: "none",
@@ -232,17 +242,7 @@ const VIEWER_FALLBACK: ViewerDefaults = {
   hud: { ...HUD_FALLBACK },
 };
 
-registerSection<ViewerDefaults>("viewer", VIEWER_FALLBACK, (saved, fb) => {
-  if (!saved) return JSON.parse(JSON.stringify(fb));
-  return {
-    ...fb,
-    ...saved,
-    layers: { ...fb.layers, ...saved.layers } as Record<Layer, boolean>,
-    colors: { ...fb.colors, ...saved.colors },
-    machineColors: { ...fb.machineColors, ...saved.machineColors },
-    hud: { ...fb.hud, ...saved.hud },
-  };
-});
+registerSection<ViewerDefaults>("viewer", VIEWER_FALLBACK, mergeViewerSection);
 
 /** Load viewer defaults (typed convenience wrapper). */
 export function loadViewerDefaults(): ViewerDefaults {

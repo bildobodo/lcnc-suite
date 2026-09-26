@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { ctl, MOCK } from "./ctl";
 import * as THREE from "three";
 import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
+import { encode } from "@msgpack/msgpack";
 
 // Viewer GPU-resource leak probe (A2). window.__viewerLeakProbe reports live
 // THREE.WebGLRenderer.info counts. A program's feed/rapid/highlight geometry is
@@ -366,4 +367,98 @@ test("default framing keeps the eye outside a bed/column model for every directi
   expect(insidePart(inside.position, parts)).toBe("bed");
   await page.evaluate(() => window.__viewerDiag!.setView!("reset"));
   expect(insidePart((await settledCamera(page)).position, parts)).toBeNull();
+});
+
+// Design wave D8c (UI-K08, UI-D05): the viewer palette. Automatic draws the
+// theme's --viewer-* roles and follows a theme switch — the collision tint
+// on screen included (it used to keep the first theme's colour); a Custom
+// palette stays through a switch while the finding roles follow; a palette
+// stored before the mode existed is Custom (no heuristic); Settings switches
+// Automatic ↔ Custom and keeps the custom colours; the legend shows what is
+// drawn. "drawn" is read off the tagged scene materials, not the settings.
+test("the viewer palette: Automatic follows the theme, Custom stays, a legacy palette is Custom, the legend shows what is drawn", async ({ page, context }) => {
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(e.message));
+  const feed: number[][] = [], feed_lines: number[] = [], outside: number[] = [];
+  for (let r = 0; r < 6; r++) for (let c = 0; c <= 4; c++) {
+    const x = (r % 2 === 0 ? c : 4 - c) * 25;
+    feed.push([x, r * 20 + (c % 2), 0]); feed_lines.push(feed.length + 1); outside.push(x > 80 ? 1 : 0);
+  }
+  const payload = encode({ file: "/palette.ngc", feed, feed_lines, feed_outside: new Uint8Array(outside),
+    rapid: [[0, 0, 20], [0, 0, 1]], rapid_outside: new Uint8Array(2) });
+  // /preview? only — a bare /preview/ pattern also catches previewWorker-*.js.
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: Buffer.from(payload) }));
+  await page.route("**/gcode?*", r => r.fulfill({ contentType: "text/plain", body: Array.from({ length: 40 }, (_, i) => `G1 X${i}`).join("\n") }));
+  await page.goto(MOCK);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready)).toBe(true);
+  const OLD = { feed: "#22b8cf", rapid: "#f5a623", backplot: "#ff00ff", bounds: "#ffffff", toolpathBounds: "#f5a623", tool: "#c0c0c0", cutter: "#ffdd00" };
+  const send = (type: string, theme: string, viewer?: Record<string, unknown>) =>
+    ctl({ op: "raw", frame: { type, settings: { display: { theme }, ...(viewer ? { viewer } : {}) } } });
+  const token = (name: string) => page.evaluate(n => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), name);
+  const drawn = () => page.evaluate(() => window.__viewerDiag!.getPalette!());
+
+  // No stored viewer section: Automatic.
+  await send("settings_init", "light");
+  await ctl({ op: "status_delta", data: { active_file: "/palette.ngc" } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 901, file: "/palette.ngc" } });
+  await expect.poll(async () => (await drawn()).drawn.limit ?? "no overlay").not.toBe("no overlay");
+  const light = { feed: await token("--viewer-feed"), limit: await token("--viewer-limit"), collision: await token("--viewer-collision"), rapid: await token("--viewer-rapid") };
+  let p = await drawn();
+  expect(p.mode).toBe("auto");
+  expect(p.drawn).toMatchObject({ feed: light.feed, limit: light.limit, rapid: light.rapid });
+  expect(p.drawn.bounds).toBe(await token("--viewer-bounds"));
+  await page.evaluate(() => window.__viewerDiag!.tintPart!("tool", true));   // the default tool marker
+  expect((await drawn()).drawn.collision).toBe(light.collision);
+
+  // A theme switch re-resolves everything drawn — the tint on screen too.
+  await send("settings_changed", "dark");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  const dark = { feed: await token("--viewer-feed"), limit: await token("--viewer-limit"), collision: await token("--viewer-collision") };
+  expect(dark.feed).not.toBe(light.feed);
+  await expect.poll(async () => (await drawn()).drawn.feed).toBe(dark.feed);
+  p = await drawn();
+  expect(p.drawn.limit).toBe(dark.limit);
+  expect(p.drawn.collision, "the collision tint follows the theme").toBe(dark.collision);
+
+  // A palette stored before the mode existed (every old save wrote it): Custom,
+  // exactly as stored; the finding roles stay the theme's.
+  await send("settings_changed", "dark", { colors: OLD });
+  await expect.poll(async () => (await drawn()).mode).toBe("custom");
+  p = await drawn();
+  expect(p.drawn.feed).toBe(OLD.feed);
+  expect(p.drawn.bounds).toBe(OLD.bounds);
+  expect(p.drawn.limit).toBe(dark.limit);
+  await send("settings_changed", "light", { colors: OLD });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect.poll(async () => (await drawn()).drawn.limit).toBe(light.limit);
+  expect((await drawn()).drawn.feed, "Custom stays through a theme switch").toBe(OLD.feed);
+
+  // Settings: Automatic is offered; switching keeps the custom colours stored.
+  await page.getByTitle("Settings", { exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Settings", exact: true });
+  await dialog.getByRole("tab", { name: "3D Viewer", exact: true }).click();
+  const auto = dialog.getByRole("radio", { name: "Automatic", exact: true });
+  const custom = dialog.getByRole("radio", { name: "Custom", exact: true });
+  await expect(custom).toBeChecked();
+  await ctl({ op: "clearCmds" });
+  await auto.check();
+  await expect.poll(async () => (await drawn()).drawn.feed).toBe(light.feed);
+  await expect.poll(async () => {
+    const cmds = ((await ctl({ op: "lastCmds" })) as { cmds?: any[] }).cmds ?? [];
+    const save = cmds.filter(c => c.cmd === "save_settings" && c.section === "viewer").at(-1);
+    return save ? JSON.stringify({ mode: save.data.paletteMode, feed: save.data.colors.feed }) : "no save";
+  }).toBe(JSON.stringify({ mode: "auto", feed: OLD.feed }));
+  // The legend: every role's line in the drawn colour, the rapid dashed.
+  const legend = dialog.locator("[data-viewer-legend]");
+  const swatch = (role: string) => legend.locator(`[data-role="${role}"] .legendLine`);
+  const rgb = (hex: string) => `rgb(${[1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(", ")})`;
+  await expect(swatch("feed")).toHaveCSS("color", rgb(light.feed));
+  await expect(swatch("limit")).toHaveCSS("color", rgb(light.limit));
+  await expect(swatch("rapid")).toHaveCSS("border-top-style", "dashed");
+  // Back to Custom: the kept palette returns; its seven roles are pickers.
+  await custom.check();
+  await expect.poll(async () => (await drawn()).drawn.feed).toBe(OLD.feed);
+  await expect(legend.locator('input[type="color"]')).toHaveCount(7);
+  await expect(swatch("limit")).toHaveCount(1);
+  expect(errors).toEqual([]);
 });

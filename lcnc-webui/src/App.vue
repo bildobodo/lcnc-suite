@@ -1306,19 +1306,15 @@ function setMachineEdges(on: boolean) {
   viewerRef.value?.setMachineEdges?.(on);
 }
 
-function setToolColors(toolColor: string | null, cutterColor: string | null) {
-  viewerRef.value?.setToolColors?.(toolColor, cutterColor);
-}
-
-function setPathColors(c: { feed?: string; rapid?: string; backplot?: string; bounds?: string; toolpathBounds?: string }) {
-  viewerRef.value?.setPathColors?.(c);
+// Settings changed a viewer colour or the palette mode (design wave D8c).
+function applyPaletteFromSettings() {
+  viewerRef.value?.applyPaletteFromSettings?.();
 }
 
 provide("machineParts", machineParts);
 provide("setMachinePartColor", setMachinePartColor);
 provide("setMachineEdges", setMachineEdges);
-provide("setToolColors", setToolColors);
-provide("setPathColors", setPathColors);
+provide("applyPaletteFromSettings", applyPaletteFromSettings);
 
 function setProjection(proj: "perspective" | "parallel") {
   const wantOrtho = proj === "parallel";

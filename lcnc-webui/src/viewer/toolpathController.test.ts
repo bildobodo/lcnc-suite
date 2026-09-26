@@ -17,6 +17,8 @@ function fakeLabel() {
   return o;
 }
 
+// The resolved palette the host hands over (viewer/viewerPalette.ts).
+const PALETTE = { feed: "#22b8cf", rapid: "#f5a623", toolpathBounds: "#f5a623", limit: "#ffcc00", selection: "#ff3333", collision: "#ff4444" };
 function makeDeps(overflow: Ref<boolean>) {
   return {
     requestRender: vi.fn(),
@@ -25,7 +27,7 @@ function makeDeps(overflow: Ref<boolean>) {
     billboardLabels: [] as any[],
     makeLabel: vi.fn(() => fakeLabel()),
     disposeObject,
-    colors: () => ({ feed: "#22b8cf", rapid: "#f5a623", toolpathBounds: "#f5a623" }),
+    colors: () => PALETTE,
     sceneBackground: () => new THREE.Color(SCENE_BG),
     sceneForeground: () => new THREE.Color(SCENE_FG),
     axisCss: { x: "#f00", y: "#0f0", z: "#00f" },
@@ -186,7 +188,7 @@ describe("stale mute", () => {
     c.apply(ctx, GCODE);
     const feedMat = () => feedLineOf(ctx.workRotGroup).material as THREE.LineBasicMaterial;
     c.setStale(true);
-    c.setColors({ feed: "#ff0000" });
+    c.setColors({ ...PALETTE, feed: "#ff0000" });
     expect(feedMat().color.getHex()).toBe(greyOf(0.4));
     c.setStale(false);
     expect(feedMat().color.getHex()).toBe(0xff0000);
@@ -197,7 +199,7 @@ describe("stale mute", () => {
     // vertex 1 of feed and vertex 0 of rapid flagged → overlays in both streams
     c.apply(ctx, { ...GCODE, feedOutside: new Uint8Array([0, 1, 0]), rapidOutside: new Uint8Array([1, 0]) });
     const overlays = () => ctx.workRotGroup.children.filter(o => (o as any).isLineSegments && o.renderOrder === 10
-      && (o as any).material.color.getHex() === 0xffcc00) as THREE.LineSegments[];
+      && (o as any).material.userData.role === "limit") as THREE.LineSegments[];
     const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 1000); cam.position.set(5, 5, 100); cam.lookAt(5, 5, 0); cam.updateMatrixWorld();
     c.updateCulling(ctx, cam, 1000);
     expect(overlays().length).toBeGreaterThan(0);
@@ -277,8 +279,26 @@ describe("overflow / visibility / colours", () => {
   it("setColors updates feed/rapid/toolpathBounds materials live", () => {
     const ctx = makeCtx();
     c.apply(ctx, GCODE);
-    c.setColors({ feed: "#00ff00" });
+    c.setColors({ ...PALETTE, feed: "#00ff00" });
     expect((feedLineOf(ctx.workRotGroup).material as THREE.LineBasicMaterial).color.getHexString()).toBe("00ff00");
+  });
+
+  it("the outside-limits overlay and the selected segment take the palette's roles, live (design wave D8c)", () => {
+    const ctx = makeCtx();
+    c.apply(ctx, { ...GCODE, feedOutside: new Uint8Array([0, 1, 0]), rapidOutside: new Uint8Array([1, 0]) });
+    const byRole = (role: string) => {
+      const out: THREE.LineBasicMaterial[] = [];
+      ctx.workRotGroup.traverse(o => { const m = (o as any).material; if (m?.userData?.role === role && !out.includes(m)) out.push(m); });
+      ctx.scene?.traverse(o => { const m = (o as any).material; if (m?.userData?.role === role && !out.includes(m)) out.push(m); });
+      return out;
+    };
+    expect(byRole("limit").length).toBeGreaterThan(0);
+    expect(byRole("limit").every(m => m.color.getHexString() === "ffcc00")).toBe(true);
+    c.setColors({ ...PALETTE, limit: "#a16207", selection: "#111111" });
+    expect(byRole("limit").every(m => m.color.getHexString() === "a16207")).toBe(true);
+    const sel = byRole("selection");
+    expect(sel.length).toBeGreaterThan(0);
+    expect(sel.every(m => m.color.getHexString() === "111111")).toBe(true);
   });
 
   it("dispose frees the toolpath and unregisters labels", () => {
@@ -371,7 +391,7 @@ describe("baked-toolpath anchor (2026-09-03 run-time jump)", () => {
 describe("chunked draw (2026-09-11 headroom wave)", () => {
   // Overlays are the plain-yellow objects (2026-09-12: built from per-vertex
   // outside flags, no clip planes); chunks are everything else at renderOrder 10.
-  const isOverlay = (o: THREE.Object3D) => (o as any).material?.color?.getHex?.() === 0xffcc00;
+  const isOverlay = (o: THREE.Object3D) => (o as any).material?.userData?.role === "limit";
   const chunksOf = (g: THREE.Group) => g.children.filter(o => (o as any).isLineSegments && o.renderOrder === 10
     && !isOverlay(o)) as THREE.LineSegments[];
   const overlaysOf = (g: THREE.Group) => g.children.filter(o => (o as any).isLineSegments && o.renderOrder === 10

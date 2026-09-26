@@ -942,6 +942,113 @@ blau. Die Bilder sind angesehen und erneuert.
   Kontrast-Durchläufe und fünf Fokusring-Tests). Im ersten Lauf fiel die Probe in `appearance.spec`
   (siehe Banner oben); nach der Korrektur lief `serial-guards` erneut komplett grün.
 
+### WP-D8c — Viewer-Palette, Legende, Farbmigration · 27. September 2026
+
+**Ausgangslage:**
+- Der Viewer zeichnete mit festen Farben, unabhängig vom Theme: Bounds `#ffffff` (1,0:1 auf dem hellen
+  Hintergrund), Vorschub `#22b8cf` (2,4:1), Eilgang `#f5a623` (2,0:1), Limit-Markierung `#ffcc00`
+  (1,5:1), Auswahl `#ff3333`.
+- Die Kollisionsfarbe wurde beim ersten Einfärben einmal gelesen und blieb nach einem Theme-Wechsel
+  stehen.
+- Jedes Speichern im Viewer schrieb die ganze Palette mit, auch ein Layer-Umschalter. Ob eine
+  gespeicherte Farbe gewählt war, ist deshalb nicht erkennbar (UI-D05).
+
+**Umgesetzt:**
+- **Rollen je Theme** (`--viewer-*` in allen fünf Theme-Blöcken): Vorschub, Eilgang, gefahrener Pfad,
+  Limit, Auswahl, Kollision, Maschinen-Bounds, Toolpath-Bounds, Werkzeugschaft, Schneide. Ein Resolver
+  (`viewer/viewerPalette.ts`) liefert alle Viewer-Farben; die zehn verstreuten Fallback-Hexwerte sind
+  weg. Bei einem Theme-Wechsel und bei jeder Einstellungsänderung wird die Palette neu aufgelöst und
+  auf alle lebenden Objekte gelegt, einschließlich einer sichtbaren Kollisionsfärbung.
+- **Werte nach dem Blick auf Geometrie:**
+  - Die Szenenbilder je Theme (Maschinenmodell, Pfad mit Limit-Überschreitung, gefahrener Pfad,
+    gewählte Zeile) zeigten: Ein Programm liegt auf dem Tisch bzw. dem Rohteil, und dessen Oberseite
+    ist im Licht der Szene in jedem Theme hell (etwa `#e0e0e0`). Pastellfarben für dunkle Themes
+    verschwinden dort.
+  - Jede Linienrolle hält deshalb mindestens 3:1 auf dem Hintergrund (HC mindestens 4,5:1) **und**
+    auf dem beleuchteten Tisch. Die dunklen Themes zeichnen mittelhelle Linien.
+  - Die sechs Pfadrollen unterscheiden sich in Farbton und Helligkeit um mindestens 0,12 in OKLab.
+- **Farbentscheidungen:**
+  - Limits bleiben überall in der Warnfamilie (Overlay, Zeitleisten-Marken, Zeilennummern), in
+    hellem Theme als Ocker.
+  - Der Eilgang verlässt deshalb die warme Familie: grün und gestrichelt. Grau schied aus, weil Grau
+    „veraltet“ heißt.
+  - Die gewählte Zeile ist in den hellen Themes fast schwarz, in den dunklen Cyan. Rot bleibt der
+    Kollision vorbehalten.
+- **Modus für die ganze Palette,** explizit gespeichert (`paletteMode`), Migration ohne Heuristik
+  (`viewerSection.ts`):
+  - Keine gespeicherte Viewer-Sektion oder eine ohne Farben: „Automatic“.
+  - Eine gespeicherte Altpalette: genau so, als „Custom“.
+  - Custom-Farben überleben Automatic → Custom → Automatic.
+  - Der erste Wechsel auf Custom übernimmt die gerade gezeichneten Farben, nicht die alten
+    Standardwerte.
+  - „Reset 3D Viewer“ führt zu Automatic.
+- **Settings › 3D Viewer › Colors:**
+  - Die Wahl Automatic / Custom mit einer Zeile, was beides heißt.
+  - Darunter die Legende: jede Rolle als Linienmuster in der gezeichneten Farbe, der Eilgang
+    gestrichelt.
+  - In Custom sind die sieben Nutzerrollen Farbwähler. Limit, Auswahl und Kollision bleiben die des
+    Themes.
+
+**Wächter:**
+- **`themeTokens.test.ts`:** Jeder Theme-Block trägt alle Viewer-Rollen als `#rrggbb`. Die
+  Kontrastregeln gegen Hintergrund und beleuchteten Tisch sowie der Mindestabstand der Pfadrollen
+  (siehe oben) sind geprüft. Rot mit einer Pastell-Vorschubfarbe und weißen Bounds.
+- **`viewerSection.test.ts`:** die Abnahmefälle aus UI-D05, jeweils mit dem Ergebnis aus der
+  Migration oben:
+  - keine Sektion;
+  - vollständige alte Standardpalette;
+  - eine geänderte Rolle;
+  - bewusst auf den alten Standard zurückgesetzt, ununterscheidbar und deshalb Custom;
+  - Automatic → Custom → Automatic;
+  - Speichern und Neuladen als Fixpunkt: Ein zweiter Client bekommt dieselbe Sektion.
+
+  Dazu der Resolver: Automatic folgt dem Theme, Custom bleibt, eine fehlende Custom-Rolle zeichnet die
+  des Themes, der erste Wechsel übernimmt die gezeichneten Farben.
+- **`viewer.spec`** (`serial-viewer`) liest die Farben von den gezeichneten Materialien (sie tragen
+  ihre Rolle).
+  - Automatic, auch ohne gespeicherte Sektion, zeichnet die Tokens.
+  - Ein Theme-Wechsel ändert alles, die Kollisionsfärbung auf dem Bildschirm eingeschlossen. Ohne
+    das Neufärben war der Test rot.
+  - Eine Altpalette von einem anderen Client wird Custom und bleibt beim Theme-Wechsel stehen.
+  - In Settings: Automatic → gespeichert mit erhaltenen Custom-Farben; die Legende zeigt die
+    gezeichneten Farben.
+  - Custom → die gespeicherte Palette kommt zurück, mit sieben Farbwählern.
+- `toolpathController.test`: Limit-Overlay und Auswahl nehmen die Rollen live an. Die Tests erkennen
+  das Overlay an seiner Rolle statt an `0xffcc00`.
+
+**Abweichung vom Plan, zur Prüfung:**
+- Der Plan sah einen Sichtvergleich bekannter Szenen im Projekt `serial-viewer` vor. WebGL-Bilder
+  sind aber keine stabile Referenz zwischen der VM und CI; der Werkzeugdialog maskiert seine Canvas
+  aus demselben Grund.
+- Die Szenen habe ich deshalb je Theme gerendert und angesehen (temporäres Harness, nicht im Repo).
+- Der dauerhafte Wächter prüft die gezeichneten Materialfarben deterministisch.
+
+**Grenzen:**
+- Vor mittelgrauem, beschattetem Metall erreicht keine Linienfarbe zugleich 3:1 zum Hintergrund.
+  Dort tragen Farbton, das Strichmuster des Eilgangs und die Legende.
+- Eine breitere Auswahl-Linie ist offen: WebGL zeichnet Linien 1 px breit, das bräuchte Fat Lines.
+- Nicht auf Rollen umgestellt sind:
+  - die Achsen-Triaden (RGB-Konvention);
+  - die TWP-Ebene (feste Hexwerte, deren Kommentar „wie info/warn/danger“ nur eine Kopie ist);
+  - die Farbskala der Oberflächenkarte;
+  - die 3D-Ansicht im Probing;
+  - die Werkzeugvorschau im Tools-Tab, die die Werkzeugfarben nicht liest.
+
+  Sie gehören zu D10 (Token-Reste) bzw. zu einer eigenen Viewer-Runde.
+- Custom-Farben sind nicht kontrastgeprüft; die Settings sagen das.
+
+**Sichtbar für den Operator:**
+- Bisherige gespeicherte Paletten laufen als „Custom“ weiter, Automatic wird angeboten.
+- Mit Automatic wechseln die Viewer-Farben mit dem Theme.
+- Der Eilgang ist grün statt orange, die Limit-Markierung ocker statt gelb, die gewählte Zeile
+  schwarz bzw. cyan statt rot.
+- In den dunklen Themes sind die Linien kräftiger und weniger hell.
+
+**Gates:**
+- build, lint und Vitest (**1660**, neu `viewerSection.test.ts`) grün.
+- Playwright **274/274** über alle neun Projekte; `serial-viewer` 5 (neu: die Viewer-Palette). Die
+  Referenzbilder in `serial-visual` sind unverändert grün.
+
 ---
 
 ## Codex Implementierungsreview Runde 1

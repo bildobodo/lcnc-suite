@@ -28,7 +28,10 @@ import type { ViewerGcode } from "../lcncWs";
 import type { Vec3 } from "../defaults";
 
 type BBox = { min: [number, number, number]; max: [number, number, number] };
-type Colors = { feed?: string; rapid?: string; toolpathBounds?: string };
+/** The roles this controller draws (viewer/viewerPalette.ts resolves them:
+ *  the theme's --viewer-* tokens, the operator's Custom colours over the
+ *  user roles). */
+type Colors = { feed: string; rapid: string; toolpathBounds: string; limit: string; selection: string; collision: string };
 
 export interface ToolpathDeps {
   requestRender: () => void;
@@ -37,7 +40,7 @@ export interface ToolpathDeps {
   billboardLabels: Text[];
   makeLabel: (text: string, color: string, fontSize: number) => Text;
   disposeObject: (o: THREE.Object3D) => void;
-  colors: () => Colors;              // reads viewerDefaults.colors fresh each call
+  colors: () => Colors;              // the resolved palette, read fresh each call
   /** How much of the path colour survives the stale mute (the
    *  --opacity-disabled token, read by the host). Applied as an OPAQUE colour
    *  mix toward `sceneBackground`, never as alpha: a million blended
@@ -103,7 +106,7 @@ export interface ToolpathController {
   setBoundsVisible(on: boolean): void;
   setAlwaysOnTop(on: boolean): void;
   /** Live-update feed/rapid/toolpath-bounds colours on existing lines. */
-  setColors(c: { feed?: string; rapid?: string; toolpathBounds?: string }): void;
+  setColors(c: Colors): void;
   /** Mute the drawn path while it is known not to match the machine's
    *  live inputs — a re-parse in flight, or offsets / tool length changed
    *  since the parse. Sticky across apply(). Every stream turns the one
@@ -275,6 +278,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     } else {
       mat = new THREE.LineBasicMaterial({ color: colorHex });
     }
+    mat.userData.role = stream;   // the viewer palette's role (diagnostics, tests)
     mat.depthTest = !pathAlwaysOnTop;
     mat.depthWrite = false;
     // Dashed rapids need a per-vertex distance; the worker precomputes it
@@ -363,7 +367,8 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     const pre = new Uint32Array(nV + 1);
     for (let i = 0; i < nV; i++) pre[i + 1] = pre[i]! + (outside[i] ? 1 : 0);
     if (pre[nV] === 0) return;
-    s.overMat = new THREE.LineBasicMaterial({ color: 0xffcc00, depthTest: !pathAlwaysOnTop, depthWrite: false });
+    s.overMat = new THREE.LineBasicMaterial({ color: deps.colors().limit, depthTest: !pathAlwaysOnTop, depthWrite: false });
+    s.overMat.userData.role = "limit";
     const nC = s.used.length;
     const starts = new Uint32Array(nC), counts = new Uint32Array(nC);
     for (let k = 0; k < s.levels.length; k++) {
@@ -408,7 +413,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     const [ox, oy, oz] = offset;
     const geom = new THREE.EdgesGeometry(new THREE.BoxGeometry(sx, sy, sz));
     const mat = new THREE.LineDashedMaterial({
-      color: 0xff4444,
+      color: deps.colors().collision,
       dashSize: 3,
       gapSize: 2,
       transparent: true,
@@ -499,7 +504,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     const cy = (toolpathBBox.min[1] + toolpathBBox.max[1]) / 2;
     const cz = (toolpathBBox.min[2] + toolpathBBox.max[2]) / 2;
 
-    const color = deps.colors().toolpathBounds ?? "#f5a623";
+    const color = deps.colors().toolpathBounds;
     const boxGeom = new THREE.BoxGeometry(Math.max(sx, 0.001), Math.max(sy, 0.001), Math.max(sz, 0.001));
     const edgeGeom = new THREE.EdgesGeometry(boxGeom);
     boxGeom.dispose();
@@ -512,6 +517,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         clippingPlanes: deps.insideBoundsClipPlanes,
       })
     );
+    (toolpathBoundsBox.material as THREE.Material).userData.role = "toolpathBounds";
     toolpathBoundsBox.position.set(cx, cy, cz);
     toolpathBoundsBox.visible = toolpathBoundsVisible;
     workRotGroup.add(toolpathBoundsBox);
@@ -591,7 +597,8 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     geom.setIndex(attr);
     geom.setDrawRange(0, 0);   // hidden until motion_line updates
     geom.boundingSphere = sphereOfBox(unionBounds(bounds), 0);
-    const mat = new THREE.LineBasicMaterial({ color: 0xff3333 });
+    const mat = new THREE.LineBasicMaterial({ color: deps.colors().selection });
+    mat.userData.role = "selection";
     mat.depthTest = !pathAlwaysOnTop;
     mat.depthWrite = false;
     const line = new THREE.LineSegments(geom, mat);
@@ -678,8 +685,8 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       // overflow overlay. Section breaks (track-derived streams) index-skip the
       // false connectors across feed/rapid interleaves; absent on legacy data,
       // every consecutive pair is a segment.
-      const feedColor = deps.colors().feed ?? "#22b8cf";
-      const rapidColor = deps.colors().rapid ?? "#f5a623";
+      const feedColor = deps.colors().feed;
+      const rapidColor = deps.colors().rapid;
       _feedBase.set(feedColor);
       _rapidBase.set(rapidColor);
       // Per stream: real segment pairs split by frame (viewer/lineChunks.ts
@@ -949,9 +956,12 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     },
 
     setColors(c) {
-      if (c.feed) _feedBase.set(c.feed);
-      if (c.rapid) _rapidBase.set(c.rapid);
-      if (toolpathBoundsBox && c.toolpathBounds) (toolpathBoundsBox.material as THREE.LineBasicMaterial).color.set(c.toolpathBounds);
+      _feedBase.set(c.feed);
+      _rapidBase.set(c.rapid);
+      if (toolpathBoundsBox) (toolpathBoundsBox.material as THREE.LineBasicMaterial).color.set(c.toolpathBounds);
+      for (const s of sets) s.overMat?.color.set(c.limit);
+      for (const h of highlights) (h.line.material as THREE.LineBasicMaterial).color.set(c.selection);
+      if (toolpathOverflowEdges) (toolpathOverflowEdges.material as THREE.LineDashedMaterial).color.set(c.collision);
       _applyStale();   // the drawn colour is the base or its muted mix — one writer
     },
 

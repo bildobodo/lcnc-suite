@@ -57,6 +57,7 @@ export function createBackplotController(requestRender: () => void): BackplotCon
       geom.setDrawRange(0, 0);
 
       const mat = new THREE.LineBasicMaterial({ color, depthTest, depthWrite: false });
+      mat.userData.role = "backplot";   // the viewer palette's role (diagnostics read it)
       line = new THREE.Line(geom, mat);
       line.renderOrder = 11;
       line.frustumCulled = false;   // ✅ prevents disappearing when origin is off-screen

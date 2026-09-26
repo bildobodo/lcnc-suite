@@ -6978,3 +6978,48 @@ Plan Fassung 3 WP-D8 (UI-K08 / K09, UI-D07), second of three commits.
   colour, not the disabled opacity: the rows stay operable.
 - Kept: `.dialogBody`'s 80 % (measured ≥ 4.5 : 1; the remaining opacity
   rules are D10's N111).
+
+### WP-D8c — viewer palette per theme, legend, migration (2026-09-27)
+
+Plan Fassung 3 WP-D8 (UI-K08, UI-D05), third of three commits.
+
+- Every colour the viewer draws in a role comes from ONE resolver
+  (`viewer/viewerPalette.ts`): the theme's `--viewer-*` token, the
+  operator's Custom colour over the seven user roles. Re-resolved on a
+  theme switch and on every settings change and put on every live object —
+  the collision tint on screen included (`_dangerHex` was read once and
+  kept the first theme's colour). The ten scattered fallback hexes are gone.
+- Values were chosen after LOOKING at rendered scenes per theme: a program
+  lies on the table / stock, whose top face renders ≈ #e0e0e0 under the
+  scene lights in every theme — the dark themes' pastel lines (and the old
+  cyan / orange / yellow) vanish there. Every line role holds ≥ 3 : 1 on the
+  background AND on that lit face, so the dark themes draw MID-light lines;
+  the path roles are staggered in lightness too (colour-vision deficiency
+  leans on lightness). In front of shadowed mid-grey metal no colour reaches
+  3 : 1 on both — hue, the rapid's dash and the legend carry it there.
+- Hues: limits stay the warn family everywhere (overlay, timeline marks,
+  line numbers — one finding kind, one family); a 3 : 1 yellow does not
+  exist on white, so the limit is ochre on the light themes and the rapid
+  left the warm family: green and dashed (grey was out — grey means stale).
+  The selected line is near-black on light themes and cyan on dark ones;
+  red stays the collision's. K08's teal backplot was not taken: the
+  backplot overlays the feed, magenta separates it better (and continues the
+  old default).
+- Palette mode for the WHOLE palette, stored (`paletteMode`), migration
+  without heuristics (`viewerSection.ts`, UI-D05 as agreed): no stored
+  section, or one without colours → Automatic; a stored palette → Custom,
+  exactly as stored (every old viewer save wrote it, so a deliberate colour
+  is indistinguishable from an untouched default); custom colours survive
+  Automatic ↔ Custom; the first switch to Custom seeds from what is drawn;
+  Reset → Automatic. Not the per-colour override model of the machine part
+  colours — that would be a plan change.
+- Settings › 3D Viewer › Colors: Automatic / Custom, then the legend (every
+  role as a line sample in the drawn colour, rapid dashed); in Custom the
+  seven user roles are the pickers.
+- Deviation, for review: the plan's committed scene comparison in
+  serial-viewer is replaced by material-colour assertions — WebGL renders
+  are no stable reference between the VM and CI.
+- Not on roles yet (named, D10 / a viewer round): axis triads (RGB
+  convention), the TWP plane colours, the surface-map colour scale, the
+  Probing 3D view, the Tools tab tool preview (ignores the tool colours).
+  A wider selection line needs fat lines (WebGL draws 1 px).

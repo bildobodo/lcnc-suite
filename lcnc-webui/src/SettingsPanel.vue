@@ -17,12 +17,13 @@ import {
   loadMacrosDefaults, saveMacrosDefaults, syncMacroParams,
   loadDisplayDefaults, saveDisplayDefaults, settingsVersion, serverSettingsReady,
   loadCameraDefaults, saveCameraDefaults,
-  type Layer, type ColorDefaults, type HudDefaults, type HudScale,
+  type Layer, type ColorDefaults, type PaletteMode, type HudDefaults, type HudScale,
   type TrackMode, type Projection, type PreviewMode, type ToolChangeMode, type SpindleDir, type SpindleFeedbackUnit,
   type ThemeMode, type MacroDef, type GamepadDefaults,
   GAMEPAD_FALLBACK,
   loadKeyboardDefaults, type KeyboardDefaults, DEFAULT_KB_MAPPING,
 } from "./defaults";
+import { resolveViewerPalette, userColorsOf, USER_ROLES, type UserRole, type ViewerRole } from "./viewer/viewerPalette";
 import { saveStatus, saveStatusText } from "./settingsSaveStatus";
 import { fmtPct } from "./format";
 import type { MappingSource } from "./gamepadProfile";
@@ -41,8 +42,10 @@ const keepAwake = ref(loadDisplayDefaults().keepAwake);
 const machineParts = inject<ComputedRef<Array<{ id: string; group: string | null; direction: string | null; color: [number, number, number] | null }>>>("machineParts", computed(() => []));
 const setMachinePartColor = inject<(id: string, color: string | null) => void>("setMachinePartColor", () => {});
 const setMachineEdges = inject<(on: boolean) => void>("setMachineEdges", () => {});
-const setToolColors = inject<(toolColor: string | null, cutterColor: string | null) => void>("setToolColors", () => {});
-const setPathColors = inject<(c: { feed?: string; rapid?: string; backplot?: string; bounds?: string; toolpathBounds?: string }) => void>("setPathColors", () => {});
+const applyPaletteFromSettings = inject<() => void>("applyPaletteFromSettings", () => {});
+// The theme the legend's colours come from (App: the explicit theme, else
+// the system scheme) — a switch re-resolves the shown palette.
+const isDark = inject<Ref<boolean>>("isDark", ref(false));   // with themeMode (below)
 const updateMacros = inject<(macros: MacroDef[]) => void>("updateMacros", () => {});
 
 // ─── Macros CRUD ────────────────────────────────────────────────
@@ -171,6 +174,8 @@ function resetViewer() {
   saveViewerDefaults(viewerFallback());
   const vd = loadViewerDefaults();
   Object.assign(layers, vd.layers);
+  paletteMode.value = vd.paletteMode;
+  for (const k of Object.keys(colors)) delete colors[k as keyof ColorDefaults];
   Object.assign(colors, vd.colors);
   Object.assign(hud, vd.hud);
   for (const k of Object.keys(machineColors)) delete machineColors[k];
@@ -183,7 +188,7 @@ function resetViewer() {
   emit("setPathOnTop", vd.pathOnTop);
   emit("setProjection", vd.projection);
   setMachineEdges(vd.machineEdges);
-  setToolColors(null, null);
+  applyPaletteFromSettings();   // back to Automatic
   for (const p of machineParts.value) setMachinePartColor(p.id, null);
 }
 
@@ -245,7 +250,8 @@ function confirmReset() {
 // ─── Viewer defaults ───────────────────────
 const saved = loadViewerDefaults();
 const layers = reactive<Record<Layer, boolean>>({ ...saved.layers });
-const colors = reactive<ColorDefaults>({ ...saved.colors });
+const paletteMode = ref<PaletteMode>(saved.paletteMode);
+const colors = reactive<Partial<ColorDefaults>>({ ...saved.colors });
 const machineColors = reactive<Record<string, string>>({ ...saved.machineColors });
 const trackingMode = ref<TrackMode>(saved.trackingMode);
 const pathOnTop = ref(saved.pathOnTop);
@@ -257,6 +263,7 @@ const hud = reactive<HudDefaults>({ ...saved.hud });
 function save() {
   saveViewerDefaults({
     layers: { ...layers },
+    paletteMode: paletteMode.value,
     colors: { ...colors },
     machineColors: { ...machineColors },
     machineEdges: machineEdgesOn.value,
@@ -394,6 +401,8 @@ watch(settingsVersion, () => {
   emit("setRunFromLine", md.runFromLine);
   const vd = loadViewerDefaults();
   Object.assign(layers, vd.layers);
+  paletteMode.value = vd.paletteMode;
+  for (const k of Object.keys(colors)) delete colors[k as keyof ColorDefaults];
   Object.assign(colors, vd.colors);
   Object.assign(machineColors, vd.machineColors);
   trackingMode.value = vd.trackingMode;
@@ -450,27 +459,45 @@ watch(() => props.initialTab, (t) => { if (t) activeTab.value = t; }, { immediat
 
 
 
-function onColorChange(key: keyof ColorDefaults, value: string) {
-  colors[key] = value;
+// ─── Viewer palette (design wave D8c, UI-K08 / UI-D05) ─────────────
+// What the viewer draws, resolved like the viewer resolves it: the theme's
+// --viewer-* roles, the Custom colours over the seven user roles.
+const shownPalette = computed(() => {
+  void isDark.value; void themeMode.value;   // a theme switch re-resolves
+  return resolveViewerPalette(n => getComputedStyle(document.documentElement).getPropertyValue(n),
+    { paletteMode: paletteMode.value, colors });
+});
+
+function onPaletteModeChange(mode: PaletteMode) {
+  // The first switch to Custom starts from what is drawn — never from a
+  // retired default; a Custom palette kept through Automatic comes back.
+  if (mode === "custom" && USER_ROLES.every(r => !colors[r])) Object.assign(colors, userColorsOf(shownPalette.value));
+  paletteMode.value = mode;
   save();
-  if (key === "tool" || key === "cutter") {
-    setToolColors(colors.tool, colors.cutter);
-  } else {
-    // feed / rapid / backplot / bounds / toolpathBounds — live-update the
-    // existing lines (they used to apply only on the next program load).
-    setPathColors({ ...colors });
-  }
+  applyPaletteFromSettings();
 }
 
-const colorFields: { key: keyof ColorDefaults; label: string }[] = [
-  { key: "feed", label: "Toolpath" },
-  { key: "rapid", label: "Rapid" },
-  { key: "backplot", label: "Backplot" },
-  { key: "bounds", label: "Machine Bounds" },
-  { key: "toolpathBounds", label: "Toolpath Bounds" },
-  { key: "tool", label: "Tool Shaft" },
-  { key: "cutter", label: "Tool Cutter" },
+function onColorChange(key: UserRole, value: string) {
+  colors[key] = value;
+  save();
+  applyPaletteFromSettings();   // live on the existing lines and materials
+}
+
+// The legend (every role, in drawing order); in Custom the seven user roles
+// are the colour pickers, the three finding roles stay the theme's.
+const PALETTE_ROWS: { role: ViewerRole; label: string; dashed?: boolean }[] = [
+  { role: "feed", label: "Toolpath" },
+  { role: "rapid", label: "Rapid", dashed: true },
+  { role: "backplot", label: "Backplot" },
+  { role: "selection", label: "Selected line" },
+  { role: "limit", label: "Outside soft limits" },
+  { role: "collision", label: "Collision" },
+  { role: "bounds", label: "Machine Bounds" },
+  { role: "toolpathBounds", label: "Toolpath Bounds" },
+  { role: "tool", label: "Tool Shaft" },
+  { role: "cutter", label: "Tool Cutter" },
 ];
+const isUserRole = (r: ViewerRole): r is UserRole => (USER_ROLES as readonly string[]).includes(r);
 
 // ─── Machine part colors ────────────────────
 function defaultMachineColor(part: { direction: string | null; color: [number, number, number] | null }): string {
@@ -622,15 +649,28 @@ function resetMachineColor(id: string) {
 
         <div class="stack-controls">
           <div class="sub">Colors</div>
-          <div class="colorGrid">
-            <label class="row-controls" v-for="cf in colorFields" :key="cf.key">
-              <MachineColor
-                gate="viewerSetting"
-                :modelValue="colors[cf.key]"
-                @update:modelValue="onColorChange(cf.key, $event!)"
-              />
-              <span class="colorLabel">{{ cf.label }}</span>
-            </label>
+          <div class="settingDesc">Automatic colors follow the theme. Custom colors stay as you set them and are not checked against it.</div>
+          <div class="radioGroup inline">
+            <label><MachineRadio gate="viewerSetting" name="paletteMode" :modelValue="paletteMode" value="auto" @update:modelValue="onPaletteModeChange('auto')" /> Automatic</label>
+            <label><MachineRadio gate="viewerSetting" name="paletteMode" :modelValue="paletteMode" value="custom" @update:modelValue="onPaletteModeChange('custom')" /> Custom</label>
+          </div>
+          <!-- The legend: a line sample per role (dashed = rapid); in Custom
+               the user roles are pickers named by their label. -->
+          <div class="colorGrid" data-viewer-legend>
+            <template v-for="row in PALETTE_ROWS" :key="row.role">
+              <label v-if="paletteMode === 'custom' && isUserRole(row.role)" class="row-controls">
+                <MachineColor
+                  gate="viewerSetting"
+                  :modelValue="shownPalette[row.role]"
+                  @update:modelValue="onColorChange(row.role as UserRole, $event!)"
+                />
+                <span class="colorLabel">{{ row.label }}</span>
+              </label>
+              <div v-else class="row-controls" :data-role="row.role">
+                <span class="legendLine" :class="{ dashed: row.dashed }" :style="{ color: shownPalette[row.role] }" aria-hidden="true"></span>
+                <span class="colorLabel">{{ row.label }}</span>
+              </div>
+            </template>
           </div>
         </div>
 
@@ -988,7 +1028,6 @@ function resetMachineColor(id: string) {
 
 .colorLabel {
   font-size: var(--fs-base);
-  opacity: var(--opacity-secondary);
 }
 
 

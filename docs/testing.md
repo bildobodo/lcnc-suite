@@ -122,6 +122,28 @@ preset, in both projections and at Reset's endpoint — plus a negative
 control (the old travel-box distance from diagonally below lands inside the
 bed). Unit tests: `cameraFraming.test.ts`.
 
+## Viewer palette (design wave D8c)
+
+The viewer's colours are roles per theme (`--viewer-*`, style.css) resolved
+by ONE function (`viewer/viewerPalette.ts`): Automatic = the theme's tokens,
+Custom = the operator's seven colours over them (limit, selection and
+collision stay the theme's). `themeTokens.test.ts` checks the palette
+directly: every line role ≥ 3 : 1 on the theme's background (≥ 4.5 in HC)
+AND on the lit machine (a table top renders ≈ #e0e0e0 in every theme), the
+six path roles ≥ 0.12 apart in OKLab. `viewerSection.test.ts` pins the
+migration (UI-D05: no stored section → Automatic, any stored palette →
+Custom unchanged, custom colours survive Automatic ↔ Custom, the merge is a
+fixed point for save / reload and a second client). `viewer.spec.ts`
+(serial-viewer) reads the colours off the DRAWN materials (each tagged with
+its role, `__viewerDiag.getPalette`): Automatic follows a theme switch — the
+collision tint on screen included (`__viewerDiag.tintPart`) — a legacy
+palette from another client is Custom and stays through a switch, Settings
+switches Automatic ↔ Custom and keeps the custom colours stored, the legend
+shows the drawn colours with the rapid dashed. WebGL scenes are NOT
+screenshot references (they differ between the VM and CI; the tool dialog
+masks its canvas for the same reason) — a palette change is reviewed on
+rendered scenes by eye and guarded by the material colours.
+
 The promise is exactly that: the DEFAULT frame starts outside the model.
 Dolly, pan, later machine motion and the linear Reset tween between two
 poses are not covered — this is not a camera-collision system, and
