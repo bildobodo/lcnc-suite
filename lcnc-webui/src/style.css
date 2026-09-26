@@ -195,6 +195,10 @@
      bottom strip and data tables redefine --control-h to it. */
   --control-h: 32px;
   --control-h-compact: 28px;
+  /* A G-code viewer line: 23 px desktop, 32 px touch (a per-line tap for
+     Run from line). MUST stay in sync with GcodePanel's LINE_HEIGHT
+     (virtual-scroll math). */
+  --code-line-h: 23px;
   /* Forms (FormField.vue, .formGrid): a column's floor — below two of them
      the grid is one column — and a one-row (inline) field's width. */
   --form-col-min: 160px;
@@ -749,6 +753,7 @@ label:has(input.toggle:disabled) {
 html.touch-device {
   --control-h: var(--touch-target);
   --control-h-compact: var(--touch-target-compact);
+  --code-line-h: 32px;
   --fs-2xs: 10px;
   --fs-xs: 11px;
   --range-thumb: 20px;
@@ -844,10 +849,8 @@ html.touch-device .dataTable td {
 }
 
 /* Run-from-line selection is a per-line tap — 23px rows are below any
-   touch minimum. MUST stay in sync with GcodePanel's LINE_HEIGHT
-   computed (virtual-scroll math): 23px desktop / 32px touch. */
+   touch minimum: the touch line is 32 px (--code-line-h). */
 html.touch-device .codeLine {
-  height: 32px;
   align-items: center;
 }
 
@@ -1215,6 +1218,19 @@ label:has(input:disabled, select:disabled) {
 }
 /* Abort closes its group at the right edge, wherever the row wraps. */
 .actionGroup > .actionEnd { margin-inline-start: auto; }
+/* The NARROW side pane (`.sidePane.narrow`: App's one threshold, the one
+   that swaps the tab lists for selects — 271 px at 150 % portrait): a
+   tab's management (and Program's run options) fold behind ONE "More"
+   toggle at the end of the object line, and the head's rows sit closer,
+   so the content keeps readable rows and Abort stays in view
+   (implementation review round 4, UI-DI09 / DI10: the Program head took
+   all 272 px of its tab, no code line was left). Unfolded, the tab
+   scrolls and its content keeps its floor. A wide pane has no toggle and
+   folds nothing. */
+.panelMore { display: none; }
+.sidePane.narrow .panelMore { display: inline-flex; margin-inline-start: auto; flex-shrink: 0; }
+.sidePane.narrow .panelHead { gap: var(--gap-tight); }
+.sidePane.narrow .panelHead:not(.moreOpen) .foldNarrow { display: none; }
 
 /* A reset to defaults (design wave D4, UI-N65): ONE place — the end of
    its section, right-aligned — and one confirm under the button's gate. */
@@ -1535,7 +1551,7 @@ label:has(input:disabled, select:disabled) {
   font-size: var(--fs-base);
   line-height: 1.6;
   padding: 2px 12px;
-  height: 23px;
+  height: var(--code-line-h);
   box-sizing: border-box;
 }
 

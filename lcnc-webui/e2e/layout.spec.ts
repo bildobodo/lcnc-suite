@@ -263,6 +263,113 @@ for (const st of NAV_STATES) {
   });
 }
 
+// The narrow side pane's CONTENT budget (implementation review round 4,
+// UI-DI09 / DI10): at 150 % portrait (touch, 271 × 266 px of tab content)
+// the Program head took all 272 px — no code line — and the tool table's
+// description collapsed to single letters under a 165 px header. Program's
+// management and run options fold behind ONE "More" toggle in its object
+// line (the code keeps three lines, Abort stays in view, the folded
+// controls are reachable unfolded); the tool table is laid out as a whole
+// for the narrow pane. Wide panes have no toggle and fold nothing.
+const NARROW_PROGRAM = Array.from({ length: 40 }, (_, i) => i === 0 ? '(narrow)' : `G1 X${i} Y${i % 7} F300`).join('\n');
+const NARROW_TOOLS = [
+  { T: 5, P: 5, Z: -40.123456, D: 6, type: 'endmill', description: 'Test cutter', remark: '' },
+  { T: 12, P: 12, Z: -55.5, D: 10, type: 'drill', description: '10 mm HSS drill, long series', remark: '' },
+  { T: 99, P: 99, Z: 0, D: 3, type: 'probe', description: 'Renishaw probe', remark: '' },
+];
+/** Is the control at its centre, inside the side pane? (scrolled into view first) */
+async function hitInPane(loc: import('@playwright/test').Locator) {
+  await loc.scrollIntoViewIfNeeded();
+  return loc.evaluate(el => {
+    const r = el.getBoundingClientRect();
+    const pane = document.querySelector('.sidePane')!.getBoundingClientRect();
+    const x = r.left + r.width / 2, y = r.top + r.height / 2;
+    const inPane = x > pane.left && x < pane.right && y > pane.top && y < pane.bottom;
+    const at = document.elementFromPoint(x, y);
+    // A dimmed button is hit through its .btnTip wrapper; a switch through its label.
+    const target = el.closest('.btnTip') ?? el.closest('label') ?? el;
+    return inPane && !!at && target.contains(at);
+  });
+}
+for (const zoom of [1.5, 1]) {
+  test(`touch-portrait ${zoom * 100} %: Program keeps code lines and Abort ("More" unfolds the rest); the tool table keeps a readable identity and a whole row`, async ({ page }) => {
+    const narrow = zoom !== 1;
+    await page.route('**/gcode?*', r => r.fulfill({ contentType: 'text/plain', body: NARROW_PROGRAM }));
+    await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === 'touch-portrait')!);
+    await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 5, file: '/layout-example.ngc' } });
+    if (narrow) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
+    await expect(page.locator('.codeLine').first()).toContainText('(narrow)');
+    await settleLayout(page);
+    const side = page.locator('.sidePane');
+    const more = (what: string) => side.getByRole('button', { name: `More ${what} actions`, exact: true });
+
+    // Program: at least three whole code lines, Abort in view.
+    const lines = await side.locator('.codeArea .codeViewer').evaluate(v =>
+      v.clientHeight / (v.querySelector('.codeLine') as HTMLElement).offsetHeight);
+    expect(lines, `Program shows ${lines.toFixed(2)} code lines`).toBeGreaterThanOrEqual(3);
+    expect(await hitInPane(side.getByRole('button', { name: 'Abort', exact: true })), 'Abort in the pane').toBe(true);
+    const manage = ['Edit', 'Reload', 'Unload', 'Files', 'Upload'];
+    if (narrow) {
+      await expect(more('program')).toHaveAttribute('aria-expanded', 'false');
+      for (const name of manage) await expect(side.getByRole('button', { name, exact: true })).toBeHidden();
+      await more('program').click();
+      await expect(more('program')).toHaveAttribute('aria-expanded', 'true');
+    } else {
+      await expect(more('program'), 'a wide pane folds nothing').toBeHidden();
+    }
+    for (const name of manage) {
+      expect(await hitInPane(side.getByRole('button', { name, exact: true })), `${name} reachable`).toBe(true);
+    }
+    for (const name of ['M01', '/BD']) {
+      expect(await hitInPane(side.getByRole('switch', { name, exact: true })
+        .or(side.getByRole('checkbox', { name, exact: true }))), `${name} reachable`).toBe(true);
+    }
+    const unfolded = await side.locator('.codeArea .codeViewer').evaluate(v =>
+      v.clientHeight / (v.querySelector('.codeLine') as HTMLElement).offsetHeight);
+    expect(unfolded, 'unfolded, the code keeps its three lines (the tab scrolls)').toBeGreaterThanOrEqual(3);
+
+    // Tools (UI-DI10 is the TABLE): a header no taller than a row, the
+    // description at a readable width and not covered, a whole tool row at
+    // first sight, the row actions pinned, the tab never scrolled sideways.
+    if (narrow) await page.getByRole('combobox', { name: 'Side panel', exact: true }).selectOption('tools');
+    else await side.getByRole('tab', { name: 'Tools', exact: true }).click();
+    await expect.poll(async () => {
+      await ctl({ op: 'raw', frame: { type: 'reply', cmd: 'get_tool_table', ok: true, tools: NARROW_TOOLS } });
+      return side.locator('.toolsTab tbody tr').count();
+    }).toBe(3);
+    await settleLayout(page);
+    const t = await side.locator('.toolsTab .tableWrap').evaluate(wrap => {
+      const box = wrap.getBoundingClientRect();
+      const head = wrap.querySelector('thead')!.getBoundingClientRect();
+      const rows = [...wrap.querySelectorAll('tbody tr')].map(r => r.getBoundingClientRect());
+      const desc = wrap.querySelector<HTMLElement>('tbody td.colDesc')!;
+      const d = desc.getBoundingClientRect();
+      const at = document.elementFromPoint(d.left + d.width / 2, d.top + d.height / 2);
+      const tab = document.querySelector<HTMLElement>('.toolsTab')!;
+      // The pinned cells hide what scrolls under them: contiguous, opaque.
+      const pinned = [...wrap.querySelectorAll<HTMLElement>('tbody tr:first-child td.colAction')].map(c => c.getBoundingClientRect());
+      const heads = [...wrap.querySelectorAll<HTMLElement>('th.colT, th.colAction')].map(c => getComputedStyle(c).opacity);
+      return { gap: pinned[1]!.left - pinned[0]!.right, headOpacity: heads, head: head.height, row: rows[0]!.height, whole: rows.filter(r => r.bottom <= box.bottom + 0.5).length,
+        descW: desc.clientWidth, descFont: parseFloat(getComputedStyle(desc).fontSize), descSeen: desc.contains(at),
+        sideways: tab.scrollWidth - tab.clientWidth, down: tab.scrollHeight - tab.clientHeight };
+    });
+    expect(t.head, `the header (${t.head.toFixed(1)} px) is no taller than a tool row (${t.row.toFixed(1)})`).toBeLessThanOrEqual(t.row);
+    expect(t.descW, 'the description keeps a readable width (7 em)').toBeGreaterThanOrEqual(7 * t.descFont - 0.5);
+    expect(t.descSeen, 'the first description is in view and not covered').toBe(true);
+    expect(t.whole, 'a whole tool row at first sight').toBeGreaterThanOrEqual(1);
+    expect(t.sideways, 'the Tools tab never scrolls sideways').toBeLessThanOrEqual(0);
+    expect(t.down, 'the Tools tab never scrolls as a whole (the table does)').toBeLessThanOrEqual(0);
+    expect(Math.abs(t.gap), 'the pinned row actions touch — nothing shows between them').toBeLessThanOrEqual(0.5);
+    expect(t.headOpacity.every(o => o === '1'), `pinned header cells are opaque: ${t.headOpacity}`).toBe(true);
+    for (const name of ['Edit T5', 'Delete T5']) {
+      expect(await hitInPane(side.getByRole('button', { name, exact: true })), `${name} reachable`).toBe(true);
+    }
+    for (const name of ['Measure Current', 'Unload', 'Abort', 'Add', 'Files', 'Upload']) {
+      expect(await hitInPane(side.locator('.toolsTab').getByRole('button', { name: new RegExp(`^(\\+ )?${name}$`) })), `${name} reachable`).toBe(true);
+    }
+  });
+}
+
 // The header (design wave D5, UI-K06): one button height and icon size,
 // Shutdown's caption BESIDE its icon (stacked it was the one tall button),
 // the operating states in the row and the diagnostics (clients, latencies)

@@ -1909,7 +1909,7 @@ watch(viewerGcode, (newGcode) => {
       </div>
 
       <!-- ══ Right pane — Program / Probing tabs ══ -->
-      <div ref="sidePaneEl" class="sidePane bordered-panel">
+      <div ref="sidePaneEl" class="sidePane bordered-panel" :class="{ narrow: sideNarrow }">
         <TabPanel :tabs="contentTabs" :modelValue="activeTab" label="Side panel" variant="main" :narrow="sideNarrow"
                   @update:modelValue="activeTab = $event">
           <template #bar>

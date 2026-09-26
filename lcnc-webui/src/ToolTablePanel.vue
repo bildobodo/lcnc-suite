@@ -1150,8 +1150,15 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
   overflow-wrap: anywhere;
 }
 
+/* The two pinned row actions: ONE exact width (the 42 px action plus the
+   cell's 8 px padding either side), and the pencil's offset IS it — a
+   used width 2 px under the offset left a gap the Z value showed through
+   (implementation review round 4, UI-DI10 guard). */
 .colAction {
-  width: 42px;
+  --action-cell: 58px;
+  box-sizing: border-box;
+  width: var(--action-cell);
+  min-width: var(--action-cell);
   text-align: center;
   position: sticky;
   z-index: var(--z-raised);
@@ -1160,7 +1167,35 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
 }
 
 .colEdit {
-  right: 58px;
+  right: var(--action-cell);
+}
+
+/* The narrow side pane (`.sidePane.narrow`, 271 px at 150 % portrait —
+   implementation review round 4, UI-DI10): the description collapsed to
+   single letters under a 165 px header while the table still scrolled
+   sideways. Narrow, the table is laid out as a whole: what a tool IS
+   first — T# and a description with a readable floor (7 em), the header
+   one line — the Type column leaves (the filter and the editor carry it),
+   the cells take the tight padding (the header none above and below its
+   sort buttons), and Ø / Z scroll under the pinned row actions. The Tools
+   head keeps every control: its action row needs 270 of the 271 px, so
+   the tab never scrolls as a whole (a scrollbar would wrap it); the table
+   scrolls in itself, as it does wide. */
+.sidePane.narrow .container { gap: var(--gap-tight); }
+.sidePane.narrow .tableWrap th { white-space: nowrap; }
+.sidePane.narrow .tableWrap th,
+.sidePane.narrow .tableWrap td { padding: var(--gap-tight); }
+.sidePane.narrow .tableWrap th { padding-block: 0; }
+.sidePane.narrow .colDesc { min-width: 7em; overflow-wrap: break-word; }
+.sidePane.narrow .colType { display: none; }
+.sidePane.narrow .colAction { --action-cell: calc(42px + 2 * var(--gap-tight)); }
+/* A pinned header cell must hide what scrolls under it: muted by colour,
+   never by opacity (the header's 60 % opacity let "Z Offset" read through
+   the pinned action heads). */
+.tableWrap th.colT,
+.tableWrap th.colAction {
+  opacity: 1;
+  color: color-mix(in oklab, currentColor var(--mix-muted), transparent);
 }
 
 

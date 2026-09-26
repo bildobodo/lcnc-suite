@@ -15,7 +15,7 @@ import { useMediaMql } from "./useMediaMql";
 import { emitTelemetry, pushMessage } from "./lcncWs";
 import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "./lcnc";
 import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
-import { Play, SkipForward, Pause, X } from "lucide-vue-next";
+import { Play, SkipForward, Pause, X, ChevronDown, ChevronUp } from "lucide-vue-next";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineRadio from "./MachineRadio.vue";
@@ -508,6 +508,14 @@ const programHoldKey = computed(() => `${props.activeFile ?? ""}|${props.program
 // sends is read from it.
 const programLoading = computed(() => props.programRevision !== props.programTextRevision);
 const LOADING_REASON = "Loading program — wait";
+
+// The narrow side pane folds the run options and the program management
+// behind "More" (style.css `.foldNarrow`, UI-DI09). A run option that is
+// ON stays named on the toggle while folded — it changes how the program
+// runs.
+const moreOpen = ref(false);
+const foldedOptions = computed(() =>
+  [props.optionalStop && "M01", props.blockDelete && "/BD"].filter(Boolean).join(" "));
 // A line selection belongs to its program AND its text: another program,
 // or a revision whose text differs, clears it and closes a Run-from-line
 // dialog opened on it (the line of the old text is not a line of the new).
@@ -814,11 +822,20 @@ async function saveEdit() {
     <!-- The tab's pattern (design wave D5, UI-K05): what it acts on, the
          machine actions with Abort last at the right edge, then management.
          Portrait edit mode folds both action rows (compactEdit). -->
-    <div class="panelHead">
+    <div class="panelHead" :class="{ moreOpen }">
       <div class="panelObject">
         <div class="fileName">{{ fileName }}</div>
         <span class="fileMeta" v-if="gcodeContent">{{ lineCount }} lines</span>
         <MachineBtn v-if="gcodeStats" type="inline" class="actionBtn" @click="emit('showStats')">Stats</MachineBtn>
+        <!-- Narrow only (style.css): the run options and the management fold here -->
+        <span class="panelMore">
+          <MachineBtn type="inline" :selected="moreOpen" :aria-expanded="moreOpen" aria-controls="programOptions programManage"
+                      :aria-label="`More program actions${foldedOptions && !moreOpen ? ` — ${foldedOptions} on` : ''}`"
+                      @click="moreOpen = !moreOpen">
+            More<template v-if="foldedOptions && !moreOpen"> · {{ foldedOptions }}</template>
+            <component :is="moreOpen ? ChevronUp : ChevronDown" :size="14" />
+          </MachineBtn>
+        </span>
       </div>
 
       <!-- Program control -->
@@ -840,7 +857,7 @@ async function saveEdit() {
           <span class="stable-width"><span :class="{ alt: isPaused }"><Pause :size="14" class="ctrlIcon" /> Pause</span><span :class="{ alt: !isPaused }"><Play :size="14" class="ctrlIcon" /> Resume</span></span>
         </MachineBtn>
         <!-- The run options sit before Abort: Abort closes the row (N80) -->
-        <div class="row-tight switchToggles">
+        <div id="programOptions" class="row-tight switchToggles foldNarrow">
           <MachineToggle gate="optionalStop" v-model="optionalStopModel" label="M01" />
           <MachineToggle gate="blockDelete" v-model="blockDeleteModel" label="/BD" />
         </div>
@@ -848,7 +865,7 @@ async function saveEdit() {
       </div>
 
       <!-- Program management -->
-      <div v-if="!compactEdit" class="actionGroup programManage">
+      <div v-if="!compactEdit" id="programManage" class="actionGroup programManage foldNarrow">
         <MachineBtn type="fileOp" class="actionBtn" @click="enterEdit" :disabled="!activeFile || editing">
           Edit
         </MachineBtn>
@@ -1126,10 +1143,20 @@ async function saveEdit() {
 <style scoped>
 .container {
   height: 100%;
-  /* The narrow side pane (150 % portrait: 271 px) re-flows the control
-     row below — a container query, the pane's own width decides. */
-  container-type: inline-size;
 }
+/* The narrow side pane (`.sidePane.narrow`, App's one threshold — 271 px
+   at 150 % portrait): the rows sit closer, and with the folded controls
+   unfolded the tab scrolls while the code keeps three lines
+   (UI-DI09). "40 lines" leaves the object line — the progress row says
+   it — and makes room for the toggle. */
+.sidePane.narrow .container {
+  gap: var(--gap-tight);
+  overflow-y: auto;
+}
+.sidePane.narrow .codeArea {
+  min-height: calc(3 * var(--code-line-h) + var(--gap-tight));
+}
+.sidePane.narrow .fileMeta { display: none; }
 
 
 /* .controlRow — uses row-tight utility */
@@ -1149,12 +1176,10 @@ async function saveEdit() {
 }
 /* Narrow pane (< 400 px, the DR threshold): one row needed 489 px at 150 %
    portrait and Abort sat off the pane. Two columns — the run options on
-   top, then Start · Step, Pause · Abort: Abort still closes the group at
-   its right edge (N80). */
-@container (max-width: 399px) {
-  .ctrlRow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .ctrlRow > .switchToggles { grid-row: 1; grid-column: 1 / -1; }
-}
+   top (folded behind "More" until asked for), then Start · Step,
+   Pause · Abort: Abort still closes the group at its right edge (N80). */
+.sidePane.narrow .ctrlRow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sidePane.narrow .ctrlRow > .switchToggles { grid-row: 1; grid-column: 1 / -1; }
 
 .switchBtn {
   flex: 0 0 auto;
