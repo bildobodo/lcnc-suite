@@ -6755,3 +6755,23 @@ The operator tried the development tree on the machine's touchscreen
   gesture is the operator's check on the machine.
 - Guard: `e2e/touch-surface.spec.ts` (serial-guards), mutation-checked
   three ways.
+
+### WP-D5c — the header (2026-09-26)
+
+Plan Fassung 3 WP-D5 (UI-K06).
+
+- One height and one icon size for every header button; Shutdown keeps
+  its caption (an icon alone is not identifiable on touch, K06) but BESIDE
+  the icon — stacked it was the header's one tall button (86 × 47 px
+  beside 38 × 34; now 106 × 34). The class that stacked it styled a
+  MachineBtn's interior (against the slot rule); icon buttons now keep an
+  icon and its caption apart themselves (`.b-icon` gap).
+- The operating states stay in the row (clock, WS, LinuxCNC, ARMED, the
+  input icons); the diagnostics — clients and the two latencies — moved
+  behind one labelled button, "Connection details" (`DetailsPopover.vue`:
+  a native popover in the shared `.helpPopover` card, placed like
+  HelpIcon's, no dialog role — DialogFrame is the one dialog).
+- Guard: layout.spec, desktop and touch portrait — one button height and
+  icon size, the caption beside the icon, the states in the row and the
+  diagnostics only in the card; red with Shutdown stacked again.
+  frames.spec reads the latency in the card.

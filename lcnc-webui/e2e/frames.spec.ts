@@ -37,11 +37,13 @@ test("status_delta merges onto prior status and updates the rendered DRO", async
   }
 });
 
-test("pong drives the network-latency pill", async ({ page }) => {
+test("pong drives the network-latency reading", async ({ page }) => {
   await page.goto(MOCK);
   // The ws worker heartbeats at 1 Hz; the mock answers with pong, which sets
-  // networkLatency — rendered as the "Net … ms" header pill.
-  await expect(page.getByTitle("Network latency")).toBeVisible();
+  // networkLatency — rendered in the header's Connection details card
+  // (design wave D5: diagnostics left the header row).
+  await page.getByRole("button", { name: "Connection details", exact: true }).click();
+  await expect(page.getByTitle("Network latency")).toHaveText(/^\d+ ms$/);
 });
 
 test("halshow snapshot renders pins and halshow_update applies the delta", async ({ page }) => {

@@ -233,6 +233,8 @@ html.touch-device .b.muted:active:not(:disabled) { opacity: 1; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* An icon with a caption (Shutdown) keeps them apart, like .b does. */
+  gap: var(--gap-tight);
   background: none;
   border: none;
   padding: 6px 8px;

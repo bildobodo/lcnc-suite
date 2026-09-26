@@ -263,6 +263,39 @@ for (const st of NAV_STATES) {
   });
 }
 
+// The header (design wave D5, UI-K06): one button height and icon size,
+// Shutdown's caption BESIDE its icon (stacked it was the one tall button),
+// the operating states in the row and the diagnostics (clients, latencies)
+// behind a labelled "Connection details".
+for (const vp of ['desktop', 'touch-portrait'] as const) {
+  test(`${vp}: the header's buttons are one height, Shutdown's caption sits beside its icon, diagnostics behind Connection details`, async ({ page }) => {
+    const viewport = VIEWPORTS.find(v => v.name === vp)!;
+    await openLayout(page, PROFILES[1]!, viewport);
+    const hdr = page.locator('.hdr');
+    const buttons = await hdr.locator('.hdrBtns button').evaluateAll(els => els.map(b => {
+      const r = b.getBoundingClientRect();
+      const icon = b.querySelector('svg')!.getBoundingClientRect();
+      const text = b.querySelector('.btn-label-sm')?.getBoundingClientRect() ?? null;
+      return { name: b.getAttribute('aria-label') ?? b.getAttribute('title'), h: Math.round(r.height), icon: Math.round(icon.width),
+        beside: text ? text.left >= icon.right && text.top < icon.bottom && text.bottom > icon.top : null };
+    }));
+    expect(new Set(buttons.map(b => b.h)).size, JSON.stringify(buttons)).toBe(1);
+    expect(new Set(buttons.map(b => b.icon)).size, JSON.stringify(buttons)).toBe(1);
+    const shutdown = buttons.find(b => b.name?.startsWith('Shut Down'))!;
+    expect(shutdown.beside, "Shutdown's caption beside its icon").toBe(true);
+    // States stay in the row; the diagnostics do not.
+    await expect(hdr.locator('.pill').filter({ hasText: 'WS connected' })).toBeVisible();
+    await expect(hdr.locator('.pill').filter({ hasText: /armed/i })).toBeVisible();
+    await expect(hdr.locator('.pill').filter({ hasText: /client|net|ping/i })).toHaveCount(0);
+    await hdr.getByRole('button', { name: 'Connection details', exact: true }).click();
+    const card = page.locator('.helpPopover:popover-open');
+    await expect(card).toContainText('Clients');
+    await expect(card.getByTitle('Network latency')).toBeVisible();
+    const [cb, vpW] = [await card.boundingBox(), viewport.width];
+    expect(cb!.x >= 0 && cb!.x + cb!.width <= vpW, 'the card inside the window').toBe(true);
+  });
+}
+
 // Portrait stacks the strip's sections in ONE column: every section's
 // content spans the same x range, the pinned Safety section included, and its
 // near-edge fade hangs BELOW it across the column (operator, D1 live look:

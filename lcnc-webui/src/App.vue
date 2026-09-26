@@ -33,13 +33,14 @@ import OffsetPanel from "./OffsetPanel.vue";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import DialogFrame from "./DialogFrame.vue";
+import DetailsPopover from "./DetailsPopover.vue";
 import FormField from "./FormField.vue";
 import MachineInput from "./MachineInput.vue";
 import { highlightGcode } from "./gcodeHighlight";
-import { fmtElapsed, fmtDuration, fmtDist, fmtSize, fmtProgressTimes, fmtNum, fmtQty } from "./format";
+import { fmtElapsed, fmtDuration, fmtDist, fmtSize, fmtProgressTimes, fmtNum, fmtQty, fmtMs, NO_VALUE } from "./format";
 import type { GcodeStats } from "./GcodePanel.vue";
 import type { LimitViolation } from "./ws/bulkData";
-import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, ClipboardCopy, Expand, Shrink, X } from "lucide-vue-next";
+import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, ClipboardCopy, Expand, Shrink, X, Activity } from "lucide-vue-next";
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import NumberKeypadStrip from "./NumberKeypadStrip.vue";
 import FloatingOverlays from "./FloatingOverlays.vue";
@@ -1772,20 +1773,32 @@ watch(viewerGcode, (newGcode) => {
       <div class="title">LinuxCNC WebUI ({{ connLabel }})</div>
       <div class="hdrRight">
         <div class="pill mono">{{ clockTime }}</div>
-        <div class="pill" :title="connectedClients.map(c => c.ip + (c.armed ? ' (armed)' : '')).join('\n')">
-          {{ connectedClients.length }} client{{ connectedClients.length !== 1 ? 's' : '' }}
-        </div>
         <div class="pill" :class="connected ? 'ok' : 'bad'">
           <span class="stable-width"><span :class="{ alt: !connected }">WS connected</span><span :class="{ alt: connected }">WS disconnected</span></span>
         </div>
-        <div v-if="connected && networkLatency != null" class="pill" title="Network latency">Net <span class="mono pill-ms">{{ networkLatency }}</span> ms</div>
-        <div v-if="connected && latency != null" class="pill" title="Round-trip latency">Ping <span class="mono pill-ms">{{ latency }}</span> ms</div>
         <div class="pill" :class="lcncError ? 'bad' : (configName ? 'ok' : '')">{{ lcncLabel }}</div>
         <div class="pill" :class="armed ? 'armed' : 'disarmed'"><span class="stable-width"><span :class="{ alt: !armed }">ARMED</span><span :class="{ alt: armed }">DISARMED</span></span></div>
         <div v-if="gamepad.gamepadConnected.value" class="pill ok iconPill" :title="gamepad.gamepadName.value"><Gamepad2 :size="14" /></div>
         <div v-if="keyboardConfig.jogEnabled || keyboardConfig.buttonsEnabled" class="pill ok iconPill" title="Keyboard shortcuts active"><Keyboard :size="14" /></div>
 
         <div class="hdrBtns row-controls">
+          <!-- Diagnostics, not operating states (design wave D5, K06): the
+               clients and the latencies behind one labelled button. -->
+          <DetailsPopover label="Connection details">
+            <template #icon><Activity :size="22" /></template>
+            <div class="popTitle">Connection</div>
+            <dl class="connDetails">
+              <dt>Clients</dt>
+              <dd>{{ connectedClients.length }}</dd>
+              <template v-for="c in connectedClients" :key="c.ip">
+                <dt></dt><dd class="mono">{{ c.ip }}{{ c.armed ? ' · armed' : '' }}</dd>
+              </template>
+              <dt>Network</dt>
+              <dd class="mono" title="Network latency">{{ connected && networkLatency != null ? fmtMs(networkLatency) : NO_VALUE }}</dd>
+              <dt>Round trip</dt>
+              <dd class="mono" title="Round-trip latency">{{ connected && latency != null ? fmtMs(latency) : NO_VALUE }}</dd>
+            </dl>
+          </DetailsPopover>
           <MachineBtn type="headerIcon" :warning="unreadCount > 0" :title="'Messages (' + unreadCount + ')'" @click="messagesDialogOpen ? closeMessages() : openMessages()">
             <MessageSquare :size="22" />
           </MachineBtn>
@@ -1799,7 +1812,11 @@ watch(viewerGcode, (newGcode) => {
             <Shrink v-if="isFullscreen" :size="22" />
             <Expand v-else :size="22" />
           </MachineBtn>
-          <MachineBtn type="headerIcon" class="hdrShutdown" title="Shut Down LinuxCNC" @click="showShutdownConfirm = true">
+          <!-- The one destructive header action: an icon alone is not
+               identifiable on touch, so it carries a caption, BESIDE the icon
+               (stacked it was the header's one tall button, 86 × 47 px beside
+               38 × 34 — K06). -->
+          <MachineBtn type="headerIcon" title="Shut Down LinuxCNC" @click="showShutdownConfirm = true">
             <PowerOff :size="22" />
             <span class="btn-label-sm">Shut Down</span>
           </MachineBtn>
@@ -2623,12 +2640,15 @@ watch(viewerGcode, (newGcode) => {
   justify-content: flex-end;
 }
 .hdrBtns { flex-shrink: 0; }
-/* Shutdown is the one destructive header action — icon alone (labeled only
-   by a hover title) is not identifiable on touch, so it carries a caption. */
-.hdrShutdown {
-  flex-direction: column;
-  gap: var(--gap-micro);
+/* The connection details card (DetailsPopover): label | value rows. */
+.connDetails {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: var(--gap-micro) var(--gap-section);
+  margin: 0;
 }
+.connDetails dt { color: color-mix(in oklab, currentColor var(--mix-muted), transparent); }
+.connDetails dd { margin: 0; text-align: right; }
 
 .title {
   font-size: var(--fs-2xl);
@@ -2664,11 +2684,6 @@ watch(viewerGcode, (newGcode) => {
   background: color-mix(in oklab, var(--danger) 25%, var(--panel));
 }
 
-.pill-ms {
-  display: inline-block;
-  min-width: 3ch;
-  text-align: right;
-}
 
 .pill.armed {
   background: color-mix(in oklab, var(--ok) 25%, var(--panel));

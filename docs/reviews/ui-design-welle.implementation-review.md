@@ -640,6 +640,37 @@ Gegenproben, beide rot: ohne `aria-sort`; „keine Treffer“ als „leer“ for
   - Die Gate-Läufe setzen den Mock jetzt zuerst zurück.
 - **Referenzbilder:** unverändert, 10/10.
 
+### WP-D5c — die Kopfzeile · 26. September 2026
+
+**K06:**
+- **Eine Höhe und eine Icongröße** für alle Kopf-Buttons.
+- **Shutdown** behält seine Beschriftung (ein Icon allein ist auf Touch nicht erkennbar), jetzt neben
+  dem Icon. Gestapelt war es der eine hohe Button (86 × 47 px neben 38 × 34); jetzt 106 × 34 px.
+- **Stil-Regel:** Die Klasse, die ihn stapelte, gestaltete das Innere eines MachineBtn (gegen die
+  Platzierungsregel). Icon-Buttons halten Icon und Beschriftung jetzt selbst auseinander (`.b-icon`
+  gap).
+- **Zustände vs. Diagnose:**
+  - In der Zeile bleiben die Betriebszustände: Uhr, WS, LinuxCNC, ARMED, Eingabe-Symbole.
+  - Clients und die beiden Latenzen liegen hinter einem benannten Button „Connection details“
+    (`DetailsPopover.vue`). Das ist ein natives Popover in der gemeinsamen `.helpPopover`-Karte, wie
+    HelpIcon platziert, ohne Dialog-Rolle.
+
+**Wächter:**
+- `layout.spec` prüft Desktop und Touch-Hochformat:
+  - eine Button-Höhe und Icongröße;
+  - die Beschriftung neben dem Icon;
+  - Zustände in der Zeile, Diagnose nur in der Karte;
+  - die Karte innerhalb des Fensters.
+- Gegenprobe: Shutdown wieder gestapelt macht ihn rot.
+- `frames.spec` liest die Latenz jetzt in der Karte.
+
+**Gates:**
+- build, lint und Vitest grün.
+- Playwright: **242/242** mit zurückgesetztem Mock; `serial-guards` 106, `serial-layout` 61.
+- **Referenzbilder:** Die 4 Werkzeugeditor-Bilder wurden nach Sichtprüfung erneuert. Die niedrigere
+  Kopfzeile gibt dem Dialog 14 px mehr Höhe; sonst ändern sich nur der Scrollbalken und der untere
+  Rand des Scrollbereichs.
+
 ---
 
 ## Codex Implementierungsreview Runde 1
