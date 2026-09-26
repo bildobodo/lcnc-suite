@@ -114,9 +114,11 @@ const FOCUS_RETURN_MAX_MS = 2000;
 // Cycle Start.
 let _focusFallback: (() => HTMLElement | null) | null = null;
 export function setFocusFallback(fn: () => HTMLElement | null): void { _focusFallback = fn; }
+// A focus() call on a control that cannot take focus (disabled by its Gate)
+// is silently ignored: only a verified landing counts (review UI-DI04).
 function fallbackFocus(): void {
   const el = _focusFallback?.();
-  if (el?.isConnected) { el.focus(); return; }
+  if (el?.isConnected) { el.focus(); if (document.activeElement === el) return; }
   document.querySelector<HTMLElement>(".strip")?.focus();
 }
 function canHold(t: HTMLElement): boolean {

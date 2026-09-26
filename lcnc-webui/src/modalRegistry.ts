@@ -12,7 +12,7 @@
 // the DOM's `.dialogOverlay` count with `modalCount` (self-test): a dialog
 // that forgot to register shows up as a mismatch, never as a silent gap.
 import { computed, getCurrentInstance, onUnmounted, ref, shallowReactive, watch, type Ref } from "vue";
-import { helperOpen, setFocusFallback } from "./inputSession";
+import { focusReturn, helperOpen, setFocusFallback } from "./inputSession";
 
 const openCount = ref(0);
 
@@ -194,6 +194,24 @@ if (typeof document !== "undefined") {
     lastPressedAt = performance.now();
   }, { capture: true, passive: true });
   document.addEventListener("keydown", onTabKey, true);
+  // Focus that falls to `body` while a dialog is open goes back to the
+  // topmost dialog's CONTAINER — a neutral spot, nothing under Space or
+  // Enter (review UI-DI04). The case: a disarm disables the focused field
+  // through the content Gate; Chromium then moves focus to body and fires
+  // a focusout without a relatedTarget (verified). Firefox and Safari may
+  // leave focus on the disabled control — there the next Tab recovers
+  // (onTabKey starts at the scope's first stop). Focus that moved to a
+  // control (a strip button by pointer — allowed) is left alone, and a
+  // focus return in flight (a dialog closing) owns the landing.
+  document.addEventListener("focusout", (e) => {
+    if (stack.length === 0 || (e as FocusEvent).relatedTarget) return;
+    requestAnimationFrame(() => {
+      const a = document.activeElement;
+      if (stack.length === 0 || focusReturn.pending) return;
+      if (a && a !== document.body && a !== document.documentElement) return;
+      topDialog.value?.el()?.focus({ preventScroll: true });
+    });
+  }, true);
   // A focus return that cannot land on its control lands on the topmost
   // dialog's initial focus, never outside its scope (inputSession's
   // fallback reads this).

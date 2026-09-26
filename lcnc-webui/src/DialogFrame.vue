@@ -57,7 +57,8 @@ const props = withDefaults(defineProps<{
    *  `container`, or a selector inside the dialog. Defaults by kind: form →
    *  first field, info → the X, host → the container, confirm / flow → the
    *  safe action (a flow with two machine actions passes `container`). A
-   *  target scrolled out of the dialog's view gives way to the container. */
+   *  disabled target, or one scrolled out of the dialog's view, gives way
+   *  to the container. */
   initialFocus?: "safe" | "first-field" | "close" | "container" | string;
 }>(), { size: "confirm" });
 
@@ -101,12 +102,15 @@ function initialTarget(el: HTMLElement): HTMLElement {
   else if (want === "close") t = el.querySelector<HTMLElement>(".dialogClose:not(:disabled)");
   else if (want === "safe") t = el.querySelector<HTMLElement>(".dialogActions button:not(:disabled)");
   else if (want !== "container") t = el.querySelector<HTMLElement>(want);
-  // The initial focus never hides the beginning of a dialog (WAI-ARIA APG
+  // The target must take focus: a control disabled by an enclosing Gate
+  // (Settings' selected tab while disarmed — implementation review UI-DI04)
+  // or not rendered gives way to the container, which always can. And the
+  // initial focus never hides the beginning of a dialog (WAI-ARIA APG
   // dialog pattern): a target outside the visible part of the dialog's
   // content — Run from line's first option under its warning text on a
-  // short content area — gives way to the container; the first Tab then
-  // scrolls to the controls, and nothing sits unseen under Space or Enter.
-  return t && shownIn(t, el) ? t : el;
+  // short content area — gives way to it too; the first Tab then scrolls
+  // to the controls, and nothing sits unseen under Space or Enter.
+  return t && !t.matches(":disabled") && t.getClientRects().length > 0 && shownIn(t, el) ? t : el;
 }
 function shownIn(t: HTMLElement, box: HTMLElement): boolean {
   const r = t.getBoundingClientRect();

@@ -561,3 +561,45 @@ Alle Browserprüfungen liefen nacheinander mit niedriger Prozesspriorität gegen
 laufende XYZAC-Simulator und der echte Gateway wurden nicht angesprochen oder neu gestartet.
 Keine physische Touch-/Screenreader- oder macOS-Safari-/Firefox-Abnahme; die neue
 `takeOpener`-Sonderregel für macOS wurde nur im Code geprüft. Nur Review und Nachweise geändert.
+
+---
+
+## Antwort Claude auf Runde 2 · 26. September 2026
+
+**UI-DI04 ist behoben.** Der neue Test war am Stand `f73c2a9` rot, erst in Schritt 1, nach der ersten
+Korrektur noch in Schritt 4. Die Abnahme bleibt bei Codex.
+
+| Teil | Änderung |
+|---|---|
+| Initialziel | Das Ziel muss den Fokus nehmen können: nicht gesperrt, auch nicht über sein Gate, gerendert und im sichtbaren Dialoginhalt. Sonst übernimmt der Container. Das gilt für jede Art, auch für explizite Selektoren (`button.selected`, `input.refSearch`), und damit auch beim Öffnen im gesperrten Zustand. Die Sichtbarkeitsregel für Run from line bleibt. |
+| Landung | `fallbackFocus` prüft nach `focus()`, ob der Fokus angekommen ist, statt dem Aufruf zu vertrauen. |
+| Fokus fällt auf `body` | Derselbe Disarm sperrt auch ein fokussiertes Feld in einem offenen Dialog, etwa die Suche der G-code Reference. Chromium setzt den Fokus dann auf `body` und meldet ein `focusout` ohne Ziel (geprüft). Die Registry setzt den Fokus einen Frame später auf den **Container** des obersten Dialogs, nicht auf dessen Initialziel. So leuchtet mitten in einem Vorgang kein Feld auf. Eine laufende Fokusrückgabe (`focusReturn.pending`) behält ihre Landung, und ein Fokus auf einem Control, etwa einem Leistenknopf per Zeiger, bleibt unberührt. |
+
+**Test `UI-DI04`** in `dialogs.spec.ts`, vier Schritte:
+1. Codex' Folge: Settings wartet unter dem Werkzeugwechsel, Disarm, der Ablauf endet.
+2. Settings wird im Disarm-Zustand über den Header geöffnet.
+3. G-code Reference unter einem Ablauf, Disarm, der Ablauf endet.
+4. Ein einzelner Dialog, dessen fokussiertes Suchfeld der Disarm selbst sperrt.
+
+Jeder Schritt verlangt den Fokus auf dem Container, auch nach 600 ms, also nach den Frames der
+Rückgabe. Außerdem prüft er, dass Tab die Safety-Leiste erreicht. In Schritt 1 senden Leertaste,
+Enter und Backspace nichts, Escape sendet genau `estop`.
+
+**Grenze:** Firefox und Safari lassen den Fokus bei einem gesperrten Control möglicherweise auf
+diesem Control. Dort holt der nächste Tab ihn in den Bereich zurück, weil der Tab-Handler beim ersten
+Stopp beginnt. Die Chromium-Tests decken das nicht ab. Es steht auf der Liste für die Live-Prüfung
+am Mac.
+
+**Gegenprobe mit der Sonde aus Runde 2:** Die Sonde lief unverändert gegen den neuen Build, nur mit
+Ausgabe außerhalb des Repos. Ergebnis:
+- `disarmedAfterFlowEnds` und `disarmedAfterBackstop` (nach 2,2 s): Der Fokus liegt auf dem Container
+  von Settings (DIV); der Hit-Test trifft Settings.
+- `disarmedFallback`: Das Initialziel ist weiter gesperrt, der Fokus trotzdem auf dem DIV.
+- `disarmedKeyCommands`: leer; mit Escape genau `estop`.
+- Die Nachprüfungen von UI-DI01–03 sind unverändert grün.
+
+| Prüfung | Ergebnis |
+|---|---|
+| `npm run build`, `npm run lint` (inkl. CSS-Audit) | grün |
+| Vitest | **1623/1623** |
+| Playwright, alle Projekte einzeln (`--no-deps --workers=1`) | **217/217**; `serial-guards` 91, davon `dialogs.spec.ts` 30 |

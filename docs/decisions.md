@@ -6477,3 +6477,34 @@ Round 1 on DR + D0–D2 found two stack defects (P2) and one D1 remainder
   orders), `UI-DI02` (a flow ending under a flow with typed text, a save
   replying under Settings with Space), the RFL initial-focus test at two
   heights, and the message-restore vitest.
+
+### WP-D2 — Codex implementation review round 2 (2026-09-26)
+
+Round 2 closed UI-DI01–03 and found UI-DI04 (P2): after a disarm the
+focus fallback pointed at a disabled control and the return landed on
+`body`. Fixed:
+
+- **A focusable initial target.** Round 1 made the new top's initial
+  focus the fallback. Settings names `button.selected`; disarmed, the
+  content Gate disables that tab and `focus()` does nothing. The initial
+  target now has to be enabled (including by its Gate), rendered and in
+  view, else the container takes focus — also when a dialog opens
+  already disarmed (Settings from the header).
+- **Only a verified landing counts.** `fallbackFocus` checks
+  `document.activeElement` after `focus()` instead of trusting the call.
+- **Focus falling to body under a dialog.** The same disarm disables a
+  focused field in an open dialog (the G-code Reference's search):
+  Chromium moves focus to body and fires a focusout without a related
+  target. The registry puts focus on the topmost dialog's container one
+  frame later — not on its initial target, so no field or button lights
+  up mid-operation (the tool editor's Add disabling under the busy latch
+  is the same event). A focus return in flight owns its landing
+  (`focusReturn.pending`), and focus that moved to a control is left
+  alone. Firefox and Safari may keep focus on the disabled control; the
+  next Tab recovers there. Not covered by the Chromium tests.
+- Guard: `UI-DI04` in `dialogs.spec.ts` — Codex's sequence (Settings under
+  a tool change, disarm, the flow ends), Settings opened disarmed, the
+  G-code Reference under a flow, and a lone dialog whose focused field
+  the disarm disables; each holds focus on the container past the
+  return's frames, Tab reaches the safety strip, Space/Enter/Backspace
+  send nothing, Escape sends exactly `estop`.
