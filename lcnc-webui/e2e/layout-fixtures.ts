@@ -144,14 +144,14 @@ export async function enterStripState(page: Page, profile: Profile, state: Strip
       await expect(page.locator('.nkStrip')).toBeVisible();
       break;
     case 'keypad-panel':
-      await page.getByRole('button', { name: 'Tools', exact: true }).click();
+      await page.getByRole('tab', { name: 'Tools', exact: true }).click();
       await page.getByRole('button', { name: '+ Add', exact: true }).click();
       await expect(page.locator('.editDialog')).toBeVisible();
       await page.locator('.editDialog input.inputField').first().click();
       await expect(page.locator('.nkStrip')).toBeVisible();
       break;
     case 'gcode-keypad':
-      await page.getByRole('button', { name: 'MDI', exact: true }).click();
+      await page.getByRole('tab', { name: 'MDI', exact: true }).click();
       await page.locator('.mdiInput').click();
       await expect(page.locator('.tkStrip')).toBeVisible();
       break;
@@ -188,13 +188,13 @@ export async function leaveStripState(page: Page, profile: Profile, state: Strip
       await keypadCancel(page);
       await page.locator('.editDialog').getByRole('button', { name: 'Cancel', exact: true }).click();
       await expect(page.locator('.editDialog')).toHaveCount(0);
-      await page.getByRole('button', { name: 'Program', exact: true }).click();
+      await page.getByRole('tab', { name: 'Program', exact: true }).click();
       break;
     case 'gcode-keypad':
       // A pointerdown outside the MDI tab and the keyboard ends the session.
       await page.locator('header.hdr').dispatchEvent('pointerdown', { button: 0 });
       await expect(page.locator('.tkStrip')).toHaveCount(0);
-      await page.getByRole('button', { name: 'Program', exact: true }).click();
+      await page.getByRole('tab', { name: 'Program', exact: true }).click();
       break;
     case 'macro-bar':
       await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { macros: { macros: [] } } } });

@@ -50,7 +50,7 @@ for (const viewport of VIEWPORTS) {
   test(`${viewport.name}: tool edit dialog reference image`, async ({ page }, info) => {
     test.skip(process.platform !== 'linux', 'Visual references use Linux Chromium; geometry tests are portable.');
     await openLayout(page, PROFILES[0], viewport);
-    await page.getByRole('button', { name: 'Tools', exact: true }).click();
+    await page.getByRole('tab', { name: 'Tools', exact: true }).click();
     await expect.poll(async () => {
       await ctl({ op: 'raw', frame: { type: 'reply', cmd: 'get_tool_table', ok: true, tools: [barrel] } });
       return page.getByTitle('Edit tool', { exact: true }).count();

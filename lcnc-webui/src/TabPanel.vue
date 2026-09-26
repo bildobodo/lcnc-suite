@@ -1,71 +1,68 @@
 <script setup lang="ts">
-import MachineBtn from "./MachineBtn.vue";
-import { X } from "lucide-vue-next";
-const props = defineProps<{
-  tabs: Array<{ id: string; label: string }>;
-  modelValue: string;
-  badges?: Record<string, number>;
-  closable?: boolean;
-}>();
+// A TabNav over v-show panes (design wave D3): the side pane's five areas
+// (`variant="main"`) and Settings' sections (`sub`). Each pane is a
+// `tabpanel` named by its tab; a hidden pane is display:none, never
+// focusable. NARROW (the side pane below 400 px of content width — DR
+// decision 2026-09-24, measured at 150 % portrait): the tab list becomes ONE
+// labelled select, with the `bar` slot beside it on the same row (Probing's
+// procedure select) — five tabs plus the 4 × 2 procedure grid left fewer
+// than two form rows of content there.
+import { useId } from "vue";
+import TabNav from "./TabNav.vue";
+import MachineSelect from "./MachineSelect.vue";
+import { tabIds } from "./tabIds";
 
-const emit = defineEmits<{
-  (e: "update:modelValue", id: string): void;
-  (e: "close"): void;
-}>();
+const props = withDefaults(defineProps<{
+  tabs: ReadonlyArray<{ id: string; label: string }>;
+  modelValue: string;
+  /** The navigation's accessible name ("Side panel", "Settings sections"). */
+  label: string;
+  variant?: "main" | "sub";
+  narrow?: boolean;
+}>(), { variant: "sub" });
+
+const emit = defineEmits<{ (e: "update:modelValue", id: string): void }>();
+const base = `tp${useId()}`;
 </script>
 
 <template>
-  <div class="tab-panel">
-    <div class="topBar">
-        <div class="tabRow">
-          <MachineBtn
-            v-for="tab in tabs"
-            :key="tab.id"
-            type="tab"
-            :selected="modelValue === tab.id"
-            @click="emit('update:modelValue', tab.id)"
-          >
-            {{ tab.label }}
-            <span v-if="badges?.[tab.id]" class="badge">{{ badges[tab.id]! > 99 ? '99+' : badges[tab.id] }}</span>
-          </MachineBtn>
-        </div>
-        <MachineBtn v-if="closable" type="close" aria-label="Close tab" title="Close tab" @click="emit('close')"><X :size="14" /></MachineBtn>
+  <div class="tab-panel stack-tight">
+    <div v-if="narrow" class="narrowBar">
+      <MachineSelect gate="tabSelect" class="narrowSelect" :name="`${base}-area`" :aria-label="props.label"
+                     :model-value="modelValue" @update:model-value="emit('update:modelValue', String($event))">
+        <option v-for="t in tabs" :key="t.id" :value="t.id">{{ t.label }}</option>
+      </MachineSelect>
+      <slot name="bar" />
     </div>
+    <TabNav v-else :tabs="tabs" :model-value="modelValue" :label="label" :id-base="base" :variant="variant"
+            @update:model-value="emit('update:modelValue', $event)" />
 
     <div class="tab-content">
-      <template v-for="tab in tabs" :key="tab.id">
-        <div v-show="modelValue === tab.id" class="tab-pane">
-          <slot :name="tab.id" />
-        </div>
-      </template>
+      <div v-for="t in tabs" v-show="modelValue === t.id" :id="tabIds(base, t.id).panel" :key="t.id" class="tab-pane"
+           role="tabpanel" :aria-labelledby="narrow ? undefined : tabIds(base, t.id).tab" :aria-label="narrow ? t.label : undefined">
+        <slot :name="t.id" />
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .tab-panel {
-  display: flex;
-  flex-direction: column;
   min-width: 0;
   flex: 1;
   min-height: 0;
 }
 
-/* ---- Top bar row ---- */
-.topBar {
-  display: flex;
-  align-items: center;
+/* Narrow: the selects share the row in equal tracks (a grid: the slot's
+   select carries the caller's scope, a child rule would not reach it). */
+.narrowBar {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: var(--gap-tight);
-  margin-bottom: var(--gap-tight);
 }
-
-.tabRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--gap-tight);
-  flex: 1;
-  min-width: 0;
-}
+/* --control-h beats the touch floor of .inputField (html.touch-device). */
+.narrowBar .narrowSelect { min-height: var(--control-h); }
 
 /* ---- Content ---- */
 .tab-content {
@@ -78,22 +75,5 @@ const emit = defineEmits<{
   display: flex;
   flex-direction: column;
   height: 100%;
-}
-
-/* ---- Badges ---- */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  margin-left: var(--gap-tight);
-  border-radius: var(--radius-xl);
-  font-size: var(--fs-2xs);
-  font-weight: var(--fw-bold);
-  background: var(--err);
-  color: var(--fg-on-accent);
-  line-height: 1;
 }
 </style>

@@ -206,5 +206,7 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
     keyboardConfig,
     setKeyboardConfig,
     clearJogState,
+    /** A keyboard jog is running (a jog key held down). */
+    jogActive: computed(() => jogActions.size > 0),
   };
 }

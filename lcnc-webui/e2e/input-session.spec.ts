@@ -65,7 +65,7 @@ async function tapOutside(page: Page) {
 }
 
 async function openMdi(page: Page) {
-  await page.getByRole("button", { name: "MDI", exact: true }).click();
+  await page.getByRole("tab", { name: "MDI", exact: true }).click();
   const mdi = page.locator(".mdiInput");
   await mdi.click();
   await expect(page.locator(".tkStrip")).toBeVisible();
@@ -89,7 +89,7 @@ test("MDI → number → MDI: exactly one helper at a time, the title names the 
   // The strip's own number fields are covered while a text helper is up, so
   // the switch runs through a content field: the tool dialog's Diameter.
   // Leaving the MDI tab locks its session (helper hidden, not ended).
-  await page.getByRole("button", { name: "Tools", exact: true }).click();
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect(tk).toHaveCount(0);
   await page.getByRole("button", { name: "+ Add", exact: true }).click();
   await dialogField(page, "Diameter").click();
@@ -100,7 +100,7 @@ test("MDI → number → MDI: exactly one helper at a time, the title names the 
   await expect(nk).toHaveCount(0);
   await page.locator(".editDialog").getByRole("button", { name: "Cancel", exact: true }).click();
   // The number keypad ENDED the text session; back on MDI a tap re-opens it.
-  await page.getByRole("button", { name: "MDI", exact: true }).click();
+  await page.getByRole("tab", { name: "MDI", exact: true }).click();
   await expect(tk).toHaveCount(0);
   await page.locator(".mdiInput").click();
   await expect(tk).toBeVisible();
@@ -143,7 +143,7 @@ test("number A → number B: A is not confirmed, its draft returns marked as dra
 
 test("number → text → number keeps the draft; a tap outside hides the keypad, OK and Cancel return focus", async ({ page }) => {
   await open(page);
-  await page.getByRole("button", { name: "MDI", exact: true }).click();
+  await page.getByRole("tab", { name: "MDI", exact: true }).click();
   const x = page.locator("input.setupInput").first();
   const xBefore = await x.inputValue();
   const nk = page.locator(".nkStrip"), tk = page.locator(".tkStrip");
@@ -220,7 +220,7 @@ test("number keypad: X hides and keeps the draft (tap and Tab + Enter), Discard 
 test("drafts: Clear is a draft of 0; a sibling's OK (busy latch) is not an owner end, the field's gate ending is", async ({ page }) => {
   // Review round 2, UI-I05 A + B for MachineInput owners.
   await open(page);
-  await page.getByRole("button", { name: "MDI", exact: true }).click();
+  await page.getByRole("tab", { name: "MDI", exact: true }).click();
   const x = page.locator("input.setupInput").nth(0), y = page.locator("input.setupInput").nth(1);
   const xBefore = await x.inputValue();
   const nk = page.locator(".nkStrip"), tk = page.locator(".tkStrip");
@@ -419,16 +419,16 @@ test("field contract: every text field is a technical field — no autofill, aut
       seen.add(`${where}:${name}`);
     }
   }
-  await page.getByRole("button", { name: "MDI", exact: true }).click();
+  await page.getByRole("tab", { name: "MDI", exact: true }).click();
   await expect(page.locator(".mdiInput")).toHaveAttribute("placeholder", "MDI command (↑↓ history)");
   await scan("MDI");
-  await page.getByRole("button", { name: "Tools", exact: true }).click();
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await scan("Tools");
   await page.getByTitle("G-code Reference", { exact: true }).click();
   await scan("Reference");
   await page.locator(".dialogOverlay").first().getByRole("button", { name: /^(Cancel|Close .*)$/ }).first().click();
   await page.getByTitle("Settings", { exact: true }).click();
-  await page.locator(".dialogOverlay").first().getByRole("button", { name: "Machine", exact: true }).click();
+  await page.locator(".dialogOverlay").first().getByRole("tab", { name: "Machine", exact: true }).click();
   await scan("Settings · Machine");
   expect(seen.size).toBeGreaterThanOrEqual(4);
 });
@@ -453,7 +453,7 @@ test("editor → number → editor keeps the buffer; a hidden tab locks, not end
   // A number field elsewhere (the tool dialog — the strip's own fields are
   // covered while a text helper is up): the keypad replaces the keyboard,
   // the buffer stays; back in the editor a tap re-opens the keyboard.
-  await page.getByRole("button", { name: "Tools", exact: true }).click();
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect(tk).toHaveCount(0);
   await page.getByRole("button", { name: "+ Add", exact: true }).click();
   await dialogField(page, "Diameter").click();
@@ -461,7 +461,7 @@ test("editor → number → editor keeps the buffer; a hidden tab locks, not end
   await expect(tk).toHaveCount(0);
   await key(page.locator(".nkStrip"), "Discard");
   await page.locator(".editDialog").getByRole("button", { name: "Cancel", exact: true }).click();
-  await page.getByRole("button", { name: "Program", exact: true }).click();
+  await page.getByRole("tab", { name: "Program", exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("(edited)");
   await expect(tk).toHaveCount(0);
   await page.locator(".cm-content").click();
@@ -469,9 +469,9 @@ test("editor → number → editor keeps the buffer; a hidden tab locks, not end
   // Leaving the tab by a tap: the tap itself is outside the input area, so
   // the helper closes (buffer kept); a tap into the editor re-opens it. (The
   // hidden-owner LOCK is the backstop for a non-pointer tab change.)
-  await page.getByRole("button", { name: "MDI", exact: true }).click();
+  await page.getByRole("tab", { name: "MDI", exact: true }).click();
   await expect(tk).toHaveCount(0);
-  await page.getByRole("button", { name: "Program", exact: true }).click();
+  await page.getByRole("tab", { name: "Program", exact: true }).click();
   await expect(page.locator(".cm-content")).toContainText("(edited)");
   await page.locator(".cm-content").click();
   await expect(tk).toBeVisible();
@@ -486,7 +486,7 @@ test("editor → number → editor keeps the buffer; a hidden tab locks, not end
 test("offset cell: leaving the tab closes the keypad with its draft; only the visible cell's OK writes, once", async ({ page }) => {
   await open(page);
   await ctl({ op: "setAxes", axes: ["X", "Y", "Z"] });
-  await page.getByRole("button", { name: "Offsets", exact: true }).click();
+  await page.getByRole("tab", { name: "Offsets", exact: true }).click();
   const cell = page.locator(".offsetPanel td.editableCell").first();
   await cell.click();
   const nk = page.locator(".nkStrip");
@@ -495,12 +495,12 @@ test("offset cell: leaving the tab closes the keypad with its draft; only the vi
   await page.keyboard.type("17");
   // The tab tap is outside the input area: the keypad closes (no OK can be
   // pressed for a hidden target), the draft stays with the cell, no write.
-  await page.getByRole("button", { name: "MDI", exact: true }).click();
+  await page.getByRole("tab", { name: "MDI", exact: true }).click();
   await expect(nk).toHaveCount(0);
   expect(await page.evaluate(() => (window as any).__modalRegistry.open())).toBe(false);
   expect(await cmds()).not.toContain("set_wcs");
   // Back on the panel, the cell offers the draft; OK writes exactly once.
-  await page.getByRole("button", { name: "Offsets", exact: true }).click();
+  await page.getByRole("tab", { name: "Offsets", exact: true }).click();
   await cell.click();
   await expect(nk).toBeVisible();
   await expect(nk.locator("[data-draft]")).toHaveText("draft");
@@ -522,7 +522,7 @@ test("offset drafts end with the probe gate, not with a sibling cell's OK", asyn
   // Review round 2, UI-I05 B for the offset panel's cell owners.
   await open(page);
   await ctl({ op: "setAxes", axes: ["X", "Y", "Z"] });
-  await page.getByRole("button", { name: "Offsets", exact: true }).click();
+  await page.getByRole("tab", { name: "Offsets", exact: true }).click();
   const cells = page.locator(".offsetPanel td.editableCell");
   const nk = page.locator(".nkStrip");
   await cells.first().click();
@@ -579,7 +579,7 @@ test.describe("touch", () => {
   test.use({ hasTouch: true });
   test("touch-only entry of code, expressions, braces and an umlaut description; correction mid-text", async ({ page }) => {
     await open(page);
-    await page.getByRole("button", { name: "MDI", exact: true }).tap();
+    await page.getByRole("tab", { name: "MDI", exact: true }).tap();
     const mdi = page.locator(".mdiInput");
     await mdi.tap();
     const tk = page.locator(".tkStrip");
@@ -616,7 +616,7 @@ test.describe("touch", () => {
     await expect(mdi).toHaveValue("G0 Z{depth} F{fe9d}");
     // Description with an umlaut and Shift in the tool dialog.
     await tapKey(tk, "Close keyboard");
-    await page.getByRole("button", { name: "Tools", exact: true }).tap();
+    await page.getByRole("tab", { name: "Tools", exact: true }).tap();
     await page.getByRole("button", { name: "+ Add", exact: true }).tap();
     const desc = dialogField(page, "Description");
     await desc.tap();
@@ -664,7 +664,7 @@ test.describe("portrait, touch", () => {
       await page.evaluate(z => { document.documentElement.style.zoom = z; }, zoom);
       const mdi = page.locator(".mdiInput");
       if (!(await page.locator(".tkStrip").count())) {
-        await page.getByRole("button", { name: "MDI", exact: true }).tap();
+        await page.getByRole("tab", { name: "MDI", exact: true }).tap();
         await mdi.tap();
       }
       const tk = page.locator(".tkStrip");
@@ -726,7 +726,7 @@ test.describe("portrait, touch", () => {
     await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 7, file: "/A.ngc" } });
     await expect(page.locator(".codeLine").first()).toBeVisible();
     // Touch sizing is set by the first touch — before the first Edit tap.
-    await page.getByRole("button", { name: "Program", exact: true }).tap();
+    await page.getByRole("tab", { name: "Program", exact: true }).tap();
     const tk = page.locator(".tkStrip");
     const hitAt = (sel: string, within: string) => page.evaluate(([sel, within]) => {
       const el = document.querySelector(sel); if (!el) return false;

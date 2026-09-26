@@ -96,7 +96,7 @@ async function loadProgram(page: Page) {
 }
 
 async function openTools(page: Page) {
-  await page.getByRole("button", { name: "Tools", exact: true }).click();
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect.poll(async () => {
     await ctl({ op: "raw", frame: { type: "reply", cmd: "get_tool_table", ok: true, tools: [TOOL] } });
     return page.getByTitle("Edit tool", { exact: true }).count();
@@ -107,7 +107,7 @@ async function openSettingsTab(page: Page, tab: string): Promise<Locator> {
   await page.getByTitle("Settings", { exact: true }).click();
   const settings = page.getByRole("dialog", { name: "Settings", exact: true });
   await expect(settings).toBeVisible();
-  await settings.getByRole("button", { name: tab, exact: true }).click();
+  await settings.getByRole("tab", { name: tab, exact: true }).click();
   return settings;
 }
 
@@ -302,8 +302,8 @@ const ROWS: Row[] = [
     id: "8 Compensation", title: "Enable surface compensation?", tier: "sm", backdrop: "stays",
     focus: byName("Cancel"), actions: ["Cancel", "Enable"],
     open: async (page) => {
-      await page.getByRole("button", { name: "Probing", exact: true }).click();
-      await page.getByRole("button", { name: "Surface", exact: true }).click();
+      await page.getByRole("tab", { name: "Probing", exact: true }).click();
+      await page.getByRole("tab", { name: "Surface", exact: true }).click();
       const toggle = page.getByLabel("Enable Compensation", { exact: true });
       await toggle.click();
       return null;
@@ -324,8 +324,8 @@ const ROWS: Row[] = [
     id: "10 Probe calibration reset", title: "Reset probe calibration?", tier: "sm", backdrop: "closes",
     focus: byName("Cancel"), actions: ["Cancel", "Reset"],
     open: async (page) => {
-      await page.getByRole("button", { name: "Probing", exact: true }).click();
-      await page.getByRole("button", { name: "Calibrate", exact: true }).click();
+      await page.getByRole("tab", { name: "Probing", exact: true }).click();
+      await page.getByRole("tab", { name: "Calibrate", exact: true }).click();
       const trigger = page.locator(".sidePane").getByRole("button", { name: "Reset Calibration", exact: true });
       await trigger.click();
       return trigger;
@@ -936,7 +936,7 @@ test("UI-DI04: after a disarm the focus fallback is a focusable target — the d
 
   // 3. The G-code Reference (explicit initial selector: its search field)
   //    under a tool change, disarmed, the tool change ends.
-  await page.getByRole("button", { name: "Program", exact: true }).click();
+  await page.getByRole("tab", { name: "Program", exact: true }).click();
   await page.getByTitle("G-code Reference", { exact: true }).click();
   await expect(reference).toBeVisible();
   await ctl({ op: "status_delta", data: { tool_change_requested: true, tool_change_tool: 5 } });

@@ -26,6 +26,8 @@ export interface ButtonDef {
   // gamepad paths that bypass the button. Per-instance override via the
   // MachineBtn `hold` prop.
   hold?: boolean;
+  /** A TabNav tab (design wave D3): its look in Btn.vue. */
+  tab?: 'main' | 'sub';
 }
 
 /** Press-and-hold duration for hold-to-fire buttons (ButtonDef.hold). */
@@ -144,7 +146,10 @@ export const BUTTON_TYPES = {
 
   // ── UI buttons (gate: always — no permission, styling only) ──
   close:          { gate: 'always',  variant: 'default', size: 'md',  icon: true },
-  tab:            { gate: 'always',  variant: 'default', size: 'sm',  muted: true },
+  // TabNav tabs (design wave D3): main = the side pane's areas, sub = a
+  // section's views (Probing, Settings, HAL). Height --control-h.
+  tabMain:        { gate: 'always',  variant: 'default', size: 'sm',  muted: true, tab: 'main' },
+  tabSub:         { gate: 'always',  variant: 'default', size: 'sm',  muted: true, tab: 'sub' },
   viewPreset:     { gate: 'always',  variant: 'default', size: 'sm' },
   viewerQuickToggle: { gate: 'always', variant: 'default', size: 'sm' },
   // Program-scrub / simulation bar. `scrub` controls are display-only; the
@@ -249,6 +254,9 @@ export const INPUT_DEFS = {
   toolEdit:        { gate: 'setup' },
   toolEditNum:     { gate: 'setup',    mono: true, align: 'right' },
   toolSearch:      { gate: 'always' },
+  // The narrow side pane's navigation selects (design wave D3): the area
+  // (Program … Tools) and Probing's procedure — navigation, never gated.
+  tabSelect:       { gate: 'always' },
 
   // 3D Viewer settings
   viewerSetting:   { gate: 'always' },

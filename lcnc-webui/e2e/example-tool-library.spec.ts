@@ -45,7 +45,7 @@ async function expectUncovered(dialog: Locator) {
 async function openTools(page: Page) {
   await page.goto(MOCK);
   await expect(page.locator('fieldset[data-gate="armed"]').first()).not.toBeDisabled();
-  await page.getByRole("button", { name: "Tools", exact: true }).click();
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect(page.getByRole("button", { name: "Examples", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Import", exact: true })).toHaveCount(0);
 }

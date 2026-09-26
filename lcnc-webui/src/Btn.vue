@@ -13,6 +13,9 @@ defineProps<{
   mono?: boolean;
   /** Hold-to-fire press in progress (MachineBtn) — animates the fill. */
   holding?: boolean;
+  /** A tab of a TabNav (design wave D3): main = top-rounded, open to the
+   *  content when selected; sub = underlined when selected. */
+  tab?: "main" | "sub";
 }>();
 </script>
 
@@ -23,6 +26,7 @@ defineProps<{
       !inline && (size ?? 'md'),
       !icon && !inline && (variant ?? 'default'),
       { active, selected, flashing, warning, block, muted, mono, holding },
+      tab && `tab-${tab}`,
     ]"
   >
     <slot />
@@ -159,6 +163,35 @@ html.touch-device .b.muted { opacity: var(--opacity-secondary); }
 html.touch-device .b.muted:active:not(:disabled) { opacity: 1; }
 .b.muted.active,
 .b.muted.selected { opacity: 1; }
+
+/* ---- Tabs (TabNav, design wave D3, UI-K12/K17) ----
+   Selection is a SHAPE, not a colour alone: the selected main tab opens
+   into the content below it (it covers the list's baseline), the selected
+   sub tab carries a 2 px bar. Focus is the global :focus-visible ring —
+   selection and focus never share a signal. Height: --control-h. */
+.b.tab-main,
+.b.tab-sub { min-height: var(--control-h); }
+.b.tab-main {
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  border-bottom-color: transparent;
+}
+/* The selected tab paints over the list's 1 px baseline below it (a
+   shadow is not clipped by the button's overflow, and moves nothing). */
+.b.tab-main.selected {
+  background: var(--panel);
+  border-color: color-mix(in oklab, var(--fg) 30%, var(--border));
+  border-bottom-color: transparent;
+  box-shadow: 0 1px 0 var(--panel);
+}
+.b.tab-sub {
+  border-color: transparent;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: transparent;
+}
+.b.tab-sub.selected {
+  background: transparent;
+  box-shadow: inset 0 -2px 0 var(--fg);
+}
 
 /* ---- Mono — tabular-nums (digit column alignment, sans font) ---- */
 .b.mono { font-variant-numeric: tabular-nums; }

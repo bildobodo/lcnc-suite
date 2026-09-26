@@ -28,7 +28,7 @@ const tool = { T: 300, P: 7, Z: -42.3, D: 10, type: "endmill", description: "Hol
 async function openTool(page: Page, row: typeof tool) {
   await page.goto(MOCK);
   await expect(page.locator('fieldset[data-gate="armed"]').first()).not.toBeDisabled();
-  await page.getByRole("button", { name: "Tools", exact: true }).click();
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect.poll(async () => {
     await ctl({ op: "raw", frame: { type: "reply", cmd: "get_tool_table", ok: true, tools: [row] } });
     return page.getByTitle("Edit tool", { exact: true }).count();

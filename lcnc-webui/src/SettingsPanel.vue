@@ -510,7 +510,7 @@ function resetMachineColor(id: string) {
       <div class="hint">Changes save automatically and are shared across all connected clients.</div>
       <span class="saveStatus" :class="saveStatus.state" role="status" aria-live="polite">{{ saveStatusText(saveStatus) }}</span>
     </div>
-    <TabPanel :tabs="subTabs" v-model="activeTab" class="subTabs">
+    <TabPanel :tabs="subTabs" v-model="activeTab" label="Settings sections" class="subTabs">
       <template #viewer>
         <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">

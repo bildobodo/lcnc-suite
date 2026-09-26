@@ -187,6 +187,9 @@
   /* Square key size — one value for the strip keypad AND G-code keyboard,
      identical in portrait and landscape so key muscle memory transfers. */
   --key-size: var(--touch-target);
+  /* Control height (design wave D3, pulled forward from D4): the tabs of
+     every TabNav, 32 px on desktop, the touch target on touch. */
+  --control-h: 32px;
   /* Landscape strip-section height — the single content budget every strip
      section is built against. Fixed here (not derived from the strip's
      height) so it can never vary with the UA's scrollbar band: the strip
@@ -346,6 +349,42 @@ html:not(.touch-device) button:hover:not(:disabled) {
    the UA gray tap flash, which double-flashes over variant colors. */
 button:active:not(:disabled) {
   background: var(--hl-active);
+}
+
+/* ONE keyboard focus ring (design wave D3, UI-K12): buttons, selects,
+   checkboxes, radios, sliders and the focusable spans that act as buttons.
+   Selection is never this ring — a tab shows it by shape (Btn.vue). The
+   slider's 6 px track sits inside its box: the ring keeps its distance. */
+button:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible,
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: 1px;
+}
+input[type="range"]:focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: 4px;
+}
+
+/* ── Tab navigation (TabNav.vue, design wave D3) ──
+   main: equal columns on a baseline the selected tab opens into; sub: a
+   wrapping row, or a grid of `columns` tracks (Probing 4 × 2). minmax(0,
+   1fr): the semibold selected tab never shifts the column widths. */
+.tabNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-tight);
+}
+.tabNav.main {
+  display: grid;
+  grid-template-columns: repeat(var(--tab-count), minmax(0, 1fr));
+  border-bottom: 1px solid var(--border);
+}
+.tabNav.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--tab-columns), minmax(0, 1fr));
 }
 
 button {
@@ -681,6 +720,7 @@ label:has(input.toggle:disabled) {
    sub-labels, badges). One step up on touch; everything using the tokens
    follows. */
 html.touch-device {
+  --control-h: var(--touch-target);
   --fs-2xs: 10px;
   --fs-xs: 11px;
   --range-thumb: 20px;
@@ -1773,10 +1813,6 @@ label:has(input:disabled, select:disabled) {
 
 /* Active G/M code display */
 .codes-value    { font-size: var(--fs-sm); font-variant-numeric: tabular-nums; word-break: break-all; line-height: 1.4; min-height: calc(2 * 1.4em); }
-
-.viewTabs {
-  flex-wrap: wrap;
-}
 
 .pill {
   text-transform: uppercase;

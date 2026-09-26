@@ -6508,3 +6508,30 @@ focus fallback pointed at a disabled control and the return landed on
   the disarm disables; each holds focus on the container past the
   return's frames, Tab reaches the safety strip, Space/Enter/Backspace
   send nothing, Escape sends exactly `estop`.
+
+### WP-D3 — one tab navigation (2026-09-26)
+
+Plan Fassung 3 WP-D3 (UI-K17, K12, N50, N51) on the WP-DR geometry.
+
+- `TabNav.vue` is every tab list: tablist/tab/tabpanel, one Tab stop,
+  manual activation (APG). The six navigation keys are default-prevented
+  in the list: the shortcut map listens on window and skips prevented
+  events, and the default mapping jogs on the arrows — before D3 a
+  Tab-focused tab button jogged X on ArrowRight. Up/Down change a grid row
+  (Probing) and do nothing in a single row; Left/Right wrap (APG).
+- Selection is shown by shape (the main tab open to its content, the sub
+  tab's bar), focus by the one global `:focus-visible` ring — they no
+  longer share the grey background. Tabs are `--control-h` tall (32/44),
+  the token pulled forward from D4.
+- Narrow side pane (< 400 px content width, the DR decision): the area and
+  the procedure are two selects on one row. Probing's view moved to App
+  (`v-model:view`) so the grid and the select show one state.
+- A tab switch stops a running jog only when one runs: `stopAllJog` sends
+  a stop per axis whenever jogging is allowed, and "no machine action on a
+  tab switch" is a guard of its own.
+- Re-measured with the bundled Inter (Codex round 1: DR used DejaVu): main
+  tabs fit from 351 px, the 4 × 2 grid from 384 px — the 400 px threshold
+  keeps a reserve; probing content 222 px on the 1280 × 800 touch panel
+  and 249 px at 150 % portrait (≥ 3 rows of 70 px).
+- Guards: `e2e/tabs.spec.ts` (mutation-checked), the four-state
+  navigation budget in `layout.spec`.

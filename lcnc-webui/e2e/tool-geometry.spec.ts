@@ -62,7 +62,7 @@ test("unverified geometry is visible in the table, editor and both import modes"
   page.on("pageerror", error => errors.push(error.message));
   await page.goto(MOCK);
   await expect(page.locator('fieldset[data-gate="armed"]').first()).not.toBeDisabled();
-  await page.getByRole("button", { name: "Tools", exact: true }).click();
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect.poll(async () => {
     await ctl({ type: "reply", cmd: "get_tool_table", ok: true, tools: [tool] });
     return page.getByTitle("Edit tool", { exact: true }).count();
@@ -108,7 +108,7 @@ for (const viewport of VIEWPORTS) {
     await page.goto(MOCK);
     await expect(page.locator('fieldset[data-gate="armed"]').first()).not.toBeDisabled();
     if (viewport.touch) await page.evaluate(() => document.documentElement.classList.add("touch-device"));
-    await page.getByRole("button", { name: "Tools", exact: true }).click();
+    await page.getByRole("tab", { name: "Tools", exact: true }).click();
     await expect.poll(async () => {
       await ctl({ type: "reply", cmd: "get_tool_table", ok: true, tools: [tool] });
       return page.getByTitle("Edit tool", { exact: true }).count();
@@ -148,7 +148,7 @@ async function openAdd(page: Page) {
   await ctlOp({ op: "reset" });
   await page.goto(MOCK);
   await expect(page.locator('fieldset[data-gate="armed"]').first()).not.toBeDisabled();
-  await page.getByRole("button", { name: "Tools", exact: true }).click();
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect.poll(async () => {
     await ctl({ type: "reply", cmd: "get_tool_table", ok: true, tools: [tool] });
     return page.getByTitle("Edit tool", { exact: true }).count();

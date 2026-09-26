@@ -579,7 +579,7 @@ test("tool number field: minimum 1 and whole numbers only, on Enter and on OK", 
   await expect(page.locator("input.setupInput").first()).toBeVisible();
   await ctlSend({ op: "quiet", on: true });
   try {
-    await page.getByRole("button", { name: "Tools", exact: true }).click();
+    await page.getByRole("tab", { name: "Tools", exact: true }).click();
     await page.getByRole("button", { name: "+ Add", exact: true }).click();
     const dialog = page.locator(".dialogOverlay").last();
     const toolNo = dialog.locator("label", { hasText: "Tool #" }).locator("xpath=following-sibling::input[1]");
@@ -634,7 +634,7 @@ test("Offsets Clear: disabled without a real selection, hold-to-fire, hold cance
     // The default fixture ships no wcs_table; setAxes fills the nine rows.
     await ctlSend({ op: "setAxes", axes: ["X", "Y", "Z"] });
     // No g5x_index yet → the label is "-" → nothing selected → Clear disabled with a reason.
-    await page.getByRole("button", { name: "Offsets", exact: true }).click();
+    await page.getByRole("tab", { name: "Offsets", exact: true }).click();
     const clear = page.getByRole("button", { name: /^Clear (—|G5)/ });
     await expect(clear).toBeDisabled();
     await expect(page.locator(".btnTip", { has: clear })).toHaveAttribute("title", /Select a coordinate system/);
@@ -714,8 +714,8 @@ test("surface map: empty state without a toast, error with retry, points load wi
   await ctlSend({ op: "quiet", on: true });
   try {
     await ctlSend({ op: "status_delta", data: { permissions: PERMS_ALL } });
-    await page.getByRole("button", { name: "Probing", exact: true }).click();
-    await page.getByRole("button", { name: "Surface", exact: true }).click();
+    await page.getByRole("tab", { name: "Probing", exact: true }).click();
+    await page.getByRole("tab", { name: "Surface", exact: true }).click();
     const messages = page.getByRole("button", { name: /^Messages \(/ });
     const before = await messages.getAttribute("title");
     await ctlSend({ op: "clearCmds" });
@@ -764,7 +764,7 @@ test("keypad owner: dialog close, gate change and a second field end or retarget
   await ctlSend({ op: "quiet", on: true });
   try {
     await ctlSend({ op: "status_delta", data: { permissions: PERMS_ALL } });
-    await page.getByRole("button", { name: "Tools", exact: true }).click();
+    await page.getByRole("tab", { name: "Tools", exact: true }).click();
     await page.getByRole("button", { name: "+ Add", exact: true }).click();
     const dialog = page.locator(".editDialog");
     const field = (name: string) => dialog.locator("label", { hasText: name }).locator("xpath=following-sibling::input[1]");

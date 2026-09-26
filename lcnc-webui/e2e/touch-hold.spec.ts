@@ -123,7 +123,7 @@ test("sliding off, a scroll-cancel and a hidden page cancel the hold; the next h
 
 test("teleported tool dialog under touch: scroll the form, keypad on a field, confirm from the strip, footer reachable", async ({ page }) => {
   const cdp = await open(page);
-  await page.getByRole("button", { name: "Tools", exact: true }).click();
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await page.getByRole("button", { name: "+ Add", exact: true }).click();
   const dialog = page.locator(".editDialog");
   await expect(dialog).toBeVisible();

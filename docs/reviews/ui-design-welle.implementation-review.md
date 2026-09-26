@@ -277,6 +277,83 @@ Schließregel je Art (info, confirm, form, host, flow, dazu `busy`).
   alten Stand).
 - Enter im Makroparameterfeld führt bis D6 weiter aus.
 
+### WP-D3 — Reiter und Fokusanzeige · 26. September 2026
+
+**Ein Baustein:** `TabNav.vue` ist jede Reiterleiste: `tablist`/`tab`, ein Tab-Stopp (der ausgewählte
+Reiter), manuelle Aktivierung.
+- **Tasten:** Links/Rechts in Leserichtung mit Umbruch, Home/End, Hoch/Runter wechseln die Rasterzeile.
+- **Kein Jog:** Alle sechs Tasten werden in der Leiste abgefangen. Die globale Tastenbelegung hört auf
+  `window` und ignoriert abgefangene Tasten; mit der Standardbelegung joggen die Pfeile.
+  Gegenprobe: Ohne das Abfangen sendete ein fokussierter Reiter 16 Jog-Befehle.
+- **Panels:** `tabpanel`, benannt über den Reiter.
+- **Auswahl ist eine Form, kein Farbton:**
+  - Hauptreiter oben gerundet, der gewählte offen zum Inhalt.
+  - Unterreiter mit 2-px-Strich.
+  - Fokus ist der globale `:focus-visible`-Ring (auch für Slider und Auswahllisten). Beides teilt nie
+    ein Signal.
+- **Höhe:** `--control-h`, 32 px Desktop bzw. 44 px Touch. Das Token ist aus D4 vorgezogen.
+
+**Migration:**
+- **Seitenpanel:** fünf gleich breite Hauptreiter.
+- **Probing:** festes 4 × 2-Raster, Reihenfolge Outside · Inside · Angle · Boss/Pocket /
+  Ridge/Valley · Surface · Calibrate · Toolsetter.
+- **Settings:** acht Unterreiter.
+- **HAL:** Pins/Signals/Params als Unterreiter, mit Anzahl im Namen (N51).
+- **Run from line:** Die Spindelvorwahl ist eine Optionsgruppe Rev · Stop · Fwd (N50/N14).
+
+**Schmal-Modus** (DR-Entscheidung, Seitenpanel unter 400 px Inhaltsbreite):
+- Bereich und Verfahren werden zwei Auswahllisten in einer Zeile. Messung per `ResizeObserver` auf dem
+  Seitenpanel (`clientWidth`, Layout-px).
+- Der Probing-Zustand liegt jetzt in App (`v-model:view`), damit Raster und Auswahlliste denselben Wert
+  zeigen.
+
+**Tabwechsel:** Er sendet nichts. Ein noch laufender Jog (Taste gehalten, Zeiger) stoppt beim Wechsel;
+nur dann, weil `stopAllJog` sonst je Achse einen Stopp sendet.
+
+**Neumessung mit Inter** (Codex Runde 1: die DR-Zahlen stammen aus DejaVu). Textbreite + 22 px
+Innenabstand:
+
+| Name | Breite |
+|---|---|
+| Hauptreiter, breitester (Program) | 45 px |
+| Verfahren, breitester (Boss/Pocket) | 71 px |
+
+- **Hauptreiter:** passen ab 5 × 67 + 4 × 4 = **351 px**.
+- **Raster:** passt ab 4 × 93 + 3 × 4 = **384 px**. Die Schwelle 400 px bleibt mit Reserve.
+
+| Zustand | Panel innen | Navigation | Probing-Inhalt |
+|---|---|---|---|
+| Desktop 1600×1000 | 522 × 568 | Reiter + Raster | 460 px |
+| Touch quer 1280×800 | 522 × 366 | Reiter + Raster | 222 px (DR-Ansatz 215) |
+| Touch hoch 900×1200 | 570 × 506 | Reiter + Raster | 362 px |
+| Touch hoch 150 % | 271 × 289 | zwei Auswahllisten | 249 px (DR-Ansatz 237) |
+
+**Wächter:**
+- `e2e/tabs.spec.ts` (serial-guards, 7 Tests):
+  - Rollen und ein Tab-Stopp.
+  - Pfeile ohne Auswahl und ohne Jog, jeweils mit Kontrollfall am unfokussierten Dokument.
+  - Rasterzeilen.
+  - Tabwechsel ohne Befehl, laufender Jog stoppt.
+  - Verborgene Panels nicht fokussierbar.
+  - Spindelvorwahl.
+  - Schmal-Modus.
+- `layout.spec`, vier DR-Zustände:
+  - Reiter oder Auswahllisten wie erwartet.
+  - Kein abgeschnittener Name.
+  - Höhe = `--control-h`.
+  - Probing-Inhalt ≥ 3 × 70 px.
+
+**Gefunden:** Die 3D-Beschriftungen riefen `sync()` ohne Rückruf auf. Der Viewer zeichnet nur bei
+Bedarf neu, deshalb erschienen ihre Glyphen erst mit dem nächsten fremden Bild, etwa einer
+Kameradrehung. Der Offline-Test des Viewers fiel dadurch etwa jedes vierte Mal aus. Jetzt fordert
+jede Beschriftung beim Abschluss ein Bild an (`93387e9`); danach 12/12 grün.
+
+**Gates:**
+- `npm run build` und `npm run lint` (inkl. CSS-Audit): grün.
+- Vitest: **1623/1623**.
+- Playwright, alle Projekte einzeln: **228/228** nach der Beschriftungskorrektur. `serial-guards` 98,
+  `serial-layout` 55; die Referenzbilder sind unverändert, 10/10.
+
 ---
 
 ## Codex Implementierungsreview Runde 1

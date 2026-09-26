@@ -12,6 +12,8 @@ import { ref, computed, watch, onUnmounted } from "vue";
 import { halPins, halSignals, halParams, halInitialized, send, type HalPin, type HalParam } from "./lcncWs";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
+import TabNav from "./TabNav.vue";
+import { tabIds } from "./tabIds";
 
 const props = defineProps<{ active: boolean }>();
 
@@ -110,26 +112,20 @@ const halStats = computed(() => ({
   signals: halSignals.value.length,
   params: halParams.value.length,
 }));
+// Pins / Signals / Params are sub tabs (design wave D3, UI-N51), the count
+// part of the name once the first snapshot has one.
+const halTabs = computed(() => ([
+  { id: "pins", label: "Pins", n: halStats.value.pins },
+  { id: "signals", label: "Signals", n: halStats.value.signals },
+  { id: "params", label: "Params", n: halStats.value.params },
+] as const).map(t => ({ id: t.id, label: t.n ? `${t.label} (${t.n})` : t.label })));
 </script>
 
 <template>
   <div class="halPane">
     <!-- Header: section toggles + search (pinned) -->
     <div class="halHeader">
-      <div class="row-tight">
-        <MachineBtn type="inline" :selected="halSection === 'pins'" class="optBtn"
-                @click="halSection = 'pins'">
-          Pins <span class="halCount" v-if="halStats.pins">({{ halStats.pins }})</span>
-        </MachineBtn>
-        <MachineBtn type="inline" :selected="halSection === 'signals'" class="optBtn"
-                @click="halSection = 'signals'">
-          Signals <span class="halCount" v-if="halStats.signals">({{ halStats.signals }})</span>
-        </MachineBtn>
-        <MachineBtn type="inline" :selected="halSection === 'params'" class="optBtn"
-                @click="halSection = 'params'">
-          Params <span class="halCount" v-if="halStats.params">({{ halStats.params }})</span>
-        </MachineBtn>
-      </div>
+      <TabNav v-model="halSection" :tabs="halTabs" label="HAL view" id-base="hal" />
       <div class="row-tight">
         <MachineInput gate="search" type="text" class="halSearchInput" v-model="halSearch" label="Search HAL" placeholder="Search HAL…" />
       </div>
@@ -144,7 +140,8 @@ const halStats = computed(() => ({
       </span>
     </div>
 
-    <div class="stack-panel scrollContent scroll-thin fade-scroll">
+    <div class="stack-panel scrollContent scroll-thin fade-scroll" role="tabpanel" :id="tabIds('hal', halSection).panel"
+         :aria-labelledby="tabIds('hal', halSection).tab">
     <!-- Empty state (waiting for first snapshot) -->
     <div v-if="!halInitialized" class="halEmpty">
       Connecting…
@@ -271,10 +268,6 @@ const halStats = computed(() => ({
 .halTreeControls {
   margin-bottom: var(--gap-controls);
   flex-shrink: 0;
-}
-
-.halCount {
-  opacity: var(--opacity-muted);
 }
 
 .halFilterInfo {

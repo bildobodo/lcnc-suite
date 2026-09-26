@@ -18,6 +18,7 @@ import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
 import { Play, SkipForward, Pause, X } from "lucide-vue-next";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
+import MachineRadio from "./MachineRadio.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineToggle from "./MachineToggle.vue";
 import FileBrowser from "./FileBrowser.vue";
@@ -1044,13 +1045,11 @@ async function saveEdit() {
 
           <div class="dialogSection">
             <div class="sub">Spindle Preset</div>
-            <div class="spindleBtnRow">
-              <MachineBtn type="tab" class="optBtn" :selected="dialogSpindleDir === 'off'"
-                      @click="dialogSpindleDir = 'off'">Off</MachineBtn>
-              <MachineBtn type="tab" class="optBtn" :selected="dialogSpindleDir === 'forward'"
-                      @click="dialogSpindleDir = 'forward'">FWD</MachineBtn>
-              <MachineBtn type="tab" class="optBtn" :selected="dialogSpindleDir === 'reverse'"
-                      @click="dialogSpindleDir = 'reverse'">REV</MachineBtn>
+            <!-- One option group, the spindle strip's order (design wave D3, N50/N14) -->
+            <div class="radioGroup inline" role="radiogroup" aria-label="Spindle preset">
+              <label><MachineRadio gate="displaySetting" name="rflSpindleDir" :modelValue="dialogSpindleDir" value="reverse" @update:modelValue="dialogSpindleDir = 'reverse'" /> Rev</label>
+              <label><MachineRadio gate="displaySetting" name="rflSpindleDir" :modelValue="dialogSpindleDir" value="off" @update:modelValue="dialogSpindleDir = 'off'" /> Stop</label>
+              <label><MachineRadio gate="displaySetting" name="rflSpindleDir" :modelValue="dialogSpindleDir" value="forward" @update:modelValue="dialogSpindleDir = 'forward'" /> Fwd</label>
             </div>
             <div v-if="dialogSpindleDir !== 'off'" class="rpmRow">
               <label>RPM</label>
@@ -1307,11 +1306,6 @@ async function saveEdit() {
   margin: var(--gap-section) 0;
 }
 
-.spindleBtnRow {
-  display: flex;
-  gap: var(--gap-tight);
-  margin-top: var(--gap-tight);
-}
 
 .rpmRow {
   display: flex;

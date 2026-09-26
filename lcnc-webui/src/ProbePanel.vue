@@ -14,6 +14,9 @@ import CornerGlyph from "./CornerGlyph.vue";
 import Gate from "./Gate.vue";
 import HelpIcon from "./HelpIcon.vue";
 import { LABEL_FONT_URL } from "./viewer/labelFont";
+import TabNav from "./TabNav.vue";
+import { tabIds } from "./tabIds";
+import { PROBE_VIEWS, type ProbeView } from "./probeViews";
 
 const props = defineProps<{
   probing: boolean;
@@ -35,6 +38,9 @@ const props = defineProps<{
    *  an ACTIVE surface map is no longer valid for the tool's orientation. Only
    *  used for the live truth label — the gating itself is `surfaceComp`. */
   rotaryTilted: boolean;
+  /** The side pane is narrow: the procedure is chosen by App's select in the
+   *  tab bar instead of this grid (design wave D3, DR decision). */
+  narrow?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -57,7 +63,10 @@ const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
 const isDev = import.meta.env.DEV;
 
 // ─── Sub-view navigation ──────────────────────────────────────────
-const probeView = ref<"outside" | "inside" | "boss" | "ridge" | "angle" | "cal" | "surface" | "toolsetter">("outside");
+// The procedure: a 4 × 2 TabNav here, App's select in the narrow tab bar
+// (v-model:view — one state for both).
+const probeView = defineModel<ProbeView>("view", { default: "outside" });
+const probeViewLabel = computed(() => PROBE_VIEWS.find(v => v.id === probeView.value)?.label ?? "");
 
 // ─── Reset confirmation ──────────────────────────────────────────
 const resetTarget = ref<string | null>(null);
@@ -682,20 +691,12 @@ function fmtR(key: string): string {
 </script>
 
 <template>
-  <div class="probePanelWrap">
-    <!-- Sub-view tabs (pinned) -->
-    <div class="row-tight viewTabs">
-        <MachineBtn type="tab" :selected="probeView === 'outside'" @click="probeView = 'outside'">Outside</MachineBtn>
-        <MachineBtn type="tab" :selected="probeView === 'inside'" @click="probeView = 'inside'">Inside</MachineBtn>
-        <MachineBtn type="tab" :selected="probeView === 'angle'" @click="probeView = 'angle'">Angle</MachineBtn>
-        <MachineBtn type="tab" :selected="probeView === 'boss'" @click="probeView = 'boss'">Boss/Pocket</MachineBtn>
-        <MachineBtn type="tab" :selected="probeView === 'ridge'" @click="probeView = 'ridge'">Ridge/Valley</MachineBtn>
-        <MachineBtn type="tab" :selected="probeView === 'surface'" @click="probeView = 'surface'">Surface</MachineBtn>
-        <MachineBtn type="tab" :selected="probeView === 'cal'" @click="probeView = 'cal'">Calibrate</MachineBtn>
-        <MachineBtn type="tab" :selected="probeView === 'toolsetter'" @click="probeView = 'toolsetter'">Toolsetter</MachineBtn>
-    </div>
+  <div class="probePanelWrap stack-tight">
+    <!-- The procedure grid (pinned, 4 × 2 — design wave D3) -->
+    <TabNav v-if="!narrow" v-model="probeView" :tabs="PROBE_VIEWS" label="Probing procedure" id-base="probe" :columns="4" />
 
-    <div class="stack-sections probePanel scroll-thin fade-scroll">
+    <div class="stack-sections probePanel scroll-thin fade-scroll" role="tabpanel" :id="tabIds('probe', probeView).panel"
+         :aria-labelledby="narrow ? undefined : tabIds('probe', probeView).tab" :aria-label="narrow ? probeViewLabel : undefined">
     <!-- Control bar (hidden for toolsetter view) -->
     <div v-if="probeView !== 'toolsetter'" class="controlBar">
       <MachineToggle gate="probeParam" v-model="autoZero" label="Auto Zero" @update:model-value="saveParams" />
@@ -1356,8 +1357,6 @@ function fmtR(key: string): string {
 
 <style scoped>
 .probePanelWrap {
-  display: flex;
-  flex-direction: column;
   height: 100%;
 }
 .probePanel {

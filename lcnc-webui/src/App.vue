@@ -27,6 +27,8 @@ import HelpIcon from "./HelpIcon.vue";
 import SettingsPanel from "./SettingsPanel.vue";
 import ToolTablePanel from "./ToolTablePanel.vue";
 import ProbePanel from "./ProbePanel.vue";
+import { PROBE_VIEWS, type ProbeView } from "./probeViews";
+import MachineSelect from "./MachineSelect.vue";
 import OffsetPanel from "./OffsetPanel.vue";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
@@ -353,6 +355,32 @@ const contentTabs = [
 ];
 
 const activeTab = ref("gcode");
+// Probing's procedure: ProbePanel's 4 × 2 grid and, narrow, the select in
+// the tab bar (design wave D3).
+const probeView = ref<ProbeView>("outside");
+
+// The side pane below 400 px of content width is NARROW (DR decision
+// 2026-09-24): the area and the procedure become two selects on one row —
+// five tabs plus the 4 × 2 grid need 400 px, and at 150 % portrait (271 px)
+// they left fewer than two form rows of content. clientWidth: layout px,
+// the same under the tests' CSS zoom.
+const NARROW_PANE_PX = 400;
+const sidePaneEl = ref<HTMLElement | null>(null);
+const sideNarrow = ref(false);
+let sidePaneRo: ResizeObserver | null = null;
+function measureSidePane() {
+  const el = sidePaneEl.value;
+  if (!el) return;
+  const cs = getComputedStyle(el);
+  const inner = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  sideNarrow.value = inner > 0 && inner < NARROW_PANE_PX;
+}
+onMounted(() => {
+  sidePaneRo = new ResizeObserver(measureSidePane);
+  if (sidePaneEl.value) sidePaneRo.observe(sidePaneEl.value);
+  measureSidePane();
+});
+onUnmounted(() => sidePaneRo?.disconnect());
 
 const viewerRef = ref<any>(null);
 
@@ -467,6 +495,10 @@ function openMdiSession() {
 watch(activeTab, (tab) => {
   lockTextSessionIf(EDITOR_OWNER, tab !== "gcode");
   lockTextSessionIf(MDI_OWNER, tab !== "mdi");
+  // A tab switch is never a machine action — but a jog still running
+  // (a jog key held while a tab is clicked) stops (design wave D3). Only
+  // then: stopAllJog sends jog_stop per axis whenever jogging is allowed.
+  if (keyboardJogActive.value || activeJogKeys.size > 0) stopAllJog();
 });
 
 // Viewer state (initialized from saved defaults, persisted on every change)
@@ -1507,6 +1539,7 @@ const {
   keyboardConfig,
   setKeyboardConfig,
   clearJogState: clearKeyboardJogState,
+  jogActive: keyboardJogActive,
 } = useKeyboardShortcuts({
   jogVel,
   angularJogVel,
@@ -1835,8 +1868,15 @@ watch(viewerGcode, (newGcode) => {
       </div>
 
       <!-- ══ Right pane — Program / Probing tabs ══ -->
-      <div class="sidePane bordered-panel">
-        <TabPanel :tabs="contentTabs" :modelValue="activeTab" @update:modelValue="activeTab = $event">
+      <div ref="sidePaneEl" class="sidePane bordered-panel">
+        <TabPanel :tabs="contentTabs" :modelValue="activeTab" label="Side panel" variant="main" :narrow="sideNarrow"
+                  @update:modelValue="activeTab = $event">
+          <template #bar>
+            <MachineSelect v-if="activeTab === 'probe'" gate="tabSelect" class="narrowProbeSelect" name="probe-view"
+                           aria-label="Probing procedure" v-model="probeView">
+              <option v-for="v in PROBE_VIEWS" :key="v.id" :value="v.id">{{ v.label }}</option>
+            </MachineSelect>
+          </template>
           <template #gcode>
             <GcodePanel
               :activeFile="activeFile"
@@ -1873,6 +1913,8 @@ watch(viewerGcode, (newGcode) => {
 
           <template #probe>
             <ProbePanel
+              v-model:view="probeView"
+              :narrow="sideNarrow"
               :probing="st.probing === true"
               :probeTripped="st.probe_tripped === true"
               :probeInput="st.probe_input === true"
@@ -2429,6 +2471,9 @@ watch(viewerGcode, (newGcode) => {
   min-width: var(--panel-min-w);
   min-height: 0;
 }
+
+/* In TabPanel's narrow bar: --control-h beats the touch floor of .inputField. */
+.narrowBar .narrowProbeSelect { min-height: var(--control-h); }
 
 .sidePane {
   width: var(--panel-min-w-wide);

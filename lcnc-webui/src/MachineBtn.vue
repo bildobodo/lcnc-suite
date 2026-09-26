@@ -262,6 +262,7 @@ onBeforeUnmount(() => { clearTimeout(holdTimer); disarmHoldGuards(); });
       :block="block"
       :flashing="flashing"
       :warning="warning"
+      :tab="def.tab"
     >
       <template v-if="useAbortDefault"><Square :size="14" /> Abort</template>
       <slot v-else />
@@ -283,6 +284,7 @@ onBeforeUnmount(() => { clearTimeout(holdTimer); disarmHoldGuards(); });
     :block="block"
     :flashing="flashing"
     :warning="warning"
+    :tab="def.tab"
     :holding="holding"
     :title="resolvedTitle"
     :class="holdEnabled ? 'no-drag-scroll holdable' : undefined"

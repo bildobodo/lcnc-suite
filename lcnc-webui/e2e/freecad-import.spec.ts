@@ -21,7 +21,7 @@ test("FreeCAD preview retains measured offsets, renders a custom shape, and expl
   page.on("pageerror", e => errors.push(e.message));
   await page.goto(MOCK);
   await expect(page.locator('fieldset[data-gate="armed"]').first()).not.toBeDisabled();
-  await page.getByRole("button", { name: "Tools", exact: true }).click();
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect.poll(async () => {
     await ctl({ type: "reply", cmd: "get_tool_table", ok: true, tools: [tool] });
     return page.getByTitle("Edit tool", { exact: true }).count();

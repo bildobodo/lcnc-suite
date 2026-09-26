@@ -197,7 +197,7 @@ test("a focused key acts as itself: Enter on Discard discards, Space on a digit 
   await expect(x).toBeFocused();
   // Text keyboard: a focused key acts on Enter and on Space, once; a
   // focused Close closes — the same action the pointer click runs.
-  await page.getByRole("button", { name: "MDI", exact: true }).click();
+  await page.getByRole("tab", { name: "MDI", exact: true }).click();
   const mdi = page.locator(".mdiInput");
   await mdi.click();
   const tk = page.locator(".tkStrip");
@@ -227,7 +227,7 @@ test("an explicit close by keyboard returns focus: Enter/Space on the keyboard's
   // line sends on keydown, so the Enter that activated the X never sends.
   await page.route("**/gcode?*", route => route.fulfill({ contentType: "text/plain", body: "G0 X0\nM2\n" }));
   await openReady(page);
-  await page.getByRole("button", { name: "MDI", exact: true }).click();
+  await page.getByRole("tab", { name: "MDI", exact: true }).click();
   const mdi = page.locator(".mdiInput");
   const tk = page.locator(".tkStrip");
   await mdi.click();
@@ -267,7 +267,7 @@ test("an explicit close by keyboard returns focus: Enter/Space on the keyboard's
   await overlay.getByRole("button", { name: /^(Cancel|Close .*)$/ }).first().click();
   await expect(overlay).toHaveCount(0);
   // The editor: its X hands focus to the CodeMirror content.
-  await page.getByRole("button", { name: "Program", exact: true }).click();
+  await page.getByRole("tab", { name: "Program", exact: true }).click();
   await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 1, file: "/A.ngc" } });
   await expect(page.locator(".codeLine").first()).toBeVisible();
   await page.getByRole("button", { name: "Edit", exact: true }).click();
@@ -310,7 +310,7 @@ test("settings dialog and key capture: only Escape passes, and it cancels the ca
   await settle(page);
   expectNoMachineAction(await recordedCmds());
 
-  await dialog.getByRole("button", { name: "Keyboard", exact: true }).click();
+  await dialog.getByRole("tab", { name: "Keyboard", exact: true }).click();
   // E-Stop is a fixed, reserved row: no capture cell, no unbind.
   const estopRow = dialog.locator("tr").filter({ hasText: "E-Stop" });
   await expect(estopRow.locator(".kbKeyCell")).toHaveText("Esc");
@@ -335,7 +335,7 @@ test("settings dialog and key capture: only Escape passes, and it cancels the ca
 test("tool dialog, messages and reference dialogs block Space/Enter/Backspace", async ({ page }) => {
   await openReady(page);
   for (const open of [
-    async () => { await page.getByRole("button", { name: "Tools", exact: true }).click();
+    async () => { await page.getByRole("tab", { name: "Tools", exact: true }).click();
       await page.getByRole("button", { name: "+ Add", exact: true }).click(); },
     async () => { await page.getByRole("button", { name: /^Messages \(/ }).click(); },
     async () => { await page.getByTitle("G-code Reference", { exact: true }).click(); },
@@ -366,7 +366,7 @@ test("tool editor: header X and footer Cancel close an unchanged form at once an
   // UX-02: the X ran the same silent discard as Cancel while the overlay
   // was already hardened against a mis-grab. One check for both now.
   await openReady(page);
-  await page.getByRole("button", { name: "Tools", exact: true }).click();
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await page.getByRole("button", { name: "+ Add", exact: true }).click();
   const dialog = page.locator(".editDialog");
   await expect(dialog).toBeVisible();
@@ -401,7 +401,7 @@ test("a dimmed control explains itself: the MDI line on a tap, a coolant toggle 
     permissions: { ...PERMS_ALL, ready: false, run: false, override: false },
     permission_reasons: { ready: "Home all axes first", run: "Home all axes first", override: "Machine off" },
   } });
-  await page.getByRole("button", { name: "MDI", exact: true }).click();
+  await page.getByRole("tab", { name: "MDI", exact: true }).click();
   const mdi = page.locator(".mdiInput");
   await expect(mdi).toBeDisabled();
   await expect(mdi).toHaveAttribute("title", "Home all axes first");
@@ -597,7 +597,7 @@ test.describe("help popover geometry (touch)", () => {
 
 test("documented remainder: Tab leaves the dialog (no focus trap in this wave)", async ({ page }) => {
   await openReady(page);
-  await page.getByRole("button", { name: "Tools", exact: true }).click();
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await page.getByRole("button", { name: "+ Add", exact: true }).click();
   const dialog = page.locator(".dialogOverlay .dialog").last();
   await dialog.getByRole("button", { name: "Add", exact: true }).focus();
@@ -658,7 +658,7 @@ test("a jog key released after a field opened mid-jog still sends jog_stop", asy
   // Enable keyboard jogging through the operator's own control.
   await page.getByTitle("Settings", { exact: true }).click();
   const dialog = page.locator(".dialogOverlay").first();
-  await dialog.getByRole("button", { name: "Keyboard", exact: true }).click();
+  await dialog.getByRole("tab", { name: "Keyboard", exact: true }).click();
   await dialog.getByText("Enable keyboard jogging", { exact: true }).click();
   // The overlay closes itself on a click outside the dialog (@click.self).
   await dialog.click({ position: { x: 4, y: 4 } });
@@ -681,7 +681,7 @@ test("settings save status: Saving… on a change, Saved on the gateway's ok, th
   const dialog = page.locator(".dialogOverlay").first();
   const status = dialog.locator(".saveStatus");
   await expect(status).toHaveText("");
-  await dialog.getByRole("button", { name: "Keyboard", exact: true }).click();
+  await dialog.getByRole("tab", { name: "Keyboard", exact: true }).click();
   const abortCell = dialog.locator("tr").filter({ hasText: "Abort" }).locator(".kbKeyCell");
   await ctl({ op: "clearCmds" });
   await abortCell.click();
@@ -715,7 +715,7 @@ test("settings save status (UI-I12): a failed section stays visible behind anoth
   await page.getByTitle("Settings", { exact: true }).click();
   const dialog = page.locator(".dialogOverlay").first();
   const status = dialog.locator(".saveStatus");
-  const keyboardTab = dialog.getByRole("button", { name: "Keyboard", exact: true });
+  const keyboardTab = dialog.getByRole("tab", { name: "Keyboard", exact: true });
   await keyboardTab.click();
   const abortCell = dialog.locator("tr").filter({ hasText: "Abort" }).locator(".kbKeyCell");
   const saves = async (section: string) => {
@@ -735,7 +735,7 @@ test("settings save status (UI-I12): a failed section stays visible behind anoth
 
   // (1) keyboard F9 and display fullscreen both on the wire; keyboard refused, display ok.
   const k1 = await rebind("F9");
-  await dialog.getByRole("button", { name: "Display", exact: true }).click();
+  await dialog.getByRole("tab", { name: "Display", exact: true }).click();
   await dialog.getByLabel("Start in fullscreen mode", { exact: true }).check();
   await expect.poll(async () => (await saves("display")).length).toBe(1);
   const d1 = (await saves("display"))[0];
@@ -796,7 +796,7 @@ test("settings save status (UI-I12 rest): a page-hide save goes by beacon and on
   await page.getByTitle("Settings", { exact: true }).click();
   const dialog = page.locator(".dialogOverlay").first();
   const status = dialog.locator(".saveStatus");
-  await dialog.getByRole("button", { name: "Keyboard", exact: true }).click();
+  await dialog.getByRole("tab", { name: "Keyboard", exact: true }).click();
   const abortCell = dialog.locator("tr").filter({ hasText: "Abort" }).locator(".kbKeyCell");
   await ctl({ op: "clearCmds" });
   await abortCell.click();
@@ -843,7 +843,7 @@ test("settings save status (UI-I12 round 7): a page-hide save that never landed 
   await page.getByTitle("Settings", { exact: true }).click();
   const dialog = page.locator(".dialogOverlay").first();
   const status = dialog.locator(".saveStatus");
-  await dialog.getByRole("button", { name: "Keyboard", exact: true }).click();
+  await dialog.getByRole("tab", { name: "Keyboard", exact: true }).click();
   const abortCell = dialog.locator("tr").filter({ hasText: "Abort" }).locator(".kbKeyCell");
   const hideAndShow = () => page.evaluate(() => {
     Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
@@ -904,7 +904,7 @@ test("closing Settings over a changed macro draft asks first, by every path (UI-
   const openMacros = async () => {
     await page.getByTitle("Settings", { exact: true }).click();
     const settings = page.locator(".dialogOverlay").filter({ has: page.locator(".dialogTitle", { hasText: "Settings" }) });
-    await settings.getByRole("button", { name: "Macros", exact: true }).click();
+    await settings.getByRole("tab", { name: "Macros", exact: true }).click();
     return settings;
   };
   const ask = page.locator(".dialog").filter({ has: page.locator(".dialogTitle", { hasText: "Discard changes?" }) });
@@ -954,7 +954,7 @@ test("keyboard tab: a capture edits a local copy, no page error, a server change
   await openReady(page);
   await page.getByTitle("Settings", { exact: true }).click();
   const dialog = page.locator(".dialogOverlay").first();
-  await dialog.getByRole("button", { name: "Keyboard", exact: true }).click();
+  await dialog.getByRole("tab", { name: "Keyboard", exact: true }).click();
   const abortCell = dialog.locator("tr").filter({ hasText: "Abort" }).locator(".kbKeyCell");
   await expect(abortCell).toHaveText("⌫");
   await abortCell.click();

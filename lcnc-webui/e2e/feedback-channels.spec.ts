@@ -203,7 +203,7 @@ test("the reason also answers the keyboard, a dimmed input and a control inside 
   await expectHintAt(page, tipBox);
 
   // A dimmed INPUT is the anchor too (it explains on pointerdown).
-  await page.getByRole("button", { name: "MDI", exact: true }).click();
+  await page.getByRole("tab", { name: "MDI", exact: true }).click();
   const mdi = page.locator(".mdiInput");
   await expect(mdi).toBeDisabled();
   await mdi.click({ force: true });
@@ -349,18 +349,18 @@ test("every help popover wraps and stays inside the window, in every tab", async
   const side = page.locator(".sidePane");
   await sweep("strips", page.locator(".strip"));
   for (const tab of ["Program", "MDI", "Offsets", "Tools"]) {
-    await side.getByRole("button", { name: tab, exact: true }).click();
+    await side.getByRole("tab", { name: tab, exact: true }).click();
     await sweep(tab, side);
   }
-  await side.getByRole("button", { name: "Probing", exact: true }).click();
+  await side.getByRole("tab", { name: "Probing", exact: true }).click();
   for (const sub of ["Outside", "Inside", "Angle", "Boss/Pocket", "Ridge/Valley", "Surface", "Calibrate", "Toolsetter"]) {
-    await side.getByRole("button", { name: sub, exact: true }).click();
+    await side.getByRole("tab", { name: sub, exact: true }).click();
     await sweep(`Probing/${sub}`, side);
   }
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   const settings = page.locator(".dialogOverlay").last();
   for (const tab of ["3D Viewer", "Machine", "Display", "Macros", "Gamepad", "Keyboard"]) {
-    await settings.getByRole("button", { name: tab, exact: true }).click();
+    await settings.getByRole("tab", { name: tab, exact: true }).click();
     await sweep(`Settings/${tab}`, settings);
   }
   expect(opened.length, opened.join("\n")).toBeGreaterThan(40);
@@ -441,18 +441,18 @@ test("every help icon has one look: full opacity, one colour, enabled, the same 
   const side = page.locator(".sidePane");
   await sweep("strips", page.locator(".strip"));
   for (const tab of ["Program", "MDI", "Offsets", "Tools"]) {
-    await side.getByRole("button", { name: tab, exact: true }).click();
+    await side.getByRole("tab", { name: tab, exact: true }).click();
     await sweep(tab, side);
   }
-  await side.getByRole("button", { name: "Probing", exact: true }).click();
+  await side.getByRole("tab", { name: "Probing", exact: true }).click();
   for (const sub of ["Outside", "Inside", "Angle", "Boss/Pocket", "Ridge/Valley", "Surface", "Calibrate", "Toolsetter"]) {
-    await side.getByRole("button", { name: sub, exact: true }).click();
+    await side.getByRole("tab", { name: sub, exact: true }).click();
     await sweep(`Probing/${sub}`, side);
   }
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   const settings = page.locator(".dialogOverlay").last();
   for (const tab of ["3D Viewer", "Machine", "Display", "Macros", "Gamepad", "Keyboard"]) {
-    await settings.getByRole("button", { name: tab, exact: true }).click();
+    await settings.getByRole("tab", { name: tab, exact: true }).click();
     await sweep(`Settings/${tab}`, settings);
   }
   await settings.getByRole("button", { name: "Close settings", exact: true }).click();
@@ -460,7 +460,7 @@ test("every help icon has one look: full opacity, one colour, enabled, the same 
   // no machine action — the same "?" looks the same and still opens.
   // (The sub-tabs are gated too: switch while armed, measure disarmed.)
   for (const sub of ["Outside", "Calibrate", "Toolsetter"]) {
-    await side.getByRole("button", { name: sub, exact: true }).click();
+    await side.getByRole("tab", { name: sub, exact: true }).click();
     await ctl({ op: "status_delta", armed: false, data: {} });
     await expect(page.locator(".pill.disarmed")).toHaveCount(1);
     await sweep(`disarmed Probing/${sub}`, side);

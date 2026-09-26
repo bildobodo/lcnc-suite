@@ -66,8 +66,8 @@ for (const profile of PROFILES) {
       const found: string[] = [];
       for (const { tab, sub } of SIDE_TABS) {
         await setLayoutState(page, profile, 'homed');
-        await side.getByRole('button', { name: tab, exact: true }).click();
-        if (sub) await side.getByRole('button', { name: sub, exact: true }).click();
+        await side.getByRole('tab', { name: tab, exact: true }).click();
+        if (sub) await side.getByRole('tab', { name: sub, exact: true }).click();
         await settleLayout(page);
         const name = sub ? `${tab}/${sub}` : tab;
         const base = await measureLayout(side, name);
@@ -119,10 +119,10 @@ for (const viewport of VIEWPORTS) {
     await openLayout(page, PROFILES[0]!, viewport);
     await setLayoutState(page, PROFILES[0]!, 'homed');
     const side = page.locator('.sidePane');
-    await side.getByRole('button', { name: 'Probing', exact: true }).click();
+    await side.getByRole('tab', { name: 'Probing', exact: true }).click();
     const tops: Record<string, number> = {};
     for (const sub of ['Outside', 'Inside', 'Angle', 'Boss/Pocket', 'Ridge/Valley', 'Calibrate']) {
-      await side.getByRole('button', { name: sub, exact: true }).click();
+      await side.getByRole('tab', { name: sub, exact: true }).click();
       await settleLayout(page);
       const grid = side.locator('.gridSection');
       if (!await grid.count()) continue;
@@ -134,6 +134,65 @@ for (const viewport of VIEWPORTS) {
     }
     expect(Object.keys(tops).length, JSON.stringify(tops)).toBeGreaterThanOrEqual(5);
     expect(new Set(Object.values(tops)).size, `where the parameters start: ${JSON.stringify(tops)}`).toBe(1);
+  });
+}
+
+// Design wave D3 (plan WP-DR, measured again with the bundled Inter): the
+// side pane's navigation in the four reference states. Five equal main tabs
+// and Probing's 4 × 2 grid while the pane has 400 px of content width
+// (Inter at the tab size: the widest main name 45 + 22 px → 351 px, the
+// widest procedure "Boss/Pocket" 71 + 22 px → 384 px); below 400 px the area
+// and the procedure are two selects on one row. No tab name is clipped (a
+// Btn clips its overflow — a cut name is invisible to the eye), the tabs
+// and selects are --control-h tall, and the scrolling probing content keeps
+// at least three form rows (DR's row: 70 px).
+const NAV_STATES = [
+  { name: 'desktop', vp: 'desktop', zoom: 1, narrow: false, h: 32 },
+  { name: 'touch-landscape', vp: 'touch-landscape', zoom: 1, narrow: false, h: 44 },
+  { name: 'touch-portrait', vp: 'touch-portrait', zoom: 1, narrow: false, h: 44 },
+  { name: 'touch-portrait 150 %', vp: 'touch-portrait', zoom: 1.5, narrow: true, h: 44 },
+] as const;
+const FORM_ROW_PX = 70;
+for (const st of NAV_STATES) {
+  test(`${st.name}: side-pane navigation fits its budget (tabs or selects, no clipped name, three form rows)`, async ({ page }) => {
+    const viewport = VIEWPORTS.find(v => v.name === st.vp)!;
+    await openLayout(page, PROFILES[1]!, viewport);
+    await setLayoutState(page, PROFILES[1]!, 'homed');
+    if (st.zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, st.zoom);
+    const side = page.locator('.sidePane');
+    const inner = await side.evaluate(el => {
+      const cs = getComputedStyle(el);
+      return el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    });
+    expect(inner < 400, `side pane content width ${inner} px`).toBe(st.narrow);
+    const area = page.getByRole('combobox', { name: 'Side panel', exact: true });
+    if (st.narrow) {
+      await expect(area).toBeVisible();
+      await area.selectOption('probe');
+      const procedure = page.getByRole('combobox', { name: 'Probing procedure', exact: true });
+      await expect(procedure).toBeVisible();
+      const [a, p] = await Promise.all([area.evaluate(e => [(e as HTMLElement).offsetTop, (e as HTMLElement).offsetHeight]),
+        procedure.evaluate(e => [(e as HTMLElement).offsetTop, (e as HTMLElement).offsetHeight])]);
+      expect(a[0], 'the two selects share one row').toBe(p[0]);
+      expect(a[1], 'select height = --control-h').toBe(st.h);
+    } else {
+      await expect(area).toHaveCount(0);
+      await side.getByRole('tab', { name: 'Probing', exact: true }).click();
+      const grid = page.getByRole('tablist', { name: 'Probing procedure', exact: true });
+      const rows = await grid.getByRole('tab').evaluateAll(els => new Set(els.map(e => (e as HTMLElement).offsetTop)).size);
+      expect(rows, 'the procedures in two rows').toBe(2);
+    }
+    await settleLayout(page);
+    const tabs = await side.locator('[role="tab"]').evaluateAll(els => els.map(e => {
+      const t = e as HTMLElement;
+      return { name: t.textContent!.trim(), over: t.scrollWidth - t.clientWidth, h: t.offsetHeight };
+    }));
+    for (const t of tabs) {
+      expect(t.over, `"${t.name}" is clipped by ${t.over} px`).toBeLessThanOrEqual(0);
+      expect(t.h, `"${t.name}" height`).toBe(st.h);
+    }
+    const content = await side.locator('.probePanel').evaluate(el => el.clientHeight);
+    expect(content, `probing content ${content} px`).toBeGreaterThanOrEqual(3 * FORM_ROW_PX);
   });
 }
 
@@ -301,7 +360,7 @@ for (const viewport of VIEWPORTS) {
     };
     const programStyle = await program.locator('.fileItem').first().evaluate(fileStyle);
     await page.getByRole('button', { name: 'Hide Files', exact: true }).click();
-    await page.getByRole('button', { name: 'Tools', exact: true }).click();
+    await page.getByRole('tab', { name: 'Tools', exact: true }).click();
     const tab = page.locator('.toolsTab');
     const table = tab.locator('.tableWrap');
     const tools = Array.from({ length: 36 }, (_, i) => ({ T: 1001 + i, P: 1001 + i, Z: 50, D: 6,
