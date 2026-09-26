@@ -5,12 +5,12 @@ mit Plan-Agreement ([Planreview Runde 3](ui-design-welle.review.md#codex-runde-3
 hält je Arbeitspaket den Umsetzungsstand, Abweichungen und Gate-Läufe fest; die
 Codex-Implementierungsreviews folgen nach den Paketgruppen DR + D0–D2, D3–D6 und D7–D10.
 
-**Aktueller Reviewstand · Codex Runde 3 · 26. September 2026 · `13e12e9`:
-Implementierungs-Agreement für DR + D0–D2. UI-DI01–04 sind geschlossen.**
-Keine neuen Befunde im geprüften Umfang.
-[Nachprüfung, Nachweise und Prüfgrenzen](#codex-implementierungsreview-runde-3).
-Das Agreement gilt für diese Paketgruppe; die späteren Pakete und ihre Abnahmen bleiben offen.
-Runde 1 und 2 unten sind historische Prüfstände.
+**Aktueller Reviewstand · Codex Runde 4 · 26. September 2026 · `f0123f5`:
+Noch kein Implementierungs-Agreement für D3–D6. Sieben Befunde UI-DI05–11 offen,
+darunter zwei P1.** [Befunde, Nachweise und Prüfgrenzen](#codex-implementierungsreview-runde-4).
+Das [Agreement aus Runde 3 für DR + D0–D2](#codex-implementierungsreview-runde-3)
+bleibt gültig; UI-DI01–04 bleiben geschlossen. D7–D10 und die Gesamtabnahme stehen weiter aus.
+Die früheren Runden unten sind historische Prüfstände.
 
 ---
 
@@ -1160,3 +1160,261 @@ oder neu gestartet; der zusätzliche Review-Mock wurde anschließend beendet. Ke
 Touch-/Screenreader- oder macOS-Safari-/Firefox-Abnahme. Das in Claudes Antwort genannte
 Fokusverhalten gesperrter Controls auf diesen Browsern bleibt eine Prüfgrenze der Live-Abnahme.
 Nur Review-Dokumentation und Nachweise geändert, kein Produktcode.
+
+---
+
+## Codex Implementierungsreview Runde 4
+
+**26. September 2026 · `5cc74a5..f0123f5` · Branch `feat/ui-design-wave` ·
+Handshake R3 · Umfang WP-D3 bis WP-D6b, Plan Fassung 3.**
+
+**Ergebnis: Noch kein Implementierungs-Agreement für D3–D6. Sieben reproduzierbare
+Befunde UI-DI05–11 offen, davon zwei P1.** Das bisherige Agreement für DR + D0–D2
+und die Schließung von UI-DI01–04 bleiben bestehen. Die vereinbarten 44 px Touch-Höhe
+im Seitenpanel und der Verzicht auf eine Ruhemarke an Hold-Buttons sind ausdrücklich
+akzeptierte Operator-Entscheidungen, keine Befunde.
+
+Geprüft wurden die Produktänderungen, Claudes Umsetzungsbericht/Messungen/Gates und
+die betroffenen Tests. Die ergänzenden Änderungen `abf0a6a` (Touch), `93387e9`
+(Viewer-Label-Repaint) und `2461d04` (Handshake-Tooling) wurden einbezogen. Gemeinsame
+Reiter, Formularfelder, Einheiten und Aktionsgruppen verbessern die Struktur. Die
+offenen Punkte betreffen konkrete Interaktionen und das verbleibende Platzbudget
+im vereinbarten schmalen Layout.
+
+### Befundübersicht
+
+| ID | Priorität | Paket | Befund | Status |
+|---|---|---|---|---|
+| UI-DI05 | P1 | D6 | Gleicher Programmpfad mit neuer Revision bricht Start-/Step-/Resume-/Run-from-line-Hold nicht ab | offen |
+| UI-DI06 | P1 | D3 | Ctrl/Alt/Meta + Pfeil auf fokussiertem Reiter erreicht die Jog-Tastenbelegung | offen |
+| UI-DI07 | P2 | D3/D4 | Gleichnamige Spindel-Radiogruppen in Settings und Run from line löschen die sichtbare Auswahl | offen |
+| UI-DI08 | P2 | D6 | Parameterdialog bindet Execute an eine alte Makro-Kopie; neue Befehlsrevision bricht Hold nicht ab | offen |
+| UI-DI09 | P2 | D5 | Program-Kopf verdrängt bei Touch hoch 150 % den Codeinhalt vollständig | offen |
+| UI-DI10 | P2 | D5 | Werkzeugbeschreibung kollabiert bei Touch hoch 150 % auf einzelne Buchstaben | offen |
+| UI-DI11 | P2 | D3 | Wechsel des Probing-Verfahrens stoppt einen laufenden Tastatur-Jog nicht | offen |
+
+**Gemeinsame Nachweise:** [unabhängige Browser-Sonde](ui-design-welle.implementation-r4.probe.mjs)
+und [Messwerte/Befehlsprotokoll](ui-design-welle.implementation-r4.json). Alle unten genannten
+Maschinenbefehle wurden ausschließlich am isolierten Mock aufgezeichnet; es wurde keine
+reale Maschinenbewegung ausgelöst. Die Sonde prüft bei den Revisionsfällen ausdrücklich,
+dass die Änderung vor Ablauf des Holds im UI angekommen ist. `errors` ist leer.
+
+### UI-DI05 · P1 — Programmrevision fehlt in allen vier Hold-Bindungen
+
+**Stellen:** [GcodePanel.vue:798](../../lcnc-webui/src/GcodePanel.vue#L798),
+[Step/Resume](../../lcnc-webui/src/GcodePanel.vue#L803),
+[Run from line](../../lcnc-webui/src/GcodePanel.vue#L1081).
+Der Plan verlangt Pfad **und Revision**, bei Run from line zusätzlich die Zeile.
+Die Implementierung verwendet nur `activeFile` bzw. `activeFile:selectedLine`.
+
+**Reproduktion:** `/A.ngc` laden, Hold beginnen, nach 100 ms eine neue
+`viewer_gcode_ready`-Version für denselben Pfad senden und über `/gcode` geänderten
+Inhalt liefern. Der neue Text steht nach 191–200 ms sichtbar im Codefenster, während
+der Button weiterhin `holding` ist. Nach Ablauf sendet jede der vier Aktionen ihren
+Befehl: `cycle_start`, `auto_step`, `cycle_resume` bzw. `auto_run`. Kein Abbruchhinweis.
+Bei Run from line enthält der Befehl zudem `entry_x: 0` aus der alten Analyse, obwohl
+die neue Programmfassung vor Zeile 3 nach X20 fährt. Ein Wechsel auf `/B.ngc` dagegen
+bricht korrekt ab und zeigt „Selection changed — hold again“.
+
+**Folge:** Die Bestätigung überdauert einen inhaltlichen Programmwechsel. Run from line
+kann zusätzlich einen neuen Programmstand mit alten Einstiegsvorgaben kombinieren.
+Die vorhandene Gegenprobe mit anderem Pfad deckt diesen Fall nicht ab.
+
+**Abnahme:** Alle vier Holds an die tatsächlich veröffentlichte Programmrevision
+binden; bereits deren Ankunft muss einen laufenden Hold invalidieren, auch wenn der
+Textabruf noch dauert. Run from line muss die Analyse/Einstiegsvorgaben vor einem
+erneuten Ausführen aktualisieren oder den Dialog entsprechend ungültig machen.
+Regressionstest für gleiche Datei/neue Revision bei allen vier Aktionen, einschließlich
+verzögertem Textabruf; Pfad-/Zeilenwechsel und bestehende Abbruch-/Gate-Regeln erhalten.
+JSON: `programHolds`, `changedPathControl`.
+
+### UI-DI06 · P1 — Modifizierte Navigationstasten starten Jog auf einem Reiter
+
+**Stellen:** [TabNav.vue:52](../../lcnc-webui/src/TabNav.vue#L52),
+[useKeyboardShortcuts.ts:104](../../lcnc-webui/src/useKeyboardShortcuts.ts#L104).
+`TabNav` kehrt bei Alt/Ctrl/Meta vor `preventDefault()` zurück. Der globale Handler
+ordnet anschließend allein anhand von `e.key` die Maschinenaktion zu.
+
+**Reproduktion:** Keyboard-Jog aktivieren, den Hauptreiter Program fokussieren.
+Pfeil rechts allein verschiebt nur den Fokus auf MDI und sendet keinen Befehl.
+`Ctrl+ArrowRight`, `Alt+ArrowRight` und `Meta+ArrowRight` senden dagegen jeweils
+`jog_cont(axis: 0, vel: 10)` und beim Loslassen `jog_stop(axis: 0)`; der Fokus bleibt
+auf Program. Für die Gegenprobe wurden normale Browser-Tastaturereignisse verwendet.
+
+**Folge:** Eine Tastenkombination zur Navigation auf einem fokussierten Reiter kann
+die Maschine bewegen. Der D3-Vertrag „alle Pfeile lokal abgefangen“ ist unvollständig.
+Das Loslassen stoppt korrekt; der Befund betrifft den unerwarteten Start.
+
+**Abnahme:** Navigationstasten dürfen auf den Reitern auch mit Modifikatoren nicht
+in die Maschinenbelegung fallen. E-Stop und die bestehenden Keyup-Stopps erhalten.
+Alle sechs Navigationstasten mit/ohne Modifikatoren an Haupt- und Probing-Reitern
+prüfen; Settings bleibt ebenfalls geschützt. Eine positive Gegenprobe außerhalb
+der Navigation muss den vorgesehenen Tastatur-Jog weiterhin erlauben.
+JSON: `modifiedTabKeys`.
+
+### UI-DI07 · P2 — Settings entmarkiert die Spindelvorwahl im Run-from-line-Dialog
+
+**Stellen:** [GcodePanel.vue:1065](../../lcnc-webui/src/GcodePanel.vue#L1065),
+[SettingsPanel.vue:742](../../lcnc-webui/src/SettingsPanel.vue#L742).
+Beide Optionsgruppen verwenden den nativen Radio-Namen `rflSpindleDir`.
+Die getrennten ARIA-Gruppen isolieren die HTML-Radiogruppen nicht voneinander.
+
+**Reproduktion:** Bei Voreinstellung Fwd Run from line öffnen und Rev wählen.
+Über die Kopfzeile Settings öffnen und ohne Änderung wieder schließen. Vorher ist
+Rev angehakt; während und nach Settings sind alle drei Optionen im verbleibenden
+Run-from-line-Dialog ungeprüft. Der weiterhin gespeicherte Vue-Wert bleibt jedoch
+`reverse`: Ein voller Hold sendet `auto_run` mit `spindle_dir: "reverse"` und
+`spindle_speed: 10000`. Schon das Mounten der auch im Hintergrund vorhandenen
+Settings-Gruppe reicht für den nativen Gruppeneffekt.
+
+**Folge:** Sichtbarer Auswahlzustand und tatsächlich ausgeführte Spindelvorwahl
+widersprechen sich nach einer erlaubten Dialogfolge.
+
+**Abnahme:** Jede unabhängige Optionsgruppe benötigt einen eigenen nativen Namen,
+gegebenenfalls pro Instanz. Die persistierte Voreinstellung und die aktuelle
+Ausführungswahl dürfen einander nicht entmarkieren. Beide Öffnungsreihenfolgen,
+Settings auf einer anderen Sektion und alle drei Werte prüfen: sichtbares `checked`,
+Modellwert und gesendete Vorwahl müssen zusammenpassen.
+JSON: `spindleRadioGroups`; [Bild nach Schließen von Settings](ui-design-welle.implementation-r4-spindle-radios.png).
+
+### UI-DI08 · P2 — Execute-Hold im Parameterdialog bemerkt neue Makrorevision nicht
+
+**Stellen:** [useMacros.ts:33](../../lcnc-webui/src/useMacros.ts#L33),
+[macroExecuteKey](../../lcnc-webui/src/useMacros.ts#L67),
+[gespeicherte Dialog-Kopie](../../lcnc-webui/src/useMacros.ts#L77),
+[Execute-Bindung](../../lcnc-webui/src/App.vue#L2280).
+Die Settings-Synchronisation ersetzt `userMacros`, während der offene Dialog das
+alte Makro-Objekt behält. Sein Hold-Key liest weiter nur diese alte Kopie.
+
+**Reproduktion:** Parametermakro `G0 Z{depth} F{feed}` mit Werten 5/100 öffnen,
+Execute halten. Nach 100 ms dieselbe Makro-ID per `settings_changed` auf
+`G0 Z-{depth} F{feed}` und einen neuen Namen ändern. Nach 109 ms ist der neue Name
+in der Makroleiste sichtbar; Execute hält weiter, Vorschau bleibt `G0 Z5 F100`.
+Nach Ablauf wird genau dieser alte Befehl gesendet, ohne Abbruchhinweis. Beim
+erneuten Öffnen desselben Makros zeigt der Dialog korrekt `G0 Z-5 F100`.
+
+**Einordnung:** Es wird kein heimlich ausgetauschter neuer Befehl ausgeführt; alte
+Vorschau und alter Befehl stimmen überein. Dennoch greift der explizit vereinbarte
+Abbruch bei geänderter Makrorevision im Parameterdialog nicht. Der Test für den
+parameterlosen Leistenbutton beweist diesen zweiten Ausführungsweg nicht.
+
+**Abnahme:** Auch der offene Dialog muss die aktuelle Revision/Entfernung seines
+Makros beobachten und den laufenden Hold abbrechen. Eingabewerte dürfen dabei
+erhalten bleiben; vor einem neuen Hold braucht es einen eindeutigen sichtbaren
+Stand, ohne stilles Überschreiben des Entwurfs. Befehls-, Parameterdefinitions-
+und Wertänderung sowie Entfernen prüfen, über Settings-Synchronisation und lokalen
+Setter. Nach erneutem Halten genau den sichtbaren Befehl einmal ausführen.
+JSON: `macroRevision`.
+
+### UI-DI09 · P2 — Im schmalen Program-Tab bleibt keine Höhe für Code
+
+**Stellen:** [Program-Kopf](../../lcnc-webui/src/GcodePanel.vue#L794),
+[schmales Aktionsraster](../../lcnc-webui/src/GcodePanel.vue#L1119),
+[Codebereich](../../lcnc-webui/src/GcodePanel.vue#L1186).
+
+**Reproduktion:** Vereinbarter DR-Fall 900×1200, Touch, CSS-Zoom 150 %, geladenes
+Programm; etwa 271 CSS-px Panel-Innenbreite. Der feste `.panelHead` belegt 272 CSS-px
+(408 sichtbare px). Nach Reiterauswahl, Kopf, Fortschritt und Abständen bleiben
+`.codeArea` und `.codeViewer` jeweils mit `clientHeight: 0`. Ihre obere Kante liegt
+bei y=1251,75 bereits unter dem 1200 px hohen Viewport. Auch die untere Verwaltung
+ist angeschnitten. Der Test zur rechten Position von Abort erfasst dieses gesamte
+Höhenbudget nicht.
+
+**Folge:** Gerade im ausdrücklich unterstützten schmalen Fall ist der geladene
+Code nicht mehr nutzbar. Die horizontale Anpassung der Aktionsgruppe verbraucht die
+verfügbare Inhaltshöhe vollständig.
+
+**Abnahme:** Für den schmalen Lesemodus ein tragfähiges vertikales Budget herstellen,
+etwa durch zusammenfassbare Verwaltung/Optionen, mit sichtbarem Abort und erreichbaren
+Aktionen. Die akzeptierten 44 px Touch-Höhe erhalten. Mit geladenem Programm prüfen:
+mehrere tatsächlich lesbare Codezeilen, erreichbare Verwaltung und Hit-Tests innerhalb
+des Panels; reine Überlaufunterdrückung oder kleinere Schrift ist keine Abnahme.
+JSON: `narrowProgram`; [Screenshot](ui-design-welle.implementation-r4-narrow-program.png).
+
+### UI-DI10 · P2 — Schmale Werkzeugbeschreibung erzeugt überhohen Tabellenkopf
+
+**Stellen:** [Beschreibungsspalte](../../lcnc-webui/src/ToolTablePanel.vue#L925),
+[Zellinhalt](../../lcnc-webui/src/ToolTablePanel.vue#L947),
+[Umbruchregel](../../lcnc-webui/src/ToolTablePanel.vue#L1146).
+Die bisherige Mindestbreite entfällt; `overflow-wrap: anywhere` gilt für Kopf und Zellen.
+
+**Reproduktion:** Gleicher DR-Fall wie UI-DI09, ein Werkzeug T5 „Test cutter“,
+Ø6, Z−40,123456, Typ Endmill. Die Beschreibungsspalte schrumpft auf 24 CSS-px
+einschließlich Innenabstand. „Description“ bricht auf einzelne Buchstaben um.
+Der Tabellenkopf wird 247,25 sichtbare px hoch, der ganze Tabellenviewport hat nur
+115,25 px Höhe. Gleichzeitig bleiben 371 CSS-px Tabellenbreite bei 264 CSS-px
+Client-Breite: Horizontaler Überlauf besteht trotzdem.
+
+**Folge:** Der erste Blick zeigt nur einen Teil des senkrechten Tabellenkopfs und
+keine Werkzeugzeile. Die Beschreibung erfüllt ihre neue Rolle zur Erkennung des
+Werkzeugs nicht. Nach gezieltem Scrollen ist T5 im Hit-Test erreichbar; behauptet
+wird keine dauerhafte Unerreichbarkeit, sondern die konkret unbrauchbare Text- und
+Höhenaufteilung bereits bei nur einem Werkzeug.
+
+**Abnahme:** Eine lesbare Mindestbreite für Beschreibung und einen kompakten Kopf
+sicherstellen; schmale Darstellung und übrige Spalten als Ganzes auslegen. Mit
+echten Beschreibungstexten und Zahlen im 150-%-Fall prüfen, dass der Kopf nicht den
+Inhaltsviewport verbraucht, Werkzeugidentität lesbar bleibt und Aktionen erreichbar
+sind. Das ist unabhängig vom Program-Höhenproblem UI-DI09 zu beheben.
+JSON: `narrowTools`, `narrowToolsAfterScroll`;
+[Ausgangsansicht](ui-design-welle.implementation-r4-narrow-tools.png),
+[nach Scrollen zu T5](ui-design-welle.implementation-r4-narrow-tools-scrolled.png).
+
+### UI-DI11 · P2 — Probing-Unterreiter übernehmen den Jog-Stopp nicht
+
+**Stellen:** [Hauptreiter-Watcher](../../lcnc-webui/src/App.vue#L497),
+[Verfahrenszustand](../../lcnc-webui/src/App.vue#L362),
+[schmale Verfahrensauswahl](../../lcnc-webui/src/App.vue#L1910).
+Der neue Jog-Stopp hängt nur an `activeTab`, nicht an `probeView`.
+
+**Reproduktion:** Probing/Outside anzeigen, Fokus auf body, Pfeil rechts halten,
+bei weiterhin gehaltener Taste Inside anklicken. Nach dem Verfahrenswechsel und
+150 ms Wartezeit steht im Protokoll nur `jog_cont`, kein Stopp. Erst Keyup sendet
+`jog_stop`. Dieselbe Folge mit Wechsel zum Hauptreiter Tools sendet sofort die
+Stopps für die drei Achsen, bevor die Taste losgelassen wird.
+
+**Folge:** Der D3-Vertrag „ein laufender Jog stoppt beim Tabwechsel“ gilt innerhalb
+der neuen Navigation nur teilweise. Es geht um den fehlenden Stopp beim Wechsel;
+der vorhandene Keyup-Schutz funktioniert weiterhin.
+
+**Abnahme:** Hauptreiter und Probing-Verfahrenswechsel müssen denselben bedingten
+Abbruchpfad für einen laufenden Jog verwenden, im Raster wie im schmalen Selektor.
+Tests müssen den Stopp vor Keyup nachweisen und zugleich sicherstellen, dass
+Navigation ohne laufenden Jog keine Maschinenbefehle erzeugt.
+JSON: `jogTabSwitch`, einschließlich positiver Hauptreiter-Gegenprobe.
+
+### Ausgeführte Prüfungen und Prüfgrenzen
+
+| Prüfung am unveränderten Produktstand `f0123f5` | Ergebnis |
+|---|---|
+| `npm run build` | grün; bestehender Hinweis zu großen Bundles |
+| `npm run lint` einschließlich CSS-Audit | grün |
+| `vitest run --maxWorkers=1` | **78 Dateien, 1627/1627 Tests** grün |
+| `lcnc-gateway/.venv/bin/python -m pytest -q scripts/test_review_handshake.py` | **6/6** grün |
+| Playwright `serial-guards --no-deps --workers=1` | **111/111** grün, einschließlich Dialog-, Tastatur-, D3/D4-/Hold- und Touch-Wächtern |
+| Playwright `serial-layout --no-deps --workers=1` | **61 Fälle grün in zwei Läufen:** 55 bestanden, danach Prozessende mit SIGTERM ohne Testfehler; die sechs restlichen Fälle gezielt ausgeführt und 6/6 bestanden |
+| Playwright `serial-visual` + `serial-viewer`, `--no-deps --workers=1` | **14/14** grün: 10 Bildvergleichs- und 4 Viewer-Tests; keine Referenzbilder geändert |
+| Unabhängige Round-4-Sonde, eigener Mock `127.0.0.1:4188` | sieben oben dokumentierte Befunde; Pfadwechsel, normale Reitertaste, Hauptreiter-Jog-Stopp, neu geöffneter Makrodialog und Tool-Hit-Test als Gegenproben |
+| `git diff --check` | grün |
+
+Damit sind **186 unterschiedliche bestehende Browserfälle** erneut erfolgreich
+ausgeführt. Dies ist kein erneuter kompletter Lauf der von Claude berichteten
+247 Browserfälle; die übrigen Projekte und die unveränderten Backend-Suites wurden
+nicht wiederholt. Die grünen vorhandenen Gates erfassen die hier ergänzten
+Revisions-/Dialogfolgen und das konkrete Inhaltsbudget bei 150 % bislang nicht.
+Die unabhängige Sonde dokumentiert Fehler und ist ausdrücklich kein bestandener
+Regressionstest. Bei einer Nachprüfung neue Ausgabedateien verwenden und diese
+historischen JSON-/Bildnachweise unverändert lassen.
+
+Alle Browserprüfungen liefen nacheinander mit einem Chromium-Worker und niedriger
+Prozesspriorität gegen Mocks; der eigene Review-Mock auf Port 4188 wurde anschließend
+beendet. Der laufende LinuxCNC-Simulator und der echte Gateway
+wurden nicht angesprochen oder neu gestartet. Keine physische Touch-, Screenreader-,
+Safari- oder Firefox-Abnahme; die Touch-Prüfungen emulieren Browserereignisse. Der
+Label-Repaint wurde anhand der Änderung und Viewer-Regressionen geprüft, ohne neue
+physische Maschinenabnahme. D7–D10 einschließlich der späteren Theme-/Kontrastarbeit
+bleiben außerhalb dieser Paketabnahme. Keine Änderungen am Produktcode oder an
+bestehenden Tests/Referenzen; nur Review-Dokumentation und eigene Nachweise.
+
+**Nächster Schritt:** Claude beantwortet und korrigiert UI-DI05–11 und fordert über
+den Handshake eine Nachprüfung an. Bis dahin bleibt D3–D6 ohne Agreement.

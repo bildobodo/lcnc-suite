@@ -1,0 +1,400 @@
+{
+  "head": "f0123f5",
+  "origin": "http://127.0.0.1:4188",
+  "programHolds": [
+    {
+      "action": "Start",
+      "file": "/A.ngc",
+      "version": 902,
+      "atChange": {
+        "elapsedMs": 190.80000001192093,
+        "holding": true,
+        "content": "1(revision B)"
+      },
+      "commands": [
+        {
+          "cmd": "cycle_start",
+          "req_id": "86dku3-5"
+        }
+      ],
+      "hint": []
+    },
+    {
+      "action": "Step",
+      "file": "/A.ngc",
+      "version": 904,
+      "atChange": {
+        "elapsedMs": 200,
+        "holding": true,
+        "content": "1(revision B)"
+      },
+      "commands": [
+        {
+          "cmd": "auto_step",
+          "req_id": "62vaqr-5"
+        }
+      ],
+      "hint": []
+    },
+    {
+      "action": "Resume",
+      "file": "/A.ngc",
+      "version": 906,
+      "atChange": {
+        "elapsedMs": 199.5,
+        "holding": true,
+        "content": "1(revision B)"
+      },
+      "commands": [
+        {
+          "cmd": "cycle_resume",
+          "req_id": "k64nhc-5"
+        }
+      ],
+      "hint": []
+    },
+    {
+      "action": "Run from Line 3",
+      "file": "/A.ngc",
+      "version": 908,
+      "atChange": {
+        "elapsedMs": 190.5,
+        "holding": true,
+        "content": "1(revision B)"
+      },
+      "commands": [
+        {
+          "cmd": "auto_run",
+          "line": 3,
+          "safe_z": true,
+          "entry_x": 0,
+          "req_id": "jvif58-5"
+        }
+      ],
+      "hint": []
+    }
+  ],
+  "errors": [],
+  "changedPathControl": {
+    "commands": [],
+    "hint": [
+      "Selection changed — hold again"
+    ]
+  },
+  "macroRevision": {
+    "atChange": {
+      "elapsedMs": 108.70000000298023,
+      "holding": true,
+      "preview": "G0 Z5 F100"
+    },
+    "commands": [
+      {
+        "cmd": "mdi",
+        "text": "G0 Z5 F100",
+        "req_id": "a10fig-5"
+      }
+    ],
+    "hint": [],
+    "reopenedPreview": "G0 Z-5 F100"
+  },
+  "jogTabSwitch": [
+    {
+      "which": "procedure",
+      "beforeRelease": [
+        {
+          "cmd": "jog_cont",
+          "axis": 0,
+          "vel": 10,
+          "req_id": "hmirqm-5"
+        }
+      ],
+      "afterRelease": [
+        {
+          "cmd": "jog_cont",
+          "axis": 0,
+          "vel": 10,
+          "req_id": "hmirqm-5"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 0,
+          "req_id": "hmirqm-6"
+        }
+      ]
+    },
+    {
+      "which": "main",
+      "beforeRelease": [
+        {
+          "cmd": "jog_cont",
+          "axis": 0,
+          "vel": 10,
+          "req_id": "s1yiwo-5"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 0,
+          "req_id": "s1yiwo-6"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 1,
+          "req_id": "s1yiwo-7"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 2,
+          "req_id": "s1yiwo-8"
+        }
+      ],
+      "afterRelease": [
+        {
+          "cmd": "jog_cont",
+          "axis": 0,
+          "vel": 10,
+          "req_id": "s1yiwo-5"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 0,
+          "req_id": "s1yiwo-6"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 1,
+          "req_id": "s1yiwo-7"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 2,
+          "req_id": "s1yiwo-8"
+        }
+      ]
+    }
+  ],
+  "modifiedTabKeys": [
+    {
+      "key": "ArrowRight",
+      "commands": [],
+      "focus": "MDI"
+    },
+    {
+      "key": "Control+ArrowRight",
+      "commands": [
+        {
+          "cmd": "jog_cont",
+          "axis": 0,
+          "vel": 10,
+          "req_id": "dk39hj-5"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 0,
+          "req_id": "dk39hj-6"
+        }
+      ],
+      "focus": "Program"
+    },
+    {
+      "key": "Alt+ArrowRight",
+      "commands": [
+        {
+          "cmd": "jog_cont",
+          "axis": 0,
+          "vel": 10,
+          "req_id": "dk39hj-7"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 0,
+          "req_id": "dk39hj-8"
+        }
+      ],
+      "focus": "Program"
+    },
+    {
+      "key": "Meta+ArrowRight",
+      "commands": [
+        {
+          "cmd": "jog_cont",
+          "axis": 0,
+          "vel": 10,
+          "req_id": "dk39hj-9"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 0,
+          "req_id": "dk39hj-10"
+        }
+      ],
+      "focus": "Program"
+    }
+  ],
+  "spindleRadioGroups": {
+    "beforeSettings": [
+      {
+        "value": "reverse",
+        "checked": true,
+        "name": "rflSpindleDir"
+      },
+      {
+        "value": "off",
+        "checked": false,
+        "name": "rflSpindleDir"
+      },
+      {
+        "value": "forward",
+        "checked": false,
+        "name": "rflSpindleDir"
+      }
+    ],
+    "duringSettings": [
+      {
+        "value": "reverse",
+        "checked": false,
+        "name": "rflSpindleDir"
+      },
+      {
+        "value": "off",
+        "checked": false,
+        "name": "rflSpindleDir"
+      },
+      {
+        "value": "forward",
+        "checked": false,
+        "name": "rflSpindleDir"
+      }
+    ],
+    "afterSettings": [
+      {
+        "value": "reverse",
+        "checked": false,
+        "name": "rflSpindleDir"
+      },
+      {
+        "value": "off",
+        "checked": false,
+        "name": "rflSpindleDir"
+      },
+      {
+        "value": "forward",
+        "checked": false,
+        "name": "rflSpindleDir"
+      }
+    ],
+    "commands": [
+      {
+        "cmd": "auto_run",
+        "line": 3,
+        "spindle_dir": "reverse",
+        "spindle_speed": 10000,
+        "safe_z": true,
+        "entry_x": 0,
+        "req_id": "uzrfbb-5"
+      }
+    ]
+  },
+  "narrowProgram": {
+    ".sidePane": {
+      "x": 456,
+      "y": 705.5,
+      "width": 432,
+      "height": 482.5,
+      "clientHeight": 320,
+      "scrollHeight": 320
+    },
+    ".sidePane .panelHead": {
+      "x": 469,
+      "y": 790.5,
+      "width": 406,
+      "height": 408,
+      "clientHeight": 272,
+      "scrollHeight": 272
+    },
+    ".codeArea": {
+      "x": 469,
+      "y": 1251.75,
+      "width": 406,
+      "height": 0,
+      "clientHeight": 0,
+      "scrollHeight": 1
+    },
+    ".codeViewer": {
+      "x": 469,
+      "y": 1251.75,
+      "width": 406,
+      "height": 2,
+      "clientHeight": 0,
+      "scrollHeight": 192
+    }
+  },
+  "narrowTools": {
+    ".sidePane": {
+      "x": 456,
+      "y": 705.5,
+      "width": 432,
+      "height": 482.5,
+      "clientWidth": 287,
+      "scrollWidth": 287
+    },
+    ".toolSearchRow": {
+      "x": 469,
+      "y": 981.75,
+      "width": 406,
+      "height": 66,
+      "clientWidth": 271,
+      "scrollWidth": 271
+    },
+    ".toolSearch": {
+      "x": 469,
+      "y": 981.75,
+      "width": 136,
+      "height": 66,
+      "clientWidth": 89,
+      "scrollWidth": 89
+    },
+    ".toolsTab .tableWrap": {
+      "x": 469,
+      "y": 1059.75,
+      "width": 406,
+      "height": 115.25,
+      "clientWidth": 264,
+      "scrollWidth": 371
+    },
+    ".toolsTab .tableWrap table": {
+      "x": 469,
+      "y": 1059.75,
+      "width": 557,
+      "height": 495.5,
+      "clientWidth": 371,
+      "scrollWidth": 371
+    },
+    ".toolsTab .tableWrap thead": {
+      "x": 469,
+      "y": 1059.75,
+      "width": 557,
+      "height": 247.25,
+      "clientWidth": 371,
+      "scrollWidth": 371
+    },
+    ".toolsTab .tableWrap th.colDesc": {
+      "x": 554,
+      "y": 1059.75,
+      "width": 36,
+      "height": 247.25,
+      "clientWidth": 24,
+      "scrollWidth": 24
+    }
+  },
+  "narrowToolsAfterScroll": {
+    "x": 481,
+    "y": 1110.875,
+    "width": 61,
+    "height": 54,
+    "hit": true,
+    "hitTag": "BUTTON",
+    "hitText": "T5",
+    "headerHeight": 247.25,
+    "tableHeight": 115.25
+  }
+}
