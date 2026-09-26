@@ -73,6 +73,11 @@ WS-C extension — design-token drift checks over every .vue <style> block
                or a static `help="…"` prop in the <template>. A "?" says what
                the value is and the one rule the operator needs — nobody
                reads an abstract (design wave D1 live look).
+  DIALOG_FRAME — a hand-built dialog in a <template> (a `dialogOverlay`
+               class or a `role="dialog"`) outside DialogFrame.vue: every
+               overlay is the ONE frame — role and name, tier, registry and
+               stack, focus scope, initial focus, close policy by kind (design
+               wave D2; 22 overlays had 22 close paths).
   MEDIA_SHADOW — a declaration inside an @media / @supports / @container
                block that a LATER rule outside any such block, with the
                identical selector, sets again (the same property or a
@@ -370,6 +375,9 @@ def _template_audit_ok(lines: list[str], idx: int) -> bool:
     return "audit-ok:" in here or "audit-ok:" in above
 
 
+DIALOG_RE = re.compile(r'\bclass="[^"]*\bdialogOverlay\b|\brole="dialog"')
+
+
 def template_findings(path: str) -> list[tuple[str, int, str]]:
     """INLINE (static style=), TOFIXED (number formatting), CLOSE (an
     unnamed close control), ELLIPSIS and UNIT_LITERAL inside the SFC's
@@ -389,6 +397,8 @@ def template_findings(path: str) -> list[tuple[str, int, str]]:
             findings.append(("INLINE", ln, "static style=\"…\" — use a utility class (.w-full) or a scoped layout rule"))
         if ".toFixed(" in line:
             findings.append(("TOFIXED", ln, ".toFixed( in the template — format through format.ts"))
+        if not path.endswith("DialogFrame.vue") and DIALOG_RE.search(line):
+            findings.append(("DIALOG_FRAME", ln, "a hand-built dialog — use DialogFrame (role, registry, stack, focus scope, close policy)"))
         if ELLIPSIS_RE.search(line):
             findings.append(("ELLIPSIS", ln, 'ASCII "..." in the template — write "…"'))
         for m_t in TITLE_RE.finditer(line):

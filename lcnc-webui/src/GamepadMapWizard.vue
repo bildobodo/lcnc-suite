@@ -13,11 +13,10 @@ import {
   type RawBinding, type StickBinding, type RawSample,
 } from "./gamepadProfile";
 import MachineBtn from "./MachineBtn.vue";
-import { registerModal } from "./modalRegistry";
+import DialogFrame from "./DialogFrame.vue";
 
 const props = defineProps<{ gamepadName: string }>();
 // The wizard IS its overlay: mounted means open (WP0 modal guard).
-registerModal(() => true);
 const emit = defineEmits<{
   (e: "save", profile: GamepadProfile): void;
   (e: "cancel"): void;
@@ -235,10 +234,10 @@ onBeforeUnmount(() => { window.clearInterval(timer); clearInterval(restartTimer)
 </script>
 
 <template>
-  <div class="dialogOverlay">
-    <div class="dialog gpWizard">
-      <div class="dialogTitle">Map Controller</div>
-      <div class="dialogBody stack-controls">
+  <!-- A live form (N45: md): the backdrop does nothing, and focus starts on
+       the container — every action here is one the operator chooses. -->
+  <DialogFrame kind="form" size="md" box-class="gpWizard" title="Map Controller" initial-focus="container">
+      <div class="dialogContent stack-controls">
         <div class="mono gpWizId">{{ gamepadName }}</div>
         <template v-if="phase !== 'done'">
           <div class="label-muted">Step {{ idx + 1 }} of {{ STEPS.length }} — captured {{ capturedCount }}</div>
@@ -255,22 +254,17 @@ onBeforeUnmount(() => { window.clearInterval(timer); clearInterval(restartTimer)
           <div v-if="skippedLabels.length" class="label-muted">Skipped: {{ skippedLabels.join(", ") }}</div>
         </template>
       </div>
-      <div class="dialogActions">
+      <template #actions>
         <MachineBtn type="dialogCancel" @click="emit('cancel')">Cancel</MachineBtn>
         <MachineBtn type="inlineMd" :disabled="capturedCount === 0" reason="Nothing captured yet"
                     :warning="restartArmed" aria-live="polite" @click="requestRestart">{{ restartArmed ? `Press again to restart (${restartRemaining} s)` : 'Restart' }}</MachineBtn>
         <MachineBtn v-if="phase !== 'done'" type="inlineMd" @click="skip">Skip</MachineBtn>
         <MachineBtn v-else type="dialogConfirm" @click="save">Save Profile</MachineBtn>
-      </div>
-    </div>
-  </div>
+      </template>
+  </DialogFrame>
 </template>
 
 <style scoped>
-/* Layout only: fixed width so the dialog doesn't resize between steps */
-.gpWizard {
-  width: min(440px, 90vw);
-}
 .gpWizId {
   overflow-wrap: anywhere;
 }

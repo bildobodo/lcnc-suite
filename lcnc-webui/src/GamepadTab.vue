@@ -19,12 +19,10 @@ import MachineSlider from "./MachineSlider.vue";
 import MachineSelect from "./MachineSelect.vue";
 import GamepadLiveInput from "./GamepadLiveInput.vue";
 import GamepadMapWizard from "./GamepadMapWizard.vue";
-import { registerModal } from "./modalRegistry";
+import DialogFrame from "./DialogFrame.vue";
 import { fmtPct, NO_VALUE } from "./format";
 
 const props = defineProps<{
-  /** Teleport target for confirm dialogs (SettingsPanel forwards App's). */
-  dialogTarget?: string;
   gamepadConfig: GamepadDefaults | undefined;
   gamepadConnected: boolean | undefined;
   gamepadName: string | undefined;
@@ -101,11 +99,9 @@ function onWizardSave(p: GamepadProfile) {
   emit("setGamepadConfig", { ...props.gamepadConfig, profiles });
 }
 
-// Removing a mapped profile asks first (P1); the confirm is teleported to
-// the content area (dialogTarget from SettingsPanel) so it is not clipped
-// by the settings dialog it lives in, and registered like every overlay.
+// Removing a mapped profile asks first (P1); a DialogFrame stacks over
+// Settings.
 const removeConfirm = ref(false);
-registerModal(removeConfirm);
 function requestRemoveProfile() { removeConfirm.value = true; }
 function removeProfile() {
   removeConfirm.value = false;
@@ -150,18 +146,13 @@ const rawSummary = computed(() => {
         <div class="row-controls">
           <MachineBtn type="inlineMd" @click="showWizard = true">Map Buttons…</MachineBtn>
           <MachineBtn v-if="hasProfile" type="dialogDanger" @click="requestRemoveProfile">Remove Profile</MachineBtn>
-          <Teleport v-if="removeConfirm" :to="dialogTarget ?? 'body'" :disabled="!dialogTarget">
-            <div class="dialogOverlay" @click.self="removeConfirm = false">
-              <div class="dialog">
-                <div class="dialogTitle danger">Remove profile?</div>
-                <div class="dialogBody">The button and stick mapping for <strong>{{ gamepadName }}</strong> will be deleted.</div>
-                <div class="dialogActions">
-                  <MachineBtn type="dialogCancel" @click="removeConfirm = false">Cancel</MachineBtn>
-                  <MachineBtn type="dialogDanger" @click="removeProfile">Remove</MachineBtn>
-                </div>
-              </div>
-            </div>
-          </Teleport>
+          <DialogFrame v-if="removeConfirm" kind="confirm" title="Remove profile?" danger @close="removeConfirm = false">
+            <div class="dialogBody">The button and stick mapping for <strong>{{ gamepadName }}</strong> will be deleted. This cannot be undone.</div>
+            <template #actions>
+              <MachineBtn type="dialogCancel" @click="removeConfirm = false">Cancel</MachineBtn>
+              <MachineBtn type="dialogDanger" @click="removeProfile">Remove</MachineBtn>
+            </template>
+          </DialogFrame>
         </div>
         <div class="settingDesc mono">{{ rawSummary }}</div>
       </template>

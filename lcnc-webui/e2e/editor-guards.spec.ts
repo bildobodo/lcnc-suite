@@ -190,7 +190,7 @@ test("an older save reply never touches a newer session", async ({ page }) => {
   expect(await loadFileCmds()).toEqual([]);
 });
 
-test("discard: clean closes at once, dirty asks and Cancel keeps the edit", async ({ page }) => {
+test("discard: clean closes at once, dirty asks and Keep editing keeps the edit", async ({ page }) => {
   await open(page);
   await enterEdit(page);
   await page.locator(".editActions").getByRole("button", { name: "Discard", exact: true }).click();
@@ -200,7 +200,8 @@ test("discard: clean closes at once, dirty asks and Cancel keeps the edit", asyn
   await typeIntoEditor(page, "(dirty)");
   await page.locator(".editActions").getByRole("button", { name: "Discard", exact: true }).click();
   await expect(page.locator(".dialogTitle", { hasText: "Discard changes?" })).toBeVisible();
-  await page.locator(".dialogOverlay").getByRole("button", { name: "Cancel", exact: true }).click();
+  // The safe answer keeps editing (design wave D2, N49).
+  await page.getByRole("dialog", { name: "Discard changes?", exact: true }).getByRole("button", { name: "Keep editing", exact: true }).click();
   await expect(page.locator(".dialogOverlay")).toHaveCount(0);
   await expect(page.locator(".cm-content")).toContainText("(dirty)");
 });
@@ -243,7 +244,7 @@ test.describe("upload name conflict", () => {
     });
     // Cancel
     await pick();
-    const dialog = page.locator(".dialogOverlay").filter({ hasText: "Program exists" });
+    const dialog = page.getByRole("dialog", { name: "Upload Conflict", exact: true });
     await expect(dialog).toBeVisible();
     await expect(dialog).toContainText("dup.ngc");
     await dialog.getByRole("button", { name: "Cancel", exact: true }).click();

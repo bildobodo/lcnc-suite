@@ -128,6 +128,11 @@ def test_long_help_slot_and_prop_hit_short_and_multiline_ok(audit):
     assert sorted(hits) == [("LONG_HELP", 3), ("LONG_HELP", 5)], hits
 
 
+def test_dialog_frame_hand_built_overlay_and_role_hit_frame_and_lookalike_ok(audit):
+    hits = [h for h in _drift(audit, "dialog_frame.vue") if h[0] == "DIALOG_FRAME"]
+    assert sorted(hits) == [("DIALOG_FRAME", 3), ("DIALOG_FRAME", 4)], hits
+
+
 def test_media_shadow_same_prop_and_later_shorthand_hit(audit):
     # .a padding-left (same prop), .c from a selector list, .d under a later
     # `padding` shorthand. Not: .a top (never set again), .b, .e (a later

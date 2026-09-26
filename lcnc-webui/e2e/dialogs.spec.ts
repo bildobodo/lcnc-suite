@@ -305,7 +305,7 @@ const ROWS: Row[] = [
     open: async (page) => {
       await page.getByRole("button", { name: "Probing", exact: true }).click();
       await page.getByRole("button", { name: "Calibrate", exact: true }).click();
-      const trigger = page.getByRole("button", { name: /^Reset/ }).first();
+      const trigger = page.locator(".sidePane").getByRole("button", { name: "Reset Calibration", exact: true });
       await trigger.click();
       return trigger;
     },
@@ -346,7 +346,8 @@ const ROWS: Row[] = [
     open: async (page) => {
       await loadProgram(page);
       await page.locator(".codeLine").nth(2).click();
-      const trigger = page.getByRole("button", { name: "Start", exact: true });
+      // A selected line names the start: "Start L3".
+      const trigger = page.getByRole("button", { name: /^Start L\d+$/ });
       await trigger.click();
       return trigger;
     },
@@ -591,7 +592,8 @@ test("UI-D06: a dialog over a field's keypad pauses it — the draft survives un
   const editor = page.getByRole("dialog", { name: "Add Tool", exact: true });
   await expect(editor).toBeVisible();
   const nk = page.locator(".nkStrip");
-  const field = editor.locator('input[type="text"][inputmode="decimal"], input[inputmode="decimal"]').first();
+  // A number field: read-only text input, the keypad is its only entry.
+  const field = editor.locator('input.inputField[inputmode="none"]').first();
   const before = await field.inputValue();
   const toolChange = page.getByRole("dialog", { name: "Load Tool into Spindle", exact: true });
 
@@ -621,7 +623,7 @@ test("UI-D06: a dialog over a field's keypad pauses it — the draft survives un
   await field.click();
   await expect(nk).toBeVisible();
   await page.keyboard.type("2*3");
-  await pauseAndResume("2*3");
+  await pauseAndResume("2×3");          // the readout shows × for *
   // The empty entry (after Clear) is a draft of 0.
   await nk.getByRole("button", { name: "Clear entry", exact: true }).click();
   await pauseAndResume("0");

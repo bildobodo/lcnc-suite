@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, inject, watch, type Ref, type ComputedRef } from "vue";
-import { registerModal } from "./modalRegistry";
+import DialogFrame from "./DialogFrame.vue";
 import { defaultPartHex } from "./viewer/palette";
 import TabPanel from "./TabPanel.vue";
 import Gate from "./Gate.vue";
@@ -119,7 +119,6 @@ function deleteMacro(id: string) {
 // Deletion is confirmed via dialog — the trash button is a ~30px icon
 // target and macro deletion is irreversible.
 const macroDeleteId = ref<string | null>(null);
-registerModal(() => macroDeleteId.value !== null);
 const macroDeleteName = computed(() => macros.value.find(m => m.id === macroDeleteId.value)?.name ?? "");
 function confirmMacroDelete() {
   if (macroDeleteId.value) deleteMacro(macroDeleteId.value);
@@ -147,8 +146,6 @@ const props = defineProps<{
   gamepadMappingSource?: MappingSource | null;
   keyboardConfig?: KeyboardDefaults;
   initialTab?: string | null;
-  /** Teleport target for nested confirm dialogs (App: #content-dialog-area). */
-  dialogTarget?: string;
 }>();
 
 const emit = defineEmits<{
@@ -163,7 +160,6 @@ const emit = defineEmits<{
 
 // ─── Per-tab reset ──────────────────────────────────────────────
 const resetTarget = ref<string | null>(null);
-registerModal(() => resetTarget.value !== null);
 
 const resetLabels: Record<string, string> = {
   viewer: "3D Viewer", machine: "Machine",
@@ -798,8 +794,9 @@ function resetMachineColor(id: string) {
                 <div class="macroSettingsActions">
                   <MachineBtn type="listAction" :disabled="idx === 0" @click="moveMacro(idx, -1)" title="Move up"><ChevronUp :size="14" /></MachineBtn>
                   <MachineBtn type="listAction" :disabled="idx === macros.length - 1" @click="moveMacro(idx, 1)" title="Move down"><ChevronDown :size="14" /></MachineBtn>
-                  <MachineBtn type="listAction" @click="editMacro(m)" title="Edit"><Pencil :size="14" /></MachineBtn>
-                  <MachineBtn type="listAction" @click="macroDeleteId = m.id" title="Delete"><Trash2 :size="14" /></MachineBtn>
+                  <MachineBtn type="listAction" @click="editMacro(m)" title="Edit" :aria-label="`Edit macro ${m.name}`"><Pencil :size="14" /></MachineBtn>
+                  <!-- A destructive control names its target (UX-06) -->
+                  <MachineBtn type="listAction" @click="macroDeleteId = m.id" title="Delete" :aria-label="`Delete macro ${m.name}`"><Trash2 :size="14" /></MachineBtn>
                 </div>
               </div>
             </div>
@@ -846,7 +843,6 @@ function resetMachineColor(id: string) {
         <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
           <GamepadTab
             ref="gamepadTabRef"
-            :dialogTarget="dialogTarget"
             :gamepad-config="props.gamepadConfig"
             :gamepad-connected="props.gamepadConnected"
             :gamepad-name="props.gamepadName"
@@ -882,27 +878,27 @@ function resetMachineColor(id: string) {
       </template>
     </TabPanel>
 
-      <div v-if="macroDeleteId" class="dialogOverlay" @click.self="macroDeleteId = null">
-        <div class="dialog">
-          <div class="dialogTitle danger">Delete Macro</div>
-          <div class="dialogBody">Delete "{{ macroDeleteName }}"? This cannot be undone.</div>
-          <div class="dialogActions">
-            <MachineBtn type="dialogCancel" @click="macroDeleteId = null">Cancel</MachineBtn>
-            <MachineBtn type="dialogDanger" @click="confirmMacroDelete">Delete</MachineBtn>
-          </div>
-        </div>
-      </div>
+      <!-- Nested confirmations stack over Settings (DialogFrame teleports
+           them to the content area; Settings' helper pauses meanwhile). -->
+      <DialogFrame v-if="macroDeleteId" kind="confirm" :title="`Delete macro &quot;${macroDeleteName}&quot;?`" danger
+                   @close="macroDeleteId = null">
+        <div class="dialogBody">Its button leaves the macro bar. This cannot be undone.</div>
+        <template #actions>
+          <MachineBtn type="dialogCancel" @click="macroDeleteId = null">Cancel</MachineBtn>
+          <MachineBtn type="dialogDanger" @click="confirmMacroDelete">Delete</MachineBtn>
+        </template>
+      </DialogFrame>
 
-      <div v-if="resetTarget" class="dialogOverlay" @click.self="resetTarget = null">
-        <div class="dialog">
-          <div class="dialogTitle danger">Reset {{ resetLabels[resetTarget] }}</div>
-          <div class="dialogBody">Restore {{ resetLabels[resetTarget] }} settings to defaults? This cannot be undone.</div>
-          <Gate gate="setup" class="dialogActions">
-            <MachineBtn type="dialogCancel" @click="resetTarget = null">Cancel</MachineBtn>
+      <DialogFrame v-if="resetTarget" kind="confirm" :title="`Reset ${resetLabels[resetTarget]} settings?`" danger
+                   @close="resetTarget = null">
+        <div class="dialogBody">Restores the {{ resetLabels[resetTarget] }} settings to their defaults. This cannot be undone.</div>
+        <template #actions>
+          <MachineBtn type="dialogCancel" @click="resetTarget = null">Cancel</MachineBtn>
+          <Gate gate="setup" class="row-controls">
             <MachineBtn type="dialogDanger" @click="confirmReset">Reset</MachineBtn>
           </Gate>
-        </div>
-      </div>
+        </template>
+      </DialogFrame>
   </div>
 </template>
 

@@ -138,6 +138,9 @@ export const BUTTON_TYPES = {
   dialogBase:     { gate: 'abort',   variant: 'primary', size: 'md' },
   dialogReady:    { gate: 'ready',   variant: 'primary', size: 'md' },
   dialogReadyDanger: { gate: 'ready', variant: 'danger', size: 'md' },
+  // A destructive dialog action under the action's own gate (N42): the look
+  // never replaces the gate — `dialogDanger` is `always`.
+  dialogDangerSetup: { gate: 'setup', variant: 'danger', size: 'md' },
 
   // ── UI buttons (gate: always — no permission, styling only) ──
   close:          { gate: 'always',  variant: 'default', size: 'md',  icon: true },

@@ -248,3 +248,24 @@ Nachtrag nach dem Neustart (25.09.): kein Scrollbalken mehr zu sehen, aber im Po
   `--no-deps` zusammen laufen parallel gegen denselben Mock und stören sich.
 - Empfehlung für D6: Start, Resume, Step und der Run-from-line-Button werden Hold-to-fire wie die
   Makros; Pause und Abort bleiben ein Tipp. Operator-Frage vom 25.09.
+
+### WP-D2 — Dialogvertrag · 26. September 2026
+
+**Ein Rahmen:** `DialogFrame.vue` ist jedes Overlay (22 Stück, vorher 22 Schließwege). Er übernimmt Rolle
+und Namen, Stufe, Registry und Stapel, Initialfokus laut Anhang B, die bewachte Fokusrückgabe und eine
+Schließregel je Art (info, confirm, form, host, flow, dazu `busy`).
+
+- **Fokusbereich (UI-D01):** Tab erreicht nur den obersten Dialog, seine eigene Eingabehilfe, die
+  Safety-Leiste sowie Abort und Acknowledge im Banner. Kein `inert`, kein natives `<dialog>`.
+- **Pause statt Kontextende (UI-D06):** Öffnet sich ein Dialog über einem Feld mit offenem Zahlenfeld,
+  wird dessen Eingabe als Entwurf abgelegt und kommt danach exakt zurück; `closeKeypadIf` bleibt dem
+  echten Kontextende vorbehalten.
+- **Regeln N40–N49** beim Umzug angewandt: Werkzeugwechsel Abort links; Formulare und Maschinenabläufe
+  ignorieren den Hintergrund; destruktiv = danger unter dem bisherigen Gate, Cancel außerhalb (vorher
+  ließen sich Upload-Konflikt, Probe-Reset, Run from line und Werkzeug-Löschen bei geschlossenem Gate
+  nicht abbrechen); Titel als Frage mit Objekt; Verb auf dem Button, „This cannot be undone.“;
+  Formulare auf `md`; alles teleportiert; Clear All fragt; „Keep editing“.
+- **Gefunden:** Der Löschen-Knopf eines Makros hieß nur „Delete“ — er nennt jetzt sein Makro.
+- **Wächter:** Dialog-Scan (23 Dialoge + UI-D01 + UI-D06) und Audit `DIALOG_FRAME` (22 Treffer auf dem
+  alten Stand).
+- Enter im Makroparameterfeld führt bis D6 weiter aus.

@@ -2,7 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import type { CollisionLineMark } from "./viewer/collision";
 import { listFiles, uploadFile, saveFile, fetchSubfile, UploadConflictError, type FileEntry } from "./lcncApi";
-import { registerModal } from "./modalRegistry";
+import DialogFrame from "./DialogFrame.vue";
 import { openTextSession, closeTextSessionIf, inputSession, EDITOR_OWNER, type TextTarget } from "./inputSession";
 import { splitSubLines, expansionAllowed, totalRows, rowAt, rowForMain, rowForSub, type SubExpansion } from "./subRows";
 import { usePermissions } from "./permissions";
@@ -388,7 +388,6 @@ function unloadFile() {
 // program unless told to. Cancel / Rename (re-send under a new name) /
 // Replace (overwrite=1) — the operator decides, never the upload path.
 const uploadConflict = ref<{ file: File; filename: string; newName: string } | null>(null);
-registerModal(() => uploadConflict.value !== null);
 
 async function handleUpload(file: File, opts: { overwrite?: boolean; name?: string } = {}) {
   if (editing.value) return;
@@ -460,7 +459,6 @@ function onDrop(e: DragEvent) {
 /** ---------- Run from line ---------- */
 const selectedLine = ref<number | null>(null);
 const showRunDialog = ref(false);
-registerModal(showRunDialog);
 const dialogSpindleDir = ref<"off" | "forward" | "reverse">("forward");
 const dialogSpindleSpeed = ref(10000);
 const dialogSafeZ = ref(true);
@@ -705,7 +703,6 @@ function onEditorPointerUp() {
 // Discard asks first when the buffer differs from what was opened; a clean
 // buffer closes at once.
 const showDiscardConfirm = ref(false);
-registerModal(showDiscardConfirm);
 
 function _endSession() {
   closeTextSessionIf(EDITOR_OWNER);
@@ -960,44 +957,41 @@ async function saveEdit() {
       </div>
     </div>
 
-    <!-- Discard unsaved edits -->
-    <div v-if="showDiscardConfirm" class="dialogOverlay" @click.self="showDiscardConfirm = false">
-      <div class="dialog">
-        <div class="dialogTitle danger">Discard changes?</div>
-        <div class="dialogBody">{{ sessionName }} has unsaved changes.</div>
-        <div class="dialogActions">
-          <MachineBtn type="dialogCancel" @click="showDiscardConfirm = false">Cancel</MachineBtn>
-          <MachineBtn type="dialogDanger" @click="confirmDiscard">Discard</MachineBtn>
-        </div>
-      </div>
-    </div>
+    <!-- Discard unsaved edits: the safe answer keeps editing (N49) -->
+    <DialogFrame v-if="showDiscardConfirm" kind="confirm" title="Discard changes?" danger @close="showDiscardConfirm = false">
+      <div class="dialogBody">{{ sessionName }} has unsaved changes.</div>
+      <template #actions>
+        <MachineBtn type="dialogCancel" @click="showDiscardConfirm = false">Keep editing</MachineBtn>
+        <MachineBtn type="dialogDanger" @click="confirmDiscard">Discard</MachineBtn>
+      </template>
+    </DialogFrame>
 
-    <!-- Upload name conflict (UI-09): the gateway refused to replace. -->
-    <div v-if="uploadConflict" class="dialogOverlay" @click.self="uploadConflict = null">
-      <div class="dialog">
-        <div class="dialogTitle danger">Program exists</div>
+    <!-- Upload name conflict (UI-09): the gateway refused to replace. A form
+         (a new name), so the backdrop does nothing (N41); Cancel stays
+         outside the setup Gate — the dialog always closes. -->
+    <DialogFrame v-if="uploadConflict" kind="form" size="md" title="Upload Conflict">
+      <div class="dialogContent stack-controls">
         <div class="dialogBody">
           <strong>{{ uploadConflict.filename }}</strong> already exists on the server.
+          Replace overwrites it — this cannot be undone.
         </div>
         <label class="uploadRename paramGrid">
           <span>New name</span>
           <MachineInput gate="uploadName" type="text" v-model="uploadConflict.newName" class="w-full" />
         </label>
-        <Gate gate="setup" class="dialogActions">
-          <MachineBtn type="dialogCancel" @click="uploadConflict = null">Cancel</MachineBtn>
-          <MachineBtn type="fileOp" :disabled="!uploadRenameValid" @click="uploadRename">Rename</MachineBtn>
-          <MachineBtn type="reset" @click="uploadReplace">Replace</MachineBtn>
-        </Gate>
       </div>
-    </div>
+      <template #actions>
+        <MachineBtn type="dialogCancel" @click="uploadConflict = null">Cancel</MachineBtn>
+        <Gate gate="setup" class="row-controls">
+          <MachineBtn type="fileOp" :disabled="!uploadRenameValid" @click="uploadRename">Rename</MachineBtn>
+          <MachineBtn type="dialogDangerSetup" @click="uploadReplace">Replace</MachineBtn>
+        </Gate>
+      </template>
+    </DialogFrame>
 
-    <!-- Run from line confirmation dialog -->
-    <div v-if="showRunDialog" class="dialogOverlay" @click.self="showRunDialog = false">
-      <div class="dialog md runDialog">
-        <div class="dialogHeader">
-          <span class="dialogTitle">Run from Line {{ selectedLine }}</span>
-          <MachineBtn type="close" aria-label="Close run-from-line" title="Close run-from-line" @click="showRunDialog = false"><X :size="14" /></MachineBtn>
-        </div>
+    <!-- Run from line: a form (its options), so the backdrop does nothing -->
+    <DialogFrame v-if="showRunDialog" kind="form" size="md" box-class="runDialog" :title="`Run from Line ${selectedLine}`"
+                 close-label="Close run-from-line" @close="showRunDialog = false">
         <div class="dialogContent">
           <div class="dialogBody">
             Lines 1–{{ (selectedLine ?? 1) - 1 }} will be interpreted but motion suppressed.
@@ -1065,12 +1059,13 @@ async function saveEdit() {
           </div>
         </div>
 
-        <Gate gate="ready" class="dialogActions">
+        <template #actions>
           <MachineBtn type="dialogCancel" @click="showRunDialog = false">Cancel</MachineBtn>
-          <MachineBtn type="dialogConfirm" :disabled="rflBlocked" @click="confirmRunFromLine">{{ rflPreTool > 0 ? `Measure T${rflPreTool} + Run from Line ${selectedLine}` : `Run from Line ${selectedLine}` }}</MachineBtn>
-        </Gate>
-      </div>
-    </div>
+          <Gate gate="ready" class="row-controls">
+            <MachineBtn type="dialogConfirm" :disabled="rflBlocked" @click="confirmRunFromLine">{{ rflPreTool > 0 ? `Measure T${rflPreTool} + Run from Line ${selectedLine}` : `Run from Line ${selectedLine}` }}</MachineBtn>
+          </Gate>
+        </template>
+    </DialogFrame>
 
     <!-- G-code tooltip (fixed position, pointer-events: none) -->
     <div v-if="tooltip" class="gcodeTooltip"
@@ -1307,9 +1302,6 @@ async function saveEdit() {
 /* .codeLine.selected — global in style.css */
 
 /* Dialog */
-.runDialog {
-  min-width: 320px;
-}
 
 .dialogSection {
   margin: var(--gap-section) 0;

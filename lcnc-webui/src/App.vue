@@ -1987,7 +1987,6 @@ watch(viewerGcode, (newGcode) => {
                 </div>
               </div>
               <ToolTablePanel
-                dialog-target="#content-dialog-area"
                 ref="toolTableRef"
                 :currentTool="st.tool_number ?? null"
                 :iniFilename="ini.ini_filename ?? null"
@@ -2089,7 +2088,6 @@ watch(viewerGcode, (newGcode) => {
           <div class="dialogContent">
             <SettingsPanel
               ref="settingsPanelRef"
-              dialog-target="#content-dialog-area"
               :initialTab="settingsInitialTab"
               :gamepadConnected="gamepad.gamepadConnected.value"
               :gamepadName="gamepad.gamepadName.value"

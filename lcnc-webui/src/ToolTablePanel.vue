@@ -19,7 +19,7 @@ import { nominalHolderBase } from "./toolHolder";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 import { toolPreviewNotice } from "./toolPreviewNotice";
 import { summarizeToolImport } from "./toolImportSummary";
-import { registerModal } from "./modalRegistry";
+import DialogFrame from "./DialogFrame.vue";
 // Async on purpose (WS-E / F10-finish): ToolPreview is the ONLY statically
 // eager three.js importer left — this edge alone kept the 866 kB three
 // chunk in the entry graph (static import + modulepreload in index.html),
@@ -39,7 +39,6 @@ const props = defineProps<{
   iniFilename: string | null;
   linearUnit: string;
   hideHeader?: boolean;
-  dialogTarget?: string;
 }>();
 
 const fire = useFire();
@@ -154,7 +153,6 @@ watch(toolTableVersion, () => fetchTools());
 
 // ---- Edit modal ----
 const editTool = ref<Tool | null>(null);
-registerModal(() => editTool.value !== null);
 const editForm = ref({
   T: 0,
   P: 0,
@@ -186,7 +184,6 @@ const editSnapshot = ref("");
 function snapshotEdit() { editSnapshot.value = JSON.stringify(editForm.value); }
 const editDirty = computed(() => JSON.stringify(editForm.value) !== editSnapshot.value);
 const showEditDiscard = ref(false);
-registerModal(() => showEditDiscard.value);
 function closeEditModal() {
   if (saving.value) return;   // a pending write owns the dialog until its reply
   if (editDirty.value) { showEditDiscard.value = true; return; }
@@ -349,7 +346,6 @@ function requestToolChange(toolNum: number) {
 
 // ---- Delete ----
 const deletingTool = ref<number | null>(null);
-registerModal(() => deletingTool.value != null);
 const deleteSession = ref<{ id: string } | null>(null);
 const deleteError = ref<string | null>(null);
 
@@ -403,7 +399,6 @@ interface ImportTool {
 }
 
 const importPreview = ref<ImportTool[] | null>(null);
-registerModal(() => importPreview.value !== null);
 const importPreviewByNumber = computed(() => new Map(importPreview.value?.map(t => [t.T, t])));
 const importSkipped = ref<ImportTool[]>([]);
 const importExistingCount = ref(0);
@@ -478,10 +473,8 @@ async function previewImportFile(file: File) {
   }
 }
 
-// Replacing the whole table is destructive: it asks first (P1). The
-// confirm dialog is registered like every other overlay.
+// Replacing the whole table is destructive: it asks first (P1).
 const replaceConfirm = ref(false);
-registerModal(replaceConfirm);
 function requestImport() {
   if (!importFile.value || !canConfirmImport.value) return;
   if (importMode.value === "replace" && importExistingCount.value > 0) { replaceConfirm.value = true; return; }
@@ -647,33 +640,28 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
       <MachineBtn type="close" aria-label="Dismiss import result" title="Dismiss import result" @click="importResult = null"><X :size="14" /></MachineBtn>
     </div>
 
-    <!-- Delete confirm dialog -->
-      <div v-if="deletingTool != null" class="dialogOverlay" @click.self="cancelDelete">
-        <div class="dialog">
-          <div class="dialogTitle danger">Delete T{{ deletingTool }}?</div>
-          <div class="dialogBody">
-            Remove tool <strong>T{{ deletingTool }}</strong> from the tool table?
-          </div>
-          <div v-if="deleteError" class="statusNote error" role="alert"><span>{{ deleteError }}</span></div>
-          <Gate gate="setup" class="dialogActions">
-            <MachineBtn type="dialogCancel" :disabled="!!deleteSession" @click="cancelDelete">Cancel</MachineBtn>
-            <MachineBtn type="reset" :disabled="!!deleteSession" @click="confirmDelete">{{ deleteSession ? 'Deleting…' : 'Delete' }}</MachineBtn>
-          </Gate>
-        </div>
+    <!-- Delete: a confirm that RUNS while the delete is in flight (busy —
+         nothing closes until the reply; cancelDelete returns meanwhile). -->
+    <DialogFrame v-if="deletingTool != null" kind="confirm" :title="`Delete T${deletingTool}?`" danger
+                 :busy="!!deleteSession" @close="cancelDelete">
+      <div class="dialogBody">
+        Remove tool <strong>T{{ deletingTool }}</strong> from the tool table? This cannot be undone.
       </div>
+      <div v-if="deleteError" class="statusNote error" role="alert"><span>{{ deleteError }}</span></div>
+      <template #actions>
+        <MachineBtn type="dialogCancel" :disabled="!!deleteSession" @click="cancelDelete">Cancel</MachineBtn>
+        <Gate gate="setup" class="row-controls">
+          <MachineBtn type="dialogDangerSetup" :disabled="!!deleteSession" @click="confirmDelete">{{ deleteSession ? 'Deleting…' : 'Delete' }}</MachineBtn>
+        </Gate>
+      </template>
+    </DialogFrame>
 
-    <!-- Edit / Add modal — teleported to the content area like the import
-         dialog (it used to live inside the 540 px side pane), on the
-         .dialog.md.wide tier with the global header / content / actions
-         structure. No @click.self dismiss: this is a data-entry form — a
-         mis-grab on the overlay must not silently discard edits. -->
-    <Teleport v-if="editTool" :to="dialogTarget ?? 'body'" :disabled="!dialogTarget">
-      <div v-if="editTool" class="dialogOverlay">
-        <div class="dialog md wide editDialog">
-          <div class="dialogHeader">
-            <span class="dialogTitle">{{ isNewTool ? "Add Tool" : `Edit Tool T${editTool.T}` }}</span>
-            <MachineBtn type="close" aria-label="Close tool editor" title="Close tool editor" :disabled="saving" @click="closeEditModal"><X :size="14" /></MachineBtn>
-          </div>
+    <!-- Edit / Add: a form on the .dialog.md.wide tier — the backdrop does
+         nothing (a mis-grab never discards edits); X and Cancel run the one
+         dirty check (closeEditModal); a pending save owns it (busy). -->
+    <DialogFrame v-if="editTool" kind="form" size="md" wide box-class="editDialog"
+                 :title="isNewTool ? 'Add Tool' : `Edit Tool T${editTool.T}`"
+                 close-label="Close tool editor" :busy="saving" busy-label="Save in progress" @close="closeEditModal">
 
           <div class="dialogContent scroll-thin stack-sections">
             <div v-if="editError" class="statusNote error" role="alert"><span>{{ editError }}</span></div>
@@ -774,33 +762,27 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
             <div v-if="editNotice" class="statusNote warn editNotice" role="alert">{{ editNotice }}</div>
           </div>
 
-          <Gate gate="setup" class="dialogActions">
+          <template #actions>
             <MachineBtn type="dialogCancel" :disabled="saving" @click="closeEditModal">Cancel</MachineBtn>
-            <MachineBtn type="fileSave" :disabled="saving" @click="saveEdit">{{ saving ? 'Saving…' : isNewTool ? "Add" : "Save" }}</MachineBtn>
-          </Gate>
-        </div>
-      </div>
-      <!-- Discard unsaved tool edits (UX-02) — the same ask as the G-code editor's. -->
-      <div v-if="showEditDiscard" class="dialogOverlay" @click.self="showEditDiscard = false">
-        <div class="dialog">
-          <div class="dialogTitle danger">Discard changes?</div>
-          <div class="dialogBody">{{ isNewTool ? "The new tool" : `T${editTool?.T}` }} has unsaved changes.</div>
-          <div class="dialogActions">
-            <MachineBtn type="dialogCancel" @click="showEditDiscard = false">Keep editing</MachineBtn>
-            <MachineBtn type="dialogDanger" @click="confirmEditDiscard">Discard</MachineBtn>
-          </div>
-        </div>
-      </div>
-    </Teleport>
+            <Gate gate="setup" class="row-controls">
+              <MachineBtn type="fileSave" :disabled="saving" @click="saveEdit">{{ saving ? 'Saving…' : isNewTool ? "Add" : "Save" }}</MachineBtn>
+            </Gate>
+          </template>
+    </DialogFrame>
+    <!-- Discard unsaved tool edits (UX-02) — the same ask as the G-code editor's. -->
+    <DialogFrame v-if="showEditDiscard" kind="confirm" title="Discard changes?" danger @close="showEditDiscard = false">
+      <div class="dialogBody">{{ isNewTool ? "The new tool" : `T${editTool?.T}` }} has unsaved changes.</div>
+      <template #actions>
+        <MachineBtn type="dialogCancel" @click="showEditDiscard = false">Keep editing</MachineBtn>
+        <MachineBtn type="dialogDanger" @click="confirmEditDiscard">Discard</MachineBtn>
+      </template>
+    </DialogFrame>
 
-    <!-- Import preview dialog -->
-    <Teleport v-if="importPreview" :to="dialogTarget ?? 'body'" :disabled="!dialogTarget">
-      <div v-if="importPreview" class="dialogOverlay" @click.self="cancelImport">
-        <div class="dialog md wide importDialog">
-          <div class="dialogHeader">
-            <span class="dialogTitle">{{ importSummary.isExample ? 'Example Tool Library' : `Import ${importSource} Tool Library` }}</span>
-            <MachineBtn type="close" aria-label="Close import preview" :title="importBusy ? 'Import in progress' : 'Close import preview'" :disabled="importBusy" @click="cancelImport"><X :size="14" /></MachineBtn>
-          </div>
+    <!-- Import preview: a form (the import mode) — the backdrop does
+         nothing; while the import runs nothing closes (busy, UI-K16). -->
+    <DialogFrame v-if="importPreview" kind="form" size="md" wide box-class="importDialog"
+                 :title="importSummary.isExample ? 'Example Tool Library' : `Import ${importSource} Tool Library`"
+                 close-label="Close import preview" :busy="importBusy" busy-label="Import in progress" @close="cancelImport">
           <div class="dialogContent">
             <div v-if="importSummary.isExample" class="importStats">
               {{ importSummary.fusion }} Fusion 360 and {{ importSummary.freecad }} FreeCAD examples.
@@ -859,29 +841,28 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
               </div>
             </div>
           </div>
-          <Gate gate="setup" class="dialogActions">
+          <template #actions>
             <MachineBtn type="dialogCancel" :disabled="importBusy" :title="importBusy ? 'Import in progress' : undefined" @click="cancelImport">Cancel</MachineBtn>
-            <MachineBtn v-if="importError && importFile" type="fileOp" :disabled="importBusy"
-              @click="previewImportFile(importFile)">Preview again</MachineBtn>
-            <MachineBtn type="fileSave" @click="requestImport" :disabled="!canConfirmImport">
-              {{ importBusy ? 'Importing…' : importMode === 'metadata' ? 'Update metadata' : 'Replace table' }}
-            </MachineBtn>
-          </Gate>
-        </div>
+            <Gate gate="setup" class="row-controls">
+              <MachineBtn v-if="importError && importFile" type="fileOp" :disabled="importBusy"
+                @click="previewImportFile(importFile)">Preview again</MachineBtn>
+              <MachineBtn type="fileSave" @click="requestImport" :disabled="!canConfirmImport">
+                {{ importBusy ? 'Importing…' : importMode === 'metadata' ? 'Update metadata' : 'Replace table' }}
+              </MachineBtn>
+            </Gate>
+          </template>
+    </DialogFrame>
+    <DialogFrame v-if="replaceConfirm" kind="confirm" title="Replace entire tool table?" danger @close="replaceConfirm = false">
+      <div class="dialogBody">
+        {{ importExistingCount }} existing tool{{ importExistingCount === 1 ? '' : 's' }} — measured offsets included — will be removed and replaced by {{ importPreview?.length ?? 0 }} imported tools. This cannot be undone.
       </div>
-      <div v-if="replaceConfirm" class="dialogOverlay" @click.self="replaceConfirm = false">
-        <div class="dialog">
-          <div class="dialogTitle danger">Replace entire tool table?</div>
-          <div class="dialogBody">
-            {{ importExistingCount }} existing tool{{ importExistingCount === 1 ? '' : 's' }} — measured offsets included — will be removed and replaced by {{ importPreview?.length ?? 0 }} imported tools.
-          </div>
-          <Gate gate="setup" class="dialogActions">
-            <MachineBtn type="dialogCancel" @click="replaceConfirm = false">Cancel</MachineBtn>
-            <MachineBtn type="reset" @click="confirmImport">Replace table</MachineBtn>
-          </Gate>
-        </div>
-      </div>
-    </Teleport>
+      <template #actions>
+        <MachineBtn type="dialogCancel" @click="replaceConfirm = false">Cancel</MachineBtn>
+        <Gate gate="setup" class="row-controls">
+          <MachineBtn type="dialogDangerSetup" @click="confirmImport">Replace table</MachineBtn>
+        </Gate>
+      </template>
+    </DialogFrame>
 
     <!-- Table -->
     <div v-show="!showImportBrowser" class="tableWrap dataTable scroll-thin fade-scroll">

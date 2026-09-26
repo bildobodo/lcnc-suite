@@ -1,15 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { registerModal } from "./modalRegistry";
+import DialogFrame from "./DialogFrame.vue";
 import { GCODE_REFERENCE, GCODE_GROUPS, type GcodeEntry } from "./gcodeReference";
-import MachineBtn from "./MachineBtn.vue";
-import { X } from "lucide-vue-next";
 import MachineInput from "./MachineInput.vue";
 import MachineSelect from "./MachineSelect.vue";
 
 const props = defineProps<{ open: boolean; initialSearch?: string }>();
 const emit = defineEmits<{ (e: "close"): void }>();
-registerModal(() => props.open);
 
 const search = ref("");
 const filterGroup = ref("");
@@ -48,12 +45,8 @@ function toggleSort(key: "code" | "name") {
 </script>
 
 <template>
-  <div v-if="open" class="dialogOverlay" @click.self="emit('close')">
-    <div class="dialog lg dialog-full">
-      <div class="dialogHeader">
-        <span class="dialogTitle">G-code Reference</span>
-        <MachineBtn type="close" aria-label="Close reference" title="Close reference" @click="emit('close')"><X :size="14" /></MachineBtn>
-      </div>
+  <DialogFrame v-if="open" kind="info" size="lg" full title="G-code Reference" close-label="Close reference"
+               initial-focus="input.refSearch" @close="emit('close')">
       <div class="stack-controls refContent">
         <MachineInput
           gate="search"
@@ -102,8 +95,7 @@ function toggleSort(key: "code" | "name") {
           <span v-if="filterGroup"> in {{ filterGroup }}</span>
         </div>
       </div>
-    </div>
-  </div>
+  </DialogFrame>
 </template>
 
 <style scoped>

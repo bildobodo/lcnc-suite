@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, inject, onMounted, onUnmounted, watch, type Ref } from "vue";
-import { registerModal } from "./modalRegistry";
+import DialogFrame from "./DialogFrame.vue";
 import MachineBtn from "./MachineBtn.vue";
 import { fmtNum } from "./format";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
@@ -61,7 +61,6 @@ const probeView = ref<"outside" | "inside" | "boss" | "ridge" | "angle" | "cal" 
 
 // ─── Reset confirmation ──────────────────────────────────────────
 const resetTarget = ref<string | null>(null);
-registerModal(() => resetTarget.value !== null);
 function confirmReset() {
   const target = resetTarget.value;
   resetTarget.value = null;
@@ -1336,18 +1335,21 @@ function fmtR(key: string): string {
   </div>
 
   <!-- Reset confirmation dialog -->
-  <div v-if="resetTarget" class="dialogOverlay" @click.self="resetTarget = null">
-    <div class="dialog">
-      <div class="dialogTitle danger">{{ resetTarget === 'cal' ? 'Reset Calibration' : 'Reset Toolsetter' }}</div>
-      <div class="dialogBody">{{ resetTarget === 'cal'
-        ? 'Zero the probe tip calibration offset? This affects all future probe measurements.'
-        : 'Restore toolsetter settings to defaults? This cannot be undone.' }}</div>
-      <Gate :gate="resetTarget === 'cal' ? 'ready' : 'safety'" class="dialogActions">
-        <MachineBtn type="dialogCancel" @click="resetTarget = null">Cancel</MachineBtn>
+  <!-- The question names its object (N43); Cancel sits outside the action's
+       own gate, so the dialog always closes (N42: danger + the old gate). -->
+  <DialogFrame v-if="resetTarget" kind="confirm" danger
+               :title="resetTarget === 'cal' ? 'Reset probe calibration?' : 'Reset toolsetter settings?'"
+               @close="resetTarget = null">
+    <div class="dialogBody">{{ resetTarget === 'cal'
+      ? 'Zeroes the probe tip calibration offset; every later probe measurement uses it. This cannot be undone.'
+      : 'Restores the toolsetter settings to their defaults. This cannot be undone.' }}</div>
+    <template #actions>
+      <MachineBtn type="dialogCancel" @click="resetTarget = null">Cancel</MachineBtn>
+      <Gate :gate="resetTarget === 'cal' ? 'ready' : 'safety'" class="row-controls">
         <MachineBtn type="dialogDanger" @click="confirmReset">Reset</MachineBtn>
       </Gate>
-    </div>
-  </div>
+    </template>
+  </DialogFrame>
 
   </div>
 </template>

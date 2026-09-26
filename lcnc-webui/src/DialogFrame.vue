@@ -43,6 +43,8 @@ const props = withDefaults(defineProps<{
   closeLabel?: string;
   /** An operation is in flight: nothing closes (kind running, Anhang B). */
   busy?: boolean;
+  /** What the dimmed X says while `busy` ("Import in progress"). */
+  busyLabel?: string;
   /** Initial focus: Anhang B's target. `safe` = the first enabled action
    *  (the cancel side sits left), `first-field`, `close` (the X),
    *  `container`, or a selector inside the dialog. Defaults by kind: form →
@@ -118,7 +120,7 @@ onBeforeUnmount(() => {
             <span :id="titleId" class="dialogTitle" :class="{ danger }"><slot name="title">{{ title }}</slot></span>
             <div class="row-tight">
               <slot name="header" />
-              <MachineBtn v-if="closeLabel" type="close" class="dialogClose" :aria-label="closeLabel" :title="closeLabel" :disabled="busy"
+              <MachineBtn v-if="closeLabel" type="close" class="dialogClose" :aria-label="closeLabel" :title="busy && busyLabel ? busyLabel : closeLabel" :disabled="busy"
                           @click="requestClose('x')"><X :size="14" /></MachineBtn>
             </div>
           </div>

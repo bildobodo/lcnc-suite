@@ -6385,3 +6385,49 @@ DejaVu, later-in-D8 and keep-system as alternatives): bundle Inter, now.
   the line for Run from line); Pause and Abort stay taps; the Space
   shortcut stays instant (K13 follow-up). Recorded in the plan's D6.
 
+### WP-D2 — one dialog frame (2026-09-26)
+
+Plan Fassung 3, UI-K11, K16(3), UI-D01, UI-D06, Anhang B. Five commits:
+infrastructure with the scan red, then App's eight dialogs, then the
+rest, then the audit guard.
+
+- `DialogFrame.vue` is every overlay: 22 hand-built overlays had 22 close
+  paths, three registration styles and scrims over half the screen. The
+  frame owns the role and name, the tier, the registry and the dialog
+  stack, the initial focus of Anhang B, the guarded focus return and one
+  close policy per kind (info / confirm / form / host / flow, plus `busy`).
+- The focus scope (UI-D01): Tab reaches only the topmost dialog, its own
+  input helper, the safety strip and the banner's Abort / Acknowledge. No
+  `inert` and no native `<dialog>` — either would cut the safety strip off
+  or turn Escape into a cancel. A pointer still reaches the strips below
+  the content area, as before.
+- A dialog opening over another PAUSES the helper of the one below
+  (UI-D06): the keypad's entry is filed as the owner's draft (the empty one
+  included) and comes back exact after the child closes; `closeKeypadIf`
+  stays reserved for a real context end (Codex round 2). The scan waits
+  past two visibility polls and checks the field is unreachable meanwhile.
+- Rules applied while migrating: the tool change's Abort sits left (N40);
+  forms and machine flows ignore the backdrop (N41); a destructive action
+  is danger under its old gate (`dialogDangerSetup`, or a Gate in the
+  actions slot) and Cancel sits outside that Gate — the upload conflict,
+  the probe reset, the run-from-line and the tool delete could not be
+  cancelled while their gate was closed (N42); confirmation titles are
+  questions with their object, work dialogs nouns (N43); the button repeats
+  the verb and irreversible actions say "This cannot be undone." (N44);
+  macro parameters, the upload conflict and the mapping wizard are md
+  forms (N45); every dialog teleports to the content area (N46); Clear All
+  in the message center asks first and a message's dismiss is a named
+  Lucide X (N47); nested confirmations in Settings stack as dialogs of
+  their own (N48); discard asks offer "Keep editing" (N49).
+- Found on the way: the macro list's delete button was named only
+  "Delete" — it names its macro now (and Edit too). The scan's own
+  assumptions were fixed where they were wrong (the mock preview now
+  carries the parse worker's `stats`; the Tab walk goes backwards first,
+  since 24 steps forward never left Settings; a selected line names the
+  start "Start L3"; number fields are read-only text inputs).
+- Guards: `e2e/dialogs.spec.ts` (23 dialog rows + UI-D01 + UI-D06,
+  serial-guards), the CSS audit's `DIALOG_FRAME` (22 hits on the old
+  sources, 0 after).
+- Enter in a macro parameter field still executes; D6 changes that with
+  the macro hold.
+
