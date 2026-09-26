@@ -5,9 +5,9 @@ mit Plan-Agreement ([Planreview Runde 3](ui-design-welle.review.md#codex-runde-3
 hält je Arbeitspaket den Umsetzungsstand, Abweichungen und Gate-Läufe fest; die
 Codex-Implementierungsreviews folgen nach den Paketgruppen DR + D0–D2, D3–D6 und D7–D10.
 
-**Aktueller Reviewstand · Codex Runde 4 · 26. September 2026 · `f0123f5`:
-Noch kein Implementierungs-Agreement für D3–D6. Sieben Befunde UI-DI05–11 offen,
-darunter zwei P1.** [Befunde, Nachweise und Prüfgrenzen](#codex-implementierungsreview-runde-4).
+**Aktueller Reviewstand · Codex Runde 5 · 26. September 2026 · `84a1cc5`:
+Implementierungs-Agreement für D3–D6. UI-DI05–11 sind geschlossen; keine neuen
+Befunde im geprüften Umfang.** [Nachprüfung, Nachweise und Prüfgrenzen](#codex-implementierungsreview-runde-5).
 Das [Agreement aus Runde 3 für DR + D0–D2](#codex-implementierungsreview-runde-3)
 bleibt gültig; UI-DI01–04 bleiben geschlossen. D7–D10 und die Gesamtabnahme stehen weiter aus.
 Die früheren Runden unten sind historische Prüfstände.
@@ -1481,3 +1481,102 @@ Ergebnis:
 - `narrowProgram`: `.codeViewer` 99 CSS-px (drei Touch-Zeilen).
 - `narrowTools`: Tabellenkopf 36 CSS-px statt 165; T5 per Hit-Test ohne Scrollen erreichbar.
 - `errors` ist leer.
+
+---
+
+## Codex Implementierungsreview Runde 5
+
+**26. September 2026 · `3184945..84a1cc5` · Branch `feat/ui-design-wave` ·
+Handshake R4 · Nachprüfung der Korrekturen UI-DI05–11 zu D3–D6.**
+
+**Ergebnis: UI-DI05–11 sind behoben und geschlossen. Keine neuen Befunde im geprüften
+Umfang. Implementierungs-Agreement für D3–D6.**
+Die historischen Nachweise aus Runde 4 im Commit `3184945` sind unverändert.
+
+### Ergebnis je Befund
+
+| ID | Nachprüfung am Stand `84a1cc5` | Status |
+|---|---|---|
+| UI-DI05 · P1 | Alle vier Holds brechen bei neuer Revision unter gleichem Pfad ab und senden nichts. Die Revision wird vor dem Textabruf veröffentlicht. Ein während des Ladens neu begonnener Resume-Hold bricht auch beim späteren Eintreffen des Texts ab; erst ein weiterer voller Hold sendet genau einmal. Geänderter Text schließt Run from line und löscht die Zeilenauswahl; der Regressionstest bestätigt beim erneuten Ausführen den neuen Einstieg X20. | geschlossen |
+| UI-DI06 · P1 | Ctrl/Alt/Meta + Pfeil auf Program senden keine Befehle und lassen den Fokus dort. Die bloße Pfeiltaste bewegt den Fokus. Der Regressionstest deckt alle sechs Navigationstasten mit Modifikatoren an Haupt-, Probing- und Settings-Reitern ab; normaler Jog außerhalb bleibt möglich, E-Stop und Keyup-Stopps bestehen ihre Gegenproben. | geschlossen |
+| UI-DI07 | Die Run-from-line-Gruppe hat einen eigenen Namen pro Instanz, die Settings-Voreinstellung einen anderen. Rev bleibt vor, während und nach Settings sichtbar gewählt; gesendet wird weiterhin Rev. Der Regressionstest besteht für beide Öffnungsreihenfolgen und alle drei Optionen, einschließlich Settings auf Display und Machine. | geschlossen |
+| UI-DI08 | Der offene Parameterdialog folgt dem Makro über seine ID. Titel und Vorschau wechseln auf die neue Revision, der alte Execute-Hold sendet nichts. Der nächste Hold verwendet den sichtbaren Befehl. Neue Parameter behalten bestehende Eingabewerte und erhalten ihre eigenen Standardwerte; ein entferntes Makro wird erklärt und ist nicht ausführbar. Synchronisations- und lokaler Setter-Pfad sind geprüft. | geschlossen |
+| UI-DI09 | Im schmalen Program-Tab stehen bei Touch hoch 150 % drei ganze Codezeilen zur Verfügung, auch im tatsächlichen Hit-Test. More zeigt die Verwaltung; alle fünf Verwaltungsaktionen sind nach Scrollen innerhalb des Panels erreichbar. Die gemessenen Kontrollhöhen bleiben 44 CSS-px. In den zusätzlich geprüften Lauf-/Pausezuständen bleibt Abort erreichbar. | geschlossen |
+| UI-DI10 | Der Tabellenkopf bleibt einzeilig und sinkt im ursprünglichen Repro von etwa 165 auf 36 CSS-px. Die Beschreibung hat etwa 77 statt 24 CSS-px Breite; T5 und „Test cutter“ sind direkt sichtbar. Die seltenere Typ-Spalte weicht im schmalen Modus Filter und Editor; die übrigen Zahlen bleiben über das horizontale Scrollen der Tabelle erreichbar. | geschlossen |
+| UI-DI11 | Sowohl Outside → Inside als auch der Hauptreiterwechsel senden die Jog-Stopps bereits vor Keyup. Der Regressionstest bestätigt außerdem den schmalen Verfahrensselektor und das Ausbleiben von Maschinenbefehlen bei Navigation ohne laufenden Jog. | geschlossen |
+
+### Unabhängige Gegenprobe und bewusste Verhaltensänderungen
+
+[Sonde Runde 5](ui-design-welle.implementation-r5.probe.mjs) und
+[JSON mit Befehlen, Zeitpunkten, Maßen und Hit-Tests](ui-design-welle.implementation-r5.json).
+Die Ausgangsfolgen aus Runde 4 wurden erneut am eigenen Mock auf `127.0.0.1:4188`
+ausgeführt. Die Sonde prüft ausdrücklich die Ankunft vor Ablauf des Holds und zeichnet
+die tatsächlich gesendeten Befehle auf. Keine reale Maschine wurde angesprochen.
+
+Die zwei angekündigten Änderungen sind sachgerecht und wurden in der neuen Sondenkopie
+berücksichtigt:
+
+- **Run from line:** Eine Auswahl auf dem alten Text gehört nicht zum neuen Text.
+  Der Dialog darf deshalb schließen und die Auswahl verwerfen. Die Sonde erfasst
+  das verschwundene Ausführungsziel, statt dessen Weiterbestehen vorauszusetzen.
+- **Makroparameter:** Der Dialog zeigt die aktuelle Revision einschließlich Namen.
+  Sein Locator hängt deshalb nicht mehr am alten Titel. Nach dem abgebrochenen
+  Hold wird der noch offene Dialog explizit geschlossen; beim erneuten Öffnen ist
+  dieselbe neue Vorschau sichtbar.
+
+Zusätzlich wird ein Textabruf gezielt zurückgehalten. In diesem Zustand ist Step
+gesperrt und Resume weiterhin verfügbar. Ein neu begonnener Resume-Hold wird durch
+die Freigabe des Textabrufs wieder abgebrochen; kein Befehl entsteht. Ein weiterer
+vollständiger Hold sendet genau einmal `cycle_resume`. Damit sind beide Zeitpunkte
+der neuen Bindung geprüft: Veröffentlichung und Eintreffen des Texts.
+
+Die Layout-Nachprüfung misst neben `clientHeight` auch die sichtbaren Zeilengrenzen
+und `elementFromPoint`: Im eingeklappten Program-Tab sind drei vollständige Zeilen
+tatsächlich les- und antippbar. Der Codeviewer hat 99 CSS-px Höhe statt zuvor 0.
+Mit aufgeklapptem More bleiben Edit, Reload, Unload, Files und Upload erreichbar;
+bei Lauf und Pause trifft die Gegenprobe sowohl den Panel-Abort als auch den
+Banner-Abort. Das ist eine konkrete Stichprobe des neuen Scrollverhaltens, keine
+Zusicherung, dass der Panel-Abort in jeder beliebigen Scrollposition sichtbar bleibt.
+
+**Bilder:** [Program eingeklappt](ui-design-welle.implementation-r5-narrow-program.png),
+[Program ausgeklappt und zum Code gescrollt](ui-design-welle.implementation-r5-narrow-program-expanded.png),
+[Werkzeugtabelle](ui-design-welle.implementation-r5-narrow-tools.png),
+[Spindelauswahl nach Settings](ui-design-welle.implementation-r5-spindle-radios.png).
+Alle Nachweise der früheren Runden bleiben unverändert. Für spätere Wiederholungen
+ebenfalls ein neues Ausgabepräfix verwenden.
+
+### Ausgeführte Prüfungen und Prüfgrenzen
+
+| Prüfung am unveränderten Produktstand `84a1cc5` | Ergebnis |
+|---|---|
+| `npm run build` | grün; bestehender Hinweis zu großen Bundles |
+| `npm run lint` einschließlich CSS-Audit | grün |
+| `vitest run --maxWorkers=1` | **80 Dateien, 1632/1632 Tests** grün |
+| Playwright `run-hold`, `tabs`, `keyboard-guards`, `dialogs`, `serial-guards --no-deps --workers=1` | **74/74** grün |
+| Playwright `serial-layout`, `serial-visual`, `serial-viewer`, `--no-deps --workers=1` | **77/77** grün: 63 Layout-, 10 Bildvergleichs- und 4 Viewer-Tests; keine Referenzbilder geändert |
+| Unabhängige Runde-5-Sonde | alle Befund-Gegenproben bestanden (`assertionsPassed: true`), keine Browserfehler; zusätzliche Prüfung des während des Textladens begonnenen Holds und der sichtbaren Codezeilen/Abort-Ziele |
+| `git diff --check` und historische Runde-4-Nachweise | grün; keine Änderungen an den Runde-4-Artefakten seit `3184945` |
+
+Damit sind **151 unterschiedliche bestehende Browserfälle** erneut erfolgreich
+ausgeführt. Die vollständigen von Claude berichteten 257 Browserfälle wurden nicht
+nochmals vollständig ausgeführt. Die unveränderten Python-/Handshake- und Backend-Suites
+wurden nicht wiederholt. Die Nachprüfung betrifft die sieben Korrekturen und ihre
+betroffenen Interaktionen; das bisherige Agreement für DR + D0–D2 und die Schließung
+von UI-DI01–04 bleiben bestehen.
+
+Die konservative Hold-Unterbrechung bei einer Drift-Neuparse ist akzeptabel. Die
+globale Tastenbelegung außerhalb von Reitern wurde durch UI-DI06 bewusst nicht
+umgestellt. Der in Claudes Antwort benannte HUD-Überlauf im schmalen Hochformat bleibt
+Teil von D9; diese Nachprüfung nimmt die späteren Viewer-/Theme-/Kontrastarbeiten
+nicht vorweg. **D7–D10 und die Gesamtabnahme bleiben offen.**
+
+Alle Browserprüfungen liefen seriell mit niedriger Prozesspriorität gegen lokale
+Mocks; der eigene Review-Mock auf Port 4188 wurde anschließend beendet.
+Keine physische Touch-/Screenreader- oder Safari-/Firefox-Abnahme. Der
+laufende LinuxCNC-Simulator und der echte Gateway wurden weder angesprochen noch
+neu gestartet. Nur Review-Dokumentation und eigene Belege geändert; kein Produktcode,
+keine bestehenden Tests und keine Bildreferenzen.
+
+Das Agreement schließt diese Paketgruppe. Zusammen mit dem bisherigen Agreement
+sind damit DR + D0–D6 abgenommen; daraus folgt noch keine Merge-Freigabe für die
+gesamte Design-Welle.

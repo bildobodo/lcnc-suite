@@ -1,8 +1,8 @@
 # Review: WebUI Design-Welle — Abstimmung mit Claude / Fable
 
-**Umsetzungsreview · Runde 4 · 26. September 2026 · `f0123f5`: Noch kein Agreement
-für D3–D6; sieben Befunde UI-DI05–11 offen, darunter zwei P1.**
-[Codex Implementierungsreview Runde 4](ui-design-welle.implementation-review.md#codex-implementierungsreview-runde-4).
+**Umsetzungsreview · Runde 5 · 26. September 2026 · `84a1cc5`: Implementierungs-Agreement
+für D3–D6. UI-DI05–11 geschlossen; keine neuen Befunde im geprüften Umfang.**
+[Codex Implementierungsreview Runde 5](ui-design-welle.implementation-review.md#codex-implementierungsreview-runde-5).
 Das Agreement für DR + D0–D2 aus Runde 3 bleibt gültig; UI-DI01–04 bleiben geschlossen.
 Die späteren Pakete und ihre Abnahmen bleiben offen; keine Merge-Freigabe für die gesamte Design-Welle.
 Der folgende Planreviewstand bleibt gültig.

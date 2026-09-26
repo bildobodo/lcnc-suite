@@ -1,0 +1,552 @@
+{
+  "head": "84a1cc5",
+  "origin": "http://127.0.0.1:4188",
+  "programHolds": [
+    {
+      "action": "Start",
+      "file": "/A.ngc",
+      "version": 902,
+      "atChange": {
+        "elapsedMs": 209.90000000596046,
+        "targetGone": false,
+        "holding": false,
+        "content": "1(revision B)"
+      },
+      "commands": [],
+      "hint": [
+        "Unavailable — Loading program — wait"
+      ]
+    },
+    {
+      "action": "Step",
+      "file": "/A.ngc",
+      "version": 904,
+      "atChange": {
+        "elapsedMs": 241.70000000298023,
+        "targetGone": false,
+        "holding": false,
+        "content": "1(revision B)"
+      },
+      "commands": [],
+      "hint": [
+        "Unavailable — Loading program — wait"
+      ]
+    },
+    {
+      "action": "Resume",
+      "file": "/A.ngc",
+      "version": 906,
+      "atChange": {
+        "elapsedMs": 123.80000001192093,
+        "targetGone": false,
+        "holding": false,
+        "content": "1(revision B)"
+      },
+      "commands": [],
+      "hint": [
+        "Selection changed — hold again"
+      ]
+    },
+    {
+      "action": "Run from Line 3",
+      "file": "/A.ngc",
+      "version": 908,
+      "atChange": {
+        "elapsedMs": 238.29999999701977,
+        "targetGone": true,
+        "holding": false,
+        "content": "1(revision B)"
+      },
+      "commands": [],
+      "hint": [
+        "Unavailable — Loading program — wait"
+      ]
+    }
+  ],
+  "errors": [],
+  "resumeWhileLoading": {
+    "loading": {
+      "startDisabled": true,
+      "stepDisabled": true,
+      "resumeDisabled": false,
+      "content": "1(revision A)"
+    },
+    "landing": {
+      "elapsedMs": 115.90000000596046,
+      "holding": false
+    },
+    "commands": [],
+    "hint": [
+      "Selection changed — hold again"
+    ],
+    "afterNewHold": [
+      {
+        "cmd": "cycle_resume",
+        "req_id": "3qjq6h-5"
+      }
+    ]
+  },
+  "changedPathControl": {
+    "commands": [],
+    "hint": [
+      "Selection changed — hold again"
+    ]
+  },
+  "macroRevision": {
+    "atChange": {
+      "elapsedMs": 109.5,
+      "holding": false,
+      "preview": "G0 Z-5 F100"
+    },
+    "commands": [],
+    "hint": [
+      "Selection changed — hold again"
+    ],
+    "liveTitle": "Review Move Revised",
+    "reopenedPreview": "G0 Z-5 F100"
+  },
+  "jogTabSwitch": [
+    {
+      "which": "procedure",
+      "beforeRelease": [
+        {
+          "cmd": "jog_cont",
+          "axis": 0,
+          "vel": 10,
+          "req_id": "9oizre-5"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 0,
+          "req_id": "9oizre-6"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 1,
+          "req_id": "9oizre-7"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 2,
+          "req_id": "9oizre-8"
+        }
+      ],
+      "afterRelease": [
+        {
+          "cmd": "jog_cont",
+          "axis": 0,
+          "vel": 10,
+          "req_id": "9oizre-5"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 0,
+          "req_id": "9oizre-6"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 1,
+          "req_id": "9oizre-7"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 2,
+          "req_id": "9oizre-8"
+        }
+      ]
+    },
+    {
+      "which": "main",
+      "beforeRelease": [
+        {
+          "cmd": "jog_cont",
+          "axis": 0,
+          "vel": 10,
+          "req_id": "cnk2a1-5"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 0,
+          "req_id": "cnk2a1-6"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 1,
+          "req_id": "cnk2a1-7"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 2,
+          "req_id": "cnk2a1-8"
+        }
+      ],
+      "afterRelease": [
+        {
+          "cmd": "jog_cont",
+          "axis": 0,
+          "vel": 10,
+          "req_id": "cnk2a1-5"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 0,
+          "req_id": "cnk2a1-6"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 1,
+          "req_id": "cnk2a1-7"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 2,
+          "req_id": "cnk2a1-8"
+        }
+      ]
+    }
+  ],
+  "modifiedTabKeys": [
+    {
+      "key": "ArrowRight",
+      "commands": [],
+      "focus": "MDI"
+    },
+    {
+      "key": "Control+ArrowRight",
+      "commands": [],
+      "focus": "Program"
+    },
+    {
+      "key": "Alt+ArrowRight",
+      "commands": [],
+      "focus": "Program"
+    },
+    {
+      "key": "Meta+ArrowRight",
+      "commands": [],
+      "focus": "Program"
+    }
+  ],
+  "spindleRadioGroups": {
+    "beforeSettings": [
+      {
+        "value": "reverse",
+        "checked": true,
+        "name": "rflRunSpindleDirv-2"
+      },
+      {
+        "value": "off",
+        "checked": false,
+        "name": "rflRunSpindleDirv-2"
+      },
+      {
+        "value": "forward",
+        "checked": false,
+        "name": "rflRunSpindleDirv-2"
+      }
+    ],
+    "duringSettings": [
+      {
+        "value": "reverse",
+        "checked": true,
+        "name": "rflRunSpindleDirv-2"
+      },
+      {
+        "value": "off",
+        "checked": false,
+        "name": "rflRunSpindleDirv-2"
+      },
+      {
+        "value": "forward",
+        "checked": false,
+        "name": "rflRunSpindleDirv-2"
+      }
+    ],
+    "afterSettings": [
+      {
+        "value": "reverse",
+        "checked": true,
+        "name": "rflRunSpindleDirv-2"
+      },
+      {
+        "value": "off",
+        "checked": false,
+        "name": "rflRunSpindleDirv-2"
+      },
+      {
+        "value": "forward",
+        "checked": false,
+        "name": "rflRunSpindleDirv-2"
+      }
+    ],
+    "commands": [
+      {
+        "cmd": "auto_run",
+        "line": 3,
+        "spindle_dir": "reverse",
+        "spindle_speed": 10000,
+        "safe_z": true,
+        "entry_x": 0,
+        "req_id": "838gh3-5"
+      }
+    ]
+  },
+  "narrowProgram": {
+    ".sidePane": {
+      "x": 456,
+      "y": 705.5,
+      "width": 432,
+      "height": 482.5,
+      "clientHeight": 320,
+      "scrollHeight": 320
+    },
+    ".sidePane .panelHead": {
+      "x": 469,
+      "y": 790.5,
+      "width": 391,
+      "height": 198,
+      "clientHeight": 132,
+      "scrollHeight": 132
+    },
+    ".codeArea": {
+      "x": 469,
+      "y": 1029.75,
+      "width": 391,
+      "height": 150,
+      "clientHeight": 100,
+      "scrollHeight": 100
+    },
+    ".codeViewer": {
+      "x": 469,
+      "y": 1029.75,
+      "width": 391,
+      "height": 150,
+      "clientHeight": 99,
+      "scrollHeight": 192
+    }
+  },
+  "narrowVisibleCodeLines": [
+    {
+      "text": "1(revision A)",
+      "top": 1030.75,
+      "bottom": 1078.75,
+      "whole": true,
+      "hit": true
+    },
+    {
+      "text": "2G0 X0",
+      "top": 1078.75,
+      "bottom": 1126.75,
+      "whole": true,
+      "hit": true
+    },
+    {
+      "text": "3G1 X10 F100",
+      "top": 1126.75,
+      "bottom": 1174.75,
+      "whole": true,
+      "hit": true
+    },
+    {
+      "text": "4G1 Y10",
+      "top": 1174.75,
+      "bottom": 1222.75,
+      "whole": false,
+      "hit": false
+    },
+    {
+      "text": "5M2",
+      "top": 1222.75,
+      "bottom": 1270.75,
+      "whole": false,
+      "hit": false
+    },
+    {
+      "text": "6",
+      "top": 1270.75,
+      "bottom": 1318.75,
+      "whole": false,
+      "hit": false
+    }
+  ],
+  "narrowProgramFold": {
+    "expandedBefore": "false",
+    "expandedAfter": "true",
+    "controls": [
+      {
+        "name": "Edit",
+        "x": 469,
+        "y": 1048.5,
+        "width": 70,
+        "height": 66,
+        "hit": true,
+        "hitText": "Edit"
+      },
+      {
+        "name": "Reload",
+        "x": 545,
+        "y": 1048.5,
+        "width": 96,
+        "height": 66,
+        "hit": true,
+        "hitText": "Reload"
+      },
+      {
+        "name": "Unload",
+        "x": 647,
+        "y": 1048.5,
+        "width": 96,
+        "height": 66,
+        "hit": true,
+        "hitText": "Unload"
+      },
+      {
+        "name": "Files",
+        "x": 749,
+        "y": 1048.5,
+        "width": 77,
+        "height": 66,
+        "hit": true,
+        "hitText": "Files"
+      },
+      {
+        "name": "Upload",
+        "x": 469,
+        "y": 1109.5,
+        "width": 97,
+        "height": 66,
+        "hit": true,
+        "hitText": "Upload"
+      },
+      {
+        "name": "Abort",
+        "x": 667.5,
+        "y": 965.5,
+        "width": 192.5,
+        "height": 66,
+        "hit": true,
+        "hitText": "Abort"
+      }
+    ],
+    "idle": {
+      "panelAbort": {
+        "x": 667.5,
+        "y": 774.5,
+        "width": 192.5,
+        "height": 66,
+        "hit": true,
+        "hitText": "Abort"
+      },
+      "bannerAbort": null,
+      "codeHeight": 99
+    },
+    "running": {
+      "panelAbort": {
+        "x": 667.5,
+        "y": 774.5,
+        "width": 192.5,
+        "height": 66,
+        "hit": true,
+        "hitText": "Abort"
+      },
+      "bannerAbort": {
+        "x": 753,
+        "y": 165,
+        "width": 114,
+        "height": 54,
+        "hit": true,
+        "hitText": "Abort"
+      },
+      "codeHeight": 99
+    },
+    "paused": {
+      "panelAbort": {
+        "x": 667.5,
+        "y": 774.5,
+        "width": 192.5,
+        "height": 66,
+        "hit": true,
+        "hitText": "Abort"
+      },
+      "bannerAbort": {
+        "x": 753,
+        "y": 165,
+        "width": 114,
+        "height": 54,
+        "hit": true,
+        "hitText": "Abort"
+      },
+      "codeHeight": 99
+    }
+  },
+  "narrowTools": {
+    ".sidePane": {
+      "x": 456,
+      "y": 705.5,
+      "width": 432,
+      "height": 482.5,
+      "clientWidth": 287,
+      "scrollWidth": 287
+    },
+    ".toolSearchRow": {
+      "x": 469,
+      "y": 969.75,
+      "width": 406,
+      "height": 66,
+      "clientWidth": 271,
+      "scrollWidth": 271
+    },
+    ".toolSearch": {
+      "x": 469,
+      "y": 969.75,
+      "width": 136,
+      "height": 66,
+      "clientWidth": 89,
+      "scrollWidth": 89
+    },
+    ".toolsTab .tableWrap": {
+      "x": 469,
+      "y": 1041.75,
+      "width": 406,
+      "height": 133.25,
+      "clientWidth": 271,
+      "scrollWidth": 345
+    },
+    ".toolsTab .tableWrap table": {
+      "x": 469,
+      "y": 1041.75,
+      "width": 517.5,
+      "height": 122,
+      "clientWidth": 345,
+      "scrollWidth": 345
+    },
+    ".toolsTab .tableWrap thead": {
+      "x": 469,
+      "y": 1041.75,
+      "width": 517.5,
+      "height": 54.5,
+      "clientWidth": 345,
+      "scrollWidth": 345
+    },
+    ".toolsTab .tableWrap th.colDesc": {
+      "x": 542,
+      "y": 1041.75,
+      "width": 115.5,
+      "height": 54.5,
+      "clientWidth": 77,
+      "scrollWidth": 77
+    }
+  },
+  "narrowToolsAfterScroll": {
+    "x": 475,
+    "y": 1102.75,
+    "width": 61,
+    "height": 54,
+    "hit": true,
+    "hitTag": "BUTTON",
+    "hitText": "T5",
+    "headerHeight": 54.5,
+    "tableHeight": 133.25
+  },
+  "assertionsPassed": true
+}
