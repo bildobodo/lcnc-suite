@@ -6843,3 +6843,54 @@ Plan Fassung 3 WP-D6 (N90–N94, the HelpIcon target; N96 checked).
   captions 11 px, the reset values, the smaller touch "?"; the desktop jog
   section is up to 21 px wider (the scrolling strip absorbs it), in touch
   portrait the step radios wrap after three instead of four.
+
+### Implementation review round 4 — D3–D6 fixes (2026-09-26)
+
+Codex round 4 (`f0123f5`, handshake R3): seven findings UI-DI05–11, two P1.
+Each fix proven red first.
+
+- UI-DI05 (P1): the program holds were bound to the PATH — a re-published
+  `/A.ngc` during a Start / Step / Resume / Run-from-line hold ran the
+  confirmed action on the new revision, and Run from line sent the old
+  text's entry. `ws/bulkData.ts` keeps the published revision
+  (`<file>#<version>`, set on the `viewer_gcode_ready` ARRIVAL, before the
+  text fetch) and the revision of the displayed text (set when it lands or
+  fails); the four hold keys carry path + both. Until the text has landed
+  Start, Step and the Run-from-line action wait. A line selection belongs
+  to its program and its text. Every re-parse bumps the revision (a drift
+  re-parse after a touch-off too) — a hold it lands in is cancelled;
+  conservative by design.
+- UI-DI06 (P1): TabNav returned before consuming a navigation key with
+  Ctrl / Alt / Meta, and the shortcut map matches `e.key` alone — Ctrl+
+  ArrowRight on a focused tab jogged. Every navigation key on a tab is now
+  default-prevented; only the bare key (or Shift) moves focus. The global
+  map still jogs on a modified key elsewhere (bindings are bare keys) —
+  not widened here.
+- UI-DI07: two option groups shared the native radio name
+  `rflSpindleDir`; mounting Settings unchecked the Run-from-line dialog's
+  choice while its model kept it. The dialog's group takes a per-instance
+  name; a static scan requires a literal radio name to live in one
+  component.
+- UI-DI08: the macro parameter dialog kept a copy of its macro. It keeps
+  the id, the name and the values; the macro is read live (title, fields,
+  preview, the Execute key = id + command + parameter set + values, the
+  send); a new parameter set keeps entered values and adds defaults; a
+  removed macro runs nothing and says so.
+- UI-DI09 / DI10: "narrow" is decided once — App's threshold marks the
+  pane `.sidePane.narrow` (no container query: `container-type` would make
+  a tab pane the containing block of its fixed descendants). Program folds
+  its run options and management behind one "More" toggle at the end of
+  its object line (an option that is on stays named on it), the rows sit
+  at `--gap-tight`: three whole code lines and Abort at 150 % portrait
+  (the head had taken all 272 px). Tools: the finding is the TABLE — a
+  one-line header, a 7 em description floor, the Type column leaves,
+  tight cells; its head keeps every control, because its action row needs
+  270 of 271 px and a scrolling tab's scrollbar would wrap it (measured:
+  the first attempt with a "More" in the Tools object line overflowed it
+  and wrapped the actions). The pinned row actions take one exact width
+  — the pencil's offset was 2 px wider than the cell at every width.
+- UI-DI11: a Probing procedure switch stops a running jog like a main tab
+  (`stopJogOnNavigation`).
+- Found by the new harness, left for D9: at 150 % portrait the viewer
+  HUD's warn text extends below the viewer over the top of the side pane.
+
