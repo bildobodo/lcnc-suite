@@ -6877,8 +6877,10 @@ Each fix proven red first.
   send); a new parameter set keeps entered values and adds defaults; a
   removed macro runs nothing and says so.
 - UI-DI09 / DI10: "narrow" is decided once — App's threshold marks the
-  pane `.sidePane.narrow` (no container query: `container-type` would make
-  a tab pane the containing block of its fixed descendants). Program folds
+  pane `.sidePane.narrow` (no container query: ONE threshold, so the
+  selects and every narrow rule flip together; checked on the way —
+  Chromium 148 does not make a `container-type` element the containing
+  block of fixed descendants, so that was not the reason). Program folds
   its run options and management behind one "More" toggle at the end of
   its object line (an option that is on stays named on it), the rows sit
   at `--gap-tight`: three whole code lines and Abort at 150 % portrait
