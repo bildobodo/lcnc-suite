@@ -521,6 +521,9 @@ watch(() => props.runFromLine, (on) => {
   if (!on) selectedLine.value = null;
 });
 
+/** Start opens the Run-from-line dialog instead of starting (no motion). */
+const opensRunDialog = computed(() => !!props.runFromLine && !!selectedLine.value && selectedLine.value > 1);
+
 function onStartClick() {
   if (props.runFromLine && selectedLine.value && selectedLine.value > 1) {
     rflScan.value = props.gcodeContent
@@ -789,15 +792,19 @@ async function saveEdit() {
 
       <!-- Program control -->
       <div v-if="!compactEdit" class="ctrlRow actionGroup">
+        <!-- A hold bound to the program (D6) — a tap when it only opens the
+             Run-from-line dialog (no motion yet; the dialog's action holds) -->
         <MachineBtn type="start" class="ctrlBtn" @click="onStartClick" :disabled="!activeFile || editing"
+          :hold="!opensRunDialog" :hold-key="activeFile ?? ''"
           :reason="editing ? 'Finish or discard the edit first' : !activeFile ? 'No program loaded' : undefined">
           <Play :size="14" class="ctrlIcon" /> {{ selectedLine && selectedLine > 1 ? `Start L${selectedLine}` : 'Start' }}
         </MachineBtn>
         <MachineBtn type="step" class="ctrlBtn" @click="emit('cycleStep')" :disabled="!(activeFile || can.resume) || editing"
+          :hold-key="activeFile ?? ''"
           :reason="editing ? 'Finish or discard the edit first' : !(activeFile || can.resume) ? 'No program loaded' : undefined">
           <SkipForward :size="14" class="ctrlIcon" /> Step
         </MachineBtn>
-        <MachineBtn :type="isPaused ? 'resume' : 'pause'" class="ctrlBtn"
+        <MachineBtn :type="isPaused ? 'resume' : 'pause'" class="ctrlBtn" :hold-key="activeFile ?? ''"
           @click="isPaused ? emit('cycleResume') : emit('cyclePause')">
           <span class="stable-width"><span :class="{ alt: isPaused }"><Pause :size="14" class="ctrlIcon" /> Pause</span><span :class="{ alt: !isPaused }"><Play :size="14" class="ctrlIcon" /> Resume</span></span>
         </MachineBtn>
@@ -1070,7 +1077,8 @@ async function saveEdit() {
         <template #actions>
           <MachineBtn type="dialogCancel" @click="showRunDialog = false">Cancel</MachineBtn>
           <Gate gate="ready" class="row-controls">
-            <MachineBtn type="dialogConfirm" :disabled="rflBlocked" @click="confirmRunFromLine">{{ rflPreTool > 0 ? `Measure T${rflPreTool} + Run from Line ${selectedLine}` : `Run from Line ${selectedLine}` }}</MachineBtn>
+            <!-- Starting motion is a hold (D6): bound to the program and the line -->
+            <MachineBtn type="dialogConfirm" :disabled="rflBlocked" hold :hold-key="`${activeFile}:${selectedLine}`" @click="confirmRunFromLine">{{ rflPreTool > 0 ? `Measure T${rflPreTool} + Run from Line ${selectedLine}` : `Run from Line ${selectedLine}` }}</MachineBtn>
           </Gate>
         </template>
     </DialogFrame>

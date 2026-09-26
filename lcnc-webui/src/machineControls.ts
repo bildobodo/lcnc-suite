@@ -34,11 +34,13 @@ export interface ButtonDef {
 export const HOLD_FIRE_MS = 500;
 
 export const BUTTON_TYPES = {
-  // Program control
-  start:          { gate: 'run',      variant: 'primary', size: 'md' },
-  step:           { gate: 'step',     variant: 'default', size: 'md' },
+  // Program control. Starting motion is a hold (design wave D6, operator
+  // decision 2026-09-25): Start, Step and Resume — the caller binds the hold
+  // to the program (holdKey). Pause and Abort stop motion: taps.
+  start:          { gate: 'run',      variant: 'primary', size: 'md', hold: true },
+  step:           { gate: 'step',     variant: 'default', size: 'md', hold: true },
   pause:          { gate: 'pause',    variant: 'default', size: 'md' },
-  resume:         { gate: 'resume',   variant: 'default', size: 'md' },
+  resume:         { gate: 'resume',   variant: 'default', size: 'md', hold: true },
   abort:          { gate: 'abort',    variant: 'danger',  size: 'md' },
 
   // MDI / motion
@@ -124,8 +126,12 @@ export const BUTTON_TYPES = {
   // tap-guard on a setup-destroying action.
   twpClear:       { gate: 'ready',    variant: 'default', size: 'md', hold: true },
 
-  // Macros
+  // Macros (design wave D6, UI-D02 / N95): a macro runs MDI motion, so it
+  // runs on a hold like every motion button — the bar button itself for a
+  // macro without parameters (the caller sets hold + holdKey), the dialog's
+  // Execute for one with parameters (opening the dialog is no motion).
   macro:          { gate: 'probe',    variant: 'default', size: 'lg' },
+  macroExecute:   { gate: 'probe',    variant: 'primary', size: 'md', hold: true },
 
   // Safety
   arm:            { gate: 'always',   variant: 'default', size: 'lg' },

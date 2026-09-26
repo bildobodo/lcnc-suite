@@ -671,6 +671,44 @@ Gegenproben, beide rot: ohne `aria-sort`; „keine Treffer“ als „leer“ for
   Kopfzeile gibt dem Dialog 14 px mehr Höhe; sonst ändern sich nur der Scrollbalken und der untere
   Rand des Scrollbereichs.
 
+### WP-D6a — Bewegung starten heißt halten · 26. September 2026
+
+Operator-Entscheidung vom 25.09. und Plan WP-D6 (UI-D02, N95).
+
+**Programmsteuerung:**
+- Start, Step und Resume sind Hold-to-fire. Der Hold-Schlüssel ist das geladene Programm.
+- Pause und Abort halten Bewegung an und bleiben Tipps; der Space-Shortcut bleibt sofort wirksam
+  (Folgepunkt K13).
+- Ist Run from line an und eine Zeile gewählt, öffnet Start nur den Dialog. Das ist keine Bewegung, also
+  ein Tipp. Gehalten wird die Aktion im Dialog; ihr Hold-Schlüssel ist Programm plus Zeile.
+
+**Makros:**
+- **Ohne Parameter:** Der Button in der Makroleiste ist die Hold-Aktion, gebunden an Id und Befehl.
+  Speichert ein anderer Client während des Haltens unter derselben Id einen anderen Befehl, bricht das
+  Halten ab („Selection changed — hold again“). Der nächste volle Hold führt genau den sichtbaren
+  Befehl einmal aus.
+- **Mit Parametern:** Ein Tipp öffnet den Dialog. Execute (`macroExecute`, Gate `probe`) ist die
+  Hold-Aktion, zusätzlich an die Werte gebunden.
+- **Enter** im Parameterfeld springt zum nächsten Feld und vom letzten zu Execute. Es führt nie aus;
+  bisher sandte es das Makro.
+- **Gate:** Der Makro-Versand prüft die Klasse seines Buttons. `useMacros` sandte mit `ready`,
+  während der Katalog den Button mit `probe` sperrt; jetzt ist es in beiden `probe`. Das ist die
+  einzige Gate-Änderung der Welle, und sie verschärft (N95).
+- Keine Ruhemarke (Operator-Entscheidung 26.09.): Beim Halten läuft die Füllung, ein Tipp sagt
+  „Hold to activate“.
+
+**Wächter:**
+- `e2e/run-hold.spec.ts` (serial-guards, 4 Tests).
+- Gegenproben, alle rot: Start und Step als Tipp; Makro-Schlüssel ohne Befehl; Enter führt aus;
+  Run-from-line-Aktion als Tipp.
+- Zwei Gegenproben brachen zunächst den Build (unbenutzte Funktion) und liefen deshalb gegen den alten
+  Stand. Sie wurden so wiederholt, dass sie bauen.
+
+**Gates:**
+- build, lint und Vitest (1627) grün.
+- Playwright **246/246**; `serial-guards` 110.
+- **Referenzbilder:** unverändert, 10/10.
+
 ---
 
 ## Codex Implementierungsreview Runde 1

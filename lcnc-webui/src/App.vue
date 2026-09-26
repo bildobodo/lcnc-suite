@@ -1051,7 +1051,23 @@ const {
   runMacro,
   confirmMacroParams,
   macroPreview,
+  macroHoldKey,
+  macroExecuteKey,
 } = useMacros({ fire });
+
+// Enter in a macro parameter moves on — to the next field, from the last to
+// Execute — and never runs the macro (design wave D6, UI-D02): Execute is a
+// hold like every motion button.
+function focusNextMacroParam(e: KeyboardEvent) {
+  if (e.repeat || e.isComposing) return;
+  const dialog = (e.target as HTMLElement).closest('[role="dialog"]');
+  if (!dialog) return;
+  const fields = [...dialog.querySelectorAll<HTMLInputElement>("input.inputField:not(:disabled)")];
+  const i = fields.indexOf(e.target as HTMLInputElement);
+  const next = i >= 0 ? fields[i + 1] : undefined;
+  if (next) next.focus();
+  else dialog.querySelector<HTMLButtonElement>(".macroExecute")?.focus();
+}
 provide("updateMacros", updateMacros);
 const toolTableRef = ref<InstanceType<typeof ToolTablePanel> | null>(null);
 // The vars must land before the M600 that reads them — one latch, in order.
@@ -2250,7 +2266,7 @@ watch(viewerGcode, (newGcode) => {
                     v-bind="input"
                     gate="macroParam"
                     v-model="macroParamDialog.values[p.name]"
-                    @keydown.enter="confirmMacroParams"
+                    @keydown.enter.prevent="focusNextMacroParam"
                   />
                 </template>
               </FormField>
@@ -2259,7 +2275,9 @@ watch(viewerGcode, (newGcode) => {
           </div>
           <template #actions>
             <MachineBtn type="dialogCancel" @click="macroParamDialog = null">Cancel</MachineBtn>
-            <MachineBtn type="dialogReady" @click="confirmMacroParams">Execute</MachineBtn>
+            <!-- A hold bound to the macro, its command and these values: an edit
+                 or a save from another client during the hold cancels it -->
+            <MachineBtn type="macroExecute" class="macroExecute" :hold-key="macroExecuteKey()" @click="confirmMacroParams">Execute</MachineBtn>
           </template>
       </DialogFrame>
 
@@ -2304,7 +2322,10 @@ watch(viewerGcode, (newGcode) => {
       <!-- Scroll-edge affordances (see .stripFade) — the macro bar has no
            pinned section, so both edges fade when content is hidden. -->
       <div class="stripFadeStart" aria-hidden="true"></div>
-      <MachineBtn v-for="m in userMacros" :key="m.id" type="macro" @click="runMacro(m)">{{ m.name }}</MachineBtn>
+      <!-- A macro without parameters runs on a hold bound to its command; one
+           with parameters opens its dialog on a tap (no motion yet) -->
+      <MachineBtn v-for="m in userMacros" :key="m.id" type="macro" :hold="m.params.length === 0"
+                  :hold-key="macroHoldKey(m)" @click="runMacro(m)">{{ m.name }}</MachineBtn>
       <div class="stripFade" aria-hidden="true"></div>
     </Gate>
 

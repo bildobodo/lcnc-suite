@@ -6775,3 +6775,32 @@ Plan Fassung 3 WP-D5 (UI-K06).
   icon size, the caption beside the icon, the states in the row and the
   diagnostics only in the card; red with Shutdown stacked again.
   frames.spec reads the latency in the card.
+
+### WP-D6a — starting motion is a hold (2026-09-26)
+
+Plan Fassung 3 WP-D6 (UI-D02, N95) and the operator's D6 decision of
+2026-09-25.
+
+- Start, Step and Resume are hold-to-fire (catalog `hold`), bound to the
+  program (`holdKey` = the active file). Pause and Abort stop motion and
+  stay taps; the Space shortcut stays instant (the K13 follow-up). With
+  Run from line on and a line selected, Start only OPENS the dialog — no
+  motion, a tap (`:hold="!opensRunDialog"`) — and the dialog's action is
+  the hold, bound to the program and the line.
+- Macros run MDI motion, so they run on a hold like every motion button:
+  a macro without parameters on its bar button, bound to its id AND
+  command (another client saving a different command under the same id
+  during the hold cancels it — "Selection changed — hold again" — and the
+  next hold runs exactly the visible command once); a macro with
+  parameters opens its dialog on a tap, and the dialog's Execute
+  (`macroExecute`, gate `probe`) is the hold, bound to the values too.
+- Enter in a macro parameter moves to the next field and from the last to
+  Execute; it never executes (it used to send the macro).
+- The macro's send checks the button's own class: `useMacros` fired with
+  `ready` while the catalog gates the button `probe` — now `probe` in both
+  (N95, the one gate change of the wave: it tightens).
+- No resting mark on any of these (operator decision 2026-09-26); the fill
+  runs while held, a tap says "Hold to activate".
+- Guard: `e2e/run-hold.spec.ts` (serial-guards), mutation-checked five
+  ways (Start / Step as taps, the macro key without its command, Enter
+  executing, the Run-from-line action as a tap).

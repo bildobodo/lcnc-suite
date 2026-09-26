@@ -52,9 +52,21 @@ export function useMacros(opts: UseMacrosOptions) {
     if (!macroParamDialog.value) return;
     opts.fire(
       { cmd: "mdi", text: substituteMacro(macroParamDialog.value.macro.command, macroParamDialog.value.values) },
-      'ready',
+      'probe',
     );
     macroParamDialog.value = null;
+  }
+
+  /** What a hold on a macro is bound to (MachineBtn holdKey): the macro and
+   *  the command it would send — a command saved by another client during
+   *  the hold cancels it, the next hold runs the new one (UI-D02). */
+  function macroHoldKey(macro: MacroDef): string {
+    return `${macro.id}\n${macro.command}`;
+  }
+  /** The dialog's Execute: the macro, its command AND the entered values. */
+  function macroExecuteKey(): string {
+    const d = macroParamDialog.value;
+    return d ? `${macroHoldKey(d.macro)}\n${JSON.stringify(d.values)}` : "";
   }
 
   function macroPreview(): string {
@@ -68,7 +80,9 @@ export function useMacros(opts: UseMacrosOptions) {
       for (const p of macro.params) values[p.name] = p.default;
       macroParamDialog.value = { macro, values };
     } else {
-      opts.fire({ cmd: "mdi", text: macro.command }, 'ready');
+      // The button's own class (N95): a macro is gated `probe` in the
+      // catalog, so the send checks `probe` too — it used to check `ready`.
+      opts.fire({ cmd: "mdi", text: macro.command }, 'probe');
     }
   }
 
@@ -78,6 +92,8 @@ export function useMacros(opts: UseMacrosOptions) {
     updateMacros,
     runMacro,
     confirmMacroParams,
+    macroHoldKey,
+    macroExecuteKey,
     macroPreview,
   };
 }
