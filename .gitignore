@@ -49,3 +49,6 @@ examples/sim_config/probe-results-interptest.txt
 # Debian orig-source tarballs pulled in for source verification (92 MB, one
 # careless `git add .` from a bad commit)
 *.orig.tar.gz
+
+# Review handshake state (scripts/review_handshake.py)
+.review-handshake/
