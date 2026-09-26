@@ -26,7 +26,7 @@ class FakeWorker {
 (globalThis as any).Worker = FakeWorker;
 
 const {
-  fetchCompGrid, fetchSurfacePoints, gcodeContent,
+  fetchCompGrid, fetchSurfacePoints, gcodeContent, gcodeRevision, gcodeTextRevision,
   handleToolTableChanged, handleViewerGcode, handleViewerGcodeReady, handleViewerInit,
   previewLoadError, resetBulkVersionsOnClose, toolTableVersion, viewerGcode, viewerInit,
   previewSchemaMismatch, EXPECTED_PREVIEW_SCHEMA, parseTloMismatch, previewRefusal,
@@ -259,6 +259,26 @@ describe("preview worker channel", () => {
     await flush();
     expect(gcodeContent.value).toBe("G0 X0");
     expect(fetchCalls.filter(c => c.url.startsWith("/gcode")).length).toBe(1);
+  });
+
+  it("the published revision moves on ARRIVAL; the text revision follows when the text lands (UI-DI05)", async () => {
+    let release!: (r: Response) => void;
+    fetchImpl = () => new Promise<Response>(r => { release = r; });
+    handleViewerGcodeReady({ version: 40, file: "/nc/part.ngc" });
+    // A hold bound to the revision is cancelled now — the text is still out.
+    expect(gcodeRevision.value).toBe("/nc/part.ngc#40");
+    expect(gcodeTextRevision.value).not.toBe("/nc/part.ngc#40");
+    release(new Response("G0 X20", { status: 200 }));
+    await flush();
+    expect(gcodeContent.value).toBe("G0 X20");
+    expect(gcodeTextRevision.value).toBe("/nc/part.ngc#40");
+    // A failed fetch settles too (no text, but no longer loading).
+    fetchImpl = () => httpError(503);
+    handleViewerGcodeReady({ version: 41, file: "/nc/part.ngc" });
+    expect(gcodeRevision.value).toBe("/nc/part.ngc#41");
+    await flush();
+    expect(gcodeContent.value).toBeNull();
+    expect(gcodeTextRevision.value).toBe("/nc/part.ngc#41");
   });
 
   it("stale worker reply is dropped; current version applies with markRaw", () => {

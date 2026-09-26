@@ -544,6 +544,16 @@ export const toolTableVersion = ref(0);
 // off the WS writer so the gateway's heartbeat loop isn't delayed by N-way
 // broadcasts. Null when no program is loaded or the fetch failed.
 export const gcodeContent = ref<string | null>(null);
+// The PUBLISHED program revision, `<file>#<version>` of the latest
+// viewer_gcode_ready — set on ARRIVAL, before the text fetch, so a hold
+// bound to it (Start / Step / Resume / Run from line) is cancelled the
+// moment a new revision of the same path is published (implementation
+// review round 4, UI-DI05). Every re-parse bumps the version, a drift
+// re-parse after a touch-off too: a hold it lands in is cancelled.
+export const gcodeRevision = ref("");
+// The revision whose text `gcodeContent` holds — set when the fetch lands
+// (or fails). While it lags `gcodeRevision` the displayed text is stale.
+export const gcodeTextRevision = ref("");
 
 // Per-channel load errors so a success on one fetch channel can't clear a real
 // error on another (the three channels are independent HTTP fetches). The
@@ -666,9 +676,12 @@ function _applyGcodeFile(nextFile: string | null, version = -1) {
   if (nextFile === _gcodeContentFile && version === _gcodeContentVersion) return;
   _gcodeContentFile = nextFile;
   _gcodeContentVersion = version;
+  const rev = nextFile ? `${nextFile}#${version}` : "";
+  gcodeRevision.value = rev;
   if (_gcodeFetchAbort) { _gcodeFetchAbort.abort(); _gcodeFetchAbort = null; }
   if (!nextFile) {
     gcodeContent.value = null;
+    gcodeTextRevision.value = rev;
     return;
   }
   const ac = new AbortController();
@@ -681,12 +694,18 @@ function _applyGcodeFile(nextFile: string | null, version = -1) {
   fetch(`/gcode?path=${encodeURIComponent(target)}&v=${ver}`, { signal: ac.signal })
     .then(r => r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`)))
     .then(text => {
-      if (_gcodeContentFile === target && _gcodeContentVersion === ver) gcodeContent.value = text;
+      if (_gcodeContentFile === target && _gcodeContentVersion === ver) {
+        gcodeContent.value = text;
+        gcodeTextRevision.value = rev;
+      }
     })
     .catch(err => {
       if (err?.name !== "AbortError") {
         console.error("GET /gcode failed", err);
-        if (_gcodeContentFile === target && _gcodeContentVersion === ver) gcodeContent.value = null;
+        if (_gcodeContentFile === target && _gcodeContentVersion === ver) {
+          gcodeContent.value = null;
+          gcodeTextRevision.value = rev;
+        }
       }
     });
 }

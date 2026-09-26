@@ -45,6 +45,11 @@ export interface GcodeStats {
 const props = defineProps<{
   activeFile: string | null;
   gcodeContent: string | null;
+  // The published program revision (`<file>#<version>`, set on the
+  // publish's ARRIVAL) and the one the displayed text belongs to (set when
+  // its fetch lands) — see ws/bulkData.ts (UI-DI05).
+  programRevision: string;
+  programTextRevision: string;
   gcodeStats: GcodeStats | null;
   // Soft-limit violations from the parse worker (null = unchecked — the INI
   // had no limits, or no program is loaded; [] = checked clean).
@@ -487,6 +492,28 @@ const rflBlocked = computed(() => {
   return !!s && s.count > 0 && rflPreTool.value === 0;
 });
 
+// What a hold on a program action is bound to (UI-DI05): the path AND the
+// published revision AND the revision of the displayed text — a new
+// revision of the same path cancels a running hold at its arrival, and
+// the landing of its text cancels one begun while it loaded. (Every
+// re-parse bumps the revision, a drift re-parse after a touch-off too.)
+const programHoldKey = computed(() => `${props.activeFile ?? ""}|${props.programRevision}|${props.programTextRevision}`);
+// The displayed text lags the published revision while its fetch runs:
+// Start, Step and the Run-from-line action wait — a confirmation is given
+// on the text the operator sees, and the entry position Run from line
+// sends is read from it.
+const programLoading = computed(() => props.programRevision !== props.programTextRevision);
+const LOADING_REASON = "Loading program — wait";
+// A line selection belongs to its program AND its text: another program,
+// or a revision whose text differs, clears it and closes a Run-from-line
+// dialog opened on it (the line of the old text is not a line of the new).
+function dropSelection() {
+  selectedLine.value = null;
+  showRunDialog.value = false;
+}
+watch(() => props.activeFile, dropSelection);
+watch(() => props.gcodeContent, (now, before) => { if (now !== before) dropSelection(); });
+
 function readRflDefaults() {
   const mach = loadMachineDefaults();
   dialogSpindleDir.value = mach.rflSpindleDir;
@@ -539,7 +566,7 @@ function onStartClick() {
 }
 
 function confirmRunFromLine() {
-  if (!selectedLine.value || rflBlocked.value) return;
+  if (!selectedLine.value || rflBlocked.value || programLoading.value) return;
   const mach = loadMachineDefaults();
   if (mach.rflSafeZ !== dialogSafeZ.value) {
     saveMachineDefaults({ ...mach, rflSafeZ: dialogSafeZ.value });
@@ -794,17 +821,17 @@ async function saveEdit() {
       <div v-if="!compactEdit" class="ctrlRow actionGroup">
         <!-- A hold bound to the program (D6) — a tap when it only opens the
              Run-from-line dialog (no motion yet; the dialog's action holds) -->
-        <MachineBtn type="start" class="ctrlBtn" @click="onStartClick" :disabled="!activeFile || editing"
-          :hold="!opensRunDialog" :hold-key="activeFile ?? ''"
-          :reason="editing ? 'Finish or discard the edit first' : !activeFile ? 'No program loaded' : undefined">
+        <MachineBtn type="start" class="ctrlBtn" @click="onStartClick" :disabled="!activeFile || editing || programLoading"
+          :hold="!opensRunDialog" :hold-key="programHoldKey"
+          :reason="editing ? 'Finish or discard the edit first' : !activeFile ? 'No program loaded' : programLoading ? LOADING_REASON : undefined">
           <Play :size="14" class="ctrlIcon" /> {{ selectedLine && selectedLine > 1 ? `Start L${selectedLine}` : 'Start' }}
         </MachineBtn>
-        <MachineBtn type="step" class="ctrlBtn" @click="emit('cycleStep')" :disabled="!(activeFile || can.resume) || editing"
-          :hold-key="activeFile ?? ''"
-          :reason="editing ? 'Finish or discard the edit first' : !(activeFile || can.resume) ? 'No program loaded' : undefined">
+        <MachineBtn type="step" class="ctrlBtn" @click="emit('cycleStep')" :disabled="!(activeFile || can.resume) || editing || programLoading"
+          :hold-key="programHoldKey"
+          :reason="editing ? 'Finish or discard the edit first' : !(activeFile || can.resume) ? 'No program loaded' : programLoading ? LOADING_REASON : undefined">
           <SkipForward :size="14" class="ctrlIcon" /> Step
         </MachineBtn>
-        <MachineBtn :type="isPaused ? 'resume' : 'pause'" class="ctrlBtn" :hold-key="activeFile ?? ''"
+        <MachineBtn :type="isPaused ? 'resume' : 'pause'" class="ctrlBtn" :hold-key="programHoldKey"
           @click="isPaused ? emit('cycleResume') : emit('cyclePause')">
           <span class="stable-width"><span :class="{ alt: isPaused }"><Pause :size="14" class="ctrlIcon" /> Pause</span><span :class="{ alt: !isPaused }"><Play :size="14" class="ctrlIcon" /> Resume</span></span>
         </MachineBtn>
@@ -1078,7 +1105,7 @@ async function saveEdit() {
           <MachineBtn type="dialogCancel" @click="showRunDialog = false">Cancel</MachineBtn>
           <Gate gate="ready" class="row-controls">
             <!-- Starting motion is a hold (D6): bound to the program and the line -->
-            <MachineBtn type="dialogConfirm" :disabled="rflBlocked" hold :hold-key="`${activeFile}:${selectedLine}`" @click="confirmRunFromLine">{{ rflPreTool > 0 ? `Measure T${rflPreTool} + Run from Line ${selectedLine}` : `Run from Line ${selectedLine}` }}</MachineBtn>
+            <MachineBtn type="dialogConfirm" :disabled="rflBlocked || programLoading" :reason="programLoading ? LOADING_REASON : undefined" hold :hold-key="`${programHoldKey}:${selectedLine}`" @click="confirmRunFromLine">{{ rflPreTool > 0 ? `Measure T${rflPreTool} + Run from Line ${selectedLine}` : `Run from Line ${selectedLine}` }}</MachineBtn>
           </Gate>
         </template>
     </DialogFrame>
