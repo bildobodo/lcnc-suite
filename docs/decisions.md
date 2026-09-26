@@ -6700,3 +6700,27 @@ Plan Fassung 3 WP-D5 (UI-K05, N80–N82), first part.
 - Guard: `layout.spec` — in all four DR states, every tab with Abort has
   exactly one, at its action group's right edge, nothing interactive to
   its right on its line, and the head rows keep the pattern's order.
+
+### WP-D5b — the tool table and one empty state (2026-09-26)
+
+Plan Fassung 3 WP-D5 (K07, N83, N84).
+
+- Tool table (K07): recognition first — T#, Description, then Ø, Z Offset,
+  Type; Pocket and Flutes left the table (the editor shows them). The
+  description wraps in what the numbers leave: its 200 px floor had made
+  the table 595 px in the 522 px pane, and the row actions pinned to the
+  right covered the last column. Numeric columns take their content's
+  width.
+- The loaded tool carries a mark in its T# cell (a CircleDot, named "In
+  spindle"), not only the row's tint. The sortable heads announce their
+  order (`aria-sort` ascending / descending / none), not only draw it.
+- ONE empty-state line (N83): `.emptyState` with `.noMatch`, `.loading`,
+  `.error`; the scoped copies (MDI history, messages, reference, HAL,
+  Settings loading, the macro list, the file browser) use it and keep only
+  their padding. N84: the table says which it is — "Loading tools…", "No
+  tools in the table …", "No tools match the search." (a search that finds
+  nothing is not an empty table).
+- Guard: forms.spec "tool table" — loading → empty → rows after a
+  table-changed frame, the column order, aria-sort through two sorts, one
+  "In spindle" mark on the loaded row, the no-match line; red without
+  aria-sort and with no-match reading as empty.

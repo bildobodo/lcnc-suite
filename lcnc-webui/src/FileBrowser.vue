@@ -90,8 +90,8 @@ onMounted(() => browse());
         <span class="fileEntryName">{{ entry.name }}</span>
         <span v-if="entry.size != null" class="fileSize">{{ formatSize(entry.size) }}</span>
       </button>
-      <div v-if="busy" class="emptyBrowser" role="status">Loading…</div>
-      <div v-else-if="!files.length && !error" class="emptyBrowser">{{ emptyText }}</div>
+      <div v-if="busy" class="emptyState loading emptyBrowser" role="status">Loading…</div>
+      <div v-else-if="!files.length && !error" class="emptyState emptyBrowser">{{ emptyText }}</div>
     </div>
   </Gate>
 </template>
@@ -140,7 +140,7 @@ onMounted(() => browse());
 .fileIcon { opacity: var(--opacity-muted); width: 10px; flex-shrink: 0; text-align: center; }
 .fileEntryName { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fileSize { font-size: var(--fs-sm); opacity: var(--opacity-muted); flex-shrink: 0; }
-.emptyBrowser { padding: var(--gap-section); text-align: center; font-size: var(--fs-base); opacity: var(--opacity-muted); }
+.emptyBrowser { padding: var(--gap-section); }
 /* Chrome from the global .statusNote; layout only here. */
 .statusNote { flex-shrink: 0; }
 .statusNote span { flex: 1; min-width: 0; overflow-wrap: anywhere; }

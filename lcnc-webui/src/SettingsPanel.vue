@@ -512,7 +512,7 @@ function resetMachineColor(id: string) {
     </div>
     <TabPanel :tabs="subTabs" v-model="activeTab" label="Settings sections" class="subTabs">
       <template #viewer>
-        <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
+        <div v-if="!serverSettingsReady" class="emptyState loading settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
         <div class="stack-controls">
           <div class="sub">View</div>
@@ -665,7 +665,7 @@ function resetMachineColor(id: string) {
       </template>
 
       <template #machine>
-        <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
+        <div v-if="!serverSettingsReady" class="emptyState loading settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
           <div class="stack-controls">
             <div class="sub">Tool Load Behavior</div>
@@ -759,7 +759,7 @@ function resetMachineColor(id: string) {
       </template>
 
       <template #display>
-        <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
+        <div v-if="!serverSettingsReady" class="emptyState loading settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
           <div class="stack-controls">
             <div class="sub">Theme</div>
@@ -788,12 +788,12 @@ function resetMachineColor(id: string) {
       </template>
 
       <template #macros>
-        <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
+        <div v-if="!serverSettingsReady" class="emptyState loading settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
           <div class="stack-controls">
             <div class="sub">User Macros</div>
 
-            <div v-if="macros.length === 0 && !editingMacro" class="macroSettingsEmpty">
+            <div v-if="macros.length === 0 && !editingMacro" class="emptyState macroSettingsEmpty">
               No macros configured. Click "Add Macro" to create one.
             </div>
 
@@ -855,7 +855,7 @@ function resetMachineColor(id: string) {
       </template>
 
       <template #gamepad>
-        <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
+        <div v-if="!serverSettingsReady" class="emptyState loading settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
           <GamepadTab
             ref="gamepadTabRef"
@@ -872,7 +872,7 @@ function resetMachineColor(id: string) {
       </template>
 
       <template #keyboard>
-        <div v-if="!serverSettingsReady" class="settingsLoading">Waiting for server settings…</div>
+        <div v-if="!serverSettingsReady" class="emptyState loading settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
           <KeyboardTab
             :kb-config="props.keyboardConfig ?? defaultKbConfig"
@@ -919,10 +919,7 @@ function resetMachineColor(id: string) {
 </template>
 
 <style scoped>
-.settingsLoading {
-  padding: var(--gap-panel);
-  opacity: var(--opacity-disabled);
-}
+.settingsLoading { padding: var(--gap-panel); }
 .settings {
   padding: var(--gap-section);
   height: 100%;
@@ -1004,11 +1001,7 @@ function resetMachineColor(id: string) {
 
 
 /* ─── Macros tab ─────────────────────────────────────────────── */
-.macroSettingsEmpty {
-  opacity: var(--opacity-disabled);
-  text-align: center;
-  padding: var(--gap-panel);
-}
+.macroSettingsEmpty { padding: var(--gap-panel); }
 .macroSettingsList {
 }
 .macroSettingsItem {

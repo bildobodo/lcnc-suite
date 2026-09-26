@@ -1170,7 +1170,7 @@ function fmtR(key: string): string {
           <!-- State, not silence (UI-10): loading, nothing recorded yet, or a
                failure with its reason and a retry — never a toast for an
                absent file. -->
-          <div v-if="!surfacePoints?.length && surfaceState?.points === 'loading'" class="emptyState">Loading surface map…</div>
+          <div v-if="!surfacePoints?.length && surfaceState?.points === 'loading'" class="emptyState loading">Loading surface map…</div>
           <div v-else-if="surfaceState?.points === 'error'" class="statusNote error surfaceError" role="alert">
             <span>Surface points: {{ surfaceState.pointsError }}</span>
             <MachineBtn type="retry" @click="emit('getProbeResults')">Retry</MachineBtn>
@@ -1225,7 +1225,7 @@ function fmtR(key: string): string {
 
     <!-- ═══ TOOLSETTER VIEW ═══ -->
     <template v-else-if="probeView === 'toolsetter'">
-      <div v-if="!serverSettingsReady" class="emptyState">Waiting for server settings…</div>
+      <div v-if="!serverSettingsReady" class="emptyState loading">Waiting for server settings…</div>
       <ToolsetterSettings
         v-else
         :linearUnit="linearUnit"

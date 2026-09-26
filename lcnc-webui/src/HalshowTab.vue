@@ -143,7 +143,7 @@ const halTabs = computed(() => ([
     <div class="stack-panel scrollContent scroll-thin fade-scroll" role="tabpanel" :id="tabIds('hal', halSection).panel"
          :aria-labelledby="tabIds('hal', halSection).tab">
     <!-- Empty state (waiting for first snapshot) -->
-    <div v-if="!halInitialized" class="halEmpty">
+    <div v-if="!halInitialized" class="emptyState loading halEmpty">
       Connecting…
     </div>
 
@@ -259,11 +259,7 @@ const halTabs = computed(() => ([
   width: 160px;
 }
 
-.halEmpty {
-  text-align: center;
-  opacity: var(--opacity-disabled);
-  padding: var(--gap-panel) 0;
-}
+.halEmpty { padding: var(--gap-panel) 0; }
 
 .halTreeControls {
   margin-bottom: var(--gap-controls);

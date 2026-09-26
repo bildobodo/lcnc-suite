@@ -87,7 +87,7 @@ function toggleSort(key: "code" | "name") {
                 <td class="colGroup">{{ entry.group }}</td>
               </tr>
               <tr v-if="filtered.length === 0">
-                <td colspan="5" class="refEmpty">No matching codes found.</td>
+                <td colspan="5" class="emptyState noMatch refEmpty">No matching codes found.</td>
               </tr>
             </tbody>
           </table>
@@ -151,11 +151,7 @@ function toggleSort(key: "code" | "name") {
 }
 
 /* Specificity over `.refTable td` (0,1,1) instead of !important. */
-.refTable td.refEmpty {
-  text-align: center;
-  opacity: var(--opacity-muted);
-  padding: var(--gap-panel);
-}
+.refTable td.refEmpty { padding: var(--gap-panel); }
 
 .refFooter {
   font-size: var(--fs-xs);

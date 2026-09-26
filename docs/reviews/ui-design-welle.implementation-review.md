@@ -599,6 +599,47 @@ der Plan das vereinbarte Dokument ist.
   - `frames.spec` fiel im ersten Gesamtlauf einmal aus; einzeln und im Wiederholungslauf grün.
 - **Referenzbilder:** unverändert, 10/10.
 
+### WP-D5b — Werkzeugtabelle und ein Leerzustand · 26. September 2026
+
+**Werkzeugtabelle (K07):**
+- **Erkennen zuerst:** T#, Beschreibung, dann Ø, Z Offset und Typ. Pocket und Flutes sind aus der
+  Tabelle genommen; der Editor zeigt sie.
+- **Kein seitliches Scrollen mehr:**
+  - Die Beschreibung bricht in dem Platz um, den die Zahlen lassen. Ihre Untergrenze von 200 px machte
+    die Tabelle 595 px breit im 522-px-Panel, und die rechts angehefteten Zeilenaktionen verdeckten die
+    letzte Spalte.
+  - Zahlenspalten sind so breit wie ihr Inhalt.
+- **Geladenes Werkzeug:** Es trägt eine Marke in seiner T#-Zelle (CircleDot, benannt „In spindle“),
+  nicht nur die Zeilenfarbe.
+- **Sortierung:** Die sortierbaren Köpfe melden ihre Richtung über `aria-sort`, nicht nur als Pfeil.
+
+**Ein Leerzustand (N83/N84):**
+- `.emptyState` mit `.noMatch`, `.loading` und `.error`.
+- Die lokalen Kopien nutzen ihn und behalten nur ihren Innenabstand: MDI-Verlauf, Meldungen, Referenz,
+  HAL, Settings-Laden, Makroliste, Dateibrowser.
+- Die Werkzeugtabelle sagt, was vorliegt: „Loading tools…“, „No tools in the table …“ oder „No tools
+  match the search.“. Eine Suche ohne Treffer ist keine leere Tabelle.
+
+**Wächter:** Der Test „tool table“ in `forms.spec` prüft:
+- Laden → leer → Zeilen nach einem `tool_table_changed`-Rahmen.
+- Die Spaltenreihenfolge.
+- `aria-sort` über zwei Sortierungen.
+- Genau eine Spindel-Marke, in der geladenen Zeile.
+- Die Zeile für „keine Treffer“.
+
+Gegenproben, beide rot: ohne `aria-sort`; „keine Treffer“ als „leer“ formuliert.
+
+**Gates:**
+- build, lint und Vitest (1627) grün.
+- Playwright: **238/238**, `serial-guards` 104, `serial-layout` 59.
+- `frames.spec` (Chromium) fiel in beiden D5-Gesamtläufen aus. Ursache ist die Test-Umgebung, kein
+  Produktfehler:
+  - `frames` erwartet den Ausgangszustand des Mocks und setzt ihn nicht zurück.
+  - Meine Mess-Skripte liefen jeweils kurz vorher und hinterließen fünf Achsen und ein Werkzeug.
+  - Nachgewiesen: mit verändertem Mock 1 Fehler, nach dem Zurücksetzen 3/3.
+  - Die Gate-Läufe setzen den Mock jetzt zuerst zurück.
+- **Referenzbilder:** unverändert, 10/10.
+
 ---
 
 ## Codex Implementierungsreview Runde 1

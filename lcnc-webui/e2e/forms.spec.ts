@@ -264,3 +264,40 @@ test("list editors: one row-action look, action before binding, gamepad inversio
   await ctl({ op: "setViewerInit", data: { ...viewerInit("mm"), axes: ["X", "Z"] } });
   await expect.poll(inverts).toEqual(["Invert X", "Invert Z"]);
 });
+
+test("tool table: T# and description first, the sort announced, the loaded tool marked; empty, no match and loading say which", async ({ page }) => {
+  // Design wave D5 (K07, N84).
+  await ready(page, false);
+  await ctl({ op: "status_delta", data: { tool_number: 7 } });
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
+  const table = page.locator(".sidePane .tableWrap:visible");
+  await expect(table.locator(".emptyState.loading")).toHaveText("Loading tools…");
+  const publish = (tools: unknown[]) => ctl({ op: "raw", frame: { type: "reply", cmd: "get_tool_table", ok: true, tools } });
+  await publish([]);
+  await expect(table.locator(".emptyState:not(.loading):not(.noMatch)")).toContainText("No tools in the table");
+  // The table changed on the server: the panel asks again, then gets the rows.
+  await ctl({ op: "raw", frame: { type: "tool_table_changed", version: 2 } });
+  await expect(table.locator(".emptyState.loading")).toHaveText("Loading tools…");
+  await publish([TOOL, { ...TOOL, T: 7, P: 7, D: 3, description: "Drill 3" }]);
+  await expect(table.getByRole("button", { name: "T7", exact: true })).toBeVisible();
+  // Recognition first: T#, what the tool is, then its numbers; no P#, no Flutes.
+  const heads = (await table.locator("thead th").allTextContents()).map(t => t.replace(/[▲▼]/g, "").trim()).filter(Boolean);
+  expect(heads).toEqual(["T#", "Description", "Ø", "Z Offset", "Type"]);
+  // The sort order is announced, not only drawn.
+  const th = (name: string) => table.locator("thead th").filter({ hasText: name });
+  await expect(th("T#")).toHaveAttribute("aria-sort", "ascending");
+  await expect(th("Ø")).toHaveAttribute("aria-sort", "none");
+  await th("Ø").getByRole("button").click();
+  await expect(th("Ø")).toHaveAttribute("aria-sort", "ascending");
+  await expect(th("T#")).toHaveAttribute("aria-sort", "none");
+  await th("Ø").getByRole("button").click();
+  await expect(th("Ø")).toHaveAttribute("aria-sort", "descending");
+  // The loaded tool carries a mark, not only the row's tint.
+  const row7 = table.locator("tbody tr").filter({ has: page.getByRole("button", { name: "T7", exact: true }) });
+  await expect(row7.getByRole("img", { name: "In spindle" })).toHaveCount(1);
+  await expect(table.getByRole("img", { name: "In spindle" })).toHaveCount(1);
+  // A search that finds nothing is not an empty table.
+  await page.getByRole("textbox", { name: "Search tools", exact: true }).fill("zzz-nothing");
+  await expect(table.locator(".emptyState.noMatch")).toHaveText("No tools match the search.");
+  await expect(table.getByText("No tools in the table")).toHaveCount(0);
+});

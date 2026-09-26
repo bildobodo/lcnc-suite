@@ -1897,7 +1897,12 @@ label:has(input:disabled, select:disabled) {
 .saveStatus.error, .saveStatus.blocked { color: var(--danger); }
 
 /* Empty state (no data / drag target) */
+/* THE line of a list or area with nothing to show (design wave D5, N83/N84)
+   — never a scoped copy. `.emptyState` (the list is empty), `.noMatch` (a
+   search found nothing, the list itself is not empty), `.loading`, `.error`
+   (a read failed and no .statusNote carries it). Say which it is. */
 .emptyState { text-align: center; opacity: var(--opacity-muted); font-size: var(--fs-md); }
+.emptyState.error { color: var(--danger); opacity: 1; }
 
 /* Status indicator dot */
 .statusDot { width: 8px; height: 8px; border-radius: var(--radius-round); background: var(--border); }

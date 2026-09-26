@@ -6,7 +6,7 @@ import { loadMachineDefaults, type ToolChangeMode } from "./defaults";
 import { TOOL_TYPE_LABELS, toolTypeLabel } from "./toolTypes";
 import { fmtCell } from "./format";
 import { authHeaders } from "./auth";
-import { Pencil, Trash2, X } from "lucide-vue-next";
+import { CircleDot, Pencil, Trash2, X } from "lucide-vue-next";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import FileBrowser from "./FileBrowser.vue";
@@ -110,6 +110,9 @@ const filteredTools = computed(() => {
   });
 });
 
+function ariaSort(key: "T" | "D" | "Z"): "ascending" | "descending" | "none" {
+  return sortKey.value !== key ? "none" : sortAsc.value ? "ascending" : "descending";
+}
 function toggleSort(key: "T" | "D" | "Z") {
   if (sortKey.value === key) sortAsc.value = !sortAsc.value;
   else { sortKey.value = key; sortAsc.value = true; }
@@ -914,14 +917,15 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
     <div v-show="!showImportBrowser" class="tableWrap dataTable scroll-thin fade-scroll">
       <table>
         <thead>
+          <!-- Recognition first (design wave D5, K07): T#, what the tool is,
+               then its numbers; pocket and flutes live in the editor. The
+               sort order is announced (aria-sort), not only drawn. -->
           <tr>
-            <th class="colT"><button class="sortHeader" @click="toggleSort('T')">T# {{ sortKey === 'T' ? (sortAsc ? '▲' : '▼') : '' }}</button></th>
-            <th class="colSm">P#</th>
-            <th class="colNum"><button class="sortHeader" @click="toggleSort('D')">Ø {{ sortKey === 'D' ? (sortAsc ? '▲' : '▼') : '' }}</button></th>
-            <th class="colNum"><button class="sortHeader" @click="toggleSort('Z')">Z Offset {{ sortKey === 'Z' ? (sortAsc ? '▲' : '▼') : '' }}</button></th>
-            <th class="colType">Type</th>
-            <th class="colSm">Flutes</th>
+            <th class="colT" :aria-sort="ariaSort('T')"><button class="sortHeader" @click="toggleSort('T')">T# {{ sortKey === 'T' ? (sortAsc ? '▲' : '▼') : '' }}</button></th>
             <th class="colDesc">Description</th>
+            <th class="colNum" :aria-sort="ariaSort('D')"><button class="sortHeader" @click="toggleSort('D')">Ø {{ sortKey === 'D' ? (sortAsc ? '▲' : '▼') : '' }}</button></th>
+            <th class="colNum" :aria-sort="ariaSort('Z')"><button class="sortHeader" @click="toggleSort('Z')">Z Offset {{ sortKey === 'Z' ? (sortAsc ? '▲' : '▼') : '' }}</button></th>
+            <th class="colType">Type</th>
             <th class="colAction colEdit"></th>
             <th class="colAction"></th>
           </tr>
@@ -937,15 +941,15 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
                 @mouseenter="onToolEnter(tool, $event)"
                 @mouseleave="onToolLeave">
               <MachineBtn type="toolLoad" @click.stop="requestToolChange(tool.T)">T{{ tool.T }}</MachineBtn>
+              <!-- The loaded tool: a mark, not only the row's tint (K07) -->
+              <span v-if="tool.T === currentTool" class="inSpindle" role="img" aria-label="In spindle" title="In spindle"><CircleDot :size="12" /></span>
             </td>
-            <td class="colSm mono">{{ tool.P }}</td>
-            <td class="colNum mono">{{ fmtCell(tool.D) }}</td>
-            <td class="colNum mono">{{ fmtCell(tool.Z, 6) }}</td>
-            <td class="colType">{{ toolTypeLabel(tool.type) }}</td>
-            <td class="colSm mono">{{ tool.flutes ?? "-" }}</td>
             <td class="colDesc" :title="toolPreviewNotice(tool, unitsPerMm) || tool.description">{{ tool.description || tool.remark || "-" }}
               <span v-if="toolPreviewNotice(tool, unitsPerMm)" class="noteWarn"><br />{{ tool.source_format === "freecad" ? "Imported geometry" : "Approximate preview" }}</span>
             </td>
+            <td class="colNum mono">{{ fmtCell(tool.D) }}</td>
+            <td class="colNum mono">{{ fmtCell(tool.Z, 6) }}</td>
+            <td class="colType">{{ toolTypeLabel(tool.type) }}</td>
             <td class="colAction colEdit">
               <MachineBtn type="listActionSetup" @click.stop="openEdit(tool)" title="Edit tool" :aria-label="`Edit T${tool.T}`"><Pencil :size="14" /></MachineBtn>
             </td>
@@ -961,8 +965,15 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
               ><Trash2 :size="14" /></MachineBtn>
             </td>
           </tr>
-          <tr v-if="!loading && filteredTools.length === 0">
-            <td colspan="9" class="emptyState">No tools loaded. Add tools manually or import a Fusion 360 or FreeCAD library.</td>
+          <!-- Empty, no match and loading say different things (N84) -->
+          <tr v-if="loading && tools.length === 0">
+            <td colspan="7" class="emptyState loading">Loading tools…</td>
+          </tr>
+          <tr v-else-if="tools.length === 0">
+            <td colspan="7" class="emptyState">No tools in the table. Add tools manually or import a Fusion 360 or FreeCAD library.</td>
+          </tr>
+          <tr v-else-if="filteredTools.length === 0">
+            <td colspan="7" class="emptyState noMatch">No tools match the search.</td>
           </tr>
         </tbody>
       </table>
@@ -1119,18 +1130,24 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
 }
 
 .colNum {
-  width: 90px;
+  width: 1%;   /* the content's width: the description takes the rest */
   white-space: nowrap;
 }
 
-.colSm {
-  width: 55px;
+.inSpindle {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-inline-start: var(--gap-tight);
+  color: var(--ok);
 }
 
 .colType { width: 80px; }
 
+/* The description takes what the numbers leave and wraps (K07: read it
+   without scrolling sideways — its 200 px floor made the table 595 px in
+   the 522 px pane, and the pinned row actions covered the last column). */
 .colDesc {
-  min-width: 200px;
+  overflow-wrap: anywhere;
 }
 
 .colAction {

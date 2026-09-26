@@ -1987,7 +1987,7 @@ watch(viewerGcode, (newGcode) => {
                     v-for="(token, ti) in highlightGcode(entry.text)" :key="ti"
                     :class="'token-' + token.type">{{ token.text }}</span></span>
                 </div>
-                <div v-if="mdiHistory.length === 0" class="mdiHistoryEmpty">No history</div>
+                <div v-if="mdiHistory.length === 0" class="emptyState mdiHistoryEmpty">No history</div>
               </div>
             </div>
           </template>
@@ -2187,7 +2187,7 @@ watch(viewerGcode, (newGcode) => {
               <MachineBtn type="listAction" @click="copyMessage(msg)" title="Copy" aria-label="Copy message"><ClipboardCopy :size="12" /></MachineBtn>
               <MachineBtn type="listAction" @click="dismissMessage(msg.id)" title="Dismiss" aria-label="Dismiss message"><X :size="12" /></MachineBtn>
             </div>
-            <div v-if="messages.length === 0" class="msgEmpty">No messages</div>
+            <div v-if="messages.length === 0" class="emptyState msgEmpty">No messages</div>
           </div>
       </DialogFrame>
 
@@ -2829,11 +2829,7 @@ watch(viewerGcode, (newGcode) => {
   font-size: var(--fs-sm);
   word-break: break-word;
 }
-.msgEmpty {
-  padding: var(--gap-panel);
-  text-align: center;
-  opacity: var(--opacity-muted);
-}
+.msgEmpty { padding: var(--gap-panel); }
 
 .dialogBody .danger {
   color: var(--danger);
@@ -2871,11 +2867,7 @@ watch(viewerGcode, (newGcode) => {
   cursor: pointer;
 }
 
-.mdiHistoryEmpty {
-  padding: var(--gap-section);
-  text-align: center;
-  opacity: var(--opacity-muted);
-}
+.mdiHistoryEmpty { padding: var(--gap-section); }
 
 .toolsTab {
   display: flex;
