@@ -810,6 +810,48 @@ nach drei statt vier Werten um.
   Setup-Sektion als Referenz statt der ganzen Sektion. Ihre Controls stehen weiterhin exakt am Platz,
   der Rahmen ist unverändert. Das Einklappen ist die beabsichtigte Änderung.
 - Keine Referenzbilder geändert (keines zeigt eine Eingabehilfe).
+
+### WP-D8b — Bewegung und erzwungene Farben · 26. September 2026
+
+D8 kommt in drei Commits: D8b (Bewegung, erzwungene Farben), D8a (Textrollen, Syntax, Fokusring,
+mit einem Kontrast-Scan über die vier Themes), D8c (Viewer-Palette, Legende, Farbmigration).
+
+**Zuerst gemessen:**
+- Der Status-Banner pulst im Ruhezustand (idle, unhomed, Werkzeugwechsel, Vorschau). Er dimmte dabei
+  seine **ganze** Fläche auf 50 % Deckkraft, den Text eingeschlossen. `pulse-warn` (Messages mit
+  ungelesenen Meldungen, Neustart im Gamepad-Assistenten) tat dasselbe mit dem ganzen Knopf.
+- Es gab keine Regel für `prefers-reduced-motion` oder `forced-colors`. `layout-fixtures` emuliert
+  zwar schon reduzierte Bewegung, aber nichts reagierte darauf.
+- `@keyframes flash-warn` war tot. `animation: pulse` im Probing-Raster lief ins Leere, weil es
+  keine Keyframes dazu gab; die Zelle hat nie gepulst.
+
+**Umgesetzt:**
+- **Puls ohne Textdimmung:** Banner und Warnknöpfe pulsen über den Hintergrund, der Text bleibt voll
+  deckend.
+- **Reduzierte Bewegung:** Banner-Puls, Banner- und E-Stop-Blinken, Warnpuls und der Probing-Punkt
+  stehen still. Der Zustand bleibt als statische Füllung sichtbar (beim Blinken die „An“-Farbe).
+- **Erzwungene Farben** (Windows-Hochkontrast), bei denen Hintergründe und Schatten entfallen:
+  - Eine Auswahl nimmt die Systemfarben des gewählten Elements (`SelectedItem`). Das betrifft die
+    Form des Reiters und gedrückte Seitenknöpfe.
+  - Der Status-Banner bekommt einen Rahmen.
+  - Der Fokusring bleibt ohnehin erhalten.
+- Die tote `flash-warn` ist entfernt, ebenso die wirkungslose Animation im Probing-Raster. Deren
+  Aussehen bleibt, wie es der Operator kennt: die statische Warn-Tönung.
+
+**Wächter** (`appearance.spec`, neu in `serial-guards`):
+- Deckkraft des Banners über eine Pulsperiode: immer 1; der Hintergrund bewegt sich.
+- Unter reduzierter Bewegung (idle und E-Stop): Banner, E-Stop-Knopf und Probing-Punkt ohne
+  Animation, die Füllung trägt den Zustand.
+- Unter erzwungenen Farben: Fokusring ≥ 2 px, der gewählte Reiter unterscheidet sich von den
+  anderen, der Banner hat einen Rahmen.
+- Alle drei Tests waren am Stand vor der Korrektur rot.
+
+**Gates:**
+- build, lint und Vitest (**1635**) grün.
+- Playwright **263/263** über alle neun Projekte; `serial-guards` 125 (drei neue Tests) und
+  `serial-layout` 63. Die Referenzbilder in `serial-visual` sind unverändert grün; der Hintergrundpuls
+  steht dort still, weil `layout-fixtures` reduzierte Bewegung emuliert.
+
 ---
 
 ## Codex Implementierungsreview Runde 1

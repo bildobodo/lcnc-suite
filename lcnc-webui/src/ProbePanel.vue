@@ -1414,7 +1414,6 @@ html.touch-device .gridSection { height: 368px; }
 .gridCell.probing {
   background: color-mix(in oklab, var(--warn) 25%, var(--button-bg));
   border-color: color-mix(in oklab, var(--warn) 40%, var(--border));
-  animation: pulse 0.8s ease-in-out infinite alternate;
 }
 
 

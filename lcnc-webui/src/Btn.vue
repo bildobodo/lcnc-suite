@@ -144,21 +144,27 @@ html.touch-device .b-icon { min-width: 40px; }
   50% { background: var(--button-bg); }
 }
 
-/* ---- Warning (yellow/amber pulse) ---- */
+/* ---- Warning (yellow/amber pulse) ----
+   The pulse moves the background between its warn fill and none — never
+   the label (design wave D8: it faded the whole button to 50 %). */
 .b.warning {
   border-color: color-mix(in srgb, var(--warn) 50%, transparent);
-  background: color-mix(in oklab, var(--warn) 20%, var(--button-bg));
+  --pulse-on: color-mix(in oklab, var(--warn) 20%, var(--button-bg));
+  --pulse-off: var(--button-bg);
+  background: var(--pulse-on);
   animation: pulse-warn 1s ease-in-out infinite;
 }
 .b-icon.warning {
   color: var(--warn);
-  background: color-mix(in oklab, var(--warn) 20%, transparent);
+  --pulse-on: color-mix(in oklab, var(--warn) 20%, transparent);
+  --pulse-off: transparent;
+  background: var(--pulse-on);
   border-radius: var(--radius-md);
   animation: pulse-warn 1s ease-in-out infinite;
 }
 @keyframes pulse-warn {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%, 100% { background: var(--pulse-on); }
+  50% { background: var(--pulse-off); }
 }
 
 /* ---- Muted (dimmed until active/selected/hover) ---- */
@@ -267,4 +273,23 @@ html:not(.touch-device) .b-icon:hover:not(:disabled) { opacity: var(--opacity-se
 html:not(.touch-device) .b-inline:hover:not(:disabled) { background: var(--hl-hover); }
 .b-inline:active:not(:disabled) { background: var(--hl-active); }
 .b-inline:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
+
+/* Motion is optional (design wave D8): the E-Stop flash and the warning
+   pulse stop; the state stays the static fill. */
+@media (prefers-reduced-motion: reduce) {
+  .flashing,
+  .b.warning,
+  .b-icon.warning { animation: none; }
+  .flashing { background: color-mix(in oklab, var(--danger) 40%, var(--button-bg)); }
+}
+/* Forced colours drop backgrounds and shadows — a selection (a tab's
+   shape, a pressed page key) takes the system's selected-item colours. */
+@media (forced-colors: active) {
+  .b.selected {
+    forced-color-adjust: none;
+    background: SelectedItem;
+    color: SelectedItemText;
+    border-color: SelectedItemText;
+  }
+}
 </style>

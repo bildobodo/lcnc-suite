@@ -6923,3 +6923,20 @@ Plan Fassung 3 WP-D7 (UI-K01, K02, operator decision 4).
   sizes and moves the strip under the finger — a tap on a portrait DRO
   field landed beside it. Touch specs tap a neutral spot first.
 
+### WP-D8b — motion and forced colours (2026-09-26)
+
+Plan Fassung 3 WP-D8 (UI-K09 / K13 part, UI-D07), first of three commits.
+
+- A pulse moves the BACKGROUND, never the text: the state banner (it
+  pulses at idle, unhomed, tool change and during a preview refresh) and
+  the warning buttons faded their whole box — the words included — to
+  50 % opacity.
+- prefers-reduced-motion: no pulse and no flash (banner, E-Stop button,
+  warning buttons, the probing dot); the state stays the static fill.
+- forced-colors: a selection takes SelectedItem / SelectedItemText (tabs
+  showed selection by a background and a shadow, both dropped there), the
+  state banner gets an outline; the focus outline survives by itself.
+- Removed: the dead `flash-warn` keyframes and ProbePanel's `animation:
+  pulse` (no keyframes existed — the cell never pulsed; its static warn
+  tint is what the operator knows).
+

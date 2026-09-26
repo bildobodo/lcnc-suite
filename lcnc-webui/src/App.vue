@@ -2816,9 +2816,11 @@ watch(viewerGcode, (newGcode) => {
   animation: banner-pulse var(--pulse-duration) ease-in-out infinite;
 }
 
+/* The pulse moves the BACKGROUND — never the text (design wave D8,
+   UI-D07): it faded the whole banner to 50 %, the state words included. */
 @keyframes banner-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%, 100% { background: color-mix(in oklab, var(--state-color, var(--info)) 25%, var(--panel)); }
+  50% { background: color-mix(in oklab, var(--state-color, var(--info)) 10%, var(--panel)); }
 }
 
 .statusBanner.banner-flash {
@@ -2830,9 +2832,17 @@ watch(viewerGcode, (newGcode) => {
   50% { background: var(--panel); }
 }
 
-@keyframes flash-warn {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+/* Motion is optional (D8): no pulse, no flash — the state stays the
+   static fill (the flash's "on" colour). */
+@media (prefers-reduced-motion: reduce) {
+  .statusBanner.banner-pulse,
+  .statusBanner.banner-flash { animation: none; }
+  .statusBanner.banner-flash { background: color-mix(in oklab, var(--state-color) 40%, var(--panel)); }
+}
+/* Forced colours drop every background: the banner keeps an outline so
+   the state line still reads as one (its words carry the state). */
+@media (forced-colors: active) {
+  .statusBanner { border: 2px solid CanvasText; }
 }
 
 .okText {

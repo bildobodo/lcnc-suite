@@ -1971,6 +1971,9 @@ label:has(input:disabled, select:disabled) {
 /* Status indicator dot */
 .statusDot { width: 8px; height: 8px; border-radius: var(--radius-round); background: var(--border); }
 .statusDot.probing { background: var(--warn); animation: statusPulse 0.8s ease-in-out infinite alternate; }
+@media (prefers-reduced-motion: reduce) {
+  .statusDot.probing { animation: none; }
+}
 .statusDot.tripped { background: var(--ok); }
 @keyframes statusPulse { from { opacity: 0.4; } to { opacity: 1; } }
 
