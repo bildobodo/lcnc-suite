@@ -6547,3 +6547,55 @@ button now looks like every other button; its contract shows as the fill
 while held, the `Hold to activate` title and the hint a tap gets. This
 also covers the buttons D6 moves to hold (Start, Resume, Step, Run from
 line, macros). The Setup strip's visual references are re-baselined.
+
+### WP-D4a — control height per density, FormField, Probing and Toolsetter forms (2026-09-26)
+
+Plan Fassung 3 WP-D4 (UI-K03, K04, K10), first part.
+
+- ONE control height per density (K03): `--control-h` 32 px desktop /
+  44 px touch for fields (`.inputField`: input and select), TabNav tabs
+  and the md TEXT buttons of the side pane and dialogs (`Btn.vue` `.b.md`:
+  min-height and no block padding there, so button and field are equally
+  tall). Not the icon buttons: a dialog's X at 32 px grew every dialog
+  header by 4 px and left Settings 67 px of content at 1280 × 720 (the
+  dialog-stack tests could no longer reach its Add Macro).
+  `--control-h-compact` 28 / 36 px is an AREA's choice: `.strip` and
+  `.dataTable` redefine `--control-h` to it, so fields and buttons inside
+  follow without a per-control size. The catalog's size tiers
+  (`INPUT_SIZE_STYLES`, inline paddings) are gone; the strip's DRO
+  touch-off field is `density: 'compact'` (its look unchanged — the strip
+  references are pixel-identical). The strip's own button sizes stay
+  until D6.
+- 44 px on touch in the side pane is the operator's choice (2026-09-26,
+  asked with the cost measured): the Tools tab's file browser shows 4.11
+  instead of 4.83 rows at 1280 × 800 (`layout.spec` floor now four rows),
+  the probe grid section is 368 px on touch (the Angle hint needs 367).
+- `FormField.vue` + `.formGrid` (K04/K10): the label ABOVE the field,
+  wired `for`/`id`; the "?" is the label's SIBLING (inside a `<label for>`
+  a role=button joins the field's name — the old probe labels held the
+  help text itself); the unit sits right-aligned in the head row above
+  the right-aligned value and is the field's description, like an error.
+  A label tap is a tap on the field (a number field's keypad opens — a
+  deliberate tap, the session rule). Slot props `input` (MachineInput:
+  name + keypad readout "Slow Feed · mm/min"), `field` (any labelable
+  control, `<output>` for read-only values), `group` (a radio group). The
+  `inline` variant (label, "?", field, unit in one row) is for a section
+  with room for one row: the rough sizes under a probe grid.
+- `.formGrid` has two equal columns while each keeps `--form-col-min`,
+  else one. Measured with Inter: the widest head is "Spindle Zero Height
+  ? mm", 149 px desktop / 156 px touch → 160 px; two columns at the
+  522 / 570 px panel, one at 150 % portrait (271 px).
+- Probing and Toolsetter fields are DATA (`probeFields.ts`): the common
+  parameters were written out twice. Units from the machine's linear
+  unit (D0 deferred them here): lengths, feeds per minute, a share in %,
+  counts and tool numbers without; tool number, probe counts and retries
+  are whole numbers (the keypad refuses 2.5).
+- The two header filters (tool type, G-code group) left their table
+  headers for the search row — a select styled as a column title had no
+  name, 16 px height and `outline: none` (K07's "filter in the search
+  row", pulled forward from D5).
+- Names (K10): the jog and override sliders (with the value and unit as
+  `aria-valuetext`), the spindle speed field.
+- Guard: `e2e/forms.spec.ts` (serial-guards) — every visible field named,
+  every visible label labels a control, one height per density, desktop
+  and touch; the unit in the description and the keypad readout, mm → in.

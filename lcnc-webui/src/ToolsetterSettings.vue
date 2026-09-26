@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { fmtNum } from "./format";
+import FormField from "./FormField.vue";
+import { TS_POSITION_FIELDS, TS_PROBE_FIELDS, TS_OPTION_FIELDS, TS_OFFSET_FIELDS, TS_FINDER_FIELDS, unitText } from "./probeFields";
 import { usePermissions } from "./permissions";
 import {
   loadToolsetterDefaults, saveToolsetterDefaults,
   loadProbeDefaults, settingsVersion,
-  STEP_DEFAULT, STEP_FEED,
 } from "./defaults";
 import { buildToolsetterVarMap } from "./toolsetterVars";
 import { fetchG30 } from "./lcncApi";
@@ -15,6 +16,11 @@ import MachineToggle from "./MachineToggle.vue";
 import MachineRadio from "./MachineRadio.vue";
 import MachineBtn from "./MachineBtn.vue";
 import HelpIcon from "./HelpIcon.vue";
+
+defineProps<{
+  /** The machine's linear unit — the unit of every length and feed field. */
+  linearUnit: string;
+}>();
 
 const emit = defineEmits<{
   (e: "setProbeVars", vars: Record<string, number>): void;
@@ -78,6 +84,11 @@ const g30Z = ref<number | null>(null);
 const g30Loading = ref(false);
 const g30Error = ref<string | null>(null);
 
+/** The G30 readout, one entry per axis (read-only form values). */
+const G30_AXES = [
+  { letter: "X", value: g30X }, { letter: "Y", value: g30Y }, { letter: "Z", value: g30Z },
+];
+
 async function loadG30() {
   g30Loading.value = true;
   g30Error.value = null;
@@ -123,118 +134,128 @@ watch(settingsVersion, () => { loadTsParams(); });
 </script>
 
 <template>
-  <div class="paramGrid twoCol tsPanel">
+  <div class="formGrid tsPanel">
     <!-- Toolsetter Position -->
-    <div class="sub span">Toolsetter Position (G53)</div>
-    <label>Touch X<HelpIcon label="Touch X">Toolsetter centre X, machine coordinates (G53).</HelpIcon></label>
-    <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.touchX" :step="STEP_DEFAULT" @change="saveTsParams" />
-    <label>Touch Y<HelpIcon label="Touch Y">Toolsetter centre Y, machine coordinates (G53).</HelpIcon></label>
-    <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.touchY" :step="STEP_DEFAULT" @change="saveTsParams" />
-    <label>Touch Z<HelpIcon label="Touch Z">Toolsetter surface height, machine Z (G53) — usually negative.</HelpIcon></label>
-    <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.touchZ" :step="STEP_DEFAULT" @change="saveTsParams" />
+    <div class="sub">Toolsetter Position (G53)</div>
+    <FormField v-for="f in TS_POSITION_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)">
+      <template #default="{ input }">
+        <MachineInput v-bind="input" gate="toolsetterParam" type="number" v-model.number="tsParams[f.key]"
+                      :min="f.min" :max="f.max" :integer="f.integer" @change="saveTsParams" />
+      </template>
+      <template #help>{{ f.help }}</template>
+    </FormField>
 
-    <div class="sep span"></div>
+    <div class="sep"></div>
 
-    <!-- Tool Change Position (G30) -->
-    <div class="sub span textWithHelp">Tool Change Position (G30)<HelpIcon label="Tool Change Position (G30)">Where the machine moves before a tool change (M6). Set in the var file.</HelpIcon></div>
-    <label>X</label>
-    <span class="mono">{{ fmtNum(g30X, 3) }}</span>
-    <label>Y</label>
-    <span class="mono">{{ fmtNum(g30Y, 3) }}</span>
-    <label>Z</label>
-    <span class="mono">{{ fmtNum(g30Z, 3) }}</span>
-    <div class="row-tight span">
+    <!-- Tool Change Position (G30): read from the var file -->
+    <div class="sub textWithHelp">Tool Change Position (G30)<HelpIcon label="Tool Change Position (G30)">Where the machine moves before a tool change (M6). Set in the var file.</HelpIcon></div>
+    <FormField v-for="a in G30_AXES" :key="a.letter" :label="`G30 ${a.letter}`" :unit="linearUnit">
+      <template #default="{ field }">
+        <output v-bind="field" class="formValue">{{ fmtNum(a.value.value, 3) }}</output>
+      </template>
+    </FormField>
+    <div class="row-tight wide">
       <!-- hold=false: records the current position (var write), no motion -->
       <MachineBtn type="probe" :hold="false" @click="setG30">Set Current Position</MachineBtn>
       <MachineBtn type="inlineMd" @click="loadG30" :disabled="g30Loading">Refresh</MachineBtn>
     </div>
-    <div v-if="g30Error" class="span errorText">G30 read failed: {{ g30Error }}</div>
+    <div v-if="g30Error" class="statusNote error wide" role="alert"><span>G30 read failed: {{ g30Error }}</span></div>
 
-    <div class="sep span"></div>
+    <div class="sep"></div>
 
     <!-- Probe Settings -->
-    <div class="sub span">Probe Settings</div>
-    <label>Fast Feed<HelpIcon label="Fast Feed">Feed of the first touch on the setter — faster costs repeatability.</HelpIcon></label>
-    <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.fastFeed" min="1" :step="STEP_FEED" @change="saveTsParams" />
-    <label>Slow Feed<HelpIcon label="Slow Feed">Feed of the precise second touch. 0 skips it: faster, less accurate.</HelpIcon></label>
-    <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.slowFeed" min="0" :step="STEP_FEED" @change="saveTsParams" />
-    <label>Traverse Feed<HelpIcon label="Traverse Feed">Feed of the moves to and from the setter — no effect on accuracy.</HelpIcon></label>
-    <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.traverseFeed" min="1" :step="STEP_FEED" @change="saveTsParams" />
-    <label>Max Z Travel<HelpIcon label="Max Z Travel">Downward search limit — stops with an error if the setter is not hit.</HelpIcon></label>
-    <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.maxZTravel" min="1" :step="STEP_DEFAULT" @change="saveTsParams" />
-    <label>Retract Distance<HelpIcon label="Retract Distance">Lift after the first touch; the slow pass searches 2× this.</HelpIcon></label>
-    <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.retractDist" min="0.1" :step="STEP_DEFAULT" @change="saveTsParams" />
-    <label>Spindle Zero Height<HelpIcon label="Spindle Zero Height">Spindle nose to setter surface with no tool (G53 Z) — the zero-length reference.</HelpIcon></label>
-    <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.spindleZeroHeight" min="0" :step="STEP_DEFAULT" @change="saveTsParams" />
+    <div class="sub">Probe Settings</div>
+    <FormField v-for="f in TS_PROBE_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)">
+      <template #default="{ input }">
+        <MachineInput v-bind="input" gate="toolsetterParam" type="number" v-model.number="tsParams[f.key]"
+                      :min="f.min" :max="f.max" :integer="f.integer" @change="saveTsParams" />
+      </template>
+      <template #help>{{ f.help }}</template>
+    </FormField>
 
-    <div class="sep span"></div>
+    <div class="sep"></div>
 
     <!-- Options -->
-    <div class="sub span">Options</div>
-    <label>Tool Min Distance<HelpIcon label="Tool Min Distance">Clearance above the expected tool tip when starting from the tool table.</HelpIcon></label>
-    <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.toolMinDis" min="0" :step="STEP_DEFAULT" @change="saveTsParams" />
-    <label>Extra Retries<HelpIcon label="Extra Retries">Retries after a missed touch, each after a pause. 0 for a tool changer.</HelpIcon></label>
-    <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.addReps" min="0" :step="STEP_DEFAULT" @change="saveTsParams" />
-    <div class="toggleGrid span">
+    <div class="sub">Options</div>
+    <FormField v-for="f in TS_OPTION_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)">
+      <template #default="{ input }">
+        <MachineInput v-bind="input" gate="toolsetterParam" type="number" v-model.number="tsParams[f.key]"
+                      :min="f.min" :max="f.max" :integer="f.integer" @change="saveTsParams" />
+      </template>
+      <template #help>{{ f.help }}</template>
+    </FormField>
+    <div class="toggleGrid wide">
       <MachineToggle gate="toolsetterParam" v-model="tsUseToolTable" label="Use Tool Table" help="Starts the search just above the expected tip — faster. Off for new or unmeasured tools." />
       <MachineToggle gate="toolsetterParam" v-model="tsGoBackToStart" label="Return to Start" help="Return to where M600 was called after measuring." />
       <MachineToggle gate="toolsetterParam" v-model="tsDisablePrePos" label="Skip G30 Pre-Position" help="Go straight to the setter without the G30 move — only if nothing is in the way." />
       <MachineToggle gate="toolsetterParam" v-model="tsLastTry" label="Last Try Without Table" help="The last retry ignores the tool table and starts from spindle zero height." />
     </div>
-    <label>Brake After<HelpIcon label="Brake After">Stop after measuring: None, M00 (always) or M01 (with optional stop on).</HelpIcon></label>
-    <div class="radioGroup inline spanRow">
-      <label v-for="b in [0, 1, 2]" :key="b"><MachineRadio gate="toolsetterParam" name="brakeAfter" :value="b" v-model.number="tsParams.brakeAfter" @update:modelValue="saveTsParams()" /> {{ BRAKE_LABELS[b] }}</label>
-    </div>
-    <label>Spindle Stop<HelpIcon label="Spindle Stop">M5 stops the spindle; M500 also waits until it has stopped (VFD).</HelpIcon></label>
-    <div class="radioGroup inline spanRow">
-      <label><MachineRadio gate="toolsetterParam" name="spindleStopM" :value="5" v-model.number="tsParams.spindleStopM" @update:modelValue="saveTsParams()" /> M5</label>
-      <label><MachineRadio gate="toolsetterParam" name="spindleStopM" :value="500" v-model.number="tsParams.spindleStopM" @update:modelValue="saveTsParams()" /> M500</label>
-    </div>
-    <div class="sep span"></div>
+    <FormField label="Brake After" group wide>
+      <template #default="{ group }">
+        <div v-bind="group" class="radioGroup inline">
+          <label v-for="v in [0, 1, 2]" :key="v"><MachineRadio gate="toolsetterParam" name="brakeAfter" :value="v" v-model.number="tsParams.brakeAfter" @update:modelValue="saveTsParams()" /> {{ BRAKE_LABELS[v] }}</label>
+        </div>
+      </template>
+      <template #help>Stop after measuring: None, M00 (always) or M01 (with optional stop on).</template>
+    </FormField>
+    <FormField label="Spindle Stop" group wide>
+      <template #default="{ group }">
+        <div v-bind="group" class="radioGroup inline">
+          <label v-for="v in [5, 500]" :key="v"><MachineRadio gate="toolsetterParam" name="spindleStopM" :value="v" v-model.number="tsParams.spindleStopM" @update:modelValue="saveTsParams()" /> {{ `M${v}` }}</label>
+        </div>
+      </template>
+      <template #help>M5 stops the spindle; M500 also waits until it has stopped (VFD).</template>
+    </FormField>
+
+    <div class="sep"></div>
 
     <!-- Diameter Offset -->
-    <div class="sub span">Diameter Offset</div>
-    <label>Min Diameter<HelpIcon label="Min Diameter">Tools from this diameter touch off-centre (Offset %). 0 = never.</HelpIcon></label>
-    <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.offsetDiameter" min="0" :step="STEP_DEFAULT" @change="saveTsParams" />
-    <label>Offset %<HelpIcon label="Offset %">Off-centre distance as a share of the tool diameter.</HelpIcon></label>
-    <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.offsetValue" min="0" max="100" :step="STEP_DEFAULT" @change="saveTsParams" />
-    <label>Offset Direction<HelpIcon label="Offset Direction">Side of the off-centre touch — pick the one away from clamps.</HelpIcon></label>
-    <div class="radioGroup inline spanRow">
-      <label v-for="d in [0, 1, 2, 3]" :key="d"><MachineRadio gate="toolsetterParam" name="offsetDirection" :value="d" v-model.number="tsParams.offsetDirection" @update:modelValue="saveTsParams()" /> {{ OFFSET_DIR_LABELS[d] }}</label>
-    </div>
+    <div class="sub">Diameter Offset</div>
+    <FormField v-for="f in TS_OFFSET_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)">
+      <template #default="{ input }">
+        <MachineInput v-bind="input" gate="toolsetterParam" type="number" v-model.number="tsParams[f.key]"
+                      :min="f.min" :max="f.max" :integer="f.integer" @change="saveTsParams" />
+      </template>
+      <template #help>{{ f.help }}</template>
+    </FormField>
+    <FormField label="Offset Direction" group wide>
+      <template #default="{ group }">
+        <div v-bind="group" class="radioGroup inline">
+          <label v-for="v in [0, 1, 2, 3]" :key="v"><MachineRadio gate="toolsetterParam" name="offsetDirection" :value="v" v-model.number="tsParams.offsetDirection" @update:modelValue="saveTsParams()" /> {{ OFFSET_DIR_LABELS[v] }}</label>
+        </div>
+      </template>
+      <template #help>Side of the off-centre touch — pick the one away from clamps.</template>
+    </FormField>
 
-    <div class="sep span"></div>
+    <div class="sep"></div>
 
     <!-- Edge-Finder -->
-    <div class="sub span">Edge-Finder</div>
-    <label>Finder X<HelpIcon label="Finder X">Reference X (G53) used instead when the probe tool is measured.</HelpIcon></label>
-    <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.finderTouchX" :step="STEP_DEFAULT" @change="saveTsParams" />
-    <label>Finder Y<HelpIcon label="Finder Y">Reference Y (G53) used instead when the probe tool is measured.</HelpIcon></label>
-    <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.finderTouchY" :step="STEP_DEFAULT" @change="saveTsParams" />
-    <label>Finder Z Difference<HelpIcon label="Finder Z Difference">Finder reference height relative to the setter surface; may be negative.</HelpIcon></label>
-    <MachineInput gate="toolsetterParam" type="number" v-model.number="tsParams.finderDiffZ" :step="STEP_DEFAULT" @change="saveTsParams" />
-    <span></span><span></span>
-    <label>Probe Tool #<HelpIcon label="Probe Tool #">Tool number of the probe (shared with Probing) — load it before probing.</HelpIcon></label>
-    <span class="mono spanRow">T{{ probeTool }}</span>
+    <div class="sub">Edge-Finder</div>
+    <FormField v-for="f in TS_FINDER_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)">
+      <template #default="{ input }">
+        <MachineInput v-bind="input" gate="toolsetterParam" type="number" v-model.number="tsParams[f.key]"
+                      :min="f.min" :max="f.max" :integer="f.integer" @change="saveTsParams" />
+      </template>
+      <template #help>{{ f.help }}</template>
+    </FormField>
+    <FormField label="Probe Tool #">
+      <template #default="{ field }">
+        <output v-bind="field" class="formValue">T{{ probeTool }}</output>
+      </template>
+      <template #help>Tool number of the probe (shared with Probing) — load it before probing.</template>
+    </FormField>
 
-    <div class="sep span"></div>
+    <div class="sep"></div>
 
-    <MachineBtn type="reset" class="span" @click="emit('resetSection', 'toolsetter')">Reset Toolsetter</MachineBtn>
+    <MachineBtn type="reset" class="wide" @click="emit('resetSection', 'toolsetter')">Reset Toolsetter</MachineBtn>
   </div>
 </template>
 
 <style scoped>
-.span { grid-column: 1 / -1; }
-.spanRow { grid-column: 2 / -1; }
 .tsPanel > .sep { margin: var(--gap-controls) 0; }
-.tsPanel > .sub { margin-top: var(--gap-tight); }
 .toggleGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--gap-controls);
-}
-.errorText {
-  color: var(--danger);
-  font-size: var(--fs-sm);
 }
 </style>

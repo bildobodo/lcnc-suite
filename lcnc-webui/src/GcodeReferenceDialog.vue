@@ -48,14 +48,21 @@ function toggleSort(key: "code" | "name") {
   <DialogFrame v-if="open" kind="info" size="lg" full title="G-code Reference" close-label="Close reference"
                initial-focus="input.refSearch" @close="emit('close')">
       <div class="stack-controls refContent">
-        <MachineInput
-          gate="search"
-          type="text"
-          v-model="search"
-          label="Search G-code reference"
-          placeholder="Search codes, names, descriptions…"
-          class="refSearch"
-        />
+        <!-- Search and group filter: one row of fields (design wave D4) -->
+        <div class="refSearchRow row-controls">
+          <MachineInput
+            gate="search"
+            type="text"
+            v-model="search"
+            label="Search G-code reference"
+            placeholder="Search codes, names, descriptions…"
+            class="refSearch"
+          />
+          <MachineSelect gate="filter" v-model="filterGroup" name="gcodeGroupFilter" aria-label="Filter by group">
+            <option value="">All groups</option>
+            <option v-for="g in GCODE_GROUPS" :key="g" :value="g">{{ g }}</option>
+          </MachineSelect>
+        </div>
         <div class="refTable dataTable scroll-thin fade-scroll">
           <table>
             <thead>
@@ -68,12 +75,7 @@ function toggleSort(key: "code" | "name") {
                 </th>
                 <th class="colDesc">Description</th>
                 <th class="colSyntax">Syntax</th>
-                <th class="colGroup">
-                  <MachineSelect gate="filter" class="filterSelect" v-model="filterGroup">
-                    <option value="">Group</option>
-                    <option v-for="g in GCODE_GROUPS" :key="g" :value="g">{{ g }}</option>
-                  </MachineSelect>
-                </th>
+                <th class="colGroup">Group</th>
               </tr>
             </thead>
             <tbody>
@@ -105,10 +107,8 @@ function toggleSort(key: "code" | "name") {
   padding: var(--gap-section);
 }
 
-.refSearch {
-  width: 100%;
-  flex-shrink: 0;
-}
+.refSearchRow { flex-shrink: 0; }
+.refSearch { flex: 1; min-width: 0; }
 
 .refTable {
   flex: 1;

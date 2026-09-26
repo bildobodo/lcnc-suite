@@ -8,11 +8,12 @@ import MachineInput from "./MachineInput.vue";
 import MachineToggle from "./MachineToggle.vue";
 import MachineRadio from "./MachineRadio.vue";
 import { usePermissions } from "./permissions";
-import { STEP_DEFAULT, STEP_FEED, loadProbeDefaults, saveProbeDefaults, settingsVersion, serverSettingsReady, saveToolsetterDefaults, TOOLSETTER_FALLBACK } from "./defaults";
+import { loadProbeDefaults, saveProbeDefaults, settingsVersion, serverSettingsReady, saveToolsetterDefaults, TOOLSETTER_FALLBACK } from "./defaults";
 import ToolsetterSettings from "./ToolsetterSettings.vue";
 import CornerGlyph from "./CornerGlyph.vue";
 import Gate from "./Gate.vue";
-import HelpIcon from "./HelpIcon.vue";
+import FormField from "./FormField.vue";
+import { PROBE_COMMON_FIELDS, PROBE_HINT_FIELDS, CAL_ROUND_FIELD, CAL_RECT_FIELDS, SCAN_FIELDS, unitText } from "./probeFields";
 import { LABEL_FONT_URL } from "./viewer/labelFont";
 import TabNav from "./TabNav.vue";
 import { tabIds } from "./tabIds";
@@ -41,6 +42,8 @@ const props = defineProps<{
   /** The side pane is narrow: the procedure is chosen by App's select in the
    *  tab bar instead of this grid (design wave D3, DR decision). */
   narrow?: boolean;
+  /** The machine's linear unit — the unit of every length and feed field. */
+  linearUnit: string;
 }>();
 
 const emit = defineEmits<{
@@ -841,14 +844,15 @@ function fmtR(key: string): string {
         </div>
       </div>
 
-      <!-- Hint parameters (inline) -->
+      <!-- Rough feature sizes (FormField, one row under the grid) -->
       <div class="inlineParams">
-        <label>Diameter<HelpIcon label="Diameter">Rough feature diameter, used to pre-position the probe. 0 = probe blind.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.diameterHint" min="0" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>X Hint<HelpIcon label="X Hint">Rough X size of the boss or pocket. 0 = probe blind.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.xHintBP" min="0" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>Y Hint<HelpIcon label="Y Hint">Rough Y size of the boss or pocket. 0 = probe blind.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.yHintBP" min="0" :step="STEP_DEFAULT" @change="saveParams" />
+        <FormField v-for="f in PROBE_HINT_FIELDS.boss" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" inline>
+          <template #default="{ input }">
+            <MachineInput v-bind="input" gate="probeParam" type="number" v-model.number="params[f.key]"
+                          :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams" />
+          </template>
+          <template #help>{{ f.help }}</template>
+        </FormField>
       </div>
       </div>
     </template>
@@ -948,10 +952,15 @@ function fmtR(key: string): string {
         </div>
       </div>
 
-      <!-- Angle parameters (inline) -->
+      <!-- Rough feature sizes (FormField, one row under the grid) -->
       <div class="inlineParams">
-        <label>Edge Width<HelpIcon label="Edge Width">Measured width of the feature — the probe goes to both sides of it.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.edgeWidth" min="0.1" :step="STEP_DEFAULT" @change="saveParams" />
+        <FormField v-for="f in PROBE_HINT_FIELDS.angle" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" inline>
+          <template #default="{ input }">
+            <MachineInput v-bind="input" gate="probeParam" type="number" v-model.number="params[f.key]"
+                          :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams" />
+          </template>
+          <template #help>{{ f.help }}</template>
+        </FormField>
       </div>
       </div>
     </template>
@@ -988,10 +997,13 @@ function fmtR(key: string): string {
             </MachineBtn>
           </div>
           <div class="calParamStacked stack-tight">
-            <div class="calParamRow">
-              <label>Diameter<HelpIcon label="Diameter">Exact diameter of the calibration ring — use a gauge ring.</HelpIcon></label>
-              <MachineInput gate="probeParam" type="number" v-model.number="params.calDiameter" min="0" :step="STEP_DEFAULT" @change="saveParams" />
-            </div>
+            <FormField v-for="f in [CAL_ROUND_FIELD]" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" inline>
+              <template #default="{ input }">
+                <MachineInput v-bind="input" gate="probeParam" type="number" v-model.number="params[f.key]"
+                              :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams" />
+              </template>
+              <template #help>{{ f.help }}</template>
+            </FormField>
           </div>
         </div>
       </div>
@@ -1025,14 +1037,13 @@ function fmtR(key: string): string {
             </MachineBtn>
           </div>
           <div class="calParamStacked stack-tight">
-            <div class="calParamRow">
-              <label>X Width<HelpIcon label="X Width">Exact X width of the calibration block.</HelpIcon></label>
-              <MachineInput gate="probeParam" type="number" v-model.number="params.xCalWidth" min="0" :step="STEP_DEFAULT" @change="saveParams" />
-            </div>
-            <div class="calParamRow">
-              <label>Y Width<HelpIcon label="Y Width">Exact Y width of the calibration block.</HelpIcon></label>
-              <MachineInput gate="probeParam" type="number" v-model.number="params.yCalWidth" min="0" :step="STEP_DEFAULT" @change="saveParams" />
-            </div>
+            <FormField v-for="f in CAL_RECT_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" inline>
+              <template #default="{ input }">
+                <MachineInput v-bind="input" gate="probeParam" type="number" v-model.number="params[f.key]"
+                              :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams" />
+              </template>
+              <template #help>{{ f.help }}</template>
+            </FormField>
           </div>
         </div>
       </div>
@@ -1040,8 +1051,8 @@ function fmtR(key: string): string {
       <!-- Calibrate on axis selector -->
       <div class="stack-controls">
         <div class="row-controls">
-          <label class="sub">Calibrate on:</label>
-          <div class="radioGroup inline">
+          <span id="probeCalAxisLabel" class="sub">Calibrate On</span>
+          <div class="radioGroup inline" role="radiogroup" aria-labelledby="probeCalAxisLabel">
             <label><MachineRadio gate="probeParam" name="calAxis" :value="0" v-model.number="calAxis" /> Avg XY</label>
             <label><MachineRadio gate="probeParam" name="calAxis" :value="1" v-model.number="calAxis" /> X Error</label>
             <label><MachineRadio gate="probeParam" name="calAxis" :value="2" v-model.number="calAxis" /> Y Error</label>
@@ -1124,36 +1135,30 @@ function fmtR(key: string): string {
         </div>
       </div>
 
-      <!-- Hint parameters (inline) -->
+      <!-- Rough feature sizes (FormField, one row under the grid) -->
       <div class="inlineParams">
-        <label>X Hint<HelpIcon label="X Hint">Rough X width of the ridge or valley.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.xHintRV" min="0" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>Y Hint<HelpIcon label="Y Hint">Rough Y width of the ridge or valley.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.yHintRV" min="0" :step="STEP_DEFAULT" @change="saveParams" />
+        <FormField v-for="f in PROBE_HINT_FIELDS.ridge" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)" inline>
+          <template #default="{ input }">
+            <MachineInput v-bind="input" gate="probeParam" type="number" v-model.number="params[f.key]"
+                          :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams" />
+          </template>
+          <template #help>{{ f.help }}</template>
+        </FormField>
       </div>
       </div>
     </template>
 
     <!-- ─── Surface Map ─── -->
     <template v-else-if="probeView === 'surface'">
-      <div class="paramGrid twoCol surfaceGrid">
-        <div class="sub span">Scan Grid</div>
-        <label>X Min<HelpIcon label="X Min">Left edge of the scan area, work coordinates.</HelpIcon></label>
-        <MachineInput gate="scanParam" type="number" v-model.number="params.scanX0" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>X Max<HelpIcon label="X Max">Right edge of the scan area, work coordinates.</HelpIcon></label>
-        <MachineInput gate="scanParam" type="number" v-model.number="params.scanX1" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>Y Min<HelpIcon label="Y Min">Front edge of the scan area, work coordinates.</HelpIcon></label>
-        <MachineInput gate="scanParam" type="number" v-model.number="params.scanY0" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>Y Max<HelpIcon label="Y Max">Back edge of the scan area, work coordinates.</HelpIcon></label>
-        <MachineInput gate="scanParam" type="number" v-model.number="params.scanY1" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>X Probes<HelpIcon label="X Probes">Points along X, at least 2.</HelpIcon></label>
-        <MachineInput gate="scanParam" type="number" v-model.number="params.scanXProbes" min="2" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>Y Probes<HelpIcon label="Y Probes">Points along Y, at least 2.</HelpIcon></label>
-        <MachineInput gate="scanParam" type="number" v-model.number="params.scanYProbes" min="2" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>Safe Z<HelpIcon label="Safe Z">Retract height between points — above the part and its clamps (work coordinates).</HelpIcon></label>
-        <MachineInput gate="scanParam" type="number" v-model.number="params.scanSafeZ" :step="STEP_DEFAULT" @change="saveParams" />
-        <label>Probe Depth<HelpIcon label="Probe Depth">How far each point searches down — deeper than the lowest spot.</HelpIcon></label>
-        <MachineInput gate="scanParam" type="number" v-model.number="params.scanDepthZ" min="0.1" :step="STEP_DEFAULT" @change="saveParams" />
+      <div class="formGrid">
+        <div class="sub">Scan Grid</div>
+        <FormField v-for="f in SCAN_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)">
+          <template #default="{ input }">
+            <MachineInput v-bind="input" gate="scanParam" type="number" v-model.number="params[f.key]"
+                          :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams" />
+          </template>
+          <template #help>{{ f.help }}</template>
+        </FormField>
       </div>
 
       <div class="sep"></div>
@@ -1214,43 +1219,6 @@ function fmtR(key: string): string {
         </div>
       </div>
 
-      <div class="sep"></div>
-
-      <div class="paramGrid twoCol surfaceGrid">
-        <div class="sub span">Parameters</div>
-        <label>Probe Tool #<HelpIcon label="Probe Tool #">Tool number of the probe — load it before probing.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.probeTool" min="1" :step="STEP_DEFAULT" @change="saveParams" />
-
-        <label>Slow Feed<HelpIcon label="Slow Feed">Feed of the precise second touch. 0 skips it: faster, less accurate.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.slowFr" min="0" :step="STEP_FEED" @change="saveParams" />
-
-        <label>Traverse Feed<HelpIcon label="Traverse Feed">Feed of the moves between touches — no effect on accuracy.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.traverseFr" min="1" :step="STEP_FEED" @change="saveParams" />
-
-        <label>Fast Feed<HelpIcon label="Fast Feed">Feed of the first touch — faster costs repeatability.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.fastFr" min="1" :step="STEP_FEED" @change="saveParams" />
-
-        <label>Max X/Y Travel<HelpIcon label="Max X/Y Travel">Sideways search limit — the probe stops with an error beyond it.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.maxXYDistance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
-
-        <label>X/Y Clearance<HelpIcon label="X/Y Clearance">Back-off after touching an edge, before the next move.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.xyClearance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
-
-        <label>Max Z Travel<HelpIcon label="Max Z Travel">Downward search limit — the probe stops with an error beyond it.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.maxZDistance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
-
-        <label>Z Clearance<HelpIcon label="Z Clearance">Lift above the surface between Z touches; the slow pass searches 2× this.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.zClearance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
-
-        <label>Extra Probe Depth<HelpIcon label="Extra Probe Depth">Extra depth for the slow Z pass — raise it on rough surfaces.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.extraProbeDepth" min="0" :step="STEP_DEFAULT" @change="saveParams" />
-
-        <label>Step Off Width<HelpIcon label="Step Off Width">Distance from the edge before probing straight in.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.stepOffWidth" min="0.1" :step="STEP_DEFAULT" @change="saveParams" />
-
-        <label>Calibration Offset<HelpIcon label="Calibration Offset">Probe tip offset, set by the calibration routines — don't edit by hand.</HelpIcon></label>
-        <span class="calOffsetReadonly mono">{{ fmtNum(params.calOffset) }}</span>
-      </div>
     </template>
 
     <!-- ═══ TOOLSETTER VIEW ═══ -->
@@ -1258,52 +1226,33 @@ function fmtR(key: string): string {
       <div v-if="!serverSettingsReady" class="emptyState">Waiting for server settings…</div>
       <ToolsetterSettings
         v-else
+        :linearUnit="linearUnit"
         @setProbeVars="emit('setProbeVars', $event)"
         @mdi="emit('mdi', $event)"
         @resetSection="resetTarget = $event"
       />
     </template>
 
-    <template v-if="probeView !== 'toolsetter' && probeView !== 'surface'">
+    <template v-if="probeView !== 'toolsetter'">
     <div class="sep"></div>
 
-    <!-- Parameters (shared across non-surface views) -->
-    <div class="stack-controls">
+    <!-- Parameters: every procedure, the surface map included (one table,
+         probeFields.ts — design wave D4) -->
+    <div class="formGrid">
       <div class="sub">Parameters</div>
-      <div class="paramGrid twoCol">
-        <label>Probe Tool #<HelpIcon label="Probe Tool #">Tool number of the probe — load it before probing.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.probeTool" min="1" :step="STEP_DEFAULT" @change="saveParams" />
-
-        <label>Slow Feed<HelpIcon label="Slow Feed">Feed of the precise second touch. 0 skips it: faster, less accurate.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.slowFr" min="0" :step="STEP_FEED" @change="saveParams" />
-
-        <label>Traverse Feed<HelpIcon label="Traverse Feed">Feed of the moves between touches — no effect on accuracy.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.traverseFr" min="1" :step="STEP_FEED" @change="saveParams" />
-
-        <label>Fast Feed<HelpIcon label="Fast Feed">Feed of the first touch — faster costs repeatability.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.fastFr" min="1" :step="STEP_FEED" @change="saveParams" />
-
-        <label>Max X/Y Travel<HelpIcon label="Max X/Y Travel">Sideways search limit — the probe stops with an error beyond it.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.maxXYDistance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
-
-        <label>X/Y Clearance<HelpIcon label="X/Y Clearance">Back-off after touching an edge, before the next move.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.xyClearance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
-
-        <label>Max Z Travel<HelpIcon label="Max Z Travel">Downward search limit — the probe stops with an error beyond it.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.maxZDistance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
-
-        <label>Z Clearance<HelpIcon label="Z Clearance">Lift above the surface between Z touches; the slow pass searches 2× this.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.zClearance" min="0" :step="STEP_DEFAULT" @change="saveParams" />
-
-        <label>Extra Probe Depth<HelpIcon label="Extra Probe Depth">Extra depth for the slow Z pass — raise it on rough surfaces.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.extraProbeDepth" min="0" :step="STEP_DEFAULT" @change="saveParams" />
-
-        <label>Step Off Width<HelpIcon label="Step Off Width">Distance from the edge before probing straight in.</HelpIcon></label>
-        <MachineInput gate="probeParam" type="number" v-model.number="params.stepOffWidth" min="0.1" :step="STEP_DEFAULT" @change="saveParams" />
-
-        <label>Calibration Offset<HelpIcon label="Calibration Offset">Probe tip offset, set by the calibration routines — don't edit by hand.</HelpIcon></label>
-        <span class="calOffsetReadonly mono">{{ fmtNum(params.calOffset) }}</span>
-      </div>
+      <FormField v-for="f in PROBE_COMMON_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)">
+        <template #default="{ input }">
+          <MachineInput v-bind="input" gate="probeParam" type="number" v-model.number="params[f.key]"
+                        :min="f.min" :max="f.max" :integer="f.integer" @change="saveParams" />
+        </template>
+        <template #help>{{ f.help }}</template>
+      </FormField>
+      <FormField label="Calibration Offset" :unit="linearUnit">
+        <template #default="{ field }">
+          <output v-bind="field" class="formValue">{{ fmtNum(params.calOffset) }}</output>
+        </template>
+        <template #help>Probe tip offset, set by the calibration routines — don't edit by hand.</template>
+      </FormField>
     </div>
     </template>
 
@@ -1392,6 +1341,9 @@ function fmtR(key: string): string {
   height: 360px;
   flex: none;
 }
+/* Touch: the 44 px hint field under the Angle grid needs 367 px (design
+   wave D4, operator decision 2026-09-26: 44 px touch controls). */
+html.touch-device .gridSection { height: 368px; }
 
 /* Grids (centered) */
 .gridWrap {
@@ -1429,55 +1381,21 @@ function fmtR(key: string): string {
   align-self: center;
 }
 
-.calParamRow {
-  display: grid;
-  grid-template-columns: 100px 80px;
-  align-items: center;
-  gap: var(--gap-tight);
-}
 
-.calParamRow label {
-  font-size: var(--fs-sm);
-  color: color-mix(in oklab, currentColor var(--mix-muted), transparent);   /* colour, not opacity: it holds a "?" */
-  display: flex;
-  align-items: center;
-  white-space: nowrap;
-}
 
-.calParamRow input {
-  width: 100%;
-  box-sizing: border-box;
-}
 
 /* Inline params (single horizontal row) */
 .inlineParams {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--gap-tight);
+  gap: var(--gap-controls);
   flex-wrap: wrap;
 }
 
-.inlineParams label {
-  font-size: var(--fs-sm);
-  color: color-mix(in oklab, currentColor var(--mix-muted), transparent);   /* colour, not opacity: it holds a "?" */
-  display: flex;
-  align-items: center;
-  white-space: nowrap;
-}
 
-.inlineParams input {
-  width: 80px;
-}
 
 /* Calibration layout */
-.calOffsetReadonly {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-controls);
-  font-size: var(--fs-base);
-  font-variant-numeric: tabular-nums;
-}
 
 
 /* The cell's SLOT only (square in its grid column); its interior is the
@@ -1531,8 +1449,6 @@ function fmtR(key: string): string {
 }
 
 /* ─── Surface Map ─── */
-.span { grid-column: 1 / -1; }
-.surfaceGrid > .sep { margin: var(--gap-controls) 0; }
 .compPanel {
   flex-shrink: 0;
   min-width: 140px;

@@ -605,15 +605,22 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
       </div>
     </div>
 
-    <MachineInput
-      v-show="!showImportBrowser"
-      gate="toolSearch"
-      type="text"
-      v-model="searchText"
-      label="Search tools"
-      placeholder="Search tools…"
-      class="toolSearch"
-    />
+    <!-- Search and type filter: one row of fields (design wave D4; the
+         filter left the Type column header, K07) -->
+    <div v-show="!showImportBrowser" class="toolSearchRow row-controls">
+      <MachineInput
+        gate="toolSearch"
+        type="text"
+        v-model="searchText"
+        label="Search tools"
+        placeholder="Search tools…"
+        class="toolSearch"
+      />
+      <MachineSelect gate="toolSearch" v-model="filterType" name="toolTypeFilter" aria-label="Filter by type">
+        <option value="">All types</option>
+        <option v-for="tt in TOOL_TYPES" :key="tt" :value="tt">{{ toolTypeLabel(tt) }}</option>
+      </MachineSelect>
+    </div>
 
     <FileBrowser v-if="showImportBrowser" v-model:subdir="importSubdir" label="Server tool libraries"
       empty-text="No tool libraries found" :load-directory="listToolLibraries" :select-file="selectLibrary" />
@@ -873,12 +880,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
             <th class="colSm">P#</th>
             <th class="colNum"><button class="sortHeader" @click="toggleSort('D')">Ø {{ sortKey === 'D' ? (sortAsc ? '▲' : '▼') : '' }}</button></th>
             <th class="colNum"><button class="sortHeader" @click="toggleSort('Z')">Z Offset {{ sortKey === 'Z' ? (sortAsc ? '▲' : '▼') : '' }}</button></th>
-            <th class="colType">
-              <MachineSelect gate="toolSearch" class="filterSelect" v-model="filterType">
-                <option value="">Type</option>
-                <option v-for="tt in TOOL_TYPES" :key="tt" :value="tt">{{ toolTypeLabel(tt) }}</option>
-              </MachineSelect>
-            </th>
+            <th class="colType">Type</th>
             <th class="colSm">Flutes</th>
             <th class="colDesc">Description</th>
             <th class="colAction colEdit"></th>
@@ -1059,10 +1061,8 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
   min-height: 0;
 }
 
-.toolSearch {
-  width: 100%;
-  flex-shrink: 0;
-}
+.toolSearchRow { flex-shrink: 0; }
+.toolSearch { flex: 1; min-width: 0; }
 
 .activeTool {
   background: var(--hl-selected);

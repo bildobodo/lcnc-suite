@@ -1872,7 +1872,7 @@ watch(viewerGcode, (newGcode) => {
         <TabPanel :tabs="contentTabs" :modelValue="activeTab" label="Side panel" variant="main" :narrow="sideNarrow"
                   @update:modelValue="activeTab = $event">
           <template #bar>
-            <MachineSelect v-if="activeTab === 'probe'" gate="tabSelect" class="narrowProbeSelect" name="probe-view"
+            <MachineSelect v-if="activeTab === 'probe'" gate="tabSelect" name="probe-view"
                            aria-label="Probing procedure" v-model="probeView">
               <option v-for="v in PROBE_VIEWS" :key="v.id" :value="v.id">{{ v.label }}</option>
             </MachineSelect>
@@ -1915,6 +1915,7 @@ watch(viewerGcode, (newGcode) => {
             <ProbePanel
               v-model:view="probeView"
               :narrow="sideNarrow"
+              :linearUnit="linearUnit"
               :probing="st.probing === true"
               :probeTripped="st.probe_tripped === true"
               :probeInput="st.probe_input === true"
@@ -2472,8 +2473,6 @@ watch(viewerGcode, (newGcode) => {
   min-height: 0;
 }
 
-/* In TabPanel's narrow bar: --control-h beats the touch floor of .inputField. */
-.narrowBar .narrowProbeSelect { min-height: var(--control-h); }
 
 .sidePane {
   width: var(--panel-min-w-wide);

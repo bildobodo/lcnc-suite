@@ -39,19 +39,19 @@ function onRapidSlider(v: number) { emit('update:rapidSlider', v); }
       <div class="ovrCol stack-controls strip-slider-row">
         <span class="label-muted">Feed</span>
         <span class="val-mono val-slot" :class="{ warn: feedSlider !== 100 }">{{ fmtPct(feedSlider / 100) }}</span>
-        <MachineSlider gate="feedOverride" :modelValue="feedSlider" @update:model-value="onFeedSlider(Number($event))" @change="emit('feedChange')" :min="0" :max="maxFeedOverride" :step="STEP_OVERRIDE" :disabled="!feedOvrEnabled" class="vSlider" />
+        <MachineSlider gate="feedOverride" aria-label="Feed override" :aria-valuetext="fmtPct(feedSlider / 100)" :modelValue="feedSlider" @update:model-value="onFeedSlider(Number($event))" @change="emit('feedChange')" :min="0" :max="maxFeedOverride" :step="STEP_OVERRIDE" :disabled="!feedOvrEnabled" class="vSlider" />
         <MachineBtn type="overrideReset" aria-label="Reset feed override to 100 %" title="Reset feed override to 100 %" @click="emit('overridePreset', 'feed', 100)">100 %</MachineBtn>
       </div>
       <div class="ovrCol stack-controls strip-slider-row">
         <span class="label-muted">Spindle</span>
         <span class="val-mono val-slot" :class="{ warn: spindleSlider !== 100 }">{{ fmtPct(spindleSlider / 100) }}</span>
-        <MachineSlider gate="spindleOverride" :modelValue="spindleSlider" @update:model-value="onSpindleSlider(Number($event))" @change="emit('spindleSliderChange')" :min="minSpindleOverride" :max="maxSpindleOverride" :step="STEP_OVERRIDE" :disabled="!spindleOvrEnabled" class="vSlider" />
+        <MachineSlider gate="spindleOverride" aria-label="Spindle override" :aria-valuetext="fmtPct(spindleSlider / 100)" :modelValue="spindleSlider" @update:model-value="onSpindleSlider(Number($event))" @change="emit('spindleSliderChange')" :min="minSpindleOverride" :max="maxSpindleOverride" :step="STEP_OVERRIDE" :disabled="!spindleOvrEnabled" class="vSlider" />
         <MachineBtn type="overrideReset" aria-label="Reset spindle override to 100 %" title="Reset spindle override to 100 %" @click="emit('overridePreset', 'spindle', 100)">100 %</MachineBtn>
       </div>
       <div class="ovrCol stack-controls strip-slider-row">
         <span class="label-muted">Rapid</span>
         <span class="val-mono val-slot" :class="{ warn: rapidSlider !== 100 }">{{ fmtPct(rapidSlider / 100) }}</span>
-        <MachineSlider gate="rapidOverride" :modelValue="rapidSlider" @update:model-value="onRapidSlider(Number($event))" @change="emit('rapidChange')" :min="25" :max="100" :step="STEP_RAPID_OVERRIDE" :disabled="!rapidOvrAvailable" class="vSlider" />
+        <MachineSlider gate="rapidOverride" aria-label="Rapid override" :aria-valuetext="fmtPct(rapidSlider / 100)" :modelValue="rapidSlider" @update:model-value="onRapidSlider(Number($event))" @change="emit('rapidChange')" :min="25" :max="100" :step="STEP_RAPID_OVERRIDE" :disabled="!rapidOvrAvailable" class="vSlider" />
         <MachineBtn type="overrideReset" aria-label="Reset rapid override to 100 %" title="Reset rapid override to 100 %" @click="emit('overridePreset', 'rapid', 100)">100 %</MachineBtn>
       </div>
     </div>

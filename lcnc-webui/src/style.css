@@ -187,9 +187,17 @@
   /* Square key size — one value for the strip keypad AND G-code keyboard,
      identical in portrait and landscape so key muscle memory transfers. */
   --key-size: var(--touch-target);
-  /* Control height (design wave D3, pulled forward from D4): the tabs of
-     every TabNav, 32 px on desktop, the touch target on touch. */
+  /* Control height (design wave D4, UI-K03): ONE height per density for
+     fields (.inputField: input and select), the tabs of every TabNav and
+     the md buttons of the side pane and dialogs — 32 px on desktop, the
+     touch target on touch. Compact (28 / 36 px) is an AREA's choice: the
+     bottom strip and data tables redefine --control-h to it. */
   --control-h: 32px;
+  --control-h-compact: 28px;
+  /* Forms (FormField.vue, .formGrid): a column's floor — below two of them
+     the grid is one column — and a one-row (inline) field's width. */
+  --form-col-min: 160px;
+  --form-inline-w: 72px;
   /* Landscape strip-section height — the single content budget every strip
      section is built against. Fixed here (not derived from the strip's
      height) so it can never vary with the UA's scrollbar band: the strip
@@ -506,6 +514,19 @@ input[type="range"]::-moz-range-thumb:hover {
   line-height: 1.5;
   padding: 4px 8px;
   border-radius: var(--radius-md);
+  min-height: var(--control-h);
+}
+/* The dense field (catalog `density: 'compact'`: the strip's DRO touch-off
+   fields) — its own floor, smaller type and padding. */
+.inputField.compact {
+  min-height: var(--control-h-compact);
+  padding: 3px 6px;
+  font-size: var(--fs-sm);
+}
+/* Dense areas: every control inside takes the compact height. */
+.strip,
+.dataTable {
+  --control-h: var(--control-h-compact);
 }
 
 .inputField:focus,
@@ -721,20 +742,18 @@ label:has(input.toggle:disabled) {
    follows. */
 html.touch-device {
   --control-h: var(--touch-target);
+  --control-h-compact: var(--touch-target-compact);
   --fs-2xs: 10px;
   --fs-xs: 11px;
   --range-thumb: 20px;
   --help-icon-size: 20px;
 }
 
-html.touch-device button,
-html.touch-device select {
+html.touch-device button {
   min-height: var(--touch-target-compact);
 }
-
-html.touch-device .inputField {
-  min-height: var(--touch-target-compact);
-}
+/* Fields (.inputField: input and select) take --control-h — 44 px here,
+   the compact 36 px in the strip and in tables. */
 
 /* Native radios/checkboxes render at ~13px — scale the widget and give
    the wrapping label rows a real hit strip. */
@@ -1111,6 +1130,75 @@ label:has(input:disabled, select:disabled) {
   letter-spacing: 0.5px;
   white-space: nowrap;
   pointer-events: none;
+}
+
+/* ── Forms (design wave D4, UI-K04/K10; FormField.vue) ──
+   .formGrid: two EQUAL columns while each keeps --form-col-min, else one —
+   a column's floor is half the grid, so a third never fits. A heading
+   (.sub), a divider (.sep) and a .wide field span both. Fields align at
+   their bottom edge: a label that wraps never lifts its neighbour's field. */
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit,
+    minmax(max(var(--form-col-min), calc((100% - var(--gap-controls)) / 2)), 1fr));
+  gap: var(--gap-controls);
+  align-items: end;
+}
+.formGrid > .wide,
+.formGrid > .sub,
+.formGrid > .sep,
+.formGrid > .settingDesc { grid-column: 1 / -1; }
+.formField {
+  display: grid;
+  gap: var(--gap-micro);
+  min-width: 0;
+}
+.formFieldHead {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+/* THE form label (N60/N61): one size, one muted colour, Title Case text. */
+.formLabel {
+  font-size: var(--fs-sm);
+  color: color-mix(in oklab, currentColor var(--mix-muted), transparent);
+  min-width: 0;
+}
+/* The unit, right-aligned above the right-aligned value; the field's
+   description (aria-describedby), never a placeholder. */
+.formUnit {
+  margin-inline-start: auto;
+  padding-inline-start: var(--gap-tight);
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in oklab, currentColor var(--mix-muted), transparent);
+  white-space: nowrap;
+}
+.formField > .inputField { width: 100%; min-width: 0; }
+/* A read-only value in a form (an <output>, named by the label's `for`). */
+.formValue {
+  min-height: var(--control-h);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 8px;
+  font-variant-numeric: tabular-nums;
+}
+/* One row: label, "?", field, unit — where a fixed section has room for one
+   row only (the rough sizes under a probe grid). Same wiring, same name. */
+.formField.inline {
+  display: flex;
+  align-items: center;
+}
+.formField.inline > .formFieldHead { display: contents; }
+.formField.inline > .inputField {
+  width: var(--form-inline-w);
+  margin-inline: var(--gap-tight) 0;
+}
+.formField.inline .formUnit { order: 1; }
+.formError {
+  font-size: var(--fs-sm);
+  color: var(--danger);
 }
 
 /* Label + input grid — 2-col (auto 1fr) or 4-col (.twoCol) */
@@ -1834,6 +1922,7 @@ label:has(input:disabled, select:disabled) {
   opacity: 1;
 }
 
+
 /* ---- Data tables ---- */
 .dataTable table {
   width: 100%;
@@ -1883,18 +1972,6 @@ label:has(input:disabled, select:disabled) {
 .sortHeader:hover {
   opacity: 1;
   background: none;
-}
-
-.filterSelect {
-  padding: 0;
-  font-size: inherit;
-  font-weight: inherit;
-  border: none;
-  background: transparent;
-  color: inherit;
-  font-family: inherit;
-  cursor: pointer;
-  outline: none;
 }
 
 /* .inactive — retained for non-permission app-state dimming (e.g. keyboard config rows when jog is disabled).

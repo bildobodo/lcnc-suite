@@ -394,8 +394,11 @@ for (const viewport of VIEWPORTS) {
     expect(Math.abs(geometry.bottom - geometry.panelBottom)).toBeLessThan(2);
     // The floor was 5 rows in a browser without scrollbar bands; the strip's
     // always-present band (WP4) takes 10 px from the pane, which at 800 px
-    // height is a sixth of a row (touch-landscape: 4.83 rows).
-    expect(geometry.visibleRows).toBeGreaterThanOrEqual(4.5);
+    // height is a sixth of a row (touch-landscape: 4.83 rows). The 44 px
+    // touch controls (design wave D4, operator decision 2026-09-26: the
+    // two button rows above the browser grew 8 px each) leave 4.11 rows
+    // there — the operator's accepted cost; the floor is four whole rows.
+    expect(geometry.visibleRows).toBeGreaterThanOrEqual(4);
     expect(geometry.scrolls).toBe(true);
     await tab.screenshot({ path: info.outputPath('tools-shared-browser.png') });
     const last = browser.getByRole('button', { name: 'example-59.json', exact: true });

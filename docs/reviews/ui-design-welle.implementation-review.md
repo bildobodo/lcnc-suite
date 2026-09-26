@@ -354,6 +354,76 @@ jede Beschriftung beim Abschluss ein Bild an (`93387e9`); danach 12/12 grün.
 - Playwright, alle Projekte einzeln: **228/228** nach der Beschriftungskorrektur. `serial-guards` 98,
   `serial-layout` 55; die Referenzbilder sind unverändert, 10/10.
 
+### WP-D4a — Kontrollhöhe, FormField, Probing- und Toolsetter-Formulare · 26. September 2026
+
+**Eine Höhe je Dichte (K03):**
+- `--control-h` gilt für Felder (`.inputField`: Eingabe und Auswahlliste), Reiter und die mittleren
+  Text-Buttons im Seitenpanel und in Dialogen: 32 px am Desktop, 44 px auf Touch.
+  - **Ausnahme Icon-Buttons:** Das X im Dialogkopf behält seine Größe. Mit 32 px wuchs jeder
+    Dialogkopf um 4 px, und Settings blieben bei 1280×720 nur 67 px Inhalt; die Dialogstapel-Tests
+    erreichten „Add Macro“ nicht mehr.
+- Die 44 px auf Touch hat der Operator am 26.09. mit den gemessenen Kosten entschieden:
+  - Der Werkzeug-Dateibrowser zeigt bei 1280×800 4,11 statt 4,83 Zeilen; die Untergrenze in
+    `layout.spec` ist jetzt vier Zeilen.
+  - Der Probing-Rasterbereich ist auf Touch 368 px hoch; das Maßfeld unter dem Angle-Raster braucht
+    367 px.
+- **Kompakt (28/36 px) wählt ein Bereich:** `.strip` und `.dataTable` setzen `--control-h` auf den
+  kompakten Wert, alle Controls darin folgen.
+- Die Größenstufen des Katalogs (`INPUT_SIZE_STYLES`, Inline-Paddings) sind entfernt.
+  - Das DRO-Feld der Setup-Leiste ist `density: 'compact'`; seine Referenzbilder sind pixelgleich.
+  - Die eigenen Button-Größen der Leiste bleiben bis D6.
+  - Das Drehzahlfeld der Spindelleiste ist jetzt 32 statt 36 px hoch, gleich hoch wie seine
+    +/−-Buttons.
+
+**`FormField.vue` + `.formGrid` (K04/K10):**
+- **Label über dem Feld**, verknüpft über `for`/`id`. Ein Tipp aufs Label ist ein Tipp aufs Feld;
+  ein Zahlenfeld öffnet sein Keypad.
+- **Das „?“ steht neben dem Label, nie darin.** In einem `<label for>` würde ein role=button zum
+  Feldnamen gehören. Die alten Probing-Labels enthielten sogar den Hilfetext selbst.
+- **Einheit:** rechtsbündig in der Kopfzeile über dem rechtsbündigen Wert. Einheit und Fehler sind die
+  Beschreibung des Felds (`aria-describedby`); das Keypad zeigt „Slow Feed · mm/min“.
+- **Inline-Variante:** Label, „?“, Feld und Einheit in einer Zeile. Nur wo ein fester Bereich eine
+  Zeile hat: die Richtmaße unter dem Probing-Raster (Feldbreite 72 px, damit drei Felder auf Touch
+  in 522 px passen: 513 px).
+- **Zwei gleich breite Spalten, solange jede `--form-col-min` behält, sonst eine.** Gemessen mit
+  Inter: der breiteste Kopf ist „Spindle Zero Height ? mm“ mit 149 px (Desktop) bzw. 156 px (Touch),
+  also 160 px. Zwei Spalten bei 522/570 px, eine bei 150 % Hochformat (271 px).
+
+**Probing und Toolsetter als Daten** (`probeFields.ts`):
+- Die gemeinsamen Parameter standen doppelt im Code; jetzt eine Tabelle.
+- **Einheiten** (aus D0 hierher verschoben): Längen und Vorschübe aus der Linear-Einheit der
+  Maschine, ein Anteil in %, Zähler und Werkzeugnummern ohne Einheit.
+- Werkzeugnummer, Messpunktzahl und Wiederholungen nehmen nur ganze Zahlen an (das Keypad lehnt 2,5
+  ab).
+
+**Weitere Namen (K10):**
+- Jog- und Override-Regler, mit Wert und Einheit als `aria-valuetext`.
+- Das Drehzahlfeld.
+- Die Typ- bzw. Gruppenfilter von Werkzeugtabelle und G-Code-Referenz standen als namenlose,
+  16 px hohe Auswahlliste mit `outline: none` im Tabellenkopf. Sie stehen jetzt in der Suchzeile
+  (K07-Teil aus D5 vorgezogen).
+
+**Wächter:**
+- `e2e/forms.spec.ts` (serial-guards), Desktop und Touch:
+  - Jedes sichtbare Feld hat einen Namen, jedes sichtbare Label benennt ein Control.
+  - Eine Höhe je Dichte.
+  - Die Einheit steht in Beschreibung und Keypad-Anzeige und wechselt mit der Maschine von mm zu in.
+  - Ein Zähler lehnt 2,5 ab.
+- Gegenproben, alle rot: Label ohne `for`, Feld ohne Mindesthöhe, namenloser Regler, Einheit nicht
+  beschrieben.
+- `src/probeFields.test.ts`: Hilfetexte ≤ 120 Zeichen, eindeutige Labels, die Einheitenregel, die
+  Vorschubnamen des Glossars in beiden Formularen.
+
+**Gates:**
+- `npm run build` und `npm run lint` (inkl. CSS-Audit): grün. Vitest: **1627/1627**.
+- Playwright, alle Projekte einzeln: **231/231**.
+  - `serial-guards` 101 (davon `forms` 3); `serial-layout` 55.
+  - Dialoge, Forms, Layout und Referenzbilder liefen nach der Icon-Korrektur erneut. Die übrigen
+    Projekte liefen davor; die Korrektur macht nur Icon-Buttons wieder so groß wie vor D4a.
+- **Referenzbilder:** Die 4 Werkzeugeditor-Bilder wurden nach Sichtprüfung erneuert: Felder und
+  Buttons 28 → 32 px bzw. auf Touch 36 → 44 px, sonst unverändert. Die Leisten-Bilder sind
+  pixelgleich.
+
 ---
 
 ## Codex Implementierungsreview Runde 1

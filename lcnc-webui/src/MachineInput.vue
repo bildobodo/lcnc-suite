@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, useAttrs, watch, type InputHTMLAttributes } from 'vue';
 import { usePermissions, useOwnerPermissions } from './permissions';
-import { INPUT_DEFS, INPUT_SIZE_STYLES, type InputType, type InputDef } from './machineControls';
+import { INPUT_DEFS, type InputType, type InputDef } from './machineControls';
 import { openKeypad, keypadState, closeKeypadIf, newKeypadOwnerId } from './useNumberKeypad';
 import { openTextSession, closeTextSessionIf, returnFocusTo, inputSession, dropDraft, showInputGlyph, hideInputGlyph, placeInputGlyph, type TextTarget } from './inputSession';
 import { isTouchDevice } from './touchDetect';
@@ -49,7 +49,6 @@ const catalogStyle = computed(() => {
   if (d.align) s.textAlign = d.align;
   if (d.width) s.width = d.width;
   if (d.mono) s.fontVariantNumeric = 'tabular-nums';
-  if (d.size && INPUT_SIZE_STYLES[d.size]) Object.assign(s, INPUT_SIZE_STYLES[d.size]);
   return Object.keys(s).length ? s : undefined;
 });
 
@@ -247,7 +246,7 @@ defineExpose({ inputElement: () => textEl.value ?? inputEl.value });
     inputmode="none"
     lang="en"
     class="inputField"
-    :class="{ 'keypad-active': isKeypadActive }"
+    :class="{ 'keypad-active': isKeypadActive, compact: def.density === 'compact' }"
     :data-input-area="ownerId"
     :title="fieldTitle"
     @pointerdown="explain"
@@ -273,7 +272,7 @@ defineExpose({ inputElement: () => textEl.value ?? inputEl.value });
     :inputmode="textInputMode"
     lang="en"
     class="inputField"
-    :class="{ 'keypad-active': isTextActive }"
+    :class="{ 'keypad-active': isTextActive, compact: def.density === 'compact' }"
     :data-input-area="ownerId"
     :title="fieldTitle"
     @pointerdown="explain"

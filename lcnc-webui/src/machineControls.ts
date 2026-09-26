@@ -199,7 +199,9 @@ export type ButtonType = keyof typeof BUTTON_TYPES;
 
 export interface InputDef {
   gate: ControlGate;
-  size?: 'sm' | 'md' | 'lg';
+  /** Compact: the field's own dense look (the strip's DRO touch-off). The
+   *  HEIGHT follows the area (--control-h, style.css) — never a padding. */
+  density?: 'compact';
   mono?: boolean;
   align?: 'left' | 'right' | 'center';
   width?: string;
@@ -212,13 +214,13 @@ export const INPUT_DEFS = {
   jogWheel:        { gate: 'jog' },
   jogAxis:         { gate: 'jog' },
   mdiText:         { gate: 'ready' },
-  touchoff:        { gate: 'touchoff', mono: true, align: 'right', size: 'sm' },
-  touchoffRotary:  { gate: 'touchoffRotary', mono: true, align: 'right', size: 'sm' },
+  touchoff:        { gate: 'touchoff', mono: true, align: 'right', density: 'compact' },
+  touchoffRotary:  { gate: 'touchoffRotary', mono: true, align: 'right', density: 'compact' },
   // WCS selector radios: selecting a fixture is a plain modal (G54..), the
   // probe tier like the `wcs` button; the reserved rows are disabled per
   // option in SetupStrip, not by a gate.
   wcsSelect:       { gate: 'probe' },
-  stripInput:      { gate: 'always',   mono: true, align: 'right', size: 'md' },
+  stripInput:      { gate: 'always',   mono: true, align: 'right' },
   scrubPos:        { gate: 'always' },  // scrub timeline — display-only, see BUTTON_TYPES.scrub
   simToggle:       { gate: 'always' },  // simulation mode toggle — entry rules live in ScrubBar
   simSpeed:        { gate: 'always' },  // sim playback speed — display-only
@@ -260,7 +262,7 @@ export const INPUT_DEFS = {
 
   // 3D Viewer settings
   viewerSetting:   { gate: 'always' },
-  viewerSettingNum:{ gate: 'always',   mono: true, align: 'right', size: 'sm' },
+  viewerSettingNum:{ gate: 'always',   mono: true, align: 'right' },
   cameraSetting:   { gate: 'always' },
 
   // Display settings
@@ -288,10 +290,3 @@ export const INPUT_DEFS = {
 } as const satisfies Record<string, InputDef>;
 
 export type InputType = keyof typeof INPUT_DEFS;
-
-// Size tier inline styles — shared by MachineInput, MachineSelect
-export const INPUT_SIZE_STYLES: Record<string, Record<string, string>> = {
-  sm: { padding: '3px 6px', fontSize: 'var(--fs-sm)' },
-  md: { padding: '8px 12px', fontSize: 'var(--fs-base)' },
-  lg: { padding: '6px 10px', fontSize: 'var(--fs-md)' },
-};

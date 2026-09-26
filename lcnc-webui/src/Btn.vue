@@ -68,6 +68,13 @@ html:not(.touch-device) .b:hover:not(:disabled) { background: var(--hl-hover); }
    wrapper (design wave D1 live look: the probe cells shrank under TCP). */
 .cell { padding: 4px; font-size: var(--fs-base); }
 .lg { padding: 10px 14px; font-size: var(--fs-md); }
+/* Control height (design wave D4, UI-K03): in the side pane and in dialogs
+   an md TEXT button is exactly as tall as the field beside it
+   (--control-h, 32 / 44 px). Not the icon buttons (.b-icon): a dialog's X
+   keeps the header's line box (32 px grew every dialog header by 4 px and
+   left Settings 67 px of content at 1280 × 720). The strip keeps its own
+   button sizes (its density: D6). */
+:where(.sidePane, .dialog) .b.md { padding-block: 0; min-height: var(--control-h); }
 
 /* Touch: min-heights come from the global button rule in style.css
    (touch sizing layer); narrow variants additionally need a width floor

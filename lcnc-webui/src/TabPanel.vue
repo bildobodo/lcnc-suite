@@ -28,7 +28,7 @@ const base = `tp${useId()}`;
 <template>
   <div class="tab-panel stack-tight">
     <div v-if="narrow" class="narrowBar">
-      <MachineSelect gate="tabSelect" class="narrowSelect" :name="`${base}-area`" :aria-label="props.label"
+      <MachineSelect gate="tabSelect" :name="`${base}-area`" :aria-label="props.label"
                      :model-value="modelValue" @update:model-value="emit('update:modelValue', String($event))">
         <option v-for="t in tabs" :key="t.id" :value="t.id">{{ t.label }}</option>
       </MachineSelect>
@@ -61,8 +61,6 @@ const base = `tp${useId()}`;
   grid-auto-columns: minmax(0, 1fr);
   gap: var(--gap-tight);
 }
-/* --control-h beats the touch floor of .inputField (html.touch-device). */
-.narrowBar .narrowSelect { min-height: var(--control-h); }
 
 /* ---- Content ---- */
 .tab-content {

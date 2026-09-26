@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { usePermissions } from './permissions';
-import { INPUT_DEFS, INPUT_SIZE_STYLES, type InputType, type InputDef } from './machineControls';
+import { INPUT_DEFS, type InputType, type InputDef } from './machineControls';
 import { useGateExplain } from './gateExplain';
 
 // Match the other Machine* wrappers: bind $attrs explicitly on <select> rather
@@ -21,16 +21,10 @@ const isDisabled = computed(() => !can.value[def.value.gate] || props.disabled);
 const { active: explainActive, reason: explainReason, explain } =
   useGateExplain({ gate: () => def.value.gate, disabled: () => isDisabled.value });
 
-const catalogStyle = computed(() => {
-  const d = def.value;
-  const s: Record<string, string> = {};
-  if (d.size && INPUT_SIZE_STYLES[d.size]) Object.assign(s, INPUT_SIZE_STYLES[d.size]);
-  return Object.keys(s).length ? s : undefined;
-});
 </script>
 
 <template>
-  <select v-bind="$attrs" v-model="model" :style="catalogStyle" :disabled="isDisabled" class="inputField"
+  <select v-bind="$attrs" v-model="model" :disabled="isDisabled" class="inputField" :class="{ compact: def.density === 'compact' }"
           :title="explainActive ? explainReason : ($attrs.title as string | undefined)" @pointerdown="explain">
     <slot />
   </select>
