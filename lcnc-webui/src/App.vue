@@ -1782,8 +1782,8 @@ watch(viewerGcode, (newGcode) => {
         <div v-if="connected && latency != null" class="pill" title="Round-trip latency">Ping <span class="mono pill-ms">{{ latency }}</span> ms</div>
         <div class="pill" :class="lcncError ? 'bad' : (configName ? 'ok' : '')">{{ lcncLabel }}</div>
         <div class="pill" :class="armed ? 'armed' : 'disarmed'"><span class="stable-width"><span :class="{ alt: !armed }">ARMED</span><span :class="{ alt: armed }">DISARMED</span></span></div>
-        <div v-if="gamepad.gamepadConnected.value" class="pill ok" :title="gamepad.gamepadName.value"><Gamepad2 :size="14" /></div>
-        <div v-if="keyboardConfig.jogEnabled || keyboardConfig.buttonsEnabled" class="pill ok" title="Keyboard shortcuts active"><Keyboard :size="14" /></div>
+        <div v-if="gamepad.gamepadConnected.value" class="pill ok iconPill" :title="gamepad.gamepadName.value"><Gamepad2 :size="14" /></div>
+        <div v-if="keyboardConfig.jogEnabled || keyboardConfig.buttonsEnabled" class="pill ok iconPill" title="Keyboard shortcuts active"><Keyboard :size="14" /></div>
 
         <div class="hdrBtns row-controls">
           <MachineBtn type="headerIcon" :warning="unreadCount > 0" :title="'Messages (' + unreadCount + ')'" @click="messagesDialogOpen ? closeMessages() : openMessages()">
@@ -2644,6 +2644,17 @@ watch(viewerGcode, (newGcode) => {
   background: color-mix(in oklab, var(--panel) 80%, transparent);
   color: var(--fg);
 }
+/* An icon-only pill (keyboard, gamepad) is ONE centred row: its SVG sat on
+   the text baseline — 2.5 px above the middle and 1 px taller than the text
+   pills (operator, 2026-09-26). The zero-width strut gives it the text
+   pills' line box, so every pill is one height. Text pills stay inline: a
+   flex row drops the space in "Net 1 ms". */
+.iconPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.iconPill::before { content: "\200b"; }
 
 .pill.ok {
   background: color-mix(in oklab, var(--panel) 92%, transparent);

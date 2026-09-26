@@ -325,6 +325,11 @@ body {
      in below. */
   user-select: none;
   -webkit-user-select: none;
+  /* No tap highlight anywhere (inherited): Chromium's default grey box
+     flashed over a slider's track and the view cube on every touch, only
+     buttons were exempt (operator, real machine, 2026-09-26). Every
+     control has its own :active / focus feedback. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Selection opt-in: form fields are their own selection roots in every
@@ -395,9 +400,6 @@ input[type="range"]:focus-visible {
   grid-template-columns: repeat(var(--tab-columns), minmax(0, 1fr));
 }
 
-button {
-  -webkit-tap-highlight-color: transparent;
-}
 
 button:disabled {
   opacity: var(--opacity-disabled);

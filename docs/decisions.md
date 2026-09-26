@@ -6724,3 +6724,34 @@ Plan Fassung 3 WP-D5 (K07, N83, N84).
   table-changed frame, the column order, aria-sort through two sorts, one
   "In spindle" mark on the loaded row, the no-match line; red without
   aria-sort and with no-match reading as empty.
+
+### Touch surface from the real machine (2026-09-26, operator)
+
+The operator tried the development tree on the machine's touchscreen
+(Chromium) and reported three things; fixed on the design-wave branch.
+
+- A long press ended as a right click: the hold's action ran and then the
+  browser's context menu opened over the controls. Hold buttons did
+  refuse `contextmenu` — but only while enabled: a hold that just fired
+  is latched busy for 200 ms and re-renders into its `.btnTip` wrapper,
+  so the `contextmenu` Chromium raises at the END of the long press hit
+  the wrapper. `touchDetect.ts` now refuses the menu on touch (the
+  event's pointerType, or the session's touch mode) everywhere but in
+  editable text (copy / paste in a field, the G-code editor); a mouse
+  right click on a desktop keeps the browser's menu.
+- A grey box flashed over a slider's track and the view cube on touch:
+  Chromium's default tap highlight (rgba(0,0,0,0.18)); only buttons were
+  exempt. `-webkit-tap-highlight-color: transparent` is now set on the
+  body (inherited) — every control has its own :active / focus feedback.
+- The keyboard and gamepad header pills set their icon on the text
+  baseline (2.5 px above the middle, 1 px taller than the text pills):
+  an icon-only pill (`.iconPill`) is a centred flex row with a zero-width
+  strut for the text pills' line box. Text pills stay inline — a flex
+  row dropped the space in "Net 1 ms".
+- Headless Chromium does not turn a synthesized long press into
+  `contextmenu` (checked with CDP `Input.synthesizeTapGesture` and raw
+  touch events, old and new headless); the guard dispatches the event as
+  Chromium delivers it (a PointerEvent, pointerType "touch"). The real
+  gesture is the operator's check on the machine.
+- Guard: `e2e/touch-surface.spec.ts` (serial-guards), mutation-checked
+  three ways.

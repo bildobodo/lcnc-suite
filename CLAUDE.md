@@ -73,6 +73,7 @@ The bundled routines retract with `G53 G0 Z0` and assume **machine Z0 is the top
 - `dragScroll.ts` — Drag-to-scroll handler for touch/mouse on `.scroll-thin` containers
 - `edgeWorker.ts` — Web Worker for Three.js edge geometry computation
 - `useAxes.ts` — Single source for the machine's axis set (from `viewer_init.axes`): entries {letter,index,kind}, primary/abc/uvw groups, by-letter index resolvers. Never hardcode axis positions or letter sets in components.
+- `touchDetect.ts` — sets `html.touch-device` on the first touch (`isTouchDevice`), and refuses the browser's context menu on touch everywhere but in editable text: Chromium ends a LONG PRESS with `contextmenu`, and a hold that just fired re-renders into its `.btnTip` wrapper (busy latch) where the hold's own handler is not — the menu opened after the action (operator, real machine 2026-09-26). A mouse right click on a desktop keeps the menu. The body sets `-webkit-tap-highlight-color: transparent` (inherited): Chromium's grey tap box flashed over sliders and the view cube.
 - `useGamepad.ts` — Gamepad polling composable (analog sticks + buttons; X/Y/Z resolved by letter)
 - `useJogPointers.ts` — Jogging pointer event management composable
 - `ws/bulkData.ts` — Shared wire types for `viewer_init` / `viewer_gcode` payloads (ViewerInit, ViewerPart, KinematicsList)
