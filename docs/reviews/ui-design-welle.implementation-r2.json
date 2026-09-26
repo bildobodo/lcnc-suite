@@ -1,0 +1,215 @@
+{
+  "flowThenSettings": {
+    "top": "Load Tool into Spindle",
+    "focus": "Load Tool into SpindleT5 Insert tool and press Confirm  AbortConfirm",
+    "focusTag": "DIV",
+    "focusDialog": "Load Tool into Spindle",
+    "visibleOverlayAtFocus": "Load Tool into Spindle",
+    "dialogs": [
+      {
+        "title": "Load Tool into Spindle",
+        "zIndex": "1010"
+      },
+      {
+        "title": "Settings",
+        "zIndex": "1000"
+      }
+    ]
+  },
+  "flowThenSettingsAfterTab": {
+    "top": "Load Tool into Spindle",
+    "focus": "Abort",
+    "focusTag": "BUTTON",
+    "focusDialog": "Load Tool into Spindle",
+    "visibleOverlayAtFocus": "Load Tool into Spindle",
+    "dialogs": [
+      {
+        "title": "Load Tool into Spindle",
+        "zIndex": "1010"
+      },
+      {
+        "title": "Settings",
+        "zIndex": "1000"
+      }
+    ]
+  },
+  "beforeSaveReply": {
+    "top": "Settings",
+    "focus": "3D Viewer",
+    "focusTag": "BUTTON",
+    "focusDialog": "Settings",
+    "visibleOverlayAtFocus": "Settings",
+    "dialogs": [
+      {
+        "title": "Add Tool",
+        "zIndex": "1000"
+      },
+      {
+        "title": "Settings",
+        "zIndex": "1000"
+      }
+    ]
+  },
+  "afterSaveReply": {
+    "top": "Settings",
+    "focus": "3D Viewer",
+    "focusTag": "BUTTON",
+    "focusDialog": "Settings",
+    "visibleOverlayAtFocus": "Settings",
+    "dialogs": [
+      {
+        "title": "Settings",
+        "zIndex": "1000"
+      }
+    ]
+  },
+  "afterSpace": {
+    "top": "Settings",
+    "focus": "3D Viewer",
+    "focusTag": "BUTTON",
+    "focusDialog": "Settings",
+    "visibleOverlayAtFocus": "Settings",
+    "dialogs": [
+      {
+        "title": "Settings",
+        "zIndex": "1000"
+      }
+    ]
+  },
+  "commands": [
+    {
+      "cmd": "get_tool_table",
+      "req_id": "mwyu2s-3"
+    },
+    {
+      "cmd": "get_tool_table",
+      "req_id": "mwyu2s-4"
+    },
+    {
+      "cmd": "add_tool",
+      "tool_number": 6,
+      "pocket": 6,
+      "diameter": 0,
+      "z_offset": 0,
+      "remark": "",
+      "description": "",
+      "type": "",
+      "flutes": null,
+      "oal": null,
+      "flute_length": null,
+      "corner_radius": null,
+      "body_length": null,
+      "shaft_diameter": null,
+      "taper_angle": null,
+      "point_angle": null,
+      "tip_diameter": null,
+      "material": null,
+      "holder": null,
+      "req_id": "mwyu2s-5"
+    },
+    {
+      "cmd": "get_tool_table",
+      "req_id": "mwyu2s-6"
+    }
+  ],
+  "beforeLowerFlowEnds": {
+    "top": "Shut Down LinuxCNC?",
+    "focus": "Cancel",
+    "focusTag": "BUTTON",
+    "focusDialog": "Shut Down LinuxCNC?",
+    "visibleOverlayAtFocus": "Shut Down LinuxCNC?",
+    "dialogs": [
+      {
+        "title": "Load Tool into Spindle",
+        "zIndex": "1010"
+      },
+      {
+        "title": "Shut Down LinuxCNC?",
+        "zIndex": "1010"
+      }
+    ]
+  },
+  "afterLowerFlowEnds": {
+    "top": "Shut Down LinuxCNC?",
+    "focus": "Cancel",
+    "focusTag": "BUTTON",
+    "focusDialog": "Shut Down LinuxCNC?",
+    "visibleOverlayAtFocus": "Shut Down LinuxCNC?",
+    "dialogs": [
+      {
+        "title": "Shut Down LinuxCNC?",
+        "zIndex": "1010"
+      }
+    ]
+  },
+  "hiddenSearchText": "",
+  "quietAfterReload": {
+    "header": "Messages (0)",
+    "bannerActions": "",
+    "persisted": [
+      {
+        "id": 1,
+        "kind": 6,
+        "text": "Saved A.ngc",
+        "ts": 1790416978026,
+        "quiet": true
+      }
+    ]
+  },
+  "disarmedBeforeFlowEnds": {
+    "top": "Load Tool into Spindle",
+    "focus": "Load Tool into SpindleT5 Insert tool and press Confirm  AbortConfirm",
+    "focusTag": "DIV",
+    "focusDialog": "Load Tool into Spindle",
+    "visibleOverlayAtFocus": "Load Tool into Spindle",
+    "dialogs": [
+      {
+        "title": "Load Tool into Spindle",
+        "zIndex": "1010"
+      },
+      {
+        "title": "Settings",
+        "zIndex": "1000"
+      }
+    ]
+  },
+  "disarmedAfterFlowEnds": {
+    "top": "Settings",
+    "focus": "LinuxCNC WebUI (local)12:03:00 PM0 clientsWS connectedWS disconnectedNet 0 msLCN",
+    "focusTag": "BODY",
+    "focusDialog": null,
+    "visibleOverlayAtFocus": "Settings",
+    "dialogs": [
+      {
+        "title": "Settings",
+        "zIndex": "1000"
+      }
+    ]
+  },
+  "disarmedFallback": {
+    "candidateDisabled": true,
+    "activeTag": "BODY",
+    "modalCount": 1,
+    "modalOpen": true
+  },
+  "disarmedAfterBackstop": {
+    "top": "Settings",
+    "focus": "LinuxCNC WebUI (local)12:03:02 PM0 clientsWS connectedWS disconnectedNet 0 msLCN",
+    "focusTag": "BODY",
+    "focusDialog": null,
+    "visibleOverlayAtFocus": "Settings",
+    "dialogs": [
+      {
+        "title": "Settings",
+        "zIndex": "1000"
+      }
+    ]
+  },
+  "disarmedKeyCommands": [],
+  "disarmedWithEscapeCommands": [
+    {
+      "cmd": "estop",
+      "req_id": "qhbvzm-5"
+    }
+  ]
+}

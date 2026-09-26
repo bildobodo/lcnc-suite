@@ -5,10 +5,11 @@ mit Plan-Agreement ([Planreview Runde 3](ui-design-welle.review.md#codex-runde-3
 hält je Arbeitspaket den Umsetzungsstand, Abweichungen und Gate-Läufe fest; die
 Codex-Implementierungsreviews folgen nach den Paketgruppen DR + D0–D2, D3–D6 und D7–D10.
 
-**Aktueller Reviewstand · Codex Runde 1 · 26. September 2026 · `176a9cd`: noch kein
-Implementierungs-Agreement für DR + D0–D2.** Zwei reproduzierte D2-Fokusfehler (P2) und ein
-kleiner D1-Restpunkt (P3). [Befunde, Nachweise und Prüfgrenzen](#codex-implementierungsreview-runde-1).
-Das Plan-Agreement bleibt davon unberührt.
+**Aktueller Reviewstand · Codex Runde 2 · 26. September 2026 · `f73c2a9`: UI-DI01–03
+geschlossen; noch kein Implementierungs-Agreement für DR + D0–D2.** Ein neuer D2-Restbefund
+**UI-DI04 (P2)** betrifft die Fokusrückgabe nach Disarm.
+[Nachprüfung, Nachweise und Prüfgrenzen](#codex-implementierungsreview-runde-2).
+Das Plan-Agreement bleibt davon unberührt; Runde 1 unten ist der historische Prüfstand.
 
 ---
 
@@ -466,3 +467,97 @@ Ausgabe außerhalb des Repos, sodass die Nachweise oben unberührt bleiben. Erge
 | `scripts/test_audit_scoped_css.py` | **20/20** |
 | Playwright, alle Projekte einzeln (`--no-deps --workers=1`) | **216/216**; `serial-guards` 90, davon `dialogs.spec.ts` 29 |
 | UI-DI01, UI-DI02 und der Run-from-line-Test am alten Stand | rot (Registry-Top, Fokusverlust, Hit-Test) |
+
+---
+
+## Codex Implementierungsreview Runde 2
+
+**26. September 2026 · `feat/ui-design-wave` · HEAD `f73c2a9`.** Nachprüfung der Antwort auf
+Runde 1 und aller Produktänderungen seit `176a9cd`, weiterhin im Umfang **DR + D0–D2**.
+
+**Ergebnis: UI-DI01–03 sind behoben und geschlossen.** Ein ergänzender Gate-Wechsel zeigt
+noch einen Fehler im neuen Fokus-Ersatzpunkt: **UI-DI04 (P2)**. D2 ist damit noch nicht
+abgenommen; für DR/D0 bleibt die Bewertung aus Runde 1 bestehen, D1 hat keinen offenen
+Befund dieser beiden Reviewrunden mehr.
+
+| ID | Ergebnis der Nachprüfung | Status |
+|---|---|---|
+| UI-DI01 | Werkzeugwechsel bleibt bei nachträglich geöffneten Settings zugleich sichtbarer und aktiver Dialog; Tab erreicht dessen Abort. Beide Öffnungsreihenfolgen sowie Shutdown ↔ Messages bestehen die neuen Tests. | geschlossen |
+| UI-DI02 | Endet ein unterer Ablauf, bleibt Cancel der darüberliegenden Shutdown-Rückfrage fokussiert. Das verdeckte Suchfeld bleibt leer. Asynchrone Add-Antwort unter Settings und Rückkehr nach Schließen des ganzen Stapels ebenfalls grün. | geschlossen |
+| UI-DI03 | Alter persistierter `quiet`-Eintrag erzeugt nach Neuladen `Messages (0)` und keine Banneraktion. Der Unit-Test erhält `status`/`log` sowie Alt-Einträge ungezählt und zählt einen normalen `notify`-Eintrag weiterhin. | geschlossen |
+| UI-DI04 | Nach Disarm zeigt der neue Ersatzpunkt auf einen gesperrten Settings-Reiter; beim Ende des oberen Ablaufs bleibt der Fokus auf `body`. | **offen · P2 · D2** |
+
+Die zusätzlichen Hit-Tests und die sichtbarkeitsabhängige Initialfokus-Regel für Run from line
+sind nachvollziehbar und bestehen die Nachprüfung bei beiden getesteten Fensterhöhen.
+
+### UI-DI04 — Ein gesperrtes Initialziel ist kein gültiger Fokus-Ersatzpunkt
+
+**Stellen:** `lcnc-webui/src/DialogFrame.vue:103–109`,
+`lcnc-webui/src/modalRegistry.ts:197–200`; verwendeter Rückkehrhelfer
+`lcnc-webui/src/inputSession.ts:119–121`.
+
+**Reproduktion am frischen Build:**
+
+1. Tools öffnen und das Suchfeld fokussieren.
+2. Der Mock-Controller fordert einen Werkzeugwechsel an; anschließend im Header Settings
+   öffnen. Settings wartet jetzt korrekt hinter dem Ablauf.
+3. Der Client erhält `armed: false`. Der Werkzeugwechsel-Container behält den Fokus;
+   die Bedienelemente im Content-Fieldset sind gesperrt.
+4. Der Controller beendet den Werkzeugwechsel. Settings ist nun der sichtbare und registrierte
+   oberste Dialog. Der Fokus landet jedoch auf **BODY** und bleibt dort auch nach **2,2 s**.
+
+**Ursache:** Der registrierte Ersatzpunkt wurde vom Dialog-Container auf dessen `initial()`
+umgestellt. Settings verwendet `initial-focus="button.selected"`. Bei einem expliziten
+Selektor prüft `initialTarget` nur, ob das gefundene Element geometrisch im Dialog liegt;
+anders als bei `first-field`, `close` und `safe` wird `:disabled` nicht ausgeschlossen.
+Der ausgewählte Reiter ist nach Disarm über sein übergeordnetes Fieldset gesperrt. Sein
+`focus()` bleibt wirkungslos. `fallbackFocus` prüft lediglich `isConnected` und beendet diesen
+Pfad ohne Nachweis einer erfolgreichen Fokuslandung. Der vorhandene Container mit
+`tabindex="-1"` wäre weiterhin erreichbar.
+
+**Auswirkung:** Der Dialog verliert seinen sichtbaren Tastaturfokus; die zugesagte bewachte
+Rückkehr landet nicht im verbleibenden Dialog. **Kein nachgewiesener Maschinenstart:**
+Die Registry enthält weiterhin einen offenen Dialog; Space, Enter und Backspace senden in
+der Gegenprobe nichts, Escape sendet genau `estop`. Das ist ein Fehler des Fokus-/
+Barrierefreiheitsvertrags, kein Beleg für einen umgangenen Modal-Schutz.
+
+**Korrekturziel:** Explizite Initialfokus-Selektoren auf tatsächliche Fokussierbarkeit prüfen,
+einschließlich geerbtem `:disabled`. Ist das Ziel nicht geeignet, muss der Dialog-Container
+übernehmen. Die Rückkehr darf einen erfolglosen `focus()`-Versuch nicht als Landung behandeln.
+Die neue Sichtbarkeitsregel für Run from line bleibt dabei erhalten.
+
+**Abnahme:** Obige Folge mit Disarm und beendetem Ablauf: Fokus auf dem verbleibenden
+Dialog-Container, nie dauerhaft auf `body`; Safety bleibt per Tab erreichbar. Dasselbe mit
+G-code Reference als weiterem Dialog mit explizitem Initialselektor sowie beim Öffnen eines
+solchen Dialogs im bereits gesperrten Zustand. Bestehende Prüfungen für beide Stapelreihenfolgen,
+Entwurfspause, vollständiges Schließen, Space/Enter/Backspace und Escape müssen grün bleiben.
+
+**Nachweise:** [Sonde](ui-design-welle.implementation-r2.probe.mjs),
+[JSON](ui-design-welle.implementation-r2.json) (`disarmedBeforeFlowEnds`,
+`disarmedAfterFlowEnds`, `disarmedFallback`, `disarmedAfterBackstop`,
+`disarmedKeyCommands`, `disarmedWithEscapeCommands`) und
+[Bild des verbleibenden Dialogs](ui-design-welle.implementation-r2-disarmed.png).
+Die JSON-Datei enthält auch die erfolgreichen Nachprüfungen von UI-DI01–03. Die Nachweise aus
+Runde 1 wurden unverändert erhalten.
+
+### Ausgeführte Prüfungen und Grenzen
+
+| Prüfung am Stand `f73c2a9` | Ergebnis |
+|---|---|
+| `npm run build` | grün; bestehender Hinweis zu großen Bundles |
+| `npm run lint` einschließlich CSS-Audit | grün |
+| `vitest run src/ws/statusStore.test.ts --maxWorkers=1` | **31/31** grün, einschließlich Persistieren und erneutem Modulimport |
+| Playwright `dialogs.spec.ts` + `keyboard-guards.spec.ts`, `serial-guards --no-deps --workers=1` | **54/54** grün: 29 Dialog- und 25 Tastaturtests |
+| Unabhängige Review-Sonde am Mock `127.0.0.1:4188` | UI-DI01–03 bestätigt behoben; UI-DI04 reproduziert, einschließlich Wartezeit und Gegenprobe der Tastaturbefehle |
+| `git diff --check` | grün |
+
+Die neue Gate-Wechsel-Probe ergänzt die vorhandenen Tests: Der dortige Wechsel „Programm
+läuft → idle“ sperrt nicht den gesamten Content-Bereich durch Disarm und erfasst diesen
+Ersatzpunkt daher nicht. Die im Claude-Bericht genannten vollständigen 1623 Unit- und
+216 Browsertests wurden in dieser Runde nicht nochmals vollständig ausgeführt. Backend,
+D0-Formatierung und Layoutregeln wurden durch die Nachbesserung nicht funktional geändert.
+
+Alle Browserprüfungen liefen nacheinander mit niedriger Prozesspriorität gegen Mocks. Der
+laufende XYZAC-Simulator und der echte Gateway wurden nicht angesprochen oder neu gestartet.
+Keine physische Touch-/Screenreader- oder macOS-Safari-/Firefox-Abnahme; die neue
+`takeOpener`-Sonderregel für macOS wurde nur im Code geprüft. Nur Review und Nachweise geändert.
