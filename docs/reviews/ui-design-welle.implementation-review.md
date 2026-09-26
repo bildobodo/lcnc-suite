@@ -852,6 +852,96 @@ mit einem Kontrast-Scan über die vier Themes), D8c (Viewer-Palette, Legende, Fa
   `serial-layout` 63. Die Referenzbilder in `serial-visual` sind unverändert grün; der Hintergrundpuls
   steht dort still, weil `layout-fixtures` reduzierte Bewegung emuliert.
 
+### WP-D8a — Textrollen, Syntax, Fokusring · 27. September 2026
+
+**Ausgangslage** (Scan rot am Stand vor der Korrektur): `contrast.spec` misst jeden sichtbaren Text
+gegen das, was hinter ihm gerendert ist. Unter 4,5:1 lagen im Theme light 761 Texte, in dark 172, in
+hc-light 84, in hc-dark 42 und in „Automatisch“ bei dunklem System 172.
+- **Gedämpfter Text über Deckkraft** oder über `color-mix(currentColor 60 %)`: 3,6:1 im hellen Theme.
+  Betroffen waren Labels, Abschnittstitel, Einheiten, Beschreibungen, Zeilennummern, nicht gewählte
+  Reiter, Tabellenköpfe und die Beschriftung der Kopfzeilen-Icons. Hinweise mit 40 % Deckkraft kamen
+  auf 2,2:1.
+- **Zustandsfarben als Textfarbe:**
+  - `--warn` 1,4–2,0:1 (HUD-Warnung, Statusnoten);
+  - `--ok` 3,6:1 („CLEAR“);
+  - `--danger` im Dunkel-Theme 3,4:1 (Beschriftung des E-Stop);
+  - `--info` für das „?“ und die G-Wörter 1,9–2,9:1;
+  - `--accent` für die Codes der G-Code-Referenz 4,0:1.
+- **Syntaxfarben:** Die Palette des Dunkel-Themes galt in allen Themes. Im hellen Theme lagen
+  Parameter bei 1,5:1, Koordinaten bei 2,0:1 und M-Wörter bei 2,7:1. Kommentare mit zusätzlich 80 %
+  Deckkraft kamen auf 2,5:1, im Viewer wie im Editor.
+- **„Automatisch“ bei dunklem System** ist eine fünfte Palette mit eigenem CSS-Block. Er setzte nur
+  Grund, Vordergrund, Panel, Rahmen und Button; jede neue Rolle muss auch dort stehen.
+
+**Umgesetzt:**
+- **Textrollen je Theme,** in allen fünf Blöcken:
+  - `--fg-muted`, `--ok-text`, `--warn-text`, `--danger-text`, `--info-text`, `--accent-text`;
+  - `--focus-ring`;
+  - die Syntaxpalette `--syntax-gcode` / `-mcode` / `-coord` / `-param` / `-comment`.
+
+  Jede Rolle hält mindestens 4,6:1 auf Grund, Panel und Button, auf der Auswahl- und Hover-Tönung und
+  auf den Zustandstönungen (Statusnoten, Banner, Warn-Karte). In den HC-Themes halten gedämpfter Text
+  und Syntax mindestens 7:1 auf den neutralen Flächen.
+- **Füllfarben bleiben:** `--ok`, `--warn`, `--danger`, `--info` und `--accent` bleiben die Farben von
+  Füllungen, Rahmen und Tönungen. Text in einem Zustand liest die `-text`-Rolle, ebenso die
+  Zustandsglyphen (Warn-Icon, Zeitleisten-Glyphen).
+- **Gedämpfter Text ist `--fg-muted`,** nie eine Deckkraft (rund 60 Stellen); `--mix-muted` ist
+  entfernt. Nicht gewählte Reiter und Icon-Knöpfe dimmen nur noch ihre Beschriftung, Rahmen und
+  Füllung bleiben.
+- **Kommentare** haben keine Deckkraft mehr, im Viewer wie im Editor.
+- **Editor-Grundschema:** Der Editor wählt sein helles oder dunkles Grundschema nach dem aufgelösten
+  Theme und wechselt live mit. Vorher war es fest dunkel: Auch helle Themes bekamen dunkle Auswahl-
+  und Zeilenfarben.
+- **Viewer-Karten** (HUD, Sim-Leiste) sind zu 92 % statt 85 % deckend. Ihr Text hält so 4,5:1 auch
+  über dunkler Geometrie.
+- **Fokusring:** Er ist `--focus-ring`, getrennt von `--info`. `--info` kam im hellen Theme auf
+  2,9:1 gegen Weiß.
+- **Banner:** Das Einblenden entfällt bei reduzierter Bewegung (D8b-Nachtrag). `appearance.spec` misst
+  den Banner deshalb erst, wenn sein Zustand steht. Der Farbübergang der Füllung (0,4 s, keine
+  Bewegung) lief bisher während des Einblendens ab und fiel jetzt in die Stichprobe.
+- **Tastatur-Tab:** Bei ausgeschalteter Tastatursteuerung sind die Belegungszeilen gedämpft statt
+  gesperrt dargestellt (`.inactive` ist eine Farbe), denn sie bleiben bedienbar.
+
+**Wächter:**
+- **`contrast.spec`** (in `serial-guards`) mit fünf Durchläufen: die vier Themes und „Automatisch“
+  bei dunklem System.
+  - **Stationen:** Seite in Ruhe, Program mit gewählter Zeile, Run-from-line-Dialog, Editor,
+    Dateiliste, alle Reiter, Tools mit aktuellem Werkzeug, eine offene Hilfe, jeder Settings-Bereich,
+    G-Code-Referenz, Hinweisblase und Statusnoten. Dazu die Zustände laufendes Programm, Neuberechnung
+    der Vorschau, Sicherheitsauslösung und E-Stop.
+  - **Messung:** Die Textfarbe geht durch die Deckkraft aller Vorfahren und über die
+    durchscheinenden Schichten bis zur ersten deckenden.
+  - **Schwebende Karten** (HUD, Hinweis, Hilfe) werden zweimal gemessen: über der Seite und über der
+    Vordergrundfarbe. Was im Viewer hinter ihnen liegt, kennt das DOM nicht.
+  - **Ausnahmen und Warten:** Gesperrte Controls sind ausgenommen. Gemessen wird erst, wenn kein
+    Übergang mehr läuft; mitten im Hintergrund-Übergang nach dem Theme-Wechsel lasen Knöpfe Grau.
+- **Fokusring je Theme:** mindestens 2 px, die Farbe `--focus-ring`, mindestens 3:1 auf Grund, Panel
+  und Button. Rot mit der alten Ringfarbe.
+- **`themeTokens.test.ts`:** Jeder Theme-Block definiert jede Rolle, „Automatisch“ dunkel ist gleich
+  Dunkel, `--mix-muted` ist weg. Rot mit einer entfernten Rolle.
+
+**Nicht Teil von D8a:**
+- Die Viewer-Szene selbst (WebGL: Pfad, Bounds, Limit-Markierung, Kollision) kommt mit D8c.
+- Die Befunde der Sim-Leiste (Limit- und Kollisionsmarken) stellt der Mock nicht nach; ihre Glyphen
+  lesen die `-text`-Rollen, gemessen sind sie nicht.
+- `.dialogBody` behält 80 % Deckkraft. Gemessen liegt es über 4,5:1; ob der Rest der
+  Opazitätsregeln auf Farben umzieht, entscheidet D10 (N111).
+
+**Sichtbar für den Operator:**
+- Nicht gewählte Reiter und Icon-Knöpfe dimmen nur ihre Beschriftung; Rahmen und Füllung bleiben voll.
+- Im hellen Theme sind die Syntaxfarben dunkler, die Beschriftung des E-Stop ist dunkelrot.
+- Die Viewer-Karten (HUD, Sim-Leiste) sind deckender.
+- Der Fokusring ist dunkler blau.
+
+**Referenzbilder:** Nur der Fokusring im Werkzeugdialog weicht ab (vier Profile), er ist jetzt dunkler
+blau. Die Bilder sind angesehen und erneuert.
+
+**Gates:**
+- build, lint und Vitest (**1644**, neu `themeTokens.test.ts`) grün.
+- Playwright **273/273** über alle neun Projekte; `serial-guards` 135 (zehn neue Tests: fünf
+  Kontrast-Durchläufe und fünf Fokusring-Tests). Im ersten Lauf fiel die Probe in `appearance.spec`
+  (siehe Banner oben); nach der Korrektur lief `serial-guards` erneut komplett grün.
+
 ---
 
 ## Codex Implementierungsreview Runde 1

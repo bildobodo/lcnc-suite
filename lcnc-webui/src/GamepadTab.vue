@@ -236,7 +236,7 @@ const rawSummary = computed(() => {
    silently broken (App.vue's scope id doesn't reach SettingsPanel's
    children). Local definition fixes it. */
 .okText {
-  color: var(--ok);
+  color: var(--ok-text);
 }
 
 .gpMapKey {

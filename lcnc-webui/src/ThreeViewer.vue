@@ -4081,13 +4081,13 @@ defineExpose({
 
 .hudHead {
   font-size: calc(var(--fs-sm) * var(--hud-scale));
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
   text-align: right;
   white-space: nowrap;
 }
 .hudAxis {
   font-size: calc(var(--fs-lg) * var(--hud-scale));
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
 }
 .hudWork {
   font-size: calc(var(--fs-2xl) * var(--hud-scale));
@@ -4101,7 +4101,7 @@ defineExpose({
 }
 .hudMach {
   font-size: calc(var(--fs-lg) * var(--hud-scale));
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
   text-align: right;
   white-space: nowrap;
   min-width: 8ch;
@@ -4110,7 +4110,7 @@ defineExpose({
    (its usual home) is hidden — machine-column styling, inline. */
 .hudLoadInline {
   font-size: calc(var(--fs-lg) * var(--hud-scale));
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
 }
 
 /* Tool context line: T · Ø · L in G-code notation — no word labels. */
@@ -4145,7 +4145,7 @@ defineExpose({
   font-weight: var(--fw-medium);
   display: flex;
   align-items: center;
-  color: var(--warn);
+  color: var(--warn-text);
   /* The card is shrink-to-fit, so a long single-line chip used to set the
      card's width (the DRO grid followed it out to the viewer edge). A
      flex-column child with width:0 contributes nothing to the card's

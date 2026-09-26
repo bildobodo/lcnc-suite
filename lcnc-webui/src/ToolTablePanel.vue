@@ -1053,7 +1053,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
 
 .importStats {
   font-size: var(--fs-base);
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
   margin-bottom: var(--gap-controls);
 }
 
@@ -1080,7 +1080,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
 .importRow:last-child { border-bottom: none; }
 
 .importExists {
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
 }
 
 .importT { min-width: 40px; font-weight: var(--fw-semibold); }
@@ -1094,7 +1094,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
 }
 .importTag {
   font-size: var(--fs-sm);
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
   font-style: italic;
 }
 
@@ -1138,7 +1138,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
   display: inline-flex;
   vertical-align: middle;
   margin-inline-start: var(--gap-tight);
-  color: var(--ok);
+  color: var(--ok-text);
 }
 
 .colType { width: 80px; }
@@ -1189,14 +1189,6 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
 .sidePane.narrow .colDesc { min-width: 7em; overflow-wrap: break-word; }
 .sidePane.narrow .colType { display: none; }
 .sidePane.narrow .colAction { --action-cell: calc(42px + 2 * var(--gap-tight)); }
-/* A pinned header cell must hide what scrolls under it: muted by colour,
-   never by opacity (the header's 60 % opacity let "Z Offset" read through
-   the pinned action heads). */
-.tableWrap th.colT,
-.tableWrap th.colAction {
-  opacity: 1;
-  color: color-mix(in oklab, currentColor var(--mix-muted), transparent);
-}
 
 
 /* Hover preview card — teleported to <body>, but rendered by THIS component,

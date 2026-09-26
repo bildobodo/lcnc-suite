@@ -115,7 +115,7 @@ onMounted(() => browse());
   gap: var(--gap-controls);
   padding: var(--gap-tight) var(--gap-controls);
   font-size: var(--fs-sm);
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
   flex-shrink: 0;
   min-width: 0;
 }
@@ -137,9 +137,9 @@ onMounted(() => browse());
 }
 .fileItem.activeItem { background: color-mix(in oklab, var(--info) 15%, var(--panel)); }
 .fileItem.directory .fileEntryName { font-weight: var(--fw-semibold); }
-.fileIcon { opacity: var(--opacity-muted); width: 10px; flex-shrink: 0; text-align: center; }
+.fileIcon { color: var(--fg-muted); width: 10px; flex-shrink: 0; text-align: center; }
 .fileEntryName { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fileSize { font-size: var(--fs-sm); opacity: var(--opacity-muted); flex-shrink: 0; }
+.fileSize { font-size: var(--fs-sm); color: var(--fg-muted); flex-shrink: 0; }
 .emptyBrowser { padding: var(--gap-section); }
 /* Chrome from the global .statusNote; layout only here. */
 .statusNote { flex-shrink: 0; }

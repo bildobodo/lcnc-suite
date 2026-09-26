@@ -142,12 +142,12 @@ function toggleSort(key: "code" | "name") {
 .refCode {
   font-family: var(--font-mono);
   font-weight: var(--fw-semibold);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .refSyntax {
   font-family: var(--font-mono);
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
 }
 
 /* Specificity over `.refTable td` (0,1,1) instead of !important. */
@@ -155,7 +155,7 @@ function toggleSort(key: "code" | "name") {
 
 .refFooter {
   font-size: var(--fs-xs);
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
   text-align: right;
 }
 

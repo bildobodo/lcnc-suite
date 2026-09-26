@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref, useId, watch } from "vue";
+import { computed, inject, nextTick, onMounted, onUnmounted, ref, useId, watch, type Ref } from "vue";
 import type { CollisionLineMark } from "./viewer/collision";
 import { listFiles, uploadFile, saveFile, fetchSubfile, UploadConflictError, type FileEntry } from "./lcncApi";
 import DialogFrame from "./DialogFrame.vue";
@@ -618,6 +618,15 @@ const compactEdit = computed(() => isPortrait.value && editing.value && !can.val
 const saving = ref(false);
 const saveError = ref<string | null>(null);
 let _editorView: any = null;
+// The editor's light/dark base theme follows the RESOLVED app theme (App's
+// "isDark": the explicit theme, else the system scheme) — a constant
+// `dark: true` gave the light themes CodeMirror's dark selection and
+// active-line colours (design wave D8). Reconfigured live on a switch.
+const isDark = inject<Ref<boolean>>("isDark", ref(false));
+let _editorTheme: { compartment: any; make: (dark: boolean) => any } | null = null;
+watch(isDark, (dark) => {
+  if (_editorView && _editorTheme) _editorView.dispatch({ effects: _editorTheme.compartment.reconfigure(_editorTheme.make(dark)) });
+});
 let _cm: { deleteCharBackward: any; undo: any; redo: any; cursorCharLeft: any; cursorCharRight: any; insertTab: any } | null = null;
 
 // ── Edit SESSION (WP0, UI-01) ──
@@ -662,7 +671,7 @@ async function enterEdit() {
   try {
     // Dynamic import: CM6 stays out of the initial bundle (P6 pattern) — it loads
     // only when someone actually edits.
-    const [{ EditorState }, { EditorView, keymap, lineNumbers }, { defaultKeymap, history, historyKeymap, deleteCharBackward, undo, redo, cursorCharLeft, cursorCharRight, insertTab }, { gcodeEditorLanguage }] =
+    const [{ EditorState, Compartment }, { EditorView, keymap, lineNumbers }, { defaultKeymap, history, historyKeymap, deleteCharBackward, undo, redo, cursorCharLeft, cursorCharRight, insertTab }, { gcodeEditorLanguage }] =
       await Promise.all([
         import("@codemirror/state"),
         import("@codemirror/view"),
@@ -675,16 +684,18 @@ async function enterEdit() {
     // with A's text and the conflict banner shows); only a discarded or
     // replaced session aborts — the stale import installs nothing.
     if (_session !== session || !editing.value || !editorHost.value || _editorView) return;
-    const theme = EditorView.theme({
+    const make = (dark: boolean) => EditorView.theme({
       "&": { backgroundColor: "var(--bg)", color: "var(--fg)", height: "100%" },
       ".cm-scroller": { fontFamily: "var(--font-mono)", overflow: "auto" },
-      ".cm-gutters": { backgroundColor: "var(--bg)", color: "var(--fg)", opacity: "var(--opacity-muted)", border: "none" },
+      // Line numbers muted by COLOUR, like the viewer's (D8).
+      ".cm-gutters": { backgroundColor: "var(--bg)", color: "var(--fg-muted)", border: "none" },
       "&.cm-focused": { outline: "none" },
-      // The dark:true flag below makes CM's base theme paint a WHITE native
-      // caret — invisible on the light-mode --bg. Pin it to the theme token
-      // so it tracks light/dark like everything else.
+      // CM's dark base theme paints a WHITE native caret; pin it to the
+      // theme token so it tracks every theme.
       ".cm-content": { caretColor: "var(--fg)" },
-    }, { dark: true });
+    }, { dark });
+    _editorTheme = { compartment: new Compartment(), make };
+    const theme = _editorTheme.compartment.of(make(isDark.value));
     _editorView = new EditorView({
       state: EditorState.create({
         doc: session.original,
@@ -716,6 +727,7 @@ async function enterEdit() {
 function _destroyEditor() {
   _editorView?.destroy();
   _editorView = null;
+  _editorTheme = null;
 }
 
 // ── The editor as a text-keyboard target (WP8) ──
@@ -1183,7 +1195,7 @@ async function saveEdit() {
 
 .switchBtn {
   flex: 0 0 auto;
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
 }
 
 .switchBtn.active {
@@ -1226,7 +1238,7 @@ async function saveEdit() {
 
 .fileMeta {
   font-size: var(--fs-base);
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
   white-space: nowrap;
 }
 
@@ -1267,23 +1279,21 @@ async function saveEdit() {
 .dropIcon {
   width: 48px;
   height: 48px;
-  color: var(--info);
-  opacity: var(--opacity-secondary);
+  color: var(--info-text);
 }
 
 .denied .dropIcon {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 .dropText {
   font-size: var(--fs-lg);
   font-weight: var(--fw-semibold);
-  color: var(--info);
-  opacity: var(--opacity-secondary);
+  color: var(--info-text);
 }
 
 .denied .dropText {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 /* .codeViewer, .codeLine, .lineNumber, .lineContent — global in style.css */
@@ -1316,7 +1326,7 @@ async function saveEdit() {
 
 .emptyHint {
   font-size: var(--fs-md);
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
 }
 
 /* Edit mode */
@@ -1351,9 +1361,6 @@ async function saveEdit() {
    read as main-file numbers). Layout + opacity tokens only. */
 .codeLine.subRow .lineContent {
   padding-left: var(--gap-panel);
-}
-.codeLine.subRow .lineNumber {
-  opacity: var(--opacity-muted);
 }
 
 /* .codeLine.selected — global in style.css */
@@ -1400,7 +1407,7 @@ async function saveEdit() {
 .gcodeTooltipCode {
   font-family: var(--font-mono);
   font-weight: var(--fw-semibold);
-  color: var(--accent);
+  color: var(--accent-text);
 }
 
 .gcodeTooltipDesc {

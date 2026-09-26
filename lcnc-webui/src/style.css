@@ -111,22 +111,33 @@
   /* Opacity */
   --opacity-subtle: 0.3;    /* separators, faint visual dividers */
   --opacity-disabled: 0.4;
-  --opacity-muted: 0.6;     /* secondary/dimmed text, sample counts, waiting states */
-  /* Muted TEXT in a box that holds a "?" (labels, .sub, .label-muted,
-     .statsLabel) is a colour, not an opacity: an ancestor's opacity
-     multiplies into every child and no child rule can undo it — the "?"
-     inside a muted label looked muted while fully usable (design wave D1
-     live look). The same ratio as --opacity-muted, mixed into the inherited
-     colour. A DISABLED label keeps opacity (it must compose with a colour of
-     its own, e.g. a warn status) and never holds a "?". */
-  --mix-muted: 60%;
-  --opacity-secondary: 0.8; /* dialog body text, syntax comments, icon hover */
+  --opacity-muted: 0.6;     /* decoration only (ticks, strokes) — muted TEXT is --fg-muted */
+  --opacity-secondary: 0.8; /* dialog body text, icon hover */
 
-  /* Syntax highlighting */
-  --syntax-mcode: #c586c0;
-  --syntax-coord: #4ec9b0;
-  --syntax-param: #9cdcfe;
-  --syntax-comment: #6a9955;
+  /* Text roles (design wave D8, UI-K08/K09, UI-D07): the colour a TEXT
+     takes in a secondary or a state role, and the syntax palette — each a
+     measured colour per theme (contrast.spec: 4.5 : 1 on every surface it
+     sits on, the state tints and the translucent viewer cards included).
+     --ok / --warn / --danger / --info / --accent stay the colours of FILLS,
+     borders and tints; a text in that state reads the -text role. Muted
+     text is --fg-muted, never an opacity: an opacity multiplies into every
+     child (a "?" inside a muted label looked muted while fully usable, D1)
+     and fades against whatever lies behind. Opacity is for DISABLED
+     controls and decoration only. --focus-ring is the keyboard ring,
+     ≥ 3 : 1 on every surface (appearance.spec). EVERY theme block below
+     sets all of them — the dark one twice (explicit and auto). */
+  --fg-muted: #525e6a;
+  --ok-text: #006c00;
+  --warn-text: #8d4500;
+  --danger-text: #9c0003;
+  --info-text: #146197;
+  --accent-text: #5442dd;
+  --focus-ring: #146197;
+  --syntax-gcode: #146197;
+  --syntax-mcode: #82487e;
+  --syntax-coord: #006955;
+  --syntax-param: #236482;
+  --syntax-comment: #3b6825;
 
   /* Highlight tiers (fg mixed into button-bg) */
   --hl-hover: color-mix(in oklab, var(--fg) 12%, var(--button-bg));
@@ -249,6 +260,18 @@
     --border: rgba(255,255,255,0.12);
     --border-subtle: color-mix(in oklab, var(--border) 50%, transparent);
     --button-bg: #1a1a1a;
+    --fg-muted: #999fa5;
+    --ok-text: #3fb53c;
+    --warn-text: #f5a623;
+    --danger-text: #ff8076;
+    --info-text: #65abe6;
+    --accent-text: #9493ff;
+    --focus-ring: #569cd6;
+    --syntax-gcode: #65abe6;
+    --syntax-mcode: #c98ac4;
+    --syntax-coord: #4ec9b0;
+    --syntax-param: #9cdcfe;
+    --syntax-comment: #7baa66;
   }
 }
 
@@ -259,6 +282,18 @@
   --panel: #f5f5f5;
   --border: rgba(0,0,0,0.12);
   --button-bg: #f9f9f9;
+  --fg-muted: #525e6a;
+  --ok-text: #006c00;
+  --warn-text: #8d4500;
+  --danger-text: #9c0003;
+  --info-text: #146197;
+  --accent-text: #5442dd;
+  --focus-ring: #146197;
+  --syntax-gcode: #146197;
+  --syntax-mcode: #82487e;
+  --syntax-coord: #006955;
+  --syntax-param: #236482;
+  --syntax-comment: #3b6825;
 }
 
 :root[data-theme="dark"] {
@@ -268,6 +303,18 @@
   --border: rgba(255,255,255,0.12);
   --border-subtle: color-mix(in oklab, var(--border) 50%, transparent);
   --button-bg: #1a1a1a;
+  --fg-muted: #999fa5;
+  --ok-text: #3fb53c;
+  --warn-text: #f5a623;
+  --danger-text: #ff8076;
+  --info-text: #65abe6;
+  --accent-text: #9493ff;
+  --focus-ring: #569cd6;
+  --syntax-gcode: #65abe6;
+  --syntax-mcode: #c98ac4;
+  --syntax-coord: #4ec9b0;
+  --syntax-param: #9cdcfe;
+  --syntax-comment: #7baa66;
 }
 
 /* High-contrast overrides — boost surfaces AND semantic colors */
@@ -287,6 +334,18 @@
   --highlight: #d07000;
   --display: #0a7a9a;
   --active-tool: #c8a800;
+  --fg-muted: #3b3b3b;
+  --ok-text: #006400;
+  --warn-text: #863f00;
+  --danger-text: #8d0000;
+  --info-text: #004bc1;
+  --accent-text: #483cd3;
+  --focus-ring: #0055cc;
+  --syntax-gcode: #005489;
+  --syntax-mcode: #753c71;
+  --syntax-coord: #005c48;
+  --syntax-param: #125674;
+  --syntax-comment: #2f5b16;
 }
 
 :root[data-theme="hc-dark"] {
@@ -305,6 +364,18 @@
   --highlight: #ffbb33;
   --display: #44ddff;
   --active-tool: #ffee44;
+  --fg-muted: #bbbbbb;
+  --ok-text: #33dd33;
+  --warn-text: #ffcc00;
+  --danger-text: #ff887c;
+  --info-text: #66aaff;
+  --accent-text: #9b93ff;
+  --focus-ring: #66aaff;
+  --syntax-gcode: #5da4de;
+  --syntax-mcode: #c889c3;
+  --syntax-coord: #4ec9b0;
+  --syntax-param: #9cdcfe;
+  --syntax-comment: #7bab66;
 }
 
 html, body {
@@ -381,11 +452,11 @@ select:focus-visible,
 [role="button"]:focus-visible,
 input[type="checkbox"]:focus-visible,
 input[type="radio"]:focus-visible {
-  outline: 2px solid var(--info);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 1px;
 }
 input[type="range"]:focus-visible {
-  outline: 2px solid var(--info);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 4px;
 }
 
@@ -541,7 +612,7 @@ input[type="range"]::-moz-range-thumb:hover {
 
 .inputField:focus,
 .inputField.keypad-active {
-  outline: 2px solid var(--info);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 1px;
   border-color: color-mix(in oklab, var(--fg) 40%, var(--border));
 }
@@ -690,7 +761,7 @@ textarea {
 }
 
 textarea:focus {
-  outline: 2px solid var(--info);
+  outline: 2px solid var(--focus-ring);
   outline-offset: 1px;
   border-color: color-mix(in oklab, var(--fg) 40%, var(--border));
 }
@@ -706,7 +777,7 @@ textarea:disabled {
 
 .radioDesc {
   font-size: var(--fs-sm);
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
 }
 
 /* A text and its "?" as ONE centred row (the MachineToggle text, a heading
@@ -934,7 +1005,7 @@ label:has(input:disabled, select:disabled) {
 }
 /* The wrapper is the only focusable thing left when a control is disabled
    (R-05), so it takes the same focus ring as the other help affordance. */
-.btnTip:focus-visible { outline: 2px solid var(--info); outline-offset: 1px; }
+.btnTip:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 
 /* .fs-reset:disabled opacity intentionally removed — Gate.vue fieldset handles disabled opacity
    via the fieldset:disabled rule above. Keeping it here would cause double-dimming (0.4 × 0.4). */
@@ -1044,7 +1115,7 @@ label:has(input:disabled, select:disabled) {
 .sub {
   font-size: var(--fs-sm);
   font-weight: var(--fw-semibold);
-  color: color-mix(in oklab, currentColor var(--mix-muted), transparent);
+  color: var(--fg-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -1054,14 +1125,14 @@ label:has(input:disabled, select:disabled) {
    roles replace this class in D10. */
 .noteWarn {
   font-size: var(--fs-sm);
-  color: var(--warn);
+  color: var(--warn-text);
   white-space: normal;
 }
 
 .label {
   font-size: var(--fs-xs);
   font-weight: var(--fw-semibold);
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -1072,7 +1143,7 @@ label:has(input:disabled, select:disabled) {
    Keyboard, Gamepad). */
 .settingDesc {
   font-size: var(--fs-base);
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
   margin-bottom: var(--gap-section);
 }
 
@@ -1096,17 +1167,17 @@ label:has(input:disabled, select:disabled) {
 .statusNote.warn {
   background: color-mix(in oklab, var(--warn) 15%, var(--panel));
   border: 1px solid color-mix(in srgb, var(--warn) 25%, transparent);
-  color: var(--warn);
+  color: var(--warn-text);
 }
 .statusNote.error {
   background: color-mix(in oklab, var(--err) 15%, var(--panel));
   border: 1px solid color-mix(in srgb, var(--err) 25%, transparent);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 .statusNote.ok {
   background: color-mix(in oklab, var(--ok) 15%, var(--panel));
   border: 1px solid color-mix(in srgb, var(--ok) 25%, transparent);
-  color: var(--ok);
+  color: var(--ok-text);
 }
 
 .sep {
@@ -1171,7 +1242,7 @@ label:has(input:disabled, select:disabled) {
 /* THE form label (N60/N61): one size, one muted colour, Title Case text. */
 .formLabel {
   font-size: var(--fs-sm);
-  color: color-mix(in oklab, currentColor var(--mix-muted), transparent);
+  color: var(--fg-muted);
   min-width: 0;
 }
 /* The unit, right-aligned above the right-aligned value; the field's
@@ -1181,7 +1252,7 @@ label:has(input:disabled, select:disabled) {
   padding-inline-start: var(--gap-tight);
   font-size: var(--fs-sm);
   font-variant-numeric: tabular-nums;
-  color: color-mix(in oklab, currentColor var(--mix-muted), transparent);
+  color: var(--fg-muted);
   white-space: nowrap;
 }
 .formField > .inputField,
@@ -1263,7 +1334,7 @@ label:has(input:disabled, select:disabled) {
 .formField.inline .formUnit { order: 1; }
 .formError {
   font-size: var(--fs-sm);
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 
@@ -1300,7 +1371,7 @@ label:has(input:disabled, select:disabled) {
   background: color-mix(in oklab, var(--info) 15%, transparent);
   border: 1px solid color-mix(in oklab, var(--info) 40%, transparent);
   border-radius: var(--radius-round);
-  color: var(--info);
+  color: var(--info-text);
   font-family: var(--font-sans);
   font-size: var(--fs-xs);
   font-weight: var(--fw-bold);
@@ -1334,7 +1405,7 @@ label:has(input:disabled, select:disabled) {
   background: color-mix(in oklab, var(--info) 20%, transparent);
   border-color: var(--info);
 }
-.helpIcon:focus-visible { outline: 2px solid var(--info); outline-offset: 1px; }
+.helpIcon:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
 /* A heading or label carrying its "?" out of the flow (design wave D6,
    N93 — was two scoped copies): the icon at the box's top right, anchored
    to the TOP (centred it overhung the next row by 1.75 px), and the box
@@ -1488,7 +1559,7 @@ label:has(input:disabled, select:disabled) {
   margin-bottom: 0;
 }
 
-.dialogTitle.danger { color: var(--danger); }
+.dialogTitle.danger { color: var(--danger-text); }
 
 .dialogBody {
   font-size: var(--fs-lg);
@@ -1513,11 +1584,11 @@ label:has(input:disabled, select:disabled) {
 }
 
 /* G-code syntax highlighting tokens */
-.token-gcode, .tok-gcode { color: var(--info); font-weight: var(--fw-semibold); }
+.token-gcode, .tok-gcode { color: var(--syntax-gcode); font-weight: var(--fw-semibold); }
 .token-mcode, .tok-mcode { color: var(--syntax-mcode); font-weight: var(--fw-semibold); }
 .token-coord, .tok-coord { color: var(--syntax-coord); }
 .token-param, .tok-param { color: var(--syntax-param); }
-.token-comment, .tok-comment { color: var(--syntax-comment); opacity: var(--opacity-secondary); }
+.token-comment, .tok-comment { color: var(--syntax-comment); }
 .token-text, .tok-text { color: var(--fg); }
 
 /* ---- Code viewer (shared by GcodePanel, MDI history) ---- */
@@ -1576,12 +1647,10 @@ label:has(input:disabled, select:disabled) {
    warn, a collision-sweep contact is danger (same colours as the scrub
    bar's timeline marks; a line with both reads danger — later rule wins). */
 .codeLine.violation .lineNumber {
-  color: var(--warn);
-  opacity: 1;
+  color: var(--warn-text);
 }
 .codeLine.collision .lineNumber {
-  color: var(--danger);
-  opacity: 1;
+  color: var(--danger-text);
 }
 
 .lineNumber {
@@ -1589,7 +1658,7 @@ label:has(input:disabled, select:disabled) {
   min-width: 40px;
   text-align: right;
   margin-right: 16px;
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
   user-select: none;
   flex-shrink: 0;
 }
@@ -1785,7 +1854,9 @@ label:has(input:disabled, select:disabled) {
    through at 85 % panel, blurred so text stays legible over a busy toolpath.
    One chrome for every card that floats over the 3D view. */
 .overlay-card {
-  background: color-mix(in oklab, var(--panel) 85%, transparent);
+  /* 92 %: the scene shows through, and the card's text keeps 4.5 : 1 with
+     foreground-dark geometry behind it (contrast.spec composites both). */
+  background: color-mix(in oklab, var(--panel) 92%, transparent);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   backdrop-filter: blur(6px);
@@ -1796,7 +1867,7 @@ label:has(input:disabled, select:disabled) {
 .overlay-card.warn {
   background: color-mix(in oklab, var(--warn) 20%, var(--panel));
   border-color: var(--warn);
-  color: var(--warn);
+  color: var(--warn-text);
 }
 
 /* ── Display utilities ── */
@@ -1805,7 +1876,7 @@ label:has(input:disabled, select:disabled) {
  * Sans font + tabular-nums keeps digit columns aligned without monospace. */
 .val-mono       { font-variant-numeric: tabular-nums; font-size: var(--fs-sm); font-weight: var(--fw-semibold); }
 .val-mono.lg    { font-size: var(--fs-xl); font-weight: var(--fw-bold); }
-.val-mono.warn  { color: var(--warn); }
+.val-mono.warn  { color: var(--warn-text); }
 /* Live numeric readouts: a fixed-width, right-aligned slot (floor set per
    use via --slot-w, sized to the readout's realistic maximum) so digit-count
    changes never shift neighboring content. ch units track the element's own
@@ -1820,10 +1891,10 @@ label:has(input:disabled, select:disabled) {
 /* Muted label (section headers, units, field labels) */
 /* A caption is the size of a heading (design wave D6, N92: the slider and
    radio captions were 9 / 10 px beside 11 px headings). */
-.label-muted    { font-size: var(--fs-sm); color: color-mix(in oklab, currentColor var(--mix-muted), transparent); white-space: nowrap; }
+.label-muted    { font-size: var(--fs-sm); color: var(--fg-muted); white-space: nowrap; }
 /* Opacity-only muting — dims without changing type size (e.g. the reserved-
    WCS radio text, which must stay --fs-base with its siblings). */
-.muted          { opacity: var(--opacity-muted); }
+.muted          { color: var(--fg-muted); }
 .label-muted.md { font-size: var(--fs-md); }
 
 /* Status key/value row — label left, value right (safety detail, tool
@@ -1862,10 +1933,10 @@ label:has(input:disabled, select:disabled) {
 /* Status key/value pairs (safety detail, spindle readouts) */
 .val-status        { font-size: var(--fs-sm); font-weight: var(--fw-semibold); text-align: right; }
 .val-status.md     { font-size: var(--fs-md); }
-.val-status.ok     { color: var(--ok); }
-.val-status.bad    { color: var(--danger); }
-.val-status.warn   { color: var(--warn); }
-.val-status.muted  { opacity: var(--opacity-muted); }
+.val-status.ok     { color: var(--ok-text); }
+.val-status.bad    { color: var(--danger-text); }
+.val-status.warn   { color: var(--warn-text); }
+.val-status.muted  { color: var(--fg-muted); }
 .val-status.mono   { font-variant-numeric: tabular-nums; }
 /* Tabular-nums utility — keeps digit columns aligned in proportional text */
 .mono { font-variant-numeric: tabular-nums; }
@@ -1879,8 +1950,8 @@ label:has(input:disabled, select:disabled) {
 
 /* Text colour modifiers (design wave D6, N94; N112): a colour and nothing
    else — a state never borrows a value class's size and weight. */
-.text-warn  { color: var(--warn); }
-.text-muted { color: color-mix(in oklab, currentColor var(--mix-muted), transparent); }
+.text-warn  { color: var(--warn-text); }
+.text-muted { color: var(--fg-muted); }
 
 /* Radio button label row (jog increments, WCS selector) */
 .radio-label    { display: flex; align-items: center; gap: var(--gap-tight); font-size: var(--fs-base); cursor: pointer; white-space: nowrap; }
@@ -1899,7 +1970,7 @@ label:has(input:disabled, select:disabled) {
   gap: var(--gap-tight) var(--gap-controls);
 }
 .statsLabel {
-  color: color-mix(in oklab, currentColor var(--mix-muted), transparent);   /* holds a "?" */
+  color: var(--fg-muted);   /* holds a "?" */
   display: flex;
   align-items: center;
 }
@@ -1923,7 +1994,7 @@ label:has(input:disabled, select:disabled) {
   flex-shrink: 0;
 }
 .legendPct {
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
   margin-left: auto;
 }
 
@@ -1957,16 +2028,16 @@ label:has(input:disabled, select:disabled) {
    beside it — the Settings header grew to a column of one-word lines and
    buried the tabs (review round 7 e2e). */
 .saveStatus { font-size: var(--fs-sm); font-weight: var(--fw-semibold); min-width: 0; overflow-wrap: anywhere; }
-.saveStatus.saved { color: var(--ok); }
-.saveStatus.error, .saveStatus.blocked { color: var(--danger); }
+.saveStatus.saved { color: var(--ok-text); }
+.saveStatus.error, .saveStatus.blocked { color: var(--danger-text); }
 
 /* Empty state (no data / drag target) */
 /* THE line of a list or area with nothing to show (design wave D5, N83/N84)
    — never a scoped copy. `.emptyState` (the list is empty), `.noMatch` (a
    search found nothing, the list itself is not empty), `.loading`, `.error`
    (a read failed and no .statusNote carries it). Say which it is. */
-.emptyState { text-align: center; opacity: var(--opacity-muted); font-size: var(--fs-md); }
-.emptyState.error { color: var(--danger); opacity: 1; }
+.emptyState { text-align: center; color: var(--fg-muted); font-size: var(--fs-md); }
+.emptyState.error { color: var(--danger-text); }
 
 /* Status indicator dot */
 .statusDot { width: 8px; height: 8px; border-radius: var(--radius-round); background: var(--border); }
@@ -2024,7 +2095,7 @@ label:has(input:disabled, select:disabled) {
   text-align: left;
   font-size: var(--fs-sm);
   font-weight: var(--fw-semibold);
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
   padding: 4px 8px;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
@@ -2058,10 +2129,13 @@ label:has(input:disabled, select:disabled) {
   background: none;
 }
 
-/* .inactive — retained for non-permission app-state dimming (e.g. keyboard config rows when jog is disabled).
-   NOT for permission gates — use Gate.vue (<fieldset :disabled="!allow">) for that. */
+/* .inactive — non-permission app-state dimming (keyboard binding rows while
+   keyboard jog is off). The rows stay operable (a binding can be changed
+   while its feature is off), so they read MUTED, not disabled: a colour
+   (D8), never an opacity. NOT for permission gates — use Gate.vue
+   (<fieldset :disabled="!allow">) for that. */
 .inactive {
-  opacity: var(--opacity-disabled);
+  color: var(--fg-muted);
 }
 
 /* ── Probe-grid SVG glyph styles ─────────────────────────────────────

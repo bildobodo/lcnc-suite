@@ -246,7 +246,7 @@ function clearAll() {
 }
 
 .activeRow .offLabel {
-  color: var(--ok);
+  color: var(--ok-text);
 }
 
 tbody tr {
@@ -259,11 +259,11 @@ tbody tr.auxRow {
 }
 
 .auxLabel {
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
 }
 
 .warn {
-  color: var(--warn);
+  color: var(--warn-text);
 }
 
 /* Persistent tint, not :hover — hover affordances are invisible on touch,

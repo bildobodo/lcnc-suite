@@ -1469,7 +1469,7 @@ html.touch-device .gridSection { height: 368px; }
   box-shadow: 0 0 6px var(--ok);
 }
 .compValue {
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
 }
 .surface3d {
   flex: 1;

@@ -109,7 +109,7 @@ html.touch-device .b-icon { min-width: 40px; }
 }
 
 .estop {
-  color: var(--danger);
+  color: var(--danger-text);
   border-color: color-mix(in srgb, var(--danger) 50%, transparent);
 }
 
@@ -155,7 +155,7 @@ html.touch-device .b-icon { min-width: 40px; }
   animation: pulse-warn 1s ease-in-out infinite;
 }
 .b-icon.warning {
-  color: var(--warn);
+  color: var(--warn-text);
   --pulse-on: color-mix(in oklab, var(--warn) 20%, transparent);
   --pulse-off: transparent;
   background: var(--pulse-on);
@@ -167,15 +167,16 @@ html.touch-device .b-icon { min-width: 40px; }
   50% { background: var(--pulse-off); }
 }
 
-/* ---- Muted (dimmed until active/selected/hover) ---- */
-.b.muted { opacity: var(--opacity-muted); }
-html:not(.touch-device) .b.muted:hover:not(:disabled) { opacity: 1; }
-/* Touch has no hover-to-brighten path — rest muted tabs one tier up so
-   they stay readable, and let a press un-mute like hover does. */
-html.touch-device .b.muted { opacity: var(--opacity-secondary); }
-html.touch-device .b.muted:active:not(:disabled) { opacity: 1; }
+/* ---- Muted (the unselected tabs) ----
+   A muted LABEL, not a faded button (design wave D8, UI-D07): the text
+   takes --fg-muted (≥ 4.5 : 1, contrast.spec), the box keeps its border and
+   fill — an opacity faded the words to 3.6 : 1. Hover, a press and the
+   selection bring the full colour. */
+.b.muted { color: var(--fg-muted); }
+html:not(.touch-device) .b.muted:hover:not(:disabled),
+.b.muted:active:not(:disabled),
 .b.muted.active,
-.b.muted.selected { opacity: 1; }
+.b.muted.selected { color: var(--fg); }
 
 /* ---- Tabs (TabNav, design wave D3, UI-K12/K17) ----
    Selection is a SHAPE, not a colour alone: the selected main tab opens
@@ -245,16 +246,17 @@ html.touch-device .b.muted:active:not(:disabled) { opacity: 1; }
   border: none;
   padding: 6px 8px;
   font-size: inherit;
-  color: inherit;
-  opacity: var(--opacity-muted);
+  /* Muted by COLOUR (D8): the glyph and a caption ("Shut Down") at
+     --fg-muted; hover and a press bring the full colour. */
+  color: var(--fg-muted);
   cursor: pointer;
   border-radius: var(--radius-md);
-  transition: opacity 0.15s, background 0.15s;
+  transition: color 0.15s, background 0.15s;
 }
 .b-icon.xs { padding: 2px 4px; font-size: var(--fs-xs); }
 .b-icon.sm { padding: 3px 6px; font-size: var(--fs-sm); }
-html:not(.touch-device) .b-icon:hover:not(:disabled) { opacity: var(--opacity-secondary); background: var(--hl-surface); }
-.b-icon:active:not(:disabled) { opacity: 1; background: var(--hl-surface); }
+html:not(.touch-device) .b-icon:hover:not(:disabled) { color: var(--fg); background: var(--hl-surface); }
+.b-icon:active:not(:disabled) { color: var(--fg); background: var(--hl-surface); }
 .b-icon:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
 
 /* ---- Inline button ---- */

@@ -267,7 +267,7 @@ const halTabs = computed(() => ([
 }
 
 .halFilterInfo {
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
   margin-bottom: var(--gap-tight);
 }
 
@@ -305,7 +305,7 @@ const halTabs = computed(() => ([
 }
 
 .halGroupCount {
-  opacity: var(--opacity-disabled);
+  color: var(--fg-muted);
 }
 
 .halGroupBody {
@@ -334,13 +334,13 @@ const halTabs = computed(() => ([
 .halType {
   width: 36px;
   flex-shrink: 0;
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
 }
 
 .halDir {
   width: 24px;
   flex-shrink: 0;
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
 }
 
 .halValue {
@@ -351,17 +351,17 @@ const halTabs = computed(() => ([
 }
 
 .halTrue {
-  color: var(--ok);
+  color: var(--ok-text);
 }
 
 .halFalse {
-  opacity: var(--opacity-disabled);
+  color: var(--fg-muted);
 }
 
 .halSignal {
   flex: 1;
   min-width: 60px;
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -394,7 +394,7 @@ const halTabs = computed(() => ([
   gap: var(--gap-tight) var(--gap-section);
   padding-left: var(--gap-section);
   padding-top: var(--gap-micro);
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
 }
 
 .halSigPin {

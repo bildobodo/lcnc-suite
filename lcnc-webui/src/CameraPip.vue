@@ -296,7 +296,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: var(--opacity-disabled);
+  color: var(--fg-muted);
   font-size: var(--fs-sm);
 }
 

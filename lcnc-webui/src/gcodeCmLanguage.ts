@@ -54,11 +54,11 @@ const gcodeStream = StreamLanguage.define<{ inParen: boolean }>({
 // Colors come from the SAME tokens as .token-* in style.css (single source of
 // truth for syntax color semantics — never hardcode).
 const gcodeHighlightStyle = HighlightStyle.define([
-  { tag: gcodeTag, color: "var(--info)", fontWeight: "var(--fw-semibold)" },
+  { tag: gcodeTag, color: "var(--syntax-gcode)", fontWeight: "var(--fw-semibold)" },
   { tag: mcodeTag, color: "var(--syntax-mcode)", fontWeight: "var(--fw-semibold)" },
   { tag: coordTag, color: "var(--syntax-coord)" },
   { tag: paramTag, color: "var(--syntax-param)" },
-  { tag: commentTag, color: "var(--syntax-comment)", opacity: "var(--opacity-secondary)" },
+  { tag: commentTag, color: "var(--syntax-comment)" },
 ]);
 
 /** Drop-in extensions for the editor: G-code tokenizer + viewer-matched colors. */

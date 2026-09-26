@@ -6940,3 +6940,41 @@ Plan Fassung 3 WP-D8 (UI-K09 / K13 part, UI-D07), first of three commits.
   pulse` (no keyframes existed — the cell never pulsed; its static warn
   tint is what the operator knows).
 
+### WP-D8a — text roles, syntax palette, focus ring (2026-09-27)
+
+Plan Fassung 3 WP-D8 (UI-K08 / K09, UI-D07), second of three commits.
+
+- Every text that is not plain `--fg` reads a ROLE defined per theme:
+  `--fg-muted`, `--ok-text` / `--warn-text` / `--danger-text` /
+  `--info-text` / `--accent-text`, the syntax palette `--syntax-gcode` /
+  `-mcode` / `-coord` / `-param` / `-comment`, and `--focus-ring`. The
+  state colours `--ok` … `--accent` stay the colours of fills, borders and
+  tints — a text on a tint of its own state colour cannot also be that
+  colour and read. Values were solved per theme for ≥ 4.6 : 1 on the
+  neutral surfaces, the selection / hover tints and the state tints the
+  text sits on (status notes 15 %, warn card 20 %, banner 25 %, the danger
+  flash 40 %); HC themes ≥ 7 : 1 for muted text and syntax.
+- Muted text is a colour, never an opacity (≈ 60 rules; `--mix-muted`
+  retired): an opacity multiplies into every child and composites with
+  whatever is behind. Unselected tabs and icon buttons now mute their LABEL
+  only — border and fill stay (a look change, visible in the tab rows).
+- The dark palette lives twice — `[data-theme="dark"]` and the auto block
+  under `prefers-color-scheme: dark` for a root without data-theme. The auto
+  block used to set only bg/fg/panel/border/button-bg; it now repeats the
+  whole dark block, `themeTokens.test.ts` requires them equal, and
+  contrast.spec runs a fifth pass with the system in dark and the theme on
+  auto.
+- The CodeMirror editor took `dark: true` in every theme (CM's dark
+  selection and active-line colours on the light themes); its base theme
+  now follows App's resolved `isDark` through a Compartment, reconfigured
+  live on a switch.
+- The viewer's `.overlay-card` is 92 % opaque (was 85 %): contrast.spec
+  composites a floating card over the page AND over `--fg` (the DOM does
+  not know what the WebGL scene draws behind it); muted HUD text reached
+  only 4.4 : 1 over dark geometry at 85 %.
+- The keyboard ring is `--focus-ring`, separate from `--info` (2.9 : 1 on
+  white in light); ≥ 3 : 1 on bg, panel and button in every theme.
+- `.inactive` (keyboard binding rows while keyboard jog is off) is a muted
+  colour, not the disabled opacity: the rows stay operable.
+- Kept: `.dialogBody`'s 80 % (measured ≥ 4.5 : 1; the remaining opacity
+  rules are D10's N111).

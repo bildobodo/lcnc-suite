@@ -1159,9 +1159,9 @@ onUnmounted(() => {
      rapid-crash clusters) and crisps every tick against the track. */
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--bg) 90%, transparent);
 }
-.scrubTick.tool  { background: var(--info);   color: var(--info); }
-.scrubTick.limit { background: var(--warn);   color: var(--warn); }
-.scrubTick.clash { background: var(--danger); color: var(--danger); }
+.scrubTick.tool  { background: var(--info);   color: var(--info-text); }
+.scrubTick.limit { background: var(--warn);   color: var(--warn-text); }
+.scrubTick.clash { background: var(--danger); color: var(--danger-text); }
 .scrubTick.near  { opacity: var(--opacity-muted); }   /* clearance warning, never touches */
 .scrubGlyph {
   position: absolute;
@@ -1180,7 +1180,7 @@ onUnmounted(() => {
 }
 .toolNext {
   white-space: nowrap;
-  color: var(--info);
+  color: var(--info-text);
 }
 /* Row-1 fixed slots (--slot-w is the global .val-slot width var, bound
    inline PER PROGRAM — lineSlotCh / posSlotCh). Every content-sized sibling

@@ -65,7 +65,7 @@ const BTN_LABELS: Record<LogicalButton, string> = {
 .gpStickLabel {
   font-size: var(--fs-xs);
   font-weight: var(--fw-semibold);
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
 }
 
 .gpStickBox {
@@ -114,7 +114,7 @@ const BTN_LABELS: Record<LogicalButton, string> = {
   border-radius: var(--radius-sm);
   background: var(--button-bg);
   border: 1px solid var(--border);
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
 }
 
 .gpBtn.active {

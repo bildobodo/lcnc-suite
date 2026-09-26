@@ -2684,7 +2684,7 @@ watch(viewerGcode, (newGcode) => {
   gap: var(--gap-micro) var(--gap-section);
   margin: 0;
 }
-.connDetails dt { color: color-mix(in oklab, currentColor var(--mix-muted), transparent); }
+.connDetails dt { color: var(--fg-muted); }
 .connDetails dd { margin: 0; text-align: right; }
 
 .title {
@@ -2791,12 +2791,12 @@ watch(viewerGcode, (newGcode) => {
   flex: 0 0 160px;
 }
 .bannerError {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 /* Program, preview and configuration problems (design wave D1, UI-N23):
    the warn tier — red is kept for safety, machine and connection. */
 .bannerWarn {
-  color: var(--warn);
+  color: var(--warn-text);
 }
 
 .bannerActions {
@@ -2838,6 +2838,8 @@ watch(viewerGcode, (newGcode) => {
   .statusBanner.banner-pulse,
   .statusBanner.banner-flash { animation: none; }
   .statusBanner.banner-flash { background: color-mix(in oklab, var(--state-color) 40%, var(--panel)); }
+  .banner-fade-enter-active,
+  .banner-fade-leave-active { transition: none; }
 }
 /* Forced colours drop every background: the banner keeps an outline so
    the state line still reads as one (its words carry the state). */
@@ -2846,19 +2848,19 @@ watch(viewerGcode, (newGcode) => {
 }
 
 .okText {
-  color: var(--ok);
+  color: var(--ok-text);
 }
 
 .badText {
-  color: var(--err);
+  color: var(--danger-text);
 }
 
 .warnText {
-  color: var(--warn);
+  color: var(--warn-text);
 }
 
 .mutedText {
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
 }
 
 /* ---- Macro param dialog ---- */
@@ -2866,7 +2868,7 @@ watch(viewerGcode, (newGcode) => {
   display: block;
   margin-top: var(--gap-section);
   font-size: var(--fs-sm);
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
 }
 
 
@@ -2888,7 +2890,7 @@ watch(viewerGcode, (newGcode) => {
 .msgTime {
   font-size: var(--fs-2xs);
   font-variant-numeric: tabular-nums;
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
   flex-shrink: 0;
 }
 .msgKind {
@@ -2905,7 +2907,7 @@ watch(viewerGcode, (newGcode) => {
 .msgEmpty { padding: var(--gap-panel); }
 
 .dialogBody .danger {
-  color: var(--danger);
+  color: var(--danger-text);
 }
 
 

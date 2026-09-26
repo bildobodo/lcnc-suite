@@ -217,7 +217,7 @@ onUnmounted(() => {
 
 <style scoped>
 .kbAlways {
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
 }
 
 .kbMapAction {
@@ -239,7 +239,7 @@ onUnmounted(() => {
 
 .kbKeyCell.kbFixed {
   cursor: default;
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
 }
 
 .kbKeyCell.listening {
@@ -259,7 +259,7 @@ onUnmounted(() => {
 
 .kbCaptureError {
   font-size: var(--fs-sm);
-  color: var(--danger);
+  color: var(--danger-text);
   margin-top: var(--gap-controls);
 }
 

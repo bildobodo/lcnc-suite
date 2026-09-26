@@ -281,12 +281,11 @@ function onKeydown(e: KeyboardEvent) {
 }
 .nkPreview {
   font-size: var(--fs-sm);
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
   white-space: nowrap;
 }
 .nkPreview.invalid {
-  color: var(--danger);
-  opacity: var(--opacity-secondary);
+  color: var(--danger-text);
 }
 /* Fixed --key-size square keys (shared with TextKeypadStrip) — identical
    in both orientations. The readout and the actions are explicitly placed;

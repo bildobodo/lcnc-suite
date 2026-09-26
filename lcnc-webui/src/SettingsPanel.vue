@@ -940,7 +940,7 @@ function resetMachineColor(id: string) {
 .macroEditActions > .hint { margin-right: auto; }
 .hint {
   font-size: var(--fs-sm);
-  opacity: var(--opacity-disabled);
+  color: var(--fg-muted);
 }
 
 
@@ -1021,7 +1021,7 @@ function resetMachineColor(id: string) {
 }
 .macroSettingsCmd {
   font-size: var(--fs-sm);
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1039,7 +1039,7 @@ function resetMachineColor(id: string) {
 }
 .macroParamHint {
   font-size: var(--fs-sm);
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
 }
 .macroParamEditor {
   margin-top: var(--gap-controls);

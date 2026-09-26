@@ -26,8 +26,13 @@ async function ready(page: Page) {
   await ctl({ op: "status_delta", data: { estop: false, is_estop: false, enabled: true, is_enabled: true, homed: [1, 1, 1] } });
   await expect(page.locator(".statusBanner")).toContainText("IDLE");
 }
-/** Computed styles of the banner sampled over one pulse period. */
+/** Computed styles of the banner sampled over one pulse period — from the
+ *  moment its state settled: a state change cross-fades the fill (0.4 s
+ *  colour transition, not motion; the fade-in of the words is gone under
+ *  reduced motion, so the new text no longer waits it out). */
 async function sampleBanner(page: Page, n = 12, everyMs = 100) {
+  await page.locator(".statusBanner").evaluate(b => Promise.all(b.getAnimations()
+    .filter(a => a.effect?.getComputedTiming().iterations !== Infinity).map(a => a.finished)));
   const out: { opacity: string; animation: string; bg: string }[] = [];
   for (let i = 0; i < n; i++) {
     out.push(await page.locator(".statusBanner").evaluate(b => {

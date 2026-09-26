@@ -100,7 +100,7 @@ const timingComponents: { key: keyof Omit<import("./lcncWs").TimingStats, "count
 }
 
 .timingHeader {
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
   font-weight: var(--fw-semibold);
   border-bottom: 1px solid currentColor;  /* audit-ok: table header rule, not a section separator */
   padding-bottom: var(--gap-micro);
@@ -119,7 +119,7 @@ const timingComponents: { key: keyof Omit<import("./lcncWs").TimingStats, "count
 }
 
 .muted {
-  opacity: var(--opacity-muted);
+  color: var(--fg-muted);
 }
 .debugActions {
   margin-top: var(--gap-section);
