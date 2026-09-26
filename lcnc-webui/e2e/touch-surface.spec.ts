@@ -90,3 +90,32 @@ test("no tap highlight on any surface; an icon-only header pill is centred and a
     expect(p.off, "icon centred").toBeLessThan(0.6);
   }
 });
+
+test("a help icon's target is a 24 px square around its glyph, and the glyph never makes a label row taller than its text", async ({ page }) => {
+  // Design wave D6: the touch glyph was 20 px — every form label row grew
+  // past its text (2.95 instead of 3 probing rows at 1280 × 800); now the
+  // glyph fits the line and the finger's target is an invisible square.
+  await ready(page);
+  await page.touchscreen.tap(5, 400);
+  await expect(page.locator("html")).toHaveClass(/touch-device/);
+  await page.getByRole("tab", { name: "Probing", exact: true }).click();
+  const field = page.locator(".probePanel .formGrid > .formField").first();
+  await field.scrollIntoViewIfNeeded();
+  const r = await field.evaluate(f => {
+    const head = f.querySelector<HTMLElement>(".formFieldHead")!;
+    const label = head.querySelector<HTMLElement>(".formLabel")!;
+    const icon = head.querySelector<HTMLElement>(".helpIcon")!;
+    const i = icon.getBoundingClientRect();
+    const cx = i.left + i.width / 2, cy = i.top + i.height / 2;
+    const hits = [[11, 0], [-11, 0], [0, 11], [0, -11]].map(([dx, dy]) => {
+      const at = document.elementFromPoint(cx + dx, cy + dy);
+      return at === icon ? true : `${dx},${dy}: ${at?.tagName}.${(at as HTMLElement | null)?.className}`;
+    });
+    const before = getComputedStyle(icon, "::before");
+    const target = [parseFloat(before.width), parseFloat(before.height)];
+    return { head: head.getBoundingClientRect().height, line: parseFloat(getComputedStyle(label).lineHeight), hits, target };
+  });
+  expect(r.target, "the invisible target is 24 px square").toEqual([24, 24]);
+  expect(r.hits, "a press 11 px from the glyph's centre is on the help icon").toEqual([true, true, true, true]);
+  expect(r.head, "the label row is its text's line").toBeLessThanOrEqual(r.line + 0.5);
+});

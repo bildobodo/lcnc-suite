@@ -2363,6 +2363,8 @@ watch(viewerGcode, (newGcode) => {
         data-strip="jog"
         :axes="axes"
         :jogVel="jogVel"
+        :defaultJogVel="defaultJogVel"
+        :defaultAngularJogVel="defaultAngularJogVel"
         :angularJogVel="angularJogVel"
         :linearUnit="linearUnit"
         :maxJogVel="maxJogVel"
@@ -2939,7 +2941,7 @@ watch(viewerGcode, (newGcode) => {
 @media (orientation: portrait) {
   .wrap {
     display: grid;
-    grid-template-columns: 280px auto 1fr;
+    grid-template-columns: var(--strip-fixed-w) auto 1fr;
     grid-template-rows: auto auto 1fr;
   }
 
@@ -2958,7 +2960,7 @@ watch(viewerGcode, (newGcode) => {
     grid-column: 1;
     grid-row: 3;
     height: auto;
-    width: 280px;
+    width: var(--strip-fixed-w);
     flex-direction: column;
     overflow-x: hidden;
     /* Portrait scrolls vertically: the vertical band is ALWAYS present so

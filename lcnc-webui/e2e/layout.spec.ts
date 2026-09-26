@@ -156,7 +156,7 @@ for (const viewport of VIEWPORTS) {
 // this goes back to 3.
 const NAV_STATES = [
   { name: 'desktop', vp: 'desktop', zoom: 1, narrow: false, h: 32, rows: 3 },
-  { name: 'touch-landscape', vp: 'touch-landscape', zoom: 1, narrow: false, h: 44, rows: 2.9 },
+  { name: 'touch-landscape', vp: 'touch-landscape', zoom: 1, narrow: false, h: 44, rows: 3 },
   { name: 'touch-portrait', vp: 'touch-portrait', zoom: 1, narrow: false, h: 44, rows: 3 },
   { name: 'touch-portrait 150 %', vp: 'touch-portrait', zoom: 1.5, narrow: true, h: 44, rows: 3 },
 ] as const;

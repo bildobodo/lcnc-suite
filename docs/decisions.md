@@ -6804,3 +6804,42 @@ Plan Fassung 3 WP-D6 (UI-D02, N95) and the operator's D6 decision of
 - Guard: `e2e/run-hold.spec.ts` (serial-guards), mutation-checked five
   ways (Start / Step as taps, the macro key without its command, Enter
   executing, the Run-from-line action as a tap).
+
+### WP-D6b — strips, captions and the help target (2026-09-26)
+
+Plan Fassung 3 WP-D6 (N90–N94, the HelpIcon target; N96 checked).
+
+- A reset shows the value it returns to and names it (N90): the jog
+  speed resets read "600" / "3600" and are named "Reset linear jog speed
+  to 600 mm/min" (the override resets already read "100 %").
+- N91: measured first — no strip title dims with its gate any more
+  (effective opacity 1 in homed, E-Stop and disarmed); what was left is
+  the 280 px rule copied three times: one token (`--strip-fixed-w`) and
+  one class (`.stripFixed`, full width in portrait) for Safety, Tool and
+  the portrait strip column.
+- N92: a caption is the size of a heading — `.label-muted` 11 px
+  (`--fs-sm`, was 9 / 10 px beside 11 px headings); no colon anywhere
+  (measured: none left).
+- N93: `.sectionHelp` is global (was two scoped copies): the "?" out of
+  the flow at the box's top right, the box reserving its square.
+- N94: the Plane radio takes colour modifiers only (`.text-warn`,
+  `.text-muted`, new global utilities pulled forward from N112) — it
+  borrowed `.val-status` and with it a smaller, bold, right-aligned face
+  beside its siblings.
+- The help icon's target is an INVISIBLE `--help-hit` square (24 px)
+  around its glyph; the touch glyph is 16 px (was 20) and sits in its
+  label's line box. A form field on touch is 63 px (was 66), rows 70 px
+  apart — the DR's assumption; the 1280 × 800 touch panel shows 3.4
+  probing rows (layout.spec's per-state floor back to 3).
+- N96 (the Safety details clipped in touch portrait) was fixed on
+  2026-09-25; measured: nothing clipped in any state.
+- Guard: touch-surface.spec — a press 11 px from the glyph's centre is on
+  the icon, the target measures 24 px, the label row is its text's line.
+  It caught the first version: the target is laid out in the glyph's
+  PADDING box (inside its 1 px border), so an inset from the outer size
+  made a 22 px square — `inset: calc(50% - var(--help-hit) / 2)` centres
+  exactly --help-hit on any glyph.
+- Visual references: the Jog and Setup strips re-baselined after review —
+  captions 11 px, the reset values, the smaller touch "?"; the desktop jog
+  section is up to 21 px wider (the scrolling strip absorbs it), in touch
+  portrait the step radios wrap after three instead of four.

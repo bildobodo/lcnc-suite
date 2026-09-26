@@ -23,6 +23,9 @@ const props = defineProps<{
   axes: string[];
   jogVel: number;
   angularJogVel: number;
+  /** The speeds a Reset returns to (units / s) — shown on the button (N90). */
+  defaultJogVel: number;
+  defaultAngularJogVel: number;
   linearUnit: string;
   maxJogVel: number;
   maxAngularJogVel: number;
@@ -99,6 +102,10 @@ const isPortrait = inject<Ref<boolean>>("isPortrait", ref(false));
 // the pad and Z=2 in the Z column, which jogs the wrong joint on any
 // machine whose axes aren't XYZ-first (e.g. lathe ["X","Z"]).
 const { abc: abcAxes, uvw: uvwAxes, find: findAxis } = useAxes(computed(() => props.axes));
+// A reset names the value it returns to (design wave D6, N90).
+const linearResetName = computed(() =>
+  `Reset ${abcAxes.value.length > 0 ? "linear " : ""}jog speed to ${Math.round(props.defaultJogVel * 60)} ${props.linearUnit}/min`);
+const rotaryResetName = computed(() => `Reset rotary jog speed to ${Math.round(props.defaultAngularJogVel * 60)} °/min`);
 const xAxis = computed(() => findAxis("X"));
 const yAxis = computed(() => findAxis("Y"));
 const zAxis = computed(() => findAxis("Z"));
@@ -416,13 +423,16 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
                cells); the unit follows its source (design wave D0, UI-N02) -->
           <span class="jogSpeedVal stack-micro"><span class="val-mono val-slot">{{ Math.round(jogVel * 60) }}</span><span class="label-muted">{{ linearUnit }}/min</span></span>
           <MachineSlider gate="jogSpeed" :aria-label="abcAxes.length > 0 ? 'Linear jog speed' : 'Jog speed'" :aria-valuetext="`${Math.round(jogVel * 60)} ${linearUnit}/min`" :disabled="isDisabled" :min="minJogVel" :max="maxJogVel" :step="0.1" :modelValue="jogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:jogVel', v) }" class="vSlider" />
-          <MachineBtn type="jogSpeedReset" :disabled="isDisabled" @click="emit('resetJogVel')">Reset</MachineBtn>
+          <!-- A reset shows the value it returns to and names it (N90) -->
+          <MachineBtn type="jogSpeedReset" :disabled="isDisabled" @click="emit('resetJogVel')"
+                      :aria-label="linearResetName" :title="linearResetName">{{ Math.round(defaultJogVel * 60) }}</MachineBtn>
         </div>
         <div v-if="abcAxes.length > 0" class="speedCol stack-controls">
           <span class="label-muted">Rotary</span>
           <span class="jogSpeedVal stack-micro"><span class="val-mono val-slot">{{ Math.round(angularJogVel * 60) }}</span><span class="label-muted">°/min</span></span>
           <MachineSlider gate="jogSpeed" aria-label="Rotary jog speed" :aria-valuetext="`${Math.round(angularJogVel * 60)} °/min`" :disabled="isDisabled" :min="minAngularJogVel" :max="maxAngularJogVel" :step="0.1" :modelValue="angularJogVel" @update:modelValue="(v: number | undefined) => { if (v != null) emit('update:angularJogVel', v) }" class="vSlider" />
-          <MachineBtn type="jogSpeedReset" :disabled="isDisabled" @click="emit('resetAngularJogVel')">Reset</MachineBtn>
+          <MachineBtn type="jogSpeedReset" :disabled="isDisabled" @click="emit('resetAngularJogVel')"
+                      :aria-label="rotaryResetName" :title="rotaryResetName">{{ Math.round(defaultAngularJogVel * 60) }}</MachineBtn>
         </div>
       </div>
 
@@ -477,7 +487,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               <div class="strip-radio-options">
                 <label class="radio-label" title="Identity kinematics — jog along machine axes"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="0" @update:modelValue="emit('setKinsMode', 0)" /> Machine</label>
                 <label class="radio-label" title="TCP kinematics — jog in the work frame"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="1" @update:modelValue="emit('setKinsMode', 1)" /> TCP</label>
-                <label v-if="twpCapable" class="radio-label" :class="{ 'val-status': true, warn: twpStale, muted: !twpOriented }" :title="planeTitle"
+                <label v-if="twpCapable" class="radio-label" :class="{ 'text-warn': twpStale, 'text-muted': !twpOriented }" :title="planeTitle"
                        :tabindex="planeExplainActive ? 0 : undefined" :role="planeExplainActive ? 'button' : undefined"
                        :aria-label="planeExplainActive ? planeExplainLabel : undefined"
                        @click="explainPlane" @keydown="planeExplainKey"><MachineRadio gate="planeFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="2" @update:modelValue="emit('setKinsMode', 2)" /> Plane{{ twpStale ? ' (stale)' : '' }}</label>
@@ -491,19 +501,6 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 </template>
 
 <style scoped>
-/* The frame help sits at the label's right edge out of the flow (UX-11):
-   a touch-sized icon in the label line would grow the radio group past the
-   section budget; anchored to the label's top, the 4 px stack gap absorbs
-   the touch icon's extra 3.5 px. Layout only; the popover is fixed.
-   Out of the flow it adds no width, and the label IS the column's widest
-   content — the padding reserves the icon's square beside the text (it
-   covered "frame" on the live XYZAC sim). */
-.sectionHelp {
-  position: relative;
-  display: block;
-  padding-right: calc(var(--help-icon-size) + var(--gap-tight));
-}
-.sectionHelp :deep(.helpIcon) { position: absolute; right: 0; top: 0; }
 .jogContent > * { flex-shrink: 0; }
 
 /* ── Left: XY grid + Z + extra axes ── */

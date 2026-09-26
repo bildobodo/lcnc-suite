@@ -53,7 +53,7 @@ const currentToolData = computed(() =>
 </script>
 
 <template>
-  <div class="toolStrip">
+  <div class="toolStrip stripFixed">
     <div class="stripSection">
       <div class="sub">Tool</div>
       <MachineBtn type="nav" @click="emit('openToolTable')" block>Tool Table</MachineBtn>
@@ -78,14 +78,6 @@ const currentToolData = computed(() =>
 </template>
 
 <style scoped>
-.toolStrip {
-  width: 280px;
-  flex-shrink: 0;
-}
-
-@media (orientation: portrait) {
-  .toolStrip { width: 100%; }
-}
 
 .toolDesc {
   overflow: hidden;

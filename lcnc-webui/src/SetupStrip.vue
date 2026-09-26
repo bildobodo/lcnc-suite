@@ -275,14 +275,6 @@ function zeroAll() {
 .setupInput { width: 100%; }
 /* Three equal cells across the whole grid (layout only): the goto row and
    the TWP action row are structurally identical. */
-/* The section help sits at the title's right edge OUT of the flow (UX-11):
-   the touch-sized icon (20 px) in a 16.5 px title row would push every row
-   below it out of the 264 px section budget — the touchoff geometry probe
-   and the layout gate caught it. Anchored to the title's TOP: centred it
-   overhung the section edge / the first axis row by 1.75 px; the 8 px gap
-   below the title absorbs the touch icon's extra 3.5 px. Layout only. */
-.sectionHelp { position: relative; }
-.sectionHelp :deep(.helpIcon) { position: absolute; right: 0; top: 0; }
 .actionRow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap-controls); }
 .aggregateRow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 /* Portrait has less width: destination labels wrap instead of clipping or

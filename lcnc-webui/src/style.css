@@ -99,6 +99,7 @@
   /* The help icon's square (HelpIcon.vue): a title that anchors it out of
      the flow reserves exactly this much beside its text. */
   --help-icon-size: calc(var(--fs-xs) * 1.3);
+  --help-hit: 24px;
   --fs-3xl: 24px;
 
   /* Font weight */
@@ -206,6 +207,9 @@
      (11px × 1.5 line-height) + --gap-controls + 5 × --key-size rows with
      4 × --gap-tight gaps = 260.5px, plus rounding margin. */
   --strip-section-h: 264px;
+  /* The fixed-width strip sections (Safety, Tool) and the portrait strip
+     column: ONE width (design wave D6, N91 — was three copies of 280 px). */
+  --strip-fixed-w: 280px;
   /* Action-rail minimum width — the wider grid track holding word-labeled
      keys (Send, Clear, Cancel, OK) beside the square character keys. */
   --key-action-w: 70px;
@@ -748,7 +752,7 @@ html.touch-device {
   --fs-2xs: 10px;
   --fs-xs: 11px;
   --range-thumb: 20px;
-  --help-icon-size: 20px;
+  --help-icon-size: 16px;
 }
 
 html.touch-device button {
@@ -794,7 +798,8 @@ html.touch-device input[type="color"] {
 html.touch-device .helpIcon {
   /* The generic touch button floor (min-height 36px) made this 20 × 36:
      top-anchored beside a 16.5 px strip title it reached the next row
-     (layout gate, UX-11). The declared 20 px square is the size. */
+     (layout gate, UX-11). The declared square is the glyph; the finger's
+     target is the invisible --help-hit area. */
   min-height: 0;
 }
 
@@ -1292,6 +1297,21 @@ label:has(input:disabled, select:disabled) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  position: relative;
+}
+/* The hit area is larger than the glyph and INVISIBLE (design wave D6): at
+   least --help-hit square, centred on the glyph, adding no layout — the
+   glyph stays inside the label's line box (a 20 px touch glyph made every
+   form label row taller than its text: 2.95 instead of 3 probing rows on
+   the 1280 × 800 touch panel). */
+.helpIcon::before {
+  content: "";
+  position: absolute;
+  /* Centred on the padding box (the 1 px border is outside it): 50 % minus
+     half the target on every side is exactly --help-hit, whatever the
+     glyph's size and border. */
+  inset: calc(50% - var(--help-hit) / 2);
+  border-radius: var(--radius-round);
 }
 .helpIcon:hover,
 .helpIcon:focus-visible {
@@ -1299,6 +1319,18 @@ label:has(input:disabled, select:disabled) {
   border-color: var(--info);
 }
 .helpIcon:focus-visible { outline: 2px solid var(--info); outline-offset: 1px; }
+/* A heading or label carrying its "?" out of the flow (design wave D6,
+   N93 — was two scoped copies): the icon at the box's top right, anchored
+   to the TOP (centred it overhung the next row by 1.75 px), and the box
+   reserves its square beside the text (a label that is its column's widest
+   content — "Kinematics Frame" — had the icon over its last word). */
+.sectionHelp {
+  position: relative;
+  display: block;
+  padding-right: calc(var(--help-icon-size) + var(--gap-tight));
+}
+.sectionHelp > .helpIcon { position: absolute; right: 0; top: 0; }
+
 /* ONE look for everything that explains a control (design wave D1 live
    look): the "?" help popover and the control hint (a dimmed control's
    reason, "Hold to activate") are the same card. Body typography whatever
@@ -1770,7 +1802,9 @@ label:has(input:disabled, select:disabled) {
 }
 
 /* Muted label (section headers, units, field labels) */
-.label-muted    { font-size: var(--fs-2xs); color: color-mix(in oklab, currentColor var(--mix-muted), transparent); white-space: nowrap; }
+/* A caption is the size of a heading (design wave D6, N92: the slider and
+   radio captions were 9 / 10 px beside 11 px headings). */
+.label-muted    { font-size: var(--fs-sm); color: color-mix(in oklab, currentColor var(--mix-muted), transparent); white-space: nowrap; }
 /* Opacity-only muting — dims without changing type size (e.g. the reserved-
    WCS radio text, which must stay --fs-base with its siblings). */
 .muted          { opacity: var(--opacity-muted); }
@@ -1819,6 +1853,18 @@ label:has(input:disabled, select:disabled) {
 .val-status.mono   { font-variant-numeric: tabular-nums; }
 /* Tabular-nums utility — keeps digit columns aligned in proportional text */
 .mono { font-variant-numeric: tabular-nums; }
+
+/* A strip section of the fixed width (Safety, Tool); in portrait the strip
+   is one column and every section takes its width. */
+.stripFixed { width: var(--strip-fixed-w); flex-shrink: 0; }
+@media (orientation: portrait) {
+  .stripFixed { width: 100%; }
+}
+
+/* Text colour modifiers (design wave D6, N94; N112): a colour and nothing
+   else — a state never borrows a value class's size and weight. */
+.text-warn  { color: var(--warn); }
+.text-muted { color: color-mix(in oklab, currentColor var(--mix-muted), transparent); }
 
 /* Radio button label row (jog increments, WCS selector) */
 .radio-label    { display: flex; align-items: center; gap: var(--gap-tight); font-size: var(--fs-base); cursor: pointer; white-space: nowrap; }

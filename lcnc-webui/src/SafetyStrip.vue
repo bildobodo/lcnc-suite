@@ -82,7 +82,7 @@ const compact = computed(() => isPortrait.value && activeKind.value !== null);
 </script>
 
 <template>
-  <div class="safetyStrip stripSection">
+  <div class="safetyStrip stripSection stripFixed">
     <div class="sub">Safety</div>
     <div class="safetyBtns row-controls">
       <div class="btnGate">
@@ -164,14 +164,7 @@ const compact = computed(() => isPortrait.value && activeKind.value !== null);
 </template>
 
 <style scoped>
-.safetyStrip {
-  width: 280px;
-  flex-shrink: 0;
-}
 
-@media (orientation: portrait) {
-  .safetyStrip { width: 100%; }
-}
 
 .safetyBtns {
   flex-shrink: 0;

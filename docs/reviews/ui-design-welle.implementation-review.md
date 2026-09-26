@@ -709,6 +709,51 @@ Operator-Entscheidung vom 25.09. und Plan WP-D6 (UI-D02, N95).
 - Playwright **246/246**; `serial-guards` 110.
 - **Referenzbilder:** unverändert, 10/10.
 
+### WP-D6b — Leisten, Beschriftungen und das Ziel des „?“ · 26. September 2026
+
+**Zuerst gemessen** (Leistentitel, Beschriftungsgrößen, Doppelpunkte, Safety-Details in drei Zuständen):
+- **N91:** Kein Leistentitel dunkelt mehr mit seinem Gate ab (wirksame Deckkraft 1 in „homed“,
+  „E-Stop“ und „disarmed“). Offen war nur die dreifach kopierte 280-px-Regel; jetzt ein Token
+  (`--strip-fixed-w`) und eine Klasse (`.stripFixed`, im Hochformat volle Breite).
+- **N96** (Safety-Details im Touch-Hochformat abgeschnitten) war am 25.09. behoben; gemessen ist
+  nichts abgeschnitten.
+- **Doppelpunkte:** keine mehr.
+
+**Umgesetzt:**
+- **N90:** Die Jog-Resets zeigen den Zielwert („600“) und heißen „Reset linear jog speed to
+  600 mm/min“, wie die Override-Resets („100 %“).
+- **N92:** Eine Beschriftung hat die Größe einer Überschrift: `.label-muted` 11 px statt 9 bzw.
+  10 px.
+- **N93:** `.sectionHelp` ist global statt zweimal scoped.
+- **N94:** Das Plane-Radio nutzt nur Farbmodifikatoren (`.text-warn`, `.text-muted`, aus N112
+  vorgezogen). Mit `.val-status` hatte es eine kleinere, fette, rechtsbündige Schrift neben seinen
+  Nachbarn geliehen.
+
+**Ziel des „?“ (Plan D6):**
+- Die Trefferfläche ist ein **unsichtbares 24-px-Quadrat** um das Zeichen (`::before`, ohne Layout).
+- Das sichtbare Zeichen ist auf Touch 16 statt 20 px und bleibt in der Zeilenhöhe seines Labels.
+- Folge: Ein Formularfeld ist auf Touch 63 statt 66 px hoch, die Zeilen stehen 70 px auseinander
+  (die DR-Annahme). Das 1280×800-Touch-Panel zeigt 3,4 Probing-Zeilen; die Untergrenze in
+  `layout.spec` ist wieder 3.
+- **Der neue Test fand einen Fehler:** Die Fläche liegt im Innenkasten des Zeichens (innerhalb des
+  1-px-Rands). Ein Abstand vom äußeren Maß ergab 22 statt 24 px. Jetzt
+  `inset: calc(50% - var(--help-hit) / 2)`.
+
+**Wächter:**
+- `touch-surface.spec`: Ein Druck 11 px neben der Mitte trifft das „?“, die Fläche misst 24 px, die
+  Label-Zeile ist so hoch wie ihr Text.
+- Gegenproben, beide rot: ohne Fläche; Touch-Zeichen wieder 20 px.
+
+**Referenzbilder:** Jog- und Setup-Leisten wurden nach Sichtprüfung erneuert. Die Beschriftungen sind
+11 px, die Resets zeigen ihre Werte, und das Touch-„?“ ist kleiner. Die Jog-Sektion ist am Desktop bis
+zu 21 px breiter; die scrollende Leiste nimmt das auf. Im Touch-Hochformat brechen die Schrittweiten
+nach drei statt vier Werten um.
+
+**Gates:**
+- build, lint und Vitest (1627) grün.
+- Playwright **247/247**; `serial-guards` 111 und `serial-layout` 61.
+- Die Guards liefen nach der Korrektur der Trefferfläche erneut.
+
 ---
 
 ## Codex Implementierungsreview Runde 1
