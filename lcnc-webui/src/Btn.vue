@@ -212,20 +212,11 @@ html.touch-device .b.muted:active:not(:disabled) { opacity: 1; }
 @keyframes hold-fill {
   to { transform: scaleX(1); }
 }
-/* Hold affordance BEFORE the first press (UX-12): a thin track along the
-   bottom edge of every hold-to-fire button — the fill above runs along it,
-   so the operator sees the contract without a failed tap first. Inside
-   the button's box: no layout cost. */
-.b.holdable::before {
-  content: "";
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 2px;
-  border-radius: inherit;
-  background: var(--hl-active);
-  opacity: var(--opacity-subtle);
-  pointer-events: none;
-}
+/* No resting mark on a hold button (operator decision 2026-09-26): the 2 px
+   track along the bottom edge (UX-12) took the corner radius and read as a
+   stray shadow on every enabled hold button. The contract shows as the
+   fill above while held, the "Hold to activate" title and the hint a tap
+   gets. */
 
 /* ---- Block ---- */
 .block { width: 100%; }

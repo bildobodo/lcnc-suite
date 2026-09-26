@@ -171,9 +171,10 @@ const cancelHoldUp = () => {
 };
 const cancelHoldLeave = () => { if (holding.value) showHint('Hold to activate — stay on the button'); cancelHold("pointer left the button"); };
 const cancelHoldCancel = () => { if (holding.value) showHint('Hold to activate — the page scrolled'); cancelHold("pointer cancelled (drag-scroll / gesture took it)"); };
-// A hold button announces its contract before it is ever pressed: the
-// hover title (unless the caller names the action) and the .holdable track
-// along its bottom edge (Btn.vue) that the fill runs along.
+// A hold button announces its contract before it is ever pressed through
+// its hover title (unless the caller names the action); a tap says "Hold to
+// activate". No resting mark (operator 2026-09-26 — the track read as a
+// shadow); `.holdable` stays the class that marks a hold button.
 const resolvedTitle = computed(() =>
   (attrs.title as string | undefined) ?? (holdEnabled.value ? 'Hold to activate' : undefined));
 

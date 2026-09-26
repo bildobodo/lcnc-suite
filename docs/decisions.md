@@ -6535,3 +6535,15 @@ Plan Fassung 3 WP-D3 (UI-K17, K12, N50, N51) on the WP-DR geometry.
   and 249 px at 150 % portrait (≥ 3 rows of 70 px).
 - Guards: `e2e/tabs.spec.ts` (mutation-checked), the four-state
   navigation budget in `layout.spec`.
+
+### No resting mark on hold buttons (2026-09-26, operator)
+
+The operator saw "strange shadows" on every enabled button of the Setup
+strip: the UX-12 hold track (`Btn.vue` `.holdable::before`, 2 px along the
+bottom edge) inherited the button's corner radius, so it curved up at
+both ends and read as a drop shadow rather than as a mark. Shown three
+ways (as is, none, a straight inset line), the operator chose none. A hold
+button now looks like every other button; its contract shows as the fill
+while held, the `Hold to activate` title and the hint a tap gets. This
+also covers the buttons D6 moves to hold (Start, Resume, Step, Run from
+line, macros). The Setup strip's visual references are re-baselined.
