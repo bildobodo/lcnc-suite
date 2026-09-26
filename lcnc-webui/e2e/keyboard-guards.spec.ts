@@ -374,7 +374,7 @@ test("tool editor: header X and footer Cancel close an unchanged form at once an
   await expect(dialog).toHaveCount(0);
   await page.getByRole("button", { name: "+ Add", exact: true }).click();
   await expect(dialog).toBeVisible();
-  const desc = dialog.locator("#tool-description");
+  const desc = dialog.getByRole("textbox", { name: "Description", exact: true });
   await desc.click();
   await page.keyboard.type("6 mm endmill");
   await dialog.getByRole("button", { name: "Close tool editor", exact: true }).click();
@@ -917,8 +917,8 @@ test("closing Settings over a changed macro draft asks first, by every path (UI-
 
   settings = await openMacros();
   await settings.getByRole("button", { name: "Add Macro", exact: true }).click();
-  await settings.locator("#macro-edit-name").fill("Face top");
-  await settings.locator("#macro-edit-command").fill("G0 Z{depth}");
+  await settings.getByRole("textbox", { name: "Name", exact: true }).fill("Face top");
+  await settings.getByRole("textbox", { name: "Command", exact: true }).fill("G0 Z{depth}");
   const paths: [string, () => Promise<void>][] = [
     ["X", () => settings.getByRole("button", { name: "Close settings", exact: true }).click()],
     ["backdrop", () => settings.click({ position: { x: 4, y: 4 } })],
@@ -934,7 +934,7 @@ test("closing Settings over a changed macro draft asks first, by every path (UI-
     await ask.getByRole("button", { name: "Keep editing", exact: true }).click();
     await expect(ask).toHaveCount(0);
     await expect(settings, `${path}: Keep editing keeps Settings open`).toBeVisible();
-    await expect(settings.locator("#macro-edit-name")).toHaveValue("Face top");
+    await expect(settings.getByRole("textbox", { name: "Name", exact: true })).toHaveValue("Face top");
   }
   // Discard carries out the navigation that asked: here, the reference opens.
   await page.getByTitle("G-code Reference", { exact: true }).click();
@@ -942,7 +942,7 @@ test("closing Settings over a changed macro draft asks first, by every path (UI-
   await expect(settings).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Search G-code reference", exact: true })).toBeVisible();
   settings = await openMacros();
-  await expect(settings.locator("#macro-edit-name")).toHaveCount(0);
+  await expect(settings.getByRole("textbox", { name: "Name", exact: true })).toHaveCount(0);
   await expect(settings.getByRole("button", { name: "Add Macro", exact: true })).toBeVisible();
   await settle(page);
   expectNoMachineAction(await recordedCmds());

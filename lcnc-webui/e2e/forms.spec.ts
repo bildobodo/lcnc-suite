@@ -5,7 +5,9 @@ import { ctl, MOCK } from "./ctl";
 //
 //   - every visible field (input, select, textarea, slider, colour) has an
 //     accessible name, and every visible <label> labels a control (no label
-//     that only sits next to its field);
+//     that only sits next to its field) — on the strip, every side-pane tab
+//     and Probing procedure, the tool editor, the import preview, the macro
+//     parameters, the G-code Reference and every Settings section;
 //   - ONE height per density: a field (.inputField) and an md button in the
 //     side pane or a dialog are --control-h tall (32 px desktop, 44 px
 //     touch); inside a dense area (the strip, a data table) a field is at
@@ -25,21 +27,31 @@ const PERMS_ALL = {
 };
 const TOOL = { T: 5, P: 5, Z: -40, D: 6, type: "endmill", description: "Test cutter" };
 const PROBE_VIEWS = ["Outside", "Inside", "Angle", "Boss/Pocket", "Ridge/Valley", "Surface", "Calibrate", "Toolsetter"];
+const SETTINGS_TABS = ["3D Viewer", "Machine", "Display", "Macros", "Gamepad", "Keyboard", "HAL", "Debug"];
+const MACROS = { macros: [
+  { id: "m-face", name: "Face Top", command: "G0 Z{depth} F{feed}",
+    params: [{ name: "depth", label: "Depth", default: "5" }, { name: "feed", label: "Feed", default: "100" }] },
+] };
+// Run from line on, its preset forward (the speed field shows); gamepad
+// buttons on (the mapping table's selects show).
+const SETTINGS = { macros: MACROS, machine: { runFromLine: true, rflSpindleDir: "forward" },
+  gamepad: { jogEnabled: true, buttonsEnabled: true } };
 
 function viewerInit(linearUnits: string) {
   return { units: linearUnits, stl_base_url: "/machine/", parts: [], kinematics: [], axes: ["X", "Y", "Z"],
     machine_bounds: { origin: [0, 0, 0], size: [100, 100, 100] }, ini_config: { linear_units: linearUnits } };
 }
 
-async function ready(page: Page, touch: boolean, linearUnits = "mm") {
+async function ready(page: Page, touch: boolean, linearUnits = "mm", settings: Record<string, unknown> = {}) {
   await ctl({ op: "reset" });
+  // The DR geometry (plan WP-DR): desktop 1600 × 1000, touch landscape 1280 × 800.
+  await page.setViewportSize(touch ? { width: 1280, height: 800 } : { width: 1600, height: 1000 });
   await page.goto(MOCK);
   await expect(page.locator("input.setupInput").first()).toBeVisible();
   if (touch) await page.evaluate(() => document.documentElement.classList.add("touch-device"));
-  await ctl({ op: "quiet", on: true });
   await ctl({ op: "setViewerInit", data: viewerInit(linearUnits) });
   await ctl({ op: "status_delta", data: { permissions: PERMS_ALL } });
-  await ctl({ op: "raw", frame: { type: "settings_init", settings: {} } });
+  await ctl({ op: "raw", frame: { type: "settings_init", settings } });
   await expect(page.locator("input.setupInput")).toHaveCount(3);
   await page.evaluate(() => document.fonts.ready);
 }
@@ -96,7 +108,7 @@ async function scan(page: Page, surface: string, scope: string): Promise<Found> 
 for (const touch of [false, true]) {
   const density = touch ? "touch" : "desktop";
   test(`${density}: every field is named, every label labels a control, one density is one height`, async ({ page }) => {
-    await ready(page, touch);
+    await ready(page, touch, "mm", SETTINGS);
     const problems: string[] = [];
     let fields = 0;
     const add = (r: Found) => { problems.push(...r.problems); fields += r.fields; };
@@ -119,9 +131,41 @@ for (const touch of [false, true]) {
     }
     await page.getByTitle("G-code Reference", { exact: true }).click();
     add(await scan(page, "G-code Reference", '[role="dialog"]'));
+    await page.getByRole("button", { name: "Close reference", exact: true }).click();
+
+    // The tool editor (K04) and the import preview.
+    await page.getByRole("tab", { name: "Tools", exact: true }).click();
+    await page.getByTitle("Edit tool", { exact: true }).click();
+    add(await scan(page, "Tool editor", '[role="dialog"]'));
+    await page.locator('[role="dialog"]').getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page.locator('[role="dialog"]')).toHaveCount(0);
+    await page.route("**/import-tool-library", route => route.fulfill({ json: {
+      ok: true, tools: [{ ...TOOL, T: 1 }], total: 1, existing_count: 3, skipped_duplicates: [],
+      metadata_refresh: { rows: [], updated: [], skipped: [], revision: "r1" } } }));
+    await page.locator('input[type="file"][accept*=".fctb"]').setInputFiles(
+      { name: "tools.json", mimeType: "application/json", buffer: Buffer.from('{"data":[]}') });
+    add(await scan(page, "Import preview", '[role="dialog"]'));
+    await page.locator('[role="dialog"]').getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page.locator('[role="dialog"]')).toHaveCount(0);
+
+    // The macro parameters.
+    await page.locator(".macroBar").getByRole("button", { name: "Face Top", exact: true }).click();
+    add(await scan(page, "Macro parameters", '[role="dialog"]'));
+    await page.locator('[role="dialog"]').getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page.locator('[role="dialog"]')).toHaveCount(0);
+
+    // Every Settings section, the macro editor open.
+    await page.getByTitle("Settings", { exact: true }).click();
+    const settings = page.getByRole("dialog", { name: "Settings", exact: true });
+    for (const tab of SETTINGS_TABS) {
+      await settings.getByRole("tab", { name: tab, exact: true }).click();
+      await expect(settings.getByRole("tab", { name: tab, exact: true })).toHaveAttribute("aria-selected", "true");
+      if (tab === "Macros") await settings.getByRole("button", { name: "Add Macro", exact: true }).click();
+      add(await scan(page, `Settings/${tab}`, '[role="dialog"]'));
+    }
     expect(problems, problems.join("\n")).toEqual([]);
     // The scan saw the forms it guards (a broken surface must not pass empty).
-    expect(fields).toBeGreaterThan(150);
+    expect(fields).toBeGreaterThan(250);
   });
 }
 

@@ -11,6 +11,7 @@ import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import FileBrowser from "./FileBrowser.vue";
 import { listToolLibraries, readToolLibrary, type FileEntry } from "./lcncApi";
+import FormField from "./FormField.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineSelect from "./MachineSelect.vue";
 import MachineToggle from "./MachineToggle.vue";
@@ -674,72 +675,106 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
             <div v-if="editError" class="statusNote error" role="alert"><span>{{ editError }}</span></div>
 
             <div class="editColumns row-sections">
-              <!-- Fields: two sections, each a .paramGrid; the preview column
-                   wraps below them when the dialog is narrower than both. -->
+              <!-- Fields and the preview column; the preview wraps below the
+                   fields when the dialog is narrower than both. -->
               <div class="editFields stack-sections">
-                <div class="stack-controls">
+                <!-- One field grid for both sections (design wave D4, K04): the
+                     label above, the unit in the head, two equal columns; type,
+                     description and holder span both. -->
+                <div class="formGrid">
                   <div class="sub">General</div>
-                  <div class="paramGrid editGrid">
-                    <label>Tool #</label>
-                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.T" min="1" integer
-                      label="Tool #" :context="fieldContext('Tool #', 'count')" />
-                    <label>Pocket</label>
-                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.P" min="0" integer
-                      label="Pocket" :context="fieldContext('Pocket', 'count')" />
-                    <label>Type</label>
-                    <MachineSelect gate="toolEdit" v-model="editForm.type" class="full">
-                      <option value="">-</option>
-                      <option v-for="tt in TOOL_TYPES" :key="tt" :value="tt">{{ toolTypeLabel(tt) }}</option>
-                    </MachineSelect>
-                    <label for="tool-description">Description</label>
-                    <MachineInput id="tool-description" gate="toolEdit" type="text" v-model="editForm.description" class="full"
-                      label="Description" :context="fieldContext('Description', 'count')" />
-                    <label>Diameter</label>
-                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.D" min="0"
-                      label="Diameter" :context="fieldContext('Diameter', 'len')" :placeholder="linearUnit" />
-                    <label>Z Offset</label>
-                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.Z"
-                      label="Z Offset" :context="fieldContext('Z Offset', 'len')" :placeholder="linearUnit" />
-                    <label>Flutes</label>
-                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.flutes" min="0" integer
-                      label="Flutes" :context="fieldContext('Flutes', 'count')" />
-                    <label for="tool-material">Material</label>
-                    <MachineInput id="tool-material" gate="toolEdit" type="text" v-model="editForm.material" placeholder="hss, carbide…" class="full"
-                      label="Material" :context="fieldContext('Material', 'count')" />
-                  </div>
+                  <FormField label="Tool #">
+                    <template #default="{ input }">
+                      <MachineInput v-bind="input" :context="fieldContext('Tool #', 'count')" gate="toolEditNum" type="number" v-model.number="editForm.T" min="1" integer />
+                    </template>
+                  </FormField>
+                  <FormField label="Pocket">
+                    <template #default="{ input }">
+                      <MachineInput v-bind="input" :context="fieldContext('Pocket', 'count')" gate="toolEditNum" type="number" v-model.number="editForm.P" min="0" integer />
+                    </template>
+                  </FormField>
+                  <FormField label="Type" wide>
+                    <template #default="{ field }">
+                      <MachineSelect v-bind="field" gate="toolEdit" v-model="editForm.type">
+                        <option value="">-</option>
+                        <option v-for="tt in TOOL_TYPES" :key="tt" :value="tt">{{ toolTypeLabel(tt) }}</option>
+                      </MachineSelect>
+                    </template>
+                  </FormField>
+                  <FormField label="Description" wide>
+                    <template #default="{ input }">
+                      <MachineInput v-bind="input" :context="fieldContext('Description', 'count')" gate="toolEdit" type="text" v-model="editForm.description" />
+                    </template>
+                  </FormField>
+                  <FormField label="Diameter" :unit="linearUnit">
+                    <template #default="{ input }">
+                      <MachineInput v-bind="input" :context="fieldContext('Diameter', 'len')" gate="toolEditNum" type="number" v-model.number="editForm.D" min="0" />
+                    </template>
+                  </FormField>
+                  <FormField label="Z Offset" :unit="linearUnit">
+                    <template #default="{ input }">
+                      <MachineInput v-bind="input" :context="fieldContext('Z Offset', 'len')" gate="toolEditNum" type="number" v-model.number="editForm.Z" />
+                    </template>
+                  </FormField>
+                  <FormField label="Flutes">
+                    <template #default="{ input }">
+                      <MachineInput v-bind="input" :context="fieldContext('Flutes', 'count')" gate="toolEditNum" type="number" v-model.number="editForm.flutes" min="0" integer />
+                    </template>
+                  </FormField>
+                  <FormField label="Material">
+                    <template #default="{ input }">
+                      <MachineInput v-bind="input" :context="fieldContext('Material', 'count')" gate="toolEdit" type="text" v-model="editForm.material" placeholder="hss, carbide…" />
+                    </template>
+                  </FormField>
                 </div>
 
-                <div class="stack-controls">
+                <div class="formGrid">
                   <div class="sub">Dimensions</div>
-                  <div class="paramGrid twoCol editGrid">
-                    <label>Total Length</label>
-                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.oal" min="0"
-                      label="Total Length" :context="fieldContext('Total Length', 'len')" :placeholder="linearUnit" />
-                    <label for="tool-below-holder">Below Holder</label>
-                    <MachineInput id="tool-below-holder" gate="toolEditNum" type="number" v-model.number="editForm.body_length" min="0"
-                      label="Length Below Holder" :context="fieldContext('Below Holder', 'len')" :placeholder="linearUnit" />
-                    <label>Flute Len</label>
-                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.flute_length" min="0"
-                      label="Flute Length" :context="fieldContext('Flute Length', 'len')" :placeholder="linearUnit" />
-                    <label>Shaft Ø</label>
-                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.shaft_diameter" min="0"
-                      label="Shaft Ø" :context="fieldContext('Shaft Ø', 'len')" :placeholder="linearUnit" />
-                    <label>Corner R</label>
-                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.corner_radius" min="0"
-                      label="Corner R" :context="fieldContext('Corner R', 'len')" :placeholder="linearUnit" />
-                    <label>Tip Ø</label>
-                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.tip_diameter" min="0"
-                      label="Tip Ø" :context="fieldContext('Tip Ø', 'len')" :placeholder="linearUnit" />
-                    <label>Taper °</label>
-                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.taper_angle" min="0" max="180"
-                      label="Taper" :context="fieldContext('Taper', 'deg')" placeholder="deg" />
-                    <label>Point °</label>
-                    <MachineInput gate="toolEditNum" type="number" v-model.number="editForm.point_angle" min="0" max="180"
-                      label="Point" :context="fieldContext('Point', 'deg')" placeholder="deg" />
-                    <label for="tool-holder">Holder</label>
-                    <MachineInput id="tool-holder" gate="toolEdit" type="text" v-model="editForm.holder" placeholder="Holder name" class="full spanRest"
-                      label="Holder" :context="fieldContext('Holder', 'count')" />
-                  </div>
+                  <FormField label="Total Length" :unit="linearUnit">
+                    <template #default="{ input }">
+                      <MachineInput v-bind="input" :context="fieldContext('Total Length', 'len')" gate="toolEditNum" type="number" v-model.number="editForm.oal" min="0" />
+                    </template>
+                  </FormField>
+                  <FormField label="Length Below Holder" :unit="linearUnit">
+                    <template #default="{ input }">
+                      <MachineInput v-bind="input" :context="fieldContext('Length Below Holder', 'len')" gate="toolEditNum" type="number" v-model.number="editForm.body_length" min="0" />
+                    </template>
+                  </FormField>
+                  <FormField label="Flute Length" :unit="linearUnit">
+                    <template #default="{ input }">
+                      <MachineInput v-bind="input" :context="fieldContext('Flute Length', 'len')" gate="toolEditNum" type="number" v-model.number="editForm.flute_length" min="0" />
+                    </template>
+                  </FormField>
+                  <FormField label="Shaft Ø" :unit="linearUnit">
+                    <template #default="{ input }">
+                      <MachineInput v-bind="input" :context="fieldContext('Shaft Ø', 'len')" gate="toolEditNum" type="number" v-model.number="editForm.shaft_diameter" min="0" />
+                    </template>
+                  </FormField>
+                  <FormField label="Corner R" :unit="linearUnit">
+                    <template #default="{ input }">
+                      <MachineInput v-bind="input" :context="fieldContext('Corner R', 'len')" gate="toolEditNum" type="number" v-model.number="editForm.corner_radius" min="0" />
+                    </template>
+                  </FormField>
+                  <FormField label="Tip Ø" :unit="linearUnit">
+                    <template #default="{ input }">
+                      <MachineInput v-bind="input" :context="fieldContext('Tip Ø', 'len')" gate="toolEditNum" type="number" v-model.number="editForm.tip_diameter" min="0" />
+                    </template>
+                  </FormField>
+                  <FormField label="Taper" unit="°">
+                    <template #default="{ input }">
+                      <MachineInput v-bind="input" :context="fieldContext('Taper', 'deg')" gate="toolEditNum" type="number" v-model.number="editForm.taper_angle" min="0" max="180" />
+                    </template>
+                  </FormField>
+                  <FormField label="Point" unit="°">
+                    <template #default="{ input }">
+                      <MachineInput v-bind="input" :context="fieldContext('Point', 'deg')" gate="toolEditNum" type="number" v-model.number="editForm.point_angle" min="0" max="180" />
+                    </template>
+                  </FormField>
+                  <FormField label="Holder" wide>
+                    <template #default="{ input }">
+                      <MachineInput v-bind="input" :context="fieldContext('Holder', 'count')" gate="toolEdit" type="text" v-model="editForm.holder" placeholder="Holder name" />
+                    </template>
+                  </FormField>
                 </div>
               </div>
 
@@ -795,13 +830,14 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
               {{ importSummary.fusion }} Fusion 360 and {{ importSummary.freecad }} FreeCAD examples.
               Tool geometry without holders or cutting presets. Review before importing.
             </div>
-            <label class="importOption">
-              Import mode
-              <MachineSelect gate="toolEdit" v-model="importMode" :disabled="importBusy">
-                <option value="metadata">Update existing tool metadata</option>
-                <option value="replace">Replace entire tool table</option>
-              </MachineSelect>
-            </label>
+            <FormField label="Import Mode" class="importOption">
+              <template #default="{ field }">
+                <MachineSelect v-bind="field" gate="toolEdit" v-model="importMode" :disabled="importBusy">
+                  <option value="metadata">Update existing tool metadata</option>
+                  <option value="replace">Replace entire tool table</option>
+                </MachineSelect>
+              </template>
+            </FormField>
             <div v-if="importMode === 'metadata'" class="importStats">
               {{ importRefresh?.updated.length ?? 0 }} existing tools to update.
               Tool numbers, pockets, measured offsets and table diameters are retained.
@@ -971,7 +1007,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
 
 /* .actions — replaced by row-tight utility (same shape) */
 
-/* ---- Edit dialog (layout only; chrome = .dialog.md.wide + .paramGrid) ---- */
+/* ---- Edit dialog (layout only; chrome = .dialog.md.wide + .formGrid) ---- */
 .editColumns {
   flex-wrap: wrap;   /* the preview column drops below the fields when narrow */
 }
@@ -992,11 +1028,6 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
   padding: var(--gap-controls);
 }
 
-/* Text fields fill their track; .paramGrid caps inputs at 100px for numbers. */
-.editGrid > .full { max-width: none; }
-/* The last text field of the two-column grid takes the remaining tracks. */
-.editGrid > .spanRest { grid-column: 2 / -1; }
-
 .editNotice {
   flex-shrink: 0;
 }
@@ -1010,12 +1041,8 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
 }
 
 .importOption {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-tight);
-  font-size: var(--fs-base);
+  max-width: calc(2 * var(--form-col-min));
   margin-bottom: var(--gap-controls);
-  cursor: pointer;
 }
 
 .importList {

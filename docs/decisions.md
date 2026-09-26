@@ -6599,3 +6599,35 @@ Plan Fassung 3 WP-D4 (UI-K03, K04, K10), first part.
 - Guard: `e2e/forms.spec.ts` (serial-guards) — every visible field named,
   every visible label labels a control, one height per density, desktop
   and touch; the unit in the description and the keypad readout, mm → in.
+
+### WP-D4b — the remaining forms on FormField (2026-09-26)
+
+Plan Fassung 3 WP-D4, second part (K04, N60–N64, N66).
+
+- The tool editor (K04) is ONE `.formGrid` for both sections: the same
+  column axes, full names as labels ("Flute Length", "Length Below
+  Holder" — the visible label is the accessible name), units permanently
+  in the field head instead of placeholders ("mm", "deg"), type,
+  description and holder across both columns. The import preview's mode
+  select is a FormField (a wrapping label made the selected option part
+  of its name).
+- Settings: the camera overlay's radius, grid spacing, opacity and colour
+  are form fields (a slider's head shows its value where a field shows
+  its unit); every colour picker is named by its label (the reset of a
+  machine colour stays outside the label — a button inside a label joins
+  the picker's name); the run-from-line warning is a `.statusNote.warn`
+  (N66), its default preset a named group and its default speed a field
+  with RPM; the preset word is Stop, as in the dialog and the strip.
+- The macro editor's name and command, the macro parameters dialog, the
+  upload rename and the run-from-line speed are FormFields. Enter in a
+  macro parameter still executes until D6.
+- The gamepad dead zone is a form field; the mapping table's selects are
+  named "<button> action".
+- Removed: `.paramGrid` (no user left), `.sliderVal`, the scoped
+  `.inputLabel` / `.camOverlay*` / `.rfl*` / `.macroParamLabel` rules.
+- e2e selectors that found a field as "the input after this label" now
+  find it by its name — the wiring K10 asks for.
+- Guard: `forms.spec` now scans the tool editor, the import preview, the
+  macro parameters and every Settings section (macro editor open, run
+  from line on, gamepad buttons on) at the DR viewports; a colour picker
+  without its label turns it red.

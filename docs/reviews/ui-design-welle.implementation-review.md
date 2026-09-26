@@ -424,6 +424,60 @@ jede Beschriftung beim Abschluss ein Bild an (`93387e9`); danach 12/12 grün.
   Buttons 28 → 32 px bzw. auf Touch 36 → 44 px, sonst unverändert. Die Leisten-Bilder sind
   pixelgleich.
 
+### WP-D4b — die übrigen Formulare auf FormField · 26. September 2026
+
+**Werkzeugeditor (K04):**
+- Ein `.formGrid` für beide Abschnitte, dieselben Spaltenachsen.
+- Das sichtbare Label ist der zugängliche Name, ausgeschrieben („Flute Length“, „Length Below
+  Holder“).
+- Einheiten stehen fest im Feldkopf statt als Platzhalter („mm“, „°“).
+- Typ, Beschreibung und Halter gehen über beide Spalten.
+- Die Importart im Import-Dialog ist ein FormField. Bisher umschloss ein Label die Auswahlliste, dadurch
+  gehörte der gewählte Eintrag zum Namen.
+
+**Settings:**
+- **Kamera-Overlay:** Radius, Rasterabstand, Deckkraft und Farbe sind Formularfelder. Der Kopf eines
+  Reglers zeigt seinen Wert dort, wo ein Feld seine Einheit zeigt.
+- **Farbwähler:** Jeder ist über sein Label benannt. Der Zurücksetzen-Button einer Maschinenfarbe bleibt
+  außerhalb des Labels, sonst gehörte er zum Namen des Wählers.
+- **Run from line:**
+  - Die Warnung ist eine `.statusNote.warn` (N66).
+  - Die Vorwahl ist eine benannte Gruppe, die Drehzahl ein Feld mit RPM.
+  - Das Wort ist „Stop“ wie im Dialog und in der Leiste.
+- **Makro-Editor:** Name und Befehl sind FormFields.
+- **Gamepad:** Die Totzone ist ein Formularfeld; die Auswahllisten der Zuordnungstabelle heißen
+  „<Taste> action“.
+
+**Dialoge:** Makro-Parameter, Umbenennen beim Upload und die Drehzahl im Run-from-line-Dialog sind
+FormFields. Enter in einem Makro-Parameter führt bis D6 weiter aus.
+
+**Entfernt:**
+- `.paramGrid`: nicht mehr benutzt.
+- `.sliderVal`.
+- Die scoped Regeln `.inputLabel`, `.camOverlay*`, `.rfl*` und `.macroParamLabel`.
+
+**Tests:** Die e2e-Selektoren, die ein Feld als „das Input nach diesem Label“ fanden, finden es jetzt
+über seinen Namen. Das ist genau die Verknüpfung, die K10 verlangt.
+
+**Wächter:**
+- `forms.spec` prüft zusätzlich Werkzeugeditor, Import-Vorschau, Makro-Parameter und jeden
+  Settings-Abschnitt: Makro-Editor offen, Run from line an, Gamepad-Tasten an.
+- Er läuft in den DR-Fenstern: 1600×1000 bzw. Touch 1280×800. Im Playwright-Standardfenster
+  1280×720 bleibt der Werkzeugtabelle auf Touch mit den 44-px-Kopfzeilen kein Platz; das liegt
+  außerhalb der DR-Matrix.
+- Gegenprobe: Ein Farbwähler ohne Label macht ihn rot.
+
+**Gates:**
+- build und lint grün; Vitest **1627/1627**.
+- Playwright, alle Projekte einzeln: **232/232**.
+  - `serial-guards` 101: Im ersten Gesamtlauf fielen `forms` (zweimal) und ein Werkzeugeditor-Test
+    aus. Der Werkzeugeditor-Test suchte noch die entfernte ID `#tool-description` und ist korrigiert.
+    `forms` ließ sich einzeln und im Verbund nicht reproduzieren (101/101 im Wiederholungslauf). Der
+    Test setzt den Mock nicht mehr auf „quiet“, eine bekannte Ursache für Verbindungsabbrüche bei
+    langen Tests; danach dreimal hintereinander 9/9.
+- **Referenzbilder:** Die 4 Werkzeugeditor-Bilder wurden nach Sichtprüfung erneuert (ein Raster,
+  Einheiten im Kopf); die übrigen sind unverändert.
+
 ---
 
 ## Codex Implementierungsreview Runde 1

@@ -6,7 +6,7 @@ import DialogFrame from "./DialogFrame.vue";
 import { openTextSession, closeTextSessionIf, inputSession, EDITOR_OWNER, type TextTarget } from "./inputSession";
 import { splitSubLines, expansionAllowed, totalRows, rowAt, rowForMain, rowForSub, type SubExpansion } from "./subRows";
 import { usePermissions } from "./permissions";
-import { loadMachineDefaults, saveMachineDefaults, settingsVersion, STEP_RPM } from "./defaults";
+import { loadMachineDefaults, saveMachineDefaults, settingsVersion } from "./defaults";
 import { scanToolchangesBefore, scanEntryPositionBefore, type RflToolchangeScan, type RflEntryScan, type RflRunOptions } from "./gcodeRfl";
 import { highlightGcode, type Token } from "./gcodeHighlight";
 import { limitViolationText, type LimitViolation } from "./ws/bulkData";
@@ -19,6 +19,7 @@ import { Play, SkipForward, Pause, X } from "lucide-vue-next";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineRadio from "./MachineRadio.vue";
+import FormField from "./FormField.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineToggle from "./MachineToggle.vue";
 import FileBrowser from "./FileBrowser.vue";
@@ -976,10 +977,11 @@ async function saveEdit() {
           <strong>{{ uploadConflict.filename }}</strong> already exists on the server.
           Replace overwrites it — this cannot be undone.
         </div>
-        <label class="uploadRename paramGrid">
-          <span>New name</span>
-          <MachineInput gate="uploadName" type="text" v-model="uploadConflict.newName" class="w-full" />
-        </label>
+        <FormField label="New Name">
+          <template #default="{ input }">
+            <MachineInput v-bind="input" gate="uploadName" type="text" v-model="uploadConflict.newName" />
+          </template>
+        </FormField>
       </div>
       <template #actions>
         <MachineBtn type="dialogCancel" @click="uploadConflict = null">Cancel</MachineBtn>
@@ -1051,10 +1053,11 @@ async function saveEdit() {
               <label><MachineRadio gate="displaySetting" name="rflSpindleDir" :modelValue="dialogSpindleDir" value="off" @update:modelValue="dialogSpindleDir = 'off'" /> Stop</label>
               <label><MachineRadio gate="displaySetting" name="rflSpindleDir" :modelValue="dialogSpindleDir" value="forward" @update:modelValue="dialogSpindleDir = 'forward'" /> Fwd</label>
             </div>
-            <div v-if="dialogSpindleDir !== 'off'" class="rpmRow">
-              <label>RPM</label>
-              <MachineInput gate="displaySettingNum" type="number" v-model.number="dialogSpindleSpeed" min="0" :step="STEP_RPM" />
-            </div>
+            <FormField v-if="dialogSpindleDir !== 'off'" label="Spindle Speed" unit="RPM" class="rpmField">
+              <template #default="{ input }">
+                <MachineInput v-bind="input" gate="displaySettingNum" type="number" v-model.number="dialogSpindleSpeed" min="0" />
+              </template>
+            </FormField>
           </div>
         </div>
 
@@ -1275,14 +1278,6 @@ async function saveEdit() {
   justify-content: flex-end;
 }
 
-/* Upload-conflict rename row: label + field, left-aligned inside the
-   centred confirm dialog (layout only — .paramGrid supplies the look). */
-.uploadRename {
-  text-align: left;
-  margin-bottom: var(--gap-controls);
-}
-.uploadRename input { max-width: none; }
-
 /* Run from line */
 .codeLine.selectable {
   cursor: pointer;
@@ -1307,15 +1302,9 @@ async function saveEdit() {
 }
 
 
-.rpmRow {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-controls);
+.rpmField {
+  max-width: var(--form-col-min);
   margin-top: var(--gap-controls);
-}
-
-.rpmRow input {
-  width: 100px;
 }
 
 /* G-code context help */

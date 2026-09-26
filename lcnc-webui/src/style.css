@@ -1174,7 +1174,8 @@ label:has(input:disabled, select:disabled) {
   color: color-mix(in oklab, currentColor var(--mix-muted), transparent);
   white-space: nowrap;
 }
-.formField > .inputField { width: 100%; min-width: 0; }
+.formField > .inputField,
+.formField > input[type="range"] { width: 100%; min-width: 0; }
 /* A read-only value in a form (an <output>, named by the label's `for`). */
 .formValue {
   min-height: var(--control-h);
@@ -1201,21 +1202,6 @@ label:has(input:disabled, select:disabled) {
   color: var(--danger);
 }
 
-/* Label + input grid — 2-col (auto 1fr) or 4-col (.twoCol) */
-.paramGrid {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: var(--gap-tight) var(--gap-controls);
-  align-items: center;
-}
-.paramGrid.twoCol { grid-template-columns: auto 1fr auto 1fr; }
-.paramGrid > label {
-  font-size: var(--fs-sm);
-  color: color-mix(in oklab, currentColor var(--mix-muted), transparent);
-  display: inline-flex;
-  align-items: center;
-}
-.paramGrid input { max-width: 100px; }
 
 .inset-panel {
   background: color-mix(in oklab, var(--bg) 80%, transparent);
@@ -1905,21 +1891,6 @@ label:has(input:disabled, select:disabled) {
 .pill {
   text-transform: uppercase;
   letter-spacing: 0.02em;
-}
-
-.sliderVal {
-  font-size: var(--fs-base);
-  font-variant-numeric: tabular-nums;
-  opacity: var(--opacity-muted);
-  white-space: nowrap;
-  text-align: right;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sliderVal.warn {
-  color: var(--warn);
-  opacity: 1;
 }
 
 

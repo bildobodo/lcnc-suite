@@ -161,7 +161,7 @@ async function openAdd(page: Page) {
 test("add: ok:false keeps the draft, a delayed ok closes, a double click sends once", async ({ page }) => {
   await openAdd(page);
   const dialog = page.locator(".editDialog");
-  const desc = dialog.locator("label", { hasText: "Description" }).locator("xpath=following-sibling::input[1]");
+  const desc = dialog.getByRole("textbox", { name: "Description", exact: true });
   await desc.fill("draft description");
   const add = dialog.getByRole("button", { name: "Add", exact: true });
   await add.click();

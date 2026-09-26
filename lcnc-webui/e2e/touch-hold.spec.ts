@@ -135,7 +135,7 @@ test("teleported tool dialog under touch: scroll the form, keypad on a field, co
   for (let i = 1; i <= 6; i++) await touch(cdp, "touchMove", [{ x: start.x, y: start.y - i * 30 }]);
   await touch(cdp, "touchEnd", []);
   // Open the keypad on a number field with a tap, type via the strip, confirm.
-  const flutes = dialog.locator("label", { hasText: "Flutes" }).locator("xpath=following-sibling::input[1]");
+  const flutes = dialog.getByRole("textbox", { name: "Flutes", exact: true });
   await flutes.scrollIntoViewIfNeeded();
   const f = (await flutes.boundingBox())!;
   await touch(cdp, "touchStart", [{ x: f.x + f.width / 2, y: f.y + f.height / 2 }]);

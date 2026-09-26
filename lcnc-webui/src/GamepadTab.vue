@@ -15,6 +15,7 @@ import {
 import type { GamepadProfile, MappingSource } from "./gamepadProfile";
 import MachineBtn from "./MachineBtn.vue";
 import MachineToggle from "./MachineToggle.vue";
+import FormField from "./FormField.vue";
 import MachineSlider from "./MachineSlider.vue";
 import MachineSelect from "./MachineSelect.vue";
 import GamepadLiveInput from "./GamepadLiveInput.vue";
@@ -173,15 +174,19 @@ const rawSummary = computed(() => {
     <div v-if="gamepadConfig?.jogEnabled" class="stack-controls">
       <div class="sub">Dead Zone & Live Input</div>
       <div class="settingDesc">Ignore stick deflection below this threshold to prevent drift.</div>
-      <div class="sliderRow">
-        <MachineSlider
-          gate="inputConfig"
-          :min="0.05" :max="0.50" :step="0.01"
-          :modelValue="gamepadConfig?.deadZone ?? 0.15"
-          @update:modelValue="(v: number | undefined) => emit('setGamepadConfig', { ...gamepadConfig!, deadZone: v ?? 0.15 })"
-        />
-        <span class="sliderVal">{{ fmtPct(gamepadConfig?.deadZone ?? 0.15) }}</span>
-      </div>
+      <!-- A slider's head shows its value where a field shows its unit -->
+      <FormField label="Dead Zone" :unit="fmtPct(gamepadConfig?.deadZone ?? 0.15)">
+        <template #default="{ field }">
+          <MachineSlider
+            v-bind="field"
+            :aria-valuetext="fmtPct(gamepadConfig?.deadZone ?? 0.15)"
+            gate="inputConfig"
+            :min="0.05" :max="0.50" :step="0.01"
+            :modelValue="gamepadConfig?.deadZone ?? 0.15"
+            @update:modelValue="(v: number | undefined) => emit('setGamepadConfig', { ...gamepadConfig!, deadZone: v ?? 0.15 })"
+          />
+        </template>
+      </FormField>
       <div v-if="gamepadConnected">
         <div class="settingDesc">Move sticks and press buttons to verify mapping.</div>
         <GamepadLiveInput :deadZone="gamepadConfig?.deadZone ?? 0.15" />
@@ -204,6 +209,7 @@ const rawSummary = computed(() => {
               <MachineSelect
                 gate="inputConfig"
                 class="gpActionSelect"
+                :aria-label="`${label} action`"
                 v-model="gpMapping[key]"
                 @update:modelValue="onGpMappingChanged"
               >

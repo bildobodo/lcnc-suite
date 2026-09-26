@@ -72,7 +72,7 @@ async function openMdi(page: Page) {
   return mdi;
 }
 function dialogField(page: Page, label: string) {
-  return page.locator(".editDialog label", { hasText: label }).locator("xpath=following-sibling::input[1]");
+  return page.locator(".editDialog").getByRole("textbox", { name: label, exact: true });
 }
 
 test.afterEach(async () => {

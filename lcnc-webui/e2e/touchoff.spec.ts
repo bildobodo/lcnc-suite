@@ -582,7 +582,7 @@ test("tool number field: minimum 1 and whole numbers only, on Enter and on OK", 
     await page.getByRole("tab", { name: "Tools", exact: true }).click();
     await page.getByRole("button", { name: "+ Add", exact: true }).click();
     const dialog = page.locator(".dialogOverlay").last();
-    const toolNo = dialog.locator("label", { hasText: "Tool #" }).locator("xpath=following-sibling::input[1]");
+    const toolNo = dialog.getByRole("textbox", { name: "Tool #", exact: true });
     const before = await toolNo.inputValue();
     await toolNo.click();
     const strip = page.locator(".nkStrip");
@@ -767,7 +767,7 @@ test("keypad owner: dialog close, gate change and a second field end or retarget
     await page.getByRole("tab", { name: "Tools", exact: true }).click();
     await page.getByRole("button", { name: "+ Add", exact: true }).click();
     const dialog = page.locator(".editDialog");
-    const field = (name: string) => dialog.locator("label", { hasText: name }).locator("xpath=following-sibling::input[1]");
+    const field = (name: string) => dialog.getByRole("textbox", { name, exact: true });
     await field("Diameter").click();
     const strip = page.locator(".nkStrip");
     await expect(strip.locator(".sub")).toHaveText("New tool · Diameter · mm");

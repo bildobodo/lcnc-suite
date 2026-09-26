@@ -33,6 +33,7 @@ import OffsetPanel from "./OffsetPanel.vue";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import DialogFrame from "./DialogFrame.vue";
+import FormField from "./FormField.vue";
 import MachineInput from "./MachineInput.vue";
 import { highlightGcode } from "./gcodeHighlight";
 import { fmtElapsed, fmtDuration, fmtDist, fmtSize, fmtProgressTimes, fmtNum, fmtQty } from "./format";
@@ -2218,16 +2219,17 @@ watch(viewerGcode, (newGcode) => {
 
       <DialogFrame v-if="macroParamDialog" kind="form" size="md" :title="macroParamDialog.macro.name">
           <div class="dialogContent">
-            <div class="stack-controls">
-              <div v-for="p in macroParamDialog.macro.params" :key="p.name" class="row-controls">
-                <label class="macroParamLabel" :for="`macro-param-${p.name}`">{{ p.label || p.name }}</label>
-                <MachineInput
-                  :id="`macro-param-${p.name}`"
-                  gate="macroParam"
-                  v-model="macroParamDialog.values[p.name]"
-                  @keydown.enter="confirmMacroParams"
-                />
-              </div>
+            <div class="formGrid">
+              <FormField v-for="p in macroParamDialog.macro.params" :key="p.name" :label="p.label || p.name">
+                <template #default="{ input }">
+                  <MachineInput
+                    v-bind="input"
+                    gate="macroParam"
+                    v-model="macroParamDialog.values[p.name]"
+                    @keydown.enter="confirmMacroParams"
+                  />
+                </template>
+              </FormField>
             </div>
             <code class="macroPreview">{{ macroPreview() }}</code>
           </div>
@@ -2780,11 +2782,6 @@ watch(viewerGcode, (newGcode) => {
 }
 
 /* ---- Macro param dialog ---- */
-/* .macroParamFields — uses stack-controls utility */
-/* .macroParamRow — replaced by row-controls utility (same shape) */
-.macroParamLabel {
-  min-width: 100px;
-}
 .macroPreview {
   display: block;
   margin-top: var(--gap-section);

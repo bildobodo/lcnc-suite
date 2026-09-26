@@ -231,7 +231,7 @@ const ROWS: Row[] = [
     open: async (page) => {
       const settings = await openSettingsTab(page, "Macros");
       await settings.getByRole("button", { name: "Add Macro", exact: true }).click();
-      await settings.locator("#macro-edit-name").fill("Face top");
+      await settings.getByRole("textbox", { name: "Name", exact: true }).fill("Face top");
       const trigger = settings.getByRole("button", { name: "Close settings", exact: true });
       await trigger.click();
       return trigger;
@@ -406,7 +406,7 @@ const ROWS: Row[] = [
       await openTools(page);
       await page.getByRole("button", { name: "+ Add", exact: true }).click();
       const editor = page.getByRole("dialog", { name: "Add Tool", exact: true });
-      await editor.locator("label", { hasText: "Description" }).locator("xpath=following-sibling::input[1]").fill("draft");
+      await editor.getByRole("textbox", { name: "Description", exact: true }).fill("draft");
       const trigger = editor.getByRole("button", { name: "Cancel", exact: true });
       await trigger.click();
       return trigger;
@@ -576,7 +576,7 @@ test("UI-D01: from inside a dialog Tab reaches the banner's Abort — Enter send
   // 2. Stacked: a draft in the macro editor, Settings' X asks.
   await ctl({ op: "status_delta", data: running });
   await settings.getByRole("button", { name: "Add Macro", exact: true }).click();
-  await settings.locator("#macro-edit-name").fill("Face top");
+  await settings.getByRole("textbox", { name: "Name", exact: true }).fill("Face top");
   await settings.getByRole("button", { name: "Close settings", exact: true }).click();
   const ask = page.getByRole("dialog", { name: "Discard changes?", exact: true });
   await expect(ask).toBeVisible();
@@ -588,7 +588,7 @@ test("UI-D01: from inside a dialog Tab reaches the banner's Abort — Enter send
 
   // 3. A text helper open on a Settings field: Tab passes through its keys.
   await ctl({ op: "status_delta", data: running });
-  await settings.locator("#macro-edit-name").click();
+  await settings.getByRole("textbox", { name: "Name", exact: true }).click();
   await expect(page.locator(".tkStrip")).toBeVisible();
   await tabToAbort(settings);
   await ctl({ op: "clearCmds" });
@@ -680,7 +680,7 @@ test("closing a whole stack returns focus once, to the control that opened the b
   const opener = page.getByTitle("Settings", { exact: true });
   const settings = await openSettingsTab(page, "Macros");
   await settings.getByRole("button", { name: "Add Macro", exact: true }).click();
-  await settings.locator("#macro-edit-name").fill("Face top");
+  await settings.getByRole("textbox", { name: "Name", exact: true }).fill("Face top");
   await settings.getByRole("button", { name: "Close settings", exact: true }).click();
   const ask = page.getByRole("dialog", { name: "Discard changes?", exact: true });
   await ask.getByRole("button", { name: "Discard", exact: true }).click();
@@ -700,7 +700,7 @@ test("closing a whole stack returns focus once, to the control that opened the b
   const add = page.getByRole("button", { name: "+ Add", exact: true });
   await add.click();
   const editor = page.getByRole("dialog", { name: "Add Tool", exact: true });
-  await editor.locator("label", { hasText: "Description" }).locator("xpath=following-sibling::input[1]").fill("draft");
+  await editor.getByRole("textbox", { name: "Description", exact: true }).fill("draft");
   await editor.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByRole("dialog", { name: "Discard changes?", exact: true }).getByRole("button", { name: "Discard", exact: true }).click();
   await expect(editor).toHaveCount(0);

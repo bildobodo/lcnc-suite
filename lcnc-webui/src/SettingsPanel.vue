@@ -10,6 +10,7 @@ import MachineToggle from "./MachineToggle.vue";
 import MachineSlider from "./MachineSlider.vue";
 import MachineRadio from "./MachineRadio.vue";
 import MachineColor from "./MachineColor.vue";
+import FormField from "./FormField.vue";
 import {
   loadViewerDefaults, saveViewerDefaults, viewerFallback,
   loadMachineDefaults, saveMachineDefaults,
@@ -20,7 +21,6 @@ import {
   type TrackMode, type Projection, type PreviewMode, type ToolChangeMode, type SpindleDir, type SpindleFeedbackUnit,
   type ThemeMode, type MacroDef, type GamepadDefaults,
   GAMEPAD_FALLBACK,
-  STEP_RPM,
   loadKeyboardDefaults, type KeyboardDefaults, DEFAULT_KB_MAPPING,
 } from "./defaults";
 import { saveStatus, saveStatusText } from "./settingsSaveStatus";
@@ -593,22 +593,28 @@ function resetMachineColor(id: string) {
             <MachineToggle gate="cameraSetting" v-model="camShowCircle" @update:modelValue="saveCamTracked" label="Circle" />
             <MachineToggle gate="cameraSetting" v-model="camShowGrid" @update:modelValue="saveCamTracked" label="Grid" />
           </div>
-          <div class="row-controls">
-            <span class="inputLabel">Radius</span>
-            <MachineInput gate="cameraSetting" type="number" v-model.number="camCircleRadius" min="10" max="300" :step="1" @change="saveCamTracked" />
-          </div>
-          <div class="row-controls">
-            <span class="inputLabel">Grid</span>
-            <MachineInput gate="cameraSetting" type="number" v-model.number="camGridSpacing" min="10" max="200" :step="1" @change="saveCamTracked" />
-          </div>
-          <div class="row-controls">
-            <span class="camOverlayLabel">Opacity</span>
-            <MachineSlider gate="cameraSetting" class="camOverlaySlider" :min="0" :max="1" :step="0.05" v-model="camOverlayOpacity" @update:modelValue="saveCamTracked" />
-            <span class="camOverlayValue">{{ fmtPct(camOverlayOpacity) }}</span>
-          </div>
-          <div class="row-controls">
-            <span class="inputLabel">Color</span>
-            <MachineColor gate="cameraSetting" v-model="camOverlayColor" @update:modelValue="saveCamTracked" />
+          <div class="formGrid">
+            <FormField label="Circle Radius" unit="px">
+              <template #default="{ input }">
+                <MachineInput v-bind="input" gate="cameraSetting" type="number" v-model.number="camCircleRadius" min="10" max="300" integer @change="saveCamTracked" />
+              </template>
+            </FormField>
+            <FormField label="Grid Spacing" unit="px">
+              <template #default="{ input }">
+                <MachineInput v-bind="input" gate="cameraSetting" type="number" v-model.number="camGridSpacing" min="10" max="200" integer @change="saveCamTracked" />
+              </template>
+            </FormField>
+            <!-- A slider's head shows its value where a field shows its unit -->
+            <FormField label="Opacity" :unit="fmtPct(camOverlayOpacity)">
+              <template #default="{ field }">
+                <MachineSlider v-bind="field" :aria-valuetext="fmtPct(camOverlayOpacity)" gate="cameraSetting" :min="0" :max="1" :step="0.05" v-model="camOverlayOpacity" @update:modelValue="saveCamTracked" />
+              </template>
+            </FormField>
+            <FormField label="Color">
+              <template #default="{ field }">
+                <MachineColor v-bind="field" gate="cameraSetting" v-model="camOverlayColor" @update:modelValue="saveCamTracked" />
+              </template>
+            </FormField>
           </div>
         </div>
 
@@ -617,14 +623,14 @@ function resetMachineColor(id: string) {
         <div class="stack-controls">
           <div class="sub">Colors</div>
           <div class="colorGrid">
-            <div class="row-controls" v-for="cf in colorFields" :key="cf.key">
+            <label class="row-controls" v-for="cf in colorFields" :key="cf.key">
               <MachineColor
                 gate="viewerSetting"
                 :modelValue="colors[cf.key]"
                 @update:modelValue="onColorChange(cf.key, $event!)"
               />
               <span class="colorLabel">{{ cf.label }}</span>
-            </div>
+            </label>
           </div>
         </div>
 
@@ -635,12 +641,16 @@ function resetMachineColor(id: string) {
           <div class="stack-controls fieldGroup">
             <div class="colorGrid">
               <div class="row-controls" v-for="part in machineParts" :key="part.id">
-                <MachineColor
-                  gate="viewerSetting"
+                <!-- the label names the picker; the reset stays outside it (a
+                     button inside a label joins the picker's name) -->
+                <label class="row-controls">
+                  <MachineColor
+                    gate="viewerSetting"
                     :modelValue="machineColors[part.id] ?? defaultMachineColor(part)"
-                  @update:modelValue="onMachineColorChange(part.id, $event!)"
-                />
-                <span class="colorLabel">{{ formatPartLabel(part.id) }}</span>
+                    @update:modelValue="onMachineColorChange(part.id, $event!)"
+                  />
+                  <span class="colorLabel">{{ formatPartLabel(part.id) }}</span>
+                </label>
                 <MachineBtn v-if="machineColors[part.id]" type="listAction" :aria-label="`Reset color for ${formatPartLabel(part.id)}`" :title="`Reset color for ${formatPartLabel(part.id)}`" @click="resetMachineColor(part.id)"><RotateCcw :size="14" /></MachineBtn>
               </div>
             </div>
@@ -717,27 +727,29 @@ function resetMachineColor(id: string) {
             <div class="sub">Run from Line</div>
             <div class="settingDesc">Allow starting program execution from a selected line in the code viewer.</div>
             <MachineToggle gate="displaySetting" v-model="runFromLine" @update:modelValue="emit('setRunFromLine', runFromLine); saveMachine()" label="Enable run from line (advanced — use with care)" />
-            <div v-if="runFromLine" class="dialogBody">
-              ⚠ Run-from-line is inherently risky: LinuxCNC reconstructs program
+            <div v-if="runFromLine" class="statusNote warn" role="alert">
+              <span>Run-from-line is inherently risky: LinuxCNC reconstructs program
               state by skimming, entry moves follow modal axis words, and skipped
               passes may leave uncut material. The dialog guards tool changes and
               start position where it can, but it cannot cover every program —
-              not recommended for unattended use.
+              not recommended for unattended use.</span>
             </div>
-            <div v-if="runFromLine" class="rflDefaults">
-              <div class="settingDesc">Default spindle preset for run-from-line dialog.</div>
-              <div class="rflRow">
-                <div class="radioGroup inline">
-                  <!-- the spindle strip's order and words: Rev · Off · Fwd (UI-N14) -->
-                  <label><MachineRadio gate="displaySetting" name="rflSpindleDir" v-model="rflSpindleDir" value="reverse" @update:modelValue="saveMachine()" /> Rev</label>
-                  <label><MachineRadio gate="displaySetting" name="rflSpindleDir" v-model="rflSpindleDir" value="off" @update:modelValue="saveMachine()" /> Off</label>
-                  <label><MachineRadio gate="displaySetting" name="rflSpindleDir" v-model="rflSpindleDir" value="forward" @update:modelValue="saveMachine()" /> Fwd</label>
-                </div>
-                <div v-if="rflSpindleDir !== 'off'" class="row-tight rflRpm">
-                  <label>RPM</label>
-                  <MachineInput gate="displaySetting" type="number" v-model.number="rflSpindleRpm" min="0" :step="STEP_RPM" @change="saveMachine()" />
-                </div>
-              </div>
+            <div v-if="runFromLine" class="formGrid">
+              <FormField label="Default Spindle Preset" group>
+                <template #default="{ group }">
+                  <!-- the spindle strip's order and words: Rev · Stop · Fwd (UI-N14) -->
+                  <div v-bind="group" class="radioGroup inline">
+                    <label><MachineRadio gate="displaySetting" name="rflSpindleDir" v-model="rflSpindleDir" value="reverse" @update:modelValue="saveMachine()" /> Rev</label>
+                    <label><MachineRadio gate="displaySetting" name="rflSpindleDir" v-model="rflSpindleDir" value="off" @update:modelValue="saveMachine()" /> Stop</label>
+                    <label><MachineRadio gate="displaySetting" name="rflSpindleDir" v-model="rflSpindleDir" value="forward" @update:modelValue="saveMachine()" /> Fwd</label>
+                  </div>
+                </template>
+              </FormField>
+              <FormField v-if="rflSpindleDir !== 'off'" label="Default Spindle Speed" unit="RPM">
+                <template #default="{ input }">
+                  <MachineInput v-bind="input" gate="displaySetting" type="number" v-model.number="rflSpindleRpm" min="0" @change="saveMachine()" />
+                </template>
+              </FormField>
             </div>
           </div>
           <div class="resetRow">
@@ -804,13 +816,17 @@ function resetMachineColor(id: string) {
             <div v-if="editingMacro" class="macroEditForm">
               <div class="sub">{{ macros.some(m => m.id === editingMacro!.id) ? 'Edit' : 'New' }} Macro</div>
               <div class="stack-controls fieldGroup">
-                <div class="row-controls inputRow">
-                  <label class="inputLabel" for="macro-edit-name">Name</label>
-                  <MachineInput id="macro-edit-name" gate="macroEdit" type="text" v-model="editingMacro.name" placeholder="e.g. Face Top" />
-                </div>
-                <div class="row-controls inputRow">
-                  <label class="inputLabel" for="macro-edit-command">Command</label>
-                  <MachineInput id="macro-edit-command" gate="macroEdit" type="text" v-model="editingMacro.command" placeholder="e.g. G0 Z{depth} F{feed}" />
+                <div class="formGrid">
+                  <FormField label="Name" wide>
+                    <template #default="{ input }">
+                      <MachineInput v-bind="input" gate="macroEdit" type="text" v-model="editingMacro.name" placeholder="e.g. Face Top" />
+                    </template>
+                  </FormField>
+                  <FormField label="Command" wide>
+                    <template #default="{ input }">
+                      <MachineInput v-bind="input" gate="macroEdit" type="text" v-model="editingMacro.command" placeholder="e.g. G0 Z{depth} F{feed}" />
+                    </template>
+                  </FormField>
                 </div>
                 <div class="macroParamHint">
                   Use <code>{"{name}"}</code> for parameters. Users will be prompted for values.
@@ -953,18 +969,7 @@ function resetMachineColor(id: string) {
   margin-bottom: var(--gap-section);
 }
 
-/* .inputRow layout replaced by row-controls utility on the template element.
-   The .inputRow class is retained as a hook for the descendant rule below. */
-.inputRow input[type="text"] {
-  flex: 1;
-  min-width: 0;
-}
 
-.inputLabel {
-  font-size: var(--fs-base);
-  opacity: var(--opacity-secondary);
-  min-width: 60px;
-}
 
 
 .layerGrid {
@@ -995,44 +1000,14 @@ function resetMachineColor(id: string) {
   opacity: var(--opacity-secondary);
 }
 
-/* .camOverlayRow — replaced by row-controls utility (same shape) */
-
-.camOverlayLabel {
-  font-size: var(--fs-base);
-  opacity: var(--opacity-secondary);
-  min-width: 100px;
-}
-
-.camOverlaySlider {
-  flex: 1;
-}
-
-.camOverlayValue {
-  font-size: var(--fs-sm);
-  font-variant-numeric: tabular-nums;
-  opacity: var(--opacity-muted);
-  min-width: 32px;
-  text-align: right;
-}
 
 
 
-.rflDefaults {
-  margin-top: var(--gap-controls);
-}
 
-.rflRow {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-section);
-  margin-top: var(--gap-tight);
-}
 
-/* .rflRpm layout replaced by row-tight utility on the template element.
-   The .rflRpm class is retained as a hook for the descendant rule below. */
-.rflRpm input {
-  width: 90px;
-}
+
+
+
 
 /* ─── Macros tab ─────────────────────────────────────────────── */
 .macroSettingsEmpty {
