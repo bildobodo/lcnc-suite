@@ -21,7 +21,7 @@ describe("3D text labels", () => {
       for (const m of src.matchAll(/\b(\w+)\s*=\s*new Text\(\)/g)) {
         const at = `${file}:${src.slice(0, m.index).split("\n").length}`;
         sites.push(at);
-        const rest = src.slice(m.index!, src.indexOf(".sync()", m.index) + 1 || undefined);
+        const rest = src.slice(m.index!, src.indexOf(".sync(", m.index) + 1 || undefined);
         if (!new RegExp(`\\b${m[1]}\\.font\\s*=\\s*LABEL_FONT_URL\\b`).test(rest)) missing.push(at);
       }
     }

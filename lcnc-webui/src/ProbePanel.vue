@@ -568,7 +568,7 @@ function render3DSurface(pts: [number, number, number][]) {
           lbl.outlineColor = bgColor;
           lbl.depthWrite = false;
           lbl.position.set(sx, sy, sz + zScale * 0.08 + Math.min(xRange, yRange) * 0.025);
-          lbl.sync();
+          lbl.sync(_svRenderOnce);   // on-demand render: repaint once the glyphs exist
           _svScene.add(lbl);
           _svLabels.push(lbl);
         }
@@ -610,7 +610,7 @@ function render3DSurface(pts: [number, number, number][]) {
         lbl.outlineColor = bgColor;
         lbl.depthWrite = false;
         lbl.position.copy(arrowOrigin).add(offset);
-        lbl.sync();
+        lbl.sync(_svRenderOnce);
         _svScene.add(lbl);
         _svLabels.push(lbl);
       }

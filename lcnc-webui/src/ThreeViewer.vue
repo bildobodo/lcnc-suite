@@ -596,7 +596,12 @@ function mkTextLabel(text: string, color: string, fontSize: number): Text {
   t.outlineWidth = "4%";
   t.outlineColor = "#000000";
   t.depthWrite = false;
-  t.sync();
+  // A label lays out in troika's worker AFTER the frame that added it, and
+  // the viewer renders on demand: without a render request when the sync
+  // completes, the glyphs appeared only with the next unrelated frame (a
+  // camera move) — found by the offline viewer spec's flake 2026-09-26.
+  // Every sync here passes it (the fixture label's text change too).
+  t.sync(requestRender);
   return t;
 }
 
@@ -1996,7 +2001,7 @@ function placeWorkMarkers(st: ViewerState) {
   _poseMarker(workAxesGroup, m.primary?.pose ?? null);
   if (m.primary && workAxesLabel && workAxesLabel.text !== m.primary.label) {
     workAxesLabel.text = m.primary.label;
-    workAxesLabel.sync();
+    workAxesLabel.sync(requestRender);
   }
   _poseMarker(ghostGroup, m.ghost);
 }

@@ -132,11 +132,15 @@ test("the viewer fetches nothing from outside the gateway (an offline machine)",
     return route.abort();
   });
   await page.goto(MOCK);
-  await expect.poll(() => page.evaluate(() => !!window.__viewerLeakProbe), { timeout: 15000 }).toBe(true);
+  // Each wait names itself: one run under load failed here once without a
+  // readable reason (2026-09-26, D3 gate; green 6/6 on reruns).
+  await expect.poll(() => page.evaluate(() => !!window.__viewerLeakProbe),
+    { timeout: 15000, message: "the viewer's leak probe never appeared" }).toBe(true);
   const textures = () => page.evaluate(() => window.__viewerLeakProbe?.()?.textures ?? -1);
   const before = await textures();
   await ctl({ op: "loadGcode" });
-  await expect.poll(() => geometries(page), { timeout: 15000, intervals: [150] }).toBeGreaterThan(0);
+  await expect.poll(() => geometries(page),
+    { timeout: 15000, intervals: [150], message: "the loaded program drew no geometry" }).toBeGreaterThan(0);
   await settledGeometries(page);
   await expect.poll(textures, { timeout: 15000, message: "no label glyph atlas: the labels never laid out" })
     .toBeGreaterThan(before);
