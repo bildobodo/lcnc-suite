@@ -26,7 +26,7 @@ export type TypeExportSurface = {
 };
 
 const REF_EXPORTS = [
-  "armed", "configWarning", "connected", "gcodeContent",
+  "armed", "configWarning", "connected", "gcodeContent", "gcodeRevision", "gcodeTextRevision",
   "halInitialized", "halParams", "halPins", "halSignals",
   "lastReply", "latency", "lcncError", "messages", "networkLatency",
   "previewLoadError", "previewParseError", "previewRefresh", "previewRefreshElapsedMs", "previewRefreshPct", "previewRefusal", "readerStale", "safetyChainIncomplete",
