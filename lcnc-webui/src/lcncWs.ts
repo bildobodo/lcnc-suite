@@ -126,6 +126,7 @@ function onWorkerMessage(m: any) {
       });
       connected.value = false;
       noteSaveConnectionLost();   // a settings save in flight is not saved (UX-08)
+      settleAwaitedReplies();     // a request in flight has no answer coming
       // Server-going-away close codes double as a shutdown signal: the
       // gateway closes 1001 on lifespan teardown, uvicorn closes 1012 on
       // graceful restart. The explicit server_shutdown frame is the richer
@@ -288,6 +289,7 @@ function onFrame(data: string | ArrayBuffer) {
       handleStatusError(msg);
     } else if (msg.type === "reply") {
       lastReply.value = msg;
+      if (typeof msg.req_id === "string") _awaited.get(msg.req_id)?.(msg);
       // A settings save's reply moves the Settings header's status (UX-08).
       if (typeof msg.req_id === "string") noteSaveReply(msg.req_id, msg.ok !== false, msg.error);
       if (msg.ok === false && msg.error) {
@@ -343,6 +345,30 @@ export function send(obj: WsCommand): string | null {
   const req_id = nextReqId();
   const posted = sendCommand(JSON.stringify({ ...obj, req_id }), obj.cmd, !isQueueSafe(obj.cmd));
   return posted ? req_id : null;
+}
+
+// Replies a caller WAITS for, by req_id — a map, not a watch on lastReply:
+// two replies in one tick would overwrite each other there.
+const _awaited = new Map<string, (reply: any) => void>();
+
+function settleAwaitedReplies(): void {
+  for (const resolve of [..._awaited.values()]) resolve(null);
+}
+
+/**
+ * Send a command and wait for ITS reply. Resolves `null` when nothing was
+ * sent, on the timeout, or when the connection closes — never a guessed
+ * success. A dependent action (M600 after set_probe_vars) goes on only with
+ * the reply in hand.
+ */
+export function request(obj: WsCommand, timeoutMs = 5000): Promise<any | null> {
+  const reqId = send(obj);
+  if (reqId === null) return Promise.resolve(null);
+  return new Promise(resolve => {
+    const done = (reply: any) => { clearTimeout(timer); _awaited.delete(reqId); resolve(reply); };
+    const timer = setTimeout(() => done(null), timeoutMs);
+    _awaited.set(reqId, done);
+  });
 }
 
 export function saveSettings(section: string, data: any): string | null {

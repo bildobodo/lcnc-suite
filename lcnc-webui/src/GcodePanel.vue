@@ -7,6 +7,7 @@ import { openTextSession, closeTextSessionIf, inputSession, EDITOR_OWNER, type T
 import { splitSubLines, expansionAllowed, totalRows, rowAt, rowForMain, rowForSub, type SubExpansion } from "./subRows";
 import { usePermissions } from "./permissions";
 import { loadMachineDefaults, saveMachineDefaults, settingsVersion } from "./defaults";
+import { confirmedToolsetter } from "./toolsetterVars";
 import { scanToolchangesBefore, scanEntryPositionBefore, type RflToolchangeScan, type RflEntryScan, type RflRunOptions } from "./gcodeRfl";
 import { highlightGcode, type Token } from "./gcodeHighlight";
 import { fmtPct } from "./format";
@@ -490,6 +491,10 @@ const rflPreTool = computed(() => {
   const s = rflScan.value;
   return s && s.count === 1 && s.lastTool != null && s.lastTool > 0 ? s.lastTool : 0;
 });
+// The pre-measurement is an M600: only with the toolsetter set up (Codex R15 B1).
+const toolsetter = computed(() => confirmedToolsetter());
+const rflSetterUnset = computed(() => rflPreTool.value > 0 && !toolsetter.value.ok);
+const rflSetterReason = computed(() => (toolsetter.value.ok ? undefined : toolsetter.value.reason));
 // Unsupported: multiple toolchanges before N, an undetermined tool number, or
 // T0 (unload). The skim would probe each one with no offsets applied — refuse.
 const rflBlocked = computed(() => {
@@ -1148,7 +1153,7 @@ async function saveEdit() {
           <MachineBtn type="dialogCancel" @click="showRunDialog = false">Cancel</MachineBtn>
           <Gate gate="ready" class="row-controls">
             <!-- Starting motion is a hold (D6): bound to the program and the line -->
-            <MachineBtn type="dialogConfirm" :disabled="rflBlocked || programLoading" :reason="programLoading ? LOADING_REASON : undefined" hold :hold-key="`${programHoldKey}:${selectedLine}`" @click="confirmRunFromLine">{{ rflPreTool > 0 ? `Measure T${rflPreTool} + Run from Line ${selectedLine}` : `Run from Line ${selectedLine}` }}</MachineBtn>
+            <MachineBtn type="dialogConfirm" :disabled="rflBlocked || programLoading || rflSetterUnset" :reason="programLoading ? LOADING_REASON : rflSetterUnset ? rflSetterReason : undefined" hold :hold-key="`${programHoldKey}:${selectedLine}`" @click="confirmRunFromLine">{{ rflPreTool > 0 ? `Measure T${rflPreTool} + Run from Line ${selectedLine}` : `Run from Line ${selectedLine}` }}</MachineBtn>
           </Gate>
         </template>
     </DialogFrame>

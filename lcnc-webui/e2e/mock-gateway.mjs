@@ -195,6 +195,10 @@ const hellos = [];
 // kinematics selector emits, and that a refused control emits nothing).
 const cmds = [];
 let refuseWs = false;
+// Correlated replies the UI WAITS for (request() in lcncWs): cmd -> reply
+// fields, answered with the command's own req_id (toolsetter-setup.spec:
+// set_probe_vars with mdi_set true / false / refused).
+let replies = {};
 
 wss.on("connection", (ws) => {
   ws.on("error", () => {}); // page teardown mid-write is routine in e2e
@@ -214,6 +218,7 @@ wss.on("connection", (ws) => {
       if (cmds.length > 50) cmds.shift();
     }
     if (cmd === "heartbeat") ws.send(JSON.stringify({ type: "pong" }));
+    if (cmd && replies[cmd]) ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ...replies[cmd] }));
     if (cmd === "halshow_live") ws.send(JSON.stringify(HALSHOW_SNAPSHOT));
     if (!quiet) ws.send(JSON.stringify(state)); // answer everything -> stay connected & armed
   });
@@ -250,6 +255,7 @@ ctlWss.on("connection", (ws) => {
       // one — silently, as a passing test that depended on the previous spec.
       quiet = false;
       refuseWs = false;
+      replies = {};
       activeViewerInit = VIEWER_INIT;
       state.armed = PRISTINE.armed;
       state.data = structuredClone(PRISTINE.data);
@@ -307,6 +313,8 @@ ctlWss.on("connection", (ws) => {
     } else if (m.op === "lastHellos") {
       ws.send(JSON.stringify({ ok: true, op: m.op, hellos }));
       return;
+    } else if (m.op === "replies") {
+      replies = m.replies && typeof m.replies === "object" ? m.replies : {};
     } else if (m.op === "refuseWs") {
       refuseWs = m.on === true;
     } else if (m.op === "shutdownClose") {

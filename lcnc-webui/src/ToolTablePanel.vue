@@ -2,6 +2,7 @@
 import { ref, computed, watch, onMounted, defineAsyncComponent } from "vue";
 import { send, lastReply, connected, toolTableVersion } from "./lcncWs";
 import { useFire } from "./permissions";
+import { useToolsetterMdi } from "./toolsetterVars";
 import { loadMachineDefaults, type ToolChangeMode } from "./defaults";
 import { TOOL_TYPE_LABELS, toolTypeLabel } from "./toolTypes";
 import { fmtCell } from "./format";
@@ -42,6 +43,7 @@ const props = defineProps<{
 }>();
 
 const fire = useFire();
+const toolsetterMdi = useToolsetterMdi();
 const toolChangeMode = ref<ToolChangeMode>(loadMachineDefaults().toolChangeMode);
 const unitsPerMm = computed(() => toolUnitsPerMillimeter(props.linearUnit));
 
@@ -341,7 +343,9 @@ function requestToolChange(toolNum: number) {
   // policies. Both branches start machine motion, so both take `ready`.
   // Both routines retract with G53 — identity kinematics only (machineFrame).
   if (toolChangeMode.value === "m600") {
-    fire({ cmd: "mdi", text: `T${toolNum} M600` }, "machineFrame");
+    // The M600 path of every other caller (Codex R15 B1): set-up toolsetter,
+    // its values taken over, then the MDI — this load sent the bare M600.
+    void toolsetterMdi(`Load T${toolNum}`, `T${toolNum} M600`);
   } else {
     fire({ cmd: "tool_change", tool_number: toolNum }, "machineFrame");
   }

@@ -1,18 +1,26 @@
-import { loadToolsetterDefaults } from "./defaults";
+import { inject, type InjectionKey } from "vue";
+import { confirmedSection, serverSettingsReady } from "./defaults";
+import { toolsetterSetup, TOOLSETTER_PENDING_REASON, type ToolsetterSetup } from "./toolsetterSetup";
 
-/** Build LinuxCNC var# → value map from saved toolsetter defaults.
- *  Used by both ToolsetterSettings (on param change) and App (before M600). */
-export function buildToolsetterVarMap(): Record<string, number> {
-  const p = loadToolsetterDefaults();
-  return {
-    "3004": p.fastFeed, "3005": p.slowFeed, "3006": p.traverseFeed,
-    "3007": p.maxZTravel, "3009": p.retractDist, "3010": p.spindleZeroHeight,
-    "3013": p.offsetDirection,
-    "3100": p.touchX, "3101": p.touchY, "3102": p.touchZ,
-    "3103": p.useToolTable, "3104": p.toolMinDis, "3105": p.brakeAfter,
-    "3106": p.goBackToStart, "3107": p.spindleStopM, "3108": p.disablePrePos,
-    "3109": p.addReps, "3110": p.lastTry, "3111": p.offsetDiameter,
-    "3112": p.offsetValue, "3113": p.finderTouchX, "3114": p.finderTouchY,
-    "3115": p.finderDiffZ,
-  };
+export {
+  TOOLSETTER_REQUIRED, TOOLSETTER_UNSET_REASON, TOOLSETTER_INVALID_REASON, TOOLSETTER_PENDING_REASON,
+  toolsetterSetup, toolsetterVarMap, type ToolsetterSetup,
+} from "./toolsetterSetup";
+
+/** The verdict on the server-confirmed section; reactive (settingsVersion). */
+export function confirmedToolsetter(): ToolsetterSetup {
+  if (!serverSettingsReady.value) {
+    return { ok: false, reason: TOOLSETTER_PENDING_REASON, missing: [], invalid: [] };
+  }
+  return toolsetterSetup(confirmedSection("toolsetter"));
+}
+
+/** App's gated M600 path (toolsetter set up, its values taken over, then the
+ *  MDI) for the components that start one — the tool table's load. */
+export type ToolsetterMdi = (label: string, line: string) => Promise<boolean>;
+export const TOOLSETTER_MDI_KEY = Symbol("toolsetterMdi") as InjectionKey<ToolsetterMdi>;
+export function useToolsetterMdi(): ToolsetterMdi {
+  const fn = inject(TOOLSETTER_MDI_KEY);
+  if (!fn) throw new Error("useToolsetterMdi() called without provider — App.vue provides TOOLSETTER_MDI_KEY");
+  return fn;
 }

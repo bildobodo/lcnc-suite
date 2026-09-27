@@ -5,12 +5,12 @@ import FormField from "./FormField.vue";
 import { TS_POSITION_FIELDS, TS_PROBE_FIELDS, TS_OPTION_FIELDS, TS_OFFSET_FIELDS, TS_FINDER_FIELDS, unitText } from "./probeFields";
 import { usePermissions } from "./permissions";
 import {
-  loadToolsetterDefaults, saveToolsetterDefaults,
-  loadProbeDefaults, settingsVersion,
+  saveToolsetterDefaults, savedSection, confirmedSection, serverSettingsReady,
+  loadProbeDefaults, settingsVersion, TOOLSETTER_FALLBACK, type ToolsetterDefaults,
 } from "./defaults";
-import { buildToolsetterVarMap } from "./toolsetterVars";
+import { confirmedToolsetter, toolsetterVarMap, TOOLSETTER_REQUIRED } from "./toolsetterVars";
 import { fetchG30 } from "./lcncApi";
-import { status, viewerInit } from "./lcncWs";
+import { status, viewerInit, request } from "./lcncWs";
 import MachineInput from "./MachineInput.vue";
 import MachineToggle from "./MachineToggle.vue";
 import MachineRadio from "./MachineRadio.vue";
@@ -23,7 +23,6 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: "setProbeVars", vars: Record<string, number>): void;
   (e: "mdi", text: string): void;
   (e: "resetSection", section: string): void;
 }>();
@@ -36,46 +35,73 @@ const BRAKE_LABELS: Record<number, string> = { 0: "None", 1: "M00", 2: "M01" };
 const probeTool = computed(() => loadProbeDefaults().probeTool);
 
 // ─── Toolsetter params ─────────────────────
-const tsParams = ref({
-  fastFeed: 500,
-  slowFeed: 50,
-  traverseFeed: 6000,
-  maxZTravel: 150,
-  retractDist: 2,
-  spindleZeroHeight: 180,
-  offsetDirection: 0,
-  touchX: 0,
-  touchY: 0,
-  touchZ: 0,
-  useToolTable: 0,
-  toolMinDis: 10,
-  brakeAfter: 0,
-  goBackToStart: 0,
-  spindleStopM: 5,
-  disablePrePos: 1,
-  addReps: 0,
-  lastTry: 0,
-  offsetDiameter: 0,
-  offsetValue: 50,
-  finderTouchX: 0,
-  finderTouchY: 0,
-  finderDiffZ: 0,
-});
+// A field the operator never set is EMPTY, not the fallback's 0 (Codex R15
+// B1): a required field (TOOLSETTER_REQUIRED) shows blank until entered;
+// an option shows its default (off). A change saves THAT field onto what
+// was saved — never the whole form, whose unset fields would become saved
+// zeros. The values go to the machine only once the SERVER holds a set-up
+// section (confirmedToolsetter), and the form says what is missing.
+type TsKey = keyof ToolsetterDefaults;
+type RequiredKey = (typeof TOOLSETTER_REQUIRED)[number];
+/** Required fields may be unset (null, shown empty); options always hold a value. */
+type TsForm = { [K in TsKey]: K extends RequiredKey ? number | null : number };
+const TS_KEYS = Object.keys(TOOLSETTER_FALLBACK) as TsKey[];
+const REQUIRED = new Set<string>(TOOLSETTER_REQUIRED);
+const tsParams = ref<TsForm>({ ...TOOLSETTER_FALLBACK });
+
+function savedToolsetter(): Record<string, unknown> {
+  const s = savedSection("toolsetter");
+  return s && typeof s === "object" ? { ...(s as Record<string, unknown>) } : {};
+}
 
 function loadTsParams() {
-  Object.assign(tsParams.value, loadToolsetterDefaults());
+  const saved = savedToolsetter();
+  for (const k of TS_KEYS) {
+    const v = saved[k];
+    (tsParams.value as Record<TsKey, number | null>)[k] = typeof v === "number" && Number.isFinite(v) ? v
+      : REQUIRED.has(k) ? null : TOOLSETTER_FALLBACK[k];
+  }
 }
 
-function saveTsParams() {
-  saveToolsetterDefaults({ ...tsParams.value });
-  if (can.value.ready) emit("setProbeVars", buildToolsetterVarMap());
+// Fields saved here and not yet in the server's section: the push waits for
+// them (a broadcast of someone else's save must not push the old values).
+const awaiting = new Map<TsKey, number>();
+const pushError = ref<string | null>(null);
+
+function saveTsParams(key: TsKey) {
+  const v = tsParams.value[key];
+  if (typeof v !== "number" || !Number.isFinite(v)) return;
+  saveToolsetterDefaults({ ...savedToolsetter(), [key]: v });
+  awaiting.set(key, v);
 }
+
+async function pushWhenConfirmed() {
+  if (!awaiting.size) return;
+  const confirmed = (confirmedSection("toolsetter") ?? {}) as Record<string, unknown>;
+  if ([...awaiting].some(([k, v]) => confirmed[k] !== v)) return;
+  awaiting.clear();
+  const setup = confirmedToolsetter();
+  if (!setup.ok || !can.value.ready) return;   // not set up: the machine keeps its values
+  const reply = await request({ cmd: "set_probe_vars", vars: toolsetterVarMap(setup.values) });
+  pushError.value = reply && reply.ok !== false && reply.mdi_set === true ? null
+    : `Saved, but not sent to the machine — ${!reply ? "no reply" : reply.ok === false ? (reply.error ?? "refused") : "not taken over by the interpreter"}`;
+}
+
+const LABELS = new Map([...TS_POSITION_FIELDS, ...TS_PROBE_FIELDS, ...TS_OPTION_FIELDS, ...TS_OFFSET_FIELDS, ...TS_FINDER_FIELDS]
+  .map(f => [f.key as string, f.label]));
+const setupNote = computed(() => {
+  const s = confirmedToolsetter();
+  if (s.ok || !serverSettingsReady.value) return null;
+  const names = (keys: string[]) => keys.map(k => LABELS.get(k) ?? k).join(", ");
+  return s.missing.length ? `Not set up — enter ${names(s.missing)}. Until then Measure Current and Unload (M600) stay off.`
+    : `Check ${names(s.invalid)} — Measure Current and Unload (M600) stay off.`;
+});
 
 // ─── Toolsetter boolean wrappers (0/1 ↔ boolean) ───
-const tsUseToolTable = computed({ get: () => tsParams.value.useToolTable === 1, set: (v: boolean) => { tsParams.value.useToolTable = v ? 1 : 0; saveTsParams(); } });
-const tsGoBackToStart = computed({ get: () => tsParams.value.goBackToStart === 1, set: (v: boolean) => { tsParams.value.goBackToStart = v ? 1 : 0; saveTsParams(); } });
-const tsDisablePrePos = computed({ get: () => tsParams.value.disablePrePos === 1, set: (v: boolean) => { tsParams.value.disablePrePos = v ? 1 : 0; saveTsParams(); } });
-const tsLastTry = computed({ get: () => tsParams.value.lastTry === 1, set: (v: boolean) => { tsParams.value.lastTry = v ? 1 : 0; saveTsParams(); } });
+const tsUseToolTable = computed({ get: () => tsParams.value.useToolTable === 1, set: (v: boolean) => { tsParams.value.useToolTable = v ? 1 : 0; saveTsParams("useToolTable"); } });
+const tsGoBackToStart = computed({ get: () => tsParams.value.goBackToStart === 1, set: (v: boolean) => { tsParams.value.goBackToStart = v ? 1 : 0; saveTsParams("goBackToStart"); } });
+const tsDisablePrePos = computed({ get: () => tsParams.value.disablePrePos === 1, set: (v: boolean) => { tsParams.value.disablePrePos = v ? 1 : 0; saveTsParams("disablePrePos"); } });
+const tsLastTry = computed({ get: () => tsParams.value.lastTry === 1, set: (v: boolean) => { tsParams.value.lastTry = v ? 1 : 0; saveTsParams("lastTry"); } });
 
 // ─── G30 tool change position ────────────────
 const g30X = ref<number | null>(null);
@@ -130,17 +156,21 @@ onMounted(() => {
   loadG30();
 });
 
-watch(settingsVersion, () => { loadTsParams(); });
+// The form follows the saved section — this tab's saves (a Reset) and the server's.
+watch(() => JSON.stringify(savedSection("toolsetter") ?? null), loadTsParams);
+watch(settingsVersion, () => { void pushWhenConfirmed(); });
 </script>
 
 <template>
   <div class="formGrid tsPanel">
+    <div v-if="setupNote" class="statusNote warn wide" role="alert"><span>{{ setupNote }}</span></div>
+    <div v-if="pushError" class="statusNote error wide" role="alert"><span>{{ pushError }}</span></div>
     <!-- Toolsetter Position -->
     <div class="sub">Toolsetter Position (G53)</div>
     <FormField v-for="f in TS_POSITION_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)">
       <template #default="{ input }">
         <MachineInput v-bind="input" gate="toolsetterParam" type="number" v-model.number="tsParams[f.key]"
-                      :min="f.min" :max="f.max" :integer="f.integer" @change="saveTsParams" />
+                      :min="f.min" :max="f.max" :integer="f.integer" @change="saveTsParams(f.key)" />
       </template>
       <template #help>{{ f.help }}</template>
     </FormField>
@@ -168,7 +198,7 @@ watch(settingsVersion, () => { loadTsParams(); });
     <FormField v-for="f in TS_PROBE_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)">
       <template #default="{ input }">
         <MachineInput v-bind="input" gate="toolsetterParam" type="number" v-model.number="tsParams[f.key]"
-                      :min="f.min" :max="f.max" :integer="f.integer" @change="saveTsParams" />
+                      :min="f.min" :max="f.max" :integer="f.integer" @change="saveTsParams(f.key)" />
       </template>
       <template #help>{{ f.help }}</template>
     </FormField>
@@ -180,7 +210,7 @@ watch(settingsVersion, () => { loadTsParams(); });
     <FormField v-for="f in TS_OPTION_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)">
       <template #default="{ input }">
         <MachineInput v-bind="input" gate="toolsetterParam" type="number" v-model.number="tsParams[f.key]"
-                      :min="f.min" :max="f.max" :integer="f.integer" @change="saveTsParams" />
+                      :min="f.min" :max="f.max" :integer="f.integer" @change="saveTsParams(f.key)" />
       </template>
       <template #help>{{ f.help }}</template>
     </FormField>
@@ -193,7 +223,7 @@ watch(settingsVersion, () => { loadTsParams(); });
     <FormField label="Brake After" group wide>
       <template #default="{ group }">
         <div v-bind="group" class="radioGroup inline">
-          <label v-for="v in [0, 1, 2]" :key="v"><MachineRadio gate="toolsetterParam" name="brakeAfter" :value="v" v-model.number="tsParams.brakeAfter" @update:modelValue="saveTsParams()" /> {{ BRAKE_LABELS[v] }}</label>
+          <label v-for="v in [0, 1, 2]" :key="v"><MachineRadio gate="toolsetterParam" name="brakeAfter" :value="v" v-model.number="tsParams.brakeAfter" @update:modelValue="saveTsParams('brakeAfter')" /> {{ BRAKE_LABELS[v] }}</label>
         </div>
       </template>
       <template #help>Stop after measuring: None, M00 (always) or M01 (with optional stop on).</template>
@@ -201,7 +231,7 @@ watch(settingsVersion, () => { loadTsParams(); });
     <FormField label="Spindle Stop" group wide>
       <template #default="{ group }">
         <div v-bind="group" class="radioGroup inline">
-          <label v-for="v in [5, 500]" :key="v"><MachineRadio gate="toolsetterParam" name="spindleStopM" :value="v" v-model.number="tsParams.spindleStopM" @update:modelValue="saveTsParams()" /> {{ `M${v}` }}</label>
+          <label v-for="v in [5, 500]" :key="v"><MachineRadio gate="toolsetterParam" name="spindleStopM" :value="v" v-model.number="tsParams.spindleStopM" @update:modelValue="saveTsParams('spindleStopM')" /> {{ `M${v}` }}</label>
         </div>
       </template>
       <template #help>M5 stops the spindle; M500 also waits until it has stopped (VFD).</template>
@@ -214,14 +244,14 @@ watch(settingsVersion, () => { loadTsParams(); });
     <FormField v-for="f in TS_OFFSET_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)">
       <template #default="{ input }">
         <MachineInput v-bind="input" gate="toolsetterParam" type="number" v-model.number="tsParams[f.key]"
-                      :min="f.min" :max="f.max" :integer="f.integer" @change="saveTsParams" />
+                      :min="f.min" :max="f.max" :integer="f.integer" @change="saveTsParams(f.key)" />
       </template>
       <template #help>{{ f.help }}</template>
     </FormField>
     <FormField label="Offset Direction" group wide>
       <template #default="{ group }">
         <div v-bind="group" class="radioGroup inline">
-          <label v-for="v in [0, 1, 2, 3]" :key="v"><MachineRadio gate="toolsetterParam" name="offsetDirection" :value="v" v-model.number="tsParams.offsetDirection" @update:modelValue="saveTsParams()" /> {{ OFFSET_DIR_LABELS[v] }}</label>
+          <label v-for="v in [0, 1, 2, 3]" :key="v"><MachineRadio gate="toolsetterParam" name="offsetDirection" :value="v" v-model.number="tsParams.offsetDirection" @update:modelValue="saveTsParams('offsetDirection')" /> {{ OFFSET_DIR_LABELS[v] }}</label>
         </div>
       </template>
       <template #help>Side of the off-centre touch — pick the one away from clamps.</template>
@@ -234,7 +264,7 @@ watch(settingsVersion, () => { loadTsParams(); });
     <FormField v-for="f in TS_FINDER_FIELDS" :key="f.key" :label="f.label" :unit="unitText(f.unit, linearUnit)">
       <template #default="{ input }">
         <MachineInput v-bind="input" gate="toolsetterParam" type="number" v-model.number="tsParams[f.key]"
-                      :min="f.min" :max="f.max" :integer="f.integer" @change="saveTsParams" />
+                      :min="f.min" :max="f.max" :integer="f.integer" @change="saveTsParams(f.key)" />
       </template>
       <template #help>{{ f.help }}</template>
     </FormField>

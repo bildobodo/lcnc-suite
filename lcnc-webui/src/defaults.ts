@@ -1,4 +1,5 @@
 import { ref } from "vue";
+import { TOOLSETTER_FALLBACK } from "./toolsetterSetup";
 import { withToken } from "./auth";
 import { mergeViewerSection } from "./viewerSection";
 import { noteSavePending, noteSaveSent, noteSaveBlocked, noteSaveFailed, noteSaveBeaconed } from "./settingsSaveStatus";
@@ -121,10 +122,19 @@ const _saveTimers: Record<string, ReturnType<typeof setTimeout>> = {};
 /** Pending saves awaiting debounce flush — used by sendBeacon on page exit. */
 const _pendingSaves = new Map<string, any>();
 
+/** The server's confirmed blob — what the gateway HOLDS. `_cache` also
+ *  carries this tab's optimistic writes (saveSection), which a refused or
+ *  unanswered save never confirms; a machine-facing decision (is the
+ *  toolsetter set up?) reads this, never the cache. */
+let _confirmed: Record<string, any> = {};
+
 /** Called once from main.ts before createApp().mount(). */
 export function initServerDefaults(data: Record<string, any>, fetchOk: boolean): void {
   _cache = { ...data };
-  if (fetchOk) serverSettingsReady.value = true;
+  if (fetchOk) {
+    _confirmed = { ...data };
+    serverSettingsReady.value = true;
+  }
 }
 
 /**
@@ -136,8 +146,28 @@ export function initServerDefaults(data: Record<string, any>, fetchOk: boolean):
  */
 export function updateServerCache(data: Record<string, any>): void {
   _cache = { ...data };
+  _confirmed = { ...data };
   serverSettingsReady.value = true;
   settingsVersion.value++;
+}
+
+/** A section as the SERVER confirmed it — raw, no fallbacks merged in;
+ *  `undefined` before the server's settings arrived or when it has none.
+ *  Reactive through settingsVersion. */
+export function confirmedSection(key: string): unknown {
+  void settingsVersion.value;
+  return serverSettingsReady.value ? _confirmed[key] : undefined;
+}
+
+/** Bumped by every local save — savedSection() follows this tab's own writes. */
+const _localRev = ref(0);
+
+/** A section as this tab last wrote or received it — raw, no fallbacks:
+ *  which fields were ever SET (a form shows the others as unset). */
+export function savedSection(key: string): unknown {
+  void settingsVersion.value;
+  void _localRev.value;
+  return readAll()[key];
 }
 
 /** Flush pending debounced saves via sendBeacon (called on page hide).
@@ -203,6 +233,7 @@ export function saveSection(key: string, data: any): void {
   const all = readAll();
   all[key] = data;
   _cache = all;
+  _localRev.value++;
 
   // Track pending save for sendBeacon flush on page exit
   _pendingSaves.set(key, data);
@@ -855,14 +886,8 @@ export interface ToolsetterDefaults {
   finderDiffZ: number;
 }
 
-export const TOOLSETTER_FALLBACK: ToolsetterDefaults = {
-  fastFeed: 0, slowFeed: 0, traverseFeed: 0, maxZTravel: 0,
-  retractDist: 0, spindleZeroHeight: 0, offsetDirection: 0,
-  touchX: 0, touchY: 0, touchZ: 0, useToolTable: 0, toolMinDis: 0,
-  brakeAfter: 0, goBackToStart: 0, spindleStopM: 5, disablePrePos: 0,
-  addReps: 0, lastTry: 0, offsetDiameter: 0, offsetValue: 0,
-  finderTouchX: 0, finderTouchY: 0, finderDiffZ: 0,
-};
+// The fallback and the set-up rule live in toolsetterSetup.ts (pure, node-testable).
+export { TOOLSETTER_FALLBACK };
 
 registerSection<ToolsetterDefaults>("toolsetter", TOOLSETTER_FALLBACK, (saved, fb) => {
   if (!saved) return { ...fb };
@@ -873,8 +898,14 @@ export function loadToolsetterDefaults(): ToolsetterDefaults {
   return loadSection<ToolsetterDefaults>("toolsetter");
 }
 
-export function saveToolsetterDefaults(data: ToolsetterDefaults): void {
+export function saveToolsetterDefaults(data: Partial<ToolsetterDefaults>): void {
   saveSection("toolsetter", data);
+}
+
+/** The Reset: an EMPTY section — no field set, so nothing counts as a saved
+ *  value (the fallback's zeros used to become "saved coordinates"). */
+export function clearToolsetterDefaults(): void {
+  saveSection("toolsetter", {});
 }
 
 /** Clear all persisted settings so next load returns factory defaults. */

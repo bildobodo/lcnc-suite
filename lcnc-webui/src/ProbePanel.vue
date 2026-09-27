@@ -8,7 +8,7 @@ import MachineInput from "./MachineInput.vue";
 import MachineToggle from "./MachineToggle.vue";
 import MachineRadio from "./MachineRadio.vue";
 import { usePermissions } from "./permissions";
-import { loadProbeDefaults, saveProbeDefaults, settingsVersion, serverSettingsReady, saveToolsetterDefaults, TOOLSETTER_FALLBACK } from "./defaults";
+import { loadProbeDefaults, saveProbeDefaults, settingsVersion, serverSettingsReady, clearToolsetterDefaults } from "./defaults";
 import ToolsetterSettings from "./ToolsetterSettings.vue";
 import CornerGlyph from "./CornerGlyph.vue";
 import Gate from "./Gate.vue";
@@ -76,7 +76,7 @@ const resetTarget = ref<string | null>(null);
 function confirmReset() {
   const target = resetTarget.value;
   resetTarget.value = null;
-  if (target === "toolsetter") saveToolsetterDefaults({ ...TOOLSETTER_FALLBACK });
+  if (target === "toolsetter") clearToolsetterDefaults();
   else if (target === "cal") emit("mdi", `O<probe_cal_reset> CALL`);
 }
 
@@ -1229,7 +1229,6 @@ function fmtR(key: string): string {
       <ToolsetterSettings
         v-else
         :linearUnit="linearUnit"
-        @setProbeVars="emit('setProbeVars', $event)"
         @mdi="emit('mdi', $event)"
         @resetSection="resetTarget = $event"
       />
@@ -1294,7 +1293,7 @@ function fmtR(key: string): string {
                @close="resetTarget = null">
     <div class="dialogBody">{{ resetTarget === 'cal'
       ? 'Zeroes the probe tip calibration offset; every later probe measurement uses it. This cannot be undone.'
-      : 'Restores the toolsetter settings to their defaults. This cannot be undone.' }}</div>
+      : 'Clears the toolsetter settings. Measure Current and Unload (M600) stay off until they are entered again; the machine keeps its values. This cannot be undone.' }}</div>
     <template #actions>
       <MachineBtn type="dialogCancel" @click="resetTarget = null">Cancel</MachineBtn>
       <!-- The action's own gate, the one its button has (N65): a confirm

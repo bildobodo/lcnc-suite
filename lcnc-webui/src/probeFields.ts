@@ -119,7 +119,7 @@ export const TS_PROBE_FIELDS: TsField[] = [
     help: "Downward search limit — stops with an error if the setter is not hit." },
   { key: "retractDist", label: "Retract Distance", unit: "len", min: 0.1,
     help: "Lift after the first touch; the slow pass searches 2× this." },
-  { key: "spindleZeroHeight", label: "Spindle Zero Height", unit: "len", min: 0,
+  { key: "spindleZeroHeight", label: "Spindle Zero Height", unit: "len", min: 0.1,
     help: "Spindle nose to setter surface with no tool (G53 Z) — the zero-length reference." },
 ];
 export const TS_OPTION_FIELDS: TsField[] = [

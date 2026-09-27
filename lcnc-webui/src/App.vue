@@ -8,7 +8,7 @@ import { semanticKinsMode } from "./viewer/kins";
 import { runLineState, subExecState, resolveCurrentLine } from "./trackHighlight";
 import { clearSubfileCache } from "./lcncApi";
 import { mainLinesTrusted, type ScrubTrack } from "./viewer/scrubTrack";
-import { connectWs, connected, status, send, armed, lastReply, viewerGcode, viewerInit, gcodeContent, gcodeRevision, gcodeTextRevision, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, previewRefusal, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, serverShuttingDown, type LcncMessage } from "./lcncWs";
+import { connectWs, connected, status, send, request, armed, lastReply, viewerGcode, viewerInit, gcodeContent, gcodeRevision, gcodeTextRevision, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, previewRefusal, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, serverShuttingDown, type LcncMessage } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
 // chunk after first paint instead of blocking the initial bundle (P6). The viewerRef
 // methods are all `?.`-guarded, so calls during the brief load gap safely no-op.
@@ -47,7 +47,7 @@ import FloatingOverlays from "./FloatingOverlays.vue";
 import { keypadState } from "./useNumberKeypad";
 import { activeKind, openTextSession, closeTextSessionIf, lockTextSessionIf, EDITOR_OWNER, type TextTarget, returnFocusTo } from "./inputSession";
 import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, saveGamepadDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type Layer, type TrackMode, type Projection } from "./defaults";
-import { buildToolsetterVarMap } from "./toolsetterVars";
+import { confirmedToolsetter, toolsetterVarMap, TOOLSETTER_MDI_KEY } from "./toolsetterVars";
 import { useGamepad } from "./useGamepad";
 import { useMediaMql } from "./useMediaMql";
 import { useDialogState } from "./useDialogState";
@@ -1077,7 +1077,63 @@ function focusNextMacroParam(e: KeyboardEvent) {
 }
 provide("updateMacros", updateMacros);
 const toolTableRef = ref<InstanceType<typeof ToolTablePanel> | null>(null);
-// The vars must land before the M600 that reads them — one latch, in order.
+// The toolsetter as the SERVER confirmed it (Codex R15 B1): its values go to
+// the machine only once it is set up — TOOLSETTER_FALLBACK is a form's
+// starting point, and a config without a saved section used to push its
+// zeros on every Measure Current.
+const toolsetter = computed(() => confirmedToolsetter());
+const toolsetterReason = computed(() => (toolsetter.value.ok ? undefined : toolsetter.value.reason));
+const unloadUsesToolsetter = computed(() => {
+  void settingsVersion.value;
+  return loadMachineDefaults().toolChangeMode === "m600";
+});
+
+/**
+ * Values the routine reads, then the command that runs it (the toolsetter's
+ * #3004–#3115 before an M600, a probe op's vars before its O-call). The
+ * values must be IN the interpreter first — set_probe_vars replied
+ * `mdi_set`; the var file is read only at LinuxCNC's start — so the command
+ * waits for that reply and goes only with it (Codex R15 B1: `fireBatch`
+ * sent both unanswered). One latch over the whole sequence; every refusal
+ * says what was not sent. Returns whether the command went.
+ */
+async function fireAfterVars(label: string, vars: Record<string, number>, payload: any,
+                             gate: keyof Permissions): Promise<boolean> {
+  if (busy.value) { console.warn(`[fireAfterVars] ${label} dropped: another command is settling`); return false; }
+  if (!permissions.value[gate]) {
+    pushMessage(OPERATOR_ERROR, `${label} not sent — ${permissionReasons.value[gate] ?? "not available"}`);
+    return false;
+  }
+  busy.value = true;
+  try {
+    const reply = await request({ cmd: "set_probe_vars", vars });
+    if (!reply || reply.ok === false || reply.mdi_set !== true) {
+      const why = !reply ? "no reply" : reply.ok === false ? (reply.error ?? "refused")
+        : "not taken over by the interpreter";
+      pushMessage(OPERATOR_ERROR, `${label} not sent — its parameters: ${why}`);
+      return false;
+    }
+    // The machine may have changed while we waited — read without our OWN
+    // latch (the busy term would refuse the command this sequence holds it for).
+    if (!ownerPermissions.value[gate]) {
+      pushMessage(OPERATOR_ERROR, `${label} not sent — ${permissionReasons.value[gate] ?? "not available"}`);
+      return false;
+    }
+    return send(payload) !== null;
+  } finally {
+    window.setTimeout(() => (busy.value = false), cooldownFor(String(payload?.cmd ?? "")));
+  }
+}
+
+/** Every M600 the WebUI starts (Measure Current, Unload and a table load in
+ *  M600 mode): only with the toolsetter set up, its values taken over. */
+async function toolsetterMdi(label: string, line: string): Promise<boolean> {
+  const setup = toolsetter.value;
+  if (!setup.ok) { pushMessage(OPERATOR_ERROR, `${label} not sent — ${setup.reason}`); return false; }
+  return fireAfterVars(label, toolsetterVarMap(setup.values), { cmd: "mdi", text: line }, "machineFrame");
+}
+provide(TOOLSETTER_MDI_KEY, toolsetterMdi);
+
 function measureAuto() {
   const t = st.value.tool_number;
   if (!t) { pushMessage(OPERATOR_ERROR, "Measure Current — no tool loaded"); return; }
@@ -1085,10 +1141,7 @@ function measureAuto() {
     pushMessage(OPERATOR_ERROR, `Measure Current not sent — ${permissionReasons.value.machineFrame ?? (st.value.probing ? "a probe is running" : "not available")}`);
     return;
   }
-  fireBatch([
-    { cmd: "set_probe_vars", vars: buildToolsetterVarMap() },
-    { cmd: "mdi", text: `T${t} M600` },
-  ], 'machineFrame');
+  void toolsetterMdi("Measure Current", `T${t} M600`);
 }
 
 function unloadTool() {
@@ -1096,13 +1149,10 @@ function unloadTool() {
     pushMessage(OPERATOR_ERROR, `Unload not sent — ${permissionReasons.value.machineFrame ?? "not available"}`);
     return;
   }
-  const mode = loadMachineDefaults().toolChangeMode;
-  if (mode === "m600") {
-    fireBatch([
-      { cmd: "set_probe_vars", vars: buildToolsetterVarMap() },
-      { cmd: "mdi", text: "T0 M600" },
-    ], 'machineFrame');
+  if (unloadUsesToolsetter.value) {
+    void toolsetterMdi("Unload", "T0 M600");
   } else {
+    // The standard tool change needs no toolsetter.
     fire({ cmd: "tool_change", tool_number: 0 }, 'machineFrame');
   }
 }
@@ -1397,36 +1447,8 @@ function fire(payload: any, gate?: keyof Permissions, cooldownMs?: number): stri
   }
 }
 
-/**
- * Several commands that must land together under ONE latch — the missing
- * primitive that onRunProbe used to hand-inline by copying fire()'s body.
- * Gate and cooldown are evaluated once, from the FIRST payload.
- */
-async function fireBatch(payloads: any[], gate?: keyof Permissions) {
-  if (!payloads.length) return;
-  if (busy.value) {
-    console.warn(`[fireBatch] ${payloads[0]?.cmd} dropped: another command is settling`);
-    return;
-  }
-  if (gate && !permissions.value[gate]) {
-    const why = permissionReasons.value[gate] ?? `gate '${gate}' is closed`;
-    console.warn(`[fireBatch] ${payloads[0]?.cmd} dropped: gate '${gate}' is closed`);
-    pushMessage(OPERATOR_ERROR, `${payloads[0]?.cmd} not sent — ${why}`);
-    return;
-  }
-  busy.value = true;
-  try {
-    for (const p of payloads) send(p);
-  } finally {
-    window.setTimeout(() => (busy.value = false), cooldownFor(String(payloads[0]?.cmd ?? "")));
-  }
-}
-
 function onRunProbe({ vars, macro }: { vars: Record<string, number>; macro: string }) {
-  fireBatch([
-    { cmd: 'set_probe_vars', vars },
-    { cmd: 'mdi', text: `O<${macro}> CALL` },
-  ], 'ready');
+  void fireAfterVars("Probe", vars, { cmd: 'mdi', text: `O<${macro}> CALL` }, 'ready');
 }
 
 // Reachable by descendants that cannot see this closure, so a component never
@@ -1472,7 +1494,19 @@ function cycleStart() {
   fire({ cmd: "cycle_start" }, 'run');
 }
 
-function runFromLine(opts: import("./gcodeRfl").RflRunOptions) {
+async function runFromLine(opts: import("./gcodeRfl").RflRunOptions) {
+  if (opts.preTool > 0) {
+    // The gateway measures T<preTool> with an M600 before AUTO_RUN: the
+    // toolsetter must be set up and its values in the interpreter first.
+    const setup = toolsetter.value;
+    if (!setup.ok) { pushMessage(OPERATOR_ERROR, `Run from line not started — ${setup.reason}`); return; }
+    const reply = await request({ cmd: "set_probe_vars", vars: toolsetterVarMap(setup.values) });
+    if (!reply || reply.ok === false || reply.mdi_set !== true) {
+      pushMessage(OPERATOR_ERROR, `Run from line not started — toolsetter parameters: ${
+        !reply ? "no reply" : reply.ok === false ? (reply.error ?? "refused") : "not taken over by the interpreter"}`);
+      return;
+    }
+  }
   fire({
     cmd: "auto_run",
     line: opts.line,
@@ -2063,8 +2097,8 @@ watch(viewerGcode, (newGcode) => {
                   </div>
                 </div>
                 <div class="actionGroup">
-                  <MachineBtn type="toolMeasure" :disabled="!st.tool_number" reason="No tool loaded" @click="measureAuto">Measure Current</MachineBtn>
-                  <MachineBtn type="toolUnload" @click="unloadTool">Unload</MachineBtn>
+                  <MachineBtn type="toolMeasure" :disabled="!st.tool_number || !toolsetter.ok" :reason="!st.tool_number ? 'No tool loaded' : toolsetterReason" @click="measureAuto">Measure Current</MachineBtn>
+                  <MachineBtn type="toolUnload" :disabled="unloadUsesToolsetter && !toolsetter.ok" :reason="toolsetterReason" @click="unloadTool">Unload</MachineBtn>
                   <MachineBtn type="abort" class="actionEnd" @click="fire({ cmd: 'abort' }, 'abort')" />
                 </div>
                 <div class="actionGroup toolTabManage">
