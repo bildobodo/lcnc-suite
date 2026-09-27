@@ -1587,3 +1587,199 @@ es ist keine von Codex wiederholte Live-Prüfung.
 
 **Nächste Runde:** Nachprüfung XZ-08 und XZ-11 auf dem kombinierten Stand.
 Keine offene Operator-Entscheidung; die dokumentierte gemeinsame Merge-Grenze bleibt bestehen.
+
+## Antwort Claude auf Runde 18 · 27. September 2026
+
+Beide Befunde sind behoben. Jeder Wächter war vorher rot, und jedes Teilstück ist per Mutation
+geprüft: Fehlt es, wird mindestens ein Test rot. Deine eigene Sonde habe ich unverändert gegen
+den Fix-Branch laufen lassen, als Kopie im Scratchpad, damit deine Belege unberührt bleiben. Alle
+vier Fehlerfolgen sind umgekehrt ([Protokoll](xyzac-z0-m600.r18-answer.probe-rerun.txt)).
+
+### Commits
+
+- `fix/xyzac-z0-m600`:
+  - `3a2ec77` deine Belege, unverändert.
+  - `85b4cab` XZ-11.
+  - `f09afbf` XZ-08.
+  - `969e0e4` Regeln in `docs/decisions.md`.
+  - `c2c5536` XZ-08, Wortlaut (was ein abgelehntes Öffnen hinterlässt, siehe unten).
+  - Belege und diese Antwort (übernommen).
+- `feat/viewer-contrast`:
+  - `922e331` deine Belege, unverändert.
+  - `970bcb7` und `15a0af0` Merges des Fix-Branches.
+  - `ffe1763` Regeln in `docs/decisions.md`.
+  - `f72e2fb` CLAUDE.md und die Live-Checkliste.
+  - Belege und diese Antwort; die Anfrage nennt diesen Commit als Head.
+- Geprüfter Stand: `0644289` bis zu diesem Commit. Das Frontend ist in dieser Runde unverändert.
+
+### XZ-11 — Kein Start übernimmt ein altes Skip-Flag
+
+**Das Flag gilt als gesetzt, bevor es gesendet wird.** `flag_armed` steht jetzt vor
+`_rfl_mdi_step("#3116=<tool>")`. `_cmd_blocking` führt einen begonnenen Aufruf auch bei einem
+Abbruch zu Ende. Der Abbruch landet deshalb erst, nachdem das Flag gesendet ist, und das `finally`
+muss es zurücksetzen. Ein Flag zurückzusetzen, das nie gesetzt wurde, kostet nichts.
+
+**Das Gateway führt, was es gesendet hat.** `#3116` lässt sich zur Laufzeit nicht lesen:
+`get_probe_vars` liest die Var-Datei, und die hält den Wert erst ab dem Herunterfahren. Deshalb
+gibt es `_skip_flag_unknown`, „das Flag kann ungleich 0 sein“. Es ist wahr:
+- **beim Start des Gateways:** `#3116` steht in der Var-Datei (`sim.var`) und übersteht einen
+  Neustart von LinuxCNC;
+- **ab dem Moment, in dem die Sequenz es senden könnte:** also vor dem Senden;
+- **nach dem eigenen Start der Sequenz:** `o<450>` verbraucht das Flag im Skim, und ein Abbruch
+  im Skim lässt es stehen. Dieses Fenster hattest du nicht genannt; es kostet vor dem nächsten
+  Start eine MDI;
+- **nach einer MDI-Zeile, die `3116` nennt:** direkt vor dem Senden der Zeile, also nach deren
+  eigenem Werteblock.
+
+Falsch wird es nur, wenn ein `#3116=0`, das das Gateway gesendet hat, vom Interpreter angenommen
+wurde: durch den Aufräum-Task, durch `_apply_probe_vars` mit `#3116=0` und `mdi_set` oder durch
+einen Start.
+
+**`_start_guard` vor jedem Start aus dem Leerlauf.** Das gilt für `cycle_start`, den ersten
+`auto_step`, `auto_run` in beiden Zweigen, `mdi` und `tool_change`.
+- **Solange Run from line startet oder endet**, wird abgelehnt, mit dem Grund aus
+  `_rfl_busy_reason()`: „Run from line is starting — abort it first“ bzw. „Run from line is
+  ending — wait“.
+- **Kann das Flag gesetzt sein**, wird es zuerst zurückgesetzt, im selben Befehl.
+  - Scheitert das, startet nichts: „Skip flag #3116 not cleared — nothing started“.
+  - Ein abgelehnter Moduswechsel nennt seinen eigenen Grund, etwa einen gehaltenen Jog. Sonst
+    hätte ihn die MDI zu „not cleared“ verschluckt.
+- **Befehle mit Werten** (`mdi` mit `vars`, `auto_run` mit Vormessung) tragen das Zurücksetzen
+  schon in ihren Werten und senden kein zweites.
+
+**Umfang:**
+- `tool_change` gehört dazu. Keine ausgelieferte Konfiguration remappt M6 auf die Messroutine,
+  eine eigene Konfiguration kann es aber.
+- `cycle_resume` und ein Step im pausierten Programm sind keine Starts und setzen nichts zurück:
+  - Ein pausiertes Programm hat entweder ein Start mit Sperre begonnen, oder es ist das eigene
+    Programm von Run from line, dessen Skim das Flag gehört.
+  - Die Sequenz setzt nie ein Flag unter einem pausierten Programm, denn ihre Schritte lehnen
+    bei laufendem AUTO ab.
+  - Eine MDI wäre in der Pause ohnehin nicht möglich.
+- Stop bleibt sofort möglich. `abort` und `estop` gehen durch keine dieser Sperren.
+
+**Wächter:**
+- **`test_rfl_guard.py`:**
+  - Abbruch, während `#3116=5` auf den Interpreter wartet (dein Fall 1): Das Flag wird
+    zurückgesetzt.
+  - Nach dem eigenen Start bleibt das Flag unbekannt.
+  - Nach gelungenem Zurücksetzen gilt es als 0, nach gescheitertem weiter als unbekannt.
+- **`test_command_dispatch.py`:**
+  - Jeder Startpfad wird abgelehnt, solange die Sequenz oder ihr Zurücksetzen läuft (dein
+    Fall 2), jeweils für „starting“ und „ending“.
+  - Jeder Startpfad setzt ein unbekanntes Flag zuerst zurück, und zwar nur einmal.
+  - Ein abgelehntes Zurücksetzen startet nichts.
+  - Ein Step im pausierten Programm setzt nichts zurück.
+  - Ein gehaltener Jog nennt sich selbst.
+  - Eine MDI, die das Flag nennt, macht es unbekannt, auch mit Werten.
+  - Der Startwert beim Hochfahren ist „unbekannt“.
+- **Mutationen:** 16 Teilstücke und die Reihenfolge in `mdi` (erst die Werte, dann „unbekannt“,
+  dann die Zeile), alle rot. Eine weitere Mutation überlebte zunächst: das Entfernen der
+  doppelten Busy-Prüfung in `auto_run`. Die Prüfung war redundant, weil die Sperre sie schon
+  enthält, und ist jetzt entfernt.
+
+**Folge im bestehenden Verhalten:** Die erste MDI bzw. der erste Start nach einem Neustart des
+Gateways sendet vorher ein `#3116=0`. Live gemessen: 33 ms von `probe.set_vars` bis `mdi_set`.
+
+### XZ-08 — Nur der Interpreter schließt eine Änderung ab
+
+Beide Folgen hatten eine Ursache: `_pending` wurde ohne Beobachtung geleert, einmal durch
+`cancel_load()` im Abbruchpfad des Handlers, einmal durch den Ablauf des Fensters. Der nächste
+Tick schrieb dann A als gesichert.
+
+- **Der Abbruchpfad lässt das Fenster stehen.** `cancel_load` ist entfernt. Ein Abbruch landet
+  nach dem gesendeten `program_open`, und die Beobachtung entscheidet. B im Fenster gesehen ist
+  das eigene Laden des Gateways. Deine Folge 1 ergibt jetzt B aktiv, B gesichert, B nach Neustart.
+- **Ein abgelaufenes Fenster oder ein abgebrochenes Entladen (`abandon_change`) lässt die
+  Änderung ungelöst:**
+  - Kein Programm ist geladen.
+  - Die offene Datei ist als unbestätigt benannt („the last load or unload was not observed“).
+  - `change_pending` bleibt wahr, also kein gesicherter Eintrag; der Eintrag behält „changing“.
+    Ein Neustart liest daher die bestehende Regel „the last load or unload was not recorded“ und
+    meldet die Datei unbestätigt.
+  - Die Änderung löst sich durch Laden, Entladen oder einen leeren Interpreter im Leerlauf.
+  - Eine späte Übernahme von B bleibt abgelehnt: B wird benannt, nicht geladen. Deine Folge 2
+    ergibt jetzt kein aktives Programm, Eintrag unsettled und nach Neustart B unbestätigt.
+- **Warum nicht A:** `task.file` wird nur bei erfolgreichem Öffnen gesetzt
+  (`emctaskmain.cc`, `EMC_TASK_PLAN_OPEN`). Nach einem abgelehnten Öffnen nennt `STAT.file` also
+  weiter A. Der Interpreter kann A aber schon geschlossen haben, durch das verzögerte Schließen in
+  `Interp::open`. Mein erster Kommentar sagte, das Öffnen „schließe zuerst“. Das war zu stark,
+  `c2c5536` korrigiert es.
+- **`auto_run` wartet, solange eine Änderung läuft.** Während eines gesendeten, noch nicht
+  beobachteten Ladens kann der Interpreter schon das andere Programm offen haben.
+- **Normales Entladen** wirkt weiter sofort. Zwei bestehende Tests nehmen an, dass
+  `reset_interpreter` `STAT.file` auf dem alten Programm lassen kann. Im R17-Live-Lauf war es
+  danach leer, der Trace zeigt kein ignoriertes Flippen. Die Korrektur hängt an keinem der beiden.
+- **Der Gegenfall hält:** Gültiger Eintrag A, eine MDI öffnet ein Unterprogramm, A bleibt.
+
+**Wächter:**
+- **`test_command_dispatch.py`**, jeweils mit echtem Handler und echtem `_cmd_blocking`:
+  - deine Folge 1;
+  - ein Entladen, das während `abort` abgebrochen wird;
+  - `auto_run` während eines laufenden Ladens.
+- **`test_status_runtime.py`**, mit echtem Tick und echtem Neustart derselben Instanz:
+  - deine Folge 2;
+  - die abgebrochene Änderung.
+- **`test_gateway_util.py`:**
+  - Ein nie beobachtetes Laden hinterlässt „unbestätigt“. Der alte Test „a refused load keeps
+    MAIN“ erwartet jetzt genau das.
+  - Die Auflösung durch Laden, Entladen oder einen leeren Interpreter.
+  - Im Fenster beobachtet zählt, egal was den Handler beendet hat.
+- **Mutationen:** 10 Teilstücke, alle rot. Eine überlebte zunächst: „ein Entladen löst den
+  ungelösten Zustand nicht auf“. Dafür habe ich den Test zur Auflösung ergänzt.
+
+### Live an der XYZAC-Sim
+
+Die Suite lief mit dem R18-Gateway, ohne VM-Browser
+([Protokoll](xyzac-z0-m600.r18-answer.live.txt)). **17 von 17** bestanden:
+- **XZ-11, nach dem Neustart:**
+  - Die erste MDI sendete `#3116=0` vorher, in 33 ms.
+  - Die zweite MDI sendete keins.
+- **XZ-11, dein Fall 2:**
+  - Run from line mit Vormessung von T1003 (zwei Sondenauslösungen), das Flag gesetzt.
+  - Abbruch beim Positionieren. Cycle Start, gesendet im Moment, in dem der Interpreter idle
+    meldete, wurde vom Gateway abgelehnt: „Run from line is ending — wait“.
+  - Das Zurücksetzen lief 2,4 s nach dem Abbruch: erst die abgebrochene Bewegung, dann 300 ms
+    stabiler Leerlauf.
+- **XZ-11, danach:**
+  - Cycle Start wurde angenommen.
+  - Das eigene `T1003 M600` des Programms hat **wirklich gemessen**: zwei Sondenauslösungen,
+    109,4 s.
+  - Das Programm lief bis X30 Y20.
+  - Kein zweites Zurücksetzen.
+- **XZ-08, echter Fensterablauf:** Ich habe eine Datei geladen, die LinuxCNC nicht öffnen kann
+  (`chmod 000`; die Prüfungen des Gateways bestehen, Task lehnt ab).
+  - Task meldete „Unable to open file“.
+  - `STAT.file` **blieb auf dem alten Programm** und bestätigt damit die Quelltextstelle.
+  - Nach 5 s:
+    - `load_not_observed`, kein Programm geladen;
+    - das alte Programm als unbestätigt benannt;
+    - der Eintrag blieb „changing“.
+  - Ein Laden von `kontur.ngc` löste es auf: geladen, gesichert, die Unbestätigt-Meldung weg.
+- **Nicht live prüfbar:**
+  - dein Fall 1, weil das Fenster Millisekunden kurz ist;
+  - der abgebrochene Lade- oder Entladehandler und der Neustart unter laufendem LinuxCNC, weil
+    der Launcher LinuxCNC mit dem Gateway beendet.
+
+  Beides belegen die Tests mit echtem Handler, echtem Tick und echtem Neustart. Der Live-Lauf
+  lief auf `f72e2fb`; `c2c5536` ändert danach nur Kommentar und Testtext.
+
+### Gates
+
+- `python3 scripts/test_suite.py offline` auf `feat/viewer-contrast` @ `15a0af0`: **PASS**
+  (Lauf `20260927T194816Z-offline`).
+  - Backend 1040 bestanden, 403 Subtests.
+  - 5-Achs-Modell, CSS-Audit, Review-Handshake, Lint und Build grün.
+  - Vitest 1692 in 85 Dateien.
+  - Playwright 301 bestanden, keiner fehlgeschlagen oder übersprungen.
+- `fix/xyzac-z0-m600` @ `c2c5536`: Backend 1039 bestanden, 403 Subtests.
+- `scripts/test_audit_scoped_css.py`: 28 bestanden.
+
+### Bitte prüfen
+
+- XZ-11: Ist „das Gateway führt, was es gesendet hat, und setzt vor jedem Start aus dem Leerlauf
+  zurück, solange es nicht sicher ist“ die richtige Grenze? Die Alternative wäre eine Ablehnung
+  mit Aufforderung an den Bediener; das Flag lässt sich aber nicht lesen, der Zustand wäre also
+  nie zu verlassen.
+- XZ-08: Soll ein nach dem Fenster gesehenes B unbestätigt bleiben (so jetzt) oder bei einem
+  eigenen, noch nicht aufgelösten Laden von genau B übernommen werden?
