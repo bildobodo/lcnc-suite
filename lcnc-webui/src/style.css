@@ -332,7 +332,7 @@
     --viewer-rapid: #00863b;
     --viewer-backplot: #be0692;
     --viewer-limit: #ad6d00;
-    --viewer-selection: #e6edf3;
+    --viewer-selection: #22b8cf;   /* cyan on dark (AXIS, Siemens iX), operator 2026-09-27 */
     --viewer-selection-halo: #0b0f14;
     --viewer-plane-active: #2d81dc;
     --viewer-plane-defined: #a97515;
@@ -415,7 +415,7 @@
   --viewer-rapid: #00863b;
   --viewer-backplot: #be0692;
   --viewer-limit: #ad6d00;
-  --viewer-selection: #e6edf3;
+  --viewer-selection: #22b8cf;   /* cyan on dark (AXIS, Siemens iX), operator 2026-09-27 */
   --viewer-selection-halo: #0b0f14;
   --viewer-plane-active: #2d81dc;
   --viewer-plane-defined: #a97515;
@@ -516,7 +516,7 @@
   --viewer-rapid: #00903f;
   --viewer-backplot: #db11a3;
   --viewer-limit: #b17000;
-  --viewer-selection: #ffffff;
+  --viewer-selection: #00e5ff;   /* cyan on dark (AXIS, Siemens iX), operator 2026-09-27 */
   --viewer-selection-halo: #000000;
   --viewer-plane-active: #2d81dc;
   --viewer-plane-defined: #a07a0c;

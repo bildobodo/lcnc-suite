@@ -158,10 +158,21 @@ describe("theme text roles", () => {
     });
   }
 
-  // The selection (viewer contrast plan, V2): a core in the text colour on a
-  // halo in the background's. The core reads on the scene background; on the
-  // lit table the core OR the halo does (a dark theme's light core sits on
-  // its dark halo there).
+  // The selection (viewer contrast plan, V2): a core on a halo in the
+  // background's colour. The core reads on the scene background; on the lit
+  // table the core OR the halo does (a dark theme's light core sits on its
+  // dark halo there). Light themes draw the core in the text colour; the dark
+  // ones in CYAN (operator 2026-09-27, AXIS' 3 px cyan on black and Siemens
+  // iX's cyan selection on dark; Codex R21 re-computed both values).
+  for (const name of ["dark", "auto-dark", "hc-dark"] as const) {
+    it(`${name}: the selection is cyan`, () => {
+      const [, a, b] = oklab(hex(block(THEMES[name]).get("--viewer-selection")!));
+      const hue = ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360;
+      expect(hue, `${name}: OKLab hue`).toBeGreaterThanOrEqual(195);
+      expect(hue, `${name}: OKLab hue`).toBeLessThanOrEqual(225);
+      expect(Math.hypot(a, b), `${name}: chroma — a colour, not a grey`).toBeGreaterThanOrEqual(0.08);
+    });
+  }
   for (const name of ["root", "dark", "auto-dark", "hc-light", "hc-dark"] as const) {
     it(`${name}: the selection's core reads on the background, core or halo on the lit table`, () => {
       const b = block(THEMES[name]);
