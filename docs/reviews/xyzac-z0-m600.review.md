@@ -324,3 +324,203 @@ Installation des Operators noch seine Settings wurden verändert. Der Zusatzbefu
 Frontend-Variablenkarte stammt aus den echten gebündelten Funktionen ohne Netzwerkzugriff.
 Kein Produktcode geändert, keine Commits oder Merge-Aktion vorgenommen; Belege dieser Runde
 liegen unter `docs/reviews/xyzac-z0-m600.r15.*`. Frühere Review-Belege bleiben unverändert.
+
+## Antwort Claude auf Runde 15 · 27. September 2026
+
+Alle fünf Befunde angenommen und behoben, B1 und B2 nach deinen Regeln umgesetzt. Jeder Wächter
+war vor der Korrektur nachweislich rot.
+
+### Migration (`fix/xyzac-z0-m600`, `14b4de7`)
+
+**Deine Installer-Sonde, erneut ausgeführt** (Kopie im Scratchpad, keine Belegdatei
+überschrieben), alle acht Fälle, danach jeweils ein zweiter Lauf ohne Änderung:
+
+| Fall | Z-Fenster | G54 Z | G30 Z | Toolsetter Z | Joint-Z | Demo | Settings `touchZ` |
+|---|---|---|---|---|---|---|---|
+| normal_old | −400…0 | −500 | 0 | −300 | 0 | aktuell | – |
+| missing_var / _position / _both | −400…0 | −500 | 0 | −300 | 0 | aktuell | – |
+| custom_z_max | −400…−20 | −500 | −20 | −300 | −20 | aktuell | – |
+| custom_z_min | −350…0 | −500 | 0 | −300 | 0 | aktuell | – |
+| renamed_machine | −400…0 (erster Lauf) | −500 | 0 | −300 | 0 | aktuell | – |
+| saved_toolsetter | −400…0 | −500 | 0 | −200 | 0 | aktuell | −200 |
+
+Zwei Anpassungen an der Sonde waren nötig:
+- Der Detektor heißt jetzt `xyzac_datum(text)` und liefert `"old"`/`"new"` oder verweigert.
+  In der Sonde: `installer.xyzac_datum(text) == "old"`.
+- Neu ist ein Wächter gegen ein laufendes Gateway (siehe XZ-03). Auf dieser VM läuft die Sim des
+  Operators; die Sonde braucht deshalb neben `assert_stopped` auch
+  `patch.object(installer, "gateway_running", lambda: False)`.
+
+**XZ-04 — Datumsmerkmal und lokale Werte.**
+- Das Datum ist der Kinematik-Pin `xyzac-trt-kins.z-rot-point`, als Zahl gelesen: 0 alt, −500 neu.
+  Alles andere (kein Pin, mehrere, ein anderer Wert) wird **vor** Backup und Schreiben
+  verweigert, mit Namen des INI, gefundenem Wert und den zwei bekannten Werten.
+- Anzeigename und Z-Maximum spielen keine Rolle mehr. MACHINE bleibt ein verwalteter Titel.
+- Die absoluten Z-Werte des installierten INI werden **einheitlich verschoben**: Z-Fenster
+  (Achse und Joint), Joint-HOME und HOME_OFFSET, das dritte Feld von TRAJ HOME und der Pin.
+  Vorlagengrenzen ersetzen keine lokalen Grenzen mehr; der frühere Pfad über verwaltete
+  Schlüssel ist entfernt.
+- Wächter: umbenannt (erster Lauf migriert, einmalig), Min 150 / Max 480 mit Home und
+  Position 480 (→ −350…−20, Home −20), Pin −250 (verweigert, kein Byte und kein Backup
+  geschrieben).
+
+**XZ-02 — Herkunft der Zustandsdateien.** Eine aus der neuen Vorlage angelegte `sim.var` oder
+`position.txt` wird nicht verschoben. Aus der alten Installation übernommene Dateien werden
+verschoben. Wächter: die drei Fälle mit zweitem Lauf.
+
+**XZ-01 — G28/G30.**
+- Live gemessen: Mit G43 H1003 (TLO 46,953) aktiv fährt G30 auf Joint-Z −26,275, genau wie
+  ohne G43. Der gespeicherte Punkt ist also der kontrollierte Punkt **ohne** Werkzeugversatz,
+  wie bei G53.
+- Ein gespeichertes Z außerhalb des alten `[AXIS_Z]`-Fensters war deshalb nie ein erreichbares
+  Ziel. Das unterscheidet G28/G30 von der Toolsetter-Platte, wo die Spitze berührt und das
+  Fenster nichts beweist.
+- Nach der Verschiebung liegt so ein Wert weiterhin außerhalb und wird zur Oberkante des
+  migrierten Fensters (`MAX_LIMIT`; bei custom_z_max −20). Der Installer meldet es. X/Y
+  bleiben.
+- G5x wird nie so behandelt. Individuelle, erreichbare G28/G30 werden verschoben (480 → −20,
+  473,725 → −26,275).
+
+**XZ-03 — Settings und Var-Datei gemeinsam.**
+- Der `toolsetter`-Abschnitt dieses INI in `settings.json` wird im selben Lauf behandelt
+  (Schlüssel = aufgelöster INI-Pfad wie `STAT.ini_filename`). Nur `touchZ` verschiebt sich;
+  Abstände wie `spindleZeroHeight` und andere INIs bleiben.
+- Die Datei landet im selben Backup (`settings.json`). Einmaligkeit folgt aus dem Datum
+  (zweiter Lauf: `new`).
+- **Herkunft statt Zahlen:** Hat der Abschnitt `touchZ` gespeichert, gehört das Tripel
+  #3100–#3102 dem Operator (die WebUI hat es geschrieben) und wird verschoben, auch bei
+  0/0/0. Nur ohne gespeicherten Abschnitt gelten die bekannten Nicht-Positionen (alte Vorlage,
+  Fallback-Nullen) als unbelegt.
+- Ein laufendes Gateway verweigert das Schreiben: es hält die Settings im Cache und würde sie
+  zurückschreiben.
+- Gelesen wird `settings.json` nur, wenn eine Migration sie braucht. Ein beschädigtes
+  Settings-File blockiert also keine gewöhnliche Installation.
+
+**XZ-05 — Demo.**
+- Ein installiertes Programm, das byteweise einer ersetzten ausgelieferten Fassung gleicht,
+  folgt dem Beispiel. Die alte XYZAC-Demo ist per sha256 hinterlegt.
+- Das gilt auch für eine Installation, die vor dieser Korrektur migriert wurde; die des
+  Operators ist genau so eine.
+- Eine lokal bearbeitete Datei bleibt. Die aktuelle Fassung kommt daneben als `demo.new.ngc`,
+  und der Installer meldet es.
+
+### B1 — Toolsetter nur eingerichtet (`feat/viewer-contrast`, `a3db29b`)
+
+Deine fünf Regeln:
+
+1. **Ein Aufrufpfad für jedes M600 der WebUI:** Measure Current, Unload im M600-Modus, Laden aus
+   der Werkzeugtabelle im M600-Modus (sendete ein nacktes M600) und die Vormessung von
+   Run from line. Ohne Einrichtung: kein `set_probe_vars`, kein MDI, Grund am Control und in
+   der Meldung. Der Wächter löst den Tabellenpfad aus, der keinen gedimmten Knopf hat.
+2. **„Eingerichtet“** wird aus dem vom **Server bestätigten** Abschnitt bestimmt, roh, vor
+   jedem Fallback.
+   - `defaults.ts` führt dafür einen eigenen bestätigten Stand. Der Tab-Cache enthält
+     optimistische Schreibvorgänge; ein unbestätigtes oder abgelehntes Speichern richtet
+     nichts ein.
+   - Pflicht (`TOOLSETTER_REQUIRED`): Touch X/Y/Z, Fast/Slow/Traverse Feed, Max Z Travel,
+     Retract Distance, Spindle Zero Height.
+   - Gültigkeit je gespeichertem Feld nach seiner `probeFields`-Regel bzw. seinen
+     Optionswerten. Slow Feed 0 und Nullkoordinaten sind erlaubt. Spindle Zero Height ist neu
+     > 0: bei 0 fehlt Start und Suchweg ohne Werkzeugtabelle.
+   - Nicht gespeicherte Optionen nehmen ihren Default (aus). Kein Test „Platte im
+     Nasenfenster“.
+3. **Formular:**
+   - Nie gesetzte Pflichtfelder sind leer; Optionen zeigen ihren Default.
+   - Eine Änderung speichert nur dieses Feld auf das Gespeicherte, nie das ganze Formular.
+   - Das Formular nennt, was fehlt.
+   - Es sendet erst, wenn der Server einen eingerichteten Abschnitt hält, und zeigt es an, wenn
+     die Übernahme ausblieb.
+   - Reset speichert einen **leeren** Abschnitt.
+   - Unload über `tool_change` bleibt unabhängig.
+4. **Übernahme abwarten:**
+   - `request()` in `lcncWs.ts` wartet auf die Antwort mit derselben `req_id` (eine Map, kein
+     Watch auf `lastReply`). Bei Timeout oder Verbindungsende liefert es `null`.
+   - Das MDI geht nur mit `ok` **und** `mdi_set: true`. `ok: true` mit `mdi_set: false`
+     stoppt, ebenso Ablehnung und Timeout, jeweils sichtbar.
+   - Die Probe-Operationen nutzen denselben Pfad für ihre Variablen.
+   - Die Gate-Prüfung nach dem Warten liest die Gates ohne den eigenen Latch der Sequenz.
+     Sonst hätte sie das eigene MDI verweigert; das hat der Wächter gefunden.
+5. **„Aus der Maschine übernehmen“:** nicht gebaut. Das bleibt die Folgeverbesserung, mit der
+   genannten Herkunft (Var-Datei, nicht Interpreter-RAM).
+
+**Wächter:** `toolsetterSetup.test.ts` für die Regel, `e2e/toolsetter-setup.spec.ts`
+(`serial-guards`) mit sechs Tests, alle rot gegen das vorherige Frontend:
+- Abschnitt fehlt, Serverdaten ausstehend;
+- Tabellenpfad;
+- Teilabschnitt;
+- unbestätigtes Speichern, danach bestätigt, dann Blob eines anderen INI;
+- Übernahme abgelehnt, nicht übernommen und übernommen, bei einer gültigen Einrichtung mit
+  Nullen;
+- Reset.
+
+Der Mock beantwortet dafür gewählte Befehle mit ihrer `req_id`.
+
+### B2 — Geladenes Programm (`fix/xyzac-z0-m600`, `802888c`)
+
+**Deine Regel:** Ein Unterprogramm wird nicht dadurch zum Programm, dass `STAT.file` darauf
+stehen bleibt. `gateway_util.LoadedProgram` ersetzt `resolve_loaded_file`:
+
+- **Neue Datei:** Sie wird nur übernommen, wenn es die ist, die das eigene `load_file` per
+  `program_open` angefordert hat.
+  - `request_load` öffnet ein 5-s-Fenster. `program_open` ist fire-and-forget; eine
+    abgelehnte Ladung hinterlässt kein Fenster für einen späteren Wechsel und wird als
+    `status.load_not_observed` getraced.
+  - Kanonische Pfade: `~`, relative Teile, Symlinks.
+- **`unload_file`** leert sofort. Verliert der Interpreter im Leerlauf seine Datei, gilt das;
+  mitten im Lauf nicht.
+- **Jeder andere Wechsel** hält den bisherigen Stand und wird einmal getraced, mit Grund,
+  unabhängig vom Verzeichnis. Ein Unterprogramm unter `PROGRAM_PREFIX` hält wie eins auf
+  `SUBROUTINE_PATH`.
+- **Erste Sicht** (Gateway-Neustart unter laufendem LinuxCNC): Der Rohpfad wird übernommen,
+  außer er liegt in einem Suchpfad außerhalb der Programmordner. Nur dort dient der Suchpfad
+  als Hinweis.
+  - Solange der Hinweis „Unterprogramm“ sagt, wartet sie auf einen Leerlauf (Neustart während
+    eines MDI-Aufrufs).
+  - Nicht verifiziert: ein Unterprogramm in `PROGRAM_PREFIX`, das bei einem Neustart nach
+    einem MDI-Fehler ohne Programm noch offen ist. Die erste Sicht übernimmt es; der Pfad
+    unterscheidet es nicht. Die Grenze ist hier benannt.
+
+Die Regel ist vorher als Live-Folge rot gezeigt. `TestLoadedProgram` deckt deine Wächterliste
+ab:
+- MDI erfolgreich, fehlerhaft und abgebrochen, mit und ohne Programm;
+- Unterprogramm im Suchpfad und in `PROGRAM_PREFIX`;
+- Laden aus einem gemeinsam genutzten Ordner, abgelehnte Ladung;
+- Unload und erneutes Laden;
+- Neustart während und nach einem MDI-Aufruf;
+- Symlink-Pfade.
+
+Ein Dispatch-Test treibt `load_file` und `unload_file` durch die echten Handler. Deine
+Resolver-Sonde braucht die neue Schnittstelle (`LoadedProgram().update(...)`).
+
+### Gates
+
+**Live** (XYZAC-Sim des Operators, neu gestartet mit `091c6a6`):
+- `T1001 M600` ohne geladenes Programm vollständig, `mdi_set: true`; `active_file` bleibt leer.
+- Ohne Programm ein MDI-M600 mit Fehler im Unterprogramm (Vorschub 0, „Cannot probe with zero
+  feed rate“): `active_file` bleibt leer. Trace: `status.file_flip_ignored` `m600.ngc`, Grund
+  „no load context“. Danach lädt `kontur.ngc` normal.
+- Installation des Operators nachgezogen:
+  - G28 Z stand aus meiner ersten Migration auf −500 und ist von Hand auf 0 gesetzt, also
+    genau das, was XZ-01 heute ergibt.
+  - Der Installer hat die alte Demo ersetzt; sonst hat er nichts geändert (Backup
+    `20260927T145953.562852Z`).
+
+**Offline-Gate** (`python3 scripts/test_suite.py offline`, auf `9abb422`): PASS. Backend 986,
+Vitest 1689, Playwright 298/298, Lint, Build und CSS-Audit grün.
+
+Ein Lauf davor war rot:
+- Vitest: Der Export-Wächter von `lcncWs.ts` kannte `request` noch nicht; nachgetragen.
+- Zwei Feldscans in `forms.spec` liefen in den Timeout. Ursache war die Last der VM: Ein
+  Neustart der Sim hatte über `WEBUI_BROWSER = 1` einen Firefox mit Software-Rendering
+  geöffnet. Alle Tests liefen im Median 1,43-mal langsamer; nach dem Schließen waren die Scans
+  wieder bei 22 s.
+
+Danach nur noch Doku: CLAUDE.md, die Checkliste und
+[viewer-farben.recherche.md](viewer-farben.recherche.md).
+
+**Zur Prüfung:**
+- Commits `3e501ed..724c16b` auf `fix/xyzac-z0-m600`: Installer, Resolver, Doku.
+- `a3db29b` und `9abb422` auf `feat/viewer-contrast`: Frontend B1.
+- Der Live-Checkout enthält beides, Stand `9050bfa` plus diese Antwort.
+
+---
