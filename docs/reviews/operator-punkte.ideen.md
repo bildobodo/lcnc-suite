@@ -1322,3 +1322,48 @@ dafür zu verlangen:
 Bitte nur den Schreiberausschluss und dessen Abbruchfall im K5-Vertrag ergänzen. Die übrigen
 Festlegungen müssen dafür nicht erneut geöffnet werden. Danach ist auf Planungsebene der
 Weg zum Agreement frei; die tatsächliche Umsetzung bleibt separat zu prüfen.
+
+---
+
+## Fassung 3a · Claude · Antwort auf R23 · 28. September 2026
+
+Dein Befund stimmt: `_ensure_prov_var_rows()` schreibt die Parameterdatei ohne `_cmd_lock`.
+Der Schreibthread von `_apply_probe_vars()` kann einen Abbruch überleben. Beide können den
+Inode-Nachweis vortäuschen. Meine Aussage „das Gateway schreibt nur unter demselben Lock“ war
+falsch. **Ergänzung des K5-Vertrags:**
+
+1. **Eine Schreibsperre für die Parameterdatei, `_var_file_lock`.**
+   - Jeder Gateway-Schreiber nimmt sie: `_apply_probe_vars` für seinen Dateiteil,
+     `_ensure_prov_var_rows`, `set_g30` und `read_g30`. Die beiden G30-Befehle halten sie für
+     ihren **gesamten** Ablauf, Synch bis Rücklesen.
+   - **Lock-Reihenfolge:** immer `_cmd_lock` vor `_var_file_lock`, nie umgekehrt.
+     `_ensure_prov_var_rows` nimmt nur die Dateisperre; die G30-Befehle und
+     `_apply_probe_vars` laufen im Kommandolock und nehmen sie danach.
+2. **Abbruchsicher wie `_cmd_blocking`.** Der Dateischreiber läuft in einem Thread. Ein Abbruch
+   des Aufrufers wartet abgeschirmt bis zum Ende des Threads, erst dann wird die Sperre frei.
+   Ein laufender Schreiber wird nie verlassen. Ein Helfer `_var_file_write(...)` kapselt das
+   für alle Schreiber.
+3. **Eine Aufnahme:** Nach dem Synch öffnet das Gateway die Datei einmal. `fstat` am selben
+   Dateideskriptor liefert den Inode, derselbe Deskriptor den Inhalt. „Not confirmed“ gilt bei:
+   fehlender Datei, gleichem Inode, unvollständigen oder nicht endlichen Werten der
+   konfigurierten Achsen, Lesefehler.
+4. **Grenze, benannt:** Die Sperre koordiniert nur die Schreiber des Gateways. Ein externer
+   Editor oder ein anderes Programm, das die Datei ersetzt, ist dadurch nicht ausgeschlossen.
+   Der Vertrag sagt das, statt fremde Schreiber auszuschließen.
+
+**Zusätzliche Wächter** (isoliert):
+- Die Provenienz-Initialisierung kann während eines G30-Ablaufs nicht schreiben und damit den
+  Nachweis nicht erfüllen: Sie wartet auf die Sperre.
+- Ein abgebrochener, verzögerter `_apply_probe_vars`-Dateischreiber hält die Sperre bis zu
+  seinem Ende; der nächste G30-Auftrag beginnt erst danach.
+- Dazu die geplanten Synch-, Timeout- und 10/20/30-Fälle.
+
+**Übernommen für die Umsetzung** (K4/K6, ohne neue Planrunde):
+- **Comp:** Enable `true` bei fehlendem oder nicht endlichem Betrag ist **unbekannt**, nicht
+  „aktiv“. Keine Zeile; die Zusammenfassung nennt „comp“. Mein Entwurf in `offsetRows.ts` zeigte
+  das noch als aktiv; das korrigiere ich mit Wächter.
+- **Das Messelement** der Schrittweite ist `aria-hidden`, `inert`, nicht fokussierbar. Es misst
+  neu bei Textänderung, Schriftladung (`document.fonts.ready`), INI-Änderung der Schritte und
+  Größenänderung.
+- **Fokus und bestätigte Auswahl** bleiben getrennt. Ein Statuswechsel setzt den Fokus nie auf
+  die aktive Option zurück. Bei einem Darstellungswechsel bleibt ein erreichbarer Fokus.
