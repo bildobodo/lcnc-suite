@@ -382,13 +382,42 @@ class TestLoadedProgram(unittest.TestCase):
             self.run_steps(prog, [self.load(str(link / "x" / ".." / "p.ngc")), (str(prog_file), True)])
             self.assertEqual(prog.loaded, str(prog_file))
 
-    def test_a_refused_load_leaves_no_window_for_a_later_flip(self):
+    def test_a_load_never_observed_leaves_the_program_unconfirmed(self):
+        # The window ran out: the late file is no load context (a later flip
+        # is never adopted) — and MAIN is no proof either: a refused open
+        # closes the old file first (Codex R18 XZ-08, the old rule kept MAIN).
         prog = self.seeded(self.MAIN)
         events = self.run_steps(prog, [self.load(self.OTHER), (self.MAIN, True)])
-        steps = [(self.MAIN, True)] * int(LOAD_WINDOW_S / 0.033 + 2) + [(self.OTHER, True)]
+        steps = [(self.MAIN, True)] * int(LOAD_WINDOW_S / 0.033 + 2)
         events += self.run_steps(prog, steps, t0=0.1)
-        self.assertEqual(prog.loaded, self.MAIN)
+        self.assertEqual((prog.loaded, prog.unconfirmed), (None, self.MAIN))
+        self.assertTrue(prog.change_pending, "no settled record meanwhile")
         self.assertIn("status.load_not_observed", [e[0] for e in events])
+        self.run_steps(prog, [(self.OTHER, True)], t0=10.0)
+        self.assertEqual((prog.loaded, prog.unconfirmed), (None, self.OTHER), "late: named, never adopted")
+        self.run_steps(prog, [self.load(self.OTHER), (self.OTHER, True)], t0=11.0)
+        self.assertEqual((prog.loaded, prog.unconfirmed, prog.change_pending), (self.OTHER, None, False))
+
+    def test_an_unresolved_change_ends_with_a_load_an_unload_or_an_empty_interpreter(self):
+        for end, raw, want in ((self.load(self.OTHER), self.OTHER, (self.OTHER, None)),
+                               (lambda prog, now: prog.request_unload(), self.MAIN, (None, None)),
+                               (None, None, (None, None))):
+            with self.subTest(end=want, raw=raw):
+                prog = self.seeded(self.MAIN)
+                prog.abandon_change()
+                self.run_steps(prog, [(self.MAIN, True)])
+                self.assertEqual((prog.loaded, prog.unconfirmed, prog.change_pending), (None, self.MAIN, True))
+                steps = [end] if end else []
+                self.run_steps(prog, steps + [(raw, True)], t0=1.0)
+                self.assertEqual((prog.loaded, prog.unconfirmed), want)
+                self.assertFalse(prog.change_pending, "settled: the record is written again")
+
+    def test_a_load_observed_in_its_window_counts_whatever_ended_the_handler(self):
+        # A cancel lands after program_open went out (_cmd_blocking completes
+        # a send it began): the window stays, the observation decides.
+        prog = self.seeded(self.MAIN)
+        self.run_steps(prog, [self.load(self.OTHER), (self.OTHER, True)])
+        self.assertEqual((prog.loaded, prog.change_pending), (self.OTHER, False))
 
     def test_unload_clears_at_once_and_a_stale_raw_is_not_readopted(self):
         prog = self.seeded(self.MAIN)

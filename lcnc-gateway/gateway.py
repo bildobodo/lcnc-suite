@@ -3218,6 +3218,16 @@ _rfl_task: Optional[asyncio.Task] = None
 _rfl_flag_task: Optional[asyncio.Task] = None
 # A phase the body sets on its way; any other phase is a verdict.
 _RFL_UNDECIDED = frozenset({"queued", "measuring", "safe_z", "positioning", "starting"})
+# May the one-shot skip flag #3116 be non-zero in the interpreter? The gateway
+# cannot read it (the var file holds it only from LinuxCNC's last shutdown),
+# so it tracks what it sent (Codex R18 XZ-11). True at boot — the var file
+# carries #3116 across a LinuxCNC restart; True from the moment a sequence MAY
+# have sent #3116=<tool> (a cancelled send still completes) and after the
+# sequence's own start — o<450> consumes it in the skim, which an abort can
+# cut short; True after an MDI line that names it. False only once a
+# #3116=0 the gateway sent was taken by the interpreter. Every start from
+# idle clears it first while True (_start_guard).
+_skip_flag_unknown = True
 
 
 def _skip_flag_cleared(vars_to_set: Dict[str, Any]) -> Dict[str, Any]:
@@ -3230,7 +3240,7 @@ def _skip_flag_cleared(vars_to_set: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _rfl_busy_reason() -> Optional[str]:
-    """Why a load or unload waits for run from line, or None."""
+    """Why a load, an unload or a start waits for run from line, or None."""
     if _rfl_task is not None and not _rfl_task.done():
         return "Run from line is starting — abort it first"
     if _rfl_flag_task is not None and not _rfl_flag_task.done():
@@ -3246,6 +3256,29 @@ def _rfl_busy() -> bool:
     its finally (Codex R17 XZ-10) — load, unload and every later sequence
     were refused until a restart."""
     return any(t is not None and not t.done() for t in (_rfl_task, _rfl_flag_task))
+
+
+async def _start_guard(armed: bool, clears_flag: bool = False) -> Optional[dict]:
+    """Before a start from idle — a program, a first step, an MDI line, a
+    tool change (an M6 remap may run the routine): None to go on, else the
+    refusal (Codex R18 XZ-11 — a normal start took over an old skip flag).
+    While run from line starts or ends, its flag is not settled: refused.
+    A flag that may be set is cleared first, in this same command — only
+    once the interpreter took the clear does anything start. `clears_flag`:
+    the command's own values carry #3116=0 (_skip_flag_cleared)."""
+    why = _rfl_busy_reason()
+    if why:
+        return {"ok": False, "error": why}
+    if _skip_flag_unknown and not clears_flag:
+        # A refused switch (a jog held) says so itself — the MDI below would
+        # swallow it into "not cleared".
+        await set_mode(linuxcnc.MODE_MDI)
+        _file_ok, mdi_ok = await _apply_probe_vars({"3116": 0}, armed)
+        if not mdi_ok:
+            _trace.emit("rfl.flag_clear_failed", level="warn", by="start")
+            return {"ok": False, "error": "Skip flag #3116 not cleared — nothing started"}
+        _trace.emit("rfl.flag_cleared", by="start")
+    return None
 
 
 def _rfl_finished(task: asyncio.Task) -> None:
@@ -3282,6 +3315,7 @@ def _rfl_clear_flag() -> None:
     global _rfl_flag_task
 
     async def clear():
+        global _skip_flag_unknown
         # After an abort the aborted move may still run: an MDI sent at once
         # was refused ("MDI command in progress", live R17 check). Wait until
         # the interpreter has been idle for a moment (the abort processed),
@@ -3310,10 +3344,12 @@ def _rfl_clear_flag() -> None:
         except Exception as e:
             ok, why = False, f"{type(e).__name__}: {e}"
         if ok:
+            _skip_flag_unknown = False
             _trace.emit("rfl.flag_cleared")
             return
         _trace.emit("rfl.flag_clear_failed", level="error", err=why)
-        _rfl_phase("flag_clear_failed", False, f"skip flag #3116 not cleared ({why}) — set #3116=0 by MDI")
+        _rfl_phase("flag_clear_failed", False,
+                   f"skip flag #3116 not cleared ({why}) — the next start clears it first")
 
     _rfl_flag_task = register_bg_task(asyncio.create_task(clear()))
 
@@ -3431,6 +3467,7 @@ def _rfl_entry_reached(entry: dict):
 async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
                         spindle_dir: Optional[str], spindle_speed: int,
                         entry: Optional[dict] = None, program=None) -> None:
+    global _skip_flag_unknown
     flag_armed = False
 
     async def still_bound() -> bool:
@@ -3466,11 +3503,16 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
                 return
             if not await still_bound():
                 return
+            # Armed BEFORE the send (Codex R18 XZ-11): a cancel while the step
+            # waits for the interpreter lands after the flag went out —
+            # _cmd_blocking completes a send it has begun — and the finally
+            # must clear it. Clearing a flag that never got set costs nothing.
+            flag_armed = True
+            _skip_flag_unknown = True
             ok, why = await _rfl_mdi_step(f"#3116={pre_tool}", timeout_s=10.0)
             if not ok:
                 _rfl_phase("flag_failed", False, why)
                 return
-            flag_armed = True
         if safe_z:
             if not await still_bound():
                 return
@@ -3530,7 +3572,9 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
         async with _get_cmd_lock():
             await set_mode(linuxcnc.MODE_AUTO)
             await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None)
-        flag_armed = False  # consumed by the skim (o<450> self-clears #3116)
+        # Consumed by the skim (o<450> self-clears #3116); _skip_flag_unknown
+        # stays set — an abort in the skim leaves it, the next start clears.
+        flag_armed = False
         _rfl_phase("running")
     except asyncio.CancelledError:
         # abort/estop (_preempt_inflight): nothing further moves.
@@ -3558,7 +3602,8 @@ async def _apply_probe_vars(vars_to_set: Dict[str, Any], armed: bool):
     1) Always write the var file (persistence across restarts). 2) Set them
     in the interpreter via MDI (armed + machine on + not running), in chunks
     ≤ 250 chars for LinuxCNC's 256-char MDI buffer; mdi_set only when every
-    chunk ended RCS_DONE."""
+    chunk ended RCS_DONE. A taken #3116=0 makes the skip flag known clear."""
+    global _skip_flag_unknown
     file_ok = False
     ini_path = getattr(STAT, "ini_filename", None)
     if ini_path:
@@ -3600,6 +3645,8 @@ async def _apply_probe_vars(vars_to_set: Dict[str, Any], armed: bool):
             mdi_ok = False
             _trace.emit("probe.mdi_set_failed", level="warn",
                         exc=type(e).__name__, msg=str(e))
+    if mdi_ok and any(str(k) == "3116" and finite_float(v) == 0 for k, v in vars_to_set.items()):
+        _skip_flag_unknown = False
     _trace.emit("probe.set_vars_result", file_saved=file_ok, mdi_set=mdi_ok)
     return file_ok, mdi_ok
 
@@ -3612,7 +3659,7 @@ async def handle_command(msg: Dict[str, Any], armed: bool):
 
 
 async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
-    global _estop_hold
+    global _estop_hold, _skip_flag_unknown
     cmd = msg.get("cmd")
     if not cmd:
         return {"ok": False, "error": "Missing cmd"}
@@ -3815,19 +3862,24 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             # browser between them, where an abort (any client's) never
             # reached it; here it cancels this handler (_preempt_inflight).
             vars_to_set = msg.get("vars")
+            if vars_to_set is not None and (not isinstance(vars_to_set, dict) or not vars_to_set):
+                return {"ok": False, "error": "Missing vars dict"}
+            refused = await _start_guard(armed, clears_flag=vars_to_set is not None)
+            if refused:
+                return refused
+            reply = {"ok": True}
             if vars_to_set is not None:
-                if not isinstance(vars_to_set, dict) or not vars_to_set:
-                    return {"ok": False, "error": "Missing vars dict"}
                 file_ok, mdi_ok = await _apply_probe_vars(_skip_flag_cleared(vars_to_set), armed)
                 if not mdi_ok:
                     return {"ok": False, "error": "Parameters not taken over — nothing started",
                             "file_saved": file_ok, "mdi_set": False}
-                await set_mode(linuxcnc.MODE_MDI)
-                await _cmd_blocking(CMD.mdi, text, wait=None)
-                return {"ok": True, "file_saved": file_ok, "mdi_set": True}
+                reply.update(file_saved=file_ok, mdi_set=True)
+            if "3116" in text:
+                # The operator's own line names the flag: no longer known.
+                _skip_flag_unknown = True
             await set_mode(linuxcnc.MODE_MDI)
             await _cmd_blocking(CMD.mdi, text, wait=None)
-            return {"ok": True}
+            return reply
 
         if cmd == "set_kins_mode":
             # Kinematics-frame selector (JogStrip), as a TYPED command so the
@@ -4092,6 +4144,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if blocked:
                 return blocked
             tool_num = finite_int(msg["tool_number"], lo=0)
+            refused = await _start_guard(armed)
+            if refused:
+                return refused
             await set_mode(linuxcnc.MODE_MDI)
             # Separate interpreter blocks are essential: within `Tn M6 G43`
             # LinuxCNC can execute SET_OFFSET while M6 is still waiting for
@@ -4122,7 +4177,12 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 # program (review #3).
                 return {"ok": False, "error": "Cannot step while running — pause first"}
             else:
-                # Idle → start program and step
+                # Idle → start program and step. A paused program is one a
+                # start already cleared the skip flag for — or run from
+                # line's own, whose skim owns it; no MDI while paused.
+                refused = await _start_guard(armed)
+                if refused:
+                    return refused
                 await set_mode(linuxcnc.MODE_AUTO)
                 await _cmd_blocking(CMD.auto, linuxcnc.AUTO_STEP, wait=None)
             return {"ok": True}
@@ -4155,7 +4215,10 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             confirmed = msg.get("file")
             version = msg.get("version")
             source = msg.get("source")
+            # A load or unload under way (R18 XZ-08): the interpreter may
+            # already have another program open.
             if (not isinstance(confirmed, str) or version is None or not isinstance(source, str)
+                    or _status_runtime.program.change_pending
                     or canonical_path(confirmed) != canonical_path(_status_runtime.program.loaded)
                     or finite_int(version) != _bulk.preview_version
                     or source != _bulk.published_source):
@@ -4189,11 +4252,15 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 # handler (we hold _cmd_lock here and block this client's receive
                 # loop). Validate, spawn, return immediately; progress rides the
                 # status fanout as `rfl_status`.
-                if _rfl_busy():
-                    return {"ok": False, "error": "Run-from-line sequence already in progress"}
                 blocked = reject_if_auto_running()
                 if blocked:
                     return blocked
+                # The skim of lines before N runs the M600 bodies: a flag that
+                # may be set is cleared first (Codex R18 XZ-11); with a
+                # pre-measurement its values carry the clear.
+                refused = await _start_guard(armed, clears_flag=bool(pre_tool))
+                if refused:
+                    return refused
                 if pre_tool:
                     # In this handler: an abort cancels it here too.
                     _file_ok, mdi_ok = await _apply_probe_vars(_skip_flag_cleared(probe_vars), armed)
@@ -4203,6 +4270,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                            program=identity)
                 return {"ok": True, "rfl": "started"}
 
+            refused = await _start_guard(armed)
+            if refused:
+                return refused
             if spindle_dir and spindle_speed > 0:
                 await set_mode(linuxcnc.MODE_MANUAL)
                 if spindle_dir == "forward":
@@ -4360,6 +4430,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
 
         if cmd == "cycle_start":
             require_armed(armed)
+            refused = await _start_guard(armed)
+            if refused:
+                return refused
             await set_mode(linuxcnc.MODE_AUTO)
             await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, 0, wait=None)  # Start from beginning
             return {"ok": True}
@@ -4526,13 +4599,12 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 return {"ok": False, "error": "Load record not writable — nothing loaded"}
             try:
                 # The load context: only this makes the file the loaded program
-                # (LoadedProgram — STAT.file flips alone never do).
+                # (LoadedProgram — STAT.file flips alone never do). A cancel
+                # lands after program_open went out (_cmd_blocking completes
+                # a send it began): the window stays and the observation
+                # decides, never the handler's end (Codex R18 XZ-08).
                 _status_runtime.program.request_load(abs_path, time.monotonic())
-                try:
-                    await _cmd_blocking(CMD.program_open, abs_path, wait=None)
-                except BaseException:
-                    _status_runtime.program.cancel_load()
-                    raise
+                await _cmd_blocking(CMD.program_open, abs_path, wait=None)
             finally:
                 _status_runtime.end_program_change()
             return {"ok": True, "path": abs_path}
@@ -4550,6 +4622,11 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 await _cmd_blocking(CMD.abort)
                 await _cmd_blocking(CMD.reset_interpreter)
                 _status_runtime.program.request_unload()
+            except BaseException:
+                # Cut short on its way: the loaded program is not known
+                # (Codex R18 XZ-08) — never the old one again.
+                _status_runtime.program.abandon_change()
+                raise
             finally:
                 _status_runtime.end_program_change()
             return {"ok": True}

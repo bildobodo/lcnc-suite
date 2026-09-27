@@ -46,10 +46,12 @@ class _SeqHarness(unittest.IsolatedAsyncioTestCase):
             "_rfl_flag_task": gateway._rfl_flag_task,
             "_rfl_status": gateway._rfl_status,
             "_errors_total": gateway._errors_total,
+            "_skip_flag_unknown": getattr(gateway, "_skip_flag_unknown", None),
         }
         gateway._cmd_lock = None  # fresh lock per asyncio loop (test pattern)
         gateway._rfl_task = gateway._rfl_flag_task = None
         gateway._rfl_status = None
+        gateway._skip_flag_unknown = False   # known clear unless a test says otherwise
         gateway.STAT = _Stat()
         gateway.CMD = type("C", (), {"auto": lambda *a: None,
                                      "spindle": lambda *a: None,
@@ -461,6 +463,44 @@ class TestRflLifecycle(_SeqHarness):
         self.assertEqual(self.cleared, ["#3116=0"])
         self.assertEqual(self.auto_run_calls, [])
         self.assertEqual(gateway._rfl_status["phase"], "aborted")
+        self.assertFalse(gateway._skip_flag_unknown, "known clear once the clear was taken")
+
+    async def test_an_abort_while_the_flag_is_being_set_still_clears_it(self):
+        # Codex R18 XZ-11 (abort_during_flag_completion): #3116=5 was sent
+        # and the step waited for the interpreter when the abort came. The
+        # sequence counted the flag as armed only after that wait, so its
+        # finally cleared nothing — the flag stayed 5, unreported, and the
+        # next Cycle Start ran with it.
+        setting = asyncio.Event()
+
+        async def step(text, timeout_s):
+            self.mdi_calls.append(text)
+            if text == "#3116=5":
+                setting.set()
+                await asyncio.Event().wait()
+            if text == "#3116=0":
+                self.cleared.append(text)
+            return True, ""
+        gateway._rfl_mdi_step = step
+        self.start()
+        await asyncio.wait_for(setting.wait(), 2)
+        gateway._preempt_inflight(by="abort", from_client=1)
+        await self.settle()
+        self.assertEqual(self.mdi_calls, ["T5 M600", "#3116=5", "#3116=0"])
+        self.assertEqual(self.cleared, ["#3116=0"])
+        self.assertEqual(self.auto_run_calls, [])
+        self.assertEqual(gateway._rfl_status["phase"], "aborted")
+        self.assertFalse(gateway._skip_flag_unknown)
+
+    async def test_the_flag_stays_unknown_after_the_sequences_own_start(self):
+        # o<450> consumes it in the run-from-line skim, which an abort can
+        # cut short: the next start clears it first.
+        gateway.STAT.position = (0.0, 0.0, 0.0)   # already at safe height
+        await self.start()
+        self.assertEqual(self.mdi_calls, ["T5 M600", "#3116=5"])
+        self.assertEqual(self.auto_run_calls, [(linuxcnc.AUTO_RUN, 4)])
+        self.assertEqual(gateway._rfl_status["phase"], "running")
+        self.assertTrue(gateway._skip_flag_unknown)
 
     async def test_a_second_abort_during_the_flag_clear(self):
         clearing, release = asyncio.Event(), asyncio.Event()
@@ -494,6 +534,7 @@ class TestRflLifecycle(_SeqHarness):
         self.assertEqual(gateway._rfl_status["phase"], "flag_clear_failed")
         self.assertFalse(gateway._rfl_status["ok"])
         self.assertIn("#3116", gateway._rfl_status["error"])
+        self.assertTrue(gateway._skip_flag_unknown, "the next start clears it first")
 
     async def test_the_flag_clear_waits_until_the_abort_stopped_the_interpreter(self):
         # Live 2026-09-27 (R17 check): the clear ran the instant the sequence

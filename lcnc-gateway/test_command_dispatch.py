@@ -17,7 +17,7 @@ linuxcnc = fake_linuxcnc.install()   # MUST precede `import gateway`
 import gateway  # noqa: E402  (import after the fake is installed)
 import fusion_import  # noqa: E402
 import bulk_pipeline  # noqa: E402
-from gateway_util import kins_mode_commands  # noqa: E402
+from gateway_util import kins_mode_commands, read_load_record  # noqa: E402
 
 
 def _run(coro):
@@ -36,6 +36,18 @@ def _payload(**over):
     )
     base.update(over)
     return SimpleNamespace(**base)
+
+
+# The skip flag's state as the gateway boots (read at collection, before any
+# test changes it): unknown — the var file carries #3116 across a LinuxCNC
+# restart and nothing tells a new gateway the interpreter's value.
+_SKIP_FLAG_AT_BOOT = getattr(gateway, "_skip_flag_unknown", None)
+
+
+class _Pending:
+    """A task that has not finished (the run-from-line sequence or its clear)."""
+    def done(self):
+        return False
 
 
 # Reasons check_command/_deny_reason can return — used to assert a reply is (or
@@ -206,6 +218,13 @@ class TestHandlerExecution(unittest.TestCase):
         gateway.STAT = linuxcnc.stat()
         self.cmd = _RecordingCmd()
         gateway.CMD = self.cmd
+        saved = (getattr(gateway, "_skip_flag_unknown", None), gateway._rfl_task, gateway._rfl_flag_task)
+        self.addCleanup(lambda: setattr(gateway, "_skip_flag_unknown", saved[0]))
+        self.addCleanup(lambda: setattr(gateway, "_rfl_task", saved[1]))
+        self.addCleanup(lambda: setattr(gateway, "_rfl_flag_task", saved[2]))
+        # Known clear unless a test says otherwise (TestSkipFlag below).
+        gateway._skip_flag_unknown = False
+        gateway._rfl_task = gateway._rfl_flag_task = None
 
     def _send(self, msg):
         gateway._shared_status = _payload()   # ready -> passes policy
@@ -392,15 +411,144 @@ class TestHandlerExecution(unittest.TestCase):
         _run(scenario())
         self.assertEqual(self._mdis(cmd), ["#3100=150.000000 #3116=0.000000"])
 
-    def _auto_run(self, published=None, published_version=7, **over):
+    # ---- Codex R18 XZ-11: a normal start never takes over an old one-shot
+    # skip flag — #3116 skips the next measurement of the tool in the spindle
+    # (tool_touch_off.ngc o<450>) ----
+    def _started(self, cmd):
+        return [(n, a) for n, a, _k in cmd.calls if n in ("mdi", "auto")]
+
+    def _starts(self):
+        return (("cycle_start", {"cmd": "cycle_start"}),
+                ("auto_step", {"cmd": "auto_step"}),
+                ("mdi", {"cmd": "mdi", "text": "T5 M600"}),
+                ("tool_change", {"cmd": "tool_change", "tool_number": 5}))
+
+    def test_the_gateway_boots_with_the_skip_flag_unknown(self):
+        self.assertIs(_SKIP_FLAG_AT_BOOT, True)
+
+    def test_no_start_while_run_from_line_is_starting_or_ending(self):
+        # Codex R18 (cycle_start_during_flag_cleanup): the clear waited for
+        # a settled idle with #3116 still 5, and a Cycle Start from another
+        # client ran the program from line 0 with it.
+        self._with_program()
+        for slot, reason in (("_rfl_task", "Run from line is starting — abort it first"),
+                             ("_rfl_flag_task", "Run from line is ending — wait")):
+            for name, msg in self._starts():
+                with self.subTest(slot=slot, start=name):
+                    cmd = self._rcs()
+                    setattr(gateway, slot, _Pending())
+                    r = self._send(msg)
+                    setattr(gateway, slot, None)
+                    self.assertEqual(r, {"ok": False, "error": reason})
+                    self.assertEqual(self._started(cmd), [], "nothing sent")
+            with self.subTest(slot=slot, start="auto_run without a pre-measurement"):
+                cmd = self._rcs()
+                setattr(gateway, slot, _Pending())
+                r, spawned = self._auto_run()
+                setattr(gateway, slot, None)
+                self.assertEqual(r, {"ok": False, "error": reason})
+                self.assertEqual((self._started(cmd), spawned), ([], []))
+
+    def test_a_start_clears_a_flag_that_may_be_set_first(self):
+        # After a clear that failed (E-Stop, machine off), after the
+        # sequence's own start (the skim consumes the flag — an abort can cut
+        # it short) and at boot: the flag may be set, and the start clears it
+        # in this same command before anything runs.
+        expected = {
+            "cycle_start": [("mdi", ("#3116=0.000000",)), ("auto", (linuxcnc.AUTO_RUN, 0))],
+            "auto_step": [("mdi", ("#3116=0.000000",)), ("auto", (linuxcnc.AUTO_STEP,))],
+            "mdi": [("mdi", ("#3116=0.000000",)), ("mdi", ("T5 M600",))],
+            "tool_change": [("mdi", ("#3116=0.000000",)), ("mdi", ("T5 M6",)), ("mdi", ("G43 H5",))],
+        }
+        for name, msg in self._starts():
+            with self.subTest(start=name):
+                cmd = self._rcs()
+                gateway._skip_flag_unknown = True
+                r = self._send(msg)
+                self.assertTrue(r["ok"], r)
+                self.assertEqual(self._started(cmd), expected[name])
+                self.assertFalse(gateway._skip_flag_unknown, "known clear once the interpreter took it")
+                cmd.calls.clear()
+                self.assertTrue(self._send(msg)["ok"])
+                self.assertNotIn(("mdi", ("#3116=0.000000",)), self._started(cmd), "only once")
+        self._with_program()
+        with self.subTest(start="auto_run without a pre-measurement"):
+            cmd = self._rcs()
+            gateway._skip_flag_unknown = True
+            r, _ = self._auto_run()
+            self.assertTrue(r["ok"], r)
+            self.assertEqual(self._started(cmd), [("mdi", ("#3116=0.000000",)), ("auto", (linuxcnc.AUTO_RUN, 4))])
+        with self.subTest(start="auto_run with safe Z (the sequence's skim)"):
+            cmd = self._rcs()
+            gateway._skip_flag_unknown = True
+            r, spawned = self._auto_run(safe_z=True)
+            self.assertTrue(r["ok"], r)
+            self.assertEqual((self._mdis(cmd), len(spawned)), (["#3116=0.000000"], 1))
+        with self.subTest(start="auto_run with a pre-measurement: the values carry the clear"):
+            cmd = self._rcs()
+            gateway._skip_flag_unknown = True
+            r, spawned = self._auto_run(pre_tool=5, probe_vars={"3100": 150})
+            self.assertTrue(r["ok"], r)
+            self.assertEqual((self._mdis(cmd), len(spawned)), (["#3100=150.000000 #3116=0.000000"], 1))
+            self.assertFalse(gateway._skip_flag_unknown)
+
+    def test_a_start_whose_clear_is_refused_starts_nothing(self):
+        for name, msg in self._starts():
+            with self.subTest(start=name):
+                cmd = self._rcs(rc=3)   # RCS_ERROR
+                gateway._skip_flag_unknown = True
+                r = self._send(msg)
+                self.assertEqual(r, {"ok": False, "error": "Skip flag #3116 not cleared — nothing started"})
+                self.assertEqual(self._started(cmd), [("mdi", ("#3116=0.000000",))], "the clear, never the start")
+                self.assertTrue(gateway._skip_flag_unknown)
+
+    def test_a_step_in_a_paused_program_clears_nothing(self):
+        # A paused program is the one a start already cleared for — or the
+        # run from line's own, whose skim owns the flag. No MDI while paused.
+        cmd = self._rcs()
+        gateway.STAT.paused = True
+        gateway._skip_flag_unknown = True
+        r = self._send({"cmd": "auto_step"})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self._started(cmd), [("auto", (linuxcnc.AUTO_STEP,))])
+
+    def test_a_held_jog_names_itself_when_the_flag_is_to_be_cleared(self):
+        cmd = self._rcs()
+        gateway._skip_flag_unknown = True
+
+        async def _refuse(mode):
+            raise RuntimeError("Task refused the mode switch — release the jog")
+        import unittest.mock
+        with unittest.mock.patch.object(gateway, "set_mode", _refuse):
+            r = self._send({"cmd": "cycle_start"})
+        self.assertFalse(r["ok"], r)
+        self.assertIn("release the jog", r["error"])
+        self.assertEqual(self._started(cmd), [])
+
+    def test_an_mdi_that_names_the_flag_leaves_it_unknown(self):
+        for vars_ in (None, {"3100": 150}):
+            with self.subTest(vars=vars_):
+                self._rcs()
+                gateway._skip_flag_unknown = False
+                msg = {"cmd": "mdi", "text": "#3116=5"}
+                if vars_:
+                    msg["vars"] = vars_   # its values' #3116=0 go first, the line after
+                r = self._send(msg)
+                self.assertTrue(r["ok"], r)
+                self.assertTrue(gateway._skip_flag_unknown, "the next start clears it first")
+
+    def _auto_run(self, published=None, published_version=7, pending_load=None, **over):
         """auto_run as the dialog sends it: the path, the published version
         and the fingerprint of the text it showed — by default the text on
-        disk, published as that version (`published` overrides)."""
+        disk, published as that version (`published` overrides).
+        `pending_load`: a load sent after it and not yet observed."""
         import time as _time, unittest.mock
         gateway._status_runtime.program = program = gateway._status_runtime_mod.LoadedProgram()
         program.update(None, True, _time.monotonic())
         program.request_load(self.prog, _time.monotonic())
         program.update(self.prog, True, _time.monotonic())
+        if pending_load:
+            program.request_load(pending_load, _time.monotonic())
         source = gateway.program_source(self.prog)
         msg = {"cmd": "auto_run", "line": 4, "file": self.prog, "version": 7, "source": source}
         msg.update(over)
@@ -444,6 +592,98 @@ class TestHandlerExecution(unittest.TestCase):
         r, _ = self._auto_run()
         self.assertTrue(r["ok"], r)
         self.assertEqual(cmd.args_of("auto")[1], 4)
+
+    def test_auto_run_waits_for_a_load_under_way(self):
+        # Codex R18 XZ-08: while a load is sent and not observed, the
+        # interpreter may already have the other program open — the one the
+        # dialog was confirmed on is no longer proven.
+        self._with_program()
+        cmd = self._rcs()
+        r, spawned = self._auto_run(pending_load=self.prog + ".b")
+        self.assertEqual(r, {"ok": False, "error": "Program changed — confirm Run from line again"})
+        self.assertEqual((self._started(cmd), spawned), ([], []))
+
+    def _record_runtime(self, tmp, loaded):
+        """A status runtime with a real load record, `loaded` settled."""
+        path = os.path.join(tmp, "loaded_program.json")
+        rt = gateway._status_runtime_mod.StatusRuntime(
+            get_stat=lambda: None, get_err=lambda: None, reader_get=lambda _k: None,
+            get_tool_tbl_path=lambda: None, load_tool_library=lambda: {},
+            get_fb_scale=lambda: 1.0, get_instance=lambda: (10, 20), load_record_path=path)
+        rt.program_tick(None, True, 0.0)
+        rt.program.request_load(loaded, 0.0)
+        rt.program_tick(loaded, True, 0.1)
+        return rt, path
+
+    def _cancelled_on_its_way(self, msg, blocking_call, tmp, rt):
+        """Run the REAL handler and _cmd_blocking; cancel it (an abort's
+        preemption, a disconnect) while `blocking_call` is in NML."""
+        import threading
+        import unittest.mock
+        entered, release = threading.Event(), threading.Event()
+        cmd = self._rcs()
+        inner = getattr(cmd, blocking_call)
+
+        def blocking(*args):
+            inner(*args)
+            if blocking_call == "program_open":
+                gateway.STAT.file = args[0]    # task opened it
+            entered.set()
+            release.wait(3)
+        setattr(cmd, blocking_call, blocking)
+
+        async def scenario():
+            gateway._shared_status = _payload()
+            task = asyncio.ensure_future(gateway.handle_command(msg, True))
+            for _ in range(400):
+                if entered.is_set() or task.done():
+                    break
+                await asyncio.sleep(0.005)
+            self.assertTrue(entered.is_set(), f"{blocking_call} never reached")
+            self.assertEqual(read_load_record(rt._load_record_path, (10, 20)), "unsettled")
+            task.cancel()
+            await asyncio.sleep(0)
+            release.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+        gateway._cmd_lock = None
+        with unittest.mock.patch.object(gateway, "_status_runtime", rt), \
+                unittest.mock.patch.object(gateway, "get_nc_files_dir", return_value=tmp):
+            _run(scenario())
+        gateway._cmd_lock = None
+        return cmd
+
+    def test_a_load_cancelled_after_program_open_went_out(self):
+        # Codex R18 XZ-08 (cancel_after_program_open_sent_before_status_
+        # observation): the handler's cancel path dropped the load window;
+        # the next tick saw B with no load context, kept A and wrote A back
+        # as settled — a restart restored A while the interpreter had B.
+        import tempfile
+        import time
+        with tempfile.TemporaryDirectory() as tmp:
+            a, b = os.path.join(tmp, "A.ngc"), os.path.join(tmp, "B.ngc")
+            Path(a).write_text("G0 X10\nM2\n")
+            Path(b).write_text("G0 X80\nM2\n")
+            rt, path = self._record_runtime(tmp, a)
+            gateway.STAT.file = a
+            self._cancelled_on_its_way({"cmd": "load_file", "path": b}, "program_open", tmp, rt)
+            rt.program_tick(gateway.STAT.file, True, time.monotonic())
+            self.assertEqual(rt.program.loaded, b, "observed in its window: the gateway's own load")
+            self.assertEqual(read_load_record(path, (10, 20)), (b,))
+
+    def test_an_unload_cancelled_on_its_way_proves_nothing(self):
+        import tempfile
+        import time
+        with tempfile.TemporaryDirectory() as tmp:
+            a = os.path.join(tmp, "A.ngc")
+            Path(a).write_text("G0 X10\nM2\n")
+            rt, path = self._record_runtime(tmp, a)
+            gateway.STAT.file = a
+            cmd = self._cancelled_on_its_way({"cmd": "unload_file"}, "abort", tmp, rt)
+            self.assertNotIn("reset_interpreter", [n for n, _a, _k in cmd.calls])
+            self.assertIsNone(rt.program_tick(a, True, time.monotonic()), "A is no longer proven")
+            self.assertEqual(rt.program.unconfirmed, a)
+            self.assertEqual(read_load_record(path, (10, 20)), "unsettled")
 
     def test_auto_run_refuses_a_file_changed_since_its_publication(self):
         # Codex R17 XZ-07 (file_changed_since_publication_before_dispatch):
@@ -1094,8 +1334,11 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         self._kins_cmd_cache = gateway._kins_mode_cmd_cache
         self._prov = dict(gateway._prov_cache)
         gateway._prov_cache.clear()
+        self._skip_flag = gateway._skip_flag_unknown
+        gateway._skip_flag_unknown = False   # these starts are about the mode, not the flag
 
     def tearDown(self):
+        gateway._skip_flag_unknown = self._skip_flag
         gateway._kins_is_switchable = self._switchable
         gateway._twp_capable = self._capable
         gateway._reader_get = self._reader_get
