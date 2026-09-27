@@ -6324,3 +6324,25 @@ datum shift.
     report line; only the old example's unchanged 10/10/-180 is replaced,
     reported. The operator's install was already repaired: a re-run changed
     no state file.
+
+- Codex review R17 (same day): XZ-06, XZ-09 and the XZ-03 rest closed;
+  three findings, none needing the operator:
+  - XZ-07 (`3cd16ed`): the binding named the file found at ARRIVAL, not
+    the text the dialog showed — the version moves only after a re-parse,
+    so a file rewritten since the publication still carried it. A text now
+    has one identity, the sha256 of its bytes: the publication records the
+    text it was parsed from (fingerprinted before the worker, checked after
+    it), GET /gcode serves the text and its fingerprint from one read, and
+    auto_run is refused unless its fingerprint is the published one AND
+    still the file on disk. A stat was rejected as identity: timestamps can
+    be preserved, and a write inside one kernel tick keeps mtime and ctime.
+    The sequence binds path + fingerprint, never the version (the
+    pre-measurement's TLO re-parse moves it on).
+  - XZ-08 (`cb142c4`): the record proved the old program until a later
+    tick rewrote it. A load/unload is now one transaction: marked unsettled
+    before the interpreter changes (else removed, else refused), settled
+    only once observed; a failed write stays unsettled and is retried.
+  - XZ-10 (`7d66975`): a boolean run-from-line latch stayed set when the
+    task was cancelled before its first step or a second abort cut the
+    #3116 clear in its finally. The latch is derived from the tasks, the
+    end reported by a done callback, the clear its own task.
