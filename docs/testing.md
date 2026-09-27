@@ -189,6 +189,8 @@ screenshot references (they differ between the VM and CI; the tool dialog
 masks its canvas for the same reason) — a palette change is reviewed on
 rendered scenes by eye and guarded by the material colours.
 
+Viewer contrast (plan `docs/reviews/viewer-kontrast.plan.md`): `themeTokens.test.ts` checks the pair table (`viewer/palettePairs.ts`) in every theme block — colour-separated pairs under normal, protan, deutan and tritan simulation, every pair under normal vision, a cue for each pair without colour separation — and the selection's core-or-halo rule. `scenes.viewer.spec.ts` "the width ladder" (serial-viewer) measures the IMAGE: a top view onto a lit table with a program line, a line flagged outside the limits and the backplot, four themes at DPR 1 and 2; the drawn width across each line is the sum of each device pixel's coverage by the role colour against the local background (feed and limit ≈ 1, backplot 2 × DPR; a missing line reads 0), every role line opaque, then the selection's profile over the table: core in the middle, halo 2.5 CSS px either side — also after a resize. The HUD layer is off there (the scene is measured, not the DRO card). Red: a backplot in world units (0 px), a halo as narrow as the core (the sides read the table).
+
 The promise is exactly that: the DEFAULT frame starts outside the model.
 Dolly, pan, later machine motion and the linear Reset tween between two
 poses are not covered — this is not a camera-collision system, and

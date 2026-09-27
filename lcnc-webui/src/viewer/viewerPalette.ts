@@ -6,8 +6,8 @@
 // Automatic (the default): each role is the theme's `--viewer-*` token, so
 // the palette follows the theme (light / dark / HC) and re-resolves on a
 // switch. Custom: the operator's colours for the seven user roles (Settings ›
-// 3D Viewer › Colors); a role the custom set lacks — and the four finding
-// roles, which are never user colours — stay the theme's.
+// 3D Viewer › Colors); a role the custom set lacks — and the finding and
+// selection roles, which are never user colours — stay the theme's.
 //
 // Pure: the token reader is injected (ThreeViewer passes the document root's
 // computed style), so the resolution is unit-tested without a DOM.
@@ -17,7 +17,7 @@ import type { ColorDefaults, PaletteMode } from "../defaults";
 export const USER_ROLES = ["feed", "rapid", "backplot", "bounds", "toolpathBounds", "tool", "cutter"] as const;
 export type UserRole = typeof USER_ROLES[number];
 /** Every role the viewer draws. */
-export type ViewerRole = UserRole | "limit" | "selection" | "collision";
+export type ViewerRole = UserRole | "limit" | "selection" | "selectionHalo" | "collision";
 export type ViewerPalette = Record<ViewerRole, string>;
 
 export const ROLE_TOKEN: Record<ViewerRole, string> = {
@@ -30,6 +30,7 @@ export const ROLE_TOKEN: Record<ViewerRole, string> = {
   cutter: "--viewer-cutter",
   limit: "--viewer-limit",
   selection: "--viewer-selection",
+  selectionHalo: "--viewer-selection-halo",
   collision: "--viewer-collision",
 };
 

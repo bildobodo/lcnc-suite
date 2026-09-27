@@ -1682,15 +1682,19 @@ async function buildFromInit(init: ViewerInit) {
         // The selected line as DRAWN: the wide companion's width (CSS px),
         // how many segments it carries and whether it shows (UI-DI14).
         getSelection: () => {
-          let wide: { widthPx: number; segments: number; visible: boolean } | null = null;
+          type Wide = { widthPx: number; segments: number; visible: boolean };
+          let wide: (Wide & { halo: Wide | null }) | null = null, halo: Wide | null = null;
           scene?.traverse(o => {
             const m = (o as THREE.Mesh).material as THREE.Material & { linewidth?: number };
-            if (!wide && (o as any).isLineSegments2 && m?.userData?.role === "selection") {
-              let shown = o.visible;
-              for (let p = o.parent; p; p = p.parent) shown &&= p.visible;
-              wide = { widthPx: m.linewidth ?? 0, segments: ((o as any).geometry.instanceCount as number) ?? 0, visible: shown };
-            }
+            const role = m?.userData?.role;
+            if (!(o as any).isLineSegments2 || (role !== "selection" && role !== "selectionHalo")) return;
+            let shown = o.visible;
+            for (let p = o.parent; p; p = p.parent) shown &&= p.visible;
+            const w = { widthPx: m.linewidth ?? 0, segments: ((o as any).geometry.instanceCount as number) ?? 0, visible: shown };
+            if (role === "selection" && !wide) wide = { ...w, halo: null };
+            if (role === "selectionHalo" && !halo) halo = w;
           });
+          if (wide) (wide as Wide & { halo: Wide | null }).halo = halo;
           return wide;
         },
         // Every role-tagged material as DRAWN (viewer contrast plan, R1/R2):

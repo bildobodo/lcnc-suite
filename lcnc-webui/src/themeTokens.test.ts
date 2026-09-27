@@ -12,7 +12,7 @@ import { PALETTE_PAIRS, PATH_ROLES, PAIR_MIN_DISTANCE } from "./viewer/palettePa
 // node:fs, not an import: vitest empties every CSS import, `?raw` included.
 const css = readFileSync(new URL("./style.css", import.meta.url), "utf8");
 
-const VIEWER_LINES = ["--viewer-feed", "--viewer-rapid", "--viewer-backplot", "--viewer-limit", "--viewer-selection",
+const VIEWER_LINES = ["--viewer-feed", "--viewer-rapid", "--viewer-backplot", "--viewer-limit",
   "--viewer-collision", "--viewer-bounds", "--viewer-toolpath-bounds"];
 /** The roles drawn ON the path (or tinting what the path hits): they must
  *  tell apart from each other by hue/lightness, not only from the scene. */
@@ -20,7 +20,7 @@ const VIEWER_PATH = ["--viewer-feed", "--viewer-rapid", "--viewer-backplot", "--
 const ROLES = [
   "--fg-muted", "--ok-text", "--warn-text", "--danger-text", "--info-text", "--accent-text", "--focus-ring",
   "--syntax-gcode", "--syntax-mcode", "--syntax-coord", "--syntax-param", "--syntax-comment",
-  ...VIEWER_LINES, "--viewer-tool", "--viewer-cutter",
+  ...VIEWER_LINES, "--viewer-selection", "--viewer-selection-halo", "--viewer-tool", "--viewer-cutter",
 ];
 
 /** The declarations of the first rule whose selector is exactly `selector`. */
@@ -153,6 +153,20 @@ describe("theme text roles", () => {
         }
       }
       expect(bad, `${name}: pairs under ${PAIR_MIN_DISTANCE}`).toEqual([]);
+    });
+  }
+
+  // The selection (viewer contrast plan, V2): a core in the text colour on a
+  // halo in the background's. The core reads on the scene background; on the
+  // lit table the core OR the halo does (a dark theme's light core sits on
+  // its dark halo there).
+  for (const name of ["root", "dark", "auto-dark", "hc-light", "hc-dark"] as const) {
+    it(`${name}: the selection's core reads on the background, core or halo on the lit table`, () => {
+      const b = block(THEMES[name]);
+      const core = hex(b.get("--viewer-selection")!), halo = hex(b.get("--viewer-selection-halo")!), bg = hex(b.get("--bg")!);
+      expect(contrast(core, bg), `${name}: core on --bg`).toBeGreaterThanOrEqual(name.startsWith("hc") ? 4.5 : 3);
+      expect(Math.max(contrast(core, LIT_METAL), contrast(halo, LIT_METAL)), `${name}: core or halo on the lit table`).toBeGreaterThanOrEqual(3);
+      expect(contrast(core, halo), `${name}: core on its halo`).toBeGreaterThanOrEqual(4.5);
     });
   }
 

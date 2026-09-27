@@ -34,7 +34,7 @@ type BBox = { min: [number, number, number]; max: [number, number, number] };
 /** The roles this controller draws (viewer/viewerPalette.ts resolves them:
  *  the theme's --viewer-* tokens, the operator's Custom colours over the
  *  user roles). */
-type Colors = { feed: string; rapid: string; toolpathBounds: string; limit: string; selection: string; collision: string };
+type Colors = { feed: string; rapid: string; toolpathBounds: string; limit: string; selection: string; selectionHalo: string; collision: string };
 
 export interface ToolpathDeps {
   requestRender: () => void;
@@ -159,11 +159,20 @@ export interface ToolpathController {
 interface Highlight {
   frame: 0 | 1; line: THREE.LineSegments; idx: Uint32Array; attr: THREE.BufferAttribute;
   wide: LineSegments2; wideBuf: THREE.InstancedInterleavedBuffer;
+  /** The halo behind `wide` (viewer contrast plan, V2): the same segments,
+   *  SELECTION_HALO_PX wider on each side, in the background's colour. */
+  halo: LineSegments2;
 }
 const HL_CAP = 1 << 15;   // pairs per highlight (a line run is far smaller; beyond it the cue truncates)
 const HL_WIDE_CAP = 1 << 13;   // pairs the wide line carries (a visual cue; the 1 px line keeps the rest)
 /** The selection's width in CSS px — three times the path's 1 px line. */
 export const SELECTION_WIDTH_PX = 3;
+/** The selection's halo on each side, CSS px (viewer contrast plan, V2): the
+ *  core in the text colour on a halo in the background's — one of the two
+ *  holds 3 : 1 on every surface (the core on the background, the halo on the
+ *  lit table in a dark theme), and the halo parts the selection from the path
+ *  it lies on. */
+export const SELECTION_HALO_PX = 2;
 
 /** One drawn stream in one frame: its chunks (objects sharing the stream's
  *  position attribute + this set's index attribute), materials, and the
@@ -469,6 +478,8 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         o.geometry.dispose();
         (o.material as THREE.Material).dispose();
       }
+      h.halo.parent?.remove(h.halo);   // shares the wide line's geometry, disposed above
+      (h.halo.material as THREE.Material).dispose();
     }
     sets = [];
     highlights = [];
@@ -599,7 +610,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
 
   function _applyVisibility() {
     for (const s of sets) for (let ci = 0; ci < s.chunks.length; ci++) _chunkVis(s, ci);
-    for (const h of highlights) h.line.visible = h.wide.visible = toolpathVisible;
+    for (const h of highlights) h.line.visible = h.wide.visible = h.halo.visible = toolpathVisible;
   }
 
   function makeHighlight(frame: 0 | 1, parent: THREE.Group, posAttr: THREE.BufferAttribute, bounds: Float32Array): Highlight {
@@ -617,7 +628,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     mat.depthTest = !pathAlwaysOnTop;
     mat.depthWrite = false;
     const line = new THREE.LineSegments(geom, mat);
-    line.renderOrder = 12;
+    line.renderOrder = 13;
     line.frustumCulled = true;
     line.visible = toolpathVisible;
     parent.add(line);
@@ -638,12 +649,23 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     wideMat.depthTest = !pathAlwaysOnTop;
     wideMat.depthWrite = false;
     const wide = new LineSegments2(wideGeom, wideMat);
-    wide.renderOrder = 12;
+    wide.renderOrder = 13;
     wide.frustumCulled = true;
     wide.visible = toolpathVisible;
     wide.onBeforeRender = (renderer) => { renderer.getSize(wideMat.resolution); };
+    // The halo: the same segments drawn first and wider, in the background's colour.
+    const haloMat = new LineMaterial({ color: deps.colors().selectionHalo, linewidth: SELECTION_WIDTH_PX + 2 * SELECTION_HALO_PX, worldUnits: false });
+    haloMat.userData.role = "selectionHalo";
+    haloMat.depthTest = !pathAlwaysOnTop;
+    haloMat.depthWrite = false;
+    const halo = new LineSegments2(wideGeom, haloMat);
+    halo.renderOrder = 12;
+    halo.frustumCulled = true;
+    halo.visible = toolpathVisible;
+    halo.onBeforeRender = (renderer) => { renderer.getSize(haloMat.resolution); };
+    parent.add(halo);
     parent.add(wide);
-    return { frame, line, idx, attr, wide, wideBuf };
+    return { frame, line, idx, attr, wide, wideBuf, halo };
   }
 
   /** Light the feed vertex range [s, s+count) — every pair (v, v+1) inside
@@ -1001,7 +1023,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         }
       }
       for (const h of highlights) {
-        for (const m of [h.line.material, h.wide.material] as THREE.Material[]) {
+        for (const m of [h.line.material, h.wide.material, h.halo.material] as THREE.Material[]) {
           m.depthTest = dt; m.depthWrite = false; m.needsUpdate = true;
         }
       }
@@ -1015,6 +1037,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       for (const h of highlights) {
         (h.line.material as THREE.LineBasicMaterial).color.set(c.selection);
         (h.wide.material as LineMaterial).color.set(c.selection);
+        (h.halo.material as LineMaterial).color.set(c.selectionHalo);
       }
       if (toolpathOverflowEdges) (toolpathOverflowEdges.material as THREE.LineDashedMaterial).color.set(c.collision);
       _applyStale();   // the drawn colour is the base or its muted mix — one writer

@@ -164,6 +164,22 @@ async function drawnWidth(page: Page, shot: Buffer, at: { x: number; y: number; 
   }, { png: shot.toString("base64"), at, colour, dpr });
 }
 
+/** In-page: the pixel colours at `offsets` CSS px along the unit normal of the line through `at`. */
+async function profileColours(page: Page, shot: Buffer, at: { x: number; y: number; dx: number; dy: number }, offsets: number[], dpr: number) {
+  return page.evaluate(async ({ png, at, offsets, dpr }) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${png}`;
+    await img.decode();
+    const cv = document.createElement("canvas");
+    cv.width = img.width; cv.height = img.height;
+    const cx = cv.getContext("2d", { willReadFrequently: true })!;
+    cx.drawImage(img, 0, 0);
+    return offsets.map(o => Array.from(cx.getImageData(Math.round((at.x - at.dy * o) * dpr), Math.round((at.y + at.dx * o) * dpr), 1, 1).data.slice(0, 3)));
+  }, { png: shot.toString("base64"), at, offsets, dpr });
+}
+const rgbOf = (h: string) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const rgbDist = (a: number[], b: number[]) => Math.hypot(...a.map((v, i) => v - b[i]!));
+
 test("the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px — at DPR 1 and 2", async ({ browser }) => {
   test.setTimeout(240_000);
   const program = ladderPayload();
@@ -208,7 +224,7 @@ test("the width ladder is drawn: the path and the limit overlay 1 px, the backpl
     }
     await page.evaluate(() => window.__viewerDiag!.setView!("top"));
     for (const theme of LADDER_THEMES) {
-      await ctl({ op: "raw", frame: { type: "settings_init", settings: { display: { theme }, viewer: { layers: { backplot: true, bounds: true } } } } });
+      await ctl({ op: "raw", frame: { type: "settings_init", settings: { display: { theme }, viewer: { layers: { backplot: true, bounds: true, hud: false } } } } });
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
       await page.waitForTimeout(300);
       const where = `DPR ${dpr} ${theme}`;
@@ -242,6 +258,42 @@ test("the width ladder is drawn: the path and the limit overlay 1 px, the backpl
       expect(widths.backplot!, `${where}: the backplot is not wider than 2 CSS px ${dump}`).toBeLessThan(2.6 * dpr);
       await test.info().attach(`ladder-dpr${dpr}-${theme}.png`, { body: shot, contentType: "image/png" });
     }
+    // The selection's halo (viewer contrast plan, V2) in the IMAGE: across the
+    // selected program line, over the lit table (a halo in the background's
+    // colour would be invisible on the background itself), the centre reads
+    // the core colour, 2.5 CSS px to each side the halo's, 8 px out the table
+    // — and again after the viewer is resized (the screen-space widths follow
+    // the drawing size). The HUD layer is off: the scene is measured, not the
+    // DRO card over it.
+    await ctl({ op: "status_delta", data: { motion_line: 4 } });
+    const haloCheck = async (where: string) => {
+      const sel = await page.evaluate(() => window.__viewerDiag!.getSelection!());
+      expect(sel?.visible && sel.halo?.visible, `${where}: the core and the halo show ${JSON.stringify(sel)}`).toBe(true);
+      const drawn = (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn;
+      const core = rgbOf(drawn.selection!), halo = rgbOf(drawn.selectionHalo!);
+      const at = await page.evaluate(() => window.__viewerDiag!.projectRole!("selection"));
+      expect(at!.length, `${where}: a selected segment to measure across`).toBeGreaterThan(20);
+      const shot = await page.screenshot();
+      const [left, , centre, , right] = await profileColours(page, shot, at!, [-8, -2.5, 0, 2.5, 8], dpr);
+      const [nearL, nearR] = await profileColours(page, shot, at!, [-2.5, 2.5], dpr);
+      const table = left!.map((v, i) => (v + right![i]!) / 2);
+      const nearest = (c: number[]) => [["core", core], ["halo", halo], ["table", table]]
+        .sort((a, b) => rgbDist(c, a[1] as number[]) - rgbDist(c, b[1] as number[]))[0]![0];
+      const dump = JSON.stringify({ core, halo, table, centre, nearL, nearR });
+      expect(rgbDist(halo, table), `${where}: the halo differs from the table it lies on ${dump}`).toBeGreaterThan(30);
+      expect([nearest(centre!), nearest(nearL!), nearest(nearR!)], `${where}: core in the middle, halo either side ${dump}`)
+        .toEqual(["core", "halo", "halo"]);
+      await test.info().attach(`halo-${where.replace(/\W+/g, "-")}.png`, { body: shot, contentType: "image/png" });
+    };
+    for (const theme of LADDER_THEMES) {
+      await ctl({ op: "raw", frame: { type: "settings_init", settings: { display: { theme }, viewer: { layers: { backplot: true, bounds: true, hud: false } } } } });
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      await page.waitForTimeout(300);
+      await haloCheck(`DPR ${dpr} ${theme}`);
+    }
+    await page.setViewportSize({ width: 1000, height: 760 });
+    await page.waitForTimeout(400);
+    await haloCheck(`DPR ${dpr} hc-dark resized`);
     await context.close();
   }
 });

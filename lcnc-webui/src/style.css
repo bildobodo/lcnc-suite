@@ -158,6 +158,7 @@
   --viewer-backplot: #b4098b;
   --viewer-limit: #9a6000;
   --viewer-selection: #111111;
+  --viewer-selection-halo: #ffffff;
   --viewer-collision: #c20012;
   --viewer-bounds: #475569;
   --viewer-toolpath-bounds: #007531;
@@ -315,7 +316,8 @@
     --viewer-rapid: #00863b;
     --viewer-backplot: #be0692;
     --viewer-limit: #ad6d00;
-    --viewer-selection: #008b96;
+    --viewer-selection: #e6edf3;
+    --viewer-selection-halo: #0b0f14;
     --viewer-collision: #db0016;
     --viewer-bounds: #64748b;
     --viewer-toolpath-bounds: #00863b;
@@ -348,6 +350,7 @@
   --viewer-backplot: #b4098b;
   --viewer-limit: #9a6000;
   --viewer-selection: #111111;
+  --viewer-selection-halo: #ffffff;
   --viewer-collision: #c20012;
   --viewer-bounds: #475569;
   --viewer-toolpath-bounds: #007531;
@@ -378,7 +381,8 @@
   --viewer-rapid: #00863b;
   --viewer-backplot: #be0692;
   --viewer-limit: #ad6d00;
-  --viewer-selection: #008b96;
+  --viewer-selection: #e6edf3;
+  --viewer-selection-halo: #0b0f14;
   --viewer-collision: #db0016;
   --viewer-bounds: #64748b;
   --viewer-toolpath-bounds: #00863b;
@@ -420,6 +424,7 @@
   --viewer-backplot: #6f0b55;
   --viewer-limit: #6c4c02;
   --viewer-selection: #000000;
+  --viewer-selection-halo: #ffffff;
   --viewer-collision: #860009;
   --viewer-bounds: #333d4a;
   --viewer-toolpath-bounds: #014f0a;
@@ -459,7 +464,8 @@
   --viewer-rapid: #00903f;
   --viewer-backplot: #db11a3;
   --viewer-limit: #b17000;
-  --viewer-selection: #008b96;
+  --viewer-selection: #ffffff;
+  --viewer-selection-halo: #000000;
   --viewer-collision: #f5001b;
   --viewer-bounds: #6b7a8f;
   --viewer-toolpath-bounds: #00903f;

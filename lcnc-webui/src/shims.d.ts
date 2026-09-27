@@ -32,7 +32,8 @@ interface ViewerDiag {
   tintPart?: (id: string, on: boolean) => void;
   setCollisionHits?: (hits: { line: number; frac: number; rapid?: boolean }[]) => boolean;
   getLabels?: () => { total: number; laidOut: number };
-  getSelection?: () => { widthPx: number; segments: number; visible: boolean } | null;
+  getSelection?: () => { widthPx: number; segments: number; visible: boolean;
+    halo: { widthPx: number; segments: number; visible: boolean } | null } | null;
   // Viewer contrast plan (R1/R2): each role's drawn material kind (the form
   // cue), width and opacity; the longest visible segment of a role on screen.
   getRoleMaterials?: () => { role: string; kind: string; widthPx: number | null; opacity: number; transparent: boolean }[];

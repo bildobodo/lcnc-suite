@@ -11,7 +11,7 @@ import type { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegments
 import type { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { ref, type Ref } from "vue";
 import { disposeObject } from "./disposal";
-import { createToolpathController, SELECTION_WIDTH_PX, type ToolpathCtx, type ToolpathController } from "./toolpathController";
+import { createToolpathController, SELECTION_WIDTH_PX, SELECTION_HALO_PX, type ToolpathCtx, type ToolpathController } from "./toolpathController";
 
 // Fake troika label: an Object3D (addable, has .position) with a dispose spy.
 function fakeLabel() {
@@ -21,7 +21,7 @@ function fakeLabel() {
 }
 
 // The resolved palette the host hands over (viewer/viewerPalette.ts).
-const PALETTE = { feed: "#22b8cf", rapid: "#f5a623", toolpathBounds: "#f5a623", limit: "#ffcc00", selection: "#ff3333", collision: "#ff4444" };
+const PALETTE = { feed: "#22b8cf", rapid: "#f5a623", toolpathBounds: "#f5a623", limit: "#ffcc00", selection: "#ff3333", selectionHalo: "#ffffff", collision: "#ff4444" };
 function makeDeps(overflow: Ref<boolean>) {
   return {
     requestRender: vi.fn(),
@@ -134,7 +134,7 @@ describe("highlight", () => {
     // index entries). Line 11 itself would light line 10 = point 0 alone,
     // which draws nothing (a single vertex is no segment).
     c.setHighlight(11);
-    const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 12) as THREE.LineSegments;
+    const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 13 && !(o as any).isLineSegments2) as THREE.LineSegments;
     expect(hl.geometry.drawRange.count).toBe(0);
     c.setHighlight(12);
     expect(hl.geometry.drawRange).toMatchObject({ start: 0, count: 2 });
@@ -146,7 +146,9 @@ describe("highlight", () => {
   it("the selected line is also drawn WIDE — a shape cue besides the colour (design wave D8, UI-DI14)", () => {
     const ctx = makeCtx();
     c.apply(ctx, GCODE);
-    const wide = ctx.workRotGroup.children.find(o => (o as any).isLineSegments2) as LineSegments2;
+    const fat = (role: string) => ctx.workRotGroup.children.find(o => (o as any).isLineSegments2
+      && ((o as LineSegments2).material as LineMaterial).userData.role === role) as LineSegments2;
+    const wide = fat("selection");
     expect(wide, "a LineSegments2 beside the 1 px highlight").toBeTruthy();
     const mat = wide.material as LineMaterial;
     expect(mat.linewidth).toBe(SELECTION_WIDTH_PX);
@@ -161,6 +163,17 @@ describe("highlight", () => {
     expect([start.getX(0), start.getY(0), end.getX(0), end.getY(0)]).toEqual([0, 0, 10, 0]);
     c.setColors({ ...PALETTE, selection: "#00aa00" });
     expect(mat.color.getHexString()).toBe("00aa00");
+    // The halo (viewer contrast plan, V2): the SAME segments, drawn first and
+    // SELECTION_HALO_PX wider on each side, in the background's colour.
+    const halo = fat("selectionHalo");
+    expect(halo, "a halo behind the wide line").toBeTruthy();
+    expect(halo.geometry, "the halo draws the selection's own segments").toBe(wide.geometry);
+    const haloMat = halo.material as LineMaterial;
+    expect(haloMat.linewidth).toBe(SELECTION_WIDTH_PX + 2 * SELECTION_HALO_PX);
+    expect(haloMat.worldUnits).toBe(false);
+    expect(halo.renderOrder, "drawn before the core").toBeLessThan(wide.renderOrder);
+    c.setColors({ ...PALETTE, selectionHalo: "#0b0f14" });
+    expect(haloMat.color.getHexString()).toBe("0b0f14");
     c.setHighlight(null);
     expect((wide.geometry as LineSegmentsGeometry).instanceCount).toBe(0);
   });
@@ -170,7 +183,7 @@ describe("highlight", () => {
     const workerIndex = buildLineIndex(new Uint32Array([1, 1, 99]));   // line 99 → point 2 only
     c.apply(ctx, { ...GCODE, feedLineIndex: workerIndex });
     c.setHighlight(99);
-    const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 12) as THREE.LineSegments;
+    const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 13 && !(o as any).isLineSegments2) as THREE.LineSegments;
     // point 2 only → vertex range [1, 2] → the pair (1,2)
     expect(hl.geometry.drawRange).toMatchObject({ start: 0, count: 2 });
     expect(Array.from((hl.geometry.index!.array as Uint32Array).subarray(0, 2))).toEqual([1, 2]);
@@ -395,7 +408,7 @@ describe("baked-toolpath anchor (2026-09-03 run-time jump)", () => {
     expect(ctx.pathAnchor.position.toArray()).toEqual([1300, -200, -1400]);
     // only NEW feed chunks (non-dashed, 3 points) remain under the anchor —
     // the same number as after the first apply, none of them the old object
-    // (the highlight line shares feed's positions at renderOrder 12; rapid is dashed)
+    // (the highlight line shares feed's positions at renderOrder 13; rapid is dashed)
     const feedChunks = (g: THREE.Group) => g.children.filter(o => (o as any).isLine && o.renderOrder === 10
       && !((o as any).material instanceof THREE.LineDashedMaterial)
       && (o as THREE.Line).geometry.getAttribute("position")?.count === 3);
@@ -649,8 +662,8 @@ describe("room-fixed split (2026-09-11)", () => {
   it("the highlight lights each frame's pairs in its own object and never the flip connector", () => {
     const ctx = roomCtx();
     c.apply(ctx, G, null);
-    const hlRoom = ctx.roomRotGroup.children.find(o => o.renderOrder === 12) as THREE.LineSegments;
-    const hlTable = ctx.workRotGroup.children.find(o => o.renderOrder === 12) as THREE.LineSegments;
+    const hlRoom = ctx.roomRotGroup.children.find(o => o.renderOrder === 13 && !(o as any).isLineSegments2) as THREE.LineSegments;
+    const hlTable = ctx.workRotGroup.children.find(o => o.renderOrder === 13 && !(o as any).isLineSegments2) as THREE.LineSegments;
     expect(hlRoom && hlTable).toBeTruthy();
     c.setHighlight(2);                     // lights line 1 (previous-line rule) = vertices 0..1 → room pair (0,1)
     expect(pairsOf(hlRoom)).toEqual([0, 1]);
@@ -720,7 +733,7 @@ describe("display LOD (2026-09-11)", () => {
     const spies = all.map(o => vi.spyOn(o.geometry, "dispose"));
     c.updateCulling(ctx, cam(10000), 1000);
     c.setHighlight(3);                                     // lights line 2 = vertex 1 → pair (0,1) in the full-resolution buffer
-    const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 12) as THREE.LineSegments;
+    const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 13 && !(o as any).isLineSegments2) as THREE.LineSegments;
     expect(Array.from((hl.geometry.index!.array as Uint32Array).subarray(0, 2))).toEqual([0, 1]);
     c.apply(ctx, G);
     for (const sp of spies) expect(sp).toHaveBeenCalled();
