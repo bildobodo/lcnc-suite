@@ -800,3 +800,161 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
     }
   });
 }
+
+// Review round 7: the scrub bar's CONTENTS and the simulation banner in the
+// narrow viewer. The bar fitted as a card while its insides ran out of it
+// (UI-DI15: the timeline slider 0 px wide, the speed button and the position
+// readout past the window, the findings' "?" off screen); the banner ran
+// past both edges and over the DRO (UI-DI16). Two programs — none of
+// findings, and ONE limit violation plus two collisions — folded and
+// opened, then a client-local simulation at a stopped machine, folded and
+// opened: portrait at 100 % and 150 %.
+const LIMIT_FEED = TIMELINE_FEED.map(p => [...p]);
+LIMIT_FEED[29]![0] = 120;
+const LIMIT_PREVIEW = Buffer.from(encode({ file: '/leak.ngc', preview_schema: 9, feed: LIMIT_FEED,
+  feed_lines: LIMIT_FEED.map((_, i) => i + 3), feed_seq: LIMIT_FEED.map((_, i) => i + 3),
+  feed_outside: new Uint8Array(LIMIT_FEED.map(p => (p[0]! > 100 ? 1 : 0))),
+  violations: [{ line: 32, axis: 'X', value: 120, limit: 100, kind: 'max' }], violations_total: 1,
+  rapid: [[0, 0, 5], [0, 0, 0]], rapid_lines: [1, 2], rapid_seq: [1, 2] }));
+for (const profile of [PROFILES[1], PROFILES[2]]) {
+  test(`${profile.name}: the scrub bar's insides and the simulation banner fit the narrow viewer (folded, opened, simulating)`, async ({ page, context }) => {
+    test.setTimeout(360_000);
+    let findings = false, version = 0;
+    await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: findings ? LIMIT_PREVIEW : TIMELINE_PREVIEW }));
+    await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain', body: '(limits)\nG0 X0\nG1 X10 F100\nM2\n' }));
+    const portrait = VIEWPORTS.find(v => v.name === 'touch-portrait')!;
+    for (const withFindings of [false, true]) for (const zoom of [1, 1.5]) {
+      findings = withFindings;
+      await openLayout(page, profile, portrait);
+      await ctl({ op: 'status_delta', data: { active_file: '/leak.ngc', eoffset_enabled: true, eoffset_z: 0.123, rotation_xy: 12 } });
+      // A version of its own per load: the mock's counter restarts with every
+      // reset and the client keeps a published revision's preview.
+      await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 700 + version++, file: '/leak.ngc' } });
+      await expect(page.locator('.scrubBar')).toBeVisible();
+      if (zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
+      const where = (state: string) => `portrait ${zoom * 100} % ${withFindings ? 'findings' : 'no findings'} ${state}`;
+      const settle = async (state: string) => {
+        await settleLayout(page);
+        await expect.poll(() => page.evaluate(async () => {
+          const text = () => (document.querySelector('.scrubBar') as HTMLElement | null)?.innerText ?? '';
+          const first = text();
+          for (let i = 0; i < 5; i++) { await new Promise(r => setTimeout(r, 100)); if (text() !== first) return false; }
+          return true;
+        }), { message: `${where(state)}: the scrub bar settles`, timeout: 10_000 }).toBe(true);
+      };
+      // The sweep's verdict first (the "?" of the collision check needs it),
+      // then — with findings — two collisions on the swept track.
+      await expect.poll(() => page.locator('.scrubBar [aria-label="Help: Collision check"]').count(),
+        { message: `${where('')}: the collision verdict`, timeout: 15_000 }).toBe(1);
+      if (withFindings) {
+        await expect(page.locator('.scrubBar [aria-label="Next limit violation"]')).toBeAttached();   // folded = hidden, still there
+        await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([{ line: 12, frac: 0.3 }, { line: 22, frac: 0.6, rapid: true }]) ?? false),
+          { message: `${where('')}: collisions on the track` }).toBe(true);
+        await expect(page.locator('.scrubBar [aria-label="Next collision"]')).toBeAttached();   // folded = hidden, still there
+      }
+      // The bar's insides, measured: the slider's width, every visible row
+      // within its box, every rendered control (button, "?", slider, readout
+      // slot) hit-tested at its centre inside the window, and every button's
+      // words whole. `required` names what must be RENDERED in this state.
+      const insides = (required: string[]) => page.evaluate(required => {
+        const zoom = parseFloat(document.documentElement.style.zoom || '1');
+        const bar = document.querySelector('.scrubBar')!;
+        const nameOf = (e: Element) => e.getAttribute('aria-label') || (e as HTMLElement).innerText?.trim() || [...e.classList].join('.');
+        const reach = (e: Element) => {
+          const r = e.getBoundingClientRect();
+          const x = r.left + r.width / 2, y = r.top + r.height / 2;
+          if (x < 0 || x > window.innerWidth || y < 0 || y > window.innerHeight) return 'off screen';
+          const top = document.elementFromPoint(x, y);
+          return top && (top === e || e.contains(top) || top.contains(e)) ? 'ok' : `covered by ${top?.className}`;
+        };
+        const rendered = [...bar.querySelectorAll('button, [role="button"], input[type="range"], .posSlot, .lineSlot')]
+          .filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+        const names = rendered.map(nameOf);
+        const rows = [...bar.querySelectorAll('.scrubRow')].filter(r => (r as HTMLElement).offsetParent !== null)
+          .map(r => r.scrollWidth - r.clientWidth);
+        return {
+          slider: bar.querySelector('.sliderInput')!.getBoundingClientRect().width / zoom,
+          rowOverflow: Math.max(0, ...rows),
+          compact: bar.classList.contains('compact'),
+          moreLabel: bar.querySelector('.moreToggle')?.getAttribute('aria-label') ?? '',
+          unreachable: rendered.map(e => [nameOf(e), reach(e)]).filter(([, v]) => v !== 'ok'),
+          clipped: rendered.filter(e => e.tagName === 'BUTTON' && e.scrollWidth > e.clientWidth + 1).map(nameOf),
+          missing: required.filter(n => !names.some(m => m === n || m.startsWith(n))),
+        };
+      }, required);
+      const findingsNames = withFindings
+        ? ['Previous limit violation', '1 limit violation', 'Next limit violation', 'Help: Limit violations',
+          'Previous collision', '2 collisions', 'Next collision', 'Help: Collision check']
+        : ['Help: Collision check'];
+      const expectInsides = async (state: string, open: boolean) => {
+        const b = await insides(open ? ['×', ...findingsNames] : []);
+        expect(b.slider, `${where(state)}: the timeline keeps its width`).toBeGreaterThanOrEqual(120);
+        expect(b.rowOverflow, `${where(state)}: no row runs out of the bar`).toBeLessThanOrEqual(1);
+        expect(b.unreachable, `${where(state)}: every rendered control reachable`).toEqual([]);
+        expect(b.clipped, `${where(state)}: every button's words whole`).toEqual([]);
+        if (open) {
+          expect(b.missing, `${where(state)}: speed, position, findings and their help rendered`).toEqual([]);
+          const pos = await page.locator('.scrubBar .posSlot').evaluate(e => ({ text: (e as HTMLElement).innerText, whole: e.scrollWidth <= e.clientWidth + 1 }));
+          expect(pos.text, `${where(state)}: the position readout (time, or % on a distance axis)`).toMatch(/\d/);
+          expect(pos.whole, `${where(state)}: the position readout whole`).toBe(true);
+        }
+        return b;
+      };
+      // Folded (where the bar is compact), then opened; a bar with room is
+      // never compact and shows everything at once.
+      const foldAndOpen = async (state: string) => {
+        await settle(state);
+        const b = await expectInsides(`${state} folded`, false);
+        const hudForm = () => page.locator('.hud').evaluate(e => e.className);
+        const formFolded = await hudForm();
+        if (b.compact) {
+          if (withFindings) expect(b.moreLabel, where(state)).toContain('1 limit violation, 2 collisions');
+          await page.locator('.scrubBar .moreToggle').click();
+          await settle(`${state} opened`);
+          // An opened detail view lies over the DRO by the operator's choice;
+          // the DRO keeps its form (opening More used to shrink it a step).
+          expect(await hudForm(), `${where(state)}: opening More leaves the DRO's form`).toBe(formFolded);
+        }
+        await expectInsides(`${state} opened`, true);
+        if (b.compact) await page.locator('.scrubBar .moreToggle').click();
+      };
+      await foldAndOpen('idle');
+      // A client-local simulation at a stopped machine: the banner above the
+      // DRO, whole, and every axis still shown.
+      await ctl({ op: 'status_delta', data: { is_enabled: false, enabled: false } });
+      await page.locator('.scrubBar input.toggle').check();
+      await expect(page.locator('.simBanner')).toBeVisible();
+      await settle('simulating');
+      const sim = await page.evaluate(() => {
+        const r = (s: string) => { const e = document.querySelector(s); if (!e || !(e as HTMLElement).offsetParent) return null; const x = e.getBoundingClientRect(); return { l: x.left, t: x.top, r: x.right, b: x.bottom }; };
+        const banner = document.querySelector('.simBanner') as HTMLElement;
+        return { pane: r('.viewerPane .viewerWrapper')!, banner: r('.simBanner')!, hud: r('.viewerPane .hud')!, notes: r('.viewerPane .hudNotes'),
+          scrub: r('.viewerPane .scrubBar')!, cube: r('.viewerPane .viewCube')!, quick: r('.viewerPane .viewerQuickGrid')!,
+          bannerClipped: banner.scrollWidth > banner.clientWidth + 1, bannerText: banner.innerText };
+      });
+      type Box = { l: number; t: number; r: number; b: number };
+      const inside = (a: Box, p: Box) => a.l >= p.l - 0.5 && a.t >= p.t - 0.5 && a.r <= p.r + 0.5 && a.b <= p.b + 0.5;
+      const apart = (a: Box, c: Box) => a.r <= c.l + 0.5 || c.r <= a.l + 0.5 || a.b <= c.t + 0.5 || c.b <= a.t + 0.5;
+      expect(sim.bannerText, where('simulating')).toContain('SIMULATION');
+      expect(sim.bannerClipped, `${where('simulating')}: the banner's words are whole`).toBe(false);
+      expect(inside(sim.banner, sim.pane), `${where('simulating')}: banner inside ${JSON.stringify(sim)}`).toBe(true);
+      for (const k of ['hud', 'scrub', 'cube', 'quick', 'notes'] as const) {
+        const other = sim[k];
+        if (other) expect(apart(sim.banner, other), `${where('simulating')}: banner and ${k} apart ${JSON.stringify(sim)}`).toBe(true);
+      }
+      expect(apart(sim.hud, sim.scrub), `${where('simulating')}: the DRO and the scrub bar apart`).toBe(true);
+      await expect(page.locator('.hud'), `${where('simulating')}: the DRO card fits`).toHaveAttribute('data-hud-fit', 'fits');
+      const axes = await page.locator('.hud .hudWork').evaluateAll(els => els.filter(e => (e as HTMLElement).offsetParent !== null).length);
+      expect(axes, `${where('simulating')}: every axis row shown`).toBeGreaterThanOrEqual(profile.axes.length);
+      // The narrow banner's explanation is a "?" — reachable too.
+      const help = page.locator('.simBanner [role="button"]');
+      if (await help.count()) {
+        const hit = await help.evaluate(e => { const r = e.getBoundingClientRect(); const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!t && (t === e || e.contains(t)); });
+        expect(hit, `${where('simulating')}: the banner's "?" reachable`).toBe(true);
+      }
+      await foldAndOpen('simulating');
+      await page.locator('.scrubBar input.toggle').uncheck();
+      if (zoom !== 1) await page.evaluate(() => { document.documentElement.style.zoom = ''; });
+    }
+  });
+}

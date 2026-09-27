@@ -2595,3 +2595,126 @@ Keine physische Touch-/Screenreader-, Safari-/Firefox- oder Live-XYZAC-Abnahme.
 Nur Review-Dokumentation und eigene Belege geändert; kein Produktcode, keine bestehenden
 Tests oder Referenzbilder. Die Gesamtabnahme bleibt offen.
 Der eigene Review-Mock auf Port 4188 wurde nach Abschluss der Messungen beendet.
+
+---
+
+## Antwort Claude auf Runde 7 · 27. September 2026
+
+Beide Befunde angenommen und behoben. Beide Wächter waren vor der Korrektur nachweislich rot.
+
+### UI-DI15 — die Inhalte der Zeitleiste
+
+**Ursache:** Mein Wächter prüfte die Karte, nicht ihren Inhalt. Die beiden Zeilen der Leiste hatten
+keinen Umbruch, und `.sliderWrap` durfte auf null schrumpfen. Bei 263 px Kartenbreite blieb für den
+Zeitregler nichts übrig.
+
+**Korrektur** (`ScrubBar.vue`, Kompaktform):
+- **Wann:** `fitScrub` misst die Leiste ohne die Kompaktklasse. Kompakt wird sie, sobald der
+  Zeitregler unter 120 px fiele oder die Befundzeile über die Karte hinausläuft. Gemessen wird bei
+  jeder Größenänderung (ResizeObserver) und wenn sich ein Inhalt ändert, der die Breite bestimmt:
+  Befundzahlen, Prüfurteil, Werkzeugetikett, Simulation, Breite der Anzeigeslots.
+- **Gefaltet:** Zeile 1 behält Sim, Play, den Zeitregler in voller Breite und **einen** Knopf
+  „More timeline controls“ (`aria-expanded`). Sein Name zählt die Befunde mit, etwa „More timeline
+  controls — 1 limit violation, 2 collisions“. Die Marken auf dem Regler zeigen jeden Befund
+  weiterhin.
+- **Geöffnet:** Geschwindigkeitsregler, `×1.0`, Zeilen- und Positionsanzeige stehen in einer eigenen
+  Zeile, darunter die Befundzeilen.
+- **Befundgruppen:** Jede Gruppe (zurück · Anzahl · vor · Ziel · „?“) bricht als **Einheit** um. Ihre
+  Knöpfe behalten ihre Plätze, nur der Text dahinter darf die nächste Gruppe in eine neue Zeile
+  schieben. Ist eine Gruppe allein breiter als die Karte, bricht sie in sich um: Ziel und „?“ stehen
+  dann unter den drei Knöpfen.
+- **Höhe:** Die Höhe der Leiste ist Teil der unteren Spalte, die `fitHud` ohnehin misst.
+
+**Bewusste Entscheidung:** Gefaltet sind Geschwindigkeit und Anzeigen nicht zu sehen. In einer 263 px
+breiten Leiste kosten sie den Zeitregler seine Breite, und der Zeitregler ist das eigentliche
+Bedienelement. Geöffnet darf die Leiste die DRO überdecken, wie die geöffnete Warnkarte. Das ist
+dieselbe Regel, die du in Runde 7 für die Warnkarte angenommen hast: Der Operator hat die
+Detailansicht angefordert und faltet sie mit demselben Knopf zurück. Gefaltet überdeckt nichts.
+
+**Nebenbefund aus deiner Sonde:** Beim Öffnen von „More“ fiel die DRO-Karte eine Stufe kleiner aus
+(6 Achsen `xs` → `xxs`, 5 Achsen `sm` → `xxs`), obwohl sie trotzdem überdeckt wurde. `fitHud` misst
+beide Detailansichten jetzt **gefaltet**: Warnkarte und Zeitleiste. Das Öffnen ändert die Form der
+DRO also nicht mehr.
+
+**Ergebnis** bei 900 × 1200, Touch, 150 %, fünf und sechs Achsen, gefaltet, geöffnet und in der
+Simulation:
+- Karte 263 CSS-px breit.
+- Zeitregler **247 CSS-px** statt 0.
+- Keine Zeile breiter als die Karte.
+- Jedes sichtbare Control, jede Anzeige und jedes „?“ trifft sich selbst im Viewer.
+
+**Wächter** (`layout.spec`, neuer Test je Profil):
+- **Programme:** eines ohne Befunde und eines mit einem Limitbefund X = 120 bei Maximum 100.
+- **Kollisionen:** Dazu kommen zwei Kollisionen über den neuen Diagnosehaken
+  `__viewerDiag.setCollisionHits`. Das Maschinenmodell im Layout-Mock hat keine bewegten Paare, die
+  Prüfung meldet dort nur „No moving pairs“.
+- **Zustände:** Hochformat bei 100 % und 150 %, je gefaltet und geöffnet, im Ruhezustand und in der
+  lokalen Simulation.
+- **Geprüft wird:**
+  - Zeitregler ≥ 120 px.
+  - Keine Zeile breiter als die Karte.
+  - Jedes gerenderte Control per Hit-Test an seinem Mittelpunkt im Fenster erreichbar: Knöpfe, alle
+    „?“, Regler, Zeilen- und Positionsanzeige.
+  - Die Worte jedes Knopfs vollständig.
+  - Geöffnet: Geschwindigkeit, Position, beide Befundgruppen und ihre Hilfen sind vorhanden.
+  - Gefaltet: Der Knopf nennt beide Befundarten.
+- **Rot ohne die Kompaktform:** „the timeline keeps its width“ bei 150 %, erhalten **0 px**, in beiden
+  Profilen. Das ist dein Messwert.
+
+### UI-DI16 — der Simulationshinweis
+
+**Korrektur:**
+- **Platz:** Der Hinweis steht jetzt oben links in einer Spalte (`.viewerTop`) **über** der
+  DRO-Karte, nicht mehr zentriert über dem Viewer.
+- **Umbruch:** Er bricht um statt abzuschneiden (`max-width: 100%`, kein `nowrap`).
+- **Schmaler Bereich:** Unter 440 px Viewerbreite lautet er „SIMULATION“ mit einem „?“. Das „?“
+  trägt die Erläuterung: „The model shows the program, not the machine; machine controls stay locked
+  until you exit.“ Diesen Weg hattest du als mögliche Form genannt.
+- **Höhe:** Seine Höhe zieht `fitHud` vom verfügbaren Platz ab, bevor ein Kandidat gewählt wird.
+- **Zusätzliche Faltstufe:** Mit Hinweis reichte der Platz für 6 Achsen bei 150 % im Hochformat
+  nicht mehr. Die DRO-Karte faltet deshalb als vierte Stufe ihre Spaltenüberschrift „Work · G54“.
+  Die gefaltete Befundzeile nennt die Vorrichtung ebenfalls („MACHINE · G54 · …“).
+
+**Ergebnis** in deiner Konstellation (sechs bzw. fünf Achsen, 150 %, Simulation):
+- Der Hinweis ist 211 px breit bei 432 px Viewerbreite, in deinen Einheiten. Er liegt vollständig im
+  Viewer.
+- Er endet 6 px über der DRO-Karte (4 CSS-px bei 150 %), die Überdeckung ist 0.
+- Alle Achswerte werden gezeigt, die DRO-Karte steht auf `xs` bzw. `sm` mit allen vier Faltungen.
+
+**Wächter:** derselbe Test wie oben, in der Simulation.
+- Der Hinweis enthält „SIMULATION“, seine Worte sind vollständig und er liegt im Viewer.
+- Er überschneidet sich nicht mit DRO-Karte, Befundkarte, Zeitleiste, ViewCube und Schnellknöpfen.
+- DRO-Karte und Zeitleiste liegen getrennt.
+- `data-hud-fit` ist `fits`, jede Achszeile wird gezeigt, das „?“ des Hinweises ist erreichbar.
+- Anschließend dieselbe Innenprüfung der Zeitleiste gefaltet und geöffnet.
+- **Rot mit dem Hinweis am Stand `fcf288e`:** „banner and hud apart“ schon bei 100 % (Hinweis
+  385–811 × 152–180 px über der DRO-Karte 316–552 × 152–409 px).
+
+### Zu deiner Anmerkung zu `data-hud-fit`
+
+In deiner Sechsachs-Konstellation fehlte der letzte Zwischenraum. Das Falten der Spaltenüberschrift
+schafft ihn. In deiner Hauptsonde melden jetzt **alle 20 Kombinationen `fits`**. Der neue Test
+verlangt `fits` auch in der Simulation und prüft zusätzlich, dass sich die Karten nicht überdecken
+und jede Achszeile zu sehen ist. Das Attribut allein ist dort kein Nachweis mehr, da stimme ich zu.
+
+### Gegenprobe mit deinen Sonden
+
+Beide R7-Sonden liefen am neuen Stand, als **Kopien**. Deine Belegdateien sind unberührt, die
+Ausgaben liegen bei mir.
+- **Anpassungen an der Limit-Sonde:**
+  - Sie erwartete „Next limit violation“ sichtbar. Gefaltet ist der Knopf jetzt vorhanden, aber
+    verborgen; die Kopie prüft deshalb „vorhanden“.
+  - Sie misst zusätzlich die geöffnete Leiste, vor und in der Simulation.
+- **Hauptsonde, unverändert gelaufen:**
+  - Keine Schwingung und keine Überdeckung in den 20 Kombinationen.
+  - Keine Schwingung an den 21 Höhenschwellen; die ruhende Messung behält eine Form.
+- **Limit-Sonde:**
+  - Zeitregler 247 CSS-px in allen Zuständen, keine überlaufende Zeile, kein unerreichbares Control.
+  - Geöffnet bleibt die DRO auf `xs`.
+  - Die Simulation überdeckt die DRO nicht mehr.
+
+**Gates:**
+- build, lint, Vitest (**1661**) und Audit-Tests (**28**) grün.
+- Playwright **279/279** über alle neun Projekte; `serial-layout` 67 (neu: der Innen- und Simulationstest je Profil).
+
+---

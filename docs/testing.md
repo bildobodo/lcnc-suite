@@ -94,6 +94,16 @@ review round 6 with a PROGRAM loaded (a preview with sequence data: the
 scrub bar is up and swept too), at HUD scales md and xl, every axis row
 shown, a folded findings card naming its warnings, and the chosen form
 holding still for 2 s (20 samples — the fit once swung between two sizes).
+Since review round 7 also the scrub bar's INSIDES and the simulation
+banner: a program without findings and one with a limit violation and two
+collisions (`__viewerDiag.setCollisionHits` — the layout mock's model has no
+moving pairs), portrait at 100 % and 150 %, folded and opened, idle and
+simulating: the timeline >= 120 px, no row wider than the bar, every
+rendered control, readout and "?" hit-tested at its centre inside the
+window, every button's words whole, the folded toggle counting the
+findings, opening More leaving the DRO's form; simulating, the banner
+whole, inside the viewer and apart from every card, the DRO still `fits`
+with every axis row.
 
 `layout.spec.ts` (serial-layout) measures the FRAME — the strip, the viewer
 pane and the content area, bounding box AND `clientWidth`/`clientHeight` —

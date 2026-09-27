@@ -1290,15 +1290,16 @@ label:has(input:disabled, select:disabled) {
    machine controls are locked (permissions.ts SIM_GATES). Chrome from
    .overlay-card.warn (the template carries both classes); layout here. */
 .simBanner {
-  position: absolute;
-  top: var(--gap-section);   /* the viewer-overlay offset (HUD, sim bar) */
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: var(--z-banner);
+  /* Placed by ThreeViewer's top-left column (.viewerTop, above the DRO
+     card — review round 7, UI-DI16: centred and nowrap it ran past both
+     edges of a narrow viewer and over the DRO). Text and its "?" one row. */
+  display: flex;
+  align-items: center;
+  max-width: 100%;
   padding: var(--gap-tight) var(--gap-panel);
   font-weight: var(--fw-semibold);
   letter-spacing: var(--tracking-caps);
-  white-space: nowrap;
+  white-space: normal;
   pointer-events: none;
 }
 

@@ -1701,6 +1701,20 @@ async function buildFromInit(init: ViewerInit) {
           return { total, laidOut };
         },
         tintPart: (id: string, on: boolean) => { for (const m of _clashMeshes(id)) _tintMesh(m, on); requestRender(); },
+        // Collision findings on the swept track without a model that collides
+        // (`frac` = a place on the track's axis): the layout spec measures the
+        // findings row with them (review round 7, UI-DI15). Needs a finished
+        // sweep; a program change drops them with the result.
+        setCollisionHits: (hits: { line: number; frac: number; rapid?: boolean }[]) => {
+          const r = collisionResult.value, t = collisionTrack.value;
+          if (!r || !t || !t.count) return false;
+          const end = t.cum[t.count - 1]!;
+          // A model without moving pairs (the layout mock's) reads "No moving
+          // pairs" whatever the hits say — a collision implies a pair.
+          collisionResult.value = { ...r, pairCount: Math.max(1, r.pairCount), hits: hits.map(h => ({ line: h.line, cum: h.frac * end, cumEnd: h.frac * end,
+            intervals: [[h.frac * end, h.frac * end] as [number, number]], a: "tool", b: "table", dist: 0, rapid: !!h.rapid })) };
+          return true;
+        },
         getAppearance: () => ({
           grid: groundGrid ? {
             visible: groundGrid.visible,
@@ -3751,6 +3765,7 @@ const hasHudNotes = computed(() => !!(hudMode.value || vst.value?.eoffset_enable
 const wrapEl = ref<HTMLDivElement | null>(null);
 const hudEl = ref<HTMLDivElement | null>(null);
 const bottomEl = ref<HTMLDivElement | null>(null);
+const simBannerEl = ref<HTMLDivElement | null>(null);
 let _hudFitObs: ResizeObserver | null = null;
 
 function fitHud() {
@@ -3771,21 +3786,27 @@ function fitHud() {
   const top = HUD_SCALES.indexOf(hudCfg.value.scale);
   // Order: the DRO steps down and folds its extras first; the findings fold
   // to one line only when even the smallest DRO does not fit beside them.
+  // Folds: 1 the Machine column, 2 F / S, 3 the tool line, 4 the column
+  // head ("Work · G54" — the folded findings line names the fixture too).
   const tries: { scale: (typeof HUD_SCALES)[number]; fold: number; notesCompact: boolean }[] = [];
   for (const notesCompact of notes ? [false, true] : [false]) {
-    for (let fold = 0; fold <= 3; fold++) {
+    for (let fold = 0; fold <= (notesCompact ? 4 : 3); fold++) {
       for (let i = top; i >= 2; i--) tries.push({ scale: HUD_SCALES[i]!, fold, notesCompact });
     }
   }
-  tries.push({ scale: "xs", fold: 3, notesCompact: !!notes }, { scale: "xxs", fold: 3, notesCompact: !!notes });
+  tries.push({ scale: "xs", fold: 4, notesCompact: !!notes }, { scale: "xxs", fold: 4, notesCompact: !!notes });
   // Measure each candidate WHOLE on the live cards — the DRO card and the
   // findings card at the candidate's scale and folds, the bottom column's
   // real height with the scrub bar — classes set directly, one synchronous
   // layout each, then restored. The pick depends only on the pane and the
   // content, never on the state the cards are in now: measuring the bottom
   // at the CURRENT scale let the next pick change it and the fit swung
-  // between two sizes forever (review round 6, UI-DI13).
-  const wasCard = card.className, wasNotes = notes?.className ?? "";
+  // between two sizes forever (review round 6, UI-DI13). An OPENED detail
+  // view — the warnings card, the scrub bar's More — is measured folded: the
+  // operator asked for it over the DRO, and the DRO keeps its form (opening
+  // More used to shrink it a step for an overlap it could not avoid).
+  const scrub = wrap.querySelector<HTMLElement>(".scrubBar");
+  const wasCard = card.className, wasNotes = notes?.className ?? "", wasScrub = scrub?.className ?? "";
   let pick = tries[tries.length - 1]!, fits = false;
   for (const t of tries) {
     for (const sc of HUD_SCALES) {
@@ -3795,17 +3816,28 @@ function fitHud() {
     card.classList.toggle("hudFoldMach", t.fold >= 1);
     card.classList.toggle("hudFoldFS", t.fold >= 2);
     card.classList.toggle("hudFoldTool", t.fold >= 3);
+    card.classList.toggle("hudFoldHead", t.fold >= 4);
     notes?.classList.toggle("needsCompact", t.notesCompact);
     notes?.classList.remove("notesOpen");
+    scrub?.classList.remove("moreOpen");
     const bottom = bottomEl.value?.offsetHeight ?? 0;
-    const availH = H - 2 * gap - (bottom ? bottom + between : 0);
+    const banner = simBannerEl.value?.offsetHeight ?? 0;
+    const availH = H - 2 * gap - (bottom ? bottom + between : 0) - (banner ? banner + between : 0);
     if (card.offsetHeight <= availH && card.offsetWidth <= availW) { pick = t; fits = true; break; }
   }
   card.className = wasCard;
   if (notes) notes.className = wasNotes;
+  if (scrub) scrub.className = wasScrub;
   Object.assign(hudFit, { scale: pick.scale, fold: pick.fold, notesCompact: pick.notesCompact, narrow, overflow: !fits });
   if (!pick.notesCompact) notesOpen.value = false;
 }
+// The sim banner mounts with the sim mode: observe it while it exists (its
+// height is part of the fit, UI-DI16).
+watch(simBannerEl, (el, old) => {
+  if (old) _hudFitObs?.unobserve(old);
+  if (el) _hudFitObs?.observe(el);
+  nextTick(fitHud);
+});
 // The operator's scale / machine column are the ceiling: a change there
 // re-fits (the card's own size has not moved yet, so no observer fires).
 watch(() => [hudCfg.value.scale, hudCfg.value.showMachine], () => nextTick(fitHud));
@@ -4042,8 +4074,19 @@ defineExpose({
          spindle read exactly like the axis rows. Tool is static context and
          stays a smaller single line. All text sizes scale with --hud-scale
          (settings: HUD scale). -->
+    <!-- The top-left column (design wave D9, review round 7 UI-DI16): the
+         SIMULATION banner above the DRO card, both in the left zone (never
+         under the ViewCube column); fitHud leaves the banner's height free.
+         The banner is unmissable: the model is posed along the program, NOT
+         the machine, and motion controls are locked. In a narrow viewer it
+         says SIMULATION and its "?" the rest (the whole sentence ran past
+         both edges and over the DRO). -->
+    <div class="viewerTop stack-tight">
+    <div v-if="simMode" ref="simBannerEl" class="simBanner overlay-card warn">
+      SIMULATION<template v-if="!hudFit.narrow"> &mdash; model shows the program, not the machine</template><HelpIcon v-else label="Simulation">The model shows the program, not the machine; machine controls stay locked until you exit.</HelpIcon>
+    </div>
     <div v-show="hudVisible" ref="hudEl" class="hud hudCard overlay-card stack-tight"
-         :class="[`hudScale-${hudFit.scale}`, { hudFoldMach: hudFit.fold >= 1, hudFoldFS: hudFit.fold >= 2, hudFoldTool: hudFit.fold >= 3 }]"
+         :class="[`hudScale-${hudFit.scale}`, { hudFoldMach: hudFit.fold >= 1, hudFoldFS: hudFit.fold >= 2, hudFoldTool: hudFit.fold >= 3, hudFoldHead: hudFit.fold >= 4 }]"
          :data-hud-fit="hudFit.overflow ? 'overflow' : 'fits'">
       <div class="hudGrid" :class="{ noMach: !hudCfg.showMachine }">
         <span class="hudHead"></span>
@@ -4076,6 +4119,7 @@ defineExpose({
       </div>
 
     </div>
+    </div>
 
     <!-- View navigation cube (top-right) -->
     <ViewCube
@@ -4098,11 +4142,6 @@ defineExpose({
     <!-- Camera PIP overlay -->
     <CameraPip :visible="pipVisible" @close="closePip" />
 
-    <!-- SIMULATION mode banner — unmissable: the model is posed along the
-         program, NOT the machine, and motion controls are locked. -->
-    <div v-if="simMode" class="simBanner overlay-card warn">
-      SIMULATION &mdash; model shows the program, not the machine
-    </div>
 
     <!-- The bottom edge (design wave D9): the findings card — the mode chip
          and the warnings ("what to know", kept together — operator
@@ -4217,15 +4256,27 @@ defineExpose({
 
 /* Every overlay on the viewer sits --gap-section (12px) from its frame —
    the HUD, the quick grid, the STL chip, the sim bar and banner alike. */
-.hud {
+/* The top-left column: the sim banner above the DRO card, in the left zone
+   (never under the ViewCube column); the column ignores the pointer. */
+.viewerTop {
   position: absolute;
-  z-index: var(--z-raised);
+  /* The bottom column (later in the DOM, same layer) paints above it: the
+     fit keeps them apart, so they meet only when the operator opened a
+     detail view (the findings, the scrub bar's More) — which then shows
+     whole. */
+  z-index: var(--z-float);
   top: var(--gap-section);
   left: var(--gap-section);
-  max-width: calc(100% - 2 * var(--gap-section));
+  max-width: calc(100% - 3 * var(--gap-section) - var(--viewcube-size));
+  align-items: flex-start;
+  pointer-events: none;
+}
+.hud {
+  max-width: 100%;
   pointer-events: none;
   user-select: none;
 }
+.simBanner :deep(.helpIcon) { pointer-events: auto; }
 
 /* Single HUD card (chrome from the global .overlay-card, shared with the
    sim bar). Every font-size below multiplies a --fs-* token by --hud-scale
@@ -4260,7 +4311,8 @@ defineExpose({
 .hudFoldMach .hudGrid { grid-template-columns: auto auto; }
 .hudFoldMach .hudMachCell,
 .hudFoldFS .hudFS,
-.hudFoldTool .hudTool { display: none; }
+.hudFoldTool .hudTool,
+.hudFoldHead .hudHead { display: none; }
 /* Divider row between axis block and F/S rows (layout-only override of
    the global .sep divider so it spans the whole grid). */
 .hudGrid > .sep { grid-column: 1 / -1; align-self: center; }

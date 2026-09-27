@@ -9,7 +9,7 @@
 // the interpreter idle; exit is the Exit button or one of the auto-exits
 // (program run start, program change, machine powered on elsewhere, real
 // joint motion as a backstop). ThreeViewer shows the .simBanner while active.
-import { computed, markRaw, onUnmounted, ref, shallowRef, watch } from "vue";
+import { computed, markRaw, nextTick, onUnmounted, ref, shallowRef, watch } from "vue";
 import { lineCumOf, lineRange } from "./viewer/lineIndex";
 import { status, viewerGcode, viewerInit, gcodeContent, emitTelemetry } from "./lcncWs";
 import { INTERP_IDLE } from "./lcnc";
@@ -34,7 +34,7 @@ import { EVENT_NONE } from "./viewer/eventIndex";
 import { mergedSweptFraction } from "./viewer/sweepMerge";
 import { limitViolationText } from "./ws/bulkData";
 import { fmtElapsed, fmtDist } from "./format";
-import { Play, Pause, X, Triangle, Circle, ChevronLeft, ChevronRight } from "lucide-vue-next";
+import { Play, Pause, X, Triangle, Circle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import HelpIcon from "./HelpIcon.vue";
 import MachineSlider from "./MachineSlider.vue";
@@ -931,10 +931,56 @@ onUnmounted(() => {
   clearTimeout(_entrySettleTimer);
   exitSim();
 });
+
+// ─── Compact form (review round 7, UI-DI15) ─────────────────────────────
+// In a narrow viewer the bar's CONTENTS ran out of it (the timeline slider
+// shrank to 0 px, the speed and position readouts and the findings' "?" sat
+// past the window's edge). Decided by content, not a width constant: with
+// the compact class off, the timeline must keep SLIDER_MIN px and the
+// findings row must not overflow — else compact: row 1 keeps Sim, play and a
+// full-width timeline, everything else (speed, readouts, the findings
+// groups, the tool label) waits behind ONE toggle whose name says the
+// findings. Never decided by the viewer's HUD fit (which measures the bar
+// as it is — an opened bar is the operator's choice), so the fit cannot swing.
+const SLIDER_MIN = 120;
+const compact = ref(false);
+const moreOpen = ref(false);
+const rootEl = ref<HTMLElement | null>(null);
+const sliderWrapEl = ref<HTMLElement | null>(null);
+const findingsRowEl = ref<HTMLElement | null>(null);
+function fitScrub() {
+  const root = rootEl.value, wrap = sliderWrapEl.value, row = findingsRowEl.value;
+  if (!root || !wrap || !row || root.offsetParent === null) return;
+  const was = root.classList.contains("compact");
+  root.classList.remove("compact");
+  const need = wrap.offsetWidth < SLIDER_MIN || row.scrollWidth > row.clientWidth + 1;
+  root.classList.toggle("compact", was);
+  compact.value = need;
+  if (!need) moreOpen.value = false;
+}
+let _scrubObs: ResizeObserver | null = null;
+watch(rootEl, el => {
+  _scrubObs?.disconnect();
+  _scrubObs = null;
+  if (el) { _scrubObs = new ResizeObserver(() => fitScrub()); _scrubObs.observe(el); }
+});
+onUnmounted(() => { _scrubObs?.disconnect(); _scrubObs = null; });
+// What changes the rows' widths without resizing the bar: the findings, the
+// verdict, the labels — re-fit after they render (never per playback frame).
+watch(() => [violationsTotal.value, hits.value.length, shownResult.value?.pairCount, props.collisionBusy,
+  sweepToolText.value, nextToolLabel.value, simMode.value, lineSlotCh.value, posSlotCh.value],
+  () => nextTick(fitScrub));
+/** The folded bar's toggle names the findings behind it. */
+const moreLabel = computed(() => {
+  const parts: string[] = [];
+  if (violationsTotal.value) parts.push(`${violationsTotal.value} limit violation${violationsTotal.value === 1 ? "" : "s"}`);
+  if (shownResult.value && hitTargets.value.length) parts.push(`${hitTargets.value.length} collision${hitTargets.value.length === 1 ? "" : "s"}`);
+  return `${moreOpen.value ? "Fewer" : "More"} timeline controls${parts.length ? " — " + parts.join(", ") : ""}`;
+});
 </script>
 
 <template>
-  <div v-if="visible" class="scrubBar overlay-card stack-tight">
+  <div v-if="visible" ref="rootEl" class="scrubBar overlay-card stack-tight" :class="{ compact, moreOpen }">
     <!-- Row 1 — timeline + play/pause + the position readouts -->
     <div class="row-controls scrubRow">
       <!-- Sim mode toggle — same switch as settings/coolant toggles. The
@@ -949,7 +995,7 @@ onUnmounted(() => {
         <Pause v-if="playing" :size="14" />
         <Play v-else :size="14" />
       </MachineBtn>
-      <div class="sliderWrap">
+      <div ref="sliderWrapEl" class="sliderWrap">
         <MachineSlider gate="scrubPos" class="sliderInput rangeOverlayTrack" :min="0" :max="cumMax"
                        :step="cumMax / 2000 || 1" v-model="sPos" :disabled="!simMode"
                        title="Scrub the program — poses the machine model, nothing moves"
@@ -986,6 +1032,9 @@ onUnmounted(() => {
           </span>
         </div>
       </div>
+      <!-- Compact (UI-DI15): the rest of the bar waits behind this toggle. -->
+      <MachineBtn type="windowToggle" class="moreToggle" :aria-expanded="moreOpen" :aria-label="moreLabel" :title="moreLabel"
+                  @click="moreOpen = !moreOpen"><ChevronDown v-if="moreOpen" :size="14" /><ChevronUp v-else :size="14" /></MachineBtn>
       <MachineSlider gate="simSpeed" class="speedSlider" :min="-1" :max="2" :step="0.01"
                      v-model="speedLog" :disabled="!simMode"
                      :title="`Playback speed ×0.1–×100${track?.timeBased ? ' of real time' : ''}`" />
@@ -1008,9 +1057,13 @@ onUnmounted(() => {
          click positions never shift while stepping through or while a sweep
          changes state. A disabled stop says WHY at the button (MachineBtn's
          reason → explain path, design wave D1); the titles are hover names. The sweep itself has no control here (2026-09-13):
-         its progress is the timeline's swept band. -->
-    <div class="row-controls scrubRow">
+         its progress is the timeline's swept band. Each findings group
+         (prev · count · next · target · "?") is ONE span: in the compact
+         form the groups wrap as units, so a group's buttons keep their
+         places while its text may push the NEXT group to a new line. -->
+    <div ref="findingsRowEl" class="row-controls scrubRow findingsRow">
       <template v-if="violations && violations.length">
+        <span class="navGroup">
         <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)" aria-label="Previous limit violation" title="Previous limit violation (from the current timeline position)"
                       :reason="violationNavReason"
                       @click="jumpTo(targetBefore(violationTargets, sPos))"><ChevronLeft :size="14" /></MachineBtn>
@@ -1027,6 +1080,7 @@ onUnmounted(() => {
              (operator, D1 live look: the limits' "?" sat in the HUD, the
              collisions' in this bar). -->
         <HelpIcon label="Limit violations">Moves beyond a soft limit, checked with the offsets as parsed. The arrows step through them with the machine off.</HelpIcon>
+        </span>
         <div class="sep-v"></div>
       </template>
 
@@ -1034,7 +1088,7 @@ onUnmounted(() => {
            this says what it found — LIVE while the sweep runs ("so far",
            from the unrefined partial). Parked/truncated with no hits is "no
            clash in N % swept" — never "clear" for a part-swept program. -->
-      <template v-if="shownResult">
+      <span v-if="shownResult" class="navGroup">
         <span v-if="shownResult.pairCount === 0" class="val-status muted" title="No body pair moves relative to another — nothing to check">No moving pairs</span>
         <template v-else-if="hits.length">
           <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff" aria-label="Previous collision" title="Previous collision (from the current timeline position)"
@@ -1069,7 +1123,7 @@ onUnmounted(() => {
              only next to "clear". -->
         <span v-if="sweepCaveat" class="val-status warn" title="Not certified — see the collision check help">*</span>
         <HelpIcon label="Collision check">{{ verdictDetail }}</HelpIcon>
-      </template>
+      </span>
 
       <template v-if="nextTool">
         <div class="sep-v"></div>
@@ -1096,11 +1150,35 @@ onUnmounted(() => {
      above it, the viewer's --gap-section around it). */
   position: relative;
   padding: var(--gap-tight) var(--gap-controls);
+  --scrub-slider-min: 120px;   /* SLIDER_MIN in the script */
 }
-/* The collision verdict's "?" sits --gap-tight from its verdict like every
-   help icon (its own margin); in this row the flex gap already spaces
-   siblings, so the margin gives the difference back. Layout only. */
-.scrubRow > :deep(.helpIcon) { margin-inline-start: calc(var(--gap-tight) - var(--gap-controls)); }
+/* A findings group wraps as ONE unit in the compact form (UI-DI15). */
+.navGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--gap-controls);
+  flex-shrink: 0;
+}
+/* A finding's "?" sits --gap-tight from its text like every help icon (its
+   own margin); in a group the flex gap already spaces siblings, so the
+   margin gives the difference back. Layout only. */
+.navGroup > :deep(.helpIcon) { margin-inline-start: calc(var(--gap-tight) - var(--gap-controls)); }
+.moreToggle { display: none; }
+/* Compact (fitScrub): row 1 keeps Sim, play and the toggle, the timeline on
+   its own full-width line; opened, speed, the readouts and the findings
+   wrap below. */
+.scrubBar.compact .scrubRow { flex-wrap: wrap; row-gap: var(--gap-tight); }
+.scrubBar.compact .moreToggle { display: inline-flex; margin-left: auto; }
+.scrubBar.compact .sliderWrap { order: 1; flex: 1 1 100%; min-width: var(--scrub-slider-min); }
+.scrubBar.compact :is(.speedSlider, .speedVal, .lineSlot, .posSlot) { order: 2; }
+.scrubBar.compact:not(.moreOpen) :is(.speedSlider, .speedVal, .lineSlot, .posSlot),
+.scrubBar.compact:not(.moreOpen) .findingsRow { display: none; }
+.scrubBar.compact .sep-v { display: none; }
+/* A group wider than the bar (prev · "1 limit violation" · next · target ·
+   "?" is ~300 px at 150 % portrait) wraps its tail — the buttons keep their
+   places, the target and the "?" go below them. */
+.scrubBar.compact .navGroup { flex-wrap: wrap; row-gap: var(--gap-tight); max-width: 100%; }
+.scrubBar.compact .sweepTool { white-space: normal; margin-left: 0; }
 .scrubRow {
   align-items: center;
 }

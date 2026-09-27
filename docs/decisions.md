@@ -7137,3 +7137,32 @@ Plan Fassung 3 WP-D10 (N114, K14, N115), third of three commits.
   selection and attaches the images; reviewed by eye, no pixel references.
 - The scrub bar's sweep-tool label read the viewer's non-reactive cache
   (NaN start: "sweep: TNaN"); it reads the reactive status.
+
+### Implementation review round 7 — D9 fixes (2026-09-27)
+
+- UI-DI15: the scrub bar fitted as a CARD while its contents ran out of it
+  (at 150 % portrait the timeline was 0 px wide, the speed button and the
+  position readout lay past the window, the findings' "?" off screen). A
+  narrow viewer now gets a COMPACT bar: `fitScrub` measures the bar without
+  the compact class (ResizeObserver + a watch on the content that changes
+  its width) and compacts once the timeline would drop under 120 px or the
+  findings row overflows. Row 1 keeps Sim, play, the timeline and ONE "More
+  timeline controls" toggle whose name counts the findings; opened, speed,
+  the readouts and the findings rows follow on their own lines, each findings
+  group wrapping as a unit so its buttons keep their places. Folded, the
+  bar hides speed and readouts: in a 263 px bar they cost the timeline its
+  width, and the timeline IS the scrub control — the marks on it still show
+  every finding, the toggle's name counts them.
+- UI-DI16: the simulation banner, centred and nowrap, ran past both edges of
+  a narrow viewer and over the DRO. It now heads the top-left column above
+  the DRO card, keeps its words whole (wraps; in a pane < 440 px it reads
+  "SIMULATION" with a "?" for the explanation), and its height is part of
+  fitHud's budget. The DRO's column head ("Work · G54") is a fourth fold —
+  the folded findings line names the fixture too — so 6 axes at 150 %
+  portrait keep every value while simulating.
+- An OPENED detail view (the warnings card, the scrub bar's More) may cover
+  the DRO: the operator asked for it and folds it back with the same
+  toggle; nothing folded overlaps. Codex accepted the rule for the warnings
+  card in round 7; the scrub bar's More follows it. fitHud measures both
+  views FOLDED: opening More used to shrink the DRO a step (sm → xxs) for an
+  overlap it could not avoid.
