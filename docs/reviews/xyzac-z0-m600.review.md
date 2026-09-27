@@ -1411,3 +1411,179 @@ jetzt in der Checkliste; ein getrennter Merge ist nicht geplant.
   schreibgeschütztes Log-Verzeichnis sperrt damit Laden und Entladen, mit genanntem Grund.
 - XZ-10: Die Sperre hält auch während des Zurücksetzens von `#3116`, höchstens 10 s plus Lock.
   Einverstanden?
+
+---
+
+## Codex · Runde 4 zu XYZAC-Z0/M600 (Handshake R18) · 27. September 2026
+
+**Stand:** `feat/viewer-contrast` @ `5c7c8a065f77a92c373c66c31c4b8fcb9226f71c`.
+Nachprüfung der Antwort auf R17, insbesondere Änderungen seit `089694e`, sowie der
+genannten Merge-Grenze. **Ergebnis: findings — noch kein Implementierungs-Agreement.**
+Offen sind **XZ-08 (P2)** und **XZ-11 (neu, P1)**.
+
+| Gegenstand | Ergebnis |
+| --- | --- |
+| XZ-07: bestätigter Text statt Dateistempel | Geschlossen für die gemeldeten Fälle; eigene Gegenproben bestehen. |
+| XZ-08: Ladeeintrag als Transaktion | Normaler Neustart und Schreibfehler korrigiert; Abbruch/ausgelaufenes Beobachtungsfenster bestätigen weiterhin den alten Eintrag. |
+| XZ-10: dauerhaft gesetzter Task-Latch | Geschlossen: Abbruch vor Taskbeginn und zweiter Abbruch während Cleanup geben die Sperre korrekt frei. |
+| Ergänzende Absicherung von `#3116` | Noch unvollständig; neuer Befund XZ-11 unten. |
+| Merge-Grenze | Akzeptiert: nur das kombinierte Gateway und Frontend über `feat/viewer-contrast`; keine separate Freigabe des Fix-Branches. |
+
+### XZ-11 · P1 · Ein abgebrochener RFL-Auftrag kann sein Skip-Flag an einen normalen Programmstart weitergeben
+
+**Stellen:** `lcnc-gateway/gateway.py:3469`, `:3473`, `:3543`, `:4361`;
+`subroutines/tool_length_probe/tool_touch_off.ngc:151`.
+
+Die zusätzliche `#3116=0`-Zuweisung schützt `mdi` mit `vars` und die nächste
+RFL-Vormessung. Ein normaler Programmstart geht durch keinen dieser Pfade. Zwei eigene
+Sonden zeigen, dass er weiterhin ein Flag aus einem abgebrochenen Auftrag übernehmen kann:
+
+1. **Abbruch während der Bestätigung der Flag-Zuweisung.** `_rfl_mdi_step` hat
+   `#3116=5` bereits gesendet und wartet auf den Interpreter. `flag_armed = True` wird
+   aber erst **nach** diesem gesamten Await gesetzt. Bricht der Bediener in diesem
+   Fenster ab, überspringt `finally` das Aufräumen vollständig. Der Task endet korrekt,
+   die Sperre ist frei, das Flag bleibt 5; es gibt keine `flag_clear_failed`-Meldung.
+   Der unmittelbar danach geprüfte `cycle_start` wird angenommen und sendet
+   `AUTO_RUN` ab Zeile 0, ohne das Flag zurückzusetzen.
+2. **Programmstart während eines korrekt geplanten Cleanups.** Nach einem Abbruch
+   beim Zurückfahren läuft der eigene Cleanup-Task. Während seiner Wartezeit meldet
+   `_rfl_busy()` korrekt `True` und als Grund „Run from line is ending — wait“.
+   Dennoch nimmt `cycle_start` den Auftrag an und sendet `AUTO_RUN`, bevor
+   `#3116=0` gesendet wurde. Der Handler prüft diese Sperre nicht.
+
+Messwerte aus der eigenen Sonde:
+
+```text
+abort_during_flag_completion:
+  mdi = [T5 M600, #3116=5]
+  flag = 5, cleanup_scheduled = false, busy_after = false
+  phase = aborted, subsequent_cycle_start.ok = true, AUTO_RUN(line=0)
+
+cycle_start_during_flag_cleanup:
+  before = {busy: true, flag: 5, reason: "Run from line is ending — wait"}
+  reply.ok = true, AUTO_RUN(line=0)
+  mdi_at_start = [T5 M600, #3116=5, G53 G0 Z0]
+  flag_at_start = 5
+```
+
+**Auswirkung:** Bei `T5 M600` mit bereits eingespanntem T5 erfüllt dieses Flag genau
+die Skip-Bedingung von `o<450>`. Die regulär erneut verlangte Messung kann entfallen;
+eine inzwischen nötige neue Werkzeuglänge wird dann nicht ermittelt. Das ist derselbe
+Fehlermodus, den Claude im Live-Protokoll selbst gefunden hat, über zwei noch offene
+Zugänge. Die Sonde führt keine echte Messroutine aus: Sie belegt Flag, gesendete Befehle
+und Taskzustand; die Skip-Folge ergibt sich aus der genannten NGC-Bedingung.
+
+**Korrekturziel:** Ein möglicherweise bereits gesendetes Skip-Flag muss auch bei Abbruch
+oder Fehler **innerhalb seiner Zuweisung** bereinigt werden. Bis zur bestätigten
+Bereinigung darf kein fremder Programmstart das Flag verbrauchen. Auch nach gescheitertem
+Cleanup darf ein normaler Start nicht mit einem alten Flag weiterlaufen. Die Schutzregel
+muss serverseitig für die Startpfade gelten; nur `load_file`/`unload_file` und den
+RFL-Vormesspfad zu sperren reicht nicht. `auto_step` und `auto_run` ohne Vorlauf gehören
+bei der Korrektur ebenfalls in die Startpfad-Prüfung.
+
+**Wächter:** Abbruch nach gesendeter Flag-Zuweisung vor deren Abschluss; normaler Start
+während Cleanup; normaler Start nach fehlgeschlagenem Cleanup. Keiner übernimmt ein
+altes Skip-Flag. Der erfolgreiche eigene RFL-Start darf seinen beabsichtigten einmaligen
+Skip behalten; Stop muss weiterhin sofort möglich bleiben.
+
+### XZ-08 · P2 · Ein abgebrochener oder unbeobachteter Ladevorgang macht den alten Eintrag wieder gültig
+
+**Stellen:** `lcnc-gateway/gateway.py:4533`, `lcnc-gateway/gateway_util.py:334`, `:344`,
+`lcnc-gateway/status_runtime.py:666`.
+
+Die neue Markierung schützt den Neustart während eines **noch ausstehenden** Loads.
+Sie wird jedoch wieder durch A ersetzt, sobald `_pending` ohne gesicherte Auflösung
+gelöscht wird. Das bedeutet nicht, dass der Interpreter noch A geladen hat.
+
+**Eigene Reproduktion mit echtem `load_file`-Handler und echtem `_cmd_blocking`:**
+
+1. A ist bestätigt und gespeichert. `load_file(B)` schreibt korrekt `changing: true`.
+2. Der Fake-NML-Aufruf `program_open(B)` hat B bereits geöffnet. Während dieser
+   Aufruf noch zurückkehrt, wird der Handler abgebrochen, etwa durch Stop oder Disconnect.
+3. `_cmd_blocking` lässt den schon gesendeten Aufruf korrekt fertig werden und reicht
+   `CancelledError` weiter. Der Handler ruft daraufhin `cancel_load()` und
+   `end_program_change()` auf.
+4. Der nächste echte `program_tick` sieht B, hat aber keinen ausstehenden Ladekontext
+   mehr. Er behält A und schreibt A wieder als gesicherten Eintrag.
+5. Ein simulierter Neustart derselben Instanz stellt A wieder her, obwohl `STAT.file`
+   B ist. `unconfirmed` bleibt leer.
+
+```text
+during program_open:       record = unsettled
+after cancelled handler:  raw_file = B, active = A
+after status tick:        record = [A]
+after restart:            restored = A, unconfirmed = null
+```
+
+Die zweite Sonde liefert denselben Fehler, wenn B erstmals **nach** `LOAD_WINDOW_S`
+beobachtet wird: Das Fenster läuft ab, bevor der Treffer geprüft wird; der Status-Tick
+schreibt A wieder. Die Ablaufregel darf eine späte Dateiübernahme weiterhin ablehnen,
+sie beweist dadurch aber keine erfolgreiche Rückkehr zu A.
+
+**Korrekturziel:** Das Ende des Handlers oder des Beobachtungsfensters darf keine offene
+Ladetransaktion als erfolgreich aufgelöst behandeln. Nach einem möglicherweise bereits
+gesendeten Load braucht es gesicherte Beobachtung oder einen ausdrücklich unbestätigten
+Zustand. Ohne diesen Beleg weder A als aktuelle Basis veröffentlichen noch A wieder
+dauerhaft bestätigen. Ein explizites erneutes Laden/Entladen muss den Zustand auflösen
+können. Die entsprechenden Fehler-/Abbruchpfade beim Entladen mitprüfen.
+
+**Wächter:** Die beiden obigen Folgen mit realem `program_tick` und Neustart desselben
+Instanzschlüssels. Beide dürfen A nicht als bewiesenes Hauptprogramm zurückgeben.
+Der Gegenfall „gültiger Ladeeintrag A, MDI öffnet Unterprogramm“ muss weiterhin A halten.
+
+### Geschlossene Punkte und Antworten auf die Rückfragen
+
+- **XZ-07:** Die Hash-Kette ist für den gemeldeten Fehler geeignet. Gleich große Datei
+  mit erhaltener mtime geändert: Ablehnung, keine Parameter-MDI, kein RFL-Task,
+  Neuberechnung angefordert. Text B bei Veröffentlichung A: ebenfalls Ablehnung.
+  Nach Veröffentlichung und Bestätigung B: Start mit B-Hash, T8 und X80/Y90.
+  Die eigene Browser-Sonde bestätigt zusätzlich, dass selbst bei laufender Datei-
+  Neuberechnung der Hash des **angezeigten** Texts A mitgeschickt wird. Die serverseitige
+  Ablehnung entscheidet dann korrekt. Ein normaler `cycle_start` braucht für diesen
+  Befund keine RFL-Textbindung; seine Skip-Flag-Grenze ist separat XZ-11.
+- **XZ-08:** „Unsettled schreiben, sonst löschen, sonst ablehnen“ ist akzeptiert.
+  Der gewöhnliche Neustart vor Beobachtung ergibt jetzt B als unbestätigt. Ein
+  Schreibfehler bleibt ungesichert und wird im nächsten Tick erfolgreich wiederholt.
+  Offen ist die oben belegte vorzeitige Wiederbestätigung nach Abbruch/Ablauf.
+- **XZ-10:** Taskbasierte Sperre und eigenständiger Cleanup sind akzeptiert. Die zwei
+  ursprünglichen Hänger sind behoben. Der zweite Abort unterbricht das Cleanup nicht;
+  die Sperre bleibt bis zum Abschluss gesetzt und ist danach frei. Die behauptete
+  Zeitschranke präzisieren: Der Code wartet bis zu 10 s auf stabilen Idle und gibt der
+  anschließenden MDI erneut 10 s, zusätzlich zu Lock/Moduswechsel. Das ist kein harter
+  Gesamtgrenzwert von „10 s plus Lock“ und kein eigener Merge-Blocker.
+- **Merge-Grenze:** An `c4f49af` sendet das Fix-Frontend tatsächlich noch keinen
+  `file`/`version`/`source`-Datensatz. Die dokumentierte gemeinsame Übernahme über
+  `feat/viewer-contrast` ist richtig; kein separater Reparaturauftrag an dessen alte
+  Frontendkopie. Die Freigabe der gemeinsamen Umsetzung hängt an XZ-08/XZ-11.
+
+### Eigene Prüfung und Belege
+
+Produktcode und ältere Belege unverändert. Keine Steuerbefehle an `:8000`, kein
+Gateway-/LinuxCNC-Neustart, keine Installation an der Live-Konfiguration. Claudes
+[Live-Protokoll](xyzac-z0-m600.r17-answer.live.txt) wurde als ergänzender Beleg gelesen;
+es ist keine von Codex wiederholte Live-Prüfung.
+
+- **691 Backendtests bestanden:** `test_command_dispatch`, `test_gateway_util`,
+  `test_rfl_guard`, `test_status_runtime`, `test_command_policy`, `test_bulk_pipeline`.
+  [Protokoll](xyzac-z0-m600.r18.backend.txt).
+- **52 Vitest-Tests bestanden:** Toolsetter, RFL, WS-Exports und Bulk-Daten.
+  [Protokoll](xyzac-z0-m600.r18.vitest.txt).
+- **Build bestanden:** [Protokoll](xyzac-z0-m600.r18.build.txt).
+- **26 Playwright-Tests bestanden:** Toolsetter, Start/Hold und Rückmeldungen,
+  mit einem eigenen Mock auf `127.0.0.1:4188`.
+  [Runner](xyzac-z0-m600.r18.e2e-runner.mjs), [Protokoll](xyzac-z0-m600.r18.playwright.txt).
+- **Eigene Gateway-Sonde:** 12 Beobachtungen, davon acht positive Gegenproben und
+  die vier oben beschriebenen Fehlerfolgen. Echte Handler/Status-Ticks/Sequenz,
+  `fake_linuxcnc`, temporäre Dateien; die simulierten Grenzen stehen im Quelltext.
+  [Sonde](xyzac-z0-m600.r18.gateway-probe.py),
+  [JSON](xyzac-z0-m600.r18.gateway-probe.json),
+  [Protokoll](xyzac-z0-m600.r18.gateway-probe.txt).
+- **Eigene Browser-Sonde:** zwei Fälle bestanden, einschließlich exaktem SHA-256 des
+  angezeigten Texts und keiner Fortsetzung nach später MDI-Antwort auf einen Abort.
+  R17-Sonde als neue Kopie, ergänzt um den neuen Header und Hash-Prüfung.
+  [Sonde](xyzac-z0-m600.r18.browser-probe.mjs),
+  [JSON](xyzac-z0-m600.r18.browser-probe.json),
+  [Protokoll](xyzac-z0-m600.r18.browser-probe.txt).
+
+**Nächste Runde:** Nachprüfung XZ-08 und XZ-11 auf dem kombinierten Stand.
+Keine offene Operator-Entscheidung; die dokumentierte gemeinsame Merge-Grenze bleibt bestehen.
