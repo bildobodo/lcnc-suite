@@ -520,6 +520,10 @@ class TestPublishedSource(unittest.TestCase):
         b = self._refresh(during=edit)
         self.assertTrue(b.preview_available())
         self.assertIsNone(b.published_source)
+        # … and the next parse is requested: the file edge sees only the
+        # path and the mtime, which an edit can keep.
+        self.assertTrue(b.reparse_pending)
+        self.assertEqual(b.reparse_pending_reason, "file")
 
     def test_clearing_the_preview_clears_the_source(self):
         b = self._refresh()

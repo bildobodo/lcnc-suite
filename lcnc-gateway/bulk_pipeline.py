@@ -620,8 +620,13 @@ class BulkPipeline:
             t_gz_done = time.monotonic()
             _source_after = await asyncio.to_thread(program_source, filepath)
             if _source_after != _source_at_parse:
+                # Nothing can be bound to this publication; the next parse is
+                # requested here — the poller's file edge sees the path and
+                # the mtime only, which an edit can keep.
                 _trace.emit("gcode.source_changed_during_parse", level="warn",
                             file=os.path.basename(filepath))
+                self.reparse_pending = True
+                self.reparse_pending_reason = "file"
             # Publish metadata + bytes together before bumping the version so
             # GET /preview readers never see stale bytes under a new version.
             self.published_source = _source_at_parse if _source_after == _source_at_parse else None

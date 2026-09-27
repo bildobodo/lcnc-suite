@@ -4127,6 +4127,13 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if current is None:
                 return {"ok": False, "error": "Program file unreadable — not started"}
             if current != source:
+                # "wait for the preview" must come true: the poller's file
+                # edge sees the path and the mtime only, which an edit can
+                # keep. A parse already running checks its own text.
+                if not _bulk.refresh_running:
+                    _bulk.reparse_pending = True
+                    _bulk.reparse_pending_reason = "file"
+                    _trace.emit("gcode.reparse_requested", by="auto_run", why="text changed on disk")
                 return {"ok": False, "error": "Program changed on disk — wait for the preview"}
             identity = (_status_runtime.program.loaded, source)
             probe_vars = msg.get("probe_vars")
