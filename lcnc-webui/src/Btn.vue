@@ -4,6 +4,9 @@ defineProps<{
   size?: "xs" | "sm" | "md" | "lg" | "cell";
   icon?: boolean;
   inline?: boolean;
+  /** A value that IS the control (an offset cell): the cell's own text,
+   *  no chrome — the table cell carries the editable look (operator P5). */
+  value?: boolean;
   block?: boolean;
   active?: boolean;
   selected?: boolean;
@@ -22,9 +25,9 @@ defineProps<{
 <template>
   <button
     :class="[
-      icon ? 'b-icon' : inline ? 'b-inline' : 'b',
-      !inline && (size ?? 'md'),
-      !icon && !inline && (variant ?? 'default'),
+      icon ? 'b-icon' : inline ? 'b-inline' : value ? 'b-value' : 'b',
+      !inline && !value && (size ?? 'md'),
+      !icon && !inline && !value && (variant ?? 'default'),
       { active, selected, flashing, warning, block, muted, mono, holding },
       tab && `tab-${tab}`,
     ]"
@@ -273,6 +276,22 @@ html:not(.touch-device) .b-icon:hover:not(:disabled) { color: var(--fg); backgro
 html:not(.touch-device) .b-inline:hover:not(:disabled) { background: var(--hl-hover); }
 .b-inline:active:not(:disabled) { background: var(--hl-active); }
 .b-inline:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
+
+/* ---- Value button (an editable table value, operator P5) ----
+   The value keeps its cell's typography and alignment; the CELL shows that
+   it is editable (and which one is being edited). Focus is the global
+   :focus-visible ring. */
+.b-value {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: inherit;
+}
 
 /* Motion is optional (design wave D8): the E-Stop flash and the warning
    pulse stop; the state stays the static fill. */

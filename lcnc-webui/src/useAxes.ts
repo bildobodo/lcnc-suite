@@ -30,6 +30,14 @@ export const ROTARY_LETTERS: ReadonlySet<string> = new Set(["A", "B", "C"]);
 export const UVW_LETTERS: ReadonlySet<string> = new Set(["U", "V", "W"]);
 
 /** A/B/C are rotary (degrees, 2 decimals); X/Y/Z/U/V/W are linear. */
+/** The canonical 9-wide slot order of the OFFSET vectors (g5x, g92, tool). */
+export const CANONICAL_AXES = "XYZABCUVW";
+/** A letter's slot in a canonical offset vector, -1 for no axis letter. */
+export function canonicalIndex(letter: string): number {
+  const l = letter.toUpperCase();
+  return l.length === 1 ? CANONICAL_AXES.indexOf(l) : -1;
+}
+
 export function isRotaryAxis(letter: string): boolean {
   return ROTARY_LETTERS.has(letter);
 }

@@ -8,6 +8,8 @@ import MachineBtn from "./MachineBtn.vue";
 
 import Gate from "./Gate.vue";
 import { vStickyHead } from "./stickyHead";
+import { offsetAux } from "./offsetRows";
+import { isRotaryAxis } from "./useAxes";
 
 const can = usePermissions();
 const ownerCan = useOwnerPermissions();
@@ -21,7 +23,8 @@ const props = defineProps<{
   g92Offset: number[] | null;
   toolOffset: number[] | null;
   eoffsetZ: number | null;
-  eoffsetEnabled: boolean;
+  /** null: the reader has no value — unknown, never "off" (Codex R22 OP22-03). */
+  eoffsetEnabled: boolean | null;
   rotationXy: number | null;
   wcsTable: WcsRow[];
   linearUnit?: string;
@@ -40,10 +43,23 @@ const offsetColumns = computed(() => [...props.axes.map(l => l.toLowerCase()), "
 
 // Formatting imported from format.ts (fmtOffset)
 
-// ─── Auxiliary row visibility ────────────────────────────────
-const hasG92 = computed(() => props.g92Offset?.some(v => v !== 0) ?? false);
-const hasTool = computed(() => props.toolOffset?.some(v => v !== 0) ?? false);
-const hasComp = computed(() => props.eoffsetZ != null && props.eoffsetZ !== 0);
+// ─── Auxiliary rows (operator P5/P6) ─────────────────────────
+// By each axis letter's CANONICAL slot — the visible column index showed B's
+// G92 under C on XYZAC — and unknown told apart from zero (offsetRows.ts).
+const aux = computed(() => offsetAux({
+  letters: props.axes, g92: props.g92Offset, tool: props.toolOffset,
+  compZ: props.eoffsetZ, compEnabled: props.eoffsetEnabled,
+}));
+const auxValue = (row: { values: Record<string, number | null> }, col: string) =>
+  col === "r" ? "" : fmtOffset(row.values[col] ?? undefined);
+/** Degrees for R and the rotary axes, the linear unit for the rest. */
+function cellUnit(axis: string): string {
+  return axis === "r" || isRotaryAxis(axis.toUpperCase()) ? "°" : props.linearUnit ?? "";
+}
+/** The cell whose keypad session is open — its own mark, not the focus ring. */
+function isEditing(wcs: string, axis: string): boolean {
+  return keypadState.open && !keypadState.locked && keypadState.ownerId === cellOwner(wcs, axis);
+}
 
 // ─── Cell editing ────────────────────────────────────────────
 // `set_wcs` is a probe-tier write on the backend (command_policy) — the
@@ -66,13 +82,14 @@ function startEditCell(wcs: string, axis: string, current: number, e: Event) {
   const ownerId = cellOwner(wcs, axis);
   // A second tap on the cell already being edited keeps its expression.
   if (keypadState.open && keypadState.ownerId === ownerId && !keypadState.locked) return;
-  const unit = axis === "r" ? "°" : props.linearUnit ?? "";
+  const unit = cellUnit(axis);
   openKeypad({
     value: current,
     label: `${wcs} ${axis.toUpperCase()}`,
     context: unit ? `${wcs} · ${axis.toUpperCase()} · ${unit}` : `${wcs} · ${axis.toUpperCase()}`,
     ownerId,
-    trigger: e.currentTarget as HTMLElement,
+    // The value button (keyboard, or a tap on the value) or the cell (a tap on its padding).
+    trigger: (e.target as HTMLElement).closest<HTMLElement>("button, td") ?? (e.currentTarget as HTMLElement),
     canConfirm: () => !!can.value.probe
       && !!panelEl.value && panelEl.value.offsetParent !== null
       && props.wcsTable.some(r => r.name === wcs),
@@ -142,46 +159,59 @@ function clearAll() {
         </thead>
         <tbody>
           <!-- WCS rows (G54–G59.3) -->
+          <!-- Four states, four cues (operator P5, Codex R21): the machine's
+               active fixture = a bar at the row's start + aria-current (not
+               the tint alone), the row selected for Clear = .selectedRow,
+               the cell being edited = its inner edge (.editingCell), keyboard
+               focus = the global ring on the value button. -->
           <tr v-for="row in props.wcsTable" :key="row.name"
               :class="{ activeRow: row.name === g5xLabel, selectedRow: row.name === selectedWcs }"
+              :aria-current="row.name === g5xLabel ? 'true' : undefined"
               @click="pinned = row.name as string">
-            <td class="offLabel">{{ row.name }}</td>
+            <td class="offLabel" :title="row.name === g5xLabel ? 'Active work offset' : undefined">{{ row.name }}</td>
             <td v-for="axis in offsetColumns" :key="axis"
                 :class="{
                   'text-warn': axis === 'r' && row[axis] !== 0,
-                  editableCell: can.probe && Number.isFinite(Number(row[axis]))
+                  editableCell: can.probe && Number.isFinite(Number(row[axis])),
+                  editingCell: isEditing(row.name as string, axis),
                 }"
                 :data-input-area="cellOwner(row.name as string, axis)"
                 @click="startEditCell(row.name as string, axis, Number(row[axis]), $event)">
-              <span class="cellValue">{{ fmtOffset(Number(row[axis])) }}</span>
+              <!-- The keyboard path to the cell (Tab, Enter/Space); a tap on
+                   the value or the cell's padding opens it the same way. -->
+              <MachineBtn v-if="can.probe && Number.isFinite(Number(row[axis]))" type="offsetCell"
+                          :aria-label="`Edit ${row.name} ${axis.toUpperCase()}`">{{ fmtOffset(Number(row[axis])) }}</MachineBtn>
+              <span v-else class="cellValue">{{ fmtOffset(Number(row[axis])) }}</span>
             </td>
           </tr>
 
-          <!-- G92 row -->
-          <tr v-if="hasG92" class="auxRow">
-            <td class="offLabel auxLabel">G92</td>
-            <td v-for="(col, i) in offsetColumns" :key="col">
-              {{ col === 'r' ? '' : fmtOffset(g92Offset?.[i]) }}
-            </td>
+          <!-- G52 and G92 share one register; G92 can be suspended while its
+               values stay stored (LinuxCNC coordinate systems). -->
+          <tr v-if="aux.g92.state === 'active'" class="auxRow">
+            <td class="offLabel auxLabel" title="G52/G92 offset in effect (one register)">G52/G92</td>
+            <td v-for="col in offsetColumns" :key="col">{{ auxValue(aux.g92, col) }}</td>
           </tr>
 
-          <!-- Tool offset row -->
-          <tr v-if="hasTool" class="auxRow">
-            <td class="offLabel auxLabel">Tool</td>
-            <td v-for="(col, i) in offsetColumns" :key="col">
-              {{ col === 'r' ? '' : fmtOffset(toolOffset?.[i]) }}
-            </td>
+          <!-- The tool offset IN EFFECT (G43…), not the tool table's length. -->
+          <tr v-if="aux.tool.state === 'active'" class="auxRow">
+            <td class="offLabel auxLabel" title="Tool offset in effect (G43), not the table length">Tool</td>
+            <td v-for="col in offsetColumns" :key="col">{{ auxValue(aux.tool, col) }}</td>
           </tr>
 
-          <!-- Compensation row -->
-          <tr v-if="hasComp" class="auxRow">
-            <td class="offLabel auxLabel">Comp</td>
-            <td v-for="col in offsetColumns" :key="col">
-              {{ col === 'z' ? fmtOffset(eoffsetZ ?? undefined) : '' }}
-            </td>
+          <!-- Comp: enabled (its amount on Z, 0 included); off = no row. -->
+          <tr v-if="aux.comp === 'active'" class="auxRow">
+            <td class="offLabel auxLabel" title="Surface compensation (external offset) in effect">Comp</td>
+            <td v-for="col in offsetColumns" :key="col">{{ col === 'z' ? fmtOffset(aux.compZ ?? undefined) : '' }}</td>
           </tr>
         </tbody>
       </table>
+    </div>
+    <!-- ONE line: nothing in effect only when every source is known; an
+         unknown source is named, never shown as zero (Codex R21/R22). -->
+    <div v-if="aux.summary" class="offsetSummary text-muted">
+      {{ aux.summary.kind === 'none'
+        ? 'No G52/G92, tool or comp offset in effect'
+        : `Offset status unknown — ${aux.summary.sources.join(', ')}` }}
     </div>
   </div>
 </template>
@@ -247,6 +277,8 @@ function clearAll() {
 
 .activeRow .offLabel {
   color: var(--ok-text);
+  /* A shape beside the tint and the colour (not colour alone, P5). */
+  box-shadow: inset 3px 0 0 var(--ok);
 }
 
 tbody tr {
@@ -275,4 +307,12 @@ tbody tr.auxRow {
 .cellValue {
   display: block;
 }
+
+/* The cell being edited: its inner edge, distinct from the focus ring (the
+   keypad holds the focus meanwhile — the ring would claim two targets). */
+.editingCell {
+  box-shadow: inset 0 0 0 2px var(--info);
+}
+
+.offsetSummary { flex-shrink: 0; }
 </style>

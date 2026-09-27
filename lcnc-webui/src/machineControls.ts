@@ -11,6 +11,8 @@ export interface ButtonDef {
   icon?: boolean;
   muted?: boolean;
   inline?: boolean;
+  /** The value look (Btn.vue `.b-value`): an editable table value. */
+  value?: boolean;
   mono?: boolean;
   // Disable while a probe operation is in flight (st.probing). Centralises
   // the ~14 ad-hoc `:disabled="probing"` props that were scattered across
@@ -179,6 +181,10 @@ export const BUTTON_TYPES = {
   profileRemove:  { gate: 'always',  variant: 'danger',  size: 'md' },
   nav:            { gate: 'always',  variant: 'default', size: 'md' },
   inline:         { gate: 'always',  variant: 'default', size: 'sm' },
+  // An offset cell's value: opens the number keypad for that fixture × axis
+  // (operator P5 — the cell used to open only on a click, with no keyboard
+  // path). G10 L2 is a probe-tier write (command_policy).
+  offsetCell:     { gate: 'probe',   variant: 'default', size: 'sm',  value: true },
   // Discard in an inline note is the same destructive choice as in a
   // dialog — danger wherever it appears (design wave D1, UI-N31).
   inlineDanger:   { gate: 'always',  variant: 'danger',  size: 'sm' },
