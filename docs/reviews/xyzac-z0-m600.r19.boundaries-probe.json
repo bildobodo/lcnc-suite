@@ -1,0 +1,298 @@
+{
+  "head": "f3a22bc7add005dfebb76954e113acdcfc5c2772",
+  "cases": [
+    {
+      "name": "rejected_open_same_path",
+      "load_reply": {
+        "ok": true,
+        "path": "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc"
+      },
+      "task_rejected": true,
+      "reported_errors": 1,
+      "requested": "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc",
+      "raw_file": "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc",
+      "pending_before_first_tick": true,
+      "record_before_first_tick": "unsettled",
+      "after_first_tick": {
+        "loaded": "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc",
+        "unconfirmed": null,
+        "pending": false,
+        "record": [
+          "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc"
+        ]
+      },
+      "after_window": {
+        "loaded": "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc",
+        "unconfirmed": null,
+        "pending": false,
+        "record": [
+          "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc"
+        ]
+      },
+      "auto_run_reply": {
+        "ok": true,
+        "rfl": "started"
+      },
+      "spawned": [
+        [
+          [
+            2,
+            0,
+            true,
+            null,
+            0,
+            null
+          ],
+          {
+            "program": [
+              "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc",
+              "a44886dd206d4cbcda6dbe3fd4bcf4a6f67c9c4398969d8ebaa6a24fd0a10f61"
+            ]
+          }
+        ]
+      ],
+      "restored": "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc",
+      "restart_unconfirmed": null
+    },
+    {
+      "name": "rejected_open_same_path_initially_unconfirmed",
+      "load_reply": {
+        "ok": true,
+        "path": "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc"
+      },
+      "task_rejected": true,
+      "reported_errors": 1,
+      "requested": "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc",
+      "raw_file": "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc",
+      "pending_before_first_tick": true,
+      "record_before_first_tick": "unsettled",
+      "after_first_tick": {
+        "loaded": "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc",
+        "unconfirmed": null,
+        "pending": false,
+        "record": [
+          "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc"
+        ]
+      },
+      "after_window": {
+        "loaded": "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc",
+        "unconfirmed": null,
+        "pending": false,
+        "record": [
+          "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc"
+        ]
+      },
+      "auto_run_reply": {
+        "ok": true,
+        "rfl": "started"
+      },
+      "spawned": [
+        [
+          [
+            2,
+            0,
+            true,
+            null,
+            0,
+            null
+          ],
+          {
+            "program": [
+              "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc",
+              "a44886dd206d4cbcda6dbe3fd4bcf4a6f67c9c4398969d8ebaa6a24fd0a10f61"
+            ]
+          }
+        ]
+      ],
+      "restored": "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc",
+      "restart_unconfirmed": null
+    },
+    {
+      "name": "rejected_open_different_path",
+      "load_reply": {
+        "ok": true,
+        "path": "/tmp/codex-r19-boundaries-3b4id6m7/B.ngc"
+      },
+      "task_rejected": true,
+      "reported_errors": 1,
+      "requested": "/tmp/codex-r19-boundaries-3b4id6m7/B.ngc",
+      "raw_file": "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc",
+      "pending_before_first_tick": true,
+      "record_before_first_tick": "unsettled",
+      "after_first_tick": {
+        "loaded": "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc",
+        "unconfirmed": null,
+        "pending": true,
+        "record": "unsettled"
+      },
+      "after_window": {
+        "loaded": null,
+        "unconfirmed": "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc",
+        "pending": true,
+        "record": "unsettled"
+      },
+      "auto_run_reply": {
+        "ok": false,
+        "error": "Program changed \u2014 confirm Run from line again"
+      },
+      "spawned": [],
+      "restored": null,
+      "restart_unconfirmed": "/tmp/codex-r19-boundaries-3b4id6m7/A.ngc"
+    },
+    {
+      "name": "unknown_flag_cycle_start_clear_accepted",
+      "reply": {
+        "ok": true
+      },
+      "calls": [
+        [
+          "mdi",
+          [
+            "#3116=0.000000"
+          ]
+        ],
+        [
+          "auto",
+          [
+            16,
+            0
+          ]
+        ]
+      ],
+      "unknown": false
+    },
+    {
+      "name": "unknown_flag_cycle_start_clear_refused",
+      "reply": {
+        "ok": false,
+        "error": "Skip flag #3116 not cleared \u2014 nothing started"
+      },
+      "calls": [
+        [
+          "mdi",
+          [
+            "#3116=0.000000"
+          ]
+        ]
+      ],
+      "unknown": true
+    },
+    {
+      "name": "unknown_flag_auto_step_clear_accepted",
+      "reply": {
+        "ok": true
+      },
+      "calls": [
+        [
+          "mdi",
+          [
+            "#3116=0.000000"
+          ]
+        ],
+        [
+          "auto",
+          [
+            17
+          ]
+        ]
+      ],
+      "unknown": false
+    },
+    {
+      "name": "unknown_flag_auto_step_clear_refused",
+      "reply": {
+        "ok": false,
+        "error": "Skip flag #3116 not cleared \u2014 nothing started"
+      },
+      "calls": [
+        [
+          "mdi",
+          [
+            "#3116=0.000000"
+          ]
+        ]
+      ],
+      "unknown": true
+    },
+    {
+      "name": "unknown_flag_mdi_clear_accepted",
+      "reply": {
+        "ok": true
+      },
+      "calls": [
+        [
+          "mdi",
+          [
+            "#3116=0.000000"
+          ]
+        ],
+        [
+          "mdi",
+          [
+            "T5 M600"
+          ]
+        ]
+      ],
+      "unknown": false
+    },
+    {
+      "name": "unknown_flag_mdi_clear_refused",
+      "reply": {
+        "ok": false,
+        "error": "Skip flag #3116 not cleared \u2014 nothing started"
+      },
+      "calls": [
+        [
+          "mdi",
+          [
+            "#3116=0.000000"
+          ]
+        ]
+      ],
+      "unknown": true
+    },
+    {
+      "name": "unknown_flag_tool_change_clear_accepted",
+      "reply": {
+        "ok": true
+      },
+      "calls": [
+        [
+          "mdi",
+          [
+            "#3116=0.000000"
+          ]
+        ],
+        [
+          "mdi",
+          [
+            "T5 M6"
+          ]
+        ],
+        [
+          "mdi",
+          [
+            "G43 H5"
+          ]
+        ]
+      ],
+      "unknown": false
+    },
+    {
+      "name": "unknown_flag_tool_change_clear_refused",
+      "reply": {
+        "ok": false,
+        "error": "Skip flag #3116 not cleared \u2014 nothing started"
+      },
+      "calls": [
+        [
+          "mdi",
+          [
+            "#3116=0.000000"
+          ]
+        ]
+      ],
+      "unknown": true
+    }
+  ]
+}
