@@ -350,14 +350,16 @@ class TestHandlerExecution(unittest.TestCase):
         r = self._send({"cmd": "mdi", "text": "T5 M600", "vars": {"3100": 150, "3102": -300}})
         self.assertTrue(r["ok"], r)
         self.assertTrue(r["mdi_set"], r)
-        self.assertEqual(self._mdis(cmd), ["#3100=150.000000 #3102=-300.000000", "T5 M600"])
+        # A measurement the WebUI starts is never skipped by a stale one-shot
+        # skip flag (live R17 check): #3116=0 rides with the values.
+        self.assertEqual(self._mdis(cmd), ["#3100=150.000000 #3102=-300.000000 #3116=0.000000", "T5 M600"])
 
     def test_mdi_with_vars_not_taken_over_sends_no_line(self):
         cmd = self._rcs(rc=3)   # RCS_ERROR
         r = self._send({"cmd": "mdi", "text": "T5 M600", "vars": {"3100": 150}})
         self.assertFalse(r["ok"], r)
         self.assertIn("not taken over", r["error"])
-        self.assertEqual(self._mdis(cmd), ["#3100=150.000000"], "the values, never the line")
+        self.assertEqual(self._mdis(cmd), ["#3100=150.000000 #3116=0.000000"], "the values, never the line")
 
     def test_mdi_with_vars_on_a_machine_that_is_off_sends_nothing_of_the_line(self):
         cmd = self._rcs()
@@ -388,7 +390,7 @@ class TestHandlerExecution(unittest.TestCase):
             with self.assertRaises(asyncio.CancelledError):
                 await task
         _run(scenario())
-        self.assertEqual(self._mdis(cmd), ["#3100=150.000000"])
+        self.assertEqual(self._mdis(cmd), ["#3100=150.000000 #3116=0.000000"])
 
     def _auto_run(self, published=None, published_version=7, **over):
         """auto_run as the dialog sends it: the path, the published version
@@ -485,7 +487,7 @@ class TestHandlerExecution(unittest.TestCase):
         self.assertEqual((self._mdis(cmd), spawned), ([], []), "no values, no measurement")
         r, spawned = self._auto_run(pre_tool=5, probe_vars={"3100": 150, "3102": -300})
         self.assertTrue(r["ok"], r)
-        self.assertEqual(self._mdis(cmd), ["#3100=150.000000 #3102=-300.000000"])
+        self.assertEqual(self._mdis(cmd), ["#3100=150.000000 #3102=-300.000000 #3116=0.000000"])
         self.assertEqual(len(spawned), 1, "then the measuring sequence")
         self.assertEqual(spawned[0][1]["program"], (self.prog, gateway.program_source(self.prog)),
                          "bound to the program's text")
@@ -532,13 +534,13 @@ class TestHandlerExecution(unittest.TestCase):
         gateway.STAT.task_mode = linuxcnc.MODE_AUTO
         gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
         running = SimpleNamespace(done=lambda: False)   # a sequence task still running
-        for slot in ("_rfl_task", "_rfl_flag_task"):
+        for slot, says in (("_rfl_task", "starting"), ("_rfl_flag_task", "ending")):
             with self.subTest(slot=slot), unittest.mock.patch.object(gateway, slot, running), \
                     unittest.mock.patch.object(gateway, "get_nc_files_dir", return_value=str(Path(self.prog).parent)):
                 for msg in ({"cmd": "load_file", "path": self.prog}, {"cmd": "unload_file"}):
                     r = self._send(msg)
                     self.assertFalse(r["ok"], r)
-                    self.assertIn("Run from line", r["error"])
+                    self.assertIn(f"Run from line is {says}", r["error"])
         self.assertIsNone(self.cmd.args_of("program_open"))
 
     def test_a_change_whose_old_proof_cannot_be_withdrawn_is_refused(self):

@@ -495,6 +495,62 @@ class TestRflLifecycle(_SeqHarness):
         self.assertFalse(gateway._rfl_status["ok"])
         self.assertIn("#3116", gateway._rfl_status["error"])
 
+    async def test_the_flag_clear_waits_until_the_abort_stopped_the_interpreter(self):
+        # Live 2026-09-27 (R17 check): the clear ran the instant the sequence
+        # was cancelled — the aborted positioning move still ran, the MDI was
+        # refused ("MDI command in progress"), #3116 stayed armed and the next
+        # pre-measurement of that tool was skipped (2.2 s, no probe trip).
+        seen = []
+
+        async def clear():
+            seen.append(gateway.STAT.interp_state)
+            if gateway.STAT.interp_state != linuxcnc.INTERP_IDLE:
+                raise AssertionError("MDI command in progress — command rejected")
+        self.blocking_steps(clear=clear)
+        self.start()
+        await asyncio.wait_for(self.retracting.wait(), 2)
+        gateway.STAT.interp_state = linuxcnc.INTERP_READING    # the aborted move still runs
+        gateway._preempt_inflight(by="abort", from_client=1)
+        await asyncio.sleep(0.4)
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE       # the abort took effect
+        await self.settle()
+        self.assertEqual(seen, [linuxcnc.INTERP_IDLE], "cleared only once the interpreter was idle")
+        self.assertEqual(self.cleared, ["#3116=0"])
+        self.assertEqual(gateway._rfl_status["phase"], "aborted")
+
+    async def test_a_moment_of_idle_before_the_abort_lands_is_not_trusted(self):
+        # The interpreter reads idle for an instant between two blocks (or
+        # before task handled the abort): the clear waits for an idle that
+        # holds, not for the first idle sample.
+        stages = []
+        self.stage = "early"
+
+        async def clear():
+            stages.append(self.stage)
+        self.blocking_steps(clear=clear)
+        self.start()
+        await asyncio.wait_for(self.retracting.wait(), 2)
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        gateway._preempt_inflight(by="abort", from_client=1)
+        await asyncio.sleep(0.1)
+        gateway.STAT.interp_state = linuxcnc.INTERP_READING     # it was still running
+        await asyncio.sleep(0.4)
+        self.stage = "late"
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        await self.settle()
+        self.assertEqual(stages, ["late"])
+
+    async def test_a_machine_that_went_off_is_told_not_waited_for(self):
+        self.blocking_steps()
+        self.start()
+        await asyncio.wait_for(self.retracting.wait(), 2)
+        gateway.STAT.task_state = linuxcnc.STATE_ESTOP
+        gateway._preempt_inflight(by="estop", from_client=1)
+        await self.settle()
+        self.assertEqual(self.cleared, [], "no MDI with the machine off")
+        self.assertEqual(gateway._rfl_status["phase"], "flag_clear_failed")
+        self.assertIn("#3116", gateway._rfl_status["error"])
+
     async def test_an_old_task_never_releases_a_newer_one(self):
         old = self.start()
         gateway._preempt_inflight(by="abort", from_client=1)
