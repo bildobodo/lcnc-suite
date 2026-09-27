@@ -7412,3 +7412,31 @@ datum shift.
     values carries #3116=0 — a flag no clear could reach (E-Stop, a
     restart) cannot skip a measurement. Only the sequence's own program
     skips, right after it armed the flag, under the latch.
+
+- Codex review R18 (same day): XZ-07 and XZ-10 closed, the merge
+  constraint accepted (the fix branch reaches `development` only with
+  `feat/viewer-contrast`, where its frontend lives); two findings:
+  - XZ-11 (`85b4cab`): a normal start could take over an old skip flag —
+    the sequence counted #3116 as armed only after its send had completed
+    (an abort in that wait left it set, unreported), and Cycle Start was
+    accepted while the clear still waited. The gateway cannot read the
+    flag, so it tracks what it sent: `_skip_flag_unknown`, true at boot
+    (the var file carries #3116 across a LinuxCNC restart), from the moment
+    the sequence may send it (armed before the send), after the sequence's
+    own start (the skim consumes it; an abort can cut that short) and after
+    an MDI line naming it; false only once a #3116=0 it sent was taken.
+    Every start from idle — cycle_start, the first auto_step, auto_run,
+    mdi, tool_change (an M6 remap may run the routine) — is refused while
+    run from line starts or ends, and clears a flag that may be set first,
+    in the same command; nothing starts when that clear fails. A step in a
+    paused program clears nothing (the program a start already cleared
+    for, or run from line's own).
+  - XZ-08 (`f09afbf`): the end of the handler or of the observation window
+    resolved a load as if nothing had happened — the next tick wrote the
+    OLD program back as settled. Now only the interpreter settles a change:
+    a load keeps its window whatever ended the handler (a cancel lands
+    after program_open went out); a window that runs out, or an unload cut
+    short, leaves the change unresolved — no program loaded, the open file
+    named unconfirmed, no settled record — until a load, an unload or an
+    empty interpreter resolves it. auto_run waits while a change is under
+    way.
