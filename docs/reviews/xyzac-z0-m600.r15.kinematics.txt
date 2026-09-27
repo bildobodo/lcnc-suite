@@ -1,0 +1,10 @@
+test_all_guide_blocks_stay_on_rails (__main__.XYZACAcceptance.test_all_guide_blocks_stay_on_rails) ... ok
+test_cold_start_positions_are_inside_limits_before_homing (__main__.XYZACAcceptance.test_cold_start_positions_are_inside_limits_before_homing) ... ok
+test_config_and_closed_export_manifest (__main__.XYZACAcceptance.test_config_and_closed_export_manifest) ... ok
+test_frame_tree_matches_linuxcnc_with_tool_compensation (__main__.XYZACAcceptance.test_frame_tree_matches_linuxcnc_with_tool_compensation) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 1.196s
+
+OK
+8000 frame/oracle comparisons + inverse roundtrips; worst error 2.27e-13 mm; 3723 TCP demo poses inside joint limits

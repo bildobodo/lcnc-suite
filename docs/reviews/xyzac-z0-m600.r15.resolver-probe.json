@@ -1,0 +1,76 @@
+{
+  "scope": "Pure reproduction of reported B2 status sequence; second path illustrates PROGRAM_PREFIX search coverage",
+  "results": [
+    {
+      "sub": "/review/remap_subs/m600.ngc",
+      "rows": [
+        {
+          "phase": "baseline",
+          "raw": null,
+          "idle": true,
+          "previous": null,
+          "loaded": null,
+          "ignored": null
+        },
+        {
+          "phase": "MDI call",
+          "raw": "/review/remap_subs/m600.ngc",
+          "idle": false,
+          "previous": null,
+          "loaded": null,
+          "ignored": "/review/remap_subs/m600.ngc"
+        },
+        {
+          "phase": "MDI error leaves sub in STAT.file",
+          "raw": "/review/remap_subs/m600.ngc",
+          "idle": true,
+          "previous": null,
+          "loaded": "/review/remap_subs/m600.ngc",
+          "ignored": null
+        }
+      ],
+      "unexpected_adoption": true
+    },
+    {
+      "sub": "/review/nc_files/probe.ngc",
+      "rows": [
+        {
+          "phase": "baseline",
+          "raw": null,
+          "idle": true,
+          "previous": null,
+          "loaded": null,
+          "ignored": null
+        },
+        {
+          "phase": "MDI call",
+          "raw": "/review/nc_files/probe.ngc",
+          "idle": false,
+          "previous": null,
+          "loaded": null,
+          "ignored": "/review/nc_files/probe.ngc"
+        },
+        {
+          "phase": "MDI error leaves sub in STAT.file",
+          "raw": "/review/nc_files/probe.ngc",
+          "idle": true,
+          "previous": null,
+          "loaded": "/review/nc_files/probe.ngc",
+          "ignored": null
+        }
+      ],
+      "unexpected_adoption": true
+    }
+  ],
+  "path_rule_counterexample": {
+    "program_prefix": "/review/nc_files",
+    "subroutine_path": [
+      "/review/nc_files/shared"
+    ],
+    "explicit_program_candidate": "/review/nc_files/shared/main.ngc",
+    "within_current_load_allowlist": true,
+    "extension_allowed": true,
+    "also_under_subroutine_path": true,
+    "note": "The proposed categorical path exclusion would conflict with explicit loads in a shared directory; PROGRAM_PREFIX also permits called subroutines."
+  }
+}
