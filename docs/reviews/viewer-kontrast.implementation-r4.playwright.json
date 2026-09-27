@@ -1,0 +1,76 @@
+{
+  "reviewedHead": "aaeccbf9f3d46ed630798a99045ab1308f340e63",
+  "mockOrigin": "http://127.0.0.1:4189",
+  "method": "Selected existing tests copied to /tmp/viewer-contrast-r13; only localhost:4174 replaced with 127.0.0.1:4189, assertions unchanged; Chromium, one worker. Own probes are recorded separately.",
+  "grep": "a note's action|width ladder|existing tools default|external program change keeps|a refused folder",
+  "stats": {
+    "startTime": "2026-09-27T11:56:57.413Z",
+    "duration": 20387.222,
+    "expected": 5,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "file": "editor-guards.spec.ts",
+      "line": 66,
+      "title": "external program change keeps buffer A, shows the conflict, saves A only",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2320
+        }
+      ]
+    },
+    {
+      "file": "feedback-channels.spec.ts",
+      "line": 276,
+      "title": "a refused folder keeps the last listing and offers no Retry; a transient failure retries",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1679
+        }
+      ]
+    },
+    {
+      "file": "layout.spec.ts",
+      "line": 1377,
+      "title": "a note's action keeps its words: the legacy palette note at 150 % portrait",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1917
+        }
+      ]
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "line": 183,
+      "title": "the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px — at DPR 1 and 2",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 11998
+        }
+      ]
+    },
+    {
+      "file": "tool-import.spec.ts",
+      "line": 21,
+      "title": "existing tools default to reviewed metadata refresh, not full replacement",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 1490
+        }
+      ]
+    }
+  ]
+}

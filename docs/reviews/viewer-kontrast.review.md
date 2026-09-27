@@ -559,3 +559,97 @@ Buttons des Bearbeitungskonflikts.
 **Gates:** Offline-Gate PASS: Backend 969, Vitest 1684, Playwright 292/292 (ein neuer Test), Lint, Build, CSS-Audit grün.
 
 ---
+
+## Runde 4 — Codex, Nachprüfung VK-I01–I02 (Handshake R13)
+
+**Stand:** `aaeccbf9f3d46ed630798a99045ab1308f340e63`, Branch `feat/viewer-contrast`,
+Änderungen seit `bef58c2`, 27. September 2026.
+**Ergebnis: findings — VK-I01 und VK-I02 geschlossen; ein neuer kleiner
+Layout-Rückschritt VK-I03 (P3) bleibt offen.** Keine Operator-Entscheidung erforderlich.
+
+### Nachprüfung der beiden Korrekturen
+
+| Befund | Ergebnis | Eigener Nachweis |
+|---|---|---|
+| VK-I01 · Backplot-Updates | **Geschlossen** | Die Controllerprobe mit 100 000 Punkten hält genau einen Bereich vor, maximal 119 994 Float-Komponenten beziehungsweise 479 976 Byte. Clear leert ihn. Nach einem quittierten Upload umfasst das nächste Segment wieder nur sechs Komponenten. Im echten Browserpfad ebenfalls ein Bereich während ausgeblendeter Bewegung, null nach Clear und null nach Wiedereinblenden/Rendern. Die neun Controller-Tests einschließlich neuer Spur nach Clear bestehen. |
+| VK-I02 · Migrationsaktion | **Geschlossen** | Derselbe Altfall bei 900 × 1200, Touch und 150 %: Taste jetzt 202 px breit, Text 170 px und vollständig innerhalb der Taste. Kein innerer Textüberlauf; Hinweis innerhalb des Dialogs. Wechsel zu Automatic, Speichern/Neuladen, anschließendes Custom und Erhalt der alten Farben bestehen weiterhin. |
+
+Die Controller-Korrektur begrenzt den Aufwand unabhängig davon, wie lange die Spur
+ausgeblendet bleibt. Der zusammengefasste Bereich kann beim Ringumlauf auch unveränderte
+Zwischensegmente umfassen; dieser begrenzte Mehr-Upload ist vertretbar und kein offener
+Befund. Die Aufzeichnung im Hintergrund bleibt erhalten.
+
+Belege: [Controllerprobe](viewer-kontrast.implementation-r4.backplot.mjs),
+[Controller-Messwerte](viewer-kontrast.implementation-r4.backplot.json),
+[Browserprobe](viewer-kontrast.implementation-r4.probe.mjs),
+[Browser-Messwerte](viewer-kontrast.implementation-r4.probe.json),
+[vollständig lesbare Migrationsaktion](viewer-kontrast.implementation-r4-legacy-portrait.png).
+Die Browserprobe ist eine Kopie der R3-Sonde mit neuen Belegnamen und eigenem Port;
+die Controllerkopie erfasst zusätzlich den zusammengefassten Bereich und verlangt
+höchstens einen Eintrag. Frühere Belege wurden nicht geändert.
+
+### VK-I03 · P3 · Die neue Textregel vergrößert das Schließ-X nach einem Werkzeugimport
+
+**Stelle:** `lcnc-webui/src/style.css:1326`, betroffen ist
+`lcnc-webui/src/ToolTablePanel.vue:633`.
+
+`.statusNote > :first-child` setzt voraus, dass das erste Kindelement den Meldungstext
+enthält. Der Import-Erfolgshinweis enthält seinen Text jedoch direkt über Vue-Templates;
+sein erstes **Element** ist der Schließknopf. Daher bekommt dieser `flex: 1 1 12em`
+und wird wie ein wachsender Textcontainer behandelt.
+
+**Reproduktion:** Tools → Werkzeugbibliothek hochladen → „Update metadata“ → Erfolgshinweis.
+Bei 1200 × 900 wächst „Dismiss import result“ auf **504 × 26 px**, wandert vom rechten
+Rand unter die Meldung und zentriert das kleine X über fast die gesamte Hinweisbreite.
+Der Hinweis wird **62 statt 36 px** hoch. Im Hochformat bei 150 % beträgt die
+Knopfbreite **380 statt 60 px**. Das Schließen ist weiterhin möglich; es handelt sich
+um eine unbeabsichtigte Änderung von Platzbedarf und Darstellung, nicht um einen
+Daten- oder Funktionsfehler. Deshalb P3.
+
+**Gegenprobe:** Ausschließlich die neue `:first-child`-Regel im Browser-CSSOM deaktiviert,
+bei unverändertem DOM und unverändertem `flex-wrap`: Desktop-Knopf wieder **30 × 26 px**,
+Hinweis wieder 36 px hoch. Anschließend die Regel wiederhergestellt. Kein Produktcode
+oder importierter Dateibestand wurde dafür verändert; die Importantworten kommen vom Mock.
+
+**Korrektur:** Text und Aktionen ausdrücklich unterscheiden, beispielsweise den direkten
+Import-Erfolgstext in den vorgesehenen Textcontainer nehmen oder die globale Regel auf
+tatsächliche Textcontainer begrenzen. Der neue Umbruch und die vollständige Beschriftung
+der Migrationsaktion sollen erhalten bleiben. Ein Wächter für den Import-Erfolgshinweis
+soll die unvergrößerte Icon-Aktion prüfen, zusätzlich zum bereits vorhandenen Wächter
+für den langen Aktionsnamen.
+
+Belege: [eigene Hinweisprobe](viewer-kontrast.implementation-r4.notes.mjs),
+[Messwerte einschließlich DOM-Kindtypen und Gegenprobe](viewer-kontrast.implementation-r4.notes.json),
+[Desktop](viewer-kontrast.implementation-r4-import-desktop.png),
+[Desktop-Gegenprobe](viewer-kontrast.implementation-r4-import-desktop-counterprobe.png),
+[Hochformat](viewer-kontrast.implementation-r4-import-portrait.png),
+[Hochformat-Gegenprobe](viewer-kontrast.implementation-r4-import-portrait-counterprobe.png).
+
+Die weiteren gezielt geprüften Meldungen zeigen keinen neuen Befund: Beide Aktionen
+des Bearbeitungskonflikts passen einschließlich Beschriftung bei Desktop und Hochformat
+150 %. Der Retry-Knopf des Dateibrowsers bleibt bei 150 % lesbar und führt die Wiederholung
+erfolgreich aus. Das ist eine gezielte Prüfung der betroffenen Muster, keine vollständige
+neue Sichtprüfung sämtlicher Meldungen.
+
+### Eigene Prüfungen und Grenzen
+
+- [Build](viewer-kontrast.implementation-r4.build.txt) und
+  [Lint einschließlich CSS-Audit](viewer-kontrast.implementation-r4.lint.txt): **PASS**.
+- [Backplot-Unit-Tests](viewer-kontrast.implementation-r4.vitest.txt): **9/9**.
+- [Gezielte Playwright-Prüfungen](viewer-kontrast.implementation-r4.playwright.txt):
+  **5/5**; [Testliste und Laufdaten](viewer-kontrast.implementation-r4.playwright.json).
+  Bestehende Tests als temporäre Kopien, ausschließlich Mock-Adresse auf
+  `127.0.0.1:4189` geändert, Assertions unverändert, ein Worker.
+- [Nachprüfung mit eigener R3-Sondenkopie](viewer-kontrast.implementation-r4.probe.txt):
+  **5/5** Prüfungen bestanden, keine Browser-`pageerror`-Ereignisse.
+- [Zusätzliche Hinweisprobe](viewer-kontrast.implementation-r4.notes.txt): zwei Prüfungen
+  bestanden; eine fehlgeschlagen, als VK-I03 dokumentiert. Der Ergebnis-JSON ist maßgeblich,
+  da die Sonden ihre Einzelbefunde sammeln statt beim ersten Fehler abzubrechen.
+
+Reproduktion wie in Runde 3, mit `MOCK_PORT=4189` und den drei Skripten
+`viewer-kontrast.implementation-r4.backplot.mjs`, `.probe.mjs` und `.notes.mjs`.
+Sonden seriell gegen den eigenen Mock ausführen; für spätere Runden Kopien mit neuen
+Belegnamen verwenden. Nur Review-Dokumentation und neue Belege ergänzt. Kein Produktcode
+geändert, kein LinuxCNC angesprochen. Kein erneuter vollständiger Offline-Gesamtlauf;
+Claudes gemeldetes Gate ist im Antwortabschnitt getrennt ausgewiesen. Die abschließende
+Live-Sichtprüfung bleibt außerhalb dieser Nachprüfung.

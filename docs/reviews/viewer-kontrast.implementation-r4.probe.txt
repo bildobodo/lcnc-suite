@@ -1,0 +1,6 @@
+{"name":"TWP state and live theme refresh, HUD hidden at portrait 150%","pass":true}
+{"name":"Real Sim switch uses the program plane and restores the live plane","pass":true}
+{"name":"Hidden backplot pending updates, Clear, then redraw","pass":true}
+{"name":"Legacy palette round-trip and narrow Settings hint","pass":true}
+{"name":"Legacy hint action label fits the visible button at portrait 150%","pass":true}
+{"checks":[{"name":"TWP state and live theme refresh, HUD hidden at portrait 150%","pass":true},{"name":"Real Sim switch uses the program plane and restores the live plane","pass":true},{"name":"Hidden backplot pending updates, Clear, then redraw","pass":true},{"name":"Legacy palette round-trip and narrow Settings hint","pass":true},{"name":"Legacy hint action label fits the visible button at portrait 150%","pass":true}],"errors":[]}

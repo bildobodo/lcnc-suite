@@ -1,0 +1,153 @@
+{
+  "head": "aaeccbf9f3d46ed630798a99045ab1308f340e63",
+  "origin": "http://127.0.0.1:4189",
+  "checks": [
+    {
+      "name": "TWP state and live theme refresh, HUD hidden at portrait 150%",
+      "pass": true
+    },
+    {
+      "name": "Real Sim switch uses the program plane and restores the live plane",
+      "pass": true
+    },
+    {
+      "name": "Hidden backplot pending updates, Clear, then redraw",
+      "pass": true
+    },
+    {
+      "name": "Legacy palette round-trip and narrow Settings hint",
+      "pass": true
+    },
+    {
+      "name": "Legacy hint action label fits the visible button at portrait 150%",
+      "pass": true
+    }
+  ],
+  "samples": [
+    {
+      "theme": "light",
+      "plane": {
+        "visible": true,
+        "label": "Plane · head moved · datum moved",
+        "role": "planeStale",
+        "dashed": true,
+        "edge": {
+          "color": "#cc3333",
+          "opacity": 1,
+          "transparent": false
+        },
+        "arrowStale": true,
+        "hudWord": "plane head moved, datum moved"
+      }
+    },
+    {
+      "theme": "dark",
+      "plane": {
+        "visible": true,
+        "label": "Plane · head moved · datum moved",
+        "role": "planeStale",
+        "dashed": true,
+        "edge": {
+          "color": "#cc3333",
+          "opacity": 1,
+          "transparent": false
+        },
+        "arrowStale": true,
+        "hudWord": "plane head moved, datum moved"
+      }
+    },
+    {
+      "theme": "hc-light",
+      "plane": {
+        "visible": true,
+        "label": "Plane · head moved · datum moved",
+        "role": "planeStale",
+        "dashed": true,
+        "edge": {
+          "color": "#cc3333",
+          "opacity": 1,
+          "transparent": false
+        },
+        "arrowStale": true,
+        "hudWord": "plane head moved, datum moved"
+      }
+    },
+    {
+      "theme": "hc-dark",
+      "plane": {
+        "visible": true,
+        "label": "Plane · head moved · datum moved",
+        "role": "planeStale",
+        "dashed": true,
+        "edge": {
+          "color": "#cc4845",
+          "opacity": 1,
+          "transparent": false
+        },
+        "arrowStale": true,
+        "hudWord": "plane head moved, datum moved"
+      }
+    }
+  ],
+  "pageErrors": [],
+  "pendingRanges": {
+    "before": [],
+    "hidden": [
+      {
+        "count": 1,
+        "first": {
+          "start": 0,
+          "count": 708
+        },
+        "last": {
+          "start": 0,
+          "count": 708
+        }
+      }
+    ],
+    "cleared": [
+      {
+        "count": 0,
+        "first": null,
+        "last": null
+      }
+    ],
+    "shown": [
+      {
+        "count": 0,
+        "first": null,
+        "last": null
+      }
+    ]
+  },
+  "noteBox": {
+    "width": 191,
+    "scroll": 191,
+    "text": "Colors from an earlier version — Automatic uses the theme's checked colorsUse automatic colors",
+    "button": {
+      "text": "Use automatic colors",
+      "box": {
+        "left": 536,
+        "right": 738,
+        "width": 202,
+        "height": 54
+      },
+      "label": {
+        "left": 536,
+        "right": 738,
+        "width": 202,
+        "height": 54
+      },
+      "textBox": {
+        "left": 552,
+        "right": 722,
+        "width": 170,
+        "height": 20
+      },
+      "labelClientWidth": 133,
+      "labelScrollWidth": 133,
+      "overflow": "hidden",
+      "whiteSpace": "nowrap"
+    }
+  }
+}

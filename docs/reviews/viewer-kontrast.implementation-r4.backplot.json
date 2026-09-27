@@ -1,0 +1,87 @@
+{
+  "reviewedHead": "aaeccbf9f3d46ed630798a99045ab1308f340e63",
+  "method": "Real controller, no renderer: a hidden WebGL object is not uploaded; inspect the queued updates independently of its bounded vertex storage.",
+  "samples": [
+    {
+      "phase": "after 10000 points",
+      "visible": false,
+      "points": 10000,
+      "segments": 9999,
+      "bufferBytes": 479976,
+      "pendingRanges": 1,
+      "ranges": [
+        {
+          "start": 0,
+          "count": 59994
+        }
+      ]
+    },
+    {
+      "phase": "after 20000 points",
+      "visible": false,
+      "points": 20000,
+      "segments": 19999,
+      "bufferBytes": 479976,
+      "pendingRanges": 1,
+      "ranges": [
+        {
+          "start": 0,
+          "count": 119994
+        }
+      ]
+    },
+    {
+      "phase": "after 50000 points",
+      "visible": false,
+      "points": 20000,
+      "segments": 19999,
+      "bufferBytes": 479976,
+      "pendingRanges": 1,
+      "ranges": [
+        {
+          "start": 0,
+          "count": 119994
+        }
+      ]
+    },
+    {
+      "phase": "after 100000 points",
+      "visible": false,
+      "points": 20000,
+      "segments": 19999,
+      "bufferBytes": 479976,
+      "pendingRanges": 1,
+      "ranges": [
+        {
+          "start": 0,
+          "count": 119994
+        }
+      ]
+    }
+  ],
+  "afterClear": {
+    "phase": "after Clear/reset",
+    "visible": false,
+    "points": 0,
+    "segments": 0,
+    "bufferBytes": 479976,
+    "pendingRanges": 0,
+    "ranges": []
+  },
+  "afterAcknowledgedUpload": {
+    "phase": "fresh segment after an acknowledged upload",
+    "visible": false,
+    "points": 2,
+    "segments": 1,
+    "bufferBytes": 479976,
+    "pendingRanges": 1,
+    "ranges": [
+      {
+        "start": 0,
+        "count": 6
+      }
+    ]
+  },
+  "boundedWhileHidden": true,
+  "clearDiscardsPendingUpdates": true
+}

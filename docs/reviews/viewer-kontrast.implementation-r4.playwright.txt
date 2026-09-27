@@ -1,0 +1,14 @@
+
+Running 5 tests using 1 worker
+
+(node:3106376) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3106376) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 ../../../tmp/viewer-contrast-r13/e2e/editor-guards.spec.ts:66:1 › external program change keeps buffer A, shows the conflict, saves A only (2.3s)
+  ✓  2 ../../../tmp/viewer-contrast-r13/e2e/feedback-channels.spec.ts:276:1 › a refused folder keeps the last listing and offers no Retry; a transient failure retries (1.7s)
+  ✓  3 ../../../tmp/viewer-contrast-r13/e2e/layout.spec.ts:1377:1 › a note's action keeps its words: the legacy palette note at 150 % portrait (1.9s)
+  ✓  4 ../../../tmp/viewer-contrast-r13/e2e/scenes.viewer.spec.ts:183:1 › the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px — at DPR 1 and 2 (12.0s)
+  ✓  5 ../../../tmp/viewer-contrast-r13/e2e/tool-import.spec.ts:21:1 › existing tools default to reviewed metadata refresh, not full replacement (1.5s)
+
+  5 passed (20.4s)
