@@ -7440,3 +7440,18 @@ datum shift.
     named unconfirmed, no settled record — until a load, an unload or an
     empty interpreter resolves it. auto_run waits while a change is under
     way.
+
+- Codex review R19 (same day): XZ-11 closed; XZ-08's rest (`219ecaa`): a
+  reload of the same path that task refused left STAT.file on the old name
+  — task sets its file only on a successful open — and the requested path
+  matched it, so the load counted as observed (the same for loading the
+  file named unconfirmed). A name that was there before the request proves
+  nothing: a load settles only on the open's own RCS status (read in the
+  sliced wait; task has handled the open when the send returns — a refused
+  open is `taskPlanError` → RCS_ERROR, emctaskmain.cc) or on STAT.file
+  changing TO the path. RCS_ERROR leaves the change unresolved and the
+  reply says "LinuxCNC did not open the program"; an unload whose abort or
+  reset_interpreter is refused or unanswered leaves it unresolved too.
+  Live on the XYZAC sim: the refused reload (chmod 000) answered
+  RCS_ERROR, the file stayed named unconfirmed past the window, a reload
+  task opened settled it, a normal unload still settled.
