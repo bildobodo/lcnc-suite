@@ -1783,3 +1783,130 @@ Die Suite lief mit dem R18-Gateway, ohne VM-Browser
   nie zu verlassen.
 - XZ-08: Soll ein nach dem Fenster gesehenes B unbestätigt bleiben (so jetzt) oder bei einem
   eigenen, noch nicht aufgelösten Laden von genau B übernommen werden?
+
+---
+
+## Codex · Runde 5 zu XYZAC-Z0/M600 (Handshake R19) · 27. September 2026
+
+**Stand:** `feat/viewer-contrast` @ `f3a22bc7add005dfebb76954e113acdcfc5c2772`.
+Nachprüfung der Antwort auf R18 und der Änderungen seit `5c7c8a0`.
+**Ergebnis: findings — XZ-11 geschlossen, XZ-08 bleibt mit einem P2-Restfall offen.**
+Keine neue Operator-Entscheidung erforderlich.
+
+### XZ-08 · P2 · Ein abgelehntes Laden desselben Pfads wird als erfolgreich beobachtet
+
+**Stellen:** `lcnc-gateway/gateway_util.py:398` und `:403`,
+`lcnc-gateway/gateway.py:4606`, `lcnc-gateway/status_runtime.py:666`.
+
+Der neue ungelöste Zustand korrigiert den Ablauf des Beobachtungsfensters. Beim erneuten
+Laden desselben Pfads wird dieses Fenster jedoch vorzeitig geschlossen: Der weiterhin
+gemeldete alte Dateiname erfüllt bereits die gesamte Erfolgsbedingung.
+
+**Reproduktion mit echtem Handler, `_cmd_blocking`, Status-Tick und Ladeeintrag:**
+
+1. A ist geladen, `STAT.file` nennt A.
+2. `load_file(A)` markiert den Eintrag korrekt als `unsettled` und sendet `program_open(A)`.
+3. Der simulierte Task lehnt das Öffnen ab. Der Python-Sendeaufruf kehrt normal zurück,
+   ein NML-Fehler wird gemeldet, `STAT.file` bleibt A. Das ist die in Claudes Live-Beleg
+   nachgewiesene Fehlersemantik; die eigene Sonde simuliert sie mit unverändertem
+   `STAT.file` und erhöhtem Fehlerzähler, ohne Live-Steuerung.
+4. Der nächste `program_tick(A, idle)` löscht `_pending` allein aufgrund der
+   Pfadgleichheit. Der Eintrag wird wieder als gesichertes A geschrieben.
+5. Auch nach Ablauf der fünf Sekunden bleibt A bestätigt. Ein Neustart derselben Instanz
+   stellt A wieder her, ohne Unbestätigt-Meldung. Ein anschließender `auto_run` für A
+   passiert die neue `change_pending`-Prüfung und plant wieder einen RFL-Task.
+
+Die zweite Variante beginnt bereits mit **A als unbestätigter Datei** nach einem
+ungelösten Vorgang. Ein ebenfalls abgelehntes `load_file(A)` beseitigt dort die Warnung
+und bestätigt A über den zweiten Pfadvergleich in Zeile 403. Ein fehlgeschlagener
+Wiederherstellungsversuch darf diesen Zustand nicht auflösen.
+
+```text
+rejected_open_same_path / rejected_open_same_path_initially_unconfirmed:
+  task_rejected = true, reported_errors = 1, STAT.file = A
+  before first tick: pending = true, record = unsettled
+  after first tick:  loaded = A, unconfirmed = null, pending = false, record = [A]
+  after 6 seconds:   unchanged
+  after restart:    restored = A, unconfirmed = null
+  auto_run:         ok = true, rfl = started
+```
+
+**Gegenprobe:** Wird unter identischen Bedingungen stattdessen B angefordert und der
+Task behält A, bleibt der Eintrag nach Ablauf des Fensters korrekt `unsettled`, A ist
+unbestätigt und `auto_run` wird abgelehnt. Die Unterscheidung beruht also auf dem
+Dateinamen, nicht auf dem Erfolg des Öffnens.
+
+**Auswirkung:** Die ausdrücklich eingeführte Trennung zwischen gesichertem und unbekanntem
+Ladezustand greift bei Reload und beim erneuten Laden der angezeigten unbestätigten Datei
+nicht. Claudes Antwort erklärt bereits, warum der alte Name nach einer Ablehnung nicht
+beweist, dass der Interpreter das alte Programm noch geöffnet hat. Diese Einschränkung
+gilt genauso, wenn der abgelehnte Zielpfad mit dem alten Namen übereinstimmt.
+
+**Korrekturziel:** Den Abschluss einer Ladetransaktion zusätzlich an eine gesicherte
+Rückmeldung des zugehörigen Öffnens binden. Ein schon vor dem Auftrag vorhandener
+`STAT.file`-Wert ist dafür kein neuer Beleg. Ein abgelehntes Öffnen muss unbestätigt
+bleiben beziehungsweise werden und darf keinen gesicherten Ladeeintrag erzeugen.
+Eine längere Wartefrist allein löst das nicht; der alte Name kann dauerhaft stehen bleiben.
+
+**Wächter:** Reload A mit Task-Ablehnung, Wiederherstellung einer unbestätigten Datei A
+mit Task-Ablehnung sowie erfolgreicher Reload desselben Pfads. Fehlerfälle auch nach
+weiteren Ticks und Neustart prüfen; der Erfolgsfall muss bedienbar bleiben. Der zugehörige
+NML-Sendeaufruf darf im Fehlerfall normal zurückkehren — eine Python-Exception wäre eine
+andere Fehlerklasse und würde diese Lücke nicht abdecken.
+
+Belege: [Grenzfall-Sonde](xyzac-z0-m600.r19.boundaries-probe.py),
+[Messwerte](xyzac-z0-m600.r19.boundaries-probe.json),
+[Protokoll](xyzac-z0-m600.r19.boundaries-probe.txt), Fälle
+`rejected_open_same_path`, `rejected_open_same_path_initially_unconfirmed` und
+`rejected_open_different_path`. Der RFL-Task wird in dieser Sonde nur aufgezeichnet,
+nicht bis zu einer Bewegung ausgeführt.
+
+### Geschlossene Fälle und Antworten
+
+- **XZ-11 geschlossen:** Die eigene R18-Sonde läuft als neue R19-Kopie am kombinierten
+  Stand. Beim Abbruch während der Flag-Zuweisung wird jetzt `#3116=0` gesendet; ein
+  normaler Start während dieses Cleanups wird abgelehnt. Ebenso wird der normale Start
+  während des nach dem Zurückfahren geplanten Cleanups abgelehnt. Die Gegenproben für
+  Abbruch vor Taskbeginn und zweiten Abort während Cleanup bleiben grün.
+- **Startschutz akzeptiert:** Den möglicherweise gesetzten Zustand vor dem Senden zu
+  führen und vor einem neuen Start unter derselben Befehlssperre zurückzusetzen, ist
+  für diese Abläufe die richtige Grenze. Die zusätzliche Sonde prüft `cycle_start`,
+  ersten `auto_step`, `mdi` und `tool_change`: Ein unbekanntes Flag wird zuerst
+  zurückgesetzt; mit abgelehnter Übernahme dieser Zuweisung folgt kein Start. Die
+  Repository-Tests decken zusätzlich beide RFL-Zweige, pausierten Step und den eigenen
+  erfolgreichen RFL-Start ab. Kein manueller Operator-Freigabeschritt erforderlich.
+- **XZ-08, bisherige R18-Fälle korrigiert:** Nach Abbruch eines bereits gesendeten
+  `program_open(B)` wird das im Fenster beobachtete B korrekt bestätigt und beim
+  Neustart B wiederhergestellt. Nach Ablauf des Fensters bleibt B unbestätigt, der
+  Eintrag `unsettled`. Die neuen Tests zum abgebrochenen Entladen bestehen ebenfalls.
+- **Spätes B:** Die jetzige Regel beibehalten: nach Ablauf unbestätigt lassen und durch
+  explizites erneutes Laden auflösen. Eine automatische späte Übernahme ist für diese
+  Korrektur nicht nötig. Der eigene ungelöste Auftrag allein beweist noch keinen
+  erfolgreichen Interpreter-Abschluss; genau diese Grenze muss auch beim selben Pfad
+  gelten.
+- **Merge-Grenze unverändert:** Gateway und Frontend gemeinsam über
+  `feat/viewer-contrast`. Noch keine Implementierungsfreigabe wegen des XZ-08-Restfalls;
+  kein separater Merge des Fix-Branches.
+
+### Eigene Prüfung und Belege
+
+- **707 Backendtests bestanden:** `test_command_dispatch`, `test_gateway_util`,
+  `test_rfl_guard`, `test_status_runtime`, `test_command_policy`, `test_bulk_pipeline`.
+  [Protokoll](xyzac-z0-m600.r19.backend.txt).
+- **R18-Sonde mit unveränderten Szenarien als R19-Kopie:** 12 Beobachtungen; alle vier
+  bisherigen Fehlerfolgen sind korrigiert, die acht Gegenproben bleiben erhalten.
+  Nur Bezeichnung und temporäres Verzeichnis der Kopie geändert.
+  [Sonde](xyzac-z0-m600.r19.gateway-probe.py),
+  [JSON](xyzac-z0-m600.r19.gateway-probe.json),
+  [Protokoll](xyzac-z0-m600.r19.gateway-probe.txt).
+- **Zusätzliche Grenzfall-Sonde:** elf Beobachtungen — zwei Fehlerfolgen für denselben
+  Pfad, eine positive Gegenprobe mit anderem Pfad und acht bestandene Prüfungen des
+  Startschutzes. Alle neuen Sonden liefen mit `fake_linuxcnc` und temporären Dateien.
+- Das Frontend ist gegenüber R18 unverändert; Build, Vitest und Browserprüfungen daher
+  nicht wiederholt. Claudes [Live-Protokoll mit 17/17](xyzac-z0-m600.r18-answer.live.txt)
+  wurde gelesen; es ist kein von Codex wiederholter Live-Lauf. Der dortige abgelehnte
+  Load verwendet einen anderen Zielpfad und deckt den obigen Reload-Fall nicht ab.
+
+Produktcode und ältere Belege unverändert. Keine Steuerbefehle an `:8000`, keine
+Installation und kein Neustart der laufenden Suite; kein eigener Mock nötig.
+**Nächste Runde:** Nachprüfung des XZ-08-Restfalls für Reload/Wiederherstellung desselben Pfads.

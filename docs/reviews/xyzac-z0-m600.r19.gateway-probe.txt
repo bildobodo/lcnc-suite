@@ -1,0 +1,16 @@
+[VINIT] session bound to linuxcncsvr pid=3821460 start=15742738
+[VINIT] try_connect_lcnc OK, pid=3821460
+[VINIT] Loaded machine config: 3-Axis Mill
+{"name": "changed_bytes_same_size_and_mtime", "reply": {"ok": false, "error": "Program changed on disk \u2014 wait for the preview"}, "cmd_calls": [], "spawned": [], "same_size": true, "same_mtime": true, "reparse_requested": true}
+{"name": "served_B_but_preview_still_A", "reply": {"ok": false, "error": "Program changed \u2014 confirm Run from line again"}, "cmd_calls": [], "spawned": []}
+{"name": "confirmed_and_published_B", "reply": {"ok": true, "rfl": "started"}, "cmd_calls": [["mdi", ["#3100=0.000000 #3102=-300.000000 #3116=0.000000"], {}]], "spawned": [{"args": [4, 8, true, null, 0, {"x": 80.0, "y": 90.0, "wcs": null, "units": null}], "kwargs": {"program": ["/tmp/codex-r19-gateway-_or_u1jm/same-path.ngc", "714735e40ac0c40f6f5c2ea8c6db9151d17ebd159adbccf3d5bdd518201587c7"]}}]}
+{"name": "valid_record_restores_main_during_subroutine", "restored": "/nc/A.ngc"}
+{"name": "restart_before_observation", "record": "unsettled", "restored": null, "unconfirmed": "/nc/B.ngc"}
+{"name": "failed_write_retried_on_next_tick", "after_failure": "unsettled", "after_retry": ["/nc/B.ngc"]}
+{"name": "observation_after_load_window", "raw_file": "/nc/B.ngc", "active": null, "record": "unsettled", "restored": null, "unconfirmed": "/nc/B.ngc"}
+{"name": "cancel_after_program_open_sent_before_status_observation", "cancelled": true, "cmd_calls": [["mode", [2], {}], ["program_open", ["/tmp/codex-r19-gateway-_or_u1jm/B.ngc"], {}]], "during": "unsettled", "raw_file": "/tmp/codex-r19-gateway-_or_u1jm/B.ngc", "active": "/tmp/codex-r19-gateway-_or_u1jm/B.ngc", "record_after_tick": ["/tmp/codex-r19-gateway-_or_u1jm/B.ngc"], "restored": "/tmp/codex-r19-gateway-_or_u1jm/B.ngc", "unconfirmed": null}
+{"name": "abort_before_first_step", "mdi": [], "flag": 0, "cleanup_scheduled": false, "busy_after": false, "phase": {"phase": "aborted", "ok": false, "error": "aborted", "ts": 1790540353133}, "subsequent_cycle_start": null, "auto_calls": []}
+{"name": "second_abort_during_clear", "mdi": ["T5 M600", "#3116=5", "G53 G0 Z0", "#3116=0"], "flag": 0, "busy_while_clearing": true, "busy_reason": "Run from line is ending \u2014 wait", "busy_after": false, "phase": {"phase": "aborted", "ok": false, "error": "aborted", "ts": 1790540353533}}
+{"name": "abort_during_flag_completion", "mdi": ["T5 M600", "#3116=5", "#3116=0"], "flag": 0, "cleanup_scheduled": true, "busy_after": true, "phase": {"phase": "aborted", "ok": false, "error": "aborted", "ts": 1790540353835}, "subsequent_cycle_start": {"ok": false, "error": "Run from line is ending \u2014 wait"}, "auto_calls": []}
+{"name": "cycle_start_during_flag_cleanup", "before": {"busy": true, "flag": 5, "reason": "Run from line is ending \u2014 wait"}, "reply": {"ok": false, "error": "Run from line is ending \u2014 wait"}, "auto_calls": [], "mdi_at_start": ["T5 M600", "#3116=5", "G53 G0 Z0"], "flag_at_start": 5}
+[GC] +1503ms gen=2 duration=9.0ms collected=289 uncollectable=0
