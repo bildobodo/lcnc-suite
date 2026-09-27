@@ -7166,3 +7166,26 @@ Plan Fassung 3 WP-D10 (N114, K14, N115), third of three commits.
   card in round 7; the scrub bar's More follows it. fitHud measures both
   views FOLDED: opening More used to shrink the DRO a step (sm → xxs) for an
   overlap it could not avoid.
+
+### Implementation review round 8 — D9 fixes (2026-09-27)
+
+- UI-DI16 (still open with More opened) and UI-DI17: the bottom column had
+  no height cap, so an opened detail view grew it upward over the
+  simulation banner and out of the viewer — the warnings card's close
+  toggle ended under the page's status banner. fitHud now caps the column
+  (`--viewer-bottom-max` = the viewer minus its margins and the banner) and
+  the cards shrink under it: pinned heads (the warnings summary with its
+  toggle, the scrub bar's row 1 with the timeline and More — the way
+  back), scrolling bodies (`.hudNotesBody`, the findings row) that take the
+  pointer while they scroll (opened, or cut by the cap: `.scrolls`). The cap is
+  set after the candidate loop (removed during it, so the folded
+  measurement sees the natural height).
+- ONE detail view at a time: More and the warnings card fold each other
+  (ScrubBar prop `notesOpen`, event `more-open`). With the cap alone two
+  opened views each kept a sliver; Codex left the choice to the
+  implementation and noted it is no fix on its own — the cap is.
+- The opened scrub bar is full-width, so it also covers the ViewCube column
+  (the cube and the quick grid) while More is open. The top-right stack
+  leaves too little height under it for an opened bar at 150 % portrait;
+  the operator asked for the view and folds it with the pinned toggle.
+  Named in the review answer.

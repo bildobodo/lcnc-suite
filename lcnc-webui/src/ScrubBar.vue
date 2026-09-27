@@ -71,6 +71,9 @@ const props = defineProps<{
    *  it continues by itself once the pose settles. */
   collisionStopped: { covered: number; reason: "motion" } | null;
   collisionResumable: boolean;
+  /** The viewer's warnings card is opened: ONE detail view at a time in a
+   *  short viewer (review round 8, UI-DI17) — it folds More. */
+  notesOpen: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -92,6 +95,8 @@ const emit = defineEmits<{
   /** A sim-time input edge (the WCS rows this track re-adds): nothing is
    *  current — followed by check-entry with the rebuilt entry track. */
   (e: "cancel-check"): void;
+  /** More opened: the viewer folds its warnings card (one detail view). */
+  (e: "more-open"): void;
 }>();
 
 const st = computed<Record<string, any>>(() => status.value?.data ?? {});
@@ -970,6 +975,10 @@ onUnmounted(() => { _scrubObs?.disconnect(); _scrubObs = null; });
 watch(() => [violationsTotal.value, hits.value.length, shownResult.value?.pairCount, props.collisionBusy,
   sweepToolText.value, nextToolLabel.value, simMode.value, lineSlotCh.value, posSlotCh.value],
   () => nextTick(fitScrub));
+// One detail view at a time (UI-DI17): More and the warnings card fold
+// each other — in a short viewer two opened views left each a sliver.
+watch(moreOpen, open => { if (open) emit("more-open"); });
+watch(() => props.notesOpen, open => { if (open) moreOpen.value = false; });
 /** The folded bar's toggle names the findings behind it. */
 const moreLabel = computed(() => {
   const parts: string[] = [];
@@ -1061,7 +1070,7 @@ const moreLabel = computed(() => {
          (prev · count · next · target · "?") is ONE span: in the compact
          form the groups wrap as units, so a group's buttons keep their
          places while its text may push the NEXT group to a new line. -->
-    <div ref="findingsRowEl" class="row-controls scrubRow findingsRow">
+    <div ref="findingsRowEl" class="row-controls scrubRow findingsRow scroll-thin">
       <template v-if="violations && violations.length">
         <span class="navGroup">
         <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)" aria-label="Previous limit violation" title="Previous limit violation (from the current timeline position)"
@@ -1178,6 +1187,12 @@ const moreLabel = computed(() => {
    "?" is ~300 px at 150 % portrait) wraps its tail — the buttons keep their
    places, the target and the "?" go below them. */
 .scrubBar.compact .navGroup { flex-wrap: wrap; row-gap: var(--gap-tight); max-width: 100%; }
+/* In the viewer's capped bottom column (UI-DI17) the opened bar shrinks:
+   row 1 — Sim, play, the timeline, More (the way back), speed and the
+   readouts — stays whole, the findings scroll under it. */
+.scrubBar.compact { min-height: 0; overflow: hidden; }
+.scrubBar.compact > .scrubRow:first-child { flex: none; }
+.scrubBar.compact .findingsRow { min-height: 0; overflow-y: auto; }
 .scrubBar.compact .sweepTool { white-space: normal; margin-left: 0; }
 .scrubRow {
   align-items: center;

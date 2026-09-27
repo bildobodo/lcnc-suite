@@ -3807,6 +3807,9 @@ function fitHud() {
   // More used to shrink it a step for an overlap it could not avoid).
   const scrub = wrap.querySelector<HTMLElement>(".scrubBar");
   const wasCard = card.className, wasNotes = notes?.className ?? "", wasScrub = scrub?.className ?? "";
+  // The bottom column's cap (below) off while measuring: the candidates see
+  // its natural folded height.
+  wrap.style.removeProperty("--viewer-bottom-max");
   let pick = tries[tries.length - 1]!, fits = false;
   for (const t of tries) {
     for (const sc of HUD_SCALES) {
@@ -3828,6 +3831,16 @@ function fitHud() {
   card.className = wasCard;
   if (notes) notes.className = wasNotes;
   if (scrub) scrub.className = wasScrub;
+  // An opened detail view grows the bottom column upward over the DRO — by
+  // the operator's choice — but never over the simulation banner nor out of
+  // the viewer: the column is capped there and its detail bodies scroll
+  // under their pinned heads (the toggles are the way back; round 8,
+  // UI-DI16/17).
+  const bannerNow = simBannerEl.value?.offsetHeight ?? 0;
+  wrap.style.setProperty("--viewer-bottom-max", `${Math.max(0, H - 2 * gap - (bannerNow ? bannerNow + between : 0))}px`);
+  // A body the cap cuts scrolls — by touch too, so it takes the pointer.
+  const body = notes?.querySelector<HTMLElement>(".hudNotesBody");
+  body?.classList.toggle("scrolls", body.scrollHeight > body.clientHeight + 1);
   Object.assign(hudFit, { scale: pick.scale, fold: pick.fold, notesCompact: pick.notesCompact, narrow, overflow: !fits });
   if (!pick.notesCompact) notesOpen.value = false;
 }
@@ -4160,6 +4173,9 @@ defineExpose({
                     :title="notesOpen ? 'Hide viewer warnings' : 'Show viewer warnings'"
                     @click="notesOpen = !notesOpen"><ChevronDown v-if="notesOpen" :size="14" /><ChevronUp v-else :size="14" /></MachineBtn>
       </div>
+      <!-- The lines: opened in a short viewer they scroll under the pinned
+           summary (the bottom column is capped, review round 8, UI-DI17). -->
+      <div class="hudNotesBody stack-tight scroll-thin">
       <template v-if="hudVisible">
         <!-- The mode/datum chip leads the warnings (operator, 2026-09-12: the
              readout, the tool line and the load bar are the readout; the chip
@@ -4194,6 +4210,7 @@ defineExpose({
         <div v-if="toolpathOverflow" class="hudWarn">{{ toolpathOverflowCount }} limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
       </template>
       <div v-if="failedParts.length" class="hudWarn">{{ failedParts.length }} machine part{{ failedParts.length === 1 ? '' : 's' }} failed to load — check the model files<HelpIcon label="Model parts">Not loaded: {{ failedParts.join(', ') }}.</HelpIcon></div>
+      </div>
     </div>
 
     <!-- Program-scrub timeline (stage 2) + collision check (stage 3) -->
@@ -4211,6 +4228,8 @@ defineExpose({
       @check-entry="runEntryCheck"
       @pose="onScrubPose"
       @cancel-check="_colInvalidate"
+      :notesOpen="notesOpen"
+      @more-open="notesOpen = false"
     />
     </div>
 
@@ -4388,7 +4407,7 @@ defineExpose({
 /* The re-parse bar rides the card as a row. The global track is flex:1 for
    its row-layout home (GcodePanel); in this column that would zero its
    height — pin it to its own height, stretched to the card's width. */
-.hudNotes > .progressTrack {
+.hudNotesBody > .progressTrack {
   flex: none;
 }
 /* The bottom edge: the findings card above the scrub bar, one column. The
@@ -4400,8 +4419,16 @@ defineExpose({
   left: var(--gap-section);
   right: var(--gap-section);
   bottom: var(--gap-section);
+  /* fitHud's cap: an opened detail view never reaches the banner or leaves
+     the viewer (UI-DI16/17); the cards shrink, their bodies scroll. */
+  max-height: var(--viewer-bottom-max, none);
   align-items: flex-start;
   pointer-events: none;
+}
+.viewerBottom > .hudNotes,
+.viewerBottom > .scrubBar {
+  flex: 0 1 auto;
+  min-height: 0;
 }
 .viewerBottom > .scrubBar {
   align-self: stretch;
@@ -4411,6 +4438,7 @@ defineExpose({
    stands in for every line until the operator opens it. */
 .hudNotesSummary {
   display: none;
+  flex: none;
   align-items: center;
   gap: var(--gap-tight);
   font-size: calc(var(--fs-md) * var(--hud-scale));
@@ -4420,9 +4448,19 @@ defineExpose({
 .hudNotes.needsCompact > .hudNotesSummary { display: flex; }
 .hudNotes.needsCompact:not(.notesOpen) > :not(.hudNotesSummary) { display: none; }
 .hudNotesSummary > .notesToggle { pointer-events: auto; }
+/* Pinned summary (flex: none above), scrolling lines: a capped column
+   shrinks the body. Opened — or cut by the cap (fitHud's .scrolls) — the
+   lines take the pointer: a touch must scroll them. */
+.hudNotesBody {
+  min-height: 0;
+  overflow-y: auto;
+}
+.hudNotes.notesOpen > .hudNotesBody,
+.hudNotesBody.scrolls { pointer-events: auto; }
 .hudNotes {
   /* the left zone, like the DRO card: never under the ViewCube column */
   max-width: calc(100% - var(--gap-section) - var(--viewcube-size));
+  overflow: hidden;
   padding: var(--gap-tight) var(--gap-section);
   line-height: 1.3;
 }

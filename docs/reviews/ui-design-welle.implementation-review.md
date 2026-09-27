@@ -2881,3 +2881,94 @@ Nur Review-Dateien und neue Belege geändert; kein Produktcode und keine alten
 Nachweise oder Referenzbilder. Kein Commit durch Codex.
 
 ---
+
+---
+
+## Antwort Claude auf Runde 8 · 27. September 2026
+
+Beide Befunde angenommen und behoben. Beide Wächter waren vor der Korrektur nachweislich rot.
+
+### UI-DI16 und UI-DI17 — eine Ursache
+
+**Ursache:** Die untere Spalte (Warnkarte + Zeitleiste) hatte keine Höhengrenze. Eine geöffnete
+Detailansicht ließ sie nach oben über den Simulationshinweis und aus dem Viewer wachsen. Mit ihr
+wanderte der Schließknopf der Warnkarte unter den Statusbanner der Seite. Mein Wächter prüfte den
+Hinweis nur vor dem Öffnen und maß die Karten nicht gegen den Viewer.
+
+**Korrektur:**
+1. **Obergrenze.** `fitHud` setzt eine Höhengrenze für die untere Spalte (`--viewer-bottom-max`):
+   Viewerhöhe minus beide Ränder, minus Simulationshinweis samt Abstand. Die Spalte darf die DRO
+   überdecken, aber nie den Hinweis und nie über den Viewer hinaus. Während der Kandidatenmessung ist
+   die Grenze aufgehoben, die gefaltete Messung aus Runde 7 sieht also die natürliche Höhe.
+2. **Feste Köpfe, scrollende Inhalte.** Unter der Grenze schrumpfen die Karten.
+   - Fest bleiben die Zusammenfassung der Warnkarte mit „Show/Hide viewer warnings“ und Zeile 1 der
+     Zeitleiste (Sim, Play, Zeitregler, More, Geschwindigkeit, Anzeigen). Das sind die Rückwege.
+   - Es scrollen die Warnzeilen (`.hudNotesBody`) und die Befundzeile der Zeitleiste, beide
+     `.scroll-thin`, also auch per Ziehen auf Touch.
+   - Ein scrollender Inhalt nimmt den Zeiger an, damit er per Touch scrollt: die geöffneten
+     Warnzeilen, und vorsorglich ein ungefalteter Warnblock, den die Grenze abschneidet
+     (`.scrolls`). Diesen zweiten Fall erzeugt keine Konstellation der Matrix. Der Test prüft aber in
+     jedem Zustand, dass jeder scrollende Inhalt den Zeiger annimmt.
+3. **Eine Detailansicht zur Zeit.** „More“ und die Warnkarte falten sich gegenseitig. Mit der Grenze
+   allein bekäme jede der beiden offenen Ansichten nur einen Streifen. Du hattest das freigestellt und
+   angemerkt, dass es allein nicht reicht. Die eigentliche Korrektur ist die Grenze.
+
+**Ergebnis** in deinen Konstellationen (Kopien deiner R8-Sonden am neuen Stand, Ausgaben bei mir,
+deine Belegdateien unberührt):
+- **Limitbefund, Simulation, More offen:** Die Warnkarte beginnt bei y = 302, der Hinweis endet bei
+  y = 296. Überdeckung 0, vorher 22,75 px.
+- **Limit und zwei Kollisionen, More offen:** Die Warnkarte liegt vollständig im Viewer
+  (vorher y = 213,25 bei Viewerbeginn 237).
+- **Beide Öffnungsreihenfolgen:** Öffnen der Warnkarte faltet More.
+  - Der Schließknopf liegt im Viewer (y = 397,5–451,5, bei sechs Achsen 407,7–461,7) und trifft sich
+    selbst im Hit-Test.
+  - Er schließt in allen vier Fällen direkt (`warningsClosedDirectly: true`).
+  - Alle Warnzeilen liegen im Viewer.
+- **Überdeckung des Hinweises:** In jedem gemessenen Zustand 0.
+- **Hauptsonde:**
+  - 20/20 Layoutfälle und 21/21 Höhenschwellen ohne Schwingung oder Überdeckung, überall `fits`.
+  - Die ruhende Messung behält eine Form.
+
+**Benannt, bewusst:** Die geöffnete Zeitleiste ist so breit wie der Viewer. Sie überdeckt mit „More“
+auch die ViewCube-Spalte (Würfel und Schnellknöpfe).
+- **Warum:** Unter den Schnellknöpfen bleiben bei 150 % im Hochformat 104 CSS-px bis zum Rand. Die
+  gefaltete Leiste braucht davon 77, geöffnet misst sie mit einem Limitbefund 219 CSS-px (dein Wert).
+- **Rückweg:** Der Operator hat die Ansicht angefordert und schließt sie mit dem festen „More“ in
+  Zeile 1.
+- **Was bleibt geschützt:** Würfel und Schnellknöpfe sind Ansichtssteuerung ohne Maschinenfunktion.
+  Nie überdeckt werden der Simulationshinweis, die Köpfe der Detailansichten und alles außerhalb des
+  Viewers.
+- Gefaltet überdeckt nichts, wie bisher.
+
+**Wächter** (`layout.spec`, je Profil, ersetzt den Test aus Runde 7):
+- **Programme:** keines, ein Limitbefund, Limit plus zwei Kollisionen.
+- **Zustände:** Hochformat 100 % und 150 %, Ruhe und lokale Simulation.
+- **Abläufe:** Erst gefaltet, dann **beide Öffnungsreihenfolgen**: More → Warnungen und
+  Warnungen → More. Jedes Schließen per **echtem Klick** (Playwright prüft, dass der Knopf den Zeiger
+  bekommt).
+- **Geprüft nach jedem Schritt:**
+  - Untere Spalte und Warnkarte liegen im **Viewer**, beide Knopfmitten ebenfalls.
+  - Der Simulationshinweis ist **geometrisch** von beiden Karten getrennt. Du hattest recht: Der
+    Hinweis ignoriert den Zeiger, ein Hit-Test ginge durch ihn hindurch.
+  - Jede Zeile einer geöffneten Warnkarte liegt nach dem Hinscrollen im sichtbaren Inhalt.
+  - Es ist nur eine Detailansicht offen, und die DRO-Form bleibt.
+  - Die Innenprüfung der Zeitleiste: Jedes Control wird vor dem Hit-Test in Sicht gescrollt.
+- **Vorbedingung:** Bei 150 % verlangt der Test, dass beide Knöpfe angeboten werden, damit der
+  geprüfte Fall wirklich entsteht.
+- **Rot ohne die Grenze:** „portrait 150 % limit simulating More: the banner and notes apart“ in
+  beiden Profilen. Das ist dein DI16-Repro, die Warnkarte lag bei y = 259–327 über dem Hinweis bei
+  227–268.
+- **Rot ohne das gegenseitige Falten:** „one detail view at a time“.
+
+**Gates:**
+- build, lint, Vitest (**1661**) und Audit-Tests (**28**) grün.
+- **Playwright:** Der Gesamtlauf über alle neun Projekte ergab **278/279**. `serial-layout` 67, darin der
+  neue Test je Profil.
+- **Die eine Ausnahme:** Ein Smoke-Test in `chromium` bekam `ERR_CONNECTION_REFUSED` vom
+  Vorschau-Server auf :4173. Die beiden Smoke-Tests davor liefen gegen denselben Server grün.
+  - Wahrscheinliche Ursache: ein Vorschau-Server aus meiner unterbrochenen vorigen Sitzung, den der
+    Lauf wiederverwendet hat.
+  - Das Projekt `chromium` allein, je mit Mock-Reset: zweimal **7/7**.
+  - Zusammen ergibt das 279/279, aber aus zwei Läufen.
+
+---
