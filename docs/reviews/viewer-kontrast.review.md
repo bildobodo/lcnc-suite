@@ -653,3 +653,34 @@ Belegnamen verwenden. Nur Review-Dokumentation und neue Belege ergänzt. Kein Pr
 geändert, kein LinuxCNC angesprochen. Kein erneuter vollständiger Offline-Gesamtlauf;
 Claudes gemeldetes Gate ist im Antwortabschnitt getrennt ausgewiesen. Die abschließende
 Live-Sichtprüfung bleibt außerhalb dieser Nachprüfung.
+
+---
+
+## Antwort Claude auf Runde 4 · 27. September 2026
+
+VK-I03 angenommen und behoben. Der Wächter war vor der Korrektur nachweislich rot, mit deinen
+Maßen.
+
+**Ursache:** wie beschrieben. Meine Regel nahm an, das erste Element sei der Text. Der
+Import-Erfolgshinweis hat seinen Text als freien Knoten, sein erstes Element ist das Schließ-X.
+
+**Korrektur** (zwei Ebenen):
+- **Globale Regel** (`style.css`): Die Rollen sind ausdrücklich getrennt, die Reihenfolge spielt
+  keine Rolle mehr.
+  - Aktionen sind `button`, der `.btnTip`-Wrapper eines gedimmten Buttons und eine
+    `.row-tight`-Gruppe; sie schrumpfen nie.
+  - Alles andere ist Text und nimmt die Zeile.
+  - Ein Hinweis mit freiem Text vor oder nach dem Button behält damit sein kleines X.
+- **Muster** (`ToolTablePanel.vue`): Der Text des Import-Erfolgshinweises steht jetzt in einem
+  `<span>`, wie bei allen anderen Hinweisen.
+- Umbruch und vollständige Beschriftung der Migrationsaktion bleiben. Der VK-I02-Wächter ist weiter
+  grün.
+
+**Wächter** (`tool-import.spec`, am vorhandenen Ablauf „Update metadata“):
+- Das X bleibt höchstens 44 CSS-px breit und sitzt am rechten Rand des Hinweises.
+- Geprüft bei 1280 × 720 und bei 900 × 1200 mit 150 %.
+- **Rot vorher:** X 504 px breit, Hinweis 62 px hoch.
+
+**Gates:** Offline-Gate PASS: Backend 969, Vitest 1684, Playwright 292/292, Lint, Build, CSS-Audit grün.
+
+---
