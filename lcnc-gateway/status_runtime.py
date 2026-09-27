@@ -44,7 +44,7 @@ from command_policy import (
 from gateway_util import (
     joints_beyond_limits, PROV_A_EPS, atomic_write_bytes, canonical_to_joint_order,
     twp_head_aligned,
-                          resolve_loaded_file)
+                          LoadedProgram, canonical_path)
 from tool_table import parse_tool_table, _merge_tool_data
 
 WCS_BASES = [5220, 5240, 5260, 5280, 5300, 5320, 5340, 5360, 5380]
@@ -532,14 +532,13 @@ class StatusRuntime:
         # Tool-change info lookup cache: {(tool_num, tbl_mtime): merged_list},
         # one entry max.
         self._tc_info_cache: dict = {}
-        # Loaded-program resolver state: STAT.file flips to subroutine paths
-        # mid-execution (M6 remap, o-word CALLs); resolve_loaded_file holds the
-        # last idle-time value so active_file means "loaded program", not
-        # "interpreter's currently open file". _file_flip_traced dedupes the
-        # ignored-flip trace to one line per flip (not one per 30 Hz tick).
-        self._loaded_file: Optional[str] = None
-        self._loaded_file_seen = False
-        self._file_flip_traced: Optional[str] = None
+        # The loaded program (gateway_util.LoadedProgram): STAT.file flips to
+        # subroutine paths while they run and can stay on one after an MDI
+        # error, so active_file changes only from a load context — the
+        # gateway's load_file / unload_file call request_load / request_unload.
+        self.program = LoadedProgram()
+        self._search_dirs_key: Optional[str] = None
+        self._search_dirs: tuple = ((), ())
         # Warn-once flags (re-armed on reconnect so a STAT field that
         # disappears across a reconnect produces a fresh log line)
         self._machine_pos_warned = False
@@ -630,6 +629,26 @@ class StatusRuntime:
                         duration_ms=round(dt_ms, 1), caller=caller)
 
     # ---- WCS / var-file caches ----
+
+    def search_dirs(self) -> tuple:
+        """(subroutine search dirs, program dirs) of the active INI, canonical —
+        only the first sight's hint (LoadedProgram). Cached per INI."""
+        ini_path = self.safe_get("ini_filename", None)
+        if not ini_path:
+            return (), ()
+        if ini_path == self._search_dirs_key:
+            return self._search_dirs
+        try:
+            ini = linuxcnc.ini(ini_path)
+        except Exception:
+            return (), ()   # transient — retry next tick
+        base = os.path.dirname(ini_path)
+        resolve = lambda d: canonical_path(os.path.join(base, os.path.expanduser(d)))
+        subs = tuple(resolve(d) for d in (ini.find("RS274NGC", "SUBROUTINE_PATH") or "").split(":") if d)
+        prefix = ini.find("DISPLAY", "PROGRAM_PREFIX")
+        self._search_dirs_key = ini_path
+        self._search_dirs = (subs, (resolve(prefix),) if prefix else ())
+        return self._search_dirs
 
     def resolve_var_file_path(self) -> Optional[str]:
         """Resolve absolute path to the LinuxCNC var file from the active INI.
@@ -1054,24 +1073,15 @@ class StatusRuntime:
             bool(safe_get("paused", False)),
         )
 
-        # Loaded program (see resolve_loaded_file): STAT.file follows the
-        # interpreter's open file, flipping to subroutine paths mid-execution.
-        # Adopt changes only while the interpreter is idle; trace ignored flips
-        # once each so the branch stays auditable without 30 Hz spam.
+        # Loaded program (see gateway_util.LoadedProgram): a new file only
+        # from a load context; every ignored flip traced once.
         _interp = safe_get("interp_state", None)
-        _raw_file = safe_get("file", None)
-        active_file, _flip = resolve_loaded_file(
-            _raw_file,
-            _interp is None or _interp == linuxcnc.INTERP_IDLE,
-            self._loaded_file,
-            self._loaded_file_seen,
-        )
-        self._loaded_file = active_file
-        self._loaded_file_seen = True
-        if _flip is not None and _flip != self._file_flip_traced:
-            _trace.emit("status.file_flip_ignored", level="info",
-                        raw_file=os.path.basename(_flip), loaded=os.path.basename(active_file or ""))
-        self._file_flip_traced = _flip
+        _sub_dirs, _prog_dirs = self.search_dirs() if not self.program.seen else ((), ())
+        for _tag, _fields in self.program.update(
+                safe_get("file", None), _interp is None or _interp == linuxcnc.INTERP_IDLE,
+                time.monotonic(), _sub_dirs, _prog_dirs):
+            _trace.emit(_tag, level="info", **_fields)
+        active_file = self.program.loaded
 
         payload = StatusPayload(
             ts=time.time(),

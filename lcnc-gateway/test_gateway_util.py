@@ -10,6 +10,7 @@ import math
 import os
 import tempfile
 import unittest
+from pathlib import Path
 
 import gateway_util
 from gateway_util import (
@@ -23,7 +24,7 @@ from gateway_util import (
     finite_float,
     finite_int,
     evaluate_trip_latch,
-    resolve_loaded_file,
+    LoadedProgram, LOAD_WINDOW_S,
 )
 
 
@@ -305,63 +306,125 @@ class TestEvaluateTripLatch(unittest.TestCase):
         self.assertTrue(steps[2]["tripped"])
 
 
-class TestResolveLoadedFile(unittest.TestCase):
-    """Loaded-program resolver: STAT.file flips to subroutine paths while the
-    interpreter executes (M6 remap, o-word CALLs); active_file must keep
-    meaning "loaded program" through those flips."""
+class TestLoadedProgram(unittest.TestCase):
+    """The loaded program vs the interpreter's open file (STAT.file flips to
+    subroutines while they run, and stays on one after an MDI error with no
+    program loaded). Codex R15 B2: a new file needs a LOAD CONTEXT; the
+    guard list — MDI success/error/abort with and without a program, sub in
+    a search path and in the program folder, a load from a shared folder,
+    unload, reload, a gateway restart during and after an MDI call,
+    canonical paths."""
 
     MAIN = "/nc/main.ngc"
-    SUB = "/nc/subroutines/tool_touch_off.ngc"
+    OTHER = "/nc/other.ngc"
+    SUB = "/suite/subroutines/tool_touch_off.ngc"
+    NC_SUB = "/nc/subs/probe_x.ngc"          # a subroutine inside the program folder
+    SUBDIRS = ("/suite/subroutines", "/nc/subs")
+    PROGDIRS = ("/nc",)
 
-    def test_idle_load_adopts(self):
-        self.assertEqual(resolve_loaded_file(self.MAIN, True, None), (self.MAIN, None))
+    def run_steps(self, prog, steps, t0=0.0):
+        """steps: (raw, idle) or callables acting on prog; returns events."""
+        events, now = [], t0
+        for step in steps:
+            if callable(step):
+                step(prog, now)
+                continue
+            raw, idle = step
+            now += 0.033
+            events += prog.update(raw, idle, now, self.SUBDIRS, self.PROGDIRS)
+        return events
 
-    def test_idle_unload_adopts_none(self):
-        self.assertEqual(resolve_loaded_file(None, True, self.MAIN), (None, None))
-        # Empty string normalizes to None (STAT.file reads "" for "no file")
-        self.assertEqual(resolve_loaded_file("", True, self.MAIN), (None, None))
+    def seeded(self, loaded=None):
+        prog = LoadedProgram()
+        prog.update(loaded, True, 0.0, self.SUBDIRS, self.PROGDIRS)   # first sight
+        self.assertTrue(prog.seen)
+        return prog
 
-    def test_midrun_sub_flip_held_and_reported(self):
-        # The bug: M6 remap opens tool_touch_off.ngc mid-run — hold the main
-        # program and surface the ignored raw value for tracing.
-        self.assertEqual(resolve_loaded_file(self.SUB, False, self.MAIN), (self.MAIN, self.SUB))
+    load = staticmethod(lambda path: (lambda prog, now: prog.request_load(path, now)))
 
-    def test_midrun_same_file_not_reported(self):
-        self.assertEqual(resolve_loaded_file(self.MAIN, False, self.MAIN), (self.MAIN, None))
+    def test_mdi_success_error_abort_never_adopt_the_sub(self):
+        # Error: the sub STAYS at idle (the live bug). Success / abort: it
+        # returns. With or without a program, the loaded program holds.
+        for loaded in (None, self.MAIN):
+            for end_raw in (self.SUB, loaded):
+                with self.subTest(loaded=loaded, end=end_raw):
+                    prog = self.seeded(loaded)
+                    events = self.run_steps(prog, [(self.SUB, False), (self.SUB, False),
+                                                   (end_raw, True), (end_raw, True), (end_raw, True)])
+                    self.assertEqual(prog.loaded, loaded)
+                    flips = [e for e in events if e[0] == "status.file_flip_ignored"]
+                    self.assertEqual(len(flips), 1, "traced once, not per tick")
 
-    def test_midrun_transient_empty_held(self):
-        # A transiently empty STAT.file mid-run must not unload the program
-        # (raw "" would otherwise clear the shared preview cache).
-        loaded, flip = resolve_loaded_file("", False, self.MAIN)
-        self.assertEqual(loaded, self.MAIN)
-        self.assertIsNone(flip)  # "" normalizes to None; nothing adoptable to report
+    def test_a_sub_in_the_program_folder_holds_too(self):
+        # No path rule after the first sight: the same sequence with the sub
+        # under PROGRAM_PREFIX (the interpreter searches there first).
+        prog = self.seeded(None)
+        self.run_steps(prog, [(self.NC_SUB, False), (self.NC_SUB, True), (self.NC_SUB, True)])
+        self.assertIsNone(prog.loaded)
 
-    def test_mdi_sub_with_no_program_held(self):
-        # MDI `O<probe_x> CALL` with no program loaded: prev None is an honest
-        # "no file" baseline — do not adopt the probe sub.
-        self.assertEqual(resolve_loaded_file(self.SUB, False, None), (None, self.SUB))
+    def test_an_explicit_load_adopts_even_from_a_shared_subroutine_folder(self):
+        prog = self.seeded(self.MAIN)
+        self.run_steps(prog, [self.load(self.NC_SUB), (self.MAIN, True), (self.NC_SUB, True)])
+        self.assertEqual(prog.loaded, self.NC_SUB, "the load context beats any path hint")
 
-    def test_first_sight_midrun_adopts_raw(self):
-        # Gateway restarted under a running program: no baseline yet — adopt
-        # raw so the UI shows something; corrects itself at the next idle tick.
-        self.assertEqual(
-            resolve_loaded_file(self.SUB, False, None, prev_seen=False), (self.SUB, None)
-        )
+    def test_the_load_matches_canonical_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            real = Path(tmp) / "real"; real.mkdir()
+            prog_file = real / "p.ngc"; prog_file.write_text("M2\n")
+            link = Path(tmp) / "link"; link.symlink_to(real, target_is_directory=True)
+            prog = self.seeded(None)
+            self.run_steps(prog, [self.load(str(link / "x" / ".." / "p.ngc")), (str(prog_file), True)])
+            self.assertEqual(prog.loaded, str(prog_file))
 
-    def test_run_lifecycle(self):
-        # load → run → M6 flip → back to main → idle at program end.
-        prev, seen = None, False
-        for raw, idle, want in [
-            (self.MAIN, True, self.MAIN),   # operator loads
-            (self.MAIN, False, self.MAIN),  # running
-            (self.SUB, False, self.MAIN),   # M6 remap flips STAT.file
-            (self.MAIN, False, self.MAIN),  # sub returned
-            (self.MAIN, True, self.MAIN),   # program done
-            (None, True, None),             # unload
-        ]:
-            prev, _ = resolve_loaded_file(raw, idle, prev, seen)
-            seen = True
-            self.assertEqual(prev, want)
+    def test_a_refused_load_leaves_no_window_for_a_later_flip(self):
+        prog = self.seeded(self.MAIN)
+        events = self.run_steps(prog, [self.load(self.OTHER), (self.MAIN, True)])
+        steps = [(self.MAIN, True)] * int(LOAD_WINDOW_S / 0.033 + 2) + [(self.OTHER, True)]
+        events += self.run_steps(prog, steps, t0=0.1)
+        self.assertEqual(prog.loaded, self.MAIN)
+        self.assertIn("status.load_not_observed", [e[0] for e in events])
+
+    def test_unload_clears_at_once_and_a_stale_raw_is_not_readopted(self):
+        prog = self.seeded(self.MAIN)
+        prog.request_unload()
+        self.run_steps(prog, [(self.MAIN, True), (self.MAIN, True)])
+        self.assertIsNone(prog.loaded, "reset_interpreter may leave STAT.file on the old program")
+        self.run_steps(prog, [self.load(self.MAIN), (self.MAIN, True)])
+        self.assertEqual(prog.loaded, self.MAIN, "a reload after the unload")
+
+    def test_the_interpreter_losing_its_file_at_idle_is_adopted_not_mid_run(self):
+        prog = self.seeded(self.MAIN)
+        self.run_steps(prog, [(None, False), ("", False)])
+        self.assertEqual(prog.loaded, self.MAIN, "a transient empty mid-run holds")
+        self.run_steps(prog, [(None, True)])
+        self.assertIsNone(prog.loaded)
+
+    def test_run_lifecycle_with_the_remap_flip(self):
+        prog = self.seeded(None)
+        self.run_steps(prog, [self.load(self.MAIN), (self.MAIN, True), (self.MAIN, False),
+                              (self.SUB, False), (self.MAIN, False), (self.MAIN, True)])
+        self.assertEqual(prog.loaded, self.MAIN)
+
+    def test_first_sight_after_a_gateway_restart(self):
+        cases = [
+            # idle, a program open -> adopted
+            ([(self.MAIN, True)], self.MAIN),
+            # a program RUNNING (remap not active) -> adopted at once
+            ([(self.MAIN, False)], self.MAIN),
+            # restarted DURING an MDI call into a sub, a program loaded:
+            # wait while the hint says subroutine, adopt the program on return
+            ([(self.SUB, False), (self.SUB, False), (self.MAIN, True)], self.MAIN),
+            # restarted after an MDI error with no program: the sub is left
+            ([(self.SUB, True), (self.SUB, True)], None),
+            # nothing open
+            ([(None, True)], None),
+        ]
+        for steps, want in cases:
+            with self.subTest(steps=steps):
+                prog = LoadedProgram()
+                self.run_steps(prog, steps)
+                self.assertEqual(prog.loaded, want)
+                self.assertTrue(prog.seen)
 
 
 class TestVectorizedLimitChecks(unittest.TestCase):

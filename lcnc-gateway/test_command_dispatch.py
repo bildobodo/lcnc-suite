@@ -9,6 +9,7 @@ off-machine. Requires the gateway venv (fastapi/msgspec are real deps):
 import asyncio
 import os
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 
 import fake_linuxcnc
@@ -321,6 +322,30 @@ class TestHandlerExecution(unittest.TestCase):
         self.assertTrue(r["ok"], r)
         self.assertEqual(cmd.args_of("mdi"), ("#3100=150.000000 #3102=-300.000000",))
         self.assertTrue(r["mdi_set"], r)
+
+    def test_load_file_is_the_load_context_unload_clears_it(self):
+        # R15 B2: only the gateway's own load makes a file the loaded
+        # program; a flip without it (a sub left after an MDI error) never.
+        import tempfile, time as _time, unittest.mock
+        with tempfile.TemporaryDirectory() as nc:
+            prog = Path(nc) / "part.ngc"; prog.write_text("G0 X1\nM2\n")
+            sub = Path(nc) / "sub.ngc"; sub.write_text("o<sub> sub\no<sub> endsub\nM2\n")
+            gateway.STAT.task_mode = linuxcnc.MODE_AUTO
+            gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+            program = gateway._status_runtime.program = gateway._status_runtime_mod.LoadedProgram()
+            program.update(None, True, _time.monotonic())          # first sight: nothing open
+            with unittest.mock.patch.object(gateway, "get_nc_files_dir", return_value=nc):
+                r = self._send({"cmd": "load_file", "path": str(prog)})
+            self.assertTrue(r["ok"], r)
+            self.assertEqual(self.cmd.args_of("program_open"), (str(prog),))
+            program.update(str(sub), True, _time.monotonic())
+            self.assertIsNone(program.loaded, "a flip is not a load")
+            program.update(str(prog), True, _time.monotonic())
+            self.assertEqual(program.loaded, str(prog), "the requested file, when task shows it")
+            r = self._send({"cmd": "unload_file"})
+            self.assertTrue(r["ok"], r)
+            program.update(str(prog), True, _time.monotonic())
+            self.assertIsNone(program.loaded, "unloaded, though STAT.file may still name it")
 
     def test_mdi_reaches_cmd_mdi_with_text(self):
         r = self._send({"cmd": "mdi", "text": "G0 X1"})
