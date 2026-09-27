@@ -47,8 +47,9 @@ POLICY_DENIALS = {r[1] for r in (_cp._R_ARMED, _cp._R_NOT_ESTOP, _cp._R_ENABLED,
 
 class _RecordingCmd:
     """A CMD spy: records every call so a happy-path test can assert the handler
-    reached LinuxCNC with the parsed arguments. wait_complete() returns 0
-    (success), matching the real binding."""
+    reached LinuxCNC with the parsed arguments. wait_complete() returns 0,
+    which _cmd_rc_failed reads as success like the real binding's RCS_DONE
+    (1) — a check against 0 alone passes here and fails live."""
     def __init__(self):
         self.calls = []
 
@@ -303,6 +304,23 @@ class TestHandlerExecution(unittest.TestCase):
         args = self.cmd.args_of("jog")
         self.assertEqual(args[1], 1)      # joint jog
         self.assertEqual(args[2], 4)      # joint number untouched
+
+    def test_set_probe_vars_reports_the_mdi_set_on_rcs_done(self):
+        # The REAL binding's wait_complete() returns RCS_DONE (1) on success,
+        # not 0: `ret != 0` reported mdi_set False on every successful set
+        # (live, 2026-09-27 — the trace said the vars never reached the
+        # interpreter while they had). The spy returns what the binding does.
+        class _RcsDoneCmd(_RecordingCmd):
+            def wait_complete(self, *_a):
+                return 1
+        gateway.CMD = cmd = _RcsDoneCmd()
+        gateway.STAT.enabled = True   # the MDI half runs on a machine that is on
+        gateway.STAT.task_mode = linuxcnc.MODE_MDI
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        r = self._send({"cmd": "set_probe_vars", "vars": {"3100": 150, "3102": -300}})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(cmd.args_of("mdi"), ("#3100=150.000000 #3102=-300.000000",))
+        self.assertTrue(r["mdi_set"], r)
 
     def test_mdi_reaches_cmd_mdi_with_text(self):
         r = self._send({"cmd": "mdi", "text": "G0 X1"})

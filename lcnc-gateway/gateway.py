@@ -4309,7 +4309,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                     mdi_ok = True
                     for chunk in chunks:
                         ret = await _cmd_blocking(CMD.mdi, chunk, wait=5)
-                        if ret != 0:
+                        if _cmd_rc_failed(ret):   # success is RCS_DONE (1), not 0
                             mdi_ok = False
                 except Exception as e:
                     _trace.emit("probe.mdi_set_failed", level="warn",
