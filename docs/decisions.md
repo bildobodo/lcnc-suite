@@ -7283,10 +7283,15 @@ datum shift.
   before the move ONCE (`xyzac_before_datum_move`: the Z window up to 500) —
   the Z window, homes and the `z-rot-point` HALCMD from the template, and the
   machine-absolute state shifted by −500 (G5x Z, G28/G30 Z, the saved joint
-  Z; G92 is relative and stays); the shipped toolsetter default of the old
-  example (10, 10, −180 — never reachable there) becomes the template's, an
-  operator's own #3102 moves with the datum. Generally, missing suite
-  remaps (by code) and RS274NGC entries (OWORD_NARGS, NO_DOWNCASE_OWORD,
-  ON_ABORT_COMMAND) are added to any installed example; a local value stays.
-  `test_example_install.py`: four new cases, red first.
+  Z; G92 is relative and stays); a toolsetter triple (#3100–#3102) that was
+  never one becomes the template's — the old example's (10, 10, −180, never
+  reachable there) and the WebUI's fallback zeros (the operator's real
+  install: no toolsetter section for this config, so Measure Current had
+  pushed 0/0/0 — shifted, the plate would have sat at Z −500, under the whole
+  window); any other #3102 is the operator's and moves with the datum, also
+  below the nose window (the plate is where the TIP touches — a long tool
+  reaches it). Generally, missing suite remaps (by code) and RS274NGC entries
+  (OWORD_NARGS, NO_DOWNCASE_OWORD, ON_ABORT_COMMAND) are added to any
+  installed example; a local value stays. `test_example_install.py`: five new
+  cases, red first (the fallback case red at Z −500).
 
