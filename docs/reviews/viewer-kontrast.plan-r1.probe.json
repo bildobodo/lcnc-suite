@@ -1,0 +1,1075 @@
+{
+  "head": "dac5249fc9ac23814a9fce78640c477a7ede2188",
+  "kind": "numeric probe; not rendered pixels or an accessibility certification",
+  "pipeline": "sRGB decode -> Machado 1.0 -> clamp [0,1] -> OKLab",
+  "themes": {
+    "light": {
+      "before": {
+        "feed": "#005dbd",
+        "rapid": "#007531",
+        "backplot": "#ba02b4",
+        "limit": "#9a6000",
+        "collision": "#c20012"
+      },
+      "proposed": {
+        "feed": "#1663dc",
+        "rapid": "#007531",
+        "backplot": "#b4098b",
+        "limit": "#9a6000",
+        "collision": "#c20012"
+      },
+      "pairs": {
+        "feed/rapid": {
+          "before": {
+            "normal": 0.2464731671882546,
+            "protan": 0.2370259890663041,
+            "deutan": 0.23229514130362314,
+            "tritan": 0.04778668170504986
+          },
+          "proposed": {
+            "normal": 0.2817264089392779,
+            "protan": 0.27103178156960855,
+            "deutan": 0.2620241200346079,
+            "tritan": 0.07869799929759738
+          },
+          "proposed_luminance_contrast": 1.0734064705331658
+        },
+        "feed/backplot": {
+          "before": {
+            "normal": 0.26667569384525375,
+            "protan": 0.04111317168292413,
+            "deutan": 0.09436797596961735,
+            "tritan": 0.26963079332144896
+          },
+          "proposed": {
+            "normal": 0.27508110979552897,
+            "protan": 0.15009261875553864,
+            "deutan": 0.15096510153628623,
+            "tritan": 0.2956371710278256
+          },
+          "proposed_luminance_contrast": 1.1490690567752635
+        },
+        "feed/limit": {
+          "before": {
+            "normal": 0.2899718486243365,
+            "protan": 0.2567795185433497,
+            "deutan": 0.2888198526094858,
+            "tritan": 0.20619354996683698
+          },
+          "proposed": {
+            "normal": 0.31529405530229554,
+            "protan": 0.29295179838465857,
+            "deutan": 0.3096187602681692,
+            "tritan": 0.21207507520209773
+          },
+          "proposed_luminance_contrast": 1.0505777417614997
+        },
+        "feed/collision": {
+          "before": {
+            "normal": 0.3444887005656101,
+            "protan": 0.25919994979499333,
+            "deutan": 0.28168651259395805,
+            "tritan": 0.3167870547959361
+          },
+          "proposed": {
+            "normal": 0.3655458616786264,
+            "protan": 0.3081879335984156,
+            "deutan": 0.3055901946588788,
+            "tritan": 0.32280053164624
+          },
+          "proposed_luminance_contrast": 1.1664478261945488
+        },
+        "rapid/backplot": {
+          "before": {
+            "normal": 0.39193800289881314,
+            "protan": 0.24904219690949664,
+            "deutan": 0.17916775231890347,
+            "tritan": 0.2798416480134484
+          },
+          "proposed": {
+            "normal": 0.3562782792499557,
+            "protan": 0.2123064119759058,
+            "deutan": 0.11676948105228872,
+            "tritan": 0.29205247515377997
+          },
+          "proposed_luminance_contrast": 1.07048828968258
+        },
+        "rapid/limit": {
+          "before": {
+            "normal": 0.17218542207718054,
+            "protan": 0.026605957790298295,
+            "deutan": 0.07638364535481632,
+            "tritan": 0.20707575210191503
+          },
+          "proposed": {
+            "normal": 0.17218542207718054,
+            "protan": 0.026605957790298295,
+            "deutan": 0.07638364535481632,
+            "tritan": 0.20707575210191503
+          },
+          "proposed_luminance_contrast": 1.127696945804915
+        },
+        "rapid/collision": {
+          "before": {
+            "normal": 0.3056770485770171,
+            "protan": 0.12637820069293726,
+            "deutan": 0.06049282306261154,
+            "tritan": 0.3128113139726255
+          },
+          "proposed": {
+            "normal": 0.3056770485770171,
+            "protan": 0.12637820069293726,
+            "deutan": 0.06049282306261154,
+            "tritan": 0.3128113139726255
+          },
+          "proposed_luminance_contrast": 1.086678586551811
+        },
+        "backplot/limit": {
+          "before": {
+            "normal": 0.2927110453109528,
+            "protan": 0.26596370868486846,
+            "deutan": 0.21993822719299083,
+            "tritan": 0.08688622839460042
+          },
+          "proposed": {
+            "normal": 0.24497006788262335,
+            "protan": 0.22447398934727192,
+            "deutan": 0.16484043380192182,
+            "tritan": 0.09674743142776965
+          },
+          "proposed_luminance_contrast": 1.2071863747949727
+        },
+        "backplot/collision": {
+          "before": {
+            "normal": 0.22556156564380728,
+            "protan": 0.2504468144935359,
+            "deutan": 0.2176856176829289,
+            "tritan": 0.10076585224999525
+          },
+          "proposed": {
+            "normal": 0.16524707348020162,
+            "protan": 0.18807467145148607,
+            "deutan": 0.15989868655489578,
+            "tritan": 0.08128277041036736
+          },
+          "proposed_luminance_contrast": 1.0151242167011763
+        },
+        "limit/collision": {
+          "before": {
+            "normal": 0.14733940708064183,
+            "protan": 0.11297820618576666,
+            "deutan": 0.020181890547507936,
+            "tritan": 0.11171322897566327
+          },
+          "proposed": {
+            "normal": 0.14733940708064183,
+            "protan": 0.11297820618576666,
+            "deutan": 0.020181890547507936,
+            "tritan": 0.11171322897566327
+          },
+          "proposed_luminance_contrast": 1.2254441231260793
+        }
+      },
+      "normal_sight_shift": {
+        "feed": 0.05161254454773379,
+        "backplot": 0.06499689731132711
+      },
+      "line_contrast": {
+        "feed": {
+          "background": 5.451271704371706,
+          "table_test": 4.129489962862531,
+          "table_measured": 4.168624939578024,
+          "side_dark": 1.3574533398918731,
+          "side_light": 1.6609190249102204
+        },
+        "rapid": {
+          "background": 5.851430320106948,
+          "table_test": 4.432621246138403,
+          "table_measured": 4.474628983368978,
+          "side_dark": 1.4570991984867936,
+          "side_light": 1.782841228370267
+        },
+        "backplot": {
+          "background": 6.263887635568079,
+          "table_test": 4.745069136589366,
+          "table_measured": 4.79003792737076,
+          "side_dark": 1.5598076288859857,
+          "side_light": 1.9085106573336772
+        },
+        "limit": {
+          "background": 5.188832285016414,
+          "table_test": 3.9306848020010694,
+          "table_measured": 3.9679357118193903,
+          "side_dark": 1.2921017511905748,
+          "side_light": 1.5809577519940257
+        },
+        "collision": {
+          "background": 6.358624029560229,
+          "table_test": 4.816834590473206,
+          "table_measured": 4.862483498991168,
+          "side_dark": 1.5833984974774054,
+          "side_light": 1.9373753860916962
+        }
+      }
+    },
+    "dark": {
+      "before": {
+        "feed": "#0066cd",
+        "rapid": "#00863b",
+        "backplot": "#cd00c6",
+        "limit": "#ad6d00",
+        "collision": "#db0016"
+      },
+      "proposed": {
+        "feed": "#066be3",
+        "rapid": "#00863b",
+        "backplot": "#be0692",
+        "limit": "#ad6d00",
+        "collision": "#db0016"
+      },
+      "pairs": {
+        "feed/rapid": {
+          "before": {
+            "normal": 0.26389723072869664,
+            "protan": 0.25323688580696196,
+            "deutan": 0.24888236803171365,
+            "tritan": 0.047748459806155545
+          },
+          "proposed": {
+            "normal": 0.2850017030011618,
+            "protan": 0.2749466928440943,
+            "deutan": 0.266548162191529,
+            "tritan": 0.06040293149290539
+          },
+          "proposed_luminance_contrast": 1.0599901682319974
+        },
+        "feed/backplot": {
+          "before": {
+            "normal": 0.28779127764384865,
+            "protan": 0.04074889323215293,
+            "deutan": 0.10343511626368868,
+            "tritan": 0.2905728017433475
+          },
+          "proposed": {
+            "normal": 0.289375500532685,
+            "protan": 0.15213607230398424,
+            "deutan": 0.15189834339613706,
+            "tritan": 0.3095315625532401
+          },
+          "proposed_luminance_contrast": 1.1623688935263814
+        },
+        "feed/limit": {
+          "before": {
+            "normal": 0.31331012350462106,
+            "protan": 0.2745034472528754,
+            "deutan": 0.3133966689615205,
+            "tritan": 0.22407164801330012
+          },
+          "proposed": {
+            "normal": 0.3294976449060676,
+            "protan": 0.2985512515474697,
+            "deutan": 0.3255690606879622,
+            "tritan": 0.22538171110345265
+          },
+          "proposed_luminance_contrast": 1.1763662378878394
+        },
+        "feed/collision": {
+          "before": {
+            "normal": 0.3731888704851054,
+            "protan": 0.2712523114142404,
+            "deutan": 0.3055835290227306,
+            "tritan": 0.3463428891406035
+          },
+          "proposed": {
+            "normal": 0.3875572960371261,
+            "protan": 0.30509625458509015,
+            "deutan": 0.31980543716177445,
+            "tritan": 0.348579879792606
+          },
+          "proposed_luminance_contrast": 1.048820107387537
+        },
+        "rapid/backplot": {
+          "before": {
+            "normal": 0.4220118609008138,
+            "protan": 0.27097052658696236,
+            "deutan": 0.1883078075836417,
+            "tritan": 0.30169954153568423
+          },
+          "proposed": {
+            "normal": 0.3774080713303773,
+            "protan": 0.23965506869869257,
+            "deutan": 0.11830709272512202,
+            "tritan": 0.3100428623892588
+          },
+          "proposed_luminance_contrast": 1.2320995989966699
+        },
+        "rapid/limit": {
+          "before": {
+            "normal": 0.1862059478223251,
+            "protan": 0.0337268994891661,
+            "deutan": 0.07996168060069565,
+            "tritan": 0.2246251207106438
+          },
+          "proposed": {
+            "normal": 0.1862059478223251,
+            "protan": 0.0337268994891661,
+            "deutan": 0.07996168060069565,
+            "tritan": 0.2246251207106438
+          },
+          "proposed_luminance_contrast": 1.1097897632861544
+        },
+        "rapid/collision": {
+          "before": {
+            "normal": 0.33472272754596644,
+            "protan": 0.14245558160500285,
+            "deutan": 0.06506974735113057,
+            "tritan": 0.3425317719952747
+          },
+          "proposed": {
+            "normal": 0.33472272754596644,
+            "protan": 0.14245558160500285,
+            "deutan": 0.06506974735113057,
+            "tritan": 0.3425317719952747
+          },
+          "proposed_luminance_contrast": 1.111739002074817
+        },
+        "backplot/limit": {
+          "before": {
+            "normal": 0.31631715417826545,
+            "protan": 0.28857608577386634,
+            "deutan": 0.23815452147651486,
+            "tritan": 0.09355864940822385
+          },
+          "proposed": {
+            "normal": 0.26250764320609915,
+            "protan": 0.24835964108937003,
+            "deutan": 0.1829759112122107,
+            "tritan": 0.10895624547580283
+          },
+          "proposed_luminance_contrast": 1.36737152231548
+        },
+        "backplot/collision": {
+          "before": {
+            "normal": 0.24201658028261225,
+            "protan": 0.2675168972626231,
+            "deutan": 0.23521264366441827,
+            "tritan": 0.11139636463465116
+          },
+          "proposed": {
+            "normal": 0.17640905211288266,
+            "protan": 0.19567513478718368,
+            "deutan": 0.17517405251494989,
+            "tritan": 0.10468743797407981
+          },
+          "proposed_luminance_contrast": 1.1082633574042344
+        },
+        "limit/collision": {
+          "before": {
+            "normal": 0.16208327195780803,
+            "protan": 0.12233781278117054,
+            "deutan": 0.02001940168641629,
+            "tritan": 0.12389657473314562
+          },
+          "proposed": {
+            "normal": 0.16208327195780803,
+            "protan": 0.12233781278117054,
+            "deutan": 0.02001940168641629,
+            "tritan": 0.12389657473314562
+          },
+          "proposed_luminance_contrast": 1.2337965639485968
+        }
+      },
+      "normal_sight_shift": {
+        "feed": 0.03594165552392729,
+        "backplot": 0.08338574882022741
+      },
+      "line_contrast": {
+        "feed": {
+          "background": 3.862162402036059,
+          "table_test": 3.7696597395058866,
+          "table_measured": 3.8053846225925696,
+          "side_dark": 1.2391693041193481,
+          "side_light": 1.5161919837778917
+        },
+        "rapid": {
+          "background": 4.093854174273498,
+          "table_test": 3.556315758846577,
+          "table_measured": 3.5900187913438213,
+          "side_dark": 1.1690384885231633,
+          "side_light": 1.4303830631814374
+        },
+        "backplot": {
+          "background": 3.3226649676756876,
+          "table_test": 4.3817352203804045,
+          "table_measured": 4.423260713205232,
+          "side_dark": 1.4403718529210627,
+          "side_light": 1.7623743985574774
+        },
+        "limit": {
+          "background": 4.54331745499502,
+          "table_test": 3.204495010222577,
+          "table_measured": 3.2348638544957913,
+          "side_dark": 1.0533873416362842,
+          "side_light": 1.2888775068045202
+        },
+        "collision": {
+          "background": 3.6823878326056896,
+          "table_test": 3.953694932803039,
+          "table_measured": 3.991163908518421,
+          "side_dark": 1.2996656826177941,
+          "side_light": 1.5902126392460512
+        }
+      }
+    },
+    "auto-dark": {
+      "before": {
+        "feed": "#0066cd",
+        "rapid": "#00863b",
+        "backplot": "#cd00c6",
+        "limit": "#ad6d00",
+        "collision": "#db0016"
+      },
+      "proposed": {
+        "feed": "#066be3",
+        "rapid": "#00863b",
+        "backplot": "#be0692",
+        "limit": "#ad6d00",
+        "collision": "#db0016"
+      },
+      "pairs": {
+        "feed/rapid": {
+          "before": {
+            "normal": 0.26389723072869664,
+            "protan": 0.25323688580696196,
+            "deutan": 0.24888236803171365,
+            "tritan": 0.047748459806155545
+          },
+          "proposed": {
+            "normal": 0.2850017030011618,
+            "protan": 0.2749466928440943,
+            "deutan": 0.266548162191529,
+            "tritan": 0.06040293149290539
+          },
+          "proposed_luminance_contrast": 1.0599901682319974
+        },
+        "feed/backplot": {
+          "before": {
+            "normal": 0.28779127764384865,
+            "protan": 0.04074889323215293,
+            "deutan": 0.10343511626368868,
+            "tritan": 0.2905728017433475
+          },
+          "proposed": {
+            "normal": 0.289375500532685,
+            "protan": 0.15213607230398424,
+            "deutan": 0.15189834339613706,
+            "tritan": 0.3095315625532401
+          },
+          "proposed_luminance_contrast": 1.1623688935263814
+        },
+        "feed/limit": {
+          "before": {
+            "normal": 0.31331012350462106,
+            "protan": 0.2745034472528754,
+            "deutan": 0.3133966689615205,
+            "tritan": 0.22407164801330012
+          },
+          "proposed": {
+            "normal": 0.3294976449060676,
+            "protan": 0.2985512515474697,
+            "deutan": 0.3255690606879622,
+            "tritan": 0.22538171110345265
+          },
+          "proposed_luminance_contrast": 1.1763662378878394
+        },
+        "feed/collision": {
+          "before": {
+            "normal": 0.3731888704851054,
+            "protan": 0.2712523114142404,
+            "deutan": 0.3055835290227306,
+            "tritan": 0.3463428891406035
+          },
+          "proposed": {
+            "normal": 0.3875572960371261,
+            "protan": 0.30509625458509015,
+            "deutan": 0.31980543716177445,
+            "tritan": 0.348579879792606
+          },
+          "proposed_luminance_contrast": 1.048820107387537
+        },
+        "rapid/backplot": {
+          "before": {
+            "normal": 0.4220118609008138,
+            "protan": 0.27097052658696236,
+            "deutan": 0.1883078075836417,
+            "tritan": 0.30169954153568423
+          },
+          "proposed": {
+            "normal": 0.3774080713303773,
+            "protan": 0.23965506869869257,
+            "deutan": 0.11830709272512202,
+            "tritan": 0.3100428623892588
+          },
+          "proposed_luminance_contrast": 1.2320995989966699
+        },
+        "rapid/limit": {
+          "before": {
+            "normal": 0.1862059478223251,
+            "protan": 0.0337268994891661,
+            "deutan": 0.07996168060069565,
+            "tritan": 0.2246251207106438
+          },
+          "proposed": {
+            "normal": 0.1862059478223251,
+            "protan": 0.0337268994891661,
+            "deutan": 0.07996168060069565,
+            "tritan": 0.2246251207106438
+          },
+          "proposed_luminance_contrast": 1.1097897632861544
+        },
+        "rapid/collision": {
+          "before": {
+            "normal": 0.33472272754596644,
+            "protan": 0.14245558160500285,
+            "deutan": 0.06506974735113057,
+            "tritan": 0.3425317719952747
+          },
+          "proposed": {
+            "normal": 0.33472272754596644,
+            "protan": 0.14245558160500285,
+            "deutan": 0.06506974735113057,
+            "tritan": 0.3425317719952747
+          },
+          "proposed_luminance_contrast": 1.111739002074817
+        },
+        "backplot/limit": {
+          "before": {
+            "normal": 0.31631715417826545,
+            "protan": 0.28857608577386634,
+            "deutan": 0.23815452147651486,
+            "tritan": 0.09355864940822385
+          },
+          "proposed": {
+            "normal": 0.26250764320609915,
+            "protan": 0.24835964108937003,
+            "deutan": 0.1829759112122107,
+            "tritan": 0.10895624547580283
+          },
+          "proposed_luminance_contrast": 1.36737152231548
+        },
+        "backplot/collision": {
+          "before": {
+            "normal": 0.24201658028261225,
+            "protan": 0.2675168972626231,
+            "deutan": 0.23521264366441827,
+            "tritan": 0.11139636463465116
+          },
+          "proposed": {
+            "normal": 0.17640905211288266,
+            "protan": 0.19567513478718368,
+            "deutan": 0.17517405251494989,
+            "tritan": 0.10468743797407981
+          },
+          "proposed_luminance_contrast": 1.1082633574042344
+        },
+        "limit/collision": {
+          "before": {
+            "normal": 0.16208327195780803,
+            "protan": 0.12233781278117054,
+            "deutan": 0.02001940168641629,
+            "tritan": 0.12389657473314562
+          },
+          "proposed": {
+            "normal": 0.16208327195780803,
+            "protan": 0.12233781278117054,
+            "deutan": 0.02001940168641629,
+            "tritan": 0.12389657473314562
+          },
+          "proposed_luminance_contrast": 1.2337965639485968
+        }
+      },
+      "normal_sight_shift": {
+        "feed": 0.03594165552392729,
+        "backplot": 0.08338574882022741
+      },
+      "line_contrast": {
+        "feed": {
+          "background": 3.862162402036059,
+          "table_test": 3.7696597395058866,
+          "table_measured": 3.8053846225925696,
+          "side_dark": 1.2391693041193481,
+          "side_light": 1.5161919837778917
+        },
+        "rapid": {
+          "background": 4.093854174273498,
+          "table_test": 3.556315758846577,
+          "table_measured": 3.5900187913438213,
+          "side_dark": 1.1690384885231633,
+          "side_light": 1.4303830631814374
+        },
+        "backplot": {
+          "background": 3.3226649676756876,
+          "table_test": 4.3817352203804045,
+          "table_measured": 4.423260713205232,
+          "side_dark": 1.4403718529210627,
+          "side_light": 1.7623743985574774
+        },
+        "limit": {
+          "background": 4.54331745499502,
+          "table_test": 3.204495010222577,
+          "table_measured": 3.2348638544957913,
+          "side_dark": 1.0533873416362842,
+          "side_light": 1.2888775068045202
+        },
+        "collision": {
+          "background": 3.6823878326056896,
+          "table_test": 3.953694932803039,
+          "table_measured": 3.991163908518421,
+          "side_dark": 1.2996656826177941,
+          "side_light": 1.5902126392460512
+        }
+      }
+    },
+    "hc-light": {
+      "before": {
+        "feed": "#003d82",
+        "rapid": "#004b1e",
+        "backplot": "#7d0079",
+        "limit": "#6c4c02",
+        "collision": "#860009"
+      },
+      "proposed": {
+        "feed": "#0238ab",
+        "rapid": "#004b1e",
+        "backplot": "#6f0b55",
+        "limit": "#6c4c02",
+        "collision": "#860009"
+      },
+      "pairs": {
+        "feed/rapid": {
+          "before": {
+            "normal": 0.18484703144359096,
+            "protan": 0.17840685974644976,
+            "deutan": 0.17420921312636095,
+            "tritan": 0.04117387601591102
+          },
+          "proposed": {
+            "normal": 0.24940414218069462,
+            "protan": 0.2362756894619911,
+            "deutan": 0.2295309343077398,
+            "tritan": 0.07798800071963742
+          },
+          "proposed_luminance_contrast": 1.0647484228019741
+        },
+        "feed/backplot": {
+          "before": {
+            "normal": 0.1992036674488566,
+            "protan": 0.03449396823818131,
+            "deutan": 0.06889320243998735,
+            "tritan": 0.20183822741592933
+          },
+          "proposed": {
+            "normal": 0.2209972103714588,
+            "protan": 0.16012065445677082,
+            "deutan": 0.15186640095835158,
+            "tritan": 0.21491957542984994
+          },
+          "proposed_luminance_contrast": 1.1624627888923094
+        },
+        "feed/limit": {
+          "before": {
+            "normal": 0.2298363905604495,
+            "protan": 0.20500601796861476,
+            "deutan": 0.23339339100337864,
+            "tritan": 0.14967534382010175
+          },
+          "proposed": {
+            "normal": 0.2829821095241963,
+            "protan": 0.25524318696796655,
+            "deutan": 0.2721921689019383,
+            "tritan": 0.1496648279529618
+          },
+          "proposed_luminance_contrast": 1.2392874188378686
+        },
+        "feed/collision": {
+          "before": {
+            "normal": 0.2628976993870685,
+            "protan": 0.19677338636031536,
+            "deutan": 0.21557771000882883,
+            "tritan": 0.2412275575667282
+          },
+          "proposed": {
+            "normal": 0.30940252486906683,
+            "protan": 0.2649848468075512,
+            "deutan": 0.2630287348154621,
+            "tritan": 0.24844760184699247
+          },
+          "proposed_luminance_contrast": 1.0687418338021066
+        },
+        "rapid/backplot": {
+          "before": {
+            "normal": 0.2915485364074867,
+            "protan": 0.18312435508058,
+            "deutan": 0.13438963075484908,
+            "tritan": 0.2094636450448909
+          },
+          "proposed": {
+            "normal": 0.24797398744972812,
+            "protan": 0.15144948384978704,
+            "deutan": 0.07930578954351065,
+            "tritan": 0.20312473589825839
+          },
+          "proposed_luminance_contrast": 1.0917722571808952
+        },
+        "rapid/limit": {
+          "before": {
+            "normal": 0.1342483737032831,
+            "protan": 0.0447751080553542,
+            "deutan": 0.09624909525938546,
+            "tritan": 0.1562040243738741
+          },
+          "proposed": {
+            "normal": 0.1342483737032831,
+            "protan": 0.0447751080553542,
+            "deutan": 0.09624909525938546,
+            "tritan": 0.1562040243738741
+          },
+          "proposed_luminance_contrast": 1.31952932460595
+        },
+        "rapid/collision": {
+          "before": {
+            "normal": 0.23065595363058927,
+            "protan": 0.08184703547576114,
+            "deutan": 0.05745442853611849,
+            "tritan": 0.2387555398470917
+          },
+          "proposed": {
+            "normal": 0.23065595363058927,
+            "protan": 0.08184703547576114,
+            "deutan": 0.05745442853611849,
+            "tritan": 0.2387555398470917
+          },
+          "proposed_luminance_contrast": 1.0037505676595635
+        },
+        "backplot/limit": {
+          "before": {
+            "normal": 0.2362731978826183,
+            "protan": 0.2154279183964743,
+            "deutan": 0.1743730262600803,
+            "tritan": 0.08353954165237823
+          },
+          "proposed": {
+            "normal": 0.19828506125324064,
+            "protan": 0.1920871160066928,
+            "deutan": 0.14426490233980593,
+            "tritan": 0.10114424029209024
+          },
+          "proposed_luminance_contrast": 1.4406255091414204
+        },
+        "backplot/collision": {
+          "before": {
+            "normal": 0.16888734744877418,
+            "protan": 0.1865299300269411,
+            "deutan": 0.16427419015549077,
+            "tritan": 0.07786467255876076
+          },
+          "proposed": {
+            "normal": 0.12047166862007631,
+            "protan": 0.130663611184073,
+            "deutan": 0.12168735458582788,
+            "tritan": 0.07915963519575037
+          },
+          "proposed_luminance_contrast": 1.0876927917725328
+        },
+        "limit/collision": {
+          "before": {
+            "normal": 0.13696332743605233,
+            "protan": 0.12169906806998491,
+            "deutan": 0.04344315260739912,
+            "tritan": 0.10248982445747408
+          },
+          "proposed": {
+            "normal": 0.13696332743605233,
+            "protan": 0.12169906806998491,
+            "deutan": 0.04344315260739912,
+            "tritan": 0.10248982445747408
+          },
+          "proposed_luminance_contrast": 1.324478308616663
+        }
+      },
+      "normal_sight_shift": {
+        "feed": 0.06904327686287921,
+        "backplot": 0.0662482153835831
+      },
+      "line_contrast": {
+        "feed": {
+          "background": 9.738880176150213,
+          "table_test": 7.377472655542199,
+          "table_measured": 7.447388607194905,
+          "side_dark": 2.4251360304275202,
+          "side_light": 2.967287679481611
+        },
+        "rapid": {
+          "background": 10.36945730741335,
+          "table_test": 7.855152374253247,
+          "table_measured": 7.929595273504166,
+          "side_dark": 2.582159763477942,
+          "side_light": 3.159414876727775
+        },
+        "backplot": {
+          "background": 11.321085810255601,
+          "table_test": 8.576037438138336,
+          "table_measured": 8.6573121302846,
+          "side_dark": 2.8191303933739995,
+          "side_light": 3.4493615113359826
+        },
+        "limit": {
+          "background": 7.858451581218152,
+          "table_test": 5.9529956839716505,
+          "table_measured": 6.009411936238835,
+          "side_dark": 1.956879407927558,
+          "side_light": 2.3943498774998946
+        },
+        "collision": {
+          "background": 10.40834865863776,
+          "table_test": 7.884613654709066,
+          "table_measured": 7.959335757090399,
+          "side_dark": 2.591844328378669,
+          "side_light": 3.1712644759875745
+        }
+      }
+    },
+    "hc-dark": {
+      "before": {
+        "feed": "#007af0",
+        "rapid": "#00903f",
+        "backplot": "#da08d3",
+        "limit": "#b17000",
+        "collision": "#f5001b"
+      },
+      "proposed": {
+        "feed": "#057df3",
+        "rapid": "#00903f",
+        "backplot": "#db11a3",
+        "limit": "#b17000",
+        "collision": "#f5001b"
+      },
+      "pairs": {
+        "feed/rapid": {
+          "before": {
+            "normal": 0.2878838448964124,
+            "protan": 0.27746451438785025,
+            "deutan": 0.27252214715241574,
+            "tritan": 0.06664300313629425
+          },
+          "proposed": {
+            "normal": 0.2882980614760004,
+            "protan": 0.2779399601781191,
+            "deutan": 0.2732681973111512,
+            "tritan": 0.0722592359858954
+          },
+          "proposed_luminance_contrast": 1.0341888204026486
+        },
+        "feed/backplot": {
+          "before": {
+            "normal": 0.2985809118350994,
+            "protan": 0.08580468325276985,
+            "deutan": 0.09333485526051612,
+            "tritan": 0.306902790097387
+          },
+          "proposed": {
+            "normal": 0.31564705177544666,
+            "protan": 0.15138350855475374,
+            "deutan": 0.16021407118892625,
+            "tritan": 0.3421484834333702
+          },
+          "proposed_luminance_contrast": 1.1326643264972998
+        },
+        "feed/limit": {
+          "before": {
+            "normal": 0.3291078361483594,
+            "protan": 0.30243131566989473,
+            "deutan": 0.32540986555767626,
+            "tritan": 0.23340789963551303
+          },
+          "proposed": {
+            "normal": 0.3289131498834552,
+            "protan": 0.3042280888064863,
+            "deutan": 0.32513370189686386,
+            "tritan": 0.2354763633641906
+          },
+          "proposed_luminance_contrast": 1.0090651364239802
+        },
+        "feed/collision": {
+          "before": {
+            "normal": 0.40927152819173823,
+            "protan": 0.3095764982957366,
+            "deutan": 0.3336401686997284,
+            "tritan": 0.3640424858212253
+          },
+          "proposed": {
+            "normal": 0.40913434388390546,
+            "protan": 0.31399459316504386,
+            "deutan": 0.3328927260077714,
+            "tritan": 0.36531214868585743
+          },
+          "proposed_luminance_contrast": 1.0685521170004249
+        },
+        "rapid/backplot": {
+          "before": {
+            "normal": 0.441876143970948,
+            "protan": 0.28519040374847077,
+            "deutan": 0.1979182750302861,
+            "tritan": 0.3146029367343112
+          },
+          "proposed": {
+            "normal": 0.4062479944222904,
+            "protan": 0.23803209962239602,
+            "deutan": 0.12347438717621635,
+            "tritan": 0.3408792063216872
+          },
+          "proposed_luminance_contrast": 1.095220045074855
+        },
+        "rapid/limit": {
+          "before": {
+            "normal": 0.1889164628054121,
+            "protan": 0.04881550338228186,
+            "deutan": 0.06639868604526898,
+            "tritan": 0.22818166365730863
+          },
+          "proposed": {
+            "normal": 0.1889164628054121,
+            "protan": 0.04881550338228186,
+            "deutan": 0.06639868604526898,
+            "tritan": 0.22818166365730863
+          },
+          "proposed_luminance_contrast": 1.0248979803897535
+        },
+        "rapid/collision": {
+          "before": {
+            "normal": 0.3620640037505441,
+            "protan": 0.13484365007518326,
+            "deutan": 0.08396736665304584,
+            "tritan": 0.35649205331837586
+          },
+          "proposed": {
+            "normal": 0.3620640037505441,
+            "protan": 0.13484365007518326,
+            "deutan": 0.08396736665304584,
+            "tritan": 0.35649205331837586
+          },
+          "proposed_luminance_contrast": 1.033227294590554
+        },
+        "backplot/limit": {
+          "before": {
+            "normal": 0.3289475140270068,
+            "protan": 0.2969652286619724,
+            "deutan": 0.24543943271651586,
+            "tritan": 0.10041012303159093
+          },
+          "proposed": {
+            "normal": 0.272660160867989,
+            "protan": 0.24003392884319116,
+            "deutan": 0.172754766807823,
+            "tritan": 0.11687349988181726
+          },
+          "proposed_luminance_contrast": 1.1224888122795937
+        },
+        "backplot/collision": {
+          "before": {
+            "normal": 0.2540390872486871,
+            "protan": 0.27763151780484757,
+            "deutan": 0.2513271904306615,
+            "tritan": 0.11489316224004997
+          },
+          "proposed": {
+            "normal": 0.1826755901776593,
+            "protan": 0.20589783761529284,
+            "deutan": 0.18022708779339364,
+            "tritan": 0.08475197474650775
+          },
+          "proposed_luminance_contrast": 1.0599991413398224
+        },
+        "limit/collision": {
+          "before": {
+            "normal": 0.17709563744769355,
+            "protan": 0.09433035655676408,
+            "deutan": 0.021255364440414114,
+            "tritan": 0.1336913747479718
+          },
+          "proposed": {
+            "normal": 0.17709563744769355,
+            "protan": 0.09433035655676408,
+            "deutan": 0.021255364440414114,
+            "tritan": 0.1336913747479718
+          },
+          "proposed_luminance_contrast": 1.0589525675094278
+        }
+      },
+      "normal_sight_shift": {
+        "feed": 0.008933104127907137,
+        "backplot": 0.07471934339339247
+      },
+      "line_contrast": {
+        "feed": {
+          "background": 5.2341121752697815,
+          "table_test": 3.039308990351893,
+          "table_measured": 3.0681123747016055,
+          "side_dark": 1.0009137369521222,
+          "side_light": 1.222438163079313
+        },
+        "rapid": {
+          "background": 5.0610798260533745,
+          "table_test": 3.143219379571189,
+          "table_measured": 3.173007517655422,
+          "side_dark": 1.033244706533704,
+          "side_light": 1.2642318818901752
+        },
+        "backplot": {
+          "background": 4.621062085936772,
+          "table_test": 3.442516870574115,
+          "table_measured": 3.4751414365094253,
+          "side_dark": 1.1316303140631985,
+          "side_light": 1.3846120986688264
+        },
+        "limit": {
+          "background": 5.18709049231343,
+          "table_test": 3.0668607409840623,
+          "table_measured": 3.0959252319423776,
+          "side_dark": 1.0081439580364635,
+          "side_light": 1.2335197317975066
+        },
+        "collision": {
+          "background": 4.898321843170987,
+          "table_test": 3.247660055858939,
+          "table_measured": 3.2784379731826014,
+          "side_dark": 1.06757663278183,
+          "side_light": 1.3062388870605104
+        }
+      }
+    }
+  },
+  "midgrey_counterexample": {
+    "black_line": {
+      "#ffffff": 21.0,
+      "#e1e1e1": 16.058844335521556,
+      "#7e7f7f": 5.229333939614169,
+      "#8d8e8f": 6.398378472887859
+    },
+    "white_line": {
+      "#0b0f14": 19.21914648772286,
+      "#7e7f7f": 4.015807795504722,
+      "#8d8e8f": 3.2820815600365405
+    }
+  },
+  "twp_grid_alpha_035_best_on_white": {
+    "srgb_composite_rgb": [
+      0.65,
+      0.65,
+      0.65
+    ],
+    "srgb_composite_contrast": 2.4415405866774558,
+    "linear_composite_contrast": 1.5,
+    "note": "Analytic upper bound for black at opacity .35 over white, not a screenshot measurement."
+  }
+}
