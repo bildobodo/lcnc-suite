@@ -9,7 +9,7 @@ from types import SimpleNamespace
 import linuxcnc
 
 import status_runtime
-from status_runtime import StatusRuntime
+from status_runtime import StatusRuntime, StatusPayload
 
 
 class _Stat:
@@ -559,3 +559,44 @@ class TestRotaryAtZero(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestLoadRecord(unittest.TestCase):
+    """Codex R16 XZ-08: a restarted gateway adopts the interpreter's open file
+    only when its OWN record says it loaded it into THIS LinuxCNC instance;
+    otherwise the file is named unconfirmed. Real files, the real tick."""
+
+    MAIN, SUB = "/nc/main.ngc", "/nc/subs/probe.ngc"
+
+    def runtime(self, path, instance):
+        rt = StatusRuntime(get_stat=lambda: None, get_err=lambda: None, reader_get=lambda _k: None,
+                           get_tool_tbl_path=lambda: None, load_tool_library=lambda: {},
+                           get_fb_scale=lambda: 1.0, get_instance=lambda: instance,
+                           load_record_path=path)
+        return rt
+
+    def test_the_record_survives_a_restart_of_the_same_instance_only(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "loaded_program.json")
+            first = self.runtime(path, (10, 20))
+            first.program_tick(None, True, 0.0)
+            first.program.request_load(self.MAIN, 0.0)
+            self.assertEqual(first.program_tick(self.MAIN, True, 0.1), self.MAIN)
+            # restarted during an MDI call into a sub: the record proves MAIN
+            again = self.runtime(path, (10, 20))
+            self.assertEqual(again.program_tick(self.SUB, False, 0.0), self.MAIN)
+            self.assertIsNone(again.program.unconfirmed)
+            # a new LinuxCNC (another instance): no proof — named, not loaded
+            other = self.runtime(path, (11, 30))
+            self.assertIsNone(other.program_tick(self.SUB, True, 0.0))
+            self.assertEqual(other.program.unconfirmed, self.SUB)
+            # an unload is recorded too
+            again.program.request_unload()
+            again.program_tick(self.MAIN, True, 0.2)
+            after = self.runtime(path, (10, 20))
+            self.assertIsNone(after.program_tick(self.MAIN, True, 0.0))
+            self.assertEqual(after.program.unconfirmed, self.MAIN)
+
+    def test_the_status_names_an_unconfirmed_file(self):
+        import dataclasses
+        self.assertIn("program_unconfirmed", {f.name for f in dataclasses.fields(StatusPayload)})

@@ -44,7 +44,7 @@ from command_policy import (
 from gateway_util import (
     joints_beyond_limits, PROV_A_EPS, atomic_write_bytes, canonical_to_joint_order,
     twp_head_aligned,
-                          LoadedProgram, canonical_path)
+                          LoadedProgram, read_load_record, write_load_record)
 from tool_table import parse_tool_table, _merge_tool_data
 
 WCS_BASES = [5220, 5240, 5260, 5280, 5300, 5320, 5340, 5360, 5380]
@@ -306,6 +306,10 @@ class StatusPayload:
     twp_pose_c: Optional[float]
     spindle_direction: Optional[int]
     active_file: Optional[str]
+    # The interpreter's open file after a gateway restart with no load record
+    # for this LinuxCNC (Codex R16 XZ-08): named, never loaded or previewed —
+    # the operator loads it (or another) to resolve it. None otherwise.
+    program_unconfirmed: Optional[str]
     motion_line: Optional[int]
     # Canonical [A, B, C] actual position (degrees) — the gateway's
     # rotary-drift reparse edge compares this against the payload's
@@ -495,6 +499,8 @@ class StatusRuntime:
         get_twp_capable: Callable[[], bool] = lambda: False,
         get_identity_first: Callable[[], bool] = lambda: False,
         get_prov_a: Callable[[], Optional[List[Optional[float]]]] = lambda: None,
+        get_instance: Callable[[], Optional[tuple]] = lambda: None,
+        load_record_path: Optional[str] = None,
     ) -> None:
         self._get_stat = get_stat
         # Kins declaration for the touch-off gates; default "unknown" = closed
@@ -537,8 +543,12 @@ class StatusRuntime:
         # error, so active_file changes only from a load context — the
         # gateway's load_file / unload_file call request_load / request_unload.
         self.program = LoadedProgram()
-        self._search_dirs_key: Optional[str] = None
-        self._search_dirs: tuple = ((), ())
+        # Its proof across a gateway restart: the load record, per LinuxCNC
+        # instance (read once before the first sight, written on change).
+        self._get_instance = get_instance
+        self._load_record_path = load_record_path
+        self._record_read = False
+        self._recorded: Any = object()   # sentinel: nothing written yet
         # Warn-once flags (re-armed on reconnect so a STAT field that
         # disappears across a reconnect produces a fresh log line)
         self._machine_pos_warned = False
@@ -630,25 +640,33 @@ class StatusRuntime:
 
     # ---- WCS / var-file caches ----
 
-    def search_dirs(self) -> tuple:
-        """(subroutine search dirs, program dirs) of the active INI, canonical —
-        only the first sight's hint (LoadedProgram). Cached per INI."""
-        ini_path = self.safe_get("ini_filename", None)
-        if not ini_path:
-            return (), ()
-        if ini_path == self._search_dirs_key:
-            return self._search_dirs
-        try:
-            ini = linuxcnc.ini(ini_path)
-        except Exception:
-            return (), ()   # transient — retry next tick
-        base = os.path.dirname(ini_path)
-        resolve = lambda d: canonical_path(os.path.join(base, os.path.expanduser(d)))
-        subs = tuple(resolve(d) for d in (ini.find("RS274NGC", "SUBROUTINE_PATH") or "").split(":") if d)
-        prefix = ini.find("DISPLAY", "PROGRAM_PREFIX")
-        self._search_dirs_key = ini_path
-        self._search_dirs = (subs, (resolve(prefix),) if prefix else ())
-        return self._search_dirs
+    def program_tick(self, raw_file, interp_idle: bool, now: float) -> Optional[str]:
+        """One status tick of the loaded program (gateway_util.LoadedProgram):
+        before the first sight, restore the gateway's own load record for
+        this LinuxCNC instance; after it, record every change of the loaded
+        program — the proof a restarted gateway adopts it by. Events traced.
+        Returns the loaded program."""
+        if not self.program.seen and not self._record_read and self._load_record_path:
+            instance = self._get_instance()
+            if instance is not None:
+                self._record_read = True
+                record = read_load_record(self._load_record_path, instance)
+                if record is not None:
+                    self.program.restore(record[0])
+        for tag, fields in self.program.update(raw_file, interp_idle, now):
+            _trace.emit(tag, level="info", **fields)
+        if self.program.seen and self._load_record_path and self.program.loaded != self._recorded:
+            instance = self._get_instance()
+            if instance is not None:
+                try:
+                    write_load_record(self._load_record_path, instance, self.program.loaded)
+                    self._recorded = self.program.loaded
+                except OSError as e:
+                    # Not silent, not per tick: retried on the next change.
+                    self._recorded = self.program.loaded
+                    _trace.emit("status.load_record_failed", level="warn",
+                                exc=type(e).__name__, msg=str(e))
+        return self.program.loaded
 
     def resolve_var_file_path(self) -> Optional[str]:
         """Resolve absolute path to the LinuxCNC var file from the active INI.
@@ -1074,14 +1092,12 @@ class StatusRuntime:
         )
 
         # Loaded program (see gateway_util.LoadedProgram): a new file only
-        # from a load context; every ignored flip traced once.
+        # from a load context or the gateway's own load record; every
+        # ignored flip traced once.
         _interp = safe_get("interp_state", None)
-        _sub_dirs, _prog_dirs = self.search_dirs() if not self.program.seen else ((), ())
-        for _tag, _fields in self.program.update(
-                safe_get("file", None), _interp is None or _interp == linuxcnc.INTERP_IDLE,
-                time.monotonic(), _sub_dirs, _prog_dirs):
-            _trace.emit(_tag, level="info", **_fields)
-        active_file = self.program.loaded
+        active_file = self.program_tick(
+            safe_get("file", None), _interp is None or _interp == linuxcnc.INTERP_IDLE,
+            time.monotonic())
 
         payload = StatusPayload(
             ts=time.time(),
@@ -1142,6 +1158,7 @@ class StatusRuntime:
             twp_pose_c=reader_get("twp_pose_c"),
             spindle_direction=spindle_direction,
             active_file=active_file,
+            program_unconfirmed=self.program.unconfirmed,
             motion_line=safe_get("motion_line", None),
             rotary_abc=rotary_abc,
             program_elapsed_ms=program_elapsed_ms,

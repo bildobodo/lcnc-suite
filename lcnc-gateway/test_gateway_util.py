@@ -24,7 +24,7 @@ from gateway_util import (
     finite_float,
     finite_int,
     evaluate_trip_latch,
-    LoadedProgram, LOAD_WINDOW_S,
+    LoadedProgram, LOAD_WINDOW_S, read_load_record, write_load_record,
 )
 
 
@@ -313,14 +313,16 @@ class TestLoadedProgram(unittest.TestCase):
     guard list — MDI success/error/abort with and without a program, sub in
     a search path and in the program folder, a load from a shared folder,
     unload, reload, a gateway restart during and after an MDI call,
-    canonical paths."""
+    canonical paths. Codex R16 XZ-08: the first sight after a gateway
+    restart has no load context either — only the gateway's own LOAD
+    RECORD for this LinuxCNC instance proves a program; without it the
+    interpreter's open file is UNCONFIRMED, never loaded (no directory
+    hint: PROGRAM_PREFIX is no proof of a file's role)."""
 
     MAIN = "/nc/main.ngc"
     OTHER = "/nc/other.ngc"
     SUB = "/suite/subroutines/tool_touch_off.ngc"
     NC_SUB = "/nc/subs/probe_x.ngc"          # a subroutine inside the program folder
-    SUBDIRS = ("/suite/subroutines", "/nc/subs")
-    PROGDIRS = ("/nc",)
 
     def run_steps(self, prog, steps, t0=0.0):
         """steps: (raw, idle) or callables acting on prog; returns events."""
@@ -331,13 +333,16 @@ class TestLoadedProgram(unittest.TestCase):
                 continue
             raw, idle = step
             now += 0.033
-            events += prog.update(raw, idle, now, self.SUBDIRS, self.PROGDIRS)
+            events += prog.update(raw, idle, now)
         return events
 
     def seeded(self, loaded=None):
+        """A gateway whose own record says `loaded` (None: nothing)."""
         prog = LoadedProgram()
-        prog.update(loaded, True, 0.0, self.SUBDIRS, self.PROGDIRS)   # first sight
+        prog.restore(loaded)
+        prog.update(loaded, True, 0.0)   # first sight
         self.assertTrue(prog.seen)
+        self.assertEqual((prog.loaded, prog.unconfirmed), (loaded, None))
         return prog
 
     load = staticmethod(lambda path: (lambda prog, now: prog.request_load(path, now)))
@@ -352,6 +357,7 @@ class TestLoadedProgram(unittest.TestCase):
                     events = self.run_steps(prog, [(self.SUB, False), (self.SUB, False),
                                                    (end_raw, True), (end_raw, True), (end_raw, True)])
                     self.assertEqual(prog.loaded, loaded)
+                    self.assertIsNone(prog.unconfirmed, "a sub left open is no candidate program")
                     flips = [e for e in events if e[0] == "status.file_flip_ignored"]
                     self.assertEqual(len(flips), 1, "traced once, not per tick")
 
@@ -405,26 +411,61 @@ class TestLoadedProgram(unittest.TestCase):
                               (self.SUB, False), (self.MAIN, False), (self.MAIN, True)])
         self.assertEqual(prog.loaded, self.MAIN)
 
-    def test_first_sight_after_a_gateway_restart(self):
+    def test_first_sight_adopts_only_the_gateways_own_record(self):
+        # (record, steps, loaded, unconfirmed)
         cases = [
-            # idle, a program open -> adopted
-            ([(self.MAIN, True)], self.MAIN),
-            # a program RUNNING (remap not active) -> adopted at once
-            ([(self.MAIN, False)], self.MAIN),
-            # restarted DURING an MDI call into a sub, a program loaded:
-            # wait while the hint says subroutine, adopt the program on return
-            ([(self.SUB, False), (self.SUB, False), (self.MAIN, True)], self.MAIN),
-            # restarted after an MDI error with no program: the sub is left
-            ([(self.SUB, True), (self.SUB, True)], None),
-            # nothing open
-            ([(None, True)], None),
+            (self.MAIN, [(self.MAIN, True)], self.MAIN, None),
+            (self.MAIN, [(self.MAIN, False)], self.MAIN, None),                 # a run in progress
+            (self.MAIN, [(self.SUB, False), (self.MAIN, True)], self.MAIN, None),  # restarted during an MDI call
+            (self.MAIN, [(self.NC_SUB, True)], self.MAIN, None),                # after an MDI error, a program loaded
+            (self.MAIN, [(None, True)], None, None),                            # the interpreter has nothing open
+            # No record for this instance (or it says nothing is loaded):
+            # never adopted; the open file is named as unconfirmed.
+            (False, [(self.MAIN, True)], None, self.MAIN),
+            (None, [(self.MAIN, True)], None, self.MAIN),
+            # Codex's case 1: a sub in PROGRAM_PREFIX left open by an MDI error
+            (False, [(self.NC_SUB, True), (self.NC_SUB, True)], None, self.NC_SUB),
+            # Codex's case 2: restarted during an MDI call — the return to the
+            # main program is no load either; the candidate follows the file
+            (False, [(self.NC_SUB, False), (self.MAIN, True)], None, self.MAIN),
+            (False, [(None, True)], None, None),
         ]
-        for steps, want in cases:
-            with self.subTest(steps=steps):
+        for record, steps, loaded, unconfirmed in cases:
+            with self.subTest(record=record, steps=steps):
                 prog = LoadedProgram()
-                self.run_steps(prog, steps)
-                self.assertEqual(prog.loaded, want)
+                if record is not False:
+                    prog.restore(record)
+                events = self.run_steps(prog, steps)
                 self.assertTrue(prog.seen)
+                self.assertEqual((prog.loaded, prog.unconfirmed), (loaded, unconfirmed))
+                if unconfirmed:
+                    self.assertIn("status.program_unconfirmed", [e[0] for e in events])
+
+    def test_an_unconfirmed_file_ends_with_a_load_an_unload_or_an_empty_interpreter(self):
+        for end, want_loaded in ((self.load(self.MAIN), self.MAIN),
+                                 (lambda prog, now: prog.request_unload(), None)):
+            with self.subTest(end=want_loaded):
+                prog = LoadedProgram()
+                self.run_steps(prog, [(self.MAIN, True), end, (self.MAIN, True)])
+                self.assertEqual((prog.loaded, prog.unconfirmed), (want_loaded, None))
+        prog = LoadedProgram()
+        self.run_steps(prog, [(self.MAIN, True), (None, True)])
+        self.assertEqual((prog.loaded, prog.unconfirmed), (None, None))
+        self.run_steps(prog, [(self.SUB, True)])
+        self.assertIsNone(prog.unconfirmed, "once resolved, a later flip is no candidate")
+
+    def test_the_load_record_counts_only_for_its_own_instance(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "loaded_program.json")
+            self.assertIsNone(read_load_record(path, (10, 20)), "no record")
+            write_load_record(path, (10, 20), self.MAIN)
+            self.assertEqual(read_load_record(path, (10, 20)), (self.MAIN,))
+            self.assertIsNone(read_load_record(path, (10, 21)), "another LinuxCNC instance")
+            self.assertIsNone(read_load_record(path, None), "an unbound gateway proves nothing")
+            write_load_record(path, (10, 20), None)
+            self.assertEqual(read_load_record(path, (10, 20)), (None,), "unloaded is a record too")
+            Path(path).write_text("{broken")
+            self.assertIsNone(read_load_record(path, (10, 20)), "unreadable = no proof")
 
 
 class TestVectorizedLimitChecks(unittest.TestCase):

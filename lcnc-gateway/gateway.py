@@ -28,6 +28,7 @@ import click
 from contextlib import asynccontextmanager
 
 import lcnc_trace as _trace
+import lcnc_paths
 _trace.init("gateway")
 _trace.install_crash_hooks("gateway")
 
@@ -55,6 +56,7 @@ elif _launcher_bind.get("needs_poll"):
 # Pure, linuxcnc-free helpers (importable under pytest without the binding).
 from gateway_util import (
     ALLOWED_EXTENSIONS,
+    LOAD_RECORD_NAME,
     canonical_path,
     SUBFILE_NAME_RE,
     resolve_subfile,
@@ -2269,6 +2271,10 @@ _status_runtime = _status_runtime_mod.StatusRuntime(
     # falsification pass — a hand-typed G10 under a reserved fixture is the
     # documented operator-caused escape.
     get_prov_a=lambda: [(_prov_cache.get(i) or {}).get("a") for i in range(1, 10)],
+    # The loaded program's proof across a gateway restart (Codex R16 XZ-08):
+    # the gateway's own record, per LinuxCNC instance, in the suite's dir.
+    get_instance=lambda: _bound_instance,
+    load_record_path=os.path.join(lcnc_paths.resolve()[0], LOAD_RECORD_NAME),
 )
 safe_get = _status_runtime.safe_get
 normalize_homed = _status_runtime.normalize_homed
@@ -7352,7 +7358,10 @@ async def ws_endpoint(ws: WebSocket):
         try:
             if STAT is not None:
                 STAT.poll()
-            initial_file = safe_get("file", None)
+            # The LOADED program (LoadedProgram), never the interpreter's raw
+            # open file — a sub left open after an MDI error is no program
+            # to preview (Codex R16 XZ-08: the second adoption site).
+            initial_file = _status_runtime.program.loaded
             if initial_file:
                 cache_hit = (
                     _bulk.preview_pending is not None
