@@ -1,18 +1,33 @@
 // Backplot controller (frontend split, A3 — extracted from ThreeViewer.vue).
 //
-// The backplot is the live tool-history trail in WORK coordinates: a single
-// THREE.Line backed by a linearized circular buffer. Owns its own line/geometry
-// and the ring-buffer cursor; the orchestrator (ThreeViewer) computes the
+// The backplot is the live tool-history trail in WORK coordinates. Owns its own
+// line/geometry and the ring cursor; the orchestrator (ThreeViewer) computes the
 // tool-tip's work-local position each tick and calls push().
+//
+// Drawn 2 CSS px wide (viewer contrast plan, E11): the width ladder — path 1 px,
+// backplot 2 px, selection 3 px + halo — is the FORM cue that tells the executed
+// path from the programmed one and from the limit overlay (feed and backplot
+// differ in lightness by only ~1.15 : 1, and colour alone is no cue for
+// colour-blind eyes). WebGL draws core lines 1 px wide everywhere, so the trail
+// is a screen-space fat line (LineSegments2): a RING OF SEGMENTS, each the pair
+// of two consecutive history points — independent instances, so the ring never
+// needs linearising, a wrap can never join the newest point to the oldest, and a
+// push uploads only the one segment it wrote.
 //
 // Factory pattern (per the A3 plan): created once in <script setup>, closes over
 // the STABLE requestRender (a plain function, never reassigned). The parent
 // group IS reassigned every scene rebuild, so build() takes it per-call and is
 // re-invoked from ensureCoreGroups — the controller never caches a parent.
 import * as THREE from "three";
+import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
+import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
+import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 
 const BACKPLOT_MAX = 20000;   // points (10 Hz -> ~33 min)
+const SEG_MAX = BACKPLOT_MAX - 1;   // segments between them
 const BACKPLOT_EPS = 0.01;    // mm; min distance before adding a point
+/** The backplot's width in CSS px — twice the path's 1 px line, under the selection's 3. */
+export const BACKPLOT_WIDTH_PX = 2;
 
 export interface BackplotController {
   /** Build a fresh line under `parent` (call once per scene rebuild). */
@@ -28,84 +43,75 @@ export interface BackplotController {
 }
 
 export function createBackplotController(requestRender: () => void): BackplotController {
-  let line: THREE.Line | null = null;
-  let geom: THREE.BufferGeometry | null = null;
-  let pos: Float32Array | null = null;
-  let count = 0;            // valid points in the window, 0..BACKPLOT_MAX
-  let head = 0;             // next write slot, 0..BACKPLOT_MAX-1
-  // Scalar dedup anchor (no retained Vector3 → no per-point allocation).
+  let line: LineSegments2 | null = null;
+  let geom: LineSegmentsGeometry | null = null;
+  let buf: THREE.InstancedInterleavedBuffer | null = null;
+  let count = 0;            // points in the window, 0..BACKPLOT_MAX
+  let segs = 0;             // segments in the ring, 0..SEG_MAX (= count - 1 once drawing)
+  let head = 0;             // next segment slot, 0..SEG_MAX-1
+  // Scalar dedup anchor and the previous point (no retained Vector3 → no per-point allocation).
   let lastX = 0, lastY = 0, lastZ = 0, hasLast = false;
 
   function reset() {
     count = 0;
+    segs = 0;
     head = 0;
     hasLast = false;
-    if (geom && pos) {
-      // Keep allocation, just “empty” it
-      geom.setDrawRange(0, 0);
-      geom.attributes.position!.needsUpdate = true;
-    }
+    if (geom) geom.instanceCount = 0;   // keep the allocation, draw nothing
     requestRender();
   }
 
   return {
     build(parent, color, depthTest) {
-      geom = new THREE.BufferGeometry();
-      // 2× length: linearized circular buffer (see push). +480 KB.
-      pos = new Float32Array(BACKPLOT_MAX * 2 * 3);
-      geom.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-      geom.setDrawRange(0, 0);
+      geom = new LineSegmentsGeometry();
+      // One interleaved record per segment: start xyz, end xyz.
+      buf = new THREE.InstancedInterleavedBuffer(new Float32Array(SEG_MAX * 6), 6, 1);
+      buf.setUsage(THREE.DynamicDrawUsage);
+      geom.setAttribute("instanceStart", new THREE.InterleavedBufferAttribute(buf, 3, 0));
+      geom.setAttribute("instanceEnd", new THREE.InterleavedBufferAttribute(buf, 3, 3));
+      geom.instanceCount = 0;
 
-      const mat = new THREE.LineBasicMaterial({ color, depthTest, depthWrite: false });
+      const mat = new LineMaterial({ color, linewidth: BACKPLOT_WIDTH_PX, worldUnits: false, depthTest, depthWrite: false });
       mat.userData.role = "backplot";   // the viewer palette's role (diagnostics read it)
-      line = new THREE.Line(geom, mat);
+      line = new LineSegments2(geom, mat);
       line.renderOrder = 11;
       line.frustumCulled = false;   // ✅ prevents disappearing when origin is off-screen
+      // The width is screen pixels: the material learns the drawing size right before each draw.
+      line.onBeforeRender = (renderer) => { renderer.getSize(mat.resolution); };
       parent.add(line);
 
       reset();
     },
 
     push(x, y, z) {
-      if (!geom || !pos || !line) return;
+      if (!geom || !buf || !line) return;
 
       if (hasLast) {
         const dx = x - lastX, dy = y - lastY, dz = z - lastZ;
         if (dx * dx + dy * dy + dz * dz < BACKPLOT_EPS * BACKPLOT_EPS) return;
+        // The segment from the previous point to this one, into the next ring slot.
+        const a = head * 6, arr = buf.array as Float32Array;
+        arr[a] = lastX; arr[a + 1] = lastY; arr[a + 2] = lastZ;
+        arr[a + 3] = x; arr[a + 4] = y; arr[a + 5] = z;
+        buf.addUpdateRange(a, 6);
+        buf.needsUpdate = true;
+        head = (head + 1) % SEG_MAX;
+        if (segs < SEG_MAX) segs++;
+        geom.instanceCount = segs;
       }
-
-      // Linearized circular buffer: the backing array is 2×BACKPLOT_MAX long, and
-      // every point is written to BOTH `slot` and `slot+BACKPLOT_MAX`. That keeps
-      // the most-recent BACKPLOT_MAX points contiguous and in chronological order
-      // at indices [head, head+BACKPLOT_MAX) once full — a single setDrawRange with
-      // zero per-point memmove (the old copyWithin shifted ~60 KB on every point).
-      const N = BACKPLOT_MAX;
-      const slot = head;
-      const a = slot * 3;
-      const b = (slot + N) * 3;
-      pos[a + 0] = x; pos[a + 1] = y; pos[a + 2] = z;
-      pos[b + 0] = x; pos[b + 1] = y; pos[b + 2] = z;
-
-      head = (slot + 1) % N;
-      if (count < N) count++;
-
+      if (count < BACKPLOT_MAX) count++;
       lastX = x; lastY = y; lastZ = z; hasLast = true;
-
-      // Not yet wrapped: points fill [0, count). Full: window starts at head.
-      const start = count < N ? 0 : head;
-      geom.setDrawRange(start, count);
-      geom.attributes.position!.needsUpdate = true;
     },
 
     reset,
 
     setVisible(on) { if (line) line.visible = on; },
 
-    setColor(color) { if (line) (line.material as THREE.LineBasicMaterial).color.set(color); },
+    setColor(color) { if (line) (line.material as LineMaterial).color.set(color); },
 
     setDepthTest(depthTest) {
       if (line) {
-        const m = line.material as THREE.LineBasicMaterial;
+        const m = line.material as LineMaterial;
         m.depthTest = depthTest;
         m.depthWrite = false; // backplot is transparent, never write depth
         m.needsUpdate = true;
@@ -118,7 +124,7 @@ export function createBackplotController(requestRender: () => void): BackplotCon
         (line.material as THREE.Material).dispose();  // created in build(), owned here
       }
       geom?.dispose();
-      line = null; geom = null; pos = null;
+      line = null; geom = null; buf = null;
     },
 
     get count() { return count; },

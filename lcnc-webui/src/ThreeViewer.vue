@@ -1693,6 +1693,65 @@ async function buildFromInit(init: ViewerInit) {
           });
           return wide;
         },
+        // Every role-tagged material as DRAWN (viewer contrast plan, R1/R2):
+        // its kind carries the pair table's form cue — `dashed` the rapid,
+        // `fat` a screen-space line with its CSS-px width (backplot 2,
+        // selection 3 + halo), `basic` a 1 px line — and its opacity says
+        // whether the colour needs compositing.
+        getRoleMaterials: () => {
+          const out: { role: string; kind: string; widthPx: number | null; opacity: number; transparent: boolean }[] = [];
+          const seen = new Set<string>();
+          scene?.traverse(o => {
+            const m = (o as THREE.Mesh).material as (THREE.Material & { linewidth?: number }) | undefined;
+            const role = m && !Array.isArray(m) ? m.userData?.role as string | undefined : undefined;
+            if (!role) return;
+            const kind = (m as any).isLineMaterial ? "fat" : (m as any).isLineDashedMaterial ? "dashed"
+              : (m as any).isLineBasicMaterial ? "basic" : "other";
+            if (seen.has(`${role}|${kind}`)) return;
+            seen.add(`${role}|${kind}`);
+            out.push({ role, kind, widthPx: kind === "fat" ? m!.linewidth ?? null : kind === "other" ? null : 1,
+              opacity: m!.opacity, transparent: m!.transparent });
+          });
+          return out;
+        },
+        // The longest visible segment of a role on screen (CSS px, page
+        // coordinates): its midpoint and unit direction — the viewer specs
+        // sample the rendered pixels across it to measure the drawn width.
+        projectRole: (role: string) => {
+          if (!camera || !renderer) return null;
+          const rect = renderer.domElement.getBoundingClientRect();
+          const a = new THREE.Vector3(), b = new THREE.Vector3();
+          let best: { x: number; y: number; dx: number; dy: number; length: number } | null = null;
+          const consider = (o: THREE.Object3D) => {
+            a.applyMatrix4(o.matrixWorld).project(camera!);
+            b.applyMatrix4(o.matrixWorld).project(camera!);
+            const ax = rect.left + (a.x + 1) / 2 * rect.width, ay = rect.top + (1 - a.y) / 2 * rect.height;
+            const bx = rect.left + (b.x + 1) / 2 * rect.width, by = rect.top + (1 - b.y) / 2 * rect.height;
+            const length = Math.hypot(bx - ax, by - ay);
+            if (length > (best?.length ?? 0)) best = { x: (ax + bx) / 2, y: (ay + by) / 2, dx: (bx - ax) / length, dy: (by - ay) / length, length };
+          };
+          scene?.traverse(o => {
+            const m = (o as THREE.Mesh).material as THREE.Material | undefined;
+            if (!m || Array.isArray(m) || m.userData?.role !== role) return;
+            for (let p: THREE.Object3D | null = o; p; p = p.parent) if (!p.visible) return;
+            const g = (o as THREE.Mesh).geometry as THREE.BufferGeometry;
+            if ((o as any).isLineSegments2) {
+              const d = (g.getAttribute("instanceStart") as THREE.InterleavedBufferAttribute).data;
+              const arr = d.array as Float32Array, n = Math.min((g as THREE.InstancedBufferGeometry).instanceCount, 20000);
+              for (let i = 0; i < n; i++) { a.fromArray(arr, i * 6); b.fromArray(arr, i * 6 + 3); consider(o); }
+              return;
+            }
+            if (!(o as any).isLineSegments) return;
+            const pos = g.getAttribute("position");
+            const idx = g.index, start = g.drawRange.start;
+            const end = Math.min(idx ? idx.count : pos.count, start + g.drawRange.count, start + 40000);
+            for (let i = start; i + 1 < end; i += 2) {
+              const i0 = idx ? idx.getX(i) : i, i1 = idx ? idx.getX(i + 1) : i + 1;
+              a.fromBufferAttribute(pos, i0); b.fromBufferAttribute(pos, i1); consider(o);
+            }
+          });
+          return best;
+        },
         getLabels: () => {
           let total = 0, laidOut = 0;
           for (const sc of [scene, _gizmoScene]) sc?.traverse(o => {

@@ -430,8 +430,8 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       color: deps.colors().collision,
       dashSize: 3,
       gapSize: 2,
-      transparent: true,
-      opacity: 0.8,
+      // Opaque (viewer contrast plan, R2): a line's contrast is its COMPOSITED
+      // colour — at 0.8 the collision role's red lost a fifth of it.
       clipIntersection: true,
       clippingPlanes: deps.boundsClipPlanes,
     });
@@ -528,8 +528,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       edgeGeom,
       new THREE.LineBasicMaterial({
         color,
-        transparent: true,
-        opacity: 0.9,
+        // Opaque (viewer contrast plan, R2): the role's contrast is the drawn colour.
         clippingPlanes: deps.insideBoundsClipPlanes,
       })
     );
