@@ -7,6 +7,7 @@
 // this pins the blocks the measurement relies on.
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+import { PALETTE_PAIRS, PATH_ROLES, PAIR_MIN_DISTANCE } from "./viewer/palettePairs";
 
 // node:fs, not an import: vitest empties every CSS import, `?raw` included.
 const css = readFileSync(new URL("./style.css", import.meta.url), "utf8");
@@ -109,6 +110,49 @@ describe("theme text roles", () => {
           expect(okDistance(hex(b.get(a)!), hex(b.get(c)!)), `${name} ${a} vs ${c}`).toBeGreaterThanOrEqual(0.12);
         }
       }
+    });
+  }
+
+  // The pair table (viewer contrast plan, R1): a colour-separated pair keeps
+  // PAIR_MIN_DISTANCE under normal vision AND under simulated protan-,
+  // deutan- and tritanopia; every pair keeps it under normal vision; a pair
+  // without colour separation names the form cue that carries it. The
+  // simulation: linearise sRGB, apply Machado 2009 (severity 1), clip to
+  // [0, 1], then OKLab — a heuristic regression guard, not a proof of
+  // accessibility (the form cues are what WCAG 1.4.1 asks for).
+  const MACHADO: Record<string, number[][]> = {
+    protan: [[0.152286, 1.052583, -0.204868], [0.114503, 0.786281, 0.099216], [-0.003882, -0.048116, 1.051998]],
+    deutan: [[0.367322, 0.860646, -0.227968], [0.280085, 0.672501, 0.047413], [-0.011820, 0.042940, 0.968881]],
+    tritan: [[1.255528, -0.076749, -0.178779], [-0.078411, 0.930809, 0.147602], [0.004733, 0.691367, 0.303900]],
+  };
+  const unlin = (v: number) => { v = Math.min(1, Math.max(0, v)); return 255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055); };
+  const simulate = (c: RGB, kind: string): RGB => {
+    if (kind === "normal") return c;
+    const l = c.map(lin);
+    return MACHADO[kind]!.map(row => unlin(row[0]! * l[0]! + row[1]! * l[1]! + row[2]! * l[2]!)) as RGB;
+  };
+  const VIEWS = ["normal", "protan", "deutan", "tritan"];
+  it("the pair table names every pair of the six path roles once", () => {
+    const named = PALETTE_PAIRS.map(p => [p.a, p.b].sort().join(" / "));
+    expect(new Set(named).size, "no pair twice").toBe(named.length);
+    for (let i = 0; i < PATH_ROLES.length; i++) {
+      for (let j = i + 1; j < PATH_ROLES.length; j++) {
+        expect(named, "every path pair").toContain([PATH_ROLES[i], PATH_ROLES[j]].sort().join(" / "));
+      }
+    }
+    expect(PALETTE_PAIRS.filter(p => !p.colour && p.cues.length === 0), "a pair without colour separation names its cue").toEqual([]);
+  });
+  for (const name of ["root", "dark", "auto-dark", "hc-light", "hc-dark"] as const) {
+    it(`${name}: every pair of the table tells apart — the colour-separated ones for colour-blind eyes too`, () => {
+      const b = block(THEMES[name]);
+      const bad: string[] = [];
+      for (const p of PALETTE_PAIRS) {
+        for (const view of p.colour ? VIEWS : ["normal"]) {
+          const d = okDistance(simulate(hex(b.get(p.a)!), view), simulate(hex(b.get(p.b)!), view));
+          if (d < PAIR_MIN_DISTANCE) bad.push(`${p.a} / ${p.b} ${view} ${d.toFixed(3)}`);
+        }
+      }
+      expect(bad, `${name}: pairs under ${PAIR_MIN_DISTANCE}`).toEqual([]);
     });
   }
 

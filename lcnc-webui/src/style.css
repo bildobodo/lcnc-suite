@@ -153,9 +153,9 @@
      keep the warn family everywhere (overlay, timeline marks, line numbers).
      Tool and cutter are lit meshes — no line contrast applies. Settings'
      Automatic palette reads these; Custom replaces the seven user roles. */
-  --viewer-feed: #005dbd;
+  --viewer-feed: #1663dc;
   --viewer-rapid: #007531;
-  --viewer-backplot: #ba02b4;
+  --viewer-backplot: #b4098b;
   --viewer-limit: #9a6000;
   --viewer-selection: #111111;
   --viewer-collision: #c20012;
@@ -311,9 +311,9 @@
     --syntax-coord: #4ec9b0;
     --syntax-param: #9cdcfe;
     --syntax-comment: #7baa66;
-    --viewer-feed: #0066cd;
+    --viewer-feed: #066be3;
     --viewer-rapid: #00863b;
-    --viewer-backplot: #cd00c6;
+    --viewer-backplot: #be0692;
     --viewer-limit: #ad6d00;
     --viewer-selection: #008b96;
     --viewer-collision: #db0016;
@@ -343,9 +343,9 @@
   --syntax-coord: #006955;
   --syntax-param: #236482;
   --syntax-comment: #3b6825;
-  --viewer-feed: #005dbd;
+  --viewer-feed: #1663dc;
   --viewer-rapid: #007531;
-  --viewer-backplot: #ba02b4;
+  --viewer-backplot: #b4098b;
   --viewer-limit: #9a6000;
   --viewer-selection: #111111;
   --viewer-collision: #c20012;
@@ -374,9 +374,9 @@
   --syntax-coord: #4ec9b0;
   --syntax-param: #9cdcfe;
   --syntax-comment: #7baa66;
-  --viewer-feed: #0066cd;
+  --viewer-feed: #066be3;
   --viewer-rapid: #00863b;
-  --viewer-backplot: #cd00c6;
+  --viewer-backplot: #be0692;
   --viewer-limit: #ad6d00;
   --viewer-selection: #008b96;
   --viewer-collision: #db0016;
@@ -415,14 +415,14 @@
   --syntax-coord: #005c48;
   --syntax-param: #125674;
   --syntax-comment: #2f5b16;
-  --viewer-feed: #003d82;
+  --viewer-feed: #0238ab;
   --viewer-rapid: #004b1e;
-  --viewer-backplot: #7d0079;
+  --viewer-backplot: #6f0b55;
   --viewer-limit: #6c4c02;
   --viewer-selection: #000000;
   --viewer-collision: #860009;
   --viewer-bounds: #333d4a;
-  --viewer-toolpath-bounds: #004b1e;
+  --viewer-toolpath-bounds: #014f0a;
   --viewer-tool: #8a8f96;
   --viewer-cutter: #b38f00;
 }
@@ -455,9 +455,9 @@
   --syntax-coord: #4ec9b0;
   --syntax-param: #9cdcfe;
   --syntax-comment: #7bab66;
-  --viewer-feed: #007af0;
+  --viewer-feed: #057df3;
   --viewer-rapid: #00903f;
-  --viewer-backplot: #da08d3;
+  --viewer-backplot: #db11a3;
   --viewer-limit: #b17000;
   --viewer-selection: #008b96;
   --viewer-collision: #f5001b;
