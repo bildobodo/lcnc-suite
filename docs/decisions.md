@@ -7072,3 +7072,23 @@ Plan Fassung 3 WP-D10 (N110 + the named follow-ups), first of three commits.
   class for a child root). Red on the inventory's list, clean afterwards
   with no audit-ok; a word the template uses as a prop (App's `danger`)
   hides a dead rule from it — named, removed by hand.
+
+### WP-D10b — text-role utilities, empty states, one tracking (2026-09-27)
+
+Plan Fassung 3 WP-D10 (N111–N113, EMPTYSTATE_COPY), second of three commits.
+
+- N111 as D8 agreed it (UI-D07 supersedes the plan's "--opacity-muted for
+  loading and hint text"): no opacity on text. `.dialogBody` lost its 80 %
+  (every confirm's body is darker — named for the live look), the G-code
+  tooltip text, the HAL "unlinked" (0.3 on muted: 1.55 : 1) and the offsets
+  names are colour roles; the HAL group header no longer dims on hover.
+- N112: ONE family `.text-muted/-ok/-warn/-danger`; the global `.muted`
+  duplicate is gone; the scoped one-liners use it (a contextual rule stays
+  where a utility would lose on specificity — Offsets' aux names). No
+  `.text-error`: `--err` is a fill tint only, error text is --danger-text.
+  The banner tiers keep their names as hooks, the colour is the utility.
+- N113: `--tracking-caps` (0.05em) for all uppercase text; interior padding
+  stays literal as the pre-flight checklist has always said.
+- Empty states on `.emptyState` (Debug, Probing's compensation, the camera).
+- Guards: contrast.spec opens a HAL pin group (red on "unlinked"); audit
+  ONE_LINER, EMPTYSTATE_COPY, TOKEN for letter-spacing.

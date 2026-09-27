@@ -1148,7 +1148,7 @@ async function saveEdit() {
     <div v-if="tooltip" class="gcodeTooltip"
          :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }">
       <div class="gcodeTooltipCode">{{ tooltip.code }} — {{ tooltip.name }}</div>
-      <div class="gcodeTooltipDesc">{{ tooltip.desc }}</div>
+      <div class="text-muted">{{ tooltip.desc }}</div>
     </div>
   </div>
 </template>
@@ -1308,7 +1308,7 @@ async function saveEdit() {
 .uploadIcon {
   width: 40px;
   height: 40px;
-  opacity: var(--opacity-disabled);
+  opacity: var(--opacity-muted);   /* decoration, not a disabled control */
 }
 
 .emptyText {
@@ -1402,8 +1402,5 @@ async function saveEdit() {
   color: var(--accent-text);
 }
 
-.gcodeTooltipDesc {
-  opacity: var(--opacity-secondary);
-}
 
 </style>

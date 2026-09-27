@@ -191,7 +191,7 @@ onUnmounted(() => {
                  (operator decision 2026-09-19) and fires regardless of the
                  master toggle. A fixed row — no capture cell, no unbind. -->
             <tr>
-              <td class="kbMapAction">{{ KEYBOARD_ACTION_LABELS.estop }}<span class="kbAlways"> — always active, reserved</span></td>
+              <td class="kbMapAction">{{ KEYBOARD_ACTION_LABELS.estop }}<span class="text-muted"> — always active, reserved</span></td>
               <td class="kbKeyCell kbFixed" :title="`${formatKeyName(ESTOP_KEY)} is reserved for E-Stop and cannot be changed`">{{ formatKeyName(ESTOP_KEY) }}</td>
               <td class="kbUnbind"></td>
             </tr>
@@ -216,9 +216,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.kbAlways {
-  color: var(--fg-muted);
-}
 
 .kbMapAction {
   font-weight: var(--fw-semibold);

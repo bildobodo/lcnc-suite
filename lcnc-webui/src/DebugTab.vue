@@ -41,7 +41,7 @@ const timingComponents: { key: keyof Omit<import("./lcncWs").TimingStats, "count
 <template>
   <div class="scrollContent scroll-thin fade-scroll">
     <div class="stack-controls">
-      <div class="sub">Latency Breakdown <span v-if="timingStats" class="muted">({{ timingStats.count }} samples)</span></div>
+      <div class="sub">Latency Breakdown <span v-if="timingStats" class="text-muted">({{ timingStats.count }} samples)</span></div>
       <div v-if="timingStats" class="timingTable">
         <div class="timingRow timingHeader">
           <span>Component</span><span>Last</span><span>Min</span><span>Max</span><span>Mean</span><span>Std</span>
@@ -60,7 +60,7 @@ const timingComponents: { key: keyof Omit<import("./lcncWs").TimingStats, "count
         </div>
         </template>
       </div>
-      <div v-else class="muted">Waiting for data…</div>
+      <div v-else class="emptyState loading">Waiting for data…</div>
       <div class="row-controls debugActions">
           <MachineBtn type="inline" @click="toggleTimingLog">{{ timingLogActive ? 'Stop Log' : 'Start Log' }}</MachineBtn>
           <MachineBtn type="inline" @click="resetTimingStats">Reset</MachineBtn>
@@ -118,9 +118,6 @@ const timingComponents: { key: keyof Omit<import("./lcncWs").TimingStats, "count
   margin: var(--gap-controls) 0 var(--gap-tight);
 }
 
-.muted {
-  color: var(--fg-muted);
-}
 .debugActions {
   margin-top: var(--gap-section);
 }

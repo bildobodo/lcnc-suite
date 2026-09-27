@@ -217,6 +217,12 @@ for (const pass of PASSES) {
     for (const tab of await settings.getByRole("tablist").first().getByRole("tab").allTextContents()) {
       await settings.getByRole("tab", { name: tab.trim(), exact: true }).click();
       await take(`Settings/${tab.trim()}`, '[role="dialog"]');
+      if (tab.trim() === "HAL") {
+        // A pin group open: the pin rows (a linked signal, "unlinked", TRUE / FALSE).
+        await settings.locator(".halGroupHeader").first().click();
+        await expect(settings.getByText("unlinked", { exact: true }).first()).toBeVisible();
+        await take("Settings/HAL pins", '[role="dialog"]');
+      }
     }
     await page.getByRole("button", { name: "Close settings", exact: true }).click();
     // A dialog with body text, the G-code reference.

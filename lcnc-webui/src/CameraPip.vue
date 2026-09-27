@@ -225,7 +225,7 @@ onMounted(() => {
     <!-- Content area -->
     <div v-show="!minimized" class="pipContent" :style="{ height: pipH + 'px' }">
       <img v-if="streamUrl && !streamError" :src="streamUrl" class="pipFeed" @error="streamError = true" @load="streamError = false" />
-      <div v-else class="pipPlaceholder">No stream</div>
+      <div v-else class="pipPlaceholder emptyState">No stream</div>
 
       <!-- SVG Overlay -->
       <svg class="pipOverlay" :viewBox="`0 0 ${svgW} ${svgH}`" xmlns="http://www.w3.org/2000/svg">
@@ -294,8 +294,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--fg-muted);
-  font-size: var(--fs-sm);
 }
 
 .pipOverlay {

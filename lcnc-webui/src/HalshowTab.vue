@@ -157,16 +157,16 @@ const halTabs = computed(() => ([
           <MachineBtn type="inline" class="halGroupHeader" :aria-expanded="halExpanded.has(group)" @click="toggleHalGroup(group)">
             <ChevronDown v-if="halExpanded.has(group)" class="halChevron" :size="12" aria-hidden="true" /><ChevronRight v-else class="halChevron" :size="12" aria-hidden="true" />
             <span class="halGroupName">{{ group }}</span>
-            <span class="halGroupCount">({{ pins.length }})</span>
+            <span class="text-muted">({{ pins.length }})</span>
           </MachineBtn>
           <div v-if="halExpanded.has(group)" class="halGroupBody">
             <div class="halRow" v-for="pin in pins" :key="pin.name">
               <span class="halName" :title="pin.name">{{ pin.name }}</span>
               <span class="halType">{{ pin.type }}</span>
               <span class="halDir">{{ pin.dir }}</span>
-              <span class="halValue" :class="{ halTrue: pin.value === 'TRUE', halFalse: pin.value === 'FALSE' }">{{ pin.value }}</span>
+              <span class="halValue" :class="{ 'text-ok': pin.value === 'TRUE', 'text-muted': pin.value === 'FALSE' }">{{ pin.value }}</span>
               <span class="halSignal" v-if="pin.signal">{{ pin.arrow }} {{ pin.signal }}</span>
-              <span class="halSignal halUnlinked" v-else>unlinked</span>
+              <span class="halSignal" v-else>unlinked</span>
             </div>
           </div>
         </div>
@@ -179,9 +179,9 @@ const halTabs = computed(() => ([
           <span class="halName" :title="pin.name">{{ pin.name }}</span>
           <span class="halType">{{ pin.type }}</span>
           <span class="halDir">{{ pin.dir }}</span>
-          <span class="halValue" :class="{ halTrue: pin.value === 'TRUE', halFalse: pin.value === 'FALSE' }">{{ pin.value }}</span>
+          <span class="halValue" :class="{ 'text-ok': pin.value === 'TRUE', 'text-muted': pin.value === 'FALSE' }">{{ pin.value }}</span>
           <span class="halSignal" v-if="pin.signal">{{ pin.arrow }} {{ pin.signal }}</span>
-          <span class="halSignal halUnlinked" v-else>unlinked</span>
+          <span class="halSignal" v-else>unlinked</span>
         </div>
       </template>
     </div>
@@ -193,7 +193,7 @@ const halTabs = computed(() => ([
         <div class="halSigHeader">
           <span class="halSigName">{{ sig.name }}</span>
           <span class="halType">{{ sig.type }}</span>
-          <span class="halValue" :class="{ halTrue: sig.value === 'TRUE', halFalse: sig.value === 'FALSE' }">{{ sig.value }}</span>
+          <span class="halValue" :class="{ 'text-ok': sig.value === 'TRUE', 'text-muted': sig.value === 'FALSE' }">{{ sig.value }}</span>
         </div>
         <div class="halSigPins" v-if="sig.pins.length">
           <span v-for="(p, i) in sig.pins" :key="i" class="halSigPin">{{ p.arrow }} {{ p.pin }}</span>
@@ -208,7 +208,7 @@ const halTabs = computed(() => ([
           <MachineBtn type="inline" class="halGroupHeader" :aria-expanded="halExpanded.has(group)" @click="toggleHalGroup(group)">
             <ChevronDown v-if="halExpanded.has(group)" class="halChevron" :size="12" aria-hidden="true" /><ChevronRight v-else class="halChevron" :size="12" aria-hidden="true" />
             <span class="halGroupName">{{ group }}</span>
-            <span class="halGroupCount">({{ params.length }})</span>
+            <span class="text-muted">({{ params.length }})</span>
           </MachineBtn>
           <div v-if="halExpanded.has(group)" class="halGroupBody">
             <div class="halRow" v-for="param in params" :key="param.name">
@@ -290,10 +290,6 @@ const halTabs = computed(() => ([
   user-select: none;
 }
 
-.halGroupHeader:hover {
-  opacity: var(--opacity-secondary);
-  background: none;
-}
 
 .halChevron {
   width: 12px;
@@ -305,9 +301,6 @@ const halTabs = computed(() => ([
   font-weight: var(--fw-semibold);
 }
 
-.halGroupCount {
-  color: var(--fg-muted);
-}
 
 .halGroupBody {
   padding-left: 18px;
@@ -351,13 +344,7 @@ const halTabs = computed(() => ([
   font-variant-numeric: tabular-nums;
 }
 
-.halTrue {
-  color: var(--ok-text);
-}
 
-.halFalse {
-  color: var(--fg-muted);
-}
 
 .halSignal {
   flex: 1;
@@ -368,9 +355,6 @@ const halTabs = computed(() => ([
   white-space: nowrap;
 }
 
-.halUnlinked {
-  opacity: var(--opacity-subtle);
-}
 
 .halSigRow {
   padding: var(--gap-tight) 0;

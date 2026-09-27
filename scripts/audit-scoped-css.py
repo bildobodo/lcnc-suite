@@ -53,6 +53,13 @@ WS-C extension — design-token drift checks over every .vue <style> block
   CLOSE      — `<MachineBtn type="close"` without an `aria-label`: a close
                control is named for its context ("Close settings",
                "Dismiss upload error"), never announced as "times" (UX-05).
+  ONE_LINER  — a scoped rule on ONE class whose only declaration is a text
+               role colour (`--fg-muted`, `--ok-text`, `--warn-text`,
+               `--danger-text`): a copy of `.text-muted/-ok/-warn/-danger`
+               (design wave D10, N112). A contextual selector is not flagged.
+  EMPTYSTATE_COPY — a scoped rule that centres muted text (text-align:
+               center with `--fg-muted` or an opacity): a copy of the global
+               `.emptyState` (D10, N83).
   EMPTY_RULE — a rule with no declaration (and no nested rule): dead CSS
                that reads as if it styled something (design wave D10, N110).
   DEAD_CLASS — a class a scoped rule styles (its selector's SUBJECT, the
@@ -526,6 +533,9 @@ def token_findings(path: str) -> list[tuple[str, int, str]]:
                 elif prop == "font-size":
                     if re.search(r"\b\d", val) and "var(--fs-" not in val and "%" not in val:
                         flag("TOKEN", i, f"font-size: {val} — use an --fs-* token")
+                elif prop == "letter-spacing":
+                    if re.search(r"\d", val) and "var(--tracking-" not in val:
+                        flag("TOKEN", i, f"letter-spacing: {val} — use var(--tracking-caps)")
                 elif prop == "border-radius":
                     if re.search(r"\b\d*\.?\d+(px|em|rem)\b", val) and "var(--radius-" not in val:
                         flag("TOKEN", i, f"border-radius: {val} — use a --radius-* token")
@@ -580,6 +590,17 @@ def token_findings(path: str) -> list[tuple[str, int, str]]:
                 cls = {"section": "stack-sections"}.get(tok, f"stack-{tok}")
                 flag("STACK", rule_open_line,
                      f"`{selector}` re-implements {cls} — use the utility class")
+            text_roles = ("var(--fg-muted)", "var(--ok-text)", "var(--warn-text)", "var(--danger-text)")
+            if (list(rule_props) == ["color"] and rule_props["color"] in text_roles
+                    and re.fullmatch(r"\.[\w-]+", selector)):
+                flag("ONE_LINER", rule_open_line,
+                     f"`{selector}` only sets {rule_props['color']} — use .text-muted / -ok / -warn / -danger")
+            if (rule_props.get("text-align") == "center"
+                    and (rule_props.get("color") == "var(--fg-muted)" or "opacity" in rule_props)
+                    # a glyph centred in its own box (an icon column, a key cap) is no empty state
+                    and not any(k in rule_props for k in ("width", "min-width", "border", "background", "border-radius"))):
+                flag("EMPTYSTATE_COPY", rule_open_line,
+                     f"`{selector}` centres muted text — use the global .emptyState")
             if keyframes_at is not None and depth == keyframes_at:
                 keyframes_at = None
             rule_props = {}

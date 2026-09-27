@@ -255,7 +255,7 @@ function zeroAll() {
                  @click="(e: MouseEvent) => wcsReserved(g) && explainAt(e, RESERVED_TITLE)"
                  @keydown="(e: KeyboardEvent) => wcsReserved(g) && explainKeydown(e, () => explainAt(e, RESERVED_TITLE))">
             <MachineRadio gate="wcsSelect" name="wcs" :value="g" :modelValue="g5xLabel" :disabled="wcsReserved(g)" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('setG5x', String(v)) }" />
-            <span :class="{ muted: wcsReserved(g) }">{{ g }}</span>
+            <span :class="{ 'text-muted': wcsReserved(g) }">{{ g }}</span>
           </label>
         </div>
       </div>

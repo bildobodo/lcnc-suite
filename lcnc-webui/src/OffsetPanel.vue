@@ -147,7 +147,7 @@ function clearAll() {
             <td class="offLabel">{{ row.name }}</td>
             <td v-for="axis in offsetColumns" :key="axis"
                 :class="{
-                  warn: axis === 'r' && row[axis] !== 0,
+                  'text-warn': axis === 'r' && row[axis] !== 0,
                   editableCell: can.probe && Number.isFinite(Number(row[axis]))
                 }"
                 :data-input-area="cellOwner(row.name as string, axis)"
@@ -231,7 +231,6 @@ function clearAll() {
 .tableWrap td.offLabel {
   text-align: left;
   font-weight: var(--fw-semibold);
-  color: color-mix(in oklab, var(--fg) 80%, transparent);
 }
 
 .selectedRow {
@@ -258,13 +257,12 @@ tbody tr.auxRow {
   cursor: default;
 }
 
-.auxLabel {
+/* The auxiliary rows' names (G92, Tool, Comp) read muted beside the
+   fixtures — a contextual rule: the offLabel rule above outranks a utility. */
+.tableWrap td.auxLabel {
   color: var(--fg-muted);
 }
 
-.warn {
-  color: var(--warn-text);
-}
 
 /* Persistent tint, not :hover — hover affordances are invisible on touch,
    and this class only exists while the cell is actually editable (can.probe). */

@@ -1187,13 +1187,13 @@ function fmtR(key: string): string {
             <span>Grid: {{ surfaceState.gridError }}</span>
             <MachineBtn type="retry" @click="emit('getCompGrid')">Retry</MachineBtn>
           </div>
-          <div v-else-if="surfaceState?.grid === 'empty'" class="label-muted">No compensation grid yet</div>
+          <div v-else-if="surfaceState?.grid === 'empty'" class="emptyState">No compensation grid yet</div>
           <div class="sep"></div>
           <div class="row-tight">
             <span class="compDot" :class="{ on: eoffsetEnabled }"></span>
             <span>Compensation: <b class="stable-width"><span :class="{ alt: !eoffsetEnabled }">ON</span><span :class="{ alt: eoffsetEnabled }">OFF</span></b></span>
           </div>
-          <span v-if="eoffsetZ != null" class="compValue mono">Z: {{ fmtNum(eoffsetZ, 4) }}</span>
+          <span v-if="eoffsetZ != null" class="text-muted mono">Z: {{ fmtNum(eoffsetZ, 4) }}</span>
           <div class="sep"></div>
           <div class="sub">Method</div>
           <div class="radioGroup">
@@ -1458,9 +1458,6 @@ html.touch-device .gridSection { height: 368px; }
 .compDot.on {
   background: var(--ok);
   box-shadow: 0 0 6px var(--ok);
-}
-.compValue {
-  color: var(--fg-muted);
 }
 .surface3d {
   flex: 1;

@@ -136,11 +136,11 @@ const rawSummary = computed(() => {
 
     <div class="stack-controls">
       <div class="sub">Connection</div>
-      <div class="settingDesc" :class="{ okText: gamepadConnected }">
+      <div class="settingDesc" :class="{ 'text-ok': gamepadConnected }">
         {{ gamepadConnected ? gamepadName : 'No gamepad detected — connect one and press a button' }}
       </div>
       <template v-if="gamepadConnected">
-        <div class="settingDesc" :class="{ okText: gamepadMappingSource === 'profile' }">
+        <div class="settingDesc" :class="{ 'text-ok': gamepadMappingSource === 'profile' }">
           {{ gamepadMappingSource ? MAPPING_STATUS[gamepadMappingSource] : '' }}
         </div>
         <div class="row-controls">
@@ -231,14 +231,6 @@ const rawSummary = computed(() => {
 </template>
 
 <style scoped>
-/* okText was previously defined only in App.vue's scoped CSS — meaning
-   the green-when-connected styling for the connection status label was
-   silently broken (App.vue's scope id doesn't reach SettingsPanel's
-   children). Local definition fixes it. */
-.okText {
-  color: var(--ok-text);
-}
-
 .gpMapKey {
   font-weight: var(--fw-semibold);
   white-space: nowrap;

@@ -1169,6 +1169,68 @@ D10 kommt in drei Commits: D10a (tote Reste, Folgepunkte, `DEAD_CLASS`/`EMPTY_RU
 - build, lint (neu `EMPTY_RULE`, `DEAD_CLASS`, `UNIT_LITERAL` erweitert) und Vitest (**1660**) grün.
 - Playwright **276/276** über alle neun Projekte.
 
+
+### WP-D10b — Textrollen-Utilities, Leerzustände, Laufweite · 27. September 2026
+
+**Abweichungen vom Planwortlaut (bewusst, zur Prüfung):**
+- **N111:** Der Plan sagt „Lade- und Hinweistexte bekommen die D8-Rolle“ und meint `--opacity-muted`.
+  D8a hat mit UI-D07 die Regel „Deckkraft nur für gesperrte Controls und Dekoration, nie für Text“
+  vereinbart; die D10-Formulierung ist dadurch überholt. Umgesetzt ist die D8-Regel.
+- **N112:** Der Plan nennt `.text-error`. Seit D8a ist `--err` nur eine Tönung für Flächen, Fehlertext
+  liest `--danger-text`. Es gibt deshalb `.text-danger` und keine zweite Klasse für dieselbe Farbe.
+- **N113:** Das Innen-Padding bleibt hart codiert, wie die Pre-Flight-Checkliste es seit jeher
+  festlegt („Padding inside buttons/inputs is visual and stays hardcoded“). Ein Token bekommt nur
+  die Laufweite.
+
+**Umgesetzt:**
+- **Text ohne Deckkraft (N111):**
+  - `.dialogBody` (alle Bestätigungsdialoge) trägt keine 80 % mehr. Der Text ist dadurch
+    **sichtbar dunkler**.
+  - Der Beschreibungstext im G-Code-Tooltip, „unlinked“ im HAL-Bereich (0,3 auf gedämpftem Text:
+    1,55:1) und die Offsets-Namen (80 % transparentes `--fg`) nutzen jetzt Farbrollen.
+  - Der HAL-Gruppenkopf dimmt beim Hover nicht mehr seinen Text; es gilt der Hover des Buttons.
+  - Das Upload-Icon im leeren Program-Tab ist Dekoration (`--opacity-muted`), kein gesperrtes
+    Control.
+- **Eine Utility-Familie (N112):** `.text-muted`, `.text-ok`, `.text-warn`, `.text-danger`. Die
+  doppelte globale `.muted` ist entfernt.
+
+  Die Einzeiler-Kopien sind durch die Utilities ersetzt:
+  - GamepadTab `.okText`;
+  - HAL `.halTrue`/`.halFalse`/`.halGroupCount`;
+  - Tastatur `.kbAlways`;
+  - Offsets `.warn` und `.auxLabel` (kontextuell, weil die Namensregel eine Utility überstimmen
+    würde);
+  - Probing `.compValue`;
+  - DebugTab `.muted`;
+  - die Banner-Stufen: `.bannerError`/`.bannerWarn` bleiben Namen für Code und Specs, ihre Farbe
+    kommt aus der Utility daneben.
+- **Leerzustände:** „Waiting for data…“ (Debug), „No compensation grid yet“ (Probing) und „No stream“
+  (Kamera) sind `.emptyState`.
+- **Laufweite (N113):** Das Token `--tracking-caps` (0,05 em) gilt für alle Großbuchstaben-Texte:
+  Abschnittstitel, Labels, Status-Banner, Kopfzeilen-Pills und Sim-Banner. Vorher standen dort
+  0,5 px, 0,02 em und 0,05 em.
+
+**Wächter:**
+- **`contrast.spec`:** Im HAL-Bereich wird eine Pin-Gruppe aufgeklappt. Rot am Stand vor der
+  Korrektur mit „unlinked“ 1,55:1 und der Gruppenzahl beim Hover 3,37:1.
+- **CSS-Audit:**
+  - `ONE_LINER`: eine scoped Regel auf einer Klasse, die nur eine Textrollenfarbe setzt. Rot an den
+    Banner-Stufen und am Tooltip.
+  - `EMPTYSTATE_COPY`: zentrierter gedämpfter Text ohne eigenen Kasten. Rot an einer eingepflanzten
+    Kopie.
+  - `TOKEN`: literale `letter-spacing`.
+
+**Sichtbar für den Operator:**
+- Der Text in Bestätigungsdialogen ist dunkler.
+- Die Pills der Kopfzeile sind minimal weiter gesperrt.
+- „No compensation grid yet“ steht zentriert.
+
+**Gates:**
+- build, lint (neu `ONE_LINER`, `EMPTYSTATE_COPY`, Laufweite in `TOKEN`) und Vitest (**1660**) grün.
+- Playwright **276/276**. Im ersten Lauf fielen die fünf Kontrast-Durchläufe: Der neue HAL-Schritt
+  wartete auf die Klasse `.halUnlinked`, die D10b entfernt. Er wartet jetzt auf den Text, danach
+  liefen `contrast.spec` (10/10) und damit `serial-guards` grün.
+
 ---
 
 ## Codex Implementierungsreview Runde 1

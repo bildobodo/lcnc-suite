@@ -1849,7 +1849,7 @@ watch(viewerGcode, (newGcode) => {
           <!-- Every banner carries its recovery path — an operator must
                never have to guess whether waiting, a UI action, or a
                suite restart is the way out (no auto-recovery implied). -->
-          <span v-if="bannerLine" :key="bannerLine.key" :class="bannerLine.tier === 'error' ? 'bannerError' : 'bannerWarn'"
+          <span v-if="bannerLine" :key="bannerLine.key" :class="bannerLine.tier === 'error' ? 'bannerError text-danger' : 'bannerWarn text-warn'"
                 :title="bannerLine.detail">
             {{ bannerLine.text }}
           </span>
@@ -1857,7 +1857,7 @@ watch(viewerGcode, (newGcode) => {
             <span>Re-parsing · {{ previewRefreshLabel(previewRefresh.reason) }} · {{ previewRefreshFile }}{{ previewRefresh.queued ? ' · queued' : '' }}</span>
             <div class="progressTrack" :title="previewRefreshTimes"><div class="progressFill" :style="{ width: previewRefreshPct + '%' }"></div></div>
           </span>
-          <span v-else-if="bannerMessage && !bannerShowAbort" :key="'msg'" :class="{ bannerError: bannerMessageKind <= 2 }">
+          <span v-else-if="bannerMessage && !bannerShowAbort" :key="'msg'" :class="{ 'bannerError text-danger': bannerMessageKind <= 2 }">
             {{ bannerMessage }}
           </span>
           <span v-else :key="machineState">
@@ -2736,7 +2736,7 @@ watch(viewerGcode, (newGcode) => {
   font-size: var(--fs-xl);
   font-weight: var(--fw-bold);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--tracking-caps);
   flex-shrink: 0;
   border-radius: var(--radius-container);
   background: color-mix(in oklab, var(--state-color, var(--info)) 25%, var(--panel));
@@ -2785,14 +2785,10 @@ watch(viewerGcode, (newGcode) => {
 .bannerProgress > .progressTrack {
   flex: 0 0 160px;
 }
-.bannerError {
-  color: var(--danger-text);
-}
-/* Program, preview and configuration problems (design wave D1, UI-N23):
-   the warn tier — red is kept for safety, machine and connection. */
-.bannerWarn {
-  color: var(--warn-text);
-}
+/* The banner's two tiers (design wave D1, UI-N23) are class names the
+   code and the specs read (.bannerError: safety, machine, connection;
+   .bannerWarn: program, preview, configuration); their colour is the text
+   role beside them (.text-danger / .text-warn). */
 
 .bannerActions {
   flex-shrink: 0;

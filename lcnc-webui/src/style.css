@@ -108,11 +108,16 @@
   --fw-semibold: 600;
   --fw-bold: 700;
 
+  /* Letter-spacing of uppercase text (section titles, labels, the state
+     banner, header pills, the sim banner) — ONE tracking (design wave D10,
+     N113); lowercase text keeps the face's own. */
+  --tracking-caps: 0.05em;
+
   /* Opacity */
   --opacity-subtle: 0.3;    /* separators, faint visual dividers */
   --opacity-disabled: 0.4;
   --opacity-muted: 0.6;     /* decoration only (ticks, strokes) — muted TEXT is --fg-muted */
-  --opacity-secondary: 0.8; /* dialog body text, icon hover */
+  --opacity-secondary: 0.8; /* decoration and icon hover — never text */
 
   /* Text roles (design wave D8, UI-K08/K09, UI-D07): the colour a TEXT
      takes in a secondary or a state role, and the syntax palette — each a
@@ -1187,7 +1192,7 @@ label:has(input:disabled, select:disabled) {
   font-weight: var(--fw-semibold);
   color: var(--fg-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: var(--tracking-caps);
 }
 
 /* Inline warning TEXT — a warning clause inside a sentence or a table row
@@ -1204,7 +1209,7 @@ label:has(input:disabled, select:disabled) {
   font-weight: var(--fw-semibold);
   color: var(--fg-muted);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: var(--tracking-caps);
 }
 
 /* A section's always-true description line (design wave D1, UI-N32): the
@@ -1278,7 +1283,7 @@ label:has(input:disabled, select:disabled) {
   z-index: var(--z-banner);
   padding: var(--gap-tight) var(--gap-panel);
   font-weight: var(--fw-semibold);
-  letter-spacing: 0.5px;
+  letter-spacing: var(--tracking-caps);
   white-space: nowrap;
   pointer-events: none;
 }
@@ -1635,7 +1640,6 @@ label:has(input:disabled, select:disabled) {
   font-size: var(--fs-lg);
   margin-bottom: var(--gap-controls);
   line-height: 1.5;
-  opacity: var(--opacity-secondary);
 }
 
 .dialogActions {
@@ -1962,9 +1966,6 @@ label:has(input:disabled, select:disabled) {
 /* A caption is the size of a heading (design wave D6, N92: the slider and
    radio captions were 9 / 10 px beside 11 px headings). */
 .label-muted    { font-size: var(--fs-sm); color: var(--fg-muted); white-space: nowrap; }
-/* Opacity-only muting — dims without changing type size (e.g. the reserved-
-   WCS radio text, which must stay --fs-base with its siblings). */
-.muted          { color: var(--fg-muted); }
 .label-muted.md { font-size: var(--fs-md); }
 
 /* Status key/value row — label left, value right (safety detail, tool
@@ -2020,8 +2021,14 @@ label:has(input:disabled, select:disabled) {
 
 /* Text colour modifiers (design wave D6, N94; N112): a colour and nothing
    else — a state never borrows a value class's size and weight. */
-.text-warn  { color: var(--warn-text); }
-.text-muted { color: var(--fg-muted); }
+/* Text in a role (design wave D8a / D10, N112): the ONE place a text takes
+   a state or muted colour without a class of its own — never a scoped
+   one-line copy (the CSS audit's ONE_LINER). Muting keeps the type size
+   (e.g. the reserved-WCS radio text stays --fs-base with its siblings). */
+.text-ok     { color: var(--ok-text); }
+.text-warn   { color: var(--warn-text); }
+.text-danger { color: var(--danger-text); }
+.text-muted  { color: var(--fg-muted); }
 
 /* Radio button label row (jog increments, WCS selector) */
 .radio-label    { display: flex; align-items: center; gap: var(--gap-tight); font-size: var(--fs-base); cursor: pointer; white-space: nowrap; }
@@ -2154,7 +2161,7 @@ label:has(input:disabled, select:disabled) {
 
 .pill {
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: var(--tracking-caps);
 }
 
 
