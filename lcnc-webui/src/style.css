@@ -1741,18 +1741,29 @@ label:has(input:disabled, select:disabled) {
    survives next to active/selected backgrounds: soft-limit overtravel is
    warn, a collision-sweep contact is danger (same colours as the scrub
    bar's timeline marks; a line with both reads danger — later rule wins). */
-.codeLine.violation .lineNumber {
+.codeLine.violation .lineNumber,
+.codeLine.violation .lineMark {
   color: var(--warn-text);
 }
-.codeLine.collision .lineNumber {
+.codeLine.collision .lineNumber,
+.codeLine.collision .lineMark {
   color: var(--danger-text);
+}
+/* The finding's glyph (viewer contrast plan, V3) in the 16 px the number's
+   margin used to hold: the code starts where it did. */
+.lineMark {
+  flex: none;
+  width: calc(16px - var(--gap-tight));
+  margin-right: var(--gap-tight);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .lineNumber {
   display: inline-block;
   min-width: 40px;
   text-align: right;
-  margin-right: 16px;
   color: var(--fg-muted);
   user-select: none;
   flex-shrink: 0;

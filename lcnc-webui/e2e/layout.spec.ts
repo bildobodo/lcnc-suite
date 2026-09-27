@@ -1234,3 +1234,47 @@ test('a help icon in the viewer warnings card scrolls nothing and keeps its hit 
     if (zoom !== 1) await page.evaluate(() => { document.documentElement.style.zoom = ''; });
   }
 });
+
+// Viewer contrast plan, V3: a finding on a code line is a FORM, not only the
+// number's colour — under deuteranopia the warn and danger text sit 0.02
+// apart. A glyph in the slot between the number and the code (the 16 px the
+// number's margin gave): ▲ limit, × collision, × when both (danger wins the
+// look), named for every finding of the line; the code starts where it did.
+test('a code line names its findings with a glyph: ▲ limit, × collision, both named', async ({ page, context }) => {
+  test.setTimeout(120_000);
+  const feed = LIMIT_FEED.map(p => [...p]);
+  const body = Buffer.from(encode({ file: '/marks.ngc', preview_schema: 9, feed,
+    feed_lines: feed.map((_, i) => i + 3), feed_seq: feed.map((_, i) => i + 3),
+    feed_outside: new Uint8Array(feed.map(p => (p[0]! > 100 ? 1 : 0))),
+    violations: [{ line: 20, axis: 'X', value: 120, limit: 100, kind: 'max' }, { line: 32, axis: 'X', value: 120, limit: 100, kind: 'max' }],
+    violations_total: 2, rapid: [[0, 0, 5], [0, 0, 0]], rapid_lines: [1, 2], rapid_seq: [1, 2] }));
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain',
+    body: Array.from({ length: 40 }, (_, i) => i === 0 ? '(marks)' : `G1 X${i} Y${i % 2 ? 20 : 0} F100`).join('\n') }));
+  await openLayout(page, PROFILES[1], VIEWPORTS.find(v => v.name === 'desktop')!);
+  await ctl({ op: 'status_delta', data: { active_file: '/marks.ngc' } });
+  await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 990, file: '/marks.ngc' } });
+  await expect.poll(() => page.locator('.scrubBar [aria-label="Help: Collision check"]').count(), { timeout: 15_000 }).toBe(1);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([{ line: 12, frac: 0.3 }, { line: 32, frac: 0.95 }]) ?? false)).toBe(true);
+  const line = (n: number) => page.locator('.codeViewer:visible .codeLine').filter({ has: page.locator('.lineNumber', { hasText: new RegExp(`^${n}$`) }) });
+  // The code viewer renders only the lines near its window: scroll to one first.
+  const mark = async (n: number) => {
+    await page.locator('.codeViewer:visible').evaluate((el, n) => {
+      const h = (el.querySelector('.codeLine') as HTMLElement).offsetHeight;
+      el.scrollTop = Math.max(0, (n - 3) * h);
+    }, n);
+    await expect(line(n)).toHaveCount(1);
+    return line(n).evaluate(el => {
+      const g = el.querySelector('.lineMark [role="img"]');
+      return { name: g?.getAttribute('aria-label') ?? null, glyph: g ? [...g.classList].find(c => c.startsWith('lucide-') && c !== 'lucide-icon') ?? null : null,
+        codeX: el.querySelector('.lineContent')!.getBoundingClientRect().left };
+    });
+  };
+  const [limitOnly, collisionOnly, both, plain] = [await mark(20), await mark(12), await mark(32), await mark(5)];
+  const dump = JSON.stringify({ limitOnly, collisionOnly, both, plain });
+  expect([limitOnly.glyph, limitOnly.name], `limit: ▲ named ${dump}`).toEqual(['lucide-triangle-icon', 'Limit violation']);
+  expect([collisionOnly.glyph, collisionOnly.name], `collision: × named ${dump}`).toEqual(['lucide-x-icon', 'Collision']);
+  expect([both.glyph, both.name], `both: × shows, the name says both ${dump}`).toEqual(['lucide-x-icon', 'Limit violation, collision']);
+  expect(plain.name, `a clean line has no mark ${dump}`).toBeNull();
+  expect(new Set([limitOnly.codeX, collisionOnly.codeX, both.codeX, plain.codeX]).size, `the code starts at one x ${dump}`).toBe(1);
+});

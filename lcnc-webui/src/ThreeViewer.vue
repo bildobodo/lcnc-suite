@@ -1776,6 +1776,8 @@ async function buildFromInit(init: ViewerInit) {
           // pairs" whatever the hits say — a collision implies a pair.
           collisionResult.value = { ...r, pairCount: Math.max(1, r.pairCount), hits: hits.map(h => ({ line: h.line, cum: h.frac * end, cumEnd: h.frac * end,
             intervals: [[h.frac * end, h.frac * end] as [number, number]], a: "tool", b: "table", dist: 0, rapid: !!h.rapid })) };
+          // The code panel's marks, as a finished sweep sends them.
+          emit("collision-lines", hits.map(h => ({ line: h.line })));
           return true;
         },
         getAppearance: () => ({

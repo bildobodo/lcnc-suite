@@ -16,7 +16,7 @@ import { useMediaMql } from "./useMediaMql";
 import { emitTelemetry, pushMessage } from "./lcncWs";
 import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "./lcnc";
 import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
-import { Play, SkipForward, Pause, X, ChevronDown, ChevronUp } from "lucide-vue-next";
+import { Play, SkipForward, Pause, X, ChevronDown, ChevronUp, Triangle } from "lucide-vue-next";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineRadio from "./MachineRadio.vue";
@@ -1004,6 +1004,15 @@ async function saveEdit() {
                  :title="item.kind === 'main' ? lineMarkTitle(item.lineNum) : undefined"
                  @click="item.kind === 'main' && onLineClick(item.lineNum)">
               <span class="lineNumber">{{ item.lineNum }}</span>
+              <!-- A finding is a FORM, not only the number's colour (viewer
+                   contrast plan, V3): the timeline's glyphs, × wins the look,
+                   the name says every finding of the line. -->
+              <span class="lineMark">
+                <X v-if="item.kind === 'main' && collisionLineSet.has(item.lineNum)" :size="11" role="img"
+                   :aria-label="violationsByLine.has(item.lineNum) ? 'Limit violation, collision' : 'Collision'" />
+                <Triangle v-else-if="item.kind === 'main' && violationsByLine.has(item.lineNum)" :size="9" fill="currentColor"
+                          role="img" aria-label="Limit violation" />
+              </span>
               <span class="lineContent">
                 <span
                   v-for="(token, ti) in item.tokens"
