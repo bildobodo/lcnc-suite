@@ -261,42 +261,101 @@ def evaluate_trip_latch(fault_latched, last_latched, baseline_seen) -> dict:
     return out
 
 
-def resolve_loaded_file(raw_file, interp_idle: bool, prev, prev_seen: bool = True):
-    """Pure resolver for the "loaded program" the UI should report.
+# How long a requested program_open may take to show up in STAT.file.
+# program_open is fire-and-forget; task opens the file within a cycle or two,
+# or refuses it — a refused load must not leave a window a later flip matches.
+LOAD_WINDOW_S = 5.0
 
-    ``STAT.file`` follows the interpreter's *currently open* file, which flips
-    to subroutine paths mid-execution (M6 remap → tool_touch_off.ngc, o-word
-    CALLs into probe routines, …) and back again. Mirroring it raw made the
-    poller's file-change edge re-parse the subroutine as if the operator had
-    loaded it — replacing the preview, G-code text, and stats mid-run (the
-    "Stats button vanishes while running" bug) and paying two full re-parses
-    of the main program per tool change.
 
-    A file can only be legitimately (un)loaded while the interpreter is idle
-    (task + gateway both reject loads during AUTO), so: accept ``raw_file``
-    only when ``interp_idle`` — otherwise hold ``prev`` and report the ignored
-    flip so the caller can trace it (no silent decisions).
+def canonical_path(path):
+    """A path as the filesystem resolves it (~, relative parts, symlinks)."""
+    return os.path.realpath(os.path.expanduser(path)) if path else None
 
-    Args:
-        raw_file: current ``STAT.file`` ("" and None both mean "none").
-        interp_idle: interpreter is idle (a ``None`` interp_state should be
-            passed as idle — no data → keep the legit-load path open).
-        prev: previously resolved loaded file (``None`` = no file loaded).
-        prev_seen: whether ``prev`` is an established baseline. False only on
-            the very first poll (gateway restarted, possibly under a running
-            program): adopt raw rather than showing nothing; it self-corrects
-            to the main file at the next idle tick. Must be True afterwards —
-            ``prev is None`` then honestly means "no file loaded" and is held
-            through busy states like any other value (an MDI o-word probe with
-            no program loaded must not adopt the probe sub as loaded file).
 
-    Returns ``(loaded_file, flip_ignored)`` — ``flip_ignored`` is the raw
-    value we refused to adopt, or ``None`` when nothing was ignored.
+def _under(path, dirs):
+    return any(path == d or path.startswith(d.rstrip(os.sep) + os.sep) for d in dirs)
+
+
+class LoadedProgram:
+    """The program the operator loaded — not the interpreter's open file.
+
+    ``STAT.file`` follows the interpreter's CURRENTLY open file: it flips to
+    subroutine paths while a program's remap or an MDI call executes (M6
+    remap → tool_touch_off.ngc, o-word probes) — mirroring it raw re-parsed
+    the subroutine as the program mid-run ("Stats button vanishes while
+    running"). And after an MDI call that ends in an ERROR with no program
+    loaded it STAYS on the subroutine: adopting the raw file at idle made
+    remap_subs/m600.ngc the loaded program, previewed (live 2026-09-27,
+    Codex R15 B2). So a new file is adopted only from a LOAD CONTEXT — the
+    gateway's own load_file (``request_load`` arms a window, program_open
+    being fire-and-forget) — never from a flip, busy or idle. The
+    interpreter LOSING its file at idle (unload, reset) is adopted: showing a
+    program task no longer has open would be the lie; an explicit unload
+    (``request_unload``) clears it at once.
+
+    First sight (a gateway restarted under a running LinuxCNC) has no load
+    context: it adopts the raw file unless it lies in a subroutine search
+    directory outside the program folders — a HINT, used only here (a
+    directory names a search location, not a file's role) — and waits for an
+    idle tick while that hint says "subroutine" (an MDI call still running).
+
+    ``update`` returns trace events [(tag, fields)] — each ignored raw value
+    once, not per tick — so the caller keeps every skipped decision auditable.
     """
-    f = raw_file or None
-    if interp_idle or not prev_seen:
-        return f, None
-    return prev, (f if f != prev else None)
+
+    def __init__(self):
+        self.loaded = None
+        self.seen = False
+        self._pending = None      # (canonical path, deadline)
+        self._ignored = None      # the raw value last reported as ignored
+
+    def request_load(self, path, now):
+        self._pending = (canonical_path(path), now + LOAD_WINDOW_S)
+
+    def cancel_load(self):
+        self._pending = None
+
+    def request_unload(self):
+        self.loaded, self._pending, self.seen = None, None, True
+
+    def update(self, raw_file, interp_idle, now, subroutine_dirs=(), program_dirs=()):
+        events = []
+        raw = raw_file or None
+        canon = canonical_path(raw)
+        if self._pending is not None and now > self._pending[1]:
+            events.append(("status.load_not_observed", {"path": os.path.basename(self._pending[0])}))
+            self._pending = None
+        if not self.seen:
+            hinted = canon is not None and _under(canon, subroutine_dirs) and not _under(canon, program_dirs)
+            if raw is not None and not hinted:
+                self.loaded, self.seen = raw, True
+            elif interp_idle:
+                self.seen = True
+                if hinted:
+                    events.append(("status.file_flip_ignored",
+                                   {"raw_file": os.path.basename(raw), "loaded": "",
+                                    "reason": "first sight: a subroutine search path"}))
+                    self._ignored = raw
+            return events
+        if raw is None:
+            if interp_idle:
+                self.loaded, self._ignored = None, None
+            return events
+        if canon == canonical_path(self.loaded):
+            self._ignored = None
+            if self._pending is not None and self._pending[0] == canon:
+                self._pending = None    # a reload of the same program
+            return events
+        if self._pending is not None and self._pending[0] == canon:
+            self.loaded, self._pending, self._ignored = raw, None, None
+            return events
+        if raw != self._ignored:
+            events.append(("status.file_flip_ignored",
+                           {"raw_file": os.path.basename(raw),
+                            "loaded": os.path.basename(self.loaded or ""),
+                            "reason": "running" if not interp_idle else "no load context"}))
+            self._ignored = raw
+        return events
 
 
 def atomic_write_bytes(path: str, data: bytes, fsync: bool = False) -> None:

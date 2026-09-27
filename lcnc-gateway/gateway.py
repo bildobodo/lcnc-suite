@@ -4251,7 +4251,14 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             # 500 ms budget by ~10×; the off-loop candidate is a subprocess or
             # a GIL-releasing send, not more wait tuning.
             _set_phase("load_file.program_open")
-            await _cmd_blocking(CMD.program_open, abs_path, wait=None)
+            # The load context: only this makes the file the loaded program
+            # (LoadedProgram — STAT.file flips alone never do).
+            _status_runtime.program.request_load(abs_path, time.monotonic())
+            try:
+                await _cmd_blocking(CMD.program_open, abs_path, wait=None)
+            except BaseException:
+                _status_runtime.program.cancel_load()
+                raise
             return {"ok": True, "path": abs_path}
 
         if cmd == "unload_file":
@@ -4261,6 +4268,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 return blocked
             await _cmd_blocking(CMD.abort)
             await _cmd_blocking(CMD.reset_interpreter)
+            _status_runtime.program.request_unload()
             return {"ok": True}
 
         if cmd == "list_probe_macros":
