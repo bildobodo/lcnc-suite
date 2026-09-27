@@ -668,6 +668,56 @@ class TestLoadRecord(unittest.TestCase):
             after = self.runtime(path, (10, 20))
             self.assertIsNone(after.program_tick(self.MAIN, True, 0.0))
 
+    def test_a_load_whose_window_ran_out_proves_neither_program(self):
+        # Codex R18 XZ-08 (observation_after_load_window): B was first seen
+        # after LOAD_WINDOW_S — the window ran out, and the next tick wrote
+        # MAIN back as settled although the interpreter had B open. The late
+        # file is still no load context; MAIN is no proof either.
+        B = "/nc/other.ngc"
+        W = __import__("gateway_util").LOAD_WINDOW_S
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "loaded_program.json")
+            rt = self.settled(path, (10, 20), self.MAIN)
+            self.assertTrue(rt.begin_program_change())
+            rt.program.request_load(B, 10.0)
+            rt.end_program_change()
+            self.assertIsNone(rt.program_tick(B, True, 10.0 + W + 0.1))
+            self.assertEqual(rt.program.unconfirmed, B)
+            again = self.runtime(path, (10, 20))
+            self.assertIsNone(again.program_tick(B, True, 0.0), "the record proves no program")
+            self.assertEqual(again.program.unconfirmed, B)
+            # the interpreter back on MAIN proves no return to it either
+            self.assertIsNone(rt.program_tick(self.MAIN, True, 20.0))
+            self.assertEqual(rt.program.unconfirmed, self.MAIN)
+            self.assertIsNone(self.runtime(path, (10, 20)).program_tick(self.MAIN, True, 0.0))
+            # resolved by a load …
+            rt.program.request_load(self.MAIN, 21.0)
+            self.assertEqual(rt.program_tick(self.MAIN, True, 21.1), self.MAIN)
+            self.assertIsNone(rt.program.unconfirmed)
+            self.assertEqual(self.runtime(path, (10, 20)).program_tick(self.SUB, False, 0.0), self.MAIN)
+
+    def test_a_change_that_ended_without_its_outcome_proves_nothing(self):
+        # Codex R18 XZ-08 (the unload's error and abort paths): abort and
+        # reset_interpreter may have reached task when the handler was
+        # cancelled — the loaded program is not known.
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "loaded_program.json")
+            rt = self.settled(path, (10, 20), self.MAIN)
+            self.assertTrue(rt.begin_program_change())
+            rt.program.abandon_change()
+            rt.end_program_change()
+            self.assertIsNone(rt.program_tick(self.MAIN, True, 0.5), "MAIN is no longer proven")
+            self.assertEqual(rt.program.unconfirmed, self.MAIN)
+            again = self.runtime(path, (10, 20))
+            self.assertIsNone(again.program_tick(self.MAIN, True, 0.0))
+            self.assertEqual(again.program.unconfirmed, self.MAIN)
+            # … resolved when the interpreter has nothing open
+            self.assertIsNone(rt.program_tick(None, True, 0.6))
+            self.assertIsNone(rt.program.unconfirmed)
+            after = self.runtime(path, (10, 20))
+            self.assertIsNone(after.program_tick(self.MAIN, True, 0.0))
+            self.assertEqual(after.program.unconfirmed, self.MAIN, "the record says nothing is loaded")
+
     def test_a_proof_that_cannot_be_withdrawn_refuses_the_change(self):
         import gateway_util
         with tempfile.TemporaryDirectory() as tmp:

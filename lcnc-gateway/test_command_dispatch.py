@@ -17,7 +17,7 @@ linuxcnc = fake_linuxcnc.install()   # MUST precede `import gateway`
 import gateway  # noqa: E402  (import after the fake is installed)
 import fusion_import  # noqa: E402
 import bulk_pipeline  # noqa: E402
-from gateway_util import kins_mode_commands  # noqa: E402
+from gateway_util import kins_mode_commands, read_load_record  # noqa: E402
 
 
 def _run(coro):
@@ -537,15 +537,18 @@ class TestHandlerExecution(unittest.TestCase):
                 self.assertTrue(r["ok"], r)
                 self.assertTrue(gateway._skip_flag_unknown, "the next start clears it first")
 
-    def _auto_run(self, published=None, published_version=7, **over):
+    def _auto_run(self, published=None, published_version=7, pending_load=None, **over):
         """auto_run as the dialog sends it: the path, the published version
         and the fingerprint of the text it showed — by default the text on
-        disk, published as that version (`published` overrides)."""
+        disk, published as that version (`published` overrides).
+        `pending_load`: a load sent after it and not yet observed."""
         import time as _time, unittest.mock
         gateway._status_runtime.program = program = gateway._status_runtime_mod.LoadedProgram()
         program.update(None, True, _time.monotonic())
         program.request_load(self.prog, _time.monotonic())
         program.update(self.prog, True, _time.monotonic())
+        if pending_load:
+            program.request_load(pending_load, _time.monotonic())
         source = gateway.program_source(self.prog)
         msg = {"cmd": "auto_run", "line": 4, "file": self.prog, "version": 7, "source": source}
         msg.update(over)
@@ -589,6 +592,98 @@ class TestHandlerExecution(unittest.TestCase):
         r, _ = self._auto_run()
         self.assertTrue(r["ok"], r)
         self.assertEqual(cmd.args_of("auto")[1], 4)
+
+    def test_auto_run_waits_for_a_load_under_way(self):
+        # Codex R18 XZ-08: while a load is sent and not observed, the
+        # interpreter may already have the other program open — the one the
+        # dialog was confirmed on is no longer proven.
+        self._with_program()
+        cmd = self._rcs()
+        r, spawned = self._auto_run(pending_load=self.prog + ".b")
+        self.assertEqual(r, {"ok": False, "error": "Program changed — confirm Run from line again"})
+        self.assertEqual((self._started(cmd), spawned), ([], []))
+
+    def _record_runtime(self, tmp, loaded):
+        """A status runtime with a real load record, `loaded` settled."""
+        path = os.path.join(tmp, "loaded_program.json")
+        rt = gateway._status_runtime_mod.StatusRuntime(
+            get_stat=lambda: None, get_err=lambda: None, reader_get=lambda _k: None,
+            get_tool_tbl_path=lambda: None, load_tool_library=lambda: {},
+            get_fb_scale=lambda: 1.0, get_instance=lambda: (10, 20), load_record_path=path)
+        rt.program_tick(None, True, 0.0)
+        rt.program.request_load(loaded, 0.0)
+        rt.program_tick(loaded, True, 0.1)
+        return rt, path
+
+    def _cancelled_on_its_way(self, msg, blocking_call, tmp, rt):
+        """Run the REAL handler and _cmd_blocking; cancel it (an abort's
+        preemption, a disconnect) while `blocking_call` is in NML."""
+        import threading
+        import unittest.mock
+        entered, release = threading.Event(), threading.Event()
+        cmd = self._rcs()
+        inner = getattr(cmd, blocking_call)
+
+        def blocking(*args):
+            inner(*args)
+            if blocking_call == "program_open":
+                gateway.STAT.file = args[0]    # task opened it
+            entered.set()
+            release.wait(3)
+        setattr(cmd, blocking_call, blocking)
+
+        async def scenario():
+            gateway._shared_status = _payload()
+            task = asyncio.ensure_future(gateway.handle_command(msg, True))
+            for _ in range(400):
+                if entered.is_set() or task.done():
+                    break
+                await asyncio.sleep(0.005)
+            self.assertTrue(entered.is_set(), f"{blocking_call} never reached")
+            self.assertEqual(read_load_record(rt._load_record_path, (10, 20)), "unsettled")
+            task.cancel()
+            await asyncio.sleep(0)
+            release.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+        gateway._cmd_lock = None
+        with unittest.mock.patch.object(gateway, "_status_runtime", rt), \
+                unittest.mock.patch.object(gateway, "get_nc_files_dir", return_value=tmp):
+            _run(scenario())
+        gateway._cmd_lock = None
+        return cmd
+
+    def test_a_load_cancelled_after_program_open_went_out(self):
+        # Codex R18 XZ-08 (cancel_after_program_open_sent_before_status_
+        # observation): the handler's cancel path dropped the load window;
+        # the next tick saw B with no load context, kept A and wrote A back
+        # as settled — a restart restored A while the interpreter had B.
+        import tempfile
+        import time
+        with tempfile.TemporaryDirectory() as tmp:
+            a, b = os.path.join(tmp, "A.ngc"), os.path.join(tmp, "B.ngc")
+            Path(a).write_text("G0 X10\nM2\n")
+            Path(b).write_text("G0 X80\nM2\n")
+            rt, path = self._record_runtime(tmp, a)
+            gateway.STAT.file = a
+            self._cancelled_on_its_way({"cmd": "load_file", "path": b}, "program_open", tmp, rt)
+            rt.program_tick(gateway.STAT.file, True, time.monotonic())
+            self.assertEqual(rt.program.loaded, b, "observed in its window: the gateway's own load")
+            self.assertEqual(read_load_record(path, (10, 20)), (b,))
+
+    def test_an_unload_cancelled_on_its_way_proves_nothing(self):
+        import tempfile
+        import time
+        with tempfile.TemporaryDirectory() as tmp:
+            a = os.path.join(tmp, "A.ngc")
+            Path(a).write_text("G0 X10\nM2\n")
+            rt, path = self._record_runtime(tmp, a)
+            gateway.STAT.file = a
+            cmd = self._cancelled_on_its_way({"cmd": "unload_file"}, "abort", tmp, rt)
+            self.assertNotIn("reset_interpreter", [n for n, _a, _k in cmd.calls])
+            self.assertIsNone(rt.program_tick(a, True, time.monotonic()), "A is no longer proven")
+            self.assertEqual(rt.program.unconfirmed, a)
+            self.assertEqual(read_load_record(path, (10, 20)), "unsettled")
 
     def test_auto_run_refuses_a_file_changed_since_its_publication(self):
         # Codex R17 XZ-07 (file_changed_since_publication_before_dispatch):

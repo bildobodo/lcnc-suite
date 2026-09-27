@@ -299,6 +299,14 @@ class LoadedProgram:
     an empty interpreter resolves it. No directory hint: PROGRAM_PREFIX and
     the subroutine path say where a file was found, not what it is.
 
+    A load or unload is settled only by what the interpreter shows (Codex
+    R18 XZ-08): a load stays pending through its window whatever ended the
+    handler — a cancel lands after program_open went out — and a window
+    that runs out, or an unload cut short, leaves the change UNRESOLVED: no
+    program loaded, the open file named unconfirmed (never the old program
+    again — a refused open closes it first), no settled record until a
+    load, an unload or an empty interpreter resolves it.
+
     ``update`` returns trace events [(tag, fields)] — each ignored raw value
     once, not per tick — so the caller keeps every skipped decision auditable.
     """
@@ -310,6 +318,7 @@ class LoadedProgram:
         self._record = None       # (loaded,) — the gateway's own record for this instance
         self._unsettled = False   # the record says a load/unload was under way (R17 XZ-08)
         self._pending = None      # (canonical path, deadline)
+        self._unresolved = False  # a change ended without its outcome (R18 XZ-08)
         self._ignored = None      # the raw value last reported as ignored
 
     def restore(self, loaded):
@@ -325,17 +334,22 @@ class LoadedProgram:
 
     @property
     def change_pending(self):
-        """A load was sent and not yet observed (or its window ran out)."""
-        return self._pending is not None
+        """A load was sent and not yet observed, or a change is unresolved:
+        no program is proven meanwhile."""
+        return self._pending is not None or self._unresolved
 
     def request_load(self, path, now):
         self._pending = (canonical_path(path), now + LOAD_WINDOW_S)
+        self._unresolved = False
 
-    def cancel_load(self):
-        self._pending = None
+    def abandon_change(self):
+        """A change that may have reached the interpreter ended without its
+        outcome (an unload cancelled or failed on its way)."""
+        self.loaded, self._pending, self._unresolved = None, None, True
 
     def request_unload(self):
         self.loaded, self._pending, self.seen, self.unconfirmed = None, None, True, None
+        self._unresolved = False
 
     def update(self, raw_file, interp_idle, now):
         events = []
@@ -343,7 +357,7 @@ class LoadedProgram:
         canon = canonical_path(raw)
         if self._pending is not None and now > self._pending[1]:
             events.append(("status.load_not_observed", {"path": os.path.basename(self._pending[0])}))
-            self._pending = None
+            self.loaded, self._pending, self._unresolved = None, None, True
         if not self.seen:
             self.seen = True
             if raw is None:
@@ -364,6 +378,16 @@ class LoadedProgram:
                             "reason": "the last load or unload was not recorded" if self._unsettled
                             else "no load record for this LinuxCNC" if self._record is None
                             else "the load record names no program"}))
+            return events
+        if self._unresolved:
+            if raw is None:
+                if interp_idle:     # nothing open: nothing loaded, settled
+                    self._unresolved, self._ignored, self.unconfirmed = False, None, None
+            elif interp_idle and raw != self.unconfirmed:
+                self.unconfirmed = self._ignored = raw
+                events.append(("status.program_unconfirmed",
+                               {"raw_file": os.path.basename(raw),
+                                "reason": "the last load or unload was not observed"}))
             return events
         if raw is None:
             if interp_idle:

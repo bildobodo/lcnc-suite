@@ -4215,7 +4215,10 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             confirmed = msg.get("file")
             version = msg.get("version")
             source = msg.get("source")
+            # A load or unload under way (R18 XZ-08): the interpreter may
+            # already have another program open.
             if (not isinstance(confirmed, str) or version is None or not isinstance(source, str)
+                    or _status_runtime.program.change_pending
                     or canonical_path(confirmed) != canonical_path(_status_runtime.program.loaded)
                     or finite_int(version) != _bulk.preview_version
                     or source != _bulk.published_source):
@@ -4596,13 +4599,12 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 return {"ok": False, "error": "Load record not writable — nothing loaded"}
             try:
                 # The load context: only this makes the file the loaded program
-                # (LoadedProgram — STAT.file flips alone never do).
+                # (LoadedProgram — STAT.file flips alone never do). A cancel
+                # lands after program_open went out (_cmd_blocking completes
+                # a send it began): the window stays and the observation
+                # decides, never the handler's end (Codex R18 XZ-08).
                 _status_runtime.program.request_load(abs_path, time.monotonic())
-                try:
-                    await _cmd_blocking(CMD.program_open, abs_path, wait=None)
-                except BaseException:
-                    _status_runtime.program.cancel_load()
-                    raise
+                await _cmd_blocking(CMD.program_open, abs_path, wait=None)
             finally:
                 _status_runtime.end_program_change()
             return {"ok": True, "path": abs_path}
@@ -4620,6 +4622,11 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 await _cmd_blocking(CMD.abort)
                 await _cmd_blocking(CMD.reset_interpreter)
                 _status_runtime.program.request_unload()
+            except BaseException:
+                # Cut short on its way: the loaded program is not known
+                # (Codex R18 XZ-08) — never the old one again.
+                _status_runtime.program.abandon_change()
+                raise
             finally:
                 _status_runtime.end_program_change()
             return {"ok": True}
