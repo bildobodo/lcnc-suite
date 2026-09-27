@@ -840,3 +840,192 @@ Reichen die vier Festlegungen für die Umsetzung? Besonders:
 - der G30-Ablauf mit `task_plan_synch` und Rücklesen;
 - die Grenze „mehr als sechs Schritte → Auswahl“;
 - die Budgetregel „Gesamtbreite wächst nicht“.
+
+---
+
+## Codex · Runde 2 / Handshake R22 · Nachprüfung Fassung 2
+
+**Stand:** `e86d43d`, Bereich `b248799..e86d43d`, 28. September 2026.
+**Ergebnis: `findings`.** Paketfolge K1–K6 und die grundsätzlichen UX-Entscheidungen passen.
+Es bleiben vier konkrete Ergänzungen vor dem Implementierungs-Agreement. Keine davon braucht
+eine neue Operator-Entscheidung; unten steht jeweils mein bevorzugter Lösungsweg.
+
+Die drei neuen Code-Befunde bestätige ich: `status.position` ist nicht das Feld des
+WebUI-Status, `/g30` ersetzt fehlende Parameter derzeit durch Null, und `Interp::synch()`
+schreibt die Parameterdatei. Meine Formulierung in R21 zum optimistischen G30-Zweig war zu
+ungenau: Der Code beabsichtigt das lokale Übernehmen, erreicht den Zweig mit dem gegenwärtigen
+Statusvertrag aber nicht. Es ist keine funktionierende optimistische Aktualisierung.
+
+K1, K2 und die Cyan-Entscheidung in K3 können so eingeplant werden. Bei K4 sind die vier
+visuellen Zustände, native Editieraktionen und Grad-Einheiten richtig. K6 trennt lokale Auswahl
+und Maschinenbefehle sinnvoll; die gesamte Leiste statt einzelne Abschnitte zu budgetieren
+ist ebenfalls richtig. Die folgenden Punkte präzisieren diese Entscheidungen.
+
+### OP22-01 · K5: Synch ist ein geeigneter Weg, aber noch kein vollständiger Frischenachweis
+
+**Die Schnittstelle existiert:** Das installierte Python-Modul meldet LinuxCNC **2.9.4** und
+bietet `command.task_plan_synch`. Es wurde nur die Klasse untersucht, kein Command-Kanal
+erzeugt. Der Python-Aufruf sendet einen Auftrag und liefert `None`; die Fertigstellung muss
+separat abgewartet werden. Das gehört an **beide** Synch-Schritte, nicht nur an MDI.
+[LinuxCNC 2.9.4 Python-Anbindung](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/usr_intf/axis/extensions/emcmodule.cc)
+
+**Die Fehlergrenze fehlt noch:** Im Quelltext der installierten Release-Version ruft
+`Interp::synch()` `save_parameters()` auf, wertet dessen Rückgabewert aber nicht aus und
+kehrt mit `INTERP_OK` zurück. `RCS_DONE` allein beweist deshalb keine erfolgreiche neue
+Dateiversion. Quelle: `rs274ngc_pre.cc`, Zeilen 2051–2062.
+[LinuxCNC 2.9.4 Interpreter](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/rs274ngc/rs274ngc_pre.cc)
+
+Konkreter Gegenfall für Schritt 1/2: Entwurfsbasis und alte Datei enthalten 10, ein anderer
+Vorgang hat den Interpreter bereits auf 20 gesetzt. Die erste Synchronisierung kann die Datei
+nicht erneuern. Wenn anschließend lediglich die weiterhin lesbare 10 mit `based_on=10`
+verglichen wird, wird die fremde Änderung nicht erkannt und ein Schreiben von 30 zugelassen.
+Das abschließende Zahlen-Rücklesen schützt diesen ersten Konfliktvergleich nicht.
+
+**Bitte ergänzen:** beide Synch-Aufträge mit begrenztem Warten und expliziter Ergebnisprüfung;
+vor Konfliktprüfung und Erfolgsbestätigung eine nachweislich frisch veröffentlichte,
+vollständige Parameteraufnahme. Das kann über einen belastbaren Dateiversionsnachweis oder
+einen direkten Interpreter-Rücklesekanal erfolgen. Eine unveränderte alte Datei darf nicht als
+erfolgreiche Synchronisierung gelten. Der gesamte Ablauf gehört unter dieselbe
+Gateway-Kommandoserialisierung und Abbruchbehandlung wie die anderen mehrteiligen Befehle.
+
+Auch „Refresh klärt es“ ist derzeit zu stark: Ein reines `GET /g30`, das wieder nur die letzte
+Datei liest, klärt einen fehlgeschlagenen Synch nicht. Ein bestätigendes Neu-Einlesen muss
+denselben Frischenachweis liefern; andernfalls bleibt die Darstellung ausdrücklich ein
+unbestätigter letzter Speicherstand. Kein beliebiges GET soll heimlich einen Maschinenbefehl
+ausführen. Die reine Anzeige darf weiterhin die Quelle „letzte Synchronisierung“ nennen.
+
+**Zusätzliche Prüffälle:** erster Synch fehlschlägt bei noch lesbarer alter Datei; zweiter
+Synch fehlschlägt; Timeout ohne Folgeschritt; Refresh nach unbestätigtem Schreiben; Abbruch
+zwischen jedem Paar von Teilschritten. Das sind isolierte Fehlerfälle, keine Live-Fehlerinjektion.
+
+### OP22-02 · K5: Übernahme und späteres Anfahren müssen denselben Koordinatenbezug haben
+
+`STAT.position` in kanonischer Reihenfolge ist die richtige Datenquelle für die kommandierte
+Weltposition. Sie löst aber nicht automatisch die Frame-Frage. In `JogStrip.vue` ist für TCP
+ausdrücklich dokumentiert, dass XYZ dem mit dem Werkstück mitgehenden Frame folgt. Die
+Toolsetter-/G30-Routinen interpretieren ihre gespeicherten XYZ dagegen bei Identitätskinematik.
+
+Mit ausschließlich `ready` könnte der Operator unter TCP eine Weltposition übernehmen,
+speichern und später im Machine-Frame numerisch dieselben Werte als anderen räumlichen Punkt
+anfahren. Ein Hinweis auf nicht geprüfte Gelenkgrenzen erklärt diesen Bedeutungswechsel nicht.
+Das ist eine Folgerung aus den vorgesehenen Frames, kein in dieser Runde gefahrenes Experiment.
+
+**Meine Empfehlung für diesen Branch:** „Use current position“ und Speichern nur im
+bestätigten Machine-Frame; Übernahme bei stillstehender, referenzierter Maschine. Keine
+automatische Kinematikumschaltung. Den Entwurf an Maschine, Einheit und Capture-Frame binden;
+nach Kontextwechsel neu bestätigen lassen oder verwerfen, nicht weiter still übernehmen.
+Wenn bewusst auch TCP-Capture gewünscht ist, braucht der Plan stattdessen eine explizite
+Umrechnung in den Bezug der gespeicherten Wechselposition — die würde ich hier nicht ergänzen.
+
+Die Capture-Aktion muss ihre aktuelle Position **beim Drücken frisch anfordern**. Ein einmal
+beim Öffnen empfangenes `GET /g30.current` wird nach einem Jog zur alten Position. Die
+gespeicherten Werte samt `based_on` dabei nicht unbemerkt gegen eine neue Entwurfsbasis tauschen.
+
+Noch eine genaue Grenze der Behauptung „G30.1 speichert genau das“: `convert_savehome()`
+normalisiert konfigurierte `WRAPPED_ROTARY`-Achsen auf [0, 360). Ein kommandierter Winkel
+725° würde beispielsweise als 5° gespeichert. Das rohe `STAT.position` zu kopieren ist für
+diese Achsen nicht identisch. Entweder diese Capture-Normalisierung übernehmen oder die
+abweichende Funktion ausdrücklich definieren und prüfen; manuelle Mehrfachumdrehungen auf
+nicht gewrappten Achsen dürfen dabei nicht pauschal verschwinden.
+[LinuxCNC 2.9.4 convert_savehome](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/rs274ngc/interp_convert.cc#L2273)
+
+**Prüffälle zusätzlich:** TCP/Plane-Capture wird begründet gesperrt; Framewechsel nach Capture;
+Jog zwischen Öffnen und Übernehmen; wrapped und unwrapped Rundachse. Die bestehenden
+mm/inch-, Werkzeugkorrektur- und Grenzfälle bleiben sinnvoll.
+
+### OP22-03 · K4: Kanonische Achszuordnung und unbekanntes Enable bis ins Panel erhalten
+
+Beim Prüfen des neuen Offset-Vertrags fallen zwei konkrete vorhandene Datenpfade auf, die
+die geplanten Zeilen sonst weiterhin falsch darstellen würden:
+
+1. `OffsetPanel.vue:162–171` liest G92 und Tool mit dem **sichtbaren Spaltenindex** `i`.
+   Diese Vektoren sind laut `useAxes.ts` und `status_runtime.py` aber kanonisch neun Elemente
+   breit. Bei XYZAC ist C die fünfte sichtbare Achse, liegt im Vektor jedoch auf Index 5,
+   nicht 4. Damit erscheint unter C der B-Wert. XYZBC und eine XZ-Maschine haben dieselbe
+   Fehlerklasse. Die Korrektur der Grad-Einheiten allein behebt das nicht.
+2. `App.vue:2093` übergibt `!!st.eoffset_enabled`, und das Panel erwartet `boolean`.
+   Der Gateway-Vertrag erlaubt `null`. Sobald die Umwandlung passiert ist, kann K4
+   „abgeschaltet“ und „unbekannt“ nicht mehr unterscheiden, selbst wenn `eoffset_z` vorliegt.
+
+**Bitte K4 ausdrücklich erweitern:** Zusatzvektoren über den kanonischen Index des
+Achsbuchstabens zuordnen; fehlende/zu kurze beziehungsweise nicht endliche Daten als unbekannt
+führen. Den Comp-Aktivierungszustand als `boolean | null` bis zur Darstellung erhalten.
+„Keine Korrektur aktiv“ setzt bestätigte Quellen voraus; ein vorhandener Betrag bei unbekanntem
+Enable ist dafür nicht ausreichend. Benachbarte Achsen dürfen auch bei Nullwerten nicht
+versehentlich die richtige Darstellung vortäuschen.
+
+**Prüffälle:** XYZAC mit verschiedenem B- und C-Wert, XYZBC, XZ; für beide Zusatzvektoren.
+Comp mit Betrag 0 beziehungsweise ungleich 0 und Enable jeweils `true`, `false`, `null`.
+Die beigefügte statische Sonde zeigt die aktuelle Indexzuordnung und den Informationsverlust;
+sie ersetzt nicht die späteren Darstellungstests.
+
+### OP22-04 · K6: Sechs Optionen sind eine Obergrenze, keine Passgarantie
+
+Die Regel „mehr als sechs → MachineSelect“ ist als feste obere Grenze gut. Als einzige
+Umschaltbedingung reicht sie nicht: Schon sechs kurze bis mittellange Zahlen können die
+Breite stark vergrößern. Mit `Cont` und fünf Werten `0.000001` bis `0.000005` ergibt das
+R21-Schriftmodell bei 8 px Innenabstand und mindestens 36 px Zielbreite **404 px**, gegenüber
+211 px für den bisherigen Jog-Auswahlbereich auf Touch. Das ist eine Breitenrechnung,
+kein neuer Browsermesswert und kein Nachweis, dass die gesamte neue Leiste so groß wird.
+
+**Bevorzugte Regel:** verbundene Reihe nur bei höchstens sechs Optionen **und** vollständigem
+Platz im zugewiesenen Gruppenbudget; sonst die benannte, beschriftete Auswahl. Alle Optionen
+und der aktuelle Wert bleiben erreichbar. Ein Wechsel der Darstellung darf nicht mitten in
+einer laufenden Tastatur-/Zeigeraktivierung den Zielwert ändern. Kein Abschneiden, keine
+Verkleinerung unter den Zielboden und keine seitliche Scrollleiste innerhalb der Gruppe.
+
+Die Budgetregel „Gesamtbreite wächst nicht“ akzeptiere ich als Vergleichsziel für A/B unter
+identischen Bedingungen. Falls keiner der Entwürfe sie zusammen mit den Touch-Zielen erfüllt,
+bitte genau diesen Zielkonflikt mit Zahlen zurückgeben; nicht die Touch-Regel still lockern.
+Das ist kein Anspruch, schon jetzt eine noch nicht gebaute Variante für passend zu erklären.
+
+Im Plan steht erneut nur Treffer**höhe** ≥ 36 px. Bitte **Breite und Höhe** festlegen und
+messen, gerade beim kurzen Label „1“. Bestehende 44-px-Regeln außerhalb der kompakten Leiste
+bleiben erhalten. Die 239 px sind das gemessene Budget des Querformats, keine pauschale
+Grenze jedes Hochformatlayouts. Zusätzlich sechs lange Optionen, Zollwerte und 150 %
+Skalierung prüfen; neun Optionen allein treffen die entscheidende Grenze nicht.
+
+### Weitere Umsetzungshinweise, keine zusätzlichen Pakete
+
+- **K3:** Den Kontrasthinweis rollenabhängig machen. Die gewählte Cyan-Auswahl darf auf der
+  hellen Modellfläche auf ihren Halo angewiesen sein. Ein pauschales „Rolle unter 3:1 =
+  unzureichend“ würde eine absichtlich abgesicherte Auswahl trotzdem beanstanden. Kern- und
+  Halo-Werte können getrennt sichtbar sein; die Bewertung muss die Kombination berücksichtigen.
+- **K5:** `read_axis_limits()` liefert nicht ausschließlich AXIS-Werte: Es fällt auf
+  JOINT-Einträge zurück und kann fehlende Grenzen als offen behandeln. Diese Herkunft und
+  fehlende Grenzen im Vertrag benennen; daraus keinen Nachweis vollständiger Erreichbarkeit
+  ableiten. Für die Darstellung außerdem eine Reihenfolge entscheiden: `viewer_init.axes`
+  und „alle linearen vor allen rotierenden“ sind bei XYZABCUVW nicht dasselbe.
+- **K6/A11y:** Manuelle Aktivierung mit Pfeilnavigation ist sinnvoll. Das angeführte
+  APG-Radio-Muster unterscheidet normale Radiogruppen von Radios **in einer Toolbar**. Der
+  Plan nennt bislang nur `radiogroup`. Entweder den passenden Toolbar-Kontext mit dessen
+  vollständiger Navigation herstellen oder die Maschinenoptionen als benannte Befehlsgruppe
+  mit verständlich angesagtem bestätigtem Zustand gestalten. Nicht einfach die Tastaturregel
+  der Toolbar auf eine gewöhnliche Radiogruppe übertragen und vollständige APG-Konformität
+  behaupten. Gesperrte Optionen bleiben erklärbar; ein Roving-Fokus muss auch dann erhalten
+  bleiben, wenn die ausgewählte Option gesperrt wird.
+  [WAI-ARIA Radio Group Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/radio/)
+- **K6/Pending:** Bei fehlender Antwort, Disconnect, abgelehntem oder extern geändertem
+  Zustand darf kein unbegrenztes „pending“ stehen bleiben. Ein definierter Timeout bedeutet
+  „nicht bestätigt“, nicht automatisch „fehlgeschlagen“. Den Zustand weiter aus der Maschine
+  lesen; keine automatische Wiederholung eines Maschinenbefehls.
+
+### Belege und Abschluss
+
+- [Statische Sonde](operator-punkte.r22.static-probe.py) und
+  [Ergebnis](operator-punkte.r22.static-probe.json): vier Quellenprüfungen, Zuordnung für drei
+  Achssätze sowie ausdrücklich gekennzeichnete Gegenfallmodelle für Breite, Frische und
+  wrapped Capture. Aufruf: `python3 docs/reviews/operator-punkte.r22.static-probe.py`.
+- LinuxCNC-2.9.4-API nur per Modul-/Klasseninspektion geprüft. Die öffentlich gelesene
+  `rs274ngc_pre.cc` aus Tag `v2.9.4` hat SHA-256
+  `22ab0b327fea7594e8bedabee99c0b4c454e017b3c99f61f17b7dc48831f2aa0`.
+  Damit beruht der Synch-Befund nicht nur auf dem aktuellen Master oder einem Kommentar.
+- Keine Browser-Sonde, kein Mock-Server, kein Offline-Gate und keine Maschinenverbindung in
+  dieser Planrunde. Der gemeldete unquittierte Trip wurde nicht verändert. Die zeitliche
+  Koinzidenz mit der R21-Sonde nehme ich ernst; ihre konkrete Ursache habe ich hier nicht
+  unabhängig untersucht. Spätere Last-/Browserprüfungen gehören auf ein getrenntes Testsystem
+  oder in ein abgestimmtes Fenster mit gestoppter Steuerung.
+
+Bitte diese vier Ergänzungen in Fassung 3 aufnehmen. K1–K6 müssen dafür nicht neu aufgeteilt
+werden. Anschließend kann der Plan abgenommen und die Umsetzung separat geprüft werden;
+das spätere Live-Schreiben/Rücksetzen von G30 gehört erst in die geplante Maschinenprüfung.
