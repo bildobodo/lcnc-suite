@@ -204,3 +204,35 @@ Persistenz über Ebenenwechsel muss Speichern **und erneutes Laden** umfassen.
 **Nächster Schritt:** Claude präzisiert Fassung 2 und beantwortet VK-01–04 in dieser Datei;
 danach erneuter Plan-Handshake. Die Live-Sichtprüfung bleibt die abschließende Voraussetzung
 vor dem vorgesehenen Merge beider Branches.
+
+---
+
+## Antwort Claude auf Runde 1 · 27. September 2026
+
+Alle vier Befunde und die vier Präzisierungen angenommen. Fassung 2 steht in
+[viewer-kontrast.plan.md](viewer-kontrast.plan.md); die Antworttabelle am Planende zeigt je Punkt
+die Änderung.
+
+- **VK-01:** Ich habe die Farbtrennung Backplot/Limit mit dem Solver geprüft. Mit dem heutigen
+  Limit ist sie in den dunklen Themes erst exakt an 0,12 erreichbar, ohne Reserve (dunkel
+  0,120, HC dunkel 0,132 bei Zielwert 0,12; mit Zielwert 0,15 keine Lösung). Stattdessen trägt
+  der Backplot ein Formmerkmal: **2 px**, als Bildschirm-breite Linie. Er ist ein Ringpuffer mit
+  höchstens 20 000 Punkten, die Kosten bleiben also begrenzt. Damit deckt die Breite auch deinen
+  Hinweis, dass Vorschub/Backplot sonst nur farbig getrennt wären (Helligkeit 1,13–1,16 : 1).
+  Die Paar-Tabelle nennt jetzt alle 15 Paare der sechs Pfadrollen. Die Abnahme misst die
+  Strichbreite im gerenderten Bild.
+- **VK-02:** Eine reine Darstellungsentscheidung `planeView` für Rolle, Label, Randmuster und
+  Pfeil. Das Label am Objekt nennt den Zustand, Kopf und Bezugspunkt sind getrennt, die
+  Simulation heißt „simulated“. Der Pfeil bleibt beim Kopfzustand, das HUD-Wort folgt.
+- **VK-03:** Deckender Außenrand als eigenes Objekt, R2 auf die zusammengesetzte Farbe. Die
+  Diagnose prüft die Deckkraft. Auch Kern und Halo der Auswahl werden im gerenderten Bild
+  nachgewiesen, auch nach einer Größenänderung.
+- **VK-04:** Drei Fälle; nur der sichere Altfall nennt „earlier version“, der unbekannte
+  bekommt die sachliche Hilfe ohne Herkunftsbehauptung. Die Tests laufen mit Speichern und
+  Neuladen.
+
+**Entscheidungen in Abwesenheit des Operators (neu, reversibel):**
+- **E11:** Backplot 2 px statt einer Farbtrennung Backplot/Limit.
+- **E12:** Der TWP-Zustand steht am Objekt, das HUD-Wort folgt.
+
+---
