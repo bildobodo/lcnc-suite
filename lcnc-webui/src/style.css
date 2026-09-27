@@ -1322,9 +1322,12 @@ label:has(input:disabled, select:disabled) {
 /* The words take the line, an action never shrinks under its own words: where
    both do not fit it wraps below them (codex review round 3, VK-I02 — "Use
    automatic colors" shrank to "utomatic c" at 150 % portrait; Retry and the
-   conflict's two buttons share the rule). */
-.statusNote > :first-child { flex: 1 1 12em; min-width: 0; }
-.statusNote > :not(:first-child) { flex: none; }
+   conflict's two buttons share the rule). An action is a BUTTON (or a dimmed
+   one's .btnTip wrapper, or a .row-tight group of them) — never "the first
+   child": a note whose words are bare text starts with its close X, and a
+   first-child rule stretched the X across the note (round 4, VK-I03). */
+.statusNote > :is(button, .btnTip, .row-tight) { flex: none; }
+.statusNote > :not(button, .btnTip, .row-tight) { flex: 1 1 12em; min-width: 0; }
 .statusNote.warn {
   background: color-mix(in oklab, var(--warn) var(--tint-note), var(--panel));
   border: 1px solid color-mix(in srgb, var(--warn) var(--tint-fill), transparent);

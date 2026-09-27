@@ -38,6 +38,23 @@ test("existing tools default to reviewed metadata refresh, not full replacement"
   await expect(page.getByText(/Updated metadata for 1 tools/)).toBeVisible();
   expect(requests).toHaveLength(1);
   expect(requests[0]).toContain("/refresh");
+  // The result note's close X stays an icon at the note's right edge
+  // (viewer contrast review round 4, VK-I03: a note rule written for "text
+  // first" stretched it across the note — 504 px wide, the note 62 px high),
+  // on a desktop and at 150 % portrait.
+  const note = page.locator(".statusNote.ok");
+  for (const [w, h, zoom] of [[1280, 720, 1], [900, 1200, 1.5]] as const) {
+    await page.setViewportSize({ width: w, height: h });
+    await page.evaluate(z => { document.documentElement.style.zoom = z === 1 ? "" : String(z); }, zoom);
+    const m = await note.evaluate(el => {
+      const n = el.getBoundingClientRect(), b = el.querySelector('button[aria-label="Dismiss import result"]')!.getBoundingClientRect();
+      return { note: [n.left, n.right, n.height], button: [b.left, b.right, b.width] };
+    });
+    const where = `${w} × ${h} at ${zoom * 100} % ${JSON.stringify(m)}`;
+    expect(m.button[2], `${where}: the close X keeps its size`).toBeLessThanOrEqual(44 * zoom);
+    expect(m.note[1] - m.button[1], `${where}: the close X at the note's right edge`).toBeLessThan(16 * zoom);
+  }
+  await page.evaluate(() => { document.documentElement.style.zoom = ""; });
 });
 
 test("full replacement requires selecting that mode and shows length replacement", async ({ page }) => {

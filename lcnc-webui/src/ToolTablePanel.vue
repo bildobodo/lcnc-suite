@@ -631,13 +631,15 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
 
     <!-- Import result banner -->
     <div v-if="importResult" class="statusNote ok" role="status">
-      <template v-if="importResult.updated != null">
-        Updated metadata for {{ importResult.updated }} tools. Measured offsets and table diameters retained.
-      </template>
-      <template v-else>
-        Imported {{ importResult.added }} tools. {{ importSummary.resultNotice }}
-      </template>
-      <template v-if="importResult.skipped"> {{ importResult.skipped }} skipped.</template>
+      <span>
+        <template v-if="importResult.updated != null">
+          Updated metadata for {{ importResult.updated }} tools. Measured offsets and table diameters retained.
+        </template>
+        <template v-else>
+          Imported {{ importResult.added }} tools. {{ importSummary.resultNotice }}
+        </template>
+        <template v-if="importResult.skipped"> {{ importResult.skipped }} skipped.</template>
+      </span>
       <MachineBtn type="close" aria-label="Dismiss import result" title="Dismiss import result" @click="importResult = null"><X :size="14" /></MachineBtn>
     </div>
 
