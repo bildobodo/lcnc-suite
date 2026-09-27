@@ -308,6 +308,10 @@ class LoadedProgram:
     program again: task sets its file only on a successful open, so after a
     refused one STAT.file still names the old program, which the
     interpreter may have closed (lazy close — emctaskmain.cc, Interp::open).
+    For the same reason a load is settled only by the open's OWN success
+    (Codex R19): its RCS status (``confirm_open``), or STAT.file changing TO
+    the path — never a name that was there before the request (a refused
+    reload of the loaded or the unconfirmed file left it standing).
 
     ``update`` returns trace events [(tag, fields)] — each ignored raw value
     once, not per tick — so the caller keeps every skipped decision auditable.
@@ -320,7 +324,9 @@ class LoadedProgram:
         self._record = None       # (loaded,) — the gateway's own record for this instance
         self._unsettled = False   # the record says a load/unload was under way (R17 XZ-08)
         self._pending = None      # (canonical path, deadline)
-        self._unresolved = False  # a change ended without its outcome (R18 XZ-08)
+        self._pending_before = None   # STAT.file (canonical) when the load was sent
+        self._pending_opened = None   # the open's own status: True / None (unknown)
+        self._unresolved = None   # why a change ended without its outcome (R18 XZ-08)
         self._ignored = None      # the raw value last reported as ignored
 
     def restore(self, loaded):
@@ -338,20 +344,36 @@ class LoadedProgram:
     def change_pending(self):
         """A load was sent and not yet observed, or a change is unresolved:
         no program is proven meanwhile."""
-        return self._pending is not None or self._unresolved
+        return self._pending is not None or self._unresolved is not None
 
-    def request_load(self, path, now):
+    def request_load(self, path, now, before=None):
+        """A load was sent; `before` = STAT.file when it was sent."""
         self._pending = (canonical_path(path), now + LOAD_WINDOW_S)
-        self._unresolved = False
+        self._pending_before = canonical_path(before or None)
+        self._pending_opened = None
+        self._unresolved = None
 
-    def abandon_change(self):
+    def confirm_open(self, ok):
+        """The open's own status: done, or refused — then the interpreter's
+        state is not known (it may have closed the old file)."""
+        if self._pending is None:
+            return
+        if ok:
+            self._pending_opened = True
+        else:
+            self.abandon_change("the open was refused")
+
+    def _open_proven(self, canon):
+        return self._pending_opened is True or canon != self._pending_before
+
+    def abandon_change(self, why="the change ended without its outcome"):
         """A change that may have reached the interpreter ended without its
-        outcome (an unload cancelled or failed on its way)."""
-        self.loaded, self._pending, self._unresolved = None, None, True
+        outcome (refused, or an unload cancelled or failed on its way)."""
+        self.loaded, self._pending, self._unresolved = None, None, why
 
     def request_unload(self):
         self.loaded, self._pending, self.seen, self.unconfirmed = None, None, True, None
-        self._unresolved = False
+        self._unresolved = None
 
     def update(self, raw_file, interp_idle, now):
         events = []
@@ -359,7 +381,7 @@ class LoadedProgram:
         canon = canonical_path(raw)
         if self._pending is not None and now > self._pending[1]:
             events.append(("status.load_not_observed", {"path": os.path.basename(self._pending[0])}))
-            self.loaded, self._pending, self._unresolved = None, None, True
+            self.abandon_change("the load was not observed in its window")
         if not self.seen:
             self.seen = True
             if raw is None:
@@ -384,12 +406,11 @@ class LoadedProgram:
         if self._unresolved:
             if raw is None:
                 if interp_idle:     # nothing open: nothing loaded, settled
-                    self._unresolved, self._ignored, self.unconfirmed = False, None, None
+                    self._unresolved, self._ignored, self.unconfirmed = None, None, None
             elif interp_idle and raw != self.unconfirmed:
                 self.unconfirmed = self._ignored = raw
                 events.append(("status.program_unconfirmed",
-                               {"raw_file": os.path.basename(raw),
-                                "reason": "the last load or unload was not observed"}))
+                               {"raw_file": os.path.basename(raw), "reason": self._unresolved}))
             return events
         if raw is None:
             if interp_idle:
@@ -397,10 +418,10 @@ class LoadedProgram:
             return events
         if canon == canonical_path(self.loaded):
             self._ignored = None
-            if self._pending is not None and self._pending[0] == canon:
-                self._pending = None    # a reload of the same program
+            if self._pending is not None and self._pending[0] == canon and self._open_proven(canon):
+                self._pending = None    # a reload of the same program, opened
             return events
-        if self._pending is not None and self._pending[0] == canon:
+        if self._pending is not None and self._pending[0] == canon and self._open_proven(canon):
             self.loaded, self._pending, self._ignored, self.unconfirmed = raw, None, None, None
             return events
         if self.unconfirmed is not None and interp_idle and raw != self.unconfirmed:
