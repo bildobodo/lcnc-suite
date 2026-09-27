@@ -837,7 +837,7 @@ function resetMachineColor(id: string) {
               No macros configured. Click "Add Macro" to create one.
             </div>
 
-            <div class="stack-controls macroSettingsList">
+            <div class="stack-controls">
               <div v-for="(m, idx) in macros" :key="m.id" class="macroSettingsItem">
                 <div class="macroSettingsInfo stack-micro">
                   <span class="macroSettingsName">{{ m.name }}</span>
@@ -986,16 +986,6 @@ function resetMachineColor(id: string) {
 
 /* .section — replaced by stack-controls utility (same shape) */
 
-.wpColumns {
-  display: flex;
-  gap: var(--gap-panel);
-}
-
-.wpColumns .fieldGroup {
-  flex: 1;
-  margin-bottom: 0;
-}
-
 .fieldGroup {
   margin-bottom: var(--gap-section);
 }
@@ -1041,8 +1031,6 @@ function resetMachineColor(id: string) {
 
 /* ─── Macros tab ─────────────────────────────────────────────── */
 .macroSettingsEmpty { padding: var(--gap-panel); }
-.macroSettingsList {
-}
 .macroSettingsItem {
   display: flex;
   align-items: center;

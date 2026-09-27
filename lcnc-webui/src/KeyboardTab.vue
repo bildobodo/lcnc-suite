@@ -263,7 +263,4 @@ onUnmounted(() => {
   margin-top: var(--gap-controls);
 }
 
-/* settingDesc is also used in SettingsPanel; duplicated here so the
-   description text under the section header keeps its muted styling
-   without requiring a global utility. */
 </style>

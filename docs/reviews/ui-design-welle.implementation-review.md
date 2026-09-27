@@ -1120,6 +1120,55 @@ hoch; die Karte meldet `overflow`, der Test lässt diesen Fall aus.
   Obergrenze, der Viewer faltet zuerst Machine, F/S und die Werkzeugzeile) liefen `contrast`, `forms`
   und `feedback-channels` erneut grün (23/23).
 
+
+### WP-D10a — tote Reste und die offenen Folgepunkte · 27. September 2026
+
+D10 kommt in drei Commits: D10a (tote Reste, Folgepunkte, `DEAD_CLASS`/`EMPTY_RULE`), D10b
+(Textrollen-Utilities, Leerzustände, Laufweite), D10c (Tönungen, Button-Achsen, Breitenbericht).
+
+**Ausgangslage** (Bestandsaufnahme am Stand `1ab19d7`; die Zeilen des Plans hatten sich verschoben):
+- **Tote Regeln (N110):**
+  - App `.okText`/`.badText`/`.warnText`/`.mutedText` und `.dialogBody .danger`;
+  - GcodePanel `.switchBtn`;
+  - ProbePanel `.checkRow`;
+  - SettingsPanel `.wpColumns` und die leere `.macroSettingsList {}`;
+  - ToolTablePanel `.importExists`/`.importTag`.
+- **Toter Zweig:** Die Werkzeugtabelle hatte einen eigenen Kopf („+ Add“, „Hide Files“/„Browse“,
+  „Upload“) hinter `v-if="!hideHeader"`. App übergab `hideHeader` immer, der Zweig wurde nie
+  gezeichnet.
+- **Opacity-Resets ohne Wirkung:** Drei Regeln setzten eine Deckkraft zurück, die seit D8 nichts
+  mehr setzt.
+- **Veraltete Kommentare:** zwei.
+- **Fortschritt im Program-Tab:** Er stand als `{{ Math.round(n) }}</span>%` da, ohne `fmtPct` und
+  ohne Leerzeichen vor dem Prozentzeichen. Das Audit sah es nicht, weil `</span>` zwischen
+  Interpolation und Einheit stand.
+
+**Umgesetzt:**
+- Alle toten Regeln, der tote Kopf samt `hideHeader`-Prop und die wirkungslosen Resets sind entfernt.
+  `.container.compact` ist die einzige Form des Containers.
+- Der Fortschritt läuft über `fmtPct` („42 %“), der Platz der Zahl ist auf „100 %“ (5 ch) verbreitert.
+
+**Wächter** (CSS-Audit, im Gate):
+- **`EMPTY_RULE`:** eine Regel ohne Deklaration und ohne verschachtelte Regel. Ein Stapel der
+  offenen Regeln verhindert, dass ein `@media`-Block als leer gilt.
+- **`DEAD_CLASS`:** eine Klasse, die ein scoped Selektor stylt (das Subjekt nach dem letzten
+  Kombinator, ohne `:deep`), die die Komponente nirgends nennt. Als Nennung zählen:
+  - `class=`, `:class`-Schlüssel und String- oder Template-Literale im Skript;
+  - ein Literal `prefix-${…}` für die Klasse `prefix-x`;
+  - ein Transition-Name;
+  - eine Klasse, die das Template einer anderen Komponente trägt (die Wurzel einer
+    Kindkomponente).
+
+  Am Stand vor der Korrektur fand sie genau die Liste der Bestandsaufnahme (9 Treffer). Ohne eine
+  einzige `audit-ok`-Ausnahme läuft sie danach sauber. `.dialogBody .danger` sieht sie nicht: Das
+  Wort „danger“ steht in App als Prop. Diese Regel ist von Hand entfernt.
+- **`UNIT_LITERAL`** erlaubt jetzt ein schließendes Tag zwischen Interpolation und Einheit. Rot an
+  der alten Fortschrittszeile.
+
+**Gates:**
+- build, lint (neu `EMPTY_RULE`, `DEAD_CLASS`, `UNIT_LITERAL` erweitert) und Vitest (**1660**) grün.
+- Playwright **276/276** über alle neun Projekte.
+
 ---
 
 ## Codex Implementierungsreview Runde 1

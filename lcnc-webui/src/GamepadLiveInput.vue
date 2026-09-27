@@ -120,6 +120,5 @@ const BTN_LABELS: Record<LogicalButton, string> = {
 .gpBtn.active {
   background: color-mix(in oklab, var(--ok) 25%, var(--button-bg));
   border-color: color-mix(in srgb, var(--ok) 50%, transparent);
-  opacity: 1;
 }
 </style>

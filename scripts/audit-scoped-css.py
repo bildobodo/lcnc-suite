@@ -53,6 +53,16 @@ WS-C extension — design-token drift checks over every .vue <style> block
   CLOSE      — `<MachineBtn type="close"` without an `aria-label`: a close
                control is named for its context ("Close settings",
                "Dismiss upload error"), never announced as "times" (UX-05).
+  EMPTY_RULE — a rule with no declaration (and no nested rule): dead CSS
+               that reads as if it styled something (design wave D10, N110).
+  DEAD_CLASS — a class a scoped rule styles (its selector's SUBJECT, the
+               part after the last combinator; `:deep(…)` skipped) that the
+               component never names: not in its template, not in its script
+               (class=, :class keys, string and template literals, a
+               `prefix-${…}` literal for `prefix-x`, a <Transition name> for
+               `name-enter-active`), and not a class another component's
+               template carries (a child component's root). `audit-ok` on the
+               selector line for the rest (D10, N110).
   GLYPH_BUTTON — a `<MachineBtn>` whose whole content is a text glyph
                (◀ ▶ □ −, an `&#…;` entity, or a mustache yielding only such
                literals) and no `aria-label`: its accessible name is the
@@ -373,7 +383,9 @@ def _help_len(text: str) -> int:
     text = re.sub(r"<[^>]+>", " ", text)
     return len(re.sub(r"\s+", " ", text).strip())
 # a unit right after a mustache or a template-literal interpolation
-UNIT_LITERAL_RE = re.compile(r"(?:\}\}|\$\{[^}]*\})\s?(?:mm|ms|%)(?![\w/])")
+# a closing tag between the interpolation and the unit is the same glue
+# (GcodePanel's "{{ n }}</span>%)" slipped past it, design wave D10).
+UNIT_LITERAL_RE = re.compile(r"(?:\}\}|\$\{[^}]*\})(?:</\w+>)?\s?(?:mm|ms|%)(?![\w/])")
 
 
 def _template_audit_ok(lines: list[str], idx: int) -> bool:
@@ -489,6 +501,9 @@ def token_findings(path: str) -> list[tuple[str, int, str]]:
         # Rule-level accumulation for the STACK check.
         rule_props: dict[str, str] = {}
         rule_open_line = 0
+        # Open rules for EMPTY_RULE: [selector, open line, had a declaration,
+        # had a nested rule] — `selector` above is only the innermost one.
+        open_rules: list[list] = []
 
         def flag(cat: str, i: int, msg: str) -> None:
             if not _audit_ok(lines, i):
@@ -499,6 +514,8 @@ def token_findings(path: str) -> list[tuple[str, int, str]]:
             for m in re.finditer(r"([\w-]+)\s*:\s*([^;{}]+)", seg):
                 prop, val = m.group(1), m.group(2).strip()
                 rule_props[prop] = val
+                if open_rules:
+                    open_rules[-1][2] = True
 
                 if prop in ("gap", "row-gap", "column-gap") or prop.startswith("margin"):
                     if re.search(r"\b\d*\.?\d+(px|em|rem)\b", val) and "var(--gap-" not in val:
@@ -574,6 +591,9 @@ def token_findings(path: str) -> list[tuple[str, int, str]]:
                 if brace.group() == "{":
                     selector = (" ".join(pending_sel + [seg])).strip()
                     pending_sel = []
+                    if open_rules:
+                        open_rules[-1][3] = True
+                    open_rules.append([selector, i, False, False])
                     depth += 1
                     if selector.startswith("@keyframes") and keyframes_at is None:
                         keyframes_at = depth
@@ -584,6 +604,10 @@ def token_findings(path: str) -> list[tuple[str, int, str]]:
                         scan_decls(seg, i)
                         close_rule(i)
                         depth -= 1
+                        if open_rules:
+                            sel, at, had_decl, had_nested = open_rules.pop()
+                            if not had_decl and not had_nested and not sel.startswith("@"):
+                                flag("EMPTY_RULE", at, f"`{sel}` declares nothing — delete the rule")
                 pos = brace.end()
             tail = line[pos:]
             if depth > 0:
@@ -632,6 +656,50 @@ def _split_selectors(prelude: str) -> list[str]:
             cur += ch
     parts.append(cur)
     return [re.sub(r"\s+", " ", p.strip()) for p in parts if p.strip()]
+
+
+def dead_class_findings(path: str, all_templates: dict[str, str]) -> list[tuple[str, int, str]]:
+    """DEAD_CLASS: a class a scoped rule styles as its selector's subject
+    that the component never names (see the category note)."""
+    text = read(path)
+    m_style = re.search(r"<style[^>]*\bscoped\b[^>]*>(.*?)</style>", text, re.S)
+    if not m_style:
+        return []
+    strip = lambda t: re.sub(r"<!--.*?-->", lambda m: "\n" * m.group(0).count("\n"),
+                             re.sub(r"/\*.*?\*/", lambda m: "\n" * m.group(0).count("\n"), t, flags=re.S), flags=re.S)
+    style = strip(m_style.group(1))
+    rest = strip(text[:m_style.start()] + text[m_style.end():])
+    style_start = text[:m_style.start(1)].count("\n") + 1
+    raw_lines = text.splitlines()
+    subjects: dict[str, int] = {}
+    for m_r in re.finditer(r"([^{}]+)\{", style):
+        sel = m_r.group(1)
+        if sel.strip().startswith("@"):
+            continue
+        ln = style_start + style.count("\n", 0, m_r.start(1) + len(sel) - len(sel.lstrip()))
+        for one in sel.split(","):
+            one = re.sub(r":deep\([^)]*\)", "", one).strip()
+            if not one:
+                continue
+            subject = re.split(r"\s*[>+~]\s*|\s+", one)[-1]
+            for c in re.findall(rf"\.({TAG})", subject):
+                subjects.setdefault(c, ln)
+    findings = []
+    for c, ln in sorted(subjects.items(), key=lambda kv: kv[1]):
+        if re.search(r"(?<![\w-])" + re.escape(c) + r"(?![\w-])", rest):
+            continue
+        if "-" in c and (c.rsplit("-", 1)[0] + "-${") in rest:
+            continue
+        m_t = re.match(r"(.+)-(enter|leave)(-active|-from|-to)$", c)
+        if m_t and re.search(r'name="' + re.escape(m_t.group(1)) + '"', rest):
+            continue
+        if any(other != path and re.search(r'class="[^"]*(?<![\w-])' + re.escape(c) + r'(?![\w-])', t)
+               for other, t in all_templates.items()):
+            continue
+        if _audit_ok(raw_lines, ln - 1):
+            continue
+        findings.append(("DEAD_CLASS", ln, f".{c} is styled but never used in this component — delete the rule"))
+    return findings
 
 
 def media_shadow_findings(path: str) -> list[tuple[str, int, str]]:
@@ -720,8 +788,10 @@ def run(vue_files: list[Path], show_all: bool = False, style: Path | None = None
     definite = sum(1 for f in findings if f[0] == "DEFINITE")
 
     drift = []
+    all_templates = {str(f): read(str(f)) for f in vue_files}
     for f in vue_files:
-        for cat, ln, msg in token_findings(str(f)) + template_findings(str(f)) + media_shadow_findings(str(f)):
+        for cat, ln, msg in (token_findings(str(f)) + template_findings(str(f)) + media_shadow_findings(str(f))
+                             + dead_class_findings(str(f), all_templates)):
             drift.append((cat, str(f), ln, msg))
     for f in stylesheets:
         for cat, ln, msg in media_shadow_findings(str(f)):

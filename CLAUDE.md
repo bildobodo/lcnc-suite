@@ -1125,6 +1125,8 @@ Before writing or modifying ANY CSS or interactive element, verify ALL items:
 
 **New patterns** — If the needed style doesn't exist globally, STOP and tell the user: "This pattern doesn't exist in our global styles. We should add it to style.css first." Never create one-off scoped styles for reusable patterns.
 
+**Dead CSS** — a scoped rule that styles nothing (`EMPTY_RULE`) or a class the component never names (`DEAD_CLASS`: template, script literals, `prefix-${…}`, Transition names, a child component's root class) fails the CSS audit; delete it with the markup that used it (design wave D10).
+
 **Enforcement** — A `PreToolUse` hook (`.claude/hooks/style-check.sh`) fires before every Edit/Write to `.vue`/`.css` files, injecting a reminder. This ensures mid-conversation adherence.
 
 ## Toolsetter Var-File Mapping (#3100–#3115)

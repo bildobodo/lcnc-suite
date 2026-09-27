@@ -7051,3 +7051,24 @@ Plan Fassung 3 WP-D9 (UI-N100–N102, N15) plus a D4 harness finding.
 - Guards: layout.spec (the overlays inside the viewer and apart, 5 / 6 axes,
   all warn lines — red without fitHud); CSS audit GLYPH_BUTTON (a button
   whose content is a glyph needs an aria-label — red on the old ScrubBar).
+
+### WP-D10a — dead code, the open follow-ups, DEAD_CLASS / EMPTY_RULE (2026-09-27)
+
+Plan Fassung 3 WP-D10 (N110 + the named follow-ups), first of three commits.
+
+- Removed: App's four one-line colour classes and `.dialogBody .danger`,
+  GcodePanel `.switchBtn`, ProbePanel `.checkRow`, SettingsPanel
+  `.wpColumns` / the empty `.macroSettingsList`, ToolTablePanel
+  `.importExists` / `.importTag`, the tool table's own header behind
+  `hideHeader` (App always passed it — the branch never rendered, dead
+  since ec1cccd) with the prop, three `opacity: 1` resets nothing needs since
+  D8, two stale comments.
+- The program progress reads through `fmtPct` ("42 %"); its slot fits
+  "100 %". UNIT_LITERAL now sees a unit glued after a closing tag.
+- Audit: EMPTY_RULE (no declaration, no nested rule — open rules on a stack
+  so an @media block is not "empty"); DEAD_CLASS (a scoped selector's
+  SUBJECT class the component never names — class=, :class keys, script
+  literals, `prefix-${…}`, Transition names, another component's template
+  class for a child root). Red on the inventory's list, clean afterwards
+  with no audit-ok; a word the template uses as a prop (App's `danger`)
+  hides a dead rule from it — named, removed by hand.

@@ -9,6 +9,7 @@ import { usePermissions } from "./permissions";
 import { loadMachineDefaults, saveMachineDefaults, settingsVersion } from "./defaults";
 import { scanToolchangesBefore, scanEntryPositionBefore, type RflToolchangeScan, type RflEntryScan, type RflRunOptions } from "./gcodeRfl";
 import { highlightGcode, type Token } from "./gcodeHighlight";
+import { fmtPct } from "./format";
 import { limitViolationText, type LimitViolation } from "./ws/bulkData";
 import { isTouchDevice } from "./touchDetect";
 import { useMediaMql } from "./useMediaMql";
@@ -908,7 +909,7 @@ async function saveEdit() {
       </div>
       <span class="progressLabel">
         <span class="val-slot" :style="{ '--slot-w': lineDigits + 'ch' }">{{ currentLine ?? 0 }}</span> / {{ lineCount }}
-        <span class="progressPct">(<span class="val-slot pctSlot">{{ Math.round(progressPercent) }}</span>%)</span>
+        <span class="progressPct">(<span class="val-slot pctSlot">{{ fmtPct(progressPercent / 100) }}</span>)</span>
       </span>
       <!-- Attributed span (W4): a non-null currentLine alongside subName can
            only be the sub's call/trigger line (a trusted own-line point is
@@ -1193,15 +1194,6 @@ async function saveEdit() {
 .sidePane.narrow .ctrlRow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .sidePane.narrow .ctrlRow > .switchToggles { grid-row: 1; grid-column: 1 / -1; }
 
-.switchBtn {
-  flex: 0 0 auto;
-  color: var(--fg-muted);
-}
-
-.switchBtn.active {
-  opacity: 1;
-}
-
 .ctrlIcon {
   font-size: var(--fs-lg);
 }
@@ -1215,7 +1207,8 @@ async function saveEdit() {
   white-space: nowrap;
   flex-shrink: 0;
 }
-.pctSlot { --slot-w: 3ch; }
+/* "100 %" (fmtPct, the unit set off by a space — design wave D0 / D10). */
+.pctSlot { --slot-w: 5ch; }
 
 .elapsedLabel {
   font-size: var(--fs-md);
@@ -1304,13 +1297,12 @@ async function saveEdit() {
   justify-content: center;
   border: 2px dashed var(--border);
   border-radius: var(--radius-xl);
-  transition: border-color 0.2s, background 0.2s, opacity 0.2s;
+  transition: border-color 0.2s, background 0.2s;
 }
 
 .dropTarget.dragOver {
   border-color: var(--info);
   background: color-mix(in oklab, var(--info) 8%, var(--panel));
-  opacity: 1;
 }
 
 .uploadIcon {

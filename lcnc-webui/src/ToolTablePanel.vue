@@ -39,7 +39,6 @@ const props = defineProps<{
   currentTool: number | null;
   iniFilename: string | null;
   linearUnit: string;
-  hideHeader?: boolean;
 }>();
 
 const fire = useFire();
@@ -596,21 +595,9 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
 </script>
 
 <template>
-  <div :class="['container', 'stack-controls', { compact: hideHeader }]">
+  <div class="container stack-controls">
     <!-- Upload uses the client picker directly, like program loading. -->
     <input ref="importInputRef" type="file" accept=".json,.zip,.fctb,.fctl" @change="onImportFileSelect" hidden />
-
-    <!-- Header -->
-    <div v-if="!hideHeader" class="header">
-      <div class="sub">Tool Table</div>
-      <div class="row-tight">
-        <MachineBtn type="manage" @click="openAdd">+ Add</MachineBtn>
-        <MachineBtn type="fileOp" :disabled="importBusy" @click="toggleImportBrowser">
-          <span class="stable-width"><span :class="{ alt: !showImportBrowser }">Hide Files</span><span :class="{ alt: showImportBrowser }">Browse</span></span>
-        </MachineBtn>
-        <MachineBtn type="fileOp" :disabled="importBusy" @click="uploadLibrary">Upload</MachineBtn>
-      </div>
-    </div>
 
     <!-- Search and type filter: one row of fields (design wave D4; the
          filter left the Type column header, K07) -->
@@ -1004,22 +991,12 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
 </template>
 
 <style scoped>
+/* The Tools tab hosts the table under App's own head (design wave D5): no
+   header of its own (the old `hideHeader` branch never rendered). */
 .container {
   height: 100%;
   min-height: 0;
-  padding: var(--gap-section);
-}
-
-.container.compact {
-  padding: 0;
   flex: 1;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
 }
 
 /* .actions — replaced by row-tight utility (same shape) */
@@ -1079,10 +1056,6 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
 }
 .importRow:last-child { border-bottom: none; }
 
-.importExists {
-  color: var(--fg-muted);
-}
-
 .importT { min-width: 40px; font-weight: var(--fw-semibold); }
 .importType { min-width: 70px; }
 .importDia { min-width: 55px; }
@@ -1091,11 +1064,6 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-.importTag {
-  font-size: var(--fs-sm);
-  color: var(--fg-muted);
-  font-style: italic;
 }
 
 /* ---- Table ---- */

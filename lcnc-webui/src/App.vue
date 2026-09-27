@@ -2080,7 +2080,6 @@ watch(viewerGcode, (newGcode) => {
                 :currentTool="st.tool_number ?? null"
                 :iniFilename="ini.ini_filename ?? null"
                 :linearUnit="linearUnit"
-                hideHeader
               />
             </div>
           </template>
@@ -2843,22 +2842,6 @@ watch(viewerGcode, (newGcode) => {
   .statusBanner { border: 2px solid CanvasText; }
 }
 
-.okText {
-  color: var(--ok-text);
-}
-
-.badText {
-  color: var(--danger-text);
-}
-
-.warnText {
-  color: var(--warn-text);
-}
-
-.mutedText {
-  color: var(--fg-muted);
-}
-
 /* ---- Macro param dialog ---- */
 .macroPreview {
   display: block;
@@ -2901,10 +2884,6 @@ watch(viewerGcode, (newGcode) => {
   word-break: break-word;
 }
 .msgEmpty { padding: var(--gap-panel); }
-
-.dialogBody .danger {
-  color: var(--danger-text);
-}
 
 
 /* ─── MDI tab ─── */

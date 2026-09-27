@@ -1417,15 +1417,6 @@ html.touch-device .gridSection { height: 368px; }
 }
 
 
-.checkRow {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-tight);
-  font-size: var(--fs-base);
-  cursor: pointer;
-  user-select: none;
-}
-
 
 
 
