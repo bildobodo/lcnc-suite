@@ -17,7 +17,7 @@ import {
   loadMacrosDefaults, saveMacrosDefaults, syncMacroParams,
   loadDisplayDefaults, saveDisplayDefaults, settingsVersion, serverSettingsReady,
   loadCameraDefaults, saveCameraDefaults,
-  type Layer, type ColorDefaults, type PaletteMode, type HudDefaults, type HudScale,
+  type Layer, type ColorDefaults, type PaletteMode, type PaletteOrigin, type HudDefaults, type HudScale,
   type TrackMode, type Projection, type PreviewMode, type ToolChangeMode, type SpindleDir, type SpindleFeedbackUnit,
   type ThemeMode, type MacroDef, type GamepadDefaults,
   GAMEPAD_FALLBACK,
@@ -175,6 +175,7 @@ function resetViewer() {
   const vd = loadViewerDefaults();
   Object.assign(layers, vd.layers);
   paletteMode.value = vd.paletteMode;
+  paletteOrigin.value = vd.paletteOrigin;
   for (const k of Object.keys(colors)) delete colors[k as keyof ColorDefaults];
   Object.assign(colors, vd.colors);
   Object.assign(hud, vd.hud);
@@ -251,6 +252,7 @@ function confirmReset() {
 const saved = loadViewerDefaults();
 const layers = reactive<Record<Layer, boolean>>({ ...saved.layers });
 const paletteMode = ref<PaletteMode>(saved.paletteMode);
+const paletteOrigin = ref<PaletteOrigin | undefined>(saved.paletteOrigin);
 const colors = reactive<Partial<ColorDefaults>>({ ...saved.colors });
 const machineColors = reactive<Record<string, string>>({ ...saved.machineColors });
 const trackingMode = ref<TrackMode>(saved.trackingMode);
@@ -264,6 +266,7 @@ function save() {
   saveViewerDefaults({
     layers: { ...layers },
     paletteMode: paletteMode.value,
+    ...(paletteOrigin.value ? { paletteOrigin: paletteOrigin.value } : {}),
     colors: { ...colors },
     machineColors: { ...machineColors },
     machineEdges: machineEdgesOn.value,
@@ -402,6 +405,7 @@ watch(settingsVersion, () => {
   const vd = loadViewerDefaults();
   Object.assign(layers, vd.layers);
   paletteMode.value = vd.paletteMode;
+  paletteOrigin.value = vd.paletteOrigin;
   for (const k of Object.keys(colors)) delete colors[k as keyof ColorDefaults];
   Object.assign(colors, vd.colors);
   Object.assign(machineColors, vd.machineColors);
@@ -473,12 +477,14 @@ function onPaletteModeChange(mode: PaletteMode) {
   // retired default; a Custom palette kept through Automatic comes back.
   if (mode === "custom" && USER_ROLES.every(r => !colors[r])) Object.assign(colors, userColorsOf(shownPalette.value));
   paletteMode.value = mode;
+  paletteOrigin.value = "operator";   // an explicit choice (viewer contrast plan, V6)
   save();
   applyPaletteFromSettings();
 }
 
 function onColorChange(key: UserRole, value: string) {
   colors[key] = value;
+  paletteOrigin.value = "operator";
   save();
   applyPaletteFromSettings();   // live on the existing lines and materials
 }
@@ -653,6 +659,16 @@ function resetMachineColor(id: string) {
           <div class="radioGroup inline">
             <label><MachineRadio gate="viewerSetting" name="paletteMode" :modelValue="paletteMode" value="auto" @update:modelValue="onPaletteModeChange('auto')" /> Automatic</label>
             <label><MachineRadio gate="viewerSetting" name="paletteMode" :modelValue="paletteMode" value="custom" @update:modelValue="onPaletteModeChange('custom')" /> Custom</label>
+          </div>
+          <!-- A Custom palette nobody chose here (viewer contrast plan, V6):
+               from an earlier version — certain only when it was stored
+               without a mode — or of unknown origin, which claims nothing. -->
+          <div v-if="paletteMode === 'custom' && paletteOrigin === 'legacy'" class="statusNote warn" role="alert" data-palette-note="legacy">
+            <span>Colors from an earlier version — Automatic uses the theme's checked colors</span>
+            <MachineBtn type="inline" @click="onPaletteModeChange('auto')">Use automatic colors</MachineBtn>
+          </div>
+          <div v-else-if="paletteMode === 'custom' && !paletteOrigin" class="row-controls" data-palette-note="unknown">
+            <MachineBtn type="inline" @click="onPaletteModeChange('auto')">Use automatic colors</MachineBtn>
           </div>
           <!-- The legend: a line sample per role (dashed = rapid); in Custom
                the user roles are pickers named by their label. -->

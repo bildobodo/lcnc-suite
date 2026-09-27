@@ -47,6 +47,11 @@ export interface ColorDefaults {
  *  palette, stored explicitly: "auto" draws the theme's `--viewer-*` roles
  *  (viewer/viewerPalette.ts), "custom" the colours in `colors`. */
 export type PaletteMode = "auto" | "custom";
+/** Where a Custom palette came from (viewer contrast plan, V6): "legacy" = a
+ *  palette stored before the mode existed (certain: it had no mode), kept as
+ *  Custom by the migration; "operator" = chosen in Settings. Absent = unknown
+ *  (a palette saved under D8c after the migration — no origin is claimed). */
+export type PaletteOrigin = "legacy" | "operator";
 
 export type HudScale = "sm" | "md" | "lg" | "xl";
 
@@ -66,6 +71,7 @@ export type PreviewMode = "part" | "programmed";
 export interface ViewerDefaults {
   layers: Record<Layer, boolean>;
   paletteMode: PaletteMode;
+  paletteOrigin?: PaletteOrigin;
   /** The Custom palette. Kept while Automatic is chosen (Custom → Automatic
    *  → Custom brings it back); empty until Custom was chosen once. */
   colors: Partial<ColorDefaults>;

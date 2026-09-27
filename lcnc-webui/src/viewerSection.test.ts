@@ -92,6 +92,43 @@ describe("viewer palette migration (UI-D05)", () => {
   });
 });
 
+// Viewer contrast plan, V6 (Codex VK-04): where a Custom palette came from.
+// Certain only for a palette stored WITHOUT a mode ("legacy" — it keeps that
+// through every later save, a layer toggle too, until the operator chooses);
+// a mode without an origin — a palette saved after the D8c migration — stays
+// unknown and claims nothing; an explicit choice is "operator". Every case
+// through save and reload (the stored JSON merged again).
+describe("palette origin (viewer contrast plan, V6)", () => {
+  const roundTrip = (v: ReturnType<typeof mergeViewerSection>, change: Partial<typeof v> = {}) =>
+    mergeViewerSection(JSON.parse(JSON.stringify({ ...v, ...change })), FB);
+
+  it("stored without a mode: Custom from an earlier version — kept through a later save and reload", () => {
+    const once = mergeViewerSection({ colors: { ...OLD_DEFAULTS } }, FB);
+    expect([once.paletteMode, once.paletteOrigin]).toEqual(["custom", "legacy"]);
+    const again = roundTrip(once, { layers: { ...once.layers, backplot: false } });
+    expect([again.paletteMode, again.paletteOrigin, again.colors]).toEqual(["custom", "legacy", OLD_DEFAULTS]);
+  });
+
+  it("a mode without an origin (the old colours saved under D8c): unknown — no origin claimed, the colours kept", () => {
+    const once = mergeViewerSection({ paletteMode: "custom", colors: { ...OLD_DEFAULTS } }, FB);
+    expect(once.paletteOrigin).toBeUndefined();
+    expect(once.colors).toEqual(OLD_DEFAULTS);
+    const again = roundTrip(once);
+    expect([again.paletteMode, again.paletteOrigin]).toEqual(["custom", undefined]);
+    expect("paletteOrigin" in JSON.parse(JSON.stringify(again)), "nothing stored for an unknown origin").toBe(false);
+  });
+
+  it("chosen by the operator — even the very same colours: operator, kept through save and reload", () => {
+    const once = mergeViewerSection({ paletteMode: "custom", paletteOrigin: "operator", colors: { ...OLD_DEFAULTS } }, FB);
+    expect(once.paletteOrigin).toBe("operator");
+    expect(roundTrip(once).paletteOrigin).toBe("operator");
+  });
+
+  it("an unknown stored origin is dropped, never trusted", () => {
+    expect(mergeViewerSection({ paletteMode: "custom", paletteOrigin: "guess", colors: { feed: "#010203" } }, FB).paletteOrigin).toBeUndefined();
+  });
+});
+
 describe("viewer palette resolution", () => {
   it("Automatic follows the theme: every role is the theme's token", () => {
     const light = resolveViewerPalette(reader(LIGHT), { paletteMode: "auto", colors: { ...OLD_DEFAULTS } });

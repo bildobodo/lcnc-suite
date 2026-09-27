@@ -1,7 +1,7 @@
 // The viewer settings section as stored → as used. Pure (no DOM, no
 // settings cache), so the palette migration is unit-tested
 // (viewerSection.test.ts); defaults.ts registers it for the "viewer" section.
-import type { ColorDefaults, Layer, ViewerDefaults } from "./defaults";
+import type { ColorDefaults, Layer, PaletteOrigin, ViewerDefaults } from "./defaults";
 
 /** The viewer section as stored → as used (design wave D8c, UI-D05).
  *  Palette migration, no heuristics: a section saved before the mode
@@ -14,11 +14,20 @@ export function mergeViewerSection(saved: any, fb: ViewerDefaults): ViewerDefaul
   if (!saved) return JSON.parse(JSON.stringify(fb));
   const colors: Partial<ColorDefaults> = { ...(saved.colors ?? {}) };
   const legacy = saved.paletteMode !== "auto" && saved.paletteMode !== "custom";
+  const legacyPalette = legacy && Object.keys(colors).length > 0;
+  // The origin (viewer contrast plan, V6): certain only for a palette stored
+  // without a mode — "legacy", kept through every later save until the
+  // operator chooses; a mode without an origin stays unknown, never guessed.
+  const origin: PaletteOrigin | undefined = legacyPalette ? "legacy"
+    : saved.paletteOrigin === "legacy" || saved.paletteOrigin === "operator" ? saved.paletteOrigin : undefined;
+  const { paletteOrigin: _drop, ...rest } = saved;
+  void _drop;
   return {
     ...fb,
-    ...saved,
+    ...rest,
     layers: { ...fb.layers, ...saved.layers } as Record<Layer, boolean>,
-    paletteMode: legacy ? (Object.keys(colors).length > 0 ? "custom" : "auto") : saved.paletteMode,
+    paletteMode: legacy ? (legacyPalette ? "custom" : "auto") : saved.paletteMode,
+    ...(origin ? { paletteOrigin: origin } : {}),
     colors,
     machineColors: { ...fb.machineColors, ...saved.machineColors },
     hud: { ...fb.hud, ...saved.hud },

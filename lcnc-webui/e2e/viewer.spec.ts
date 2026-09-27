@@ -467,3 +467,54 @@ test("the viewer palette: Automatic follows the theme, Custom stays, a legacy pa
   await expect(swatch("limit")).toHaveCount(1);
   expect(errors).toEqual([]);
 });
+
+// Viewer contrast plan, V6 (Codex VK-04): where a Custom palette came from,
+// said only where it is known. Stored without a mode (the operator's live
+// configs held the old defaults that way): a note says the colours come from
+// an earlier version and offers Automatic — the origin survives a later save
+// (a layer toggle); the tap switches, keeps the colours and marks the choice.
+// A mode without an origin (saved under D8c): the offer, no origin claimed.
+// A palette the operator chose: nothing.
+test("the palette's origin in Settings: an earlier version says so, an unknown one claims nothing, a chosen one is quiet", async ({ page }) => {
+  const OLD = { feed: "#22b8cf", rapid: "#f5a623", backplot: "#ff00ff", bounds: "#ffffff", toolpathBounds: "#f5a623", tool: "#c0c0c0", cutter: "#ffdd00" };
+  await page.goto(MOCK);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready)).toBe(true);
+  const send = (type: string, viewer: Record<string, unknown>) => ctl({ op: "raw", frame: { type, settings: { display: { theme: "light" }, viewer } } });
+  const lastViewerSave = async () => {
+    const cmds = ((await ctl({ op: "lastCmds" })) as { cmds?: any[] }).cmds ?? [];
+    const save = cmds.filter(c => c.cmd === "save_settings" && c.section === "viewer").at(-1);
+    return save ? { mode: save.data.paletteMode, origin: save.data.paletteOrigin ?? null, feed: save.data.colors?.feed } : null;
+  };
+  await send("settings_init", { colors: OLD });
+  await page.getByTitle("Settings", { exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Settings", exact: true });
+  await dialog.getByRole("tab", { name: "3D Viewer", exact: true }).click();
+  const note = dialog.locator("[data-palette-note]");
+  const useAuto = dialog.getByRole("button", { name: "Use automatic colors", exact: true });
+
+  // From an earlier version: said, and kept through a save of the section.
+  await expect(note).toHaveAttribute("data-palette-note", "legacy");
+  await expect(note).toContainText("Colors from an earlier version");
+  await ctl({ op: "clearCmds" });
+  await dialog.getByRole("checkbox", { name: "Backplot", exact: true }).click();
+  await expect.poll(lastViewerSave).toEqual({ mode: "custom", origin: "legacy", feed: OLD.feed });
+  await expect(note, "the note stays after a layer toggle").toHaveAttribute("data-palette-note", "legacy");
+  // The tap: Automatic, the colours kept, the choice marked; the note goes.
+  await ctl({ op: "clearCmds" });
+  await useAuto.click();
+  await expect(dialog.getByRole("radio", { name: "Automatic", exact: true })).toBeChecked();
+  await expect(note).toHaveCount(0);
+  await expect.poll(lastViewerSave).toEqual({ mode: "auto", origin: "operator", feed: OLD.feed });
+
+  // Unknown origin (a mode, no origin): the offer only — nothing claimed.
+  await send("settings_changed", { paletteMode: "custom", colors: OLD });
+  await expect(note).toHaveAttribute("data-palette-note", "unknown");
+  await expect(note).not.toContainText("earlier version");
+  await expect(useAuto).toBeVisible();
+
+  // Chosen by the operator — even the very same colours: quiet.
+  await send("settings_changed", { paletteMode: "custom", paletteOrigin: "operator", colors: OLD });
+  await expect(dialog.getByRole("radio", { name: "Custom", exact: true })).toBeChecked();
+  await expect(note).toHaveCount(0);
+  await expect(useAuto).toHaveCount(0);
+});
