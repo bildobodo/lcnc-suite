@@ -1029,3 +1029,185 @@ Skalierung prüfen; neun Optionen allein treffen die entscheidende Grenze nicht.
 Bitte diese vier Ergänzungen in Fassung 3 aufnehmen. K1–K6 müssen dafür nicht neu aufgeteilt
 werden. Anschließend kann der Plan abgenommen und die Umsetzung separat geprüft werden;
 das spätere Live-Schreiben/Rücksetzen von G30 gehört erst in die geplante Maschinenprüfung.
+
+---
+
+## Fassung 3 · Claude · Antwort auf R22 · 28. September 2026
+
+Alle vier Ergänzungen übernommen, dazu die Umsetzungshinweise. K1–K6 bleiben so aufgeteilt.
+K1, K2 und K3 (Cyan) sind in `feat/operator-backlog` bereits angelegt, noch ohne
+Browserlauf. Die Browserläufe folgen, sobald deine Runde vorbei ist.
+
+### OP22-01 · Frische-Nachweis für G30 (K5)
+
+**Der Nachweis ist ein neuer Inode.** `Interp::save_parameters()` (`rs274ngc_pre.cc`
+1928–2002):
+1. schreibt nach `<datei>.new`;
+2. entfernt die alte `.bak`;
+3. hängt die bisherige Datei per `link()` als `.bak` an;
+4. benennt `.new` per `rename()` in den Dateinamen um.
+
+Nach einer erfolgreichen Speicherung trägt der Dateiname also einen **neuen Inode**. Der alte
+lebt als `.bak` weiter; seine Nummer kann nicht wiederverwendet werden. Scheitert das Öffnen
+von `.new` (nur `CHKS`, den `synch()` nicht auswertet) oder das Umbenennen (nur `perror`),
+bleibt der Inode gleich.
+
+**Ablauf von `set_g30`**, ein Befehl unter `_cmd_lock`, also serialisiert wie jeder
+mehrteilige Befehl:
+1. `st_ino` der Var-Datei merken.
+2. `_cmd_blocking(CMD.task_plan_synch, wait=5)` (in Scheiben) und `RCS_DONE` verlangen.
+3. `st_ino` muss sich geändert haben; sonst Abbruch mit „G30 not confirmed — LinuxCNC did not
+   save its parameters“.
+4. Die frische Datei lesen. Gleicht der Wert nicht `based_on`: „G30 changed meanwhile —
+   reload“. Dein Gegenfall 10/20/30 läuft damit gegen die frisch veröffentlichte 20.
+5. `#5181…=` per MDI, `RCS_DONE`.
+6. Wie Schritt 1–3, zweiter Synch mit Inode-Wechsel.
+7. Lesen und jeden geschriebenen Wert vergleichen.
+8. Erst dann `ok` mit den zurückgelesenen Werten.
+
+- **Nebenläufige Schreiber** der Var-Datei sind ausgeschlossen: Das Gateway schreibt selbst nur
+  unter demselben Lock (`_apply_probe_vars`, eigenes `os.replace`), und der Ablauf läuft nur im
+  Leerlauf.
+- **Abbruch oder Timeout** zwischen zwei Schritten gibt keine Erfolgsantwort. Der Zustand bleibt
+  unbestätigt.
+
+**Lesen:**
+- `GET /g30` bleibt eine **reine Anzeige** ohne Maschinenbefehl. Es liefert die Werte der
+  letzten Synchronisierung mit `mtime` der Datei, fehlende Zeilen als `null`. Die Oberfläche
+  nennt die Quelle.
+- Der Refresh-Knopf der G30-Sektion ist der neue WS-Befehl `read_g30`: Schritte 1–3 und 4 ohne
+  Vergleich. Er liefert einen **bestätigten** Stand oder „not confirmed“.
+- Ein unbestätigtes Schreiben bleibt unbestätigt, bis ein `read_g30` oder `set_g30` den
+  Frische-Nachweis erbringt.
+
+**Prüffälle** (isoliert, `fake_linuxcnc` und temporäre Dateien):
+- erster Synch ohne Inode-Wechsel bei lesbarer alter Datei;
+- zweiter Synch ohne Wechsel;
+- Timeout ohne Folgeschritt;
+- `read_g30` nach unbestätigtem Schreiben;
+- Abbruch zwischen jedem Paar von Teilschritten;
+- Konflikt 10/20/30.
+
+Live später nur ein Schreiben mit Rücksetzen im geplanten Maschinenfenster.
+
+### OP22-02 · Übernahme im bestätigten Maschinenrahmen (K5)
+
+- **Frame:** „Use current position“ und „Save G30“ sind nur im bestätigten Machine-Frame
+  möglich: Gate `machineFrame` (bereit und Identitätskinematik), stillstehend und referenziert.
+  Keine automatische Umschaltung. Unter TCP oder Plane bleibt der Knopf gedimmt mit Grund
+  („Machine frame only“).
+- **Frisch beim Drücken:** Die Übernahme ruft `read_g30 {current: true}`. Das Gateway liest
+  `STAT.position` in diesem Moment, im selben Befehl wie den bestätigten gespeicherten Stand.
+  Kein beim Öffnen gecachter Wert.
+- **Normierung wie `G30.1`:** Für Rundachsen mit `[AXIS_<L>] WRAPPED_ROTARY = 1` normiert das
+  Gateway auf [0, 360), wie `convert_savehome()` (`interp_convert.cc` 2492–2505).
+  Nicht gewrappte Achsen bleiben roh, Mehrfachumdrehungen also erhalten.
+- **Bindung:** Der Entwurf ist an Instanz, lineare Einheit und Kinematikmodus der Übernahme
+  gebunden. Ändert sich einer davon, wird der Entwurf mit Hinweis verworfen, nie still
+  weitergenutzt.
+- **`based_on` bleibt beim Übernehmen stehen.** Die Übernahme ändert die Werte, nicht die Basis.
+- **Prüffälle:**
+  - TCP- oder Plane-Übernahme gesperrt mit Grund;
+  - Frame-Wechsel nach der Übernahme;
+  - Jog zwischen Öffnen und Übernehmen: die neue Position;
+  - gewrappte (725° → 5°) und nicht gewrappte Rundachse;
+  - mm/inch;
+  - aktive Werkzeugkorrektur;
+  - Grenzfall am Achsfenster.
+- **Grenzen:** `read_axis_limits()` nimmt `AXIS_<L>` und fällt auf `JOINT_<n>` zurück; fehlt
+  beides, ist die Achse offen. Der Befehl nennt die Herkunft; bei einer offenen Achse prüft er
+  nur die Endlichkeit und sagt das in der Antwort. Kein Erreichbarkeitsversprechen.
+- **Reihenfolge:** die von `viewer_init.axes`, wie der DRO. „Lineare zuerst“ entfällt.
+
+### OP22-03 · Kanonische Zuordnung und unbekanntes Enable (K4)
+
+- **G92 und Tool:** über den kanonischen Index des Achsbuchstabens (`useAxes`, X0 … W8), nie
+  über die sichtbare Spalte. Fehlende, zu kurze oder nicht endliche Vektoren gelten als
+  unbekannt.
+- **`eoffset_enabled`:** bleibt `boolean | null` bis ins Panel; das `!!` in `App.vue` entfällt.
+
+**Comp:**
+
+| Enable | Betrag | Anzeige |
+|---|---|---|
+| `true` | ≠ 0 | Zeile mit Betrag |
+| `true` | 0 | Zeile mit 0 |
+| `false` | beliebig | keine Zeile, zählt als „nicht aktiv“ |
+| `null` | beliebig | unbekannt; „keine Korrektur aktiv“ ist dann ausgeschlossen |
+
+**Prüffälle:**
+- XYZAC mit verschiedenem B- und C-Wert;
+- XYZBC;
+- XZ;
+- G92 und Tool jeweils;
+- Comp mit 0 und ≠ 0 bei Enable `true`, `false` und `null`.
+
+### OP22-04 · Gruppen nach Anzahl und Breite (K6)
+
+**Schrittweite als verbundene Reihe** nur, wenn beides gilt:
+- höchstens sechs Optionen;
+- die natürliche Breite passt in die zugewiesene Gruppenbreite.
+
+Sonst die beschriftete Auswahl (`MachineSelect`).
+
+**Die Gruppenbreite** ist die Inhaltsbreite der Jog-Spalte, die die übrigen Zeilen des
+Abschnitts bestimmen (Geschwindigkeitsregler und Beschriftung), nicht die Reihe selbst.
+Gemessen wird mit einem immer vorhandenen, unsichtbaren Messelement. Dadurch schaltet die
+Darstellung nicht hin und her.
+
+**Ein Darstellungswechsel:**
+- nur bei Größenänderung und nie während einer gedrückten Aktivierung;
+- der gewählte Wert bleibt.
+
+**Trefferflächen**, **Breite und Höhe** je Option:
+- Touch: ≥ 36 × 36 px (Kompaktboden der Leiste);
+- Desktop: ≥ 24 × 24 CSS-px (WCAG 2.5.8);
+- geprüft auch am kurzen „1“.
+
+Die 44-px-Regel des Seitenpanels bleibt.
+
+**Budget:**
+- Die 239 px gelten fürs Querformat.
+- Im Hochformat gelten die bestehenden Hochformat-Regeln der Leiste (eine Inhaltsspalte;
+  `layout.spec`).
+- Erfüllt kein Entwurf „Gesamtbreite wächst nicht“ zusammen mit den Trefferflächen, gebe ich
+  den Zielkonflikt mit Zahlen zurück, statt die Touch-Regel zu lockern.
+
+**Prüffälle zusätzlich:**
+- sechs lange Optionen (`0.000001` …);
+- Zoll-Schritte;
+- 150 %;
+- neun Optionen.
+
+### Hinweise, übernommen
+
+- **K3:** Der Kontrasthinweis im Custom-Editor bewertet jede Rolle wie
+  `themeTokens.test.ts`:
+  - Linienrollen auf Grund und Tisch;
+  - die Auswahl als Kern auf dem Grund und „Kern **oder** Halo“ auf dem Tisch;
+  - Kern und Halo sind getrennt sichtbar.
+- **K6/A11y:** Die Maschinengruppen (Betriebsart, Jog-Bezug, WCS) werden
+  **Radio-Gruppen in einer Toolbar** nach APG:
+  - `role="toolbar"` mit Namen, darin `role="radiogroup"` mit `role="radio"`-Buttons;
+  - die Toolbar führt den Roving-Fokus: ein Tab-Stopp, Pfeile, Home und End über alle Optionen
+    der Leistengruppe;
+  - Space und Enter prüfen die Option und senden den Befehl.
+
+  Die Schrittweite bleibt eine gewöhnliche Radiogruppe (Pfeile wählen). Eine gesperrte Option
+  bleibt fokussierbar und erklärt sich (`aria-disabled`, `explainAt`). Wird die ausgewählte
+  Option gesperrt, bleibt der Roving-Fokus auf ihr. Ich behaupte APG-Konformität nur für
+  dieses Muster, und die Tastaturwächter decken es vollständig ab.
+- **K6/Pending:**
+  - „pending“ endet mit der Bestätigung aus dem Status, mit einer Ablehnung (Grund am Control)
+    oder nach 5 s als „not confirmed“, nicht als „fehlgeschlagen“;
+  - ein Disconnect beendet alle Pending-Anzeigen;
+  - der Zustand wird weiter aus der Maschine gelesen;
+  - keine automatische Wiederholung.
+- **Trip um 23:15:53:** Du hast ihn nicht verändert. Später gehören Last- und Browserprüfungen
+  in ein abgestimmtes Fenster, möglichst bei gestoppter Steuerung. So halte ich es auch
+  bei meinen Läufen.
+
+### Bitte prüfen
+
+- Genügt der Inode-Wechsel als Frische-Nachweis?
+- Passt die Toolbar-Struktur für die Maschinengruppen?
