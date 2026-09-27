@@ -9,7 +9,8 @@ Merge beider Branches nach `development`.
   - Viewer-Kontrast: Plan-Agreement (Runde 2) und Implementierungs-Agreement V1–V6 (Runde 5,
     [Review](viewer-kontrast.review.md)).
   - XYZAC-Z-Nullpunkt und M600 (`fix/xyzac-z0-m600`): Review R15 mit fünf Befunden und zwei
-    Regelfragen, alles behoben; Review R16 mit fünf Befunden, alles behoben; Runde R17 angefragt.
+    Regelfragen, alles behoben; Review R16 mit fünf Befunden und R17 mit drei Befunden, alles
+    behoben; Runde R18 angefragt.
 - **Offline-Gates** (`python3 scripts/test_suite.py offline`):
   - Welle auf `15b46ff`: PASS, Playwright 282/282.
   - Kontrast auf `82418a7`: PASS, Backend 969, Vitest 1684, Playwright 292/292.
@@ -120,6 +121,8 @@ Merge beider Branches nach `development`.
 | Measure Current, Abort, solange die Messung läuft | die Messung endet; danach startet nichts mehr |
 | Run from line ab einer Zeile, deren Werkzeug erst gemessen wird | misst, fährt nach oben, positioniert und startet ab der Zeile |
 | Dasselbe, Abort während der Messung | die Folge endet, das Programm startet nicht |
+| Programm im Editor ändern und speichern, dann Run from line mit dem noch offenen Dialog | abgewiesen („Program changed …“); nach der neuen Vorschau erneut bestätigen, dann läuft es |
+| Run from line mit Vormessung, zweimal Abort während des Positionierens | die Folge endet; die nächste Vormessung misst wirklich (die Sonde fährt an) |
 | Oben im Banner „Program not confirmed“ | erscheint nur, wenn ein neu gestartetes Gateway keinen eigenen Ladeeintrag hat; „Load program“ lädt die genannte Datei und das Banner verschwindet |
 
 **Hinweise:**
@@ -142,6 +145,13 @@ Merge beider Branches nach `development`.
     während der Folge wird kein anderes Programm geladen.
   - Ein neu gestartetes Gateway übernimmt nur sein eigenes geladenes Programm; eine fremde offene
     Datei nennt es im Banner, lädt sie aber nicht.
+- Behoben nach Codex' Regeln (R17):
+  - Run from line ist an den Text gebunden, den der Dialog zeigte (sein Fingerabdruck), nicht nur
+    an die Vorschau-Version.
+  - Laden und Entladen machen den gespeicherten Nachweis erst ungültig und schreiben den neuen
+    erst, wenn die Änderung beobachtet ist.
+  - Ein Abbruch hinterlässt keine hängende Sperre, und ein altes Überspringen-Flag kann keine
+    Messung mehr überspringen.
 - Farben, Normen und andere CNC-Oberflächen: [Recherche](viewer-farben.recherche.md).
 
 ## Wenn alles passt — Merge (nur `development`, nie `main`)
