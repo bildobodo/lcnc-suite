@@ -1,0 +1,92 @@
+{
+  "head": "5c7c8a065f77a92c373c66c31c4b8fcb9226f71c",
+  "cases": [
+    {
+      "name": "atomic_measure_abort_late_reply",
+      "commands": [
+        {
+          "cmd": "mdi",
+          "text": "T5 M600",
+          "vars": {
+            "3004": 200,
+            "3005": 0,
+            "3006": 500,
+            "3007": 180,
+            "3009": 2,
+            "3010": 180,
+            "3013": 0,
+            "3100": 0,
+            "3101": 0,
+            "3102": -300,
+            "3103": 0,
+            "3104": 0,
+            "3105": 0,
+            "3106": 0,
+            "3107": 5,
+            "3108": 0,
+            "3109": 0,
+            "3110": 0,
+            "3111": 0,
+            "3112": 0,
+            "3113": 0,
+            "3114": 0,
+            "3115": 0
+          },
+          "req_id": "t3dou1-6"
+        },
+        {
+          "cmd": "abort",
+          "req_id": "t3dou1-7"
+        }
+      ],
+      "no_followup_after_abort": true
+    },
+    {
+      "name": "rfl_during_file_reparse_before_new_publication",
+      "displayed_text": "(program A)\nT5 M600\nG90 G54 G0 X10 Y20\nG1 X11 F100\nM2\n",
+      "published_version": 700,
+      "active_file": "/A.ngc",
+      "file_reparse_in_progress": true,
+      "commands": [
+        {
+          "cmd": "auto_run",
+          "line": 4,
+          "file": "/A.ngc",
+          "version": 700,
+          "source": "94d007aa70959f4af641ea56c0116a4e320800d60da46bb70da3bb8dc2dbddd1",
+          "pre_tool": 5,
+          "probe_vars": {
+            "3004": 200,
+            "3005": 0,
+            "3006": 500,
+            "3007": 180,
+            "3009": 2,
+            "3010": 180,
+            "3013": 0,
+            "3100": 0,
+            "3101": 0,
+            "3102": -300,
+            "3103": 0,
+            "3104": 0,
+            "3105": 0,
+            "3106": 0,
+            "3107": 5,
+            "3108": 0,
+            "3109": 0,
+            "3110": 0,
+            "3111": 0,
+            "3112": 0,
+            "3113": 0,
+            "3114": 0,
+            "3115": 0
+          },
+          "safe_z": true,
+          "entry_x": 10,
+          "entry_y": 20,
+          "entry_wcs": "G54",
+          "req_id": "8hp1nz-6"
+        }
+      ]
+    }
+  ]
+}
