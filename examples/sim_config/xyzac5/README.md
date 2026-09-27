@@ -24,7 +24,7 @@ No third-party CAD meshes are redistributed.
 | --- | --- |
 | X / Y / Z travel | 500 / 400 / 400 mm |
 | X / Y joint limits | −250…250 / −200…200 mm |
-| Z joint limits | 100…500 mm; spindle-nose height above the A/C intersection |
+| Z joint limits | −400…0 mm, machine Z0 = top of travel; the spindle nose is Z+500 above the A/C intersection (100…500 mm) |
 | A tilt | −110…110°, about X, supported at both ends |
 | C rotation | Continuous mechanics; configured ±100 turns |
 | Platter | Ø400 mm; top surface at the A/C intersection in the neutral pose |
@@ -70,7 +70,7 @@ Shared HAL, remaps and models track the checkout through directory links;
 local files. See the
 [shared setup and migration guide](../README.md).
 
-The first launch starts at X0 Y0 Z500 A0 C0, inside the joint limits, with
+The first launch starts at X0 Y0 Z0 A0 C0, inside the joint limits, with
 E-stop active and all joints unhomed. LinuxCNC's `[TRAJ] POSITION_FILE`
 restores the simulated joint positions on subsequent launches; the installer
 preserves this file. The initial file has 16 joint entries, as required by
@@ -78,7 +78,7 @@ LinuxCNC 2.9, including zeros for the unused joints. `HOME` alone does not
 initialize the cold-start position.
 
 Connect and arm the UI, reset E-stop, switch on and **home all axes**. Homing
-is instantaneous and switchless: Z establishes its retracted 500 mm position
+is instantaneous and switchless: Z establishes its retracted Z0 (the top)
 first, then X/Y and A/C. Restoring positions does not replace homing.
 The supplied program is loaded but is not started automatically. Start it and
 confirm the T1 manual tool change when prompted.
@@ -86,7 +86,7 @@ confirm the T1 manual tool change when prompted.
 `demo.ngc` is an **air-motion demonstration**. It shows linear travel and the
 full A range with the spindle retracted, then holds a point 260 mm above the
 platter while A/C rotate in TCP mode. It resets this example's G54 to the
-A/C intersection. Its own `sim.var` and `tool.tbl` keep this state separate
+A/C intersection (G54 Z −500). Its own `sim.var` and `tool.tbl` keep this state separate
 from the other examples. A sample blank is shown; clamps, enclosure, way
 covers, tool changer and chip conveyor are omitted from this teaching model.
 The example does not configure probing routines or M600/M601.
@@ -98,12 +98,19 @@ Joints are ordered **X, Y, Z, A, C**:
 - X moves the head saddle in +X; Z moves the spindle in +Z.
 - Y moves the complete table assembly in −Y.
 - A rotates the yoke about +X. C rotates the platter about its local +Z.
-- `tool` is the spindle-nose frame; `c_platter` is the work/backplot frame.
-- At X=Y=A=C=0, the A/C intersection is at model origin. The platter top is
-  Z=0 and the spindle nose is at the commanded Z joint position.
+- `tool` is the spindle-nose frame; `c_work` is the work/backplot frame.
+- Machine Z0 is the TOP of travel — the convention the bundled toolsetter and
+  probe routines' `G53 Z0` retract assumes (the DMU and TWP examples share
+  it). At X=Y=A=C=0 the A/C intersection, the platter top, sits at machine
+  Z −500; the spindle nose is at the commanded Z joint position, Z+500 above
+  it.
+- The model is drawn in that physical frame: a `frame` group at Z −500
+  carries the machine, the Z head lifts back by +500, and `c_work` (under
+  `c_platter`, +500) sits at the machine origin — tool-vs-work equals machine
+  coordinates, the A/C rotations still turn about the real axes.
 
-The A and C axes intersect, so all `xyzac-trt-kins.*-rot-point`, `y-offset`
-and `z-offset` geometry pins are zero. Tool compensation is still required:
+The A and C axes intersect, so every `xyzac-trt-kins` geometry pin is zero
+except `z-rot-point` = −500, the intersection's machine Z. Tool compensation is still required:
 `motion.tooloffset.z` is connected to `xyzac-trt-kins.tool-offset`.
 
 `xyzac-trt-kins sparm=identityfirst` starts in identity mode. **M429** selects

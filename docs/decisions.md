@@ -6179,3 +6179,36 @@ after the boot. Chrome was fast either way (it has no cross-port per-IP
 queue). Telemetry events now carry a per-document `page` id: the report had
 merged two tabs whose navigation starts, on two machines' clocks, fell within
 the same instant.
+
+## 2026-09-27 — The XYZAC example's Z datum: machine Z0 at the top of travel
+
+Operator: loading a program with M600 on the 5-axis XYZAC sim read "M-code
+greater than 199: M600". The example (PR #41) had no M600/M601 remap, no
+probe/toolsetter subroutine path — and a Z window of 100..500 (the spindle
+nose's height above the A/C intersection, home at 500), so machine Z0 lay
+BELOW the travel. The bundled toolsetter (`tool_touch_off.ngc`: `G53 G1 Z0`
+as its home height, `ABS(#3102)` in the length formula) and three probe_basic
+routines assume Z0 = the top (the 2026-09-05 rule: "a config whose Z0 is not
+the top must not run them"). Options put to the operator: shift the datum,
+patch the upstream routine, or refuse M600 loudly; the operator chose the
+datum shift.
+
+- Model: the CAD stays in the physical frame (origin at the A/C
+  intersection; the STLs are unchanged — FreeCAD is not on this machine, the
+  generator was edited to emit the same structure, not run). machine.json
+  hangs every former root part and group under a `frame` group at Z −500,
+  lifts the Z head back by +500 and splits the work frame `c_work` (+500 under
+  `c_platter`) to the machine origin: tool-vs-work stays machine coordinates
+  (the DMU/TWP invariant) while A/C still turn about the real axes.
+- Kinematics: `xyzac-trt-kins.z-rot-point = -500`, found against the compiled
+  LinuxCNC oracle (−500 matches to 2e-13 mm; 0 was off by 669 mm; `z-offset`
+  gives the same numbers here because A and C intersect, the rotation point is
+  the semantic pin). `scripts/test_5axis_xyzac.py` reads the pins from
+  dimensions.json instead of hard-coded zeros: 8000 frame/oracle comparisons
+  and inverse round trips, worst 2.27e-13 mm; the guide-coverage check adds
+  the moving group's static translate.
+- INI: Z −400..0, HOME 0 (and the TRAJ HOME), position.txt Z 0. The example
+  G54 is Z −500 (sim.var and demo.ngc's `G10 L2 P1 … Z-500`): program zero
+  stays at the A/C intersection, the demo's program values are unchanged, its
+  retracts are `G53 G0 Z0`.
+
