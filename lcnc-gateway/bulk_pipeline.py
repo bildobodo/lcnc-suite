@@ -36,7 +36,7 @@ import msgspec as _msgspec
 
 import lcnc_trace as _trace
 from tool_import import decode_tool_blob
-from gateway_util import rotary_seed_values
+from gateway_util import program_source, rotary_seed_values
 
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 GCODE_WORKER_PATH = os.path.join(_BASE_DIR, "gcode_parse_worker.py")
@@ -114,6 +114,10 @@ class BulkPipeline:
         # Versions seeded from startup time so ?v= URLs don't collide across restarts.
         self.preview_version: int = int(time.time())
         self.last_file: Optional[str] = None          # edge detection in poller
+        # The text the published preview was parsed from (program_source), or
+        # None: nothing published, or the file changed during that parse —
+        # Run from line binds to it (Codex R17 XZ-07).
+        self.published_source: Optional[str] = None
         self.last_mtime: Optional[float] = None       # re-parse on in-place edits of the same path
         # Wire-format stamp of the PUBLISHED payload (P1), parsed from the
         # worker's `__SCHEMA__` stderr line — the payload bytes are passthrough
@@ -264,6 +268,7 @@ class BulkPipeline:
         self.published_rotary_seed = None
         self.published_kins_seed = None
         self.published_wcs_off = None
+        self.published_source = None
         self.published_limits = None
         self.rotary_check_prev = None
         self.wcsoff_check_prev = None
@@ -416,6 +421,11 @@ class BulkPipeline:
             _mtime_at_parse: Optional[float] = os.path.getmtime(filepath)
         except OSError:
             _mtime_at_parse = None
+        # The text this parse reads, fingerprinted BEFORE the worker and
+        # checked after it: the publication names exactly the text it was
+        # parsed from, or none (Codex R17 XZ-07). Off the loop — a 44 MB
+        # program hashes in ~0.2 s, the GIL released.
+        _source_at_parse = await asyncio.to_thread(program_source, filepath)
         try:
             stat = self._get_stat()
             ini_path = getattr(stat, "ini_filename", None) if stat is not None else None
@@ -608,8 +618,13 @@ class BulkPipeline:
             if len(stdout) >= 4096:
                 preview_bytes_gz = await asyncio.to_thread(gzip.compress, stdout, 6)
             t_gz_done = time.monotonic()
+            _source_after = await asyncio.to_thread(program_source, filepath)
+            if _source_after != _source_at_parse:
+                _trace.emit("gcode.source_changed_during_parse", level="warn",
+                            file=os.path.basename(filepath))
             # Publish metadata + bytes together before bumping the version so
             # GET /preview readers never see stale bytes under a new version.
+            self.published_source = _source_at_parse if _source_after == _source_at_parse else None
             self.preview_pending = {"file": filepath}
             self.preview_raw_len = len(stdout)
             # Keep the raw copy ONLY when no gz exists: every real browser accepts

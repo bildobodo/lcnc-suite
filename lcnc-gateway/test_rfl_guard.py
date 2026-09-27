@@ -322,10 +322,18 @@ class TestRflSequenceBinding(_SeqHarness):
             with open(self.prog, "a") as f:
                 f.write("(edited)\n")
 
-        for change in (load_other, rewrite):
+        def rewrite_keeping_size_and_mtime():
+            # Codex R17 XZ-07: a stat is no text identity — timestamps can be
+            # preserved (and a write inside one kernel tick keeps them).
+            st = os.stat(self.prog)
+            with open(self.prog, "r+") as f:
+                f.write("T8")
+            os.utime(self.prog, ns=(st.st_atime_ns, st.st_mtime_ns))
+
+        for change in (load_other, rewrite, rewrite_keeping_size_and_mtime):
             with self.subTest(change=change.__name__):
                 self.fresh_program()
-                identity = gateway._program_identity(self.prog)
+                identity = self.bound()
                 self.mdi_calls.clear()
                 self.auto_run_calls.clear()
 
@@ -342,8 +350,28 @@ class TestRflSequenceBinding(_SeqHarness):
                 self.assertEqual(gateway._rfl_status["phase"], "program_changed")
                 self.assertFalse(gateway._rfl_busy())
 
+    def bound(self):
+        """What the handler binds the sequence to: the path and the text's
+        fingerprint (Codex R17 XZ-07)."""
+        return (self.prog, gateway.program_source(self.prog))
+
+    async def test_a_republish_without_a_text_change_keeps_it_going(self):
+        # The pre-measurement changes the TLO — the preview re-parses and its
+        # version moves on; the text did not change, the run goes on.
+        async def step(text, timeout_s):
+            self.mdi_calls.append(text)
+            if text == "T5 M600":
+                gateway._bulk.preview_version += 1
+            return True, ""
+        gateway._rfl_mdi_step = step
+        gateway.STAT._script = [{}, {}, {"position": (0.0, 0.0, 0.0)}]
+        await gateway._rfl_sequence(4, pre_tool=5, safe_z=True, spindle_dir=None,
+                                    spindle_speed=0, program=self.bound())
+        self.assertEqual(len(self.auto_run_calls), 1)
+        self.assertEqual(gateway._rfl_status["phase"], "running")
+
     async def test_the_unchanged_program_runs(self):
-        identity = gateway._program_identity(self.prog)
+        identity = self.bound()
         gateway.STAT._script = [{}, {}, {"position": (0.0, 0.0, 0.0)}]
         await gateway._rfl_sequence(4, pre_tool=5, safe_z=True, spindle_dir=None,
                                     spindle_speed=0, program=identity)
@@ -361,7 +389,7 @@ class TestRflSequenceBinding(_SeqHarness):
         gateway._rfl_mdi_step = step
         task = asyncio.ensure_future(gateway._rfl_sequence(
             4, pre_tool=5, safe_z=True, spindle_dir=None, spindle_speed=0,
-            program=gateway._program_identity(self.prog)))
+            program=self.bound()))
         gateway._rfl_task = task
         await started.wait()
         gateway._preempt_inflight(by="abort", from_client=99)

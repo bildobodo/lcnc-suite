@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import asyncio
 import gzip
+import hashlib
 import json
 import math
 import time
@@ -58,6 +59,7 @@ from gateway_util import (
     ALLOWED_EXTENSIONS,
     LOAD_RECORD_NAME,
     canonical_path,
+    program_source,
     SUBFILE_NAME_RE,
     resolve_subfile,
     kins_mode_commands,
@@ -3275,30 +3277,21 @@ def _rfl_clear_flag() -> None:
     _rfl_flag_task = register_bg_task(asyncio.create_task(clear()))
 
 
-def _program_identity(path: Optional[str]):
-    """(path, mtime_ns, size) of a program file, or None when it cannot be
-    read — what Run from line is bound to while its sequence runs."""
-    if not path:
-        return None
-    try:
-        st = os.stat(path)
-    except OSError:
-        return None
-    return (path, st.st_mtime_ns, st.st_size)
-
-
-def _rfl_program_changed(identity) -> Optional[str]:
+async def _rfl_program_changed(identity) -> Optional[str]:
     """Is the program Run from line was confirmed on still the LOADED one,
-    unchanged on disk? None = yes, else why not (Codex R16 XZ-07: a program
-    loaded by any client during the minutes of measuring used to run with
-    the first one's line, tool and entry position)."""
+    its text unchanged? `identity` = (path, program_source of the confirmed
+    text). None = yes, else why not (Codex R16 XZ-07: a program loaded by
+    any client during the minutes of measuring used to run with the first
+    one's line, tool and entry position; R17: the text, not a stat). The
+    preview VERSION is not part of it: the pre-measurement changes the TLO
+    and the re-parse moves the version on while the text stays."""
     if identity is None:
         return None
     loaded = _status_runtime.program.loaded
     if canonical_path(loaded) != canonical_path(identity[0]):
         return f"another program is loaded ({os.path.basename(loaded or '') or 'none'})"
-    if _program_identity(identity[0]) != identity:
-        return "the program file changed on disk"
+    if await asyncio.to_thread(program_source, identity[0]) != identity[1]:
+        return "the program text changed on disk"
     return None
 
 
@@ -3399,18 +3392,18 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
                         entry: Optional[dict] = None, program=None) -> None:
     flag_armed = False
 
-    def still_bound() -> bool:
+    async def still_bound() -> bool:
         # Before every step that moves (and before arming the skip flag):
         # the confirmed program, unchanged. A reply-less refusal would be
         # silent — the phase carries the reason to every client.
-        why = _rfl_program_changed(program)
+        why = await _rfl_program_changed(program)
         if why:
             _rfl_phase("program_changed", False, f"{why} — confirm Run from line again")
         return why is None
 
     try:
         if pre_tool:
-            if not still_bound():
+            if not await still_bound():
                 return
             _rfl_phase("measuring")
             err_mark = _errors_total
@@ -3430,7 +3423,7 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
                 # during the measurement window — refuse to continue into motion.
                 _rfl_phase("measure_failed", False, "errors during measurement (aborted?)")
                 return
-            if not still_bound():
+            if not await still_bound():
                 return
             ok, why = await _rfl_mdi_step(f"#3116={pre_tool}", timeout_s=10.0)
             if not ok:
@@ -3438,7 +3431,7 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
                 return
             flag_armed = True
         if safe_z:
-            if not still_bound():
+            if not await still_bound():
                 return
             _rfl_phase("safe_z")
             # "Safe Z" = at or above machine Z0 (the controlled point, TLO
@@ -3472,7 +3465,7 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
             # (at safe height — the handler forces safe_z on whenever entry is
             # given), so the RFL entry's modal Y/Z moves run at the RIGHT X/Y
             # instead of wherever the machine happens to stand.
-            if not still_bound():
+            if not await still_bound():
                 return
             _rfl_phase("positioning")
             ok, why = await _rfl_mdi_step(_rfl_entry_mdi(entry), timeout_s=120.0)
@@ -3483,7 +3476,7 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
             if not ok:
                 _rfl_phase("positioning_failed", False, why)
                 return
-        if not still_bound():
+        if not await still_bound():
             return
         if spindle_dir and spindle_speed > 0:
             async with _get_cmd_lock():
@@ -4116,15 +4109,26 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             # auto_run names no program of its own — LinuxCNC runs whatever
             # is loaded, with the line, tool and entry XY derived from the
             # confirmed one.
+            # R17: and the fingerprint of that text (GET /gcode served it) —
+            # the one the published version was parsed from.
             confirmed = msg.get("file")
             version = msg.get("version")
-            if (not isinstance(confirmed, str) or version is None
+            source = msg.get("source")
+            if (not isinstance(confirmed, str) or version is None or not isinstance(source, str)
                     or canonical_path(confirmed) != canonical_path(_status_runtime.program.loaded)
-                    or finite_int(version) != _bulk.preview_version):
+                    or finite_int(version) != _bulk.preview_version
+                    or source != _bulk.published_source):
                 return {"ok": False, "error": "Program changed — confirm Run from line again"}
-            identity = _program_identity(_status_runtime.program.loaded)
-            if identity is None:
+            # The text on disk NOW must still be the confirmed one (Codex R17
+            # XZ-07): the version moves only after a re-parse, so a file
+            # rewritten since the publication still carries the old version.
+            # The binding is never stamped from the file found at arrival.
+            current = await asyncio.to_thread(program_source, _status_runtime.program.loaded)
+            if current is None:
                 return {"ok": False, "error": "Program file unreadable — not started"}
+            if current != source:
+                return {"ok": False, "error": "Program changed on disk — wait for the preview"}
+            identity = (_status_runtime.program.loaded, source)
             probe_vars = msg.get("probe_vars")
             if pre_tool and (not isinstance(probe_vars, dict) or not probe_vars):
                 # The pre-measurement is an M600: it reads the toolsetter's
@@ -6775,7 +6779,16 @@ def get_gcode(path: str):
     t_start = time.monotonic()
     peak = _fanout_enter("gcode")
     try:
-        return FileResponse(abs_path, media_type="text/plain")
+        # ONE read serves the text and names it (Codex R17 XZ-07): the
+        # fingerprint of exactly these bytes rides X-Program-Source, and Run
+        # from line binds to it — a file streamed after a separate hash could
+        # change in between. Sync endpoint (threadpool): the loop is untouched.
+        with open(abs_path, "rb") as f:
+            body = f.read()
+        return Response(content=body, media_type="text/plain", headers={
+            "X-Program-Source": hashlib.sha256(body).hexdigest(),
+            "Cache-Control": "no-cache",
+        })
     finally:
         _fanout_exit("gcode")
         handler_ms = (time.monotonic() - t_start) * 1000
@@ -7289,6 +7302,7 @@ async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Di
             _bulk.preview_pending = None
             _bulk.preview_bytes = None
             _bulk.preview_bytes_gz = None
+            _bulk.published_source = None
             _bulk.preview_version += 1
             _bulk.last_file = None
             _bulk.last_mtime = None

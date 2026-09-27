@@ -9,6 +9,7 @@ top and is therefore unimportable under pytest without the binding.
 Keep this file pure: stdlib only, no side effects at import time.
 """
 
+import hashlib
 import json
 import math
 import os
@@ -376,6 +377,21 @@ class LoadedProgram:
                             "reason": "running" if not interp_idle else "no load context"}))
             self._ignored = raw
         return events
+
+
+def program_source(path) -> Optional[str]:
+    """A program text's identity: the sha256 of its bytes, or None when it
+    cannot be read (Codex R17 XZ-07). What a publication was parsed from,
+    what GET /gcode served and what Run from line is bound to — a content
+    fingerprint, not a stat: timestamps can be preserved, and a write inside
+    one kernel tick keeps mtime and ctime."""
+    if not path:
+        return None
+    try:
+        with open(path, "rb") as f:
+            return hashlib.file_digest(f, "sha256").hexdigest()
+    except OSError:
+        return None
 
 
 LOAD_RECORD_NAME = "loaded_program.json"

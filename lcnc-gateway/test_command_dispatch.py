@@ -390,19 +390,25 @@ class TestHandlerExecution(unittest.TestCase):
         _run(scenario())
         self.assertEqual(self._mdis(cmd), ["#3100=150.000000"])
 
-    def _auto_run(self, **over):
+    def _auto_run(self, published=None, published_version=7, **over):
+        """auto_run as the dialog sends it: the path, the published version
+        and the fingerprint of the text it showed — by default the text on
+        disk, published as that version (`published` overrides)."""
         import time as _time, unittest.mock
         gateway._status_runtime.program = program = gateway._status_runtime_mod.LoadedProgram()
         program.update(None, True, _time.monotonic())
         program.request_load(self.prog, _time.monotonic())
         program.update(self.prog, True, _time.monotonic())
-        msg = {"cmd": "auto_run", "line": 4, "file": self.prog, "version": 7}
+        source = gateway.program_source(self.prog)
+        msg = {"cmd": "auto_run", "line": 4, "file": self.prog, "version": 7, "source": source}
         msg.update(over)
         spawned = []
 
         async def _fake_sequence(*a, **k):
             spawned.append((a, k))
-        with unittest.mock.patch.object(gateway._bulk, "preview_version", 7), \
+        with unittest.mock.patch.object(gateway._bulk, "preview_version", published_version), \
+                unittest.mock.patch.object(gateway._bulk, "published_source",
+                                           source if published is None else published), \
                 unittest.mock.patch.object(gateway, "_rfl_sequence", _fake_sequence):
             r = self._send(msg)
         return r, spawned
@@ -419,8 +425,10 @@ class TestHandlerExecution(unittest.TestCase):
         cmd = self._rcs()
         for over, why in (({"file": self.prog + ".b"}, "another program"),
                           ({"version": 8}, "another text revision"),
+                          ({"source": "0" * 64}, "another text"),
                           ({"file": None}, "no identity"),
-                          ({"version": None}, "no identity")):
+                          ({"version": None}, "no identity"),
+                          ({"source": None}, "no identity")):
             with self.subTest(why=why):
                 cmd.calls.clear()
                 r, spawned = self._auto_run(**over)
@@ -430,6 +438,36 @@ class TestHandlerExecution(unittest.TestCase):
         r, _ = self._auto_run()
         self.assertTrue(r["ok"], r)
         self.assertEqual(cmd.args_of("auto")[1], 4)
+
+    def test_auto_run_refuses_a_file_changed_since_its_publication(self):
+        # Codex R17 XZ-07 (file_changed_since_publication_before_dispatch):
+        # version 7 was parsed from text A; the file became B before the
+        # new publication; the dialog, still showing A, confirms version 7.
+        # Nothing may be taken over, measured or started — and the stamp is
+        # never taken from the file found at arrival.
+        self._with_program()
+        cmd = self._rcs()
+        text_a = gateway.program_source(self.prog)
+        Path(self.prog).write_text("T8 M600\nG0 X80 Y90\nG1 X81\nG1 X82\nM2\n")
+        vars_ = {"3100": 150, "3102": -300}
+        r, spawned = self._auto_run(published=text_a, source=text_a, pre_tool=5, probe_vars=vars_)
+        self.assertFalse(r["ok"], r)
+        self.assertIn("Program changed", r["error"])
+        self.assertEqual((self._mdis(cmd), cmd.args_of("auto"), spawned), ([], None, []),
+                         "no values, no measurement, no start")
+        # The text on disk and in the dialog agree, but the published version
+        # was parsed from another text (a file changed during the parse):
+        # still nothing.
+        text_b = gateway.program_source(self.prog)
+        r, spawned = self._auto_run(published="f" * 64, source=text_b, pre_tool=5, probe_vars=vars_)
+        self.assertFalse(r["ok"], r)
+        self.assertEqual((self._mdis(cmd), spawned), ([], []))
+        # The new publication of B, confirmed on B: a new binding, to B.
+        text_b = gateway.program_source(self.prog)
+        r, spawned = self._auto_run(published=text_b, published_version=8, version=8, source=text_b,
+                                    pre_tool=5, probe_vars=vars_)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(spawned[0][1]["program"], (self.prog, text_b))
 
     def test_auto_run_pre_tool_carries_the_toolsetter_values_and_sets_them_first(self):
         self._with_program()
@@ -442,7 +480,8 @@ class TestHandlerExecution(unittest.TestCase):
         self.assertTrue(r["ok"], r)
         self.assertEqual(self._mdis(cmd), ["#3100=150.000000 #3102=-300.000000"])
         self.assertEqual(len(spawned), 1, "then the measuring sequence")
-        self.assertEqual(spawned[0][1]["program"][0], self.prog, "bound to the program")
+        self.assertEqual(spawned[0][1]["program"], (self.prog, gateway.program_source(self.prog)),
+                         "bound to the program's text")
         cmd = self._rcs(rc=3)
         r, spawned = self._auto_run(pre_tool=5, probe_vars={"3100": 150})
         self.assertFalse(r["ok"], r)
@@ -465,14 +504,16 @@ class TestHandlerExecution(unittest.TestCase):
 
         async def scenario():
             r = await gateway.handle_command(
-                {"cmd": "auto_run", "line": 4, "file": self.prog, "version": 7, "safe_z": True}, True)
+                {"cmd": "auto_run", "line": 4, "file": self.prog, "version": 7, "safe_z": True,
+                 "source": gateway.program_source(self.prog)}, True)
             gateway._preempt_inflight(by="abort", from_client=2)   # no await in between
             for _ in range(20):
                 await asyncio.sleep(0)
             with unittest.mock.patch.object(gateway, "get_nc_files_dir", return_value=str(Path(self.prog).parent)):
                 load = await gateway.handle_command({"cmd": "load_file", "path": self.prog}, True)
             return r, load
-        with unittest.mock.patch.object(gateway._bulk, "preview_version", 7):
+        with unittest.mock.patch.object(gateway._bulk, "preview_version", 7), \
+                unittest.mock.patch.object(gateway._bulk, "published_source", gateway.program_source(self.prog)):
             r, load = _run(scenario())
         self.assertTrue(r["ok"], r)
         self.assertEqual((gateway._rfl_status or {}).get("phase"), "aborted", "the end is reported")
@@ -1424,3 +1465,19 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         self.assertFalse(r["ok"])
         self.assertIn("refused the mode switch", r["error"])
         self.assertEqual(self._mdi_lines(), [])
+
+
+class TestProgramText(unittest.TestCase):
+    """Codex R17 XZ-07: the text the operator sees names its fingerprint —
+    the bytes served and the fingerprint are one read, so the dialog can
+    bind Run from line to exactly the text it showed."""
+
+    def test_gcode_serves_the_text_with_its_fingerprint(self):
+        import hashlib, tempfile, unittest.mock
+        with tempfile.TemporaryDirectory() as d:
+            prog = os.path.join(d, "a.ngc")
+            Path(prog).write_bytes(b"G0 X1\nM2\n")
+            with unittest.mock.patch.object(gateway, "get_nc_files_dir", return_value=d):
+                r = gateway.get_gcode(prog)
+        self.assertEqual(r.body, b"G0 X1\nM2\n")
+        self.assertEqual(r.headers["x-program-source"], hashlib.sha256(b"G0 X1\nM2\n").hexdigest())
