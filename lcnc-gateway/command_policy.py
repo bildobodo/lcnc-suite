@@ -885,6 +885,7 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
     # --- program run
     "auto_run": {"line": Num(lo=0, integer=True),
                  "version": Num(lo=0, integer=True),
+                 "source": Text(max_len=64),   # the confirmed text's sha256 (R17 XZ-07)
                  "probe_vars": VarNumbers(),   # the pre-measurement's toolsetter values (R16)
                  "pre_tool": Num(lo=0, integer=True),
                  "spindle_speed": Num(lo=0, hi=lambda l: l.max_spindle_speed, clamp=True)},

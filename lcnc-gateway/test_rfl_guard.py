@@ -42,12 +42,13 @@ class _SeqHarness(unittest.IsolatedAsyncioTestCase):
             "_rfl_mdi_step": gateway._rfl_mdi_step,
             "set_mode": gateway.set_mode,
             "_cmd_blocking": gateway._cmd_blocking,
-            "_rfl_active": gateway._rfl_active,
+            "_rfl_task": gateway._rfl_task,
+            "_rfl_flag_task": gateway._rfl_flag_task,
             "_rfl_status": gateway._rfl_status,
             "_errors_total": gateway._errors_total,
         }
         gateway._cmd_lock = None  # fresh lock per asyncio loop (test pattern)
-        gateway._rfl_active = True  # sequence entered as the handler would set it
+        gateway._rfl_task = gateway._rfl_flag_task = None
         gateway._rfl_status = None
         gateway.STAT = _Stat()
         gateway.CMD = type("C", (), {"auto": lambda *a: None,
@@ -88,7 +89,7 @@ class TestRflSequence(_SeqHarness):
         self.assertEqual(len(self.auto_run_calls), 1)
         self.assertEqual(self.auto_run_calls[0][1], 120)  # start line
         self.assertEqual(gateway._rfl_status["phase"], "running")
-        self.assertFalse(gateway._rfl_active)
+        self.assertFalse(gateway._rfl_busy())
 
     async def test_tool_verification_failure_blocks_start(self):
         gateway.STAT.tool_in_spindle = 3      # wrong tool stayed in spindle
@@ -98,7 +99,7 @@ class TestRflSequence(_SeqHarness):
         self.assertEqual(self.mdi_calls, ["T5 M600"])   # no flag armed
         self.assertEqual(self.auto_run_calls, [])        # no program start
         self.assertEqual(gateway._rfl_status["phase"], "measure_failed")
-        self.assertFalse(gateway._rfl_active)
+        self.assertFalse(gateway._rfl_busy())
 
     async def test_zero_applied_offset_blocks_start(self):
         gateway.STAT.tool_in_spindle = 5
@@ -139,10 +140,12 @@ class TestRflSequence(_SeqHarness):
         gateway._cmd_blocking = _cmd_blocking_boom
         await gateway._rfl_sequence(120, pre_tool=5, safe_z=False,
                                     spindle_dir=None, spindle_speed=0)
-        # Flag was armed, AUTO_RUN failed → finally MUST clear the flag.
+        # Flag was armed, AUTO_RUN failed → finally MUST clear the flag (its
+        # own task since R17 XZ-10).
+        await asyncio.wait_for(gateway._rfl_flag_task, 2)
         self.assertEqual(self.mdi_calls, ["T5 M600", "#3116=5", "#3116=0"])
         self.assertEqual(gateway._rfl_status["phase"], "failed")
-        self.assertFalse(gateway._rfl_active)
+        self.assertFalse(gateway._rfl_busy())
 
     async def test_safe_z_position_verified(self):
         gateway.STAT.position = (0.0, 0.0, -42.0)   # abort left Z down
@@ -319,10 +322,18 @@ class TestRflSequenceBinding(_SeqHarness):
             with open(self.prog, "a") as f:
                 f.write("(edited)\n")
 
-        for change in (load_other, rewrite):
+        def rewrite_keeping_size_and_mtime():
+            # Codex R17 XZ-07: a stat is no text identity — timestamps can be
+            # preserved (and a write inside one kernel tick keeps them).
+            st = os.stat(self.prog)
+            with open(self.prog, "r+") as f:
+                f.write("T8")
+            os.utime(self.prog, ns=(st.st_atime_ns, st.st_mtime_ns))
+
+        for change in (load_other, rewrite, rewrite_keeping_size_and_mtime):
             with self.subTest(change=change.__name__):
                 self.fresh_program()
-                identity = gateway._program_identity(self.prog)
+                identity = self.bound()
                 self.mdi_calls.clear()
                 self.auto_run_calls.clear()
 
@@ -332,16 +343,35 @@ class TestRflSequenceBinding(_SeqHarness):
                         change()
                     return True, ""
                 gateway._rfl_mdi_step = step
-                gateway._rfl_active = True
                 await gateway._rfl_sequence(4, pre_tool=5, safe_z=True, spindle_dir=None,
                                             spindle_speed=0, program=identity)
                 self.assertEqual(self.auto_run_calls, [])
                 self.assertEqual(self.mdi_calls, ["T5 M600"], "no flag, no retract, no start")
                 self.assertEqual(gateway._rfl_status["phase"], "program_changed")
-                self.assertFalse(gateway._rfl_active)
+                self.assertFalse(gateway._rfl_busy())
+
+    def bound(self):
+        """What the handler binds the sequence to: the path and the text's
+        fingerprint (Codex R17 XZ-07)."""
+        return (self.prog, gateway.program_source(self.prog))
+
+    async def test_a_republish_without_a_text_change_keeps_it_going(self):
+        # The pre-measurement changes the TLO — the preview re-parses and its
+        # version moves on; the text did not change, the run goes on.
+        async def step(text, timeout_s):
+            self.mdi_calls.append(text)
+            if text == "T5 M600":
+                gateway._bulk.preview_version += 1
+            return True, ""
+        gateway._rfl_mdi_step = step
+        gateway.STAT._script = [{}, {}, {"position": (0.0, 0.0, 0.0)}]
+        await gateway._rfl_sequence(4, pre_tool=5, safe_z=True, spindle_dir=None,
+                                    spindle_speed=0, program=self.bound())
+        self.assertEqual(len(self.auto_run_calls), 1)
+        self.assertEqual(gateway._rfl_status["phase"], "running")
 
     async def test_the_unchanged_program_runs(self):
-        identity = gateway._program_identity(self.prog)
+        identity = self.bound()
         gateway.STAT._script = [{}, {}, {"position": (0.0, 0.0, 0.0)}]
         await gateway._rfl_sequence(4, pre_tool=5, safe_z=True, spindle_dir=None,
                                     spindle_speed=0, program=identity)
@@ -359,7 +389,7 @@ class TestRflSequenceBinding(_SeqHarness):
         gateway._rfl_mdi_step = step
         task = asyncio.ensure_future(gateway._rfl_sequence(
             4, pre_tool=5, safe_z=True, spindle_dir=None, spindle_speed=0,
-            program=gateway._program_identity(self.prog)))
+            program=self.bound()))
         gateway._rfl_task = task
         await started.wait()
         gateway._preempt_inflight(by="abort", from_client=99)
@@ -369,4 +399,112 @@ class TestRflSequenceBinding(_SeqHarness):
         self.assertEqual(self.mdi_calls, ["T5 M600"])
         self.assertEqual(self.auto_run_calls, [])
         self.assertEqual(gateway._rfl_status["phase"], "aborted")
-        self.assertFalse(gateway._rfl_active)
+        self.assertFalse(gateway._rfl_busy())
+
+
+class TestRflLifecycle(_SeqHarness):
+    """Codex R17 XZ-10: the latch and the end report follow the TASK — a
+    cancel before the first step never entered the body's finally, and a
+    second abort during the #3116 clear skipped every release after it: the
+    latch stayed set, load/unload and every later sequence were refused."""
+
+    def setUp(self):
+        super().setUp()
+        gateway.STAT.tool_in_spindle = 5
+        gateway.STAT.tool_offset = (0, 0, 45.7, 0, 0, 0, 0, 0, 0)
+        gateway.STAT.position = (0.0, 0.0, -100.0)
+        self.cleared = []
+
+    def start(self):
+        return gateway._rfl_start(4, 5, True, None, 0)
+
+    async def settle(self):
+        for _ in range(200):
+            if not gateway._rfl_busy():
+                return
+            await asyncio.sleep(0.01)
+        self.fail("the run-from-line latch stayed set")
+
+    def blocking_steps(self, *, clear=None):
+        """MDI steps: the measurement and the flag go through, the retract
+        blocks until cancelled; the clear runs `clear` (default: completes)."""
+        self.retracting = asyncio.Event()
+
+        async def step(text, timeout_s):
+            self.mdi_calls.append(text)
+            if text == "G53 G0 Z0":
+                self.retracting.set()
+                await asyncio.Event().wait()
+            if text == "#3116=0":
+                if clear is not None:
+                    await clear()
+                self.cleared.append(text)
+            return True, ""
+        gateway._rfl_mdi_step = step
+
+    async def test_an_abort_before_the_first_step(self):
+        task = self.start()
+        gateway._preempt_inflight(by="abort", from_client=1)   # same tick: the body never ran
+        await self.settle()
+        self.assertTrue(task.cancelled())
+        self.assertEqual((self.mdi_calls, self.auto_run_calls), ([], []))
+        self.assertEqual(gateway._rfl_status["phase"], "aborted")
+        self.assertIsNone(gateway._rfl_task)
+
+    async def test_one_abort_during_the_retract(self):
+        self.blocking_steps()
+        self.start()
+        await asyncio.wait_for(self.retracting.wait(), 2)
+        gateway._preempt_inflight(by="abort", from_client=1)
+        await self.settle()
+        self.assertEqual(self.mdi_calls, ["T5 M600", "#3116=5", "G53 G0 Z0", "#3116=0"])
+        self.assertEqual(self.cleared, ["#3116=0"])
+        self.assertEqual(self.auto_run_calls, [])
+        self.assertEqual(gateway._rfl_status["phase"], "aborted")
+
+    async def test_a_second_abort_during_the_flag_clear(self):
+        clearing, release = asyncio.Event(), asyncio.Event()
+
+        async def clear():
+            clearing.set()
+            await release.wait()
+        self.blocking_steps(clear=clear)
+        self.start()
+        await asyncio.wait_for(self.retracting.wait(), 2)
+        gateway._preempt_inflight(by="abort", from_client=1)
+        await asyncio.wait_for(clearing.wait(), 2)
+        gateway._preempt_inflight(by="abort", from_client=2)
+        await asyncio.sleep(0.05)
+        self.assertTrue(gateway._rfl_busy(), "no new sequence while the old flag is being cleared")
+        release.set()
+        await self.settle()
+        self.assertEqual(self.cleared, ["#3116=0"], "the second abort did not cut the clear short")
+        self.assertEqual(self.auto_run_calls, [])
+        self.assertEqual(gateway._rfl_status["phase"], "aborted")
+
+    async def test_a_failing_flag_clear_is_told_and_releases(self):
+        async def clear():
+            raise RuntimeError("machine off")
+        self.blocking_steps(clear=clear)
+        self.start()
+        await asyncio.wait_for(self.retracting.wait(), 2)
+        gateway._preempt_inflight(by="estop", from_client=1)
+        await self.settle()
+        self.assertEqual(self.cleared, [])
+        self.assertEqual(gateway._rfl_status["phase"], "flag_clear_failed")
+        self.assertFalse(gateway._rfl_status["ok"])
+        self.assertIn("#3116", gateway._rfl_status["error"])
+
+    async def test_an_old_task_never_releases_a_newer_one(self):
+        old = self.start()
+        gateway._preempt_inflight(by="abort", from_client=1)
+        await self.settle()
+        self.blocking_steps()
+        new = self.start()
+        old_status = dict(gateway._rfl_status)
+        gateway._rfl_finished(old)                  # a late callback of the old task
+        self.assertIs(gateway._rfl_task, new)
+        self.assertEqual(gateway._rfl_status, old_status)
+        self.assertTrue(gateway._rfl_busy())
+        new.cancel()
+        await self.settle()

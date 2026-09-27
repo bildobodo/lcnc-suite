@@ -44,7 +44,8 @@ from command_policy import (
 from gateway_util import (
     joints_beyond_limits, PROV_A_EPS, atomic_write_bytes, canonical_to_joint_order,
     twp_head_aligned,
-                          LoadedProgram, read_load_record, write_load_record)
+                          LOAD_RECORD_UNSETTLED, LoadedProgram, read_load_record,
+                          withdraw_load_record, write_load_record)
 from tool_table import parse_tool_table, _merge_tool_data
 
 WCS_BASES = [5220, 5240, 5260, 5280, 5300, 5320, 5340, 5360, 5380]
@@ -549,6 +550,8 @@ class StatusRuntime:
         self._load_record_path = load_record_path
         self._record_read = False
         self._recorded: Any = object()   # sentinel: nothing written yet
+        self._changing = False            # a load/unload between withdraw and request (R17 XZ-08)
+        self._record_failing = False      # one trace per failure streak, not per tick
         # Warn-once flags (re-armed on reconnect so a STAT field that
         # disappears across a reconnect produces a fresh log line)
         self._machine_pos_warned = False
@@ -651,22 +654,52 @@ class StatusRuntime:
             if instance is not None:
                 self._record_read = True
                 record = read_load_record(self._load_record_path, instance)
-                if record is not None:
+                if record == LOAD_RECORD_UNSETTLED:
+                    self.program.restore_unsettled()
+                elif record is not None:
                     self.program.restore(record[0])
         for tag, fields in self.program.update(raw_file, interp_idle, now):
             _trace.emit(tag, level="info", **fields)
-        if self.program.seen and self._load_record_path and self.program.loaded != self._recorded:
+        # A settled record only for a settled state: never while a change is
+        # under way (withdrawn, sent, not yet observed) — that would prove
+        # the old program again (Codex R17 XZ-08).
+        if (self.program.seen and self._load_record_path and not self._changing
+                and not self.program.change_pending and self.program.loaded != self._recorded):
             instance = self._get_instance()
             if instance is not None:
                 try:
                     write_load_record(self._load_record_path, instance, self.program.loaded)
                     self._recorded = self.program.loaded
+                    self._record_failing = False
                 except OSError as e:
-                    # Not silent, not per tick: retried on the next change.
-                    self._recorded = self.program.loaded
-                    _trace.emit("status.load_record_failed", level="warn",
-                                exc=type(e).__name__, msg=str(e))
+                    # Retried every tick until it works — the record keeps
+                    # saying "under way" meanwhile; traced once per streak.
+                    if not self._record_failing:
+                        _trace.emit("status.load_record_failed", level="warn",
+                                    exc=type(e).__name__, msg=str(e))
+                    self._record_failing = True
         return self.program.loaded
+
+    def begin_program_change(self) -> bool:
+        """A load or unload is about to reach the interpreter: withdraw the
+        record's proof of the old program first, and write no settled record
+        until end_program_change() — the load's own window then holds it
+        until the change is observed (Codex R17 XZ-08). False when the old
+        proof could not be withdrawn: the caller changes nothing."""
+        self._changing = True
+        instance = self._get_instance() if self._load_record_path else None
+        if instance is None:
+            return True     # no record a restart could adopt
+        if withdraw_load_record(self._load_record_path, instance):
+            self._recorded = object()   # the next settled state is written
+            return True
+        self._changing = False
+        _trace.emit("status.load_record_failed", level="error", during="withdraw",
+                    path=self._load_record_path)
+        return False
+
+    def end_program_change(self) -> None:
+        self._changing = False
 
     def resolve_var_file_path(self) -> Optional[str]:
         """Resolve absolute path to the LinuxCNC var file from the active INI.

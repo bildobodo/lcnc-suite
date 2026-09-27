@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import asyncio
 import gzip
+import hashlib
 import json
 import math
 import time
@@ -58,6 +59,7 @@ from gateway_util import (
     ALLOWED_EXTENSIONS,
     LOAD_RECORD_NAME,
     canonical_path,
+    program_source,
     SUBFILE_NAME_RE,
     resolve_subfile,
     kins_mode_commands,
@@ -3205,38 +3207,91 @@ def require_tool_change_pending():
 # whole body — running it inline would freeze every client's commands (incl.
 # Abort) and starve this client's heartbeat. Each CMD step takes the lock
 # individually; completion waits poll STAT lock-free. Progress is broadcast
-# via the status fanout (rfl_status field), single-flight via _rfl_active.
-_rfl_active: bool = False
+# via the status fanout (rfl_status field), single-flight via _rfl_busy().
 _rfl_status: Optional[dict] = None   # last guard-sequence phase, riding the status fanout
 # The running sequence: abort/estop from ANY client end it (_preempt_inflight)
 # — it is no in-flight handler, so the preemption never saw it (Codex R16).
 _rfl_task: Optional[asyncio.Task] = None
+# The #3116 clear after a sequence that armed the flag: its OWN task, so a
+# second abort cannot interrupt it inside the sequence's finally (Codex R17
+# XZ-10) — and no abort waits for it.
+_rfl_flag_task: Optional[asyncio.Task] = None
+# A phase the body sets on its way; any other phase is a verdict.
+_RFL_UNDECIDED = frozenset({"queued", "measuring", "safe_z", "positioning", "starting"})
 
 
-def _program_identity(path: Optional[str]):
-    """(path, mtime_ns, size) of a program file, or None when it cannot be
-    read — what Run from line is bound to while its sequence runs."""
-    if not path:
-        return None
-    try:
-        st = os.stat(path)
-    except OSError:
-        return None
-    return (path, st.st_mtime_ns, st.st_size)
+def _rfl_busy() -> bool:
+    """A run-from-line sequence, or its skip-flag clear, still runs. Derived
+    from the tasks themselves: a boolean latch set before the task and
+    cleared in its body stayed set for good when the task was cancelled
+    before its first step, or when a second abort interrupted the clear in
+    its finally (Codex R17 XZ-10) — load, unload and every later sequence
+    were refused until a restart."""
+    return any(t is not None and not t.done() for t in (_rfl_task, _rfl_flag_task))
 
 
-def _rfl_program_changed(identity) -> Optional[str]:
+def _rfl_finished(task: asyncio.Task) -> None:
+    """The sequence task's end — also for a task cancelled before its body
+    ran. Only the task that still owns the slot reports: an old task's end
+    never touches a newer sequence."""
+    global _rfl_task
+    if _rfl_task is not task:
+        return
+    _rfl_task = None
+    if (_rfl_status or {}).get("phase") in _RFL_UNDECIDED:
+        if task.cancelled():
+            _rfl_phase("aborted", False, "aborted")
+        else:
+            exc = task.exception()
+            _rfl_phase("failed", False, f"{type(exc).__name__}: {exc}" if exc else "ended without a verdict")
+
+
+def _rfl_start(*args, **kwargs) -> asyncio.Task:
+    """Queue the sequence as the background task that owns the latch."""
+    global _rfl_task
+    _rfl_phase("queued")
+    task = asyncio.create_task(_rfl_sequence(*args, **kwargs))
+    _rfl_task = task
+    task.add_done_callback(_rfl_finished)
+    register_bg_task(task)
+    return task
+
+
+def _rfl_clear_flag() -> None:
+    """Clear the one-shot skip flag after a sequence that armed it and did
+    not start: a stale flag would silently skip a later measurement of that
+    tool. Loud when it fails — the operator is told, not only the trace."""
+    global _rfl_flag_task
+
+    async def clear():
+        try:
+            ok, why = await _rfl_mdi_step("#3116=0", timeout_s=10.0)
+        except Exception as e:
+            ok, why = False, f"{type(e).__name__}: {e}"
+        if ok:
+            _trace.emit("rfl.flag_cleared")
+            return
+        _trace.emit("rfl.flag_clear_failed", level="error", err=why)
+        _rfl_phase("flag_clear_failed", False, f"skip flag #3116 not cleared ({why}) — set #3116=0 by MDI")
+
+    _rfl_flag_task = register_bg_task(asyncio.create_task(clear()))
+
+
+async def _rfl_program_changed(identity) -> Optional[str]:
     """Is the program Run from line was confirmed on still the LOADED one,
-    unchanged on disk? None = yes, else why not (Codex R16 XZ-07: a program
-    loaded by any client during the minutes of measuring used to run with
-    the first one's line, tool and entry position)."""
+    its text unchanged? `identity` = (path, program_source of the confirmed
+    text). None = yes, else why not (Codex R16 XZ-07: a program loaded by
+    any client during the minutes of measuring used to run with the first
+    one's line, tool and entry position; R17: the text, not a stat). The
+    preview VERSION is not part of it: the pre-measurement changes the TLO
+    and the re-parse moves the version on while the text stays."""
     if identity is None:
         return None
     loaded = _status_runtime.program.loaded
     if canonical_path(loaded) != canonical_path(identity[0]):
         return f"another program is loaded ({os.path.basename(loaded or '') or 'none'})"
-    if _program_identity(identity[0]) != identity:
-        return "the program file changed on disk"
+    if await asyncio.to_thread(program_source, identity[0]) != identity[1]:
+        return "the program text changed on disk"
     return None
 
 
@@ -3335,21 +3390,20 @@ def _rfl_entry_reached(entry: dict):
 async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
                         spindle_dir: Optional[str], spindle_speed: int,
                         entry: Optional[dict] = None, program=None) -> None:
-    global _rfl_active, _rfl_task
     flag_armed = False
 
-    def still_bound() -> bool:
+    async def still_bound() -> bool:
         # Before every step that moves (and before arming the skip flag):
         # the confirmed program, unchanged. A reply-less refusal would be
         # silent — the phase carries the reason to every client.
-        why = _rfl_program_changed(program)
+        why = await _rfl_program_changed(program)
         if why:
             _rfl_phase("program_changed", False, f"{why} — confirm Run from line again")
         return why is None
 
     try:
         if pre_tool:
-            if not still_bound():
+            if not await still_bound():
                 return
             _rfl_phase("measuring")
             err_mark = _errors_total
@@ -3369,7 +3423,7 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
                 # during the measurement window — refuse to continue into motion.
                 _rfl_phase("measure_failed", False, "errors during measurement (aborted?)")
                 return
-            if not still_bound():
+            if not await still_bound():
                 return
             ok, why = await _rfl_mdi_step(f"#3116={pre_tool}", timeout_s=10.0)
             if not ok:
@@ -3377,7 +3431,7 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
                 return
             flag_armed = True
         if safe_z:
-            if not still_bound():
+            if not await still_bound():
                 return
             _rfl_phase("safe_z")
             # "Safe Z" = at or above machine Z0 (the controlled point, TLO
@@ -3411,7 +3465,7 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
             # (at safe height — the handler forces safe_z on whenever entry is
             # given), so the RFL entry's modal Y/Z moves run at the RIGHT X/Y
             # instead of wherever the machine happens to stand.
-            if not still_bound():
+            if not await still_bound():
                 return
             _rfl_phase("positioning")
             ok, why = await _rfl_mdi_step(_rfl_entry_mdi(entry), timeout_s=120.0)
@@ -3422,7 +3476,7 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
             if not ok:
                 _rfl_phase("positioning_failed", False, why)
                 return
-        if not still_bound():
+        if not await still_bound():
             return
         if spindle_dir and spindle_speed > 0:
             async with _get_cmd_lock():
@@ -3447,15 +3501,10 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
     finally:
         if flag_armed:
             # Never leave a stale skip flag behind — it could silently skip a
-            # legitimate future measurement. Best-effort clear, loud on failure.
-            ok, why = await _rfl_mdi_step("#3116=0", timeout_s=10.0)
-            if ok:
-                _trace.emit("rfl.flag_cleared")
-            else:
-                _trace.emit("rfl.flag_clear_failed", level="error", err=why)
-        _rfl_active = False
-        if _rfl_task is asyncio.current_task():
-            _rfl_task = None
+            # legitimate future measurement. Its own task: nothing awaited
+            # here, so a second cancel cannot skip it (Codex R17 XZ-10); the
+            # latch and the end report follow the task (_rfl_finished).
+            _rfl_clear_flag()
 
 
 async def _apply_probe_vars(vars_to_set: Dict[str, Any], armed: bool):
@@ -3522,7 +3571,7 @@ async def handle_command(msg: Dict[str, Any], armed: bool):
 
 
 async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
-    global _estop_hold, _rfl_active, _rfl_task
+    global _estop_hold
     cmd = msg.get("cmd")
     if not cmd:
         return {"ok": False, "error": "Missing cmd"}
@@ -4060,15 +4109,26 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             # auto_run names no program of its own — LinuxCNC runs whatever
             # is loaded, with the line, tool and entry XY derived from the
             # confirmed one.
+            # R17: and the fingerprint of that text (GET /gcode served it) —
+            # the one the published version was parsed from.
             confirmed = msg.get("file")
             version = msg.get("version")
-            if (not isinstance(confirmed, str) or version is None
+            source = msg.get("source")
+            if (not isinstance(confirmed, str) or version is None or not isinstance(source, str)
                     or canonical_path(confirmed) != canonical_path(_status_runtime.program.loaded)
-                    or finite_int(version) != _bulk.preview_version):
+                    or finite_int(version) != _bulk.preview_version
+                    or source != _bulk.published_source):
                 return {"ok": False, "error": "Program changed — confirm Run from line again"}
-            identity = _program_identity(_status_runtime.program.loaded)
-            if identity is None:
+            # The text on disk NOW must still be the confirmed one (Codex R17
+            # XZ-07): the version moves only after a re-parse, so a file
+            # rewritten since the publication still carries the old version.
+            # The binding is never stamped from the file found at arrival.
+            current = await asyncio.to_thread(program_source, _status_runtime.program.loaded)
+            if current is None:
                 return {"ok": False, "error": "Program file unreadable — not started"}
+            if current != source:
+                return {"ok": False, "error": "Program changed on disk — wait for the preview"}
+            identity = (_status_runtime.program.loaded, source)
             probe_vars = msg.get("probe_vars")
             if pre_tool and (not isinstance(probe_vars, dict) or not probe_vars):
                 # The pre-measurement is an M600: it reads the toolsetter's
@@ -4081,7 +4141,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 # handler (we hold _cmd_lock here and block this client's receive
                 # loop). Validate, spawn, return immediately; progress rides the
                 # status fanout as `rfl_status`.
-                if _rfl_active:
+                if _rfl_busy():
                     return {"ok": False, "error": "Run-from-line sequence already in progress"}
                 blocked = reject_if_auto_running()
                 if blocked:
@@ -4091,12 +4151,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                     _file_ok, mdi_ok = await _apply_probe_vars(probe_vars, armed)
                     if not mdi_ok:
                         return {"ok": False, "error": "Toolsetter parameters not taken over — not started"}
-                _rfl_active = True
-                _rfl_phase("queued")
-                _rfl_task = asyncio.create_task(_rfl_sequence(
-                    start_line, pre_tool, safe_z, spindle_dir, spindle_speed, entry,
-                    program=identity))
-                register_bg_task(_rfl_task)
+                _rfl_start(start_line, pre_tool, safe_z, spindle_dir, spindle_speed, entry,
+                           program=identity)
                 return {"ok": True, "rfl": "started"}
 
             if spindle_dir and spindle_speed > 0:
@@ -4386,7 +4442,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             blocked = reject_if_auto_running()
             if blocked:
                 return blocked
-            if _rfl_active:
+            if _rfl_busy():
                 # The sequence is bound to the loaded program (XZ-07).
                 return {"ok": False, "error": "Run from line is starting — abort it first"}
 
@@ -4416,14 +4472,21 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             # 500 ms budget by ~10×; the off-loop candidate is a subprocess or
             # a GIL-releasing send, not more wait tuning.
             _set_phase("load_file.program_open")
-            # The load context: only this makes the file the loaded program
-            # (LoadedProgram — STAT.file flips alone never do).
-            _status_runtime.program.request_load(abs_path, time.monotonic())
+            # The load record stops proving the old program before the
+            # interpreter changes (Codex R17 XZ-08).
+            if not _status_runtime.begin_program_change():
+                return {"ok": False, "error": "Load record not writable — nothing loaded"}
             try:
-                await _cmd_blocking(CMD.program_open, abs_path, wait=None)
-            except BaseException:
-                _status_runtime.program.cancel_load()
-                raise
+                # The load context: only this makes the file the loaded program
+                # (LoadedProgram — STAT.file flips alone never do).
+                _status_runtime.program.request_load(abs_path, time.monotonic())
+                try:
+                    await _cmd_blocking(CMD.program_open, abs_path, wait=None)
+                except BaseException:
+                    _status_runtime.program.cancel_load()
+                    raise
+            finally:
+                _status_runtime.end_program_change()
             return {"ok": True, "path": abs_path}
 
         if cmd == "unload_file":
@@ -4431,11 +4494,16 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             blocked = reject_if_auto_running()
             if blocked:
                 return blocked
-            if _rfl_active:
+            if _rfl_busy():
                 return {"ok": False, "error": "Run from line is starting — abort it first"}
-            await _cmd_blocking(CMD.abort)
-            await _cmd_blocking(CMD.reset_interpreter)
-            _status_runtime.program.request_unload()
+            if not _status_runtime.begin_program_change():
+                return {"ok": False, "error": "Load record not writable — nothing unloaded"}
+            try:
+                await _cmd_blocking(CMD.abort)
+                await _cmd_blocking(CMD.reset_interpreter)
+                _status_runtime.program.request_unload()
+            finally:
+                _status_runtime.end_program_change()
             return {"ok": True}
 
         if cmd == "list_probe_macros":
@@ -6723,7 +6791,16 @@ def get_gcode(path: str):
     t_start = time.monotonic()
     peak = _fanout_enter("gcode")
     try:
-        return FileResponse(abs_path, media_type="text/plain")
+        # ONE read serves the text and names it (Codex R17 XZ-07): the
+        # fingerprint of exactly these bytes rides X-Program-Source, and Run
+        # from line binds to it — a file streamed after a separate hash could
+        # change in between. Sync endpoint (threadpool): the loop is untouched.
+        with open(abs_path, "rb") as f:
+            body = f.read()
+        return Response(content=body, media_type="text/plain", headers={
+            "X-Program-Source": hashlib.sha256(body).hexdigest(),
+            "Cache-Control": "no-cache",
+        })
     finally:
         _fanout_exit("gcode")
         handler_ms = (time.monotonic() - t_start) * 1000
@@ -7237,6 +7314,7 @@ async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Di
             _bulk.preview_pending = None
             _bulk.preview_bytes = None
             _bulk.preview_bytes_gz = None
+            _bulk.published_source = None
             _bulk.preview_version += 1
             _bulk.last_file = None
             _bulk.last_mtime = None

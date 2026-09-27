@@ -478,3 +478,50 @@ class TestCancelInflight(unittest.TestCase):
         self.assertGreaterEqual(seen["timeout"], 60.0)
         # refresh_running is the scheduler's flag: called directly, no status.
         self.assertIsNone(seen["status"])
+
+
+class TestPublishedSource(unittest.TestCase):
+    """Codex R17 XZ-07: a publication names the TEXT it was parsed from — a
+    fingerprint taken before the worker and checked after it. A file that
+    changed during the parse publishes no source: nothing can be bound to
+    that version, the file edge re-parses."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.ini = os.path.join(self.tmp.name, "m.ini")
+        open(self.ini, "w").write("[EMC]\n")
+        self.ngc = os.path.join(self.tmp.name, "p.ngc")
+        open(self.ngc, "w").write("G0 X1\nM2\n")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _refresh(self, during=None):
+        b = _pipeline(self.ini)
+
+        def worker(ctx_bytes, timeout):
+            if during:
+                during()
+            return (0, b"x" * 8, b"__SCHEMA__\t8\n")
+        b._run_gcode_worker_blocking = worker
+        asyncio.run(b.refresh_gcode_preview(self.ngc))
+        return b
+
+    def test_an_unchanged_file_publishes_its_fingerprint(self):
+        import hashlib
+        b = self._refresh()
+        self.assertTrue(b.preview_available())
+        self.assertEqual(b.published_source, hashlib.sha256(b"G0 X1\nM2\n").hexdigest())
+
+    def test_a_file_changed_during_the_parse_publishes_no_source(self):
+        def edit():
+            with open(self.ngc, "a") as f:
+                f.write("G0 X2\n")
+        b = self._refresh(during=edit)
+        self.assertTrue(b.preview_available())
+        self.assertIsNone(b.published_source)
+
+    def test_clearing_the_preview_clears_the_source(self):
+        b = self._refresh()
+        b.clear_preview()
+        self.assertIsNone(b.published_source)
