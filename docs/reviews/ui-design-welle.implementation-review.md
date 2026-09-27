@@ -2109,3 +2109,78 @@ keine bestehenden Tests und keine Bildreferenzen.
 Das Agreement schließt diese Paketgruppe. Zusammen mit dem bisherigen Agreement
 sind damit DR + D0–D6 abgenommen; daraus folgt noch keine Merge-Freigabe für die
 gesamte Design-Welle.
+
+## Übergabe D7–D10 an Codex · 27. September 2026
+
+**Umfang:** WP-D7 bis D10 aus Fassung 3, Branch-Diff `d6f6fe4..HEAD`. Die Abschnitte oben (WP-D7,
+D8b, D8a, D8c, D9, D10a, D10b, D10c) beschreiben je Paket Ausgangslage, Umsetzung, Wächter, Grenzen
+und Gates.
+
+**Commits:**
+
+| Paket | Commit | Inhalt |
+|---|---|---|
+| D7 | `54d20e9` | Eingabehilfen: X oben rechts, Code-Seite in Blöcken, Seiten zeilenweise |
+| D8b | `00d4b6e` | Bewegung und erzwungene Farben |
+| D8a | `6bb8637` | Textrollen je Theme, Syntaxpalette, Fokusring; `contrast.spec` |
+| D8c | `1ab19d7` | Viewer-Palette je Theme, Legende, Automatic/Custom mit Migration |
+| D9 | `130cf69` | Viewer-Overlays: HUD passt in den Bereich, eine Befundkarte, Icons mit Namen |
+| D10a | `d1c48ef` | tote Reste, Folgepunkte, `DEAD_CLASS`/`EMPTY_RULE` |
+| D10b | `4f7190f` | `.text-*`-Familie statt Opazität und Einzeilern, Leerzustände, Laufweite |
+| D10c | `ccd2cae` | Tönungsstufen, Button-Achsen, Breitenbericht; der Offline-Label-Test fragt die Beschriftungen |
+| Audit | `dbfdaa8` | Fixtures je neuer Audit-Kategorie (Treffer und Nicht-Treffer) |
+| Gate | `4076f2c` | `test_suite_runner`: das Offline-Gate hat seit dem Handshake acht Schritte (brach sonst am Backend ab) |
+
+**Abweichungen vom Planwortlaut, bewusst:**
+1. **D8 Viewer-Szenen:** Der Plan sah einen Sichtvergleich bekannter Szenen im Projekt
+   `serial-viewer` vor. Committed sind stattdessen Prüfungen der gezeichneten Materialfarben, weil
+   WebGL-Bilder zwischen VM und CI keine stabile Referenz sind; der Werkzeugdialog maskiert seine
+   Canvas aus demselben Grund. Die Szenen je Theme sind gerendert und angesehen worden.
+2. **D10 N111:** Der Plan wollte Lade- und Hinweistexte auf `--opacity-muted` setzen. Die in D8
+   vereinbarte Regel (UI-D07: keine Opazität für Text) ersetzt das; umgesetzt ist die D8-Regel.
+3. **D10 N112:** keine `.text-error`. `--err` ist seit D8a nur eine Flächentönung, Fehlertext liest
+   `--danger-text` (`.text-danger`).
+4. **D10 N113:** Das Innen-Padding bleibt nach der Pre-Flight-Checkliste literal. Nur die Laufweite
+   wird ein Token.
+5. **D10 N115:** ein Bericht mit Urteil statt einer Umstellung (px und em skalieren unter CSS-Zoom
+   gleich).
+
+**Für den Operator sichtbar** (Live-Sichtprüfung):
+- **Tastaturen:** X oben rechts; Code-Seite mit Ziffernblock.
+- **Farben:**
+  - Textfarben je Theme dunkler bzw. kräftiger, Syntax im hellen Theme dunkler.
+  - Nicht gewählte Reiter und Icon-Knöpfe dimmen nur ihre Beschriftung.
+  - Fokusring dunkler blau.
+  - Dialogtext dunkler.
+- **Viewer-Farben:**
+  - Neue Standardpalette: Eilgang grün gestrichelt, Limit ocker/gelb, gewählte Zeile schwarz bzw.
+    cyan.
+  - Gespeicherte Altpaletten laufen als Custom weiter.
+  - Legende in Settings.
+- **Viewer-Aufbau:**
+  - Modus und Warnungen stehen unten links.
+  - Die DRO-Karte wird in kurzen Bereichen kleiner.
+  - Der ViewCube wird im schmalen Hochformat kleiner.
+  - Das Kamera-Fenster hat den Karten-Stil.
+- **Arm und Power On:** Ihr grüner Zustand ist eine Spur heller (Aktiv-Stufe statt Füllung).
+
+**Benannte Grenzen:**
+- Querformat ab 150 % (WP-DR).
+- 9 Achsen bei 150 % im Hochformat für das Setup-Feld (D7).
+- Vor beschattetem Metall erreicht keine Viewer-Linie 3:1.
+- WebGL-Linien sind 1 px breit, eine breitere Auswahl ist offen.
+- Nicht auf Rollen: Achsen-Triaden, TWP-Ebene, Farbskala der Oberflächenkarte, Probing-3D,
+  Werkzeugvorschau. Das ist Stoff einer eigenen Viewer-Runde.
+
+**Gates am HEAD:** `python3 scripts/test_suite.py offline` **PASS**
+(`runlogs/test-suite/20260927T013250Z-offline/report.json`):
+
+| Teil | Ergebnis |
+|---|---|
+| Backend-Pytest | 969 |
+| 5-Achs-Modell | grün |
+| Audit-Tests | 28 |
+| Handshake-Tests | grün |
+| Lint und Build | grün |
+| Vitest | 1660 |
+| Playwright, alle neun Projekte | 276/276 |
