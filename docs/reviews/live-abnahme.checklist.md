@@ -99,5 +99,6 @@ git merge --no-ff feat/ui-design-wave
 git merge --no-ff feat/viewer-contrast
 ```
 
-Danach die Suite neu starten. Wenn etwas nicht passt: kurz notieren, was und wo (Theme, Zoom,
+Danach die Suite neu starten. Ein `git push` ist deine Entscheidung; die bisherigen Merges nach
+`development` waren lokal. Wenn etwas nicht passt: kurz notieren, was und wo (Theme, Zoom,
 Ausrichtung). Ich korrigiere auf dem Branch, Codex prüft nach.
