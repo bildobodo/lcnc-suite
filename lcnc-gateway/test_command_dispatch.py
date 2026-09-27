@@ -409,8 +409,12 @@ class TestHandlerExecution(unittest.TestCase):
         with unittest.mock.patch.object(gateway._bulk, "preview_version", published_version), \
                 unittest.mock.patch.object(gateway._bulk, "published_source",
                                            source if published is None else published), \
-                unittest.mock.patch.object(gateway, "_rfl_sequence", _fake_sequence):
+                unittest.mock.patch.object(gateway, "_rfl_sequence", _fake_sequence), \
+                unittest.mock.patch.object(gateway._bulk, "reparse_pending", False), \
+                unittest.mock.patch.object(gateway._bulk, "reparse_pending_reason", None), \
+                unittest.mock.patch.object(gateway._bulk, "refresh_running", False):
             r = self._send(msg)
+            self.reparse_requested = (gateway._bulk.reparse_pending, gateway._bulk.reparse_pending_reason)
         return r, spawned
 
     def _with_program(self):
@@ -455,6 +459,9 @@ class TestHandlerExecution(unittest.TestCase):
         self.assertIn("Program changed", r["error"])
         self.assertEqual((self._mdis(cmd), cmd.args_of("auto"), spawned), ([], None, []),
                          "no values, no measurement, no start")
+        # "wait for the preview" must come true: the file edge sees the path
+        # and the mtime only, which an edit can keep — the refusal asks for it.
+        self.assertEqual(self.reparse_requested, (True, "file"))
         # The text on disk and in the dialog agree, but the published version
         # was parsed from another text (a file changed during the parse):
         # still nothing.
