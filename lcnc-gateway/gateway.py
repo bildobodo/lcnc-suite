@@ -3220,6 +3220,24 @@ _rfl_flag_task: Optional[asyncio.Task] = None
 _RFL_UNDECIDED = frozenset({"queued", "measuring", "safe_z", "positioning", "starting"})
 
 
+def _skip_flag_cleared(vars_to_set: Dict[str, Any]) -> Dict[str, Any]:
+    """The values of a routine the WebUI starts, with the one-shot skip flag
+    #3116 cleared: a stale flag (a clear that could not run — E-Stop, a
+    restart) silently skipped the next measurement of that tool (live R17
+    check: 2.2 s, no probe trip). Only the sequence's own program may skip —
+    right after it armed the flag, under the latch."""
+    return {**vars_to_set, "3116": 0}
+
+
+def _rfl_busy_reason() -> Optional[str]:
+    """Why a load or unload waits for run from line, or None."""
+    if _rfl_task is not None and not _rfl_task.done():
+        return "Run from line is starting — abort it first"
+    if _rfl_flag_task is not None and not _rfl_flag_task.done():
+        return "Run from line is ending — wait"
+    return None
+
+
 def _rfl_busy() -> bool:
     """A run-from-line sequence, or its skip-flag clear, still runs. Derived
     from the tasks themselves: a boolean latch set before the task and
@@ -3264,8 +3282,31 @@ def _rfl_clear_flag() -> None:
     global _rfl_flag_task
 
     async def clear():
+        # After an abort the aborted move may still run: an MDI sent at once
+        # was refused ("MDI command in progress", live R17 check). Wait until
+        # the interpreter has been idle for a moment (the abort processed),
+        # at most 10 s; never an MDI with the machine off — told at once.
+        ok, why = False, "the interpreter did not come idle"
+        deadline = time.monotonic() + 10.0
+        idle_since = None
         try:
-            ok, why = await _rfl_mdi_step("#3116=0", timeout_s=10.0)
+            while time.monotonic() < deadline:
+                STAT.poll()
+                if safe_get("task_state", None) != linuxcnc.STATE_ON:
+                    ok, why = False, "machine not on"
+                    break
+                if safe_get("interp_state", None) != linuxcnc.INTERP_IDLE:
+                    idle_since = None
+                    await asyncio.sleep(0.05)
+                    continue
+                idle_since = idle_since or time.monotonic()
+                if time.monotonic() - idle_since < 0.3:
+                    await asyncio.sleep(0.05)
+                    continue
+                ok, why = await _rfl_mdi_step("#3116=0", timeout_s=10.0)
+                if ok or "in progress" not in why:
+                    break
+                idle_since = None
         except Exception as e:
             ok, why = False, f"{type(e).__name__}: {e}"
         if ok:
@@ -3777,7 +3818,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if vars_to_set is not None:
                 if not isinstance(vars_to_set, dict) or not vars_to_set:
                     return {"ok": False, "error": "Missing vars dict"}
-                file_ok, mdi_ok = await _apply_probe_vars(vars_to_set, armed)
+                file_ok, mdi_ok = await _apply_probe_vars(_skip_flag_cleared(vars_to_set), armed)
                 if not mdi_ok:
                     return {"ok": False, "error": "Parameters not taken over — nothing started",
                             "file_saved": file_ok, "mdi_set": False}
@@ -4155,7 +4196,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                     return blocked
                 if pre_tool:
                     # In this handler: an abort cancels it here too.
-                    _file_ok, mdi_ok = await _apply_probe_vars(probe_vars, armed)
+                    _file_ok, mdi_ok = await _apply_probe_vars(_skip_flag_cleared(probe_vars), armed)
                     if not mdi_ok:
                         return {"ok": False, "error": "Toolsetter parameters not taken over — not started"}
                 _rfl_start(start_line, pre_tool, safe_z, spindle_dir, spindle_speed, entry,
@@ -4451,7 +4492,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 return blocked
             if _rfl_busy():
                 # The sequence is bound to the loaded program (XZ-07).
-                return {"ok": False, "error": "Run from line is starting — abort it first"}
+                return {"ok": False, "error": _rfl_busy_reason()}
 
             # Phase markers (B8) subdivide load_file so the lag monitor pins which
             # step holds the loop — the run named "handle_command cmd=load_file"
@@ -4502,7 +4543,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if blocked:
                 return blocked
             if _rfl_busy():
-                return {"ok": False, "error": "Run from line is starting — abort it first"}
+                return {"ok": False, "error": _rfl_busy_reason()}
             if not _status_runtime.begin_program_change():
                 return {"ok": False, "error": "Load record not writable — nothing unloaded"}
             try:
