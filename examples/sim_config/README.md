@@ -62,13 +62,18 @@ positions are preserved; all axes still require homing after startup.
 
 The XYZAC example moved its Z datum on 2026-09-27 (machine Z0 is the top of
 travel; the A/C intersection is at machine Z −500) and gained M600/M601. An
-installation from before is migrated once by `install_examples.py`: its Z
-window, home and `z-rot-point`, the new RS274NGC entries, and every
-machine-absolute Z in its state — G54…G59.3 Z, G28/G30 Z, the saved joint Z —
-shift by −500, so program zero stays where it was touched off; G92, tool
-lengths and local settings stay. Missing suite remaps (a new M-code) and
-RS274NGC entries are added to any installed example from its template; local
-values are kept.
+installation from before is migrated once by `install_examples.py`. The
+datum is read from the kins pin `z-rot-point` (0 before, −500 after; any other
+value is refused before anything is written). Every machine-absolute Z shifts
+by −500 — the INI's own Z window, homes and pin (a local limit stays a local
+limit), G54…G59.3 Z, G28/G30 Z, the saved joint Z and the toolsetter Z in the
+var file and in the WebUI's settings — so program zero stays where it was
+touched off; G92, tool lengths and distances stay. A G28/G30 Z that was
+outside the travel (never reachable) becomes the top of travel. The unchanged
+old demo is replaced; an edited one is kept and the current one is put beside
+it (`demo.new.ngc`). Stop LinuxCNC and the gateway first. Missing suite remaps
+(a new M-code) and RS274NGC entries are added to any installed example from
+its template; local values are kept.
 
 Before replacing files, the complete previous installation is saved under
 `~/linuxcnc/config-backups/lcnc_suite_sim/<timestamp>/config/`. Backups are
