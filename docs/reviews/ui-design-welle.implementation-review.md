@@ -1049,6 +1049,77 @@ blau. Die Bilder sind angesehen und erneuert.
 - Playwright **274/274** über alle neun Projekte; `serial-viewer` 5 (neu: die Viewer-Palette). Die
   Referenzbilder in `serial-visual` sind unverändert grün.
 
+
+### WP-D9 — Viewer-Overlays · 27. September 2026
+
+**Ausgangslage** (gemessen über die vier Viewports bei 100 % und das Hochformat bei 150 %, mit
+3 Warnzeilen):
+- **1024 × 768 bei 100 %:** Die HUD-Karte war höher als der Viewer, der Viewer schnitt sie ab.
+  „Rotation“ war halb verdeckt, die Zeile „Preview re-parsing“ gar nicht zu sehen. Eine Warnung
+  verschwand also still.
+- **900 × 1200 bei 150 %:** Die Karte lag über ViewCube und Schnellknöpfen und ragte 100 px ins
+  Seitenpanel.
+- **1280 × 800 Touch:** Es passte mit 4 px Rest.
+- **Kamera-Fenster:** Es hatte eine eigene Rahmung. Sein Minimieren-Knopf war ein Textzeichen (□ −)
+  auf dem Typ „close“.
+- **Sim-Leiste:** Die Vor/Zurück-Knöpfe waren Textzeichen, ihr zugänglicher Name war „◀“.
+- **HAL-Gruppen:** Die Pfeile ▼/▶ waren Text.
+- **Schnellknöpfe:** Kamera und Settings hatten nur einen `title`.
+- **Begriffe:** „soft-limit violation“ stand gegen das Glossar.
+
+**Umgesetzt:**
+- **Die DRO-Karte passt in ihren Bereich** (`fitHud`, gemessen, nie geclippt, nie per `transform`
+  skaliert).
+  - Von der eingestellten HUD-Größe (Obergrenze) geht sie stufenweise bis `sm` herunter.
+  - Danach blendet sie die Maschinenspalte aus, dann F/S, dann die Werkzeugzeile. Das sind die
+    Schalter, die der Operator dafür schon hat; die Anpassung setzt sie nur automatisch.
+  - Ausgelöst wird sie von einem ResizeObserver auf Bereich, unteren Block und Karte sowie bei
+    einer Änderung der Einstellung.
+  - Passt auch die kleinste Form nicht, meldet die Karte `data-hud-fit="overflow"` statt zu clippen.
+- **Befundkarte am unteren Rand:** Modus-Chip und Warnungen bleiben zusammen, wie der Operator am
+  12.09. wollte. Sie stehen jetzt in einer eigenen Karte (`.hudNotes`) über der Sim-Leiste, in einer
+  Spalte (`.viewerBottom`).
+  - Die fehlgeschlagenen Modellteile sind dort eine Warnzeile mit „?“, der eigene Chip entfällt.
+    Damit gibt es einen Warnstil im Viewer (N102).
+  - Die Sim-Leiste sitzt nicht mehr absolut, sondern in dieser Spalte.
+- **Schmaler Bereich** (unter 440 px): ViewCube und Schnellknöpfe werden 96 statt 140 px groß.
+- **Kamera-Fenster:** Es nutzt die gemeinsame `.overlay-card` (N100). Minimieren/Maximieren sind
+  Lucide-Icons auf einem eigenen Typ `windowToggle`; das X bleibt der einzige „close“.
+- **Icons und Namen:**
+  - Sim-Leiste: Lucide-Pfeile mit Namen („Previous limit violation“, „Next collision“).
+  - HAL-Gruppen: Lucide-Pfeile mit `aria-expanded`.
+  - Schnellknöpfe: „Show camera“ bzw. „Hide camera“ und „3D Viewer settings“ (N101).
+- **Begriffe nach dem Glossar:** „limit violation“ in der Sim-Leiste; die Legendenzeile in Settings
+  heißt „Limit violation“ (N15).
+
+**Wächter:**
+- **`layout.spec`**, je mit 5 und 6 Achsen, allen Warnzeilen und einer Vorschau-Neuberechnung:
+  - Durchlaufen werden die vier Viewports bei 100 % und das Hochformat bei 150 %.
+  - DRO-Karte, Befundkarte, ViewCube und Schnellknöpfe liegen im Viewer.
+  - Die DRO-Karte berührt weder Befundkarte noch ViewCube-Spalte; die Befundkarte berührt die
+    ViewCube-Spalte nicht.
+  - Die Karte meldet `fits`.
+  - Rot ohne `fitHud`: In 1024 × 768 überlappen DRO- und Befundkarte.
+- **CSS-Audit `GLYPH_BUTTON`:** Ein `MachineBtn`, dessen ganzer Inhalt ein Textzeichen ist, braucht
+  ein `aria-label`. Rot am alten ScrubBar mit vier Treffern.
+
+**Grenzen:** Querformat ab 150 % bleibt die benannte WP-DR-Grenze. Der Bereich ist dort 90–135 px
+hoch; die Karte meldet `overflow`, der Test lässt diesen Fall aus.
+
+**Sichtbar für den Operator:**
+- Modus-Chip und Warnungen stehen unten links statt unter den Achsen.
+- In kurzen Bereichen ist die DRO-Karte kleiner, ohne Maschinenspalte, F/S oder Werkzeugzeile.
+- Im schmalen Hochformat ist der ViewCube kleiner.
+- Das Kamera-Fenster sieht aus wie die übrigen Viewer-Karten.
+- Settings › 3D Viewer › HUD sagt, dass die Größe eine Obergrenze ist und was ein kurzer Viewer faltet.
+
+**Gates:**
+- build, lint (neu `GLYPH_BUTTON`) und Vitest (**1660**) grün.
+- Playwright **276/276** über alle neun Projekte; `serial-layout` 65 (neu: die Overlays im Viewer mit
+  5 und 6 Achsen). Nach der Beschreibungszeile im HUD-Bereich der Settings (die Größe ist eine
+  Obergrenze, der Viewer faltet zuerst Machine, F/S und die Werkzeugzeile) liefen `contrast`, `forms`
+  und `feedback-channels` erneut grün (23/23).
+
 ---
 
 ## Codex Implementierungsreview Runde 1

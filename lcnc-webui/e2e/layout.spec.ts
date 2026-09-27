@@ -713,3 +713,48 @@ test('negative control (portrait): without the always-present band the keypad re
   const outer = frameChanges(frameAuto, await measureFrame(page)).filter(c => /^strip\.(x|y|width|height) /.test(c.detail));
   expect(outer, outer.map(c => c.detail).join('\n')).toEqual([]);
 });
+
+// Design wave D9: the viewer's overlays keep to the viewer. The DRO card
+// fits its pane (fitHud steps the scale down from the operator's setting,
+// then folds the Machine column, the F / S rows, the tool line — measured,
+// never clipped: at 1024 × 768 the pane used to clip the card and a warning
+// line vanished; at 150 % portrait the card covered the ViewCube and ran
+// into the side pane). The findings (mode chip, warnings) are their own
+// card at the bottom edge. Every overlay lies inside the viewer and none
+// covers another. Landscape from 150 % is the named WP-DR limit (the pane
+// is 90–135 px tall there) and not swept.
+const HUD_CASES = [
+  ...VIEWPORTS.map(vp => ({ vp, zoom: 1 })),
+  { vp: VIEWPORTS.find(v => v.name === 'touch-portrait')!, zoom: 1.5 },
+];
+for (const profile of [PROFILES[1], PROFILES[2]]) {
+  test(`${profile.name}: the HUD, its findings and the ViewCube column stay inside the viewer and apart`, async ({ page }) => {
+    test.setTimeout(120_000);
+    for (const { vp, zoom } of HUD_CASES) {
+      await openLayout(page, profile, vp);
+      // Every warning line the status alone can raise, plus a preview re-parse.
+      await ctl({ op: 'status_delta', data: { eoffset_enabled: true, eoffset_z: 0.123, rotation_xy: 12 } });
+      await ctl({ op: 'quiet', on: true });
+      await ctl({ op: 'raw', frame: { type: 'status_delta', armed: true, data: {}, preview_refresh:
+        { reason: 'wcsoff:G54:x', file: '/S.ngc', expected_ms: 30000, started_ms: 1000, queued: false, superseded: 0 } } });
+      await expect(page.locator('.hudNotes .hudWarn')).toHaveCount(3);
+      if (zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
+      await settleLayout(page);
+      const where = `${vp.name} ${zoom * 100} %`;
+      await expect(page.locator('.hud'), `${where}: the DRO card fits`).toHaveAttribute('data-hud-fit', 'fits');
+      const boxes = await page.evaluate(() => {
+        const r = (s: string) => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; };
+        return { pane: r('.viewerPane .viewerWrapper')!, hud: r('.viewerPane .hud')!, notes: r('.viewerPane .hudNotes')!,
+          cube: r('.viewerPane .viewCube')!, quick: r('.viewerPane .viewerQuickGrid')! };
+      });
+      const inside = (a: typeof boxes.pane, p: typeof boxes.pane) => a.l >= p.l - 0.5 && a.t >= p.t - 0.5 && a.r <= p.r + 0.5 && a.b <= p.b + 0.5;
+      const apart = (a: typeof boxes.pane, b: typeof boxes.pane) => a.r <= b.l + 0.5 || b.r <= a.l + 0.5 || a.b <= b.t + 0.5 || b.b <= a.t + 0.5;
+      for (const k of ['hud', 'notes', 'cube', 'quick'] as const) expect(inside(boxes[k], boxes.pane), `${where}: ${k} inside the viewer ${JSON.stringify(boxes)}`).toBe(true);
+      for (const [a, b] of [['hud', 'notes'], ['hud', 'cube'], ['hud', 'quick'], ['notes', 'cube'], ['notes', 'quick']] as const) {
+        expect(apart(boxes[a], boxes[b]), `${where}: ${a} and ${b} apart ${JSON.stringify(boxes)}`).toBe(true);
+      }
+      await ctl({ op: 'quiet', on: false });
+      if (zoom !== 1) await page.evaluate(() => { document.documentElement.style.zoom = ''; });
+    }
+  });
+}

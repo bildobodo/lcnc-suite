@@ -53,6 +53,11 @@ WS-C extension — design-token drift checks over every .vue <style> block
   CLOSE      — `<MachineBtn type="close"` without an `aria-label`: a close
                control is named for its context ("Close settings",
                "Dismiss upload error"), never announced as "times" (UX-05).
+  GLYPH_BUTTON — a `<MachineBtn>` whose whole content is a text glyph
+               (◀ ▶ □ −, an `&#…;` entity, or a mustache yielding only such
+               literals) and no `aria-label`: its accessible name is the
+               glyph ("black left-pointing triangle"). Icons are lucide
+               components, the name an aria-label (design wave D9, UI-N101).
   ELLIPSIS   — an ASCII "..." after a word in the <template> (visible
                text, placeholders, labels): the UI writes "…" (design wave
                D0, UI-N01). A spread (`{ ...x }`, `(...args)`) is not text
@@ -347,6 +352,8 @@ def hl_in_percent_slot(val: str) -> list[str]:
 # "word..." / "3..." / ")..." — an ellipsis written as three dots after a
 # word; a spread ("{ ...x", "(...a", ", ...b") is preceded by punctuation or
 # space and followed by an identifier, so it never matches.
+GLYPH_BTN_RE = re.compile(r"<MachineBtn\b([^>]*)>(.*?)</MachineBtn>", re.S)
+GLYPH_ONLY_RE = re.compile(r"(?:&#\d+;|&[a-zA-Z]+;|[^\w\s<>{}()'\"`,.:;!?/-])+")
 ELLIPSIS_RE = re.compile(r"(?<=[A-Za-z0-9)\]])\.\.\.(?![A-Za-z_$(\[{])")
 # title="…" / :title="…" on one line; a bound title is measured by its
 # longest string literal (the prose part of the expression)
@@ -430,6 +437,16 @@ def template_findings(path: str) -> list[tuple[str, int, str]]:
                 findings.append(("CLOSE", ln, 'type="close" without aria-label — name the close for its context ("Close settings", "Dismiss upload error")'))
     # A help text, which may span lines: measured over the whole template.
     body = "\n".join(lines[tpl[0] - 1:tpl[1]])
+    # A button named by a glyph (it may span lines): the content alone.
+    for m_b in GLYPH_BTN_RE.finditer(body):
+        attrs, content = m_b.group(1), m_b.group(2).strip()
+        ln = tpl[0] + body.count("\n", 0, m_b.start())
+        if "aria-label" in attrs or _template_audit_ok(lines, ln - 1) or not content:
+            continue
+        lits = re.findall(r"'([^']*)'|\"([^\"]*)\"", content) if content.startswith("{{") else None
+        glyphs = ([a or b for a, b in lits] if lits is not None else [content])
+        if glyphs and all(GLYPH_ONLY_RE.fullmatch(g.strip()) for g in glyphs if g.strip()) and any(g.strip() for g in glyphs):
+            findings.append(("GLYPH_BUTTON", ln, "a button whose content is a text glyph and no aria-label — a lucide icon and an aria-label"))
     for m_h in list(HELP_SLOT_RE.finditer(body)) + list(HELP_PROP_RE.finditer(body)):
         ln = tpl[0] + body.count("\n", 0, m_h.start())
         if _template_audit_ok(lines, ln - 1):

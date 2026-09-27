@@ -152,6 +152,9 @@ export const BUTTON_TYPES = {
 
   // ── UI buttons (gate: always — no permission, styling only) ──
   close:          { gate: 'always',  variant: 'default', size: 'md',  icon: true },
+  // A window header's icon that is NOT a close (the camera's minimize /
+  // expand, design wave D9): the X stays the only `close`.
+  windowToggle:   { gate: 'always',  variant: 'default', size: 'md',  icon: true },
   // TabNav tabs (design wave D3): main = the side pane's areas, sub = a
   // section's views (Probing, Settings, HAL). Height --control-h.
   tabMain:        { gate: 'always',  variant: 'default', size: 'sm',  muted: true, tab: 'main' },

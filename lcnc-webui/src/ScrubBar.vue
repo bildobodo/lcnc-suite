@@ -34,7 +34,7 @@ import { EVENT_NONE } from "./viewer/eventIndex";
 import { mergedSweptFraction } from "./viewer/sweepMerge";
 import { limitViolationText } from "./ws/bulkData";
 import { fmtElapsed, fmtDist } from "./format";
-import { Play, Pause, X, Triangle, Circle } from "lucide-vue-next";
+import { Play, Pause, X, Triangle, Circle, ChevronLeft, ChevronRight } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import HelpIcon from "./HelpIcon.vue";
 import MachineSlider from "./MachineSlider.vue";
@@ -1008,22 +1008,22 @@ onUnmounted(() => {
          its progress is the timeline's swept band. -->
     <div class="row-controls scrubRow">
       <template v-if="violations && violations.length">
-        <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)" title="Previous soft-limit violation (from the current timeline position)"
+        <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)" aria-label="Previous limit violation" title="Previous limit violation (from the current timeline position)"
                       :reason="violationNavReason"
-                      @click="jumpTo(targetBefore(violationTargets, sPos))">&#9664;</MachineBtn>
+                      @click="jumpTo(targetBefore(violationTargets, sPos))"><ChevronLeft :size="14" /></MachineBtn>
         <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)" :title="violationsTitle"
                       :reason="violationNavReason"
                       @click="jumpTo(nextViolationT)">
             {{ violationsTotal }} limit violation{{ violationsTotal === 1 ? "" : "s" }}
           </MachineBtn>
-        <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)" title="Next soft-limit violation"
+        <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)" aria-label="Next limit violation" title="Next limit violation"
                       :reason="violationNavReason"
-                      @click="jumpTo(targetAfter(violationTargets, sPos))">&#9654;</MachineBtn>
+                      @click="jumpTo(targetAfter(violationTargets, sPos))"><ChevronRight :size="14" /></MachineBtn>
         <span class="navTarget val-status mono">{{ nextViolationT ? "→ L" + nextViolationT.line : "" }}</span>
         <!-- Both findings explain themselves HERE, where they are navigated
              (operator, D1 live look: the limits' "?" sat in the HUD, the
              collisions' in this bar). -->
-        <HelpIcon label="Limit violations">Moves beyond a soft limit, checked with the offsets as parsed. ◀ ▶ step through them with the machine off.</HelpIcon>
+        <HelpIcon label="Limit violations">Moves beyond a soft limit, checked with the offsets as parsed. The arrows step through them with the machine off.</HelpIcon>
         <div class="sep-v"></div>
       </template>
 
@@ -1034,18 +1034,18 @@ onUnmounted(() => {
       <template v-if="shownResult">
         <span v-if="shownResult.pairCount === 0" class="val-status muted" title="No body pair moves relative to another — nothing to check">No moving pairs</span>
         <template v-else-if="hits.length">
-          <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff" title="Previous collision (from the current timeline position)"
+          <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff" aria-label="Previous collision" title="Previous collision (from the current timeline position)"
                         :reason="hitNavReason"
-                        @click="jumpTo(targetBefore(hitTargets, sPos))">&#9664;</MachineBtn>
+                        @click="jumpTo(targetBefore(hitTargets, sPos))"><ChevronLeft :size="14" /></MachineBtn>
           <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
                       title="Simulate the next collision"
                       :reason="hitNavReason"
                       @click="jumpTo(nextHitT)">
             {{ hitTargets.length }} collision{{ hitTargets.length === 1 ? "" : "s" }}
           </MachineBtn>
-          <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff" title="Next collision"
+          <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff" aria-label="Next collision" title="Next collision"
                         :reason="hitNavReason"
-                        @click="jumpTo(targetAfter(hitTargets, sPos))">&#9654;</MachineBtn>
+                        @click="jumpTo(targetAfter(hitTargets, sPos))"><ChevronRight :size="14" /></MachineBtn>
           <span class="navTarget val-status mono">{{ nextHitT ? "→ " + (nextHitT.line ? "L" + nextHitT.line : "entry") + (nextHitT.reentry ? " (re-entry)" : "") + (nextHitT.rapid ? " (rapid)" : "") + ((nextHitT.dist ?? 0) > 0.001 ? ` ~${fmtDist(nextHitT.dist ?? 0, linearUnit)}` : "") + ((nextHitT.spanEndLine ?? nextHitT.line) > nextHitT.line ? ` … through L${nextHitT.spanEndLine}` : "") : "" }}</span>
           <span v-if="collisionBusy" class="val-status muted" title="The collision check is still running — positions refine when it ends">so far</span>
           <span v-else-if="collisionStopped && collisionResumable" class="val-status warn" :title="stoppedTitle">in {{ pctOf(collisionStopped.covered) }} swept</span>
@@ -1089,11 +1089,9 @@ onUnmounted(() => {
    viewer HUD) / .row-controls. --gap-section is the one offset every viewer
    overlay keeps from the frame. */
 .scrubBar {
-  position: absolute;
-  left: var(--gap-section);
-  right: var(--gap-section);
-  bottom: var(--gap-section);
-  z-index: var(--z-float);
+  /* Placed by ThreeViewer's bottom column (.viewerBottom: the findings card
+     above it, the viewer's --gap-section around it). */
+  position: relative;
   padding: var(--gap-tight) var(--gap-controls);
 }
 /* The collision verdict's "?" sits --gap-tight from its verdict like every

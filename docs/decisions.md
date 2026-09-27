@@ -7023,3 +7023,31 @@ Plan Fassung 3 WP-D8 (UI-K08, UI-D05), third of three commits.
   convention), the TWP plane colours, the surface-map colour scale, the
   Probing 3D view, the Tools tab tool preview (ignores the tool colours).
   A wider selection line needs fat lines (WebGL draws 1 px).
+
+### WP-D9 — viewer overlays: the HUD fits its pane, one findings card (2026-09-27)
+
+Plan Fassung 3 WP-D9 (UI-N100–N102, N15) plus a D4 harness finding.
+
+- Measured over the four viewports and 150 % portrait: the HUD card was
+  taller than the viewer at 1024 × 768 (the pane CLIPPED it — a warning line
+  vanished) and covered the ViewCube and the side pane at 150 % portrait.
+- The DRO card fits its pane (`fitHud`): from the operator's HUD scale (the
+  ceiling) down to `sm`, then it folds the Machine column, the F / S rows
+  and the tool line — the operator's own toggles, applied by the fit, by
+  class so every candidate is measured on the live card. Never clipped,
+  never transform-scaled; a pane too small for the smallest form says
+  `data-hud-fit="overflow"` (landscape from 150 %, the WP-DR limit).
+- The findings (mode chip + warnings, kept together — operator 2026-09-12)
+  moved out of the DRO card into ONE findings card at the bottom edge,
+  above the scrub bar, in one column (`.viewerBottom`); a failed model part
+  is a warning line there (the separate chip is gone) — one warning look in
+  the viewer (N102). The DRO card's fit leaves that column's height free.
+- A narrow pane (< 440 px) draws the ViewCube and its quick grid at 96 px:
+  beside a DRO card the 140 px cube left no width at 150 % portrait.
+- CameraPip on `.overlay-card`; minimize / expand are lucide icons on a new
+  `windowToggle` type (the X stays the only `close`). Scrub prev / next and
+  the HAL group chevrons are lucide with names / aria-expanded; the quick
+  grid's icon buttons are named. Glossary: "limit violation".
+- Guards: layout.spec (the overlays inside the viewer and apart, 5 / 6 axes,
+  all warn lines — red without fitHud); CSS audit GLYPH_BUTTON (a button
+  whose content is a glyph needs an aria-label — red on the old ScrubBar).

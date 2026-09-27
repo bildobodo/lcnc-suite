@@ -490,7 +490,7 @@ const PALETTE_ROWS: { role: ViewerRole; label: string; dashed?: boolean }[] = [
   { role: "rapid", label: "Rapid", dashed: true },
   { role: "backplot", label: "Backplot" },
   { role: "selection", label: "Selected line" },
-  { role: "limit", label: "Outside soft limits" },
+  { role: "limit", label: "Limit violation" },
   { role: "collision", label: "Collision" },
   { role: "bounds", label: "Machine Bounds" },
   { role: "toolpathBounds", label: "Toolpath Bounds" },
@@ -580,13 +580,13 @@ function resetMachineColor(id: string) {
 
         <div class="stack-controls">
           <div class="sub">HUD</div>
-          <div class="settingDesc">Scale of the position readout overlay.</div>
+          <div class="settingDesc">Largest scale of the position readout. In a short or narrow viewer it steps down to fit.</div>
           <div class="radioGroup inline">
             <label v-for="s in HUD_SCALES" :key="s.value">
               <MachineRadio gate="viewerSetting" name="hudScale" :modelValue="hud.scale" :value="s.value" @update:modelValue="hud.scale = s.value; save()" /> {{ s.label }}
             </label>
           </div>
-          <div class="settingDesc">Sections shown on the HUD card. Warnings are always shown.</div>
+          <div class="settingDesc">Sections shown on the HUD card. A short viewer folds Machine, F / S and the tool line first. Warnings are always shown, at the viewer's bottom edge.</div>
           <div class="layerGrid">
             <MachineToggle
               v-for="t in HUD_TOGGLES" :key="t.key"

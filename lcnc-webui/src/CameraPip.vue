@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { loadCameraDefaults, saveCameraDefaults, settingsVersion } from "./defaults";
 import MachineBtn from "./MachineBtn.vue";
-import { X } from "lucide-vue-next";
+import { X, Minus, Maximize2 } from "lucide-vue-next";
 
 const props = defineProps<{ visible: boolean }>();
 const emit = defineEmits<{ (e: "close"): void }>();
@@ -204,7 +204,7 @@ onMounted(() => {
   <div
     v-show="visible"
     ref="containerRef"
-    class="cameraPip"
+    class="cameraPip overlay-card"
     :style="{
       left: pipX + 'px',
       top: pipY + 'px',
@@ -215,8 +215,8 @@ onMounted(() => {
     <div class="dialogHeader compact pipDragHandle" @pointerdown="onDragStart">
       <span class="dialogTitle">Camera</span>
       <div class="row-tight">
-        <MachineBtn type="close" @click.stop="toggleMinimize" :aria-label="minimized ? 'Expand camera' : 'Minimize camera'" :title="minimized ? 'Expand camera' : 'Minimize camera'">
-          {{ minimized ? '□' : '−' }}
+        <MachineBtn type="windowToggle" @click.stop="toggleMinimize" :aria-label="minimized ? 'Expand camera' : 'Minimize camera'" :title="minimized ? 'Expand camera' : 'Minimize camera'">
+          <Maximize2 v-if="minimized" :size="14" /><Minus v-else :size="14" />
         </MachineBtn>
         <MachineBtn type="close" @click.stop="close" aria-label="Close camera" title="Close camera"><X :size="14" /></MachineBtn>
       </div>
@@ -256,14 +256,12 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* Chrome from the global .overlay-card (design wave D9, UI-N100) — the one
+   look of every overlay on the viewer; layout only here. */
 .cameraPip {
   position: absolute;
   z-index: var(--z-float);
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-2xl);
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
 }
 
 .pipDragHandle {

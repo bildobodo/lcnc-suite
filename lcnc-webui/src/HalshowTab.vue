@@ -14,6 +14,7 @@ import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import TabNav from "./TabNav.vue";
 import { tabIds } from "./tabIds";
+import { ChevronDown, ChevronRight } from "lucide-vue-next";
 
 const props = defineProps<{ active: boolean }>();
 
@@ -153,8 +154,8 @@ const halTabs = computed(() => ([
       <!-- Tree view -->
       <template v-if="!halSearch.trim()">
         <div v-for="[group, pins] of pinGroups" :key="group" class="halGroup">
-          <MachineBtn type="inline" class="halGroupHeader" @click="toggleHalGroup(group)">
-            <span class="halChevron">{{ halExpanded.has(group) ? '▼' : '▶' }}</span>
+          <MachineBtn type="inline" class="halGroupHeader" :aria-expanded="halExpanded.has(group)" @click="toggleHalGroup(group)">
+            <ChevronDown v-if="halExpanded.has(group)" class="halChevron" :size="12" aria-hidden="true" /><ChevronRight v-else class="halChevron" :size="12" aria-hidden="true" />
             <span class="halGroupName">{{ group }}</span>
             <span class="halGroupCount">({{ pins.length }})</span>
           </MachineBtn>
@@ -204,8 +205,8 @@ const halTabs = computed(() => ([
     <div v-if="halSection === 'params' && halParams.length > 0">
       <template v-if="!halSearch.trim()">
         <div v-for="[group, params] of paramGroups" :key="group" class="halGroup">
-          <MachineBtn type="inline" class="halGroupHeader" @click="toggleHalGroup(group)">
-            <span class="halChevron">{{ halExpanded.has(group) ? '▼' : '▶' }}</span>
+          <MachineBtn type="inline" class="halGroupHeader" :aria-expanded="halExpanded.has(group)" @click="toggleHalGroup(group)">
+            <ChevronDown v-if="halExpanded.has(group)" class="halChevron" :size="12" aria-hidden="true" /><ChevronRight v-else class="halChevron" :size="12" aria-hidden="true" />
             <span class="halGroupName">{{ group }}</span>
             <span class="halGroupCount">({{ params.length }})</span>
           </MachineBtn>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, onMounted, onUnmounted, reactive, ref, shallowRef, toRaw, watch, type Ref } from "vue";
+import { computed, inject, onMounted, onUnmounted, reactive, ref, shallowRef, toRaw, watch, type Ref, nextTick } from "vue";
 
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
@@ -3488,6 +3488,11 @@ onMounted(() => {
 
   resizeObs = new ResizeObserver(() => resize());
   resizeObs.observe(host.value!);
+  // The DRO card fits the pane (fitHud): the pane, the bottom column and
+  // the card itself (its content changes) — a fit that changes nothing
+  // settles, so the card's own resize cannot loop.
+  _hudFitObs = new ResizeObserver(() => fitHud());
+  for (const el of [wrapEl.value, bottomEl.value, hudEl.value]) if (el) _hudFitObs.observe(el);
 
   buildGizmo();
 
@@ -3562,6 +3567,8 @@ onUnmounted(() => {
   _colWorker = null;
   resizeObs?.disconnect();
   resizeObs = null;
+  _hudFitObs?.disconnect();
+  _hudFitObs = null;
   cancelAnimationFrame(raf);
   if (_tweenRaf) cancelAnimationFrame(_tweenRaf);
   _tweenRaf = 0;
@@ -3675,6 +3682,68 @@ const hudAxes = computed(() => props.axes ?? [...DEFAULT_AXES]);
 // needed in the tabular HUD, entries already carry letter + status index.
 const { entries: hudEntries } = useAxes(hudAxes);
 const hudCfg = computed(() => viewerDefaults.hud);
+
+// ─── HUD fits its pane (design wave D9) ─────────────────────────
+// The DRO card never leaves the viewer pane and never covers the ViewCube
+// column: in a short or narrow pane (150 % portrait, 1024 × 768) it steps
+// its scale DOWN from the operator's setting (the ceiling, never raised),
+// then drops the Machine column (the operator's own toggle, applied
+// automatically) — measured, never clipped (the pane used to clip the
+// card and a warning vanished) and never transform-scaled. The findings
+// (mode chip, warnings, a failed model part) live in their own card at the
+// bottom edge, whose height the DRO card leaves free. A narrow pane
+// (< NARROW_VIEWER_PX) draws the ViewCube and its quick grid smaller.
+// If the smallest form still does not fit, that is a named limit (a
+// 9-axis DRO in a 150 % landscape pane), not a clip.
+const HUD_SCALES = ["sm", "md", "lg", "xl"] as const;
+const NARROW_VIEWER_PX = 440;
+// fold: 0 none, 1 the Machine column, 2 + the F / S rows, 3 + the tool line
+// — each an operator toggle already (Settings › HUD), applied by the fit.
+const hudFit = reactive({ scale: viewerDefaults.hud.scale as (typeof HUD_SCALES)[number], fold: 0, narrow: false, overflow: false });
+/** Anything for the findings card (the mode chip or a warning line). */
+const hasHudNotes = computed(() => !!(hudMode.value || vst.value?.eoffset_enabled || vst.value?.rotation_xy
+  || foreignWcs.value.length || rewrittenWcs.value.length || kinsEndWarn.value || previewSchemaStale.value
+  || previewRefresh.value || previewWcsStale.value || previewTloStale.value || toolpathOverflow.value));
+const wrapEl = ref<HTMLDivElement | null>(null);
+const hudEl = ref<HTMLDivElement | null>(null);
+const bottomEl = ref<HTMLDivElement | null>(null);
+let _hudFitObs: ResizeObserver | null = null;
+
+function fitHud() {
+  const wrap = wrapEl.value, card = hudEl.value;
+  if (!wrap || !card || card.offsetParent === null) return;
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  if (!W || !H) return;
+  const narrow = W < NARROW_VIEWER_PX;
+  wrap.classList.toggle("narrowViewer", narrow);
+  const cs = getComputedStyle(wrap);
+  const gap = parseFloat(cs.getPropertyValue("--gap-section")) || 12;
+  const cube = parseFloat(cs.getPropertyValue("--viewcube-size")) || 140;
+  const bottom = bottomEl.value?.offsetHeight ?? 0;
+  const availH = H - 2 * gap - (bottom ? bottom + gap : 0);
+  const availW = W - 3 * gap - cube;
+  const top = HUD_SCALES.indexOf(hudCfg.value.scale);
+  const tries: { scale: (typeof HUD_SCALES)[number]; fold: number }[] = [];
+  for (let fold = 0; fold <= 3; fold++) {
+    for (let i = top; i >= 0; i--) tries.push({ scale: HUD_SCALES[i]!, fold });
+  }
+  // Measure each candidate on the live card (classes set directly, one
+  // synchronous layout each), then hand the choice to the template.
+  const was = card.className;
+  let pick = tries[tries.length - 1]!, fits = false;
+  for (const t of tries) {
+    for (const sc of HUD_SCALES) card.classList.toggle(`hudScale-${sc}`, sc === t.scale);
+    card.classList.toggle("hudFoldMach", t.fold >= 1);
+    card.classList.toggle("hudFoldFS", t.fold >= 2);
+    card.classList.toggle("hudFoldTool", t.fold >= 3);
+    if (card.offsetHeight <= availH && card.offsetWidth <= availW) { pick = t; fits = true; break; }
+  }
+  card.className = was;
+  Object.assign(hudFit, { scale: pick.scale, fold: pick.fold, narrow, overflow: !fits });
+}
+// The operator's scale / machine column are the ceiling: a change there
+// re-fits (the card's own size has not moved yet, so no observer fires).
+watch(() => [hudCfg.value.scale, hudCfg.value.showMachine], () => nextTick(fitHud));
 
 // Feed/spindle grid-row values (current_vel is units/s → units/min)
 const hudFeed = computed(() =>
@@ -3900,7 +3969,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="viewerWrapper">
+  <div ref="wrapEl" class="viewerWrapper" :class="{ narrowViewer: hudFit.narrow }">
     <div ref="host" class="viewerHost bordered-panel" />
 
     <!-- HUD Overlay — one card, one visual language: every live value is a
@@ -3908,30 +3977,32 @@ defineExpose({
          spindle read exactly like the axis rows. Tool is static context and
          stays a smaller single line. All text sizes scale with --hud-scale
          (settings: HUD scale). -->
-    <div v-show="hudVisible" class="hud hudCard overlay-card stack-tight" :class="`hudScale-${hudCfg.scale}`">
+    <div v-show="hudVisible" ref="hudEl" class="hud hudCard overlay-card stack-tight"
+         :class="[`hudScale-${hudFit.scale}`, { hudFoldMach: hudFit.fold >= 1, hudFoldFS: hudFit.fold >= 2, hudFoldTool: hudFit.fold >= 3 }]"
+         :data-hud-fit="hudFit.overflow ? 'overflow' : 'fits'">
       <div class="hudGrid" :class="{ noMach: !hudCfg.showMachine }">
         <span class="hudHead"></span>
         <span class="hudHead">Work · {{ props.g5xLabel || NO_VALUE }}</span>
-        <span v-if="hudCfg.showMachine" class="hudHead">Machine</span>
+        <span v-if="hudCfg.showMachine" class="hudHead hudMachCell">Machine</span>
         <template v-for="a in hudEntries" :key="a.letter">
           <span class="hudAxis">{{ a.letter }}</span>
           <span class="hudWork">{{ fmtCoord(vst?.work_pos?.[a.index], a.letter) }}</span>
-          <span v-if="hudCfg.showMachine" class="hudMach">{{ fmtCoord(vst?.machine_pos?.[a.index], a.letter) }}</span>
+          <span v-if="hudCfg.showMachine" class="hudMach hudMachCell">{{ fmtCoord(vst?.machine_pos?.[a.index], a.letter) }}</span>
         </template>
         <template v-if="hudCfg.showFeedSpindle">
-          <div class="sep"></div>
-          <span class="hudAxis">F</span>
-          <span class="hudWork">{{ hudFeed }}</span>
-          <span v-if="hudCfg.showMachine" class="hudMach"></span>
-          <span class="hudAxis">S</span>
-          <span class="hudWork">{{ fmtRpm(vst?.spindle_speed_actual ?? null) }}<span v-if="!hudCfg.showMachine && hudLoad" class="hudLoadInline"> {{ hudLoad }}</span></span>
-          <span v-if="hudCfg.showMachine" class="hudMach">{{ hudLoad }}</span>
+          <div class="sep hudFS"></div>
+          <span class="hudAxis hudFS">F</span>
+          <span class="hudWork hudFS">{{ hudFeed }}</span>
+          <span v-if="hudCfg.showMachine" class="hudMach hudMachCell hudFS"></span>
+          <span class="hudAxis hudFS">S</span>
+          <span class="hudWork hudFS">{{ fmtRpm(vst?.spindle_speed_actual ?? null) }}<span v-if="!hudCfg.showMachine && hudLoad" class="hudLoadInline"> {{ hudLoad }}</span></span>
+          <span v-if="hudCfg.showMachine" class="hudMach hudMachCell hudFS">{{ hudLoad }}</span>
         </template>
       </div>
 
       <template v-if="hudCfg.showTool">
-        <div class="sep"></div>
-        <div class="hudCtx">
+        <div class="sep hudTool"></div>
+        <div class="hudCtx hudTool">
           <span>T{{ vst?.tool_number ?? NO_VALUE }}</span><span>Ø{{ fmtCoord(vst?.tool_diameter) }}</span><span>L{{ fmtCoord(vst?.tool_length) }}</span>
         </div>
       </template>
@@ -3939,37 +4010,6 @@ defineExpose({
         <div class="loadBarFill" :style="{ width: spindleLoadFillPct + '%' }"></div>
       </div>
 
-      <!-- The mode/datum chip leads the warnings (operator, 2026-09-12: the
-           readout, the tool line and the load bar are the readout; the chip
-           and the warnings are the "what to know" block — keep them together). -->
-      <div v-if="hudMode" class="hudMode val-status" :class="hudMode.cls" :title="hudMode.title">
-        {{ hudMode.text }} · {{ props.g5xLabel || NO_VALUE }}<template v-if="hudPlaneWord"> · {{ hudPlaneWord }}</template><HelpIcon v-if="hudMode.help" label="Kinematics state">{{ hudMode.help }}</HelpIcon>
-      </div>
-
-      <div v-if="vst?.eoffset_enabled" class="hudWarn">Comp Z {{ fmtNum(vst.eoffset_z, 3) }}</div>
-      <div v-if="vst?.rotation_xy" class="hudWarn">Rotation {{ fmtNum(vst.rotation_xy, 1) }}°</div>
-      <div v-if="foreignWcs.length" class="hudWarn">Program cuts in {{ foreignWcs.join(', ') }} — {{ props.g5xLabel }} active</div>
-      <div v-if="rewrittenWcs.length" class="hudWarn">Program writes {{ rewrittenWcs.join(', ') }} — its preview ignores live edits there</div>
-      <!-- A HUD warning's "why" is a HelpIcon beside it (design wave D1,
-           UI-N32): the HUD ignores the pointer, so a title never showed on a
-           touchscreen; the icon alone takes taps (.hudWarn .helpIcon). -->
-      <div v-if="kinsEndWarn" class="hudWarn">{{ kinsEndWarn.text }}<HelpIcon label="Program ends in kinematics">{{ kinsEndWarn.title }}</HelpIcon></div>
-      <!-- Stale-preview chips are REPORTS, not actions (operator, 2026-09-12:
-           "what still clickable warnings do we have? is it needed?"). The
-           gateway owns every re-parse decision — the schema edge once per
-           file, the offset / tool-length drift edges when idle — so a click
-           here could only race an edge about to fire, or repeat a schema
-           parse that already failed. One source decides; the HUD says so. -->
-      <div v-if="previewSchemaStale" class="hudWarn">Preview from a different suite version — re-parsing; if it stays, restart the suite<HelpIcon label="Preview version">The preview comes from another suite version. It re-parses once; if this stays, restart the suite.</HelpIcon></div>
-      <!-- Same bar as the status banner (one fraction, previewRefreshPct):
-           a fixed-width track under the chip, numbers in the tooltip. -->
-      <template v-if="previewRefresh">
-        <div class="hudWarn">Preview re-parsing · {{ previewRefreshLabel(previewRefresh.reason) }}<HelpIcon label="Preview re-parsing">Path, limit marks and simulation update when it lands — {{ fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms) }}.</HelpIcon></div>
-        <div class="progressTrack" :title="fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms)"><div class="progressFill" :style="{ width: previewRefreshPct + '%' }"></div></div>
-      </template>
-      <div v-else-if="previewWcsStale" class="hudWarn">Preview uses older offsets — re-parses when idle<HelpIcon label="Preview offsets">A work offset changed after parsing — re-parses once the machine is idle.</HelpIcon></div>
-      <div v-if="previewTloStale" class="hudWarn">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parses when idle<HelpIcon label="Preview tool length">T{{ previewTloStale.tool }} was {{ fmtNum(previewTloStale.parsed, 3) }} when parsed, now {{ fmtNum(previewTloStale.live, 3) }} — re-parses once idle.</HelpIcon></div>
-      <div v-if="toolpathOverflow" class="hudWarn">{{ toolpathOverflowCount }} limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
     </div>
 
     <!-- View navigation cube (top-right) -->
@@ -3982,10 +4022,10 @@ defineExpose({
     <div class="viewerQuickGrid">
       <MachineBtn type="viewPreset" aria-label="Reset view" title="Reset view" @click="setView('reset')">Reset</MachineBtn>
       <MachineBtn type="viewPreset" aria-label="Clear backplot" title="Clear backplot" @click="resetBackplot">Clear</MachineBtn>
-      <MachineBtn type="viewerQuickToggle" :selected="pipVisible" @click="togglePip" title="Show/hide camera">
+      <MachineBtn type="viewerQuickToggle" :selected="pipVisible" @click="togglePip" :aria-label="pipVisible ? 'Hide camera' : 'Show camera'" :title="pipVisible ? 'Hide camera' : 'Show camera'">
         <Camera :size="14" />
       </MachineBtn>
-      <MachineBtn type="viewerQuickToggle" @click="emit('open-settings', 'viewer')" title="3D Viewer settings">
+      <MachineBtn type="viewerQuickToggle" @click="emit('open-settings', 'viewer')" aria-label="3D Viewer settings" title="3D Viewer settings">
         <Settings :size="14" />
       </MachineBtn>
     </div>
@@ -3997,6 +4037,50 @@ defineExpose({
          program, NOT the machine, and motion controls are locked. -->
     <div v-if="simMode" class="simBanner overlay-card warn">
       SIMULATION &mdash; model shows the program, not the machine
+    </div>
+
+    <!-- The bottom edge (design wave D9): the findings card — the mode chip
+         and the warnings ("what to know", kept together — operator
+         2026-09-12) and a failed model part — above the program-scrub bar.
+         One column, bottom-aligned; the DRO card above leaves its height
+         free (fitHud). A finding is a .hudWarn line in this ONE card, never
+         a chip of its own (UI-N102). -->
+    <div ref="bottomEl" class="viewerBottom stack-tight">
+    <div v-if="(hudVisible && hasHudNotes) || failedParts.length" class="hudNotes overlay-card stack-tight" :class="`hudScale-${hudFit.scale}`">
+      <template v-if="hudVisible">
+        <!-- The mode/datum chip leads the warnings (operator, 2026-09-12: the
+             readout, the tool line and the load bar are the readout; the chip
+             and the warnings are the "what to know" block — keep them together). -->
+        <div v-if="hudMode" class="hudMode val-status" :class="hudMode.cls" :title="hudMode.title">
+          {{ hudMode.text }} · {{ props.g5xLabel || NO_VALUE }}<template v-if="hudPlaneWord"> · {{ hudPlaneWord }}</template><HelpIcon v-if="hudMode.help" label="Kinematics state">{{ hudMode.help }}</HelpIcon>
+        </div>
+
+        <div v-if="vst?.eoffset_enabled" class="hudWarn">Comp Z {{ fmtNum(vst.eoffset_z, 3) }}</div>
+        <div v-if="vst?.rotation_xy" class="hudWarn">Rotation {{ fmtNum(vst.rotation_xy, 1) }}°</div>
+        <div v-if="foreignWcs.length" class="hudWarn">Program cuts in {{ foreignWcs.join(', ') }} — {{ props.g5xLabel }} active</div>
+        <div v-if="rewrittenWcs.length" class="hudWarn">Program writes {{ rewrittenWcs.join(', ') }} — its preview ignores live edits there</div>
+        <!-- A HUD warning's "why" is a HelpIcon beside it (design wave D1,
+             UI-N32): the HUD ignores the pointer, so a title never showed on a
+             touchscreen; the icon alone takes taps (.hudWarn .helpIcon). -->
+        <div v-if="kinsEndWarn" class="hudWarn">{{ kinsEndWarn.text }}<HelpIcon label="Program ends in kinematics">{{ kinsEndWarn.title }}</HelpIcon></div>
+        <!-- Stale-preview chips are REPORTS, not actions (operator, 2026-09-12:
+             "what still clickable warnings do we have? is it needed?"). The
+             gateway owns every re-parse decision — the schema edge once per
+             file, the offset / tool-length drift edges when idle — so a click
+             here could only race an edge about to fire, or repeat a schema
+             parse that already failed. One source decides; the HUD says so. -->
+        <div v-if="previewSchemaStale" class="hudWarn">Preview from a different suite version — re-parsing; if it stays, restart the suite<HelpIcon label="Preview version">The preview comes from another suite version. It re-parses once; if this stays, restart the suite.</HelpIcon></div>
+        <!-- Same bar as the status banner (one fraction, previewRefreshPct):
+             a fixed-width track under the chip, numbers in the tooltip. -->
+        <template v-if="previewRefresh">
+          <div class="hudWarn">Preview re-parsing · {{ previewRefreshLabel(previewRefresh.reason) }}<HelpIcon label="Preview re-parsing">Path, limit marks and simulation update when it lands — {{ fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms) }}.</HelpIcon></div>
+          <div class="progressTrack" :title="fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms)"><div class="progressFill" :style="{ width: previewRefreshPct + '%' }"></div></div>
+        </template>
+        <div v-else-if="previewWcsStale" class="hudWarn">Preview uses older offsets — re-parses when idle<HelpIcon label="Preview offsets">A work offset changed after parsing — re-parses once the machine is idle.</HelpIcon></div>
+        <div v-if="previewTloStale" class="hudWarn">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parses when idle<HelpIcon label="Preview tool length">T{{ previewTloStale.tool }} was {{ fmtNum(previewTloStale.parsed, 3) }} when parsed, now {{ fmtNum(previewTloStale.live, 3) }} — re-parses once idle.</HelpIcon></div>
+        <div v-if="toolpathOverflow" class="hudWarn">{{ toolpathOverflowCount }} limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
+      </template>
+      <div v-if="failedParts.length" class="hudWarn">{{ failedParts.length }} machine part{{ failedParts.length === 1 ? '' : 's' }} failed to load — check the model files<HelpIcon label="Model parts">Not loaded: {{ failedParts.join(', ') }}.</HelpIcon></div>
     </div>
 
     <!-- Program-scrub timeline (stage 2) + collision check (stage 3) -->
@@ -4015,10 +4099,6 @@ defineExpose({
       @pose="onScrubPose"
       @cancel-check="_colInvalidate"
     />
-
-    <!-- STL load failure chip (bottom-left, never blocks render) -->
-    <div v-if="failedParts.length" class="stlFailedChip overlay-card warn" :title="failedParts.join(', ')">
-      {{ failedParts.length }} machine part{{ failedParts.length === 1 ? '' : 's' }} failed to load — check the model files
     </div>
 
   </div>
@@ -4045,16 +4125,6 @@ defineExpose({
   gap: var(--gap-tight);
 }
 
-/* Chrome from the global .overlay-card.warn — layout only here. */
-.stlFailedChip {
-  position: absolute;
-  z-index: var(--z-raised);
-  bottom: var(--gap-section);
-  left: var(--gap-section);
-  padding: var(--gap-tight) var(--gap-controls);
-  font-size: var(--fs-base);
-  pointer-events: auto;
-}
 
 .viewerHost {
   position: relative;
@@ -4092,6 +4162,8 @@ defineExpose({
   font-variant-numeric: tabular-nums;
   line-height: 1.3;
 }
+/* The findings card scales with the DRO card (fitHud's pick); md = 1. */
+.hudNotes { --hud-scale: 1; }
 .hudScale-sm { --hud-scale: 0.85; }
 .hudScale-lg { --hud-scale: 1.25; }
 .hudScale-xl { --hud-scale: 1.55; }
@@ -4107,6 +4179,12 @@ defineExpose({
   align-items: baseline;
 }
 .hudGrid.noMach { grid-template-columns: auto auto; }
+/* The fit's folds (fitHud): hidden by class, so each candidate is measured
+   on the live card; the operator's own toggles stay v-if. */
+.hudFoldMach .hudGrid { grid-template-columns: auto auto; }
+.hudFoldMach .hudMachCell,
+.hudFoldFS .hudFS,
+.hudFoldTool .hudTool { display: none; }
 /* Divider row between axis block and F/S rows (layout-only override of
    the global .sep divider so it spans the whole grid). */
 .hudGrid > .sep { grid-column: 1 / -1; align-self: center; }
@@ -4155,8 +4233,6 @@ defineExpose({
   /* text + "?" one centred row (the icon never drops onto a line of its own) */
   display: flex;
   align-items: center;
-  width: 0;
-  min-width: 100%;
   white-space: normal;
 }
 .hudCtx {
@@ -4178,20 +4254,39 @@ defineExpose({
   display: flex;
   align-items: center;
   color: var(--warn-text);
-  /* The card is shrink-to-fit, so a long single-line chip used to set the
-     card's width (the DRO grid followed it out to the viewer edge). A
-     flex-column child with width:0 contributes nothing to the card's
-     intrinsic width, then stretches to the width the grid set and wraps. */
-  width: 0;
-  min-width: 100%;
   white-space: normal;
 }
 
 /* The re-parse bar rides the card as a row. The global track is flex:1 for
    its row-layout home (GcodePanel); in this column that would zero its
    height — pin it to its own height, stretched to the card's width. */
-.hudCard > .progressTrack {
+.hudNotes > .progressTrack {
   flex: none;
 }
+/* The bottom edge: the findings card above the scrub bar, one column. The
+   column ignores the pointer (the camera works through it); the scrub bar
+   and a finding's "?" take it. */
+.viewerBottom {
+  position: absolute;
+  z-index: var(--z-float);
+  left: var(--gap-section);
+  right: var(--gap-section);
+  bottom: var(--gap-section);
+  align-items: flex-start;
+  pointer-events: none;
+}
+.viewerBottom > .scrubBar {
+  align-self: stretch;
+  pointer-events: auto;
+}
+.hudNotes {
+  max-width: 100%;
+  padding: var(--gap-tight) var(--gap-section);
+  line-height: 1.3;
+}
+/* A narrow pane (fitHud: < NARROW_VIEWER_PX) draws the ViewCube and its
+   quick grid smaller — beside a DRO card a 140 px cube left the card no
+   width at 150 % portrait. The cube reads the token for its CSS size. */
+.viewerWrapper.narrowViewer { --viewcube-size: 96px; }
 
 </style>
