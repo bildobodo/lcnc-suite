@@ -1,0 +1,47 @@
+# R19 answer — live check on the XYZAC sim, 2026-09-27 22:32–22:33 (suite restarted with the R19
+# gateway, no VM browser; gateway PID 3900690, LinuxCNC instance [3900547, 16039504], live
+# checkout feat/viewer-contrast @ 18de954 = fix 219ecaa merged). Driver: scratchpad r19_live.py.
+# Program r19_reload.ngc (removed after the check).
+#
+#   1. A loaded and recorded.
+#   2. A made unreadable (chmod 000), load_file(A) again — the same path:
+#      task refused ("Unable to open file", "can't open"), the open's RCS status was RCS_ERROR,
+#      so the reply said "LinuxCNC did not open the program"; A no longer loaded, named
+#      unconfirmed; the record "changing" — and still so after the 5 s window.
+#   3. chmod 644, load_file(A): task opened it (RCS_DONE) — loaded, recorded, the name gone.
+#   4. unload_file: ok (abort and reset_interpreter both answered RCS_DONE — the new rc check
+#      does not break a normal unload); nothing loaded, recorded.
+#   5. kontur.ngc loaded back.
+
+## r19_live.py
+[22:32:54] PASS machine on + homed 
+[22:32:55] PASS A loaded and recorded ({'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/r19_reload.ngc'}, {'instance': [3900547, 16039504], 'loaded': '/home/cnc/linuxcnc/nc_files/r19_reload.ngc'})
+[22:32:56] PASS the refused reload is replied as refused {'type': 'reply', 'cmd': 'load_file', 'ok': False, 'error': 'LinuxCNC did not open the program'}
+[22:32:57]   status: None /home/cnc/linuxcnc/nc_files/r19_reload.ngc file None
+[22:32:57] PASS A no longer loaded, named unconfirmed (None, '/home/cnc/linuxcnc/nc_files/r19_reload.ngc')
+[22:32:57] PASS the record proves nothing {'instance': [3900547, 16039504], 'changing': True}
+[22:33:03] PASS …and still so after the window {'instance': [3900547, 16039504], 'changing': True}
+[22:33:03] PASS task's own words and the reason in the trace [('nml.error', 'Unable to open file </home/cnc/linuxcnc/nc_files/r19_reload.ngc>'), ('nml.error', "can't open /home/cnc/linuxcnc/nc_files/r19_reload.ngc"), ('status.program_unconfirmed', 'the open was refused')]
+[22:33:05] PASS a reload task opens settles it ({'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/r19_reload.ngc'}, {'instance': [3900547, 16039504], 'loaded': '/home/cnc/linuxcnc/nc_files/r19_reload.ngc'})
+[22:33:07] PASS unload: ok, nothing loaded, recorded ({'type': 'reply', 'cmd': 'unload_file', 'ok': True}, {'instance': [3900547, 16039504], 'loaded': None})
+[22:33:08] PASS kontur.ngc loaded back {'instance': [3900547, 16039504], 'loaded': '/home/cnc/linuxcnc/nc_files/kontur.ngc'}
+[22:33:08] SUMMARY 10 / 10
+
+## trace excerpt (gateway PID 3900690; t_mono since the gateway's start)
+   13.711 s  nml.error  {"kind": 11, "text": "Unable to open file </home/cnc/linuxcnc/nc_files/r19_reload.ngc>"}
+   13.711 s  nml.error  {"kind": 11, "text": "can't open /home/cnc/linuxcnc/nc_files/r19_reload.ngc"}
+   13.744 s  status.program_unconfirmed  {"raw_file": "r19_reload.ngc", "reason": "the open was refused"}
+
+## The cost of reading the open's status — r19_perf.py, 23:02 (same gateway, no gate running)
+# perfmatrix-big.ngc (40 MB): one load and two reloads of the same path. The lag monitor (lag.window,
+# > 50 ms loop drift) is active in this gateway — it logged 5 windows since its start, two of them the
+# driver's own abort/estop_reset at 23:02. None fell into a load_file phase. The code comment's baseline
+# with wait=None: a 51 ms lag.window owned by load_file.program_open on the 40 MB file.
+[23:02:23] PASS machine on + homed 
+[23:02:25]   load 1: ok=True reply after 53.1 ms; lag.window in load_file phases: []; all lag.window: []
+[23:02:25] PASS load 1 (first) settled {'instance': [3900547, 16039504], 'loaded': '/home/cnc/linuxcnc/nc_files/perfmatrix-big.ngc'}
+[23:02:30]   load 2: ok=True reply after 51.9 ms; lag.window in load_file phases: []; all lag.window: []
+[23:02:30] PASS load 2 (reload of the same path) settled {'instance': [3900547, 16039504], 'loaded': '/home/cnc/linuxcnc/nc_files/perfmatrix-big.ngc'}
+[23:02:35]   load 3: ok=True reply after 52.1 ms; lag.window in load_file phases: []; all lag.window: []
+[23:02:35] PASS load 3 (reload of the same path) settled {'instance': [3900547, 16039504], 'loaded': '/home/cnc/linuxcnc/nc_files/perfmatrix-big.ngc'}
+[23:02:39] SUMMARY 4 / 4
