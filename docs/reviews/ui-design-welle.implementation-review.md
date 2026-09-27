@@ -5,11 +5,14 @@ mit Plan-Agreement ([Planreview Runde 3](ui-design-welle.review.md#codex-runde-3
 hält je Arbeitspaket den Umsetzungsstand, Abweichungen und Gate-Läufe fest; die
 Codex-Implementierungsreviews folgen nach den Paketgruppen DR + D0–D2, D3–D6 und D7–D10.
 
-**Aktueller Reviewstand · Codex Runde 5 · 26. September 2026 · `84a1cc5`:
-Implementierungs-Agreement für D3–D6. UI-DI05–11 sind geschlossen; keine neuen
-Befunde im geprüften Umfang.** [Nachprüfung, Nachweise und Prüfgrenzen](#codex-implementierungsreview-runde-5).
+**Aktueller Reviewstand · Codex Runde 6 · 27. September 2026 · `000ceef`:
+D7–D10 noch ohne Implementierungs-Agreement. Drei offene P2-Befunde UI-DI12–14:**
+überdeckte Achswerte, oszillierende HUD-Größe und die fehlende Formunterscheidung der
+Pfadauswahl. [Befunde, Nachweise und Prüfgrenzen](#codex-implementierungsreview-runde-6).
+Das [Agreement aus Runde 5 für D3–D6](#codex-implementierungsreview-runde-5) bleibt gültig;
+UI-DI05–11 bleiben geschlossen.
 Das [Agreement aus Runde 3 für DR + D0–D2](#codex-implementierungsreview-runde-3)
-bleibt gültig; UI-DI01–04 bleiben geschlossen. D7–D10 und die Gesamtabnahme stehen weiter aus.
+bleibt gültig; UI-DI01–04 bleiben geschlossen. Die Gesamtabnahme steht weiter aus.
 Die früheren Runden unten sind historische Prüfstände.
 
 ---
@@ -2184,3 +2187,169 @@ und Gates.
 | Lint und Build | grün |
 | Vitest | 1660 |
 | Playwright, alle neun Projekte | 276/276 |
+
+---
+
+## Codex Implementierungsreview Runde 6
+
+**27. September 2026 · `d6f6fe4..000ceef` · Branch `feat/ui-design-wave` ·
+Handshake R5 · Implementierung WP-D7–D10, Plan Fassung 3.**
+
+**Ergebnis: drei offene P2-Befunde UI-DI12–14; noch kein Implementierungs-Agreement
+für diese Paketgruppe.** Die bisherigen Agreements für DR + D0–D6 bleiben bestehen.
+Es gibt keine neue P1-Feststellung in diesem Review.
+
+### UI-DI12 · P2 · D9: Mit Programm-Zeitleiste überdeckt die Warnkarte Achswerte
+
+**Stellen:** `lcnc-webui/src/ThreeViewer.vue:3744` und `:3753` (kleinste Form trotz
+fehlenden Platzes), `:4059` (Warnungen und ScrubBar am unteren Rand).
+
+**Repro:** Fünf Achsen XYZAC, 900 × 1200, Touch-Dichte, CSS-Zoom 150 %, HUD-Einstellung
+`md`, geladenes Programm mit gültigen Sequenzdaten für die Zeitleiste. Zwei gewöhnliche
+Zustandshinweise reichen: Kompensation Z 0,123 und Rotation 12°; dazu der Maschinenmodus.
+Kein Simulationsstart, kein Maschinenbefehl und keine lange Fehlerliste sind nötig.
+
+Die kleinste, vollständig gefaltete DRO-Karte trägt bereits `data-hud-fit="overflow"`.
+Trotzdem bleibt sie an ihrem oberen Anker und die Warnkarte an ihrem unteren Anker.
+Die beiden Karten überlappen sich **29,08 Bildschirm-px** in der Höhe; der C-Wert wird
+überdeckt. Mit sechs Achsen sind es **65,22 px**, sodass B und C betroffen sind.
+Auch im unterstützten kompakten Fenster 1024 × 768 bei 100 % überlappen sich die Karten
+mit sechs Achsen um **17,78 px**. Die benannte Grenze „Querformat ab 150 %“ erklärt
+diese Fälle nicht.
+
+**Belege:** [Fünf Achsen, Hochformat 150 %](ui-design-welle.implementation-r6-5axis-touch-portrait-150-md.png),
+[sechs Achsen, kompakt 100 %](ui-design-welle.implementation-r6-6axis-compact-md.png),
+[Messdaten](ui-design-welle.implementation-r6.json), Einträge `layouts`.
+
+**Erforderlich:** Auch nach Erreichen der kleinsten DRO-Form muss eine Platzstrategie
+greifen, die alle Achswerte und die Befunde lesbar hält. Beispielsweise kann die
+Zusatzinformation bedarfsgerecht kompakt werden bzw. einen explizit erreichbaren
+Detailbereich erhalten. `overflow` als Datenattribut löst die sichtbare Überdeckung
+nicht. Die Entscheidung muss auch Zeitleiste, Kollisions-/Limitbefunde und umbrochene
+Hinweise berücksichtigen.
+
+**Abnahme:** Die genannten Fenster mit einer tatsächlich sichtbaren `.scrubBar`
+prüfen; alle Achswerte vollständig lesbar und keine Kartenüberdeckung. Der derzeitige
+Wächter in `e2e/layout.spec.ts:731` prüft drei Hinweise, lädt aber keine Vorschau mit
+Zeitleiste. Er erreicht diesen Fall deshalb nicht.
+
+### UI-DI13 · P2 · D9: Die HUD-Anpassung kann dauerhaft zwischen zwei Größen wechseln
+
+**Stellen:** `lcnc-webui/src/ThreeViewer.vue:3733` (Höhe des bisherigen unteren Blocks),
+`:3750` (Messung nur der DRO-Kandidaten), `:4060` (Warnkarte übernimmt die neue Größe).
+
+**Repro:** Dieselbe Programm-/Hinweiskonstellation mit fünf Achsen, Touch-Dichte,
+1280 × 800 bei 100 %, gewünschte HUD-Größe `md`. Nach dem Einrichten werden weder
+Fenster noch Einstellungen oder Maschinenwerte verändert.
+
+Die DRO- und Warnkarte wechseln fortgesetzt zwischen `hudScale-md` und `hudScale-sm`.
+In der zusätzlichen stationären Messung wechseln sie **100-mal in etwa 8,26 Sekunden**.
+Die DRO-Höhe springt dabei zwischen **198,19 und 173,97 px**, die Höhe der Warnkarte
+zwischen **68,67 und 61,08 px**. Weitere Schwellen wurden im Hochformat 900 × 1200
+mit gewünschtem `xl` sowie beim Vergrößern des Desktopfensters gefunden. Nicht jede
+Einstiegsfolge löst den Zyklus aus; eine weitere spätere Kontrollmessung bleibt stabil.
+
+**Ursache:** `availH` wird mit der Warnkartenhöhe der bisherigen Skala berechnet.
+Passt die größere DRO in diese Resthöhe, vergrößert derselbe Zustandswechsel anschließend
+auch die Warnkarte. Der ResizeObserver sieht nun zu wenig Platz und verkleinert beide
+wieder. Damit ist erneut Platz für den zuvor verworfenen Kandidaten vorhanden.
+
+**Beleg:** [Sonde](ui-design-welle.implementation-r6.probe.mjs) und
+[Zeitreihe](ui-design-welle.implementation-r6.json), insbesondere `oscillation.transitions`
+mit Zeitpunkten und tatsächlich sichtbaren Kartenmaßen. Die Messung erfolgt nach
+geladener Schrift; `pageerror` blieb leer.
+
+**Erforderlich:** Die benötigte Gesamthöhe eines Kandidaten konsistent messen, auch
+für die zugehörige Warnkarte, oder deren Schriftgröße von der DRO-Anpassung trennen.
+Die Anpassung muss einen stabilen Endzustand erreichen.
+
+**Abnahme:** An den reproduzierten Schwellen nach dem Layoutwechsel mehrere Sekunden
+ohne weitere Eingaben beobachten. Skala, Zeilenhöhen und Faltungen müssen sich
+stabilisieren. Eine einzelne Prüfung auf `data-hud-fit="fits"` reicht hierfür nicht;
+dieses Attribut bleibt im beobachteten Zyklus grün.
+
+### UI-DI14 · P2 · D8: Die Pfadauswahl besitzt weiterhin nur eine Farbcodierung
+
+**Stelle:** `lcnc-webui/src/viewer/toolpathController.ts:600`, `makeHighlight`.
+
+Der Plan Fassung 3 verlangt unter D8 ausdrücklich: „Auswahl breiter“ als zusätzliches
+Merkmal zur Farbe. Die Umsetzung zeichnet die Auswahl weiterhin als gewöhnliche
+`LineSegments` mit `LineBasicMaterial`, gleicher Standardbreite und gleicher Geometrie
+wie die Pfadlinie. Neu sind die Farbrolle und ihr Live-Update; ein zusätzliches
+Formmerkmal wurde nicht implementiert. Die Übergabe benennt das selbst als offene
+Grenze.
+
+Damit bleibt die Zuordnung der gewählten Codezeile zum Pfad ausschließlich von der
+Farbe abhängig, besonders ungünstig bei dichtem Pfad oder einem ungünstigen
+Geometriehintergrund. Eine Legende außerhalb der Szene kann das fehlende Merkmal an
+der ausgewählten Linie nicht ersetzen. Das ist eine noch offene Plananforderung,
+keine neue Zusatzanforderung an diese Runde.
+
+**Erforderlich:** Ein tatsächlich sichtbares, von der Farbe unabhängiges Merkmal
+umsetzen, etwa eine breitere Kontur oder eindeutige Marker am ausgewählten Segment.
+Die technische Wahl darf von der im Plan genannten breiten Linie abweichen, wenn sie
+dieselbe Erkennbarkeit erreicht. Ein Verschieben dieser Anforderung benötigt eine
+ausdrückliche Änderung des vereinbarten Umfangs; die Implementierungsnotiz allein
+nimmt sie nicht aus der Abnahme.
+
+**Abnahme:** Auswahl im dünnen und dichten Pfad mit geladenem Modell in allen vier
+Themes sichtbar prüfen und das Formmerkmal absichern. Ein Farbwertvergleich erkennt
+sein Fehlen nicht.
+
+### Bewertung der übrigen Umsetzung und der angekündigten Abweichungen
+
+- **D7:** X-Anker, 44-px-Tasten, Code-Ziffernblock, Zeichenabdeckung und Besitzerfeld
+  im Hochformat sind nachvollziehbar umgesetzt und bestehen die gezielten Wächter.
+- **D8 Text und Migration:** Die festen Textrollen, eigene Fokusfarbe, reduzierte
+  Bewegung, Forced Colors und die verlustfreie Auto/Custom-Migration sind sinnvoll
+  umgesetzt. Die aktuellen Text-Kontrastprüfungen bestehen einschließlich Editor,
+  Hinweisen und Themenwechsel. Daraus folgt keine vollständige Barrierefreiheitsabnahme.
+- **D8 Viewer-Nachweis:** Materialfarbtests sind ein geeigneter deterministischer
+  Wächter für Palette und Verdrahtung. Sie belegen für sich weder die Erkennbarkeit
+  vor gerenderter Geometrie noch Transparenz, Linienbreite oder Formunterscheidung.
+  Plattformübergreifende WebGL-Pixelreferenzen sind dafür nicht zwingend; ein
+  reproduzierbarer Szenenaufbau mit dokumentierter Sichtprüfung und gezielten
+  Strukturprüfungen ist ebenfalls möglich. Das temporäre, nicht mitgelieferte
+  Szenen-Harness konnte hier nicht nachgeprüft werden. UI-DI14 bleibt offen.
+- **D9:** Der gemeinsame Kartenstil, benannte Icons und zusammengeführte Befunde
+  passen zur Design-Welle. Die neue automatische Platzanpassung benötigt die beiden
+  Korrekturen UI-DI12 und UI-DI13.
+- **D10:** Bereinigung, Text-Utilities, Tönungsstufen und Audit-Fixtures sind
+  nachvollziehbar. Die Ersatzentscheidung Textrollen statt Textopazität folgt D8;
+  `.text-danger`, das beibehaltene Padding und der begründete Breitenbericht erfordern
+  keine weiteren Änderungen. Im aktuellen Fassung-3-Plan steht bei N111 bereits die
+  Textrollenregel; die Übergabe beschreibt dort einen älteren Wortlaut.
+
+### Verifikation und Prüfgrenzen
+
+Eigene Prüfungen am Produktstand `000ceef`:
+
+- Build und ESLint/CSS-Audit bestanden.
+- Vitest: **82 Dateien, 1660 Tests bestanden**.
+- Audit- und Suite-Runner-Pytest: **42 Tests bestanden** (28 + 14).
+- Gezielte Browserprüfungen für Eingabesitzungen, Formulare, Rückmeldungen,
+  Kontrast und Darstellung: **47/47 bestanden**.
+- Layout-Regressionsprüfungen für HUD, Eingabeleisten und ihre Negativkontrollen:
+  **8/8 bestanden**.
+- Bestehende Bildreferenzen und Viewerprüfungen: **15/15 bestanden** (10 + 5).
+  Damit wurden **70 Browsertests** frisch ausgeführt; keine Bildreferenz wurde ersetzt.
+  [Protokolle der Prüfungen](ui-design-welle.implementation-r6.evidence.txt).
+
+Die unabhängige [Sonde](ui-design-welle.implementation-r6.probe.mjs) lädt eine Vorschau
+mit gültigen Sequenzdaten, damit die Zeitleiste wirklich erscheint. Sie misst
+20 Kombinationen aus Achszahl, Fenster, Zoom und gewünschter HUD-Größe, zusätzlich
+21 Höhenschwellen und zwei längere stationäre Zeitreihen. Die
+[JSON-Belege](ui-design-welle.implementation-r6.json) enthalten auch die Mock-Befehle;
+es wurde kein Maschinenlauf ausgelöst.
+
+Der übergebene Offline-Bericht `runlogs/test-suite/20260927T013250Z-offline/report.json`
+ist PASS und nennt `4076f2c` als geprüften Commit. Zwischen diesem Stand und `000ceef`
+kam nur die Übergabedokumentation hinzu; die Produktbasis ist dieselbe. Die vollständige
+Backend- und Browser-Suite wurde in diesem Review nicht nochmals als Gesamtgate gestartet.
+
+Alle Browserprüfungen liefen seriell mit niedriger Prozesspriorität gegen lokale
+Mocks. Keine physische Touch-/Screenreader- oder Safari-/Firefox-Abnahme und kein
+Live-XYZAC-Simulationsabschluss. LinuxCNC und der echte Gateway wurden nicht
+angesprochen oder neu gestartet. Nur Review-Dokumentation und eigene Belege geändert;
+keine Produktänderung und kein Update bestehender Tests oder Bildreferenzen.
+Der eigene Review-Mock auf Port 4188 wurde nach den Messungen beendet.

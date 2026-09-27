@@ -1,0 +1,216 @@
+Codex implementation review round 6 / handshake R5
+Recorded: 2026-09-27T04:12:32.253450+02:00
+Product HEAD: 000ceef83f0b0335506960869880e6c0ce05b016
+Scope: d6f6fe4..000ceef, WP-D7–D10. Product sources, prior evidence and reference images unmodified.
+All browser runs sequential, nice -n 15, local mocks only. Independent mock: 127.0.0.1:4188. No live LinuxCNC/gateway access.
+Independent probe completed without a harness error; recorded findings are described in the review.
+
+=== Build ===
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2033 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.32 kB
+dist/static/wsWorker-zsM8cmEe.js                     4.40 kB
+dist/static/previewWorker-C1MOziwn.js               27.94 kB
+dist/static/partFrameWorker-CSLyKB3b.js             45.52 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/collisionWorker-DvVWZz9I.js            174.25 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-CcQWPNwc.css                 6.73 kB │ gzip:   1.74 kB
+dist/static/index-B-nWikZZ.css                      81.32 kB │ gzip:  15.06 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-BfCBehfQ.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-B_VMgtn-.js                 9.05 kB │ gzip:   3.34 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/ThreeViewer-4NAQsnPG.js                124.59 kB │ gzip:  46.49 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/index-FBYJ0eVw.js                      544.11 kB │ gzip: 172.66 kB
+dist/static/three-CfffMm-P.js                      865.77 kB │ gzip: 237.89 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 4.63s
+
+
+=== ESLint and CSS audit ===
+
+> lcnc-webui@0.0.0 lint
+> eslint . && npm run lint:css
+
+
+> lcnc-webui@0.0.0 lint:css
+> python3 ../scripts/audit-scoped-css.py
+
+OK: no definite scoped-CSS leaks, no token drift. (use --all to see ROOT? candidates)
+
+
+=== Vitest (one worker) ===
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite/lcnc-webui
+
+
+ Test Files  82 passed (82)
+      Tests  1660 passed (1660)
+   Start at  03:54:35
+   Duration  43.14s (transform 1.40s, setup 0ms, import 3.62s, tests 35.38s, environment 4ms)
+
+
+
+=== Pytest: audit CSS and suite runner (28 + 14) ===
+..........................................                             [100%]
+
+
+=== Playwright: input-session, contrast, appearance, forms, feedback-channels (serial-guards, one worker, no-deps) ===
+
+Running 47 tests using 1 worker
+
+(node:2208624) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2208624) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [serial-guards] › e2e/appearance.spec.ts:57:1 › a pulse moves the background, never the text: the banner stays fully opaque while it pulses (2.7s)
+  ✓   2 [serial-guards] › e2e/appearance.spec.ts:66:1 › reduced motion: no pulse and no flash — the state stays a static fill (2.7s)
+  ✓   3 [serial-guards] › e2e/appearance.spec.ts:93:1 › forced colours: the focus ring, the selected tab and the state banner stay distinguishable (1.6s)
+  ✓   4 [serial-guards] › e2e/contrast.spec.ts:158:3 › light: every readable text meets 4.5 : 1 on what is rendered behind it (37.2s)
+  ✓   5 [serial-guards] › e2e/contrast.spec.ts:158:3 › dark: every readable text meets 4.5 : 1 on what is rendered behind it (37.5s)
+  ✓   6 [serial-guards] › e2e/contrast.spec.ts:158:3 › hc-light: every readable text meets 4.5 : 1 on what is rendered behind it (37.3s)
+  ✓   7 [serial-guards] › e2e/contrast.spec.ts:158:3 › hc-dark: every readable text meets 4.5 : 1 on what is rendered behind it (37.2s)
+  ✓   8 [serial-guards] › e2e/contrast.spec.ts:158:3 › auto-dark: every readable text meets 4.5 : 1 on what is rendered behind it (37.3s)
+  ✓   9 [serial-guards] › e2e/contrast.spec.ts:280:3 › light: the focus ring keeps 3 : 1 on every surface (1.4s)
+  ✓  10 [serial-guards] › e2e/contrast.spec.ts:280:3 › dark: the focus ring keeps 3 : 1 on every surface (1.4s)
+  ✓  11 [serial-guards] › e2e/contrast.spec.ts:280:3 › hc-light: the focus ring keeps 3 : 1 on every surface (1.4s)
+  ✓  12 [serial-guards] › e2e/contrast.spec.ts:280:3 › hc-dark: the focus ring keeps 3 : 1 on every surface (1.4s)
+  ✓  13 [serial-guards] › e2e/contrast.spec.ts:280:3 › auto-dark: the focus ring keeps 3 : 1 on every surface (1.5s)
+  ✓  14 [serial-guards] › e2e/feedback-channels.spec.ts:119:1 › a dimmed control's reason is told at the control, inside the window, at every edge — nothing logged, the status line stays (2.9s)
+  ✓  15 [serial-guards] › e2e/feedback-channels.spec.ts:158:1 › the hint closes on the next touch or key anywhere, and it is the same card as the help popover (1.7s)
+  ✓  16 [serial-guards] › e2e/feedback-channels.spec.ts:189:1 › the reason also answers the keyboard, a dimmed input and a control inside a dialog (1.7s)
+  ✓  17 [serial-guards] › e2e/feedback-channels.spec.ts:229:1 › the banner has two tiers, its why opens with a tap, and every way out of the message center marks it read (3.7s)
+  ✓  18 [serial-guards] › e2e/feedback-channels.spec.ts:276:1 › a refused folder keeps the last listing and offers no Retry; a transient failure retries (1.6s)
+  ✓  19 [serial-guards] › e2e/feedback-channels.spec.ts:316:1 › every help popover wraps and stays inside the window, in every tab (24.0s)
+  ✓  20 [serial-guards] › e2e/feedback-channels.spec.ts:393:1 › every help icon has one look: full opacity, one colour, enabled, the same gap after its label (6.5s)
+  ✓  21 [serial-guards] › e2e/forms.spec.ts:110:3 › desktop: every field is named, every label labels a control, one density is one height (18.7s)
+  ✓  22 [serial-guards] › e2e/forms.spec.ts:110:3 › touch: every field is named, every label labels a control, one density is one height (18.7s)
+  ✓  23 [serial-guards] › e2e/forms.spec.ts:172:1 › a probe field carries its unit — the machine's linear unit, in its description and its keypad readout (2.3s)
+  ✓  24 [serial-guards] › e2e/forms.spec.ts:204:1 › a reset sits at the end of its section, right, and its confirm keeps its button's gate (2.1s)
+  ✓  25 [serial-guards] › e2e/forms.spec.ts:235:1 › list editors: one row-action look, action before binding, gamepad inversion from the machine's axes (2.0s)
+  ✓  26 [serial-guards] › e2e/forms.spec.ts:268:1 › tool table: T# and description first, the sort announced, the loaded tool marked; empty, no match and loading say which (1.7s)
+  ✓  27 [serial-guards] › e2e/input-session.spec.ts:83:1 › MDI → number → MDI: exactly one helper at a time, the title names the owner (2.3s)
+  ✓  28 [serial-guards] › e2e/input-session.spec.ts:120:1 › number A → number B: A is not confirmed, its draft returns marked as draft (1.7s)
+  ✓  29 [serial-guards] › e2e/input-session.spec.ts:144:1 › number → text → number keeps the draft; a tap outside hides the keypad, OK and Cancel return focus (2.5s)
+  ✓  30 [serial-guards] › e2e/input-session.spec.ts:186:1 › number keypad: X hides and keeps the draft (tap and Tab + Enter), Discard throws it away; both return focus, nothing is sent (1.9s)
+  ✓  31 [serial-guards] › e2e/input-session.spec.ts:220:1 › drafts: Clear is a draft of 0; a sibling's OK (busy latch) is not an owner end, the field's gate ending is (3.0s)
+  ✓  32 [serial-guards] › e2e/input-session.spec.ts:292:1 › tap outside, Tab outside (from the field and from a key) and Close hide the keyboard without confirming; a re-tap re-opens (2.6s)
+  ✓  33 [serial-guards] › e2e/input-session.spec.ts:338:1 › Send from the keyboard is the MDI path; Enter in a search field never reaches the machine (2.3s)
+  ✓  34 [serial-guards] › e2e/input-session.spec.ts:365:1 › physical typing into the MDI line is kept with the helper open and closed; Enter sends the whole line once, the history recalls it, on-screen keys append (2.1s)
+  ✓  35 [serial-guards] › e2e/input-session.spec.ts:397:1 › field contract: every text field is a technical field — no autofill, autocorrect, autocapitalize or spellcheck, a stable name and an accessible name (2.2s)
+  ✓  36 [serial-guards] › e2e/input-session.spec.ts:436:1 › editor → number → editor keeps the buffer; a hidden tab locks, not ends, the session (3.2s)
+  ✓  37 [serial-guards] › e2e/input-session.spec.ts:486:1 › offset cell: leaving the tab closes the keypad with its draft; only the visible cell's OK writes, once (2.1s)
+  ✓  38 [serial-guards] › e2e/input-session.spec.ts:521:1 › offset drafts end with the probe gate, not with a sibling cell's OK (2.8s)
+  ✓  39 [serial-guards] › e2e/input-session.spec.ts:580:3 › touch › touch-only entry of code, expressions, braces and an umlaut description; correction mid-text (12.8s)
+  ✓  40 [serial-guards] › e2e/input-session.spec.ts:631:1 › a page switch keeps the field's selection (1.9s)
+  ✓  41 [serial-guards] › e2e/input-session.spec.ts:643:3 › landscape light: every page fits the strip budget and never changes the frame (1.9s)
+  ✓  42 [serial-guards] › e2e/input-session.spec.ts:643:3 › landscape dark: every page fits the strip budget and never changes the frame (1.9s)
+  ✓  43 [serial-guards] › e2e/input-session.spec.ts:661:3 › portrait, touch › every page: 44 px keys, no overflow, reachable without scrolling at 100 % and 150 % (3.4s)
+EDITOR_LINES zoom 1: 21.91
+EDITOR_LINES zoom 1.5: 10.34
+  ✓  44 [serial-guards] › e2e/input-session.spec.ts:718:3 › portrait, touch › editor and search as owners: the readout stays visible and hit-testable at 100 % and 150 %; portrait edit mode folds the idle program controls (3.8s)
+  ✓  45 [serial-guards] › e2e/input-session.spec.ts:823:3 › D7, touch › the X is each helper's top-right key, 44 × 44 — number keypad and text keyboard, landscape and portrait (4.8s)
+  ✓  46 [serial-guards] › e2e/input-session.spec.ts:853:3 › D7, touch › the Code page: the digit block 7 8 9 / 4 5 6 / 1 2 3 / 0 . - in both orientations, the letters in one reading order; every page reads row by row (3.6s)
+  ✓  47 [serial-guards] › e2e/input-session.spec.ts:885:3 › D7, touch › the number keypad at 100 % and 150 % portrait: 44 px keys, within the viewport, its owner field in view and not covered (3.6s)
+
+  47 passed (5.9m)
+
+
+=== Playwright: layout.spec, grep HUD|strip states|negative control (serial-layout, one worker, no-deps) ===
+
+Running 8 tests using 1 worker
+
+(node:2228058) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2228058) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [serial-layout] › e2e/layout.spec.ts:637:3 › desktop: strip states keep the frame and the pinned controls invariant (3.9s)
+  ✓  2 [serial-layout] › e2e/layout.spec.ts:637:3 › compact: strip states keep the frame and the pinned controls invariant (4.3s)
+  ✓  3 [serial-layout] › e2e/layout.spec.ts:637:3 › touch-landscape: strip states keep the frame and the pinned controls invariant (4.3s)
+  ✓  4 [serial-layout] › e2e/layout.spec.ts:637:3 › touch-portrait: strip states keep the frame and the pinned controls invariant (4.2s)
+  ✓  5 [serial-layout] › e2e/layout.spec.ts:666:1 › negative control (landscape): an auto scrollbar band lets the keypad change the strip height (2.6s)
+  ✓  6 [serial-layout] › e2e/layout.spec.ts:686:1 › negative control (portrait): without the always-present band the keypad re-flows the pinned controls (2.6s)
+  ✓  7 [serial-layout] › e2e/layout.spec.ts:731:3 › 5axis-xyzac: the HUD, its findings and the ViewCube column stay inside the viewer and apart (8.3s)
+  ✓  8 [serial-layout] › e2e/layout.spec.ts:731:3 › 6axis-twp: the HUD, its findings and the ViewCube column stay inside the viewer and apart (8.4s)
+
+  8 passed (39.1s)
+
+
+=== Playwright: visual.spec and viewer.spec (serial-visual + serial-viewer, one worker, no-deps) ===
+
+Running 15 tests using 1 worker
+
+(node:2231301) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2231301) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [serial-visual] › e2e/visual.spec.ts:15:5 › 3axis-xyz desktop: Jog and Setup reference images (2.4s)
+  ✓   2 [serial-visual] › e2e/visual.spec.ts:15:5 › 3axis-xyz touch-portrait: Jog and Setup reference images (2.2s)
+  ✓   3 [serial-visual] › e2e/visual.spec.ts:15:5 › 5axis-xyzac desktop: Jog and Setup reference images (2.4s)
+  ✓   4 [serial-visual] › e2e/visual.spec.ts:15:5 › 5axis-xyzac touch-portrait: Jog and Setup reference images (2.4s)
+  ✓   5 [serial-visual] › e2e/visual.spec.ts:15:5 › 6axis-twp desktop: Jog and Setup reference images (2.8s)
+  ✓   6 [serial-visual] › e2e/visual.spec.ts:15:5 › 6axis-twp touch-portrait: Jog and Setup reference images (2.7s)
+  ✓   7 [serial-visual] › e2e/visual.spec.ts:50:3 › desktop: tool edit dialog reference image (1.9s)
+  ✓   8 [serial-visual] › e2e/visual.spec.ts:50:3 › compact: tool edit dialog reference image (1.8s)
+  ✓   9 [serial-visual] › e2e/visual.spec.ts:50:3 › touch-landscape: tool edit dialog reference image (1.8s)
+  ✓  10 [serial-visual] › e2e/visual.spec.ts:50:3 › touch-portrait: tool edit dialog reference image (1.9s)
+(node:2232086) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2232086) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  11 [serial-viewer] › e2e/viewer.spec.ts:55:1 › a clean rebuild frees AND re-applies the loaded program's toolpath geometry (8.6s)
+  ✓  12 [serial-viewer] › e2e/viewer.spec.ts:129:1 › the viewer fetches nothing from outside the gateway (an offline machine) (2.2s)
+  ✓  13 [serial-viewer] › e2e/viewer.spec.ts:171:1 › studio model keeps a themed, persistent ground grid through motion and rebuilds (3.5s)
+  ✓  14 [serial-viewer] › e2e/viewer.spec.ts:299:1 › default framing keeps the eye outside a bed/column model for every direction, preset, projection and reset (8.0s)
+  ✓  15 [serial-viewer] › e2e/viewer.spec.ts:384:1 › the viewer palette: Automatic follows the theme, Custom stays, a legacy palette is Custom, the legend shows what is drawn (2.2s)
+
+  15 passed (47.7s)
+
+
+=== Independent mock probe; all measurements in the accompanying JSON ===
+{"axes":5,"vp":"desktop","scale":"md","unique":["hud hudCard overlay-card stack-tight hudScale-md"],"overlaps":[]}
+{"axes":5,"vp":"desktop","scale":"xl","unique":["hud hudCard overlay-card stack-tight hudScale-xl"],"overlaps":[]}
+{"axes":5,"vp":"compact","scale":"md","unique":["hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool"],"overlaps":[]}
+{"axes":5,"vp":"compact","scale":"xl","unique":["hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool"],"overlaps":[]}
+{"axes":5,"vp":"touch-landscape","scale":"md","unique":["hud hudCard overlay-card stack-tight hudScale-md hudFoldMach hudFoldFS","hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS"],"overlaps":[]}
+{"axes":5,"vp":"touch-landscape","scale":"xl","unique":["hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS"],"overlaps":[]}
+{"axes":5,"vp":"touch-portrait","scale":"md","unique":["hud hudCard overlay-card stack-tight hudScale-md"],"overlaps":[]}
+{"axes":5,"vp":"touch-portrait","scale":"xl","unique":["hud hudCard overlay-card stack-tight hudScale-md","hud hudCard overlay-card stack-tight hudScale-lg"],"overlaps":[]}
+{"axes":5,"vp":"touch-portrait-150","scale":"md","unique":["hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool"],"overlaps":[{"a":"hud","b":"notes","width":159,"height":29.078125}]}
+{"axes":5,"vp":"touch-portrait-150","scale":"xl","unique":["hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool"],"overlaps":[{"a":"hud","b":"notes","width":159,"height":29.078125}]}
+{"axes":6,"vp":"desktop","scale":"md","unique":["hud hudCard overlay-card stack-tight hudScale-md"],"overlaps":[]}
+{"axes":6,"vp":"desktop","scale":"xl","unique":["hud hudCard overlay-card stack-tight hudScale-lg"],"overlaps":[]}
+{"axes":6,"vp":"compact","scale":"md","unique":["hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool"],"overlaps":[{"a":"hud","b":"notes","width":111,"height":17.78125}]}
+{"axes":6,"vp":"compact","scale":"xl","unique":["hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool"],"overlaps":[{"a":"hud","b":"notes","width":111,"height":17.78125}]}
+{"axes":6,"vp":"touch-landscape","scale":"md","unique":["hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS"],"overlaps":[]}
+{"axes":6,"vp":"touch-landscape","scale":"xl","unique":["hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS"],"overlaps":[]}
+{"axes":6,"vp":"touch-portrait","scale":"md","unique":["hud hudCard overlay-card stack-tight hudScale-md"],"overlaps":[]}
+{"axes":6,"vp":"touch-portrait","scale":"xl","unique":["hud hudCard overlay-card stack-tight hudScale-md"],"overlaps":[]}
+{"axes":6,"vp":"touch-portrait-150","scale":"md","unique":["hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool"],"overlaps":[{"a":"hud","b":"notes","width":159,"height":65.21875}]}
+{"axes":6,"vp":"touch-portrait-150","scale":"xl","unique":["hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool"],"overlaps":[{"a":"hud","b":"notes","width":159,"height":65.21875}]}
+OSCILLATION at 1280x816: ["hud hudCard overlay-card stack-tight hudScale-md hudFoldMach hudFoldFS","hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS"]
+OSCILLATION at 1280x876: ["hud hudCard overlay-card stack-tight hudScale-sm","hud hudCard overlay-card stack-tight hudScale-md"]
+OSCILLATION at 1280x948: ["hud hudCard overlay-card stack-tight hudScale-lg","hud hudCard overlay-card stack-tight hudScale-md"]
+
