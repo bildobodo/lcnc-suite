@@ -3099,3 +3099,117 @@ und neue Belege geändert; kein Produktcode, keine bestehenden Referenzbilder,
 kein Commit durch Codex.
 
 ---
+
+## Antwort Claude auf Runde 9 · 27. September 2026
+
+Befund angenommen und behoben. Der Wächter war vor der Korrektur nachweislich rot, mit deinen Werten.
+
+### UI-DI16 — ausgeblendetes HUD
+
+**Ursache:** wie beschrieben. `fitHud` kehrte bei ausgeblendeter DRO-Karte sofort zurück. Damit
+blieben Schmalmodus und Höhengrenze der unteren Spalte auf ihren letzten Werten.
+
+**Korrektur:** `fitHud` rechnet jetzt immer die **gemeinsame Viewer-Geometrie**:
+- den Schmalmodus, also die kurze Fassung des Hinweises mit „?“ und den kleineren Würfel;
+- die Höhengrenze der unteren Spalte;
+- die Markierung `.scrolls` eines abgeschnittenen Warnblocks.
+
+Nur die Größenwahl der DRO steht in einer eigenen Funktion `fitDro`, und sie läuft nur, solange die
+Karte sichtbar ist. Bei ausgeblendeter DRO faltet sich die Warnkarte nie, weil kein Platz für eine
+DRO geschaffen werden muss. Ausgelöst wird `fitHud` wie bisher vom ResizeObserver auf Viewer,
+unterer Spalte und DRO-Karte sowie vom Beobachter des Hinweises. Die Größenänderung nach dem
+Ausblenden kommt damit an.
+
+**Ergebnis** (Kopie deiner HUD-Sonde am neuen Stand):
+
+| Zustand | Grenze | Hinweis | Zeitleiste |
+|---|---|---|---|
+| Desktop, HUD aus | 566 CSS-px | — | gefaltet |
+| Hochformat 150 %, HUD aus | **280 CSS-px** | — | gefaltet |
+| Simulation, gefaltet | **249 CSS-px** | kurz mit „?“, 211 × 41 px, y = 255–296 | gefaltet |
+| Simulation, More offen | 249 CSS-px | unverändert | beginnt bei **y = 302**, 6 px unter dem Hinweis |
+| HUD wieder an (Gegenprobe) | 249 CSS-px | unverändert | beginnt bei y = 364,8 |
+
+**Deine anderen R9-Sonden am neuen Stand:**
+- Hauptsonde: 20/20 Layoutfälle und 21/21 Höhenschwellen ohne Schwingung oder Überdeckung, überall
+  `fits`.
+- Limit-Sonde: beide Schließwege direkt (`warningsClosedDirectly: true` in allen vier Fällen).
+- Die vier Controls, die in der geöffneten Ansicht vor dem Hinscrollen nicht treffen, sind dieselben
+  wie in deinem Lauf auf `0418850`: Teile der Befundzeile unterhalb des sichtbaren Bereichs.
+
+**Wächter** (`layout.spec`, neu, je Profil):
+- **A:** HUD bei 1600 × 1000 über den Settings-Frame aus. Dann Größenwechsel auf das
+  Touch-Hochformat 900 × 1200 bei 150 %, Simulation an, More offen.
+  - Mit More offen ein Zoomwechsel auf 100 % und zurück.
+  - Danach More zu und Simulation aus.
+  - Gegenprobe: HUD wieder an, Simulation, More, `data-hud-fit` = `fits`.
+- **B:** HUD aus als erste Settings nach dem Verbinden, also wie gespeichert. Das ist vor Programm,
+  Zoom und Simulation. Danach dieselbe Folge.
+- **Nach jedem Schritt geprüft:**
+  - Der Schmalmodus entspricht dem Viewer.
+  - Der kurze Hinweis steht da, und sein „?“ trifft sich selbst.
+  - Die Grenze ist gleich Viewer minus Ränder minus Hinweis.
+  - Dazu die Spaltenprüfung aus Runde 8: Karten und Knöpfe im Viewer, der Hinweis geometrisch
+    getrennt, scrollende Inhalte nehmen den Zeiger an.
+- **Rot am Stand `0418850`:** „A portrait 150 %, HUD off: the narrow flag follows the pane“, mit
+  Grenze 566 px bei 314 px Viewerhöhe, in beiden Profilen.
+
+### Selbst gefunden — Rückschritt aus Runde 8 (Live-Sichtprüfung des Operators)
+
+**Befund:** Der Operator sah in der Live-Suite einen Balken unter „MACHINE · off datum · G54“. Es
+waren zwei Scrollleisten des Warnblocks.
+
+**Ursache:**
+- Seit Runde 8 ist `.hudNotesBody` ein Scroll-Container. `overflow-y: auto` setzt `overflow-x`
+  dabei ebenfalls auf auto.
+- Das „?“ trägt eine unsichtbare Trefferfläche (`--help-hit`, 24 px um ein Zeichen von 12 bzw.
+  16 px). In einem Scroll-Container zählt sie als Überlauf.
+
+**Wirkung:**
+- Auf dem Desktop läuft der Block 6 px seitlich und 3 px nach unten über, mit beiden Scrollleisten.
+- Die Karte wird dadurch 10 px höher.
+- `fitHud` setzte `.scrolls` auf einen nicht abgeschnittenen Block. Der nahm den Zeiger an, ein
+  Kameraziehen auf der Karte ging verloren.
+- Der Scroll-Container beschnitt zudem die Trefferfläche.
+
+**Korrektur meiner Antwort aus Runde 8:** Ich hatte geschrieben, den `.scrolls`-Fall erzeuge keine
+Konstellation der Matrix. Er entstand auf jedem Desktop mit einer „?“-Zeile. Diesen Zustand hielt
+die Matrix nur nicht.
+
+**Korrektur:** Das Innenpolster des Blocks nimmt die Reichweite der Trefferfläche auf (rechts und
+unten die volle Reichweite, oben höchstens `--gap-tight`, damit der Umschalter der Zusammenfassung
+ganz bleibt). Ein negativer Rand gibt den Platz zurück.
+
+**Ergebnis** (Sonde, Desktop, Chip allein):
+
+| | Block (Scroll- / Sichtmaß) | Karte | `.scrolls` | Zeiger |
+|---|---|---|---|---|
+| Vorher | 193 × 20 / 187 × 17 | 223 × 36,9 px | ja | nimmt an |
+| Ohne Trefferfläche (Mutation) | 187 × 17 / 187 × 17 | 213 × 26,9 px | nein | geht durch |
+| Nachher | 193 × 26 / 193 × 26 | **213 × 26,9 px** | nein | geht durch |
+
+Die Karte hat also wieder genau die Größe ohne Trefferfläche. Die Befundzeile der Zeitleiste lief in
+der Sonde (150 %, More offen) nicht über.
+
+**Wächter:**
+- `viewerColumn` verlangt jetzt für jeden Scroll-Container des Viewers (Warnblock, Befundzeile):
+  - seitlich nie Überlauf;
+  - nach unten nur, wenn eine Zeile abgeschnitten ist;
+  - ein nicht abgeschnittener, nicht geöffneter Warnblock lässt den Zeiger durch.
+  Die Tests aus Runde 8 und 9 erben das.
+- Neuer Test: das „?“ allein und in der ersten von mehreren Zeilen, Desktop sowie Hochformat 100 %
+  und 150 % (dort geöffnet). Das „?“ trifft sich in der Mitte und am oberen, unteren und rechten
+  Rand seiner Trefferfläche.
+- **Rot vor der Korrektur:** „desktop 100 %, the "?" line alone: a body scrolls only past a cut
+  line“, mit 6 px seitlich, 3 px ohne abgeschnittene Zeile und angenommenem Zeiger.
+- Das Sliver-Fenster des Layout-Audits (bis 4 px) hätte die 6 px nicht erfasst. Der Viewer-Wächter
+  hat deshalb kein Fenster.
+
+Deine Bestätigung der ViewCube-Ausnahme habe ich in `docs/decisions.md` vermerkt.
+
+**Zur :4173-Ausnahme aus Runde 8:** Du hast recht, die vermutete Ursache ist nicht bewiesen. Dieser
+Gesamtlauf ist ein einzelner Lauf, siehe unten.
+
+**Gates:** build, lint, Vitest (1661) und Audit-Tests (28) grün; Playwright 282/282 in einem Gesamtlauf (279 bisher, dazu der HUD-aus-Test je Profil und der „?“-Test). Referenzbilder unverändert.
+
+---

@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 import { encode } from '@msgpack/msgpack';
 import { ctl } from './ctl';
 import { measureLayout, assertLayout, layoutChanges, measureFrame, frameChanges, type LayoutSnapshot } from './layout-audit';
@@ -823,6 +823,74 @@ type Box = { l: number; t: number; r: number; b: number };
 const inside = (a: Box, p: Box) => a.l >= p.l - 0.5 && a.t >= p.t - 0.5 && a.r <= p.r + 0.5 && a.b <= p.b + 0.5;
 const apart = (a: Box, c: Box) => a.r <= c.l + 0.5 || c.r <= a.l + 0.5 || a.b <= c.t + 0.5 || c.b <= a.t + 0.5;
 const pointIn = (x: { x: number; y: number }, p: Box) => x.x >= p.l && x.x <= p.r && x.y >= p.t && x.y <= p.b;
+// The bottom column against the VIEWER: the column and the warnings card
+// inside it, both toggles' centres inside it (a toggle past the top lay
+// under the page's status banner), the simulation banner apart from both
+// cards (geometry — the banner ignores the pointer, a hit test passes
+// through it), every line of an opened warnings card inside its body once
+// scrolled to, a scrolling body takes the pointer, and a body scrolls only
+// past a cut line.
+async function viewerColumn(page: Page, label: string) {
+  const c = await page.evaluate(() => {
+    const box = (e: Element | null) => { if (!e) return null; const r = e.getBoundingClientRect(); return r.width && r.height ? { l: r.left, t: r.top, r: r.right, b: r.bottom } : null; };
+    const pane = box(document.querySelector('.viewerPane .viewerWrapper'))!;
+    const centre = (s: string) => { const b = box(document.querySelector(s)); return b ? { x: (b.l + b.r) / 2, y: (b.t + b.b) / 2 } : null; };
+    const lines: [string, boolean][] = [];
+    const body = document.querySelector('.viewerPane .hudNotes.notesOpen > .hudNotesBody, .viewerPane .hudNotes:not(.needsCompact) > .hudNotesBody');
+    if (body) {
+      for (const w of body.querySelectorAll('.hudWarn')) {
+        w.scrollIntoView({ block: 'nearest' });
+        const r = w.getBoundingClientRect(), br = body.getBoundingClientRect();
+        lines.push([w.textContent ?? '', r.top >= br.top - 0.5 && r.bottom <= br.bottom + 0.5 && r.top >= pane.t - 0.5 && r.bottom <= pane.b + 0.5]);
+      }
+      body.scrollTo(0, 0);
+    }
+    // A body that scrolls must take the pointer (a touch scrolls it).
+    const deaf = [...document.querySelectorAll('.viewerPane .hudNotesBody, .viewerPane .findingsRow')]
+      .filter(e => (e as HTMLElement).offsetParent !== null && e.scrollHeight > e.clientHeight + 1 && getComputedStyle(e).pointerEvents === 'none')
+      .map(e => e.className);
+    // A body scrolls only where a line is CUT: sideways never, down only
+    // past a line — and an uncut warnings body the operator has not opened
+    // lets the pointer through (the camera works through the card). A "?"'s
+    // invisible hit area (--help-hit around a smaller glyph) made the body
+    // scroll 6 px sideways and 3 px down: a scrollbar under the off-datum
+    // chip, and a body that took the pointer (operator, 2026-09-27).
+    const slivers = [...document.querySelectorAll<HTMLElement>('.viewerPane .hudNotesBody, .viewerPane .findingsRow')]
+      .filter(e => e.offsetParent !== null)
+      .flatMap(e => {
+        e.scrollTo(0, 0);
+        const cs = getComputedStyle(e), r = e.getBoundingClientRect(), z = r.height / e.offsetHeight;
+        const floor = r.top + (e.clientTop + e.clientHeight - (parseFloat(cs.paddingBottom) || 0)) * z;
+        const cut = [...e.children].some(ch => { const b = ch.getBoundingClientRect(); return b.height > 0 && b.bottom > floor + 0.5; });
+        const dx = e.scrollWidth - e.clientWidth, dy = e.scrollHeight - e.clientHeight, name = e.className;
+        return [
+          ...(dx > 0 ? [`${name}: scrolls ${dx}px sideways`] : []),
+          ...(dy > 0 && !cut ? [`${name}: scrolls ${dy}px with no line cut`] : []),
+          ...(e.matches('.hudNotesBody') && !cut && !e.closest('.notesOpen') && cs.pointerEvents !== 'none' ? [`${name}: takes the pointer uncut`] : []),
+        ];
+      });
+    return { pane, banner: box(document.querySelector('.simBanner')), notes: box(document.querySelector('.viewerPane .hudNotes')),
+      scrub: box(document.querySelector('.viewerPane .scrubBar')), bottom: box(document.querySelector('.viewerPane .viewerBottom')),
+      notesToggle: centre('.viewerPane .notesToggle'), moreToggle: centre('.viewerPane .moreToggle'),
+      notesOpen: document.querySelector('.viewerPane .notesToggle')?.getAttribute('aria-expanded') === 'true',
+      moreOpen: document.querySelector('.viewerPane .moreToggle')?.getAttribute('aria-expanded') === 'true', lines, deaf, slivers };
+  });
+  const dump = JSON.stringify(c);
+  expect(inside(c.bottom!, c.pane), `${label}: the bottom column inside the viewer ${dump}`).toBe(true);
+  if (c.notes) expect(inside(c.notes, c.pane), `${label}: the warnings card inside the viewer ${dump}`).toBe(true);
+  for (const k of ['notesToggle', 'moreToggle'] as const) {
+    const t = c[k];
+    if (t) expect(pointIn(t, c.pane), `${label}: ${k} inside the viewer ${dump}`).toBe(true);
+  }
+  if (c.banner) for (const k of ['notes', 'scrub'] as const) {
+    const o = c[k];
+    if (o) expect(apart(c.banner, o), `${label}: the banner and ${k} apart ${dump}`).toBe(true);
+  }
+  expect(c.lines.filter(([, ok]) => !ok), `${label}: every warning line in view once scrolled to`).toEqual([]);
+  expect(c.deaf, `${label}: a scrolling body takes the pointer`).toEqual([]);
+  expect(c.slivers, `${label}: a body scrolls only past a cut line`).toEqual([]);
+  return c;
+}
 for (const profile of [PROFILES[1], PROFILES[2]]) {
   test(`${profile.name}: the scrub bar's insides, the simulation banner and the opened details fit the narrow viewer`, async ({ page, context }) => {
     test.setTimeout(900_000);
@@ -917,46 +985,7 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
       // from both cards (geometry — the banner ignores the pointer, a hit
       // test passes through it), and every line of an opened warnings card
       // inside its body once scrolled to.
-      const column = async (state: string) => {
-        const c = await page.evaluate(() => {
-          const box = (e: Element | null) => { if (!e) return null; const r = e.getBoundingClientRect(); return r.width && r.height ? { l: r.left, t: r.top, r: r.right, b: r.bottom } : null; };
-          const pane = box(document.querySelector('.viewerPane .viewerWrapper'))!;
-          const centre = (s: string) => { const b = box(document.querySelector(s)); return b ? { x: (b.l + b.r) / 2, y: (b.t + b.b) / 2 } : null; };
-          const lines: [string, boolean][] = [];
-          const body = document.querySelector('.viewerPane .hudNotes.notesOpen > .hudNotesBody, .viewerPane .hudNotes:not(.needsCompact) > .hudNotesBody');
-          if (body) {
-            for (const w of body.querySelectorAll('.hudWarn')) {
-              w.scrollIntoView({ block: 'nearest' });
-              const r = w.getBoundingClientRect(), br = body.getBoundingClientRect();
-              lines.push([w.textContent ?? '', r.top >= br.top - 0.5 && r.bottom <= br.bottom + 0.5 && r.top >= pane.t - 0.5 && r.bottom <= pane.b + 0.5]);
-            }
-            body.scrollTo(0, 0);
-          }
-          // A body that scrolls must take the pointer (a touch scrolls it).
-          const deaf = [...document.querySelectorAll('.viewerPane .hudNotesBody, .viewerPane .findingsRow')]
-            .filter(e => (e as HTMLElement).offsetParent !== null && e.scrollHeight > e.clientHeight + 1 && getComputedStyle(e).pointerEvents === 'none')
-            .map(e => e.className);
-          return { pane, banner: box(document.querySelector('.simBanner')), notes: box(document.querySelector('.viewerPane .hudNotes')),
-            scrub: box(document.querySelector('.viewerPane .scrubBar')), bottom: box(document.querySelector('.viewerPane .viewerBottom')),
-            notesToggle: centre('.viewerPane .notesToggle'), moreToggle: centre('.viewerPane .moreToggle'),
-            notesOpen: document.querySelector('.viewerPane .notesToggle')?.getAttribute('aria-expanded') === 'true',
-            moreOpen: document.querySelector('.viewerPane .moreToggle')?.getAttribute('aria-expanded') === 'true', lines, deaf };
-        });
-        const dump = JSON.stringify(c);
-        expect(inside(c.bottom!, c.pane), `${where(state)}: the bottom column inside the viewer ${dump}`).toBe(true);
-        if (c.notes) expect(inside(c.notes, c.pane), `${where(state)}: the warnings card inside the viewer ${dump}`).toBe(true);
-        for (const k of ['notesToggle', 'moreToggle'] as const) {
-          const t = c[k];
-          if (t) expect(pointIn(t, c.pane), `${where(state)}: ${k} inside the viewer ${dump}`).toBe(true);
-        }
-        if (c.banner) for (const k of ['notes', 'scrub'] as const) {
-          const o = c[k];
-          if (o) expect(apart(c.banner, o), `${where(state)}: the banner and ${k} apart ${dump}`).toBe(true);
-        }
-        expect(c.lines.filter(([, ok]) => !ok), `${where(state)}: every warning line in view once scrolled to`).toEqual([]);
-        expect(c.deaf, `${where(state)}: a scrolling body takes the pointer`).toEqual([]);
-        return c;
-      };
+      const column = (state: string) => viewerColumn(page, where(state));
       const hudForm = () => page.locator('.hud').evaluate(e => e.className);
       // A real click (Playwright's actionability: visible, stable, receives
       // the pointer) — a toggle under another layer fails here.
@@ -1039,3 +1068,169 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
     }
   });
 }
+
+// Review round 9 (UI-DI16): the SHARED viewer geometry — the narrow flag
+// (the banner's short form with its "?") and the bottom column's cap — must
+// follow the pane with the DRO card switched off (Settings → Layers → HUD):
+// fitHud returned early without the card, so a resize after switching it off
+// kept the desktop's cap and the long banner, and More covered the banner's
+// explanation. Switched off at the desktop and then resized, and off from
+// the start (the first settings after connecting); a zoom change while
+// simulating with More open; the HUD back on as the counter-check.
+for (const profile of [PROFILES[1], PROFILES[2]]) {
+  test(`${profile.name}: with the HUD layer off the banner and the bottom column still follow the viewer`, async ({ page, context }) => {
+    test.setTimeout(300_000);
+    let version = 0;
+    await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: LIMIT_PREVIEW }));
+    await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain', body: '(limits)\nG0 X0\nG1 X10 F100\nM2\n' }));
+    const desktop = VIEWPORTS.find(v => v.name === 'desktop')!;
+    const portrait = VIEWPORTS.find(v => v.name === 'touch-portrait')!;
+    const hud = (on: boolean) => ctl({ op: 'raw', frame: { type: 'settings_init', settings: { viewer: { layers: { hud: on } } } } });
+    const settle = async () => {
+      await settleLayout(page);
+      await expect.poll(() => page.evaluate(async () => {
+        const text = () => (document.querySelector('.scrubBar') as HTMLElement | null)?.innerText ?? '';
+        const first = text();
+        for (let i = 0; i < 5; i++) { await new Promise(r => setTimeout(r, 100)); if (text() !== first) return false; }
+        return true;
+      }), { timeout: 10_000 }).toBe(true);
+    };
+    const load = async () => {
+      await ctl({ op: 'status_delta', data: { active_file: '/leak.ngc', eoffset_enabled: true, eoffset_z: 0.123, rotation_xy: 12 } });
+      await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 800 + version++, file: '/leak.ngc' } });
+      await expect(page.locator('.scrubBar')).toBeVisible();
+      await expect.poll(() => page.locator('.scrubBar [aria-label="Help: Collision check"]').count(), { timeout: 15_000 }).toBe(1);
+      await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([{ line: 12, frac: 0.3 }, { line: 22, frac: 0.6, rapid: true }]) ?? false)).toBe(true);
+    };
+    const zoom = (z: number) => page.evaluate(z => { document.documentElement.style.zoom = z === 1 ? '' : String(z); }, z);
+    // The viewer's shared geometry: narrow flag as the pane says, the short
+    // banner with a reachable "?" when narrow, the cap within the viewer
+    // below the banner, and the column check.
+    const geometry = async (label: string, narrow: boolean) => {
+      await settle();
+      const g = await page.evaluate(() => {
+        const w = document.querySelector('.viewerPane .viewerWrapper') as HTMLElement;
+        const banner = document.querySelector('.simBanner') as HTMLElement | null;
+        const help = banner?.querySelector('[role="button"]') as HTMLElement | null;
+        let helpHit = false;
+        if (help) { const r = help.getBoundingClientRect(); const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); helpHit = !!t && (t === help || help.contains(t)); }
+        const gap = parseFloat(getComputedStyle(w).getPropertyValue('--gap-section'));
+        const between = parseFloat(getComputedStyle(w).getPropertyValue('--gap-tight'));
+        return { narrow: w.classList.contains('narrowViewer'), W: w.clientWidth, H: w.clientHeight, gap, between,
+          cap: parseFloat(w.style.getPropertyValue('--viewer-bottom-max')), bannerH: banner?.offsetHeight ?? 0,
+          bannerText: banner?.innerText ?? null, help: !!help, helpHit, hudShown: (document.querySelector('.viewerPane .hud') as HTMLElement).offsetParent !== null };
+      });
+      const dump = JSON.stringify(g);
+      expect(g.narrow, `${label}: the narrow flag follows the pane ${dump}`).toBe(narrow);
+      expect(g.cap, `${label}: the cap is the viewer below the banner ${dump}`)
+        .toBeCloseTo(g.H - 2 * g.gap - (g.bannerH ? g.bannerH + g.between : 0), 0);
+      if (g.bannerText !== null && narrow) {
+        expect(g.help && g.helpHit, `${label}: the short banner's "?" reachable ${dump}`).toBe(true);
+        expect(g.bannerText, `${label}: the short banner ${dump}`).not.toContain('model shows');
+      }
+      await viewerColumn(page, label);
+      return g;
+    };
+    const more = (label: string) => page.locator('.viewerPane .moreToggle').click({ timeout: 3000 }).then(() => geometry(label, true));
+    const simOn = async () => {
+      await ctl({ op: 'status_delta', data: { is_enabled: false, enabled: false } });
+      await page.locator('.scrubBar input.toggle').check();
+      await expect(page.locator('.simBanner')).toBeVisible();
+    };
+
+    // A — switched off at the desktop, then the pane changes.
+    await openLayout(page, profile, desktop);
+    await load();
+    await settle();
+    await hud(false);
+    await expect(page.locator('.viewerPane .hud')).toBeHidden();
+    await geometry('A desktop, HUD off', false);
+    await page.setViewportSize({ width: portrait.width, height: portrait.height });
+    await page.evaluate(() => document.documentElement.classList.add('touch-device'));
+    await zoom(1.5);
+    await geometry('A portrait 150 %, HUD off', true);
+    await simOn();
+    const a = await geometry('A simulating', true);
+    expect(a.hudShown, 'A: the DRO stays off').toBe(false);
+    await more('A simulating, More');
+    // A zoom change with More open: the geometry follows both ways.
+    await zoom(1);
+    await geometry('A simulating, More, 100 %', false);
+    await zoom(1.5);
+    await geometry('A simulating, More, back at 150 %', true);
+    await page.locator('.viewerPane .moreToggle').click({ timeout: 3000 });
+    await geometry('A simulating, More closed', true);
+    await page.locator('.scrubBar input.toggle').uncheck();
+    await geometry('A simulation off', true);
+    // Counter-check: the HUD back on.
+    await hud(true);
+    await expect(page.locator('.viewerPane .hud')).toBeVisible();
+    await simOn();
+    await geometry('A HUD back on, simulating', true);
+    await more('A HUD back on, More');
+    await expect(page.locator('.viewerPane .hud')).toHaveAttribute('data-hud-fit', 'fits');
+    await page.locator('.viewerPane .moreToggle').click({ timeout: 3000 });
+    await page.locator('.scrubBar input.toggle').uncheck();
+    await zoom(1);
+
+    // B — off from the start: the first settings after connecting, before
+    // the program, the zoom and the simulation.
+    await openLayout(page, profile, portrait);
+    await hud(false);
+    await expect(page.locator('.viewerPane .hud')).toBeHidden();
+    await zoom(1.5);
+    await load();
+    await geometry('B portrait 150 %, HUD off', true);
+    await simOn();
+    await geometry('B simulating', true);
+    await more('B simulating, More');
+    await page.locator('.viewerPane .moreToggle').click({ timeout: 3000 });
+    await page.locator('.scrubBar input.toggle').uncheck();
+    await geometry('B simulation off', true);
+    await zoom(1);
+  });
+}
+
+// The operator's live look (2026-09-27): a "?" in the viewer's warnings
+// card — the off-datum chip's — put a scrollbar under its line. The icon's
+// invisible hit area (--help-hit, 24 px around a smaller glyph) reached past
+// the scroller the card's body became in round 8: 6 px sideways and 3 px
+// down on a desktop, the card 10 px taller, and the uncut body took the
+// pointer (a camera drag died on it). The "?" on the only line and on the
+// first of several; desktop, portrait 100 % and 150 % (the card opened where
+// it folds): the column check (a body scrolls only past a cut line), the
+// body lets the pointer through unless opened, and the "?" answers over its
+// whole hit area — centre, top, bottom and right edge.
+test('a help icon in the viewer warnings card scrolls nothing and keeps its hit area', async ({ page }) => {
+  test.setTimeout(180_000);
+  const profile = PROFILES[1];
+  const desktop = VIEWPORTS.find(v => v.name === 'desktop')!;
+  const portrait = VIEWPORTS.find(v => v.name === 'touch-portrait')!;
+  for (const [vp, zoom] of [[desktop, 1], [portrait, 1], [portrait, 1.5]] as const) for (const lines of ['alone', 'first'] as const) {
+    const label = `${vp.name} ${zoom * 100} %, the "?" line ${lines}`;
+    await openLayout(page, profile, vp);
+    await ctl({ op: 'status_delta', data: { rotary_abc: [20, 0, 0],
+      ...(lines === 'first' ? { eoffset_enabled: true, eoffset_z: 0.123, rotation_xy: 12 } : {}) } });
+    await expect(page.locator('.viewerPane .hudMode')).toContainText('off datum');
+    if (zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
+    await settleLayout(page);
+    if (await page.locator('.viewerPane .notesToggle').isVisible()) {
+      await page.locator('.viewerPane .notesToggle').click({ timeout: 3000 });
+      await settleLayout(page);
+    }
+    await viewerColumn(page, label);
+    const h = await page.evaluate(() => {
+      const icon = document.querySelector('.viewerPane .hudMode .helpIcon') as HTMLElement;
+      const body = document.querySelector('.viewerPane .hudNotesBody') as HTMLElement;
+      const r = icon.getBoundingClientRect(), z = r.width / icon.offsetWidth;
+      const reach = (parseFloat(getComputedStyle(icon).getPropertyValue('--help-hit')) / 2 - 1) * z;
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      const at = (x: number, y: number) => { const t = document.elementFromPoint(x, y); return !!t && (t === icon || icon.contains(t)); };
+      return { centre: at(cx, cy), top: at(cx, cy - reach), bottom: at(cx, cy + reach), right: at(cx + reach, cy),
+        opened: !!body.closest('.notesOpen'), bodyPointer: getComputedStyle(body).pointerEvents };
+    });
+    expect([h.centre, h.top, h.bottom, h.right], `${label}: the "?" answers over its whole hit area ${JSON.stringify(h)}`).toEqual([true, true, true, true]);
+    if (!h.opened) expect(h.bodyPointer, `${label}: the body lets the pointer through`).toBe('none');
+    if (zoom !== 1) await page.evaluate(() => { document.documentElement.style.zoom = ''; });
+  }
+});

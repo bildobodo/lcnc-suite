@@ -110,7 +110,20 @@ geometrically apart from both cards (it ignores the pointer — a hit test
 passes through it) and every line of an opened warnings card in view once
 scrolled to; simulating, the banner whole, the DRO still `fits` with every
 axis row. At 150 % the test requires both toggles to be offered (the case
-under test exists).
+under test exists). Since round 9 the same geometry with the DRO card OFF
+(Settings → Layers → HUD): switched off at the desktop and then resized to
+portrait 150 %, and off from the first settings after connecting — the
+narrow flag as the pane says, the short banner's "?" reachable, the cap =
+the viewer below the banner, the column check, through simulation on/off,
+More opened and a zoom change with More open; the HUD back on as the
+counter-check.
+Every viewer scroller (the warnings body, the findings row) scrolls only
+past a CUT line — sideways never — and an uncut warnings body the operator
+has not opened lets the pointer through; a "?" in the warnings card (the
+off-datum chip, alone and first of several; desktop, portrait 100/150 %)
+answers over its whole `--help-hit` area. A "?"'s invisible hit area once
+made the body scroll 6 px sideways and take the pointer (operator's live
+look 2026-09-27) — beyond the audit's 4 px sliver window.
 
 `layout.spec.ts` (serial-layout) measures the FRAME — the strip, the viewer
 pane and the content area, bounding box AND `clientWidth`/`clientHeight` —

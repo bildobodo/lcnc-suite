@@ -7189,3 +7189,36 @@ Plan Fassung 3 WP-D10 (N114, K14, N115), third of three commits.
   leaves too little height under it for an opened bar at 150 % portrait;
   the operator asked for the view and folds it with the pinned toggle.
   Named in the review answer.
+
+### Implementation review round 9 — D9 fix (2026-09-27)
+
+- UI-DI16 (still open with the HUD layer off): fitHud returned early while
+  the DRO card was hidden (Settings → Layers → HUD), so the narrow flag and
+  the bottom column's cap stayed at their last values — switched off at the
+  desktop and resized to portrait 150 %, the cap stayed 566 px in a 304 px
+  viewer, the banner kept its long form and More covered its explanation.
+  fitHud now computes the SHARED viewer geometry (narrow flag, cap, the
+  `.scrolls` mark) on every call and hands only the DRO's size pick to
+  `fitDro`, which needs the card; with the card off the findings card
+  never folds (there is no DRO to make room for).
+- Operator's live look, same day (a bar under "MACHINE · off datum"): a
+  regression of round 8. The warnings body became a scroller
+  (`overflow-y: auto`, which turns `overflow-x` to auto too), and a "?"'s
+  invisible hit area (`--help-hit`, 24 px around a 12–16 px glyph) is
+  scrollable overflow there: 6 px sideways and 3 px down on a desktop,
+  both scrollbars, the card 10 px taller, `.scrolls` set on an uncut body
+  so it took the pointer (a camera drag died on the card), and the
+  scroller clipped the target. The body's padding now holds the reach —
+  at the top no more than `--gap-tight`, the gap above it, so the folded
+  summary's toggle stays whole — and a negative margin gives the room
+  back: the card keeps the size it has without the hit area. The round-8
+  answer said the `.scrolls` case arose in no constellation of the
+  matrix; it arose on every desktop with a "?" line, a state the matrix
+  did not hold. Guard: `viewerColumn` requires every viewer scroller to
+  scroll only past a CUT line (sideways never) and an uncut, unopened
+  warnings body to let the pointer through; a new test puts the "?" on
+  the only line and on the first of several, desktop and portrait
+  100/150 %, and hit-tests the "?" at its centre and its hit area's top,
+  bottom and right edge. Red before the fix (6 px sideways, 3 px with no
+  line cut, the pointer taken).
+- Codex accepted the opened More covering the ViewCube column (round 9).

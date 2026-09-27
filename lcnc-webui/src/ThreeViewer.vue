@@ -3769,20 +3769,47 @@ const simBannerEl = ref<HTMLDivElement | null>(null);
 let _hudFitObs: ResizeObserver | null = null;
 
 function fitHud() {
-  const wrap = wrapEl.value, card = hudEl.value;
-  if (!wrap || !card || card.offsetParent === null) return;
+  const wrap = wrapEl.value;
+  if (!wrap) return;
   const W = wrap.clientWidth, H = wrap.clientHeight;
   if (!W || !H) return;
+  // The SHARED viewer geometry — the narrow flag (the banner's short form,
+  // the smaller cube) and the bottom column's cap below — holds whether or
+  // not the DRO card shows (Settings → Layers → HUD off left both stale
+  // after a resize, review round 9, UI-DI16); only the DRO's size pick
+  // needs the card.
   const narrow = W < NARROW_VIEWER_PX;
   wrap.classList.toggle("narrowViewer", narrow);
   const cs = getComputedStyle(wrap);
   const gap = parseFloat(cs.getPropertyValue("--gap-section")) || 12;
-  const cube = parseFloat(cs.getPropertyValue("--viewcube-size")) || 140;
   // Between the DRO card and the bottom column two cards meet: the tight
   // gap, not the viewer's own margin.
   const between = parseFloat(cs.getPropertyValue("--gap-tight")) || 4;
-  const availW = W - 3 * gap - cube;
   const notes = wrap.querySelector<HTMLElement>(".hudNotes");
+  const card = hudEl.value;
+  if (card && card.offsetParent !== null) fitDro(wrap, card, notes, W, H, gap, between, narrow);
+  else {
+    // No DRO to make room for: the findings card (then only a failed model
+    // part) never folds.
+    Object.assign(hudFit, { notesCompact: false, narrow, overflow: false });
+    notesOpen.value = false;
+  }
+  // An opened detail view grows the bottom column upward over the DRO — by
+  // the operator's choice — but never over the simulation banner nor out of
+  // the viewer: the column is capped there and its detail bodies scroll
+  // under their pinned heads (the toggles are the way back; round 8,
+  // UI-DI16/17).
+  const bannerNow = simBannerEl.value?.offsetHeight ?? 0;
+  wrap.style.setProperty("--viewer-bottom-max", `${Math.max(0, H - 2 * gap - (bannerNow ? bannerNow + between : 0))}px`);
+  // A body the cap cuts scrolls — by touch too, so it takes the pointer.
+  const body = notes?.querySelector<HTMLElement>(".hudNotesBody");
+  body?.classList.toggle("scrolls", body.scrollHeight > body.clientHeight + 1);
+}
+/** The DRO card's size pick (fitHud with the card shown). */
+function fitDro(wrap: HTMLElement, card: HTMLElement, notes: HTMLElement | null, W: number, H: number,
+                gap: number, between: number, narrow: boolean) {
+  const cube = parseFloat(getComputedStyle(wrap).getPropertyValue("--viewcube-size")) || 140;
+  const availW = W - 3 * gap - cube;
   const top = HUD_SCALES.indexOf(hudCfg.value.scale);
   // Order: the DRO steps down and folds its extras first; the findings fold
   // to one line only when even the smallest DRO does not fit beside them.
@@ -3831,16 +3858,6 @@ function fitHud() {
   card.className = wasCard;
   if (notes) notes.className = wasNotes;
   if (scrub) scrub.className = wasScrub;
-  // An opened detail view grows the bottom column upward over the DRO — by
-  // the operator's choice — but never over the simulation banner nor out of
-  // the viewer: the column is capped there and its detail bodies scroll
-  // under their pinned heads (the toggles are the way back; round 8,
-  // UI-DI16/17).
-  const bannerNow = simBannerEl.value?.offsetHeight ?? 0;
-  wrap.style.setProperty("--viewer-bottom-max", `${Math.max(0, H - 2 * gap - (bannerNow ? bannerNow + between : 0))}px`);
-  // A body the cap cuts scrolls — by touch too, so it takes the pointer.
-  const body = notes?.querySelector<HTMLElement>(".hudNotesBody");
-  body?.classList.toggle("scrolls", body.scrollHeight > body.clientHeight + 1);
   Object.assign(hudFit, { scale: pick.scale, fold: pick.fold, notesCompact: pick.notesCompact, narrow, overflow: !fits });
   if (!pick.notesCompact) notesOpen.value = false;
 }
@@ -4454,6 +4471,17 @@ defineExpose({
 .hudNotesBody {
   min-height: 0;
   overflow-y: auto;
+  /* A line's "?" reaches past its glyph by its invisible hit area
+     (--help-hit, style.css .helpIcon::before): in this scroller that reach
+     was overflow — a scrollbar under the off-datum chip, the card 10 px
+     taller, an uncut body that took the pointer (operator, 2026-09-27) —
+     and the scroller clipped the target. The padding holds the reach (at the
+     top no more than the gap above: the summary's toggle stays whole), the
+     negative margin gives the room back: the card keeps its size. */
+  --help-reach: calc((var(--help-hit) - var(--help-icon-size)) / 2);
+  --help-reach-top: min(var(--help-reach), var(--gap-tight));
+  padding: var(--help-reach-top) var(--help-reach) var(--help-reach) 0;
+  margin: calc(-1 * var(--help-reach-top)) calc(-1 * var(--help-reach)) calc(-1 * var(--help-reach)) 0;
 }
 .hudNotes.notesOpen > .hudNotesBody,
 .hudNotesBody.scrolls { pointer-events: auto; }
