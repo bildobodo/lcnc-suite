@@ -51,6 +51,7 @@ import CameraPip from "./CameraPip.vue";
 import ScrubBar from "./ScrubBar.vue";
 import { simMode } from "./simMode";
 import { twpPoseStale, twpDatumStale, kinsModeChip, fixtureOffDatum, stampAForFixture, poseAbcOf } from "./twpPose";
+import { planeView, type PlaneView } from "./viewer/planeView";
 import { Camera, Settings, ChevronDown, ChevronUp } from "lucide-vue-next";
 
 const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
@@ -184,12 +185,10 @@ const hudMode = computed(() => {
     g5xIndex: d.g5x_index,
   });
 });
-const hudPlaneWord = computed(() => {
-  const d = vst.value;
-  if (!d?.twp_defined) return null;
-  if (twpPoseStale(poseAbcOf(d), d.rotary_abc, d.twp_defined)) return "plane stale";
-  return d.twp_active ? "plane active" : "plane defined";
-});
+// The drawn plane's one display decision (viewer/planeView.ts, viewer
+// contrast plan V4): its colour, its label on the object and this word.
+const planeViewState = shallowRef<PlaneView | null>(null);
+const hudPlaneWord = computed(() => planeViewState.value?.hudWord ?? null);
 
 // g5x index (1..9) -> label, matching the gateway's _G5X_MAP.
 const WCS_LABELS = G5X_NAMES;
@@ -484,10 +483,13 @@ let twpPlaneGroup: THREE.Group | null = null;
 let twpNormalArrow: THREE.ArrowHelper | null = null;
 let twpPlaneMat: THREE.MeshBasicMaterial | null = null;
 let twpGridMat: THREE.LineBasicMaterial | null = null;
+// The plane's OPAQUE outline (viewer contrast plan, V4 / VK-03): the fill
+// (12 %) and the inner grid (35 %) stay translucent, the edge carries the
+// contrast (R2 on its drawn colour) and the state's pattern (dashed = stale).
+let twpEdgeMat: THREE.LineDashedMaterial | null = null;
 let _twpLayerOn = true;
-const _TWP_ACTIVE_HEX = 0x4aa3ff;   // matches the info-blue family
-const _TWP_INACTIVE_HEX = 0xffb347; // matches the warn-amber family
-const _TWP_STALE_HEX = 0xcc3333;    // matches the danger family
+// The plane's colours are the viewer palette's plane roles (viewer contrast
+// plan, V4): --viewer-plane-active / -defined / -stale per theme.
 
 // ---- Backplot (live toolpath history) — owned by backplotController ----
 const backplot = createBackplotController(requestRender);
@@ -963,32 +965,44 @@ const _twpM = new THREE.Matrix4();
 // The PROGRAM's plane while simulating (from ScrubBar), null otherwise.
 let _scrubPlane: number[] | null = null;
 
+// A test seam (__viewerDiag.simulatePlane): the plane a simulation would draw,
+// without the scrub chain that derives it from the program (kins spec,
+// frames, WCS epochs) — undefined = no such override.
+let _diagSimulatedPlane: number[] | null | undefined = undefined;
 function _twpRefresh() {
   const d: any = status.value?.data;
-  if (simMode.value || _scrubJoints) {
+  if (simMode.value || _scrubJoints || _diagSimulatedPlane !== undefined) {
     // Simulating: the model shows the PROGRAM, so the overlay must too.
     // No plane data for this point means the program has not established
     // one there — HIDE it. Falling through to live status would put a
     // machine fact on screen beside a simulated machine, which is the
     // incoherence this exists to remove. Staleness is a claim about the
     // live setup and is meaningless here, so it is never applied in sim.
-    updateTwpPlane(_scrubPlane, _scrubPlane != null, 2, false, false);
+    const plane = _diagSimulatedPlane !== undefined ? _diagSimulatedPlane : _scrubPlane;
+    updateTwpPlane(plane, plane != null, planeView({ simulated: true, active: true, headMoved: false, datumMoved: false }));
     return;
   }
-  updateTwpPlane(d?.twp_plane, !!d?.twp_defined, d?.kins_type,
-    twpPoseStale(poseAbcOf(d), d?.rotary_abc, d?.twp_defined),
-    twpDatumStale(d?.wcs_table?.[0], d?.twp_datum, d?.twp_defined, d?.wcs_prov_a?.[0]));
+  const k = d?.kins_type == null ? -1 : Math.round(Number(d.kins_type));
+  updateTwpPlane(d?.twp_plane, !!d?.twp_defined, planeView({
+    simulated: false,
+    // In effect = the helper's is-active AND the plane kinematics (the two
+    // agree in operation; either missing is "defined", the cautious word).
+    active: !!d?.twp_active && k === 2,
+    headMoved: twpPoseStale(poseAbcOf(d), d?.rotary_abc, d?.twp_defined),
+    datumMoved: twpDatumStale(d?.wcs_table?.[0], d?.twp_datum, d?.twp_defined, d?.wcs_prov_a?.[0]),
+  }));
 }
 
-function updateTwpPlane(plane: unknown, defined: boolean, ktype: unknown, stale: boolean, datumStale = false) {
+function updateTwpPlane(plane: unknown, defined: boolean, view: PlaneView) {
+  const shown = defined ? view : null;
+  if (planeViewState.value?.hudWord !== shown?.hudWord) planeViewState.value = shown;
   if (!twpPlaneGroup) return;
   const ok = defined && Array.isArray(plane) && plane.length === 9 &&
     (plane as unknown[]).every((v) => Number.isFinite(Number(v)));
-  const k = ktype == null ? -1 : Math.round(Number(ktype));
-  // `stale` joins the signature or the tint would never repaint — a boolean,
-  // so live A jitter under the eps costs nothing.
+  // The state joins the signature or the tint would never repaint — a few
+  // words, so live A jitter under the eps costs nothing.
   const sig = ok
-    ? `${(plane as number[]).map((v) => Number(v).toFixed(4)).join(",")}|${k}|${_twpLayerOn}|${stale}|${datumStale}|${simMode.value}`
+    ? `${(plane as number[]).map((v) => Number(v).toFixed(4)).join(",")}|${view.role}|${view.label}|${view.arrowStale}|${_twpLayerOn}|${simMode.value}`
     : `off|${simMode.value}`;
   if (sig === _twpSig) return;
   _twpSig = sig;
@@ -1026,15 +1040,28 @@ function updateTwpPlane(plane: unknown, defined: boolean, ktype: unknown, stale:
   // invisible beside a 300 mm quad (operator: "why does a stale plane not
   // become red anymore?"). Either claim paints quad + grid; the arrow keeps
   // the head-stale tint as the pointer to WHAT is off.
-  const hex = (stale || datumStale) ? _TWP_STALE_HEX : k === 2 ? _TWP_ACTIVE_HEX : _TWP_INACTIVE_HEX;
+  // Colour, label, edge pattern and arrow from ONE decision (planeView):
+  // the label names the state at the object, a stale plane's edge is dashed,
+  // and the arrow — the tool-normal claim — turns only for the head.
+  const color = palette[view.role];
   if (twpNormalArrow) {
     (twpNormalArrow.line.material as THREE.LineBasicMaterial).color
-      .setHex(stale ? _TWP_STALE_HEX : AXIS_HEX.z);
+      .set(view.arrowStale ? palette.planeStale : AXIS_HEX.z);
     (twpNormalArrow.cone.material as THREE.MeshBasicMaterial).color
-      .setHex(stale ? _TWP_STALE_HEX : AXIS_HEX.z);
+      .set(view.arrowStale ? palette.planeStale : AXIS_HEX.z);
   }
-  if (twpPlaneMat) twpPlaneMat.color.setHex(hex);
-  if (twpGridMat) twpGridMat.color.setHex(hex);
+  if (twpPlaneMat) twpPlaneMat.color.set(color);
+  if (twpGridMat) twpGridMat.color.set(color);
+  if (twpEdgeMat) {
+    twpEdgeMat.color.set(color);
+    twpEdgeMat.userData.role = view.role;
+    twpEdgeMat.gapSize = view.dashed ? twpEdgeMat.dashSize * 0.6 : 0;
+  }
+  if (twpPlaneLabel) {
+    twpPlaneLabel.text = view.label;
+    twpPlaneLabel.color = color;
+    twpPlaneLabel.sync(requestRender);
+  }
   twpPlaneGroup.visible = true;
   requestRender();
 }
@@ -1221,6 +1248,7 @@ function ensureCoreGroups(init: ViewerInit) {
   machineBoundsMesh = null;
   reachRoomMesh = reachPartMesh = null;   // disposed with the scene; rebuilt from _reachData
   twpNormalArrow = null;
+  twpEdgeMat = null;
   machineMeshes = [];
   _machineEdgeLines = [];
   _edgesBuilt = false;
@@ -1382,7 +1410,7 @@ function ensureCoreGroups(init: ViewerInit) {
     twpPlaneGroup.visible = false;
     const _ps = 300 * _unitScale;   // 300 mm-equivalent square
     twpPlaneMat = new THREE.MeshBasicMaterial({
-      color: _TWP_ACTIVE_HEX, transparent: true, opacity: 0.12,
+      color: palette.planeActive, transparent: true, opacity: 0.12,
       side: THREE.DoubleSide, depthWrite: false,
     });
     twpPlaneGroup.add(new THREE.Mesh(new THREE.PlaneGeometry(_ps, _ps), twpPlaneMat));
@@ -1397,9 +1425,20 @@ function ensureCoreGroups(init: ViewerInit) {
       const g = new THREE.BufferGeometry();
       g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
       twpGridMat = new THREE.LineBasicMaterial({
-        color: _TWP_ACTIVE_HEX, transparent: true, opacity: 0.35, depthWrite: false,
+        color: palette.planeActive, transparent: true, opacity: 0.35, depthWrite: false,
       });
       twpPlaneGroup.add(new THREE.LineSegments(g, twpGridMat));
+      // The opaque outline (VK-03): four edges, dashed while stale.
+      const e = [[-half, -half], [half, -half], [half, half], [-half, half]];
+      const ep: number[] = [];
+      for (let i = 0; i < 4; i++) ep.push(e[i]![0]!, e[i]![1]!, 0, e[(i + 1) % 4]![0]!, e[(i + 1) % 4]![1]!, 0);
+      const eg = new THREE.BufferGeometry();
+      eg.setAttribute("position", new THREE.Float32BufferAttribute(ep, 3));
+      twpEdgeMat = new THREE.LineDashedMaterial({ color: palette.planeActive, dashSize: 12 * _unitScale, gapSize: 0, depthWrite: false });
+      twpEdgeMat.userData.role = "planeActive";
+      const edge = new THREE.LineSegments(eg, twpEdgeMat);
+      edge.computeLineDistances();
+      twpPlaneGroup.add(edge);
     }
     // Origin triad in the PLANE's frame — Z is the plane normal (= tool
     // axis when TOOL kins is active).
@@ -1412,7 +1451,7 @@ function ensureCoreGroups(init: ViewerInit) {
     // stale warning (see updateTwpPlane) — keep a handle on it.
     twpNormalArrow = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(), _tl, AXIS_HEX.z, _th, _tw);
     twpPlaneGroup.add(twpNormalArrow);
-    twpPlaneLabel = mkTextLabel("Plane", "#" + _TWP_ACTIVE_HEX.toString(16).padStart(6, "0"), _tl * 0.45);
+    twpPlaneLabel = mkTextLabel("Plane", palette.planeActive, _tl * 0.45);
     twpPlaneLabel.position.set(0, 0, _tl * 1.5);
     twpPlaneGroup.add(twpPlaneLabel);
     _billboardLabels.push(twpPlaneLabel);
@@ -1756,6 +1795,24 @@ async function buildFromInit(init: ViewerInit) {
           });
           return best;
         },
+        // The tilted work plane as drawn (viewer contrast plan, V4): the label
+        // on the object, the edge's role, pattern and opacity, the arrow's
+        // claim and the HUD's word — one decision behind all of them.
+        getPlane: () => {
+          if (!twpPlaneGroup) return null;
+          let shown = twpPlaneGroup.visible;
+          for (let p = twpPlaneGroup.parent; p; p = p.parent) shown &&= p.visible;
+          const arrow = twpNormalArrow ? "#" + (twpNormalArrow.line.material as THREE.LineBasicMaterial).color.getHexString() : null;
+          return {
+            visible: shown, label: twpPlaneLabel ? String(twpPlaneLabel.text) : null,
+            role: (twpEdgeMat?.userData.role as string | undefined) ?? null, dashed: (twpEdgeMat?.gapSize ?? 0) > 0,
+            edge: twpEdgeMat ? { color: "#" + twpEdgeMat.color.getHexString(), opacity: twpEdgeMat.opacity, transparent: twpEdgeMat.transparent } : null,
+            arrowStale: arrow === palette.planeStale, hudWord: planeViewState.value?.hudWord ?? null,
+          };
+        },
+        // Draw a plane as a simulation would (null = sim with no plane there,
+        // undefined = back to live) — the seam past the scrub chain.
+        simulatePlane: (plane: number[] | null | undefined) => { _diagSimulatedPlane = plane; _twpSig = ""; _twpRefresh(); },
         getLabels: () => {
           let total = 0, laidOut = 0;
           for (const sc of [scene, _gizmoScene]) sc?.traverse(o => {
@@ -3821,7 +3878,21 @@ const hudWarnCount = computed(() => [vst.value?.eoffset_enabled, vst.value?.rota
   !previewRefresh.value && previewWcsStale.value, previewTloStale.value, toolpathOverflow.value,
   failedParts.value.length].filter(Boolean).length);
 /** The folded card's one line: the mode and how many warnings wait behind it. */
-const hudNotesSummary = computed(() => [hudMode.value ? `${hudMode.value.text} · ${props.g5xLabel || NO_VALUE}` : "",
+/** The mode line: the chip, the fixture, the plane's word — each said once.
+ *  A wrong-fixture chip names its fixture already ("TWP · G54"), and the
+ *  plane's word names a moved datum the chip also carries (viewer contrast
+ *  plan, V4: the word follows the drawn plane). */
+function hudModeLine(withPlane: boolean): string {
+  const m = hudMode.value;
+  if (!m) return "";
+  const word = withPlane ? hudPlaneWord.value : null;
+  const segs = m.text.split(" · ").filter(s => !(word?.includes("datum moved") && s === "datum moved"));
+  const fx = props.g5xLabel || NO_VALUE;
+  if (!segs.includes(fx)) segs.push(fx);
+  if (word) segs.push(word);
+  return segs.join(" · ");
+}
+const hudNotesSummary = computed(() => [hudModeLine(false),
   hudWarnCount.value ? `${hudWarnCount.value} warning${hudWarnCount.value === 1 ? "" : "s"}` : ""].filter(Boolean).join(" · "));
 /** Anything for the findings card (the mode chip or a warning line). */
 const hasHudNotes = computed(() => !!(hudMode.value || vst.value?.eoffset_enabled || vst.value?.rotation_xy
@@ -4122,6 +4193,8 @@ function refreshPalette() {
   for (const mesh of [...machineMeshes, toolCutterMesh, toolBodyMesh]) {
     if (mesh?.userData._clashOn) (mesh.material as THREE.MeshStandardMaterial).emissive.set(palette.collision);
   }
+  _twpSig = "";   // the plane's role colours changed with the theme
+  _twpRefresh();
   requestRender();
 }
 
@@ -4263,7 +4336,7 @@ defineExpose({
              readout, the tool line and the load bar are the readout; the chip
              and the warnings are the "what to know" block — keep them together). -->
         <div v-if="hudMode" class="hudMode val-status" :class="hudMode.cls" :title="hudMode.title">
-          {{ hudMode.text }} · {{ props.g5xLabel || NO_VALUE }}<template v-if="hudPlaneWord"> · {{ hudPlaneWord }}</template><HelpIcon v-if="hudMode.help" label="Kinematics state">{{ hudMode.help }}</HelpIcon>
+          {{ hudModeLine(true) }}<HelpIcon v-if="hudMode.help" label="Kinematics state">{{ hudMode.help }}</HelpIcon>
         </div>
 
         <div v-if="vst?.eoffset_enabled" class="hudWarn">Comp Z {{ fmtNum(vst.eoffset_z, 3) }}</div>

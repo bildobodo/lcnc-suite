@@ -13,7 +13,9 @@ import { PALETTE_PAIRS, PATH_ROLES, PAIR_MIN_DISTANCE } from "./viewer/palettePa
 const css = readFileSync(new URL("./style.css", import.meta.url), "utf8");
 
 const VIEWER_LINES = ["--viewer-feed", "--viewer-rapid", "--viewer-backplot", "--viewer-limit",
-  "--viewer-collision", "--viewer-bounds", "--viewer-toolpath-bounds"];
+  "--viewer-collision", "--viewer-bounds", "--viewer-toolpath-bounds",
+  // The tilted work plane's opaque edge (viewer contrast plan, V4).
+  "--viewer-plane-active", "--viewer-plane-defined", "--viewer-plane-stale"];
 /** The roles drawn ON the path (or tinting what the path hits): they must
  *  tell apart from each other by hue/lightness, not only from the scene. */
 const VIEWER_PATH = ["--viewer-feed", "--viewer-rapid", "--viewer-backplot", "--viewer-limit", "--viewer-selection", "--viewer-collision"];

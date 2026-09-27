@@ -17,7 +17,8 @@ import type { ColorDefaults, PaletteMode } from "../defaults";
 export const USER_ROLES = ["feed", "rapid", "backplot", "bounds", "toolpathBounds", "tool", "cutter"] as const;
 export type UserRole = typeof USER_ROLES[number];
 /** Every role the viewer draws. */
-export type ViewerRole = UserRole | "limit" | "selection" | "selectionHalo" | "collision";
+export type ViewerRole = UserRole | "limit" | "selection" | "selectionHalo" | "collision"
+  | "planeActive" | "planeDefined" | "planeStale";
 export type ViewerPalette = Record<ViewerRole, string>;
 
 export const ROLE_TOKEN: Record<ViewerRole, string> = {
@@ -32,6 +33,9 @@ export const ROLE_TOKEN: Record<ViewerRole, string> = {
   selection: "--viewer-selection",
   selectionHalo: "--viewer-selection-halo",
   collision: "--viewer-collision",
+  planeActive: "--viewer-plane-active",
+  planeDefined: "--viewer-plane-defined",
+  planeStale: "--viewer-plane-stale",
 };
 
 const HEX = /^#[0-9a-f]{6}$/i;

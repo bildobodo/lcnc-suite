@@ -55,4 +55,9 @@ export const PALETTE_PAIRS: PalettePair[] = [
   { a: "--viewer-limit", b: "--viewer-collision", where: "3D, timeline, code panel", colour: false, cues: ["object", "glyph"] },
   { a: "--viewer-selection", b: "--viewer-collision", where: "a line against a tinted body", colour: false, cues: ["object"] },
   { a: "--viewer-bounds", b: "--viewer-toolpath-bounds", where: "two solid boxes", colour: false, cues: ["label"] },
+  // The tilted work plane's states (V4): the label on the object names the
+  // state, a stale plane's edge is dashed.
+  { a: "--viewer-plane-active", b: "--viewer-plane-defined", where: "the plane", colour: false, cues: ["label"] },
+  { a: "--viewer-plane-active", b: "--viewer-plane-stale", where: "the plane", colour: false, cues: ["label", "dashed"] },
+  { a: "--viewer-plane-defined", b: "--viewer-plane-stale", where: "the plane", colour: false, cues: ["label", "dashed"] },
 ];

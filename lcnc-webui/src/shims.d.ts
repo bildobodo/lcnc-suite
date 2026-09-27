@@ -38,6 +38,11 @@ interface ViewerDiag {
   // cue), width and opacity; the longest visible segment of a role on screen.
   getRoleMaterials?: () => { role: string; kind: string; widthPx: number | null; opacity: number; transparent: boolean }[];
   projectRole?: (role: string) => { x: number; y: number; dx: number; dy: number; length: number } | null;
+  // Viewer contrast plan (V4): the tilted work plane as drawn, and a seam to
+  // draw a simulated plane (null = none, undefined = back to live).
+  getPlane?: () => { visible: boolean; label: string | null; role: string | null; dashed: boolean;
+    edge: { color: string; opacity: number; transparent: boolean } | null; arrowStale: boolean; hudWord: string | null } | null;
+  simulatePlane?: (plane: number[] | null | undefined) => void;
   getAppearance?: () => {
     grid: { visible: boolean; position: number[]; color: number[] } | null;
     outlinedParts: number;

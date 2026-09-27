@@ -1278,3 +1278,92 @@ test('a code line names its findings with a glyph: ▲ limit, × collision, both
   expect(plain.name, `a clean line has no mark ${dump}`).toBeNull();
   expect(new Set([limitOnly.codeX, collisionOnly.codeX, both.codeX, plain.codeX]).size, `the code starts at one x ${dump}`).toBe(1);
 });
+
+// Viewer contrast plan, V4 (VK-02/03): the tilted work plane names its state
+// AT THE OBJECT — the HUD word is gone with the HUD layer off or the warnings
+// card folded, while the plane still shows — and colour, label, edge pattern
+// and arrow come from ONE decision the HUD word follows. Five live states
+// (active, defined, head moved, datum moved, both) and a simulated plane
+// beside a live machine that claims staleness; the HUD visible, folded
+// (portrait 150 %) and off. The edge is opaque (its colour is its contrast).
+test('the tilted work plane names its state at the object — whatever the HUD shows', async ({ page, context }) => {
+  test.setTimeout(300_000);
+  let version = 0;
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: LIMIT_PREVIEW }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain', body: '(limits)\nG0 X0\nG1 X10 F100\nM2\n' }));
+  const profile = PROFILES[2];
+  const G54_ZERO = ['G54', 'G55', 'G56', 'G57', 'G58', 'G59', 'G59.1', 'G59.2', 'G59.3']
+    .map(name => ({ name, x: 0, y: 0, z: 0, a: 0, b: 0, c: 0, r: 0 }));
+  // Beside the program (in view): the attached scenes show the plane for the eye.
+  const PLANE = [40, 10, 0, 0, 0.5, 0.8660254, 1, 0, 0];
+  const base = { twp_plane: PLANE, twp_defined: true, twp_pose_a: 0, twp_pose_b: 30, twp_pose_c: 0,
+    wcs_table: G54_ZERO, wcs_prov_a: [0, 0, 0, 0, 0, 0, 0, 0, 0], g5x_index: 1 };
+  const STATES = [
+    { name: 'active', data: { twp_active: true, kins_type: 2, rotary_abc: [0, 30, 0], twp_datum: [0, 0, 0] },
+      label: 'Plane · active', word: 'plane active', role: 'planeActive', dashed: false, arrow: false },
+    { name: 'defined', data: { twp_active: false, kins_type: 0, rotary_abc: [0, 30, 0], twp_datum: [0, 0, 0] },
+      label: 'Plane · defined', word: 'plane defined', role: 'planeDefined', dashed: false, arrow: false },
+    { name: 'head moved', data: { twp_active: true, kins_type: 2, rotary_abc: [0, 10, 0], twp_datum: [0, 0, 0] },
+      label: 'Plane · head moved', word: 'plane head moved', role: 'planeStale', dashed: true, arrow: true },
+    { name: 'datum moved', data: { twp_active: true, kins_type: 2, rotary_abc: [0, 30, 0], twp_datum: [5, 0, 0] },
+      label: 'Plane · datum moved', word: 'plane datum moved', role: 'planeStale', dashed: true, arrow: false },
+    { name: 'both', data: { twp_active: true, kins_type: 2, rotary_abc: [0, 10, 0], twp_datum: [5, 0, 0] },
+      label: 'Plane · head moved · datum moved', word: 'plane head moved, datum moved', role: 'planeStale', dashed: true, arrow: true },
+  ];
+  const plane = () => page.evaluate(() => window.__viewerDiag?.getPlane?.() ?? null);
+  const check = async (where: string, want: { label: string; word: string; role: string; dashed: boolean; arrow: boolean }, hud: 'visible' | 'folded' | 'off') => {
+    await expect.poll(async () => (await plane())?.label, { message: `${where}: the label on the object` }).toBe(want.label);
+    const p = (await plane())!;
+    const dump = JSON.stringify(p);
+    expect(p.visible, `${where}: the plane shows ${dump}`).toBe(true);
+    expect([p.role, p.dashed, p.arrowStale, p.hudWord], `${where}: one decision — role, edge, arrow, word ${dump}`)
+      .toEqual([want.role, want.dashed, want.arrow, want.word]);
+    expect(p.edge && p.edge.opacity === 1 && !p.edge.transparent, `${where}: the edge is opaque ${dump}`).toBe(true);
+    const chip = page.locator('.viewerPane .hudMode');
+    if (hud === 'visible') {
+      await expect(chip, `${where}: the HUD word agrees`).toContainText(want.word);
+      // Each part of the mode line once: the chip, the fixture, the plane's word.
+      const segs = (await chip.innerText()).replace(/\?\s*$/, '').split(' · ').map(x => x.trim());
+      expect(segs.filter((x, i) => segs.indexOf(x) !== i), `${where}: the mode line says each part once — ${segs.join(' · ')}`).toEqual([]);
+    }
+    else await expect(chip, `${where}: the HUD word is not on screen — the object carries the state`).toBeHidden();
+  };
+  for (const hud of ['visible', 'folded', 'off'] as const) {
+    await openLayout(page, profile, VIEWPORTS.find(v => v.name === (hud === 'folded' ? 'touch-portrait' : 'desktop'))!);
+    await ctl({ op: 'status_delta', data: { active_file: '/leak.ngc', eoffset_enabled: true, eoffset_z: 0.123, rotation_xy: 12, ...base, ...STATES[0]!.data } });
+    await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 1100 + version++, file: '/leak.ngc' } });
+    await expect(page.locator('.scrubBar')).toBeVisible();
+    if (hud === 'folded') await page.evaluate(() => { document.documentElement.style.zoom = '1.5'; });
+    if (hud === 'off') await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { viewer: { layers: { hud: false } } } } });
+    await settleLayout(page);
+    if (hud === 'folded') await expect(page.locator('.viewerPane .hudNotes.needsCompact'), 'the warnings card folds at 150 % portrait').toHaveCount(1);
+    if (hud === 'off') await expect(page.locator('.viewerPane .hud')).toBeHidden();
+    // Every state; with the HUD visible in four themes, a scene per state and
+    // theme attached for the eye (no WebGL references).
+    for (const theme of hud === 'visible' ? ['light', 'dark', 'hc-light', 'hc-dark'] : ['light']) {
+      if (hud === 'visible') {
+        await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { display: { theme } } } });
+        await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      }
+      for (const s of STATES) {
+        await ctl({ op: 'status_delta', data: { ...base, ...s.data } });
+        await check(`HUD ${hud}, ${theme}, ${s.name}`, s, hud);
+        if (hud === 'visible') await test.info().attach(`plane-${theme}-${s.name.replace(/\W+/g, '-')}.png`,
+          { body: await page.locator('.viewerPane').screenshot(), contentType: 'image/png' });
+      }
+    }
+    if (hud === 'visible') {
+      await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { display: { theme: 'light' } } } });
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    }
+    // A simulated plane beside a live machine that claims staleness: the
+    // object says "simulated", never the live claim.
+    await ctl({ op: 'status_delta', data: { ...base, ...STATES[4]!.data } });
+    await page.evaluate(p => window.__viewerDiag!.simulatePlane!(p), PLANE);
+    await check(`HUD ${hud}, simulated`, { label: 'Plane · simulated', word: 'plane simulated', role: 'planeActive', dashed: false, arrow: false }, hud);
+    await test.info().attach(`plane-hud-${hud}.png`, { body: await page.locator('.viewerPane').screenshot(), contentType: 'image/png' });
+    await page.evaluate(() => window.__viewerDiag!.simulatePlane!(undefined));
+    await check(`HUD ${hud}, back to live`, STATES[4]!, hud);
+    if (hud === 'folded') await page.evaluate(() => { document.documentElement.style.zoom = ''; });
+  }
+});
