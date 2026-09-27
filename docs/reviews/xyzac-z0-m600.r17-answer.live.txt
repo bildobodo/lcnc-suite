@@ -1,0 +1,129 @@
+# R17 answer — live check on the XYZAC sim, 2026-09-27 ~20:19 and ~20:30 (gateway restarted with the R17 code, no VM browser)
+# Driver: WebSocket client as the WebUI would send; tool changes confirmed like the dialog; the sim has no probe
+# writer — the driver trips it (simulate_probe_trip) when the tip reaches the plate (#3102 -300, T1003 46.953).
+# Program (removed after the check), run from line 5 with the pre-measurement T1003:
+#   text A: 1 (R17 live check …)  2 G21 G90  3 T1003 M600  4 G54 G0 X10 Y20  5 G0 X20 Y20  6 G0 X30 Y20  7 M2
+#   text B: the same with line 6 "G0 X40 Y20" — the same size; written over A with the mtime restored.
+#
+# FIRST RUN (R17 code before ae06da7) — found the skip-flag defect:
+#  - the double abort while positioning: the #3116 clear ran before the aborted move stopped and was refused
+#    ('MDI command in progress'); phase flag_clear_failed reached the operator, but #3116=1003 stayed armed;
+#  - the next pre-measurement of T1003 was SKIPPED: measuring → safe_z in 2.2 s, no probe trip (trace 190.4 → 192.6).
+#  - Its later FAILs are driver timing: its wait accepted the stale phase flag_clear_failed as the new sequence's end,
+#    and unload/load then met the sequence still running (refused "Machine busy" — correct).
+#  - Afterwards: #3116=0 by MDI, kontur.ngc loaded back.
+# SECOND RUN (with ae06da7), 21 / 21: phases count only when stamped after each start; the probe trips are counted.
+
+## r17_live.py — first run
+[20:19:35] PASS machine on + homed 
+[20:19:38] PASS GET /gcode names exactly the text it served 26aafb5d7e0dae108cd6a479131dcff6e7d778f6cfecdee7760fd08dcaed3349
+[20:19:38] PASS load record settled for this instance {'instance': [3686535, 15232298], 'loaded': '/home/cnc/linuxcnc/nc_files/r17_rfl_check.ngc'}
+[20:19:38] PASS rewrite kept size and mtime 
+[20:19:38] PASS auto_run on text A after the rewrite: refused Program changed on disk — wait for the preview
+[20:19:40] PASS nothing taken over, nothing queued ['gcode.reparse_requested', 'gcode.refresh_scheduled', 'gcode.spawn_start', 'gcode.worker_log', 'gcode.worker_log', 'gcode.worker_log', 'gcode.worker_log', 'gcode.worker_log', 'gcode.worker_done', 'gcode.publish']
+[20:19:40] PASS the re-parse is requested ['gcode.reparse_requested', 'gcode.refresh_scheduled', 'gcode.spawn_start', 'gcode.worker_log', 'gcode.worker_log', 'gcode.worker_log', 'gcode.worker_log', 'gcode.worker_log', 'gcode.worker_done', 'gcode.publish']
+[20:19:40] PASS the new publication serves text B version 1790533091 -> 1790533092
+[20:19:40] PASS auto_run on text B started {'type': 'reply', 'cmd': 'auto_run', 'ok': True, 'rfl': 'started'}
+[20:20:37]   probe trip at nose Z -253.055
+[20:20:40]   probe trip at nose Z -253.048
+[20:21:17] PASS double abort at phase positioning: the sequence ended [('rfl.cancelled', 'abort'), ('rfl.cancelled', 'abort'), ('rfl.phase', 'aborted'), ('rfl.flag_clear_failed', 'MDI command in progress — command rejected'), ('rfl.phase', 'flag_clear_failed')]
+[20:21:17] FAIL the skip flag was cleared [('rfl.cancelled', 'abort'), ('rfl.cancelled', 'abort'), ('rfl.phase', 'aborted'), ('rfl.flag_clear_failed', 'MDI command in progress — command rejected'), ('rfl.phase', 'flag_clear_failed')]
+[20:21:17] PASS the latch is free: load accepted {'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/r17_rfl_check.ngc'}
+[20:21:20] PASS auto_run on text B again started {'type': 'reply', 'cmd': 'auto_run', 'ok': True, 'rfl': 'started'}
+[20:21:20] FAIL the sequence reached running {'phase': 'flag_clear_failed', 'ok': False, 'error': 'skip flag #3116 not cleared (MDI command in progress — command rejected) — set #3116=0 by MDI', 'ts': 1790533273356}
+[20:21:22] FAIL the program ran text B to its end (X40 Y20) [146.864, 0.448, 0.0, 0.0, 0.0]
+[20:21:24] FAIL unload: the record says nothing loaded, settled {'instance': [3686535, 15232298], 'loaded': '/home/cnc/linuxcnc/nc_files/r17_rfl_check.ngc'}
+[20:21:55] FAIL load kontur.ngc: the record names it, settled {'instance': [3686535, 15232298], 'loaded': '/home/cnc/linuxcnc/nc_files/r17_rfl_check.ngc'}
+[20:21:55] SUMMARY 12 / 17
+
+## r17_live.py — second run
+[20:30:27] PASS machine on + homed 
+[20:30:30] PASS GET /gcode names exactly the text it served 26aafb5d7e0dae108cd6a479131dcff6e7d778f6cfecdee7760fd08dcaed3349
+[20:30:30] PASS load record settled for this instance {'instance': [3705124, 15303773], 'loaded': '/home/cnc/linuxcnc/nc_files/r17_rfl_check.ngc'}
+[20:30:30] PASS rewrite kept size and mtime 
+[20:30:30] PASS auto_run on text A after the rewrite: refused Program changed on disk — wait for the preview
+[20:30:32] PASS nothing taken over, nothing queued ['gcode.reparse_requested', 'gcode.refresh_scheduled', 'gcode.spawn_start', 'gcode.worker_log', 'gcode.worker_log', 'gcode.worker_log', 'gcode.worker_log', 'gcode.worker_log', 'gcode.worker_done', 'gcode.publish']
+[20:30:32] PASS the re-parse is requested ['gcode.reparse_requested', 'gcode.refresh_scheduled', 'gcode.spawn_start', 'gcode.worker_log', 'gcode.worker_log', 'gcode.worker_log', 'gcode.worker_log', 'gcode.worker_log', 'gcode.worker_done', 'gcode.publish']
+[20:30:32] PASS the new publication serves text B version 1790533805 -> 1790533806
+[20:30:35] PASS auto_run on text B started {'type': 'reply', 'cmd': 'auto_run', 'ok': True, 'rfl': 'started'}
+[20:30:37] PASS abort while measuring: aborted {'phase': 'aborted', 'ok': False, 'error': 'aborted', 'ts': 1790533837546}
+[20:30:37] PASS the latch is free: load accepted {'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/r17_rfl_check.ngc'}
+[20:30:40] PASS auto_run on text B started again {'type': 'reply', 'cmd': 'auto_run', 'ok': True, 'rfl': 'started'}
+[20:31:37]   probe trip at nose Z -253.152
+[20:31:39]   probe trip at nose Z -253.059
+[20:32:13]   load right after the aborts: False Run from line is ending — wait
+[20:32:25] PASS double abort at phase positioning: aborted [('rfl.cancelled', 'abort'), ('rfl.cancelled', 'abort'), ('rfl.phase', 'aborted'), ('rfl.flag_cleared', None)]
+[20:32:25] PASS the skip flag was cleared [('rfl.cancelled', 'abort'), ('rfl.cancelled', 'abort'), ('rfl.phase', 'aborted'), ('rfl.flag_cleared', None)]
+[20:32:25] PASS the latch is free: load accepted {'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/r17_rfl_check.ngc'}
+[20:32:28] PASS auto_run on text B for the full run started {'type': 'reply', 'cmd': 'auto_run', 'ok': True, 'rfl': 'started'}
+[20:33:42]   probe trip at nose Z -253.057
+[20:33:45]   probe trip at nose Z -253.067
+[20:34:18] PASS the pre-measurement really measured 2 probe trips, 109.4 s
+[20:34:20] PASS the sequence reached running {'phase': 'running', 'ok': True, 'error': '', 'ts': 1790534060254}
+[20:34:22] PASS the program ran text B to its end (X40 Y20) [40.0, 20.0, 0.0, 0.0, 0.0]
+[20:34:24] PASS unload: the record says nothing loaded, settled {'instance': [3705124, 15303773], 'loaded': None}
+[20:34:25] PASS load kontur.ngc: the record names it, settled {'instance': [3705124, 15303773], 'loaded': '/home/cnc/linuxcnc/nc_files/kontur.ngc'}
+[20:34:25] SUMMARY 21 / 21
+
+## trace, first run — gateway pid 3686684 (R17 code before ae06da7): the double abort and the skipped measurement
+    81.9 ws.command_denied {'cmd': 'abort', 'reason': 'E-Stop active — reset E-Stop first'}
+    85.3 gcode.publish {'version': 1790533091, 'schema': 9, 'gzip_ms': 0.0, 'bytes': 1264, 'bytes_gz': 0, 'total_ms': 56.3}
+    88.3 gcode.reparse_requested {'by': 'auto_run', 'why': 'text changed on disk'}
+    88.4 gcode.publish {'version': 1790533092, 'schema': 9, 'gzip_ms': 0.0, 'bytes': 1264, 'bytes_gz': 0, 'total_ms': 56.3}
+    90.0 probe.set_vars_result {'file_saved': True, 'mdi_set': True}
+    90.0 rfl.phase {'phase': 'queued', 'ok': True, 'error': ''}
+    90.0 rfl.phase {'phase': 'measuring', 'ok': True, 'error': ''}
+   181.0 gcode.publish {'version': 1790533093, 'schema': 9, 'gzip_ms': 0.0, 'bytes': 1304, 'bytes_gz': 0, 'total_ms': 81.6}
+   183.1 rfl.phase {'phase': 'safe_z', 'ok': True, 'error': ''}
+   183.1 rfl.safe_z_already_above {'z': 0.0}
+   183.1 rfl.phase {'phase': 'positioning', 'ok': True, 'error': ''}
+   183.2 rfl.cancelled {'by': 'abort', 'from_client': 2}
+   183.2 rfl.cancelled {'by': 'abort', 'from_client': 2}
+   183.2 rfl.phase {'phase': 'aborted', 'ok': False, 'error': 'aborted'}
+   183.2 rfl.flag_clear_failed {'err': 'MDI command in progress — command rejected'}
+   183.2 rfl.phase {'phase': 'flag_clear_failed', 'ok': False, 'error': 'skip flag #3116 not cleared (MDI command in progress — command rejected) — set #3116=0 by MDI'}
+   190.4 probe.set_vars_result {'file_saved': True, 'mdi_set': True}
+   190.4 rfl.phase {'phase': 'queued', 'ok': True, 'error': ''}
+   190.4 rfl.phase {'phase': 'measuring', 'ok': True, 'error': ''}
+   192.6 rfl.phase {'phase': 'safe_z', 'ok': True, 'error': ''}
+   192.6 rfl.safe_z_already_above {'z': 0.0}
+   192.6 rfl.phase {'phase': 'positioning', 'ok': True, 'error': ''}
+   193.9 ws.command_denied {'cmd': 'load_file', 'reason': 'Machine busy — wait until it is idle'}
+   194.5 rfl.phase {'phase': 'starting', 'ok': True, 'error': ''}
+   194.6 rfl.phase {'phase': 'running', 'ok': True, 'error': ''}
+   317.0 gcode.publish {'version': 1790533095, 'schema': 9, 'gzip_ms': 0.0, 'bytes': 1286, 'bytes_gz': 0, 'total_ms': 65.6}
+
+## trace, second run — gateway pid 3705267 (with ae06da7)
+    19.3 ws.command_denied {'cmd': 'abort', 'reason': 'E-Stop active — reset E-Stop first'}
+    22.8 gcode.publish {'version': 1790533805, 'schema': 9, 'gzip_ms': 0.0, 'bytes': 1264, 'bytes_gz': 0, 'total_ms': 72.7}
+    25.8 gcode.reparse_requested {'by': 'auto_run', 'why': 'text changed on disk'}
+    25.9 gcode.publish {'version': 1790533806, 'schema': 9, 'gzip_ms': 0.0, 'bytes': 1264, 'bytes_gz': 0, 'total_ms': 62.3}
+    30.5 probe.set_vars_result {'file_saved': True, 'mdi_set': True}
+    30.5 rfl.phase {'phase': 'queued', 'ok': True, 'error': ''}
+    30.5 rfl.phase {'phase': 'measuring', 'ok': True, 'error': ''}
+    32.6 rfl.cancelled {'by': 'abort', 'from_client': 1}
+    32.6 rfl.phase {'phase': 'aborted', 'ok': False, 'error': 'aborted'}
+    35.9 probe.set_vars_result {'file_saved': True, 'mdi_set': True}
+    35.9 rfl.phase {'phase': 'queued', 'ok': True, 'error': ''}
+    35.9 rfl.phase {'phase': 'measuring', 'ok': True, 'error': ''}
+   125.7 gcode.publish {'version': 1790533807, 'schema': 9, 'gzip_ms': 0.0, 'bytes': 1304, 'bytes_gz': 0, 'total_ms': 69.1}
+   127.7 rfl.phase {'phase': 'safe_z', 'ok': True, 'error': ''}
+   127.7 rfl.safe_z_already_above {'z': 0.0}
+   127.7 rfl.phase {'phase': 'positioning', 'ok': True, 'error': ''}
+   127.8 rfl.cancelled {'by': 'abort', 'from_client': 1}
+   127.8 rfl.cancelled {'by': 'abort', 'from_client': 1}
+   127.8 rfl.phase {'phase': 'aborted', 'ok': False, 'error': 'aborted'}
+   130.2 rfl.flag_cleared {}
+   144.0 probe.set_vars_result {'file_saved': True, 'mdi_set': True}
+   144.0 rfl.phase {'phase': 'queued', 'ok': True, 'error': ''}
+   144.0 rfl.phase {'phase': 'measuring', 'ok': True, 'error': ''}
+   251.3 gcode.publish {'version': 1790533808, 'schema': 9, 'gzip_ms': 0.0, 'bytes': 1304, 'bytes_gz': 0, 'total_ms': 87.0}
+   253.4 rfl.phase {'phase': 'safe_z', 'ok': True, 'error': ''}
+   253.4 rfl.safe_z_already_above {'z': 0.0}
+   253.4 rfl.phase {'phase': 'positioning', 'ok': True, 'error': ''}
+   255.2 rfl.phase {'phase': 'starting', 'ok': True, 'error': ''}
+   255.3 rfl.phase {'phase': 'running', 'ok': True, 'error': ''}
+   259.2 gcode.publish {'version': 1790533811, 'schema': 9, 'gzip_ms': 0.0, 'bytes': 1286, 'bytes_gz': 0, 'total_ms': 58.9}
+
+## load record after the check
+{"instance": [3705124, 15303773], "loaded": "/home/cnc/linuxcnc/nc_files/kontur.ngc"}
