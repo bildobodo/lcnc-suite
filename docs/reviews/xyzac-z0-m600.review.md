@@ -1910,3 +1910,139 @@ nicht bis zu einer Bewegung ausgeführt.
 Produktcode und ältere Belege unverändert. Keine Steuerbefehle an `:8000`, keine
 Installation und kein Neustart der laufenden Suite; kein eigener Mock nötig.
 **Nächste Runde:** Nachprüfung des XZ-08-Restfalls für Reload/Wiederherstellung desselben Pfads.
+
+## Antwort Claude auf Runde 19 · 27. September 2026
+
+Der Restfall von XZ-08 ist behoben. Ein Laden gilt jetzt nur durch den **eigenen Erfolg seines
+Öffnens** als abgeschlossen, nie durch einen Namen, der schon vor dem Auftrag dastand. Jeder
+Wächter war vorher rot, jedes Teilstück ist per Mutation geprüft, und der Fall ist live an der
+XYZAC-Sim nachgestellt.
+
+### Commits
+
+- `fix/xyzac-z0-m600`:
+  - `96bd971` deine Belege, unverändert.
+  - `219ecaa` XZ-08.
+  - `7b85a5e` Regel in `docs/decisions.md`.
+  - Belege und diese Antwort (übernommen).
+- `feat/viewer-contrast`:
+  - `b60079c` deine Belege, unverändert.
+  - `18de954` Merge des Fix-Branches.
+  - `eca113f` Regel in `docs/decisions.md`.
+  - `8942875` CLAUDE.md und die Live-Checkliste.
+  - Belege und diese Antwort; die Anfrage nennt diesen Commit als Head.
+- Geprüfter Stand: `0644289` bis zu diesem Commit. Das Frontend ist unverändert.
+
+### XZ-08 — Ein Laden schließt nur der Erfolg seines Öffnens ab
+
+**Was wann gilt:**
+
+| Rückmeldung des Öffnens | Ergebnis |
+|---|---|
+| RCS-Status `RCS_DONE` | abgeschlossen: geladen, gesichert |
+| `STAT.file` wechselt **auf** den Pfad (Task setzt die Datei nur bei Erfolg) | abgeschlossen |
+| RCS-Status `RCS_ERROR` | ungelöst; die Antwort sagt „LinuxCNC did not open the program“ |
+| keine Antwort in 5 s, oder Handler abgebrochen | das Fenster läuft; ohne einen der beiden Belege endet es ungelöst |
+
+- **Der RCS-Status:** `load_file` liest ihn über
+  `_cmd_blocking(CMD.program_open, …, wait=5)`, also in 50-ms-Scheiben und nie als
+  `wait_complete`, das den GIL hält. Wenn das Senden zurückkehrt, hat Task das Öffnen bereits
+  bearbeitet; die erste Scheibe antwortet also sofort. Den Preis dafür habe ich gemessen, siehe
+  unten.
+- **Was vorher dastand:** `request_load(…, before=STAT.file)` merkt sich den Namen vor dem
+  Auftrag. `STAT.poll()` läuft dabei unter `_cmd_lock` direkt vor dem Senden. Ein Tick, der
+  denselben Namen sieht, beweist nichts; ein Wechsel auf den Pfad beweist den Erfolg. Ein
+  späteres `confirm_open` ohne offenes Laden wird übergangen.
+- **Entladen:** Jetzt werden auch die Status von `abort` und `reset_interpreter` geprüft.
+  Abgelehnt oder unbeantwortet wird der Zustand ungelöst: Das alte Programm kann noch offen sein
+  und erscheint als unbestätigt, nie als geladen.
+- **Der Grund** des ungelösten Zustands steht im Trace („the open was refused“, „the load was not
+  observed in its window“, „the unload was refused“, „the unload was cut short“).
+
+**Warum die Grenze stimmt:** Ein abgelehntes Öffnen ist beim echten Task `RCS_ERROR`, nicht
+`RCS_DONE`:
+- `emctaskmain.cc` 2190–2202: `EMC_TASK_PLAN_OPEN` bekommt -1, meldet „can't open“ und setzt
+  `task.file` nicht.
+- 1482 und 3402–3403: `emcTaskPlan()` gibt das zurück, daraus wird `taskPlanError`.
+- 3546–3551: Daraus wird `RCS_ERROR` für die Echo-Seriennummer, und genau das liefert
+  `wait_complete`.
+
+**Zu deiner Sonde:** Ihr Task-Double beantwortet das abgelehnte Öffnen mit `RCS_DONE`
+(`_rcs()`), erhöht aber `_errors_total`. Unverändert gegen den Fix laufen lassen, übernimmt sie
+den gleichen Pfad deshalb weiter. Mit genau einer Änderung, bei der das abgelehnte Öffnen
+`RCS_ERROR` meldet wie beim echten Task, sind alle drei Fälle richtig:
+- Antwort „refused“;
+- A unbestätigt;
+- Eintrag unsettled;
+- `auto_run` abgelehnt;
+- nach Neustart nichts wiederhergestellt.
+
+Beide Läufe stehen im [Protokoll](xyzac-z0-m600.r19-answer.probe-rerun.txt). Bitte modelliere
+das abgelehnte Öffnen in künftigen Sonden als `RCS_ERROR`.
+
+**Einen zweiten Beleg über den Fehlerzähler baue ich bewusst nicht ein.** `_errors_total` zählt
+der Status-Loop bei 30 Hz. Eine Prüfung im Handler liefe mit diesem Zählen um die Wette, und ein
+Lesen des Fehlerkanals im Handler nähme der Meldungsliste die Meldungen weg. Den Fall „keine
+Antwort“ deckt ohnehin das Fenster ab.
+
+**Wächter:**
+- **`test_gateway_util.py`:**
+  - Ein Reload desselben Pfads braucht den eigenen Erfolg, jeweils abgelehnt, unbekannt und
+    bestätigt.
+  - Das Laden der unbestätigten Datei, abgelehnt und bestätigt, jeweils mit einem Tick **vor**
+    der Antwort des Öffnens.
+  - Ein abgelehntes Öffnen eines anderen Pfads ist sofort ungelöst.
+- **`test_command_dispatch.py`**, jeweils mit echtem Handler und echtem `_cmd_blocking`:
+  - dein Fall mit Ablehnung, danach Tick, Fensterablauf, Neustart, und ein erfolgreicher Reload
+    als Gegenprobe;
+  - ein Tick, während `program_open` noch im NML steckt;
+  - ein Entladen, dessen `reset_interpreter` Task ablehnt.
+- **Mutationen:** acht Teilstücke, alle rot. Zwei überlebten zunächst: der Übernahmezweig ohne
+  Beleg und `request_load` ohne `before`. Beide wirken nur, wenn ein Tick zwischen Senden und
+  Antwort fällt; dafür sind die beiden Tick-Wächter.
+
+**Bekannt, bewusst so:** Ein abgelehntes Laden erzeugt zwei Zeilen in der Meldungsliste: die
+Antwort („Command: LinuxCNC did not open the program“) und Tasks eigene („can't open …“). Das
+bisherige `ok: true` war die Unwahrheit; eine der beiden Zeilen zu unterdrücken wäre eine eigene
+Entscheidung.
+
+### Live an der XYZAC-Sim
+
+Die Suite lief mit dem R19-Gateway, ohne VM-Browser
+([Protokoll](xyzac-z0-m600.r19-answer.live.txt)). **10 von 10** bestanden:
+- **Abgelehnter Reload:** A geladen, dann unlesbar gemacht (`chmod 000`) und derselbe Pfad neu
+  geladen.
+  - Task meldete „Unable to open file“, der RCS-Status war `RCS_ERROR`, die Antwort
+    „LinuxCNC did not open the program“.
+  - A ist nicht mehr geladen und erscheint als unbestätigt; der Eintrag steht auf „changing“,
+    auch nach dem Fenster.
+  - Im Trace: „the open was refused“.
+- **Gelingender Reload:** Wieder lesbar und neu geladen, ist A geladen und gesichert.
+- **Normales Entladen:** ok, nichts geladen, gesichert. `abort` und `reset` antworteten
+  `RCS_DONE`; die neue Prüfung bricht das normale Entladen also nicht.
+
+**Kosten der Statusabfrage:** Das `program_open` war auf das 500-ms-Watchdog-Budget abgestimmt.
+Laut Code-Kommentar gab es mit `wait=None` einen `lag.window` von 51 ms auf der 40-MB-Datei.
+- Gemessen am selben Gateway, ohne laufendes Gate: `perfmatrix-big.ngc` (40 MB) einmal geladen
+  und zweimal als Reload desselben Pfads.
+- Antwort jeweils nach 52–53 ms, alle drei gesichert.
+- **Kein** `lag.window` in einer `load_file`-Phase. Dass der Monitor läuft, zeigen die fünf
+  Fenster, die er in diesem Gateway protokolliert hat, zwei davon vom `abort`/`estop_reset` des
+  Treibers um 23:02.
+- Protokoll: am Ende des Live-Belegs.
+
+### Gates
+
+- `python3 scripts/test_suite.py offline` auf `feat/viewer-contrast` @ `8942875`: **PASS**
+  (Lauf `20260927T203411Z-offline`).
+  - Backend 1046 bestanden, 408 Subtests.
+  - 5-Achs-Modell, CSS-Audit, Review-Handshake, Lint und Build grün.
+  - Vitest 1692.
+  - Playwright 301 bestanden, keiner fehlgeschlagen oder übersprungen.
+- `fix/xyzac-z0-m600` @ `219ecaa`: Backend 1045 bestanden, 408 Subtests.
+
+### Bitte prüfen
+
+- Genügt die Tabelle oben als Grenze? Insbesondere: Ist „`STAT.file` wechselt auf den Pfad“ als
+  Beleg für dich in Ordnung? Task setzt die Datei nur bei Erfolg.
+- Ist dir die doppelte Meldung beim abgelehnten Laden recht, oder soll eine davon entfallen?
