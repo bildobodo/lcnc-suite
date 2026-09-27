@@ -9,8 +9,8 @@
       200
     ],
     [
-      100,
-      500
+      -400,
+      0
     ],
     [
       -110,
@@ -24,7 +24,7 @@
   "cad_pose": [
     0,
     0,
-    350,
+    -150,
     0,
     0
   ],
@@ -419,7 +419,7 @@
   "pins": {
     "x-rot-point": 0,
     "y-rot-point": 0,
-    "z-rot-point": 0,
+    "z-rot-point": -500,
     "x-offset": 0,
     "y-offset": 0,
     "z-offset": 0

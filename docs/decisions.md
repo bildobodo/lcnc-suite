@@ -7236,3 +7236,57 @@ Plan Fassung 3 WP-D10 (N114, K14, N115), third of three commits.
   touchoff had one file each — the same trap for their next file), pinned by
   `src/playwrightProjects.test.ts` (red first: it named the three).
 
+## 2026-09-27 — The XYZAC example's Z datum: machine Z0 at the top of travel
+
+Operator: loading a program with M600 on the 5-axis XYZAC sim read "M-code
+greater than 199: M600". The example (PR #41) had no M600/M601 remap, no
+probe/toolsetter subroutine path — and a Z window of 100..500 (the spindle
+nose's height above the A/C intersection, home at 500), so machine Z0 lay
+BELOW the travel. The bundled toolsetter (`tool_touch_off.ngc`: `G53 G1 Z0`
+as its home height, `ABS(#3102)` in the length formula) and three probe_basic
+routines assume Z0 = the top (the 2026-09-05 rule: "a config whose Z0 is not
+the top must not run them"). Options put to the operator: shift the datum,
+patch the upstream routine, or refuse M600 loudly; the operator chose the
+datum shift.
+
+- Model: the CAD stays in the physical frame (origin at the A/C
+  intersection; the STLs are unchanged — FreeCAD is not on this machine, the
+  generator was edited to emit the same structure, not run). machine.json
+  hangs every former root part and group under a `frame` group at Z −500,
+  lifts the Z head back by +500 and splits the work frame `c_work` (+500 under
+  `c_platter`) to the machine origin: tool-vs-work stays machine coordinates
+  (the DMU/TWP invariant) while A/C still turn about the real axes.
+- Kinematics: `xyzac-trt-kins.z-rot-point = -500`, found against the compiled
+  LinuxCNC oracle (−500 matches to 2e-13 mm; 0 was off by 669 mm; `z-offset`
+  gives the same numbers here because A and C intersect, the rotation point is
+  the semantic pin). `scripts/test_5axis_xyzac.py` reads the pins from
+  dimensions.json instead of hard-coded zeros: 8000 frame/oracle comparisons
+  and inverse round trips, worst 2.27e-13 mm; the guide-coverage check adds
+  the moving group's static translate.
+- INI: Z −400..0, HOME 0 (and the TRAJ HOME), position.txt Z 0. The example
+  G54 is Z −500 (sim.var and demo.ngc's `G10 L2 P1 … Z-500`): program zero
+  stays at the A/C intersection, the demo's program values are unchanged, its
+  retracts are `G53 G0 Z0`.
+- M600/M601 (same day, the second commit): the RS274NGC block of the other
+  examples (OWORD_NARGS, NO_DOWNCASE_OWORD, probe_basic / tool_length_probe /
+  surfacemap on the path, `O<on_abort>`), REMAP M600/M601 to kins-aware
+  wrappers in `remap_subs` (measure in identity, restore TCP — on the XYZAC
+  M429 is identity and M428 TCP, the reverse of the TWP example; the preview
+  reads the `#<_webui_kinstype>` mirror the 428/429 remaps now keep), `#3116`
+  in the var file, the simulated toolsetter at G53 X150 Y0 Z−300 (the probe
+  starts at −120 with `#3010` = 180 and ends at −300; a known 180 mm tool at
+  −118 — inside −400..0, beside the 130 mm blank). The suite's preview parse
+  of `T1 M6 / M600 / M601`: the old INI reads "M-code greater than 199: M600"
+  (line 4, the operator's message), the new one parses clean.
+- Installed configs (the third commit): an installed INI keeps its local
+  limits by design, so `install_examples.py` migrates an XYZAC install from
+  before the move ONCE (`xyzac_before_datum_move`: the Z window up to 500) —
+  the Z window, homes and the `z-rot-point` HALCMD from the template, and the
+  machine-absolute state shifted by −500 (G5x Z, G28/G30 Z, the saved joint
+  Z; G92 is relative and stays); the shipped toolsetter default of the old
+  example (10, 10, −180 — never reachable there) becomes the template's, an
+  operator's own #3102 moves with the datum. Generally, missing suite
+  remaps (by code) and RS274NGC entries (OWORD_NARGS, NO_DOWNCASE_OWORD,
+  ON_ABORT_COMMAND) are added to any installed example; a local value stays.
+  `test_example_install.py`: four new cases, red first.
+

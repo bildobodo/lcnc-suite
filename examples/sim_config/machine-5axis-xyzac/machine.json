@@ -3,8 +3,17 @@
   "source": "Original illustrative FreeCAD design, GPL-2.0-or-later; no OEM meshes.",
   "groups": [
     {
+      "id": "frame",
+      "parent": "root",
+      "translate": [
+        0,
+        0,
+        -500
+      ]
+    },
+    {
       "id": "y_table",
-      "parent": "root"
+      "parent": "frame"
     },
     {
       "id": "a_yoke",
@@ -15,12 +24,26 @@
       "parent": "a_yoke"
     },
     {
+      "id": "c_work",
+      "parent": "c_platter",
+      "translate": [
+        0,
+        0,
+        500
+      ]
+    },
+    {
       "id": "x_saddle",
-      "parent": "root"
+      "parent": "frame"
     },
     {
       "id": "z_head",
-      "parent": "x_saddle"
+      "parent": "x_saddle",
+      "translate": [
+        0,
+        0,
+        500
+      ]
     },
     {
       "id": "tool",
@@ -31,7 +54,7 @@
     {
       "id": "levelling_feet",
       "file": "levelling_feet.stl",
-      "group": null,
+      "group": "frame",
       "color": [
         0.16,
         0.2,
@@ -41,7 +64,7 @@
     {
       "id": "machine_bed",
       "file": "machine_bed.stl",
-      "group": null,
+      "group": "frame",
       "color": [
         0.32,
         0.37,
@@ -51,7 +74,7 @@
     {
       "id": "rear_column",
       "file": "rear_column.stl",
-      "group": null,
+      "group": "frame",
       "color": [
         0.8,
         0.82,
@@ -61,7 +84,7 @@
     {
       "id": "column_foot",
       "file": "column_foot.stl",
-      "group": null,
+      "group": "frame",
       "color": [
         0.32,
         0.37,
@@ -71,7 +94,7 @@
     {
       "id": "chip_pan",
       "file": "chip_pan.stl",
-      "group": null,
+      "group": "frame",
       "color": [
         0.16,
         0.2,
@@ -81,7 +104,7 @@
     {
       "id": "y_rail_seats",
       "file": "y_rail_seats.stl",
-      "group": null,
+      "group": "frame",
       "color": [
         0.32,
         0.37,
@@ -91,7 +114,7 @@
     {
       "id": "y_guide_rails",
       "file": "y_guide_rails.stl",
-      "group": null,
+      "group": "frame",
       "color": [
         0.65,
         0.7,
@@ -131,7 +154,7 @@
     {
       "id": "x_guide_rails",
       "file": "x_guide_rails.stl",
-      "group": null,
+      "group": "frame",
       "color": [
         0.65,
         0.7,
@@ -367,6 +390,6 @@
       "sign": 1
     }
   ],
-  "workGroup": "c_platter",
+  "workGroup": "c_work",
   "toolGroup": "tool"
 }

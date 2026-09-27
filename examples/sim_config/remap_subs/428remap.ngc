@@ -25,6 +25,7 @@ o1 endif
 ; announce the switch to the lcnc-suite preview parse - comments are
 ; the one execution-ordered channel the preview canon receives
    (WEBUI_KINSTYPE=1)
+   #<_webui_kinstype> = 1  ; the preview's mirror (the M600/M601 wrappers read it)
 
 o3 if [#<_task> EQ 1]
 o4   if [#<_hal[motion.switchkins-type]> NE #<kinstype>]

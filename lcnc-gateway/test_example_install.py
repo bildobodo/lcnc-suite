@@ -221,3 +221,102 @@ class ExampleInstallTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "outside"):
             installer.install(ROOT, self.dest, self.dest / "backup")
         self.assertFalse(self.dest.exists())
+
+
+# 2026-09-27: the XYZAC example moved its Z datum (Z0 = the top of travel, the
+# A/C intersection at machine Z -500) and gained M600/M601. An installed INI
+# keeps its local limits by design, so an install from before the move is
+# MIGRATED once: the Z window, home and kins pin, the RS274NGC entries, and
+# the machine-absolute state (G5x Z, G28/G30 Z, the saved joint Z) shift by
+# -500 — program zero stays where the operator touched it off.
+OLD_XYZAC = (ROOT / "scripts/test_fixtures/xyzac_before_datum_shift.ini").read_text() \
+    if (ROOT / "scripts/test_fixtures/xyzac_before_datum_shift.ini").exists() else None
+
+
+class XyzacDatumMigrationTest(unittest.TestCase):
+    NAME = "lcnc_suite_sim_5axis_xyzac.ini"
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.base = Path(tmp.name)
+        self.dest = self.base / "configs/examples"
+        self.backups = self.base / "backups"
+        home = patch.object(installer.Path, "home", return_value=self.base / "home")
+        home.start()
+        self.addCleanup(home.stop)
+        guard = patch.object(installer, "assert_stopped")
+        guard.start()
+        self.addCleanup(guard.stop)
+
+    def install(self):
+        return installer.install(ROOT, self.dest, self.backups)
+
+    def old_install(self):
+        """An installation from before the datum move, with an operator's state."""
+        self.assertIsNotNone(OLD_XYZAC, "the pre-move XYZAC INI fixture")
+        self.install()
+        ini = self.dest / self.NAME
+        ini.write_text(OLD_XYZAC.replace("MAX_VELOCITY = 100\nMAX_ACCELERATION = 500\nOFFSET_AV_RATIO",
+                                         "MAX_VELOCITY = 90\nMAX_ACCELERATION = 500\nOFFSET_AV_RATIO", 1))
+        var = self.dest / "xyzac5/sim.var"
+        rows = {5161: 1, 5162: 2, 5163: 450, 5181: 3, 5182: 4, 5183: 480, 5211: 0, 5212: 0, 5213: 7,
+                5221: 11, 5222: 12, 5223: 280, 5241: 21, 5242: 22, 5243: 300, 5383: 250,
+                3100: 10, 3101: 10, 3102: -180, 3010: 180}
+        var.write_text("".join(f"{k}\t{v:.6f}\n" for k, v in sorted(rows.items())))
+        (self.dest / "xyzac5/position.txt").write_text("\n".join(map(str, [5, 6, 350, 15, 45] + [0] * 11)) + "\n")
+        return ini, var
+
+    def params(self, var):
+        return {int(k): float(v) for k, v in (line.split() for line in var.read_text().splitlines() if line.strip())}
+
+    def test_an_install_from_before_the_move_is_migrated_once(self):
+        ini, var = self.old_install()
+        backup = self.install()
+        self.assertIsNotNone(backup, "the migration writes, behind a backup")
+        config = installer.values(ini.read_text())
+        text = ini.read_text()
+        self.assertEqual((config["AXIS_Z", "MIN_LIMIT"], config["AXIS_Z", "MAX_LIMIT"]), ("-400", "0"))
+        self.assertEqual((config["JOINT_2", "MIN_LIMIT"], config["JOINT_2", "MAX_LIMIT"],
+                          config["JOINT_2", "HOME"], config["JOINT_2", "HOME_OFFSET"]), ("-400", "0", "0", "0"))
+        self.assertEqual(config["TRAJ", "HOME"], "0 0 0 0 0")
+        self.assertIn("setp xyzac-trt-kins.z-rot-point -500", text)
+        self.assertNotIn("setp xyzac-trt-kins.z-rot-point 0\n", text)
+        for line in ("REMAP = M600 modalgroup=6 ngc=m600", "REMAP = M601 modalgroup=6 ngc=m601",
+                     "OWORD_NARGS = 1", "NO_DOWNCASE_OWORD = 1", "ON_ABORT_COMMAND = O<on_abort> call"):
+            self.assertIn(line, text)
+        self.assertIn("MAX_VELOCITY = 90", text, "a local setting stays")
+        p = self.params(var)
+        self.assertEqual([p[k] for k in (5223, 5243, 5383, 5163, 5183)], [-220, -200, -250, -50, -20],
+                         "machine-absolute Z (G5x, G28, G30) shifts by -500")
+        self.assertEqual([p[k] for k in (5221, 5222, 5213)], [11, 12, 7], "X/Y and the relative G92 stay")
+        self.assertEqual([p[k] for k in (3100, 3101, 3102)], [150, 0, -300], "the shipped toolsetter default is replaced")
+        self.assertEqual(p[3116], 0, "the new run-from-line flag")
+        self.assertEqual((self.dest / "xyzac5/position.txt").read_text().split()[:5], ["5", "6", "-150", "15", "45"])
+        # Once: a second run changes nothing, nothing shifts twice.
+        self.assertIsNone(self.install())
+        self.assertEqual(self.params(var)[5223], -220)
+
+    def test_an_operator_toolsetter_position_survives_the_migration(self):
+        ini, var = self.old_install()
+        var.write_text(var.read_text().replace("3102\t-180.000000", "3102\t-120.000000"))
+        self.install()
+        self.assertEqual(self.params(var)[3102], -620, "an operator's absolute G53 Z moves with the datum")
+
+    def test_a_current_install_is_left_alone(self):
+        self.install()
+        var = self.dest / "xyzac5/sim.var"
+        before = var.read_text()
+        self.assertIsNone(self.install())
+        self.assertEqual(var.read_text(), before)
+
+    def test_missing_remaps_and_rs274ngc_entries_are_added_to_any_profile(self):
+        self.install()
+        ini = self.dest / "lcnc_suite_sim_3axis_xyz.ini"
+        ini.write_text(ini.read_text().replace("REMAP=M601 modalgroup=6 ngc=m601\n", "").replace(
+            "OWORD_NARGS = 1\n", "OWORD_NARGS = 0\n"))
+        self.install()
+        text = ini.read_text()
+        self.assertRegex(text, r"REMAP\s*=\s*M601 modalgroup=6 ngc=m601", "the template's line, verbatim")
+        self.assertEqual(text.count("M600"), 1, "a remap is added once, by its code")
+        self.assertIn("OWORD_NARGS = 0", text, "a local value is kept")

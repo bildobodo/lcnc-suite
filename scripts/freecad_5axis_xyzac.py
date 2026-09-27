@@ -21,8 +21,16 @@ DEST.mkdir(parents=True, exist_ok=True)
 if OUT:
     OUT.mkdir(parents=True, exist_ok=True)
 V = App.Vector
-LIMITS = [[-250, 250], [-200, 200], [100, 500], [-110, 110], [-36000, 36000]]
-POSE = [0, 0, 350, 0, 0]
+# Machine Z0 is the TOP of travel (the bundled toolsetter/probe routines'
+# G53 Z0 retract): the A/C intersection sits at machine Z_DATUM. The CAD is
+# built in the PHYSICAL frame (origin at the A/C intersection, the nose
+# JointZ - Z_DATUM above it); the export hangs it under a `frame` group at
+# Z_DATUM, lifts the head back by -Z_DATUM and splits the work frame
+# (`c_work`) to the machine origin, so tool-vs-work stays machine coordinates.
+Z_DATUM = -500
+LIMITS = [[-250, 250], [-200, 200], [-400, 0], [-110, 110], [-36000, 36000]]
+POSE = [0, 0, -150, 0, 0]
+PHYSICAL_POSE = [v - Z_DATUM if i == 2 else v for i, v in enumerate(POSE)]
 FLOOR_Z = -905
 X_GUIDE_Y = 475
 Z_GUIDE_Y = 315
@@ -86,7 +94,7 @@ KINS = [dict(group='x_saddle', joint=0, type='translate', direction='x', sign=1)
 doc = App.newDocument('Five_Axis_XYZAC')
 motion = doc.addObject('Spreadsheet::Sheet', 'Motion')
 motion.set('A1', 'Axis'); motion.set('B1', 'Position'); motion.set('C1', 'Limits')
-for row, (axis, value, limits) in enumerate(zip('XYZAC', POSE, LIMITS), 2):
+for row, (axis, value, limits) in enumerate(zip('XYZAC', PHYSICAL_POSE, LIMITS), 2):
     unit = ' mm' if row < 5 else ' deg'
     motion.set(f'A{row}', axis)
     motion.set(f'B{row}', '=' + str(value) + unit)
@@ -271,10 +279,19 @@ add('fixture_blank', 'c_platter', 'stock', bevel(box(-65, -65, 0, 65, 65, 60), 3
 
 doc.recompute()
 assert not any('Invalid' in o.State for o in doc.Objects)
-assert abs(cadgroups['z_head'].Placement.Base.z - POSE[2]) < 1e-7
+assert abs(cadgroups['z_head'].Placement.Base.z - PHYSICAL_POSE[2]) < 1e-7
+EXPORT_GROUPS = [dict(id='frame', parent='root', translate=[0, 0, Z_DATUM])]
+for g in GROUPS:
+    g = dict(g, parent='frame' if g['parent'] == 'root' else g['parent'])
+    if g['id'] == 'z_head':
+        g['translate'] = [0, 0, -Z_DATUM]
+    EXPORT_GROUPS.append(g)
+    if g['id'] == 'c_platter':
+        EXPORT_GROUPS.append(dict(id='c_work', parent='c_platter', translate=[0, 0, -Z_DATUM]))
 machine = dict(name='5 Axis XYZAC',
                source='Original illustrative FreeCAD design, GPL-2.0-or-later; no OEM meshes.',
-               groups=GROUPS, parts=parts, kinematics=KINS, workGroup='c_platter', toolGroup='tool')
+               groups=EXPORT_GROUPS, parts=[dict(p, group=p['group'] or 'frame') for p in parts],
+               kinematics=KINS, workGroup='c_work', toolGroup='tool')
 with (DEST / 'machine.json').open('w') as f:
     json.dump(machine, f, indent=2); f.write('\n')
 report = dict(joint_limits=LIMITS, cad_pose=POSE, table_diameter=400,
@@ -286,7 +303,8 @@ report = dict(joint_limits=LIMITS, cad_pose=POSE, table_diameter=400,
                              spindle_axis_to_z_plate=Z_PLATE_FRONT, floor_z=FLOOR_Z,
                              rear_ribs=[dict(x_start=x, width=width) for x, width in RIB_SPANS],
                              rib_rear_y=RIB_REAR_Y, bed_rear_y=BED_REAR_Y),
-              pins={k: 0 for k in ('x-rot-point', 'y-rot-point', 'z-rot-point', 'x-offset', 'y-offset', 'z-offset')})
+              pins={k: Z_DATUM if k == 'z-rot-point' else 0
+                    for k in ('x-rot-point', 'y-rot-point', 'z-rot-point', 'x-offset', 'y-offset', 'z-offset')})
 preview = dict(machine, initialPose=POSE, jointLimits=LIMITS, floorZ=FLOOR_Z, parts=[])
 for p in parts:
     shape = shapes[p['id']]

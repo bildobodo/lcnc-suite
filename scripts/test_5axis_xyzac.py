@@ -77,7 +77,7 @@ class XYZACAcceptance(unittest.TestCase):
             for section in (f'JOINT_{joint}', f'AXIS_{axis}'):
                 self.assertLessEqual(float(INI[section]['MIN_LIMIT']), position)
                 self.assertLessEqual(position, float(INI[section]['MAX_LIMIT']))
-        self.assertEqual(positions[:5], [0, 0, 500, 0, 0])
+        self.assertEqual(positions[:5], [0, 0, 0, 0, 0])   # Z0 = the top of travel
 
     def test_config_and_closed_export_manifest(self):
         self.assertEqual(INI['KINS']['KINEMATICS'], 'xyzac-trt-kins sparm=identityfirst')
@@ -129,8 +129,12 @@ class XYZACAcceptance(unittest.TestCase):
             limits = DIMENSIONS['joint_limits'][joint]
             sign = next(k['sign'] for k in MACHINE['kinematics'] if k['joint'] == joint)
             lo, hi = sorted(v*sign for v in limits)
-            left = min(layout['block_centres']) + lo - DIMENSIONS['guides']['block_length']/2
-            right = max(layout['block_centres']) + hi + DIMENSIONS['guides']['block_length']/2
+            # The moving group's static translate along the axis (the Z head
+            # carries +500 since machine Z0 became the top of travel).
+            moving = next(k['group'] for k in MACHINE['kinematics'] if k['joint'] == joint)
+            base = next(g for g in MACHINE['groups'] if g['id'] == moving).get('translate', [0, 0, 0])[joint]
+            left = min(layout['block_centres']) + base + lo - DIMENSIONS['guides']['block_length']/2
+            right = max(layout['block_centres']) + base + hi + DIMENSIONS['guides']['block_length']/2
             self.assertGreaterEqual(left - layout['rail_start'], 10, axis)
             self.assertGreaterEqual(layout['rail_start'] + layout['rail_length'] - right, 10, axis)
             self.assertAlmostEqual((left+right)/2, layout['rail_start']+layout['rail_length']/2, msg=axis)
@@ -142,8 +146,11 @@ class XYZACAcceptance(unittest.TestCase):
         worst = 0.0
         with tempfile.TemporaryDirectory(prefix='xyzac5-oracle-') as temp:
             exe = compile_harness(Path(temp))
+            # The kins pins as the INI sets them (test_config_... ties the two).
+            pins = tuple(DIMENSIONS['pins'][k] for k in ('x-rot-point', 'y-rot-point', 'z-rot-point',
+                                                          'x-offset', 'y-offset', 'z-offset'))
             for length in (0, 60, 100, 180):
-                params = (0, 0, 0, 0, 0, 0, length)
+                params = pins + (length,)
                 result = run_oracle(exe, 'xyzac', params,
                                     ['F ' + ' '.join(map(str, q)) + ' 0\n' for q in joints])
                 for q, world in zip(joints, result):
@@ -156,14 +163,16 @@ class XYZACAcceptance(unittest.TestCase):
                                   ['I ' + ' '.join(map(str, w)) + '\n' for w in result])
                 for a, b in zip(joints, back):
                     self.assertLess(max(abs(x-y) for x, y in zip(a, b)), 1e-8)
-            # The demo's TCP segment is a fixed tip at (0, 0, 260) with T1.
-            world = [[0, 0, 360, a, 0, c] for a in range(-25, 26) for c in range(0, 361, 5)]
-            demo = run_oracle(exe, 'xyzac', (0, 0, 0, 0, 0, 0, 100),
+            # The demo's TCP segment is a fixed tip at program (0, 0, 260) with
+            # T1 and G54 Z-500 (program zero at the A/C intersection): machine
+            # world Z 260 + 100 - 500, the tip at machine Z -240.
+            world = [[0, 0, -140, a, 0, c] for a in range(-25, 26) for c in range(0, 361, 5)]
+            demo = run_oracle(exe, 'xyzac', pins + (100,),
                               ['I ' + ' '.join(map(str, w)) + '\n' for w in world])
             for q in demo:
                 for value, (lo, hi) in zip(q, DIMENSIONS['joint_limits']):
                     self.assertTrue(lo <= value <= hi)
-                self.assertLess(max(abs(v-t) for v, t in zip(tip_in_work(q, 100), (0, 0, 260))), 1e-8)
+                self.assertLess(max(abs(v-t) for v, t in zip(tip_in_work(q, 100), (0, 0, -240))), 1e-8)
         print(f'8000 frame/oracle comparisons + inverse roundtrips; worst error {worst:.3g} mm; '
               f'{len(demo)} TCP demo poses inside joint limits')
 
