@@ -273,6 +273,20 @@ test("the banner has two tiers, its why opens with a tap, and every way out of t
   expectNoMachineAction((await recordedCmds()).filter(c => c !== "safety_trip_ack"));
 });
 
+test("a program the gateway cannot confirm after a restart is named, not loaded — Load resolves it (Codex R16 XZ-08)", async ({ page }) => {
+  await openReady(page);
+  const banner = page.locator(".bannerContent");
+  await ctl({ op: "raw", frame: { type: "status_delta", armed: true,
+    data: { active_file: null, program_unconfirmed: "/nc/shared/probe.ngc" } } });
+  await expect(banner.locator(".bannerWarn")).toContainText("Program not confirmed — probe.ngc");
+  await page.locator(".bannerActions").getByRole("button", { name: "Load program", exact: true }).click();
+  await expect.poll(async () => ((await ctl({ op: "lastCmds" })).cmds as { cmd?: string; path?: string }[])
+    .filter(c => c.cmd === "load_file").map(c => c.path)).toEqual(["/nc/shared/probe.ngc"]);
+  await ctl({ op: "raw", frame: { type: "status_delta", armed: true,
+    data: { active_file: "/nc/shared/probe.ngc", program_unconfirmed: null } } });
+  await expect(banner.locator(".bannerWarn")).toHaveCount(0);
+});
+
 test("a refused folder keeps the last listing and offers no Retry; a transient failure retries", async ({ page }) => {
   let mode: "ok" | "refuse" | "down" = "ok";
   await page.route(url => url.pathname === "/files", route => {

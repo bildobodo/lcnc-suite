@@ -289,10 +289,13 @@ function onFrame(data: string | ArrayBuffer) {
       handleStatusError(msg);
     } else if (msg.type === "reply") {
       lastReply.value = msg;
-      if (typeof msg.req_id === "string") _awaited.get(msg.req_id)?.(msg);
+      // A caller that WAITED for this reply (request()) reports the outcome
+      // itself, where the operation began — the generic line said it twice.
+      const awaited = typeof msg.req_id === "string" ? _awaited.get(msg.req_id) : undefined;
+      awaited?.(msg);
       // A settings save's reply moves the Settings header's status (UX-08).
       if (typeof msg.req_id === "string") noteSaveReply(msg.req_id, msg.ok !== false, msg.error);
-      if (msg.ok === false && msg.error) {
+      if (msg.ok === false && msg.error && !awaited) {
         pushMessage(OPERATOR_ERROR, `Command: ${msg.error}`);
       }
     } else if (msg.type === "viewer_init") {
@@ -358,8 +361,10 @@ function settleAwaitedReplies(): void {
 /**
  * Send a command and wait for ITS reply. Resolves `null` when nothing was
  * sent, on the timeout, or when the connection closes — never a guessed
- * success. A dependent action (M600 after set_probe_vars) goes on only with
- * the reply in hand.
+ * success (after a timeout the command may still run: say "no reply", never
+ * "not sent"). The caller reports a refusal itself; the generic "Command:"
+ * line is left out. A command that depends on another's outcome belongs in
+ * ONE gateway command (`mdi` with `vars`, Codex R16), not after an await.
  */
 export function request(obj: WsCommand, timeoutMs = 5000): Promise<any | null> {
   const reqId = send(obj);

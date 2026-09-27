@@ -179,4 +179,17 @@ export interface RflRunOptions {
   preTool: number;                 // 0 = no pre-measurement
   safeZ: boolean;
   entry: RflEntryScan | null;      // null = preamble unavailable/not needed
+  /** The program the dialog showed: its path and the published preview
+   *  version of the displayed text. The gateway refuses an auto_run whose
+   *  program is no longer the loaded one at that version (Codex R16 XZ-07). */
+  program: { file: string; version: number };
+}
+
+/** bulkData's revision "<file>#<version>" → its parts; null for none. */
+export function revisionParts(rev: string): { file: string; version: number } | null {
+  const i = rev.lastIndexOf("#");
+  if (i <= 0) return null;
+  const tail = rev.slice(i + 1);
+  const version = Number(tail);
+  return /^\d+$/.test(tail) && Number.isSafeInteger(version) ? { file: rev.slice(0, i), version } : null;
 }

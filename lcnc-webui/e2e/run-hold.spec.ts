@@ -105,7 +105,34 @@ test("Run from line: Start only opens the dialog on a tap; the dialog's action i
   await page.waitForTimeout(300);
   expect(await count("auto_run"), "a tap on the action runs nothing").toBe(0);
   await press(page, run, HOLD_MS);
-  await expect.poll(async () => (await sent()).filter(c => c.cmd === "auto_run").map(c => c.line)).toEqual([3]);
+  // Bound to what the dialog showed (Codex R16 XZ-07): the gateway refuses
+  // an auto_run whose program or text revision is no longer the loaded one.
+  await expect.poll(async () => (await sent()).filter(c => c.cmd === "auto_run")
+    .map(c => [c.line, (c as { file?: string }).file, (c as { version?: number }).version])).toEqual([[3, "/A.ngc", 700]]);
+});
+
+test("Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values and its program — nothing waits in the browser (Codex R16 XZ-07)", async ({ page }) => {
+  const WITH_M600 = "(program M)\nT5 M600\nG90 G54 G0 X10 Y20\nG1 X11 F100\nG1 X12\nM2\n";
+  await ready(page, { machine: { runFromLine: true, rflSpindleDir: "off" },
+    toolsetter: { touchX: 0, touchY: 0, touchZ: -300, fastFeed: 200, slowFeed: 20, traverseFeed: 500,
+                  maxZTravel: 180, retractDist: 2, spindleZeroHeight: 180 } });
+  await page.route("**/gcode?*", route => route.fulfill({ contentType: "text/plain", body: WITH_M600 }));
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 701, file: "/A.ngc" } });
+  await expect(page.locator(".codeLine").first()).toContainText("(program M)");
+  await ctl({ op: "clearCmds" });
+  await page.locator(".codeLine").nth(4).click();
+  await page.getByRole("button", { name: "Start L5", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Run from Line 5", exact: true });
+  await press(page, dialog.getByRole("button", { name: "Measure T5 + Run from Line 5", exact: true }), HOLD_MS);
+  await expect.poll(async () => (await sent()).map(c => c.cmd)).toEqual(["auto_run"]);
+  const [run] = await sent() as { [k: string]: unknown }[];
+  expect(run).toMatchObject({ line: 5, pre_tool: 5, file: "/A.ngc", version: 701, entry_x: 11, entry_y: 20 });
+  expect(run.probe_vars).toMatchObject({ "3102": -300, "3004": 200 });
+  // Another program arriving now changes nothing that was sent.
+  await ctl({ op: "status_delta", data: { active_file: "/B.ngc" } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 702, file: "/B.ngc" } });
+  await page.waitForTimeout(400);
+  expect((await sent()).map(c => c.cmd)).toEqual(["auto_run"]);
 });
 
 // ── A new revision of the SAME program (UI-DI05) ──

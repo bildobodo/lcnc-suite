@@ -232,6 +232,12 @@ const bannerLine = computed<BannerLine | null>(() => {
   if (previewRefusal.value) return { key: "preview-refused", tier: "warn",
     text: `Preview stopped — ${previewRefusal.value.text}`,
     detail: `The preview runs from the machine's live state (active work offset, kinematics) and stopped here; a run would stop at the same place. No preview or simulation until it parses. ${previewRefusal.value.text}` };
+  if (programUnconfirmed.value) {
+    const name = programUnconfirmed.value.replace(/\\/g, "/").split("/").pop();
+    return { key: "program-unconfirmed", tier: "warn",
+      text: `Program not confirmed — ${name} — load it`,
+      detail: `The gateway restarted without its record of loading a program. The interpreter has ${programUnconfirmed.value} open — possibly a subroutine. Nothing counts as loaded, previewed or runnable until you load a program.` };
+  }
   if (needsRefresh.value) return { key: "refresh", tier: "warn",
     text: "LinuxCNC is back — refresh the page",
     detail: "LinuxCNC reported an error and has recovered. Refresh the page so every panel reloads the machine's current state." };
@@ -263,6 +269,7 @@ const machineStateColor = computed(() => {
   if (previewLoadError.value) return '--state-warn';
   if (previewParseError.value) return '--state-warn';
   if (previewRefusal.value) return '--state-warn';
+  if (programUnconfirmed.value) return '--state-warn';
   if (previewRefresh.value) return '--state-warn';
   return STATE_COLORS[machineState.value];
 });
@@ -324,6 +331,7 @@ const bannerFlashMode = computed<'none' | 'pulse' | 'flash'>(() => {
   if (previewLoadError.value) return 'pulse';
   if (previewParseError.value) return 'pulse';
   if (previewRefusal.value) return 'pulse';
+  if (programUnconfirmed.value) return 'pulse';
   if (previewRefresh.value) return 'pulse';
   if (s === 'unhomed' || s === 'toolchange' || s === 'idle') return 'pulse';
   return 'none';
@@ -619,6 +627,12 @@ const workPos = computed<number[]>(() => {
 
 const activeFile = computed<string | null>(() => {
   return st.value?.active_file || null;
+});
+/** After a gateway restart without its load record: the interpreter's open
+ *  file, named but not loaded (Codex R16 XZ-08). */
+const programUnconfirmed = computed<string | null>(() => {
+  const f = st.value?.program_unconfirmed;
+  return typeof f === "string" && f ? f : null;
 });
 
 /** True when the parse found that this program's motion carries line numbers
@@ -1089,48 +1103,48 @@ const unloadUsesToolsetter = computed(() => {
 });
 
 /**
- * Values the routine reads, then the command that runs it (the toolsetter's
- * #3004–#3115 before an M600, a probe op's vars before its O-call). The
- * values must be IN the interpreter first — set_probe_vars replied
- * `mdi_set`; the var file is read only at LinuxCNC's start — so the command
- * waits for that reply and goes only with it (Codex R15 B1: `fireBatch`
- * sent both unanswered). One latch over the whole sequence; every refusal
- * says what was not sent. Returns whether the command went.
+ * A routine's values and the line that runs it as ONE command — `mdi` with
+ * `vars` (the toolsetter's #3004–#3115 before an M600, a probe op's vars
+ * before its O-call). The gateway sets the values in the interpreter (the
+ * var file is read only at LinuxCNC's start) and sends the line only once
+ * they are taken over; an abort from any client cancels that handler.
+ * Codex R16 XZ-06: the browser used to hold the continuation between two
+ * commands — Abort never reached it, and a delayed reply started the
+ * measurement after the abort. Nothing is sent after the reply; it only
+ * says what happened. Returns whether the gateway started the line.
  */
-async function fireAfterVars(label: string, vars: Record<string, number>, payload: any,
-                             gate: keyof Permissions): Promise<boolean> {
-  if (busy.value) { console.warn(`[fireAfterVars] ${label} dropped: another command is settling`); return false; }
+async function fireWithVars(label: string, vars: Record<string, number>, line: string,
+                            gate: keyof Permissions): Promise<boolean> {
+  if (busy.value) { console.warn(`[fireWithVars] ${label} dropped: another command is settling`); return false; }
   if (!permissions.value[gate]) {
     pushMessage(OPERATOR_ERROR, `${label} not sent — ${permissionReasons.value[gate] ?? "not available"}`);
     return false;
   }
   busy.value = true;
   try {
-    const reply = await request({ cmd: "set_probe_vars", vars });
-    if (!reply || reply.ok === false || reply.mdi_set !== true) {
-      const why = !reply ? "no reply" : reply.ok === false ? (reply.error ?? "refused")
-        : "not taken over by the interpreter";
-      pushMessage(OPERATOR_ERROR, `${label} not sent — its parameters: ${why}`);
+    // The values' MDI waits up to 5 s per chunk in the gateway.
+    const reply = await request({ cmd: "mdi", text: line, vars }, 15000);
+    if (!reply) {
+      // Sent, unanswered: the gateway may still start it — never "not sent".
+      pushMessage(OPERATOR_ERROR, `${label}: no reply from the gateway — watch the machine`);
       return false;
     }
-    // The machine may have changed while we waited — read without our OWN
-    // latch (the busy term would refuse the command this sequence holds it for).
-    if (!ownerPermissions.value[gate]) {
-      pushMessage(OPERATOR_ERROR, `${label} not sent — ${permissionReasons.value[gate] ?? "not available"}`);
+    if (reply.ok === false) {
+      pushMessage(OPERATOR_ERROR, `${label} not started — ${reply.error ?? "refused"}`);
       return false;
     }
-    return send(payload) !== null;
+    return true;
   } finally {
-    window.setTimeout(() => (busy.value = false), cooldownFor(String(payload?.cmd ?? "")));
+    window.setTimeout(() => (busy.value = false), cooldownFor("mdi"));
   }
 }
 
 /** Every M600 the WebUI starts (Measure Current, Unload and a table load in
- *  M600 mode): only with the toolsetter set up, its values taken over. */
+ *  M600 mode): only with the toolsetter set up, its values in the same command. */
 async function toolsetterMdi(label: string, line: string): Promise<boolean> {
   const setup = toolsetter.value;
   if (!setup.ok) { pushMessage(OPERATOR_ERROR, `${label} not sent — ${setup.reason}`); return false; }
-  return fireAfterVars(label, toolsetterVarMap(setup.values), { cmd: "mdi", text: line }, "machineFrame");
+  return fireWithVars(label, toolsetterVarMap(setup.values), line, "machineFrame");
 }
 provide(TOOLSETTER_MDI_KEY, toolsetterMdi);
 
@@ -1448,7 +1462,7 @@ function fire(payload: any, gate?: keyof Permissions, cooldownMs?: number): stri
 }
 
 function onRunProbe({ vars, macro }: { vars: Record<string, number>; macro: string }) {
-  void fireAfterVars("Probe", vars, { cmd: 'mdi', text: `O<${macro}> CALL` }, 'ready');
+  void fireWithVars("Probe", vars, `O<${macro}> CALL`, 'ready');
 }
 
 // Reachable by descendants that cannot see this closure, so a component never
@@ -1494,28 +1508,30 @@ function cycleStart() {
   fire({ cmd: "cycle_start" }, 'run');
 }
 
-async function runFromLine(opts: import("./gcodeRfl").RflRunOptions) {
+function runFromLine(opts: import("./gcodeRfl").RflRunOptions) {
+  // ONE command, sent at the confirmation (Codex R16 XZ-07): the program it
+  // was confirmed on rides along (the gateway refuses another), and so do
+  // the toolsetter's values for the pre-measurement — the gateway sets them
+  // before its M600. An await between the two let another program arrive
+  // and run with this one's line, tool and entry position.
+  let probeVars: Record<string, number> | undefined;
   if (opts.preTool > 0) {
-    // The gateway measures T<preTool> with an M600 before AUTO_RUN: the
-    // toolsetter must be set up and its values in the interpreter first.
     const setup = toolsetter.value;
     if (!setup.ok) { pushMessage(OPERATOR_ERROR, `Run from line not started — ${setup.reason}`); return; }
-    const reply = await request({ cmd: "set_probe_vars", vars: toolsetterVarMap(setup.values) });
-    if (!reply || reply.ok === false || reply.mdi_set !== true) {
-      pushMessage(OPERATOR_ERROR, `Run from line not started — toolsetter parameters: ${
-        !reply ? "no reply" : reply.ok === false ? (reply.error ?? "refused") : "not taken over by the interpreter"}`);
-      return;
-    }
+    probeVars = toolsetterVarMap(setup.values);
   }
   fire({
     cmd: "auto_run",
     line: opts.line,
+    file: opts.program.file,
+    version: opts.program.version,
     spindle_dir: opts.spindleDir !== "off" ? opts.spindleDir : undefined,
     spindle_speed: opts.spindleDir !== "off" ? opts.spindleSpeed : undefined,
     // RFL × M600 guard: measure this tool via MDI first (gateway bg sequence),
     // retract to G53 Z0 (never lowered — skipped when already at/above it),
     // and rapid to the derived start XY before AUTO_RUN.
     pre_tool: opts.preTool > 0 ? opts.preTool : undefined,
+    probe_vars: probeVars,
     safe_z: opts.safeZ || undefined,
     entry_x: opts.entry?.x ?? undefined,
     entry_y: opts.entry?.y ?? undefined,
@@ -1907,6 +1923,7 @@ watch(viewerGcode, (newGcode) => {
              and the running program's Abort, nothing else of the banner. -->
         <MachineBtn v-if="safetyTrip" type="bannerAck" data-dialog-reachable @click="acknowledgeSafetyTrip">Acknowledge</MachineBtn>
         <MachineBtn v-if="bannerLine?.key === 'preview-error' && activeFile" type="bannerReload" @click="loadFile(activeFile)">Reload program</MachineBtn>
+        <MachineBtn v-if="bannerLine?.key === 'program-unconfirmed' && programUnconfirmed" type="bannerReload" @click="loadFile(programUnconfirmed)">Load program</MachineBtn>
         <MachineBtn v-if="machineState === 'unhomed'" type="bannerHome" @click="homeAll">Home All</MachineBtn>
         <MachineBtn v-if="unreadCount > 0" type="bannerAction" @click="openMessages">
           {{ unreadCount }} message{{ unreadCount === 1 ? '' : 's' }}

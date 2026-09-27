@@ -8,7 +8,7 @@ import { splitSubLines, expansionAllowed, totalRows, rowAt, rowForMain, rowForSu
 import { usePermissions } from "./permissions";
 import { loadMachineDefaults, saveMachineDefaults, settingsVersion } from "./defaults";
 import { confirmedToolsetter } from "./toolsetterVars";
-import { scanToolchangesBefore, scanEntryPositionBefore, type RflToolchangeScan, type RflEntryScan, type RflRunOptions } from "./gcodeRfl";
+import { scanToolchangesBefore, scanEntryPositionBefore, revisionParts, type RflToolchangeScan, type RflEntryScan, type RflRunOptions } from "./gcodeRfl";
 import { highlightGcode, type Token } from "./gcodeHighlight";
 import { fmtPct } from "./format";
 import { limitViolationText, type LimitViolation } from "./ws/bulkData";
@@ -584,7 +584,10 @@ function onStartClick() {
 }
 
 function confirmRunFromLine() {
-  if (!selectedLine.value || rflBlocked.value || programLoading.value) return;
+  // The program the dialog showed — the gateway refuses the run if it is no
+  // longer the loaded one at this version (Codex R16 XZ-07).
+  const program = revisionParts(props.programTextRevision);
+  if (!selectedLine.value || rflBlocked.value || programLoading.value || !program) return;
   const mach = loadMachineDefaults();
   if (mach.rflSafeZ !== dialogSafeZ.value) {
     saveMachineDefaults({ ...mach, rflSafeZ: dialogSafeZ.value });
@@ -596,6 +599,7 @@ function confirmRunFromLine() {
     preTool: rflPreTool.value,
     safeZ: dialogSafeZ.value,
     entry: rflEntryAvailable.value ? rflEntry.value : null,
+    program,
   });
   showRunDialog.value = false;
   selectedLine.value = null;

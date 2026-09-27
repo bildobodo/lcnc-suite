@@ -3,8 +3,10 @@ import { ctl, MOCK } from "./ctl";
 
 // Codex review R15 B1: the toolsetter's values reach the machine only when it
 // is SET UP — every required field in the section the SERVER confirmed, each
-// valid — and every M600 the WebUI starts waits until set_probe_vars replied
-// that the interpreter took them over (mdi_set). A config without a saved
+// valid. R16 XZ-06: every M600 the WebUI starts is ONE command, `mdi` with
+// the values in `vars` — the gateway sets them and sends the line only once
+// the interpreter took them over; no continuation waits in the browser for
+// an abort (any client's) to miss. A config without a saved
 // section used to push TOOLSETTER_FALLBACK's zeros on each Measure Current
 // (the XYZAC sim's var file, 2026-09-27). Guard list: section missing, server
 // data pending, a partial section, a save never confirmed, the takeover
@@ -113,26 +115,35 @@ test("a save the server never confirmed is no setup; its confirmation is", async
   await expect(page.getByRole("button", { name: "Measure Current", exact: true })).toBeDisabled();
 });
 
-test("Measure Current waits for the takeover: refused or not taken over sends no M600; taken over sends it after", async ({ page }) => {
+test("Measure Current is ONE command: the values ride the mdi — a refusal says why and nothing follows (Codex R16 XZ-06)", async ({ page }) => {
   await open(page, { ...M600, toolsetter: SET_UP });   // zeros in X/Y and slow feed 0: a valid setup
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   const measure = page.getByRole("button", { name: "Measure Current", exact: true });
-  for (const [reply, why] of [[{ ok: true, file_saved: true, mdi_set: false }, "not taken over by the interpreter"],
-                              [{ ok: false, error: "Not armed" }, "Not armed"]] as const) {
-    await ctl({ op: "replies", replies: { set_probe_vars: reply } });
-    await ctl({ op: "clearCmds" });
-    await hold(page, measure);
-    await expect(page.locator(".bannerContent")).toContainText(`Measure Current not sent — its parameters: ${why}`);
-    expect((await sent()).map(c => c.cmd), why).toEqual(["set_probe_vars"]);
-    await page.waitForTimeout(400);   // the latch after the refused sequence
-  }
-  await ctl({ op: "replies", replies: { set_probe_vars: { ok: true, file_saved: true, mdi_set: true } } });
+  await ctl({ op: "replies", replies: { mdi: { ok: false, error: "Parameters not taken over — nothing started", mdi_set: false } } });
+  await hold(page, measure);
+  await expect(page.locator(".bannerContent")).toContainText("Measure Current not started — Parameters not taken over — nothing started");
+  expect((await sent()).map(c => c.cmd), "one command, refused").toEqual(["mdi"]);
+  await page.waitForTimeout(400);   // the latch after the refused command
+  await ctl({ op: "replies", replies: { mdi: { ok: true, file_saved: true, mdi_set: true } } });
   await ctl({ op: "clearCmds" });
   await hold(page, measure);
-  await expect.poll(async () => (await sent()).map(c => c.cmd)).toEqual(["set_probe_vars", "mdi"]);
-  const [vars, mdi] = await sent();
-  expect(vars.vars).toMatchObject({ "3100": 0, "3101": 0, "3102": -300, "3004": 200, "3005": 0 });
+  await expect.poll(async () => (await sent()).map(c => c.cmd)).toEqual(["mdi"]);
+  const [mdi] = await sent();
   expect(mdi.text).toBe("T5 M600");
+  expect(mdi.vars).toMatchObject({ "3100": 0, "3101": 0, "3102": -300, "3004": 200, "3005": 0 });
+});
+
+test("an abort while the reply is outstanding leaves nothing to send: a late success after it, or after a cleared setup, sends nothing more (Codex R16 XZ-06)", async ({ page }) => {
+  await open(page, { ...M600, toolsetter: SET_UP });
+  await page.getByRole("tab", { name: "Tools", exact: true }).click();
+  await hold(page, page.getByRole("button", { name: "Measure Current", exact: true }));
+  await expect.poll(async () => (await sent()).map(c => c.cmd)).toEqual(["mdi"]);
+  const [pending] = await sent();   // the mock withholds the reply
+  await page.locator(".sidePane").getByRole("button", { name: "Abort", exact: true }).click();
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { ...M600, toolsetter: {} } } });
+  await ctl({ op: "raw", frame: { type: "reply", cmd: "mdi", req_id: pending.req_id, ok: true, file_saved: true, mdi_set: true } });
+  await page.waitForTimeout(500);
+  expect((await sent()).map(c => c.cmd)).toEqual(["mdi", "abort"]);
 });
 
 test("Reset clears the section — no field counts as saved, nothing is pushed", async ({ page }) => {

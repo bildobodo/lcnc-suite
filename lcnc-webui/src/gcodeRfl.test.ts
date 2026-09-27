@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { scanToolchangesBefore } from "./gcodeRfl";
+import { scanToolchangesBefore, revisionParts } from "./gcodeRfl";
 
 describe("scanToolchangesBefore (RFL × M600 guard)", () => {
   it("finds a same-line T + M600 before the start line", () => {
@@ -124,5 +124,16 @@ describe("scanEntryPositionBefore (RFL position preamble)", () => {
     const r = scanEntryPositionBefore("(G0 X99)\n; X88\nG0 X7 Y8\n.\n", 5);
     expect(r.x).toBe(7);
     expect(r.y).toBe(8);
+  });
+});
+
+describe("revisionParts (Codex R16 XZ-07: Run from line names its program)", () => {
+  it("splits the published revision at the LAST #", () => {
+    expect(revisionParts("/nc/part.ngc#40")).toEqual({ file: "/nc/part.ngc", version: 40 });
+    expect(revisionParts("/nc/a#b.ngc#7")).toEqual({ file: "/nc/a#b.ngc", version: 7 });
+  });
+  it("names nothing without a published version", () => {
+    for (const rev of ["", "/nc/part.ngc", "/nc/part.ngc#-1", "/nc/part.ngc#", "#3", "/nc/p.ngc#1.5"])
+      expect(revisionParts(rev), rev).toBeNull();
   });
 });
