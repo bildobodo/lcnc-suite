@@ -1367,3 +1367,46 @@ falsch. **Ergänzung des K5-Vertrags:**
   Größenänderung.
 - **Fokus und bestätigte Auswahl** bleiben getrennt. Ein Statuswechsel setzt den Fokus nie auf
   die aktive Option zurück. Bei einem Darstellungswechsel bleibt ein erreichbarer Fokus.
+
+---
+
+## Codex · Runde 4 / Handshake R24 · Plan-Agreement Fassung 3a
+
+**Stand:** `225874e`, Bereich `682774b..225874e`, 28. September 2026.
+**Ergebnis: `agreement` für den Plan K1–K6.** OP22-01-Rest ist mit Fassung 3a auf
+Planungsebene geschlossen. OP22-02 bis OP22-04 und das Toolbar-Muster bleiben geschlossen.
+Es bestehen keine weiteren offenen Planbefunde und keine nötige Operator-Entscheidung.
+
+Der ergänzte K5-Vertrag deckt den Gegenfall aus R23 ab:
+
+- `_var_file_lock` serialisiert den vollständigen G30-Ablauf mit beiden bestehenden
+  Gateway-Dateischreibern, einschließlich der Provenienz-Initialisierung. Die feste
+  Reihenfolge `_cmd_lock` vor `_var_file_lock` vermeidet eine gegenseitige Sperrabhängigkeit;
+  die Provenienzroutine benötigt dabei keinen Kommandolock.
+- Ein abgebrochener Aufrufer gibt die Dateisperre erst nach dem tatsächlichen Ende seines
+  Schreibthreads frei. Ein nachfolgender G30-Auftrag kann dadurch keinen verspäteten
+  Gateway-Dateiaustausch als eigenen Synch-Erfolg interpretieren.
+- `fstat` und Inhalt stammen aus derselben geöffneten Datei. Zusammen mit abgewartetem
+  `RCS_DONE`, Inode-Wechsel, vollständigen endlichen Achswerten und dem vorgesehenen
+  Vergleich ist der Nachweis für die koordinierten Schreibpfade ausreichend definiert.
+  Die Grenze gegenüber externen Dateischreibern ist ausdrücklich dokumentiert.
+
+Die zusätzlichen isolierten Wächter treffen die beiden Ursachen des R23-Befunds.
+Bei ihrer Umsetzung auch einen erneuten Abbruch während des Wartens auf den Schreibthread
+berücksichtigen: Die vereinbarte Sperrgarantie gilt bis zu dessen Ende. Ebenso muss die
+Lock-Verantwortung des Schreibhelfers eindeutig sein, damit ein bereits gehaltener,
+nicht reentranter Lock nicht nochmals genommen wird. Das sind Umsetzungshinweise zum
+abgenommenen Vertrag, keine neue Planrunde.
+
+Die Ergänzungen für Comp „unbekannt“, das nicht bedienbare Messelement und die Trennung von
+Fokus und bestätigter Auswahl entsprechen den übernommenen Hinweisen aus R23.
+
+**Prüfumfang:** Dokumentänderungen sowie Abgleich mit den bestehenden Schreibpfaden und
+der Abbruchbehandlung gelesen. Die R23-Belege bleiben unverändert; sie belegen den noch
+nicht implementierten Ausgangsfehler. Kein erneuter Sonden- oder Testlauf für diese reine
+Vertragsänderung, kein Browser, keine Maschinenverbindung und keine Produktänderung.
+
+Damit ist die Planung **Fassung 3 mit Ergänzung 3a** zur Umsetzung freigegeben. Dieses
+Agreement nimmt keine Implementierung ab, auch nicht die bereits angelegten K1–K3 im
+anderen Worktree. Danach folgen Implementierungsreview, die vereinbarten Prüfungen und
+die separate Sichtprüfung des Operators im abgestimmten Maschinenfenster.
