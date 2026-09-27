@@ -1,0 +1,239 @@
+{
+  "head": "b24879928dc59a20485de033895e7062d23355d0",
+  "method": "Existing project palette formulas and thresholds; not a rendered-image or WCAG certification. LIT = #e0e0e0.",
+  "cases": [
+    {
+      "theme": "light",
+      "changes": {},
+      "failures": [],
+      "contrasts": {
+        "feed": {
+          "background": 5.451,
+          "lit": 4.129
+        },
+        "rapid": {
+          "background": 5.851,
+          "lit": 4.433
+        },
+        "backplot": {
+          "background": 6.264,
+          "lit": 4.745
+        },
+        "selection": {
+          "background": 18.883,
+          "lit": 14.304
+        },
+        "halo": {
+          "background": 1.0,
+          "lit": 1.32
+        }
+      }
+    },
+    {
+      "theme": "dark",
+      "changes": {},
+      "failures": [],
+      "contrasts": {
+        "feed": {
+          "background": 3.862,
+          "lit": 3.77
+        },
+        "rapid": {
+          "background": 4.094,
+          "lit": 3.556
+        },
+        "backplot": {
+          "background": 3.323,
+          "lit": 4.382
+        },
+        "selection": {
+          "background": 16.265,
+          "lit": 1.117
+        },
+        "halo": {
+          "background": 1.0,
+          "lit": 14.559
+        }
+      }
+    },
+    {
+      "theme": "hc-light",
+      "changes": {},
+      "failures": [],
+      "contrasts": {
+        "feed": {
+          "background": 9.739,
+          "lit": 7.377
+        },
+        "rapid": {
+          "background": 10.369,
+          "lit": 7.855
+        },
+        "backplot": {
+          "background": 11.321,
+          "lit": 8.576
+        },
+        "selection": {
+          "background": 21.0,
+          "lit": 15.908
+        },
+        "halo": {
+          "background": 1.0,
+          "lit": 1.32
+        }
+      }
+    },
+    {
+      "theme": "hc-dark",
+      "changes": {},
+      "failures": [],
+      "contrasts": {
+        "feed": {
+          "background": 5.234,
+          "lit": 3.039
+        },
+        "rapid": {
+          "background": 5.061,
+          "lit": 3.143
+        },
+        "backplot": {
+          "background": 4.621,
+          "lit": 3.443
+        },
+        "selection": {
+          "background": 21.0,
+          "lit": 1.32
+        },
+        "halo": {
+          "background": 1.0,
+          "lit": 15.908
+        }
+      }
+    },
+    {
+      "theme": "dark",
+      "changes": {
+        "selection": "#22b8cf"
+      },
+      "failures": [],
+      "contrasts": {
+        "feed": {
+          "background": 3.862,
+          "lit": 3.77
+        },
+        "rapid": {
+          "background": 4.094,
+          "lit": 3.556
+        },
+        "backplot": {
+          "background": 3.323,
+          "lit": 4.382
+        },
+        "selection": {
+          "background": 8.077,
+          "lit": 1.803
+        },
+        "halo": {
+          "background": 1.0,
+          "lit": 14.559
+        }
+      }
+    },
+    {
+      "theme": "hc-dark",
+      "changes": {
+        "selection": "#00e5ff"
+      },
+      "failures": [],
+      "contrasts": {
+        "feed": {
+          "background": 5.234,
+          "lit": 3.039
+        },
+        "rapid": {
+          "background": 5.061,
+          "lit": 3.143
+        },
+        "backplot": {
+          "background": 4.621,
+          "lit": 3.443
+        },
+        "selection": {
+          "background": 13.652,
+          "lit": 1.165
+        },
+        "halo": {
+          "background": 1.0,
+          "lit": 15.908
+        }
+      }
+    },
+    {
+      "theme": "dark",
+      "changes": {
+        "feed": "#008a9c"
+      },
+      "failures": [
+        "feed/backplot deutan 0.031"
+      ],
+      "contrasts": {
+        "feed": {
+          "background": 4.682,
+          "lit": 3.11
+        },
+        "rapid": {
+          "background": 4.094,
+          "lit": 3.556
+        },
+        "backplot": {
+          "background": 3.323,
+          "lit": 4.382
+        },
+        "selection": {
+          "background": 16.265,
+          "lit": 1.117
+        },
+        "halo": {
+          "background": 1.0,
+          "lit": 14.559
+        }
+      }
+    },
+    {
+      "theme": "dark",
+      "changes": {
+        "feed": "#22b8cf",
+        "rapid": "#f5a623",
+        "backplot": "#ff00ff"
+      },
+      "failures": [
+        "feed on lit 1.80",
+        "rapid on lit 1.54",
+        "backplot on lit 2.38",
+        "feed/backplot deutan 0.082"
+      ],
+      "contrasts": {
+        "feed": {
+          "background": 8.077,
+          "lit": 1.803
+        },
+        "rapid": {
+          "background": 9.483,
+          "lit": 1.535
+        },
+        "backplot": {
+          "background": 6.128,
+          "lit": 2.376
+        },
+        "selection": {
+          "background": 16.265,
+          "lit": 1.117
+        },
+        "halo": {
+          "background": 1.0,
+          "lit": 14.559
+        }
+      }
+    }
+  ]
+}
