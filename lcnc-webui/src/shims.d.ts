@@ -31,6 +31,7 @@ interface ViewerDiag {
   getPalette?: () => { resolved: Record<string, string>; drawn: Record<string, string>; mode: string };
   tintPart?: (id: string, on: boolean) => void;
   getLabels?: () => { total: number; laidOut: number };
+  getSelection?: () => { widthPx: number; segments: number; visible: boolean } | null;
   getAppearance?: () => {
     grid: { visible: boolean; position: number[]; color: number[] } | null;
     outlinedParts: number;

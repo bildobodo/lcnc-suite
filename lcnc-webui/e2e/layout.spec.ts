@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { encode } from '@msgpack/msgpack';
 import { ctl } from './ctl';
 import { measureLayout, assertLayout, layoutChanges, measureFrame, frameChanges, type LayoutSnapshot } from './layout-audit';
 import { PROFILES, VIEWPORTS, PANELS, openLayout, setLayoutState, settleLayout, type LayoutState,
@@ -716,42 +717,83 @@ test('negative control (portrait): without the always-present band the keypad re
 
 // Design wave D9: the viewer's overlays keep to the viewer. The DRO card
 // fits its pane (fitHud steps the scale down from the operator's setting,
-// then folds the Machine column, the F / S rows, the tool line — measured,
-// never clipped: at 1024 × 768 the pane used to clip the card and a warning
-// line vanished; at 150 % portrait the card covered the ViewCube and ran
-// into the side pane). The findings (mode chip, warnings) are their own
-// card at the bottom edge. Every overlay lies inside the viewer and none
-// covers another. Landscape from 150 % is the named WP-DR limit (the pane
-// is 90–135 px tall there) and not swept.
+// then folds the Machine column, the F / S rows, the tool line, and last
+// the findings card to one summary line — measured, never clipped: at
+// 1024 × 768 the pane used to clip the card and a warning line vanished; at
+// 150 % portrait the card covered the ViewCube and ran into the side pane).
+// Review round 6: with a PROGRAM the scrub bar joins the bottom column and
+// the fully folded DRO still overlapped the findings (UI-DI12) — the guard
+// loads a preview with sequence data so the bar is up; and a fit measured
+// against the bottom at its CURRENT scale swung between two sizes forever
+// (UI-DI13) — the guard watches the chosen form hold still. Landscape from
+// 150 % is the named WP-DR limit (the pane is 90–135 px tall there) and not
+// swept.
 const HUD_CASES = [
   ...VIEWPORTS.map(vp => ({ vp, zoom: 1 })),
   { vp: VIEWPORTS.find(v => v.name === 'touch-portrait')!, zoom: 1.5 },
 ];
+const TIMELINE_FEED = Array.from({ length: 30 }, (_, i) => [i * 3, i % 2 ? 20 : 0, 0]);
+const TIMELINE_PREVIEW = Buffer.from(encode({ file: '/leak.ngc', preview_schema: 9, feed: TIMELINE_FEED,
+  feed_lines: TIMELINE_FEED.map((_, i) => i + 3), feed_seq: TIMELINE_FEED.map((_, i) => i + 3),
+  rapid: [[0, 0, 5], [0, 0, 0]], rapid_lines: [1, 2], rapid_seq: [1, 2] }));
 for (const profile of [PROFILES[1], PROFILES[2]]) {
-  test(`${profile.name}: the HUD, its findings and the ViewCube column stay inside the viewer and apart`, async ({ page }) => {
-    test.setTimeout(120_000);
-    for (const { vp, zoom } of HUD_CASES) {
+  test(`${profile.name}: the HUD, its findings, the scrub bar and the ViewCube column stay inside the viewer, apart and still`, async ({ page, context }) => {
+    test.setTimeout(240_000);
+    // /preview? only — a bare /preview/ also catches previewWorker-*.js.
+    await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: TIMELINE_PREVIEW }));
+    await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain', body: '(timeline)\nG0 X0\nG1 X10 F100\nM2\n' }));
+    for (const { vp, zoom } of HUD_CASES) for (const scale of ['md', 'xl'] as const) {
       await openLayout(page, profile, vp);
-      // Every warning line the status alone can raise, plus a preview re-parse.
-      await ctl({ op: 'status_delta', data: { eoffset_enabled: true, eoffset_z: 0.123, rotation_xy: 12 } });
+      await ctl({ op: 'raw', frame: { type: 'settings_changed', settings: { viewer: { hud: { scale, showMachine: true } } } } });
+      // Every warning line the status alone can raise, a program with a
+      // timeline, then a preview re-parse.
+      await ctl({ op: 'status_delta', data: { active_file: '/leak.ngc', eoffset_enabled: true, eoffset_z: 0.123, rotation_xy: 12 } });
+      await ctl({ op: 'loadGcode' });
+      await expect(page.locator('.scrubBar')).toBeVisible();
       await ctl({ op: 'quiet', on: true });
       await ctl({ op: 'raw', frame: { type: 'status_delta', armed: true, data: {}, preview_refresh:
-        { reason: 'wcsoff:G54:x', file: '/S.ngc', expected_ms: 30000, started_ms: 1000, queued: false, superseded: 0 } } });
+        { reason: 'wcsoff:G54:x', file: '/leak.ngc', expected_ms: 30000, started_ms: 1000, queued: false, superseded: 0 } } });
       await expect(page.locator('.hudNotes .hudWarn')).toHaveCount(3);
       if (zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
       await settleLayout(page);
-      const where = `${vp.name} ${zoom * 100} %`;
+      const where = `${vp.name} ${zoom * 100} % ${scale}`;
+      // Still: once the content has settled (the collision sweep's verdict
+      // lands in the scrub bar a moment after the load and grows it — a
+      // legitimate re-fit), the chosen form holds for 2 s.
+      await expect.poll(() => page.evaluate(async () => {
+        const text = () => (document.querySelector('.scrubBar') as HTMLElement | null)?.innerText ?? '';
+        const first = text();
+        for (let i = 0; i < 5; i++) { await new Promise(r => setTimeout(r, 100)); if (text() !== first) return false; }
+        return true;
+      }), { message: `${where}: the scrub bar's content settles`, timeout: 10_000 }).toBe(true);
+      const forms = await page.evaluate(async () => {
+        const seen = new Set<string>();
+        for (let i = 0; i < 20; i++) {
+          seen.add(`${document.querySelector('.hud')?.className} | ${document.querySelector('.hudNotes')?.className}`);
+          await new Promise(r => setTimeout(r, 100));
+        }
+        return [...seen];
+      });
+      expect(forms, `${where}: the HUD form settles`).toHaveLength(1);
       await expect(page.locator('.hud'), `${where}: the DRO card fits`).toHaveAttribute('data-hud-fit', 'fits');
       const boxes = await page.evaluate(() => {
         const r = (s: string) => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom }; };
         return { pane: r('.viewerPane .viewerWrapper')!, hud: r('.viewerPane .hud')!, notes: r('.viewerPane .hudNotes')!,
-          cube: r('.viewerPane .viewCube')!, quick: r('.viewerPane .viewerQuickGrid')! };
+          scrub: r('.viewerPane .scrubBar')!, cube: r('.viewerPane .viewCube')!, quick: r('.viewerPane .viewerQuickGrid')! };
       });
       const inside = (a: typeof boxes.pane, p: typeof boxes.pane) => a.l >= p.l - 0.5 && a.t >= p.t - 0.5 && a.r <= p.r + 0.5 && a.b <= p.b + 0.5;
       const apart = (a: typeof boxes.pane, b: typeof boxes.pane) => a.r <= b.l + 0.5 || b.r <= a.l + 0.5 || a.b <= b.t + 0.5 || b.b <= a.t + 0.5;
-      for (const k of ['hud', 'notes', 'cube', 'quick'] as const) expect(inside(boxes[k], boxes.pane), `${where}: ${k} inside the viewer ${JSON.stringify(boxes)}`).toBe(true);
-      for (const [a, b] of [['hud', 'notes'], ['hud', 'cube'], ['hud', 'quick'], ['notes', 'cube'], ['notes', 'quick']] as const) {
+      for (const k of ['hud', 'notes', 'scrub', 'cube', 'quick'] as const) expect(inside(boxes[k], boxes.pane), `${where}: ${k} inside the viewer ${JSON.stringify(boxes)}`).toBe(true);
+      for (const [a, b] of [['hud', 'notes'], ['hud', 'scrub'], ['hud', 'cube'], ['hud', 'quick'], ['notes', 'cube'], ['notes', 'quick'], ['scrub', 'cube'], ['scrub', 'quick']] as const) {
         expect(apart(boxes[a], boxes[b]), `${where}: ${a} and ${b} apart ${JSON.stringify(boxes)}`).toBe(true);
+      }
+      // Every axis value of the DRO card is shown whole (no fold ever hides an axis row).
+      const axes = await page.locator('.hud .hudWork').evaluateAll(els => els.filter(e => (e as HTMLElement).offsetParent !== null).length);
+      expect(axes, `${where}: every axis row shown`).toBeGreaterThanOrEqual(profile.axes.length);
+      // A folded findings card still says what is there and opens on a tap.
+      if (await page.locator('.hudNotes.needsCompact').count()) {
+        await expect(page.locator('.hudNotesSummary'), where).toContainText('3 warnings');
+        await expect(page.getByRole('button', { name: 'Show viewer warnings', exact: true })).toBeVisible();
       }
       await ctl({ op: 'quiet', on: false });
       if (zoom !== 1) await page.evaluate(() => { document.documentElement.style.zoom = ''; });

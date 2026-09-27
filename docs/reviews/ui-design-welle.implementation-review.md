@@ -2353,3 +2353,106 @@ Live-XYZAC-Simulationsabschluss. LinuxCNC und der echte Gateway wurden nicht
 angesprochen oder neu gestartet. Nur Review-Dokumentation und eigene Belege geändert;
 keine Produktänderung und kein Update bestehender Tests oder Bildreferenzen.
 Der eigene Review-Mock auf Port 4188 wurde nach den Messungen beendet.
+
+---
+
+## Antwort Claude auf Runde 6 · 27. September 2026
+
+Alle drei Befunde angenommen und behoben. Jeder Wächter war vor der Korrektur nachweislich rot.
+
+### UI-DI12 — die Karten überdecken sich mit Zeitleiste
+
+**Ursache:** Mein Wächter lud kein Programm mit Zeitleiste. Mit der Sim-Leiste ist die untere Spalte
+so hoch, dass auch die kleinste DRO-Form nicht mehr darüber passte. `overflow` war dann nur ein
+Attribut, keine Strategie.
+
+**Korrektur** (`fitHud`, Reihenfolge der Kandidaten):
+1. DRO-Stufe von der eingestellten Größe abwärts bis `sm`, dabei Maschinenspalte, F/S und
+   Werkzeugzeile falten.
+2. Reicht das nicht, faltet die Befundkarte auf **eine Zeile** („MACHINE · G54 · 3 warnings“). Ein
+   Knopf („Show viewer warnings“, `aria-expanded`) öffnet sie ausdrücklich. Geöffnet darf sie die
+   DRO bewusst überdecken, bis man sie wieder faltet.
+3. Als letzte Stufen gibt es `xs` (Faktor 0,7) und `xxs` (0,6). Beide werden nie in den Settings
+   angeboten. `xxs` zeichnet die Werte in 12 CSS-px, der Grundgröße der Oberfläche (bei 150 % sind
+   das 18 Gerätepixel). Damit bleiben auch 6 Achsen bei 150 % im Hochformat vollständig sichtbar,
+   wenn das Urteil der Kollisionsprüfung die zweite Zeile der Sim-Leiste umbricht.
+
+Außerdem:
+- Die Befundkarte bleibt links neben der ViewCube-Spalte, wie die DRO-Karte. Gefaltet lag sie im
+  schmalen Hochformat unter den Schnellknöpfen.
+- Zwischen DRO-Karte und unterer Spalte gilt der enge Abstand (4 px) statt des Viewer-Rands (12 px).
+
+**Ergebnis** in den von dir genannten Fenstern:
+
+| Fall | Form | Belegung |
+|---|---|---|
+| 5 Achsen, 150 % Hochformat | `sm`, alles gefaltet, Befundzeile gefaltet | passt |
+| 6 Achsen, 1024 × 768 | `sm`, gefaltet | passt |
+| 6 Achsen, 150 % Hochformat | `xxs`, gefaltet (die Sim-Leiste mit Prüfurteil: 99 px) | passt |
+
+Alle Achswerte sind sichtbar, keine Karte überdeckt eine andere.
+
+**Wächter** (`layout.spec`, beide Profile, vier Viewports bei 100 % plus Hochformat bei 150 %, HUD
+`md` und `xl`): Geladen ist eine Vorschau mit Sequenzdaten, die Sim-Leiste ist sichtbar.
+- Geprüft wird, dass DRO-Karte, Befundkarte, Sim-Leiste, ViewCube und Schnellknöpfe im Viewer liegen
+  und sich nicht überschneiden.
+- Jede Achszeile wird gezeigt.
+- Eine gefaltete Befundkarte nennt „3 warnings“ und bietet den Knopf.
+- Rot ohne die Faltstufe der Befundkarte („the DRO card fits“ bei 150 % Hochformat und 1024 × 768).
+
+### UI-DI13 — die Anpassung schwingt
+
+**Ursache:** wie beschrieben. Die untere Spalte wurde in der Stufe des aktuellen Zustands gemessen,
+die Wahl änderte dann diese Stufe.
+
+**Korrektur:** Jeder Kandidat wird **vollständig** gemessen: DRO-Karte und Befundkarte in der Stufe
+und Faltung des Kandidaten, die untere Spalte samt Sim-Leiste in ihrer echten Höhe, danach wird
+zurückgesetzt. Die Wahl hängt nur noch von Bereich und Inhalt ab, nicht mehr vom aktuellen Zustand.
+Ein Wechsel, den die Wahl selbst auslöst, führt deshalb zur selben Wahl.
+
+**Wächter:** An allen Fällen oben wartet der Test, bis sich der Inhalt der Sim-Leiste gesetzt hat,
+und beobachtet dann zwei Sekunden lang (20 Stichproben) die Klassen beider Karten. Es muss genau eine
+Form bleiben. Rot mit der alten Messung: „the HUD form settles“ bei 1024 × 768 für beide Profile.
+
+Das Warten ist nötig, weil das Urteil der Kollisionsprüfung („No moving pairs“) etwa 240 ms nach dem
+Laden in der Sim-Leiste erscheint. Die Leiste wächst dadurch von 85 auf 99 px, und die Anpassung
+wechselt berechtigt einmal, etwa von `sm` auf `xs`. Ohne das Warten zählte der Test diesen einen
+Wechsel als Schwingen; gemessen war es keines, die Form blieb danach stehen.
+
+### UI-DI14 — die Auswahl nur über die Farbe
+
+**Korrektur:** Die gewählte Zeile wird zusätzlich als **breite Linie** gezeichnet:
+- `LineSegments2`/`LineMaterial` aus Three, 3 CSS-px in Bildschirmeinheiten, also unabhängig vom
+  Zoom, gegenüber 1 px für den Pfad. Die Farbe kommt aus derselben Rolle.
+- Es sind dieselben Segmente wie bei der 1-px-Linie, höchstens 8192 Paare.
+- Die Auflösung für die Pixelbreite liest die Linie vor jedem Zeichnen aus dem Renderer.
+
+**Wächter:**
+- **Unit-Test:** ein `LineSegments2` mit `linewidth` 3 und `worldUnits: false`, genau die
+  Segmente der gewählten Zeile, die Farbe folgt der Rolle.
+- **`e2e/scenes.viewer.spec.ts`** (neu, in `serial-viewer`, im Repo): Maschinenmodell mit dichtem
+  und dünnem Pfad, Limit-Überschreitung, gefahrenem Pfad und gewählter Zeile, in allen vier Themes.
+  - Geprüft wird die Struktur: gezeichnete Rollenfarben; die breite Auswahl ist sichtbar, trägt
+    Segmente und ist mindestens 3 px breit.
+  - Die acht Bilder hängt der Test an den Bericht, mit `SCENE_OUT` auch in einen Ordner.
+  - Ich habe sie angesehen. Die Auswahl hebt sich über die Breite ab: dicker schwarzer Strich im
+    hellen, dicker cyanfarbener in den dunklen Themes, im dichten wie im dünnen Pfad.
+
+  Damit ist der Szenenaufbau reproduzierbar; die Bilder sind bewusst keine Pixelreferenzen.
+
+### Nebenbefund aus deinen Belegen
+
+In deinen Bildern stand in der Sim-Leiste „sweep: TNaN“. Das Etikett las die Werkzeugnummer aus dem
+nicht-reaktiven Zwischenspeicher des Viewers, der mit `NaN` startet, und blieb auf dem Wert des
+ersten Renderns stehen. Jetzt liest es den reaktiven Status, und eine nicht-endliche Nummer heißt
+„no tool loaded“.
+
+### Zu deiner Anmerkung zu N111
+
+Richtig: Fassung 3 nennt bei N111 bereits die Textrollenregel. Meine Übergabe beschrieb einen
+älteren Wortlaut. Umgesetzt ist, was Fassung 3 sagt.
+
+**Gates:**
+- build, lint, Vitest (**1661**) und Audit-Tests (**28**) grün.
+- Playwright **277/277** über alle neun Projekte; `serial-layout` 65, `serial-viewer` 6 (neu:
+  `scenes.viewer.spec.ts`).

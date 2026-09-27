@@ -7113,3 +7113,27 @@ Plan Fassung 3 WP-D10 (N114, K14, N115), third of three commits.
   measured table columns and the DR probe geometry stay literal; px and em
   scale alike under CSS zoom, so a unit swap buys nothing while the font is
   fixed. No audit category: there is no rule a width could break.
+
+### Implementation review round 6 — D7–D10 fixes (2026-09-27)
+
+- UI-DI12: with a program's timeline the bottom column (findings card +
+  scrub bar) outgrew the space the fully folded DRO card left — `overflow`
+  was an attribute, not a strategy. fitHud now folds the findings card to
+  ONE summary line ("MACHINE · G54 · 3 warnings") with an explicit toggle
+  (the opened card may cover the DRO by the operator's choice) after the
+  DRO's own folds, and last steps to `xs` (0.7) and `xxs` (0.6 — values at the
+  UI's 12 px; never offered in Settings) so 6 axes at 150 % portrait keep
+  every value even when the sweep verdict wraps the scrub bar; the findings card stays in
+  the left zone (never under the ViewCube column); DRO and bottom column
+  meet at --gap-tight.
+- UI-DI13: every candidate is measured WHOLE (both cards at the candidate's
+  scale and folds, the real bottom column) and restored — the pick depends
+  on the pane and the content only, so a change the pick makes leads to the
+  same pick (it used to measure the bottom at the current scale and swing).
+- UI-DI14: the selected line is also a screen-space fat line
+  (LineSegments2 / LineMaterial, 3 CSS px, the same segments, colour role)
+  — the plan's "selection wider". e2e/scenes.viewer.spec.ts renders a model,
+  dense and thin paths in four themes, asserts the drawn roles and the wide
+  selection and attaches the images; reviewed by eye, no pixel references.
+- The scrub bar's sweep-tool label read the viewer's non-reactive cache
+  (NaN start: "sweep: TNaN"); it reads the reactive status.

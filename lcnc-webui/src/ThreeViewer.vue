@@ -51,7 +51,7 @@ import CameraPip from "./CameraPip.vue";
 import ScrubBar from "./ScrubBar.vue";
 import { simMode } from "./simMode";
 import { twpPoseStale, twpDatumStale, kinsModeChip, fixtureOffDatum, stampAForFixture, poseAbcOf } from "./twpPose";
-import { Camera, Settings } from "lucide-vue-next";
+import { Camera, Settings, ChevronDown, ChevronUp } from "lucide-vue-next";
 
 const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
 
@@ -1679,6 +1679,20 @@ async function buildFromInit(init: ViewerInit) {
         // glyph layout exists) — the offline spec asks this directly; a
         // texture count compared with a moment before raced the gizmo's
         // labels, which build the shared glyph atlas first.
+        // The selected line as DRAWN: the wide companion's width (CSS px),
+        // how many segments it carries and whether it shows (UI-DI14).
+        getSelection: () => {
+          let wide: { widthPx: number; segments: number; visible: boolean } | null = null;
+          scene?.traverse(o => {
+            const m = (o as THREE.Mesh).material as THREE.Material & { linewidth?: number };
+            if (!wide && (o as any).isLineSegments2 && m?.userData?.role === "selection") {
+              let shown = o.visible;
+              for (let p = o.parent; p; p = p.parent) shown &&= p.visible;
+              wide = { widthPx: m.linewidth ?? 0, segments: ((o as any).geometry.instanceCount as number) ?? 0, visible: shown };
+            }
+          });
+          return wide;
+        },
         getLabels: () => {
           let total = 0, laidOut = 0;
           for (const sc of [scene, _gizmoScene]) sc?.traverse(o => {
@@ -3706,11 +3720,30 @@ const hudCfg = computed(() => viewerDefaults.hud);
 // (< NARROW_VIEWER_PX) draws the ViewCube and its quick grid smaller.
 // If the smallest form still does not fit, that is a named limit (a
 // 9-axis DRO in a 150 % landscape pane), not a clip.
-const HUD_SCALES = ["sm", "md", "lg", "xl"] as const;
+// The operator's scales, and below them `xs` and `xxs` — the fit's own last
+// resort (never offered in Settings): the smallest forms that still show
+// every axis value (6 axes at 150 % portrait with a program's timeline and a
+// sweep verdict wrapping the scrub bar's second row, UI-DI12). xxs draws the
+// values at 12 CSS px (the UI's base size; 18 device px at 150 %).
+const HUD_SCALES = ["xxs", "xs", "sm", "md", "lg", "xl"] as const;
 const NARROW_VIEWER_PX = 440;
 // fold: 0 none, 1 the Machine column, 2 + the F / S rows, 3 + the tool line
 // — each an operator toggle already (Settings › HUD), applied by the fit.
-const hudFit = reactive({ scale: viewerDefaults.hud.scale as (typeof HUD_SCALES)[number], fold: 0, narrow: false, overflow: false });
+// notesCompact: the last step — the findings card folds to ONE summary line
+// with an explicit "show" toggle (review round 6, UI-DI12: with the scrub
+// bar up, the fully folded DRO card and the findings still overlapped).
+const hudFit = reactive({ scale: viewerDefaults.hud.scale as (typeof HUD_SCALES)[number], fold: 0, notesCompact: false, narrow: false, overflow: false });
+/** The operator opened the folded findings (a deliberate tap: the card may
+ *  then cover the DRO until it is folded again). */
+const notesOpen = ref(false);
+/** The warning lines the findings card holds (the mode chip aside). */
+const hudWarnCount = computed(() => [vst.value?.eoffset_enabled, vst.value?.rotation_xy, foreignWcs.value.length,
+  rewrittenWcs.value.length, kinsEndWarn.value, previewSchemaStale.value, previewRefresh.value,
+  !previewRefresh.value && previewWcsStale.value, previewTloStale.value, toolpathOverflow.value,
+  failedParts.value.length].filter(Boolean).length);
+/** The folded card's one line: the mode and how many warnings wait behind it. */
+const hudNotesSummary = computed(() => [hudMode.value ? `${hudMode.value.text} · ${props.g5xLabel || NO_VALUE}` : "",
+  hudWarnCount.value ? `${hudWarnCount.value} warning${hudWarnCount.value === 1 ? "" : "s"}` : ""].filter(Boolean).join(" · "));
 /** Anything for the findings card (the mode chip or a warning line). */
 const hasHudNotes = computed(() => !!(hudMode.value || vst.value?.eoffset_enabled || vst.value?.rotation_xy
   || foreignWcs.value.length || rewrittenWcs.value.length || kinsEndWarn.value || previewSchemaStale.value
@@ -3730,27 +3763,48 @@ function fitHud() {
   const cs = getComputedStyle(wrap);
   const gap = parseFloat(cs.getPropertyValue("--gap-section")) || 12;
   const cube = parseFloat(cs.getPropertyValue("--viewcube-size")) || 140;
-  const bottom = bottomEl.value?.offsetHeight ?? 0;
-  const availH = H - 2 * gap - (bottom ? bottom + gap : 0);
+  // Between the DRO card and the bottom column two cards meet: the tight
+  // gap, not the viewer's own margin.
+  const between = parseFloat(cs.getPropertyValue("--gap-tight")) || 4;
   const availW = W - 3 * gap - cube;
+  const notes = wrap.querySelector<HTMLElement>(".hudNotes");
   const top = HUD_SCALES.indexOf(hudCfg.value.scale);
-  const tries: { scale: (typeof HUD_SCALES)[number]; fold: number }[] = [];
-  for (let fold = 0; fold <= 3; fold++) {
-    for (let i = top; i >= 0; i--) tries.push({ scale: HUD_SCALES[i]!, fold });
+  // Order: the DRO steps down and folds its extras first; the findings fold
+  // to one line only when even the smallest DRO does not fit beside them.
+  const tries: { scale: (typeof HUD_SCALES)[number]; fold: number; notesCompact: boolean }[] = [];
+  for (const notesCompact of notes ? [false, true] : [false]) {
+    for (let fold = 0; fold <= 3; fold++) {
+      for (let i = top; i >= 2; i--) tries.push({ scale: HUD_SCALES[i]!, fold, notesCompact });
+    }
   }
-  // Measure each candidate on the live card (classes set directly, one
-  // synchronous layout each), then hand the choice to the template.
-  const was = card.className;
+  tries.push({ scale: "xs", fold: 3, notesCompact: !!notes }, { scale: "xxs", fold: 3, notesCompact: !!notes });
+  // Measure each candidate WHOLE on the live cards — the DRO card and the
+  // findings card at the candidate's scale and folds, the bottom column's
+  // real height with the scrub bar — classes set directly, one synchronous
+  // layout each, then restored. The pick depends only on the pane and the
+  // content, never on the state the cards are in now: measuring the bottom
+  // at the CURRENT scale let the next pick change it and the fit swung
+  // between two sizes forever (review round 6, UI-DI13).
+  const wasCard = card.className, wasNotes = notes?.className ?? "";
   let pick = tries[tries.length - 1]!, fits = false;
   for (const t of tries) {
-    for (const sc of HUD_SCALES) card.classList.toggle(`hudScale-${sc}`, sc === t.scale);
+    for (const sc of HUD_SCALES) {
+      card.classList.toggle(`hudScale-${sc}`, sc === t.scale);
+      notes?.classList.toggle(`hudScale-${sc}`, sc === t.scale);
+    }
     card.classList.toggle("hudFoldMach", t.fold >= 1);
     card.classList.toggle("hudFoldFS", t.fold >= 2);
     card.classList.toggle("hudFoldTool", t.fold >= 3);
+    notes?.classList.toggle("needsCompact", t.notesCompact);
+    notes?.classList.remove("notesOpen");
+    const bottom = bottomEl.value?.offsetHeight ?? 0;
+    const availH = H - 2 * gap - (bottom ? bottom + between : 0);
     if (card.offsetHeight <= availH && card.offsetWidth <= availW) { pick = t; fits = true; break; }
   }
-  card.className = was;
-  Object.assign(hudFit, { scale: pick.scale, fold: pick.fold, narrow, overflow: !fits });
+  card.className = wasCard;
+  if (notes) notes.className = wasNotes;
+  Object.assign(hudFit, { scale: pick.scale, fold: pick.fold, notesCompact: pick.notesCompact, narrow, overflow: !fits });
+  if (!pick.notesCompact) notesOpen.value = false;
 }
 // The operator's scale / machine column are the ceiling: a change there
 // re-fits (the card's own size has not moved yet, so no observer fires).
@@ -4057,7 +4111,16 @@ defineExpose({
          free (fitHud). A finding is a .hudWarn line in this ONE card, never
          a chip of its own (UI-N102). -->
     <div ref="bottomEl" class="viewerBottom stack-tight">
-    <div v-if="(hudVisible && hasHudNotes) || failedParts.length" class="hudNotes overlay-card stack-tight" :class="`hudScale-${hudFit.scale}`">
+    <div v-if="(hudVisible && hasHudNotes) || failedParts.length" class="hudNotes overlay-card stack-tight"
+         :class="[`hudScale-${hudFit.scale}`, { needsCompact: hudFit.notesCompact, notesOpen }]">
+      <!-- Folded (fitHud's last step): one line, the rest behind a toggle. -->
+      <div class="hudNotesSummary">
+        <span>{{ hudNotesSummary }}</span>
+        <MachineBtn type="windowToggle" class="notesToggle" :aria-expanded="notesOpen"
+                    :aria-label="notesOpen ? 'Hide viewer warnings' : 'Show viewer warnings'"
+                    :title="notesOpen ? 'Hide viewer warnings' : 'Show viewer warnings'"
+                    @click="notesOpen = !notesOpen"><ChevronDown v-if="notesOpen" :size="14" /><ChevronUp v-else :size="14" /></MachineBtn>
+      </div>
       <template v-if="hudVisible">
         <!-- The mode/datum chip leads the warnings (operator, 2026-09-12: the
              readout, the tool line and the load bar are the readout; the chip
@@ -4098,7 +4161,7 @@ defineExpose({
     <ScrubBar
       :collisionBusy="collisionBusy"
       :collisionProgress="collisionProgress"
-      :sweepTool="{ num: _pv.toolNum, diam: _pv.toolDiam, programTools }"
+      :sweepTool="{ num: vst?.tool_number ?? null, diam: vst?.tool_diameter ?? null, programTools }"
       :collisionResult="collisionResult"
       :collisionTrack="collisionTrack"
       :collisionStopped="collisionStopped"
@@ -4175,6 +4238,8 @@ defineExpose({
 }
 /* The findings card scales with the DRO card (fitHud's pick); md = 1. */
 .hudNotes { --hud-scale: 1; }
+.hudScale-xxs { --hud-scale: 0.6; }  /* fitHud's last resorts, not settings */
+.hudScale-xs { --hud-scale: 0.7; }
 .hudScale-sm { --hud-scale: 0.85; }
 .hudScale-lg { --hud-scale: 1.25; }
 .hudScale-xl { --hud-scale: 1.55; }
@@ -4290,8 +4355,22 @@ defineExpose({
   align-self: stretch;
   pointer-events: auto;
 }
+/* The folded findings card (fitHud's last step, UI-DI12): the summary line
+   stands in for every line until the operator opens it. */
+.hudNotesSummary {
+  display: none;
+  align-items: center;
+  gap: var(--gap-tight);
+  font-size: calc(var(--fs-md) * var(--hud-scale));
+  font-weight: var(--fw-medium);
+  color: var(--warn-text);
+}
+.hudNotes.needsCompact > .hudNotesSummary { display: flex; }
+.hudNotes.needsCompact:not(.notesOpen) > :not(.hudNotesSummary) { display: none; }
+.hudNotesSummary > .notesToggle { pointer-events: auto; }
 .hudNotes {
-  max-width: 100%;
+  /* the left zone, like the DRO card: never under the ViewCube column */
+  max-width: calc(100% - var(--gap-section) - var(--viewcube-size));
   padding: var(--gap-tight) var(--gap-section);
   line-height: 1.3;
 }

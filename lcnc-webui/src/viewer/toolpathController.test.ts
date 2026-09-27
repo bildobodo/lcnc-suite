@@ -6,9 +6,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildLineIndex } from "./lineIndex";
 import * as THREE from "three";
+import type { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
+import type { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
+import type { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { ref, type Ref } from "vue";
 import { disposeObject } from "./disposal";
-import { createToolpathController, type ToolpathCtx, type ToolpathController } from "./toolpathController";
+import { createToolpathController, SELECTION_WIDTH_PX, type ToolpathCtx, type ToolpathController } from "./toolpathController";
 
 // Fake troika label: an Object3D (addable, has .position) with a dispose spy.
 function fakeLabel() {
@@ -138,6 +141,28 @@ describe("highlight", () => {
     expect(Array.from((hl.geometry.index!.array as Uint32Array).subarray(0, 2))).toEqual([0, 1]);
     c.setHighlight(null);
     expect(hl.geometry.drawRange.count).toBe(0);
+  });
+
+  it("the selected line is also drawn WIDE — a shape cue besides the colour (design wave D8, UI-DI14)", () => {
+    const ctx = makeCtx();
+    c.apply(ctx, GCODE);
+    const wide = ctx.workRotGroup.children.find(o => (o as any).isLineSegments2) as LineSegments2;
+    expect(wide, "a LineSegments2 beside the 1 px highlight").toBeTruthy();
+    const mat = wide.material as LineMaterial;
+    expect(mat.linewidth).toBe(SELECTION_WIDTH_PX);
+    expect(SELECTION_WIDTH_PX).toBeGreaterThanOrEqual(3);
+    expect(mat.worldUnits, "screen pixels, whatever the zoom").toBe(false);
+    expect(mat.userData.role).toBe("selection");
+    expect((wide.geometry as LineSegmentsGeometry).instanceCount).toBe(0);
+    c.setHighlight(12);   // lights the pair (0,1): (0,0,0) → (10,0,0)
+    expect((wide.geometry as LineSegmentsGeometry).instanceCount).toBe(1);
+    const start = (wide.geometry.getAttribute("instanceStart") as THREE.InterleavedBufferAttribute);
+    const end = (wide.geometry.getAttribute("instanceEnd") as THREE.InterleavedBufferAttribute);
+    expect([start.getX(0), start.getY(0), end.getX(0), end.getY(0)]).toEqual([0, 0, 10, 0]);
+    c.setColors({ ...PALETTE, selection: "#00aa00" });
+    expect(mat.color.getHexString()).toBe("00aa00");
+    c.setHighlight(null);
+    expect((wide.geometry as LineSegmentsGeometry).instanceCount).toBe(0);
   });
 
   it("prefers the worker-provided line index (typed arrays) over rebuilding", () => {

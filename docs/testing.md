@@ -89,7 +89,11 @@ viewer's overlays (design wave D9): with 5 and 6 axes, every HUD warning
 line up and a preview re-parse, in the four viewports at 100 % and portrait
 at 150 %, the DRO card, the findings card, the ViewCube and its quick grid
 lie inside the viewer and apart, and the DRO card reports `data-hud-fit=
-"fits"` (landscape from 150 % is the named WP-DR limit, not swept).
+"fits"` (landscape from 150 % is the named WP-DR limit, not swept). Since
+review round 6 with a PROGRAM loaded (a preview with sequence data: the
+scrub bar is up and swept too), at HUD scales md and xl, every axis row
+shown, a folded findings card naming its warnings, and the chosen form
+holding still for 2 s (20 samples — the fit once swung between two sizes).
 
 `layout.spec.ts` (serial-layout) measures the FRAME — the strip, the viewer
 pane and the content area, bounding box AND `clientWidth`/`clientHeight` —
@@ -144,7 +148,13 @@ its role, `__viewerDiag.getPalette`): Automatic follows a theme switch — the
 collision tint on screen included (`__viewerDiag.tintPart`) — a legacy
 palette from another client is Custom and stays through a switch, Settings
 switches Automatic ↔ Custom and keeps the custom colours stored, the legend
-shows the drawn colours with the rapid dashed. WebGL scenes are NOT
+shows the drawn colours with the rapid dashed. `scenes.viewer.spec.ts`
+(serial-viewer) renders a model with a dense and a thin path, limit
+overflow, the driven path and the selected line in the four themes and
+asserts the structure: the drawn roles and the WIDE selection (a
+LineSegments2 >= 3 px carrying the line's segments, visible); it attaches
+the eight images to the report (and to `SCENE_OUT=<dir>`) for the review by
+eye. WebGL scenes are NOT
 screenshot references (they differ between the VM and CI; the tool dialog
 masks its canvas for the same reason) — a palette change is reviewed on
 rendered scenes by eye and guarded by the material colours.

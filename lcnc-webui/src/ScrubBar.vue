@@ -628,7 +628,10 @@ const sweepToolText = computed(() => {
     return "sweep: program tools " + pt.map(t => `T${t.num} Ø${t.diam.toFixed(1)}`).join(" · ");
   }
   const n = props.sweepTool?.num;
-  if (n == null || n <= 0) return "sweep: no tool loaded — 6 mm stub";
+  // a label, so a missing number reads as none (the live tool comes from
+  // the reactive status — it used to be the viewer's non-reactive cache,
+  // whose NaN start showed "sweep: TNaN", review round 6 evidence)
+  if (n == null || !Number.isFinite(n) || n <= 0) return "sweep: no tool loaded — 6 mm stub";
   const d = props.sweepTool?.diam;
   return `sweep: T${n}${d != null && d > 0 ? ` Ø${d.toFixed(1)}` : ""}`;
 });
@@ -637,7 +640,7 @@ const sweepToolTitle = computed(() => {
     return "The collision sweep poses each segment with the tool the program has active there (dims from the parse-time tool table); segments before the first M6 use the loaded tool";
   }
   const n = props.sweepTool?.num;
-  return (n == null || n <= 0)
+  return (n == null || !Number.isFinite(n) || n <= 0)
     ? "The collision sweep checks a 6 mm × 60 mm stub cylinder because no tool is loaded — load the program's tool for a real check (the program's T sequence is not consulted yet)"
     : "The collision sweep checks the LOADED tool's table dimensions for the whole program — the program's own tool changes are not consulted yet";
 });

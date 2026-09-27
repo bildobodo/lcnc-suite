@@ -19,6 +19,9 @@
 // carries the REASSIGNED scene-graph pointers (scene/workOrigin/workRotGroup)
 // plus per-program data (pathAlwaysOnTop/units) — never cached.
 import * as THREE from "three";
+import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
+import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
+import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { buildLineIndex, emptyLineIndex, lineHas, lineRange, type LineIndex } from "./lineIndex";
 import { binPairs, buildFrameIndex, CHUNK_MAX, chunkBounds, chunkGrid, cumulativeDistances, splitPairsByFrame, unionBounds } from "./lineChunks";
 import type { AnchorTerms } from "./partFrame";
@@ -148,8 +151,19 @@ export interface ToolpathController {
  *  per highlight with the pairs of the lit vertex range that belong to this
  *  frame (a strip drawRange would draw a connector across a frame flip, and
  *  the spatially binned draw index is not in vertex order). */
-interface Highlight { frame: 0 | 1; line: THREE.LineSegments; idx: Uint32Array; attr: THREE.BufferAttribute }
+/** The selected line's segments: the 1 px index line over the shared
+ *  positions, and `wide` — the SAME segments as a screen-space fat line
+ *  (design wave D8, UI-DI14): the plan's "selection wider", a shape cue
+ *  besides the colour role (WebGL draws core lines 1 px wide on every
+ *  platform, so width needs LineSegments2). */
+interface Highlight {
+  frame: 0 | 1; line: THREE.LineSegments; idx: Uint32Array; attr: THREE.BufferAttribute;
+  wide: LineSegments2; wideBuf: THREE.InstancedInterleavedBuffer;
+}
 const HL_CAP = 1 << 15;   // pairs per highlight (a line run is far smaller; beyond it the cue truncates)
+const HL_WIDE_CAP = 1 << 13;   // pairs the wide line carries (a visual cue; the 1 px line keeps the rest)
+/** The selection's width in CSS px — three times the path's 1 px line. */
+export const SELECTION_WIDTH_PX = 3;
 
 /** One drawn stream in one frame: its chunks (objects sharing the stream's
  *  position attribute + this set's index attribute), materials, and the
@@ -450,9 +464,11 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       s.overMat?.dispose();
     }
     for (const h of highlights) {
-      h.line.parent?.remove(h.line);
-      h.line.geometry.dispose();
-      (h.line.material as THREE.Material).dispose();
+      for (const o of [h.line, h.wide] as THREE.Mesh[]) {
+        o.parent?.remove(o);
+        o.geometry.dispose();
+        (o.material as THREE.Material).dispose();
+      }
     }
     sets = [];
     highlights = [];
@@ -584,7 +600,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
 
   function _applyVisibility() {
     for (const s of sets) for (let ci = 0; ci < s.chunks.length; ci++) _chunkVis(s, ci);
-    for (const h of highlights) h.line.visible = toolpathVisible;
+    for (const h of highlights) h.line.visible = h.wide.visible = toolpathVisible;
   }
 
   function makeHighlight(frame: 0 | 1, parent: THREE.Group, posAttr: THREE.BufferAttribute, bounds: Float32Array): Highlight {
@@ -606,7 +622,29 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     line.frustumCulled = true;
     line.visible = toolpathVisible;
     parent.add(line);
-    return { frame, line, idx, attr };
+    // The wide companion: its own segment buffer (xyz, xyz per pair), filled
+    // with the 1 px line's pairs; the width is screen pixels, so the
+    // material learns the drawing size right before each draw.
+    const wideGeom = new LineSegmentsGeometry();
+    const wideBuf = new THREE.InstancedInterleavedBuffer(new Float32Array(HL_WIDE_CAP * 6), 6, 1);
+    wideBuf.setUsage(THREE.DynamicDrawUsage);
+    wideGeom.setAttribute("instanceStart", new THREE.InterleavedBufferAttribute(wideBuf, 3, 0));
+    wideGeom.setAttribute("instanceEnd", new THREE.InterleavedBufferAttribute(wideBuf, 3, 3));
+    wideGeom.instanceCount = 0;
+    wideGeom.boundingSphere = geom.boundingSphere!.clone();
+    wideGeom.boundingBox = new THREE.Box3();
+    geom.boundingSphere!.getBoundingBox(wideGeom.boundingBox);
+    const wideMat = new LineMaterial({ color: deps.colors().selection, linewidth: SELECTION_WIDTH_PX, worldUnits: false });
+    wideMat.userData.role = "selection";
+    wideMat.depthTest = !pathAlwaysOnTop;
+    wideMat.depthWrite = false;
+    const wide = new LineSegments2(wideGeom, wideMat);
+    wide.renderOrder = 12;
+    wide.frustumCulled = true;
+    wide.visible = toolpathVisible;
+    wide.onBeforeRender = (renderer) => { renderer.getSize(wideMat.resolution); };
+    parent.add(wide);
+    return { frame, line, idx, attr, wide, wideBuf };
   }
 
   /** Light the feed vertex range [s, s+count) — every pair (v, v+1) inside
@@ -630,6 +668,20 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       if (w > 0) h.attr.addUpdateRange(0, w);
       h.attr.needsUpdate = true;
       h.line.geometry.setDrawRange(0, w);
+      // The wide line: the same pairs as positions (capped — a visual cue).
+      const pairs = Math.min(w / 2, HL_WIDE_CAP);
+      if (pairs > 0 && feedPosAttr) {
+        const pos = feedPosAttr.array as Float32Array, out = h.wideBuf.array as Float32Array;
+        for (let k = 0; k < pairs; k++) {
+          const a = h.idx[2 * k]! * 3, b = h.idx[2 * k + 1]! * 3, o = k * 6;
+          out[o] = pos[a]!; out[o + 1] = pos[a + 1]!; out[o + 2] = pos[a + 2]!;
+          out[o + 3] = pos[b]!; out[o + 4] = pos[b + 1]!; out[o + 5] = pos[b + 2]!;
+        }
+        h.wideBuf.clearUpdateRanges();
+        h.wideBuf.addUpdateRange(0, pairs * 6);
+        h.wideBuf.needsUpdate = true;
+      }
+      (h.wide.geometry as LineSegmentsGeometry).instanceCount = pairs;
     }
   }
 
@@ -950,8 +1002,9 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         }
       }
       for (const h of highlights) {
-        const m = h.line.material as THREE.LineBasicMaterial;
-        m.depthTest = dt; m.depthWrite = false; m.needsUpdate = true;
+        for (const m of [h.line.material, h.wide.material] as THREE.Material[]) {
+          m.depthTest = dt; m.depthWrite = false; m.needsUpdate = true;
+        }
       }
     },
 
@@ -960,7 +1013,10 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       _rapidBase.set(c.rapid);
       if (toolpathBoundsBox) (toolpathBoundsBox.material as THREE.LineBasicMaterial).color.set(c.toolpathBounds);
       for (const s of sets) s.overMat?.color.set(c.limit);
-      for (const h of highlights) (h.line.material as THREE.LineBasicMaterial).color.set(c.selection);
+      for (const h of highlights) {
+        (h.line.material as THREE.LineBasicMaterial).color.set(c.selection);
+        (h.wide.material as LineMaterial).color.set(c.selection);
+      }
       if (toolpathOverflowEdges) (toolpathOverflowEdges.material as THREE.LineDashedMaterial).color.set(c.collision);
       _applyStale();   // the drawn colour is the base or its muted mix — one writer
     },
