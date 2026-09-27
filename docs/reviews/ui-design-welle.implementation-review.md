@@ -5,10 +5,12 @@ mit Plan-Agreement ([Planreview Runde 3](ui-design-welle.review.md#codex-runde-3
 hält je Arbeitspaket den Umsetzungsstand, Abweichungen und Gate-Läufe fest; die
 Codex-Implementierungsreviews folgen nach den Paketgruppen DR + D0–D2, D3–D6 und D7–D10.
 
-**Aktueller Reviewstand · Codex Runde 7 · 27. September 2026 · `883465a`:
-UI-DI12–14 sind geschlossen. Zwei neue P2-Befunde UI-DI15–16 zur schmalen
-Programm-Zeitleiste und zum Simulationshinweis bleiben offen; D7–D10 noch ohne
-Implementierungs-Agreement.** [Nachprüfung, Nachweise und Prüfgrenzen](#codex-implementierungsreview-runde-7).
+**Aktueller Reviewstand · Codex Runde 8 · 27. September 2026 · `1a3b964`:
+UI-DI15 ist geschlossen. UI-DI16 bleibt bei geöffnetem „More“ offen; neu ist
+UI-DI17 zur abgeschnittenen Warnkarte und ihrem unerreichbaren Schließknopf.
+Beides P2; D7–D10 noch ohne Implementierungs-Agreement.**
+[Nachprüfung, Nachweise und Prüfgrenzen](#codex-implementierungsreview-runde-8).
+UI-DI12–14 bleiben geschlossen.
 Das [Agreement aus Runde 5 für D3–D6](#codex-implementierungsreview-runde-5) bleibt gültig;
 UI-DI05–11 bleiben geschlossen.
 Das [Agreement aus Runde 3 für DR + D0–D2](#codex-implementierungsreview-runde-3)
@@ -2716,5 +2718,166 @@ Ausgaben liegen bei mir.
 **Gates:**
 - build, lint, Vitest (**1661**) und Audit-Tests (**28**) grün.
 - Playwright **279/279** über alle neun Projekte; `serial-layout` 67 (neu: der Innen- und Simulationstest je Profil).
+
+---
+
+## Codex Implementierungsreview Runde 8
+
+**27. September 2026 · Handshake R7 · `fcf288e..1a3b964` · `feat/ui-design-wave`.**
+Nachprüfung der Antwort auf Runde 7 und der Korrekturen zu UI-DI15 und UI-DI16.
+
+**Ergebnis: noch kein Implementierungs-Agreement für D7–D10.** Die Inhalte der
+Zeitleiste passen jetzt; UI-DI15 ist geschlossen. Der Simulationshinweis ist bei
+geschlossenen Details korrigiert, wird aber nach Öffnen von „More“ wieder verdeckt:
+UI-DI16 bleibt offen. Die neue Detailansicht schiebt außerdem die Warnkarte aus dem
+Viewer und macht beim Öffnen beider Karten ihren Schließknopf unerreichbar
+(UI-DI17, P2). UI-DI01–14 und die Agreements für DR + D0–D6 bleiben geschlossen
+beziehungsweise gültig.
+
+### Nachprüfung der Korrekturen
+
+| Punkt | Ergebnis am neuen Stand | Bewertung |
+|---|---|---|
+| UI-DI15: Regler und Inhalte | Bei 900 × 1200, Touch, 150 % misst der Regler **370 Viewport-px = 246,67 CSS-px** statt 0. Die sichtbaren Bedienelemente, Anzeigen und Hilfen der Zeitleiste passen und treffen sich selbst im Hit-Test: gefaltet, aufgeklappt, mit Limitbefund, zusätzlich zwei Kollisionen sowie in lokaler Simulation. | geschlossen |
+| More und DRO-Form | Öffnen und Schließen von „More“ behält die DRO-Klassen. Geschwindigkeit, Position und Befundgruppen werden über den erreichbaren Knopf sichtbar. Sein zugänglicher Name nennt die Befunde. | bestätigt |
+| UI-DI16: Grundzustand | Bei geschlossenen Details ist der Hinweis **211 px** breit, vollständig im **432 px** breiten Viewer und endet **6 px** vor der DRO. Die ursprüngliche horizontale Abschneidung und Überdeckung der ersten Achszeile sind beseitigt. | Teilkorrektur bestätigt |
+| UI-DI16: aufgeklappte Zeitleiste | Schon ein Limitbefund reicht: Die nach oben geschobene Warnkarte verdeckt den unteren Teil des SIMULATION-Hinweises. | weiter offen, P2 |
+| UI-DI17: Platz für die Detailkarten | Beide Karten können gleichzeitig offen sein; dabei verschwinden Warnungsüberschrift und Schließknopf oberhalb des Viewers. Mit Limit und zwei Kollisionen wird schon bei ausschließlich geöffnetem „More“ die gefaltete Warnkarte oben abgeschnitten. | neu, P2 |
+
+Die angenommene Ausnahme, angeforderte Details zeitweise **über der DRO** zu zeigen,
+bleibt sinnvoll. Sie gestattet weder einen verdeckten Simulationsmodus noch eine
+außerhalb des sichtbaren Bereichs liegende Warnkarte mit verlorenem Schließziel.
+Eine unveränderte DRO-Form allein weist kein ausreichendes Platzbudget für offene
+Details nach.
+
+### UI-DI16 · P2 · weiter offen: „More“ verdeckt den Simulationshinweis
+
+**Stellen am geprüften Stand:** `lcnc-webui/src/ThreeViewer.vue:3821–3825`
+(Details zur Messung geschlossen), `:4261–4272` (`.viewerTop` einschließlich Banner
+auf derselben Ebene wie die später gezeichnete `.viewerBottom`) und `:4397–4404`
+(nach unten verankerte, nach oben wachsende Detailspalte).
+
+**Repro:** Fünf Achsen, 900 × 1200, Touch-Dichte, CSS-Zoom 150 %, geladenes
+Programm mit einem Limitbefund, dazu Comp Z und Rotation. Mock-Maschine aus,
+lokale Simulation an. Im Ausgangszustand ist der Hinweis vollständig. „More
+timeline controls“ öffnen; die Warnkarte bleibt **gefaltet**.
+
+- Der Simulationshinweis liegt bei **y = 255–296**.
+- Die gefaltete Warnkarte wandert auf **y = 273,25–341,25**. Sie liegt zeichnerisch
+  vor dem Hinweis und verdeckt dessen untere **22,75 px**, einschließlich Text.
+- Mit zusätzlich zwei Kollisionsbefunden liegt die Warnkarte bei **y = 213,25–281,25**
+  und die Zeitleiste beginnt bei **y = 287,25**. Vom Hinweis bleibt im Wesentlichen
+  der schmale Streifen zwischen den Karten; „SIMULATION“ ist nicht mehr lesbar.
+- Nach Zuklappen von „More“ ist der Hinweis wieder vollständig sichtbar. Die
+  Simulation selbst bleibt währenddessen aktiv. Keine umgangene Maschinensperre
+  beobachtet; der Fehler betrifft die sichtbare Moduskennzeichnung.
+
+**Belege:** [ein Limitbefund, More offen](ui-design-welle.implementation-r8-limits-5axis-simulation-more.png),
+[zusätzlich zwei Kollisionen](ui-design-welle.implementation-r8-limits-5axis-collisions-more.png),
+`simulating.timeline.surroundingsOpened` und `collisions.surroundingsOpened` im
+[Messprotokoll](ui-design-welle.implementation-r8-limits.json).
+
+**Korrekturziel:** Den kurzen Simulationshinweis einschließlich seiner Erläuterung
+auch bei geöffneten Detailkarten sichtbar halten. Die Überlagerungsausnahme muss
+auf die DRO begrenzt bleiben. Ein bloß höherer z-index wäre nur ausreichend, wenn
+dadurch keine Warnungs- oder Zeitleistenbedienung verdeckt wird.
+
+**Abnahme:** Die Bannerprüfung nach jedem Öffnen und Schließen wiederholen, mit
+einem Limitbefund und mit Limit plus Kollisionen; fünf/sechs Achsen, Hochformat
+100/150 %, Simulation aktiv. Zusätzlich zum Rechteck im Viewer die sichtbare
+Überdeckung prüfen. Der Hilfe-Hit-Test allein genügt hier nicht: Wegen
+`pointer-events: none` kann er trotz zeichnerischer Überdeckung noch erfolgreich sein.
+Der neue Produkttest in `e2e/layout.spec.ts:928–954` prüft das Banner nur **vor**
+`foldAndOpen('simulating')`; während der offenen Ansicht misst er allein die
+Zeitleisteninhalte und DRO-Klassen.
+
+### UI-DI17 · P2 · D9: Offene Details schieben Warnungen und Schließknopf aus dem Viewer
+
+**Stellen:** `lcnc-webui/src/ThreeViewer.vue:3821–3823`, `:4151–4162` (unabhängiger
+Warnungsschalter), `:4397–4404` (untere Spalte ohne Höhenbegrenzung) und
+`lcnc-webui/src/ScrubBar.vue:1036–1037` (unabhängiger More-Schalter).
+
+**Repro ohne Kollisionsinjektion und ohne Simulation:** Sechs Achsen, 900 × 1200,
+Touch, 150 %, Comp Z und Rotation sowie ein Limitbefund. Zuerst „More timeline
+controls“, dann „Show viewer warnings“ anklicken.
+
+- Der Viewer beginnt bei **y = 237**. Die offene Warnkarte beginnt bei **y = 178,25**.
+- „Hide viewer warnings“ liegt bei **y = 185,25–239,25**; sein Mittelpunkt ist
+  außerhalb des Viewers. Der Hit-Test ist negativ. Der echte Playwright-Klick
+  scheitert, weil der darüberliegende Statusbanner den Zeiger abfängt.
+- Rückkehr ist möglich, indem man **zuerst die andere Karte („More“) schließt** und
+  anschließend die wieder sichtbare Warnkarte. Der direkte Schließweg über den
+  eigenen Knopf ist verloren; es handelt sich nicht um einen vollständigen UI-Lock.
+- Dasselbe tritt mit fünf Achsen und eingeschalteter lokaler Simulation auf.
+- Mit einem Limit und zwei Kollisionen reicht bereits „More“ allein: Die noch
+  gefaltete Warnkarte beginnt bei **y = 213,25**, ihre Zusammenfassung liegt teilweise
+  außerhalb des Viewers. Werden beide Ansichten geöffnet, liegt der Schließknopf
+  bei **y = 125,25–179,25**; nun sind auch Comp Z und Rotation ganz oder teilweise
+  abgeschnitten.
+
+**Belege:** [beide Karten offen, ein Limitbefund](ui-design-welle.implementation-r8-limits-6axis-limit-both.png),
+[Limit und Kollisionen, More allein](ui-design-welle.implementation-r8-limits-5axis-collisions-more.png),
+[beide Karten mit Kollisionen](ui-design-welle.implementation-r8-limits-5axis-collisions-both.png).
+Im [JSON](ui-design-welle.implementation-r8-limits.json):
+`withLimit.timeline.bothOpened.notes.button`, `warningsClosedDirectly: false`,
+`collisions.notesWithMore` und `collisions.bothOpened`.
+
+**Korrekturziel:** Ein begrenzter, erreichbarer Detailbereich innerhalb des Viewers.
+Die Warnungszusammenfassung und der direkte Schließknopf müssen sichtbar bleiben.
+Ob sich Ansichten bei Platzmangel gegenseitig schließen oder ihre Inhalte anders
+angeordnet werden, ist eine Implementierungsentscheidung. Nur eine zweite Ansicht
+automatisch zu schließen genügt noch nicht für den nachgewiesenen Überlauf bei
+„More“ allein mit beiden Befundarten.
+
+**Abnahme:** Beide Öffnungsreihenfolgen und jeden direkten Schließweg mit echten
+Klicks prüfen; Warnungskopf, Texte und Schließknopf gegen den **Viewer** messen,
+nicht nur gegen das Browserfenster. Limit allein und Limit plus Kollisionen, fünf
+und sechs Achsen, mit/ohne Simulation bei 100/150 %. Die bisher akzeptierte
+Überdeckung der DRO darf dabei bestehen bleiben; der Banner muss gemäß UI-DI16
+lesbar bleiben.
+
+### Nachweise und Prüfgrenzen
+
+Die [erweiterte Limit-Sonde](ui-design-welle.implementation-r8-limits.probe.mjs)
+ist eine Kopie der R7-Sonde mit neuen Ausgabepfaden. Anpassung an die beabsichtigte
+Faltung: „Next limit violation“ zunächst als vorhanden im DOM prüfen (Attributselektor;
+ein normaler Rollen-Selektor lässt ausgeblendete Elemente weg), anschließend seine
+Sichtbarkeit und Erreichbarkeit in der tatsächlich geöffneten Ansicht messen.
+Zusätzlich misst sie die umgebenden Karten vor/nach „More“ und beide Details zusammen.
+Bei verlorenem Warnungsschließknopf ist die Wiederherstellung über die andere Karte
+ausdrücklich als solcher Umweg aufgezeichnet, nicht als erfolgreicher direkter Klick.
+Die zwei Kollisionsbefunde kommen über den neuen Diagnosehaken; der Fehler mit nur
+einem Limitbefund benötigt ihn nicht. Alle früheren Belegdateien bleiben unverändert.
+
+Die [Hauptsonde](ui-design-welle.implementation-r8.probe.mjs) wiederholt die
+ursprünglichen Layout- und Stabilitätsproben mit unveränderten Szenarien; neue
+Ausgabepfade, begrenzte Klickwartezeit und Zwischensicherung des JSON betreffen nur
+die Sonde. [Ergebnis](ui-design-welle.implementation-r8.json): **20/20** Layoutfälle
+und **21/21** Höhenschwellen ohne Oszillation oder Überdeckung, überall `fits`.
+Auch die beiden längeren Stillstandsmessungen behalten je eine DRO-Form. Drei
+Zustandswarnungen beziehungsweise der zusätzliche lange Programmhinweis lassen
+sich bei geschlossener Zeitleistendetailansicht weiterhin unmittelbar öffnen und
+schließen. Damit bleiben die geschlossenen Befunde UI-DI12/13 bestätigt.
+
+Build sowie ESLint/CSS-Audit sind grün; Vitest besteht mit **82 Dateien und
+1661/1661 Tests**. Die vier gezielten Playwright-Tests aus `layout.spec.ts`
+(`--project=serial-layout --no-deps --workers=1 --grep 'the HUD|the scrub bar'`)
+bestehen **4/4**: beide bisherigen HUD-Tests sowie beide neuen Zeitleisten-/
+Simulationstests. Deren oben benannte Lücken erklären, weshalb sie trotz der
+Befunde grün sind. `git diff --check` ist ebenfalls grün.
+Das Build meldet weiterhin den bekannten Hinweis zu großen Bundles.
+Die vollständige von Claude gemeldete 279er-Browsersuite wurde hier nicht
+nochmals ausgeführt; keine Python-Produktänderung, daher kein erneuter Backend-Lauf.
+[Prüfprotokolle und Messzusammenfassung](ui-design-welle.implementation-r8.evidence.txt).
+
+Alle Browserläufe liefen seriell mit niedriger Prozesspriorität gegen lokale Mocks.
+Die eigenen Sonden sprechen nur `127.0.0.1:4188` an und sperren andere HTTP-Ziele.
+Die Befehlsprotokolle enthalten Verbindungs-/Diagnose- und Leseoperationen, keinen
+Maschinenlauf. Der eigene Mock wurde nach den Sonden beendet. LinuxCNC und der echte
+Gateway wurden nicht angesprochen oder neu gestartet. Keine physische Touch-,
+Screenreader-, Safari-/Firefox- oder Live-XYZAC-Abnahme; das abschließende Offline-Gate
+und die im Plan geforderte Live-Sichtprüfung werden durch dieses Review nicht ersetzt.
+Nur Review-Dateien und neue Belege geändert; kein Produktcode und keine alten
+Nachweise oder Referenzbilder. Kein Commit durch Codex.
 
 ---

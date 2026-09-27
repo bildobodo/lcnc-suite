@@ -1,0 +1,145 @@
+Codex implementation review round 8 / handshake R7
+Recorded: 2026-09-27T07:10:04.896185+02:00
+Product HEAD: 1a3b9645f4ecfbc1aeb2bae6118090aa0064c321
+Scope: fcf288e..1a3b964; UI-DI15–16, WP-D7–D10.
+Product sources, prior evidence and reference images unmodified.
+Browser runs sequential, nice -n 15, local mocks only.
+Own mock 127.0.0.1:4188 terminated after the probes. No live LinuxCNC or gateway interaction.
+
+Probe adaptations / exploratory runs:
+- Own r8 copies; original r7 artifacts unmodified.
+- A folded Next limit violation is now checked as attached by aria-label selector;
+  the original role query hides folded nodes. Actual visibility/hits measured with More open.
+- First combined-disclosure attempt timed out after 30000 ms on Hide viewer warnings:
+  statusBanner intercepted pointer events. The final probe records the target geometry
+  and hit=false, then recovers by closing the OTHER card first. It does not credit
+  that recovery as a directly reachable warning close target.
+- One main-probe run terminated with exit 143 before final JSON (cause not established).
+  Repeated with incremental JSON checkpoints; the complete recorded run exited 0.
+- Final probes have no fatal exception or browser pageerror. Their exit 0 records
+  completion, NOT agreement: geometry/hit-test findings are assessed below.
+
+=== Build ===
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2036 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-zsM8cmEe.js                     4.40 kB
+dist/static/previewWorker-C1MOziwn.js               27.94 kB
+dist/static/partFrameWorker-CSLyKB3b.js             45.52 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/collisionWorker-DvVWZz9I.js            174.25 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-CbrgtnrZ.css                 8.44 kB │ gzip:   2.05 kB
+dist/static/index-Cq8MXKx1.css                      81.27 kB │ gzip:  15.05 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-v0dN5tYM.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-BidhrFNz.js                 9.05 kB │ gzip:   3.34 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/ThreeViewer-CwhFraxz.js                129.71 kB │ gzip:  48.25 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/index-CV69Keey.js                      544.13 kB │ gzip: 172.67 kB
+dist/static/three-Qdx04hrG.js                      881.82 kB │ gzip: 242.50 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.01s
+
+=== ESLint and CSS audit ===
+
+> lcnc-webui@0.0.0 lint
+> eslint . && npm run lint:css
+
+
+> lcnc-webui@0.0.0 lint:css
+> python3 ../scripts/audit-scoped-css.py
+
+OK: no definite scoped-CSS leaks, no token drift. (use --all to see ROOT? candidates)
+
+=== Vitest: npm test -- --maxWorkers=1 ===
+
+> lcnc-webui@0.0.0 test
+> vitest run --maxWorkers=1
+
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite/lcnc-webui
+
+
+ Test Files  82 passed (82)
+      Tests  1661 passed (1661)
+   Start at  07:00:18
+   Duration  43.60s (transform 1.43s, setup 0ms, import 3.51s, tests 36.26s, environment 3ms)
+
+
+=== Independent baseline geometry / stability ===
+{"section": "layouts", "cases": 20, "unstable": 0, "overlapping": 0, "fitValues": ["fits"]}
+{"section": "thresholds", "cases": 21, "unstable": 0, "overlapping": 0, "fitValues": ["fits"]}
+{"section": "stationary", "forms": ["hud hudCard overlay-card stack-tight hudScale-lg"], "overlaps": []}
+{"section": "originalOscillation", "forms": ["hud hudCard overlay-card stack-tight hudScale-md hudFoldMach hudFoldFS"], "overlaps": []}
+{"programWarning": false, "closeHit": true, "allWarningsInside": true, "closedByTap": true}
+{"programWarning": true, "closeHit": true, "allWarningsInside": true, "closedByTap": true}
+Browser errors: []
+Mock commands: [{"cmd": "hello", "session": "9e827966-1fb6-4b9c-b218-da1c0eefe1df", "resume_armed": false}, {"cmd": "tab_visibility", "hidden": false}, {"cmd": "get_tool_table", "req_id": "237mzj-3"}, {"cmd": "get_tool_table", "req_id": "237mzj-4"}, {"cmd": "client_diag", "data": {"ts_client": 1790485633771, "heap": {"used_mb": 19.6, "total_mb": 33.5, "limit_mb": 2222.1}, "render": {"geometries": 43, "textures": 2, "programs": 13, "calls": 12, "triangles": 42}, "connected": true, "armed": true}, "req_id": "237mzj-5"}]
+
+=== Independent compact timeline / surrounding cards ===
+
+withLimit
+{"state": "closed", "visibleControls": 6, "unreachableControls": [], "sliderCssWidth": [246.66666666666666], "rowOverflow": [0, 0]}
+{"state": "opened", "visibleControls": 15, "unreachableControls": [], "sliderCssWidth": [246.66666666666666], "rowOverflow": [0, 0]}
+{"state": "reclosed", "visibleControls": 6, "unreachableControls": [], "sliderCssWidth": [246.66666666666666], "rowOverflow": [0, 0]}
+{"formsUnchanged": true, "moreOpenedSurroundings": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": null, "notes": {"x": 474, "y": 273.25, "right": 708, "bottom": 341.25, "width": 234, "height": 68}, "noteButton": {"x": 629, "y": 280.25, "right": 689, "bottom": 334.25, "width": 60, "height": 54}, "scrub": {"x": 474, "y": 347.25, "right": 870, "bottom": 675.5, "width": 396, "height": 328.25}, "bannerHelp": null}, "bannerNotesOverlapHeight": null, "notesWithMore": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "card": {"x": 474, "y": 273.25, "right": 708, "bottom": 341.25, "width": 234, "height": 68}, "class": "hudNotes overlay-card stack-tight hudScale-xs needsCompact", "summary": "MACHINE \u00b7 G54 \u00b7 3 warnings", "button": {"x": 629, "y": 280.25, "right": 689, "bottom": 334.25, "width": 60, "height": 54, "name": "Show viewer warnings", "expanded": "false", "hit": true, "inside": true}, "warnings": [{"text": "Comp Z 0.123", "rect": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "inside": false}, {"text": "Rotation 12.0\u00b0", "rect": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "inside": false}, {"text": "1 limit violation", "rect": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "inside": false}]}, "bothOpened": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "card": {"x": 474, "y": 178.25, "right": 708, "bottom": 341.25, "width": 234, "height": 163}, "class": "hudNotes overlay-card stack-tight hudScale-xs needsCompact notesOpen", "summary": "MACHINE \u00b7 G54 \u00b7 3 warnings", "button": {"x": 629, "y": 185.25, "right": 689, "bottom": 239.25, "width": 60, "height": 54, "name": "Hide viewer warnings", "expanded": "true", "hit": false, "inside": false}, "warnings": [{"text": "Comp Z 0.123", "rect": {"x": 493, "y": 269, "right": 689, "bottom": 286.75, "width": 196, "height": 17.75}, "inside": true}, {"text": "Rotation 12.0\u00b0", "rect": {"x": 493, "y": 292.75, "right": 689, "bottom": 310.5, "width": 196, "height": 17.75}, "inside": true}, {"text": "1 limit violation", "rect": {"x": 493, "y": 316.5, "right": 689, "bottom": 334.25, "width": 196, "height": 17.75}, "inside": true}]}, "warningsClosedDirectly": false}
+
+simulating
+{"state": "closed", "visibleControls": 6, "unreachableControls": [], "sliderCssWidth": [246.66666666666666], "rowOverflow": [0, 0]}
+{"state": "opened", "visibleControls": 16, "unreachableControls": [], "sliderCssWidth": [246.66666666666666], "rowOverflow": [0, 0]}
+{"state": "reclosed", "visibleControls": 6, "unreachableControls": [], "sliderCssWidth": [246.66666666666666], "rowOverflow": [0, 0]}
+{"formsUnchanged": true, "moreOpenedSurroundings": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "bannerText": "SIMULATION\n?", "notes": {"x": 474, "y": 273.25, "right": 708, "bottom": 341.25, "width": 234, "height": 68}, "noteButton": {"x": 629, "y": 280.25, "right": 689, "bottom": 334.25, "width": 60, "height": 54}, "scrub": {"x": 474, "y": 347.25, "right": 870, "bottom": 675.5, "width": 396, "height": 328.25}, "bannerHelp": {"box": {"x": 630, "y": 263.5, "right": 654, "bottom": 287.5, "width": 24, "height": 24}, "hit": true, "top": "helpIcon"}}, "bannerNotesOverlapHeight": 22.75, "notesWithMore": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "card": {"x": 474, "y": 273.25, "right": 708, "bottom": 341.25, "width": 234, "height": 68}, "class": "hudNotes overlay-card stack-tight hudScale-xs needsCompact", "summary": "MACHINE \u00b7 G54 \u00b7 3 warnings", "button": {"x": 629, "y": 280.25, "right": 689, "bottom": 334.25, "width": 60, "height": 54, "name": "Show viewer warnings", "expanded": "false", "hit": true, "inside": true}, "warnings": [{"text": "Comp Z 0.123", "rect": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "inside": false}, {"text": "Rotation 12.0\u00b0", "rect": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "inside": false}, {"text": "1 limit violation", "rect": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "inside": false}]}, "bothOpened": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "card": {"x": 474, "y": 178.25, "right": 708, "bottom": 341.25, "width": 234, "height": 163}, "class": "hudNotes overlay-card stack-tight hudScale-xs needsCompact notesOpen", "summary": "MACHINE \u00b7 G54 \u00b7 3 warnings", "button": {"x": 629, "y": 185.25, "right": 689, "bottom": 239.25, "width": 60, "height": 54, "name": "Hide viewer warnings", "expanded": "true", "hit": false, "inside": false}, "warnings": [{"text": "Comp Z 0.123", "rect": {"x": 493, "y": 269, "right": 689, "bottom": 286.75, "width": 196, "height": 17.75}, "inside": true}, {"text": "Rotation 12.0\u00b0", "rect": {"x": 493, "y": 292.75, "right": 689, "bottom": 310.5, "width": 196, "height": 17.75}, "inside": true}, {"text": "1 limit violation", "rect": {"x": 493, "y": 316.5, "right": 689, "bottom": 334.25, "width": 196, "height": 17.75}, "inside": true}]}, "warningsClosedDirectly": false}
+
+collisions
+{"state": "closed", "visibleControls": 6, "unreachableControls": [], "sliderCssWidth": [246.66666666666666], "rowOverflow": [0, 0]}
+{"state": "opened", "visibleControls": 19, "unreachableControls": [], "sliderCssWidth": [246.66666666666666], "rowOverflow": [0, 0]}
+{"state": "reclosed", "visibleControls": 6, "unreachableControls": [], "sliderCssWidth": [246.66666666666666], "rowOverflow": [0, 0]}
+{"formsUnchanged": true, "moreOpenedSurroundings": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "bannerText": "SIMULATION\n?", "notes": {"x": 474, "y": 213.25, "right": 708, "bottom": 281.25, "width": 234, "height": 68}, "noteButton": {"x": 629, "y": 220.25, "right": 689, "bottom": 274.25, "width": 60, "height": 54}, "scrub": {"x": 474, "y": 287.25, "right": 870, "bottom": 675.5, "width": 396, "height": 388.25}, "bannerHelp": {"box": {"x": 630, "y": 263.5, "right": 654, "bottom": 287.5, "width": 24, "height": 24}, "hit": true, "top": "helpIcon"}}, "bannerNotesOverlapHeight": 26.25, "notesWithMore": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "card": {"x": 474, "y": 213.25, "right": 708, "bottom": 281.25, "width": 234, "height": 68}, "class": "hudNotes overlay-card stack-tight hudScale-xs needsCompact", "summary": "MACHINE \u00b7 G54 \u00b7 3 warnings", "button": {"x": 629, "y": 220.25, "right": 689, "bottom": 274.25, "width": 60, "height": 54, "name": "Show viewer warnings", "expanded": "false", "hit": true, "inside": false}, "warnings": [{"text": "Comp Z 0.123", "rect": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "inside": false}, {"text": "Rotation 12.0\u00b0", "rect": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "inside": false}, {"text": "1 limit violation", "rect": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "inside": false}]}, "bothOpened": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "card": {"x": 474, "y": 118.25, "right": 708, "bottom": 281.25, "width": 234, "height": 163}, "class": "hudNotes overlay-card stack-tight hudScale-xs needsCompact notesOpen", "summary": "MACHINE \u00b7 G54 \u00b7 3 warnings", "button": {"x": 629, "y": 125.25, "right": 689, "bottom": 179.25, "width": 60, "height": 54, "name": "Hide viewer warnings", "expanded": "true", "hit": false, "inside": false}, "warnings": [{"text": "Comp Z 0.123", "rect": {"x": 493, "y": 209, "right": 689, "bottom": 226.75, "width": 196, "height": 17.75}, "inside": false}, {"text": "Rotation 12.0\u00b0", "rect": {"x": 493, "y": 232.75, "right": 689, "bottom": 250.5, "width": 196, "height": 17.75}, "inside": false}, {"text": "1 limit violation", "rect": {"x": 493, "y": 256.5, "right": 689, "bottom": 274.25, "width": 196, "height": 17.75}, "inside": true}]}, "warningsClosedDirectly": false}
+
+sixAxisSimulation
+{"state": "closed", "visibleControls": 6, "unreachableControls": [], "sliderCssWidth": [246.66666666666666], "rowOverflow": [0, 0]}
+{"state": "opened", "visibleControls": 16, "unreachableControls": [], "sliderCssWidth": [246.66666666666666], "rowOverflow": [0, 0]}
+{"state": "reclosed", "visibleControls": 6, "unreachableControls": [], "sliderCssWidth": [246.66666666666666], "rowOverflow": [0, 0]}
+{"formsUnchanged": true, "moreOpenedSurroundings": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "bannerText": "SIMULATION\n?", "notes": {"x": 474, "y": 273.25, "right": 708, "bottom": 341.25, "width": 234, "height": 68}, "noteButton": {"x": 629, "y": 280.25, "right": 689, "bottom": 334.25, "width": 60, "height": 54}, "scrub": {"x": 474, "y": 347.25, "right": 870, "bottom": 675.5, "width": 396, "height": 328.25}, "bannerHelp": {"box": {"x": 630, "y": 263.5, "right": 654, "bottom": 287.5, "width": 24, "height": 24}, "hit": true, "top": "helpIcon"}}, "bannerNotesOverlapHeight": 22.75, "notesWithMore": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "card": {"x": 474, "y": 273.25, "right": 708, "bottom": 341.25, "width": 234, "height": 68}, "class": "hudNotes overlay-card stack-tight hudScale-xxs needsCompact", "summary": "MACHINE \u00b7 G54 \u00b7 3 warnings", "button": {"x": 629, "y": 280.25, "right": 689, "bottom": 334.25, "width": 60, "height": 54, "name": "Show viewer warnings", "expanded": "false", "hit": true, "inside": true}, "warnings": [{"text": "Comp Z 0.123", "rect": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "inside": false}, {"text": "Rotation 12.0\u00b0", "rect": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "inside": false}, {"text": "1 limit violation", "rect": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "inside": false}]}, "bothOpened": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "card": {"x": 474, "y": 188.4375, "right": 708, "bottom": 341.25, "width": 234, "height": 152.8125}, "class": "hudNotes overlay-card stack-tight hudScale-xxs needsCompact notesOpen", "summary": "MACHINE \u00b7 G54 \u00b7 3 warnings", "button": {"x": 629, "y": 195.4375, "right": 689, "bottom": 249.4375, "width": 60, "height": 54, "name": "Hide viewer warnings", "expanded": "true", "hit": false, "inside": false}, "warnings": [{"text": "Comp Z 0.123", "rect": {"x": 493, "y": 276.640625, "right": 689, "bottom": 291.84375, "width": 196, "height": 15.203125}, "inside": true}, {"text": "Rotation 12.0\u00b0", "rect": {"x": 493, "y": 297.84375, "right": 689, "bottom": 313.046875, "width": 196, "height": 15.203125}, "inside": true}, {"text": "1 limit violation", "rect": {"x": 493, "y": 319.046875, "right": 689, "bottom": 334.25, "width": 196, "height": 15.203125}, "inside": true}]}, "warningsClosedDirectly": false}
+Browser errors: []
+Mock commands: [{"cmd": "hello", "session": "6b0cb510-7574-46cc-b19a-d766bbf0ddfd", "resume_armed": false}, {"cmd": "tab_visibility", "hidden": false}, {"cmd": "get_tool_table", "req_id": "rh9vxy-3"}, {"cmd": "get_tool_table", "req_id": "rh9vxy-4"}]
+
+=== Playwright: layout.spec.ts; serial-layout, no-deps, workers=1; grep the HUD|the scrub bar ===
+
+Running 4 tests using 1 worker
+
+(node:2498153) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2498153) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [serial-layout] › e2e/layout.spec.ts:740:3 › 5axis-xyzac: the HUD, its findings, the scrub bar and the ViewCube column stay inside the viewer, apart and still (46.1s)
+  ✓  2 [serial-layout] › e2e/layout.spec.ts:740:3 › 6axis-twp: the HUD, its findings, the scrub bar and the ViewCube column stay inside the viewer, apart and still (47.8s)
+  ✓  3 [serial-layout] › e2e/layout.spec.ts:820:3 › 5axis-xyzac: the scrub bar's insides and the simulation banner fit the narrow viewer (folded, opened, simulating) (21.1s)
+  ✓  4 [serial-layout] › e2e/layout.spec.ts:820:3 › 6axis-twp: the scrub bar's insides and the simulation banner fit the narrow viewer (folded, opened, simulating) (21.1s)
+
+  4 passed (2.3m)
+
+Review result: UI-DI15 closed; UI-DI16 open with More; UI-DI17 new, clipped warning card / unreachable direct close. Both open findings P2.
+All artifacts above generated at product HEAD 1a3b964. Product code and earlier evidence unmodified.
