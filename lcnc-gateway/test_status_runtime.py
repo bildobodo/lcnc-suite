@@ -597,6 +597,93 @@ class TestLoadRecord(unittest.TestCase):
             self.assertIsNone(after.program_tick(self.MAIN, True, 0.0))
             self.assertEqual(after.program.unconfirmed, self.MAIN)
 
+    def settled(self, path, instance, loaded):
+        rt = self.runtime(path, instance)
+        rt.program_tick(None, True, 0.0)
+        rt.program.request_load(loaded, 0.0)
+        rt.program_tick(loaded, True, 0.1)
+        return rt
+
+    def test_a_restart_between_a_load_and_its_observation_proves_nothing(self):
+        # Codex R17 XZ-08 (restart_after_program_open_before_observation):
+        # the record still named A while the interpreter already had B open.
+        B = "/nc/other.ngc"
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "loaded_program.json")
+            rt = self.settled(path, (10, 20), self.MAIN)
+            self.assertTrue(rt.begin_program_change())
+            rt.program.request_load(B, 1.0)
+            rt.end_program_change()
+            again = self.runtime(path, (10, 20))
+            self.assertIsNone(again.program_tick(B, True, 0.0))
+            self.assertEqual(again.program.unconfirmed, B)
+
+    def test_no_old_proof_is_written_back_while_the_change_is_under_way(self):
+        B = "/nc/other.ngc"
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "loaded_program.json")
+            rt = self.settled(path, (10, 20), self.MAIN)
+            self.assertTrue(rt.begin_program_change())
+            rt.program_tick(self.MAIN, True, 0.5)          # a tick before the command went out
+            again = self.runtime(path, (10, 20))
+            self.assertIsNone(again.program_tick(B, True, 0.0))
+            rt.program.request_load(B, 1.0)
+            rt.end_program_change()
+            rt.program_tick(self.MAIN, True, 1.1)          # still pending: nothing written
+            self.assertIsNone(self.runtime(path, (10, 20)).program_tick(B, True, 0.0))
+            rt.program_tick(B, True, 1.2)                  # observed: the new proof
+            self.assertEqual(self.runtime(path, (10, 20)).program_tick(self.SUB, False, 0.0), B)
+
+    def test_a_failed_record_write_proves_nothing_and_is_retried(self):
+        # Codex R17 XZ-08 (restart_after_load_record_write_failure): the
+        # observation of B could not be recorded — _recorded used to say B.
+        import status_runtime as srt
+        B = "/nc/other.ngc"
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "loaded_program.json")
+            rt = self.settled(path, (10, 20), self.MAIN)
+            self.assertTrue(rt.begin_program_change())
+            rt.program.request_load(B, 1.0)
+            rt.end_program_change()
+
+            def boom(*_a, **_k):
+                raise OSError("disk full")
+            with unittest.mock.patch.object(srt, "write_load_record", boom):
+                self.assertEqual(rt.program_tick(B, True, 1.1), B)
+            self.assertIsNone(self.runtime(path, (10, 20)).program_tick(B, True, 0.0))
+            rt.program_tick(B, True, 1.2)                  # the write works again: retried
+            self.assertEqual(self.runtime(path, (10, 20)).program_tick(B, True, 0.0), B)
+
+    def test_an_unload_under_way_proves_nothing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "loaded_program.json")
+            rt = self.settled(path, (10, 20), self.MAIN)
+            self.assertTrue(rt.begin_program_change())    # then abort + reset_interpreter …
+            again = self.runtime(path, (10, 20))           # … and the gateway stopped
+            self.assertIsNone(again.program_tick(self.MAIN, True, 0.0))
+            self.assertEqual(again.program.unconfirmed, self.MAIN)
+            rt.program.request_unload()
+            rt.end_program_change()
+            rt.program_tick(self.MAIN, True, 0.3)          # reset leaves STAT.file on MAIN
+            after = self.runtime(path, (10, 20))
+            self.assertIsNone(after.program_tick(self.MAIN, True, 0.0))
+
+    def test_a_proof_that_cannot_be_withdrawn_refuses_the_change(self):
+        import gateway_util
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "loaded_program.json")
+            rt = self.settled(path, (10, 20), self.MAIN)
+
+            def boom(*_a, **_k):
+                raise OSError("read-only")
+            with unittest.mock.patch.object(gateway_util, "atomic_write_bytes", boom):
+                self.assertTrue(rt.begin_program_change(), "the old record is removed instead")
+            self.assertFalse(os.path.exists(path))
+            rt.end_program_change()
+            os.makedirs(path)                              # neither writable nor removable
+            with unittest.mock.patch.object(gateway_util, "atomic_write_bytes", boom):
+                self.assertFalse(rt.begin_program_change())
+
     def test_the_status_names_an_unconfirmed_file(self):
         import dataclasses
         self.assertIn("program_unconfirmed", {f.name for f in dataclasses.fields(StatusPayload)})

@@ -308,6 +308,7 @@ class LoadedProgram:
         self.unconfirmed = None   # first sight without proof: the open file, named
         self.seen = False
         self._record = None       # (loaded,) — the gateway's own record for this instance
+        self._unsettled = False   # the record says a load/unload was under way (R17 XZ-08)
         self._pending = None      # (canonical path, deadline)
         self._ignored = None      # the raw value last reported as ignored
 
@@ -315,6 +316,17 @@ class LoadedProgram:
         """The gateway's own load record for THIS LinuxCNC instance: the
         program it last loaded, or None (it unloaded). Before the first sight."""
         self._record = (loaded,)
+
+    def restore_unsettled(self):
+        """The gateway's record for THIS instance says a load or unload was
+        under way when it stopped: proof of neither program (Codex R17
+        XZ-08). Before the first sight."""
+        self._record, self._unsettled = None, True
+
+    @property
+    def change_pending(self):
+        """A load was sent and not yet observed (or its window ran out)."""
+        return self._pending is not None
 
     def request_load(self, path, now):
         self._pending = (canonical_path(path), now + LOAD_WINDOW_S)
@@ -349,7 +361,8 @@ class LoadedProgram:
             self.unconfirmed = self._ignored = raw
             events.append(("status.program_unconfirmed",
                            {"raw_file": os.path.basename(raw),
-                            "reason": "no load record for this LinuxCNC" if self._record is None
+                            "reason": "the last load or unload was not recorded" if self._unsettled
+                            else "no load record for this LinuxCNC" if self._record is None
                             else "the load record names no program"}))
             return events
         if raw is None:
@@ -397,11 +410,16 @@ def program_source(path) -> Optional[str]:
 LOAD_RECORD_NAME = "loaded_program.json"
 
 
+LOAD_RECORD_UNSETTLED = "unsettled"
+
+
 def read_load_record(path, instance):
     """(loaded,) from the gateway's load record when it belongs to THIS
     LinuxCNC instance ((linuxcncsvr pid, start ticks), session_bind), else
     None — no record, another instance, an unbound gateway or an unreadable
-    file prove nothing. `loaded` may be None: the gateway unloaded."""
+    file prove nothing. `loaded` may be None: the gateway unloaded.
+    LOAD_RECORD_UNSETTLED: a load or unload was under way — no proof of
+    either program (Codex R17 XZ-08)."""
     if instance is None:
         return None
     try:
@@ -411,6 +429,8 @@ def read_load_record(path, instance):
         return None
     if not isinstance(data, dict) or data.get("instance") != list(instance):
         return None
+    if data.get("changing"):
+        return LOAD_RECORD_UNSETTLED
     loaded = data.get("loaded")
     return (loaded if isinstance(loaded, str) and loaded else None,)
 
@@ -421,6 +441,27 @@ def write_load_record(path, instance, loaded):
     if instance is None:
         return
     atomic_write_bytes(path, json.dumps({"instance": list(instance), "loaded": loaded}).encode())
+
+
+def withdraw_load_record(path, instance):
+    """Before a load or unload reaches the interpreter: the record stops
+    proving the old program (Codex R17 XZ-08) — a restart between the
+    command and its observation used to adopt the OLD program from it.
+    Marks it unsettled; when that write fails, removes it. True when no
+    record proves the old program any more; False when it could be neither
+    marked nor removed (the caller refuses the change)."""
+    try:
+        atomic_write_bytes(path, json.dumps({"instance": list(instance), "changing": True}).encode())
+        return True
+    except OSError:
+        pass
+    try:
+        os.unlink(path)
+    except FileNotFoundError:
+        return True
+    except OSError:
+        return False
+    return True
 
 
 def atomic_write_bytes(path: str, data: bytes, fsync: bool = False) -> None:

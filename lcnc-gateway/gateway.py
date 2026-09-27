@@ -4472,14 +4472,21 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             # 500 ms budget by ~10×; the off-loop candidate is a subprocess or
             # a GIL-releasing send, not more wait tuning.
             _set_phase("load_file.program_open")
-            # The load context: only this makes the file the loaded program
-            # (LoadedProgram — STAT.file flips alone never do).
-            _status_runtime.program.request_load(abs_path, time.monotonic())
+            # The load record stops proving the old program before the
+            # interpreter changes (Codex R17 XZ-08).
+            if not _status_runtime.begin_program_change():
+                return {"ok": False, "error": "Load record not writable — nothing loaded"}
             try:
-                await _cmd_blocking(CMD.program_open, abs_path, wait=None)
-            except BaseException:
-                _status_runtime.program.cancel_load()
-                raise
+                # The load context: only this makes the file the loaded program
+                # (LoadedProgram — STAT.file flips alone never do).
+                _status_runtime.program.request_load(abs_path, time.monotonic())
+                try:
+                    await _cmd_blocking(CMD.program_open, abs_path, wait=None)
+                except BaseException:
+                    _status_runtime.program.cancel_load()
+                    raise
+            finally:
+                _status_runtime.end_program_change()
             return {"ok": True, "path": abs_path}
 
         if cmd == "unload_file":
@@ -4489,9 +4496,14 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 return blocked
             if _rfl_busy():
                 return {"ok": False, "error": "Run from line is starting — abort it first"}
-            await _cmd_blocking(CMD.abort)
-            await _cmd_blocking(CMD.reset_interpreter)
-            _status_runtime.program.request_unload()
+            if not _status_runtime.begin_program_change():
+                return {"ok": False, "error": "Load record not writable — nothing unloaded"}
+            try:
+                await _cmd_blocking(CMD.abort)
+                await _cmd_blocking(CMD.reset_interpreter)
+                _status_runtime.program.request_unload()
+            finally:
+                _status_runtime.end_program_change()
             return {"ok": True}
 
         if cmd == "list_probe_macros":

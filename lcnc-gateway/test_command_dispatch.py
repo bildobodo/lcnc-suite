@@ -534,6 +534,22 @@ class TestHandlerExecution(unittest.TestCase):
                     self.assertIn("Run from line", r["error"])
         self.assertIsNone(self.cmd.args_of("program_open"))
 
+    def test_a_change_whose_old_proof_cannot_be_withdrawn_is_refused(self):
+        # Codex R17 XZ-08: the load record must stop proving the old program
+        # BEFORE the interpreter changes — if it cannot, nothing changes.
+        import unittest.mock
+        self._with_program()
+        gateway.STAT.task_mode = linuxcnc.MODE_AUTO
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        with unittest.mock.patch.object(gateway._status_runtime, "begin_program_change", return_value=False), \
+                unittest.mock.patch.object(gateway, "get_nc_files_dir", return_value=str(Path(self.prog).parent)):
+            for msg in ({"cmd": "load_file", "path": self.prog}, {"cmd": "unload_file"}):
+                r = self._send(msg)
+                self.assertFalse(r["ok"], r)
+                self.assertIn("Load record", r["error"])
+        self.assertEqual([self.cmd.args_of(n) for n in ("program_open", "abort", "reset_interpreter")],
+                         [None, None, None])
+
     def test_load_file_is_the_load_context_unload_clears_it(self):
         # R15 B2: only the gateway's own load makes a file the loaded
         # program; a flip without it (a sub left after an MDI error) never.
