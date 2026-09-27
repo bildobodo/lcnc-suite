@@ -678,10 +678,13 @@ Ideen für später.
 
 **Entwurf:**
 - Die Felder sind ein Entwurf, der mit den gelesenen Werten beginnt.
-- „Use current position“ füllt den Entwurf aus der Maschinenposition (`machine_pos` im Status,
-  dieselbe Größe wie `STAT.position`). `G30.1` speichert genau das: Programmposition plus G92,
-  WCS-Versatz und Werkzeugkorrektur, also die Maschinenposition des geführten Punkts. Nicht aus
-  dem Werkstück-DRO.
+- „Use current position“ füllt den Entwurf aus `STAT.position` (kommandierte Weltposition im
+  Maschinenrahmen, kanonische Reihenfolge). `G30.1` speichert genau das: Programmposition plus
+  G92, WCS-Versatz und Werkzeugkorrektur, also die Maschinenposition des geführten Punkts.
+  `GET /g30` liefert sie als `current` neben den gespeicherten Werten, frisch aus STAT gelesen.
+  Nicht aus dem Werkstück-DRO und nicht aus `machine_pos` im Status: Das ist
+  `joint_actual_position`, also Gelenkwerte in Gelenkreihenfolge und die Ist-Position. Unter
+  Identitätskinematik ist das fast dasselbe, unter TCP nicht.
 - Übernehmen schreibt nichts.
 - Ein vom Gelesenen abweichender Entwurf ist als „nicht gespeichert“ markiert.
 - Verlassen folgt dem bestehenden Eingabesystem: Der Entwurf bleibt, solange das Formular lebt.
