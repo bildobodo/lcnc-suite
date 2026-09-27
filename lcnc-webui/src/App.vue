@@ -2098,10 +2098,12 @@ watch(viewerGcode, (newGcode) => {
           </template>
 
           <template #tools>
-            <div class="toolsTab">
+            <div class="toolsTab stack-controls">
               <!-- The tab's pattern (design wave D5, UI-K05): the tool in the
                    spindle and the probe's state, the machine actions with Abort
-                   last at the right edge, then the table's management. -->
+                   last at the right edge, then the table's management. The
+                   table's search row keeps --gap-controls from the head, as in
+                   Program (the operator found it ON the action row, 0 px). -->
               <div class="panelHead toolsHead">
                 <div class="panelObject">
                   <span class="label-muted md">In spindle</span>
@@ -2969,8 +2971,6 @@ watch(viewerGcode, (newGcode) => {
 .mdiHistoryEmpty { padding: var(--gap-section); }
 
 .toolsTab {
-  display: flex;
-  flex-direction: column;
   flex: 1;
   min-height: 0;
 }

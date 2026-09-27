@@ -256,6 +256,23 @@ for (const st of NAV_STATES) {
           }
           const object = rows.findIndex(r => r.classList.contains('panelObject'));
           if (object > 0) out.push(`${tab}: the object line is not the head's first row`);
+          // The next control row keeps --gap-controls from the head (operator
+          // 2026-09-27: the Tools search field sat ON the action row, 0 px —
+          // the head was a sibling in a column without a gap).
+          let next: Element | null = head;
+          while (next && !next.nextElementSibling) next = next.parentElement;
+          let row = next?.nextElementSibling as HTMLElement | null;
+          while (row && !shown(row)) row = row.nextElementSibling as HTMLElement | null;
+          if (row) {
+            // A separate CONTROL row (a field in it: Tools' search) keeps
+            // --gap-controls, also in the narrow pane (Codex R21); content
+            // (Program's code) at least --gap-tight — the narrow Program head
+            // is tight on purpose (three code lines at 150 %, UI-DI09).
+            const token = row.querySelector('input, select, textarea') ? '--gap-controls' : '--gap-tight';
+            const want = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(token));
+            const gap = row.getBoundingClientRect().top - head.getBoundingClientRect().bottom;
+            if (gap < want - 0.5) out.push(`${tab}: the row after the head (${row.className}) sits ${gap.toFixed(1)} px below it, want ${want}`);
+          }
         }
         return out;
       }, tab));
@@ -1410,3 +1427,4 @@ test('a note\'s action keeps its words: the legacy palette note at 150 % portrai
   expect(m.note.l >= m.dialog.l - 1 && m.note.r <= m.dialog.r + 1, `the note inside the dialog ${dump}`).toBe(true);
   await page.evaluate(() => { document.documentElement.style.zoom = ''; });
 });
+
