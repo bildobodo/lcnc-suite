@@ -6293,3 +6293,34 @@ datum shift.
   restart is the only place a subroutine search path is a hint. Codex
   rejected a path rule: a directory names a search location, not a role.
 
+- Codex review R16 (same day), five findings, none needing the operator:
+  - XZ-06/07 (`1f3755b`, `d615f5d`): a command that depends on another's
+    outcome is ONE gateway command. The R15 fix left the continuation in
+    the browser (`set_probe_vars`, await, then the M600 / `auto_run`): an
+    Abort never reached it, a delayed reply started the measurement after
+    the abort, and a program arriving meanwhile ran with the first one's
+    line, tool and entry XY. Now `mdi` takes `vars` (set first, the line
+    only once taken over) and `auto_run` takes the toolsetter values plus
+    the program it was confirmed on (`file` + the published preview
+    `version` of the text the dialog showed). Abort/estop from any client
+    cancel the handler (`_preempt_inflight`) and the run-from-line
+    background sequence too (it measured, retracted and started on after an
+    abort between steps); the sequence re-checks the loaded path and the
+    file's mtime/size before every step that moves; load/unload are refused
+    while it runs. Guarding the browser's wait (tokens, epochs) was rejected:
+    it could never see another client's abort.
+  - XZ-08 (`01b0dd2`): the first sight after a gateway restart has no load
+    context either. The directory hint is gone; the proof is the gateway's
+    own load record per LinuxCNC instance (`loaded_program.json`, keyed by
+    the session-bind identity). Without it the open file is
+    `program_unconfirmed` — a warn banner with Load program, never loaded
+    or previewed. The connect-time preview read the raw STAT.file (a second
+    adoption site) and now reads the loaded program.
+  - XZ-09 / XZ-03 rest (`b6fc293`): a state file seeded from the template
+    is mapped by meaning onto the INSTALLED INI (joint Z = its home, G28/G30
+    Z = its top of travel) — a lowered window kept by the migration starts
+    inside it. 0/0/0 without a WebUI toolsetter section is ambiguous (the
+    old fallback push, or set directly) and keeps its physical point, with a
+    report line; only the old example's unchanged 10/10/-180 is replaced,
+    reported. The operator's install was already repaired: a re-run changed
+    no state file.
