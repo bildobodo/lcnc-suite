@@ -1,0 +1,186 @@
+{
+  "head": "8d89854c060f56156da5cb450f4ca360e84fb872",
+  "cases": [
+    {
+      "name": "confirmed_same_path",
+      "mode": "done",
+      "initially_unconfirmed": false,
+      "reply": {
+        "ok": true,
+        "path": "/tmp/codex-r20-open-_7ir0pk4/confirmed_same_path.ngc"
+      },
+      "elapsed_seconds": 0.001,
+      "during_open": null,
+      "after_handler": {
+        "loaded": "/tmp/codex-r20-open-_7ir0pk4/confirmed_same_path.ngc",
+        "unconfirmed": null,
+        "pending": false,
+        "record": [
+          "/tmp/codex-r20-open-_7ir0pk4/confirmed_same_path.ngc"
+        ]
+      },
+      "after_window": {
+        "loaded": "/tmp/codex-r20-open-_7ir0pk4/confirmed_same_path.ngc",
+        "unconfirmed": null,
+        "pending": false,
+        "record": [
+          "/tmp/codex-r20-open-_7ir0pk4/confirmed_same_path.ngc"
+        ]
+      },
+      "restored": "/tmp/codex-r20-open-_7ir0pk4/confirmed_same_path.ngc",
+      "restart_unconfirmed": null,
+      "cmd_calls": [
+        [
+          "mode",
+          [
+            2
+          ],
+          {}
+        ],
+        [
+          "program_open",
+          [
+            "/tmp/codex-r20-open-_7ir0pk4/confirmed_same_path.ngc"
+          ],
+          {}
+        ]
+      ]
+    },
+    {
+      "name": "recover_unconfirmed_same_path",
+      "mode": "done",
+      "initially_unconfirmed": true,
+      "reply": {
+        "ok": true,
+        "path": "/tmp/codex-r20-open-_7ir0pk4/recover_unconfirmed_same_path.ngc"
+      },
+      "elapsed_seconds": 0.001,
+      "during_open": null,
+      "after_handler": {
+        "loaded": "/tmp/codex-r20-open-_7ir0pk4/recover_unconfirmed_same_path.ngc",
+        "unconfirmed": null,
+        "pending": false,
+        "record": [
+          "/tmp/codex-r20-open-_7ir0pk4/recover_unconfirmed_same_path.ngc"
+        ]
+      },
+      "after_window": {
+        "loaded": "/tmp/codex-r20-open-_7ir0pk4/recover_unconfirmed_same_path.ngc",
+        "unconfirmed": null,
+        "pending": false,
+        "record": [
+          "/tmp/codex-r20-open-_7ir0pk4/recover_unconfirmed_same_path.ngc"
+        ]
+      },
+      "restored": "/tmp/codex-r20-open-_7ir0pk4/recover_unconfirmed_same_path.ngc",
+      "restart_unconfirmed": null,
+      "cmd_calls": [
+        [
+          "mode",
+          [
+            2
+          ],
+          {}
+        ],
+        [
+          "program_open",
+          [
+            "/tmp/codex-r20-open-_7ir0pk4/recover_unconfirmed_same_path.ngc"
+          ],
+          {}
+        ]
+      ]
+    },
+    {
+      "name": "same_path_no_result",
+      "mode": "timeout",
+      "initially_unconfirmed": false,
+      "reply": {
+        "ok": true,
+        "path": "/tmp/codex-r20-open-_7ir0pk4/same_path_no_result.ngc"
+      },
+      "elapsed_seconds": 5.001,
+      "during_open": {
+        "loaded": "/tmp/codex-r20-open-_7ir0pk4/same_path_no_result.ngc",
+        "unconfirmed": null,
+        "pending": true,
+        "record": "unsettled"
+      },
+      "after_handler": {
+        "loaded": null,
+        "unconfirmed": "/tmp/codex-r20-open-_7ir0pk4/same_path_no_result.ngc",
+        "pending": true,
+        "record": "unsettled"
+      },
+      "after_window": {
+        "loaded": null,
+        "unconfirmed": "/tmp/codex-r20-open-_7ir0pk4/same_path_no_result.ngc",
+        "pending": true,
+        "record": "unsettled"
+      },
+      "restored": null,
+      "restart_unconfirmed": "/tmp/codex-r20-open-_7ir0pk4/same_path_no_result.ngc",
+      "cmd_calls": [
+        [
+          "mode",
+          [
+            2
+          ],
+          {}
+        ],
+        [
+          "program_open",
+          [
+            "/tmp/codex-r20-open-_7ir0pk4/same_path_no_result.ngc"
+          ],
+          {}
+        ]
+      ]
+    },
+    {
+      "name": "same_path_cancelled_result",
+      "mode": "cancel",
+      "initially_unconfirmed": false,
+      "reply": {
+        "cancelled": true
+      },
+      "elapsed_seconds": 0.005,
+      "during_open": {
+        "loaded": "/tmp/codex-r20-open-_7ir0pk4/same_path_cancelled_result.ngc",
+        "unconfirmed": null,
+        "pending": true,
+        "record": "unsettled"
+      },
+      "after_handler": {
+        "loaded": "/tmp/codex-r20-open-_7ir0pk4/same_path_cancelled_result.ngc",
+        "unconfirmed": null,
+        "pending": true,
+        "record": "unsettled"
+      },
+      "after_window": {
+        "loaded": null,
+        "unconfirmed": "/tmp/codex-r20-open-_7ir0pk4/same_path_cancelled_result.ngc",
+        "pending": true,
+        "record": "unsettled"
+      },
+      "restored": null,
+      "restart_unconfirmed": "/tmp/codex-r20-open-_7ir0pk4/same_path_cancelled_result.ngc",
+      "cmd_calls": [
+        [
+          "mode",
+          [
+            2
+          ],
+          {}
+        ],
+        [
+          "program_open",
+          [
+            "/tmp/codex-r20-open-_7ir0pk4/same_path_cancelled_result.ngc"
+          ],
+          {}
+        ]
+      ]
+    }
+  ]
+}
