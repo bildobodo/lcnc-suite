@@ -1211,3 +1211,114 @@ Die 44-px-Regel des Seitenpanels bleibt.
 
 - Genügt der Inode-Wechsel als Frische-Nachweis?
 - Passt die Toolbar-Struktur für die Maschinengruppen?
+
+---
+
+## Codex · Runde 3 / Handshake R23 · Nachprüfung Fassung 3
+
+**Stand:** `682774b`, Bereich `e86d43d..682774b`, 28. September 2026.
+**Ergebnis: `findings` — nur OP22-01 bleibt auf Planungsebene offen.** OP22-02, OP22-03
+und OP22-04 sind mit Fassung 3 ausreichend festgelegt. Das Toolbar-Muster passt jetzt.
+K1–K3 im Worktree `lcnc-suite-backlog` sind ausdrücklich nicht Gegenstand dieser Runde.
+
+| Punkt | Ergebnis |
+| --- | --- |
+| OP22-01, Synch/Frische | Der Inode-Wechsel ist unter exklusiven Schreibbedingungen brauchbar. Die behauptete Exklusivität besteht im aktuellen Gateway noch nicht. |
+| OP22-02, G30-Übernahme | Geschlossen als Planpunkt: Machine-Frame, frische Übernahme, unverändertes `based_on`, Kontextbindung und Wrapped-Rotary-Regel sind benannt. |
+| OP22-03, Offsets | Geschlossen als Planpunkt: kanonische Indizes und dreistufiges Comp-Enable samt Gegenfällen sind aufgenommen. |
+| OP22-04, Gruppenbudget | Geschlossen als Planpunkt: Anzahl und Breite entscheiden; Mindestziele gelten in beiden Dimensionen; Messung und Zielkonflikt sind geregelt. |
+
+### OP22-01-Rest · Ein anderer Gateway-Schreiber kann den Inode-Nachweis erfüllen
+
+Der beschriebene LinuxCNC-Ablauf `.new → link(.bak) → rename` ist richtig. Bei unveränderter
+alter Datei erkennt der neue Vergleich den fehlgeschlagenen Synch. Auch ein erfolgreiches
+Neuveröffentlichen identischer Werte lässt sich damit erkennen; ein reiner Inhaltsvergleich
+könnte das nicht. Zusammen mit abgewartetem `RCS_DONE`, vollständigen endlichen Werten und
+anschließendem Zahlenvergleich ist das ein geeigneter Ansatz.
+
+**Die Aussage „Das Gateway schreibt selbst nur unter demselben Lock“ ist jedoch falsch:**
+
+- `gateway.py:5545`, `_ensure_prov_var_rows()`, schreibt fehlende Provenienzzeilen über
+  `_write_var_file_updates()` und damit `os.replace()` in **dieselbe** Parameterdatei.
+  Die Routine nimmt keinen `_cmd_lock`.
+- Sie wird beim Start sowie nach Verbindung/Wiederverbindung als Hintergrundtask gestartet
+  (`gateway.py:1380`, `1403`, `6113`). „Leerlauf“ schließt diesen Task nicht aus.
+- `_apply_probe_vars()` läuft zwar innerhalb des Kommandolocks, wartet auf den Dateischreiber
+  aber mit einem gewöhnlichen `asyncio.to_thread()` (`gateway.py:3621`). Bei Abbruch kann der
+  Coroutine-Aufrufer den Lock verlassen, während der Schreibthread noch läuft. Für NML
+  verhindert `_cmd_blocking()` genau das bereits ausdrücklich; diese Absicherung gilt nicht
+  automatisch auch für den Dateischreiber.
+
+**Isolierter Beleg:** Die beigefügte Sonde hält den vorgesehenen Kommandolock und führt darin
+die unverändert aus dem Repository extrahierte Provenienzroutine als Hintergrundarbeit aus.
+Sie ergänzt die fehlenden Zeilen trotzdem und ersetzt die Datei. Der Inode wechselt, während
+der G30-Wert unverändert **10** bleibt. Der modellierte Interpreterzustand ist **20** und die
+Entwurfsbasis **10**. Bei einem erfolglosen Synch würde die geplante Inode-Prüfung bestehen
+und der Konfliktvergleich wieder die veraltete 10 akzeptieren.
+
+Dabei sind der Dateischreiber, die Provenienzroutine und der tatsächliche Inode-Wechsel echt;
+der Synch-Fehler und der Interpreterwert sind simuliert. Die E/A-Aufrufe werden für den
+Gegenfall deterministisch innerhalb des Lock-Intervalls ausgeführt. Es gab keine Live-
+Fehlerinjektion und keinen Maschinenzugriff.
+
+**Kleine, konkrete Ergänzung für K5:**
+
+1. Alle Gateway-Schreiber dieser Parameterdatei müssen mit dem gesamten G30-Ablauf
+   serialisiert werden — einschließlich `_ensure_prov_var_rows()` und bereits gestarteter
+   Schreibthreads. Entweder denselben Lock konsequent verwenden oder eine dokumentierte
+   gemeinsame Dateisperre mit eindeutiger Lock-Reihenfolge einführen.
+2. Bei Abbruch bleibt die Schreibsperre bis zum wirklichen Ende eines laufenden
+   Dateischreibers gehalten. Das bestehende Prinzip aus `_cmd_blocking()` kann dafür als
+   Vorlage dienen; den normalen Dateischreibpfad lediglich unter einen Lock zu setzen
+   reicht bei einem nicht abbrechbaren Thread nicht.
+3. Die nach Synch geöffnete Datei samt Identität und Inhalt als **eine Aufnahme** lesen,
+   beispielsweise über Dateideskriptor und `fstat`. Fehlende Datei, unvollständige Werte
+   oder unklarer Schreibabschluss führen zu „not confirmed“.
+
+**Zusätzliche Wächter:** Provenienz-Initialisierung kann den G30-Nachweis nicht parallel
+erfüllen; Abbruch eines verzögerten Parameterdatei-Schreibers lässt den nächsten G30-Auftrag
+nicht vorzeitig beginnen. Dazu die bereits geplanten Synch-, Timeout- und 10/20/30-Fälle.
+Ein Lock im Gateway koordiniert dessen eigene Schreiber; er ist keine Sperre gegen beliebige
+externe Dateieditoren. Diese Grenze bitte benennen, statt fremde Schreiber allgemein für
+ausgeschlossen zu erklären.
+
+Damit beantworte ich die Inode-Frage mit: **Ja, nach Herstellung dieser Exklusivität und
+zusammen mit den übrigen Prüfungen; in der aktuellen Begründung noch nicht.** `GET /g30`
+als reine Anzeige und `read_g30` als ausdrücklich bestätigendes Neu-Einlesen sind akzeptiert.
+
+### Toolbar und verbleibende Umsetzungshinweise
+
+**Ja zur Toolbar-Struktur:** Die Toolbar verwaltet einen Tab-Stopp und die Navigation über
+ihre enthaltenen Maschinenoptionen; Pfeile verändern nur den Fokus, Aktivierung ist ausdrücklich.
+Benannte Radiogruppen darin erhalten die Bedeutung „eine von mehreren Optionen“. Die lokale
+Schrittweite liegt mit ihrer automatischen Pfeilauswahl außerhalb dieses manuellen Musters.
+Das entspricht der Trennung im
+[APG-Toolbar-Muster](https://www.w3.org/WAI/ARIA/apg/patterns/toolbar/) und im
+[APG-Radio-Muster](https://www.w3.org/WAI/ARIA/apg/patterns/radio/).
+
+Für die Implementierungsprüfung bleiben drei Details festzuhalten, ohne weitere Planrunde
+dafür zu verlangen:
+
+- Das unsichtbare Messelement darf weder fokussierbar noch für assistive Technik als zweite
+  Optionsgruppe vorhanden sein. Optionstexte, Einheiten, geladene Schrift und INI-Änderungen
+  müssen die Passprüfung ebenso aktualisieren können wie eine Fenstergrößenänderung.
+- Ein Fokus auf einer anderen Option darf durch einen Statuswechsel nicht auf die nun
+  gesperrte aktive Option zurückspringen. Fokus und bestätigte Auswahl bleiben getrennt;
+  bei einem Darstellungswechsel bleibt ein erreichbarer Fokus erhalten.
+- Comp mit `Enable=true`, aber fehlendem/nicht endlichem Betrag, bleibt entsprechend dem
+  übernommenen Vertrag „unbekannt“. Diesen Fall neben 0/ungleich 0 mitprüfen.
+
+### Belege und Abschluss
+
+- [Isolierte Inode-Sonde](operator-punkte.r23.inode-probe.py),
+  [Ergebnis](operator-punkte.r23.inode-probe.json).
+  Aufruf: `python3 docs/reviews/operator-punkte.r23.inode-probe.py`.
+  Kontrollen: unveränderte Datei besteht nicht; modellierte LinuxCNC-Veröffentlichung besteht;
+  tatsächlicher Provenienzschreiber erzeugt den beschriebenen falschen Frischenachweis.
+- LinuxCNC-Schreibfolge gegen die bereits in R22 geprüfte Release-Quelle 2.9.4 gelesen;
+  Gateway-Schreibpfade am aktuellen HEAD geprüft. Kein Browser, Mock-Server oder Offline-Gate.
+  Keine Produktänderung, keine Änderung der Steuerung oder des gemeldeten Trips.
+
+Bitte nur den Schreiberausschluss und dessen Abbruchfall im K5-Vertrag ergänzen. Die übrigen
+Festlegungen müssen dafür nicht erneut geöffnet werden. Danach ist auf Planungsebene der
+Weg zum Agreement frei; die tatsächliche Umsetzung bleibt separat zu prüfen.
