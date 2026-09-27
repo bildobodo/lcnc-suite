@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineProps<{
-  variant?: "default" | "primary" | "ok" | "warn" | "danger" | "estop";
+  variant?: "default" | "primary" | "warn" | "danger" | "estop";
   size?: "xs" | "sm" | "md" | "lg" | "cell";
   icon?: boolean;
   inline?: boolean;
@@ -85,46 +85,44 @@ html.touch-device .b-icon { min-width: 40px; }
 
 /* ---- Variants ---- */
 .primary {
-  border-color: color-mix(in srgb, var(--ok) 50%, transparent);
-  background: color-mix(in oklab, var(--ok) 25%, var(--button-bg));
+  border-color: color-mix(in srgb, var(--ok) var(--tint-edge), transparent);
+  background: color-mix(in oklab, var(--ok) var(--tint-fill), var(--button-bg));
   font-weight: var(--fw-semibold);
 }
 
-.ok {
-  border-color: color-mix(in srgb, var(--ok) 50%, transparent);
-  background: color-mix(in oklab, var(--ok) 25%, var(--button-bg));
-}
-
-/* Static warn tint (findings, cautions) — same formula as .danger/.ok.
+/* Static warn tint (findings, cautions) — same formula as .danger.
    Distinct from the pulsing `warning` STATE prop, which signals an active
    alarm rather than a persistent finding. */
 .warn {
-  border-color: color-mix(in srgb, var(--warn) 50%, transparent);
-  background: color-mix(in oklab, var(--warn) 25%, var(--button-bg));
+  border-color: color-mix(in srgb, var(--warn) var(--tint-edge), transparent);
+  background: color-mix(in oklab, var(--warn) var(--tint-fill), var(--button-bg));
 }
 
 .danger {
-  border-color: color-mix(in srgb, var(--danger) 50%, transparent);
-  background: color-mix(in oklab, var(--danger) 25%, var(--button-bg));
+  border-color: color-mix(in srgb, var(--danger) var(--tint-edge), transparent);
+  background: color-mix(in oklab, var(--danger) var(--tint-fill), var(--button-bg));
 }
 
 .estop {
   color: var(--danger-text);
-  border-color: color-mix(in srgb, var(--danger) 50%, transparent);
+  border-color: color-mix(in srgb, var(--danger) var(--tint-edge), transparent);
 }
 
 /* ---- Active state (variant-aware) ---- */
+/* Two axes (design wave D10, UI-K14): the VARIANT says what an action is
+   (primary = the group's main action, warn, danger, estop), the ACTIVE
+   state what the machine is (armed, powered, a toggled mode) — green is the
+   machine's "on", never a variant of its own. */
 .active.default,
-.active.ok,
 .active.primary {
-  border-color: color-mix(in srgb, var(--ok) 50%, transparent);
-  background: color-mix(in oklab, var(--ok) 20%, var(--button-bg));
+  border-color: color-mix(in srgb, var(--ok) var(--tint-edge), transparent);
+  background: color-mix(in oklab, var(--ok) var(--tint-active), var(--button-bg));
 }
 
 .active.danger,
 .active.estop {
-  border-color: color-mix(in srgb, var(--danger) 50%, transparent);
-  background: color-mix(in oklab, var(--danger) 20%, var(--button-bg));
+  border-color: color-mix(in srgb, var(--danger) var(--tint-edge), transparent);
+  background: color-mix(in oklab, var(--danger) var(--tint-active), var(--button-bg));
 }
 
 /* ---- Selected state (neutral, non-green) ---- */
@@ -140,7 +138,7 @@ html.touch-device .b-icon { min-width: 40px; }
 }
 
 @keyframes flash-estop {
-  0%, 100% { background: color-mix(in oklab, var(--danger) 40%, var(--button-bg)); }
+  0%, 100% { background: color-mix(in oklab, var(--danger) var(--tint-heavy), var(--button-bg)); }
   50% { background: var(--button-bg); }
 }
 
@@ -148,15 +146,15 @@ html.touch-device .b-icon { min-width: 40px; }
    The pulse moves the background between its warn fill and none — never
    the label (design wave D8: it faded the whole button to 50 %). */
 .b.warning {
-  border-color: color-mix(in srgb, var(--warn) 50%, transparent);
-  --pulse-on: color-mix(in oklab, var(--warn) 20%, var(--button-bg));
+  border-color: color-mix(in srgb, var(--warn) var(--tint-edge), transparent);
+  --pulse-on: color-mix(in oklab, var(--warn) var(--tint-active), var(--button-bg));
   --pulse-off: var(--button-bg);
   background: var(--pulse-on);
   animation: pulse-warn 1s ease-in-out infinite;
 }
 .b-icon.warning {
   color: var(--warn-text);
-  --pulse-on: color-mix(in oklab, var(--warn) 20%, transparent);
+  --pulse-on: color-mix(in oklab, var(--warn) var(--tint-active), transparent);
   --pulse-off: transparent;
   background: var(--pulse-on);
   border-radius: var(--radius-md);
@@ -282,7 +280,7 @@ html:not(.touch-device) .b-inline:hover:not(:disabled) { background: var(--hl-ho
   .flashing,
   .b.warning,
   .b-icon.warning { animation: none; }
-  .flashing { background: color-mix(in oklab, var(--danger) 40%, var(--button-bg)); }
+  .flashing { background: color-mix(in oklab, var(--danger) var(--tint-heavy), var(--button-bg)); }
 }
 /* Forced colours drop backgrounds and shadows — a selection (a tab's
    shape, a pressed page key) takes the system's selected-item colours. */

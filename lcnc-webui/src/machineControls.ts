@@ -6,7 +6,7 @@ export type ControlGate = keyof Permissions;
 
 export interface ButtonDef {
   gate: ControlGate;
-  variant: 'default' | 'primary' | 'ok' | 'warn' | 'danger' | 'estop';
+  variant: 'default' | 'primary' | 'warn' | 'danger' | 'estop';
   size: 'xs' | 'sm' | 'md' | 'lg' | 'cell';
   icon?: boolean;
   muted?: boolean;

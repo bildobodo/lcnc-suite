@@ -234,8 +234,8 @@ function clearAll() {
 }
 
 .selectedRow {
-  background: color-mix(in oklab, var(--info) 15%, transparent);
-  outline: 1px solid color-mix(in oklab, var(--info) 40%, transparent);
+  background: color-mix(in oklab, var(--info) var(--tint-note), transparent);
+  outline: 1px solid color-mix(in oklab, var(--info) var(--tint-heavy), transparent);
 }
 
 /* Active WCS = machine state → --ok (selection stays --info). Declared after

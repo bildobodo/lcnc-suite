@@ -1231,6 +1231,58 @@ D10 kommt in drei Commits: D10a (tote Reste, Folgepunkte, `DEAD_CLASS`/`EMPTY_RU
   wartete auf die Klasse `.halUnlinked`, die D10b entfernt. Er wartet jetzt auf den Text, danach
   liefen `contrast.spec` (10/10) und damit `serial-guards` grün.
 
+
+### WP-D10c — Tönungsstufen, Button-Achsen, Breitenbericht · 27. September 2026
+
+**Tönungen (N114):**
+- **Ausgangslage:** Zustandsfarben standen mit neun verschiedenen Prozentwerten in `color-mix()`,
+  nämlich 8, 10, 15, 20, 25, 40, 45, 50 und 55 %, an 59 Stellen.
+- **Stufen:** Jetzt gibt es sechs benannte Stufen in `:root`: `--tint-faint` 10, `--tint-note` 15,
+  `--tint-active` 20, `--tint-fill` 25, `--tint-heavy` 40 und `--tint-edge` 50 %. Die Ausreißer ziehen
+  auf die nächste Stufe (8 → 10, 45 → 40, 55 → 50); die Unterschiede sind kaum sichtbar.
+- **Freihändige Mischungen:**
+  - Rand 30 % (zweimal) wird `--border-subtle`.
+  - fg 4 % und 5 % (Codekästen in Probing und Debug) sind vereinheitlicht auf 5 %.
+  - Der Hover der Codezeile ergab durch 90 % + 5 % eine Farbe mit Alpha 0,95; er ist jetzt die
+    Hover-Stufe `--hl-surface`.
+  - Drei Kopien der Slider-Spur (Donut, Fortschritt, Lastbalken) lesen `--range-track`.
+- **Wächter:** CSS-Audit `TINT` (in .vue und `style.css`): eine Zustandsfarbe mit literalem Prozent
+  in `color-mix()`. Rot am alten `style.css` mit 14 Treffern.
+
+**Button-Achsen (K14):** Die Variante sagt, was eine Aktion ist: `primary` (die Hauptaktion der
+Gruppe), `warn`, `danger` oder `estop`. Der Zustand `active` sagt, was die Maschine ist.
+- Die Variante `ok` diente nur als Maschinenzustand, für Arm und Power On in der Safety-Leiste. Sie
+  ist entfernt; beide Knöpfe nutzen `:active`.
+- `primary` behält Aussehen und Bedeutung. Start bleibt grün; ihn umzufärben wäre eine
+  Operator-Entscheidung, nicht D10.
+- **Sichtbar:** Arm und Power On zeigen ihren grünen Zustand mit der Aktiv-Stufe (20 %) statt der
+  Füllung (25 %), eine Spur heller. Die Safety-Leiste steht in keinem Referenzbild; das ist ein Punkt
+  für die Live-Sichtprüfung.
+
+**Feste Pixelbreiten (N115) — Bericht mit Urteil, keine Umstellung:**
+
+| Gruppe | Stellen | Urteil |
+|---|---|---|
+| Icon- und Glyphgrößen: HAL-Pfeil 12, Upload-Icons 40/48, Kompensationspunkt 8, Status-Punkt 8 | GcodePanel, ProbePanel, HalshowTab, style.css | bleiben literal, das ist die Größe des Zeichens |
+| Werkzeugtabelle: `.colT` 50, `.colType` 80, schmale Aktionszelle | ToolTablePanel | bleiben: Die angehefteten Spalten rechnen mit exakten Breiten (Runde 4, UI-DI10), `layout.spec` misst sie |
+| Tabellenspalten der G-Code-Referenz: 80/140/200/200/120 | GcodeReferenceDialog | bleiben: Ein px-Wert skaliert unter CSS-Zoom wie ein em-Wert, eine Umstellung auf `ch`/`em` ändert nichts, solange die Schrift fest ist |
+| HAL-Zeilenspalten: Suche 160, Name ≥ 80, Typ 36, Richtung 24, Wert 80, Signal ≥ 60 | HalshowTab | bleiben: Diagnose-Tabelle; die Werte sind die Messung der breitesten Inhalte |
+| Import-Zeilen: T ≥ 40, Typ ≥ 70, Ø ≥ 55; Editor-Spalte 360 | ToolTablePanel | bleiben (Messwerte, `forms.spec` prüft den Editor) |
+| Probing: Raster ≤ 294, Kalibrier-Paar 196, Kompensation ≥ 140 | ProbePanel | bleiben: Das Raster ist die DR-Geometrie (4 × 65 px + Abstände) |
+| Tooltip ≤ 320, Banner-Fortschritt 160, Meldungsart ≥ 50, Makro-Badge ≥ 70 | GcodePanel, App, SettingsPanel | bleiben; die Hilfe-Karte hat keine feste Breite, die der Tooltip teilen könnte (ihre Breite setzt `placePopover`) |
+
+Die Bestandsaufnahme mit allen Stellen liegt der Sitzung vor. Eine Audit-Kategorie für Pixelbreiten
+gibt es nicht: Es gibt keine Regel, die sie verletzen könnten.
+
+**Gates:**
+- build, lint (neu `TINT`) und Vitest (**1660**) grün.
+- Playwright **276/276**. Im Gate fiel einmal `viewer.spec` „fetches nothing from outside the
+  gateway“ („no label glyph atlas“); danach war er dreimal grün. Die Ursache liegt im Test: Er
+  verglich die Texturzahl mit einem Moment zuvor, und die Beschriftungen des Achsenkreuzes legen
+  den gemeinsamen Glyph-Atlas oft schon vorher an. Jetzt fragt er die Beschriftungen selbst
+  (`__viewerDiag.getLabels`: alle gesetzt). Rot ohne die gebündelte Schrift; danach `serial-viewer`
+  5/5.
+
 ---
 
 ## Codex Implementierungsreview Runde 1

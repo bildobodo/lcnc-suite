@@ -1675,6 +1675,17 @@ async function buildFromInit(init: ViewerInit) {
         },
         // Put a part under the collision tint (or take it off) without a
         // sweep — the palette spec checks the tint follows a theme switch.
+        // Every troika label in the scenes and how many have laid out (a
+        // glyph layout exists) — the offline spec asks this directly; a
+        // texture count compared with a moment before raced the gizmo's
+        // labels, which build the shared glyph atlas first.
+        getLabels: () => {
+          let total = 0, laidOut = 0;
+          for (const sc of [scene, _gizmoScene]) sc?.traverse(o => {
+            if (o instanceof Text) { total++; if ((o as any).textRenderInfo) laidOut++; }
+          });
+          return { total, laidOut };
+        },
         tintPart: (id: string, on: boolean) => { for (const m of _clashMeshes(id)) _tintMesh(m, on); requestRender(); },
         getAppearance: () => ({
           grid: groundGrid ? {

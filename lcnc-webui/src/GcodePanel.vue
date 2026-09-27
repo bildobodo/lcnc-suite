@@ -1260,13 +1260,13 @@ async function saveEdit() {
   justify-content: center;
   border: 2px dashed var(--info);
   border-radius: var(--radius-xl);
-  background: color-mix(in oklab, var(--info) 10%, var(--panel) 90%);
+  background: color-mix(in oklab, var(--info) var(--tint-faint), var(--panel));
   pointer-events: none;
 }
 
 .dropOverlay.denied {
   border-color: var(--danger);
-  background: color-mix(in oklab, var(--danger) 10%, var(--panel) 90%);
+  background: color-mix(in oklab, var(--danger) var(--tint-faint), var(--panel));
 }
 
 .dropIcon {
@@ -1302,7 +1302,7 @@ async function saveEdit() {
 
 .dropTarget.dragOver {
   border-color: var(--info);
-  background: color-mix(in oklab, var(--info) 8%, var(--panel));
+  background: color-mix(in oklab, var(--info) var(--tint-faint), var(--panel));
 }
 
 .uploadIcon {

@@ -137,14 +137,19 @@ test("the viewer fetches nothing from outside the gateway (an offline machine)",
   // readable reason (2026-09-26, D3 gate; green 6/6 on reruns).
   await expect.poll(() => page.evaluate(() => !!window.__viewerLeakProbe),
     { timeout: 15000, message: "the viewer's leak probe never appeared" }).toBe(true);
-  const textures = () => page.evaluate(() => window.__viewerLeakProbe?.()?.textures ?? -1);
-  const before = await textures();
   await ctl({ op: "loadGcode" });
   await expect.poll(() => geometries(page),
     { timeout: 15000, intervals: [150], message: "the loaded program drew no geometry" }).toBeGreaterThan(0);
   await settledGeometries(page);
-  await expect.poll(textures, { timeout: 15000, message: "no label glyph atlas: the labels never laid out" })
-    .toBeGreaterThan(before);
+  // Every label laid out with the bundled font (a label without it fetched
+  // its font from a CDN and, offline, never laid out). Asked of the labels
+  // themselves: a texture count compared with a moment before raced the
+  // gizmo's labels, which build the shared glyph atlas first (flaked once
+  // in ~10 gate runs, 2026-09-27).
+  await expect.poll(async () => {
+    const l = await page.evaluate(() => window.__viewerDiag?.getLabels?.());
+    return l && l.total > 0 && l.laidOut === l.total ? "laid out" : JSON.stringify(l);
+  }, { timeout: 15000, message: "the labels never laid out" }).toBe("laid out");
   expect(outside, "requests to hosts other than the gateway").toEqual([]);
 });
 

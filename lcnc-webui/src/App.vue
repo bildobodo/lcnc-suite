@@ -2713,12 +2713,12 @@ watch(viewerGcode, (newGcode) => {
 }
 
 .pill.bad {
-  background: color-mix(in oklab, var(--danger) 25%, var(--panel));
+  background: color-mix(in oklab, var(--danger) var(--tint-fill), var(--panel));
 }
 
 
 .pill.armed {
-  background: color-mix(in oklab, var(--ok) 25%, var(--panel));
+  background: color-mix(in oklab, var(--ok) var(--tint-fill), var(--panel));
 }
 
 .pill.disarmed {
@@ -2739,7 +2739,7 @@ watch(viewerGcode, (newGcode) => {
   letter-spacing: var(--tracking-caps);
   flex-shrink: 0;
   border-radius: var(--radius-container);
-  background: color-mix(in oklab, var(--state-color, var(--info)) 25%, var(--panel));
+  background: color-mix(in oklab, var(--state-color, var(--info)) var(--tint-fill), var(--panel));
   transition: background 0.4s ease;
 }
 
@@ -2810,8 +2810,8 @@ watch(viewerGcode, (newGcode) => {
 /* The pulse moves the BACKGROUND — never the text (design wave D8,
    UI-D07): it faded the whole banner to 50 %, the state words included. */
 @keyframes banner-pulse {
-  0%, 100% { background: color-mix(in oklab, var(--state-color, var(--info)) 25%, var(--panel)); }
-  50% { background: color-mix(in oklab, var(--state-color, var(--info)) 10%, var(--panel)); }
+  0%, 100% { background: color-mix(in oklab, var(--state-color, var(--info)) var(--tint-fill), var(--panel)); }
+  50% { background: color-mix(in oklab, var(--state-color, var(--info)) var(--tint-faint), var(--panel)); }
 }
 
 .statusBanner.banner-flash {
@@ -2819,7 +2819,7 @@ watch(viewerGcode, (newGcode) => {
 }
 
 @keyframes flash-danger {
-  0%, 100% { background: color-mix(in oklab, var(--state-color) 40%, var(--panel)); }
+  0%, 100% { background: color-mix(in oklab, var(--state-color) var(--tint-heavy), var(--panel)); }
   50% { background: var(--panel); }
 }
 
@@ -2828,7 +2828,7 @@ watch(viewerGcode, (newGcode) => {
 @media (prefers-reduced-motion: reduce) {
   .statusBanner.banner-pulse,
   .statusBanner.banner-flash { animation: none; }
-  .statusBanner.banner-flash { background: color-mix(in oklab, var(--state-color) 40%, var(--panel)); }
+  .statusBanner.banner-flash { background: color-mix(in oklab, var(--state-color) var(--tint-heavy), var(--panel)); }
   .banner-fade-enter-active,
   .banner-fade-leave-active { transition: none; }
 }
@@ -2860,8 +2860,8 @@ watch(viewerGcode, (newGcode) => {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
 }
-.msgItem.error { border-color: color-mix(in oklab, var(--danger) 40%, var(--border)); }
-.msgItem.display { border-color: color-mix(in oklab, var(--display) 40%, var(--border)); }
+.msgItem.error { border-color: color-mix(in oklab, var(--danger) var(--tint-heavy), var(--border)); }
+.msgItem.display { border-color: color-mix(in oklab, var(--display) var(--tint-heavy), var(--border)); }
 .msgTime {
   font-size: var(--fs-2xs);
   font-variant-numeric: tabular-nums;

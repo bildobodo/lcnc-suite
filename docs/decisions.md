@@ -7092,3 +7092,24 @@ Plan Fassung 3 WP-D10 (N111–N113, EMPTYSTATE_COPY), second of three commits.
 - Empty states on `.emptyState` (Debug, Probing's compensation, the camera).
 - Guards: contrast.spec opens a HAL pin group (red on "unlinked"); audit
   ONE_LINER, EMPTYSTATE_COPY, TOKEN for letter-spacing.
+
+### WP-D10c — tint strengths, the button axes, the width report (2026-09-27)
+
+Plan Fassung 3 WP-D10 (N114, K14, N115), third of three commits.
+
+- N114: six named strengths (--tint-faint 10 / -note 15 / -active 20 / -fill
+  25 / -heavy 40 / -edge 50 %) replace nine free percentages at 59 sites
+  (8 → 10, 45 → 40, 55 → 50); border 30 % → --border-subtle; the code-box fg
+  4 / 5 % → 5 %; `.codeLine:hover`'s 90 % + 5 % (alpha 0.95) → --hl-surface;
+  three copies of the track colour → --range-track. Audit TINT (.vue and
+  style.css): a state colour at a literal percentage.
+- K14: the variant axis is what an action IS (primary = the group's main
+  action, warn, danger, estop); the active state is what the machine IS.
+  `ok` was a variant used only as machine state (Arm, Power On) — removed,
+  both use `:active`; primary keeps its look (recolouring Start is an
+  operator decision, not cleanup). Arm / Power On show the active 20 %
+  green instead of the 25 % fill — a live-look item.
+- N115: a report with a verdict per group (review doc) — icon sizes,
+  measured table columns and the DR probe geometry stay literal; px and em
+  scale alike under CSS zoom, so a unit swap buys nothing while the font is
+  fixed. No audit category: there is no rule a width could break.

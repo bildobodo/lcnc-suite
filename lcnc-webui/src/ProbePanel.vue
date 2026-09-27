@@ -1412,8 +1412,8 @@ html.touch-device .gridSection { height: 368px; }
 }
 
 .gridCell.probing {
-  background: color-mix(in oklab, var(--warn) 25%, var(--button-bg));
-  border-color: color-mix(in oklab, var(--warn) 40%, var(--border));
+  background: color-mix(in oklab, var(--warn) var(--tint-fill), var(--button-bg));
+  border-color: color-mix(in oklab, var(--warn) var(--tint-heavy), var(--border));
 }
 
 
@@ -1432,7 +1432,7 @@ html.touch-device .gridSection { height: 368px; }
   flex-direction: column;
   padding: 4px 6px;
   border-radius: var(--radius-md);
-  background: color-mix(in oklab, var(--fg) 4%, var(--bg));
+  background: color-mix(in oklab, var(--fg) 5%, var(--bg));   /* the code-box tint, as DebugTab's */
   border: 1px solid var(--border);
 }
 

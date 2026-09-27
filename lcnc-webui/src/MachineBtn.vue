@@ -11,7 +11,7 @@ defineOptions({ inheritAttrs: false });
 
 const props = withDefaults(defineProps<{
   type: ButtonType;
-  variant?: 'default' | 'primary' | 'ok' | 'warn' | 'danger' | 'estop';
+  variant?: 'default' | 'primary' | 'warn' | 'danger' | 'estop';
   disabled?: boolean;
   active?: boolean;
   selected?: boolean;

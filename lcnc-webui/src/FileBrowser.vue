@@ -135,7 +135,7 @@ onMounted(() => browse());
   font-size: var(--fs-base);
   font-weight: inherit;
 }
-.fileItem.activeItem { background: color-mix(in oklab, var(--info) 15%, var(--panel)); }
+.fileItem.activeItem { background: color-mix(in oklab, var(--info) var(--tint-note), var(--panel)); }
 .fileItem.directory .fileEntryName { font-weight: var(--fw-semibold); }
 .fileIcon { color: var(--fg-muted); width: 10px; flex-shrink: 0; text-align: center; }
 .fileEntryName { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

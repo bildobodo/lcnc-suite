@@ -358,7 +358,7 @@ const halTabs = computed(() => ([
 
 .halSigRow {
   padding: var(--gap-tight) 0;
-  border-bottom: 1px solid color-mix(in oklab, var(--border) 30%, transparent);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .halSigHeader {

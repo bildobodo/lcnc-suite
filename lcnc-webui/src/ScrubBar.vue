@@ -1141,9 +1141,9 @@ onUnmounted(() => {
 }
 .scrubBand.track { left: calc(var(--range-thumb) / 2); width: calc(100% - var(--range-thumb)); background: var(--range-track); }
 .scrubBand.track.dim { opacity: var(--opacity-disabled); }   /* mirrors the disabled slider */
-.scrubBand.swept { background: color-mix(in oklab, var(--info) 40%, transparent); }
-.scrubBand.limit { background: color-mix(in oklab, var(--warn) 45%, transparent); }
-.scrubBand.clash { background: color-mix(in oklab, var(--danger) 55%, transparent); }
+.scrubBand.swept { background: color-mix(in oklab, var(--info) var(--tint-heavy), transparent); }
+.scrubBand.limit { background: color-mix(in oklab, var(--warn) var(--tint-heavy), transparent); }
+.scrubBand.clash { background: color-mix(in oklab, var(--danger) var(--tint-edge), transparent); }
 /* One tick for every mark kind (full track height); the glyph under it is
    what tells the kinds apart when the colours don't (dark theme). */
 .scrubTick {

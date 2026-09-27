@@ -53,6 +53,11 @@ WS-C extension — design-token drift checks over every .vue <style> block
   CLOSE      — `<MachineBtn type="close"` without an `aria-label`: a close
                control is named for its context ("Close settings",
                "Dismiss upload error"), never announced as "times" (UX-05).
+  TINT       — a state colour (--ok, --warn, --danger, --info, --err,
+               --accent, --display, --highlight, --state-color) mixed at a
+               literal percentage in color-mix(): the strengths are named
+               (--tint-faint/-note/-active/-fill/-heavy/-edge — design wave
+               D10, N114). .vue style blocks AND style.css.
   ONE_LINER  — a scoped rule on ONE class whose only declaration is a text
                role colour (`--fg-muted`, `--ok-text`, `--warn-text`,
                `--danger-text`): a copy of `.text-muted/-ok/-warn/-danger`
@@ -679,6 +684,29 @@ def _split_selectors(prelude: str) -> list[str]:
     return [re.sub(r"\s+", " ", p.strip()) for p in parts if p.strip()]
 
 
+TINT_RE = re.compile(r"color-mix\(in \w+,\s*var\(--(?:ok|warn|danger|info|err|accent|display|highlight|state-color)\b[^)]*\)\)?\s+\d+(?:\.\d+)?%")
+
+
+def tint_findings(path: str) -> list[tuple[str, int, str]]:
+    """TINT: a state colour at a literal percentage (see the category note)."""
+    text = read(path)
+    lines = text.splitlines()
+    if path.endswith(".vue"):
+        ranges = []
+        for m_s in re.finditer(r"<style[^>]*>(.*?)</style>", text, re.S):
+            a = text.count("\n", 0, m_s.start(1)) + 1
+            ranges.append((a, a + m_s.group(1).count("\n")))
+    else:
+        ranges = [(1, len(lines))]
+    findings = []
+    for a, b in ranges:
+        for ln in range(a, b + 1):
+            line = lines[ln - 1]
+            if TINT_RE.search(line) and not _audit_ok(lines, ln - 1):
+                findings.append(("TINT", ln, "a state colour at a literal percentage — use a --tint-* strength"))
+    return findings
+
+
 def dead_class_findings(path: str, all_templates: dict[str, str]) -> list[tuple[str, int, str]]:
     """DEAD_CLASS: a class a scoped rule styles as its selector's subject
     that the component never names (see the category note)."""
@@ -812,10 +840,10 @@ def run(vue_files: list[Path], show_all: bool = False, style: Path | None = None
     all_templates = {str(f): read(str(f)) for f in vue_files}
     for f in vue_files:
         for cat, ln, msg in (token_findings(str(f)) + template_findings(str(f)) + media_shadow_findings(str(f))
-                             + dead_class_findings(str(f), all_templates)):
+                             + dead_class_findings(str(f), all_templates) + tint_findings(str(f))):
             drift.append((cat, str(f), ln, msg))
     for f in stylesheets:
-        for cat, ln, msg in media_shadow_findings(str(f)):
+        for cat, ln, msg in media_shadow_findings(str(f)) + tint_findings(str(f)):
             drift.append((cat, str(f), ln, msg))
     drift.sort(key=lambda d: (d[1], d[2], d[0]))
     return findings, drift, definite

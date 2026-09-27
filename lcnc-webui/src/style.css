@@ -164,6 +164,20 @@
   --viewer-tool: #9aa0a6;
   --viewer-cutter: #d4a800;
 
+  /* Tint strengths (design wave D10, N114): how much of a state colour
+     (--ok, --warn, --danger, --info, --err, --accent, the banner's
+     --state-color) a fill, a border or a note mixes in — named, never a
+     free percentage (the CSS audit's TINT). faint: a hover or drop tint;
+     note: a status note's fill; active: an active / pressed state; fill: a
+     state's resting fill; heavy: a flash, a strong border; edge: a state
+     border into transparent. */
+  --tint-faint: 10%;
+  --tint-note: 15%;
+  --tint-active: 20%;
+  --tint-fill: 25%;
+  --tint-heavy: 40%;
+  --tint-edge: 50%;
+
   /* Highlight tiers (fg mixed into button-bg) */
   --hl-hover: color-mix(in oklab, var(--fg) 12%, var(--button-bg));
   --hl-selected: color-mix(in oklab, var(--fg) 15%, var(--button-bg));
@@ -180,8 +194,8 @@
      apply. Neutral fg tint; the -info variant keeps the form-control hue
      (checklist: form interactions use --info). */
   --hl-surface: color-mix(in oklab, var(--fg) 8%, transparent);
-  --hl-surface-info: color-mix(in oklab, var(--info) 10%, transparent);
-  --hl-surface-ok: color-mix(in oklab, var(--ok) 10%, transparent);
+  --hl-surface-info: color-mix(in oklab, var(--info) var(--tint-faint), transparent);
+  --hl-surface-ok: color-mix(in oklab, var(--ok) var(--tint-faint), transparent);
 
   /* ViewCube palette — derived from theme tokens, auto-switches per data-theme */
   --viewcube-face:  color-mix(in oklab, var(--fg) 10%, var(--bg));
@@ -1240,18 +1254,18 @@ label:has(input:disabled, select:disabled) {
   white-space: normal;
 }
 .statusNote.warn {
-  background: color-mix(in oklab, var(--warn) 15%, var(--panel));
-  border: 1px solid color-mix(in srgb, var(--warn) 25%, transparent);
+  background: color-mix(in oklab, var(--warn) var(--tint-note), var(--panel));
+  border: 1px solid color-mix(in srgb, var(--warn) var(--tint-fill), transparent);
   color: var(--warn-text);
 }
 .statusNote.error {
-  background: color-mix(in oklab, var(--err) 15%, var(--panel));
-  border: 1px solid color-mix(in srgb, var(--err) 25%, transparent);
+  background: color-mix(in oklab, var(--err) var(--tint-note), var(--panel));
+  border: 1px solid color-mix(in srgb, var(--err) var(--tint-fill), transparent);
   color: var(--danger-text);
 }
 .statusNote.ok {
-  background: color-mix(in oklab, var(--ok) 15%, var(--panel));
-  border: 1px solid color-mix(in srgb, var(--ok) 25%, transparent);
+  background: color-mix(in oklab, var(--ok) var(--tint-note), var(--panel));
+  border: 1px solid color-mix(in srgb, var(--ok) var(--tint-fill), transparent);
   color: var(--ok-text);
 }
 
@@ -1443,8 +1457,8 @@ label:has(input:disabled, select:disabled) {
   margin-inline-start: var(--gap-tight);
   vertical-align: middle;
   user-select: none;
-  background: color-mix(in oklab, var(--info) 15%, transparent);
-  border: 1px solid color-mix(in oklab, var(--info) 40%, transparent);
+  background: color-mix(in oklab, var(--info) var(--tint-note), transparent);
+  border: 1px solid color-mix(in oklab, var(--info) var(--tint-heavy), transparent);
   border-radius: var(--radius-round);
   color: var(--info-text);
   font-family: var(--font-sans);
@@ -1477,7 +1491,7 @@ label:has(input:disabled, select:disabled) {
 }
 .helpIcon:hover,
 .helpIcon:focus-visible {
-  background: color-mix(in oklab, var(--info) 20%, transparent);
+  background: color-mix(in oklab, var(--info) var(--tint-active), transparent);
   border-color: var(--info);
 }
 .helpIcon:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
@@ -1701,17 +1715,17 @@ label:has(input:disabled, select:disabled) {
 }
 
 .codeLine:hover {
-  background: color-mix(in oklab, var(--panel) 90%, var(--fg) 5%);
+  background: var(--hl-surface);   /* a surface hover tier (the old mix summed to 95 %: alpha 0.95) */
 }
 
 .codeLine.active {
-  background: color-mix(in oklab, var(--highlight) 20%, var(--panel));
+  background: color-mix(in oklab, var(--highlight) var(--tint-active), var(--panel));
   border-left: 3px solid var(--highlight);
   padding-left: 9px;
 }
 
 .codeLine.selected {
-  background: color-mix(in oklab, var(--info) 20%, transparent);
+  background: color-mix(in oklab, var(--info) var(--tint-active), transparent);
   border-left: 2px solid var(--info);
   padding-left: 10px;
 }
@@ -1939,7 +1953,7 @@ label:has(input:disabled, select:disabled) {
 /* Warn-tinted overlay card: the sim banner and the STL-failed chip — one
    chrome for every "attention" overlay on the viewer. */
 .overlay-card.warn {
-  background: color-mix(in oklab, var(--warn) 20%, var(--panel));
+  background: color-mix(in oklab, var(--warn) var(--tint-active), var(--panel));
   border-color: var(--warn);
   color: var(--warn-text);
 }
@@ -2061,7 +2075,7 @@ label:has(input:disabled, select:disabled) {
 }
 .donutBg {
   fill: none;
-  stroke: color-mix(in oklab, var(--panel) 90%, var(--fg));
+  stroke: var(--range-track);
   stroke-width: 12;
 }
 .legendDot {
@@ -2091,7 +2105,7 @@ label:has(input:disabled, select:disabled) {
   flex: 1;
   height: 10px;
   border-radius: var(--radius-sm);
-  background: color-mix(in oklab, var(--panel) 90%, var(--fg));
+  background: var(--range-track);
   overflow: hidden;
 }
 .progressFill {
@@ -2141,7 +2155,7 @@ label:has(input:disabled, select:disabled) {
   width: 100%;
   height: 6px;
   border-radius: var(--radius-sm);
-  background: color-mix(in oklab, var(--panel) 90%, var(--fg));
+  background: var(--range-track);
   overflow: hidden;
 }
 .loadBar > .loadBarFill {

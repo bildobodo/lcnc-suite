@@ -1052,7 +1052,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
   gap: var(--gap-controls);
   padding: var(--gap-tight) var(--gap-controls);
   font-size: var(--fs-base);
-  border-bottom: 1px solid color-mix(in oklab, var(--border) 30%, transparent);
+  border-bottom: 1px solid var(--border-subtle);
 }
 .importRow:last-child { border-bottom: none; }
 

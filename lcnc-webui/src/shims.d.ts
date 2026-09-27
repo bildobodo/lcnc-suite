@@ -30,6 +30,7 @@ interface ViewerDiag {
   // the tagged materials, and the stored mode — e2e/viewer.spec.ts reads it.
   getPalette?: () => { resolved: Record<string, string>; drawn: Record<string, string>; mode: string };
   tintPart?: (id: string, on: boolean) => void;
+  getLabels?: () => { total: number; laidOut: number };
   getAppearance?: () => {
     grid: { visible: boolean; position: number[]; color: number[] } | null;
     outlinedParts: number;

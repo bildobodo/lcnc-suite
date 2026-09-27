@@ -94,7 +94,7 @@ const compact = computed(() => isPortrait.value && activeKind.value !== null);
              the status rows (UX-10, operator decision 2026-09-21). -->
         <MachineBtn
           type="arm"
-          :variant="armed ? 'ok' : 'default'"
+          :active="armed"
           :disabled="busy || (!armed && tripUnacked)"
           :reason="!armed && tripUnacked ? 'Acknowledge the safety trip first' : undefined"
           @click="emit('arm', !armed)"
@@ -125,7 +125,7 @@ const compact = computed(() => isPortrait.value && activeKind.value !== null);
       <Gate gate="safety" class="btnGate">
         <MachineBtn
           type="machineOn"
-          :variant="isEnabled ? 'ok' : 'default'"
+          :active="isEnabled"
           @click="isEnabled ? emit('machineOff') : emit('machineOn')"
           class="safetyBtn"
           block
