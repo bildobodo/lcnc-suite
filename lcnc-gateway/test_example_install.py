@@ -316,21 +316,83 @@ class XyzacDatumMigrationTest(unittest.TestCase):
                 self.assertEqual(p[3102], after, "an operator's absolute G53 Z moves with the datum")
                 self.assertEqual((p[3100], p[3101]), (10, 10), "and its X/Y stay")
 
-    def test_the_webui_fallback_toolsetter_is_seeded_not_shifted(self):
-        # The operator's real install (2026-09-27): the WebUI had no toolsetter
-        # section for this config and pushed its fallback zeros — X0 Y0 Z0,
-        # the table centre on the rotary intersection, never a toolsetter.
-        # Shifting it would put the plate at Z -500, under the whole window.
+    def test_zeros_without_a_webui_section_are_kept_at_their_point(self):
+        # Codex R16, XZ-03 rest: 0/0/0 with no toolsetter section in the
+        # WebUI is AMBIGUOUS — the WebUI's old fallback push, or a position
+        # set in the var file or the interpreter directly (M600 reads it
+        # either way). The installer cannot tell them apart, so it keeps the
+        # physical point (Z moves with the datum) and says what to check —
+        # never a silent move to the template's 150/0/-300.
         ini, var = self.old_install()
         text = var.read_text()
         for row in ("3100\t10.000000", "3101\t10.000000", "3102\t-180.000000"):
             text = text.replace(row, row.split("\t")[0] + "\t0.000000")
         var.write_text(text.replace("5183\t480.000000", "5183\t473.725000"))
-        self.install()
+        report = []
+        installer.install(ROOT, self.dest, self.backups, report=report)
         p = self.params(var)
-        self.assertEqual([p[k] for k in (3100, 3101, 3102)], [150, 0, -300], "the template's toolsetter")
+        self.assertEqual([p[k] for k in (3100, 3101, 3102)], [0, 0, -500], "the same physical point")
+        self.assertTrue(any("#3100" in line and "Probing › Toolsetter" in line for line in report), report)
         self.assertAlmostEqual(p[5183], -26.275, places=6)
         self.assertEqual(p[5223], -220)
+        self.assertIsNone(self.install(), "once")
+
+    def test_the_old_examples_unchanged_toolsetter_is_replaced_and_said(self):
+        # 10/10/-180 is the old example's shipped triple (git 3e501ed), below
+        # the old Z travel — never a position anyone set up. Replaced by the
+        # template's, not silently.
+        ini, var = self.old_install()
+        self.assertEqual([self.params(var)[n] for n in (3100, 3101, 3102)], [10, 10, -180])
+        report = []
+        installer.install(ROOT, self.dest, self.backups, report=report)
+        self.assertEqual([self.params(var)[n] for n in (3100, 3101, 3102)], [150, 0, -300])
+        self.assertTrue(any("#3100" in line and "150/0/-300" in line for line in report), report)
+
+    def test_xz09_fresh_state_files_start_inside_the_kept_local_z_window(self):
+        # Codex R16, XZ-09: a consistent old INI with a lowered top (480)
+        # keeps its window (-400..-20 after the shift, XZ-04), but sim.var
+        # and position.txt are missing — the template's seeds say "home" and
+        # "top of travel" as 0, outside that window. A fresh file starts at
+        # the LOCAL home and top instead; nothing else of the seed changes.
+        def lowered(text):
+            text = text.replace("MAX_LIMIT = 500", "MAX_LIMIT = 480")
+            text = text.replace("HOME = 500", "HOME = 480").replace("HOME_OFFSET = 500", "HOME_OFFSET = 480")
+            return text.replace("HOME = 0 0 500 0 0", "HOME = 0 0 480 0 0")
+        cases = {"migrated": lambda: self.old_install()[0],
+                 "current datum": lambda: self.install() or self.dest / self.NAME}
+        for case, prepare in cases.items():
+            with self.subTest(case=case):
+                ini = prepare()
+                if case == "migrated":
+                    ini.write_text(lowered(ini.read_text()))
+                else:
+                    text = ini.read_text().replace("MAX_LIMIT = 0\n", "MAX_LIMIT = -20\n")
+                    text = text.replace("\nHOME = 0\nHOME_OFFSET = 0\nHOME_SEARCH_VEL = 0\nHOME_LATCH_VEL = 0\nHOME_SEQUENCE = 0",
+                                        "\nHOME = -20\nHOME_OFFSET = -20\nHOME_SEARCH_VEL = 0\nHOME_LATCH_VEL = 0\nHOME_SEQUENCE = 0")
+                    ini.write_text(text.replace("HOME = 0 0 0 0 0", "HOME = 0 0 -20 0 0"))
+                for name in ("sim.var", "position.txt"):
+                    (self.dest / "xyzac5" / name).unlink()
+                report = []
+                installer.install(ROOT, self.dest, self.backups, report=report)
+                config = installer.values(ini.read_text())
+                self.assertEqual((config["JOINT_2", "MAX_LIMIT"], config["JOINT_2", "HOME"]), ("-20", "-20"))
+                p = self.params(self.dest / "xyzac5/sim.var")
+                self.assertEqual((p[5163], p[5183]), (-20, -20), "G28/G30 Z at the local top of travel")
+                self.assertEqual((p[5223], p[3102], p[5161], p[5181]), (-500, -300, 0, 0),
+                                 "G54 and the setter stay the template's; X/Y stay")
+                z = float((self.dest / "xyzac5/position.txt").read_text().split()[2])
+                self.assertEqual(z, -20, "the joint starts at the local home")
+                self.assertTrue(any("position.txt" in line for line in report)
+                                and any("G28/G30" in line for line in report), report)
+                self.assertIsNone(self.install(), "and a second run changes nothing")
+
+    def test_the_template_seeds_are_home_and_top_of_travel(self):
+        # XZ-09 maps the seeds by meaning: this pins what they mean.
+        ini = installer.values((SOURCE / self.NAME).read_text())
+        var = {int(k): float(v) for k, v in (l.split() for l in (SOURCE / "xyzac5/sim.var").read_text().splitlines() if l.strip())}
+        position = (SOURCE / "xyzac5/position.txt").read_text().split()
+        self.assertEqual(float(position[2]), float(ini["JOINT_2", "HOME"]))
+        self.assertEqual((var[5163], var[5183]), (float(ini["AXIS_Z", "MAX_LIMIT"]),) * 2)
 
     # ---- Codex review R15 (XZ-01..05): each red on the first migration ----
     OLD_DEMO_SHA = "0e65cc15c6d767ff7e00c3eabc2e136636f880aea997a6c971beb61943174581"

@@ -271,3 +271,102 @@ class TestRflSequenceEntry(_SeqHarness):
                                     entry={"x": 12.5, "y": -3.0, "wcs": None, "units": None})
         self.assertEqual(self.auto_run_calls, [])
         self.assertEqual(gateway._rfl_status["phase"], "positioning_failed")
+
+
+class TestRflSequenceBinding(_SeqHarness):
+    """Codex R16 XZ-07: the sequence runs for minutes (the measurement alone)
+    — the program Run from line was confirmed on must still be the loaded
+    one, unchanged on disk, before every step that moves; and an abort from
+    any client ends it (it is no in-flight handler _preempt_inflight saw)."""
+
+    def setUp(self):
+        super().setUp()
+        self._orig_program = gateway._status_runtime.program
+        self.fresh_program()
+
+    def fresh_program(self):
+        """A loaded, unchanged program — per case, without re-patching
+        (a second super().setUp() would record the fakes as originals)."""
+        import tempfile
+        import time as _time
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.prog = os.path.join(tmp.name, "a.ngc")
+        with open(self.prog, "w") as f:
+            f.write("T5 M600\nG0 X10 Y20\nG1 X11\nM2\n")
+        self.program = gateway._status_runtime.program = gateway._status_runtime_mod.LoadedProgram()
+        self.program.update(None, True, _time.monotonic())
+        self.program.request_load(self.prog, _time.monotonic())
+        self.program.update(self.prog, True, _time.monotonic())
+        gateway.STAT.tool_in_spindle = 5
+        gateway.STAT.tool_offset = (0, 0, 45.7, 0, 0, 0, 0, 0, 0)
+        gateway.STAT.position = (0.0, 0.0, -100.0)
+
+    def tearDown(self):
+        gateway._status_runtime.program = self._orig_program
+        super().tearDown()
+
+    async def test_a_program_change_during_the_measurement_starts_nothing(self):
+        import time as _time
+        def load_other():
+            other = self.prog + ".b.ngc"
+            with open(other, "w") as f:
+                f.write("T8 M600\nG0 X80 Y90\nM2\n")
+            self.program.request_load(other, _time.monotonic())
+            self.program.update(other, True, _time.monotonic())
+
+        def rewrite():
+            with open(self.prog, "a") as f:
+                f.write("(edited)\n")
+
+        for change in (load_other, rewrite):
+            with self.subTest(change=change.__name__):
+                self.fresh_program()
+                identity = gateway._program_identity(self.prog)
+                self.mdi_calls.clear()
+                self.auto_run_calls.clear()
+
+                async def step(text, timeout_s, change=change):
+                    self.mdi_calls.append(text)
+                    if text == "T5 M600":
+                        change()
+                    return True, ""
+                gateway._rfl_mdi_step = step
+                gateway._rfl_active = True
+                await gateway._rfl_sequence(4, pre_tool=5, safe_z=True, spindle_dir=None,
+                                            spindle_speed=0, program=identity)
+                self.assertEqual(self.auto_run_calls, [])
+                self.assertEqual(self.mdi_calls, ["T5 M600"], "no flag, no retract, no start")
+                self.assertEqual(gateway._rfl_status["phase"], "program_changed")
+                self.assertFalse(gateway._rfl_active)
+
+    async def test_the_unchanged_program_runs(self):
+        identity = gateway._program_identity(self.prog)
+        gateway.STAT._script = [{}, {}, {"position": (0.0, 0.0, 0.0)}]
+        await gateway._rfl_sequence(4, pre_tool=5, safe_z=True, spindle_dir=None,
+                                    spindle_speed=0, program=identity)
+        self.assertEqual(self.mdi_calls, ["T5 M600", "#3116=5", "G53 G0 Z0"])
+        self.assertEqual(len(self.auto_run_calls), 1)
+
+    async def test_an_abort_from_any_client_ends_the_sequence(self):
+        started, hold = asyncio.Event(), asyncio.Event()
+
+        async def step(text, timeout_s):
+            self.mdi_calls.append(text)
+            started.set()
+            await hold.wait()
+            return True, ""
+        gateway._rfl_mdi_step = step
+        task = asyncio.ensure_future(gateway._rfl_sequence(
+            4, pre_tool=5, safe_z=True, spindle_dir=None, spindle_speed=0,
+            program=gateway._program_identity(self.prog)))
+        gateway._rfl_task = task
+        await started.wait()
+        gateway._preempt_inflight(by="abort", from_client=99)
+        done, _ = await asyncio.wait({task}, timeout=2)
+        self.assertTrue(done, "the abort did not end the sequence")
+        self.assertTrue(task.cancelled())
+        self.assertEqual(self.mdi_calls, ["T5 M600"])
+        self.assertEqual(self.auto_run_calls, [])
+        self.assertEqual(gateway._rfl_status["phase"], "aborted")
+        self.assertFalse(gateway._rfl_active)

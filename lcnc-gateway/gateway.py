@@ -28,6 +28,7 @@ import click
 from contextlib import asynccontextmanager
 
 import lcnc_trace as _trace
+import lcnc_paths
 _trace.init("gateway")
 _trace.install_crash_hooks("gateway")
 
@@ -55,6 +56,8 @@ elif _launcher_bind.get("needs_poll"):
 # Pure, linuxcnc-free helpers (importable under pytest without the binding).
 from gateway_util import (
     ALLOWED_EXTENSIONS,
+    LOAD_RECORD_NAME,
+    canonical_path,
     SUBFILE_NAME_RE,
     resolve_subfile,
     kins_mode_commands,
@@ -2268,6 +2271,10 @@ _status_runtime = _status_runtime_mod.StatusRuntime(
     # falsification pass — a hand-typed G10 under a reserved fixture is the
     # documented operator-caused escape.
     get_prov_a=lambda: [(_prov_cache.get(i) or {}).get("a") for i in range(1, 10)],
+    # The loaded program's proof across a gateway restart (Codex R16 XZ-08):
+    # the gateway's own record, per LinuxCNC instance, in the suite's dir.
+    get_instance=lambda: _bound_instance,
+    load_record_path=os.path.join(lcnc_paths.resolve()[0], LOAD_RECORD_NAME),
 )
 safe_get = _status_runtime.safe_get
 normalize_homed = _status_runtime.normalize_homed
@@ -3201,6 +3208,36 @@ def require_tool_change_pending():
 # via the status fanout (rfl_status field), single-flight via _rfl_active.
 _rfl_active: bool = False
 _rfl_status: Optional[dict] = None   # last guard-sequence phase, riding the status fanout
+# The running sequence: abort/estop from ANY client end it (_preempt_inflight)
+# — it is no in-flight handler, so the preemption never saw it (Codex R16).
+_rfl_task: Optional[asyncio.Task] = None
+
+
+def _program_identity(path: Optional[str]):
+    """(path, mtime_ns, size) of a program file, or None when it cannot be
+    read — what Run from line is bound to while its sequence runs."""
+    if not path:
+        return None
+    try:
+        st = os.stat(path)
+    except OSError:
+        return None
+    return (path, st.st_mtime_ns, st.st_size)
+
+
+def _rfl_program_changed(identity) -> Optional[str]:
+    """Is the program Run from line was confirmed on still the LOADED one,
+    unchanged on disk? None = yes, else why not (Codex R16 XZ-07: a program
+    loaded by any client during the minutes of measuring used to run with
+    the first one's line, tool and entry position)."""
+    if identity is None:
+        return None
+    loaded = _status_runtime.program.loaded
+    if canonical_path(loaded) != canonical_path(identity[0]):
+        return f"another program is loaded ({os.path.basename(loaded or '') or 'none'})"
+    if _program_identity(identity[0]) != identity:
+        return "the program file changed on disk"
+    return None
 
 
 async def _rfl_wait_interp_idle(timeout_s: float, grace_s: float = 2.0):
@@ -3297,11 +3334,23 @@ def _rfl_entry_reached(entry: dict):
 
 async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
                         spindle_dir: Optional[str], spindle_speed: int,
-                        entry: Optional[dict] = None) -> None:
-    global _rfl_active
+                        entry: Optional[dict] = None, program=None) -> None:
+    global _rfl_active, _rfl_task
     flag_armed = False
+
+    def still_bound() -> bool:
+        # Before every step that moves (and before arming the skip flag):
+        # the confirmed program, unchanged. A reply-less refusal would be
+        # silent — the phase carries the reason to every client.
+        why = _rfl_program_changed(program)
+        if why:
+            _rfl_phase("program_changed", False, f"{why} — confirm Run from line again")
+        return why is None
+
     try:
         if pre_tool:
+            if not still_bound():
+                return
             _rfl_phase("measuring")
             err_mark = _errors_total
             ok, why = await _rfl_mdi_step(f"T{pre_tool} M600", timeout_s=240.0)
@@ -3320,12 +3369,16 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
                 # during the measurement window — refuse to continue into motion.
                 _rfl_phase("measure_failed", False, "errors during measurement (aborted?)")
                 return
+            if not still_bound():
+                return
             ok, why = await _rfl_mdi_step(f"#3116={pre_tool}", timeout_s=10.0)
             if not ok:
                 _rfl_phase("flag_failed", False, why)
                 return
             flag_armed = True
         if safe_z:
+            if not still_bound():
+                return
             _rfl_phase("safe_z")
             # "Safe Z" = at or above machine Z0 (the controlled point, TLO
             # included — the frame G53 addresses; stat.position IS
@@ -3358,6 +3411,8 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
             # (at safe height — the handler forces safe_z on whenever entry is
             # given), so the RFL entry's modal Y/Z moves run at the RIGHT X/Y
             # instead of wherever the machine happens to stand.
+            if not still_bound():
+                return
             _rfl_phase("positioning")
             ok, why = await _rfl_mdi_step(_rfl_entry_mdi(entry), timeout_s=120.0)
             if not ok:
@@ -3367,6 +3422,8 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
             if not ok:
                 _rfl_phase("positioning_failed", False, why)
                 return
+        if not still_bound():
+            return
         if spindle_dir and spindle_speed > 0:
             async with _get_cmd_lock():
                 await set_mode(linuxcnc.MODE_MANUAL)
@@ -3380,6 +3437,10 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
             await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None)
         flag_armed = False  # consumed by the skim (o<450> self-clears #3116)
         _rfl_phase("running")
+    except asyncio.CancelledError:
+        # abort/estop (_preempt_inflight): nothing further moves.
+        _rfl_phase("aborted", False, "aborted")
+        raise
     except Exception as e:
         _trace.emit_exc("rfl.sequence_failed", e)
         _rfl_phase("failed", False, f"{type(e).__name__}: {e}")
@@ -3393,6 +3454,64 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
             else:
                 _trace.emit("rfl.flag_clear_failed", level="error", err=why)
         _rfl_active = False
+        if _rfl_task is asyncio.current_task():
+            _rfl_task = None
+
+
+async def _apply_probe_vars(vars_to_set: Dict[str, Any], armed: bool):
+    """The routine parameters (#3004–#3115 …) into the var file AND the
+    interpreter — the var file is read only at LinuxCNC's start, so the
+    interpreter half decides whether a routine reads them. Returns
+    (file_saved, mdi_set). Caller holds _cmd_lock. A cancel (abort/estop
+    preemption) propagates: CancelledError is no Exception.
+
+    1) Always write the var file (persistence across restarts). 2) Set them
+    in the interpreter via MDI (armed + machine on + not running), in chunks
+    ≤ 250 chars for LinuxCNC's 256-char MDI buffer; mdi_set only when every
+    chunk ended RCS_DONE."""
+    file_ok = False
+    ini_path = getattr(STAT, "ini_filename", None)
+    if ini_path:
+        ini = linuxcnc.ini(ini_path)
+        var_file = ini.find("RS274NGC", "PARAMETER_FILE")
+        if var_file:
+            if not os.path.isabs(var_file):
+                var_file = os.path.join(os.path.dirname(ini_path), var_file)
+            # Keys are bounds-checked against the machine's var file by
+            # COMMAND_SCHEMA; values get the same finite_* type claim as
+            # every other payload number (a bare cast here wrote
+            # arbitrary #N=inf into the parameter file).
+            str_vars = {str(k): finite_float(v) for k, v in vars_to_set.items()}
+            _trace.emit("probe.set_vars", vars=str_vars)
+            await asyncio.to_thread(_write_var_file_updates, var_file, str_vars)
+            _status_runtime.mark_var_file_written(var_file)
+            file_ok = True
+    mdi_ok = False
+    STAT.poll()
+    if armed and bool(safe_get("enabled", False)) and not reject_if_auto_running():
+        try:
+            items = [f"#{k}={finite_float(v):.6f}" for k, v in vars_to_set.items()]
+            chunks, current = [], ""
+            for item in items:
+                if current and len(current) + 1 + len(item) > 250:
+                    chunks.append(current)
+                    current = item
+                else:
+                    current = f"{current} {item}".strip() if current else item
+            if current:
+                chunks.append(current)
+            await set_mode(linuxcnc.MODE_MDI)
+            mdi_ok = True
+            for chunk in chunks:
+                ret = await _cmd_blocking(CMD.mdi, chunk, wait=5)
+                if _cmd_rc_failed(ret):   # success is RCS_DONE (1), not 0
+                    mdi_ok = False
+        except Exception as e:
+            mdi_ok = False
+            _trace.emit("probe.mdi_set_failed", level="warn",
+                        exc=type(e).__name__, msg=str(e))
+    _trace.emit("probe.set_vars_result", file_saved=file_ok, mdi_set=mdi_ok)
+    return file_ok, mdi_ok
 
 
 async def handle_command(msg: Dict[str, Any], armed: bool):
@@ -3403,7 +3522,7 @@ async def handle_command(msg: Dict[str, Any], armed: bool):
 
 
 async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
-    global _estop_hold, _rfl_active
+    global _estop_hold, _rfl_active, _rfl_task
     cmd = msg.get("cmd")
     if not cmd:
         return {"ok": False, "error": "Missing cmd"}
@@ -3600,6 +3719,22 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
 
             if not isinstance(text, str) or not text.strip():
                 return {"ok": False, "error": "Missing text"}
+            # `vars`: the routine's parameters, set FIRST and in this same
+            # command — the line goes only once the interpreter took them
+            # (Codex R16 XZ-06). Two commands left the continuation in the
+            # browser between them, where an abort (any client's) never
+            # reached it; here it cancels this handler (_preempt_inflight).
+            vars_to_set = msg.get("vars")
+            if vars_to_set is not None:
+                if not isinstance(vars_to_set, dict) or not vars_to_set:
+                    return {"ok": False, "error": "Missing vars dict"}
+                file_ok, mdi_ok = await _apply_probe_vars(vars_to_set, armed)
+                if not mdi_ok:
+                    return {"ok": False, "error": "Parameters not taken over — nothing started",
+                            "file_saved": file_ok, "mdi_set": False}
+                await set_mode(linuxcnc.MODE_MDI)
+                await _cmd_blocking(CMD.mdi, text, wait=None)
+                return {"ok": True, "file_saved": file_ok, "mdi_set": True}
             await set_mode(linuxcnc.MODE_MDI)
             await _cmd_blocking(CMD.mdi, text, wait=None)
             return {"ok": True}
@@ -3920,6 +4055,26 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 }
                 safe_z = True  # the XY preamble only ever moves at safe height
 
+            # Bound to the program the operator confirmed (Codex R16 XZ-07):
+            # its path and the preview version whose TEXT the dialog showed.
+            # auto_run names no program of its own — LinuxCNC runs whatever
+            # is loaded, with the line, tool and entry XY derived from the
+            # confirmed one.
+            confirmed = msg.get("file")
+            version = msg.get("version")
+            if (not isinstance(confirmed, str) or version is None
+                    or canonical_path(confirmed) != canonical_path(_status_runtime.program.loaded)
+                    or finite_int(version) != _bulk.preview_version):
+                return {"ok": False, "error": "Program changed — confirm Run from line again"}
+            identity = _program_identity(_status_runtime.program.loaded)
+            if identity is None:
+                return {"ok": False, "error": "Program file unreadable — not started"}
+            probe_vars = msg.get("probe_vars")
+            if pre_tool and (not isinstance(probe_vars, dict) or not probe_vars):
+                # The pre-measurement is an M600: it reads the toolsetter's
+                # values from the interpreter, never the var file's leftovers.
+                return {"ok": False, "error": "Toolsetter parameters missing — not started"}
+
             if pre_tool or safe_z or entry:
                 # RFL guard path (see _rfl_sequence): long-running — the
                 # measurement alone takes minutes — so it CANNOT run inside this
@@ -3931,10 +4086,17 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 blocked = reject_if_auto_running()
                 if blocked:
                     return blocked
+                if pre_tool:
+                    # In this handler: an abort cancels it here too.
+                    _file_ok, mdi_ok = await _apply_probe_vars(probe_vars, armed)
+                    if not mdi_ok:
+                        return {"ok": False, "error": "Toolsetter parameters not taken over — not started"}
                 _rfl_active = True
                 _rfl_phase("queued")
-                register_bg_task(asyncio.create_task(_rfl_sequence(
-                    start_line, pre_tool, safe_z, spindle_dir, spindle_speed, entry)))
+                _rfl_task = asyncio.create_task(_rfl_sequence(
+                    start_line, pre_tool, safe_z, spindle_dir, spindle_speed, entry,
+                    program=identity))
+                register_bg_task(_rfl_task)
                 return {"ok": True, "rfl": "started"}
 
             if spindle_dir and spindle_speed > 0:
@@ -4224,6 +4386,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             blocked = reject_if_auto_running()
             if blocked:
                 return blocked
+            if _rfl_active:
+                # The sequence is bound to the loaded program (XZ-07).
+                return {"ok": False, "error": "Run from line is starting — abort it first"}
 
             # Phase markers (B8) subdivide load_file so the lag monitor pins which
             # step holds the loop — the run named "handle_command cmd=load_file"
@@ -4266,6 +4431,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             blocked = reject_if_auto_running()
             if blocked:
                 return blocked
+            if _rfl_active:
+                return {"ok": False, "error": "Run from line is starting — abort it first"}
             await _cmd_blocking(CMD.abort)
             await _cmd_blocking(CMD.reset_interpreter)
             _status_runtime.program.request_unload()
@@ -4279,51 +4446,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             vars_to_set = msg.get("vars", {})
             if not vars_to_set or not isinstance(vars_to_set, dict):
                 return {"ok": False, "error": "Missing vars dict"}
-            # 1) Always write to var file for persistence across restarts
-            file_ok = False
-            ini_path = getattr(STAT, "ini_filename", None)
-            if ini_path:
-                ini = linuxcnc.ini(ini_path)
-                var_file = ini.find("RS274NGC", "PARAMETER_FILE")
-                if var_file:
-                    if not os.path.isabs(var_file):
-                        var_file = os.path.join(os.path.dirname(ini_path), var_file)
-                    # Keys are bounds-checked against the machine's var file by
-                    # COMMAND_SCHEMA; values get the same finite_* type claim as
-                    # every other payload number (a bare cast here wrote
-                    # arbitrary #N=inf into the parameter file).
-                    str_vars = {str(k): finite_float(v) for k, v in vars_to_set.items()}
-                    _trace.emit("probe.set_vars", vars=str_vars)
-                    await asyncio.to_thread(_write_var_file_updates, var_file, str_vars)
-                    _status_runtime.mark_var_file_written(var_file)
-                    file_ok = True
-            # 2) Best-effort: set in interpreter memory via MDI (requires armed + machine on + idle)
-            # Split into chunks ≤250 chars to fit LinuxCNC's 256-char MDI buffer
-            mdi_ok = False
-            STAT.poll()
-            if armed and bool(safe_get("enabled", False)) and not reject_if_auto_running():
-                try:
-                    items = [f"#{k}={finite_float(v):.6f}" for k, v in vars_to_set.items()]
-                    chunks, current = [], ""
-                    for item in items:
-                        if current and len(current) + 1 + len(item) > 250:
-                            chunks.append(current)
-                            current = item
-                        else:
-                            current = f"{current} {item}".strip() if current else item
-                    if current:
-                        chunks.append(current)
-                    await set_mode(linuxcnc.MODE_MDI)
-                    mdi_ok = True
-                    for chunk in chunks:
-                        ret = await _cmd_blocking(CMD.mdi, chunk, wait=5)
-                        if _cmd_rc_failed(ret):   # success is RCS_DONE (1), not 0
-                            mdi_ok = False
-                except Exception as e:
-                    _trace.emit("probe.mdi_set_failed", level="warn",
-                                exc=type(e).__name__, msg=str(e))
-            _trace.emit("probe.set_vars_result",
-                        file_saved=file_ok, mdi_set=mdi_ok)
+            file_ok, mdi_ok = await _apply_probe_vars(vars_to_set, armed)
             return {"ok": True, "file_saved": file_ok, "mdi_set": mdi_ok}
 
         if cmd == "get_probe_vars":
@@ -7011,6 +7134,12 @@ def _preempt_inflight(by: str, from_client: int) -> int:
     if victims:
         _trace.emit("ws.command_preempt", level="warn", by=by,
                     from_client=from_client, victims=victims)
+    # The run-from-line sequence is a background task, not a handler — it
+    # used to measure, retract and start on after an abort between steps.
+    rfl = _rfl_task
+    if rfl is not None and not rfl.done():
+        rfl.cancel()
+        _trace.emit("rfl.cancelled", level="warn", by=by, from_client=from_client)
     return len(victims)
 
 
@@ -7229,7 +7358,10 @@ async def ws_endpoint(ws: WebSocket):
         try:
             if STAT is not None:
                 STAT.poll()
-            initial_file = safe_get("file", None)
+            # The LOADED program (LoadedProgram), never the interpreter's raw
+            # open file — a sub left open after an MDI error is no program
+            # to preview (Codex R16 XZ-08: the second adoption site).
+            initial_file = _status_runtime.program.loaded
             if initial_file:
                 cache_hit = (
                     _bulk.preview_pending is not None

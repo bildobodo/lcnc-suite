@@ -272,10 +272,6 @@ def canonical_path(path):
     return os.path.realpath(os.path.expanduser(path)) if path else None
 
 
-def _under(path, dirs):
-    return any(path == d or path.startswith(d.rstrip(os.sep) + os.sep) for d in dirs)
-
-
 class LoadedProgram:
     """The program the operator loaded — not the interpreter's open file.
 
@@ -294,10 +290,13 @@ class LoadedProgram:
     (``request_unload``) clears it at once.
 
     First sight (a gateway restarted under a running LinuxCNC) has no load
-    context: it adopts the raw file unless it lies in a subroutine search
-    directory outside the program folders — a HINT, used only here (a
-    directory names a search location, not a file's role) — and waits for an
-    idle tick while that hint says "subroutine" (an MDI call still running).
+    context either (Codex R16 XZ-08): the proof is the gateway's own LOAD
+    RECORD for this LinuxCNC instance (``restore``, read by the status
+    runtime — see read_load_record). Without one the open file is
+    UNCONFIRMED — named in the status, never loaded or previewed — and
+    follows the interpreter's open file at idle until a load, an unload or
+    an empty interpreter resolves it. No directory hint: PROGRAM_PREFIX and
+    the subroutine path say where a file was found, not what it is.
 
     ``update`` returns trace events [(tag, fields)] — each ignored raw value
     once, not per tick — so the caller keeps every skipped decision auditable.
@@ -305,9 +304,16 @@ class LoadedProgram:
 
     def __init__(self):
         self.loaded = None
+        self.unconfirmed = None   # first sight without proof: the open file, named
         self.seen = False
+        self._record = None       # (loaded,) — the gateway's own record for this instance
         self._pending = None      # (canonical path, deadline)
         self._ignored = None      # the raw value last reported as ignored
+
+    def restore(self, loaded):
+        """The gateway's own load record for THIS LinuxCNC instance: the
+        program it last loaded, or None (it unloaded). Before the first sight."""
+        self._record = (loaded,)
 
     def request_load(self, path, now):
         self._pending = (canonical_path(path), now + LOAD_WINDOW_S)
@@ -316,9 +322,9 @@ class LoadedProgram:
         self._pending = None
 
     def request_unload(self):
-        self.loaded, self._pending, self.seen = None, None, True
+        self.loaded, self._pending, self.seen, self.unconfirmed = None, None, True, None
 
-    def update(self, raw_file, interp_idle, now, subroutine_dirs=(), program_dirs=()):
+    def update(self, raw_file, interp_idle, now):
         events = []
         raw = raw_file or None
         canon = canonical_path(raw)
@@ -326,20 +332,28 @@ class LoadedProgram:
             events.append(("status.load_not_observed", {"path": os.path.basename(self._pending[0])}))
             self._pending = None
         if not self.seen:
-            hinted = canon is not None and _under(canon, subroutine_dirs) and not _under(canon, program_dirs)
-            if raw is not None and not hinted:
-                self.loaded, self.seen = raw, True
-            elif interp_idle:
-                self.seen = True
-                if hinted:
+            self.seen = True
+            if raw is None:
+                return events                      # nothing open: nothing loaded
+            recorded = self._record[0] if self._record else None
+            if recorded is not None:
+                self.loaded = recorded
+                events.append(("status.program_restored", {"path": os.path.basename(recorded)}))
+                if canon != canonical_path(recorded):
                     events.append(("status.file_flip_ignored",
-                                   {"raw_file": os.path.basename(raw), "loaded": "",
-                                    "reason": "first sight: a subroutine search path"}))
+                                   {"raw_file": os.path.basename(raw), "loaded": os.path.basename(recorded),
+                                    "reason": "restored from the load record"}))
                     self._ignored = raw
+                return events
+            self.unconfirmed = self._ignored = raw
+            events.append(("status.program_unconfirmed",
+                           {"raw_file": os.path.basename(raw),
+                            "reason": "no load record for this LinuxCNC" if self._record is None
+                            else "the load record names no program"}))
             return events
         if raw is None:
             if interp_idle:
-                self.loaded, self._ignored = None, None
+                self.loaded, self._ignored, self.unconfirmed = None, None, None
             return events
         if canon == canonical_path(self.loaded):
             self._ignored = None
@@ -347,7 +361,13 @@ class LoadedProgram:
                 self._pending = None    # a reload of the same program
             return events
         if self._pending is not None and self._pending[0] == canon:
-            self.loaded, self._pending, self._ignored = raw, None, None
+            self.loaded, self._pending, self._ignored, self.unconfirmed = raw, None, None, None
+            return events
+        if self.unconfirmed is not None and interp_idle and raw != self.unconfirmed:
+            # Still unproven: the candidate is what the interpreter has open.
+            self.unconfirmed = self._ignored = raw
+            events.append(("status.program_unconfirmed",
+                           {"raw_file": os.path.basename(raw), "reason": "the open file changed"}))
             return events
         if raw != self._ignored:
             events.append(("status.file_flip_ignored",
@@ -356,6 +376,35 @@ class LoadedProgram:
                             "reason": "running" if not interp_idle else "no load context"}))
             self._ignored = raw
         return events
+
+
+LOAD_RECORD_NAME = "loaded_program.json"
+
+
+def read_load_record(path, instance):
+    """(loaded,) from the gateway's load record when it belongs to THIS
+    LinuxCNC instance ((linuxcncsvr pid, start ticks), session_bind), else
+    None — no record, another instance, an unbound gateway or an unreadable
+    file prove nothing. `loaded` may be None: the gateway unloaded."""
+    if instance is None:
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, dict) or data.get("instance") != list(instance):
+        return None
+    loaded = data.get("loaded")
+    return (loaded if isinstance(loaded, str) and loaded else None,)
+
+
+def write_load_record(path, instance, loaded):
+    """Record what the gateway has loaded for this LinuxCNC instance — the
+    proof a restarted gateway adopts it by (Codex R16 XZ-08). Atomic."""
+    if instance is None:
+        return
+    atomic_write_bytes(path, json.dumps({"instance": list(instance), "loaded": loaded}).encode())
 
 
 def atomic_write_bytes(path: str, data: bytes, fsync: bool = False) -> None:
