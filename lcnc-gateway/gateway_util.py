@@ -303,9 +303,11 @@ class LoadedProgram:
     R18 XZ-08): a load stays pending through its window whatever ended the
     handler — a cancel lands after program_open went out — and a window
     that runs out, or an unload cut short, leaves the change UNRESOLVED: no
-    program loaded, the open file named unconfirmed (never the old program
-    again — a refused open closes it first), no settled record until a
-    load, an unload or an empty interpreter resolves it.
+    program loaded, the open file named unconfirmed, no settled record until
+    a load, an unload or an empty interpreter resolves it. Never the old
+    program again: task sets its file only on a successful open, so after a
+    refused one STAT.file still names the old program, which the
+    interpreter may have closed (lazy close — emctaskmain.cc, Interp::open).
 
     ``update`` returns trace events [(tag, fields)] — each ignored raw value
     once, not per tick — so the caller keeps every skipped decision auditable.

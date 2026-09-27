@@ -384,8 +384,9 @@ class TestLoadedProgram(unittest.TestCase):
 
     def test_a_load_never_observed_leaves_the_program_unconfirmed(self):
         # The window ran out: the late file is no load context (a later flip
-        # is never adopted) — and MAIN is no proof either: a refused open
-        # closes the old file first (Codex R18 XZ-08, the old rule kept MAIN).
+        # is never adopted) — and MAIN is no proof either: after a refused
+        # open STAT.file still names it while the interpreter may have closed
+        # it (Codex R18 XZ-08; the old rule kept MAIN).
         prog = self.seeded(self.MAIN)
         events = self.run_steps(prog, [self.load(self.OTHER), (self.MAIN, True)])
         steps = [(self.MAIN, True)] * int(LOAD_WINDOW_S / 0.033 + 2)
