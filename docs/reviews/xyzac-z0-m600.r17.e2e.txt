@@ -1,0 +1,35 @@
+
+Running 26 tests using 1 worker
+
+(node:3627149) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3627149) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 feedback-channels.spec.ts:119:5 › a dimmed control's reason is told at the control, inside the window, at every edge — nothing logged, the status line stays (4.7s)
+  ✓   2 feedback-channels.spec.ts:158:5 › the hint closes on the next touch or key anywhere, and it is the same card as the help popover (2.4s)
+  ✓   3 feedback-channels.spec.ts:189:5 › the reason also answers the keyboard, a dimmed input and a control inside a dialog (1.8s)
+  ✓   4 feedback-channels.spec.ts:229:5 › the banner has two tiers, its why opens with a tap, and every way out of the message center marks it read (4.1s)
+  ✓   5 feedback-channels.spec.ts:276:5 › a program the gateway cannot confirm after a restart is named, not loaded — Load resolves it (Codex R16 XZ-08) (2.3s)
+  ✓   6 feedback-channels.spec.ts:290:5 › a refused folder keeps the last listing and offers no Retry; a transient failure retries (2.0s)
+  ✓   7 feedback-channels.spec.ts:330:5 › every help popover wraps and stays inside the window, in every tab (18.4s)
+  ✓   8 feedback-channels.spec.ts:407:5 › every help icon has one look: full opacity, one colour, enabled, the same gap after its label (6.1s)
+  ✓   9 run-hold.spec.ts:66:5 › Start, Step and Resume fire on a complete hold only — a tap says why; Pause stays a tap (5.6s)
+  ✓  10 run-hold.spec.ts:96:5 › Run from line: Start only opens the dialog on a tap; the dialog's action is a hold bound to the program and the line (3.0s)
+  ✓  11 run-hold.spec.ts:114:5 › Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values and its program — nothing waits in the browser (Codex R16 XZ-07) (2.9s)
+  ✓  12 run-hold.spec.ts:168:5 › a new revision of the same program cancels a Start, Step or Resume hold — at its arrival, the text still loading (9.4s)
+  ✓  13 run-hold.spec.ts:193:5 › while a revision's text is still loading, Start and Step wait — a hold there runs nothing (4.8s)
+  ✓  14 run-hold.spec.ts:206:5 › Run from line: a new revision cancels the action's hold, closes the dialog when the text changed, and the next run carries the new entry (4.7s)
+  ✓  15 run-hold.spec.ts:228:5 › a line selection belongs to its program: another program clears it (1.6s)
+  ✓  16 run-hold.spec.ts:244:5 › the Run-from-line preset and Settings' default preset never uncheck each other — both orders, every value (8.3s)
+  ✓  17 run-hold.spec.ts:279:5 › a macro without parameters runs on a hold; a command saved during the hold cancels it, the next hold runs the new one once (3.8s)
+  ✓  18 run-hold.spec.ts:308:5 › a macro revision saved during the dialog's Execute hold cancels it; the next hold runs the visible command once (6.3s)
+  ✓  19 run-hold.spec.ts:353:5 › a macro with parameters opens on a tap; Enter moves on and never executes; Execute is a hold bound to the values (3.7s)
+  ✓  20 toolsetter-setup.spec.ts:60:5 › without the server's settings, and without a saved section, Measure Current and Unload (M600) stay off — with the reason (1.6s)
+  ✓  21 toolsetter-setup.spec.ts:70:5 › the gate sits in the call path: a tool-table load in M600 mode sends nothing while the setter is not set up (1.8s)
+  ✓  22 toolsetter-setup.spec.ts:80:5 › a partial section: the form names what is missing, shows unset fields empty, and a change saves only that field (2.2s)
+  ✓  23 toolsetter-setup.spec.ts:98:5 › a save the server never confirmed is no setup; its confirmation is (2.2s)
+  ✓  24 toolsetter-setup.spec.ts:118:5 › Measure Current is ONE command: the values ride the mdi — a refusal says why and nothing follows (Codex R16 XZ-06) (3.6s)
+  ✓  25 toolsetter-setup.spec.ts:136:5 › an abort while the reply is outstanding leaves nothing to send: a late success after it, or after a cleared setup, sends nothing more (Codex R16 XZ-06) (3.1s)
+  ✓  26 toolsetter-setup.spec.ts:149:5 › Reset clears the section — no field counts as saved, nothing is pushed (2.0s)
+
+  26 passed (1.9m)

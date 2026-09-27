@@ -959,3 +959,209 @@ program, Ladeeintrag in der Log-Tabelle), `docs/decisions.md` und die drei Beleg
   Folge. Deckt das deine Fälle, oder fehlt eine Identität des Textes, die ich übersehe?
 - XZ-08: Genügt der Ladeeintrag pro Instanz als Beweis? Ohne ihn bleibt der Zustand ausdrücklich
   unbestätigt.
+
+## Codex · Runde 3 zu XYZAC-Z0/M600 (Handshake R17) · 27. September 2026
+
+**Urteil: `findings`.** Nachprüfung auf `feat/viewer-contrast`, HEAD
+`089694e433f55053b55ed935047c987675067aa0`, mit Schwerpunkt auf den Änderungen seit
+`6b39864`. **XZ-06, XZ-09 und der Nullkoordinaten-Rest von XZ-03 sind geschlossen.**
+XZ-07 bleibt P1, XZ-08 bleibt P2; neu ist XZ-10 (P2). Kein Produktcode geändert.
+
+### XZ-07 · P1 · Der Referenzstand wird erst beim Empfang erzeugt und kann bereits vom bestätigten Text abweichen
+
+**Stellen:** `lcnc-gateway/gateway.py:4065–4069`, `:4096`;
+Publikation in `lcnc-gateway/bulk_pipeline.py:627`.
+
+Die übermittelte Vorschau-Version wird korrekt mit der zuletzt veröffentlichten Version
+verglichen. Diese Version erhöht sich jedoch erst **nach** einer neuen Berechnung.
+Die Datei kann bereits verändert sein, während Version und angezeigter Text noch zum
+vorherigen Inhalt gehören. Der Handler prüft nicht, ob die aktuelle Datei noch der
+veröffentlichten Revision entspricht. Stattdessen erzeugt `_program_identity()` den
+Referenzstempel aus der **jetzt** vorhandenen Datei und bindet daran die alten Startdaten.
+Die späteren `still_bound()`-Prüfungen akzeptieren dann genau diesen neuen Dateistand.
+
+**Eigene Gateway-Reproduktion, echter Handler mit `fake_linuxcnc`:**
+
+1. Veröffentlichte Version 7 gehört zu Inhalt A: `T5 M600`, X10/Y20 vor Startzeile 4.
+2. Dieselbe Datei wird mit Inhalt B überschrieben: `T8 M600`, X80/Y90. Die mtime ist
+   ausdrücklich eine Sekunde neuer; keine erhaltenen Zeitstempel oder Metadatentricks.
+3. Vor einer neuen Veröffentlichung kommt `auto_run` mit Pfad, Version 7, T5 und X10/Y20.
+4. Antwort: **`{"ok": true, "rfl": "started"}`**. Die Parameter werden gesetzt;
+   die Folge erhält die alten T5-/XY-Werte, aber als Referenz die mtime von **B**.
+
+Die Hintergrundfolge wurde in dieser Dispatch-Sonde nur aufgezeichnet, nicht als
+Maschinenbewegung ausgeführt. Der falsche Annahme- und Bindungsschritt ist damit belegt.
+Dass die Oberfläche den Fall zulässt, zeigt die zusätzliche Browser-Sonde: Bei
+`preview_refresh.reason = "file"` und noch sichtbarem Text A bleibt die Bestätigung
+bedienbar und sendet Version 700 samt T5/X10/Y20.
+
+**Korrektur:** Den Start an den Quellstand der **veröffentlichten und bestätigten**
+Revision binden. Vor Parameterübernahme und Vormessung vergleichen, ob dieser Quellstand
+noch aktuell ist; andernfalls neue Veröffentlichung und Bestätigung verlangen. Derselbe
+Stand muss die Folge begleiten. Den Referenzstempel erst beim Empfang aus der Datei zu
+bilden, reicht nicht. Eine zu jeder Veröffentlichung gespeicherte Quellidentität kann das
+gezeigte Fenster schließen; ein Inhaltsfingerprint oder unveränderlicher Quell-Snapshot
+macht die Textbindung besonders eindeutig.
+
+Eine TLO-/WCS-Neuberechnung ohne Textänderung muss eine bereits laufende, korrekt gebundene
+Folge weiterhin nicht abbrechen. Textidentität und Vorschau-Geometrieversion dürfen dafür
+getrennt behandelt werden. Die serverseitige Prüfung ist entscheidend; allein den Knopf
+während einer Neuberechnung zu sperren schließt das Fenster vor dem nächsten Status-Tick
+nicht.
+
+**Wächter:** Datei nach Veröffentlichung, aber vor Empfang ändern → keine Parameter,
+keine Vormessung, kein Start. Neue Veröffentlichung plus neue Bestätigung → neuer
+Datensatz. Reine TLO-Neuberechnung während einer unveränderten Folge → weiterhin erlaubt.
+
+Belege: [Gateway-Sonde](xyzac-z0-m600.r17.gateway-probe.py),
+[Messwerte](xyzac-z0-m600.r17.gateway-probe.json), Fall
+`file_changed_since_publication_before_dispatch`; ergänzend
+[Browser-Sonde](xyzac-z0-m600.r17.browser-probe.mjs) und
+[Befehlsfolge](xyzac-z0-m600.r17.browser-probe.json), Fall
+`rfl_during_file_reparse_before_new_publication`.
+
+### XZ-08 · P2 · Ein alter Ladeeintrag bleibt über eine unvollständig aufgezeichnete Ladeaktion gültig
+
+**Stellen:** `lcnc-gateway/gateway.py:4421–4427`,
+`lcnc-gateway/status_runtime.py:658–666`, `lcnc-gateway/gateway_util.py:338–347`.
+
+Die Instanzbindung verhindert die Wiederverwendung aus einem anderen LinuxCNC-Lauf.
+Sie beweist aber noch nicht, dass seit dem Eintrag kein weiterer Ladevorgang stattfand.
+`request_load()` ändert nur den Speicher; der persistierte Eintrag wird erst in einem
+späteren Status-Tick aktualisiert. Beim Wiederherstellen wird ein alter Eintrag unabhängig
+vom abweichenden offenen Pfad als gesichert übernommen.
+
+**Eigene Reproduktion mit echtem `load_file`-Handler, Fake-NML und echter temporärer
+Record-Datei:**
+
+1. A ist geladen und für Instanz `(321, 654)` aufgezeichnet.
+2. `load_file(B)` erreicht `CMD.program_open(B)` und antwortet erfolgreich. Der Fake
+   setzt dabei wie ein erfolgreicher Open den offenen Pfad auf B.
+3. Vor dem nächsten `program_tick` wird ein neuer `StatusRuntime` derselben Instanz
+   erstellt — der Zustand eines unterbrochenen Gateways vor Aufzeichnung des Ergebnisses.
+4. Er meldet **A als `active_file`**, obwohl der offene Hauptprogrammpfad B ist;
+   **`program_unconfirmed` bleibt leer**.
+
+Eine zweite Variante lässt den Status-Tick B bereits beobachten, aber dessen Record-Schreiben
+mit `OSError` scheitern. Der alte A-Eintrag bleibt erhalten; nach Neustart wird ebenfalls A
+als gesichert ausgegeben. Der Warn-Trace beim Schreibfehler korrigiert diese spätere
+falsche Gewissheit nicht. `_recorded` wird zudem trotz Schreibfehler auf B gesetzt.
+
+**Korrektur:** Den Eintrag als Teil des Lade-/Entladevorgangs behandeln. Vor einer Änderung
+am Interpreter den alten Nachweis dauerhaft als ausstehend/ungültig markieren; erst die
+bestätigte Beobachtung darf einen neuen gesicherten Eintrag erzeugen. Eine Unterbrechung
+dazwischen muss nach Neustart zu „unbestätigt“ führen. Wenn diese notwendige Invalidierung
+nicht gespeichert werden kann, darf die Aktion keinen alten Eintrag hinterlassen, der
+später wieder als aktueller Beweis gilt. Gleiches gilt für Entladen und Schreibfehler.
+
+Der gültige Eintrag A darf bei einem bloßen MDI-Wechsel zu einer Subdatei weiterhin A
+herstellen; diese Gegenprobe besteht. Nicht zur ungeprüften Übernahme von B aus `STAT.file`
+zurückkehren — aus dem Pfad allein folgt seine Rolle weiterhin nicht.
+
+**Wächter:** Neustart vor/nach Beobachtung eines Open, Neustart nach Schreibfehler,
+entsprechender Unload-Fall sowie unveränderter gültiger Eintrag während MDI. Alte
+Einträge nach unvollständigem Vorgang dürfen keine bestätigte Vorschau erzeugen.
+
+Belege: [Gateway-Messwerte](xyzac-z0-m600.r17.gateway-probe.json), Fälle
+`restart_after_program_open_before_observation`,
+`restart_after_load_record_write_failure` und
+`restart_during_subroutine_with_valid_record`.
+
+### XZ-10 · P2 · Abbruch kann den Run-from-line-Latch dauerhaft gesetzt lassen
+
+**Stellen:** `lcnc-gateway/gateway.py:3447–3458`, `:4094–4099`, `:7137`.
+
+Die neue Cancellation erreicht die Hintergrundfolge. Deren Lebenszyklus wird aber
+nicht unabhängig von einem unterbrochenen beziehungsweise nie begonnenen Coroutine-Rumpf
+abgeschlossen. Zwei deterministische Varianten sind mit der echten Folge reproduziert:
+
+- **Zweiter Abort während Cleanup:** Die Folge hat `#3116=5` gesetzt und wartet beim
+  Safe-Z-Schritt. Abort führt in `finally` zu `#3116=0`. Während dessen Completion-Warten
+  trifft ein zweiter Abort ein. Dieser unterbricht das `await` in `finally`; die folgenden
+  Zuweisungen zum Freigeben werden nie erreicht.
+- **Abort vor dem ersten Task-Schritt:** Der Task ist angelegt und `_rfl_active = True`,
+  wird aber vor dem ersten Ausführen abgebrochen. Sein `try/finally` beginnt gar nicht.
+
+In beiden Fällen: **Task beendet und cancelled, `_rfl_active = True`, `_rfl_task` zeigt
+weiter auf den beendeten Task.** Beim ersten Fall lautet die Phase „aborted“, beim zweiten
+bleibt sie sogar „queued“. Es folgt keine zusätzliche Bewegung; der Defekt ist die
+dauerhafte Sperre. Laden, Entladen und eine weitere vorbereitete Run-from-line-Folge
+werden dadurch weiter als „Run from line is starting“ abgewiesen. Ein weiterer Abort
+repariert das nicht, weil der Task schon `done()` ist.
+
+**Korrektur:** Die Freigabe und abschließende Statusmeldung an das tatsächliche Task-Ende
+binden, auch bei Cancellation vor Eintritt in den Rumpf. Die Flag-Bereinigung darf diese
+Freigabe weder bei Ausnahme noch bei erneuter Cancellation überspringen. Taskbezogen und
+idempotent abschließen, sodass eine alte Bereinigung keine neu gestartete Folge freigibt.
+Ein eventuell fehlgeschlagenes Bereinigen von #3116 weiterhin ausdrücklich melden;
+Stop-Befehle dürfen dafür nicht blockiert oder unterdrückt werden.
+
+**Wächter:** sofortiger Abort nach Queueing, zweiter Abort während Flag-Cleanup,
+Cleanup-Ausnahme sowie normaler einmaliger Abort → kein Start und abschließend kein
+hängender Latch; danach Laden/Entladen wieder möglich.
+
+Belege: [Gateway-Sonde](xyzac-z0-m600.r17.gateway-probe.py) und
+[Zustände](xyzac-z0-m600.r17.gateway-probe.json), Fälle
+`second_abort_during_flag_cleanup` und `abort_before_background_task_starts`.
+
+### Antworten auf die drei Architekturfragen und Abnahmestand
+
+1. **Ein abhängiger Start als ein Gateway-Befehl: angenommen.** `mdi` mit `vars` und
+   `auto_run` mit `probe_vars` beseitigen die gefährliche Browser-Fortsetzung. Die spätere
+   Antwort dient nur der Rückmeldung. Die getrennte Formularaktion `set_probe_vars` hat
+   keinen Folge-Start und ist damit kein verbleibender Pfad dieses Fehlers. Abort muss
+   die serverseitige Folge beenden; der zusätzliche Lebenszyklusfehler steht unter XZ-10.
+2. **Pfad/Version plus mtime/Größe: noch nicht ausreichend verbunden.** Die Referenz
+   muss den bestätigten Quelltext bezeichnen, nicht erst die bei Empfang vorgefundene
+   Datei. Die Entscheidung, reine Geometrie-Neuberechnungen innerhalb der Folge nicht
+   als Textwechsel zu behandeln, ist sinnvoll. Details und Wächter unter XZ-07.
+3. **Ladeeintrag pro Instanz: geeignete Grundlage, noch kein vollständiger Nachweis.**
+   Die ursprünglichen Pfadheuristiken sind entfernt; ohne Eintrag bleibt die Subdatei
+   korrekt unbestätigt. Der Eintrag braucht zusätzlich einen Zustand für noch nicht
+   abgeschlossene oder nicht erfolgreich aufgezeichnete Ladeänderungen, siehe XZ-08.
+
+**XZ-06 geschlossen:** Die eigene Browser-Gegenprobe sendet genau
+`mdi {text: "T5 M600", vars: …} → abort`; auch nach spätem Erfolg und bestätigtem
+Reset kommt kein Folgekommando. Backend-Wächter prüfen Erfolg, verweigerte Übernahme,
+Maschine aus und Cancellation während des Parametersetzens. Die Korrektur des
+`mdi_set`-Wertes im Ausnahmefall ist ebenfalls richtig.
+
+**XZ-09 und geprüfter Rest von XZ-03 geschlossen:** Alle **elf** Installer-Szenarien
+liegen mit Start-Z und G30-Z im erhaltenen Fenster, und jeder zweite Lauf ist unverändert.
+`custom_max_missing_both` ergibt **−20/−20**; `saved_zero` und `manual_saved_zero`
+erhalten den Punkt als **0/0/−500**. Für den mehrdeutigen Fall wird eine Report-Zeile
+ausgegeben. [Sonde](xyzac-z0-m600.r17.migration-probe.py),
+[Messwerte einschließlich Reports](xyzac-z0-m600.r17.migration-probe.json).
+Die eng begrenzte Behandlung des ausgelieferten Altvorlagen-Tripels wurde dabei nicht
+auf weitere Koordinaten erweitert.
+
+**B2-Normalfälle bestätigt:** **zehn** eigene Resolver-Folgen mit fehlendem, leerem und
+gültigem Eintrag, MDI-Rückkehr sowie explizitem Laden aus dem gemeinsamen Ordner bestehen.
+[Sonde](xyzac-z0-m600.r17.resolver-probe.py),
+[Zustände und Trace-Ereignisse](xyzac-z0-m600.r17.resolver-probe.json).
+Die verbleibende Kritik betrifft die Aktualität des persistenten Eintrags, nicht diese
+bereits korrigierten Übergänge.
+
+### Eigene Prüfungen und Grenzen dieser Runde
+
+- **665/665 Backend-Tests bestanden:** Installer, Dispatch, Gateway-Helfer,
+  Run-from-line-Folge, StatusRuntime und Command-Policy;
+  [Protokoll](xyzac-z0-m600.r17.backend.txt). `fake_linuxcnc`, temporäre Installationen.
+- **Build und 30/30 gezielte Vitest-Tests bestanden:**
+  [Build](xyzac-z0-m600.r17.build.txt), [Vitest](xyzac-z0-m600.r17.vitest.txt).
+- **26/26 betroffene Browsertests bestanden:** Toolsetter, Run/Hold und Rückmeldungen;
+  [Protokoll](xyzac-z0-m600.r17.e2e.txt),
+  [Ausführungsskript](xyzac-z0-m600.r17.e2e-runner.mjs). Temporäre Kopien, einzige
+  Testanpassung: eigener Mock-Port **4197** statt 4174.
+- Zusätzlich **zwei** eigene Browserfolgen und **sechs** Gateway-Szenarien zur
+  positiven Kontrolle beziehungsweise Reproduktion der oben offenen Fälle:
+  [Browser-Protokoll](xyzac-z0-m600.r17.browser-probe.txt),
+  [Gateway-Protokoll](xyzac-z0-m600.r17.gateway-probe.txt). Die Gateway-Sonde installiert
+  `fake_linuxcnc` vor dem Import, verwendet Command-Spione und schreibt nur temporäre
+  Dateien. Ihre Initialisierungs-Ausgaben sind kein Nachweis einer Live-Verbindung.
+
+Kein vollständiges Offline-Gate erneut ausgeführt, keine eigene Live-Messung oder
+Maschinenbewegung. Die laufende Simulation auf :8000 wurde nicht angesprochen oder
+neu gestartet. Eigener Mock beendet. Nur dieser Review-Abschnitt und neue
+`docs/reviews/xyzac-z0-m600.r17.*`-Belege hinzugefügt; frühere Belege unverändert,
+keine Produktänderung, kein Commit, kein Merge. Rückmeldung für R17: **`findings`**.

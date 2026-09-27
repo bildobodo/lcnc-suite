@@ -1,0 +1,297 @@
+{
+  "head": "089694e433f55053b55ed935047c987675067aa0",
+  "cases": [
+    {
+      "name": "restart_absent_initial_idle_False",
+      "steps": [
+        {
+          "raw": "/review/nc/shared/probe.ngc",
+          "idle": false,
+          "loaded": null,
+          "unconfirmed": "/review/nc/shared/probe.ngc",
+          "events": [
+            [
+              "status.program_unconfirmed",
+              {
+                "raw_file": "probe.ngc",
+                "reason": "no load record for this LinuxCNC"
+              }
+            ]
+          ]
+        },
+        {
+          "raw": "/review/nc/shared/probe.ngc",
+          "idle": true,
+          "loaded": null,
+          "unconfirmed": "/review/nc/shared/probe.ngc",
+          "events": []
+        },
+        {
+          "raw": "/review/nc/main.ngc",
+          "idle": true,
+          "loaded": null,
+          "unconfirmed": "/review/nc/main.ngc",
+          "events": [
+            [
+              "status.program_unconfirmed",
+              {
+                "raw_file": "main.ngc",
+                "reason": "the open file changed"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "restart_absent_initial_idle_True",
+      "steps": [
+        {
+          "raw": "/review/nc/shared/probe.ngc",
+          "idle": true,
+          "loaded": null,
+          "unconfirmed": "/review/nc/shared/probe.ngc",
+          "events": [
+            [
+              "status.program_unconfirmed",
+              {
+                "raw_file": "probe.ngc",
+                "reason": "no load record for this LinuxCNC"
+              }
+            ]
+          ]
+        },
+        {
+          "raw": "/review/nc/shared/probe.ngc",
+          "idle": true,
+          "loaded": null,
+          "unconfirmed": "/review/nc/shared/probe.ngc",
+          "events": []
+        },
+        {
+          "raw": "/review/nc/main.ngc",
+          "idle": true,
+          "loaded": null,
+          "unconfirmed": "/review/nc/main.ngc",
+          "events": [
+            [
+              "status.program_unconfirmed",
+              {
+                "raw_file": "main.ngc",
+                "reason": "the open file changed"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "restart_empty_initial_idle_False",
+      "steps": [
+        {
+          "raw": "/review/nc/shared/probe.ngc",
+          "idle": false,
+          "loaded": null,
+          "unconfirmed": "/review/nc/shared/probe.ngc",
+          "events": [
+            [
+              "status.program_unconfirmed",
+              {
+                "raw_file": "probe.ngc",
+                "reason": "the load record names no program"
+              }
+            ]
+          ]
+        },
+        {
+          "raw": "/review/nc/shared/probe.ngc",
+          "idle": true,
+          "loaded": null,
+          "unconfirmed": "/review/nc/shared/probe.ngc",
+          "events": []
+        },
+        {
+          "raw": "/review/nc/main.ngc",
+          "idle": true,
+          "loaded": null,
+          "unconfirmed": "/review/nc/main.ngc",
+          "events": [
+            [
+              "status.program_unconfirmed",
+              {
+                "raw_file": "main.ngc",
+                "reason": "the open file changed"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "restart_empty_initial_idle_True",
+      "steps": [
+        {
+          "raw": "/review/nc/shared/probe.ngc",
+          "idle": true,
+          "loaded": null,
+          "unconfirmed": "/review/nc/shared/probe.ngc",
+          "events": [
+            [
+              "status.program_unconfirmed",
+              {
+                "raw_file": "probe.ngc",
+                "reason": "the load record names no program"
+              }
+            ]
+          ]
+        },
+        {
+          "raw": "/review/nc/shared/probe.ngc",
+          "idle": true,
+          "loaded": null,
+          "unconfirmed": "/review/nc/shared/probe.ngc",
+          "events": []
+        },
+        {
+          "raw": "/review/nc/main.ngc",
+          "idle": true,
+          "loaded": null,
+          "unconfirmed": "/review/nc/main.ngc",
+          "events": [
+            [
+              "status.program_unconfirmed",
+              {
+                "raw_file": "main.ngc",
+                "reason": "the open file changed"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "restart_main_initial_idle_False",
+      "steps": [
+        {
+          "raw": "/review/nc/shared/probe.ngc",
+          "idle": false,
+          "loaded": "/review/nc/main.ngc",
+          "unconfirmed": null,
+          "events": [
+            [
+              "status.program_restored",
+              {
+                "path": "main.ngc"
+              }
+            ],
+            [
+              "status.file_flip_ignored",
+              {
+                "raw_file": "probe.ngc",
+                "loaded": "main.ngc",
+                "reason": "restored from the load record"
+              }
+            ]
+          ]
+        },
+        {
+          "raw": "/review/nc/shared/probe.ngc",
+          "idle": true,
+          "loaded": "/review/nc/main.ngc",
+          "unconfirmed": null,
+          "events": []
+        },
+        {
+          "raw": "/review/nc/main.ngc",
+          "idle": true,
+          "loaded": "/review/nc/main.ngc",
+          "unconfirmed": null,
+          "events": []
+        }
+      ]
+    },
+    {
+      "name": "restart_main_initial_idle_True",
+      "steps": [
+        {
+          "raw": "/review/nc/shared/probe.ngc",
+          "idle": true,
+          "loaded": "/review/nc/main.ngc",
+          "unconfirmed": null,
+          "events": [
+            [
+              "status.program_restored",
+              {
+                "path": "main.ngc"
+              }
+            ],
+            [
+              "status.file_flip_ignored",
+              {
+                "raw_file": "probe.ngc",
+                "loaded": "main.ngc",
+                "reason": "restored from the load record"
+              }
+            ]
+          ]
+        },
+        {
+          "raw": "/review/nc/shared/probe.ngc",
+          "idle": true,
+          "loaded": "/review/nc/main.ngc",
+          "unconfirmed": null,
+          "events": []
+        },
+        {
+          "raw": "/review/nc/main.ngc",
+          "idle": true,
+          "loaded": "/review/nc/main.ngc",
+          "unconfirmed": null,
+          "events": []
+        }
+      ]
+    },
+    {
+      "name": "baseline_None_explicit_False",
+      "loaded": null,
+      "unconfirmed": null,
+      "events": [
+        [
+          "status.file_flip_ignored",
+          {
+            "raw_file": "probe.ngc",
+            "loaded": "",
+            "reason": "running"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "baseline_None_explicit_True",
+      "loaded": "/review/nc/shared/probe.ngc",
+      "unconfirmed": null,
+      "events": []
+    },
+    {
+      "name": "baseline_/review/nc/main.ngc_explicit_False",
+      "loaded": "/review/nc/main.ngc",
+      "unconfirmed": null,
+      "events": [
+        [
+          "status.file_flip_ignored",
+          {
+            "raw_file": "probe.ngc",
+            "loaded": "main.ngc",
+            "reason": "running"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "baseline_/review/nc/main.ngc_explicit_True",
+      "loaded": "/review/nc/shared/probe.ngc",
+      "unconfirmed": null,
+      "events": []
+    }
+  ]
+}
