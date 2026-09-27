@@ -1,0 +1,16 @@
+# R16 answer — Codex's installer probe (docs/reviews/xyzac-z0-m600.r16.migration-probe.py) re-run on fix/xyzac-z0-m600 b6fc293
+# Copy with ROOT pointed at the fix worktree; temporary repositories/installations only; no live controller access.
+# head 1349002 with the installer change in the working tree — that installer code is committed unchanged in b6fc293 (the commit adds README text)
+
+case                       joint Z window     home   pos Z  in   G30 Z  in   G54 Z  setter             2nd run
+normal_old                 -400..0               0     0.0   y     0.0   y  -500.0  [150.0, 0.0, -300.0] no change
+missing_var                -400..0               0     0.0   y     0.0   y  -500.0  [150.0, 0.0, -300.0] no change
+missing_position           -400..0               0     0.0   y     0.0   y  -500.0  [150.0, 0.0, -300.0] no change
+missing_both               -400..0               0     0.0   y     0.0   y  -500.0  [150.0, 0.0, -300.0] no change
+custom_z_max               -400..-20           -20   -20.0   y   -20.0   y  -500.0  [150.0, 0.0, -300.0] no change
+custom_z_min               -350..0               0     0.0   y     0.0   y  -500.0  [150.0, 0.0, -300.0] no change
+renamed_machine            -400..0               0     0.0   y     0.0   y  -500.0  [150.0, 0.0, -300.0] no change
+saved_toolsetter           -400..0               0     0.0   y     0.0   y  -500.0  [150.0, 0.0, -200.0] no change
+saved_zero                 -400..0               0     0.0   y     0.0   y  -500.0  [0.0, 0.0, -500.0] no change
+manual_saved_zero          -400..0               0     0.0   y     0.0   y  -500.0  [0.0, 0.0, -500.0] no change
+custom_max_missing_both    -400..-20           -20   -20.0   y   -20.0   y  -500.0  [150.0, 0.0, -300.0] no change

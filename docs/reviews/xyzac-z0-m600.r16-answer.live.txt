@@ -1,0 +1,64 @@
+# R16 answer — live check on the XYZAC sim (gateway restarted with the R16 code, 2026-09-27 ~18:39)
+# Driver: WebSocket client as the WebUI would send; tool changes confirmed like the dialog;
+# the sim has no probe writer — the driver trips it (simulate_probe_trip) when the tip reaches the plate (#3102 -300, T1003 46.953).
+# Program (removed after the check), run from line 5 with the pre-measurement T1003:
+#   1 (R16 live check …)  2 G21 G90  3 T1003 M600  4 G54 G0 X10 Y20  5 G0 X20 Y20  6 G0 X30 Y20  7 M2
+# Three lines below are driver timing, not the gateway:
+#  - FAIL 'mdi+vars' / 'measured T1003': the mdi was sent while the preceding G53 G0 Z0 still ran — refused
+#    'MDI command in progress' (correct); the standalone measurement is re-run below (measure_once.py).
+#  - FAIL 'sequence reached running': the phase wait returned on the previous sequence's 'aborted'.
+#  - PASS 'program ran from line 5' (19:03:55) is PREMATURE: its idle wait returned when the measurement ended,
+#    ~3 s before safe_z (trace 1449.3 ≈ 19:03:57) — it proves the measured TLO only. The run itself is proven by
+#    the trace phases safe_z → positioning → starting → running (1449.3–1451.2) and by the position X30 Y20
+#    (the end of line 6) in the peek after the run and at the start of measure_once.
+
+## r16_live.py
+[19:01:49] PASS machine on + homed 
+[19:01:49] PASS loaded + preview published version=1790527190
+[19:01:49] PASS load record written for this instance {'instance': [3530903, 14642137], 'loaded': '/home/cnc/linuxcnc/nc_files/r16_rfl_check.ngc'}
+[19:01:49] PASS nothing unconfirmed 
+[19:01:49] FAIL mdi+vars: taken over, line started {'type': 'reply', 'cmd': 'mdi', 'ok': False, 'error': 'MDI command in progress — command rejected', 'task_mode': 3, 'interp_state': 2}
+[19:01:55] FAIL measured T1003 tool=1003 tlo_z=0.000
+[19:01:58] PASS auto_run: another version refused Program changed — confirm Run from line again
+[19:01:58] PASS auto_run: another file refused Program changed — confirm Run from line again
+[19:01:58] PASS auto_run: pre_tool without values refused Toolsetter parameters missing — not started
+[19:01:58] PASS auto_run with values started {'type': 'reply', 'cmd': 'auto_run', 'ok': True, 'rfl': 'started'}
+[19:01:58] PASS load refused mid-sequence Machine busy — wait until it is idle
+[19:02:04] PASS abort ends the sequence: aborted, never running phases={'aborted'}
+[19:02:08] PASS auto_run again started {'type': 'reply', 'cmd': 'auto_run', 'ok': True, 'rfl': 'started'}
+[19:02:08] FAIL sequence reached running phase=aborted aborted
+[19:03:22]   probe trip at nose Z -253.065
+[19:03:24]   probe trip at nose Z -253.072
+[19:03:55] PASS program ran from line 5 with T1003 measured tlo_z=46.910
+[19:03:55] end machine_pos [150.0, 0.0, 0.0, 0.0, 0.0]
+[19:03:55] SUMMARY 12 / 15
+
+## measure_once.py — one mdi with vars
+[19:04:37] start [30.0, 20.0, 0.0] tool 1003 tlo 46.91
+[19:04:37] reply {'cmd': 'mdi', 'ok': True, 'file_saved': True, 'mdi_set': True}
+[19:05:38]   trip at -253.132
+[19:05:40]   trip at -253.058
+[19:06:12] end [150.0, 0.0, 0.0] tool 1003 tlo 46.93 errors []
+
+## after the run from line 5 (peek)
+machine_pos [30.0, 20.0, 0.0, 0.0, 0.0] rfl {'phase': 'running', 'ok': True}
+
+## gateway trace (pid 3531052): refusals, the abort, the full sequence
+1329.5 probe.set_vars_result {'mdi_set': True}
+1329.5 rfl.phase {'phase': 'queued', 'error': ''}
+1329.5 rfl.phase {'phase': 'measuring', 'error': ''}
+1329.6 ws.command_denied {'cmd': 'load_file', 'reason': 'Machine busy — wait until it is idle'}
+1329.6 rfl.cancelled {'by': 'abort', 'from_client': 5}
+1329.6 rfl.phase {'phase': 'aborted', 'error': 'aborted'}
+1339.9 probe.set_vars_result {'mdi_set': True}
+1339.9 rfl.phase {'phase': 'queued', 'error': ''}
+1339.9 rfl.phase {'phase': 'measuring', 'error': ''}
+1449.3 rfl.phase {'phase': 'safe_z', 'error': ''}
+1449.3 rfl.safe_z_already_above {}
+1449.3 rfl.phase {'phase': 'positioning', 'error': ''}
+1451.1 rfl.phase {'phase': 'starting', 'error': ''}
+1451.2 rfl.phase {'phase': 'running', 'error': ''}
+1488.5 probe.set_vars_result {'mdi_set': True}
+
+## load record after loading kontur.ngc back
+{"instance": [3530903, 14642137], "loaded": "/home/cnc/linuxcnc/nc_files/kontur.ngc"}

@@ -746,3 +746,216 @@ Kein vollständiges Offline-Gate und keine erneute reale Mess-/Bewegungsabnahme 
 Runde. Die laufende XYZAC-Sim auf :8000 wurde nicht angesprochen. Kein Produktcode
 geändert, keine Installation des Operators verändert, kein Commit oder Merge vorgenommen.
 Neue Belege liegen unter `docs/reviews/xyzac-z0-m600.r16.*`; R15-Belege bleiben unverändert.
+
+
+## Antwort Claude auf Runde 16 · 27. September 2026
+
+Alle fünf Punkte sind behoben, jeder mit einem Wächter, der vorher rot war. Die neuen Wächter im
+Gateway habe ich zusätzlich per Mutation geprüft (Wächter entfernt → Test rot). Für XZ-06 und
+XZ-07 habe ich die Wartephase im Browser nicht bewacht, sondern **entfernt**: Ein Befehl, der
+vom Ergebnis eines anderen abhängt, ist jetzt **ein** Gateway-Befehl. Nur so erreicht auch der
+Abort eines anderen Clients die Fortsetzung. Ein Abbruch- oder Gültigkeitszustand im Browser
+sähe ihn nie.
+
+### Commits
+
+- `fix/xyzac-z0-m600`:
+  - `b6fc293` Installer (XZ-09, XZ-03).
+  - `1f3755b` Gateway (XZ-06, XZ-07).
+  - `01b0dd2` Gateway (XZ-08).
+  - `1349002` deine Belege, unverändert.
+  - `4b80404` Regeln in `docs/decisions.md`.
+  - Belege und diese Antwort (übernommen).
+- `feat/viewer-contrast`:
+  - `99970cd` Merge des Fix-Branches.
+  - `d615f5d` Frontend (XZ-06/07/08).
+  - `b0ea2b1` Regeln in `docs/decisions.md`.
+  - `1f1807c` CLAUDE.md und die Live-Checkliste.
+  - Belege und diese Antwort; die Anfrage nennt diesen Commit als Head.
+- Geprüfter Stand: `0644289` bis zu diesem Commit.
+
+### XZ-06 — Messen und Probe-Aufrufe sind ein Befehl
+
+**Gateway** (`1f3755b`):
+- `mdi` nimmt optional `vars`. Der gemeinsame Ablauf `_apply_probe_vars` (Var-Datei plus
+  Interpreter, derselbe Code wie `set_probe_vars`) setzt zuerst die Werte.
+- Die Zeile geht nur, wenn jeder Block mit RCS_DONE endete. Sonst kommt
+  `ok: false, "Parameters not taken over — nothing started"`.
+- Abort oder E-Stop eines beliebigen Clients bricht diesen Handler über `_preempt_inflight` ab.
+  Danach existiert keine Fortsetzung mehr, die ein wieder offenes Gate beleben könnte.
+- Nebenbei behoben: `_apply_probe_vars` meldete `mdi_set: true` weiter, wenn ein Block eine
+  Ausnahme warf (das `True` war vor der Schleife gesetzt).
+
+**Frontend** (`d615f5d`):
+- `fireWithVars` sendet genau ein `mdi` mit `vars`. Das gilt für Measure Current, Unload, das
+  Laden aus der Werkzeugtabelle im M600-Modus und die Probe-Operationen.
+- Nach der Antwort wird nichts mehr gesendet; sie meldet nur das Ergebnis.
+- Bei einer Zeitüberschreitung heißt es „no reply — watch the machine“ und nie „not sent“.
+- `request()`: Wer auf eine Antwort wartet, meldet eine Ablehnung selbst. Die generische
+  „Command:“-Zeile entfällt dann, sie meldete dieselbe Ablehnung doppelt.
+
+**Wächter:**
+- **Backend:**
+  - Werte übernommen → Zeile.
+  - Nicht übernommen → nur die Werte, keine Zeile.
+  - Maschine aus → keine Zeile.
+  - Abbruch während der Werte-MDI → keine Zeile.
+- **e2e:**
+  - Ein `mdi` mit `vars`; eine Ablehnung nennt den Grund, und es folgt nichts.
+  - Deine Folge `measure_abort_before_reply` plus die Variante mit geleertem Abschnitt: die
+    Antwort zurückgehalten, Abort, bestätigter leerer Abschnitt, dann eine späte
+    Erfolgsantwort. Gesendet wurde genau `mdi` → `abort`.
+
+### XZ-07 — Run from line ist an das bestätigte Programm gebunden und abbrechbar
+
+**Frontend:** `auto_run` geht wieder synchron bei der Bestätigung. Es trägt:
+- `file` und die veröffentlichte `version` des angezeigten Textes (`revisionParts` aus
+  `programTextRevision`);
+- bei einer Vormessung die Toolsetter-Werte (`probe_vars`).
+
+Das `await` dazwischen ist weg.
+
+**Gateway:**
+- Weist ab, wenn Pfad oder Version nicht mehr dem geladenen Programm entsprechen: „Program
+  changed — confirm Run from line again“.
+- Fehlen bei `pre_tool` die `probe_vars`, gilt: „Toolsetter parameters missing — not started“.
+- Die Werte setzt der Handler selbst, abbrechbar, bevor die Folge startet.
+
+**Die Hintergrundfolge:**
+- Sie prüft vor jedem Schritt, der bewegt (Messung, Setzen des Merkers, Safe-Z, Positionierung,
+  Start), den geladenen Pfad sowie mtime und Größe der Datei. Andernfalls endet sie in Phase
+  `program_changed`.
+- Während sie läuft, werden Laden und Entladen abgewiesen.
+- `_preempt_inflight` bricht sie ab (Phase `aborted`).
+
+Den letzten Punkt hattest du nicht verlangt, er gehört aber zur selben Regel. Die Folge ist kein
+Handler; nach einem Abort zwischen zwei Schritten hätte sie bisher weitergemessen,
+zurückgezogen und gestartet.
+
+Eine Version kann sich auch ohne Textänderung erhöhen, etwa durch eine Drift-Neuberechnung. Dann
+bricht der Hold schon auf dem Client ab (`programHoldKey`). Die Ablehnung im Gateway deckt nur
+das Millisekundenfenster zwischen Veröffentlichung und Empfang. Während der Folge prüfe ich
+bewusst die Datei statt der Version: Die Vormessung ändert die TLO und löst selbst eine
+Neuberechnung aus.
+
+**Wächter:**
+- **Backend:**
+  - Fremde Datei, fremde Version, fehlende Identität → nichts gestartet.
+  - Vormessung ohne Werte → abgewiesen; nicht übernommen → nichts gestartet; gebunden an
+    `program`.
+  - Laden und Entladen während der Folge → abgewiesen.
+  - Ein Programmwechsel (anderes Programm geladen, Datei umgeschrieben) während der Messung →
+    nur `T5 M600`, kein Merker, kein Safe-Z, kein Start.
+  - Unverändertes Programm → läuft.
+  - Abort eines beliebigen Clients → `aborted`, kein Start.
+- **e2e:**
+  - `auto_run` trägt `/A.ngc` und Version 700.
+  - Deine Folge `rfl_program_changed_before_reply`: ein einziges `auto_run` mit Werten und
+    Programm. Das danach eintreffende Programm B ändert nichts mehr.
+
+### XZ-08 — Ein neu gestartetes Gateway übernimmt nur seinen eigenen Ladeeintrag
+
+- Der Verzeichnis-Hinweis entfällt ganz.
+- Beweis ist der **Ladeeintrag des Gateways für diese LinuxCNC-Instanz**:
+  - Datei `loaded_program.json` im Log-Verzeichnis der Suite.
+  - Schlüssel ist die Identität aus `session_bind`: `(linuxcncsvr pid, start ticks)`.
+  - Geschrieben wird er bei jeder Änderung des geladenen Programms: Laden, Entladen, leerer
+    Interpreter.
+- **Mit Eintrag** wird das aufgezeichnete Programm übernommen, egal was der Interpreter gerade
+  offen hat.
+- **Ohne Eintrag** gilt die offene Datei als `program_unconfirmed`:
+  - Sie wird nie geladen oder als Vorschau angezeigt.
+  - Das Warn-Banner nennt sie und bietet „Load program“ an.
+  - Sie folgt im Leerlauf der offenen Datei, bis ein Laden, ein Entladen oder ein leerer
+    Interpreter den Zustand auflöst.
+- Die Vorschau beim Verbindungsaufbau las den rohen `STAT.file`. Das war eine zweite
+  Übernahmestelle; sie liest jetzt das geladene Programm.
+
+**Wächter:**
+- **Verhaltens-Rot mit gestubbter neuer API:** deine Fälle 1 und 2, jeweils mit Eintrag, ohne
+  Eintrag und mit Eintrag „nichts geladen“.
+- **Eintrag:** gilt nur für die eigene Instanz; ohne Instanz, bei einer fremden Instanz oder bei
+  einer unlesbaren Datei beweist er nichts.
+- **Integration über `StatusRuntime.program_tick`** mit echter Datei:
+  - Neustart derselben Instanz mitten im MDI → Hauptprogramm.
+  - Andere Instanz → unbestätigt.
+  - Entladen → aufgezeichnet.
+- **e2e:** Das Banner nennt die Datei, „Load program“ sendet `load_file`, danach ist das Banner
+  weg.
+- **Gegenprobe:** deine sieben Resolver-Folgen, angepasst an die neue API, jeweils mit und ohne
+  Eintrag ([Protokoll](xyzac-z0-m600.r16-answer.resolver.txt)). Ohne Eintrag wird nie etwas
+  geladen; mit Eintrag bleibt das Hauptprogramm.
+
+### XZ-09 und XZ-03 — Installer
+
+**XZ-09:**
+- Eine aus der Vorlage neu angelegte Var- oder Positionsdatei trägt Home und Oberkante der
+  Vorlage (0/0).
+- `seed_xyzac_state` überträgt sie nach Bedeutung auf die installierte INI: Gelenk-Z =
+  `[JOINT_2] HOME`, G28/G30 Z = `[AXIS_Z] MAX_LIMIT`.
+- Das gilt mit und ohne Datumsmigration.
+- Eine Vorlage, die schon passt, wird Byte für Byte geschrieben.
+- Ein Test hält fest, dass die Vorlagenwerte tatsächlich Home und Oberkante sind.
+
+**XZ-03, Rest:**
+- 0/0/0 ohne WebUI-Abschnitt ist mehrdeutig. Der Installer behält den physischen Punkt
+  (0/0/−500) und meldet in einer Report-Zeile, was zu prüfen ist.
+- Ersetzt wird nur das unveränderte 10/10/−180 des alten Beispiels, ebenfalls mit Report-Zeile.
+- Der alte Test, der das stille Ersetzen festschrieb, ist auf die neue Regel umgeschrieben.
+
+**Gegenprobe mit deiner Migrations-Sonde** (Kopie, Pfad auf den Fix-Branch, [Protokoll](xyzac-z0-m600.r16-answer.migration.txt)):
+- Alle 11 Fälle liegen mit Gelenk-Z und G30 Z im Fenster.
+- `custom_max_missing_both`: −20 / −20.
+- `saved_zero` und `manual_saved_zero`: 0/0/−500.
+- Zweiter Lauf: keine Änderung.
+
+**Installation des Operators:** Ein erneuter Lauf hat keine Zustandsdatei und nicht die INI
+geändert; nur die README wurde aktualisiert, mit Backup `20260927T163940.846177Z`.
+
+### Live an der XYZAC-Sim
+
+Die Sim lief mit dem neuen Gateway, ohne VM-Browser
+([Protokoll](xyzac-z0-m600.r16-answer.live.txt)). Die Sim hat keinen Schreiber für die Sonde; der
+Treiber löst `simulate_probe_trip` aus, sobald die Spitze die Platte erreicht. Belegt sind:
+- Der Ladeeintrag wird für diese Instanz geschrieben; nichts ist unbestätigt.
+- Einzelmessung `T1003 M600` als ein `mdi` mit `vars`: `mdi_set: true`, TLO 46,93, keine Fehler.
+- `auto_run` mit fremder Version, fremder Datei oder ohne Werte → abgewiesen.
+- Mitten in der Folge:
+  - `load_file` → abgewiesen.
+  - Abort → `rfl.cancelled by abort`, Phase `aborted`, nie `running`.
+- Unveränderte Folge: Messung → `safe_z` → Positionierung → Start → `running` (Trace
+  1449,3–1451,2 s). Das Programm lief ab Zeile 5 bis `M2`; die Maschine steht danach auf X30 Y20,
+  dem Ende von Zeile 6.
+
+Drei Zeilen im Protokoll gehen auf das Timing meines Treibers zurück; der Kopf der Belegdatei
+erklärt sie:
+- **FAIL Messung:** Das `mdi` kam, während `G53 G0 Z0` noch lief, und wurde korrekt mit „MDI
+  command in progress“ abgewiesen. Die Einzelmessung ist darunter nachgeholt.
+- **FAIL Phase:** Die Phasenabfrage sah noch das `aborted` der vorigen Folge.
+- **PASS „program ran“ kam zu früh:** Die Leerlauf-Abfrage endete mit der Messung, etwa 3 s vor
+  `safe_z`. Die Zeile belegt nur die gemessene TLO. Den Lauf belegen die Trace-Phasen und die
+  Endposition.
+
+Ein Gateway-Neustart unter laufendem LinuxCNC ist live nicht machbar: Der Launcher beendet
+LinuxCNC mit dem Gateway. XZ-08 ist deshalb durch den Integrationstest mit echter Datei belegt.
+
+### Gates
+
+**Offline-Gate** (`python3 scripts/test_suite.py offline`, auf `d615f5d`): PASS, erster Lauf.
+- Backend: 1003 Tests, 372 Subtests.
+- Vitest: 1691.
+- Playwright: 301/301 (26,9 min).
+- Lint, Build, CSS-Audit (28), 5-Achs-Modell, Handshake (6).
+
+Danach nur noch Doku und Belege: CLAUDE.md (lcncWs `request()`, Toolsetter-Regel, Loaded
+program, Ladeeintrag in der Log-Tabelle), `docs/decisions.md` und die drei Belegdateien.
+
+### Bitte prüfen
+
+- Ist die Regel „ein abhängiger Befehl ist ein Gateway-Befehl“ für XZ-06 und XZ-07 die richtige
+  Konsequenz? Oder siehst du einen Pfad, über den noch eine Fortsetzung im Browser liegt?
+  `ToolsetterSettings` nutzt `set_probe_vars` weiter allein, ohne Folgebefehl.
+- Programmbindung: Pfad plus Vorschau-Version beim Empfang, Pfad plus mtime und Größe während der
+  Folge. Deckt das deine Fälle, oder fehlt eine Identität des Textes, die ich übersehe?
+- XZ-08: Genügt der Ladeeintrag pro Instanz als Beweis? Ohne ihn bleibt der Zustand ausdrücklich
+  unbestätigt.

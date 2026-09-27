@@ -1,0 +1,15 @@
+# R16 answer — Codex's resolver sequences (docs/reviews/xyzac-z0-m600.r16.resolver-probe.py) on the new rule
+# Adapted to the new API: update(raw, idle, now) — no directory arguments; restore(record) models the gateway's own load record.
+# 'record=False' = no record for this instance. Loaded = what the status publishes; unconfirmed = named, never loaded or previewed.
+
+known_none_mdi_error_prefix                      record=False                  loaded=None                   unconfirmed=None
+known_main_mdi_error_prefix (record)             record=/review/nc/main.ngc    loaded=/review/nc/main.ngc    unconfirmed=None
+explicit_shared_directory_load                   record=False                  loaded=/review/nc/shared/probe.ngc unconfirmed=None
+restart_after_mdi_error_prefix                   record=False                  loaded=None                   unconfirmed=/review/nc/shared/probe.ngc
+restart_during_mdi_prefix_returns_main           record=False                  loaded=None                   unconfirmed=/review/nc/main.ngc
+restart_during_mdi_external_returns_main         record=False                  loaded=None                   unconfirmed=/review/nc/main.ngc
+restart_after_mdi_error_external                 record=False                  loaded=None                   unconfirmed=/review/subs/probe.ngc
+restart_after_mdi_error_prefix                   record=/review/nc/main.ngc    loaded=/review/nc/main.ngc    unconfirmed=None
+restart_during_mdi_prefix_returns_main           record=/review/nc/main.ngc    loaded=/review/nc/main.ngc    unconfirmed=None
+restart_during_mdi_external_returns_main         record=/review/nc/main.ngc    loaded=/review/nc/main.ngc    unconfirmed=None
+restart_after_mdi_error_external                 record=/review/nc/main.ngc    loaded=/review/nc/main.ngc    unconfirmed=None
