@@ -1310,6 +1310,7 @@ label:has(input:disabled, select:disabled) {
    block uses of .noteWarn. */
 .statusNote {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--gap-controls);
@@ -1318,6 +1319,12 @@ label:has(input:disabled, select:disabled) {
   font-size: var(--fs-base);
   white-space: normal;
 }
+/* The words take the line, an action never shrinks under its own words: where
+   both do not fit it wraps below them (codex review round 3, VK-I02 — "Use
+   automatic colors" shrank to "utomatic c" at 150 % portrait; Retry and the
+   conflict's two buttons share the rule). */
+.statusNote > :first-child { flex: 1 1 12em; min-width: 0; }
+.statusNote > :not(:first-child) { flex: none; }
 .statusNote.warn {
   background: color-mix(in oklab, var(--warn) var(--tint-note), var(--panel));
   border: 1px solid color-mix(in srgb, var(--warn) var(--tint-fill), transparent);

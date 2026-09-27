@@ -12,7 +12,7 @@
 // is a screen-space fat line (LineSegments2): a RING OF SEGMENTS, each the pair
 // of two consecutive history points — independent instances, so the ring never
 // needs linearising, a wrap can never join the newest point to the oldest, and a
-// push uploads only the one segment it wrote.
+// push uploads only what was written since the last upload (one covering range).
 //
 // Factory pattern (per the A3 plan): created once in <script setup>, closes over
 // the STABLE requestRender (a plain function, never reassigned). The parent
@@ -58,6 +58,7 @@ export function createBackplotController(requestRender: () => void): BackplotCon
     head = 0;
     hasLast = false;
     if (geom) geom.instanceCount = 0;   // keep the allocation, draw nothing
+    buf?.clearUpdateRanges();           // nothing pending of the cleared trail
     requestRender();
   }
 
@@ -93,7 +94,17 @@ export function createBackplotController(requestRender: () => void): BackplotCon
         const a = head * 6, arr = buf.array as Float32Array;
         arr[a] = lastX; arr[a + 1] = lastY; arr[a + 2] = lastZ;
         arr[a + 3] = x; arr[a + 4] = y; arr[a + 5] = z;
-        buf.addUpdateRange(a, 6);
+        // ONE pending range covering every segment written since the last
+        // upload (codex review round 3, VK-I01): a hidden trail is never
+        // rendered, so a range per point grew without bound; covering them
+        // keeps it at one — at worst the whole ring on the next upload.
+        const pending = buf.updateRanges[0];
+        if (!pending) buf.addUpdateRange(a, 6);
+        else {
+          const end = Math.max(pending.start + pending.count, a + 6);
+          pending.start = Math.min(pending.start, a);
+          pending.count = end - pending.start;
+        }
         buf.needsUpdate = true;
         head = (head + 1) % SEG_MAX;
         if (segs < SEG_MAX) segs++;

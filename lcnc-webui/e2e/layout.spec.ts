@@ -1367,3 +1367,46 @@ test('the tilted work plane names its state at the object — whatever the HUD s
     if (hud === 'folded') await page.evaluate(() => { document.documentElement.style.zoom = ''; });
   }
 });
+
+// Codex review round 3 (VK-I02): a note's action never shrinks under its
+// words. The legacy-palette note (V6) laid "Use automatic colors" beside
+// its text; at 150 % portrait the button shrank to ~78 of the 170 px its
+// words need and showed "utomatic c" — the note itself passed an overflow
+// check. Every button in the note: its words inside its visible box (the
+// text's own range, not only scrollWidth), the note inside the dialog.
+test('a note\'s action keeps its words: the legacy palette note at 150 % portrait', async ({ page }) => {
+  const OLD = { feed: '#22b8cf', rapid: '#f5a623', backplot: '#ff00ff', bounds: '#ffffff', toolpathBounds: '#f5a623', tool: '#c0c0c0', cutter: '#ffdd00' };
+  await openLayout(page, PROFILES[1], VIEWPORTS.find(v => v.name === 'touch-portrait')!);
+  await page.evaluate(() => { document.documentElement.style.zoom = '1.5'; });
+  await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { display: { theme: 'light' }, viewer: { colors: OLD } } } });
+  await page.getByTitle('Settings', { exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Settings', exact: true });
+  const tab = dialog.getByRole('tab', { name: '3D Viewer', exact: true });
+  if (await tab.count()) await tab.click();
+  else await dialog.getByRole('combobox').first().selectOption({ label: '3D Viewer' });
+  const note = dialog.locator('[data-palette-note="legacy"]');
+  await note.scrollIntoViewIfNeeded();
+  await expect(note).toBeVisible();
+  const m = await note.evaluate(el => {
+    const box = (r: DOMRect) => ({ l: r.left, r: r.right, t: r.top, b: r.bottom });
+    const dlg = el.closest('[role="dialog"]')!.getBoundingClientRect();
+    return {
+      note: box(el.getBoundingClientRect()), dialog: box(dlg),
+      buttons: [...el.querySelectorAll('button')].map(b => {
+        const range = document.createRange();
+        range.selectNodeContents(b);
+        const text = range.getBoundingClientRect();
+        const r = b.getBoundingClientRect();
+        return { name: b.textContent?.trim(), box: box(r), text: box(text), clipped: b.scrollWidth > b.clientWidth + 1 };
+      }),
+    };
+  });
+  const dump = JSON.stringify(m);
+  expect(m.buttons.length, `the note offers its action ${dump}`).toBeGreaterThan(0);
+  for (const b of m.buttons) {
+    expect(b.clipped, `${b.name}: its words are whole ${dump}`).toBe(false);
+    expect(b.text.l >= b.box.l - 1 && b.text.r <= b.box.r + 1, `${b.name}: the words inside the button ${dump}`).toBe(true);
+  }
+  expect(m.note.l >= m.dialog.l - 1 && m.note.r <= m.dialog.r + 1, `the note inside the dialog ${dump}`).toBe(true);
+  await page.evaluate(() => { document.documentElement.style.zoom = ''; });
+});

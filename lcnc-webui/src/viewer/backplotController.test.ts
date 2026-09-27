@@ -83,7 +83,7 @@ describe("backplotController", () => {
     expect(Math.max(...s.map(([, , , x1]) => x1!))).toBe(BACKPLOT_MAX + 4);
   });
 
-  it("a push uploads only the segment it wrote — no re-sort or full upload of the history", () => {
+  it("a push uploads only what it wrote — no re-sort or full upload of the history", () => {
     const c = createBackplotController(vi.fn());
     const parent = new THREE.Group();
     c.build(parent, "#fff", true);
@@ -91,7 +91,33 @@ describe("backplotController", () => {
     c.push(0, 0, 0);
     c.push(1, 0, 0);
     c.push(2, 0, 0);
-    expect(data.updateRanges).toEqual([{ start: 0, count: 6 }, { start: 6, count: 6 }]);
+    expect(data.updateRanges, "the two written segments, as one pending range").toEqual([{ start: 0, count: 12 }]);
+    data.clearUpdateRanges();   // what a render's upload does
+    c.push(3, 0, 0);
+    expect(data.updateRanges, "after an upload: only the new segment").toEqual([{ start: 12, count: 6 }]);
+  });
+
+  // Codex review round 3 (VK-I01): a HIDDEN backplot is never rendered, so
+  // the pending update ranges are never consumed — one per point grew without
+  // bound (99 999 after 100 000 points, and "Clear" left them). The pending
+  // ranges stay bounded (one covering range) however many laps run unrendered,
+  // Clear drops them, and the trail shown again is the newest one.
+  it("hidden and unrendered for laps: the pending uploads stay bounded, Clear drops them, the newest trail shows again", () => {
+    const c = createBackplotController(vi.fn());
+    const parent = new THREE.Group();
+    c.build(parent, "#fff", true);
+    c.setVisible(false);
+    const data = (lineIn(parent).geometry.getAttribute("instanceStart") as THREE.InterleavedBufferAttribute).data;
+    for (let i = 0; i < 3 * BACKPLOT_MAX + 7; i++) c.push(i, 0, 0);
+    expect(data.updateRanges.length, "at most one pending range").toBeLessThanOrEqual(1);
+    const r = data.updateRanges[0]!;
+    expect(r.start >= 0 && r.start + r.count <= (data.array as Float32Array).length, "inside the buffer").toBe(true);
+    c.reset();   // "Clear backplot"
+    expect(data.updateRanges, "Clear drops what was pending").toEqual([]);
+    for (let i = 0; i < 5; i++) c.push(1000 + i, 0, 0);
+    c.setVisible(true);
+    expect(segments(parent), "the newest trail only").toEqual([0, 1, 2, 3].map(i => [1000 + i, 0, 0, 1001 + i, 0, 0]));
+    expect(data.updateRanges).toEqual([{ start: 0, count: 24 }]);
   });
 
   it("reset empties the window but keeps the allocation, and the next point does not join the old trail", () => {
