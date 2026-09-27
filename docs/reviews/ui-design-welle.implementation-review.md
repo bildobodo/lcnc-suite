@@ -5,12 +5,13 @@ mit Plan-Agreement ([Planreview Runde 3](ui-design-welle.review.md#codex-runde-3
 hält je Arbeitspaket den Umsetzungsstand, Abweichungen und Gate-Läufe fest; die
 Codex-Implementierungsreviews folgen nach den Paketgruppen DR + D0–D2, D3–D6 und D7–D10.
 
-**Aktueller Reviewstand · Codex Runde 8 · 27. September 2026 · `1a3b964`:
-UI-DI15 ist geschlossen. UI-DI16 bleibt bei geöffnetem „More“ offen; neu ist
-UI-DI17 zur abgeschnittenen Warnkarte und ihrem unerreichbaren Schließknopf.
-Beides P2; D7–D10 noch ohne Implementierungs-Agreement.**
-[Nachprüfung, Nachweise und Prüfgrenzen](#codex-implementierungsreview-runde-8).
-UI-DI12–14 bleiben geschlossen.
+**Aktueller Reviewstand · Codex Runde 9 · 27. September 2026 · `0418850`:
+UI-DI17 ist geschlossen. UI-DI16 bleibt als P2 offen: Bei ausgeblendeter HUD-Ebene
+werden Höhenlimit und schmale Bannerdarstellung nicht aktualisiert; nach einer
+Größenänderung verdeckt „More“ die Simulationserläuterung.
+D7–D10 noch ohne Implementierungs-Agreement.**
+[Nachprüfung, Nachweise und Prüfgrenzen](#codex-implementierungsreview-runde-9).
+UI-DI12–15 bleiben geschlossen.
 Das [Agreement aus Runde 5 für D3–D6](#codex-implementierungsreview-runde-5) bleibt gültig;
 UI-DI05–11 bleiben geschlossen.
 Das [Agreement aus Runde 3 für DR + D0–D2](#codex-implementierungsreview-runde-3)
@@ -2970,5 +2971,131 @@ auch die ViewCube-Spalte (Würfel und Schnellknöpfe).
     Lauf wiederverwendet hat.
   - Das Projekt `chromium` allein, je mit Mock-Reset: zweimal **7/7**.
   - Zusammen ergibt das 279/279, aber aus zwei Läufen.
+
+---
+
+## Codex Implementierungsreview Runde 9
+
+**27. September 2026 · Handshake R8 · `c2c8a06..0418850` · `feat/ui-design-wave`.**
+Nachprüfung von UI-DI16/17, der Antwort auf Runde 8 und der benannten Testausnahme.
+
+**Ergebnis: UI-DI17 geschlossen; UI-DI16 bleibt als P2 offen.** Die bisherigen
+Repros sind mit sichtbarer DRO korrigiert. Die neue Höhenbegrenzung und die schmale
+Bannerdarstellung hängen jedoch an der Sichtbarkeit der optionalen HUD-Ebene.
+Nach deren Ausblenden und einer Größenänderung überdeckt „More“ erneut den
+Simulationshinweis, konkret dessen Erläuterung. Noch kein Implementierungs-Agreement
+für D7–D10; kein neuer Befundschlüssel. UI-DI01–15 und die Agreements für DR + D0–D6
+bleiben geschlossen beziehungsweise gültig.
+
+### Bestätigte Korrekturen
+
+| Nachprüfung | Ergebnis |
+|---|---|
+| UI-DI17: direkter Rückweg | Beide Öffnungsreihenfolgen funktionieren: More → Warnungen und Warnungen → More. Es bleibt jeweils eine Detailansicht offen; ihr eigener Knopf schließt per echtem Klick. Keine Wiederherstellung über die andere Karte mehr nötig. |
+| Bisheriger UI-DI16-Repro | Mit sichtbarer HUD-Ebene endet der Hinweis bei **y = 296**, die untere Spalte beginnt bei **y = 302**: **6 px Abstand**, auch mit Limit plus zwei Kollisionsbefunden. |
+| Scrollen | Die Befundzeile scrollt mit echter Mausradeingabe; im Kollisionsfall von 0 auf **51,33 CSS-px**. Die Köpfe bleiben an derselben Stelle. Nach Hinscrollen sind alle gemessenen Controls, Anzeigen und Hilfen erreichbar. |
+| Warnkarte | Die Schließknöpfe liegen innerhalb des Viewers und treffen sich selbst im Hit-Test. Alle dargestellten Warnungen sind zugänglich. |
+| DRO und gefalteter Grundzustand | Öffnen/Schließen erhält die DRO-Form. **20/20 Layoutfälle** und **21/21 Höhenschwellen** bleiben ohne Oszillation oder Überdeckung; überall `fits`. Die beiden längeren Stillstandsproben bleiben ebenfalls stabil. |
+
+Belege: [Hauptsonde](ui-design-welle.implementation-r9.probe.mjs),
+[Layout- und Stabilitätsdaten](ui-design-welle.implementation-r9.json),
+[Detailsonde](ui-design-welle.implementation-r9-limits.probe.mjs) und
+[Öffnungsfolgen, Scrollwerte und Hit-Tests](ui-design-welle.implementation-r9-limits.json).
+Bilder: [More mit Kollisionen](ui-design-welle.implementation-r9-limits-5axis-collisions-more.png),
+[nach Scrollen](ui-design-welle.implementation-r9-limits-5axis-collisions-scrolled.png),
+[Warnungen nach Wechsel von More](ui-design-welle.implementation-r9-limits-5axis-collisions-warnings.png).
+
+Die **benannte Überdeckung der ViewCube-Spalte bei geöffnetem More ist akzeptiert**:
+Sie betrifft die angeforderte Detailansicht innerhalb des Viewers; Sim, Zeitregler
+und More als Rückweg bleiben erreichbar. Die Ansichtssteuerung wird nach dem
+Zuklappen wieder zugänglich. Der gefaltete Grundzustand bleibt frei. Diese Ausnahme
+umfasst weiterhin keine verdeckte Simulationserläuterung oder Bedienelemente
+außerhalb des Viewers.
+
+### UI-DI16 · P2 · weiter offen: Ausblenden des HUD stoppt die gemeinsame Größenberechnung
+
+**Stelle:** `lcnc-webui/src/ThreeViewer.vue:3771–3777`, insbesondere der vorzeitige
+Rücksprung bei `card.offsetParent === null` in Zeile 3773. Dadurch werden weder
+`narrowViewer`/`hudFit.narrow` aktualisiert noch die neue Höhenbegrenzung in
+`:3839–3844` berechnet. Der Banner-Beobachter ruft zwar `fitHud` auf, läuft aber
+in denselben Rücksprung. Es bleibt eine alte Grenze oder, abhängig vom Aufbau,
+keine gesetzte Grenze. **Nachgewiesen ist der Fall mit einer alten Grenze.**
+
+**Repro:** Fünf Achsen, geladenes Programm mit einem Limit und zwei Kollisionsbefunden,
+ausgeschalteter Mock-Maschinenzustand. Bei 1600 × 1000 die normale Einstellung
+**Settings → 3D Viewer → Layers → HUD** ausschalten. Danach auf den unterstützten
+Touch-Hochformatfall 900 × 1200 bei 150 % wechseln, lokale Simulation einschalten
+und „More timeline controls“ öffnen.
+
+Die Sonde setzt `viewer.layers.hud = false` über einen Settings-Frame, also den
+normalen Einstellungspfad; sie blendet die Karte nicht durch einen DOM-Eingriff aus.
+Der Wechsel von Fenstergröße/Zoom ist eine Änderung der regulären Geometrie.
+
+- Das alte `--viewer-bottom-max` bleibt **566 CSS-px**, obwohl der Viewer nur noch
+  **456,5 Viewport-px = 304,33 CSS-px** hoch ist.
+- `narrowViewer` bleibt aus. Statt des kurzen Hinweises mit erreichbarer Hilfe
+  erscheint die lange Fassung auf **168 px Breite und 176 px Höhe**, bei
+  **y = 255–431**.
+- „More“ beginnt bei **y = 287,25** und verdeckt die unteren **143,75 px** des
+  Hinweises. **Der Name SIMULATION bleibt lesbar; die Erläuterung wird verdeckt.**
+  Eine Ersatzhilfe „?“ ist in dieser fälschlich breiten Fassung nicht vorhanden.
+- **Gegenprobe ohne Größen- oder Programmänderung:** HUD wieder einschalten.
+  Die Grenze wird **249 CSS-px**, die schmale Fassung erscheint mit „?“ und
+  **211 × 41 px**, die untere Spalte beginnt 6 px darunter. Der Fehler verschwindet.
+
+**Belege:** [eigene Sonde](ui-design-welle.implementation-r9-hidden-hud.probe.mjs),
+[Messdaten einschließlich Gegenprobe](ui-design-welle.implementation-r9-hidden-hud.json),
+[gefaltet bei ausgeblendetem HUD](ui-design-welle.implementation-r9-hidden-hud-folded.png),
+[More verdeckt die Erläuterung](ui-design-welle.implementation-r9-hidden-hud-more.png),
+[nach Wiedereinblenden korrigiert](ui-design-welle.implementation-r9-hidden-hud-restored.png).
+Keine Maschinenbewegung ausgelöst oder umgangene Maschinensperre beobachtet.
+
+**Korrekturziel:** Die gemeinsame Viewer-Geometrie unabhängig von der optionalen
+DRO berechnen: Schmalmodus, Bannerbedarf und Höhenlimit der unteren Spalte müssen
+auch bei `layers.hud = false` auf Größenänderungen sowie Simulationsstart/-ende
+reagieren. Nur die Auswahl der DRO-Größe darf bei ausgeblendeter DRO entfallen.
+Eine einmalige Berechnung beim Ausblenden reicht nicht, weil sich die Geometrie
+und der Banner danach ändern können.
+
+**Abnahme:** Obige Folge mit HUD aus/an, anschließend auch Start mit bereits
+gespeichertem `layers.hud = false`. Banner und untere Spalte nach Resize/Zoom sowie
+Sim an/aus prüfen, bei geschlossenen und geöffneten Details. Die schmale Fassung
+muss samt Hilfe erreichbar und die Erläuterung unverdeckt bleiben. Die bestehenden
+beiden Detailtests lassen die HUD-Ebene eingeschaltet und erfassen diesen Zweig
+nicht. Die neuen Scroll- und gegenseitigen Faltregeln können beibehalten werden.
+
+### Tests, gemeldete Ausnahme und Prüfgrenzen
+
+- Build und ESLint/CSS-Audit grün; bekannter Build-Hinweis zu großen Bundles.
+- Vitest: **82 Dateien, 1661/1661 Tests** grün.
+- Playwright: **4/4** gezielte Tests aus `layout.spec.ts`, seriell, ohne Dependencies,
+  Filter `the HUD|the scrub bar`; beide bisherigen HUD- und beide erweiterten
+  Detail-/Simulationstests grün.
+- Separates Projekt `chromium`, seriell, ohne Dependencies: **7/7** grün,
+  einschließlich aller drei Smoke-Tests. Claudes Ausfall von **:4173** wurde hier
+  nicht reproduziert. Die vermutete Ursache eines alten Vorschauprozesses ist
+  damit nicht bewiesen. Der gemeldete Gesamtlauf bleibt **278/279 mit erfolgreichen
+  Nachläufen**, kein einzelner fehlerfreier Gesamtlauf. Daraus leite ich keinen
+  zusätzlichen UI-Produktbefund ab.
+- Alle drei unabhängigen Sonden abgeschlossen, keine Browser-`pageerror`-Meldungen;
+  Messdaten enthalten den oben benannten Restfehler.
+
+[Prüfprotokolle und Messzusammenfassung](ui-design-welle.implementation-r9.evidence.txt).
+Die R8-Sonden wurden kopiert, frühere Belege nicht überschrieben. In der R9-Detailsonde
+ist die gegenseitige Faltung berücksichtigt; die Erreichbarkeit scrollender Inhalte
+wird nach Hinscrollen gemessen. Beide direkten Schließwege werden tatsächlich geklickt.
+Kollisionsbefunde stammen wie im Produkttest aus dem vorhandenen Diagnosehaken.
+Die Prüfung bestätigt Mausrad- und programmatische Scrollwege, keine physische
+Touchgeste oder Screenreader-Bedienung.
+
+Browserläufe nacheinander mit niedriger Priorität. Die eigenen Sonden sind auf
+`127.0.0.1:4188` begrenzt; der eigene Mock wurde beendet. Die Disconnected-Smoke-Tests
+protokollieren abgewiesene Verbindungsversuche des bestehenden Vite-Proxys zu
+`127.0.0.1:8000`; es kam keine Verbindung zu einem Live-Gateway zustande. Keine
+Maschinenbefehle und keine Suite-/LinuxCNC-Neustarts. Keine erneute vollständige
+279er-Suite oder Backend-Prüfung, keine Safari-/Firefox- oder Live-XYZAC-Abnahme.
+Das abschließende Offline-Gate und die Live-Sichtprüfung bleiben offen. Nur Review
+und neue Belege geändert; kein Produktcode, keine bestehenden Referenzbilder,
+kein Commit durch Codex.
 
 ---

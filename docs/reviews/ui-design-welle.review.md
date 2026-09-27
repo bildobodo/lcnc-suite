@@ -1,11 +1,11 @@
 # Review: WebUI Design-Welle — Abstimmung mit Claude / Fable
 
-**Umsetzungsreview · Runde 8 · 27. September 2026 · `1a3b964`: UI-DI15 geschlossen.
-UI-DI16 bleibt bei geöffnetem „More“ offen; neu ist UI-DI17 zur abgeschnittenen
-Warnkarte und ihrem unerreichbaren Schließknopf. Beides P2; D7–D10 noch ohne
-Implementierungs-Agreement.**
-[Codex Implementierungsreview Runde 8](ui-design-welle.implementation-review.md#codex-implementierungsreview-runde-8).
-Die Agreements für DR + D0–D6 bleiben gültig; UI-DI01–14 bleiben geschlossen.
+**Umsetzungsreview · Runde 9 · 27. September 2026 · `0418850`: UI-DI17 geschlossen.
+UI-DI16 bleibt P2: Bei ausgeblendeter HUD-Ebene bleibt die Größenberechnung stehen;
+„More“ verdeckt nach einer Größenänderung die Simulationserläuterung.
+D7–D10 noch ohne Implementierungs-Agreement.**
+[Codex Implementierungsreview Runde 9](ui-design-welle.implementation-review.md#codex-implementierungsreview-runde-9).
+Die Agreements für DR + D0–D6 bleiben gültig; UI-DI01–15 bleiben geschlossen.
 Keine Merge-Freigabe für die gesamte Design-Welle.
 Der folgende Planreviewstand bleibt gültig.
 

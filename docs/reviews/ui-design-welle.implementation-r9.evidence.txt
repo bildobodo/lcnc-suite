@@ -1,0 +1,159 @@
+Codex implementation review round 9 / handshake R8
+Recorded: 2026-09-27T08:33:27.684240+02:00
+Product HEAD: 0418850183695d43fc653ec2cc75e54c992338be
+Scope: c2c8a06..0418850; UI-DI16/17, WP-D7–D10.
+Product sources and prior evidence unmodified. Browser runs sequential, nice -n 15, local mocks only.
+Independent mock: 127.0.0.1:4188. Probes abort HTTP requests to other origins. Smoke proxy attempts documented below; no successful live connection or machine command.
+
+Probe adaptations:
+- R9 main probe: R8 scenarios unchanged, only revision and output paths updated.
+- R9 limits probe: account for mutually exclusive disclosure state, verify both opening orders
+  and actual direct closes. A scrollable body is measured both before and after scrolling
+  each control into view; also real wheel input. Collisions injected through the existing
+  diagnostic hook. A hidden-HUD branch added because fitHud returns before computing the cap.
+- Exit 0 indicates completion of recording; findings are assessed from recorded geometry/hits.
+
+=== Build ===
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2036 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-zsM8cmEe.js                     4.40 kB
+dist/static/previewWorker-C1MOziwn.js               27.94 kB
+dist/static/partFrameWorker-CSLyKB3b.js             45.52 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/collisionWorker-DvVWZz9I.js            174.25 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-CAFKS1gN.css                 9.00 kB │ gzip:   2.15 kB
+dist/static/index-Cq8MXKx1.css                      81.27 kB │ gzip:  15.05 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-BBD6LeSX.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-DEks17d0.js                 9.05 kB │ gzip:   3.34 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/ThreeViewer-D8Wzo0lH.js                130.23 kB │ gzip:  48.45 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/index-DxwpU9p-.js                      544.13 kB │ gzip: 172.68 kB
+dist/static/three-Qdx04hrG.js                      881.82 kB │ gzip: 242.50 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.68s
+
+=== Lint including CSS audit ===
+
+> lcnc-webui@0.0.0 lint
+> eslint . && npm run lint:css
+
+
+> lcnc-webui@0.0.0 lint:css
+> python3 ../scripts/audit-scoped-css.py
+
+OK: no definite scoped-CSS leaks, no token drift. (use --all to see ROOT? candidates)
+
+=== Vitest, maxWorkers=1 ===
+
+> lcnc-webui@0.0.0 test
+> vitest run --maxWorkers=1
+
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite/lcnc-webui
+
+
+ Test Files  82 passed (82)
+      Tests  1661 passed (1661)
+   Start at  08:26:35
+   Duration  51.43s (transform 1.79s, setup 0ms, import 4.41s, tests 42.40s, environment 4ms)
+
+
+=== Independent baseline ===
+{"section": "layouts", "cases": 20, "unstable": 0, "overlapping": 0, "fit": ["fits"]}
+{"section": "thresholds", "cases": 21, "unstable": 0, "overlapping": 0, "fit": ["fits"]}
+{"section": "stationary", "forms": ["hud hudCard overlay-card stack-tight hudScale-lg"], "overlaps": []}
+{"section": "originalOscillation", "forms": ["hud hudCard overlay-card stack-tight hudScale-md hudFoldMach hudFoldFS"], "overlaps": []}
+Browser errors: []
+Mock commands: [{"cmd": "hello", "session": "0bd1d7a7-05f9-494d-aa2c-6d657c5b1413", "resume_armed": false}, {"cmd": "tab_visibility", "hidden": false}, {"cmd": "get_tool_table", "req_id": "571mkl-3"}, {"cmd": "get_tool_table", "req_id": "571mkl-4"}, {"cmd": "client_diag", "data": {"ts_client": 1790490526049, "heap": {"used_mb": 23.4, "total_mb": 37.8, "limit_mb": 2222.1}, "render": {"geometries": 43, "textures": 2, "programs": 13, "calls": 12, "triangles": 42}, "connected": true, "armed": true}, "req_id": "571mkl-5"}]
+
+=== Independent disclosures and scrolling ===
+{"case": "withLimit", "formsUnchanged": true, "warningsClosedDirectly": true, "moreClosedDirectly": true, "unreachableAfterScroll": [], "surroundingsOpened": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": null, "notes": {"x": 474, "y": 273.25, "right": 708, "bottom": 341.25, "width": 234, "height": 68}, "bottom": {"x": 474, "y": 273.25, "right": 870, "bottom": 675.5, "width": 396, "height": 402.25}, "scrub": {"x": 474, "y": 347.25, "right": 870, "bottom": 675.5, "width": 396, "height": 328.25}, "hud": {"x": 474, "y": 255, "right": 647.59375, "bottom": 459.78125, "width": 173.59375, "height": 204.78125}, "cap": "280px", "more": {"box": {"x": 797, "y": 354.25, "right": 857, "bottom": 408.25, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": {"x": 629, "y": 280.25, "right": 689, "bottom": 334.25, "width": 60, "height": 54}, "hit": true, "open": "false"}, "bannerHelpHit": null, "findings": {"box": {"x": 487, "y": 522.25, "right": 857, "bottom": 668.5, "width": 370, "height": 146.25}, "scrollTop": 0, "clientHeight": 98, "scrollHeight": 98, "pointerEvents": "auto"}}, "wheelResult": null, "orderA": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": null, "notes": {"x": 474, "y": 390.5, "right": 708, "bottom": 553.5, "width": 234, "height": 163}, "bottom": {"x": 474, "y": 390.5, "right": 870, "bottom": 675.5, "width": 396, "height": 285}, "scrub": {"x": 474, "y": 559.5, "right": 870, "bottom": 675.5, "width": 396, "height": 116}, "hud": {"x": 474, "y": 255, "right": 647.59375, "bottom": 459.78125, "width": 173.59375, "height": 204.78125}, "cap": "280px", "more": {"box": {"x": 797, "y": 566.5, "right": 857, "bottom": 620.5, "width": 60, "height": 54}, "hit": true, "open": "false"}, "notesToggle": {"box": {"x": 629, "y": 397.5, "right": 689, "bottom": 451.5, "width": 60, "height": 54}, "hit": true, "open": "true"}, "bannerHelpHit": null, "findings": {"box": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "scrollTop": 0, "clientHeight": 0, "scrollHeight": 0, "pointerEvents": "auto"}}, "orderB": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": null, "notes": {"x": 474, "y": 273.25, "right": 708, "bottom": 341.25, "width": 234, "height": 68}, "bottom": {"x": 474, "y": 273.25, "right": 870, "bottom": 675.5, "width": 396, "height": 402.25}, "scrub": {"x": 474, "y": 347.25, "right": 870, "bottom": 675.5, "width": 396, "height": 328.25}, "hud": {"x": 474, "y": 255, "right": 647.59375, "bottom": 459.78125, "width": 173.59375, "height": 204.78125}, "cap": "280px", "more": {"box": {"x": 797, "y": 354.25, "right": 857, "bottom": 408.25, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": {"x": 629, "y": 280.25, "right": 689, "bottom": 334.25, "width": 60, "height": 54}, "hit": true, "open": "false"}, "bannerHelpHit": null, "findings": {"box": {"x": 487, "y": 522.25, "right": 857, "bottom": 668.5, "width": 370, "height": 146.25}, "scrollTop": 0, "clientHeight": 98, "scrollHeight": 98, "pointerEvents": "auto"}}}
+{"case": "simulating", "formsUnchanged": true, "warningsClosedDirectly": true, "moreClosedDirectly": true, "unreachableAfterScroll": [], "surroundingsOpened": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": {"x": 474, "y": 302, "right": 708, "bottom": 365.78125, "width": 234, "height": 63.78125}, "bottom": {"x": 474, "y": 302, "right": 870, "bottom": 675.5, "width": 396, "height": 373.5}, "scrub": {"x": 474, "y": 371.78125, "right": 870, "bottom": 675.5, "width": 396, "height": 303.71875}, "hud": {"x": 474, "y": 302, "right": 647.59375, "bottom": 476.484375, "width": 173.59375, "height": 174.484375}, "cap": "249px", "more": {"box": {"x": 797, "y": 378.78125, "right": 857, "bottom": 432.78125, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": {"x": 629, "y": 309, "right": 689, "bottom": 363, "width": 60, "height": 54}, "hit": true, "open": "false"}, "bannerHelpHit": true, "findings": {"box": {"x": 487, "y": 546.78125, "right": 857, "bottom": 668.5, "width": 370, "height": 121.71875}, "scrollTop": 0, "clientHeight": 81, "scrollHeight": 98, "pointerEvents": "auto"}}, "wheelResult": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": {"x": 474, "y": 302, "right": 708, "bottom": 365.78125, "width": 234, "height": 63.78125}, "bottom": {"x": 474, "y": 302, "right": 870, "bottom": 675.5, "width": 396, "height": 373.5}, "scrub": {"x": 474, "y": 371.78125, "right": 870, "bottom": 675.5, "width": 396, "height": 303.71875}, "hud": {"x": 474, "y": 302, "right": 647.59375, "bottom": 476.484375, "width": 173.59375, "height": 174.484375}, "cap": "249px", "more": {"box": {"x": 797, "y": 378.78125, "right": 857, "bottom": 432.78125, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": {"x": 629, "y": 309, "right": 689, "bottom": 363, "width": 60, "height": 54}, "hit": true, "open": "false"}, "bannerHelpHit": true, "findings": {"box": {"x": 487, "y": 546.78125, "right": 857, "bottom": 668.5, "width": 370, "height": 121.71875}, "scrollTop": 16, "clientHeight": 81, "scrollHeight": 98, "pointerEvents": "auto"}}, "orderA": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": {"x": 474, "y": 390.5, "right": 708, "bottom": 553.5, "width": 234, "height": 163}, "bottom": {"x": 474, "y": 390.5, "right": 870, "bottom": 675.5, "width": 396, "height": 285}, "scrub": {"x": 474, "y": 559.5, "right": 870, "bottom": 675.5, "width": 396, "height": 116}, "hud": {"x": 474, "y": 302, "right": 647.59375, "bottom": 476.484375, "width": 173.59375, "height": 174.484375}, "cap": "249px", "more": {"box": {"x": 797, "y": 566.5, "right": 857, "bottom": 620.5, "width": 60, "height": 54}, "hit": true, "open": "false"}, "notesToggle": {"box": {"x": 629, "y": 397.5, "right": 689, "bottom": 451.5, "width": 60, "height": 54}, "hit": true, "open": "true"}, "bannerHelpHit": true, "findings": {"box": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "scrollTop": 0, "clientHeight": 0, "scrollHeight": 0, "pointerEvents": "auto"}}, "orderB": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": {"x": 474, "y": 302, "right": 708, "bottom": 365.78125, "width": 234, "height": 63.78125}, "bottom": {"x": 474, "y": 302, "right": 870, "bottom": 675.5, "width": 396, "height": 373.5}, "scrub": {"x": 474, "y": 371.78125, "right": 870, "bottom": 675.5, "width": 396, "height": 303.71875}, "hud": {"x": 474, "y": 302, "right": 647.59375, "bottom": 476.484375, "width": 173.59375, "height": 174.484375}, "cap": "249px", "more": {"box": {"x": 797, "y": 378.78125, "right": 857, "bottom": 432.78125, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": {"x": 629, "y": 309, "right": 689, "bottom": 363, "width": 60, "height": 54}, "hit": true, "open": "false"}, "bannerHelpHit": true, "findings": {"box": {"x": 487, "y": 546.78125, "right": 857, "bottom": 668.5, "width": 370, "height": 121.71875}, "scrollTop": 0, "clientHeight": 81, "scrollHeight": 98, "pointerEvents": "auto"}}}
+{"case": "collisions", "formsUnchanged": true, "warningsClosedDirectly": true, "moreClosedDirectly": true, "unreachableAfterScroll": [], "surroundingsOpened": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": {"x": 474, "y": 302, "right": 708, "bottom": 358.8125, "width": 234, "height": 56.8125}, "bottom": {"x": 474, "y": 302, "right": 870, "bottom": 675.5, "width": 396, "height": 373.5}, "scrub": {"x": 474, "y": 364.8125, "right": 870, "bottom": 675.5, "width": 396, "height": 310.6875}, "hud": {"x": 474, "y": 302, "right": 647.59375, "bottom": 476.484375, "width": 173.59375, "height": 174.484375}, "cap": "249px", "more": {"box": {"x": 797, "y": 371.8125, "right": 857, "bottom": 425.8125, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": {"x": 629, "y": 309, "right": 689, "bottom": 363, "width": 60, "height": 54}, "hit": true, "open": "false"}, "bannerHelpHit": true, "findings": {"box": {"x": 487, "y": 539.8125, "right": 857, "bottom": 668.5, "width": 370, "height": 128.6875}, "scrollTop": 0, "clientHeight": 86, "scrollHeight": 138, "pointerEvents": "auto"}}, "wheelResult": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": {"x": 474, "y": 302, "right": 708, "bottom": 358.8125, "width": 234, "height": 56.8125}, "bottom": {"x": 474, "y": 302, "right": 870, "bottom": 675.5, "width": 396, "height": 373.5}, "scrub": {"x": 474, "y": 364.8125, "right": 870, "bottom": 675.5, "width": 396, "height": 310.6875}, "hud": {"x": 474, "y": 302, "right": 647.59375, "bottom": 476.484375, "width": 173.59375, "height": 174.484375}, "cap": "249px", "more": {"box": {"x": 797, "y": 371.8125, "right": 857, "bottom": 425.8125, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": {"x": 629, "y": 309, "right": 689, "bottom": 363, "width": 60, "height": 54}, "hit": true, "open": "false"}, "bannerHelpHit": true, "findings": {"box": {"x": 487, "y": 539.8125, "right": 857, "bottom": 668.5, "width": 370, "height": 128.6875}, "scrollTop": 51.33333206176758, "clientHeight": 86, "scrollHeight": 138, "pointerEvents": "auto"}}, "orderA": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": {"x": 474, "y": 390.5, "right": 708, "bottom": 553.5, "width": 234, "height": 163}, "bottom": {"x": 474, "y": 390.5, "right": 870, "bottom": 675.5, "width": 396, "height": 285}, "scrub": {"x": 474, "y": 559.5, "right": 870, "bottom": 675.5, "width": 396, "height": 116}, "hud": {"x": 474, "y": 302, "right": 647.59375, "bottom": 476.484375, "width": 173.59375, "height": 174.484375}, "cap": "249px", "more": {"box": {"x": 797, "y": 566.5, "right": 857, "bottom": 620.5, "width": 60, "height": 54}, "hit": true, "open": "false"}, "notesToggle": {"box": {"x": 629, "y": 397.5, "right": 689, "bottom": 451.5, "width": 60, "height": 54}, "hit": true, "open": "true"}, "bannerHelpHit": true, "findings": {"box": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "scrollTop": 0, "clientHeight": 0, "scrollHeight": 0, "pointerEvents": "auto"}}, "orderB": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": {"x": 474, "y": 302, "right": 708, "bottom": 358.8125, "width": 234, "height": 56.8125}, "bottom": {"x": 474, "y": 302, "right": 870, "bottom": 675.5, "width": 396, "height": 373.5}, "scrub": {"x": 474, "y": 364.8125, "right": 870, "bottom": 675.5, "width": 396, "height": 310.6875}, "hud": {"x": 474, "y": 302, "right": 647.59375, "bottom": 476.484375, "width": 173.59375, "height": 174.484375}, "cap": "249px", "more": {"box": {"x": 797, "y": 371.8125, "right": 857, "bottom": 425.8125, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": {"x": 629, "y": 309, "right": 689, "bottom": 363, "width": 60, "height": 54}, "hit": true, "open": "false"}, "bannerHelpHit": true, "findings": {"box": {"x": 487, "y": 539.8125, "right": 857, "bottom": 668.5, "width": 370, "height": 128.6875}, "scrollTop": 0, "clientHeight": 86, "scrollHeight": 138, "pointerEvents": "auto"}}}
+{"case": "sixAxisSimulation", "formsUnchanged": true, "warningsClosedDirectly": true, "moreClosedDirectly": true, "unreachableAfterScroll": [], "surroundingsOpened": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": {"x": 474, "y": 302, "right": 708, "bottom": 365.78125, "width": 234, "height": 63.78125}, "bottom": {"x": 474, "y": 302, "right": 870, "bottom": 675.5, "width": 396, "height": 373.5}, "scrub": {"x": 474, "y": 371.78125, "right": 870, "bottom": 675.5, "width": 396, "height": 303.71875}, "hud": {"x": 474, "y": 302, "right": 627.796875, "bottom": 483.34375, "width": 153.796875, "height": 181.34375}, "cap": "249px", "more": {"box": {"x": 797, "y": 378.78125, "right": 857, "bottom": 432.78125, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": {"x": 629, "y": 309, "right": 689, "bottom": 363, "width": 60, "height": 54}, "hit": true, "open": "false"}, "bannerHelpHit": true, "findings": {"box": {"x": 487, "y": 546.78125, "right": 857, "bottom": 668.5, "width": 370, "height": 121.71875}, "scrollTop": 0, "clientHeight": 81, "scrollHeight": 98, "pointerEvents": "auto"}}, "wheelResult": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": {"x": 474, "y": 302, "right": 708, "bottom": 365.78125, "width": 234, "height": 63.78125}, "bottom": {"x": 474, "y": 302, "right": 870, "bottom": 675.5, "width": 396, "height": 373.5}, "scrub": {"x": 474, "y": 371.78125, "right": 870, "bottom": 675.5, "width": 396, "height": 303.71875}, "hud": {"x": 474, "y": 302, "right": 627.796875, "bottom": 483.34375, "width": 153.796875, "height": 181.34375}, "cap": "249px", "more": {"box": {"x": 797, "y": 378.78125, "right": 857, "bottom": 432.78125, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": {"x": 629, "y": 309, "right": 689, "bottom": 363, "width": 60, "height": 54}, "hit": true, "open": "false"}, "bannerHelpHit": true, "findings": {"box": {"x": 487, "y": 546.78125, "right": 857, "bottom": 668.5, "width": 370, "height": 121.71875}, "scrollTop": 16, "clientHeight": 81, "scrollHeight": 98, "pointerEvents": "auto"}}, "orderA": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": {"x": 474, "y": 400.6875, "right": 708, "bottom": 553.5, "width": 234, "height": 152.8125}, "bottom": {"x": 474, "y": 400.6875, "right": 870, "bottom": 675.5, "width": 396, "height": 274.8125}, "scrub": {"x": 474, "y": 559.5, "right": 870, "bottom": 675.5, "width": 396, "height": 116}, "hud": {"x": 474, "y": 302, "right": 627.796875, "bottom": 483.34375, "width": 153.796875, "height": 181.34375}, "cap": "249px", "more": {"box": {"x": 797, "y": 566.5, "right": 857, "bottom": 620.5, "width": 60, "height": 54}, "hit": true, "open": "false"}, "notesToggle": {"box": {"x": 629, "y": 407.6875, "right": 689, "bottom": 461.6875, "width": 60, "height": 54}, "hit": true, "open": "true"}, "bannerHelpHit": true, "findings": {"box": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "scrollTop": 0, "clientHeight": 0, "scrollHeight": 0, "pointerEvents": "auto"}}, "orderB": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": {"x": 474, "y": 302, "right": 708, "bottom": 365.78125, "width": 234, "height": 63.78125}, "bottom": {"x": 474, "y": 302, "right": 870, "bottom": 675.5, "width": 396, "height": 373.5}, "scrub": {"x": 474, "y": 371.78125, "right": 870, "bottom": 675.5, "width": 396, "height": 303.71875}, "hud": {"x": 474, "y": 302, "right": 627.796875, "bottom": 483.34375, "width": 153.796875, "height": 181.34375}, "cap": "249px", "more": {"box": {"x": 797, "y": 378.78125, "right": 857, "bottom": 432.78125, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": {"x": 629, "y": 309, "right": 689, "bottom": 363, "width": 60, "height": 54}, "hit": true, "open": "false"}, "bannerHelpHit": true, "findings": {"box": {"x": 487, "y": 546.78125, "right": 857, "bottom": 668.5, "width": 370, "height": 121.71875}, "scrollTop": 0, "clientHeight": 81, "scrollHeight": 98, "pointerEvents": "auto"}}}
+Browser errors: []
+Mock commands: [{"cmd": "hello", "session": "12f29ad4-b758-4599-a21b-39cc741a85a7", "resume_armed": false}, {"cmd": "tab_visibility", "hidden": false}, {"cmd": "get_tool_table", "req_id": "w7oa10-3"}, {"cmd": "get_tool_table", "req_id": "w7oa10-4"}]
+
+=== Dedicated hidden-HUD branch ===
+desktop: {"pane": {"x": 8, "y": 102, "right": 1044, "bottom": 692, "width": 1036, "height": 590}, "banner": null, "notes": {"x": 20, "y": 510.4375, "right": 145, "bottom": 600, "width": 125, "height": 89.5625}, "bottom": {"x": 20, "y": 510.4375, "right": 1032, "bottom": 680, "width": 1012, "height": 169.5625}, "scrub": {"x": 20, "y": 604, "right": 1032, "bottom": 680, "width": 1012, "height": 76}, "hud": {"x": 20, "y": 114, "right": 256, "bottom": 371.1875, "width": 236, "height": 257.1875}, "cap": "566px", "more": {"box": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "hit": false, "open": "false"}, "notesToggle": {"box": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "hit": false, "open": "false"}, "bannerHelpHit": null, "findings": {"box": {"x": 29, "y": 639, "right": 1023, "bottom": 675, "width": 994, "height": 36}, "scrollTop": 0, "clientHeight": 36, "scrollHeight": 36, "pointerEvents": "auto"}}
+narrowHudHidden: {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": null, "notes": null, "bottom": {"x": 474, "y": 559.5, "right": 870, "bottom": 675.5, "width": 396, "height": 116}, "scrub": {"x": 474, "y": 559.5, "right": 870, "bottom": 675.5, "width": 396, "height": 116}, "hud": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "cap": "566px", "more": {"box": {"x": 797, "y": 566.5, "right": 857, "bottom": 620.5, "width": 60, "height": 54}, "hit": true, "open": "false"}, "notesToggle": {"box": null, "hit": null}, "bannerHelpHit": null, "findings": {"box": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "scrollTop": 0, "clientHeight": 0, "scrollHeight": 0, "pointerEvents": "auto"}}
+simulatingFolded: {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 642, "bottom": 431, "width": 168, "height": 176}, "notes": null, "bottom": {"x": 474, "y": 559.5, "right": 870, "bottom": 675.5, "width": 396, "height": 116}, "scrub": {"x": 474, "y": 559.5, "right": 870, "bottom": 675.5, "width": 396, "height": 116}, "hud": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "cap": "566px", "more": {"box": {"x": 797, "y": 566.5, "right": 857, "bottom": 620.5, "width": 60, "height": 54}, "hit": true, "open": "false"}, "notesToggle": {"box": null, "hit": null}, "bannerHelpHit": null, "findings": {"box": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "scrollTop": 0, "clientHeight": 0, "scrollHeight": 0, "pointerEvents": "auto"}}
+simulatingMore: {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 642, "bottom": 431, "width": 168, "height": 176}, "notes": null, "bottom": {"x": 474, "y": 287.25, "right": 870, "bottom": 675.5, "width": 396, "height": 388.25}, "scrub": {"x": 474, "y": 287.25, "right": 870, "bottom": 675.5, "width": 396, "height": 388.25}, "hud": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "cap": "566px", "more": {"box": {"x": 797, "y": 294.25, "right": 857, "bottom": 348.25, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": null, "hit": null}, "bannerHelpHit": null, "findings": {"box": {"x": 487, "y": 462.25, "right": 857, "bottom": 668.5, "width": 370, "height": 206.25}, "scrollTop": 0, "clientHeight": 138, "scrollHeight": 138, "pointerEvents": "auto"}}
+hidden: {"hudVisible": false, "narrowClass": false, "bannerText": "SIMULATION \u2014 model shows the program, not the machine", "wrapper": "viewerWrapper"}
+hudRestored: {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": {"x": 474, "y": 302, "right": 708, "bottom": 358.8125, "width": 234, "height": 56.8125}, "bottom": {"x": 474, "y": 302, "right": 870, "bottom": 675.5, "width": 396, "height": 373.5}, "scrub": {"x": 474, "y": 364.8125, "right": 870, "bottom": 675.5, "width": 396, "height": 310.6875}, "hud": {"x": 474, "y": 302, "right": 647.59375, "bottom": 476.484375, "width": 173.59375, "height": 174.484375}, "cap": "249px", "more": {"box": {"x": 797, "y": 371.8125, "right": 857, "bottom": 425.8125, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": {"x": 629, "y": 309, "right": 689, "bottom": 363, "width": 60, "height": 54}, "hit": true, "open": "false"}, "bannerHelpHit": true, "findings": {"box": {"x": 487, "y": 539.8125, "right": 857, "bottom": 668.5, "width": 370, "height": 128.6875}, "scrollTop": 0, "clientHeight": 86, "scrollHeight": 138, "pointerEvents": "auto"}}
+errors: []
+commands: [{"cmd": "hello", "session": "4f956f97-c578-470c-99c4-22a0f083e6dc", "resume_armed": false}, {"cmd": "tab_visibility", "hidden": false}, {"cmd": "get_tool_table", "req_id": "m28p8s-3"}, {"cmd": "get_tool_table", "req_id": "m28p8s-4"}]
+A 566px cap from the desktop remains while HUD is hidden; More covers 143.75 viewport px of the banner, including its explanation. Restoring HUD gives cap=249px and a 6px gap.
+
+=== Playwright: 4 targeted layout tests (serial-layout, no-deps, workers=1, grep the HUD|the scrub bar) ===
+[2m[WebServer] [22m(node:2599590) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:2599618) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2599618) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [serial-layout] › e2e/layout.spec.ts:740:3 › 5axis-xyzac: the HUD, its findings, the scrub bar and the ViewCube column stay inside the viewer, apart and still (50.5s)
+  ✓  2 [serial-layout] › e2e/layout.spec.ts:740:3 › 6axis-twp: the HUD, its findings, the scrub bar and the ViewCube column stay inside the viewer, apart and still (50.3s)
+  ✓  3 [serial-layout] › e2e/layout.spec.ts:827:3 › 5axis-xyzac: the scrub bar's insides, the simulation banner and the opened details fit the narrow viewer (55.2s)
+  ✓  4 [serial-layout] › e2e/layout.spec.ts:827:3 › 6axis-twp: the scrub bar's insides, the simulation banner and the opened details fit the narrow viewer (55.8s)
+
+  4 passed (3.6m)
+
+=== Playwright: chromium project (no-deps, workers=1) ===
+[2m[WebServer] [22m(node:2602744) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 7 tests using 1 worker
+
+(node:2602762) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2602762) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/armed.spec.ts:12:1 › connected + armed + ready lifts default-deny on machine controls (1.1s)
+  ✓  2 [chromium] › e2e/frames.spec.ts:21:1 › status_delta merges onto prior status and updates the rendered DRO (1.1s)
+  ✓  3 [chromium] › e2e/frames.spec.ts:40:1 › pong drives the network-latency reading (2.0s)
+  ✓  4 [chromium] › e2e/frames.spec.ts:49:1 › halshow snapshot renders pins and halshow_update applies the delta (1.4s)
+[2m[WebServer] [22m8:34:54 AM [vite] ws proxy error:
+[2m[WebServer] [22mError: connect ECONNREFUSED 127.0.0.1:8000
+[2m[WebServer] [22m    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+  ✓  5 [chromium] › e2e/smoke.spec.ts:7:1 › app shell mounts with no gateway connected (843ms)
+[2m[WebServer] [22m8:34:55 AM [vite] ws proxy error:
+[2m[WebServer] [22mError: connect ECONNREFUSED 127.0.0.1:8000
+[2m[WebServer] [22m    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+  ✓  6 [chromium] › e2e/smoke.spec.ts:14:1 › default-deny: no armed gate is enabled while disconnected (774ms)
+[2m[WebServer] [22m8:34:56 AM [vite] ws proxy error:
+[2m[WebServer] [22mError: connect ECONNREFUSED 127.0.0.1:8000
+[2m[WebServer] [22m    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1638:16)
+  ✓  7 [chromium] › e2e/smoke.spec.ts:22:1 › Arm control stays reachable in the exempt slot (775ms)
+
+  7 passed (9.8s)
+
+Own review mock on 4188 terminated. The disconnected smoke tests log refused Vite proxy connections to localhost:8000; no live gateway connection succeeded. No machine commands or service restarts.
+Result: UI-DI17 closed; UI-DI16 remains P2 for hidden-HUD / resize. No new finding ID. No product edits or commits.
