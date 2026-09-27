@@ -89,7 +89,14 @@ platter while A/C rotate in TCP mode. It resets this example's G54 to the
 A/C intersection (G54 Z −500). Its own `sim.var` and `tool.tbl` keep this state separate
 from the other examples. A sample blank is shown; clamps, enclosure, way
 covers, tool changer and chip conveyor are omitted from this teaching model.
-The example does not configure probing routines or M600/M601.
+The probing routines and the toolsetter are configured like the other
+examples (`probe_basic`, `tool_length_probe`, `surfacemap` on the
+subroutine path; `M600` / `M601`). The M600/M601 in `remap_subs` wrap the
+bundle's: they measure in identity (`M429`) and return to TCP (`M428`) if
+the program was in it — the toolsetter's G53 moves would land in the
+table-riding frame otherwise. The simulated toolsetter surface is G53
+X150 Y0 Z−300 (`#3100`–`#3102`, beside the blank); a probe contact is
+triggered from the UI in the simulation.
 
 ## Kinematic contract
 

@@ -6211,4 +6211,15 @@ datum shift.
   G54 is Z −500 (sim.var and demo.ngc's `G10 L2 P1 … Z-500`): program zero
   stays at the A/C intersection, the demo's program values are unchanged, its
   retracts are `G53 G0 Z0`.
+- M600/M601 (same day, the second commit): the RS274NGC block of the other
+  examples (OWORD_NARGS, NO_DOWNCASE_OWORD, probe_basic / tool_length_probe /
+  surfacemap on the path, `O<on_abort>`), REMAP M600/M601 to kins-aware
+  wrappers in `remap_subs` (measure in identity, restore TCP — on the XYZAC
+  M429 is identity and M428 TCP, the reverse of the TWP example; the preview
+  reads the `#<_webui_kinstype>` mirror the 428/429 remaps now keep), `#3116`
+  in the var file, the simulated toolsetter at G53 X150 Y0 Z−300 (the probe
+  starts at −120 with `#3010` = 180 and ends at −300; a known 180 mm tool at
+  −118 — inside −400..0, beside the 130 mm blank). The suite's preview parse
+  of `T1 M6 / M600 / M601`: the old INI reads "M-code greater than 199: M600"
+  (line 4, the operator's message), the new one parses clean.
 

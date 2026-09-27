@@ -1,0 +1,33 @@
+; lcnc-suite, 2026-09-27 — the XYZAC example's M600. The bundled
+; tool_length_probe/m600.ngc runs tool_touch_off, whose positioning and
+; retracts are G53 moves. Under the xyzac TCP kinematics G53 addresses the
+; kinematics' WORLD frame (the table-riding frame), so the toolsetter moves
+; would land in the wrong place. This wrapper shadows the bundle's (first on
+; SUBROUTINE_PATH): save the switchkins type, measure in identity, restore
+; TCP. Under task the HAL pin is the truth; the preview parse has no HAL and
+; reads the interpreter mirror #<_webui_kinstype> the 428/429 remaps keep.
+; Identity in -> identity out. NOTE the XYZAC's remaps are the reverse of the
+; TWP example's: here M429 selects identity and M428 TCP
+; (xyzac-trt-kins sparm=identityfirst).
+o<m600> sub
+(WEBUI_SUB=m600) ;lcnc-suite: preview sub-span marker, silent in task
+#<saved_kins> = 0
+o100 if [EXISTS[#<_webui_kinstype>]]
+  #<saved_kins> = #<_webui_kinstype>
+o100 endif
+o110 if [#<_task> EQ 1]
+o111   if [EXISTS[#<_hal[motion.switchkins-type]>]]
+         #<saved_kins> = #<_hal[motion.switchkins-type]>
+o111   endif
+o110 endif
+o120 if [#<saved_kins> NE 0]
+  M429                      ; identity kinematics for the G53 moves
+o120 endif
+#2000 = 1                 ; automatic mode (tool change + measure)
+o<tool_touch_off> call
+o130 if [#<saved_kins> EQ 1]
+  M428                      ; TCP again
+o130 endif
+(WEBUI_SUB_END) ;lcnc-suite: preview sub-span marker
+o<m600> endsub
+M2 (end program)
