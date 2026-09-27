@@ -1,0 +1,244 @@
+{
+  "method": "gcode.parse with real PreviewCanon, read-only live STAT; #<_task>=0, private var file",
+  "ini": "/home/cnc/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_5axis_xyzac.ini",
+  "live_file_before": "kontur.ngc",
+  "cases": [
+    {
+      "mode": 0,
+      "command": "M600",
+      "rc": 1,
+      "line": 6,
+      "error": null,
+      "kins_events": [
+        [
+          0,
+          0
+        ]
+      ],
+      "sub_events": [
+        [
+          0,
+          "429remap",
+          "m429"
+        ],
+        [
+          0,
+          null,
+          null
+        ],
+        [
+          0,
+          "m600",
+          null
+        ],
+        [
+          0,
+          "tool_touch_off",
+          null
+        ],
+        [
+          0,
+          null,
+          null
+        ],
+        [
+          0,
+          null,
+          null
+        ]
+      ]
+    },
+    {
+      "mode": 0,
+      "command": "M601",
+      "rc": 1,
+      "line": 6,
+      "error": null,
+      "kins_events": [
+        [
+          0,
+          0
+        ]
+      ],
+      "sub_events": [
+        [
+          0,
+          "429remap",
+          "m429"
+        ],
+        [
+          0,
+          null,
+          null
+        ],
+        [
+          0,
+          "m601",
+          null
+        ],
+        [
+          0,
+          "tool_touch_off",
+          null
+        ],
+        [
+          0,
+          null,
+          null
+        ],
+        [
+          0,
+          null,
+          null
+        ]
+      ]
+    },
+    {
+      "mode": 1,
+      "command": "M600",
+      "rc": 1,
+      "line": 6,
+      "error": null,
+      "kins_events": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "sub_events": [
+        [
+          0,
+          "428remap",
+          "m428"
+        ],
+        [
+          0,
+          null,
+          null
+        ],
+        [
+          0,
+          "m600",
+          null
+        ],
+        [
+          0,
+          "429remap",
+          "m429"
+        ],
+        [
+          0,
+          null,
+          null
+        ],
+        [
+          0,
+          "tool_touch_off",
+          null
+        ],
+        [
+          0,
+          null,
+          null
+        ],
+        [
+          0,
+          "428remap",
+          "m428"
+        ],
+        [
+          0,
+          null,
+          null
+        ],
+        [
+          0,
+          null,
+          null
+        ]
+      ]
+    },
+    {
+      "mode": 1,
+      "command": "M601",
+      "rc": 1,
+      "line": 6,
+      "error": null,
+      "kins_events": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "sub_events": [
+        [
+          0,
+          "428remap",
+          "m428"
+        ],
+        [
+          0,
+          null,
+          null
+        ],
+        [
+          0,
+          "m601",
+          null
+        ],
+        [
+          0,
+          "429remap",
+          "m429"
+        ],
+        [
+          0,
+          null,
+          null
+        ],
+        [
+          0,
+          "tool_touch_off",
+          null
+        ],
+        [
+          0,
+          null,
+          null
+        ],
+        [
+          0,
+          "428remap",
+          "m428"
+        ],
+        [
+          0,
+          null,
+          null
+        ],
+        [
+          0,
+          null,
+          null
+        ]
+      ]
+    }
+  ],
+  "live_file_after": "kontur.ngc"
+}
