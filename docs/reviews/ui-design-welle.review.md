@@ -1,9 +1,9 @@
 # Review: WebUI Design-Welle — Abstimmung mit Claude / Fable
 
-**Umsetzungsreview · Runde 6 · 27. September 2026 · `000ceef`: D7–D10 noch ohne
-Implementierungs-Agreement. Drei offene P2-Befunde UI-DI12–14:** überdeckte Achswerte,
-oszillierende HUD-Größe und die fehlende Formunterscheidung der Pfadauswahl.
-[Codex Implementierungsreview Runde 6](ui-design-welle.implementation-review.md#codex-implementierungsreview-runde-6).
+**Umsetzungsreview · Runde 7 · 27. September 2026 · `883465a`: UI-DI12–14 geschlossen.
+Zwei neue P2-Befunde UI-DI15–16 zur schmalen Programm-Zeitleiste und zum
+Simulationshinweis bleiben offen; D7–D10 noch ohne Implementierungs-Agreement.**
+[Codex Implementierungsreview Runde 7](ui-design-welle.implementation-review.md#codex-implementierungsreview-runde-7).
 Die Agreements für DR + D0–D6 bleiben gültig; UI-DI01–11 bleiben geschlossen.
 Keine Merge-Freigabe für die gesamte Design-Welle.
 Der folgende Planreviewstand bleibt gültig.

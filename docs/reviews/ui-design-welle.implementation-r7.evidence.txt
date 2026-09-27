@@ -1,0 +1,146 @@
+Codex implementation review round 7 / handshake R6
+Recorded: 2026-09-27T05:38:14.767787+02:00
+Product HEAD: 883465afdf0645e9c04328630774f9b51fab4687
+Scope: 6fe1cd2..883465a; UI-DI12–14, WP-D7–D10.
+Product sources, prior evidence and reference images unmodified. Browser runs sequential, nice -n 15, local mocks only.
+Own mock 127.0.0.1:4188 terminated after the probes. No live LinuxCNC or gateway interaction.
+
+=== Build ===
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2036 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-zsM8cmEe.js                     4.40 kB
+dist/static/previewWorker-C1MOziwn.js               27.94 kB
+dist/static/partFrameWorker-CSLyKB3b.js             45.52 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/collisionWorker-DvVWZz9I.js            174.25 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-DJab8jKp.css                 7.29 kB │ gzip:   1.83 kB
+dist/static/index-B-nWikZZ.css                      81.32 kB │ gzip:  15.06 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-DrYrH7ZD.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-CZQrIQV4.js                 9.05 kB │ gzip:   3.34 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/ThreeViewer-CdEBKzB4.js                127.39 kB │ gzip:  47.43 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/index-D7kTG5II.js                      544.13 kB │ gzip: 172.68 kB
+dist/static/three-Qdx04hrG.js                      881.82 kB │ gzip: 242.50 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 4.83s
+
+
+=== ESLint and CSS audit ===
+
+> lcnc-webui@0.0.0 lint
+> eslint . && npm run lint:css
+
+
+> lcnc-webui@0.0.0 lint:css
+> python3 ../scripts/audit-scoped-css.py
+
+OK: no definite scoped-CSS leaks, no token drift. (use --all to see ROOT? candidates)
+
+
+=== Vitest: npm test -- --maxWorkers=1 ===
+
+> lcnc-webui@0.0.0 test
+> vitest run --maxWorkers=1
+
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite/lcnc-webui
+
+
+ Test Files  82 passed (82)
+      Tests  1661 passed (1661)
+   Start at  05:24:01
+   Duration  42.12s (transform 1.30s, setup 0ms, import 3.35s, tests 34.97s, environment 3ms)
+
+
+
+=== Playwright: viewer.spec.ts + scenes.viewer.spec.ts; serial-viewer, no-deps, workers=1; SCENE_OUT=docs/reviews/ui-design-welle.implementation-r7-scenes ===
+
+Running 6 tests using 1 worker
+
+(node:2348816) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2348816) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [serial-viewer] › e2e/scenes.viewer.spec.ts:48:1 › the palette and the wide selection in four themes, on a model, a dense and a thin path (5.5s)
+  ✓  2 [serial-viewer] › e2e/viewer.spec.ts:55:1 › a clean rebuild frees AND re-applies the loaded program's toolpath geometry (8.2s)
+  ✓  3 [serial-viewer] › e2e/viewer.spec.ts:129:1 › the viewer fetches nothing from outside the gateway (an offline machine) (2.4s)
+  ✓  4 [serial-viewer] › e2e/viewer.spec.ts:171:1 › studio model keeps a themed, persistent ground grid through motion and rebuilds (3.3s)
+  ✓  5 [serial-viewer] › e2e/viewer.spec.ts:299:1 › default framing keeps the eye outside a bed/column model for every direction, preset, projection and reset (8.0s)
+  ✓  6 [serial-viewer] › e2e/viewer.spec.ts:384:1 › the viewer palette: Automatic follows the theme, Custom stays, a legacy palette is Custom, the legend shows what is drawn (2.3s)
+
+  6 passed (30.2s)
+
+
+=== Playwright: layout.spec.ts, grep "the HUD"; serial-layout, no-deps, workers=1 ===
+
+Running 2 tests using 1 worker
+
+(node:2352110) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2352110) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [serial-layout] › e2e/layout.spec.ts:740:3 › 5axis-xyzac: the HUD, its findings, the scrub bar and the ViewCube column stay inside the viewer, apart and still (47.5s)
+  ✓  2 [serial-layout] › e2e/layout.spec.ts:740:3 › 6axis-twp: the HUD, its findings, the scrub bar and the ViewCube column stay inside the viewer, apart and still (49.3s)
+
+  2 passed (1.6m)
+
+
+=== Independent original-repro and warnings-disclosure probe (full data in implementation-r7.json) ===
+{"axes":5,"vp":"desktop","scale":"md","unique":["hud hudCard overlay-card stack-tight hudScale-md"],"overlaps":[]}
+{"axes":5,"vp":"desktop","scale":"xl","unique":["hud hudCard overlay-card stack-tight hudScale-xl"],"overlaps":[]}
+{"axes":5,"vp":"compact","scale":"md","unique":["hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool"],"overlaps":[]}
+{"axes":5,"vp":"compact","scale":"xl","unique":["hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool"],"overlaps":[]}
+{"axes":5,"vp":"touch-landscape","scale":"md","unique":["hud hudCard overlay-card stack-tight hudScale-md hudFoldMach hudFoldFS"],"overlaps":[]}
+{"axes":5,"vp":"touch-landscape","scale":"xl","unique":["hud hudCard overlay-card stack-tight hudScale-md hudFoldMach hudFoldFS"],"overlaps":[]}
+{"axes":5,"vp":"touch-portrait","scale":"md","unique":["hud hudCard overlay-card stack-tight hudScale-md"],"overlaps":[]}
+{"axes":5,"vp":"touch-portrait","scale":"xl","unique":["hud hudCard overlay-card stack-tight hudScale-lg"],"overlaps":[]}
+{"axes":5,"vp":"touch-portrait-150","scale":"md","unique":["hud hudCard overlay-card stack-tight hudScale-xs hudFoldMach hudFoldFS hudFoldTool"],"overlaps":[]}
+{"axes":5,"vp":"touch-portrait-150","scale":"xl","unique":["hud hudCard overlay-card stack-tight hudScale-xs hudFoldMach hudFoldFS hudFoldTool"],"overlaps":[]}
+{"axes":6,"vp":"desktop","scale":"md","unique":["hud hudCard overlay-card stack-tight hudScale-md"],"overlaps":[]}
+{"axes":6,"vp":"desktop","scale":"xl","unique":["hud hudCard overlay-card stack-tight hudScale-lg"],"overlaps":[]}
+{"axes":6,"vp":"compact","scale":"md","unique":["hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool"],"overlaps":[]}
+{"axes":6,"vp":"compact","scale":"xl","unique":["hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool"],"overlaps":[]}
+{"axes":6,"vp":"touch-landscape","scale":"md","unique":["hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS"],"overlaps":[]}
+{"axes":6,"vp":"touch-landscape","scale":"xl","unique":["hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS"],"overlaps":[]}
+{"axes":6,"vp":"touch-portrait","scale":"md","unique":["hud hudCard overlay-card stack-tight hudScale-md"],"overlaps":[]}
+{"axes":6,"vp":"touch-portrait","scale":"xl","unique":["hud hudCard overlay-card stack-tight hudScale-md"],"overlaps":[]}
+{"axes":6,"vp":"touch-portrait-150","scale":"md","unique":["hud hudCard overlay-card stack-tight hudScale-xxs hudFoldMach hudFoldFS hudFoldTool"],"overlaps":[]}
+{"axes":6,"vp":"touch-portrait-150","scale":"xl","unique":["hud hudCard overlay-card stack-tight hudScale-xxs hudFoldMach hudFoldFS hudFoldTool"],"overlaps":[]}
+
+
+=== Independent limit-finding and client-local simulation probe (full data in implementation-r7-limits.json) ===
+
+
+ui-design-welle.implementation-r7.json
+Probe fatal: None
+Browser errors: []
+Observed mock command types: ['client_diag', 'get_tool_table', 'hello', 'tab_visibility']
+
+ui-design-welle.implementation-r7-limits.json
+Probe fatal: None
+Browser errors: []
+Observed mock command types: ['get_tool_table', 'hello', 'tab_visibility']

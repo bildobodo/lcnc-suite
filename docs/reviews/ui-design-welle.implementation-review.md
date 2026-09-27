@@ -5,10 +5,10 @@ mit Plan-Agreement ([Planreview Runde 3](ui-design-welle.review.md#codex-runde-3
 hält je Arbeitspaket den Umsetzungsstand, Abweichungen und Gate-Läufe fest; die
 Codex-Implementierungsreviews folgen nach den Paketgruppen DR + D0–D2, D3–D6 und D7–D10.
 
-**Aktueller Reviewstand · Codex Runde 6 · 27. September 2026 · `000ceef`:
-D7–D10 noch ohne Implementierungs-Agreement. Drei offene P2-Befunde UI-DI12–14:**
-überdeckte Achswerte, oszillierende HUD-Größe und die fehlende Formunterscheidung der
-Pfadauswahl. [Befunde, Nachweise und Prüfgrenzen](#codex-implementierungsreview-runde-6).
+**Aktueller Reviewstand · Codex Runde 7 · 27. September 2026 · `883465a`:
+UI-DI12–14 sind geschlossen. Zwei neue P2-Befunde UI-DI15–16 zur schmalen
+Programm-Zeitleiste und zum Simulationshinweis bleiben offen; D7–D10 noch ohne
+Implementierungs-Agreement.** [Nachprüfung, Nachweise und Prüfgrenzen](#codex-implementierungsreview-runde-7).
 Das [Agreement aus Runde 5 für D3–D6](#codex-implementierungsreview-runde-5) bleibt gültig;
 UI-DI05–11 bleiben geschlossen.
 Das [Agreement aus Runde 3 für DR + D0–D2](#codex-implementierungsreview-runde-3)
@@ -2456,3 +2456,142 @@ Richtig: Fassung 3 nennt bei N111 bereits die Textrollenregel. Meine Übergabe b
 - build, lint, Vitest (**1661**) und Audit-Tests (**28**) grün.
 - Playwright **277/277** über alle neun Projekte; `serial-layout` 65, `serial-viewer` 6 (neu:
   `scenes.viewer.spec.ts`).
+
+---
+
+## Codex Implementierungsreview Runde 7
+
+**27. September 2026 · `6fe1cd2..883465a` · Branch `feat/ui-design-wave` ·
+Handshake R6 · Nachprüfung UI-DI12–14 zu D7–D10.**
+
+**Ergebnis: Die drei Korrekturen schließen UI-DI12–14. Zwei weitere P2-Befunde
+UI-DI15–16 verhindern noch das Agreement für D7–D10.** Sie betreffen die Inhalte
+der Programm-Zeitleiste und den Simulationshinweis im unterstützten schmalen Layout.
+Die erweiterten Prüfungen mit Limitbefund und aktiver lokaler Simulation machen
+diese bestehenden Engpässe sichtbar. Die bisherigen Agreements für DR + D0–D6
+bleiben gültig.
+
+### Nachprüfung der drei Korrekturen
+
+| ID | Ergebnis am Stand `883465a` | Status |
+|---|---|---|
+| UI-DI12 | Die ursprüngliche Überdeckung der Achswerte durch die Warnkarte ist in allen 20 Kombinationen aus fünf/sechs Achsen, Fenster, Zoom und gewünschter HUD-Größe beseitigt. Alle Achswerte bleiben sichtbar. Die kompakte Warnkarte nennt die Anzahl; sowohl drei Zustandshinweise als auch ein zusätzlicher langer Programmhinweis lassen sich bei 150 % per Klick öffnen und wieder schließen. | geschlossen |
+| UI-DI13 | Die vollständige Kandidatenmessung stabilisiert die Anpassung. Keine Oszillation in den 20 Kombinationen, an 21 Höhenschwellen und in den beiden längeren Zeitreihen. Am ursprünglichen Repro 1280 × 800, Touch, fünf Achsen, `md` bleibt die Form über 200 Stichproben konstant. | geschlossen |
+| UI-DI14 | Die Auswahl wird zusätzlich mit `LineSegments2` und `LineMaterial` in 3 Bildschirmpixeln gezeichnet. Der neue Unit-Test prüft Segmentinhalt, Breite, Löschen der Auswahl und Farbwechsel; der Viewer-Test besteht auch seine wiederholten Szenen-Neuaufbauten. Alle acht neu erzeugten Szenenbilder wurden angesehen: Die Auswahl hebt sich in dünnem und dichtem Pfad in allen vier Themes durch ihre Breite ab. | geschlossen |
+
+[Fortgeschriebene unabhängige Sonde](ui-design-welle.implementation-r7.probe.mjs),
+[Messdaten und Zeitreihen](ui-design-welle.implementation-r7.json),
+[sechs Achsen bei 150 %, gefaltete Hinweise](ui-design-welle.implementation-r7-6axis-touch-portrait-150-md.png),
+[geöffnete Hinweise einschließlich Programmwarnung](ui-design-welle.implementation-r7-warnings-program.png).
+Die historischen R6-Belege im Commit `6fe1cd2` bleiben unverändert.
+
+Die ausdrücklich geöffnete Warnkarte darf vorübergehend über der DRO liegen:
+Das ist eine angeforderte Detailansicht mit erreichbarem Rückweg. Die Sonde prüft
+den tatsächlichen Hit-Test des Schließknopfs und die Sichtbarkeit der Warnzeilen.
+In ihrer Sechsachs-Konstellation meldet `data-hud-fit` noch `overflow`, obwohl sich
+die geschlossenen Karten nicht mehr überdecken: Der letzte Zwischenraum ist kleiner
+als der vorgesehene Abstand. Die sichtbare ursprüngliche Überdeckung ist behoben;
+dieses Attribut allein ist deshalb weder ein ausreichender Erfolgs- noch Fehlernachweis.
+
+Der reproduzierbare Szenentest ist jetzt im Repository. Beispielbelege:
+[dichter Pfad, hell](ui-design-welle.implementation-r7-scenes/scene-dense-light.png),
+[dichter Pfad, dunkel](ui-design-welle.implementation-r7-scenes/scene-dense-dark.png),
+[dünner Pfad, HC hell](ui-design-welle.implementation-r7-scenes/scene-thin-hc-light.png),
+[dünner Pfad, HC dunkel](ui-design-welle.implementation-r7-scenes/scene-thin-hc-dark.png).
+Die weiteren vier Bilder liegen im selben Belegordner. Der Ansatz aus Strukturprüfung
+und dokumentierter Sichtprüfung erfüllt die hier offene Auswahl-Abnahme ohne
+plattformübergreifende WebGL-Pixelreferenz.
+
+### UI-DI15 · P2 · D9: Die Zeitleiste passt als Karte, ihre Inhalte passen nicht
+
+**Stellen:** `lcnc-webui/src/ScrubBar.vue:939` und `:1012` (beide festen Zeilen),
+`:1107` (`.sliderWrap` darf auf null schrumpfen), `:1174` und `:1198` (feste
+Geschwindigkeitsbreite und nicht umbrechendes Werkzeugetikett).
+
+**Repro:** 900 × 1200, Touch-Dichte, 150 %, fünf oder sechs Achsen, geladenes
+Programm mit Zeitleiste. Für die zweite Zeile zusätzlich genau ein Soft-Limit-Befund
+X = 120 bei Maximum 100. Die ergänzende Sonde aktiviert danach auch die rein lokale
+Simulation bei ausgeschaltetem Mock-Maschinenzustand.
+
+Die `.scrubBar` liegt innerhalb des Viewers. Ihre Kinder laufen jedoch rechts aus
+dem verfügbaren Bereich; die Zeilen haben keinen Umbruch oder erreichbaren
+Überlaufpfad. Die Messung zeigt:
+
+- `.scrubBar.clientWidth` **263 CSS-px**, mit Limitbefund `scrollWidth` **578 CSS-px**.
+- Der eigentliche Positionsregler `.sliderInput` hat **0 px Breite**, auch während
+  der aktivierten Simulation. Damit lässt sich die Programmposition nicht sinnvoll
+  über die Zeitleiste wählen.
+- Der Knopf `×1.0` reicht bis x = **932,5**, die Positionsanzeige liegt bei
+  x = **1011,5–1066,5**, bei einer Fensterbreite von 900 px. Der Knopf-Mittelpunkt
+  ist nicht per Hit-Test erreichbar; die Positionsanzeige verschwindet.
+- Bei eingeschalteter Mock-Maschine liegt die Hilfe zu Limitbefunden bei
+  x = **906–930**, vollständig außerhalb des Fensters. Auch die Kollisionshilfe
+  und das Werkzeugetikett liegen außerhalb. In der aktiven Simulation ändern sich
+  einige Knopfbreiten; die Kollisionshilfe und Teile der ersten Zeile bleiben dennoch
+  abgeschnitten.
+
+**Belege:** [Sonde einschließlich Simulation und Hit-Tests](ui-design-welle.implementation-r7-limits.probe.mjs),
+[Maße der Karten und ihrer Kinder](ui-design-welle.implementation-r7-limits.json),
+[Limitbefund vor Simulationsstart](ui-design-welle.implementation-r7-limits-folded.png),
+[aktive lokale Simulation](ui-design-welle.implementation-r7-limits-simulation.png).
+Die Engstelle der ersten Zeile besteht bereits ohne Limitbefund (`beforeLimit`).
+
+**Erforderlich:** Eine Kompaktform für die Inhalte der Zeitleiste, die dem
+Positionsregler eine nutzbare Breite lässt und Geschwindigkeit, Position, Befunde
+und Hilfen erreichbar hält. Die umgebende Karte allein passend zu positionieren
+genügt nicht. Gruppen können in eigene Zeilen oder einen ausdrücklich zugänglichen
+Detailbereich wechseln; ihre zusätzliche Höhe muss die Gesamtanpassung berücksichtigen.
+
+**Abnahme:** Geladenes Programm ohne und mit Limit-/Kollisionsbefunden, einschließlich
+aktiver Simulation, im Hochformat bei 100 % und 150 %. Neben den äußeren Karten auch
+Reglerbreite, lesbare Knopfinhalte, Positionsanzeige und Hit-Tests aller Hilfen prüfen.
+Der neue Layouttest misst die äußere ScrubBar, aber nicht deren überlaufende Inhalte.
+
+### UI-DI16 · P2 · D9: Der Simulationshinweis wird abgeschnitten und überlagert die DRO
+
+**Stellen:** `lcnc-webui/src/style.css:1292` (`.simBanner`: zentriert, `nowrap`,
+ohne Breitenbegrenzung) und `lcnc-webui/src/ThreeViewer.vue:4101` (zusätzliche
+Overlay-Karte außerhalb der HUD-Platzberechnung).
+
+**Repro:** In der gleichen Fünfachs-Konstellation bei 150 % die lokale Simulation
+einschalten. Die volle Meldung lautet „SIMULATION — model shows the program, not the
+machine“. Die Mitte der zu breiten Karte liegt im Viewer; ihre beiden Enden werden
+abgeschnitten. Im Bild ist der Anfang von „SIMULATION“ nicht mehr lesbar. Gleichzeitig
+liegt die Karte über dem oberen Bereich der DRO und verdeckt Überschrift und einen
+Teil der ersten Achszeile. Gemessen sind **633,70 px Kartenbreite bei 432 px
+Viewerbreite**; die Karte überdeckt die ersten **10 px der X-Wertzelle** in der Höhe.
+
+**Beleg:** [Simulationsbild](ui-design-welle.implementation-r7-limits-simulation.png)
+und `simulating.overlays` im [JSON](ui-design-welle.implementation-r7-limits.json).
+
+**Erforderlich:** Der Hinweis muss im schmalen Bereich vollständig lesbar bleiben
+und einen Platz erhalten, den die DRO-Anpassung berücksichtigt. Eine kurze sichtbare
+Moduskennzeichnung mit erreichbarer Erläuterung ist ebenfalls möglich. Allein den
+Text umbrechen zu lassen verhindert seine Überdeckung der Achswerte noch nicht.
+
+**Abnahme:** Den bestehenden Overlay-Test auch mit eingeschalteter Simulation
+ausführen: vollständiger Modusname und alle Achswerte sichtbar, keine unbeabsichtigte
+Überdeckung. Der bisherige Test schaltet die Simulation nicht ein und erfasst
+`.simBanner` nicht.
+
+### Verifikation und Prüfgrenzen
+
+- Build und ESLint/CSS-Audit bestanden.
+- Vitest: **82 Dateien, 1661 Tests bestanden**.
+- Die beiden erweiterten HUD-Tests bestanden mit insgesamt 20 Kombinationen.
+- Alle **sechs Viewer-Tests** bestanden; acht Szenenbilder neu erzeugt und angesehen.
+- Zwei eigene Sonden gegen `127.0.0.1:4188`: ursprüngliche Repros, Schwellen,
+  Warnungsdetails sowie Limitbefund und aktive lokale Simulation. Keine Browserfehler.
+- `sweep: TNaN` erscheint in den Nachweisen nicht mehr; ohne Werkzeug wird die
+  Verwendung des 6-mm-Ersatzkörpers angegeben.
+
+[Prüfprotokolle](ui-design-welle.implementation-r7.evidence.txt).
+Die gemeldete vollständige 277er-Browsersuite wurde hier nicht nochmals als Gesamtgate
+gestartet. Keine Python-Produktänderung in diesem Bereich; kein erneuter Backend-Lauf.
+Alle Browserprüfungen liefen seriell mit niedriger Prozesspriorität gegen lokale Mocks.
+Die Simulation der Sonde ist clientlokal; das Befehlsprotokoll enthält keinen
+Maschinenlauf. LinuxCNC und der echte Gateway wurden nicht angesprochen oder neu gestartet.
+Keine physische Touch-/Screenreader-, Safari-/Firefox- oder Live-XYZAC-Abnahme.
+Nur Review-Dokumentation und eigene Belege geändert; kein Produktcode, keine bestehenden
+Tests oder Referenzbilder. Die Gesamtabnahme bleibt offen.
+Der eigene Review-Mock auf Port 4188 wurde nach Abschluss der Messungen beendet.
