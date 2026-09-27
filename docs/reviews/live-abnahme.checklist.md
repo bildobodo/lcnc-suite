@@ -8,6 +8,7 @@ Merge beider Branches nach `development`.
     [Review](ui-design-welle.implementation-review.md)).
   - Viewer-Kontrast: Plan-Agreement (Runde 2) und Implementierungs-Agreement V1–V6 (Runde 5,
     [Review](viewer-kontrast.review.md)).
+  - XYZAC-Z-Nullpunkt und M600 (`fix/xyzac-z0-m600`): Review R15 angefragt.
 - **Offline-Gates** (`python3 scripts/test_suite.py offline`):
   - Welle auf `15b46ff`: PASS, Playwright 282/282.
   - Kontrast auf `82418a7`: PASS, Backend 969, Vitest 1684, Playwright 292/292.
@@ -90,6 +91,40 @@ Merge beider Branches nach `development`.
 - **Touch-Korrekturen** (`abf0a6a`, Kontextmenü nach langem Druck, Tipp-Blitz, Icons) kommen mit
   der Welle nach `development`, kein Vorab-Cherry-Pick.
 
+## XYZAC-Sim: Z-Nullpunkt oben, M600 eingerichtet (neu, 27. September)
+
+**Was sich geändert hat:**
+- Maschinen-Z0 ist die Oberkante des Verfahrwegs, wie bei TWP und DMU. Der A/C-Schnittpunkt liegt
+  bei Maschinen-Z −500, der Z-Bereich ist −400…0.
+- Deine installierte Konfiguration wurde einmal migriert. Die Sicherung liegt unter
+  `~/linuxcnc/config-backups/lcnc_suite_sim/20260927T132644.739785Z/`.
+  - G54 Z: 280 → −220. Der Werkstücknullpunkt bleibt physisch am selben Ort.
+  - G30 Z: 473,725 → −26,275.
+  - G55–G59.3 Z und die gespeicherte Z-Position sind um −500 verschoben.
+- M600/M601 sind eingerichtet. M600 misst in Identität und kehrt nach TCP zurück, wenn das
+  Programm in TCP war.
+- **Toolsetter** (Probing → Toolsetter) ist für diese Konfiguration eingetragen: X 150, Y 0, Z −300
+  (G53), „Return to start position“ aus. „Reset Toolsetter“ nimmt das zurück.
+
+| Prüfung | Erwartung |
+|---|---|
+| Nach Home All | Z steht auf 0, alle Z-Werte der Maschine sind ≤ 0 |
+| → Home, → G30, → Zero | Z fährt zuerst nach oben, nie nach unten |
+| Tools → Measure Current | misst mit „Simulate probe“; die Länge wird gespeichert |
+| Programm mit M600 laden | keine Meldung „M-code greater than 199“ mehr |
+
+**Hinweise:**
+- Die M600-Programme in `nc_files` (kontur, haus, basify …) sind 3-Achs-Programme. T8 fehlt in der
+  XYZAC-Werkzeugtabelle, und X reicht bis 346 bei ±250 Verfahrweg. Die Vorschau meldet deshalb jetzt
+  „Requested tool 8 not found in the tool table“. Das ist die ehrliche nächste Meldung, kein
+  Remap-Fehler. Geladen ist `kontur.ngc`.
+- Ein M600, der unter TCP mit Fehler oder Abbruch endet, bleibt in Identität; der Chip zeigt
+  „Machine“.
+- Zwei Befunde gehen an Codex (R15), bevor ich sie behebe:
+  - Ohne gespeicherte Toolsetter-Werte schreibt die WebUI Nullen in die Maschine.
+  - Nach einem Fehler in einem MDI-Unterprogramm ohne geladenes Programm zeigt die WebUI das
+    Unterprogramm als geladenes Programm.
+
 ## Wenn alles passt — Merge (nur `development`, nie `main`)
 
 ```bash
@@ -98,6 +133,9 @@ git checkout development
 git merge --no-ff feat/ui-design-wave
 git merge --no-ff feat/viewer-contrast
 ```
+
+`feat/viewer-contrast` enthält auch `fix/xyzac-z0-m600`; der XYZAC-Fix kommt also mit. Willst du
+ihn schon vorher allein in `development` haben: `git merge --no-ff fix/xyzac-z0-m600`.
 
 Danach die Suite neu starten. Ein `git push` ist deine Entscheidung; die bisherigen Merges nach
 `development` waren lokal. Wenn etwas nicht passt: kurz notieren, was und wo (Theme, Zoom,
