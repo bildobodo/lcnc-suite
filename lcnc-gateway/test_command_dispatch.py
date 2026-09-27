@@ -323,6 +323,152 @@ class TestHandlerExecution(unittest.TestCase):
         self.assertEqual(cmd.args_of("mdi"), ("#3100=150.000000 #3102=-300.000000",))
         self.assertTrue(r["mdi_set"], r)
 
+    # ---- Codex R16 XZ-06/07: the values and the command are ONE server
+    # command — no continuation left in a browser for an abort to miss ----
+    def _rcs(self, rc=1, block=None):
+        class _Cmd(_RecordingCmd):
+            def wait_complete(self, *_a):
+                if block is not None:
+                    block()
+                return rc
+
+            def mode(self, m):   # task follows the switch, as set_mode verifies
+                self.calls.append(("mode", (m,), {}))
+                gateway.STAT.task_mode = m
+                return 0
+        gateway.CMD = cmd = _Cmd()
+        gateway.STAT.enabled = True
+        gateway.STAT.task_mode = linuxcnc.MODE_MDI
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        return cmd
+
+    def _mdis(self, cmd):
+        return [a[0] for n, a, _k in cmd.calls if n == "mdi"]
+
+    def test_mdi_with_vars_sends_the_line_only_after_the_interpreter_took_them(self):
+        cmd = self._rcs()
+        r = self._send({"cmd": "mdi", "text": "T5 M600", "vars": {"3100": 150, "3102": -300}})
+        self.assertTrue(r["ok"], r)
+        self.assertTrue(r["mdi_set"], r)
+        self.assertEqual(self._mdis(cmd), ["#3100=150.000000 #3102=-300.000000", "T5 M600"])
+
+    def test_mdi_with_vars_not_taken_over_sends_no_line(self):
+        cmd = self._rcs(rc=3)   # RCS_ERROR
+        r = self._send({"cmd": "mdi", "text": "T5 M600", "vars": {"3100": 150}})
+        self.assertFalse(r["ok"], r)
+        self.assertIn("not taken over", r["error"])
+        self.assertEqual(self._mdis(cmd), ["#3100=150.000000"], "the values, never the line")
+
+    def test_mdi_with_vars_on_a_machine_that_is_off_sends_nothing_of_the_line(self):
+        cmd = self._rcs()
+        gateway.STAT.enabled = False
+        r = self._send({"cmd": "mdi", "text": "T5 M600", "vars": {"3100": 150}})
+        self.assertFalse(r["ok"], r)
+        self.assertNotIn("T5 M600", self._mdis(cmd))
+
+    def test_an_abort_while_the_values_are_set_sends_no_line(self):
+        # abort/estop from ANY client cancel the in-flight handler
+        # (_preempt_inflight): cancelled while the values' MDI waits, the
+        # line never goes — nothing is left to revive once the gate reopens.
+        import threading
+        entered, release = threading.Event(), threading.Event()
+        cmd = self._rcs(block=lambda: (entered.set(), release.wait(5)))
+
+        async def scenario():
+            gateway._shared_status = _payload()
+            task = asyncio.ensure_future(gateway.handle_command(
+                {"cmd": "mdi", "text": "T5 M600", "vars": {"3100": 150}}, True))
+            for _ in range(400):                 # 2 s: the values' wait must be reached
+                if entered.is_set() or task.done():
+                    break
+                await asyncio.sleep(0.005)
+            self.assertTrue(entered.is_set(), "the handler never waited for the values")
+            task.cancel()
+            release.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await task
+        _run(scenario())
+        self.assertEqual(self._mdis(cmd), ["#3100=150.000000"])
+
+    def _auto_run(self, **over):
+        import time as _time, unittest.mock
+        gateway._status_runtime.program = program = gateway._status_runtime_mod.LoadedProgram()
+        program.update(None, True, _time.monotonic())
+        program.request_load(self.prog, _time.monotonic())
+        program.update(self.prog, True, _time.monotonic())
+        msg = {"cmd": "auto_run", "line": 4, "file": self.prog, "version": 7}
+        msg.update(over)
+        spawned = []
+
+        async def _fake_sequence(*a, **k):
+            spawned.append((a, k))
+        with unittest.mock.patch.object(gateway._bulk, "preview_version", 7), \
+                unittest.mock.patch.object(gateway, "_rfl_sequence", _fake_sequence):
+            gateway._rfl_active = False
+            try:
+                r = self._send(msg)
+            finally:
+                gateway._rfl_active = False
+        return r, spawned
+
+    def _with_program(self):
+        import tempfile
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.prog = str(Path(tmp.name) / "a.ngc")
+        Path(self.prog).write_text("T5 M600\nG0 X10 Y20\nG1 X11\nG1 X12\nM2\n")
+
+    def test_auto_run_is_bound_to_the_program_it_was_confirmed_on(self):
+        self._with_program()
+        cmd = self._rcs()
+        for over, why in (({"file": self.prog + ".b"}, "another program"),
+                          ({"version": 8}, "another text revision"),
+                          ({"file": None}, "no identity"),
+                          ({"version": None}, "no identity")):
+            with self.subTest(why=why):
+                cmd.calls.clear()
+                r, spawned = self._auto_run(**over)
+                self.assertFalse(r["ok"], r)
+                self.assertIn("confirm", r["error"])
+                self.assertEqual((cmd.args_of("auto"), spawned), (None, []), "nothing started")
+        r, _ = self._auto_run()
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(cmd.args_of("auto")[1], 4)
+
+    def test_auto_run_pre_tool_carries_the_toolsetter_values_and_sets_them_first(self):
+        self._with_program()
+        cmd = self._rcs()
+        r, spawned = self._auto_run(pre_tool=5)
+        self.assertFalse(r["ok"], r)
+        self.assertIn("Toolsetter", r["error"])
+        self.assertEqual((self._mdis(cmd), spawned), ([], []), "no values, no measurement")
+        r, spawned = self._auto_run(pre_tool=5, probe_vars={"3100": 150, "3102": -300})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self._mdis(cmd), ["#3100=150.000000 #3102=-300.000000"])
+        self.assertEqual(len(spawned), 1, "then the measuring sequence")
+        self.assertEqual(spawned[0][1]["program"][0], self.prog, "bound to the program")
+        cmd = self._rcs(rc=3)
+        r, spawned = self._auto_run(pre_tool=5, probe_vars={"3100": 150})
+        self.assertFalse(r["ok"], r)
+        self.assertIn("not taken over", r["error"])
+        self.assertEqual(spawned, [])
+
+    def test_no_program_is_loaded_while_a_run_from_line_sequence_runs(self):
+        import unittest.mock
+        self._with_program()
+        gateway.STAT.task_mode = linuxcnc.MODE_AUTO
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        gateway._rfl_active = True
+        try:
+            with unittest.mock.patch.object(gateway, "get_nc_files_dir", return_value=str(Path(self.prog).parent)):
+                for msg in ({"cmd": "load_file", "path": self.prog}, {"cmd": "unload_file"}):
+                    r = self._send(msg)
+                    self.assertFalse(r["ok"], r)
+                    self.assertIn("Run from line", r["error"])
+        finally:
+            gateway._rfl_active = False
+        self.assertIsNone(self.cmd.args_of("program_open"))
+
     def test_load_file_is_the_load_context_unload_clears_it(self):
         # R15 B2: only the gateway's own load makes a file the loaded
         # program; a flip without it (a sub left after an MDI error) never.

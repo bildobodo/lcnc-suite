@@ -895,11 +895,14 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
                                              clamp=True)},
     # --- program run
     "auto_run": {"line": Num(lo=0, integer=True),
+                 "version": Num(lo=0, integer=True),
+                 "probe_vars": VarNumbers(),   # the pre-measurement's toolsetter values (R16)
                  "pre_tool": Num(lo=0, integer=True),
                  "spindle_speed": Num(lo=0, hi=lambda l: l.max_spindle_speed, clamp=True)},
     # --- MDI text: length only. Parsing G-code server-side to decide policy is
     #     an open-ended project and deliberately out of scope.
-    "mdi": {"text": Text(max_len=MDI_MAX_CHARS)},
+    "mdi": {"text": Text(max_len=MDI_MAX_CHARS),
+            "vars": VarNumbers()},   # set first, the line only once taken over (R16)
     # --- work offsets: these become G10 L2 words. Unbounded floats reached the
     #     MDI as `G10 L2 P1 Xinf` before this.
     "set_wcs": {ax: Num() for ax in ("x", "y", "z", "a", "b", "c", "u", "v", "w", "r")},
