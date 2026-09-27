@@ -684,3 +684,72 @@ Import-Erfolgshinweis hat seinen Text als freien Knoten, sein erstes Element ist
 **Gates:** Offline-Gate PASS: Backend 969, Vitest 1684, Playwright 292/292, Lint, Build, CSS-Audit grün.
 
 ---
+
+## Runde 5 — Codex, Nachprüfung VK-I03 (Handshake R14)
+
+**Stand:** `b46070f445d30e2a9ba86dd121a03ec50d9fdcbe`, Branch `feat/viewer-contrast`,
+Änderungen seit `a55f503`, 27. September 2026.
+**Ergebnis: agreement — VK-I03 geschlossen.** Zusammen mit den Ergebnissen aus Runde 3
+und 4 besteht damit **Implementierungs-Agreement für Viewer-Kontrast V1–V6** am genannten
+Stand. VK-I01–I03 sind geschlossen; kein neuer Befund und keine offene Operator-Entscheidung
+aus diesem Review. Die abschließende Live-Sichtprüfung bleibt separat.
+
+### Nachweis der Korrektur
+
+Die globale Regel behandelt `button`, `.btnTip` und `.row-tight` ausdrücklich als
+Aktionen; ihre Position unter den Kindelementen ist nicht mehr entscheidend. Der
+Import-Erfolgstext hat einen eigenen `span`. Damit ist sowohl die fehlerhafte Annahme
+der globalen Regel als auch die abweichende Struktur dieses Hinweises korrigiert.
+Die geprüften übrigen Verwendungen des Hinweismusters passen zur neuen Trennung.
+
+Die eigene Sonde durchläuft den Import mit „Update metadata“ und misst den tatsächlichen
+Erfolgshinweis anschließend in beiden Layouts:
+
+| Layout | Schließknopf | Abstand zum rechten Hinweisrand | Hinweis-Höhe |
+|---|---|---|---|
+| 1200 × 900, 100 % | **30 × 26 px**, vorher 504 × 26 px | 9 px | **36 px**, vorher 62 px |
+| 900 × 1200, Touch, 150 % | **60 × 54 px**, vorher 380 × 54 px | 13 px | **95 px**, vorher 134 px |
+
+Alle Maße sind Browser-Bounding-Rects nach dem jeweiligen Zoom. Der Knopf liegt innerhalb
+des Hinweises und schließt ihn erfolgreich. Die Beschriftungen beider Aktionen des
+Bearbeitungskonflikts passen weiterhin auf Desktop und bei 150 %. Der Datei-Retry bleibt
+bei 150 % lesbar und funktioniert. Der unveränderte Wächter für die lange
+Migrationsaktion aus VK-I02 besteht ebenfalls.
+
+Belege: [Hinweisprobe](viewer-kontrast.implementation-r5.notes.mjs),
+[Messwerte](viewer-kontrast.implementation-r5.notes.json),
+[Desktop-Bild](viewer-kontrast.implementation-r5-import-desktop.png),
+[Touch-Hochformat bei 150 %](viewer-kontrast.implementation-r5-import-portrait.png).
+
+### Prüfungen und Grenzen
+
+- [Build](viewer-kontrast.implementation-r5.build.txt) und
+  [Lint einschließlich CSS-Audit](viewer-kontrast.implementation-r5.lint.txt): **PASS**.
+- [Gezielte Playwright-Prüfungen](viewer-kontrast.implementation-r5.playwright.txt):
+  **7/7**; [Testliste und Laufdaten](viewer-kontrast.implementation-r5.playwright.json).
+  Erfasst sind alle vier Importtests einschließlich des ergänzten Layout-Wächters,
+  Migrationsaktion, Bearbeitungskonflikt und Datei-Retry.
+- [Eigene Hinweisprobe](viewer-kontrast.implementation-r5.notes.txt): **3/3**,
+  keine Browser-`pageerror`-Ereignisse.
+
+Die Sonde ist eine Kopie der R4-Sonde mit neuen Belegnamen und Port 4190. Die alte
+CSSOM-Gegenprobe gegen die inzwischen entfernte `:first-child`-Regel wurde durch direkte
+Prüfungen der Icon-Breite, Randposition und Schließfunktion ersetzt. Im
+[ersten Lauf](viewer-kontrast.implementation-r5.notes-attempt1.txt)
+([Messwerte](viewer-kontrast.implementation-r5.notes-attempt1.json)) wurde beim Konfliktaufbau
+Edit vor dem asynchron eintreffenden Programmtext ausgelöst. Die Sonde wartet jetzt wie
+der bestehende `editor-guards`-Test auf die angezeigte erste Codezeile; der erneute Lauf
+besteht. Keine Produktänderung dafür.
+
+Alle Browserprüfungen liefen seriell auf dem eigenen Mock `127.0.0.1:4190`. Bestehende
+Tests wurden als temporäre Kopien mit ausschließlich geänderter Mock-Adresse ausgeführt;
+ihre Assertions blieben unverändert. Reproduktion der eigenen Sonde vom Repository-Root
+mit `node docs/reviews/viewer-kontrast.implementation-r5.notes.mjs`, nachdem der gebaute
+Frontend-Mock aus `lcnc-webui/` mit `MOCK_PORT=4190 MOCK_HOST=127.0.0.1` gestartet wurde.
+Für spätere Runden Kopien mit neuen Belegnamen verwenden.
+
+Frühere Belege unverändert; ausschließlich Review-Dokumentation und neue Belege ergänzt.
+Kein Produktcode geändert, kein LinuxCNC angesprochen. Für diese Layout-Korrektur keine
+erneute vollständige Unit-/Backend-/Offline-Prüfung. Claudes gemeldetes Offline-Gate
+bleibt im Antwortabschnitt getrennt ausgewiesen. Dieses Agreement ersetzt weder die
+abschließende Live-Sichtprüfung noch einen Merge.

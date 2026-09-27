@@ -1,0 +1,323 @@
+{
+  "head": "b46070f445d30e2a9ba86dd121a03ec50d9fdcbe",
+  "origin": "http://127.0.0.1:4190",
+  "checks": [
+    {
+      "name": "Import result: close stays an icon button at desktop and portrait 150%",
+      "pass": true
+    },
+    {
+      "name": "Editor conflict: both actions and their labels fit after wrapping",
+      "pass": true
+    },
+    {
+      "name": "File browser retry: action stays readable and works at portrait 150%",
+      "pass": true
+    }
+  ],
+  "samples": [
+    {
+      "scenario": "import",
+      "portrait": false,
+      "measurement": {
+        "text": "Updated metadata for 1 tools. Measured offsets and table diameters retained.",
+        "note": {
+          "left": 661,
+          "right": 1183,
+          "top": 291.5,
+          "bottom": 327.5,
+          "width": 522,
+          "height": 36
+        },
+        "clientWidth": 520,
+        "scrollWidth": 520,
+        "children": [
+          {
+            "type": 1,
+            "tag": "SPAN",
+            "text": "Updated metadata for 1 tools. Measured offsets and table diameters retained."
+          },
+          {
+            "type": 1,
+            "tag": "BUTTON",
+            "text": ""
+          }
+        ],
+        "buttons": [
+          {
+            "name": "Dismiss import result",
+            "box": {
+              "left": 1144,
+              "right": 1174,
+              "top": 296.5,
+              "bottom": 322.5,
+              "width": 30,
+              "height": 26
+            },
+            "text": {
+              "left": 1152,
+              "right": 1166,
+              "top": 302.5,
+              "bottom": 316.5,
+              "width": 14,
+              "height": 14
+            },
+            "flex": "0 0 auto",
+            "minWidth": "auto"
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "import",
+      "portrait": true,
+      "measurement": {
+        "text": "Updated metadata for 1 tools. Measured offsets and table diameters retained.",
+        "note": {
+          "left": 469,
+          "right": 875,
+          "top": 1041.75,
+          "bottom": 1136.75,
+          "width": 406,
+          "height": 95
+        },
+        "clientWidth": 269,
+        "scrollWidth": 269,
+        "children": [
+          {
+            "type": 1,
+            "tag": "SPAN",
+            "text": "Updated metadata for 1 tools. Measured offsets and table diameters retained."
+          },
+          {
+            "type": 1,
+            "tag": "BUTTON",
+            "text": ""
+          }
+        ],
+        "buttons": [
+          {
+            "name": "Dismiss import result",
+            "box": {
+              "left": 802,
+              "right": 862,
+              "top": 1062.25,
+              "bottom": 1116.25,
+              "width": 60,
+              "height": 54
+            },
+            "text": {
+              "left": 821.5,
+              "right": 842.5,
+              "top": 1078.75,
+              "bottom": 1099.75,
+              "width": 21,
+              "height": 21
+            },
+            "flex": "0 0 auto",
+            "minWidth": "40px"
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "conflict",
+      "portrait": false,
+      "measurement": {
+        "text": "Program changed to B.ngc — you are editing A.ngcKeep editingDiscard",
+        "note": {
+          "left": 661,
+          "right": 1183,
+          "top": 289.5,
+          "bottom": 325.5,
+          "width": 522,
+          "height": 36
+        },
+        "clientWidth": 520,
+        "scrollWidth": 520,
+        "children": [
+          {
+            "type": 1,
+            "tag": "SPAN",
+            "text": "Program changed to B.ngc — you are editing A.ngc"
+          },
+          {
+            "type": 1,
+            "tag": "SPAN",
+            "text": "Keep editingDiscard"
+          }
+        ],
+        "buttons": [
+          {
+            "name": "Keep editing",
+            "box": {
+              "left": 1014,
+              "right": 1105,
+              "top": 294.5,
+              "bottom": 320.5,
+              "width": 91,
+              "height": 26
+            },
+            "text": {
+              "left": 1025,
+              "right": 1094,
+              "top": 300.5,
+              "bottom": 314.5,
+              "width": 69,
+              "height": 14
+            },
+            "flex": "0 1 auto",
+            "minWidth": "auto"
+          },
+          {
+            "name": "Discard",
+            "box": {
+              "left": 1109,
+              "right": 1174,
+              "top": 294.5,
+              "bottom": 320.5,
+              "width": 65,
+              "height": 26
+            },
+            "text": {
+              "left": 1120,
+              "right": 1163,
+              "top": 300.5,
+              "bottom": 314.5,
+              "width": 43,
+              "height": 14
+            },
+            "flex": "0 1 auto",
+            "minWidth": "auto"
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "conflict",
+      "portrait": true,
+      "measurement": {
+        "text": "Program changed to B.ngc — you are editing A.ngcKeep editingDiscard",
+        "note": {
+          "left": 469,
+          "right": 875,
+          "top": 850.5,
+          "bottom": 984.5,
+          "width": 406,
+          "height": 134
+        },
+        "clientWidth": 269,
+        "scrollWidth": 269,
+        "children": [
+          {
+            "type": 1,
+            "tag": "SPAN",
+            "text": "Program changed to B.ngc — you are editing A.ngc"
+          },
+          {
+            "type": 1,
+            "tag": "SPAN",
+            "text": "Keep editingDiscard"
+          }
+        ],
+        "buttons": [
+          {
+            "name": "Keep editing",
+            "box": {
+              "left": 482,
+              "right": 611,
+              "top": 923.5,
+              "bottom": 977.5,
+              "width": 129,
+              "height": 54
+            },
+            "text": {
+              "left": 498,
+              "right": 595,
+              "top": 940.5,
+              "bottom": 960.5,
+              "width": 97,
+              "height": 20
+            },
+            "flex": "0 1 auto",
+            "minWidth": "44px"
+          },
+          {
+            "name": "Discard",
+            "box": {
+              "left": 617,
+              "right": 711,
+              "top": 923.5,
+              "bottom": 977.5,
+              "width": 94,
+              "height": 54
+            },
+            "text": {
+              "left": 633,
+              "right": 695,
+              "top": 940.5,
+              "bottom": 960.5,
+              "width": 62,
+              "height": 20
+            },
+            "flex": "0 1 auto",
+            "minWidth": "44px"
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "retry",
+      "portrait": true,
+      "measurement": {
+        "text": "Program folder temporarily unavailableRetry",
+        "note": {
+          "left": 470,
+          "right": 874,
+          "top": 1033.75,
+          "bottom": 1113.75,
+          "width": 404,
+          "height": 80
+        },
+        "clientWidth": 268,
+        "scrollWidth": 268,
+        "children": [
+          {
+            "type": 1,
+            "tag": "SPAN",
+            "text": "Program folder temporarily unavailable"
+          },
+          {
+            "type": 1,
+            "tag": "BUTTON",
+            "text": "Retry"
+          }
+        ],
+        "buttons": [
+          {
+            "name": "Retry",
+            "box": {
+              "left": 777,
+              "right": 861,
+              "top": 1040.75,
+              "bottom": 1106.75,
+              "width": 84,
+              "height": 66
+            },
+            "text": {
+              "left": 796,
+              "right": 842,
+              "top": 1063.25,
+              "bottom": 1084.25,
+              "width": 46,
+              "height": 21
+            },
+            "flex": "0 0 auto",
+            "minWidth": "auto"
+          }
+        ]
+      }
+    }
+  ],
+  "errors": []
+}

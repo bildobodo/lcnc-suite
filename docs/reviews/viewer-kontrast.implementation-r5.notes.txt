@@ -1,0 +1,4 @@
+{"name":"Import result: close stays an icon button at desktop and portrait 150%","pass":true}
+{"name":"Editor conflict: both actions and their labels fit after wrapping","pass":true}
+{"name":"File browser retry: action stays readable and works at portrait 150%","pass":true}
+{"checks":[{"name":"Import result: close stays an icon button at desktop and portrait 150%","pass":true},{"name":"Editor conflict: both actions and their labels fit after wrapping","pass":true},{"name":"File browser retry: action stays readable and works at portrait 150%","pass":true}],"errors":[]}

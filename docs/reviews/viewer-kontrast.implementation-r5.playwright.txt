@@ -1,0 +1,16 @@
+
+Running 7 tests using 1 worker
+
+(node:3163283) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3163283) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 ../../../tmp/viewer-contrast-r14/e2e/editor-guards.spec.ts:66:1 › external program change keeps buffer A, shows the conflict, saves A only (2.1s)
+  ✓  2 ../../../tmp/viewer-contrast-r14/e2e/feedback-channels.spec.ts:276:1 › a refused folder keeps the last listing and offers no Retry; a transient failure retries (1.6s)
+  ✓  3 ../../../tmp/viewer-contrast-r14/e2e/layout.spec.ts:1377:1 › a note's action keeps its words: the legacy palette note at 150 % portrait (1.8s)
+  ✓  4 ../../../tmp/viewer-contrast-r14/e2e/tool-import.spec.ts:21:1 › existing tools default to reviewed metadata refresh, not full replacement (1.7s)
+  ✓  5 ../../../tmp/viewer-contrast-r14/e2e/tool-import.spec.ts:60:1 › full replacement requires selecting that mode and shows length replacement (1.5s)
+  ✓  6 ../../../tmp/viewer-contrast-r14/e2e/tool-import.spec.ts:78:1 › stale review stays visible as an error and never falls back to replacement (1.5s)
+  ✓  7 ../../../tmp/viewer-contrast-r14/e2e/tool-import.spec.ts:95:1 › an all-conflict preview cannot submit a metadata refresh (1.3s)
+
+  7 passed (12.7s)
