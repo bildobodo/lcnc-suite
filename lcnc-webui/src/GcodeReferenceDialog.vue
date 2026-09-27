@@ -4,6 +4,7 @@ import DialogFrame from "./DialogFrame.vue";
 import { GCODE_REFERENCE, GCODE_GROUPS, type GcodeEntry } from "./gcodeReference";
 import MachineInput from "./MachineInput.vue";
 import MachineSelect from "./MachineSelect.vue";
+import { vStickyHead } from "./stickyHead";
 
 const props = defineProps<{ open: boolean; initialSearch?: string }>();
 const emit = defineEmits<{ (e: "close"): void }>();
@@ -63,7 +64,7 @@ function toggleSort(key: "code" | "name") {
             <option v-for="g in GCODE_GROUPS" :key="g" :value="g">{{ g }}</option>
           </MachineSelect>
         </div>
-        <div class="refTable dataTable scroll-thin fade-scroll">
+        <div v-sticky-head class="refTable dataTable scroll-thin fade-scroll">
           <table>
             <thead>
               <tr>

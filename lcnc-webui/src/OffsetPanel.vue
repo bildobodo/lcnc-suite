@@ -7,6 +7,7 @@ import { G5X_LABELS } from "./wcs";
 import MachineBtn from "./MachineBtn.vue";
 
 import Gate from "./Gate.vue";
+import { vStickyHead } from "./stickyHead";
 
 const can = usePermissions();
 const ownerCan = useOwnerPermissions();
@@ -131,7 +132,7 @@ function clearAll() {
     </div>
 
     <!-- Table -->
-    <div class="tableWrap dataTable scroll-thin fade-scroll" :style="{ '--val-cols': String(offsetColumns.length) }">
+    <div v-sticky-head class="tableWrap dataTable scroll-thin fade-scroll" :style="{ '--val-cols': String(offsetColumns.length) }">
       <table>
         <thead>
           <tr>

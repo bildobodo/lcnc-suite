@@ -1428,3 +1428,149 @@ test('a note\'s action keeps its words: the legacy palette note at 150 % portrai
   await page.evaluate(() => { document.documentElement.style.zoom = ''; });
 });
 
+// A scrolled table keeps its WHOLE head on top (operator 2026-09-27: parts of
+// the tool table's header vanished while scrolling — the pinned body cells
+// painted over the head's pinned cells at the same z-index, and the top
+// scroll fade washed over the head). Tools, Offsets and the G-code reference,
+// scrolled to the middle (and sideways where they can): every header cell is
+// the topmost element at its centre and corners, its words keep 3 : 1 on the
+// head in the RENDERED pixels (a pointer-events:none fade would pass a hit
+// test), the head's bottom line stays, and an Edit button focused while its
+// row lies under the head lands below it (WCAG 2.4.11).
+const MANY_TOOLS = Array.from({ length: 40 }, (_, i) => ({
+  T: i + 1, P: i + 1, Z: -40 - i, D: 6, type: 'endmill', description: `Cutter ${i + 1}`, remark: '' }));
+async function scrolledHead(page: Page, sel: string, focusEdit: boolean) {
+  const moved = await page.locator(sel).evaluate(w => {
+    if (w.scrollHeight <= w.clientHeight + 1) return false;
+    w.scrollTop = (w.scrollHeight - w.clientHeight) / 2;
+    w.scrollLeft = (w.scrollWidth - w.clientWidth) / 2;
+    return true;
+  });
+  if (!moved) return { skipped: true, problems: [] as string[] };
+  await settleLayout(page);
+  const problems: string[] = [];
+  if (focusEdit) {
+    problems.push(...await page.locator(sel).evaluate(async w => {
+      // A row's Edit button placed wholly under the head, 1 px below the
+      // scroller's top: inside the scrollport, so without scroll-padding a
+      // focus() does not scroll — and the head hides it.
+      const btn = w.querySelectorAll<HTMLElement>('tbody tr')[10]?.querySelector<HTMLElement>('button[aria-label^="Edit"]');
+      if (!btn) return [`${w.className}: no 11th row with an Edit button`];
+      w.scrollTop += btn.getBoundingClientRect().top - w.getBoundingClientRect().top - 1;
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      btn.focus();
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const b = btn.getBoundingClientRect(), h = w.querySelector('thead')!.getBoundingClientRect();
+      return b.top < h.bottom - 0.5 ? [`${btn.getAttribute('aria-label')}: focused under the head (${(h.bottom - b.top).toFixed(1)} px)`] : [];
+    }));
+    await settleLayout(page);
+  }
+  const shot = await page.screenshot();
+  problems.push(...await page.evaluate(async ({ png, sel }) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${png}`;
+    await img.decode();
+    const cv = document.createElement('canvas');
+    cv.width = img.width; cv.height = img.height;
+    const cx = cv.getContext('2d', { willReadFrequently: true })!;
+    cx.drawImage(img, 0, 0);
+    const scale = img.width / window.innerWidth;
+    const px = (x: number, y: number) => Array.from(cx.getImageData(Math.round(x * scale), Math.round(y * scale), 1, 1).data.slice(0, 3));
+    const lum = (c: number[]) => { const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+      return 0.2126 * f(c[0]!) + 0.7152 * f(c[1]!) + 0.0722 * f(c[2]!); };
+    const ratio = (a: number[], b: number[]) => { const l = [lum(a), lum(b)].sort((x, y) => y - x); return (l[0]! + 0.05) / (l[1]! + 0.05); };
+    // A token's colour as drawn: an rgba() token (the light theme's --border
+    // is 12 % black) composited over the head's background.
+    const colour = (v: string, over?: number[]) => { const p = document.createElement('div'); p.style.color = v; document.body.append(p);
+      const c = getComputedStyle(p).color.match(/[\d.]+/g)!.map(Number); p.remove();
+      const a = c.length > 3 ? c[3]! : 1;
+      return over ? c.slice(0, 3).map((x, i) => x * a + over[i]! * (1 - a)) : c.slice(0, 3); };
+    const dist = (a: number[], b: number[]) => Math.hypot(a[0]! - b[0]!, a[1]! - b[1]!, a[2]! - b[2]!);
+    const w = document.querySelector<HTMLElement>(sel)!;
+    const wb = w.getBoundingClientRect();
+    // The content box's right edge — not the scrollbar's (a corner probe
+    // there hits the scroller). client* are layout px, rects viewport px.
+    const zoom = wb.width / w.offsetWidth;
+    const contentRight = wb.left + (w.clientLeft + w.clientWidth) * zoom;
+    const head = w.querySelector('thead')!;
+    const hb = head.getBoundingClientRect();
+    const out: string[] = [];
+    for (const th of head.querySelectorAll<HTMLElement>('th')) {
+      const r = th.getBoundingClientRect();
+      const left = Math.max(r.left, wb.left) + 2, right = Math.min(r.right, contentRight) - 2;
+      if (right - left < 6) continue;
+      const name = th.textContent?.trim() || th.className;
+      for (const [x, y] of [[(left + right) / 2, (r.top + r.bottom) / 2], [left, r.top + 2], [right, r.top + 2], [left, r.bottom - 2], [right, r.bottom - 2]] as const) {
+        // Any header cell may be on top (a pinned corner cell covers the
+        // scrolled ones) — never a body cell, a fade or anything else.
+        const at = document.elementFromPoint(x, y);
+        if (!at || !head.contains(at))
+          out.push(`${sel} th "${name}": ${at?.tagName.toLowerCase()}.${(at as HTMLElement | null)?.className} on top at (${x | 0}, ${y | 0})`);
+      }
+      if (!th.textContent?.trim()) continue;
+      const range = document.createRange();
+      range.selectNodeContents(th);
+      const t = range.getBoundingClientRect();
+      const bg = px(left, (r.top + r.bottom) / 2);
+      // Only this cell's own visible words count: a sample scrolled out of the
+      // scroller, or covered by a pinned corner cell, says nothing about them.
+      let best = 1, seen = 0;
+      for (let i = 0; i < 32; i++) for (let j = 0; j < 7; j++) {
+        const x = t.left + (t.width * (i + 0.5)) / 32, y = t.top + (t.height * (j + 0.5)) / 7;
+        if (x < left || x > right) continue;
+        const top = document.elementFromPoint(x, y);
+        if (!top || !(top === th || th.contains(top))) continue;
+        seen++;
+        best = Math.max(best, ratio(px(x, y), bg));
+      }
+      if (seen >= 7 && best < 3) out.push(`${sel} th "${name}": its words read ${best.toFixed(2)} : 1 on the head`);
+    }
+    const panel = colour('var(--panel)'), line = colour('var(--border)', panel);
+    const mid = Math.min((hb.left + hb.right) / 2, (wb.left + wb.right) / 2);
+    // The head's last three device-pixel rows (its bottom may sit on a half
+    // pixel): one of them carries the line.
+    const rows = [1, 2, 3].map(k => Array.from(cx.getImageData(Math.round(mid * scale), Math.floor(hb.bottom * scale) - k, 1, 1).data.slice(0, 3)));
+    if (!rows.some(r => dist(r, line) < dist(panel, line) / 2))
+      out.push(`${sel}: the head's bottom line is gone (${rows.map(r => r.join(',')).join(' / ')} above its bottom, the line is ${line.map(Math.round)})`);
+    return out;
+  }, { png: shot.toString('base64'), sel }));
+  return { skipped: false, problems };
+}
+for (const st of [NAV_STATES[0], NAV_STATES[3]]) {
+  test(`${st.name}: a scrolled table keeps its whole head on top — Tools, Offsets, the G-code reference`, async ({ page }) => {
+    const viewport = VIEWPORTS.find(v => v.name === st.vp)!;
+    await openLayout(page, PROFILES[1]!, viewport);
+    await setLayoutState(page, PROFILES[1]!, 'homed');
+    if (st.zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, st.zoom);
+    const side = page.locator('.sidePane');
+    const open = async (tab: string, value: string) => {
+      if (st.narrow) await page.getByRole('combobox', { name: 'Side panel', exact: true }).selectOption(value);
+      else await side.getByRole('tab', { name: tab, exact: true }).click();
+    };
+    const problems: string[] = [];
+    const checked: string[] = [];
+    await open('Tools', 'tools');
+    await expect.poll(async () => {
+      await ctl({ op: 'raw', frame: { type: 'reply', cmd: 'get_tool_table', ok: true, tools: MANY_TOOLS } });
+      return side.locator('.toolsTab tbody tr').count();
+    }).toBe(MANY_TOOLS.length);
+    await settleLayout(page);
+    let r = await scrolledHead(page, '.toolsTab .tableWrap', true);
+    expect(r.skipped, 'the tool table scrolls').toBe(false);
+    problems.push(...r.problems); checked.push('tools');
+    await open('Offsets', 'offsets');
+    await settleLayout(page);
+    r = await scrolledHead(page, '.offsetPanel .tableWrap', false);
+    if (!r.skipped) { problems.push(...r.problems); checked.push('offsets'); }
+    await open('Program', 'gcode');
+    await page.getByTitle('G-code Reference', { exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'G-code Reference', exact: true });
+    await expect(dialog).toBeVisible();
+    await settleLayout(page);
+    r = await scrolledHead(page, '.refTable', false);
+    expect(r.skipped, 'the reference scrolls').toBe(false);
+    problems.push(...r.problems); checked.push('reference');
+    if (st.narrow) expect(checked, 'the narrow pane scrolls the offsets too').toContain('offsets');
+    expect(problems, problems.join('\n')).toEqual([]);
+  });
+}

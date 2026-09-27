@@ -22,6 +22,7 @@ import { toolUnitsPerMillimeter } from "./toolUnits";
 import { toolPreviewNotice } from "./toolPreviewNotice";
 import { summarizeToolImport } from "./toolImportSummary";
 import DialogFrame from "./DialogFrame.vue";
+import { vStickyHead } from "./stickyHead";
 // Async on purpose (WS-E / F10-finish): ToolPreview is the ONLY statically
 // eager three.js importer left — this edge alone kept the 866 kB three
 // chunk in the entry graph (static import + modulepreload in index.html),
@@ -907,7 +908,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
     </DialogFrame>
 
     <!-- Table -->
-    <div v-show="!showImportBrowser" class="tableWrap dataTable scroll-thin fade-scroll">
+    <div v-show="!showImportBrowser" v-sticky-head class="tableWrap dataTable scroll-thin fade-scroll">
       <table>
         <thead>
           <!-- Recognition first (design wave D5, K07): T#, what the tool is,

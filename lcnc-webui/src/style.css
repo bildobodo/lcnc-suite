@@ -282,6 +282,7 @@
   --z-base:         0;    /* the viewer host / a stacking-context root */
   --z-raised:       1;    /* sticky cells, viewer overlays, thumb over track */
   --z-fade:         2;    /* scroll-edge fades */
+  --z-sticky-head:  2;    /* a table's sticky head: over its sticky body cells (--z-raised) */
   --z-pane-overlay: 5;    /* drop target over a pane */
   --z-float:        10;   /* floating cards on the viewer (PIP, sim bar) */
   --z-banner:       11;   /* transient banner above the floating cards */
@@ -2271,6 +2272,21 @@ label:has(input:disabled, select:disabled) {
 
 
 /* ---- Data tables ---- */
+/* A scrolled table keeps its WHOLE head on top (operator 2026-09-27: parts
+   of the tool table's header vanished while scrolling). Inside the scroller:
+   cells < the pinned identity/action cells (--z-raised) < the head
+   (--z-sticky-head; its own pinned corner cells ride inside it). The head's
+   bottom line is an inset shadow, not a collapsed border — Chromium keeps a
+   collapsed border with the table and scrolls it away. No top fade under a
+   sticky head: the head is the scroll cue, and the fade washed over it.
+   --sticky-head-h (v-sticky-head) keeps a focused row below the head. */
+.dataTable {
+  scroll-padding-top: var(--sticky-head-h, 0px);
+}
+.dataTable.fade-scroll::before {
+  display: none;
+}
+
 .dataTable table {
   width: 100%;
   border-collapse: collapse;
@@ -2280,7 +2296,7 @@ label:has(input:disabled, select:disabled) {
   position: sticky;
   top: 0;
   background: var(--panel);
-  z-index: var(--z-raised);
+  z-index: var(--z-sticky-head);
 }
 
 .dataTable th {
@@ -2289,7 +2305,7 @@ label:has(input:disabled, select:disabled) {
   font-weight: var(--fw-semibold);
   color: var(--fg-muted);
   padding: 4px 8px;
-  border-bottom: 1px solid var(--border);
+  box-shadow: inset 0 -1px 0 var(--border);
   vertical-align: middle;
 }
 
