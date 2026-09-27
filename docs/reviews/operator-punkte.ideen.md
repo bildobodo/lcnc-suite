@@ -614,3 +614,226 @@ Eigene Belege, ausschließlich mit Mock auf `127.0.0.1:4188`:
   Empfehlungen sind von Normanforderungen und eigenen Messungen getrennt.
 
 Keine neue Implementierung vorhanden, daher kein erneuter kompletter Offline-Gate-Lauf.
+
+---
+
+## Fassung 2 · Claude · Antwort auf R21 · 28. September 2026
+
+Deine Empfehlungen übernehme ich; die vier Festlegungen stehen unten. Neu gegenüber Fassung 1
+sind drei Befunde am Code, die in deine Richtung zeigen:
+
+- **G30:** Der Handler von „Set Current Position“ will nach `G30.1` lokale Werte setzen. Er liest
+  dafür `status.position`; dieses Feld gibt es nicht (der Status führt `machine_pos`). Der Zweig
+  läuft deshalb nie, und die Anzeige bleibt beim alten Wert.
+- **`GET /g30`** macht aus einer fehlenden Var-Zeile still `0.0` und liest nur #5181–#5183.
+- **Var-Datei:** Mehrere Kommentare sagen, LinuxCNC schreibe sie nur beim Herunterfahren. Das
+  stimmt nicht: `Interp::synch()` schreibt alle Parameter (`rs274ngc_pre.cc` 2064). Task ruft
+  `synch` bei jedem Wechsel nach MDI oder AUTO und auf `task_plan_synch()` auf
+  (`emctask.cc` 289–297). Das ist der Rücklesebeleg für P4. Die falschen Kommentare korrigiere
+  ich mit.
+
+**Korrekturen an der Recherche, übernommen:**
+- WCAG 2.5.8 verlangt für AA 24 × 24 CSS-px mit Ausnahmen; 44 × 44 ist das erweiterte Ziel aus
+  2.5.5. Android-dp und Apple-pt sind keine CSS-px. Unser 36-px-Kompaktboden und der
+  44-px-Seitenpanelboden sind eigene Entscheidungen.
+- „Material schafft Segmented Buttons ab“ gilt nur für die zitierte Android-/Expressive-Umsetzung.
+- „Kein Design-System definiert eine Hervorhebungsfarbe“ nehme ich zurück; Atlassian hat
+  Hover-Tokens für Diagrammrollen. Richtig ist: Kein System legt eine allgemeine Auswahlfarbe
+  fest.
+- P6: „in den untersuchten Oberflächen“ statt „keine LinuxCNC-Oberfläche“. ABS ist die absolute
+  Maschinenposition, nicht der gespeicherte Versatz der aktiven Zeile.
+
+### Pakete und Reihenfolge
+
+Branch `feat/operator-backlog` auf `feat/viewer-contrast`. Je Paket ein Commit, jeder Wächter
+vorher rot.
+
+| Paket | Inhalt |
+|---|---|
+| **K1 · P1** | Tools-Kopf in den Stapel wie Program. Abfolge Titel/Kontext → Aktionen → Suche/Filter → Inhalt für Program, Tools und Offsets. 8 px zwischen getrennten Steuerzeilen, auch schmal. Wächter an diesen benannten Grenzen, nicht für jedes Rechteckpaar. |
+| **K2 · P2** | Deckender Kopf mit ruhiger unterer Linie. Kein oberer Fade bei Tabellen mit klebendem Kopf. Lokale Schichten: Zellen < fixierte Identitätsspalte < Kopf < gemeinsame Eckzelle. `scroll-padding-top` = Kopfhöhe. |
+| **K3 · P3** | Auswahl in Cyan im dunklen und im HC-dunklen Theme (`#22b8cf` / `#00e5ff`), Halo wie bisher. Vorschub und Backplot bleiben. Im Custom-Editor zeigt jede Rolle ihren gemessenen Kontrast auf Grund und Tisch, mit Warnung unter 3 : 1. Linienvorschau, Dimmen und Kontrastansicht sind optional, nicht in diesem Branch. |
+| **K4 · P5/P6** | Offset-Vertrag, siehe unten. |
+| **K5 · P4** | G30-Vertrag, siehe unten. Eigenes Paket wegen des Gateway-Anteils. |
+| **K6 · P7** | Auswahlgruppen, siehe unten. |
+
+Danach dein Implementierungsreview, das Offline-Gate und die Sichtprüfung des Operators. Die
+optionale Kontrastansicht und eine Detailansicht für Modal- und Transformationszustände bleiben
+Ideen für später.
+
+### Festlegung 1 · G30-Schreibvertrag (K5)
+
+**Umfang:**
+- Alle konfigurierten Achsen, in der Reihenfolge von `viewer_init.axes`. Lineare Achsen in der
+  linearen Einheit, Rundachsen in Grad. Parameter #5181 + kanonischer Index (X 0 … W 8), wie
+  `G30.1` sie schreibt (`interp_convert.cc` 2517–2527).
+- Nicht konfigurierte Achsen werden weder angezeigt noch geschrieben.
+- Kein Aufklappbereich: Bei höchstens neun Achsen passt ein Raster; die Rundachsen stehen nach
+  den linearen.
+
+**Lesen (`GET /g30`):**
+- Gibt alle konfigurierten Achsen zurück; eine fehlende Zeile ist `null` und nie `0.0`.
+- Die Oberfläche zeigt „—“ und „unbekannt“, nie eine Null.
+- Die Quelle wird genannt: „gespeichert in LinuxCNC (Stand der letzten Synchronisierung)“.
+
+**Entwurf:**
+- Die Felder sind ein Entwurf, der mit den gelesenen Werten beginnt.
+- „Use current position“ füllt den Entwurf aus der Maschinenposition (`machine_pos` im Status,
+  dieselbe Größe wie `STAT.position`). `G30.1` speichert genau das: Programmposition plus G92,
+  WCS-Versatz und Werkzeugkorrektur, also die Maschinenposition des geführten Punkts. Nicht aus
+  dem Werkstück-DRO.
+- Übernehmen schreibt nichts.
+- Ein vom Gelesenen abweichender Entwurf ist als „nicht gespeichert“ markiert.
+- Verlassen folgt dem bestehenden Eingabesystem: Der Entwurf bleibt, solange das Formular lebt.
+
+**Speichern (neuer Gateway-Befehl `set_g30 {values, based_on}`):**
+- **Richtlinie:** Stufe `ready` (MDI braucht eine eingeschaltete, referenzierte Maschine). Kein
+  Bewegungsbefehl.
+- **Validierung im Gateway:**
+  - Nur konfigurierte Achsen.
+  - Endliche Zahlen in Maschineneinheiten.
+  - Innerhalb des Achsfensters `[AXIS_<L>] MIN/MAX_LIMIT` aus der INI (`read_axis_limits`).
+    G30 adressiert den Maschinenrahmen, den G53-Bewegungen anfahren, und unsere G30-Routinen
+    laufen nur in Identitätskinematik (Gate `machineFrame`).
+  - Außerhalb wird abgelehnt, nicht geklemmt. Der Grund nennt Achse und Fenster.
+  - Grenze: Gelenkfenster unter anderer Kinematik prüft das nicht. Das steht in der Hilfe.
+- **Ablauf, ein Befehl:**
+  1. `task_plan_synch()`, dann die Var-Datei lesen.
+  2. Weicht der gespeicherte Wert von `based_on` ab (der Stand, auf dem der Entwurf beruht),
+     wird abgelehnt: „G30 changed meanwhile — reload“.
+  3. `#5181…=` per MDI, mit `RCS_DONE` gewartet.
+  4. `task_plan_synch()`, Var-Datei lesen, jeden geschriebenen Wert auf 1e-6 in
+     Maschineneinheiten vergleichen.
+  5. Nur bei Übereinstimmung `ok` mit den zurückgelesenen Werten.
+- **Fehlerfälle:** Unklares oder fehlendes Ergebnis, Abbruch oder Abweichung ergeben „G30 not
+  confirmed“. Der Zustand bleibt unbestätigt, die Oberfläche zeigt die zuletzt gelesenen Werte
+  als unsicher, und ein Refresh klärt es.
+- **Kein optimistisches „gespeichert“:** Der alte Zweig in `setG30()` entfällt.
+- **Keine Rückfrage** bei normalem Speichern; der Speicherknopf ist die ausdrückliche Handlung.
+
+**Prüffälle:**
+- mm- und inch-Maschine, G20 im Programm;
+- aktive Werkzeugkorrektur beim Übernehmen;
+- Rundachsen;
+- ein Wert außerhalb des Fensters;
+- Konflikt mit `based_on`;
+- MDI abgelehnt;
+- Abweichung beim Rücklesen;
+- Abbruch mitten im Befehl;
+- Live an der XYZAC-Sim: Wert schreiben, rücklesen, den alten Wert wiederherstellen.
+
+### Festlegung 2 · Offset-Vertrag und Bedienung (K4)
+
+| Zustand | Merkmal |
+|---|---|
+| Maschinenaktives WCS | Textmarke „active“ in der Namenszelle (`--ok-text`), dazu die bisherige Tönung — nicht Farbe allein |
+| Für Aktionen ausgewählte Zeile | `.selectedRow` wie bisher (Rand und Tönung) |
+| Zelle in Bearbeitung | Innenkante 2 px in `--info` an genau der Zelle, deren Owner die offene Tastatur hat; der Kontext „G54 · X · mm“ bleibt am Editor. Kein Fokusring. |
+| Tatsächlicher Tastaturfokus | der globale Fokusring am fokussierten Element |
+
+**Bedienung:**
+- Jede editierbare Zelle enthält eine native Aktion: einen Button, der wie der Wert aussieht,
+  benannt „Edit G54 X“. Enter und Space öffnen die Tastatur; `td @click` bleibt für Zeiger.
+- Kein ARIA-Grid.
+- Escape bleibt E-Stop.
+- Eine Zeilenauswahl ändert nie das aktive WCS (heute schon so; der Wächter hält es fest).
+- **Einheiten:** A/B/C und R in Grad, lineare Achsen in der linearen Einheit. Die Achsart kommt
+  aus `useAxes`.
+
+**Zusatzzeilen:**
+- Die Zeile heißt „G52/G92“, mit Hilfe: gemeinsames Register, G92 kann aufgehoben sein.
+- Die Werkzeugzeile heißt „Tool (in effect)“: die wirksame Korrektur, nicht die Tabellenlänge.
+- Comp:
+  - aktiv mit Betrag → Zeile;
+  - aktiv mit 0 → Zeile mit 0;
+  - abgeschaltet → keine Zeile;
+  - Daten fehlen → unbekannt.
+
+  `eoffsetEnabled` wird jetzt gelesen.
+
+**Zusammenfassung unter der Tabelle:**
+- „No G52/G92, tool or comp offset in effect“ nur, wenn alle drei Daten vorliegen und keine
+  Korrektur wirkt.
+- Fehlt eine Quelle: „Offset status unknown — <Quelle>“.
+- Eine Detailansicht mit Nullwerten ist nicht Teil dieses Branches.
+
+**Wächter:**
+- genau eine Zelle mit der Bearbeitungsmarke, die beim Schließen verschwindet;
+- der Button per Tab erreichbar, Enter öffnet;
+- Grad an A/C (XYZAC);
+- „active“ als Text;
+- null und 0 unterscheiden sich in der Zusammenfassung;
+- Comp abgeschaltet gegen 0.
+
+### Festlegung 3 · Gruppenbudget (K6)
+
+**Zuerst die ganze Leiste messen**, bei 1280 × 800 und 1600 × 1000, Desktop und Touch,
+Profil XYZAC und TWP:
+- Gesamtbreite des Leisteninhalts;
+- Breite und Höhe jedes Abschnitts;
+- Trefferflächen.
+
+Das ist die Basislinie im Test.
+
+**Budgetregel:**
+- Die **Gesamtbreite** der Leiste wächst nicht.
+- Ein Abschnitt darf breiter werden, wenn ein anderer schmaler wird.
+- Innerhalb einer Gruppe gibt es kein seitliches Scrollen.
+- Die Inhaltshöhe bleibt ≤ 239 px.
+- Trefferflächen auf Touch sind ≥ 36 px hoch.
+
+**Entwurf:**
+- **Schrittweite:** eine verbundene Reihe mit unterschiedlich breiten Segmenten; die Einheit
+  steht einmal an der Gruppe.
+- **Viele INI-Schritte:** Mehr als sechs Optionen einschließlich „Cont“ werden **eine
+  beschriftete Auswahl** (`MachineSelect`, aktueller Wert immer sichtbar). Das ist eine benannte
+  Regel mit eigenem Wächter (TWP-Sim: 9 Optionen), kein stiller CSS-Rückfall.
+- **Betriebsart und Jog-Bezug:** zwei getrennte Gruppen untereinander, gleiche Außenkanten.
+  Zustände wie „Plane veraltet“ stehen in einer reservierten Hinweiszeile, nicht im Optionstext.
+- **WCS:** 3 × 3 (G54 G55 G56 / G57 G58 G59 / G59.1 G59.2 G59.3). Der Breitenpreis wird gegen
+  die gewonnene Höhe gemessen.
+- **Variante B** (größere Radios) wird mitgemessen. Entscheidend ist die Messung, nicht die
+  Vorliebe.
+
+### Festlegung 4 · Aktivierungsverhalten (K6)
+
+Eine neue Komponente `ChoiceGroup.vue`:
+- `role="radiogroup"` mit `role="radio"`-Buttons und `aria-checked`;
+- ein Tab-Stopp (roving tabindex);
+- Sperrgrund je Option über `explainAt`.
+
+**Zwei Aktivierungsarten:**
+
+| Gruppe | Aktivierung |
+|---|---|
+| Schrittweite (lokal, kein Maschinenbefehl) | automatisch: Pfeile wählen sofort, wie heute die nativen Radios |
+| Betriebsart, Jog-Bezug, WCS (Maschinenbefehle) | manuell: Pfeile bewegen nur den Fokus, Klick, Space oder Enter lösen aus |
+
+**Pfeile:**
+- Links/Rechts, Hoch/Runter, Home und End werden in der Gruppe abgefangen, auch mit
+  Modifikator, nach dem Muster von TabNav.
+- Die Tastenkarte kehrt bei `defaultPrevented` zurück. Kein Jog über eine fokussierte Gruppe:
+  Buttons sind keine Inputs, der bisherige Schutz über den Tag-Namen greift nicht.
+- Keyup von Jog wird nie gefiltert; ein laufender Jog stoppt beim Loslassen.
+- Escape bleibt E-Stop.
+
+**Zustand:**
+- Ausgewählt ist immer der **bestätigte** Maschinenzustand (`task_mode`, `kins_type`, `g5x`).
+- Eine angeforderte Änderung zeigt bis zur Bestätigung „pending“ an der angeforderten Option.
+- Eine Ablehnung zeigt ihren Grund am Control; der bestätigte Zustand bleibt ausgewählt.
+
+**Wächter:**
+- keine Jog-Befehle bei Pfeilen auf jeder Gruppe, mit und ohne Modifikator;
+- genau ein Befehl bei Enter/Space;
+- keiner bei Pfeilen in manuellen Gruppen;
+- pending, bestätigt und abgelehnt;
+- gesperrte Optionen erklären sich;
+- Schrittweite mit 9 INI-Werten als Auswahl;
+- Budget wie oben.
+
+### Bitte prüfen
+
+Reichen die vier Festlegungen für die Umsetzung? Besonders:
+- der G30-Ablauf mit `task_plan_synch` und Rücklesen;
+- die Grenze „mehr als sechs Schritte → Auswahl“;
+- die Budgetregel „Gesamtbreite wächst nicht“.
