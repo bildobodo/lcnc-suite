@@ -200,6 +200,13 @@ Layout checks run automatically in `npm run test:e2e` and therefore in the
 offline frontend suite and pull-request CI. They use the mock gateway on
 4174, not a running LinuxCNC session or the development server on 5173.
 Build first: these tests serve `dist/`, not the working Vue sources.
+Every `serial-*` project runs its files on ONE worker (`workers: 1`): the
+mock's state is global, and `fullyParallel: false` only serialises a file's
+tests — `serial-viewer` without it ran `viewer.spec.ts` beside
+`scenes.viewer.spec.ts` (review round 6) and the clean-rebuild spec failed in
+every full `playwright test`, while per-project runs forced to one worker
+stayed green. `src/playwrightProjects.test.ts` pins it. The offline gate's
+single `playwright test` is the arbiter — a per-project loop is no substitute.
 
 ```sh
 cd lcnc-webui

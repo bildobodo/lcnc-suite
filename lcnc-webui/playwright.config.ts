@@ -71,6 +71,7 @@ export default defineConfig({
       dependencies: ["serial-tools"],
       testMatch: /lifecycle\.spec\.ts/,
       fullyParallel: false,
+      workers: 1,
     },
     {
       name: "serial-nine-axis",
@@ -78,6 +79,7 @@ export default defineConfig({
       dependencies: ["serial-lifecycle"],
       testMatch: /nine-axis\.spec\.ts/,
       fullyParallel: false,
+      workers: 1,
     },
     {
       // touchoff.spec.ts — setAxes (rotary rows) + permissions deltas: same
@@ -87,6 +89,7 @@ export default defineConfig({
       dependencies: ["serial-nine-axis"],
       testMatch: /touchoff\.spec\.ts/,
       fullyParallel: false,
+      workers: 1,
     },
     {
       name: "serial-guards",
@@ -118,6 +121,11 @@ export default defineConfig({
       dependencies: ["serial-visual"],
       testMatch: /viewer\.spec\.ts/,
       fullyParallel: false,
+      // Two files since review round 6 (scenes.viewer.spec.ts): without one
+      // worker they ran side by side on the one mock — the clean-rebuild
+      // spec loaded the scenes spec's model and previews and failed in
+      // every full `playwright test` (the offline gate).
+      workers: 1,
     },
   ],
   webServer: [

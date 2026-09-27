@@ -7222,3 +7222,17 @@ Plan Fassung 3 WP-D10 (N114, K14, N115), third of three commits.
   bottom and right edge. Red before the fix (6 px sideways, 3 px with no
   line cut, the pointer taken).
 - Codex accepted the opened More covering the ViewCube column (round 9).
+
+### Offline gate after round 10 — serial-viewer on one worker (2026-09-27)
+
+- The offline gate on `01775ef` failed twice in the same place: `viewer.spec`'s
+  clean rebuild never drew the program (78 geometries, expected > 79). Its
+  trace fetched `/preview?v=910/911` and `/machine/base.stl` — the scenes
+  spec's program and model. `serial-viewer` had `fullyParallel: false` but no
+  `workers: 1`; since `scenes.viewer.spec.ts` joined it (review round 6) the
+  two files ran side by side on the one mock. The per-project gate loop
+  forced `--workers=1` and hid it; 276/276 at `000ceef` predates the second
+  file. Fix: `workers: 1` on every serial project (lifecycle, nine-axis and
+  touchoff had one file each — the same trap for their next file), pinned by
+  `src/playwrightProjects.test.ts` (red first: it named the three).
+
