@@ -57,6 +57,12 @@ elif _launcher_bind.get("needs_poll"):
 # Pure, linuxcnc-free helpers (importable under pytest without the binding).
 from gateway_util import (
     ALLOWED_EXTENSIONS,
+    AXIS_LETTERS,
+    g30_param,
+    g30_window_refusal,
+    read_axis_limits,
+    read_var_snapshot,
+    wrap_rotary,
     LOAD_RECORD_NAME,
     canonical_path,
     program_source,
@@ -1265,6 +1271,42 @@ def _get_cmd_lock() -> asyncio.Lock:
     if _cmd_lock is None:
         _cmd_lock = asyncio.Lock()
     return _cmd_lock
+
+
+# The parameter (var) file's writers inside the gateway (Codex R23/R24):
+# _apply_probe_vars' file half, _ensure_prov_var_rows, and the G30 commands
+# for their WHOLE synch-and-read-back — a G30 proof is a NEW inode after
+# task_plan_synch, and a gateway write in between would fake it. Order:
+# _cmd_lock before _var_file_lock, never the reverse (_ensure_prov_var_rows
+# takes only this one). It coordinates the gateway's own writers — never an
+# external editor. Non-reentrant; _var_file_thread takes no lock.
+_var_file_lock: Optional[asyncio.Lock] = None
+
+
+def _get_var_file_lock() -> asyncio.Lock:
+    global _var_file_lock
+    if _var_file_lock is None:
+        _var_file_lock = asyncio.Lock()
+    return _var_file_lock
+
+
+async def _var_file_thread(fn, *args):
+    """Run a parameter-file read or write in a thread. A cancel — a second
+    one too — waits for the thread's end before it propagates, so the
+    caller's _var_file_lock is never released under a write still running
+    (the _cmd_blocking principle; a thread cannot be cancelled)."""
+    inner = asyncio.ensure_future(asyncio.to_thread(fn, *args))
+    try:
+        return await asyncio.shield(inner)
+    except asyncio.CancelledError:
+        while not inner.done():
+            try:
+                await asyncio.wait({inner})
+            except asyncio.CancelledError:
+                continue
+        if not inner.cancelled():
+            inner.exception()   # retrieved: never "exception was never retrieved"
+        raise
 
 # Timing log (toggled via "timing_log" WS command from Debug tab)
 _timing_log_enabled = False
@@ -3219,7 +3261,7 @@ _rfl_flag_task: Optional[asyncio.Task] = None
 # A phase the body sets on its way; any other phase is a verdict.
 _RFL_UNDECIDED = frozenset({"queued", "measuring", "safe_z", "positioning", "starting"})
 # May the one-shot skip flag #3116 be non-zero in the interpreter? The gateway
-# cannot read it (the var file holds it only from LinuxCNC's last shutdown),
+# cannot read it live (the var file holds it as of the last synch or shutdown),
 # so it tracks what it sent (Codex R18 XZ-11). True at boot — the var file
 # carries #3116 across a LinuxCNC restart; True from the moment a sequence MAY
 # have sent #3116=<tool> (a cancelled send still completes) and after the
@@ -3618,8 +3660,9 @@ async def _apply_probe_vars(vars_to_set: Dict[str, Any], armed: bool):
             # arbitrary #N=inf into the parameter file).
             str_vars = {str(k): finite_float(v) for k, v in vars_to_set.items()}
             _trace.emit("probe.set_vars", vars=str_vars)
-            await asyncio.to_thread(_write_var_file_updates, var_file, str_vars)
-            _status_runtime.mark_var_file_written(var_file)
+            async with _get_var_file_lock():
+                await _var_file_thread(_write_var_file_updates, var_file, str_vars)
+                _status_runtime.mark_var_file_written(var_file)
             file_ok = True
     mdi_ok = False
     STAT.poll()
@@ -4649,6 +4692,17 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 _status_runtime.end_program_change()
             return {"ok": True}
 
+        # G30's stored position (operator P4): one sequence, three commands.
+        if cmd == "read_g30":
+            require_armed(armed)
+            return await _g30_command(cmd, msg)
+        if cmd == "capture_g30":
+            require_armed(armed)
+            return await _g30_command(cmd, msg)
+        if cmd == "set_g30":
+            require_armed(armed)
+            return await _g30_command(cmd, msg)
+
         if cmd == "list_probe_macros":
             return {"ok": True, "macros": get_probe_macros()}
 
@@ -5576,13 +5630,15 @@ async def _ensure_prov_var_rows() -> None:
             return
         keys = [str(n) for i in range(1, 10)
                 for n in wcs_prov_params(i).values()]
-        have = await asyncio.to_thread(_read_var_file, path, set(keys))
-        missing = [k for k in keys if k not in have]
+        async with _get_var_file_lock():
+            have = await _var_file_thread(_read_var_file, path, set(keys))
+            missing = [k for k in keys if k not in have]
+            if missing:
+                await _var_file_thread(
+                    _write_var_file_updates, path, {k: 0.0 for k in missing})
+                _status_runtime.mark_var_file_written(path)
+                re_read = await _var_file_thread(_read_var_file, path, set(missing))
         if missing:
-            await asyncio.to_thread(
-                _write_var_file_updates, path, {k: 0.0 for k in missing})
-            _status_runtime.mark_var_file_written(path)
-            re_read = await asyncio.to_thread(_read_var_file, path, set(missing))
             still = [k for k in missing if k not in re_read]
             if still:
                 _prov_rows_ok = False
@@ -5659,7 +5715,8 @@ def _adopt_m535_datum(datum, *, step: str) -> None:
     contract — it writes G54 == saved_work_offset literally and stamps
     kins 0 / A 0 (table frame == machine frame), so the helper pins ARE the
     row. STAT cannot help (only the ACTIVE fixture's offset is broadcast,
-    and G59 is active here) and the var file is written at shutdown."""
+    and G59 is active here) and the var file is written only at a synch or
+    at shutdown."""
     if datum is None:
         _trace.emit("wcs.row_seed_skipped", level="warn", index=1, step=step,
                     reason="datum unreadable")
@@ -6027,9 +6084,11 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
 def _build_wcs_rotation_patches() -> Dict[str, str]:
     """Build {param_number: str(value)} rotation patches for the parse worker.
 
-    LinuxCNC only writes the var file on shutdown, so after a G10 L2 the disk
-    copy is stale — for rotation AND for the axis offsets. Only rotation
-    (base + 10) is patched today.
+    LinuxCNC writes the var file at shutdown and on every Interp::synch()
+    (a switch to MDI/AUTO, task_plan_synch — verified live 2026-09-28: a new
+    inode per synch), so between two synchs a G10 L2 leaves the disk copy
+    stale — for rotation AND for the axis offsets. Only rotation (base + 10)
+    is patched today.
 
     UNITS, settled by experiment 2026-08-20 (the previous note here claimed the
     var file held "interpreter-internal units" and that _wcs_cache therefore
@@ -7299,27 +7358,156 @@ async def _halshow_loop() -> None:
         _halshow_topology_sent.clear()
 
 
-def _read_g30_vars():
-    """Read G30 tool change position (#5181-#5183) from the var file."""
+# ---- G30: the stored tool-change position (operator P4, Codex R21–R24) ----
+# The stored values live in the interpreter; the parameter file holds them as
+# of the last Interp::synch() (task synchs on every switch to MDI/AUTO and on
+# task_plan_synch — rs274ngc_pre.cc synch → save_parameters). save_parameters
+# writes <file>.new, links the old file as .bak and renames .new over it: a
+# NEW INODE is the proof that a fresh file was published (a failed open or
+# rename leaves the inode — and synch still answers RCS_DONE).
+
+
+class _G30Unconfirmed(Exception):
+    """A G30 read or write whose outcome is not proven; the reply says so."""
+
+
+def _g30_letters() -> List[str]:
+    mask = int(getattr(STAT, "axis_mask", 0) or 0)
+    return [AXIS_LETTERS[i] for i in range(9) if mask & (1 << i)]
+
+
+def _g30_ini():
     ini_path = getattr(STAT, "ini_filename", None)
-    if not ini_path:
-        return {"ok": False, "error": "No INI file"}
-    ini = linuxcnc.ini(ini_path)
-    var_file = ini.find("RS274NGC", "PARAMETER_FILE")
-    if not var_file:
-        return {"ok": False, "error": "No PARAMETER_FILE in INI"}
-    if not os.path.isabs(var_file):
-        var_file = os.path.join(os.path.dirname(ini_path), var_file)
+    return linuxcnc.ini(ini_path) if ini_path else None
+
+
+def _g30_limits() -> Dict[str, tuple]:
+    """The axis windows G30 values are checked against (AXIS_<L>, else
+    JOINT_<n>; an absent bound is open — read_axis_limits)."""
+    ini = _g30_ini()
+    return read_axis_limits(ini.find, int(getattr(STAT, "axis_mask", 0) or 0)) if ini else {}
+
+
+def _g30_wrapped() -> set:
+    """Rotary axes configured WRAPPED_ROTARY: G30.1 stores them in [0, 360)."""
+    ini = _g30_ini()
+    out = set()
+    for letter in _g30_letters():
+        if ini and letter in "ABC":
+            raw = ini.find(f"AXIS_{letter}", "WRAPPED_ROTARY")
+            if raw is not None and str(raw).strip() not in ("", "0"):
+                out.add(letter)
+    return out
+
+
+async def _g30_synch_read(path: str, keys: List[str]) -> Dict[str, float]:
+    """task_plan_synch, then ONE snapshot of the fresh file. Raises
+    _G30Unconfirmed unless synch answered RCS_DONE AND the file's inode
+    changed AND every key holds a finite value. Caller holds _cmd_lock and
+    _var_file_lock."""
     try:
-        result = _read_var_file(var_file, {"5181", "5182", "5183"})
-    except Exception as e:
+        ino0, _ = await _var_file_thread(read_var_snapshot, path, keys)
+    except OSError:
+        raise _G30Unconfirmed("G30 not confirmed — parameter file unreadable")
+    rc = await _cmd_blocking(CMD.task_plan_synch, wait=5)
+    if rc != getattr(linuxcnc, "RCS_DONE", 1):
+        raise _G30Unconfirmed("G30 not confirmed — LinuxCNC did not synch")
+    try:
+        ino1, values = await _var_file_thread(read_var_snapshot, path, keys)
+    except OSError:
+        raise _G30Unconfirmed("G30 not confirmed — parameter file unreadable")
+    if ino1 == ino0:
+        raise _G30Unconfirmed("G30 not confirmed — parameters not saved")
+    if any(v is None for v in values.values()):
+        raise _G30Unconfirmed("G30 not confirmed — values missing in the file")
+    return values
+
+
+async def _g30_command(cmd: str, msg: Dict[str, Any]) -> Dict[str, Any]:
+    """read_g30 (a confirmed read), capture_g30 (+ the current machine
+    position), set_g30 {values, based_on} (a confirmed write). Every step
+    under _cmd_lock (the caller) and _var_file_lock; nothing claims a value
+    the fresh file did not show (Codex R21–R24)."""
+    path = _resolve_var_file_path()
+    if not path:
+        return {"ok": False, "confirmed": False, "error": "No parameter file — G30 not confirmed"}
+    STAT.poll()
+    letters = _g30_letters()
+    keys = {L: str(g30_param(L)) for L in letters}
+    values: Dict[str, float] = {}
+    open_axes: List[str] = []
+    if cmd == "set_g30":
+        values = {str(k).upper(): finite_float(v) for k, v in msg["values"].items()}
+        based = {str(k).upper(): finite_float(v) for k, v in (msg.get("based_on") or {}).items()}
+        limits = _g30_limits()
+        why = g30_window_refusal(values, letters, limits)
+        if why:
+            return {"ok": False, "error": why}
+        if any(L not in based for L in values):
+            return {"ok": False, "error": "G30 draft has no basis — reload"}
+        open_axes = [L for L in values if L not in limits]
+    async with _get_var_file_lock():
+        try:
+            stored = await _g30_synch_read(path, list(keys.values()))
+        except _G30Unconfirmed as e:
+            return {"ok": False, "confirmed": False, "error": str(e)}
+        by_letter = {L: stored[k] for L, k in keys.items()}
+        if cmd == "read_g30":
+            return {"ok": True, "confirmed": True, "values": by_letter}
+        if cmd == "capture_g30":
+            pos = to_float_list(safe_get("position", None))
+            if not pos or len(pos) < 9:
+                return {"ok": False, "confirmed": True, "values": by_letter,
+                        "error": "No machine position — nothing taken over"}
+            wrapped = _g30_wrapped()
+            current = {L: wrap_rotary(pos[AXIS_LETTERS.index(L)]) if L in wrapped else pos[AXIS_LETTERS.index(L)]
+                       for L in letters}
+            return {"ok": True, "confirmed": True, "values": by_letter, "current": current,
+                    "units": get_machine_units()}
+        if any(abs(by_letter[L] - based[L]) > 1e-6 for L in values):
+            return {"ok": False, "confirmed": True, "values": by_letter,
+                    "error": "G30 changed meanwhile — reload"}
+        await set_mode(linuxcnc.MODE_MDI)
+        rc = await _cmd_blocking(CMD.mdi, " ".join(f"#{keys[L]}={v:.6f}" for L, v in values.items()), wait=5)
+        if _cmd_rc_failed(rc):
+            return {"ok": False, "confirmed": False, "error": "LinuxCNC did not take the G30 values"}
+        try:
+            after = await _g30_synch_read(path, list(keys.values()))
+        except _G30Unconfirmed as e:
+            return {"ok": False, "confirmed": False, "error": str(e)}
+        after_l = {L: after[k] for L, k in keys.items()}
+        # %f: six decimals whatever the magnitude — equal to 1e-6.
+        wrong = [L for L, v in values.items() if abs(after_l[L] - v) > 1e-6]
+        if wrong:
+            return {"ok": False, "confirmed": False, "values": after_l,
+                    "error": f"G30 not confirmed — {', '.join(wrong)} read back differently"}
+        _trace.emit("g30.saved", values=after_l)
+        reply: Dict[str, Any] = {"ok": True, "confirmed": True, "values": after_l}
+        if open_axes:
+            reply["open_axes"] = open_axes
+        return reply
+
+
+def _read_g30_vars():
+    """The stored G30 position as of the last synch, for every configured
+    axis — a DISPLAY, no machine command: a missing row is None, never 0.0
+    (it used to be), and the file's time says how old it is."""
+    path = _resolve_var_file_path()
+    if not path:
+        return {"ok": False, "error": "No parameter file"}
+    letters = _g30_letters()
+    try:
+        _ino, vals = read_var_snapshot(path, [str(g30_param(L)) for L in letters])
+        mtime = os.stat(path).st_mtime
+    except OSError as e:
         return {"ok": False, "error": str(e)}
-    return {"ok": True, "x": result.get("5181", 0.0), "y": result.get("5182", 0.0), "z": result.get("5183", 0.0)}
+    return {"ok": True, "values": {L: vals[str(g30_param(L))] for L in letters},
+            "mtime_ms": int(mtime * 1000), "units": get_machine_units()}
 
 
 @app.get("/g30")
 async def get_g30():
-    """Return G30 tool change position (#5181-#5183)."""
+    """The stored G30 position as of the last synch (display only)."""
     loop = asyncio.get_event_loop()
     return await loop.run_in_executor(None, _read_g30_vars)
 

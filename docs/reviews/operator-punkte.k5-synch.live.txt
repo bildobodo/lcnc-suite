@@ -1,0 +1,18 @@
+# K5 (G30) — the LinuxCNC fact the write contract rests on, checked live
+# XYZAC sim, LinuxCNC 2.9.4, 2026-09-28 01:49, the running suite untouched
+# (a separate `linuxcnc.command()` from /usr/bin/python3; the machine idle in
+# MANUAL, no parameter changed, no motion).
+#
+#   var file ~/linuxcnc/configs/lcnc_suite_sim/xyzac5/sim.var
+#   before:  ino=1345350 mtime=2026-09-27 23:15:53.984581054 +0200
+#   task_plan_synch(); wait_complete(5) -> 1 (RCS_DONE=1)
+#   after:   ino=1348434 mtime=2026-09-28 01:49:31.008892970 +0200   -> CHANGED
+#   sim.var.bak exists with ino 1345350 (the previous file, linked by save_parameters)
+#
+# So a synch republishes the whole file under a NEW inode (save_parameters:
+# .new, link the old one as .bak, rename) — the proof set_g30/read_g30 use.
+# It also refutes "LinuxCNC writes the var file ONLY at shutdown" (decisions
+# 2026-08-20; five code comments said so): the file is written at shutdown
+# AND at every Interp::synch() — a switch to MDI/AUTO, task_plan_synch. The
+# 23:15:53 mtime above is the synch of the abort that followed the safety
+# trip at that time.

@@ -129,7 +129,7 @@ def seed_wcs_row_xyz(wcs_cache: List[Dict[str, Any]], index0: int,
     """Overwrite x/y/z of ONE cached fixture row in place (the gateway holds
     the same list object). Used after the remap wrote a NON-ACTIVE fixture
     (M535: G10 L2 P1 while G59 is active) — STAT only refreshes the active
-    row and the var file is written at shutdown, so without this the row
+    row and the var file is written only at a synch or at shutdown, so without this the row
     froze at the pre-touch-off value and twpDatumStale fired for a datum
     that never moved. ValueError on a non-finite value or bad index: never
     a partial row."""
@@ -879,8 +879,11 @@ class StatusRuntime:
         rotation_xy = safe_get("rotation_xy", None)
 
         # Update WCS cache: re-seed from the var file whenever its mtime
-        # changes. LinuxCNC writes that file ONLY at shutdown (decisions.md
-        # 2026-08-20; gcode_canon.py), so this path catches DISK writers — the
+        # changes. LinuxCNC writes that file at shutdown and on every
+        # Interp::synch() — a switch to MDI/AUTO, task_plan_synch (verified
+        # live 2026-09-28; decisions.md 2026-08-20 said "only at shutdown"),
+        # so this path catches the interpreter's own state at a synch and the
+        # DISK writers — the
         # gateway's own provenance/probe-var writes (which call
         # mark_var_file_written so they do not reseed axis rows they never
         # wrote) and foreign editors — never an interpreter-side G10 to an

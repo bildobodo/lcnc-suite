@@ -121,3 +121,10 @@ export function fmtSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+/** A wall-clock time of day, "14:05" — when a stored value was last written. */
+export function fmtClock(ms: number | null | undefined): string {
+  if (ms == null || !Number.isFinite(ms)) return NO_VALUE;
+  const d = new Date(ms);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}

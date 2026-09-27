@@ -129,11 +129,13 @@ export async function saveFile(path: string, content: string): Promise<SaveRespo
 
 /** ---------- G30 tool change position ---------- */
 
+/** The stored G30 position as of LinuxCNC's last synch — a DISPLAY: every
+ *  configured axis by letter, a missing row null (never 0). */
 export interface G30Response {
   ok: boolean;
-  x: number;
-  y: number;
-  z: number;
+  values?: Record<string, number | null>;
+  mtime_ms?: number;
+  units?: string;
   error?: string;
 }
 

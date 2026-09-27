@@ -185,6 +185,12 @@ export const BUTTON_TYPES = {
   // (operator P5 — the cell used to open only on a click, with no keyboard
   // path). G10 L2 is a probe-tier write (command_policy).
   offsetCell:     { gate: 'probe',   variant: 'default', size: 'sm',  value: true },
+  // G30's stored position (operator P4, Codex R21–R24): no motion. Taking
+  // the current position over and saving are machine-frame only (our G30
+  // routines address it with G53 moves); a confirming read synchs — idle.
+  g30Capture:     { gate: 'machineFrame', variant: 'default', size: 'md' },
+  g30Save:        { gate: 'machineFrame', variant: 'primary', size: 'md' },
+  g30Read:        { gate: 'idle',         variant: 'default', size: 'md' },
   // Discard in an inline note is the same destructive choice as in a
   // dialog — danger wherever it appears (design wave D1, UI-N31).
   inlineDanger:   { gate: 'always',  variant: 'danger',  size: 'sm' },

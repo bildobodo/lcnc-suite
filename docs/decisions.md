@@ -7455,3 +7455,20 @@ datum shift.
   Live on the XYZAC sim: the refused reload (chmod 000) answered
   RCS_ERROR, the file stayed named unconfirmed past the window, a reload
   task opened settled it, a normal unload still settled.
+
+- 2026-09-28, operator point P4 (G30), correcting 2026-08-20: LinuxCNC does
+  NOT write the parameter file only at shutdown — every Interp::synch()
+  saves it (a switch to MDI/AUTO, `task_plan_synch`), as a new file:
+  save_parameters writes `.new`, links the old file as `.bak` and renames
+  (rs274ngc_pre.cc; live on the XYZAC sim: a new inode per synch,
+  `docs/reviews/operator-punkte.k5-synch.live.txt`). The comments that said
+  "only at shutdown" are corrected; the WCS cache's mtime reseed therefore
+  also takes the interpreter's own state at a synch — fresh data. G30 is
+  now a draft saved by ONE gateway command (`set_g30`) that confirms from a
+  fresh file: RCS_DONE of the synch AND a new inode AND every value there,
+  before (the conflict check against the draft's basis) and after the MDI
+  write (the read-back); `read_g30` is the confirming read, `capture_g30`
+  takes STAT.position (G30.1's own quantity, WRAPPED_ROTARY normalised) —
+  both machine-frame only. The gateway's writers of that file share
+  `_var_file_lock` (after `_cmd_lock`), a cancelled writer thread holds it
+  to its end; an external editor is outside that lock (Codex R21–R24).

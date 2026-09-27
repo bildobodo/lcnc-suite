@@ -629,6 +629,13 @@ COMMAND_GATES: Dict[str, str] = {
     "touchoff": "touchoff",
     "twp_capture": "twpCapture",
     "set_probe_vars": "ready",
+    # G30's stored tool-change position (operator P4, Codex R21–R24): a
+    # confirming read synchs the interpreter (no motion) — idle; taking the
+    # current position over and saving are MACHINE-frame only: our G30
+    # routines address #5181… with G53 moves under identity kins.
+    "read_g30": "idle",
+    "capture_g30": "machineFrame",
+    "set_g30": "machineFrame",
     # --- tool-table edits (no machine-enabled needed) ---
     "save_tool": "setup",
     "add_tool": "setup",
@@ -912,6 +919,7 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
     # --- surface compensation
     "set_compensation_method": {"method": Enum(frozenset({0, 1, 2}))},  # nearest/linear/cubic
     "set_probe_vars": {"vars": VarNumbers()},
+    "set_g30": {"values": AxisMap(), "based_on": AxisMap()},
 }
 
 

@@ -354,9 +354,10 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
 def apply_var_patches(path: str, patches: Dict[str, str]) -> None:
     """Overwrite numeric-parameter lines in a LinuxCNC var file in place.
 
-    LinuxCNC only writes the var file on shutdown, so runtime edits (e.g.
-    G10 L2 R rotation) don't reach disk until then. Gateway hands us the
-    fresh values; we rewrite the temp copy the parser will read.
+    LinuxCNC writes the var file only at a synch (a switch to MDI/AUTO,
+    task_plan_synch) or at shutdown, so runtime edits (e.g. G10 L2 R
+    rotation) may not have reached disk yet. Gateway hands us the fresh
+    values; we rewrite the temp copy the parser will read.
     """
     if not patches:
         return

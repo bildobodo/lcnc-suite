@@ -1229,7 +1229,6 @@ function fmtR(key: string): string {
       <ToolsetterSettings
         v-else
         :linearUnit="linearUnit"
-        @mdi="emit('mdi', $event)"
         @resetSection="resetTarget = $event"
       />
     </template>

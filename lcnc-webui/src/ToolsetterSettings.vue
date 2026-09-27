@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from "vue";
-import { fmtNum } from "./format";
+import { ref, reactive, computed, onMounted, watch } from "vue";
+import { fmtClock } from "./format";
 import FormField from "./FormField.vue";
 import { TS_POSITION_FIELDS, TS_PROBE_FIELDS, TS_OPTION_FIELDS, TS_OFFSET_FIELDS, TS_FINDER_FIELDS, unitText } from "./probeFields";
 import { usePermissions } from "./permissions";
@@ -11,19 +11,20 @@ import {
 import { confirmedToolsetter, toolsetterVarMap, TOOLSETTER_REQUIRED } from "./toolsetterVars";
 import { fetchG30 } from "./lcncApi";
 import { status, viewerInit, request } from "./lcncWs";
+import { useAxes, DEFAULT_AXES } from "./useAxes";
+import { savePayload, sameG30, contextChanged, type G30Values, type G30Context } from "./g30Form";
 import MachineInput from "./MachineInput.vue";
 import MachineToggle from "./MachineToggle.vue";
 import MachineRadio from "./MachineRadio.vue";
 import MachineBtn from "./MachineBtn.vue";
 import HelpIcon from "./HelpIcon.vue";
 
-defineProps<{
+const props = defineProps<{
   /** The machine's linear unit — the unit of every length and feed field. */
   linearUnit: string;
 }>();
 
 const emit = defineEmits<{
-  (e: "mdi", text: string): void;
   (e: "resetSection", section: string): void;
 }>();
 
@@ -103,53 +104,131 @@ const tsGoBackToStart = computed({ get: () => tsParams.value.goBackToStart === 1
 const tsDisablePrePos = computed({ get: () => tsParams.value.disablePrePos === 1, set: (v: boolean) => { tsParams.value.disablePrePos = v ? 1 : 0; saveTsParams("disablePrePos"); } });
 const tsLastTry = computed({ get: () => tsParams.value.lastTry === 1, set: (v: boolean) => { tsParams.value.lastTry = v ? 1 : 0; saveTsParams("lastTry"); } });
 
-// ─── G30 tool change position ────────────────
-const g30X = ref<number | null>(null);
-const g30Y = ref<number | null>(null);
-const g30Z = ref<number | null>(null);
-const g30Loading = ref(false);
-const g30Error = ref<string | null>(null);
+// ─── G30 tool change position (operator P4, Codex R21–R24) ───
+// Every configured axis, in the DRO's order. The fields are a DRAFT; "Use
+// current position" fills it from the machine's commanded position (what
+// G30.1 stores), only Save writes — one gateway command that confirms from a
+// fresh parameter file. Nothing here claims a value LinuxCNC did not show:
+// the stored line says whether it is CONFIRMED or as of the last synch, and
+// a missing value is "—", never 0. (The old "Set Current Position" sent
+// G30.1 and meant to show the position — through a status field that does
+// not exist, so the readout stayed on the old value.)
+const { entries: g30Axes } = useAxes(computed(() => [...(viewerInit.value?.axes ?? DEFAULT_AXES)]));
+const g30Letters = computed(() => g30Axes.value.map(a => a.letter));
+const g30Stored = ref<G30Values>({});
+const g30StoredState = ref<"unknown" | "file" | "confirmed" | "unconfirmed">("unknown");
+const g30StoredAt = ref<number | null>(null);
+const g30Basis = ref<G30Values | null>(null);
+const g30Draft = reactive<G30Values>({});
+const g30DraftContext = ref<G30Context | null>(null);
+const g30Busy = ref(false);
+const g30Note = ref<{ kind: "ok" | "warn" | "error"; text: string } | null>(null);
 
-/** The G30 readout, one entry per axis (read-only form values). */
-const G30_AXES = [
-  { letter: "X", value: g30X }, { letter: "Y", value: g30Y }, { letter: "Z", value: g30Z },
-];
+// The status frame carries the machine's fields under `data`.
+const kinsType = computed<number | null>(() => (status.value?.data as Record<string, any> | undefined)?.kins_type ?? null);
+const g30Context = (): G30Context => ({ units: props.linearUnit, kinsType: kinsType.value });
+/** The draft differs from what the section shows as stored (empty = empty). */
+const g30Dirty = computed(() => g30Letters.value.some(l => g30Draft[l] == null
+  ? g30Stored.value[l] != null : !sameG30(g30Draft[l], g30Stored.value[l])));
+const g30SaveCheck = computed(() => savePayload(g30Draft, g30Basis.value, g30Letters.value));
+const g30StoredLine = computed(() => {
+  const state = g30StoredState.value === "confirmed" ? "confirmed by LinuxCNC"
+    : g30StoredState.value === "file" ? `as of LinuxCNC's last synch${g30StoredAt.value ? ` (${fmtClock(g30StoredAt.value)})` : ""}`
+    : g30StoredState.value === "unconfirmed" ? "not confirmed — refresh" : "unknown — refresh";
+  return `Stored: ${state}${g30Dirty.value ? " · draft not saved" : ""}`;
+});
+
+function resetG30Draft() {
+  for (const l of g30Letters.value) g30Draft[l] = g30Stored.value[l] ?? null;
+  g30DraftContext.value = null;
+}
+function takeStored(values: G30Values | undefined, state: "file" | "confirmed") {
+  g30Stored.value = { ...(values ?? {}) };
+  g30StoredState.value = state;
+  const known = g30Letters.value.every(l => g30Stored.value[l] != null);
+  g30Basis.value = known ? { ...g30Stored.value } : null;
+}
 
 async function loadG30() {
-  g30Loading.value = true;
-  g30Error.value = null;
   try {
     const data = await fetchG30();
     if (data.ok) {
-      g30X.value = data.x;
-      g30Y.value = data.y;
-      g30Z.value = data.z;
+      takeStored(data.values, "file");
+      g30StoredAt.value = data.mtime_ms ?? null;
+      resetG30Draft();
     } else {
-      g30Error.value = data.error || "G30 read failed";
+      g30Note.value = { kind: "error", text: `G30 read failed: ${data.error ?? "no data"}` };
     }
   } catch (e: any) {
-    g30Error.value = e?.message ?? String(e);
-  } finally {
-    g30Loading.value = false;
+    g30Note.value = { kind: "error", text: `G30 read failed: ${e?.message ?? String(e)}` };
   }
 }
 
-function setG30() {
-  if (!can.value.ready) return;
-  emit("mdi", "G30.1");
-  // After G30.1 saves current position, read back from machine position
-  // Read back BY LETTER via the machine's axis order (viewer_init.axes) —
-  // st.position is index-aligned to it; positional [0/1/2] broke on any
-  // machine whose axes aren't XYZ-first.
-  const st = status.value as any;
-  const axes: string[] = viewerInit.value?.axes ?? [];
-  if (st?.position && axes.length) {
-    const at = (l: string) => { const i = axes.indexOf(l); return i >= 0 ? st.position[i] : undefined; };
-    g30X.value = at("X");
-    g30Y.value = at("Y");
-    g30Z.value = at("Z");
+/** Run one G30 command; a lost reply is "not confirmed", never success. */
+async function g30Request(msg: { cmd: "read_g30" } | { cmd: "capture_g30" } | { cmd: "set_g30"; values: Record<string, number>; based_on: Record<string, number> }) {
+  g30Busy.value = true;
+  try {
+    return await request(msg, 15000);
+  } finally {
+    g30Busy.value = false;
   }
 }
+
+async function refreshG30() {
+  const r = await g30Request({ cmd: "read_g30" });
+  if (r?.ok) {
+    takeStored(r.values, "confirmed");
+    resetG30Draft();
+    g30Note.value = null;
+  } else {
+    if (r?.confirmed === false) g30StoredState.value = "unconfirmed";
+    g30Note.value = { kind: "error", text: r?.error ?? "No reply — G30 not confirmed" };
+  }
+}
+
+async function captureG30() {
+  const r = await g30Request({ cmd: "capture_g30" });
+  if (!r?.ok || !r.current) {
+    g30Note.value = { kind: "error", text: r?.error ?? "No reply — nothing taken over" };
+    return;
+  }
+  for (const l of g30Letters.value) g30Draft[l] = r.current[l] ?? null;
+  g30DraftContext.value = g30Context();
+  // The basis stays: a stored value that moved meanwhile is said, never
+  // swapped in silently (Codex R22 OP22-02).
+  const moved = g30Basis.value && g30Letters.value.some(l => !sameG30(r.values?.[l], g30Basis.value![l]));
+  g30Note.value = moved ? { kind: "warn", text: "Stored G30 changed meanwhile — refresh before saving" } : null;
+}
+
+async function saveG30() {
+  const p = g30SaveCheck.value;
+  if ("error" in p) return;
+  const r = await g30Request({ cmd: "set_g30", ...p });
+  if (r?.ok) {
+    takeStored(r.values, "confirmed");
+    resetG30Draft();
+    g30Note.value = { kind: "ok", text: r.open_axes?.length
+      ? `G30 saved — ${r.open_axes.join(", ")} has no limit in the INI` : "G30 saved — confirmed by LinuxCNC" };
+    return;
+  }
+  if (r?.confirmed === true && r.values) {
+    g30Stored.value = { ...r.values };
+    g30StoredState.value = "confirmed";
+  } else if (r?.confirmed === false || r === null) {
+    g30StoredState.value = "unconfirmed";
+  }
+  g30Note.value = { kind: "error", text: r?.error ?? "No reply — G30 not confirmed" };
+}
+
+// A captured draft belongs to its units and kinematics mode (Codex R22
+// OP22-02): another one drops it, said at the section.
+watch(() => [props.linearUnit, kinsType.value], () => {
+  if (g30Dirty.value && contextChanged(g30DraftContext.value, g30Context())) {
+    resetG30Draft();
+    g30Note.value = { kind: "warn", text: "Draft dropped — units or kinematics changed" };
+  }
+});
+watch(g30Letters, () => { if (!g30Dirty.value) resetG30Draft(); });
 
 onMounted(() => {
   loadTsParams();
@@ -177,19 +256,22 @@ watch(settingsVersion, () => { void pushWhenConfirmed(); });
 
     <div class="sep"></div>
 
-    <!-- Tool Change Position (G30): read from the var file -->
-    <div class="sub textWithHelp">Tool Change Position (G30)<HelpIcon label="Tool Change Position (G30)">Where the machine moves before a tool change (M6). Set in the var file.</HelpIcon></div>
-    <FormField v-for="a in G30_AXES" :key="a.letter" :label="`G30 ${a.letter}`" :unit="linearUnit">
-      <template #default="{ field }">
-        <output v-bind="field" class="formValue">{{ fmtNum(a.value.value, 3) }}</output>
+    <!-- Tool change position (G30): a draft, saved as one confirmed write -->
+    <div class="sub textWithHelp">Tool Change Position (G30)<HelpIcon label="Tool Change Position (G30)">The machine position a tool change and G30 move to. Save writes it into LinuxCNC, within each axis' limits.</HelpIcon></div>
+    <FormField v-for="a in g30Axes" :key="a.letter" :label="`G30 ${a.letter}`" :unit="a.kind === 'rotary' ? '°' : linearUnit">
+      <template #default="{ input }">
+        <MachineInput v-bind="input" gate="toolsetterParam" type="number" v-model.number="g30Draft[a.letter]" />
       </template>
     </FormField>
+    <div class="text-muted wide g30Stored">{{ g30StoredLine }}</div>
     <div class="row-tight wide">
-      <!-- hold=false: records the current position (var write), no motion -->
-      <MachineBtn type="probe" :hold="false" @click="setG30">Set Current Position</MachineBtn>
-      <MachineBtn type="inlineMd" @click="loadG30" :disabled="g30Loading">Refresh</MachineBtn>
+      <!-- No motion: Use Current Position fills the draft, Save writes it. -->
+      <MachineBtn type="g30Capture" :disabled="g30Busy" @click="captureG30">Use Current Position</MachineBtn>
+      <MachineBtn type="g30Save" :disabled="g30Busy || 'error' in g30SaveCheck"
+                  :reason="'error' in g30SaveCheck ? g30SaveCheck.error : undefined" @click="saveG30">Save G30</MachineBtn>
+      <MachineBtn type="g30Read" :disabled="g30Busy" @click="refreshG30">Refresh</MachineBtn>
     </div>
-    <div v-if="g30Error" class="statusNote error wide" role="alert"><span>G30 read failed: {{ g30Error }}</span></div>
+    <div v-if="g30Note" class="statusNote wide" :class="g30Note.kind" :role="g30Note.kind === 'ok' ? undefined : 'alert'"><span>{{ g30Note.text }}</span></div>
 
     <div class="sep"></div>
 

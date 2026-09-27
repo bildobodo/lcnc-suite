@@ -91,6 +91,11 @@ export type WsCommand =
   | { cmd: "list_probe_macros" }
   | { cmd: "simulate_probe_trip" }
   | { cmd: "set_probe_vars"; vars: Record<string, number> }
+  // G30's stored position (operator P4): a confirmed read, the current
+  // machine position with it, a confirmed write on its basis.
+  | { cmd: "read_g30" }
+  | { cmd: "capture_g30" }
+  | { cmd: "set_g30"; values: Record<string, number>; based_on: Record<string, number> }
   | { cmd: "get_probe_vars"; vars: number[] }
   | { cmd: "get_probe_results" }
   | { cmd: "get_comp_grid" }

@@ -17,7 +17,7 @@ import re
 import tempfile
 import hmac
 from urllib.parse import urlsplit
-from typing import Dict, Iterable, Optional
+from typing import Dict, Iterable, Optional, Tuple
 
 
 # File-upload allow-list. Lives here (not gateway.py) so validate_extension is
@@ -3932,6 +3932,64 @@ def resolve_subroutine_dirs(sub_path, ini_path):
             d = os.path.normpath(os.path.join(base, d))
         dirs.append(d)
     return dirs
+
+
+# ---- G30: the stored tool-change position (operator point P4, Codex R21–R24)
+# #5181..#5189 hold G30's position for X..W (canonical order) — what G30.1
+# stores (interp_convert.cc convert_savehome) and what our G30 routines
+# address with G53 moves: MACHINE-frame coordinates in machine units.
+G30_BASE_PARAM = 5181
+
+
+def g30_param(letter: str) -> int:
+    """The var number holding G30's position for axis `letter`."""
+    return G30_BASE_PARAM + AXIS_LETTERS.index(letter.upper())
+
+
+def read_var_snapshot(path: str, keys) -> Tuple[int, Dict[str, Optional[float]]]:
+    """ONE snapshot of the parameter file: the inode (fstat) and the values
+    from the SAME open descriptor — a rename between a stat and a read would
+    pair one file's identity with another's content (Codex R23). A key that
+    is missing, unparsable or non-finite is None, never 0. OSError when the
+    file cannot be opened."""
+    fd = os.open(path, os.O_RDONLY)
+    with os.fdopen(fd, "r") as f:
+        ino = os.fstat(f.fileno()).st_ino
+        values: Dict[str, Optional[float]] = {str(k): None for k in keys}
+        for line in f:
+            parts = line.split()
+            if len(parts) >= 2 and parts[0] in values:
+                try:
+                    v = float(parts[1])
+                except ValueError:
+                    continue
+                values[parts[0]] = v if math.isfinite(v) else None
+    return ino, values
+
+
+def g30_window_refusal(values: Dict[str, float], letters, limits) -> Optional[str]:
+    """None when every value is a configured axis inside its window, else the
+    refusal (≤ 60 chars). `limits` = read_axis_limits(): AXIS_<L>, else
+    JOINT_<n>; a bound absent from both is open — only finiteness is
+    checked there, and the reply says so (open_axes)."""
+    for letter, v in values.items():
+        L = letter.upper()
+        if L not in letters:
+            return f"{L} is not an axis of this machine"
+        if not math.isfinite(v):
+            return f"{L}: not a number"
+        lo, hi = limits.get(L, (None, None))
+        if (lo is not None and v < lo) or (hi is not None and v > hi):
+            lo_s = "−∞" if lo is None else f"{lo:g}"
+            hi_s = "+∞" if hi is None else f"{hi:g}"
+            return f"G30 {L} {v:g} outside {lo_s}…{hi_s} — not saved"
+    return None
+
+
+def wrap_rotary(v: float) -> float:
+    """G30.1's normalisation for a WRAPPED_ROTARY axis: [0, 360)."""
+    r = math.fmod(v, 360.0)
+    return r + 360.0 if r < 0 else r
 
 
 def read_axis_limits(ini_find, axis_mask: int):
