@@ -4603,10 +4603,23 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 # lands after program_open went out (_cmd_blocking completes
                 # a send it began): the window stays and the observation
                 # decides, never the handler's end (Codex R18 XZ-08).
-                _status_runtime.program.request_load(abs_path, time.monotonic())
-                await _cmd_blocking(CMD.program_open, abs_path, wait=None)
+                # STAT.file NOW: a name already there is no proof of this
+                # open (a refused reload leaves it standing — Codex R19).
+                STAT.poll()
+                _status_runtime.program.request_load(abs_path, time.monotonic(),
+                                                     before=safe_get("file", None))
+                # The open's own status settles it: task has handled the open
+                # when the send returns, so the first wait slice answers
+                # (sliced — never a GIL-held wait_complete).
+                rc = await _cmd_blocking(CMD.program_open, abs_path, wait=5)
             finally:
                 _status_runtime.end_program_change()
+            if rc == getattr(linuxcnc, "RCS_ERROR", 3):
+                _status_runtime.program.confirm_open(False)
+                return {"ok": False, "error": "LinuxCNC did not open the program"}
+            if not _cmd_rc_failed(rc):
+                _status_runtime.program.confirm_open(True)
+            # else no answer in time: the window and the observation decide
             return {"ok": True, "path": abs_path}
 
         if cmd == "unload_file":
@@ -4619,13 +4632,18 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if not _status_runtime.begin_program_change():
                 return {"ok": False, "error": "Load record not writable — nothing unloaded"}
             try:
-                await _cmd_blocking(CMD.abort)
-                await _cmd_blocking(CMD.reset_interpreter)
+                rc_abort = await _cmd_blocking(CMD.abort)
+                rc_reset = await _cmd_blocking(CMD.reset_interpreter)
+                if _cmd_rc_failed(rc_abort) or _cmd_rc_failed(rc_reset):
+                    # Refused or unanswered: the old program may still be
+                    # open — named unconfirmed, never loaded (Codex R19).
+                    _status_runtime.program.abandon_change("the unload was refused")
+                    return {"ok": False, "error": "LinuxCNC did not unload the program"}
                 _status_runtime.program.request_unload()
             except BaseException:
                 # Cut short on its way: the loaded program is not known
                 # (Codex R18 XZ-08) — never the old one again.
-                _status_runtime.program.abandon_change()
+                _status_runtime.program.abandon_change("the unload was cut short")
                 raise
             finally:
                 _status_runtime.end_program_change()

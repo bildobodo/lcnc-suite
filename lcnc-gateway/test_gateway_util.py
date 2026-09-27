@@ -413,6 +413,57 @@ class TestLoadedProgram(unittest.TestCase):
                 self.assertEqual((prog.loaded, prog.unconfirmed), want)
                 self.assertFalse(prog.change_pending, "settled: the record is written again")
 
+    def test_a_reload_of_the_same_path_needs_the_opens_own_success(self):
+        # Codex R19 XZ-08 (rejected_open_same_path): task sets its file only
+        # on a successful open, so after a refused reload STAT.file still
+        # names MAIN — which the requested path matched, and the load was
+        # taken as observed. A name that was there before the request is no
+        # proof; the open's own status (RCS_DONE) is.
+        W = LOAD_WINDOW_S
+        with self.subTest("refused"):
+            prog = self.seeded(self.MAIN)
+            prog.request_load(self.MAIN, 1.0, before=self.MAIN)
+            prog.update(self.MAIN, True, 1.1)
+            self.assertTrue(prog.change_pending, "the old name proves nothing")
+            prog.confirm_open(False)
+            prog.update(self.MAIN, True, 1.2)
+            self.assertEqual((prog.loaded, prog.unconfirmed, prog.change_pending), (None, self.MAIN, True))
+            prog.update(self.MAIN, True, 1.0 + W + 1)
+            self.assertEqual((prog.loaded, prog.unconfirmed), (None, self.MAIN), "and stays so")
+        with self.subTest("outcome unknown: the window runs out"):
+            prog = self.seeded(self.MAIN)
+            prog.request_load(self.MAIN, 1.0, before=self.MAIN)
+            self.run_steps(prog, [(self.MAIN, True)] * int(W / 0.033 + 2), t0=1.0)
+            self.assertEqual((prog.loaded, prog.unconfirmed, prog.change_pending), (None, self.MAIN, True))
+        with self.subTest("confirmed"):
+            prog = self.seeded(self.MAIN)
+            prog.request_load(self.MAIN, 1.0, before=self.MAIN)
+            prog.confirm_open(True)
+            prog.update(self.MAIN, True, 1.1)
+            self.assertEqual((prog.loaded, prog.unconfirmed, prog.change_pending), (self.MAIN, None, False))
+
+    def test_loading_the_unconfirmed_file_needs_the_opens_own_success(self):
+        # Codex R19 (rejected_open_same_path_initially_unconfirmed): a
+        # failed attempt to confirm the named file must not resolve it.
+        for ok, want in ((False, (None, self.MAIN, True)), (True, (self.MAIN, None, False))):
+            with self.subTest(opened=ok):
+                prog = LoadedProgram()
+                prog.update(self.MAIN, True, 0.0)            # first sight, no record
+                self.assertEqual(prog.unconfirmed, self.MAIN)
+                prog.request_load(self.MAIN, 1.0, before=self.MAIN)
+                prog.update(self.MAIN, True, 1.05)            # a tick before the open's answer
+                self.assertEqual((prog.loaded, prog.unconfirmed), (None, self.MAIN), "the name proves nothing")
+                prog.confirm_open(ok)
+                prog.update(self.MAIN, True, 1.1)
+                self.assertEqual((prog.loaded, prog.unconfirmed, prog.change_pending), want)
+
+    def test_a_refused_open_of_another_path_is_unresolved_at_once(self):
+        prog = self.seeded(self.MAIN)
+        prog.request_load(self.OTHER, 1.0, before=self.MAIN)
+        prog.confirm_open(False)
+        prog.update(self.MAIN, True, 1.1)
+        self.assertEqual((prog.loaded, prog.unconfirmed, prog.change_pending), (None, self.MAIN, True))
+
     def test_a_load_observed_in_its_window_counts_whatever_ended_the_handler(self):
         # A cancel lands after program_open went out (_cmd_blocking completes
         # a send it began): the window stays, the observation decides.

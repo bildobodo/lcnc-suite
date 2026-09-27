@@ -671,6 +671,125 @@ class TestHandlerExecution(unittest.TestCase):
             self.assertEqual(rt.program.loaded, b, "observed in its window: the gateway's own load")
             self.assertEqual(read_load_record(path, (10, 20)), (b,))
 
+    def _answer(self, cmd, call, rc):
+        """Task answers `call` (and what follows it) with `rc`; everything
+        before it is done (RCS_DONE)."""
+        inner, seen = getattr(cmd, call), []
+
+        def recorded(*a):
+            seen.append(call)
+            return inner(*a)
+        setattr(cmd, call, recorded)
+        cmd.wait_complete = lambda *_a: rc if seen else 1
+
+    def _load_with_rc(self, tmp, rt, path, rc):
+        """The REAL load_file handler; task answers the open with `rc` and
+        leaves STAT.file where it was (it sets it only on success)."""
+        import unittest.mock
+        cmd = self._rcs()
+        self._answer(cmd, "program_open", rc)
+        gateway._cmd_lock = None
+        with unittest.mock.patch.object(gateway, "_status_runtime", rt), \
+                unittest.mock.patch.object(gateway, "get_nc_files_dir", return_value=tmp):
+            r = self._send({"cmd": "load_file", "path": path})
+        gateway._cmd_lock = None
+        return r, cmd
+
+    def test_a_refused_reload_of_the_same_path_proves_nothing(self):
+        # Codex R19 XZ-08 (rejected_open_same_path): A loaded, a reload of
+        # A that task refuses — STAT.file still names A, which used to settle
+        # the load: A recorded, restored after a restart, run from line on it.
+        import tempfile
+        import time
+        with tempfile.TemporaryDirectory() as tmp:
+            a = os.path.join(tmp, "A.ngc")
+            Path(a).write_text("G0 X10\nM2\n")
+            rt, path = self._record_runtime(tmp, a)
+            gateway.STAT.file = a
+            r, cmd = self._load_with_rc(tmp, rt, a, rc=3)       # RCS_ERROR
+            self.assertIn(("program_open", (a,), {}), cmd.calls)
+            self.assertEqual(r, {"ok": False, "error": "LinuxCNC did not open the program"})
+            for dt in (0.1, 6.0):                              # a tick, and after the window
+                self.assertIsNone(rt.program_tick(a, True, time.monotonic() + dt))
+                self.assertEqual(rt.program.unconfirmed, a)
+            self.assertEqual(read_load_record(path, (10, 20)), "unsettled")
+            again = gateway._status_runtime_mod.StatusRuntime(
+                get_stat=lambda: None, get_err=lambda: None, reader_get=lambda _k: None,
+                get_tool_tbl_path=lambda: None, load_tool_library=lambda: {},
+                get_fb_scale=lambda: 1.0, get_instance=lambda: (10, 20), load_record_path=path)
+            self.assertIsNone(again.program_tick(a, True, 0.0), "a restart restores nothing")
+            self.assertEqual(again.program.unconfirmed, a)
+            # the operator loads it again and task opens it: settled
+            r, _cmd = self._load_with_rc(tmp, rt, a, rc=1)      # RCS_DONE
+            self.assertEqual(r, {"ok": True, "path": a})
+            self.assertEqual(rt.program_tick(a, True, time.monotonic()), a)
+            self.assertIsNone(rt.program.unconfirmed)
+            self.assertEqual(read_load_record(path, (10, 20)), (a,))
+
+    def test_a_tick_while_the_reload_is_sent_settles_nothing(self):
+        # The status loop ticks while program_open is in NML: STAT.file
+        # already named A before the request — no proof of this open.
+        import tempfile
+        import threading
+        import time
+        import unittest.mock
+        with tempfile.TemporaryDirectory() as tmp:
+            a = os.path.join(tmp, "A.ngc")
+            Path(a).write_text("G0 X10\nM2\n")
+            rt, path = self._record_runtime(tmp, a)
+            gateway.STAT.file = a
+            cmd = self._rcs()
+            self._answer(cmd, "program_open", 3)          # task refuses it
+            entered, release = threading.Event(), threading.Event()
+            inner = cmd.program_open
+
+            def program_open(p):
+                inner(p)
+                entered.set()
+                release.wait(3)
+            cmd.program_open = program_open
+
+            async def scenario():
+                gateway._shared_status = _payload()
+                task = asyncio.ensure_future(gateway.handle_command({"cmd": "load_file", "path": a}, True))
+                for _ in range(400):
+                    if entered.is_set() or task.done():
+                        break
+                    await asyncio.sleep(0.005)
+                self.assertTrue(entered.is_set())
+                rt.program_tick(a, True, time.monotonic())   # the tick in between
+                self.assertEqual(read_load_record(path, (10, 20)), "unsettled", "no proof yet")
+                release.set()
+                return await task
+            gateway._cmd_lock = None
+            with unittest.mock.patch.object(gateway, "_status_runtime", rt), \
+                    unittest.mock.patch.object(gateway, "get_nc_files_dir", return_value=tmp):
+                r = _run(scenario())
+            gateway._cmd_lock = None
+            self.assertFalse(r["ok"], r)
+            self.assertIsNone(rt.program_tick(a, True, time.monotonic()))
+            self.assertEqual(rt.program.unconfirmed, a)
+            self.assertEqual(read_load_record(path, (10, 20)), "unsettled")
+
+    def test_an_unload_task_refuses_proves_nothing(self):
+        import tempfile
+        import time
+        with tempfile.TemporaryDirectory() as tmp:
+            a = os.path.join(tmp, "A.ngc")
+            Path(a).write_text("G0 X10\nM2\n")
+            rt, path = self._record_runtime(tmp, a)
+            gateway.STAT.file = a
+            self._answer(self._rcs(), "reset_interpreter", 3)
+            import unittest.mock
+            gateway._cmd_lock = None
+            with unittest.mock.patch.object(gateway, "_status_runtime", rt):
+                r = self._send({"cmd": "unload_file"})
+            gateway._cmd_lock = None
+            self.assertFalse(r["ok"], r)
+            self.assertIsNone(rt.program_tick(a, True, time.monotonic()))
+            self.assertEqual(rt.program.unconfirmed, a, "A may still be open: named, not loaded")
+            self.assertEqual(read_load_record(path, (10, 20)), "unsettled")
+
     def test_an_unload_cancelled_on_its_way_proves_nothing(self):
         import tempfile
         import time
