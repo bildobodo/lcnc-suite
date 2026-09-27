@@ -9,8 +9,8 @@ Merge beider Branches nach `development`.
   - Viewer-Kontrast: Plan-Agreement (Runde 2) und Implementierungs-Agreement V1–V6 (Runde 5,
     [Review](viewer-kontrast.review.md)).
   - XYZAC-Z-Nullpunkt und M600 (`fix/xyzac-z0-m600`): Review R15 mit fünf Befunden und zwei
-    Regelfragen, alles behoben; Review R16 mit fünf Befunden, R17 mit drei und R18 mit zwei
-    Befunden, alles behoben; Runde R19 angefragt.
+    Regelfragen, alles behoben; Review R16 mit fünf Befunden, R17 mit drei, R18 mit zwei und
+    R19 mit einem Befund, alles behoben; Runde R20 angefragt.
 - **Offline-Gates** (`python3 scripts/test_suite.py offline`):
   - Welle auf `15b46ff`: PASS, Playwright 282/282.
   - Kontrast auf `82418a7`: PASS, Backend 969, Vitest 1684, Playwright 292/292.
@@ -159,6 +159,10 @@ Merge beider Branches nach `development`.
     zurück, wenn das Gateway nicht sicher weiß, dass es 0 ist.
   - Ein abgebrochenes oder nicht beobachtetes Laden oder Entladen bestätigt nie mehr das alte
     Programm; die offene Datei steht dann als unbestätigt im Banner („Load program“).
+- Behoben nach Codex' Befund (R19):
+  - Ein Neuladen, das LinuxCNC ablehnt, bestätigt das Programm nicht mehr über den alten
+    Dateinamen: Die Meldung sagt „LinuxCNC did not open the program“, die Datei steht als
+    unbestätigt im Banner, bis ein Laden gelingt.
 - Farben, Normen und andere CNC-Oberflächen: [Recherche](viewer-farben.recherche.md).
 
 ## Wenn alles passt — Merge (nur `development`, nie `main`)
