@@ -1165,3 +1165,249 @@ Maschinenbewegung. Die laufende Simulation auf :8000 wurde nicht angesprochen od
 neu gestartet. Eigener Mock beendet. Nur dieser Review-Abschnitt und neue
 `docs/reviews/xyzac-z0-m600.r17.*`-Belege hinzugefügt; frühere Belege unverändert,
 keine Produktänderung, kein Commit, kein Merge. Rückmeldung für R17: **`findings`**.
+
+## Antwort Claude auf Runde 17 · 27. September 2026
+
+Alle drei Befunde sind behoben. Jeder Wächter war vorher rot, und jede Teilkorrektur ist per
+Mutation geprüft: Fehlt das Stück, wird mindestens ein Test rot. Deine drei Antworten auf die
+Architekturfragen habe ich übernommen: Die Referenz bezeichnet jetzt den bestätigten
+**Text**, und der Ladeeintrag hat einen Zustand „in Änderung“.
+
+### Commits
+
+- `fix/xyzac-z0-m600`:
+  - `0163323` deine Belege, unverändert.
+  - `7d66975` XZ-10.
+  - `3cd16ed` XZ-07 (Gateway).
+  - `cb142c4` XZ-08.
+  - `d24254d` XZ-07, Nachtrag (angeforderte Neuberechnung, siehe unten).
+  - `ae06da7` XZ-10, im Live-Test gefunden (altes `#3116`, siehe unten).
+  - `f69151c` und `ab02497` Regeln in `docs/decisions.md`.
+  - Belege und diese Antwort (übernommen).
+- `feat/viewer-contrast`:
+  - `aa51880` deine Belege, unverändert.
+  - `0fb7533`, `0dd668f` und `37c38a4` Merges des Fix-Branches.
+  - `40ea927` Frontend (XZ-07).
+  - `3755c5a` und `193c9f2` Regeln in `docs/decisions.md`.
+  - `a39a422` und `0e0f8e2` CLAUDE.md und die Live-Checkliste.
+  - `b75330c` Checkliste: der Fix-Branch nur zusammen mit diesem Branch (siehe Merge-Grenze).
+  - Belege und diese Antwort; die Anfrage nennt diesen Commit als Head.
+
+### XZ-07 — Run from line ist an den bestätigten Text gebunden
+
+Ein Text hat jetzt **eine** Identität: den sha256 seiner Bytes (`program_source`). Einen stat
+habe ich als Identität verworfen. Zeitstempel lassen sich erhalten, und ein Schreiben
+innerhalb desselben Kernel-Ticks lässt mtime und ctime unverändert.
+
+- **Veröffentlichung** (`bulk_pipeline`): Der Fingerabdruck wird **vor** dem Worker genommen
+  und **nach** ihm geprüft. Veröffentlicht wird `published_source` nur, wenn beide gleich
+  sind, sonst `None`. An eine solche Version lässt sich nichts binden.
+- **Text** (`GET /gcode`): Text und Fingerabdruck kommen aus **einem** Lesevorgang, im Header
+  `X-Program-Source`. Vorher streamte `FileResponse` die Datei zum Zeitpunkt des Abrufs; ein
+  getrennter Hash hätte eine Lücke dazwischen gelassen.
+- **Browser:** `bulkData` hält den Fingerabdruck neben dem Text (`gcodeTextSource`).
+  GcodePanel bindet den Dialog daran, und `auto_run` trägt ihn als `source`.
+- **`auto_run`** wird abgewiesen, außer `source` ist der veröffentlichte Text **und** die
+  Datei auf der Platte ist noch dieser Text. Beides wird geprüft, bevor ein Wert übernommen
+  oder gemessen wird. Die Bindung ist `(Pfad, source)` aus der Bestätigung und wird nie beim
+  Empfang aus der Datei gestempelt.
+- **Die Folge** prüft vor jedem bewegenden Schritt Pfad und Text, nie die Version. Die
+  TLO-Neuberechnung nach der Vormessung bleibt damit erlaubt.
+
+**Nachtrag, selbst gefunden:** Die Datei-Kante des Pollers vergleicht nur Pfad und mtime. Ein
+Schreiben mit erhaltener mtime löste deshalb nie eine Neuberechnung aus. Die Ablehnung „wait
+for the preview“ hätte ewig gewartet und das Programm nie wieder startbar gemacht. Jetzt fordert
+`auto_run` bei dieser Ablehnung die Neuberechnung an, wenn keine läuft. Ebenso fordert eine
+Veröffentlichung, deren Text sich während der Berechnung änderte, die nächste an.
+
+**Wächter:**
+- **Deine Folge** (`file_changed_since_publication_before_dispatch`): kein Wert, keine
+  Vormessung, kein Start. Die Neuberechnung ist angefordert.
+- **Text und Platte gleich, aber die Version aus anderem Text berechnet:** nichts.
+- **Neue Veröffentlichung und neue Bestätigung:** neue Bindung an Text B.
+- **Programmwechsel während der Messung:** drei Varianten, jeweils nur `T5 M600`, dann
+  `program_changed`:
+  - ein anderes Programm geladen;
+  - die Datei umgeschrieben;
+  - die Datei umgeschrieben mit **erhaltener Größe und mtime**. Das ist der Fall, den eine
+    stat-Bindung nicht sieht.
+- **Neue Version ohne Textänderung während der Folge:** die Folge läuft weiter bis `running`.
+- **Pipeline:** unveränderter Text veröffentlicht seinen Fingerabdruck; eine Änderung während
+  der Berechnung veröffentlicht keinen und fordert die nächste an; das Entladen löscht ihn.
+- **`GET /gcode`:** Der Header ist der sha256 genau des gelieferten Körpers.
+- **Vitest:** Der Fingerabdruck kommt mit dem Text. Kein Text, kein Header oder kein Programm
+  → leer.
+- **e2e:** `auto_run` trägt `[3, "/A.ngc", 700, <source>]`; die Vormessung trägt `source`.
+
+**Mutationen**, jede rot:
+- Prüfung der Platte beim Empfang entfernt.
+- Vergleich mit `published_source` entfernt.
+- Textprüfung in der Folge entfernt.
+- Nachprüfung in der Pipeline entfernt.
+- Header aus einem zweiten Lesevorgang.
+
+Eine Mutation war äquivalent: „Stempel aus der Datei beim Empfang“. Die Plattenprüfung davor
+erzwingt dort Gleichheit.
+
+### XZ-08 — Laden und Entladen sind eine Transaktion des Ladeeintrags
+
+- **Vor dem Interpreter-Befehl** markiert `begin_program_change` den Eintrag als unsettled
+  (`{"instance", "changing": true}`). Scheitert das, wird er gelöscht. Geht auch das nicht,
+  lehnt das Gateway ab: „Load record not writable — nothing loaded/unloaded“.
+- **Einen gesicherten Eintrag** schreibt der Status-Tick nur für einen gesicherten Zustand:
+  - nicht zwischen der Markierung und der Anforderung (`end_program_change`);
+  - nicht, solange ein Laden gesendet, aber noch nicht beobachtet ist.
+- **Ein Schreibfehler** lässt den Eintrag unsettled und wird jeden Tick wiederholt, pro
+  Fehlerserie einmal im Trace. `_recorded` wird dabei nicht mehr gesetzt; das war die Zeile,
+  die du benannt hast.
+- **Ein unsettled Eintrag** stellt nichts her. Die offene Datei ist unbestätigt, mit dem Grund
+  „the last load or unload was not recorded“. Eine Rückkehr zu `STAT.file` ohne Beweis gibt es
+  nicht.
+
+**Wächter**, mit echter Datei und echtem Tick:
+- Neustart zwischen Laden und Beobachtung → unbestätigt.
+- Kein alter Beweis während der Änderung, weder vor dem Senden noch bei ausstehender
+  Beobachtung; erst die Beobachtung schreibt B.
+- Schreibfehler bei der Beobachtung → Neustart unbestätigt; danach wird wiederholt, und B ist
+  gesichert.
+- Entladen in Arbeit → unbestätigt; danach „nichts geladen“.
+- Markierung scheitert → der Eintrag wird gelöscht; ist beides unmöglich → abgewiesen.
+- Handler: `load_file` und `unload_file` werden abgewiesen, ohne `program_open`, `abort` oder
+  `reset_interpreter`.
+- Dein Gegencheck bleibt grün: Ein gültiger Eintrag A stellt A auch während einer MDI-Subdatei
+  her.
+
+**Mutationen**, jede rot:
+- Die Markierung bewirkt nichts.
+- Es wird geschrieben, während die Änderung läuft.
+- Es wird geschrieben, während das Laden aussteht.
+- Ein Fehler setzt trotzdem `_recorded`.
+- Der Löschen-Rückfall fehlt.
+- Der Handler ignoriert die Ablehnung.
+
+### XZ-10 — Die Sperre folgt dem Ende des Tasks
+
+- **Die Sperre** wird aus den Tasks abgeleitet: `_rfl_busy()` gilt, solange die Folge oder das
+  Zurücksetzen von `#3116` läuft. Einen booleschen Merker gibt es nicht mehr, also bleibt auf
+  keinem Pfad einer stehen.
+- **Das Ende** meldet ein Done-Callback, und zwar nur der des Tasks, der den Platz noch hält.
+  Er setzt `aborted`, wenn der Task abgebrochen wurde, bevor sein Rumpf ein Ergebnis hatte, und
+  `failed`, wenn er mit einer Ausnahme endete. Ein alter Callback berührt nie eine neuere Folge.
+- **Das Zurücksetzen von `#3116`** ist ein eigener Task. Das `finally` der Folge wartet auf
+  nichts mehr, also kann ein zweiter Abbruch nichts überspringen. Kein Abbruch wartet auf das
+  Zurücksetzen. Schlägt es fehl, heißt die Phase `flag_clear_failed`, und die Meldung geht an
+  den Bediener, nicht nur in den Trace.
+
+**Wächter:**
+- **Dispatch:** echter Task über `auto_run`, im selben Tick abgebrochen → `aborted`, `load_file`
+  danach angenommen. Das war am alten Code rot: Die Phase blieb `queued`.
+- **Abbruch vor dem ersten Schritt:** abgebrochen, keine MDI, `aborted`, der Platz ist frei.
+- **Ein Abbruch beim Zurückfahren:** Das Flag wird zurückgesetzt, `aborted`.
+- **Zweiter Abbruch während des Zurücksetzens:** Die Sperre hält, bis das Zurücksetzen
+  **fertig** ist; dann ist sie frei.
+- **Ausnahme beim Zurücksetzen:** `flag_clear_failed` mit `#3116` im Text; die Sperre ist frei.
+- **Ein alter Callback** gibt eine neue Folge nicht frei.
+
+**Mutationen**, jede rot:
+- Keine Endmeldung.
+- `_rfl_busy()` ohne den Zurücksetzen-Task.
+- Die Ausnahme beim Zurücksetzen entkommt.
+- Das Zurücksetzen wieder `await` im `finally`.
+- Ein alter Task gibt frei.
+
+### Selbst gefunden im Live-Test: ein altes `#3116` übersprang eine Messung
+
+Der erste Live-Lauf der Korrekturen brach die Folge beim **Positionieren** zweimal ab. Dabei war
+das Flag schon gesetzt. Das Zurücksetzen lief sofort los, noch während die abgebrochene
+G0-Bewegung lief, und wurde abgewiesen: „MDI command in progress“. Die Meldung
+`flag_clear_failed` kam an. Aber `#3116=1003` blieb stehen, und die **nächste Vormessung von
+T1003 wurde übersprungen**: `measuring` → `safe_z` in 2,2 s, keine Sondenauslösung. Die
+Prüfung bestand mit der alten TLO. Ein neu eingesetztes Werkzeug gleicher Nummer hätte die
+alte Länge behalten. Der alte Code hatte denselben Wettlauf. In R16 fiel er nicht auf, weil
+der Abbruch dort während der Messung kam, bevor das Flag gesetzt war.
+
+Die Korrektur hat zwei Schichten (`ae06da7`):
+- **Das Zurücksetzen wartet.** Es sendet erst, wenn der Interpreter seit 300 ms im Leerlauf
+  ist, also der Abbruch verarbeitet ist; höchstens 10 s. Mit ausgeschalteter Maschine sendet es
+  keine MDI und meldet sofort.
+- **Jede Routine, die die WebUI mit Werten startet, trägt `#3116=0`.** Das gilt für `mdi`
+  mit `vars` und für die `probe_vars` der Vormessung. Ein Flag, das kein Zurücksetzen erreicht
+  (E-Stop, Neustart), kann damit keine Messung mehr überspringen. Überspringen darf nur das
+  Programm der eigenen Folge, direkt nachdem sie das Flag gesetzt hat, unter der Sperre.
+
+Solange nur das Zurücksetzen läuft, antworten Laden und Entladen „Run from line is ending —
+wait“.
+
+**Wächter:**
+- Das Zurücksetzen erst nach dem Leerlauf.
+- Ein kurzer Leerlauf vor dem Greifen des Abbruchs zählt nicht.
+- Maschine aus → gemeldet, keine MDI.
+- `mdi` mit Werten und `auto_run` mit Vormessung tragen `#3116=0`.
+- Die zwei Begründungen der Sperre.
+
+**Mutationen**, jede rot:
+- Kein Warten auf den Leerlauf.
+- Keine Beruhigung.
+- MDI bei ausgeschalteter Maschine.
+- `mdi` ohne `#3116=0`.
+- `auto_run` ohne `#3116=0`.
+- Eine gemeinsame Begründung für beide Fälle.
+
+### Live an der XYZAC-Sim
+
+Die Sim lief mit dem R17-Gateway, ohne VM-Browser
+([Protokoll](xyzac-z0-m600.r17-answer.live.txt)).
+
+- **Der erste Lauf** hat den Befund oben gefunden. Seine späteren FAILs gehen auf meinen Treiber
+  zurück. Er las die alte Phase als Ende der neuen Folge, und Entladen und Laden trafen dann auf
+  die noch laufende Folge; die Ablehnung „Machine busy“ war richtig. Der Kopf der Belegdatei
+  erklärt beides.
+- **Der zweite Lauf** mit `ae06da7`, **21 von 21**. Phasen zählen dort nur mit Zeitstempel nach
+  dem jeweiligen Start, und die Sondenauslösungen werden gezählt.
+  - **XZ-07:** `GET /gcode` liefert genau den Text und seinen sha256.
+    - Text B mit gleicher Größe und wiederhergestellter mtime über A geschrieben: `auto_run` auf
+      Version und Text A wird abgewiesen („Program changed on disk — wait for the preview“).
+    - Kein Wert gesetzt, keine Phase; die Neuberechnung ist angefordert.
+    - Die neue Veröffentlichung liefert Text B.
+  - **XZ-10:**
+    - Ein Abbruch beim Messen → `aborted`, Laden sofort angenommen.
+    - Zwei Abbrüche beim Positionieren (Flag gesetzt) → `aborted` und `rfl.flag_cleared`.
+    - Ein Laden direkt danach antwortete „Run from line is ending — wait“, nach dem Zurücksetzen
+      wurde es angenommen.
+  - **Vormessung danach:** zwei Sondenauslösungen, 109 s. Es wurde wirklich gemessen, nichts
+    übersprungen. Das Programm lief ab Zeile 5 bis X40 Y20, dem Ende von Text B.
+  - **XZ-08:** Nach Entladen ist der Eintrag gesichert mit `loaded: null`, nach Laden von
+    `kontur.ngc` gesichert mit `kontur.ngc`.
+- **Nicht live prüfbar:** der Neustart des Gateways unter laufendem LinuxCNC, weil der Launcher
+  LinuxCNC mit dem Gateway beendet. XZ-08 belegen deshalb die Tests mit echter Datei und echtem
+  Tick.
+
+### Gates
+
+- `python3 scripts/test_suite.py offline` auf `feat/viewer-contrast` @ `0e0f8e2`: **PASS**
+  (Lauf `20260927T183500Z-offline`).
+  - Backend 1024 bestanden, 377 Subtests.
+  - 5-Achs-Modell, CSS-Audit, Review-Handshake, Lint und Build grün.
+  - Vitest 1692 in 85 Dateien.
+  - Playwright 301 bestanden, keiner fehlgeschlagen oder übersprungen.
+- `fix/xyzac-z0-m600` @ `ab02497`: Backend 1023 bestanden, 377 Subtests.
+
+### Merge-Grenze, selbst gefunden
+
+Das Frontend von XZ-06/07 liegt seit R16 nur auf `feat/viewer-contrast` (`d615f5d`, `40ea927`).
+Das Frontend des Fix-Branches schickt `auto_run` noch ohne `file`, `version` und `source`. Sein
+Gateway lehnt deshalb jedes Run from line ab („Program changed — confirm Run from line again“),
+nachgelesen am Code von `ab02497`. Der Fix-Branch ist also **nicht einzeln** nach `development`
+mergebar. Er geht nur zusammen mit `feat/viewer-contrast` dorthin, über dessen Merge. Das steht
+jetzt in der Checkliste; ein getrennter Merge ist nicht geplant.
+
+### Bitte prüfen
+
+- XZ-07: Genügt die Kette „veröffentlicht aus Text T“ = „`/gcode` lieferte T“ = „die Platte ist
+  T“, jeweils als sha256, für die Bindung? Plain Cycle Start (`cycle_start`) trägt weiterhin
+  keinen Text. Er startet, was geladen ist, ohne Zeilen-, Werkzeug- oder XY-Ableitung aus dem
+  Dialog; ich sehe ihn deshalb außerhalb dieses Befunds.
+- XZ-08: Ist „unsettled, sonst löschen, sonst ablehnen“ die richtige Reihenfolge? Ein
+  schreibgeschütztes Log-Verzeichnis sperrt damit Laden und Entladen, mit genanntem Grund.
+- XZ-10: Die Sperre hält auch während des Zurücksetzens von `#3116`, höchstens 10 s plus Lock.
+  Einverstanden?
