@@ -1,0 +1,74 @@
+# R18 answer — live check on the XYZAC sim, 2026-09-27 21:43–21:47 (suite restarted with the R18
+# gateway: launcher stopped by PID, `LCNC_WEBUI_BROWSER=0 linuxcnc lcnc_suite_sim_5axis_xyzac.ini`;
+# gateway PID 3821615, LinuxCNC instance [3821460, 15742738], live checkout feat/viewer-contrast @ f72e2fb).
+# Driver: scratchpad r18_live.py (the R17 driver's harness: WS commands, heartbeat, tool-change confirm,
+# simulate_probe_trip when the tip reaches #3102 — the sim has no probe writer — and probe trips counted).
+# Program r18_rfl_check.ngc (removed after the check):
+#   1 (R18 live check …)  2 G21 G90  3 T1003 M600  4 G54 G0 X10 Y20  5 G0 X20 Y20  6 G0 X30 Y20  7 M2
+#
+# XZ-11
+#   boot:    the first start after the gateway's boot (an MDI G4 P0.1) sent #3116=0 first — 33 ms from
+#            probe.set_vars to mdi_set (trace 19.114 -> 19.147 s); the second MDI sent no clear.
+#   case 2:  run from line from line 5 with the pre-measurement of T1003 (2 probe trips), the flag armed;
+#            abort while positioning; Cycle Start sent the moment the interpreter read idle -> refused by
+#            the gateway: "Run from line is ending — wait". The clear ran 2.4 s after the abort
+#            (the aborted move, then 300 ms of held idle).
+#   after:   Cycle Start accepted; the program's own T1003 M600 MEASURED (2 probe trips, 109.4 s) — the
+#            flag did not skip it — and the program ran to X30 Y20. No second clear (known 0).
+#   case 1 (abort inside the #3116=<tool> completion wait) is a millisecond window: test-proven only.
+# XZ-08
+#   a load LinuxCNC cannot open (r18_unreadable.ngc, chmod 000 — the gateway's checks pass, task refuses):
+#   task reported "Unable to open file" / "can't open"; STAT.file STAYED on the old program
+#   (task sets its file only on a successful open). After the 5 s window: load_not_observed, no program
+#   loaded, the old program named unconfirmed ("the last load or unload was not observed"), the record
+#   kept "changing" — the old program was not proven again. A load of kontur.ngc resolved it: loaded,
+#   recorded, the unconfirmed name gone.
+#   The cancelled load/unload and the restart under a running LinuxCNC are not drivable live (the
+#   launcher ends LinuxCNC with the gateway): test-proven with the real handler, tick and restart.
+
+## r18_live.py
+[21:43:33] PASS machine on + homed 
+[21:43:33] PASS no start yet: nothing cleared by a start []
+[21:43:35] PASS first MDI after the boot: #3116=0 first, then the line ({'type': 'reply', 'cmd': 'mdi', 'ok': True}, [{'3116': 0.0}])
+[21:43:36] PASS second MDI: no clear (known 0) {'type': 'reply', 'cmd': 'mdi', 'ok': True}
+[21:43:43] PASS run from line with the pre-measurement started {'type': 'reply', 'cmd': 'auto_run', 'ok': True, 'rfl': 'started'}
+[21:43:48]   tool change requested -> confirm
+[21:44:40]   probe trip at nose Z -253.079
+[21:44:43]   probe trip at nose Z -253.054
+[21:45:16] PASS the pre-measurement measured, the flag armed ('positioning', 2)
+[21:45:16] PASS Cycle Start while run from line ends: refused by the gateway {'type': 'reply', 'cmd': 'cycle_start', 'ok': False, 'error': 'Run from line is ending — wait'}
+[21:45:24] PASS the sequence's clear ran (flag 0) [('rfl.cancelled', 'abort'), ('rfl.phase', 'aborted'), ('rfl.flag_cleared', None)]
+[21:45:25] PASS Cycle Start afterwards: accepted {'type': 'reply', 'cmd': 'cycle_start', 'ok': True}
+[21:46:39]   probe trip at nose Z -253.124
+[21:46:41]   probe trip at nose Z -253.081
+[21:47:14] PASS no second clear (the sequence's clear was taken) []
+[21:47:14] PASS the program's M600 really measured 2 probe trips, 109.4 s
+[21:47:14] PASS the program ran to its end (X30 Y20) [30.0, 20.0, 0.0, 0.0, 0.0]
+[21:47:14] PASS before: the record settled on the program {'instance': [3821460, 15742738], 'loaded': '/home/cnc/linuxcnc/nc_files/r18_rfl_check.ngc'}
+[21:47:14]   load of the unreadable file: {'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/r18_unreadable.ngc'}
+[21:47:21]   status after the window: None /home/cnc/linuxcnc/nc_files/r18_rfl_check.ngc file None
+[21:47:21] PASS the window ran out: not observed [('nml.error', None), ('nml.error', None), ('status.load_not_observed', 'r18_unreadable.ngc'), ('status.program_unconfirmed', 'the last load or unload was not observed')]
+[21:47:21] PASS the old program is not loaded any more None
+[21:47:21] PASS the record does not prove the old program {'instance': [3821460, 15742738], 'changing': True}
+[21:47:23] PASS a load resolves it: kontur.ngc loaded, recorded ({'instance': [3821460, 15742738], 'loaded': '/home/cnc/linuxcnc/nc_files/kontur.ngc'}, None)
+[21:47:23] SUMMARY 17 / 17
+
+## trace excerpt (gateway PID 3821615; t_mono since the gateway's start)
+   19.114 s  probe.set_vars  {"vars": {"3116": 0.0}}
+   19.147 s  probe.set_vars_result  {"file_saved": true, "mdi_set": true}
+   19.147 s  rfl.flag_cleared  {"by": "start"}
+   28.514 s  probe.set_vars_result  {"file_saved": true, "mdi_set": true}
+   28.514 s  rfl.phase  {"phase": "queued", "ok": true, "error": ""}
+   28.514 s  rfl.phase  {"phase": "measuring", "ok": true, "error": ""}
+   28.548 s  status.file_flip_ignored  {"raw_file": "tool_touch_off.ngc", "loaded": "r18_rfl_check.ngc", "reason": "running"}
+  121.555 s  rfl.phase  {"phase": "safe_z", "ok": true, "error": ""}
+  121.555 s  rfl.safe_z_already_above  {"z": 0.0}
+  121.556 s  rfl.phase  {"phase": "positioning", "ok": true, "error": ""}
+  121.607 s  rfl.cancelled  {"by": "abort", "from_client": 1}
+  121.607 s  rfl.phase  {"phase": "aborted", "ok": false, "error": "aborted"}
+  124.019 s  rfl.flag_cleared  {}
+  130.737 s  status.file_flip_ignored  {"raw_file": "tool_touch_off.ngc", "loaded": "r18_rfl_check.ngc", "reason": "running"}
+  240.135 s  nml.error  {"kind": 11, "text": "Unable to open file </home/cnc/linuxcnc/nc_files/r18_unreadable.ngc>"}
+  240.135 s  nml.error  {"kind": 11, "text": "can't open /home/cnc/linuxcnc/nc_files/r18_unreadable.ngc"}
+  245.121 s  status.load_not_observed  {"path": "r18_unreadable.ngc"}
+  245.121 s  status.program_unconfirmed  {"raw_file": "r18_rfl_check.ngc", "reason": "the last load or unload was not observed"}
