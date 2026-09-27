@@ -6346,3 +6346,13 @@ datum shift.
     task was cancelled before its first step or a second abort cut the
     #3116 clear in its finally. The latch is derived from the tasks, the
     end reported by a done callback, the clear its own task.
+  - Found in the live check of these fixes (`ae06da7`): after a double
+    abort while positioning, the #3116 clear ran before the aborted move
+    had stopped and was refused; the flag stayed armed and the next
+    pre-measurement of that tool was SKIPPED (2.2 s, no probe trip) — a
+    re-inserted tool of the same number would have kept the old length.
+    Two layers: the clear waits for an interpreter idle for 300 ms (never
+    an MDI with the machine off), and every routine the WebUI starts with
+    values carries #3116=0 — a flag no clear could reach (E-Stop, a
+    restart) cannot skip a measurement. Only the sequence's own program
+    skips, right after it armed the flag, under the latch.
