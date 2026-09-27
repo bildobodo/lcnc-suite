@@ -43,9 +43,12 @@ XYZAC_DATUM_KEYS = (("TRAJ", "HOME"), ("AXIS_Z", "MIN_LIMIT"), ("AXIS_Z", "MAX_L
 # Machine-absolute Z parameters: G28 Z, G30 Z, and Z of G54..G59.3. G92 is an
 # offset between coordinate systems and does not move with the datum.
 XYZAC_ABSOLUTE_Z = (5163, 5183) + tuple(5223 + 20 * k for k in range(9))
-# The toolsetter position the example shipped before the move (the 3-axis
-# values, never reachable there) — replaced by the template's, not shifted.
-XYZAC_OLD_TOOLSETTER = (10.0, 10.0, -180.0)
+# Toolsetter positions (#3100-#3102) that were never one: the example's before
+# the move (the 3-axis values, never reachable there) and the WebUI's fallback
+# zeros, pushed for a config without a toolsetter section (X0 Y0 Z0 = the
+# table centre on the rotary intersection). Replaced by the template's, not
+# shifted; any other value is the operator's and moves with the datum.
+XYZAC_UNSET_TOOLSETTER = ((10.0, 10.0, -180.0), (0.0, 0.0, 0.0))
 
 
 def remap_lines(text):
@@ -83,7 +86,7 @@ def migrate_xyzac_var(text, template_text):
         if number in rows:
             rows[number] += XYZAC_Z_SHIFT
     template_rows = {int(p[0]): float(p[1]) for p in (l.split() for l in template_text.splitlines()) if len(p) >= 2}
-    if tuple(rows.get(n) for n in (3100, 3101, 3102)) == XYZAC_OLD_TOOLSETTER:
+    if tuple(rows.get(n) for n in (3100, 3101, 3102)) in XYZAC_UNSET_TOOLSETTER:
         rows.update({n: template_rows[n] for n in (3100, 3101, 3102)})
     elif 3102 in rows:
         rows[3102] += XYZAC_Z_SHIFT   # an operator's absolute G53 Z moves with the datum

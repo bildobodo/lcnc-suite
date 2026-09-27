@@ -298,10 +298,32 @@ class XyzacDatumMigrationTest(unittest.TestCase):
         self.assertEqual(self.params(var)[5223], -220)
 
     def test_an_operator_toolsetter_position_survives_the_migration(self):
+        # Inside the old nose window, and below it: the plate is where the TIP
+        # touches, so a long tool reaches a plate under the nose's travel.
+        for before, after in ((300, -200), (30, -470)):
+            with self.subTest(before=before):
+                ini, var = self.old_install()
+                var.write_text(var.read_text().replace("3102\t-180.000000", f"3102\t{before:.6f}"))
+                self.install()
+                p = self.params(var)
+                self.assertEqual(p[3102], after, "an operator's absolute G53 Z moves with the datum")
+                self.assertEqual((p[3100], p[3101]), (10, 10), "and its X/Y stay")
+
+    def test_the_webui_fallback_toolsetter_is_seeded_not_shifted(self):
+        # The operator's real install (2026-09-27): the WebUI had no toolsetter
+        # section for this config and pushed its fallback zeros — X0 Y0 Z0,
+        # the table centre on the rotary intersection, never a toolsetter.
+        # Shifting it would put the plate at Z -500, under the whole window.
         ini, var = self.old_install()
-        var.write_text(var.read_text().replace("3102\t-180.000000", "3102\t-120.000000"))
+        text = var.read_text()
+        for row in ("3100\t10.000000", "3101\t10.000000", "3102\t-180.000000"):
+            text = text.replace(row, row.split("\t")[0] + "\t0.000000")
+        var.write_text(text.replace("5183\t480.000000", "5183\t473.725000"))
         self.install()
-        self.assertEqual(self.params(var)[3102], -620, "an operator's absolute G53 Z moves with the datum")
+        p = self.params(var)
+        self.assertEqual([p[k] for k in (3100, 3101, 3102)], [150, 0, -300], "the template's toolsetter")
+        self.assertAlmostEqual(p[5183], -26.275, places=6)
+        self.assertEqual(p[5223], -220)
 
     def test_a_current_install_is_left_alone(self):
         self.install()
