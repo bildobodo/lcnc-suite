@@ -6270,4 +6270,26 @@ datum shift.
   `nc_files` are 3-axis programs (T8 not in the XYZAC table, X to 346 against
   ±250): their preview now reads "Requested tool 8 not found", the honest
   next message, not a remap problem.
+- Codex review R15 (same day): five migration findings, each fixed with a
+  red-first test and Codex's installer probe re-run green on all eight cases
+  (`14b4de7`). The datum is the kins pin `z-rot-point` (0 old, -500 new, any
+  other value refused before writing) — not the display name, not the Z max;
+  the INI's own absolute Z values shift uniformly, so a restricted window
+  stays restricted. State seeded from the NEW template is not shifted again.
+  G28/G30 are the controlled point WITHOUT the tool offset (live: G43 H1003 =
+  46.953 active, G30 lands on joint Z -26.275 as without) — a stored Z
+  outside the old window was never reachable and becomes the top of travel;
+  the plate is different (the tip touches it). The WebUI's toolsetter
+  section moves with #3102 in the same run and is its provenance (a saved
+  touchZ makes the var triple the operator's, whatever it reads); a running
+  gateway refuses the settings write. An installed program byte-identical to
+  a superseded shipped version (the old XYZAC demo, sha256) follows the
+  example — also on an install migrated before the fix; an edited one stays,
+  the current one goes beside it.
+- R15 B2 (`802888c`): the loaded program changes only from a load context —
+  the gateway's own load_file / unload_file (gateway_util.LoadedProgram);
+  a subroutine never becomes the program because STAT.file stays on it
+  after an MDI error with no program loaded. First sight after a gateway
+  restart is the only place a subroutine search path is a hint. Codex
+  rejected a path rule: a directory names a search location, not a role.
 
