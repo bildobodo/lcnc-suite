@@ -6222,4 +6222,15 @@ datum shift.
   −118 — inside −400..0, beside the 130 mm blank). The suite's preview parse
   of `T1 M6 / M600 / M601`: the old INI reads "M-code greater than 199: M600"
   (line 4, the operator's message), the new one parses clean.
+- Installed configs (the third commit): an installed INI keeps its local
+  limits by design, so `install_examples.py` migrates an XYZAC install from
+  before the move ONCE (`xyzac_before_datum_move`: the Z window up to 500) —
+  the Z window, homes and the `z-rot-point` HALCMD from the template, and the
+  machine-absolute state shifted by −500 (G5x Z, G28/G30 Z, the saved joint
+  Z; G92 is relative and stays); the shipped toolsetter default of the old
+  example (10, 10, −180 — never reachable there) becomes the template's, an
+  operator's own #3102 moves with the datum. Generally, missing suite
+  remaps (by code) and RS274NGC entries (OWORD_NARGS, NO_DOWNCASE_OWORD,
+  ON_ABORT_COMMAND) are added to any installed example; a local value stays.
+  `test_example_install.py`: four new cases, red first.
 

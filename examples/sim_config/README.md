@@ -60,6 +60,16 @@ Fresh installs and upgrades without that file receive X0 Y0 Z0 A0 C0,
 so Z starts at the top of its −400…0 mm window before homing. Existing saved joint
 positions are preserved; all axes still require homing after startup.
 
+The XYZAC example moved its Z datum on 2026-09-27 (machine Z0 is the top of
+travel; the A/C intersection is at machine Z −500) and gained M600/M601. An
+installation from before is migrated once by `install_examples.py`: its Z
+window, home and `z-rot-point`, the new RS274NGC entries, and every
+machine-absolute Z in its state — G54…G59.3 Z, G28/G30 Z, the saved joint Z —
+shift by −500, so program zero stays where it was touched off; G92, tool
+lengths and local settings stay. Missing suite remaps (a new M-code) and
+RS274NGC entries are added to any installed example from its template; local
+values are kept.
+
 Before replacing files, the complete previous installation is saved under
 `~/linuxcnc/config-backups/lcnc_suite_sim/<timestamp>/config/`. Backups are
 outside `configs/`, so LinuxCNC's chooser does not list retired profiles.
