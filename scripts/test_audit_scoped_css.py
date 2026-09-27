@@ -56,7 +56,7 @@ def test_template_range_is_nesting_aware(audit):
 
 def test_hlpct_flags_the_two_real_keyboardtab_rules(audit):
     hits = _drift(audit, "hlpct_bad.vue")
-    assert [c for c, _ in hits] == ["HLPCT", "HLPCT"], hits
+    assert [c for c, _ in hits if c == "HLPCT"] == ["HLPCT", "HLPCT"], hits
 
 
 def test_hlpct_accepts_the_token_as_a_colour(audit):
@@ -100,7 +100,8 @@ def test_tofixed_seen_after_a_nested_template_close(audit):
 
 def test_close_without_aria_label_hit_named_and_multiline_ok_audit_ok_suppressed(audit):
     hits = _drift(audit, "close.vue")
-    assert hits == [("CLOSE", 7)], hits
+    # the nameless "×" is also a button named by a glyph (design wave D9)
+    assert hits == [("CLOSE", 7), ("GLYPH_BUTTON", 7)], hits
 
 
 def test_ellipsis_hit_unicode_and_spread_ok_audit_ok_suppressed(audit):
@@ -145,6 +146,49 @@ def test_media_shadow_same_prop_and_later_shorthand_hit(audit):
 def test_media_shadow_scans_stylesheets(audit):
     _, drift, _ = audit.run([], style=STYLE, stylesheets=[FIXTURES / "media_shadow.css"])
     assert [(c, ln) for c, _f, ln, _m in drift] == [("MEDIA_SHADOW", 2)], drift
+
+
+def test_dead_class_hit_uses_ancestors_and_audit_ok(audit):
+    # design wave D10: a styled subject class the component never names;
+    # script literals, `prefix-${…}`, Transition names, ancestor context and
+    # audit-ok are not dead
+    hits = [h for h in _drift(audit, "dead_class.vue") if h[0] == "DEAD_CLASS"]
+    assert hits == [("DEAD_CLASS", 15)], hits
+
+
+def test_empty_rule_hit_and_media_block_ok(audit):
+    hits = [h for h in _drift(audit, "empty_rule.vue") if h[0] == "EMPTY_RULE"]
+    assert hits == [("EMPTY_RULE", 6)], hits
+
+
+def test_one_liner_hit_context_and_more_declarations_ok(audit):
+    hits = [h for h in _drift(audit, "one_liner.vue") if h[0] == "ONE_LINER"]
+    assert hits == [("ONE_LINER", 6)], hits
+
+
+def test_emptystate_copy_hit_and_a_glyph_box_ok(audit):
+    hits = [h for h in _drift(audit, "emptystate_copy.vue") if h[0] == "EMPTYSTATE_COPY"]
+    assert hits == [("EMPTYSTATE_COPY", 6)], hits
+
+
+def test_tint_literal_hit_token_ok(audit):
+    hits = [h for h in _drift(audit, "tint.vue") if h[0] == "TINT"]
+    assert hits == [("TINT", 6)], hits
+
+
+def test_glyph_button_entity_and_mustache_hit_named_and_text_ok(audit):
+    hits = [h for h in _drift(audit, "glyph_button.vue") if h[0] == "GLYPH_BUTTON"]
+    assert hits == [("GLYPH_BUTTON", 7), ("GLYPH_BUTTON", 9)], hits
+
+
+def test_letter_spacing_literal_hit_token_ok(audit):
+    hits = [h for h in _drift(audit, "tracking.vue") if h[0] == "TOKEN"]
+    assert hits == [("TOKEN", 6)], hits
+
+
+def test_unit_literal_after_a_closing_tag(audit):
+    hits = [h for h in _drift(audit, "unit_span.vue") if h[0] == "UNIT_LITERAL"]
+    assert hits == [("UNIT_LITERAL", 7)], hits
 
 
 def test_clean_fixture_has_no_findings(audit):
