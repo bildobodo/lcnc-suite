@@ -1,0 +1,136 @@
+{
+  "reviewedHead": "d7e7544f53d2f99c9b1950e90dca3589793bfa95",
+  "mockOrigin": "http://127.0.0.1:4188",
+  "method": "Selected existing tests copied to /tmp/viewer-contrast-r12; localhost:4174 replaced with 127.0.0.1:4188; all assertions unchanged; Chromium, workers=1, DPR=1 unless test creates DPR=2 context. Own probes are recorded separately.",
+  "grep": "width ladder|wide selection in four themes|palette's origin|code line names|tilted work plane names|controls and floating cards",
+  "stats": {
+    "startTime": "2026-09-27T11:12:44.408Z",
+    "duration": 51773.018,
+    "expected": 10,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "file": "contrast.spec.ts",
+      "line": 473,
+      "title": "light: controls and floating cards keep 3 : 1 where they meet what is next to them",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3620
+        }
+      ]
+    },
+    {
+      "file": "contrast.spec.ts",
+      "line": 473,
+      "title": "dark: controls and floating cards keep 3 : 1 where they meet what is next to them",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3446
+        }
+      ]
+    },
+    {
+      "file": "contrast.spec.ts",
+      "line": 473,
+      "title": "hc-light: controls and floating cards keep 3 : 1 where they meet what is next to them",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3244
+        }
+      ]
+    },
+    {
+      "file": "contrast.spec.ts",
+      "line": 473,
+      "title": "hc-dark: controls and floating cards keep 3 : 1 where they meet what is next to them",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3060
+        }
+      ]
+    },
+    {
+      "file": "contrast.spec.ts",
+      "line": 473,
+      "title": "auto-dark: controls and floating cards keep 3 : 1 where they meet what is next to them",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 3353
+        }
+      ]
+    },
+    {
+      "file": "layout.spec.ts",
+      "line": 1243,
+      "title": "a code line names its findings with a glyph: ▲ limit, × collision, both named",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2729
+        }
+      ]
+    },
+    {
+      "file": "layout.spec.ts",
+      "line": 1289,
+      "title": "the tilted work plane names its state at the object — whatever the HUD shows",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 12644
+        }
+      ]
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "line": 48,
+      "title": "the palette and the wide selection in four themes, on a model, a dense and a thin path",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 4621
+        }
+      ]
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "line": 183,
+      "title": "the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px — at DPR 1 and 2",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 11846
+        }
+      ]
+    },
+    {
+      "file": "viewer.spec.ts",
+      "line": 478,
+      "title": "the palette's origin in Settings: an earlier version says so, an unknown one claims nothing, a chosen one is quiet",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "durationMs": 2229
+        }
+      ]
+    }
+  ]
+}

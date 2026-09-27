@@ -378,3 +378,135 @@ nachweislich rot. Basis `310dcfb` (dein Plan-Agreement), Kopf siehe Handshake.
 **Gates:** Offline-Gate PASS auf `f326d45` (`python3 scripts/test_suite.py offline`): Backend 969, Vitest 1683, Playwright 291/291, Lint, Build, CSS-Audit und Handshake-Tests grün.
 
 ---
+
+## Runde 3 — Codex, Implementierung V1–V6 (Handshake R12)
+
+**Stand:** `d7e7544f53d2f99c9b1950e90dca3589793bfa95`, Branch `feat/viewer-contrast`,
+Änderungen seit `310dcfb`, 27. September 2026.
+**Ergebnis: findings — zwei offene P2-Befunde, noch kein Implementierungs-Agreement.**
+Das Plan-Agreement aus Runde 2 bleibt bestehen. Die folgenden IDs bezeichnen neue
+Implementierungsbefunde; VK-01–04 bleiben auf Planebene geschlossen.
+
+### VK-I01 · P2 · Ausgeblendeter Backplot sammelt unbegrenzt Update-Einträge
+
+**Stelle:** `lcnc-webui/src/viewer/backplotController.ts:96`, ergänzend `reset()` ab Zeile 55.
+
+Bei laufender Bewegung und ausgeschalteter Backplot-Ebene wächst `buf.updateRanges` mit
+jedem angenommenen Historienpunkt. `addUpdateRange(a, 6)` hängt jeweils ein Objekt an;
+Three.js verarbeitet und leert diese Liste erst beim GPU-Upload. Unsichtbare Objekte
+werden vom Renderer übersprungen. Der neue Segmentring begrenzt damit zwar die Geometrie,
+aber nicht die zugehörigen Update-Daten. `reset()` beziehungsweise „Clear backplot“
+setzt nur die Geometriezähler zurück und lässt die alten Einträge stehen.
+
+**Unabhängiger Nachweis:** Der echte Controller erreicht nach 100 000 Punkten weiterhin
+nur 20 000 Historienpunkte, 19 999 Segmente und 479 976 Byte Segmentdaten, daneben aber
+**99 999 ausstehende Update-Einträge**. Nach `reset()` bleiben alle 99 999 erhalten.
+Die eigene Browserprobe bestätigt den tatsächlichen Bedienpfad: Ebene ausblenden,
+120 Bewegungsmeldungen einspeisen, „Clear backplot“ betätigen; danach liegen noch
+119 Einträge vor. Nach Wiedereinblenden und Rendern ist die Liste leer. Der Browserlauf
+beobachtet die Listen ohne ihre Inhalte zu verändern; die separate Controllerprobe
+reproduziert das Wachstum ohne Browser-Instrumentierung.
+
+**Folge:** Speicherbedarf und spätere Verarbeitung der Update-Liste wachsen mit der
+Dauer der ausgeblendeten Bewegung statt mit dem begrenzten Historienfenster. Beim
+Wiedereinblenden sortiert und vereinigt Three.js die aufgelaufenen Bereiche. Ein konkreter
+Hänger ist damit nicht gemessen; der unbegrenzte Zusatzaufwand ist nachgewiesen.
+Die vorherige Implementierung setzte nur `needsUpdate` und führte diese Liste nicht.
+
+**Erforderliche Korrektur:** Ausstehende Bereiche schon während des Sammelns begrenzen
+oder zusammenfassen, auch über mehrere Ringumläufe; bei Clear die alten ausstehenden
+Bereiche verwerfen. Die weiterhin gewünschte Historienaufzeichnung bei ausgeblendeter
+Ebene erhalten. Wächter sollen mehrere Umläufe ohne Rendern, Clear und anschließendes
+Wiedereinblenden mit korrekter neuester Spur abdecken.
+
+Belege: [Controllerprobe](viewer-kontrast.implementation-r3.backplot.mjs),
+[Messwerte](viewer-kontrast.implementation-r3.backplot.json),
+[Browserprobe](viewer-kontrast.implementation-r3.probe.mjs),
+[Browser-Messwerte, `pendingRanges`](viewer-kontrast.implementation-r3.probe.json).
+
+### VK-I02 · P2 · Der neue Migrationsknopf verliert im schmalen Layout seine Beschriftung
+
+**Stelle:** `lcnc-webui/src/SettingsPanel.vue:666`, Zusammenspiel mit
+`.statusNote` in `lcnc-webui/src/style.css:1311`.
+
+Mit einer sicher erkannten Altpalette, 900 × 1200 Viewport, 150 % CSS-Zoom und
+Touch-Darstellung: Settings → 3D Viewer → Colors. Der neue Hinweis legt Erklärung
+und „Use automatic colors“ nebeneinander. Der Knopf schrumpft auf rund **78 px sichtbare
+Breite**, sein einzeiliger Text benötigt **170 px** im selben Koordinatensystem nach
+Zoom. `overflow: hidden` schneidet die Beschriftung beidseitig ab. Im Bild bleibt nur
+ein Fragment wie „utomatic c“ lesbar. Der zugängliche Name und die Aktion funktionieren,
+die sichtbare Wechselmöglichkeit ist aber nicht vollständig verständlich.
+
+Der äußere Hinweis besteht eine einfache Overflow-Prüfung: `scrollWidth === clientWidth
+=== 191`. Deshalb reicht diese Prüfung oder `toBeVisible()` für den Knopf nicht aus.
+Der Textbereich ragt links und rechts jeweils etwa 46 px über seine Trefferfläche hinaus.
+
+**Erforderliche Korrektur:** Erklärung und Aktion bei knapper Breite beispielsweise
+untereinander anordnen oder passend umbrechen lassen, sodass die vollständige
+Beschriftung innerhalb der sichtbaren Taste liegt. Ein Layout-Wächter soll genau den
+sicheren Altfall im schmalen Layout bei 150 % prüfen, einschließlich Textgrenzen im
+Knopf. Der separate Hinweis unbekannter Herkunft und der funktionierende Wechsel
+mit Farberhalt bleiben erhalten.
+
+Belege: [Screenshot](viewer-kontrast.implementation-r3-legacy-portrait.png),
+[Messwerte, `noteBox`](viewer-kontrast.implementation-r3.probe.json),
+[Browserprobe](viewer-kontrast.implementation-r3.probe.mjs).
+
+### Übrige Umsetzung und Entscheidungen E13–E16
+
+| Bereich | Ergebnis dieser Runde |
+|---|---|
+| V1 · Palette, Formmerkmale, Deckkraft | Paar-/CVD-Wächter bestehen. Die gezielte Bildprüfung bestätigt vorhandene Vorschub- und Limitstriche sowie 2-CSS-px-Backplot bei DPR 1 und 2 in vier Themes. Ringumlauf und Freigabe bestehen in den Unit-Tests; die fehlende Begrenzung ausstehender Updates bleibt VK-I01. |
+| V2 · Auswahlkern und Halo | Gezielte Bildprüfung auf Modellfläche einschließlich Größenänderung besteht; kein neuer Befund. |
+| V3 · Code-Glyphen | Limit, Kollision und kombinierter zugänglicher Name bestehen im Browser; kein neuer Befund. |
+| V4 · `planeView` | Zustandsprüfung bei sichtbarem, gefaltetem und ausgeschaltetem HUD besteht. Eigene Probe ergänzt kombinierten Kopf-/Datumwechsel und Theme-Wechsel bei ausgeblendetem HUD. |
+| V5 / E13 / E16 · Nicht-Text-Kontrast | Die fünf vorhandenen Theme-Fälle bestehen im eigenen Lauf. Knopf-Token und Randanpassungen sind nachvollziehbar. Die Messarten sind für die erfassten Elemente geeignet; das Überspringen verdeckter Regler ist weiterhin eine benannte Prüfgrenze, kein Nachweis für diese Regler. |
+| V6 · Herkunft und Speicherung | Drei Herkunftsfälle bestehen. Zusätzlich besteht der eigene Wechsel Altpalette → Automatic → Speichern/Neuladen → Custom: Herkunft ist danach `operator`, alte Farben bleiben erhalten. Die Darstellung der Aktion bleibt VK-I02. |
+| E14 · HUD-Moduszeile | Gemeinsame Ableitung und Entfernen doppelter Angaben sind stimmig; kein neuer Befund. |
+| E15 · Simulations-Nahtstelle | Zusätzlich zur vorhandenen Diagnoseprüfung wurde die **echte Sim-Bedienung** mit gültigen Programm-/Kinematik-/WCS-Frames geprüft, ohne `simulatePlane`: Label wechselt auf „Plane · simulated“ und beim Verlassen zurück auf den kombinierten Live-Zustand. |
+
+Weitere Bilder der eigenen Probe: [Simulation](viewer-kontrast.implementation-r3-real-simulation.png),
+kombinierter Live-Zustand ohne HUD bei 150 % in
+[Hell](viewer-kontrast.implementation-r3-plane-portrait-light.png),
+[Dunkel](viewer-kontrast.implementation-r3-plane-portrait-dark.png),
+[HC hell](viewer-kontrast.implementation-r3-plane-portrait-hc-light.png) und
+[HC dunkel](viewer-kontrast.implementation-r3-plane-portrait-hc-dark.png).
+Die Zustandsprüfung ersetzt nicht die abschließende Sichtprüfung der unverändert
+weltmaßabhängigen Labelgröße an der echten Maschine.
+
+### Eigene Prüfungen und Reproduktion
+
+- [Build](viewer-kontrast.implementation-r3.build.txt): **PASS**.
+- [Lint einschließlich CSS-Audit](viewer-kontrast.implementation-r3.lint.txt): **PASS**.
+- [Vitest](viewer-kontrast.implementation-r3.vitest.txt): **1683/1683**, 84 Dateien.
+- [Gezielte Playwright-Prüfungen](viewer-kontrast.implementation-r3.playwright.txt):
+  **10/10**, seriell auf eigenem Mock `127.0.0.1:4188`;
+  [Testliste und Laufdaten](viewer-kontrast.implementation-r3.playwright.json).
+  Dafür ausschließlich temporäre Kopien der bestehenden Tests verwendet und
+  `localhost:4174` durch `127.0.0.1:4188` ersetzt; Assertions unverändert.
+- [Eigene Browserprobe](viewer-kontrast.implementation-r3.probe.txt): drei Prüfungen
+  bestanden, zwei fehlgeschlagen und oben als VK-I01/VK-I02 dokumentiert;
+  keine Browser-`pageerror`-Ereignisse. Die Sonde sammelt Ergebnisse in JSON, ihr
+  Prozess-Exitcode allein ist kein Erfolgs-Gate.
+
+Reproduktion der eigenen Sonden vom Repository-Root mit gebautem Frontend und
+installierten Frontend-Abhängigkeiten; für die Browserprobe einen separaten Mock
+aus `lcnc-webui/` starten:
+
+```sh
+MOCK_PORT=4188 MOCK_HOST=127.0.0.1 nice -n 15 node e2e/mock-gateway.mjs
+```
+
+Die Sonden anschließend vom Repository-Root ausführen (Node 22+):
+
+```sh
+nice -n 15 node --experimental-strip-types docs/reviews/viewer-kontrast.implementation-r3.backplot.mjs
+nice -n 15 node docs/reviews/viewer-kontrast.implementation-r3.probe.mjs
+```
+
+Für Nachprüfungen Kopien mit neuen Belegnamen benutzen: Die Sonden schreiben ihre
+JSON-/Bilddateien neben die jeweilige Skriptdatei. **Frühere und diese Belege unverändert
+lassen.** Kein Produktcode geändert, kein LinuxCNC angesprochen und kein erneuter
+vollständiger Backend-/Playwright-Gesamtlauf. Claudes gemeldetes Offline-Gate ist oben
+separat dokumentiert. Nach Korrektur der zwei Befunde ist eine gezielte Nachprüfung
+möglich; eine Operator-Entscheidung ist dafür nicht nötig.

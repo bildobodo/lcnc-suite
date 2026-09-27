@@ -1,0 +1,19 @@
+
+Running 10 tests using 1 worker
+
+(node:3036213) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3036213) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/contrast.spec.ts:473:3 › light: controls and floating cards keep 3 : 1 where they meet what is next to them (3.6s)
+  ✓   2 e2e/contrast.spec.ts:473:3 › dark: controls and floating cards keep 3 : 1 where they meet what is next to them (3.4s)
+  ✓   3 e2e/contrast.spec.ts:473:3 › hc-light: controls and floating cards keep 3 : 1 where they meet what is next to them (3.2s)
+  ✓   4 e2e/contrast.spec.ts:473:3 › hc-dark: controls and floating cards keep 3 : 1 where they meet what is next to them (3.1s)
+  ✓   5 e2e/contrast.spec.ts:473:3 › auto-dark: controls and floating cards keep 3 : 1 where they meet what is next to them (3.4s)
+  ✓   6 e2e/layout.spec.ts:1243:1 › a code line names its findings with a glyph: ▲ limit, × collision, both named (2.7s)
+  ✓   7 e2e/layout.spec.ts:1289:1 › the tilted work plane names its state at the object — whatever the HUD shows (12.6s)
+  ✓   8 e2e/scenes.viewer.spec.ts:48:1 › the palette and the wide selection in four themes, on a model, a dense and a thin path (4.6s)
+  ✓   9 e2e/scenes.viewer.spec.ts:183:1 › the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px — at DPR 1 and 2 (11.8s)
+  ✓  10 e2e/viewer.spec.ts:478:1 › the palette's origin in Settings: an earlier version says so, an unknown one claims nothing, a chosen one is quiet (2.2s)
+
+  10 passed (51.8s)

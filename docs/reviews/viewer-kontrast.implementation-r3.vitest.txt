@@ -1,0 +1,13 @@
+
+> lcnc-webui@0.0.0 test
+> vitest run --maxWorkers=1
+
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite/lcnc-webui
+
+
+ Test Files  84 passed (84)
+      Tests  1683 passed (1683)
+   Start at  13:11:48
+   Duration  49.87s (transform 1.65s, setup 0ms, import 4.17s, tests 40.96s, environment 4ms)
+
