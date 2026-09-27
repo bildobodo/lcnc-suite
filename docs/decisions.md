@@ -7294,4 +7294,36 @@ datum shift.
   (OWORD_NARGS, NO_DOWNCASE_OWORD, ON_ABORT_COMMAND) are added to any
   installed example; a local value stays. `test_example_install.py`: five new
   cases, red first (the fallback case red at Z −500).
+- Live check (same day, the operator's installed sim after the migration and
+  a restart): M600 via MDI through the WebUI's WS path (set_probe_vars, then
+  `T<n> M600`; tool change confirmed, probe contact simulated per G38) — in
+  identity and under TCP: length stored, TCP restored after the TCP run. It
+  found, each fixed and re-run live:
+  - the bundled routine read `#<_ini[DISPLAY]DEBUG>` unguarded — every M600
+    on an INI without the key aborted ("not defined"; the XYZAC INI has DEBUG
+    only in [EMC]). Read behind EXISTS now, absent = 0;
+  - set_probe_vars replied `mdi_set` False on every success (`ret != 0`
+    against RCS_DONE 1; the dispatch spy returns 0 and hid it) —
+    `_cmd_rc_failed` now, live `mdi_set` True after the restart;
+  - "Return to start position" on (the examples' and upstream's default)
+    refused the return after a longer tool measured from the top of travel —
+    the common `G53 G0 Z0` + `T<n> M600` ("would exceed Z's positive
+    limit"; the length was stored). The XYZAC template has it off; the same
+    sequence (42 → 62 mm tool from Z0) completes;
+  - an M600 that errors or is aborted under TCP stays in identity (no NGC
+    finally; `on_abort` does not touch kins) — bounded at a line: the chip
+    shows Machine, Measure Current is identity-only, README says so.
+  The config had no WebUI toolsetter section, so the form / Measure Current
+  had pushed TOOLSETTER_FALLBACK's zeros into the var file (3004–3106 zero,
+  the backup of the installation keeps the evidence); the section was saved
+  for the XYZAC INI through the gateway's own save path with the template's
+  values (reversible: Reset Toolsetter). Two defects found on the way are
+  NOT this branch's and go to review R15 with evidence: the WebUI pushes a
+  never-saved section's fallback zeros to the machine, and the
+  loaded-program resolver adopts a subroutine file when an MDI call into it
+  ends in an error with no program loaded (reproduced: `active_file` =
+  `remap_subs/m600.ngc`, previewed as the program). The M600 programs in
+  `nc_files` are 3-axis programs (T8 not in the XYZAC table, X to 346 against
+  ±250): their preview now reads "Requested tool 8 not found", the honest
+  next message, not a remap problem.
 
