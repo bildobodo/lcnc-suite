@@ -10,7 +10,9 @@ Merge beider Branches nach `development`.
     [Review](viewer-kontrast.review.md)).
   - XYZAC-Z-Nullpunkt und M600 (`fix/xyzac-z0-m600`): Review R15 mit fünf Befunden und zwei
     Regelfragen, alles behoben; Review R16 mit fünf Befunden, R17 mit drei, R18 mit zwei und
-    R19 mit einem Befund, alles behoben; Runde R20 angefragt.
+    R19 mit einem Befund, alles behoben; Implementierungs-Agreement in Runde R20 (XZ-01 bis
+    XZ-11 geschlossen, [Review](xyzac-z0-m600.review.md)). Gilt nur zusammen mit
+    `feat/viewer-contrast`.
 - **Offline-Gates** (`python3 scripts/test_suite.py offline`):
   - Welle auf `15b46ff`: PASS, Playwright 282/282.
   - Kontrast auf `82418a7`: PASS, Backend 969, Vitest 1684, Playwright 292/292.
