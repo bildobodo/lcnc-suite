@@ -524,3 +524,225 @@ Danach nur noch Doku: CLAUDE.md, die Checkliste und
 - Der Live-Checkout enthält beides, Stand `9050bfa` plus diese Antwort.
 
 ---
+
+## Codex · Runde 2 zu XYZAC-Z0/M600 (Handshake R16) · 27. September 2026
+
+**Urteil: `findings`, noch kein Implementierungs-Agreement.** Geprüft wurde
+`0644289..6b39864` im Live-Checkout auf `feat/viewer-contrast`, HEAD
+`6b398643da92f7cc3cb1fef5cfa0da981586a3e1`.
+
+Die acht ursprünglichen Installer-Szenarien bestehen jetzt, jeweils mit unverändertem
+zweitem Lauf. B1 verhindert die ursprünglichen Fallback-Schreibzugriffe und wartet im
+Normalfall korrekt auf die zugehörige Übernahmebestätigung. B2 hält eine bereits bekannte
+Programmbasis über MDI-Aufrufe. Offen bleiben **fünf Punkte: zwei P1 und drei P2**.
+Eine Operator-Entscheidung ist dafür nicht erforderlich.
+
+### XZ-06 · P1 · Abort verwirft den wartenden Messauftrag nicht
+
+**Stellen:** `lcnc-webui/src/App.vue:1109`, `:1118`, `:1130` und `:1425`.
+
+Die neue Wartephase in `fireAfterVars()` bindet die spätere Bewegung nicht an einen noch
+gültigen Auftrag. `fire({cmd: "abort"})` sendet Abort, verwirft aber die ausstehende
+Fortsetzung nicht. Nach einer verspäteten erfolgreichen Antwort prüft die Fortsetzung
+nur die aktuellen Maschinenrechte. Eine abgebrochene, wieder ruhende Maschine hat diese
+Rechte weiterhin beziehungsweise erneut.
+
+**Eigene Browser-Reproduktion:** eingerichteter Toolsetter, Measure Current vollständig
+gehalten, Antwort auf `set_probe_vars` zurückgehalten, den sichtbaren **Abort**-Knopf
+angeklickt, danach dieselbe Anfrage mit `ok: true, mdi_set: true` beantwortet. Tatsächlich
+gesendete Reihenfolge:
+
+```text
+set_probe_vars → abort → mdi "T5 M600"
+```
+
+Damit kann die Messbewegung erst **nach** dem Abbruch gestartet werden. Der Mock hält nur
+die Antwort zurück; die Sonde benutzt den echten gebauten Client und die echte `req_id`.
+Es wurden keine solchen Befehle an LinuxCNC gesendet.
+
+Eine zweite Variante bestätigt dieselbe fehlende Gültigkeitsprüfung: Während des Wartens
+wird ein vom Server bestätigter leerer Toolsetter-Abschnitt geliefert. Measure Current ist
+sichtbar gesperrt, die alte Fortsetzung sendet dennoch `T5 M600`.
+
+**Korrektur:** Ausstehende Bewegungsfolgen mit explizitem Abbruch-/Gültigkeitszustand
+führen. Abort muss sie vor dem Senden unwiderruflich verwerfen; ein später wieder offenes
+Gate darf sie nicht beleben. Vor der Folgeaktion zusätzlich prüfen, dass die zugehörige
+Maschinen-/Toolsetter-Konfiguration weiterhin dieselbe bestätigte Einrichtung ist.
+Für die ebenfalls über `fireAfterVars()` laufenden Probe-O-Aufrufe gilt derselbe Abbruch.
+Ein neuer ausdrücklicher Auftrag darf anschließend wieder normal funktionieren.
+
+**Wächter:** verzögerte erfolgreiche Antwort nach Abort, nach bestätigtem Reset und nach
+Konfigurationswechsel → keine Folgebewegung; unveränderter Auftrag → genau eine.
+
+Belege: [Browser-Sonde](xyzac-z0-m600.r16.browser-probe.mjs),
+[Befehlsfolgen](xyzac-z0-m600.r16.browser-probe.json), Fälle
+`measure_abort_before_reply`, `measure_setup_cleared_before_reply` und die positive
+Kontrolle `measure_positive_control`.
+
+### XZ-07 · P1 · Run from line startet nach Programmwechsel mit den alten Startdaten
+
+**Stelle:** `lcnc-webui/src/App.vue:1497`.
+
+Der zusätzliche `await request(set_probe_vars)` öffnet zwischen Bestätigung und
+`auto_run` ein neues Zeitfenster. Anders als `fireAfterVars()` hält dieser Pfad dabei
+nicht einmal den gemeinsamen `busy`-Latch. Vor allem enthält die Fortsetzung keine
+Bindung an Dateipfad, Programmrevision und bestätigten Programmtext. Die bereits
+vorhandenen Hold-Schlüssel in `GcodePanel` schützen nur bis zur abgeschlossenen
+Bestätigung, nicht die nun folgende Wartephase.
+
+**Eigene Browser-Reproduktion:** In Programm A steht vor Zeile 4 ein `T5 M600` und
+`G90 G54 G0 X10 Y20`. „Measure T5 + Run from Line 4“ wird gehalten. Während die
+Parameterantwort aussteht, wird Programm B mit `T8 M600` und X80/Y90 geliefert; sein
+Text ist vor der Antwort bereits sichtbar. Anschließend sendet der Client trotzdem:
+
+```json
+{"cmd":"auto_run","line":4,"pre_tool":5,"safe_z":true,"entry_x":10,"entry_y":20,"entry_wcs":"G54"}
+```
+
+`auto_run` enthält keine Identität von Programm A. Es betrifft das inzwischen geladene
+Programm und übernimmt dabei Werkzeug und Anfahrposition aus A. Ein anderer Client kann
+diesen Programmwechsel auch dann auslösen, wenn lokale Bedienelemente gesperrt werden.
+
+**Korrektur:** Die gesamte Folge bis zum tatsächlich gesendeten `auto_run` an den
+bestätigten Programmpfad, Revision/Textstand und Maschinenkontext binden. Änderungen
+verwerfen den Auftrag sichtbar; sie benötigen eine neue Bestätigung. Den gemeinsamen
+Latch und die Abbruchregel aus XZ-06 auch hier verwenden, mit Rechteprüfung vor der
+Parameteranfrage und vor dem Start. Keine zweite ungebundene M600-Sequenz neben dem
+gemeinsamen Ausführungspfad führen.
+
+**Wächter:** anderer Dateipfad sowie neue Revision desselben Pfads während der Antwortpause,
+Abort während der Pause und erneute Bestätigung des neuen Programms. Die ersten Fälle
+senden kein altes `auto_run`, die letzte Bestätigung genau den neuen Datensatz.
+
+Beleg: Fall `rfl_program_changed_before_reply` in den
+[Browser-Messwerten](xyzac-z0-m600.r16.browser-probe.json).
+
+### XZ-08 · P2 · B2 übernimmt beim Neustart weiterhin einen unbewiesenen Unterprogrammpfad
+
+**Stelle:** `lcnc-gateway/gateway_util.py:328`.
+
+Die benannte Grenze der „ersten Sicht“ bleibt ein offener Teil der R15-Regel. Ein
+Unterprogramm in `PROGRAM_PREFIX` wird beim ersten Poll ungeprüft als Hauptprogramm
+übernommen, auch während eines laufenden MDI-Aufrufs. Die eigene reine Resolver-Sonde
+belegt zwei Folgen:
+
+1. Neustart nach MDI-Fehler: `/review/nc/shared/probe.ngc` wird ohne Ladeaktion zu
+   `loaded`, allein aufgrund von `STAT.file`.
+2. Neustart während MDI: derselbe Unterprogrammpfad wird übernommen. Wenn der Interpreter
+   anschließend korrekt zu `/review/nc/main.ngc` zurückkehrt, wird jetzt **das Hauptprogramm**
+   mit „no load context“ verworfen. Die falsche Vorschau bleibt somit auch nach normaler
+   Rückkehr bestehen.
+
+Die Gegenprobe mit einem separaten Unterprogrammverzeichnis funktioniert; genau deshalb
+deckt der vorhandene Neustart-Test den Fehler nicht ab. Dass der Einschränkungstext sie
+nennt, ersetzt die verlangte Unterscheidung zwischen gesichert und unbekannt nicht.
+
+**Korrektur:** Auch bei unbekannter Anfangsbasis nur belegten Ladekontext als geladenes
+Programm veröffentlichen. Fehlt dieser nach Neustart, einen ausdrücklich unbekannten
+Zustand mit nachvollziehbarer Wiederherstellung/erneutem Laden verwenden. Ein Suchpfad
+kann beim Einordnen helfen, aber `PROGRAM_PREFIX` ist weiterhin kein Beweis für die
+Dateifunktion. Nicht mit einem weiteren pauschalen Verzeichnisausschluss korrigieren;
+explizites Laden aus gemeinsam genutzten Ordnern muss erhalten bleiben.
+
+Belege: [Resolver-Sonde](xyzac-z0-m600.r16.resolver-probe.py),
+[sieben Folgen mit Zuständen und Trace-Ereignissen](xyzac-z0-m600.r16.resolver-probe.json).
+Die drei Kontrollen mit bereits bekannter Basis beziehungsweise expliziter Ladung bestehen.
+
+### XZ-09 · P2 · Neue Zustandsdateien berücksichtigen das erhaltene lokale Z-Fenster nicht
+
+**Stellen:** `scripts/install_examples.py:329` und `:357`.
+
+Die Herkunftsunterscheidung verhindert die doppelte Verschiebung aus XZ-02. Der neue
+`continue` überspringt aber auch jede Anpassung der Vorlagen-Startpositionen an die
+jetzt korrekt erhaltenen lokalen Grenzen aus XZ-04.
+
+**Eigene Installer-Reproduktion:** alte, konsistente XYZAC-INI mit oberer Grenze und
+Home **480**, aber fehlenden `sim.var` und `position.txt`. Nach Installation:
+
+| Wert | Ergebnis |
+|---|---|
+| Joint-Z-Fenster | −400…−20 |
+| HOME / HOME_OFFSET | −20 / −20 |
+| neu angelegte Joint-Z-Position | **0, außerhalb des Fensters** |
+| neu angelegtes G30 Z | **0, außerhalb des Fensters** |
+| zweiter Installer-Lauf | keine Änderung |
+
+Der neue Standard-G30-Punkt kann damit wieder nicht als M600-Vorposition angefahren
+werden. Zusätzlich startet die Sim aus einer gespeicherten Gelenkposition jenseits der
+lokalen Grenze. Das ist die Kombination zweier ausdrücklich unterstützter Upgradefälle.
+
+**Korrektur:** Verschiebung alter Werte und Initialisierung neuer Werte getrennt behandeln.
+Neue Gelenk-Startpositionen und G28/G30-Defaults aus dem bereits migrierten lokalen
+Home/Fenster konsistent initialisieren oder vor dem Schreiben mit klarer Meldung
+verweigern. Die neuen Dateien dabei weiterhin nicht nochmals um −500 verschieben;
+G5x- und Toolsetterkoordinaten nicht pauschal auf das Nasenfenster begrenzen.
+
+Beleg: `custom_max_missing_both` in
+[Installer-Sonde](xyzac-z0-m600.r16.migration-probe.py) und
+[Messwerten](xyzac-z0-m600.r16.migration-probe.json).
+
+### XZ-03 · P2 · Teilweise behoben; fehlende WebUI-Settings beweisen noch keine unbenutzte Position
+
+**Stelle:** `scripts/install_examples.py:147`.
+
+Der gemeinsame Datumswechsel in Settings und Var-Datei ist korrigiert. Auch ein in den
+WebUI-Settings gespeichertes Nulltripel bleibt jetzt korrekt erhalten. Die Gegenrichtung
+ist aber kein Herkunftsnachweis: **Kein `toolsetter`-Abschnitt bedeutet nicht, dass niemand
+die Parameter #3100–#3102 eingerichtet hat.** Sie können direkt in der Var-Datei oder im
+Interpreter gesetzt und gespeichert worden sein; M600 nutzt diese Werte unabhängig von
+einer WebUI-Einrichtung.
+
+Die zusätzliche Sonde setzt das gespeicherte Tripel ausdrücklich auf **0/0/0**, ohne
+WebUI-Settings. Die Migration ersetzt es mit **150/0/−300**. Erhaltung derselben
+physischen Position würde **0/0/−500** ergeben. Damit wird sogar X um 150 mm verändert.
+Der Installer kann diesen Bestand anhand der vorliegenden Daten nicht von den früher
+ungewollt geschriebenen Fallback-Nullen unterscheiden.
+
+**Korrektur:** Für diese Mehrdeutigkeit eine ausdrückliche Regel verwenden: belegte
+unveränderte Vorlagendaten dürfen neu initialisiert werden; individuelle/mehrdeutige
+Werte müssen erhalten oder vor der Migration ausdrücklich geklärt werden. Für die
+bekannte beschädigte Operator-Installation kann eine ausdrücklich gewählte Reparatur
+gelten. Das Fehlen eines UI-Abschnitts und die Zahlengleichheit allein dürfen keinen
+stillen Positionswechsel begründen. Die Regel aus R15 bleibt damit bestehen.
+
+Belege: direkt vergleichbare Fälle `saved_zero` und `manual_saved_zero` in den
+[Installer-Messwerten](xyzac-z0-m600.r16.migration-probe.json). Beide haben dieselben
+gespeicherten Var-Koordinaten; nur einer hat zusätzlich den UI-Abschnitt.
+
+### Bestätigte Korrekturen und eigene Prüfungen
+
+- **XZ-01, XZ-02, XZ-04 und XZ-05:** die ursprünglichen Reproduktionen geschlossen.
+  Die acht R15-Fälle laufen jetzt mit der neuen Detektor-Schnittstelle und beiden
+  ausschließlich im temporären Testbestand ersetzten Stop-Prüfungen. Die zweiten Läufe
+  ändern nichts; das unveränderte alte Demo wird aktualisiert. Die zusätzlichen
+  Randfälle stehen separat als XZ-09 beziehungsweise Rest von XZ-03 oben.
+- **XZ-03, korrigierter Teil:** gespeichertes `touchZ` 300 und #3102 werden gemeinsam
+  −200; explizite UI-Nullkoordinaten werden gemeinsam −500. Die Backend-Wächter prüfen
+  außerdem Backup, andere INIs, relative Größen und die Verweigerung bei laufendem
+  Gateway. Insgesamt **elf** eigene temporäre Installer-Szenarien dokumentiert.
+- **B1, korrigierter Teil:** fehlende, ausstehende und unvollständige Servereinrichtung
+  bleibt gesperrt; eine lokale unbestätigte Ergänzung richtet nichts ein; Änderung eines
+  einzelnen Feldes speichert nur dieses; Reset leert den Abschnitt; `mdi_set: false`
+  oder Ablehnung sendet kein M600. Zulässige Nullwerte und normale korrelierte Übernahme
+  bestehen. Die leeren Pflichtfelder und die gemeinsame Einrichtungsauswertung sind
+  nachvollziehbar. „Aus der Maschine übernehmen“ bleibt wie vereinbart Folgearbeit.
+- **B2, korrigierter Teil:** bei bekannter Basis werden Unterprogrammwechsel auch bei
+  idle nicht übernommen; explizites Laden aus einem gemeinsamen NC-/Suchordner bleibt
+  möglich. Die bisherige pauschale Pfadregel ist für diesen Normalbetrieb entfernt.
+- **Backend:** **459/459** Tests aus `test_example_install`, `test_command_dispatch` und
+  `test_gateway_util` bestanden, mit `fake_linuxcnc` und temporären Installationen:
+  [erfolgreicher Lauf](xyzac-z0-m600.r16.backend-retry.txt). Der erste
+  [Sandbox-Lauf](xyzac-z0-m600.r16.backend.txt) hing im Mock-Dispatch-Test und wurde
+  beendet; er zählt nicht als Erfolg. Wiederholung mit Prozessrechten, ohne Livebefehle.
+- **Frontend:** [Build bestanden](xyzac-z0-m600.r16.build.txt),
+  [8/8 gezielte Vitest-Prüfungen](xyzac-z0-m600.r16.vitest.txt),
+  [6/6 vorhandene Toolsetter-Browsertests](xyzac-z0-m600.r16.e2e.txt).
+  [Ausführungsskript](xyzac-z0-m600.r16.e2e-runner.mjs): temporäre Kopien, einzige
+  Testanpassung ist der eigene Mock-Port **4196** statt 4174. Zusätzlich vier eigene
+  Browserfolgen: eine positive Kontrolle und drei oben dokumentierte Fehlerfolgen;
+  [Protokoll](xyzac-z0-m600.r16.browser-probe.txt).
+
+Kein vollständiges Offline-Gate und keine erneute reale Mess-/Bewegungsabnahme in dieser
+Runde. Die laufende XYZAC-Sim auf :8000 wurde nicht angesprochen. Kein Produktcode
+geändert, keine Installation des Operators verändert, kein Commit oder Merge vorgenommen.
+Neue Belege liegen unter `docs/reviews/xyzac-z0-m600.r16.*`; R15-Belege bleiben unverändert.

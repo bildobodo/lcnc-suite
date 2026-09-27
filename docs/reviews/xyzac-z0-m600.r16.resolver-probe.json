@@ -1,0 +1,212 @@
+{
+  "head": "6b398643da92f7cc3cb1fef5cfa0da981586a3e1",
+  "cases": [
+    {
+      "name": "known_none_mdi_error_prefix",
+      "steps": [
+        {
+          "action": "poll",
+          "raw_or_request": null,
+          "idle": true,
+          "loaded": null,
+          "seen": true,
+          "events": []
+        },
+        {
+          "action": "poll",
+          "raw_or_request": "/review/nc/shared/probe.ngc",
+          "idle": false,
+          "loaded": null,
+          "seen": true,
+          "events": [
+            [
+              "status.file_flip_ignored",
+              {
+                "raw_file": "probe.ngc",
+                "loaded": "",
+                "reason": "running"
+              }
+            ]
+          ]
+        },
+        {
+          "action": "poll",
+          "raw_or_request": "/review/nc/shared/probe.ngc",
+          "idle": true,
+          "loaded": null,
+          "seen": true,
+          "events": []
+        }
+      ]
+    },
+    {
+      "name": "known_main_mdi_error_prefix",
+      "steps": [
+        {
+          "action": "poll",
+          "raw_or_request": "/review/nc/main.ngc",
+          "idle": true,
+          "loaded": "/review/nc/main.ngc",
+          "seen": true,
+          "events": []
+        },
+        {
+          "action": "poll",
+          "raw_or_request": "/review/nc/shared/probe.ngc",
+          "idle": false,
+          "loaded": "/review/nc/main.ngc",
+          "seen": true,
+          "events": [
+            [
+              "status.file_flip_ignored",
+              {
+                "raw_file": "probe.ngc",
+                "loaded": "main.ngc",
+                "reason": "running"
+              }
+            ]
+          ]
+        },
+        {
+          "action": "poll",
+          "raw_or_request": "/review/nc/shared/probe.ngc",
+          "idle": true,
+          "loaded": "/review/nc/main.ngc",
+          "seen": true,
+          "events": []
+        }
+      ]
+    },
+    {
+      "name": "explicit_shared_directory_load",
+      "steps": [
+        {
+          "action": "poll",
+          "raw_or_request": null,
+          "idle": true,
+          "loaded": null,
+          "seen": true,
+          "events": []
+        },
+        {
+          "action": "load",
+          "raw_or_request": "/review/nc/shared/probe.ngc",
+          "idle": true,
+          "loaded": null,
+          "seen": true,
+          "events": []
+        },
+        {
+          "action": "poll",
+          "raw_or_request": "/review/nc/shared/probe.ngc",
+          "idle": true,
+          "loaded": "/review/nc/shared/probe.ngc",
+          "seen": true,
+          "events": []
+        }
+      ]
+    },
+    {
+      "name": "restart_after_mdi_error_prefix",
+      "steps": [
+        {
+          "action": "poll",
+          "raw_or_request": "/review/nc/shared/probe.ngc",
+          "idle": true,
+          "loaded": "/review/nc/shared/probe.ngc",
+          "seen": true,
+          "events": []
+        },
+        {
+          "action": "poll",
+          "raw_or_request": "/review/nc/shared/probe.ngc",
+          "idle": true,
+          "loaded": "/review/nc/shared/probe.ngc",
+          "seen": true,
+          "events": []
+        }
+      ]
+    },
+    {
+      "name": "restart_during_mdi_prefix_returns_main",
+      "steps": [
+        {
+          "action": "poll",
+          "raw_or_request": "/review/nc/shared/probe.ngc",
+          "idle": false,
+          "loaded": "/review/nc/shared/probe.ngc",
+          "seen": true,
+          "events": []
+        },
+        {
+          "action": "poll",
+          "raw_or_request": "/review/nc/main.ngc",
+          "idle": true,
+          "loaded": "/review/nc/shared/probe.ngc",
+          "seen": true,
+          "events": [
+            [
+              "status.file_flip_ignored",
+              {
+                "raw_file": "main.ngc",
+                "loaded": "probe.ngc",
+                "reason": "no load context"
+              }
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "restart_during_mdi_external_returns_main",
+      "steps": [
+        {
+          "action": "poll",
+          "raw_or_request": "/review/subs/probe.ngc",
+          "idle": false,
+          "loaded": null,
+          "seen": false,
+          "events": []
+        },
+        {
+          "action": "poll",
+          "raw_or_request": "/review/nc/main.ngc",
+          "idle": true,
+          "loaded": "/review/nc/main.ngc",
+          "seen": true,
+          "events": []
+        }
+      ]
+    },
+    {
+      "name": "restart_after_mdi_error_external",
+      "steps": [
+        {
+          "action": "poll",
+          "raw_or_request": "/review/subs/probe.ngc",
+          "idle": true,
+          "loaded": null,
+          "seen": true,
+          "events": [
+            [
+              "status.file_flip_ignored",
+              {
+                "raw_file": "probe.ngc",
+                "loaded": "",
+                "reason": "first sight: a subroutine search path"
+              }
+            ]
+          ]
+        },
+        {
+          "action": "poll",
+          "raw_or_request": "/review/subs/probe.ngc",
+          "idle": true,
+          "loaded": null,
+          "seen": true,
+          "events": []
+        }
+      ]
+    }
+  ]
+}

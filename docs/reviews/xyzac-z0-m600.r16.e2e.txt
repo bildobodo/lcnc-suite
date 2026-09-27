@@ -1,0 +1,15 @@
+
+Running 6 tests using 1 worker
+
+(node:3468659) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3468659) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 toolsetter-setup.spec.ts:58:5 › without the server's settings, and without a saved section, Measure Current and Unload (M600) stay off — with the reason (1.9s)
+  ✓  2 toolsetter-setup.spec.ts:68:5 › the gate sits in the call path: a tool-table load in M600 mode sends nothing while the setter is not set up (1.7s)
+  ✓  3 toolsetter-setup.spec.ts:78:5 › a partial section: the form names what is missing, shows unset fields empty, and a change saves only that field (2.1s)
+  ✓  4 toolsetter-setup.spec.ts:96:5 › a save the server never confirmed is no setup; its confirmation is (2.2s)
+  ✓  5 toolsetter-setup.spec.ts:116:5 › Measure Current waits for the takeover: refused or not taken over sends no M600; taken over sends it after (4.7s)
+  ✓  6 toolsetter-setup.spec.ts:138:5 › Reset clears the section — no field counts as saved, nothing is pushed (1.9s)
+
+  6 passed (15.2s)
