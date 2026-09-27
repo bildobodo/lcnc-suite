@@ -1,0 +1,1048 @@
+{
+  "head": "089694e433f55053b55ed935047c987675067aa0",
+  "scope": "Real installer in temporary directories, no live controller access",
+  "cases": [
+    {
+      "case": "normal_old",
+      "report": [
+        "lcnc_suite_sim_5axis_xyzac.ini: #5163 (G28 Z) 0 was outside the Z travel (never reachable) \u2014 now the top of travel, 0",
+        "lcnc_suite_sim_5axis_xyzac.ini: #5183 (G30 Z) 0 was outside the Z travel (never reachable) \u2014 now the top of travel, 0",
+        "lcnc_suite_sim_5axis_xyzac.ini: toolsetter #3100-#3102 were the old example's unchanged 10/10/-180 (below the Z travel, never set up) \u2014 now the example's 150/0/-300"
+      ],
+      "migration_detected": true,
+      "backup_created": true,
+      "first": {
+        "joint_z": {
+          "MIN_LIMIT": "-400",
+          "MAX_LIMIT": "0",
+          "HOME": "0",
+          "HOME_OFFSET": "0"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": 0.0,
+        "setter_xyz": [
+          150.0,
+          0.0,
+          -300.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": 0.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": null
+      },
+      "second_install_changed": false,
+      "second": {
+        "joint_z": {
+          "MIN_LIMIT": "-400",
+          "MAX_LIMIT": "0",
+          "HOME": "0",
+          "HOME_OFFSET": "0"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": 0.0,
+        "setter_xyz": [
+          150.0,
+          0.0,
+          -300.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": 0.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": null
+      }
+    },
+    {
+      "case": "missing_var",
+      "report": [],
+      "migration_detected": true,
+      "backup_created": true,
+      "first": {
+        "joint_z": {
+          "MIN_LIMIT": "-400",
+          "MAX_LIMIT": "0",
+          "HOME": "0",
+          "HOME_OFFSET": "0"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": 0.0,
+        "setter_xyz": [
+          150.0,
+          0.0,
+          -300.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": 0.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": null
+      },
+      "second_install_changed": false,
+      "second": {
+        "joint_z": {
+          "MIN_LIMIT": "-400",
+          "MAX_LIMIT": "0",
+          "HOME": "0",
+          "HOME_OFFSET": "0"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": 0.0,
+        "setter_xyz": [
+          150.0,
+          0.0,
+          -300.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": 0.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": null
+      }
+    },
+    {
+      "case": "missing_position",
+      "report": [
+        "lcnc_suite_sim_5axis_xyzac.ini: #5163 (G28 Z) 0 was outside the Z travel (never reachable) \u2014 now the top of travel, 0",
+        "lcnc_suite_sim_5axis_xyzac.ini: #5183 (G30 Z) 0 was outside the Z travel (never reachable) \u2014 now the top of travel, 0",
+        "lcnc_suite_sim_5axis_xyzac.ini: toolsetter #3100-#3102 were the old example's unchanged 10/10/-180 (below the Z travel, never set up) \u2014 now the example's 150/0/-300"
+      ],
+      "migration_detected": true,
+      "backup_created": true,
+      "first": {
+        "joint_z": {
+          "MIN_LIMIT": "-400",
+          "MAX_LIMIT": "0",
+          "HOME": "0",
+          "HOME_OFFSET": "0"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": 0.0,
+        "setter_xyz": [
+          150.0,
+          0.0,
+          -300.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": 0.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": null
+      },
+      "second_install_changed": false,
+      "second": {
+        "joint_z": {
+          "MIN_LIMIT": "-400",
+          "MAX_LIMIT": "0",
+          "HOME": "0",
+          "HOME_OFFSET": "0"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": 0.0,
+        "setter_xyz": [
+          150.0,
+          0.0,
+          -300.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": 0.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": null
+      }
+    },
+    {
+      "case": "missing_both",
+      "report": [],
+      "migration_detected": true,
+      "backup_created": true,
+      "first": {
+        "joint_z": {
+          "MIN_LIMIT": "-400",
+          "MAX_LIMIT": "0",
+          "HOME": "0",
+          "HOME_OFFSET": "0"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": 0.0,
+        "setter_xyz": [
+          150.0,
+          0.0,
+          -300.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": 0.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": null
+      },
+      "second_install_changed": false,
+      "second": {
+        "joint_z": {
+          "MIN_LIMIT": "-400",
+          "MAX_LIMIT": "0",
+          "HOME": "0",
+          "HOME_OFFSET": "0"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": 0.0,
+        "setter_xyz": [
+          150.0,
+          0.0,
+          -300.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": 0.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": null
+      }
+    },
+    {
+      "case": "custom_z_max",
+      "report": [
+        "lcnc_suite_sim_5axis_xyzac.ini: #5163 (G28 Z) 0 was outside the Z travel (never reachable) \u2014 now the top of travel, -20",
+        "lcnc_suite_sim_5axis_xyzac.ini: #5183 (G30 Z) 0 was outside the Z travel (never reachable) \u2014 now the top of travel, -20",
+        "lcnc_suite_sim_5axis_xyzac.ini: toolsetter #3100-#3102 were the old example's unchanged 10/10/-180 (below the Z travel, never set up) \u2014 now the example's 150/0/-300"
+      ],
+      "migration_detected": true,
+      "backup_created": true,
+      "first": {
+        "joint_z": {
+          "MIN_LIMIT": "-400",
+          "MAX_LIMIT": "-20",
+          "HOME": "-20",
+          "HOME_OFFSET": "-20"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": -20.0,
+        "setter_xyz": [
+          150.0,
+          0.0,
+          -300.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": -20.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": null
+      },
+      "second_install_changed": false,
+      "second": {
+        "joint_z": {
+          "MIN_LIMIT": "-400",
+          "MAX_LIMIT": "-20",
+          "HOME": "-20",
+          "HOME_OFFSET": "-20"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": -20.0,
+        "setter_xyz": [
+          150.0,
+          0.0,
+          -300.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": -20.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": null
+      }
+    },
+    {
+      "case": "custom_z_min",
+      "report": [
+        "lcnc_suite_sim_5axis_xyzac.ini: #5163 (G28 Z) 0 was outside the Z travel (never reachable) \u2014 now the top of travel, 0",
+        "lcnc_suite_sim_5axis_xyzac.ini: #5183 (G30 Z) 0 was outside the Z travel (never reachable) \u2014 now the top of travel, 0",
+        "lcnc_suite_sim_5axis_xyzac.ini: toolsetter #3100-#3102 were the old example's unchanged 10/10/-180 (below the Z travel, never set up) \u2014 now the example's 150/0/-300"
+      ],
+      "migration_detected": true,
+      "backup_created": true,
+      "first": {
+        "joint_z": {
+          "MIN_LIMIT": "-350",
+          "MAX_LIMIT": "0",
+          "HOME": "0",
+          "HOME_OFFSET": "0"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": 0.0,
+        "setter_xyz": [
+          150.0,
+          0.0,
+          -300.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": 0.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": null
+      },
+      "second_install_changed": false,
+      "second": {
+        "joint_z": {
+          "MIN_LIMIT": "-350",
+          "MAX_LIMIT": "0",
+          "HOME": "0",
+          "HOME_OFFSET": "0"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": 0.0,
+        "setter_xyz": [
+          150.0,
+          0.0,
+          -300.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": 0.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": null
+      }
+    },
+    {
+      "case": "renamed_machine",
+      "report": [
+        "lcnc_suite_sim_5axis_xyzac.ini: #5163 (G28 Z) 0 was outside the Z travel (never reachable) \u2014 now the top of travel, 0",
+        "lcnc_suite_sim_5axis_xyzac.ini: #5183 (G30 Z) 0 was outside the Z travel (never reachable) \u2014 now the top of travel, 0",
+        "lcnc_suite_sim_5axis_xyzac.ini: toolsetter #3100-#3102 were the old example's unchanged 10/10/-180 (below the Z travel, never set up) \u2014 now the example's 150/0/-300"
+      ],
+      "migration_detected": true,
+      "backup_created": true,
+      "first": {
+        "joint_z": {
+          "MIN_LIMIT": "-400",
+          "MAX_LIMIT": "0",
+          "HOME": "0",
+          "HOME_OFFSET": "0"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": 0.0,
+        "setter_xyz": [
+          150.0,
+          0.0,
+          -300.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": 0.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": null
+      },
+      "second_install_changed": false,
+      "second": {
+        "joint_z": {
+          "MIN_LIMIT": "-400",
+          "MAX_LIMIT": "0",
+          "HOME": "0",
+          "HOME_OFFSET": "0"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": 0.0,
+        "setter_xyz": [
+          150.0,
+          0.0,
+          -300.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": 0.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": null
+      }
+    },
+    {
+      "case": "saved_toolsetter",
+      "report": [
+        "lcnc_suite_sim_5axis_xyzac.ini: #5163 (G28 Z) 0 was outside the Z travel (never reachable) \u2014 now the top of travel, 0",
+        "lcnc_suite_sim_5axis_xyzac.ini: #5183 (G30 Z) 0 was outside the Z travel (never reachable) \u2014 now the top of travel, 0"
+      ],
+      "migration_detected": true,
+      "backup_created": true,
+      "first": {
+        "joint_z": {
+          "MIN_LIMIT": "-400",
+          "MAX_LIMIT": "0",
+          "HOME": "0",
+          "HOME_OFFSET": "0"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": 0.0,
+        "setter_xyz": [
+          150.0,
+          0.0,
+          -200.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": 0.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": {
+          "fastFeed": 500,
+          "slowFeed": 50,
+          "traverseFeed": 6000,
+          "maxZTravel": 150,
+          "retractDist": 2,
+          "spindleZeroHeight": 180,
+          "offsetDirection": 0,
+          "touchX": 150,
+          "touchY": 0,
+          "touchZ": -200.0,
+          "useToolTable": 1,
+          "toolMinDis": 2,
+          "brakeAfter": 0,
+          "goBackToStart": 0,
+          "spindleStopM": 5,
+          "disablePrePos": 0,
+          "addReps": 0,
+          "lastTry": 0,
+          "offsetDiameter": 0,
+          "offsetValue": 0,
+          "finderTouchX": 0,
+          "finderTouchY": 0,
+          "finderDiffZ": 0
+        }
+      },
+      "second_install_changed": false,
+      "second": {
+        "joint_z": {
+          "MIN_LIMIT": "-400",
+          "MAX_LIMIT": "0",
+          "HOME": "0",
+          "HOME_OFFSET": "0"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": 0.0,
+        "setter_xyz": [
+          150.0,
+          0.0,
+          -200.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": 0.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": {
+          "fastFeed": 500,
+          "slowFeed": 50,
+          "traverseFeed": 6000,
+          "maxZTravel": 150,
+          "retractDist": 2,
+          "spindleZeroHeight": 180,
+          "offsetDirection": 0,
+          "touchX": 150,
+          "touchY": 0,
+          "touchZ": -200.0,
+          "useToolTable": 1,
+          "toolMinDis": 2,
+          "brakeAfter": 0,
+          "goBackToStart": 0,
+          "spindleStopM": 5,
+          "disablePrePos": 0,
+          "addReps": 0,
+          "lastTry": 0,
+          "offsetDiameter": 0,
+          "offsetValue": 0,
+          "finderTouchX": 0,
+          "finderTouchY": 0,
+          "finderDiffZ": 0
+        }
+      }
+    },
+    {
+      "case": "saved_zero",
+      "report": [
+        "lcnc_suite_sim_5axis_xyzac.ini: #5163 (G28 Z) 0 was outside the Z travel (never reachable) \u2014 now the top of travel, 0",
+        "lcnc_suite_sim_5axis_xyzac.ini: #5183 (G30 Z) 0 was outside the Z travel (never reachable) \u2014 now the top of travel, 0"
+      ],
+      "migration_detected": true,
+      "backup_created": true,
+      "first": {
+        "joint_z": {
+          "MIN_LIMIT": "-400",
+          "MAX_LIMIT": "0",
+          "HOME": "0",
+          "HOME_OFFSET": "0"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": 0.0,
+        "setter_xyz": [
+          0.0,
+          0.0,
+          -500.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": 0.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": {
+          "fastFeed": 500,
+          "slowFeed": 50,
+          "traverseFeed": 6000,
+          "maxZTravel": 150,
+          "retractDist": 2,
+          "spindleZeroHeight": 180,
+          "offsetDirection": 0,
+          "touchX": 0,
+          "touchY": 0,
+          "touchZ": -500.0,
+          "useToolTable": 1,
+          "toolMinDis": 2,
+          "brakeAfter": 0,
+          "goBackToStart": 0,
+          "spindleStopM": 5,
+          "disablePrePos": 0,
+          "addReps": 0,
+          "lastTry": 0,
+          "offsetDiameter": 0,
+          "offsetValue": 0,
+          "finderTouchX": 0,
+          "finderTouchY": 0,
+          "finderDiffZ": 0
+        }
+      },
+      "second_install_changed": false,
+      "second": {
+        "joint_z": {
+          "MIN_LIMIT": "-400",
+          "MAX_LIMIT": "0",
+          "HOME": "0",
+          "HOME_OFFSET": "0"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": 0.0,
+        "setter_xyz": [
+          0.0,
+          0.0,
+          -500.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": 0.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": {
+          "fastFeed": 500,
+          "slowFeed": 50,
+          "traverseFeed": 6000,
+          "maxZTravel": 150,
+          "retractDist": 2,
+          "spindleZeroHeight": 180,
+          "offsetDirection": 0,
+          "touchX": 0,
+          "touchY": 0,
+          "touchZ": -500.0,
+          "useToolTable": 1,
+          "toolMinDis": 2,
+          "brakeAfter": 0,
+          "goBackToStart": 0,
+          "spindleStopM": 5,
+          "disablePrePos": 0,
+          "addReps": 0,
+          "lastTry": 0,
+          "offsetDiameter": 0,
+          "offsetValue": 0,
+          "finderTouchX": 0,
+          "finderTouchY": 0,
+          "finderDiffZ": 0
+        }
+      }
+    },
+    {
+      "case": "manual_saved_zero",
+      "report": [
+        "lcnc_suite_sim_5axis_xyzac.ini: #5163 (G28 Z) 0 was outside the Z travel (never reachable) \u2014 now the top of travel, 0",
+        "lcnc_suite_sim_5axis_xyzac.ini: #5183 (G30 Z) 0 was outside the Z travel (never reachable) \u2014 now the top of travel, 0",
+        "lcnc_suite_sim_5axis_xyzac.ini: toolsetter #3100-#3102 read 0/0/0 and the WebUI saved none for this INI \u2014 kept at the same point (Z now -500). If it was never set up, set it in Probing \u203a Toolsetter"
+      ],
+      "migration_detected": true,
+      "backup_created": true,
+      "first": {
+        "joint_z": {
+          "MIN_LIMIT": "-400",
+          "MAX_LIMIT": "0",
+          "HOME": "0",
+          "HOME_OFFSET": "0"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": 0.0,
+        "setter_xyz": [
+          0.0,
+          0.0,
+          -500.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": 0.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": null
+      },
+      "second_install_changed": false,
+      "second": {
+        "joint_z": {
+          "MIN_LIMIT": "-400",
+          "MAX_LIMIT": "0",
+          "HOME": "0",
+          "HOME_OFFSET": "0"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": 0.0,
+        "setter_xyz": [
+          0.0,
+          0.0,
+          -500.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": 0.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": null
+      }
+    },
+    {
+      "case": "custom_max_missing_both",
+      "report": [
+        "xyzac5/position.txt: new file \u2014 the joint Z starts at this INI's home, -20",
+        "xyzac5/sim.var: new file \u2014 G28/G30 Z at this INI's top of travel, -20"
+      ],
+      "migration_detected": true,
+      "backup_created": true,
+      "first": {
+        "joint_z": {
+          "MIN_LIMIT": "-400",
+          "MAX_LIMIT": "-20",
+          "HOME": "-20",
+          "HOME_OFFSET": "-20"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": -20.0,
+        "setter_xyz": [
+          150.0,
+          0.0,
+          -300.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": -20.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": null
+      },
+      "second_install_changed": false,
+      "second": {
+        "joint_z": {
+          "MIN_LIMIT": "-400",
+          "MAX_LIMIT": "-20",
+          "HOME": "-20",
+          "HOME_OFFSET": "-20"
+        },
+        "machine_name": "5 Axis XYZAC",
+        "rotation_point_lines": [
+          "HALCMD = setp xyzac-trt-kins.z-rot-point -500"
+        ],
+        "frame_translation": {
+          "id": "frame",
+          "parent": "root",
+          "translate": [
+            0,
+            0,
+            -500
+          ]
+        },
+        "g54_z": -500.0,
+        "g30_z": -20.0,
+        "setter_xyz": [
+          150.0,
+          0.0,
+          -300.0
+        ],
+        "disable_preposition": 0.0,
+        "g30_z_in_limits": true,
+        "saved_position_z": -20.0,
+        "position_in_limits": true,
+        "demo_retracts": [
+          "G53 G0 Z0",
+          "G53 G0 Z0",
+          "G53 G0 Z0"
+        ],
+        "persisted_toolsetter": null
+      }
+    }
+  ]
+}
