@@ -163,8 +163,10 @@ git merge --no-ff feat/ui-design-wave
 git merge --no-ff feat/viewer-contrast
 ```
 
-`feat/viewer-contrast` enthält auch `fix/xyzac-z0-m600`; der XYZAC-Fix kommt also mit. Willst du
-ihn schon vorher allein in `development` haben: `git merge --no-ff fix/xyzac-z0-m600`.
+`feat/viewer-contrast` enthält auch `fix/xyzac-z0-m600`; der XYZAC-Fix kommt also mit. **Nie
+einzeln mergen:** Das Frontend zu Run from line und Messen liegt nur auf `feat/viewer-contrast`.
+Allein würde das Gateway des Fix-Branches jedes Run from line ablehnen („Program changed — confirm
+Run from line again“).
 
 Danach die Suite neu starten. Ein `git push` ist deine Entscheidung; die bisherigen Merges nach
 `development` waren lokal. Wenn etwas nicht passt: kurz notieren, was und wo (Theme, Zoom,
