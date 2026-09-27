@@ -5,13 +5,11 @@ mit Plan-Agreement ([Planreview Runde 3](ui-design-welle.review.md#codex-runde-3
 hält je Arbeitspaket den Umsetzungsstand, Abweichungen und Gate-Läufe fest; die
 Codex-Implementierungsreviews folgen nach den Paketgruppen DR + D0–D2, D3–D6 und D7–D10.
 
-**Aktueller Reviewstand · Codex Runde 9 · 27. September 2026 · `0418850`:
-UI-DI17 ist geschlossen. UI-DI16 bleibt als P2 offen: Bei ausgeblendeter HUD-Ebene
-werden Höhenlimit und schmale Bannerdarstellung nicht aktualisiert; nach einer
-Größenänderung verdeckt „More“ die Simulationserläuterung.
-D7–D10 noch ohne Implementierungs-Agreement.**
-[Nachprüfung, Nachweise und Prüfgrenzen](#codex-implementierungsreview-runde-9).
-UI-DI12–15 bleiben geschlossen.
+**Aktueller Reviewstand · Codex Runde 10 · 27. September 2026 · `3479692`:
+Implementierungs-Agreement für D7–D10. UI-DI16 ist geschlossen; auch der zusätzlich
+geprüfte Scrollleisten-Rückschritt des Warnblocks ist behoben. Keine offenen
+Implementierungsbefunde UI-DI01–17.**
+[Abnahme, Nachweise und Prüfgrenzen](#codex-implementierungsreview-runde-10).
 Das [Agreement aus Runde 5 für D3–D6](#codex-implementierungsreview-runde-5) bleibt gültig;
 UI-DI05–11 bleiben geschlossen.
 Das [Agreement aus Runde 3 für DR + D0–D2](#codex-implementierungsreview-runde-3)
@@ -3211,5 +3209,100 @@ Deine Bestätigung der ViewCube-Ausnahme habe ich in `docs/decisions.md` vermerk
 Gesamtlauf ist ein einzelner Lauf, siehe unten.
 
 **Gates:** build, lint, Vitest (1661) und Audit-Tests (28) grün; Playwright 282/282 in einem Gesamtlauf (279 bisher, dazu der HUD-aus-Test je Profil und der „?“-Test). Referenzbilder unverändert.
+
+---
+
+## Codex Implementierungsreview Runde 10
+
+**27. September 2026 · Handshake R9 · `e4fbe5e..3479692` · `feat/ui-design-wave`.**
+Nachprüfung von UI-DI16 bei ausgeblendeter HUD-Ebene und des in der Antwort auf
+Runde 9 ergänzten Scrollleisten-Rückschritts durch die Hilfe-Trefferfläche.
+
+**Ergebnis: Implementierungs-Agreement für D7–D10 am Stand `3479692`.** UI-DI16
+ist geschlossen, der zusätzlich geprüfte Rückschritt ist behoben. Keine neuen
+Befunde. Zusammen mit den gültigen Agreements aus Runde 3 und 5 sind damit
+**DR + D0–D10 auf Implementierungsebene abgenommen**; UI-DI01–17 sind geschlossen.
+Die Abschlussprüfungen und eine Merge-Freigabe sind davon getrennt, siehe unten.
+
+### Bestätigte Korrekturen
+
+| Punkt | Eigene Nachprüfung am Stand `3479692` |
+|---|---|
+| UI-DI16, HUD aus | Die ursprüngliche Sonde aus Runde 9 läuft mit denselben Szenarien: Das Höhenlimit wechselt nach Resize von **566 auf 280 CSS-px**, mit Simulation auf **249 CSS-px**. Der Schmalmodus wird aktualisiert, die kurze Fassung einschließlich „?“ erscheint. Bei geöffnetem More beginnt die Zeitleiste bei **y = 302**, der Hinweis endet bei **y = 296**: **6 px Abstand**, keine Überdeckung. |
+| HUD wieder ein | Die Gegenprobe behält den sichtbaren Simulationshinweis und das korrekte Limit. Die Größenberechnung hängt nicht mehr an der Sichtbarkeit der DRO. |
+| Scrollleisten unter „MACHINE · off datum“ | In sechs Szenen — Desktop, Hochformat 100/150 %, Hilfe allein oder vor weiteren Warnungen — jeweils **0 px horizontaler und 0 px unnötiger vertikaler Überlauf**. Die ungeöffnete, nicht abgeschnittene Karte lässt den Zeiger durch. |
+| Hilfe erreichbar | Mittelpunkt und alle vier Ränder der erweiterten Trefferfläche treffen das Hilfeelement. Ein echter Klick am rechten Rand öffnet die Hilfe in jeder Szene; derselbe Klick schließt sie wieder. |
+| Gegenprobe zum Scrollleisten-Fix | Nur im Testbrowser Innenabstand und Rand des Warnblocks vorübergehend auf 0 gesetzt: **6 px horizontaler / 3 px vertikaler Überlauf**, Karte **36,89 px** hoch, Zeiger wird angenommen. Nach Entfernen der Test-Overrides: kein Überlauf, **26,89 px** Kartenhöhe, Zeiger geht wieder durch. Der Produktcode blieb unverändert. |
+| Bisherige Detail- und Geometrieprüfungen | Beide Öffnungsreihenfolgen und direkte Schließwege funktionieren weiter; alle Controls sind nach Hinscrollen erreichbar, More verändert die DRO-Form nicht. **20/20 Layoutfälle** und **21/21 Höhenschwellen** ohne Oszillation oder Überdeckung, überall `fits`; beide längeren Stillstandsproben bleiben stabil. |
+
+**Codeprüfung:** `fitHud` berechnet Schmalmodus, Höhenlimit und Scrollzustand des
+Warnblocks für den gesamten Viewer. Nur die Wahl der DRO-Größe liegt in `fitDro`
+und setzt eine sichtbare Karte voraus. Damit ist der vorzeitige Rücksprung aus
+Runde 9 beseitigt. Das zusätzliche Innenpolster in `.hudNotesBody` berücksichtigt
+die Reichweite der unsichtbaren Hilfe-Trefferfläche; der negative Rand erhält die
+bisherige Kartengröße. Die Gegenprobe bestätigt den Zusammenhang mit dem zuvor
+beobachteten Überlauf.
+
+### Belege
+
+- HUD aus: [Sonde](ui-design-welle.implementation-r10-hidden-hud.probe.mjs),
+  [Messdaten](ui-design-welle.implementation-r10-hidden-hud.json),
+  [More offen, Hinweis vollständig sichtbar](ui-design-welle.implementation-r10-hidden-hud-more.png).
+- Warnblock: [Sonde einschließlich Gegenprobe](ui-design-welle.implementation-r10-help.probe.mjs),
+  [Maße, Trefferflächen und echte Hilfeklicks](ui-design-welle.implementation-r10-help.json),
+  [korrigierte Karte](ui-design-welle.implementation-r10-help-desktop-alone.png),
+  [vorübergehend wiederhergestellter alter Überlauf](ui-design-welle.implementation-r10-help-negative-control.png).
+- Layout/Stabilität: [Sonde](ui-design-welle.implementation-r10.probe.mjs),
+  [Messdaten](ui-design-welle.implementation-r10.json).
+- Details/Scrollen: [Sonde](ui-design-welle.implementation-r10-limits.probe.mjs),
+  [Messdaten und direkte Schließwege](ui-design-welle.implementation-r10-limits.json).
+- [Prüfprotokolle einschließlich Herkunft der Testkopien](ui-design-welle.implementation-r10.evidence.txt).
+
+Die drei bisherigen Sonden wurden ausschließlich mit neuer Revision und neuen
+Ausgabepfaden kopiert; die Hilfesonde ist neu. Kein früherer Beleg wurde geändert.
+Die angenommene vorübergehende Überdeckung der ViewCube-Spalte durch angeforderte
+More-Details bleibt gültig; der Simulationshinweis und die Rückwege bleiben geschützt.
+### Tests und Umfang des Agreements
+
+| Eigene Prüfung | Ergebnis |
+|---|---|
+| Build | grün; bekannter Hinweis zu großen Bundles |
+| ESLint und CSS-Audit | grün |
+| Vitest, ein Worker | **82 Dateien, 1661/1661 Tests** grün |
+| Sieben gezielte Layout-Tests | **7/7** grün: je zwei Grundgeometrie-, Detail-/Simulations- und HUD-aus-Tests sowie der neue Hilfe-Trefferflächentest |
+| Vier unabhängige Sonden | vollständig abgeschlossen, keine Browser-`pageerror`-Meldungen; Maße, Screenshots, Klick- und Scrollwege geprüft |
+| `git diff --check` | grün |
+
+Die beiden neuen HUD-aus-Tests prüfen zusätzlich das Ausschalten als erste
+Einstellung nach dem Verbinden, bevor Programm und Simulation geladen werden,
+sowie Zoom 150 → 100 → 150 % bei geöffnetem More, Sim an/aus und HUD wieder an.
+Die bestehenden Detailtests prüfen beide Öffnungsreihenfolgen und alle direkten
+Schließwege mit tatsächlichen Klicks.
+
+**Eigener Mock-Port auch für die Regressionstests:** Kopien von `layout.spec.ts`,
+`layout-fixtures.ts` und `layout-audit.ts` sind bytegleich mit dem geprüften Stand.
+Nur in der Kopie von `ctl.ts` wurde `localhost:4174` auf `127.0.0.1:4188` geändert.
+Eine separate Testkonfiguration startet keine Vorschau-/Gateway-Server und führt
+alles seriell aus. Hashes, Konfiguration und Kommando stehen im Prüfprotokoll.
+Die Originaltests, Produktdateien und Referenzbilder wurden nicht verändert.
+
+Der von Claude gemeldete **282/282-Gesamtlauf** ist als ein zusammenhängender Lauf
+benannt; er wurde hier nicht nochmals vollständig wiederholt. Die frühere
+:4173-Ausnahme ist kein offener UI-Befund. Keine Python-Produktänderung in diesem
+Bereich, daher kein erneuter Backend-Lauf im Review.
+
+Alle Browserprüfungen liefen nacheinander mit niedriger Priorität auf dem eigenen
+Mock `127.0.0.1:4188`; dieser wurde nach Abschluss beendet. Der gemeinsame Mock
+auf :4174 und der Live-Gateway wurden nicht verwendet. Die Hilfesonde protokolliert
+beim Seitenwechsel auch vorsorgliche `jog_stop`-Nachrichten an den Mock, keinen
+Bewegungsstart. Keine LinuxCNC-/Suite-Neustarts, keine physische Touch-,
+Screenreader-, Safari-/Firefox- oder Live-XYZAC-Abnahme durch dieses Review.
+
+**Vor Merge nach `development` bleiben die Abschlussnachweise des Plans nötig:**
+aktuelles vollständiges `python3 scripts/test_suite.py offline` mit PASS und die
+Live-Sichtprüfung am XYZAC-Sim anhand der Paketcheckliste. Dieses Agreement ersetzt
+sie nicht und ist keine pauschale Merge-Freigabe. Die physische Touchscreen-Abnahme
+bleibt gemäß Plan Bedingung der späteren `main`-Promotion.
+Nur Review-Dokumentation und neue Belege geändert; kein Commit durch Codex.
 
 ---

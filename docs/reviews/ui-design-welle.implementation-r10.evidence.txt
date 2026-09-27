@@ -1,0 +1,181 @@
+Codex implementation review round 10 / handshake R9
+Recorded: 2026-09-27T09:44:09.458746+02:00
+Product HEAD: 3479692ff56246a0c2c6c5d297334b63c10fca06
+Scope: e4fbe5e..3479692; UI-DI16 with hidden HUD and warning-card help-hit-area regression.
+Only new review artifacts and review status text edited; product sources and previous evidence unchanged.
+Browser runs sequential, nice -n 15, own mock 127.0.0.1:4188 only.
+No shared 4174 mock or live gateway used, no LinuxCNC/service restart.
+
+Probe provenance:
+- Main, limits and hidden-HUD probes copied from R9 with only revision/output labels changed.
+- New help probe: off-datum help alone and first of several warning lines, desktop/portrait100/portrait150;
+  all five hit points (centre and four edges) plus actual opening/closing via the right-edge pointer click.
+- Help negative control: browser-only inline padding=0,margin=0 recreates the old overflow;
+  those temporary overrides are then removed. No product source edits.
+- Probe exit 0 records completion; the geometry, hits and screenshots were assessed independently.
+
+=== Build ===
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2036 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-zsM8cmEe.js                     4.40 kB
+dist/static/previewWorker-C1MOziwn.js               27.94 kB
+dist/static/partFrameWorker-CSLyKB3b.js             45.52 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/collisionWorker-DvVWZz9I.js            174.25 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-pkOloDRi.css                 9.29 kB │ gzip:   2.22 kB
+dist/static/index-Cq8MXKx1.css                      81.27 kB │ gzip:  15.05 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-DZrlXlKb.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-DKqbgH3A.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/ThreeViewer-C8RfH3Tm.js                130.36 kB │ gzip:  48.46 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/index-CeokqNdC.js                      544.13 kB │ gzip: 172.68 kB
+dist/static/three-Qdx04hrG.js                      881.82 kB │ gzip: 242.50 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 8.17s
+
+=== ESLint and CSS audit ===
+
+> lcnc-webui@0.0.0 lint
+> eslint . && npm run lint:css
+
+
+> lcnc-webui@0.0.0 lint:css
+> python3 ../scripts/audit-scoped-css.py
+
+OK: no definite scoped-CSS leaks, no token drift. (use --all to see ROOT? candidates)
+
+=== Vitest, maxWorkers=1 ===
+
+> lcnc-webui@0.0.0 test
+> vitest run --maxWorkers=1
+
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite/lcnc-webui
+
+
+ Test Files  82 passed (82)
+      Tests  1661 passed (1661)
+   Start at  09:37:49
+   Duration  60.24s (transform 2.02s, setup 0ms, import 4.86s, tests 50.30s, environment 4ms)
+
+
+=== Independent baseline geometry and stability ===
+{"section": "layouts", "cases": 20, "unstable": 0, "overlapping": 0, "fit": ["fits"]}
+{"section": "thresholds", "cases": 21, "unstable": 0, "overlapping": 0, "fit": ["fits"]}
+{"section": "stationary", "forms": ["hud hudCard overlay-card stack-tight hudScale-lg"], "overlaps": []}
+{"section": "originalOscillation", "forms": ["hud hudCard overlay-card stack-tight hudScale-md hudFoldMach hudFoldFS"], "overlaps": []}
+{"programWarning": false, "closedByTap": true, "allWarningsInside": true}
+{"programWarning": true, "closedByTap": true, "allWarningsInside": true}
+Errors: []
+Commands: [{"cmd": "hello", "session": "e7dd6abe-574d-409d-a41c-71a12c465229", "resume_armed": false}, {"cmd": "tab_visibility", "hidden": false}, {"cmd": "get_tool_table", "req_id": "0wgj5s-3"}, {"cmd": "get_tool_table", "req_id": "0wgj5s-4"}, {"cmd": "client_diag", "data": {"ts_client": 1790494811019, "heap": {"used_mb": 17.4, "total_mb": 35.6, "limit_mb": 2222.1}, "render": {"geometries": 43, "textures": 2, "programs": 13, "calls": 12, "triangles": 42}, "connected": true, "armed": true}, "req_id": "0wgj5s-5"}]
+
+=== Original UI-DI16 hidden-HUD reproduction ===
+desktop: {"pane": {"x": 8, "y": 102, "right": 1044, "bottom": 692, "width": 1036, "height": 590}, "banner": null, "notes": {"x": 20, "y": 510.4375, "right": 145, "bottom": 600, "width": 125, "height": 89.5625}, "bottom": {"x": 20, "y": 510.4375, "right": 1032, "bottom": 680, "width": 1012, "height": 169.5625}, "scrub": {"x": 20, "y": 604, "right": 1032, "bottom": 680, "width": 1012, "height": 76}, "hud": {"x": 20, "y": 114, "right": 256, "bottom": 371.1875, "width": 236, "height": 257.1875}, "cap": "566px", "more": {"box": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "hit": false, "open": "false"}, "notesToggle": {"box": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "hit": false, "open": "false"}, "bannerHelpHit": null, "findings": {"box": {"x": 29, "y": 639, "right": 1023, "bottom": 675, "width": 994, "height": 36}, "scrollTop": 0, "clientHeight": 36, "scrollHeight": 36, "pointerEvents": "auto"}}
+narrowHudHidden: {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": null, "notes": null, "bottom": {"x": 474, "y": 559.5, "right": 870, "bottom": 675.5, "width": 396, "height": 116}, "scrub": {"x": 474, "y": 559.5, "right": 870, "bottom": 675.5, "width": 396, "height": 116}, "hud": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "cap": "280px", "more": {"box": {"x": 797, "y": 566.5, "right": 857, "bottom": 620.5, "width": 60, "height": 54}, "hit": true, "open": "false"}, "notesToggle": {"box": null, "hit": null}, "bannerHelpHit": null, "findings": {"box": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "scrollTop": 0, "clientHeight": 0, "scrollHeight": 0, "pointerEvents": "auto"}}
+simulatingFolded: {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": null, "bottom": {"x": 474, "y": 559.5, "right": 870, "bottom": 675.5, "width": 396, "height": 116}, "scrub": {"x": 474, "y": 559.5, "right": 870, "bottom": 675.5, "width": 396, "height": 116}, "hud": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "cap": "249px", "more": {"box": {"x": 797, "y": 566.5, "right": 857, "bottom": 620.5, "width": 60, "height": 54}, "hit": true, "open": "false"}, "notesToggle": {"box": null, "hit": null}, "bannerHelpHit": true, "findings": {"box": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "scrollTop": 0, "clientHeight": 0, "scrollHeight": 0, "pointerEvents": "auto"}}
+simulatingMore: {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": null, "bottom": {"x": 474, "y": 302, "right": 870, "bottom": 675.5, "width": 396, "height": 373.5}, "scrub": {"x": 474, "y": 302, "right": 870, "bottom": 675.5, "width": 396, "height": 373.5}, "hud": {"x": 0, "y": 0, "right": 0, "bottom": 0, "width": 0, "height": 0}, "cap": "249px", "more": {"box": {"x": 797, "y": 309, "right": 857, "bottom": 363, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": null, "hit": null}, "bannerHelpHit": true, "findings": {"box": {"x": 487, "y": 477, "right": 857, "bottom": 668.5, "width": 370, "height": 191.5}, "scrollTop": 0, "clientHeight": 128, "scrollHeight": 138, "pointerEvents": "auto"}}
+hidden: {"hudVisible": false, "narrowClass": true, "bannerText": "SIMULATION\n?", "wrapper": "viewerWrapper narrowViewer"}
+hudRestored: {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": {"x": 474, "y": 302, "right": 708, "bottom": 358.8125, "width": 234, "height": 56.8125}, "bottom": {"x": 474, "y": 302, "right": 870, "bottom": 675.5, "width": 396, "height": 373.5}, "scrub": {"x": 474, "y": 364.8125, "right": 870, "bottom": 675.5, "width": 396, "height": 310.6875}, "hud": {"x": 474, "y": 302, "right": 647.59375, "bottom": 476.484375, "width": 173.59375, "height": 174.484375}, "cap": "249px", "more": {"box": {"x": 797, "y": 371.8125, "right": 857, "bottom": 425.8125, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": {"x": 629, "y": 309, "right": 689, "bottom": 363, "width": 60, "height": 54}, "hit": true, "open": "false"}, "bannerHelpHit": true, "findings": {"box": {"x": 487, "y": 539.8125, "right": 857, "bottom": 668.5, "width": 370, "height": 128.6875}, "scrollTop": 0, "clientHeight": 86, "scrollHeight": 138, "pointerEvents": "auto"}}
+errors: []
+commands: [{"cmd": "hello", "session": "75d5136c-f6fa-4ba5-98f5-1ae43d0c0ba5", "resume_armed": false}, {"cmd": "tab_visibility", "hidden": false}, {"cmd": "get_tool_table", "req_id": "936uen-3"}, {"cmd": "get_tool_table", "req_id": "936uen-4"}]
+
+=== Detail disclosures and scroll reach ===
+{"case": "withLimit", "formsUnchanged": true, "directWarningClose": true, "directMoreClose": true, "unreachableAfterScroll": [], "opened": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": null, "notes": {"x": 474, "y": 273.25, "right": 708, "bottom": 341.25, "width": 234, "height": 68}, "bottom": {"x": 474, "y": 273.25, "right": 870, "bottom": 675.5, "width": 396, "height": 402.25}, "scrub": {"x": 474, "y": 347.25, "right": 870, "bottom": 675.5, "width": 396, "height": 328.25}, "hud": {"x": 474, "y": 255, "right": 647.59375, "bottom": 459.78125, "width": 173.59375, "height": 204.78125}, "cap": "280px", "more": {"box": {"x": 797, "y": 354.25, "right": 857, "bottom": 408.25, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": {"x": 629, "y": 280.25, "right": 689, "bottom": 334.25, "width": 60, "height": 54}, "hit": true, "open": "false"}, "bannerHelpHit": null, "findings": {"box": {"x": 487, "y": 522.25, "right": 857, "bottom": 668.5, "width": 370, "height": 146.25}, "scrollTop": 0, "clientHeight": 98, "scrollHeight": 98, "pointerEvents": "auto"}}, "wheel": null}
+{"case": "simulating", "formsUnchanged": true, "directWarningClose": true, "directMoreClose": true, "unreachableAfterScroll": [], "opened": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": {"x": 474, "y": 302, "right": 708, "bottom": 365.78125, "width": 234, "height": 63.78125}, "bottom": {"x": 474, "y": 302, "right": 870, "bottom": 675.5, "width": 396, "height": 373.5}, "scrub": {"x": 474, "y": 371.78125, "right": 870, "bottom": 675.5, "width": 396, "height": 303.71875}, "hud": {"x": 474, "y": 302, "right": 647.59375, "bottom": 476.484375, "width": 173.59375, "height": 174.484375}, "cap": "249px", "more": {"box": {"x": 797, "y": 378.78125, "right": 857, "bottom": 432.78125, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": {"x": 629, "y": 309, "right": 689, "bottom": 363, "width": 60, "height": 54}, "hit": true, "open": "false"}, "bannerHelpHit": true, "findings": {"box": {"x": 487, "y": 546.78125, "right": 857, "bottom": 668.5, "width": 370, "height": 121.71875}, "scrollTop": 0, "clientHeight": 81, "scrollHeight": 98, "pointerEvents": "auto"}}, "wheel": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": {"x": 474, "y": 302, "right": 708, "bottom": 365.78125, "width": 234, "height": 63.78125}, "bottom": {"x": 474, "y": 302, "right": 870, "bottom": 675.5, "width": 396, "height": 373.5}, "scrub": {"x": 474, "y": 371.78125, "right": 870, "bottom": 675.5, "width": 396, "height": 303.71875}, "hud": {"x": 474, "y": 302, "right": 647.59375, "bottom": 476.484375, "width": 173.59375, "height": 174.484375}, "cap": "249px", "more": {"box": {"x": 797, "y": 378.78125, "right": 857, "bottom": 432.78125, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": {"x": 629, "y": 309, "right": 689, "bottom": 363, "width": 60, "height": 54}, "hit": true, "open": "false"}, "bannerHelpHit": true, "findings": {"box": {"x": 487, "y": 546.78125, "right": 857, "bottom": 668.5, "width": 370, "height": 121.71875}, "scrollTop": 16, "clientHeight": 81, "scrollHeight": 98, "pointerEvents": "auto"}}}
+{"case": "collisions", "formsUnchanged": true, "directWarningClose": true, "directMoreClose": true, "unreachableAfterScroll": [], "opened": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": {"x": 474, "y": 302, "right": 708, "bottom": 358.8125, "width": 234, "height": 56.8125}, "bottom": {"x": 474, "y": 302, "right": 870, "bottom": 675.5, "width": 396, "height": 373.5}, "scrub": {"x": 474, "y": 364.8125, "right": 870, "bottom": 675.5, "width": 396, "height": 310.6875}, "hud": {"x": 474, "y": 302, "right": 647.59375, "bottom": 476.484375, "width": 173.59375, "height": 174.484375}, "cap": "249px", "more": {"box": {"x": 797, "y": 371.8125, "right": 857, "bottom": 425.8125, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": {"x": 629, "y": 309, "right": 689, "bottom": 363, "width": 60, "height": 54}, "hit": true, "open": "false"}, "bannerHelpHit": true, "findings": {"box": {"x": 487, "y": 539.8125, "right": 857, "bottom": 668.5, "width": 370, "height": 128.6875}, "scrollTop": 0, "clientHeight": 86, "scrollHeight": 138, "pointerEvents": "auto"}}, "wheel": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": {"x": 474, "y": 302, "right": 708, "bottom": 358.8125, "width": 234, "height": 56.8125}, "bottom": {"x": 474, "y": 302, "right": 870, "bottom": 675.5, "width": 396, "height": 373.5}, "scrub": {"x": 474, "y": 364.8125, "right": 870, "bottom": 675.5, "width": 396, "height": 310.6875}, "hud": {"x": 474, "y": 302, "right": 647.59375, "bottom": 476.484375, "width": 173.59375, "height": 174.484375}, "cap": "249px", "more": {"box": {"x": 797, "y": 371.8125, "right": 857, "bottom": 425.8125, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": {"x": 629, "y": 309, "right": 689, "bottom": 363, "width": 60, "height": 54}, "hit": true, "open": "false"}, "bannerHelpHit": true, "findings": {"box": {"x": 487, "y": 539.8125, "right": 857, "bottom": 668.5, "width": 370, "height": 128.6875}, "scrollTop": 51.33333206176758, "clientHeight": 86, "scrollHeight": 138, "pointerEvents": "auto"}}}
+{"case": "sixAxisSimulation", "formsUnchanged": true, "directWarningClose": true, "directMoreClose": true, "unreachableAfterScroll": [], "opened": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": {"x": 474, "y": 302, "right": 708, "bottom": 365.78125, "width": 234, "height": 63.78125}, "bottom": {"x": 474, "y": 302, "right": 870, "bottom": 675.5, "width": 396, "height": 373.5}, "scrub": {"x": 474, "y": 371.78125, "right": 870, "bottom": 675.5, "width": 396, "height": 303.71875}, "hud": {"x": 474, "y": 302, "right": 627.796875, "bottom": 483.34375, "width": 153.796875, "height": 181.34375}, "cap": "249px", "more": {"box": {"x": 797, "y": 378.78125, "right": 857, "bottom": 432.78125, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": {"x": 629, "y": 309, "right": 689, "bottom": 363, "width": 60, "height": 54}, "hit": true, "open": "false"}, "bannerHelpHit": true, "findings": {"box": {"x": 487, "y": 546.78125, "right": 857, "bottom": 668.5, "width": 370, "height": 121.71875}, "scrollTop": 0, "clientHeight": 81, "scrollHeight": 98, "pointerEvents": "auto"}}, "wheel": {"pane": {"x": 456, "y": 237, "right": 888, "bottom": 693.5, "width": 432, "height": 456.5}, "banner": {"x": 474, "y": 255, "right": 685, "bottom": 296, "width": 211, "height": 41}, "notes": {"x": 474, "y": 302, "right": 708, "bottom": 365.78125, "width": 234, "height": 63.78125}, "bottom": {"x": 474, "y": 302, "right": 870, "bottom": 675.5, "width": 396, "height": 373.5}, "scrub": {"x": 474, "y": 371.78125, "right": 870, "bottom": 675.5, "width": 396, "height": 303.71875}, "hud": {"x": 474, "y": 302, "right": 627.796875, "bottom": 483.34375, "width": 153.796875, "height": 181.34375}, "cap": "249px", "more": {"box": {"x": 797, "y": 378.78125, "right": 857, "bottom": 432.78125, "width": 60, "height": 54}, "hit": true, "open": "true"}, "notesToggle": {"box": {"x": 629, "y": 309, "right": 689, "bottom": 363, "width": 60, "height": 54}, "hit": true, "open": "false"}, "bannerHelpHit": true, "findings": {"box": {"x": 487, "y": 546.78125, "right": 857, "bottom": 668.5, "width": 370, "height": 121.71875}, "scrollTop": 16, "clientHeight": 81, "scrollHeight": 98, "pointerEvents": "auto"}}}
+Errors: []
+Commands: [{"cmd": "hello", "session": "e94bf80b-4c19-4d83-a917-d780b7b5c602", "resume_armed": false}, {"cmd": "tab_visibility", "hidden": false}, {"cmd": "get_tool_table", "req_id": "jt1ttl-3"}, {"cmd": "get_tool_table", "req_id": "jt1ttl-4"}]
+
+=== Help-area scrollbar regression and negative control ===
+{"vp": {"name": "desktop", "width": 1600, "height": 1000, "zoom": 1, "touch": false}, "lines": "alone", "measured": {"card": {"x": 20, "y": 653.109375, "width": 213, "height": 26.890625, "bottom": 680, "right": 233}, "body": {"x": 33, "y": 654.109375, "width": 192.5, "height": 26.390625, "bottom": 680.5, "right": 225.5}, "scrollWidth": 193, "clientWidth": 193, "scrollHeight": 26, "clientHeight": 26, "pointerEvents": "none", "bodyClass": "hudNotesBody stack-tight scroll-thin", "notesOpen": false, "padding": "4px 5.5px 5.5px 0px", "margin": "-4px -5.5px -5.5px 0px", "points": {"centre": [213.5, 666.546875], "top": [213.5, 655.546875], "bottom": [213.5, 677.546875], "right": [224.5, 666.546875], "left": [202.5, 666.546875]}, "hits": {"centre": true, "top": true, "bottom": true, "right": true, "left": true}, "text": "MACHINE \u00b7 off datum \u00b7 G54\n?", "icon": {"x": 207, "y": 660.046875, "width": 13, "height": 13, "bottom": 673.046875, "right": 220}, "pane": {"x": 8, "y": 102, "width": 1036, "height": 590, "bottom": 692, "right": 1044}}, "helpOpenedByEdge": true, "negativeControl": {"card": {"x": 20, "y": 643.109375, "width": 223, "height": 36.890625, "bottom": 680, "right": 243}, "body": {"x": 33, "y": 648.109375, "width": 197, "height": 26.890625, "bottom": 675, "right": 230}, "scrollWidth": 193, "clientWidth": 187, "scrollHeight": 20, "clientHeight": 17, "pointerEvents": "auto", "bodyClass": "hudNotesBody stack-tight scroll-thin scrolls", "notesOpen": false, "padding": "0px", "margin": "0px", "points": {"centre": [213.5, 656.546875], "top": [213.5, 645.546875], "bottom": [213.5, 667.546875], "right": [224.5, 656.546875], "left": [202.5, 656.546875]}, "hits": {"centre": true, "top": false, "bottom": false, "right": false, "left": true}, "text": "MACHINE \u00b7 off datum \u00b7 G54\n?", "icon": {"x": 207, "y": 650.046875, "width": 13, "height": 13, "bottom": 663.046875, "right": 220}, "pane": {"x": 8, "y": 102, "width": 1036, "height": 590, "bottom": 692, "right": 1044}}, "restored": {"card": {"x": 20, "y": 653.109375, "width": 213, "height": 26.890625, "bottom": 680, "right": 233}, "body": {"x": 33, "y": 654.109375, "width": 192.5, "height": 26.390625, "bottom": 680.5, "right": 225.5}, "scrollWidth": 193, "clientWidth": 193, "scrollHeight": 26, "clientHeight": 26, "pointerEvents": "none", "bodyClass": "hudNotesBody stack-tight scroll-thin", "notesOpen": false, "padding": "4px 5.5px 5.5px 0px", "margin": "-4px -5.5px -5.5px 0px", "points": {"centre": [213.5, 666.546875], "top": [213.5, 655.546875], "bottom": [213.5, 677.546875], "right": [224.5, 666.546875], "left": [202.5, 666.546875]}, "hits": {"centre": true, "top": true, "bottom": true, "right": true, "left": true}, "text": "MACHINE \u00b7 off datum \u00b7 G54\n?", "icon": {"x": 207, "y": 660.046875, "width": 13, "height": 13, "bottom": 673.046875, "right": 220}, "pane": {"x": 8, "y": 102, "width": 1036, "height": 590, "bottom": 692, "right": 1044}}}
+{"vp": {"name": "desktop", "width": 1600, "height": 1000, "zoom": 1, "touch": false}, "lines": "first", "measured": {"card": {"x": 20, "y": 611.328125, "width": 213, "height": 68.671875, "bottom": 680, "right": 233}, "body": {"x": 33, "y": 612.328125, "width": 192.5, "height": 68.171875, "bottom": 680.5, "right": 225.5}, "scrollWidth": 193, "clientWidth": 193, "scrollHeight": 68, "clientHeight": 68, "pointerEvents": "none", "bodyClass": "hudNotesBody stack-tight scroll-thin", "notesOpen": false, "padding": "4px 5.5px 5.5px 0px", "margin": "-4px -5.5px -5.5px 0px", "points": {"centre": [213.5, 624.765625], "top": [213.5, 613.765625], "bottom": [213.5, 635.765625], "right": [224.5, 624.765625], "left": [202.5, 624.765625]}, "hits": {"centre": true, "top": true, "bottom": true, "right": true, "left": true}, "text": "MACHINE \u00b7 off datum \u00b7 G54\n?\nComp Z 0.123\nRotation 12.0\u00b0", "icon": {"x": 207, "y": 618.265625, "width": 13, "height": 13, "bottom": 631.265625, "right": 220}, "pane": {"x": 8, "y": 102, "width": 1036, "height": 590, "bottom": 692, "right": 1044}}, "helpOpenedByEdge": true}
+{"vp": {"name": "portrait", "width": 900, "height": 1200, "zoom": 1, "touch": true}, "lines": "alone", "measured": {"card": {"x": 316, "y": 614.109375, "width": 216, "height": 26.890625, "bottom": 641, "right": 532}, "body": {"x": 329, "y": 615.109375, "width": 194, "height": 24.890625, "bottom": 640, "right": 523}, "scrollWidth": 194, "clientWidth": 194, "scrollHeight": 25, "clientHeight": 25, "pointerEvents": "none", "bodyClass": "hudNotesBody stack-tight scroll-thin", "notesOpen": false, "padding": "4px 4px 4px 0px", "margin": "-4px -4px -4px 0px", "points": {"centre": [511, 627.546875], "top": [511, 616.546875], "bottom": [511, 638.546875], "right": [522, 627.546875], "left": [500, 627.546875]}, "hits": {"centre": true, "top": true, "bottom": true, "right": true, "left": true}, "text": "MACHINE \u00b7 off datum \u00b7 G54\n?", "icon": {"x": 503, "y": 619.546875, "width": 16, "height": 16, "bottom": 635.546875, "right": 519}, "pane": {"x": 304, "y": 140, "width": 588, "height": 513, "bottom": 653, "right": 892}}, "helpOpenedByEdge": true}
+{"vp": {"name": "portrait", "width": 900, "height": 1200, "zoom": 1, "touch": true}, "lines": "first", "measured": {"card": {"x": 316, "y": 572.328125, "width": 216, "height": 68.671875, "bottom": 641, "right": 532}, "body": {"x": 329, "y": 573.328125, "width": 194, "height": 66.671875, "bottom": 640, "right": 523}, "scrollWidth": 194, "clientWidth": 194, "scrollHeight": 67, "clientHeight": 67, "pointerEvents": "none", "bodyClass": "hudNotesBody stack-tight scroll-thin", "notesOpen": false, "padding": "4px 4px 4px 0px", "margin": "-4px -4px -4px 0px", "points": {"centre": [511, 585.765625], "top": [511, 574.765625], "bottom": [511, 596.765625], "right": [522, 585.765625], "left": [500, 585.765625]}, "hits": {"centre": true, "top": true, "bottom": true, "right": true, "left": true}, "text": "MACHINE \u00b7 off datum \u00b7 G54\n?\nComp Z 0.123\nRotation 12.0\u00b0", "icon": {"x": 503, "y": 577.765625, "width": 16, "height": 16, "bottom": 593.765625, "right": 519}, "pane": {"x": 304, "y": 140, "width": 588, "height": 513, "bottom": 653, "right": 892}}, "helpOpenedByEdge": true}
+{"vp": {"name": "portrait150", "width": 900, "height": 1200, "zoom": 1.5, "touch": true}, "lines": "alone", "measured": {"card": {"x": 474, "y": 618.40625, "width": 234, "height": 57.09375, "bottom": 675.5, "right": 708}, "body": {"x": 493, "y": 619.40625, "width": 202, "height": 55.09375, "bottom": 674.5, "right": 695}, "scrollWidth": 135, "clientWidth": 135, "scrollHeight": 37, "clientHeight": 37, "pointerEvents": "none", "bodyClass": "hudNotesBody stack-tight scroll-thin", "notesOpen": false, "padding": "4px 4px 4px 0px", "margin": "-4px -4px -4px 0px", "points": {"centre": [677, 646.953125], "top": [677, 630.453125], "bottom": [677, 663.453125], "right": [693.5, 646.953125], "left": [660.5, 646.953125]}, "hits": {"centre": true, "top": true, "bottom": true, "right": true, "left": true}, "text": "MACHINE \u00b7 off datum \u00b7 G54\n?", "icon": {"x": 665, "y": 634.953125, "width": 24, "height": 24, "bottom": 658.953125, "right": 689}, "pane": {"x": 456, "y": 237, "width": 432, "height": 456.5, "bottom": 693.5, "right": 888}}, "helpOpenedByEdge": true}
+{"vp": {"name": "portrait150", "width": 900, "height": 1200, "zoom": 1.5, "touch": true}, "lines": "first", "measured": {"card": {"x": 474, "y": 563.3125, "width": 234, "height": 112.1875, "bottom": 675.5, "right": 708}, "body": {"x": 493, "y": 564.3125, "width": 202, "height": 110.1875, "bottom": 674.5, "right": 695}, "scrollWidth": 135, "clientWidth": 135, "scrollHeight": 73, "clientHeight": 73, "pointerEvents": "none", "bodyClass": "hudNotesBody stack-tight scroll-thin", "notesOpen": false, "padding": "4px 4px 4px 0px", "margin": "-4px -4px -4px 0px", "points": {"centre": [677, 591.859375], "top": [677, 575.359375], "bottom": [677, 608.359375], "right": [693.5, 591.859375], "left": [660.5, 591.859375]}, "hits": {"centre": true, "top": true, "bottom": true, "right": true, "left": true}, "text": "MACHINE \u00b7 off datum \u00b7 G54\n?\nComp Z 0.123\nRotation 12.0\u00b0", "icon": {"x": 665, "y": 579.859375, "width": 24, "height": 24, "bottom": 603.859375, "right": 689}, "pane": {"x": 456, "y": 237, "width": 432, "height": 456.5, "bottom": 693.5, "right": 888}}, "helpOpenedByEdge": true}
+Errors: []
+Commands: [{"cmd": "tab_visibility", "hidden": true}, {"cmd": "jog_stop", "axis": 0, "req_id": "m7w1n6-5"}, {"cmd": "jog_stop", "axis": 1, "req_id": "m7w1n6-6"}, {"cmd": "jog_stop", "axis": 2, "req_id": "m7w1n6-7"}, {"cmd": "jog_stop", "axis": 3, "req_id": "m7w1n6-8"}, {"cmd": "jog_stop", "axis": 4, "req_id": "m7w1n6-9"}, {"cmd": "hello", "session": "857f0348-6f4b-489c-8033-069d7203a97c", "resume_armed": true}, {"cmd": "tab_visibility", "hidden": false}, {"cmd": "get_tool_table", "req_id": "oyxmcq-3"}, {"cmd": "get_tool_table", "req_id": "oyxmcq-4"}]
+
+=== Isolated Playwright test copy setup ===
+Copies of layout.spec.ts, layout-fixtures.ts and layout-audit.ts are byte-identical. ctl.ts changes only localhost:4174 to 127.0.0.1:4188. node_modules and src are symlinks to the workspace, read-only use. No webServer launch/proxy. Original tests and config unchanged.
+{
+  "layout.spec.ts": {
+    "source_sha256": "ae9fc76fbdc0276dd4ca2bab00c2e1c8a5e83350d3dff70cb29884d4e186c4e8",
+    "copy_sha256": "ae9fc76fbdc0276dd4ca2bab00c2e1c8a5e83350d3dff70cb29884d4e186c4e8",
+    "change": "none"
+  },
+  "layout-fixtures.ts": {
+    "source_sha256": "faaa9bff5f3479ace99715ea9f43d56803b5c3ebd4c0be14844080fd5655eeb8",
+    "copy_sha256": "faaa9bff5f3479ace99715ea9f43d56803b5c3ebd4c0be14844080fd5655eeb8",
+    "change": "none"
+  },
+  "layout-audit.ts": {
+    "source_sha256": "c1cf2397758c1b1ad1e058231aa84eb306dc986308c731fe7e4c59d7246f917f",
+    "copy_sha256": "c1cf2397758c1b1ad1e058231aa84eb306dc986308c731fe7e4c59d7246f917f",
+    "change": "none"
+  },
+  "ctl.ts": {
+    "source_sha256": "58666ecb759737a0648ff2d94851cf53c9f578eb1abfc3a9c60734c427505f3b",
+    "copy_sha256": "d896ece929a2cc17c7c6106f251fd28807379a99b367c0bdd695dd6880d45d9a",
+    "change": "only localhost:4174 -> 127.0.0.1:4188"
+  }
+}
+
+Temporary config:
+import { defineConfig } from '@playwright/test';
+export default defineConfig({
+ testDir:'./e2e',testMatch:'layout.spec.ts',fullyParallel:false,workers:1,
+ timeout:30000,expect:{timeout:10000},updateSnapshots:'none',reporter:[['list']],
+ outputDir:'/tmp/ui-design-r10-e2e-results',
+ use:{baseURL:'http://127.0.0.1:4188',headless:true,
+  launchOptions:{ignoreDefaultArgs:['--hide-scrollbars']},deviceScaleFactor:1,
+  locale:'en-GB',timezoneId:'UTC',trace:'retain-on-failure',screenshot:'only-on-failure'}
+});
+
+Command (cwd /tmp/ui-design-r10-e2e): nice -n 15 npx playwright test --config /tmp/ui-design-r10-e2e/playwright.config.ts --workers=1 --grep 'the HUD|the scrub bar|a help icon'
+
+=== Targeted Playwright results, own mock only ===
+
+Running 7 tests using 1 worker
+
+(node:2701020) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2701020) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/layout.spec.ts:740:3 › 5axis-xyzac: the HUD, its findings, the scrub bar and the ViewCube column stay inside the viewer, apart and still (51.8s)
+  ✓  2 e2e/layout.spec.ts:740:3 › 6axis-twp: the HUD, its findings, the scrub bar and the ViewCube column stay inside the viewer, apart and still (52.8s)
+  ✓  3 e2e/layout.spec.ts:895:3 › 5axis-xyzac: the scrub bar's insides, the simulation banner and the opened details fit the narrow viewer (56.2s)
+  ✓  4 e2e/layout.spec.ts:895:3 › 6axis-twp: the scrub bar's insides, the simulation banner and the opened details fit the narrow viewer (57.1s)
+  ✓  5 e2e/layout.spec.ts:1081:3 › 5axis-xyzac: with the HUD layer off the banner and the bottom column still follow the viewer (15.4s)
+  ✓  6 e2e/layout.spec.ts:1081:3 › 6axis-twp: with the HUD layer off the banner and the bottom column still follow the viewer (15.5s)
+  ✓  7 e2e/layout.spec.ts:1204:1 › a help icon in the viewer warnings card scrolls nothing and keeps its hit area (11.1s)
+
+  7 passed (4.3m)
+
+Own mock on 4188 stopped after completion. Shared 4174 mock and live gateway unused. Help-probe page transitions record precautionary jog_stop to the mock; no movement start.
+Verdict: agreement for D7–D10 at 3479692. UI-DI16 closed, help-area scrollbar regression verified fixed, no new findings. Final offline and live acceptance per plan remain separate.

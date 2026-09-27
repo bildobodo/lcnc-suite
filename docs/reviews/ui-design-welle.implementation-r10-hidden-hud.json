@@ -1,0 +1,422 @@
+{
+  "head": "3479692",
+  "origin": "http://127.0.0.1:4188",
+  "layouts": [],
+  "errors": [],
+  "desktop": {
+    "pane": {
+      "x": 8,
+      "y": 102,
+      "right": 1044,
+      "bottom": 692,
+      "width": 1036,
+      "height": 590
+    },
+    "banner": null,
+    "notes": {
+      "x": 20,
+      "y": 510.4375,
+      "right": 145,
+      "bottom": 600,
+      "width": 125,
+      "height": 89.5625
+    },
+    "bottom": {
+      "x": 20,
+      "y": 510.4375,
+      "right": 1032,
+      "bottom": 680,
+      "width": 1012,
+      "height": 169.5625
+    },
+    "scrub": {
+      "x": 20,
+      "y": 604,
+      "right": 1032,
+      "bottom": 680,
+      "width": 1012,
+      "height": 76
+    },
+    "hud": {
+      "x": 20,
+      "y": 114,
+      "right": 256,
+      "bottom": 371.1875,
+      "width": 236,
+      "height": 257.1875
+    },
+    "cap": "566px",
+    "more": {
+      "box": {
+        "x": 0,
+        "y": 0,
+        "right": 0,
+        "bottom": 0,
+        "width": 0,
+        "height": 0
+      },
+      "hit": false,
+      "open": "false"
+    },
+    "notesToggle": {
+      "box": {
+        "x": 0,
+        "y": 0,
+        "right": 0,
+        "bottom": 0,
+        "width": 0,
+        "height": 0
+      },
+      "hit": false,
+      "open": "false"
+    },
+    "bannerHelpHit": null,
+    "findings": {
+      "box": {
+        "x": 29,
+        "y": 639,
+        "right": 1023,
+        "bottom": 675,
+        "width": 994,
+        "height": 36
+      },
+      "scrollTop": 0,
+      "clientHeight": 36,
+      "scrollHeight": 36,
+      "pointerEvents": "auto"
+    }
+  },
+  "narrowHudHidden": {
+    "pane": {
+      "x": 456,
+      "y": 237,
+      "right": 888,
+      "bottom": 693.5,
+      "width": 432,
+      "height": 456.5
+    },
+    "banner": null,
+    "notes": null,
+    "bottom": {
+      "x": 474,
+      "y": 559.5,
+      "right": 870,
+      "bottom": 675.5,
+      "width": 396,
+      "height": 116
+    },
+    "scrub": {
+      "x": 474,
+      "y": 559.5,
+      "right": 870,
+      "bottom": 675.5,
+      "width": 396,
+      "height": 116
+    },
+    "hud": {
+      "x": 0,
+      "y": 0,
+      "right": 0,
+      "bottom": 0,
+      "width": 0,
+      "height": 0
+    },
+    "cap": "280px",
+    "more": {
+      "box": {
+        "x": 797,
+        "y": 566.5,
+        "right": 857,
+        "bottom": 620.5,
+        "width": 60,
+        "height": 54
+      },
+      "hit": true,
+      "open": "false"
+    },
+    "notesToggle": {
+      "box": null,
+      "hit": null
+    },
+    "bannerHelpHit": null,
+    "findings": {
+      "box": {
+        "x": 0,
+        "y": 0,
+        "right": 0,
+        "bottom": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scrollTop": 0,
+      "clientHeight": 0,
+      "scrollHeight": 0,
+      "pointerEvents": "auto"
+    }
+  },
+  "simulatingFolded": {
+    "pane": {
+      "x": 456,
+      "y": 237,
+      "right": 888,
+      "bottom": 693.5,
+      "width": 432,
+      "height": 456.5
+    },
+    "banner": {
+      "x": 474,
+      "y": 255,
+      "right": 685,
+      "bottom": 296,
+      "width": 211,
+      "height": 41
+    },
+    "notes": null,
+    "bottom": {
+      "x": 474,
+      "y": 559.5,
+      "right": 870,
+      "bottom": 675.5,
+      "width": 396,
+      "height": 116
+    },
+    "scrub": {
+      "x": 474,
+      "y": 559.5,
+      "right": 870,
+      "bottom": 675.5,
+      "width": 396,
+      "height": 116
+    },
+    "hud": {
+      "x": 0,
+      "y": 0,
+      "right": 0,
+      "bottom": 0,
+      "width": 0,
+      "height": 0
+    },
+    "cap": "249px",
+    "more": {
+      "box": {
+        "x": 797,
+        "y": 566.5,
+        "right": 857,
+        "bottom": 620.5,
+        "width": 60,
+        "height": 54
+      },
+      "hit": true,
+      "open": "false"
+    },
+    "notesToggle": {
+      "box": null,
+      "hit": null
+    },
+    "bannerHelpHit": true,
+    "findings": {
+      "box": {
+        "x": 0,
+        "y": 0,
+        "right": 0,
+        "bottom": 0,
+        "width": 0,
+        "height": 0
+      },
+      "scrollTop": 0,
+      "clientHeight": 0,
+      "scrollHeight": 0,
+      "pointerEvents": "auto"
+    }
+  },
+  "simulatingMore": {
+    "pane": {
+      "x": 456,
+      "y": 237,
+      "right": 888,
+      "bottom": 693.5,
+      "width": 432,
+      "height": 456.5
+    },
+    "banner": {
+      "x": 474,
+      "y": 255,
+      "right": 685,
+      "bottom": 296,
+      "width": 211,
+      "height": 41
+    },
+    "notes": null,
+    "bottom": {
+      "x": 474,
+      "y": 302,
+      "right": 870,
+      "bottom": 675.5,
+      "width": 396,
+      "height": 373.5
+    },
+    "scrub": {
+      "x": 474,
+      "y": 302,
+      "right": 870,
+      "bottom": 675.5,
+      "width": 396,
+      "height": 373.5
+    },
+    "hud": {
+      "x": 0,
+      "y": 0,
+      "right": 0,
+      "bottom": 0,
+      "width": 0,
+      "height": 0
+    },
+    "cap": "249px",
+    "more": {
+      "box": {
+        "x": 797,
+        "y": 309,
+        "right": 857,
+        "bottom": 363,
+        "width": 60,
+        "height": 54
+      },
+      "hit": true,
+      "open": "true"
+    },
+    "notesToggle": {
+      "box": null,
+      "hit": null
+    },
+    "bannerHelpHit": true,
+    "findings": {
+      "box": {
+        "x": 487,
+        "y": 477,
+        "right": 857,
+        "bottom": 668.5,
+        "width": 370,
+        "height": 191.5
+      },
+      "scrollTop": 0,
+      "clientHeight": 128,
+      "scrollHeight": 138,
+      "pointerEvents": "auto"
+    }
+  },
+  "hidden": {
+    "hudVisible": false,
+    "narrowClass": true,
+    "bannerText": "SIMULATION\n?",
+    "wrapper": "viewerWrapper narrowViewer"
+  },
+  "hudRestored": {
+    "pane": {
+      "x": 456,
+      "y": 237,
+      "right": 888,
+      "bottom": 693.5,
+      "width": 432,
+      "height": 456.5
+    },
+    "banner": {
+      "x": 474,
+      "y": 255,
+      "right": 685,
+      "bottom": 296,
+      "width": 211,
+      "height": 41
+    },
+    "notes": {
+      "x": 474,
+      "y": 302,
+      "right": 708,
+      "bottom": 358.8125,
+      "width": 234,
+      "height": 56.8125
+    },
+    "bottom": {
+      "x": 474,
+      "y": 302,
+      "right": 870,
+      "bottom": 675.5,
+      "width": 396,
+      "height": 373.5
+    },
+    "scrub": {
+      "x": 474,
+      "y": 364.8125,
+      "right": 870,
+      "bottom": 675.5,
+      "width": 396,
+      "height": 310.6875
+    },
+    "hud": {
+      "x": 474,
+      "y": 302,
+      "right": 647.59375,
+      "bottom": 476.484375,
+      "width": 173.59375,
+      "height": 174.484375
+    },
+    "cap": "249px",
+    "more": {
+      "box": {
+        "x": 797,
+        "y": 371.8125,
+        "right": 857,
+        "bottom": 425.8125,
+        "width": 60,
+        "height": 54
+      },
+      "hit": true,
+      "open": "true"
+    },
+    "notesToggle": {
+      "box": {
+        "x": 629,
+        "y": 309,
+        "right": 689,
+        "bottom": 363,
+        "width": 60,
+        "height": 54
+      },
+      "hit": true,
+      "open": "false"
+    },
+    "bannerHelpHit": true,
+    "findings": {
+      "box": {
+        "x": 487,
+        "y": 539.8125,
+        "right": 857,
+        "bottom": 668.5,
+        "width": 370,
+        "height": 128.6875
+      },
+      "scrollTop": 0,
+      "clientHeight": 86,
+      "scrollHeight": 138,
+      "pointerEvents": "auto"
+    }
+  },
+  "commands": [
+    {
+      "cmd": "hello",
+      "session": "75d5136c-f6fa-4ba5-98f5-1ae43d0c0ba5",
+      "resume_armed": false
+    },
+    {
+      "cmd": "tab_visibility",
+      "hidden": false
+    },
+    {
+      "cmd": "get_tool_table",
+      "req_id": "936uen-3"
+    },
+    {
+      "cmd": "get_tool_table",
+      "req_id": "936uen-4"
+    }
+  ]
+}

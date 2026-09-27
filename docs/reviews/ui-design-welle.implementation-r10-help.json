@@ -1,0 +1,706 @@
+{
+  "head": "3479692",
+  "origin": "http://127.0.0.1:4188",
+  "layouts": [],
+  "errors": [],
+  "scenes": [
+    {
+      "vp": {
+        "name": "desktop",
+        "width": 1600,
+        "height": 1000,
+        "zoom": 1,
+        "touch": false
+      },
+      "lines": "alone",
+      "measured": {
+        "card": {
+          "x": 20,
+          "y": 653.109375,
+          "width": 213,
+          "height": 26.890625,
+          "bottom": 680,
+          "right": 233
+        },
+        "body": {
+          "x": 33,
+          "y": 654.109375,
+          "width": 192.5,
+          "height": 26.390625,
+          "bottom": 680.5,
+          "right": 225.5
+        },
+        "scrollWidth": 193,
+        "clientWidth": 193,
+        "scrollHeight": 26,
+        "clientHeight": 26,
+        "pointerEvents": "none",
+        "bodyClass": "hudNotesBody stack-tight scroll-thin",
+        "notesOpen": false,
+        "padding": "4px 5.5px 5.5px 0px",
+        "margin": "-4px -5.5px -5.5px 0px",
+        "points": {
+          "centre": [
+            213.5,
+            666.546875
+          ],
+          "top": [
+            213.5,
+            655.546875
+          ],
+          "bottom": [
+            213.5,
+            677.546875
+          ],
+          "right": [
+            224.5,
+            666.546875
+          ],
+          "left": [
+            202.5,
+            666.546875
+          ]
+        },
+        "hits": {
+          "centre": true,
+          "top": true,
+          "bottom": true,
+          "right": true,
+          "left": true
+        },
+        "text": "MACHINE · off datum · G54\n?",
+        "icon": {
+          "x": 207,
+          "y": 660.046875,
+          "width": 13,
+          "height": 13,
+          "bottom": 673.046875,
+          "right": 220
+        },
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "width": 1036,
+          "height": 590,
+          "bottom": 692,
+          "right": 1044
+        }
+      },
+      "helpOpenedByEdge": true,
+      "negativeControl": {
+        "card": {
+          "x": 20,
+          "y": 643.109375,
+          "width": 223,
+          "height": 36.890625,
+          "bottom": 680,
+          "right": 243
+        },
+        "body": {
+          "x": 33,
+          "y": 648.109375,
+          "width": 197,
+          "height": 26.890625,
+          "bottom": 675,
+          "right": 230
+        },
+        "scrollWidth": 193,
+        "clientWidth": 187,
+        "scrollHeight": 20,
+        "clientHeight": 17,
+        "pointerEvents": "auto",
+        "bodyClass": "hudNotesBody stack-tight scroll-thin scrolls",
+        "notesOpen": false,
+        "padding": "0px",
+        "margin": "0px",
+        "points": {
+          "centre": [
+            213.5,
+            656.546875
+          ],
+          "top": [
+            213.5,
+            645.546875
+          ],
+          "bottom": [
+            213.5,
+            667.546875
+          ],
+          "right": [
+            224.5,
+            656.546875
+          ],
+          "left": [
+            202.5,
+            656.546875
+          ]
+        },
+        "hits": {
+          "centre": true,
+          "top": false,
+          "bottom": false,
+          "right": false,
+          "left": true
+        },
+        "text": "MACHINE · off datum · G54\n?",
+        "icon": {
+          "x": 207,
+          "y": 650.046875,
+          "width": 13,
+          "height": 13,
+          "bottom": 663.046875,
+          "right": 220
+        },
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "width": 1036,
+          "height": 590,
+          "bottom": 692,
+          "right": 1044
+        }
+      },
+      "restored": {
+        "card": {
+          "x": 20,
+          "y": 653.109375,
+          "width": 213,
+          "height": 26.890625,
+          "bottom": 680,
+          "right": 233
+        },
+        "body": {
+          "x": 33,
+          "y": 654.109375,
+          "width": 192.5,
+          "height": 26.390625,
+          "bottom": 680.5,
+          "right": 225.5
+        },
+        "scrollWidth": 193,
+        "clientWidth": 193,
+        "scrollHeight": 26,
+        "clientHeight": 26,
+        "pointerEvents": "none",
+        "bodyClass": "hudNotesBody stack-tight scroll-thin",
+        "notesOpen": false,
+        "padding": "4px 5.5px 5.5px 0px",
+        "margin": "-4px -5.5px -5.5px 0px",
+        "points": {
+          "centre": [
+            213.5,
+            666.546875
+          ],
+          "top": [
+            213.5,
+            655.546875
+          ],
+          "bottom": [
+            213.5,
+            677.546875
+          ],
+          "right": [
+            224.5,
+            666.546875
+          ],
+          "left": [
+            202.5,
+            666.546875
+          ]
+        },
+        "hits": {
+          "centre": true,
+          "top": true,
+          "bottom": true,
+          "right": true,
+          "left": true
+        },
+        "text": "MACHINE · off datum · G54\n?",
+        "icon": {
+          "x": 207,
+          "y": 660.046875,
+          "width": 13,
+          "height": 13,
+          "bottom": 673.046875,
+          "right": 220
+        },
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "width": 1036,
+          "height": 590,
+          "bottom": 692,
+          "right": 1044
+        }
+      }
+    },
+    {
+      "vp": {
+        "name": "desktop",
+        "width": 1600,
+        "height": 1000,
+        "zoom": 1,
+        "touch": false
+      },
+      "lines": "first",
+      "measured": {
+        "card": {
+          "x": 20,
+          "y": 611.328125,
+          "width": 213,
+          "height": 68.671875,
+          "bottom": 680,
+          "right": 233
+        },
+        "body": {
+          "x": 33,
+          "y": 612.328125,
+          "width": 192.5,
+          "height": 68.171875,
+          "bottom": 680.5,
+          "right": 225.5
+        },
+        "scrollWidth": 193,
+        "clientWidth": 193,
+        "scrollHeight": 68,
+        "clientHeight": 68,
+        "pointerEvents": "none",
+        "bodyClass": "hudNotesBody stack-tight scroll-thin",
+        "notesOpen": false,
+        "padding": "4px 5.5px 5.5px 0px",
+        "margin": "-4px -5.5px -5.5px 0px",
+        "points": {
+          "centre": [
+            213.5,
+            624.765625
+          ],
+          "top": [
+            213.5,
+            613.765625
+          ],
+          "bottom": [
+            213.5,
+            635.765625
+          ],
+          "right": [
+            224.5,
+            624.765625
+          ],
+          "left": [
+            202.5,
+            624.765625
+          ]
+        },
+        "hits": {
+          "centre": true,
+          "top": true,
+          "bottom": true,
+          "right": true,
+          "left": true
+        },
+        "text": "MACHINE · off datum · G54\n?\nComp Z 0.123\nRotation 12.0°",
+        "icon": {
+          "x": 207,
+          "y": 618.265625,
+          "width": 13,
+          "height": 13,
+          "bottom": 631.265625,
+          "right": 220
+        },
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "width": 1036,
+          "height": 590,
+          "bottom": 692,
+          "right": 1044
+        }
+      },
+      "helpOpenedByEdge": true
+    },
+    {
+      "vp": {
+        "name": "portrait",
+        "width": 900,
+        "height": 1200,
+        "zoom": 1,
+        "touch": true
+      },
+      "lines": "alone",
+      "measured": {
+        "card": {
+          "x": 316,
+          "y": 614.109375,
+          "width": 216,
+          "height": 26.890625,
+          "bottom": 641,
+          "right": 532
+        },
+        "body": {
+          "x": 329,
+          "y": 615.109375,
+          "width": 194,
+          "height": 24.890625,
+          "bottom": 640,
+          "right": 523
+        },
+        "scrollWidth": 194,
+        "clientWidth": 194,
+        "scrollHeight": 25,
+        "clientHeight": 25,
+        "pointerEvents": "none",
+        "bodyClass": "hudNotesBody stack-tight scroll-thin",
+        "notesOpen": false,
+        "padding": "4px 4px 4px 0px",
+        "margin": "-4px -4px -4px 0px",
+        "points": {
+          "centre": [
+            511,
+            627.546875
+          ],
+          "top": [
+            511,
+            616.546875
+          ],
+          "bottom": [
+            511,
+            638.546875
+          ],
+          "right": [
+            522,
+            627.546875
+          ],
+          "left": [
+            500,
+            627.546875
+          ]
+        },
+        "hits": {
+          "centre": true,
+          "top": true,
+          "bottom": true,
+          "right": true,
+          "left": true
+        },
+        "text": "MACHINE · off datum · G54\n?",
+        "icon": {
+          "x": 503,
+          "y": 619.546875,
+          "width": 16,
+          "height": 16,
+          "bottom": 635.546875,
+          "right": 519
+        },
+        "pane": {
+          "x": 304,
+          "y": 140,
+          "width": 588,
+          "height": 513,
+          "bottom": 653,
+          "right": 892
+        }
+      },
+      "helpOpenedByEdge": true
+    },
+    {
+      "vp": {
+        "name": "portrait",
+        "width": 900,
+        "height": 1200,
+        "zoom": 1,
+        "touch": true
+      },
+      "lines": "first",
+      "measured": {
+        "card": {
+          "x": 316,
+          "y": 572.328125,
+          "width": 216,
+          "height": 68.671875,
+          "bottom": 641,
+          "right": 532
+        },
+        "body": {
+          "x": 329,
+          "y": 573.328125,
+          "width": 194,
+          "height": 66.671875,
+          "bottom": 640,
+          "right": 523
+        },
+        "scrollWidth": 194,
+        "clientWidth": 194,
+        "scrollHeight": 67,
+        "clientHeight": 67,
+        "pointerEvents": "none",
+        "bodyClass": "hudNotesBody stack-tight scroll-thin",
+        "notesOpen": false,
+        "padding": "4px 4px 4px 0px",
+        "margin": "-4px -4px -4px 0px",
+        "points": {
+          "centre": [
+            511,
+            585.765625
+          ],
+          "top": [
+            511,
+            574.765625
+          ],
+          "bottom": [
+            511,
+            596.765625
+          ],
+          "right": [
+            522,
+            585.765625
+          ],
+          "left": [
+            500,
+            585.765625
+          ]
+        },
+        "hits": {
+          "centre": true,
+          "top": true,
+          "bottom": true,
+          "right": true,
+          "left": true
+        },
+        "text": "MACHINE · off datum · G54\n?\nComp Z 0.123\nRotation 12.0°",
+        "icon": {
+          "x": 503,
+          "y": 577.765625,
+          "width": 16,
+          "height": 16,
+          "bottom": 593.765625,
+          "right": 519
+        },
+        "pane": {
+          "x": 304,
+          "y": 140,
+          "width": 588,
+          "height": 513,
+          "bottom": 653,
+          "right": 892
+        }
+      },
+      "helpOpenedByEdge": true
+    },
+    {
+      "vp": {
+        "name": "portrait150",
+        "width": 900,
+        "height": 1200,
+        "zoom": 1.5,
+        "touch": true
+      },
+      "lines": "alone",
+      "measured": {
+        "card": {
+          "x": 474,
+          "y": 618.40625,
+          "width": 234,
+          "height": 57.09375,
+          "bottom": 675.5,
+          "right": 708
+        },
+        "body": {
+          "x": 493,
+          "y": 619.40625,
+          "width": 202,
+          "height": 55.09375,
+          "bottom": 674.5,
+          "right": 695
+        },
+        "scrollWidth": 135,
+        "clientWidth": 135,
+        "scrollHeight": 37,
+        "clientHeight": 37,
+        "pointerEvents": "none",
+        "bodyClass": "hudNotesBody stack-tight scroll-thin",
+        "notesOpen": false,
+        "padding": "4px 4px 4px 0px",
+        "margin": "-4px -4px -4px 0px",
+        "points": {
+          "centre": [
+            677,
+            646.953125
+          ],
+          "top": [
+            677,
+            630.453125
+          ],
+          "bottom": [
+            677,
+            663.453125
+          ],
+          "right": [
+            693.5,
+            646.953125
+          ],
+          "left": [
+            660.5,
+            646.953125
+          ]
+        },
+        "hits": {
+          "centre": true,
+          "top": true,
+          "bottom": true,
+          "right": true,
+          "left": true
+        },
+        "text": "MACHINE · off datum · G54\n?",
+        "icon": {
+          "x": 665,
+          "y": 634.953125,
+          "width": 24,
+          "height": 24,
+          "bottom": 658.953125,
+          "right": 689
+        },
+        "pane": {
+          "x": 456,
+          "y": 237,
+          "width": 432,
+          "height": 456.5,
+          "bottom": 693.5,
+          "right": 888
+        }
+      },
+      "helpOpenedByEdge": true
+    },
+    {
+      "vp": {
+        "name": "portrait150",
+        "width": 900,
+        "height": 1200,
+        "zoom": 1.5,
+        "touch": true
+      },
+      "lines": "first",
+      "measured": {
+        "card": {
+          "x": 474,
+          "y": 563.3125,
+          "width": 234,
+          "height": 112.1875,
+          "bottom": 675.5,
+          "right": 708
+        },
+        "body": {
+          "x": 493,
+          "y": 564.3125,
+          "width": 202,
+          "height": 110.1875,
+          "bottom": 674.5,
+          "right": 695
+        },
+        "scrollWidth": 135,
+        "clientWidth": 135,
+        "scrollHeight": 73,
+        "clientHeight": 73,
+        "pointerEvents": "none",
+        "bodyClass": "hudNotesBody stack-tight scroll-thin",
+        "notesOpen": false,
+        "padding": "4px 4px 4px 0px",
+        "margin": "-4px -4px -4px 0px",
+        "points": {
+          "centre": [
+            677,
+            591.859375
+          ],
+          "top": [
+            677,
+            575.359375
+          ],
+          "bottom": [
+            677,
+            608.359375
+          ],
+          "right": [
+            693.5,
+            591.859375
+          ],
+          "left": [
+            660.5,
+            591.859375
+          ]
+        },
+        "hits": {
+          "centre": true,
+          "top": true,
+          "bottom": true,
+          "right": true,
+          "left": true
+        },
+        "text": "MACHINE · off datum · G54\n?\nComp Z 0.123\nRotation 12.0°",
+        "icon": {
+          "x": 665,
+          "y": 579.859375,
+          "width": 24,
+          "height": 24,
+          "bottom": 603.859375,
+          "right": 689
+        },
+        "pane": {
+          "x": 456,
+          "y": 237,
+          "width": 432,
+          "height": 456.5,
+          "bottom": 693.5,
+          "right": 888
+        }
+      },
+      "helpOpenedByEdge": true
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "tab_visibility",
+      "hidden": true
+    },
+    {
+      "cmd": "jog_stop",
+      "axis": 0,
+      "req_id": "m7w1n6-5"
+    },
+    {
+      "cmd": "jog_stop",
+      "axis": 1,
+      "req_id": "m7w1n6-6"
+    },
+    {
+      "cmd": "jog_stop",
+      "axis": 2,
+      "req_id": "m7w1n6-7"
+    },
+    {
+      "cmd": "jog_stop",
+      "axis": 3,
+      "req_id": "m7w1n6-8"
+    },
+    {
+      "cmd": "jog_stop",
+      "axis": 4,
+      "req_id": "m7w1n6-9"
+    },
+    {
+      "cmd": "hello",
+      "session": "857f0348-6f4b-489c-8033-069d7203a97c",
+      "resume_armed": true
+    },
+    {
+      "cmd": "tab_visibility",
+      "hidden": false
+    },
+    {
+      "cmd": "get_tool_table",
+      "req_id": "oyxmcq-3"
+    },
+    {
+      "cmd": "get_tool_table",
+      "req_id": "oyxmcq-4"
+    }
+  ]
+}

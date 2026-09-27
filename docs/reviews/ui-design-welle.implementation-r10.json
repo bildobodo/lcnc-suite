@@ -1,0 +1,6001 @@
+{
+  "head": "3479692",
+  "origin": "http://127.0.0.1:4188",
+  "layouts": [
+    {
+      "axes": 5,
+      "vp": {
+        "name": "desktop",
+        "width": 1600,
+        "height": 1000,
+        "zoom": 1,
+        "touch": false
+      },
+      "scale": "md",
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-md"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-md",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 256,
+            "bottom": 371.1875,
+            "width": 236,
+            "height": 257.1875
+          },
+          "bottom": {
+            "x": 20,
+            "y": 531.328125,
+            "right": 1032,
+            "bottom": 680,
+            "width": 1012,
+            "height": 148.671875
+          },
+          "notes": {
+            "x": 20,
+            "y": 531.328125,
+            "right": 145,
+            "bottom": 600,
+            "width": 125,
+            "height": 68.671875
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 1044,
+          "bottom": 692,
+          "width": 1036,
+          "height": 590
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 256,
+          "bottom": 371.1875,
+          "width": 236,
+          "height": 257.1875
+        },
+        "cube": {
+          "x": 892,
+          "y": 114,
+          "right": 1032,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 892,
+          "y": 258,
+          "right": 1032,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 531.328125,
+          "right": 145,
+          "bottom": 600,
+          "width": 125,
+          "height": 68.671875
+        },
+        "scrub": {
+          "x": 20,
+          "y": 604,
+          "right": 1032,
+          "bottom": 680,
+          "width": 1012,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-md",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "20px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "axes": 5,
+      "vp": {
+        "name": "desktop",
+        "width": 1600,
+        "height": 1000,
+        "zoom": 1,
+        "touch": false
+      },
+      "scale": "xl",
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-xl"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-xl",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 363.1875,
+            "bottom": 488.4375,
+            "width": 343.1875,
+            "height": 374.4375
+          },
+          "bottom": {
+            "x": 20,
+            "y": 503.390625,
+            "right": 1032,
+            "bottom": 680,
+            "width": 1012,
+            "height": 176.609375
+          },
+          "notes": {
+            "x": 20,
+            "y": 503.390625,
+            "right": 192,
+            "bottom": 600,
+            "width": 172,
+            "height": 96.609375
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 1044,
+          "bottom": 692,
+          "width": 1036,
+          "height": 590
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 363.1875,
+          "bottom": 488.4375,
+          "width": 343.1875,
+          "height": 374.4375
+        },
+        "cube": {
+          "x": 892,
+          "y": 114,
+          "right": 1032,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 892,
+          "y": 258,
+          "right": 1032,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 503.390625,
+          "right": 192,
+          "bottom": 600,
+          "width": 172,
+          "height": 96.609375
+        },
+        "scrub": {
+          "x": 20,
+          "y": 604,
+          "right": 1032,
+          "bottom": 680,
+          "width": 1012,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-xl",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "31px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "31px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "31px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "31px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "31px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "axes": 5,
+      "vp": {
+        "name": "compact",
+        "width": 1024,
+        "height": 768,
+        "zoom": 1,
+        "touch": false
+      },
+      "scale": "md",
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 150,
+            "right": 165,
+            "bottom": 323.96875,
+            "width": 145,
+            "height": 173.96875
+          },
+          "bottom": {
+            "x": 20,
+            "y": 336.921875,
+            "right": 456,
+            "bottom": 448,
+            "width": 436,
+            "height": 111.078125
+          },
+          "notes": {
+            "x": 20,
+            "y": 336.921875,
+            "right": 131,
+            "bottom": 398,
+            "width": 111,
+            "height": 61.078125
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 138,
+          "right": 468,
+          "bottom": 460,
+          "width": 460,
+          "height": 322
+        },
+        "hud": {
+          "x": 20,
+          "y": 150,
+          "right": 165,
+          "bottom": 323.96875,
+          "width": 145,
+          "height": 173.96875
+        },
+        "cube": {
+          "x": 316,
+          "y": 150,
+          "right": 456,
+          "bottom": 290,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 316,
+          "y": 294,
+          "right": 456,
+          "bottom": 350,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 336.921875,
+          "right": 131,
+          "bottom": 398,
+          "width": 111,
+          "height": 61.078125
+        },
+        "scrub": {
+          "x": 20,
+          "y": 402,
+          "right": 456,
+          "bottom": 448,
+          "width": 436,
+          "height": 46
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-sm",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "17px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "axes": 5,
+      "vp": {
+        "name": "compact",
+        "width": 1024,
+        "height": 768,
+        "zoom": 1,
+        "touch": false
+      },
+      "scale": "xl",
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 150,
+            "right": 165,
+            "bottom": 323.96875,
+            "width": 145,
+            "height": 173.96875
+          },
+          "bottom": {
+            "x": 20,
+            "y": 336.921875,
+            "right": 456,
+            "bottom": 448,
+            "width": 436,
+            "height": 111.078125
+          },
+          "notes": {
+            "x": 20,
+            "y": 336.921875,
+            "right": 131,
+            "bottom": 398,
+            "width": 111,
+            "height": 61.078125
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 138,
+          "right": 468,
+          "bottom": 460,
+          "width": 460,
+          "height": 322
+        },
+        "hud": {
+          "x": 20,
+          "y": 150,
+          "right": 165,
+          "bottom": 323.96875,
+          "width": 145,
+          "height": 173.96875
+        },
+        "cube": {
+          "x": 316,
+          "y": 150,
+          "right": 456,
+          "bottom": 290,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 316,
+          "y": 294,
+          "right": 456,
+          "bottom": 350,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 336.921875,
+          "right": 131,
+          "bottom": 398,
+          "width": 111,
+          "height": 61.078125
+        },
+        "scrub": {
+          "x": 20,
+          "y": 402,
+          "right": 456,
+          "bottom": 448,
+          "width": 436,
+          "height": 46
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-sm",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "17px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "axes": 5,
+      "vp": {
+        "name": "touch-landscape",
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "touch": true
+      },
+      "scale": "md",
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-md hudFoldMach hudFoldFS"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-md hudFoldMach hudFoldFS",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 116,
+            "right": 172,
+            "bottom": 314.1875,
+            "width": 152,
+            "height": 198.1875
+          },
+          "bottom": {
+            "x": 20,
+            "y": 321.328125,
+            "right": 712,
+            "bottom": 480,
+            "width": 692,
+            "height": 158.671875
+          },
+          "notes": {
+            "x": 20,
+            "y": 321.328125,
+            "right": 145,
+            "bottom": 390,
+            "width": 125,
+            "height": 68.671875
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 104,
+          "right": 724,
+          "bottom": 492,
+          "width": 716,
+          "height": 388
+        },
+        "hud": {
+          "x": 20,
+          "y": 116,
+          "right": 172,
+          "bottom": 314.1875,
+          "width": 152,
+          "height": 198.1875
+        },
+        "cube": {
+          "x": 572,
+          "y": 116,
+          "right": 712,
+          "bottom": 256,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 260,
+          "right": 712,
+          "bottom": 336,
+          "width": 140,
+          "height": 76
+        },
+        "notes": {
+          "x": 20,
+          "y": 321.328125,
+          "right": 145,
+          "bottom": 390,
+          "width": 125,
+          "height": 68.671875
+        },
+        "scrub": {
+          "x": 20,
+          "y": 394,
+          "right": 712,
+          "bottom": 480,
+          "width": 692,
+          "height": 86
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-md",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "20px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "axes": 5,
+      "vp": {
+        "name": "touch-landscape",
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "touch": true
+      },
+      "scale": "xl",
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-md hudFoldMach hudFoldFS"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-md hudFoldMach hudFoldFS",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 116,
+            "right": 172,
+            "bottom": 314.1875,
+            "width": 152,
+            "height": 198.1875
+          },
+          "bottom": {
+            "x": 20,
+            "y": 321.328125,
+            "right": 712,
+            "bottom": 480,
+            "width": 692,
+            "height": 158.671875
+          },
+          "notes": {
+            "x": 20,
+            "y": 321.328125,
+            "right": 145,
+            "bottom": 390,
+            "width": 125,
+            "height": 68.671875
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 104,
+          "right": 724,
+          "bottom": 492,
+          "width": 716,
+          "height": 388
+        },
+        "hud": {
+          "x": 20,
+          "y": 116,
+          "right": 172,
+          "bottom": 314.1875,
+          "width": 152,
+          "height": 198.1875
+        },
+        "cube": {
+          "x": 572,
+          "y": 116,
+          "right": 712,
+          "bottom": 256,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 260,
+          "right": 712,
+          "bottom": 336,
+          "width": 140,
+          "height": 76
+        },
+        "notes": {
+          "x": 20,
+          "y": 321.328125,
+          "right": 145,
+          "bottom": 390,
+          "width": 125,
+          "height": 68.671875
+        },
+        "scrub": {
+          "x": 20,
+          "y": 394,
+          "right": 712,
+          "bottom": 480,
+          "width": 692,
+          "height": 86
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-md",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "20px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "axes": 5,
+      "vp": {
+        "name": "touch-portrait",
+        "width": 900,
+        "height": 1200,
+        "zoom": 1,
+        "touch": true
+      },
+      "scale": "md",
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-md"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-md",
+          "fit": "fits",
+          "hud": {
+            "x": 316,
+            "y": 152,
+            "right": 552,
+            "bottom": 409.1875,
+            "width": 236,
+            "height": 257.1875
+          },
+          "bottom": {
+            "x": 316,
+            "y": 482.328125,
+            "right": 880,
+            "bottom": 641,
+            "width": 564,
+            "height": 158.671875
+          },
+          "notes": {
+            "x": 316,
+            "y": 482.328125,
+            "right": 441,
+            "bottom": 551,
+            "width": 125,
+            "height": 68.671875
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 304,
+          "y": 140,
+          "right": 892,
+          "bottom": 653,
+          "width": 588,
+          "height": 513
+        },
+        "hud": {
+          "x": 316,
+          "y": 152,
+          "right": 552,
+          "bottom": 409.1875,
+          "width": 236,
+          "height": 257.1875
+        },
+        "cube": {
+          "x": 740,
+          "y": 152,
+          "right": 880,
+          "bottom": 292,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 740,
+          "y": 296,
+          "right": 880,
+          "bottom": 372,
+          "width": 140,
+          "height": 76
+        },
+        "notes": {
+          "x": 316,
+          "y": 482.328125,
+          "right": 441,
+          "bottom": 551,
+          "width": 125,
+          "height": 68.671875
+        },
+        "scrub": {
+          "x": 316,
+          "y": 555,
+          "right": 880,
+          "bottom": 641,
+          "width": 564,
+          "height": 86
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-md",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "20px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "axes": 5,
+      "vp": {
+        "name": "touch-portrait",
+        "width": 900,
+        "height": 1200,
+        "zoom": 1,
+        "touch": true
+      },
+      "scale": "xl",
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-lg"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-lg",
+          "fit": "fits",
+          "hud": {
+            "x": 316,
+            "y": 152,
+            "right": 601,
+            "bottom": 462.5,
+            "width": 285,
+            "height": 310.5
+          },
+          "bottom": {
+            "x": 316,
+            "y": 469.625,
+            "right": 880,
+            "bottom": 641,
+            "width": 564,
+            "height": 171.375
+          },
+          "notes": {
+            "x": 316,
+            "y": 469.625,
+            "right": 463,
+            "bottom": 551,
+            "width": 147,
+            "height": 81.375
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 304,
+          "y": 140,
+          "right": 892,
+          "bottom": 653,
+          "width": 588,
+          "height": 513
+        },
+        "hud": {
+          "x": 316,
+          "y": 152,
+          "right": 601,
+          "bottom": 462.5,
+          "width": 285,
+          "height": 310.5
+        },
+        "cube": {
+          "x": 740,
+          "y": 152,
+          "right": 880,
+          "bottom": 292,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 740,
+          "y": 296,
+          "right": 880,
+          "bottom": 372,
+          "width": 140,
+          "height": 76
+        },
+        "notes": {
+          "x": 316,
+          "y": 469.625,
+          "right": 463,
+          "bottom": 551,
+          "width": 147,
+          "height": 81.375
+        },
+        "scrub": {
+          "x": 316,
+          "y": 555,
+          "right": 880,
+          "bottom": 641,
+          "width": 564,
+          "height": 86
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-lg",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "25px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "axes": 5,
+      "vp": {
+        "name": "touch-portrait-150",
+        "width": 900,
+        "height": 1200,
+        "zoom": 1.5,
+        "touch": true
+      },
+      "scale": "md",
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool hudFoldHead"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool hudFoldHead",
+          "fit": "fits",
+          "hud": {
+            "x": 474,
+            "y": 255,
+            "right": 676.296875,
+            "bottom": 458.703125,
+            "width": 202.296875,
+            "height": 203.703125
+          },
+          "bottom": {
+            "x": 474,
+            "y": 485.5,
+            "right": 870,
+            "bottom": 675.5,
+            "width": 396,
+            "height": 190
+          },
+          "notes": {
+            "x": 474,
+            "y": 485.5,
+            "right": 708,
+            "bottom": 553.5,
+            "width": 234,
+            "height": 68
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 456,
+          "y": 237,
+          "right": 888,
+          "bottom": 693.5,
+          "width": 432,
+          "height": 456.5
+        },
+        "hud": {
+          "x": 474,
+          "y": 255,
+          "right": 676.296875,
+          "bottom": 458.703125,
+          "width": 202.296875,
+          "height": 203.703125
+        },
+        "cube": {
+          "x": 726,
+          "y": 255,
+          "right": 870,
+          "bottom": 399,
+          "width": 144,
+          "height": 144
+        },
+        "quick": {
+          "x": 726,
+          "y": 405,
+          "right": 870,
+          "bottom": 519,
+          "width": 144,
+          "height": 114
+        },
+        "notes": {
+          "x": 474,
+          "y": 485.5,
+          "right": 708,
+          "bottom": 553.5,
+          "width": 234,
+          "height": 68
+        },
+        "scrub": {
+          "x": 474,
+          "y": 559.5,
+          "right": 870,
+          "bottom": 675.5,
+          "width": 396,
+          "height": 116
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-sm needsCompact",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "17px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ],
+      "screenshot": "ui-design-welle.implementation-r10-5axis-touch-portrait-150-md.png"
+    },
+    {
+      "axes": 5,
+      "vp": {
+        "name": "touch-portrait-150",
+        "width": 900,
+        "height": 1200,
+        "zoom": 1.5,
+        "touch": true
+      },
+      "scale": "xl",
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool hudFoldHead"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool hudFoldHead",
+          "fit": "fits",
+          "hud": {
+            "x": 474,
+            "y": 255,
+            "right": 676.296875,
+            "bottom": 458.703125,
+            "width": 202.296875,
+            "height": 203.703125
+          },
+          "bottom": {
+            "x": 474,
+            "y": 485.5,
+            "right": 870,
+            "bottom": 675.5,
+            "width": 396,
+            "height": 190
+          },
+          "notes": {
+            "x": 474,
+            "y": 485.5,
+            "right": 708,
+            "bottom": 553.5,
+            "width": 234,
+            "height": 68
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 456,
+          "y": 237,
+          "right": 888,
+          "bottom": 693.5,
+          "width": 432,
+          "height": 456.5
+        },
+        "hud": {
+          "x": 474,
+          "y": 255,
+          "right": 676.296875,
+          "bottom": 458.703125,
+          "width": 202.296875,
+          "height": 203.703125
+        },
+        "cube": {
+          "x": 726,
+          "y": 255,
+          "right": 870,
+          "bottom": 399,
+          "width": 144,
+          "height": 144
+        },
+        "quick": {
+          "x": 726,
+          "y": 405,
+          "right": 870,
+          "bottom": 519,
+          "width": 144,
+          "height": 114
+        },
+        "notes": {
+          "x": 474,
+          "y": 485.5,
+          "right": 708,
+          "bottom": 553.5,
+          "width": 234,
+          "height": 68
+        },
+        "scrub": {
+          "x": 474,
+          "y": 559.5,
+          "right": 870,
+          "bottom": 675.5,
+          "width": 396,
+          "height": 116
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-sm needsCompact",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "17px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "axes": 6,
+      "vp": {
+        "name": "desktop",
+        "width": 1600,
+        "height": 1000,
+        "zoom": 1,
+        "touch": false
+      },
+      "scale": "md",
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-md"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-md",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 256,
+            "bottom": 399.1875,
+            "width": 236,
+            "height": 285.1875
+          },
+          "bottom": {
+            "x": 20,
+            "y": 531.328125,
+            "right": 1032,
+            "bottom": 680,
+            "width": 1012,
+            "height": 148.671875
+          },
+          "notes": {
+            "x": 20,
+            "y": 531.328125,
+            "right": 145,
+            "bottom": 600,
+            "width": 125,
+            "height": 68.671875
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 1044,
+          "bottom": 692,
+          "width": 1036,
+          "height": 590
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 256,
+          "bottom": 399.1875,
+          "width": 236,
+          "height": 285.1875
+        },
+        "cube": {
+          "x": 892,
+          "y": 114,
+          "right": 1032,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 892,
+          "y": 258,
+          "right": 1032,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 531.328125,
+          "right": 145,
+          "bottom": 600,
+          "width": 125,
+          "height": 68.671875
+        },
+        "scrub": {
+          "x": 20,
+          "y": 604,
+          "right": 1032,
+          "bottom": 680,
+          "width": 1012,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-md",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "20px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "axes": 6,
+      "vp": {
+        "name": "desktop",
+        "width": 1600,
+        "height": 1000,
+        "zoom": 1,
+        "touch": false
+      },
+      "scale": "xl",
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-lg"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-lg",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 305,
+            "bottom": 459,
+            "width": 285,
+            "height": 345
+          },
+          "bottom": {
+            "x": 20,
+            "y": 518.625,
+            "right": 1032,
+            "bottom": 680,
+            "width": 1012,
+            "height": 161.375
+          },
+          "notes": {
+            "x": 20,
+            "y": 518.625,
+            "right": 167,
+            "bottom": 600,
+            "width": 147,
+            "height": 81.375
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 1044,
+          "bottom": 692,
+          "width": 1036,
+          "height": 590
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 305,
+          "bottom": 459,
+          "width": 285,
+          "height": 345
+        },
+        "cube": {
+          "x": 892,
+          "y": 114,
+          "right": 1032,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 892,
+          "y": 258,
+          "right": 1032,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 518.625,
+          "right": 167,
+          "bottom": 600,
+          "width": 147,
+          "height": 81.375
+        },
+        "scrub": {
+          "x": 20,
+          "y": 604,
+          "right": 1032,
+          "bottom": 680,
+          "width": 1012,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-lg",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "25px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "axes": 6,
+      "vp": {
+        "name": "compact",
+        "width": 1024,
+        "height": 768,
+        "zoom": 1,
+        "touch": false
+      },
+      "scale": "md",
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 150,
+            "right": 153.1875,
+            "bottom": 324.703125,
+            "width": 133.1875,
+            "height": 174.703125
+          },
+          "bottom": {
+            "x": 20,
+            "y": 336.921875,
+            "right": 456,
+            "bottom": 448,
+            "width": 436,
+            "height": 111.078125
+          },
+          "notes": {
+            "x": 20,
+            "y": 336.921875,
+            "right": 131,
+            "bottom": 398,
+            "width": 111,
+            "height": 61.078125
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 138,
+          "right": 468,
+          "bottom": 460,
+          "width": 460,
+          "height": 322
+        },
+        "hud": {
+          "x": 20,
+          "y": 150,
+          "right": 153.1875,
+          "bottom": 324.703125,
+          "width": 133.1875,
+          "height": 174.703125
+        },
+        "cube": {
+          "x": 316,
+          "y": 150,
+          "right": 456,
+          "bottom": 290,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 316,
+          "y": 294,
+          "right": 456,
+          "bottom": 350,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 336.921875,
+          "right": 131,
+          "bottom": 398,
+          "width": 111,
+          "height": 61.078125
+        },
+        "scrub": {
+          "x": 20,
+          "y": 402,
+          "right": 456,
+          "bottom": 448,
+          "width": 436,
+          "height": 46
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-sm",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "17px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "axes": 6,
+      "vp": {
+        "name": "compact",
+        "width": 1024,
+        "height": 768,
+        "zoom": 1,
+        "touch": false
+      },
+      "scale": "xl",
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 150,
+            "right": 153.1875,
+            "bottom": 324.703125,
+            "width": 133.1875,
+            "height": 174.703125
+          },
+          "bottom": {
+            "x": 20,
+            "y": 336.921875,
+            "right": 456,
+            "bottom": 448,
+            "width": 436,
+            "height": 111.078125
+          },
+          "notes": {
+            "x": 20,
+            "y": 336.921875,
+            "right": 131,
+            "bottom": 398,
+            "width": 111,
+            "height": 61.078125
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 138,
+          "right": 468,
+          "bottom": 460,
+          "width": 460,
+          "height": 322
+        },
+        "hud": {
+          "x": 20,
+          "y": 150,
+          "right": 153.1875,
+          "bottom": 324.703125,
+          "width": 133.1875,
+          "height": 174.703125
+        },
+        "cube": {
+          "x": 316,
+          "y": 150,
+          "right": 456,
+          "bottom": 290,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 316,
+          "y": 294,
+          "right": 456,
+          "bottom": 350,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 336.921875,
+          "right": 131,
+          "bottom": 398,
+          "width": 111,
+          "height": 61.078125
+        },
+        "scrub": {
+          "x": 20,
+          "y": 402,
+          "right": 456,
+          "bottom": 448,
+          "width": 436,
+          "height": 46
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-sm",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "17px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "axes": 6,
+      "vp": {
+        "name": "touch-landscape",
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "touch": true
+      },
+      "scale": "md",
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 116,
+            "right": 165,
+            "bottom": 314.0625,
+            "width": 145,
+            "height": 198.0625
+          },
+          "bottom": {
+            "x": 20,
+            "y": 328.921875,
+            "right": 712,
+            "bottom": 480,
+            "width": 692,
+            "height": 151.078125
+          },
+          "notes": {
+            "x": 20,
+            "y": 328.921875,
+            "right": 131,
+            "bottom": 390,
+            "width": 111,
+            "height": 61.078125
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 104,
+          "right": 724,
+          "bottom": 492,
+          "width": 716,
+          "height": 388
+        },
+        "hud": {
+          "x": 20,
+          "y": 116,
+          "right": 165,
+          "bottom": 314.0625,
+          "width": 145,
+          "height": 198.0625
+        },
+        "cube": {
+          "x": 572,
+          "y": 116,
+          "right": 712,
+          "bottom": 256,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 260,
+          "right": 712,
+          "bottom": 336,
+          "width": 140,
+          "height": 76
+        },
+        "notes": {
+          "x": 20,
+          "y": 328.921875,
+          "right": 131,
+          "bottom": 390,
+          "width": 111,
+          "height": 61.078125
+        },
+        "scrub": {
+          "x": 20,
+          "y": 394,
+          "right": 712,
+          "bottom": 480,
+          "width": 692,
+          "height": 86
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-sm",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "17px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "axes": 6,
+      "vp": {
+        "name": "touch-landscape",
+        "width": 1280,
+        "height": 800,
+        "zoom": 1,
+        "touch": true
+      },
+      "scale": "xl",
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 116,
+            "right": 165,
+            "bottom": 314.0625,
+            "width": 145,
+            "height": 198.0625
+          },
+          "bottom": {
+            "x": 20,
+            "y": 328.921875,
+            "right": 712,
+            "bottom": 480,
+            "width": 692,
+            "height": 151.078125
+          },
+          "notes": {
+            "x": 20,
+            "y": 328.921875,
+            "right": 131,
+            "bottom": 390,
+            "width": 111,
+            "height": 61.078125
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 104,
+          "right": 724,
+          "bottom": 492,
+          "width": 716,
+          "height": 388
+        },
+        "hud": {
+          "x": 20,
+          "y": 116,
+          "right": 165,
+          "bottom": 314.0625,
+          "width": 145,
+          "height": 198.0625
+        },
+        "cube": {
+          "x": 572,
+          "y": 116,
+          "right": 712,
+          "bottom": 256,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 260,
+          "right": 712,
+          "bottom": 336,
+          "width": 140,
+          "height": 76
+        },
+        "notes": {
+          "x": 20,
+          "y": 328.921875,
+          "right": 131,
+          "bottom": 390,
+          "width": 111,
+          "height": 61.078125
+        },
+        "scrub": {
+          "x": 20,
+          "y": 394,
+          "right": 712,
+          "bottom": 480,
+          "width": 692,
+          "height": 86
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-sm",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "17px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "axes": 6,
+      "vp": {
+        "name": "touch-portrait",
+        "width": 900,
+        "height": 1200,
+        "zoom": 1,
+        "touch": true
+      },
+      "scale": "md",
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-md"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-md",
+          "fit": "fits",
+          "hud": {
+            "x": 316,
+            "y": 152,
+            "right": 552,
+            "bottom": 437.1875,
+            "width": 236,
+            "height": 285.1875
+          },
+          "bottom": {
+            "x": 316,
+            "y": 482.328125,
+            "right": 880,
+            "bottom": 641,
+            "width": 564,
+            "height": 158.671875
+          },
+          "notes": {
+            "x": 316,
+            "y": 482.328125,
+            "right": 441,
+            "bottom": 551,
+            "width": 125,
+            "height": 68.671875
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 304,
+          "y": 140,
+          "right": 892,
+          "bottom": 653,
+          "width": 588,
+          "height": 513
+        },
+        "hud": {
+          "x": 316,
+          "y": 152,
+          "right": 552,
+          "bottom": 437.1875,
+          "width": 236,
+          "height": 285.1875
+        },
+        "cube": {
+          "x": 740,
+          "y": 152,
+          "right": 880,
+          "bottom": 292,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 740,
+          "y": 296,
+          "right": 880,
+          "bottom": 372,
+          "width": 140,
+          "height": 76
+        },
+        "notes": {
+          "x": 316,
+          "y": 482.328125,
+          "right": 441,
+          "bottom": 551,
+          "width": 125,
+          "height": 68.671875
+        },
+        "scrub": {
+          "x": 316,
+          "y": 555,
+          "right": 880,
+          "bottom": 641,
+          "width": 564,
+          "height": 86
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-md",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "20px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "axes": 6,
+      "vp": {
+        "name": "touch-portrait",
+        "width": 900,
+        "height": 1200,
+        "zoom": 1,
+        "touch": true
+      },
+      "scale": "xl",
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-md"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-md",
+          "fit": "fits",
+          "hud": {
+            "x": 316,
+            "y": 152,
+            "right": 552,
+            "bottom": 437.1875,
+            "width": 236,
+            "height": 285.1875
+          },
+          "bottom": {
+            "x": 316,
+            "y": 482.328125,
+            "right": 880,
+            "bottom": 641,
+            "width": 564,
+            "height": 158.671875
+          },
+          "notes": {
+            "x": 316,
+            "y": 482.328125,
+            "right": 441,
+            "bottom": 551,
+            "width": 125,
+            "height": 68.671875
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 304,
+          "y": 140,
+          "right": 892,
+          "bottom": 653,
+          "width": 588,
+          "height": 513
+        },
+        "hud": {
+          "x": 316,
+          "y": 152,
+          "right": 552,
+          "bottom": 437.1875,
+          "width": 236,
+          "height": 285.1875
+        },
+        "cube": {
+          "x": 740,
+          "y": 152,
+          "right": 880,
+          "bottom": 292,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 740,
+          "y": 296,
+          "right": 880,
+          "bottom": 372,
+          "width": 140,
+          "height": 76
+        },
+        "notes": {
+          "x": 316,
+          "y": 482.328125,
+          "right": 441,
+          "bottom": 551,
+          "width": 125,
+          "height": 68.671875
+        },
+        "scrub": {
+          "x": 316,
+          "y": 555,
+          "right": 880,
+          "bottom": 641,
+          "width": 564,
+          "height": 86
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-md",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "20px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "axes": 6,
+      "vp": {
+        "name": "touch-portrait-150",
+        "width": 900,
+        "height": 1200,
+        "zoom": 1.5,
+        "touch": true
+      },
+      "scale": "md",
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-xs hudFoldMach hudFoldFS hudFoldTool hudFoldHead"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-xs hudFoldMach hudFoldFS hudFoldTool hudFoldHead",
+          "fit": "fits",
+          "hud": {
+            "x": 474,
+            "y": 255,
+            "right": 647.59375,
+            "bottom": 459.78125,
+            "width": 173.59375,
+            "height": 204.78125
+          },
+          "bottom": {
+            "x": 474,
+            "y": 485.5,
+            "right": 870,
+            "bottom": 675.5,
+            "width": 396,
+            "height": 190
+          },
+          "notes": {
+            "x": 474,
+            "y": 485.5,
+            "right": 708,
+            "bottom": 553.5,
+            "width": 234,
+            "height": 68
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 456,
+          "y": 237,
+          "right": 888,
+          "bottom": 693.5,
+          "width": 432,
+          "height": 456.5
+        },
+        "hud": {
+          "x": 474,
+          "y": 255,
+          "right": 647.59375,
+          "bottom": 459.78125,
+          "width": 173.59375,
+          "height": 204.78125
+        },
+        "cube": {
+          "x": 726,
+          "y": 255,
+          "right": 870,
+          "bottom": 399,
+          "width": 144,
+          "height": 144
+        },
+        "quick": {
+          "x": 726,
+          "y": 405,
+          "right": 870,
+          "bottom": 519,
+          "width": 144,
+          "height": 114
+        },
+        "notes": {
+          "x": 474,
+          "y": 485.5,
+          "right": 708,
+          "bottom": 553.5,
+          "width": 234,
+          "height": 68
+        },
+        "scrub": {
+          "x": 474,
+          "y": 559.5,
+          "right": 870,
+          "bottom": 675.5,
+          "width": 396,
+          "height": 116
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-xs needsCompact",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "14px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "14px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "14px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "14px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "14px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "14px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ],
+      "screenshot": "ui-design-welle.implementation-r10-6axis-touch-portrait-150-md.png"
+    },
+    {
+      "axes": 6,
+      "vp": {
+        "name": "touch-portrait-150",
+        "width": 900,
+        "height": 1200,
+        "zoom": 1.5,
+        "touch": true
+      },
+      "scale": "xl",
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-xs hudFoldMach hudFoldFS hudFoldTool hudFoldHead"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-xs hudFoldMach hudFoldFS hudFoldTool hudFoldHead",
+          "fit": "fits",
+          "hud": {
+            "x": 474,
+            "y": 255,
+            "right": 647.59375,
+            "bottom": 459.78125,
+            "width": 173.59375,
+            "height": 204.78125
+          },
+          "bottom": {
+            "x": 474,
+            "y": 485.5,
+            "right": 870,
+            "bottom": 675.5,
+            "width": 396,
+            "height": 190
+          },
+          "notes": {
+            "x": 474,
+            "y": 485.5,
+            "right": 708,
+            "bottom": 553.5,
+            "width": 234,
+            "height": 68
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 456,
+          "y": 237,
+          "right": 888,
+          "bottom": 693.5,
+          "width": 432,
+          "height": 456.5
+        },
+        "hud": {
+          "x": 474,
+          "y": 255,
+          "right": 647.59375,
+          "bottom": 459.78125,
+          "width": 173.59375,
+          "height": 204.78125
+        },
+        "cube": {
+          "x": 726,
+          "y": 255,
+          "right": 870,
+          "bottom": 399,
+          "width": 144,
+          "height": 144
+        },
+        "quick": {
+          "x": 726,
+          "y": 405,
+          "right": 870,
+          "bottom": 519,
+          "width": 144,
+          "height": 114
+        },
+        "notes": {
+          "x": 474,
+          "y": 485.5,
+          "right": 708,
+          "bottom": 553.5,
+          "width": 234,
+          "height": 68
+        },
+        "scrub": {
+          "x": 474,
+          "y": 559.5,
+          "right": 870,
+          "bottom": 675.5,
+          "width": 396,
+          "height": 116
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-xs needsCompact",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "14px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "14px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "14px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "14px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "14px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "14px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    }
+  ],
+  "errors": [],
+  "thresholds": [
+    {
+      "height": 768,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS hudFoldTool",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 153.1875,
+            "bottom": 288.703125,
+            "width": 133.1875,
+            "height": 174.703125
+          },
+          "bottom": {
+            "x": 20,
+            "y": 306.921875,
+            "right": 712,
+            "bottom": 448,
+            "width": 692,
+            "height": 141.078125
+          },
+          "notes": {
+            "x": 20,
+            "y": 306.921875,
+            "right": 131,
+            "bottom": 368,
+            "width": 111,
+            "height": 61.078125
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 460,
+          "width": 716,
+          "height": 358
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 153.1875,
+          "bottom": 288.703125,
+          "width": 133.1875,
+          "height": 174.703125
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 306.921875,
+          "right": 131,
+          "bottom": 368,
+          "width": 111,
+          "height": 61.078125
+        },
+        "scrub": {
+          "x": 20,
+          "y": 372,
+          "right": 712,
+          "bottom": 448,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-sm",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "17px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "height": 780,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 165,
+            "bottom": 312.0625,
+            "width": 145,
+            "height": 198.0625
+          },
+          "bottom": {
+            "x": 20,
+            "y": 318.921875,
+            "right": 712,
+            "bottom": 460,
+            "width": 692,
+            "height": 141.078125
+          },
+          "notes": {
+            "x": 20,
+            "y": 318.921875,
+            "right": 131,
+            "bottom": 380,
+            "width": 111,
+            "height": 61.078125
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 472,
+          "width": 716,
+          "height": 370
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 165,
+          "bottom": 312.0625,
+          "width": 145,
+          "height": 198.0625
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 318.921875,
+          "right": 131,
+          "bottom": 380,
+          "width": 111,
+          "height": 61.078125
+        },
+        "scrub": {
+          "x": 20,
+          "y": 384,
+          "right": 712,
+          "bottom": 460,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-sm",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "17px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "height": 792,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 165,
+            "bottom": 312.0625,
+            "width": 145,
+            "height": 198.0625
+          },
+          "bottom": {
+            "x": 20,
+            "y": 330.921875,
+            "right": 712,
+            "bottom": 472,
+            "width": 692,
+            "height": 141.078125
+          },
+          "notes": {
+            "x": 20,
+            "y": 330.921875,
+            "right": 131,
+            "bottom": 392,
+            "width": 111,
+            "height": 61.078125
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 484,
+          "width": 716,
+          "height": 382
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 165,
+          "bottom": 312.0625,
+          "width": 145,
+          "height": 198.0625
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 330.921875,
+          "right": 131,
+          "bottom": 392,
+          "width": 111,
+          "height": 61.078125
+        },
+        "scrub": {
+          "x": 20,
+          "y": 396,
+          "right": 712,
+          "bottom": 472,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-sm",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "17px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "height": 804,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-sm hudFoldMach hudFoldFS",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 165,
+            "bottom": 312.0625,
+            "width": 145,
+            "height": 198.0625
+          },
+          "bottom": {
+            "x": 20,
+            "y": 342.921875,
+            "right": 712,
+            "bottom": 484,
+            "width": 692,
+            "height": 141.078125
+          },
+          "notes": {
+            "x": 20,
+            "y": 342.921875,
+            "right": 131,
+            "bottom": 404,
+            "width": 111,
+            "height": 61.078125
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 496,
+          "width": 716,
+          "height": 394
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 165,
+          "bottom": 312.0625,
+          "width": 145,
+          "height": 198.0625
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 342.921875,
+          "right": 131,
+          "bottom": 404,
+          "width": 111,
+          "height": 61.078125
+        },
+        "scrub": {
+          "x": 20,
+          "y": 408,
+          "right": 712,
+          "bottom": 484,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-sm",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "17px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "height": 816,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-md hudFoldMach hudFoldFS"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-md hudFoldMach hudFoldFS",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 172,
+            "bottom": 340.1875,
+            "width": 152,
+            "height": 226.1875
+          },
+          "bottom": {
+            "x": 20,
+            "y": 347.328125,
+            "right": 712,
+            "bottom": 496,
+            "width": 692,
+            "height": 148.671875
+          },
+          "notes": {
+            "x": 20,
+            "y": 347.328125,
+            "right": 145,
+            "bottom": 416,
+            "width": 125,
+            "height": 68.671875
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 508,
+          "width": 716,
+          "height": 406
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 172,
+          "bottom": 340.1875,
+          "width": 152,
+          "height": 226.1875
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 347.328125,
+          "right": 145,
+          "bottom": 416,
+          "width": 125,
+          "height": 68.671875
+        },
+        "scrub": {
+          "x": 20,
+          "y": 420,
+          "right": 712,
+          "bottom": 496,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-md",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "20px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "height": 828,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-sm"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-sm",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 227.375,
+            "bottom": 363.25,
+            "width": 207.375,
+            "height": 249.25
+          },
+          "bottom": {
+            "x": 20,
+            "y": 366.921875,
+            "right": 712,
+            "bottom": 508,
+            "width": 692,
+            "height": 141.078125
+          },
+          "notes": {
+            "x": 20,
+            "y": 366.921875,
+            "right": 131,
+            "bottom": 428,
+            "width": 111,
+            "height": 61.078125
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 520,
+          "width": 716,
+          "height": 418
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 227.375,
+          "bottom": 363.25,
+          "width": 207.375,
+          "height": 249.25
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 366.921875,
+          "right": 131,
+          "bottom": 428,
+          "width": 111,
+          "height": 61.078125
+        },
+        "scrub": {
+          "x": 20,
+          "y": 432,
+          "right": 712,
+          "bottom": 508,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-sm",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "17px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "height": 840,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-sm"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-sm",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 227.375,
+            "bottom": 363.25,
+            "width": 207.375,
+            "height": 249.25
+          },
+          "bottom": {
+            "x": 20,
+            "y": 378.921875,
+            "right": 712,
+            "bottom": 520,
+            "width": 692,
+            "height": 141.078125
+          },
+          "notes": {
+            "x": 20,
+            "y": 378.921875,
+            "right": 131,
+            "bottom": 440,
+            "width": 111,
+            "height": 61.078125
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 532,
+          "width": 716,
+          "height": 430
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 227.375,
+          "bottom": 363.25,
+          "width": 207.375,
+          "height": 249.25
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 378.921875,
+          "right": 131,
+          "bottom": 440,
+          "width": 111,
+          "height": 61.078125
+        },
+        "scrub": {
+          "x": 20,
+          "y": 444,
+          "right": 712,
+          "bottom": 520,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-sm",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "17px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "height": 852,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-sm"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-sm",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 227.375,
+            "bottom": 363.25,
+            "width": 207.375,
+            "height": 249.25
+          },
+          "bottom": {
+            "x": 20,
+            "y": 390.921875,
+            "right": 712,
+            "bottom": 532,
+            "width": 692,
+            "height": 141.078125
+          },
+          "notes": {
+            "x": 20,
+            "y": 390.921875,
+            "right": 131,
+            "bottom": 452,
+            "width": 111,
+            "height": 61.078125
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 544,
+          "width": 716,
+          "height": 442
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 227.375,
+          "bottom": 363.25,
+          "width": 207.375,
+          "height": 249.25
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 390.921875,
+          "right": 131,
+          "bottom": 452,
+          "width": 111,
+          "height": 61.078125
+        },
+        "scrub": {
+          "x": 20,
+          "y": 456,
+          "right": 712,
+          "bottom": 532,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-sm",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "17px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "height": 864,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-sm"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-sm",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 227.375,
+            "bottom": 363.25,
+            "width": 207.375,
+            "height": 249.25
+          },
+          "bottom": {
+            "x": 20,
+            "y": 402.921875,
+            "right": 712,
+            "bottom": 544,
+            "width": 692,
+            "height": 141.078125
+          },
+          "notes": {
+            "x": 20,
+            "y": 402.921875,
+            "right": 131,
+            "bottom": 464,
+            "width": 111,
+            "height": 61.078125
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 556,
+          "width": 716,
+          "height": 454
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 227.375,
+          "bottom": 363.25,
+          "width": 207.375,
+          "height": 249.25
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 402.921875,
+          "right": 131,
+          "bottom": 464,
+          "width": 111,
+          "height": 61.078125
+        },
+        "scrub": {
+          "x": 20,
+          "y": 468,
+          "right": 712,
+          "bottom": 544,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-sm",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "17px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "17px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "height": 876,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-md"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-md",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 256,
+            "bottom": 399.1875,
+            "width": 236,
+            "height": 285.1875
+          },
+          "bottom": {
+            "x": 20,
+            "y": 407.328125,
+            "right": 712,
+            "bottom": 556,
+            "width": 692,
+            "height": 148.671875
+          },
+          "notes": {
+            "x": 20,
+            "y": 407.328125,
+            "right": 145,
+            "bottom": 476,
+            "width": 125,
+            "height": 68.671875
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 568,
+          "width": 716,
+          "height": 466
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 256,
+          "bottom": 399.1875,
+          "width": 236,
+          "height": 285.1875
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 407.328125,
+          "right": 145,
+          "bottom": 476,
+          "width": 125,
+          "height": 68.671875
+        },
+        "scrub": {
+          "x": 20,
+          "y": 480,
+          "right": 712,
+          "bottom": 556,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-md",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "20px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "height": 888,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-md"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-md",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 256,
+            "bottom": 399.1875,
+            "width": 236,
+            "height": 285.1875
+          },
+          "bottom": {
+            "x": 20,
+            "y": 419.328125,
+            "right": 712,
+            "bottom": 568,
+            "width": 692,
+            "height": 148.671875
+          },
+          "notes": {
+            "x": 20,
+            "y": 419.328125,
+            "right": 145,
+            "bottom": 488,
+            "width": 125,
+            "height": 68.671875
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 580,
+          "width": 716,
+          "height": 478
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 256,
+          "bottom": 399.1875,
+          "width": 236,
+          "height": 285.1875
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 419.328125,
+          "right": 145,
+          "bottom": 488,
+          "width": 125,
+          "height": 68.671875
+        },
+        "scrub": {
+          "x": 20,
+          "y": 492,
+          "right": 712,
+          "bottom": 568,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-md",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "20px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "height": 900,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-md"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-md",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 256,
+            "bottom": 399.1875,
+            "width": 236,
+            "height": 285.1875
+          },
+          "bottom": {
+            "x": 20,
+            "y": 431.328125,
+            "right": 712,
+            "bottom": 580,
+            "width": 692,
+            "height": 148.671875
+          },
+          "notes": {
+            "x": 20,
+            "y": 431.328125,
+            "right": 145,
+            "bottom": 500,
+            "width": 125,
+            "height": 68.671875
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 592,
+          "width": 716,
+          "height": 490
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 256,
+          "bottom": 399.1875,
+          "width": 236,
+          "height": 285.1875
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 431.328125,
+          "right": 145,
+          "bottom": 500,
+          "width": 125,
+          "height": 68.671875
+        },
+        "scrub": {
+          "x": 20,
+          "y": 504,
+          "right": 712,
+          "bottom": 580,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-md",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "20px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "height": 912,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-md"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-md",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 256,
+            "bottom": 399.1875,
+            "width": 236,
+            "height": 285.1875
+          },
+          "bottom": {
+            "x": 20,
+            "y": 443.328125,
+            "right": 712,
+            "bottom": 592,
+            "width": 692,
+            "height": 148.671875
+          },
+          "notes": {
+            "x": 20,
+            "y": 443.328125,
+            "right": 145,
+            "bottom": 512,
+            "width": 125,
+            "height": 68.671875
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 604,
+          "width": 716,
+          "height": 502
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 256,
+          "bottom": 399.1875,
+          "width": 236,
+          "height": 285.1875
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 443.328125,
+          "right": 145,
+          "bottom": 512,
+          "width": 125,
+          "height": 68.671875
+        },
+        "scrub": {
+          "x": 20,
+          "y": 516,
+          "right": 712,
+          "bottom": 592,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-md",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "20px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "height": 924,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-md"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-md",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 256,
+            "bottom": 399.1875,
+            "width": 236,
+            "height": 285.1875
+          },
+          "bottom": {
+            "x": 20,
+            "y": 455.328125,
+            "right": 712,
+            "bottom": 604,
+            "width": 692,
+            "height": 148.671875
+          },
+          "notes": {
+            "x": 20,
+            "y": 455.328125,
+            "right": 145,
+            "bottom": 524,
+            "width": 125,
+            "height": 68.671875
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 616,
+          "width": 716,
+          "height": 514
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 256,
+          "bottom": 399.1875,
+          "width": 236,
+          "height": 285.1875
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 455.328125,
+          "right": 145,
+          "bottom": 524,
+          "width": 125,
+          "height": 68.671875
+        },
+        "scrub": {
+          "x": 20,
+          "y": 528,
+          "right": 712,
+          "bottom": 604,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-md",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "20px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "height": 936,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-md"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-md",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 256,
+            "bottom": 399.1875,
+            "width": 236,
+            "height": 285.1875
+          },
+          "bottom": {
+            "x": 20,
+            "y": 467.328125,
+            "right": 712,
+            "bottom": 616,
+            "width": 692,
+            "height": 148.671875
+          },
+          "notes": {
+            "x": 20,
+            "y": 467.328125,
+            "right": 145,
+            "bottom": 536,
+            "width": 125,
+            "height": 68.671875
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 628,
+          "width": 716,
+          "height": 526
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 256,
+          "bottom": 399.1875,
+          "width": 236,
+          "height": 285.1875
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 467.328125,
+          "right": 145,
+          "bottom": 536,
+          "width": 125,
+          "height": 68.671875
+        },
+        "scrub": {
+          "x": 20,
+          "y": 540,
+          "right": 712,
+          "bottom": 616,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-md",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "20px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "20px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "height": 948,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-lg"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0.09999999403953552,
+          "class": "hud hudCard overlay-card stack-tight hudScale-lg",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 305,
+            "bottom": 459,
+            "width": 285,
+            "height": 345
+          },
+          "bottom": {
+            "x": 20,
+            "y": 466.625,
+            "right": 712,
+            "bottom": 628,
+            "width": 692,
+            "height": 161.375
+          },
+          "notes": {
+            "x": 20,
+            "y": 466.625,
+            "right": 167,
+            "bottom": 548,
+            "width": 147,
+            "height": 81.375
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 640,
+          "width": 716,
+          "height": 538
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 305,
+          "bottom": 459,
+          "width": 285,
+          "height": 345
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 466.625,
+          "right": 167,
+          "bottom": 548,
+          "width": 147,
+          "height": 81.375
+        },
+        "scrub": {
+          "x": 20,
+          "y": 552,
+          "right": 712,
+          "bottom": 628,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-lg",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "25px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "height": 960,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-lg"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-lg",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 305,
+            "bottom": 459,
+            "width": 285,
+            "height": 345
+          },
+          "bottom": {
+            "x": 20,
+            "y": 478.625,
+            "right": 712,
+            "bottom": 640,
+            "width": 692,
+            "height": 161.375
+          },
+          "notes": {
+            "x": 20,
+            "y": 478.625,
+            "right": 167,
+            "bottom": 560,
+            "width": 147,
+            "height": 81.375
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 652,
+          "width": 716,
+          "height": 550
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 305,
+          "bottom": 459,
+          "width": 285,
+          "height": 345
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 478.625,
+          "right": 167,
+          "bottom": 560,
+          "width": 147,
+          "height": 81.375
+        },
+        "scrub": {
+          "x": 20,
+          "y": 564,
+          "right": 712,
+          "bottom": 640,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-lg",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "25px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "height": 972,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-lg"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-lg",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 305,
+            "bottom": 459,
+            "width": 285,
+            "height": 345
+          },
+          "bottom": {
+            "x": 20,
+            "y": 490.625,
+            "right": 712,
+            "bottom": 652,
+            "width": 692,
+            "height": 161.375
+          },
+          "notes": {
+            "x": 20,
+            "y": 490.625,
+            "right": 167,
+            "bottom": 572,
+            "width": 147,
+            "height": 81.375
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 664,
+          "width": 716,
+          "height": 562
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 305,
+          "bottom": 459,
+          "width": 285,
+          "height": 345
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 490.625,
+          "right": 167,
+          "bottom": 572,
+          "width": 147,
+          "height": 81.375
+        },
+        "scrub": {
+          "x": 20,
+          "y": 576,
+          "right": 712,
+          "bottom": 652,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-lg",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "25px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "height": 984,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-lg"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-lg",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 305,
+            "bottom": 459,
+            "width": 285,
+            "height": 345
+          },
+          "bottom": {
+            "x": 20,
+            "y": 502.625,
+            "right": 712,
+            "bottom": 664,
+            "width": 692,
+            "height": 161.375
+          },
+          "notes": {
+            "x": 20,
+            "y": 502.625,
+            "right": 167,
+            "bottom": 584,
+            "width": 147,
+            "height": 81.375
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 676,
+          "width": 716,
+          "height": 574
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 305,
+          "bottom": 459,
+          "width": 285,
+          "height": 345
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 502.625,
+          "right": 167,
+          "bottom": 584,
+          "width": 147,
+          "height": 81.375
+        },
+        "scrub": {
+          "x": 20,
+          "y": 588,
+          "right": 712,
+          "bottom": 664,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-lg",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "25px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "height": 996,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-lg"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-lg",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 305,
+            "bottom": 459,
+            "width": 285,
+            "height": 345
+          },
+          "bottom": {
+            "x": 20,
+            "y": 514.625,
+            "right": 712,
+            "bottom": 676,
+            "width": 692,
+            "height": 161.375
+          },
+          "notes": {
+            "x": 20,
+            "y": 514.625,
+            "right": 167,
+            "bottom": 596,
+            "width": 147,
+            "height": 81.375
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 688,
+          "width": 716,
+          "height": 586
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 305,
+          "bottom": 459,
+          "width": 285,
+          "height": 345
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 514.625,
+          "right": 167,
+          "bottom": 596,
+          "width": 147,
+          "height": 81.375
+        },
+        "scrub": {
+          "x": 20,
+          "y": 600,
+          "right": 712,
+          "bottom": 676,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-lg",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "25px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    },
+    {
+      "height": 1008,
+      "unique": [
+        "hud hudCard overlay-card stack-tight hudScale-lg"
+      ],
+      "transitions": [
+        {
+          "elapsedMs": 0,
+          "class": "hud hudCard overlay-card stack-tight hudScale-lg",
+          "fit": "fits",
+          "hud": {
+            "x": 20,
+            "y": 114,
+            "right": 305,
+            "bottom": 459,
+            "width": 285,
+            "height": 345
+          },
+          "bottom": {
+            "x": 20,
+            "y": 526.625,
+            "right": 712,
+            "bottom": 688,
+            "width": 692,
+            "height": 161.375
+          },
+          "notes": {
+            "x": 20,
+            "y": 526.625,
+            "right": 167,
+            "bottom": 608,
+            "width": 147,
+            "height": 81.375
+          }
+        }
+      ],
+      "boxes": {
+        "pane": {
+          "x": 8,
+          "y": 102,
+          "right": 724,
+          "bottom": 700,
+          "width": 716,
+          "height": 598
+        },
+        "hud": {
+          "x": 20,
+          "y": 114,
+          "right": 305,
+          "bottom": 459,
+          "width": 285,
+          "height": 345
+        },
+        "cube": {
+          "x": 572,
+          "y": 114,
+          "right": 712,
+          "bottom": 254,
+          "width": 140,
+          "height": 140
+        },
+        "quick": {
+          "x": 572,
+          "y": 258,
+          "right": 712,
+          "bottom": 314,
+          "width": 140,
+          "height": 56
+        },
+        "notes": {
+          "x": 20,
+          "y": 526.625,
+          "right": 167,
+          "bottom": 608,
+          "width": 147,
+          "height": 81.375
+        },
+        "scrub": {
+          "x": 20,
+          "y": 612,
+          "right": 712,
+          "bottom": 688,
+          "width": 692,
+          "height": 76
+        }
+      },
+      "overlaps": [],
+      "notesClass": "hudNotes overlay-card stack-tight hudScale-lg",
+      "axisValues": [
+        {
+          "text": "1.111",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "2.222",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "3.333",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "4.44°",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "5.55°",
+          "font": "25px",
+          "shown": true
+        },
+        {
+          "text": "6.67°",
+          "font": "25px",
+          "shown": true
+        }
+      ],
+      "warnings": [
+        "Comp Z 0.123",
+        "Rotation 12.0°"
+      ]
+    }
+  ],
+  "stationary": {
+    "axes": 5,
+    "viewport": "900x1200",
+    "zoom": 1,
+    "scale": "xl",
+    "unique": [
+      "hud hudCard overlay-card stack-tight hudScale-lg"
+    ],
+    "transitions": [
+      {
+        "elapsedMs": 0,
+        "class": "hud hudCard overlay-card stack-tight hudScale-lg",
+        "fit": "fits",
+        "hud": {
+          "x": 316,
+          "y": 152,
+          "right": 601,
+          "bottom": 462.5,
+          "width": 285,
+          "height": 310.5
+        },
+        "bottom": {
+          "x": 316,
+          "y": 469.625,
+          "right": 880,
+          "bottom": 641,
+          "width": 564,
+          "height": 171.375
+        },
+        "notes": {
+          "x": 316,
+          "y": 469.625,
+          "right": 463,
+          "bottom": 551,
+          "width": 147,
+          "height": 81.375
+        }
+      }
+    ],
+    "boxes": {
+      "pane": {
+        "x": 304,
+        "y": 140,
+        "right": 892,
+        "bottom": 653,
+        "width": 588,
+        "height": 513
+      },
+      "hud": {
+        "x": 316,
+        "y": 152,
+        "right": 601,
+        "bottom": 462.5,
+        "width": 285,
+        "height": 310.5
+      },
+      "cube": {
+        "x": 740,
+        "y": 152,
+        "right": 880,
+        "bottom": 292,
+        "width": 140,
+        "height": 140
+      },
+      "quick": {
+        "x": 740,
+        "y": 296,
+        "right": 880,
+        "bottom": 372,
+        "width": 140,
+        "height": 76
+      },
+      "notes": {
+        "x": 316,
+        "y": 469.625,
+        "right": 463,
+        "bottom": 551,
+        "width": 147,
+        "height": 81.375
+      },
+      "scrub": {
+        "x": 316,
+        "y": 555,
+        "right": 880,
+        "bottom": 641,
+        "width": 564,
+        "height": 86
+      }
+    },
+    "overlaps": [],
+    "notesClass": "hudNotes overlay-card stack-tight hudScale-lg",
+    "axisValues": [
+      {
+        "text": "1.111",
+        "font": "25px",
+        "shown": true
+      },
+      {
+        "text": "2.222",
+        "font": "25px",
+        "shown": true
+      },
+      {
+        "text": "3.333",
+        "font": "25px",
+        "shown": true
+      },
+      {
+        "text": "4.44°",
+        "font": "25px",
+        "shown": true
+      },
+      {
+        "text": "5.55°",
+        "font": "25px",
+        "shown": true
+      }
+    ],
+    "warnings": [
+      "Comp Z 0.123",
+      "Rotation 12.0°"
+    ]
+  },
+  "originalOscillation": {
+    "axes": 5,
+    "viewport": "1280x800",
+    "zoom": 1,
+    "scale": "md",
+    "unique": [
+      "hud hudCard overlay-card stack-tight hudScale-md hudFoldMach hudFoldFS"
+    ],
+    "transitions": [
+      {
+        "elapsedMs": 0.09999999403953552,
+        "class": "hud hudCard overlay-card stack-tight hudScale-md hudFoldMach hudFoldFS",
+        "fit": "fits",
+        "hud": {
+          "x": 20,
+          "y": 116,
+          "right": 172,
+          "bottom": 314.1875,
+          "width": 152,
+          "height": 198.1875
+        },
+        "bottom": {
+          "x": 20,
+          "y": 321.328125,
+          "right": 712,
+          "bottom": 480,
+          "width": 692,
+          "height": 158.671875
+        },
+        "notes": {
+          "x": 20,
+          "y": 321.328125,
+          "right": 145,
+          "bottom": 390,
+          "width": 125,
+          "height": 68.671875
+        }
+      }
+    ],
+    "boxes": {
+      "pane": {
+        "x": 8,
+        "y": 104,
+        "right": 724,
+        "bottom": 492,
+        "width": 716,
+        "height": 388
+      },
+      "hud": {
+        "x": 20,
+        "y": 116,
+        "right": 172,
+        "bottom": 314.1875,
+        "width": 152,
+        "height": 198.1875
+      },
+      "cube": {
+        "x": 572,
+        "y": 116,
+        "right": 712,
+        "bottom": 256,
+        "width": 140,
+        "height": 140
+      },
+      "quick": {
+        "x": 572,
+        "y": 260,
+        "right": 712,
+        "bottom": 336,
+        "width": 140,
+        "height": 76
+      },
+      "notes": {
+        "x": 20,
+        "y": 321.328125,
+        "right": 145,
+        "bottom": 390,
+        "width": 125,
+        "height": 68.671875
+      },
+      "scrub": {
+        "x": 20,
+        "y": 394,
+        "right": 712,
+        "bottom": 480,
+        "width": 692,
+        "height": 86
+      }
+    },
+    "overlaps": [],
+    "notesClass": "hudNotes overlay-card stack-tight hudScale-md",
+    "axisValues": [
+      {
+        "text": "1.111",
+        "font": "20px",
+        "shown": true
+      },
+      {
+        "text": "2.222",
+        "font": "20px",
+        "shown": true
+      },
+      {
+        "text": "3.333",
+        "font": "20px",
+        "shown": true
+      },
+      {
+        "text": "4.44°",
+        "font": "20px",
+        "shown": true
+      },
+      {
+        "text": "5.55°",
+        "font": "20px",
+        "shown": true
+      }
+    ],
+    "warnings": [
+      "Comp Z 0.123",
+      "Rotation 12.0°"
+    ]
+  },
+  "disclosures": [
+    {
+      "programWarning": false,
+      "closed": {
+        "pane": {
+          "x": 456,
+          "y": 237,
+          "right": 888,
+          "bottom": 693.5,
+          "width": 432,
+          "height": 456.5
+        },
+        "card": {
+          "x": 474,
+          "y": 485.5,
+          "right": 708,
+          "bottom": 553.5,
+          "width": 234,
+          "height": 68
+        },
+        "class": "hudNotes overlay-card stack-tight hudScale-xs needsCompact",
+        "summary": "MACHINE · G54 · 3 warnings",
+        "button": {
+          "x": 629,
+          "y": 492.5,
+          "right": 689,
+          "bottom": 546.5,
+          "width": 60,
+          "height": 54,
+          "name": "Show viewer warnings",
+          "expanded": "false",
+          "hit": true,
+          "inside": true
+        },
+        "warnings": [
+          {
+            "text": "Comp Z 0.123",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "width": 0,
+              "height": 0
+            },
+            "inside": false
+          },
+          {
+            "text": "Rotation 12.0°",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "width": 0,
+              "height": 0
+            },
+            "inside": false
+          },
+          {
+            "text": "Preview re-parsing · touch-off (G54 X)?Path, limit marks and simulation update when it lands — 00:00 of ~00:30.",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "width": 0,
+              "height": 0
+            },
+            "inside": false
+          }
+        ]
+      },
+      "opened": {
+        "pane": {
+          "x": 456,
+          "y": 237,
+          "right": 888,
+          "bottom": 693.5,
+          "width": 432,
+          "height": 456.5
+        },
+        "card": {
+          "x": 474,
+          "y": 351.75,
+          "right": 708,
+          "bottom": 553.5,
+          "width": 234,
+          "height": 201.75
+        },
+        "class": "hudNotes overlay-card stack-tight hudScale-xs needsCompact notesOpen",
+        "summary": "MACHINE · G54 · 3 warnings",
+        "button": {
+          "x": 629,
+          "y": 358.75,
+          "right": 689,
+          "bottom": 412.75,
+          "width": 60,
+          "height": 54,
+          "name": "Hide viewer warnings",
+          "expanded": "true",
+          "hit": true,
+          "inside": true
+        },
+        "warnings": [
+          {
+            "text": "Comp Z 0.123",
+            "rect": {
+              "x": 493,
+              "y": 442.5,
+              "right": 689,
+              "bottom": 460.25,
+              "width": 196,
+              "height": 17.75
+            },
+            "inside": true
+          },
+          {
+            "text": "Rotation 12.0°",
+            "rect": {
+              "x": 493,
+              "y": 466.25,
+              "right": 689,
+              "bottom": 484,
+              "width": 196,
+              "height": 17.75
+            },
+            "inside": true
+          },
+          {
+            "text": "Preview re-parsing · touch-off (G54 X)?Path, limit marks and simulation update when it lands — 00:01 of ~00:30.",
+            "rect": {
+              "x": 493,
+              "y": 490,
+              "right": 689,
+              "bottom": 525.5,
+              "width": 196,
+              "height": 35.5
+            },
+            "inside": true
+          }
+        ]
+      },
+      "screenshot": "ui-design-welle.implementation-r10-warnings-status.png",
+      "closedByTap": true,
+      "reclosed": {
+        "pane": {
+          "x": 456,
+          "y": 237,
+          "right": 888,
+          "bottom": 693.5,
+          "width": 432,
+          "height": 456.5
+        },
+        "card": {
+          "x": 474,
+          "y": 485.5,
+          "right": 708,
+          "bottom": 553.5,
+          "width": 234,
+          "height": 68
+        },
+        "class": "hudNotes overlay-card stack-tight hudScale-xs needsCompact",
+        "summary": "MACHINE · G54 · 3 warnings",
+        "button": {
+          "x": 629,
+          "y": 492.5,
+          "right": 689,
+          "bottom": 546.5,
+          "width": 60,
+          "height": 54,
+          "name": "Show viewer warnings",
+          "expanded": "false",
+          "hit": true,
+          "inside": true
+        },
+        "warnings": [
+          {
+            "text": "Comp Z 0.123",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "width": 0,
+              "height": 0
+            },
+            "inside": false
+          },
+          {
+            "text": "Rotation 12.0°",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "width": 0,
+              "height": 0
+            },
+            "inside": false
+          },
+          {
+            "text": "Preview re-parsing · touch-off (G54 X)?Path, limit marks and simulation update when it lands — 00:01 of ~00:30.",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "width": 0,
+              "height": 0
+            },
+            "inside": false
+          }
+        ]
+      }
+    },
+    {
+      "programWarning": true,
+      "closed": {
+        "pane": {
+          "x": 456,
+          "y": 237,
+          "right": 888,
+          "bottom": 693.5,
+          "width": 432,
+          "height": 456.5
+        },
+        "card": {
+          "x": 474,
+          "y": 485.5,
+          "right": 708,
+          "bottom": 553.5,
+          "width": 234,
+          "height": 68
+        },
+        "class": "hudNotes overlay-card stack-tight hudScale-xs needsCompact",
+        "summary": "MACHINE · G54 · 4 warnings",
+        "button": {
+          "x": 629,
+          "y": 492.5,
+          "right": 689,
+          "bottom": 546.5,
+          "width": 60,
+          "height": 54,
+          "name": "Show viewer warnings",
+          "expanded": "false",
+          "hit": true,
+          "inside": true
+        },
+        "warnings": [
+          {
+            "text": "Comp Z 0.123",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "width": 0,
+              "height": 0
+            },
+            "inside": false
+          },
+          {
+            "text": "Rotation 12.0°",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "width": 0,
+              "height": 0
+            },
+            "inside": false
+          },
+          {
+            "text": "Program ends in TCP kinematics — restore the Machine frame before M2?M2 keeps this kinematics mode — Cycle Start stays refused until the Machine frame is selected.",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "width": 0,
+              "height": 0
+            },
+            "inside": false
+          },
+          {
+            "text": "Preview re-parsing · touch-off (G54 X)?Path, limit marks and simulation update when it lands — 00:00 of ~00:30.",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "width": 0,
+              "height": 0
+            },
+            "inside": false
+          }
+        ]
+      },
+      "opened": {
+        "pane": {
+          "x": 456,
+          "y": 237,
+          "right": 888,
+          "bottom": 693.5,
+          "width": 432,
+          "height": 456.5
+        },
+        "card": {
+          "x": 474,
+          "y": 292.5,
+          "right": 708,
+          "bottom": 553.5,
+          "width": 234,
+          "height": 261
+        },
+        "class": "hudNotes overlay-card stack-tight hudScale-xs needsCompact notesOpen",
+        "summary": "MACHINE · G54 · 4 warnings",
+        "button": {
+          "x": 629,
+          "y": 299.5,
+          "right": 689,
+          "bottom": 353.5,
+          "width": 60,
+          "height": 54,
+          "name": "Hide viewer warnings",
+          "expanded": "true",
+          "hit": true,
+          "inside": true
+        },
+        "warnings": [
+          {
+            "text": "Comp Z 0.123",
+            "rect": {
+              "x": 493,
+              "y": 383.25,
+              "right": 689,
+              "bottom": 401,
+              "width": 196,
+              "height": 17.75
+            },
+            "inside": true
+          },
+          {
+            "text": "Rotation 12.0°",
+            "rect": {
+              "x": 493,
+              "y": 407,
+              "right": 689,
+              "bottom": 424.75,
+              "width": 196,
+              "height": 17.75
+            },
+            "inside": true
+          },
+          {
+            "text": "Program ends in TCP kinematics — restore the Machine frame before M2?M2 keeps this kinematics mode — Cycle Start stays refused until the Machine frame is selected.",
+            "rect": {
+              "x": 493,
+              "y": 430.75,
+              "right": 689,
+              "bottom": 484,
+              "width": 196,
+              "height": 53.25
+            },
+            "inside": true
+          },
+          {
+            "text": "Preview re-parsing · touch-off (G54 X)?Path, limit marks and simulation update when it lands — 00:01 of ~00:30.",
+            "rect": {
+              "x": 493,
+              "y": 490,
+              "right": 689,
+              "bottom": 525.5,
+              "width": 196,
+              "height": 35.5
+            },
+            "inside": true
+          }
+        ]
+      },
+      "screenshot": "ui-design-welle.implementation-r10-warnings-program.png",
+      "closedByTap": true,
+      "reclosed": {
+        "pane": {
+          "x": 456,
+          "y": 237,
+          "right": 888,
+          "bottom": 693.5,
+          "width": 432,
+          "height": 456.5
+        },
+        "card": {
+          "x": 474,
+          "y": 485.5,
+          "right": 708,
+          "bottom": 553.5,
+          "width": 234,
+          "height": 68
+        },
+        "class": "hudNotes overlay-card stack-tight hudScale-xs needsCompact",
+        "summary": "MACHINE · G54 · 4 warnings",
+        "button": {
+          "x": 629,
+          "y": 492.5,
+          "right": 689,
+          "bottom": 546.5,
+          "width": 60,
+          "height": 54,
+          "name": "Show viewer warnings",
+          "expanded": "false",
+          "hit": true,
+          "inside": true
+        },
+        "warnings": [
+          {
+            "text": "Comp Z 0.123",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "width": 0,
+              "height": 0
+            },
+            "inside": false
+          },
+          {
+            "text": "Rotation 12.0°",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "width": 0,
+              "height": 0
+            },
+            "inside": false
+          },
+          {
+            "text": "Program ends in TCP kinematics — restore the Machine frame before M2?M2 keeps this kinematics mode — Cycle Start stays refused until the Machine frame is selected.",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "width": 0,
+              "height": 0
+            },
+            "inside": false
+          },
+          {
+            "text": "Preview re-parsing · touch-off (G54 X)?Path, limit marks and simulation update when it lands — 00:01 of ~00:30.",
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "right": 0,
+              "bottom": 0,
+              "width": 0,
+              "height": 0
+            },
+            "inside": false
+          }
+        ]
+      }
+    }
+  ],
+  "sweepLabel": "Sim\n?",
+  "commands": [
+    {
+      "cmd": "hello",
+      "session": "e7dd6abe-574d-409d-a41c-71a12c465229",
+      "resume_armed": false
+    },
+    {
+      "cmd": "tab_visibility",
+      "hidden": false
+    },
+    {
+      "cmd": "get_tool_table",
+      "req_id": "0wgj5s-3"
+    },
+    {
+      "cmd": "get_tool_table",
+      "req_id": "0wgj5s-4"
+    },
+    {
+      "cmd": "client_diag",
+      "data": {
+        "ts_client": 1790494811019,
+        "heap": {
+          "used_mb": 17.4,
+          "total_mb": 35.6,
+          "limit_mb": 2222.1
+        },
+        "render": {
+          "geometries": 43,
+          "textures": 2,
+          "programs": 13,
+          "calls": 12,
+          "triangles": 42
+        },
+        "connected": true,
+        "armed": true
+      },
+      "req_id": "0wgj5s-5"
+    }
+  ]
+}

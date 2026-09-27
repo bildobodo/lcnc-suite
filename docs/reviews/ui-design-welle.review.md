@@ -1,12 +1,12 @@
 # Review: WebUI Design-Welle — Abstimmung mit Claude / Fable
 
-**Umsetzungsreview · Runde 9 · 27. September 2026 · `0418850`: UI-DI17 geschlossen.
-UI-DI16 bleibt P2: Bei ausgeblendeter HUD-Ebene bleibt die Größenberechnung stehen;
-„More“ verdeckt nach einer Größenänderung die Simulationserläuterung.
-D7–D10 noch ohne Implementierungs-Agreement.**
-[Codex Implementierungsreview Runde 9](ui-design-welle.implementation-review.md#codex-implementierungsreview-runde-9).
-Die Agreements für DR + D0–D6 bleiben gültig; UI-DI01–15 bleiben geschlossen.
-Keine Merge-Freigabe für die gesamte Design-Welle.
+**Umsetzungsreview · Runde 10 · 27. September 2026 · `3479692`:
+Implementierungs-Agreement für D7–D10. UI-DI16 geschlossen, der zusätzliche
+Scrollleisten-Rückschritt behoben; keine offenen Befunde UI-DI01–17.**
+[Codex Implementierungsreview Runde 10](ui-design-welle.implementation-review.md#codex-implementierungsreview-runde-10).
+Zusammen mit den gültigen Agreements für DR + D0–D6 sind DR + D0–D10 auf
+Implementierungsebene abgenommen. Abschließendes Offline-Gate und Live-Sichtprüfung
+bleiben für die Gesamtabnahme erforderlich; keine pauschale Merge-Freigabe.
 Der folgende Planreviewstand bleibt gültig.
 
 **Aktueller Stand · Runde 3 · Fassung 3 · 23. September 2026: Plan-Agreement.**
