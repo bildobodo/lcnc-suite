@@ -404,11 +404,7 @@ class TestHandlerExecution(unittest.TestCase):
             spawned.append((a, k))
         with unittest.mock.patch.object(gateway._bulk, "preview_version", 7), \
                 unittest.mock.patch.object(gateway, "_rfl_sequence", _fake_sequence):
-            gateway._rfl_active = False
-            try:
-                r = self._send(msg)
-            finally:
-                gateway._rfl_active = False
+            r = self._send(msg)
         return r, spawned
 
     def _with_program(self):
@@ -453,20 +449,48 @@ class TestHandlerExecution(unittest.TestCase):
         self.assertIn("not taken over", r["error"])
         self.assertEqual(spawned, [])
 
+    def test_a_sequence_cancelled_before_its_first_step_leaves_no_latch(self):
+        # Codex R17 XZ-10: the REAL sequence task, aborted in the tick the
+        # handler replied in — before it ran a step, so its body's finally
+        # never runs. The latch must follow the task's end, the end must be
+        # reported, and loading must work again.
+        import time as _time, unittest.mock
+        self._with_program()
+        self._rcs()
+        gateway._status_runtime.program = program = gateway._status_runtime_mod.LoadedProgram()
+        program.update(None, True, _time.monotonic())
+        program.request_load(self.prog, _time.monotonic())
+        program.update(self.prog, True, _time.monotonic())
+        gateway._shared_status = _payload()
+
+        async def scenario():
+            r = await gateway.handle_command(
+                {"cmd": "auto_run", "line": 4, "file": self.prog, "version": 7, "safe_z": True}, True)
+            gateway._preempt_inflight(by="abort", from_client=2)   # no await in between
+            for _ in range(20):
+                await asyncio.sleep(0)
+            with unittest.mock.patch.object(gateway, "get_nc_files_dir", return_value=str(Path(self.prog).parent)):
+                load = await gateway.handle_command({"cmd": "load_file", "path": self.prog}, True)
+            return r, load
+        with unittest.mock.patch.object(gateway._bulk, "preview_version", 7):
+            r, load = _run(scenario())
+        self.assertTrue(r["ok"], r)
+        self.assertEqual((gateway._rfl_status or {}).get("phase"), "aborted", "the end is reported")
+        self.assertTrue(load["ok"], load)
+
     def test_no_program_is_loaded_while_a_run_from_line_sequence_runs(self):
         import unittest.mock
         self._with_program()
         gateway.STAT.task_mode = linuxcnc.MODE_AUTO
         gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
-        gateway._rfl_active = True
-        try:
-            with unittest.mock.patch.object(gateway, "get_nc_files_dir", return_value=str(Path(self.prog).parent)):
+        running = SimpleNamespace(done=lambda: False)   # a sequence task still running
+        for slot in ("_rfl_task", "_rfl_flag_task"):
+            with self.subTest(slot=slot), unittest.mock.patch.object(gateway, slot, running), \
+                    unittest.mock.patch.object(gateway, "get_nc_files_dir", return_value=str(Path(self.prog).parent)):
                 for msg in ({"cmd": "load_file", "path": self.prog}, {"cmd": "unload_file"}):
                     r = self._send(msg)
                     self.assertFalse(r["ok"], r)
                     self.assertIn("Run from line", r["error"])
-        finally:
-            gateway._rfl_active = False
         self.assertIsNone(self.cmd.args_of("program_open"))
 
     def test_load_file_is_the_load_context_unload_clears_it(self):

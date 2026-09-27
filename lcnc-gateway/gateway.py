@@ -3205,12 +3205,74 @@ def require_tool_change_pending():
 # whole body — running it inline would freeze every client's commands (incl.
 # Abort) and starve this client's heartbeat. Each CMD step takes the lock
 # individually; completion waits poll STAT lock-free. Progress is broadcast
-# via the status fanout (rfl_status field), single-flight via _rfl_active.
-_rfl_active: bool = False
+# via the status fanout (rfl_status field), single-flight via _rfl_busy().
 _rfl_status: Optional[dict] = None   # last guard-sequence phase, riding the status fanout
 # The running sequence: abort/estop from ANY client end it (_preempt_inflight)
 # — it is no in-flight handler, so the preemption never saw it (Codex R16).
 _rfl_task: Optional[asyncio.Task] = None
+# The #3116 clear after a sequence that armed the flag: its OWN task, so a
+# second abort cannot interrupt it inside the sequence's finally (Codex R17
+# XZ-10) — and no abort waits for it.
+_rfl_flag_task: Optional[asyncio.Task] = None
+# A phase the body sets on its way; any other phase is a verdict.
+_RFL_UNDECIDED = frozenset({"queued", "measuring", "safe_z", "positioning", "starting"})
+
+
+def _rfl_busy() -> bool:
+    """A run-from-line sequence, or its skip-flag clear, still runs. Derived
+    from the tasks themselves: a boolean latch set before the task and
+    cleared in its body stayed set for good when the task was cancelled
+    before its first step, or when a second abort interrupted the clear in
+    its finally (Codex R17 XZ-10) — load, unload and every later sequence
+    were refused until a restart."""
+    return any(t is not None and not t.done() for t in (_rfl_task, _rfl_flag_task))
+
+
+def _rfl_finished(task: asyncio.Task) -> None:
+    """The sequence task's end — also for a task cancelled before its body
+    ran. Only the task that still owns the slot reports: an old task's end
+    never touches a newer sequence."""
+    global _rfl_task
+    if _rfl_task is not task:
+        return
+    _rfl_task = None
+    if (_rfl_status or {}).get("phase") in _RFL_UNDECIDED:
+        if task.cancelled():
+            _rfl_phase("aborted", False, "aborted")
+        else:
+            exc = task.exception()
+            _rfl_phase("failed", False, f"{type(exc).__name__}: {exc}" if exc else "ended without a verdict")
+
+
+def _rfl_start(*args, **kwargs) -> asyncio.Task:
+    """Queue the sequence as the background task that owns the latch."""
+    global _rfl_task
+    _rfl_phase("queued")
+    task = asyncio.create_task(_rfl_sequence(*args, **kwargs))
+    _rfl_task = task
+    task.add_done_callback(_rfl_finished)
+    register_bg_task(task)
+    return task
+
+
+def _rfl_clear_flag() -> None:
+    """Clear the one-shot skip flag after a sequence that armed it and did
+    not start: a stale flag would silently skip a later measurement of that
+    tool. Loud when it fails — the operator is told, not only the trace."""
+    global _rfl_flag_task
+
+    async def clear():
+        try:
+            ok, why = await _rfl_mdi_step("#3116=0", timeout_s=10.0)
+        except Exception as e:
+            ok, why = False, f"{type(e).__name__}: {e}"
+        if ok:
+            _trace.emit("rfl.flag_cleared")
+            return
+        _trace.emit("rfl.flag_clear_failed", level="error", err=why)
+        _rfl_phase("flag_clear_failed", False, f"skip flag #3116 not cleared ({why}) — set #3116=0 by MDI")
+
+    _rfl_flag_task = register_bg_task(asyncio.create_task(clear()))
 
 
 def _program_identity(path: Optional[str]):
@@ -3335,7 +3397,6 @@ def _rfl_entry_reached(entry: dict):
 async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
                         spindle_dir: Optional[str], spindle_speed: int,
                         entry: Optional[dict] = None, program=None) -> None:
-    global _rfl_active, _rfl_task
     flag_armed = False
 
     def still_bound() -> bool:
@@ -3447,15 +3508,10 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
     finally:
         if flag_armed:
             # Never leave a stale skip flag behind — it could silently skip a
-            # legitimate future measurement. Best-effort clear, loud on failure.
-            ok, why = await _rfl_mdi_step("#3116=0", timeout_s=10.0)
-            if ok:
-                _trace.emit("rfl.flag_cleared")
-            else:
-                _trace.emit("rfl.flag_clear_failed", level="error", err=why)
-        _rfl_active = False
-        if _rfl_task is asyncio.current_task():
-            _rfl_task = None
+            # legitimate future measurement. Its own task: nothing awaited
+            # here, so a second cancel cannot skip it (Codex R17 XZ-10); the
+            # latch and the end report follow the task (_rfl_finished).
+            _rfl_clear_flag()
 
 
 async def _apply_probe_vars(vars_to_set: Dict[str, Any], armed: bool):
@@ -3522,7 +3578,7 @@ async def handle_command(msg: Dict[str, Any], armed: bool):
 
 
 async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
-    global _estop_hold, _rfl_active, _rfl_task
+    global _estop_hold
     cmd = msg.get("cmd")
     if not cmd:
         return {"ok": False, "error": "Missing cmd"}
@@ -4081,7 +4137,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 # handler (we hold _cmd_lock here and block this client's receive
                 # loop). Validate, spawn, return immediately; progress rides the
                 # status fanout as `rfl_status`.
-                if _rfl_active:
+                if _rfl_busy():
                     return {"ok": False, "error": "Run-from-line sequence already in progress"}
                 blocked = reject_if_auto_running()
                 if blocked:
@@ -4091,12 +4147,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                     _file_ok, mdi_ok = await _apply_probe_vars(probe_vars, armed)
                     if not mdi_ok:
                         return {"ok": False, "error": "Toolsetter parameters not taken over — not started"}
-                _rfl_active = True
-                _rfl_phase("queued")
-                _rfl_task = asyncio.create_task(_rfl_sequence(
-                    start_line, pre_tool, safe_z, spindle_dir, spindle_speed, entry,
-                    program=identity))
-                register_bg_task(_rfl_task)
+                _rfl_start(start_line, pre_tool, safe_z, spindle_dir, spindle_speed, entry,
+                           program=identity)
                 return {"ok": True, "rfl": "started"}
 
             if spindle_dir and spindle_speed > 0:
@@ -4386,7 +4438,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             blocked = reject_if_auto_running()
             if blocked:
                 return blocked
-            if _rfl_active:
+            if _rfl_busy():
                 # The sequence is bound to the loaded program (XZ-07).
                 return {"ok": False, "error": "Run from line is starting — abort it first"}
 
@@ -4431,7 +4483,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             blocked = reject_if_auto_running()
             if blocked:
                 return blocked
-            if _rfl_active:
+            if _rfl_busy():
                 return {"ok": False, "error": "Run from line is starting — abort it first"}
             await _cmd_blocking(CMD.abort)
             await _cmd_blocking(CMD.reset_interpreter)
