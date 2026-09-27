@@ -233,6 +233,12 @@ OLD_XYZAC = (ROOT / "scripts/test_fixtures/xyzac_before_datum_shift.ini").read_t
     if (ROOT / "scripts/test_fixtures/xyzac_before_datum_shift.ini").exists() else None
 
 
+def subprocess_show(rel):
+    """A file of the old XYZAC example (git 3e501ed)."""
+    import subprocess
+    return subprocess.check_output(["git", "show", f"3e501ed:examples/sim_config/{rel}"], cwd=ROOT)
+
+
 class XyzacDatumMigrationTest(unittest.TestCase):
     NAME = "lcnc_suite_sim_5axis_xyzac.ini"
 
@@ -245,9 +251,10 @@ class XyzacDatumMigrationTest(unittest.TestCase):
         home = patch.object(installer.Path, "home", return_value=self.base / "home")
         home.start()
         self.addCleanup(home.stop)
-        guard = patch.object(installer, "assert_stopped")
-        guard.start()
-        self.addCleanup(guard.stop)
+        for name in ("assert_stopped", "gateway_running"):
+            guard = patch.object(installer, name, return_value=False)
+            guard.start()
+            self.addCleanup(guard.stop)
 
     def install(self):
         return installer.install(ROOT, self.dest, self.backups)
@@ -324,6 +331,157 @@ class XyzacDatumMigrationTest(unittest.TestCase):
         self.assertEqual([p[k] for k in (3100, 3101, 3102)], [150, 0, -300], "the template's toolsetter")
         self.assertAlmostEqual(p[5183], -26.275, places=6)
         self.assertEqual(p[5223], -220)
+
+    # ---- Codex review R15 (XZ-01..05): each red on the first migration ----
+    OLD_DEMO_SHA = "0e65cc15c6d767ff7e00c3eabc2e136636f880aea997a6c971beb61943174581"
+
+    def old_template_state(self):
+        """The old example's own files, unchanged (git 3e501ed) — the operator's
+        real starting point, where Codex's probe found XZ-01/05."""
+        import subprocess
+        show = lambda rel: subprocess.check_output(
+            ["git", "show", f"3e501ed:examples/sim_config/{rel}"], cwd=ROOT, text=True)
+        self.install()
+        (self.dest / self.NAME).write_text(OLD_XYZAC)
+        for rel in ("xyzac5/sim.var", "xyzac5/position.txt", "xyzac5/demo.ngc"):
+            (self.dest / rel).write_text(show(rel))
+
+    def settings(self, sections):
+        path = self.base / "settings.json"
+        path.write_text(json.dumps(sections) + "\n")
+        return path
+
+    def test_xz01_an_unreachable_g28_g30_becomes_the_top_of_travel(self):
+        # G28/G30 are positions of the controlled point without the tool
+        # offset (live: G43 H1003 = 46.953 active, G30 still lands on joint Z
+        # -26.275). A stored Z outside the old [AXIS_Z] window was never a
+        # reachable target; shifted it stays one (the old default 0 -> -500).
+        self.old_template_state()
+        self.install()
+        p = self.params(self.dest / "xyzac5/sim.var")
+        self.assertEqual((p[5163], p[5183]), (0, 0), "the top of travel, the new window's MAX_LIMIT")
+        self.assertEqual((p[5161], p[5162], p[5181], p[5182]), (0, 0, 0, 0), "X/Y stay")
+        # A custom window: the top of travel is that window's top.
+        ini, var = self.old_install()
+        ini.write_text(ini.read_text().replace("MAX_LIMIT = 500", "MAX_LIMIT = 480"))
+        var.write_text(var.read_text().replace("5163\t450.000000", "5163\t0.000000"))
+        self.install()
+        p = self.params(var)
+        self.assertEqual((p[5163], p[5183]), (-20, -20), "unreachable -> top (-20); 480 -> -20 by the shift")
+
+    def test_xz02_a_state_file_seeded_from_the_new_template_is_not_shifted_again(self):
+        for missing in (("sim.var",), ("position.txt",), ("sim.var", "position.txt")):
+            with self.subTest(missing=missing):
+                self.old_template_state()
+                for name in missing:
+                    (self.dest / "xyzac5" / name).unlink()
+                self.install()
+                p = self.params(self.dest / "xyzac5/sim.var")
+                self.assertEqual((p[5223], p[3102]), (-500, -300), "G54 at the A/C intersection, the template's setter")
+                z = float((self.dest / "xyzac5/position.txt").read_text().split()[2])
+                self.assertEqual(z, 0, "the saved joint Z inside -400..0")
+                self.assertIsNone(self.install(), "and a second run changes nothing")
+
+    def test_xz03_the_saved_webui_toolsetter_moves_with_the_var_file(self):
+        ini, var = self.old_install()
+        var.write_text(var.read_text().replace("3102\t-180.000000", "3102\t300.000000"))
+        other = str(self.dest / "lcnc_suite_sim_3axis_xyz.ini")
+        section = {"touchX": 10, "touchY": 10, "touchZ": 300, "spindleZeroHeight": 180, "fastFeed": 200}
+        path = self.settings({str(ini): {"toolsetter": dict(section), "viewer": {"paletteMode": "auto"}},
+                              other: {"toolsetter": dict(section)}})
+        backup = installer.install(ROOT, self.dest, self.backups, settings_path=path)
+        saved = json.loads(path.read_text())
+        self.assertEqual(saved[str(ini)]["toolsetter"]["touchZ"], -200, "the WebUI's copy moves with #3102")
+        self.assertEqual(self.params(var)[3102], -200)
+        self.assertEqual(saved[str(ini)]["toolsetter"]["spindleZeroHeight"], 180, "a distance stays")
+        self.assertEqual(saved[str(ini)]["viewer"], {"paletteMode": "auto"}, "other sections stay")
+        self.assertEqual(saved[other]["toolsetter"]["touchZ"], 300, "another INI stays")
+        self.assertEqual(json.loads((backup / "settings.json").read_text())[str(ini)]["toolsetter"]["touchZ"], 300,
+                         "the settings are in the backup")
+        self.assertIsNone(installer.install(ROOT, self.dest, self.backups, settings_path=path))
+        self.assertEqual(json.loads(path.read_text())[str(ini)]["toolsetter"]["touchZ"], -200, "once")
+
+    def test_xz03_a_saved_setter_is_the_operators_even_at_the_fallback_numbers(self):
+        # Provenance, not numbers: a section that saved touchZ made the var
+        # file's triple — 0/0/0 there is the operator's, and moves.
+        ini, var = self.old_install()
+        text = var.read_text()
+        for row in ("3100\t10.000000", "3101\t10.000000", "3102\t-180.000000"):
+            text = text.replace(row, row.split("\t")[0] + "\t0.000000")
+        var.write_text(text)
+        path = self.settings({str(ini): {"toolsetter": {"touchX": 0, "touchY": 0, "touchZ": 0}}})
+        installer.install(ROOT, self.dest, self.backups, settings_path=path)
+        self.assertEqual([self.params(var)[n] for n in (3100, 3101, 3102)], [0, 0, -500])
+        self.assertEqual(json.loads(path.read_text())[str(ini)]["toolsetter"]["touchZ"], -500)
+
+    def test_xz03_a_running_gateway_refuses_the_settings_write(self):
+        # It caches settings.json and would write its old copy back.
+        ini, var = self.old_install()
+        path = self.settings({str(ini): {"toolsetter": {"touchZ": 300}}})
+        before = path.read_bytes(), var.read_bytes()
+        with patch.object(installer, "gateway_running", return_value=True):
+            with self.assertRaisesRegex(RuntimeError, "gateway"):
+                installer.install(ROOT, self.dest, self.backups, settings_path=path)
+        self.assertEqual((path.read_bytes(), var.read_bytes()), before, "nothing written")
+
+    def test_xz04_the_datum_is_the_kins_rotation_point_not_the_machine_name(self):
+        ini, var = self.old_install()
+        ini.write_text(ini.read_text().replace("MACHINE = 5 Axis XYZAC", "MACHINE = Operator XYZAC"))
+        self.install()
+        self.assertEqual(self.params(var)[5223], -220, "migrated on the FIRST run")
+        self.assertIn("setp xyzac-trt-kins.z-rot-point -500", ini.read_text())
+        self.assertIsNone(self.install(), "once")
+
+    def test_xz04_local_absolute_z_values_shift_instead_of_taking_the_template(self):
+        ini, var = self.old_install()
+        text = ini.read_text()
+        text = text.replace("MIN_LIMIT = 100", "MIN_LIMIT = 150").replace("MAX_LIMIT = 500", "MAX_LIMIT = 480")
+        text = text.replace("HOME = 500", "HOME = 480").replace("HOME_OFFSET = 500", "HOME_OFFSET = 480")
+        text = text.replace("HOME = 0 0 500 0 0", "HOME = 0 0 480 0 0")
+        text = text.replace("setp xyzac-trt-kins.z-rot-point 0", "setp xyzac-trt-kins.z-rot-point 0.0")
+        ini.write_text(text)
+        self.install()
+        config = installer.values(ini.read_text())
+        for section in ("AXIS_Z", "JOINT_2"):
+            self.assertEqual((config[section, "MIN_LIMIT"], config[section, "MAX_LIMIT"]), ("-350", "-20"),
+                             "a restricted window stays restricted — never widened to the template's")
+        self.assertEqual((config["JOINT_2", "HOME"], config["JOINT_2", "HOME_OFFSET"]), ("-20", "-20"))
+        self.assertEqual(config["TRAJ", "HOME"], "0 0 -20 0 0")
+        self.assertIn("setp xyzac-trt-kins.z-rot-point -500", ini.read_text())
+        self.assertIsNone(self.install(), "once")
+
+    def test_xz04_an_unknown_rotation_point_is_refused_before_anything_is_written(self):
+        ini, var = self.old_install()
+        ini.write_text(ini.read_text().replace("setp xyzac-trt-kins.z-rot-point 0", "setp xyzac-trt-kins.z-rot-point -250"))
+        before = {p: p.read_bytes() for p in self.dest.rglob("*") if p.is_file() and not p.is_symlink()}
+        with self.assertRaisesRegex(ValueError, "z-rot-point"):
+            self.install()
+        after = {p: p.read_bytes() for p in self.dest.rglob("*") if p.is_file() and not p.is_symlink()}
+        self.assertEqual(after, before, "nothing written")
+        self.assertFalse(self.backups.exists() and any(self.backups.iterdir()), "no backup either")
+
+    def test_xz05_the_unchanged_old_demo_is_updated_an_edited_one_kept_beside_the_new(self):
+        import hashlib
+        self.old_template_state()
+        demo = self.dest / "xyzac5/demo.ngc"
+        self.assertEqual(hashlib.sha256(demo.read_bytes()).hexdigest(), self.OLD_DEMO_SHA)
+        self.install()
+        self.assertEqual(demo.read_bytes(), (SOURCE / "xyzac5/demo.ngc").read_bytes(), "the unchanged shipped demo")
+        self.assertNotIn("G53 G0 Z500", demo.read_text())
+        # Edited locally: kept, the current one beside it, the operator told.
+        self.old_template_state()
+        demo.write_text(demo.read_text() + "(my edit)\n")
+        report = []
+        installer.install(ROOT, self.dest, self.backups, report=report)
+        self.assertTrue(demo.read_text().endswith("(my edit)\n"), "an edited program stays")
+        self.assertEqual((self.dest / "xyzac5/demo.new.ngc").read_bytes(), (SOURCE / "xyzac5/demo.ngc").read_bytes())
+        self.assertTrue(any("demo.new.ngc" in line for line in report), report)
+        # An already migrated install still carrying the old demo (the
+        # operator's, 2026-09-27) gets the current one too.
+        self.install()
+        demo.write_bytes(subprocess_show("xyzac5/demo.ngc"))
+        self.install()
+        self.assertEqual(demo.read_bytes(), (SOURCE / "xyzac5/demo.ngc").read_bytes())
 
     def test_a_current_install_is_left_alone(self):
         self.install()
