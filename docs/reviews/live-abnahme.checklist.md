@@ -8,7 +8,8 @@ Merge beider Branches nach `development`.
     [Review](ui-design-welle.implementation-review.md)).
   - Viewer-Kontrast: Plan-Agreement (Runde 2) und Implementierungs-Agreement V1–V6 (Runde 5,
     [Review](viewer-kontrast.review.md)).
-  - XYZAC-Z-Nullpunkt und M600 (`fix/xyzac-z0-m600`): Review R15 angefragt.
+  - XYZAC-Z-Nullpunkt und M600 (`fix/xyzac-z0-m600`): Review R15 mit fünf Befunden und zwei
+    Regelfragen, alles behoben; Runde R16 angefragt.
 - **Offline-Gates** (`python3 scripts/test_suite.py offline`):
   - Welle auf `15b46ff`: PASS, Playwright 282/282.
   - Kontrast auf `82418a7`: PASS, Backend 969, Vitest 1684, Playwright 292/292.
@@ -111,6 +112,8 @@ Merge beider Branches nach `development`.
 | Nach Home All | Z steht auf 0, alle Z-Werte der Maschine sind ≤ 0 |
 | → Home, → G30, → Zero | Z fährt zuerst nach oben, nie nach unten |
 | Tools → Measure Current | misst mit „Simulate probe“; die Länge wird gespeichert |
+| Probing → Toolsetter | Felder zeigen 150 / 0 / −300; nach „Reset Toolsetter“ sind die Pflichtfelder leer, der Hinweis nennt, was fehlt, und Measure Current ist gedimmt mit Grund („Toolsetter not set up“) |
+| Ohne Programm ein MDI-M600, das abbricht | kein Unterprogramm erscheint als geladenes Programm |
 | Programm mit M600 laden | keine Meldung „M-code greater than 199“ mehr |
 
 **Hinweise:**
@@ -120,10 +123,13 @@ Merge beider Branches nach `development`.
   Remap-Fehler. Geladen ist `kontur.ngc`.
 - Ein M600, der unter TCP mit Fehler oder Abbruch endet, bleibt in Identität; der Chip zeigt
   „Machine“.
-- Zwei Befunde gehen an Codex (R15), bevor ich sie behebe:
-  - Ohne gespeicherte Toolsetter-Werte schreibt die WebUI Nullen in die Maschine.
-  - Nach einem Fehler in einem MDI-Unterprogramm ohne geladenes Programm zeigt die WebUI das
-    Unterprogramm als geladenes Programm.
+- Behoben nach Codex' Regeln (R15):
+  - Toolsetter-Werte gehen nur noch eingerichtet und vom Server bestätigt an die Maschine;
+    jedes M600 aus der WebUI wartet auf ihre Übernahme.
+  - Ein abgebrochenes MDI-Unterprogramm wird nicht mehr zum geladenen Programm.
+  - Die Migration folgt der Herkunft, nicht den Zahlen. Dein G28 Z (aus meiner ersten
+    Migration −500) steht jetzt auf 0, die Demo ist aktuell.
+- Farben, Normen und andere CNC-Oberflächen: [Recherche](viewer-farben.recherche.md).
 
 ## Wenn alles passt — Merge (nur `development`, nie `main`)
 
