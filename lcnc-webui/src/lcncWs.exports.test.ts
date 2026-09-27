@@ -37,7 +37,7 @@ const REF_EXPORTS = [
 
 const FN_EXPORTS = [
   "acknowledgeSafetyTrip", "clearAllMessages", "connectWs", "dismissMessage",
-  "emitTelemetry", "getTimingCsv", "markMessagesRead", "nextReqId", "previewRefreshLabel", "pushMessage", "resetTimingStats",
+  "emitTelemetry", "getTimingCsv", "markMessagesRead", "nextReqId", "previewRefreshLabel", "pushMessage", "request", "resetTimingStats",
   "saveSettings", "send",
 ] as const;
 
