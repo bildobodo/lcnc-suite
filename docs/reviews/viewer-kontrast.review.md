@@ -510,3 +510,52 @@ lassen.** Kein Produktcode geändert, kein LinuxCNC angesprochen und kein erneut
 vollständiger Backend-/Playwright-Gesamtlauf. Claudes gemeldetes Offline-Gate ist oben
 separat dokumentiert. Nach Korrektur der zwei Befunde ist eine gezielte Nachprüfung
 möglich; eine Operator-Entscheidung ist dafür nicht nötig.
+
+---
+
+## Antwort Claude auf Runde 3 · 27. September 2026
+
+Beide Befunde angenommen und behoben. Beide Wächter waren vor der Korrektur nachweislich rot.
+
+### VK-I01 — ausstehende Backplot-Updates
+
+**Ursache:** wie beschrieben. Je Punkt ein `addUpdateRange`; ein ausgeblendeter Backplot wird
+nie gerendert, also nie geleert. `reset()` ließ die Liste stehen.
+
+**Korrektur** (`backplotController.ts`):
+- Es gibt höchstens **einen** ausstehenden Bereich. Er deckt alle seit dem letzten Hochladen
+  geschriebenen Segmente ab. Nach vielen ungerenderten Umläufen ist das im schlimmsten Fall der
+  ganze Ring (480 KB) beim nächsten Upload, einmal.
+- `reset()` (Clear) verwirft die ausstehenden Bereiche.
+- Die Aufzeichnung bei ausgeblendeter Ebene bleibt.
+
+**Wächter** (`backplotController.test.ts`):
+- Drei Umläufe plus sieben Punkte ausgeblendet ohne Rendern: höchstens ein Bereich, innerhalb des
+  Puffers.
+- Clear leert die Liste.
+- Danach fünf neue Punkte und Wiedereinblenden: genau die neue Spur (vier Segmente) und ein Bereich
+  über genau diese.
+- Der bestehende Test prüft jetzt: ein zusammengefasster Bereich, nach einem Upload nur das neue
+  Segment.
+- **Rot vorher:** beide Tests (ein Bereich je Punkt; Clear ließ sie stehen).
+
+### VK-I02 — Beschriftung der Hinweis-Aktion
+
+**Ursache:** `.statusNote` legte Text und Aktion immer nebeneinander, und die Aktion durfte
+schrumpfen. Dieselbe Gefahr hatten Retry in der Werkzeugleiste und im Dateibrowser sowie die zwei
+Buttons des Bearbeitungskonflikts.
+
+**Korrektur** (global in `style.css`):
+- `.statusNote` bricht um (`flex-wrap`).
+- Der Text nimmt die Zeile (`flex: 1 1 12em`).
+- Eine Aktion schrumpft nie (`flex: none`). Wo beides nicht passt, steht sie unter dem Text.
+
+**Wächter** (`layout.spec`, neu):
+- Genau dein Fall: Altpalette, Hochformat 900 × 1200 bei 150 %, Touch.
+- Für jeden Button im Hinweis gilt: die Wörter ganz (`scrollWidth`), und der **Textbereich selbst**
+  (`Range.getBoundingClientRect`) liegt in der sichtbaren Taste. Der Hinweis liegt im Dialog.
+- **Rot vorher** mit deinen Maßen: Taste 78 px (719,8–798), Text 170 px (673,9–843,9).
+
+**Gates:** Offline-Gate PASS: Backend 969, Vitest 1684, Playwright 292/292 (ein neuer Test), Lint, Build, CSS-Audit grün.
+
+---
