@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { ctl, MOCK } from "./ctl";
+import { encode } from "@msgpack/msgpack";
 
 // Design wave D8 (UI-K08 / K09, UI-D07): every text the operator reads
 // meets 4.5 : 1 against what is RENDERED behind it — in the four themes,
@@ -311,5 +312,198 @@ for (const pass of PASSES) {
     expect(r.width).toBeGreaterThanOrEqual(2);
     expect(r.isRole, "the ring is --focus-ring").toBe(true);
     for (const [surface, q] of Object.entries(r.ratios)) expect(q, `ring on ${surface}`).toBeGreaterThanOrEqual(3);
+  });
+}
+
+// Viewer contrast plan, V5 (WCAG 1.4.11): what identifies a control or a
+// floating card holds 3 : 1 against what lies next to it — the text passes
+// above measure words only. Active controls only (inactive UI is exempt).
+// - Cards over the 3D scene (.overlay-card, the warn variant too): the edge
+//   or the body against the scene — the page background AND the lit table
+//   (#e1e1e1, rendered), since a card floats over either.
+// - Switches: the edge or the track against the panel behind, the knob
+//   against the track, in both states.
+// - Icon glyphs in buttons: their colour against the button.
+// - Slider thumbs, from RENDERED PIXELS (a thumb is a pseudo-element no
+//   computed style reports): found along the slider's axis — horizontal or
+//   vertical — by the thumb's colour, then its centre pixel against the track
+//   beside it and the card across from it.
+// The viewer (scrub bar, simulation off and on), the strip (jog speed, the
+// vertical overrides) and Settings (its sliders and switches), five themes.
+const LIT_TABLE = "#e1e1e1";
+function nonText(args: { rootSel: string; scene: string[] }): { hits: string[]; checked: number } {
+  type RGB = [number, number, number];
+  type RGBA = [number, number, number, number];
+  const cv = document.createElement("canvas");
+  cv.width = cv.height = 1;
+  const cx = cv.getContext("2d", { willReadFrequently: true })!;
+  const rgba = (css: string): RGBA => {
+    cx.clearRect(0, 0, 1, 1); cx.fillStyle = "#000"; cx.fillStyle = css; cx.fillRect(0, 0, 1, 1);
+    const d = cx.getImageData(0, 0, 1, 1).data;
+    return [d[0]!, d[1]!, d[2]!, d[3]! / 255];
+  };
+  const over = (top: RGBA, under: RGB): RGB => [0, 1, 2].map(i => top[i]! * top[3] + under[i]! * (1 - top[3])) as RGB;
+  const lum = (c: RGB) => { const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+    return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+  const ratio = (a: RGB, b: RGB) => { const l = [lum(a), lum(b)].sort((x, y) => y - x); return (l[0]! + 0.05) / (l[1]! + 0.05); };
+  const rgb = (c: RGBA): RGB => [c[0], c[1], c[2]];
+  const scene = args.scene.map(s => rgb(rgba(s)));
+  const pageBg = rgb(rgba(getComputedStyle(document.body).backgroundColor));
+  /** What lies behind `el`: its ancestors' layers down to the first opaque one (a floating card: the scene). */
+  const behind = (el: Element | null): RGB[] => {
+    const layers: RGBA[] = [];
+    for (let e = el; e; e = e.parentElement) {
+      const c = rgba(getComputedStyle(e).backgroundColor);
+      if (c[3] >= 1) return [layers.reduceRight((b, l) => over(l, b), rgb(c))];
+      if (c[3] > 0) layers.push(c);
+      if (e.matches(".overlay-card")) return scene.map(s => layers.reduceRight((b, l) => over(l, b), s));
+    }
+    return [layers.reduceRight((b, l) => over(l, b), pageBg)];
+  };
+  const shown = (el: Element) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden"; };
+  const inactive = (el: Element) => !!el.closest("button:disabled, input:disabled, fieldset:disabled, [aria-disabled='true'], .btnTip");
+  const name = (el: Element) => `${el.tagName.toLowerCase()}.${[...el.classList].filter(c => !c.startsWith("data-v")).slice(0, 2).join(".")}`
+    + (el.getAttribute("aria-label") ? `[${el.getAttribute("aria-label")}]` : "");
+  const hits: string[] = [];
+  let checked = 0;
+  for (const root of document.querySelectorAll(args.rootSel)) {
+    for (const card of [root, ...root.querySelectorAll(".overlay-card")].filter(e => e.matches(".overlay-card") && shown(e))) {
+      checked++;
+      const cs = getComputedStyle(card);
+      const edge = rgba(cs.borderTopColor), body = rgba(cs.backgroundColor);
+      for (const s of scene) {
+        const q = Math.max(ratio(over(edge, s), s), ratio(over(body, s), s));
+        if (q < 3) hits.push(`${name(card)}: edge/body ${q.toFixed(2)} on the scene rgb(${s})`);
+      }
+    }
+    for (const t of root.querySelectorAll("input.toggle")) {
+      if (!shown(t) || inactive(t)) continue;
+      checked++;
+      const cs = getComputedStyle(t);
+      for (const back of behind(t.parentElement)) {
+        const track = over(rgba(cs.backgroundColor), back);
+        const edgeCss = /rgba?\([^)]*\)/.exec(cs.boxShadow)?.[0];
+        const edge = edgeCss ? over(rgba(edgeCss), back) : track;
+        const q = Math.max(ratio(edge, back), ratio(track, back));
+        if (q < 3) hits.push(`${name(t)}${(t as HTMLInputElement).checked ? " on" : " off"}: edge/track ${q.toFixed(2)} on its panel`);
+        const knob = over(rgba(getComputedStyle(t, "::after").backgroundColor), track);
+        const k = ratio(knob, track);
+        if (k < 3) hits.push(`${name(t)}${(t as HTMLInputElement).checked ? " on" : " off"}: knob ${k.toFixed(2)} on the track`);
+      }
+    }
+    for (const svg of root.querySelectorAll("button svg")) {
+      const btn = svg.closest("button")!;
+      if (!shown(svg) || inactive(btn)) continue;
+      checked++;
+      const colour = rgba(getComputedStyle(svg).color);
+      for (const back of behind(btn)) {
+        const q = ratio(over(colour, back), back);
+        if (q < 3) hits.push(`${name(btn)}: glyph ${q.toFixed(2)} on the button`);
+      }
+    }
+  }
+  return { hits, checked };
+}
+
+/** Slider thumbs from rendered pixels: each active range in `rootSel`. */
+async function thumbs(page: Page, rootSel: string): Promise<{ hits: string[]; checked: number }> {
+  const shot = await page.screenshot();
+  return page.evaluate(async ({ png, rootSel }) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${png}`;
+    await img.decode();
+    const cv = document.createElement("canvas");
+    cv.width = img.width; cv.height = img.height;
+    const cx = cv.getContext("2d", { willReadFrequently: true })!;
+    cx.drawImage(img, 0, 0);
+    const px = (x: number, y: number) => Array.from(cx.getImageData(Math.round(x), Math.round(y), 1, 1).data.slice(0, 3));
+    const lum = (c: number[]) => { const f = (v: number) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+      return 0.2126 * f(c[0]!) + 0.7152 * f(c[1]!) + 0.0722 * f(c[2]!); };
+    const ratio = (a: number[], b: number[]) => { const l = [lum(a), lum(b)].sort((x, y) => y - x); return (l[0]! + 0.05) / (l[1]! + 0.05); };
+    const probe = document.createElement("div");
+    probe.style.color = "var(--fg)"; document.body.append(probe);
+    const fg = getComputedStyle(probe).color.match(/\d+/g)!.slice(0, 3).map(Number); probe.remove();
+    const scale = img.width / window.innerWidth;
+    const hits: string[] = [];
+    let checked = 0;
+    for (const root of document.querySelectorAll(rootSel)) {
+      for (const input of root.querySelectorAll<HTMLInputElement>('input[type="range"]')) {
+        const r = input.getBoundingClientRect();
+        if (!r.width || !r.height || input.disabled || input.closest("fieldset:disabled")) continue;
+        // On screen and on top (not scrolled away inside a dialog, not covered).
+        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        if (!hit || !(hit === input || input.contains(hit))) continue;
+        checked++;
+        const vertical = r.height > r.width;
+        // The thumb overflows a thin track's box: the card lies beyond the larger of the two.
+        const thumbPx = parseFloat(getComputedStyle(input).getPropertyValue("--range-thumb")) || 20;
+        const len = (vertical ? r.height : r.width) * scale;
+        const at = (t: number, off = 0) => vertical
+          ? px((r.left + r.width / 2) * scale + off, r.top * scale + t)
+          : px(r.left * scale + t, (r.top + r.height / 2) * scale + off);
+        // The thumb: the longest run along the axis nearest the thumb colour.
+        let best = -1, bestD = Infinity;
+        for (let t = 1; t < len - 1; t++) { const c = at(t), d = Math.hypot(c[0]! - fg[0]!, c[1]! - fg[1]!, c[2]! - fg[2]!); if (d < bestD) { bestD = d; best = t; } }
+        let a = best, b = best;
+        const near = (t: number) => { const c = at(t); return Math.hypot(c[0]! - fg[0]!, c[1]! - fg[1]!, c[2]! - fg[2]!) < bestD + 40; };
+        while (a > 1 && near(a - 1)) a--;
+        while (b < len - 2 && near(b + 1)) b++;
+        const centre = at((a + b) / 2);
+        const trackT = a > len - b ? a - 3 * scale : b + 3 * scale;
+        const track = at(trackT);
+        const cross = (Math.max(vertical ? r.width : r.height, thumbPx) / 2 + 4) * scale;
+        const card = at((a + b) / 2, cross);
+        const what = `${input.getAttribute("aria-label") || input.className || "range"}`;
+        if (bestD > 60) { hits.push(`${what}: no thumb found (nearest ${bestD.toFixed(0)})`); continue; }
+        const qt = ratio(centre, track), qc = ratio(centre, card);
+        if (qt < 3) hits.push(`${what}: thumb ${qt.toFixed(2)} on its track rgb(${track})`);
+        if (qc < 3) hits.push(`${what}: thumb ${qc.toFixed(2)} on its card rgb(${card})`);
+      }
+    }
+    return { hits, checked };
+  }, { png: shot.toString("base64"), rootSel });
+}
+
+const NONTEXT_PREVIEW = Buffer.from(encode({ file: "/S.ngc", preview_schema: 9,
+  feed: Array.from({ length: 30 }, (_, i) => [i * 3, i % 2 ? 20 : 0, 0]),
+  feed_lines: Array.from({ length: 30 }, (_, i) => i + 3), feed_seq: Array.from({ length: 30 }, (_, i) => i + 3),
+  rapid: [[0, 0, 5], [0, 0, 0]], rapid_lines: [1, 2], rapid_seq: [1, 2] }));
+
+for (const pass of PASSES) {
+  test(`${pass}: controls and floating cards keep 3 : 1 where they meet what is next to them`, async ({ page }) => {
+    test.setTimeout(180_000);
+    await page.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: NONTEXT_PREVIEW }));
+    await ready(page, pass);
+    await expect(page.locator(".scrubBar")).toBeVisible();
+    const scene = async () => [await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--bg").trim()), LIT_TABLE];
+    const hits: string[] = [];
+    let checked = 0;
+    const take = async (surface: string, rootSel: string) => {
+      await page.waitForFunction(() => document.getAnimations().every(a =>
+        a.playState !== "running" || a.effect?.getComputedTiming().iterations === Infinity));
+      const r = await page.evaluate(nonText, { rootSel, scene: await scene() });
+      const t = await thumbs(page, rootSel);
+      expect(r.checked + t.checked, `${surface}: the pass saw controls`).toBeGreaterThan(0);
+      checked += r.checked + t.checked;
+      hits.push(...[...r.hits, ...t.hits].map(h => `${surface}: ${h}`));
+    };
+    await take("viewer", ".viewerPane .overlay-card, .viewerPane .scrubBar");
+    await take("strip", ".strip");
+    // Simulation on (a stopped machine): the switch's on state, the warn banner.
+    await ctl({ op: "status_delta", data: { is_enabled: false, enabled: false } });
+    await page.locator(".scrubBar input.toggle").check();
+    await expect(page.locator(".simBanner")).toBeVisible();
+    await take("viewer, simulating", ".viewerPane .overlay-card, .viewerPane .scrubBar");
+    await page.locator(".scrubBar input.toggle").uncheck();
+    await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true } });
+    // Settings: the 3D Viewer area's switches and sliders.
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    const settings = page.getByRole("dialog", { name: /Settings/ });
+    await expect(settings).toBeVisible();
+    await settings.getByRole("tab", { name: "3D Viewer", exact: true }).click();
+    await take("Settings / 3D Viewer", '[role="dialog"]');
+    await settings.getByRole("tab", { name: "Display", exact: true }).click();
+    await take("Settings / Display", '[role="dialog"]');
+    expect(hits, `${pass}: ${checked} controls checked`).toEqual([]);
   });
 }

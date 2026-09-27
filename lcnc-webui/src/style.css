@@ -46,6 +46,12 @@
   --fg: #213547;
   --panel: #f5f5f5;
   --border: rgba(0,0,0,0.12);
+  /* A control's or a floating card's edge (viewer contrast plan, V5): >= 3 : 1
+     against what lies next to it — the card's scene, a switch's panel. */
+  --control-edge: #7a7a7a;
+  /* A switch's knob on its --info track, >= 3 : 1 (V5): the light --fg knob
+     sat at 2.4 : 1 on the dark themes' blue. */
+  --control-knob-on: #213547;
   --border-subtle: color-mix(in oklab, var(--border) 50%, transparent);
   --button-bg: #f9f9f9;
 
@@ -301,6 +307,12 @@
     --fg: #e6edf3;
     --panel: #121821;
     --border: rgba(255,255,255,0.12);
+    /* A control's or a floating card's edge (viewer contrast plan, V5): >= 3 : 1
+       against what lies next to it — the card's scene, a switch's panel. */
+    --control-edge: #626b78;
+    /* A switch's knob on its --info track, >= 3 : 1 (V5): the light --fg knob
+       sat at 2.4 : 1 on the dark themes' blue. */
+    --control-knob-on: #0b0f14;
     --border-subtle: color-mix(in oklab, var(--border) 50%, transparent);
     --button-bg: #1a1a1a;
     --fg-muted: #999fa5;
@@ -338,6 +350,12 @@
   --fg: #213547;
   --panel: #f5f5f5;
   --border: rgba(0,0,0,0.12);
+  /* A control's or a floating card's edge (viewer contrast plan, V5): >= 3 : 1
+     against what lies next to it — the card's scene, a switch's panel. */
+  --control-edge: #7a7a7a;
+  /* A switch's knob on its --info track, >= 3 : 1 (V5): the light --fg knob
+     sat at 2.4 : 1 on the dark themes' blue. */
+  --control-knob-on: #213547;
   --button-bg: #f9f9f9;
   --fg-muted: #525e6a;
   --ok-text: #006c00;
@@ -372,6 +390,12 @@
   --fg: #e6edf3;
   --panel: #121821;
   --border: rgba(255,255,255,0.12);
+  /* A control's or a floating card's edge (viewer contrast plan, V5): >= 3 : 1
+     against what lies next to it — the card's scene, a switch's panel. */
+  --control-edge: #626b78;
+  /* A switch's knob on its --info track, >= 3 : 1 (V5): the light --fg knob
+     sat at 2.4 : 1 on the dark themes' blue. */
+  --control-knob-on: #0b0f14;
   --border-subtle: color-mix(in oklab, var(--border) 50%, transparent);
   --button-bg: #1a1a1a;
   --fg-muted: #999fa5;
@@ -408,6 +432,12 @@
   --fg: #000000;
   --panel: #f0f0f0;
   --border: rgba(0,0,0,0.45);
+  /* A control's or a floating card's edge (viewer contrast plan, V5): >= 3 : 1
+     against what lies next to it — the card's scene, a switch's panel. */
+  --control-edge: #595959;
+  /* A switch's knob on its --info track, >= 3 : 1 (V5): the light --fg knob
+     sat at 2.4 : 1 on the dark themes' blue. */
+  --control-knob-on: #000000;
   --border-subtle: color-mix(in oklab, var(--border) 50%, transparent);
   --button-bg: #ffffff;
   --ok: #0a7a0a;
@@ -452,6 +482,12 @@
   --fg: #ffffff;
   --panel: #0a0a0a;
   --border: rgba(255,255,255,0.45);
+  /* A control's or a floating card's edge (viewer contrast plan, V5): >= 3 : 1
+     against what lies next to it — the card's scene, a switch's panel. */
+  --control-edge: #8c8c8c;
+  /* A switch's knob on its --info track, >= 3 : 1 (V5): the light --fg knob
+     sat at 2.4 : 1 on the dark themes' blue. */
+  --control-knob-on: #000000;
   --border-subtle: color-mix(in oklab, var(--border) 50%, transparent);
   --button-bg: #111111;
   --ok: #33dd33;
@@ -759,6 +795,10 @@ input.toggle {
   border-radius: var(--radius-pill);
   background: var(--border);
   border: none;
+  /* The switch's extent in both states (viewer contrast plan, V5): the off
+     track (--border) sat at 1.3 : 1 on its panel, so the knob's side said
+     nothing — an inset edge at 3 : 1 that adds no layout. */
+  box-shadow: inset 0 0 0 1px var(--control-edge);
   position: relative;
   cursor: pointer;
   transition: background 0.2s;
@@ -784,6 +824,7 @@ input.toggle:checked {
 
 input.toggle:checked::after {
   transform: translateX(16px);
+  background: var(--control-knob-on);
 }
 
 input.toggle:disabled {
@@ -1981,7 +2022,10 @@ label:has(input:disabled, select:disabled) {
   /* 92 %: the scene shows through, and the card's text keeps 4.5 : 1 with
      foreground-dark geometry behind it (contrast.spec composites both). */
   background: color-mix(in oklab, var(--panel) 92%, transparent);
-  border: 1px solid var(--border);
+  /* The edge holds 3 : 1 against the scene behind the card (viewer contrast
+     plan, V5, the operator's "outline"): a light card on the lit table or
+     the white background had a 1.4 : 1 rim and blurred into the model. */
+  border: 1px solid var(--control-edge);
   border-radius: var(--radius-xl);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
@@ -1990,7 +2034,8 @@ label:has(input:disabled, select:disabled) {
    chrome for every "attention" overlay on the viewer. */
 .overlay-card.warn {
   background: color-mix(in oklab, var(--warn) var(--tint-active), var(--panel));
-  border-color: var(--warn);
+  /* The warn text's role, not the warn fill: #f5a623 held 2 : 1 on white. */
+  border-color: var(--warn-text);
   color: var(--warn-text);
 }
 
