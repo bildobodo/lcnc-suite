@@ -59,7 +59,7 @@ export {
 // previewLoadError is surfaced in App.vue's status banner so the operator
 // sees "preview is stale" rather than a possibly outdated toolpath.
 export {
-  viewerInit, viewerGcode, toolTableVersion, gcodeContent, gcodeRevision, gcodeTextRevision, previewLoadError, previewParseError,
+  viewerInit, viewerGcode, toolTableVersion, gcodeContent, gcodeRevision, gcodeTextRevision, gcodeTextSource, previewLoadError, previewParseError,
   previewRefusal,
   type ViewerPart, type KinematicsList, type ViewerInit, type ViewerGcode,
 } from "./ws/bulkData";

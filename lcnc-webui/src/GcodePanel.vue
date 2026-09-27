@@ -52,6 +52,9 @@ const props = defineProps<{
   // its fetch lands) — see ws/bulkData.ts (UI-DI05).
   programRevision: string;
   programTextRevision: string;
+  // The fingerprint of the displayed text (X-Program-Source) — Run from line
+  // is bound to it (Codex R17 XZ-07).
+  programTextSource: string;
   gcodeStats: GcodeStats | null;
   // Soft-limit violations from the parse worker (null = unchecked — the INI
   // had no limits, or no program is loaded; [] = checked clean).
@@ -585,9 +588,11 @@ function onStartClick() {
 
 function confirmRunFromLine() {
   // The program the dialog showed — the gateway refuses the run if it is no
-  // longer the loaded one at this version (Codex R16 XZ-07).
-  const program = revisionParts(props.programTextRevision);
-  if (!selectedLine.value || rflBlocked.value || programLoading.value || !program) return;
+  // longer the loaded one at this version, or its text changed on disk
+  // (Codex R16/R17 XZ-07).
+  const parts = revisionParts(props.programTextRevision);
+  if (!selectedLine.value || rflBlocked.value || programLoading.value || !parts) return;
+  const program = { ...parts, source: props.programTextSource };
   const mach = loadMachineDefaults();
   if (mach.rflSafeZ !== dialogSafeZ.value) {
     saveMachineDefaults({ ...mach, rflSafeZ: dialogSafeZ.value });

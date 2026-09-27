@@ -8,7 +8,7 @@ import { semanticKinsMode } from "./viewer/kins";
 import { runLineState, subExecState, resolveCurrentLine } from "./trackHighlight";
 import { clearSubfileCache } from "./lcncApi";
 import { mainLinesTrusted, type ScrubTrack } from "./viewer/scrubTrack";
-import { connectWs, connected, status, send, request, armed, lastReply, viewerGcode, viewerInit, gcodeContent, gcodeRevision, gcodeTextRevision, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, previewRefusal, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, serverShuttingDown, type LcncMessage } from "./lcncWs";
+import { connectWs, connected, status, send, request, armed, lastReply, viewerGcode, viewerInit, gcodeContent, gcodeRevision, gcodeTextRevision, gcodeTextSource, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, previewRefusal, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, serverShuttingDown, type LcncMessage } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
 // chunk after first paint instead of blocking the initial bundle (P6). The viewerRef
 // methods are all `?.`-guarded, so calls during the brief load gap safely no-op.
@@ -1525,6 +1525,7 @@ function runFromLine(opts: import("./gcodeRfl").RflRunOptions) {
     line: opts.line,
     file: opts.program.file,
     version: opts.program.version,
+    source: opts.program.source,
     spindle_dir: opts.spindleDir !== "off" ? opts.spindleDir : undefined,
     spindle_speed: opts.spindleDir !== "off" ? opts.spindleSpeed : undefined,
     // RFL × M600 guard: measure this tool via MDI first (gateway bg sequence),
@@ -1971,6 +1972,7 @@ watch(viewerGcode, (newGcode) => {
               :gcodeContent="gcodeContent"
               :programRevision="gcodeRevision"
               :programTextRevision="gcodeTextRevision"
+              :programTextSource="gcodeTextSource"
               :gcodeStats="gcodeStats"
               :violations="gcodeViolations"
               :violationsTotal="gcodeViolationsTotal"

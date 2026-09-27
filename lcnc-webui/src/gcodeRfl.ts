@@ -179,10 +179,12 @@ export interface RflRunOptions {
   preTool: number;                 // 0 = no pre-measurement
   safeZ: boolean;
   entry: RflEntryScan | null;      // null = preamble unavailable/not needed
-  /** The program the dialog showed: its path and the published preview
-   *  version of the displayed text. The gateway refuses an auto_run whose
-   *  program is no longer the loaded one at that version (Codex R16 XZ-07). */
-  program: { file: string; version: number };
+  /** The program the dialog showed: its path, the published preview
+   *  version of the displayed text and that text's fingerprint (GET /gcode's
+   *  X-Program-Source). The gateway refuses an auto_run whose program is no
+   *  longer the loaded one at that version, or whose text changed on disk
+   *  (Codex R16/R17 XZ-07). */
+  program: { file: string; version: number; source: string };
 }
 
 /** bulkData's revision "<file>#<version>" → its parts; null for none. */

@@ -26,7 +26,7 @@ class FakeWorker {
 (globalThis as any).Worker = FakeWorker;
 
 const {
-  fetchCompGrid, fetchSurfacePoints, gcodeContent, gcodeRevision, gcodeTextRevision,
+  fetchCompGrid, fetchSurfacePoints, gcodeContent, gcodeRevision, gcodeTextRevision, gcodeTextSource,
   handleToolTableChanged, handleViewerGcode, handleViewerGcodeReady, handleViewerInit,
   previewLoadError, resetBulkVersionsOnClose, toolTableVersion, viewerGcode, viewerInit,
   previewSchemaMismatch, EXPECTED_PREVIEW_SCHEMA, parseTloMismatch, previewRefusal,
@@ -279,6 +279,27 @@ describe("preview worker channel", () => {
     await flush();
     expect(gcodeContent.value).toBeNull();
     expect(gcodeTextRevision.value).toBe("/nc/part.ngc#41");
+  });
+
+  it("the displayed text carries the fingerprint GET /gcode named for it (Codex R17 XZ-07)", async () => {
+    fetchImpl = () => Promise.resolve(new Response("G0 X30", { status: 200, headers: { "X-Program-Source": "ab12" } }));
+    handleViewerGcodeReady({ version: 50, file: "/nc/part.ngc" });
+    await flush();
+    expect([gcodeContent.value, gcodeTextSource.value, gcodeTextRevision.value]).toEqual(["G0 X30", "ab12", "/nc/part.ngc#50"]);
+    // No text, no fingerprint: a failed fetch, a response without one, no program.
+    fetchImpl = () => httpError(503);
+    handleViewerGcodeReady({ version: 51, file: "/nc/part.ngc" });
+    await flush();
+    expect(gcodeTextSource.value).toBe("");
+    fetchImpl = () => Promise.resolve(new Response("G0 X31", { status: 200 }));
+    handleViewerGcodeReady({ version: 52, file: "/nc/part.ngc" });
+    await flush();
+    expect(gcodeTextSource.value).toBe("");
+    fetchImpl = () => Promise.resolve(new Response("G0 X30", { status: 200, headers: { "X-Program-Source": "ab12" } }));
+    handleViewerGcodeReady({ version: 53, file: "/nc/part.ngc" });
+    await flush();
+    handleViewerGcodeReady({ version: 54, file: null });
+    expect(gcodeTextSource.value).toBe("");
   });
 
   it("stale worker reply is dropped; current version applies with markRaw", () => {

@@ -39,10 +39,14 @@ async function sent(): Promise<{ cmd?: string; text?: string; line?: number }[]>
 }
 const count = async (cmd: string) => (await sent()).filter(c => c.cmd === cmd).length;
 
+// The fingerprint GET /gcode names for the text it serves (Codex R17 XZ-07).
+const SOURCE_A = "a".repeat(64), SOURCE_M = "m".repeat(64);
+
 async function ready(page: Page, settings: Record<string, unknown> = {}) {
   await ctl({ op: "reset" });
   await page.setViewportSize({ width: 1600, height: 1000 });
-  await page.route("**/gcode?*", route => route.fulfill({ contentType: "text/plain", body: PROGRAM }));
+  await page.route("**/gcode?*", route => route.fulfill({ contentType: "text/plain", body: PROGRAM,
+    headers: { "X-Program-Source": SOURCE_A } }));
   await page.goto(MOCK);
   await expect(page.locator("input.setupInput").first()).toBeVisible();
   await ctl({ op: "status_delta", data: { active_file: "/A.ngc", homed: [1, 1, 1], permissions: PERMS_ALL } });
@@ -105,10 +109,12 @@ test("Run from line: Start only opens the dialog on a tap; the dialog's action i
   await page.waitForTimeout(300);
   expect(await count("auto_run"), "a tap on the action runs nothing").toBe(0);
   await press(page, run, HOLD_MS);
-  // Bound to what the dialog showed (Codex R16 XZ-07): the gateway refuses
-  // an auto_run whose program or text revision is no longer the loaded one.
+  // Bound to what the dialog showed (Codex R16/R17 XZ-07): the gateway
+  // refuses an auto_run whose program, text revision or text is no longer
+  // the loaded one.
   await expect.poll(async () => (await sent()).filter(c => c.cmd === "auto_run")
-    .map(c => [c.line, (c as { file?: string }).file, (c as { version?: number }).version])).toEqual([[3, "/A.ngc", 700]]);
+    .map(c => [c.line, (c as { file?: string }).file, (c as { version?: number }).version,
+      (c as { source?: string }).source])).toEqual([[3, "/A.ngc", 700, SOURCE_A]]);
 });
 
 test("Run from line with a pre-measurement is ONE auto_run carrying the toolsetter's values and its program — nothing waits in the browser (Codex R16 XZ-07)", async ({ page }) => {
@@ -116,7 +122,8 @@ test("Run from line with a pre-measurement is ONE auto_run carrying the toolsett
   await ready(page, { machine: { runFromLine: true, rflSpindleDir: "off" },
     toolsetter: { touchX: 0, touchY: 0, touchZ: -300, fastFeed: 200, slowFeed: 20, traverseFeed: 500,
                   maxZTravel: 180, retractDist: 2, spindleZeroHeight: 180 } });
-  await page.route("**/gcode?*", route => route.fulfill({ contentType: "text/plain", body: WITH_M600 }));
+  await page.route("**/gcode?*", route => route.fulfill({ contentType: "text/plain", body: WITH_M600,
+    headers: { "X-Program-Source": SOURCE_M } }));
   await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 701, file: "/A.ngc" } });
   await expect(page.locator(".codeLine").first()).toContainText("(program M)");
   await ctl({ op: "clearCmds" });
@@ -126,7 +133,7 @@ test("Run from line with a pre-measurement is ONE auto_run carrying the toolsett
   await press(page, dialog.getByRole("button", { name: "Measure T5 + Run from Line 5", exact: true }), HOLD_MS);
   await expect.poll(async () => (await sent()).map(c => c.cmd)).toEqual(["auto_run"]);
   const [run] = await sent() as { [k: string]: unknown }[];
-  expect(run).toMatchObject({ line: 5, pre_tool: 5, file: "/A.ngc", version: 701, entry_x: 11, entry_y: 20 });
+  expect(run).toMatchObject({ line: 5, pre_tool: 5, file: "/A.ngc", version: 701, source: SOURCE_M, entry_x: 11, entry_y: 20 });
   expect(run.probe_vars).toMatchObject({ "3102": -300, "3004": 200 });
   // Another program arriving now changes nothing that was sent.
   await ctl({ op: "status_delta", data: { active_file: "/B.ngc" } });

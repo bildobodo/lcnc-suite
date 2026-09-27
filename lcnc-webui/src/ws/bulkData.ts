@@ -554,6 +554,11 @@ export const gcodeRevision = ref("");
 // The revision whose text `gcodeContent` holds — set when the fetch lands
 // (or fails). While it lags `gcodeRevision` the displayed text is stale.
 export const gcodeTextRevision = ref("");
+// The fingerprint GET /gcode named for exactly that text (X-Program-Source,
+// the sha256 of the bytes served) — "" while there is none. Run from line is
+// bound to it (Codex R17 XZ-07): the version moves only after a re-parse, so
+// a file rewritten since the publication still carries the old version.
+export const gcodeTextSource = ref("");
 
 // Per-channel load errors so a success on one fetch channel can't clear a real
 // error on another (the three channels are independent HTTP fetches). The
@@ -681,6 +686,7 @@ function _applyGcodeFile(nextFile: string | null, version = -1) {
   if (_gcodeFetchAbort) { _gcodeFetchAbort.abort(); _gcodeFetchAbort = null; }
   if (!nextFile) {
     gcodeContent.value = null;
+    gcodeTextSource.value = "";
     gcodeTextRevision.value = rev;
     return;
   }
@@ -692,10 +698,13 @@ function _applyGcodeFile(nextFile: string | null, version = -1) {
   // header, so a same-path refetch could otherwise be served from cache. The
   // gateway ignores the unknown query param.
   fetch(`/gcode?path=${encodeURIComponent(target)}&v=${ver}`, { signal: ac.signal })
-    .then(r => r.ok ? r.text() : Promise.reject(new Error(`HTTP ${r.status}`)))
-    .then(text => {
+    .then(r => r.ok
+      ? r.text().then(text => ({ text, source: r.headers.get("X-Program-Source") ?? "" }))
+      : Promise.reject(new Error(`HTTP ${r.status}`)))
+    .then(({ text, source }) => {
       if (_gcodeContentFile === target && _gcodeContentVersion === ver) {
         gcodeContent.value = text;
+        gcodeTextSource.value = source;
         gcodeTextRevision.value = rev;
       }
     })
@@ -704,6 +713,7 @@ function _applyGcodeFile(nextFile: string | null, version = -1) {
         console.error("GET /gcode failed", err);
         if (_gcodeContentFile === target && _gcodeContentVersion === ver) {
           gcodeContent.value = null;
+          gcodeTextSource.value = "";
           gcodeTextRevision.value = rev;
         }
       }

@@ -41,7 +41,7 @@ export type WsCommand =
   | { cmd: "unhome_all" }
   // Program execution
   | { cmd: "cycle_start" }
-  | { cmd: "auto_run"; line: number; file: string; version: number; spindle_dir?: string; spindle_speed?: number; pre_tool?: number; probe_vars?: Record<string, number>; safe_z?: boolean; entry_x?: number; entry_y?: number; entry_wcs?: string; entry_units?: string }
+  | { cmd: "auto_run"; line: number; file: string; version: number; source: string; spindle_dir?: string; spindle_speed?: number; pre_tool?: number; probe_vars?: Record<string, number>; safe_z?: boolean; entry_x?: number; entry_y?: number; entry_wcs?: string; entry_units?: string }
   | { cmd: "auto_step" }
   | { cmd: "cycle_pause" }
   | { cmd: "cycle_resume" }
