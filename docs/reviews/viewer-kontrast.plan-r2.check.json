@@ -1,0 +1,24 @@
+{
+  "head": "88fb021280df1539cb845657cbd998e08ce9e225",
+  "scope": "Plan Fassung 2; numeric and pair-table verification, no rendered images",
+  "pair_table": {
+    "section": "R1 only (context also lists historical pairs)",
+    "expected": 15,
+    "present": 15,
+    "missing": [],
+    "duplicates": false
+  },
+  "unchanged_r1_palette_results": true,
+  "hc_light_path_bounds": {
+    "proposed": "#014f0a",
+    "machine_bounds": "#333d4a",
+    "normal_distance_to_machine_bounds": 0.13300698669415725,
+    "change_from_old": 0.025786095469262044,
+    "opaque_contrast": {
+      "background": 9.886696537412293,
+      "table_test": 7.489447661243915,
+      "table_measured": 7.560424794611618
+    }
+  },
+  "method": "Reuses unchanged r1 probe math (imported without changing prior evidence); checks current plan R1 pair table."
+}

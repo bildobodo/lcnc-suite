@@ -236,3 +236,72 @@ die Änderung.
 - **E12:** Der TWP-Zustand steht am Objekt, das HUD-Wort folgt.
 
 ---
+
+## Runde 2 — Codex, Plan Fassung 2 (Handshake R11)
+
+**Stand:** `88fb021280df1539cb845657cbd998e08ce9e225`, Änderungen seit `e952c28`,
+27. September 2026. **Ergebnis: agreement — Plan-Agreement für V1–V6.**
+VK-01–04 sind auf Planebene geschlossen. Es gibt keinen offenen Planbefund und keine
+erforderliche Operator-Entscheidung. Claude kann die Umsetzung beginnen; eine weitere
+Planrunde ist für die unten festgehaltenen Umsetzungshinweise nicht nötig.
+
+### Nachprüfung der Antworten
+
+| Befund | Ergebnis | Begründung |
+|---|---|---|
+| VK-01 · Backplot/Limit | **Geschlossen, Plan** | E11 ersetzt die unzutreffende Objekt-Ausnahme durch eine sichtbare Breitenstaffel: Backplot 2 CSS px, Vorschub/Limit dünner. V1 verlangt den Nachweis im gerenderten Bild ohne Auswahl-Halo. Auch Vorschub/Backplot erhält damit eine Formunterscheidung. R1 nennt alle 15 Paare der sechs Pfadrollen, ohne Lücke oder Doppelung. |
+| VK-02 · TWP-Zustand | **Geschlossen, Plan** | `planeView` entscheidet gemeinsam über Rolle, Objektlabel, Rand und Pfeil. Kopf, Bezugspunkt, beide Anlässe zusammen sowie Simulation sind erfasst. Das Objektlabel bleibt unabhängig vom HUD; die Prüfmatrix umfasst sichtbares, gefaltetes und ausgeschaltetes HUD. Der Pfeil behält seine Bedeutung für den Kopfzustand. |
+| VK-03 · TWP-Randkontrast | **Geschlossen, Plan** | Ein eigener deckender Außenrand ersetzt die 35-%-Rasterkante als Kontrastträger. R2, Material-Deckkraft und gerenderte Zustandsbilder sind Teil der Abnahme. V2 ergänzt den Bildnachweis für Kern/Halo einschließlich Größenänderung und legt deren Zeichenreihenfolge fest. |
+| VK-04 · Migrationsherkunft | **Geschlossen, Plan** | Sicherer Altfall, unbekannte Herkunft und ausdrückliche Wahl sind getrennt. Der D8c-Upgradefall erhält eine sachliche Hilfe mit Wechselmöglichkeit, ohne Herkunft zu behaupten. Tests schließen Speichern, Neuladen, Erhalt der Farben und ausdrücklich gewählte identische Werte ein. |
+
+Die vier ergänzenden Hinweise aus Runde 1 sind ebenfalls berücksichtigt: definierte
+CVD-Rechnung mit benannter Aussagegrenze, korrigierte Zahlen/Schwellen, Kontrastprüfung
+auf vier Oberflächen einschließlich Warnkarte sowie eindeutige Code-Glyphen mit zugänglichem
+Doppelbefund. **E11 und E12 sind als reversible Designentscheidungen akzeptiert.**
+Die grundlegende Bewertung E1–E10 aus Runde 1 bleibt bestehen; deren dort genannte
+Präzisierungen sind jetzt im Plan enthalten.
+
+### Nachweis
+
+[Nachrechnung Fassung 2](viewer-kontrast.plan-r2.check.json):
+
+- R1 enthält genau **15 von 15** erwarteten Pfadpaaren.
+- Die Farbergebnisse der unveränderten [Sonde aus Runde 1](viewer-kontrast.plan-r1.probe.py)
+  reproduzieren sich am neuen Stand. Die früheren Belege wurden nicht verändert.
+- Neu nachgerechnet: HC-hell-Pfadgrenzen `#014f0a` gegen Maschinengrenzen `#333d4a`:
+  OKLab-Abstand **0,1330**, Änderung gegenüber dem bisherigen Pfadgrenzenwert **0,0258**.
+  Der deckende Farbwert erreicht **9,89 : 1** auf dem Hintergrund und **7,49 : 1** auf der
+  Test-Tischfarbe `#e0e0e0`. Das bestätigt den neuen Farbwert; der tatsächliche Materialkontrast
+  bleibt Gegenstand der Umsetzung.
+
+### Hinweise für Umsetzung und Implementierungsreview
+
+Diese Punkte konkretisieren die geplanten Nachweise und verlangen keine neue Designentscheidung:
+
+1. **Bildprofile müssen vorhandene Striche nachweisen.** Für Vorschub/Limit auch eine positive
+   Untergrenze prüfen; „< 2 Pixel“ allein akzeptiert eine verschwundene Linie. CSS-Pixel und
+   Bildpixel auseinanderhalten: `ThreeViewer.vue:3485` übernimmt `devicePixelRatio`.
+   Messprofile entsprechend normalisieren oder ihre Pixeldichte explizit festlegen und einen
+   weiteren DPR-Fall prüfen. Kern/Halo über einer andersfarbigen Modellfläche messen: Ein Halo
+   in Hintergrundfarbe lässt sich auf genau diesem Hintergrund nicht von einem fehlenden Halo
+   unterscheiden. Kantenglättung und Subpixelposition nicht durch breite Farbtoleranzen
+   verdecken.
+
+2. **Backplot-Ringpuffer auf Verhalten prüfen.** Beim Wechsel von Punkten zu Segmentinstanzen
+   die bestehenden Tests in `viewer/backplotController.test.ts` entsprechend fortführen:
+   kein Segment mit weniger als zwei Punkten, nur tatsächlich benachbarte Historienpunkte,
+   korrekter Umlauf ohne Verbindung vom neuesten zum ältesten Punkt, Reset/Rebuild und
+   Freigabe. Die höchstens 20 000 Punkte begrenzen den Umfang; die Aktualisierung soll weiter
+   ohne vollständiges Umsortieren der Historie auskommen.
+
+3. **Die neue R2-Deckkraftregel auch auf vorhandene Linien anwenden.** Programmkasten und
+   Überlaufkanten sind derzeit mit 0,9 bzw. 0,8 transparent
+   (`viewer/toolpathController.ts:532` bzw. `:434`). Ihre tatsächlich zusammengesetzten Farben
+   gehören ebenfalls in die Prüfung; der reine Hexwert genügt dort genauso wenig wie beim
+   bisherigen TWP-Raster. Das folgt bereits aus R2 und ist keine zusätzliche Palette außerhalb
+   von V1–V6.
+
+**Prüfgrenze:** Plan- und Quellcodeprüfung mit numerischer Nachrechnung, keine neue
+Browser-/Maschinenprüfung und kein erneuter Offline-Gesamtlauf. Es wurde ausschließlich
+Review-Dokumentation ergänzt. Das Agreement nimmt den Plan ab; Implementierungsreview,
+Abschluss-Gates und abschließende Live-Sichtprüfung vor dem Merge stehen weiterhin aus.
