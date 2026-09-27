@@ -9,8 +9,8 @@ Merge beider Branches nach `development`.
   - Viewer-Kontrast: Plan-Agreement (Runde 2) und Implementierungs-Agreement V1–V6 (Runde 5,
     [Review](viewer-kontrast.review.md)).
   - XYZAC-Z-Nullpunkt und M600 (`fix/xyzac-z0-m600`): Review R15 mit fünf Befunden und zwei
-    Regelfragen, alles behoben; Review R16 mit fünf Befunden und R17 mit drei Befunden, alles
-    behoben; Runde R18 angefragt.
+    Regelfragen, alles behoben; Review R16 mit fünf Befunden, R17 mit drei und R18 mit zwei
+    Befunden, alles behoben; Runde R19 angefragt.
 - **Offline-Gates** (`python3 scripts/test_suite.py offline`):
   - Welle auf `15b46ff`: PASS, Playwright 282/282.
   - Kontrast auf `82418a7`: PASS, Backend 969, Vitest 1684, Playwright 292/292.
@@ -123,6 +123,7 @@ Merge beider Branches nach `development`.
 | Dasselbe, Abort während der Messung | die Folge endet, das Programm startet nicht |
 | Programm im Editor ändern und speichern, dann Run from line mit dem noch offenen Dialog | abgewiesen („Program changed …“); nach der neuen Vorschau erneut bestätigen, dann läuft es |
 | Run from line mit Vormessung, zweimal Abort während des Positionierens | die Folge endet; die nächste Vormessung misst wirklich (die Sonde fährt an) |
+| Run from line mit Vormessung, Abort beim Positionieren, sofort Cycle Start | abgewiesen („Run from line is ending — wait“); kurz danach startet das Programm und misst sein Werkzeug wirklich |
 | Oben im Banner „Program not confirmed“ | erscheint nur, wenn ein neu gestartetes Gateway keinen eigenen Ladeeintrag hat; „Load program“ lädt die genannte Datei und das Banner verschwindet |
 
 **Hinweise:**
@@ -152,6 +153,12 @@ Merge beider Branches nach `development`.
     erst, wenn die Änderung beobachtet ist.
   - Ein Abbruch hinterlässt keine hängende Sperre, und ein altes Überspringen-Flag kann keine
     Messung mehr überspringen.
+- Behoben nach Codex' Befunden (R18):
+  - Auch ein normaler Start (Cycle Start, Step, MDI, Werkzeugwechsel) übernimmt kein altes
+    Überspringen-Flag: Solange Run from line endet, wartet er; sonst setzt er das Flag zuerst
+    zurück, wenn das Gateway nicht sicher weiß, dass es 0 ist.
+  - Ein abgebrochenes oder nicht beobachtetes Laden oder Entladen bestätigt nie mehr das alte
+    Programm; die offene Datei steht dann als unbestätigt im Banner („Load program“).
 - Farben, Normen und andere CNC-Oberflächen: [Recherche](viewer-farben.recherche.md).
 
 ## Wenn alles passt — Merge (nur `development`, nie `main`)
