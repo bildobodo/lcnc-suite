@@ -69,7 +69,14 @@ by −500 — the INI's own Z window, homes and pin (a local limit stays a local
 limit), G54…G59.3 Z, G28/G30 Z, the saved joint Z and the toolsetter Z in the
 var file and in the WebUI's settings — so program zero stays where it was
 touched off; G92, tool lengths and distances stay. A G28/G30 Z that was
-outside the travel (never reachable) becomes the top of travel. The unchanged
+outside the travel (never reachable) becomes the top of travel. The toolsetter
+position #3100–#3102 moves with the datum too — also 0/0/0 when the WebUI saved
+no toolsetter for this INI (the installer cannot tell the WebUI's old fallback
+zeros from a position set directly, so it keeps the point and says what to
+check); only the old example's unchanged 10/10/−180 is replaced by the
+current one, reported. A var or position file missing from the installation
+is seeded from the example with THIS INI's home and top of travel (a lowered
+window kept by the migration starts inside it). The unchanged
 old demo is replaced; an edited one is kept and the current one is put beside
 it (`demo.new.ngc`). Stop LinuxCNC and the gateway first. Missing suite remaps
 (a new M-code) and RS274NGC entries are added to any installed example from

@@ -58,13 +58,15 @@ XYZAC_ABSOLUTE_Z = (5163, 5183) + tuple(5223 + 20 * k for k in range(9))
 # shifted it still is not (the old default 0 -> -500); it becomes the top of
 # travel, the migrated window's MAX_LIMIT.
 XYZAC_REFERENCE_Z = (5163, 5183)
-# Toolsetter positions (#3100-#3102) without an operator behind them, used
-# only when the WebUI never saved the setter for this INI: the example's
-# before the move (the 3-axis values, never reachable there) and the WebUI's
-# fallback zeros pushed for a config without a toolsetter section. Replaced
-# by the template's; with a saved section the var file's triple is the
-# operator's (the WebUI wrote it) and moves with the datum, whatever it reads.
-XYZAC_UNSET_TOOLSETTER = ((10.0, 10.0, -180.0), (0.0, 0.0, 0.0))
+# The old example's shipped toolsetter triple (git 3e501ed: the 3-axis
+# values, below the old Z travel — never a position anyone set up). With no
+# WebUI section saved for this INI it is replaced by the template's, and the
+# report says so. Any other triple is kept at its physical point (#3102 moves
+# with the datum): 0/0/0 without a WebUI section is AMBIGUOUS — the WebUI's
+# old fallback push, or set in the var file / interpreter directly — and the
+# installer cannot tell them apart (Codex R16, XZ-03), so it keeps the point
+# and names what to check.
+XYZAC_OLD_TEMPLATE_TOOLSETTER = (10.0, 10.0, -180.0)
 # Shipped programs a later version superseded, by content: an installed copy
 # byte-identical to one of these was never edited and follows the example.
 SUPERSEDED_PROGRAMS = {
@@ -144,12 +146,47 @@ def migrate_xyzac_var(text, template_text, window, setter_saved, report):
                           f"(never reachable) — now the top of travel, {fmt_number(window[1])}")
             rows[number] = window[1]
     template_rows = {int(p[0]): float(p[1]) for p in (l.split() for l in template_text.splitlines()) if len(p) >= 2}
-    if not setter_saved and tuple(rows.get(n) for n in (3100, 3101, 3102)) in XYZAC_UNSET_TOOLSETTER:
+    triple = tuple(rows.get(n) for n in (3100, 3101, 3102))
+    if not setter_saved and triple == XYZAC_OLD_TEMPLATE_TOOLSETTER:
         rows.update({n: template_rows[n] for n in (3100, 3101, 3102)})
+        report.append(f"{XYZAC_INI}: toolsetter #3100-#3102 were the old example's unchanged 10/10/-180 "
+                      f"(below the Z travel, never set up) — now the example's "
+                      + "/".join(fmt_number(template_rows[n]) for n in (3100, 3101, 3102)))
     elif 3102 in rows:
-        rows[3102] += XYZAC_Z_SHIFT   # an operator's absolute G53 Z moves with the datum
+        if not setter_saved and triple == (0.0, 0.0, 0.0):
+            report.append(f"{XYZAC_INI}: toolsetter #3100-#3102 read 0/0/0 and the WebUI saved none for "
+                          f"this INI — kept at the same point (Z now {fmt_number(XYZAC_Z_SHIFT)}). If it was "
+                          f"never set up, set it in Probing › Toolsetter")
+        rows[3102] += XYZAC_Z_SHIFT   # an absolute G53 Z moves with the datum
     for number, value in template_rows.items():
         rows.setdefault(number, value)
+    return "".join(f"{n}\t{v:.6f}\n" for n, v in sorted(rows.items()))
+
+
+def seed_xyzac_state(filename, text, local, shipped, report):
+    """A state file seeded from the template carries the TEMPLATE's joint
+    home and top of travel (0 and 0); the installed INI may keep its own — a
+    lowered window survives the migration (XZ-04). Map the seed by meaning:
+    the joint Z starts at this INI's [JOINT_2] HOME, G28/G30 Z are this INI's
+    top of travel ([AXIS_Z] MAX_LIMIT, as for an unreachable migrated value).
+    Nothing else of the seed changes, and a seed that already fits is
+    returned byte for byte (Codex R16, XZ-09)."""
+    rel = f"xyzac5/{filename}"
+    if filename == "position.txt":
+        home, seed_home = float(local["JOINT_2", "HOME"]), float(shipped["JOINT_2", "HOME"])
+        lines = text.split("\n")
+        if len(lines) > 2 and lines[2].strip() and float(lines[2]) == seed_home != home:
+            lines[2] = fmt_number(home)
+            report.append(f"{rel}: new file — the joint Z starts at this INI's home, {fmt_number(home)}")
+            return "\n".join(lines)
+        return text
+    top, seed_top = float(local["AXIS_Z", "MAX_LIMIT"]), float(shipped["AXIS_Z", "MAX_LIMIT"])
+    rows = {int(p[0]): float(p[1]) for p in (line.split() for line in text.splitlines()) if len(p) >= 2}
+    moved = [n for n in XYZAC_REFERENCE_Z if rows.get(n) == seed_top != top]
+    if not moved:
+        return text
+    rows.update({n: top for n in moved})
+    report.append(f"{rel}: new file — G28/G30 Z at this INI's top of travel, {fmt_number(top)}")
     return "".join(f"{n}\t{v:.6f}\n" for n, v in sorted(rows.items()))
 
 
@@ -360,6 +397,12 @@ def install(repo, destination, backup_root, settings_path=None, report=None):
                     (destination / rel).read_text() if (destination / rel).is_file() else None)
                 if current is not None:
                     writes[rel] = migrate(current).encode()
+        if name == XYZAC_INI:
+            local = values(writes[name].decode())
+            for rel in sorted(from_template):
+                if Path(rel).name in ("sim.var", "position.txt"):
+                    writes[rel] = seed_xyzac_state(Path(rel).name, writes[rel].decode(),
+                                                   local, ref, report).encode()
         for rel in profile["programs"]:
             # User-edited programs remain local, just like offsets/tool tables;
             # an unedited copy of a superseded shipped version follows the example.
