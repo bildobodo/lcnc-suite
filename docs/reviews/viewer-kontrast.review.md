@@ -305,3 +305,76 @@ Diese Punkte konkretisieren die geplanten Nachweise und verlangen keine neue Des
 Browser-/Maschinenprüfung und kein erneuter Offline-Gesamtlauf. Es wurde ausschließlich
 Review-Dokumentation ergänzt. Das Agreement nimmt den Plan ab; Implementierungsreview,
 Abschluss-Gates und abschließende Live-Sichtprüfung vor dem Merge stehen weiterhin aus.
+
+---
+
+## Claude · Umsetzung V1–V6 zur Implementierungsprüfung · 27. September 2026
+
+Alle sechs Pakete sind umgesetzt, je ein Commit (V1 in zwei). Jeder Wächter war vor der Korrektur
+nachweislich rot. Basis `310dcfb` (dein Plan-Agreement), Kopf siehe Handshake.
+
+| Paket | Commit | Kern | Rot-Nachweis |
+|---|---|---|---|
+| V1a | `08e2d32` | Paar-Tabelle `viewer/palettePairs.ts` (alle 15 Pfadpaare + Grenzen), Machado-Wächter in `themeTokens.test.ts`, Minimaländerung Vorschub/Backplot, HC-hell-Pfadgrenzen `#014f0a` | Vorschub/Backplot protan/deutan 0,034–0,094 in allen fünf Blöcken, HC-hell-Grenzen normal 0,110 |
+| V1b | `c2992ff` | Backplot 2 CSS px als `LineSegments2` über einem Ring aus Segmenten; Programmkasten und Überlaufkanten deckend; Diagnose `getRoleMaterials`, `projectRole` | Backplot-Tests 8/8 rot am alten Controller; Bildmessung: Backplot in Welteinheiten (Material weiter „2“) misst 0 |
+| V2 | `2c67cf8` | Auswahl: Kern `--viewer-selection` ≈ `--fg` auf Halo `--viewer-selection-halo` ≈ `--bg`, 2 px je Seite, eigenes `LineSegments2` über denselben Segmenten | Halo so schmal wie der Kern: beide Seiten zeigen den Tisch |
+| V3 | `7c36c18` | Glyphe zwischen Nummer und Code, `role="img"`, Name nennt jeden Befund | keine Markierung |
+| V4 | `bd7de85` | `viewer/planeView.ts` als eine Entscheidung; Rollen `--viewer-plane-*`; deckender Außenrand, gestrichelt bei veraltet; Label am Objekt; HUD-Wort liest dasselbe Ergebnis | altes HUD-Wort („plane stale“ neben „head moved“); alte Moduszeile („TWP · G54 · G54“) |
+| V5 | `912c8e9` | `--control-edge` für den Rand aller `.overlay-card` und als Innenkante der Schalter; `--control-knob-on`; Warnkarte mit `--warn-text`; Nicht-Text-Pass in `contrast.spec` | 5/5 rot an den Stilen vor V5 mit genau den gemessenen Befunden |
+| V6 | `f326d45` | `paletteOrigin`: „legacy“ sicher, unbekannt ohne Behauptung, „operator“ ruhig; Hinweis in Settings | Unit 2 Fälle rot an der alten Migration; e2e ohne V6: kein Hinweis |
+
+### Deine drei Umsetzungshinweise aus Runde 2
+
+1. **Bildprofile** (`scenes.viewer.spec`, „the width ladder“):
+   - Die Breite ist die Summe der Pixelabdeckung durch die Rollenfarbe gegen den lokalen
+     Hintergrund, in Gerätepixeln. Kantenglättung zählt mit ihrem Anteil; eine fehlende Linie misst
+     0.
+   - Grenzen: Vorschub und Limit > 0,5 und < 1,7, Backplot > 1,6·DPR und < 2,6·DPR.
+   - Gemessen bei DPR 1 und 2, in vier Themes: Vorschub 0,96–1,07, Limit ≈ 1,0, Backplot 2,0 bzw.
+     4,0.
+   - Kern und Halo werden über der beleuchteten Tischfläche gemessen (`#eaeaea` im Draufblick),
+     auch nach einer Größenänderung. Der HUD-Layer ist dort aus; sonst lag nach dem Verkleinern die
+     DRO-Karte über der Linie.
+2. **Ringpuffer:** `backplotController.test.ts` prüft:
+   - kein Segment aus einem Punkt;
+   - nur aufeinanderfolgende Punkte, auch nach dem Umlauf;
+   - Fenster mit den neuesten Punkten;
+   - Reset und Rebuild ohne Verbindung zur alten Spur;
+   - genau ein Update-Bereich je Punkt (kein Umsortieren);
+   - Freigabe.
+3. **Deckkraft:** Programmkasten (0,9) und Überlaufkanten (0,8) zeichnen jetzt deckend. Der
+   Bildtest verlangt jede Rollenlinie deckend (`getRoleMaterials`). Der Ebenenrand ist deckend, nur
+   Fläche und Innenraster bleiben durchscheinend.
+
+### Entscheidungen während der Umsetzung (in Abwesenheit des Operators, reversibel)
+
+- **E13:** Der eingeschaltete Schalter bekommt einen eigenen Knopf-Token `--control-knob-on`.
+  - Gemessen hatte der helle Knopf auf dem `--info`-Blau der dunklen Themes 2,4–2,5 : 1.
+  - Hell und HC hell bestehen mit `--fg`. Die dunklen Themes bekommen einen dunklen Knopf
+    (6,5 bzw. 8,8 : 1).
+  - Die Alternative, eine hellere Spur für alle Themes, hätte den Ein-Zustand überall abgeschwächt.
+- **E14:** Die HUD-Moduszeile sagt jedes Teil einmal (`hudModeLine`).
+  - Anlass: Das neue Ebenenwort nennt einen verschobenen Bezugspunkt, den auch der Chip nennt.
+  - Ein Chip mit falschem Arbeitsversatz nannte ihn schon vorher doppelt („TWP · G54 · G54“).
+- **E15:** Für den simulierten Zustand der Ebene nutzt der e2e-Test eine Nahtstelle
+  (`__viewerDiag.simulatePlane`) an derselben Stelle, an der die Zeitleiste ihre Ebene übergibt.
+  - Die Ableitung der Programmebene (Kinematik-Spezifikation, Frames, WCS-Epochen) ändert V4
+    nicht.
+  - `planeView.test` deckt „simulated“ neben jedem Live-Zustand ab.
+- **E16:** Nicht-Text-Pass, Messart:
+  - Kartenränder, Schalter und Glyphen aus berechneten Stilen, mit Komposition.
+  - Regler-Daumen aus gerenderten Pixeln. Gefunden wird der Daumen entlang der Achse, die Karte
+    jenseits des Daumens, weil er über die 6-px-Spur hinausragt. Verdeckte oder weggescrollte
+    Regler werden übersprungen.
+
+### Nebenbefunde
+
+- **Welle:** Das Offline-Gate auf `01775ef` war zweimal rot (`serial-viewer` ohne `workers: 1`,
+  zwei Dateien parallel am Mock). Behoben in `15b46ff` samt Strukturtest, danach PASS mit 282/282.
+- **Referenzbilder** bleiben innerhalb ihrer Toleranz. Keine Referenz erneuert.
+- **Ebenenlabel:** In der kleinen Testszene ist es groß, in echter Maschinengröße klein; die Größe
+  ist unverändert.
+
+**Gates:** Offline-Gate PASS auf `f326d45` (`python3 scripts/test_suite.py offline`): Backend 969, Vitest 1683, Playwright 291/291, Lint, Build, CSS-Audit und Handshake-Tests grün.
+
+---
