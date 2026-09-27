@@ -9,10 +9,12 @@ Merge beider Branches nach `development`.
   - Viewer-Kontrast: Plan-Agreement (Runde 2) und Implementierungs-Agreement V1–V6 (Runde 5,
     [Review](viewer-kontrast.review.md)).
   - XYZAC-Z-Nullpunkt und M600 (`fix/xyzac-z0-m600`): Review R15 mit fünf Befunden und zwei
-    Regelfragen, alles behoben; Runde R16 angefragt.
+    Regelfragen, alles behoben; Review R16 mit fünf Befunden, alles behoben; Runde R17 angefragt.
 - **Offline-Gates** (`python3 scripts/test_suite.py offline`):
   - Welle auf `15b46ff`: PASS, Playwright 282/282.
   - Kontrast auf `82418a7`: PASS, Backend 969, Vitest 1684, Playwright 292/292.
+  - Kontrast mit dem XYZAC-Fix (R16) auf `d615f5d`: PASS, Backend 1003, Vitest 1691,
+    Playwright 301/301.
   - Danach kamen nur noch Review-Dokumente dazu.
 
 ## Vorbereitung
@@ -115,6 +117,10 @@ Merge beider Branches nach `development`.
 | Probing → Toolsetter | Felder zeigen 150 / 0 / −300; nach „Reset Toolsetter“ sind die Pflichtfelder leer, der Hinweis nennt, was fehlt, und Measure Current ist gedimmt mit Grund („Toolsetter not set up“) |
 | Ohne Programm ein MDI-M600, das abbricht | kein Unterprogramm erscheint als geladenes Programm |
 | Programm mit M600 laden | keine Meldung „M-code greater than 199“ mehr |
+| Measure Current, Abort, solange die Messung läuft | die Messung endet; danach startet nichts mehr |
+| Run from line ab einer Zeile, deren Werkzeug erst gemessen wird | misst, fährt nach oben, positioniert und startet ab der Zeile |
+| Dasselbe, Abort während der Messung | die Folge endet, das Programm startet nicht |
+| Oben im Banner „Program not confirmed“ | erscheint nur, wenn ein neu gestartetes Gateway keinen eigenen Ladeeintrag hat; „Load program“ lädt die genannte Datei und das Banner verschwindet |
 
 **Hinweise:**
 - Die M600-Programme in `nc_files` (kontur, haus, basify …) sind 3-Achs-Programme. T8 fehlt in der
@@ -129,6 +135,13 @@ Merge beider Branches nach `development`.
   - Ein abgebrochenes MDI-Unterprogramm wird nicht mehr zum geladenen Programm.
   - Die Migration folgt der Herkunft, nicht den Zahlen. Dein G28 Z (aus meiner ersten
     Migration −500) steht jetzt auf 0, die Demo ist aktuell.
+- Behoben nach Codex' Regeln (R16):
+  - Messen und Probe-Aufrufe sind ein Befehl: Werte und M600 gehen zusammen ans Gateway, ein
+    Abort von irgendwo erreicht sie.
+  - Run from line ist an das angezeigte Programm gebunden und nimmt die Toolsetter-Werte mit;
+    während der Folge wird kein anderes Programm geladen.
+  - Ein neu gestartetes Gateway übernimmt nur sein eigenes geladenes Programm; eine fremde offene
+    Datei nennt es im Banner, lädt sie aber nicht.
 - Farben, Normen und andere CNC-Oberflächen: [Recherche](viewer-farben.recherche.md).
 
 ## Wenn alles passt — Merge (nur `development`, nie `main`)
