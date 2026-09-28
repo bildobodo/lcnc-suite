@@ -1,7 +1,8 @@
-# Live-Sichtprüfung — Design-Welle und Viewer-Kontrast
+# Live-Sichtprüfung — Design-Welle, Viewer-Kontrast, Operator-Punkte, feste Palette
 
 **Für den Operator · Stand 28. September 2026.** Diese Prüfung ist der letzte Schritt vor dem
-Merge beider Branches nach `development`.
+Merge aller Branches nach `development`. Du prüfst alles zusammen auf `feat/viewer-palette`; er
+enthält jeden anderen Branch.
 
 - **Codex:**
   - Design-Welle: Implementierungs-Agreement DR + D0–D10 (Runde 10,
@@ -17,19 +18,22 @@ Merge beider Branches nach `development`.
     Befunden in R25 (sechs), R26 (drei Reste) und R27 (ein Rest), alles behoben;
     Implementierungs-Agreement in Runde R28 (OP-I01 bis OP-I06 geschlossen,
     [Review](operator-punkte.ideen.md)).
+  - Feste Viewer-Palette (`feat/viewer-palette`): Ideenrunde R29, Plan-Agreement R30,
+    Implementierungsreview R31 läuft ([Review](viewer-palette-fest.ideen.md)).
 - **Offline-Gates** (`python3 scripts/test_suite.py offline`):
   - Welle auf `15b46ff`: PASS, Playwright 282/282.
   - Kontrast auf `82418a7`: PASS, Backend 969, Vitest 1684, Playwright 292/292.
   - Kontrast mit dem XYZAC-Fix (R16) auf `d615f5d`: PASS, Backend 1003, Vitest 1691,
     Playwright 301/301.
   - Operator-Punkte auf `219106d`: PASS, Backend 1069, Vitest 1710, Playwright 340/340.
+  - Feste Palette: PASS auf `49a8b5f`, Backend 1069, Vitest 1714, Playwright 341/341.
   - Danach kamen nur noch Review-Dokumente dazu.
 
 ## Vorbereitung
 
 1. Die Suite läuft im Dev-Modus (Vite auf `:5173`) und zeigt den ausgecheckten Branch. Ausgecheckt
-   ist `feat/operator-backlog`; er enthält `feat/viewer-contrast` und damit die ganze
-   Design-Welle und den XYZAC-Fix.
+   ist `feat/viewer-palette`; er enthält `feat/operator-backlog`, `feat/viewer-contrast`, die
+   ganze Design-Welle und den XYZAC-Fix.
 2. Den Browser-Tab **einmal hart neu laden** (Strg+Umschalt+R), damit alte Paletten und Stile
    sicher weg sind.
 3. **Settings → 3D Viewer → Colors:** Dort steht „Colors from an earlier version“. Auf **„Use
@@ -64,8 +68,8 @@ Merge beider Branches nach `development`.
 
 | Paket | Worauf achten |
 |---|---|
-| V1 Palette | Eilgang **grün gestrichelt**; Backplot **2 px breit**, himbeerfarben; Vorschub blau; Maschinengrenzen dunkelgrau statt weiß |
-| V2 Auswahl | aktive Zeile im 3D-Viewer: hell schwarz, dunkel hell, jeweils mit einem schmalen Rand in Hintergrundfarbe (Halo), gut sichtbar auch über dem Tisch |
+| V1 Palette | **Ersetzt** durch die feste Palette (Abschnitt unten). Geblieben: Eilgang gestrichelt, Backplot 2 px breit |
+| V2 Auswahl | **Entfallen:** Die aktuelle Zeile wird im 3D-Viewer nicht mehr hervorgehoben (deine Entscheidung vom 28. September) |
 | V3 Code-Panel | Zeilen mit Limit-Verstoß ▲, mit Kollision × vor dem Code |
 | V4 TWP-Ebene | die Ebene nennt ihren Zustand am Objekt („Plane · active / defined / head moved / datum moved / simulated“), veraltet mit gestricheltem Rand; HUD-Zeile ohne Doppelungen |
 | V5 Ränder | Karten über dem Viewer (DRO, Warnkarte, Zeitleiste, Simulationshinweis) mit klar sichtbarem Rand, auch über dem hellen Tisch; Schalter mit sichtbarer Kante, im dunklen Theme eingeschaltet mit dunklem Knopf |
@@ -75,8 +79,8 @@ Merge beider Branches nach `development`.
 ## Bekannte, benannte Grenzen (nicht Teil dieser Abnahme)
 
 - Querformat ab 150 % und 200 % (Gesamtaufteilung).
-- Linienfarben auf mittelgrauen Maschinenflächen erreichen rund 2 : 1; nur die Auswahl hat einen
-  Halo.
+- Linienfarben auf mittelgrauen Maschinenflächen erreichen rund 2 : 1; nur die beiden Boxen haben
+  einen Saum.
 - Neun Achsen im Hochformat bei 150 % in der Setup-Leiste.
 - Tastatur-Erfassung der Belegungen per Tastatur; Tastatur-Alternative zu Halte-Aktionen (K13).
 - Ebenenlabel: in kleinen Szenen groß, in echter Maschinengröße klein.
@@ -86,8 +90,7 @@ Merge beider Branches nach `development`.
 - **E1:** Tritan ist für farbgetrennte Paare Pflicht.
 - **E2:** Schwelle 0,12 als Regressionswächter; Zielwert 0,15.
 - **E3:** Minimaländerung der Farben statt Neuentwurf.
-- **E4:** Auswahl = Textfarbe auf Halo in Hintergrundfarbe.
-- **E5:** Halo nur für die Auswahl.
+- **E4, E5:** Auswahl mit Halo — entfallen mit der Hervorhebung (feste Palette).
 - **E6:** Migrationsregel bleibt, neu ist nur ein Hinweis.
 - **E7:** Ein Rand für alle Viewer-Karten.
 - **E8:** Regler und Schalter werden global korrigiert.
@@ -183,7 +186,7 @@ R28).
 |---|---|
 | P1 Tools | Suchzeile mit normalem Abstand unter dem Kopf, in allen Zuständen |
 | P2 Tabellen | Beim Scrollen bleibt der **ganze** Tabellenkopf oben (Tools, G-code-Referenz), keine Zelle schiebt sich darüber, die Kopflinie bleibt; per Tab fokussierte Zeilen landen unter dem Kopf |
-| P3 Viewer-Farben | **Wird ersetzt:** Die Farben kommen nach dem Merge auf einem eigenen Branch neu, fest in Hell und Dunkel, Linien untereinander unterscheidbar, ohne Hervorhebung der aktuellen Zeile ([Ideen](viewer-palette-fest.ideen.md), Codex R29 und deine Entscheidungen vom 28. September). Hier nur prüfen, dass nichts kaputt ist: Die Auswahl ist in den dunklen Themes cyan; bei „Custom“ zeigt Settings → 3D Viewer eine Kontrasttabelle. |
+| P3 Viewer-Farben | Umgesetzt als **feste Palette**, siehe den Abschnitt unten. |
 | P4 G30 | Probing → Toolsetter → G30: „Use Current Position“ übernimmt die aktuelle Position in den Entwurf (nur wenn die Maschine steht, sonst gedimmt mit „Machine moving …“), „Save G30“ schreibt und bestätigt, die gespeicherte Zeile nennt Werte und Zeit; ein Wert außerhalb der Verfahrwege wird mit Grund abgelehnt; was du tippst, während eine Antwort aussteht, bleibt Entwurf; nach einem Verbindungsabbruch steht kurz „Stored: unknown“, dann liest die Seite G30 neu (Save wartet so lange) |
 | P5 Offsets | Werte per Tab erreichbar, Enter öffnet das Zahlenfeld; aktives Offset mit Balken am Zeilenanfang, bearbeitete Zelle mit Innenrand; A/B/C und R in Grad; gesperrt (z. B. im Lauf) bleiben die Werte voll lesbar, eine Zeile unter dem Titel sagt „Read-only — <Grund>“, sonst „Select a value to edit it“ |
 | P6 Offsets | Auf XYZAC zeigt die C-Spalte von G92/Tool den C-Wert; eine Zeile „No G52/G92, tool or comp offset in effect“ bzw. „Offset status unknown — …“ |
@@ -193,6 +196,31 @@ R28).
 (Codex R25: direkte Wahl, solange die Leiste im Budget bleibt). Eine einzelne Reihe wäre breiter
 als die Mode-Reihe und würde die 3-Achs-Leiste über ihre Basislinie schieben.
 
+## Feste Viewer-Palette (`feat/viewer-palette`, neu 28. September)
+
+Dein Auftrag: Linien müssen **untereinander** unterscheidbar sein, und die wichtigen Farben
+dürfen sich beim Theme-Wechsel nicht ändern. Plan, Recherche und Rechnung:
+[viewer-palette-fest.ideen.md](viewer-palette-fest.ideen.md).
+
+| Prüfung | Worauf achten |
+|---|---|
+| Theme-Wechsel Hell ↔ Dunkel | Vorschub blau `#0f86ba`, Eilgang magenta **gestrichelt** `#ef0197`, Grenzverletzung ocker `#b06c02`, Backplot violett (2 px) `#7c0bfa`, Kollision rot `#c8102e` — **dieselben Farben** in beiden Themes. HC-Hell und HC-Dunkel: dieselben Farbtöne, kräftigere Helligkeit |
+| Linien auf- und nebeneinander | Ein Programm mit engen Bahnen, Eilgängen und Backplot: Vorschub, Eilgang, Backplot und Grenzverletzung klar auseinander, auch vor dem hellen Tisch |
+| Eilgang-Farbe | **Deine Wahl:** Magenta `#ef0197` (jetzt) oder Purpur `#d422e5`. Magenta liegt weiter vom Vorschub, Purpur weiter von der Kollision |
+| Boxen | Maschinen-Box und Werkzeugbahn-Box: heller Kern mit dunklem Saum, die Werkzeugbahn-Box gestrichelt mit Maßen; der Teil außerhalb des Maschinenfensters ocker gestrichelt |
+| Kollision | ein rot leuchtendes Maschinenteil; in Zeitleiste und Code-Panel ×, die Grenze ▲ |
+| Keine Zeilen-Hervorhebung | im Lauf und in der Simulation keine hervorgehobene Linie im 3D; die Zeile zeigt das Code-Panel, die Position das Werkzeug |
+| Backplot über einer Grenzverletzung | die ockerfarbene Markierung bleibt sichtbar |
+| Settings → 3D Viewer → Layers | neue Ebene **Rapids**; neben jeder Ebene eine Strichprobe in ihrer Farbe (gestrichelt, gesäumt wie gezeichnet), darunter Grenze ▲ und Kollision × |
+| Rapids aus, dann in der Simulation zu einer Grenzverletzung auf einem Eilgang springen | der Eilgang erscheint für den Befund, im Viewer steht „Rapids shown for this finding — hidden in Layers“; nach einem Ziehen an der Zeitleiste ist er wieder aus, die Ebene bleibt aus |
+| Custom-Farben | Settings zeigt unter den Farben den Kontrast und neu eine Tabelle „Lines / Apart / Color-blind“: welche Linienpaare zu nah beieinander liegen („close“) |
+
+**Beim Ansehen:**
+- Die Werte sind gegen Weiß, den dunklen Grund und den hellen Tisch gerechnet. Die Rechnung ist ein
+  Filter, keine Sichtabnahme (Codex R29) — was zählt, ist dein Eindruck an dichten Bahnen.
+- Ausgegraut wird die gefahrene Bahn noch nicht. Das kommt als eigener Schritt mit eigener
+  Ideenrunde (Codex R29: Vertrag für Schleifen, Run from line, Abbruch).
+
 ## Wenn alles passt — Merge (nur `development`, nie `main`)
 
 ```bash
@@ -201,6 +229,7 @@ git checkout development
 git merge --no-ff feat/ui-design-wave
 git merge --no-ff feat/viewer-contrast
 git merge --no-ff feat/operator-backlog
+git merge --no-ff feat/viewer-palette
 ```
 
 `feat/viewer-contrast` enthält auch `fix/xyzac-z0-m600`; der XYZAC-Fix kommt also mit. **Nie

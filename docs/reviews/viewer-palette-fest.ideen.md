@@ -724,3 +724,55 @@ Belege, bisherige Texte/Belege unverändert. Der Live-Produktcheckout wurde nich
 **Übergabe:** Plan-Agreement für Fassung 2 in diesem Umfang; keine weitere Ideenrunde vor P4/P1/P2/P3
 nötig. Implementierungsreview, HC-/Szenennachweise und abschließende Operator-Sichtprüfung folgen
 nach der Umsetzung. Die Handshake-Rückmeldung verwendet das bestehende gemeinsame Protokoll.
+
+---
+
+## Umsetzung · Claude · Anfrage Implementierungsreview · 28. September 2026
+
+Branch `feat/viewer-palette` (Worktree `/home/cnc/lcnc-suite-backlog`) auf `661d5dd`. Umgesetzt
+ist Fassung 2 mit deinem Plan-Agreement R30, in der Paketfolge. Evidenz R30 unverändert in
+`11644dc`. Jeder Wächter lief vorher rot, gegen den Stand davor oder unter einer gezielten
+Mutation.
+
+| Paket | Commit | Inhalt | Wächter (rot vorher) |
+|---|---|---|---|
+| P4 | `fd60bde` | Keine 3D-Hervorhebung der aktuellen Zeile. Entfernt: Controller-Objekte, `setHighlight*`, `SELECTION_*`, Rollen und Tokens `selection(-halo)`, `trackHighlightRange`, `lineRunAround`, `getSelection`, die Custom-Zeilen und `motion_line` als Render-Diff. Erhalten wie in R30 gefordert: `runLineState`, `subExecState`, `resolveCurrentLine`, Run-Watcher, `_scrubLineNo` (Kollisionsfärbung), `jumpTo`. | Controller: keine Rolle `selection`, keine Bildschirmlinie, keine API (rot auf dem alten Controller). Tokens: kein `--viewer-selection`. Szene: kein Auswahlmaterial bei gesetzter Zeile. |
+| P1 | `808b755` | Hell, Dunkel und Auto-Dunkel identisch: Vorschub `#0f86ba`, Eilgang `#ef0197`, Grenze `#b06c02`, Backplot `#7c0bfa`, Kollision `#c8102e`; Werkzeug und Schneide mit den hellen Werten. HC eigene Helligkeit, siehe unten. `palettePairs.ts` neu (Arten `line` / `object`, `cvd`, `cueLimit`), eine Farbmathematik in `viewer/colourMath.ts`, Paarzeilen im Custom-Hinweis (`customPairRows`). | `themeTokens`: Paarregel je Theme und „Hell, Dunkel, Auto-Dunkel gleich“ (6 rot auf den alten Tokens); HC-Familie rot unter mutiertem Farbton. `customContrast`-Unit-Test. |
+| P2 | `2a10656`, `54fad93` | Gesäumte Boxen (`viewer/casedLines.ts`): Kern `#b8bec6` 1 CSS-px auf Saum `#3a3f45` 3 CSS-px, zwei `LineSegments2` über **einer** Geometrie (gleiche Strichlücken), Tiefe beachtet, der Saum schreibt keine. Maschinen-Box durchgezogen, Werkzeugbahn-Box gestrichelt mit Maßen (Paarart `form`). Überlauf-Kanten in Ocker, gestrichelt, über der Box. Reach-Umrisse mit eigenem Grau `--viewer-reach` (HC-Dunkel `#78808b`). | Controller: gesäumte, gestrichelte, geklippte Box (rot auf dem alten Controller). Tokens: Kern oder Saum auf Grund und Tisch, Kern auf Saum, alle fünf Blöcke. Custom-Hinweis mit Saumregel. |
+| P3 | `bb91c6c` | Ebene „Rapids“: blendet die Eilgang-Linien aus, ihre Grenzmarkierung folgt nur der Toolpath-Ebene. Befund-Sprung auf ausgeblendeten Eilgang oder Toolpath: lokal gezeigt und benannt (`viewer/pathReveal.ts`, `.hudWarn`), gespeicherte Wahl unberührt; Ende durch manuellen Scrub, Simulationsende, Programmwechsel oder eigenen Schalter. Legende an den Ebenenzeilen (Strichprobe, gestrichelt oder gesäumt), dazu Zeilen für Grenze ▲ und Kollision ×. | Controller: Eilgänge aus, Befund bleibt (rot auf dem alten Controller). `pathReveal`-Unit-Tests. e2e `rapids.viewer.spec`: Ebene, Anzeige beim Sprung, Ende durch Scrub und Schalter (rot bei mutierter Anzeige). |
+| P5 | `6960612` | Grenzmarkierung zeichnet über dem Backplot (`renderOrder` 12 > 11 > 10). | Szene DPR 1/2 Hell/Dunkel: Backplot entlang einer Verletzung, an der Linie liest man Ocker (rot mit alter Reihenfolge). Box-Kante: Kern 1 px und Saum 3 px als Material, beide im Bild. `viewer.spec`: Dunkel zeichnet Hells Werte, HC-Dunkel löst neu auf. Controller: Überlagerung über Backplot über Bahn. |
+
+**HC-Werte** (gleiche Familie, Farbton höchstens 15° vom normalen Wert, Buntheit ≥ 0,08):
+
+| Theme | Vorschub | Eilgang | Grenze | Backplot | Kollision | engstes Linienpaar |
+|---|---|---|---|---|---|---|
+| HC-Hell | `#0a7bc5` | `#d7079c` | `#7c4201` | `#320578` | `#d51713` | 0,277 |
+| HC-Dunkel | `#048ab3` | `#f40793` | `#ad6302` | `#9741fe` | `#fb1903` | **0,244** |
+
+HC-Dunkel bleibt unter 0,25. Die gezielte Suche mit 120 Starts kam nicht höher: 4,5 : 1 auf
+Schwarz und 3 : 1 auf dem Tisch lassen ein Band von wenigen Hundertsteln Leuchtdichte. Das ist
+als benannte Ausnahme `LINE_MIN_NORMAL_HC = 0,24` festgehalten, als Suchergebnis und nicht als
+bewiesene Schranke.
+
+**Beim Messen gefunden:** Der Eilgang der Breiten-Szene lief in der Draufsicht deckungsgleich über
+die gemessene Vorschublinie zurück. Mit dem alten Grün zählte ein Strich noch halb als Vorschub,
+mit Magenta nicht mehr. Die Szene führt den Eilgang jetzt seitlich weg. Deckungsgleiche Linien
+zeigen oben die zuletzt gezeichnete; die Strichelung des Eilgangs lässt den Vorschub dazwischen
+sichtbar.
+
+Offline-Gate (`python3 scripts/test_suite.py offline`) auf `49a8b5f`: PASS, Backend 1069,
+Vitest 1714, Playwright 341/341. Der erste Lauf scheiterte an einer Kontrollprobe in `tabs.spec`
+(Pfeil rechts, bevor die geschützte Fokus-Rückgabe gelandet war; einzeln 1 von 3 rot). `49a8b5f`
+lässt sie auf den Fokus am Settings-Knopf warten, danach 6 von 6 grün; das Produkt ist unverändert.
+
+### Bitte prüfen
+
+1. **P4:** Ist beim Entfernen ein Nutzer übersehen? Befundsprung, Kollisionsfärbung,
+   Unterprogrammanzeige und Run-from-line sind erhalten und getestet.
+2. **P2:** Die Box-Messung im Bild prüft das Vorhandensein von Kern und Saum. Die exakte
+   Pixelfolge scheiterte, weil die Live-Box des Mocks Ober- und Unterkante innerhalb von 1–2 px
+   überlagert. Genügt das zusammen mit der Materialprüfung?
+3. **P3:** Die Befund-Anzeige endet beim eigenen Schalter der Ebene. Sie endet auch bei jedem
+   neuen Programm-Payload (`viewerGcode`), also auch bei einer Neuberechnung desselben Programms.
+   Ist das zu streng?
+4. **HC-Dunkel 0,244:** Ausnahme so tragbar, oder eine andere Regel für HC?
