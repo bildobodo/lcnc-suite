@@ -1410,3 +1410,127 @@ Damit ist die Planung **Fassung 3 mit Ergänzung 3a** zur Umsetzung freigegeben.
 Agreement nimmt keine Implementierung ab, auch nicht die bereits angelegten K1–K3 im
 anderen Worktree. Danach folgen Implementierungsreview, die vereinbarten Prüfungen und
 die separate Sichtprüfung des Operators im abgestimmten Maschinenfenster.
+
+---
+
+## Umsetzung · Claude · Anfrage Implementierungsreview · 28. September 2026
+
+Branch `feat/operator-backlog` auf `feat/viewer-contrast` (`e18ec2e`), ein Commit je Paket, dazu
+ein Nachtrag zu K4 und die Doku; `e34bd4e` holt R22–R24 herein. Jeder Wächter lief vorher rot gegen den unveränderten Stand;
+jedes Backend-Teilstück ist per Mutation geprüft.
+
+| Paket | Commit | Wächter, rot auf dem alten Stand |
+|---|---|---|
+| K1 · P1 | `283a4a1` | Tools: Suchzeile 0,0 px unter dem Kopf, in allen vier Zuständen |
+| K2 · P2 | `0a41f0c` | `td.colT` und Aktionszellen über der Kopfzelle, Kopftext 2,6–2,8 : 1, Kopflinie weg (Tools und Referenz), Fokus 12,5 bzw. 24,5 px unter dem Kopf |
+| K3 · P3 | `d87b59b` | Auswahl-Farbton nicht Cyan (Dark, Auto-Dark, HC-Dark) |
+| K4 · P5/P6 | `9988763` | C zeigt den B-Wert, keine Zusammenfassung, kein Tastaturweg, keine Aktiv-Marke |
+| K4-Nachtrag | `4d41ad7` | Seitenpanel-Sweep: Offsets 70 → 7 Controls in jedem gesperrten Zustand, auf Touch zusätzlich springende Zeilenhöhen |
+| K5 · P4 | `4fcb9b3` | Backend 16 Tests, 14 Mutationen alle rot; e2e 5 Fälle rot auf der alten Oberfläche |
+| K6 · P7 | `8f8f7eb` | ein Pfeil auf fokussiertem Radio sendet `set_mode 3`, `set_kins_mode 1` bzw. `mdi G55`; Radio-Ziele 18 px; das „?“ der Frame-Beschriftung 35 px neben dem Wort; Hochformat-WCS in fünf Zeilen |
+| Doku | `e21c191` | CLAUDE.md (ChoiceGroup, stickyHead, Offsets, G30-Vertrag, Var-Datei), Checkliste P1–P7 |
+
+Offline-Gate (`python3 scripts/test_suite.py offline`) auf `e34bd4e`: **PASS**, Backend 1062,
+Vitest 1705, Playwright 325/325.
+
+Die Sim läuft neu gestartet auf diesem Branch (XYZAC, Dev-Modus, Gateway mit den G30-Befehlen).
+Die Maschine steht nach dem Start in ESTOP.
+
+### K6 · Auswahlgruppen — Messung
+
+**Querformat** (Festlegung 3: Gesamtbreite wächst nicht). Inhaltsbreite der ganzen Leiste,
+alt → neu (Budgettest `layout.spec`, `STRIP_BASELINE`):
+
+| Profil | Desktop | Touch-Querformat |
+|---|---|---|
+| 3-Achs | 1678,5 → 1668,5 px (−10) | 1705,5 → 1677,5 px (−28) |
+| XYZAC | 2148,5 → 2077,5 px (−71) | 2170,5 → 2086,5 px (−84) |
+| TWP | 2206,5 → 2152,5 px (−54) | 2228,5 → 2161,5 px (−67) |
+
+Keine Gruppe scrollt seitlich, kein Abschnitt läuft über, die Inhaltshöhe bleibt 239,5 px.
+
+**Trefferflächen:** jede Option mindestens 40 × 28 px am Desktop und 40 × 36 px auf Touch, auch
+das kurze „1“; vorher Radio-Zeilen von 18 px (Touch 28 px). Die WCS-Gruppe misst 110 × 156 px
+(Touch 110 × 196 px), vorher 117 × 90 px (127 × 140 px).
+
+**Hochformat** (OP22-04: bestehende Hochformat-Regeln, eine Inhaltsspalte). Höhe Jog + Setup,
+alt → neu, bei doppelt so hohen Zielen (36 px statt 18-px-Radios):
+
+| Profil | Jog | Setup | Summe |
+|---|---|---|---|
+| 3-Achs | 598 → 591 | 347 → 371 | +17 px |
+| XYZAC | 683 → 700 | 459 → 450 | +8 px |
+| TWP | 710 → 722 | 551 → 542 | +3 px |
+
+**Zwei Abweichungen vom Entwurf, beide gemessen:**
+- **WCS:** Querformat 2 × 5 nach Spalten (G54–G58, dann G59–G59.3), weil 3 × 3 die Leiste um
+  40–50 px verbreiterte. Im Hochformat ist die Breite fest und die Höhe der Preis: 2 × 5 machte
+  den Setup-Abschnitt 103 px höher, deshalb dort 3 × 3 nach Zeilen. Die Pfeile folgen der
+  jeweiligen Flussrichtung (eigener e2e-Fall, rot auf dem 2 × 5-Stand: fünf Zeilen).
+- **Schrittweite:** Die vereinbarte Breitenregel ergibt mit den Standardschritten im Querformat
+  die Auswahl: Die Reihe braucht 176 px (Touch 195 px), die breiteste andere Reihe misst
+  144 px (XYZAC) bzw. 161 px (TWP). Im Hochformat ist die Spalte der Maßstab, dort ist es eine
+  Reihe. Eine Reihe auch im Querformat hielte die Leiste weiter unter der Basislinie; sie wäre
+  eine Regeländerung.
+
+**Beim Sichtvergleich gefunden und behoben:**
+- Das „?“ von „Kinematics Frame“ stand am rechten Spaltenrand, 35 px vom Wort: Die Spalte ist
+  jetzt so breit wie ihre breiteste Auswahlreihe. Die Beschriftung ist `fit-content`. Der
+  Hilfe-Sweep nahm jedes absolut positionierte „?“ aus; jetzt nur noch das eines Leisten-Titels
+  (`.sub`). Rot mit 35 px, grün mit 4 px.
+- Die Hochformat-Regel `width: min-content` der alten gemeinsamen Beschriftungsspalte brach
+  „Kinematics Frame“ unnötig um. Sie ist entfernt.
+
+**Referenzbilder:** 28 Jog-/Setup-Bilder erneuert. Angesehen habe ich jede Geometrie: die zwölf
+`homed`-Bilder (drei Profile × Desktop/Hochformat × Jog/Setup) und die TWP-`plane-stale`-Bilder,
+die meisten neben dem alten Bild. Die `unhomed`-Bilder sind dieselbe Geometrie in gedimmtem
+Zustand. Der Commit-Text sagt „jedes gegen das alte“; genau ist diese Aufzählung.
+
+### K4-Nachtrag · gesperrte Offsets-Werte
+
+Der vollständige Seitenpanel-Sweep fand, dass K4 die Werte nur im Zustand `homed` als Buttons
+rendert. In jedem gesperrten Zustand waren sie Text; damit sank die Zahl der Controls von 70
+auf 7.
+- **Kein gedimmter Button:** Das Offsets-Panel liegt im `idle`-Gate. `fieldset:disabled button`
+  setzt die Deckkraft auf 0,4 `!important`; alle 70 Werte wären während eines Laufs verblasst,
+  und jeder hätte einen eigenen Tab-Stopp für denselben Grund.
+- **Stattdessen bleibt der Wert gesperrt Text, am Platz des Buttons.** Der Layout-Audit kennt
+  dafür `[data-layout-slot]`: Ein solcher Text zählt als das Control, zu dem er wird. Ein
+  Gate-Wechsel muss ihn also genau am Platz des Buttons lassen.
+  - Selbsttest: gleiche Box grün, andere Box `geometry-change`, fehlendes Attribut
+    `control-count`.
+- **Touch:** Buttons haben dort den Boden von 36 px, der Text hatte ihn nicht; die Zeilen
+  sprangen beim Sperren. Der Text bekommt denselben Boden, vertikal zentriert.
+- **Schmales Seitenpanel:** Ein Formular-Control mit Prozentbreite trägt nichts zur
+  Mindestbreite einer Tabellenspalte bei (CSS Sizing: „compressible“), Text schon. Die Spalten
+  waren gesperrt 1,7 px breiter. Der Wert-Button hat jetzt `min-width: max-content`.
+- **Benannte Grenze:** Ein Tipp auf einen gesperrten Wert erklärt nichts, wie vor K4. UX-09
+  erwartet, dass sich ein gedimmtes Control selbst erklärt. Hier ist der Wert aber Text, kein
+  gedimmtes Control. Der Grund steht nicht am Panel.
+
+### Harness
+
+- **Mock:** `g92_offset` und `tool_offset` sind 9 breit wie auf dem echten Draht, nicht je
+  Achse. `setIncrements` setzt die INI-Schritte.
+- **Formular-Sweep:** Er bekommt ein eigenes Zeitbudget (`b0648d3`). Er lag schon auf dem alten
+  Stand bei 27–33 s gegen 30 s.
+- **Latch-Race in `choices.spec`:** Die Tests drückten die nächste Gruppe innerhalb der 200 ms
+  Busy-Sperre der vorigen Wahl. Das Produkt erklärt dann „Busy“, statt zu wählen; das ist
+  richtig. Die Tests warten jetzt das Ende der Sperre ab und fragen das Befehlsprotokoll per Poll
+  ab. Fünf Läufe in Folge grün.
+
+### Bitte prüfen
+
+1. **Gesperrte Offsets-Werte als Text am Platz des Buttons**, mit `data-layout-slot` im Sweep:
+   Ist das die richtige Ausnahme von „ein Gate dimmt, entfernt nie“? Die Alternative wäre ein
+   gedimmter Button mit wiederhergestellter Deckkraft gegen die `!important`-Regel des Gates.
+2. **WCS 2 × 5 quer, 3 × 3 hoch**, und die Pfeile je Flussrichtung.
+3. **Schrittweite im Querformat:** Auswahl nach der vereinbarten Regel, oder eine Reihe, solange
+   die Leiste unter der Basislinie bleibt? Die Frage geht auch an den Operator (Checkliste).
+4. **Hochformat-Höhe:** Genügt der Beleg über die Referenzbilder, oder soll der Budgettest auch
+   eine Höhengrenze fürs Hochformat bekommen?
+5. **Grund für gesperrte Offsets:** ein Grund einmal am Panel-Kopf (z. B. am Titel), statt 70
+   Blasen? Oder bleibt es bei der benannten Grenze?
+6. **Touch-Zeilenhöhe der Offsets:** Mit den Wert-Buttons sind die Zeilen auf Touch mindestens
+   36 px hoch. Damit ist die Tabelle länger als vor K4. Ist das der richtige Preis für ein
+   tippbares Ziel je Wert?
