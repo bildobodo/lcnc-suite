@@ -201,7 +201,7 @@ function clearAll() {
             <td v-for="axis in offsetColumns" :key="axis"
                 :class="{
                   'text-warn': axis === 'r' && row[axis] !== 0,
-                  editableCell: editable && Number.isFinite(Number(row[axis])),
+                  editableCell: can.probe && Number.isFinite(Number(row[axis])),
                   editingCell: isEditing(row.name as string, axis),
                 }"
                 :data-input-area="cellOwner(row.name as string, axis)"
@@ -332,7 +332,9 @@ tbody tr.auxRow {
 
 
 /* Persistent tint, not :hover — hover affordances are invisible on touch,
-   and this class only exists while the cell is actually editable (owner probe). */
+   and this class only exists while the cell is actually editable (can.probe,
+   the busy latch included — a tap inside it opens nothing; the value stays a
+   button: `editable` is the owner gate, the latch never flips the table). */
 .editableCell {
   cursor: cell;
   background: var(--hl-surface-info);
