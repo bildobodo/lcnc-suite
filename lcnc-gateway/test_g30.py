@@ -265,6 +265,27 @@ class TestG30Read(_G30Case):
                 self.assertNotIn("current", r, "nothing taken over")
                 self.assertEqual(r["values"], self.stored(), "the confirmed stored values stay reported")
 
+    def test_capture_reads_the_frame_from_the_controller_at_the_take_over(self):
+        # Codex R26 OP-I02: the published status lags up to a cycle; a frame
+        # switch the reader pin already shows must refuse, whatever the
+        # snapshot still says. A switchable machine, identity at raw type 0.
+        pin = {"kins_type": 0}
+        synch = self.task.task_plan_synch
+
+        def switching_synch():
+            synch()
+            pin["kins_type"] = 1          # TCP now; the snapshot still says 0
+        with unittest.mock.patch.object(gateway, "_kins_is_switchable", lambda: True), \
+             unittest.mock.patch.object(gateway, "_identity_first", lambda: True), \
+             unittest.mock.patch.object(gateway, "_twp_capable", lambda: False), \
+             unittest.mock.patch.object(gateway, "_reader_get", lambda name: pin.get(name)):
+            r = self.send({"cmd": "capture_g30"}, kins_type=0)
+            self.assertEqual(r["ok"], True, "the frame held: taken over")
+            self.task.task_plan_synch = switching_synch
+            r = self.send({"cmd": "capture_g30"}, kins_type=0)
+        self.assertEqual((r["ok"], r["error"]), (False, "Machine frame only"), r)
+        self.assertNotIn("current", r, "nothing taken over")
+
     def test_the_display_route_names_a_missing_row_as_none_never_zero(self):
         with open(self.path, "w") as f:
             f.write("5181\t100.000000\n5182\t0.000000\n")      # Z, A, C rows missing

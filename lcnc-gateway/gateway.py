@@ -5884,6 +5884,22 @@ def _controller_touchoff_state(base):
     return _dc_replace(base, g5x_index=g5x, kins_type=kins)
 
 
+def _controller_capture_state(armed: bool):
+    """The G30 capture's admission at the TAKE-OVER, on a fresh controller
+    read (Codex R26 OP-I02): the published snapshot lags up to a status
+    cycle, and a frame switch in that window would hand over a position in
+    the wrong frame. The kins frame (the reader pin, read now) and the fixture
+    come from _controller_touchoff_state; the interpreter state and the
+    motion from the STAT it just polled. What the controller does not offer
+    keeps the snapshot's value — refreshed, never invented."""
+    base = _controller_touchoff_state(_live_policy_state(armed))   # polls STAT
+    interp = safe_get("interp_state", None)
+    return _dc_replace(
+        base,
+        is_idle=base.is_idle if interp is None else interp == linuxcnc.INTERP_IDLE,
+        motion_still=motion_still_of(safe_get("inpos", None), safe_get("current_vel", None)))
+
+
 def _live_policy_state(armed: bool):
     """The command-policy MachineState for the CURRENT snapshot, with every
     declaration-derived input (switchable / TWP-capable / identity-first)
@@ -7456,14 +7472,16 @@ async def _g30_command(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, 
             return {"ok": True, "confirmed": True, "values": by_letter}
         if cmd == "capture_g30":
             # Admitted at the request; the synch was awaited since, so the
-            # take-over re-checks on a FRESH poll (Codex R25 OP-I02): still
-            # admitted (machine frame, idle, homed …) and the machine STANDS
-            # — an idle interpreter alone is no standstill (a manual jog).
-            STAT.poll()
+            # take-over re-checks on a FRESH controller read (Codex R25/R26
+            # OP-I02): still admitted — the kins frame from the reader pin
+            # read NOW, not the published snapshot a cycle behind — and the
+            # machine STANDS (an idle interpreter alone is no standstill).
             if _shared_status is not None:
-                deny = check_command(cmd, _live_policy_state(armed))
+                deny = check_command(cmd, _controller_capture_state(armed))
                 if deny is not None:
                     return {"ok": False, "confirmed": True, "values": by_letter, "error": deny}
+            else:
+                STAT.poll()
             still = motion_still_of(safe_get("inpos", None), safe_get("current_vel", None))
             if still is not True:
                 return {"ok": False, "confirmed": True, "values": by_letter,
