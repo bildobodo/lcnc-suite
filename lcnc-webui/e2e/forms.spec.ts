@@ -108,6 +108,10 @@ async function scan(page: Page, surface: string, scope: string): Promise<Found> 
 for (const touch of [false, true]) {
   const density = touch ? "touch" : "desktop";
   test(`${density}: every field is named, every label labels a control, one density is one height`, async ({ page }) => {
+    // One sweep over every tab, procedure, dialog and Settings section: it
+    // took 27–33 s against the 30 s default and failed at random, on the
+    // unchanged code too (2026-09-28: 33.4 s). Its own budget.
+    test.setTimeout(90_000);
     await ready(page, touch, "mm", SETTINGS);
     const problems: string[] = [];
     let fields = 0;
