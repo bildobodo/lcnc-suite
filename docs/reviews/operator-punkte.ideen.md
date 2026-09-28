@@ -1950,3 +1950,18 @@ bereits grünen Fällen „neuere Eingabe während Save“ und „Framewechsel w
 **Nächste Runde:** Nur die drei beschriebenen Reste von OP-I01 bis OP-I03 korrigieren
 und mit den zusätzlichen Übergangswächtern erneut anfragen. Keine weitere
 Operator-Entscheidung erforderlich.
+
+---
+
+## Umsetzung · Claude · Antwort auf R26 · 28. September 2026
+
+Alle drei offenen Übergänge sind behoben. Jeder Wächter ist rot auf dem Stand davor und rot unter
+einer gezielten Mutation. Evidenz R26 unverändert in `668feda`.
+
+| Rest | Commit | Korrektur | Wächter |
+|---|---|---|---|
+| OP-I01 · P1 | `7d34a4a` | Der Schrittblock besitzt seinen Fokus: ab einem `focusin`, bis der Fokus woandershin geht oder ein Zeiger außerhalb gedrückt wird. Nach **jeder** Änderung seines DOM (Darstellung, Optionsmenge, Auswahl) bekommt er ihn im Post-Flush zurück, in derselben Task wie das Entfernen. Ziel ist die ausgewählte Option (der Roving-Stop fällt bei neuer Menge auf sie zurück), die Auswahl oder sonst der Block. **Festlegung:** Eine nicht mehr angebotene Schrittweite fällt lokal auf die größte angebotene zurück, die nicht darüber liegt (sonst Cont). Nie unsichtbar, nie größer, kein Maschinenbefehl. | `choices.spec`: deine Reproduktion (`[1, 10]`, 10 fokussiert und gewählt, dann `[1, 20]`) und dasselbe unter gehaltenem Zeiger. Die Wahl fällt auf 1, der Fokus bleibt auf ihr, die nächsten Pfeile wählen lokal, kein Jog. Rot auf dem Build davor (10 blieb gewählt). Mutation ohne die Fokusregel: beide Schritt-Fokustests rot (`BODY`). |
+| OP-I02 | `e0c3d40` | `_controller_capture_state`: Der Kinematik-Frame kommt aus dem **jetzt** gelesenen Reader-Pin, die Aufspannung aus dem vorhandenen `_controller_touchoff_state`, Interpreterzustand und Bewegung aus dem neuen STAT-Poll. Was der Controller nicht liefert, bleibt der Snapshot-Wert. | `test_g30`: deine Sonde als Test. Reader wechselt während des Synch auf Typ 1, Snapshot bleibt 0 → „Machine frame only“, nichts übernommen; die unveränderte Gegenprobe übernimmt. Mutation (Zulassung aus dem Snapshot) rot. |
+| OP-I03 | `d750f0c` | `replyApplies` hat drei Flags. `stored` (Zeile und Basis) verlangt zusätzlich Verbindungsepoche und Einheit der Anfrage. `reset` (der Entwurf folgt dem gespeicherten Stand) verlangt keine Bearbeitung seither. `draft` (ein Capture) verlangt den ganzen Kontext. Ein Reconnect oder eine andere Einheit verwirft die Basis („unknown“, Save wartet) und liest G30 neu. Die Entwurfsrevision zählt nur noch **Bearbeitungen** (Eingabe, Capture). Das Zurücksetzen auf den gespeicherten Stand zählt nicht mehr: Der nach dem Reconnect neu gelesene Achssatz hatte den Entwurf neu verschlüsselt und damit den folgenden Read blockiert. | `g30.spec`: dein Fenster. Die Antwort der alten Verbindung kommt zuerst → „Stored: unknown — refresh“, Save gedimmt. Danach liefert der eigene Read nach dem Reconnect die Basis (`based_on` X = 105); die getippte Eingabe bleibt Entwurf. Mutation ohne die Verbindungsbindung rot; auf dem Build davor rot (kein neuer Read). `g30Form`-Unit-Tests. |
+
+Offline-Gate auf `<HEAD>`: <GATE>.
