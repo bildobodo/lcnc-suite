@@ -191,3 +191,47 @@ test("Use Current Position is dimmed while the machine moves, with the gateway's
   await expect(page.getByRole("button", { name: "Refresh", exact: true })).toBeEnabled();
   expect(await sent()).toEqual([]);
 });
+
+// Codex R26 OP-I03: the stored values and the basis a save is sent on
+// belong to their connection — a reconnect may be another LinuxCNC
+// instance. A reconnect reads G30 again; an answer from before it,
+// delivered late, supplies neither the stored line nor the basis.
+test("a file read answered after a reconnect supplies no basis; the reconnect reads G30 again", async ({ page }) => {
+  let releaseOld!: () => void, releaseNew!: () => void;
+  const oldRead = new Promise<void>(r => { releaseOld = r; });
+  const newRead = new Promise<void>(r => { releaseNew = r; });
+  try {
+    await open(page, STORED, {}, oldRead);               // the first read (X = 100) stays out
+    await page.route("**/g30*", async r => {             // the reconnect's read (X = 105), held too
+      await newRead;
+      await r.fulfill({ contentType: "application/json",
+        body: JSON.stringify({ ok: true, values: { ...STORED, X: 105 }, mtime_ms: Date.UTC(2026, 8, 28, 12, 6), units: "mm" }) });
+    });
+    await ctl({ op: "refuseWs", on: true });
+    await ctl({ op: "shutdownClose" });
+    await expect(page.getByText("Server shutting down")).toBeVisible();
+    await ctl({ op: "refuseWs", on: false });
+    await expect(page.locator(".pill.armed")).toBeVisible({ timeout: 12_000 });
+    await ctl({ op: "status_delta", data: { permissions: PERMS_ALL, kins_type: 0 } });
+    await enter(page, "X", 120);
+    await enter(page, "Y", 0);
+    await enter(page, "Z", -30);
+    // Codex R26's window: the OLD connection's answer lands first
+    releaseOld();
+    await page.waitForTimeout(400);
+    await expect(storedLine(page), "no basis from before the reconnect").toHaveText(/^Stored: unknown — refresh/);
+    await expect(page.getByRole("button", { name: "Save G30", exact: true })).toBeDisabled();
+    // the reconnect's own read supplies it; the entry stays a draft
+    releaseNew();
+    await expect(storedLine(page)).toHaveText(/^Stored: as of LinuxCNC's last synch .* · draft not saved$/);
+    expect(await values(page)).toEqual(["120", "0", "-30"]);
+    await ctl({ op: "clearCmds" });
+    await page.getByRole("button", { name: "Save G30", exact: true }).click();
+    await expect.poll(async () => (await sent()).find(c => c.cmd === "set_g30")?.based_on,
+      "the basis is the reconnect's read").toEqual({ ...STORED, X: 105 });
+  } finally {
+    releaseOld(); releaseNew();
+    await ctl({ op: "refuseWs", on: false });
+  }
+});
+

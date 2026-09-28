@@ -33,13 +33,20 @@ describe("G30 draft (operator P4, Codex R21–R24)", () => {
     const ctx = { units: "mm", kinsType: 0, epoch: 1 };
     const t = { seq: 3, rev: 7, ctx };
     // nothing happened meanwhile: both
-    expect(replyApplies(t, { appliedSeq: 2, rev: 7, ctx })).toEqual({ stored: true, draft: true });
+    expect(replyApplies(t, { appliedSeq: 2, rev: 7, ctx })).toEqual({ stored: true, reset: true, draft: true });
     // the operator typed while the save was out: the confirmation updates the
     // stored line, the newer entry stays a draft
-    expect(replyApplies(t, { appliedSeq: 2, rev: 8, ctx })).toEqual({ stored: true, draft: false });
+    expect(replyApplies(t, { appliedSeq: 2, rev: 8, ctx })).toEqual({ stored: true, reset: false, draft: false });
     // the frame changed while a capture was out: its position is not taken
-    expect(replyApplies(t, { appliedSeq: 2, rev: 7, ctx: { ...ctx, kinsType: 1 } })).toEqual({ stored: true, draft: false });
+    // (a read's values may still reset an unedited draft: machine coordinates)
+    expect(replyApplies(t, { appliedSeq: 2, rev: 7, ctx: { ...ctx, kinsType: 1 } })).toEqual({ stored: true, reset: true, draft: false });
     // a newer request's reply is already shown (a late initial file read)
-    expect(replyApplies(t, { appliedSeq: 4, rev: 7, ctx })).toEqual({ stored: false, draft: true });
+    expect(replyApplies(t, { appliedSeq: 4, rev: 7, ctx })).toEqual({ stored: false, reset: false, draft: true });
+    // Codex R26: an answer from before a reconnect (or in other units)
+    // supplies neither the stored line nor the basis; the frame does not
+    // change stored machine coordinates
+    expect(replyApplies(t, { appliedSeq: 2, rev: 7, ctx: { ...ctx, epoch: 2 } }).stored).toBe(false);
+    expect(replyApplies(t, { appliedSeq: 2, rev: 7, ctx: { ...ctx, units: "in" } }).stored).toBe(false);
+    expect(replyApplies(t, { appliedSeq: 2, rev: 7, ctx: { ...ctx, kinsType: 1 } }).stored).toBe(true);
   });
 });

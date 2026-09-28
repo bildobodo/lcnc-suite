@@ -47,12 +47,27 @@ export function contextChanged(at: G30Context | null, now: G30Context): boolean 
  *  a newer reply may already be shown. */
 export interface G30Ticket { seq: number; rev: number; ctx: G30Context }
 
-/** What a reply to `t` may still change NOW: the stored line only when no
- *  newer request's reply is shown (a late file read never overwrites a
- *  confirmed save); the draft only when nobody edited it since the request
- *  and the context (units, kinematics, connection) is the one it was sent
- *  under. A save's confirmation updates the stored line and leaves a newer
- *  entry a draft — never replaces it. */
-export function replyApplies(t: G30Ticket, now: { appliedSeq: number; rev: number; ctx: G30Context }): { stored: boolean; draft: boolean } {
-  return { stored: t.seq > now.appliedSeq, draft: t.rev === now.rev && !contextChanged(t.ctx, now.ctx) };
+/** The stored values (and the basis a save is sent on) belong to a
+ *  connection — a reconnect may be another LinuxCNC instance, and equal
+ *  numbers prove no equal machine — and to the units they are read in. The
+ *  kinematics mode does not change them (G30 is machine coordinates). */
+export function storedContextChanged(at: G30Context, now: G30Context): boolean {
+  return at.units !== now.units || at.epoch !== now.epoch;
+}
+
+/** What a reply to `t` may still change NOW:
+ *  - `stored`: the stored line and the basis — only when no newer request's
+ *    reply is shown (a late file read never overwrites a confirmed save) AND
+ *    in the connection and units it was sent under (Codex R26 OP-I03: an
+ *    answer from before a reconnect supplies no basis);
+ *  - `reset`: the draft may follow those stored values (a read, a save's
+ *    confirmation) — nobody edited it since; the frame is irrelevant to
+ *    machine coordinates;
+ *  - `draft`: a CAPTURED position may fill the draft — unedited AND the
+ *    whole context (units, kinematics, connection) unchanged.
+ *  A save's confirmation never replaces an entry typed while it was out. */
+export function replyApplies(t: G30Ticket, now: { appliedSeq: number; rev: number; ctx: G30Context }): { stored: boolean; reset: boolean; draft: boolean } {
+  const stored = t.seq > now.appliedSeq && !storedContextChanged(t.ctx, now.ctx);
+  return { stored, reset: stored && t.rev === now.rev,
+           draft: t.rev === now.rev && !contextChanged(t.ctx, now.ctx) };
 }

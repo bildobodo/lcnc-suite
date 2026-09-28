@@ -130,12 +130,19 @@ const kinsType = computed<number | null>(() => (status.value?.data as Record<str
 const connEpoch = ref(0);
 watch(connected, c => { if (c) connEpoch.value++; });
 const g30Context = (): G30Context => ({ units: props.linearUnit, kinsType: kinsType.value, epoch: connEpoch.value });
-// Replies are bound to what they were SENT under (Codex R25 OP-I03): every
-// draft change bumps its revision (sync — a ticket taken in the same tick
-// must see it), every request takes a ticket, and a reply changes the
-// stored line only when no newer reply is shown, the draft only when it is
-// still the one the request was sent with.
+// Replies are bound to what they were SENT under (Codex R25/R26 OP-I03):
+// every EDIT of the draft — an operator entry, a captured position — bumps
+// its revision (a reset to the stored values is none: a re-read axis set
+// after a reconnect re-keys the draft and must not block the read that
+// follows it), every request takes a ticket, and a reply changes the stored
+// line only when no newer reply is shown and in its connection and units,
+// the draft only when it is still the one the request was sent with.
 let draftRev = 0, reqSeq = 0, appliedSeq = 0;
+/** An operator entry into a G30 field (the v-model.number cast, and an edit). */
+function editDraft(letter: string, v: string | number | null | undefined) {
+  g30Draft[letter] = v == null || v === "" ? null : Number(v);
+  draftRev++;
+}
 const ticket = (): G30Ticket => ({ seq: ++reqSeq, rev: draftRev, ctx: g30Context() });
 const applies = (t: G30Ticket) => replyApplies(t, { appliedSeq, rev: draftRev, ctx: g30Context() });
 /** The draft differs from what the section shows as stored (empty = empty). */
@@ -170,7 +177,7 @@ async function loadG30() {
       if (!may.stored) return;   // a newer reply is shown already
       takeStored(t, data.values, "file");
       g30StoredAt.value = data.mtime_ms ?? null;
-      if (may.draft) resetG30Draft();
+      if (may.reset) resetG30Draft();
     } else {
       g30Note.value = { kind: "error", text: `G30 read failed: ${data.error ?? "no data"}` };
     }
@@ -196,7 +203,7 @@ async function refreshG30() {
   if (r?.ok) {
     if (!may.stored) return;
     takeStored(t, r.values, "confirmed");
-    if (may.draft) { resetG30Draft(); g30Note.value = null; }
+    if (may.reset) { resetG30Draft(); g30Note.value = null; }
     else g30Note.value = { kind: "warn", text: "Stored G30 refreshed — your newer entry stays a draft" };
   } else {
     if (r?.confirmed === false && may.stored) g30StoredState.value = "unconfirmed";
@@ -219,6 +226,7 @@ async function captureG30() {
     return;
   }
   for (const l of g30Letters.value) g30Draft[l] = r.current[l] ?? null;
+  draftRev++;
   g30DraftContext.value = t.ctx;
   // The basis stays: a stored value that moved meanwhile is said, never
   // swapped in silently (Codex R22 OP22-02).
@@ -236,7 +244,7 @@ async function saveG30() {
     if (may.stored) takeStored(t, r.values, "confirmed");
     // A newer entry typed while the save was out stays a draft — the
     // confirmation never replaces it (Codex R25 OP-I03).
-    if (!may.draft) {
+    if (!may.reset) {
       g30Note.value = { kind: "warn", text: "G30 saved — your newer entry is still a draft" };
       return;
     }
@@ -260,6 +268,15 @@ async function saveG30() {
 
 // A captured draft belongs to its units and kinematics mode (Codex R22
 // OP22-02): another one drops it, said at the section.
+// The stored values and the basis belong to their connection and units
+// (Codex R26 OP-I03): a reconnect or another unit drops them — "unknown",
+// Save waits — and reads them again; a late answer from before cannot
+// bring them back (replyApplies).
+watch(() => [props.linearUnit, connEpoch.value], () => {
+  g30Basis.value = null;
+  g30StoredState.value = "unknown";
+  void loadG30();
+});
 watch(() => [props.linearUnit, kinsType.value, connEpoch.value], () => {
   if (g30Dirty.value && contextChanged(g30DraftContext.value, g30Context())) {
     resetG30Draft();
@@ -267,7 +284,6 @@ watch(() => [props.linearUnit, kinsType.value, connEpoch.value], () => {
   }
 });
 watch(g30Letters, () => { if (!g30Dirty.value) resetG30Draft(); });
-watch(g30Draft, () => { draftRev++; }, { deep: true, flush: "sync" });
 
 onMounted(() => {
   loadTsParams();
@@ -299,7 +315,8 @@ watch(settingsVersion, () => { void pushWhenConfirmed(); });
     <div class="sub textWithHelp">Tool Change Position (G30)<HelpIcon label="Tool Change Position (G30)">The machine position a tool change and G30 move to. Save writes it into LinuxCNC, within each axis' limits.</HelpIcon></div>
     <FormField v-for="a in g30Axes" :key="a.letter" :label="`G30 ${a.letter}`" :unit="a.kind === 'rotary' ? '°' : linearUnit">
       <template #default="{ input }">
-        <MachineInput v-bind="input" gate="toolsetterParam" type="number" v-model.number="g30Draft[a.letter]" />
+        <MachineInput v-bind="input" gate="toolsetterParam" type="number" :modelValue="g30Draft[a.letter]"
+                      @update:modelValue="v => editDraft(a.letter, v)" />
       </template>
     </FormField>
     <div class="text-muted wide g30Stored">{{ g30StoredLine }}</div>
