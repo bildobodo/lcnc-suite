@@ -1,0 +1,132 @@
+{
+  "head": "e86d43da037e46ea7b0adc15827ed01855e21def",
+  "scope": "Source assertions and counterexample models only; no runtime/UI implementation test.",
+  "source_checks": {
+    "g92_uses_display_index": true,
+    "tool_uses_display_index": true,
+    "enable_is_boolean_coerced": true,
+    "axes_contract_says_canonical": true
+  },
+  "offset_examples": [
+    {
+      "axes": "XYZAC",
+      "canonical_vector": [
+        0,
+        0,
+        0,
+        11,
+        22,
+        33,
+        44,
+        55,
+        66
+      ],
+      "current_display_index": {
+        "X": 0,
+        "Y": 0,
+        "Z": 0,
+        "A": 11,
+        "C": 22
+      },
+      "correct_by_letter": {
+        "X": 0,
+        "Y": 0,
+        "Z": 0,
+        "A": 11,
+        "C": 33
+      }
+    },
+    {
+      "axes": "XYZBC",
+      "canonical_vector": [
+        0,
+        0,
+        0,
+        11,
+        22,
+        33,
+        44,
+        55,
+        66
+      ],
+      "current_display_index": {
+        "X": 0,
+        "Y": 0,
+        "Z": 0,
+        "B": 11,
+        "C": 22
+      },
+      "correct_by_letter": {
+        "X": 0,
+        "Y": 0,
+        "Z": 0,
+        "B": 22,
+        "C": 33
+      }
+    },
+    {
+      "axes": "XZ",
+      "canonical_vector": [
+        0,
+        7,
+        9,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "current_display_index": {
+        "X": 0,
+        "Z": 7
+      },
+      "correct_by_letter": {
+        "X": 0,
+        "Z": 9
+      }
+    }
+  ],
+  "nullable_enable": [
+    {
+      "backend": null,
+      "current_component_prop": false
+    },
+    {
+      "backend": false,
+      "current_component_prop": false
+    }
+  ],
+  "six_options_model": {
+    "labels": [
+      "Cont",
+      "0.000001",
+      "0.000002",
+      "0.000003",
+      "0.000004",
+      "0.000005"
+    ],
+    "selection_by_fassung2_rule": "connected row",
+    "assumed_glyph_px_from_r21_monospace_measurement": 7,
+    "padding_each_side_px": 8,
+    "minimum_target_width_px": 36,
+    "sum_width_px": 404,
+    "r21_jog_selection_width_touch_px": 211,
+    "limitation": "Illustrates count != width; not a measurement of a new component or entire strip."
+  },
+  "stale_file_conflict_model": {
+    "based_on": 10,
+    "old_file": 10,
+    "interpreter_after_foreign_change": 20,
+    "requested": 30,
+    "first_synch_file_write": "fails; old file remains readable",
+    "compare_using_old_file": "passes incorrectly",
+    "consequence_without_freshness_evidence": "foreign interpreter change may be overwritten",
+    "limitation": "Failure scenario for the planned contract, not a live reproduction."
+  },
+  "wrapped_rotary_example": {
+    "commanded_angle": 725,
+    "g30_1_parameter_if_wrapped": 5,
+    "source": "LinuxCNC v2.9.4 interp_convert.cc convert_savehome"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "head": "682774bb2af7a9e765a82537073484104835883f",
+  "scope": "Real extracted provenance/file-writer functions; deterministic inline I/O scheduling, simulated synch outcomes and interpreter value.",
+  "functions": {
+    "atomic_write_bytes": {
+      "file": "lcnc-gateway/gateway_util.py",
+      "line": 514
+    },
+    "wcs_prov_params": {
+      "file": "lcnc-gateway/gateway_util.py",
+      "line": 1224
+    },
+    "read_var_file": {
+      "file": "lcnc-gateway/status_runtime.py",
+      "line": 170
+    },
+    "write_var_file_updates": {
+      "file": "lcnc-gateway/status_runtime.py",
+      "line": 181
+    },
+    "_ensure_prov_var_rows": {
+      "file": "lcnc-gateway/gateway.py",
+      "line": 5545
+    }
+  },
+  "observations": {
+    "unchanged_file_passes": false,
+    "background_writer": {
+      "cmd_lock_held": true,
+      "background_seed_completed": true,
+      "inode_before": 4259680,
+      "inode_after": 4259681,
+      "inode_predicate_passes": true,
+      "file_g30_x": 10.0,
+      "based_on": 10,
+      "model_interpreter_g30_x": 20,
+      "old_basis_incorrectly_matches_file": true,
+      "provenance_row_added": true
+    },
+    "publication_control": {
+      "inode_changed": true,
+      "backup_holds_old_inode": true,
+      "fresh_value": 20.0
+    }
+  }
+}
