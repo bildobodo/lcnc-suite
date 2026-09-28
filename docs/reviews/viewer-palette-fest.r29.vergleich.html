@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="de"><meta charset="utf-8"><title>R29 – Linienvergleich</title>
+<style>
+body{font:16px/1.5 system-ui;margin:24px;color:#17212b;background:#f4f5f7;max-width:1120px}
+h1{font-size:24px}h2{font-size:18px;margin-bottom:4px}p{max-width:95ch}
+label{display:inline-block;margin:8px 20px 8px 0}select{font:inherit;padding:6px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:20px}
+section{background:white;padding:12px;border:1px solid #9aa5b1;border-radius:6px}
+svg{display:block;width:100%;height:auto;border:1px solid #9aa5b1}
+.note{font-size:14px}button{font:inherit;padding:6px} code{font-size:14px}
+</style>
+<h1>R29: Farben und Verdeckung getrennt betrachten</h1>
+<p>Illustration mit synthetischen SVG-Linien, kein Screenshot des Viewers und kein Nachweis für WebGL oder Barrierefreiheit.
+Die Striche sind bei 1:1 1 px breit; in den unteren Karten hat die Auswahl 3 px, der F4-Saum insgesamt 7 px.
+Vergleiche die parallelen Linien und die Kreuzungen. Eine vollständig verdeckte Linie wird durch keine Palette sichtbar.</p>
+<label>Hintergrund <select id="bg"><option value="#ffffff">Hell</option><option value="#0b0f14">Dunkel</option><option value="#e0e0e0">Tisch</option></select></label>
+<label>Farbsimulation <select id="vision"><option value="normal">Normal</option><option value="protan">Protanopie</option><option value="deutan">Deuteranopie</option><option value="tritan">Tritanopie</option></select></label>
+<label><input id="rapid" type="checkbox" checked> Eilgänge zeigen</label>
+<div class="cards">
+<section><h2>F2: Purpur-Magenta #d422e5</h2><div id="new"></div><p class="note">Blau: Vorschub · gestrichelt: Eilgang · Ocker: Grenze · Rot: Körper als Farbfläche</p></section>
+<section><h2>Gegenentwurf: Magenta #e118b6</h2><div id="old"></div><p class="note">Bessere schlechteste simulierte Distanz zu Blau, geringere zu Rot. F6 trennt Rot als Körperrolle.</p></section>
+<section><h2>F4: Auswahl mit 7-px-Gesamtbreite</h2><div id="halo"></div><p class="note">Dichte Nachbarlinien werden vom dunklen Saum verdeckt. Auf Hell ist Cyan durch den Saum besser sichtbar.</p></section>
+<section><h2>Nur 3 px Cyan, ohne Saum</h2><div id="plain"></div><p class="note">Zeigt den Zielkonflikt: weniger Verdeckung, aber zu wenig Cyan-Kontrast auf Hell/Tisch. Keine fertige Lösung für beide Hintergründe.</p></section>
+</div>
+<p><strong>Gegenentwurf für die Sichtprüfung:</strong> Viewer-Grund optional dauerhaft dunkel, unabhängig vom UI-Theme.
+Damit bleibt Cyan ohne Saum sichtbar. Der helle Maschinentisch muss dabei weiterhin separat geprüft werden;
+ein dunkler Canvas allein behebt diesen Fall nicht.</p>
+<p class="note">Farbsimulation: Machado-Matrizen wie in der Projekt-Rechnung, in linearem RGB angewendet.
+Abstände und das Vierfarben-Gegenbeispiel stehen in <a href="viewer-palette-fest.r29.probe.json">der JSON-Datei</a>.</p>
+<script>
+const views={"normal": {"#ffffff": "#ffffff", "#0b0f14": "#0b0f14", "#e0e0e0": "#e0e0e0", "#24906c": "#24906c", "#d800f0": "#d800f0", "#cc0000": "#cc0000", "#0048fc": "#0048fc", "#395afa": "#395afa", "#d422e5": "#d422e5", "#e118b6": "#e118b6", "#9f6700": "#9f6700", "#c8102e": "#c8102e", "#22b8cf": "#22b8cf", "#6f6f6f": "#6f6f6f"}, "protan": {"#ffffff": "#ffffff", "#0b0f14": "#0d0f14", "#e0e0e0": "#e0e0e0", "#24906c": "#8d856a", "#d800f0": "#0071f5", "#cc0000": "#564a00", "#0048fc": "#006bff", "#395afa": "#0076ff", "#d422e5": "#0071ea", "#e118b6": "#2f68ba", "#9f6700": "#7a6b00", "#c8102e": "#544c2d", "#22b8cf": "#a6b1d0", "#6f6f6f": "#6f6f6f"}, "deutan": {"#ffffff": "#ffffff", "#0b0f14": "#0c0e14", "#e0e0e0": "#e0e0e0", "#24906c": "#7f7b6e", "#d800f0": "#4185ec", "#cc0000": "#827200", "#0048fc": "#0054f9", "#395afa": "#0063f7", "#d422e5": "#4e84e1", "#e118b6": "#7586b2", "#9f6700": "#877806", "#c8102e": "#7e7127", "#22b8cf": "#8fa1cf", "#6f6f6f": "#6f6f6f"}, "tritan": {"#ffffff": "#ffffff", "#0b0f14": "#091011", "#e0e0e0": "#e0e0e0", "#24906c": "#009086", "#d800f0": "#db4d8d", "#cc0000": "#e20009", "#0048fc": "#007d9e", "#395afa": "#0085a2", "#d422e5": "#d84f8a", "#e118b6": "#ef256d", "#9f6700": "#ae5957", "#c8102e": "#dd0020", "#22b8cf": "#00c2bf", "#6f6f6f": "#6f6f6f"}};
+function draw(id,rapid,selected,halo){
+ const mode=document.querySelector('#vision').value, b=document.querySelector('#bg').value;
+ const c=x=>views[mode][x], show=document.querySelector('#rapid').checked;
+ const line=(x1,y1,x2,y2,col,width=1,dash='')=>`<path d="M${x1} ${y1}L${x2} ${y2}" fill="none" stroke="${c(col)}" stroke-width="${width}" ${dash?`stroke-dasharray="${dash}"`:''}/>`;
+ let s=`<svg viewBox="0 0 480 240" role="img" aria-label="Parallele und kreuzende Vorschub- und Eilganglinien"><rect width="480" height="240" fill="${c(b)}"/>`;
+ s+=`<rect x="342" y="138" width="90" height="60" rx="8" fill="${c('#c8102e')}"/>`;
+ for(let y=24;y<118;y+=4){s+=line(24,y,456,y,'#395afa');if(show)s+=line(24,y+2,456,y+2,rapid,1,'8 5');}
+ for(let i=0;i<6;i++){s+=line(30+i*10,150,280+i*10,220,'#395afa');if(show)s+=line(30+i*10,220,280+i*10,150,rapid,1,'8 5');}
+ s+=line(325,150,448,190,'#9f6700',2);
+ if(selected){if(halo)s+=line(24,74,456,74,'#0b0f14',7);s+=line(24,74,456,74,'#22b8cf',3);}
+ document.getElementById(id).innerHTML=s+'</svg>';
+}
+function render(){draw('new','#d422e5',false,false);draw('old','#e118b6',false,false);draw('halo','#d422e5',true,true);draw('plain','#d422e5',true,false);}
+document.querySelectorAll('select,input').forEach(x=>x.addEventListener('change',render));render();
+</script></html>

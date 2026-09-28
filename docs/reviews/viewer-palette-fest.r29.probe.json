@@ -1,0 +1,135 @@
+{
+  "head": "a750216",
+  "three_background_luminance_band_at_3": [
+    0.11389905774495303,
+    0.2151347365134625
+  ],
+  "four_colour_counterexample": {
+    "colours": [
+      "#24906c",
+      "#d800f0",
+      "#cc0000",
+      "#0048fc"
+    ],
+    "background_contrast": {
+      "#24906c": {
+        "#ffffff": 3.9766257184112015,
+        "#0b0f14": 4.833028765755095,
+        "#e0e0e0": 3.012404605896035
+      },
+      "#d800f0": {
+        "#ffffff": 4.055588547364383,
+        "#0b0f14": 4.738929076080181,
+        "#e0e0e0": 3.072221145464205
+      },
+      "#cc0000": {
+        "#ffffff": 5.886518279744077,
+        "#0b0f14": 3.2649429721228063,
+        "#e0e0e0": 4.45920135166179
+      },
+      "#0048fc": {
+        "#ffffff": 6.301384553868083,
+        "#0b0f14": 3.049987875430528,
+        "#e0e0e0": 4.7734740953137615
+      }
+    },
+    "pairs": [
+      {
+        "a": "#24906c",
+        "b": "#d800f0",
+        "normal_oklab": 0.40714523584610307,
+        "worst_simulated_oklab": 0.1932130996837336,
+        "luminance_contrast": 1.0198567415051398
+      },
+      {
+        "a": "#24906c",
+        "b": "#cc0000",
+        "normal_oklab": 0.3121095326712689,
+        "worst_simulated_oklab": 0.10032070831944324,
+        "luminance_contrast": 1.4802796885033336
+      },
+      {
+        "a": "#24906c",
+        "b": "#0048fc",
+        "normal_oklab": 0.3138268537512351,
+        "worst_simulated_oklab": 0.080093178472861,
+        "luminance_contrast": 1.5846058945637214
+      },
+      {
+        "a": "#d800f0",
+        "b": "#cc0000",
+        "normal_oklab": 0.3101830522633715,
+        "worst_simulated_oklab": 0.14000660654176536,
+        "luminance_contrast": 1.4514584531928334
+      },
+      {
+        "a": "#d800f0",
+        "b": "#0048fc",
+        "normal_oklab": 0.30914404602130324,
+        "worst_simulated_oklab": 0.02051515953387031,
+        "luminance_contrast": 1.5537534146463603
+      },
+      {
+        "a": "#cc0000",
+        "b": "#0048fc",
+        "normal_oklab": 0.4349741120417753,
+        "worst_simulated_oklab": 0.33612081577666425,
+        "luminance_contrast": 1.0704773610491602
+      }
+    ],
+    "scope": "Refutes impossibility of four colours at normal OKLab >= .25; not a CVD-safe recommended palette."
+  },
+  "rapid_options": {
+    "#d422e5": [
+      {
+        "a": "#d422e5",
+        "b": "#395afa",
+        "normal_oklab": 0.2590527513352499,
+        "worst_simulated_oklab": 0.03347725476524486,
+        "luminance_contrast": 1.284497298827444
+      },
+      {
+        "a": "#d422e5",
+        "b": "#9f6700",
+        "normal_oklab": 0.3441743517116082,
+        "worst_simulated_oklab": 0.11035073182136779,
+        "luminance_contrast": 1.168852829833108
+      },
+      {
+        "a": "#d422e5",
+        "b": "#c8102e",
+        "normal_oklab": 0.2652222521141338,
+        "worst_simulated_oklab": 0.12830581097247265,
+        "luminance_contrast": 1.4455067297802895
+      }
+    ],
+    "#e118b6": [
+      {
+        "a": "#e118b6",
+        "b": "#395afa",
+        "normal_oklab": 0.3020100871561286,
+        "worst_simulated_oklab": 0.10758983939345013,
+        "luminance_contrast": 1.2466554299127337
+      },
+      {
+        "a": "#e118b6",
+        "b": "#9f6700",
+        "normal_oklab": 0.2967763224754846,
+        "worst_simulated_oklab": 0.138657711437994,
+        "luminance_contrast": 1.1344178990570686
+      },
+      {
+        "a": "#e118b6",
+        "b": "#c8102e",
+        "normal_oklab": 0.1977347959860692,
+        "worst_simulated_oklab": 0.09246797664328656,
+        "luminance_contrast": 1.4029214505168681
+      }
+    ]
+  },
+  "selection_without_halo": {
+    "#ffffff": 2.3795465211145492,
+    "#0b0f14": 8.076810567553375,
+    "#e0e0e0": 1.8025726854206636
+  }
+}
