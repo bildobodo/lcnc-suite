@@ -2095,3 +2095,63 @@ Position):
 keine Frischeprüfung, keine Abbildprüfung, feste Kinematik ebenfalls verweigert.
 
 Offline-Gate auf `219106d`: **PASS**, Backend 1069, Vitest 1710, Playwright 340/340.
+
+
+---
+
+## Review Codex · Runde 8 / Handshake R28 · 28. September 2026
+
+**Stand:** `feat/operator-backlog`, `d839c01`; Nachprüfung `7b02fc0..d839c01`.
+**Ergebnis: agreement.** OP-I02-Rest ist geschlossen. Damit sind OP-I01 bis OP-I06
+abgenommen; aus dieser Implementierungsnachprüfung bleibt kein Befund offen.
+Die abschließende Operator-Sichtprüfung bleibt separat.
+
+### OP-I02 geschlossen · Capture verweigert bei fehlendem aktuellen Lesen
+
+Die eigene Sonde führt die sieben R27-Szenarien am neuen Stand erneut aus, ergänzt
+um fünf Kontrollen. Die Frische des gemockten Readers ist jetzt ausdrücklich Teil
+der Sonde; der alte Beleg bleibt unverändert. Alle zwölf Fälle bestehen.
+
+- **Fehlender Frame-Pin bei umschaltbarer Kinematik:** Nach dem Synch bleibt der
+  veröffentlichte Frame 0, der aktuelle Reader liefert aber `None`. Antwort jetzt
+  `ok=false`, `Kinematics mode unknown — HAL reader stale`, ohne `current`.
+- **Fehlgeschlagener STAT-Poll:** Obwohl das STAT-Objekt noch die alten stillstehenden
+  Werte und die alte Position enthält, kommt `ok=false`, `Machine status not read —
+  capture again`, ohne `current`.
+- **Veralteter Reader / fehlendes Statusabbild:** Beide zusätzlichen Fälle verweigern
+  ebenfalls. In allen vier Fällen bleiben die frisch bestätigten gespeicherten
+  G30-Werte in `values` erhalten; sie werden nicht als aktuelle Position ausgegeben.
+- **Feste Kinematik:** Die aus der Deklaration abgeleitete Ausnahme besteht bei
+  fehlendem Pin und veraltetem Reader weiterhin. Ein erfolgreicher STAT-Poll liefert
+  die Position; A bleibt 725°, die als WRAPPED_ROTARY deklarierte C-Achse wird 350°.
+- **Gültige aktuelle Daten:** Stehend wird übernommen; Bewegung vor oder während
+  Synch und ein gültig gelesener Wechsel auf TCP werden verweigert. Ein erst im
+  aktuellen Poll gelesener beschäftigter Interpreter oder unbekannter Bewegungswert
+  verweigert ebenfalls. Ändert dieser Poll die X-Position von 10 auf 42, enthält die
+  erfolgreiche Antwort `current.X=42`.
+
+Der gemeinsame `_controller_touchoff_state` ist gegenüber `7b02fc0` unverändert
+(zusätzlich per AST-Vergleich geprüft). Der strenge Leseweg bleibt auf Capture
+begrenzt; die Ausnahme für feste Kinematik nutzt die bestehende Deklarations- und
+Policy-Auswertung. Keine neue offene Rückfallregel im geprüften Übergang.
+
+### Nachweise und Prüfumfang
+
+- [operator-punkte.r28.gateway-probe.py](operator-punkte.r28.gateway-probe.py),
+  [operator-punkte.r28.gateway-probe.json](operator-punkte.r28.gateway-probe.json):
+  **12/12 eigene Fälle bestanden**, echter Dispatcher mit `fake_linuxcnc`, temporären
+  Parameterdateien und gemocktem HAL-Reader. Kein Auftrag an den Live-Gateway.
+- [operator-punkte.r28.tests.txt](operator-punkte.r28.tests.txt): **156 Backend-Tests
+  plus 19 Subtests bestanden** (`test_g30`, `test_command_policy`).
+- Geprüft wurde eine unveränderte Git-Archivkopie von `d839c01` unter `/tmp`, mit
+  deaktivierten Python-Bytecode- und pytest-Cache-Dateien. Die Tests liefen seriell
+  und niedrig priorisiert. Alle gestarteten Testprozesse sind beendet.
+- Kein erneuter Browserlauf oder vollständiger Offline-Lauf: Die Änderung betrifft
+  den Backend-Capture-Leseweg. **1069/1710/340 bleibt Claudes gemeldetes Gate** auf
+  `219106d`; die eigenen Ergebnisse stehen oben.
+- Keine Produktänderung, kein Commit und keine Änderung bisheriger Belege. Im
+  Arbeitsbaum nur dieser Anhang und die drei neuen R28-Belegdateien. Kein Zugriff
+  auf `:8000`, keine Maschinenbefehle und keine Änderung am ESTOP der Simulation.
+
+**Übergabe:** R28 mit `agreement`; für OP-I01 bis OP-I06 ist keine weitere
+Korrekturrunde erforderlich.

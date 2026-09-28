@@ -1,0 +1,415 @@
+{
+  "head": "d839c01",
+  "isolation": "fake_linuxcnc; temporary files; mocked HAL reader; no network",
+  "cases": [
+    {
+      "case": "stationary",
+      "shared_frame": 0,
+      "reader_frame": 0,
+      "reader_stale": false,
+      "polls": [
+        "poll_after_synch"
+      ],
+      "reply": {
+        "ok": true,
+        "confirmed": true,
+        "values": {
+          "X": 100.0,
+          "Y": 0.0,
+          "Z": -26.275,
+          "A": 0.0,
+          "C": 0.0
+        },
+        "current": {
+          "X": 10.0,
+          "Y": 20.0,
+          "Z": -5.0,
+          "A": 725.0,
+          "C": 350.0
+        },
+        "units": "mm"
+      },
+      "calls": [
+        [
+          "synch"
+        ]
+      ],
+      "checks": {
+        "ok": true,
+        "current": true,
+        "confirmed_stored": true,
+        "only_synch": true
+      },
+      "matches_contract": true
+    },
+    {
+      "case": "moving_before",
+      "shared_frame": 0,
+      "reader_frame": 0,
+      "reader_stale": false,
+      "polls": [],
+      "reply": {
+        "ok": false,
+        "error": "Machine moving \u2014 capture once it stands"
+      },
+      "calls": [],
+      "checks": {
+        "ok": true,
+        "reason": true,
+        "no_current": true,
+        "no_command": true
+      },
+      "matches_contract": true
+    },
+    {
+      "case": "moving_during_synch",
+      "shared_frame": 0,
+      "reader_frame": 0,
+      "reader_stale": false,
+      "polls": [
+        "poll_after_synch"
+      ],
+      "reply": {
+        "ok": false,
+        "confirmed": true,
+        "values": {
+          "X": 100.0,
+          "Y": 0.0,
+          "Z": -26.275,
+          "A": 0.0,
+          "C": 0.0
+        },
+        "error": "Machine moving \u2014 capture once it stands"
+      },
+      "calls": [
+        [
+          "synch"
+        ]
+      ],
+      "checks": {
+        "ok": true,
+        "reason": true,
+        "no_current": true,
+        "confirmed_stored": true,
+        "only_synch": true
+      },
+      "matches_contract": true
+    },
+    {
+      "case": "frame_during_synch",
+      "shared_frame": 0,
+      "reader_frame": 1,
+      "reader_stale": false,
+      "polls": [
+        "poll_after_synch"
+      ],
+      "reply": {
+        "ok": false,
+        "confirmed": true,
+        "values": {
+          "X": 100.0,
+          "Y": 0.0,
+          "Z": -26.275,
+          "A": 0.0,
+          "C": 0.0
+        },
+        "error": "Machine frame only"
+      },
+      "calls": [
+        [
+          "synch"
+        ]
+      ],
+      "checks": {
+        "ok": true,
+        "reason": true,
+        "no_current": true,
+        "confirmed_stored": true,
+        "only_synch": true
+      },
+      "matches_contract": true
+    },
+    {
+      "case": "reader_missing_after_synch",
+      "shared_frame": 0,
+      "reader_frame": null,
+      "reader_stale": false,
+      "polls": [
+        "poll_after_synch"
+      ],
+      "reply": {
+        "ok": false,
+        "confirmed": true,
+        "values": {
+          "X": 100.0,
+          "Y": 0.0,
+          "Z": -26.275,
+          "A": 0.0,
+          "C": 0.0
+        },
+        "error": "Kinematics mode unknown \u2014 HAL reader stale"
+      },
+      "calls": [
+        [
+          "synch"
+        ]
+      ],
+      "checks": {
+        "ok": true,
+        "reason": true,
+        "no_current": true,
+        "confirmed_stored": true,
+        "only_synch": true
+      },
+      "matches_contract": true
+    },
+    {
+      "case": "stat_poll_fails_after_synch",
+      "shared_frame": 0,
+      "reader_frame": 0,
+      "reader_stale": false,
+      "polls": [
+        "poll_after_synch"
+      ],
+      "reply": {
+        "ok": false,
+        "confirmed": true,
+        "values": {
+          "X": 100.0,
+          "Y": 0.0,
+          "Z": -26.275,
+          "A": 0.0,
+          "C": 0.0
+        },
+        "error": "Machine status not read \u2014 capture again"
+      },
+      "calls": [
+        [
+          "synch"
+        ]
+      ],
+      "checks": {
+        "ok": true,
+        "reason": true,
+        "no_current": true,
+        "confirmed_stored": true,
+        "only_synch": true
+      },
+      "matches_contract": true
+    },
+    {
+      "case": "fixed_kins_without_reader",
+      "shared_frame": 0,
+      "reader_frame": null,
+      "reader_stale": true,
+      "polls": [
+        "poll_after_synch"
+      ],
+      "reply": {
+        "ok": true,
+        "confirmed": true,
+        "values": {
+          "X": 100.0,
+          "Y": 0.0,
+          "Z": -26.275,
+          "A": 0.0,
+          "C": 0.0
+        },
+        "current": {
+          "X": 10.0,
+          "Y": 20.0,
+          "Z": -5.0,
+          "A": 725.0,
+          "C": 350.0
+        },
+        "units": "mm"
+      },
+      "calls": [
+        [
+          "synch"
+        ]
+      ],
+      "checks": {
+        "ok": true,
+        "current": true,
+        "confirmed_stored": true,
+        "only_synch": true
+      },
+      "matches_contract": true
+    },
+    {
+      "case": "reader_stale_after_synch",
+      "shared_frame": 0,
+      "reader_frame": 0,
+      "reader_stale": true,
+      "polls": [
+        "poll_after_synch"
+      ],
+      "reply": {
+        "ok": false,
+        "confirmed": true,
+        "values": {
+          "X": 100.0,
+          "Y": 0.0,
+          "Z": -26.275,
+          "A": 0.0,
+          "C": 0.0
+        },
+        "error": "Kinematics mode unknown \u2014 HAL reader stale"
+      },
+      "calls": [
+        [
+          "synch"
+        ]
+      ],
+      "checks": {
+        "ok": true,
+        "reason": true,
+        "no_current": true,
+        "confirmed_stored": true,
+        "only_synch": true
+      },
+      "matches_contract": true
+    },
+    {
+      "case": "status_missing_after_synch",
+      "shared_frame": null,
+      "reader_frame": 0,
+      "reader_stale": false,
+      "polls": [],
+      "reply": {
+        "ok": false,
+        "confirmed": true,
+        "values": {
+          "X": 100.0,
+          "Y": 0.0,
+          "Z": -26.275,
+          "A": 0.0,
+          "C": 0.0
+        },
+        "error": "Machine status not read \u2014 capture again"
+      },
+      "calls": [
+        [
+          "synch"
+        ]
+      ],
+      "checks": {
+        "ok": true,
+        "reason": true,
+        "no_current": true,
+        "confirmed_stored": true,
+        "only_synch": true
+      },
+      "matches_contract": true
+    },
+    {
+      "case": "interp_busy_on_current_poll",
+      "shared_frame": 0,
+      "reader_frame": 0,
+      "reader_stale": false,
+      "polls": [
+        "poll_after_synch"
+      ],
+      "reply": {
+        "ok": false,
+        "confirmed": true,
+        "values": {
+          "X": 100.0,
+          "Y": 0.0,
+          "Z": -26.275,
+          "A": 0.0,
+          "C": 0.0
+        },
+        "error": "Machine busy \u2014 wait until it is idle"
+      },
+      "calls": [
+        [
+          "synch"
+        ]
+      ],
+      "checks": {
+        "ok": true,
+        "reason": true,
+        "no_current": true,
+        "confirmed_stored": true,
+        "only_synch": true
+      },
+      "matches_contract": true
+    },
+    {
+      "case": "motion_missing_on_current_poll",
+      "shared_frame": 0,
+      "reader_frame": 0,
+      "reader_stale": false,
+      "polls": [
+        "poll_after_synch"
+      ],
+      "reply": {
+        "ok": false,
+        "confirmed": true,
+        "values": {
+          "X": 100.0,
+          "Y": 0.0,
+          "Z": -26.275,
+          "A": 0.0,
+          "C": 0.0
+        },
+        "error": "Motion state unknown \u2014 wait for status"
+      },
+      "calls": [
+        [
+          "synch"
+        ]
+      ],
+      "checks": {
+        "ok": true,
+        "reason": true,
+        "no_current": true,
+        "confirmed_stored": true,
+        "only_synch": true
+      },
+      "matches_contract": true
+    },
+    {
+      "case": "position_refreshed_on_current_poll",
+      "shared_frame": 0,
+      "reader_frame": 0,
+      "reader_stale": false,
+      "polls": [
+        "poll_after_synch"
+      ],
+      "reply": {
+        "ok": true,
+        "confirmed": true,
+        "values": {
+          "X": 100.0,
+          "Y": 0.0,
+          "Z": -26.275,
+          "A": 0.0,
+          "C": 0.0
+        },
+        "current": {
+          "X": 42.0,
+          "Y": 20.0,
+          "Z": -5.0,
+          "A": 725.0,
+          "C": 350.0
+        },
+        "units": "mm"
+      },
+      "calls": [
+        [
+          "synch"
+        ]
+      ],
+      "checks": {
+        "ok": true,
+        "current": true,
+        "confirmed_stored": true,
+        "only_synch": true
+      },
+      "matches_contract": true
+    }
+  ]
+}
