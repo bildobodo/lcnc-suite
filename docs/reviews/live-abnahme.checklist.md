@@ -19,16 +19,16 @@ enthält jeden anderen Branch.
     Implementierungs-Agreement in Runde R28 (OP-I01 bis OP-I06 geschlossen,
     [Review](operator-punkte.ideen.md)).
   - Feste Viewer-Palette (`feat/viewer-palette`): Ideenrunde R29, Plan-Agreement R30,
-    Implementierungsreview R31 (vier Befunde, behoben), Nachprüfung R32 läuft
-    ([Review](viewer-palette-fest.ideen.md)).
+    Implementierungsreview R31 (vier Befunde, behoben), Nachprüfung R32 (zwei Befunde zur
+    Befundnavigation, behoben), Nachprüfung R33 läuft ([Review](viewer-palette-fest.ideen.md)).
 - **Offline-Gates** (`python3 scripts/test_suite.py offline`):
   - Welle auf `15b46ff`: PASS, Playwright 282/282.
   - Kontrast auf `82418a7`: PASS, Backend 969, Vitest 1684, Playwright 292/292.
   - Kontrast mit dem XYZAC-Fix (R16) auf `d615f5d`: PASS, Backend 1003, Vitest 1691,
     Playwright 301/301.
   - Operator-Punkte auf `219106d`: PASS, Backend 1069, Vitest 1710, Playwright 340/340.
-  - Feste Palette mit den R31-Korrekturen: PASS auf `90d5715`, Backend 1069, Vitest 1722,
-    Playwright 344/344.
+  - Feste Palette mit den R32-Korrekturen: PASS auf `ce0d048`, Backend 1069, Vitest 1728,
+    Playwright 349/349.
   - Danach kamen nur noch Review-Dokumente dazu.
 
 ## Vorbereitung
@@ -210,7 +210,7 @@ dürfen sich beim Theme-Wechsel nicht ändern. Plan, Recherche und Rechnung:
 | Linien auf- und nebeneinander | Ein Programm mit engen Bahnen, Eilgängen und Backplot: Vorschub, Eilgang, Backplot und Grenzverletzung klar auseinander, auch vor dem hellen Tisch |
 | Eilgang-Farbe | **Deine Wahl:** Magenta `#ef0197` (jetzt) oder Purpur `#d422e5`. Magenta liegt weiter vom Vorschub, Purpur weiter von der Kollision |
 | Boxen | Maschinen-Box und Werkzeugbahn-Box: heller Kern mit dunklem Saum, die Werkzeugbahn-Box gestrichelt mit Maßen; der Teil außerhalb des Maschinenfensters ocker gestrichelt |
-| Kollision | ein rot leuchtendes Maschinenteil; in Zeitleiste und Code-Panel ×, die Grenze ▲ |
+| Kollision | Programm `xyzac_collision_check.ngc` laden (absichtliche Kollision, **nie fahren**; laden geht nur referenziert, dann Maschine aus), „Next collision“: der erste Klick landet auf L8, die A-Wiege leuchtet rot; in Zeitleiste und Code-Panel ×, die Grenze ▲ |
 | Keine Zeilen-Hervorhebung | im Lauf und in der Simulation keine hervorgehobene Linie im 3D; die Zeile zeigt das Code-Panel, die Position das Werkzeug |
 | Backplot über einer Grenzverletzung | die ockerfarbene Markierung bleibt sichtbar |
 | Settings → 3D Viewer → Layers | neue Ebene **Rapids**; neben jeder Ebene eine Strichprobe in ihrer Farbe (gestrichelt, gesäumt wie gezeichnet), darunter Grenze ▲ und Kollision × |

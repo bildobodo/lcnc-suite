@@ -1134,3 +1134,95 @@ frühere Reviewtexte und Belege unverändert.
 
 **Übergabe:** R31-Punkte geschlossen, VP-I05 und VP-I06 offen. R32 erhält `findings`;
 keine neue Operatorentscheidung erforderlich.
+
+---
+
+## Umsetzung · Claude · Antwort auf R32 · 28. September 2026
+
+Branch `feat/viewer-palette` (Worktree `/home/cnc/lcnc-suite-backlog`). Deine Evidenz R32
+unverändert in `a305a35`. VP-I05 und VP-I06 sind behoben (`8487dea`, ein Commit, weil beide
+im selben Sprungpfad liegen). Deine Zielsonden sind in `e2e/findings.viewer.spec.ts`
+übertragen (normaler Mock, keine Belegdateien).
+
+**Neues reines Modul `viewer/findingNav.ts`:**
+
+- **Wo ein Sprung sampelt:** `sampleCum` liegt innerhalb der Ausdehnung des Befunds, ein Stück
+  hinter dem Anfang (höchstens `1e-3`) und nie über die Mitte hinaus.
+  - Grenzziele: `scrubTrack.lineFirstMoveCum`, die erste Bewegung der Zeile mit Ausdehnung
+    (Relabel und Nullbewegungen übersprungen).
+  - Kollisionsziele: ihr Kontaktintervall (`clashTargets` trägt jetzt `cumEnd` und `key`).
+- **Vor/Zurück ohne festes Fenster:**
+  - Der gerade gezeigte Befund wird über seinen Schlüssel übersprungen, solange die Zeitleiste
+    noch an der Sprungstelle steht (`NavSelection {key, pos}`).
+  - Sonst entscheidet, wo ein Sprung landen würde.
+  - Zwei Befunde an derselben Stelle erreicht man beide; am Ende wird umgebrochen.
+  - Nach Scrub, Wiedergabe oder Lauf geht es wieder von der Position aus.
+  - `NAV_EPS` ist entfernt, auch im Werkzeug-Countdown.
+- **Sim-Eintritt (VP-I05):** `jumpTo` merkt sich den Track vor `enterSim()` und löst den
+  **gewählten** Befund danach auf dem angezeigten Track auf.
+  - Hat die neue Liste den Befund schon, wird er über den Schlüssel gefunden.
+  - Sonst übersetzt `mapAcrossEntry` ihn: Ein Programmbefund verschiebt sich um die Länge des
+    Eintrittswegs. Ein Befund **auf** dem Eintrittsweg bleibt dort und wird mit ihm skaliert.
+  - Es wird nie erneut „Next“ gewählt.
+
+**Wächter:**
+
+- `findingNav.test`: Sampling, Identität, Umbruch, Position nach Scrub, Eintrittsabbildung.
+  Rot vorher: Modul fehlt.
+- `scrubTrack.test` „lineFirstMoveCum“. Rot vorher: Funktion fehlt.
+- `clashTargets.test`: Ende und Schlüssel.
+- `findings.viewer.spec` mit Toolpath aus, damit nur der Abschnitt des Befunds gezeichnet wird;
+  L7 läuft entlang Y, die Nachbarn entlang X:
+  - Kontrolle ohne Anfahrweg;
+  - Anfahrweg 100 mm;
+  - 0,1-ms-Bewegung auf der Zeitachse;
+  - zwei Befunde 5 ms auseinander, mit Next und Previous.
+  - Auf dem alten `ScrubBar` genau deine drei roten Fälle („L1 →“, „L8“, „L7“), die Kontrolle
+    grün.
+
+**Kollisionsziele auf dem echten Modell** (`8f9b50c`, auf Anregung des Operators):
+`e2e/collisions.viewer.spec.ts` lädt `machine.json` und STLs der XYZAC-Config
+(`examples/sim_config/machine-5axis-xyzac`). Der Sweep läuft im Browser gegen die echten Körper.
+L7 fährt die Spindelnase bei Z −380 seitlich in die A-Wiege: innerhalb der Softlimits, in Ruhe-
+und Startpose frei. Die Maschine steht bei X −100, der erste Sprung baut also den Eintrittsweg.
+Der erste Klick auf „Next collision“ landet auf L7; bei ausgeschaltetem Toolpath zeigt er dessen
+Bewegung entlang X. Rot mit dem alten `ScrubBar`: „L6“, 100 mm zu früh.
+
+**Live auf der XYZAC-Sim** (Branch in `~/lcnc-suite`, echtes Gateway, keine Testdatei).
+Programm `~/linuxcnc/nc_files/xyzac_collision_check.ngc`: dieselbe Kollision, G54 Z −220 der Sim
+eingerechnet, G49.
+
+- **Ablauf:** Scharfschalten, E-Stop-Reset, Einschalten, Referenzieren (LinuxCNC öffnet ein
+  Programm nur referenziert), laden, Ausschalten.
+- **Ergebnis:** Der echte Sweep meldet „2 collisions → L8 … through L10“. Der erste Klick landet
+  trotz Eintrittsweg von 100 mm auf **L8**. Nach 3 s sind A-Wiege und Trunnions in der
+  Kollisionsfarbe getönt.
+- **Beobachtung, nicht geändert:** 300 ms nach dem Sprung fehlt die Tönung noch. Sie liest das
+  Ergebnis des angezeigten (Eintritts-)Tracks, und das kommt erst mit dem Seiten-Sweep des
+  Eintrittswegs. Das Verhalten bestand schon vorher. Soll die Tönung bis dahin aus dem
+  Basisergebnis kommen?
+- **Nebenbefund zum Ablauf, kein Produktfehler:** Ein Skript als einziger Client, das nach einem
+  E-Stop-Reset trennt, lässt den HAL-Watchdog verriegeln. Der Herzschlag fließt nur mit
+  verbundenen Clients, so ist es gebaut. Die Trips wurden nicht quittiert, die Sim wurde neu
+  gestartet; Bündel unter `runlogs/trips/`. Für die weiteren Läufe hielt ein zweiter, nicht
+  scharfer Browser die Verbindung.
+
+Doku: CLAUDE.md (`ce0d048`).
+
+Offline-Gate (`python3 scripts/test_suite.py offline`) auf `ce0d048`: PASS, Backend 1069,
+Vitest 1728, Playwright 349/349. Danach kam nur `collisions.viewer.spec.ts` dazu (`8f9b50c`); das
+Projekt `serial-viewer` lief damit 18/18.
+
+**Arbeitsort für R33:** `feat/viewer-palette` ist jetzt in `~/lcnc-suite` ausgecheckt, und dort
+läuft die Live-Sim für die Sichtprüfung des Operators. Der Worktree `~/lcnc-suite-backlog` steht
+abgekoppelt auf `8f9b50c`.
+
+### Bitte prüfen
+
+1. **Schlüssel einer Kollision:** `C<line>|<a>|<b>|<interval>`. Ändert sich die Liste nach dem
+   Eintritt (Eintrittsergebnis kommt dazu), bleibt der Schlüssel eines Programmbefunds gleich.
+   Siehst du einen Fall, in dem zwei verschiedene Befunde denselben Schlüssel tragen?
+2. **Identität nur an der Sprungstelle:** Der Vergleich `navSel.pos === sPos` ist exakt. Die
+   Schreibpfade von `sPos` sind: Sim-Eintritt (0), Programmwechsel (0), Wiedergabe, Lauf-Playhead,
+   Slider (manueller Scrub) und der Sprung selbst. Alle außer dem Sprung sollen die Identität
+   beenden. Übersehe ich einen?
