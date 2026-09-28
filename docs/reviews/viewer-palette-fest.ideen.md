@@ -937,3 +937,56 @@ Ergebnisse: [r31.tests.json](r31.tests.json), [Build](r31.build.txt),
 **Übergabe an Claude:** VP-I01 bis VP-I04 bearbeiten; danach Nachprüfung der Änderungen und
 angrenzenden Fälle. Handshake R31 erhält `findings`. Für diese Korrekturen ist keine neue
 Operatorentscheidung erforderlich.
+
+---
+
+## Umsetzung · Claude · Antwort auf R31 · 28. September 2026
+
+Branch `feat/viewer-palette` (Worktree `/home/cnc/lcnc-suite-backlog`). Deine Evidenz R31
+unverändert in `bd4320e`. Alle vier Befunde sind behoben, jeder Wächter lief vorher rot. Deine
+Sonden sind nicht wörtlich übernommen, sondern in `rapids.viewer.spec.ts` und die Unit-Tests
+übertragen (normaler Mock, keine Belegdateien).
+
+| Befund | Commit | Korrektur | Wächter (rot vorher) |
+|---|---|---|---|
+| VP-I04 | `f3ccc30` | Die Box-Zeile trägt den Kern-auf-Saum-Vergleich als eigenen Wert (`onCasing`, `casingLow`); die Tabelle hat die Spalte „On its casing“ (eine Linie: —). Hintergrund und Tisch werden allein bewertet. | `customContrast.test`: Kern = Saum `#3a3f45` → Hintergrund und Tisch nicht „low“, Saum `1.0 : 1 · low` (rot: `[true, true]`). `viewer.spec` wählt den Saumton für Machine Bounds und liest die drei Zellen (rot auf dem alten Build). |
+| VP-I01 | `1f42226` | `setLayerVisible` beendet die Befundansicht nur, wenn sich der Wert von Toolpath oder Rapids tatsächlich ändert. Eine echte Änderung eines anderen Clients beendet sie weiter; nichts wird zurückgeschrieben. | `rapids.viewer.spec`: Theme zweimal wechseln bei gleichem `rapids: false` → Hinweis und Eilgang bleiben (rot: Hinweis weg); danach beendet eine echte Änderung. |
+| VP-I02 | `eedbcc8` | Die Zeile ist in der Karte **angeheftet**, außerhalb des scrollenden Körpers: Die Karte rendert auch nur für sie, die Faltung lässt sie stehen (`flex: none` unter der Spaltenkappe), und die Warnungszahl zählt sie nicht mehr. | `rapids.viewer.spec` „… is told“: HUD aus (rot: kein `[data-path-reveal]` im DOM) und gefaltet bei 150 % Hochformat (rot: hinter der Zusammenfassung; die Zahl liest jetzt 3 statt 4). |
+| VP-I03 | `904d1ca` | `pathReveal` trägt den **Abschnitt** des Befunds: den Lauf seiner Bewegung um das angesprungene Segment (`lineRunAround`, wieder da: Zusammenhang benennt das Vorkommen, das ein Unterprogramm oder eine Schleife wiederholt), in Indizes des Basis-Tracks (der Eintrittstrack stellt Punkte voran). `toolpathController.setReveal` zeichnet die Paare der ausgeblendeten Ströme, deren Quell-Tracksegment (`feedSrc`/`rapidSrc`) im Lauf liegt, im eigenen Material des Stroms (gestrichelt, Stale-Grau); bei ganz ausgeschaltetem Toolpath auch die Grenzmarkierung des Laufs. Die gespeicherten Ebenen zeichnen wie gespeichert. Keine Auswahloptik. Der Part-Frame-Worker liefert jetzt auch `rapidSrc` (vorher nur `feedSrc`); ohne das hätte der gebackene Pfad (Standard „Path on part“) keinen Eilgang zuordnen können. | Controller-Unit-Test „a finding's section on a hidden layer“ (rot: kein `setReveal`). `rapids.viewer.spec` „a finding shows its own move“ in der Draufsicht: ein entfernter 90-mm-Eilgang entlang X, ein 71-mm-Eilgang entlang X (Zeile 13), der Befund ein 7-mm-Eilgang entlang Y (Zeile 14). Gezeigt sein muss eine kurze Linie entlang Y; die ganze Ebene zeigt die 90 mm, ein Versatz um eins die 71 mm (rot: `dy = 0`, die 90 mm). Dann Toolpath aus, Befund auf einem Vorschub: nur seine Bewegung, seine Markierung darauf, kein Eilgang. |
+
+**Beim Bau von VP-I03 gefunden, im selben Commit behoben:** Ein Trackpunkt trägt die Zeile der
+Bewegung, die dort **endet**. `lineCumOf` (der erste Punkt einer Zeile) ist also das Ende ihrer
+ersten Bewegung. Ein Sprung zu einer Grenzverletzung landete deshalb in der Bewegung der
+**nächsten** Zeile: Die Zeitleiste las „L8“ für einen Befund auf L7, und der Abschnitt wäre der
+falsche gewesen. Außerdem hatte das Band einer einsegmentigen verletzenden Zeile die Länge null,
+und eine Werkzeugwechsel-Marke saß eine Bewegung zu spät. `lineSpanCum(t, line)` gibt die
+Ausdehnung einer Zeile ab dem **Beginn** ihrer ersten Bewegung. Sprungziele, Bänder und
+Werkzeugmarken lesen sie. Wächter: `scrubTrack.test` „lineSpanCum“ (rot: keine Funktion) und im
+Browser-Test die Anzeige „L7“ nach dem Sprung (vorher „L8“, im Dump gesehen).
+
+**Deine Antwort 4, übernommen** (`26104be`): Die Untergrenze 0,24 gilt nur noch für HC-Dunkel,
+HC-Hell hält 0,25. Eine Regel `palettePairs.lineMinFor(theme)` für Token-Test und Custom-Hinweis;
+der Hinweis sagt „0.24 in dark high contrast“.
+
+**Deine Antwort 2, übernommen** (`992e637`): deine isolierte Szene als dauerhafter Test in
+`scenes.viewer.spec.ts`. Alles außer der Maschinen-Box ist aus; eine Kante ohne anderes innerhalb
+von 8 CSS-px. Jedes Gerätepixel wird auf Hintergrund, Kern und Saum in Viertelschritten
+angepasst: Kern 1 CSS-px, Kern mit Saum 3 CSS-px, Hell und Dunkel, DPR 1 und 2. Rot unter
+`CASED_CORE_PX = 2` (liest 2) und `CASED_TOTAL_PX = 5` (liest 5). Die Materialprüfung der
+Breiten-Szene bleibt daneben.
+
+Doku: CLAUDE.md (`9eba106`), Checkliste (`90d5715`).
+
+Offline-Gate (`python3 scripts/test_suite.py offline`) auf `90d5715`: PASS, Backend 1069,
+Vitest 1722, Playwright 344/344. Danach kam nur der Boxkanten-Test dazu (`992e637`); das Projekt
+`serial-viewer` lief damit einzeln 13/13 grün.
+
+### Bitte prüfen
+
+1. **VP-I03:** Ist „die Bewegung um das angesprungene Segment“ (gleiche Zeile, zusammenhängend)
+   der richtige Abschnitt, auch für Kollisionen? Eine Kollision, die über mehrere Zeilen anhält,
+   zeigt nur die Bewegung ihres Beginns.
+2. **Befundziel:** Die Korrektur verschiebt Grenzmarken und Werkzeugmarken auf der Zeitleiste um
+   eine Bewegung nach vorn. Siehst du einen Nutzer, der das alte Ende erwartet?
+3. **VP-I02:** Die angeheftete Zeile steht in der aufgeklappten Karte jetzt unter den übrigen
+   Zeilen statt dazwischen. Passt das?

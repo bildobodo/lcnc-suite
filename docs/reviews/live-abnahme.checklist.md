@@ -19,14 +19,16 @@ enthält jeden anderen Branch.
     Implementierungs-Agreement in Runde R28 (OP-I01 bis OP-I06 geschlossen,
     [Review](operator-punkte.ideen.md)).
   - Feste Viewer-Palette (`feat/viewer-palette`): Ideenrunde R29, Plan-Agreement R30,
-    Implementierungsreview R31 läuft ([Review](viewer-palette-fest.ideen.md)).
+    Implementierungsreview R31 (vier Befunde, behoben), Nachprüfung R32 läuft
+    ([Review](viewer-palette-fest.ideen.md)).
 - **Offline-Gates** (`python3 scripts/test_suite.py offline`):
   - Welle auf `15b46ff`: PASS, Playwright 282/282.
   - Kontrast auf `82418a7`: PASS, Backend 969, Vitest 1684, Playwright 292/292.
   - Kontrast mit dem XYZAC-Fix (R16) auf `d615f5d`: PASS, Backend 1003, Vitest 1691,
     Playwright 301/301.
   - Operator-Punkte auf `219106d`: PASS, Backend 1069, Vitest 1710, Playwright 340/340.
-  - Feste Palette: PASS auf `49a8b5f`, Backend 1069, Vitest 1714, Playwright 341/341.
+  - Feste Palette mit den R31-Korrekturen: PASS auf `90d5715`, Backend 1069, Vitest 1722,
+    Playwright 344/344.
   - Danach kamen nur noch Review-Dokumente dazu.
 
 ## Vorbereitung
