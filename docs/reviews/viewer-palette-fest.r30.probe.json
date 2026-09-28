@@ -1,0 +1,114 @@
+{
+  "head": "af2468b",
+  "scope": "Arithmetic only; no perceptual or rendered-scene proof",
+  "colours": {
+    "feed": "#0f86ba",
+    "rapid": "#ef0197",
+    "limit": "#b06c02",
+    "backplot": "#7c0bfa"
+  },
+  "background_contrasts": {
+    "feed": {
+      "#ffffff": 4.0860923236694715,
+      "#0b0f14": 4.70355169813278,
+      "#e0e0e0": 3.095328604587963
+    },
+    "rapid": {
+      "#ffffff": 4.1004739153725644,
+      "#0b0f14": 4.68705493178991,
+      "#e0e0e0": 3.106223060378945
+    },
+    "limit": {
+      "#ffffff": 4.206795927043597,
+      "#0b0f14": 4.568594916661305,
+      "#e0e0e0": 3.186764941950318
+    },
+    "backplot": {
+      "#ffffff": 6.392087816150348,
+      "#0b0f14": 3.0067087687943626,
+      "#e0e0e0": 4.842184339731246
+    }
+  },
+  "line_pairs": [
+    {
+      "a": "feed",
+      "b": "rapid",
+      "normal": 0.3339956734310998,
+      "cvd": 0.1122340447259994,
+      "normal_at_least_025": true,
+      "cvd_at_least_012": false,
+      "declared_dash_exception": true
+    },
+    {
+      "a": "feed",
+      "b": "limit",
+      "normal": 0.2507110390952722,
+      "cvd": 0.21320483666491002,
+      "normal_at_least_025": true,
+      "cvd_at_least_012": true,
+      "declared_dash_exception": false
+    },
+    {
+      "a": "feed",
+      "b": "backplot",
+      "normal": 0.2519174547560564,
+      "cvd": 0.14002858575064728,
+      "normal_at_least_025": true,
+      "cvd_at_least_012": true,
+      "declared_dash_exception": false
+    },
+    {
+      "a": "rapid",
+      "b": "limit",
+      "normal": 0.25981688393803143,
+      "cvd": 0.13131787257048363,
+      "normal_at_least_025": true,
+      "cvd_at_least_012": true,
+      "declared_dash_exception": false
+    },
+    {
+      "a": "rapid",
+      "b": "backplot",
+      "normal": 0.287629121353387,
+      "cvd": 0.16212674474291242,
+      "normal_at_least_025": true,
+      "cvd_at_least_012": true,
+      "declared_dash_exception": false
+    },
+    {
+      "a": "limit",
+      "b": "backplot",
+      "normal": 0.3939638047561289,
+      "cvd": 0.19990124504500467,
+      "normal_at_least_025": true,
+      "cvd_at_least_012": true,
+      "declared_dash_exception": false
+    }
+  ],
+  "collision_pairs": {
+    "feed": {
+      "normal": 0.32144595704287043,
+      "cvd": 0.20414066454873137
+    },
+    "rapid": {
+      "normal": 0.16138629710819416,
+      "cvd": 0.08929695993146826
+    },
+    "limit": {
+      "normal": 0.1598617524168569,
+      "cvd": 0.06205607150777191
+    },
+    "backplot": {
+      "normal": 0.35070386845133256,
+      "cvd": 0.28195116040033164
+    }
+  },
+  "box_contrasts": {
+    "core_on_casing": 5.675151438503443,
+    "core_on_dark": 10.267504224264396,
+    "casing_on_white": 10.622987286321091,
+    "casing_on_table": 8.047208386127442
+  },
+  "policy": "Normal >= .25; CVD >= .12 except declared rapid/feed dash limitation",
+  "pass": true
+}

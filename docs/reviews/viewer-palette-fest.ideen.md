@@ -602,3 +602,125 @@ Das Ausblenden der gefahrenen Bahn (F3) folgt danach mit eigener Ideenrunde.
 3. **P4:** Übersehe ich einen Nutzer der Hervorhebung? Kandidaten: Befund-Navigation,
    Run-from-line-Dialog, Scrub-Zeile.
 4. **P3:** Legende im Ebenen-Menü oder als eigenes kleines Overlay?
+
+---
+
+## Review Codex · Ideenrunde R30 / Fassung 2 · 28. September 2026
+
+**Stand:** `feat/viewer-palette`, `af2468b`, Worktree `/home/cnc/lcnc-suite-backlog`;
+Nachprüfung `c14165b..af2468b`.
+**Ergebnis: agreement auf Planungsebene.** Die Operator-Entscheidungen sind übernommen und
+VP29-01 bis VP29-04 für diesen Umfang aufgelöst. Palette, Boxen, Ebenensteuerung und Entfernen
+der 3D-Zeilenhervorhebung können in der vorgeschlagenen Paketfolge umgesetzt werden. F3 bleibt
+außerhalb dieses Branch-Umfangs und braucht seine eigene Ideenrunde. Dies ist keine Abnahme der
+noch ausstehenden Implementierung oder ihrer visuellen Wirkung.
+
+### Antworten auf die vier Fragen
+
+**1. Palette und Paarregel: als Kandidat für die Umsetzung ja.** Die deterministische Nachrechnung
+von Abschnitt 4 bestätigt alle sechs Normal-Abstände und alle Hintergrundkontraste. Es gibt
+genau eine Ausnahme unter 0,12 in der CVD-Simulation: Vorschub/Eilgang mit **0,112234**. Sie ist
+jetzt ausdrücklich benannt. Die übrigen fünf Linienpaare erreichen mindestens 0,131318; die
+Paare ohne Eilgang mindestens 0,140029. Backplot/Kollision liegt bei **0,350704 / 0,281951**
+(normal / schlechteste Simulation) und beseitigt damit den bisherigen Farbnähe-Konflikt deutlich.
+
+Die knappen Reserven nicht durch Rundung verstecken:
+
+| Prüfung | genauer Wert | Konsequenz |
+|---|---:|---|
+| Backplot auf Dunkel | 3,006709:1 | besteht rechnerisch knapp; keine Alpha-Abschwächung in der normalen Live-Spur |
+| Vorschub auf Tisch | 3,095329:1 | gerenderte schräge/dünne Linien in P5 prüfen |
+| Vorschub / Grenze normal | 0,250711 | vor Farbkorrekturen alle Paare neu messen |
+| Vorschub / Backplot normal | 0,251917 | ebenso, nicht nur die Hintergrundprüfung wiederholen |
+
+In dichten Bahnen bleiben zwei konkrete Grenzen: kurze Eilgangsegmente können kein erkennbares
+Strichmuster zeigen oder in einer Strichlücke liegen; ein deckungsgleicher Backplot kann die
+Vorschau oder ihre Grenzmarkierung verdecken. Der zweite Fall ist keine Farbabstandsfrage:
+`backplotController.ts:90` zeichnet die 2-px-Spur mit `renderOrder=11`, der Grenz-Overlay in
+`toolpathController.ts:422` mit 10. P5 sollte deshalb ausdrücklich **Backplot über einer
+Grenzverletzung** enthalten und prüfen, dass der Befund weiter auffindbar ist. Bei der gezielten
+Befundansicht muss der Warnabschnitt erkennbar werden; ein vorübergehend zurückgenommener
+Backplot oder ein Befundmarker kann das leisten. Keine erneute allgemeine Zeilenauswahl dafür
+einführen. Im Normalblick bleibt der Backplot gemäß Operatorentscheidung sichtbar.
+
+Die neue Paartabelle sollte die 0,25-Regel auf die **vier Linienrollen** anwenden. Körper-/Linien-
+Paare sind getrennte Fälle mit Objektmerkmal und Szenenprüfung; sonst würde der eigene Kandidat
+bei Eilgang/Kollision (0,161386) und Grenze/Kollision (0,159862) durchfallen. „Mehr geben vier
+Linien im Band nicht her“ weiterhin nur als Suchergebnis formulieren, nicht als bewiesene
+Schranke. Das ändert meine Zustimmung zu diesem Kandidaten nicht.
+
+**2. Boxen: 1 px Kern plus 1 px Saum je Seite ist ein sinnvoller Ausgangspunkt.** Beide Boxen
+behalten den Saum. Bei der Werkzeugbahn-Box ersetzen Strichelung und Maße den Kontrast des
+Strichs auf dem Hintergrund nicht. Die Rechnung bestätigt Kern/Saum **5,675:1**, Kern/Dunkel
+10,268:1 sowie Saum/Weiß 10,623:1 und Saum/Tisch 8,047:1.
+
+Die Breiten in **CSS-Pixeln** festlegen und bei DPR 1/2 prüfen. Kern und Saum der gestrichelten
+Box müssen dieselben Strichlücken haben; ein durchgezogener dunkler Saum würde die Unterscheidung
+wieder verwischen. Beide Durchgänge respektieren Tiefe und Verdeckung. Bei deckungsgleichen
+Boxen helfen die getrennten Ebenenschalter. Eine klare Priorität an Ocker-Überlaufkanten verhindert,
+dass der neutrale Kern darüberzeichnet. Erst die realen P5-Szenen entscheiden, ob 3 px Gesamtbreite
+an engen Konturen zu dominant sind; vorher keinen dickeren Saum vorsehen.
+
+**3. Nutzer der Hervorhebung: die Entfernung ist möglich, diese Nachbarn aber erhalten.**
+Die produktiven Aufrufe von `setHighlight`/`setHighlightTrackRange` liegen im aktuellen
+Viewer-Highlightblock (`ThreeViewer.vue:2111`). Eine zweite manuelle 3D-Auswahl für Run-from-line
+habe ich nicht gefunden. Dessen `selectedLine` ist lokaler Zustand des `GcodePanel`
+(`GcodePanel.vue:561`); die Codeauswahl und der Startdialog bleiben unabhängig davon erhalten.
+
+- `trackHighlightRange` und seine reinen 3D-Publikationen können mit entfernt werden.
+  **Nicht das ganze Modul `trackHighlight.ts` löschen:** `runLineState`, `subExecState` und
+  `resolveCurrentLine` versorgen weiterhin die Hauptdatei und die Unterprogrammanzeige
+  (`App.vue:656`). Auch der Run-Watcher bleibt für diese Anzeige nötig.
+- **`_scrubLineNo` bleibt nötig**, obwohl der Name im Highlightpfad auftaucht: die Variable wird
+  auch an `_updateClashTint` übergeben (`ThreeViewer.vue:2688/3327`). Ebenso Scrub-Pose, Track und
+  Cum erhalten. Sonst ginge mit der Auswahl unbeabsichtigt die Kollisionsfärbung verloren.
+- `ScrubBar.jumpTo` (`ScrubBar.vue:815`) setzt die Simulationsposition und ruft `applyPos` auf;
+  die Befundnavigation hängt nicht vom Auswahlmaterial ab. Ihr Ergebnis weiter über Werkzeugpose,
+  Befund und Codezeile prüfen. `LineSegments2` bleibt für den 2-px-Backplot erforderlich.
+- P4-Wächter nicht nur auf „kein Material mit selection-Rolle“ beschränken: zusätzlich bestätigen,
+  dass nach Scrub/Befundsprung die Werkzeugpose und Kollisionsfärbung stimmen, die Codezeile samt
+  Unterprogramm weiter folgt und Run-from-line seine gewählte Zeile behält. Damit wird die
+  beabsichtigte Entfernung gegenüber einem versehentlich größeren Funktionsverlust abgegrenzt.
+
+**4. Legende: in den vorhandenen Ebenen-Bereich, kein weiteres dauerndes Overlay.** Am besten
+Strichprobe und Rollenname direkt an derselben Ebenenzeile, statt eine zweite getrennte Liste.
+Grenze und Kollision als erklärende Zeilen ergänzen; die Kollision fehlt noch in der aufgezählten
+Legende, obwohl gerade ihre Bedeutung von den anderen Rollen unterschieden werden soll.
+Die Symbole ▲/× aus Code und Zeitleiste dort wiederholen. Das verbraucht wenig zusätzlichen
+Platz im Viewer und hält Sichtbarkeit und Erklärung zusammen.
+
+Für den temporär gezeigten Eilgang empfehle ich einen **lokalen Befundzustand**, keine Änderung
+der gespeicherten Ebenenwahl: neuer Befund ersetzt ihn, manuelles Scrubben, Simulationsende und
+Programmwechsel räumen ihn auf; die Anzeige benennt ihn. Auch den Fall „Toolpath insgesamt aus“
+berücksichtigen. Die Wiederherstellung darf eine inzwischen bewusst geänderte Nutzerwahl nicht
+überschreiben. Das lässt sich innerhalb von P3/P5 ohne weitere Ideenrunde konkretisieren.
+
+### Einordnung der R29-Punkte und des Prüfumfangs
+
+- **VP29-01 geschlossen:** vier Rollen, getrennte Normal-/CVD-Regeln, benannte Ausnahme und
+  berichtigter Normbezug. Die Werte sind Suchkandidaten; Zahlenwächter ersetzen keine Sichtprüfung.
+- **VP29-02 aus diesem Umfang entfernt:** kein Ausblenden vermeintlich gefahrener Segmente;
+  Backplot bleibt sichtbar. Der Vertrag für F3 ist als eigene Folgerunde übernommen.
+- **VP29-03 durch Operatorentscheidung geschlossen:** Auswahlrolle und Halo entfallen;
+  Viewer-Grund folgt dem Theme. Kein Rückgriff auf den verworfenen dauerhaft dunklen Grund.
+- **VP29-04 auf Planungsebene geschlossen:** Rapids-Ebene, integrierte Legende, Navigation und
+  reale Überlagerungsszenen sind enthalten; oben stehen die konkreten Prüfziele dazu.
+
+HC mit eigener Helligkeit und erhaltenen Farbfamilien ist akzeptiert. Die bestehende Trennung
+beibehalten: **4,5:1 zum jeweiligen HC-Hintergrund, mindestens 3:1 zum beleuchteten Tisch**
+(`themeTokens.test.ts:104–107`), nicht versehentlich 4,5:1 zu beiden fordern. Auch bei HC sind
+Paarabstand und Form gemeinsam zu prüfen. Custom-Werte bleiben unverändert; im Hinweis die
+Farbprüfung und das ergänzende Strichmerkmal getrennt benennen, damit der eingebaute
+Vorschub/Eilgang-Kandidat nicht zugleich als ungeklärter Konfigurationsfehler erscheint.
+
+Belege: [viewer-palette-fest.r30.probe.py](viewer-palette-fest.r30.probe.py),
+[viewer-palette-fest.r30.probe.json](viewer-palette-fest.r30.probe.json). Es wurden nur die
+Formeldefinitionen und Fassung-2-Werte aus der vorhandenen Rechnung ausgewertet, nicht ihre
+Zufallssuche erneut gestartet. Statische Verbrauchersuche für P4; kein Browser, Produktbuild,
+Test-Gesamtlauf oder Zugriff auf `:5173`/`:8000`. Vorbereitung unter `/tmp`, Rechenlauf mit
+`nice -n 19`; keine Maschinenbefehle. Im Palette-Worktree nur dieser Anhang und die zwei neuen
+Belege, bisherige Texte/Belege unverändert. Der Live-Produktcheckout wurde nicht bearbeitet.
+
+**Übergabe:** Plan-Agreement für Fassung 2 in diesem Umfang; keine weitere Ideenrunde vor P4/P1/P2/P3
+nötig. Implementierungsreview, HC-/Szenennachweise und abschließende Operator-Sichtprüfung folgen
+nach der Umsetzung. Die Handshake-Rückmeldung verwendet das bestehende gemeinsame Protokoll.
