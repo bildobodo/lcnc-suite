@@ -6,11 +6,10 @@
 // explicit bounding sphere so frustum culling and display LOD work per
 // chunk; the outside-limits overlay is a per-chunk index SUBSET of the pairs
 // touching a vertex the producing worker flagged beyond a joint limit —
-// joint-side, TLO-inclusive, no clip planes), the highlight line (shares
-// feed's position attribute,
-// independent drawRange), the toolpath bounding box + axis labels + out-of-
-// bounds edges, the source-line→point-range map, and the machine-bounds
-// overflow check.
+// joint-side, TLO-inclusive, no clip planes), the toolpath bounding box +
+// axis labels + out-of-bounds edges, and the machine-bounds overflow check.
+// No 3D highlight of the current line (operator 2026-09-28): the code panel
+// names the line, the tool shows where it is.
 //
 // Factory deps are STABLE references (created once, mutated in place): the two
 // clip-plane arrays (transformed per-frame by the orchestrator), the billboard-
@@ -19,11 +18,7 @@
 // carries the REASSIGNED scene-graph pointers (scene/workOrigin/workRotGroup)
 // plus per-program data (pathAlwaysOnTop/units) — never cached.
 import * as THREE from "three";
-import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
-import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
-import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
-import { buildLineIndex, emptyLineIndex, lineHas, lineRange, type LineIndex } from "./lineIndex";
-import { binPairs, buildFrameIndex, CHUNK_MAX, chunkBounds, chunkGrid, cumulativeDistances, splitPairsByFrame, unionBounds } from "./lineChunks";
+import { binPairs, buildFrameIndex, CHUNK_MAX, chunkBounds, chunkGrid, cumulativeDistances, splitPairsByFrame } from "./lineChunks";
 import type { AnchorTerms } from "./partFrame";
 import type { Ref } from "vue";
 import type { Text } from "troika-three-text";
@@ -34,7 +29,7 @@ type BBox = { min: [number, number, number]; max: [number, number, number] };
 /** The roles this controller draws (viewer/viewerPalette.ts resolves them:
  *  the theme's --viewer-* tokens, the operator's Custom colours over the
  *  user roles). */
-type Colors = { feed: string; rapid: string; toolpathBounds: string; limit: string; selection: string; selectionHalo: string; collision: string };
+type Colors = { feed: string; rapid: string; toolpathBounds: string; limit: string; collision: string };
 
 export interface ToolpathDeps {
   requestRender: () => void;
@@ -99,12 +94,6 @@ export interface ToolpathController {
    *  chunks inside the camera frustum for the perf probe. ~100 sphere
    *  tests; cheaper than tracking dirtiness. */
   updateCulling(ctx: ToolpathCtx, camera: THREE.Camera, heightPx?: number): void;
-  setHighlight(curLine: number | null): void;
-  /** Positional highlight (review P3): light the drawn-feed vertices whose
-   *  source TRACK index falls in [start, end] — line numbers cannot address
-   *  a run once a called sub's numbering collides with the main file's.
-   *  No-op fallback to nothing when the drawn stream carries no src map. */
-  setHighlightTrackRange(range: [number, number] | null): void;
   setVisible(on: boolean): void;
   setBoundsVisible(on: boolean): void;
   setAlwaysOnTop(on: boolean): void;
@@ -146,33 +135,6 @@ export interface ToolpathController {
   readonly lodMs: number;
 }
 
-/** The scrub/line highlight, one per frame present: an indexed LineSegments
- *  over the feed position attribute with its OWN small index buffer, filled
- *  per highlight with the pairs of the lit vertex range that belong to this
- *  frame (a strip drawRange would draw a connector across a frame flip, and
- *  the spatially binned draw index is not in vertex order). */
-/** The selected line's segments: the 1 px index line over the shared
- *  positions, and `wide` — the SAME segments as a screen-space fat line
- *  (design wave D8, UI-DI14): the plan's "selection wider", a shape cue
- *  besides the colour role (WebGL draws core lines 1 px wide on every
- *  platform, so width needs LineSegments2). */
-interface Highlight {
-  frame: 0 | 1; line: THREE.LineSegments; idx: Uint32Array; attr: THREE.BufferAttribute;
-  wide: LineSegments2; wideBuf: THREE.InstancedInterleavedBuffer;
-  /** The halo behind `wide` (viewer contrast plan, V2): the same segments,
-   *  SELECTION_HALO_PX wider on each side, in the background's colour. */
-  halo: LineSegments2;
-}
-const HL_CAP = 1 << 15;   // pairs per highlight (a line run is far smaller; beyond it the cue truncates)
-const HL_WIDE_CAP = 1 << 13;   // pairs the wide line carries (a visual cue; the 1 px line keeps the rest)
-/** The selection's width in CSS px — three times the path's 1 px line. */
-export const SELECTION_WIDTH_PX = 3;
-/** The selection's halo on each side, CSS px (viewer contrast plan, V2): the
- *  core in the text colour on a halo in the background's — one of the two
- *  holds 3 : 1 on every surface (the core on the background, the halo on the
- *  lit table in a dark theme), and the halo parts the selection from the path
- *  it lies on. */
-export const SELECTION_HALO_PX = 2;
 
 /** One drawn stream in one frame: its chunks (objects sharing the stream's
  *  position attribute + this set's index attribute), materials, and the
@@ -229,16 +191,6 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   let sets: LineSet[] = [];
   let feedPosAttr: THREE.BufferAttribute | null = null;
   let rapidPosAttr: THREE.BufferAttribute | null = null;
-  let highlights: Highlight[] = [];
-  // Per feed vertex (drawn order): opens a section / draws room-fixed —
-  // the highlight's pair filter.
-  let feedIsBreak: Uint8Array | null = null;
-  let feedRoomMask: Uint8Array | null = null;
-  // g-code line number → { start, end } point-index range in feed arrays
-  let feedLineIndex: LineIndex = emptyLineIndex();
-  // Source track index per drawn feed vertex (ascending) — the positional
-  // highlight's address space. Absent on legacy/track-less payloads.
-  let feedSrc: Uint32Array | null = null;
   // Cut envelope: X/Y over feed+rapid, Z over feed only (drawn bounds box).
   let toolpathBBox: BBox | null = null;
   // Full feed+rapid envelope (machine-limit overflow check).
@@ -454,7 +406,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   // live workRotGroup) — set by apply(), read by rebuildToolpathBounds.
   let _lineParent: THREE.Group | null = null;
 
-  /** Detach + free every chunk object and the highlight. Chunk geometries
+  /** Detach + free every chunk object. Chunk geometries
    *  are private per program (disposing one releases the shared GL buffers;
    *  its siblings go in the same pass), the two materials of a set are
    *  disposed ONCE per set — not once per chunk through deps.disposeObject,
@@ -472,18 +424,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       s.mat.dispose();
       s.overMat?.dispose();
     }
-    for (const h of highlights) {
-      for (const o of [h.line, h.wide] as THREE.Mesh[]) {
-        o.parent?.remove(o);
-        o.geometry.dispose();
-        (o.material as THREE.Material).dispose();
-      }
-      h.halo.parent?.remove(h.halo);   // shares the wide line's geometry, disposed above
-      (h.halo.material as THREE.Material).dispose();
-    }
     sets = [];
-    highlights = [];
-    feedIsBreak = feedRoomMask = null;
     feedPosAttr = rapidPosAttr = null;
     _chunksVisible = _overlayChunks = _frameMixed = 0;
   }
@@ -610,100 +551,6 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
 
   function _applyVisibility() {
     for (const s of sets) for (let ci = 0; ci < s.chunks.length; ci++) _chunkVis(s, ci);
-    for (const h of highlights) h.line.visible = h.wide.visible = h.halo.visible = toolpathVisible;
-  }
-
-  function makeHighlight(frame: 0 | 1, parent: THREE.Group, posAttr: THREE.BufferAttribute, bounds: Float32Array): Highlight {
-    const geom = new THREE.BufferGeometry();
-    // Per-program (not externally owned): disposed by teardownLines.
-    geom.setAttribute("position", posAttr);
-    const idx = new Uint32Array(HL_CAP * 2);
-    const attr = new THREE.BufferAttribute(idx, 1);
-    attr.setUsage(THREE.DynamicDrawUsage);
-    geom.setIndex(attr);
-    geom.setDrawRange(0, 0);   // hidden until motion_line updates
-    geom.boundingSphere = sphereOfBox(unionBounds(bounds), 0);
-    const mat = new THREE.LineBasicMaterial({ color: deps.colors().selection });
-    mat.userData.role = "selection";
-    mat.depthTest = !pathAlwaysOnTop;
-    mat.depthWrite = false;
-    const line = new THREE.LineSegments(geom, mat);
-    line.renderOrder = 13;
-    line.frustumCulled = true;
-    line.visible = toolpathVisible;
-    parent.add(line);
-    // The wide companion: its own segment buffer (xyz, xyz per pair), filled
-    // with the 1 px line's pairs; the width is screen pixels, so the
-    // material learns the drawing size right before each draw.
-    const wideGeom = new LineSegmentsGeometry();
-    const wideBuf = new THREE.InstancedInterleavedBuffer(new Float32Array(HL_WIDE_CAP * 6), 6, 1);
-    wideBuf.setUsage(THREE.DynamicDrawUsage);
-    wideGeom.setAttribute("instanceStart", new THREE.InterleavedBufferAttribute(wideBuf, 3, 0));
-    wideGeom.setAttribute("instanceEnd", new THREE.InterleavedBufferAttribute(wideBuf, 3, 3));
-    wideGeom.instanceCount = 0;
-    wideGeom.boundingSphere = geom.boundingSphere!.clone();
-    wideGeom.boundingBox = new THREE.Box3();
-    geom.boundingSphere!.getBoundingBox(wideGeom.boundingBox);
-    const wideMat = new LineMaterial({ color: deps.colors().selection, linewidth: SELECTION_WIDTH_PX, worldUnits: false });
-    wideMat.userData.role = "selection";
-    wideMat.depthTest = !pathAlwaysOnTop;
-    wideMat.depthWrite = false;
-    const wide = new LineSegments2(wideGeom, wideMat);
-    wide.renderOrder = 13;
-    wide.frustumCulled = true;
-    wide.visible = toolpathVisible;
-    wide.onBeforeRender = (renderer) => { renderer.getSize(wideMat.resolution); };
-    // The halo: the same segments drawn first and wider, in the background's colour.
-    const haloMat = new LineMaterial({ color: deps.colors().selectionHalo, linewidth: SELECTION_WIDTH_PX + 2 * SELECTION_HALO_PX, worldUnits: false });
-    haloMat.userData.role = "selectionHalo";
-    haloMat.depthTest = !pathAlwaysOnTop;
-    haloMat.depthWrite = false;
-    const halo = new LineSegments2(wideGeom, haloMat);
-    halo.renderOrder = 12;
-    halo.frustumCulled = true;
-    halo.visible = toolpathVisible;
-    halo.onBeforeRender = (renderer) => { renderer.getSize(haloMat.resolution); };
-    parent.add(halo);
-    parent.add(wide);
-    return { frame, line, idx, attr, wide, wideBuf, halo };
-  }
-
-  /** Light the feed vertex range [s, s+count) — every pair (v, v+1) inside
-   *  it that does not cross a section break or a frame flip goes to the
-   *  highlight of its frame. */
-  function _setHighlightVertexRange(s: number, count: number) {
-    const e = s + count - 1;
-    for (const h of highlights) {
-      let w = 0;
-      if (count >= 2 && feedPosAttr) {
-        const last = Math.min(e, feedPosAttr.count - 1);
-        for (let v = Math.max(0, s); v < last; v++) {
-          if (feedIsBreak?.[v + 1]) continue;
-          const f = feedRoomMask?.[v + 1] ?? 0;
-          if ((feedRoomMask?.[v] ?? 0) !== f || f !== h.frame) continue;
-          if (w >= HL_CAP * 2) break;
-          h.idx[w++] = v; h.idx[w++] = v + 1;
-        }
-      }
-      h.attr.clearUpdateRanges();
-      if (w > 0) h.attr.addUpdateRange(0, w);
-      h.attr.needsUpdate = true;
-      h.line.geometry.setDrawRange(0, w);
-      // The wide line: the same pairs as positions (capped — a visual cue).
-      const pairs = Math.min(w / 2, HL_WIDE_CAP);
-      if (pairs > 0 && feedPosAttr) {
-        const pos = feedPosAttr.array as Float32Array, out = h.wideBuf.array as Float32Array;
-        for (let k = 0; k < pairs; k++) {
-          const a = h.idx[2 * k]! * 3, b = h.idx[2 * k + 1]! * 3, o = k * 6;
-          out[o] = pos[a]!; out[o + 1] = pos[a + 1]!; out[o + 2] = pos[a + 2]!;
-          out[o + 3] = pos[b]!; out[o + 4] = pos[b + 1]!; out[o + 5] = pos[b + 2]!;
-        }
-        h.wideBuf.clearUpdateRanges();
-        h.wideBuf.addUpdateRange(0, pairs * 6);
-        h.wideBuf.needsUpdate = true;
-      }
-      (h.wide.geometry as LineSegmentsGeometry).instanceCount = pairs;
-    }
   }
 
   return {
@@ -743,16 +590,8 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         d instanceof Float32Array ? d : new Float32Array(d.flat());
       const feedData: number[][] | Float32Array = g.feedPos ?? _legacyPts(g.feed);
       const rapidData: number[][] | Float32Array = g.rapidPos ?? _legacyPts(g.rapid);
-      const feedLines = (Array.isArray(g.feed_lines) || g.feed_lines instanceof Uint32Array) ? g.feed_lines : [];
       const _pointCount = (d: number[][] | Float32Array) =>
         d instanceof Float32Array ? d.length / 3 : d.length;
-
-      // Prefer the line→point-range map built off-thread by previewWorker (P4.1); fall
-      // back to building it here for the WS/legacy path that carries no worker map.
-      feedSrc = g.feedSrc instanceof Uint32Array ? g.feedSrc : null;
-      feedLineIndex = (g.feedLineIndex && g.feedLineIndex.start instanceof Uint32Array)
-        ? g.feedLineIndex
-        : buildLineIndex(feedLines);
 
       // Feed + Rapid toolpath chunks — each chunk's geometry is shared with its
       // overflow overlay. Section breaks (track-derived streams) index-skip the
@@ -801,9 +640,6 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         if (st) sets.push(st);
         const sr = roomParent ? makeSet("feed", 1, roomParent, feedPosAttr, fi.room, lv.room, lodTols, feedColor, false, null, ov) : null;
         if (sr) sets.push(sr);
-        feedIsBreak = new Uint8Array(n);
-        if (g.feedBreaks) for (const b of g.feedBreaks) if (b < n) feedIsBreak[b] = 1;
-        feedRoomMask = roomMaskOf(g.feedRoom, n);
       }
       if (lineParent && _pointCount(rapidData) >= 2) {
         const flat = _flat(rapidData);
@@ -826,15 +662,6 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       // Every drawn segment room-fixed ⇒ the bounds box rides the room parent.
       if (roomParent && sets.length && sets.every(s => s.frame === 1)) _lineParent = roomParent;
       _applyStale();   // sticky across rebuilds: a re-parse in flight keeps the new lines muted too
-
-      // Highlights — one per frame that has feed segments, sharing feed's
-      // position attribute (see Highlight); sphere = that frame's feed extents.
-      if (feedPosAttr) {
-        for (const st of sets) {
-          if (st.stream !== "feed") continue;
-          highlights.push(makeHighlight(st.frame, st.parent, feedPosAttr, st.bounds));
-        }
-      }
 
       // Toolpath bounding boxes (work coordinates). `toolpathBBox` is the cut
       // envelope for the drawn bounds box: X/Y over feed+rapid, Z over feed only
@@ -950,51 +777,6 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       _lodMax = lodMax;
     },
 
-    setHighlight(curLine) {
-      if (!highlights.length) return;
-      // motion_line can be ~1 line ahead during G64 blending; try previous line first
-      if (curLine != null) {
-        const effectiveLine = lineHas(feedLineIndex, curLine - 1) ? curLine - 1 : curLine;
-        const range = lineRange(feedLineIndex, effectiveLine);
-        if (range) {
-          const s = Math.max(0, range.start - 1);
-          _setHighlightVertexRange(s, range.end - s + 1);
-          return;
-        }
-      }
-      _setHighlightVertexRange(0, 0);
-    },
-
-    setHighlightTrackRange(range) {
-      if (!highlights.length) return;
-      if (!range || !feedSrc || feedSrc.length === 0) {
-        _setHighlightVertexRange(0, 0);
-        return;
-      }
-      const [i0, i1] = range;
-      // feedSrc is ascending: first drawn vertex with src >= i0 …
-      let lo = 0, hi = feedSrc.length - 1;
-      while (lo < hi) {
-        const mid = (lo + hi) >> 1;
-        if (feedSrc[mid]! < i0) lo = mid + 1; else hi = mid;
-      }
-      const first = lo;
-      // … last drawn vertex with src <= i1.
-      hi = feedSrc.length - 1;
-      while (lo < hi) {
-        const mid = (lo + hi + 1) >> 1;
-        if (feedSrc[mid]! > i1) hi = mid - 1; else lo = mid;
-      }
-      const last = lo;
-      if (feedSrc[first]! > i1 || feedSrc[last]! < i0) {
-        _setHighlightVertexRange(0, 0);  // run is all-rapid — no feed to light
-        return;
-      }
-      const s = Math.max(0, first - 1);
-      _setHighlightVertexRange(s, last - s + 1);
-    },
-
-
     setStale(on) {
       pathStale = on;
       _applyStale();
@@ -1022,11 +804,6 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
           m.depthTest = dt; m.depthWrite = false; m.needsUpdate = true;
         }
       }
-      for (const h of highlights) {
-        for (const m of [h.line.material, h.wide.material, h.halo.material] as THREE.Material[]) {
-          m.depthTest = dt; m.depthWrite = false; m.needsUpdate = true;
-        }
-      }
     },
 
     setColors(c) {
@@ -1034,26 +811,18 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       _rapidBase.set(c.rapid);
       if (toolpathBoundsBox) (toolpathBoundsBox.material as THREE.LineBasicMaterial).color.set(c.toolpathBounds);
       for (const s of sets) s.overMat?.color.set(c.limit);
-      for (const h of highlights) {
-        (h.line.material as THREE.LineBasicMaterial).color.set(c.selection);
-        (h.wide.material as LineMaterial).color.set(c.selection);
-        (h.halo.material as LineMaterial).color.set(c.selectionHalo);
-      }
       if (toolpathOverflowEdges) (toolpathOverflowEdges.material as THREE.LineDashedMaterial).color.set(c.collision);
       _applyStale();   // the drawn colour is the base or its muted mix — one writer
     },
 
     forgetAfterSceneClear() {
       sets = [];
-      highlights = [];
-      feedIsBreak = feedRoomMask = null;
       feedPosAttr = rapidPosAttr = null;
       _chunksVisible = _overlayChunks = _frameMixed = 0;
       toolpathBoundsBox = toolpathOverflowEdges = null;
       toolpathBoundsLabels = null;
       toolpathBBox = null;
       motionBBox = null;
-      feedLineIndex = emptyLineIndex();
       deps.overflow.value = false;
       if (deps.overflowCount) deps.overflowCount.value = 0;
     },
@@ -1063,7 +832,6 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       teardownBounds();
       toolpathBBox = null;
       motionBBox = null;
-      feedLineIndex = emptyLineIndex();
       deps.overflow.value = false;
       if (deps.overflowCount) deps.overflowCount.value = 0;
     },

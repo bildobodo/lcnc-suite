@@ -32,7 +32,7 @@ describe("backplotController", () => {
     expect(line, "a LineSegments2 — WebGL draws core lines 1 px wide").toBeTruthy();
     const mat = line.material as LineMaterial;
     expect(BACKPLOT_WIDTH_PX).toBe(2);
-    expect(mat.linewidth, "the width ladder: path 1, backplot 2, selection 3").toBe(BACKPLOT_WIDTH_PX);
+    expect(mat.linewidth, "the width ladder: path 1, backplot 2").toBe(BACKPLOT_WIDTH_PX);
     expect(mat.worldUnits, "screen pixels").toBe(false);
     expect(mat.userData.role).toBe("backplot");
     expect(c.count).toBe(0);

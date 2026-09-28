@@ -18,11 +18,11 @@ const VIEWER_LINES = ["--viewer-feed", "--viewer-rapid", "--viewer-backplot", "-
   "--viewer-plane-active", "--viewer-plane-defined", "--viewer-plane-stale"];
 /** The roles drawn ON the path (or tinting what the path hits): they must
  *  tell apart from each other by hue/lightness, not only from the scene. */
-const VIEWER_PATH = ["--viewer-feed", "--viewer-rapid", "--viewer-backplot", "--viewer-limit", "--viewer-selection", "--viewer-collision"];
+const VIEWER_PATH = ["--viewer-feed", "--viewer-rapid", "--viewer-backplot", "--viewer-limit", "--viewer-collision"];
 const ROLES = [
   "--fg-muted", "--ok-text", "--warn-text", "--danger-text", "--info-text", "--accent-text", "--focus-ring",
   "--syntax-gcode", "--syntax-mcode", "--syntax-coord", "--syntax-param", "--syntax-comment",
-  ...VIEWER_LINES, "--viewer-selection", "--viewer-selection-halo", "--viewer-tool", "--viewer-cutter",
+  ...VIEWER_LINES, "--viewer-tool", "--viewer-cutter",
 ];
 
 /** The declarations of the first rule whose selector is exactly `selector`. */
@@ -92,7 +92,7 @@ describe("theme text roles", () => {
   // the table / stock, whose top face renders ≈ #e0e0e0 under the scene
   // lights in every theme (measured, frame metal) — the dark themes' pastel
   // lines vanished there. The path roles differ from each other by ≥ 0.12
-  // in OKLab (limit vs collision, rapid vs selection are the close ones).
+  // in OKLab (limit vs collision is the close one).
   // Shadowed faces (mid grey) are no reference: no line colour reaches
   // 3 : 1 on both mid grey and the background; hue, the rapid's dash and
   // the legend carry it there.
@@ -134,7 +134,7 @@ describe("theme text roles", () => {
     return MACHADO[kind]!.map(row => unlin(row[0]! * l[0]! + row[1]! * l[1]! + row[2]! * l[2]!)) as RGB;
   };
   const VIEWS = ["normal", "protan", "deutan", "tritan"];
-  it("the pair table names every pair of the six path roles once", () => {
+  it("the pair table names every pair of the five path roles once", () => {
     const named = PALETTE_PAIRS.map(p => [p.a, p.b].sort().join(" / "));
     expect(new Set(named).size, "no pair twice").toBe(named.length);
     for (let i = 0; i < PATH_ROLES.length; i++) {
@@ -158,30 +158,9 @@ describe("theme text roles", () => {
     });
   }
 
-  // The selection (viewer contrast plan, V2): a core on a halo in the
-  // background's colour. The core reads on the scene background; on the lit
-  // table the core OR the halo does (a dark theme's light core sits on its
-  // dark halo there). Light themes draw the core in the text colour; the dark
-  // ones in CYAN (operator 2026-09-27, AXIS' 3 px cyan on black and Siemens
-  // iX's cyan selection on dark; Codex R21 re-computed both values).
-  for (const name of ["dark", "auto-dark", "hc-dark"] as const) {
-    it(`${name}: the selection is cyan`, () => {
-      const [, a, b] = oklab(hex(block(THEMES[name]).get("--viewer-selection")!));
-      const hue = ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360;
-      expect(hue, `${name}: OKLab hue`).toBeGreaterThanOrEqual(195);
-      expect(hue, `${name}: OKLab hue`).toBeLessThanOrEqual(225);
-      expect(Math.hypot(a, b), `${name}: chroma — a colour, not a grey`).toBeGreaterThanOrEqual(0.08);
-    });
-  }
-  for (const name of ["root", "dark", "auto-dark", "hc-light", "hc-dark"] as const) {
-    it(`${name}: the selection's core reads on the background, core or halo on the lit table`, () => {
-      const b = block(THEMES[name]);
-      const core = hex(b.get("--viewer-selection")!), halo = hex(b.get("--viewer-selection-halo")!), bg = hex(b.get("--bg")!);
-      expect(contrast(core, bg), `${name}: core on --bg`).toBeGreaterThanOrEqual(name.startsWith("hc") ? 4.5 : 3);
-      expect(Math.max(contrast(core, LIT_METAL), contrast(halo, LIT_METAL)), `${name}: core or halo on the lit table`).toBeGreaterThanOrEqual(3);
-      expect(contrast(core, halo), `${name}: core on its halo`).toBeGreaterThanOrEqual(4.5);
-    });
-  }
+  it("no theme draws the current line in 3D (operator 2026-09-28): no selection role", () => {
+    expect(css).not.toMatch(/--viewer-selection/);
+  });
 
   it("no rule mutes text through the retired --mix-muted", () => {
     expect(css).not.toMatch(/--mix-muted/);

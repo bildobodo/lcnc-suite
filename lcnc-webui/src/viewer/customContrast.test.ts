@@ -4,7 +4,7 @@ import type { ViewerPalette } from "./viewerPalette";
 
 const base: ViewerPalette = {
   feed: "#1f5fbf", rapid: "#1e7f3f", backplot: "#a01860", bounds: "#555555", toolpathBounds: "#666666",
-  tool: "#999999", cutter: "#c8a040", limit: "#8a5a00", selection: "#000000", selectionHalo: "#ffffff", collision: "#c00000",
+  tool: "#999999", cutter: "#c8a040", limit: "#8a5a00", collision: "#c00000",
 } as ViewerPalette;
 
 describe("the Custom palette's contrast hint (Codex R25 OP-I05)", () => {
@@ -27,18 +27,8 @@ describe("the Custom palette's contrast hint (Codex R25 OP-I05)", () => {
     expect(customContrastRows({ ...base, bounds: mid }, "#ffffff", false).find(r => r.role === "bounds")!.bgLow).toBe(false);
     expect(customContrastRows({ ...base, bounds: mid }, "#ffffff", true).find(r => r.role === "bounds")!.bgLow).toBe(true);
   });
-  it("the selection: core on the background, core OR halo on the table — each shown", () => {
-    const dark = customContrastRows({ ...base, selection: "#8fe3ff", selectionHalo: "#101418" }, "#101418", false);
-    const core = dark.find(r => r.role === "selection")!, halo = dark.find(r => r.role === "selectionHalo")!;
-    expect(core.bgLow).toBe(false);
-    expect(core.onTable! < 3 && halo.onTable! >= 3).toBe(true);   // the light core fades on the table, the halo holds it
-    expect(core.tableLow || halo.tableLow).toBe(false);
-    expect(halo.onBg).toBeNull();
-    const both = customContrastRows({ ...base, selection: "#e8e8e8", selectionHalo: "#d8d8d8" }, "#ffffff", false);
-    expect(both.find(r => r.role === "selectionHalo")!.tableLow).toBe(true);
-  });
-  it("tool shaft and cutter are solids — no row", () => {
+  it("tool shaft and cutter are solids — no row; no selection row (the current line is not drawn in 3D)", () => {
     expect(customContrastRows(base, "#ffffff", false).map(r => r.role)).toEqual(
-      ["feed", "rapid", "backplot", "bounds", "toolpathBounds", "selection", "selectionHalo"]);
+      ["feed", "rapid", "backplot", "bounds", "toolpathBounds"]);
   });
 });

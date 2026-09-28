@@ -16,8 +16,7 @@ export const PAIR_MIN_DISTANCE = 0.12;
 /** A visible cue that separates two roles without their colour. */
 export type PairCue =
   | "dashed"   // the rapid is a dashed line
-  | "width"    // the width ladder: path 1 px, backplot 2 px, selection 3 px
-  | "halo"     // the selection's background-coloured halo
+  | "width"    // the width ladder: path 1 px, backplot 2 px
   | "object"   // one is a tinted machine body (or dashed box edges), not a path line
   | "glyph"    // timeline / code panel: ▲ limit, × collision
   | "label";   // a text label on the object (the toolpath box's sizes)
@@ -33,27 +32,22 @@ export interface PalettePair {
   cues: PairCue[];
 }
 
-/** The six path roles themeTokens.test.ts has checked since D8c — the table
+/** The five path roles themeTokens.test.ts has checked since D8c — the table
  *  names every pair of them. */
 export const PATH_ROLES = ["--viewer-feed", "--viewer-rapid", "--viewer-backplot", "--viewer-limit",
-  "--viewer-selection", "--viewer-collision"] as const;
+  "--viewer-collision"] as const;
 
 export const PALETTE_PAIRS: PalettePair[] = [
   { a: "--viewer-feed", b: "--viewer-rapid", where: "adjacent path", colour: false, cues: ["dashed"] },
   { a: "--viewer-feed", b: "--viewer-backplot", where: "the backplot lies on the path", colour: true, cues: ["width"] },
   { a: "--viewer-feed", b: "--viewer-limit", where: "the overlay lies on the path", colour: true, cues: [] },
-  { a: "--viewer-feed", b: "--viewer-selection", where: "the selection lies on the path", colour: false, cues: ["width", "halo"] },
   { a: "--viewer-feed", b: "--viewer-collision", where: "a line against a tinted body", colour: false, cues: ["object"] },
   { a: "--viewer-rapid", b: "--viewer-backplot", where: "an executed rapid", colour: false, cues: ["dashed", "width"] },
   { a: "--viewer-rapid", b: "--viewer-limit", where: "the overlay on a rapid", colour: false, cues: ["dashed"] },
-  { a: "--viewer-rapid", b: "--viewer-selection", where: "the selection on a rapid", colour: false, cues: ["dashed", "width", "halo"] },
   { a: "--viewer-rapid", b: "--viewer-collision", where: "a line against a tinted body", colour: false, cues: ["object"] },
   { a: "--viewer-backplot", b: "--viewer-limit", where: "adjacent or overlapping in projection", colour: false, cues: ["width"] },
-  { a: "--viewer-backplot", b: "--viewer-selection", where: "the selection on the executed path", colour: false, cues: ["width", "halo"] },
   { a: "--viewer-backplot", b: "--viewer-collision", where: "a line against a tinted body", colour: false, cues: ["object"] },
-  { a: "--viewer-limit", b: "--viewer-selection", where: "the selection on the overlay", colour: false, cues: ["width", "halo"] },
   { a: "--viewer-limit", b: "--viewer-collision", where: "3D, timeline, code panel", colour: false, cues: ["object", "glyph"] },
-  { a: "--viewer-selection", b: "--viewer-collision", where: "a line against a tinted body", colour: false, cues: ["object"] },
   { a: "--viewer-bounds", b: "--viewer-toolpath-bounds", where: "two solid boxes", colour: false, cues: ["label"] },
   // The tilted work plane's states (V4): the label on the object names the
   // state, a stale plane's edge is dashed.

@@ -33,7 +33,6 @@ import { workMarkers, markerInputsChanged, newMarkerInputsPrev, G5X_NAMES, chain
 import { roomEndOf, sliceTrack } from "./viewer/scrubTrack";
 import { boundsFromJointLimits, sameBox, type JointLimits, type MachineBox } from "./viewer/machineBounds";
 import { displayDecision } from "./viewer/displayPipeline";
-import { trackHighlightRange } from "./trackHighlight";
 import type { CollisionBody, CollisionResult, CollisionLineMark } from "./viewer/collision";
 import { partCollides } from "./viewer/collision";
 import { mergeEntryResult } from "./viewer/sweepMerge";
@@ -430,7 +429,7 @@ const _pv: {
   jointPos: number[] | null; machinePos: number[] | null;
   g5x: number[] | null; g92: number[] | null; toolOffset: number[] | null;
   toolNum: number | null; toolDiam: number | null; toolLen: number | null;
-  toolMeta: unknown; motionLine: number | null; rotationXy: number | null;
+  toolMeta: unknown; rotationXy: number | null;
   /** Live fixture table (value-keyed — rows are re-copied each publish).
    *  A WCS-epoch preview re-adds per-fixture rows, so table edits must
    *  refresh the preview exactly like the active-fixture terms do. */
@@ -438,7 +437,7 @@ const _pv: {
 } = {
   jointPos: null, machinePos: null, g5x: null, g92: null, toolOffset: null,
   toolNum: NaN as unknown as number, toolDiam: NaN, toolLen: NaN,
-  toolMeta: undefined, motionLine: NaN, rotationXy: NaN,
+  toolMeta: undefined, rotationXy: NaN,
   wcsTableKey: "", wcsTable: null,
 };
 // Returns true if `next` differs from `prev`; when it differs, writes a fresh
@@ -1718,28 +1717,10 @@ async function buildFromInit(init: ViewerInit) {
         // glyph layout exists) — the offline spec asks this directly; a
         // texture count compared with a moment before raced the gizmo's
         // labels, which build the shared glyph atlas first.
-        // The selected line as DRAWN: the wide companion's width (CSS px),
-        // how many segments it carries and whether it shows (UI-DI14).
-        getSelection: () => {
-          type Wide = { widthPx: number; segments: number; visible: boolean };
-          let wide: (Wide & { halo: Wide | null }) | null = null, halo: Wide | null = null;
-          scene?.traverse(o => {
-            const m = (o as THREE.Mesh).material as THREE.Material & { linewidth?: number };
-            const role = m?.userData?.role;
-            if (!(o as any).isLineSegments2 || (role !== "selection" && role !== "selectionHalo")) return;
-            let shown = o.visible;
-            for (let p = o.parent; p; p = p.parent) shown &&= p.visible;
-            const w = { widthPx: m.linewidth ?? 0, segments: ((o as any).geometry.instanceCount as number) ?? 0, visible: shown };
-            if (role === "selection" && !wide) wide = { ...w, halo: null };
-            if (role === "selectionHalo" && !halo) halo = w;
-          });
-          if (wide) (wide as Wide & { halo: Wide | null }).halo = halo;
-          return wide;
-        },
         // Every role-tagged material as DRAWN (viewer contrast plan, R1/R2):
         // its kind carries the pair table's form cue — `dashed` the rapid,
-        // `fat` a screen-space line with its CSS-px width (backplot 2,
-        // selection 3 + halo), `basic` a 1 px line — and its opacity says
+        // `fat` a screen-space line with its CSS-px width (the backplot's
+        // 2), `basic` a 1 px line — and its opacity says
         // whether the colour needs compositing.
         getRoleMaterials: () => {
           const out: { role: string; kind: string; widthPx: number | null; opacity: number; transparent: boolean }[] = [];
@@ -2090,7 +2071,6 @@ function applyState(init: ViewerInit, st: ViewerState) {
 
   
   // ---- Backplot update (use WORK tool-tip position directly) ----
-  const curLine = typeof st.motion_line === "number" ? st.motion_line : null;
 
   // Append the actual rendered tool tip position, expressed in work group local space.
   // This guarantees the backplot starts exactly at the tooltip (independent of joint_pos vs machine_pos nuances).
@@ -2108,31 +2088,14 @@ function applyState(init: ViewerInit, st: ViewerState) {
     backplot.push(_bpLocal.x, _bpLocal.y, _bpLocal.z);
   }
 
-  // ---- Highlight current motion line in toolpath ----
-  // Positional first (review P3): the track-index range from the playhead /
-  // scrub sample addresses the path directly — line numbers cannot once a
-  // called sub's numbering collides with the main file's. Fall back to the
-  // line-number path only on legacy tracks, and suppress it entirely when
-  // the payload's line attribution is untrusted (a confidently wrong
-  // highlight is worse than none).
-  const hlRange = trackHighlightRange.value;
-  if (hlRange) {
-    toolpath.setHighlightTrackRange(hlRange);
-  } else if (viewerGcode.value?.lines_untrusted) {
-    toolpath.setHighlight(null);
-  } else {
-    toolpath.setHighlight(_scrubJoints ? _scrubLineNo : curLine);
-  }
-
   // Render-on-demand: detect whether anything visually changed since the last
   // applied state. Status broadcasts arrive at ~30 Hz; without this diff we'd
-  // render every status arrival even when joints are still and motion_line is
-  // unchanged. Fields checked cover everything applyState mutates visually.
+  // render every status arrival even when joints are still. motion_line is not
+  // a visual input: the current line is not drawn in 3D (operator 2026-09-28). Fields checked cover everything applyState mutates visually.
   // Cheap field-wise compare (no per-tick allocation) replaces JSON.stringify.
   const toolNum = st.tool_number ?? null;
   const toolDiam = st.tool_diameter ?? null;
   const toolLen = st.tool_length ?? null;
-  const motionLine = st.motion_line ?? null;
   const rotationXy = st.rotation_xy ?? null;
   const toolMeta = st.tool_meta ?? null;
   let changed = false;
@@ -2146,7 +2109,6 @@ function applyState(init: ViewerInit, st: ViewerState) {
   if (toolNum !== _pv.toolNum) { _pv.toolNum = toolNum; changed = true; }
   if (toolDiam !== _pv.toolDiam) { _pv.toolDiam = toolDiam; changed = true; _colOnInputChange(); }
   if (toolLen !== _pv.toolLen) { _pv.toolLen = toolLen; changed = true; _colOnInputChange(); }
-  if (motionLine !== _pv.motionLine) { _pv.motionLine = motionLine; changed = true; }
   if (rotationXy !== _pv.rotationXy) { _pv.rotationXy = rotationXy; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
   // Fixture-table edits (review P2): only the rows the payload's
   // non-rewritten epochs actually RE-ADD participate in the change key

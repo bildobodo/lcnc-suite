@@ -45,7 +45,7 @@ async function loadProgram(page: Page, kind: "dense" | "thin", version: number) 
   await expect(page.locator(".codeLine").nth(3)).toBeVisible();
 }
 
-test("the palette and the wide selection in four themes, on a model, a dense and a thin path", async ({ page, context }, testInfo) => {
+test("the palette in four themes, on a model, a dense and a thin path — and no current line drawn", async ({ page, context }, testInfo) => {
   test.setTimeout(180_000);
   await ctl({ op: "reset" });
   const programs = { dense: payload("dense"), thin: payload("thin") };
@@ -85,9 +85,9 @@ test("the palette and the wide selection in four themes, on a model, a dense and
         await page.waitForTimeout(30);
       }
     }
-    // The selected line is the one the program is on (motion_line — a run
-    // or a scrub; it lights the path behind it): mid-row on the dense path,
-    // the second leg of the thin one.
+    // The program is on a line (motion_line — a run or a scrub): mid-row on
+    // the dense path, the second leg of the thin one. It is not drawn in 3D
+    // (operator 2026-09-28): the code panel names it, the tool shows where.
     await ctl({ op: "status_delta", data: { motion_line: kind === "dense" ? 25 : 6 } });
     for (const theme of THEMES) {
       await ctl({ op: "raw", frame: { type: "settings_init", settings: { display: { theme }, viewer: { layers: { backplot: true, bounds: true } } } } });
@@ -95,13 +95,11 @@ test("the palette and the wide selection in four themes, on a model, a dense and
       const where = `${kind} ${theme}`;
       await expect.poll(async () => (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn.feed,
         { message: `${where}: the feed takes the theme's role` }).toBe(await token("--viewer-feed"));
-      const sel = await page.evaluate(() => window.__viewerDiag!.getSelection!());
-      expect(sel, `${where}: a wide selection`).not.toBeNull();
-      expect(sel!.visible, `${where}: the wide selection shows`).toBe(true);
-      expect(sel!.segments, `${where}: the selected line's segments are in it`).toBeGreaterThan(0);
-      expect(sel!.widthPx, `${where}: wider than the 1 px path`).toBeGreaterThanOrEqual(3);
+      const materials = await page.evaluate(() => window.__viewerDiag!.getRoleMaterials!());
+      expect(materials.filter(m => m.role.startsWith("selection")), `${where}: no current line drawn`).toEqual([]);
+      expect(materials.filter(m => m.kind === "fat").map(m => m.role), `${where}: the backplot is the only screen-space line`)
+        .toEqual(["backplot"]);
       const drawn = (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn;
-      expect(drawn.selection, `${where}: the selection's role`).toBe(await token("--viewer-selection"));
       if (kind === "dense") expect(drawn.limit, `${where}: the limit overflow's role`).toBe(await token("--viewer-limit"));
       await page.waitForTimeout(200);
       const shot = await page.locator(".viewerPane").screenshot();
@@ -163,22 +161,6 @@ async function drawnWidth(page: Page, shot: Buffer, at: { x: number; y: number; 
     return { width, contrastSq: dd };
   }, { png: shot.toString("base64"), at, colour, dpr });
 }
-
-/** In-page: the pixel colours at `offsets` CSS px along the unit normal of the line through `at`. */
-async function profileColours(page: Page, shot: Buffer, at: { x: number; y: number; dx: number; dy: number }, offsets: number[], dpr: number) {
-  return page.evaluate(async ({ png, at, offsets, dpr }) => {
-    const img = new Image();
-    img.src = `data:image/png;base64,${png}`;
-    await img.decode();
-    const cv = document.createElement("canvas");
-    cv.width = img.width; cv.height = img.height;
-    const cx = cv.getContext("2d", { willReadFrequently: true })!;
-    cx.drawImage(img, 0, 0);
-    return offsets.map(o => Array.from(cx.getImageData(Math.round((at.x - at.dy * o) * dpr), Math.round((at.y + at.dx * o) * dpr), 1, 1).data.slice(0, 3)));
-  }, { png: shot.toString("base64"), at, offsets, dpr });
-}
-const rgbOf = (h: string) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
-const rgbDist = (a: number[], b: number[]) => Math.hypot(...a.map((v, i) => v - b[i]!));
 
 test("the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px — at DPR 1 and 2", async ({ browser }) => {
   test.setTimeout(240_000);
@@ -258,42 +240,6 @@ test("the width ladder is drawn: the path and the limit overlay 1 px, the backpl
       expect(widths.backplot!, `${where}: the backplot is not wider than 2 CSS px ${dump}`).toBeLessThan(2.6 * dpr);
       await test.info().attach(`ladder-dpr${dpr}-${theme}.png`, { body: shot, contentType: "image/png" });
     }
-    // The selection's halo (viewer contrast plan, V2) in the IMAGE: across the
-    // selected program line, over the lit table (a halo in the background's
-    // colour would be invisible on the background itself), the centre reads
-    // the core colour, 2.5 CSS px to each side the halo's, 8 px out the table
-    // — and again after the viewer is resized (the screen-space widths follow
-    // the drawing size). The HUD layer is off: the scene is measured, not the
-    // DRO card over it.
-    await ctl({ op: "status_delta", data: { motion_line: 4 } });
-    const haloCheck = async (where: string) => {
-      const sel = await page.evaluate(() => window.__viewerDiag!.getSelection!());
-      expect(sel?.visible && sel.halo?.visible, `${where}: the core and the halo show ${JSON.stringify(sel)}`).toBe(true);
-      const drawn = (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn;
-      const core = rgbOf(drawn.selection!), halo = rgbOf(drawn.selectionHalo!);
-      const at = await page.evaluate(() => window.__viewerDiag!.projectRole!("selection"));
-      expect(at!.length, `${where}: a selected segment to measure across`).toBeGreaterThan(20);
-      const shot = await page.screenshot();
-      const [left, , centre, , right] = await profileColours(page, shot, at!, [-8, -2.5, 0, 2.5, 8], dpr);
-      const [nearL, nearR] = await profileColours(page, shot, at!, [-2.5, 2.5], dpr);
-      const table = left!.map((v, i) => (v + right![i]!) / 2);
-      const nearest = (c: number[]) => [["core", core], ["halo", halo], ["table", table]]
-        .sort((a, b) => rgbDist(c, a[1] as number[]) - rgbDist(c, b[1] as number[]))[0]![0];
-      const dump = JSON.stringify({ core, halo, table, centre, nearL, nearR });
-      expect(rgbDist(halo, table), `${where}: the halo differs from the table it lies on ${dump}`).toBeGreaterThan(30);
-      expect([nearest(centre!), nearest(nearL!), nearest(nearR!)], `${where}: core in the middle, halo either side ${dump}`)
-        .toEqual(["core", "halo", "halo"]);
-      await test.info().attach(`halo-${where.replace(/\W+/g, "-")}.png`, { body: shot, contentType: "image/png" });
-    };
-    for (const theme of LADDER_THEMES) {
-      await ctl({ op: "raw", frame: { type: "settings_init", settings: { display: { theme }, viewer: { layers: { backplot: true, bounds: true, hud: false } } } } });
-      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
-      await page.waitForTimeout(300);
-      await haloCheck(`DPR ${dpr} ${theme}`);
-    }
-    await page.setViewportSize({ width: 1000, height: 760 });
-    await page.waitForTimeout(400);
-    await haloCheck(`DPR ${dpr} hc-dark resized`);
     await context.close();
   }
 });

@@ -4,10 +4,8 @@
 // corrected (a deliberate Custom choice is not recoloured).
 //  - a line role: ≥ 3 : 1 on the scene background (4.5 : 1 in the high-
 //    contrast themes) AND ≥ 3 : 1 on the lit table (#e0e0e0: the table /
-//    stock's top face under the scene lights, in every theme);
-//  - the selected line (the theme's, drawn over the custom lines): its core
-//    on the background, core OR halo on the lit table — core and halo each
-//    shown. Tool shaft and cutter are solids, not lines: no rule.
+//    stock's top face under the scene lights, in every theme).
+// Tool shaft and cutter are solids, not lines: no rule.
 import type { ViewerPalette } from "./viewerPalette";
 
 type RGB = [number, number, number];
@@ -35,7 +33,7 @@ export function contrastRatio(a: string, b: string): number | null {
 
 export interface ContrastRow {
   role: string;
-  /** Ratio on the scene background; null = not a rule for this row (halo). */
+  /** Ratio on the scene background; null = the colour does not parse. */
   onBg: number | null;
   onTable: number | null;
   bgLow: boolean;
@@ -45,15 +43,8 @@ export interface ContrastRow {
 export function customContrastRows(p: ViewerPalette, bg: string, highContrast: boolean): ContrastRow[] {
   const floor = highContrast ? 4.5 : 3;
   const low = (v: number | null, min: number) => v == null || v < min;
-  const rows: ContrastRow[] = CUSTOM_LINE_ROLES.map(role => {
+  return CUSTOM_LINE_ROLES.map(role => {
     const onBg = contrastRatio(p[role], bg), onTable = contrastRatio(p[role], LIT_TABLE);
     return { role, onBg, onTable, bgLow: low(onBg, floor), tableLow: low(onTable, 3) };
   });
-  const coreBg = contrastRatio(p.selection, bg);
-  const coreTable = contrastRatio(p.selection, LIT_TABLE), haloTable = contrastRatio(p.selectionHalo, LIT_TABLE);
-  // core OR halo on the table: the pair is low only when both are
-  const pairLow = low(Math.max(coreTable ?? 0, haloTable ?? 0), 3);
-  rows.push({ role: "selection", onBg: coreBg, onTable: coreTable, bgLow: low(coreBg, floor), tableLow: pairLow });
-  rows.push({ role: "selectionHalo", onBg: null, onTable: haloTable, bgLow: false, tableLow: pairLow });
-  return rows;
 }

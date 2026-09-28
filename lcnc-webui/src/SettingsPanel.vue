@@ -491,12 +491,11 @@ function onColorChange(key: UserRole, value: string) {
 }
 
 // The legend (every role, in drawing order); in Custom the seven user roles
-// are the colour pickers, the three finding roles stay the theme's.
+// are the colour pickers, the two finding roles stay the theme's.
 const PALETTE_ROWS: { role: ViewerRole; label: string; dashed?: boolean }[] = [
   { role: "feed", label: "Toolpath" },
   { role: "rapid", label: "Rapid", dashed: true },
   { role: "backplot", label: "Backplot" },
-  { role: "selection", label: "Selected line" },
   { role: "limit", label: "Limit violation" },
   { role: "collision", label: "Collision" },
   { role: "bounds", label: "Machine Bounds" },
@@ -506,13 +505,10 @@ const PALETTE_ROWS: { role: ViewerRole; label: string; dashed?: boolean }[] = [
 ];
 const isUserRole = (r: ViewerRole): r is UserRole => (USER_ROLES as readonly string[]).includes(r);
 // The Custom palette's contrast, told and never corrected (plan K3, Codex
-// R25 OP-I05): each custom line on the background and on the lit table, the
-// selected line's core and halo each shown (viewer/customContrast.ts — the
-// rules themeTokens.test.ts holds the automatic palettes to).
-const CONTRAST_LABEL: Record<string, string> = {
-  ...Object.fromEntries(PALETTE_ROWS.map(r => [r.role, r.label])),
-  selection: "Selected line · core", selectionHalo: "Selected line · halo",
-};
+// R25 OP-I05): each custom line on the background and on the lit table
+// (viewer/customContrast.ts — the rules themeTokens.test.ts holds the
+// automatic palettes to).
+const CONTRAST_LABEL: Record<string, string> = Object.fromEntries(PALETTE_ROWS.map(r => [r.role, r.label]));
 const contrastRows = computed(() => {
   if (paletteMode.value !== "custom") return [];
   void isDark.value;
@@ -707,7 +703,7 @@ function resetMachineColor(id: string) {
             </template>
           </div>
           <template v-if="contrastRows.length">
-            <div class="settingDesc">Contrast: a line needs 3 : 1 on the background (4.5 : 1 in high contrast) and on the lit table; the selected line its core on the background, core or halo on the table.</div>
+            <div class="settingDesc">Contrast: a line needs 3 : 1 on the background (4.5 : 1 in high contrast) and on the lit table.</div>
             <div class="dataTable" data-contrast-hint>
               <table>
                 <thead><tr><th>Color</th><th>On background</th><th>On the table</th></tr></thead>

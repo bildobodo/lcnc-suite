@@ -1,17 +1,13 @@
 // Unit tests for viewer/toolpathController.ts (A3.4). THREE geometry/material
 // ops are pure JS → headless. troika labels are faked (they need a font loader).
 // Covers the disposal-on-rebuild contract (the hardest part: shared geometry +
-// ad-hoc materials must all be freed), the line-index fallback, label
-// unregistration, and the overflow flag.
+// ad-hoc materials must all be freed), label unregistration, the overflow
+// flag, and that no current line is drawn.
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { buildLineIndex } from "./lineIndex";
 import * as THREE from "three";
-import type { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
-import type { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
-import type { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { ref, type Ref } from "vue";
 import { disposeObject } from "./disposal";
-import { createToolpathController, SELECTION_WIDTH_PX, SELECTION_HALO_PX, type ToolpathCtx, type ToolpathController } from "./toolpathController";
+import { createToolpathController, type ToolpathCtx, type ToolpathController } from "./toolpathController";
 
 // Fake troika label: an Object3D (addable, has .position) with a dispose spy.
 function fakeLabel() {
@@ -21,7 +17,7 @@ function fakeLabel() {
 }
 
 // The resolved palette the host hands over (viewer/viewerPalette.ts).
-const PALETTE = { feed: "#22b8cf", rapid: "#f5a623", toolpathBounds: "#f5a623", limit: "#ffcc00", selection: "#ff3333", selectionHalo: "#ffffff", collision: "#ff4444" };
+const PALETTE = { feed: "#22b8cf", rapid: "#f5a623", toolpathBounds: "#f5a623", limit: "#ffcc00", collision: "#ff4444" };
 function makeDeps(overflow: Ref<boolean>) {
   return {
     requestRender: vi.fn(),
@@ -84,7 +80,7 @@ beforeEach(() => {
 });
 
 describe("toolpathController.apply", () => {
-  it("builds feed/rapid/highlight lines + bounds box + labels under workRotGroup", () => {
+  it("builds feed/rapid lines + bounds box + labels under workRotGroup", () => {
     const ctx = makeCtx();
     c.apply(ctx, GCODE);
     expect(c.feedSegs).toBe(3);
@@ -124,69 +120,26 @@ describe("toolpathController.apply", () => {
   });
 });
 
-describe("highlight", () => {
-  it("builds the line index from feed_lines when the worker index is absent, and ranges it", () => {
-    const ctx = makeCtx();
-    c.apply(ctx, GCODE);   // no g.feedLineIndex → built from feed_lines [10,11,12]
-    // motion_line runs ~1 line ahead under G64 blending, so line 12 lights
-    // line 11 (point index 1): the lit vertex range is [max(0, 0), 1] → ONE
-    // pair (0,1) in the highlight's own index buffer (drawRange counts
-    // index entries). Line 11 itself would light line 10 = point 0 alone,
-    // which draws nothing (a single vertex is no segment).
-    c.setHighlight(11);
-    const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 13 && !(o as any).isLineSegments2) as THREE.LineSegments;
-    expect(hl.geometry.drawRange.count).toBe(0);
-    c.setHighlight(12);
-    expect(hl.geometry.drawRange).toMatchObject({ start: 0, count: 2 });
-    expect(Array.from((hl.geometry.index!.array as Uint32Array).subarray(0, 2))).toEqual([0, 1]);
-    c.setHighlight(null);
-    expect(hl.geometry.drawRange.count).toBe(0);
-  });
-
-  it("the selected line is also drawn WIDE — a shape cue besides the colour (design wave D8, UI-DI14)", () => {
+describe("no current-line highlight (operator 2026-09-28)", () => {
+  // The code panel names the current line and the tool shows where it is;
+  // the 3D line in the selection colour on its halo competed with every
+  // other line for attention and is gone — nothing in its role, no
+  // screen-space line in the toolpath, no highlight API.
+  it("draws nothing in a selection role and offers no highlight", () => {
     const ctx = makeCtx();
     c.apply(ctx, GCODE);
-    const fat = (role: string) => ctx.workRotGroup.children.find(o => (o as any).isLineSegments2
-      && ((o as LineSegments2).material as LineMaterial).userData.role === role) as LineSegments2;
-    const wide = fat("selection");
-    expect(wide, "a LineSegments2 beside the 1 px highlight").toBeTruthy();
-    const mat = wide.material as LineMaterial;
-    expect(mat.linewidth).toBe(SELECTION_WIDTH_PX);
-    expect(SELECTION_WIDTH_PX).toBeGreaterThanOrEqual(3);
-    expect(mat.worldUnits, "screen pixels, whatever the zoom").toBe(false);
-    expect(mat.userData.role).toBe("selection");
-    expect((wide.geometry as LineSegmentsGeometry).instanceCount).toBe(0);
-    c.setHighlight(12);   // lights the pair (0,1): (0,0,0) → (10,0,0)
-    expect((wide.geometry as LineSegmentsGeometry).instanceCount).toBe(1);
-    const start = (wide.geometry.getAttribute("instanceStart") as THREE.InterleavedBufferAttribute);
-    const end = (wide.geometry.getAttribute("instanceEnd") as THREE.InterleavedBufferAttribute);
-    expect([start.getX(0), start.getY(0), end.getX(0), end.getY(0)]).toEqual([0, 0, 10, 0]);
-    c.setColors({ ...PALETTE, selection: "#00aa00" });
-    expect(mat.color.getHexString()).toBe("00aa00");
-    // The halo (viewer contrast plan, V2): the SAME segments, drawn first and
-    // SELECTION_HALO_PX wider on each side, in the background's colour.
-    const halo = fat("selectionHalo");
-    expect(halo, "a halo behind the wide line").toBeTruthy();
-    expect(halo.geometry, "the halo draws the selection's own segments").toBe(wide.geometry);
-    const haloMat = halo.material as LineMaterial;
-    expect(haloMat.linewidth).toBe(SELECTION_WIDTH_PX + 2 * SELECTION_HALO_PX);
-    expect(haloMat.worldUnits).toBe(false);
-    expect(halo.renderOrder, "drawn before the core").toBeLessThan(wide.renderOrder);
-    c.setColors({ ...PALETTE, selectionHalo: "#0b0f14" });
-    expect(haloMat.color.getHexString()).toBe("0b0f14");
-    c.setHighlight(null);
-    expect((wide.geometry as LineSegmentsGeometry).instanceCount).toBe(0);
-  });
-
-  it("prefers the worker-provided line index (typed arrays) over rebuilding", () => {
-    const ctx = makeCtx();
-    const workerIndex = buildLineIndex(new Uint32Array([1, 1, 99]));   // line 99 → point 2 only
-    c.apply(ctx, { ...GCODE, feedLineIndex: workerIndex });
-    c.setHighlight(99);
-    const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 13 && !(o as any).isLineSegments2) as THREE.LineSegments;
-    // point 2 only → vertex range [1, 2] → the pair (1,2)
-    expect(hl.geometry.drawRange).toMatchObject({ start: 0, count: 2 });
-    expect(Array.from((hl.geometry.index!.array as Uint32Array).subarray(0, 2))).toEqual([1, 2]);
+    const roles = new Set<string>();
+    let fat = 0;
+    for (const root of [ctx.scene!, ctx.workRotGroup, ctx.pathRot]) {
+      root.traverse(o => {
+        const role = (o as any).material?.userData?.role;
+        if (role) roles.add(role);
+        if ((o as any).isLineSegments2) fat++;
+      });
+    }
+    expect([...roles].filter(r => r.startsWith("selection")), "no selection role").toEqual([]);
+    expect(fat, "no screen-space line in the toolpath").toBe(0);
+    expect("setHighlight" in c || "setHighlightTrackRange" in c, "no highlight API").toBe(false);
   });
 });
 
@@ -332,11 +285,8 @@ describe("overflow / visibility / colours", () => {
     };
     expect(byRole("limit").length).toBeGreaterThan(0);
     expect(byRole("limit").every(m => m.color.getHexString() === "ffcc00")).toBe(true);
-    c.setColors({ ...PALETTE, limit: "#a16207", selection: "#111111" });
+    c.setColors({ ...PALETTE, limit: "#a16207" });
     expect(byRole("limit").every(m => m.color.getHexString() === "a16207")).toBe(true);
-    const sel = byRole("selection");
-    expect(sel.length).toBeGreaterThan(0);
-    expect(sel.every(m => m.color.getHexString() === "111111")).toBe(true);
   });
 
   it("dispose frees the toolpath and unregisters labels", () => {
@@ -408,7 +358,7 @@ describe("baked-toolpath anchor (2026-09-03 run-time jump)", () => {
     expect(ctx.pathAnchor.position.toArray()).toEqual([1300, -200, -1400]);
     // only NEW feed chunks (non-dashed, 3 points) remain under the anchor —
     // the same number as after the first apply, none of them the old object
-    // (the highlight line shares feed's positions at renderOrder 13; rapid is dashed)
+    // (rapid is dashed)
     const feedChunks = (g: THREE.Group) => g.children.filter(o => (o as any).isLine && o.renderOrder === 10
       && !((o as any).material instanceof THREE.LineDashedMaterial)
       && (o as THREE.Line).geometry.getAttribute("position")?.count === 3);
@@ -468,7 +418,7 @@ describe("chunked draw (2026-09-11 headroom wave)", () => {
     expect(feedChunks[0]!.material).toBe(feedChunks[1]!.material);
   });
 
-  it("a rebuild disposes every chunk and the highlight (registry teardown)", () => {
+  it("a rebuild disposes every chunk (registry teardown)", () => {
     const cc = createToolpathController({ ...(deps as any) });
     const ctx = makeCtx();
     cc.apply(ctx, GCODE);
@@ -659,26 +609,10 @@ describe("room-fixed split (2026-09-11)", () => {
     expect(feedChunksOf(ctx.workRotGroup).flatMap(pairsOf).sort()).toEqual([2, 3]);
   });
 
-  it("the highlight lights each frame's pairs in its own object and never the flip connector", () => {
-    const ctx = roomCtx();
-    c.apply(ctx, G, null);
-    const hlRoom = ctx.roomRotGroup.children.find(o => o.renderOrder === 13 && !(o as any).isLineSegments2) as THREE.LineSegments;
-    const hlTable = ctx.workRotGroup.children.find(o => o.renderOrder === 13 && !(o as any).isLineSegments2) as THREE.LineSegments;
-    expect(hlRoom && hlTable).toBeTruthy();
-    c.setHighlight(2);                     // lights line 1 (previous-line rule) = vertices 0..1 → room pair (0,1)
-    expect(pairsOf(hlRoom)).toEqual([0, 1]);
-    expect(hlTable.geometry.drawRange.count).toBe(0);
-    c.setHighlight(3);                     // lights line 2 = vertices 2..3; the range reaches back to 1: (1,2) is a break → skipped
-    expect(hlRoom.geometry.drawRange.count).toBe(0);
-    expect(pairsOf(hlTable)).toEqual([2, 3]);
-    c.setHighlight(null);
-    expect(hlTable.geometry.drawRange.count).toBe(0);
-  });
-
   it("an all-room program parents the bounds box under the room parent", () => {
     const ctx = roomCtx();
     c.apply(ctx, { ...G, feedRoom: new Uint8Array([1, 1, 1, 1]) }, null);
-    const box = (g: THREE.Group) => g.children.find(o => (o as any).isLineSegments && o.renderOrder !== 10 && o.renderOrder !== 12);
+    const box = (g: THREE.Group) => g.children.find(o => (o as any).isLineSegments && o.renderOrder !== 10);
     expect(box(ctx.roomRotGroup)).toBeTruthy();
     expect(box(ctx.workRotGroup)).toBeUndefined();
   });
@@ -725,16 +659,13 @@ describe("display LOD (2026-09-11)", () => {
     expect(c.lodMax).toBe(0);
   });
 
-  it("every level's geometry is disposed on rebuild and the highlight stays at level 0", () => {
+  it("every level's geometry is disposed on rebuild", () => {
     const ctx = makeCtx();
     c.apply(ctx, G);
     const all = ctx.workRotGroup.children.filter(o => (o as any).isLineSegments && o.renderOrder === 10) as THREE.LineSegments[];
     expect(all.length).toBeGreaterThan(c.chunks);          // level-1 objects exist (invisible) beside level 0
     const spies = all.map(o => vi.spyOn(o.geometry, "dispose"));
     c.updateCulling(ctx, cam(10000), 1000);
-    c.setHighlight(3);                                     // lights line 2 = vertex 1 → pair (0,1) in the full-resolution buffer
-    const hl = ctx.workRotGroup.children.find(o => o.renderOrder === 13 && !(o as any).isLineSegments2) as THREE.LineSegments;
-    expect(Array.from((hl.geometry.index!.array as Uint32Array).subarray(0, 2))).toEqual([0, 1]);
     c.apply(ctx, G);
     for (const sp of spies) expect(sp).toHaveBeenCalled();
   });

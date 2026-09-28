@@ -16,12 +16,12 @@ import { INTERP_IDLE } from "./lcnc";
 import { simMode } from "./simMode";
 import {
   sampleTrack, jointsForSample, buildEntryTrack,
-  machineFromJoints, lineRunAround, displayLineForPoint, atTrackEnd,
+  machineFromJoints, displayLineForPoint, atTrackEnd,
   programEndLine,
   type ScrubSample,
 } from "./viewer/scrubTrack";
 import { createRunWatcher } from "./viewer/runWatcher";
-import { trackHighlightRange, runLineState, subExecState } from "./trackHighlight";
+import { runLineState, subExecState } from "./trackHighlight";
 import { specFromWire } from "./viewer/kins";
 import { epochTermsFor, epochWcsList, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import { twpPlaneForSample } from "./viewer/twpPlaneFrame";
@@ -230,9 +230,6 @@ function applyPos() {
   emit("pose", _joints.slice(), _sample.line, sPos.value, t,
        curAtEnd.value ? (endLine.value ?? null) : disp.line, _plane,
        _sample.tlo ? [..._sample.tlo.xyz] : null, _sample.tlo?.tool ?? null);
-  // Positional 3D highlight (review P3): address the path by track index —
-  // the sample's line number may be sub/remap-relative and collide.
-  trackHighlightRange.value = lineRunAround(t, _sample.index);
 }
 
 /** ---------- explicit mode entry / exit ---------- */
@@ -318,7 +315,6 @@ function exitSim() {
   // (the joint watcher below) — the base result keeps its own identity, so
   // keeping the entry track no longer costs a re-sweep on re-entry.
   emit("pose", null, null, null, null, null, null, null, null);
-  trackHighlightRange.value = null;
   subExecState.value = null;
 }
 
@@ -372,7 +368,6 @@ watch(running, (r) => {
 watch(baseTrack, () => {
   exitSim(); entryTrack.value = null; sPos.value = 0;
   _runWatcher.reset(); runOffPath.value = false; runLineState.value = null;
-  trackHighlightRange.value = null;
   subExecState.value = null;
 });
 watch(machineOff, (off) => { if (!off) exitSim(); });
@@ -510,11 +505,10 @@ watch(st, (d) => {
     });
   }
   if (out.phase === "offPath") {
-    // Frozen playhead, no highlight — the machine is somewhere the program
-    // never goes (toolchange park); pretending otherwise is the old bug.
-    // The published state is SUPPRESS, never null: null would let App.vue
-    // fall back to motion_line's colliding sub numbers.
-    trackHighlightRange.value = null;
+    // Frozen playhead — the machine is somewhere the program never goes
+    // (toolchange park); pretending otherwise is the old bug. The
+    // published state is SUPPRESS, never null: null would let App.vue fall
+    // back to motion_line's colliding sub numbers.
     // offPath (W5) lets resolveCurrentLine apply the text-trusted
     // motion_line rescue (the approach executing a real main line).
     runLineState.value = { line: 0, trusted: false, subName: null, offPath: true };
@@ -523,9 +517,6 @@ watch(st, (d) => {
   }
   if (out.cum == null) return;
   sPos.value = out.cum;
-  // Positional 3D highlight: the contiguous same-line run around the
-  // matched segment — contiguity disambiguates colliding line numbers.
-  trackHighlightRange.value = lineRunAround(t, out.index!);
   // End state (W3 P4): the playhead pinned at the terminal vertex has
   // nothing further to attribute — trailing non-motion lines (M2) are
   // unknowable, so present "end" instead of freezing on the last line.
@@ -558,7 +549,7 @@ watch(running, (r) => {
   _runWatcher.reset();
   runOffPath.value = false;
   if (!r) runLineState.value = null;
-  if (!r && !simMode.value) { trackHighlightRange.value = null; subExecState.value = null; }
+  if (!r && !simMode.value) subExecState.value = null;
 });
 
 // Row-1 readouts live in FIXED slots (E: the timeline is the only flexible

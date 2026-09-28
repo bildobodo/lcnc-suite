@@ -6,7 +6,7 @@ import {
   machineJointsToProgram, prependEntry, splitTrackStreams,
   displayLineForPoint, atTrackEnd,
   programEndLine, mainLinesTrusted,
-  projectOntoTrack, lineRunAround, sliceTrack,
+  projectOntoTrack, sliceTrack,
   type ScrubSample, type ScrubStream, type ScrubTrack, roomEndOf,
 } from "./scrubTrack";
 import { makeKins as kinsForTest } from "./kins";
@@ -914,21 +914,6 @@ describe("positional run playhead (review P3)", () => {
     // Without terms the same pose misses by ~95 — proves the routing.
     const raw = projectOntoTrack(t, [105, 0, 0, 0, 0, 0], W0, undefined, null)!;
     expect(Math.sqrt(raw.dist2)).toBeGreaterThan(90);
-  });
-
-  it("lineRunAround: contiguity disambiguates colliding line numbers", () => {
-    const t = LOOP();
-    expect(lineRunAround(t, 1)).toEqual([1, 1]);   // first L7 run
-    expect(lineRunAround(t, 3)).toEqual([3, 3]);   // second L7 run — separate
-    // …and a run never crosses a brk boundary.
-    const b = buildScrubTrack(
-      EMPTY,
-      stream([[0, 0, 0], [5, 0, 0], [500, 0, 0], [505, 0, 0]],
-             { seq: [1, 2, 3, 4], lines: [7, 7, 7, 7],
-               mode: [0, 0, 2, 2], brk: [0, 0, 1, 0] }),
-    )!;
-    expect(lineRunAround(b, 1)).toEqual([1, 1]);
-    expect(lineRunAround(b, 3)).toEqual([2, 3]);
   });
 
   it("splitTrackStreams emits ascending feedSrc for the drawn feed", () => {

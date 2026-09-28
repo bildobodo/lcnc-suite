@@ -50,7 +50,7 @@ export interface RunWatcherOutput {
   /** New playhead cum — null means "leave the display alone" (frozen
    *  off-path, or an off-path frame between re-probes). */
   cum: number | null;
-  /** Matched upper track index (lineRunAround's input) when cum != null. */
+  /** Matched upper track index when cum != null. */
   index: number | null;
   /** What this frame actually computed — the op-budget tests key on it. */
   probed: "window" | "full" | "reprobe" | "idle";

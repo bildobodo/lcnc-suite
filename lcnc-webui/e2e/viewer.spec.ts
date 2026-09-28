@@ -466,15 +466,13 @@ test("the viewer palette: Automatic follows the theme, Custom stays, a legacy pa
   await expect(legend.locator('input[type="color"]')).toHaveCount(7);
   await expect(swatch("limit")).toHaveCount(1);
   // The contrast of the Custom colours, told and never corrected (plan K3,
-  // Codex R25 OP-I05): each line on the background and on the lit table,
-  // the selected line's core and halo each; "low" in words.
+  // Codex R25 OP-I05): each line on the background and on the lit table;
+  // "low" in words. No selection rows: the current line is not drawn in 3D.
   const hint = dialog.locator("[data-contrast-hint]");
   const cell = (role: string, col: number) => hint.locator(`tr[data-role="${role}"] td`).nth(col);
   await expect(cell("feed", 1), "the old cyan on the light background").toHaveText(/^\d+\.\d : 1 · low$/);
   await expect(cell("feed", 2), "and on the lit table").toHaveText(/ · low$/);
-  await expect(cell("selection", 1)).toHaveText(/^\d+\.\d : 1$/);
-  await expect(cell("selectionHalo", 1), "the halo has no background rule").toHaveText("—");
-  await expect(hint.locator("tr[data-role]")).toHaveCount(7);
+  await expect(hint.locator("tr[data-role]")).toHaveCount(5);
   await legend.locator('input[type="color"]').first().fill("#1f3f7f");
   await expect(cell("feed", 1), "a picked colour is measured at once").toHaveText(/^\d+\.\d : 1$/);
   await expect(cell("feed", 2)).toHaveText(/^\d+\.\d : 1$/);

@@ -30,13 +30,13 @@ const OLD_DEFAULTS = { feed: "#22b8cf", rapid: "#f5a623", backplot: "#ff00ff", b
 const LIGHT: Record<string, string> = {
   "--viewer-feed": "#0072b2", "--viewer-rapid": "#047857", "--viewer-backplot": "#a21caf", "--viewer-bounds": "#475569",
   "--viewer-toolpath-bounds": "#047857", "--viewer-tool": "#9aa0a6", "--viewer-cutter": "#d4a800",
-  "--viewer-limit": "#a16207", "--viewer-selection": "#111111", "--viewer-selection-halo": "#ffffff", "--viewer-collision": "#c81e1e",
+  "--viewer-limit": "#a16207", "--viewer-collision": "#c81e1e",
   "--viewer-plane-active": "#2d81dc", "--viewer-plane-defined": "#a97515", "--viewer-plane-stale": "#cc3333",
 };
 const DARK: Record<string, string> = {
   "--viewer-feed": "#56b4e9", "--viewer-rapid": "#34d399", "--viewer-backplot": "#e879f9", "--viewer-bounds": "#cbd5e1",
   "--viewer-toolpath-bounds": "#34d399", "--viewer-tool": "#c0c0c0", "--viewer-cutter": "#ffdd00",
-  "--viewer-limit": "#ffcc00", "--viewer-selection": "#ffffff", "--viewer-selection-halo": "#0b0f14", "--viewer-collision": "#ff6b6b",
+  "--viewer-limit": "#ffcc00", "--viewer-collision": "#ff6b6b",
   "--viewer-plane-active": "#2d81dc", "--viewer-plane-defined": "#a97515", "--viewer-plane-stale": "#cc3333",
 };
 const reader = (t: Record<string, string>) => (name: string) => ` ${t[name] ?? ""} `;   // computed style pads
@@ -139,14 +139,12 @@ describe("viewer palette resolution", () => {
     }
   });
 
-  it("Custom keeps its colours through a theme switch; the finding roles (limit, selection, collision) stay the theme's", () => {
+  it("Custom keeps its colours through a theme switch; the finding roles (limit, collision) stay the theme's", () => {
     const settings = { paletteMode: "custom" as const, colors: { ...OLD_DEFAULTS } };
     for (const theme of [LIGHT, DARK]) {
       const p = resolveViewerPalette(reader(theme), settings);
       for (const r of USER_ROLES) expect(p[r], r).toBe(OLD_DEFAULTS[r]);
       expect(p.limit).toBe(theme["--viewer-limit"]);
-      expect(p.selection).toBe(theme["--viewer-selection"]);
-      expect(p.selectionHalo, "the halo is never a user colour").toBe(theme["--viewer-selection-halo"]);
       expect(p.collision).toBe(theme["--viewer-collision"]);
     }
   });

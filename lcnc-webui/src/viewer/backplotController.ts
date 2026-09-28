@@ -5,7 +5,7 @@
 // tool-tip's work-local position each tick and calls push().
 //
 // Drawn 2 CSS px wide (viewer contrast plan, E11): the width ladder — path 1 px,
-// backplot 2 px, selection 3 px + halo — is the FORM cue that tells the executed
+// backplot 2 px — is the FORM cue that tells the executed
 // path from the programmed one and from the limit overlay (feed and backplot
 // differ in lightness by only ~1.15 : 1, and colour alone is no cue for
 // colour-blind eyes). WebGL draws core lines 1 px wide everywhere, so the trail
@@ -26,7 +26,7 @@ import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 const BACKPLOT_MAX = 20000;   // points (10 Hz -> ~33 min)
 const SEG_MAX = BACKPLOT_MAX - 1;   // segments between them
 const BACKPLOT_EPS = 0.01;    // mm; min distance before adding a point
-/** The backplot's width in CSS px — twice the path's 1 px line, under the selection's 3. */
+/** The backplot's width in CSS px — twice the path's 1 px line. */
 export const BACKPLOT_WIDTH_PX = 2;
 
 export interface BackplotController {

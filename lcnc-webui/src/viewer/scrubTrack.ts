@@ -804,18 +804,6 @@ export function projectOntoTrack(
   return best;
 }
 
-/** The contiguous same-line run of track segments around index i — the
- *  track-index answer to "which stretch of path is this line". Contiguity
- *  is what disambiguates COLLIDING line numbers (a sub's L7 vs the main
- *  file's L7 are different runs); brk boundaries never join a run. */
-export function lineRunAround(t: ScrubTrack, i: number): [number, number] {
-  const ln = t.lines[i]!;
-  let a = i, b = i;
-  while (a > 1 && t.lines[a - 1] === ln && !t.brk?.[a]) a--;
-  while (b < t.count - 1 && t.lines[b + 1] === ln && !t.brk?.[b + 1]) b++;
-  return [a, b];
-}
-
 /** The sub-track of points [a, b) — every per-point channel sliced, cum
  *  re-based to 0 at `a`, the shared lists (frames, sub names, WCS/TLO
  *  events) kept by reference. The collision sweep uses it for the ENTRY

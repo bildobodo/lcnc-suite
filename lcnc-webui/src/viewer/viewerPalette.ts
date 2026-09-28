@@ -1,13 +1,13 @@
 // The viewer palette (design wave D8c, UI-K08): ONE resolver for every
 // colour the 3D viewer draws in a role — the toolpath streams, the driven
-// path, both bounds boxes, the outside-limits overlay, the selected segment,
-// the collision tint, the tool.
+// path, both bounds boxes, the outside-limits overlay, the collision tint,
+// the tool.
 //
 // Automatic (the default): each role is the theme's `--viewer-*` token, so
 // the palette follows the theme (light / dark / HC) and re-resolves on a
 // switch. Custom: the operator's colours for the seven user roles (Settings ›
-// 3D Viewer › Colors); a role the custom set lacks — and the finding and
-// selection roles, which are never user colours — stay the theme's.
+// 3D Viewer › Colors); a role the custom set lacks — and the finding roles,
+// which are never user colours — stay the theme's.
 //
 // Pure: the token reader is injected (ThreeViewer passes the document root's
 // computed style), so the resolution is unit-tested without a DOM.
@@ -17,7 +17,7 @@ import type { ColorDefaults, PaletteMode } from "../defaults";
 export const USER_ROLES = ["feed", "rapid", "backplot", "bounds", "toolpathBounds", "tool", "cutter"] as const;
 export type UserRole = typeof USER_ROLES[number];
 /** Every role the viewer draws. */
-export type ViewerRole = UserRole | "limit" | "selection" | "selectionHalo" | "collision"
+export type ViewerRole = UserRole | "limit" | "collision"
   | "planeActive" | "planeDefined" | "planeStale";
 export type ViewerPalette = Record<ViewerRole, string>;
 
@@ -30,8 +30,6 @@ export const ROLE_TOKEN: Record<ViewerRole, string> = {
   tool: "--viewer-tool",
   cutter: "--viewer-cutter",
   limit: "--viewer-limit",
-  selection: "--viewer-selection",
-  selectionHalo: "--viewer-selection-halo",
   collision: "--viewer-collision",
   planeActive: "--viewer-plane-active",
   planeDefined: "--viewer-plane-defined",
