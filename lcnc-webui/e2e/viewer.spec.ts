@@ -488,6 +488,14 @@ test("the viewer palette: Automatic follows the theme, Custom stays, a legacy pa
   const pairs = dialog.locator("[data-pair-hint]");
   await expect(pairs.locator("tr[data-pair]")).toHaveCount(6);
   await expect(pairs.locator('tr[data-pair="feed/rapid"] td').nth(2)).toHaveText(/^\d\.\d\d · dashed$/);
+  // A box's three comparisons, each told with its own value (Codex R31
+  // VP-I04): a core like its casing is low ON THE CASING, while the casing
+  // still carries the box on the background and the table; a line has none.
+  await expect(cell("feed", 3), "a line has no casing").toHaveText("—");
+  await legend.locator("label", { hasText: "Machine Bounds" }).locator('input[type="color"]').fill("#3a3f45");
+  await expect(cell("bounds", 3)).toHaveText("1.0 : 1 · low");
+  await expect(cell("bounds", 1)).toHaveText(/^\d+\.\d : 1$/);
+  await expect(cell("bounds", 2)).toHaveText(/^\d+\.\d : 1$/);
   await legend.locator('input[type="color"]').first().fill("#1f3f7f");
   await expect(cell("feed", 1), "a picked colour is measured at once").toHaveText(/^\d+\.\d : 1$/);
   await expect(cell("feed", 2)).toHaveText(/^\d+\.\d : 1$/);

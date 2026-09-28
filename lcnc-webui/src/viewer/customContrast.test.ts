@@ -34,7 +34,20 @@ describe("the Custom palette's contrast hint (Codex R25 OP-I05)", () => {
     expect([light.bgLow, light.tableLow]).toEqual([false, false]);
     // a core as dark as its casing is lost on it
     const dark = customContrastRows({ ...cased, toolpathBounds: "#404040" }, "#101418", false).find(r => r.role === "toolpathBounds")!;
-    expect(dark.bgLow && dark.tableLow).toBe(true);
+    expect(dark.casingLow).toBe(true);
+  });
+  it("names the failing comparison with its own value: a core like its casing is low ON THE CASING, not on the background (Codex R31 VP-I04)", () => {
+    const same = customContrastRows({ ...base, boundsCasing: "#3a3f45", bounds: "#3a3f45" } as ViewerPalette, "#ffffff", false)
+      .find(r => r.role === "bounds")!;
+    // the casing carries the box on white and on the table — those hold
+    expect([same.bgLow, same.tableLow]).toEqual([false, false]);
+    expect(same.onBg!).toBeGreaterThan(10);
+    // the core on its casing is what fails, told with its own ratio
+    expect(same.onCasing).toBeCloseTo(1, 5);
+    expect(same.casingLow).toBe(true);
+    // a line has no casing: nothing to compare, never low
+    const feed = customContrastRows(base, "#ffffff", false).find(r => r.role === "feed")!;
+    expect([feed.onCasing, feed.casingLow]).toEqual([null, false]);
   });
   it("tool shaft and cutter are solids — no row; no selection row (the current line is not drawn in 3D)", () => {
     expect(customContrastRows(base, "#ffffff", false).map(r => r.role)).toEqual(

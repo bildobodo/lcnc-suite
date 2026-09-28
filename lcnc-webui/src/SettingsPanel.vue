@@ -734,15 +734,16 @@ function resetMachineColor(id: string) {
             </template>
           </div>
           <template v-if="contrastRows.length">
-            <div class="settingDesc">Contrast: a line needs 3 : 1 on the background (4.5 : 1 in high contrast) and on the lit table; a box its core or its dark casing, and the core on the casing.</div>
+            <div class="settingDesc">Contrast: a line needs 3 : 1 on the background (4.5 : 1 in high contrast) and on the lit table; a box its core or its dark casing, and its core on the casing.</div>
             <div class="dataTable" data-contrast-hint>
               <table>
-                <thead><tr><th>Color</th><th>On background</th><th>On the table</th></tr></thead>
+                <thead><tr><th>Color</th><th>On background</th><th>On the table</th><th>On its casing</th></tr></thead>
                 <tbody>
                   <tr v-for="r in contrastRows" :key="r.role" :data-role="r.role">
                     <td>{{ r.label }}</td>
                     <td :class="{ 'text-warn': r.bgLow }">{{ ratioCell(r.onBg, r.bgLow) }}</td>
                     <td :class="{ 'text-warn': r.tableLow }">{{ ratioCell(r.onTable, r.tableLow) }}</td>
+                    <td :class="{ 'text-warn': r.casingLow }">{{ ratioCell(r.onCasing, r.casingLow) }}</td>
                   </tr>
                 </tbody>
               </table>

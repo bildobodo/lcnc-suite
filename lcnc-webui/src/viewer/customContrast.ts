@@ -7,7 +7,9 @@
 //    stock's top face under the scene lights, in every theme);
 //  - a box (machine / toolpath bounds, fixed palette P2): its core OR the
 //    theme's dark casing on the background and on the table, and the core
-//    on the casing (the same floor);
+//    on the casing (the same floor) — three comparisons, each told with its
+//    own value (Codex R31 VP-I04: a core lost on its casing used to mark the
+//    passing background and table values "low");
 //  - two path LINES apart from each other (the fixed palette's pair rule,
 //    viewer/palettePairs.ts, operator 2026-09-28): the custom feed, rapid
 //    and backplot against each other and the theme's limit overlay —
@@ -34,8 +36,12 @@ export interface ContrastRow {
   /** Ratio on the scene background; null = the colour does not parse. */
   onBg: number | null;
   onTable: number | null;
+  /** A box's core on its casing (Codex R31 VP-I04: its own comparison, told
+   *  with its own value); null for a line, which has no casing. */
+  onCasing: number | null;
   bgLow: boolean;
   tableLow: boolean;
+  casingLow: boolean;
 }
 
 export function customContrastRows(p: ViewerPalette, bg: string, highContrast: boolean): ContrastRow[] {
@@ -48,10 +54,9 @@ export function customContrastRows(p: ViewerPalette, bg: string, highContrast: b
       const onCasing = contrastRatio(p[role], p.boundsCasing);
       onBg = best(onBg, contrastRatio(p.boundsCasing, bg));
       onTable = best(onTable, contrastRatio(p.boundsCasing, LIT_TABLE));
-      const casingLow = low(onCasing, floor);
-      return { role, onBg, onTable, bgLow: low(onBg, floor) || casingLow, tableLow: low(onTable, 3) || casingLow };
+      return { role, onBg, onTable, onCasing, bgLow: low(onBg, floor), tableLow: low(onTable, 3), casingLow: low(onCasing, floor) };
     }
-    return { role, onBg, onTable, bgLow: low(onBg, floor), tableLow: low(onTable, 3) };
+    return { role, onBg, onTable, onCasing: null, bgLow: low(onBg, floor), tableLow: low(onTable, 3), casingLow: false };
   });
 }
 
