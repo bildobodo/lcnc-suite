@@ -2,7 +2,7 @@
 // operator 2026-09-28, Codex R29/R30). Lines in a toolpath lie ON and BESIDE
 // each other, so two LINE roles are told apart by colour first:
 //  - normal vision: an OKLab distance of at least LINE_MIN_NORMAL
-//    (LINE_MIN_NORMAL_HC in the high-contrast themes — see there);
+//    (LINE_MIN_NORMAL_HC in hc-dark alone — see there; lineMinFor);
 //  - simulated protanopia, deuteranopia and tritanopia (Machado 2009,
 //    severity 1): at least CVD_MIN — unless the pair names a FORM cue that
 //    carries it there (`cvd: false`), with the cue's own limit spelled out.
@@ -21,10 +21,16 @@
 
 /** Two path LINES, normal vision. */
 export const LINE_MIN_NORMAL = 0.25;
-/** The same in the high-contrast themes: 4.5 : 1 on pure black AND 3 : 1 on
- *  the lit table leave hc-dark a luminance band of a few hundredths, where
- *  the best four lines found keep 0.244 (docs/reviews/viewer-palette-fest.*). */
+/** The same in hc-dark ALONE: 4.5 : 1 on pure black AND 3 : 1 on the lit
+ *  table leave it a luminance band of a few hundredths, where the best four
+ *  lines found keep 0.244 (docs/reviews/viewer-palette-fest.*) — a named
+ *  exception, a search result, not a proven bound. hc-light reaches 0.277
+ *  and keeps LINE_MIN_NORMAL (Codex R31, answer 4). */
 export const LINE_MIN_NORMAL_HC = 0.24;
+/** The line pair floor of a theme (the ThemeMode / theme-block name). */
+export function lineMinFor(theme: string): number {
+  return theme === "hc-dark" ? LINE_MIN_NORMAL_HC : LINE_MIN_NORMAL;
+}
 /** Two path lines under the dichromat simulations (no form cue). */
 export const CVD_MIN = 0.12;
 /** A line against a body, or two non-path objects: normal vision. */

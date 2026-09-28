@@ -18,7 +18,7 @@
 // Tool shaft and cutter are solids, not lines: no rule.
 import { ROLE_TOKEN, type ViewerPalette, type ViewerRole } from "./viewerPalette";
 import { contrastRgb, okDistance, parseHex, worstDichromatDistance } from "./colourMath";
-import { CVD_MIN, LINE_MIN_NORMAL, LINE_MIN_NORMAL_HC, PALETTE_PAIRS, type PairCue } from "./palettePairs";
+import { CVD_MIN, lineMinFor, PALETTE_PAIRS, type PairCue } from "./palettePairs";
 
 export { parseHex };
 export const LIT_TABLE = "#e0e0e0";
@@ -77,9 +77,10 @@ export interface PairRow {
 
 const ROLE_OF_TOKEN = Object.fromEntries(Object.entries(ROLE_TOKEN).map(([r, t]) => [t, r])) as Record<string, ViewerRole>;
 
-/** Every pair of path LINES in the palette as drawn. */
-export function customPairRows(p: ViewerPalette, highContrast: boolean): PairRow[] {
-  const min = highContrast ? LINE_MIN_NORMAL_HC : LINE_MIN_NORMAL;
+/** Every pair of path LINES in the palette as drawn, held to the theme's
+ *  line floor (palettePairs.lineMinFor). */
+export function customPairRows(p: ViewerPalette, theme: string): PairRow[] {
+  const min = lineMinFor(theme);
   return PALETTE_PAIRS.filter(q => q.kind === "line").map(q => {
     const a = ROLE_OF_TOKEN[q.a]!, b = ROLE_OF_TOKEN[q.b]!;
     const x = parseHex(p[a]), y = parseHex(p[b]);

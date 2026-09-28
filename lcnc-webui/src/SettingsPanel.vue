@@ -528,7 +528,7 @@ const ratioCell = (v: number | null, low: boolean) => `${fmtRatio(v)}${low && v 
 // rapid carries says so instead.
 const pairRows = computed(() => {
   if (paletteMode.value !== "custom") return [];
-  return customPairRows(shownPalette.value, themeMode.value.startsWith("hc"))
+  return customPairRows(shownPalette.value, themeMode.value)
     .map(r => ({ ...r, label: `${CONTRAST_LABEL[r.a] ?? r.a} / ${CONTRAST_LABEL[r.b] ?? r.b}` }));
 });
 const apartCell = (v: number | null, low: boolean, cue: string | null = null) =>
@@ -748,7 +748,7 @@ function resetMachineColor(id: string) {
                 </tbody>
               </table>
             </div>
-            <div class="settingDesc">Apart: two lines need 0.25 (0.24 in high contrast), and 0.12 for color-blind eyes unless a line is dashed.</div>
+            <div class="settingDesc">Apart: two lines need 0.25 (0.24 in dark high contrast), and 0.12 for color-blind eyes unless a line is dashed.</div>
             <div class="dataTable" data-pair-hint>
               <table>
                 <thead><tr><th>Lines</th><th>Apart</th><th>Color-blind</th></tr></thead>

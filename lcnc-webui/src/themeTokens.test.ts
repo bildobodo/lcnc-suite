@@ -7,7 +7,7 @@
 // this pins the blocks the measurement relies on.
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { PALETTE_PAIRS, PATH_ROLES, LINE_MIN_NORMAL, LINE_MIN_NORMAL_HC, CVD_MIN, OBJECT_MIN_NORMAL } from "./viewer/palettePairs";
+import { PALETTE_PAIRS, PATH_ROLES, LINE_MIN_NORMAL, LINE_MIN_NORMAL_HC, CVD_MIN, OBJECT_MIN_NORMAL, lineMinFor } from "./viewer/palettePairs";
 import { contrastRgb as contrast, okDistance, simulateDichromat, DICHROMATS, hueChroma, type RGB } from "./viewer/colourMath";
 
 // node:fs, not an import: vitest empties every CSS import, `?raw` included.
@@ -102,9 +102,13 @@ describe("theme text roles", () => {
 
   // The pair table (viewer/palettePairs.ts — fixed palette, operator
   // 2026-09-28, Codex R29/R30): two LINES keep LINE_MIN_NORMAL under normal
-  // vision (the HC themes LINE_MIN_NORMAL_HC) and CVD_MIN under each
+  // vision (hc-dark alone LINE_MIN_NORMAL_HC) and CVD_MIN under each
   // simulated dichromacy unless a named cue carries them there; a line
   // against a body and two objects keep OBJECT_MIN_NORMAL.
+  it("the lower line floor is hc-dark's alone: hc-light keeps the normal one (Codex R31, answer 4)", () => {
+    expect(["root", "dark", "auto-dark", "hc-light"].map(lineMinFor)).toEqual([LINE_MIN_NORMAL, LINE_MIN_NORMAL, LINE_MIN_NORMAL, LINE_MIN_NORMAL]);
+    expect(lineMinFor("hc-dark")).toBe(LINE_MIN_NORMAL_HC);
+  });
   it("the pair table names every pair of the path roles once, and every exception its cue", () => {
     const named = PALETTE_PAIRS.map(p => [p.a, p.b].sort().join(" / "));
     expect(new Set(named).size, "no pair twice").toBe(named.length);
@@ -121,7 +125,7 @@ describe("theme text roles", () => {
     it(`${name}: the lines tell apart from each other — for colour-blind eyes too — and from the bodies and objects`, () => {
       const b = block(THEMES[name]);
       const bad: string[] = [];
-      const lineMin = name.startsWith("hc") ? LINE_MIN_NORMAL_HC : LINE_MIN_NORMAL;
+      const lineMin = lineMinFor(name);
       for (const p of PALETTE_PAIRS) {
         const [x, y] = [hex(b.get(p.a)!), hex(b.get(p.b)!)];
         if (p.kind === "form") continue;   // told apart by form alone, by design
