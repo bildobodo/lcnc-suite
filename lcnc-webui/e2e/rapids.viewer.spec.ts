@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { encode } from "@msgpack/msgpack";
 import { ctl } from "./ctl";
-import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
+import { openLayout, PROFILES, settleLayout, VIEWPORTS } from "./layout-fixtures";
 
 // The Rapids layer and a finding on a hidden rapid (fixed viewer palette P3,
 // Codex R29 VP29-04 / R30): the layer hides the rapid LINES, never the limit
@@ -70,3 +70,40 @@ test("hidden rapids keep their limit finding; a jump to it shows them for the fi
   await expect(reveal).toHaveCount(0);
   await expect.poll(() => shown("rapid")).toBe(true);
 });
+
+// The view a finding opens on a hidden layer is told whatever else the
+// viewer shows (Codex R31 VP-I02): with the HUD off the findings card held
+// nothing, and folded it hid the line behind "N warnings" — a layer the
+// operator switched off must never come back unexplained.
+for (const form of ["hud-off", "folded"] as const) {
+  test(`a finding's view on hidden rapids is told — ${form}`, async ({ page, context }) => {
+    test.setTimeout(90_000);
+    await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: PREVIEW }));
+    await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
+      body: Array.from({ length: 16 }, (_, i) => i === 0 ? "(rapids)" : `G1 X${i} F100`).join("\n") }));
+    await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === (form === "folded" ? "touch-portrait" : "desktop"))!);
+    await ctl({ op: "status_delta", data: { active_file: "/rapids.ngc", is_enabled: false, enabled: false,
+      ...(form === "folded" ? { eoffset_enabled: true, eoffset_z: 0.123, rotation_xy: 12 } : {}) } });
+    await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: form === "folded" ? 972 : 971, file: "/rapids.ngc" } });
+    await expect(page.locator(".scrubBar")).toBeVisible({ timeout: 15_000 });
+    if (form === "folded") await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
+    await ctl({ op: "raw", frame: { type: "settings_changed", settings: { viewer: { layers: { rapids: false, ...(form === "hud-off" ? { hud: false } : {}) } } } } });
+    await settleLayout(page);
+    if (form === "hud-off") await expect(page.locator(".viewerPane .hud")).toBeHidden();
+    else await expect(page.locator(".viewerPane .hudNotes.needsCompact"), "the warnings card folds at 150 % portrait").toHaveCount(1);
+    // The findings row may sit behind the compact bar's More.
+    const next = page.locator('.scrubBar [aria-label="Next limit violation"]');
+    if (!(await next.isVisible())) await page.locator(".scrubBar .moreToggle").click();
+    await next.click();
+    await expect(page.locator(".simBanner")).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.__viewerDiag!.projectRole!("rapid") != null), { message: "shown for the finding" }).toBe(true);
+    await expect(page.locator("[data-path-reveal]"), "the view is named on screen").toBeVisible();
+    await expect(page.locator("[data-path-reveal]")).toHaveText("Rapids shown for this finding — hidden in Layers");
+    if (form === "folded") {
+      await expect(page.locator(".viewerPane .hudNotes.needsCompact"), "the other warnings stay folded").toHaveCount(1);
+      // Comp Z, the rotation and the limit violation wait behind the count;
+      // the pinned view is not counted (it read "4 warnings" before).
+      await expect(page.locator(".hudNotesSummary"), "the count holds only what waits behind it").toContainText("· 3 warnings");
+    }
+  });
+}

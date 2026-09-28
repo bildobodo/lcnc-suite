@@ -3864,7 +3864,7 @@ const notesOpen = ref(false);
 const hudWarnCount = computed(() => [vst.value?.eoffset_enabled, vst.value?.rotation_xy, foreignWcs.value.length,
   rewrittenWcs.value.length, kinsEndWarn.value, previewSchemaStale.value, previewRefresh.value,
   !previewRefresh.value && previewWcsStale.value, previewTloStale.value, toolpathOverflow.value,
-  failedParts.value.length, pathRevealText.value].filter(Boolean).length);
+  failedParts.value.length].filter(Boolean).length);
 /** The folded card's one line: the mode and how many warnings wait behind it. */
 /** The mode line: the chip, the fixture, the plane's word — each said once.
  *  A wrong-fixture chip names its fixture already ("TWP · G54"), and the
@@ -4306,7 +4306,7 @@ defineExpose({
          free (fitHud). A finding is a .hudWarn line in this ONE card, never
          a chip of its own (UI-N102). -->
     <div ref="bottomEl" class="viewerBottom stack-tight">
-    <div v-if="(hudVisible && hasHudNotes) || failedParts.length" class="hudNotes overlay-card stack-tight"
+    <div v-if="(hudVisible && hasHudNotes) || failedParts.length || pathRevealText" class="hudNotes overlay-card stack-tight"
          :class="[`hudScale-${hudFit.scale}`, { needsCompact: hudFit.notesCompact, notesOpen }]">
       <!-- Folded (fitHud's last step): one line, the rest behind a toggle. -->
       <div class="hudNotesSummary">
@@ -4352,9 +4352,13 @@ defineExpose({
         <div v-if="previewTloStale" class="hudWarn">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parses when idle<HelpIcon label="Preview tool length">T{{ previewTloStale.tool }} was {{ fmtNum(previewTloStale.parsed, 3) }} when parsed, now {{ fmtNum(previewTloStale.live, 3) }} — re-parses once idle.</HelpIcon></div>
         <div v-if="toolpathOverflow" class="hudWarn">{{ toolpathOverflowCount }} limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
       </template>
-      <div v-if="pathRevealText" class="hudWarn" data-path-reveal>{{ pathRevealText }}</div>
       <div v-if="failedParts.length" class="hudWarn">{{ failedParts.length }} machine part{{ failedParts.length === 1 ? '' : 's' }} failed to load — check the model files<HelpIcon label="Model parts">Not loaded: {{ failedParts.join(', ') }}.</HelpIcon></div>
       </div>
+      <!-- A finding's view of a hidden layer is PINNED (Codex R31 VP-I02):
+           shown with the HUD off and in the folded card too — a layer the
+           operator switched off never comes back unexplained, nor only as a
+           "warning" in the count. -->
+      <div v-if="pathRevealText" class="hudWarn hudPinned" data-path-reveal>{{ pathRevealText }}</div>
     </div>
 
     <!-- Program-scrub timeline (stage 2) + collision check (stage 3) -->
@@ -4592,7 +4596,9 @@ defineExpose({
   color: var(--warn-text);
 }
 .hudNotes.needsCompact > .hudNotesSummary { display: flex; }
-.hudNotes.needsCompact:not(.notesOpen) > :not(.hudNotesSummary) { display: none; }
+.hudNotes.needsCompact:not(.notesOpen) > :not(.hudNotesSummary):not(.hudPinned) { display: none; }
+/* A pinned line stays whole under the column's cap (the body scrolls). */
+.hudPinned { flex: none; }
 .hudNotesSummary > .notesToggle { pointer-events: auto; }
 /* Pinned summary (flex: none above), scrolling lines: a capped column
    shrinks the body. Opened — or cut by the cap (fitHud's .scrolls) — the
