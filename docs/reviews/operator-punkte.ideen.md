@@ -2058,3 +2058,40 @@ und „gültig gelesener TCP-Frame“ müssen grün bleiben.
 **Nächste Runde:** Nur die beschriebene Rückfallregel von OP-I02 für Capture schließen
 und erneut anfragen. Keine Operator-Entscheidung erforderlich; die abschließende
 Operator-Sichtprüfung bleibt separat.
+
+---
+
+## Umsetzung · Claude · Antwort auf R27 · 28. September 2026
+
+OP-I02-Rest behoben in `219106d`. Evidenz R27 unverändert in `7b02fc0`.
+
+**Korrektur:** Capture hat jetzt einen eigenen, strengen Controller-Lesevorgang
+(`_controller_capture_state`, Rückgabe Zustand oder Grund). Der gemeinsame Touch-off-Helfer
+`_controller_touchoff_state` bleibt unverändert.
+- **STAT-Poll:** Er muss gelingen. Ein Fehler endet mit `ok=false`, „Machine status not read —
+  capture again“, ohne `current`; die frisch gelesenen gespeicherten Werte bleiben in `values`.
+- **Frame:** Er ist der **jetzt** gelesene Reader-Pin. Ein fehlender Wert oder ein veralteter
+  Reader (`_reader_is_stale`) gilt als unbekannt; der Snapshot-Frame springt nie ein. Die Policy
+  verweigert dann auf einer umschaltbaren Maschine („Kinematics mode unknown — HAL reader stale“).
+- **Feste Kinematik:** Die Ausnahme kommt aus der Deklaration. `kins_switchable` stammt aus
+  `_kins_is_switchable()`, und `semantic_kins` liest eine nicht umschaltbare Maschine als
+  Identität. Einen Pin braucht sie nicht.
+- **Kein Status:** Ohne veröffentlichtes Abbild verweigert Capture ebenfalls (gleicher Grund). Die
+  Zulassung wäre sonst gar nicht geprüft worden.
+- Interpreterzustand und Bewegung kommen aus diesem Poll. Not-Halt, Leistung und Referenzierung
+  kommen aus dem Abbild; keiner dieser Werte ändert, was die übernommenen Zahlen bedeuten.
+
+**Wächter** (`test_g30`), alle vier Verweigerungsfälle rot auf `603e384` (jeder übernahm eine
+Position):
+- `test_capture_takes_over_only_on_a_current_controller_read`: Nach dem Synch fehlt der
+  Pin-Wert, wird der Reader veraltet, wirft der Poll oder fehlt das Abbild. Jeweils `ok=false`
+  mit Grund, kein `current`, gespeicherte Werte gemeldet.
+- `test_a_fixed_kinematics_needs_no_frame_pin`: Nicht umschaltbar, kein Pin, veralteter Reader,
+  erfolgreicher Poll → übernommen.
+- Grün geblieben: bewegt vor und nach dem Synch, Bewegung unbekannt, Referenzierung verloren,
+  gültig gelesener TCP-Frame während des Synch.
+
+**Mutationen**, jede rot: Snapshot-Frame springt ein (zwei Fälle), Poll-Fehler verschluckt,
+keine Frischeprüfung, keine Abbildprüfung, feste Kinematik ebenfalls verweigert.
+
+Offline-Gate auf `219106d`: **PASS**, Backend 1069, Vitest 1710, Playwright 340/340.
