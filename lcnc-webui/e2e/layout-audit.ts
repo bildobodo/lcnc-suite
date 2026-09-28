@@ -23,9 +23,13 @@ export interface LayoutSnapshot {
  * outside the panel are deliberately excluded. Native controls are measured,
  * including disabled ones; their explanatory wrappers are not extra controls.
  * Nested controls are excluded from overlap pairs (e.g. a labelled toggle).
+ * A `[data-layout-slot]` element is the READOUT a control turns into while
+ * its gate is closed (an offset value is text to read, not a dimmed button —
+ * operator P5): it counts as that control, so a gate change must keep the
+ * value exactly where the button was.
  */
 export async function measureLayout(root: Locator, name: string,
-  selector = 'button, input:not([type="hidden"]), select, textarea'): Promise<LayoutSnapshot> {
+  selector = 'button, input:not([type="hidden"]), select, textarea, [data-layout-slot]'): Promise<LayoutSnapshot> {
   await expect(root).toHaveCount(1);
   return root.evaluate((element, { name, selector }) => {
     const bounds = element.getBoundingClientRect();

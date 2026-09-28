@@ -21,6 +21,24 @@ test('layout guard finds injected overlaps, clipping, collapsed and missing cont
   expect(layoutChanges(good, await measureLayout(root, 'fixture')).map(i => i.kind)).toContain('control-count');
 });
 
+test('layout guard holds a locked value readout to its button\'s footprint', async ({ page }) => {
+  // Operator P5: an offset value is a button while editable and TEXT while
+  // its gate is closed; the text is that control's slot (data-layout-slot),
+  // so the swap is no control-count change — and a readout that moves is.
+  await page.setContent(`<style>
+    #panel { width: 300px; } td { width: 100px; height: 28px; }
+    .v { display: block; width: 100%; padding: 0; border: 0; background: none; font: inherit; text-align: inherit; }
+  </style><div id="panel"><table><tr><td><button class="v">1.000</button></td></tr></table></div>`);
+  const root = page.locator('#panel');
+  const editable = await measureLayout(root, 'fixture');
+  await page.locator('td').evaluate(td => { td.innerHTML = '<span class="v" data-layout-slot>1.000</span>'; });
+  expect(layoutChanges(editable, await measureLayout(root, 'fixture'))).toEqual([]);
+  await page.locator('td').evaluate(td => { td.innerHTML = '<span data-layout-slot>1.000</span>'; });
+  expect(layoutChanges(editable, await measureLayout(root, 'fixture')).map(i => i.kind)).toContain('geometry-change');
+  await page.locator('td').evaluate(td => { td.innerHTML = '<span class="v">1.000</span>'; });
+  expect(layoutChanges(editable, await measureLayout(root, 'fixture')).map(i => i.kind)).toContain('control-count');
+});
+
 test('layout guard catches clipping by an inner container and tolerates intentional page scrolling', async ({ page }) => {
   await page.setContent(`<div style="overflow:auto; width:100px"><div id="panel" style="width:300px;height:100px">
     <div id="clip" style="width:200px;overflow:hidden"><button style="width:180px;height:40px">Action</button></div>

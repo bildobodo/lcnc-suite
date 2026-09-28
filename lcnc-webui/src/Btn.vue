@@ -284,6 +284,11 @@ html:not(.touch-device) .b-inline:hover:not(:disabled) { background: var(--hl-ho
 .b-value {
   display: block;
   width: 100%;
+  /* A form control with a percentage width contributes NOTHING to a table
+     column's min-content (CSS Sizing: compressible controls); text does.
+     Without this the narrow Offsets table sized its columns one way while
+     editable and 1.7 px wider once locked (the value is text then). */
+  min-width: max-content;
   padding: 0;
   border: none;
   background: none;

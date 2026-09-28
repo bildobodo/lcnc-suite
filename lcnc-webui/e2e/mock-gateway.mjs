@@ -273,8 +273,11 @@ ctlWss.on("connection", (ws) => {
       const axes = Array.isArray(m.axes) && m.axes.length ? m.axes : ["X", "Y", "Z"];
       _axes = axes;
       state.data.work_pos = axes.map((_, i) => (i + 1) * 1.111);
-      state.data.g92_offset = axes.map(() => 0);
-      state.data.tool_offset = axes.map(() => 0);
+      // The offset vectors are CANONICAL 9-wide on the real wire (STAT's
+      // tuples, X..W at fixed slots) — never per axis (operator P5/P6: the
+      // Offsets panel reads them by the letter's canonical slot).
+      state.data.g92_offset = Array(9).fill(0);
+      state.data.tool_offset = Array(9).fill(0);
       state.data.wcs_table = ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"]
         .map((name, r) => Object.fromEntries([
           ["name", name],

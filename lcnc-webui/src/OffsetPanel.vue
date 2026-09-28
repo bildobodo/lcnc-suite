@@ -178,10 +178,15 @@ function clearAll() {
                 :data-input-area="cellOwner(row.name as string, axis)"
                 @click="startEditCell(row.name as string, axis, Number(row[axis]), $event)">
               <!-- The keyboard path to the cell (Tab, Enter/Space); a tap on
-                   the value or the cell's padding opens it the same way. -->
+                   the value or the cell's padding opens it the same way.
+                   Locked, the value is TEXT in the button's place: a dimmed
+                   button would fade 70 values the operator reads during a
+                   run (the fieldset's disabled opacity), and 70 tab stops
+                   would say one reason. The layout sweep holds the text to
+                   the button's footprint (data-layout-slot). -->
               <MachineBtn v-if="can.probe && Number.isFinite(Number(row[axis]))" type="offsetCell"
                           :aria-label="`Edit ${row.name} ${axis.toUpperCase()}`">{{ fmtOffset(Number(row[axis])) }}</MachineBtn>
-              <span v-else class="cellValue">{{ fmtOffset(Number(row[axis])) }}</span>
+              <span v-else class="cellValue" data-layout-slot>{{ fmtOffset(Number(row[axis])) }}</span>
             </td>
           </tr>
 
@@ -304,8 +309,15 @@ tbody tr.auxRow {
   background: var(--hl-surface-info);
 }
 
+/* The locked value keeps the value button's box — on touch the button
+   floor (--touch-target-compact), text centred like a button's — so a
+   closing gate never moves a row (the layout sweep's data-layout-slot). */
 .cellValue {
-  display: block;
+  display: grid;
+  align-content: center;
+}
+html.touch-device .cellValue {
+  min-height: var(--touch-target-compact);
 }
 
 /* The cell being edited: its inner edge, distinct from the focus ring (the
