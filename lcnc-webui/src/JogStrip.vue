@@ -180,9 +180,14 @@ type StepLayout = "row" | "grid" | "select";
 const stepLayout = ref<StepLayout>("select");
 // A display change never re-reads an activation in progress (Codex R25
 // OP-I01): while a pointer or Enter/Space is down in the step block, a
-// change waits for its release; the focus moves WITH the change, in the same
-// microtask as the DOM swap — no key can reach the window (and jog) between.
-let stepHeld = false, stepDeferred = false;
+// change waits for its release. The FOCUS the block held survives every
+// change of its DOM — the layout, the option set, the selection (R26: a new
+// INI list without the focused option removed its button in the same
+// layout): owned from a focusin until the focus moves elsewhere or a pointer
+// goes down outside, and put back on the step's control in the post flush
+// of the change — the same task as the removal, no key can reach the window
+// (and jog) between.
+let stepHeld = false, stepDeferred = false, stepOwnsFocus = false;
 function measureStep() {
   const row = stepSizer.value, grid = stepGridSizer.value, col = choiceCol.value;
   if (!row || !grid || !col) return;
@@ -195,12 +200,7 @@ function measureStep() {
   }
   if (next === stepLayout.value) return;
   if (stepHeld) { stepDeferred = true; return; }
-  const hadFocus = !!stepBlock.value?.contains(document.activeElement);
-  const fromSelect = stepLayout.value === "select", toSelect = next === "select";
-  stepLayout.value = next;
-  // row ↔ grid is the same group (its buttons stay, and their focus);
-  // group ↔ select replaces the control: its focus goes along.
-  if (hadFocus && fromSelect !== toSelect) void nextTick(focusStep);
+  stepLayout.value = next;   // row ↔ grid is one group; the focus rule below covers the rest
 }
 /** Two rows fit the column: its content grows by the grid's extra height. */
 function stepGridFitsHeight(col: HTMLElement, gridH: number): boolean {
@@ -211,9 +211,29 @@ function stepGridFitsHeight(col: HTMLElement, gridH: number): boolean {
   const content = last.offsetTop + last.offsetHeight - first.offsetTop;
   return content + gridH - control.offsetHeight <= col.clientHeight + 0.5;
 }
-/** The new step control takes the focus the old one had; if it cannot (a
- *  closed gate), the block holds it — never the document body, where an
- *  arrow key jogs. */
+function onStepFocusin() { stepOwnsFocus = true; }
+function onStepFocusout(e: FocusEvent) {
+  const to = e.relatedTarget as Node | null;
+  if (to && !stepBlock.value?.contains(to)) stepOwnsFocus = false;   // moved on (Tab, a dialog)
+}
+function onDocPointerdown(e: PointerEvent) {
+  if (!stepBlock.value?.contains(e.target as Node)) stepOwnsFocus = false;
+}
+watch([stepOptions, stepLayout, () => props.jogIncrement], () => {
+  if (stepOwnsFocus && !stepBlock.value?.contains(document.activeElement)) focusStep();
+}, { flush: "post" });
+// A step the INI no longer offers is not kept invisibly (Codex R26
+// OP-I01): the selection falls back LOCALLY to the largest offered step not
+// above it — Cont (hold to move) when none is — never a bigger step, and no
+// machine command.
+watch(incrementOptions, opts => {
+  const values = opts.map(o => o.value);
+  if (values.includes(props.jogIncrement)) return;
+  emit("update:jogIncrement", Math.max(0, ...values.filter(v => v <= props.jogIncrement)));
+}, { immediate: true });
+/** The step's control takes the focus back — the checked option (the
+ *  group's stop) or the select; if it cannot (a closed gate), the block
+ *  holds it — never the document body, where an arrow key jogs. */
 function focusStep() {
   const blk = stepBlock.value;
   if (!blk) return;
@@ -245,6 +265,7 @@ onMounted(() => {
   window.addEventListener("pointercancel", releaseStep, true);
   window.addEventListener("keyup", releaseStep, true);
   window.addEventListener("blur", releaseStep);
+  document.addEventListener("pointerdown", onDocPointerdown, true);
 });
 onUnmounted(() => {
   stepRo?.disconnect();
@@ -252,6 +273,7 @@ onUnmounted(() => {
   window.removeEventListener("pointercancel", releaseStep, true);
   window.removeEventListener("keyup", releaseStep, true);
   window.removeEventListener("blur", releaseStep);
+  document.removeEventListener("pointerdown", onDocPointerdown, true);
 });
 watch([stepOptions, isPortrait, () => props.kinsType, () => props.twpCapable], () => nextTick(measureStep));
 
@@ -562,7 +584,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
            state. The step increment is local — the arrows choose. -->
       <div ref="choiceCol" class="choiceCol stack-controls">
         <div ref="stepBlock" class="choiceBlock stepBlock stack-tight" tabindex="-1"
-             @pointerdown="holdStep" @keydown="onStepKeydown">
+             @pointerdown="holdStep" @keydown="onStepKeydown" @focusin="onStepFocusin" @focusout="onStepFocusout">
           <!-- one increment for every axis: mm (in) on linear, ° on rotary -->
           <span class="label-muted">Step ({{ abcAxes.length > 0 ? `${linearUnit} / °` : linearUnit }})</span>
           <ChoiceGroup v-if="stepLayout !== 'select'" label="Jog step" activation="auto" :options="stepOptions" :modelValue="jogIncrement"

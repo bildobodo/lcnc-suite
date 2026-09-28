@@ -215,6 +215,42 @@ test("the step keeps its focus through every display change; the next arrow stay
   await expect(option(page, "Jog step", ".1"), "row → two rows").toBeFocused();
 });
 
+// Codex R26 OP-I01: a new INI list without the FOCUSED (and chosen) step,
+// the display unchanged — its button went, the focus fell to BODY and the
+// next arrow jogged 10 mm, with 10 still chosen though no longer offered.
+test("a step the INI no longer offers: the focus stays in the group, the choice falls back locally, nothing jogs", async ({ page }) => {
+  await openJog(page, "desktop");
+  await ctl({ op: "setIncrements", increments: [1, 10] });
+  await expect.poll(() => stepLayout(page)).toBe("row");
+  await option(page, "Jog step", "10").focus();
+  await page.keyboard.press("Space");
+  await expect(option(page, "Jog step", "10")).toHaveAttribute("aria-checked", "true");
+  await ctl({ op: "setIncrements", increments: [1, 20] });
+  await expect(option(page, "Jog step", "20")).toBeVisible();
+  expect(await stepLayout(page), "the same display").toBe("row");
+  await expect(option(page, "Jog step", "1"), "the largest offered step not above 10").toHaveAttribute("aria-checked", "true");
+  await expect(option(page, "Jog step", "1"), "the focus stays in the group, on the choice").toBeFocused();
+  await page.keyboard.press("ArrowRight");                // a local choice, never a jog
+  await expect(option(page, "Jog step", "20")).toHaveAttribute("aria-checked", "true");
+  await page.waitForTimeout(300);
+  expect(await jogs(), "no jog").toEqual([]);
+  // held: the option goes away under the finger — no choice on release, no jog
+  await ctl({ op: "setIncrements", increments: [1, 10] });
+  await expect(option(page, "Jog step", "10")).toBeVisible();
+  await option(page, "Jog step", "10").click();
+  const box = (await option(page, "Jog step", "10").boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await ctl({ op: "setIncrements", increments: [1, 20] });
+  await expect(option(page, "Jog step", "20")).toBeVisible();
+  await page.mouse.up();
+  await expect(option(page, "Jog step", "1")).toHaveAttribute("aria-checked", "true");
+  expect(await stepFocus(page), "the focus in the group").toBe("radio");
+  await page.keyboard.press("ArrowLeft");
+  await page.waitForTimeout(300);
+  expect(await jogs(), "no jog").toEqual([]);
+});
+
 test("the step never changes its display under a held pointer — it follows on release", async ({ page }) => {
   await openJog(page, "desktop");
   expect(await stepLayout(page)).toBe("grid");

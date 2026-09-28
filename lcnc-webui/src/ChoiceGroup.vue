@@ -100,6 +100,9 @@ function choose(o: ChoiceOption<V>, el: HTMLElement) {
 }
 
 watch(() => props.modelValue, v => { if (pending.value !== null && v === pending.value) clearPending(); });
+// Another option set: the stop falls back to the checked option (an index
+// into the old set would land on some other value).
+watch(() => props.options.map(o => String(o.value)).join("|"), () => { stop.value = -1; });
 watch(connected, c => { if (!c) clearPending(); });
 onUnmounted(clearPending);
 
