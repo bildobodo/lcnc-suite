@@ -275,16 +275,70 @@ class TestG30Read(_G30Case):
         def switching_synch():
             synch()
             pin["kins_type"] = 1          # TCP now; the snapshot still says 0
-        with unittest.mock.patch.object(gateway, "_kins_is_switchable", lambda: True), \
-             unittest.mock.patch.object(gateway, "_identity_first", lambda: True), \
-             unittest.mock.patch.object(gateway, "_twp_capable", lambda: False), \
-             unittest.mock.patch.object(gateway, "_reader_get", lambda name: pin.get(name)):
+        with self.switchable(pin):
             r = self.send({"cmd": "capture_g30"}, kins_type=0)
             self.assertEqual(r["ok"], True, "the frame held: taken over")
             self.task.task_plan_synch = switching_synch
             r = self.send({"cmd": "capture_g30"}, kins_type=0)
         self.assertEqual((r["ok"], r["error"]), (False, "Machine frame only"), r)
         self.assertNotIn("current", r, "nothing taken over")
+
+    def test_capture_takes_over_only_on_a_current_controller_read(self):
+        # Codex R27 OP-I02: a re-read that did not happen is no re-read. A
+        # frame the reader cannot give NOW (no value, a stale reader) on a
+        # switchable machine, a failed STAT poll, or no status at all refuse —
+        # the snapshot's frame and the last poll's values never stand in.
+        # The stored values were confirmed by the synch and stay reported.
+        stale = {"now": False}
+        pin = {"kins_type": 0}
+
+        def poll_fails():
+            raise RuntimeError("nml status read failed")
+        cases = (
+            (lambda: pin.pop("kins_type"), "Kinematics mode unknown — HAL reader stale"),
+            (lambda: stale.update(now=True), "Kinematics mode unknown — HAL reader stale"),
+            (lambda: setattr(gateway.STAT, "poll", poll_fails), "Machine status not read — capture again"),
+            (lambda: setattr(gateway, "_shared_status", None), "Machine status not read — capture again"),
+        )
+        for change, error in cases:
+            with self.subTest(error=error), self.switchable(pin, stale=lambda: stale["now"]):
+                pin["kins_type"], stale["now"] = 0, False
+                gateway.STAT.__dict__.pop("poll", None)
+                synch = self.task.task_plan_synch
+
+                def changing_synch(synch=synch, change=change):
+                    synch()
+                    change()
+                self.task.task_plan_synch = changing_synch
+                try:
+                    r = self.send({"cmd": "capture_g30"}, kins_type=0)
+                finally:
+                    self.task.task_plan_synch = synch
+                    gateway.STAT.__dict__.pop("poll", None)
+                self.assertEqual((r["ok"], r.get("error")), (False, error), r)
+                self.assertNotIn("current", r, "nothing taken over")
+                self.assertEqual(r["values"], self.stored(), "the confirmed stored values stay reported")
+
+    def test_a_fixed_kinematics_needs_no_frame_pin(self):
+        # A machine whose DECLARATION cannot switch has no kins pin at all:
+        # its frame is identity by construction, a successful poll suffices.
+        with unittest.mock.patch.object(gateway, "_kins_is_switchable", lambda: False), \
+             unittest.mock.patch.object(gateway, "_reader_is_stale", lambda: True), \
+             unittest.mock.patch.object(gateway, "_reader_get", lambda name: None):
+            r = self.send({"cmd": "capture_g30"})
+        self.assertEqual(r["ok"], True, r)
+        self.assertEqual(r["current"], {"X": 10.0, "Y": 20.0, "Z": -5.0, "A": 725.0, "C": 350.0})
+
+    def switchable(self, pin, stale=lambda: False):
+        """A switchable machine (identity at raw type 0) whose reader pin
+        `pin` is read now, fresh unless `stale()` says otherwise."""
+        import contextlib
+        stack = contextlib.ExitStack()
+        for name, value in (("_kins_is_switchable", lambda: True), ("_identity_first", lambda: True),
+                            ("_twp_capable", lambda: False), ("_reader_get", lambda name: pin.get(name)),
+                            ("_reader_is_stale", stale)):
+            stack.enter_context(unittest.mock.patch.object(gateway, name, value))
+        return stack
 
     def test_the_display_route_names_a_missing_row_as_none_never_zero(self):
         with open(self.path, "w") as f:

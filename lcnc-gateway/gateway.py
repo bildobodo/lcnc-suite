@@ -5884,20 +5884,40 @@ def _controller_touchoff_state(base):
     return _dc_replace(base, g5x_index=g5x, kins_type=kins)
 
 
+_G30_NO_STATUS = "Machine status not read — capture again"
+
+
 def _controller_capture_state(armed: bool):
-    """The G30 capture's admission at the TAKE-OVER, on a fresh controller
-    read (Codex R26 OP-I02): the published snapshot lags up to a status
-    cycle, and a frame switch in that window would hand over a position in
-    the wrong frame. The kins frame (the reader pin, read now) and the fixture
-    come from _controller_touchoff_state; the interpreter state and the
-    motion from the STAT it just polled. What the controller does not offer
-    keeps the snapshot's value — refreshed, never invented."""
-    base = _controller_touchoff_state(_live_policy_state(armed))   # polls STAT
+    """The G30 capture's admission at the TAKE-OVER, on a CURRENT controller
+    read — (state, None), or (None, why) when there is none (Codex R26/R27
+    OP-I02). The published snapshot lags up to a status cycle, and a frame
+    switch in that window would hand over a position in the wrong frame.
+
+    Stricter than _controller_touchoff_state, which keeps a snapshot value
+    the controller does not offer: here a read that did not happen is no
+    read. The STAT poll must succeed (a failed one leaves the LAST poll's
+    position and motion in the object); the kins frame is the reader pin
+    read NOW, and an absent value or a stale reader is unknown — the policy
+    then refuses on a switchable machine (_KINS_UNKNOWN) and needs no pin on
+    one whose DECLARATION cannot switch (semantic_kins: identity). The
+    interpreter state and the motion come from this poll; the rest of the
+    admission (estop, power, homed) from the snapshot — none of it changes
+    what the captured numbers mean."""
+    if _shared_status is None:
+        return None, _G30_NO_STATUS
+    base = _live_policy_state(armed)
+    try:
+        STAT.poll()
+    except Exception as e:  # noqa: BLE001 - no poll, no take-over
+        _trace.emit_exc("g30.capture_poll_failed", e)
+        return None, _G30_NO_STATUS
+    kins = None if _reader_is_stale() else _reader_get("kins_type")
     interp = safe_get("interp_state", None)
     return _dc_replace(
         base,
+        kins_type=None if kins is None else int(round(float(kins))),
         is_idle=base.is_idle if interp is None else interp == linuxcnc.INTERP_IDLE,
-        motion_still=motion_still_of(safe_get("inpos", None), safe_get("current_vel", None)))
+        motion_still=motion_still_of(safe_get("inpos", None), safe_get("current_vel", None))), None
 
 
 def _live_policy_state(armed: bool):
@@ -7472,16 +7492,16 @@ async def _g30_command(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, 
             return {"ok": True, "confirmed": True, "values": by_letter}
         if cmd == "capture_g30":
             # Admitted at the request; the synch was awaited since, so the
-            # take-over re-checks on a FRESH controller read (Codex R25/R26
-            # OP-I02): still admitted — the kins frame from the reader pin
-            # read NOW, not the published snapshot a cycle behind — and the
-            # machine STANDS (an idle interpreter alone is no standstill).
-            if _shared_status is not None:
-                deny = check_command(cmd, _controller_capture_state(armed))
-                if deny is not None:
-                    return {"ok": False, "confirmed": True, "values": by_letter, "error": deny}
-            else:
-                STAT.poll()
+            # take-over re-checks on a CURRENT controller read (Codex
+            # R25–R27 OP-I02): a poll that succeeded, the kins frame from
+            # the reader pin read NOW (never the published snapshot a cycle
+            # behind, never an unread pin), and the machine STANDS (an idle
+            # interpreter alone is no standstill).
+            state, deny = _controller_capture_state(armed)
+            if deny is None:
+                deny = check_command(cmd, state)
+            if deny is not None:
+                return {"ok": False, "confirmed": True, "values": by_letter, "error": deny}
             still = motion_still_of(safe_get("inpos", None), safe_get("current_vel", None))
             if still is not True:
                 return {"ok": False, "confirmed": True, "values": by_letter,
