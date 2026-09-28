@@ -3,6 +3,11 @@ import type { CollisionHit } from "./collision";
 /** One navigation/mark target of the scrub bar's clash surface. */
 export interface ClashTarget {
   cum: number;
+  /** Where this contact interval ends (a near-miss: its closest approach) —
+   *  a jump samples inside [cum, cumEnd] (viewer/findingNav.ts). */
+  cumEnd: number;
+  /** Names the interval for prev/next (line, pair, interval). */
+  key: string;
   line: number;
   rapid?: boolean;
   dist?: number;
@@ -26,7 +31,8 @@ export function clashTargets(hits: readonly CollisionHit[]): ClashTarget[] {
     if (h.continuation !== undefined) continue;
     const ivs = h.intervals ?? [[h.cum, h.cumEnd] as [number, number]];
     for (let k = 0; k < ivs.length; k++) {
-      const t: ClashTarget = { cum: ivs[k]![0], line: h.line, rapid: h.rapid, dist: h.dist, spanEndLine: h.spanEndLine };
+      const t: ClashTarget = { cum: ivs[k]![0], cumEnd: ivs[k]![1], key: `C${h.line}|${h.a}|${h.b}|${k}`,
+        line: h.line, rapid: h.rapid, dist: h.dist, spanEndLine: h.spanEndLine };
       if (k > 0) t.reentry = true;
       out.push(t);
     }

@@ -816,6 +816,21 @@ export function lineSpanCum(t: ScrubTrack, line: number): [number, number] | nul
   return [r.start > 0 ? t.cum[r.start - 1]! : 0, t.cum[r.end]!];
 }
 
+/** The cum extent [start, end] of the line's first MOVE that has one — the
+ *  first segment of the line whose end lies past its start (a relabel or a
+ *  zero-length move has none); the line's first segment when none has. A
+ *  finding's jump samples inside it (viewer/findingNav.ts, Codex R32 VP-I06).
+ *  null when the line has no point. */
+export function lineFirstMoveCum(t: ScrubTrack, line: number): [number, number] | null {
+  const r = lineRange(t.lineIndex, line);
+  if (!r) return null;
+  const from = (k: number) => (k > 0 ? t.cum[k - 1]! : 0);
+  for (let k = r.start; k <= r.end; k++) {
+    if (t.lines[k] === line && t.cum[k]! > from(k)) return [from(k), t.cum[k]!];
+  }
+  return [from(r.start), t.cum[r.start]!];
+}
+
 /** The contiguous same-line run of track segments around segment i — the
  *  track-index answer to "which stretch of path is this move" (a finding's
  *  section, Codex R31 VP-I03). Contiguity is what disambiguates COLLIDING

@@ -6,7 +6,7 @@ import {
   machineJointsToProgram, prependEntry, splitTrackStreams,
   displayLineForPoint, atTrackEnd,
   programEndLine, mainLinesTrusted,
-  projectOntoTrack, lineRunAround, lineSpanCum, sliceTrack,
+  projectOntoTrack, lineRunAround, lineSpanCum, lineFirstMoveCum, sliceTrack,
   type ScrubSample, type ScrubStream, type ScrubTrack, roomEndOf,
 } from "./scrubTrack";
 import { makeKins as kinsForTest } from "./kins";
@@ -924,6 +924,16 @@ describe("positional run playhead (review P3)", () => {
     expect(lineSpanCum(t, 7)).toEqual([t.cum[0], t.cum[1]]);
     expect(lineSpanCum(t, 8)).toEqual([t.cum[1], t.cum[3]]);
     expect(lineSpanCum(t, 99)).toBeNull();
+  });
+
+  it("lineFirstMoveCum: the line's first move that has an extent — where a finding's jump samples (Codex R32 VP-I06)", () => {
+    // L7: a zero-length relabel at 10, then its move 10 → 20; L8 after it
+    const t = buildScrubTrack(EMPTY, stream([[0, 0, 0], [10, 0, 0], [10, 0, 0], [20, 0, 0], [25, 0, 0]],
+      { seq: [1, 2, 3, 4, 5], lines: [1, 6, 7, 7, 8] }))!;
+    expect(lineFirstMoveCum(t, 7)).toEqual([t.cum[2], t.cum[3]]);
+    expect(t.cum[3]!).toBeGreaterThan(t.cum[2]!);
+    expect(lineFirstMoveCum(t, 8)).toEqual([t.cum[3], t.cum[4]]);
+    expect(lineFirstMoveCum(t, 99)).toBeNull();
   });
 
   it("lineRunAround: contiguity disambiguates colliding line numbers (a finding's section, Codex R31 VP-I03)", () => {

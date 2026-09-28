@@ -16,7 +16,7 @@ import { INTERP_IDLE } from "./lcnc";
 import { simMode } from "./simMode";
 import {
   sampleTrack, jointsForSample, buildEntryTrack,
-  machineFromJoints, displayLineForPoint, atTrackEnd, lineRunAround, lineSpanCum,
+  machineFromJoints, displayLineForPoint, atTrackEnd, lineRunAround, lineSpanCum, lineFirstMoveCum,
   programEndLine,
   type ScrubSample,
 } from "./viewer/scrubTrack";
@@ -26,6 +26,7 @@ import { specFromWire } from "./viewer/kins";
 import { epochTermsFor, epochWcsList, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import { twpPlaneForSample } from "./viewer/twpPlaneFrame";
 import { clashTargets } from "./viewer/clashTargets";
+import { mapAcrossEntry, sampleCum, targetAfter, targetBefore, type NavSelection } from "./viewer/findingNav";
 import { toolChangeLinesFromText } from "./viewer/toolChangeScan";
 import type { WcsTerms } from "./viewer/partFrame";
 import type { ScrubTrack } from "./ws/bulkData";
@@ -686,11 +687,16 @@ const violationsTitle = computed(() => {
 });
 
 /** ---------- position-aware finding navigation ---------- */
-// Targets are timeline positions; prev/next are relative to the CURRENT
-// scrub position, so scrubbing anywhere re-anchors the navigation. Both
-// wrap around at the ends.
-interface FindingTarget { cum: number; line: number; rapid?: boolean; dist?: number; spanEndLine?: number; reentry?: boolean }
-const NAV_EPS = 0.01;
+// Targets are timeline extents [cum, cumEnd] named by a key; prev/next go
+// from the finding a jump showed (by its key, while the timeline still
+// stands there) or else from the CURRENT scrub position, so scrubbing
+// anywhere re-anchors the navigation; both wrap around at the ends. A jump
+// samples INSIDE the finding's extent — no fixed window decides whether a
+// short move or a close finding is reachable (viewer/findingNav.ts, Codex
+// R32 VP-I06).
+interface FindingTarget { cum: number; cumEnd: number; key: string; line: number; rapid?: boolean; dist?: number; spanEndLine?: number; reentry?: boolean }
+/** The finding the last jump showed and where it left the timeline. */
+const navSel = shallowRef<NavSelection | null>(null);
 
 const violationTargets = computed<FindingTarget[]>(() => {
   const t = track.value;
@@ -700,10 +706,11 @@ const violationTargets = computed<FindingTarget[]>(() => {
   for (const v of violations.value ?? []) {
     if (seen.has(v.line)) continue;
     seen.add(v.line);
-    // Where the line's first move STARTS (lineSpanCum): its first point is
-    // where that move ends, and the jump landed in the next line's move.
-    const span = lineSpanCum(t, v.line);
-    if (span) out.push({ cum: span[0], line: v.line });
+    // The line's first move (lineFirstMoveCum): it STARTS where the previous
+    // move ends — the line's first point is where it ends, and the jump
+    // landed in the next line's move.
+    const move = lineFirstMoveCum(t, v.line);
+    if (move) out.push({ cum: move[0], cumEnd: move[1], key: `L${v.line}`, line: v.line });
   }
   return out.sort((a, b) => a.cum - b.cum);
 });
@@ -798,34 +805,43 @@ const sweptFrac = computed(() => {
 // record, marks per interval: "1 clash, 2 marks").
 const hitTargets = computed<FindingTarget[]>(() => clashTargets(hits.value));
 
-function targetAfter(list: FindingTarget[], s: number): FindingTarget | null {
-  if (!list.length) return null;
-  return list.find(f => f.cum > s + NAV_EPS) ?? list[0]!;   // wrap to first
-}
-function targetBefore(list: FindingTarget[], s: number): FindingTarget | null {
-  if (!list.length) return null;
-  for (let i = list.length - 1; i >= 0; i--) {
-    if (list[i]!.cum < s - NAV_EPS) return list[i]!;
-  }
-  return list[list.length - 1]!;                             // wrap to last
+const nextViolationT = computed(() => targetAfter(violationTargets.value, sPos.value, navSel.value));
+const nextHitT = computed(() => targetAfter(hitTargets.value, sPos.value, navSel.value));
+const prevOf = (list: FindingTarget[]) => targetBefore(list, sPos.value, navSel.value);
+
+/** The entry move's length on a track built from the base (0 = the base). */
+function entryLenOf(x: ScrubTrack): number {
+  const b = baseTrack.value;
+  if (!b || x === b || x.count < 1 || b.count < 1) return 0;
+  return x.cum[x.count - 1]! - b.cum[b.count - 1]!;
 }
 
-const nextViolationT = computed(() => targetAfter(violationTargets.value, sPos.value));
-const nextHitT = computed(() => targetAfter(hitTargets.value, sPos.value));
-
-function jumpTo(target: FindingTarget | null) {
-  if (!target || !enterSim()) return;
+function jumpTo(pick: FindingTarget | null, kind: "limit" | "clash") {
+  if (!pick) return;
+  const from = track.value;
+  if (!enterSim()) return;
   playing.value = false;
-  // Nudge a hair PAST the target: a cum sitting exactly on a segment
-  // boundary samples the previous segment's line label, which would show
-  // the wrong line and suppress the contact tint right at the jump point.
-  sPos.value = Math.min(cumMax.value, Math.max(0, target.cum + 1e-3));
+  // The CHOSEN finding on the DISPLAYED track (Codex R32 VP-I05): entering
+  // the simulation puts the entry move in front, and the pick's cum was on
+  // the track before — by its key when the list already has it, else
+  // re-expressed across the entry move (a finding on the entry move stays
+  // on it). Never "next" again: that could pick another finding.
+  const t = track.value;
+  let target = pick;
+  if (t && from && t !== from) {
+    target = (kind === "limit" ? violationTargets.value : hitTargets.value).find(f => f.key === pick.key)
+      ?? mapAcrossEntry(pick, entryLenOf(from), entryLenOf(t));
+  }
+  // Inside the finding's extent: its start cum is the previous move's end,
+  // whose sample names the previous line and misses the contact tint.
+  sPos.value = Math.min(cumMax.value, Math.max(0, sampleCum(target)));
+  navSel.value = { key: target.key, pos: sPos.value };
   applyPos();
   // The finding's SECTION (Codex R31 VP-I03): the run of its move around the
   // jumped-to segment, in BASE-track indices — the drawn streams' source
   // map addresses the base track, the entry track prepends its points. A
   // finding on the entry move itself is on nothing drawn: null.
-  const t = track.value, b = baseTrack.value;
+  const b = baseTrack.value;
   let run: [number, number] | null = null;
   if (t && b) {
     const off = t.count - b.count;
@@ -866,7 +882,7 @@ const toolTargets = computed(() => {
   return out.sort((a, b) => a.cum - b.cum);
 });
 const nextTool = computed(() =>
-  toolTargets.value.find(x => x.cum > sPos.value + NAV_EPS) ?? null,
+  toolTargets.value.find(x => x.cum > sPos.value) ?? null,
 );
 const nextToolLabel = computed(() => {
   const nt = nextTool.value;
@@ -1086,15 +1102,15 @@ const moreLabel = computed(() => {
         <span class="navGroup">
         <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)" aria-label="Previous limit violation" title="Previous limit violation (from the current timeline position)"
                       :reason="violationNavReason"
-                      @click="jumpTo(targetBefore(violationTargets, sPos))"><ChevronLeft :size="14" /></MachineBtn>
+                      @click="jumpTo(prevOf(violationTargets), 'limit')"><ChevronLeft :size="14" /></MachineBtn>
         <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)" :title="violationsTitle"
                       :reason="violationNavReason"
-                      @click="jumpTo(nextViolationT)">
+                      @click="jumpTo(nextViolationT, 'limit')">
             {{ violationsTotal }} limit violation{{ violationsTotal === 1 ? "" : "s" }}
           </MachineBtn>
         <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)" aria-label="Next limit violation" title="Next limit violation"
                       :reason="violationNavReason"
-                      @click="jumpTo(targetAfter(violationTargets, sPos))"><ChevronRight :size="14" /></MachineBtn>
+                      @click="jumpTo(nextViolationT, 'limit')"><ChevronRight :size="14" /></MachineBtn>
         <span class="navTarget val-status mono">{{ nextViolationT ? "→ L" + nextViolationT.line : "" }}</span>
         <!-- Both findings explain themselves HERE, where they are navigated
              (operator, D1 live look: the limits' "?" sat in the HUD, the
@@ -1113,16 +1129,16 @@ const moreLabel = computed(() => {
         <template v-else-if="hits.length">
           <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff" aria-label="Previous collision" title="Previous collision (from the current timeline position)"
                         :reason="hitNavReason"
-                        @click="jumpTo(targetBefore(hitTargets, sPos))"><ChevronLeft :size="14" /></MachineBtn>
+                        @click="jumpTo(prevOf(hitTargets), 'clash')"><ChevronLeft :size="14" /></MachineBtn>
           <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
                       title="Simulate the next collision"
                       :reason="hitNavReason"
-                      @click="jumpTo(nextHitT)">
+                      @click="jumpTo(nextHitT, 'clash')">
             {{ hitTargets.length }} collision{{ hitTargets.length === 1 ? "" : "s" }}
           </MachineBtn>
           <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff" aria-label="Next collision" title="Next collision"
                         :reason="hitNavReason"
-                        @click="jumpTo(targetAfter(hitTargets, sPos))"><ChevronRight :size="14" /></MachineBtn>
+                        @click="jumpTo(nextHitT, 'clash')"><ChevronRight :size="14" /></MachineBtn>
           <span class="navTarget val-status mono">{{ nextHitT ? "→ " + (nextHitT.line ? "L" + nextHitT.line : "entry") + (nextHitT.reentry ? " (re-entry)" : "") + (nextHitT.rapid ? " (rapid)" : "") + ((nextHitT.dist ?? 0) > 0.001 ? ` ~${fmtDist(nextHitT.dist ?? 0, linearUnit)}` : "") + ((nextHitT.spanEndLine ?? nextHitT.line) > nextHitT.line ? ` … through L${nextHitT.spanEndLine}` : "") : "" }}</span>
           <span v-if="collisionBusy" class="val-status muted" title="The collision check is still running — positions refine when it ends">so far</span>
           <span v-else-if="collisionStopped && collisionResumable" class="val-status warn" :title="stoppedTitle">in {{ pctOf(collisionStopped.covered) }} swept</span>

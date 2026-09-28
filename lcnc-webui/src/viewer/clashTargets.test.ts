@@ -9,7 +9,9 @@ describe("clashTargets — one list for count, marks and navigation", () => {
   it("one record with two intervals ⇒ two targets, the second flagged re-entry", () => {
     const t = clashTargets([hit({ line: 26, cum: 45, cumEnd: 120, intervals: [[45, 50], [110, 120]] })]);
     expect(t).toHaveLength(2);
-    expect(t[0]).toMatchObject({ cum: 45, line: 26 });
+    expect(t[0]).toMatchObject({ cum: 45, cumEnd: 50, line: 26 });
+    expect(t[1]).toMatchObject({ cumEnd: 120 });
+    expect(new Set(t.map(x => x.key)).size, "each interval named apart").toBe(2);
     expect(t[0]!.reentry).toBeUndefined();
     expect(t[1]).toMatchObject({ cum: 110, line: 26, reentry: true });
   });
@@ -18,7 +20,7 @@ describe("clashTargets — one list for count, marks and navigation", () => {
   });
   it("a near-miss (no intervals) counts once at its closest approach", () => {
     const t = clashTargets([hit({ line: 30, cum: 200, dist: 1.2 })]);
-    expect(t).toEqual([{ cum: 200, line: 30, rapid: false, dist: 1.2, spanEndLine: undefined }]);
+    expect(t).toEqual([{ cum: 200, cumEnd: 200, key: "C30|tool|work|0", line: 30, rapid: false, dist: 1.2, spanEndLine: undefined }]);
   });
   it("targets are cum-sorted across records and carry rapid/spanEndLine", () => {
     const t = clashTargets([
