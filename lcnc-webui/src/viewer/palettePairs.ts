@@ -9,7 +9,8 @@
 // A form cue supplements the colour, never replaces it. A line against a
 // BODY (the collision tint) or two non-path objects (the boxes, the plane's
 // states) are `object` pairs: OBJECT_MIN_NORMAL under normal vision plus the
-// cue the image shows.
+// cue the image shows. The two boxes share one neutral core on one dark
+// casing by design (`form`: told apart by the dash and the size labels).
 //
 // 0.25 is the search and regression value the palette was chosen by, not a
 // proof that every 1 px line is distinguishable (Codex R29 VP29-01); the
@@ -43,8 +44,9 @@ export interface PalettePair {
   /** Where the two meet. */
   where: string;
   /** `line`: two path lines (LINE_MIN_NORMAL); `object`: a body or a
-   *  non-path object (OBJECT_MIN_NORMAL). */
-  kind: "line" | "object";
+   *  non-path object (OBJECT_MIN_NORMAL); `form`: two objects in one colour
+   *  by design, told apart by at least two cues (the boxes). */
+  kind: "line" | "object" | "form";
   /** A line pair that must hold CVD_MIN under the simulations; false only
    *  where a named cue carries it (`cueLimit` says where the cue fails). */
   cvd: boolean;
@@ -70,7 +72,9 @@ export const PALETTE_PAIRS: PalettePair[] = [
   { a: "--viewer-rapid", b: "--viewer-collision", where: "a line against a tinted body", kind: "object", cvd: false, cues: ["object", "dashed"] },
   { a: "--viewer-limit", b: "--viewer-collision", where: "3D, timeline, code panel", kind: "object", cvd: false, cues: ["object", "glyph"] },
   { a: "--viewer-backplot", b: "--viewer-collision", where: "a line against a tinted body", kind: "object", cvd: false, cues: ["object"] },
-  { a: "--viewer-bounds", b: "--viewer-toolpath-bounds", where: "two boxes", kind: "object", cvd: false, cues: ["label"] },
+  // The two boxes: one neutral core on one casing (P2) — the toolpath box
+  // is dashed and carries its size labels.
+  { a: "--viewer-bounds", b: "--viewer-toolpath-bounds", where: "two boxes", kind: "form", cvd: false, cues: ["dashed", "label"] },
   // The tilted work plane's states (V4): the label on the object names the
   // state, a stale plane's edge is dashed.
   { a: "--viewer-plane-active", b: "--viewer-plane-defined", where: "the plane", kind: "object", cvd: false, cues: ["label"] },

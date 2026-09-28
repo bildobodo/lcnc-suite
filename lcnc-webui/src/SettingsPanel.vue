@@ -714,7 +714,7 @@ function resetMachineColor(id: string) {
             </template>
           </div>
           <template v-if="contrastRows.length">
-            <div class="settingDesc">Contrast: a line needs 3 : 1 on the background (4.5 : 1 in high contrast) and on the lit table.</div>
+            <div class="settingDesc">Contrast: a line needs 3 : 1 on the background (4.5 : 1 in high contrast) and on the lit table; a box its core or its dark casing, and the core on the casing.</div>
             <div class="dataTable" data-contrast-hint>
               <table>
                 <thead><tr><th>Color</th><th>On background</th><th>On the table</th></tr></thead>

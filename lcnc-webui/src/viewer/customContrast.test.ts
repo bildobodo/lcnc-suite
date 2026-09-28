@@ -4,7 +4,7 @@ import type { ViewerPalette } from "./viewerPalette";
 
 const base: ViewerPalette = {
   feed: "#1f5fbf", rapid: "#1e7f3f", backplot: "#a01860", bounds: "#555555", toolpathBounds: "#666666",
-  tool: "#999999", cutter: "#c8a040", limit: "#8a5a00", collision: "#c00000",
+  tool: "#999999", cutter: "#c8a040", limit: "#8a5a00", collision: "#c00000", boundsCasing: "#3a3f45",
 } as ViewerPalette;
 
 describe("the Custom palette's contrast hint (Codex R25 OP-I05)", () => {
@@ -24,8 +24,17 @@ describe("the Custom palette's contrast hint (Codex R25 OP-I05)", () => {
     const mid = "#808080";
     expect(contrastRatio(mid, "#ffffff")!).toBeGreaterThan(3);
     expect(contrastRatio(mid, "#ffffff")!).toBeLessThan(4.5);
-    expect(customContrastRows({ ...base, bounds: mid }, "#ffffff", false).find(r => r.role === "bounds")!.bgLow).toBe(false);
-    expect(customContrastRows({ ...base, bounds: mid }, "#ffffff", true).find(r => r.role === "bounds")!.bgLow).toBe(true);
+    expect(customContrastRows({ ...base, rapid: mid }, "#ffffff", false).find(r => r.role === "rapid")!.bgLow).toBe(false);
+    expect(customContrastRows({ ...base, rapid: mid }, "#ffffff", true).find(r => r.role === "rapid")!.bgLow).toBe(true);
+  });
+  it("a box: its core or the dark casing on the background and the table, and the core on the casing", () => {
+    const cased = { ...base, boundsCasing: "#3a3f45" } as ViewerPalette;
+    // the fixed light core: 1.9 : 1 on white alone, carried by its casing
+    const light = customContrastRows({ ...cased, bounds: "#b8bec6" }, "#ffffff", false).find(r => r.role === "bounds")!;
+    expect([light.bgLow, light.tableLow]).toEqual([false, false]);
+    // a core as dark as its casing is lost on it
+    const dark = customContrastRows({ ...cased, toolpathBounds: "#404040" }, "#101418", false).find(r => r.role === "toolpathBounds")!;
+    expect(dark.bgLow && dark.tableLow).toBe(true);
   });
   it("tool shaft and cutter are solids — no row; no selection row (the current line is not drawn in 3D)", () => {
     expect(customContrastRows(base, "#ffffff", false).map(r => r.role)).toEqual(

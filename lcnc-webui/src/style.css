@@ -172,8 +172,10 @@
   --viewer-plane-defined: #a97515;
   --viewer-plane-stale: #cc3333;
   --viewer-collision: #c8102e;
-  --viewer-bounds: #475569;
-  --viewer-toolpath-bounds: #007531;
+  --viewer-bounds: #b8bec6;
+  --viewer-toolpath-bounds: #b8bec6;
+  --viewer-bounds-casing: #3a3f45;
+  --viewer-reach: #6b7280;
   --viewer-tool: #9aa0a6;
   --viewer-cutter: #d4a800;
 
@@ -339,8 +341,10 @@
     --viewer-plane-defined: #a97515;
     --viewer-plane-stale: #cc3333;
     --viewer-collision: #c8102e;
-    --viewer-bounds: #64748b;
-    --viewer-toolpath-bounds: #00863b;
+    --viewer-bounds: #b8bec6;
+    --viewer-toolpath-bounds: #b8bec6;
+    --viewer-bounds-casing: #3a3f45;
+    --viewer-reach: #6b7280;
     --viewer-tool: #9aa0a6;
     --viewer-cutter: #d4a800;
   }
@@ -379,8 +383,10 @@
   --viewer-plane-defined: #a97515;
   --viewer-plane-stale: #cc3333;
   --viewer-collision: #c8102e;
-  --viewer-bounds: #475569;
-  --viewer-toolpath-bounds: #007531;
+  --viewer-bounds: #b8bec6;
+  --viewer-toolpath-bounds: #b8bec6;
+  --viewer-bounds-casing: #3a3f45;
+  --viewer-reach: #6b7280;
   --viewer-tool: #9aa0a6;
   --viewer-cutter: #d4a800;
 }
@@ -418,8 +424,10 @@
   --viewer-plane-defined: #a97515;
   --viewer-plane-stale: #cc3333;
   --viewer-collision: #c8102e;
-  --viewer-bounds: #64748b;
-  --viewer-toolpath-bounds: #00863b;
+  --viewer-bounds: #b8bec6;
+  --viewer-toolpath-bounds: #b8bec6;
+  --viewer-bounds-casing: #3a3f45;
+  --viewer-reach: #6b7280;
   --viewer-tool: #9aa0a6;
   --viewer-cutter: #d4a800;
 }
@@ -467,8 +475,10 @@
   --viewer-plane-defined: #9a6e19;
   --viewer-plane-stale: #cc3333;
   --viewer-collision: #d51713;
-  --viewer-bounds: #333d4a;
-  --viewer-toolpath-bounds: #014f0a;
+  --viewer-bounds: #b8bec6;
+  --viewer-toolpath-bounds: #b8bec6;
+  --viewer-bounds-casing: #3a3f45;
+  --viewer-reach: #6b7280;
   --viewer-tool: #8a8f96;
   --viewer-cutter: #b38f00;
 }
@@ -515,8 +525,10 @@
   --viewer-plane-defined: #a07a0c;
   --viewer-plane-stale: #cc4845;
   --viewer-collision: #fb1903;
-  --viewer-bounds: #6b7a8f;
-  --viewer-toolpath-bounds: #00903f;
+  --viewer-bounds: #b8bec6;
+  --viewer-toolpath-bounds: #b8bec6;
+  --viewer-bounds-casing: #3a3f45;
+  --viewer-reach: #78808b;
   --viewer-tool: #d0d0d0;
   --viewer-cutter: #ffe14d;
 }

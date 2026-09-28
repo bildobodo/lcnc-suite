@@ -5,6 +5,9 @@
 //  - a line role: ≥ 3 : 1 on the scene background (4.5 : 1 in the high-
 //    contrast themes) AND ≥ 3 : 1 on the lit table (#e0e0e0: the table /
 //    stock's top face under the scene lights, in every theme);
+//  - a box (machine / toolpath bounds, fixed palette P2): its core OR the
+//    theme's dark casing on the background and on the table, and the core
+//    on the casing (the same floor);
 //  - two path LINES apart from each other (the fixed palette's pair rule,
 //    viewer/palettePairs.ts, operator 2026-09-28): the custom feed, rapid
 //    and backplot against each other and the theme's limit overlay —
@@ -38,8 +41,16 @@ export interface ContrastRow {
 export function customContrastRows(p: ViewerPalette, bg: string, highContrast: boolean): ContrastRow[] {
   const floor = highContrast ? 4.5 : 3;
   const low = (v: number | null, min: number) => v == null || v < min;
+  const best = (a: number | null, b: number | null) => (a == null ? b : b == null ? a : Math.max(a, b));
   return CUSTOM_LINE_ROLES.map(role => {
-    const onBg = contrastRatio(p[role], bg), onTable = contrastRatio(p[role], LIT_TABLE);
+    let onBg = contrastRatio(p[role], bg), onTable = contrastRatio(p[role], LIT_TABLE);
+    if (role === "bounds" || role === "toolpathBounds") {
+      const onCasing = contrastRatio(p[role], p.boundsCasing);
+      onBg = best(onBg, contrastRatio(p.boundsCasing, bg));
+      onTable = best(onTable, contrastRatio(p.boundsCasing, LIT_TABLE));
+      const casingLow = low(onCasing, floor);
+      return { role, onBg, onTable, bgLow: low(onBg, floor) || casingLow, tableLow: low(onTable, 3) || casingLow };
+    }
     return { role, onBg, onTable, bgLow: low(onBg, floor), tableLow: low(onTable, 3) };
   });
 }

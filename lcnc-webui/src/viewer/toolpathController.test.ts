@@ -8,6 +8,9 @@ import * as THREE from "three";
 import { ref, type Ref } from "vue";
 import { disposeObject } from "./disposal";
 import { createToolpathController, type ToolpathCtx, type ToolpathController } from "./toolpathController";
+import { CASED_CORE_PX, CASED_TOTAL_PX } from "./casedLines";
+import type { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
+import type { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 
 // Fake troika label: an Object3D (addable, has .position) with a dispose spy.
 function fakeLabel() {
@@ -17,7 +20,7 @@ function fakeLabel() {
 }
 
 // The resolved palette the host hands over (viewer/viewerPalette.ts).
-const PALETTE = { feed: "#22b8cf", rapid: "#f5a623", toolpathBounds: "#f5a623", limit: "#ffcc00", collision: "#ff4444" };
+const PALETTE = { feed: "#22b8cf", rapid: "#f5a623", toolpathBounds: "#b8bec6", boundsCasing: "#3a3f45", limit: "#ffcc00" };
 function makeDeps(overflow: Ref<boolean>) {
   return {
     requestRender: vi.fn(),
@@ -35,6 +38,9 @@ function makeDeps(overflow: Ref<boolean>) {
 }
 const SCENE_BG = "#102030";
 const SCENE_FG = "#e6edf3";
+
+/** The toolpath box: the cased group (a core and a casing LineSegments2). */
+const boxOf = (g: THREE.Group) => g.children.find(o => o.children.some(k => (k as any).material?.userData?.role === "toolpathBounds"));
 
 function makeCtx(over: Partial<ToolpathCtx> = {}): ToolpathCtx & { workRotGroup: THREE.Group; pathAnchor: THREE.Group; pathRot: THREE.Group } {
   const pathAnchor = new THREE.Group();
@@ -138,8 +144,30 @@ describe("no current-line highlight (operator 2026-09-28)", () => {
       });
     }
     expect([...roles].filter(r => r.startsWith("selection")), "no selection role").toEqual([]);
-    expect(fat, "no screen-space line in the toolpath").toBe(0);
+    expect(fat, "no screen-space line in the toolpath but the box's core and casing").toBe(2);
     expect("setHighlight" in c || "setHighlightTrackRange" in c, "no highlight API").toBe(false);
+  });
+});
+
+describe("the toolpath box: a light core on a dark casing, dashed (fixed palette P2)", () => {
+  it("draws the core 1 CSS px over a 3 CSS px casing, both dashed alike, clipped to the machine window", () => {
+    const ctx = makeCtx();
+    c.apply(ctx, GCODE);
+    const box = boxOf(ctx.workRotGroup)!;
+    const [casing, core] = box.children as LineSegments2[];
+    const cm = core!.material as LineMaterial, sm = casing!.material as LineMaterial;
+    expect([cm.userData.role, sm.userData.role]).toEqual(["toolpathBounds", "toolpathBoundsCasing"]);
+    expect([cm.linewidth, sm.linewidth], "CSS px").toEqual([CASED_CORE_PX, CASED_TOTAL_PX]);
+    expect(cm.worldUnits || sm.worldUnits).toBe(false);
+    expect(casing!.renderOrder, "the casing first").toBeLessThan(core!.renderOrder);
+    expect(core!.geometry, "one geometry: the dash lands alike").toBe(casing!.geometry);
+    expect([cm.dashed, sm.dashed]).toEqual([true, true]);
+    expect([cm.dashSize, cm.gapSize]).toEqual([sm.dashSize, sm.gapSize]);
+    expect(core!.geometry.getAttribute("instanceDistanceStart"), "line distances for the dash").toBeTruthy();
+    expect(cm.clippingPlanes).toBe(deps.insideBoundsClipPlanes);
+    expect([cm.color.getHexString(), sm.color.getHexString()]).toEqual(["b8bec6", "3a3f45"]);
+    c.setColors({ ...PALETTE, toolpathBounds: "#ffffff", boundsCasing: "#000000" });
+    expect([cm.color.getHexString(), sm.color.getHexString()]).toEqual(["ffffff", "000000"]);
   });
 });
 
@@ -294,11 +322,10 @@ describe("overflow / visibility / colours", () => {
     c.apply(ctx, GCODE);
     const feed = feedLineOf(ctx.workRotGroup);
     const geomSpy = vi.spyOn(feed.geometry as THREE.BufferGeometry, "dispose");
-    // The bounds box is the LineSegments that is NOT a path chunk (renderOrder
-    // 10); overflow edges need clip planes. Its EdgesGeometry was previously
-    // missed by dispose().
-    const boundsBox = ctx.workRotGroup.children.find(o => (o as any).isLineSegments && o.renderOrder !== 10) as THREE.LineSegments;
-    const boundsGeomSpy = vi.spyOn(boundsBox.geometry as THREE.BufferGeometry, "dispose");
+    // The bounds box is the cased group (overflow edges need clip planes).
+    // Its geometry was previously missed by dispose().
+    const boundsBox = boxOf(ctx.workRotGroup)!;
+    const boundsGeomSpy = vi.spyOn((boundsBox.children[0] as THREE.Mesh).geometry, "dispose");
     c.dispose();
     expect(geomSpy).toHaveBeenCalled();
     expect(boundsGeomSpy).toHaveBeenCalled();
@@ -612,9 +639,8 @@ describe("room-fixed split (2026-09-11)", () => {
   it("an all-room program parents the bounds box under the room parent", () => {
     const ctx = roomCtx();
     c.apply(ctx, { ...G, feedRoom: new Uint8Array([1, 1, 1, 1]) }, null);
-    const box = (g: THREE.Group) => g.children.find(o => (o as any).isLineSegments && o.renderOrder !== 10);
-    expect(box(ctx.roomRotGroup)).toBeTruthy();
-    expect(box(ctx.workRotGroup)).toBeUndefined();
+    expect(boxOf(ctx.roomRotGroup)).toBeTruthy();
+    expect(boxOf(ctx.workRotGroup)).toBeUndefined();
   });
 });
 

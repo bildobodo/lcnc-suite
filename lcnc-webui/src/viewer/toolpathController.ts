@@ -20,6 +20,7 @@
 import * as THREE from "three";
 import { binPairs, buildFrameIndex, CHUNK_MAX, chunkBounds, chunkGrid, cumulativeDistances, splitPairsByFrame } from "./lineChunks";
 import type { AnchorTerms } from "./partFrame";
+import { makeCasedEdges, type CasedEdges } from "./casedLines";
 import type { Ref } from "vue";
 import type { Text } from "troika-three-text";
 import type { ViewerGcode } from "../lcncWs";
@@ -29,7 +30,7 @@ type BBox = { min: [number, number, number]; max: [number, number, number] };
 /** The roles this controller draws (viewer/viewerPalette.ts resolves them:
  *  the theme's --viewer-* tokens, the operator's Custom colours over the
  *  user roles). */
-type Colors = { feed: string; rapid: string; toolpathBounds: string; limit: string; collision: string };
+type Colors = { feed: string; rapid: string; toolpathBounds: string; boundsCasing: string; limit: string };
 
 export interface ToolpathDeps {
   requestRender: () => void;
@@ -187,6 +188,11 @@ function sphereOfBox(b: Float32Array, o: number): THREE.Sphere {
   return new THREE.Sphere(new THREE.Vector3(cx, cy, cz), Math.sqrt(dx * dx + dy * dy + dz * dz));
 }
 
+/** The toolpath box's dash and gap (and its overflow edges'), in the box's
+ *  own units: the two meet at the machine window and dash alike. */
+const BOX_DASH = 3;
+const BOX_GAP = 2;
+
 export function createToolpathController(deps: ToolpathDeps): ToolpathController {
   let sets: LineSet[] = [];
   let feedPosAttr: THREE.BufferAttribute | null = null;
@@ -196,7 +202,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   // Full feed+rapid envelope (machine-limit overflow check).
   let motionBBox: BBox | null = null;
 
-  let toolpathBoundsBox: THREE.LineSegments | null = null;
+  let toolpathBoundsBox: CasedEdges | null = null;
   let toolpathBoundsLabels: THREE.Group | null = null;
   let toolpathOverflowEdges: THREE.LineSegments | null = null;
 
@@ -387,18 +393,22 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     if (sx <= 0 || sy <= 0 || sz <= 0) return null;
     const [ox, oy, oz] = offset;
     const geom = new THREE.EdgesGeometry(new THREE.BoxGeometry(sx, sy, sz));
+    // The box OUTSIDE the machine window: a limit finding, so the limit
+    // overlay's ochre (fixed palette P2 — it was the collision red, a line
+    // in a body's colour), dashed like the box inside.
     const mat = new THREE.LineDashedMaterial({
-      color: deps.colors().collision,
-      dashSize: 3,
-      gapSize: 2,
+      color: deps.colors().limit,
+      dashSize: BOX_DASH,
+      gapSize: BOX_GAP,
       // Opaque (viewer contrast plan, R2): a line's contrast is its COMPOSITED
-      // colour — at 0.8 the collision role's red lost a fifth of it.
+      // colour — at 0.8 the role lost a fifth of it.
       clipIntersection: true,
       clippingPlanes: deps.boundsClipPlanes,
     });
     const lines = new THREE.LineSegments(geom, mat);
     lines.computeLineDistances();
     lines.position.set(ox + sx / 2, oy + sy / 2, oz + sz / 2);
+    lines.renderOrder = 2;   // over the neutral box where the two meet
     return lines;
   }
 
@@ -472,19 +482,18 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     const cy = (toolpathBBox.min[1] + toolpathBBox.max[1]) / 2;
     const cz = (toolpathBBox.min[2] + toolpathBBox.max[2]) / 2;
 
-    const color = deps.colors().toolpathBounds;
+    // A light core on a dark casing, DASHED (fixed palette P2): the machine
+    // box is the solid one; the size labels name this one.
     const boxGeom = new THREE.BoxGeometry(Math.max(sx, 0.001), Math.max(sy, 0.001), Math.max(sz, 0.001));
     const edgeGeom = new THREE.EdgesGeometry(boxGeom);
     boxGeom.dispose();
-    toolpathBoundsBox = new THREE.LineSegments(
-      edgeGeom,
-      new THREE.LineBasicMaterial({
-        color,
-        // Opaque (viewer contrast plan, R2): the role's contrast is the drawn colour.
-        clippingPlanes: deps.insideBoundsClipPlanes,
-      })
-    );
-    (toolpathBoundsBox.material as THREE.Material).userData.role = "toolpathBounds";
+    const pal = deps.colors();
+    toolpathBoundsBox = makeCasedEdges(edgeGeom, {
+      core: pal.toolpathBounds, casing: pal.boundsCasing, role: "toolpathBounds",
+      dashed: { dash: BOX_DASH, gap: BOX_GAP },
+      clippingPlanes: deps.insideBoundsClipPlanes,
+    });
+    edgeGeom.dispose();
     toolpathBoundsBox.position.set(cx, cy, cz);
     toolpathBoundsBox.visible = toolpathBoundsVisible;
     workRotGroup.add(toolpathBoundsBox);
@@ -809,9 +818,9 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     setColors(c) {
       _feedBase.set(c.feed);
       _rapidBase.set(c.rapid);
-      if (toolpathBoundsBox) (toolpathBoundsBox.material as THREE.LineBasicMaterial).color.set(c.toolpathBounds);
+      toolpathBoundsBox?.setColors(c.toolpathBounds, c.boundsCasing);
       for (const s of sets) s.overMat?.color.set(c.limit);
-      if (toolpathOverflowEdges) (toolpathOverflowEdges.material as THREE.LineDashedMaterial).color.set(c.collision);
+      if (toolpathOverflowEdges) (toolpathOverflowEdges.material as THREE.LineDashedMaterial).color.set(c.limit);
       _applyStale();   // the drawn colour is the base or its muted mix — one writer
     },
 

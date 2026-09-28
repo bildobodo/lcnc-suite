@@ -6,6 +6,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Text } from "troika-three-text";
 import { LABEL_FONT_URL } from "./viewer/labelFont";
 import { resolveViewerPalette, type ViewerPalette } from "./viewer/viewerPalette";
+import { makeCasedEdges, type CasedEdges } from "./viewer/casedLines";
 import { buildToolGeometries, type ToolMeta } from "./toolGeometry";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
@@ -501,7 +502,7 @@ const _bpLocal = new THREE.Vector3();
 // Reused scratch for camera tracking — runs every rAF frame while tracking.
 const _trackTarget = new THREE.Vector3();
 
-let machineBoundsMesh: THREE.LineSegments | null = null;
+let machineBoundsMesh: CasedEdges | null = null;
 const _billboardLabels: Text[] = [];
 const _bbQ = new THREE.Quaternion();  // reused for billboard parent compensation
 const boundsClipPlanes: THREE.Plane[] = [];
@@ -1475,17 +1476,14 @@ function ensureCoreGroups(init: ViewerInit) {
 
 
 
-  // --- Machine bounds box — wireframe edges only ---
+  // --- Machine bounds box — wireframe edges only, a light core on a dark
+  // casing (fixed palette P2: one colour pair for every theme) ---
   {
-    const boundsColor = palette.bounds;
     const boxGeom = new THREE.BoxGeometry(1, 1, 1);
     const edgeGeom = new THREE.EdgesGeometry(boxGeom);
     boxGeom.dispose();
-    machineBoundsMesh = new THREE.LineSegments(
-      edgeGeom,
-      new THREE.LineBasicMaterial({ color: boundsColor })
-    );
-    (machineBoundsMesh.material as THREE.Material).userData.role = "bounds";
+    machineBoundsMesh = makeCasedEdges(edgeGeom, { core: palette.bounds, casing: palette.boundsCasing, role: "bounds" });
+    edgeGeom.dispose();
     // MACHINE frame, never the rotating work group: the clip planes that
     // decide the yellow outside-bounds overlay live there (7a04909), and the
     // box that stayed under _workGrp swung with A while the clipping did not
@@ -3207,7 +3205,7 @@ function _reachBuildMeshes() {
   const d = _reachData;
   const roomParent = machineFrameGrp ?? _workGrp;
   if (!d || !roomParent) { requestRender(); return; }
-  const color = palette.bounds;
+  const color = palette.reach;
   reachRoomMesh = _reachSolidGroup(d.roomLines, color);
   reachRoomMesh.visible = _reachRoomOn;
   roomParent.add(reachRoomMesh);
@@ -4148,8 +4146,8 @@ function refreshPalette() {
   palette = resolveViewerPalette(readRootToken, viewerDefaults);
   toolpath.setColors(palette);
   backplot.setColor(palette.backplot);
-  if (machineBoundsMesh) (machineBoundsMesh.material as THREE.LineBasicMaterial).color.set(palette.bounds);
-  for (const g of [reachRoomMesh, reachPartMesh]) g?.traverse(o => { const m = (o as THREE.Mesh).material as THREE.Material & { color?: THREE.Color }; m?.color?.set(palette.bounds); });
+  machineBoundsMesh?.setColors(palette.bounds, palette.boundsCasing);
+  for (const g of [reachRoomMesh, reachPartMesh]) g?.traverse(o => { const m = (o as THREE.Mesh).material as THREE.Material & { color?: THREE.Color }; m?.color?.set(palette.reach); });
   MAT.tool.color.set(palette.tool);
   MAT.cutter.color.set(palette.cutter);
   for (const mesh of [...machineMeshes, toolCutterMesh, toolBodyMesh]) {
