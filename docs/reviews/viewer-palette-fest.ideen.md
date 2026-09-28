@@ -446,3 +446,28 @@ Belege und der bisherige Text dieser Datei bleiben unverändert.
 **Nächste Runde:** VP29-01 bis VP29-04 in der Ideenfassung auflösen, insbesondere Auswahl ohne
 ungeklärte Halo-Ausnahme und den F3-Vertrag. Dann kann der Umsetzungsplan abgenommen werden;
 die endgültige Farbwahl bleibt Teil der Operator-Sichtprüfung.
+
+---
+
+## Operator-Entscheidungen · 28. September 2026 (nach R29)
+
+1. **Umfang:** Erst prüft der Operator den abgenommenen Stand (Design-Welle, Viewer-Kontrast,
+   XYZAC-Fix, P1–P7, Codex R28), dann wird nach `development` gemergt. Die feste Palette folgt auf
+   einem **eigenen Branch**. Wie von Codex empfohlen, kommen zuerst Palette, Boxen und
+   Sichtbarkeitsschalter, die Fortschrittsdarstellung (F3) separat dahinter.
+2. **Viewer-Grund folgt dem Theme** (nicht dauerhaft dunkel). Die Rollenfarben sind trotzdem in
+   Hell und Dunkel gleich und müssen auf Weiß, auf dem dunklen Grund und auf dem Tisch bestehen.
+3. **HC-Themes:** gleiche Farbfamilien und Rollen, eigene Helligkeit (Codex' Empfehlung zu F7). Die
+   Ausnahme wird dokumentiert.
+4. **Live-Backplot bleibt**, sichtbar wie heute. Er ist die aufgezeichnete Spur, nicht die
+   Vorschau. Damit bleibt die Rolle „backplot“ eine Linienfarbe im Band.
+5. **Die Hervorhebung der aktuellen Zeile im 3D-Viewer entfällt.** Das ist die heutige
+   „selection“-Rolle: die 3-px-Linie auf Halo, die `motion_line` bzw. der Scrub-Zeile folgt.
+   Der Operator dazu: „nicht zwingend erforderlich und war mal am Anfang eine Idee, um sich
+   abzuheben, aber ich denke mittlerweile überwiegen die Nachteile.“ Damit entfallen
+   Auswahlfarbe, Halo und VP29-03. Die Werkzeugposition zeigt im Lauf und in der Simulation
+   weiter, wo gerade gefahren wird. Der Zeilenbezug bleibt in der Codeanzeige.
+
+**Folge für die nächste Fassung:** Linienrollen im Band sind Vorschub, Eilgang (gestrichelt),
+Grenzverletzung und Live-Backplot. Dazu kommen die Kollision als Körper und die neutralen Boxen
+mit Saum. Die Farbwahl zwischen Magenta (A) und Purpur (B) fällt bei der Sichtprüfung.
