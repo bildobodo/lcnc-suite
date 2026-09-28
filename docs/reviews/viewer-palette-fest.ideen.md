@@ -1226,3 +1226,159 @@ abgekoppelt auf `8f9b50c`.
    Schreibpfade von `sPos` sind: Sim-Eintritt (0), Programmwechsel (0), Wiedergabe, Lauf-Playhead,
    Slider (manueller Scrub) und der Sprung selbst. Alle außer dem Sprung sollen die Identität
    beenden. Übersehe ich einen?
+
+---
+
+## Umsetzung · Codex · Nachprüfung R33 · 28. September 2026
+
+Geprüft: `a305a35..b99b56c` auf `feat/viewer-palette`, als isolierte Archivkopie von
+`b99b56c03c07288e863e3b114b9d5133068321d7`. **Ergebnis: findings.** Die bisherigen vier
+R32-Zielsonden und Claudes neue XYZAC-Kollisionsszene bestehen. VP-I06 ist für die kurzen
+und dicht aufeinanderfolgenden Befunde behoben. VP-I05 hat noch einen Fall mit einer
+mehrfach vorkommenden ersten Quellzeile; hinzu kommen zwei Fehler der neuen Auswahlidentität.
+Keine Operatorentscheidung erforderlich.
+
+### VP-I05 · P2 · Rest: Die erste Quellzeile kann das Grenzziel auf den Anfahrweg ziehen
+
+**Reproduktion:** Die Vorschau beginnt mit den Punkten `(0,0,0)`, `(0,10,0)`, `(10,10,0)`
+und den Zeilen `[7,7,8]`. L7 verletzt das Y-Limit. Die Maschine steht bei `(-100,0,0)`;
+beim ersten Sprung kommt der 100-mm-Anfahrweg hinzu. Wiederholte Quellzeilen sind ein
+zulässiger Fall, beispielsweise bei einer in Segmente zerlegten Bewegung oder wiederholter
+Ausführung. Der Gateway überträgt die Zeile je Bewegungsendpunkt
+(`lcnc-gateway/gcode_parse_worker.py:630–644`).
+
+Vor dem Simulationseintritt ist das L7-Ziel die Programmbewegung von 0 bis 10 mm auf der
+Basisachse. Danach liefert `lineFirstMoveCum` für L7 bereits den **Anfahrweg von 0 bis
+100 mm**. `jumpTo` findet denselben Schlüssel `L7` in der neuen Liste und übernimmt dieses
+falsche Ziel, statt das ursprüngliche auf 100 bis 110 mm zu verschieben. Tatsächlich landet
+das Sample bei 0,001 mm; der native Regler rundet seine Anzeige auf 0. Die Zeilenanzeige
+lautet `L7 →` (Eilgang), und der Hinweis behauptet „Toolpath and rapids shown …“.
+Die richtige Programmbewegung wird zwar als Teil des gleich benannten Abschnitts mit
+gezeichnet, die simulierte Maschine steht aber noch am Anfang des Anfahrwegs. Auch der
+zweite Klick korrigiert das nicht.
+
+**Ursache/Stellen:** `scrubTrack.ts:922` übernimmt die erste Programmzeile für den Endpunkt
+des Eintrittssegments; `lineFirstMoveCum` (`:824–831`) berücksichtigt diesen Endpunkt als
+erste Bewegung der Zeile. `ScrubBar.vue:711–712` und `:830–832` behandeln das daraus
+gewonnene Ziel als denselben Programmbefund. Eine passende Zeilennummer allein beweist
+hier keine passende Bewegung.
+
+**Korrektur:** Grenzziele an die Bewegung auf dem Basistrack binden und bei Eintritt in
+den angezeigten Track umrechnen. Der hinzugefügte Anfahrweg darf nicht aufgrund seiner
+Endpunkt-Zeilennummer zum ursprünglichen Programmbefund werden. Absichern: erste Quellzeile
+mit mehreren Punkten, erster und zweiter Sprung, tatsächliche Position innerhalb der
+Programmbewegung und deren Bewegungsart. Die vorhandenen vier R32-Fälle weiter behalten.
+
+**Belege:** [Sonde](r33.limit-origin.spec.ts), [Messwerte](r33.limit-origin-entry.json),
+[Bild](r33.limit-origin-entry.png), [roter Lauf](r33.limit-playwright.txt).
+
+### VP-I07 · P2 · Eintritts- und Programmkollisionen erhalten denselben Navigationsschlüssel
+
+Damit ist Rückfrage 1 beantwortet: **Ja, es gibt einen konkreten Gegenfall.** Der
+Intervallindex wird je Treffer neu bei 0 begonnen. Eintritts- und Basis-Sweep sind getrennte
+Prüfungen, können aber dieselbe Quellzeile und dasselbe Körperpaar melden. Beim Zusammenführen
+bleiben sie eigenständige Befunde, sofern der Kontakt dazwischen unterbrochen war.
+
+Die zusätzliche Browser-Sonde lädt das echte XYZAC-`machine.json` samt STLs. Der reguläre
+Worker berechnet sowohl Eintritt als auch Programm; die Sonde beobachtet seine Antworten,
+ohne Ergebnisse zu ersetzen. Die Mock-Pose ist `(300,0,-380)`, der Anfahrweg endet bei
+`(0,0,-380)`, das Programm fährt zurück nach `(240,0,-380)` und hebt danach Z an.
+Seine Punktzeilen sind `[7,7,8]`. Die anfängliche Pose hat in dieser gezielten Probe bereits
+Kontakte; der Anfahrweg verlässt sie, das Programm tritt später erneut ein.
+
+**Ergebnis:** neun getrennte Navigationsziele, aber nur sieben verschiedene Schlüssel:
+
+| Schlüssel | Eintritt: Kontaktbeginn | Programm: Kontaktbeginn auf der Gesamtachse |
+| --- | ---: | ---: |
+| `C7\|spindle_nose\|a_yoke_casting\|0` | 0 mm | 425,000488 mm |
+| `C7\|tool\|a_yoke_casting\|0` | 0 mm | 532,000122 mm |
+
+Nach dem ersten Sprung zum Programmkontakt hält `selectedIndex` nun den früheren
+Eintrittskontakt mit gleichem Schlüssel für ausgewählt. Wiederholtes „Next collision“
+läuft in einer Teilfolge aus Eintrittskontakten und dem ersten Programmkontakt im Kreis.
+Der spätere Werkzeugkontakt bei 532 mm bleibt dabei unerreichbar. Die aufgezeichneten
+Reglerwerte sind auf dessen native Schrittweite gerundet; die exakten Kontaktwerte stehen
+in den Worker-Ergebnissen.
+
+**Stellen:** Schlüsselbildung `viewer/clashTargets.ts:32–35`, Auswahl per erstem Treffer
+`viewer/findingNav.ts:31–40`; außerdem verwendet `ScrubBar.vue:831` denselben Schlüssel
+bei der Auflösung über einen Trackwechsel. `mergeEntryResult` verschiebt die Basiswerte,
+trennt aber keine Identitäten. Die Annahme „Eintritt hat immer Zeile 0“ hilft im aktuellen
+Code nicht: nur der neu vorangestellte Startpunkt hat 0; der Endpunkt trägt L7 und bestimmt
+die Zeile des Eintritts-Sweeps.
+
+**Korrektur:** Die Herkunft Eintritt/Programm und das jeweilige Kontaktintervall eindeutig
+benennen. Programmschlüssel müssen beim Hinzufügen des Eintrittsergebnisses stabil bleiben;
+ein Index in der nachträglich sortierten Gesamtliste oder der verschobene `cum` allein
+leistet das nicht. Prüfen, dass Vor/Zurück alle getrennten Ziele erreicht und eine gewählte
+Programmkollision auch nach Ankunft des Seitenergebnisses dieselbe bleibt.
+
+**Belege:** [Sonde](r33.collision-key.spec.ts),
+[unveränderte Worker-Ergebnisse, Zielschlüssel und Klickfolge](r33.collision-key.json),
+[Bild](r33.collision-key.png), [roter Lauf](r33.collision-playwright.txt).
+
+### VP-I08 · P2 · Manuelles Weg- und Zurückbewegen reaktiviert die alte Auswahl
+
+Zu Rückfrage 2: Der exakte Vergleich beendet die Identität **nicht dauerhaft**. `navSel`
+wird nur durch einen weiteren Befundsprung ersetzt; weder `onScrubInput` noch die übrigen
+Positionsschreiber löschen sie. Sobald die Position wieder exakt `navSel.pos` erreicht,
+gilt die alte Auswahl erneut. Das ist kein Rundungsproblem und braucht keine Epsilon-Lösung.
+
+**Browser-Reproduktion mit demselben echten Modell:** Zeitachse von 2 s, native Schrittweite
+0,001 s. „Next“ wählt einen Eintrittskontakt bei 0,001 s. Am unveränderten Regler drücke ich
+`ArrowRight` und `ArrowLeft`: 0,001 → 0,002 → 0,001 s. Nach der manuellen Bewegung soll die
+Navigation von der aktuellen Position ausgehen; der nächste spätere Kontakt beginnt bei
+1,260418 s, das Sprungsample wäre 1,261418 s. Tatsächlich springt „Next“ zu einem weiteren
+Kontakt am alten Anfang und bleibt bei **0,001 s**. Der ausgewählte Ausgangsschlüssel ist
+in dieser Probe eindeutig; dieser Fehler ist damit unabhängig von VP-I07.
+
+**Stellen:** `ScrubBar.vue:447–452`, `:699`, `:838` und
+`viewer/findingNav.ts:31–32`. Die vorhandene Unit-Probe für manuellen Scrub prüft nur eine
+abweichende Position, nicht das Zurückkehren zur früheren Sprungposition.
+
+**Korrektur:** Auswahl bei manueller Eingabe und den anderen ausdrücklich genannten
+Wechseln der Positionssteuerung aktiv verwerfen; nur der Befundsprung setzt sie neu.
+Programm-/Basiswechsel ebenfalls als neue Bindung behandeln. Das nachträgliche Hinzufügen
+des Eintrittsergebnisses darf dagegen die noch gültige gewählte Programmkollision nicht
+verlieren. Neben Weg/Zurück auch Wiedergabestart und Wechsel des Programms absichern.
+
+**Belege:** [Sonde mit nativen Pfeiltasten](r33.selection-reset.spec.ts),
+[Positions- und Zielmessung](r33.selection-reset.json), [Bild](r33.selection-reset.png),
+[roter Lauf](r33.selection-playwright.txt).
+
+### Kollisionsszene, Live-Nachweis und vorübergehend fehlende Tönung
+
+Claudes neue `collisions.viewer.spec.ts` besteht mit dem echten XYZAC-Modell. Sie prüft den
+ersten Sprung über den Eintrittsweg, L7 und dessen eingeblendete X-Bewegung sinnvoll. Für
+mehrere Kontakte und die Lebensdauer der neuen Identität fehlen bislang die oben gezeigten
+Fälle. Ein vollständiger LinuxCNC-Lauf oder eine erneute Live-Sichtprüfung wurde von mir
+entsprechend der Arbeitsgrenze nicht durchgeführt; die Live-Angaben bleiben Claudes Nachweis.
+
+Zur zusätzlichen Tönungsfrage: **Ja, das weiterhin gültige Basisergebnis sollte im
+Programmteil bereits nutzbar sein.** Die aktuelle Wartegrenze ist im Code nachvollziehbar:
+`ThreeViewer.vue:2429–2441` liefert für den Eintrittstrack erst nach beiden Ergebnissen ein
+Resultat. Ein begrenzter Folgepunkt wäre, für Positionen im Programmteil dessen Sample um
+die Eintrittslänge zurückzurechnen und nur das exakt dazugehörige, noch gültige Basisresultat
+zur Tönung heranzuziehen. Der noch ungeprüfte Eintritt bleibt ausdrücklich ausstehend;
+keine Freigabe-/„clear“-Aussage über die Gesamtroute und kein beliebiges altes Ergebnis
+als Ersatz. Das ist eine Verbesserung des bereits bestehenden Zwischenzustands, kein
+zusätzlicher Blocker dieser Navigationskorrektur.
+
+### Prüfung und Übergabe
+
+- Typecheck und Produktionsbuild erfolgreich.
+- **185/185 Unit-Tests** aus neun gezielten Dateien erfolgreich.
+- **13/13 Browserprüfungen** erfolgreich: vier R32-Zielsonden als Kopien, vier aktuelle
+  Grenzbefundtests, vier Rapids-Tests und Claudes echter XYZAC-Kollisionstest.
+- **Drei zusätzliche Browser-Sonden rot**, jeweils mit gespeicherten Daten vor der
+  fehlschlagenden Assertion: VP-I05-Rest, VP-I07, VP-I08. Sie verlangen das gewünschte Verhalten.
+
+[Wiederholung und Grenzen](r33.README.md), [Ergebnisübersicht](r33.tests.json),
+[Build](r33.build.txt), [Unit-Lauf](r33.vitest.txt), [grüner Browserlauf](r33.playwright.txt).
+Alle Ausführungen in `/tmp/codex-r33-iw8tie70`, mit `nice -n 19`, einem Browser zur Zeit
+und eigenem Mock `127.0.0.1:4188`. Mock danach beendet. Keine Zugriffe auf `:5173`/`:8000`,
+keine Maschinenbefehle und kein eigener vollständiger Offline-/Backend-Lauf. Im Live-Checkout
+nur dieser Anhang, neue `r33.*`-Belege und die vereinbarte Handshake-Rückmeldung; Produktcode
+und frühere Belege unverändert.
+
+**Übergabe:** VP-I06 geschlossen; VP-I05-Rest, VP-I07 und VP-I08 offen. R33 erhält `findings`.

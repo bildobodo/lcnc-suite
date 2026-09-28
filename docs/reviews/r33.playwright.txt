@@ -1,0 +1,22 @@
+
+Running 13 tests using 1 worker
+
+(node:125752) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:125752) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/collisions.viewer.spec.ts:25:1 › a collision jump on the real XYZAC model lands on its line and shows its move — across the entry move (5.7s)
+  ✓   2 e2e/findings.viewer.spec.ts:46:3 › a limit jump lands in the finding and shows its move — no entry move (control) (2.1s)
+  ✓   3 e2e/findings.viewer.spec.ts:46:3 › a limit jump lands in the finding and shows its move — the first jump builds the entry move (2.0s)
+  ✓   4 e2e/findings.viewer.spec.ts:46:3 › a limit jump lands in the finding and shows its move — a 0.1 ms violating move on the time axis (2.0s)
+  ✓   5 e2e/findings.viewer.spec.ts:46:3 › a limit jump lands in the finding and shows its move — two findings 5 ms apart (2.1s)
+  ✓   6 e2e/r33.targets.spec.ts:34:2 › R33 first finding jump targets L7: zero-entry (2.3s)
+  ✓   7 e2e/r33.targets.spec.ts:34:2 › R33 first finding jump targets L7: entry (2.3s)
+  ✓   8 e2e/r33.targets.spec.ts:34:2 › R33 first finding jump targets L7: short-time (2.4s)
+  ✓   9 e2e/r33.targets.spec.ts:34:2 › R33 first finding jump targets L7: close-targets (2.3s)
+  ✓  10 e2e/rapids.viewer.spec.ts:19:1 › hidden rapids keep their limit finding; a jump to it shows them for the finding and says so (2.3s)
+  ✓  11 e2e/rapids.viewer.spec.ts:79:3 › a finding's view on hidden rapids is told — hud-off (2.1s)
+  ✓  12 e2e/rapids.viewer.spec.ts:79:3 › a finding's view on hidden rapids is told — folded (2.3s)
+  ✓  13 e2e/rapids.viewer.spec.ts:124:1 › a finding shows its own move of a hidden layer — not the layer (2.6s)
+
+  13 passed (33.1s)

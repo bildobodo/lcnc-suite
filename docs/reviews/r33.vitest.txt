@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r33-iw8tie70/lcnc-webui
+
+
+ Test Files  9 passed (9)
+      Tests  185 passed (185)
+   Start at  22:29:21
+   Duration  953ms (transform 182ms, setup 0ms, import 420ms, tests 112ms, environment 0ms)
+

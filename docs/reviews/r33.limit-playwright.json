@@ -1,0 +1,148 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r33-iw8tie70/lcnc-webui/playwright.r33-limit.config.ts",
+    "rootDir": "/tmp/codex-r33-iw8tie70/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r33-iw8tie70/evidence/results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/tmp/codex-r33-iw8tie70/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:r33.limit-origin)\\.spec\\.ts/"
+        ],
+        "timeout": 90000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "../evidence/r33.limit-playwright.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "r33.limit-origin.spec.ts",
+      "file": "r33.limit-origin.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R33 limit keeps program origin when its first line spans multiple points",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2479,
+                  "error": {
+                    "message": "Error: The program finding starts AFTER the 100 mm entry move\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m100\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+                    "stack": "Error: The program finding starts AFTER the 100 mm entry move\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m100\u001b[39m\nReceived:   \u001b[31m0\u001b[39m\n    at /tmp/codex-r33-iw8tie70/lcnc-webui/e2e/r33.limit-origin.spec.ts:47:95",
+                    "location": {
+                      "file": "/tmp/codex-r33-iw8tie70/lcnc-webui/e2e/r33.limit-origin.spec.ts",
+                      "column": 95,
+                      "line": 47
+                    },
+                    "snippet": "  45 |   expect(first.line,'First click must show the requested line, including after constructing the entry track').toMatch(/^L7\\b/);\n  46 |   expect(first.roles.feed,'The finding itself must be revealed').not.toBeNull();\n> 47 |   expect(Number(first.slider.value),'The program finding starts AFTER the 100 mm entry move').toBeGreaterThan(100);\n     |                                                                                               ^\n  48 |   expect(Number(first.slider.value),'The sample stays inside the 10 mm program move').toBeLessThan(110);\n  49 |\n  50 |  });"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r33-iw8tie70/lcnc-webui/e2e/r33.limit-origin.spec.ts",
+                        "column": 95,
+                        "line": 47
+                      },
+                      "message": "Error: The program finding starts AFTER the 100 mm entry move\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m100\u001b[39m\nReceived:   \u001b[31m0\u001b[39m\n\n  45 |   expect(first.line,'First click must show the requested line, including after constructing the entry track').toMatch(/^L7\\b/);\n  46 |   expect(first.roles.feed,'The finding itself must be revealed').not.toBeNull();\n> 47 |   expect(Number(first.slider.value),'The program finding starts AFTER the 100 mm entry move').toBeGreaterThan(100);\n     |                                                                                               ^\n  48 |   expect(Number(first.slider.value),'The sample stays inside the 10 mm program move').toBeLessThan(110);\n  49 |\n  50 |  });\n    at /tmp/codex-r33-iw8tie70/lcnc-webui/e2e/r33.limit-origin.spec.ts:47:95"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-28T20:39:01.625Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r33-iw8tie70/evidence/results/r33.limit-origin-R33-limit-98a5a--line-spans-multiple-points/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r33-iw8tie70/evidence/results/r33.limit-origin-R33-limit-98a5a--line-spans-multiple-points/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r33-iw8tie70/lcnc-webui/e2e/r33.limit-origin.spec.ts",
+                    "column": 95,
+                    "line": 47
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "e9df6a5a03853947b09a-d544ecadf393bcb0fa18",
+          "file": "r33.limit-origin.spec.ts",
+          "line": 34,
+          "column": 2
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-09-28T20:39:01.127Z",
+    "duration": 3050.169,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

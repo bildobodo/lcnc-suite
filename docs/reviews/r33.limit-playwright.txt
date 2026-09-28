@@ -1,0 +1,36 @@
+
+Running 1 test using 1 worker
+
+(node:135510) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:135510) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r33.limit-origin.spec.ts:34:2 › R33 limit keeps program origin when its first line spans multiple points (2.5s)
+
+
+  1) e2e/r33.limit-origin.spec.ts:34:2 › R33 limit keeps program origin when its first line spans multiple points 
+
+    Error: The program finding starts AFTER the 100 mm entry move
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThan[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: > [32m100[39m
+    Received:   [31m0[39m
+
+      45 |   expect(first.line,'First click must show the requested line, including after constructing the entry track').toMatch(/^L7\b/);
+      46 |   expect(first.roles.feed,'The finding itself must be revealed').not.toBeNull();
+    > 47 |   expect(Number(first.slider.value),'The program finding starts AFTER the 100 mm entry move').toBeGreaterThan(100);
+         |                                                                                               ^
+      48 |   expect(Number(first.slider.value),'The sample stays inside the 10 mm program move').toBeLessThan(110);
+      49 |
+      50 |  });
+        at /tmp/codex-r33-iw8tie70/lcnc-webui/e2e/r33.limit-origin.spec.ts:47:95
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/r33.limit-origin-R33-limit-98a5a--line-spans-multiple-points/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/r33.limit-origin-R33-limit-98a5a--line-spans-multiple-points/error-context.md
+
+  1 failed
+    e2e/r33.limit-origin.spec.ts:34:2 › R33 limit keeps program origin when its first line spans multiple points 

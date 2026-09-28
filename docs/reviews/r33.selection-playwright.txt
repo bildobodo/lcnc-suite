@@ -1,0 +1,35 @@
+
+Running 1 test using 1 worker
+
+(node:131948) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:131948) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r33.selection-reset.spec.ts:16:1 › R33 manual scrub away and back permanently ends finding identity (7.5s)
+
+
+  1) e2e/r33.selection-reset.spec.ts:16:1 › R33 manual scrub away and back permanently ends finding identity 
+
+    Error: After manual movement navigation must use position, not the old selected identity
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThan[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: > [32m1[39m
+    Received:   [31m0.001[39m
+
+      69 |   byPosition,expectedSample:sampleCum(byPosition),actual},null,2)+'\n');
+      70 |  await page.screenshot({path:`${OUT}/r33.selection-reset.png`});
+    > 71 |  expect(Number(actual.pos),'After manual movement navigation must use position, not the old selected identity').toBeGreaterThan(1);
+         |                                                                                                                 ^
+      72 | });
+      73 |
+        at /tmp/codex-r33-iw8tie70/lcnc-webui/e2e/r33.selection-reset.spec.ts:71:113
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/r33.selection-reset-R33-ma-54d33-ently-ends-finding-identity/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/r33.selection-reset-R33-ma-54d33-ently-ends-finding-identity/error-context.md
+
+  1 failed
+    e2e/r33.selection-reset.spec.ts:16:1 › R33 manual scrub away and back permanently ends finding identity 

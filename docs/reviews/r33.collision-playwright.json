@@ -1,0 +1,148 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r33-iw8tie70/lcnc-webui/playwright.r33-collision.config.ts",
+    "rootDir": "/tmp/codex-r33-iw8tie70/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r33-iw8tie70/evidence/results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/tmp/codex-r33-iw8tie70/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:r33.collision-key)\\.spec\\.ts/"
+        ],
+        "timeout": 90000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "../evidence/r33.collision-playwright.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "r33.collision-key.spec.ts",
+      "file": "r33.collision-key.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R33 entry and program contacts have unique navigation keys",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 8413,
+                  "error": {
+                    "message": "Error: Entry and program contacts must not alias\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m9\u001b[39m\nReceived: \u001b[31m7\u001b[39m",
+                    "stack": "Error: Entry and program contacts must not alias\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m9\u001b[39m\nReceived: \u001b[31m7\u001b[39m\n    at /tmp/codex-r33-iw8tie70/lcnc-webui/e2e/r33.collision-key.spec.ts:54:90",
+                    "location": {
+                      "file": "/tmp/codex-r33-iw8tie70/lcnc-webui/e2e/r33.collision-key.spec.ts",
+                      "column": 90,
+                      "line": 54
+                    },
+                    "snippet": "  52 |  await page.screenshot({path:`${OUT}/r33.collision-key.png`});\n  53 |  expect(targets.length,'Both independent sweeps must produce targets').toBeGreaterThan(1);\n> 54 |  expect(new Set(targets.map(t=>t.key)).size,'Entry and program contacts must not alias').toBe(targets.length);\n     |                                                                                          ^\n  55 | });\n  56 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r33-iw8tie70/lcnc-webui/e2e/r33.collision-key.spec.ts",
+                        "column": 90,
+                        "line": 54
+                      },
+                      "message": "Error: Entry and program contacts must not alias\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m9\u001b[39m\nReceived: \u001b[31m7\u001b[39m\n\n  52 |  await page.screenshot({path:`${OUT}/r33.collision-key.png`});\n  53 |  expect(targets.length,'Both independent sweeps must produce targets').toBeGreaterThan(1);\n> 54 |  expect(new Set(targets.map(t=>t.key)).size,'Entry and program contacts must not alias').toBe(targets.length);\n     |                                                                                          ^\n  55 | });\n  56 |\n    at /tmp/codex-r33-iw8tie70/lcnc-webui/e2e/r33.collision-key.spec.ts:54:90"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-28T20:32:21.353Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r33-iw8tie70/evidence/results/r33.collision-key-R33-entr-54b65-have-unique-navigation-keys/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r33-iw8tie70/evidence/results/r33.collision-key-R33-entr-54b65-have-unique-navigation-keys/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r33-iw8tie70/lcnc-webui/e2e/r33.collision-key.spec.ts",
+                    "column": 90,
+                    "line": 54
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "16d49f6ecd00760c6fa7-7b50ac39103da37a1030",
+          "file": "r33.collision-key.spec.ts",
+          "line": 15,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-09-28T20:32:20.890Z",
+    "duration": 8970.018,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

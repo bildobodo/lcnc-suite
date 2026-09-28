@@ -1,0 +1,61 @@
+{
+  "head": "b99b56c03c07288e863e3b114b9d5133068321d7",
+  "scope": "a305a35..b99b56c",
+  "verdict": "findings",
+  "typecheck_build": "pass",
+  "vitest": {
+    "files": 9,
+    "passed": 185
+  },
+  "browser_final_runs": {
+    "r33.playwright": {
+      "startTime": "2026-09-28T20:30:42.330Z",
+      "duration": 33131.292,
+      "expected": 13,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "r33.collision-playwright": {
+      "startTime": "2026-09-28T20:32:20.890Z",
+      "duration": 8970.018,
+      "expected": 0,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    },
+    "r33.selection-playwright": {
+      "startTime": "2026-09-28T20:36:08.315Z",
+      "duration": 8031.700000000001,
+      "expected": 0,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    },
+    "r33.limit-playwright": {
+      "startTime": "2026-09-28T20:39:01.127Z",
+      "duration": 3050.169,
+      "expected": 0,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    }
+  },
+  "open": [
+    "VP-I05-Rest",
+    "VP-I07",
+    "VP-I08"
+  ],
+  "closed": [
+    "VP-I06"
+  ],
+  "isolation": {
+    "archive": "/tmp/codex-r33-iw8tie70",
+    "mock": "127.0.0.1:4188",
+    "nice": 19,
+    "workers": 1,
+    "live_ports_used": false,
+    "machine_commands": false,
+    "mock_stopped": true
+  }
+}

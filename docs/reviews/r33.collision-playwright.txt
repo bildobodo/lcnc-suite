@@ -1,0 +1,35 @@
+
+Running 1 test using 1 worker
+
+(node:127788) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:127788) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r33.collision-key.spec.ts:15:1 › R33 entry and program contacts have unique navigation keys (8.4s)
+
+
+  1) e2e/r33.collision-key.spec.ts:15:1 › R33 entry and program contacts have unique navigation keys 
+
+    Error: Entry and program contacts must not alias
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m9[39m
+    Received: [31m7[39m
+
+      52 |  await page.screenshot({path:`${OUT}/r33.collision-key.png`});
+      53 |  expect(targets.length,'Both independent sweeps must produce targets').toBeGreaterThan(1);
+    > 54 |  expect(new Set(targets.map(t=>t.key)).size,'Entry and program contacts must not alias').toBe(targets.length);
+         |                                                                                          ^
+      55 | });
+      56 |
+        at /tmp/codex-r33-iw8tie70/lcnc-webui/e2e/r33.collision-key.spec.ts:54:90
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/r33.collision-key-R33-entr-54b65-have-unique-navigation-keys/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/r33.collision-key-R33-entr-54b65-have-unique-navigation-keys/error-context.md
+
+  1 failed
+    e2e/r33.collision-key.spec.ts:15:1 › R33 entry and program contacts have unique navigation keys 
