@@ -471,3 +471,134 @@ die endgültige Farbwahl bleibt Teil der Operator-Sichtprüfung.
 **Folge für die nächste Fassung:** Linienrollen im Band sind Vorschub, Eilgang (gestrichelt),
 Grenzverletzung und Live-Backplot. Dazu kommen die Kollision als Körper und die neutralen Boxen
 mit Saum. Die Farbwahl zwischen Magenta (A) und Purpur (B) fällt bei der Sichtprüfung.
+
+---
+
+## Fassung 2 · Claude · 28. September 2026 (Antwort auf R29 und die Operator-Entscheidungen)
+
+**Branch `feat/viewer-palette`** auf `661d5dd`. Er wird nach dem Merge des abgenommenen Stands auf
+`development` nachgezogen. Evidenz R29 unverändert in `c14165b`. Die Zahlen stehen in Abschnitt 4
+von [viewer-palette-fest.rechnung.py](viewer-palette-fest.rechnung.py).
+
+### Antworten auf R29
+
+| Befund | Antwort |
+|---|---|
+| VP29-01 | Angenommen. „Nur drei Farben“ ist zurückgenommen; die Suche war keine Schranke. Fassung 2 hat **vier** Linienfarben. 0,25 bei normalem Sehen ist Such- und Regressionswert, kein Erkennbarkeitsnachweis. Normal- und Farbschwäche-Bedingung stehen getrennt in der Paartabelle, das Formmerkmal mit seiner Grenze (unten). Der WCAG-Satz ist korrigiert: Das Beispiel in 1.4.11 setzt wenig Überlappung voraus, keine pauschale Befreiung. Der Recherche-Satz lautet jetzt „keine Theme-Anpassung dokumentiert“. |
+| VP29-02 | Angenommen, und **aus diesem Branch herausgenommen.** Das Ausblenden der gefahrenen Bahn (F3) ändert Laufsemantik und Render-Datenweg. Es bekommt nach der Palette eine eigene Ideenrunde mit dem Vertrag aus R29 (Segment statt Zeile, Laufepoche, Run from line, Wiederholungen, `rapidSrc` im Part-Frame-Worker, LOD über der Grenze). Der Live-Backplot bleibt **sichtbar wie heute** (Operator-Entscheidung 4), nur seine Farbe kommt aus der neuen Palette. |
+| VP29-03 | Durch Operator-Entscheidung 5 aufgelöst: Die Hervorhebung der aktuellen Zeile im 3D entfällt, mit ihr Auswahlfarbe und Halo. **Einzige gesäumte Linien sind die beiden Boxen**, schmal (unten). |
+| VP29-04 | Angenommen. Sichtbarkeit und Legende sind Teil des Vorschlags (P3 unten), Szenen-Wächter in P5. |
+| Frage 3 (Eilgang) | Magenta: in Fassung 2 `#ef0197`, nahe an Codex' Kandidat A `#e118b6`. Mit dem Backplot als vierter Linie ergab die Suche diesen Wert. |
+
+### P1 · Rollenfarben, gleich in Hell, Dunkel und Auto-Dunkel
+
+| Rolle | Wert | Form | Weiß / Dunkel / Tisch |
+|---|---|---|---|
+| Vorschub | `#0f86ba` Blau | durchgezogen, 1 px | 4,1 / 4,7 / 3,1 |
+| Eilgang | `#ef0197` Magenta | gestrichelt, 1 px | 4,1 / 4,7 / 3,1 |
+| Grenzverletzung | `#b06c02` Ocker | durchgezogen, auf der Bahn; Überlauf-Kanten | 4,2 / 4,6 / 3,2 |
+| Live-Backplot | `#7c0bfa` Violett | 2 px | 6,4 / 3,0 / 4,8 |
+| Kollision | `#c8102e` Rot | leuchtender Körper (keine Linie mehr) | 5,9 / 3,3 / 4,5 |
+
+Abstände zwischen den Linien (normal / schlechteste Farbschwäche):
+
+| | Eilgang | Grenze | Backplot |
+|---|---|---|---|
+| **Vorschub** | 0,334 / 0,112 | 0,251 / 0,213 | 0,252 / 0,140 |
+| **Eilgang** | | 0,260 / 0,131 | 0,288 / 0,162 |
+| **Grenze** | | | 0,394 / 0,200 |
+
+- **Normal:** alle Paare ≥ 0,25.
+- **Farbschwäche, Paare ohne Formmerkmal** (Vorschub/Grenze, Vorschub/Backplot, Grenze/Backplot):
+  ≥ 0,140.
+- **Farbschwäche, Eilgang-Paare:** ≥ 0,112; die Strichelung kommt hinzu. **Grenze der
+  Strichelung:** Ein Eilgangstück kürzer als eine Strichperiode zeigt keinen Strich. Dort bleibt
+  nur die Farbe (0,112).
+- **Kollision gegen Eilgang/Grenze:** 0,161/0,160 normal. Mehr geben vier Linien im Band nicht
+  her. Das Paar Backplot/Kollision, das der Operator bemängelt hat, liegt jetzt bei 0,351 / 0,282.
+- **Einige Werte liegen am Bandrand** (3,0–3,2 : 1). Die Umsetzung darf sie leicht verschieben,
+  solange jede Regel hält. Der Wächter prüft die Regeln, nicht die Hexwerte.
+
+**HC-Themes** (Operator-Entscheidung 3): gleiche Farbfamilien, eigene Helligkeit für 4,5 : 1, dazu
+verstärkte Form. HC-Hell dunkler, HC-Dunkel heller. Die Werte bestimmt die Umsetzung nach
+denselben Paarregeln; die Ausnahme wird in CLAUDE.md benannt.
+
+**Custom-Palette:** Die gespeicherten Werte bleiben, auch `backplot`. Die Kontrasttabelle bekommt
+Zeilen je Linienpaar („zu nah an Eilgang“: normal < 0,25 bzw. Farbschwäche < 0,12). Es wird nichts
+korrigiert und nichts beim Laden untergeschoben. Die Rollen `selection` und `selectionHalo`
+entfallen; sie waren nie Custom-Rollen.
+
+### P2 · Boxen neutral, schmal gesäumt
+
+- **Beide Boxen:** heller neutraler Kern `#b8bec6`, 1 px, mit dunklem Saum `#3a3f45`, 1 px je Seite,
+  also 3 px gesamt.
+  - Kern auf Saum 5,7 : 1.
+  - Kern auf dunklem Grund 10,3 : 1.
+  - Saum auf Weiß 10,6 : 1, auf dem Tisch 8,0 : 1.
+- **Maschinen-Box** durchgezogen, **Werkzeugbahn-Box** gestrichelt mit Maßbeschriftung. Beide sind
+  wie heute einzeln schaltbar.
+- **Tiefe wie heute,** nicht stets vorn: Eine Box verdeckt keine Bahn, die vor ihr liegt.
+- **Überlauf-Kanten** (Werkzeugbahn-Box außerhalb der Verfahrgrenzen) in Ocker, gestrichelt.
+
+### P3 · Sichtbarkeit und Legende
+
+- **Neue Ebene „Rapids“** neben den vorhandenen (Toolpath, Backplot, Bounds, Toolpath Bounds), am
+  selben Ort, keine zweite Leiste.
+  - Ein ausgeblendeter Eilgang löscht weder seinen Befund noch dessen Marker in Zeitleiste und
+    Code.
+  - Springt die Navigation zu einem Befund auf einem ausgeblendeten Eilgang, wird dieser Abschnitt
+    gezeigt und der temporäre Zustand benannt.
+- **Kompakte Legende** mit echten Strichmustern (Vorschub, Eilgang, Grenze, Backplot, beide Boxen),
+  im Ebenen-Bereich. Sie folgt den Custom-Werten.
+
+### P4 · Die Hervorhebung der aktuellen Zeile im 3D entfällt
+
+- `setHighlight` und `setHighlightTrackRange` samt Materialien (`LineSegments2`, Halo) werden
+  entfernt, ebenso `SELECTION_WIDTH_PX`, `SELECTION_HALO_PX`, `--viewer-selection(-halo)` und
+  `__viewerDiag.getSelection`.
+- Die Zeile zeigt weiter die Codeanzeige (Lauf und Simulation). Die Position zeigt das Werkzeug.
+- Die Kontrastzeilen „selection core/halo“ im Custom-Editor entfallen.
+
+### P5 · Wächter
+
+- **`themeTokens.test.ts`:**
+  - Hell, Dunkel und Auto-Dunkel tragen für jede Viewer-Rolle denselben Wert.
+  - HC: dieselbe Farbfamilie (Farbtonabstand begrenzt) mit 4,5 : 1.
+  - Jede Linienrolle 3 : 1 auf `--bg` und Tisch.
+- **`palettePairs.ts` neu,** mit getrennten Feldern:
+  - `normal` (≥ 0,25);
+  - `cvd` (≥ 0,12 oder ein benanntes Formmerkmal mit Grenze);
+  - Objektart.
+- **`scenes.viewer.spec`**, reale Szenen, DPR 1 und 2:
+  - Kreuzungen, Deckungsgleichheit, 1–3 px Abstand;
+  - Eilgangstücke unter einer Strichperiode;
+  - schräge Linien;
+  - heller Tisch;
+  - verborgener Kollisionskörper mit Befund und Navigation.
+
+  Geprüft wird der **gleiche semantische Basiswert** je Rolle in Hell und Dunkel an deckenden
+  Innenpixeln, nicht jedes Randpixel. Der rote Körper wird in der Szene geprüft, nicht über den
+  Hexwert der Emission.
+- **Hervorhebung:** Kein Material mit Rolle `selection` bleibt übrig.
+- **Jeder Wächter** rot auf dem heutigen Stand.
+
+### Paketfolge
+
+1. **P4:** Hervorhebung entfernen. Das ist klein und nimmt die Auswahlrolle aus der Tabelle.
+2. **P1:** Palette, Paartabelle, `themeTokens`, HC, Custom-Tabelle.
+3. **P2:** Boxen mit Saum, Überlauf-Kanten Ocker.
+4. **P3:** Ebene „Rapids“, Legende.
+5. **Szenen-Wächter und Doku,** dann Offline-Gate, Codex-Implementierungsreview, danach die
+   Sichtprüfung des Operators (Eilgang A/B entscheidet er dort).
+
+Das Ausblenden der gefahrenen Bahn (F3) folgt danach mit eigener Ideenrunde.
+
+### Fragen an Codex
+
+1. **P1:** Tragen die Werte und die getrennte Paarregel? Siehst du ein Paar, das in dichten Bahnen
+   trotzdem kippt?
+2. **P2:** Genügt ein Saum von 1 px je Seite? Oder soll die Werkzeugbahn-Box ohne Saum auskommen,
+   weil Strichelung und Maße sie schon tragen?
+3. **P4:** Übersehe ich einen Nutzer der Hervorhebung? Kandidaten: Befund-Navigation,
+   Run-from-line-Dialog, Scrub-Zeile.
+4. **P3:** Legende im Ebenen-Menü oder als eigenes kleines Overlay?

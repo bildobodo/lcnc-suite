@@ -146,3 +146,21 @@ print(f"   selection core {SEL_CORE} on halo {SEL_HALO}: {contrast(core, halo):.
       f" halo on white {contrast(halo, WHITE):.1f}, on table {contrast(halo, TABLE):.1f}")
 for r in ("feed", "rapid", "limit"):
     print(f"   selection core / {r}: normal {okd(core, hx(CAND[r])):.3f}  worst dichromat {cvd(core, hx(CAND[r])):.3f}")
+
+# 4 ── Fassung 2: four line roles (the live backplot stays), no selection ──
+# Found by a local-refinement search (random starts + small OKLCH steps) over
+# the same band; evaluated here deterministically.
+F2 = {"feed": "#0f86ba", "rapid": "#ef0197", "limit": "#b06c02", "backplot": "#7c0bfa"}
+COLL = "#c8102e"
+BOX_CORE, BOX_CASING = "#b8bec6", "#3a3f45"
+print("\n4. FASSUNG 2 — four line roles, identical in light and dark")
+for r, v in {**F2, "collision": COLL}.items():
+    c = hx(v)
+    print(f"   {r:<9} {v}  white {contrast(c, WHITE):.1f}  dark {contrast(c, DARK):.1f}  table {contrast(c, TABLE):.1f}")
+for x, y in itertools.combinations(F2, 2):
+    print(f"   {x}/{y}: normal {okd(hx(F2[x]), hx(F2[y])):.3f}  worst dichromat {cvd(hx(F2[x]), hx(F2[y])):.3f}")
+for r in F2:
+    print(f"   collision/{r}: normal {okd(hx(COLL), hx(F2[r])):.3f}  worst dichromat {cvd(hx(COLL), hx(F2[r])):.3f}")
+core, casing = hx(BOX_CORE), hx(BOX_CASING)
+print(f"   box core {BOX_CORE} on casing {BOX_CASING}: {contrast(core, casing):.1f}; core on dark {contrast(core, DARK):.1f};"
+      f" casing on white {contrast(casing, WHITE):.1f}, on table {contrast(casing, TABLE):.1f}")
