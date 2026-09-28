@@ -309,3 +309,55 @@ test("the width ladder is drawn: the path and the limit overlay 1 px, the backpl
     await context.close();
   }
 });
+
+// The box edge measured ALONE (fixed palette P2; Codex R31 answer 2 — its
+// isolated scene, kept as the guard): everything but the machine box off, one
+// edge with nothing within 8 CSS px, its profile fitted pixel by pixel to
+// background / core / casing coverage in quarter steps (the browser's four
+// samples): the core covers 1 CSS px, core and casing 3 — in light and dark,
+// at DPR 1 and 2. The ladder scene above keeps the material check; its live
+// box lays two edges within a pixel or two, too close for widths.
+test("the box edge alone: a 1 CSS px core on a 3 CSS px casing — at DPR 1 and 2", async ({ browser }) => {
+  test.setTimeout(120_000);
+  for (const dpr of [1, 2]) {
+    const context = await browser.newContext({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: dpr });
+    const page = await context.newPage();
+    await ctl({ op: "reset" });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto(MOCK);
+    await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready)).toBe(true);
+    await page.evaluate(() => window.__viewerDiag!.setViewDirection!([1, 2, 0.7]));
+    for (const theme of ["light", "dark"] as const) {
+      await ctl({ op: "raw", frame: { type: "settings_changed", settings: { display: { theme }, viewer: { layers: {
+        hud: false, bounds: true, toolpath: false, tool: false, machine: false, workzero: false, groundGrid: false } } } } });
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      await page.waitForTimeout(300);
+      const where = `DPR ${dpr} ${theme}`;
+      const edge = await page.evaluate(() => window.__viewerDiag!.projectRole!("bounds"));
+      expect(edge, `${where}: a visible box edge`).not.toBeNull();
+      const drawn = (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn;
+      const core = rgbOf(drawn.bounds!), casing = rgbOf(drawn.boundsCasing!);
+      const shot = await page.screenshot();
+      // one sample per device pixel across ±8 CSS px
+      const offsets = Array.from({ length: 16 * dpr + 1 }, (_, i) => (i - 8 * dpr) / dpr);
+      const profile = await profileColours(page, shot, edge!, offsets, dpr);
+      const bg = profile[0]!;
+      const mixes: { c: number; s: number; rgb: number[] }[] = [];
+      for (let c = 0; c <= 4; c++) for (let s = 0; s <= 4 - c; s++) {
+        mixes.push({ c: c / 4, s: s / 4, rgb: [0, 1, 2].map(j => (c * core[j]! + s * casing[j]! + (4 - c - s) * bg[j]!) / 4) });
+      }
+      let coreSum = 0, allSum = 0, worst = 0;
+      for (const px of profile) {
+        const m = mixes.slice().sort((a, b) => rgbDist(px, a.rgb) - rgbDist(px, b.rgb))[0]!;
+        coreSum += m.c; allSum += m.c + m.s;
+        worst = Math.max(worst, ...px.map((v, j) => Math.abs(v - m.rgb[j]!)));
+      }
+      const dump = JSON.stringify({ core: coreSum / dpr, total: allSum / dpr, worst, edge, profile });
+      await test.info().attach(`box-edge-dpr${dpr}-${theme}.png`, { body: shot, contentType: "image/png" });
+      expect(worst, `${where}: every pixel is background, core and casing — nothing else near the edge ${dump}`).toBeLessThan(6);
+      expect(Math.abs(coreSum / dpr - 1), `${where}: the core covers 1 CSS px ${dump}`).toBeLessThan(0.3);
+      expect(Math.abs(allSum / dpr - 3), `${where}: core and casing cover 3 CSS px ${dump}`).toBeLessThan(0.4);
+    }
+    await context.close();
+  }
+});
