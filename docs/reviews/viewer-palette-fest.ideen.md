@@ -106,16 +106,26 @@ Jede Rolle hat in Hell, Dunkel und Auto-Dunkel **denselben** Wert. Die HC-Themes
 | Rolle | Wert | Form | Weiß / Dunkel / Tisch |
 |---|---|---|---|
 | Vorschub | `#395afa` Blau | durchgezogen, 1 px | 5,2 / 3,7 / 4,0 |
-| Eilgang | `#e118b6` Magenta | **gestrichelt**, 1 px | 4,2 / 4,6 / 3,2 |
+| Eilgang | `#d422e5` Purpur-Magenta | **gestrichelt**, 1 px | 4,1 / 4,7 / 3,1 |
 | Grenzverletzung | `#9f6700` Ocker | durchgezogen, auf der Bahn | 4,8 / 4,0 / 3,6 |
 
-Abstände (normal / schlechteste Farbschwäche):
-- Vorschub / Eilgang 0,302 / 0,108. Hier trägt bei Farbschwäche die Strichelung.
-- Vorschub / Grenze 0,357 / 0,214.
-- Eilgang / Grenze 0,297 / 0,139.
+**Eilgang-Optionen:** Die Kollisionsfarbe ist doch eine Linie (die Überlauf-Kanten, F6). Deshalb
+wurde der Eilgang mit der Kollision im Ziel gewählt. Je Farbfamilie der beste Wert im Band,
+Abstand normal / schlechteste Farbschwäche:
 
-Heute liegt das engste Linienpaar bei 0,000. Das Magenta ist das rechnerische Optimum im Band:
-maximaler Abstand zu Blau und Ocker.
+| Eilgang | zu Vorschub | zu Grenze | zu Kollision |
+|---|---|---|---|
+| **`#d422e5` Purpur-Magenta** | 0,259 / 0,034 | 0,344 / 0,111 | 0,265 / 0,128 |
+| `#e118b6` Magenta (erster Entwurf) | 0,302 / 0,108 | 0,297 / 0,139 | **0,198** / 0,092 |
+| `#c034ff` Violett | 0,214 / 0,005 | 0,362 / 0,100 | 0,304 / 0,175 |
+| `#076b6f` Petrol | 0,233 / 0,095 | **0,198** / 0,127 | 0,292 / 0,113 |
+| `#086f4e` Grün | 0,289 / 0,103 | **0,178** / 0,072 | 0,297 / 0,092 |
+
+- Purpur-Magenta hält bei normalem Sehen zu allen dreien ≥ 0,259; das erste Magenta fiel zur
+  Kollision auf 0,198. Das war genau das Paar, das der Operator bemängelt hat.
+- Bei Farbschwäche trägt gegen den Vorschub die Strichelung.
+- Vorschub / Grenze bleibt 0,357 / 0,214.
+- Heute liegt das engste Linienpaar bei 0,000.
 
 **Neue Paarregel** statt „Farbe oder Formmerkmal“:
 - Zwei Linienrollen, die aufeinander oder nebeneinander liegen können, halten bei normalem Sehen
@@ -126,9 +136,14 @@ maximaler Abstand zu Blau und Ocker.
 
 ### F3 · Gefahrene Bahn: die Vorschau blasst aus
 
-- **Programmbahn:** Was schon gefahren ist, blasst zum Hintergrund hin aus (deckend gemischt wie
-  der heutige Stale-Zustand, `setStale`). Das ist ein **Zustand**, keine Farbe. Es nimmt keinen
-  Farbton aus dem Band und liest in beiden Themes als „erledigt“.
+- **Programmbahn:** Was schon gefahren ist, blasst zum Hintergrund hin aus, deckend gemischt. Das
+  ist ein **Zustand**, keine Farbe. Es nimmt keinen Farbton aus dem Band und liest in beiden
+  Themes als „erledigt“.
+- **Nicht dasselbe wie „veraltet“:** Der heutige Stale-Zustand (`setStale`) graut die **ganze**
+  Bahn, solange sie neu berechnet wird. Beides kommt zusammen vor: Antasten mitten im Lauf.
+  „Gefahren“ braucht deshalb ein eigenes Mischverhältnis oder ein zweites Merkmal.
+- **Nur eine vertraute Grenze:** `resolveCurrentLine` zeigt `motion_line` im Leerlauf nie und für
+  nicht vertraute Zeilen nicht. Die Ausblendgrenze erbt das: lieber keine Grenze als eine geratene.
   - Im Lauf gilt die Laufposition (Zeitleiste, `motion_line` auf der Spur).
   - In der Simulation gilt die Scrub-Position (wie Fusions „nach dem Werkzeug“).
 - **Daten:** `feedSrc` ordnet jedem gezeichneten Vertex seinen Index auf der Spur zu (aufsteigend).
@@ -149,7 +164,7 @@ maximaler Abstand zu Blau und Ocker.
 - Die Auswahl ist **eine** Linie; ihr Halo stört nicht wie ein Saum um dichte Bahnen.
 - Abstände zu den Linien (normal / Farbschwäche):
   - Vorschub 0,263 / 0,176;
-  - Eilgang 0,361 / 0,088 (dazu Breite und Halo);
+  - Eilgang 0,355 / 0,122 (dazu Breite und Halo);
   - Grenze 0,275 / 0,235.
 - K3s theme-abhängiges Schwarz/Cyan entfällt.
 
@@ -164,6 +179,10 @@ maximaler Abstand zu Blau und Ocker.
 ### F6 · Kollision: fester roter Körper
 
 - `#c8102e` als Leuchtfarbe des Maschinenkörpers, in allen Themes gleich.
+- **Überlauf-Kanten:** Die gestrichelten Kanten der Werkzeugbahn-Box außerhalb des
+  Maschinenfensters (`toolpathOverflowEdges`) sind heute in der Kollisionsfarbe. Sie bedeuten
+  „außerhalb der Verfahrgrenzen“, also Grenze. Sie werden Ocker. Die Kollision bleibt dann im 3D
+  ein Körper.
 - Grenze gegen Kollision bleibt bei Farbschwäche eng (0,031). Getrennt werden sie durch die
   **Objektart** (leuchtender Körper gegen Linie auf der Bahn) und die Glyphen in Zeitleiste und
   Code (▲ gegen ×). Das ist eine benannte Grenze.
@@ -207,9 +226,9 @@ maximaler Abstand zu Blau und Ocker.
      Schleifen, Unterprogrammen und LOD-Ebenen?
    - Genügt Zeilengenauigkeit (wie heute der Lauf-Playhead)?
    - Spur für Jog/MDI behalten?
-3. **Eilgang Magenta:** Die Industrie nimmt Rot oder Gelb. Beide sind bei uns belegt (Kollision,
-   Grenze), und ISA-101 reserviert Alarmfarben. Ist Magenta vertretbar, oder lieber Rot/Gelb
-   aufgeben?
+3. **Eilgang Purpur-Magenta:** Die Industrie nimmt Rot oder Gelb. Beide sind bei uns belegt
+   (Kollision, Grenze), und ISA-101 reserviert Alarmfarben. Ist Purpur-Magenta vertretbar, oder
+   eine andere Zeile der Tabelle?
 4. **F5:** Saum nur für die Boxen: Gibt es Fälle, in denen eine Box durch dichte Bahnen läuft und
    der Saum dort stört?
 5. **Regel F2:** 0,25 bei normalem Sehen als Projektregel: begründbar? Die Belege nennen für kleine
@@ -221,5 +240,7 @@ maximaler Abstand zu Blau und Ocker.
 
 ## Offen beim Operator
 
+- **Umfang:** vor der Sichtprüfung auf `feat/operator-backlog` umsetzen, oder erst den abgenommenen
+  Stand prüfen und mergen und die Palette danach auf einem eigenen Branch.
 - F7: HC-Themes mit eigener Helligkeit, gleiche Farbtöne?
 - F3: Jog-/MDI-Spur behalten?

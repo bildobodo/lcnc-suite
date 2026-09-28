@@ -133,7 +133,7 @@ for k in (2, 3, 4):
     print(f"   {k} chromatic + grey: best smallest pair over all four views {best:.3f}")
 
 # 3 ── the candidate ──────────────────────────────────────────────────────
-CAND = {"feed": "#395afa", "rapid": "#e118b6", "limit": "#9f6700", "collision": "#c8102e"}
+CAND = {"feed": "#395afa", "rapid": "#d422e5", "limit": "#9f6700", "collision": "#c8102e"}
 SEL_CORE, SEL_HALO = "#22b8cf", "#0b0f14"
 print("\n3. CANDIDATE — the same values in every theme")
 for r, v in CAND.items():
