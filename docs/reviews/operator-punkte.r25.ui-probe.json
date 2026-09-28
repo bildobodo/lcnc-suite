@@ -1,0 +1,112 @@
+{
+  "head": "5212c83",
+  "isolation": "http://127.0.0.1:4188/",
+  "results": [
+    {
+      "name": "g30_save_ack_overwrites_new_edit",
+      "sent": {
+        "X": 110
+      },
+      "beforeReply": "120",
+      "afterReply": "110",
+      "matches_contract": false
+    },
+    {
+      "name": "g30_late_capture_after_frame_change",
+      "kins_type_at_request": 0,
+      "kins_type_at_reply": 1,
+      "displayedX": "10",
+      "note": [],
+      "matches_contract": false
+    },
+    {
+      "name": "choice_rejection_stays_pending",
+      "pending": "true",
+      "hints": [],
+      "errors": [
+        "Command: R25: controller refused this mode"
+      ],
+      "matches_contract": false
+    },
+    {
+      "name": "step_representation_loses_focus_and_arrow_jogs",
+      "active": {
+        "tag": "BODY",
+        "role": null
+      },
+      "sent": [
+        {
+          "cmd": "jog_incr",
+          "axis": 0,
+          "vel": 10,
+          "distance": 1,
+          "req_id": "f9fpfh-5"
+        }
+      ],
+      "matches_contract": false
+    },
+    {
+      "name": "step_resize_loses_focus_and_arrow_jogs",
+      "trigger": "portrait to landscape; standard increments",
+      "active": {
+        "tag": "BODY",
+        "role": null
+      },
+      "sent": [
+        {
+          "cmd": "jog_incr",
+          "axis": 0,
+          "vel": 10,
+          "distance": 0.001,
+          "req_id": "upzs3n-5"
+        }
+      ],
+      "matches_contract": false
+    },
+    {
+      "name": "tools_spacing_and_sticky_head_control",
+      "head_to_search": 8,
+      "scrollTop": 250,
+      "scrollPadding": "25px",
+      "theadHeight": 24.5,
+      "headerTopmost": true,
+      "topFade": "none",
+      "matches_contract": true
+    },
+    {
+      "name": "offsets_canonical_unknown_and_lock_focus",
+      "rows": [
+        [
+          "G52/G92",
+          "1.0000",
+          "0.0000",
+          "0.0000",
+          "0.0000",
+          "6.0000",
+          ""
+        ],
+        [
+          "Tool",
+          "0.0000",
+          "0.0000",
+          "45.7000",
+          "0.0000",
+          "8.0000",
+          ""
+        ]
+      ],
+      "summary": "Offset status unknown — comp",
+      "keyboardContext": "G54 · C · °",
+      "before": {
+        "x": 1435.625,
+        "y": 220.5,
+        "width": 61.65625,
+        "height": 16.5
+      },
+      "lockedSlots": 54,
+      "active_after_lock": "BODY",
+      "canonical_and_unknown_pass": true,
+      "focus_retained": false
+    }
+  ]
+}

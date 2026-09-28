@@ -1,0 +1,76 @@
+{
+  "head": "5212c83",
+  "isolation": "fake_linuxcnc; temporary files; no network",
+  "cases": [
+    {
+      "case": "stationary_control",
+      "input": {
+        "task_mode": "MANUAL",
+        "interp_state": "IDLE",
+        "inpos": true,
+        "current_vel": 0.0
+      },
+      "reply": {
+        "ok": true,
+        "confirmed": true,
+        "values": {
+          "X": 100.0,
+          "Y": 0.0,
+          "Z": -26.275,
+          "A": 0.0,
+          "C": 0.0
+        },
+        "current": {
+          "X": 10.0,
+          "Y": 20.0,
+          "Z": -5.0,
+          "A": 725.0,
+          "C": 350.0
+        },
+        "units": "mm"
+      },
+      "calls": [
+        [
+          "synch"
+        ]
+      ],
+      "expected_ok": true,
+      "matches_contract": true
+    },
+    {
+      "case": "capture_while_jogging",
+      "input": {
+        "task_mode": "MANUAL",
+        "interp_state": "IDLE",
+        "inpos": false,
+        "current_vel": 12.0
+      },
+      "reply": {
+        "ok": true,
+        "confirmed": true,
+        "values": {
+          "X": 100.0,
+          "Y": 0.0,
+          "Z": -26.275,
+          "A": 0.0,
+          "C": 0.0
+        },
+        "current": {
+          "X": 10.0,
+          "Y": 20.0,
+          "Z": -5.0,
+          "A": 725.0,
+          "C": 350.0
+        },
+        "units": "mm"
+      },
+      "calls": [
+        [
+          "synch"
+        ]
+      ],
+      "expected_ok": false,
+      "matches_contract": false
+    }
+  ]
+}

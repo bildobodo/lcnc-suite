@@ -1534,3 +1534,204 @@ auf 7.
 6. **Touch-Zeilenhöhe der Offsets:** Mit den Wert-Buttons sind die Zeilen auf Touch mindestens
    36 px hoch. Damit ist die Tabelle länger als vor K4. Ist das der richtige Preis für ein
    tippbares Ziel je Wert?
+
+---
+
+## Review Codex · Runde 5 / Handshake R25 · 28. September 2026
+
+**Stand:** `feat/operator-backlog`, `5212c83`; Implementierungsumfang
+`e18ec2e..5212c83`, gemessen am abgenommenen Plan Fassung 3 mit Ergänzung 3a.
+**Ergebnis: findings — noch kein Implementierungs-Agreement.** Sechs offene Befunde,
+darunter ein P1: Nach einem Darstellungswechsel kann eine zur Schrittwahl gedachte
+Pfeiltaste einen Jog-Befehl senden. Die sechs Gestaltungsfragen lassen sich ohne neue
+Operator-Entscheidung beantworten; Antworten unten.
+
+### OP-I01 · P1 · Wechsel Reihe/Auswahlliste verliert den Fokus und aktiviert Jog-Tasten
+
+**Stelle:** `lcnc-webui/src/JogStrip.vue:173`, `:501` und `:503`.
+`measureStep()` kann die fokussierte `ChoiceGroup` unmittelbar durch `MachineSelect`
+ersetzen. Dabei wird weder der Fokus übertragen noch der Übergang gegen Tastatureingaben
+gesichert. Das ist die in R23/R24 ausdrücklich ausgeschlossene Lücke beim Darstellungswechsel.
+
+**Reproduktion:** Standard-Schritte `[0.001, 0.01, 0.1, 1]`, Tastatur-Jog aktiviert,
+Hochformat 900 × 1200. In „Jog step“ auf `0.001` fokussieren, dann auf 1600 × 1000
+wechseln. Die Reihe wird zur Auswahl; `document.activeElement` ist `BODY`.
+Die nächste rechte Pfeiltaste sendet im Mock
+`jog_incr {axis: 0, vel: 10, distance: 0.001}`. Derselbe Fehler ist bei einem Wechsel
+von wenigen zu vielen INI-Schritten mit Distanz `1` reproduziert. Keine echte Bewegung
+wurde ausgelöst; die Befehle gingen ausschließlich an den isolierten Mock.
+
+**Korrektur:** Den Fokus beim Austausch auf das entsprechende neue Bedienelement
+übertragen und die Übergangsphase gegen globale Maschinen-Shortcuts sichern. Eine
+laufende Zeiger-/Tastenaktivierung darf nicht durch den Layoutwechsel umgedeutet werden.
+Wächter für beide Wechselrichtungen und für Resize sowie geänderte Optionen ergänzen;
+die nächste Navigationstaste muss lokal bleiben und darf keinen Maschinenbefehl senden.
+
+### OP-I02 · P2 · G30-Capture prüft Interpreter-Leerlauf, aber keinen Maschinenstillstand
+
+**Stelle:** `lcnc-gateway/command_policy.py:480`, `:637`;
+`lcnc-gateway/gateway.py:7434` und `:7457`.
+Das Gate `machineFrame` benutzt `is_idle`, das aus `INTERP_IDLE` gebildet wird.
+Eine manuelle Jog-Bewegung erfüllt dieses Kriterium. Der Capture-Zweig prüft anschließend
+nur Vorhandensein und Länge des Positionsvektors. Der vereinbarte Stillstand aus OP22-02
+ist damit nicht umgesetzt.
+
+**Beleg:** Die Sonde ruft den echten Dispatcher mit `fake_linuxcnc` auf. Bei
+`MANUAL`, `INTERP_IDLE`, `inpos=false`, `current_vel=12` antwortet `capture_g30` ebenso
+mit `ok=true` und übernommenen Positionswerten wie die stehende Kontrollprobe.
+Es wurde ausschließlich eine temporäre Parameterdatei synchronisiert.
+
+**Korrektur:** Für die Positionsübernahme einen belegten Stillstand verlangen, bei
+unbekanntem Bewegungszustand verweigern. Die maßgeblichen Zustände und der Machine-Frame
+müssen bei der tatsächlichen Übernahme noch gelten, auch nach dem asynchronen Synch.
+Frontend und Gateway sollen denselben Sperrgrund vermitteln. Ein ruhender Interpreter
+allein reicht als Wächter nicht.
+
+### OP-I03 · P2 · G30-Antworten sind nicht an Anfragekontext und Entwurfsrevision gebunden
+
+**Stelle:** `lcnc-webui/src/ToolsetterSettings.vue:189` und `:203`.
+`captureG30()` bindet die Werte erst **nach** der Antwort an `g30Context()`;
+`saveG30()` setzt den Entwurf bei jeder erfolgreichen Antwort vollständig zurück.
+Die Eingabefelder bleiben während der Anfrage bedienbar.
+
+Zwei getrennte Gegenfälle sind im Browser belegt:
+
+- `X=110` speichern, während der Antwortwartezeit über das reguläre Numpad `X=120`
+  eingeben. Die Bestätigung für `110` überschreibt den neueren Entwurf wieder mit `110`
+  und entfernt „draft not saved“. Die Eingabe `120` geht ohne Hinweis verloren.
+- Capture in Frame `0` anfordern, Statuswechsel auf Frame `1` vollständig ankommen
+  lassen, dann die alte Capture-Antwort mit `X=10` liefern. Sie wird ohne Warnung als
+  Entwurf übernommen, obwohl der Übernahmekontext gewechselt hat. Die vorhandene
+  Watcher-Probe prüft nur einen Wechsel **nach** bereits abgeschlossener Übernahme.
+
+**Korrektur:** Anfragekontext (Instanz, Einheit, Frame) vor dem Warten erfassen und
+Antworten nach Kontextwechsel verwerfen. Zusätzlich eine Entwurfsrevision führen:
+Eine Speicherbestätigung darf den bestätigten Stand aktualisieren, aber keinen seit
+dem Absenden weiterbearbeiteten Entwurf ersetzen. Alternativ die betroffenen Eingaben
+während des Auftrags ausdrücklich sperren. Diesen Vertrag auch für Refresh und den
+initialen Dateiread anwenden; beide können ebenfalls verspätet eintreffen.
+
+### OP-I04 · P2 · Eine explizit verweigerte Maschinenwahl bleibt „pending“
+
+**Stelle:** `lcnc-webui/src/ChoiceGroup.vue:66` bis `:81`.
+Der Zustand endet bei passendem Maschinenstatus, Disconnect oder nach fünf Sekunden.
+Ein negativer Befehlsbescheid erreicht die Gruppe nicht. Das weicht vom übernommenen
+Vertrag „Ablehnung beendet pending, Grund am Control“ ab.
+
+**Beleg:** MDI wählen; der Mock antwortet sofort `ok=false` mit einem eindeutigen
+Ablehnungsgrund. Dieser erscheint global als `Command: …`, aber nach 600 ms trägt
+die MDI-Option weiterhin `aria-busy="true"`; am Control steht kein Grund.
+Erst der generische Timeout beendet die Anzeige. Der bestätigte Modus bleibt korrekt
+unverändert — offen ist die Verarbeitung der bekannten Ablehnung.
+
+**Korrektur:** Die konkrete Anfrage/Antwort mit der betroffenen Option korrelieren.
+Eine Ablehnung beendet deren Pending-Anzeige sofort und erklärt sich dort; sie darf
+weder als bloß ausstehende Antwort gelten noch eine neuere Anfrage aufheben. Für
+Betriebsart, Frame und WCS prüfen, neben den vorhandenen Status-/Timeout-Proben.
+
+### OP-I05 · P2 · K3 enthält den vereinbarten Custom-Kontrasthinweis noch nicht
+
+**Stelle:** `lcnc-webui/src/SettingsPanel.vue:658` bis `:690`;
+Plan K3 in Fassung 2 und übernommene Präzisierung in Fassung 3.
+Die neuen Cyan-Tokens sind vorhanden und geprüft. Der Custom-Editor zeigt aber weiterhin
+nur die Farbfelder/Legende und den Hinweis, dass Custom-Farben nicht gegen das Theme
+geprüft werden. Gemessene Kontraste und Warnungen fehlen vollständig; `SettingsPanel.vue`
+ist im geprüften Commit-Bereich unverändert.
+
+**Korrektur:** Den zugesagten rollenbezogenen Hinweis umsetzen: Linien auf Grund und
+Tisch; Auswahlkern auf dem Grund sowie Kern **oder** Halo auf dem Tisch. Kern und Halo
+getrennt ausweisen und unter dem vereinbarten Wert warnen. Kein automatisches Umfärben
+einer bewussten Custom-Wahl. Linienvorschau, Dimmen und besondere Kontrastansicht bleiben
+wie vereinbart optional; der Kontrasthinweis war es nicht.
+
+### OP-I06 · P2 · Auch gesperrte Offset-Zellen verlieren ihren Tastaturfokus
+
+**Stelle:** `lcnc-webui/src/OffsetPanel.vue:187` bis `:189`.
+Die `v-if`-Ersetzung des Wert-Buttons durch einen `span` erhält dessen Rechteck,
+aber nicht den Fokus. Im eigenen Browserlauf: „Edit G54 C“ fokussieren, Gate `probe`
+schließen → Button entfernt, 54 Text-Slots vorhanden, Fokus auf `BODY`.
+Damit belegt `data-layout-slot` nur die Geometrie, keine gleichwertige Bedienung.
+
+**Korrektur:** Den lesbaren gesperrten Zustand mit einem definierten Fokusübergang
+verbinden, der die Bedienung im Offset-Kontext hält. Das aktuelle Fokusziel darf nicht
+ersatzlos verschwinden. Tests für Sperren/Entsperren mit fokussierter Zelle ergänzen,
+einschließlich des Verhaltens der nächsten Taste. Das ist die Bedingung für die unten
+akzeptierte Darstellung gesperrter Werte als Text.
+
+### Antworten auf die sechs Gestaltungsfragen
+
+1. **Text statt gedimmter Werte: grundsätzlich ja, in dieser Umsetzung noch nicht
+   vollständig.** Während eines Laufs bleiben Positionswerte wichtige Lesedaten; 70
+   gedimmte Buttons oder 70 identische Erklärungen helfen nicht. `data-layout-slot` ist
+   als ausdrücklich begrenzter Geometrievertrag sinnvoll. Dazu gehören der Fokusvertrag
+   aus OP-I06 und ein sichtbarer Sperrgrund am Panel. Der Audit sollte diesen Ersatz
+   weiterhin nur an den benannten Slots erlauben, nicht beliebige verschwundene Controls
+   durch Text als bestanden werten.
+2. **WCS 2 × 5 quer, 3 × 3 hoch: akzeptiert.** Die gemessenen Platzkosten begründen die
+   Abweichung. Die vorliegenden XYZAC-Referenzbilder zeigen lesbare Gruppen. Entscheidend
+   sind Pfeile passend zur sichtbaren Nachbarschaft, eine eigene aktive Markierung und
+   ein stabiler Fokus beim Orientierungswechsel. Die Operator-Sichtprüfung bleibt separat.
+3. **Standard-Schritte auch quer als Reihe, wenn die vollständige Leiste ins Budget
+   passt.** Ich befürworte diese präzisierte Regel: direkte Wahl bei höchstens sechs
+   ausreichend großen Zielen, solange das vereinbarte Gesamtbudget und die übrigen
+   Layoutgrenzen eingehalten werden. Die Breite der Mode-/Frame-Reihe ist ein Hilfsmaß,
+   kein eigenes UX-Ziel. Für lange/viele Schritte bleibt die benannte Auswahl richtig.
+   Gesamtbreite, Höhe und Trefferflächen erneut messen; OP-I01 gilt für beide Varianten.
+4. **Eine zusätzliche Höhengrenze fürs Hochformat aufnehmen.** Die belegten +17/+8/+3 px
+   sind als Preis größerer Ziele akzeptabel; Referenzbilder allein verhindern aber kein
+   unbemerktes weiteres Wachstum. Die akzeptierten Höhen pro Profil als Budget mit kleiner
+   Rundungstoleranz prüfen, dazu Erreichbarkeit und Überlauf. Kein allgemeines Verbot
+   legitimer Höhe bei zusätzlichen Achsen oder längeren INI-Optionen.
+5. **Ein Sperrgrund am Panel-Kopf, nicht die stille Grenze beibehalten.** Kurzer Text wie
+   „Offsets read-only — machine running“, aus dem wirklichen Gate-Grund abgeleitet.
+   Ein reservierter Platz oder die bestehende Hilfe verhindert zusätzliche Layoutsprünge.
+   70 Blasen sind unnötig; bloßes Umbenennen eines gesperrten Controls in Text erklärt
+   dem Nutzer noch nicht, warum derselbe Wert gerade nicht bearbeitet werden kann.
+6. **Die Touch-Höhe beibehalten.** Für die dichte Datentabelle ist der vereinbarte kompakte
+   Boden von 36 px angemessen; die 44-px-Regel für gewöhnliche Seitenpanel-Formulare bleibt
+   davon getrennt. Trefferfläche samt klickbarem Zellpolster und Breite messen, nicht nur
+   die Textbox. Den Platz über Spalten, Zusammenfassungen und den klebenden Kopf gewinnen,
+   nicht durch erneutes Verkleinern der Wertziele.
+
+### Geprüft und bereits tragfähig
+
+- **K1/K2:** Im eigenen DOM-Lauf liegen 8 px zwischen Tools-Kopf und Suche. Nach 250 px
+  Scrollen bleibt der Tabellenkopf oben, der obere Fade fehlt, `scroll-padding-top`
+  beträgt 25 px bei 24,5 px gemessener Kopfhöhe. Die gemeinsame Sticky-Head-Implementierung
+  und die ergänzten vorhandenen Prüfungen wurden gelesen.
+- **K3:** Die Cyan-Änderungen für Dark/Auto-Dark und HC sowie die bestehenden Kontrasttests
+  sind stimmig. Offen ist der Editorhinweis, nicht die geprüfte automatische Palette.
+- **K4:** Eigene XYZAC-Probe: C zeigt G52/G92=`6` und Tool=`8`, nicht die B-Werte `5`/`7`.
+  Unbekanntes Comp-Enable bleibt „Offset status unknown — comp“. Tastatureinstieg in
+  G54/C öffnet „G54 · C · °“; die Rückkehr vom Numpad zum vorhandenen Button funktioniert.
+- **K5:** Gemeinsame Dateisperre, Lock-Reihenfolge, abbruchsicher abgewarteter Schreibthread,
+  FD-gebundene Inode-/Werteaufnahme und bestätigtes Rücklesen sind umgesetzt. Die gezielten
+  Backend-Tests einschließlich konkurrierendem Schreiber und wiederholtem Abbruch bestehen.
+- **K6:** Die Trennung von bestätigter Auswahl und manueller Maschinenaktivierung sowie
+  das inerte Messelement sind umgesetzt. Die offenen Übergänge stehen in OP-I01/OP-I04.
+
+### Nachweise und Prüfumfang
+
+- Eigene Browser-Sonde und Ergebnisse:
+  [operator-punkte.r25.ui-probe.mjs](operator-punkte.r25.ui-probe.mjs),
+  [operator-punkte.r25.ui-probe.json](operator-punkte.r25.ui-probe.json).
+  Sieben Fälle; zwei G30-Gegenfälle, Ablehnung, zwei Schrittweiten-Wechsel,
+  Tools-Kontrolle und Offset-Kontrolle einschließlich Fokusverlust.
+- Eigene Gateway-Sonde und Ergebnisse:
+  [operator-punkte.r25.gateway-probe.py](operator-punkte.r25.gateway-probe.py),
+  [operator-punkte.r25.gateway-probe.json](operator-punkte.r25.gateway-probe.json).
+  Stehende Kontrollprobe und Gegenprobe mit Jog-Bewegungszustand, echter Dispatcher
+  unter `fake_linuxcnc`, temporäre Dateien, keine Maschinenverbindung.
+- Eigene gezielte Tests: **256 Backend-Tests bestanden** (`test_g30.py`,
+  `test_command_policy.py`, `test_command_dispatch.py`); **37 Vitest-Tests bestanden**
+  (`g30Form`, `offsetRows`, `themeTokens`). `npm run build` erfolgreich.
+- Das vollständige Offline-Gate mit 1062/1705/325 ist **Claudes gemeldeter Lauf** und wurde
+  hier nicht wiederholt. Die eigenen Browser-Proben liefen seriell mit einem Chromium und
+  niedrig priorisiert gegen den eigenen Mock `127.0.0.1:4188`; Browser und Mock sind beendet.
+  Kein Zugriff auf `:8000`, keine Befehle an die laufende Simulation und keine Änderung an ESTOP.
+- Keine Produktänderung und kein Commit; bestehende Nachweise unverändert. Kein Ersatz für
+  die vereinbarte abschließende Operator-Sichtprüfung.
+
+**Nächste Runde:** OP-I01 bis OP-I06 korrigieren; die Entscheidungen 1–6 in Planung und
+Umsetzung nachführen. Danach die betroffenen Wächter und das Offline-Gate am neuen Stand
+ausführen und erneut per Handshake anfragen.
