@@ -4,31 +4,26 @@
 // corrected (a deliberate Custom choice is not recoloured).
 //  - a line role: ≥ 3 : 1 on the scene background (4.5 : 1 in the high-
 //    contrast themes) AND ≥ 3 : 1 on the lit table (#e0e0e0: the table /
-//    stock's top face under the scene lights, in every theme).
+//    stock's top face under the scene lights, in every theme);
+//  - two path LINES apart from each other (the fixed palette's pair rule,
+//    viewer/palettePairs.ts, operator 2026-09-28): the custom feed, rapid
+//    and backplot against each other and the theme's limit overlay —
+//    normal vision and the dichromat simulations told apart, a pair a
+//    named cue carries (the dashed rapid) named with it.
 // Tool shaft and cutter are solids, not lines: no rule.
-import type { ViewerPalette } from "./viewerPalette";
+import { ROLE_TOKEN, type ViewerPalette, type ViewerRole } from "./viewerPalette";
+import { contrastRgb, okDistance, parseHex, worstDichromatDistance } from "./colourMath";
+import { CVD_MIN, LINE_MIN_NORMAL, LINE_MIN_NORMAL_HC, PALETTE_PAIRS, type PairCue } from "./palettePairs";
 
-type RGB = [number, number, number];
+export { parseHex };
 export const LIT_TABLE = "#e0e0e0";
 /** The custom roles drawn as lines. */
 export const CUSTOM_LINE_ROLES = ["feed", "rapid", "backplot", "bounds", "toolpathBounds"] as const;
 
-/** #rgb / #rrggbb (the pickers and the theme tokens); null otherwise. */
-export function parseHex(c: string | null | undefined): RGB | null {
-  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec((c ?? "").trim());
-  if (!m) return null;
-  const h = m[1]!.length === 3 ? m[1]!.split("").map(x => x + x).join("") : m[1]!;
-  const n = parseInt(h, 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-}
-const lin = (v: number) => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
-const lum = (c: RGB) => 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
 /** WCAG contrast ratio of two colours; null when either is unreadable. */
 export function contrastRatio(a: string, b: string): number | null {
   const x = parseHex(a), y = parseHex(b);
-  if (!x || !y) return null;
-  const [hi, lo] = [lum(x), lum(y)].sort((p, q) => q - p);
-  return (hi! + 0.05) / (lo! + 0.05);
+  return x && y ? contrastRgb(x, y) : null;
 }
 
 export interface ContrastRow {
@@ -46,5 +41,35 @@ export function customContrastRows(p: ViewerPalette, bg: string, highContrast: b
   return CUSTOM_LINE_ROLES.map(role => {
     const onBg = contrastRatio(p[role], bg), onTable = contrastRatio(p[role], LIT_TABLE);
     return { role, onBg, onTable, bgLow: low(onBg, floor), tableLow: low(onTable, 3) };
+  });
+}
+
+export interface PairRow {
+  a: ViewerRole;
+  b: ViewerRole;
+  /** OKLab distance under normal vision; null = a colour does not parse. */
+  normal: number | null;
+  /** The smallest under the three dichromat simulations. */
+  cvd: number | null;
+  normalLow: boolean;
+  /** Under CVD_MIN where no cue carries the pair. */
+  cvdLow: boolean;
+  /** The cue that carries the pair for colour-blind eyes, when the rule
+   *  spares it the simulation (the dashed rapid). */
+  cue: PairCue | null;
+}
+
+const ROLE_OF_TOKEN = Object.fromEntries(Object.entries(ROLE_TOKEN).map(([r, t]) => [t, r])) as Record<string, ViewerRole>;
+
+/** Every pair of path LINES in the palette as drawn. */
+export function customPairRows(p: ViewerPalette, highContrast: boolean): PairRow[] {
+  const min = highContrast ? LINE_MIN_NORMAL_HC : LINE_MIN_NORMAL;
+  return PALETTE_PAIRS.filter(q => q.kind === "line").map(q => {
+    const a = ROLE_OF_TOKEN[q.a]!, b = ROLE_OF_TOKEN[q.b]!;
+    const x = parseHex(p[a]), y = parseHex(p[b]);
+    const normal = x && y ? okDistance(x, y) : null;
+    const cvd = x && y ? worstDichromatDistance(x, y) : null;
+    return { a, b, normal, cvd, normalLow: normal == null || normal < min,
+      cvdLow: q.cvd && (cvd == null || cvd < CVD_MIN), cue: q.cvd ? null : q.cues[0] ?? null };
   });
 }

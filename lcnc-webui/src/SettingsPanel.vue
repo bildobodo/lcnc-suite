@@ -25,8 +25,8 @@ import {
 } from "./defaults";
 import { resolveViewerPalette, userColorsOf, USER_ROLES, type UserRole, type ViewerRole } from "./viewer/viewerPalette";
 import { saveStatus, saveStatusText } from "./settingsSaveStatus";
-import { fmtPct, fmtRatio } from "./format";
-import { customContrastRows } from "./viewer/customContrast";
+import { fmtNum, fmtPct, fmtRatio } from "./format";
+import { customContrastRows, customPairRows } from "./viewer/customContrast";
 import type { MappingSource } from "./gamepadProfile";
 import { enableWakeLock, disableWakeLock } from "./wakeLock";
 import { ChevronUp, ChevronDown, Pencil, Trash2, RotateCcw } from "lucide-vue-next";
@@ -518,6 +518,17 @@ const contrastRows = computed(() => {
 });
 // "low" in words, not the warn colour alone
 const ratioCell = (v: number | null, low: boolean) => `${fmtRatio(v)}${low && v != null ? " · low" : ""}`;
+// The lines against each other (the fixed palette's pair rule, operator
+// 2026-09-28): the OKLab distance for normal vision and the smallest under
+// the colour-blindness simulations — "close" in words; a pair the dashed
+// rapid carries says so instead.
+const pairRows = computed(() => {
+  if (paletteMode.value !== "custom") return [];
+  return customPairRows(shownPalette.value, themeMode.value.startsWith("hc"))
+    .map(r => ({ ...r, label: `${CONTRAST_LABEL[r.a] ?? r.a} / ${CONTRAST_LABEL[r.b] ?? r.b}` }));
+});
+const apartCell = (v: number | null, low: boolean, cue: string | null = null) =>
+  `${fmtNum(v, 2)}${cue ? ` · ${cue}` : low && v != null ? " · close" : ""}`;
 
 // ─── Machine part colors ────────────────────
 function defaultMachineColor(part: { direction: string | null; color: [number, number, number] | null }): string {
@@ -712,6 +723,19 @@ function resetMachineColor(id: string) {
                     <td>{{ r.label }}</td>
                     <td :class="{ 'text-warn': r.bgLow }">{{ ratioCell(r.onBg, r.bgLow) }}</td>
                     <td :class="{ 'text-warn': r.tableLow }">{{ ratioCell(r.onTable, r.tableLow) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="settingDesc">Apart: two lines need 0.25 (0.24 in high contrast), and 0.12 for color-blind eyes unless a line is dashed.</div>
+            <div class="dataTable" data-pair-hint>
+              <table>
+                <thead><tr><th>Lines</th><th>Apart</th><th>Color-blind</th></tr></thead>
+                <tbody>
+                  <tr v-for="r in pairRows" :key="`${r.a}/${r.b}`" :data-pair="`${r.a}/${r.b}`">
+                    <td>{{ r.label }}</td>
+                    <td :class="{ 'text-warn': r.normalLow }">{{ apartCell(r.normal, r.normalLow) }}</td>
+                    <td :class="{ 'text-warn': r.cvdLow }">{{ apartCell(r.cvd, r.cvdLow, r.cue) }}</td>
                   </tr>
                 </tbody>
               </table>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { contrastRatio, customContrastRows, parseHex } from "./customContrast";
+import { contrastRatio, customContrastRows, customPairRows, parseHex } from "./customContrast";
 import type { ViewerPalette } from "./viewerPalette";
 
 const base: ViewerPalette = {
@@ -30,5 +30,20 @@ describe("the Custom palette's contrast hint (Codex R25 OP-I05)", () => {
   it("tool shaft and cutter are solids — no row; no selection row (the current line is not drawn in 3D)", () => {
     expect(customContrastRows(base, "#ffffff", false).map(r => r.role)).toEqual(
       ["feed", "rapid", "backplot", "bounds", "toolpathBounds"]);
+  });
+  it("tells the lines apart from each other: normal vision, colour-blind eyes, and the cue that carries a pair", () => {
+    const fixed = { ...base, feed: "#0f86ba", rapid: "#ef0197", backplot: "#7c0bfa", limit: "#b06c02" } as ViewerPalette;
+    const rows = customPairRows(fixed, false);
+    expect(rows.map(r => `${r.a}/${r.b}`)).toEqual(
+      ["feed/rapid", "feed/limit", "feed/backplot", "rapid/limit", "rapid/backplot", "limit/backplot"]);
+    expect(rows.filter(r => r.normalLow || r.cvdLow), "the fixed palette holds every rule").toEqual([]);
+    const fr = rows.find(r => r.a === "feed" && r.b === "rapid")!;
+    expect(fr.cvd!).toBeLessThan(0.12);                      // the dash carries it for colour-blind eyes …
+    expect([fr.cvdLow, fr.cue]).toEqual([false, "dashed"]);   // … and is named
+    // the operator's old Custom set: cyan feed, magenta backplot — close for a deutan eye
+    const old = customPairRows({ ...base, feed: "#22b8cf", rapid: "#f5a623", backplot: "#ff00ff", limit: "#b06c02" } as ViewerPalette, false);
+    expect(old.find(r => r.a === "feed" && r.b === "backplot")!.cvdLow).toBe(true);
+    const same = customPairRows({ ...fixed, backplot: fixed.feed }, false).find(r => r.a === "feed" && r.b === "backplot")!;
+    expect([same.normal, same.normalLow]).toEqual([0, true]);
   });
 });

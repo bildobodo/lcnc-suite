@@ -7,7 +7,8 @@
 // this pins the blocks the measurement relies on.
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { PALETTE_PAIRS, PATH_ROLES, PAIR_MIN_DISTANCE } from "./viewer/palettePairs";
+import { PALETTE_PAIRS, PATH_ROLES, LINE_MIN_NORMAL, LINE_MIN_NORMAL_HC, CVD_MIN, OBJECT_MIN_NORMAL } from "./viewer/palettePairs";
+import { contrastRgb as contrast, okDistance, simulateDichromat, DICHROMATS, hueChroma, type RGB } from "./viewer/colourMath";
 
 // node:fs, not an import: vitest empties every CSS import, `?raw` included.
 const css = readFileSync(new URL("./style.css", import.meta.url), "utf8");
@@ -33,29 +34,12 @@ function block(selector: string): Map<string, string> {
   return new Map([...body.matchAll(/(--[\w-]+):\s*([^;]+);/g)].map(m => [m[1]!, m[2]!.trim()]));
 }
 
-type RGB = [number, number, number];
 function hex(h: string): RGB {
   const m = /^#([0-9a-f]{6})$/i.exec(h.trim());
   expect(m, `a literal #rrggbb (cssColor reads no color-mix): ${h}`).toBeTruthy();
   const n = parseInt(m![1]!, 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
-const lin = (v: number) => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
-function contrast(a: RGB, b: RGB): number {
-  const l = (c: RGB) => 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
-  const [hi, lo] = [l(a), l(b)].sort((x, y) => y - x);
-  return (hi! + 0.05) / (lo! + 0.05);
-}
-function oklab(c: RGB): RGB {
-  const [r, g, b] = c.map(lin) as RGB;
-  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
-  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
-  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
-  return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
-    1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
-    0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
-}
-const okDistance = (a: RGB, b: RGB) => Math.hypot(...oklab(a).map((v, i) => v - oklab(b)[i]!));
 
 const THEMES = {
   root: ":root",
@@ -92,7 +76,8 @@ describe("theme text roles", () => {
   // the table / stock, whose top face renders ≈ #e0e0e0 under the scene
   // lights in every theme (measured, frame metal) — the dark themes' pastel
   // lines vanished there. The path roles differ from each other by ≥ 0.12
-  // in OKLab (limit vs collision is the close one).
+  // in OKLab (limit vs collision is the close one); the LINE pairs by far
+  // more (the pair table below).
   // Shadowed faces (mid grey) are no reference: no line colour reaches
   // 3 : 1 on both mid grey and the background; hue, the rapid's dash and
   // the legend carry it there.
@@ -115,26 +100,12 @@ describe("theme text roles", () => {
     });
   }
 
-  // The pair table (viewer contrast plan, R1): a colour-separated pair keeps
-  // PAIR_MIN_DISTANCE under normal vision AND under simulated protan-,
-  // deutan- and tritanopia; every pair keeps it under normal vision; a pair
-  // without colour separation names the form cue that carries it. The
-  // simulation: linearise sRGB, apply Machado 2009 (severity 1), clip to
-  // [0, 1], then OKLab — a heuristic regression guard, not a proof of
-  // accessibility (the form cues are what WCAG 1.4.1 asks for).
-  const MACHADO: Record<string, number[][]> = {
-    protan: [[0.152286, 1.052583, -0.204868], [0.114503, 0.786281, 0.099216], [-0.003882, -0.048116, 1.051998]],
-    deutan: [[0.367322, 0.860646, -0.227968], [0.280085, 0.672501, 0.047413], [-0.011820, 0.042940, 0.968881]],
-    tritan: [[1.255528, -0.076749, -0.178779], [-0.078411, 0.930809, 0.147602], [0.004733, 0.691367, 0.303900]],
-  };
-  const unlin = (v: number) => { v = Math.min(1, Math.max(0, v)); return 255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055); };
-  const simulate = (c: RGB, kind: string): RGB => {
-    if (kind === "normal") return c;
-    const l = c.map(lin);
-    return MACHADO[kind]!.map(row => unlin(row[0]! * l[0]! + row[1]! * l[1]! + row[2]! * l[2]!)) as RGB;
-  };
-  const VIEWS = ["normal", "protan", "deutan", "tritan"];
-  it("the pair table names every pair of the five path roles once", () => {
+  // The pair table (viewer/palettePairs.ts — fixed palette, operator
+  // 2026-09-28, Codex R29/R30): two LINES keep LINE_MIN_NORMAL under normal
+  // vision (the HC themes LINE_MIN_NORMAL_HC) and CVD_MIN under each
+  // simulated dichromacy unless a named cue carries them there; a line
+  // against a body and two objects keep OBJECT_MIN_NORMAL.
+  it("the pair table names every pair of the path roles once, and every exception its cue", () => {
     const named = PALETTE_PAIRS.map(p => [p.a, p.b].sort().join(" / "));
     expect(new Set(named).size, "no pair twice").toBe(named.length);
     for (let i = 0; i < PATH_ROLES.length; i++) {
@@ -142,19 +113,54 @@ describe("theme text roles", () => {
         expect(named, "every path pair").toContain([PATH_ROLES[i], PATH_ROLES[j]].sort().join(" / "));
       }
     }
-    expect(PALETTE_PAIRS.filter(p => !p.colour && p.cues.length === 0), "a pair without colour separation names its cue").toEqual([]);
+    expect(PALETTE_PAIRS.filter(p => !p.cvd && p.cues.length === 0), "a pair spared the simulation names its cue").toEqual([]);
+    expect(PALETTE_PAIRS.filter(p => p.kind === "line" && !p.cvd && !p.cueLimit), "and where that cue fails").toEqual([]);
   });
   for (const name of ["root", "dark", "auto-dark", "hc-light", "hc-dark"] as const) {
-    it(`${name}: every pair of the table tells apart — the colour-separated ones for colour-blind eyes too`, () => {
+    it(`${name}: the lines tell apart from each other — for colour-blind eyes too — and from the bodies and objects`, () => {
       const b = block(THEMES[name]);
       const bad: string[] = [];
+      const lineMin = name.startsWith("hc") ? LINE_MIN_NORMAL_HC : LINE_MIN_NORMAL;
       for (const p of PALETTE_PAIRS) {
-        for (const view of p.colour ? VIEWS : ["normal"]) {
-          const d = okDistance(simulate(hex(b.get(p.a)!), view), simulate(hex(b.get(p.b)!), view));
-          if (d < PAIR_MIN_DISTANCE) bad.push(`${p.a} / ${p.b} ${view} ${d.toFixed(3)}`);
+        const [x, y] = [hex(b.get(p.a)!), hex(b.get(p.b)!)];
+        const min = p.kind === "line" ? lineMin : OBJECT_MIN_NORMAL;
+        const d = okDistance(x, y);
+        if (d < min) bad.push(`${p.a} / ${p.b} normal ${d.toFixed(3)} < ${min}`);
+        if (!p.cvd) continue;
+        for (const k of DICHROMATS) {
+          const dk = okDistance(simulateDichromat(x, k), simulateDichromat(y, k));
+          if (dk < CVD_MIN) bad.push(`${p.a} / ${p.b} ${k} ${dk.toFixed(3)} < ${CVD_MIN}`);
         }
       }
-      expect(bad, `${name}: pairs under ${PAIR_MIN_DISTANCE}`).toEqual([]);
+      expect(bad, name).toEqual([]);
+    });
+  }
+
+  // ONE colour per role whatever the theme (operator 2026-09-28: "wenn beim
+  // Theme-Wechsel plötzlich andere Farben vorhanden sind" confuses): light,
+  // dark and auto-dark carry the same value for every viewer role. The two
+  // boxes follow with their casing (palette P2).
+  const FIXED_ROLES = [...PATH_ROLES, "--viewer-tool", "--viewer-cutter",
+    "--viewer-plane-active", "--viewer-plane-defined", "--viewer-plane-stale"];
+  it("light, dark and auto-dark draw every viewer role in the same colour", () => {
+    const root = block(THEMES.root);
+    for (const name of ["light", "dark", "auto-dark"] as const) {
+      const b = block(THEMES[name]);
+      for (const r of FIXED_ROLES) expect(b.get(r), `${name} ${r}`).toBe(root.get(r));
+    }
+  });
+  // The high-contrast themes keep the colour FAMILY at their own lightness
+  // (operator 2026-09-28; Codex R29 on F7): 4.5 : 1 on their background
+  // needs another lightness, never another hue.
+  for (const name of ["hc-light", "hc-dark"] as const) {
+    it(`${name}: every path role keeps its colour family`, () => {
+      const root = block(THEMES.root), b = block(THEMES[name]);
+      for (const r of PATH_ROLES) {
+        const base = hueChroma(hex(root.get(r)!)), hc = hueChroma(hex(b.get(r)!));
+        const dh = Math.abs(((hc.hue - base.hue + 540) % 360) - 180);
+        expect(dh, `${name} ${r}: hue within 15° of ${root.get(r)}`).toBeLessThanOrEqual(15);
+        expect(hc.chroma, `${name} ${r}: a colour, not a grey`).toBeGreaterThanOrEqual(0.08);
+      }
     });
   }
 

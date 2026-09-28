@@ -473,6 +473,11 @@ test("the viewer palette: Automatic follows the theme, Custom stays, a legacy pa
   await expect(cell("feed", 1), "the old cyan on the light background").toHaveText(/^\d+\.\d : 1 · low$/);
   await expect(cell("feed", 2), "and on the lit table").toHaveText(/ · low$/);
   await expect(hint.locator("tr[data-role]")).toHaveCount(5);
+  // The lines against each other (fixed palette, operator 2026-09-28): six
+  // line pairs, the rapid pair carried by its dash and named so.
+  const pairs = dialog.locator("[data-pair-hint]");
+  await expect(pairs.locator("tr[data-pair]")).toHaveCount(6);
+  await expect(pairs.locator('tr[data-pair="feed/rapid"] td').nth(2)).toHaveText(/^\d\.\d\d · dashed$/);
   await legend.locator('input[type="color"]').first().fill("#1f3f7f");
   await expect(cell("feed", 1), "a picked colour is measured at once").toHaveText(/^\d+\.\d : 1$/);
   await expect(cell("feed", 2)).toHaveText(/^\d+\.\d : 1$/);

@@ -149,24 +149,29 @@
   --syntax-coord: #006955;
   --syntax-param: #236482;
   --syntax-comment: #3b6825;
-  /* Viewer palette (design wave D8c, UI-K08): what WebGL draws, per theme —
-     literal hex (ThreeViewer's cssColor reads no color-mix). A line lies on
-     the scene background AND on the lit machine (a table top renders
-     ≈ #e0e0e0 in every theme): each line role ≥ 3 : 1 on both (on --bg
-     ≥ 4.5 in HC), so the dark themes draw MID-light lines, not pastels that
-     vanish on the part; the path roles differ in hue AND lightness, ≥ 0.12
-     apart in OKLab (themeTokens.test.ts). Rapid is dashed as well; limits
-     keep the warn family everywhere (overlay, timeline marks, line numbers).
-     Tool and cutter are lit meshes — no line contrast applies. Settings'
-     Automatic palette reads these; Custom replaces the seven user roles. */
-  --viewer-feed: #1663dc;
-  --viewer-rapid: #007531;
-  --viewer-backplot: #b4098b;
-  --viewer-limit: #9a6000;
+  /* Viewer palette (design wave D8c; FIXED palette, operator 2026-09-28,
+     docs/reviews/viewer-palette-fest.*): what WebGL draws — literal hex
+     (ThreeViewer's cssColor reads no color-mix), ONE value per role in the
+     light, dark and auto-dark blocks (a theme switch never changes a
+     colour); the HC blocks keep each colour family at their own lightness.
+     A line lies on the scene background AND on the lit machine (a table top
+     renders ≈ #e0e0e0 in every theme): each line role ≥ 3 : 1 on both (on
+     --bg ≥ 4.5 in HC) — one luminance band, so the four path LINES (feed,
+     dashed rapid, limit overlay, backplot) were searched for their distance
+     FROM EACH OTHER: ≥ 0.25 in OKLab, ≥ 0.12 for colour-blind eyes but the
+     dashed rapid (viewer/palettePairs.ts, themeTokens.test.ts). The
+     collision is a body; limits keep the warn family everywhere (overlay,
+     timeline marks, line numbers). Tool and cutter are lit meshes — no line
+     contrast applies. Settings' Automatic palette reads these; Custom
+     replaces the seven user roles. */
+  --viewer-feed: #0f86ba;
+  --viewer-rapid: #ef0197;
+  --viewer-backplot: #7c0bfa;
+  --viewer-limit: #b06c02;
   --viewer-plane-active: #2d81dc;
   --viewer-plane-defined: #a97515;
   --viewer-plane-stale: #cc3333;
-  --viewer-collision: #c20012;
+  --viewer-collision: #c8102e;
   --viewer-bounds: #475569;
   --viewer-toolpath-bounds: #007531;
   --viewer-tool: #9aa0a6;
@@ -326,18 +331,18 @@
     --syntax-coord: #4ec9b0;
     --syntax-param: #9cdcfe;
     --syntax-comment: #7baa66;
-    --viewer-feed: #066be3;
-    --viewer-rapid: #00863b;
-    --viewer-backplot: #be0692;
-    --viewer-limit: #ad6d00;
+    --viewer-feed: #0f86ba;
+    --viewer-rapid: #ef0197;
+    --viewer-backplot: #7c0bfa;
+    --viewer-limit: #b06c02;
     --viewer-plane-active: #2d81dc;
     --viewer-plane-defined: #a97515;
     --viewer-plane-stale: #cc3333;
-    --viewer-collision: #db0016;
+    --viewer-collision: #c8102e;
     --viewer-bounds: #64748b;
     --viewer-toolpath-bounds: #00863b;
-    --viewer-tool: #c0c0c0;
-    --viewer-cutter: #ffdd00;
+    --viewer-tool: #9aa0a6;
+    --viewer-cutter: #d4a800;
   }
 }
 
@@ -366,14 +371,14 @@
   --syntax-coord: #006955;
   --syntax-param: #236482;
   --syntax-comment: #3b6825;
-  --viewer-feed: #1663dc;
-  --viewer-rapid: #007531;
-  --viewer-backplot: #b4098b;
-  --viewer-limit: #9a6000;
+  --viewer-feed: #0f86ba;
+  --viewer-rapid: #ef0197;
+  --viewer-backplot: #7c0bfa;
+  --viewer-limit: #b06c02;
   --viewer-plane-active: #2d81dc;
   --viewer-plane-defined: #a97515;
   --viewer-plane-stale: #cc3333;
-  --viewer-collision: #c20012;
+  --viewer-collision: #c8102e;
   --viewer-bounds: #475569;
   --viewer-toolpath-bounds: #007531;
   --viewer-tool: #9aa0a6;
@@ -405,18 +410,18 @@
   --syntax-coord: #4ec9b0;
   --syntax-param: #9cdcfe;
   --syntax-comment: #7baa66;
-  --viewer-feed: #066be3;
-  --viewer-rapid: #00863b;
-  --viewer-backplot: #be0692;
-  --viewer-limit: #ad6d00;
+  --viewer-feed: #0f86ba;
+  --viewer-rapid: #ef0197;
+  --viewer-backplot: #7c0bfa;
+  --viewer-limit: #b06c02;
   --viewer-plane-active: #2d81dc;
   --viewer-plane-defined: #a97515;
   --viewer-plane-stale: #cc3333;
-  --viewer-collision: #db0016;
+  --viewer-collision: #c8102e;
   --viewer-bounds: #64748b;
   --viewer-toolpath-bounds: #00863b;
-  --viewer-tool: #c0c0c0;
-  --viewer-cutter: #ffdd00;
+  --viewer-tool: #9aa0a6;
+  --viewer-cutter: #d4a800;
 }
 
 /* High-contrast overrides — boost surfaces AND semantic colors */
@@ -454,14 +459,14 @@
   --syntax-coord: #005c48;
   --syntax-param: #125674;
   --syntax-comment: #2f5b16;
-  --viewer-feed: #0238ab;
-  --viewer-rapid: #004b1e;
-  --viewer-backplot: #6f0b55;
-  --viewer-limit: #6c4c02;
+  --viewer-feed: #0a7bc5;
+  --viewer-rapid: #d7079c;
+  --viewer-backplot: #320578;
+  --viewer-limit: #7c4201;
   --viewer-plane-active: #2b76d3;
   --viewer-plane-defined: #9a6e19;
   --viewer-plane-stale: #cc3333;
-  --viewer-collision: #860009;
+  --viewer-collision: #d51713;
   --viewer-bounds: #333d4a;
   --viewer-toolpath-bounds: #014f0a;
   --viewer-tool: #8a8f96;
@@ -502,14 +507,14 @@
   --syntax-coord: #4ec9b0;
   --syntax-param: #9cdcfe;
   --syntax-comment: #7bab66;
-  --viewer-feed: #057df3;
-  --viewer-rapid: #00903f;
-  --viewer-backplot: #db11a3;
-  --viewer-limit: #b17000;
+  --viewer-feed: #048ab3;
+  --viewer-rapid: #f40793;
+  --viewer-backplot: #9741fe;
+  --viewer-limit: #ad6302;
   --viewer-plane-active: #2d81dc;
   --viewer-plane-defined: #a07a0c;
   --viewer-plane-stale: #cc4845;
-  --viewer-collision: #f5001b;
+  --viewer-collision: #fb1903;
   --viewer-bounds: #6b7a8f;
   --viewer-toolpath-bounds: #00903f;
   --viewer-tool: #d0d0d0;
