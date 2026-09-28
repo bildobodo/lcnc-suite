@@ -1735,3 +1735,52 @@ akzeptierte Darstellung gesperrter Werte als Text.
 **Nächste Runde:** OP-I01 bis OP-I06 korrigieren; die Entscheidungen 1–6 in Planung und
 Umsetzung nachführen. Danach die betroffenen Wächter und das Offline-Gate am neuen Stand
 ausführen und erneut per Handshake anfragen.
+
+---
+
+## Umsetzung · Claude · Antwort auf R25 · 28. September 2026
+
+Alle sechs Befunde behoben, jeder mit einem Wächter, der auf dem Stand vor der Korrektur rot war
+(Build ohne die Korrektur oder gezielte Mutation). Die sechs Gestaltungsantworten sind umgesetzt.
+Evidenz R25 unverändert in `ffda0a3`.
+
+| Befund | Commit | Korrektur | Wächter, rot vorher |
+|---|---|---|---|
+| OP-I01 · P1 | `6c20322` | Der Fokus geht beim Darstellungswechsel im selben Microtask mit: Reihe ↔ zwei Reihen bleibt dieselbe Gruppe; Gruppe ↔ Auswahl fokussiert das neue Control, sonst den Block selbst (`tabindex -1`), der Navigationstasten schluckt. Solange ein Zeiger oder Enter/Space im Block gedrückt ist, wartet der Wechsel bis zum Loslassen. | `choices.spec`, Tastatur-Jog an: Hochformat → Touch-Querformat mit Fokus in der Reihe, zwei Reihen → viele INI-Schritte → wenige, Reihe → zwei Reihen, gehaltener Zeiger. Mutation ohne Übergabe: Fokus `BODY`; Mutation ohne Halten: Wechsel unter dem Finger. |
+| OP-I02 | `b0cec37` | Neues Gate `g30Capture` = `machineFrame` + Stillstand (`STAT.inpos` und \|v\| ≤ 0,001; unbekannt verweigert), gleicher Grund für Button und Befehl. Nach dem Synch neuer Poll, erneute Zulassung und Stillstand direkt aus STAT, erst dann die Position. | `test_g30`: bewegt/unbekannt bei der Anfrage (kein Synch), Bewegung, Unbekannt oder Zulassungsverlust während des Synch. Mutationen (Gate ohne Stillstand, keine Nachprüfung) rot. `g30.spec`: Capture gedimmt mit Grund. |
+| OP-I03 | `b0cec37` | Jede Anfrage bekommt ein Ticket (Reihenfolge, Entwurfsrevision, Kontext = Einheit, Kinematik, Verbindungsepoche). `replyApplies` (rein): die gespeicherte Zeile nur ohne neuere Antwort, der Entwurf nur unverändert und im selben Kontext. Eine Speicherbestätigung lässt neuere Eingaben als Entwurf stehen. Ein verspäteter Capture übernimmt nichts und sagt warum. Gilt auch für Refresh und den initialen Dateiread. | `g30.spec`: deine zwei Gegenfälle, Refresh nach Eingabe, verspäteter Dateiread; alle rot auf dem alten Frontend. `g30Form`-Unit-Tests. |
+| OP-I04 | `6c20322` | `ChoiceGroup` sendet über `act` (die `req_id` von `fire()`) und wartet auf genau diese Antwort (`lcncWs.awaitReply`). Eine Ablehnung beendet pending sofort, mit Grund an der Option und einer stillen Protokollzeile. Die Ablehnung einer älteren Anfrage hebt keine neuere auf. Nicht gesendet heißt kein pending. | `choices.spec`: Ablehnung für Betriebsart, Frame und WCS; ältere Ablehnung bei neuerer Wahl. Rot auf dem Build davor. |
+| OP-I05 | `4b16fae` | Kontrasttabelle im Custom-Editor nach den Regeln aus `themeTokens.test.ts` (`viewer/customContrast.ts`, rein): Linien auf Grund und Tisch; Auswahlkern auf Grund, Kern **oder** Halo auf Tisch, Kern und Halo je eine Zeile. „low“ steht in Worten neben der Warnfarbe; nichts wird umgefärbt. | `viewer.spec`: altes Cyan auf Hell „low“, gewähltes Dunkelblau sofort gemessen und unverändert gezeichnet, Automatic ohne Tabelle; rot auf dem Build davor. Unit-Tests der Regeln. |
+| OP-I06 | `91b5608` | Editierbar = Owner-`probe`, ohne Busy-Latch. Sonst würde jeder bestätigte Wert die 70 Zellen für 200 ms zu Text und zurück kippen. Der Fokus eines Werts geht auf seinen Text (`tabindex -1`) und beim Öffnen zurück auf den Button; auf dem Text bleiben Pfeile, Space und Enter lokal. | `offsets.spec`, Oberflächenkompensation an (probe zu, Jog und Run offen), Tastatur-Jog an. Mutationen: ohne Übergabe `BODY`, ohne gehaltene Tasten 35 Jog-Befehle. |
+
+**Die sechs Gestaltungsantworten:**
+1. **Text statt gedimmter Werte:** bleibt, mit dem Fokusvertrag aus OP-I06 und dem Sperrgrund
+   aus Antwort 5. `data-layout-slot` gilt nur für die benannten Slots; der Audit wertet andere
+   verschwundene Controls weiter als `control-count`.
+2. **WCS 2 × 5 quer, 3 × 3 hoch:** unverändert, die Pfeile folgen der Flussrichtung.
+3. **Schrittweite:** direkte Wahl in möglichst wenigen Reihen: eine Reihe, sonst zwei, sonst die
+   Auswahl. Eine einzelne Reihe ist quer breiter als die Mode-Reihe. Bei 3 Achsen schöbe sie die
+   Leiste über die Basislinie: 1668,5 + 32 = 1700,5 > 1678,5 px am Desktop; Touch 1677,5 + 51
+   > 1705,5. Deshalb zwei Reihen:
+   - **Breite:** so breit wie die Mode-Reihe; sie trägt nichts zur Spaltenbreite bei
+     (`width: 0; min-width: 100 %`). Die Leistenbreiten bleiben exakt die K6-Werte.
+   - **Ziele:** ≥ 45 × 28 px, Touch ≥ 45 × 36 px.
+   - **TWP auf Touch-Querformat:** Auswahl, weil die reservierte Plane-Zeile keine Höhe für eine
+     zweite Reihe lässt (248 > 240 px).
+   - **Hochformat:** eine Reihe.
+   - **Budgettest:** prüft das Layout je Fall.
+4. **Hochformat-Budget:** Der Budgettest prüft Jog + Setup gegen die akzeptierten Höhen, mit
+   1 px Toleranz: 960 / 1148,5 / 1262,5 px. Dazu Überlauf, abgeschnittene Beschriftungen und
+   beide Messelemente. Rot mit 2 × 5 im Hochformat: +80 px.
+5. **Sperrgrund:** eine reservierte Zeile unter dem Offsets-Kopf, in jedem Zustand gleich hoch.
+   - **Gesperrt:** „Read-only — <Grund des probe-Gates>“, bei einem schmalen Seitenpanel mit
+     Ellipse.
+   - **Editierbar:** „Select a value to edit it“.
+6. **Touch-Zeilenhöhe:** bleibt (kompakter Boden 36 px).
+
+**Nebenbei:**
+- CLAUDE.md und die Checkliste sind nachgeführt.
+- In der Checkliste stand bei P3 fälschlich „nicht mehr cyan“; K3 macht die Auswahl in den
+  dunklen Themes cyan. Korrigiert.
+
+Offline-Gate auf `<HEAD>`: <GATE>.

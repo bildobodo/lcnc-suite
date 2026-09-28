@@ -176,15 +176,15 @@ Der Branch baut auf `feat/viewer-contrast` auf; für diese Zeilen ist er ausgech
 |---|---|
 | P1 Tools | Suchzeile mit normalem Abstand unter dem Kopf, in allen Zuständen |
 | P2 Tabellen | Beim Scrollen bleibt der **ganze** Tabellenkopf oben (Tools, G-code-Referenz), keine Zelle schiebt sich darüber, die Kopflinie bleibt; per Tab fokussierte Zeilen landen unter dem Kopf |
-| P3 Viewer dunkel | Die Auswahl im 3D-Viewer ist in Dunkel, Auto-Dunkel und HC-Dunkel nicht mehr cyan |
-| P4 G30 | Probing → Toolsetter → G30: „Capture“ übernimmt die aktuelle Position in den Entwurf, „Save“ schreibt und bestätigt, die gespeicherte Zeile nennt Werte und Zeit; ein Wert außerhalb der Verfahrwege wird mit Grund abgelehnt |
-| P5 Offsets | Werte per Tab erreichbar, Enter öffnet das Zahlenfeld; aktives Offset mit Balken am Zeilenanfang, bearbeitete Zelle mit Innenrand; A/B/C und R in Grad; gesperrt (z. B. im Lauf) bleiben die Werte voll lesbar |
+| P3 Viewer dunkel | Die Auswahl im 3D-Viewer ist in Dunkel, Auto-Dunkel und HC-Dunkel jetzt cyan (wie AXIS); bei „Custom“ zeigt Settings → 3D Viewer unter den Farben eine Kontrasttabelle (auf Hintergrund und Tisch, zu schwach = „low“), nichts wird umgefärbt |
+| P4 G30 | Probing → Toolsetter → G30: „Use Current Position“ übernimmt die aktuelle Position in den Entwurf (nur wenn die Maschine steht, sonst gedimmt mit „Machine moving …“), „Save G30“ schreibt und bestätigt, die gespeicherte Zeile nennt Werte und Zeit; ein Wert außerhalb der Verfahrwege wird mit Grund abgelehnt; was du tippst, während eine Antwort aussteht, bleibt Entwurf |
+| P5 Offsets | Werte per Tab erreichbar, Enter öffnet das Zahlenfeld; aktives Offset mit Balken am Zeilenanfang, bearbeitete Zelle mit Innenrand; A/B/C und R in Grad; gesperrt (z. B. im Lauf) bleiben die Werte voll lesbar, eine Zeile unter dem Titel sagt „Read-only — <Grund>“, sonst „Select a value to edit it“ |
 | P6 Offsets | Auf XYZAC zeigt die C-Spalte von G92/Tool den C-Wert; eine Zeile „No G52/G92, tool or comp offset in effect“ bzw. „Offset status unknown — …“ |
-| P7 Leiste | Mode, Kinematics Frame und WCS sind Segmentgruppen mit großen Trefferflächen; Pfeiltasten bewegen nur den Fokus (kein Jog, kein Befehl), Enter/Leertaste/Tipp wählt; eine gewählte Option zeigt einen gelben Balken bis die Maschine bestätigt, nach 5 s „Not confirmed — …“; Step im Querformat als Auswahlfeld, im Hochformat als Reihe; WCS quer 2 × 5, hoch 3 × 3 |
+| P7 Leiste | Mode, Kinematics Frame und WCS sind Segmentgruppen mit großen Trefferflächen; Pfeiltasten bewegen nur den Fokus (kein Jog, kein Befehl), Enter/Leertaste/Tipp wählt; eine gewählte Option zeigt einen gelben Balken bis die Maschine bestätigt, nach 5 s „Not confirmed — …“, eine Ablehnung sofort mit Grund an der Option; Step im Querformat in zwei Reihen (TWP auf Touch: Auswahlfeld), im Hochformat als eine Reihe; WCS quer 2 × 5, hoch 3 × 3 |
 
-**Zu entscheiden beim Ansehen:** Step im Querformat als Reihe statt Auswahlfeld? Die Reihe wäre
-176 px (Touch 195 px) breit, die breiteste andere Gruppe 144 px (XYZAC) bzw. 161 px (TWP); die
-Leiste bliebe unter der Basislinie. Die vereinbarte Breitenregel ergibt das Auswahlfeld.
+**Beim Ansehen:** Die Schrittweite ist im Querformat jetzt eine direkte Wahl in zwei Reihen
+(Codex R25: direkte Wahl, solange die Leiste im Budget bleibt). Eine einzelne Reihe wäre breiter
+als die Mode-Reihe und würde die 3-Achs-Leiste über ihre Basislinie schieben.
 
 ## Wenn alles passt — Merge (nur `development`, nie `main`)
 
