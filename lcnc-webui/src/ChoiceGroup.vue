@@ -12,7 +12,11 @@
 //    The CHECKED option is always the CONFIRMED machine state (modelValue);
 //    a requested one shows "pending" until the status confirms it, or for
 //    at most PENDING_MS ("Not confirmed" at the option, never "failed"; no
-//    retry), or until the connection drops.
+//    retry), or until the connection drops. The group SENDS through `act`
+//    (fire()'s req_id back): a REFUSAL of that very request ends its pending
+//    at once and says why at the option (Codex R25 OP-I04) — never one of an
+//    older request, which cannot cancel a newer choice. Not sent (latch,
+//    gate) = no pending.
 //
 // ONE Tab stop (roving tabindex), kept where the operator left it — a status
 // change never pulls focus to the checked option. All navigation keys are
@@ -26,7 +30,9 @@
 import { ref, watch, onUnmounted } from "vue";
 import MachineChoice from "./MachineChoice.vue";
 import { showBtnHint } from "./btnHint";
-import { connected } from "./lcncWs";
+import { connected, awaitReply } from "./lcncWs";
+import { pushMessage } from "./ws/statusStore";
+import { OPERATOR_ERROR } from "./lcnc";
 import { PENDING_MS, type ChoiceOption } from "./choiceGroup";
 
 const props = withDefaults(defineProps<{
@@ -40,6 +46,11 @@ const props = withDefaults(defineProps<{
   columns?: number;
   /** A grid flowing by column, this many rows. */
   rows?: number;
+  /** A grid that fills its container's width (the jog step's two rows line
+   *  up with the mode row) instead of its own. */
+  fill?: boolean;
+  /** manual: send the choice, return its req_id (fire()) — null = not sent. */
+  act?: (value: V) => string | null;
 }>(), { activation: "manual" });
 const emit = defineEmits<{ (e: "choose", value: V): void }>();
 
@@ -48,6 +59,8 @@ const NAV_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Ho
 const root = ref<HTMLElement | null>(null);
 const pending = ref<V | null>(null);
 let pendingTimer: ReturnType<typeof setTimeout> | null = null;
+/** The request the pending option belongs to. */
+let pendingReq: string | null = null;
 /** The roving stop: the checked option until the operator moves focus. */
 const stop = ref<number>(-1);
 
@@ -61,20 +74,29 @@ function clearPending() {
   if (pendingTimer) clearTimeout(pendingTimer);
   pendingTimer = null;
   pending.value = null;
+  pendingReq = null;
 }
 
 function choose(o: ChoiceOption<V>, el: HTMLElement) {
-  if (props.activation === "manual") {
-    if (o.value === props.modelValue) return;
+  if (props.activation !== "manual" || !props.act) { emit("choose", o.value); return; }
+  if (o.value === props.modelValue) return;
+  clearPending();
+  const reqId = props.act(o.value);
+  if (reqId === null) return;          // not sent — fire() said why
+  pending.value = o.value;
+  pendingReq = reqId;
+  pendingTimer = setTimeout(() => {
+    const shown = props.options.find(x => x.value === props.modelValue)?.label;
     clearPending();
-    pending.value = o.value;
-    pendingTimer = setTimeout(() => {
-      const shown = props.options.find(x => x.value === props.modelValue)?.label;
-      clearPending();
-      showBtnHint(el, shown ? `Not confirmed — the machine shows ${shown}` : "Not confirmed yet");
-    }, PENDING_MS);
-  }
-  emit("choose", o.value);
+    showBtnHint(el, shown ? `Not confirmed — the machine shows ${shown}` : "Not confirmed yet");
+  }, PENDING_MS);
+  void awaitReply(reqId, PENDING_MS).then(r => {
+    if (pendingReq !== reqId || r?.ok !== false) return;
+    clearPending();
+    const why = String(r.error ?? "Refused");
+    showBtnHint(el, why);
+    pushMessage(OPERATOR_ERROR, `${props.label}: ${why}`, "log");
+  });
 }
 
 watch(() => props.modelValue, v => { if (pending.value !== null && v === pending.value) clearPending(); });
@@ -121,7 +143,7 @@ function onKeydown(e: KeyboardEvent) {
        :role="activation === 'manual' ? 'toolbar' : undefined"
        :aria-label="activation === 'manual' ? label : undefined"
        @keydown="onKeydown" @focusin="onFocusin">
-    <div role="radiogroup" :aria-label="label" class="choiceRow" :class="{ grid: !!(columns || rows), colFlow: !!rows }"
+    <div role="radiogroup" :aria-label="label" class="choiceRow" :class="{ grid: !!(columns || rows), colFlow: !!rows, fill: fill && !!(columns || rows) }"
          :style="columns ? { '--choice-columns': columns } : rows ? { '--choice-rows': rows } : undefined">
       <MachineChoice v-for="(o, i) in options" :key="String(o.value)" :gate="o.gate"
                      :disabled="o.disabled" :reason="o.reason" :title="o.title"

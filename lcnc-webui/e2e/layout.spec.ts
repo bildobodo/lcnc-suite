@@ -1587,8 +1587,23 @@ const STRIP_BASELINE: Record<string, number> = {
   '5axis-xyzac desktop': 2148.5, '5axis-xyzac touch-landscape': 2170.5,
   '6axis-twp desktop': 2206.5, '6axis-twp touch-landscape': 2228.5,
 };
-for (const key of Object.keys(STRIP_BASELINE)) {
-  test(`${key}: the choice groups keep the strip within its baseline, whole targets, nothing overflowing`, async ({ page }) => {
+// The step increment's direct choice in the fewest rows that fit (Codex R25
+// answer 3): two rows in landscape — the one row is wider than the mode /
+// frame row, which keeps the strip in its budget — except TWP on touch,
+// where the plane's reserved note leaves no height for a second row.
+const STEP_LAYOUT: Record<string, 'row' | 'grid' | 'select'> = {
+  '3axis-xyz desktop': 'grid', '3axis-xyz touch-landscape': 'grid',
+  '5axis-xyzac desktop': 'grid', '5axis-xyzac touch-landscape': 'grid',
+  '6axis-twp desktop': 'grid', '6axis-twp touch-landscape': 'select',
+  '3axis-xyz touch-portrait': 'row', '5axis-xyzac touch-portrait': 'row', '6axis-twp touch-portrait': 'row',
+};
+// Portrait: Jog + Setup height as accepted in R25 (+3 to +17 px over the
+// radio lists for twice the target height), 1 px rounding (answer 4).
+const PORTRAIT_BUDGET: Record<string, number> = {
+  '3axis-xyz touch-portrait': 960, '5axis-xyzac touch-portrait': 1148.5, '6axis-twp touch-portrait': 1262.5,
+};
+for (const key of Object.keys(STEP_LAYOUT)) {
+  test(`${key}: the choice groups keep the strip within its budget, whole targets, nothing overflowing`, async ({ page }) => {
     const [name, vpName] = key.split(' ') as [string, string];
     const profile = PROFILES.find(p => p.name === name)!;
     const viewport = VIEWPORTS.find(v => v.name === vpName)!;
@@ -1597,24 +1612,33 @@ for (const key of Object.keys(STRIP_BASELINE)) {
     const m = await page.evaluate(() => {
       const sections = [...document.querySelectorAll<HTMLElement>('[data-strip]')];
       const width = sections.reduce((a, s) => a + s.getBoundingClientRect().width, 0);
+      const height = ['jog', 'setup'].reduce((a, n) =>
+        a + document.querySelector<HTMLElement>(`[data-strip="${n}"]`)!.getBoundingClientRect().height, 0);
       const targets = [...document.querySelectorAll<HTMLElement>('[data-strip] [role="radio"]')].map(e => {
         const b = e.getBoundingClientRect();
-        return { name: e.textContent?.trim(), w: b.width, h: b.height };
+        return { name: e.textContent?.trim(), w: b.width, h: b.height, clipped: e.scrollWidth > e.clientWidth + 1 };
       });
       const sideways = [...document.querySelectorAll<HTMLElement>('[data-strip] [role="radiogroup"]')]
         .filter(g => g.scrollWidth > g.clientWidth + 0.5).map(g => g.getAttribute('aria-label'));
       const overflow = sections.filter(s => s.scrollHeight > s.clientHeight + 0.5).map(s => s.dataset.strip);
-      const sizer = document.querySelector<HTMLElement>('.stepSizer');
-      return { width, targets, sideways, overflow,
-        sizer: sizer ? { hidden: sizer.getAttribute('aria-hidden'), inert: sizer.hasAttribute('inert') } : null };
+      const blk = document.querySelector<HTMLElement>('.stepBlock')!;
+      const step = blk.querySelector('select') ? 'select' : blk.querySelector('.choiceGroup .grid') ? 'grid' : 'row';
+      const sizers = [...document.querySelectorAll<HTMLElement>('.stepSizer')]
+        .map(z => ({ hidden: z.getAttribute('aria-hidden'), inert: z.hasAttribute('inert') }));
+      return { width, height, targets, sideways, overflow, step, sizers };
     });
+    if (key in STRIP_BASELINE)
+      expect(m.width, `strip ${m.width.toFixed(1)} px, baseline ${STRIP_BASELINE[key]}`).toBeLessThanOrEqual(STRIP_BASELINE[key]! + 0.5);
+    if (key in PORTRAIT_BUDGET)
+      expect(m.height, `Jog + Setup ${m.height.toFixed(1)} px, budget ${PORTRAIT_BUDGET[key]}`).toBeLessThanOrEqual(PORTRAIT_BUDGET[key]! + 1);
+    expect(m.step, 'the step layout').toBe(STEP_LAYOUT[key]);
     const floor = viewport.touch ? 36 : 24;
-    expect(m.width, `strip ${m.width.toFixed(1)} px, baseline ${STRIP_BASELINE[key]}`).toBeLessThanOrEqual(STRIP_BASELINE[key]! + 0.5);
     const small = m.targets.filter(t => t.w < floor - 0.5 || t.h < floor - 0.5);
     expect(small, `targets under ${floor} × ${floor}: ${JSON.stringify(small)}`).toEqual([]);
+    expect(m.targets.filter(t => t.clipped), 'an option clips its label').toEqual([]);
     expect(m.targets.length, 'the groups are there').toBeGreaterThan(0);
     expect(m.sideways, 'a group scrolls sideways').toEqual([]);
     expect(m.overflow, 'a section overflows').toEqual([]);
-    expect(m.sizer, "the step row's measure").toEqual({ hidden: 'true', inert: true });
+    expect(m.sizers, "the step's measures").toEqual([{ hidden: 'true', inert: true }, { hidden: 'true', inert: true }]);
   });
 }

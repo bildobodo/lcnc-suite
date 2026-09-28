@@ -2293,6 +2293,13 @@ label:has(input:disabled, select:disabled) {
   grid-template-rows: repeat(var(--choice-rows), auto);
   grid-auto-columns: minmax(max-content, 1fr);
 }
+/* A grid as wide as its container (the jog step's two rows under the mode
+   row); a measure at its NATURAL width — each column its widest option. */
+/* width 0 + min-width 100 %: the grid adds nothing to its column's own
+   width (equal 1fr tracks would ask for 3 × the widest option) and fills
+   the width the other rows set — the column never grows for it. */
+.choiceRow.grid.fill { display: grid; width: 0; min-width: 100%; }
+.choiceRow.grid.natural { grid-template-columns: repeat(var(--choice-columns), max-content); }
 .choice {
   position: relative;
   min-height: var(--control-h);

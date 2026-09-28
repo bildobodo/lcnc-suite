@@ -91,6 +91,47 @@ test("a requested choice is pending until the machine confirms it, and 'not conf
   await expect(auto).toHaveAttribute("aria-checked", "false");
 });
 
+// Codex R25 OP-I04: a refusal of THIS request ends its pending at once and
+// says why at the option; the confirmed state stays checked.
+test("a refused choice ends its pending at once and explains itself at the option — mode, frame, work offset", async ({ page }) => {
+  await open(page);
+  const cases = [
+    { g: "Task mode", to: "MDI", cmd: "set_mode", error: "R25: controller refused this mode" },
+    { g: "Kinematics frame", to: "TCP", cmd: "set_kins_mode", error: "R25: kinematics switch refused" },
+    { g: "Work offset", to: "G55", cmd: "mdi", error: "R25: fixture switch refused" },
+  ];
+  for (const c of cases) {
+    await ctl({ op: "replies", replies: { [c.cmd]: { ok: false, error: c.error } } });
+    const opt = option(page, c.g, c.to);
+    await expect(opt).not.toHaveAttribute("aria-disabled", "true");   // past the previous latch
+    await opt.click();
+    await expect(page.locator(".btnHint"), c.g).toHaveText(c.error, { timeout: 2000 });
+    await expect(opt, `${c.g}: no longer pending`).not.toHaveAttribute("aria-busy", "true", { timeout: 1000 });
+    await expect(opt, `${c.g}: the confirmed state stays checked`).toHaveAttribute("aria-checked", "false");
+  }
+  await ctl({ op: "replies", replies: {} });
+});
+
+test("an older request's refusal never cancels a newer choice", async ({ page }) => {
+  await open(page);
+  const mdi = option(page, "Task mode", "MDI"), auto = option(page, "Task mode", "Auto");
+  await mdi.click();                                   // no reply yet
+  await expect(mdi).toHaveAttribute("aria-busy", "true");
+  await expect(auto).not.toHaveAttribute("aria-disabled", "true");
+  await auto.click();                                  // the newer choice
+  await expect(auto).toHaveAttribute("aria-busy", "true");
+  const modes = (await sent()).filter(c => c.cmd === "set_mode");
+  expect(modes.map(c => c.mode)).toEqual([3, 2]);
+  const refuse = (c: { cmd: string; req_id?: unknown }, error: string) =>
+    ctl({ op: "raw", frame: { type: "reply", cmd: c.cmd, req_id: c.req_id, ok: false, error } });
+  await refuse(modes[0]!, "R25: the older request refused");
+  await page.waitForTimeout(300);
+  await expect(auto, "the newer choice stays pending").toHaveAttribute("aria-busy", "true");
+  await refuse(modes[1]!, "R25: the newer request refused");
+  await expect(page.locator(".btnHint")).toHaveText("R25: the newer request refused");
+  await expect(auto).not.toHaveAttribute("aria-busy", "true");
+});
+
 test("a reserved work offset stays focusable and explains itself where it is pressed — nothing is sent", async ({ page }) => {
   await open(page);
   const g59 = option(page, "Work offset", "G59");
@@ -119,6 +160,73 @@ test("portrait: the work offsets are 3 × 3 by row — width is fixed there, hei
   await page.keyboard.press("ArrowDown");
   await expect(option(page, "Work offset", "G58")).toBeFocused();
   expect(await sent()).toEqual([]);
+});
+
+// Codex R25 OP-I01 (P1): a display change of the step (row ↔ two rows ↔
+// select) on a resize or new INI options must take the focus along — the
+// select used to replace the focused row and leave BODY focused, and the
+// next arrow jogged (jog_incr 0.001 in the mock). Keyboard jog is ON here.
+const VP = (n: string) => VIEWPORTS.find(v => v.name === n)!;
+const stepLayout = (page: Page) => page.locator(".stepBlock").evaluate(b =>
+  b.querySelector("select") ? "select" : b.querySelector(".choiceGroup .grid") ? "grid" : "row");
+const jogs = async () => (await sent()).filter(c => c.cmd.startsWith("jog"));
+async function openJog(page: Page, vp: string) {
+  await openLayout(page, TWP, VP(vp));
+  await ctl({ op: "raw", frame: { type: "settings_init", settings: { keyboard: { jogEnabled: true, buttonsEnabled: true } } } });
+  await settleLayout(page);
+  await ctl({ op: "clearCmds" });
+}
+const stepFocus = (page: Page) => page.evaluate(() => {
+  const a = document.activeElement as HTMLElement | null;
+  return a?.closest(".stepBlock") ? (a.tagName === "SELECT" ? "select" : a.getAttribute("role") ?? a.className) : a?.tagName ?? null;
+});
+
+test("the step keeps its focus through every display change; the next arrow stays local", async ({ page }) => {
+  // portrait row → landscape on touch: the select (TWP: no height for two rows)
+  await openJog(page, "touch-portrait");
+  expect(await stepLayout(page)).toBe("row");
+  await option(page, "Jog step", ".001").focus();
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect.poll(() => stepLayout(page)).toBe("select");
+  expect(await stepFocus(page), "row → select").toBe("select");
+  await page.keyboard.press("ArrowRight");
+  await page.waitForTimeout(300);
+  expect(await jogs(), "no jog from the arrow").toEqual([]);
+  // desktop: two rows → many INI steps (select) → few again (two rows)
+  await openJog(page, "desktop");
+  expect(await stepLayout(page)).toBe("grid");
+  await option(page, "Jog step", ".01").focus();
+  await ctl({ op: "setIncrements", increments: [0.001, 0.01, 0.1, 1, 10, 100, 1000, 5000] });
+  await expect.poll(() => stepLayout(page)).toBe("select");
+  expect(await stepFocus(page), "two rows → select").toBe("select");
+  await ctl({ op: "setIncrements", increments: [0.001, 0.01, 0.1, 1] });
+  await expect.poll(() => stepLayout(page)).toBe("grid");
+  expect(await stepFocus(page), "select → two rows").toBe("radio");
+  for (const key of ["ArrowRight", "ArrowDown", "ArrowLeft"]) await page.keyboard.press(key);
+  await page.waitForTimeout(300);
+  expect(await jogs(), "no jog from the arrows").toEqual([]);
+  // portrait row ↔ desktop two rows: the same group, the same focused option
+  await openJog(page, "touch-portrait");
+  await page.evaluate(() => document.documentElement.classList.remove("touch-device"));   // a desktop, upright
+  await expect.poll(() => stepLayout(page)).toBe("row");
+  await option(page, "Jog step", ".1").focus();
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await expect.poll(() => stepLayout(page)).toBe("grid");
+  await expect(option(page, "Jog step", ".1"), "row → two rows").toBeFocused();
+});
+
+test("the step never changes its display under a held pointer — it follows on release", async ({ page }) => {
+  await openJog(page, "desktop");
+  expect(await stepLayout(page)).toBe("grid");
+  const box = (await option(page, "Jog step", ".1").boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await ctl({ op: "setIncrements", increments: [0.001, 0.01, 0.1, 1, 10, 100, 1000, 5000] });
+  await page.waitForTimeout(400);
+  expect(await stepLayout(page), "held: the display waits").toBe("grid");
+  await page.mouse.up();
+  await expect.poll(() => stepLayout(page)).toBe("select");
+  expect(await jogs()).toEqual([]);
 });
 
 test("the step: a row only with few, short options (the arrows choose, locally); nine, long or inch values are a select", async ({ page }) => {

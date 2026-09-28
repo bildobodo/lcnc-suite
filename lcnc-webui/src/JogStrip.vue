@@ -21,6 +21,10 @@ import {
 
 
 const props = defineProps<{
+  /** Send a task-mode / kinematics-frame choice; its req_id (fire()) — the
+   *  group correlates the reply with its option (Codex R25 OP-I04). */
+  modeAct: (mode: number) => string | null;
+  frameAct: (type: number) => string | null;
   axes: string[];
   jogVel: number;
   angularJogVel: number;
@@ -65,8 +69,6 @@ const emit = defineEmits<{
   (e: "update:jogIncrement", v: number): void;
   (e: "resetJogVel"): void;
   (e: "resetAngularJogVel"): void;
-  (e: "modeChange", mode: number): void;
-  (e: "setKinsMode", type: number): void;
 }>();
 
 const can = usePermissions();
@@ -157,27 +159,80 @@ const incrementOptions = computed<{ label: string; value: number }[]>(() => {
   ];
 });
 
-// The step increment is a connected row only with at most STEP_ROW_MAX
-// options AND a natural width that fits what the column's other groups
-// (mode, frame) take — in portrait, the column's width; else a labelled
-// select (Codex R22 OP22-04: six long values are 404 px). The measure is an
-// invisible, inert sizer that is always there — the choice cannot flip-flop
-// with its own width; it re-measures on its labels, the loaded font and the
-// column's size.
+// The step increment is a DIRECT choice with at most STEP_ROW_MAX options
+// (Codex R22 OP22-04, R25 answer 3), in the fewest rows that fit: one row,
+// else two (a grid), else a labelled select (six long values are 404 px).
+// The width is what the column's other groups (mode, frame) take — so the
+// strip never grows past its budget, by construction — in portrait the
+// column's; two rows must also fit the column's height (landscape: the
+// strip's 264 px). The measures are invisible, inert sizers that are always
+// there — the choice cannot flip-flop with its own size; it re-measures on
+// its labels, the loaded font and the column's size.
 const STEP_ROW_MAX = 6;
 const stepOptions = computed<ChoiceOption<number>[]>(() =>
   incrementOptions.value.map(o => ({ value: o.value, label: o.label, gate: "jogIncrement" as const })));
+const stepGridCols = computed(() => Math.ceil(stepOptions.value.length / 2));
 const stepSizer = ref<HTMLElement | null>(null);
+const stepGridSizer = ref<HTMLElement | null>(null);
+const stepBlock = ref<HTMLElement | null>(null);
 const choiceCol = ref<HTMLElement | null>(null);
-const stepFits = ref(false);
+type StepLayout = "row" | "grid" | "select";
+const stepLayout = ref<StepLayout>("select");
+// A display change never re-reads an activation in progress (Codex R25
+// OP-I01): while a pointer or Enter/Space is down in the step block, a
+// change waits for its release; the focus moves WITH the change, in the same
+// microtask as the DOM swap — no key can reach the window (and jog) between.
+let stepHeld = false, stepDeferred = false;
 function measureStep() {
-  const sizer = stepSizer.value, col = choiceCol.value;
-  if (!sizer || !col) return;
+  const row = stepSizer.value, grid = stepGridSizer.value, col = choiceCol.value;
+  if (!row || !grid || !col) return;
   const others = [...col.querySelectorAll<HTMLElement>(".choiceBlock:not(.stepBlock) .choiceRow")].map(r => r.offsetWidth);
-  const budget = isPortrait.value ? col.clientWidth : Math.max(0, ...others);
-  stepFits.value = sizer.offsetWidth <= budget;
+  const width = isPortrait.value ? col.clientWidth : Math.max(0, ...others);
+  let next: StepLayout = "select";
+  if (stepOptions.value.length <= STEP_ROW_MAX) {
+    if (row.offsetWidth <= width) next = "row";
+    else if (grid.offsetWidth <= width && (isPortrait.value || stepGridFitsHeight(col, grid.offsetHeight))) next = "grid";
+  }
+  if (next === stepLayout.value) return;
+  if (stepHeld) { stepDeferred = true; return; }
+  const hadFocus = !!stepBlock.value?.contains(document.activeElement);
+  const fromSelect = stepLayout.value === "select", toSelect = next === "select";
+  stepLayout.value = next;
+  // row ↔ grid is the same group (its buttons stay, and their focus);
+  // group ↔ select replaces the control: its focus goes along.
+  if (hadFocus && fromSelect !== toSelect) void nextTick(focusStep);
 }
-const stepAsRow = computed(() => stepOptions.value.length <= STEP_ROW_MAX && stepFits.value);
+/** Two rows fit the column: its content grows by the grid's extra height. */
+function stepGridFitsHeight(col: HTMLElement, gridH: number): boolean {
+  const kids = [...col.children] as HTMLElement[];
+  const first = kids[0], last = kids[kids.length - 1];
+  const control = stepBlock.value?.querySelector<HTMLElement>(".choiceGroup, select");
+  if (!first || !last || !control) return false;
+  const content = last.offsetTop + last.offsetHeight - first.offsetTop;
+  return content + gridH - control.offsetHeight <= col.clientHeight + 0.5;
+}
+/** The new step control takes the focus the old one had; if it cannot (a
+ *  closed gate), the block holds it — never the document body, where an
+ *  arrow key jogs. */
+function focusStep() {
+  const blk = stepBlock.value;
+  if (!blk) return;
+  blk.querySelector<HTMLElement>('select, [role="radio"][tabindex="0"]')?.focus();
+  if (!blk.contains(document.activeElement)) blk.focus();
+}
+const STEP_NAV = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"]);
+function onStepKeydown(e: KeyboardEvent) {
+  if (e.key === " " || e.key === "Enter") stepHeld = true;
+  // The block itself holding focus (the fallback above): a navigation key
+  // stays local — the shortcut map returns on defaultPrevented.
+  if (e.target === e.currentTarget && STEP_NAV.has(e.key)) e.preventDefault();
+}
+function holdStep() { stepHeld = true; }
+function releaseStep() {
+  if (!stepHeld) return;
+  stepHeld = false;
+  if (stepDeferred) { stepDeferred = false; measureStep(); }
+}
 let stepRo: ResizeObserver | null = null;
 onMounted(() => {
   measureStep();
@@ -185,8 +240,19 @@ onMounted(() => {
   stepRo = new ResizeObserver(measureStep);
   if (choiceCol.value) stepRo.observe(choiceCol.value);
   if (stepSizer.value) stepRo.observe(stepSizer.value);
+  if (stepGridSizer.value) stepRo.observe(stepGridSizer.value);
+  window.addEventListener("pointerup", releaseStep, true);
+  window.addEventListener("pointercancel", releaseStep, true);
+  window.addEventListener("keyup", releaseStep, true);
+  window.addEventListener("blur", releaseStep);
 });
-onUnmounted(() => stepRo?.disconnect());
+onUnmounted(() => {
+  stepRo?.disconnect();
+  window.removeEventListener("pointerup", releaseStep, true);
+  window.removeEventListener("pointercancel", releaseStep, true);
+  window.removeEventListener("keyup", releaseStep, true);
+  window.removeEventListener("blur", releaseStep);
+});
 watch([stepOptions, isPortrait, () => props.kinsType, () => props.twpCapable], () => nextTick(measureStep));
 
 // ─── XY grid square sizing (aspect-ratio unreliable in flex) ──
@@ -495,23 +561,28 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
            click / Enter / Space choose), the checked option the confirmed
            state. The step increment is local — the arrows choose. -->
       <div ref="choiceCol" class="choiceCol stack-controls">
-        <div class="choiceBlock stepBlock stack-tight">
+        <div ref="stepBlock" class="choiceBlock stepBlock stack-tight" tabindex="-1"
+             @pointerdown="holdStep" @keydown="onStepKeydown">
           <!-- one increment for every axis: mm (in) on linear, ° on rotary -->
           <span class="label-muted">Step ({{ abcAxes.length > 0 ? `${linearUnit} / °` : linearUnit }})</span>
-          <ChoiceGroup v-if="stepAsRow" label="Jog step" activation="auto" :options="stepOptions" :modelValue="jogIncrement"
+          <ChoiceGroup v-if="stepLayout !== 'select'" label="Jog step" activation="auto" :options="stepOptions" :modelValue="jogIncrement"
+                       :columns="stepLayout === 'grid' ? stepGridCols : undefined" fill
                        @choose="v => emit('update:jogIncrement', Number(v))" />
           <MachineSelect v-else gate="jogIncrement" aria-label="Jog step" :modelValue="jogIncrement"
                          @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('update:jogIncrement', Number(v)) }">
             <option v-for="o in incrementOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
           </MachineSelect>
-          <!-- the row's measure: never focusable, never read -->
+          <!-- the row's and the two rows' measures: never focusable, never read -->
           <div ref="stepSizer" class="choiceRow stepSizer" aria-hidden="true" inert>
+            <span v-for="o in incrementOptions" :key="o.value" class="choice">{{ o.label }}</span>
+          </div>
+          <div ref="stepGridSizer" class="choiceRow grid natural stepSizer" :style="{ '--choice-columns': stepGridCols }" aria-hidden="true" inert>
             <span v-for="o in incrementOptions" :key="o.value" class="choice">{{ o.label }}</span>
           </div>
         </div>
         <div class="choiceBlock stack-tight">
           <span class="label-muted">Mode</span>
-          <ChoiceGroup label="Task mode" :options="modeOptions" :modelValue="taskMode" @choose="v => emit('modeChange', v)" />
+          <ChoiceGroup label="Task mode" :options="modeOptions" :modelValue="taskMode" :act="modeAct" />
         </div>
         <!-- Jog frame: switchable-kins machines only (Heidenhain 3D-ROT /
              Siemens WCS-MCS convention — an explicit, indicated choice). The
@@ -524,7 +595,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
         <div v-if="kinsType != null" class="choiceBlock stack-tight">
           <!-- The explanation is a tap-friendly help, not a hover title (UX-11). -->
           <span class="label-muted sectionHelp">Kinematics Frame <HelpIcon label="Kinematics Frame"><strong>Machine</strong> — machine axes<br><strong>TCP</strong> — the tip stays on the part as A turns<br><strong>Plane</strong> — tilted plane (G59); re-orient after A moves</HelpIcon></span>
-          <ChoiceGroup label="Kinematics frame" :options="frameOptions" :modelValue="kinsMode" @choose="v => emit('setKinsMode', v)" />
+          <ChoiceGroup label="Kinematics frame" :options="frameOptions" :modelValue="kinsMode" :act="frameAct" />
           <span v-if="twpCapable" class="choiceNote" :class="{ 'text-warn': twpStale, 'text-muted': !twpStale }">{{ planeNote || '\u00a0' }}</span>
         </div>
       </div>

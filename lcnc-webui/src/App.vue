@@ -781,9 +781,13 @@ const twpOriented = computed(() => twpPoseOriented(poseAbcOf(st.value), st.value
 // rule — a plane defined AND the head still aligned with it (the A/B/C
 // orient stamp vs the live rotaries) — which the `planeFrame` permission
 // mirrors for the radio's dimming.
-function setKinsMode(t: number) {
-  if (t !== 0 && t !== 1 && t !== 2) return;
-  fire({ cmd: "set_kins_mode", mode: t }, t === 2 ? "planeFrame" : "ready");
+function setKinsMode(t: number): string | null {
+  if (t !== 0 && t !== 1 && t !== 2) return null;
+  return fire({ cmd: "set_kins_mode", mode: t }, t === 2 ? "planeFrame" : "ready");
+}
+// Task mode (the strip's Mode group): its req_id back to the group.
+function setTaskMode(m: number): string | null {
+  return fire({ cmd: "set_mode", mode: m }, "idle");
 }
 // TWP re-orient: re-solve the head at the CURRENT table pose. Unlike the
 // jog-frame switch above this MOVES the rotaries, hence the probe tier.
@@ -2442,7 +2446,7 @@ watch(viewerGcode, (newGcode) => {
         :twpDefined="st.twp_defined ?? null"
         :twpStale="twpStale"
         :twpOriented="twpOriented"
-        @setKinsMode="setKinsMode"
+        :frameAct="setKinsMode"
         :jogDisabled="!permissions.jog"
         :taskMode="taskMode"
         @update:jogVel="jogVel = $event"
@@ -2450,7 +2454,7 @@ watch(viewerGcode, (newGcode) => {
         @update:jogIncrement="jogIncrement = $event"
         @resetJogVel="jogVel = defaultJogVel"
         @resetAngularJogVel="angularJogVel = defaultAngularJogVel"
-        @modeChange="fire({ cmd: 'set_mode', mode: $event }, 'idle')"
+        :modeAct="setTaskMode"
       />
 
       <SetupStrip
@@ -2481,7 +2485,7 @@ watch(viewerGcode, (newGcode) => {
         @unhomeAxis="unhomeAxis"
         @setAxis="setAxis"
         @setAll="setAll"
-        @setG5x="setG5x"
+        :wcsAct="setG5x"
         @goToG30="fire({ cmd: 'mdi', text: 'O<go_to_g30> CALL' }, 'machineFrame')"
         @goToHome="fire({ cmd: 'mdi', text: 'O<go_to_home> CALL' }, 'machineFrame')"
         @goToZero="fire({ cmd: 'go_to_zero' }, 'goZero')"

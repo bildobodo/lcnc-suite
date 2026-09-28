@@ -21,6 +21,9 @@ import { fmtAxisValue } from "./format";
 const fmtAxisInput = fmtAxisValue;
 
 const props = defineProps<{
+  /** Send a work-offset choice ("G55"); its req_id (fire()) — the group
+   *  correlates the reply with its option (Codex R25 OP-I04). */
+  wcsAct: (gcode: string) => string | null;
   axes: string[];
   workPos: number[];
   homedJoints: boolean[];
@@ -67,7 +70,6 @@ const emit = defineEmits<{
   (e: "unhomeAxis", joint: number): void;
   (e: "setAxis", axis: number, value: number, expect: TouchoffExpect): void;
   (e: "setAll", letters: string[], expect: TouchoffExpect): void;
-  (e: "setG5x", gcode: string): void;
   (e: "goToG30"): void;
   (e: "goToHome"): void;
   (e: "goToZero"): void;
@@ -261,7 +263,7 @@ function zeroAll() {
              and HEIGHT is the price — 2 × 5 made the section 103 px taller. -->
         <ChoiceGroup class="wcsOptions" label="Work offset" :rows="isPortrait ? undefined : 5"
                      :columns="isPortrait ? 3 : undefined" :options="wcsChoices" :modelValue="g5xLabel"
-                     @choose="v => emit('setG5x', String(v))" />
+                     :act="v => wcsAct(String(v))" />
       </div>
     </div>
   </div>

@@ -19,7 +19,7 @@ interface UseTouchoffMathOptions {
   /** Axis letters in motion-controller order (e.g. ["X","Y","Z"]). */
   axes: ComputedRef<string[]>;
   /** Permission-gated send wrapper from App.vue. */
-  fire: (payload: any, gate?: keyof Permissions, cooldownMs?: number) => void;
+  fire: (payload: any, gate?: keyof Permissions, cooldownMs?: number) => string | null | void;
 }
 
 /** The gate class a touch-off of `letters` needs: rotary if ANY letter is
@@ -75,8 +75,9 @@ export function useTouchoffMath(opts: UseTouchoffMathOptions) {
     _fireTouchoff(axes, expect);
   }
 
-  function setG5x(gcode: string) {
-    opts.fire({ cmd: "mdi", text: gcode }, 'probe');
+  /** The work-offset choice; its req_id (null = not sent) for the group. */
+  function setG5x(gcode: string): string | null {
+    return opts.fire({ cmd: "mdi", text: gcode }, 'probe') ?? null;
   }
 
   return { setAxis, setAll, setG5x };

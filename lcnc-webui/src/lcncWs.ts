@@ -367,7 +367,17 @@ function settleAwaitedReplies(): void {
  * ONE gateway command (`mdi` with `vars`, Codex R16), not after an await.
  */
 export function request(obj: WsCommand, timeoutMs = 5000): Promise<any | null> {
-  const reqId = send(obj);
+  return awaitReply(send(obj), timeoutMs);
+}
+
+/**
+ * Wait for the reply to a command ALREADY sent — its req_id, what fire()
+ * returns. Same contract as request(): `null` when nothing was sent, on the
+ * timeout or a closed connection; the waiting caller reports a refusal
+ * itself (no generic "Command:" line). Register in the same turn as the
+ * send: a reply arrives through the worker, a task later at the earliest.
+ */
+export function awaitReply(reqId: string | null, timeoutMs = 5000): Promise<any | null> {
   if (reqId === null) return Promise.resolve(null);
   return new Promise(resolve => {
     const done = (reply: any) => { clearTimeout(timer); _awaited.delete(reqId); resolve(reply); };
