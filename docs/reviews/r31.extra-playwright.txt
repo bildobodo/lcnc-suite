@@ -1,0 +1,67 @@
+
+Running 3 tests using 1 worker
+
+(node:40564) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:40564) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r31.extra.spec.ts:9:1 › R31 box edge has screen-space casing and core at DPR 1 and 2 (3.7s)
+  ✘  2 e2e/r31.extra.spec.ts:44:1 › R31 reveal contains only the requested rapid section (1.6s)
+(node:40699) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:40699) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 e2e/r31.extra.spec.ts:73:1 › R31 custom box contrast labels the failing comparison (1.3s)
+
+
+  1) e2e/r31.extra.spec.ts:44:1 › R31 reveal contains only the requested rapid section ─────────────
+
+    Error: The 90 mm rapid away from the 7 mm finding should stay hidden
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThan[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: < [32m84.74984915513525[39m
+    Received:   [31m169.49969831027045[39m
+
+      67 |   writeFileSync(`${OUT}/r31.multirapids.json`,JSON.stringify(data,null,2)+'\n');
+      68 |   await page.screenshot({path:`${OUT}/r31.multirapids.png`});
+    > 69 |   expect(after!.length,'The 90 mm rapid away from the 7 mm finding should stay hidden').toBeLessThan(before!.length/2);
+         |                                                                                         ^
+      70 | });
+      71 |
+      72 |
+        at /tmp/codex-r31-jsckw2pi/lcnc-webui/e2e/r31.extra.spec.ts:69:89
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/playwright-results/r31.extra-R31-reveal-conta-80d86-the-requested-rapid-section/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/playwright-results/r31.extra-R31-reveal-conta-80d86-the-requested-rapid-section/error-context.md
+
+  2) e2e/r31.extra.spec.ts:73:1 › R31 custom box contrast labels the failing comparison ────────────
+
+    Error: The passing 10.6:1 background ratio is not the low core/casing ratio
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mnot[2m.[22mtoContain[2m([22m[32mexpected[39m[2m) // indexOf[22m
+
+    Expected substring: not [32m"low"[39m
+    Received string:        [31m"10.6 : 1 · [7mlow[27m"[39m
+
+      85 |   writeFileSync(`${OUT}/r31.custom.json`,JSON.stringify({customCore:'#3a3f45',fixedCasing:'#3a3f45',coreCasingRatio:1,cells,table:all},null,2)+'\n');
+      86 |   await page.screenshot({path:`${OUT}/r31.custom.png`});
+    > 87 |   expect(cells[1],'The passing 10.6:1 background ratio is not the low core/casing ratio').not.toContain('low');
+         |                                                                                               ^
+      88 | });
+      89 |
+        at /tmp/codex-r31-jsckw2pi/lcnc-webui/e2e/r31.extra.spec.ts:87:95
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/playwright-results/r31.extra-R31-custom-box-c-a70be-bels-the-failing-comparison/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/playwright-results/r31.extra-R31-custom-box-c-a70be-bels-the-failing-comparison/error-context.md
+
+  2 failed
+    e2e/r31.extra.spec.ts:44:1 › R31 reveal contains only the requested rapid section ──────────────
+    e2e/r31.extra.spec.ts:73:1 › R31 custom box contrast labels the failing comparison ─────────────
+  1 passed (7.5s)

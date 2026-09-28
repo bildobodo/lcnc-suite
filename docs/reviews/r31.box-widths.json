@@ -1,0 +1,650 @@
+[
+  {
+    "dpr": 1,
+    "theme": "light",
+    "core_css_px": 1.0,
+    "total_css_px": 3.0,
+    "max_rgb_error": 0.75,
+    "profile": [
+      {
+        "at_css": -8,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -7,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -6,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -4,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -3,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -2,
+        "core": 0.0,
+        "casing": 0.25,
+        "max_rgb_error": 0.5
+      },
+      {
+        "at_css": -1,
+        "core": 0.25,
+        "casing": 0.75,
+        "max_rgb_error": 0.75
+      },
+      {
+        "at_css": 0,
+        "core": 0.75,
+        "casing": 0.25,
+        "max_rgb_error": 0.75
+      },
+      {
+        "at_css": 1,
+        "core": 0.0,
+        "casing": 0.75,
+        "max_rgb_error": 0.75
+      },
+      {
+        "at_css": 2,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 3,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 4,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 6,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 7,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 8,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      }
+    ]
+  },
+  {
+    "dpr": 1,
+    "theme": "dark",
+    "core_css_px": 1.0,
+    "total_css_px": 3.0,
+    "max_rgb_error": 0.75,
+    "profile": [
+      {
+        "at_css": -8,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -7,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -6,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -4,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -3,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -2,
+        "core": 0.0,
+        "casing": 0.25,
+        "max_rgb_error": 0.75
+      },
+      {
+        "at_css": -1,
+        "core": 0.25,
+        "casing": 0.75,
+        "max_rgb_error": 0.75
+      },
+      {
+        "at_css": 0,
+        "core": 0.75,
+        "casing": 0.25,
+        "max_rgb_error": 0.75
+      },
+      {
+        "at_css": 1,
+        "core": 0.0,
+        "casing": 0.75,
+        "max_rgb_error": 0.75
+      },
+      {
+        "at_css": 2,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 3,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 4,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 6,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 7,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 8,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      }
+    ]
+  },
+  {
+    "dpr": 2,
+    "theme": "light",
+    "core_css_px": 1.0,
+    "total_css_px": 3.0,
+    "max_rgb_error": 0.75,
+    "profile": [
+      {
+        "at_css": -8,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -7.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -7,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -6.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -6,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -5.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -4.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -4,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -3.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -3,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -2.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -2,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -1.5,
+        "core": 0.0,
+        "casing": 0.75,
+        "max_rgb_error": 0.75
+      },
+      {
+        "at_css": -1,
+        "core": 0.0,
+        "casing": 1.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -0.5,
+        "core": 0.75,
+        "casing": 0.25,
+        "max_rgb_error": 0.75
+      },
+      {
+        "at_css": 0,
+        "core": 1.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 0.5,
+        "core": 0.25,
+        "casing": 0.75,
+        "max_rgb_error": 0.75
+      },
+      {
+        "at_css": 1,
+        "core": 0.0,
+        "casing": 1.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 1.5,
+        "core": 0.0,
+        "casing": 0.25,
+        "max_rgb_error": 0.5
+      },
+      {
+        "at_css": 2,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 2.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 3,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 3.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 4,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 4.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 5.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 6,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 6.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 7,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 7.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 8,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 8.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      }
+    ]
+  },
+  {
+    "dpr": 2,
+    "theme": "dark",
+    "core_css_px": 1.0,
+    "total_css_px": 3.0,
+    "max_rgb_error": 0.75,
+    "profile": [
+      {
+        "at_css": -8,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -7.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -7,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -6.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -6,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -5.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -4.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -4,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -3.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -3,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -2.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -2,
+        "core": 0.0,
+        "casing": 0.25,
+        "max_rgb_error": 0.75
+      },
+      {
+        "at_css": -1.5,
+        "core": 0.0,
+        "casing": 1.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": -1,
+        "core": 0.25,
+        "casing": 0.75,
+        "max_rgb_error": 0.75
+      },
+      {
+        "at_css": -0.5,
+        "core": 1.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 0,
+        "core": 0.75,
+        "casing": 0.25,
+        "max_rgb_error": 0.75
+      },
+      {
+        "at_css": 0.5,
+        "core": 0.0,
+        "casing": 1.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 1,
+        "core": 0.0,
+        "casing": 0.75,
+        "max_rgb_error": 0.75
+      },
+      {
+        "at_css": 1.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 2,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 2.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 3,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 3.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 4,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 4.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 5.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 6,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 6.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 7,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 7.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 8,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      },
+      {
+        "at_css": 8.5,
+        "core": 0.0,
+        "casing": 0.0,
+        "max_rgb_error": 0.0
+      }
+    ]
+  }
+]

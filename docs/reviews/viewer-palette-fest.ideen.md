@@ -776,3 +776,164 @@ lässt sie auf den Fokus am Settings-Knopf warten, danach 6 von 6 grün; das Pro
    neuen Programm-Payload (`viewerGcode`), also auch bei einer Neuberechnung desselben Programms.
    Ist das zu streng?
 4. **HC-Dunkel 0,244:** Ausnahme so tragbar, oder eine andere Regel für HC?
+
+---
+
+## Review Codex · R31 · Implementierung P4/P1/P2/P3/P5 · 28. September 2026
+
+**Stand:** `048e4d0`, Branch `feat/viewer-palette`, ausschließlich im Worktree
+`/home/cnc/lcnc-suite-backlog`; geprüft gegen `661d5dd`. **Ergebnis: findings.**
+Die festen Farben, die Entfernung der 3D-Auswahl und die gesäumten Boxen sind in diesem
+Stand nachvollziehbar umgesetzt. Offen bleiben drei Fehler der temporären Befundansicht
+und eine falsche Zuordnung im Custom-Kontrasthinweis. Keine Änderung am Produktcode.
+
+### VP-I01 · P2 · Eine allgemeine Einstellungsaktualisierung beendet die Befundansicht
+
+**Auslöser:** Rapids ausschalten, zum Eilgang-Grenzbefund springen, anschließend ausschließlich
+das Theme von Hell auf Dunkel ändern. Die gespeicherte Ebenenwahl bleibt `rapids: false`.
+**Ist:** Der eben eingeblendete Eilgang und sein Hinweis verschwinden. Die Simulation bleibt
+an derselben Stelle aktiv. Eine Einstellung eines anderen Clients kann das ebenfalls auslösen.
+
+Ursache: `ThreeViewer.vue:1097–1102` löscht `pathReveal` bei jedem Aufruf für Toolpath/Rapids,
+auch wenn sich der Wert nicht ändert. `applyViewerDefaults` ruft diese Methode für **alle**
+Ebenen auf (`:3666`); der Watcher auf `settingsVersion` tut dies bei jeder Aktualisierung
+(`:3768`). Dieser Weg unterscheidet eine bewusste Ebenenänderung nicht von ihrer erneuten
+Übernahme. Der Kommentar „operator's own switch“ beschreibt deshalb nicht die tatsächliche
+Bedingung.
+
+**Korrektur:** Das Ende an eine tatsächliche Änderung der betreffenden Ebenenwahl beziehungsweise
+an den ausdrücklichen lokalen Schalter binden. Eine unveränderte Übernahme, ein Theme-Wechsel
+oder eine fachfremde Einstellungsänderung erhält den Befundzustand. Eine tatsächlich geänderte
+Wahl eines anderen Clients soll weiterhin gelten; keine alte Wahl zurückschreiben.
+
+**Beleg:** [r31.settings.json](r31.settings.json), [Bild](r31.settings.png), erster Test in
+[r31.review.spec.ts](r31.review.spec.ts). Vorher `rapidShown=true`, Hinweis sichtbar; nachher
+`rapidShown=false`, Hinweis entfernt, `simulation=true`. Die Sonde erwartet das vereinbarte
+Fortbestehen und ist am geprüften Stand rot.
+
+### VP-I02 · P2 · Bei ausgeschaltetem HUD bleibt die temporäre Einblendung unerklärt
+
+**Auslöser:** HUD und Rapids ausschalten, dann denselben Grenzbefund anspringen.
+**Ist:** Der Eilgang wird eingeblendet, aber es gibt keinen Hinweis auf die Abweichung von der
+gespeicherten Ebenenwahl. Das ist nicht nur ein außerhalb des sichtbaren Bereichs liegender Text:
+`[data-path-reveal]` existiert im DOM überhaupt nicht.
+
+Der Hinweis steht zwar außerhalb des inneren `template v-if="hudVisible"`, sein gemeinsamer
+Elternblock wird aber durch `(hudVisible && hasHudNotes) || failedParts.length` ausgeschlossen
+(`ThreeViewer.vue:4305`, Hinweis `:4351`). Zusätzlich enthält `hasHudNotes` (`:3882`) den neuen
+Befundzustand nicht als eigenständigen Anzeigegrund.
+
+**Korrektur:** Der temporäre Zustand braucht unabhängig vom DRO/HUD-Schalter einen sichtbaren
+Hinweis, etwa bei der Befundnavigation oder als eigener Anzeigegrund der vorhandenen Karte.
+Dabei auch die kompakte/faltbare Form berücksichtigen; ein eingeschalteter Layer darf nicht nur
+hinter einer allgemeinen Warnungszahl erklärt werden. Die bestehende Begrenzung der unteren
+Spalte erhalten.
+
+**Beleg:** [r31.hud-off.json](r31.hud-off.json), [Bild](r31.hud-off.png), zweiter Test in
+[r31.review.spec.ts](r31.review.spec.ts): `rapidShown=true`, `noticeCount=0`, Simulation aktiv.
+Der vorhandene Rapids-Test erfasst diesen Zustand nicht; er prüft den Text bei eingeschaltetem
+HUD.
+
+### VP-I03 · P2 · Ein Befundsprung zeigt die gesamte ausgeblendete Ebene
+
+Fassung 2 verspricht in P3 den betroffenen Abschnitt. Tatsächlich speichert `PathReveal`
+nur zwei Ebenen-Booleans (`viewer/pathReveal.ts:11–24`). `applyPathLayers`
+(`ThreeViewer.vue:1074–1076`) schaltet damit sämtliche Eilgänge beziehungsweise den gesamten
+Toolpath ein. Das stellt gerade bei dichtem Programm die zuvor ausgeblendete Linienmenge wieder
+her, obwohl nur eine konkrete Bewegung untersucht werden soll.
+
+**Reproduktion:** Ein 90-mm-Eilgang liegt entfernt bei Y=80; der angesprungene Grenzbefund liegt
+auf einer 7-mm-Bewegung bei Y=20. Vor dem Sprung sind Rapids aus. Danach ist auch der entfernte
+90-mm-Eilgang wieder sichtbar: dieselbe projizierte Lage und Länge von **169,50 CSS-px** wie
+bei vollständig eingeschalteten Rapids. Der vorhandene Wächter mit nur einem Eilgang kann
+gezielte Einblendung und vollständiges Einschalten nicht unterscheiden.
+
+**Korrektur:** Den temporären Bereich an den angesprungenen Track-/Bewegungsbereich binden und
+nur dessen zuvor verborgene Geometrie ergänzen; übrige ausgeblendete Bewegungen bleiben verborgen.
+Auch „Toolpath insgesamt aus“ abdecken. Hierfür weder die entfernte allgemeine Zeilenauswahl
+noch eine neue Auswahlfarbe zurückbringen. Bei Unterprogrammen die Track-Identität verwenden,
+nicht allein eine möglicherweise mehrfach vorkommende Quellzeilennummer.
+
+**Beleg:** [r31.multirapids.json](r31.multirapids.json), [Bild](r31.multirapids.png), Test
+„reveal contains only the requested rapid section“ in [r31.extra.spec.ts](r31.extra.spec.ts).
+
+### VP-I04 · P3 · Custom zeigt den richtigen Warnbedarf an der falschen Zahl
+
+Bei Custom-Boxfarbe `#3a3f45`, identisch zum festen Saum, ist der Kern/Saum-Kontrast **1:1**.
+Die Tabelle zeigt stattdessen **„10.6 : 1 · low“** unter „On background“ und
+**„8.0 : 1 · low“** unter „On the table“. Diese beiden Kontraste erfüllen ihre Schwelle;
+der tatsächlich unzureichende Kern/Saum-Wert wird nicht gezeigt.
+
+`customContrastRows` verknüpft `casingLow` mit `bgLow` und `tableLow`, liefert aber weiterhin
+die guten Hintergrund-/Tischwerte zurück (`viewer/customContrast.ts:48–52`).
+`SettingsPanel.vue:744–745` hängt „low“ unmittelbar an diese Werte. So kann der Nutzer aus der
+Warnung nicht ableiten, welchen Kontrast er verbessern muss.
+
+**Korrektur:** Hintergrund, Tisch und Kern/Saum getrennt bewerten und den misslungenen Vergleich
+mit seinem Wert nennen. Dafür genügt bei Boxen eine ergänzende Zeile oder ein gezielter Hinweis;
+keine stille Korrektur der Custom-Farbe.
+
+**Beleg:** [r31.custom.json](r31.custom.json), [Bild](r31.custom.png), letzter Test in
+[r31.extra.spec.ts](r31.extra.spec.ts).
+
+### Antworten auf die vier Umsetzungsfragen
+
+1. **P4 / verbleibende Nutzer:** Im Diff und in der Verbrauchersuche kein weiterer versehentlich
+   entfernter produktiver Nutzer gefunden. `runLineState`, `subExecState`, `resolveCurrentLine`
+   und der Run-Watcher bleiben; `App.vue:656` verwendet die Textauflösung weiterhin.
+   `GcodePanel.selectedLine` und der Run-from-line-Dialog sind davon unabhängig. Scrub-Pose,
+   `_scrubLineNo`, Cum und Track bleiben mit `_updateClashTint` verbunden. Die gezielten
+   Track-/Run-Watcher-Tests bestehen. Das ist keine Behauptung eines neu ausgeführten
+   Live-LinuxCNC- oder vollständigen Kollisions-/Unterprogramm-End-to-End-Tests.
+
+2. **P2 / Boxenmessung:** Materialbreite plus bloßes Vorhandensein beider Farben ist allein
+   ein schwacher Wächter für die CSS-Pixel-Breite. Dafür muss aber die überlagerte Mockkante
+   nicht beibehalten werden: Meine ergänzende Szene blendet andere Körper/Markierungen aus
+   und misst eine isolierte vertikale Boxkante. In Hell und Dunkel, jeweils DPR 1 und 2,
+   ergeben die aufgenommenen Pixelprofile **1,00 CSS-px Kern und 3,00 CSS-px Gesamtbreite**.
+   Die Anpassung an Hintergrund/Kern/Saum mit Viertel-Pixel-Abdeckung hat höchstens 0,75
+   RGB-Stufen Restfehler. Damit ist die Umsetzung hier bestätigt; die isolierte Szene eignet
+   sich als dauerhafter Wächter. Gemeinsame Geometrie und Strichabstände für Kern/Saum sowie
+   die Tiefenprüfung sind im Code vorhanden. Die geschmackliche Bewertung der Boxen in sehr
+   dichten realen Programmen bleibt Teil der Operator-Sichtprüfung.
+   Belege: [Profile](r31.box-profiles.json), [Auswertung](r31.box-widths.json),
+   [Auswertungsskript](r31.box-analyse.py), vier `r31.box-dpr*.png`.
+
+3. **P3 / neuer Payload desselben Programms:** Das Beenden ist vertretbar. Nach einer
+   Neuberechnung können Track und Befundzuordnung andere sein; den alten temporären Bereich
+   ohne erneute Zuordnung zu behalten wäre irreführend. Diese Grenze muss nicht auf bloße
+   Einstellungsübernahmen ausgedehnt werden (VP-I01). Weiterhin aufräumen bei manuellem Scrub,
+   Simulationsende, Payloadwechsel und neuer bewusster Ebenenwahl; ein neuer Befund ersetzt
+   den bisherigen.
+
+4. **HC-Dunkel 0,244:** Als ausdrücklich benannte Ausnahme der eigenen Such-/Regressionsregel
+   tragbar. 0,25 war kein normativer Grenzwert. Die Kontrast- und CVD-Wächter bestehen; die
+   Farbfamilien bleiben erhalten. Daraus folgt kein Beweis der Unterscheidbarkeit jeder kurzen
+   oder überlagerten Linie. Optional die Ausnahme im Wächter auf HC-Dunkel begrenzen, damit
+   HC-Hell mit seinen erreichten 0,277 nicht unnötig denselben niedrigeren Mindestwert erhält.
+
+### Eigene Prüfung und Übergabe
+
+- Archiv des geprüften HEAD unter `/tmp`, keine Produktänderungen im Palette-Worktree oder
+  Live-Checkout. Build und Typecheck erfolgreich; **194/194** gezielte Unit-Tests in zehn
+  Dateien erfolgreich (Palette/Tokens, Controller, Custom-Kontrast, Reveal, Viewer-Settings,
+  Track/Text und Run-Watcher).
+- Vorhandene Browserprüfungen `rapids.viewer.spec.ts` und `scenes.viewer.spec.ts`:
+  **3/3 bestanden**, einschließlich vier Themes und DPR 1/2 sowie Grenzmarkierung über Backplot.
+- Eigene Browserprüfungen: Boxprofil-Aufnahme erfolgreich; die vier obigen Sollverhalten
+  reproduzierbar **rot**. Das sind zusätzliche Review-Sonden, kein Widerspruch zum gemeldeten
+  Offline-Gate. Ein erster Entwurf der Mehr-Eilgang-Sonde enthielt einen ungeeigneten NaN-
+  Trennpunkt und wurde beendet; er wird nicht als Produktbefund gewertet. Die abgelegte Sonde
+  und ihre Ergebnisse verwenden ausschließlich endliche Koordinaten und aufsteigende Sequenzen.
+- Ein eigener Mock auf `127.0.0.1:4188`, ein Browser zur Zeit, `nice -n 19`.
+  Keine Aufrufe der Live-Ports `:8000`/`:5173` und keine Maschinenbefehle. Kein erneuter
+  Backend- oder vollständiger Offline-Gesamtlauf.
+
+Ausführung und Grenzen: [r31.README.md](r31.README.md).
+Ergebnisse: [r31.tests.json](r31.tests.json), [Build](r31.build.txt),
+[Unit-Tests](r31.vitest.txt), [Browserlauf](r31.playwright.txt),
+[Zusatzlauf](r31.extra-playwright.txt). Frühere Reviews und Belege bleiben unverändert.
+
+**Übergabe an Claude:** VP-I01 bis VP-I04 bearbeiten; danach Nachprüfung der Änderungen und
+angrenzenden Fälle. Handshake R31 erhält `findings`. Für diese Korrekturen ist keine neue
+Operatorentscheidung erforderlich.

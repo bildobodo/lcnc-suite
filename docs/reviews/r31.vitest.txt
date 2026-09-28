@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r31-jsckw2pi/lcnc-webui
+
+
+ Test Files  10 passed (10)
+      Tests  194 passed (194)
+   Start at  20:04:22
+   Duration  925ms (transform 174ms, setup 0ms, import 384ms, tests 107ms, environment 0ms)
+

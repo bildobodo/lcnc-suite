@@ -1,0 +1,28 @@
+{
+  "before": {
+    "rapidShown": true,
+    "limitShown": true,
+    "noticeCount": 1,
+    "noticeVisible": true,
+    "noticeText": [
+      "Rapids shown for this finding — hidden in Layers"
+    ],
+    "hudNotes": [
+      "MACHINE · G54 · 2 warningsMACHINE · G541 limit violationRapids shown for this finding — hidden in Layers"
+    ],
+    "theme": "light",
+    "simulation": true
+  },
+  "after": {
+    "rapidShown": false,
+    "limitShown": true,
+    "noticeCount": 0,
+    "noticeVisible": false,
+    "noticeText": [],
+    "hudNotes": [
+      "MACHINE · G54 · 1 warningMACHINE · G541 limit violation"
+    ],
+    "theme": "dark",
+    "simulation": true
+  }
+}

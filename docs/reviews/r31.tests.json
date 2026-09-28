@@ -1,0 +1,341 @@
+{
+  "head": "048e4d0274fc763c7a993f04c34f0f05fbde51b4",
+  "runs": [
+    {
+      "source": "r31.playwright.json",
+      "stats": {
+        "startTime": "2026-09-28T18:05:52.243Z",
+        "duration": 20578.94,
+        "expected": 3,
+        "skipped": 0,
+        "unexpected": 2,
+        "flaky": 0
+      },
+      "specs": [
+        {
+          "title": "R31 unrelated settings preserve the active finding reveal",
+          "file": "r31.review.spec.ts",
+          "line": 48,
+          "ok": false,
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "unexpected",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 2208,
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r31-jsckw2pi/lcnc-webui/e2e/r31.review.spec.ts",
+                        "column": 89,
+                        "line": 59
+                      },
+                      "message": "Error: Changing theme alone must not clear a finding reveal\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\n  57 |   writeFileSync(`${OUT}/r31.settings.json`, JSON.stringify({before,after},null,2)+'\\n');\n  58 |   await page.screenshot({path:`${OUT}/r31.settings.png`});\n> 59 |   expect.soft(after.rapidShown, 'Changing theme alone must not clear a finding reveal').toBe(true);\n     |                                                                                         ^\n  60 |   expect.soft(after.noticeVisible, 'Reveal remains named until its defined end').toBe(true);\n  61 | });\n  62 | test('R31 a hidden HUD still explains the temporary reveal', async({page,context})=>{\n    at /tmp/codex-r31-jsckw2pi/lcnc-webui/e2e/r31.review.spec.ts:59:89"
+                    },
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r31-jsckw2pi/lcnc-webui/e2e/r31.review.spec.ts",
+                        "column": 82,
+                        "line": 60
+                      },
+                      "message": "Error: Reveal remains named until its defined end\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\n  58 |   await page.screenshot({path:`${OUT}/r31.settings.png`});\n  59 |   expect.soft(after.rapidShown, 'Changing theme alone must not clear a finding reveal').toBe(true);\n> 60 |   expect.soft(after.noticeVisible, 'Reveal remains named until its defined end').toBe(true);\n     |                                                                                  ^\n  61 | });\n  62 | test('R31 a hidden HUD still explains the temporary reveal', async({page,context})=>{\n  63 |   await prepare(page,context,false);\n    at /tmp/codex-r31-jsckw2pi/lcnc-webui/e2e/r31.review.spec.ts:60:82"
+                    }
+                  ],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "R31 a hidden HUD still explains the temporary reveal",
+          "file": "r31.review.spec.ts",
+          "line": 62,
+          "ok": false,
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "unexpected",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 1770,
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r31-jsckw2pi/lcnc-webui/e2e/r31.review.spec.ts",
+                        "column": 82,
+                        "line": 68
+                      },
+                      "message": "Error: The user must know why a hidden layer is visible\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32mtrue\u001b[39m\nReceived: \u001b[31mfalse\u001b[39m\n\n  66 |   writeFileSync(`${OUT}/r31.hud-off.json`, JSON.stringify(after,null,2)+'\\n');\n  67 |   await page.screenshot({path:`${OUT}/r31.hud-off.png`});\n> 68 |   expect(after.noticeVisible,'The user must know why a hidden layer is visible').toBe(true);\n     |                                                                                  ^\n  69 | });\n  70 |\n    at /tmp/codex-r31-jsckw2pi/lcnc-webui/e2e/r31.review.spec.ts:68:82"
+                    }
+                  ],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "hidden rapids keep their limit finding; a jump to it shows them for the finding and says so",
+          "file": "rapids.viewer.spec.ts",
+          "line": 19,
+          "ok": true,
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 1746,
+                  "errors": [],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "the palette in four themes, on a model, a dense and a thin path \u2014 and no current line drawn",
+          "file": "scenes.viewer.spec.ts",
+          "line": 48,
+          "ok": true,
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 4108,
+                  "errors": [],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px \u2014 at DPR 1 and 2",
+          "file": "scenes.viewer.spec.ts",
+          "line": 187,
+          "ok": true,
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [
+                {
+                  "type": "widths DPR 1 light",
+                  "description": "{\"widths\":{\"feed\":1,\"limit\":0.9974816599145955,\"backplot\":2},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":321,\"len\":61}}}"
+                },
+                {
+                  "type": "widths DPR 1 dark",
+                  "description": "{\"widths\":{\"feed\":1,\"limit\":0.9974816599145955,\"backplot\":2},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":321,\"len\":61}}}"
+                },
+                {
+                  "type": "widths DPR 1 hc-light",
+                  "description": "{\"widths\":{\"feed\":1,\"limit\":0.9963747053787534,\"backplot\":2},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":321,\"len\":61}}}"
+                },
+                {
+                  "type": "widths DPR 1 hc-dark",
+                  "description": "{\"widths\":{\"feed\":1,\"limit\":0.9974132242312261,\"backplot\":2},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":321,\"len\":61}}}"
+                },
+                {
+                  "type": "widths DPR 2 light",
+                  "description": "{\"widths\":{\"feed\":0.9963660499460715,\"limit\":0.9974816599145955,\"backplot\":4},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":297,\"len\":73}}}"
+                },
+                {
+                  "type": "widths DPR 2 dark",
+                  "description": "{\"widths\":{\"feed\":0.9963660499460715,\"limit\":0.9974816599145955,\"backplot\":4},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":297,\"len\":73}}}"
+                },
+                {
+                  "type": "widths DPR 2 hc-light",
+                  "description": "{\"widths\":{\"feed\":0.9976826480443428,\"limit\":0.9963747053787534,\"backplot\":4},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":297,\"len\":73}}}"
+                },
+                {
+                  "type": "widths DPR 2 hc-dark",
+                  "description": "{\"widths\":{\"feed\":0.995624875270567,\"limit\":0.9974132242312261,\"backplot\":4},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":297,\"len\":73}}}"
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 9603,
+                  "errors": [],
+                  "retry": 0,
+                  "annotations": [
+                    {
+                      "type": "widths DPR 1 light",
+                      "description": "{\"widths\":{\"feed\":1,\"limit\":0.9974816599145955,\"backplot\":2},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":321,\"len\":61}}}"
+                    },
+                    {
+                      "type": "widths DPR 1 dark",
+                      "description": "{\"widths\":{\"feed\":1,\"limit\":0.9974816599145955,\"backplot\":2},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":321,\"len\":61}}}"
+                    },
+                    {
+                      "type": "widths DPR 1 hc-light",
+                      "description": "{\"widths\":{\"feed\":1,\"limit\":0.9963747053787534,\"backplot\":2},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":321,\"len\":61}}}"
+                    },
+                    {
+                      "type": "widths DPR 1 hc-dark",
+                      "description": "{\"widths\":{\"feed\":1,\"limit\":0.9974132242312261,\"backplot\":2},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":321,\"len\":61}}}"
+                    },
+                    {
+                      "type": "widths DPR 2 light",
+                      "description": "{\"widths\":{\"feed\":0.9963660499460715,\"limit\":0.9974816599145955,\"backplot\":4},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":297,\"len\":73}}}"
+                    },
+                    {
+                      "type": "widths DPR 2 dark",
+                      "description": "{\"widths\":{\"feed\":0.9963660499460715,\"limit\":0.9974816599145955,\"backplot\":4},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":297,\"len\":73}}}"
+                    },
+                    {
+                      "type": "widths DPR 2 hc-light",
+                      "description": "{\"widths\":{\"feed\":0.9976826480443428,\"limit\":0.9963747053787534,\"backplot\":4},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":297,\"len\":73}}}"
+                    },
+                    {
+                      "type": "widths DPR 2 hc-dark",
+                      "description": "{\"widths\":{\"feed\":0.995624875270567,\"limit\":0.9974132242312261,\"backplot\":4},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":297,\"len\":73}}}"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "r31.extra-playwright.json",
+      "stats": {
+        "startTime": "2026-09-28T18:09:51.089Z",
+        "duration": 7458.011,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 2,
+        "flaky": 0
+      },
+      "specs": [
+        {
+          "title": "R31 box edge has screen-space casing and core at DPR 1 and 2",
+          "file": "r31.extra.spec.ts",
+          "line": 9,
+          "ok": true,
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 3701,
+                  "errors": [],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "R31 reveal contains only the requested rapid section",
+          "file": "r31.extra.spec.ts",
+          "line": 44,
+          "ok": false,
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "unexpected",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 1629,
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r31-jsckw2pi/lcnc-webui/e2e/r31.extra.spec.ts",
+                        "column": 89,
+                        "line": 69
+                      },
+                      "message": "Error: The 90 mm rapid away from the 7 mm finding should stay hidden\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeLessThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: < \u001b[32m84.74984915513525\u001b[39m\nReceived:   \u001b[31m169.49969831027045\u001b[39m\n\n  67 |   writeFileSync(`${OUT}/r31.multirapids.json`,JSON.stringify(data,null,2)+'\\n');\n  68 |   await page.screenshot({path:`${OUT}/r31.multirapids.png`});\n> 69 |   expect(after!.length,'The 90 mm rapid away from the 7 mm finding should stay hidden').toBeLessThan(before!.length/2);\n     |                                                                                         ^\n  70 | });\n  71 |\n  72 |\n    at /tmp/codex-r31-jsckw2pi/lcnc-webui/e2e/r31.extra.spec.ts:69:89"
+                    }
+                  ],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "R31 custom box contrast labels the failing comparison",
+          "file": "r31.extra.spec.ts",
+          "line": 73,
+          "ok": false,
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "unexpected",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 1347,
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r31-jsckw2pi/lcnc-webui/e2e/r31.extra.spec.ts",
+                        "column": 95,
+                        "line": 87
+                      },
+                      "message": "Error: The passing 10.6:1 background ratio is not the low core/casing ratio\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected substring: not \u001b[32m\"low\"\u001b[39m\nReceived string:        \u001b[31m\"10.6 : 1 \u00b7 \u001b[7mlow\u001b[27m\"\u001b[39m\n\n  85 |   writeFileSync(`${OUT}/r31.custom.json`,JSON.stringify({customCore:'#3a3f45',fixedCasing:'#3a3f45',coreCasingRatio:1,cells,table:all},null,2)+'\\n');\n  86 |   await page.screenshot({path:`${OUT}/r31.custom.png`});\n> 87 |   expect(cells[1],'The passing 10.6:1 background ratio is not the low core/casing ratio').not.toContain('low');\n     |                                                                                               ^\n  88 | });\n  89 |\n    at /tmp/codex-r31-jsckw2pi/lcnc-webui/e2e/r31.extra.spec.ts:87:95"
+                    }
+                  ],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+
+Running 5 tests using 1 worker
+
+(node:38959) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:38959) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r31.review.spec.ts:48:1 › R31 unrelated settings preserve the active finding reveal (2.2s)
+(node:39041) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:39041) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 e2e/r31.review.spec.ts:62:1 › R31 a hidden HUD still explains the temporary reveal (1.8s)
+(node:39122) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:39122) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 e2e/rapids.viewer.spec.ts:19:1 › hidden rapids keep their limit finding; a jump to it shows them for the finding and says so (1.7s)
+  ✓  4 e2e/scenes.viewer.spec.ts:48:1 › the palette in four themes, on a model, a dense and a thin path — and no current line drawn (4.1s)
+  ✓  5 e2e/scenes.viewer.spec.ts:187:1 › the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px — at DPR 1 and 2 (9.6s)
+
+
+  1) e2e/r31.review.spec.ts:48:1 › R31 unrelated settings preserve the active finding reveal ───────
+
+    Error: Changing theme alone must not clear a finding reveal
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      57 |   writeFileSync(`${OUT}/r31.settings.json`, JSON.stringify({before,after},null,2)+'\n');
+      58 |   await page.screenshot({path:`${OUT}/r31.settings.png`});
+    > 59 |   expect.soft(after.rapidShown, 'Changing theme alone must not clear a finding reveal').toBe(true);
+         |                                                                                         ^
+      60 |   expect.soft(after.noticeVisible, 'Reveal remains named until its defined end').toBe(true);
+      61 | });
+      62 | test('R31 a hidden HUD still explains the temporary reveal', async({page,context})=>{
+        at /tmp/codex-r31-jsckw2pi/lcnc-webui/e2e/r31.review.spec.ts:59:89
+
+    Error: Reveal remains named until its defined end
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      58 |   await page.screenshot({path:`${OUT}/r31.settings.png`});
+      59 |   expect.soft(after.rapidShown, 'Changing theme alone must not clear a finding reveal').toBe(true);
+    > 60 |   expect.soft(after.noticeVisible, 'Reveal remains named until its defined end').toBe(true);
+         |                                                                                  ^
+      61 | });
+      62 | test('R31 a hidden HUD still explains the temporary reveal', async({page,context})=>{
+      63 |   await prepare(page,context,false);
+        at /tmp/codex-r31-jsckw2pi/lcnc-webui/e2e/r31.review.spec.ts:60:82
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/playwright-results/r31.review-R31-unrelated-s-802db-e-the-active-finding-reveal/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/playwright-results/r31.review-R31-unrelated-s-802db-e-the-active-finding-reveal/error-context.md
+
+  2) e2e/r31.review.spec.ts:62:1 › R31 a hidden HUD still explains the temporary reveal ────────────
+
+    Error: The user must know why a hidden layer is visible
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      66 |   writeFileSync(`${OUT}/r31.hud-off.json`, JSON.stringify(after,null,2)+'\n');
+      67 |   await page.screenshot({path:`${OUT}/r31.hud-off.png`});
+    > 68 |   expect(after.noticeVisible,'The user must know why a hidden layer is visible').toBe(true);
+         |                                                                                  ^
+      69 | });
+      70 |
+        at /tmp/codex-r31-jsckw2pi/lcnc-webui/e2e/r31.review.spec.ts:68:82
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/playwright-results/r31.review-R31-a-hidden-HU-ef579-plains-the-temporary-reveal/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/playwright-results/r31.review-R31-a-hidden-HU-ef579-plains-the-temporary-reveal/error-context.md
+
+  2 failed
+    e2e/r31.review.spec.ts:48:1 › R31 unrelated settings preserve the active finding reveal ────────
+    e2e/r31.review.spec.ts:62:1 › R31 a hidden HUD still explains the temporary reveal ─────────────
+  3 passed (20.6s)
