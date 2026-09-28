@@ -53,9 +53,19 @@ test("hidden rapids keep their limit finding; a jump to it shows them for the fi
   await expect(reveal).toHaveCount(0);
   await expect.poll(() => shown("rapid"), { message: "hidden again after a manual scrub" }).toBe(false);
 
-  // Again, then the operator's own switch ends it — the layer is theirs.
+  // Again. A settings refresh that leaves the layer as it is — a theme
+  // switch, the same stored choice again — keeps it (Codex R31 VP-I01: every
+  // refresh re-applies every layer, and each used to end the view).
   await next.click();
   await expect(reveal).toHaveCount(1);
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { display: { theme: "dark" }, viewer: { layers: { rapids: false } } } } });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { display: { theme: "light" }, viewer: { layers: { rapids: false } } } } });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(reveal, "an unchanged layer choice keeps the finding's view").toHaveCount(1);
+  expect(await shown("rapid")).toBe(true);
+  // A real change of the choice — here or from another client — ends it:
+  // the layer is the operator's.
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: { viewer: { layers: { rapids: true } } } } });
   await expect(reveal).toHaveCount(0);
   await expect.poll(() => shown("rapid")).toBe(true);

@@ -1096,9 +1096,13 @@ function setLayerVisible(layer: Layer, on: boolean) {
       break;
     case "toolpath":
     case "rapids":
-      // The operator's own switch ends a finding's temporary view.
+      // A CHANGED choice of either layer — here or from another client —
+      // ends a finding's temporary view: the layer is the operator's. Every
+      // settings refresh re-applies every layer (applyViewerDefaults), so an
+      // unchanged value — a theme switch, another section saved — keeps it
+      // (Codex R31 VP-I01).
+      if (_pathLayers[layer] !== on) pathReveal.value = null;
       _pathLayers[layer] = on;
-      pathReveal.value = null;
       applyPathLayers();
       break;
     case "machine":

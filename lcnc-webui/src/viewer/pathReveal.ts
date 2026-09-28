@@ -2,10 +2,11 @@
 // Codex R29/R30 VP29-04): the path is shown for it WITHOUT touching the
 // stored layer choice — a LOCAL state the viewer names ("… shown for this
 // finding"). A new finding replaces it; a manual scrub, the end of the
-// simulation, a program change or the operator's own switch of the layer
-// end it, and the stored choice stands again as it is (never "restored"
-// over a choice the operator changed meanwhile). Same pattern as simMode.ts:
-// client-local shared state.
+// simulation, a program change or a CHANGED choice of the toolpath or Rapids
+// layer (here or from another client — never a settings refresh that
+// re-applies the same value, Codex R31 VP-I01) end it, and the stored choice
+// stands again as it is (never "restored" over a choice the operator changed
+// meanwhile). Same pattern as simMode.ts: client-local shared state.
 import { shallowRef } from "vue";
 
 export interface PathReveal {
