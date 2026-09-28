@@ -1,0 +1,89 @@
+{
+  "head": "603e384",
+  "isolation": "http://127.0.0.1:4188/",
+  "results": [
+    {
+      "name": "g30_save_ack_overwrites_new_edit",
+      "sent": {
+        "X": 110
+      },
+      "beforeReply": "120",
+      "afterReply": "120",
+      "matches_contract": true
+    },
+    {
+      "name": "g30_late_capture_after_frame_change",
+      "kins_type_at_request": 0,
+      "kins_type_at_reply": 1,
+      "displayedX": "100",
+      "note": [
+        "Capture dropped — units or kinematics changed"
+      ],
+      "matches_contract": true
+    },
+    {
+      "name": "step_representation_loses_focus_and_arrow_jogs",
+      "active": {
+        "tag": "SELECT",
+        "role": null
+      },
+      "sent": [],
+      "matches_contract": true
+    },
+    {
+      "name": "step_resize_loses_focus_and_arrow_jogs",
+      "trigger": "portrait to landscape; standard increments",
+      "active": {
+        "tag": "SELECT",
+        "role": null
+      },
+      "sent": [],
+      "matches_contract": true
+    },
+    {
+      "name": "step_removed_option_same_representation",
+      "before": [
+        1,
+        10
+      ],
+      "after": [
+        1,
+        20
+      ],
+      "fallback": 1,
+      "active": {
+        "tag": "BUTTON",
+        "role": "radio"
+      },
+      "sent": [],
+      "matches_contract": true
+    },
+    {
+      "name": "step_focus_is_not_reclaimed_after_leaving",
+      "focusGroup": "Task mode",
+      "matches_contract": true
+    },
+    {
+      "name": "old_file_response_after_reconnect_must_not_supply_basis",
+      "reads": 2,
+      "before": "Stored: unknown — refresh · draft not saved",
+      "afterOld": "Stored: unknown — refresh · draft not saved",
+      "draftX": "120",
+      "saveEnabledAfterOld": false,
+      "sentSave": {
+        "cmd": "set_g30",
+        "values": {
+          "X": 120,
+          "Z": -30
+        },
+        "based_on": {
+          "X": 105,
+          "Y": 0,
+          "Z": -26.275
+        },
+        "req_id": "1wno8p-7"
+      },
+      "matches_contract": true
+    }
+  ]
+}

@@ -1965,3 +1965,96 @@ einer gezielten Mutation. Evidenz R26 unverändert in `668feda`.
 | OP-I03 | `d750f0c` | `replyApplies` hat drei Flags. `stored` (Zeile und Basis) verlangt zusätzlich Verbindungsepoche und Einheit der Anfrage. `reset` (der Entwurf folgt dem gespeicherten Stand) verlangt keine Bearbeitung seither. `draft` (ein Capture) verlangt den ganzen Kontext. Ein Reconnect oder eine andere Einheit verwirft die Basis („unknown“, Save wartet) und liest G30 neu. Die Entwurfsrevision zählt nur noch **Bearbeitungen** (Eingabe, Capture). Das Zurücksetzen auf den gespeicherten Stand zählt nicht mehr: Der nach dem Reconnect neu gelesene Achssatz hatte den Entwurf neu verschlüsselt und damit den folgenden Read blockiert. | `g30.spec`: dein Fenster. Die Antwort der alten Verbindung kommt zuerst → „Stored: unknown — refresh“, Save gedimmt. Danach liefert der eigene Read nach dem Reconnect die Basis (`based_on` X = 105); die getippte Eingabe bleibt Entwurf. Mutation ohne die Verbindungsbindung rot; auf dem Build davor rot (kein neuer Read). `g30Form`-Unit-Tests. |
 
 Offline-Gate auf `8902829`: **PASS**, Backend 1067, Vitest 1710, Playwright 340/340.
+
+---
+
+## Review Codex · Runde 7 / Handshake R27 · 28. September 2026
+
+**Stand:** `feat/operator-backlog`, `603e384`; Nachprüfung `668feda..603e384`.
+**Ergebnis: findings.** OP-I01 und OP-I03 geschlossen. Bei OP-I02 ist der gültig
+gelesene Framewechsel korrigiert; offen bleibt die Rückfallregel bei fehlendem oder
+fehlgeschlagenem aktuellen Controller-Lesen. Ein P2-Rest, kein offener P1 mehr.
+OP-I04 bis OP-I06 und die in R26 akzeptierten Layoutentscheidungen bleiben geschlossen.
+
+### OP-I02-Rest · P2 · Capture akzeptiert alte Daten, wenn das aktuelle Lesen scheitert
+
+**Stellen:** `lcnc-gateway/gateway.py:5870` bis `:5884` und `:5887` bis `:5900`.
+Der neue Capture-Helfer übernimmt die Rückfallregeln von `_controller_touchoff_state`:
+Ein Fehler von `STAT.poll()` wird nur protokolliert; ein fehlender `kins_type`-Lesewert
+lässt den Frame aus dem alten Policy-Abbild unverändert. Danach werden Interpreter,
+Stillstand und Position aus dem weiter vorhandenen STAT-Objekt verwendet. Eine neue
+Abfrage ist damit nicht gleichbedeutend mit einer erfolgreichen aktuellen Aufnahme.
+
+**Zwei eigene Gegenproben, jeweils nach erfolgreichem Synch:**
+
+1. **Umschaltbare XYZAC-Kinematik:** Das veröffentlichte Abbild enthält Frame 0;
+   der aktuelle Reader liefert für `kins_type` nun `None`. Capture antwortet trotzdem
+   `ok=true` und liefert `current`, weil Frame 0 aus dem Abbild stehen bleibt.
+2. **STAT-Lesefehler:** Der neue Poll wirft einen Fehler. Das Objekt enthält noch die
+   vorherigen Werte `inpos=true`, `current_vel=0` und die alte Position. Auch hier kommt
+   `ok=true` mit `current`; der Poll-Fehler beendet die Übernahme nicht.
+
+Das ist keine bloße Test-Schnittstellenfrage: `HalBridge.reader_get()` dokumentiert
+`None` ausdrücklich als fehlende Aufnahme bzw. fehlenden Wert (`hal_bridge.py:610`).
+Die Antwort auf R26 benennt den Rückfall zwar, aber er erfüllt den vereinbarten
+Frischenachweis für die tatsächliche Übernahme nicht. Ein nicht vorhandener Pin einer
+**nachweislich nicht umschaltbaren** Kinematik ist ein anderer Fall; diese positive
+Kontrollprobe bleibt zulässig und besteht ebenfalls.
+
+**Noch nötig:** Für Capture einen erfolgreichen aktuellen STAT-Poll verlangen.
+Bei einer umschaltbaren Kinematik darf ein aktuell nicht lesbarer Frame nicht durch
+den alten Frame ersetzt werden. Ohne diese Nachweise `ok=false`, verständlicher
+Grund und keine `current`-Position zurückgeben. Bereits frisch gelesene gespeicherte
+G30-Werte dürfen weiterhin als solche mitgeliefert werden. Die gültige Ausnahme für
+feste Kinematik aus der Deklaration ableiten. Den gemeinsamen Touch-off-Helfer nicht
+pauschal mit neuen Annahmen verändern; entscheidend ist der strengere Capture-Vertrag.
+
+**Erforderliche Wächter:** Fehlender Reader-Wert bei umschaltbarer Kinematik und
+fehlgeschlagener STAT-Poll nach dem Synch verweigern; feste Kinematik ohne solchen
+Pin bleibt bei erfolgreicher STAT-Aufnahme zulässig. Die bisherigen Fälle „bewegt“
+und „gültig gelesener TCP-Frame“ müssen grün bleiben.
+
+### OP-I01 und OP-I03 geschlossen
+
+- **OP-I01:** Im eigenen Browserlauf fällt `[1,10]` mit gewählter/fokussierter `10`
+  beim Wechsel auf `[1,20]` lokal auf `1` zurück. Dieser Button bleibt fokussiert;
+  die nächste Pfeiltaste wählt lokal und sendet keinen Jog. Auch Reihe/Auswahl und
+  Orientierungswechsel bestehen. Nach bewusstem Fokuswechsel in „Task mode“ holt
+  sich die Schrittgruppe den Fokus bei einer späteren Optionsänderung nicht zurück.
+  Die ergänzte Probe für einen gehaltenen Zeiger und die Umsetzung der Fokusregel
+  wurden gelesen. Der explizite lokale Rückfall auf die nächstkleinere angebotene
+  Schrittweite, sonst sichtbar auf Cont, ist für diese Korrektur akzeptiert.
+- **OP-I03:** Die eigene Reconnect-Probe hält alten und neuen HTTP-Read getrennt
+  offen. Die alte Antwort lässt `Stored: unknown — refresh` und Save gesperrt.
+  Erst der zweite Read liefert die neue Basis `X=105`; die inzwischen eingegebenen
+  Werte `X=120, Y=0, Z=-30` bleiben Entwurf. Der nachfolgende Mock-Schreibauftrag
+  enthält korrekt `based_on.X=105`, nicht `100` aus der alten Verbindung.
+  Die ursprünglichen R25-Fälle bestehen ebenfalls: keine verlorene neue Eingabe
+  während Save, kein verspäteter Capture nach Framewechsel.
+- **OP-I02, behobener Teil:** Ein Reader-Wechsel von Frame 0 auf 1 während des Synch
+  wird jetzt trotz älteren veröffentlichten Abbilds mit `Machine frame only`
+  verweigert. Stehende Kontrollprobe sowie Bewegung vor/während Synch bestehen.
+
+### Nachweise und Prüfumfang
+
+- [operator-punkte.r27.gateway-probe.py](operator-punkte.r27.gateway-probe.py),
+  [operator-punkte.r27.gateway-probe.json](operator-punkte.r27.gateway-probe.json):
+  sieben isolierte Fälle, davon die zwei beschriebenen Gegenproben. Echter Dispatcher
+  unter `fake_linuxcnc`, temporäre Parameterdateien und gemockter Reader; kein Live-I/O.
+- [operator-punkte.r27.ui-probe.mjs](operator-punkte.r27.ui-probe.mjs),
+  [operator-punkte.r27.ui-probe.json](operator-punkte.r27.ui-probe.json):
+  sieben Browserfälle, alle bestanden. Der Reconnect-Fall wurde für den neuen zweiten
+  Read angepasst; alte Belege bleiben unverändert.
+- **154 Backend-Tests plus 15 Subtests bestanden** (`test_g30`, `test_command_policy`),
+  **5 Vitest-Tests bestanden** (`g30Form`). Typecheck und Produktionsbuild bestanden.
+  Kein erneuter vollständiger Offline-Lauf; 1067/1710/340 ist Claudes gemeldetes Gate.
+- Build, Testkopien und Caches lagen unter `/tmp`, einschließlich der benötigten
+  Test-Fixtures und Sim-Remaps. Der Browser lief einzeln, niedrig priorisiert und nur
+  gegen den eigenen Mock `127.0.0.1:4188`. Browser und Mock sind beendet. Keine
+  Produktänderung im Arbeitsbaum; dort nur dieser Review-Anhang und die neuen Belege.
+  Kein Commit, keine Änderung alter Nachweise, kein Zugriff auf `:8000`, keine
+  Befehle an die laufende Simulation und keine Änderung ihres ESTOP.
+
+**Nächste Runde:** Nur die beschriebene Rückfallregel von OP-I02 für Capture schließen
+und erneut anfragen. Keine Operator-Entscheidung erforderlich; die abschließende
+Operator-Sichtprüfung bleibt separat.

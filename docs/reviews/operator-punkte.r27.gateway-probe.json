@@ -1,0 +1,190 @@
+{
+  "head": "603e384",
+  "isolation": "fake_linuxcnc; temporary files; mocked HAL reader; no network",
+  "cases": [
+    {
+      "case": "stationary",
+      "shared_frame": 0,
+      "reader_frame": 0,
+      "reply": {
+        "ok": true,
+        "confirmed": true,
+        "values": {
+          "X": 100.0,
+          "Y": 0.0,
+          "Z": -26.275,
+          "A": 0.0,
+          "C": 0.0
+        },
+        "current": {
+          "X": 10.0,
+          "Y": 20.0,
+          "Z": -5.0,
+          "A": 725.0,
+          "C": 350.0
+        },
+        "units": "mm"
+      },
+      "fresh_frame_denial": null,
+      "calls": [
+        [
+          "synch"
+        ]
+      ],
+      "matches_contract": true
+    },
+    {
+      "case": "moving_before",
+      "shared_frame": 0,
+      "reader_frame": 0,
+      "reply": {
+        "ok": false,
+        "error": "Machine moving \u2014 capture once it stands"
+      },
+      "fresh_frame_denial": "Machine moving \u2014 capture once it stands",
+      "calls": [],
+      "matches_contract": true
+    },
+    {
+      "case": "moving_during_synch",
+      "shared_frame": 0,
+      "reader_frame": 0,
+      "reply": {
+        "ok": false,
+        "confirmed": true,
+        "values": {
+          "X": 100.0,
+          "Y": 0.0,
+          "Z": -26.275,
+          "A": 0.0,
+          "C": 0.0
+        },
+        "error": "Machine moving \u2014 capture once it stands"
+      },
+      "fresh_frame_denial": null,
+      "calls": [
+        [
+          "synch"
+        ]
+      ],
+      "matches_contract": true
+    },
+    {
+      "case": "frame_during_synch",
+      "shared_frame": 0,
+      "reader_frame": 1,
+      "reply": {
+        "ok": false,
+        "confirmed": true,
+        "values": {
+          "X": 100.0,
+          "Y": 0.0,
+          "Z": -26.275,
+          "A": 0.0,
+          "C": 0.0
+        },
+        "error": "Machine frame only"
+      },
+      "fresh_frame_denial": "Machine frame only",
+      "calls": [
+        [
+          "synch"
+        ]
+      ],
+      "matches_contract": true
+    },
+    {
+      "case": "reader_missing_after_synch",
+      "shared_frame": 0,
+      "reader_frame": null,
+      "reply": {
+        "ok": true,
+        "confirmed": true,
+        "values": {
+          "X": 100.0,
+          "Y": 0.0,
+          "Z": -26.275,
+          "A": 0.0,
+          "C": 0.0
+        },
+        "current": {
+          "X": 10.0,
+          "Y": 20.0,
+          "Z": -5.0,
+          "A": 725.0,
+          "C": 350.0
+        },
+        "units": "mm"
+      },
+      "fresh_frame_denial": null,
+      "calls": [
+        [
+          "synch"
+        ]
+      ],
+      "matches_contract": false
+    },
+    {
+      "case": "stat_poll_fails_after_synch",
+      "shared_frame": 0,
+      "reader_frame": 0,
+      "reply": {
+        "ok": true,
+        "confirmed": true,
+        "values": {
+          "X": 100.0,
+          "Y": 0.0,
+          "Z": -26.275,
+          "A": 0.0,
+          "C": 0.0
+        },
+        "current": {
+          "X": 10.0,
+          "Y": 20.0,
+          "Z": -5.0,
+          "A": 725.0,
+          "C": 350.0
+        },
+        "units": "mm"
+      },
+      "fresh_frame_denial": null,
+      "calls": [
+        [
+          "synch"
+        ]
+      ],
+      "matches_contract": false
+    },
+    {
+      "case": "fixed_kins_without_reader",
+      "shared_frame": 0,
+      "reader_frame": null,
+      "reply": {
+        "ok": true,
+        "confirmed": true,
+        "values": {
+          "X": 100.0,
+          "Y": 0.0,
+          "Z": -26.275,
+          "A": 0.0,
+          "C": 0.0
+        },
+        "current": {
+          "X": 10.0,
+          "Y": 20.0,
+          "Z": -5.0,
+          "A": 725.0,
+          "C": 350.0
+        },
+        "units": "mm"
+      },
+      "fresh_frame_denial": null,
+      "calls": [
+        [
+          "synch"
+        ]
+      ],
+      "matches_contract": true
+    }
+  ]
+}
