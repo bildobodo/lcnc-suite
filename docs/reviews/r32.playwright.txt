@@ -1,0 +1,21 @@
+
+Running 12 tests using 1 worker
+
+(node:64038) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:64038) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/r32.extra.spec.ts:9:1 › R32 box edge has screen-space casing and core at DPR 1 and 2 (3.7s)
+  ✓   2 e2e/r32.extra.spec.ts:44:1 › R32 reveal contains only the requested rapid section (1.7s)
+  ✓   3 e2e/r32.extra.spec.ts:73:1 › R32 custom box contrast labels the failing comparison (1.2s)
+  ✓   4 e2e/r32.review.spec.ts:48:1 › R32 unrelated settings preserve the active finding reveal (1.9s)
+  ✓   5 e2e/r32.review.spec.ts:62:1 › R32 a hidden HUD still explains the temporary reveal (1.6s)
+  ✓   6 e2e/rapids.viewer.spec.ts:19:1 › hidden rapids keep their limit finding; a jump to it shows them for the finding and says so (1.7s)
+  ✓   7 e2e/rapids.viewer.spec.ts:79:3 › a finding's view on hidden rapids is told — hud-off (1.5s)
+  ✓   8 e2e/rapids.viewer.spec.ts:79:3 › a finding's view on hidden rapids is told — folded (1.6s)
+  ✓   9 e2e/rapids.viewer.spec.ts:124:1 › a finding shows its own move of a hidden layer — not the layer (1.8s)
+  ✓  10 e2e/scenes.viewer.spec.ts:48:1 › the palette in four themes, on a model, a dense and a thin path — and no current line drawn (4.2s)
+  ✓  11 e2e/scenes.viewer.spec.ts:187:1 › the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px — at DPR 1 and 2 (9.8s)
+  ✓  12 e2e/scenes.viewer.spec.ts:320:1 › the box edge alone: a 1 CSS px core on a 3 CSS px casing — at DPR 1 and 2 (3.5s)
+
+  12 passed (34.9s)

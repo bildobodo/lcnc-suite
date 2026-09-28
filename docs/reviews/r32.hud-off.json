@@ -1,0 +1,14 @@
+{
+  "rapidShown": true,
+  "limitShown": true,
+  "noticeCount": 1,
+  "noticeVisible": true,
+  "noticeText": [
+    "Rapids shown for this finding — hidden in Layers"
+  ],
+  "hudNotes": [
+    "MACHINE · G54 · 1 warningRapids shown for this finding — hidden in Layers"
+  ],
+  "theme": "light",
+  "simulation": true
+}

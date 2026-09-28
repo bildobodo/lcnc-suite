@@ -1,0 +1,12 @@
+{
+  "customCore": "#3a3f45",
+  "fixedCasing": "#3a3f45",
+  "coreCasingRatio": 1,
+  "cells": [
+    "Machine Bounds",
+    "10.6 : 1",
+    "8.0 : 1",
+    "1.0 : 1 · low"
+  ],
+  "table": "ColorOn backgroundOn the tableOn its casingToolpath4.1 : 13.1 : 1—Rapid4.1 : 13.1 : 1—Backplot6.4 : 14.8 : 1—Machine Bounds10.6 : 18.0 : 11.0 : 1 · lowToolpath Bounds10.6 : 18.0 : 11.0 : 1 · low"
+}

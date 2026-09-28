@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r32-qte41mw3/lcnc-webui
+
+
+ Test Files  12 passed (12)
+      Tests  235 passed (235)
+   Start at  21:06:51
+   Duration  1.09s (transform 190ms, setup 0ms, import 428ms, tests 135ms, environment 0ms)
+

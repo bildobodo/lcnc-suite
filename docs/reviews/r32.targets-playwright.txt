@@ -1,0 +1,98 @@
+
+Running 4 tests using 1 worker
+
+(node:65640) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:65640) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r32.targets.spec.ts:34:2 › R32 first finding jump targets L7: zero-entry (1.9s)
+  ✘  2 e2e/r32.targets.spec.ts:34:2 › R32 first finding jump targets L7: entry (1.6s)
+(node:65747) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:65747) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 e2e/r32.targets.spec.ts:34:2 › R32 first finding jump targets L7: short-time (1.8s)
+(node:65826) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:65826) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  4 e2e/r32.targets.spec.ts:34:2 › R32 first finding jump targets L7: close-targets (1.8s)
+
+
+  1) e2e/r32.targets.spec.ts:34:2 › R32 first finding jump targets L7: entry ───────────────────────
+
+    Error: First click must show the requested line, including after constructing the entry track
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoMatch[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected pattern: [32m/^L7\b/[39m
+    Received string:  [31m"L1 →"[39m
+
+      43 |   const second=await read(page);
+      44 |   writeFileSync(`${OUT}/r32.target-${mode}.json`,JSON.stringify({mode,payload,before,first,second},null,2)+'\n');
+    > 45 |   expect(first.line,'First click must show the requested line, including after constructing the entry track').toMatch(/^L7\b/);
+         |                                                                                                               ^
+      46 |   expect(first.roles.feed,'The finding itself must be revealed').not.toBeNull();
+      47 |   if(mode==='close-targets') expect(second.line,'Next must reach the distinct finding 5 ms later').toMatch(/^L8\b/);
+      48 |  });
+        at /tmp/codex-r32-qte41mw3/lcnc-webui/e2e/r32.targets.spec.ts:45:111
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/r32.targets-R32-first-finding-jump-targets-L7-entry/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/r32.targets-R32-first-finding-jump-targets-L7-entry/error-context.md
+
+  2) e2e/r32.targets.spec.ts:34:2 › R32 first finding jump targets L7: short-time ──────────────────
+
+    Error: First click must show the requested line, including after constructing the entry track
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoMatch[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected pattern: [32m/^L7\b/[39m
+    Received string:  [31m"L8"[39m
+
+      43 |   const second=await read(page);
+      44 |   writeFileSync(`${OUT}/r32.target-${mode}.json`,JSON.stringify({mode,payload,before,first,second},null,2)+'\n');
+    > 45 |   expect(first.line,'First click must show the requested line, including after constructing the entry track').toMatch(/^L7\b/);
+         |                                                                                                               ^
+      46 |   expect(first.roles.feed,'The finding itself must be revealed').not.toBeNull();
+      47 |   if(mode==='close-targets') expect(second.line,'Next must reach the distinct finding 5 ms later').toMatch(/^L8\b/);
+      48 |  });
+        at /tmp/codex-r32-qte41mw3/lcnc-webui/e2e/r32.targets.spec.ts:45:111
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/r32.targets-R32-first-finding-jump-targets-L7-short-time/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/r32.targets-R32-first-finding-jump-targets-L7-short-time/error-context.md
+
+  3) e2e/r32.targets.spec.ts:34:2 › R32 first finding jump targets L7: close-targets ───────────────
+
+    Error: Next must reach the distinct finding 5 ms later
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoMatch[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected pattern: [32m/^L8\b/[39m
+    Received string:  [31m"L7"[39m
+
+      45 |   expect(first.line,'First click must show the requested line, including after constructing the entry track').toMatch(/^L7\b/);
+      46 |   expect(first.roles.feed,'The finding itself must be revealed').not.toBeNull();
+    > 47 |   if(mode==='close-targets') expect(second.line,'Next must reach the distinct finding 5 ms later').toMatch(/^L8\b/);
+         |                                                                                                    ^
+      48 |  });
+      49 | }
+      50 |
+        at /tmp/codex-r32-qte41mw3/lcnc-webui/e2e/r32.targets.spec.ts:47:100
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/r32.targets-R32-first-finding-jump-targets-L7-close-targets/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/r32.targets-R32-first-finding-jump-targets-L7-close-targets/error-context.md
+
+  3 failed
+    e2e/r32.targets.spec.ts:34:2 › R32 first finding jump targets L7: entry ────────────────────────
+    e2e/r32.targets.spec.ts:34:2 › R32 first finding jump targets L7: short-time ───────────────────
+    e2e/r32.targets.spec.ts:34:2 › R32 first finding jump targets L7: close-targets ────────────────
+  1 passed (8.1s)

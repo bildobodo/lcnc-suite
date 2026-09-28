@@ -1,0 +1,562 @@
+{
+  "head": "6b0ed67c30b0af7860754388b544689ef2b6df04",
+  "runs": [
+    {
+      "source": "r32.playwright.json",
+      "stats": {
+        "startTime": "2026-09-28T19:07:41.299Z",
+        "duration": 34905.28,
+        "expected": 12,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "specs": [
+        {
+          "title": "R32 box edge has screen-space casing and core at DPR 1 and 2",
+          "file": "r32.extra.spec.ts",
+          "line": 9,
+          "ok": true,
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 3692,
+                  "errors": [],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "R32 reveal contains only the requested rapid section",
+          "file": "r32.extra.spec.ts",
+          "line": 44,
+          "ok": true,
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 1684,
+                  "errors": [],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "R32 custom box contrast labels the failing comparison",
+          "file": "r32.extra.spec.ts",
+          "line": 73,
+          "ok": true,
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 1221,
+                  "errors": [],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "R32 unrelated settings preserve the active finding reveal",
+          "file": "r32.review.spec.ts",
+          "line": 48,
+          "ok": true,
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 1879,
+                  "errors": [],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "R32 a hidden HUD still explains the temporary reveal",
+          "file": "r32.review.spec.ts",
+          "line": 62,
+          "ok": true,
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 1629,
+                  "errors": [],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "hidden rapids keep their limit finding; a jump to it shows them for the finding and says so",
+          "file": "rapids.viewer.spec.ts",
+          "line": 19,
+          "ok": true,
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 1699,
+                  "errors": [],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "a finding's view on hidden rapids is told \u2014 hud-off",
+          "file": "rapids.viewer.spec.ts",
+          "line": 79,
+          "ok": true,
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 1533,
+                  "errors": [],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "a finding's view on hidden rapids is told \u2014 folded",
+          "file": "rapids.viewer.spec.ts",
+          "line": 79,
+          "ok": true,
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 1611,
+                  "errors": [],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "a finding shows its own move of a hidden layer \u2014 not the layer",
+          "file": "rapids.viewer.spec.ts",
+          "line": 124,
+          "ok": true,
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 1815,
+                  "errors": [],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "the palette in four themes, on a model, a dense and a thin path \u2014 and no current line drawn",
+          "file": "scenes.viewer.spec.ts",
+          "line": 48,
+          "ok": true,
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 4182,
+                  "errors": [],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px \u2014 at DPR 1 and 2",
+          "file": "scenes.viewer.spec.ts",
+          "line": 187,
+          "ok": true,
+          "tests": [
+            {
+              "timeout": 240000,
+              "annotations": [
+                {
+                  "type": "widths DPR 1 light",
+                  "description": "{\"widths\":{\"feed\":1,\"limit\":0.9974816599145955,\"backplot\":2},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":318,\"len\":42}}}"
+                },
+                {
+                  "type": "widths DPR 1 dark",
+                  "description": "{\"widths\":{\"feed\":1,\"limit\":0.9974816599145955,\"backplot\":2},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":318,\"len\":42}}}"
+                },
+                {
+                  "type": "widths DPR 1 hc-light",
+                  "description": "{\"widths\":{\"feed\":1,\"limit\":0.9963747053787534,\"backplot\":2},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":318,\"len\":42}}}"
+                },
+                {
+                  "type": "widths DPR 1 hc-dark",
+                  "description": "{\"widths\":{\"feed\":1,\"limit\":0.9974132242312261,\"backplot\":2},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":318,\"len\":42}}}"
+                },
+                {
+                  "type": "widths DPR 2 light",
+                  "description": "{\"widths\":{\"feed\":0.9963660499460715,\"limit\":0.9974816599145955,\"backplot\":4},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":312,\"len\":42}}}"
+                },
+                {
+                  "type": "widths DPR 2 dark",
+                  "description": "{\"widths\":{\"feed\":0.9963660499460715,\"limit\":0.9974816599145955,\"backplot\":4},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":312,\"len\":42}}}"
+                },
+                {
+                  "type": "widths DPR 2 hc-light",
+                  "description": "{\"widths\":{\"feed\":0.9976826480443428,\"limit\":0.9963747053787534,\"backplot\":4},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":312,\"len\":42}}}"
+                },
+                {
+                  "type": "widths DPR 2 hc-dark",
+                  "description": "{\"widths\":{\"feed\":0.995624875270567,\"limit\":0.9974132242312261,\"backplot\":4},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":312,\"len\":42}}}"
+                }
+              ],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 9838,
+                  "errors": [],
+                  "retry": 0,
+                  "annotations": [
+                    {
+                      "type": "widths DPR 1 light",
+                      "description": "{\"widths\":{\"feed\":1,\"limit\":0.9974816599145955,\"backplot\":2},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":318,\"len\":42}}}"
+                    },
+                    {
+                      "type": "widths DPR 1 dark",
+                      "description": "{\"widths\":{\"feed\":1,\"limit\":0.9974816599145955,\"backplot\":2},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":318,\"len\":42}}}"
+                    },
+                    {
+                      "type": "widths DPR 1 hc-light",
+                      "description": "{\"widths\":{\"feed\":1,\"limit\":0.9963747053787534,\"backplot\":2},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":318,\"len\":42}}}"
+                    },
+                    {
+                      "type": "widths DPR 1 hc-dark",
+                      "description": "{\"widths\":{\"feed\":1,\"limit\":0.9974132242312261,\"backplot\":2},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":318,\"len\":42}}}"
+                    },
+                    {
+                      "type": "widths DPR 2 light",
+                      "description": "{\"widths\":{\"feed\":0.9963660499460715,\"limit\":0.9974816599145955,\"backplot\":4},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":312,\"len\":42}}}"
+                    },
+                    {
+                      "type": "widths DPR 2 dark",
+                      "description": "{\"widths\":{\"feed\":0.9963660499460715,\"limit\":0.9974816599145955,\"backplot\":4},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":312,\"len\":42}}}"
+                    },
+                    {
+                      "type": "widths DPR 2 hc-light",
+                      "description": "{\"widths\":{\"feed\":0.9976826480443428,\"limit\":0.9963747053787534,\"backplot\":4},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":312,\"len\":42}}}"
+                    },
+                    {
+                      "type": "widths DPR 2 hc-dark",
+                      "description": "{\"widths\":{\"feed\":0.995624875270567,\"limit\":0.9974132242312261,\"backplot\":4},\"at\":{\"feed\":{\"x\":286,\"y\":297,\"len\":121},\"limit\":{\"x\":407,\"y\":297,\"len\":97},\"backplot\":{\"x\":326,\"y\":312,\"len\":42}}}"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "the box edge alone: a 1 CSS px core on a 3 CSS px casing \u2014 at DPR 1 and 2",
+          "file": "scenes.viewer.spec.ts",
+          "line": 320,
+          "ok": true,
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 3510,
+                  "errors": [],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "r32.targets-playwright.json",
+      "stats": {
+        "startTime": "2026-09-28T19:11:05.471Z",
+        "duration": 8112.435,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 3,
+        "flaky": 0
+      },
+      "specs": [
+        {
+          "title": "R32 first finding jump targets L7: zero-entry",
+          "file": "r32.targets.spec.ts",
+          "line": 34,
+          "ok": true,
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 1862,
+                  "errors": [],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "R32 first finding jump targets L7: entry",
+          "file": "r32.targets.spec.ts",
+          "line": 34,
+          "ok": false,
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "unexpected",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 1562,
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r32-qte41mw3/lcnc-webui/e2e/r32.targets.spec.ts",
+                        "column": 111,
+                        "line": 45
+                      },
+                      "message": "Error: First click must show the requested line, including after constructing the entry track\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatch\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected pattern: \u001b[32m/^L7\\b/\u001b[39m\nReceived string:  \u001b[31m\"L1 \u2192\"\u001b[39m\n\n  43 |   const second=await read(page);\n  44 |   writeFileSync(`${OUT}/r32.target-${mode}.json`,JSON.stringify({mode,payload,before,first,second},null,2)+'\\n');\n> 45 |   expect(first.line,'First click must show the requested line, including after constructing the entry track').toMatch(/^L7\\b/);\n     |                                                                                                               ^\n  46 |   expect(first.roles.feed,'The finding itself must be revealed').not.toBeNull();\n  47 |   if(mode==='close-targets') expect(second.line,'Next must reach the distinct finding 5 ms later').toMatch(/^L8\\b/);\n  48 |  });\n    at /tmp/codex-r32-qte41mw3/lcnc-webui/e2e/r32.targets.spec.ts:45:111"
+                    }
+                  ],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "R32 first finding jump targets L7: short-time",
+          "file": "r32.targets.spec.ts",
+          "line": 34,
+          "ok": false,
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "unexpected",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 1760,
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r32-qte41mw3/lcnc-webui/e2e/r32.targets.spec.ts",
+                        "column": 111,
+                        "line": 45
+                      },
+                      "message": "Error: First click must show the requested line, including after constructing the entry track\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatch\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected pattern: \u001b[32m/^L7\\b/\u001b[39m\nReceived string:  \u001b[31m\"L8\"\u001b[39m\n\n  43 |   const second=await read(page);\n  44 |   writeFileSync(`${OUT}/r32.target-${mode}.json`,JSON.stringify({mode,payload,before,first,second},null,2)+'\\n');\n> 45 |   expect(first.line,'First click must show the requested line, including after constructing the entry track').toMatch(/^L7\\b/);\n     |                                                                                                               ^\n  46 |   expect(first.roles.feed,'The finding itself must be revealed').not.toBeNull();\n  47 |   if(mode==='close-targets') expect(second.line,'Next must reach the distinct finding 5 ms later').toMatch(/^L8\\b/);\n  48 |  });\n    at /tmp/codex-r32-qte41mw3/lcnc-webui/e2e/r32.targets.spec.ts:45:111"
+                    }
+                  ],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "R32 first finding jump targets L7: close-targets",
+          "file": "r32.targets.spec.ts",
+          "line": 34,
+          "ok": false,
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "unexpected",
+              "results": [
+                {
+                  "status": "failed",
+                  "duration": 1840,
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r32-qte41mw3/lcnc-webui/e2e/r32.targets.spec.ts",
+                        "column": 100,
+                        "line": 47
+                      },
+                      "message": "Error: Next must reach the distinct finding 5 ms later\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatch\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected pattern: \u001b[32m/^L8\\b/\u001b[39m\nReceived string:  \u001b[31m\"L7\"\u001b[39m\n\n  45 |   expect(first.line,'First click must show the requested line, including after constructing the entry track').toMatch(/^L7\\b/);\n  46 |   expect(first.roles.feed,'The finding itself must be revealed').not.toBeNull();\n> 47 |   if(mode==='close-targets') expect(second.line,'Next must reach the distinct finding 5 ms later').toMatch(/^L8\\b/);\n     |                                                                                                    ^\n  48 |  });\n  49 | }\n  50 |\n    at /tmp/codex-r32-qte41mw3/lcnc-webui/e2e/r32.targets.spec.ts:47:100"
+                    }
+                  ],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "source": "r32.palette-playwright.json",
+      "stats": {
+        "startTime": "2026-09-28T19:11:47.322Z",
+        "duration": 2590.041,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "specs": [
+        {
+          "title": "the viewer palette: Automatic follows the theme, Custom stays, a legacy palette is Custom, the legend shows what is drawn",
+          "file": "viewer.spec.ts",
+          "line": 384,
+          "ok": true,
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "status": "expected",
+              "results": [
+                {
+                  "status": "passed",
+                  "duration": 2118,
+                  "errors": [],
+                  "retry": 0,
+                  "annotations": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

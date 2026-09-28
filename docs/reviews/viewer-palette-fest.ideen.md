@@ -990,3 +990,147 @@ Vitest 1722, Playwright 344/344. Danach kam nur der Boxkanten-Test dazu (`992e63
    eine Bewegung nach vorn. Siehst du einen Nutzer, der das alte Ende erwartet?
 3. **VP-I02:** Die angeheftete Zeile steht in der aufgeklappten Karte jetzt unter den übrigen
    Zeilen statt dazwischen. Passt das?
+
+---
+
+## Review Codex · R32 · Nachprüfung R31 und Befundziele · 28. September 2026
+
+**Stand:** `6b0ed67`, Branch `feat/viewer-palette`, Worktree
+`/home/cnc/lcnc-suite-backlog`; Bereich `bd4320e..6b0ed67`.
+**Ergebnis: findings.** VP-I01 bis VP-I04 sind geschlossen. Bei der ausdrücklich mit
+übergebenen Befundnavigation bleiben zwei weitere P2-Fälle: der erste Sprung mit Anfahrweg
+und die festen Toleranzen bei kurzen Bewegungen beziehungsweise nahen Befunden.
+
+### Nachprüfung der R31-Befunde
+
+| Befund | Ergebnis | Eigener Nachweis |
+|---|---|---|
+| VP-I01 | **Geschlossen.** Unveränderte Ebenenwerte erhalten die Befundansicht über den Theme-Wechsel; eine tatsächliche Änderung beendet sie. | R31-Sonde als Kopie erneut grün, außerdem aktueller Rapids-Test mit Hin-/Rückwechsel und echter Ebenenänderung. [Daten](r32.settings.json) |
+| VP-I02 | **Geschlossen.** Der Hinweis ist unabhängig vom HUD vorhanden und bleibt bei gefalteter Karte sichtbar. | R31-Sonde HUD aus grün; zusätzlicher vorhandener Test im Hochformat bei 150 % grün, einschließlich Warnungszahl ohne den angehefteten Hinweis. [Daten](r32.hud-off.json) |
+| VP-I03 | **Geschlossen für die Abschnittsbildung.** Ein korrekt angesprungenes Segment zeigt nur seine zusammenhängende Bewegung. Die entfernte 90-mm-Bewegung bleibt verborgen; bei Toolpath aus erscheinen Bewegung und zugehörige Grenzmarkierung. | R31-Mehr-Eilgang-Sonde sowie der neue strengere Browserwächter (Richtung und Länge, Vorschubfall) grün; Controller-/Track-/Part-Frame-Tests grün. `rapidSrc` wird im Worker übertragen und beim Anwenden übernommen. Die unten beschriebenen Fälle betreffen die Auswahl des Sprungziels davor. [Daten](r32.multirapids.json) |
+| VP-I04 | **Geschlossen.** Gute Hintergrund-/Tischkontraste tragen kein „low“ mehr; der eigene Kern/Saum-Wert zeigt `1.0 : 1 · low`. | R31-Custom-Sonde grün, gezielter aktueller Settings-Palettentest liest alle drei Zellen erfolgreich; Unit-Test bestätigt die getrennten Bewertungen. [Daten](r32.custom.json) |
+
+Die Ausnahme für den Linienabstand gilt jetzt nur für HC-Dunkel; die zwölf ausgewählten
+Unit-Testdateien einschließlich Tokens und Custom-Prüfung bestehen. Der neue dauerhafte
+Test der isolierten Boxkante besteht bei DPR 1/2 in Hell/Dunkel. Die vorhandenen
+Überlagerungsszenen bestehen ebenfalls.
+
+### VP-I05 · P2 · Der erste Befundsprung verwendet nach dem Simulationseintritt die alte Track-Position
+
+**Reproduktion:** Frisch geladenes Programm, erster Programmpunkt X=0; die tatsächlichen
+Achspositionen stehen bei X=-100. Der Befund L7 liegt nach der ersten 10-mm-Bewegung.
+Toolpath und Rapids sind ausgeschaltet. Ein Klick auf „Next limit violation“ aktiviert die
+Simulation und deren 100-mm-Anfahrweg.
+
+**Ist:** Die Zeitleiste zeigt **„L1 →“**, der Playhead steht im Anfahrweg. Der angeforderte
+Programmabschnitt und seine Grenzmarkierung bleiben verborgen; auch der Reveal-Hinweis fehlt.
+Erst der zweite Klick landet auf **L7** und zeigt den richtigen Abschnitt. Die Kontrollprobe
+mit identischer Ausgangslage am Programmbeginn (X=0, kein zusätzlicher Anfahrweg) trifft L7
+schon beim ersten Klick.
+
+**Ursache:** `violationTargets` berechnet `cum` auf dem aktuell angezeigten Track
+(`ScrubBar.vue:695–708`). `jumpTo` erhält dieses Ziel, ruft danach `enterSim()` auf (`:816–817`),
+welches einen Eintrittstrack voranstellt (`:306–315`), und setzt anschließend unverändert
+`target.cum + 1e-3` (`:822`). Die Basis des Wertes hat sich damit geändert. Die spätere
+Indexkorrektur für den Reveal (`:828–833`) kann nicht reparieren, dass bereits das falsche
+Segment gesampelt wurde.
+
+**Korrektur:** Den konkret gewählten Befund über den Trackwechsel hinweg erhalten und sein
+Ziel auf dem tatsächlich angezeigten Track auflösen beziehungsweise mit dessen Eintrittsversatz
+umrechnen. Nicht einfach nach dem Eintritt erneut „Next“ wählen: Das könnte einen anderen
+Befund auswählen. Die Track-Zuordnung auch bei Kollisionszielen berücksichtigen; ein echter
+Befund im Eintrittssegment darf nicht wie ein Programmbefund verschoben werden.
+
+**Belege:** [r32.target-entry.json](r32.target-entry.json),
+[Bild nach erstem Klick](r32.target-entry.png),
+[Kontrolle ohne Anfahrweg](r32.target-zero-entry.json).
+Alle vier Varianten stehen in [r32.targets.spec.ts](r32.targets.spec.ts).
+Der Standard-Mock liefert in den bisherigen Rapids-Tests keine `joint_pos`; damit entsteht
+dort kein solcher Eintrittstrack. Die neue Sonde setzt diese Zustandsdaten ausdrücklich.
+
+### VP-I06 · P2 · Feste Sprung- und Navigationstoleranzen überspringen kurze Befunde
+
+Die Zeitachse verwendet Sekunden. Die beiden Konstanten `1e-3` beim Sprung und `NAV_EPS=0.01`
+bei Vor/Zurück sind deshalb eine Millisekunde beziehungsweise zehn Millisekunden. Sie dürfen
+nicht entscheiden, ob eine reale Bewegung oder ein eigener Befund überhaupt erreichbar ist.
+
+**Zwei reproduzierte Fälle:**
+
+- **Kurze verletzende Bewegung:** L7 läuft von 1,0000 bis etwa 1,0001 s und bewegt sich
+  0,01 mm entlang Y. Ein Sprung auf ihren Anfang plus 0,001 s landet bereits in **L8**.
+  Bei Toolpath aus erscheint dessen unauffällige 10-mm-X-Bewegung als „Toolpath shown for
+  this finding“, während die eigentliche Grenzmarkierung fehlt. Auch ein zweiter Klick
+  landet wieder auf L8. Der Zeilenversatz ist für diesen Fall also noch vorhanden.
+- **Nahe aufeinanderfolgende Befunde:** L7 beginnt bei 1,000 s, L8 bei 1,005 s. Nach dem
+  ersten Sprung auf L7 sucht `targetAfter` erst jenseits von ungefähr 1,011 s, überspringt
+  L8 und fällt auf L7 zurück. Der nächste eigenständige Befund bleibt mit „Next“ unerreichbar.
+
+**Stellen:** `ScrubBar.vue:693`, `:801–808` und `:819–823`. Die neue `lineSpanCum` liefert
+in diesen Fällen den richtigen Anfang; verloren geht die Zuordnung erst beim Sprung oder
+bei der Auswahl des nächsten Ziels. Die Befundansicht wird aus diesem falschen Sample
+gebildet und macht den Fehler nun auch als falschen sichtbaren Abschnitt deutlich.
+
+**Korrektur:** Das Sample an den gewählten Segment-/Kontaktbereich binden. Falls ein Versatz
+vom Rand nötig ist, muss er innerhalb dieses Bereichs liegen. Die Vor-/Zurück-Navigation
+soll den bereits ausgewählten Befund anhand seiner Identität überspringen, ohne weitere
+Befunde in einem festen Zeit-/Abstandsfenster zu verwerfen. Bei manuellem Scrub weiterhin
+relativ zur aktuellen Position navigieren. Zeit- und Distanzachse sowie Vor/Zurück absichern;
+auch kurze Kontaktintervalle dürfen nicht durch den Versatz verloren gehen.
+
+**Belege:** [kurze Bewegung](r32.target-short-time.json),
+[deren Bild](r32.target-short-time.png), [nahe Ziele](r32.target-close-targets.json),
+[r32.targets.spec.ts](r32.targets.spec.ts). Die Zeitwerte werden entsprechend dem Gateway
+als Float32-Binärfeld `feed_tcum` übertragen; die Sonde bestätigt eine Zeitachse von 2 s.
+
+**Einordnung beider neuer Befunde:** Die fehlende Umrechnung beim Simulationseintritt und
+die festen Toleranzen standen bereits vor dieser Korrekturrunde im Sprungpfad. Ich werte sie
+nicht als neu eingeführte Regressionen. Sie sind offene Fälle des hier ausdrücklich
+mitgeprüften Zeilenversatzes und verhindern, dass die neue gezielte Befundansicht zuverlässig
+den gewählten Befund zeigt.
+
+### Antworten auf die drei Fragen
+
+1. **Abschnitt einer Kollision:** Die zusammenhängende Bewegung um den tatsächlich
+   angesprungenen Kontakt ist als lokaler Kontext passend. Für eine Kollision über mehrere
+   Zeilen muss nicht die gesamte verdeckte Bahn eingeschaltet werden. Der Sprung zeigt den
+   Erstkontakt; fortdauernder Kontakt bleibt Sache der bestehenden Band-/Code-Markierungen
+   und Kollisionsfärbung. Die Einblendung nicht als vollständige Ausdehnung der Kollision
+   bezeichnen. Die Begrenzung nach Track-Vorkommen statt nur Quellzeilennummer ist richtig.
+   Voraussetzung ist das korrekte Sprungziel, insbesondere VP-I05/06.
+
+2. **Grenz- und Werkzeugmarken:** Der Anfang der Bewegung ist bei der vorliegenden
+   Endpunktzuordnung die richtige Grenze. Für M6/M600/M601 ohne eigene Bewegung ist der
+   Beginn der nächsten Bewegung passender als deren Ende. In der Verbrauchersuche gibt es
+   keinen weiteren produktiven `lineCumOf`-Nutzer, der das alte Ende voraussetzt; die drei
+   Umstellungen sind Ziele, Grenzbänder und Werkzeugmarken in `ScrubBar`. Die Tests für
+   `lineSpanCum` und der L7-Szenenfall bestehen. Ein neuer kompletter Werkzeugwechsel- oder
+   Kollisionslauf auf LinuxCNC war nicht Teil dieser Nachprüfung.
+
+3. **Angehefteter Hinweis unter den übrigen Zeilen:** Ja. Er steht dort direkt über der
+   Befundnavigation, bleibt beim Falten sichtbar und wird nicht als zusätzliche Warnung
+   gezählt. Das ist im geprüften Desktop und 150-%-Hochformat verständlich; die vorhandene
+   Begrenzung der unteren Spalte bleibt bestehen.
+
+### Prüfung, Belege und Übergabe
+
+- Typecheck und Produktionsbuild erfolgreich.
+- **235/235 Unit-Tests** in zwölf gezielt gewählten Dateien erfolgreich.
+- **12/12 Browserprüfungen** aus R31-Gegenproben als Kopien, aktuellen Rapids-Tests und
+  Viewer-Szenen erfolgreich. Dazu **1/1** gezielter aktueller Settings-Palettentest grün.
+- Zusätzliche Zielsuite: **1 Kontrolle grün, 3 Reproduktionen rot** (Eintrittstrack,
+  kurze Bewegung, nahe Folgebefunde). Zusammen belegen sie VP-I05/06. Die roten Prüfungen
+  formulieren das gewünschte Verhalten; ihre Rohdaten werden vor der Assertion gespeichert.
+
+Details und Wiederholung: [r32.README.md](r32.README.md).
+[Ergebnisübersicht](r32.tests.json), [Build](r32.build.txt), [Unit-Lauf](r32.vitest.txt),
+[Browserlauf](r32.playwright.txt), [Settings-Test](r32.palette-playwright.txt),
+[Zielsuite](r32.targets-playwright.txt).
+
+Geprüft wurde eine HEAD-Kopie unter `/tmp` mit eigenem Mock auf `127.0.0.1:4188`,
+`nice -n 19` und einem Browser zur Zeit. Mock nach Abschluss beendet. Kein Zugriff auf die
+Live-Ports `:8000`/`:5173`, keine Maschinenbefehle, keine Produktänderungen und kein eigener
+Backend-/Offline-Gesamtlauf. Im Palette-Worktree nur dieser Anhang und neue `r32.*`-Belege;
+frühere Reviewtexte und Belege unverändert.
+
+**Übergabe:** R31-Punkte geschlossen, VP-I05 und VP-I06 offen. R32 erhält `findings`;
+keine neue Operatorentscheidung erforderlich.
