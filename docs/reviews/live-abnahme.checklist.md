@@ -212,8 +212,9 @@ dürfen sich beim Theme-Wechsel nicht ändern. Plan, Recherche und Rechnung:
 | Keine Zeilen-Hervorhebung | im Lauf und in der Simulation keine hervorgehobene Linie im 3D; die Zeile zeigt das Code-Panel, die Position das Werkzeug |
 | Backplot über einer Grenzverletzung | die ockerfarbene Markierung bleibt sichtbar |
 | Settings → 3D Viewer → Layers | neue Ebene **Rapids**; neben jeder Ebene eine Strichprobe in ihrer Farbe (gestrichelt, gesäumt wie gezeichnet), darunter Grenze ▲ und Kollision × |
-| Rapids aus, dann in der Simulation zu einer Grenzverletzung auf einem Eilgang springen | der Eilgang erscheint für den Befund, im Viewer steht „Rapids shown for this finding — hidden in Layers“; nach einem Ziehen an der Zeitleiste ist er wieder aus, die Ebene bleibt aus |
-| Custom-Farben | Settings zeigt unter den Farben den Kontrast und neu eine Tabelle „Lines / Apart / Color-blind“: welche Linienpaare zu nah beieinander liegen („close“) |
+| Rapids aus, dann in der Simulation zu einer Grenzverletzung auf einem Eilgang springen | **nur** die Bewegung des Befunds erscheint (nicht alle Eilgänge), im Viewer steht „Rapids shown for this finding — hidden in Layers“, auch bei ausgeschaltetem HUD; ein Theme-Wechsel lässt sie stehen; nach einem Ziehen an der Zeitleiste ist sie wieder aus, die Ebene bleibt aus |
+| Sprung zu einer Grenzverletzung | die Zeitleiste und das Code-Panel zeigen die Zeile des Befunds (vorher landete der Sprung eine Zeile zu spät) |
+| Custom-Farben | Settings zeigt unter den Farben den Kontrast, für die Boxen mit eigener Spalte „On its casing“, und neu eine Tabelle „Lines / Apart / Color-blind“: welche Linienpaare zu nah beieinander liegen („close“) |
 
 **Beim Ansehen:**
 - Die Werte sind gegen Weiß, den dunklen Grund und den hellen Tisch gerechnet. Die Rechnung ist ein
