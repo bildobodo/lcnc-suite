@@ -13,17 +13,23 @@ Merge beider Branches nach `development`.
     R19 mit einem Befund, alles behoben; Implementierungs-Agreement in Runde R20 (XZ-01 bis
     XZ-11 geschlossen, [Review](xyzac-z0-m600.review.md)). Gilt nur zusammen mit
     `feat/viewer-contrast`.
+  - Operator-Punkte P1–P7 (`feat/operator-backlog`): Plan-Agreement R24; Implementierung mit
+    Befunden in R25 (sechs), R26 (drei Reste) und R27 (ein Rest), alles behoben;
+    Implementierungs-Agreement in Runde R28 (OP-I01 bis OP-I06 geschlossen,
+    [Review](operator-punkte.ideen.md)).
 - **Offline-Gates** (`python3 scripts/test_suite.py offline`):
   - Welle auf `15b46ff`: PASS, Playwright 282/282.
   - Kontrast auf `82418a7`: PASS, Backend 969, Vitest 1684, Playwright 292/292.
   - Kontrast mit dem XYZAC-Fix (R16) auf `d615f5d`: PASS, Backend 1003, Vitest 1691,
     Playwright 301/301.
+  - Operator-Punkte auf `219106d`: PASS, Backend 1069, Vitest 1710, Playwright 340/340.
   - Danach kamen nur noch Review-Dokumente dazu.
 
 ## Vorbereitung
 
 1. Die Suite läuft im Dev-Modus (Vite auf `:5173`) und zeigt den ausgecheckten Branch. Ausgecheckt
-   ist `feat/viewer-contrast`; er enthält die ganze Design-Welle.
+   ist `feat/operator-backlog`; er enthält `feat/viewer-contrast` und damit die ganze
+   Design-Welle und den XYZAC-Fix.
 2. Den Browser-Tab **einmal hart neu laden** (Strg+Umschalt+R), damit alte Paletten und Stile
    sicher weg sind.
 3. **Settings → 3D Viewer → Colors:** Dort steht „Colors from an earlier version“. Auf **„Use
@@ -169,18 +175,19 @@ Merge beider Branches nach `development`.
 
 ## Operator-Punkte P1–P7 (`feat/operator-backlog`, neu 28. September)
 
-Der Branch baut auf `feat/viewer-contrast` auf; für diese Zeilen ist er ausgecheckt. Plan:
-[operator-punkte.ideen.md](operator-punkte.ideen.md) (Codex-Agreement R24).
+Der Branch baut auf `feat/viewer-contrast` auf und ist ausgecheckt. Plan und Reviews:
+[operator-punkte.ideen.md](operator-punkte.ideen.md) (Plan-Agreement R24, Implementierungs-Agreement
+R28).
 
 | Punkt | Worauf achten |
 |---|---|
 | P1 Tools | Suchzeile mit normalem Abstand unter dem Kopf, in allen Zuständen |
 | P2 Tabellen | Beim Scrollen bleibt der **ganze** Tabellenkopf oben (Tools, G-code-Referenz), keine Zelle schiebt sich darüber, die Kopflinie bleibt; per Tab fokussierte Zeilen landen unter dem Kopf |
 | P3 Viewer dunkel | Die Auswahl im 3D-Viewer ist in Dunkel, Auto-Dunkel und HC-Dunkel jetzt cyan (wie AXIS); bei „Custom“ zeigt Settings → 3D Viewer unter den Farben eine Kontrasttabelle (auf Hintergrund und Tisch, zu schwach = „low“), nichts wird umgefärbt |
-| P4 G30 | Probing → Toolsetter → G30: „Use Current Position“ übernimmt die aktuelle Position in den Entwurf (nur wenn die Maschine steht, sonst gedimmt mit „Machine moving …“), „Save G30“ schreibt und bestätigt, die gespeicherte Zeile nennt Werte und Zeit; ein Wert außerhalb der Verfahrwege wird mit Grund abgelehnt; was du tippst, während eine Antwort aussteht, bleibt Entwurf |
+| P4 G30 | Probing → Toolsetter → G30: „Use Current Position“ übernimmt die aktuelle Position in den Entwurf (nur wenn die Maschine steht, sonst gedimmt mit „Machine moving …“), „Save G30“ schreibt und bestätigt, die gespeicherte Zeile nennt Werte und Zeit; ein Wert außerhalb der Verfahrwege wird mit Grund abgelehnt; was du tippst, während eine Antwort aussteht, bleibt Entwurf; nach einem Verbindungsabbruch steht kurz „Stored: unknown“, dann liest die Seite G30 neu (Save wartet so lange) |
 | P5 Offsets | Werte per Tab erreichbar, Enter öffnet das Zahlenfeld; aktives Offset mit Balken am Zeilenanfang, bearbeitete Zelle mit Innenrand; A/B/C und R in Grad; gesperrt (z. B. im Lauf) bleiben die Werte voll lesbar, eine Zeile unter dem Titel sagt „Read-only — <Grund>“, sonst „Select a value to edit it“ |
 | P6 Offsets | Auf XYZAC zeigt die C-Spalte von G92/Tool den C-Wert; eine Zeile „No G52/G92, tool or comp offset in effect“ bzw. „Offset status unknown — …“ |
-| P7 Leiste | Mode, Kinematics Frame und WCS sind Segmentgruppen mit großen Trefferflächen; Pfeiltasten bewegen nur den Fokus (kein Jog, kein Befehl), Enter/Leertaste/Tipp wählt; eine gewählte Option zeigt einen gelben Balken bis die Maschine bestätigt, nach 5 s „Not confirmed — …“, eine Ablehnung sofort mit Grund an der Option; Step im Querformat in zwei Reihen (TWP auf Touch: Auswahlfeld), im Hochformat als eine Reihe; WCS quer 2 × 5, hoch 3 × 3 |
+| P7 Leiste | Mode, Kinematics Frame und WCS sind Segmentgruppen mit großen Trefferflächen; Pfeiltasten bewegen nur den Fokus (kein Jog, kein Befehl), Enter/Leertaste/Tipp wählt; eine gewählte Option zeigt einen gelben Balken bis die Maschine bestätigt, nach 5 s „Not confirmed — …“, eine Ablehnung sofort mit Grund an der Option; Step im Querformat in zwei Reihen (TWP auf Touch: Auswahlfeld), im Hochformat als eine Reihe; ein Fenster-Wechsel quer ↔ hoch lässt den Fokus in der Step-Gruppe (die nächste Pfeiltaste wählt, joggt nie); WCS quer 2 × 5, hoch 3 × 3 |
 
 **Beim Ansehen:** Die Schrittweite ist im Querformat jetzt eine direkte Wahl in zwei Reihen
 (Codex R25: direkte Wahl, solange die Leiste im Budget bleibt). Eine einzelne Reihe wäre breiter
