@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from "vue";
-import { usePermissions, useFire, useOwnerPermissions } from "./permissions";
+import { ref, computed, watch, nextTick, onUnmounted } from "vue";
+import { usePermissions, useFire, useOwnerPermissions, usePermissionReasons } from "./permissions";
 import { fmtOffset, NO_VALUE } from "./format";
 import { openKeypad, closeKeypadIf, keypadState, newKeypadOwnerId, dropDrafts } from "./useNumberKeypad";
 import { G5X_LABELS } from "./wcs";
@@ -105,6 +105,30 @@ function ownsKeypad(): boolean { return keypadState.open && keypadState.ownerId.
 // revocation inside it is — hence the OWNER permissions, which carry no
 // latch term (round 3).
 const gateEnded = computed(() => !ownerCan.value.probe);
+
+// Editable or READ-ONLY (Codex R25 OP-I06, answer 5): the owner permissions
+// — without the 200 ms busy latch, which must not flip 70 values to text and
+// back after every confirmed value. Locked, a value is text in its button's
+// place; the reason stands ONCE, in a reserved line under the head (never 70
+// hints), and a focused value keeps a focus in its cell: the button's focus
+// goes to its text (tabindex -1, the arrows stay local — never BODY, where
+// an arrow jogs) and back to the button when the gate opens.
+const editable = computed(() => !!ownerCan.value.probe);
+const reasons = usePermissionReasons();
+const lockLine = computed(() => editable.value ? "Select a value to edit it"
+  : `Read-only — ${reasons.value.probe ?? "not available now"}`);
+watch(editable, (now) => {
+  const td = (document.activeElement as HTMLElement | null)?.closest?.("td[data-input-area]");
+  if (!td || !panelEl.value?.contains(td)) return;
+  const cell = td.getAttribute("data-input-area");
+  void nextTick(() => panelEl.value?.querySelector<HTMLElement>(
+    `td[data-input-area="${cell}"] ${now ? "button" : ".cellValue"}`)?.focus());
+}, { flush: "pre" });
+const LOCKED_NAV = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown", " ", "Enter"]);
+function onLockedKeydown(e: KeyboardEvent) {
+  // Tab moves on; everything a jog or Cycle Start could hear stays here.
+  if (LOCKED_NAV.has(e.key)) { e.preventDefault(); e.stopPropagation(); }
+}
 function endCells(reason?: string) {
   if (ownsKeypad()) closeKeypadIf(keypadState.ownerId, reason);
   dropDrafts(id => id.startsWith(`${ownerPrefix}:`));
@@ -129,23 +153,28 @@ function clearAll() {
 
 <template>
   <div ref="panelEl" class="offsetPanel stack-sections">
-    <!-- Header -->
-    <div class="header row-controls">
-      <span class="sub">Work Offsets</span>
-      <div class="actions row-tight">
-        <Gate gate="probe">
-          <div class="row-tight">
-            <!-- Both are hold-to-fire (operator decision 2026-09-19); the title
-                 names the hold and its target, the all-fixtures scope is spelled
-                 out (UX-12). -->
-            <MachineBtn type="wcsClear" :disabled="!selectedWcs" reason="Select a coordinate system first"
-                        :hold-key="selectedWcs ?? ''" :title="selectedWcs ? `Hold to clear ${selectedWcs}` : undefined" @click="clearSelected">
-              Clear <span class="val-slot wcsSlot">{{ selectedWcs ?? NO_VALUE }}</span>
-            </MachineBtn>
-            <MachineBtn type="wcsClearAll" hold-key="all" aria-label="Clear all work offsets (G54–G59.3)" title="Hold to clear all work offsets (G54–G59.3)" @click="clearAll">Clear All</MachineBtn>
-          </div>
-        </Gate>
+    <!-- Header, and ONE reserved line under it: what a tap on a value does,
+         or why the values are read-only (Codex R25 answer 5) — the same
+         height in every state, so nothing moves when the gate closes. -->
+    <div class="stack-tight">
+      <div class="header row-controls">
+        <span class="sub">Work Offsets</span>
+        <div class="actions row-tight">
+          <Gate gate="probe">
+            <div class="row-tight">
+              <!-- Both are hold-to-fire (operator decision 2026-09-19); the title
+                   names the hold and its target, the all-fixtures scope is spelled
+                   out (UX-12). -->
+              <MachineBtn type="wcsClear" :disabled="!selectedWcs" reason="Select a coordinate system first"
+                          :hold-key="selectedWcs ?? ''" :title="selectedWcs ? `Hold to clear ${selectedWcs}` : undefined" @click="clearSelected">
+                Clear <span class="val-slot wcsSlot">{{ selectedWcs ?? NO_VALUE }}</span>
+              </MachineBtn>
+              <MachineBtn type="wcsClearAll" hold-key="all" aria-label="Clear all work offsets (G54–G59.3)" title="Hold to clear all work offsets (G54–G59.3)" @click="clearAll">Clear All</MachineBtn>
+            </div>
+          </Gate>
+        </div>
       </div>
+      <div class="lockLine text-muted" role="status" :title="lockLine">{{ lockLine }}</div>
     </div>
 
     <!-- Table -->
@@ -172,7 +201,7 @@ function clearAll() {
             <td v-for="axis in offsetColumns" :key="axis"
                 :class="{
                   'text-warn': axis === 'r' && row[axis] !== 0,
-                  editableCell: can.probe && Number.isFinite(Number(row[axis])),
+                  editableCell: editable && Number.isFinite(Number(row[axis])),
                   editingCell: isEditing(row.name as string, axis),
                 }"
                 :data-input-area="cellOwner(row.name as string, axis)"
@@ -184,9 +213,9 @@ function clearAll() {
                    run (the fieldset's disabled opacity), and 70 tab stops
                    would say one reason. The layout sweep holds the text to
                    the button's footprint (data-layout-slot). -->
-              <MachineBtn v-if="can.probe && Number.isFinite(Number(row[axis]))" type="offsetCell"
+              <MachineBtn v-if="editable && Number.isFinite(Number(row[axis]))" type="offsetCell"
                           :aria-label="`Edit ${row.name} ${axis.toUpperCase()}`">{{ fmtOffset(Number(row[axis])) }}</MachineBtn>
-              <span v-else class="cellValue" data-layout-slot>{{ fmtOffset(Number(row[axis])) }}</span>
+              <span v-else class="cellValue" data-layout-slot tabindex="-1" @keydown="onLockedKeydown">{{ fmtOffset(Number(row[axis])) }}</span>
             </td>
           </tr>
 
@@ -303,7 +332,7 @@ tbody tr.auxRow {
 
 
 /* Persistent tint, not :hover — hover affordances are invisible on touch,
-   and this class only exists while the cell is actually editable (can.probe). */
+   and this class only exists while the cell is actually editable (owner probe). */
 .editableCell {
   cursor: cell;
   background: var(--hl-surface-info);
@@ -327,4 +356,7 @@ html.touch-device .cellValue {
 }
 
 .offsetSummary { flex-shrink: 0; }
+/* One line in every state: a reason too long for a narrow pane ends in an
+   ellipsis (the whole text is its title) rather than moving the table. */
+.lockLine { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 </style>

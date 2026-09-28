@@ -85,3 +85,37 @@ test("the active fixture is named, not only tinted; a row click selects for Clea
   expect(await sent(), "selecting a row sends nothing").toEqual([]);
   await expect(active.locator("td").first(), "the machine's WCS stays").toHaveText("G54");
 });
+
+// Codex R25 OP-I06 + answer 5: locked, a value is text in its button's place —
+// a focused value keeps a focus IN ITS CELL (never BODY, where an arrow jogs
+// and Space starts the program), the next keys stay there, the reason stands
+// once under the head, and the focus goes back to the button when the gate
+// opens. Surface compensation on: `probe` closes, jog and run stay open.
+const PERMS_ALL = Object.fromEntries(["idle", "jog", "override", "ready", "run", "machineFrame", "g30Capture", "goZero",
+  "planeFrame", "step", "abort", "probe", "zero", "touchoff", "touchoffRotary", "twpCapture", "surfaceComp",
+  "safety", "setup", "armed", "always"].map(g => [g, true]));
+test("a focused value keeps its focus in its cell while locked; the next keys stay local; the lock says why once", async ({ page }) => {
+  await openOffsets(page, { g92_offset: canon({}), tool_offset: canon({}), eoffset_enabled: false, eoffset_z: 0 });
+  await ctl({ op: "raw", frame: { type: "settings_init", settings: { keyboard: { jogEnabled: true, buttonsEnabled: true } } } });
+  await ctl({ op: "status_delta", data: { permissions: PERMS_ALL } });
+  const line = page.locator(".offsetPanel .lockLine");
+  await expect(line).toHaveText("Select a value to edit it");
+  const heightBefore = await line.evaluate(e => e.getBoundingClientRect().height);
+  await page.getByRole("button", { name: "Edit G54 C", exact: true }).focus();
+  await ctl({ op: "status_delta", data: { eoffset_enabled: true,
+    permissions: { ...PERMS_ALL, probe: false, zero: false, touchoff: false, touchoffRotary: false, surfaceComp: false },
+    permission_reasons: { probe: "Surface compensation on — switch it off first" } } });
+  await expect(line).toHaveText("Read-only — Surface compensation on — switch it off first");
+  expect(await line.evaluate(e => e.getBoundingClientRect().height), "one reserved line").toBe(heightBefore);
+  await expect.poll(() => page.evaluate(() => {
+    const a = document.activeElement as HTMLElement;
+    return a.classList.contains("cellValue") ? a.closest("td")!.getAttribute("data-input-area")!.split(":").slice(-2).join(":") : a.tagName;
+  }), "the focus stays in G54 C").toBe("G54:c");
+  await ctl({ op: "clearCmds" });
+  for (const key of ["ArrowRight", "ArrowUp", "Space", "Enter", "PageDown"]) await page.keyboard.press(key);
+  await page.waitForTimeout(300);
+  expect(await sent(), "no jog, no cycle start, no edit").toEqual([]);
+  await ctl({ op: "status_delta", data: { eoffset_enabled: false, permissions: PERMS_ALL, permission_reasons: {} } });
+  await expect(page.getByRole("button", { name: "Edit G54 C", exact: true }), "back on the button").toBeFocused();
+  await expect(line).toHaveText("Select a value to edit it");
+});
