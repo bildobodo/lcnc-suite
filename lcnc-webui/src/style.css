@@ -2271,6 +2271,59 @@ label:has(input:disabled, select:disabled) {
 }
 
 
+/* ---- Choice groups (operator point P7, ChoiceGroup / MachineChoice) ----
+   Connected options in ONE row (the strip's step, mode, frame) or separate
+   cells in a grid (the work offsets, 3 × 3). A target is at least the
+   area's control height square (the strip: 28 px desktop, 36 px touch).
+   Checked = the confirmed state: a tint AND a bar (not colour alone);
+   pending = requested, not yet confirmed: the warn bar; focus stays the
+   global ring (raised over the neighbour). */
+.choiceRow {
+  display: inline-flex;
+  flex-wrap: nowrap;
+}
+.choiceRow.grid {
+  display: inline-grid;
+  grid-template-columns: repeat(var(--choice-columns), minmax(max-content, 1fr));
+  gap: var(--gap-tight);
+}
+.choiceRow.grid.colFlow {
+  grid-auto-flow: column;
+  grid-template-columns: none;
+  grid-template-rows: repeat(var(--choice-rows), auto);
+  grid-auto-columns: minmax(max-content, 1fr);
+}
+.choice {
+  position: relative;
+  min-height: var(--control-h);
+  min-width: var(--control-h);
+  padding: 0 var(--gap-controls);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  background: var(--button-bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--fs-base);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.choiceRow:not(.grid) > .choice + .choice { border-inline-start: none; }
+.choiceRow:not(.grid) > .choice:first-child { border-start-start-radius: var(--radius-md); border-end-start-radius: var(--radius-md); }
+.choiceRow:not(.grid) > .choice:last-child { border-start-end-radius: var(--radius-md); border-end-end-radius: var(--radius-md); }
+.choiceRow.grid > .choice { border-radius: var(--radius-md); }
+html:not(.touch-device) .choice:hover:not(.dimmed) { background: var(--hl-hover); }
+.choice.checked {
+  background: color-mix(in oklab, var(--info) var(--tint-active), var(--button-bg));
+  font-weight: var(--fw-semibold);
+  box-shadow: inset 0 -3px 0 var(--info);
+}
+.choice.pending { box-shadow: inset 0 -3px 0 var(--warn); }
+.choice.dimmed { opacity: var(--opacity-disabled); cursor: not-allowed; }
+.choice:focus-visible { z-index: var(--z-raised); }
+@media (forced-colors: active) {
+  .choice.checked { background: SelectedItem; color: SelectedItemText; }
+}
+
 /* ---- Data tables ---- */
 /* A scrolled table keeps its WHOLE head on top (operator 2026-09-27: parts
    of the tool table's header vanished while scrolling). Inside the scroller:

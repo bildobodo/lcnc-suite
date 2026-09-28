@@ -73,11 +73,13 @@ export async function setLayoutState(page: Page, profile: Profile, state: Layout
   })).toBeAttached();
   if (profile.kins) {
     const mode = state === 'tcp' ? 1 : state.startsWith('plane') ? 2 : 0;
-    await expect(page.locator(`input[name="jogFrame"][value="${mode}"]`)).toBeChecked();
+    await expect(page.getByRole('radiogroup', { name: 'Kinematics frame', exact: true })
+      .getByRole('radio', { name: ['Machine', 'TCP', 'Plane'][mode], exact: true })).toHaveAttribute('aria-checked', 'true');
   }
   if (profile.name === '6axis-twp') {
-    await expect(page.locator('label').filter({ has: page.locator('input[name="jogFrame"][value="2"]') }))
-      .toHaveText(state === 'plane-stale' ? 'Plane (stale)' : 'Plane');
+    // The plane's state has its reserved line under the frame (operator P7).
+    await expect(page.locator('[data-strip="jog"] .choiceNote'))
+      .toHaveText(state === 'plane-stale' ? 'Plane stale — press Orient' : /^(\u00a0|Plane: .*)$/);
   }
   await settleLayout(page);
 }

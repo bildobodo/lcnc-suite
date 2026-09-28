@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { usePermissionReasons } from "./permissions";
-import { computed, inject, ref, watch, onMounted, onUnmounted, type Ref, type Component } from "vue";
+import { computed, inject, ref, watch, nextTick, onMounted, onUnmounted, type Ref, type Component } from "vue";
 import { send } from "./lcncWs";
 import { usePermissions } from "./permissions";
 import { INPUT_DEFS } from "./machineControls";
 import { registerJog, unregisterJog, activeJogKeys, forceStopAllJogs, forceStopJog, jogKeyFor } from "./useJogPointers";
 import { useAxes } from "./useAxes";
 import MachineBtn from "./MachineBtn.vue";
-import MachineRadio from "./MachineRadio.vue";
+import MachineSelect from "./MachineSelect.vue";
 import MachineSlider from "./MachineSlider.vue";
+import ChoiceGroup from "./ChoiceGroup.vue";
+import type { ChoiceOption } from "./choiceGroup";
 import HelpIcon from "./HelpIcon.vue";
-import { useGateExplain } from "./gateExplain";
 import { TASK_MODE_MANUAL, TASK_MODE_AUTO, TASK_MODE_MDI } from "./lcnc";
 import {
   ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
@@ -88,10 +89,30 @@ const planeTitle = computed(() => {
     ? "Plane is stale — the table moved since the last orient: press Orient"
     : "TOOL kinematics — jog in the tilted work plane";
 });
-// The dimmed Plane radio explains itself through the one path every
-// control uses (gateExplain.ts, UX-09) — its label root carries it.
-const { active: planeExplainActive, label: planeExplainLabel, explain: explainPlane, onKeydown: planeExplainKey } =
-  useGateExplain({ gate: () => "planeFrame", disabled: () => !can.value.planeFrame, reason: () => (can.value.planeFrame ? undefined : planeTitle.value) });
+// ─── Choice groups (operator point P7, Codex R21–R24) ──────────
+// Mode, frame and step used to be vertical radio lists — 18 px rows on the
+// desktop (below WCAG 2.5.8's 24 px) in two columns. Now connected rows:
+// task mode and kinematics frame send machine commands — radios in a
+// toolbar, MANUAL activation, the checked option the confirmed state; the
+// step increment is local — a plain radio group (the arrows choose).
+const modeOptions: ChoiceOption<number>[] = [
+  { value: TASK_MODE_MANUAL, label: "Manual", gate: "modeSelect" },
+  { value: TASK_MODE_MDI, label: "MDI", gate: "modeSelect" },
+  { value: TASK_MODE_AUTO, label: "Auto", gate: "modeSelect" },
+];
+const frameOptions = computed<ChoiceOption<number>[]>(() => [
+  { value: 0, label: "Machine", gate: "jogFrame", title: "Identity kinematics — jog along machine axes" },
+  { value: 1, label: "TCP", gate: "jogFrame", title: "TCP kinematics — jog in the work frame" },
+  ...(props.twpCapable ? [{ value: 2, label: "Plane", gate: "planeFrame" as const, title: planeTitle.value }] : []),
+]);
+// The plane's state has a RESERVED line under the frame (never a longer
+// option label that moves the row): stale, not aligned, none defined.
+const planeNote = computed(() => {
+  if (!props.twpCapable) return "";
+  if (props.twpStale) return "Plane stale — press Orient";
+  if (!props.twpOriented) return props.twpDefined ? "Plane: head not aligned — Orient" : "Plane: none defined";
+  return "";
+});
 
 const isDisabled = computed(() => !can.value[INPUT_DEFS.jogWheel.gate] || props.jogDisabled);
 
@@ -111,7 +132,7 @@ const yAxis = computed(() => findAxis("Y"));
 const zAxis = computed(() => findAxis("Z"));
 const hasXyPad = computed(() => xAxis.value != null && yAxis.value != null);
 
-const incrementOptions = computed(() => {
+const incrementOptions = computed<{ label: string; value: number }[]>(() => {
   if (props.iniIncrements && props.iniIncrements.length > 0) {
     return [
       { label: "Cont", value: 0 },
@@ -135,6 +156,38 @@ const incrementOptions = computed(() => {
     { label: "1", value: 1.0 },
   ];
 });
+
+// The step increment is a connected row only with at most STEP_ROW_MAX
+// options AND a natural width that fits what the column's other groups
+// (mode, frame) take — in portrait, the column's width; else a labelled
+// select (Codex R22 OP22-04: six long values are 404 px). The measure is an
+// invisible, inert sizer that is always there — the choice cannot flip-flop
+// with its own width; it re-measures on its labels, the loaded font and the
+// column's size.
+const STEP_ROW_MAX = 6;
+const stepOptions = computed<ChoiceOption<number>[]>(() =>
+  incrementOptions.value.map(o => ({ value: o.value, label: o.label, gate: "jogIncrement" as const })));
+const stepSizer = ref<HTMLElement | null>(null);
+const choiceCol = ref<HTMLElement | null>(null);
+const stepFits = ref(false);
+function measureStep() {
+  const sizer = stepSizer.value, col = choiceCol.value;
+  if (!sizer || !col) return;
+  const others = [...col.querySelectorAll<HTMLElement>(".choiceBlock:not(.stepBlock) .choiceRow")].map(r => r.offsetWidth);
+  const budget = isPortrait.value ? col.clientWidth : Math.max(0, ...others);
+  stepFits.value = sizer.offsetWidth <= budget;
+}
+const stepAsRow = computed(() => stepOptions.value.length <= STEP_ROW_MAX && stepFits.value);
+let stepRo: ResizeObserver | null = null;
+onMounted(() => {
+  measureStep();
+  void document.fonts?.ready.then(measureStep);
+  stepRo = new ResizeObserver(measureStep);
+  if (choiceCol.value) stepRo.observe(choiceCol.value);
+  if (stepSizer.value) stepRo.observe(stepSizer.value);
+});
+onUnmounted(() => stepRo?.disconnect());
+watch([stepOptions, isPortrait, () => props.kinsType, () => props.twpCapable], () => nextTick(measureStep));
 
 // ─── XY grid square sizing (aspect-ratio unreliable in flex) ──
 // Measures the PARENT row (.jogBtns) and applies the same value to both
@@ -436,64 +489,43 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
         </div>
       </div>
 
-      <div class="radioGrid row-sections strip-radio-grid">
-        <div class="stepCol stack-tight strip-radio-group">
+      <!-- Step, mode and frame: connected rows in ONE column (operator
+           point P7, Codex R21–R24). Mode and frame send machine commands —
+           radios in a toolbar, manual activation (the arrows move focus,
+           click / Enter / Space choose), the checked option the confirmed
+           state. The step increment is local — the arrows choose. -->
+      <div ref="choiceCol" class="choiceCol stack-controls">
+        <div class="choiceBlock stepBlock stack-tight">
           <!-- one increment for every axis: mm (in) on linear, ° on rotary -->
           <span class="label-muted">Step ({{ abcAxes.length > 0 ? `${linearUnit} / °` : linearUnit }})</span>
-          <div class="strip-radio-options">
-            <label v-for="opt in incrementOptions" :key="opt.value" class="radio-label">
-              <MachineRadio gate="jogIncrement" name="jogStep" :value="opt.value" :modelValue="jogIncrement" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('update:jogIncrement', Number(v)) }" />
-              <span>{{ opt.label }}</span>
-            </label>
+          <ChoiceGroup v-if="stepAsRow" label="Jog step" activation="auto" :options="stepOptions" :modelValue="jogIncrement"
+                       @choose="v => emit('update:jogIncrement', Number(v))" />
+          <MachineSelect v-else gate="jogIncrement" aria-label="Jog step" :modelValue="jogIncrement"
+                         @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('update:jogIncrement', Number(v)) }">
+            <option v-for="o in incrementOptions" :key="o.value" :value="o.value">{{ o.label }}</option>
+          </MachineSelect>
+          <!-- the row's measure: never focusable, never read -->
+          <div ref="stepSizer" class="choiceRow stepSizer" aria-hidden="true" inert>
+            <span v-for="o in incrementOptions" :key="o.value" class="choice">{{ o.label }}</span>
           </div>
         </div>
-
-        <div class="sep modeColSep"></div>
-
-        <!-- Mode + jog frame share ONE column (space): task mode radios, then
-             the jog-frame radios beneath them (the TWP action buttons —
-             Capture / Orient / Clear — live in the Setup strip's action rows,
-             2026-09-01: operator wants them in the grid, three equal buttons).
-             Jog-frame selector: switchable-kins machines only (Heidenhain
-             3D-ROT / Siemens WCS-MCS convention — the jog frame is an
-             explicit, indicated operator choice). The radio reflects the
-             ACTUAL kins type: an earlier version folded TCP into "Machine",
-             so a machine parked in TCP displayed as Machine and one click
-             on that radio silently dropped it to identity.
-             Machine = identity (M428).
-             TCP = M429: world XYZ is the table-riding work frame — jog A
-               and the tool tip stays put on the workpiece (position
-               tracking; the head's orientation does not follow).
-             Plane = TOOL kins (M430): X/Y/Z jog in the tilted plane, Z
-               along the tool axis AS OF THE LAST ORIENT — the frame is
-               frozen in the kins pins at G53.x, so after a table move it
-               is stale until Orient. Always VISIBLE on a TWP machine (so
-               the operator learns it exists), ENABLED only once a head
-               solve exists: a bare M430 reuses whatever pins the last
-               session left. -->
-        <div class="modeCol stack-controls strip-radio-col">
-          <div class="strip-radio-group stack-tight">
-            <span class="label-muted">Mode</span>
-            <div class="strip-radio-options">
-              <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_MANUAL" @update:modelValue="emit('modeChange', TASK_MODE_MANUAL)" /> Manual</label>
-              <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_MDI" @update:modelValue="emit('modeChange', TASK_MODE_MDI)" /> MDI</label>
-              <label class="radio-label"><MachineRadio gate="modeSelect" name="taskMode" :modelValue="taskMode" :value="TASK_MODE_AUTO" @update:modelValue="emit('modeChange', TASK_MODE_AUTO)" /> Auto</label>
-            </div>
-          </div>
-          <template v-if="kinsType != null">
-            <div class="strip-radio-group stack-tight">
-              <!-- The explanation is a tap-friendly help, not a hover title (UX-11). -->
-              <span class="label-muted sectionHelp">Kinematics Frame <HelpIcon label="Kinematics Frame"><strong>Machine</strong> — machine axes<br><strong>TCP</strong> — the tip stays on the part as A turns<br><strong>Plane</strong> — tilted plane (G59); re-orient after A moves</HelpIcon></span>
-              <div class="strip-radio-options">
-                <label class="radio-label" title="Identity kinematics — jog along machine axes"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="0" @update:modelValue="emit('setKinsMode', 0)" /> Machine</label>
-                <label class="radio-label" title="TCP kinematics — jog in the work frame"><MachineRadio gate="jogFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="1" @update:modelValue="emit('setKinsMode', 1)" /> TCP</label>
-                <label v-if="twpCapable" class="radio-label" :class="{ 'text-warn': twpStale, 'text-muted': !twpOriented }" :title="planeTitle"
-                       :tabindex="planeExplainActive ? 0 : undefined" :role="planeExplainActive ? 'button' : undefined"
-                       :aria-label="planeExplainActive ? planeExplainLabel : undefined"
-                       @click="explainPlane" @keydown="planeExplainKey"><MachineRadio gate="planeFrame" name="jogFrame" :modelValue="kinsMode ?? undefined" :value="2" @update:modelValue="emit('setKinsMode', 2)" /> Plane{{ twpStale ? ' (stale)' : '' }}</label>
-              </div>
-            </div>
-          </template>
+        <div class="choiceBlock stack-tight">
+          <span class="label-muted">Mode</span>
+          <ChoiceGroup label="Task mode" :options="modeOptions" :modelValue="taskMode" @choose="v => emit('modeChange', v)" />
+        </div>
+        <!-- Jog frame: switchable-kins machines only (Heidenhain 3D-ROT /
+             Siemens WCS-MCS convention — an explicit, indicated choice). The
+             checked option is the ACTUAL kins type (an earlier version folded
+             TCP into Machine: one click silently dropped TCP). Machine =
+             identity (M428); TCP = M429, world XYZ rides the table; Plane =
+             TOOL kins (M430), X/Y/Z in the tilted plane as of the last orient
+             — always shown on a TWP machine, enabled once a head solve
+             exists; its state has a reserved line below. -->
+        <div v-if="kinsType != null" class="choiceBlock stack-tight">
+          <!-- The explanation is a tap-friendly help, not a hover title (UX-11). -->
+          <span class="label-muted sectionHelp">Kinematics Frame <HelpIcon label="Kinematics Frame"><strong>Machine</strong> — machine axes<br><strong>TCP</strong> — the tip stays on the part as A turns<br><strong>Plane</strong> — tilted plane (G59); re-orient after A moves</HelpIcon></span>
+          <ChoiceGroup label="Kinematics frame" :options="frameOptions" :modelValue="kinsMode" @choose="v => emit('setKinsMode', v)" />
+          <span v-if="twpCapable" class="choiceNote" :class="{ 'text-warn': twpStale, 'text-muted': !twpStale }">{{ planeNote || '\u00a0' }}</span>
         </div>
       </div>
     </div>
@@ -605,12 +637,18 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   min-height: 0;
 }
 
-/* ── Mode column separator ── */
-.modeColSep {
-  align-self: stretch;
-  width: 0;
-  border-left: 1px solid var(--border-subtle);
+/* ── Choice column: the step row's measure takes no space ── */
+.stepSizer {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
 }
+.choiceBlock { position: relative; }
+/* The frame label is as wide as its words: its "?" (anchored at the
+   label's right edge, out of the flow) sits beside "Frame" — the column is
+   as wide as its widest choice row, and a block label put the "?" at the
+   column's edge, away from what it explains. */
+.choiceBlock > .sectionHelp { width: fit-content; }
 
 /* ── Portrait layout ── */
 @media (orientation: portrait) {
@@ -641,13 +679,5 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 
   /* Speed sliders: dissolve into speedGroup's shared grid */
   .speedCol { display: contents; }
-
-  /* Hide the vertical divider between step/mode (modeColSep is inside strip-radio-grid) */
-  .modeColSep { display: none; }
-
-  /* The labels share ONE max-content column here: the frame label with its
-     reserved icon square widened it and every option row wrapped once more.
-     Broken as "Kinematics / frame" it is narrower than before the reserve. */
-  .sectionHelp { white-space: normal; width: min-content; }
 }
 </style>

@@ -1,6 +1,14 @@
 import { test, expect, type Page } from "@playwright/test";
 import { ctl as ctlSend, MOCK } from "./ctl";
 
+// The strip's choice groups (operator P7): buttons with role="radio" in a
+// named group — a dimmed option is aria-disabled (it stays focusable and
+// explains itself), the checked one aria-checked.
+const wcsOption = (page: Page, g: string) =>
+  page.getByRole("radiogroup", { name: "Work offset", exact: true }).getByRole("radio", { name: g, exact: true });
+const frameOption = (page: Page, v: number) =>
+  page.getByRole("radiogroup", { name: "Kinematics frame", exact: true }).getByRole("radio", { name: ["Machine", "TCP", "Plane"][v]!, exact: true });
+
 // Touch-off under kinematics modes (2026-08-30): the backend broadcasts two
 // gate classes (touchoff / touchoffRotary) and SetupStrip renders the rotary
 // axis controls under the rotary class and the reserved fixtures disabled on
@@ -174,7 +182,7 @@ test("Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero XYZ 
   await ctlSend({ op: "setAxes", axes: ["X", "Y", "Z", "A", "C", "B"] });
   await expect(zeroA).toBeVisible();
   // No switchable kins reported (kins_type absent): every fixture selectable.
-  await expect(page.locator('input[name="wcs"][value="G59"]')).not.toBeDisabled();
+  await expect(wcsOption(page, "G59")).not.toHaveAttribute("aria-disabled", "true");
   await ctlSend({ op: "quiet", on: true });
   try {
     await ctlSend({ op: "setKins", kins: TRSRN });
@@ -187,9 +195,9 @@ test("Plane mode: rotary touch-off closed, reserved fixtures disabled, Zero XYZ 
     // D-02: on a switchable machine the button names its axis set.
     await expect(page.getByRole("button", { name: "Zero XYZ" })).not.toBeDisabled();
     await expect(page.getByRole("button", { name: "Go to WCS 0" })).toBeVisible();
-    await expect(page.locator('input[name="wcs"][value="G59"]')).toBeDisabled();
-    await expect(page.locator('input[name="wcs"][value="G59.3"]')).toBeDisabled();
-    await expect(page.locator('input[name="wcs"][value="G54"]')).not.toBeDisabled();
+    await expect(wcsOption(page, "G59")).toHaveAttribute("aria-disabled", "true");
+    await expect(wcsOption(page, "G59.3")).toHaveAttribute("aria-disabled", "true");
+    await expect(wcsOption(page, "G54")).not.toHaveAttribute("aria-disabled", "true");
     // Linear touch-off closed (e.g. TCP off the A=0 datum): inputs + Zero close.
     await ctlSend({ op: "status_delta", data: {
       kins_type: 1, g5x_index: 1,
@@ -251,16 +259,16 @@ test("TCP trunnion (switchable, not TWP): G59 selectable, no Plane frame, no Cap
       kins_type: 0, g5x_index: 1, permissions: { ...PERMS_ALL },
     } });
     // The kins-frame selector exists (Machine / TCP) but never offers Plane.
-    await expect(page.locator('input[name="jogFrame"][value="0"]')).toHaveCount(1);
-    await expect(page.locator('input[name="jogFrame"][value="2"]')).toHaveCount(0);
+    await expect(frameOption(page, 0)).toHaveCount(1);
+    await expect(frameOption(page, 2)).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Capture plane", exact: true })).toHaveCount(0);
-    await expect(page.locator('input[name="wcs"][value="G59"]')).not.toBeDisabled();
-    await expect(page.locator('input[name="wcs"][value="G59.3"]')).not.toBeDisabled();
+    await expect(wcsOption(page, "G59")).not.toHaveAttribute("aria-disabled", "true");
+    await expect(wcsOption(page, "G59.3")).not.toHaveAttribute("aria-disabled", "true");
     // The TWP stack: same status, now G59 is reserved and Plane is offered.
     await ctlSend({ op: "setKins", kins: TRSRN });
-    await expect(page.locator('input[name="jogFrame"][value="2"]')).toHaveCount(1);
+    await expect(frameOption(page, 2)).toHaveCount(1);
     await expect(page.getByRole("button", { name: "Capture plane", exact: true })).toHaveCount(1);
-    await expect(page.locator('input[name="wcs"][value="G59"]')).toBeDisabled();
+    await expect(wcsOption(page, "G59")).toHaveAttribute("aria-disabled", "true");
   } finally {
     await ctlSend({ op: "quiet", on: false });
     await ctlSend({ op: "reset" });
@@ -274,19 +282,19 @@ test("kinematics selector shows the FRAME the raw type means, and emits frames",
   // showed "Machine" while the machine was in TCP.
   await page.goto(MOCK);
   await expect(page.getByRole("button", { name: "Zero X", exact: true })).toBeVisible();
-  const machine = page.locator('input[name="jogFrame"][value="0"]');
-  const tcp = page.locator('input[name="jogFrame"][value="1"]');
+  const machine = frameOption(page, 0);
+  const tcp = frameOption(page, 1);
   await ctlSend({ op: "quiet", on: true });
   try {
     await ctlSend({ op: "setKins", kins: TRT_WORLD_FIRST });
     await ctlSend({ op: "status_delta", data: {
       kins_type: 0, g5x_index: 1, permissions: { ...PERMS_ALL },
     } });
-    await expect(tcp).toBeChecked();
-    await expect(machine).not.toBeChecked();
+    await expect(tcp).toHaveAttribute("aria-checked", "true");
+    await expect(machine).toHaveAttribute("aria-checked", "false");
     await ctlSend({ op: "status_delta", data: { kins_type: 1 } });
-    await expect(machine).toBeChecked();
-    await expect(tcp).not.toBeChecked();
+    await expect(machine).toHaveAttribute("aria-checked", "true");
+    await expect(tcp).toHaveAttribute("aria-checked", "false");
     // Picking a frame sends the FRAME; the gateway resolves the M-code from
     // this machine's own remaps.
     await ctlSend({ op: "clearCmds" });
@@ -298,7 +306,7 @@ test("kinematics selector shows the FRAME the raw type means, and emits frames",
     // The TWP stack maps raw straight through, so the same pin reads as Plane.
     await ctlSend({ op: "setKins", kins: TRSRN });
     await ctlSend({ op: "status_delta", data: { kins_type: 2, twp_active: true } });
-    await expect(page.locator('input[name="jogFrame"][value="2"]')).toBeChecked();
+    await expect(frameOption(page, 2)).toHaveAttribute("aria-checked", "true");
   } finally {
     await ctlSend({ op: "quiet", on: false });
     await ctlSend({ op: "reset" });
@@ -472,8 +480,8 @@ test("Space selects an ENABLED Plane radio; the explanation is only for the disa
       twp_pose_a: 0, twp_pose_b: 0, twp_pose_c: 0, rotary_abc: [0, 0, 0],
       permissions: { ...PERMS_ALL },
     } });
-    const plane = page.locator('input[name="jogFrame"][value="2"]');
-    await expect(plane).toBeEnabled();
+    const plane = frameOption(page, 2);
+    await expect(plane).not.toHaveAttribute("aria-disabled", "true");
     await ctlSend({ op: "clearCmds" });
     await plane.focus();
     await page.keyboard.press(" ");
@@ -486,9 +494,9 @@ test("Space selects an ENABLED Plane radio; the explanation is only for the disa
       permissions: { ...PERMS_ALL, planeFrame: false },
       permission_reasons: { planeFrame: "Head not aligned with the plane — press Orient" },
     } });
-    await expect(plane).toBeDisabled();
+    await expect(plane).toHaveAttribute("aria-disabled", "true");
     await ctlSend({ op: "clearCmds" });
-    await page.locator("label", { has: plane }).focus();
+    await plane.focus();
     await page.keyboard.press(" ");
     expectNoMachineAction(await recordedCmds());
   } finally {

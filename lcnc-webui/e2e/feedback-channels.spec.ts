@@ -439,8 +439,10 @@ test("every help icon has one look: full opacity, one colour, enabled, the same 
           const rr = rects[rects.length - 1];
           if (rr && rr.bottom > box.top && rr.top < box.bottom && rr.right <= box.left + 0.5) last = rr;
         }
-        // a strip title pins its icon to the right edge on purpose
-        const pinned = ["absolute", "fixed"].includes(getComputedStyle(el).position);
+        // a strip TITLE (.sub) pins its icon to the section's right edge on
+        // purpose; a LABEL that anchors it out of the flow keeps it beside
+        // its words (K6: the frame label's "?" drifted to its column's edge)
+        const pinned = ["absolute", "fixed"].includes(getComputedStyle(el).position) && !!el.closest(".sub");
         if (last && !pinned) {
           gap = Math.round((box.left - last.right) * 10) / 10;
           // centred on the text's line, not hanging below it
@@ -493,8 +495,11 @@ test("every help icon has one look: full opacity, one colour, enabled, the same 
   await ctl({ op: "status_delta", data: { kins_type: 0, g5x_index: 1, wcs_prov_a: [0, 0, 0, 0, 0, 0, 0, 0, 0], rotary_abc: [20, 0, 0] } });
   await expect(page.locator(".kinsChip")).toContainText("off datum");
   await sweep("kins chip", page.locator(".kinsChip"));
+  await expect(page.locator(".choiceCol .helpIcon")).toHaveCount(1);
+  await sweep("jog frame", page.locator(".choiceCol"));
   await sweep("HUD", page.locator(".hudMode"));
   expect(looks.some(l => l.name.startsWith("HUD")), "the HUD chip carries its help").toBe(true);
+  expect(looks.find(l => l.name.startsWith("jog frame"))?.gap, "the frame label's gap is measured").not.toBeNull();
   expect(looks.length).toBeGreaterThan(40);
   const ref = looks[0]!;
   const bad = looks.filter(l =>

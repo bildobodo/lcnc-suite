@@ -1574,3 +1574,47 @@ for (const st of [NAV_STATES[0], NAV_STATES[3]]) {
     expect(problems, problems.join('\n')).toEqual([]);
   });
 }
+
+// The strip's choice groups (operator point P7, Codex R21–R24): the budget.
+// Baseline = the strip with the vertical radio lists, measured 2026-09-28
+// (sum of the five sections' widths); the strip must not grow. Every option
+// is a whole target — at least 24 × 24 on the desktop (WCAG 2.5.8; the old
+// radio rows were 18 px, back to back) and the compact 36 × 36 on touch —
+// no group scrolls sideways, no section overflows, and the step row's
+// measure is neither focusable nor read.
+const STRIP_BASELINE: Record<string, number> = {
+  '3axis-xyz desktop': 1678.5, '3axis-xyz touch-landscape': 1705.5,
+  '5axis-xyzac desktop': 2148.5, '5axis-xyzac touch-landscape': 2170.5,
+  '6axis-twp desktop': 2206.5, '6axis-twp touch-landscape': 2228.5,
+};
+for (const key of Object.keys(STRIP_BASELINE)) {
+  test(`${key}: the choice groups keep the strip within its baseline, whole targets, nothing overflowing`, async ({ page }) => {
+    const [name, vpName] = key.split(' ') as [string, string];
+    const profile = PROFILES.find(p => p.name === name)!;
+    const viewport = VIEWPORTS.find(v => v.name === vpName)!;
+    await openLayout(page, profile, viewport);
+    await settleLayout(page);
+    const m = await page.evaluate(() => {
+      const sections = [...document.querySelectorAll<HTMLElement>('[data-strip]')];
+      const width = sections.reduce((a, s) => a + s.getBoundingClientRect().width, 0);
+      const targets = [...document.querySelectorAll<HTMLElement>('[data-strip] [role="radio"]')].map(e => {
+        const b = e.getBoundingClientRect();
+        return { name: e.textContent?.trim(), w: b.width, h: b.height };
+      });
+      const sideways = [...document.querySelectorAll<HTMLElement>('[data-strip] [role="radiogroup"]')]
+        .filter(g => g.scrollWidth > g.clientWidth + 0.5).map(g => g.getAttribute('aria-label'));
+      const overflow = sections.filter(s => s.scrollHeight > s.clientHeight + 0.5).map(s => s.dataset.strip);
+      const sizer = document.querySelector<HTMLElement>('.stepSizer');
+      return { width, targets, sideways, overflow,
+        sizer: sizer ? { hidden: sizer.getAttribute('aria-hidden'), inert: sizer.hasAttribute('inert') } : null };
+    });
+    const floor = viewport.touch ? 36 : 24;
+    expect(m.width, `strip ${m.width.toFixed(1)} px, baseline ${STRIP_BASELINE[key]}`).toBeLessThanOrEqual(STRIP_BASELINE[key]! + 0.5);
+    const small = m.targets.filter(t => t.w < floor - 0.5 || t.h < floor - 0.5);
+    expect(small, `targets under ${floor} × ${floor}: ${JSON.stringify(small)}`).toEqual([]);
+    expect(m.targets.length, 'the groups are there').toBeGreaterThan(0);
+    expect(m.sideways, 'a group scrolls sideways').toEqual([]);
+    expect(m.overflow, 'a section overflows').toEqual([]);
+    expect(m.sizer, "the step row's measure").toEqual({ hidden: 'true', inert: true });
+  });
+}

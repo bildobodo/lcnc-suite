@@ -286,6 +286,12 @@ ctlWss.on("connection", (ws) => {
         ]));
       broadcast(initFrame());
       broadcast(state);
+    } else if (m.op === "setIncrements") {
+      // The INI's jog increments (operator P7: the step group is a row only
+      // with few, short options, else a select) — viewer_init.ini_config.
+      activeViewerInit = { ...activeViewerInit, data: { ...activeViewerInit.data,
+        ini_config: { ...(activeViewerInit.data.ini_config ?? {}), increments: m.increments } } };
+      broadcast(initFrame());
     } else if (m.op === "setKins") {
       // TWP-08b: re-ship viewer_init with a kins declaration (or none) — the
       // capability twin the strips key the Plane frame, the TWP action row

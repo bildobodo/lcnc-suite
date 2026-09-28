@@ -2,15 +2,15 @@
 import { computed, inject, ref, watch, type Ref } from "vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
-import MachineRadio from "./MachineRadio.vue";
+import ChoiceGroup from "./ChoiceGroup.vue";
+import type { ChoiceOption } from "./choiceGroup";
 import HelpIcon from "./HelpIcon.vue";
 import { useAxes, isRotaryAxis } from "./useAxes";
 import { kinsModeChip, type OffDatum } from "./twpPose";
 import { touchoffTargetLabel, type TouchoffExpect } from "./useTouchoffMath";
 import { keypadState, closeKeypad } from "./useNumberKeypad";
-import { usePermissions, explainKeydown } from "./permissions";
+import { usePermissions } from "./permissions";
 import { pushMessage } from "./lcncWs";
-import { explainAt } from "./gateExplain";
 import { OPERATOR_ERROR } from "./lcnc";
 import { G5X_LABELS, RESERVED_WCS } from "./wcs";
 import { fmtAxisValue } from "./format";
@@ -132,6 +132,10 @@ function wcsReserved(g: string): boolean {
   return isTwpMachine.value && RESERVED_WCS.has(g);
 }
 const RESERVED_TITLE = "Reserved for the tilted work plane — use G54–G58";
+const wcsChoices = computed<ChoiceOption<string>[]>(() => g5xOptions.map(g => ({
+  value: g, label: g, gate: "wcsSelect" as const,
+  disabled: wcsReserved(g), reason: wcsReserved(g) ? RESERVED_TITLE : undefined,
+})));
 
 // Kins-mode chip (P3 operator surface): the silent-mode-traversal trap —
 // the TWP demo parks the machine in TOOL kins (M2 restores G54, not the
@@ -248,16 +252,16 @@ function zeroAll() {
           <span v-if="isSwitchable" class="val-status kinsChip" :class="kinsChip?.cls"
                 :title="kinsChip?.title">{{ kinsChip?.text ?? '\u00a0' }}<HelpIcon v-if="kinsChip?.help" label="Kinematics state">{{ kinsChip.help }}</HelpIcon></span>
         </div>
-        <div class="strip-radio-options wcsOptions">
-          <label v-for="g in g5xOptions" :key="g" class="radio-label" :title="wcsReserved(g) ? RESERVED_TITLE : undefined"
-                 :tabindex="wcsReserved(g) ? 0 : undefined" :role="wcsReserved(g) ? 'button' : undefined"
-                 :aria-label="wcsReserved(g) ? `Why is ${g} unavailable? ${RESERVED_TITLE}` : undefined"
-                 @click="(e: MouseEvent) => wcsReserved(g) && explainAt(e, RESERVED_TITLE)"
-                 @keydown="(e: KeyboardEvent) => wcsReserved(g) && explainKeydown(e, () => explainAt(e, RESERVED_TITLE))">
-            <MachineRadio gate="wcsSelect" name="wcs" :value="g" :modelValue="g5xLabel" :disabled="wcsReserved(g)" @update:modelValue="(v: string | number | undefined) => { if (v != null) emit('setG5x', String(v)) }" />
-            <span :class="{ 'text-muted': wcsReserved(g) }">{{ g }}</span>
-          </label>
-        </div>
+        <!-- The work offsets — operator point P7: a machine command, radios
+             in a toolbar, manual activation, the checked cell the confirmed
+             fixture; a reserved row explains itself where pressed.
+             Landscape 2 × 5 by column (G54–G58, then G59–G59.3, the TWP
+             remap's rows): 3 × 3 cost +40–50 px of strip WIDTH, which the
+             budget holds. Portrait 3 × 3 by row: the column's width is fixed
+             and HEIGHT is the price — 2 × 5 made the section 103 px taller. -->
+        <ChoiceGroup class="wcsOptions" label="Work offset" :rows="isPortrait ? undefined : 5"
+                     :columns="isPortrait ? 3 : undefined" :options="wcsChoices" :modelValue="g5xLabel"
+                     @choose="v => emit('setG5x', String(v))" />
       </div>
     </div>
   </div>
@@ -300,17 +304,6 @@ function zeroAll() {
    column reads left-to-right, not right-aligned like status rows). */
 /* text + "?" one centred row: the icon never drops onto a line of its own */
 .kinsChip { text-align: left; display: flex; align-items: center; }
-
-@media (orientation: landscape) {
-  /* Nine fixtures plus the mode chip exceed the strip height on touch.
-     Keep every choice reachable, with G54–G58 in the first column. */
-  .wcsOptions {
-    display: grid;
-    grid-auto-flow: column;
-    grid-template-rows: repeat(5, auto);
-    column-gap: var(--gap-controls);
-  }
-}
 
 @media (orientation: portrait) {
   .setupContent { flex-direction: column; }
