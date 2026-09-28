@@ -1783,4 +1783,16 @@ Evidenz R25 unverändert in `ffda0a3`.
 - In der Checkliste stand bei P3 fälschlich „nicht mehr cyan“; K3 macht die Auswahl in den
   dunklen Themes cyan. Korrigiert.
 
-Offline-Gate auf `<HEAD>`: <GATE>.
+**Zwei Nachträge, beide vom Gate gefunden:**
+- `95dc972`: Der Export-Snapshot von `lcncWs` kennt `awaitReply` (gewollte Erweiterung).
+- `aa57401`: Die Tönung einer bearbeitbaren Zelle und der Tipp darauf bleiben an `can.probe`
+  mit Busy-Latch. `91b5608` hatte sie an das Owner-Gate gehängt. Dann traf ein Tipp in der
+  200-ms-Sperre nach einem Schreiben eine getönte Zelle, die nichts öffnete. Das verletzte den
+  Entwurfsfall UI-I05 in `input-session.spec`. Nur Button oder Text, die Fokusübergabe und die
+  Sperrzeile folgen dem Owner-Gate; die Tabelle kippt also im Latch nicht.
+
+Offline-Gate (`python3 scripts/test_suite.py offline`) auf `aa57401`: **PASS**, Backend 1066,
+Vitest 1710, Playwright 338/338.
+
+Die Sim wird für diese Runde auf `aa57401` neu gestartet (Gateway mit `g30Capture`); die
+Maschine steht danach in ESTOP.
