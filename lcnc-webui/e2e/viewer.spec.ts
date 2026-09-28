@@ -415,15 +415,25 @@ test("the viewer palette: Automatic follows the theme, Custom stays, a legacy pa
   await page.evaluate(() => window.__viewerDiag!.tintPart!("tool", true));   // the default tool marker
   expect((await drawn()).drawn.collision).toBe(light.collision);
 
-  // A theme switch re-resolves everything drawn — the tint on screen too.
+  // A theme switch keeps every colour (fixed palette, operator 2026-09-28:
+  // other colours after a switch confuse): dark draws light's values; a
+  // high-contrast theme re-resolves the families at its own lightness —
+  // everything drawn, the tint on screen too.
   await send("settings_changed", "dark");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  const dark = { feed: await token("--viewer-feed"), limit: await token("--viewer-limit"), collision: await token("--viewer-collision") };
-  expect(dark.feed).not.toBe(light.feed);
-  await expect.poll(async () => (await drawn()).drawn.feed).toBe(dark.feed);
+  const dark = { feed: await token("--viewer-feed"), limit: await token("--viewer-limit"), collision: await token("--viewer-collision"), rapid: await token("--viewer-rapid") };
+  expect(dark, "the same palette in light and dark").toEqual(light);
   p = await drawn();
-  expect(p.drawn.limit).toBe(dark.limit);
-  expect(p.drawn.collision, "the collision tint follows the theme").toBe(dark.collision);
+  expect(p.drawn).toMatchObject({ feed: light.feed, limit: light.limit, rapid: light.rapid });
+  expect(p.drawn.collision, "the collision tint too").toBe(light.collision);
+  await send("settings_changed", "hc-dark");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "hc-dark");
+  const hc = { feed: await token("--viewer-feed"), collision: await token("--viewer-collision") };
+  expect(hc.feed, "high contrast: its own lightness").not.toBe(light.feed);
+  await expect.poll(async () => (await drawn()).drawn.feed).toBe(hc.feed);
+  expect((await drawn()).drawn.collision, "the collision tint follows the theme").toBe(hc.collision);
+  await send("settings_changed", "dark");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 
   // A palette stored before the mode existed (every old save wrote it): Custom,
   // exactly as stored; the finding roles stay the theme's.

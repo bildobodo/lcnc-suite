@@ -191,6 +191,11 @@ function sphereOfBox(b: Float32Array, o: number): THREE.Sphere {
   return new THREE.Sphere(new THREE.Vector3(cx, cy, cz), Math.sqrt(dx * dx + dy * dy + dz * dz));
 }
 
+/** The limit overlay draws OVER the backplot (11) and the path (10): a
+ *  backplot lying on a violation never hides the finding (fixed palette P5,
+ *  Codex R30 — "Backplot über einer Grenzverletzung"). */
+export const LIMIT_OVERLAY_RENDER_ORDER = 12;
+
 /** The toolpath box's dash and gap (and its overflow edges'), in the box's
  *  own units: the two meet at the machine window and dash alike. */
 const BOX_DASH = 3;
@@ -381,7 +386,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         geom.setDrawRange(starts[ci]!, counts[ci]!);
         geom.boundingSphere = sphereOfBox(s.bounds, ci * 6);
         const ov = new THREE.LineSegments(geom, s.overMat);
-        ov.renderOrder = 10;
+        ov.renderOrder = LIMIT_OVERLAY_RENDER_ORDER;
         ov.frustumCulled = true;
         ov.visible = false;
         s.parent.add(ov);

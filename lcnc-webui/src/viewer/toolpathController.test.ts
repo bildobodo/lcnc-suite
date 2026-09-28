@@ -7,7 +7,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as THREE from "three";
 import { ref, type Ref } from "vue";
 import { disposeObject } from "./disposal";
-import { createToolpathController, type ToolpathCtx, type ToolpathController } from "./toolpathController";
+import { createToolpathController, LIMIT_OVERLAY_RENDER_ORDER, type ToolpathCtx, type ToolpathController } from "./toolpathController";
+import { BACKPLOT_RENDER_ORDER } from "./backplotController";
 import { CASED_CORE_PX, CASED_TOTAL_PX } from "./casedLines";
 import type { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import type { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
@@ -217,7 +218,7 @@ describe("stale mute", () => {
     const ctx = makeCtx();
     // vertex 1 of feed and vertex 0 of rapid flagged → overlays in both streams
     c.apply(ctx, { ...GCODE, feedOutside: new Uint8Array([0, 1, 0]), rapidOutside: new Uint8Array([1, 0]) });
-    const overlays = () => ctx.workRotGroup.children.filter(o => (o as any).isLineSegments && o.renderOrder === 10
+    const overlays = () => ctx.workRotGroup.children.filter(o => (o as any).isLineSegments
       && (o as any).material.userData.role === "limit") as THREE.LineSegments[];
     const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 1000); cam.position.set(5, 5, 100); cam.lookAt(5, 5, 0); cam.updateMatrixWorld();
     c.updateCulling(ctx, cam, 1000);
@@ -409,8 +410,7 @@ describe("chunked draw (2026-09-11 headroom wave)", () => {
   const isOverlay = (o: THREE.Object3D) => (o as any).material?.userData?.role === "limit";
   const chunksOf = (g: THREE.Group) => g.children.filter(o => (o as any).isLineSegments && o.renderOrder === 10
     && !isOverlay(o)) as THREE.LineSegments[];
-  const overlaysOf = (g: THREE.Group) => g.children.filter(o => (o as any).isLineSegments && o.renderOrder === 10
-    && isOverlay(o)) as THREE.LineSegments[];
+  const overlaysOf = (g: THREE.Group) => g.children.filter(o => (o as any).isLineSegments && isOverlay(o)) as THREE.LineSegments[];
   const lookAt = (x: number, y: number, z: number, from: [number, number, number]) => {
     const cam = new THREE.PerspectiveCamera(50, 1, 0.1, 10000);
     cam.position.set(...from);
@@ -457,6 +457,17 @@ describe("chunked draw (2026-09-11 headroom wave)", () => {
     cc.dispose();
     expect(chunksOf(ctx.workRotGroup)).toHaveLength(0);
     expect(cc.chunks).toBe(0);
+  });
+
+  it("the limit overlay draws over the backplot and the path: history never hides a finding (P5, Codex R30)", () => {
+    const cc = createToolpathController({ ...(deps as any) });
+    const ctx = makeCtx();
+    cc.apply(ctx, { feedPos: new Float32Array([0, 0, 0, 2, 0, 0]), feed_lines: [1, 2], bounds: { min: [0, 0, 0], max: [2, 0, 0] },
+      feedOutside: new Uint8Array([0, 1]) } as any);
+    const [ov] = overlaysOf(ctx.workRotGroup);
+    expect(ov!.renderOrder).toBe(LIMIT_OVERLAY_RENDER_ORDER);
+    expect(LIMIT_OVERLAY_RENDER_ORDER).toBeGreaterThan(BACKPLOT_RENDER_ORDER);
+    expect(LIMIT_OVERLAY_RENDER_ORDER).toBeGreaterThan(chunksOf(ctx.workRotGroup)[0]!.renderOrder);
   });
 
   it("the Rapids layer hides the rapid lines but never their limit overlay (fixed palette P3, Codex R29)", () => {

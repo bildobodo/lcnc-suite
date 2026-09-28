@@ -97,8 +97,9 @@ test("the palette in four themes, on a model, a dense and a thin path — and no
         { message: `${where}: the feed takes the theme's role` }).toBe(await token("--viewer-feed"));
       const materials = await page.evaluate(() => window.__viewerDiag!.getRoleMaterials!());
       expect(materials.filter(m => m.role.startsWith("selection")), `${where}: no current line drawn`).toEqual([]);
-      expect(materials.filter(m => m.kind === "fat").map(m => m.role), `${where}: the backplot is the only screen-space line`)
-        .toEqual(["backplot"]);
+      // Screen-space lines: the backplot and the cased boxes (fixed palette P2).
+      expect(materials.filter(m => m.kind === "fat").map(m => m.role).sort(), `${where}: the backplot and the cased machine box`)
+        .toEqual(["backplot", "bounds", "boundsCasing", "toolpathBounds", "toolpathBoundsCasing"]);
       const drawn = (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn;
       if (kind === "dense") expect(drawn.limit, `${where}: the limit overflow's role`).toBe(await token("--viewer-limit"));
       await page.waitForTimeout(200);
@@ -128,8 +129,12 @@ function ladderPayload() {
   let line = 3, s = 1;
   const rapid: number[][] = [], rapidLines: number[] = [], rapidSeq: number[] = [];
   for (const x of [-100, 200]) {
-    if (x > 0) for (const p of [[-100, 150, 20], [200, -150, 20], [200, -150, 0]]) { rapid.push(p); rapidLines.push(line); rapidSeq.push(s++); }
-    for (let i = 0; i <= 1; i++) { feed.push([x, x > 0 ? -150 + i * 300 : 150 - i * 300, 0]); lines.push(line++); seq.push(s++); outside.push(x > 150 ? 1 : 0); }
+    // The violating line (X 200) is the SHORTER one: the limit overlay draws
+    // over it, so the feed is measured on the clean line at X -100.
+    // The rapid leaves the first line sideways: retracing it (top view) would
+    // lay its dashes over the feed that is measured.
+    if (x > 0) for (const p of [[-130, -150, 20], [200, -120, 20], [200, -120, 0]]) { rapid.push(p); rapidLines.push(line); rapidSeq.push(s++); }
+    for (let i = 0; i <= 1; i++) { feed.push([x, x > 0 ? -120 + i * 240 : 150 - i * 300, 0]); lines.push(line++); seq.push(s++); outside.push(x > 150 ? 1 : 0); }
   }
   return {
     lines: line,
@@ -137,6 +142,23 @@ function ladderPayload() {
       rapid, rapid_lines: rapidLines, rapid_seq: rapidSeq, rapid_outside: new Uint8Array(rapid.length) })),
   };
 }
+
+/** In-page: the pixel colours at `offsets` CSS px along the unit normal of the line through `at`. */
+async function profileColours(page: Page, shot: Buffer, at: { x: number; y: number; dx: number; dy: number }, offsets: number[], dpr: number) {
+  return page.evaluate(async ({ png, at, offsets, dpr }) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${png}`;
+    await img.decode();
+    const cv = document.createElement("canvas");
+    cv.width = img.width; cv.height = img.height;
+    const cx = cv.getContext("2d", { willReadFrequently: true })!;
+    cx.drawImage(img, 0, 0);
+    return offsets.map(o => Array.from(cx.getImageData(Math.round((at.x - at.dy * o) * dpr), Math.round((at.y + at.dx * o) * dpr), 1, 1).data.slice(0, 3)));
+  }, { png: shot.toString("base64"), at, offsets, dpr });
+}
+const rgbOf = (h: string) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const rgbDist = (a: number[], b: number[]) => Math.hypot(...a.map((v, i) => v - b[i]!));
+const nearestOf = (c: number[], named: [string, number[]][]) => named.slice().sort((a, b) => rgbDist(c, a[1]) - rgbDist(c, b[1]))[0]![0];
 
 /** In-page: the drawn width (device px) across the line through (x, y) CSS px along the unit normal (nx, ny). */
 async function drawnWidth(page: Page, shot: Buffer, at: { x: number; y: number; dx: number; dy: number }, colour: string, dpr: number) {
@@ -220,17 +242,19 @@ test("the width ladder is drawn: the path and the limit overlay 1 px, the backpl
       const drawn = (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn;
       const shot = await page.screenshot();
       const widths: Record<string, number> = {};
+      const where2: Record<string, unknown> = {};
       for (const role of ["feed", "limit", "backplot"]) {
         const at = await page.evaluate(r => window.__viewerDiag!.projectRole!(r), role);
         expect(at, `${where}: a visible ${role} segment`).not.toBeNull();
         // The backplot is a trail of short segments along one straight line;
         // the program's lines are single long segments.
         if (role !== "backplot") expect(at!.length, `${where}: a ${role} segment long enough to measure across`).toBeGreaterThan(20);
+        where2[role] = { x: Math.round(at!.x), y: Math.round(at!.y), len: Math.round(at!.length) };
         const m = await drawnWidth(page, shot, at!, drawn[role]!, dpr);
         expect(m.contrastSq, `${where}: ${role} differs from what lies behind it`).toBeGreaterThan(300);
         widths[role] = m.width;
       }
-      const dump = JSON.stringify(widths);
+      const dump = JSON.stringify({ widths, at: where2 });
       test.info().annotations.push({ type: `widths ${where}`, description: dump });
       for (const role of ["feed", "limit"]) {
         expect(widths[role]!, `${where}: the ${role} line is drawn ${dump}`).toBeGreaterThan(0.5);
@@ -238,7 +262,49 @@ test("the width ladder is drawn: the path and the limit overlay 1 px, the backpl
       }
       expect(widths.backplot!, `${where}: the backplot is 2 CSS px ${dump}`).toBeGreaterThan(1.6 * dpr);
       expect(widths.backplot!, `${where}: the backplot is not wider than 2 CSS px ${dump}`).toBeLessThan(2.6 * dpr);
+      // The machine box (fixed palette P2): across its edge the light core in
+      // the middle, the dark casing on either side, the lit table beyond — the
+      // one colour pair every theme draws.
+      const edge = await page.evaluate(() => window.__viewerDiag!.projectRole!("bounds"));
+      expect(edge, `${where}: a visible box edge`).not.toBeNull();
+      const core = rgbOf(drawn.bounds!), casing = rgbOf(drawn.boundsCasing!);
+      const [out1, out2] = await profileColours(page, shot, edge!, [-8, 8], dpr);
+      const beyond = out1!.map((v, i) => (v + out2![i]!) / 2);
+      const named: [string, number[]][] = [["core", core], ["casing", casing], ["beyond", beyond]];
+      // The material: a 1 px core over a 3 px casing, screen-space.
+      expect([kindOf("bounds"), kindOf("boundsCasing")], `${where}: core and casing`).toEqual(["fat1", "fat3"]);
+      // The image: across the edge both the casing and the core are drawn,
+      // the scene beyond on either side (device-pixel steps across ±3 CSS px —
+      // the live box's top and bottom edges may lie within a pixel or two).
+      const steps = Array.from({ length: 6 * dpr + 1 }, (_, i) => -3 + i / dpr);
+      const seen = (await profileColours(page, shot, edge!, steps, dpr)).map(c => nearestOf(c, named));
+      const boxDump = JSON.stringify({ core, casing, beyond, seen });
+      expect([seen[0], seen.at(-1)], `${where}: the scene beyond the edge ${boxDump}`).toEqual(["beyond", "beyond"]);
+      expect(seen.includes("casing") && seen.includes("core"), `${where}: casing and core drawn ${boxDump}`).toBe(true);
       await test.info().attach(`ladder-dpr${dpr}-${theme}.png`, { body: shot, contentType: "image/png" });
+    }
+    // The backplot OVER a limit violation (fixed palette P5, Codex R30): the
+    // tool driven along the violating line — the finding draws over the
+    // history, so the line's middle reads the limit's ochre, never only the
+    // backplot's violet.
+    for (let i = 0; i <= 20; i++) {
+      await ctl({ op: "status_delta", data: { joint_pos: [200, -150 + i * 15, 0], actual_position: [200, -150 + i * 15, 0] } });
+      await page.waitForTimeout(30);
+    }
+    for (const theme of ["light", "dark"] as const) {
+      await ctl({ op: "raw", frame: { type: "settings_init", settings: { display: { theme }, viewer: { layers: { backplot: true, bounds: true, hud: false } } } } });
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      await page.waitForTimeout(300);
+      const where = `DPR ${dpr} ${theme} backplot on the violation`;
+      const drawn = (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn;
+      const at = await page.evaluate(() => window.__viewerDiag!.projectRole!("limit"));
+      expect(at, `${where}: the violation line`).not.toBeNull();
+      const shot = await page.screenshot();
+      const samples = await profileColours(page, shot, at!, [-0.5, 0, 0.5], dpr);
+      const named: [string, number[]][] = [["limit", rgbOf(drawn.limit!)], ["backplot", rgbOf(drawn.backplot!)]];
+      const seen = samples.map(c => nearestOf(c, named));
+      expect(seen, `${where}: the limit shows on top ${JSON.stringify({ samples, named })}`).toContain("limit");
+      await test.info().attach(`backplot-on-limit-dpr${dpr}-${theme}.png`, { body: shot, contentType: "image/png" });
     }
     await context.close();
   }

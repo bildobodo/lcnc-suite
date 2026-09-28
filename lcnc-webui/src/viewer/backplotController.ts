@@ -26,6 +26,10 @@ import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 const BACKPLOT_MAX = 20000;   // points (10 Hz -> ~33 min)
 const SEG_MAX = BACKPLOT_MAX - 1;   // segments between them
 const BACKPLOT_EPS = 0.01;    // mm; min distance before adding a point
+/** The backplot draws over the programmed path (executed over planned);
+ *  the limit overlay draws over it (a finding is never hidden by history —
+ *  Codex R30), see LIMIT_OVERLAY_RENDER_ORDER. */
+export const BACKPLOT_RENDER_ORDER = 11;
 /** The backplot's width in CSS px — twice the path's 1 px line. */
 export const BACKPLOT_WIDTH_PX = 2;
 
@@ -75,7 +79,7 @@ export function createBackplotController(requestRender: () => void): BackplotCon
       const mat = new LineMaterial({ color, linewidth: BACKPLOT_WIDTH_PX, worldUnits: false, depthTest, depthWrite: false });
       mat.userData.role = "backplot";   // the viewer palette's role (diagnostics read it)
       line = new LineSegments2(geom, mat);
-      line.renderOrder = 11;
+      line.renderOrder = BACKPLOT_RENDER_ORDER;
       line.frustumCulled = false;   // ✅ prevents disappearing when origin is off-screen
       // The width is screen pixels: the material learns the drawing size right before each draw.
       line.onBeforeRender = (renderer) => { renderer.getSize(mat.resolution); };
