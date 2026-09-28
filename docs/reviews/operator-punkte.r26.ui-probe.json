@@ -1,0 +1,466 @@
+{
+  "head": "12341cb",
+  "isolation": "http://127.0.0.1:4188/",
+  "results": [
+    {
+      "name": "g30_save_ack_overwrites_new_edit",
+      "sent": {
+        "X": 110
+      },
+      "beforeReply": "120",
+      "afterReply": "120",
+      "matches_contract": true
+    },
+    {
+      "name": "g30_late_capture_after_frame_change",
+      "kins_type_at_request": 0,
+      "kins_type_at_reply": 1,
+      "displayedX": "100",
+      "note": [
+        "Capture dropped — units or kinematics changed"
+      ],
+      "matches_contract": true
+    },
+    {
+      "name": "choice_rejection_stays_pending",
+      "pending": null,
+      "hints": [
+        "R26: controller refused this mode"
+      ],
+      "errors": [
+        "R26: controller refused this mode"
+      ],
+      "matches_contract": true
+    },
+    {
+      "name": "step_representation_loses_focus_and_arrow_jogs",
+      "active": {
+        "tag": "SELECT",
+        "role": null
+      },
+      "sent": [],
+      "matches_contract": true
+    },
+    {
+      "name": "step_resize_loses_focus_and_arrow_jogs",
+      "trigger": "portrait to landscape; standard increments",
+      "active": {
+        "tag": "SELECT",
+        "role": null
+      },
+      "sent": [],
+      "matches_contract": true
+    },
+    {
+      "name": "step_removed_option_same_representation",
+      "before": [
+        1,
+        10
+      ],
+      "after": [
+        1,
+        20
+      ],
+      "active": {
+        "tag": "BODY",
+        "role": null
+      },
+      "sent": [
+        {
+          "cmd": "jog_incr",
+          "axis": 0,
+          "vel": 10,
+          "distance": 10,
+          "req_id": "5fcv33-5"
+        }
+      ],
+      "matches_contract": false
+    },
+    {
+      "name": "tools_spacing_and_sticky_head_control",
+      "head_to_search": 8,
+      "scrollTop": 250,
+      "scrollPadding": "25px",
+      "theadHeight": 24.5,
+      "headerTopmost": true,
+      "topFade": "none",
+      "matches_contract": true
+    },
+    {
+      "name": "offsets_canonical_unknown_and_lock_focus",
+      "rows": [
+        [
+          "G52/G92",
+          "1.0000",
+          "0.0000",
+          "0.0000",
+          "0.0000",
+          "6.0000",
+          ""
+        ],
+        [
+          "Tool",
+          "0.0000",
+          "0.0000",
+          "45.7000",
+          "0.0000",
+          "8.0000",
+          ""
+        ]
+      ],
+      "summary": "Offset status unknown — comp",
+      "keyboardContext": "G54 · C · °",
+      "before": {
+        "x": 1435.625,
+        "y": 242.5,
+        "width": 61.65625,
+        "height": 16.5
+      },
+      "lockedSlots": 54,
+      "active_after_lock": "SPAN",
+      "canonical_and_unknown_pass": true,
+      "lockedCmds": [],
+      "focus_retained": true
+    },
+    {
+      "name": "old_file_response_after_reconnect_must_not_supply_basis",
+      "before": "Stored: unknown — refresh · draft not saved",
+      "after": "Stored: as of LinuxCNC's last synch · draft not saved",
+      "draftX": "120",
+      "saveEnabled": true,
+      "sentSave": {
+        "cmd": "set_g30",
+        "values": {
+          "X": 120,
+          "Z": -30
+        },
+        "based_on": {
+          "X": 100,
+          "Y": 0,
+          "Z": -26.275
+        },
+        "req_id": "f45c0f-7"
+      },
+      "matches_contract": false
+    },
+    {
+      "name": "custom_contrast_control",
+      "before": "Toolpath\t2.4 : 1 · low\t1.8 : 1 · low",
+      "after": "Toolpath\t10.1 : 1\t7.7 : 1",
+      "value": "#1f3f7f",
+      "matches_contract": true
+    },
+    {
+      "name": "layout_budget_matrix",
+      "rows": [
+        {
+          "profile": "3axis",
+          "viewport": "desktop",
+          "sections": [
+            {
+              "name": "jog",
+              "height": 264
+            },
+            {
+              "name": "setup",
+              "height": 264
+            },
+            {
+              "name": "overrides",
+              "height": 264
+            },
+            {
+              "name": "spindle",
+              "height": 264
+            },
+            {
+              "name": "tool",
+              "height": 264
+            }
+          ],
+          "width": 1668.5,
+          "height": 528,
+          "step": "grid",
+          "minW": 40,
+          "minH": 28,
+          "overflow": [],
+          "budget": 1678.5,
+          "pass": true
+        },
+        {
+          "profile": "3axis",
+          "viewport": "touch-landscape",
+          "sections": [
+            {
+              "name": "jog",
+              "height": 264
+            },
+            {
+              "name": "setup",
+              "height": 264
+            },
+            {
+              "name": "overrides",
+              "height": 264
+            },
+            {
+              "name": "spindle",
+              "height": 264
+            },
+            {
+              "name": "tool",
+              "height": 264
+            }
+          ],
+          "width": 1677.5,
+          "height": 528,
+          "step": "grid",
+          "minW": 40,
+          "minH": 36,
+          "overflow": [],
+          "budget": 1705.5,
+          "pass": true
+        },
+        {
+          "profile": "3axis",
+          "viewport": "touch-portrait",
+          "sections": [
+            {
+              "name": "jog",
+              "height": 590.5
+            },
+            {
+              "name": "setup",
+              "height": 369.5
+            },
+            {
+              "name": "overrides",
+              "height": 157.5
+            },
+            {
+              "name": "spindle",
+              "height": 183
+            },
+            {
+              "name": "tool",
+              "height": 97
+            }
+          ],
+          "width": 1260,
+          "height": 960,
+          "step": "row",
+          "minW": 36,
+          "minH": 36,
+          "overflow": [],
+          "budget": 960,
+          "pass": true
+        },
+        {
+          "profile": "xyzac",
+          "viewport": "desktop",
+          "sections": [
+            {
+              "name": "jog",
+              "height": 264
+            },
+            {
+              "name": "setup",
+              "height": 264
+            },
+            {
+              "name": "overrides",
+              "height": 264
+            },
+            {
+              "name": "spindle",
+              "height": 264
+            },
+            {
+              "name": "tool",
+              "height": 264
+            }
+          ],
+          "width": 2077.5,
+          "height": 528,
+          "step": "grid",
+          "minW": 40,
+          "minH": 28,
+          "overflow": [],
+          "budget": 2148.5,
+          "pass": true
+        },
+        {
+          "profile": "xyzac",
+          "viewport": "touch-landscape",
+          "sections": [
+            {
+              "name": "jog",
+              "height": 264
+            },
+            {
+              "name": "setup",
+              "height": 264
+            },
+            {
+              "name": "overrides",
+              "height": 264
+            },
+            {
+              "name": "spindle",
+              "height": 264
+            },
+            {
+              "name": "tool",
+              "height": 264
+            }
+          ],
+          "width": 2086.5,
+          "height": 528,
+          "step": "grid",
+          "minW": 40,
+          "minH": 36,
+          "overflow": [],
+          "budget": 2170.5,
+          "pass": true
+        },
+        {
+          "profile": "xyzac",
+          "viewport": "touch-portrait",
+          "sections": [
+            {
+              "name": "jog",
+              "height": 699
+            },
+            {
+              "name": "setup",
+              "height": 449.5
+            },
+            {
+              "name": "overrides",
+              "height": 157.5
+            },
+            {
+              "name": "spindle",
+              "height": 183
+            },
+            {
+              "name": "tool",
+              "height": 97
+            }
+          ],
+          "width": 1260,
+          "height": 1148.5,
+          "step": "row",
+          "minW": 36,
+          "minH": 36,
+          "overflow": [],
+          "budget": 1148.5,
+          "pass": true
+        },
+        {
+          "profile": "twp",
+          "viewport": "desktop",
+          "sections": [
+            {
+              "name": "jog",
+              "height": 264
+            },
+            {
+              "name": "setup",
+              "height": 264
+            },
+            {
+              "name": "overrides",
+              "height": 264
+            },
+            {
+              "name": "spindle",
+              "height": 264
+            },
+            {
+              "name": "tool",
+              "height": 264
+            }
+          ],
+          "width": 2152.5,
+          "height": 528,
+          "step": "grid",
+          "minW": 40,
+          "minH": 28,
+          "overflow": [],
+          "budget": 2206.5,
+          "pass": true
+        },
+        {
+          "profile": "twp",
+          "viewport": "touch-landscape",
+          "sections": [
+            {
+              "name": "jog",
+              "height": 264
+            },
+            {
+              "name": "setup",
+              "height": 264
+            },
+            {
+              "name": "overrides",
+              "height": 264
+            },
+            {
+              "name": "spindle",
+              "height": 264
+            },
+            {
+              "name": "tool",
+              "height": 264
+            }
+          ],
+          "width": 2161.5,
+          "height": 528,
+          "step": "select",
+          "minW": 40,
+          "minH": 36,
+          "overflow": [],
+          "budget": 2228.5,
+          "pass": true
+        },
+        {
+          "profile": "twp",
+          "viewport": "touch-portrait",
+          "sections": [
+            {
+              "name": "jog",
+              "height": 721
+            },
+            {
+              "name": "setup",
+              "height": 541.5
+            },
+            {
+              "name": "overrides",
+              "height": 157.5
+            },
+            {
+              "name": "spindle",
+              "height": 183
+            },
+            {
+              "name": "tool",
+              "height": 97
+            }
+          ],
+          "width": 1260,
+          "height": 1262.5,
+          "step": "row",
+          "minW": 36,
+          "minH": 36,
+          "overflow": [],
+          "budget": 1262.5,
+          "pass": true
+        }
+      ],
+      "matches_contract": true
+    }
+  ]
+}

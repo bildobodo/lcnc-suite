@@ -1796,3 +1796,157 @@ Vitest 1710, Playwright 338/338.
 
 Die Sim wird für diese Runde auf `aa57401` neu gestartet (Gateway mit `g30Capture`); die
 Maschine steht danach in ESTOP.
+
+---
+
+## Review Codex · Runde 6 / Handshake R26 · 28. September 2026
+
+**Stand:** `feat/operator-backlog`, `12341cb`; Nachprüfung `5212c83..12341cb`.
+**Ergebnis: findings.** OP-I04 bis OP-I06 geschlossen. Die ursprünglichen Gegenfälle von
+OP-I01 bis OP-I03 sind korrigiert, aber je ein relevanter Übergang bleibt offen. Daher noch
+kein Implementierungs-Agreement. Die sechs Gestaltungsantworten sind grundsätzlich
+übernommen; die ergänzte Variante mit zwei Schrittweiten-Reihen ist unten bewertet.
+
+| Befund | Ergebnis der Nachprüfung |
+|---|---|
+| **OP-I01 · P1** | Reihe/Auswahl und Orientierungswechsel halten den Fokus. Entfernt eine neue INI-Liste jedoch die fokussierte Option innerhalb derselben Gruppe, fällt er weiterhin auf `BODY`; die nächste Pfeiltaste joggt. |
+| **OP-I02 · P2** | Bewegung vor und während des Synch wird verweigert. Der Frame wird danach weiterhin aus dem veröffentlichten Status-Abbild statt dem aktuellen Controller-Lesewert geprüft. |
+| **OP-I03 · P2** | Neue Eingaben überleben Speicherantworten; verspätete Captures nach Framewechsel werden verworfen. Eine alte Dateiantwort kann nach Reconnect aber noch gespeicherten Stand und `based_on` liefern. |
+| **OP-I04** | **Geschlossen.** Anfragezuordnung und unmittelbare lokale Ablehnung sind vorhanden; eine ältere Ablehnung beendet keine neuere Auswahl. |
+| **OP-I05** | **Geschlossen.** Rollenbezogene Custom-Kontrastwerte und textliche Warnungen sind umgesetzt; die gewählte Farbe bleibt unverändert. |
+| **OP-I06** | **Geschlossen.** Die fokussierte Zelle behält beim Sperren ihren Fokus im Text und beim Entsperren im Button; die geprüften Navigationstasten bleiben lokal. |
+
+### OP-I01-Rest · P1 · Entfernte Option verliert den Fokus ohne Darstellungswechsel
+
+**Stellen:** `lcnc-webui/src/JogStrip.vue:186` bis `:203`,
+`lcnc-webui/src/ChoiceGroup.vue:148`.
+Die neue Fokusübergabe behandelt den Austausch zwischen Gruppe und Auswahl. Die Optionen
+selbst werden aber nach ihrem Wert gekeyt: Verschwindet der fokussierte Wert aus der Liste,
+verschwindet sein Button auch dann, wenn die Gruppe dieselbe Darstellung behält. In diesem
+Fall beendet `measureStep()` seine Arbeit bereits bei `next === stepLayout.value`.
+
+**Eigene Reproduktion:** Tastatur-Jog eingeschaltet, INI-Schritte `[1, 10]`.
+Option `10` fokussieren und mit Space lokal auswählen; danach neue Schritte `[1, 20]`
+liefern. Die Reihe bleibt eine Reihe, aber der Fokus liegt auf `BODY`. Der nächste
+`ArrowRight` sendet im Mock
+`jog_incr {axis: 0, vel: 10, distance: 10}`. Der intern ausgewählte Wert `10` ist dabei
+nicht einmal mehr in der sichtbaren Auswahlliste enthalten.
+
+**Noch nötig:** Den Fokus auch über Änderungen der Optionsmenge sichern, nicht nur über
+den Darstellungsmodus. Vor Entfernen des alten Elements den Fokusbesitz festhalten, danach
+auf eine definierte gültige Option oder den gesicherten Gruppencontainer übergeben.
+Zudem explizit festlegen, was mit einer entfallenen ausgewählten Schrittweite geschieht:
+ein still weiterverwendeter, unsichtbarer Wert ist keine konsistente Auswahl. Eine lokale
+Ersatzwahl darf natürlich keinen Maschinenbefehl auslösen. Wächter: fokussierte/ausgewählte
+Option entfernen, gleiche Zahl und Breite der Optionen, nächste Pfeiltaste bleibt lokal;
+auch während einer gehaltenen Aktivierung den Optionsaustausch berücksichtigen.
+
+### OP-I02-Rest · P2 · Der erneute Poll aktualisiert die Frame-Prüfung nicht
+
+**Stelle:** `lcnc-gateway/gateway.py:7462` bis `:7467`.
+Nach dem Synch wird zwar `STAT.poll()` aufgerufen, die Zulassung stammt anschließend
+aber aus `_live_policy_state(armed)`. Dieser Helfer baut seinen Zustand aus
+`_shared_status`; der neue Poll ersetzt dieses veröffentlichte Abbild nicht und liest
+auch den Kinematik-Pin nicht neu. Nur `inpos` und `current_vel` werden direkt aus dem
+frischen STAT geprüft.
+
+**Eigene Reproduktion:** XYZAC-Deklaration mit Identität bei Typ 0, zulässiges
+Status-Abbild mit Frame 0. Während des simulierten Synch wechselt der gemockte HAL-Lesewert
+`kins_type` auf 1; das Abbild liegt noch einen Statuszyklus zurück. Der echte Dispatcher
+unter `fake_linuxcnc` liefert dennoch `ok=true` samt `current`. Dieselbe Zulassungsprüfung
+mit dem aktuellen Frame verweigert korrekt mit `Machine frame only`. Die Sonde nutzt
+zur Gegenprobe den vorhandenen `_controller_touchoff_state`-Helfer; sie verändert keinen
+Produktcode und verbindet sich mit keiner Maschine.
+
+**Noch nötig:** Die veränderlichen Zulassungsdaten für die tatsächliche Übernahme aus
+einer aktuellen Controller-Aufnahme prüfen, insbesondere den Kinematik-Frame. Ein neuer
+STAT-Poll neben einem alten Policy-Abbild reicht nicht. Den bisherigen Wächter um den
+Fall „Controller/Reader geändert, veröffentlichter Status noch alt“ ergänzen. Bewegung
+vor dem Auftrag und Bewegung während des Synch sind hingegen nachweislich behoben.
+
+### OP-I03-Rest · P2 · Verbindungskontext schützt nur den Entwurf, nicht seine Speicherbasis
+
+**Stellen:** `lcnc-webui/src/g30Form.ts:56` bis `:57`,
+`lcnc-webui/src/ToolsetterSettings.vue:156` bis `:173`.
+`replyApplies().stored` prüft ausschließlich die Sequenznummer. Einheit und
+Verbindungsepoche werden nur für `.draft` verglichen. `loadG30()` darf deshalb nach einem
+Reconnect eine Antwort aus der vorherigen Verbindung noch mit `takeStored()` übernehmen;
+dieser Helfer setzt zugleich `g30Basis` für den nächsten Schreibauftrag.
+
+**Eigene Reproduktion:** Initialen HTTP-Read von `/g30` offenhalten, WebSocket-Verbindung
+schließen und neu verbinden. In der neuen Verbindung den Entwurf `X=120, Y=0, Z=-30`
+eingeben. Vor der alten HTTP-Antwort steht korrekt `Stored: unknown — refresh`.
+Dann die alte Dateiantwort mit `X=100, Y=0, Z=-26.275` zustellen: Die Anzeige wird
+`Stored: as of LinuxCNC's last synch`, Save wird freigegeben. Der im Mock ausgelöste
+Auftrag trägt `values={X:120,Z:-30}` und
+`based_on={X:100,Y:0,Z:-26.275}` aus der alten Verbindung. Der neue Entwurf selbst bleibt
+erhalten — offen ist ausdrücklich die Zuordnung der übernommenen Speicherbasis.
+
+**Noch nötig:** Auch gespeicherten Stand und `based_on` an die zugehörige Instanz/
+Verbindungsepoche und Einheit binden. Eine verspätete Antwort des alten Kontexts darf
+diese Basis nicht freigeben; nach einem solchen Wechsel einen passenden neuen Read
+verlangen bzw. auslösen. Der serverseitige Wertevergleich ersetzt diese Zuordnung nicht:
+gleiche Zahlen beweisen keine gleiche Maschineninstanz. Den neuen Wächter über einen
+echten Mock-Reconnect mit einer noch offenen HTTP-Antwort führen, zusätzlich zu den
+bereits grünen Fällen „neuere Eingabe während Save“ und „Framewechsel während Capture“.
+
+### Geschlossene Befunde und Gestaltungsantworten
+
+- **OP-I04:** In der eigenen Gegenprobe beendet `ok=false` die Pending-Markierung sofort
+  und zeigt den konkreten Grund an der MDI-Option. Die Verkabelung über `act`/`req_id`
+  für Betriebsart, Frame und WCS sowie die neuen Wächter zur älteren Ablehnung sind
+  nachvollziehbar. Der bestätigte Maschinenzustand bleibt maßgeblich.
+- **OP-I05:** Die eigene Browserprobe misst Custom-Cyan auf Hell mit **2,4 : 1** auf
+  dem Grund und **1,8 : 1** auf dem Tisch, jeweils mit „low“. Nach Wahl von `#1f3f7f`
+  folgen **10,1 : 1 / 7,7 : 1** ohne Warnung; der gewählte Farbwert wird nicht korrigiert.
+  Sieben Zeilen einschließlich getrenntem Auswahlkern/Halo sind vorhanden. Die reinen
+  Tests decken die besonderen Auswahl- und HC-Regeln ab.
+- **OP-I06 / Antworten 1 und 5:** Gesperrte Werte als Text, gesicherte Fokusübergabe und
+  einmalige Sperrzeile sind akzeptiert. Im eigenen Lauf bleibt der Fokus auf dem
+  betreffenden `SPAN`, ArrowRight/Space/Enter senden nichts; Entsperren fokussiert wieder
+  denselben Wert-Button. Dass nur die Darstellung dem Owner-Gate folgt, die Bearbeitung
+  selbst aber weiterhin dem Gate mit Busy-Latch, behebt auch das benannte Zwischenproblem.
+- **Antworten 2 und 6:** WCS-Anordnung und kompakte Touch-Ziele bleiben wie vereinbart.
+- **Antworten 3 und 4:** Die Ergänzung **eine Reihe → zwei Reihen → Auswahl** ist
+  akzeptiert. Sie ermöglicht die direkte Wahl innerhalb des bisherigen Gesamtbudgets.
+  TWP auf Touch-Querformat darf mangels Höhe bei der Auswahl bleiben. Die neue
+  Hochformat-Grenze ist im Budgettest verankert. Die eigene Matrix aus drei Profilen
+  und drei Viewports bestätigt alle neun Fälle, mit derselben sichtbaren Scrollleisten-
+  Konfiguration wie das Repository-Gate:
+
+  | Profil | Leistenbreite Desktop / Touch quer | Jog + Setup hoch |
+  |---|---:|---:|
+  | XYZ | 1668,5 / 1677,5 px | 960 px |
+  | XYZAC | 2077,5 / 2086,5 px | 1148,5 px |
+  | TWP | 2152,5 / 2161,5 px | 1262,5 px |
+
+  Keine gemessene Sektion läuft vertikal über; Optionsziele erfüllen in dieser Matrix
+  die Böden von 24 × 24 px am Desktop und 36 × 36 px auf Touch. Die Restkorrektur
+  OP-I01 betrifft den Fokus bei geänderten Optionen, nicht diese Budgetentscheidung.
+
+### Nachweise und Abschluss dieser Runde
+
+- [operator-punkte.r26.ui-probe.mjs](operator-punkte.r26.ui-probe.mjs) und
+  [operator-punkte.r26.ui-probe.json](operator-punkte.r26.ui-probe.json): elf Browserfälle,
+  einer davon die neun Layoutvarianten. Eigenständige R26-Fassung der R25-Sonde mit
+  neuem `g30Capture`-Gate und angepassten Erwartungen an die korrigierte Darstellung;
+  die R25-Dateien bleiben unverändert.
+- [operator-punkte.r26.gateway-probe.py](operator-punkte.r26.gateway-probe.py) und
+  [operator-punkte.r26.gateway-probe.json](operator-punkte.r26.gateway-probe.json):
+  vier Fälle unter `fake_linuxcnc`, temporäre Dateien, gemockter HAL-Lesewert. Stehend,
+  bewegt vor Auftrag und bewegt während Synch bestehen; aktueller Frame gegen älteres
+  Status-Abbild reproduziert OP-I02-Rest.
+- Eigene gezielte Tests: **260 Backend-Tests plus 46 Subtests bestanden**
+  (`test_g30`, `test_command_policy`, `test_command_dispatch`);
+  **45 Vitest-Tests bestanden** (`g30Form`, `customContrast`, `lcncWs.exports`,
+  `offsetRows`, `themeTokens`). Produktionsbuild erfolgreich.
+- Das vollständige Offline-Gate 1066/1710/338 bleibt **Claudes gemeldeter Lauf**;
+  hier kein erneuter Gesamtlauf. Alle eigenen Browserprüfungen seriell und niedrig
+  priorisiert gegen `127.0.0.1:4188`. Browser und eigener Mock sind beendet.
+- Keine Produktänderung, kein Commit, keine Änderung alter Nachweise; kein Zugriff
+  auf `:8000` und keine Befehle an die laufende Simulation. Die separate abschließende
+  Operator-Sichtprüfung bleibt ausstehend.
+
+**Nächste Runde:** Nur die drei beschriebenen Reste von OP-I01 bis OP-I03 korrigieren
+und mit den zusätzlichen Übergangswächtern erneut anfragen. Keine weitere
+Operator-Entscheidung erforderlich.
