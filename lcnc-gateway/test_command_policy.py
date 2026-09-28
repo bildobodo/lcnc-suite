@@ -1190,3 +1190,36 @@ class TestReasonLength(unittest.TestCase):
         self.assertEqual(too_long, [], "reasons over the cap")
         # the sweep really reached the composite branches
         self.assertGreater(len(seen), 30, sorted(seen))
+
+
+class TestG30CaptureStandstill(unittest.TestCase):
+    """G30 Capture takes the CURRENT position (Codex R25 OP-I02): machineFrame
+    AND the machine stands — an idle interpreter is no standstill (a manual
+    jog keeps INTERP_IDLE); an unreadable motion state refuses."""
+
+    def test_motion_still_of_reads_unknown_as_none(self):
+        from command_policy import motion_still_of
+        self.assertIs(motion_still_of(True, 0.0), True)
+        self.assertIs(motion_still_of(True, 0.001), True)
+        self.assertIs(motion_still_of(True, 0.0011), False)
+        self.assertIs(motion_still_of(False, 0.0), False)
+        self.assertIs(motion_still_of(True, -12.0), False)
+        self.assertIsNone(motion_still_of(None, 0.0))
+        self.assertIsNone(motion_still_of(True, None))
+        self.assertIsNone(motion_still_of(True, "fast"))
+
+    def test_the_gate_needs_machine_frame_and_standstill(self):
+        self.assertEqual(COMMAND_GATES["capture_g30"], "g30Capture")
+        still = state(motion_still=True)
+        self.assertTrue(evaluate_permissions(still)["g30Capture"])
+        self.assertIsNone(check_command("capture_g30", still))
+        for over, reason in (({"motion_still": False}, "Machine moving — capture once it stands"),
+                             ({"motion_still": None}, "Motion state unknown — wait for status"),
+                             ({"motion_still": True, "is_homed": False}, "Not homed — press Home All")):
+            with self.subTest(over=over):
+                s = state(**over)
+                self.assertFalse(evaluate_permissions(s)["g30Capture"])
+                self.assertEqual(check_command("capture_g30", s), reason)
+                self.assertEqual(permission_reasons(s)["g30Capture"], reason)
+        # the display read and the confirmed write do not take the position
+        self.assertIsNone(check_command("set_g30", state(motion_still=False)))

@@ -44,6 +44,11 @@ export type Permissions = {
    *  frame and a rotary word swings the head at fixed XYZ joints. Backend:
    *  command_policy.machine_frame_required. */
   machineFrame: boolean;
+  /** g30Capture: machineFrame + the machine STANDS (STAT.inpos, |v| ≤
+   *  0.001) — G30 Capture takes the current position; an idle interpreter
+   *  is no standstill (a manual jog keeps INTERP_IDLE), unknown refuses.
+   *  Backend: command_policy motion_still_of (Codex R25 OP-I02). */
+  g30Capture: boolean;
   /** goZero: ready + a → Zero plan exists for the kinematics mode — Machine
    *  frame (subroutine) or Plane frame with its plane and G59 (retract along
    *  the tool axis, X0 Y0 in the plane); TCP refuses. Backend:
@@ -99,7 +104,7 @@ export type Permissions = {
 
 /** All gate names, in a stable order. */
 export const GATE_NAMES = [
-  "idle", "jog", "override", "ready", "run", "machineFrame", "goZero", "planeFrame", "pause", "resume", "step",
+  "idle", "jog", "override", "ready", "run", "machineFrame", "g30Capture", "goZero", "planeFrame", "pause", "resume", "step",
   "abort", "probe", "zero", "touchoff", "touchoffRotary", "twpCapture",
   "surfaceComp",
   "safety", "setup", "armed", "always",
@@ -113,7 +118,7 @@ export const GATE_NAMES = [
  * wrong. `jog` never had a busy term (hold-to-move).
  */
 const BUSY_GATES: ReadonlySet<keyof Permissions> = new Set([
-  "idle", "override", "ready", "run", "machineFrame", "goZero", "planeFrame", "probe", "zero", "touchoff", "touchoffRotary",
+  "idle", "override", "ready", "run", "machineFrame", "g30Capture", "goZero", "planeFrame", "probe", "zero", "touchoff", "touchoffRotary",
   "twpCapture", "surfaceComp", "setup",
 ]);
 

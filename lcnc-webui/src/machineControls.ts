@@ -188,7 +188,7 @@ export const BUTTON_TYPES = {
   // G30's stored position (operator P4, Codex R21–R24): no motion. Taking
   // the current position over and saving are machine-frame only (our G30
   // routines address it with G53 moves); a confirming read synchs — idle.
-  g30Capture:     { gate: 'machineFrame', variant: 'default', size: 'md' },
+  g30Capture:     { gate: 'g30Capture', variant: 'default', size: 'md' },   // + standstill (Codex R25 OP-I02)
   g30Save:        { gate: 'machineFrame', variant: 'primary', size: 'md' },
   g30Read:        { gate: 'idle',         variant: 'default', size: 'md' },
   // Discard in an inline note is the same destructive choice as in a

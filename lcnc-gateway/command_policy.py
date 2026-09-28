@@ -95,6 +95,29 @@ class MachineState:
     #: Plane jog frame and Plane → Zero — both promise motion along the tool
     #: axis, which a frozen frame no longer is once a rotary moved (TWP-04).
     twp_aligned: bool = False
+    #: The machine STANDS: STAT.inpos AND |current_vel| <= STILL_VEL
+    #: (motion_still_of). None = not readable — the G30 capture refuses
+    #: (Codex R25 OP-I02: an idle interpreter is no standstill, a manual jog
+    #: keeps INTERP_IDLE). Closed default like every field above.
+    motion_still: Optional[bool] = None
+
+
+#: Below this |current_vel| (machine units per second) the machine stands —
+#: the adaptive poll's idle threshold (status_runtime.is_active).
+STILL_VEL = 0.001
+
+
+def motion_still_of(inpos, current_vel) -> Optional[bool]:
+    """Does the machine stand? None when either input is unreadable —
+    never a guessed standstill. Pure; one rule for the policy state and the
+    G30 capture's re-check after its synch."""
+    if inpos is None or current_vel is None:
+        return None
+    try:
+        vel = abs(float(current_vel))
+    except (TypeError, ValueError):
+        return None
+    return bool(inpos) and vel <= STILL_VEL
 
 
 # Single source of truth for gate semantics (review #6): each gate is an ordered
@@ -314,6 +337,12 @@ def machine_frame_required(s: MachineState) -> Optional[str]:
 # names the frame — the JogStrip radio and the typed set_kins_mode command
 # own the number.
 _R_MACHINE_FRAME = (lambda s: machine_frame_required(s) is None, _MACHINE_FRAME_ONLY)
+# G30 capture takes the CURRENT position (Codex R25 OP-I02): the machine must
+# stand, not merely have an idle interpreter; unknown refuses.
+MOTION_UNKNOWN = "Motion state unknown — wait for status"
+MACHINE_MOVING = "Machine moving — capture once it stands"
+_R_MOTION_KNOWN = (lambda s: s.motion_still is not None, MOTION_UNKNOWN)
+_R_STILL = (lambda s: s.motion_still is True, MACHINE_MOVING)
 
 
 def goto_zero_plan(s: MachineState, work_z: Optional[float], clearance: float,
@@ -478,6 +507,9 @@ GATE_REQUIREMENTS: Dict[str, tuple] = {
     # G53-moving routines (go-to Home/G30, tool change / toolsetter, probing
     # cycles): identity kinematics only — see machine_frame_required.
     "machineFrame": _BASE + (_R_IDLE, _R_HOMED, _R_MACHINE_FRAME),
+    # G30 Capture (operator P4): machineFrame AND the machine stands — the
+    # current position is what gets taken over.
+    "g30Capture": _BASE + (_R_IDLE, _R_HOMED, _R_MACHINE_FRAME, _R_MOTION_KNOWN, _R_STILL),
     # The → Zero button: Machine frame (subroutine) or Plane frame (retract
     # along the tool axis, then X0 Y0 in the plane); TCP refuses.
     "goZero":   _BASE + (_R_IDLE, _R_HOMED, _R_GOZERO),
@@ -634,7 +666,7 @@ COMMAND_GATES: Dict[str, str] = {
     # current position over and saving are MACHINE-frame only: our G30
     # routines address #5181… with G53 moves under identity kins.
     "read_g30": "idle",
-    "capture_g30": "machineFrame",
+    "capture_g30": "g30Capture",
     "set_g30": "machineFrame",
     # --- tool-table edits (no machine-enabled needed) ---
     "save_tool": "setup",

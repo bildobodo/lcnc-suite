@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { changedAxes, savePayload, sameG30, contextChanged } from "./g30Form";
+import { changedAxes, savePayload, sameG30, contextChanged, replyApplies } from "./g30Form";
 
 const L = ["X", "Y", "Z", "A", "C"] as const;
 const stored = { X: 100, Y: 0, Z: -26.275, A: 0, C: 0 };
@@ -21,11 +21,25 @@ describe("G30 draft (operator P4, Codex R21–R24)", () => {
     expect(savePayload({ ...stored }, stored, L)).toEqual({ error: "Nothing changed" });
     expect(savePayload({ ...stored, Z: null }, stored, L)).toEqual({ error: "Z: enter a value" });
   });
-  it("a captured draft is bound to its units and kinematics mode", () => {
-    const at = { units: "mm", kinsType: 0 };
-    expect(contextChanged(at, { units: "mm", kinsType: 0 })).toBe(false);
-    expect(contextChanged(at, { units: "in", kinsType: 0 })).toBe(true);
-    expect(contextChanged(at, { units: "mm", kinsType: 1 })).toBe(true);
-    expect(contextChanged(null, { units: "mm", kinsType: 1 })).toBe(false);
+  it("a captured draft is bound to its units, kinematics mode and connection", () => {
+    const at = { units: "mm", kinsType: 0, epoch: 1 };
+    expect(contextChanged(at, { units: "mm", kinsType: 0, epoch: 1 })).toBe(false);
+    expect(contextChanged(at, { units: "in", kinsType: 0, epoch: 1 })).toBe(true);
+    expect(contextChanged(at, { units: "mm", kinsType: 1, epoch: 1 })).toBe(true);
+    expect(contextChanged(at, { units: "mm", kinsType: 0, epoch: 2 })).toBe(true);
+    expect(contextChanged(null, { units: "mm", kinsType: 1, epoch: 1 })).toBe(false);
+  });
+  it("a late reply changes only what is still its own (Codex R25 OP-I03)", () => {
+    const ctx = { units: "mm", kinsType: 0, epoch: 1 };
+    const t = { seq: 3, rev: 7, ctx };
+    // nothing happened meanwhile: both
+    expect(replyApplies(t, { appliedSeq: 2, rev: 7, ctx })).toEqual({ stored: true, draft: true });
+    // the operator typed while the save was out: the confirmation updates the
+    // stored line, the newer entry stays a draft
+    expect(replyApplies(t, { appliedSeq: 2, rev: 8, ctx })).toEqual({ stored: true, draft: false });
+    // the frame changed while a capture was out: its position is not taken
+    expect(replyApplies(t, { appliedSeq: 2, rev: 7, ctx: { ...ctx, kinsType: 1 } })).toEqual({ stored: true, draft: false });
+    // a newer request's reply is already shown (a late initial file read)
+    expect(replyApplies(t, { appliedSeq: 4, rev: 7, ctx })).toEqual({ stored: false, draft: true });
   });
 });

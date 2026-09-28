@@ -34,8 +34,25 @@ export function savePayload(draft: G30Values, basis: G30Values | null, letters: 
   };
 }
 
-/** What a captured draft is bound to: another unit or kinematics mode drops it. */
-export interface G30Context { units: string; kinsType: number | null }
+/** What a captured draft is bound to: another unit, kinematics mode or
+ *  connection (a reconnect may be another LinuxCNC instance) drops it. */
+export interface G30Context { units: string; kinsType: number | null; epoch: number }
 export function contextChanged(at: G30Context | null, now: G30Context): boolean {
-  return !!at && (at.units !== now.units || at.kinsType !== now.kinsType);
+  return !!at && (at.units !== now.units || at.kinsType !== now.kinsType || at.epoch !== now.epoch);
+}
+
+/** What a G30 request was SENT under (Codex R25 OP-I03): its order among
+ *  this section's requests, the draft's revision and the context. A reply
+ *  arrives later — the operator may have typed, the frame may have changed,
+ *  a newer reply may already be shown. */
+export interface G30Ticket { seq: number; rev: number; ctx: G30Context }
+
+/** What a reply to `t` may still change NOW: the stored line only when no
+ *  newer request's reply is shown (a late file read never overwrites a
+ *  confirmed save); the draft only when nobody edited it since the request
+ *  and the context (units, kinematics, connection) is the one it was sent
+ *  under. A save's confirmation updates the stored line and leaves a newer
+ *  entry a draft — never replaces it. */
+export function replyApplies(t: G30Ticket, now: { appliedSeq: number; rev: number; ctx: G30Context }): { stored: boolean; draft: boolean } {
+  return { stored: t.seq > now.appliedSeq, draft: t.rev === now.rev && !contextChanged(t.ctx, now.ctx) };
 }

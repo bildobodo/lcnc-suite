@@ -10,9 +10,9 @@ import {
 } from "./defaults";
 import { confirmedToolsetter, toolsetterVarMap, TOOLSETTER_REQUIRED } from "./toolsetterVars";
 import { fetchG30 } from "./lcncApi";
-import { status, viewerInit, request } from "./lcncWs";
+import { status, viewerInit, request, connected } from "./lcncWs";
 import { useAxes, DEFAULT_AXES } from "./useAxes";
-import { savePayload, sameG30, contextChanged, type G30Values, type G30Context } from "./g30Form";
+import { savePayload, sameG30, contextChanged, replyApplies, type G30Values, type G30Context, type G30Ticket } from "./g30Form";
 import MachineInput from "./MachineInput.vue";
 import MachineToggle from "./MachineToggle.vue";
 import MachineRadio from "./MachineRadio.vue";
@@ -126,7 +126,18 @@ const g30Note = ref<{ kind: "ok" | "warn" | "error"; text: string } | null>(null
 
 // The status frame carries the machine's fields under `data`.
 const kinsType = computed<number | null>(() => (status.value?.data as Record<string, any> | undefined)?.kins_type ?? null);
-const g30Context = (): G30Context => ({ units: props.linearUnit, kinsType: kinsType.value });
+// A reconnect may be another LinuxCNC instance: its epoch is part of the context.
+const connEpoch = ref(0);
+watch(connected, c => { if (c) connEpoch.value++; });
+const g30Context = (): G30Context => ({ units: props.linearUnit, kinsType: kinsType.value, epoch: connEpoch.value });
+// Replies are bound to what they were SENT under (Codex R25 OP-I03): every
+// draft change bumps its revision (sync — a ticket taken in the same tick
+// must see it), every request takes a ticket, and a reply changes the
+// stored line only when no newer reply is shown, the draft only when it is
+// still the one the request was sent with.
+let draftRev = 0, reqSeq = 0, appliedSeq = 0;
+const ticket = (): G30Ticket => ({ seq: ++reqSeq, rev: draftRev, ctx: g30Context() });
+const applies = (t: G30Ticket) => replyApplies(t, { appliedSeq, rev: draftRev, ctx: g30Context() });
 /** The draft differs from what the section shows as stored (empty = empty). */
 const g30Dirty = computed(() => g30Letters.value.some(l => g30Draft[l] == null
   ? g30Stored.value[l] != null : !sameG30(g30Draft[l], g30Stored.value[l])));
@@ -142,7 +153,8 @@ function resetG30Draft() {
   for (const l of g30Letters.value) g30Draft[l] = g30Stored.value[l] ?? null;
   g30DraftContext.value = null;
 }
-function takeStored(values: G30Values | undefined, state: "file" | "confirmed") {
+function takeStored(t: G30Ticket, values: G30Values | undefined, state: "file" | "confirmed") {
+  appliedSeq = t.seq;
   g30Stored.value = { ...(values ?? {}) };
   g30StoredState.value = state;
   const known = g30Letters.value.every(l => g30Stored.value[l] != null);
@@ -150,12 +162,15 @@ function takeStored(values: G30Values | undefined, state: "file" | "confirmed") 
 }
 
 async function loadG30() {
+  const t = ticket();
   try {
     const data = await fetchG30();
+    const may = applies(t);
     if (data.ok) {
-      takeStored(data.values, "file");
+      if (!may.stored) return;   // a newer reply is shown already
+      takeStored(t, data.values, "file");
       g30StoredAt.value = data.mtime_ms ?? null;
-      resetG30Draft();
+      if (may.draft) resetG30Draft();
     } else {
       g30Note.value = { kind: "error", text: `G30 read failed: ${data.error ?? "no data"}` };
     }
@@ -175,25 +190,36 @@ async function g30Request(msg: { cmd: "read_g30" } | { cmd: "capture_g30" } | { 
 }
 
 async function refreshG30() {
+  const t = ticket();
   const r = await g30Request({ cmd: "read_g30" });
+  const may = applies(t);
   if (r?.ok) {
-    takeStored(r.values, "confirmed");
-    resetG30Draft();
-    g30Note.value = null;
+    if (!may.stored) return;
+    takeStored(t, r.values, "confirmed");
+    if (may.draft) { resetG30Draft(); g30Note.value = null; }
+    else g30Note.value = { kind: "warn", text: "Stored G30 refreshed — your newer entry stays a draft" };
   } else {
-    if (r?.confirmed === false) g30StoredState.value = "unconfirmed";
+    if (r?.confirmed === false && may.stored) g30StoredState.value = "unconfirmed";
     g30Note.value = { kind: "error", text: r?.error ?? "No reply — G30 not confirmed" };
   }
 }
 
 async function captureG30() {
+  const t = ticket();
   const r = await g30Request({ cmd: "capture_g30" });
   if (!r?.ok || !r.current) {
     g30Note.value = { kind: "error", text: r?.error ?? "No reply — nothing taken over" };
     return;
   }
+  // The position belongs to the request's frame, units and connection, and
+  // to the draft as it was: another one takes nothing over.
+  if (!applies(t).draft) {
+    g30Note.value = { kind: "warn", text: contextChanged(t.ctx, g30Context())
+      ? "Capture dropped — units or kinematics changed" : "Capture dropped — the draft was edited meanwhile" };
+    return;
+  }
   for (const l of g30Letters.value) g30Draft[l] = r.current[l] ?? null;
-  g30DraftContext.value = g30Context();
+  g30DraftContext.value = t.ctx;
   // The basis stays: a stored value that moved meanwhile is said, never
   // swapped in silently (Codex R22 OP22-02).
   const moved = g30Basis.value && g30Letters.value.some(l => !sameG30(r.values?.[l], g30Basis.value![l]));
@@ -203,15 +229,27 @@ async function captureG30() {
 async function saveG30() {
   const p = g30SaveCheck.value;
   if ("error" in p) return;
+  const t = ticket();
   const r = await g30Request({ cmd: "set_g30", ...p });
+  const may = applies(t);
   if (r?.ok) {
-    takeStored(r.values, "confirmed");
+    if (may.stored) takeStored(t, r.values, "confirmed");
+    // A newer entry typed while the save was out stays a draft — the
+    // confirmation never replaces it (Codex R25 OP-I03).
+    if (!may.draft) {
+      g30Note.value = { kind: "warn", text: "G30 saved — your newer entry is still a draft" };
+      return;
+    }
     resetG30Draft();
     g30Note.value = { kind: "ok", text: r.open_axes?.length
       ? `G30 saved — ${r.open_axes.join(", ")} has no limit in the INI` : "G30 saved — confirmed by LinuxCNC" };
     return;
   }
-  if (r?.confirmed === true && r.values) {
+  if (!may.stored) { /* a newer reply is shown: this one only speaks */ }
+  else if (r?.confirmed === true && r.values) {
+    // Shown, never adopted as the basis: "changed meanwhile" asks for a
+    // reload, it does not re-base the draft silently (Codex R22).
+    appliedSeq = t.seq;
     g30Stored.value = { ...r.values };
     g30StoredState.value = "confirmed";
   } else if (r?.confirmed === false || r === null) {
@@ -222,13 +260,14 @@ async function saveG30() {
 
 // A captured draft belongs to its units and kinematics mode (Codex R22
 // OP22-02): another one drops it, said at the section.
-watch(() => [props.linearUnit, kinsType.value], () => {
+watch(() => [props.linearUnit, kinsType.value, connEpoch.value], () => {
   if (g30Dirty.value && contextChanged(g30DraftContext.value, g30Context())) {
     resetG30Draft();
-    g30Note.value = { kind: "warn", text: "Draft dropped — units or kinematics changed" };
+    g30Note.value = { kind: "warn", text: "Draft dropped — units, kinematics or connection changed" };
   }
 });
 watch(g30Letters, () => { if (!g30Dirty.value) resetG30Draft(); });
+watch(g30Draft, () => { draftRev++; }, { deep: true, flush: "sync" });
 
 onMounted(() => {
   loadTsParams();

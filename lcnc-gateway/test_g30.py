@@ -112,6 +112,7 @@ class _G30Case(unittest.TestCase):
         gateway.STAT.task_mode = linuxcnc.MODE_MDI
         gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
         gateway.STAT.position = (10.0, 20.0, -5.0, 725.0, 0.0, -370.0, 0.0, 0.0, 0.0)
+        gateway.STAT.inpos, gateway.STAT.current_vel = True, 0.0     # the machine stands
         gateway.CMD = self.task
         for name, value in (("_resolve_var_file_path", lambda: self.path),
                             ("_g30_limits", lambda: {"X": (-250.0, 250.0), "Y": (-70.0, 70.0),
@@ -121,9 +122,9 @@ class _G30Case(unittest.TestCase):
             p.start()
             self.addCleanup(p.stop)
 
-    def send(self, msg):
+    def send(self, msg, **status):
         from test_command_dispatch import _payload
-        gateway._shared_status = _payload()
+        gateway._shared_status = _payload(**{"inpos": True, "current_vel": 0.0, **status})
         return _run(gateway.handle_command(msg, True))
 
     def stored(self):
@@ -225,6 +226,44 @@ class TestG30Read(_G30Case):
         self.assertEqual(r["ok"], True, r)
         self.assertEqual(r["current"], {"X": 10.0, "Y": 20.0, "Z": -5.0, "A": 725.0, "C": 350.0})
         self.assertEqual(r["values"], self.stored())
+
+    def test_capture_refuses_a_moving_machine_before_anything_runs(self):
+        # Codex R25 OP-I02: a manual jog keeps INTERP_IDLE — idle is no
+        # standstill. The status says moving → the gate denies at admission.
+        for status, error in (({"inpos": False, "current_vel": 12.0}, "Machine moving — capture once it stands"),
+                              ({"inpos": True, "current_vel": 0.5}, "Machine moving — capture once it stands"),
+                              ({"current_vel": None}, "Motion state unknown — wait for status")):
+            with self.subTest(status=status):
+                r = self.send({"cmd": "capture_g30"}, **status)
+                self.assertEqual(r, {"ok": False, "error": error})
+        self.assertEqual(self.task.calls, [], "no synch for a refused capture")
+
+    def test_capture_rechecks_standstill_and_admission_at_the_take_over(self):
+        # The synch is awaited; what held at the request must still hold when
+        # the position is taken: a fresh STAT that moves, or a status that
+        # lost the admission meanwhile, refuses — nothing is taken over.
+        for change, error in (
+                (lambda: setattr(gateway.STAT, "current_vel", 12.0), "Machine moving — capture once it stands"),
+                (lambda: setattr(gateway.STAT, "inpos", False), "Machine moving — capture once it stands"),
+                (lambda: setattr(gateway.STAT, "current_vel", None), "Motion state unknown — wait for status"),
+                (lambda: setattr(gateway, "_shared_status", __import__("test_command_dispatch")._payload(
+                    inpos=True, current_vel=0.0, homed=False)), "Not homed — press Home All")):
+            with self.subTest(error=error):
+                gateway.STAT.inpos, gateway.STAT.current_vel = True, 0.0
+                self.task.calls.clear()
+                synch = self.task.task_plan_synch
+
+                def moving_synch(synch=synch, change=change):
+                    synch()
+                    change()
+                self.task.task_plan_synch = moving_synch
+                try:
+                    r = self.send({"cmd": "capture_g30"})
+                finally:
+                    self.task.task_plan_synch = synch
+                self.assertEqual((r["ok"], r["error"]), (False, error), r)
+                self.assertNotIn("current", r, "nothing taken over")
+                self.assertEqual(r["values"], self.stored(), "the confirmed stored values stay reported")
 
     def test_the_display_route_names_a_missing_row_as_none_never_zero(self):
         with open(self.path, "w") as f:

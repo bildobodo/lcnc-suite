@@ -39,6 +39,7 @@ import lcnc_trace as _trace
 from command_policy import (
     MachineState as _PolicyMachineState,
     evaluate_permissions,
+    motion_still_of,
     permission_reasons,
 )
 from gateway_util import (
@@ -483,6 +484,8 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool,
         rotary_offsets_clean=capture_rotary_offsets_clean(
             getattr(p, "wcs_table", None), getattr(p, "g92_offset", None)),
         g92_xyz_clean=capture_g92_xyz_clean(getattr(p, "g92_offset", None)),
+        # Standstill for the G30 capture (Codex R25 OP-I02); unreadable = None.
+        motion_still=motion_still_of(getattr(p, "inpos", None), getattr(p, "current_vel", None)),
     )
 
 

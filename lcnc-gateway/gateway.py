@@ -98,7 +98,7 @@ from gateway_util import (
     wcs_stamp_decision,
     PROV_STAMPED,
 )
-from command_policy import NOT_ARMED, check_command, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic
+from command_policy import NOT_ARMED, MOTION_UNKNOWN, MACHINE_MOVING, motion_still_of, check_command, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -4695,13 +4695,13 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
         # G30's stored position (operator P4): one sequence, three commands.
         if cmd == "read_g30":
             require_armed(armed)
-            return await _g30_command(cmd, msg)
+            return await _g30_command(cmd, msg, armed)
         if cmd == "capture_g30":
             require_armed(armed)
-            return await _g30_command(cmd, msg)
+            return await _g30_command(cmd, msg, armed)
         if cmd == "set_g30":
             require_armed(armed)
-            return await _g30_command(cmd, msg)
+            return await _g30_command(cmd, msg, armed)
 
         if cmd == "list_probe_macros":
             return {"ok": True, "macros": get_probe_macros()}
@@ -7423,7 +7423,7 @@ async def _g30_synch_read(path: str, keys: List[str]) -> Dict[str, float]:
     return values
 
 
-async def _g30_command(cmd: str, msg: Dict[str, Any]) -> Dict[str, Any]:
+async def _g30_command(cmd: str, msg: Dict[str, Any], armed: bool) -> Dict[str, Any]:
     """read_g30 (a confirmed read), capture_g30 (+ the current machine
     position), set_g30 {values, based_on} (a confirmed write). Every step
     under _cmd_lock (the caller) and _var_file_lock; nothing claims a value
@@ -7455,6 +7455,19 @@ async def _g30_command(cmd: str, msg: Dict[str, Any]) -> Dict[str, Any]:
         if cmd == "read_g30":
             return {"ok": True, "confirmed": True, "values": by_letter}
         if cmd == "capture_g30":
+            # Admitted at the request; the synch was awaited since, so the
+            # take-over re-checks on a FRESH poll (Codex R25 OP-I02): still
+            # admitted (machine frame, idle, homed …) and the machine STANDS
+            # — an idle interpreter alone is no standstill (a manual jog).
+            STAT.poll()
+            if _shared_status is not None:
+                deny = check_command(cmd, _live_policy_state(armed))
+                if deny is not None:
+                    return {"ok": False, "confirmed": True, "values": by_letter, "error": deny}
+            still = motion_still_of(safe_get("inpos", None), safe_get("current_vel", None))
+            if still is not True:
+                return {"ok": False, "confirmed": True, "values": by_letter,
+                        "error": MACHINE_MOVING if still is False else MOTION_UNKNOWN}
             pos = to_float_list(safe_get("position", None))
             if not pos or len(pos) < 9:
                 return {"ok": False, "confirmed": True, "values": by_letter,
