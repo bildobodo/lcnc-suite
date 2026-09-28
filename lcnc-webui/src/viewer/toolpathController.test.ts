@@ -606,6 +606,74 @@ describe("chunked draw (2026-09-11 headroom wave)", () => {
   });
 });
 
+describe("a finding's section on a hidden layer (fixed palette P3, Codex R31 VP-I03)", () => {
+  // Drawn streams with their source TRACK index per vertex (feedSrc /
+  // rapidSrc): a remote rapid (0,80)→(90,80) on track segment 1, the feed
+  // (segments 2–3), and a rapid section (27,20)→(98,20)→(105,20) on
+  // segments 4 and 5 — the finding sits on segment 5, the 7 mm move.
+  const G = {
+    feedPos: new Float32Array([90, 80, 0, 0, 0, 0, 27, 20, 0]), feedSrc: new Uint32Array([1, 2, 3]),
+    feedBreaks: new Uint32Array([0]), feed_lines: [3, 3, 4],
+    rapidPos: new Float32Array([0, 80, 0, 90, 80, 0, 27, 20, 0, 98, 20, 0, 105, 20, 0]),
+    rapidSrc: new Uint32Array([0, 1, 3, 4, 5]), rapidBreaks: new Uint32Array([0, 2]),
+    rapidOutside: new Uint8Array([0, 0, 0, 0, 1]),
+    bounds: { min: [0, 0, 0], max: [105, 80, 0] },
+  } as any;
+  /** Every drawn pair of a role that is on screen, as "x0,y0→x1,y1". */
+  const drawn = (g: THREE.Object3D, role: string) => {
+    const out: string[] = [];
+    g.traverse(o => {
+      const m = (o as any).material as THREE.Material | undefined;
+      if (!(o as any).isLineSegments || m?.userData?.role !== role) return;
+      for (let p: THREE.Object3D | null = o; p; p = p.parent) if (!p.visible) return;
+      const geo = (o as THREE.LineSegments).geometry, pos = geo.getAttribute("position"), idx = geo.index!;
+      const { start, count } = geo.drawRange, end = Math.min(idx.count, start + count);
+      for (let i = start; i + 1 < end; i += 2) {
+        const a = idx.getX(i), b = idx.getX(i + 1);
+        out.push(`${pos.getX(a)},${pos.getY(a)}→${pos.getX(b)},${pos.getY(b)}`);
+      }
+    });
+    return out.sort();
+  };
+
+  it("shows only the finding's run of the hidden rapids, in the rapid's own dashed material", () => {
+    const cc = createToolpathController({ ...(deps as any) });
+    const ctx = makeCtx();
+    cc.apply(ctx, G);
+    cc.setRapidsVisible(false);
+    expect(drawn(ctx.workRotGroup, "rapid")).toEqual([]);
+    cc.setReveal({ run: [5, 5], feed: false, rapid: true });
+    expect(drawn(ctx.workRotGroup, "rapid"), "the finding's 7 mm move — not the remote 90 mm rapid").toEqual(["98,20→105,20"]);
+    const shown = ctx.workRotGroup.children.filter(o => o.visible && (o as any).material?.userData?.role === "rapid") as THREE.LineSegments[];
+    expect(shown.every(o => o.material instanceof THREE.LineDashedMaterial && !!o.geometry.getAttribute("lineDistance")),
+      "dashed like every rapid — no selection look").toBe(true);
+    cc.setReveal({ run: [4, 5], feed: false, rapid: true });
+    expect(drawn(ctx.workRotGroup, "rapid")).toEqual(["27,20→98,20", "98,20→105,20"]);
+    // A rebuild of the same program (a re-bake) keeps the section.
+    cc.apply(ctx, G);
+    expect(drawn(ctx.workRotGroup, "rapid")).toEqual(["27,20→98,20", "98,20→105,20"]);
+    cc.setReveal(null);
+    expect(drawn(ctx.workRotGroup, "rapid")).toEqual([]);
+    cc.dispose();
+    expect(drawn(ctx.workRotGroup, "rapid")).toEqual([]);
+  });
+
+  it("with the whole toolpath off: the run's feed and rapid pairs and its limit mark, nothing else", () => {
+    const cc = createToolpathController({ ...(deps as any) });
+    const ctx = makeCtx();
+    cc.apply(ctx, G);
+    cc.setVisible(false);
+    expect([...drawn(ctx.workRotGroup, "feed"), ...drawn(ctx.workRotGroup, "rapid"), ...drawn(ctx.workRotGroup, "limit")]).toEqual([]);
+    cc.setReveal({ run: [2, 2], feed: true, rapid: true });
+    expect(drawn(ctx.workRotGroup, "feed")).toEqual(["90,80→0,0"]);
+    expect(drawn(ctx.workRotGroup, "rapid")).toEqual([]);
+    cc.setReveal({ run: [5, 5], feed: true, rapid: true });
+    expect(drawn(ctx.workRotGroup, "rapid")).toEqual(["98,20→105,20"]);
+    expect(drawn(ctx.workRotGroup, "limit"), "the finding's own mark").toEqual(["98,20→105,20"]);
+    expect(drawn(ctx.workRotGroup, "feed")).toEqual([]);
+  });
+});
+
 describe("room-fixed split (2026-09-11)", () => {
   // Feed: A(0,0,0) B(10,0,0) | B'(10,0,0) C(10,10,0): B' is the part-frame
   // worker's duplicated flip vertex (a break); vertices 0,1 room, 2,3 table.

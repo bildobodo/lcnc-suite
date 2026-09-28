@@ -95,6 +95,7 @@ self.onmessage = (e: MessageEvent<Req>) => {
     if (f.breaks) transfer.push(f.breaks.buffer as ArrayBuffer);
     if (r.breaks) transfer.push(r.breaks.buffer as ArrayBuffer);
     if (f.src) transfer.push(f.src.buffer as ArrayBuffer);
+    if (r.src) transfer.push(r.src.buffer as ArrayBuffer);
     if (f.room) transfer.push(f.room.buffer as ArrayBuffer);
     if (r.room) transfer.push(r.room.buffer as ArrayBuffer);
     if (f.outside) transfer.push(f.outside.buffer as ArrayBuffer);
@@ -102,7 +103,7 @@ self.onmessage = (e: MessageEvent<Req>) => {
     for (const a of [...feedLod, ...rapidLod]) transfer.push(a.buffer as ArrayBuffer);
     self.postMessage(
       { id, feedPos: f.pos, feedLines: f.lines, feedLineIndex, rapidPos: r.pos, rapidDist, feedBreaks: f.breaks, rapidBreaks: r.breaks,
-        feedSrc: f.src, feedRoom: f.room, rapidRoom: r.room, frameFlips: (f.frameFlips ?? 0) + (r.frameFlips ?? 0),
+        feedSrc: f.src, rapidSrc: r.src, feedRoom: f.room, rapidRoom: r.room, frameFlips: (f.frameFlips ?? 0) + (r.frameFlips ?? 0),
         feedOutside: f.outside, rapidOutside: r.outside,
         feedLod, rapidLod, lodTols, lodMs },
       { transfer },

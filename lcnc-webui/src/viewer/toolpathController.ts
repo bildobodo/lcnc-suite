@@ -30,6 +30,9 @@ type BBox = { min: [number, number, number]; max: [number, number, number] };
 /** The roles this controller draws (viewer/viewerPalette.ts resolves them:
  *  the theme's --viewer-* tokens, the operator's Custom colours over the
  *  user roles). */
+/** A track-segment run [first, last] and the streams to show it in. */
+export interface PathSection { run: [number, number]; feed: boolean; rapid: boolean }
+
 type Colors = { feed: string; rapid: string; toolpathBounds: string; boundsCasing: string; limit: string };
 
 export interface ToolpathDeps {
@@ -99,6 +102,14 @@ export interface ToolpathController {
   /** The Rapids layer (fixed palette P3): the rapid lines only — their
    *  limit overlay stays with the toolpath layer. */
   setRapidsVisible(on: boolean): void;
+  /** A finding's SECTION on a hidden layer (Codex R31 VP-I03): the drawn
+   *  pairs of the named streams whose source TRACK segment (feedSrc /
+   *  rapidSrc — the segment ending at a vertex) lies in `run`, drawn in the
+   *  stream's own material while its layer hides it — the rest of the hidden
+   *  layer stays hidden; with the whole toolpath off also the run's limit
+   *  mark. No selection look (operator 2026-09-28). Sticky across apply()
+   *  (a re-bake of the same program); null ends it. */
+  setReveal(r: PathSection | null): void;
   setBoundsVisible(on: boolean): void;
   setAlwaysOnTop(on: boolean): void;
   /** Live-update feed/rapid/toolpath-bounds colours on existing lines. */
@@ -170,6 +181,12 @@ interface LineSet {
   levels: ReturnType<typeof binPairs>[]; // binned pairs per level, chunk order (level 0 first)
   used: number[];                        // grid cell of each chunk
   pairs: number;                         // level-0 segments
+  src: Uint32Array | null;               // source track index per vertex (setReveal); null = none
+  dist: THREE.BufferAttribute | null;    // the dashed stream's lineDistance
+  outside: Uint8Array | null;            // the validator's flags (the reveal's limit mark)
+  /** A finding's section (setReveal): its pairs in the set's material, and
+   *  the flagged ones among them in the limit role. */
+  reveal: { line: THREE.LineSegments | null; over: THREE.LineSegments | null };
 }
 
 /** A level is used when its tolerance is under this many pixels (device
@@ -259,7 +276,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     stream: "feed" | "rapid", frame: 0 | 1, parent: THREE.Group,
     posAttr: THREE.BufferAttribute, index0: Uint32Array, lod: Uint32Array[], tols: number[],
     colorHex: string, dashed: boolean, distAttr: THREE.BufferAttribute | null,
-    outside: Uint8Array | null,
+    outside: Uint8Array | null, src: Uint32Array | null,
   ): LineSet | null {
     if (index0.length < 2) return null;
     let mat: THREE.LineBasicMaterial | THREE.LineDashedMaterial;
@@ -299,6 +316,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     const set: LineSet = {
       stream, frame, parent, mat, overMat: null, bounds, tols: tols.slice(0, levels.length - 1),
       chunks: [], posAttr, levels, used, pairs: index0.length >> 1,
+      src, dist: dashed ? distAttr : null, outside, reveal: { line: null, over: null },
     };
     for (let ci = 0; ci < used.length; ci++) {
       const cell = used[ci]!;
@@ -433,6 +451,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
    *  Three, but a wrong shape for the disposal contract tests). */
   function teardownLines() {
     for (const s of sets) {
+      _dropReveal(s);
       for (const ch of s.chunks) {
         for (const o of [...ch.lines, ...ch.overlays]) {
           if (!o) continue;
@@ -571,7 +590,62 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   }
 
   function _applyVisibility() {
-    for (const s of sets) for (let ci = 0; ci < s.chunks.length; ci++) _chunkVis(s, ci);
+    for (const s of sets) {
+      for (let ci = 0; ci < s.chunks.length; ci++) _chunkVis(s, ci);
+      _revealVis(s);
+    }
+  }
+
+  /** A section draws only where its stream's own lines are hidden; its limit
+   *  mark only where the toolpath layer hides the stream's overlay. */
+  function _revealVis(s: LineSet) {
+    const own = toolpathVisible && (s.stream !== "rapid" || rapidsVisible);
+    if (s.reveal.line) s.reveal.line.visible = !own;
+    if (s.reveal.over) s.reveal.over.visible = !toolpathVisible && !pathStale;
+  }
+
+  function _dropReveal(s: LineSet) {
+    for (const o of [s.reveal.line, s.reveal.over]) {
+      if (!o) continue;
+      o.parent?.remove(o);
+      o.geometry.dispose();   // the materials are the set's
+    }
+    s.reveal = { line: null, over: null };
+  }
+
+  let _section: PathSection | null = null;
+  /** (Re)build the section's objects per set from the level-0 pairs (every
+   *  real segment of the set — breaks and frame flips are already out). */
+  function _buildReveal() {
+    for (const s of sets) {
+      _dropReveal(s);
+      const r = _section;
+      if (!r || !s.src || !(s.stream === "feed" ? r.feed : r.rapid)) continue;
+      const [a, b] = r.run;
+      const index = s.levels[0]!.index, src = s.src;
+      const pairs: number[] = [], flagged: number[] = [];
+      for (let q = 0; q + 1 < index.length; q += 2) {
+        const p0 = index[q]!, p1 = index[q + 1]!;
+        const j = src[p0 > p1 ? p0 : p1]!;   // the segment ending at the pair's later vertex
+        if (j < a || j > b) continue;
+        pairs.push(p0, p1);
+        if (s.outside?.[p0 > p1 ? p0 : p1]) flagged.push(p0, p1);
+      }
+      const make = (idx: number[], mat: THREE.Material, order: number) => {
+        const geom = new THREE.BufferGeometry();
+        geom.setAttribute("position", s.posAttr);
+        if (s.dist) geom.setAttribute("lineDistance", s.dist);
+        geom.setIndex(new THREE.BufferAttribute(new Uint32Array(idx), 1));
+        const o = new THREE.LineSegments(geom, mat);
+        o.renderOrder = order;
+        o.frustumCulled = false;   // a handful of segments
+        s.parent.add(o);
+        return o;
+      };
+      if (pairs.length) s.reveal.line = make(pairs, s.mat, 10);
+      if (flagged.length && s.overMat) s.reveal.over = make(flagged, s.overMat, LIMIT_OVERLAY_RENDER_ORDER);
+      _revealVis(s);
+    }
   }
 
   return {
@@ -648,6 +722,10 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         return out;
       };
       _lodMs = typeof g.lodMs === "number" ? g.lodMs : 0;
+      // Source track index per drawn vertex (the finding's section, setReveal):
+      // must address THESE vertices, else no section is drawn.
+      const srcOf = (m: Uint32Array | undefined, n: number): Uint32Array | null =>
+        (m instanceof Uint32Array && m.length === n) ? m : null;
       if (lineParent && _pointCount(feedData) >= 2) {
         const flat = _flat(feedData);
         const n = flat.length / 3;
@@ -657,9 +735,10 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         _frameMixed += fi.mixed;
         const lv = levelsByFrame(g.feedLod, rm);
         const ov = outsideOf(g.feedOutside, n, "feed");
-        const st = makeSet("feed", 0, lineParent, feedPosAttr, fi.table, lv.table, lodTols, feedColor, false, null, ov);
+        const src = srcOf(g.feedSrc, n);
+        const st = makeSet("feed", 0, lineParent, feedPosAttr, fi.table, lv.table, lodTols, feedColor, false, null, ov, src);
         if (st) sets.push(st);
-        const sr = roomParent ? makeSet("feed", 1, roomParent, feedPosAttr, fi.room, lv.room, lodTols, feedColor, false, null, ov) : null;
+        const sr = roomParent ? makeSet("feed", 1, roomParent, feedPosAttr, fi.room, lv.room, lodTols, feedColor, false, null, ov, src) : null;
         if (sr) sets.push(sr);
       }
       if (lineParent && _pointCount(rapidData) >= 2) {
@@ -675,14 +754,16 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         _frameMixed += fi.mixed;
         const lv = levelsByFrame(g.rapidLod, rm);
         const ov = outsideOf(g.rapidOutside, n, "rapid");
-        const st = makeSet("rapid", 0, lineParent, rapidPosAttr, fi.table, lv.table, lodTols, rapidColor, true, distAttr, ov);
+        const src = srcOf(g.rapidSrc, n);
+        const st = makeSet("rapid", 0, lineParent, rapidPosAttr, fi.table, lv.table, lodTols, rapidColor, true, distAttr, ov, src);
         if (st) sets.push(st);
-        const sr = roomParent ? makeSet("rapid", 1, roomParent, rapidPosAttr, fi.room, lv.room, lodTols, rapidColor, true, distAttr, ov) : null;
+        const sr = roomParent ? makeSet("rapid", 1, roomParent, rapidPosAttr, fi.room, lv.room, lodTols, rapidColor, true, distAttr, ov, src) : null;
         if (sr) sets.push(sr);
       }
       // Every drawn segment room-fixed ⇒ the bounds box rides the room parent.
       if (roomParent && sets.length && sets.every(s => s.frame === 1)) _lineParent = roomParent;
       _applyStale();   // sticky across rebuilds: a re-parse in flight keeps the new lines muted too
+      _buildReveal();  // sticky too: a re-bake of the same program keeps the finding's section
 
       // Toolpath bounding boxes (work coordinates). `toolpathBBox` is the cut
       // envelope for the drawn bounds box: X/Y over feed+rapid, Z over feed only
@@ -812,6 +893,12 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     setRapidsVisible(on) {
       rapidsVisible = on;
       _applyVisibility();
+    },
+
+    setReveal(r) {
+      _section = r ? { run: [r.run[0], r.run[1]], feed: r.feed, rapid: r.rapid } : null;
+      _buildReveal();
+      deps.requestRender();
     },
 
     setBoundsVisible(on) {

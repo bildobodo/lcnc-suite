@@ -10,13 +10,13 @@
 // (program run start, program change, machine powered on elsewhere, real
 // joint motion as a backstop). ThreeViewer shows the .simBanner while active.
 import { computed, markRaw, nextTick, onUnmounted, ref, shallowRef, watch } from "vue";
-import { lineCumOf, lineRange } from "./viewer/lineIndex";
+import { lineRange } from "./viewer/lineIndex";
 import { status, viewerGcode, viewerInit, gcodeContent, emitTelemetry } from "./lcncWs";
 import { INTERP_IDLE } from "./lcnc";
 import { simMode } from "./simMode";
 import {
   sampleTrack, jointsForSample, buildEntryTrack,
-  machineFromJoints, displayLineForPoint, atTrackEnd,
+  machineFromJoints, displayLineForPoint, atTrackEnd, lineRunAround, lineSpanCum,
   programEndLine,
   type ScrubSample,
 } from "./viewer/scrubTrack";
@@ -89,8 +89,10 @@ const emit = defineEmits<{
   // with, and the marker follows the tool; null = live.
   (e: "pose", joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null, plane: number[] | null, tlo: number[] | null, tool: number | null): void;
   /** A finding navigated to (limit or collision); `onRapid`: its sample is
-   *  a rapid — the viewer shows a hidden layer for it (viewer/pathReveal.ts). */
-  (e: "finding", onRapid: boolean): void;
+   *  a rapid, `run`: its section in BASE-track segments (null = on the
+   *  entry move) — the viewer shows that section of a hidden layer
+   *  (viewer/pathReveal.ts). */
+  (e: "finding", onRapid: boolean, run: [number, number] | null): void;
   /** The operator moved the timeline by hand — a finding's temporary view ends. */
   (e: "manual-scrub"): void;
   /** Sim entry: the entry-extended track + the base it was built from —
@@ -698,8 +700,10 @@ const violationTargets = computed<FindingTarget[]>(() => {
   for (const v of violations.value ?? []) {
     if (seen.has(v.line)) continue;
     seen.add(v.line);
-    const cum = lineCumOf(t.lineIndex, v.line);
-    if (cum !== undefined) out.push({ cum, line: v.line });
+    // Where the line's first move STARTS (lineSpanCum): its first point is
+    // where that move ends, and the jump landed in the next line's move.
+    const span = lineSpanCum(t, v.line);
+    if (span) out.push({ cum: span[0], line: v.line });
   }
   return out.sort((a, b) => a.cum - b.cum);
 });
@@ -817,7 +821,18 @@ function jumpTo(target: FindingTarget | null) {
   // the wrong line and suppress the contact tint right at the jump point.
   sPos.value = Math.min(cumMax.value, Math.max(0, target.cum + 1e-3));
   applyPos();
-  emit("finding", _sample.rapid);
+  // The finding's SECTION (Codex R31 VP-I03): the run of its move around the
+  // jumped-to segment, in BASE-track indices — the drawn streams' source
+  // map addresses the base track, the entry track prepends its points. A
+  // finding on the entry move itself is on nothing drawn: null.
+  const t = track.value, b = baseTrack.value;
+  let run: [number, number] | null = null;
+  if (t && b) {
+    const off = t.count - b.count;
+    const [ra, rb] = lineRunAround(t, _sample.index);
+    if (rb - off >= 1) run = [Math.max(1, ra - off), rb - off];
+  }
+  emit("finding", _sample.rapid, run);
 }
 
 // Tool-change events on the timeline + the next-tool countdown (ahead of
@@ -827,12 +842,13 @@ function jumpTo(target: FindingTarget | null) {
 // — operator-caught on perfmatrix). Union by line, the wire's tool wins.
 // The scan is per program text (cached), not per track.
 const textToolLines = computed(() => toolChangeLinesFromText(gcodeContent.value));
-// A tool-change line has no motion of its own: its timeline position is the
-// first point of the next line that has one.
+// A tool-change line has no motion of its own: its timeline position is
+// where the next line that has one STARTS moving (lineSpanCum — its first
+// point is where that move already ended).
 function cumAtOrAfterLine(t: ScrubTrack, line: number): number | undefined {
   for (let l = line; l <= t.lineIndex.maxLine; l++) {
-    const c = lineCumOf(t.lineIndex, l);
-    if (c !== undefined) return c;
+    const span = lineSpanCum(t, l);
+    if (span) return span[0];
   }
   return undefined;
 }
@@ -903,11 +919,8 @@ const limitBands = computed(() => {
   for (const v of violations.value ?? []) {
     if (seen.has(v.line)) continue;
     seen.add(v.line);
-    const start = lineCumOf(t.lineIndex, v.line);
-    const range = lineRange(t.lineIndex, v.line);
-    if (start === undefined || !range) continue;
-    const end = t.cum[range.end] ?? start;
-    if (end > start) spans.push([(start / max) * 100, (end / max) * 100]);
+    const span = lineSpanCum(t, v.line);   // a one-move line had no band
+    if (span && span[1] > span[0]) spans.push([(span[0] / max) * 100, (span[1] / max) * 100]);
   }
   return mergeSpans(spans);
 });

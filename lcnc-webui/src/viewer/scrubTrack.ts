@@ -16,7 +16,7 @@
 import { kinsForSegment, type KinsSpec } from "./kins";
 import { TLO_NONE, tloForIndex, type TloEvent } from "./tloEvents";
 import { EVENT_NONE } from "./eventIndex";
-import { buildLineIndex } from "./lineIndex";
+import { buildLineIndex, lineRange } from "./lineIndex";
 import {
   machineToProgram, wcsTerms,
   type PartFrameWcs, type WcsTerms, liftToJoints, jointsToProgram, tipWcs } from "./partFrame";
@@ -802,6 +802,31 @@ export function projectOntoTrack(
     }
   }
   return best;
+}
+
+/** A line's extent on the timeline [start, end] in cum: from where its first
+ *  move STARTS to its last point; null when the line has no point. A point
+ *  carries the line of the move ENDING there, so the line's first point
+ *  (lineCumOf) is where that move ends — a finding jumped there landed in
+ *  the NEXT line's move and a one-move line's band had no length (found in
+ *  Codex R31's section work). */
+export function lineSpanCum(t: ScrubTrack, line: number): [number, number] | null {
+  const r = lineRange(t.lineIndex, line);
+  if (!r) return null;
+  return [r.start > 0 ? t.cum[r.start - 1]! : 0, t.cum[r.end]!];
+}
+
+/** The contiguous same-line run of track segments around segment i — the
+ *  track-index answer to "which stretch of path is this move" (a finding's
+ *  section, Codex R31 VP-I03). Contiguity is what disambiguates COLLIDING
+ *  line numbers (a sub's L7 vs the main file's L7, one loop pass vs the
+ *  next are different runs); brk boundaries never join a run. */
+export function lineRunAround(t: ScrubTrack, i: number): [number, number] {
+  const ln = t.lines[i]!;
+  let a = i, b = i;
+  while (a > 1 && t.lines[a - 1] === ln && !t.brk?.[a]) a--;
+  while (b < t.count - 1 && t.lines[b + 1] === ln && !t.brk?.[b + 1]) b++;
+  return [a, b];
 }
 
 /** The sub-track of points [a, b) — every per-point channel sliced, cum

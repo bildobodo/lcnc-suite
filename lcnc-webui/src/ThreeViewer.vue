@@ -50,7 +50,7 @@ import MachineBtn from "./MachineBtn.vue";
 import CameraPip from "./CameraPip.vue";
 import ScrubBar from "./ScrubBar.vue";
 import { simMode } from "./simMode";
-import { pathReveal, revealFor, revealText } from "./viewer/pathReveal";
+import { pathReveal, revealFor, revealText, sectionOf } from "./viewer/pathReveal";
 import { twpPoseStale, twpDatumStale, kinsModeChip, fixtureOffDatum, stampAForFixture, poseAbcOf } from "./twpPose";
 import { planeView, type PlaneView } from "./viewer/planeView";
 import { Camera, Settings, ChevronDown, ChevronUp } from "lucide-vue-next";
@@ -1067,21 +1067,23 @@ function updateTwpPlane(plane: unknown, defined: boolean, view: PlaneView) {
   requestRender();
 }
 
-// The stored toolpath and Rapids layers, and what a finding navigated to
-// shows beside them (fixed palette P3, viewer/pathReveal.ts): the drawn
-// visibility is either — the stored choice is never rewritten.
+// The stored toolpath and Rapids layers, and the SECTION of a finding
+// navigated to on a hidden one (fixed palette P3, viewer/pathReveal.ts;
+// Codex R31 VP-I03: the finding's move, never the whole hidden layer) —
+// the stored choice is never rewritten.
 const _pathLayers = { toolpath: true, rapids: true };
 function applyPathLayers() {
-  toolpath.setVisible(_pathLayers.toolpath || !!pathReveal.value?.toolpath);
-  toolpath.setRapidsVisible(_pathLayers.rapids || !!pathReveal.value?.rapids);
+  toolpath.setVisible(_pathLayers.toolpath);
+  toolpath.setRapidsVisible(_pathLayers.rapids);
+  toolpath.setReveal(sectionOf(pathReveal.value));
   requestRender();
 }
 watch(pathReveal, applyPathLayers);
 // A finding's temporary view ends with the simulation and with the program.
 watch(simMode, (on) => { if (!on) pathReveal.value = null; });
 watch(viewerGcode, () => { pathReveal.value = null; });
-function onFinding(onRapid: boolean) {
-  pathReveal.value = revealFor(onRapid, _pathLayers);
+function onFinding(onRapid: boolean, run: [number, number] | null) {
+  pathReveal.value = revealFor(onRapid, _pathLayers, run);
 }
 function endPathReveal() { pathReveal.value = null; }
 const pathRevealText = computed(() => revealText(pathReveal.value));
@@ -2219,7 +2221,7 @@ function _pfGetWorker(): Worker {
   if (!_pfWorker) {
     _pfWorker = new Worker(new URL("./viewer/partFrameWorker.ts", import.meta.url), { type: "module" });
     _pfWorker.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as { id: number; error?: string; needPayload?: number; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineIndex?: LineIndex; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array; feedSrc?: Uint32Array; feedRoom?: Uint8Array; rapidRoom?: Uint8Array; frameFlips?: number; feedOutside?: Uint8Array; rapidOutside?: Uint8Array; feedLod?: Uint32Array[]; rapidLod?: Uint32Array[]; lodTols?: number[]; lodMs?: number };
+      const m = ev.data as { id: number; error?: string; needPayload?: number; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineIndex?: LineIndex; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array; feedSrc?: Uint32Array; rapidSrc?: Uint32Array; feedRoom?: Uint8Array; rapidRoom?: Uint8Array; frameFlips?: number; feedOutside?: Uint8Array; rapidOutside?: Uint8Array; feedLod?: Uint32Array[]; rapidLod?: Uint32Array[]; lodTols?: number[]; lodMs?: number };
       if (m.id !== _pfReqId) return;  // superseded
       _pfPending = false;
       const g = viewerGcode.value;
@@ -2242,7 +2244,9 @@ function _pfGetWorker(): Worker {
         feedPos: m.feedPos, feed_lines: m.feedLines, feedLineIndex: m.feedLineIndex,
         rapidPos: m.rapidPos, rapidDist: m.rapidDist,
         feedBreaks: m.feedBreaks, rapidBreaks: m.rapidBreaks,
-        feedSrc: m.feedSrc,
+        // Source track index per baked vertex (subdivided samples share
+        // their segment's): the finding's section addresses both streams.
+        feedSrc: m.feedSrc, rapidSrc: m.rapidSrc,
         // Room split (2026-09-11): per drawn vertex, baked room-fixed or on
         // the part; absent when the transform had no boundary to apply.
         feedRoom: m.feedRoom, rapidRoom: m.rapidRoom,
