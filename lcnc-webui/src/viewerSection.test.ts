@@ -11,7 +11,7 @@ import { resolveViewerPalette, userColorsOf, ROLE_TOKEN, USER_ROLES } from "./vi
 import type { ViewerDefaults } from "./defaults";
 
 const FB: ViewerDefaults = {
-  layers: { backplot: true, toolpath: true, machine: true, bounds: true, toolpathBounds: false, reachRoom: false, reachPart: false,
+  layers: { backplot: true, toolpath: true, rapids: true, machine: true, bounds: true, toolpathBounds: false, reachRoom: false, reachPart: false,
     workzero: true, hud: true, surface: true, tool: true, workplane: true, groundGrid: true },
   paletteMode: "auto",
   colors: {},

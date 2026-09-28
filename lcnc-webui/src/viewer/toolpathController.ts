@@ -96,6 +96,9 @@ export interface ToolpathController {
    *  tests; cheaper than tracking dirtiness. */
   updateCulling(ctx: ToolpathCtx, camera: THREE.Camera, heightPx?: number): void;
   setVisible(on: boolean): void;
+  /** The Rapids layer (fixed palette P3): the rapid lines only — their
+   *  limit overlay stays with the toolpath layer. */
+  setRapidsVisible(on: boolean): void;
   setBoundsVisible(on: boolean): void;
   setAlwaysOnTop(on: boolean): void;
   /** Live-update feed/rapid/toolpath-bounds colours on existing lines. */
@@ -207,6 +210,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   let toolpathOverflowEdges: THREE.LineSegments | null = null;
 
   let toolpathVisible = true;
+  let rapidsVisible = true;
   let toolpathBoundsVisible = false;
   let pathAlwaysOnTop = true;
   let pathStale = false;
@@ -308,7 +312,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         const line = new THREE.LineSegments(geom, mat);
         line.renderOrder = 10;
         line.frustumCulled = true;
-        line.visible = toolpathVisible && k === 0 && range.count > 0;
+        line.visible = toolpathVisible && (stream !== "rapid" || rapidsVisible) && k === 0 && range.count > 0;
         parent.add(line);
         chunk.lines.push(line);
         chunk.overlays.push(null);
@@ -548,11 +552,14 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   /** Only the chunk's current level draws; the overlay of that level only
    *  where it has flagged pairs, and never while the path is stale (its
    *  limits verdict is stale too). */
+  /** A chunk's lines follow the toolpath layer — a rapid's the Rapids layer
+   *  too — while its limit overlay follows the toolpath layer ALONE: a
+   *  finding stays visible on a hidden rapid (Codex R29 VP29-04). */
   function _chunkVis(s: LineSet, ci: number) {
     const ch = s.chunks[ci]!;
     for (let k = 0; k < ch.lines.length; k++) {
       const on = toolpathVisible && k === ch.level && ch.counts[k]! > 0;
-      ch.lines[k]!.visible = on;
+      ch.lines[k]!.visible = on && (s.stream !== "rapid" || rapidsVisible);
       const ov = ch.overlays[k];
       if (ov) ov.visible = on && !pathStale && (ch.ovCounts[k] ?? 0) > 0;
     }
@@ -794,6 +801,11 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
 
     setVisible(on) {
       toolpathVisible = on;
+      _applyVisibility();
+    },
+
+    setRapidsVisible(on) {
+      rapidsVisible = on;
       _applyVisibility();
     },
 

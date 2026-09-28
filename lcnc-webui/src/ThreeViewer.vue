@@ -50,6 +50,7 @@ import MachineBtn from "./MachineBtn.vue";
 import CameraPip from "./CameraPip.vue";
 import ScrubBar from "./ScrubBar.vue";
 import { simMode } from "./simMode";
+import { pathReveal, revealFor, revealText } from "./viewer/pathReveal";
 import { twpPoseStale, twpDatumStale, kinsModeChip, fixtureOffDatum, stampAForFixture, poseAbcOf } from "./twpPose";
 import { planeView, type PlaneView } from "./viewer/planeView";
 import { Camera, Settings, ChevronDown, ChevronUp } from "lucide-vue-next";
@@ -1066,6 +1067,25 @@ function updateTwpPlane(plane: unknown, defined: boolean, view: PlaneView) {
   requestRender();
 }
 
+// The stored toolpath and Rapids layers, and what a finding navigated to
+// shows beside them (fixed palette P3, viewer/pathReveal.ts): the drawn
+// visibility is either — the stored choice is never rewritten.
+const _pathLayers = { toolpath: true, rapids: true };
+function applyPathLayers() {
+  toolpath.setVisible(_pathLayers.toolpath || !!pathReveal.value?.toolpath);
+  toolpath.setRapidsVisible(_pathLayers.rapids || !!pathReveal.value?.rapids);
+  requestRender();
+}
+watch(pathReveal, applyPathLayers);
+// A finding's temporary view ends with the simulation and with the program.
+watch(simMode, (on) => { if (!on) pathReveal.value = null; });
+watch(viewerGcode, () => { pathReveal.value = null; });
+function onFinding(onRapid: boolean) {
+  pathReveal.value = revealFor(onRapid, _pathLayers);
+}
+function endPathReveal() { pathReveal.value = null; }
+const pathRevealText = computed(() => revealText(pathReveal.value));
+
 function setLayerVisible(layer: Layer, on: boolean) {
   if (pendingLayers) {
     pendingLayers.set(layer, on);
@@ -1075,7 +1095,11 @@ function setLayerVisible(layer: Layer, on: boolean) {
       backplot.setVisible(on);
       break;
     case "toolpath":
-      toolpath.setVisible(on);
+    case "rapids":
+      // The operator's own switch ends a finding's temporary view.
+      _pathLayers[layer] = on;
+      pathReveal.value = null;
+      applyPathLayers();
       break;
     case "machine":
       for (const m of machineMeshes) m.visible = on;
@@ -3836,7 +3860,7 @@ const notesOpen = ref(false);
 const hudWarnCount = computed(() => [vst.value?.eoffset_enabled, vst.value?.rotation_xy, foreignWcs.value.length,
   rewrittenWcs.value.length, kinsEndWarn.value, previewSchemaStale.value, previewRefresh.value,
   !previewRefresh.value && previewWcsStale.value, previewTloStale.value, toolpathOverflow.value,
-  failedParts.value.length].filter(Boolean).length);
+  failedParts.value.length, pathRevealText.value].filter(Boolean).length);
 /** The folded card's one line: the mode and how many warnings wait behind it. */
 /** The mode line: the chip, the fixture, the plane's word — each said once.
  *  A wrong-fixture chip names its fixture already ("TWP · G54"), and the
@@ -4324,6 +4348,7 @@ defineExpose({
         <div v-if="previewTloStale" class="hudWarn">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parses when idle<HelpIcon label="Preview tool length">T{{ previewTloStale.tool }} was {{ fmtNum(previewTloStale.parsed, 3) }} when parsed, now {{ fmtNum(previewTloStale.live, 3) }} — re-parses once idle.</HelpIcon></div>
         <div v-if="toolpathOverflow" class="hudWarn">{{ toolpathOverflowCount }} limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
       </template>
+      <div v-if="pathRevealText" class="hudWarn" data-path-reveal>{{ pathRevealText }}</div>
       <div v-if="failedParts.length" class="hudWarn">{{ failedParts.length }} machine part{{ failedParts.length === 1 ? '' : 's' }} failed to load — check the model files<HelpIcon label="Model parts">Not loaded: {{ failedParts.join(', ') }}.</HelpIcon></div>
       </div>
     </div>
@@ -4342,6 +4367,8 @@ defineExpose({
       :collisionEntryResult="collisionEntryResult"
       @check-entry="runEntryCheck"
       @pose="onScrubPose"
+      @finding="onFinding"
+      @manual-scrub="endPathReveal"
       @cancel-check="_colInvalidate"
       :notesOpen="notesOpen"
       @more-open="notesOpen = false"

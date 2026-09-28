@@ -80,14 +80,19 @@ const emit = defineEmits<{
   // joints: per-JOINT machine values (null entry = keep live joint), or null
   // to return the model to the live pose. line/cum: sample position; trk:
   // the track the cum lives on (ThreeViewer gates the clash tint on it).
-  // `line` is the RAW sample line (clash tint + 3D line highlight key —
-  // sub-relative numbers are self-consistent within the drawn data);
+  // `line` is the RAW sample line (the clash tint's key — sub-relative
+  // numbers are self-consistent within the drawn data);
   // `displayLine` is the per-point-trust-GATED line for the text panel
   // (W3 P4) — null = suppress (untrusted / entry / end), never raw.
   // `tlo`/`tool`: the sample's tool offset + tool number (schema 8) —
   // ThreeViewer's phase 3 subtracts the offset the joints were lifted
   // with, and the marker follows the tool; null = live.
   (e: "pose", joints: (number | null)[] | null, line: number | null, cum: number | null, trk: ScrubTrack | null, displayLine: number | null, plane: number[] | null, tlo: number[] | null, tool: number | null): void;
+  /** A finding navigated to (limit or collision); `onRapid`: its sample is
+   *  a rapid — the viewer shows a hidden layer for it (viewer/pathReveal.ts). */
+  (e: "finding", onRapid: boolean): void;
+  /** The operator moved the timeline by hand — a finding's temporary view ends. */
+  (e: "manual-scrub"): void;
   /** Sim entry: the entry-extended track + the base it was built from —
    *  ThreeViewer sweeps only the ENTRY SEGMENT when the base result is
    *  current, and nothing at all when the machine sits at the first point. */
@@ -437,6 +442,7 @@ function togglePlay() {
  *  programmatic writes never reach here. Play resumes from the scrubbed
  *  position. */
 function onScrubInput() {
+  emit("manual-scrub");
   if (!playing.value) return;
   playing.value = false;
   cancelAnimationFrame(raf);
@@ -811,6 +817,7 @@ function jumpTo(target: FindingTarget | null) {
   // the wrong line and suppress the contact tint right at the jump point.
   sPos.value = Math.min(cumMax.value, Math.max(0, target.cum + 1e-3));
   applyPos();
+  emit("finding", _sample.rapid);
 }
 
 // Tool-change events on the timeline + the next-tool countdown (ahead of

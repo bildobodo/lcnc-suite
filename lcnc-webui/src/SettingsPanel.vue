@@ -29,7 +29,7 @@ import { fmtNum, fmtPct, fmtRatio } from "./format";
 import { customContrastRows, customPairRows } from "./viewer/customContrast";
 import type { MappingSource } from "./gamepadProfile";
 import { enableWakeLock, disableWakeLock } from "./wakeLock";
-import { ChevronUp, ChevronDown, Pencil, Trash2, RotateCcw } from "lucide-vue-next";
+import { ChevronUp, ChevronDown, Pencil, Trash2, RotateCcw, Triangle, X } from "lucide-vue-next";
 import DebugTab from "./DebugTab.vue";
 import HalshowTab from "./HalshowTab.vue";
 import KeyboardTab from "./KeyboardTab.vue";
@@ -294,14 +294,18 @@ const HUD_TOGGLES: { key: keyof Omit<HudDefaults, "scale">; label: string }[] = 
 ];
 
 // ─── Viewer setting handlers (emit to App.vue → ThreeViewer) ──────
-const LAYER_LABELS: { key: Layer; label: string }[] = [
-  { key: "backplot", label: "Backplot" },
-  { key: "toolpath", label: "Toolpath" },
+// A layer that draws a palette role carries its line sample (fixed palette
+// P3, Codex R30: the legend at the layer rows, not a second list) — the
+// drawn colour, dashed / cased like the line itself.
+const LAYER_LABELS: { key: Layer; label: string; role?: ViewerRole; dashed?: boolean; cased?: boolean }[] = [
+  { key: "backplot", label: "Backplot", role: "backplot" },
+  { key: "toolpath", label: "Toolpath", role: "feed" },
+  { key: "rapids", label: "Rapids", role: "rapid", dashed: true },
   { key: "workzero", label: "Work Zero" },
   { key: "workplane", label: "Work Plane" },
   { key: "surface", label: "Surface" },
-  { key: "toolpathBounds", label: "Toolpath Bounds" },
-  { key: "bounds", label: "Machine Bounds" },
+  { key: "toolpathBounds", label: "Toolpath Bounds", role: "toolpathBounds", dashed: true, cased: true },
+  { key: "bounds", label: "Machine Bounds", role: "bounds", cased: true },
   { key: "reachRoom", label: "Machine Reach" },
   { key: "reachPart", label: "Part Reach" },
   { key: "machine", label: "Machine" },
@@ -492,14 +496,14 @@ function onColorChange(key: UserRole, value: string) {
 
 // The legend (every role, in drawing order); in Custom the seven user roles
 // are the colour pickers, the two finding roles stay the theme's.
-const PALETTE_ROWS: { role: ViewerRole; label: string; dashed?: boolean }[] = [
+const PALETTE_ROWS: { role: ViewerRole; label: string; dashed?: boolean; cased?: boolean }[] = [
   { role: "feed", label: "Toolpath" },
   { role: "rapid", label: "Rapid", dashed: true },
   { role: "backplot", label: "Backplot" },
   { role: "limit", label: "Limit violation" },
   { role: "collision", label: "Collision" },
-  { role: "bounds", label: "Machine Bounds" },
-  { role: "toolpathBounds", label: "Toolpath Bounds" },
+  { role: "bounds", label: "Machine Bounds", cased: true },
+  { role: "toolpathBounds", label: "Toolpath Bounds", dashed: true, cased: true },
   { role: "tool", label: "Tool Shaft" },
   { role: "cutter", label: "Tool Cutter" },
 ];
@@ -596,14 +600,30 @@ function resetMachineColor(id: string) {
 
         <div class="stack-controls">
           <div class="sub">Layers</div>
-          <div class="layerGrid">
-            <MachineToggle
-              v-for="lf in LAYER_LABELS" :key="lf.key"
-              gate="viewerSetting"
-              :modelValue="layers[lf.key]"
-              @update:modelValue="onLayerChange(lf.key, $event!)"
-              :label="lf.label"
-            />
+          <div class="layerGrid" data-layer-legend>
+            <div v-for="lf in LAYER_LABELS" :key="lf.key" class="row-controls" :data-layer="lf.key">
+              <MachineToggle
+                gate="viewerSetting"
+                :modelValue="layers[lf.key]"
+                @update:modelValue="onLayerChange(lf.key, $event!)"
+                :label="lf.label"
+              />
+              <span v-if="lf.role" class="legendLine" :class="{ dashed: lf.dashed, cased: lf.cased }"
+                    :style="{ color: shownPalette[lf.role] }" aria-hidden="true"></span>
+            </div>
+          </div>
+          <!-- The findings drawn ON the path: the same glyph as the timeline
+               and the code panel, the colour the 3D view draws. -->
+          <div class="stack-tight" data-finding-legend>
+            <div class="row-controls" data-role="limit">
+              <Triangle :size="12" fill="currentColor" :style="{ color: shownPalette.limit }" aria-hidden="true" />
+              <span class="legendLine" :style="{ color: shownPalette.limit }" aria-hidden="true"></span>
+              <span class="settingDesc">Limit violation — on the path, the box outside the machine window dashed</span>
+            </div>
+            <div class="row-controls" data-role="collision">
+              <X :size="12" :stroke-width="3" :style="{ color: shownPalette.collision }" aria-hidden="true" />
+              <span class="settingDesc">Collision — the machine part glows</span>
+            </div>
           </div>
         </div>
 
@@ -708,7 +728,7 @@ function resetMachineColor(id: string) {
                 <span class="colorLabel">{{ row.label }}</span>
               </label>
               <div v-else class="row-controls" :data-role="row.role">
-                <span class="legendLine" :class="{ dashed: row.dashed }" :style="{ color: shownPalette[row.role] }" aria-hidden="true"></span>
+                <span class="legendLine" :class="{ dashed: row.dashed, cased: row.cased }" :style="{ color: shownPalette[row.role] }" aria-hidden="true"></span>
                 <span class="colorLabel">{{ row.label }}</span>
               </div>
             </template>

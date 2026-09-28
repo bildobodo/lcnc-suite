@@ -2195,6 +2195,19 @@ label:has(input:disabled, select:disabled) {
   border-top: 3px solid currentColor;
 }
 .legendLine.dashed { border-top-style: dashed; }
+/* A cased line (the viewer's boxes, fixed palette P2): the light core on
+   the dark casing, 1 px on 3 like the drawn box. */
+.legendLine.cased {
+  border-top-color: var(--viewer-bounds-casing);
+  position: relative;
+}
+.legendLine.cased::after {
+  content: "";
+  position: absolute;
+  inset: -2px 0 auto 0;
+  border-top: 1px solid currentColor;
+}
+.legendLine.cased.dashed::after { border-top-style: dashed; }
 
 /* Program progress bar (G-code panel). Track flexes to fill its row; fill
    width is driven inline from progress %. */

@@ -459,6 +459,31 @@ describe("chunked draw (2026-09-11 headroom wave)", () => {
     expect(cc.chunks).toBe(0);
   });
 
+  it("the Rapids layer hides the rapid lines but never their limit overlay (fixed palette P3, Codex R29)", () => {
+    const cc = createToolpathController({ ...(deps as any) });
+    const g = {
+      feedPos: new Float32Array([0, 0, 0, 2, 0, 0, 2, 2, 0]),
+      rapidPos: new Float32Array([50, 50, 0, 60, 50, 0]),
+      feed_lines: [1, 2, 3],
+      bounds: { min: [0, 0, 0], max: [60, 50, 0] },
+      rapidOutside: new Uint8Array([0, 1]),   // the rapid pair is outside the limits
+    } as any;
+    const ctx = makeCtx();
+    cc.apply(ctx, g);
+    cc.updateCulling(ctx, lookAt(5, 5, 0, [5, 5, 100]));
+    const isRapid = (o: THREE.LineSegments) => o.material instanceof THREE.LineDashedMaterial;
+    const shown = () => chunksOf(ctx.workRotGroup).filter(o => o.visible).map(o => (isRapid(o) ? "rapid" : "feed"));
+    expect(new Set(shown())).toEqual(new Set(["feed", "rapid"]));
+    cc.setRapidsVisible(false);
+    expect(new Set(shown()), "the rapid lines are hidden").toEqual(new Set(["feed"]));
+    expect(overlaysOf(ctx.workRotGroup).filter(o => o.visible), "the finding on the rapid stays").toHaveLength(1);
+    cc.apply(ctx, g);   // a rebuild keeps the layer
+    cc.updateCulling(ctx, lookAt(5, 5, 0, [5, 5, 100]));
+    expect(new Set(shown())).toEqual(new Set(["feed"]));
+    cc.setRapidsVisible(true);
+    expect(new Set(shown())).toEqual(new Set(["feed", "rapid"]));
+  });
+
   it("outside-limits overlays: per chunk, only the pairs touching a flagged vertex; none where nothing is flagged", () => {
     const cc = createToolpathController({ ...(deps as any) });
     // feed (0,0,0)-(2,0,0)-(2,2,0) → 2 chunks (one pair each); rapid (50,50,0)-(60,50,0) → 1 chunk
