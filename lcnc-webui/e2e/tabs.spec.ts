@@ -163,7 +163,12 @@ test("a navigation key with a modifier on a focused tab never reaches the jog ma
   await settle(page);
   expect(await cmds(), "Settings: modified navigation keys").toEqual([]);
   await page.getByRole("button", { name: "Close settings", exact: true }).click();
-  // Control: outside a list the bound key still jogs.
+  // Control: outside a list the bound key still jogs. The close is a guarded
+  // focus return (focusReturn.pending holds the shortcut map until focus has
+  // landed on the opener): wait for the landing, or the one keydown can fall
+  // into the guard and jog nothing (it did, one run in three).
+  await expect(page.getByRole("button", { name: "Settings", exact: true })).toBeFocused();
+  await settle(page);
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await page.keyboard.down("ArrowRight");
   await expect.poll(cmds, "control: ArrowRight on an unfocused page jogs").toContain("jog_cont");
