@@ -96,6 +96,12 @@ export function fmtPct(ratio: number | null | undefined, decimals = 0): string {
   return `${(ratio * 100).toFixed(decimals)} %`;
 }
 
+/** A contrast ratio — "4.5 : 1" (the docs' spelling); NO_VALUE for a missing value. */
+export function fmtRatio(ratio: number | null | undefined): string {
+  if (ratio == null || !Number.isFinite(ratio)) return NO_VALUE;
+  return `${ratio.toFixed(1)} : 1`;
+}
+
 /** Milliseconds — "12 ms" (UI-N04); NO_VALUE for a missing value. */
 export function fmtMs(ms: number | null | undefined, decimals = 0): string {
   if (ms == null || !Number.isFinite(ms)) return NO_VALUE;

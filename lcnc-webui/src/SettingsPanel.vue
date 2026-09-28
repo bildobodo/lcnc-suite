@@ -25,7 +25,8 @@ import {
 } from "./defaults";
 import { resolveViewerPalette, userColorsOf, USER_ROLES, type UserRole, type ViewerRole } from "./viewer/viewerPalette";
 import { saveStatus, saveStatusText } from "./settingsSaveStatus";
-import { fmtPct } from "./format";
+import { fmtPct, fmtRatio } from "./format";
+import { customContrastRows } from "./viewer/customContrast";
 import type { MappingSource } from "./gamepadProfile";
 import { enableWakeLock, disableWakeLock } from "./wakeLock";
 import { ChevronUp, ChevronDown, Pencil, Trash2, RotateCcw } from "lucide-vue-next";
@@ -504,6 +505,23 @@ const PALETTE_ROWS: { role: ViewerRole; label: string; dashed?: boolean }[] = [
   { role: "cutter", label: "Tool Cutter" },
 ];
 const isUserRole = (r: ViewerRole): r is UserRole => (USER_ROLES as readonly string[]).includes(r);
+// The Custom palette's contrast, told and never corrected (plan K3, Codex
+// R25 OP-I05): each custom line on the background and on the lit table, the
+// selected line's core and halo each shown (viewer/customContrast.ts — the
+// rules themeTokens.test.ts holds the automatic palettes to).
+const CONTRAST_LABEL: Record<string, string> = {
+  ...Object.fromEntries(PALETTE_ROWS.map(r => [r.role, r.label])),
+  selection: "Selected line · core", selectionHalo: "Selected line · halo",
+};
+const contrastRows = computed(() => {
+  if (paletteMode.value !== "custom") return [];
+  void isDark.value;
+  const bg = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+  return customContrastRows(shownPalette.value, bg, themeMode.value.startsWith("hc"))
+    .map(r => ({ ...r, label: CONTRAST_LABEL[r.role] ?? r.role }));
+});
+// "low" in words, not the warn colour alone
+const ratioCell = (v: number | null, low: boolean) => `${fmtRatio(v)}${low && v != null ? " · low" : ""}`;
 
 // ─── Machine part colors ────────────────────
 function defaultMachineColor(part: { direction: string | null; color: [number, number, number] | null }): string {
@@ -655,7 +673,7 @@ function resetMachineColor(id: string) {
 
         <div class="stack-controls">
           <div class="sub">Colors</div>
-          <div class="settingDesc">Automatic colors follow the theme. Custom colors stay as you set them and are not checked against it.</div>
+          <div class="settingDesc">Automatic colors follow the theme. Custom colors stay as you set them; their contrast is shown, never corrected.</div>
           <div class="radioGroup inline">
             <label><MachineRadio gate="viewerSetting" name="paletteMode" :modelValue="paletteMode" value="auto" @update:modelValue="onPaletteModeChange('auto')" /> Automatic</label>
             <label><MachineRadio gate="viewerSetting" name="paletteMode" :modelValue="paletteMode" value="custom" @update:modelValue="onPaletteModeChange('custom')" /> Custom</label>
@@ -688,6 +706,21 @@ function resetMachineColor(id: string) {
               </div>
             </template>
           </div>
+          <template v-if="contrastRows.length">
+            <div class="settingDesc">Contrast: a line needs 3 : 1 on the background (4.5 : 1 in high contrast) and on the lit table; the selected line its core on the background, core or halo on the table.</div>
+            <div class="dataTable" data-contrast-hint>
+              <table>
+                <thead><tr><th>Color</th><th>On background</th><th>On the table</th></tr></thead>
+                <tbody>
+                  <tr v-for="r in contrastRows" :key="r.role" :data-role="r.role">
+                    <td>{{ r.label }}</td>
+                    <td :class="{ 'text-warn': r.bgLow }">{{ ratioCell(r.onBg, r.bgLow) }}</td>
+                    <td :class="{ 'text-warn': r.tableLow }">{{ ratioCell(r.onTable, r.tableLow) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </template>
         </div>
 
         <div class="sep"></div>

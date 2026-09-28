@@ -465,6 +465,22 @@ test("the viewer palette: Automatic follows the theme, Custom stays, a legacy pa
   await expect.poll(async () => (await drawn()).drawn.feed).toBe(OLD.feed);
   await expect(legend.locator('input[type="color"]')).toHaveCount(7);
   await expect(swatch("limit")).toHaveCount(1);
+  // The contrast of the Custom colours, told and never corrected (plan K3,
+  // Codex R25 OP-I05): each line on the background and on the lit table,
+  // the selected line's core and halo each; "low" in words.
+  const hint = dialog.locator("[data-contrast-hint]");
+  const cell = (role: string, col: number) => hint.locator(`tr[data-role="${role}"] td`).nth(col);
+  await expect(cell("feed", 1), "the old cyan on the light background").toHaveText(/^\d+\.\d : 1 · low$/);
+  await expect(cell("feed", 2), "and on the lit table").toHaveText(/ · low$/);
+  await expect(cell("selection", 1)).toHaveText(/^\d+\.\d : 1$/);
+  await expect(cell("selectionHalo", 1), "the halo has no background rule").toHaveText("—");
+  await expect(hint.locator("tr[data-role]")).toHaveCount(7);
+  await legend.locator('input[type="color"]').first().fill("#1f3f7f");
+  await expect(cell("feed", 1), "a picked colour is measured at once").toHaveText(/^\d+\.\d : 1$/);
+  await expect(cell("feed", 2)).toHaveText(/^\d+\.\d : 1$/);
+  await expect.poll(async () => (await drawn()).drawn.feed, "nothing recoloured").toBe("#1f3f7f");
+  await auto.check();
+  await expect(hint, "Automatic: the theme's checked colours, no hint").toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
