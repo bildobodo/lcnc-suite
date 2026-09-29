@@ -901,7 +901,10 @@ cums shift by the entry length; ONE contact seen by both sweeps — an
 entry onset still in contact at the entry's end + a base onset for the
 same pair from the first point — counts ONCE: the entry record keeps the
 onset and the base's span, the base's first-line record becomes its
-continuation (line 0 = the entry move); TWO baselines, both reported — the live
+continuation (line 0 = the entry move) — unless that record SEPARATES and
+comes back on its line: then only its first interval joins the entry's
+finding (`carried`, the entry spans to its end) and its re-entries stay the
+program's findings under their own keys (Codex R34 VP-I09); TWO baselines, both reported — the live
 pose's and the first point's static contacts). `viewer/sweepEntry.ts`
 (pure, pinned) decides what runs: base unknown → base + side; base
 current / running / parked → side only; overlay already swept for this
@@ -991,7 +994,12 @@ return moves brush parts twice — user-caught): hits carry
 samples cluster with gaps > the in-margin stride = verified
 separations); the clash tint tests interval membership and the
 timeline marks/navigates every interval ONSET, so a re-entry is its own clash
-stop. The clash COUNT, the marks and prev/next all read ONE list
+stop. A contact from the start of the axis (the program begins in it) is
+refined into intervals too — it may separate and come back on its line. A
+record that carried a contact in from an earlier line and re-enters on its
+own line marks that first interval `carried`: it is the earlier finding's
+contact (whose span reaches its end), not a stop of its own (Codex R34
+VP-I09). The clash COUNT, the marks and prev/next all read ONE list
 (`viewer/clashTargets.ts`; a same-line re-entry is labelled) and contiguous
 refined windows are merged (`mergeContiguousIntervals`) — count ≡ ticks ≡ stops. Near-miss hits keep their closest-approach sample.
 Hits during RAPID segments are flagged `rapid` — always real. ThreeViewer owns the worker (geometry from machineAssetCache, tool
