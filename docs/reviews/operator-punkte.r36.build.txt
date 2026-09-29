@@ -1,0 +1,37 @@
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2052 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-zsM8cmEe.js                     4.40 kB
+dist/static/previewWorker-C1MOziwn.js               27.94 kB
+dist/static/partFrameWorker-QvdUvqo7.js             45.56 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/collisionWorker-Bk9O1IQN.js            174.64 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-C7qA5sNt.css                 9.34 kB │ gzip:   2.23 kB
+dist/static/index-BJ-iy5A2.css                      85.03 kB │ gzip:  15.63 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-BGgndGY2.js                  2.15 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-EnEbNUcb.js                 9.05 kB │ gzip:   3.34 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/ThreeViewer-BgoNyxlP.js                134.00 kB │ gzip:  49.95 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/index-huzHgzsk.js                      570.46 kB │ gzip: 182.33 kB
+dist/static/three-Dt7iDD7F.js                      881.80 kB │ gzip: 242.52 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 4.77s

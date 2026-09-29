@@ -1,0 +1,57 @@
+{
+  "scenario": {
+    "name": "portrait",
+    "viewport": "touch-portrait",
+    "zoom": 1,
+    "estop": false
+  },
+  "dimensions": {
+    "clientWidth": 560,
+    "scrollWidth": 560,
+    "clientHeight": 386,
+    "scrollHeight": 577,
+    "scrollTop": 191
+  },
+  "scrollAfterOpen": 191,
+  "headBefore": {
+    "x": 345,
+    "y": 806,
+    "width": 16,
+    "height": 16
+  },
+  "headAfter": {
+    "x": 345,
+    "y": 806,
+    "width": 16,
+    "height": 16
+  },
+  "measured": {
+    "x": 209,
+    "y": 828,
+    "right": 497,
+    "bottom": 885.8125,
+    "width": 288,
+    "height": 57.8125,
+    "clientWidth": 286,
+    "scrollWidth": 286,
+    "text": "G52/G92 — one register; kept after program end and restart, G92.2 suspends itG43 — in effect, not the tool table",
+    "whiteSpace": "normal",
+    "viewportWidth": 900,
+    "viewportHeight": 1200
+  },
+  "target": {
+    "width": "24px",
+    "height": "24px",
+    "rect": {
+      "x": 345,
+      "y": 806,
+      "width": 16,
+      "height": 16,
+      "top": 806,
+      "right": 361,
+      "bottom": 822,
+      "left": 345
+    }
+  },
+  "commands": []
+}

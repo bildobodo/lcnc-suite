@@ -1,0 +1,19 @@
+{
+  "operator-punkte.r36.build.txt": "5478b3c10449aa75ca4b67aa8f187106d92b2fcc3919e49da4a1b376ce38632d",
+  "operator-punkte.r36.compact.json": "27134ba30a5d829198de35483f8238bcce05375fc77a2931392797bc089cab06",
+  "operator-punkte.r36.compact.png": "b44464b48899fa20c8d1c6ff3b33017ae7f17b337cbd5b42168ab6347ef5fe32",
+  "operator-punkte.r36.desktop.json": "cc1035d7529f781f80e5485e0d0ad838e9e0d6782c70d8f0f3f7b69a775556f4",
+  "operator-punkte.r36.desktop.png": "668d74b0b1a1e6fbc27c0a469cc5cc732e103506a86381953804478f54dd3b89",
+  "operator-punkte.r36.evidence.md": "aab8ab1eda8c6d7a888a48fe14cf56a7b6ea7b7004cfa36ee61e16a89aee84ad",
+  "operator-punkte.r36.landscape-estop.json": "758b095afa0b2d45913612aa16c58e458ce3506370ebd5ecd44f3b146fd6857c",
+  "operator-punkte.r36.landscape-estop.png": "480c243a87e42decdad702994ecf34eca94b7e9397dff5f70cc9f6076170fbf2",
+  "operator-punkte.r36.playwright.config.ts": "637451970cae91355b228525d29c77defe7cedc049635b284f19153cf969a6ff",
+  "operator-punkte.r36.playwright.json": "39f79a76ffe7385bf03a259f64908e29444539c5f1f2695ed31a8d37f86fc27f",
+  "operator-punkte.r36.playwright.txt": "13064d5916fc9e766722c1a1ff9b7a825944107d5666df2a7352e6b85e186a78",
+  "operator-punkte.r36.portrait-150.json": "09deede0df8ab0dcca4f08258d1d7aafbd553278a00be6e6d04faeb313dd49db",
+  "operator-punkte.r36.portrait-150.png": "399c1eae153074c557cf0eb7ccc8df64bf973515f692ffdf66266b89d2ab1039",
+  "operator-punkte.r36.portrait.json": "c79517aa15be77ed25700e93b0071eb9a6a4cd57ad3ec99fab9ce193841baeec",
+  "operator-punkte.r36.portrait.png": "11c6fa0bf703f775b62ea631ca7a8122681291797fbe8c1bfd7f7e686c4f7f20",
+  "operator-punkte.r36.spec.ts": "67c453f3924da2e637ddc9fcf71e51e63a41911844d99074ade280524cc701cd",
+  "operator-punkte.r36.vitest.txt": "fc9191353ed7a72ecaf2ab9382b933c87abf296395f3113e3da8378ef694dafa"
+}

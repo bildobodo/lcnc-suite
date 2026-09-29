@@ -1,0 +1,20 @@
+
+Running 11 tests using 1 worker
+
+(node:722959) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:722959) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/offsets.spec.ts:35:1 › the auxiliary rows read each axis from its canonical slot — on XYZAC, C is not B (1.7s)
+  ✓   2 e2e/offsets.spec.ts:48:1 › the rows below the fixtures explain themselves on a tap: G52/G92 is one register that stays, G43 is the offset in effect (1.8s)
+  ✓   3 e2e/offsets.spec.ts:65:1 › unknown is never zero: the summary names what is unknown, and says 'none' only when all is known (1.8s)
+  ✓   4 e2e/offsets.spec.ts:81:1 › a cell opens from the keyboard, in degrees for A/C, and only that cell carries the edit mark (1.8s)
+  ✓   5 e2e/offsets.spec.ts:98:1 › the active fixture is named, not only tinted; a row click selects for Clear and never switches the WCS (1.7s)
+  ✓   6 e2e/offsets.spec.ts:117:1 › a focused value keeps its focus in its cell while locked; the next keys stay local; the lock says why once (2.1s)
+  ✓   7 e2e/operator-punkte.r36.spec.ts:14:31 › R36 own: desktop header help and input isolation (1.9s)
+  ✓   8 e2e/operator-punkte.r36.spec.ts:14:31 › R36 own: compact header help and input isolation (1.9s)
+  ✓   9 e2e/operator-punkte.r36.spec.ts:14:31 › R36 own: portrait header help and input isolation (2.5s)
+  ✓  10 e2e/operator-punkte.r36.spec.ts:14:31 › R36 own: portrait-150 header help and input isolation (2.3s)
+  ✓  11 e2e/operator-punkte.r36.spec.ts:14:31 › R36 own: landscape-estop header help and input isolation (2.3s)
+
+  11 passed (22.3s)

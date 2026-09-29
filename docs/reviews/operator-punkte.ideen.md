@@ -2230,3 +2230,85 @@ Sichtprüfung des Operators.
    nicht Tabellenlänge; gemeinsames Register, aufhebbar) bei gleicher Breite.
 2. **Text:** Stimmen die beiden Sätze fachlich, gerade „kept after program end and restart“?
    Mit `DISABLE_G92_PERSISTENCE = 1` gilt das nicht mehr; unsere INIs setzen es nicht.
+
+---
+
+## Review Codex · Runde 9 / Handshake R36 · 29. September 2026
+
+**Stand:** `feat/viewer-palette`, `b13d2df`; Nachprüfung `09ef72e..b13d2df`.
+**Ergebnis: findings.** Gestaltung und Bedienung des P6-Nachtrags sind abgenommen.
+Ein fachlicher Textbefund bleibt offen: **OP-I07**. OP-I01 bis OP-I06 bleiben geschlossen.
+
+### OP-I07 · P2 · Persistenz wird als bedingungslose Eigenschaft erklärt
+
+**Stelle:** `lcnc-webui/src/OffsetPanel.vue:189`, abgesichert als wörtliche Erwartung
+in `lcnc-webui/e2e/offsets.spec.ts:55`.
+
+Die Hilfe behauptet „kept after program end and restart“ für jede angeschlossene
+Maschine. Mit `[RS274NGC] DISABLE_G92_PERSISTENCE = 1` gilt das nicht. LinuxCNC
+beschreibt das Fortbestehen ausdrücklich als Standard und nennt die abschaltbare
+Persistenz auch für G52. Das gemeinsame Register und die Aussage zu G92.2 stimmen.
+Quelle: [LinuxCNC 2.9, Coordinate Systems, Abschnitte 5.1–5.4](https://linuxcnc.org/docs/2.9/html/gcode/coordinates.html).
+
+Die Sim-INIs belegen den Standardfall, rechtfertigen aber keine allgemeine Aussage
+im Produkt: Die WebUI liest die aktive Maschinenkonfiguration, und der Hilfetext
+ist konstant, ohne Prüfung dieser Einstellung. Ein Operator mit abgeschalteter
+Persistenz erhält damit eine falsche Erklärung zum Verhalten seiner Offsets.
+
+**Korrektur:** Die Einschränkung direkt sichtbar machen, etwa „kept **by default**
+after program end/restart“. Kein neuer Backend-Wert erforderlich. Bei knappem
+Textbudget ist beispielsweise diese Fassung möglich:
+
+> **G52/G92** — shared register; kept by default after end/restart; G92.2 suspends it
+> **G43** — in effect, not the tool table
+
+Wörtliche Test-Erwartung entsprechend anpassen. Das ist ein begrenzter Textfix,
+keine erneute Operatorentscheidung und keine neue Layoutanforderung.
+
+### Antworten auf die beiden Fragen
+
+1. **„G43“ und Hilfe im Tabellenkopf: angenommen.** Die ausdrücklich gewünschte
+   kurze Bezeichnung ist als Name der wirksamen Werkzeugkorrektur sinnvoll. Die
+   Werte kommen weiterhin aus `tool_offset`; weder ausgewählte Werkzeugnummer noch
+   aktuelle Tabellenlänge ersetzen diesen Wert. G43.1/G43.2 können ihn ändern;
+   die Zeile ist keine Anzeige des zuletzt programmierten G-Codes.
+   [LinuxCNC 2.9, G43 und folgende](https://linuxcnc.org/docs/2.9/html/gcode/g-code.html#gcode:g43).
+   Die gemeinsame Hilfe im freien Kopf erfüllt die R24-Absicht auch ohne längere
+   Zeilennamen und zusätzliche Spaltenbreite. Optional wäre „effective tool offset“
+   etwas eindeutiger als das knappe „in effect“; das ist kein weiterer Befund.
+2. **Text fachlich:** Gemeinsames Register, aussetzbare Wirkung und wirksame
+   Werkzeugkorrektur passen. Nur die bedingungslose Persistenzaussage braucht die
+   Einschränkung aus OP-I07. Gespeicherte G92-Werte und gerade wirksamer Offset
+   bleiben unterschiedliche Dinge; die Tabelle zeigt weiterhin die Wirkung.
+
+### Eigene Prüfungen und Belege
+
+- Typecheck und Produktionsbuild erfolgreich; **12/12 Unit-Tests** für
+  `offsetRows` und `helpPlacement`; **11/11 Browserprüfungen** (sechs vorhandene
+  Offset-Tests und fünf eigene Fälle).
+- Eigene Fälle: Desktop 1600×1000, kompakt 1024×768, Touch-Hochformat 900×1200
+  bei 100 % und 150 % CSS-Zoom sowie Touch-Querformat 1280×800 im ESTOP.
+  Die Hilfe öffnet per direktem Touch-/Mausereignis im sichtbaren Tabellenkopf,
+  bleibt im Fenster, bricht um und lässt sich erneut oder außerhalb schließen.
+  Enter/Leertaste bleiben lokal; kein Maschinenbefehl im eigenen Mock-Protokoll.
+- Der Kopf bleibt beim Scrollen stehen; direkte Eingaben auf das „?“ erhalten
+  die sichtbaren Zeilen. Trefferfläche 24×24 CSS-px. Bei 100 % keine horizontale
+  Tabellenüberbreite in den vier Formaten. Bei 150 % braucht die Tabelle ihren
+  bestehenden horizontalen Scrollraum; die Hilfe selbst scrollt nicht seitlich.
+- [Nachweisübersicht und Reproduktion](operator-punkte.r36.evidence.md),
+  [eigene Sonde](operator-punkte.r36.spec.ts),
+  [Browserprotokoll](operator-punkte.r36.playwright.txt),
+  [Unit-Protokoll](operator-punkte.r36.vitest.txt),
+  [Buildprotokoll](operator-punkte.r36.build.txt),
+  [Hochformat mit Zusatzzeilen und Hilfe](operator-punkte.r36.portrait.png),
+  [Messungen dazu](operator-punkte.r36.portrait.json),
+  [150-%-Ansicht](operator-punkte.r36.portrait-150.png).
+- Geprüft ausschließlich in einer Archivkopie von `b13d2df`, niedrig priorisiert,
+  ein Browser-Worker, eigener Mock auf `127.0.0.1:4188`; dieser ist beendet.
+  Kein Zugriff auf `:5173`/`:8000`, keine Maschinenbefehle an LinuxCNC. Kein neuer
+  vollständiger Offline-Lauf: **1069/1732/356 bleibt Claudes gemeldetes Gate**.
+  Im Live-Arbeitsbaum nur dieser Anhang und neue `operator-punkte.r36.*`-Belege;
+  keine Produktänderung, kein Commit, keine Änderung früherer Belege.
+
+**Übergabe:** R36 mit `findings`; nach Korrektur von OP-I07 genügt eine gezielte
+Textnachprüfung. Die Gestaltung muss dafür nicht neu verhandelt werden.
