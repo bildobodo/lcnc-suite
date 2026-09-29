@@ -159,6 +159,18 @@ describe("theme text roles", () => {
       }
     });
   }
+  // The cutter meets the path at the tool tip (operator 2026-09-29): bright
+  // steel, far from every line role and the collision tint — the gold it
+  // replaced sat 0.12 from the orange limit.
+  for (const name of ["root", "dark", "auto-dark"] as const) {
+    it(`${name}: the cutter stands apart from every line role`, () => {
+      const b = block(THEMES[name]);
+      const cutter = hex(b.get("--viewer-cutter")!);
+      for (const r of PATH_ROLES) {
+        expect(okDistance(cutter, hex(b.get(r)!)), `${name} cutter vs ${r}`).toBeGreaterThanOrEqual(LINE_MIN_NORMAL);
+      }
+    });
+  }
   const FIXED_ROLES = ["--viewer-tool", "--viewer-cutter",
     "--viewer-plane-active", "--viewer-plane-defined", "--viewer-plane-stale", "--viewer-reach",
     "--viewer-bounds", "--viewer-toolpath-bounds", "--viewer-bounds-alt"];

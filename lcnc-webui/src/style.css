@@ -164,8 +164,11 @@
      viewer/boxLines.ts): one of the two reads on any background and any
      grey. The collision is a body; limits keep the warn family everywhere
      (overlay, timeline marks, line numbers). Tool and cutter are lit
-     meshes — no line contrast applies. Settings' Automatic palette reads
-     these; Custom replaces the seven user roles. */
+     meshes: the cutter bright steel (lighter than every model part and
+     ≥ 0.25 OKLab from every line role — the gold it replaced sat 0.12 from
+     the orange limit, where the tool tip meets the path), the shaft a mid
+     steel. Settings' Automatic palette reads these; Custom replaces the
+     seven user roles. */
   --viewer-feed: #00a83c;
   --viewer-rapid: #3d8bff;
   --viewer-backplot: #ff00ff;
@@ -178,8 +181,8 @@
   --viewer-toolpath-bounds: #15181c;
   --viewer-bounds-alt: #f0f2f4;
   --viewer-reach: #6b7280;
-  --viewer-tool: #9aa0a6;
-  --viewer-cutter: #d4a800;
+  --viewer-tool: #6b7178;
+  --viewer-cutter: #eceff1;
 
   /* Tint strengths (design wave D10, N114): how much of a state colour
      (--ok, --warn, --danger, --info, --err, --accent, the banner's
@@ -347,8 +350,8 @@
     --viewer-toolpath-bounds: #15181c;
     --viewer-bounds-alt: #f0f2f4;
     --viewer-reach: #6b7280;
-    --viewer-tool: #9aa0a6;
-    --viewer-cutter: #d4a800;
+    --viewer-tool: #6b7178;
+    --viewer-cutter: #eceff1;
   }
 }
 
@@ -389,8 +392,8 @@
   --viewer-toolpath-bounds: #15181c;
   --viewer-bounds-alt: #f0f2f4;
   --viewer-reach: #6b7280;
-  --viewer-tool: #9aa0a6;
-  --viewer-cutter: #d4a800;
+  --viewer-tool: #6b7178;
+  --viewer-cutter: #eceff1;
 }
 
 :root[data-theme="dark"] {
@@ -430,8 +433,8 @@
   --viewer-toolpath-bounds: #15181c;
   --viewer-bounds-alt: #f0f2f4;
   --viewer-reach: #6b7280;
-  --viewer-tool: #9aa0a6;
-  --viewer-cutter: #d4a800;
+  --viewer-tool: #6b7178;
+  --viewer-cutter: #eceff1;
 }
 
 /* High-contrast overrides — boost surfaces AND semantic colors */
@@ -481,8 +484,8 @@
   --viewer-toolpath-bounds: #000000;
   --viewer-bounds-alt: #ffffff;
   --viewer-reach: #6b7280;
-  --viewer-tool: #8a8f96;
-  --viewer-cutter: #b38f00;
+  --viewer-tool: #4b5057;
+  --viewer-cutter: #b8bec4;
 }
 
 :root[data-theme="hc-dark"] {
@@ -531,8 +534,8 @@
   --viewer-toolpath-bounds: #000000;
   --viewer-bounds-alt: #ffffff;
   --viewer-reach: #78808b;
-  --viewer-tool: #d0d0d0;
-  --viewer-cutter: #ffe14d;
+  --viewer-tool: #8a9097;
+  --viewer-cutter: #f0f2f4;
 }
 
 html, body {
