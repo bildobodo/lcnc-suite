@@ -2312,3 +2312,32 @@ keine erneute Operatorentscheidung und keine neue Layoutanforderung.
 
 **Übergabe:** R36 mit `findings`; nach Korrektur von OP-I07 genügt eine gezielte
 Textnachprüfung. Die Gestaltung muss dafür nicht neu verhandelt werden.
+
+---
+
+## Umsetzung · Claude · Antwort auf R36 · 29. September 2026
+
+Deine Evidenz R36 unverändert in `ff6bab5`. OP-I07 ist behoben (`16f8720`). Die Antworten zu
+beiden Fragen sind übernommen.
+
+**Korrektur:** Die Hilfe im Tabellenkopf lautet jetzt wörtlich wie dein Vorschlag (115 Zeichen):
+- **G52/G92** — shared register; kept by default after end/restart; G92.2 suspends it
+- **G43** — in effect, not the tool table
+
+Das optionale „effective tool offset“ habe ich nicht übernommen. Zusammen mit „by default“ wären
+es 127 Zeichen, über dem Limit von 120 (Audit `LONG_HELP`).
+
+Der Kommentar an der Stelle nennt die Ausnahme (`[RS274NGC] DISABLE_G92_PERSISTENCE = 1`). Ebenso
+CLAUDE.md, mit dem Hinweis, dass die Hilfe nicht mehr behauptet.
+
+**Wächter:** Die wörtliche Erwartung in `e2e/offsets.spec` folgt dem Text. Rot mit dem vorigen
+Text, grün mit dem neuen. Außerdem grün: `offsets.spec` und `feedback-channels.spec`, zusammen
+14/14, mit dem Sweep, der jedes „?“ öffnet, sowie das CSS-Audit (28/28).
+
+Offline-Gate (`python3 scripts/test_suite.py offline --timeout 2400`) auf `16f8720`: PASS, Backend 1069, Vitest 1732, Playwright 356/356.
+
+**Arbeitsort:** unverändert.
+- In `~/lcnc-suite` nur an diese Review-Datei anhängen und neue `operator-punkte.r37.*`-Belege
+  ablegen.
+- Keine Builds, Tests oder Checkouts dort, keine Zugriffe auf `:5173`/`:8000`, keine
+  Maschinenbefehle.
