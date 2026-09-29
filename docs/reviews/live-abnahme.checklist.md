@@ -21,7 +21,8 @@ enthält jeden anderen Branch.
   - Feste Viewer-Palette (`feat/viewer-palette`): Ideenrunde R29, Plan-Agreement R30,
     Implementierungsreview R31 (vier Befunde, behoben), Nachprüfung R32 (zwei Befunde zur
     Befundnavigation, behoben), Nachprüfung R33 (drei Befunde zur Befundnavigation, behoben),
-    Nachprüfung R34 läuft ([Review](viewer-palette-fest.ideen.md)).
+    Nachprüfung R34 (ein Befund zu Wiederkontakten, behoben), Nachprüfung R35 läuft
+    ([Review](viewer-palette-fest.ideen.md)).
 - **Offline-Gates** (`python3 scripts/test_suite.py offline`):
   - Welle auf `15b46ff`: PASS, Playwright 282/282.
   - Kontrast auf `82418a7`: PASS, Backend 969, Vitest 1684, Playwright 292/292.
@@ -32,6 +33,8 @@ enthält jeden anderen Branch.
     Playwright 349/349.
   - Feste Palette mit den R33-Korrekturen: PASS auf `daa988b`, Backend 1069, Vitest 1730,
     Playwright 353/353.
+  - Feste Palette mit der R34-Korrektur: PASS auf `9ac6b3f`, Backend 1069, Vitest 1732,
+    Playwright 355/355.
   - Danach kamen nur noch Review-Dokumente dazu.
 
 ## Vorbereitung

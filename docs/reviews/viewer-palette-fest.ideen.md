@@ -1638,3 +1638,102 @@ und Produktcode bleiben unverändert.
 
 **Übergabe:** VP-I05-Rest, VP-I07 und VP-I08 geschlossen; MachineSlider-Korrektur abgenommen.
 VP-I09 offen. R34 erhält `findings`.
+
+---
+
+## Umsetzung · Claude · Antwort auf R34 · 29. September 2026
+
+Branch `feat/viewer-palette` (in `~/lcnc-suite`). Deine Evidenz R34 unverändert in `05b47ad`.
+VP-I09 ist behoben (`4080b25`), mit beiden Ursachen. Beim Nachstellen fand ich den
+**gespiegelten Fall im Sweep selbst** und habe ihn mit derselben Regel behoben: Ein Kontakt
+kommt aus der Vorzeile, trennt sich und tritt auf derselben Zeile wieder ein. Deine Antworten
+zu den Rückfragen 1 und 2 sind übernommen; der Kontrollfall aus Antwort 1 ist jetzt Unit-Test.
+
+**Eine Kennzeichnung für „das erste Intervall gehört einem früheren Befund“**
+
+Neues optionales Feld `carried` in `CollisionHit`: Das erste Intervall eines Onset-Records setzt
+einen früheren, nie getrennten Kontakt fort. `clashTargets` überspringt nur dieses Intervall. Die
+späteren Intervalle behalten ihren Index `k` und damit ihren Schlüssel `C<line>|<a>|<b>|<k>`, mit
+und ohne Eintrittsergebnis. Die Herkunftskennung aus VP-I07 bleibt: Eintrittsbefunde heißen
+weiter `E…` (im Merge-Test geprüft).
+
+**Ursache 1, Sweep (`collision.ts`):** Die Verfeinerung übersprang `h.cum <= 0`.
+- Das stammt aus der ersten Verfeinerung vom August, die nur rückwärts zum Erstkontakt suchte;
+  bei 0 gab es nichts zu suchen. Die spätere Intervallbildung kam in dieselbe Schleife, und der
+  Überspring-Fall blieb stehen.
+- Jetzt wird auch ein Kontakt ab Achsenanfang in Intervalle zerlegt. Sein Einstieg braucht keine
+  Rückwärtssuche (Untergrenze = Zeilenanfang = 0).
+
+**Ursache 2, Merge (`sweepMerge.ts`):** Hat der Programm-Record, der den Eintrittskontakt
+fortsetzt, mehr als ein Intervall, wird er nicht mehr ganz zur Fortsetzung.
+- Er bleibt Onset mit `carried`.
+- Der Eintrittsbefund reicht bis zum Ende des ersten Intervalls (`spanCumEnd`, `spanEndLine` =
+  dessen Zeile).
+- Mit einem Intervall bleibt alles wie von dir abgenommen: Fortsetzung, Spanne des Programms.
+
+**Gespiegelter Fall im Sweep (neu gefunden):**
+- **Befund:** Die Wiedereintritts-Promotion (`delete ex.continuation`) machte den ganzen Record zum
+  Onset. Sein erstes Intervall ist aber der aus der Vorzeile übernommene Kontakt. Im
+  vorhandenen Test „intermittent contact on ONE line“ ergab das **drei** Ziele (C25, C26|0,
+  C26|1) für zwei Kontakte; C26|0 doppelte C25.
+- **Korrektur:** Die Promotion merkt sich die Onset-Zeile (`carriedFrom`, intern).
+  - Nach der Verfeinerung gilt `carried` nur, wenn das erste Intervall ohne Trennung bis zum
+    Zeilenanfang reicht: Rückwärtssuche nicht geklammert, Einstieg = Zeilenanfang.
+  - Eine Promotion, deren übernommener Teil nur innerhalb der Marge, aber nie im Kontakt lag,
+    markiert also nichts.
+- **Spanne:** Das übernommene Intervall verlängert jetzt die Spanne des früheren Onsets
+  (`spanCumEnd`, `spanEndLine`) wie ein Fortsetzungs-Record. Vorher endete die Spanne von L25 an
+  der eigenen Zeile.
+- **Verfeinerungs-Memo:** Seine Signatur enthält jetzt `carriedFrom`. Eine Promotion durch einen
+  Wiedereintritt innerhalb der Marge, ohne neues Kontakt-Sample, ändert nur `carried`; ein in
+  einem Park-Snapshot verfeinerter Record hätte sonst das alte Ergebnis behalten. Die Signatur ist
+  der Vertrag des Memos, dafür gibt es keinen eigenen Test.
+- **Nicht angefasst:** Zwischenergebnisse (`peek`, unverfeinert) kennen `carried` nicht. Ein
+  laufender Sweep kann den übernommenen Teil also kurz mitzählen, bis das Ergebnis verfeinert ist.
+
+**Wächter, jeweils rot mit den alten Quellen:**
+- **Unit `collision.test`:**
+  - Der vorhandene Test „intermittent contact on ONE line“ prüft jetzt auch: zwei Ziele mit den
+    Schlüsseln C25|0 und C26|1, `carried`, Spanne von L25 bis zum Ende des übernommenen
+    Intervalls. Rot: `carried` fehlt, es bleiben drei Ziele.
+  - Neu: „a program that starts in contact, separates and comes back on the same line“. Zwei
+    Intervalle ab 0, zwei Ziele, L27 bleibt Fortsetzung. Rot: keine Intervalle.
+- **Unit `sweepMerge.test`:** deine Merge-Sonde.
+  - Eintritt [2, 10] bei Verschiebung 10, Basis [0, 4] und [20, 30] ergeben die Ziele E7|0 (2),
+    C7|1 (30) und C9 (60).
+  - C7|1 hat denselben Schlüssel wie vor dem Merge (20).
+  - Der Eintritt reicht bis 14.
+  - Dein durchgehender Kontrollfall gilt unverändert: zwei Ziele, „Next“ 60, „Previous“ der
+    Eintritt.
+  - Rot: zwei statt drei Ziele.
+- **e2e `collisions.viewer.spec` mit dem echten XYZAC-Modell,** deine Browser-Sonde über die
+  Oberfläche:
+  - **Kontrolle** (freier Start, 100 mm davor) und **Start im Kontakt** (Maschine 240 mm entfernt).
+  - Programm allein vier Befunde, mit Eintrittsweg weiter vier.
+  - Eine Runde „Next“ erreicht vier verschiedene Stopps, der fünfte Klick kehrt zum ersten zurück.
+  - Rot mit allem alt: 2 statt 4 schon ohne Eintritt; die Kontrolle bleibt grün.
+  - Rot mit neuem Sweep und altem Merge: 4 ohne, **2 mit Eintritt**. Damit ist jede Ursache
+    einzeln belegt.
+  - Im Startkontakt-Fall wählt der erste Sprung den Kontakt am Startpunkt. Der gehört nach Ankunft
+    des Eintrittsergebnisses zum Eintrittsbefund, danach geht „Next“ von der Position aus (deine
+    Antwort 1). Der Test prüft deshalb die volle Runde ab dem ersten Stopp, nicht ab dem
+    Startpunkt.
+
+Doku: CLAUDE.md (`9ac6b3f`).
+
+Offline-Gate (`python3 scripts/test_suite.py offline --timeout 2400`) auf `9ac6b3f`: PASS, Backend 1069, Vitest 1732, Playwright 355/355 (Browser-Schritt 1634 s).
+
+**Arbeitsort für R35:** wie bisher. In `~/lcnc-suite` läuft die Live-Sim für die Sichtprüfung
+des Operators.
+- Dort bitte nur an die Review-Datei anhängen und neue `r35.*`-Belege ablegen.
+- Keine Builds, Tests oder Checkouts dort, keine Zugriffe auf `:5173`/`:8000`, keine
+  Maschinenbefehle.
+- Stattdessen eine Archivkopie des Heads, mit eigenem Mock auf einem freien Port.
+
+### Bitte prüfen
+
+1. **Kriterium für `carried` im Sweep:** Nur wenn das erste Intervall eines promovierten Records
+   ohne Trennung bis zum Zeilenanfang reicht. Mein Standpunkt: Ein erster Durchstoß, der erst
+   nach dem Zeilenanfang beginnt (übernommen war nur Kontakt innerhalb der Marge), ist ein eigenes
+   Intervall wie jeder Durchstoß in einem gewöhnlichen Onset-Record und bleibt ein Ziel.
+   Einverstanden?
