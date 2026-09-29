@@ -141,6 +141,13 @@ export function previewRefreshLabel(reason: string | null | undefined): string {
   if (r.startsWith("rotary:")) return `rotary pose (${r.slice(7) || "moved"})`;
   if (r === "kins:type") return "kinematics mode change";
   if (r === "kins:frame") return "plane change";
+  // The TLO drift edge's own reasons (evaluate_tlo_drift) — they reached the
+  // banner raw ("table_mtime") — and the mid-run tool-table edge, which
+  // re-parses DURING a run with the program's start state pinned.
+  if (r.startsWith("midrun:")) return "tool measured (program running)";
+  if (r === "table_mtime" || r === "table_row") return "tool table change";
+  if (r === "tool_offset") return "tool offset change";
+  if (r === "tool_loaded") return "tool change";
   if (r.startsWith("tlo")) return "tool length change";
   if (r === "file") return "program load";
   if (r === "reparse") return "operator reparse";

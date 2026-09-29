@@ -171,6 +171,12 @@ class BulkPipeline:
         # offsets change with NO pose change, so no other edge sees it
         # (the rotary Zero-All double-count class). None = no claim.
         self.published_wcs_off: Optional[list] = None
+        # The worker ctx the PUBLISHED payload was parsed with (operator
+        # 2026-09-29): the mid-run tool-table edge re-parses with this start
+        # state pinned — fixture, WCS patches, kins — plus the published
+        # rotary seed and tool seed, so a run's own G10 / M428 / A moves never
+        # leak into the program's start. None = nothing published.
+        self.published_ctx: Optional[dict] = None
         # Previous drift check's live rotary sample — the settle guard
         # (rotary_drift_settled) compares consecutive 2 s samples so a
         # jog in progress never triggers a reparse.
@@ -214,7 +220,7 @@ class BulkPipeline:
         get_preview)."""
         return self.preview_bytes is not None or self.preview_bytes_gz is not None
 
-    def schedule_refresh(self, filepath: str, reason: str, spawn) -> bool:
+    def schedule_refresh(self, filepath: str, reason: str, spawn, pinned: bool = False) -> bool:
         """Single-flight scheduler — the ONE place refresh_running goes True.
 
         `spawn(coro) -> asyncio.Task` is supplied by the gateway (its
@@ -231,7 +237,7 @@ class BulkPipeline:
         self.reparse_pending = False
         self.reparse_pending_reason = None
         try:
-            task = spawn(self.refresh_gcode_preview(filepath, reason=reason))
+            task = spawn(self.refresh_gcode_preview(filepath, reason=reason, pinned=pinned))
         except BaseException as e:
             self.refresh_running = False
             _trace.emit("gcode.refresh_schedule_failed", level="warn",
@@ -250,7 +256,8 @@ class BulkPipeline:
             task.add_done_callback(_done)
         except AttributeError:
             pass  # spawn returned no task handle — the coroutine's finally is the only reset
-        _trace.emit("gcode.refresh_scheduled", file=filepath, reason=reason)
+        _trace.emit("gcode.refresh_scheduled", file=filepath, reason=reason,
+                    **({"pinned": True} if pinned else {}))
         return True
 
     def clear_preview(self) -> None:
@@ -270,6 +277,7 @@ class BulkPipeline:
         self.published_wcs_off = None
         self.published_source = None
         self.published_limits = None
+        self.published_ctx = None
         self.rotary_check_prev = None
         self.wcsoff_check_prev = None
 
@@ -327,6 +335,34 @@ class BulkPipeline:
     _PARSE_MS_PER_BYTE = 1.2e-3
     _PARSE_TIMEOUT_FLOOR_S = 60.0
     _PARSE_TIMEOUT_FACTOR = 3.0
+
+    #: A pinned (mid-run) parse runs niced: on a real machine it must never
+    #: take CPU from LinuxCNC's task feeding the motion queue. nice, not
+    #: SCHED_IDLE — a machine PC that renders its own HMI browser would
+    #: starve an idle-class parse indefinitely.
+    PINNED_NICE = 19
+    #: ... and gets a longer leash: niced under a busy run it may take a
+    #: multiple of its idle time. Its duration never enters the history.
+    _PINNED_TIMEOUT_FACTOR = 3.0
+
+    def pinned_ctx(self, filepath: str) -> Optional[dict]:
+        """The worker ctx for a PINNED re-parse of `filepath`: the published
+        parse's ctx (fixture index, WCS var patches, kins type/frame) plus
+        its rotary seed (`rotary_pose`, the golden override hook) and its
+        tool seed (applied offset + loaded tool as the meta reports them),
+        niced. The tool TABLE is the one input read live — it is the reason
+        for the parse. None when nothing is published for this file."""
+        base = self.published_ctx
+        if not base or base.get("file") != filepath:
+            return None
+        ctx = dict(base)
+        if self.published_rotary_seed:
+            ctx["rotary_pose"] = dict(self.published_rotary_seed)
+        tlo = self.published_tlo or {}
+        ctx["seed_tool"] = {"applied_tlo": tlo.get("applied_tlo"),
+                            "loaded_tool": tlo.get("loaded_tool")}
+        ctx["nice"] = self.PINNED_NICE
+        return ctx
 
     def expected_parse_ms(self, filepath: str) -> int:
         """Expected publish time for `filepath`: the last measured one for
@@ -404,7 +440,8 @@ class BulkPipeline:
                 "queued": bool(self.reparse_pending),
                 "superseded": self.superseded_total}
 
-    async def refresh_gcode_preview(self, filepath: str, reason: str = "file"):
+    async def refresh_gcode_preview(self, filepath: str, reason: str = "file",
+                                    pinned: bool = False):
         """Parse filepath in an isolated subprocess and publish the result.
 
         Called from the poller on file change. Single-flight via
@@ -436,20 +473,29 @@ class BulkPipeline:
                 _trace.emit("gcode.refresh_skipped", level="warn", file=filepath,
                             reason="no-stat" if stat is None else "no-ini")
                 return
-            active_idx = getattr(stat, "g5x_index", None) if stat is not None else None
-            patches = self._build_wcs_rotation_patches()
-            _live_kt, _live_kf = self._get_live_kins()
-            ctx = {
-                "file": filepath,
-                "ini_path": ini_path,
-                "units": self._get_machine_units(),
-                "var_patches": patches,
-                "g5x_index": active_idx if isinstance(active_idx, int) else 1,
-                # Fifth freshness input: live switchkins type + plane frame
-                # (None on untracked configs — worker seeds nothing).
-                "kins_type": _live_kt,
-                "kins_frame": _live_kf,
-            }
+            if pinned:
+                ctx = self.pinned_ctx(filepath)
+                if ctx is None:
+                    _trace.emit("gcode.refresh_skipped", level="warn", file=filepath,
+                                reason="no-published-ctx")
+                    return
+                active_idx = ctx.get("g5x_index")
+                _live_kt, _live_kf = ctx.get("kins_type"), ctx.get("kins_frame")
+            else:
+                active_idx = getattr(stat, "g5x_index", None) if stat is not None else None
+                patches = self._build_wcs_rotation_patches()
+                _live_kt, _live_kf = self._get_live_kins()
+                ctx = {
+                    "file": filepath,
+                    "ini_path": ini_path,
+                    "units": self._get_machine_units(),
+                    "var_patches": patches,
+                    "g5x_index": active_idx if isinstance(active_idx, int) else 1,
+                    # Fifth freshness input: live switchkins type + plane frame
+                    # (None on untracked configs — worker seeds nothing).
+                    "kins_type": _live_kt,
+                    "kins_frame": _live_kf,
+                }
             ctx_bytes = _msgspec.msgpack.encode(ctx)
             # Input snapshot of THIS parse in the published seeds' shapes
             # (cancel-and-restart): rotary pose as the worker will seed it
@@ -458,21 +504,31 @@ class BulkPipeline:
             # the fixture table + g92 the var-file patches were built from.
             expected_ms = self.expected_parse_ms(filepath)
             timeout_s = self.parse_timeout_s(filepath)
+            if pinned:
+                timeout_s *= self._PINNED_TIMEOUT_FACTOR
+            if pinned:
+                # A pinned parse's inputs ARE the published seeds.
+                _seed_rot = dict(self.published_rotary_seed) if self.published_rotary_seed else None
+                _seed_wcs = list(self.published_wcs_off) if self.published_wcs_off is not None else None
+            else:
+                _seed_rot = rotary_seed_values(getattr(stat, "axis_mask", 0) or 0,
+                                               getattr(stat, "actual_position", None))
+                _seed_wcs = self._get_wcs_off_flat()
             self.cancel_reason = None
             self.inflight = {
                 "file": filepath, "mtime": _mtime_at_parse, "reason": reason,
                 "t0": time.monotonic(), "started_ms": int(time.time() * 1000),
                 "expected_ms": expected_ms,
-                "rotary_seed": rotary_seed_values(
-                    getattr(stat, "axis_mask", 0) or 0,
-                    getattr(stat, "actual_position", None)),
+                "rotary_seed": _seed_rot,
                 "kins_seed": {"type": _live_kt, "frame": _live_kf},
-                "wcs_off": self._get_wcs_off_flat(),
+                "wcs_off": _seed_wcs,
+                **({"pinned": True} if pinned else {}),
             }
             _trace.emit("gcode.spawn_start",
                         file=os.path.basename(filepath), active_idx=active_idx,
                         reason=reason, expected_ms=expected_ms,
-                        timeout_s=round(timeout_s, 1))
+                        timeout_s=round(timeout_s, 1),
+                        **({"pinned": True} if pinned else {}))
 
             t_spawn = time.monotonic()
             # Spawn + run the worker entirely off the event loop (B7): the fork no
@@ -644,11 +700,15 @@ class BulkPipeline:
             self.published_limits = worker_limits
             self.published_kins_seed = worker_kins_seed
             self.published_wcs_off = worker_wcs_off
+            self.published_ctx = ctx
             self.preview_version += 1
             self.last_file = filepath
             self.last_mtime = _mtime_at_parse
-            self.parse_ms_by_file[filepath] = round((t_gz_done - t_start) * 1000)
+            if not pinned:
+                # A niced mid-run parse is no estimate for the next idle one.
+                self.parse_ms_by_file[filepath] = round((t_gz_done - t_start) * 1000)
             _trace.emit("gcode.publish",
+                        **({"pinned": True} if pinned else {}),
                         version=self.preview_version,
                         schema=worker_schema,
                         gzip_ms=round((t_gz_done - t_gz0) * 1000, 1),

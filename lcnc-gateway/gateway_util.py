@@ -1444,6 +1444,66 @@ def drift_gate_open(active_file, refresh_running, preview_available, interp_idle
             and not current_vel
             and since_last_check_s >= debounce_s)
 
+def seeded_tool_meta(live_applied, live_spindle, seed_tool=None):
+    """The tool state a parse REPORTS in its `__TLO__` meta, and the extra
+    tools whose table rows ride `parse_tlos`.
+
+    Returns (applied_tlo [x, y, z] | None, loaded_tool int, extra_tools
+    set). An ordinary parse reports the live applied offset and spindle
+    tool. A PINNED parse (`seed_tool`, the mid-run tool-table edge,
+    operator 2026-09-29) reports the start state it was seeded with — the
+    published parse's applied offset and loaded tool — never the running
+    program's own G43 / M6: the idle edge compares the live state with
+    THIS after the run and re-parses once from the new state (a live read
+    here would make that re-parse silently disappear). Both the seeded and
+    the live spindle tool's rows ride parse_tlos — they are table rows.
+    Pure."""
+    try:
+        applied = [float(live_applied[i]) for i in range(3)] if live_applied is not None else None
+    except (TypeError, IndexError, ValueError):
+        applied = None
+    try:
+        spindle = int(live_spindle or 0)
+    except (TypeError, ValueError):
+        spindle = 0
+    extra = {spindle} if spindle > 0 else set()
+    if seed_tool:
+        applied = seed_tool.get("applied_tlo")
+        try:
+            spindle = int(seed_tool.get("loaded_tool") or 0)
+        except (TypeError, ValueError):
+            spindle = 0
+        if spindle > 0:
+            extra.add(spindle)
+    return applied, spindle, extra
+
+
+def midrun_table_gate_open(active_file, refresh_running, preview_available,
+                           pinnable, task_mode_auto, interp_idle,
+                           since_last_check_s, debounce_s=2.0):
+    """May the MID-RUN tool-table edge evaluate now? (operator 2026-09-29)
+
+    The idle drift edges (drift_gate_open) never re-parse under a run, so a
+    tool measured by the program (T13 M600 → G10 L1) left the preview stale
+    — muted, its limit flags on the old length — for the whole run: the
+    program starts cutting right after the measurement and the interpreter
+    is not idle again before M2. This edge re-parses DURING a run, only for
+    a tool-table change, with the published parse's start state pinned
+    (`pinnable`: a published ctx exists for the loaded file) — so the
+    preview shows the program as the machine executes it, from the same
+    start, with the table it now holds.
+
+    AUTO only: an MDI (Measure Current) also makes the interpreter busy, but
+    the idle edge re-parses with live seeds seconds later anyway. Pure."""
+    return (bool(active_file)
+            and not refresh_running
+            and bool(preview_available)
+            and bool(pinnable)
+            and bool(task_mode_auto)
+            and not interp_idle
+            and since_last_check_s >= debounce_s)
+
+
 def joints_beyond_limits(joint_pos, limits, eps=1e-6):
     """Indices of joints whose position lies OUTSIDE [min, max] (by more than
     eps). `limits` is a sequence of (min, max) per joint (STAT.joint[i]
@@ -1728,8 +1788,10 @@ def inflight_doomed_reason(inflight, rotary_abc, eps=0.01):
     the pose to settle (rotary_hold_settled). Linear motion never dooms a
     parse: the payload does not depend on where X/Y/Z sit. Returns
     "rotary:<letters>" or None; an absent snapshot or absent live data makes
-    no claim. Pure."""
-    if not inflight:
+    no claim. A PINNED parse (the mid-run tool-table edge) is never doomed:
+    its seed is the published start state on purpose — mid-run the live
+    pose is the program's own. Pure."""
+    if not inflight or inflight.get("pinned"):
         return None
     return evaluate_rotary_drift(inflight.get("rotary_seed"), rotary_abc, eps=eps)
 
@@ -1780,7 +1842,7 @@ def rotary_drift_settled(prev_abc, rotary_abc, eps=0.01):
 
 
 def evaluate_tlo_drift(meta, cur_mtime, tool_number, applied_tlo_z, eps=1e-4,
-                       table_rows=None):
+                       table_rows=None, table_only=False):
     """Has the tool-length picture moved since the preview was parsed? (W2 P4)
 
     The per-line limit validator bakes the PARSE-TIME tool table into its
@@ -1807,6 +1869,11 @@ def evaluate_tlo_drift(meta, cur_mtime, tool_number, applied_tlo_z, eps=1e-4,
       of a NOT-loaded program tool stales the pose too). `table_rows`
       = [(id, zoffset), ...] from STAT.tool_table; None = skip (legacy).
 
+    `table_only` (the mid-run edge, operator 2026-09-29): only the TABLE
+    signals — `table_mtime` and `table_row`. Mid-run the applied offset and
+    the loaded tool are the PROGRAM's own state (its G43, its M6), never a
+    drift of the start state the payload was seeded with.
+
     `meta` is the worker's parse-time snapshot {"table_mtime": float|None,
     "tlos": [[tool, xo, yo, zo(, diameter)], ...]}. Returns the reason
     string or None. The CALLER owns idle-gating and debounce. Pure.
@@ -1817,7 +1884,9 @@ def evaluate_tlo_drift(meta, cur_mtime, tool_number, applied_tlo_z, eps=1e-4,
     if m0 is not None and cur_mtime is not None and cur_mtime != m0:
         return "table_mtime"
     applied_then = meta.get("applied_tlo")
-    if applied_then is not None:
+    if table_only:
+        pass
+    elif applied_then is not None:
         try:
             z_then = float(applied_then[2])
         except (TypeError, IndexError, ValueError):

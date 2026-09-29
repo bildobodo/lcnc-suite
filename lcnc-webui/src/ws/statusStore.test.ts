@@ -196,6 +196,11 @@ describe("preview_refresh sync (re-parse in flight)", () => {
     expect(previewRefreshLabel("kins:type")).toBe("kinematics mode change");
     expect(previewRefreshLabel("kins:frame")).toBe("plane change");
     expect(previewRefreshLabel("tlo:3")).toBe("tool length change");
+    expect(previewRefreshLabel("table_mtime")).toBe("tool table change");
+    expect(previewRefreshLabel("table_row")).toBe("tool table change");
+    expect(previewRefreshLabel("tool_offset")).toBe("tool offset change");
+    expect(previewRefreshLabel("tool_loaded")).toBe("tool change");
+    expect(previewRefreshLabel("midrun:table_mtime")).toBe("tool measured (program running)");
     expect(previewRefreshLabel("file")).toBe("program load");
     expect(previewRefreshLabel("reparse")).toBe("operator reparse");
     expect(previewRefreshLabel("schema")).toBe("suite upgrade");

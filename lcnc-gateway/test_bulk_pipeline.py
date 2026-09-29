@@ -529,3 +529,113 @@ class TestPublishedSource(unittest.TestCase):
         b = self._refresh()
         b.clear_preview()
         self.assertIsNone(b.published_source)
+
+
+class TestPinnedReparse(unittest.TestCase):
+    """The mid-run tool-table edge (operator 2026-09-29): a re-parse DURING a
+    run with the PUBLISHED parse's start state pinned — its ctx (fixture,
+    WCS patches, kins), rotary seed and tool seed — niced, on a longer
+    leash, and never an estimate for the next idle parse. Only the tool
+    table is read live, inside the worker."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.ini = os.path.join(self.tmp.name, "m.ini")
+        open(self.ini, "w").write("[EMC]\n")
+        self.ngc = os.path.join(self.tmp.name, "p.ngc")
+        open(self.ngc, "w").write("G0 X1\nM2\n")
+        # the machine as the operator loaded the program …
+        self.live = types.SimpleNamespace(ini_filename=self.ini, g5x_index=1, axis_mask=0b111111,
+                                          actual_position=[0.0] * 9)
+        self.patches = {"5221": "10.0"}
+        self.kins = (0, None)
+        self.b = BulkPipeline(get_stat=lambda: self.live, get_machine_units=lambda: "mm",
+                              build_wcs_rotation_patches=lambda: dict(self.patches),
+                              get_live_kins=lambda: self.kins,
+                              get_wcs_off_flat=lambda: [1.0, 2.0])
+        self.sent = []
+
+        def worker(ctx_bytes, timeout):
+            import msgspec
+            import time
+            ctx = msgspec.msgpack.decode(ctx_bytes)
+            self.sent.append((ctx, timeout))
+            if ctx.get("nice"):
+                time.sleep(0.08)   # a niced mid-run parse is measurably slower
+            return (0, b"x" * 8, b'__SCHEMA__\t8\n__ABCSEED__\t{"A": 0.0, "C": 0.0}\n'
+                                 b'__TLO__\t{"table_path": "/cfg/tool.tbl", "table_mtime": 5.0, '
+                                 b'"tlos": [[13, 0.0, 0.0, 48.2, 8.0]], "applied_tlo": [0.0, 0.0, 0.0], '
+                                 b'"loaded_tool": 1}\n')
+        self.b._run_gcode_worker_blocking = worker
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _load(self):
+        asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason="file"))
+
+    def test_the_published_ctx_is_what_the_worker_was_sent(self):
+        self._load()
+        self.assertEqual(self.b.published_ctx, self.sent[0][0])
+        self.assertEqual(self.b.published_ctx["g5x_index"], 1)
+
+    def test_a_pinned_parse_sends_the_published_start_state_not_the_running_one(self):
+        self._load()
+        expected_ms = self.b.parse_ms_by_file[self.ngc]
+        # … and mid-run: the program switched fixture, rewrote G54 (G10 L2),
+        # entered TCP and turned the table
+        self.live.g5x_index = 2
+        self.patches = {"5221": "99.0"}
+        self.kins = (1, None)
+        self.live.actual_position = [0.0, 0.0, 0.0, 30.0, 0.0, 90.0, 0.0, 0.0, 0.0]
+        asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason="midrun:table_mtime", pinned=True))
+        first, pinned = self.sent[0], self.sent[1]
+        ctx = pinned[0]
+        for k in ("file", "ini_path", "units", "var_patches", "g5x_index", "kins_type", "kins_frame"):
+            self.assertEqual(ctx[k], first[0][k], k)
+        self.assertEqual(ctx["rotary_pose"], {"A": 0.0, "C": 0.0})
+        self.assertEqual(ctx["seed_tool"], {"applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 1})
+        self.assertEqual(ctx["nice"], BulkPipeline.PINNED_NICE)
+        self.assertAlmostEqual(pinned[1], first[1] * 3.0)
+        # a niced mid-run duration never becomes the next idle estimate
+        self.assertEqual(self.b.parse_ms_by_file[self.ngc], expected_ms)
+        # consecutive measurements in one run keep the SAME start state
+        asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason="midrun:table_mtime", pinned=True))
+        again = self.sent[2][0]
+        self.assertEqual({k: again[k] for k in ("g5x_index", "var_patches", "kins_type", "rotary_pose")},
+                         {k: ctx[k] for k in ("g5x_index", "var_patches", "kins_type", "rotary_pose")})
+
+    def test_the_inflight_snapshot_is_the_pinned_one(self):
+        self._load()
+        self.live.actual_position = [0.0, 0.0, 0.0, 30.0, 0.0, 90.0, 0.0, 0.0, 0.0]
+        seen = {}
+        orig = self.b._run_gcode_worker_blocking
+
+        def worker(ctx_bytes, timeout):
+            seen["inflight"] = dict(self.b.inflight)
+            return orig(ctx_bytes, timeout)
+        self.b._run_gcode_worker_blocking = worker
+        asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason="midrun:table_mtime", pinned=True))
+        inf = seen["inflight"]
+        self.assertTrue(inf["pinned"])
+        self.assertEqual(inf["rotary_seed"], {"A": 0.0, "C": 0.0})
+        self.assertEqual(inf["wcs_off"], None)   # the fake worker reported no __WCSOFF__
+
+    def test_nothing_published_for_the_file_skips_loudly(self):
+        import lcnc_trace
+        seen = []
+        orig = lcnc_trace.emit
+        lcnc_trace.emit = lambda tag, **kw: seen.append((tag, kw))
+        try:
+            asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason="midrun:table_mtime", pinned=True))
+        finally:
+            lcnc_trace.emit = orig
+        self.assertEqual(self.sent, [])
+        self.assertIn(("gcode.refresh_skipped", "no-published-ctx"),
+                      [(t, kw.get("reason")) for t, kw in seen])
+
+    def test_unload_forgets_the_ctx(self):
+        self._load()
+        self.b.clear_preview()
+        self.assertIsNone(self.b.published_ctx)
+        self.assertIsNone(self.b.pinned_ctx(self.ngc))

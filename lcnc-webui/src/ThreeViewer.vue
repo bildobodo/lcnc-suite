@@ -259,7 +259,9 @@ const previewSchemaStale = computed(() => previewSchemaMismatch(viewerGcode.valu
 
 // Preview parsed with a different tool length than the live table now holds
 // for the spindle tool (W2 P4) — the per-line limit flags are stale. The
-// gateway auto-reparses when idle; this is the honest in-run signal.
+// gateway re-parses: when idle, and during a run too (the mid-run tool-table
+// edge, operator 2026-09-29) with the program's start state pinned; this
+// chip covers the seconds until the new payload lands.
 const previewTloStale = computed(() =>
   parseTloMismatch(viewerGcode.value, vst.value?.tool_number, vst.value?.tool_length));
 
@@ -4339,7 +4341,7 @@ defineExpose({
           <div class="progressTrack" :title="fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms)"><div class="progressFill" :style="{ width: previewRefreshPct + '%' }"></div></div>
         </template>
         <div v-else-if="previewWcsStale" class="hudWarn">Preview uses older offsets — re-parses when idle<HelpIcon label="Preview offsets">A work offset changed after parsing — re-parses once the machine is idle.</HelpIcon></div>
-        <div v-if="previewTloStale" class="hudWarn">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parses when idle<HelpIcon label="Preview tool length">T{{ previewTloStale.tool }} was {{ fmtNum(previewTloStale.parsed, 3) }} when parsed, now {{ fmtNum(previewTloStale.live, 3) }} — re-parses once idle.</HelpIcon></div>
+        <div v-if="previewTloStale" class="hudWarn">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parse follows<HelpIcon label="Preview tool length">T{{ previewTloStale.tool }} was {{ fmtNum(previewTloStale.parsed, 3) }} when parsed, now {{ fmtNum(previewTloStale.live, 3) }} — the preview re-parses with it, during a run too.</HelpIcon></div>
         <div v-if="toolpathOverflow" class="hudWarn">{{ toolpathOverflowCount }} limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
       </template>
       <div v-if="failedParts.length" class="hudWarn">{{ failedParts.length }} machine part{{ failedParts.length === 1 ? '' : 's' }} failed to load — check the model files<HelpIcon label="Model parts">Not loaded: {{ failedParts.join(', ') }}.</HelpIcon></div>

@@ -82,6 +82,7 @@ from gateway_util import (
     PREVIEW_SCHEMA,
     evaluate_tlo_drift,
     evaluate_rotary_drift, drift_gate_open, inflight_stale_reason, preview_file_edge_action,
+    midrun_table_gate_open,
     rotary_drift_settled,
     evaluate_kins_drift,
     wcs_offset_flat_from_table,
@@ -1717,6 +1718,33 @@ async def _status_poller():
                 _trace.emit("gcode.schema_stale_reparse", level="warn",
                             published=_bulk.published_schema, expected=PREVIEW_SCHEMA)
                 _bulk.schedule_refresh(st.active_file, "schema", _spawn_preview_task)
+            elif midrun_table_gate_open(
+                # Mid-run tool-table edge (operator 2026-09-29): the program
+                # measured a tool (T13 M600 → G10 L1) and goes on cutting —
+                # the idle edge below never gets its turn before M2, so the
+                # preview stayed muted on the old length for the whole run.
+                # Re-parse NOW with the published parse's start state
+                # PINNED (bulk_pipeline.pinned_ctx) and the table read live,
+                # niced; only the table signals count (evaluate_tlo_drift
+                # table_only) — the run's own G43 / M6 are no drift.
+                st.active_file, _bulk.refresh_running, _bulk.preview_available(),
+                bool(_bulk.published_ctx) and _bulk.published_ctx.get("file") == st.active_file,
+                st.task_mode == linuxcnc.MODE_AUTO,
+                st.interp_state == linuxcnc.INTERP_IDLE,
+                time.monotonic() - _bulk.tlo_check_ts,
+            ):
+                _bulk.tlo_check_ts = time.monotonic()
+                _mdrift = None
+                if _bulk.published_tlo is not None:
+                    _tt_cur, _rows = _tool_table_now(_bulk.published_tlo)
+                    _mdrift = evaluate_tlo_drift(
+                        _bulk.published_tlo, _tt_cur, None, None,
+                        table_rows=_rows, table_only=True)
+                if _mdrift:
+                    _trace.emit("gcode.reparse_table_midrun", reason=_mdrift,
+                                tool=st.tool_number)
+                    _bulk.schedule_refresh(st.active_file, "midrun:" + _mdrift,
+                                           _spawn_preview_task, pinned=True)
             elif (
                 # TLO drift edge (W2 P4): the per-line limit flags bake the
                 # parse-time tool table, so a toolsetter re-measure after
@@ -1737,20 +1765,8 @@ async def _status_poller():
                 _drift = None
                 _tlo_meta = _bulk.published_tlo
                 if _tlo_meta is not None:
-                    _tt_path = _tlo_meta.get("table_path")
-                    try:
-                        _tt_cur = os.path.getmtime(_tt_path) if _tt_path else None
-                    except OSError:
-                        _tt_cur = None
+                    _tt_cur, _rows = _tool_table_now(_tlo_meta)
                     _tofs = st.tool_offset
-                    # Live table rows for every program tool (schema 8): a
-                    # re-measure of a tool that is NOT loaded stales the
-                    # per-segment pose too. STAT was polled this tick.
-                    try:
-                        _rows = [(int(t.id), float(t.zoffset))
-                                 for t in (getattr(STAT, "tool_table", None) or [])]
-                    except (AttributeError, TypeError, ValueError):
-                        _rows = None
                     _drift = evaluate_tlo_drift(
                         _tlo_meta, _tt_cur, st.tool_number,
                         _tofs[2] if _tofs and len(_tofs) > 2 else None,
@@ -3048,6 +3064,24 @@ def reject_if_auto_running() -> Optional[Dict[str, Any]]:
         }
     return None
 
+
+
+def _tool_table_now(tlo_meta):
+    """The tool-table inputs of the TLO drift edges: the table file's time
+    now (None when unreadable) and the live STAT rows [(id, z)] for every
+    tool (schema 8: a re-measure of a tool that is NOT loaded stales the
+    per-segment pose too). STAT was polled this tick."""
+    _tt_path = (tlo_meta or {}).get("table_path")
+    try:
+        cur = os.path.getmtime(_tt_path) if _tt_path else None
+    except OSError:
+        cur = None
+    try:
+        rows = [(int(t.id), float(t.zoffset))
+                for t in (getattr(STAT, "tool_table", None) or [])]
+    except (AttributeError, TypeError, ValueError):
+        rows = None
+    return cur, rows
 
 
 def _spawn_preview_task(coro):

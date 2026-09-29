@@ -85,6 +85,7 @@ from gateway_util import (
     rotary_word_lines, first_rotary_commands, seq_boundary_indices,
     LINE_NONE, LINE_RAPID, LINE_FEED, LINE_EITHER,
     seed_kins_events, program_end_kins_type, wcs_offset_flat_from_var,
+    seeded_tool_meta,
     find_unmarked_subs, resolve_subroutine_dirs,
 )
 
@@ -185,6 +186,24 @@ def parse(ctx: dict) -> dict:
 
     ini = linuxcnc.ini(ini_path)
     random_tc = int(ini.find("EMCIO", "RANDOM_TOOLCHANGER") or 0)
+
+    # The tool table's file time BEFORE the status read (operator
+    # 2026-09-29): a G10 L1 writes the file and io reloads STAT.tool_table
+    # separately — read after the poll, a parse could take the OLD rows and
+    # the NEW time, and the drift edge (time equal) would never re-fire.
+    # Read before it, the worst case is a newer table than its time, which
+    # re-fires once (the `table_row` signal settles it either way).
+    _tt_file = ini.find("EMCIO", "TOOL_TABLE")
+    _tt_path = None
+    _tt_mtime = None
+    if _tt_file:
+        _tt_path = os.path.normpath(os.path.join(
+            os.path.dirname(os.path.abspath(ini_path)),
+            os.path.expanduser(_tt_file)))
+        try:
+            _tt_mtime = os.path.getmtime(_tt_path)
+        except OSError:
+            _tt_mtime = None   # honest None — the drift edge skips mtime then
 
     # Reader-only STAT — shared memory allows multiple readers; no conflict
     # with the gateway's STAT in the parent process.
@@ -1113,10 +1132,14 @@ def parse(ctx: dict) -> dict:
     # the payload bytes are passthrough and never decoded there).
     # table_mtime anchors the broad drift signal: any re-measure writes the
     # file (G10 L1 saves through).
-    _tlo_tools = set(int(t) for t in canon.tools_used)
-    _spindle_tool = int(getattr(s, "tool_in_spindle", 0) or 0)
-    if _spindle_tool > 0:
-        _tlo_tools.add(_spindle_tool)
+    _live_spindle = int(getattr(s, "tool_in_spindle", 0) or 0)
+    _live_applied = getattr(s, "tool_offset", None)
+    # A PINNED parse (the mid-run tool-table edge) reports the start state it
+    # was seeded with, never the running program's own G43 / M6 (see
+    # seeded_tool_meta); the live spindle tool's row still rides parse_tlos.
+    _applied_tlo, _spindle_tool, _tlo_extra = seeded_tool_meta(
+        _live_applied, _live_spindle, ctx.get("seed_tool"))
+    _tlo_tools = set(int(t) for t in canon.tools_used) | _tlo_extra
     parse_tlos = []
     _tlo_seen = set()
     for _t in (getattr(s, "tool_table", None) or []):
@@ -1127,27 +1150,11 @@ def parse(ctx: dict) -> dict:
             _tlo_seen.add(_tid)
             parse_tlos.append([_tid, float(_t.xoffset), float(_t.yoffset),
                                float(_t.zoffset), float(_t.diameter)])
-    _tt_file = ini.find("EMCIO", "TOOL_TABLE")
-    _tt_path = None
-    _tt_mtime = None
-    if _tt_file:
-        _tt_path = os.path.normpath(os.path.join(
-            os.path.dirname(os.path.abspath(ini_path)),
-            os.path.expanduser(_tt_file)))
-        try:
-            _tt_mtime = os.path.getmtime(_tt_path)
-        except OSError:
-            _tt_mtime = None   # honest None — the drift edge skips mtime then
     # The APPLIED tool offset this parse was seeded with + the loaded tool
     # (TWP-09, review 2026-09-14): the drift edge compares the live applied
     # offset with THIS, like with like — the table row is only what a bare
     # G43 would apply; `G43 H<other>` or `G43.1` never matched it and the
     # gateway reparsed every debounce interval forever.
-    _applied = getattr(s, "tool_offset", None)
-    try:
-        _applied_tlo = [float(_applied[i]) for i in range(3)] if _applied is not None else None
-    except (TypeError, IndexError, ValueError):
-        _applied_tlo = None
     print("__TLO__\t" + json.dumps(
         {"table_path": _tt_path, "table_mtime": _tt_mtime, "tlos": parse_tlos,
          "applied_tlo": _applied_tlo, "loaded_tool": _spindle_tool}),
@@ -1401,6 +1408,20 @@ def _on_sigterm(signum, frame):
     raise SystemExit(143)
 
 
+def apply_nice(level) -> None:
+    """Lower this process's CPU priority by `level` (the pinned mid-run
+    parse: it must never take CPU from LinuxCNC's task during a run). A
+    refused nice is reported and the parse goes on — the preview is still
+    wanted, and the trace says it ran un-niced."""
+    if not level:
+        return
+    try:
+        got = os.nice(int(level))
+        print(f"__NICE__\t{got}", file=sys.stderr, flush=True)
+    except (OSError, TypeError, ValueError) as e:
+        print(f"__NICE__\tfailed {type(e).__name__}: {e}", file=sys.stderr, flush=True)
+
+
 def main() -> None:
     import signal
     signal.signal(signal.SIGTERM, _on_sigterm)
@@ -1411,6 +1432,7 @@ def main() -> None:
     except Exception as e:
         print(f"bad context: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
         sys.exit(2)
+    apply_nice(ctx.get("nice"))
     try:
         result = parse(ctx)
     except Exception as e:

@@ -2074,6 +2074,14 @@ class TestInflightDoomedAndRotaryHold(unittest.TestCase):
         self.assertEqual(inflight_doomed_reason(inflight, [3.2, 0.0, 0.0]), "rotary:A")
         self.assertEqual(inflight_doomed_reason(inflight, [0.0, 1.0, -2.0]), "rotary:BC")
 
+    def test_a_pinned_parse_is_never_doomed(self):
+        # The mid-run tool-table parse (operator 2026-09-29) is seeded with
+        # the PUBLISHED start pose on purpose: mid-run the live pose is the
+        # program's own — dooming it would kill every such parse on a 5-axis
+        # run the moment the table moves.
+        inflight = {"rotary_seed": {"A": 0.0, "B": 0.0, "C": 0.0}, "pinned": True}
+        self.assertIsNone(inflight_doomed_reason(inflight, [30.0, 0.0, 90.0]))
+
     def test_no_claim_without_a_snapshot_or_live_data(self):
         self.assertIsNone(inflight_doomed_reason(None, [1.0, 0.0, 0.0]))
         self.assertIsNone(inflight_doomed_reason({"rotary_seed": {"A": 0.0}}, None))
@@ -3811,6 +3819,87 @@ class TestDriftGateOpen(unittest.TestCase):
 
     def test_debounce_is_a_parameter(self):
         self.assertTrue(self._open(since_last_check_s=0.6, debounce_s=0.5))
+
+
+class TestMidrunTableGate(unittest.TestCase):
+    """The mid-run tool-table edge (operator 2026-09-29): a running program
+    measured a tool and keeps cutting — the idle gate never opens before M2,
+    so this edge re-parses during the run, pinned, in AUTO only."""
+
+    def _open(self, **over):
+        kw = dict(active_file="/x.ngc", refresh_running=False, preview_available=True,
+                  pinnable=True, task_mode_auto=True, interp_idle=False,
+                  since_last_check_s=2.5)
+        kw.update(over)
+        return gateway_util.midrun_table_gate_open(**kw)
+
+    def test_open_while_a_program_runs(self):
+        self.assertTrue(self._open())
+
+    def test_idle_is_the_idle_edges_turn(self):
+        self.assertFalse(self._open(interp_idle=True))
+
+    def test_an_mdi_measure_waits_for_the_idle_edge(self):
+        # Measure Current is an MDI: the idle edge re-parses with LIVE seeds
+        # seconds later — a pinned parse there would be wasted work.
+        self.assertFalse(self._open(task_mode_auto=False))
+
+    def test_each_precondition_closes_it(self):
+        self.assertFalse(self._open(active_file=""))
+        self.assertFalse(self._open(refresh_running=True))
+        self.assertFalse(self._open(preview_available=False))
+        self.assertFalse(self._open(pinnable=False))
+        self.assertFalse(self._open(since_last_check_s=1.9))
+
+
+class TestTloDriftTableOnly(unittest.TestCase):
+    """Mid-run only the TABLE signals count: the applied offset and the
+    loaded tool are the running program's own state (its G43, its M6)."""
+
+    META = {"table_path": "/cfg/tool.tbl", "table_mtime": 100.0,
+            "tlos": [[13, 0.0, 0.0, 48.19895, 8.0]],
+            "applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 1}
+
+    def test_the_program_own_g43_and_m6_are_no_drift(self):
+        f = gateway_util.evaluate_tlo_drift
+        # without table_only these would fire (the idle edge's reasons) …
+        self.assertEqual(f(self.META, 100.0, 13, 32.47955), "tool_offset")
+        self.assertEqual(f(self.META, 100.0, 13, 0.0), "tool_loaded")
+        # … mid-run they are the program's state
+        self.assertIsNone(f(self.META, 100.0, 13, 32.47955, table_only=True))
+        self.assertIsNone(f(self.META, 100.0, 13, 0.0, table_only=True))
+
+    def test_a_measured_tool_is_drift(self):
+        f = gateway_util.evaluate_tlo_drift
+        self.assertEqual(f(self.META, 101.0, None, None, table_only=True), "table_mtime")
+        # the file time already new but STAT still reading the old rows
+        # when the parse ran: the rows settle it once STAT has the new length
+        self.assertEqual(f(self.META, 100.0, None, None, table_rows=[(13, 32.47955)],
+                           table_only=True), "table_row")
+        self.assertIsNone(f(self.META, 100.0, None, None, table_rows=[(13, 48.19895)],
+                            table_only=True))
+
+
+class TestSeededToolMeta(unittest.TestCase):
+    """What a parse reports as its tool state (the idle TLO edge's baseline)."""
+
+    def test_an_ordinary_parse_reports_the_live_state(self):
+        self.assertEqual(gateway_util.seeded_tool_meta((0.0, 0.0, 20.0, 0, 0, 0, 0, 0, 0), 3),
+                         ([0.0, 0.0, 20.0], 3, {3}))
+        self.assertEqual(gateway_util.seeded_tool_meta(None, 0), (None, 0, set()))
+
+    def test_a_pinned_parse_reports_its_seed_not_the_running_program(self):
+        # mid-run: the program's G43 H13 applies 32.48 with T13 loaded; the
+        # parse was seeded with the start state (no offset, T1 loaded)
+        applied, loaded, extra = gateway_util.seeded_tool_meta(
+            (0.0, 0.0, 32.48), 13, {"applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 1})
+        self.assertEqual((applied, loaded), ([0.0, 0.0, 0.0], 1))
+        # both rows ride parse_tlos: T13's measured length is the point
+        self.assertEqual(extra, {13, 1})
+        # … so after the run the idle edge sees the program's end state as
+        # ONE drift and re-parses from it
+        meta = {"table_mtime": 5.0, "tlos": [], "applied_tlo": applied, "loaded_tool": loaded}
+        self.assertEqual(gateway_util.evaluate_tlo_drift(meta, 5.0, 13, 32.48), "tool_offset")
 
 
 class TestProgramEndKinsType(unittest.TestCase):

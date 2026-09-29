@@ -802,6 +802,35 @@ single pure implementations shared with the browser), and gates on
 bidirectional 6D joint-space path deviation (deg ≙ mm; wall-clock never
 compared; per-program tolerance absorbs G64 blending).
 
+**Mid-run tool-table re-parse (operator 2026-09-29)**: every drift edge
+above is idle-gated because the worker seeds its start state from the LIVE
+machine (fixture, WCS patches, kins, rotary pose, applied offset, loaded
+tool) — mid-run that is the running program's state, and a parse from it
+describes the program wrongly. But a program that measures its own tool
+(`T13 M600` → G10 L1) cuts right after, the interpreter is not idle again
+before M2, and the preview stayed muted on the old length for the whole
+run. ONE edge re-parses DURING a run: `midrun_table_gate_open` (AUTO mode,
+interpreter busy, a published ctx for the loaded file, 2 s debounce) with
+`evaluate_tlo_drift(table_only=True)` — only `table_mtime` / `table_row`;
+the run's own G43 / M6 are no drift. The parse is PINNED
+(`BulkPipeline.pinned_ctx`): the published parse's ctx verbatim (fixture
+index, WCS var patches, kins type/frame) + its rotary seed (`rotary_pose`)
++ its tool seed (`seed_tool`: applied offset + loaded tool, reported back in
+`__TLO__` through `seeded_tool_meta`) — the tool TABLE is the one input read
+live. So the preview shows the program as the machine executes it: from
+the same start, with the table it now holds. Niced (`PINNED_NICE` 19, the
+worker's first act — not SCHED_IDLE: a PC rendering its own HMI browser
+would starve it), 3× the timeout, its duration never enters the idle
+estimate, a pinned in-flight parse is never doomed by the (program's)
+rotary motion; after the run the idle edge sees the program's end state
+as one `tool_offset` drift and re-parses from live. The worker reads the
+table's file time BEFORE its STAT read (old rows + new time would have
+settled the edge on stale rows; `table_row` re-fires until they agree).
+Residual: the interpreter's spindle pocket (`tools[0]`) is the live one, so
+a `G43` without H before the program's own tool change would use the tool
+the run loaded. Traces `gcode.reparse_table_midrun`, `pinned: true` on
+`spawn_start` / `publish`; banner reason "tool measured (program running)".
+
 **Re-parse cancel-and-restart + visibility (2026-09-05)**: every drift
 edge above used to be gated on "no parse running", so an edge raised
 DURING a parse (a touch-off while the rotary-drift parse from → Zero
