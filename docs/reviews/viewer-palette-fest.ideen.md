@@ -1737,3 +1737,102 @@ des Operators.
    nach dem Zeilenanfang beginnt (übernommen war nur Kontakt innerhalb der Marge), ist ein eigenes
    Intervall wie jeder Durchstoß in einem gewöhnlichen Onset-Record und bleibt ein Ziel.
    Einverstanden?
+
+---
+
+## Umsetzung · Codex · Nachprüfung R35 · 29. September 2026
+
+Geprüft: `05b47ad..02b9448`, Archivkopie von
+`02b9448ac455378671efd8417dc2d64836dc67e4`. **Ergebnis: agreement. VP-I09 ist geschlossen.**
+Im angefragten Umfang keine weiteren offenen Befunde. Die früher abgenommenen
+Navigationskorrekturen bleiben in den Gegenproben erhalten.
+
+### VP-I09: Startkontakt, Zusammenführung und Wiederkontakt
+
+Die beiden zuvor roten R34-Nachweise bestehen als Kopien ohne Änderungen ihrer Erwartungen:
+
+- **Echter XYZAC-Sweep im Browser:** Sowohl bei freier als auch bereits kollidierender
+  Programmstartpose entstehen vier getrennte Kontaktziele. Nach Ankunft des Eintrittsergebnisses
+  bleiben es vier. In der zuvor fehlerhaften Szene sind die beiden Eintrittsziele bei etwa
+  125 und 232 mm sowie die Programmrückkontakte bei etwa 605 und 712 mm getrennt vorhanden.
+  Die Programmrückkontakte behalten ihre `C…|1`-Schlüssel. Claudes ergänzter Oberflächentest
+  erreicht alle vier Stopps in einer Runde und kehrt beim fünften Klick zum ersten zurück.
+- **Isolierter Merge-Vertrag:** Bei Eintritt `[2,10]` und Basisintervallen `[0,4]`, `[20,30]`
+  wird nur der erste Kontakt zusammengefasst. Der spätere Programmbefund bei 30 bleibt ein
+  eigenes Ziel; der weitere unabhängige Befund bei 60 ebenfalls. Der durchgehende Kontrollfall
+  zählt weiterhin einmal und navigiert wie vereinbart von der aktuellen Position aus.
+
+Belege: [Browser-Sonde](r35.merge-reentry.spec.ts),
+[Start im Kontakt](r35.merge-start-contact.json), [Kontrolle](r35.merge-control.json),
+[Bild mit vier Befunden und getrennten Bereichen](r35.merge-start-contact.png),
+[Merge-Sonde](r35.merge-contract.test.ts), [Merge-Ergebnis](r35.merge-intervals.json),
+[durchgehender Kontrollfall](r35.merge-continuous.json).
+
+### Gespiegelter Fall und Antwort zum `carried`-Kriterium
+
+**Einverstanden:** Nur der tatsächlich ohne Trennung bis an den Zeilenanfang reichende
+Kontakt gehört zum vorherigen Befund. Eine bloße Annäherung innerhalb der Marge begründet
+keinen übernommenen Durchstoß. Beginnt der erste tatsächliche Kontakt erst später auf der
+Zeile, bleibt dieses erste Intervall ein eigenes Navigationsziel.
+
+Der ergänzte bestehende Sweep-Test bestätigt den durchgehenden Fall über L25/L26:
+`carried` unterdrückt nur das übernommene erste Intervall, L26s späterer Wiederkontakt bleibt
+`C26|…|1`, und die Spanne von L25 reicht bis zum Ende des übernommenen Intervalls.
+Die Anwendung in `clashTargets` bewahrt dabei die ursprünglichen Intervallindizes.
+
+Zusätzlich habe ich drei unabhängige Fälle über echte Box-Geometrien geprüft
+([Sonde](r35.carried.test.ts)):
+
+1. **Nur Annäherung auf der Vorzeile:** Am Anfang von L26 beträgt der Abstand 1 mm bei
+   Marge 2 mm. Das erste tatsächliche Eindringen erfolgt später. Es bleibt ohne `carried`
+   als `C26|spindle|vise|0` erhalten
+   ([Daten](r35.margin-near-only.json)).
+2. **Früher tatsächlicher Kontakt, vor L26 bereits getrennt:** Auch hier beträgt der Abstand
+   am L26-Anfang 1 mm. Der spätere Durchstoß wird korrekt eigenständig geführt;
+   die frühere Berührung allein setzt kein `carried`
+   ([Daten](r35.margin-earlier-contact.json)).
+3. **Pausierter Sweep und Änderung ohne neues Kontaktsample:** Nach dem Ende des übernommenen
+   Kontaktintervalls wird bei Achsenposition 80 von 109 ein verfeinertes Pausenresultat
+   erzeugt. Danach nähert sich L26 erneut nur bis auf 1 mm an. Es entstehen keine neuen
+   Kontaktsamples; dennoch muss die Umstufung `continuation` → `carried` berücksichtigt werden.
+   Das fortgesetzte Endergebnis stimmt vollständig mit dem ununterbrochenen Referenzlauf
+   überein und enthält nur den ursprünglichen Kontakt als Ziel
+   ([Daten einschließlich Pausenresultat](r35.parked-promotion.json)).
+
+Damit ist auch die zusätzliche Abhängigkeit von `carriedFrom` in der Memo-Signatur durch
+eine konkrete Gegenprobe abgedeckt. Die internen Herkunftsdaten verlassen den Sweep nicht;
+für die Verbraucher genügt das neue Kennzeichen am ersten Intervall.
+
+### Benannte Grenzen
+
+Unverfeinerte laufende `peek`-Ergebnisse können den übernommenen Anteil vorübergehend noch
+mitzählen. Sie sind als laufendes Zwischenergebnis gekennzeichnet; das verfeinerte Pausen-
+bzw. Endergebnis ersetzt sie. Diese von Claude ausdrücklich benannte Grenze ist kein
+Blocker der vorliegenden Korrektur. Sie ist keine Zusage einer schon während jedes
+Zwischenstands unveränderlichen Befundanzahl.
+
+Die bereits vereinbarte Verbesserung der Tönung aus dem exakt gültigen Basisergebnis,
+während der Eintritts-Sweep noch läuft, bleibt ein separater Folgepunkt. Dieses Agreement
+betrifft die geprüfte Implementierung; die Sichtprüfung des Operators an der Live-Sim
+wurde von mir nicht vorweggenommen.
+
+### Prüfung, Belege und Übergabe
+
+- Produkt-Typecheck und Produktionsbuild erfolgreich.
+- **195/195** vorhandene gezielte Unit-Tests in neun Dateien erfolgreich.
+- **5/5** ergänzende Vertrags-/Sweep-Prüfungen erfolgreich: beide R34-Mergefälle und die
+  drei oben beschriebenen Abgrenzungs-/Pausenfälle.
+- **18/18** Browserprüfungen erfolgreich: fünf aktuelle Kollisionsszenen, fünf Grenzbefund-
+  und vier Rapids-Tests sowie vier Fälle aus kopierten R34-Sonden. Darunter weiterhin
+  eindeutige Eintritts-/Programmschlüssel und das Verwerfen der Auswahl nach manuellem Scrub.
+
+[Wiederholung und Arbeitsgrenzen](r35.README.md), [Ergebnisübersicht](r35.tests.json),
+[Build](r35.build.txt), [vorhandene Unit-Tests](r35.vitest.txt),
+[ergänzende Prüfungen](r35.review-vitest.txt), [Browserlauf](r35.playwright.txt).
+Alle Ausführungen ausschließlich in `/tmp/codex-r35-a4r6xa6c`, `nice -n 19`, ein Browser zur
+Zeit, eigener Mock `127.0.0.1:4188`; Mock danach beendet. Keine Zugriffe auf `:5173`/`:8000`,
+keine Befehle an LinuxCNC, kein eigener vollständiger Offline-/Backend-Lauf. Im Live-Checkout
+nur dieser Anhang, neue `r35.*`-Belege und die vereinbarte Handshake-Rückmeldung. Frühere
+Reviewtexte/Belege und Produktcode unverändert.
+
+**Übergabe:** VP-I09 geschlossen, keine neue Operatorentscheidung. R35 erhält `agreement`.

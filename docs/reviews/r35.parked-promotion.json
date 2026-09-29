@@ -1,0 +1,154 @@
+{
+  "parked": {
+    "hits": [
+      {
+        "line": 25,
+        "cum": 40.0001220703125,
+        "cumEnd": 45,
+        "a": "spindle",
+        "b": "vise",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            40.0001220703125,
+            45
+          ]
+        ],
+        "spanCumEnd": 50,
+        "spanEndLine": 26
+      },
+      {
+        "line": 26,
+        "cum": 45,
+        "cumEnd": 50,
+        "a": "spindle",
+        "b": "vise",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 25,
+        "intervals": [
+          [
+            45,
+            50
+          ]
+        ]
+      }
+    ],
+    "staticContacts": [],
+    "samples": 13,
+    "coarsened": false,
+    "uncertified": null,
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 0.22029399999999555,
+    "sweepMs": 10,
+    "truncated": {
+      "covered": 0.7339449541284404,
+      "reason": "stopped"
+    }
+  },
+  "plain": {
+    "hits": [
+      {
+        "line": 25,
+        "cum": 40.0001220703125,
+        "cumEnd": 45,
+        "a": "spindle",
+        "b": "vise",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            40.0001220703125,
+            45
+          ]
+        ],
+        "spanCumEnd": 50,
+        "spanEndLine": 26
+      },
+      {
+        "line": 26,
+        "cum": 45,
+        "cumEnd": 50,
+        "a": "spindle",
+        "b": "vise",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            45,
+            50
+          ]
+        ],
+        "carried": true
+      }
+    ],
+    "staticContacts": [],
+    "samples": 17,
+    "coarsened": false,
+    "uncertified": null,
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 0.220501999999982,
+    "sweepMs": 5.1195120000000145,
+    "truncated": null
+  },
+  "result": {
+    "hits": [
+      {
+        "line": 25,
+        "cum": 40.0001220703125,
+        "cumEnd": 45,
+        "a": "spindle",
+        "b": "vise",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            40.0001220703125,
+            45
+          ]
+        ],
+        "spanCumEnd": 50,
+        "spanEndLine": 26
+      },
+      {
+        "line": 26,
+        "cum": 45,
+        "cumEnd": 50,
+        "a": "spindle",
+        "b": "vise",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            45,
+            50
+          ]
+        ],
+        "carried": true
+      }
+    ],
+    "staticContacts": [],
+    "samples": 17,
+    "coarsened": false,
+    "uncertified": null,
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 0.22029399999999555,
+    "sweepMs": 12,
+    "truncated": null
+  },
+  "targets": [
+    {
+      "cum": 40.0001220703125,
+      "cumEnd": 45,
+      "key": "C25|spindle|vise|0",
+      "line": 25,
+      "rapid": false,
+      "dist": 0,
+      "spanEndLine": 26
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+{
+  "z": [
+    0,
+    -45,
+    -39,
+    -10,
+    -45,
+    0
+  ],
+  "lines": [
+    25,
+    25,
+    25,
+    26,
+    26,
+    26
+  ],
+  "result": {
+    "hits": [
+      {
+        "line": 25,
+        "cum": 40.0001220703125,
+        "cumEnd": 49.99951171875,
+        "a": "spindle",
+        "b": "vise",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            40.0001220703125,
+            49.99951171875
+          ]
+        ]
+      },
+      {
+        "line": 26,
+        "cum": 110.0001220703125,
+        "cumEnd": 119.99951171875,
+        "a": "spindle",
+        "b": "vise",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            110.0001220703125,
+            119.99951171875
+          ]
+        ]
+      }
+    ],
+    "staticContacts": [],
+    "samples": 28,
+    "coarsened": false,
+    "uncertified": null,
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 0.3048780000000022,
+    "sweepMs": 10.291691000000014,
+    "truncated": null
+  },
+  "targets": [
+    {
+      "cum": 40.0001220703125,
+      "cumEnd": 49.99951171875,
+      "key": "C25|spindle|vise|0",
+      "line": 25,
+      "rapid": false,
+      "dist": 0
+    },
+    {
+      "cum": 110.0001220703125,
+      "cumEnd": 119.99951171875,
+      "key": "C26|spindle|vise|0",
+      "line": 26,
+      "rapid": false,
+      "dist": 0
+    }
+  ]
+}

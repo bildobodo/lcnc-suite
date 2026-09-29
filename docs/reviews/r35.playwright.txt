@@ -1,0 +1,27 @@
+
+Running 18 tests using 1 worker
+
+(node:330730) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:330730) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/collisions.viewer.spec.ts:48:1 › a collision jump on the real XYZAC model lands on its line and shows its move — across the entry move (4.3s)
+  ✓   2 e2e/collisions.viewer.spec.ts:82:1 › entry-move and program contacts on the same line and pairs stay apart: a chosen program contact survives the entry result, next reaches every contact once (Codex R33 VP-I07) (7.2s)
+  ✓   3 e2e/collisions.viewer.spec.ts:121:1 › a manual move away and back ends the shown contact for good: next goes by position (Codex R33 VP-I08) (6.8s)
+  ✓   4 e2e/collisions.viewer.spec.ts:166:3 › contacts that separate and come back on one line stay apart, with and without the entry move — a clear first point (control) (Codex R34 VP-I09) (7.1s)
+  ✓   5 e2e/collisions.viewer.spec.ts:166:3 › contacts that separate and come back on one line stay apart, with and without the entry move — the program starts in the contact (Codex R34 VP-I09) (6.6s)
+  ✓   6 e2e/findings.viewer.spec.ts:46:3 › a limit jump lands in the finding and shows its move — no entry move (control) (1.7s)
+  ✓   7 e2e/findings.viewer.spec.ts:46:3 › a limit jump lands in the finding and shows its move — the first jump builds the entry move (1.8s)
+  ✓   8 e2e/findings.viewer.spec.ts:46:3 › a limit jump lands in the finding and shows its move — a 0.1 ms violating move on the time axis (1.8s)
+  ✓   9 e2e/findings.viewer.spec.ts:46:3 › a limit jump lands in the finding and shows its move — two findings 5 ms apart (1.9s)
+  ✓  10 e2e/findings.viewer.spec.ts:72:1 › a limit on a first line of two points lands in the program's move, not on the entry move — first and second jump (1.8s)
+  ✓  11 e2e/r35.collision-key.spec.ts:15:1 › R35 entry and program contacts have unique navigation keys (7.8s)
+  ✓  12 e2e/r35.merge-reentry.spec.ts:18:1 › R35 separated contacts on the same line remain separate: clear first point (control) (6.7s)
+  ✓  13 e2e/r35.merge-reentry.spec.ts:18:1 › R35 separated contacts on the same line remain separate: contact at first point (7.2s)
+  ✓  14 e2e/r35.selection-reset.spec.ts:16:1 › R35 manual scrub away and back permanently ends finding identity (7.1s)
+  ✓  15 e2e/rapids.viewer.spec.ts:19:1 › hidden rapids keep their limit finding; a jump to it shows them for the finding and says so (2.3s)
+  ✓  16 e2e/rapids.viewer.spec.ts:79:3 › a finding's view on hidden rapids is told — hud-off (2.2s)
+  ✓  17 e2e/rapids.viewer.spec.ts:79:3 › a finding's view on hidden rapids is told — folded (2.3s)
+  ✓  18 e2e/rapids.viewer.spec.ts:124:1 › a finding shows its own move of a hidden layer — not the layer (2.0s)
+
+  18 passed (1.3m)
