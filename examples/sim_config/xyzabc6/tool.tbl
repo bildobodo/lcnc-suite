@@ -1,4 +1,19 @@
 T1 P1 Z200.000 D14.000 ; Gantry example, 200 mm gauge length, 14 mm diameter
+T2 P2 Z47.690467 D6.000000 ; 6mm 30° Engraving Tool
+T3 P3 Z22.000000 D6.000000 ; 6mm 45° Engraving Tool
+T4 P4 Z73.168800 D6.000000 ; 6mm 60° Engraving Tool
+T5 P5 Z22.000000 D6.000000 ; 6mm 90° Engraving Tool
+T6 P6 Z60.000000 D6.000000 ; 6mm Ball Endmill
+T7 P7 Z66.000000 D6.000000 ; 6mm Flat Endmill
+T8 P8 Z68.000000 D8.000000 ; 8mm Flat Endmill
+T9 P9 Z56.000000 D10.000000 ; 10mm Spot Drill
+T10 P10 Z49.000000 D12.000000 ; 12mm Flat Endmill
+T11 P11 Z58.000000 D16.000000 ; 16mm Flat Endmill
+T12 P12 Z30.000000 D6.000000 ; Inlay cutter D6x20x50 5.7° R1
+T13 P13 Z65.067133 D8.000000 ; Inlay cutter D8x47x100 3.7° R1
+T14 P14 Z42.540000 D3.000000 ; 3mm tool
+T50 P50 Z50.000000 D50.000000 ; 50mm Face Mill
+T99 P99 Z40.000000 D3.000000 ; 3D Touch Probe
 T1001 P1001 Z50.000000 D12.000000 ; Example / Fusion / Flat end mill - 12 mm
 T1002 P1002 Z40.000000 D8.000000 ; Example / Fusion / Ball end mill - 8 mm
 T1003 P1003 Z45.000000 D10.000000 ; Example / Fusion / Bullnose - 10 mm, R1
