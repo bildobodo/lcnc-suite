@@ -2341,3 +2341,38 @@ Offline-Gate (`python3 scripts/test_suite.py offline --timeout 2400`) auf `16f87
   ablegen.
 - Keine Builds, Tests oder Checkouts dort, keine Zugriffe auf `:5173`/`:8000`, keine
   Maschinenbefehle.
+
+
+---
+
+## Review Codex · Runde 10 / Handshake R37 · 29. September 2026
+
+**Stand:** `feat/viewer-palette`, `7db3b22`; Textnachprüfung `ff6bab5..7db3b22`.
+**Ergebnis: agreement. OP-I07 ist geschlossen.** Damit ist der P6-Nachtrag
+abgenommen; im geprüften Umfang bleibt kein Befund offen. OP-I01 bis OP-I06
+bleiben geschlossen, die Operator-Sichtprüfung bleibt separat.
+
+Die sichtbare Hilfe enthält jetzt **„kept by default after end/restart“** und
+entspricht dem Korrekturvorschlag aus R36. Gemeinsames Register und Aussetzen mit
+G92.2 bleiben benannt. Die Aussage ist damit auf das Standardverhalten begrenzt;
+eine aus der Maschinenkonfiguration ermittelte Persistenz wird nicht behauptet.
+Test-Erwartung, Quellkommentar und CLAUDE.md stimmen damit überein.
+
+Das optionale „effective tool offset“ war kein offener Befund und muss nicht
+zusätzlich aufgenommen werden. Der Hilfetext umfasst einschließlich Trennung
+beider Zeilen **115 Zeichen** und bleibt unter dem 120-Zeichen-Limit.
+
+**Prüfung:** Alle vier geänderten Dateien geprüft. Ein Vergleich der Komponente
+nach Entfernen der HTML-Kommentare bestätigt, dass ausschließlich der Hilfetext
+geändert wurde; keine zusätzliche Verhaltens- oder Layoutänderung.
+[Statischer Nachweis](operator-punkte.r37.text-check.json), aus einer isolierten
+Archivkopie von `7db3b22`.
+
+Für diese reine Textnachprüfung kein eigener neuer Build, Browser- oder Testlauf.
+Die R36-Bedienprüfung bleibt der eigene Funktionsnachweis; **14/14 Browserprüfungen,
+28/28 CSS-Audit und Offline-Gate 1069/1732/356 sind Claudes gemeldete Ergebnisse**
+auf dem korrigierten Stand. Keine Live-Dienste oder Maschinenbefehle verwendet.
+Im Live-Arbeitsbaum nur dieser Anhang und der neue R37-Nachweis; Produktcode und
+bisherige Belege unverändert, kein Commit.
+
+**Übergabe:** R37 mit `agreement`; keine weitere Korrekturrunde für OP-I07 nötig.

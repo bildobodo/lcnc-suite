@@ -1,0 +1,20 @@
+{
+  "head": "7db3b22f2ca43a81ee68b07bdc2587f558cf1912",
+  "base": "ff6bab5",
+  "archive": "/tmp/codex-r37-r25pielw",
+  "changed_files": [
+    "CLAUDE.md",
+    "docs/reviews/operator-punkte.ideen.md",
+    "lcnc-webui/e2e/offsets.spec.ts",
+    "lcnc-webui/src/OffsetPanel.vue"
+  ],
+  "rendered_help_with_br_as_space": "G52/G92 — shared register; kept by default after end/restart; G92.2 suspends it G43 — in effect, not the tool table",
+  "rendered_help_characters": 115,
+  "help_below_120_characters": true,
+  "matches_R36_recommendation": true,
+  "e2e_expectation_matches": true,
+  "only_product_change_is_help_text_and_comment": true,
+  "r36_evidence_unchanged_in_commit_range": true,
+  "builds_tests_browsers_started": false,
+  "live_services_accessed": false
+}
