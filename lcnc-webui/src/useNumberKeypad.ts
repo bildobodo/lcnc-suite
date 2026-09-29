@@ -59,6 +59,8 @@ export const keypadState = reactive({
   /** Bumped by the visibility poll so the strip's owner-veto readout
    *  re-evaluates — DOM visibility (offsetParent) is not reactive. */
   probeTick: 0,
+  /** Bumped by refocusKeypad(): the strip takes the focus back. */
+  focusTick: 0,
 });
 
 let _ownerSeq = 0;
@@ -88,6 +90,14 @@ export function openKeypad(opts: KeypadOpts): void {
   keypadState.locked = false;
   keypadState.seq++;
   keypadState.open = true;
+}
+
+/** The owner was pressed again while its session is open (a label tap, Enter
+ *  on the field Tab reached): the keypad takes the focus back — it holds
+ *  the physical keyboard, a read-only field swallowed every typed digit
+ *  (operator 2026-09-29). */
+export function refocusKeypad(): void {
+  if (keypadState.open && !keypadState.locked) keypadState.focusTick++;
 }
 
 /** End the session. `keepDraft` = the owner's unconfirmed expression is

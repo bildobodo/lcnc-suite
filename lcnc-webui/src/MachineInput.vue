@@ -2,7 +2,7 @@
 import { computed, onUnmounted, ref, useAttrs, watch, type InputHTMLAttributes } from 'vue';
 import { usePermissions, useOwnerPermissions } from './permissions';
 import { INPUT_DEFS, type InputType, type InputDef } from './machineControls';
-import { openKeypad, keypadState, closeKeypadIf, newKeypadOwnerId } from './useNumberKeypad';
+import { openKeypad, keypadState, closeKeypadIf, newKeypadOwnerId, refocusKeypad } from './useNumberKeypad';
 import { openTextSession, closeTextSessionIf, returnFocusTo, inputSession, dropDraft, showInputGlyph, hideInputGlyph, placeInputGlyph, type TextTarget } from './inputSession';
 import { isTouchDevice } from './touchDetect';
 import { useGateExplain } from './gateExplain';
@@ -87,6 +87,16 @@ const constraints = computed<EntryConstraints | null>(() => {
 });
 
 const inputEl = ref<HTMLInputElement | null>(null);
+// A press on a number field takes no focus and starts no selection
+// (operator 2026-09-29): the value is entered on the keypad, which holds the
+// focus for the physical keyboard — a mouse press on the field (a second
+// click, a drag to select the value by habit) moved the focus into the
+// read-only field, and every digit typed after it went nowhere. The click
+// still opens the keypad; Tab still reaches the field, Enter/Space open it.
+function onNumberPointerDown(e: PointerEvent) {
+  explain(e);
+  if (e.button === 0) e.preventDefault();
+}
 // Owner identity for the helper session (UI-13/UI-15): closing is scoped to
 // THIS field — a helper opened for another field is never touched from here.
 const ownerId = props.sessionOwner ?? newKeypadOwnerId(isNumber.value ? 'input' : 'text');
@@ -95,8 +105,9 @@ const isKeypadActive = computed(() => keypadState.open && keypadState.ownerId ==
 function openKeypadFromInput(e: Event) {
   if (isDisabled.value) return;
   // Already this field's session (a second tap on the same field): keep
-  // the expression the operator is typing — re-opening would reset it.
-  if (isKeypadActive.value && !keypadState.locked) return;
+  // the expression the operator is typing — re-opening would reset it —
+  // and give the keypad its focus back if the field took it (a label tap).
+  if (isKeypadActive.value && !keypadState.locked) { refocusKeypad(); return; }
   openKeypad({
     value: keypadDisplayValue.value ?? null,
     label: props.label,
@@ -249,7 +260,7 @@ defineExpose({ inputElement: () => textEl.value ?? inputEl.value });
     :class="{ 'keypad-active': isKeypadActive, compact: def.density === 'compact' }"
     :data-input-area="ownerId"
     :title="fieldTitle"
-    @pointerdown="explain"
+    @pointerdown="onNumberPointerDown"
     @click="openKeypadFromInput"
     @keydown.enter.prevent="openKeypadFromInput"
     @keydown.space.prevent="openKeypadFromInput"

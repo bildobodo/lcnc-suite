@@ -47,6 +47,7 @@ function loadFromState() {
 }
 onMounted(loadFromState);
 watch(() => keypadState.seq, loadFromState);
+watch(() => keypadState.focusTick, () => nextTick(() => rootEl.value?.focus()));
 // The session ended without a verdict (pointer/focus left the area, a text
 // helper took over — closeKeypad(keepDraft)): the expression stays with its
 // owner as a draft. Confirm/Cancel clear `_dirty` first, so they never file.

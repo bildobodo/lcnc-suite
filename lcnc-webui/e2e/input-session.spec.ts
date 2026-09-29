@@ -141,6 +141,53 @@ test("number A → number B: A is not confirmed, its draft returns marked as dra
   await expect(nk.locator("[data-draft]")).toHaveCount(0);
 });
 
+// Operator 2026-09-29: a mouse press on the number field being edited — a
+// second click, a double click, a drag over it to select the value by habit
+// — moved the focus into the read-only field; the keypad (which holds the
+// physical keyboard) got no digit after it. A press on a number field takes
+// no focus and selects nothing; focus that reaches the field another way
+// (Tab back, a label) goes back to the keypad on Enter / the next press.
+test("a click, double click or drag on the open number field selects nothing and the keyboard keeps typing", async ({ page }) => {
+  await open(page);
+  const x = page.locator("input.setupInput").nth(0);
+  const nk = page.locator(".nkStrip");
+  const xBefore = await x.inputValue();
+  await x.click();
+  await page.keyboard.type("1");
+  const selected = () => page.evaluate(() => {
+    const f = document.querySelector("input.setupInput") as HTMLInputElement;
+    return { doc: String(document.getSelection()), field: f.selectionEnd! - f.selectionStart!, focusInField: document.activeElement === f };
+  });
+  const drag = async (overshoot: number) => {
+    const b = (await x.boundingBox())!;
+    await page.mouse.move(b.x + 4, b.y + b.height / 2);
+    await page.mouse.down();
+    for (let i = 1; i <= 8; i++) await page.mouse.move(b.x + 4 + (b.width - 8 + overshoot) * i / 8, b.y + b.height / 2);
+    await page.mouse.up();
+  };
+  await x.click();
+  expect(await selected(), "a second click").toEqual({ doc: "", field: 0, focusInField: false });
+  await page.keyboard.type("2");
+  await x.dblclick();
+  expect(await selected(), "a double click").toEqual({ doc: "", field: 0, focusInField: false });
+  await page.keyboard.type("3");
+  await drag(0);
+  expect(await selected(), "a drag over the field").toEqual({ doc: "", field: 0, focusInField: false });
+  await page.keyboard.type("4");
+  await drag(80);
+  expect(await selected(), "a drag out of the field").toEqual({ doc: "", field: 0, focusInField: false });
+  await page.keyboard.type("5");
+  await expect(nk.locator(".nkExpr")).toHaveText("12345");
+  // Focus that reaches the field another way: Enter on it hands it back.
+  await x.focus();
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("6");
+  await expect(nk.locator(".nkExpr")).toHaveText("123456");
+  await expect(x).toHaveValue(xBefore);
+  expectNoMachineAction(await cmds());
+  await key(nk, "Discard");
+});
+
 test("number → text → number keeps the draft; a tap outside hides the keypad, OK and Cancel return focus", async ({ page }) => {
   await open(page);
   await page.getByRole("tab", { name: "MDI", exact: true }).click();
