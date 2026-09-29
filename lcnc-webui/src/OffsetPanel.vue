@@ -185,8 +185,10 @@ function clearAll() {
           <tr>
             <!-- The rows below the fixtures, explained where it costs no
                  width (the name column is fixed at 56 px): what G52/G92 and
-                 G43 are — a hover title never reaches a touchscreen. -->
-            <th class="colName"><HelpIcon label="Offsets in effect"><strong>G52/G92</strong> — one register; kept after program end and restart, G92.2 suspends it<br><strong>G43</strong> — in effect, not the tool table</HelpIcon></th>
+                 G43 are — a hover title never reaches a touchscreen. "By
+                 default": [RS274NGC] DISABLE_G92_PERSISTENCE = 1 clears them
+                 (Codex R36 OP-I07). -->
+            <th class="colName"><HelpIcon label="Offsets in effect"><strong>G52/G92</strong> — shared register; kept by default after end/restart; G92.2 suspends it<br><strong>G43</strong> — in effect, not the tool table</HelpIcon></th>
             <th v-for="col in offsetColumns" :key="col" class="colVal">{{ col.toUpperCase() }}</th>
           </tr>
         </thead>

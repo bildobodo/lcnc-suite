@@ -52,7 +52,8 @@ test("the rows below the fixtures explain themselves on a tap: G52/G92 is one re
   const help = page.locator(".offsetPanel thead").getByRole("button", { name: "Help: Offsets in effect", exact: true });
   await help.click();
   const pop = page.locator(".helpPopover:popover-open");
-  await expect(pop).toContainText("G52/G92 — one register; kept after program end and restart, G92.2 suspends it");
+  // "by default": DISABLE_G92_PERSISTENCE = 1 clears them (Codex R36 OP-I07)
+  await expect(pop).toContainText("G52/G92 — shared register; kept by default after end/restart; G92.2 suspends it");
   await expect(pop).toContainText("G43 — in effect, not the tool table");
   await help.click();
   await expect(pop).toHaveCount(0);
