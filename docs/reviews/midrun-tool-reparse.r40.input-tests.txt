@@ -1,0 +1,22 @@
+
+Running 11 tests using 1 worker
+
+(node:1297047) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1297047) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/input-session.spec.ts:120:1 › number A → number B: A is not confirmed, its draft returns marked as draft (2.6s)
+  ✓   2 e2e/input-session.spec.ts:150:1 › a click, double click or drag on the open number field selects nothing and the keyboard keeps typing (2.3s)
+  ✓   3 e2e/input-session.spec.ts:191:1 › number → text → number keeps the draft; a tap outside hides the keypad, OK and Cancel return focus (2.7s)
+  ✓   4 e2e/input-session.spec.ts:233:1 › number keypad: X hides and keeps the draft (tap and Tab + Enter), Discard throws it away; both return focus, nothing is sent (2.6s)
+  ✓   5 e2e/input-session.spec.ts:339:1 › tap outside, Tab outside (from the field and from a key) and Close hide the keyboard without confirming; a re-tap re-opens (2.9s)
+  ✓   6 e2e/input-session.spec.ts:444:1 › field contract: every text field is a technical field — no autofill, autocorrect, autocapitalize or spellcheck, a stable name and an accessible name (2.3s)
+  ✓   7 e2e/input-session.spec.ts:483:1 › editor → number → editor keeps the buffer; a hidden tab locks, not ends, the session (3.6s)
+  ✓   8 e2e/input-session.spec.ts:533:1 › offset cell: leaving the tab closes the keypad with its draft; only the visible cell's OK writes, once (2.8s)
+EDITOR_LINES zoom 1: 21.91
+EDITOR_LINES zoom 1.5: 10.34
+  ✓   9 e2e/input-session.spec.ts:765:3 › portrait, touch › editor and search as owners: the readout stays visible and hit-testable at 100 % and 150 %; portrait edit mode folds the idle program controls (5.2s)
+  ✓  10 e2e/input-session.spec.ts:870:3 › D7, touch › the X is each helper's top-right key, 44 × 44 — number keypad and text keyboard, landscape and portrait (5.9s)
+  ✓  11 e2e/input-session.spec.ts:932:3 › D7, touch › the number keypad at 100 % and 150 % portrait: 44 px keys, within the viewport, its owner field in view and not covered (4.2s)
+
+  11 passed (37.8s)

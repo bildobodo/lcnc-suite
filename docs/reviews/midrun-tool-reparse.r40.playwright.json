@@ -1,0 +1,148 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r40-y7evrp6f/lcnc-webui/playwright.r40.config.ts",
+    "rootDir": "/tmp/codex-r40-y7evrp6f/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r40-y7evrp6f/evidence/results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/tmp/codex-r40-y7evrp6f/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/input-session\\.spec\\.ts|r40\\.spec\\.ts/"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "../evidence/midrun-tool-reparse.r40.playwright.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "r40.spec.ts",
+      "file": "r40.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R40: mid-run publication follows position; collision checking resumes on idle",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 10788,
+                  "error": {
+                    "message": "Error: a mid-run publication must not leave the automatic collision result absent after idle\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m",
+                    "stack": "Error: a mid-run publication must not leave the automatic collision result absent after idle\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m\n    at /tmp/codex-r40-y7evrp6f/lcnc-webui/e2e/r40.spec.ts:58:113",
+                    "location": {
+                      "file": "/tmp/codex-r40-y7evrp6f/lcnc-webui/e2e/r40.spec.ts",
+                      "column": 113,
+                      "line": 58
+                    },
+                    "snippet": "  56 |  writeFileSync(new URL('midrun-tool-reparse.r40.midrun-client.json',out),JSON.stringify({before,during,afterIdle,idleControl,cmds},null,2));\n  57 |  await ctl({op:'reset'});\n> 58 |  expect(afterIdle.hits,'a mid-run publication must not leave the automatic collision result absent after idle').toBeGreaterThan(0);\n     |                                                                                                                 ^\n  59 | });\n  60 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r40-y7evrp6f/lcnc-webui/e2e/r40.spec.ts",
+                        "column": 113,
+                        "line": 58
+                      },
+                      "message": "Error: a mid-run publication must not leave the automatic collision result absent after idle\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThan\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: > \u001b[32m0\u001b[39m\nReceived:   \u001b[31m0\u001b[39m\n\n  56 |  writeFileSync(new URL('midrun-tool-reparse.r40.midrun-client.json',out),JSON.stringify({before,during,afterIdle,idleControl,cmds},null,2));\n  57 |  await ctl({op:'reset'});\n> 58 |  expect(afterIdle.hits,'a mid-run publication must not leave the automatic collision result absent after idle').toBeGreaterThan(0);\n     |                                                                                                                 ^\n  59 | });\n  60 |\n    at /tmp/codex-r40-y7evrp6f/lcnc-webui/e2e/r40.spec.ts:58:113"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-29T21:30:32.133Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r40-y7evrp6f/evidence/results/r40-R40-mid-run-publicatio-00472-on-checking-resumes-on-idle/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r40-y7evrp6f/evidence/results/r40-R40-mid-run-publicatio-00472-on-checking-resumes-on-idle/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r40-y7evrp6f/lcnc-webui/e2e/r40.spec.ts",
+                    "column": 113,
+                    "line": 58
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "2a69dba307f83a0fe91c-c826f8b18d75070610e5",
+          "file": "r40.spec.ts",
+          "line": 10,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-09-29T21:30:31.604Z",
+    "duration": 11399.274000000001,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

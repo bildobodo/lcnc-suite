@@ -1,0 +1,35 @@
+
+Running 1 test using 1 worker
+
+(node:1302903) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1302903) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r40.spec.ts:10:1 › R40: mid-run publication follows position; collision checking resumes on idle (10.8s)
+
+
+  1) e2e/r40.spec.ts:10:1 › R40: mid-run publication follows position; collision checking resumes on idle 
+
+    Error: a mid-run publication must not leave the automatic collision result absent after idle
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThan[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: > [32m0[39m
+    Received:   [31m0[39m
+
+      56 |  writeFileSync(new URL('midrun-tool-reparse.r40.midrun-client.json',out),JSON.stringify({before,during,afterIdle,idleControl,cmds},null,2));
+      57 |  await ctl({op:'reset'});
+    > 58 |  expect(afterIdle.hits,'a mid-run publication must not leave the automatic collision result absent after idle').toBeGreaterThan(0);
+         |                                                                                                                 ^
+      59 | });
+      60 |
+        at /tmp/codex-r40-y7evrp6f/lcnc-webui/e2e/r40.spec.ts:58:113
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/r40-R40-mid-run-publicatio-00472-on-checking-resumes-on-idle/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/r40-R40-mid-run-publicatio-00472-on-checking-resumes-on-idle/error-context.md
+
+  1 failed
+    e2e/r40.spec.ts:10:1 › R40: mid-run publication follows position; collision checking resumes on idle 
