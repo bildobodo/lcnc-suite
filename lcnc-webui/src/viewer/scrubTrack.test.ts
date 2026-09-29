@@ -936,6 +936,29 @@ describe("positional run playhead (review P3)", () => {
     expect(lineFirstMoveCum(t, 99)).toBeNull();
   });
 
+  it("a line's move and extent found on the base, read on the entry track — the entry move carries the first line but is none of its moves (Codex R33 VP-I05)", () => {
+    // The first source line L7 spans two points (0 → 10 along Y); the machine
+    // stands 100 mm away, so the entry move ends at the program's first point
+    // — and carries L7 there
+    const base = buildScrubTrack(EMPTY, stream([[0, 0, 0], [0, 10, 0], [10, 10, 0]],
+      { seq: [1, 2, 3], lines: [7, 7, 8] }))!;
+    const entry = prependEntry(base, [-100, 0, 0, 0, 0, 0]);
+    expect(entry.count).toBe(base.count + 1);
+    expect(entry.lines[1]).toBe(7);
+    // By line number on the entry track, L7's "first move" is the entry move
+    expect(lineFirstMoveCum(entry, 7)).toEqual([0, entry.cum[1]]);
+    // Bound to the base: the program's own move, on the entry track's cums
+    expect(lineFirstMoveCum(base, 7, entry)).toEqual([entry.cum[1], entry.cum[2]]);
+    expect(entry.cum[1]).toBeCloseTo(100, 4);
+    expect(entry.cum[2]).toBeCloseTo(110, 4);
+    expect(lineSpanCum(entry, 7)![0]).toBe(0);
+    expect(lineSpanCum(base, 7, entry)).toEqual([entry.cum[1], entry.cum[2]]);
+    expect(lineSpanCum(base, 8, entry)).toEqual([entry.cum[2], entry.cum[3]]);
+    // The base read on itself is unchanged; a shorter track is no entry track
+    expect(lineFirstMoveCum(base, 7, base)).toEqual([base.cum[0], base.cum[1]]);
+    expect(lineFirstMoveCum(entry, 7, base)).toBeNull();
+  });
+
   it("lineRunAround: contiguity disambiguates colliding line numbers (a finding's section, Codex R31 VP-I03)", () => {
     const t = LOOP();
     expect(lineRunAround(t, 1)).toEqual([1, 1]);   // first L7 run

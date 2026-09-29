@@ -6,8 +6,13 @@ export interface ClashTarget {
   /** Where this contact interval ends (a near-miss: its closest approach) —
    *  a jump samples inside [cum, cumEnd] (viewer/findingNav.ts). */
   cumEnd: number;
-  /** Names the interval for prev/next (line, pair, interval). */
+  /** Names the interval for prev/next: origin, line, pair, interval — the
+   *  entry move's contacts (`E`) apart from the program's (`C`), whose keys
+   *  stay the same when the entry result is merged in (Codex R33 VP-I07). */
   key: string;
+  /** A contact on the ENTRY MOVE (the simulation's rapid to the first
+   *  point), not on a program line. */
+  entry?: boolean;
   line: number;
   rapid?: boolean;
   dist?: number;
@@ -31,8 +36,10 @@ export function clashTargets(hits: readonly CollisionHit[]): ClashTarget[] {
     if (h.continuation !== undefined) continue;
     const ivs = h.intervals ?? [[h.cum, h.cumEnd] as [number, number]];
     for (let k = 0; k < ivs.length; k++) {
-      const t: ClashTarget = { cum: ivs[k]![0], cumEnd: ivs[k]![1], key: `C${h.line}|${h.a}|${h.b}|${k}`,
+      const t: ClashTarget = { cum: ivs[k]![0], cumEnd: ivs[k]![1],
+        key: `${h.entry ? "E" : "C"}${h.line}|${h.a}|${h.b}|${k}`,
         line: h.line, rapid: h.rapid, dist: h.dist, spanEndLine: h.spanEndLine };
+      if (h.entry) t.entry = true;
       if (k > 0) t.reentry = true;
       out.push(t);
     }

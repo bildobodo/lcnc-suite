@@ -433,6 +433,7 @@ function togglePlay() {
   }
   if (!enterSim()) return;
   if (sPos.value >= cumMax.value) sPos.value = 0;
+  navSel.value = null;   // playback moves the position: no finding is shown
   applyPos();
   playing.value = true;
   lastT = performance.now();
@@ -445,6 +446,7 @@ function togglePlay() {
  *  programmatic writes never reach here. Play resumes from the scrubbed
  *  position. */
 function onScrubInput() {
+  navSel.value = null;   // the operator took the position over
   emit("manual-scrub");
   if (!playing.value) return;
   playing.value = false;
@@ -694,13 +696,22 @@ const violationsTitle = computed(() => {
 // samples INSIDE the finding's extent — no fixed window decides whether a
 // short move or a close finding is reachable (viewer/findingNav.ts, Codex
 // R32 VP-I06).
-interface FindingTarget { cum: number; cumEnd: number; key: string; line: number; rapid?: boolean; dist?: number; spanEndLine?: number; reentry?: boolean }
+interface FindingTarget { cum: number; cumEnd: number; key: string; line: number; rapid?: boolean; dist?: number; spanEndLine?: number; reentry?: boolean; entry?: boolean }
 /** The finding the last jump showed and where it left the timeline. */
 const navSel = shallowRef<NavSelection | null>(null);
+// Its identity lives only until the timeline leaves the jump's position
+// (Codex R33 VP-I08): ANY other position ends it for good — coming back to
+// the same value by hand is a position, not the finding. Sync: a jump writes
+// the position, then its own selection, in one task. Another displayed track
+// (sim entry, a rebuilt entry move, another program) is a new binding; a
+// jump sets its selection after the entry it caused. A collision result
+// arriving (the entry's side sweep) changes neither and keeps it.
+watch(sPos, p => { if (navSel.value && p !== navSel.value.pos) navSel.value = null; }, { flush: "sync" });
+watch(track, () => { navSel.value = null; }, { flush: "sync" });
 
 const violationTargets = computed<FindingTarget[]>(() => {
-  const t = track.value;
-  if (!t) return [];
+  const t = track.value, b = baseTrack.value;
+  if (!t || !b) return [];
   const seen = new Set<number>();
   const out: FindingTarget[] = [];
   for (const v of violations.value ?? []) {
@@ -708,8 +719,11 @@ const violationTargets = computed<FindingTarget[]>(() => {
     seen.add(v.line);
     // The line's first move (lineFirstMoveCum): it STARTS where the previous
     // move ends — the line's first point is where it ends, and the jump
-    // landed in the next line's move.
-    const move = lineFirstMoveCum(t, v.line);
+    // landed in the next line's move. Found on the BASE track, read on the
+    // displayed one (Codex R33 VP-I05): the entry move ends at the program's
+    // first point and carries its line, so by line number the entry move
+    // was the first line's finding.
+    const move = lineFirstMoveCum(b, v.line, t);
     if (move) out.push({ cum: move[0], cumEnd: move[1], key: `L${v.line}`, line: v.line });
   }
   return out.sort((a, b) => a.cum - b.cum);
@@ -860,7 +874,8 @@ function jumpTo(pick: FindingTarget | null, kind: "limit" | "clash") {
 const textToolLines = computed(() => toolChangeLinesFromText(gcodeContent.value));
 // A tool-change line has no motion of its own: its timeline position is
 // where the next line that has one STARTS moving (lineSpanCum — its first
-// point is where that move already ended).
+// point is where that move already ended). Read on the DISPLAYED track: a
+// change before the first motion runs before the entry move, at its start.
 function cumAtOrAfterLine(t: ScrubTrack, line: number): number | undefined {
   for (let l = line; l <= t.lineIndex.maxLine; l++) {
     const span = lineSpanCum(t, l);
@@ -928,14 +943,15 @@ function mergeSpans(spans: Array<[number, number]>): Array<[number, number]> {
   return out;
 }
 const limitBands = computed(() => {
-  const t = track.value, max = cumMax.value;
+  const t = track.value, b = baseTrack.value, max = cumMax.value;
   const spans: Array<[number, number]> = [];
-  if (!t || max <= 0) return spans;
+  if (!t || !b || max <= 0) return spans;
   const seen = new Set<number>();
   for (const v of violations.value ?? []) {
     if (seen.has(v.line)) continue;
     seen.add(v.line);
-    const span = lineSpanCum(t, v.line);   // a one-move line had no band
+    // a one-move line had no band; the program's line, never the entry move
+    const span = lineSpanCum(b, v.line, t);
     if (span && span[1] > span[0]) spans.push([(span[0] / max) * 100, (span[1] / max) * 100]);
   }
   return mergeSpans(spans);
@@ -1139,7 +1155,7 @@ const moreLabel = computed(() => {
           <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff" aria-label="Next collision" title="Next collision"
                         :reason="hitNavReason"
                         @click="jumpTo(nextHitT, 'clash')"><ChevronRight :size="14" /></MachineBtn>
-          <span class="navTarget val-status mono">{{ nextHitT ? "→ " + (nextHitT.line ? "L" + nextHitT.line : "entry") + (nextHitT.reentry ? " (re-entry)" : "") + (nextHitT.rapid ? " (rapid)" : "") + ((nextHitT.dist ?? 0) > 0.001 ? ` ~${fmtDist(nextHitT.dist ?? 0, linearUnit)}` : "") + ((nextHitT.spanEndLine ?? nextHitT.line) > nextHitT.line ? ` … through L${nextHitT.spanEndLine}` : "") : "" }}</span>
+          <span class="navTarget val-status mono">{{ nextHitT ? "→ " + (nextHitT.line && !nextHitT.entry ? "L" + nextHitT.line : "entry") + (nextHitT.reentry ? " (re-entry)" : "") + (nextHitT.rapid ? " (rapid)" : "") + ((nextHitT.dist ?? 0) > 0.001 ? ` ~${fmtDist(nextHitT.dist ?? 0, linearUnit)}` : "") + ((nextHitT.spanEndLine ?? nextHitT.line) > nextHitT.line ? ` … through L${nextHitT.spanEndLine}` : "") : "" }}</span>
           <span v-if="collisionBusy" class="val-status muted" title="The collision check is still running — positions refine when it ends">so far</span>
           <span v-else-if="collisionStopped && collisionResumable" class="val-status warn" :title="stoppedTitle">in {{ pctOf(collisionStopped.covered) }} swept</span>
         </template>

@@ -804,31 +804,48 @@ export function projectOntoTrack(
   return best;
 }
 
+/** Reads track `t`'s point i as a cum on `on`: `t` itself, or a track built
+ *  from it by PREPENDING points (the entry move, prependEntry) — the same
+ *  point sits `on.count − t.count` later there. The displayed track's own
+ *  cums, never t's cum plus a float shift (float32 cums on a long program).
+ *  null when `on` is not such a track. */
+function cumReader(t: ScrubTrack, on: ScrubTrack): ((i: number) => number) | null {
+  const off = on.count - t.count;
+  if (off < 0) return null;
+  return i => on.cum[i + off]!;
+}
+
 /** A line's extent on the timeline [start, end] in cum: from where its first
  *  move STARTS to its last point; null when the line has no point. A point
  *  carries the line of the move ENDING there, so the line's first point
  *  (lineCumOf) is where that move ends — a finding jumped there landed in
  *  the NEXT line's move and a one-move line's band had no length (found in
- *  Codex R31's section work). */
-export function lineSpanCum(t: ScrubTrack, line: number): [number, number] | null {
+ *  Codex R31's section work). The line is found on `t`; `on` (default `t`)
+ *  is the track the extent is read on — the entry track built from `t`: its
+ *  entry move ENDS at the program's first point and so carries the first
+ *  line, which is no move of that line's in the program (Codex R33 VP-I05). */
+export function lineSpanCum(t: ScrubTrack, line: number, on: ScrubTrack = t): [number, number] | null {
   const r = lineRange(t.lineIndex, line);
-  if (!r) return null;
-  return [r.start > 0 ? t.cum[r.start - 1]! : 0, t.cum[r.end]!];
+  const at = cumReader(t, on);
+  if (!r || !at) return null;
+  return [at(Math.max(0, r.start - 1)), at(r.end)];
 }
 
 /** The cum extent [start, end] of the line's first MOVE that has one — the
  *  first segment of the line whose end lies past its start (a relabel or a
  *  zero-length move has none); the line's first segment when none has. A
  *  finding's jump samples inside it (viewer/findingNav.ts, Codex R32 VP-I06).
- *  null when the line has no point. */
-export function lineFirstMoveCum(t: ScrubTrack, line: number): [number, number] | null {
+ *  null when the line has no point. The move is found on `t` and read on
+ *  `on` (default `t`), as in lineSpanCum. */
+export function lineFirstMoveCum(t: ScrubTrack, line: number, on: ScrubTrack = t): [number, number] | null {
   const r = lineRange(t.lineIndex, line);
-  if (!r) return null;
-  const from = (k: number) => (k > 0 ? t.cum[k - 1]! : 0);
+  const at = cumReader(t, on);
+  if (!r || !at) return null;
+  const from = (k: number) => Math.max(0, k - 1);
   for (let k = r.start; k <= r.end; k++) {
-    if (t.lines[k] === line && t.cum[k]! > from(k)) return [from(k), t.cum[k]!];
+    if (t.lines[k] === line && t.cum[k]! > t.cum[from(k)]!) return [at(from(k)), at(k)];
   }
-  return [from(r.start), t.cum[r.start]!];
+  return [at(from(r.start)), at(r.start)];
 }
 
 /** The contiguous same-line run of track segments around segment i — the

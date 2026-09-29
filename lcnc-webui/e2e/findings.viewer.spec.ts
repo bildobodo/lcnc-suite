@@ -64,3 +64,42 @@ for (const c of [
     }
   });
 }
+
+// The first source line spans two points (Codex R33 VP-I05): the entry move
+// ends at the program's first point and carries its line, so by line number
+// it was L7's "first move" — the jump sat on the entry move's start with the
+// entry rapid shown. The finding is the program's move on the base track.
+test("a limit on a first line of two points lands in the program's move, not on the entry move — first and second jump", async ({ page, context }) => {
+  test.setTimeout(90_000);
+  const payload = { file: "/first-line.ngc", preview_schema: 9, feed: [[0, 0, 0], [0, 10, 0], [10, 10, 0]],
+    feed_lines: [7, 7, 8], feed_seq: [1, 2, 3], feed_outside: new Uint8Array([0, 1, 0]), rapid: [],
+    violations: [{ line: 7, axis: "Y", value: 10, limit: 5, kind: "max" }], violations_total: 1 };
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: Buffer.from(encode(payload)) }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
+    body: Array.from({ length: 10 }, (_, i) => `G1 X${i} F100`).join("\n") }));
+  await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await ctl({ op: "status_delta", data: { active_file: "/first-line.ngc", joint_pos: [-100, 0, 0], actual_position: [-100, 0, 0],
+    g5x_offset: [0, 0, 0], g92_offset: [0, 0, 0], tool_offset: [0, 0, 0], rotation_xy: 0, is_enabled: false, enabled: false } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 2110, file: "/first-line.ngc" } });
+  const next = page.locator('.scrubBar [aria-label="Next limit violation"]');
+  await expect(next).toBeVisible({ timeout: 15_000 });
+  await page.evaluate(() => window.__viewerDiag!.setViewDirection!([0, 0, 1]));
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { viewer: { layers: { toolpath: false, rapids: false } } } } });
+  await expect.poll(() => role(page, "feed")).toBeNull();
+  const slider = page.locator(".scrubBar .sliderInput");
+  for (const click of ["first", "second"]) {
+    await next.click();
+    await expect(page.locator(".simBanner")).toBeVisible();
+    await expect(slider, "the entry move is 100 mm: the track runs to 120").toHaveAttribute("max", "120");
+    // L7's own move, a feed (no rapid marker), behind the 100 mm entry move
+    await expect(line(page), `${click} jump: L7's feed move`).toHaveText(/^L7$/);
+    const at = Number(await slider.inputValue());
+    expect(at, `${click} jump: past the entry move`).toBeGreaterThan(100);
+    expect(at, `${click} jump: inside L7's 10 mm move`).toBeLessThan(110);
+    await expect(page.locator("[data-path-reveal]")).toHaveText("Toolpath shown for this finding — hidden in Layers");
+    const move = (await role(page, "feed"))!;
+    expect(move, "the finding's own move is shown").not.toBeNull();
+    expect(Math.abs(move.dy), "along Y — L7's move").toBeGreaterThan(0.95);
+    expect(await role(page, "limit"), "its limit mark with it").not.toBeNull();
+  }
+});

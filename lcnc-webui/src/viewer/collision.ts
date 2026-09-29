@@ -172,6 +172,11 @@ export interface CollisionHit {
    *  that never separates over thousands of lines keeps only the first
    *  200 records). Absent when the contact ends on the onset line. */
   spanCumEnd?: number;
+  /** Set by mergeEntryResult on the ENTRY MOVE's records: its own sweep,
+   *  whose line is the program's first line (the entry move ends at the
+   *  first point and carries its line) — the same line and pair as a
+   *  program contact, another finding (Codex R33 VP-I07). */
+  entry?: true;
 }
 
 /** What the G-code panel marks: every line in contact, onset or not. */

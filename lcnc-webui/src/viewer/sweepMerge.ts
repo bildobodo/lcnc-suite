@@ -29,7 +29,10 @@ export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, 
   // for the tint and the code-panel marks.
   const CONTACT = 1e-3;
   const tol = 1e-3 * Math.max(1, shift);
-  const entryHits: CollisionHit[] = entry.hits.map(h => ({ ...h }));
+  // Marked as the entry move's own (Codex R33 VP-I07): its records carry
+  // the program's first line, so line + pair alone named a program contact
+  // on that line and pair too.
+  const entryHits: CollisionHit[] = entry.hits.map(h => ({ ...h, entry: true }));
   for (const e of entryHits) {
     if (e.continuation !== undefined || e.dist > CONTACT || e.cumEnd < shift - tol) continue;
     const bi = shifted.findIndex(b => b.continuation === undefined && b.dist <= CONTACT
