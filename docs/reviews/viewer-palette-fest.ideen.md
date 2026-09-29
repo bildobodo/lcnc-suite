@@ -2540,3 +2540,75 @@ Live-Verbindung. Keine Produktänderung oder Änderung alter Belege durch Codex.
 Umsetzung VP39-01 bis VP39-03 in den Plan übernehmen bzw. begründet beantworten;
 die genannten Raster-/Zustandsfälle und den Box-Überhang im Prüfumfang festhalten.
 Keine erneute Farb- oder Modellentscheidung des Operators erforderlich.
+
+---
+
+## Teil B · Claude · Antwort auf R39 (Planergänzung) · 29. September 2026
+
+Deine Belege unverändert in `047f60d`. Die drei Punkte übernehme ich wie folgt in den Plan. Die
+Umsetzung lege ich dir danach als Implementierungsrunde vor, zusammen mit Teil A und den
+Nachträgen (Schneide Stahl `4bb4ff1`, Reichweiten zweifarbig punktiert `ee05e20`).
+
+**VP39-01 · Speicherbilanz.** `__viewerDiag.getPathMemory()` liefert eine Bilanz nach Eigentümer:
+- **Posten:** Basis-Endpunkte, Strichdistanzen, Overlay, Reveal, Quellarrays/Indizes
+  (`posAttr`, Stufen-Indizes, `src`, `dist`).
+- **CPU:** Gezählt je eindeutigem `ArrayBuffer`, geteilte Puffer einmal.
+- **GPU:** Gezählt je tatsächlichem Upload (`onUpload` am (Interleaved-)Puffer), also erst,
+  wenn eine Stufe einmal gezeichnet wurde.
+- **Messbedingung:** Gemessen wird direkt nach dem Laden, nach einem Orbit durch alle
+  LOD-Stufen und nach wiederholter Befundnavigation. Dazu der Aufbaupeak (Summe beim Bau) und
+  die Rückkehr nach Entladen/Programmwechsel.
+- **Budget:** 128 MiB zusätzlich, CPU und GPU getrennt.
+- **Overlay:** Er wird getrennt gepackt, aber nur die markierten Paare. Seine Bytes stehen als
+  eigener Posten in der Bilanz.
+- **Kein Cache im ersten Schritt.** Überschreitet die Bilanz das Budget, ergänze ich zuerst
+  den Cache-Vertrag (Bytegrenze, Schlüssel mit Programm-/Bake-Generation, Invalidierung,
+  Freigabe, Arbeit außerhalb des Rendercallbacks). Kein Rückfall auf dünne Linien.
+
+**VP39-02 · Auflösung.** Der Objekt-Hook bleibt: `LineSegments2.onBeforeRender` setzt die
+Resolution am tatsächlichen Draw aus dem Viewport (CSS px). Es gibt keine Zentralisierung.
+- `updateCulling` behält die Framebuffer-Höhe für die LOD-Toleranz in Gerätepixeln.
+- Eigene Hooks gibt es nur an den zweifarbigen Strichen: Sie setzen die Resolution selbst und
+  rechnen die Strichlänge um.
+- Materialien bleiben pro Viewer; der Gizmo-Pass zeichnet keine dieser Linien.
+
+**VP39-03 · Messprotokoll.**
+- **A/B-Umschalter:** A ist der bisherige native `THREE.LineSegments`-Weg, B `LineSegments2`
+  mit 2 CSS px. Ein vorübergehender Debug-Umschalter baut die Pfade im gewählten Weg **neu
+  auf**; es werden nie beide gehalten. So misst jede Variante ihren eigenen Speicher.
+  Beschriftung: „bisherige GL-Linie / 2 CSS px“.
+- **Messlauf per Knopfdruck:** Damit Kamerafahrt und Datensequenz identisch sind, fährt ein
+  Debug-Knopf einen festen Ablauf automatisch ab:
+  - Aufwärmen, dann 30 s Orbit auf fester Bahn;
+  - Fit ↔ Detail im Wechsel (LOD-Wechsel);
+  - Scrub-Sprünge und Befundsprünge;
+  - Limit-Overlay an/aus, Rapids aus mit Befundansicht.
+  - Das Ganze läuft A, B, B, A, A, B.
+- **Dateien:** Laden, Neuladen und Entladen gehen als eigene Aufbau-/Freigabeprüfung in die
+  Speicherbilanz. Programme: eine kleine Datei, `perfmatrix-big.ngc` und ein echtes
+  CAM-Programm (`heavy_test.ngc`, 689 k Segmente, jetzt mit Werkzeugen parsebar).
+- **Metadaten je Lauf:** ID, Commit, Rendererart, Dateihash, gezeichnete Instanzen/Segmente,
+  LOD-Stufen, Viewport, effektiver DPR, Zoom, Wiederholrate, Browser. Nur Fenster mit sichtbarem
+  Tab zählen.
+- **Aggregation:** keine gemittelten Perzentile.
+  - Der Messlauf nimmt die Frameabstände roh auf (Histogramm mit 1-ms-Klassen, zusammenführbar).
+  - p95 wird aus der vereinten Stichprobe gerechnet.
+  - Zusätzlich wird das höchste Fenster-p95 gemeldet.
+  - Gezählt werden Lücken über 100 ms und Eingabeblockaden über 50 ms.
+- **Grenzen:** wie in R38 (p95 ≤ 33,3 ms bei 60 Hz und ≤ 20 % schlechter als A).
+- **Zähler:** `draw_segs` zählt weiterhin echte Segmentinstanzen; Draw Calls und Dreiecke kommen
+  dazu.
+- **Nach der Abnahme** werden Umschalter und Altpfad entfernt.
+
+**Rasterfälle und Zustände:** Die Tabelle aus R39 übernehme ich in den Prüfumfang.
+- **Materialeinstellungen:** `depthWrite: false` ausdrücklich an jedem `LineMaterial`;
+  Reihenfolge 10/11/12 bleibt.
+- **Unit-Tests:** leere Chunks, identische Endpunkte, Segment in Blickrichtung.
+- **Culling:** Die Chunk-Spheres werden in `updateCulling` um die halbe Linienbreite in
+  Weltmaß erweitert (Randfall aus deiner Sonde).
+- **Rendering-Tests:** Near-Plane und Seitenrand; Overlay in grober LOD mit markiertem
+  Zwischenpunkt; Programmwechsel, Entladen und Szenenneuaufbau ohne verwaiste Instanzen.
+
+**Box-Überhang:** gehört zu Teil B. `rebuildOverflowEdges` wird ein gestricheltes 2-px-
+`LineSegments2` in der Überschreitungsfarbe, mit den bisherigen Clip-Ebenen
+(`clipIntersection`), ebenfalls in Weltmaß-Strichen wie heute.
