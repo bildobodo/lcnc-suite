@@ -15,7 +15,7 @@ import { contrastRgb as contrast, okDistance, hueChroma, type RGB } from "./view
 const css = readFileSync(new URL("./style.css", import.meta.url), "utf8");
 
 const VIEWER_LINES = ["--viewer-feed", "--viewer-rapid", "--viewer-backplot", "--viewer-limit",
-  "--viewer-collision", "--viewer-reach",
+  "--viewer-collision",
   // The tilted work plane's opaque edge (viewer contrast plan, V4).
   "--viewer-plane-active", "--viewer-plane-defined", "--viewer-plane-stale"];
 /** The roles drawn ON the path (or tinting what the path hits): they must
@@ -187,10 +187,12 @@ describe("theme text roles", () => {
   // HC), which a single neutral cannot: it vanished wherever a part had its
   // lightness.
   for (const name of ["root", "dark", "auto-dark", "hc-light", "hc-dark"] as const) {
-    it(`${name}: the boxes are two-tone — one of the tones reads on every grey`, () => {
+    it(`${name}: the boxes and the reach outlines are two-tone — one of the tones reads on every grey`, () => {
       const b = block(THEMES[name]);
       const floor = name.startsWith("hc") ? 4.5 : 3;
       expect(b.get("--viewer-toolpath-bounds"), `${name}: one pair for both boxes`).toBe(b.get("--viewer-bounds"));
+      // the reach outlines draw the same two tones (1 px, dotted)
+      expect(b.get("--viewer-reach"), `${name}: the reach outlines' dark tone`).toBe(b.get("--viewer-bounds"));
       const dark = hex(b.get("--viewer-bounds")!), light = hex(b.get("--viewer-bounds-alt")!);
       for (const t of [dark, light]) expect(hueChroma(t).chroma, `${name}: neutral tones`).toBeLessThan(0.04);
       const weak: number[] = [];

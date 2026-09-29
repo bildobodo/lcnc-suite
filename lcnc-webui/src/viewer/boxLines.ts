@@ -5,7 +5,8 @@
 // had its lightness), so the pair is the same in every theme
 // (`--viewer-bounds` / `--viewer-toolpath-bounds` dark, `--viewer-bounds-alt`
 // light). No casing: both passes are the same width. The machine box has
-// long dashes, the toolpath box short ones and its size labels.
+// long dashes, the toolpath box short ones and its size labels; the reach
+// outlines are the same two tones at 1 px, dotted (makeTwoToneSegments).
 //
 // Both passes are screen-space lines (LineSegments2) over ONE geometry built
 // at the box's real size — never a unit cube under a non-uniform scale, which
@@ -25,6 +26,10 @@ export const TOOLPATH_BOX_PX = 2;
 /** Dash (= gap) length, CSS px: the machine box long, the toolpath box short. */
 export const MACHINE_BOX_DASH_PX = 10;
 export const TOOLPATH_BOX_DASH_PX = 5;
+/** The reach outlines (Machine / Part Reach layers): the same two tones,
+ *  thinner and dotted — context lines, quieter than the boxes. */
+export const REACH_PX = 1;
+export const REACH_DASH_PX = 3;
 
 export interface BoxEdgesOptions {
   /** The dark tone — the role's colour. */
@@ -73,8 +78,14 @@ export function worldPerPixel(camera: THREE.Camera, obj: THREE.Object3D, heightP
   return (2 * dist * Math.tan(THREE.MathUtils.degToRad(persp.fov ?? 45) / 2)) / (persp.zoom || 1) / heightPx;
 }
 
-export function makeBoxEdges(size: [number, number, number], o: BoxEdgesOptions): BoxEdges {
-  const geom = new LineSegmentsGeometry().setPositions(boxEdgePositions(...size));
+/** Any segment soup as a two-tone line: the dark solid pass and the light
+ *  dashes over it, one width, one geometry (the reach outlines use it too). */
+export interface TwoToneLines extends THREE.Group {
+  setColors(color: string, alt: string): void;
+}
+
+export function makeTwoToneSegments(positions: Float32Array, o: BoxEdgesOptions & { renderOrder?: number }): TwoToneLines {
+  const geom = new LineSegmentsGeometry().setPositions(positions);
   const material = (color: string, role: string) => {
     const m = new LineMaterial({ color, linewidth: o.width, worldUnits: false });
     m.userData.role = role;
@@ -86,10 +97,11 @@ export function makeBoxEdges(size: [number, number, number], o: BoxEdgesOptions)
   dashMat.dashed = true;
   const solid = new LineSegments2(geom, solidMat);
   const dashes = new LineSegments2(geom, dashMat);
-  dashes.renderOrder = 1;
+  solid.renderOrder = o.renderOrder ?? 0;
+  dashes.renderOrder = solid.renderOrder + 1;
   dashes.computeLineDistances();
   solid.onBeforeRender = (renderer) => { renderer.getSize(solidMat.resolution); };
-  const group = new THREE.Group() as BoxEdges;
+  const group = new THREE.Group() as TwoToneLines;
   // Object3D's full signature: LineSegments2 declares a renderer-only one.
   (dashes as THREE.Object3D).onBeforeRender = (renderer, _scene, camera) => {
     renderer.getSize(dashMat.resolution);
@@ -100,14 +112,20 @@ export function makeBoxEdges(size: [number, number, number], o: BoxEdgesOptions)
   };
   group.add(solid, dashes);
   group.setColors = (color, alt) => { solidMat.color.set(color); dashMat.color.set(alt); };
+  return group;
+}
+
+export function makeBoxEdges(size: [number, number, number], o: BoxEdgesOptions): BoxEdges {
+  const group = makeTwoToneSegments(boxEdgePositions(...size), o) as BoxEdges;
+  const [solid, dashes] = group.children as LineSegments2[];
   // A new geometry per size: replaced attributes of a live geometry keep
   // their GL buffers until the geometry itself is disposed.
   group.setSize = (sx, sy, sz) => {
-    const old = solid.geometry;
+    const old = solid!.geometry;
     const next = new LineSegmentsGeometry().setPositions(boxEdgePositions(sx, sy, sz));
-    solid.geometry = next;
-    dashes.geometry = next;
-    dashes.computeLineDistances();
+    solid!.geometry = next;
+    dashes!.geometry = next;
+    dashes!.computeLineDistances();
     old.dispose();
   };
   return group;

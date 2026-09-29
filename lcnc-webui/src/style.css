@@ -162,7 +162,8 @@
      criterion). The two boxes are TWO-TONE and the same in every theme
      (--viewer-bounds dark, --viewer-bounds-alt light, alternating dashes —
      viewer/boxLines.ts): one of the two reads on any background and any
-     grey. The collision is a body; limits keep the warn family everywhere
+     grey; the reach outlines are the same two tones (--viewer-reach), 1 px
+     and dotted. The collision is a body; limits keep the warn family everywhere
      (overlay, timeline marks, line numbers). Tool and cutter are lit
      meshes: the cutter bright steel (lighter than every model part and
      ≥ 0.25 OKLab from every line role — the gold it replaced sat 0.12 from
@@ -180,7 +181,7 @@
   --viewer-bounds: #15181c;
   --viewer-toolpath-bounds: #15181c;
   --viewer-bounds-alt: #f0f2f4;
-  --viewer-reach: #6b7280;
+  --viewer-reach: #15181c;
   --viewer-tool: #6b7178;
   --viewer-cutter: #eceff1;
 
@@ -349,7 +350,7 @@
     --viewer-bounds: #15181c;
     --viewer-toolpath-bounds: #15181c;
     --viewer-bounds-alt: #f0f2f4;
-    --viewer-reach: #6b7280;
+    --viewer-reach: #15181c;
     --viewer-tool: #6b7178;
     --viewer-cutter: #eceff1;
   }
@@ -391,7 +392,7 @@
   --viewer-bounds: #15181c;
   --viewer-toolpath-bounds: #15181c;
   --viewer-bounds-alt: #f0f2f4;
-  --viewer-reach: #6b7280;
+  --viewer-reach: #15181c;
   --viewer-tool: #6b7178;
   --viewer-cutter: #eceff1;
 }
@@ -432,7 +433,7 @@
   --viewer-bounds: #15181c;
   --viewer-toolpath-bounds: #15181c;
   --viewer-bounds-alt: #f0f2f4;
-  --viewer-reach: #6b7280;
+  --viewer-reach: #15181c;
   --viewer-tool: #6b7178;
   --viewer-cutter: #eceff1;
 }
@@ -483,7 +484,7 @@
   --viewer-bounds: #000000;
   --viewer-toolpath-bounds: #000000;
   --viewer-bounds-alt: #ffffff;
-  --viewer-reach: #6b7280;
+  --viewer-reach: #000000;
   --viewer-tool: #4b5057;
   --viewer-cutter: #b8bec4;
 }
@@ -533,7 +534,7 @@
   --viewer-bounds: #000000;
   --viewer-toolpath-bounds: #000000;
   --viewer-bounds-alt: #ffffff;
-  --viewer-reach: #78808b;
+  --viewer-reach: #000000;
   --viewer-tool: #8a9097;
   --viewer-cutter: #f0f2f4;
 }

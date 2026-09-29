@@ -6,7 +6,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Text } from "troika-three-text";
 import { LABEL_FONT_URL } from "./viewer/labelFont";
 import { resolveViewerPalette, type ViewerPalette } from "./viewer/viewerPalette";
-import { makeBoxEdges, MACHINE_BOX_PX, MACHINE_BOX_DASH_PX, type BoxEdges } from "./viewer/boxLines";
+import { makeBoxEdges, makeTwoToneSegments, MACHINE_BOX_PX, MACHINE_BOX_DASH_PX, REACH_PX, REACH_DASH_PX, type BoxEdges, type TwoToneLines } from "./viewer/boxLines";
 import { buildToolGeometries, type ToolMeta } from "./toolGeometry";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
@@ -3134,8 +3134,8 @@ let _reachPartOn = false;
 let _reachKey = "";                       // inputs the cached data was computed from
 let _reachPendingKey = "";
 let _reachData: { roomLines: Float32Array; partLines: Float32Array | null; info: ReachInfo } | null = null;
-let reachRoomMesh: THREE.Group | null = null;
-let reachPartMesh: THREE.Group | null = null;
+let reachRoomMesh: TwoToneLines | null = null;
+let reachPartMesh: TwoToneLines | null = null;
 let _reachTimer: ReturnType<typeof setTimeout> | undefined;
 
 function _reachInputsKey(): string | null {
@@ -3208,18 +3208,12 @@ function _reachDispose(g: THREE.Group | null) {
 }
 
 /** One outline as a line-segment soup the worker built (hull creases or
- *  the swept solid's cage), in the bounds colour, slightly transparent so
- *  the bounds box stays the crisp one. */
-function _reachSolidGroup(lines: Float32Array, color: string): THREE.Group {
-  const geom = new THREE.BufferGeometry();
-  geom.setAttribute("position", new THREE.BufferAttribute(lines, 3));
-  const edges = new THREE.LineSegments(geom, new THREE.LineBasicMaterial({
-    color, transparent: true, opacity: 0.6, depthWrite: false,
-  }));
-  edges.renderOrder = 3;
-  const g = new THREE.Group();
-  g.add(edges);
-  return g;
+ *  the swept solid's cage): TWO-TONE like the boxes (operator 2026-09-29 —
+ *  a mid grey vanished on the grey-ladder model), 1 px and dotted so the
+ *  boxes stay the stronger lines; opaque like every role line. */
+function _reachSolidGroup(lines: Float32Array): TwoToneLines {
+  return makeTwoToneSegments(lines, { color: palette.reach, alt: palette.boundsAlt,
+    width: REACH_PX, dashPx: REACH_DASH_PX, role: "reach", renderOrder: 3 });
 }
 
 /** (Re)build the scene objects from the cached solids under the current
@@ -3230,12 +3224,11 @@ function _reachBuildMeshes() {
   const d = _reachData;
   const roomParent = machineFrameGrp ?? _workGrp;
   if (!d || !roomParent) { requestRender(); return; }
-  const color = palette.reach;
-  reachRoomMesh = _reachSolidGroup(d.roomLines, color);
+  reachRoomMesh = _reachSolidGroup(d.roomLines);
   reachRoomMesh.visible = _reachRoomOn;
   roomParent.add(reachRoomMesh);
   if (d.partLines && _workGrp && _workGrp !== roomParent) {
-    reachPartMesh = _reachSolidGroup(d.partLines, color);
+    reachPartMesh = _reachSolidGroup(d.partLines);
     reachPartMesh.visible = _reachPartOn;
     _workGrp.add(reachPartMesh);
   }
@@ -4172,7 +4165,7 @@ function refreshPalette() {
   toolpath.setColors(palette);
   backplot.setColor(palette.backplot);
   machineBoundsMesh?.setColors(palette.bounds, palette.boundsAlt);
-  for (const g of [reachRoomMesh, reachPartMesh]) g?.traverse(o => { const m = (o as THREE.Mesh).material as THREE.Material & { color?: THREE.Color }; m?.color?.set(palette.reach); });
+  for (const g of [reachRoomMesh, reachPartMesh]) g?.setColors(palette.reach, palette.boundsAlt);
   MAT.tool.color.set(palette.tool);
   MAT.cutter.color.set(palette.cutter);
   for (const mesh of [...machineMeshes, toolCutterMesh, toolBodyMesh]) {
