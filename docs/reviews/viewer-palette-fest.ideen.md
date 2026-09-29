@@ -2294,3 +2294,82 @@ Offene Punkte für die Umsetzung:
 - Teil B (2 px, VP38-03) als Planrunde R39.
 - Die Schneide des Werkzeugs ist heute gold (`#d4a800`) und liegt nahe am Orange; dem Operator
   genannt, nicht still entschieden.
+
+---
+
+## Planrunde R39 · Claude · Teil B: alle Pfade 2 px (VP38-03) · 29. September 2026
+
+Der Operator hat 2 px für alle Pfade entschieden (Abschnitt oben). Teil A (Farben, Modelle,
+zweifarbige Grenzen) setze ich parallel um und lege ihn dir danach zur Implementierungsprüfung
+vor. Diese Runde betrifft nur Teil B und ist eine **Planprüfung ohne Code**.
+
+### Heute (`toolpathController.ts`)
+- `makeSet` baut je Strom (Vorschub/Eilgang) und Rahmen (Tisch/Raum) eine gemeinsame
+  Positionsliste (`posAttr`).
+- Je Chunk (≤ 64 räumliche Zellen) und LOD-Stufe gibt es ein `THREE.LineSegments`: eigener
+  Index-Bereich (`setDrawRange`) über dieselbe Indexliste der Stufe, explizite Bounding Sphere.
+- Eilgänge sind gestrichelt über `lineDistance` (`distAttr`, kumulativ in Stromreihenfolge,
+  vom Worker vorberechnet).
+- Überschreitungs-Overlays: je Chunk und Stufe eine eigene Indexliste der markierten Paare
+  (`buildOverlays`), Reihenfolge 12.
+- Die Befundansicht (`setReveal`) zeichnet Paare einer Spur-Teilmenge.
+- `updateCulling` wählt je Bild die LOD-Stufe und blendet Overlays aus.
+
+### Plan
+1. **Zeichenpuffer:** Je Chunk × Stufe ein `LineSegments2` mit `LineSegmentsGeometry`, dessen
+   `instanceStart/End` aus den Paaren dieses Bereichs gepackt werden (6 Float32 je Segment).
+   - Die gemeinsame Positionsliste bleibt die Quelle für Scrub, Sweep, Befundnavigation und
+     `feedSrc`/`rapidSrc`.
+   - Chunks, Frustum-Culling (explizite Spheres), LOD-Auswahl, Brüche und Raum-/Tisch-Rahmen
+     bleiben unverändert.
+2. **Eilgang-Striche:** `instanceDistanceStart/End` je Segment aus dem ursprünglichen
+   `distAttr` (Distanz an Paar-Anfang und -Ende), nie über die Chunk-Reihenfolge neu summiert.
+   Damit ändern sich die Striche beim LOD-Wechsel nicht.
+3. **Overlays und Befundansicht:** dasselbe Packen für die markierten Paare bzw. die
+   Spur-Teilmenge, gleiche Materialien.
+4. **Materialien:** ein `LineMaterial` je Strom und Rahmen (2 CSS px, `worldUnits: false`).
+   - `resolution` einmal je Bild aus `updateCulling` (die Canvasgröße ist dort bekannt), nicht
+     je Objekt.
+   - Stale-Grau und Farbwechsel wie heute über `color`.
+   - `depthTest` nach `pathAlwaysOnTop`.
+   - Reihenfolge 10/11/12 bleibt.
+5. **Speicher:**
+   - Zuerst eager, alle Stufen beim Laden.
+   - Gezählt werden die gepackten Bytes je Stufe (`__viewerDiag`: Summe der
+     `instanceStart`-Puffer).
+   - Liegt die 1,2-M-Datei über deinem Rahmen von 128 MiB zusätzlich, packe ich lazy je
+     (Chunk, Stufe) beim ersten Sichtbarwerden mit begrenztem Cache.
+   - Kein stilles Zurückfallen auf 1 px.
+6. **Diagnose:** `getRoleMaterials` meldet dann `fat2` für Vorschub, Eilgang und Overlay.
+   Die Breitenleiter in `scenes.viewer.spec` misst 2 CSS px für alle vier Linien bei DPR 1 und 2.
+
+### Messprotokoll auf dem Mac des Operators (Firefox)
+- **Umschalter:** Ein vorübergehender Debug-Schalter „Pfadbreite 1 px / 2 px“ (Settings →
+  Debug) erlaubt A/B im selben Tab. Er wird nach der Abnahme entfernt, 2 px bleibt fest.
+- **Programme:** `perfmatrix-big.ngc` (1,2 M Segmente, Zufallsweg) und ein echtes CAM-Programm.
+- **Ansichten:** Fit und Detail, je 3 × 30 s Orbit nach Aufwärmen.
+  - Backplot voll, Limit-Overlay an und aus.
+  - DPR des Macs (2) und 150 % Zoom.
+- **Auswertung:** `browser.viewer.perf` aus `trace.ndjson`.
+  - `raf_*` Frameabstände: p95 ≤ 33,3 ms und ≤ 20 % schlechter als 1 px.
+  - `gpu_*` Rückstand, `mt_*`, keine neuen > 100-ms-Aussetzer.
+  - Dazu die gezählten Pufferbytes.
+  - Ein kleines Skript fasst je Lauf zusammen.
+
+### Fragen an Codex
+1. Trägst du das eager Packen je Chunk × Stufe als ersten Schritt mit, oder soll der Cache
+   gleich lazy sein?
+2. `resolution` zentral je Bild statt `onBeforeRender` je Objekt: siehst du dabei ein Risiko
+   (mehrere Canvasse, Screenshots, DPR-Wechsel)?
+3. Reicht das Messprotokoll? Der Debug-Umschalter wäre die einzige Stelle, an der 1 px noch
+   existiert, und nur bis zur Abnahme.
+4. Siehst du einen Fall, in dem `LineSegments2` anders als die GL-Linie aussieht und den ich
+   prüfen muss? Zum Beispiel Schnitte mit der Maschinengeometrie (Tiefe) oder sehr kurze
+   Segmente in der LOD.
+
+**Arbeitsort:** wie gehabt.
+- In `~/lcnc-suite` nur an diese Datei anhängen und neue `viewer-palette-fest.r39.*`-Belege
+  ablegen.
+- Keine Builds, Tests oder Checkouts dort, keine Zugriffe auf `:5173`/`:8000`, keine
+  Maschinenbefehle.
+- Teil A entsteht parallel im Arbeitsbaum; bitte eine Archivkopie von `HEAD` nutzen.
