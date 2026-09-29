@@ -347,6 +347,12 @@ info "Building the 6-axis TWP kinematics component..."
 sudo halcompile --install "$TARGET_DIR/examples/sim_config/twp/xyzacb_trsrn.comp"
 ok "TWP kinematics installed"
 
+# The sim configs' tool setter: trips the probe where a real tool setter
+# would (hallib/sim_toolsetter.hal) — every sim profile loads it.
+info "Building the simulated tool setter component..."
+sudo halcompile --install "$TARGET_DIR/examples/sim_config/sim_toolsetter/sim_toolsetter.comp"
+ok "Simulated tool setter installed"
+
 # Local INI settings stay operator-owned. Report functional template drift;
 # shared code follows the checkout and per-install secrets are excluded.
 if python3 "$TARGET_DIR/scripts/config_sync_check.py" \

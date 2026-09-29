@@ -24,6 +24,7 @@ import argparse
 import difflib
 import os
 import json
+import shutil
 from pathlib import Path
 
 from install_examples import render_ini
@@ -76,6 +77,51 @@ def drifted_lines(repo_text, deployed_text):
             if ln.strip() and not ln.lstrip().startswith(("#", ";")) and not LOCAL_LINE_RE.match(ln):
                 local.append((j + 1, ln))
     return missing, local
+
+
+#: Realtime components the sim configs load, built by install.sh with
+#: `sudo halcompile --install` — a missing one makes LinuxCNC refuse the
+#: HAL file that loads it ("module not found").
+SIM_COMPONENTS = {
+    "sim_toolsetter": "sim_toolsetter/sim_toolsetter.comp",
+    "xyzacb_trsrn": "twp/xyzacb_trsrn.comp",
+}
+
+
+def rtlib_dir(launcher=None):
+    """LinuxCNC's realtime module directory, as its `linuxcnc` launcher
+    script sets LINUXCNC_RTLIB_DIR (a package or a run-in-place build).
+    None when the launcher or the line is not found — no claim then."""
+    launcher = launcher or shutil.which("linuxcnc")
+    if not launcher:
+        return None
+    try:
+        with open(launcher, errors="replace") as f:
+            for line in f:
+                if line.startswith("LINUXCNC_RTLIB_DIR="):
+                    return line.split("=", 1)[1].strip().strip('"')
+    except OSError:
+        return None
+    return None
+
+
+def check_components(repo_dir, out=sys.stdout, modules=None):
+    """Report every sim component whose module is not installed. Returns the
+    number missing (0 = all present, or the module dir is unknown)."""
+    modules = modules if modules is not None else rtlib_dir()
+    if not modules:
+        print("\n[COMPONENT] LinuxCNC's module directory not found — "
+              "sim components not checked", file=out)
+        return 0
+    missing = 0
+    for name, source in SIM_COMPONENTS.items():
+        if os.path.exists(os.path.join(modules, name + ".so")):
+            continue
+        missing += 1
+        print(f"\n[COMPONENT] {name} is not installed in {modules} — the sim "
+              f"configs that load it will not start. Run:\n  sudo halcompile --install "
+              f"{os.path.join(os.path.abspath(repo_dir), source)}", file=out)
+    return missing
 
 
 def check(repo_dir, deployed_dir, out=sys.stdout):
@@ -151,6 +197,7 @@ def main():
     n = check(a.repo, a.deployed)
     if n < 0:
         return 2
+    n += check_components(a.repo)
     if n == 0:
         print("config sync: deployed config matches the repo templates "
               "(per-install settings lines and runtime artifacts excluded)")

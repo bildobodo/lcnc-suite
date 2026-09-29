@@ -16,14 +16,16 @@ implementation and acceptance tests, not copying the head's remaps.
 ## Install and run
 
 Run `./install.sh` from the checkout. It installs the three profiles under
-`~/linuxcnc/configs/lcnc_suite_sim/` and compiles the 6-axis runtime kinematics
-with `halcompile` (LinuxCNC development tools are installed if missing).
+`~/linuxcnc/configs/lcnc_suite_sim/` and compiles two realtime components with
+`halcompile` — the 6-axis runtime kinematics and the simulated tool setter
+(LinuxCNC development tools are installed if missing).
 Stop LinuxCNC before updating the examples. For an existing suite installation,
 update only the examples with:
 
 ```sh
 python3 scripts/install_examples.py
 sudo halcompile --install examples/sim_config/twp/xyzacb_trsrn.comp
+sudo halcompile --install examples/sim_config/sim_toolsetter/sim_toolsetter.comp
 linuxcnc ~/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_3axis_xyz.ini
 # Or choose lcnc_suite_sim_5axis_xyzac.ini / lcnc_suite_sim_6axis_twp_xyzabc.ini.
 ```
@@ -47,6 +49,32 @@ most of the program panel for the file list while Browse is open. An upgrade
 corrects the initial 5-axis profile's `xyzac5` browser root, which accidentally
 exposed machine state instead of the shared programs. Custom program folders
 are preserved. Restart the suite after changing this INI setting.
+
+## Simulated tool setter
+
+The sim configs have no probe hardware. The WebUI's *Simulate probe trip* pulses
+the probe input by hand (work probing); for the **tool setter** the probe trips by
+itself, where a real tool setter would: `hallib/sim_toolsetter.hal` (sourced by
+every `core_sim_*.hal`) routes `motion.probe-input` through the realtime
+component `sim_toolsetter`, which compares in the servo thread — the control
+point inside the plate's X/Y window (±25 mm) and its Z minus the spindle tool's
+**table length** at or below the plate surface. `sim_toolsetter/sim_toolsetter_feed.py`
+sets the plate from the WebUI's tool setter position (`#3100` / `#3101` /
+`#3102`, re-read from the var file) and the length from the tool table.
+
+- The table length is the sim's physical length of the tool: a measurement
+  returns it (to a servo period at the slow probe feed) and nothing drifts.
+- A tool without a table length, or an empty spindle: nothing trips, the probe
+  finds nothing — as on a machine without a tool setter.
+- The tool is taken as vertical (the TWP gantry's head must stand at B0/C0).
+- The comparison is faithful: after the fast probe the machine decelerates past
+  the trip point; if the retract (`#3009`, *Retract distance*) does not clear
+  that overshoot, the slow probe starts with the probe still pressed and
+  LinuxCNC stops with "probe already tripped" — as a real machine would. Keep
+  the fast probe feed moderate (e.g. 500 mm/min with a 2 mm retract).
+
+`scripts/config_sync_check.py` reports a component that is not installed, with
+the `halcompile` command.
 
 ## Updating existing installations
 

@@ -1,0 +1,33 @@
+# Simulated tool setter — LCNC Suite sim configs only (a real machine has a
+# real probe and never loads this). Sourced by core_sim_{3,5,6}.hal in place
+# of their `net probe-in => motion.probe-input`.
+#
+# motion.probe-input = the WebUI's manual trip (signal probe-in, "Simulate
+# probe trip") OR the tool tip reaching the tool setter plate. sim_toolsetter
+# compares in the servo thread: the control point (the joint 0..2 positions)
+# inside the plate's X/Y window, and its Z minus the spindle tool's TABLE
+# length at or below the plate surface. sim_toolsetter_feed.py sets the plate
+# (#3100 / #3101 / #3102 from the var file) and the table length — the sim's
+# physical tool length, so a measurement returns it and nothing drifts.
+#
+# The component is built by install.sh (`sudo halcompile --install
+# sim_toolsetter/sim_toolsetter.comp`); without it LinuxCNC refuses this file
+# ("module not found") and scripts/config_sync_check.py names the command.
+
+loadrt sim_toolsetter
+addf sim-toolsetter.0 servo-thread
+setp sim-toolsetter.0.radius 25
+
+loadusr -Wn sim-toolsetter-feed python3 sim_toolsetter/sim_toolsetter_feed.py
+
+net Xpos => sim-toolsetter.0.x
+net Ypos => sim-toolsetter.0.y
+net Zpos => sim-toolsetter.0.z
+net sim-ts-plate-x  sim-toolsetter-feed.plate-x     => sim-toolsetter.0.plate-x
+net sim-ts-plate-y  sim-toolsetter-feed.plate-y     => sim-toolsetter.0.plate-y
+net sim-ts-plate-z  sim-toolsetter-feed.plate-z     => sim-toolsetter.0.plate-z
+net sim-ts-length   sim-toolsetter-feed.tool-length => sim-toolsetter.0.tool-length
+net sim-ts-enable   sim-toolsetter-feed.enable      => sim-toolsetter.0.enable
+
+net probe-in => sim-toolsetter.0.manual
+net probe-input sim-toolsetter.0.out => motion.probe-input

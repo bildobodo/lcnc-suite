@@ -47,7 +47,8 @@
     "remap_subs",
     "twp",
     "machine-5axis-xyzac",
-    "machine-xyzacb-gantry"
+    "machine-xyzacb-gantry",
+    "sim_toolsetter"
   ],
   "retired": [
     "lcnc_suite_sim.ini",

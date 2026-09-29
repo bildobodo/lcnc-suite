@@ -1,0 +1,50 @@
+component sim_toolsetter "Simulated tool setter for the LCNC Suite sim configs: the probe input trips where a real tool setter would";
+
+description
+"""
+The sim configs have no probe hardware: the WebUI's "Simulate probe trip"
+pulses the \\fBprobe-in\\fR signal by hand. For the tool setter this
+component trips the probe itself, in the servo thread, when the tool TIP
+reaches the plate: the control point (joints 0..2, the slide positions) is
+inside the plate's X/Y window and its Z minus the spindle tool's TABLE
+length is at or below the plate surface. The table length is the sim's
+physical length of the tool, so a measurement returns it (to a servo
+period of the probe feed) and nothing drifts from run to run.
+
+The plate (the WebUI's tool setter position, #3100 / #3101 / #3102 in the
+var file) and the table length are set by sim_toolsetter_feed.py. No plate
+or no length (a tool without a table length, an empty spindle) = no
+automatic trip: the probe finds nothing, as on a machine without a tool
+setter. The manual trip stays: \\fBout\\fR = contact OR \\fBmanual\\fR.
+
+The tool is taken as VERTICAL (the 3-axis and XYZAC sims; the TWP sim's
+head must stand at B0/C0 for a measurement).
+""";
+
+pin in float x "control point X, machine units (joint 0 position)";
+pin in float y "control point Y (joint 1)";
+pin in float z "control point Z (joint 2)";
+pin in float plate_x "tool setter centre X, G53 (#3100)";
+pin in float plate_y "tool setter centre Y, G53 (#3101)";
+pin in float plate_z "plate surface Z, G53 (#3102)";
+pin in float radius = 10.0 "half size of the X/Y trip window";
+pin in float tool_length "the spindle tool's TABLE length (Z offset) — the sim's physical length";
+pin in bit enable "a plate and a positive tool length are known";
+pin in bit manual "the WebUI's manual trip (probe-in)";
+pin out bit contact "the tool tip touches the simulated plate";
+pin out bit out "to motion.probe-input: contact OR manual";
+
+function _ fp;
+license "GPL";
+author "LCNC Suite";
+;;
+
+#include "rtapi_math.h"
+
+FUNCTION(_) {
+    contact = enable && tool_length > 0.0
+        && fabs(x - plate_x) <= radius
+        && fabs(y - plate_y) <= radius
+        && (z - tool_length) <= plate_z;
+    out = contact || manual;
+}

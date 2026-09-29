@@ -51,8 +51,9 @@ net XYZvel <= vel_xyz.out
 # estop loopback
 net estop-loop iocontrol.0.user-enable-out iocontrol.0.emc-enable-in
 
-# probe input
-net probe-in  =>  motion.probe-input
+# probe input: the WebUI's manual trip (probe-in) OR the simulated tool
+# setter (hallib/sim_toolsetter.hal)
+source hallib/sim_toolsetter.hal
 
 # create signals for tool loading loopback
 net tool-prep-loop iocontrol.0.tool-prepare iocontrol.0.tool-prepared
