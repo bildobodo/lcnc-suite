@@ -1,0 +1,36 @@
+{
+  "commit": "e4921e7",
+  "changed_tool": 2,
+  "loaded_tool": 1,
+  "loaded_tool_length": 10,
+  "parse_tlos": [
+    [
+      1,
+      0,
+      0,
+      10,
+      6
+    ],
+    [
+      2,
+      0,
+      0,
+      80,
+      6
+    ]
+  ],
+  "drift": "table_mtime",
+  "during_refresh": {
+    "reason": "midrun:table_mtime",
+    "file": "program.ngc",
+    "expected_ms": 1,
+    "started_ms": 1790719012984,
+    "queued": false,
+    "superseded": 0
+  },
+  "after_refresh": null,
+  "pin_unsupported": true,
+  "version_unchanged": true,
+  "old_payload_kept": true,
+  "next_midrun_gate": false
+}

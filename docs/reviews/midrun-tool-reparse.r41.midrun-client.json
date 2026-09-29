@@ -1,0 +1,29 @@
+{
+  "before": {
+    "text": "Sim\n?\n×1.0\n0 %\n2 collisions\n→ L7 … through L8\n?\nsweep: no tool loaded — 6 mm stub",
+    "playhead": 0,
+    "hits": 1,
+    "activeLine": []
+  },
+  "during": {
+    "text": "Sim\n?\n×1.0\nL6\n~14 %\nsweep: no tool loaded — 6 mm stub",
+    "playhead": 110,
+    "hits": 0,
+    "activeLine": [
+      "6G1 X5 F100"
+    ]
+  },
+  "afterIdle": {
+    "text": "Sim\n?\n×1.0\n14 %\n2 collisions\n→ L7 … through L8\n?\nsweep: no tool loaded — 6 mm stub",
+    "playhead": 110,
+    "hits": 1,
+    "activeLine": []
+  },
+  "idleControl": {
+    "text": "Sim\n?\n×1.0\n0 %\nsweep: no tool loaded — 6 mm stub",
+    "playhead": 0,
+    "hits": 0,
+    "activeLine": []
+  },
+  "cmds": []
+}

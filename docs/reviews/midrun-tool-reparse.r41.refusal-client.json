@@ -1,0 +1,129 @@
+{
+  "fresh": {
+    "resolved": {
+      "feed": "#00a83c",
+      "rapid": "#3d8bff",
+      "backplot": "#ff00ff",
+      "bounds": "#15181c",
+      "toolpathBounds": "#15181c",
+      "tool": "#6b7178",
+      "cutter": "#eceff1",
+      "limit": "#e66b00",
+      "collision": "#c8102e",
+      "boundsAlt": "#f0f2f4",
+      "reach": "#15181c",
+      "planeActive": "#2d81dc",
+      "planeDefined": "#a97515",
+      "planeStale": "#cc3333"
+    },
+    "drawn": {
+      "feed": "#00a83c",
+      "toolpathBounds": "#15181c",
+      "toolpathBoundsAlt": "#f0f2f4",
+      "planeActive": "#2d81dc",
+      "backplot": "#ff00ff",
+      "bounds": "#15181c",
+      "boundsAlt": "#f0f2f4",
+      "tool": "#6b7178",
+      "cutter": "#eceff1"
+    },
+    "mode": "auto"
+  },
+  "during": {
+    "resolved": {
+      "feed": "#00a83c",
+      "rapid": "#3d8bff",
+      "backplot": "#ff00ff",
+      "bounds": "#15181c",
+      "toolpathBounds": "#15181c",
+      "tool": "#6b7178",
+      "cutter": "#eceff1",
+      "limit": "#e66b00",
+      "collision": "#c8102e",
+      "boundsAlt": "#f0f2f4",
+      "reach": "#15181c",
+      "planeActive": "#2d81dc",
+      "planeDefined": "#a97515",
+      "planeStale": "#cc3333"
+    },
+    "drawn": {
+      "feed": "#cccecf",
+      "toolpathBounds": "#15181c",
+      "toolpathBoundsAlt": "#f0f2f4",
+      "planeActive": "#2d81dc",
+      "backplot": "#ff00ff",
+      "bounds": "#15181c",
+      "boundsAlt": "#f0f2f4",
+      "tool": "#6b7178",
+      "cutter": "#eceff1"
+    },
+    "mode": "auto"
+  },
+  "after": {
+    "resolved": {
+      "feed": "#00a83c",
+      "rapid": "#3d8bff",
+      "backplot": "#ff00ff",
+      "bounds": "#15181c",
+      "toolpathBounds": "#15181c",
+      "tool": "#6b7178",
+      "cutter": "#eceff1",
+      "limit": "#e66b00",
+      "collision": "#c8102e",
+      "boundsAlt": "#f0f2f4",
+      "reach": "#15181c",
+      "planeActive": "#2d81dc",
+      "planeDefined": "#a97515",
+      "planeStale": "#cc3333"
+    },
+    "drawn": {
+      "feed": "#00a83c",
+      "toolpathBounds": "#15181c",
+      "toolpathBoundsAlt": "#f0f2f4",
+      "planeActive": "#2d81dc",
+      "backplot": "#ff00ff",
+      "bounds": "#15181c",
+      "boundsAlt": "#f0f2f4",
+      "tool": "#6b7178",
+      "cutter": "#eceff1"
+    },
+    "mode": "auto"
+  },
+  "warnings": [],
+  "pipeline": {
+    "commit": "e4921e7",
+    "changed_tool": 2,
+    "loaded_tool": 1,
+    "loaded_tool_length": 10,
+    "parse_tlos": [
+      [
+        1,
+        0,
+        0,
+        10,
+        6
+      ],
+      [
+        2,
+        0,
+        0,
+        80,
+        6
+      ]
+    ],
+    "drift": "table_mtime",
+    "during_refresh": {
+      "reason": "midrun:table_mtime",
+      "file": "program.ngc",
+      "expected_ms": 1,
+      "started_ms": 1790719012984,
+      "queued": false,
+      "superseded": 0
+    },
+    "after_refresh": null,
+    "pin_unsupported": true,
+    "version_unchanged": true,
+    "old_payload_kept": true,
+    "next_midrun_gate": false
+  }
+}

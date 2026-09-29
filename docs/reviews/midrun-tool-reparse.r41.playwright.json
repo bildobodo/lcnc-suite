@@ -1,0 +1,182 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r41-mpjm39qb/lcnc-webui/playwright.r41.config.ts",
+    "rootDir": "/tmp/codex-r41-mpjm39qb/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r41-mpjm39qb/evidence/results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/tmp/codex-r41-mpjm39qb/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/input-session\\.spec\\.ts|r41\\.spec\\.ts/"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "../evidence/midrun-tool-reparse.r41.playwright.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "r41.spec.ts",
+      "file": "r41.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R41: mid-run publication follows position; collision checking resumes on idle",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 9255,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-29T21:57:29.956Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "7b1f2fecafdbce4e3c4a-bdccf7f5773a1eb1567c",
+          "file": "r41.spec.ts",
+          "line": 10,
+          "column": 1
+        },
+        {
+          "title": "R41: a refused mid-run parse keeps the old preview visibly stale for another tool",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 3118,
+                  "error": {
+                    "message": "Error: refusal must not make unchanged old preview look fresh\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m\"#00a83c\"\u001b[39m",
+                    "stack": "Error: refusal must not make unchanged old preview look fresh\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m\"#00a83c\"\u001b[39m\n    at /tmp/codex-r41-mpjm39qb/lcnc-webui/e2e/r41.spec.ts:88:88",
+                    "location": {
+                      "file": "/tmp/codex-r41-mpjm39qb/lcnc-webui/e2e/r41.spec.ts",
+                      "column": 88,
+                      "line": 88
+                    },
+                    "snippet": "  86 |  await page.screenshot({path:new URL('midrun-tool-reparse.r41.refused.png',out).pathname});\n  87 |  await ctl({op:'reset'});\n> 88 |  expect(after.drawn.feed,'refusal must not make unchanged old preview look fresh').not.toBe(fresh.drawn.feed);\n     |                                                                                        ^\n  89 | });\n  90 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r41-mpjm39qb/lcnc-webui/e2e/r41.spec.ts",
+                        "column": 88,
+                        "line": 88
+                      },
+                      "message": "Error: refusal must not make unchanged old preview look fresh\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: not \u001b[32m\"#00a83c\"\u001b[39m\n\n  86 |  await page.screenshot({path:new URL('midrun-tool-reparse.r41.refused.png',out).pathname});\n  87 |  await ctl({op:'reset'});\n> 88 |  expect(after.drawn.feed,'refusal must not make unchanged old preview look fresh').not.toBe(fresh.drawn.feed);\n     |                                                                                        ^\n  89 | });\n  90 |\n    at /tmp/codex-r41-mpjm39qb/lcnc-webui/e2e/r41.spec.ts:88:88"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-29T21:57:39.264Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r41-mpjm39qb/evidence/results/r41-R41-a-refused-mid-run--a169b-ibly-stale-for-another-tool/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r41-mpjm39qb/evidence/results/r41-R41-a-refused-mid-run--a169b-ibly-stale-for-another-tool/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r41-mpjm39qb/lcnc-webui/e2e/r41.spec.ts",
+                    "column": 88,
+                    "line": 88
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "7b1f2fecafdbce4e3c4a-67a71eb7cc9a8ca12e40",
+          "file": "r41.spec.ts",
+          "line": 61,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-09-29T21:57:29.419Z",
+    "duration": 13002.536999999998,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

@@ -1,0 +1,36 @@
+
+Running 2 tests using 1 worker
+
+(node:1338801) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1338801) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r41.spec.ts:10:1 › R41: mid-run publication follows position; collision checking resumes on idle (9.3s)
+  ✘  2 e2e/r41.spec.ts:61:1 › R41: a refused mid-run parse keeps the old preview visibly stale for another tool (3.1s)
+
+
+  1) e2e/r41.spec.ts:61:1 › R41: a refused mid-run parse keeps the old preview visibly stale for another tool 
+
+    Error: refusal must not make unchanged old preview look fresh
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mnot[2m.[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: not [32m"#00a83c"[39m
+
+      86 |  await page.screenshot({path:new URL('midrun-tool-reparse.r41.refused.png',out).pathname});
+      87 |  await ctl({op:'reset'});
+    > 88 |  expect(after.drawn.feed,'refusal must not make unchanged old preview look fresh').not.toBe(fresh.drawn.feed);
+         |                                                                                        ^
+      89 | });
+      90 |
+        at /tmp/codex-r41-mpjm39qb/lcnc-webui/e2e/r41.spec.ts:88:88
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/r41-R41-a-refused-mid-run--a169b-ibly-stale-for-another-tool/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/r41-R41-a-refused-mid-run--a169b-ibly-stale-for-another-tool/error-context.md
+
+  1 failed
+    e2e/r41.spec.ts:61:1 › R41: a refused mid-run parse keeps the old preview visibly stale for another tool 
+  1 passed (13.0s)

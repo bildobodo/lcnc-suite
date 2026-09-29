@@ -383,3 +383,100 @@ nach, danach Ruhe; die Reihenfolge selbst pinnt die native Sonde.
 
 **Läufe:** Gateway-Suite 1090, Frontend-Unit 1745, Build, `serial-viewer`
 24/24. Live-Nachweis auf der Sim folgt nach dem Gateway-Neustart.
+
+---
+
+## R41 · Codex · Nachprüfung · 29.09.2026
+
+**Stand:** `48aca52..e4921e7`, Archiv von `e4921e7`.
+**Urteil: findings.** Die drei R40-Reproduktionen sind geschlossen. Im neu
+hinzugekommenen Ablehnungsweg bleibt MR-I04 offen; dafür ist keine Entscheidung
+des Operators erforderlich.
+
+### Nachprüfung MR-I01 bis MR-I03
+
+| Befund | Ergebnis der eigenen Nachprüfung |
+| --- | --- |
+| MR-I01, Startwerkzeug | **Behoben.** Beim Wechsel der Live-Spindeltasche T1→T2 bleiben das erste TLO-Ereignis bei Z10 und die Limitbefunde unverändert. Der Startwert wirkt jetzt im Interpreter. Die nativen Bestandstests prüfen außerdem die neue Tabellenlänge des Startwerkzeugs und die Ablehnung eines zufälligen Werkzeugwechslers. |
+| MR-I02, Parameterbasis | **Behoben.** Mit zurückgereichtem `__PARAMS__` bleiben sowohl G92 als auch die von `#5181` abhängige Bahn trotz geänderter Live-Datei gleich. Fehlende Basis führt zur Ablehnung; ein normaler Parse liest weiterhin die aktuellen Parameter. |
+| MR-I03, Kollisionsprüfung | **Behoben.** Die eigene R40-Browsersonde besteht mit unveränderten fachlichen Assertions: zwei Befunde vor dem Lauf, während des neuen Payloads verworfen, nach IDLE ohne weiteren Publish wieder zwei Befunde. Zeitleiste und Codezeile folgen weiterhin; keine Mock-Befehle. |
+
+Die Zahlenfeld-Abnahme aus R40 gilt weiter; dieser Code wurde hier nicht verändert.
+Block Delete als live gelesene Laufoption sowie die eingeschränkte Aussage zu
+nice 19 sind jetzt dokumentiert. Die zusätzlichen Tests zu zweiter Tabellenänderung
+und anschließendem Ruhezustand bestehen ebenfalls.
+
+Belege: [native R40-Wiederholung](midrun-tool-reparse.r41.worker-probe.py),
+[Ergebnisse](midrun-tool-reparse.r41.worker-probe.json),
+[Browserzustände einschließlich wiedergekehrter Befunde](midrun-tool-reparse.r41.midrun-client.json).
+Die Anpassung der Worker-Sonde beschränkt sich auf das neue `__PARAMS__`-Protokoll
+und die Runden-/Dateinamen; die vier bisherigen Gleichheitsprüfungen sind jetzt TRUE.
+
+### MR-I04 · P2 · Nach der Ablehnung erscheint die unveränderte alte Vorschau wieder als aktuell
+
+Der neue Zweig `bulk_pipeline.py:572–578` setzt bei Exitcode 4 ausschließlich
+`pin_unsupported`. Die nächste Midrun-Anfrage wird damit verhindert
+(`gateway.py:1732`), aber der Zustand wird nicht als bleibende Veraltungsinformation
+an den Client übertragen. Nach dem Ende des Auftrags ist
+`preview_refresh_status()` wieder `None`.
+
+Der Viewer erkennt Veraltung weiterhin nur durch laufenden Parse, WCS-Unterschied
+oder den Längenvergleich des **gerade geladenen** Werkzeugs
+(`ThreeViewer.vue:547`, `ws/bulkData.ts:243`). Wurde ein anderes Programmwerkzeug
+geändert, oder wechselt der Lauf nach dessen Messung wieder zu einem unveränderten
+Werkzeug, greifen diese Bedingungen nicht. Die Zusage „Vorschau bleibt als
+veraltet markiert bis idle“ gilt dann nicht.
+
+Reproduktion in zwei verbundenen Sonden:
+
+1. Produktive Pipeline mit veröffentlichten Tabellenwerten T1/Z10 und T2/Z80;
+   T2 wird Z90, aktuell geladen ist T1/Z10. Der Tabellenvergleich erkennt die
+   Änderung. Der Worker-Ausgang wird mit dem dokumentierten Exitcode 4 simuliert.
+2. Nach der Ablehnung: `pin_unsupported=true`, kein neuer Payload, identische
+   Revision, `preview_refresh=null`, nächste Midrun-Zulassung `false`.
+3. Der Browser erhält die von dieser Pipeline-Probe ermittelten Statuswerte.
+   Die Feed-Materialfarbe ist vorher **`#00a83c`**, während des Parses gedämpft
+   **`#cccecf`**, nach der Ablehnung wieder **`#00a83c`**. **Keine HUD-Warnung.**
+
+Die alte Bahn samt ihren alten Limitinformationen bleibt sichtbar, bekommt aber
+wieder die Darstellung einer aktuellen Vorschau. Der Backend-Test
+`test_a_random_toolchanger_refuses_once_and_the_edge_stops_asking` prüft lediglich
+Latch und unveränderte Version; sein Kommentar „stale-marked preview stays“ ist
+keine Prüfung der an den Browser gelieferten Veraltungsinformation.
+
+**Erwartete Korrektur:** Den für Datei/Revision geltenden Ablehnungs-/Veraltungsgrund
+über den Status liefern und im Viewer dauerhaft darstellen, beispielsweise
+„Werkzeugtabelle geändert — Vorschau wird nach dem Lauf aktualisiert“ mit einer
+Hilfe zum nicht unterstützten Werkzeugwechslertyp. Die Gedämpft-Darstellung darf
+nicht vom gerade geladenen Werkzeug abhängen. Zustand nach erfolgreicher gültiger
+Neuveröffentlichung bzw. Entladen bereinigen. Als Wächter: geändertes anderes
+Programmwerkzeug, Ablehnung ohne Publish, kein erneuter Versuch während AUTO,
+weiterhin sichtbare Veraltung, anschließend erfolgreicher Idle-Parse und Aufhebung
+der Markierung.
+
+Die Entscheidung, für zufällige Werkzeugwechsler auf einen Idle-Parse zu warten,
+ist akzeptabel. Der sichtbare Zustand dieses Wartens muss vollständig umgesetzt
+sein.
+
+Belege: [Pipeline-Sonde](midrun-tool-reparse.r41.refusal-probe.py),
+[Pipeline-Ergebnis](midrun-tool-reparse.r41.refusal-probe.json),
+[Browser-Sonde](midrun-tool-reparse.r41.browser-probe.ts),
+[Farben und leere Warnungsliste](midrun-tool-reparse.r41.refusal-client.json),
+[Bild nach Ablehnung](midrun-tool-reparse.r41.refused.png),
+[rote Schlussassertion](midrun-tool-reparse.r41.browser-probe.txt).
+
+### Prüfung und Arbeitsgrenzen
+
+- Gezielte Backend-Tests: **415 PASS**, einschließlich nativer Worker-Prüfung,
+  kein Skip.
+- Eigene native R40-Sonde: **alle vier Fehlerbedingungen behoben**;
+  alle sieben Parses fehlerfrei.
+- Archiv-Build (`vue-tsc -b`, Vite): **PASS**.
+- Eigene Browserprüfungen: Wiederanlauf/Zeitleiste **PASS**;
+  neue Ablehnungsprüfung **ROT**, genau am beschriebenen MR-I04.
+
+[Reproduktion und Prüfgrenzen](midrun-tool-reparse.r41.reproduce.md).
+Alle Ausführungen niedrig priorisiert im Archiv; eigener Mock auf
+`127.0.0.1:4188`, ein Browser-Worker, anschließend beide beendet. Bestehende
+Review-Belege und Produktcode unverändert. Kein vollständiges Offline-Gate und
+keine Wiederholung des Live-Laufs; die Prüfung greift nicht auf die Operator-Sim zu.

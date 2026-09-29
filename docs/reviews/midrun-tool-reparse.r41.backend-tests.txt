@@ -1,0 +1,161 @@
+..../tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:246: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpgj5xbt19/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:267: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpgj5xbt19/probe-results-grid.json' mode='w' encoding='UTF-8'>
+  open(path, "w").write("{broken json")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:246: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpq45sg_au/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:246: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpt8e0ygua/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+...../tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:544: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpufdnbnk4/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:546: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpufdnbnk4/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:544: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp7ry65csx/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:546: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp7ry65csx/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:544: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpcbq410f7/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:546: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpcbq410f7/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:544: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpgkm2e4c0/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:546: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpgkm2e4c0/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:544: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpfi636n5l/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:546: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpfi636n5l/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:544: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpz2r8fbnt/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:546: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpz2r8fbnt/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:544: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp_cul05zf/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:546: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp_cul05zf/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+..../tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:492: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpaa1z5ru9/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:494: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpaa1z5ru9/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:492: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpjazxii3a/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:494: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpjazxii3a/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:492: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpuky0wdqb/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:494: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpuky0wdqb/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+...../tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:75: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpgr0tyjq4/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:77: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpgr0tyjq4/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:75: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpnv4y885d/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:77: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpnv4y885d/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:75: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp6750k6oi/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:77: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp6750k6oi/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:75: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpib8op_v6/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:77: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpib8op_v6/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:75: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpt1wl9p8b/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:77: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpt1wl9p8b/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:75: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpqi80zs0k/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:77: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpqi80zs0k/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:75: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpd72qtpbx/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:77: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpd72qtpbx/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:75: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp_umowvgt/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:77: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp_umowvgt/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:75: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpc81h6fcf/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:77: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpc81h6fcf/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:75: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpymg6hkkq/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:77: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpymg6hkkq/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:75: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp10sgqyj3/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:77: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmp10sgqyj3/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:75: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpqi54klkd/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:77: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpqi54klkd/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:75: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpf6t77d3o/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:77: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpf6t77d3o/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+./tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:75: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpjdbkm5nz/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r41-mpjm39qb/lcnc-gateway/test_bulk_pipeline.py:77: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpjdbkm5nz/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+......................................................................................................................................................................................................................................................................................................................................................................................
+----------------------------------------------------------------------
+Ran 415 tests in 0.607s
+
+OK
