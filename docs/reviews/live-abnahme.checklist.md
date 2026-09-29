@@ -17,7 +17,8 @@ enthält jeden anderen Branch.
   - Operator-Punkte P1–P7 (`feat/operator-backlog`): Plan-Agreement R24; Implementierung mit
     Befunden in R25 (sechs), R26 (drei Reste) und R27 (ein Rest), alles behoben;
     Implementierungs-Agreement in Runde R28 (OP-I01 bis OP-I06 geschlossen,
-    [Review](operator-punkte.ideen.md)).
+    [Review](operator-punkte.ideen.md)); Nachtrag P6 (Werkzeugzeile „G43“, Hilfe im
+    Tabellenkopf) mit einem Textbefund in R36 (OP-I07, behoben), Agreement in R37.
   - Feste Viewer-Palette (`feat/viewer-palette`): Ideenrunde R29, Plan-Agreement R30,
     Implementierungsreview R31 (vier Befunde, behoben), Nachprüfung R32 (zwei Befunde zur
     Befundnavigation, behoben), Nachprüfung R33 (drei Befunde zur Befundnavigation, behoben),
