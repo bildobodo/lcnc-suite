@@ -1,0 +1,178 @@
+{
+  "entry": {
+    "hits": [
+      {
+        "line": 7,
+        "cum": 2,
+        "cumEnd": 10,
+        "intervals": [
+          [
+            2,
+            10
+          ]
+        ],
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "rapid": true
+      }
+    ],
+    "staticContacts": [],
+    "samples": 0,
+    "coarsened": false,
+    "uncertified": null,
+    "pairCount": 2,
+    "pairsPrescreened": 0,
+    "bvhMs": 0,
+    "sweepMs": 0,
+    "truncated": null
+  },
+  "base": {
+    "hits": [
+      {
+        "line": 7,
+        "cum": 0,
+        "cumEnd": 4,
+        "intervals": [
+          [
+            0,
+            4
+          ]
+        ],
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "rapid": false
+      },
+      {
+        "line": 9,
+        "cum": 50,
+        "cumEnd": 55,
+        "intervals": [
+          [
+            50,
+            55
+          ]
+        ],
+        "a": "holder",
+        "b": "fixture",
+        "dist": 0,
+        "rapid": false
+      }
+    ],
+    "staticContacts": [],
+    "samples": 0,
+    "coarsened": false,
+    "uncertified": null,
+    "pairCount": 2,
+    "pairsPrescreened": 0,
+    "bvhMs": 0,
+    "sweepMs": 0,
+    "truncated": null
+  },
+  "merged": {
+    "hits": [
+      {
+        "line": 7,
+        "cum": 2,
+        "cumEnd": 10,
+        "intervals": [
+          [
+            2,
+            10
+          ]
+        ],
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "rapid": true,
+        "entry": true,
+        "spanCumEnd": 14,
+        "spanEndLine": 7
+      },
+      {
+        "line": 7,
+        "cum": 10,
+        "cumEnd": 14,
+        "intervals": [
+          [
+            10,
+            14
+          ]
+        ],
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 7
+      },
+      {
+        "line": 9,
+        "cum": 60,
+        "cumEnd": 65,
+        "intervals": [
+          [
+            60,
+            65
+          ]
+        ],
+        "a": "holder",
+        "b": "fixture",
+        "dist": 0,
+        "rapid": false
+      }
+    ],
+    "staticContacts": [],
+    "samples": 0,
+    "coarsened": false,
+    "uncertified": null,
+    "pairCount": 2,
+    "pairsPrescreened": 0,
+    "bvhMs": 0,
+    "sweepMs": 0,
+    "truncated": null
+  },
+  "targets": [
+    {
+      "cum": 2,
+      "cumEnd": 10,
+      "key": "E7|tool|work|0",
+      "line": 7,
+      "rapid": true,
+      "dist": 0,
+      "spanEndLine": 7,
+      "entry": true
+    },
+    {
+      "cum": 60,
+      "cumEnd": 65,
+      "key": "C9|holder|fixture|0",
+      "line": 9,
+      "rapid": false,
+      "dist": 0
+    }
+  ],
+  "pos": 10.001,
+  "sel": {
+    "key": "C7|tool|work|0",
+    "pos": 10.001
+  },
+  "next": {
+    "cum": 60,
+    "cumEnd": 65,
+    "key": "C9|holder|fixture|0",
+    "line": 9,
+    "rapid": false,
+    "dist": 0
+  },
+  "prev": {
+    "cum": 2,
+    "cumEnd": 10,
+    "key": "E7|tool|work|0",
+    "line": 7,
+    "rapid": true,
+    "dist": 0,
+    "spanEndLine": 7,
+    "entry": true
+  }
+}

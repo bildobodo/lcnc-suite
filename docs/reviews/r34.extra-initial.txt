@@ -1,0 +1,97 @@
+
+Running 3 tests using 1 worker
+
+(node:259592) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:259592) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r34.merge-reentry.spec.ts:15:1 › R34 a continuous entry contact does not erase a later re-entry on the same program line (6.9s)
+(node:259805) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:259805) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 e2e/r34.sliders.spec.ts:36:34 › R34 sliders preserve live local values and commit on release: mouse (1.5m)
+(node:261499) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:261499) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 e2e/r34.sliders.spec.ts:36:34 › R34 sliders preserve live local values and commit on release: touch (24.6s)
+
+
+  1) e2e/r34.merge-reentry.spec.ts:15:1 › R34 a continuous entry contact does not erase a later re-entry on the same program line 
+
+    Error: The real sweep must contain later independent contact onsets
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThan[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: > [32m0[39m
+    Received:   [31m0[39m
+
+      52 |  writeFileSync(`${OUT}/r34.merge-reentry.json`,JSON.stringify({payload,entry,base,merged,before,after,reentries,steps},null,2)+'\n');
+      53 |  await page.screenshot({path:`${OUT}/r34.merge-reentry.png`});
+    > 54 |  expect(reentries.length,'The real sweep must contain later independent contact onsets').toBeGreaterThan(0);
+         |                                                                                          ^
+      55 |  for(const t of reentries) expect(after.some(n=>n.key===t.key),'A later re-entry must remain a separate navigation target after merging the initial contact').toBe(true);
+      56 | });
+      57 |
+        at /tmp/codex-r34-hj_zp6yd/lcnc-webui/e2e/r34.merge-reentry.spec.ts:54:90
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/r34.merge-reentry-R34-a-co-a14c4-ry-on-the-same-program-line/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/r34.merge-reentry-R34-a-co-a14c4-ry-on-the-same-program-line/error-context.md
+
+  2) e2e/r34.sliders.spec.ts:36:34 › R34 sliders preserve live local values and commit on release: mouse 
+
+    [31mTest timeout of 90000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 90000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.scrubBar').getByRole('switch')[22m
+
+
+      57 |  await ctl({op:'raw',frame:{type:'viewer_gcode_ready',version:3401,file:'/slider.ngc'}});
+      58 |  await expect(page.locator('.scrubBar')).toBeVisible();
+    > 59 |  await page.locator('.scrubBar').getByRole('switch').click();
+         |                                                      ^
+      60 |  const scrub=page.locator('.scrubBar .sliderInput');await expect(scrub).toBeEnabled();
+      61 |  const sr=await drag(page,scrub,touch);records.push({name:'scrub',...sr,commands:[]});
+      62 |  writeFileSync(`${OUT}/r34.sliders-${touch?'touch':'mouse'}.json`,JSON.stringify(records,null,2)+'\n');
+        at /tmp/codex-r34-hj_zp6yd/lcnc-webui/e2e/r34.sliders.spec.ts:59:54
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/r34.sliders-R34-sliders-pr-7f128-and-commit-on-release-mouse/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/r34.sliders-R34-sliders-pr-7f128-and-commit-on-release-mouse/error-context.md
+
+  3) e2e/r34.sliders.spec.ts:36:34 › R34 sliders preserve live local values and commit on release: touch 
+
+    Test was interrupted.
+
+    Error: locator.click: Test ended.
+    Call log:
+    [2m  - waiting for locator('.scrubBar').getByRole('switch')[22m
+
+
+      57 |  await ctl({op:'raw',frame:{type:'viewer_gcode_ready',version:3401,file:'/slider.ngc'}});
+      58 |  await expect(page.locator('.scrubBar')).toBeVisible();
+    > 59 |  await page.locator('.scrubBar').getByRole('switch').click();
+         |                                                      ^
+      60 |  const scrub=page.locator('.scrubBar .sliderInput');await expect(scrub).toBeEnabled();
+      61 |  const sr=await drag(page,scrub,touch);records.push({name:'scrub',...sr,commands:[]});
+      62 |  writeFileSync(`${OUT}/r34.sliders-${touch?'touch':'mouse'}.json`,JSON.stringify(records,null,2)+'\n');
+        at /tmp/codex-r34-hj_zp6yd/lcnc-webui/e2e/r34.sliders.spec.ts:59:54
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/r34.sliders-R34-sliders-pr-008ed-and-commit-on-release-touch/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/r34.sliders-R34-sliders-pr-008ed-and-commit-on-release-touch/error-context.md
+
+  2 failed
+    e2e/r34.merge-reentry.spec.ts:15:1 › R34 a continuous entry contact does not erase a later re-entry on the same program line 
+    e2e/r34.sliders.spec.ts:36:34 › R34 sliders preserve live local values and commit on release: mouse 
+  1 interrupted
+    e2e/r34.sliders.spec.ts:36:34 › R34 sliders preserve live local values and commit on release: touch 

@@ -1,0 +1,28 @@
+
+Running 19 tests using 1 worker
+
+(node:256720) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:256720) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/collisions.viewer.spec.ts:48:1 › a collision jump on the real XYZAC model lands on its line and shows its move — across the entry move (4.2s)
+  ✓   2 e2e/collisions.viewer.spec.ts:82:1 › entry-move and program contacts on the same line and pairs stay apart: a chosen program contact survives the entry result, next reaches every contact once (Codex R33 VP-I07) (6.8s)
+  ✓   3 e2e/collisions.viewer.spec.ts:121:1 › a manual move away and back ends the shown contact for good: next goes by position (Codex R33 VP-I08) (6.2s)
+  ✓   4 e2e/findings.viewer.spec.ts:46:3 › a limit jump lands in the finding and shows its move — no entry move (control) (1.5s)
+  ✓   5 e2e/findings.viewer.spec.ts:46:3 › a limit jump lands in the finding and shows its move — the first jump builds the entry move (1.6s)
+  ✓   6 e2e/findings.viewer.spec.ts:46:3 › a limit jump lands in the finding and shows its move — a 0.1 ms violating move on the time axis (1.5s)
+  ✓   7 e2e/findings.viewer.spec.ts:46:3 › a limit jump lands in the finding and shows its move — two findings 5 ms apart (1.7s)
+  ✓   8 e2e/findings.viewer.spec.ts:72:1 › a limit on a first line of two points lands in the program's move, not on the entry move — first and second jump (1.6s)
+  ✓   9 e2e/r34.collision-key.spec.ts:15:1 › R34 entry and program contacts have unique navigation keys (7.4s)
+  ✓  10 e2e/r34.limit-origin.spec.ts:34:2 › R34 limit keeps program origin when its first line spans multiple points (1.8s)
+  ✓  11 e2e/r34.selection-reset.spec.ts:16:1 › R34 manual scrub away and back permanently ends finding identity (6.8s)
+  ✓  12 e2e/r34.targets.spec.ts:34:2 › R34 first finding jump targets L7: zero-entry (1.9s)
+  ✓  13 e2e/r34.targets.spec.ts:34:2 › R34 first finding jump targets L7: entry (1.8s)
+  ✓  14 e2e/r34.targets.spec.ts:34:2 › R34 first finding jump targets L7: short-time (1.8s)
+  ✓  15 e2e/r34.targets.spec.ts:34:2 › R34 first finding jump targets L7: close-targets (1.8s)
+  ✓  16 e2e/rapids.viewer.spec.ts:19:1 › hidden rapids keep their limit finding; a jump to it shows them for the finding and says so (2.0s)
+  ✓  17 e2e/rapids.viewer.spec.ts:79:3 › a finding's view on hidden rapids is told — hud-off (1.7s)
+  ✓  18 e2e/rapids.viewer.spec.ts:79:3 › a finding's view on hidden rapids is told — folded (1.7s)
+  ✓  19 e2e/rapids.viewer.spec.ts:124:1 › a finding shows its own move of a hidden layer — not the layer (1.9s)
+
+  19 passed (56.6s)

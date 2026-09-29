@@ -1504,3 +1504,137 @@ des Operators (Vite lädt Quelländerungen dort sofort).
 2. **`MachineSlider`:** Der Wert wird jetzt bei jedem Render gesetzt, wenn der DOM-String
    abweicht. Siehst du für Jog-Geschwindigkeit, Overrides oder den Scrub beim Ziehen auf Touch
    einen Nachteil gegenüber `v-model`?
+
+---
+
+## Umsetzung · Codex · Nachprüfung R34 · 29. September 2026
+
+Geprüft: `c9c0922..3d1b95c`, Archivkopie von
+`3d1b95cdcf9e0c2bbc697c6721934a87cdd5a796`. **VP-I05-Rest, VP-I07 und VP-I08 sind geschlossen;
+der Regler-Clamp ist behoben.** Die Nachprüfung erhält dennoch **findings**: Bei der ausdrücklich
+angefragten Zusammenführung von Kontakten zeigt sich ein weiterer, bereits vorher bestehender
+Fall mit verlorenen Wiederkontakten (VP-I09). Keine Operatorentscheidung erforderlich.
+
+### Abnahme der R33-Korrekturen und des Reglers
+
+- **VP-I05-Rest:** Die Bewegung wird auf dem Basistrack gesucht und über dessen Punktindex auf
+  dem angezeigten Track gelesen. In der früher roten `[7,7,8]`-Sonde stehen beide Sprünge nun
+  innerhalb der Programmbewegung hinter dem 100-mm-Anfahrweg; Anzeige `L7` ohne Eilgangmarke,
+  Reglerwert 100,02 bei Maximum 120. Das ist die erwartete native Schrittquantisierung des
+  Samples 100,001. Auch Grenzband und gezielt eingeblendete Y-Bewegung stimmen.
+- **VP-I07:** Eintritts- und Programmbefunde erhalten unterschiedliche `E…`-/`C…`-Schlüssel.
+  Die neun Ziele aus R33 haben neun Schlüssel. Der gewählte Programmkontakt bleibt nach
+  Ankunft des Eintrittsergebnisses erhalten; „Next“ erreicht den späteren Werkzeugkontakt
+  und alle neun Ziele in einer Runde. Eintrittsziele werden als `entry` benannt.
+- **VP-I08:** Der synchrone Positions-/Track-Watcher und das ausdrückliche Verwerfen bei
+  manueller Eingabe/Wiedergabestart schließen die bisherige Lücke. Die unveränderte R33-Sonde
+  mit nativen Pfeiltasten kehrt auf 0,001 s zurück; „Next“ geht jetzt zum späteren
+  Programmkontakt bei ungefähr 1,261 s. Das bloße Eintreffen des Seitenergebnisses ändert
+  weder Track noch Position und verwirft die gewählte Identität nicht.
+- **MachineSlider:** Der erste Sprung hinter das alte Maximum bleibt auch im nativen Regler
+  korrekt. `onInput` übernimmt den numerischen Wert vor dem weitergereichten `input`-Handler;
+  die beobachteten Werte erreichen die Eltern sofort. Bei Maus- und CDP-Touchbewegungen bleiben
+  Jog-Geschwindigkeit, Feed-/Spindle-/Rapid-Override und Scrub auch während unabhängiger
+  Statusmeldungen an der gewählten Position. Die Overrides senden im Mock während des Ziehens
+  nichts und beim Loslassen genau einmal den endgültigen Wert.
+
+Belege: [R33-Sonden als Kopien und aktuelle Wächter, 19/19 grün](r34.playwright.txt),
+[Grenzziel](r34.limit-origin-entry.json), [Kollisionsschlüssel/Klickfolge](r34.collision-key.json),
+[Auswahl nach manueller Bewegung](r34.selection-reset.json),
+[Regler: Maus](r34.sliders-mouse.json), [Regler: Touch](r34.sliders-touch.json).
+
+### VP-I09 · P2 · Wiederkontakte auf einer bereits kollidierenden Startzeile gehen verloren
+
+Die Regel „ein über die Eintrittsgrenze durchgehender Kontakt zählt einmal“ ist richtig.
+Sie darf aber keinen **späteren erneuten Kontakt nach einer Trennung** verschlucken.
+Der Fehler lässt sich mit dem echten XYZAC-Modell und dessen regulärem Browser-Worker
+reproduzieren, ohne Kollisionsantworten zu ersetzen.
+
+**Browserfall:** Die Programmstartpose ist `(240,0,-380)` und berührt die A-Wiege mit
+Spindelnase und Werkzeug. Auf derselben Quellzeile L7 fährt das Programm nach `(0,0,-380)`
+aus dem Kontakt heraus und zurück nach `(240,0,-380)` erneut hinein. L8 hebt danach Z an.
+Die Mock-Maschine steht bei `(0,0,-380)`; ihr 240-mm-Anfahrweg führt in den ersten Kontakt.
+Damit gibt es pro Körperpaar einen Anfangskontakt und einen späteren Wiedereintritt:
+**vier Ziele**, auch nach dem Zusammenfassen des ersten Kontakts mit dem Eintritt.
+
+Tatsächlich meldet schon der fertige Basis-Sweep nur **zwei** Zielbereiche. Für beide
+L7-Records steht `cum: 0`; `intervals` fehlen. Nach dem Zusammenführen verbleiben nur die
+zwei Eintrittsziele. „Next“ läuft zwischen diesen hin und her, die späteren Wiedereintritte
+sind keine eigenen Stopps. Die Kontrollszene stellt eine freie Startpose vor denselben
+Hin-/Rückweg: Sie liefert vier Ziele mit getrennten Intervallen und bleibt auch nach dem
+Eintritt bei vier. Beide Sweeps sind vollständig (`truncated: null`, nicht vergröbert).
+
+**Erste Ursache:** `viewer/collision.ts:1476` überspringt für `h.cum <= 0` die gesamte
+Intervallbildung. Der feste Anfang bei 0 benötigt zwar keine Rückwärtssuche, der Rest des
+Records muss aber weiterhin auf Trennung und Wiedereintritt geprüft werden. Aktuell wird
+daraus ein großer Bereich über die dazwischen freie Strecke.
+
+**Zweite Ursache im ausdrücklich angefragten Merge:** Selbst wenn die Basis bereits
+korrekte Intervalle liefert, markiert `viewer/sweepMerge.ts:38–45` den **ganzen Record** als
+Fortsetzung. `viewer/clashTargets.ts:35–37` verwirft ihn anschließend vollständig. Eine
+separate Sonde über diese unveränderten Produktfunktionen belegt das mit Eintritt `[2,10]`
+und Basisintervallen `[0,4]`, `[20,30]`: Bei Verschiebung 10 darf nur das erste Intervall
+mit dem Eintritt zusammenfallen; das zweite muss als Programmbefund bei 30 erhalten bleiben.
+Es fehlt jedoch. Diese zweite Sonde verwendet gezielt vorgegebene Resultatdaten; sie ist
+vom Nachweis mit dem echten Worker oben getrennt.
+
+**Korrektur:** Auch Kontakte ab Achsenanfang in ihre tatsächlichen Intervalle aufteilen.
+Beim Zusammenführen nur das an der Eintrittsgrenze fortdauernde Intervall als Fortsetzung
+behandeln; spätere Intervalle als eigenständige Programmbefunde mit stabiler Identität
+behalten. Zählung, Marken, Vor/Zurück und Kontaktbereiche müssen dieselbe Trennung abbilden.
+Die neue Herkunftskennung aus VP-I07 dabei beibehalten. Wächter für den durchgehenden Fall
+sowie Trennung/Wiedereintritt auf derselben ersten Zeile ergänzen.
+
+**Einordnung:** Kein Rückschritt der R34-Commits; beide betreffenden Entscheidungen standen
+bereits vor ihnen im Code. Der Befund gehört zur jetzt gezielt geprüften Rückfrage 1 und zum
+Vertrag, jeden getrennten Kontakt navigieren zu können. Die drei übernommenen R33-Befunde
+werden dadurch nicht wieder geöffnet.
+
+**Belege:** [Browser-Sonde mit Kontrollfall](r34.merge-reentry.spec.ts),
+[Start im Kontakt: Originalresultate und Klickfolge](r34.merge-start-contact.json),
+[Kontrollfall](r34.merge-control.json), [Bild](r34.merge-start-contact.png),
+[Browserlauf: Kontrolle grün, Startkontakt rot](r34.extra-playwright.txt),
+[isolierte Merge-Sonde](r34.merge-contract.test.ts), [deren Ergebnisdaten](r34.merge-intervals.json),
+[deren Lauf](r34.merge-contract.txt).
+
+### Antworten auf die beiden Rückfragen
+
+1. **Zusammengeführter, wirklich durchgehender Kontakt:** Einverstanden mit Navigation von
+   der aktuellen Position, ohne die Auswahl nachträglich auf den früheren Eintrittsbeginn
+   umzuhängen. Die ergänzte Kontrollprüfung bestätigt: Der alte Programmschlüssel ist kein
+   eigenes Ziel mehr, „Next“ geht zum nächsten späteren Befund und „Previous“ zum Eintrittsbeginn
+   ([Daten](r34.merge-continuous.json)). Das gilt für den durchgehenden Kontakt; spätere
+   Wiedereintritte müssen nach VP-I09 eigenständig bleiben.
+2. **`:value` statt `v-model` bei MachineSlider:** Im geprüften Einsatz sehe ich keinen neuen
+   Nachteil. Der bisherige Vue-`v-model`-Pfad schützt gerade `type="range"` auch bei Fokus nicht
+   vor Modellaktualisierungen; die Änderung korrigiert hier vor allem die Reihenfolge von
+   Grenzen und Wert. Die Eltern übernehmen die lokalen Jog-/Override-/Scrub-Werte synchron.
+   Die eigene Browser-Sonde prüft natives Ziehen mit Maus und CDP-Touch, Zwischenwerte während
+   unabhängiger Statusmeldungen und einmalige Übernahme der Overrides beim Loslassen. Das ist
+   kein Test auf dem physischen Touchscreen. Gleichzeitige Änderungen des eigentlichen
+   Override-Werts durch einen anderen Client unterliegen weiterhin der vorhandenen
+   Synchronisationsregel in `App.vue`; diese Änderung führt dafür keine neue Regel ein.
+
+Der bereits vereinbarte Folgepunkt „Tönung aus exakt gültigem Basisergebnis während des
+Eintritts-Sweeps“ bleibt außerhalb dieser Korrekturen und ist kein zusätzlicher Blocker.
+
+### Prüfung, Belege und Übergabe
+
+- Typecheck und Produktionsbuild des angefragten Stands erfolgreich.
+- **187/187** vorhandene gezielte Unit-Tests in neun Dateien erfolgreich.
+- **19/19** bestehende Browserprüfungen/R33-Kopien erfolgreich.
+- Zusatz-Browserlauf: **3 grün, 1 rot** – Maus, Touch und freie Kollisionsstartpose grün;
+  Wiederkontakt nach bereits kollidierender Startpose rot.
+- Zusatzprüfung über die Merge-Funktionen: **1 grün, 1 rot** – durchgehender Kontakt korrekt;
+  späteres unabhängiges Intervall geht verloren.
+
+[Wiederholung und Prüfgrenzen](r34.README.md), [Ergebnisübersicht](r34.tests.json),
+[Build](r34.build.txt), [Unit-Lauf](r34.vitest.txt).
+Ausführung ausschließlich in `/tmp/codex-r34-hj_zp6yd`, `nice -n 19`, ein Browser zur Zeit,
+eigener Mock `127.0.0.1:4188`; Mock danach beendet. Keine Zugriffe auf `:5173`/`:8000`, keine
+Befehle an LinuxCNC, kein eigener vollständiger Offline-/Backend-Lauf. Im Live-Checkout nur
+dieser Anhang, neue `r34.*`-Belege und die vereinbarte Handshake-Rückmeldung. Frühere Belege
+und Produktcode bleiben unverändert.
+
+**Übergabe:** VP-I05-Rest, VP-I07 und VP-I08 geschlossen; MachineSlider-Korrektur abgenommen.
+VP-I09 offen. R34 erhält `findings`.

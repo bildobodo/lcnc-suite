@@ -1,0 +1,502 @@
+{
+  "payload": {
+    "file": "/entry-repeat.ngc",
+    "preview_schema": 9,
+    "feed": [
+      [
+        0,
+        0,
+        -380
+      ],
+      [
+        240,
+        0,
+        -380
+      ],
+      [
+        0,
+        0,
+        -380
+      ],
+      [
+        240,
+        0,
+        -380
+      ],
+      [
+        240,
+        0,
+        -100
+      ]
+    ],
+    "feed_lines": [
+      7,
+      7,
+      7,
+      7,
+      8
+    ],
+    "feed_seq": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "feed_outside": {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0
+    },
+    "rapid": [],
+    "violations": [],
+    "violations_total": 0
+  },
+  "pose": [
+    -100,
+    0,
+    -380,
+    0,
+    0
+  ],
+  "shift": 100,
+  "baseLen": 1000,
+  "entry": {
+    "hits": [],
+    "staticContacts": [
+      {
+        "a": "y_guide_rails",
+        "b": "y_guide_blocks",
+        "dist": 0.5
+      },
+      {
+        "a": "y_guide_rails",
+        "b": "y_guide_endcaps",
+        "dist": 0.5
+      },
+      {
+        "a": "x_guide_rails",
+        "b": "x_guide_blocks",
+        "dist": 0.5
+      },
+      {
+        "a": "x_guide_rails",
+        "b": "x_guide_endcaps",
+        "dist": 0.5
+      },
+      {
+        "a": "z_guide_rails",
+        "b": "z_guide_blocks",
+        "dist": 0.5
+      },
+      {
+        "a": "z_guide_rails",
+        "b": "z_guide_endcaps",
+        "dist": 0.5
+      },
+      {
+        "a": "a_bearing_rings",
+        "b": "a_trunnion_shafts",
+        "dist": 1.99909940140895
+      },
+      {
+        "a": "a_drive_covers",
+        "b": "a_trunnion_shafts",
+        "dist": 0
+      },
+      {
+        "a": "c_bearing_lip",
+        "b": "c_faceplate",
+        "dist": 2
+      }
+    ],
+    "samples": 97,
+    "coarsened": false,
+    "uncertified": null,
+    "pairCount": 384,
+    "pairsPrescreened": 89,
+    "bvhMs": 49.099999997764826,
+    "sweepMs": 823.5999999977648,
+    "truncated": null
+  },
+  "base": {
+    "hits": [
+      {
+        "line": 7,
+        "cum": 125.00048828125,
+        "cumEnd": 720,
+        "a": "spindle_nose",
+        "b": "a_yoke_casting",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            125.00048828125,
+            354.999755859375
+          ],
+          [
+            605.0001220703125,
+            720
+          ]
+        ],
+        "spanCumEnd": 749.999755859375,
+        "spanEndLine": 8
+      },
+      {
+        "line": 7,
+        "cum": 232.0001220703125,
+        "cumEnd": 720,
+        "a": "tool",
+        "b": "a_yoke_casting",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            232.0001220703125,
+            247.99980225408444
+          ],
+          [
+            712.0001220703125,
+            720
+          ]
+        ],
+        "spanCumEnd": 749.999755859375,
+        "spanEndLine": 8
+      },
+      {
+        "line": 8,
+        "cum": 720,
+        "cumEnd": 749.999755859375,
+        "a": "spindle_nose",
+        "b": "a_yoke_casting",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 7,
+        "intervals": [
+          [
+            720,
+            749.999755859375
+          ]
+        ]
+      },
+      {
+        "line": 8,
+        "cum": 720,
+        "cumEnd": 749.999755859375,
+        "a": "tool",
+        "b": "a_yoke_casting",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 7,
+        "intervals": [
+          [
+            720,
+            749.999755859375
+          ]
+        ]
+      }
+    ],
+    "staticContacts": [
+      {
+        "a": "y_guide_rails",
+        "b": "y_guide_blocks",
+        "dist": 0.5
+      },
+      {
+        "a": "y_guide_rails",
+        "b": "y_guide_endcaps",
+        "dist": 0.5
+      },
+      {
+        "a": "x_guide_rails",
+        "b": "x_guide_blocks",
+        "dist": 0.5
+      },
+      {
+        "a": "x_guide_rails",
+        "b": "x_guide_endcaps",
+        "dist": 0.5
+      },
+      {
+        "a": "z_guide_rails",
+        "b": "z_guide_blocks",
+        "dist": 0.5
+      },
+      {
+        "a": "z_guide_rails",
+        "b": "z_guide_endcaps",
+        "dist": 0.5
+      },
+      {
+        "a": "a_bearing_rings",
+        "b": "a_trunnion_shafts",
+        "dist": 1.99909940140895
+      },
+      {
+        "a": "a_drive_covers",
+        "b": "a_trunnion_shafts",
+        "dist": 0
+      },
+      {
+        "a": "c_bearing_lip",
+        "b": "c_faceplate",
+        "dist": 2
+      }
+    ],
+    "samples": 1492,
+    "coarsened": false,
+    "uncertified": null,
+    "pairCount": 384,
+    "pairsPrescreened": 59,
+    "bvhMs": 49.099999997764826,
+    "sweepMs": 1334.7000000029802,
+    "truncated": null
+  },
+  "merged": {
+    "hits": [
+      {
+        "line": 7,
+        "cum": 225.00048828125,
+        "cumEnd": 820,
+        "a": "spindle_nose",
+        "b": "a_yoke_casting",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            225.00048828125,
+            454.999755859375
+          ],
+          [
+            705.0001220703125,
+            820
+          ]
+        ],
+        "spanCumEnd": 849.999755859375,
+        "spanEndLine": 8
+      },
+      {
+        "line": 7,
+        "cum": 332.0001220703125,
+        "cumEnd": 820,
+        "a": "tool",
+        "b": "a_yoke_casting",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            332.0001220703125,
+            347.99980225408444
+          ],
+          [
+            812.0001220703125,
+            820
+          ]
+        ],
+        "spanCumEnd": 849.999755859375,
+        "spanEndLine": 8
+      },
+      {
+        "line": 8,
+        "cum": 820,
+        "cumEnd": 849.999755859375,
+        "a": "spindle_nose",
+        "b": "a_yoke_casting",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 7,
+        "intervals": [
+          [
+            820,
+            849.999755859375
+          ]
+        ]
+      },
+      {
+        "line": 8,
+        "cum": 820,
+        "cumEnd": 849.999755859375,
+        "a": "tool",
+        "b": "a_yoke_casting",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 7,
+        "intervals": [
+          [
+            820,
+            849.999755859375
+          ]
+        ]
+      }
+    ],
+    "staticContacts": [
+      {
+        "a": "y_guide_rails",
+        "b": "y_guide_blocks",
+        "dist": 0.5
+      },
+      {
+        "a": "y_guide_rails",
+        "b": "y_guide_endcaps",
+        "dist": 0.5
+      },
+      {
+        "a": "x_guide_rails",
+        "b": "x_guide_blocks",
+        "dist": 0.5
+      },
+      {
+        "a": "x_guide_rails",
+        "b": "x_guide_endcaps",
+        "dist": 0.5
+      },
+      {
+        "a": "z_guide_rails",
+        "b": "z_guide_blocks",
+        "dist": 0.5
+      },
+      {
+        "a": "z_guide_rails",
+        "b": "z_guide_endcaps",
+        "dist": 0.5
+      },
+      {
+        "a": "a_bearing_rings",
+        "b": "a_trunnion_shafts",
+        "dist": 1.99909940140895
+      },
+      {
+        "a": "a_drive_covers",
+        "b": "a_trunnion_shafts",
+        "dist": 0
+      },
+      {
+        "a": "c_bearing_lip",
+        "b": "c_faceplate",
+        "dist": 2
+      }
+    ],
+    "samples": 1589,
+    "coarsened": false,
+    "uncertified": null,
+    "pairCount": 384,
+    "pairsPrescreened": 59,
+    "bvhMs": 98.19999999552965,
+    "sweepMs": 2158.300000000745,
+    "truncated": null
+  },
+  "before": [
+    {
+      "cum": 125.00048828125,
+      "cumEnd": 354.999755859375,
+      "key": "C7|spindle_nose|a_yoke_casting|0",
+      "line": 7,
+      "rapid": false,
+      "dist": 0,
+      "spanEndLine": 8
+    },
+    {
+      "cum": 232.0001220703125,
+      "cumEnd": 247.99980225408444,
+      "key": "C7|tool|a_yoke_casting|0",
+      "line": 7,
+      "rapid": false,
+      "dist": 0,
+      "spanEndLine": 8
+    },
+    {
+      "cum": 605.0001220703125,
+      "cumEnd": 720,
+      "key": "C7|spindle_nose|a_yoke_casting|1",
+      "line": 7,
+      "rapid": false,
+      "dist": 0,
+      "spanEndLine": 8,
+      "reentry": true
+    },
+    {
+      "cum": 712.0001220703125,
+      "cumEnd": 720,
+      "key": "C7|tool|a_yoke_casting|1",
+      "line": 7,
+      "rapid": false,
+      "dist": 0,
+      "spanEndLine": 8,
+      "reentry": true
+    }
+  ],
+  "after": [
+    {
+      "cum": 225.00048828125,
+      "cumEnd": 454.999755859375,
+      "key": "C7|spindle_nose|a_yoke_casting|0",
+      "line": 7,
+      "rapid": false,
+      "dist": 0,
+      "spanEndLine": 8
+    },
+    {
+      "cum": 332.0001220703125,
+      "cumEnd": 347.99980225408444,
+      "key": "C7|tool|a_yoke_casting|0",
+      "line": 7,
+      "rapid": false,
+      "dist": 0,
+      "spanEndLine": 8
+    },
+    {
+      "cum": 705.0001220703125,
+      "cumEnd": 820,
+      "key": "C7|spindle_nose|a_yoke_casting|1",
+      "line": 7,
+      "rapid": false,
+      "dist": 0,
+      "spanEndLine": 8,
+      "reentry": true
+    },
+    {
+      "cum": 812.0001220703125,
+      "cumEnd": 820,
+      "key": "C7|tool|a_yoke_casting|1",
+      "line": 7,
+      "rapid": false,
+      "dist": 0,
+      "spanEndLine": 8,
+      "reentry": true
+    }
+  ],
+  "steps": [
+    {
+      "line": "L7",
+      "next": "→ L7 … through L8",
+      "pos": "224.95"
+    },
+    {
+      "line": "L7",
+      "next": "→ L7 (re-entry) … through L8",
+      "pos": "332.2"
+    },
+    {
+      "line": "L7",
+      "next": "→ L7 (re-entry) … through L8",
+      "pos": "705.1"
+    },
+    {
+      "line": "L7",
+      "next": "→ L7 … through L8",
+      "pos": "811.8"
+    },
+    {
+      "line": "L7",
+      "next": "→ L7 … through L8",
+      "pos": "224.95"
+    },
+    {
+      "line": "L7",
+      "next": "→ L7 (re-entry) … through L8",
+      "pos": "332.2"
+    }
+  ]
+}

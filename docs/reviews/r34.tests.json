@@ -1,0 +1,53 @@
+{
+  "head": "3d1b95cdcf9e0c2bbc697c6721934a87cdd5a796",
+  "scope": "c9c0922..3d1b95c",
+  "verdict": "findings",
+  "closed": [
+    "VP-I05-Rest",
+    "VP-I07",
+    "VP-I08"
+  ],
+  "accepted": [
+    "MachineSlider clamp fix"
+  ],
+  "open": [
+    "VP-I09"
+  ],
+  "build_typecheck": "pass",
+  "existing_unit_tests": {
+    "files": 9,
+    "passed": 187
+  },
+  "extra_merge_tests": {
+    "passed": 1,
+    "failed": 1
+  },
+  "browser_runs": {
+    "r34.playwright": {
+      "startTime": "2026-09-29T05:34:18.462Z",
+      "duration": 56551.503,
+      "expected": 19,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "r34.extra-playwright": {
+      "startTime": "2026-09-29T05:39:17.030Z",
+      "duration": 24140.842,
+      "expected": 3,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    }
+  },
+  "vue_version": "3.5.27",
+  "isolation": {
+    "archive": "/tmp/codex-r34-hj_zp6yd",
+    "mock": "127.0.0.1:4188",
+    "live_ports_used": false,
+    "linuxcnc_commands": false,
+    "mock_stopped": true,
+    "workers": 1,
+    "nice": 19
+  }
+}

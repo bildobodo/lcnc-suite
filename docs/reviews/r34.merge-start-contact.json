@@ -1,0 +1,475 @@
+{
+  "payload": {
+    "file": "/entry-repeat.ngc",
+    "preview_schema": 9,
+    "feed": [
+      [
+        240,
+        0,
+        -380
+      ],
+      [
+        0,
+        0,
+        -380
+      ],
+      [
+        240,
+        0,
+        -380
+      ],
+      [
+        240,
+        0,
+        -100
+      ]
+    ],
+    "feed_lines": [
+      7,
+      7,
+      7,
+      8
+    ],
+    "feed_seq": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "feed_outside": {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0
+    },
+    "rapid": [],
+    "violations": [],
+    "violations_total": 0
+  },
+  "pose": [
+    0,
+    0,
+    -380,
+    0,
+    0
+  ],
+  "shift": 240,
+  "baseLen": 760,
+  "entry": {
+    "hits": [
+      {
+        "line": 7,
+        "cum": 125.00048828125,
+        "cumEnd": 240,
+        "a": "spindle_nose",
+        "b": "a_yoke_casting",
+        "dist": 0,
+        "rapid": true,
+        "intervals": [
+          [
+            125.00048828125,
+            240
+          ]
+        ]
+      },
+      {
+        "line": 7,
+        "cum": 232.0001220703125,
+        "cumEnd": 240,
+        "a": "tool",
+        "b": "a_yoke_casting",
+        "dist": 0,
+        "rapid": true,
+        "intervals": [
+          [
+            232.0001220703125,
+            240
+          ]
+        ]
+      }
+    ],
+    "staticContacts": [
+      {
+        "a": "y_guide_rails",
+        "b": "y_guide_blocks",
+        "dist": 0.5
+      },
+      {
+        "a": "y_guide_rails",
+        "b": "y_guide_endcaps",
+        "dist": 0.5
+      },
+      {
+        "a": "x_guide_rails",
+        "b": "x_guide_blocks",
+        "dist": 0.5
+      },
+      {
+        "a": "x_guide_rails",
+        "b": "x_guide_endcaps",
+        "dist": 0.5
+      },
+      {
+        "a": "z_guide_rails",
+        "b": "z_guide_blocks",
+        "dist": 0.5
+      },
+      {
+        "a": "z_guide_rails",
+        "b": "z_guide_endcaps",
+        "dist": 0.5
+      },
+      {
+        "a": "a_bearing_rings",
+        "b": "a_trunnion_shafts",
+        "dist": 1.99909940140895
+      },
+      {
+        "a": "a_drive_covers",
+        "b": "a_trunnion_shafts",
+        "dist": 0
+      },
+      {
+        "a": "c_bearing_lip",
+        "b": "c_faceplate",
+        "dist": 2
+      }
+    ],
+    "samples": 318,
+    "coarsened": false,
+    "uncertified": null,
+    "pairCount": 384,
+    "pairsPrescreened": 74,
+    "bvhMs": 52,
+    "sweepMs": 988,
+    "truncated": null
+  },
+  "base": {
+    "hits": [
+      {
+        "line": 7,
+        "cum": 0,
+        "cumEnd": 478.57489281218585,
+        "a": "spindle_nose",
+        "b": "a_yoke_casting",
+        "dist": 0,
+        "rapid": false,
+        "spanCumEnd": 509.99950120035845,
+        "spanEndLine": 8
+      },
+      {
+        "line": 7,
+        "cum": 0,
+        "cumEnd": 475.0693566111901,
+        "a": "tool",
+        "b": "a_yoke_casting",
+        "dist": 0,
+        "rapid": false,
+        "spanCumEnd": 509.99950120035845,
+        "spanEndLine": 8
+      },
+      {
+        "line": 8,
+        "cum": 480,
+        "cumEnd": 509.99950120035845,
+        "a": "spindle_nose",
+        "b": "a_yoke_casting",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 7,
+        "intervals": [
+          [
+            480,
+            509.99950120035845
+          ]
+        ]
+      },
+      {
+        "line": 8,
+        "cum": 480,
+        "cumEnd": 509.99950120035845,
+        "a": "tool",
+        "b": "a_yoke_casting",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 7,
+        "intervals": [
+          [
+            480,
+            509.99950120035845
+          ]
+        ]
+      }
+    ],
+    "staticContacts": [
+      {
+        "a": "y_guide_rails",
+        "b": "y_guide_blocks",
+        "dist": 0.5
+      },
+      {
+        "a": "y_guide_rails",
+        "b": "y_guide_endcaps",
+        "dist": 0.5
+      },
+      {
+        "a": "x_guide_rails",
+        "b": "x_guide_blocks",
+        "dist": 0.5
+      },
+      {
+        "a": "x_guide_rails",
+        "b": "x_guide_endcaps",
+        "dist": 0.5
+      },
+      {
+        "a": "z_guide_rails",
+        "b": "z_guide_blocks",
+        "dist": 0.5
+      },
+      {
+        "a": "z_guide_rails",
+        "b": "z_guide_endcaps",
+        "dist": 0.5
+      },
+      {
+        "a": "a_bearing_rings",
+        "b": "a_trunnion_shafts",
+        "dist": 1.99909940140895
+      },
+      {
+        "a": "a_drive_covers",
+        "b": "a_trunnion_shafts",
+        "dist": 0
+      },
+      {
+        "a": "c_bearing_lip",
+        "b": "c_faceplate",
+        "dist": 2
+      }
+    ],
+    "samples": 1127,
+    "coarsened": false,
+    "uncertified": null,
+    "pairCount": 384,
+    "pairsPrescreened": 59,
+    "bvhMs": 52,
+    "sweepMs": 1111.7999999932945,
+    "truncated": null
+  },
+  "merged": {
+    "hits": [
+      {
+        "line": 7,
+        "cum": 125.00048828125,
+        "cumEnd": 240,
+        "a": "spindle_nose",
+        "b": "a_yoke_casting",
+        "dist": 0,
+        "rapid": true,
+        "intervals": [
+          [
+            125.00048828125,
+            240
+          ]
+        ],
+        "entry": true,
+        "spanCumEnd": 749.9995012003585,
+        "spanEndLine": 8
+      },
+      {
+        "line": 7,
+        "cum": 232.0001220703125,
+        "cumEnd": 240,
+        "a": "tool",
+        "b": "a_yoke_casting",
+        "dist": 0,
+        "rapid": true,
+        "intervals": [
+          [
+            232.0001220703125,
+            240
+          ]
+        ],
+        "entry": true,
+        "spanCumEnd": 749.9995012003585,
+        "spanEndLine": 8
+      },
+      {
+        "line": 7,
+        "cum": 240,
+        "cumEnd": 718.5748928121859,
+        "a": "spindle_nose",
+        "b": "a_yoke_casting",
+        "dist": 0,
+        "rapid": false,
+        "spanCumEnd": 749.9995012003585,
+        "spanEndLine": 8,
+        "continuation": 7
+      },
+      {
+        "line": 7,
+        "cum": 240,
+        "cumEnd": 715.0693566111901,
+        "a": "tool",
+        "b": "a_yoke_casting",
+        "dist": 0,
+        "rapid": false,
+        "spanCumEnd": 749.9995012003585,
+        "spanEndLine": 8,
+        "continuation": 7
+      },
+      {
+        "line": 8,
+        "cum": 720,
+        "cumEnd": 749.9995012003585,
+        "a": "spindle_nose",
+        "b": "a_yoke_casting",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 7,
+        "intervals": [
+          [
+            720,
+            749.9995012003585
+          ]
+        ]
+      },
+      {
+        "line": 8,
+        "cum": 720,
+        "cumEnd": 749.9995012003585,
+        "a": "tool",
+        "b": "a_yoke_casting",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 7,
+        "intervals": [
+          [
+            720,
+            749.9995012003585
+          ]
+        ]
+      }
+    ],
+    "staticContacts": [
+      {
+        "a": "y_guide_rails",
+        "b": "y_guide_blocks",
+        "dist": 0.5
+      },
+      {
+        "a": "y_guide_rails",
+        "b": "y_guide_endcaps",
+        "dist": 0.5
+      },
+      {
+        "a": "x_guide_rails",
+        "b": "x_guide_blocks",
+        "dist": 0.5
+      },
+      {
+        "a": "x_guide_rails",
+        "b": "x_guide_endcaps",
+        "dist": 0.5
+      },
+      {
+        "a": "z_guide_rails",
+        "b": "z_guide_blocks",
+        "dist": 0.5
+      },
+      {
+        "a": "z_guide_rails",
+        "b": "z_guide_endcaps",
+        "dist": 0.5
+      },
+      {
+        "a": "a_bearing_rings",
+        "b": "a_trunnion_shafts",
+        "dist": 1.99909940140895
+      },
+      {
+        "a": "a_drive_covers",
+        "b": "a_trunnion_shafts",
+        "dist": 0
+      },
+      {
+        "a": "c_bearing_lip",
+        "b": "c_faceplate",
+        "dist": 2
+      }
+    ],
+    "samples": 1445,
+    "coarsened": false,
+    "uncertified": null,
+    "pairCount": 384,
+    "pairsPrescreened": 59,
+    "bvhMs": 104,
+    "sweepMs": 2099.7999999932945,
+    "truncated": null
+  },
+  "before": [
+    {
+      "cum": 0,
+      "cumEnd": 478.57489281218585,
+      "key": "C7|spindle_nose|a_yoke_casting|0",
+      "line": 7,
+      "rapid": false,
+      "dist": 0,
+      "spanEndLine": 8
+    },
+    {
+      "cum": 0,
+      "cumEnd": 475.0693566111901,
+      "key": "C7|tool|a_yoke_casting|0",
+      "line": 7,
+      "rapid": false,
+      "dist": 0,
+      "spanEndLine": 8
+    }
+  ],
+  "after": [
+    {
+      "cum": 125.00048828125,
+      "cumEnd": 240,
+      "key": "E7|spindle_nose|a_yoke_casting|0",
+      "line": 7,
+      "rapid": true,
+      "dist": 0,
+      "spanEndLine": 8,
+      "entry": true
+    },
+    {
+      "cum": 232.0001220703125,
+      "cumEnd": 240,
+      "key": "E7|tool|a_yoke_casting|0",
+      "line": 7,
+      "rapid": true,
+      "dist": 0,
+      "spanEndLine": 8,
+      "entry": true
+    }
+  ],
+  "steps": [
+    {
+      "line": "L7",
+      "next": "→ entry (rapid) … through L8",
+      "pos": "240"
+    },
+    {
+      "line": "L7 →",
+      "next": "→ entry (rapid) … through L8",
+      "pos": "125"
+    },
+    {
+      "line": "L7 →",
+      "next": "→ entry (rapid) … through L8",
+      "pos": "232"
+    },
+    {
+      "line": "L7 →",
+      "next": "→ entry (rapid) … through L8",
+      "pos": "125"
+    }
+  ]
+}

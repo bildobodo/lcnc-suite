@@ -1,0 +1,258 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r34-hj_zp6yd/lcnc-webui/playwright.r34-extra.config.ts",
+    "rootDir": "/tmp/codex-r34-hj_zp6yd/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r34-hj_zp6yd/evidence/results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/tmp/codex-r34-hj_zp6yd/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:r34.merge-reentry|r34.sliders)\\.spec\\.ts/"
+        ],
+        "timeout": 90000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "../evidence/r34.extra-playwright.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "r34.merge-reentry.spec.ts",
+      "file": "r34.merge-reentry.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R34 separated contacts on the same line remain separate: clear first point (control)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6033,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-29T05:39:17.503Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9f54499d57552a06dd58-a807bb89e005dc61c313",
+          "file": "r34.merge-reentry.spec.ts",
+          "line": 18,
+          "column": 1
+        },
+        {
+          "title": "R34 separated contacts on the same line remain separate: contact at first point",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 6823,
+                  "error": {
+                    "message": "Error: Two separated onsets per pair on the base program\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m4\u001b[39m\nReceived: \u001b[31m2\u001b[39m",
+                    "stack": "Error: Two separated onsets per pair on the base program\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m4\u001b[39m\nReceived: \u001b[31m2\u001b[39m\n    at /tmp/codex-r34-hj_zp6yd/lcnc-webui/e2e/r34.merge-reentry.spec.ts:59:76",
+                    "location": {
+                      "file": "/tmp/codex-r34-hj_zp6yd/lcnc-webui/e2e/r34.merge-reentry.spec.ts",
+                      "column": 76,
+                      "line": 59
+                    },
+                    "snippet": "  57 |  // Each of the two body pairs leaves the yoke at X0 and enters it again.\n  58 |  // The first onset may merge with the entry, but the second is independent.\n> 59 |  expect(before.length,'Two separated onsets per pair on the base program').toBe(4);\n     |                                                                            ^\n  60 |  expect(after.length,'Merging the initial continuous contact preserves all later onsets').toBe(4);\n  61 | });\n  62 | }"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r34-hj_zp6yd/lcnc-webui/e2e/r34.merge-reentry.spec.ts",
+                        "column": 76,
+                        "line": 59
+                      },
+                      "message": "Error: Two separated onsets per pair on the base program\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m4\u001b[39m\nReceived: \u001b[31m2\u001b[39m\n\n  57 |  // Each of the two body pairs leaves the yoke at X0 and enters it again.\n  58 |  // The first onset may merge with the entry, but the second is independent.\n> 59 |  expect(before.length,'Two separated onsets per pair on the base program').toBe(4);\n     |                                                                            ^\n  60 |  expect(after.length,'Merging the initial continuous contact preserves all later onsets').toBe(4);\n  61 | });\n  62 | }\n    at /tmp/codex-r34-hj_zp6yd/lcnc-webui/e2e/r34.merge-reentry.spec.ts:59:76"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-29T05:39:23.577Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r34-hj_zp6yd/evidence/results/r34.merge-reentry-R34-sepa-d9cf3-rate-contact-at-first-point/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r34-hj_zp6yd/evidence/results/r34.merge-reentry-R34-sepa-d9cf3-rate-contact-at-first-point/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r34-hj_zp6yd/lcnc-webui/e2e/r34.merge-reentry.spec.ts",
+                    "column": 76,
+                    "line": 59
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "9f54499d57552a06dd58-8feaf5a4fefe25dcb966",
+          "file": "r34.merge-reentry.spec.ts",
+          "line": 18,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "r34.sliders.spec.ts",
+      "file": "r34.sliders.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R34 sliders preserve live local values and commit on release: mouse",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5408,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-29T05:39:30.716Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "da6d2e0980adf7987514-5830423efa06146f4df7",
+          "file": "r34.sliders.spec.ts",
+          "line": 36,
+          "column": 34
+        },
+        {
+          "title": "R34 sliders preserve live local values and commit on release: touch",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 90000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4980,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-29T05:39:36.165Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "da6d2e0980adf7987514-87f7908af70d28c8e2d1",
+          "file": "r34.sliders.spec.ts",
+          "line": 36,
+          "column": 34
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-09-29T05:39:17.030Z",
+    "duration": 24140.842,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

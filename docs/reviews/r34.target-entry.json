@@ -1,0 +1,128 @@
+{
+  "mode": "entry",
+  "payload": {
+    "file": "/targets.ngc",
+    "preview_schema": 9,
+    "feed": [
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        10,
+        0,
+        0
+      ],
+      [
+        10,
+        10,
+        0
+      ],
+      [
+        20,
+        10,
+        0
+      ]
+    ],
+    "feed_lines": [
+      1,
+      6,
+      7,
+      8
+    ],
+    "feed_seq": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "feed_outside": {
+      "0": 0,
+      "1": 0,
+      "2": 1,
+      "3": 0
+    },
+    "rapid": [],
+    "violations": [
+      {
+        "line": 7,
+        "axis": "Y",
+        "value": 10,
+        "limit": 5,
+        "kind": "max"
+      }
+    ],
+    "violations_total": 1
+  },
+  "before": {
+    "line": "",
+    "slider": {
+      "value": "0",
+      "max": "30"
+    },
+    "reveal": [],
+    "roles": {
+      "feed": null,
+      "rapid": null,
+      "limit": null
+    },
+    "simulation": false
+  },
+  "first": {
+    "line": "L7",
+    "slider": {
+      "value": "109.98",
+      "max": "130"
+    },
+    "reveal": [
+      "Toolpath shown for this finding — hidden in Layers"
+    ],
+    "roles": {
+      "feed": {
+        "x": 427.99999999999994,
+        "y": 507.37244481378224,
+        "dx": 0,
+        "dy": -1,
+        "length": 24.499987750009154
+      },
+      "rapid": null,
+      "limit": {
+        "x": 427.99999999999994,
+        "y": 507.37244481378224,
+        "dx": 0,
+        "dy": -1,
+        "length": 24.499987750009154
+      }
+    },
+    "simulation": true
+  },
+  "second": {
+    "line": "L7",
+    "slider": {
+      "value": "109.98",
+      "max": "130"
+    },
+    "reveal": [
+      "Toolpath shown for this finding — hidden in Layers"
+    ],
+    "roles": {
+      "feed": {
+        "x": 427.99999999999994,
+        "y": 507.37244481378224,
+        "dx": 0,
+        "dy": -1,
+        "length": 24.499987750009154
+      },
+      "rapid": null,
+      "limit": {
+        "x": 427.99999999999994,
+        "y": 507.37244481378224,
+        "dx": 0,
+        "dy": -1,
+        "length": 24.499987750009154
+      }
+    },
+    "simulation": true
+  }
+}

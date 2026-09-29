@@ -1,0 +1,3 @@
+e2e/r34.limit-origin.spec.ts(35,59): error TS2367: This comparison appears to be unintentional because the types '"entry"' and '"short-time"' have no overlap.
+e2e/r34.limit-origin.spec.ts(35,80): error TS2367: This comparison appears to be unintentional because the types '"entry"' and '"close-targets"' have no overlap.
+e2e/r34.limit-origin.spec.ts(35,103): error TS2367: This comparison appears to be unintentional because the types '"entry"' and '"close-targets"' have no overlap.

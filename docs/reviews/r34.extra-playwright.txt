@@ -1,0 +1,44 @@
+
+Running 4 tests using 1 worker
+
+(node:262757) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:262757) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r34.merge-reentry.spec.ts:18:1 › R34 separated contacts on the same line remain separate: clear first point (control) (6.0s)
+  ✘  2 e2e/r34.merge-reentry.spec.ts:18:1 › R34 separated contacts on the same line remain separate: contact at first point (6.8s)
+(node:263085) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:263085) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 e2e/r34.sliders.spec.ts:36:34 › R34 sliders preserve live local values and commit on release: mouse (5.4s)
+  ✓  4 e2e/r34.sliders.spec.ts:36:34 › R34 sliders preserve live local values and commit on release: touch (5.0s)
+
+
+  1) e2e/r34.merge-reentry.spec.ts:18:1 › R34 separated contacts on the same line remain separate: contact at first point 
+
+    Error: Two separated onsets per pair on the base program
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m4[39m
+    Received: [31m2[39m
+
+      57 |  // Each of the two body pairs leaves the yoke at X0 and enters it again.
+      58 |  // The first onset may merge with the entry, but the second is independent.
+    > 59 |  expect(before.length,'Two separated onsets per pair on the base program').toBe(4);
+         |                                                                            ^
+      60 |  expect(after.length,'Merging the initial continuous contact preserves all later onsets').toBe(4);
+      61 | });
+      62 | }
+        at /tmp/codex-r34-hj_zp6yd/lcnc-webui/e2e/r34.merge-reentry.spec.ts:59:76
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/r34.merge-reentry-R34-sepa-d9cf3-rate-contact-at-first-point/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/r34.merge-reentry-R34-sepa-d9cf3-rate-contact-at-first-point/error-context.md
+
+  1 failed
+    e2e/r34.merge-reentry.spec.ts:18:1 › R34 separated contacts on the same line remain separate: contact at first point 
+  3 passed (24.1s)

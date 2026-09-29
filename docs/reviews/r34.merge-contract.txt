@@ -1,0 +1,33 @@
+
+ RUN  v4.1.8 /tmp/codex-r34-hj_zp6yd/lcnc-webui
+
+ ❯ review/r34.merge-contract.test.ts (2 tests | 1 failed) 4ms
+   × a later interval on the same program record survives merging only the initial continuous interval 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  review/r34.merge-contract.test.ts > a later interval on the same program record survives merging only the initial continuous interval
+AssertionError: The second program onset at 20 shifts to 30 and remains navigable: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ review/r34.merge-contract.test.ts:24:116
+     22|  const merged=mergeEntryResult(entry,base,10,80),targets=clashTargets(…
+     23|  writeFileSync('../evidence/r34.merge-intervals.json',JSON.stringify({…
+     24|  expect(targets.some(t=>!t.entry&&t.cum===30),'The second program onse…
+       |                                                                                                                    ^
+     25|  expect(targets).toHaveLength(3);
+     26| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  07:40:05
+   Duration  82ms (transform 22ms, setup 0ms, import 28ms, tests 4ms, environment 0ms)
+
