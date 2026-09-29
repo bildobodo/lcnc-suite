@@ -35,6 +35,10 @@ function makeDeps(overflow: Ref<boolean>) {
     sceneForeground: () => new THREE.Color(SCENE_FG),
     axisCss: { x: "#f00", y: "#0f0", z: "#00f" },
     overflow,
+    // The selection semantics below (chunks, levels, overlays, reveal) are
+    // written against the GL lines' index ranges; the fat lines draw the SAME
+    // pairs packed — pinned by the equivalence suite in fatPaths.test.ts.
+    lineMode: "gl" as const,
   };
 }
 const SCENE_BG = "#102030";

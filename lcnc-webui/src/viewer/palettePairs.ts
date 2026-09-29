@@ -3,15 +3,16 @@
 // BESIDE each other, so two LINE roles are told apart by colour first: an
 // OKLab distance of at least LINE_MIN_NORMAL (LINE_MIN_NORMAL_HC in hc-dark
 // alone — see there; lineMinFor). Colour-vision deficiency is no criterion
-// (operator 2026-09-29); a FORM cue (the dashed rapid, the backplot's width)
-// supplements the colour, never replaces it. A line against a BODY (the
+// (operator 2026-09-29); a FORM cue (the dashed rapid) supplements the
+// colour, never replaces it — every path line is 2 CSS px (part B), so the
+// backplot is told from the path by its colour alone. A line against a BODY (the
 // collision tint) or two non-path objects (the boxes, the plane's states)
 // are `object` pairs: OBJECT_MIN_NORMAL plus the cue the image shows. The
 // two boxes share one two-tone pair by design (`form`: told apart by the
 // dash length and the size labels).
 //
 // 0.25 is the search and regression value the palette was chosen by, not a
-// proof that every 1 px line is distinguishable (Codex R29 VP29-01). Pure
+// proof that every thin line is distinguishable (Codex R29 VP29-01). Pure
 // data; themeTokens.test.ts checks every theme block against it, the viewer
 // specs check that each cue is drawn.
 
@@ -33,7 +34,6 @@ export const OBJECT_MIN_NORMAL = 0.12;
 /** A visible cue that separates two roles besides their colour. */
 export type PairCue =
   | "dashed"   // the rapid (or a stale plane's edge) is dashed; the boxes' dash length
-  | "width"    // the width ladder: path 1 px, backplot wider
   | "object"   // one is a tinted machine body, not a path line
   | "glyph"    // timeline / code panel: ▲ limit, × collision
   | "label";   // a text label on the object (the toolpath box's sizes, the plane's state)
@@ -59,10 +59,10 @@ export const PATH_ROLES = [...LINE_ROLES, "--viewer-collision"] as const;
 export const PALETTE_PAIRS: PalettePair[] = [
   { a: "--viewer-feed", b: "--viewer-rapid", where: "adjacent path", kind: "line", cues: ["dashed"] },
   { a: "--viewer-feed", b: "--viewer-limit", where: "the overlay lies on the path", kind: "line", cues: [] },
-  { a: "--viewer-feed", b: "--viewer-backplot", where: "the backplot lies on the path", kind: "line", cues: ["width"] },
+  { a: "--viewer-feed", b: "--viewer-backplot", where: "the backplot lies on the path", kind: "line", cues: [] },
   { a: "--viewer-rapid", b: "--viewer-limit", where: "the overlay on a rapid", kind: "line", cues: ["dashed"] },
-  { a: "--viewer-rapid", b: "--viewer-backplot", where: "an executed rapid", kind: "line", cues: ["dashed", "width"] },
-  { a: "--viewer-limit", b: "--viewer-backplot", where: "the backplot over a limit violation", kind: "line", cues: ["width"] },
+  { a: "--viewer-rapid", b: "--viewer-backplot", where: "an executed rapid", kind: "line", cues: ["dashed"] },
+  { a: "--viewer-limit", b: "--viewer-backplot", where: "the backplot over a limit violation", kind: "line", cues: [] },
   { a: "--viewer-feed", b: "--viewer-collision", where: "a line against a tinted body", kind: "object", cues: ["object"] },
   { a: "--viewer-rapid", b: "--viewer-collision", where: "a line against a tinted body", kind: "object", cues: ["object", "dashed"] },
   { a: "--viewer-limit", b: "--viewer-collision", where: "3D, timeline, code panel", kind: "object", cues: ["object", "glyph"] },

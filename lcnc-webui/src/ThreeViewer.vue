@@ -1770,12 +1770,12 @@ async function buildFromInit(init: ViewerInit) {
         // texture count compared with a moment before raced the gizmo's
         // labels, which build the shared glyph atlas first.
         // Every role-tagged material as DRAWN (viewer contrast plan, R1/R2):
-        // its kind carries the pair table's form cue — `dashed` the rapid,
-        // `fat` a screen-space line with its CSS-px width (the backplot's
-        // 2), `basic` a 1 px line — and its opacity says
-        // whether the colour needs compositing.
+        // its kind — `fat` a screen-space line with its CSS-px width (every
+        // path line's 2, part B), `dashed` / `basic` a GL line of one device
+        // pixel — `dashed` the pair table's form cue on either, and its
+        // opacity whether the colour needs compositing.
         getRoleMaterials: () => {
-          const out: { role: string; kind: string; widthPx: number | null; opacity: number; transparent: boolean }[] = [];
+          const out: { role: string; kind: string; widthPx: number | null; dashed: boolean; opacity: number; transparent: boolean }[] = [];
           const seen = new Set<string>();
           scene?.traverse(o => {
             const m = (o as THREE.Mesh).material as (THREE.Material & { linewidth?: number }) | undefined;
@@ -1786,6 +1786,7 @@ async function buildFromInit(init: ViewerInit) {
             if (seen.has(`${role}|${kind}`)) return;
             seen.add(`${role}|${kind}`);
             out.push({ role, kind, widthPx: kind === "fat" ? m!.linewidth ?? null : kind === "other" ? null : 1,
+              dashed: kind === "dashed" || (kind === "fat" && !!(m as { dashed?: boolean }).dashed),
               opacity: m!.opacity, transparent: m!.transparent });
           });
           return out;

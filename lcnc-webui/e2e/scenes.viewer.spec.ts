@@ -126,10 +126,13 @@ test("the palette in four themes, on a model, a dense and a thin path — and no
         { message: `${where}: the feed takes the theme's role` }).toBe(await token("--viewer-feed"));
       const materials = await page.evaluate(() => window.__viewerDiag!.getRoleMaterials!());
       expect(materials.filter(m => m.role.startsWith("selection")), `${where}: no current line drawn`).toEqual([]);
-      // Screen-space lines: the backplot and the two two-tone boxes — a dark
-      // line and its light dashes each (operator 2026-09-29).
-      expect(materials.filter(m => m.kind === "fat").map(m => m.role).sort(), `${where}: the backplot and the two boxes`)
-        .toEqual(["backplot", "bounds", "boundsAlt", "toolpathBounds", "toolpathBoundsAlt"]);
+      // Screen-space lines: every path line (part B — feed, rapid, the limit
+      // overlay and the backplot, 2 CSS px) and the two two-tone boxes, a
+      // dark line and its light dashes each (operator 2026-09-29).
+      const fat = [...new Set(materials.filter(m => m.kind === "fat").map(m => m.role))].sort();
+      const want = ["backplot", "bounds", "boundsAlt", "feed", "limit", "rapid", "toolpathBounds", "toolpathBoundsAlt"];
+      expect(fat.filter(r => want.includes(r)), `${where}: the path lines and the two boxes`).toEqual(want.filter(r => kind === "dense" || r !== "limit"));
+      expect(materials.filter(m => ["feed", "rapid", "limit", "backplot"].includes(m.role) && m.kind !== "fat"), `${where}: no thin path line left`).toEqual([]);
       const drawn = (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn;
       if (kind === "dense") expect(drawn.limit, `${where}: the limit overflow's role`).toBe(await token("--viewer-limit"));
       await page.waitForTimeout(200);
@@ -140,16 +143,15 @@ test("the palette in four themes, on a model, a dense and a thin path — and no
   }
 });
 
-// The width ladder (viewer contrast plan, R1/E11): the pair table tells the
-// backplot from the path and the limit overlay by WIDTH — path 1 px, backplot
-// 2 CSS px — and that must hold in the rendered image, not only on the
+// The line widths (viewer contrast plan R1/E11; part B, operator 2026-09-29:
+// every path line 2 CSS px) must hold in the rendered image, not only on the
 // material. A top view onto a lit table: a programmed line, a line flagged
 // outside the limits (the overlay), and the backplot driven between them. The
 // drawn width across each line is the sum of each pixel's COVERAGE by the
 // role colour against the local background (anti-aliasing counts as the
-// fraction it is), in DEVICE pixels: a core WebGL line is one device pixel,
-// the screen-space backplot 2 CSS px = 2 × DPR — so DPR 1 and 2 are both
-// measured. A missing line reads ~0 and fails the lower bound.
+// fraction it is), in DEVICE pixels: 2 CSS px = 2 × DPR — so DPR 1 and 2 are
+// both measured (a core WebGL line would read one device pixel at either).
+// A missing line reads ~0 and fails the lower bound.
 const LADDER_THEMES = ["light", "dark", "hc-light", "hc-dark"] as const;
 
 function ladderPayload() {
@@ -218,7 +220,7 @@ async function drawnWidth(page: Page, shot: Buffer, at: { x: number; y: number; 
   }, { png: shot.toString("base64"), at, colour, dpr });
 }
 
-test("the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px — at DPR 1 and 2", async ({ browser }) => {
+test("every path line is drawn 2 CSS px — the path, the limit overlay and the backplot, at DPR 1 and 2", async ({ browser }) => {
   test.setTimeout(240_000);
   const program = ladderPayload();
   let version = 950;
@@ -268,10 +270,10 @@ test("the width ladder is drawn: the path and the limit overlay 1 px, the backpl
       await page.waitForTimeout(300);
       const where = `DPR ${dpr} ${theme}`;
       const mats = await page.evaluate(() => window.__viewerDiag!.getRoleMaterials!());
-      const kindOf = (role: string) => mats.filter(m => m.role === role).map(m => `${m.kind}${m.widthPx ?? ""}`).sort().join(",");
-      expect(kindOf("feed"), `${where}: the path is a 1 px line`).toBe("basic1");
-      expect(kindOf("rapid"), `${where}: the rapid is dashed`).toBe("dashed1");
-      expect(kindOf("limit"), `${where}: the limit overlay is a 1 px line`).toBe("basic1");
+      const kindOf = (role: string) => mats.filter(m => m.role === role).map(m => `${m.kind}${m.widthPx ?? ""}${m.dashed ? " dashed" : ""}`).sort().join(",");
+      expect(kindOf("feed"), `${where}: the path is a 2 px screen-space line`).toBe("fat2");
+      expect(kindOf("rapid"), `${where}: the rapid is dashed, 2 px`).toBe("fat2 dashed");
+      expect(kindOf("limit"), `${where}: the limit overlay is a 2 px line`).toBe("fat2");
       expect(kindOf("backplot"), `${where}: the backplot is a 2 px screen-space line`).toBe("fat2");
       expect(mats.filter(m => m.kind !== "other" && (m.opacity !== 1 || m.transparent)), `${where}: every role line is opaque (its colour is its contrast)`).toEqual([]);
       const drawn = (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn;
@@ -291,17 +293,15 @@ test("the width ladder is drawn: the path and the limit overlay 1 px, the backpl
       }
       const dump = JSON.stringify({ widths, at: where2 });
       test.info().annotations.push({ type: `widths ${where}`, description: dump });
-      for (const role of ["feed", "limit"]) {
-        expect(widths[role]!, `${where}: the ${role} line is drawn ${dump}`).toBeGreaterThan(0.5);
-        expect(widths[role]!, `${where}: the ${role} line is one device pixel ${dump}`).toBeLessThan(1.7);
+      for (const role of ["feed", "limit", "backplot"]) {
+        expect(widths[role]!, `${where}: the ${role} line is 2 CSS px ${dump}`).toBeGreaterThan(1.6 * dpr);
+        expect(widths[role]!, `${where}: the ${role} line is not wider than 2 CSS px ${dump}`).toBeLessThan(2.6 * dpr);
       }
-      expect(widths.backplot!, `${where}: the backplot is 2 CSS px ${dump}`).toBeGreaterThan(1.6 * dpr);
-      expect(widths.backplot!, `${where}: the backplot is not wider than 2 CSS px ${dump}`).toBeLessThan(2.6 * dpr);
       // The boxes (operator 2026-09-29): two-tone — a dark line and its light
       // dashes, one width, no casing. Across the machine box's edge one of its
       // tones, the scene beyond on either side.
       expect([kindOf("bounds"), kindOf("boundsAlt"), kindOf("toolpathBounds"), kindOf("toolpathBoundsAlt")], `${where}: the boxes`)
-        .toEqual([`fat${MACHINE_BOX_PX}`, `fat${MACHINE_BOX_PX}`, `fat${TOOLPATH_BOX_PX}`, `fat${TOOLPATH_BOX_PX}`]);
+        .toEqual([`fat${MACHINE_BOX_PX}`, `fat${MACHINE_BOX_PX} dashed`, `fat${TOOLPATH_BOX_PX}`, `fat${TOOLPATH_BOX_PX} dashed`]);
       const edge = await page.evaluate(() => window.__viewerDiag!.projectRole!("bounds"));
       expect(edge, `${where}: a visible box edge`).not.toBeNull();
       const [dark, light] = [rgbOf(drawn.bounds!), rgbOf(drawn.boundsAlt!)];

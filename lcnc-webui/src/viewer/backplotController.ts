@@ -22,6 +22,7 @@ import * as THREE from "three";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
+import { PATH_PX } from "./fatPaths";
 
 const BACKPLOT_MAX = 20000;   // points (10 Hz -> ~33 min)
 const SEG_MAX = BACKPLOT_MAX - 1;   // segments between them
@@ -30,8 +31,9 @@ const BACKPLOT_EPS = 0.01;    // mm; min distance before adding a point
  *  the limit overlay draws over it (a finding is never hidden by history —
  *  Codex R30), see LIMIT_OVERLAY_RENDER_ORDER. */
 export const BACKPLOT_RENDER_ORDER = 11;
-/** The backplot's width in CSS px — twice the path's 1 px line. */
-export const BACKPLOT_WIDTH_PX = 2;
+/** The backplot's width in CSS px — every path line's (part B, operator
+ *  2026-09-29: all paths 2 px; colour and draw order tell it from the path). */
+export const BACKPLOT_WIDTH_PX = PATH_PX;
 
 export interface BackplotController {
   /** Build a fresh line under `parent` (call once per scene rebuild). */

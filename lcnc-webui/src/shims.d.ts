@@ -34,7 +34,7 @@ interface ViewerDiag {
   getLabels?: () => { total: number; laidOut: number };
   // Viewer contrast plan (R1/R2): each role's drawn material kind (the form
   // cue), width and opacity; the longest visible segment of a role on screen.
-  getRoleMaterials?: () => { role: string; kind: string; widthPx: number | null; opacity: number; transparent: boolean }[];
+  getRoleMaterials?: () => { role: string; kind: string; widthPx: number | null; dashed: boolean; opacity: number; transparent: boolean }[];
   projectRole?: (role: string) => { x: number; y: number; dx: number; dy: number; length: number } | null;
   projectRoleSegments?: (role: string) => { x: number; y: number; dx: number; dy: number; length: number }[];
   // Viewer contrast plan (V4): the tilted work plane as drawn, and a seam to

@@ -20,7 +20,11 @@
 import * as THREE from "three";
 import { binPairs, buildFrameIndex, CHUNK_MAX, chunkBounds, chunkGrid, cumulativeDistances, splitPairsByFrame } from "./lineChunks";
 import type { AnchorTerms } from "./partFrame";
-import { makeBoxEdges, TOOLPATH_BOX_PX, TOOLPATH_BOX_DASH_PX, type BoxEdges } from "./boxLines";
+import { makeBoxEdges, boxEdgePositions, worldPerPixel, TOOLPATH_BOX_PX, TOOLPATH_BOX_DASH_PX, type BoxEdges } from "./boxLines";
+import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
+import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
+import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
+import { fatGeometry, packPairs, PATH_PX } from "./fatPaths";
 import type { Ref } from "vue";
 import type { Text } from "troika-three-text";
 import type { ViewerGcode } from "../lcncWs";
@@ -61,6 +65,10 @@ export interface ToolpathDeps {
   overflowCount?: Ref<number>;
   /** Spatial grid cells (≈ chunks) per stream — lineChunks.spatialChunks. */
   chunkCells?: number;
+  /** The initial line mode (default "fat"); "gl" keeps the previous GL
+   *  lines — for the A/B measurement and the selection tests written against
+   *  their index ranges. */
+  lineMode?: PathLineMode;
 }
 
 export interface ToolpathCtx {
@@ -112,6 +120,14 @@ export interface ToolpathController {
   setReveal(r: PathSection | null): void;
   setBoundsVisible(on: boolean): void;
   setAlwaysOnTop(on: boolean): void;
+  /** The A/B measurement's switch (Codex R39 VP39-03; removed after the
+   *  acceptance): rebuild the last applied program in the given line mode —
+   *  never both held, so each mode's memory is its own. */
+  setLineMode(mode: PathLineMode, ctx: ToolpathCtx): void;
+  readonly lineMode: PathLineMode;
+  /** The memory ledger (Codex R39 VP39-01): bytes by owner — CPU per unique
+   *  ArrayBuffer, GPU per buffer actually uploaded. */
+  pathMemory(): PathMemory;
   /** Live-update feed/rapid/toolpath-bounds colours on existing lines. */
   setColors(c: Colors): void;
   /** Mute the drawn path while it is known not to match the machine's
@@ -151,6 +167,20 @@ export interface ToolpathController {
 }
 
 
+export interface PathMemory {
+  mode: PathLineMode;
+  /** CPU bytes by owner: the drawn base lines, the dash distances, the limit
+   *  overlays, the finding's reveal, and the source arrays kept for rebuilds
+   *  (positions, level indices, source ids, flags) — each ArrayBuffer once. */
+  cpu: { base: number; dist: number; overlay: number; reveal: number; source: number; total: number };
+  /** GPU bytes of the buffers uploaded so far (a level never drawn is not). */
+  gpu: { base: number; dist: number; overlay: number; reveal: number; total: number };
+  /** Bytes the last build packed (the fat mode's own allocation). */
+  buildBytes: number;
+  /** Drawn segment instances at the current levels (= drawSegs). */
+  instances: number;
+}
+
 /** One drawn stream in one frame: its chunks (objects sharing the stream's
  *  position attribute + this set's index attribute), materials, and the
  *  per-chunk local boxes the overlay gate tests. */
@@ -160,9 +190,20 @@ export interface ToolpathController {
  *  (no VAO rebind), and disposing every level's geometry frees every index
  *  buffer (a swapped-out index attribute would otherwise leak its GL
  *  buffer: Three only deletes a geometry's CURRENT index on dispose). */
+/** A drawn path object: a GL line (the previous renderer, kept for the A/B
+ *  measurement only) or a screen-space line of PATH_PX (part B). */
+type PathObj = THREE.LineSegments | LineSegments2;
+type PathMat = THREE.LineBasicMaterial | THREE.LineDashedMaterial | LineMaterial;
+/** "fat" = LineSegments2 at PATH_PX (the product); "gl" = the previous GL
+ *  lines, selectable only for the A/B measurement (Codex R39 VP39-03). */
+export type PathLineMode = "fat" | "gl";
+
 interface Chunk {
-  lines: THREE.LineSegments[];             // per level
-  overlays: (THREE.LineSegments | null)[]; // per level — null where nothing is flagged
+  lines: PathObj[];             // per level
+  overlays: (PathObj | null)[]; // per level — null where nothing is flagged
+  /** The chunk's bounding-sphere radius before the line-width margin
+   *  updateCulling adds in fat mode. */
+  radius0: number;
   counts: number[];                        // index entries per level (0 = nothing at that level)
   ovCounts: number[];                      // flagged index entries per level
   level: number;
@@ -172,8 +213,8 @@ interface LineSet {
   stream: "feed" | "rapid";
   frame: 0 | 1;
   parent: THREE.Group;
-  mat: THREE.LineBasicMaterial | THREE.LineDashedMaterial;
-  overMat: THREE.LineBasicMaterial | null;  // built with the overlays (buildOverlays)
+  mat: PathMat;
+  overMat: PathMat | null;  // built with the overlays (buildOverlays)
   bounds: Float32Array;                  // 6 per chunk (union over levels), parent-local coordinates
   tols: number[];                        // tolerance of level k ≥ 1 (machine units)
   chunks: Chunk[];
@@ -186,7 +227,7 @@ interface LineSet {
   outside: Uint8Array | null;            // the validator's flags (the reveal's limit mark)
   /** A finding's section (setReveal): its pairs in the set's material, and
    *  the flagged ones among them in the limit role. */
-  reveal: { line: THREE.LineSegments | null; over: THREE.LineSegments | null };
+  reveal: { line: PathObj | null; over: PathObj | null };
 }
 
 /** A level is used when its tolerance is under this many pixels (device
@@ -217,6 +258,9 @@ export const LIMIT_OVERLAY_RENDER_ORDER = 12;
  *  own units: the two meet at the machine window and dash alike. */
 const BOX_DASH = 3;
 const BOX_GAP = 2;
+/** The rapid's dash and gap, in the path's own units (as the GL line had them). */
+const RAPID_DASH = 10;
+const RAPID_GAP = 6;
 
 export function createToolpathController(deps: ToolpathDeps): ToolpathController {
   let sets: LineSet[] = [];
@@ -229,7 +273,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
 
   let toolpathBoundsBox: BoxEdges | null = null;
   let toolpathBoundsLabels: THREE.Group | null = null;
-  let toolpathOverflowEdges: THREE.LineSegments | null = null;
+  let toolpathOverflowEdges: PathObj | null = null;
 
   let toolpathVisible = true;
   let rapidsVisible = true;
@@ -242,6 +286,65 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   let _lodMin = 0;
   let _lodMax = 0;
   let _lodMs = 0;
+  let lineMode: PathLineMode = deps.lineMode ?? "fat";
+  // The memory ledger (Codex R39 VP39-01): GPU bytes count a buffer once it
+  // was actually uploaded (three calls onUpload after the first transfer);
+  // _buildBytes adds up what the last build packed.
+  let _uploaded = new WeakSet<object>();
+  let _buildBytes = 0;
+  const _watchUpload = (b: THREE.BufferAttribute | THREE.InterleavedBuffer) => { b.onUpload(() => { _uploaded.add(b); }); };
+  // The last apply's DATA (never its ctx — the scene pointers are fresh per
+  // call): a line-mode switch rebuilds from it.
+  let _lastApply: { g: ViewerGcode; anchor: AnchorTerms | null } | null = null;
+
+  /** A path material in the current line mode. depthWrite is off explicitly
+   *  (LineMaterial starts with it on — Codex R39). */
+  function pathMaterial(colorHex: string, dashed: boolean, role: string): PathMat {
+    let m: PathMat;
+    if (lineMode === "fat") {
+      const lm = new LineMaterial({ color: colorHex, linewidth: PATH_PX, worldUnits: false });
+      if (dashed) { lm.dashed = true; lm.dashSize = RAPID_DASH; lm.gapSize = RAPID_GAP; }
+      m = lm;
+    } else {
+      m = dashed ? new THREE.LineDashedMaterial({ color: colorHex, dashSize: RAPID_DASH, gapSize: RAPID_GAP })
+        : new THREE.LineBasicMaterial({ color: colorHex });
+    }
+    m.userData.role = role;
+    m.depthTest = !pathAlwaysOnTop;
+    m.depthWrite = false;
+    return m;
+  }
+
+  /** One drawn object over the pairs index[start .. start+count): the GL
+   *  line shares the stream's position attribute and `indexAttr`; the fat
+   *  line PACKS them (viewer/fatPaths.ts — the dash distances from the
+   *  stream's own `dist`, never re-summed). */
+  function pathObject(posAttr: THREE.BufferAttribute, index: Uint32Array, indexAttr: THREE.BufferAttribute | null,
+    start: number, count: number, mat: PathMat, dist: THREE.BufferAttribute | null, sphere: THREE.Sphere | null): PathObj {
+    if (lineMode === "fat") {
+      const packed = packPairs(posAttr.array as Float32Array, index, start, count, dist ? dist.array as Float32Array : null);
+      _buildBytes += packed.positions.byteLength + (packed.distances?.byteLength ?? 0);
+      const g = fatGeometry(packed, sphere);
+      _watchUpload((g.getAttribute("instanceStart") as THREE.InterleavedBufferAttribute).data);
+      const d = g.getAttribute("instanceDistanceStart") as THREE.InterleavedBufferAttribute | undefined;
+      if (d) _watchUpload(d.data);
+      return new LineSegments2(g, mat as LineMaterial);
+    }
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute("position", posAttr);
+    if (dist) geom.setAttribute("lineDistance", dist);
+    if (indexAttr) {
+      geom.setIndex(indexAttr);
+      geom.setDrawRange(start, count);
+    } else {
+      const own = new THREE.BufferAttribute(index.slice(start, start + count), 1);
+      _watchUpload(own);
+      geom.setIndex(own);
+    }
+    if (sphere) geom.boundingSphere = sphere;
+    return new THREE.LineSegments(geom, mat);
+  }
+
   // The lines' own colours (deps.colors at apply/setColors time). The drawn
   // material colour is ONE writer's output: these, or their mix toward the
   // background while stale.
@@ -279,15 +382,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     outside: Uint8Array | null, src: Uint32Array | null,
   ): LineSet | null {
     if (index0.length < 2) return null;
-    let mat: THREE.LineBasicMaterial | THREE.LineDashedMaterial;
-    if (dashed) {
-      mat = new THREE.LineDashedMaterial({ color: colorHex, dashSize: 10, gapSize: 6 });
-    } else {
-      mat = new THREE.LineBasicMaterial({ color: colorHex });
-    }
-    mat.userData.role = stream;   // the viewer palette's role (diagnostics, tests)
-    mat.depthTest = !pathAlwaysOnTop;
-    mat.depthWrite = false;
+    const mat = pathMaterial(colorHex, dashed, stream);   // role = the viewer palette's (diagnostics, tests)
     // Dashed rapids need a per-vertex distance; the worker precomputes it
     // (P4.1), the legacy/WS path gets it here (indexed geometry cannot use
     // Three's computeLineDistances).
@@ -299,6 +394,11 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     const grid = chunkGrid(index0, pos, deps.chunkCells ?? CHUNK_MAX);
     const levels = [index0, ...lod.slice(0, tols.length)].map(l => binPairs(l, pos, grid));
     const attrs = levels.map(b => new THREE.BufferAttribute(b.index, 1));
+    if (lineMode === "gl") {
+      _watchUpload(posAttr);
+      for (const a of attrs) _watchUpload(a);
+      if (dashed && distAttr) _watchUpload(distAttr);
+    }
     const used: number[] = [];
     for (let c = 0; c < grid.cells; c++) if (levels.some(b => b.plan[c]!.count > 0)) used.push(c);
     const bounds = new Float32Array(used.length * 6);
@@ -320,19 +420,15 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     };
     for (let ci = 0; ci < used.length; ci++) {
       const cell = used[ci]!;
-      const chunk: Chunk = { lines: [], overlays: [], counts: [], ovCounts: [], level: 0 };
+      const chunk: Chunk = { lines: [], overlays: [], counts: [], ovCounts: [], level: 0,
+        radius0: sphereOfBox(bounds, ci * 6).radius };
       for (let k = 0; k < levels.length; k++) {
         const range = levels[k]!.plan[cell]!;
-        const geom = new THREE.BufferGeometry();
-        geom.setAttribute("position", posAttr);
-        if (dashed) geom.setAttribute("lineDistance", distAttr!);
-        geom.setIndex(attrs[k]!);
-        geom.setDrawRange(range.start, range.count);
         // Explicit sphere: a null one makes Three compute it over the WHOLE
         // shared attribute — every chunk would then carry the full program's
         // sphere and culling could never fire.
-        geom.boundingSphere = sphereOfBox(bounds, ci * 6);
-        const line = new THREE.LineSegments(geom, mat);
+        const line = pathObject(posAttr, levels[k]!.index, attrs[k]!, range.start, range.count, mat,
+          dashed ? distAttr : null, sphereOfBox(bounds, ci * 6));
         line.renderOrder = 10;
         line.frustumCulled = true;
         line.visible = toolpathVisible && (stream !== "rapid" || rapidsVisible) && k === 0 && range.count > 0;
@@ -375,8 +471,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     const pre = new Uint32Array(nV + 1);
     for (let i = 0; i < nV; i++) pre[i + 1] = pre[i]! + (outside[i] ? 1 : 0);
     if (pre[nV] === 0) return;
-    s.overMat = new THREE.LineBasicMaterial({ color: deps.colors().limit, depthTest: !pathAlwaysOnTop, depthWrite: false });
-    s.overMat.userData.role = "limit";
+    s.overMat = pathMaterial(deps.colors().limit, false, "limit");
     const nC = s.used.length;
     const starts = new Uint32Array(nC), counts = new Uint32Array(nC);
     for (let k = 0; k < s.levels.length; k++) {
@@ -394,16 +489,13 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         counts[ci] = w - starts[ci]!;
       }
       if (w === 0) continue;
-      const attr = new THREE.BufferAttribute(flagged.slice(0, w), 1);
+      const flaggedArr = flagged.slice(0, w);
+      const attr = lineMode === "gl" ? new THREE.BufferAttribute(flaggedArr, 1) : null;
+      if (attr) _watchUpload(attr);
       for (let ci = 0; ci < nC; ci++) {
         if (counts[ci] === 0) continue;
         const ch = s.chunks[ci]!;
-        const geom = new THREE.BufferGeometry();
-        geom.setAttribute("position", s.posAttr);
-        geom.setIndex(attr);
-        geom.setDrawRange(starts[ci]!, counts[ci]!);
-        geom.boundingSphere = sphereOfBox(s.bounds, ci * 6);
-        const ov = new THREE.LineSegments(geom, s.overMat);
+        const ov = pathObject(s.posAttr, flaggedArr, attr, starts[ci]!, counts[ci]!, s.overMat, null, sphereOfBox(s.bounds, ci * 6));
         ov.renderOrder = LIMIT_OVERLAY_RENDER_ORDER;
         ov.frustumCulled = true;
         ov.visible = false;
@@ -414,11 +506,33 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     }
   }
 
-  function rebuildOverflowEdges(size: Vec3, offset: Vec3): THREE.LineSegments | null {
+  function rebuildOverflowEdges(size: Vec3, offset: Vec3): PathObj | null {
     if (deps.boundsClipPlanes.length === 0) return null;
     const [sx, sy, sz] = size;
     if (sx <= 0 || sy <= 0 || sz <= 0) return null;
     const [ox, oy, oz] = offset;
+    if (lineMode === "fat") {
+      // The box OUTSIDE the machine window, a limit finding: the limit's
+      // colour at the box's width, its dash held in CSS px like the box's
+      // (part B, Codex R39 — not a thin exception next to the 2 px box).
+      const mat = new LineMaterial({ color: deps.colors().limit, linewidth: TOOLPATH_BOX_PX, worldUnits: false });
+      mat.dashed = true;
+      mat.clipIntersection = true;
+      mat.clippingPlanes = deps.boundsClipPlanes;
+      mat.depthWrite = false;
+      mat.userData.role = "limitBox";
+      const lines = new LineSegments2(new LineSegmentsGeometry().setPositions(boxEdgePositions(sx, sy, sz)), mat);
+      lines.computeLineDistances();
+      (lines as THREE.Object3D).onBeforeRender = (renderer, _scene, camera) => {
+        renderer.getSize(mat.resolution);
+        const d = TOOLPATH_BOX_DASH_PX * worldPerPixel(camera, lines, mat.resolution.y);
+        mat.dashSize = d;
+        mat.gapSize = d;
+      };
+      lines.position.set(ox + sx / 2, oy + sy / 2, oz + sz / 2);
+      lines.renderOrder = 2;   // over the neutral box where the two meet
+      return lines;
+    }
     const geom = new THREE.EdgesGeometry(new THREE.BoxGeometry(sx, sy, sz));
     // The box OUTSIDE the machine window: a limit finding, so the limit
     // overlay's ochre (fixed palette P2 — it was the collision red, a line
@@ -432,6 +546,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       clipIntersection: true,
       clippingPlanes: deps.boundsClipPlanes,
     });
+    mat.userData.role = "limitBox";
     const lines = new THREE.LineSegments(geom, mat);
     lines.computeLineDistances();
     lines.position.set(ox + sx / 2, oy + sy / 2, oz + sz / 2);
@@ -465,6 +580,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     sets = [];
     feedPosAttr = rapidPosAttr = null;
     _chunksVisible = _overlayChunks = _frameMixed = 0;
+    _buildBytes = 0;
   }
 
   /** Detach + free the bounds box, its labels, and the overflow edges.
@@ -626,12 +742,8 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         pairs.push(p0, p1);
         if (s.outside?.[p0 > p1 ? p0 : p1]) flagged.push(p0, p1);
       }
-      const make = (idx: number[], mat: THREE.Material, order: number) => {
-        const geom = new THREE.BufferGeometry();
-        geom.setAttribute("position", s.posAttr);
-        if (s.dist) geom.setAttribute("lineDistance", s.dist);
-        geom.setIndex(new THREE.BufferAttribute(new Uint32Array(idx), 1));
-        const o = new THREE.LineSegments(geom, mat);
+      const make = (idx: number[], mat: PathMat, order: number) => {
+        const o = pathObject(s.posAttr, new Uint32Array(idx), null, 0, idx.length, mat, s.dist, null);
         o.renderOrder = order;
         o.frustumCulled = false;   // a handful of segments
         s.parent.add(o);
@@ -646,6 +758,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   return {
     apply(ctx, g, anchor = null) {
       if (!ctx.scene || !ctx.workOrigin) return;
+      _lastApply = { g, anchor };
       pathAlwaysOnTop = ctx.pathAlwaysOnTop;
       const workRotGroup = ctx.workRotGroup;
       // Baked geometry rides its OWN anchor, posed here and nowhere else —
@@ -851,9 +964,18 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
           // LOD: the coarsest level whose tolerance is under LOD_PX device
           // pixels at the chunk's NEAREST point (conservative); stepping back
           // to a finer level only once the current one clearly exceeds it.
+          const d = persp ? Math.max(1e-6, _sph.center.distanceTo(_camPos) - _sph.radius) : 0;
+          const wupp = persp ? 2 * d * tanHalf / h : orthoWupp;
+          // A fat line reaches PATH_PX (CSS px, up to DPR 2 device px each)
+          // past its centre line: widen the chunk's sphere by that much at its
+          // distance, or a stroke still reaching into the view is culled at
+          // the frame edge (Codex R39).
+          if (lineMode === "fat") {
+            const r = ch.radius0 + PATH_PX * 2 * wupp;
+            for (const o of ch.lines) { const bs = o.geometry.boundingSphere; if (bs) bs.radius = r; }
+            for (const o of ch.overlays) { const bs = o?.geometry.boundingSphere; if (bs) bs.radius = r; }
+          }
           if (s.tols.length) {
-            const d = persp ? Math.max(1e-6, _sph.center.distanceTo(_camPos) - _sph.radius) : 0;
-            const wupp = persp ? 2 * d * tanHalf / h : orthoWupp;
             let target = 0;
             for (let k = 1; k <= s.tols.length; k++) {
               if (s.tols[k - 1]! <= LOD_PX * wupp) target = k; else break;
@@ -903,6 +1025,68 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       if (toolpathOverflowEdges) toolpathOverflowEdges.visible = on;
     },
 
+    setLineMode(mode, ctx) {
+      if (mode === lineMode) return;
+      lineMode = mode;
+      if (_lastApply) this.apply(ctx, _lastApply.g, _lastApply.anchor);
+    },
+
+    get lineMode() { return lineMode; },
+
+    pathMemory() {
+      const seenCpu = new Set<ArrayBufferLike>();
+      const seenGpu = new Set<object>();
+      type Owner = "base" | "dist" | "overlay" | "reveal";
+      const cpu = { base: 0, dist: 0, overlay: 0, reveal: 0, source: 0, total: 0 };
+      const gpu = { base: 0, dist: 0, overlay: 0, reveal: 0, total: 0 };
+      const addCpu = (owner: Owner | "source", a: ArrayBufferView | null | undefined) => {
+        if (!a || seenCpu.has(a.buffer)) return;
+        seenCpu.add(a.buffer);
+        cpu[owner] += a.byteLength;
+      };
+      const addGpu = (owner: Owner, buf: THREE.BufferAttribute | THREE.InterleavedBuffer | null | undefined) => {
+        if (!buf || !_uploaded.has(buf) || seenGpu.has(buf)) return;
+        seenGpu.add(buf);
+        gpu[owner] += (buf.array as ArrayBufferView).byteLength;
+      };
+      const account = (o: PathObj | null, owner: Owner) => {
+        if (!o) return;
+        const g = o.geometry;
+        const distOwner: Owner = owner === "base" ? "dist" : owner;
+        if ((o as LineSegments2).isLineSegments2) {
+          const st = g.getAttribute("instanceStart") as THREE.InterleavedBufferAttribute;
+          addCpu(owner, st.data.array as Float32Array); addGpu(owner, st.data);
+          const di = g.getAttribute("instanceDistanceStart") as THREE.InterleavedBufferAttribute | undefined;
+          if (di) { addCpu(distOwner, di.data.array as Float32Array); addGpu(distOwner, di.data); }
+          return;
+        }
+        if (g.index) { addCpu(owner, g.index.array as Uint32Array); addGpu(owner, g.index); }
+        addGpu("base", g.getAttribute("position") as THREE.BufferAttribute);
+        addGpu("dist", g.getAttribute("lineDistance") as THREE.BufferAttribute | undefined);
+      };
+      for (const st of sets) {
+        for (const ch of st.chunks) {
+          for (const o of ch.lines) account(o, "base");
+          for (const o of ch.overlays) account(o, "overlay");
+        }
+        account(st.reveal.line, "reveal");
+        account(st.reveal.over, "reveal");
+      }
+      // what the controller keeps to rebuild overlays / reveals / modes
+      for (const st of sets) {
+        addCpu("source", st.posAttr.array as Float32Array);
+        for (const l of st.levels) addCpu("source", l.index);
+        addCpu("source", st.src);
+        addCpu("source", st.outside);
+        addCpu("source", st.dist?.array as Float32Array | undefined);
+      }
+      cpu.total = cpu.base + cpu.dist + cpu.overlay + cpu.reveal + cpu.source;
+      gpu.total = gpu.base + gpu.dist + gpu.overlay + gpu.reveal;
+      let instances = 0;
+      for (const st of sets) for (const ch of st.chunks) instances += ch.counts[ch.level]! >> 1;
+      return { mode: lineMode, cpu, gpu, buildBytes: _buildBytes, instances };
+    },
+
     setAlwaysOnTop(on) {
       pathAlwaysOnTop = on;
       const dt = !on; // depthTest: false = always on top
@@ -919,11 +1103,12 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       _rapidBase.set(c.rapid);
       toolpathBoundsBox?.setColors(c.toolpathBounds, c.boundsAlt);
       for (const s of sets) s.overMat?.color.set(c.limit);
-      if (toolpathOverflowEdges) (toolpathOverflowEdges.material as THREE.LineDashedMaterial).color.set(c.limit);
+      if (toolpathOverflowEdges) (toolpathOverflowEdges.material as PathMat).color.set(c.limit);
       _applyStale();   // the drawn colour is the base or its muted mix — one writer
     },
 
     forgetAfterSceneClear() {
+      _lastApply = null;
       sets = [];
       feedPosAttr = rapidPosAttr = null;
       _chunksVisible = _overlayChunks = _frameMixed = 0;
@@ -936,6 +1121,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     },
 
     dispose() {
+      _lastApply = null;
       teardownLines();
       teardownBounds();
       toolpathBBox = null;
