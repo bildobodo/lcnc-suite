@@ -117,8 +117,17 @@ per Helfer, der während einer Tastfahrt `probe-in` pulst):**
 | — | kein weiterer Parse während des Laufs |
 | 23:11:35 | nach dem Lauf: ein Idle-Parse `tool_offset` (G43 H13 aktiv ≠ Startwert), veröffentlicht 23:11:42, danach Ruhe |
 
-Die Browser-Seite (Messung des Operator-Macs am Veröffentlichungszeitpunkt)
-steht noch aus; der Operator schaut gerade einen Beobachtungslauf.
+**Browser (Operator-Mac, Firefox, Beobachtungslauf, `browser.viewer.perf`):**
+
+| Zeit | `path_stale` | Befund |
+|---|---|---|
+| 23:18:09 | true | Messung; Parse läuft (Banner) |
+| 23:18:16 | true | `gcode.publish pinned` |
+| 23:18:22 | false | Pfad wieder normal, 13 s nach der Messung (vorher: bis M2) |
+
+Beim Eintreffen der neuen Vorschau ein Main-Thread-Block von 51 ms (`mt_late_max`,
+`raf_gap_max` 51 ms), sonst durchgehend `raf_gap_p95` 18 ms. Zum Vergleich:
+107 ms nach der Idle-Veröffentlichung im Lauf des Operators um 21:45.
 
 **Fragen:**
 1. Ist der eingefrorene Startwert vollständig? Gibt es einen weiteren Eingang,
