@@ -1996,3 +1996,248 @@ Diese liegen im Worktree `~/lcnc-suite-backlog` (detached auf `248ef5e`, nur lok
   ablegen.
 - Keine Builds, Tests oder Checkouts dort, keine Zugriffe auf `:5173`/`:8000`, keine
   Maschinenbefehle; eigene Archivkopie mit eigenem Mock.
+
+---
+
+## Review Codex · Fassung 3 / Handshake R38 · 29. September 2026
+
+**Stand:** `3237f5e`, Ideenrunde `248ef5e..3237f5e`. **Ergebnis: findings.**
+Die Richtung – klare Farbfamilien, ruhiges Modell, kräftigere Linien – trage ich mit.
+Vor einer Umsetzungsfreigabe fehlen drei Festlegungen: Hintergrund/Modellkontrast
+(**VP38-01**), Verhalten bei deckungsgleichen 2-px-Linien (**VP38-02**) und der
+Breiten-/Leistungsvertrag (**VP38-03**). Das sind Planpunkte, keine neuen Befunde
+gegen die in R35 abgenommene Navigation. Die Änderungen aus `248ef5e` wurden nicht
+nachträglich als Implementierung geprüft.
+
+### 1. Rollen und Farbwerte: D vergleichen, für Weiß zusätzlich E
+
+**Magenta für Backplot, Grün für Vorschub, Blau für Eilgang und Orange für Grenzen:
+ja.** Die beiden starken Gegenpaare sind nützlich. Ich würde nicht auf ein exakt
+mathematisches Komplement optimieren, sondern auf die tatsächlich gemeinsam
+sichtbaren Linien. Bei deckungsgleichen Linien entscheidet ohnehin die Überlagerung.
+
+| Rolle | D: kräftige helle Variante | D auf Weiß | E: Gegenentwurf für Weiß | E auf Weiß |
+|---|---|---:|---|---:|
+| Backplot | `#ff00ff` | 3,14:1 | `#ff00ff` | 3,14:1 |
+| Vorschub | `#22dd44` | 1,83:1 | `#00a83c` | 3,15:1 |
+| Eilgang | `#3d8bff` | 3,31:1 | `#3d8bff` | 3,31:1 |
+| Grenzbefund | `#ff7a00` | 2,61:1 | `#e66b00` | 3,25:1 |
+
+**Mein Ausgangsvorschlag bei beibehaltenem weißen Viewer ist E**, ebenfalls mit
+2 CSS-px. Grün und Orange bleiben gesättigt, werden aber dunkler. **E gilt dann in
+beiden Themes**, ebenso würde D in beiden gelten; kein automatischer Austausch
+von E gegen D beim Themewechsel. D ist der sinnvolle Gegenvergleich, wenn der
+Operator die leuchtendere Wirkung auf einer deutlich dunkleren Szene bevorzugt.
+Ein dunkler Viewer im hellen UI wäre eine Änderung der bisherigen Entscheidung
+„Viewer-Grund folgt dem Theme“, kein stiller Ersatz dafür.
+
+Die eigene Rechnung bestätigt große Abstände zwischen den vier Linienrollen:
+kleinster OKLab-Abstand D **0,317**, E **0,277**, jeweils auf der 0..1-Skala.
+Einige Einzelwerte aus Claudes Tabelle weichen ab, ohne die Richtung zu ändern
+(z. B. D Vorschub/Eilgang **0,383**, Vorschub/Backplot **0,567**).
+[Rechnung](viewer-palette-fest.r38.codex-rechnung.py),
+[Zahlen](viewer-palette-fest.r38.codex-rechnung.json).
+
+**Rot für Kollisionskörper beibehalten**, Orange für den linearen Grenzbefund.
+Form und benannte Befundart tragen die Unterscheidung mit. Die Grenze 0,25 nicht
+auf jedes Körper-/Linienpaar ausdehnen: Orange/Rot liegt bei D nur bei 0,216, bei
+E bei 0,165. Außerdem addiert `_tintMesh` Emissive-Rot auf das beleuchtete Material;
+der reale Körper sieht anders aus als das Farbfeld `#c8102e`. Deshalb eine echte
+Szene mit gleichzeitig orangefarbenem Grenzpfad und rotem Kollisionskörper prüfen.
+
+Kleine Korrektur zur Sättigung: `#22dd44` liegt noch **innerhalb** des sRGB-Würfels;
+mehr Sättigung ist dort möglich. Ein helleres Grün verbessert allerdings den
+Kontrast auf Weiß nicht. P3 ist für diesen Zielkonflikt keine Voraussetzung.
+
+### 2. Maschine: fertige Flächen messen, nicht nur Materialwerte
+
+**Gedämpfte neutrale Metalle statt Achsfarben, Türkis und Gold: einverstanden.**
+Die Modellgruppen brauchen hier keine zusätzliche Farblegende. Form, Fugen,
+Abstufungen und das Achsgizmo reichen zur Orientierung als Ausgangspunkt.
+
+**VP38-01, Teil Modell:** L = 0,40–0,55 als beleuchtete Zielhelligkeit ist zu breit
+und oben deutlich zu hell. Auf neutralem L ≈ 0,55 hat D-Blau nur **1,47:1** und
+Magenta **1,56:1**. Selbst L ≈ 0,40 ergibt für Blau nur **2,76:1**.
+Damit wird „dunkler als bisher“ noch nicht zu „Pfade klar im Vordergrund“.
+
+Für beide Kandidaten erlaubt der schwächste Linienwert als dunklen Untergrund
+höchstens **Y ≈ 0,0556** für nominal 3:1; neutral entspricht das **OKLab L ≈ 0,382**.
+Das sind berechnete Grenzen, keine Forderung, jeden Oberflächenpunkt schwarz zu
+machen. Mein **Startentwurf für gerenderte, pfadtragende Flächen**:
+
+| Klasse | Ziel-L, grob | Chroma-Obergrenze | Beispiel eines fertigen Bildtons |
+|---|---:|---:|---|
+| Guss / `cast` | 0,27–0,34 | 0,025 | `#303438` |
+| Lack / `paint` | 0,32–0,38 | 0,025 | `#3c4043` |
+| dunkle Teile / `dark` | 0,20–0,27 | 0,015 | `#202326` |
+| Stahl, Planscheibe / `steel` | 0,28–0,34 | 0,020 | `#32363a` |
+| Abdeckungen / `accent` | 0,27–0,33 | 0,025 | `#2d3135` |
+| Rohteil / `stock` | 0,34–0,38 | 0,015 | `#393d40` |
+
+**Rohteil etwas heller als die Planscheibe**, damit es als Arbeitsobjekt erkennbar
+bleibt, aber innerhalb dieses dunklen Bereichs. Helle Gravuren/Kanten können die
+Geometrie erklären; sie sollen keine großen hellen Flächen unter den Pfaden bilden.
+Die Tabelle ist ein Gestaltungsstart, kein bereits visuell abgenommenes Maschinenmodell.
+
+Die Hexwerte sind **Zielpixel nach Beleuchtung**, keine blind zu übernehmenden
+Materialfarben. Das aktuelle Lichtsetup (Hemisphere 2,5 plus gerichtete Lichter
+3/2/2) und Glanz beeinflussen die Ausgabe stark. Daher auch Lichtintensität und
+Rauheit abstimmen; etwa 0,65–0,8 Rauheit als Rendervergleich, bevor pauschal alle
+Materialfarben abgesenkt werden. Kein höheres `metalness` nur wegen des Wortes
+„metallisch“: Es ersetzt keine passende Beleuchtung. Details/Silhouette bleiben
+Teil der Sichtprüfung. Vorhandene Farben des Werkzeugs und der Zustandsanzeigen
+nicht als gewöhnliche Maschinenlackierung mit entsättigen.
+
+**Folgewirkung für beide Boxen:** Das bisherige Hell-Theme-Grau `#4b5563` erreicht
+auf der vorgeschlagenen Fläche `#393d40` nur **1,45:1**. Es genügt also nicht, nur
+das Modell zu ändern und beide Boxen auf 2 px zu setzen. Als Startwert wäre im
+hellen Theme **`#909090`** vor Weiß und diesen dunklen Flächen geeigneter; die dunkle
+Szene kann ein helleres Grau behalten. Durchgezogen/gestrichelt unterscheidet weiter
+Maschinen- und Pfadbox. Das ist eine Konsequenz des neuen Modellentwurfs, kein
+nachträglicher Befund gegen `248ef5e`.
+
+### 3. Helles Theme: leichte Tönung löst das Problem nicht
+
+**VP38-01, Teil Szene:** Hintergrundkontrast nicht streichen, weil Pfade „meist“
+vor Metall liegen. Luftwege, ausgeblendete Maschine, Zoom und Überschreitungen
+liegen gerade häufig vor dem Szenengrund. Auf `#f2f3f5` sinkt D-Grün von 1,83 auf
+**1,65:1**, Orange von 2,61 auf **2,35:1**; auch Blau/Magenta fallen unter 3:1.
+Eine mittlere graue Szene gerät noch näher an die Linienhelligkeit.
+
+D braucht für alle vier Rollen eine **deutlich dunkle** Szene; `#202428` ist ein
+brauchbarer Vergleichswert (schwächste Rolle **4,71:1**). Wer Weiß beibehalten will,
+sollte E anschauen. Eine geringe Tönung ist hier kein Kompromiss zwischen beiden.
+Die bisherigen Aussagen „Helligkeit erhöhen“ und „auf Weiß besser erkennbar“ stehen
+für Grün/Orange in einem echten Zielkonflikt; diesen sichtbar entscheiden statt
+durch gelockerte Wächter verdecken.
+
+[Interaktiver Vergleich D/E](viewer-palette-fest.r38.codex-vergleich.html),
+[unverkleinertes Bild](viewer-palette-fest.r38.codex-vergleich.png): Hintergrund,
+Modellfläche, Breite und Überlagerung lassen sich getrennt ändern. Schematische
+SVG-Linien, keine Simulation der Maschinenbeleuchtung.
+
+### 4. 2 px: machbar mit Chunks und LOD, mit klarer Bedeutung
+
+**2 CSS-px für Vorschub, Eilgang, Backplot und Grenzmarkierung: als Prototyp ja.**
+Die gleiche Breite ist visuell ruhiger. Ebenso beide Boxen mit 2 px ausprobieren;
+die Maschine durchgezogen, die Pfadbox gestrichelt, der Überhang weiterhin Orange.
+Keine Säume, kein Glow und kein künstlicher geometrischer Versatz der Pfade.
+
+**VP38-02 – Deckung:** Eine deckende 2-px-Linie über einer deckungsgleichen
+2-px-Linie verdeckt sie vollständig. Ein größerer Farbabstand verhindert das nicht.
+Die bestehende Reihenfolge ist bereits sinnvoll und soll ausdrücklich erhalten
+bleiben: **Grenzbefund (12) vor Backplot (11) vor Vorschau (10)**. An deckungsgleichen
+gefahrenen Stellen liest man somit Magenta, an beanstandeten Stellen Orange.
+Die untere Rolle wird dort nicht gleichzeitig sichtbar versprochen. Bei Bedarf
+Backplot über seine vorhandene Sichtbarkeit ausblenden, statt Halos einzuführen.
+Konkrete Gegenproben: exakte Deckung, 1-px-Nachbarschaft, Kreuzung und dichtes
+Schlichten, jeweils mit/ohne Grenzmarkierung sowie vor Rot am Kollisionskörper.
+Rapids behalten ihre Strichelung; ob Orange sie im Befundbereich bewusst ersetzt,
+als bestehende Priorität benennen. Fortschrittsgrau/Stale und Befundnavigation bleiben
+weiter dieselben Zustände und Datenquellen.
+
+**VP38-03 – Architektur:** Chunks, Frustum-Culling, Quellindizes, Brüche, Raum-/
+Tisch-Frames und die bestehende LOD-Auswahl behalten. Nur den Zeichenpuffer pro
+sichtbarer LOD/Chunk in Endpunktpaare für `LineSegments2` umsetzen. Die vollständige
+Geometrie bleibt Quelle für Scrub, Sweep und Navigation. Die Distanzattribute für
+Rapids aus den ursprünglichen Pfaden übernehmen; nach dem räumlichen Sortieren
+nicht neu über die Chunk-Reihenfolge summieren. Sonst ändern sich Striche beim LOD-Wechsel.
+
+Die Speicherbegründung präzisieren: Three r182 hat ein **gemeinsames Grundmesh mit
+acht Vertices / sechs Dreiecken**, dazu je Segment sechs Float32-Endpunktwerte
+(24 Byte), nicht sechs volle Positionsvertices je Segment. **1,2 Mio. Segmente
+bedeuten 27,5 MiB Endpunkte pro Stufe**; drei unverkürzte Stufen 82,4 MiB, jeweils
+noch ohne GPU-Kopie, Distanzen und Metadaten. Der Aufwand bleibt real.
+[Three r182 Quelltext](https://raw.githubusercontent.com/mrdoob/three.js/r182/examples/jsm/lines/LineSegmentsGeometry.js).
+
+Zuerst den einfachen gepackten Ansatz messen. Gemeinsame Puffer für Grundpfad und
+Overlay nutzen; nicht alle Positionen für jeden Farbpass nochmals speichern.
+Falls er zu teuer ist: begrenzter Cache von Chunk-/LOD-Puffern oder als zweiter
+Ansatz instanzierte Endpunktindizes mit Vertex-Texturzugriff auf die gemeinsame
+Positionsliste. Letzteres erhält die Indexstruktur direkter, kostet aber einen
+eigenen Shader und weitere Prüfungen. Kein pauschales `linewidth = 2` am bisherigen
+GL-Linienmaterial und kein stiller Rückfall auf 1 px bei großen Programmen.
+
+**Mein vorgeschlagenes Messbudget**, ausdrücklich noch kein Messergebnis:
+
+- Einheit **CSS-px** festlegen; DPR 1/2 und 100/150 % prüfen. Native GL-Linien mit
+  einem Framebuffer-Pixel sind nicht automatisch eine CSS-px-Linie auf Retina.
+- Zielgerät Mac/Firefox, dieselbe Szene, kleine Datei und 1,2-Mio.-Segment-Datei,
+  Fit/Detailansicht, Orbit/Scrub, Backplot voll und Limit-Overlay an/aus; je drei
+  vergleichbare 30-s-Läufe nach Aufwärmen.
+- Bei 60-Hz-Ausgabe: p95-Frameabstand höchstens 33,3 ms und höchstens 20 % schlechter
+  als derselbe Ausgangslauf; keine neuen wiederkehrenden >100-ms-Aussetzer oder
+  durch den Renderer verursachten >50-ms-Eingabeblockaden. Auf anderem Refresh
+  die absoluten Framegrenzen entsprechend formulieren.
+- Als erster Speicherrahmen: höchstens 128 MiB **zusätzliche** Pfadpuffer jeweils
+  auf CPU und GPU bei 1,2 Mio. Segmenten; Aufbaupeak getrennt ausweisen. Echte
+  Array-/Buffer-Bytes zählen, nicht nur Geometrieobjekte. Nach wiederholtem Laden
+  keine anwachsenden alten Puffer. Überschreiten führt zur Optimierung oder einer
+  ausdrücklich neu vereinbarten Grenze, nicht zum versteckten Breitenwechsel.
+- `viewerPerf` dafür nutzen, aber richtig lesen: `renderMs` ist CPU-Submission,
+  GPU-Fences messen Rückstand. Zusammen mit rAF-Abständen, Allokationen und
+  gezählten Pufferbytes bewerten, nicht als direkte GPU-Zeit ausgeben.
+
+### 5. Wide-Gamut: möglich, nach den Grundentscheidungen
+
+**Firefox/macOS unterstützt P3-WebGL seit Firefox 132.** Mozillas Release Notes
+nennen macOS/Windows und P3 mit 8 Bit; die heutige Unsicherheit im Plan ist damit
+aufgelöst. Die ältere Exposition in Firefox 127–129 war noch funktionslos.
+[Firefox 132](https://www.firefox.com/en-US/firefox/132.0/releasenotes/),
+[MDN-Kompatibilitätsdaten](https://github.com/mdn/browser-compat-data/blob/main/api/WebGLRenderingContext.json).
+
+Ein kleiner separater Versuch lohnt **nach** Farbe/Fläche/Breite. P3 erweitert den
+Farbumfang, ist kein HDR-Helligkeitsregler. Bestehende sRGB-Hexwerte sehen bei
+korrekter Umrechnung weiter gleich aus; nur den Canvas auf P3 zu stellen und die
+Zahlen anders interpretieren zu lassen wäre eine Farbverschiebung.
+
+Für den Versuch: tatsächliche Monitorfähigkeit (`color-gamut: p3`), Setzen und
+Rücklesen von `drawingBufferColorSpace`, Three-Farbraumkonvertierung und wirklich
+als P3 definierte Kandidaten zusammen prüfen. Die installierte Three-Version hat
+entsprechende `ColorSpaces`-Erweiterungen; der aktuelle Produktresolver akzeptiert
+aber nur `#rrggbb`. Daher kein ungeprüfter P3-String in bestehende Custom-Daten.
+Ein benannter sRGB-Zweig bleibt erforderlich. Die Standardsicht muss auch dort
+bestehen; P3 entscheidet weder über die 2-px-Freigabe noch über lesbare Grenzen.
+
+### 6. Wächter: drei unterschiedliche Aufgaben getrennt halten
+
+Ich würde **3:1 nicht durch ΔL oder ΔE ersetzen**. Die Werte beantworten andere
+Fragen. Für relevante grafische Information nennt W3C Kontrast gegen angrenzende
+Farben; Antialiasing dünner Linien kann trotz passender Nominalfarbe die Erkennbarkeit
+verschlechtern. [W3C, Non-text Contrast](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html).
+
+1. **Sichtbarkeit:** Vier Pfadrollen und beide neutralen Boxen gegen tatsächlichen
+   Szenengrund sowie repräsentative beleuchtete Flächen prüfen. Für die gewählte
+   Standardkombination nominal ≥3:1 beibehalten. An identischer Kamera zusätzlich
+   Renderpaare ohne/mit Pfad aufnehmen, um den tatsächlichen Untergrund und die
+   Linienmitte zu prüfen; nicht jeden Antialias-Randpixel mit 3:1 verwechseln.
+2. **Unterscheidbarkeit:** ≥0,25 OKLab als eigenes Entwurfsziel für die **vier
+   Pfadrollen**, keine allgemeine Zugänglichkeitsgarantie. Strichelung, Boxform,
+   benannte Befundarten und vereinbarte Zeichenreihenfolge mitprüfen. Keine
+   erneute Farbschwäche-Simulation gegen die Operatorentscheidung einführen.
+3. **Konstanz und Bedienung:** Farbbedeutung beim Themewechsel gleich, 2 CSS-px
+   auch nach Resize/DPR-Wechsel, keine LOD-bedingten Strichsprünge, keine falschen
+   Verbinder, Befundnavigation unverändert. Automatik und gespeicherte Custom-
+   Farben getrennt zeigen; zum Vergleich keine Operatorfarben überschreiben.
+
+Die aktuellen 60-%-JPEGs sind als Stimmungseindruck hilfreich, können aber weder
+2-px-Breite noch subtile Überdeckung belegen. Nächster Vergleich: native PNGs mit
+identischer Kamera und DPR, zunächst **nur Breite**, dann **nur Modell/Licht**,
+dann D gegen E. Jeweils Nahansicht **und** freie Luftwege; zuletzt tatsächliche
+Kollision plus Limitbefund. Das angekündigte D-Bild lag bei dieser Nachprüfung
+noch nicht im Live-Checkout vor; seine konkrete Maschinenwirkung ist nicht abgenommen.
+
+### Übergabe
+
+**Meine Empfehlung:** E auf dem bestehenden weißen Szenengrund als Standard-
+Gegenentwurf zu D zeigen; in beiden Fällen ruhige dunkle Modellflächen und 2 CSS-px
+prototypisieren. D mit deutlich dunkler Szene als ausdrücklich alternative Richtung
+zeigen. P3 folgt optional. Vor Produktarbeit VP38-01 bis VP38-03 mit der gewählten
+Kombination, Überlagerungsregel und dem akzeptierten Messbudget konkretisieren.
+
+[Quellen und Prüfumfang](viewer-palette-fest.r38.codex-quellen.md),
+[Rechnung](viewer-palette-fest.r38.codex-rechnung.json),
+[interaktiver Vergleich](viewer-palette-fest.r38.codex-vergleich.html).
+Reine Ideenprüfung, eigene deterministische Rechnung und Prüfung des eigenständigen
+HTML-Belegs. Keine Produkt-Builds/Tests oder Zugriffe auf die Live-Suite, keine
+Maschinenbefehle. Frühere Belege bleiben unverändert. **Handshake R38: findings.**

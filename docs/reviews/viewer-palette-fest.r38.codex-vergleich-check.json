@@ -1,0 +1,21 @@
+{
+  "cards": 2,
+  "initial": [
+    "RollesRGBSzeneModellflächeVorschub#22dd441.83:16.00:1Eilgang#3d8bff3.31:13.31:1Backplot#ff00ff3.14:13.50:1Grenzbefund#ff7a002.61:14.20:1",
+    "RollesRGBSzeneModellflächeVorschub#00a83c3.15:13.48:1Eilgang#3d8bff3.31:13.31:1Backplot#ff00ff3.14:13.50:1Grenzbefund#e66b003.25:13.38:1"
+  ],
+  "dark": [
+    "RollesRGBSzeneModellflächeVorschub#22dd448.55:16.00:1Eilgang#3d8bff4.71:13.31:1Backplot#ff00ff4.98:13.50:1Grenzbefund#ff7a005.98:14.20:1",
+    "RollesRGBSzeneModellflächeVorschub#00a83c4.96:13.48:1Eilgang#3d8bff4.71:13.31:1Backplot#ff00ff4.98:13.50:1Grenzbefund#e66b004.81:13.38:1"
+  ],
+  "pathCountsWithout": [
+    7,
+    7
+  ],
+  "pathCountsWith": [
+    8,
+    8
+  ],
+  "width": "3 CSS-px",
+  "errors": []
+}

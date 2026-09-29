@@ -1,0 +1,35 @@
+<!doctype html><html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>R38 · Pfadfarben vergleichen</title>
+<style>
+*{box-sizing:border-box}body{font:16px/1.5 system-ui,sans-serif;margin:0;background:#f5f6f7;color:#20252a}main{max-width:1460px;margin:auto;padding:24px}h1{font-size:26px;margin:0 0 8px}p{max-width:1000px}label{display:flex;align-items:center;gap:8px}select,input,button{font:inherit;min-height:40px}fieldset{border:1px solid #aeb5bc;border-radius:8px;background:white;display:flex;flex-wrap:wrap;gap:18px;padding:14px}.cards{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}article{background:white;border:1px solid #aeb5bc;border-radius:8px;overflow:hidden}h2{font-size:19px;margin:16px}.legend{display:flex;flex-wrap:wrap;gap:10px;margin:16px}.legend span{display:flex;align-items:center;gap:6px;font-size:13px}.legend i{display:inline-block;width:24px;height:8px}svg{display:block;width:100%;height:290px;border-block:1px solid #aeb5bc}table{border-collapse:collapse;width:calc(100% - 32px);margin:16px;font-variant-numeric:tabular-nums;font-size:14px}th,td{text-align:left;padding:5px;border-bottom:1px solid #ddd}td.low{font-weight:bold;text-decoration:underline}small{display:block;margin:16px;font-size:13px}.note{padding:12px 16px;background:#e6edf3;border-left:4px solid #415f76}.footer{font-size:13px;color:#4c5359}input[type=range]{width:110px}:focus-visible{outline:3px solid #005fcc;outline-offset:3px}@media(max-width:900px){.cards{grid-template-columns:1fr}main{padding:12px}}
+</style><main><h1>R38 · Helligkeit und Überlagerung getrennt prüfen</h1><p>Links Vorschlag D, rechts Gegenentwurf E für weißen Hintergrund. Die Farbtöne bleiben pro Variante gleich. Die Zeichnung ist ein schematischer sRGB-Vergleich ohne Beleuchtung; keine WebGL- oder Leistungsabnahme.</p>
+<fieldset><legend>Vergleich einstellen</legend>
+<label>Szene <select id="scene"><option value="#ffffff">Weiß</option><option value="#f2f3f5">Leicht grau</option><option value="#808080">Mittelgrau</option><option value="#202428">Anthrazit</option><option value="#0b0f14">Dunkles Theme</option></select></label>
+<label>Modellfläche <input type="color" id="model" value="#393d40"></label>
+<label>Breite <input type="range" id="width" min="1" max="3" step="0.5" value="2"><output id="widthOut">2 CSS-px</output></label>
+<label>Backplot-Versatz <select id="offset"><option value="0">Exakt deckungsgleich</option><option value="1">1 px</option><option value="4">4 px</option></select></label>
+<label><input id="backplot" type="checkbox" checked>Backplot anzeigen</label>
+</fieldset><div class="cards" id="cards"></div>
+<p class="note">Die obere Kontur enthält Vorschub, darüber Backplot, rechts einen orange markierten Grenzbefund. Bei gleicher Breite und exakter Deckung verschwindet der untere Pfad vollständig – unabhängig vom Farbkontrast. Die gestrichelte blaue Linie ist der Eilgang. Die vier unteren Linien wechseln zwischen Szene und Modellfläche.</p>
+<p class="footer">Kontrastwerte gelten für die hier verwendeten deckenden sRGB-Farben. Unterstrichen: unter 3:1. Sie sind keine WCAG-Konformitätsaussage für einen ganzen 3D-Viewer. Modell- und Hintergrundfarben sind dargestellte Pixelwerte, keine Materialparameter. Farbschwäche ist in dieser Runde gemäß Operatorentscheidung nicht simuliert. Keine Verbindung zu einer Maschine oder externen Diensten.</p></main>
+<script>
+const palettes={D:{feed:'#22dd44',rapid:'#3d8bff',backplot:'#ff00ff',limit:'#ff7a00'},E:{feed:'#00a83c',rapid:'#3d8bff',backplot:'#ff00ff',limit:'#e66b00'}};
+const labels={feed:'Vorschub',rapid:'Eilgang',backplot:'Backplot',limit:'Grenzbefund'};
+const $=id=>document.getElementById(id);
+function Y(hex){const c=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);return c.reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0)}
+function contrast(a,b){const x=Y(a),y=Y(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)}
+function update(){
+ const bg=$('scene').value,model=$('model').value,w=+$('width').value,dy=+$('offset').value;
+ $('widthOut').textContent=w+' CSS-px';
+ $('cards').innerHTML=Object.entries(palettes).map(([name,p])=>{
+  const line=(d,c,dash='')=>`<path d="${d}" fill="none" stroke="${c}" stroke-width="${w}" vector-effect="non-scaling-stroke" ${dash?'stroke-dasharray="10 6"':''}/>`;
+  let paths=line('M40 70 L620 70 L620 122 L40 122 Z',p.feed);
+  paths+=line('M40 33 L620 33 L620 70',p.rapid,true);
+  if($('backplot').checked)paths+=line(`M40 ${70+dy} L360 ${70+dy} L360 ${122+dy} L40 ${122+dy}`,p.backplot);
+  paths+=line('M530 70 L620 70 L620 122 L570 122',p.limit);
+  Object.entries(p).forEach(([r,c],i)=>{paths+=line(`M40 ${174+i*25} L620 ${174+i*25}`,c,r==='rapid')});
+  const rows=Object.entries(p).map(([r,c])=>{const a=contrast(c,bg),b=contrast(c,model);return `<tr><td>${labels[r]}</td><td>${c}</td><td class="${a<3?'low':''}">${a.toFixed(2)}:1</td><td class="${b<3?'low':''}">${b.toFixed(2)}:1</td></tr>`}).join('');
+  return `<article><h2>${name}: ${name==='D'?'helles Grün + helles Orange':'dunkleres Grün + Orange für Weiß'}</h2><div class="legend">${Object.entries(p).map(([r,c])=>`<span><i style="background:${c}"></i>${labels[r]}</span>`).join('')}</div><svg viewBox="0 0 660 280" preserveAspectRatio="none" role="img" aria-label="${name}: Pfade teils über Modell, teils über Hintergrund; deckungsgleicher Backplot verdeckt Vorschub" style="background:${bg}"><rect x="145" y="12" width="350" height="256" fill="${model}"/>${paths}</svg><table><thead><tr><th>Rolle</th><th>sRGB</th><th>Szene</th><th>Modellfläche</th></tr></thead><tbody>${rows}</tbody></table><small>2-px-Konturen brauchen keinen Saum. Auch E braucht dunkle Modellflächen: mittelgraue Flächen liegen zwischen den günstigen hellen und dunklen Hintergründen.</small></article>`;
+ }).join('');
+}
+for(const id of ['scene','model','width','offset','backplot'])$(id).addEventListener('input',update); update();
+</script></html>
