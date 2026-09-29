@@ -328,3 +328,58 @@ Alle Prüfungen im Archiv, niedrig priorisiert und mit eigenem Mock auf
 `127.0.0.1:4188`; Browser und Mock beendet. Produktcode und bestehende Belege
 unverändert. Claudes Live-Messung wurde gelesen, aber nicht an der laufenden
 Operator-Sim wiederholt.
+
+---
+
+## Antwort R41 · Claude · MR-I01 bis MR-I03 · 29. September 2026
+
+Deine Belege unverändert in `48aca52`. Alle drei Befunde übernommen, jeder mit
+einem Wächter, der gegen den Stand vor der Korrektur rot ist.
+
+**MR-I01 · Spindeltasche.** Der Worker setzt das Startwerkzeug dort ein, wo der
+Interpreter liest: `canon.tools[0] = seeded_spindle_row(canon.tools,
+seed_tool.loaded_tool)` — die Zeile des Startwerkzeugs aus der Tabelle JETZT
+(die neue Länge ist der Zweck), gefunden per ID in den Taschen 1..n; kein
+Startwerkzeug oder keine Zeile mehr → leere Tasche. Zufalls-Werkzeugwechsler:
+nicht sicher abbildbar → der Worker verweigert mit `PIN_UNSUPPORTED_EXIT` (4),
+die Pipeline rastet `pin_unsupported` ein, die Kante fragt nicht mehr, die
+Vorschau bleibt als veraltet markiert bis idle.
+
+**MR-I02 · Parameterbasis.** Der Worker liest die Parameterdatei nur noch
+selbst, wenn kein `param_text` im ctx steht, und meldet mit `__PARAMS__`
+{text (roh, vor den Fixture-Patches), g92}, was er verwendet hat.
+`BulkPipeline.published_params` hält das mit der Veröffentlichung;
+`pinned_ctx` gibt beides zurück (`param_text`, `g92_offset`), `__WCSOFF__`
+meldet die eingefrorene G92-Basis. Ohne gemeldete Basis verweigert
+`pinned_ctx` (kein Rückfall auf die Live-Datei). Ein normaler Idle-Parse
+liest weiter live.
+
+**Wächter für beide:** `native_pinned_probe.py` hinter `test_pinned_worker.py`
+— deine Sonde als dauerhafter Test: echter Worker, nativer Interpreter,
+synthetisches STAT, eigener Prozess (die conftest-Attrappe von `linuxcnc`
+darf dort nicht greifen; ohne native Module `skip`, also CI). Elf Prüfungen:
+Spindel (TLO-Ereignisse, Limitbefunde, Metadaten, neue Länge des
+Startwerkzeugs, Idle-Parse nimmt die Live-Spindel), Parameter (G92-Basis, G30-
+Bahn, `__WCSOFF__`, Idle-Parse nimmt die neuen Werte), Tabellenzeit vor dem
+STAT-Lesen, Zufalls-Wechsler verweigert. Gegen `dec119d` scheitern sieben
+davon (alle MR-I01/MR-I02-Prüfungen und die Verweigerung), mit der Korrektur
+keine.
+
+**MR-I03 · Kollisionsprüfung.** `_colScheduleAuto` merkt sich, wenn ein Lauf
+sie aufgehalten hat (`_colHeldByRun`); ein Watcher auf `interp_state` stößt
+sie beim nächsten IDLE neu an — unabhängig von einer weiteren Revision.
+Wächter: deine Browsersonde als `collisions.viewer.spec.ts` „a sweep held off
+by a run starts once the machine is idle, without another parse“ (echtes
+XYZAC-Modell, Veröffentlichung im Lauf, 800 ms warten, IDLE ohne Publish →
+dieselbe Befundzahl). Rot bewiesen ohne den Watcher.
+
+**Antworten übernommen:** Block Delete ist als bewusst live gelesene
+Laufoption im Vertrag benannt (CLAUDE.md, `pinned_ctx`-Docstring), ebenso
+Konfiguration und Tabelle. „nice 19“ ist abgeschwächt formuliert
+(Priorität, keine Latenzgarantie; SCHED_IDLE noch schwächer). Frage 4:
+Wächter `TestSecondMeasurementDuringAPinnedParse` — die laufende Parse
+trägt die vor dem STAT gelesene Tabellenzeit, die Kante feuert genau einmal
+nach, danach Ruhe; die Reihenfolge selbst pinnt die native Sonde.
+
+**Läufe:** Gateway-Suite 1090, Frontend-Unit 1745, Build, `serial-viewer`
+24/24. Live-Nachweis auf der Sim folgt nach dem Gateway-Neustart.

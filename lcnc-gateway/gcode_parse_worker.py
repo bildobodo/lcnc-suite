@@ -85,7 +85,7 @@ from gateway_util import (
     rotary_word_lines, first_rotary_commands, seq_boundary_indices,
     LINE_NONE, LINE_RAPID, LINE_FEED, LINE_EITHER,
     seed_kins_events, program_end_kins_type, wcs_offset_flat_from_var,
-    seeded_tool_meta,
+    seeded_tool_meta, seeded_spindle_row, PIN_UNSUPPORTED_EXIT,
     find_unmarked_subs, resolve_subroutine_dirs,
 )
 
@@ -209,7 +209,22 @@ def parse(ctx: dict) -> dict:
     # with the gateway's STAT in the parent process.
     s = linuxcnc.stat()
     s.poll()
+    seed_tool = ctx.get("seed_tool")
+    if seed_tool and random_tc:
+        # A random toolchanger maps tools to pockets through the run's own
+        # swaps — the start state cannot be pinned faithfully here, so a
+        # pinned parse refuses and the gateway keeps the stale-marked
+        # preview (Codex R40 MR-I01).
+        print("__PIN_UNSUPPORTED__\trandom toolchanger", file=sys.stderr, flush=True)
+        sys.exit(PIN_UNSUPPORTED_EXIT)
     canon = PreviewCanon(s, random_tc)
+    if seed_tool:
+        # The interpreter reads the spindle tool from pocket 0 of the canon's
+        # table (G43 without H, M6 bookkeeping): a PINNED parse starts with
+        # the tool the published parse started with — its row from the
+        # table NOW (the measured length is the point), never the tool the
+        # running program has loaded since (Codex R40 MR-I01).
+        canon.tools[0] = seeded_spindle_row(canon.tools, seed_tool.get("loaded_tool"))
 
     parameter = ini.find("RS274NGC", "PARAMETER_FILE")
     parse_error = None  # set if the interpreter errors partway through
@@ -217,10 +232,19 @@ def parse(ctx: dict) -> dict:
     td = tempfile.mkdtemp()
     try:
         temp_param = os.path.join(td, os.path.basename(parameter or "linuxcnc.var"))
-        if parameter:
+        # The parameter BASIS (fixtures before the live patches, G92, G28/G30,
+        # every numbered parameter the program reads): a pinned parse gets
+        # the published parse's text back (`param_text`), never the file as
+        # the running program has meanwhile persisted it (Codex R40 MR-I02).
+        param_text = ctx.get("param_text")
+        if param_text is None and parameter:
             param_path = parameter if os.path.isabs(parameter) else os.path.join(os.path.dirname(ini_path), parameter)
             if os.path.exists(param_path):
-                shutil.copy(param_path, temp_param)
+                with open(param_path, encoding="utf-8", errors="replace") as f:
+                    param_text = f.read()
+        if param_text is not None:
+            with open(temp_param, "w", encoding="utf-8") as f:
+                f.write(param_text)
         apply_var_patches(temp_param, var_patches)
         canon.parameter_file = temp_param
         # Fixture rows as the machine holds them at parse time (the temp copy
@@ -1176,11 +1200,22 @@ def parse(ctx: dict) -> dict:
     # with no pose change — the rotary Zero-All double-count class, and
     # the stale-soft-limit-flags-after-touch-off class. Absent line =
     # unreadable var rows (no claim).
-    _wcs_off = wcs_offset_flat_from_var(
-        var_wcs_rows, getattr(s, "g92_offset", None))
+    _g92_used = ctx.get("g92_offset")
+    if _g92_used is None:
+        _g92_used = getattr(s, "g92_offset", None)
+    _wcs_off = wcs_offset_flat_from_var(var_wcs_rows, _g92_used)
     if _wcs_off is not None:
         print("__WCSOFF__\t" + json.dumps(_wcs_off),
               file=sys.stderr, flush=True)
+    # The parameter basis this parse ran on (Codex R40 MR-I02): the raw text
+    # before the live fixture patches, and the G92 it reports — a pinned
+    # re-parse of the published payload gets both back.
+    try:
+        _g92_list = [float(v) for v in _g92_used] if _g92_used is not None else None
+    except (TypeError, ValueError):
+        _g92_list = None
+    print("__PARAMS__\t" + json.dumps({"text": param_text, "g92": _g92_list}),
+          file=sys.stderr, flush=True)
 
     result = {"file": filename,
               # Parse-time tool-table rows [[tool, xo, yo, zo]…] for the
@@ -1410,7 +1445,8 @@ def _on_sigterm(signum, frame):
 
 def apply_nice(level) -> None:
     """Lower this process's CPU priority by `level` (the pinned mid-run
-    parse: it must never take CPU from LinuxCNC's task during a run). A
+    parse yields CPU to LinuxCNC's task during a run — a priority, not a
+    latency guarantee). A
     refused nice is reported and the parse goes on — the preview is still
     wanted, and the trace says it ran un-niced."""
     if not level:

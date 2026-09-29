@@ -36,7 +36,7 @@ import msgspec as _msgspec
 
 import lcnc_trace as _trace
 from tool_import import decode_tool_blob
-from gateway_util import program_source, rotary_seed_values
+from gateway_util import PIN_UNSUPPORTED_EXIT, program_source, rotary_seed_values
 
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 GCODE_WORKER_PATH = os.path.join(_BASE_DIR, "gcode_parse_worker.py")
@@ -177,6 +177,16 @@ class BulkPipeline:
         # rotary seed and tool seed, so a run's own G10 / M428 / A moves never
         # leak into the program's start. None = nothing published.
         self.published_ctx: Optional[dict] = None
+        # The parameter BASIS the published payload ran on, from the worker's
+        # `__PARAMS__` line: {"text": the var file's raw text before the live
+        # fixture patches, "g92": [..]} (Codex R40 MR-I02 — G92, G28/G30 and
+        # every other numbered parameter a pinned re-parse must not re-read
+        # from a file the running program has persisted since).
+        self.published_params: Optional[dict] = None
+        # This config cannot pin a start state (random toolchanger — the
+        # worker refused with PIN_UNSUPPORTED_EXIT): the mid-run edge stops
+        # asking; the preview stays stale-marked until idle (MR-I01).
+        self.pin_unsupported: bool = False
         # Previous drift check's live rotary sample — the settle guard
         # (rotary_drift_settled) compares consecutive 2 s samples so a
         # jog in progress never triggers a reparse.
@@ -278,6 +288,7 @@ class BulkPipeline:
         self.published_source = None
         self.published_limits = None
         self.published_ctx = None
+        self.published_params = None
         self.rotary_check_prev = None
         self.wcsoff_check_prev = None
 
@@ -336,10 +347,11 @@ class BulkPipeline:
     _PARSE_TIMEOUT_FLOOR_S = 60.0
     _PARSE_TIMEOUT_FACTOR = 3.0
 
-    #: A pinned (mid-run) parse runs niced: on a real machine it must never
-    #: take CPU from LinuxCNC's task feeding the motion queue. nice, not
-    #: SCHED_IDLE — a machine PC that renders its own HMI browser would
-    #: starve an idle-class parse indefinitely.
+    #: A pinned (mid-run) parse runs niced: on a real machine it yields CPU
+    #: to LinuxCNC's task feeding the motion queue — a priority, no guarantee
+    #: for real-time, memory or I/O latency. nice 19 rather than SCHED_IDLE
+    #: (weaker still): a machine PC rendering its own HMI browser would give
+    #: an idle-class parse very little.
     PINNED_NICE = 19
     #: ... and gets a longer leash: niced under a busy run it may take a
     #: multiple of its idle time. Its duration never enters the history.
@@ -347,15 +359,21 @@ class BulkPipeline:
 
     def pinned_ctx(self, filepath: str) -> Optional[dict]:
         """The worker ctx for a PINNED re-parse of `filepath`: the published
-        parse's ctx (fixture index, WCS var patches, kins type/frame) plus
-        its rotary seed (`rotary_pose`, the golden override hook) and its
-        tool seed (applied offset + loaded tool as the meta reports them),
-        niced. The tool TABLE is the one input read live — it is the reason
-        for the parse. None when nothing is published for this file."""
+        parse's ctx (fixture index, WCS var patches, kins type/frame), its
+        parameter basis (`param_text` + `g92_offset`, Codex R40 MR-I02), its
+        rotary seed (`rotary_pose`, the golden override hook) and its tool
+        seed (applied offset + loaded tool; the worker puts that tool in the
+        interpreter's spindle pocket, MR-I01), niced. Read live: the tool
+        TABLE — the reason for the parse — and the operator's run options
+        (block delete) and the configuration (units, axis mask, limits). None
+        when nothing, or no parameter basis, is published for this file."""
         base = self.published_ctx
-        if not base or base.get("file") != filepath:
+        params = self.published_params
+        if not base or base.get("file") != filepath or not params or params.get("text") is None:
             return None
         ctx = dict(base)
+        ctx["param_text"] = params["text"]
+        ctx["g92_offset"] = params.get("g92")
         if self.published_rotary_seed:
             ctx["rotary_pose"] = dict(self.published_rotary_seed)
         tlo = self.published_tlo or {}
@@ -551,6 +569,13 @@ class BulkPipeline:
                             ran_ms=round((t_communicated - t_spawn) * 1000),
                             stderr_tail=(stderr.decode(errors="replace")[-240:] if stderr else ""))
                 return
+            if pinned and returncode == PIN_UNSUPPORTED_EXIT:
+                # This config cannot pin a start state: keep the stale-marked
+                # preview and stop asking (MR-I01).
+                self.pin_unsupported = True
+                _trace.emit("gcode.pinned_unsupported", level="warn", file=filepath,
+                            stderr_tail=(stderr.decode(errors="replace")[-240:] if stderr else ""))
+                return
             if returncode != 0:
                 err_tail = stderr.decode(errors="replace")[:500] if stderr else ""
                 _trace.emit("gcode.parse_worker_failed", level="warn",
@@ -569,6 +594,7 @@ class BulkPipeline:
             worker_limits: Optional[dict] = None
             worker_kins_seed: Optional[dict] = None
             worker_wcs_off: Optional[list] = None
+            worker_params: Optional[dict] = None
             if stderr:
                 for ln in stderr.decode(errors="replace").splitlines():
                     if not ln.strip():
@@ -641,6 +667,16 @@ class BulkPipeline:
                         except (IndexError, ValueError):
                             _trace.emit("gcode.kinsseed_line_malformed",
                                         level="warn", line=ln[:160])
+                    elif ln.startswith("__PARAMS__"):
+                        # The parameter basis this parse ran on (MR-I02) —
+                        # malformed → None: a pinned re-parse then refuses
+                        # (pinned_ctx), never re-reads the live file.
+                        _s = ln.split("\t", 1)
+                        try:
+                            worker_params = json.loads(_s[1])
+                        except (IndexError, ValueError):
+                            _trace.emit("gcode.params_line_malformed",
+                                        level="warn", line=ln[:160])
                     elif ln.startswith("__WCSOFF__"):
                         # Parse-time WCS-offset snapshot for the offset-
                         # drift edge — same malformed-→-None contract.
@@ -701,6 +737,7 @@ class BulkPipeline:
             self.published_kins_seed = worker_kins_seed
             self.published_wcs_off = worker_wcs_off
             self.published_ctx = ctx
+            self.published_params = worker_params if isinstance(worker_params, dict) else None
             self.preview_version += 1
             self.last_file = filepath
             self.last_mtime = _mtime_at_parse

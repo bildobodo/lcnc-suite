@@ -1478,6 +1478,37 @@ def seeded_tool_meta(live_applied, live_spindle, seed_tool=None):
     return applied, spindle, extra
 
 
+#: The worker's exit code when a PINNED parse cannot pin the start state
+#: (a random toolchanger): the gateway keeps the stale-marked preview and
+#: stops asking for pinned parses on this config (Codex R40 MR-I01).
+PIN_UNSUPPORTED_EXIT = 4
+
+#: rs274.interpret's empty spindle pocket: id -1, no offsets, no geometry.
+EMPTY_SPINDLE_ROW = (-1,) + (0.0,) * 12 + (0,)
+
+
+def seeded_spindle_row(tools, loaded_tool):
+    """Pocket 0 of a PINNED parse's tool table: the row of the tool the
+    published parse STARTED with, as the table holds it NOW (a measured
+    length is the reason for the parse), found by id among the pockets
+    1..n — never the tool the running program has loaded since (Codex R40
+    MR-I01: `G43` without H read the live spindle pocket). No tool loaded
+    at the start, or its row gone from the table → the empty pocket (a
+    `G43` without H then applies no offset, as it would have). Pure."""
+    try:
+        want = int(loaded_tool or 0)
+    except (TypeError, ValueError):
+        want = 0
+    if want > 0:
+        for row in list(tools)[1:]:
+            try:
+                if int(row[0]) == want:
+                    return row
+            except (TypeError, ValueError, IndexError):
+                continue
+    return EMPTY_SPINDLE_ROW
+
+
 def midrun_table_gate_open(active_file, refresh_running, preview_available,
                            pinnable, task_mode_auto, interp_idle,
                            since_last_check_s, debounce_s=2.0):

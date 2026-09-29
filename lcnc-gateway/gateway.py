@@ -1728,7 +1728,8 @@ async def _status_poller():
                 # niced; only the table signals count (evaluate_tlo_drift
                 # table_only) — the run's own G43 / M6 are no drift.
                 st.active_file, _bulk.refresh_running, _bulk.preview_available(),
-                bool(_bulk.published_ctx) and _bulk.published_ctx.get("file") == st.active_file,
+                (bool(_bulk.published_ctx) and _bulk.published_ctx.get("file") == st.active_file
+                 and not _bulk.pin_unsupported),
                 st.task_mode == linuxcnc.MODE_AUTO,
                 st.interp_state == linuxcnc.INTERP_IDLE,
                 time.monotonic() - _bulk.tlo_check_ts,

@@ -193,3 +193,36 @@ for (const c of [
     await ctl({ op: "reset" });
   });
 }
+
+// A mid-run re-parse (operator 2026-09-29: the program measured its tool)
+// publishes a new revision DURING the run: the old findings go (they were
+// swept for the old payload), the automatic sweep is held while the
+// interpreter runs — and it must start once the machine is idle again,
+// whether or not another parse follows (Codex R40 MR-I03: it stayed absent).
+test("a sweep held off by a run starts once the machine is idle, without another parse (Codex R40 MR-I03)", async ({ page, context }) => {
+  test.setTimeout(90_000);
+  const file = "/midrun.ngc";
+  await prepare(page, context, { file, version: 4001,
+    feed: [[0, 0, -100], [0, 0, -380], [240, 0, -380], [240, 0, -100]], lines: [1, 6, 7, 8],
+    joints: [-100, 0, 0, 0, 0] });
+  await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true, interp_state: 1 } });
+  await expect(nextHit(page), "the program's collisions, swept at load").toBeVisible({ timeout: 30_000 });
+  await expect.poll(() => sweepDone(page), { timeout: 30_000 }).toBe(true);
+  const found = await hitCount(page);
+  expect(found).toBeGreaterThan(0);
+  await ctl({ op: "quiet", on: true });
+  const run = { interp_state: 2, task_mode: 2, motion_line: 6, joint_pos: [0, 0, -200, 0, 0], actual_position: [0, 0, -200, 0, 0] };
+  await ctl({ op: "status_delta", data: run });
+  // the mid-run publication: the old findings go, nothing sweeps while it runs
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 4002, file } });
+  await expect(nextHit(page)).toHaveCount(0);
+  await page.waitForTimeout(800);   // past the 400 ms auto timer, still running
+  await expect(nextHit(page)).toHaveCount(0);
+  // the run ends: idle, no further parse — the held sweep starts by itself
+  await ctl({ op: "status_delta", data: { interp_state: 1, current_vel: 0, motion_line: 0 } });
+  await expect(nextHit(page), "the sweep restarted at idle").toBeVisible({ timeout: 30_000 });
+  await expect.poll(() => sweepDone(page), { timeout: 30_000 }).toBe(true);
+  expect(await hitCount(page)).toBe(found);
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});

@@ -554,6 +554,9 @@ class TestPinnedReparse(unittest.TestCase):
                               get_live_kins=lambda: self.kins,
                               get_wcs_off_flat=lambda: [1.0, 2.0])
         self.sent = []
+        self.refuse_pin = False
+        self.params_line = (b'__PARAMS__\t{"text": "5181 10.0\\n5211 0.0\\n", '
+                            b'"g92": [0, 0, 0, 0, 0, 0, 0, 0, 0]}\n')
 
         def worker(ctx_bytes, timeout):
             import msgspec
@@ -562,10 +565,12 @@ class TestPinnedReparse(unittest.TestCase):
             self.sent.append((ctx, timeout))
             if ctx.get("nice"):
                 time.sleep(0.08)   # a niced mid-run parse is measurably slower
+            if self.refuse_pin and ctx.get("seed_tool"):
+                return (4, b"", b"__PIN_UNSUPPORTED__\trandom toolchanger\n")
             return (0, b"x" * 8, b'__SCHEMA__\t8\n__ABCSEED__\t{"A": 0.0, "C": 0.0}\n'
                                  b'__TLO__\t{"table_path": "/cfg/tool.tbl", "table_mtime": 5.0, '
                                  b'"tlos": [[13, 0.0, 0.0, 48.2, 8.0]], "applied_tlo": [0.0, 0.0, 0.0], '
-                                 b'"loaded_tool": 1}\n')
+                                 b'"loaded_tool": 1}\n' + self.params_line)
         self.b._run_gcode_worker_blocking = worker
 
     def tearDown(self):
@@ -596,6 +601,10 @@ class TestPinnedReparse(unittest.TestCase):
         self.assertEqual(ctx["rotary_pose"], {"A": 0.0, "C": 0.0})
         self.assertEqual(ctx["seed_tool"], {"applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 1})
         self.assertEqual(ctx["nice"], BulkPipeline.PINNED_NICE)
+        # the parameter basis the published parse ran on (MR-I02): G30,
+        # G92 and every other numbered parameter — not re-read live
+        self.assertEqual(ctx["param_text"], "5181 10.0\n5211 0.0\n")
+        self.assertEqual(ctx["g92_offset"], [0] * 9)
         self.assertAlmostEqual(pinned[1], first[1] * 3.0)
         # a niced mid-run duration never becomes the next idle estimate
         self.assertEqual(self.b.parse_ms_by_file[self.ngc], expected_ms)
@@ -634,8 +643,32 @@ class TestPinnedReparse(unittest.TestCase):
         self.assertIn(("gcode.refresh_skipped", "no-published-ctx"),
                       [(t, kw.get("reason")) for t, kw in seen])
 
+    def test_no_published_parameter_basis_refuses_the_pin(self):
+        # a worker that reported no basis: a pinned parse must not fall back
+        # to the live file (the MR-I02 class) — it refuses, loudly
+        self.params_line = b""
+        self._load()
+        self.assertIsNone(self.b.pinned_ctx(self.ngc))
+
+    def test_a_random_toolchanger_refuses_once_and_the_edge_stops_asking(self):
+        import lcnc_trace
+        self._load()
+        version = self.b.preview_version
+        self.refuse_pin = True
+        seen = []
+        orig = lcnc_trace.emit
+        lcnc_trace.emit = lambda tag, **kw: seen.append(tag)
+        try:
+            asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason="midrun:table_mtime", pinned=True))
+        finally:
+            lcnc_trace.emit = orig
+        self.assertTrue(self.b.pin_unsupported)
+        self.assertIn("gcode.pinned_unsupported", seen)
+        self.assertEqual(self.b.preview_version, version)   # the stale-marked preview stays
+
     def test_unload_forgets_the_ctx(self):
         self._load()
         self.b.clear_preview()
         self.assertIsNone(self.b.published_ctx)
+        self.assertIsNone(self.b.published_params)
         self.assertIsNone(self.b.pinned_ctx(self.ngc))

@@ -2881,17 +2881,25 @@ function _colPostSide(slice: ScrubTrack, entry: ScrubTrack, base: ScrubTrack, sh
 // changes while idle (results reflect check-time inputs; a change makes
 // them stale, so they clear and the sweep re-runs).
 let _colAutoTimer: ReturnType<typeof setTimeout> | undefined;
+// A check a RUN held off (the interpreter was busy when the timer fired —
+// a mid-run re-parse publishes during AUTO): it starts once the interpreter
+// is idle again, whether or not another parse follows (Codex R40 MR-I03).
+let _colHeldByRun = false;
 function _colScheduleAuto() {
   clearTimeout(_colAutoTimer);
   _colAutoTimer = setTimeout(() => {
     if (simMode.value) return;               // ScrubBar re-checks with the entry track
     if (!machineReady.value) return;         // geometry loading — machineReady watcher retries
-    if ((status.value?.data?.interp_state ?? INTERP_IDLE) !== INTERP_IDLE) return;
+    if ((status.value?.data?.interp_state ?? INTERP_IDLE) !== INTERP_IDLE) { _colHeldByRun = true; return; }
+    _colHeldByRun = false;
     if (!viewerGcode.value?.scrubTrack) return;
     if (collisionBusy.value || collisionResumable.value) cancelCollisionCheck();
     runCollisionCheck();
   }, 400);
 }
+watch(() => status.value?.data?.interp_state, (st) => {
+  if (st === INTERP_IDLE && _colHeldByRun) _colScheduleAuto();
+});
 
 // Live WCS or tool dims changed: current results are stale — clear them
 // honestly and re-run (debounced; touch-off sequences change several

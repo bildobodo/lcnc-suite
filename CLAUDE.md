@@ -802,34 +802,47 @@ single pure implementations shared with the browser), and gates on
 bidirectional 6D joint-space path deviation (deg ≙ mm; wall-clock never
 compared; per-program tolerance absorbs G64 blending).
 
-**Mid-run tool-table re-parse (operator 2026-09-29)**: every drift edge
-above is idle-gated because the worker seeds its start state from the LIVE
-machine (fixture, WCS patches, kins, rotary pose, applied offset, loaded
-tool) — mid-run that is the running program's state, and a parse from it
-describes the program wrongly. But a program that measures its own tool
-(`T13 M600` → G10 L1) cuts right after, the interpreter is not idle again
-before M2, and the preview stayed muted on the old length for the whole
-run. ONE edge re-parses DURING a run: `midrun_table_gate_open` (AUTO mode,
-interpreter busy, a published ctx for the loaded file, 2 s debounce) with
+**Mid-run tool-table re-parse (operator 2026-09-29, Codex R40)**: every
+drift edge above is idle-gated because the worker seeds its start state
+from the LIVE machine (fixture, WCS patches, parameter file, kins, rotary
+pose, applied offset, spindle tool) — mid-run that is the running
+program's state, and a parse from it describes the program wrongly. But a
+program that measures its own tool (`T13 M600` → G10 L1) cuts right after,
+the interpreter is not idle again before M2, and the preview stayed muted
+on the old length for the whole run. ONE edge re-parses DURING a run:
+`midrun_table_gate_open` (AUTO mode, interpreter busy, a published ctx for
+the loaded file, not `pin_unsupported`, 2 s debounce) with
 `evaluate_tlo_drift(table_only=True)` — only `table_mtime` / `table_row`;
 the run's own G43 / M6 are no drift. The parse is PINNED
 (`BulkPipeline.pinned_ctx`): the published parse's ctx verbatim (fixture
-index, WCS var patches, kins type/frame) + its rotary seed (`rotary_pose`)
-+ its tool seed (`seed_tool`: applied offset + loaded tool, reported back in
-`__TLO__` through `seeded_tool_meta`) — the tool TABLE is the one input read
-live. So the preview shows the program as the machine executes it: from
-the same start, with the table it now holds. Niced (`PINNED_NICE` 19, the
-worker's first act — not SCHED_IDLE: a PC rendering its own HMI browser
-would starve it), 3× the timeout, its duration never enters the idle
-estimate, a pinned in-flight parse is never doomed by the (program's)
-rotary motion; after the run the idle edge sees the program's end state
-as one `tool_offset` drift and re-parses from live. The worker reads the
-table's file time BEFORE its STAT read (old rows + new time would have
-settled the edge on stale rows; `table_row` re-fires until they agree).
-Residual: the interpreter's spindle pocket (`tools[0]`) is the live one, so
-a `G43` without H before the program's own tool change would use the tool
-the run loaded. Traces `gcode.reparse_table_midrun`, `pinned: true` on
-`spawn_start` / `publish`; banner reason "tool measured (program running)".
+index, WCS var patches, kins type/frame) + its PARAMETER BASIS (the var
+file's raw text and G92 the worker reported in `__PARAMS__` → `param_text`
+/ `g92_offset`: G92, G28/G30 and every numbered parameter the program reads
+— MR-I02) + its rotary seed (`rotary_pose`) + its tool seed (`seed_tool`):
+the worker puts the START tool's row, from the table NOW, into the
+interpreter's spindle pocket (`seeded_spindle_row` — a `G43` without H read
+the live pocket, MR-I01) and reports it back in `__TLO__`
+(`seeded_tool_meta`). A random toolchanger cannot be pinned faithfully: the
+worker exits `PIN_UNSUPPORTED_EXIT`, the pipeline latches `pin_unsupported`
+and the preview stays stale-marked until idle. Read live on purpose: the
+tool TABLE (the reason for the parse), the operator's run option block
+delete, and the configuration (units, axis mask, joint limits, INI, program
+and sub files). So the preview shows the program as the machine executes
+it: from the same start, with the table it now holds. Niced
+(`PINNED_NICE` 19, the worker's first act — a priority, no guarantee for
+real-time, memory or I/O latency; SCHED_IDLE is weaker still), 3× the
+timeout, its duration never enters the idle estimate, a pinned in-flight
+parse is never doomed by the (program's) rotary motion; a second
+measurement during it is picked up by one follow-up parse (the worker reads
+the table's file time BEFORE its STAT read). After the run the idle edge
+sees the program's end state as one `tool_offset` drift and re-parses from
+live. The browser: a publish during a run clears the collision findings and
+the sweep, held while the interpreter runs, starts once it is idle again
+(`_colHeldByRun`, MR-I03). Traces `gcode.reparse_table_midrun`,
+`pinned: true` on `spawn_start` / `publish`, `gcode.pinned_unsupported`;
+banner reason "tool measured (program running)". Tests: `native_pinned_probe.py`
+(the real worker + native interpreter, synthetic STAT) behind
+`test_pinned_worker.py`.
 
 **Re-parse cancel-and-restart + visibility (2026-09-05)**: every drift
 edge above used to be gated on "no parse running", so an edge raised

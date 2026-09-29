@@ -3880,6 +3880,25 @@ class TestTloDriftTableOnly(unittest.TestCase):
                             table_only=True))
 
 
+class TestSecondMeasurementDuringAPinnedParse(unittest.TestCase):
+    """Codex R40 answer 4: a table written again while a pinned parse runs
+    is not lost (single flight, no cancel): that parse carries the file time
+    read BEFORE its status read (native_pinned_probe pins the order), so the
+    mid-run edge fires exactly once more with the last table — then rests."""
+
+    def test_one_follow_up_then_quiet(self):
+        f = gateway_util.evaluate_tlo_drift
+        t_first, t_second = 100.0, 105.0
+        # the pinned parse started after the first measurement (t_first) and
+        # read that time; the second measurement wrote at t_second meanwhile
+        meta = {"table_mtime": t_first, "tlos": [[13, 0, 0, 65.0, 8.0]]}
+        self.assertEqual(f(meta, t_second, None, None, table_rows=[(13, 64.5)], table_only=True),
+                         "table_mtime")
+        # the follow-up parse read t_second and the second length: quiet
+        meta2 = {"table_mtime": t_second, "tlos": [[13, 0, 0, 64.5, 8.0]]}
+        self.assertIsNone(f(meta2, t_second, None, None, table_rows=[(13, 64.5)], table_only=True))
+
+
 class TestSeededToolMeta(unittest.TestCase):
     """What a parse reports as its tool state (the idle TLO edge's baseline)."""
 
