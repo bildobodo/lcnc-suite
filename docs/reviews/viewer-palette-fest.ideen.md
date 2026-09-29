@@ -2373,3 +2373,170 @@ vor. Diese Runde betrifft nur Teil B und ist eine **Planprüfung ohne Code**.
 - Keine Builds, Tests oder Checkouts dort, keine Zugriffe auf `:5173`/`:8000`, keine
   Maschinenbefehle.
 - Teil A entsteht parallel im Arbeitsbaum; bitte eine Archivkopie von `HEAD` nutzen.
+
+---
+
+## Review Codex · Planrunde R39 / Teil B · 29. September 2026
+
+**Geprüft:** Plan `aa4c701`, Umfang `76d0cec..aa4c701`, Archivkopie.
+Der Live-Checkout stand beim Beginn bereits auf `4bb4ff1`; Teil A und die danach
+parallel entstehenden Produktänderungen bleiben außerhalb dieser Planprüfung.
+**Ergebnis: findings. VP38-03 bleibt offen**, mit drei konkreten Ergänzungen unten.
+Die Grundarchitektur ist sinnvoll; die vier Fragen sind damit beantwortet.
+
+Die neuen Operatorentscheidungen ersetzen ausdrücklich die entsprechenden R38-
+Vorschläge: unterschiedliche Helligkeiten innerhalb derselben Farbfamilie,
+gestufte Maschinenflächen, zweifarbige Boxen und die sichtbare Überdeckungsreihenfolge
+sind die Vorgabe. Den akzeptierten Modellkontrast verhandle ich hier nicht erneut.
+**VP38-02 ist auf Planebene geklärt**; die Umsetzung wird separat geprüft.
+
+### 1. Eager zuerst: ja, aber mit vollständiger Speicherbilanz · VP39-01
+
+Ich trage das Packen pro Chunk × Stufe als ersten Ansatz mit. Es hält den
+Zeichenweg einfach und vermeidet neue Arbeit beim ersten Sichtbarwerden eines
+Chunks. **Lazy ist nicht automatisch schneller:** Packen beim Orbit kann genau
+die Eingabeblockaden erzeugen, die wir vermeiden wollen.
+
+Der geplante Zähler „Summe der instanceStart-Puffer“ reicht für das vereinbarte
+Budget aber nicht. Es fehlen zumindest Strichdistanzen, gepackte Overlay-/Reveal-
+Daten, weiterhin gehaltene Ausgangs-/Index-/Quellarrays sowie Aufbau- und Wechselpeaks.
+CPU-Kapazität und tatsächlich angelegte GPU-Puffer sind zwei verschiedene Größen;
+eager aufgebaute, noch nie sichtbare LODs sind nicht zwingend schon hochgeladen.
+
+Die kleine eigene Sonde zeigt bei zwei Segmenten **48 Byte Endpunkte plus 16 Byte
+Strichdistanzen**. Bei 1,2 Mio. Segmenten und drei unverkürzten Stufen sind es
+**82,4 MiB Positionen**; ein vollständig getrennt gepacktes Limit-Overlay verdoppelt
+allein diese Bruttogröße auf **164,8 MiB**. Das ist noch kein gemessener Nettozuwachs,
+zeigt aber, warum Overlay-Kopien und die Bilanzbasis ausdrücklich sein müssen.
+
+**Ergänzung zum Plan:**
+
+- Vollständige Bytebilanz nach Eigentümer und Funktion: Basis, Distanzen, Overlay,
+  Reveal, Quellarrays/Indizes und gegebenenfalls Vergleichsrenderer. Gemeinsam
+  referenzierte InterleavedBuffer auf CPU nicht doppelt zählen; getrennte GPU-
+  Uploads trotz geteilter ArrayBuffer jeweils berücksichtigen.
+- Bestehende und neue Variante jeweils in gleichem Zustand messen. **128 MiB
+  zusätzlicher CPU- und GPU-Speicher getrennt**, Aufbaupeak und Rückkehr nach
+  Löschen/Programmwechsel zusätzlich ausweisen. Nach Orbit durch alle LODs und
+  wiederholter Befundnavigation messen, nicht nur direkt nach dem Laden.
+- Grundpfad/Overlay möglichst gemeinsam speichern. Ein bewusst getrennt gepackter
+  Overlay ist vertretbar, wenn die vollständige Bilanz das Budget nachweislich hält;
+  seine Kopien dürfen nicht aus dem Zähler verschwinden.
+- Eager-Kapazität vor großer Allokation abschätzen. Wenn ein Cache erforderlich
+  wird, dessen Vertrag zuerst ergänzen: Bytegrenze, Schlüssel einschließlich
+  Programm-/Bake-Generation, Invalidierung, Freigabe geteilter Puffer und begrenzte
+  Arbeit außerhalb des Rendercallbacks. „Beim ersten Sichtbarwerden packen“ allein
+  ist dafür keine ausreichende Beschreibung. Kein Rückfall auf dünne Linien.
+
+### 2. Resolution zentral: möglich, derzeit fehlen Einheiten und Besitzer · VP39-02
+
+`updateCulling` kennt heute **die Framebuffer-Höhe**, nicht die CSS-Viewportgröße:
+`ThreeViewer.vue:3524` übergibt `renderer.domElement.height`; der Controller nutzt
+sie für die LOD-Toleranz in Geräte-Pixeln. Diese Verwendung muss erhalten bleiben.
+Die Breite der neuen Linien braucht dagegen die **logische Viewportbreite/-höhe**.
+400 CSS-px versus 800 Framebuffer-px sind bei DPR 2 nicht austauschbar.
+
+Außerdem setzt `LineSegments2.onBeforeRender` in Three r182 die Material-Resolution
+bereits selbst aus dem Viewport. Meine Sonde bestätigt, dass ein vorher zentral
+gesetzter Wert überschrieben wird. Nur eine neue Zuweisung in `updateCulling`
+beseitigt diesen Aufruf also nicht.
+[Three.js LineMaterial](https://threejs.org/docs/pages/LineMaterial.html).
+
+**Meine Empfehlung für den ersten Schritt:** Den vorhandenen Objekt-Hook behalten;
+er hat die Information am tatsächlichen Draw. Erst bei messbarer Relevanz
+zentralisieren. Falls zentral, dann einmal **pro Renderer und Renderpass**, nicht
+nur pro rAF-Tick, mit explizit deaktiviertem/angepasstem Standard-Hook. Getrennte
+Parameter für LOD-Gerätehöhe und logischen Viewport; nach Resize, effektivem
+Renderer-DPR-Wechsel, ausgeblendetem/reaktiviertem Viewer und Export vor dem ersten
+Draw aktualisieren. Materialien nicht zwischen Viewern mit verschiedenen Viewports
+teilen. Der Gizmo-Pass darf keine kleine Resolution im Hauptpass hinterlassen.
+
+Keine zusätzliche Exportpipeline erfinden: Die bestehenden Renderwege prüfen;
+sollte ein Export eine andere Ausgabegröße verwenden, dessen Breitenmaßstab
+explizit definieren. So bleibt „2 CSS-px“ eine prüfbare Aussage.
+
+### 3. Messprotokoll: ergänzen, damit A/B die echte Umstellung misst · VP39-03
+
+Der temporäre Debug-Schalter ist als Messhilfe in Ordnung. **A muss der bisherige
+native `THREE.LineSegments`-Renderer sein**, B der neue `LineSegments2`-Renderer.
+Nur `LineMaterial.linewidth` zwischen 1 und 2 zu ändern, würde den Mehrpreis des
+neuen Zeichenwegs in der Referenz verstecken. Die Beschriftung besser „bisherige
+GL-Linie / 2 CSS-px“; die bisherige GL-Linie ist auf Retina nicht automatisch 1 CSS-px.
+Beide Varianten verwenden denselben Teil-A-Stand, dieselben Farben und Eingangsdaten.
+
+Der Speichervergleich braucht zusätzlich getrennte Ausgangszustände oder eine
+sauber ausgewiesene Bilanz beider vorgehaltenen Renderer. Ein A/B-Umschalter,
+der beide Geometrien hält, repräsentiert nicht den späteren Produktbedarf.
+Nach Abnahme Schalter und Altpfad entfernen und den endgültigen Stand prüfen.
+
+**Zum Protokoll ergänzen:**
+
+- Kleine Datei zusätzlich zu Zufallsweg und echtem CAM; **Scrub/Befundsprünge**
+  zusätzlich zu Orbit. Backplot voll, Limit-Overlay aus/an, versteckte Rapids mit
+  temporärer Befundansicht sowie Laden/Neuladen/Löschen als getrennte Aufbau- und
+  Freigabeprüfung. Wiederholtes Wechseln zwischen Fit/Detail erzwingt LOD-Wechsel.
+- Identische Kamerafahrt und Datensequenz; drei Läufe pro Variante, A/B-Reihenfolge
+  wechseln, Warm-up und Umbauphase separat. Aufwärmen darf den Aufbaupeak nicht
+  aus der Speicherbilanz entfernen.
+- Pro Lauf ID, Commit, Rendererart, Dateihash, tatsächlich dargestellte Segment-/
+  Instanzzahlen, LODs, Viewport, Browser, effektiven Renderer-DPR, Zoom und
+  Wiederholrate speichern; nur aktive/vordergründige Messfenster verwenden.
+- **Perzentile nicht mitteln.** `viewerPerf` liefert Quantile je 3-s-Fenster, keine
+  Rohwerte für einen 30-s-Lauf. Entweder Lauf-Rohstichprobe/zusammenführbares
+  Histogramm aufnehmen oder ausdrücklich mit dem höchsten Fenster-p95 arbeiten.
+  Mein Zahlenbeispiel zeigt: Fenster-p95 100 und 1 ms ergeben im Mittel 50,5 ms,
+  der p95 der vereinten Stichprobe ist aber 1 ms. Das Auswerteskript braucht einen
+  festgelegten Aggregationsvertrag und genügend Samples.
+- Die vorhandenen p95-Grenzen behalten, bei festgehaltener Wiederholrate. Ergänzen:
+  keine neuen wiederkehrenden >100-ms-Lücken und keine durch den neuen Aufbau/
+  Cache verursachten >50-ms-Eingabeblockaden. `mt_*` hilft beim Erkennen, ersetzt
+  aber nicht die Zuordnung zur Arbeit des Renderers. GPU-Fences bleiben ein Maß
+  für Rückstand, `renderMs` für CPU-Submission.
+- `fat2` allein genügt als Diagnose nicht: `LineSegments2` ist ein Mesh.
+  `renderer.info.render.lines` zählt diese Pfade nicht mehr. `draw_segs` muss
+  weiterhin wirkliche Segmentinstanzen zählen; Dreiecke/Draw Calls ergänzend
+  melden. Quellen-Vertexzahl, Pfadsegmentzahl und Grundmesh-Indizes nicht verwechseln.
+
+DPR 1 und 2 sowie 100/150 % gehören weiter zur Geometrie-/Breitenprüfung; die
+Mac-Leistungsmessung darf auf dessen tatsächlicher Konfiguration stattfinden.
+Die Grenzwerte lassen sich für eine andere Wiederholrate vorab anpassen;
+festgelegte Limits bleiben für die Auswertung verbindlich.
+
+### 4. Andere Rasterung: diese Fälle ausdrücklich aufnehmen
+
+Die Distanzübernahme aus den ursprünglichen Endpunkten ist richtig. Sie bewahrt
+die Strichphase an den gemeinsamen Referenzpunkten; nicht `computeLineDistances()`
+auf der räumlich sortierten Folge neu ausführen. Gleiches gilt für Reveal-Paare.
+Pixelidentische Striche entlang unterschiedlich vereinfachter Kurven sind damit
+allerdings nicht versprochen – die bestehende LOD-Geometrie verändert die Projektion.
+
+| Fall | Erwartung / Grund |
+|---|---|
+| Überdeckung und Tiefe | Grundpfad/Backplot/Limit weiterhin 10/11/12; `depthWrite:false` ausdrücklich setzen. `LineMaterial` startet sonst mit `true`. `pathAlwaysOnTop` an/aus sowie koplanare Fläche, Vorder-/Rückseite und Schnitt mit dem Körper prüfen. |
+| Sehr kurze oder degenerierte Segmente | Leere Chunks, identische Endpunkte, Projektion entlang der Blickrichtung und Segmente unter einem Pixel dürfen keine NaNs, Riesenflächen oder falschen Verbinder erzeugen. |
+| Enden, Ecken und Striche | Fat-Linien sind Dreiecke mit Endkappen; enge Kehren, gemeinsame Enden, spitze Winkel, dichte Schlichtbahnen und Dash-Grenzen können anders aussehen als native GL-Linien. Bei LOD-Wechseln keine neuen falschen Verbindungen oder verlorenen Markierungen. |
+| Kamera-Nah- und Seitenrand | Segment durch die Near Plane und Chunk knapp außerhalb des Bildes prüfen. Eine Mittellinien-Sphere allein kann einen noch ins Bild ragenden 2-px-Strich wegcullen; Sonde: x=1,001 bei Sichtbereich [-1,1], Strich reicht bis 0,9985. Konservative Breitenreserve in der echten Render-Culling-Prüfung berücksichtigen, nicht nur im Diagnosezähler. |
+| Zustände und Eigentum | Theme/Stale, verborgenes Toolpath/Rapids mit Reveal, Re-Bake, Programmwechsel, Entladen und vollständiger Szenenneuaufbau. Keine veralteten Instanzen, keine Freigabe eines Puffers, den ein anderes Objekt noch benötigt. |
+| Befundsemantik | Vollauflösende Quellpaare/Flags bleiben maßgeblich; ein markierter Zwischenpunkt darf in grober LOD seine Limit-Markierung nicht verlieren. Sichtbarkeitsregeln und R31–R35-Navigationsfälle bleiben erhalten. |
+
+**Grenze zwischen Teil A/B ausdrücklich benennen:** Neben `makeSet`,
+`buildOverlays` und `_buildReveal` existiert `rebuildOverflowEdges` für den
+orangefarbenen Box-Überhang – am Planstand noch eine native GL-Linie mit Clip-Ebenen.
+Wenn auch dieser zur 2-px-Box gehört, einen der beiden Teile dafür verantwortlich
+machen und die Breite samt Clipping prüfen. Er darf bei der Umstellung nicht
+unbemerkt als dünne Ausnahme zurückbleiben. Das ist eine Umfangsklärung zwischen
+den Paketen, keine vorweggenommene Implementierungsprüfung von Teil A.
+
+### Belege und Übergabe
+
+[API-/Rechensonde](viewer-palette-fest.r39.probe.mjs),
+[Ergebnisse](viewer-palette-fest.r39.probe.json),
+[Quellen und Wiederholung](viewer-palette-fest.r39.evidence.md).
+Nur kleine Three-Objekte und deterministische Arithmetik aus der Archivkopie,
+kein WebGL-Rendering, keine Produkt-Builds/Tests, kein Mac-Benchmark und keine
+Live-Verbindung. Keine Produktänderung oder Änderung alter Belege durch Codex.
+
+**Übergabe:** R39 `findings`. Eager als erster Ansatz ist akzeptiert. Vor der
+Umsetzung VP39-01 bis VP39-03 in den Plan übernehmen bzw. begründet beantworten;
+die genannten Raster-/Zustandsfälle und den Box-Überhang im Prüfumfang festhalten.
+Keine erneute Farb- oder Modellentscheidung des Operators erforderlich.

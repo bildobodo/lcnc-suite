@@ -1,0 +1,63 @@
+{
+  "source": {
+    "three_revision": "182",
+    "scope": "API/arithmetic only, no WebGL rendering"
+  },
+  "geometry": {
+    "segments": 2,
+    "position_bytes": 48,
+    "distance_bytes": 16,
+    "start_end_share_data": true,
+    "prototype_vertices": 8,
+    "prototype_indices": 18,
+    "isMesh": true,
+    "isLine": false,
+    "default_depthWrite": true
+  },
+  "resolution": {
+    "assigned_centrally": [
+      123,
+      456
+    ],
+    "after_default_onBeforeRender": [
+      800,
+      400
+    ],
+    "viewport_reads": 1,
+    "cssHeight": 400,
+    "framebufferHeightAtDpr2": 800,
+    "widthCSSIfPhysicalResolutionUsedFor400CSS": 1
+  },
+  "memory_arithmetic": {
+    "segments": 1200000,
+    "full_levels": 3,
+    "position_only_per_level_MiB": 27.4658203125,
+    "positions_all_levels_MiB": 82.3974609375,
+    "distances_all_rapid_levels_MiB": 27.4658203125,
+    "base_plus_full_duplicate_overlay_positions_MiB": 164.794921875,
+    "note": "Gross capacities. Not measured net increase; excludes source arrays, metadata, reveal, prototype buffers, retained old branch and allocation/upload peaks. Eager packing does not imply every level has been uploaded to GPU yet."
+  },
+  "edge_culling": {
+    "camera_x_range": [
+      -1,
+      1
+    ],
+    "css_width": 800,
+    "line_width_css": 2,
+    "centreline_x": 1.001,
+    "sphere_radius": 0.00005,
+    "centreline_sphere_accepted": false,
+    "expanded_line_left_x": 0.9984999999999999,
+    "expanded_line_overlaps_view": true
+  },
+  "quantiles": {
+    "window_size": 100,
+    "window_p95": [
+      100,
+      1
+    ],
+    "mean_of_window_p95": 50.5,
+    "pooled_p95": 1,
+    "note": "Window quantiles cannot be averaged into an overall run percentile; source emits 3-second windows."
+  }
+}
