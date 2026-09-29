@@ -2155,3 +2155,78 @@ Policy-Auswertung. Keine neue offene Rückfallregel im geprüften Übergang.
 
 **Übergabe:** R28 mit `agreement`; für OP-I01 bis OP-I06 ist keine weitere
 Korrekturrunde erforderlich.
+
+---
+
+## Umsetzung · Claude · Nachtrag P6 (Zusatzzeilen) · 29. September 2026
+
+Branch `feat/viewer-palette` (in `~/lcnc-suite`; enthält `feat/operator-backlog`). Ein Nachtrag
+zu P6, den der Operator heute entschieden hat. Anlass ist eine Lücke gegenüber dem in R24
+vereinbarten Text (Fassung 3, „Zusatzzeilen“), die ich dem Operator nach R28 gemeldet hatte.
+
+**Vereinbart war:**
+- Die Zeile „G52/G92“ bekommt eine Hilfe: gemeinsames Register, G92 kann aufgehoben sein.
+- Die Werkzeugzeile heißt „Tool (in effect)“.
+
+**Umgesetzt war:**
+- Die Zeilen hießen „G52/G92“ und „Tool“.
+- Die Erklärung stand nur in Hover-Titeln, die auf dem Touchscreen nicht erreichbar sind.
+- Aussetzen und Weiterbestehen fehlten ganz.
+
+**Warum nicht wörtlich:** Die Namensspalte ist fest 56 px breit. Mit 60 px scrollte die
+5-Achs-Tabelle im schmalen Hochformat bereits seitlich (Layout-Sweep, `sliver-scroll`).
+- „Tool (in effect)“ passt dort nicht; der Name bräche auf zwei bis drei Zeilen um.
+- Ein „?“ neben „G52/G92“ braucht etwa 20 px mehr.
+
+**Operatorentscheidung (29.09.), umgesetzt in `c8faffd`:**
+- **Die Werkzeugzeile heißt „G43“.**
+  - Sie ist damit nach ihrem G-Code benannt, wie „G54“ und „G52/G92“.
+  - Grund: „Tool“ las sich wie das „Z Offset“ der Werkzeugleiste. Das ist die Tabellenlänge des
+    geladenen Werkzeugs; die Zeile zeigt aber `tool_offset`, also die wirksame Korrektur.
+  - Die beiden Werte weichen ab nach einem Neuvermessen ohne neues G43, nach G49 (keine Zeile),
+    bei `G43 H<anderes>` sowie bei G43.1 und G43.2.
+  - Die Zusammenfassung nennt dieselben Namen: „No G52/G92, G43 or comp offset in effect“ bzw.
+    „Offset status unknown — G43“.
+- **Ein „?“ in der leeren Ecke des klebenden Tabellenkopfs** („Help: Offsets in effect“). Er ist
+  immer sichtbar und kostet keine Spaltenbreite. Text, 113 Zeichen:
+  - **G52/G92** — one register; kept after program end and restart, G92.2 suspends it
+  - **G43** — in effect, not the tool table
+- Belegt im LinuxCNC-Handbuch 2.9.4, Kap. 11.1.5:
+  - G52 und G92 teilen sich die Register.
+  - Beide bleiben nach M2/M30, Abbruch und Neustart bestehen. Das ist der Standard; keine
+    unserer Sim-INIs setzt `DISABLE_G92_PERSISTENCE`.
+  - G92.2 setzt aus, die Werte bleiben in 5211–5219 gespeichert; G92.1 löscht.
+- Die Hover-Titel mit Erklärung an G52/G92 und G43 sind entfernt (eine Quelle). „Comp“ behält
+  seinen kurzen Titel.
+
+**Wächter:**
+- `e2e/offsets.spec` „the rows below the fixtures explain themselves on a tap …“:
+  - die Namen „G52/G92“ und „G43“;
+  - das „?“ im Kopf per Tipp mit beiden Sätzen;
+  - kein Titel an den beiden Zeilen.
+- Die vorhandenen Erwartungen sind auf „G43“ umgestellt: Zeilenwerte, Zusammenfassung und
+  `offsetRows.test`.
+- Rot mit altem `OffsetPanel`/`offsetRows`: „Tool“ statt „G43“, „tool“ in der Zusammenfassung.
+- Der vorhandene Sweep „every help popover wraps and stays inside the window, in every tab“
+  öffnet das neue „?“ mit.
+- Der Layout-Sweep über alle Profile und Maschinenzustände ist grün (30/30), auch mit der
+  unsichtbaren 24-px-Trefferfläche auf Touch im 56-px-Kopf.
+
+Doku: CLAUDE.md, Checkliste (`6f1d010`).
+
+Offline-Gate (`python3 scripts/test_suite.py offline --timeout 2400`) auf `6f1d010`: PASS, Backend 1069, Vitest 1732, Playwright 356/356.
+
+**Arbeitsort:** wie in den Palette-Runden. In `~/lcnc-suite` läuft die Live-Sim für die
+Sichtprüfung des Operators.
+- Dort bitte nur an diese Review-Datei anhängen und neue `operator-punkte.r36.*`-Belege ablegen.
+- Keine Builds, Tests oder Checkouts dort, keine Zugriffe auf `:5173`/`:8000`, keine
+  Maschinenbefehle.
+- Stattdessen eine Archivkopie des Heads, mit eigenem Mock auf einem freien Port.
+
+### Bitte prüfen
+
+1. **Abweichung vom vereinbarten Wortlaut:** „G43“ statt „Tool (in effect)“, und die Hilfe im
+   Kopf statt an der Zeile. Aus meiner Sicht deckt das die Absicht aus R24 (wirksame Korrektur,
+   nicht Tabellenlänge; gemeinsames Register, aufhebbar) bei gleicher Breite.
+2. **Text:** Stimmen die beiden Sätze fachlich, gerade „kept after program end and restart“?
+   Mit `DISABLE_G92_PERSISTENCE = 1` gilt das nicht mehr; unsere INIs setzen es nicht.
