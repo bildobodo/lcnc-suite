@@ -2241,3 +2241,56 @@ Kombination, Überlagerungsregel und dem akzeptierten Messbudget konkretisieren.
 Reine Ideenprüfung, eigene deterministische Rechnung und Prüfung des eigenständigen
 HTML-Belegs. Keine Produkt-Builds/Tests oder Zugriffe auf die Live-Suite, keine
 Maschinenbefehle. Frühere Belege bleiben unverändert. **Handshake R38: findings.**
+
+---
+
+## Operator-Entscheidungen · 29. September 2026 (nach R38)
+
+Grundlage sind Renderings in Originalgröße auf dem XYZAC-Modell (Vergleichsseite des Operators,
+Runden 2–4; Renderhilfen nur lokal im Worktree `~/lcnc-suite-backlog`, nie im Produkt).
+
+1. **Zwei Schemen, gleicher Farbton je Rolle.**
+   - Im hellen Theme kräftigere Töne (Codex' Entwurf E), im dunklen leuchtende (D, mit Hellgrün).
+   - Eilgang und Backplot sind in beiden gleich.
+   - Die frühere Regel „ein Wert je Rolle in hell und dunkel“ (R29/R30) ist damit abgelöst. Sie
+     gilt jetzt als „gleiche Farbfamilie je Rolle, Farbton ≤ 15°“, dieselbe Regel wie für HC.
+
+   | Rolle | hell / `:root` | dunkel / Auto-dunkel | hc-light | hc-dark |
+   |---|---|---|---|---|
+   | Vorschub (Pfad) | `#00a83c` | `#5cff5c` | `#236508` | `#5cff5c` |
+   | Eilgang (gestrichelt) | `#3d8bff` | `#3d8bff` | `#1f5fe0` | `#6aa6ff` |
+   | Backplot | `#ff00ff` | `#ff00ff` | `#c000c0` | `#ff5cff` |
+   | Überschreitung (Overlay, Box-Überhang) | `#e66b00` | `#ff7a00` | `#c85100` | `#ff8a1a` |
+   | Kollision (Körper) | `#c8102e` | `#c8102e` | `#b0001e` | `#ff3344` |
+
+   Kleinste Paarabstände der vier Linien (OKLab): hell 0,277, dunkel 0,317, hc-light 0,262,
+   hc-dark 0,254. Hell und dunkel halten ≥ 3 : 1 auf dem Hintergrund, HC ≥ 4,5 : 1.
+
+2. **Pfad Grün** statt Cyan. Cyan lag am blauen Eilgang: 0,10 hell und 0,22 dunkel.
+3. **Alle Pfade 2 px:** Vorschub, Eilgang, Überschreitung und Backplot. Das ist Teil B, mit
+   Codex' Messbudget (VP38-03) als eigene Runde.
+4. **Maschinenmodelle in Graustufen** statt Türkis, Gold und gedämpfter Achsfarben:
+   Säule/Schlitten/Kopf hell, Führungen mittel, Rohteil und Planscheibe im Mittelfeld,
+   Bett/Abdeckungen/Wiege dunkel.
+   - Materialfarben: Lack `#575a5e`, Stahl `#44484c`, Planscheibe `#2e3235`, Rohteil `#363a3d`,
+     Guss `#262a2d`, Abdeckung `#1d2023`, dunkel `#121417`.
+   - Gerendert (heutiges Licht): Rohteil-Oberseite `#5d6165` (L 0,49), Planscheibe `#53585b`
+     (L 0,46).
+   - Der Operator fand das Einheitsdunkel aus R38 („deutlich dunkel“, L 0,27–0,38) zu dunkel
+     und wünschte mehr Stufen. Die Pfade stehen trotzdem über die Helligkeit vorn: hell
+     1,9–2,3 : 1 gegen Rohteil und Planscheibe, dunkel 1,9–5,5 : 1.
+5. **Maschinengrenze zweifarbig:** abwechselnd dunkle und helle Striche (`#15181c` / `#f0f2f4`),
+   wie die Auswahlkante in Zeichenprogrammen.
+   - 2 px, keine Umrandung, in allen Themes gleich; Strichlänge in Bildschirmpixeln.
+   - Die Werkzeugpfad-Box ist ebenso zweifarbig, mit kürzeren Strichen und ihren Maßangaben.
+   - Der Überhang außerhalb der Maschinengrenze bleibt in der Überschreitungsfarbe.
+   - Ein einzelnes Grau (auch Codex' `#909090` aus R38) geht vor einem grau gestuften Modell an
+     wechselnden Stellen unter; das ist damit abgelöst.
+6. **Überdeckung (VP38-02):** Gleich breite, deckungsgleiche Linien zeigen nur die obere.
+   Reihenfolge bleibt Überschreitung (12) über Backplot (11) über Pfad (10). Der Operator hat
+   das in den Renderings gesehen.
+
+Offene Punkte für die Umsetzung:
+- Teil B (2 px, VP38-03) als Planrunde R39.
+- Die Schneide des Werkzeugs ist heute gold (`#d4a800`) und liegt nahe am Orange; dem Operator
+  genannt, nicht still entschieden.
