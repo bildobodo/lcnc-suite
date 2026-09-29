@@ -5,6 +5,7 @@ import { fmtOffset, NO_VALUE } from "./format";
 import { openKeypad, closeKeypadIf, keypadState, newKeypadOwnerId, dropDrafts } from "./useNumberKeypad";
 import { G5X_LABELS } from "./wcs";
 import MachineBtn from "./MachineBtn.vue";
+import HelpIcon from "./HelpIcon.vue";
 
 import Gate from "./Gate.vue";
 import { vStickyHead } from "./stickyHead";
@@ -182,7 +183,10 @@ function clearAll() {
       <table>
         <thead>
           <tr>
-            <th class="colName"></th>
+            <!-- The rows below the fixtures, explained where it costs no
+                 width (the name column is fixed at 56 px): what G52/G92 and
+                 G43 are — a hover title never reaches a touchscreen. -->
+            <th class="colName"><HelpIcon label="Offsets in effect"><strong>G52/G92</strong> — one register; kept after program end and restart, G92.2 suspends it<br><strong>G43</strong> — in effect, not the tool table</HelpIcon></th>
             <th v-for="col in offsetColumns" :key="col" class="colVal">{{ col.toUpperCase() }}</th>
           </tr>
         </thead>
@@ -222,13 +226,15 @@ function clearAll() {
           <!-- G52 and G92 share one register; G92 can be suspended while its
                values stay stored (LinuxCNC coordinate systems). -->
           <tr v-if="aux.g92.state === 'active'" class="auxRow">
-            <td class="offLabel auxLabel" title="G52/G92 offset in effect (one register)">G52/G92</td>
+            <td class="offLabel auxLabel">G52/G92</td>
             <td v-for="col in offsetColumns" :key="col">{{ auxValue(aux.g92, col) }}</td>
           </tr>
 
-          <!-- The tool offset IN EFFECT (G43…), not the tool table's length. -->
+          <!-- The tool offset IN EFFECT (G43…), not the tool table's length —
+               named by its G-code like the rows above: "Tool" read as the
+               Tool strip's table length of the loaded tool. -->
           <tr v-if="aux.tool.state === 'active'" class="auxRow">
-            <td class="offLabel auxLabel" title="Tool offset in effect (G43), not the table length">Tool</td>
+            <td class="offLabel auxLabel">G43</td>
             <td v-for="col in offsetColumns" :key="col">{{ auxValue(aux.tool, col) }}</td>
           </tr>
 
@@ -244,7 +250,7 @@ function clearAll() {
          unknown source is named, never shown as zero (Codex R21/R22). -->
     <div v-if="aux.summary" class="offsetSummary text-muted">
       {{ aux.summary.kind === 'none'
-        ? 'No G52/G92, tool or comp offset in effect'
+        ? 'No G52/G92, G43 or comp offset in effect'
         : `Offset status unknown — ${aux.summary.sources.join(', ')}` }}
     </div>
   </div>
@@ -324,7 +330,7 @@ tbody tr.auxRow {
   cursor: default;
 }
 
-/* The auxiliary rows' names (G92, Tool, Comp) read muted beside the
+/* The auxiliary rows' names (G52/G92, G43, Comp) read muted beside the
    fixtures — a contextual rule: the offLabel rule above outranks a utility. */
 .tableWrap td.auxLabel {
   color: var(--fg-muted);

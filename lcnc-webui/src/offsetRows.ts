@@ -60,7 +60,7 @@ export function offsetAux(input: {
     : input.compEnabled === true && compZ !== null ? "active" : "unknown";
   const unknown = [
     g92.state === "unknown" ? "G52/G92" : null,
-    tool.state === "unknown" ? "tool" : null,
+    tool.state === "unknown" ? "G43" : null,
     comp === "unknown" ? "comp" : null,
   ].filter((s): s is string => s !== null);
   const summary = unknown.length ? { kind: "unknown" as const, sources: unknown }

@@ -39,13 +39,33 @@ test("the auxiliary rows read each axis from its canonical slot — on XYZAC, C 
   });
   // columns: name, X, Y, Z, A, C, R
   expect((await cells(page, 0)).map(t => t.trim()), "G52/G92").toEqual(["G52/G92", "1.0000", "0.0000", "0.0000", "0.0000", "6.0000", ""]);
-  expect((await cells(page, 1)).map(t => t.trim()), "Tool").toEqual(["Tool", "0.0000", "0.0000", "45.7000", "0.0000", "8.0000", ""]);
+  expect((await cells(page, 1)).map(t => t.trim()), "G43").toEqual(["G43", "0.0000", "0.0000", "45.7000", "0.0000", "8.0000", ""]);
+});
+
+// The rows below the fixtures explain themselves where a touchscreen reaches
+// them (operator P6, Codex R24; asked again 2026-09-29): the explanation lived
+// in hover titles only, and "Tool" read as the Tool strip's table length.
+test("the rows below the fixtures explain themselves on a tap: G52/G92 is one register that stays, G43 is the offset in effect", async ({ page }) => {
+  await openOffsets(page, { g92_offset: canon({ X: 1 }), tool_offset: canon({ Z: 45.7 }), eoffset_enabled: false, eoffset_z: 0 });
+  expect((await cells(page, 0))[0]!.trim()).toBe("G52/G92");
+  expect((await cells(page, 1))[0]!.trim(), "named by its G-code, not \"Tool\"").toBe("G43");
+  const help = page.locator(".offsetPanel thead").getByRole("button", { name: "Help: Offsets in effect", exact: true });
+  await help.click();
+  const pop = page.locator(".helpPopover:popover-open");
+  await expect(pop).toContainText("G52/G92 — one register; kept after program end and restart, G92.2 suspends it");
+  await expect(pop).toContainText("G43 — in effect, not the tool table");
+  await help.click();
+  await expect(pop).toHaveCount(0);
+  // one source: no second explanation in a hover title on those rows
+  for (const i of [0, 1]) {
+    expect(await page.locator(".offsetPanel tbody tr.auxRow").nth(i).locator("td").first().getAttribute("title")).toBeNull();
+  }
 });
 
 test("unknown is never zero: the summary names what is unknown, and says 'none' only when all is known", async ({ page }) => {
   await openOffsets(page, { g92_offset: canon({}), tool_offset: canon({}), eoffset_enabled: false, eoffset_z: 0 });
   const summary = page.locator(".offsetPanel .offsetSummary");
-  await expect(summary).toHaveText("No G52/G92, tool or comp offset in effect");
+  await expect(summary).toHaveText("No G52/G92, G43 or comp offset in effect");
   await expect(page.locator(".offsetPanel tr.auxRow")).toHaveCount(0);
   await ctl({ op: "status_delta", data: { eoffset_enabled: null } });
   await expect(summary, "an amount of 0 with an unknown enable proves nothing").toHaveText("Offset status unknown — comp");

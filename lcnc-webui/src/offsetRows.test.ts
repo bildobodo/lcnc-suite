@@ -57,6 +57,6 @@ describe("offset auxiliary rows (operator P5/P6, Codex R22 OP22-03)", () => {
       .toEqual({ kind: "unknown", sources: ["comp"] });
     expect(offsetAux({ ...base, tool: vec({ Z: 45.7 }) }).summary, "something in effect: the row says it").toBeNull();
     expect(offsetAux({ ...base, g92: null, tool: undefined, compEnabled: undefined }).summary)
-      .toEqual({ kind: "unknown", sources: ["G52/G92", "tool", "comp"] });
+      .toEqual({ kind: "unknown", sources: ["G52/G92", "G43", "comp"] });
   });
 });
