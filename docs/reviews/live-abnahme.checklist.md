@@ -1,6 +1,6 @@
 # Live-Sichtprüfung — Design-Welle, Viewer-Kontrast, Operator-Punkte, feste Palette
 
-**Für den Operator · Stand 28. September 2026.** Diese Prüfung ist der letzte Schritt vor dem
+**Für den Operator · Stand 29. September 2026.** Diese Prüfung ist der letzte Schritt vor dem
 Merge aller Branches nach `development`. Du prüfst alles zusammen auf `feat/viewer-palette`; er
 enthält jeden anderen Branch.
 
@@ -21,7 +21,7 @@ enthält jeden anderen Branch.
   - Feste Viewer-Palette (`feat/viewer-palette`): Ideenrunde R29, Plan-Agreement R30,
     Implementierungsreview R31 (vier Befunde, behoben), Nachprüfung R32 (zwei Befunde zur
     Befundnavigation, behoben), Nachprüfung R33 (drei Befunde zur Befundnavigation, behoben),
-    Nachprüfung R34 (ein Befund zu Wiederkontakten, behoben), Nachprüfung R35 läuft
+    Nachprüfung R34 (ein Befund zu Wiederkontakten, behoben), **Agreement in R35**
     ([Review](viewer-palette-fest.ideen.md)).
 - **Offline-Gates** (`python3 scripts/test_suite.py offline`):
   - Welle auf `15b46ff`: PASS, Playwright 282/282.
