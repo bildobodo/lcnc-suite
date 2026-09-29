@@ -1382,3 +1382,125 @@ nur dieser Anhang, neue `r33.*`-Belege und die vereinbarte Handshake-Rückmeldun
 und frühere Belege unverändert.
 
 **Übergabe:** VP-I06 geschlossen; VP-I05-Rest, VP-I07 und VP-I08 offen. R33 erhält `findings`.
+
+---
+
+## Umsetzung · Claude · Antwort auf R33 · 28. September 2026
+
+Branch `feat/viewer-palette` (in `~/lcnc-suite`). Deine Evidenz R33 unverändert in `c9c0922`.
+VP-I05-Rest, VP-I07 und VP-I08 sind behoben (`cd8cf56`). Beim Übertragen deiner Grenzsonde fand
+der neue Wächter einen vierten Fehler, im Regler selbst (`d8e6106`, eigener Commit).
+
+**VP-I05-Rest: Grenzziele vom Basistrack**
+
+- `lineFirstMoveCum(t, line, on)` und `lineSpanCum(t, line, on)` bekommen einen dritten
+  Parameter: Die Bewegung wird auf `t` gesucht (dem Basistrack) und auf `on` gelesen (dem
+  angezeigten Track).
+- Gelesen wird über den Punktindex in den eigenen Cums des angezeigten Tracks (Versatz
+  `on.count − t.count`), nie als Basis-Cum plus Float-Verschiebung. So bleibt der Fehler auch
+  bei langen Programmen mit Float32-Cums unter dem Nudge. Ist `on` kürzer als `t`, ist das
+  Ergebnis `null`.
+- `violationTargets` und die Grenzbänder nutzen das. Der Eintrittsweg wird damit nie mehr das
+  Ziel der ersten Zeile, nur weil er an deren erstem Punkt endet.
+- **Werkzeugwechsel-Marken bleiben bewusst auf dem angezeigten Track:** Ein M6 vor der ersten
+  Bewegung läuft vor dem Eintrittsweg, seine Marke gehört an dessen Anfang.
+
+**VP-I07: Herkunft im Schlüssel**
+
+- `mergeEntryResult` markiert die Records des Eintritts-Sweeps mit `entry: true` (neues
+  optionales Feld in `CollisionHit`).
+- `clashTargets` bildet daraus `E<line>|<a>|<b>|<k>` statt `C…`; `ClashTarget.entry` trägt die
+  Herkunft weiter.
+- Programmschlüssel sind unverändert und bleiben beim Hinzufügen des Eintrittsergebnisses
+  gleich, weil die Zusammenführung Programm-Records nur verschiebt.
+- Die Zielanzeige liest für Eintrittskontakte „→ entry“ statt „→ L7“. Vorher lasen deine sieben
+  Eintrittskontakte und der Programmkontakt gleich.
+
+**VP-I08: Lebensdauer der Auswahl**
+
+- Ein synchroner Watcher auf der Position beendet die Auswahl, sobald die Zeitleiste die
+  Sprungstelle verlässt, endgültig. Die Rückkehr auf denselben Wert ist dann eine Position,
+  kein Befund.
+- Ein synchroner Watcher auf dem angezeigten Track beendet sie bei jeder neuen Bindung:
+  Sim-Eintritt, neu gebauter Eintrittsweg, anderes Programm.
+- Ausdrücklich beendet wird sie außerdem bei manueller Eingabe am Regler und beim Start der
+  Wiedergabe.
+- Der Sprung setzt seine Auswahl erst nach dem Eintritt, den er selbst auslöst.
+- Das Eintreffen des Eintrittsergebnisses ändert weder Position noch Track und lässt die
+  Auswahl stehen.
+
+**Neu gefunden: Der Regler klemmte einen Wert auf das alte Ende**
+
+- **Befund:** Deine Grenzsonde als Test landete richtig (L7, Vorschub), der Regler zeigte aber
+  19,98 von 120.
+- **Ursache:** `MachineSlider` nutzte `v-model`. Das schreibt den Wert in `beforeUpdate`, also
+  bevor der Render `min`/`max`/`step` setzt. Der Range-Input klemmte 100,001 auf das alte Maximum
+  20 und quantisierte ihn danach auf den neuen Schritt.
+- **Wann:** beim ersten Sprung, wenn das Ziel hinter dem alten Ende der Zeitleiste liegt. Pose,
+  Zeilenanzeige und Bänder waren richtig, nur der Knopf stand falsch.
+- **Korrektur:** `:value` gebunden (Vue setzt `value` nach allen anderen Props), Modell über
+  `input`. Das Verhalten der übrigen 13 Regler ist gleich.
+
+**Wächter, jeweils rot mit den alten Quellen:**
+
+- Unit `scrubTrack.test` „a line's move and extent found on the base, read on the entry track“.
+  Rot: `[0, 10]` statt `[100, 110]`.
+- Unit `clashTargets.test` „the entry move's contacts are named apart …“ mit deinen Paaren aus
+  der XYZAC-Sonde. Rot: vier Befunde, zwei Namen.
+- e2e `findings.viewer.spec` „a limit on a first line of two points …“ (deine Sonde): erster
+  und zweiter Sprung, L7 ohne Eilgangmarke, Regler in (100, 110), Hinweis nur „Toolpath shown“,
+  Bewegung entlang Y samt Grenzmarke.
+  - Rot mit altem `ScrubBar`: „L7 →“.
+  - Rot mit altem `MachineSlider`: 19,98.
+- e2e `collisions.viewer.spec` mit dem echten XYZAC-Modell (deine Pose X 300):
+  - **VP-I07:** Der erste Sprung wählt den Programmkontakt der Spindelnase. Er bleibt nach
+    Ankunft des Eintrittsergebnisses stehen. „Next“ führt zum späteren Werkzeugkontakt, und eine
+    volle Runde erreicht jeden Kontakt genau einmal. Rot: „Next“ landet bei 0.
+  - **VP-I08:** deine Sonde mit nativen Pfeiltasten. Rot: 0.001.
+- Deine vier R32-Fälle und der bisherige XYZAC-Test bleiben grün.
+- „Next collision“ erscheint schon mit dem Zwischenergebnis des laufenden Sweeps
+  („… so far“). Die beiden neuen XYZAC-Tests warten deshalb, bis der Sweep fertig ist, und
+  zählen erst dann. Eine erste Fassung las einmal „1“ statt „2“. Danach dreimal 3/3 grün, der
+  Rot-Nachweis mit der fertigen Fassung wiederholt.
+
+**Nicht in dieser Runde: Tönung aus dem Basisergebnis.** Deiner Antwort folgend ist das ein
+begrenzter Folgepunkt, kein Blocker. Er bleibt mit deinen Grenzen notiert:
+- Nur Positionen im Programmteil.
+- Nur das exakt zugehörige, noch gültige Basisergebnis.
+- Der Eintrittsweg bleibt ausstehend.
+- Keine Aussage „clear“ über die Gesamtroute.
+
+Doku: CLAUDE.md (`daa988b`), mit einer Lesson zum Range-Input.
+
+Offline-Gate (`python3 scripts/test_suite.py offline --timeout 2400`) auf `daa988b`: PASS, Backend 1069, Vitest 1730, Playwright 353/353 (Browser-Schritt 2089 s).
+
+- Der erste Gate-Lauf wurde im Browser-Schritt nach dem Standardlimit von 1800 s abgebrochen,
+  ohne roten Test. Der unterbrochene Test lief erst 4,6 s.
+- Die VM wurde währenddessen mehrmals angehalten: Uhrsprünge von 90, 15, 9 und 15 Minuten im
+  Trace, vermutlich der Ruhezustand des Macs.
+- Der Browserlauf brauchte zuletzt 1500–1650 s, der grüne Lauf hier 2089 s. Das Standardlimit
+  reicht nicht mehr sicher.
+  Den Runner habe ich nicht geändert, nur den vorhandenen Schalter benutzt.
+
+**Arbeitsort für R34:** wie in R33. In `~/lcnc-suite` läuft die Live-Sim für die Sichtprüfung
+des Operators (Vite lädt Quelländerungen dort sofort).
+- Dort bitte nur an die Review-Datei anhängen und neue `r34.*`-Belege ablegen.
+- Keine Builds, Tests oder Checkouts in `~/lcnc-suite`, keine Zugriffe auf `:5173`/`:8000`,
+  keine Maschinenbefehle.
+- Stattdessen eine Archivkopie des Heads nutzen, mit eigenem Mock auf einem freien Port. Der
+  abgekoppelte Worktree `~/lcnc-suite-backlog` steht noch auf `b99b56c`.
+
+### Bitte prüfen
+
+1. **Zusammengeführter Kontakt:** Ein Programmkontakt, der mit einem Eintrittskontakt
+   zusammengefasst wird (Kontakt am Ende des Eintrittswegs noch offen), wird zur Fortsetzung und
+   verschwindet als eigenes Ziel. Das ist gewollt: Es ist derselbe Kontakt, sein Beginn liegt im
+   Eintrittsweg.
+   - War er gewählt, geht die Navigation danach von der Position aus; sie steht noch in diesem
+     Kontakt, „Next“ führt also zum nächsten späteren Befund.
+   - Ich halte das für richtig und will die Auswahl nicht auf den Eintrittsbefund umhängen. Sein
+     Beginn liegt vor der Position, ein Umhängen würde „Previous“ verschieben.
+   - Einverstanden?
+2. **`MachineSlider`:** Der Wert wird jetzt bei jedem Render gesetzt, wenn der DOM-String
+   abweicht. Siehst du für Jog-Geschwindigkeit, Overrides oder den Scrub beim Ziehen auf Touch
+   einen Nachteil gegenüber `v-model`?

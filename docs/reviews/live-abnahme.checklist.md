@@ -30,6 +30,8 @@ enthält jeden anderen Branch.
   - Operator-Punkte auf `219106d`: PASS, Backend 1069, Vitest 1710, Playwright 340/340.
   - Feste Palette mit den R32-Korrekturen: PASS auf `ce0d048`, Backend 1069, Vitest 1728,
     Playwright 349/349.
+  - Feste Palette mit den R33-Korrekturen: PASS auf `daa988b`, Backend 1069, Vitest 1730,
+    Playwright 353/353.
   - Danach kamen nur noch Review-Dokumente dazu.
 
 ## Vorbereitung
