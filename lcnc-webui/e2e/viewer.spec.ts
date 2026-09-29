@@ -483,17 +483,17 @@ test("the viewer palette: Automatic follows the theme, Custom stays, a legacy pa
   await expect(cell("feed", 1), "the old cyan on the light background").toHaveText(/^\d+\.\d : 1 · low$/);
   await expect(cell("feed", 2), "and on the lit table").toHaveText(/ · low$/);
   await expect(hint.locator("tr[data-role]")).toHaveCount(5);
-  // The lines against each other (fixed palette, operator 2026-09-28): six
-  // line pairs, the rapid pair carried by its dash and named so.
+  // The lines against each other (operator 2026-09-28): six line pairs, one
+  // distance each — colour-vision deficiency is no criterion (2026-09-29).
   const pairs = dialog.locator("[data-pair-hint]");
   await expect(pairs.locator("tr[data-pair]")).toHaveCount(6);
-  await expect(pairs.locator('tr[data-pair="feed/rapid"] td').nth(2)).toHaveText(/^\d\.\d\d · dashed$/);
-  // A box's three comparisons, each told with its own value (Codex R31
-  // VP-I04): a core like its casing is low ON THE CASING, while the casing
-  // still carries the box on the background and the table; a line has none.
-  await expect(cell("feed", 3), "a line has no casing").toHaveText("—");
+  await expect(pairs.locator('tr[data-pair="feed/rapid"] td')).toHaveCount(2);
+  await expect(pairs.locator('tr[data-pair="feed/rapid"] td').nth(1)).toHaveText(/^\d\.\d\d$/);
+  // A box is a line like the others (operator 2026-09-29: no casing): its own
+  // ratio on the background and the table, nothing else.
+  await expect(hint.locator("thead th")).toHaveText(["Color", "On background", "On the table"]);
+  await expect(cell("bounds", 1), "the old white box on the light background").toHaveText("1.0 : 1 · low");
   await legend.locator("label", { hasText: "Machine Bounds" }).locator('input[type="color"]').fill("#3a3f45");
-  await expect(cell("bounds", 3)).toHaveText("1.0 : 1 · low");
   await expect(cell("bounds", 1)).toHaveText(/^\d+\.\d : 1$/);
   await expect(cell("bounds", 2)).toHaveText(/^\d+\.\d : 1$/);
   await legend.locator('input[type="color"]').first().fill("#1f3f7f");

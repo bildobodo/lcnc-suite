@@ -158,8 +158,10 @@
      renders ≈ #e0e0e0 in every theme): each line role ≥ 3 : 1 on both (on
      --bg ≥ 4.5 in HC) — one luminance band, so the four path LINES (feed,
      dashed rapid, limit overlay, backplot) were searched for their distance
-     FROM EACH OTHER: ≥ 0.25 in OKLab, ≥ 0.12 for colour-blind eyes but the
-     dashed rapid (viewer/palettePairs.ts, themeTokens.test.ts). The
+     FROM EACH OTHER: ≥ 0.25 in OKLab (viewer/palettePairs.ts,
+     themeTokens.test.ts; colour-vision deficiency is no criterion, operator
+     2026-09-29). The two boxes are one neutral PER THEME, one line each (no
+     casing — viewer/boxLines.ts). The
      collision is a body; limits keep the warn family everywhere (overlay,
      timeline marks, line numbers). Tool and cutter are lit meshes — no line
      contrast applies. Settings' Automatic palette reads these; Custom
@@ -172,9 +174,8 @@
   --viewer-plane-defined: #a97515;
   --viewer-plane-stale: #cc3333;
   --viewer-collision: #c8102e;
-  --viewer-bounds: #b8bec6;
-  --viewer-toolpath-bounds: #b8bec6;
-  --viewer-bounds-casing: #3a3f45;
+  --viewer-bounds: #4b5563;
+  --viewer-toolpath-bounds: #4b5563;
   --viewer-reach: #6b7280;
   --viewer-tool: #9aa0a6;
   --viewer-cutter: #d4a800;
@@ -341,9 +342,8 @@
     --viewer-plane-defined: #a97515;
     --viewer-plane-stale: #cc3333;
     --viewer-collision: #c8102e;
-    --viewer-bounds: #b8bec6;
-    --viewer-toolpath-bounds: #b8bec6;
-    --viewer-bounds-casing: #3a3f45;
+    --viewer-bounds: #cbd5e1;
+    --viewer-toolpath-bounds: #cbd5e1;
     --viewer-reach: #6b7280;
     --viewer-tool: #9aa0a6;
     --viewer-cutter: #d4a800;
@@ -383,9 +383,8 @@
   --viewer-plane-defined: #a97515;
   --viewer-plane-stale: #cc3333;
   --viewer-collision: #c8102e;
-  --viewer-bounds: #b8bec6;
-  --viewer-toolpath-bounds: #b8bec6;
-  --viewer-bounds-casing: #3a3f45;
+  --viewer-bounds: #4b5563;
+  --viewer-toolpath-bounds: #4b5563;
   --viewer-reach: #6b7280;
   --viewer-tool: #9aa0a6;
   --viewer-cutter: #d4a800;
@@ -424,9 +423,8 @@
   --viewer-plane-defined: #a97515;
   --viewer-plane-stale: #cc3333;
   --viewer-collision: #c8102e;
-  --viewer-bounds: #b8bec6;
-  --viewer-toolpath-bounds: #b8bec6;
-  --viewer-bounds-casing: #3a3f45;
+  --viewer-bounds: #cbd5e1;
+  --viewer-toolpath-bounds: #cbd5e1;
   --viewer-reach: #6b7280;
   --viewer-tool: #9aa0a6;
   --viewer-cutter: #d4a800;
@@ -475,9 +473,8 @@
   --viewer-plane-defined: #9a6e19;
   --viewer-plane-stale: #cc3333;
   --viewer-collision: #d51713;
-  --viewer-bounds: #b8bec6;
-  --viewer-toolpath-bounds: #b8bec6;
-  --viewer-bounds-casing: #3a3f45;
+  --viewer-bounds: #2b3138;
+  --viewer-toolpath-bounds: #2b3138;
   --viewer-reach: #6b7280;
   --viewer-tool: #8a8f96;
   --viewer-cutter: #b38f00;
@@ -525,9 +522,8 @@
   --viewer-plane-defined: #a07a0c;
   --viewer-plane-stale: #cc4845;
   --viewer-collision: #fb1903;
-  --viewer-bounds: #b8bec6;
-  --viewer-toolpath-bounds: #b8bec6;
-  --viewer-bounds-casing: #3a3f45;
+  --viewer-bounds: #e6e9ee;
+  --viewer-toolpath-bounds: #e6e9ee;
   --viewer-reach: #78808b;
   --viewer-tool: #d0d0d0;
   --viewer-cutter: #ffe14d;
@@ -2195,19 +2191,6 @@ label:has(input:disabled, select:disabled) {
   border-top: 3px solid currentColor;
 }
 .legendLine.dashed { border-top-style: dashed; }
-/* A cased line (the viewer's boxes, fixed palette P2): the light core on
-   the dark casing, 1 px on 3 like the drawn box. */
-.legendLine.cased {
-  border-top-color: var(--viewer-bounds-casing);
-  position: relative;
-}
-.legendLine.cased::after {
-  content: "";
-  position: absolute;
-  inset: -2px 0 auto 0;
-  border-top: 1px solid currentColor;
-}
-.legendLine.cased.dashed::after { border-top-style: dashed; }
 
 /* Program progress bar (G-code panel). Track flexes to fill its row; fill
    width is driven inline from progress %. */

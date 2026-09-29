@@ -296,16 +296,16 @@ const HUD_TOGGLES: { key: keyof Omit<HudDefaults, "scale">; label: string }[] = 
 // ─── Viewer setting handlers (emit to App.vue → ThreeViewer) ──────
 // A layer that draws a palette role carries its line sample (fixed palette
 // P3, Codex R30: the legend at the layer rows, not a second list) — the
-// drawn colour, dashed / cased like the line itself.
-const LAYER_LABELS: { key: Layer; label: string; role?: ViewerRole; dashed?: boolean; cased?: boolean }[] = [
+// drawn colour, dashed like the line itself.
+const LAYER_LABELS: { key: Layer; label: string; role?: ViewerRole; dashed?: boolean }[] = [
   { key: "backplot", label: "Backplot", role: "backplot" },
   { key: "toolpath", label: "Toolpath", role: "feed" },
   { key: "rapids", label: "Rapids", role: "rapid", dashed: true },
   { key: "workzero", label: "Work Zero" },
   { key: "workplane", label: "Work Plane" },
   { key: "surface", label: "Surface" },
-  { key: "toolpathBounds", label: "Toolpath Bounds", role: "toolpathBounds", dashed: true, cased: true },
-  { key: "bounds", label: "Machine Bounds", role: "bounds", cased: true },
+  { key: "toolpathBounds", label: "Toolpath Bounds", role: "toolpathBounds", dashed: true },
+  { key: "bounds", label: "Machine Bounds", role: "bounds" },
   { key: "reachRoom", label: "Machine Reach" },
   { key: "reachPart", label: "Part Reach" },
   { key: "machine", label: "Machine" },
@@ -496,14 +496,14 @@ function onColorChange(key: UserRole, value: string) {
 
 // The legend (every role, in drawing order); in Custom the seven user roles
 // are the colour pickers, the two finding roles stay the theme's.
-const PALETTE_ROWS: { role: ViewerRole; label: string; dashed?: boolean; cased?: boolean }[] = [
+const PALETTE_ROWS: { role: ViewerRole; label: string; dashed?: boolean }[] = [
   { role: "feed", label: "Toolpath" },
   { role: "rapid", label: "Rapid", dashed: true },
   { role: "backplot", label: "Backplot" },
   { role: "limit", label: "Limit violation" },
   { role: "collision", label: "Collision" },
-  { role: "bounds", label: "Machine Bounds", cased: true },
-  { role: "toolpathBounds", label: "Toolpath Bounds", dashed: true, cased: true },
+  { role: "bounds", label: "Machine Bounds" },
+  { role: "toolpathBounds", label: "Toolpath Bounds", dashed: true },
   { role: "tool", label: "Tool Shaft" },
   { role: "cutter", label: "Tool Cutter" },
 ];
@@ -522,17 +522,14 @@ const contrastRows = computed(() => {
 });
 // "low" in words, not the warn colour alone
 const ratioCell = (v: number | null, low: boolean) => `${fmtRatio(v)}${low && v != null ? " · low" : ""}`;
-// The lines against each other (the fixed palette's pair rule, operator
-// 2026-09-28): the OKLab distance for normal vision and the smallest under
-// the colour-blindness simulations — "close" in words; a pair the dashed
-// rapid carries says so instead.
+// The lines against each other (the palette's pair rule, operator
+// 2026-09-28): the OKLab distance — "close" in words.
 const pairRows = computed(() => {
   if (paletteMode.value !== "custom") return [];
   return customPairRows(shownPalette.value, themeMode.value)
     .map(r => ({ ...r, label: `${CONTRAST_LABEL[r.a] ?? r.a} / ${CONTRAST_LABEL[r.b] ?? r.b}` }));
 });
-const apartCell = (v: number | null, low: boolean, cue: string | null = null) =>
-  `${fmtNum(v, 2)}${cue ? ` · ${cue}` : low && v != null ? " · close" : ""}`;
+const apartCell = (v: number | null, low: boolean) => `${fmtNum(v, 2)}${low && v != null ? " · close" : ""}`;
 
 // ─── Machine part colors ────────────────────
 function defaultMachineColor(part: { direction: string | null; color: [number, number, number] | null }): string {
@@ -608,7 +605,7 @@ function resetMachineColor(id: string) {
                 @update:modelValue="onLayerChange(lf.key, $event!)"
                 :label="lf.label"
               />
-              <span v-if="lf.role" class="legendLine" :class="{ dashed: lf.dashed, cased: lf.cased }"
+              <span v-if="lf.role" class="legendLine" :class="{ dashed: lf.dashed }"
                     :style="{ color: shownPalette[lf.role] }" aria-hidden="true"></span>
             </div>
           </div>
@@ -728,35 +725,33 @@ function resetMachineColor(id: string) {
                 <span class="colorLabel">{{ row.label }}</span>
               </label>
               <div v-else class="row-controls" :data-role="row.role">
-                <span class="legendLine" :class="{ dashed: row.dashed, cased: row.cased }" :style="{ color: shownPalette[row.role] }" aria-hidden="true"></span>
+                <span class="legendLine" :class="{ dashed: row.dashed }" :style="{ color: shownPalette[row.role] }" aria-hidden="true"></span>
                 <span class="colorLabel">{{ row.label }}</span>
               </div>
             </template>
           </div>
           <template v-if="contrastRows.length">
-            <div class="settingDesc">Contrast: a line needs 3 : 1 on the background (4.5 : 1 in high contrast) and on the lit table; a box its core or its dark casing, and its core on the casing.</div>
+            <div class="settingDesc">Contrast: a line needs 3 : 1 on the background (4.5 : 1 in high contrast) and on the lit table.</div>
             <div class="dataTable" data-contrast-hint>
               <table>
-                <thead><tr><th>Color</th><th>On background</th><th>On the table</th><th>On its casing</th></tr></thead>
+                <thead><tr><th>Color</th><th>On background</th><th>On the table</th></tr></thead>
                 <tbody>
                   <tr v-for="r in contrastRows" :key="r.role" :data-role="r.role">
                     <td>{{ r.label }}</td>
                     <td :class="{ 'text-warn': r.bgLow }">{{ ratioCell(r.onBg, r.bgLow) }}</td>
                     <td :class="{ 'text-warn': r.tableLow }">{{ ratioCell(r.onTable, r.tableLow) }}</td>
-                    <td :class="{ 'text-warn': r.casingLow }">{{ ratioCell(r.onCasing, r.casingLow) }}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
-            <div class="settingDesc">Apart: two lines need 0.25 (0.24 in dark high contrast), and 0.12 for color-blind eyes unless a line is dashed.</div>
+            <div class="settingDesc">Apart: two lines need 0.25 (0.24 in dark high contrast).</div>
             <div class="dataTable" data-pair-hint>
               <table>
-                <thead><tr><th>Lines</th><th>Apart</th><th>Color-blind</th></tr></thead>
+                <thead><tr><th>Lines</th><th>Apart</th></tr></thead>
                 <tbody>
                   <tr v-for="r in pairRows" :key="`${r.a}/${r.b}`" :data-pair="`${r.a}/${r.b}`">
                     <td>{{ r.label }}</td>
                     <td :class="{ 'text-warn': r.normalLow }">{{ apartCell(r.normal, r.normalLow) }}</td>
-                    <td :class="{ 'text-warn': r.cvdLow }">{{ apartCell(r.cvd, r.cvdLow, r.cue) }}</td>
                   </tr>
                 </tbody>
               </table>

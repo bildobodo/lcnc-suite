@@ -6,7 +6,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Text } from "troika-three-text";
 import { LABEL_FONT_URL } from "./viewer/labelFont";
 import { resolveViewerPalette, type ViewerPalette } from "./viewer/viewerPalette";
-import { makeCasedEdges, type CasedEdges } from "./viewer/casedLines";
+import { makeBoxEdges, MACHINE_BOX_PX, type BoxEdges } from "./viewer/boxLines";
 import { buildToolGeometries, type ToolMeta } from "./toolGeometry";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
@@ -503,7 +503,7 @@ const _bpLocal = new THREE.Vector3();
 // Reused scratch for camera tracking — runs every rAF frame while tracking.
 const _trackTarget = new THREE.Vector3();
 
-let machineBoundsMesh: CasedEdges | null = null;
+let machineBoundsMesh: BoxEdges | null = null;
 const _billboardLabels: Text[] = [];
 const _bbQ = new THREE.Quaternion();  // reused for billboard parent compensation
 const boundsClipPlanes: THREE.Plane[] = [];
@@ -1506,13 +1506,13 @@ function ensureCoreGroups(init: ViewerInit) {
 
 
 
-  // --- Machine bounds box — wireframe edges only, a light core on a dark
-  // casing (fixed palette P2: one colour pair for every theme) ---
+  // --- Machine bounds box — wireframe edges only, one solid line a little
+  // wider than the path, in the theme's neutral (operator 2026-09-29) ---
   {
     const boxGeom = new THREE.BoxGeometry(1, 1, 1);
     const edgeGeom = new THREE.EdgesGeometry(boxGeom);
     boxGeom.dispose();
-    machineBoundsMesh = makeCasedEdges(edgeGeom, { core: palette.bounds, casing: palette.boundsCasing, role: "bounds" });
+    machineBoundsMesh = makeBoxEdges(edgeGeom, { color: palette.bounds, width: MACHINE_BOX_PX, role: "bounds" });
     edgeGeom.dispose();
     // MACHINE frame, never the rotating work group: the clip planes that
     // decide the yellow outside-bounds overlay live there (7a04909), and the
@@ -4178,7 +4178,7 @@ function refreshPalette() {
   palette = resolveViewerPalette(readRootToken, viewerDefaults);
   toolpath.setColors(palette);
   backplot.setColor(palette.backplot);
-  machineBoundsMesh?.setColors(palette.bounds, palette.boundsCasing);
+  machineBoundsMesh?.setColor(palette.bounds);
   for (const g of [reachRoomMesh, reachPartMesh]) g?.traverse(o => { const m = (o as THREE.Mesh).material as THREE.Material & { color?: THREE.Color }; m?.color?.set(palette.reach); });
   MAT.tool.color.set(palette.tool);
   MAT.cutter.color.set(palette.cutter);

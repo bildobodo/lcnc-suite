@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
 import { encode } from "@msgpack/msgpack";
 import { ctl, MOCK } from "./ctl";
+import { MACHINE_BOX_PX, TOOLPATH_BOX_PX } from "../src/viewer/boxLines";
 
 // Design wave D8 (UI-K08, review round 6 UI-DI14): the viewer palette on a
 // machine model, a DENSE and a THIN path, a selected line, limit overflow
@@ -97,9 +98,10 @@ test("the palette in four themes, on a model, a dense and a thin path — and no
         { message: `${where}: the feed takes the theme's role` }).toBe(await token("--viewer-feed"));
       const materials = await page.evaluate(() => window.__viewerDiag!.getRoleMaterials!());
       expect(materials.filter(m => m.role.startsWith("selection")), `${where}: no current line drawn`).toEqual([]);
-      // Screen-space lines: the backplot and the cased boxes (fixed palette P2).
-      expect(materials.filter(m => m.kind === "fat").map(m => m.role).sort(), `${where}: the backplot and the cased machine box`)
-        .toEqual(["backplot", "bounds", "boundsCasing", "toolpathBounds", "toolpathBoundsCasing"]);
+      // Screen-space lines: the backplot and the two boxes — one line each, no
+      // casing (operator 2026-09-29).
+      expect(materials.filter(m => m.kind === "fat").map(m => m.role).sort(), `${where}: the backplot and the two boxes`)
+        .toEqual(["backplot", "bounds", "toolpathBounds"]);
       const drawn = (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn;
       if (kind === "dense") expect(drawn.limit, `${where}: the limit overflow's role`).toBe(await token("--viewer-limit"));
       await page.waitForTimeout(200);
@@ -262,25 +264,22 @@ test("the width ladder is drawn: the path and the limit overlay 1 px, the backpl
       }
       expect(widths.backplot!, `${where}: the backplot is 2 CSS px ${dump}`).toBeGreaterThan(1.6 * dpr);
       expect(widths.backplot!, `${where}: the backplot is not wider than 2 CSS px ${dump}`).toBeLessThan(2.6 * dpr);
-      // The machine box (fixed palette P2): across its edge the light core in
-      // the middle, the dark casing on either side, the lit table beyond — the
-      // one colour pair every theme draws.
+      // The boxes (operator 2026-09-29): one screen-space line each, no casing —
+      // the machine box solid and wider than the path, the toolpath box dashed
+      // at the path's width. Across the machine box's edge its neutral, the
+      // scene beyond on either side.
+      expect([kindOf("bounds"), kindOf("toolpathBounds")], `${where}: the boxes`).toEqual([`fat${MACHINE_BOX_PX}`, `fat${TOOLPATH_BOX_PX}`]);
       const edge = await page.evaluate(() => window.__viewerDiag!.projectRole!("bounds"));
       expect(edge, `${where}: a visible box edge`).not.toBeNull();
-      const core = rgbOf(drawn.bounds!), casing = rgbOf(drawn.boundsCasing!);
+      const box = rgbOf(drawn.bounds!);
       const [out1, out2] = await profileColours(page, shot, edge!, [-8, 8], dpr);
       const beyond = out1!.map((v, i) => (v + out2![i]!) / 2);
-      const named: [string, number[]][] = [["core", core], ["casing", casing], ["beyond", beyond]];
-      // The material: a 1 px core over a 3 px casing, screen-space.
-      expect([kindOf("bounds"), kindOf("boundsCasing")], `${where}: core and casing`).toEqual(["fat1", "fat3"]);
-      // The image: across the edge both the casing and the core are drawn,
-      // the scene beyond on either side (device-pixel steps across ±3 CSS px —
-      // the live box's top and bottom edges may lie within a pixel or two).
+      const named: [string, number[]][] = [["box", box], ["beyond", beyond]];
       const steps = Array.from({ length: 6 * dpr + 1 }, (_, i) => -3 + i / dpr);
       const seen = (await profileColours(page, shot, edge!, steps, dpr)).map(c => nearestOf(c, named));
-      const boxDump = JSON.stringify({ core, casing, beyond, seen });
+      const boxDump = JSON.stringify({ box, beyond, seen });
       expect([seen[0], seen.at(-1)], `${where}: the scene beyond the edge ${boxDump}`).toEqual(["beyond", "beyond"]);
-      expect(seen.includes("casing") && seen.includes("core"), `${where}: casing and core drawn ${boxDump}`).toBe(true);
+      expect(seen, `${where}: the box drawn ${boxDump}`).toContain("box");
       await test.info().attach(`ladder-dpr${dpr}-${theme}.png`, { body: shot, contentType: "image/png" });
     }
     // The backplot OVER a limit violation (fixed palette P5, Codex R30): the
@@ -310,14 +309,14 @@ test("the width ladder is drawn: the path and the limit overlay 1 px, the backpl
   }
 });
 
-// The box edge measured ALONE (fixed palette P2; Codex R31 answer 2 — its
-// isolated scene, kept as the guard): everything but the machine box off, one
-// edge with nothing within 8 CSS px, its profile fitted pixel by pixel to
-// background / core / casing coverage in quarter steps (the browser's four
-// samples): the core covers 1 CSS px, core and casing 3 — in light and dark,
-// at DPR 1 and 2. The ladder scene above keeps the material check; its live
-// box lays two edges within a pixel or two, too close for widths.
-test("the box edge alone: a 1 CSS px core on a 3 CSS px casing — at DPR 1 and 2", async ({ browser }) => {
+// The box edge measured ALONE (Codex R31 answer 2 — its isolated scene,
+// kept as the guard; operator 2026-09-29: no casing): everything but the
+// machine box off, one edge with nothing within 8 CSS px, its profile fitted
+// pixel by pixel to background / box coverage in quarter steps (the
+// browser's four samples): the box covers MACHINE_BOX_PX CSS px and nothing
+// else is drawn near it — in light and dark, at DPR 1 and 2; its neutral is
+// dark on the light scene and light on the dark one.
+test("the box edge alone: one line of MACHINE_BOX_PX CSS px in the theme's neutral — at DPR 1 and 2", async ({ browser }) => {
   test.setTimeout(120_000);
   for (const dpr of [1, 2]) {
     const context = await browser.newContext({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: dpr });
@@ -336,27 +335,25 @@ test("the box edge alone: a 1 CSS px core on a 3 CSS px casing — at DPR 1 and 
       const edge = await page.evaluate(() => window.__viewerDiag!.projectRole!("bounds"));
       expect(edge, `${where}: a visible box edge`).not.toBeNull();
       const drawn = (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn;
-      const core = rgbOf(drawn.bounds!), casing = rgbOf(drawn.boundsCasing!);
+      const box = rgbOf(drawn.bounds!);
       const shot = await page.screenshot();
       // one sample per device pixel across ±8 CSS px
       const offsets = Array.from({ length: 16 * dpr + 1 }, (_, i) => (i - 8 * dpr) / dpr);
       const profile = await profileColours(page, shot, edge!, offsets, dpr);
       const bg = profile[0]!;
-      const mixes: { c: number; s: number; rgb: number[] }[] = [];
-      for (let c = 0; c <= 4; c++) for (let s = 0; s <= 4 - c; s++) {
-        mixes.push({ c: c / 4, s: s / 4, rgb: [0, 1, 2].map(j => (c * core[j]! + s * casing[j]! + (4 - c - s) * bg[j]!) / 4) });
-      }
-      let coreSum = 0, allSum = 0, worst = 0;
+      const sum = (c: number[]) => c[0]! + c[1]! + c[2]!;
+      expect(sum(box) < sum(bg), `${where}: the neutral is dark on a light scene, light on a dark one`).toBe(theme === "light");
+      const mixes = [0, 1, 2, 3, 4].map(k => ({ c: k / 4, rgb: [0, 1, 2].map(j => (k * box[j]! + (4 - k) * bg[j]!) / 4) }));
+      let boxSum = 0, worst = 0;
       for (const px of profile) {
         const m = mixes.slice().sort((a, b) => rgbDist(px, a.rgb) - rgbDist(px, b.rgb))[0]!;
-        coreSum += m.c; allSum += m.c + m.s;
+        boxSum += m.c;
         worst = Math.max(worst, ...px.map((v, j) => Math.abs(v - m.rgb[j]!)));
       }
-      const dump = JSON.stringify({ core: coreSum / dpr, total: allSum / dpr, worst, edge, profile });
+      const dump = JSON.stringify({ box: boxSum / dpr, worst, edge, profile });
       await test.info().attach(`box-edge-dpr${dpr}-${theme}.png`, { body: shot, contentType: "image/png" });
-      expect(worst, `${where}: every pixel is background, core and casing — nothing else near the edge ${dump}`).toBeLessThan(6);
-      expect(Math.abs(coreSum / dpr - 1), `${where}: the core covers 1 CSS px ${dump}`).toBeLessThan(0.3);
-      expect(Math.abs(allSum / dpr - 3), `${where}: core and casing cover 3 CSS px ${dump}`).toBeLessThan(0.4);
+      expect(worst, `${where}: every pixel is background and box — nothing else near the edge ${dump}`).toBeLessThan(6);
+      expect(Math.abs(boxSum / dpr - MACHINE_BOX_PX), `${where}: the box covers ${MACHINE_BOX_PX} CSS px ${dump}`).toBeLessThan(0.4);
     }
     await context.close();
   }

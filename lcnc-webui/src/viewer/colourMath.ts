@@ -1,9 +1,8 @@
 // Colour arithmetic for the viewer palette — ONE implementation for the
 // theme-token tests (themeTokens.test.ts) and the Custom palette's hint in
 // Settings (viewer/customContrast.ts): WCAG 2.x contrast, OKLab distance and
-// the Machado 2009 (severity 1) dichromat simulation — linearise sRGB, apply
-// the matrix, clip to [0, 1] — a heuristic regression guard, not a proof of
-// accessibility. Pure.
+// OKLCH hue / chroma. Colour-vision deficiency is no criterion of the palette
+// (operator 2026-09-29) — the dichromat simulation is gone. Pure.
 
 export type RGB = [number, number, number];
 
@@ -17,10 +16,6 @@ export function parseHex(c: string | null | undefined): RGB | null {
 }
 
 const lin = (v: number) => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
-const unlin = (v: number) => {
-  v = Math.min(1, Math.max(0, v));
-  return 255 * (v <= 0.0031308 ? 12.92 * v : 1.055 * v ** (1 / 2.4) - 0.055);
-};
 const luminance = (c: RGB) => 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]);
 
 /** WCAG 2.x contrast ratio of two colours. */
@@ -43,25 +38,6 @@ export function oklab(c: RGB): RGB {
 export function okDistance(a: RGB, b: RGB): number {
   const x = oklab(a), y = oklab(b);
   return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]);
-}
-
-export const DICHROMATS = ["protan", "deutan", "tritan"] as const;
-export type Dichromat = typeof DICHROMATS[number];
-const MACHADO: Record<Dichromat, number[][]> = {
-  protan: [[0.152286, 1.052583, -0.204868], [0.114503, 0.786281, 0.099216], [-0.003882, -0.048116, 1.051998]],
-  deutan: [[0.367322, 0.860646, -0.227968], [0.280085, 0.672501, 0.047413], [-0.011820, 0.042940, 0.968881]],
-  tritan: [[1.255528, -0.076749, -0.178779], [-0.078411, 0.930809, 0.147602], [0.004733, 0.691367, 0.303900]],
-};
-
-/** The colour as a dichromat of `kind` sees it (Machado 2009, severity 1). */
-export function simulateDichromat(c: RGB, kind: Dichromat): RGB {
-  const l = c.map(lin);
-  return MACHADO[kind].map(row => unlin(row[0]! * l[0]! + row[1]! * l[1]! + row[2]! * l[2]!)) as RGB;
-}
-
-/** The smallest OKLab distance of two colours under the three simulations. */
-export function worstDichromatDistance(a: RGB, b: RGB): number {
-  return Math.min(...DICHROMATS.map(k => okDistance(simulateDichromat(a, k), simulateDichromat(b, k))));
 }
 
 /** OKLCH hue in degrees [0, 360) and chroma. */

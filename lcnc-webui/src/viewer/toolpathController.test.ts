@@ -9,7 +9,7 @@ import { ref, type Ref } from "vue";
 import { disposeObject } from "./disposal";
 import { createToolpathController, LIMIT_OVERLAY_RENDER_ORDER, type ToolpathCtx, type ToolpathController } from "./toolpathController";
 import { BACKPLOT_RENDER_ORDER } from "./backplotController";
-import { CASED_CORE_PX, CASED_TOTAL_PX } from "./casedLines";
+import { TOOLPATH_BOX_PX } from "./boxLines";
 import type { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import type { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 
@@ -21,7 +21,7 @@ function fakeLabel() {
 }
 
 // The resolved palette the host hands over (viewer/viewerPalette.ts).
-const PALETTE = { feed: "#22b8cf", rapid: "#f5a623", toolpathBounds: "#b8bec6", boundsCasing: "#3a3f45", limit: "#ffcc00" };
+const PALETTE = { feed: "#22b8cf", rapid: "#f5a623", toolpathBounds: "#4b5563", limit: "#ffcc00" };
 function makeDeps(overflow: Ref<boolean>) {
   return {
     requestRender: vi.fn(),
@@ -40,8 +40,8 @@ function makeDeps(overflow: Ref<boolean>) {
 const SCENE_BG = "#102030";
 const SCENE_FG = "#e6edf3";
 
-/** The toolpath box: the cased group (a core and a casing LineSegments2). */
-const boxOf = (g: THREE.Group) => g.children.find(o => o.children.some(k => (k as any).material?.userData?.role === "toolpathBounds"));
+/** The toolpath box: one LineSegments2 (operator 2026-09-29: no casing). */
+const boxOf = (g: THREE.Group) => g.children.find(o => (o as any).material?.userData?.role === "toolpathBounds") as LineSegments2 | undefined;
 
 function makeCtx(over: Partial<ToolpathCtx> = {}): ToolpathCtx & { workRotGroup: THREE.Group; pathAnchor: THREE.Group; pathRot: THREE.Group } {
   const pathAnchor = new THREE.Group();
@@ -145,30 +145,28 @@ describe("no current-line highlight (operator 2026-09-28)", () => {
       });
     }
     expect([...roles].filter(r => r.startsWith("selection")), "no selection role").toEqual([]);
-    expect(fat, "no screen-space line in the toolpath but the box's core and casing").toBe(2);
+    expect(fat, "no screen-space line in the toolpath but the box").toBe(1);
     expect("setHighlight" in c || "setHighlightTrackRange" in c, "no highlight API").toBe(false);
   });
 });
 
-describe("the toolpath box: a light core on a dark casing, dashed (fixed palette P2)", () => {
-  it("draws the core 1 CSS px over a 3 CSS px casing, both dashed alike, clipped to the machine window", () => {
+describe("the toolpath box: one dashed line in the theme's neutral, no casing (operator 2026-09-29)", () => {
+  it("draws one screen-space line at the path's width, dashed, clipped to the machine window", () => {
     const ctx = makeCtx();
     c.apply(ctx, GCODE);
     const box = boxOf(ctx.workRotGroup)!;
-    const [casing, core] = box.children as LineSegments2[];
-    const cm = core!.material as LineMaterial, sm = casing!.material as LineMaterial;
-    expect([cm.userData.role, sm.userData.role]).toEqual(["toolpathBounds", "toolpathBoundsCasing"]);
-    expect([cm.linewidth, sm.linewidth], "CSS px").toEqual([CASED_CORE_PX, CASED_TOTAL_PX]);
-    expect(cm.worldUnits || sm.worldUnits).toBe(false);
-    expect(casing!.renderOrder, "the casing first").toBeLessThan(core!.renderOrder);
-    expect(core!.geometry, "one geometry: the dash lands alike").toBe(casing!.geometry);
-    expect([cm.dashed, sm.dashed]).toEqual([true, true]);
-    expect([cm.dashSize, cm.gapSize]).toEqual([sm.dashSize, sm.gapSize]);
-    expect(core!.geometry.getAttribute("instanceDistanceStart"), "line distances for the dash").toBeTruthy();
-    expect(cm.clippingPlanes).toBe(deps.insideBoundsClipPlanes);
-    expect([cm.color.getHexString(), sm.color.getHexString()]).toEqual(["b8bec6", "3a3f45"]);
-    c.setColors({ ...PALETTE, toolpathBounds: "#ffffff", boundsCasing: "#000000" });
-    expect([cm.color.getHexString(), sm.color.getHexString()]).toEqual(["ffffff", "000000"]);
+    expect(box.isLineSegments2, "one screen-space line, not a group").toBe(true);
+    expect(box.children, "no casing pass").toHaveLength(0);
+    const m = box.material as LineMaterial;
+    expect(m.userData.role).toBe("toolpathBounds");
+    expect(m.linewidth, "CSS px").toBe(TOOLPATH_BOX_PX);
+    expect(m.worldUnits).toBe(false);
+    expect(m.dashed).toBe(true);
+    expect(box.geometry.getAttribute("instanceDistanceStart"), "line distances for the dash").toBeTruthy();
+    expect(m.clippingPlanes).toBe(deps.insideBoundsClipPlanes);
+    expect(m.color.getHexString()).toBe("4b5563");
+    c.setColors({ ...PALETTE, toolpathBounds: "#cbd5e1" });
+    expect(m.color.getHexString()).toBe("cbd5e1");
   });
 });
 
@@ -323,10 +321,10 @@ describe("overflow / visibility / colours", () => {
     c.apply(ctx, GCODE);
     const feed = feedLineOf(ctx.workRotGroup);
     const geomSpy = vi.spyOn(feed.geometry as THREE.BufferGeometry, "dispose");
-    // The bounds box is the cased group (overflow edges need clip planes).
-    // Its geometry was previously missed by dispose().
+    // The bounds box (overflow edges need clip planes). Its geometry was
+    // previously missed by dispose().
     const boundsBox = boxOf(ctx.workRotGroup)!;
-    const boundsGeomSpy = vi.spyOn((boundsBox.children[0] as THREE.Mesh).geometry, "dispose");
+    const boundsGeomSpy = vi.spyOn(boundsBox.geometry, "dispose");
     c.dispose();
     expect(geomSpy).toHaveBeenCalled();
     expect(boundsGeomSpy).toHaveBeenCalled();

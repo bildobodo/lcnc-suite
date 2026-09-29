@@ -7,8 +7,8 @@
 // this pins the blocks the measurement relies on.
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { PALETTE_PAIRS, PATH_ROLES, LINE_MIN_NORMAL, LINE_MIN_NORMAL_HC, CVD_MIN, OBJECT_MIN_NORMAL, lineMinFor } from "./viewer/palettePairs";
-import { contrastRgb as contrast, okDistance, simulateDichromat, DICHROMATS, hueChroma, type RGB } from "./viewer/colourMath";
+import { PALETTE_PAIRS, PATH_ROLES, LINE_MIN_NORMAL, LINE_MIN_NORMAL_HC, OBJECT_MIN_NORMAL, lineMinFor } from "./viewer/palettePairs";
+import { contrastRgb as contrast, okDistance, hueChroma, type RGB } from "./viewer/colourMath";
 
 // node:fs, not an import: vitest empties every CSS import, `?raw` included.
 const css = readFileSync(new URL("./style.css", import.meta.url), "utf8");
@@ -23,7 +23,7 @@ const VIEWER_PATH = ["--viewer-feed", "--viewer-rapid", "--viewer-backplot", "--
 const ROLES = [
   "--fg-muted", "--ok-text", "--warn-text", "--danger-text", "--info-text", "--accent-text", "--focus-ring",
   "--syntax-gcode", "--syntax-mcode", "--syntax-coord", "--syntax-param", "--syntax-comment",
-  ...VIEWER_LINES, "--viewer-bounds", "--viewer-toolpath-bounds", "--viewer-bounds-casing", "--viewer-tool", "--viewer-cutter",
+  ...VIEWER_LINES, "--viewer-bounds", "--viewer-toolpath-bounds", "--viewer-tool", "--viewer-cutter",
 ];
 
 /** The declarations of the first rule whose selector is exactly `selector`. */
@@ -101,10 +101,10 @@ describe("theme text roles", () => {
   }
 
   // The pair table (viewer/palettePairs.ts — fixed palette, operator
-  // 2026-09-28, Codex R29/R30): two LINES keep LINE_MIN_NORMAL under normal
-  // vision (hc-dark alone LINE_MIN_NORMAL_HC) and CVD_MIN under each
-  // simulated dichromacy unless a named cue carries them there; a line
-  // against a body and two objects keep OBJECT_MIN_NORMAL.
+  // 2026-09-28/29, Codex R29/R30): two LINES keep LINE_MIN_NORMAL (hc-dark
+  // alone LINE_MIN_NORMAL_HC); a line against a body and two objects keep
+  // OBJECT_MIN_NORMAL. Colour-vision deficiency is no criterion (operator
+  // 2026-09-29).
   it("the lower line floor is hc-dark's alone: hc-light keeps the normal one (Codex R31, answer 4)", () => {
     expect(["root", "dark", "auto-dark", "hc-light"].map(lineMinFor)).toEqual([LINE_MIN_NORMAL, LINE_MIN_NORMAL, LINE_MIN_NORMAL, LINE_MIN_NORMAL]);
     expect(lineMinFor("hc-dark")).toBe(LINE_MIN_NORMAL_HC);
@@ -117,12 +117,10 @@ describe("theme text roles", () => {
         expect(named, "every path pair").toContain([PATH_ROLES[i], PATH_ROLES[j]].sort().join(" / "));
       }
     }
-    expect(PALETTE_PAIRS.filter(p => !p.cvd && p.cues.length === 0), "a pair spared the simulation names its cue").toEqual([]);
-    expect(PALETTE_PAIRS.filter(p => p.kind === "line" && !p.cvd && !p.cueLimit), "and where that cue fails").toEqual([]);
     expect(PALETTE_PAIRS.filter(p => p.kind === "form" && p.cues.length < 2), "a pair told apart by form alone names two cues").toEqual([]);
   });
   for (const name of ["root", "dark", "auto-dark", "hc-light", "hc-dark"] as const) {
-    it(`${name}: the lines tell apart from each other — for colour-blind eyes too — and from the bodies and objects`, () => {
+    it(`${name}: the lines tell apart from each other and from the bodies and objects`, () => {
       const b = block(THEMES[name]);
       const bad: string[] = [];
       const lineMin = lineMinFor(name);
@@ -131,12 +129,7 @@ describe("theme text roles", () => {
         if (p.kind === "form") continue;   // told apart by form alone, by design
         const min = p.kind === "line" ? lineMin : OBJECT_MIN_NORMAL;
         const d = okDistance(x, y);
-        if (d < min) bad.push(`${p.a} / ${p.b} normal ${d.toFixed(3)} < ${min}`);
-        if (!p.cvd) continue;
-        for (const k of DICHROMATS) {
-          const dk = okDistance(simulateDichromat(x, k), simulateDichromat(y, k));
-          if (dk < CVD_MIN) bad.push(`${p.a} / ${p.b} ${k} ${dk.toFixed(3)} < ${CVD_MIN}`);
-        }
+        if (d < min) bad.push(`${p.a} / ${p.b} ${d.toFixed(3)} < ${min}`);
       }
       expect(bad, name).toEqual([]);
     });
@@ -145,9 +138,10 @@ describe("theme text roles", () => {
   // ONE colour per role whatever the theme (operator 2026-09-28: "wenn beim
   // Theme-Wechsel plötzlich andere Farben vorhanden sind" confuses): light,
   // dark and auto-dark carry the same value for every viewer role.
+  // The boxes follow the theme (operator 2026-09-29: "die Maschinenlimiten
+  // können sich an das Theme anpassen") — see below.
   const FIXED_ROLES = [...PATH_ROLES, "--viewer-tool", "--viewer-cutter",
-    "--viewer-plane-active", "--viewer-plane-defined", "--viewer-plane-stale",
-    "--viewer-bounds", "--viewer-toolpath-bounds", "--viewer-bounds-casing", "--viewer-reach"];
+    "--viewer-plane-active", "--viewer-plane-defined", "--viewer-plane-stale", "--viewer-reach"];
   it("light, dark and auto-dark draw every viewer role in the same colour", () => {
     const root = block(THEMES.root);
     for (const name of ["light", "dark", "auto-dark"] as const) {
@@ -155,23 +149,27 @@ describe("theme text roles", () => {
       for (const r of FIXED_ROLES) expect(b.get(r), `${name} ${r}`).toBe(root.get(r));
     }
   });
-  // The two boxes (fixed palette P2): a light core on a dark casing — the
-  // core OR the casing reads on the background and on the lit table, and
-  // the core on its casing; one pair for every theme. Their contrast rule
-  // is the pair's, not a lone line's (a light core alone is 1.9 : 1 on white).
+  // The two boxes (operator 2026-09-29: no casing — the machine box a solid,
+  // wider line): ONE neutral per theme, dark on a light scene and light on a
+  // dark one, ≥ 3 : 1 on the background (4.5 in HC). The lit table is no
+  // reference for them: a neutral that reads there on a dark scene is a mid
+  // grey that reads nowhere well.
   for (const name of ["root", "dark", "auto-dark", "hc-light", "hc-dark"] as const) {
-    it(`${name}: the boxes' core or casing reads on the background and the lit table, the core on its casing`, () => {
+    it(`${name}: the boxes are one neutral that reads on the background, dark on light and light on dark`, () => {
       const b = block(THEMES[name]);
-      const bg = hex(b.get("--bg")!), casing = hex(b.get("--viewer-bounds-casing")!);
+      const bg = hex(b.get("--bg")!);
       const floor = name.startsWith("hc") ? 4.5 : 3;
-      for (const r of ["--viewer-bounds", "--viewer-toolpath-bounds"]) {
-        const core = hex(b.get(r)!);
-        expect(Math.max(contrast(core, bg), contrast(casing, bg)), `${name} ${r} or its casing on --bg`).toBeGreaterThanOrEqual(floor);
-        expect(Math.max(contrast(core, LIT_METAL), contrast(casing, LIT_METAL)), `${name} ${r} or its casing on the lit table`).toBeGreaterThanOrEqual(3);
-        expect(contrast(core, casing), `${name} ${r} on its casing`).toBeGreaterThanOrEqual(floor);
-      }
+      expect(b.get("--viewer-toolpath-bounds"), `${name}: one neutral for both boxes`).toBe(b.get("--viewer-bounds"));
+      const box = hex(b.get("--viewer-bounds")!);
+      expect(contrast(box, bg), `${name} box on --bg`).toBeGreaterThanOrEqual(floor);
+      expect(hueChroma(box).chroma, `${name}: a neutral, not a colour`).toBeLessThan(0.04);
+      const lum = (c: RGB) => c.reduce((s, v) => s + v, 0);
+      expect(lum(box) < lum(bg), `${name}: dark on a light scene, light on a dark one`).toBe(lum(bg) > 3 * 128);
     });
   }
+  it("no casing: the boxes carry no second colour", () => {
+    expect(css).not.toMatch(/--viewer-bounds-casing/);
+  });
 
   // The high-contrast themes keep the colour FAMILY at their own lightness
   // (operator 2026-09-28; Codex R29 on F7): 4.5 : 1 on their background

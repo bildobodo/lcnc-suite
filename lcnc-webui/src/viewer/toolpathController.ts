@@ -20,7 +20,7 @@
 import * as THREE from "three";
 import { binPairs, buildFrameIndex, CHUNK_MAX, chunkBounds, chunkGrid, cumulativeDistances, splitPairsByFrame } from "./lineChunks";
 import type { AnchorTerms } from "./partFrame";
-import { makeCasedEdges, type CasedEdges } from "./casedLines";
+import { makeBoxEdges, TOOLPATH_BOX_PX, type BoxEdges } from "./boxLines";
 import type { Ref } from "vue";
 import type { Text } from "troika-three-text";
 import type { ViewerGcode } from "../lcncWs";
@@ -33,7 +33,7 @@ type BBox = { min: [number, number, number]; max: [number, number, number] };
 /** A track-segment run [first, last] and the streams to show it in. */
 export interface PathSection { run: [number, number]; feed: boolean; rapid: boolean }
 
-type Colors = { feed: string; rapid: string; toolpathBounds: string; boundsCasing: string; limit: string };
+type Colors = { feed: string; rapid: string; toolpathBounds: string; limit: string };
 
 export interface ToolpathDeps {
   requestRender: () => void;
@@ -227,7 +227,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   // Full feed+rapid envelope (machine-limit overflow check).
   let motionBBox: BBox | null = null;
 
-  let toolpathBoundsBox: CasedEdges | null = null;
+  let toolpathBoundsBox: BoxEdges | null = null;
   let toolpathBoundsLabels: THREE.Group | null = null;
   let toolpathOverflowEdges: THREE.LineSegments | null = null;
 
@@ -510,14 +510,15 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     const cy = (toolpathBBox.min[1] + toolpathBBox.max[1]) / 2;
     const cz = (toolpathBBox.min[2] + toolpathBBox.max[2]) / 2;
 
-    // A light core on a dark casing, DASHED (fixed palette P2): the machine
-    // box is the solid one; the size labels name this one.
+    // One dashed line at the path's width, in the theme's neutral (operator
+    // 2026-09-29, no casing): the machine box is the solid, wider one; the
+    // size labels name this one.
     const boxGeom = new THREE.BoxGeometry(Math.max(sx, 0.001), Math.max(sy, 0.001), Math.max(sz, 0.001));
     const edgeGeom = new THREE.EdgesGeometry(boxGeom);
     boxGeom.dispose();
     const pal = deps.colors();
-    toolpathBoundsBox = makeCasedEdges(edgeGeom, {
-      core: pal.toolpathBounds, casing: pal.boundsCasing, role: "toolpathBounds",
+    toolpathBoundsBox = makeBoxEdges(edgeGeom, {
+      color: pal.toolpathBounds, width: TOOLPATH_BOX_PX, role: "toolpathBounds",
       dashed: { dash: BOX_DASH, gap: BOX_GAP },
       clippingPlanes: deps.insideBoundsClipPlanes,
     });
@@ -922,7 +923,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     setColors(c) {
       _feedBase.set(c.feed);
       _rapidBase.set(c.rapid);
-      toolpathBoundsBox?.setColors(c.toolpathBounds, c.boundsCasing);
+      toolpathBoundsBox?.setColor(c.toolpathBounds);
       for (const s of sets) s.overMat?.color.set(c.limit);
       if (toolpathOverflowEdges) (toolpathOverflowEdges.material as THREE.LineDashedMaterial).color.set(c.limit);
       _applyStale();   // the drawn colour is the base or its muted mix — one writer

@@ -17,7 +17,7 @@ import type { ColorDefaults, PaletteMode } from "../defaults";
 export const USER_ROLES = ["feed", "rapid", "backplot", "bounds", "toolpathBounds", "tool", "cutter"] as const;
 export type UserRole = typeof USER_ROLES[number];
 /** Every role the viewer draws. */
-export type ViewerRole = UserRole | "limit" | "collision" | "boundsCasing" | "reach"
+export type ViewerRole = UserRole | "limit" | "collision" | "reach"
   | "planeActive" | "planeDefined" | "planeStale";
 export type ViewerPalette = Record<ViewerRole, string>;
 
@@ -31,7 +31,6 @@ export const ROLE_TOKEN: Record<ViewerRole, string> = {
   cutter: "--viewer-cutter",
   limit: "--viewer-limit",
   collision: "--viewer-collision",
-  boundsCasing: "--viewer-bounds-casing",
   reach: "--viewer-reach",
   planeActive: "--viewer-plane-active",
   planeDefined: "--viewer-plane-defined",
