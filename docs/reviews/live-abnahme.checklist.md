@@ -20,7 +20,8 @@ enthält jeden anderen Branch.
     [Review](operator-punkte.ideen.md)).
   - Feste Viewer-Palette (`feat/viewer-palette`): Ideenrunde R29, Plan-Agreement R30,
     Implementierungsreview R31 (vier Befunde, behoben), Nachprüfung R32 (zwei Befunde zur
-    Befundnavigation, behoben), Nachprüfung R33 läuft ([Review](viewer-palette-fest.ideen.md)).
+    Befundnavigation, behoben), Nachprüfung R33 (drei Befunde zur Befundnavigation, behoben),
+    Nachprüfung R34 läuft ([Review](viewer-palette-fest.ideen.md)).
 - **Offline-Gates** (`python3 scripts/test_suite.py offline`):
   - Welle auf `15b46ff`: PASS, Playwright 282/282.
   - Kontrast auf `82418a7`: PASS, Backend 969, Vitest 1684, Playwright 292/292.
@@ -215,7 +216,8 @@ dürfen sich beim Theme-Wechsel nicht ändern. Plan, Recherche und Rechnung:
 | Backplot über einer Grenzverletzung | die ockerfarbene Markierung bleibt sichtbar |
 | Settings → 3D Viewer → Layers | neue Ebene **Rapids**; neben jeder Ebene eine Strichprobe in ihrer Farbe (gestrichelt, gesäumt wie gezeichnet), darunter Grenze ▲ und Kollision × |
 | Rapids aus, dann in der Simulation zu einer Grenzverletzung auf einem Eilgang springen | **nur** die Bewegung des Befunds erscheint (nicht alle Eilgänge), im Viewer steht „Rapids shown for this finding — hidden in Layers“, auch bei ausgeschaltetem HUD; ein Theme-Wechsel lässt sie stehen; nach einem Ziehen an der Zeitleiste ist sie wieder aus, die Ebene bleibt aus |
-| Sprung zu einer Grenzverletzung | die Zeitleiste und das Code-Panel zeigen die Zeile des Befunds (vorher landete der Sprung eine Zeile zu spät) |
+| Sprung zu einer Grenzverletzung | die Zeitleiste und das Code-Panel zeigen die Zeile des Befunds (vorher landete der Sprung eine Zeile zu spät); der Knopf der Zeitleiste steht auf der Markierung des Befunds, auch beim ersten Sprung mit Anfahrweg |
+| Befunde durchblättern | „Next“/„Previous“ erreichen jeden Befund einmal; Kontakte auf dem Anfahrweg heißen „→ entry“; nach einem Ziehen an der Zeitleiste geht „Next“ von der neuen Position aus |
 | Custom-Farben | Settings zeigt unter den Farben den Kontrast, für die Boxen mit eigener Spalte „On its casing“, und neu eine Tabelle „Lines / Apart / Color-blind“: welche Linienpaare zu nah beieinander liegen („close“) |
 
 **Beim Ansehen:**
