@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { mergeEntryResult, mergedTruncated, mergedSweptFraction } from "./sweepMerge";
-import type { CollisionResult } from "./collision";
+import { clashTargets } from "./clashTargets";
+import { sampleCum, targetAfter, targetBefore } from "./findingNav";
+import type { CollisionHit, CollisionResult } from "./collision";
 
 const res = (over: Partial<CollisionResult>): CollisionResult => ({
   hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified: null,
@@ -45,6 +47,36 @@ describe("mergeEntryResult", () => {
     // An entry contact that ENDS before the first point stays its own clash.
     const early = res({ hits: [{ line: 0, cum: 2, cumEnd: 5, a: "ram", b: "column", dist: 0, rapid: true }] });
     expect(mergeEntryResult(early, base, 10, 90).hits.filter(h => h.continuation === undefined)).toHaveLength(3);
+  });
+  it("a contact continuing from the entry that SEPARATES and comes back: only its first interval joins the entry's finding, the re-entry stays the program's under its own key (Codex R34 VP-I09)", () => {
+    // Codex R34's merge probe: the entry contact [2, 10] reaches the first
+    // point (shift 10); the base touches from its first point [0, 4], clears,
+    // and touches again [20, 30] on the same line and pair.
+    const entry = res({ hits: [{ line: 7, cum: 2, cumEnd: 10, intervals: [[2, 10]], a: "tool", b: "work", dist: 0, rapid: true }] });
+    const other: CollisionHit = { line: 9, cum: 50, cumEnd: 55, intervals: [[50, 55]], a: "holder", b: "fixture", dist: 0, rapid: false };
+    const base = res({ hits: [{ line: 7, cum: 0, cumEnd: 30, intervals: [[0, 4], [20, 30]], a: "tool", b: "work", dist: 0, rapid: false }, other] });
+    const alone = clashTargets(base.hits);
+    const m = mergeEntryResult(entry, base, 10, 80);
+    const targets = clashTargets(m.hits);
+    expect(targets.map(t => [t.key, t.cum])).toEqual([["E7|tool|work|0", 2], ["C7|tool|work|1", 30], ["C9|holder|fixture|0", 60]]);
+    // the re-entry has the name it had before the entry result arrived
+    expect(alone.find(t => t.key === "C7|tool|work|1")!.cum).toBe(20);
+    // the entry's contact lasts through the first interval only
+    const e = m.hits.find(h => h.entry)!;
+    expect(e.spanCumEnd).toBe(14);
+    expect(e.spanEndLine).toBe(7);
+    const b = m.hits.find(h => !h.entry && h.line === 7)!;
+    expect(b.continuation).toBeUndefined();
+    expect(b.carried).toBe(true);
+    // A contact that does NOT separate still counts once, as before; a jump
+    // chosen on it goes on by position (Codex R34, answer 1)
+    const through = res({ hits: [{ line: 7, cum: 0, cumEnd: 4, intervals: [[0, 4]], a: "tool", b: "work", dist: 0, rapid: false }, other] });
+    const chosen = clashTargets(through.hits)[0]!;
+    const once = clashTargets(mergeEntryResult(entry, through, 10, 80).hits);
+    expect(once.map(t => t.cum)).toEqual([2, 60]);
+    const pos = 10 + sampleCum(chosen), sel = { key: chosen.key, pos };
+    expect(targetAfter(once, pos, sel)!.cum).toBe(60);
+    expect(targetBefore(once, pos, sel)!.entry).toBe(true);
   });
   it("unions static contacts by pair (two baselines: live pose and first point) and carries the base's partial state", () => {
     const entry = res({ staticContacts: [{ a: "tool", b: "vise", dist: 0.5 }] });

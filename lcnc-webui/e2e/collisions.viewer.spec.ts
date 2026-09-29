@@ -151,3 +151,45 @@ test("a manual move away and back ends the shown contact for good: next goes by 
   expect(await at(page), "by position: the program's contact").toBeGreaterThan(1);
   await ctl({ op: "reset" });
 });
+
+// Codex R34 VP-I09: each pair (nose and tool) runs out of the yoke along L7
+// and back into it — two separate contacts per pair, four findings. Started
+// IN the yoke, the first contact per pair continues the entry move's (the
+// machine stands at X 0, 240 mm out) and counts once with it; the re-entry
+// is still the program's own. The control starts clear, 100 mm in front.
+for (const c of [
+  { name: "a clear first point (control)", version: 3401, joints: [-100, 0, -380, 0, 0],
+    feed: [[0, 0, -380], [240, 0, -380], [0, 0, -380], [240, 0, -380], [240, 0, -100]], lines: [7, 7, 7, 7, 8] },
+  { name: "the program starts in the contact", version: 3402, joints: [0, 0, -380, 0, 0],
+    feed: [[240, 0, -380], [0, 0, -380], [240, 0, -380], [240, 0, -100]], lines: [7, 7, 7, 8] },
+]) {
+  test(`contacts that separate and come back on one line stay apart, with and without the entry move — ${c.name} (Codex R34 VP-I09)`, async ({ page, context }) => {
+    test.setTimeout(120_000);
+    await prepare(page, context, { file: "/reentry.ngc", version: c.version, lines: c.lines, joints: c.joints, feed: c.feed });
+    const next = nextHit(page);
+    await expect(next).toBeVisible({ timeout: 60_000 });
+    await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
+    expect(await hitCount(page), "the program alone: two contacts per pair").toBe(4);
+    await next.click();
+    await expect(page.locator(".simBanner")).toBeVisible();
+    // The entry result merged in: the count holds (a first contact that
+    // continues the entry's counts once, with the entry)
+    // (right after the entry the new track has no result yet: no count)
+    let total = 0;
+    await expect.poll(async () => {
+      const n = await hitCount(page);
+      const settled = n > 0 && n === total && await sweepDone(page);
+      total = n;
+      return settled;
+    }, { timeout: 60_000, intervals: [500] }).toBe(true);
+    expect(total, "with the entry move: still four").toBe(4);
+    // One round of next reaches four different places and comes back. (The
+    // first jump chose the contact at the first point; started in the yoke
+    // it is now the entry's finding, so next goes on from the position.)
+    const seen: number[] = [];
+    for (let i = 0; i <= total; i++) { await next.click(); seen.push(await at(page)); }
+    expect(new Set(seen.slice(0, total)).size, "four separate stops").toBe(4);
+    expect(seen[total], "a full round comes back to the first stop").toBe(seen[0]);
+    await ctl({ op: "reset" });
+  });
+}

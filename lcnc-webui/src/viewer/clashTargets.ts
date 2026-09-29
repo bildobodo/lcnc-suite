@@ -27,7 +27,8 @@ export interface ClashTarget {
  * NAVIGATION. 2026-09-03: the count read onset RECORDS while marks and nav read
  * per-INTERVAL targets — "one clash reported, two marks on the timeline".
  * Onset records only (a continuation is the same contact carried across
- * lines); one target per refined contact interval; a near-miss (no intervals)
+ * lines, and so is an onset's `carried` first interval); one target per
+ * refined contact interval; a near-miss (no intervals)
  * once at its closest approach. Cum-sorted. Pure; unit-tested.
  */
 export function clashTargets(hits: readonly CollisionHit[]): ClashTarget[] {
@@ -35,7 +36,10 @@ export function clashTargets(hits: readonly CollisionHit[]): ClashTarget[] {
   for (const h of hits) {
     if (h.continuation !== undefined) continue;
     const ivs = h.intervals ?? [[h.cum, h.cumEnd] as [number, number]];
-    for (let k = 0; k < ivs.length; k++) {
+    // A carried first interval is an earlier finding's contact (Codex R34
+    // VP-I09); the later intervals keep their index, so their keys are the
+    // same with and without the entry result merged in.
+    for (let k = h.carried ? 1 : 0; k < ivs.length; k++) {
       const t: ClashTarget = { cum: ivs[k]![0], cumEnd: ivs[k]![1],
         key: `${h.entry ? "E" : "C"}${h.line}|${h.a}|${h.b}|${k}`,
         line: h.line, rapid: h.rapid, dist: h.dist, spanEndLine: h.spanEndLine };

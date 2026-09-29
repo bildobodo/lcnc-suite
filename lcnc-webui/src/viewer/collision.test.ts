@@ -9,6 +9,7 @@ import type { ScrubTrack } from "../ws/bulkData";
 import { buildScrubTrack } from "./scrubTrack";
 import { TLO_NONE } from "./tloEvents";
 import { runSweepSlice } from "./sweepPump";
+import { clashTargets } from "./clashTargets";
 
 const WCS0 = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0 };
 
@@ -741,6 +742,40 @@ describe("contact-window refinement (glow window)", () => {
     // compat fields span the whole contact story
     expect(l26.cum).toBe(a![0]);
     expect(l26.cumEnd).toBe(b![1]);
+    // L26 carried L25's contact in: its first interval is L25's finding, the
+    // re-entry its own — two findings, not three (Codex R34 VP-I09)
+    expect(l26.continuation).toBeUndefined();
+    expect(l26.carried).toBe(true);
+    const targets = clashTargets(res.hits);
+    expect(targets.map(x => [x.line, x.key])).toEqual([[25, "C25|spindle|vise|0"], [26, "C26|spindle|vise|1"]]);
+    expect(targets[1]!.cum).toBe(b![0]);
+    expect(targets[1]!.reentry).toBe(true);
+    // …and L25's contact reaches through the carried interval
+    const l25 = res.hits.find(h => h.line === 25 && h.dist < 1e-3)!;
+    expect(l25.spanEndLine).toBe(26);
+    expect(l25.spanCumEnd).toBe(a![1]);
+  });
+
+  it("a program that starts in contact, separates and comes back on the same line: two intervals, two findings (Codex R34 VP-I09)", () => {
+    // Touch at Z=-40. L26 starts at -45 (in contact at the first point),
+    // rises to -10 (clear from cum 5), comes back down to -45 (contact again
+    // from cum 65) — L27 lifts out (clear from cum 75).
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const t = track([[0, 0, -45], [0, 0, -10], [0, 0, -45], [0, 0, 0]], undefined, [26, 26, 26, 27]);
+    const res = sweepCollisions(model, t, WCS0, { margin: 2 });
+    const l26 = res.hits.find(h => h.line === 26 && h.dist < 1e-3)!;
+    expect(l26.cum).toBe(0);
+    expect(l26.carried).toBeUndefined();   // the program's own onset
+    expect(l26.intervals).toHaveLength(2);
+    const [a, b] = l26.intervals!;
+    expect(a![0]).toBe(0);
+    expect(a![1]).toBeGreaterThan(4);
+    expect(a![1]).toBeLessThan(6);
+    expect(b![0]).toBeGreaterThan(64);
+    expect(b![0]).toBeLessThan(66);
+    const targets = clashTargets(res.hits);
+    expect(targets.map(x => x.key)).toEqual(["C26|spindle|vise|0", "C26|spindle|vise|1"]);
+    expect(res.hits.find(h => h.line === 27 && h.dist < 1e-3)!.continuation).toBe(26);
   });
 
   it("cumEnd lands at separation under world kins (TCP line-26 shape)", () => {

@@ -26,7 +26,8 @@ export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, 
   // contact. The entry record stays the onset and takes the base's span; the
   // base's first-line record becomes its continuation (line 0 = the entry
   // move), so the count reads one clash while every line keeps its record
-  // for the tint and the code-panel marks.
+  // for the tint and the code-panel marks. A base record that separates and
+  // comes back keeps its re-entries (`carried`, below).
   const CONTACT = 1e-3;
   const tol = 1e-3 * Math.max(1, shift);
   // Marked as the entry move's own (Codex R33 VP-I07): its records carry
@@ -39,6 +40,17 @@ export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, 
       && b.a === e.a && b.b === e.b && b.cum - shift <= tol);
     if (bi < 0) continue;
     const b = shifted[bi]!;
+    const ivs = b.intervals;
+    if (ivs && ivs.length > 1) {
+      // The contact SEPARATES on the base's first line and comes back
+      // (Codex R34 VP-I09): only its first interval continues the entry's
+      // contact — the entry onset spans to its end — and the re-entries stay
+      // the program's findings under their own keys.
+      if (ivs[0]![1] > e.cumEnd) e.spanCumEnd = ivs[0]![1];
+      e.spanEndLine = b.line;
+      shifted[bi] = { ...b, carried: true };
+      continue;
+    }
     const end = b.spanCumEnd ?? b.cumEnd;
     if (end > e.cumEnd) e.spanCumEnd = end;
     e.spanEndLine = b.spanEndLine ?? b.line;

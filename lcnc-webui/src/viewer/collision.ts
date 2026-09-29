@@ -172,6 +172,13 @@ export interface CollisionHit {
    *  that never separates over thousands of lines keeps only the first
    *  200 records). Absent when the contact ends on the onset line. */
   spanCumEnd?: number;
+  /** This onset record's FIRST interval continues a contact that began
+   *  earlier and never separated — on an earlier line of this sweep (the
+   *  record was a continuation until a re-entry on its line made it an
+   *  onset) or on the entry move (mergeEntryResult). That interval is the
+   *  earlier finding's contact, not one of its own; the LATER intervals are
+   *  re-entries, findings of their own (Codex R34 VP-I09). */
+  carried?: true;
   /** Set by mergeEntryResult on the ENTRY MOVE's records: its own sweep,
    *  whose line is the program's first line (the entry move ends at the
    *  first point and carries its line) — the same line and pair as a
@@ -930,9 +937,11 @@ export function* sweepCollisionsIter(
   const target2 = { point: new THREE.Vector3(), distance: 0, faceIndex: -1 };
 
   // Worst hit per (line, pair) — same attribution shape as stage 1. `pi`
-  // (pair index) and `samples` (in-contact sample cums, the interval
-  // clustering input) are internal to the refinement pass.
-  const worst = new Map<string, CollisionHit & { pi: number; samples: number[] }>();
+  // (pair index), `samples` (in-contact sample cums, the interval
+  // clustering input) and `carriedFrom` (the onset line of the contact a
+  // record carried in before a re-entry made it an onset) are internal to
+  // the refinement pass.
+  const worst = new Map<string, CollisionHit & { pi: number; samples: number[]; carriedFrom?: number }>();
   let done = 0;
 
   // Per-segment epoch terms (review P2): a segment's program coords convert
@@ -1275,9 +1284,10 @@ export function* sweepCollisionsIter(
     const key = keyFor(line, pi);
     const prev = worst.get(key);
     if (!prev || dist < prev.dist) {
-      const rec: CollisionHit & { pi: number; samples: number[] } = {
+      const rec: CollisionHit & { pi: number; samples: number[]; carriedFrom?: number } = {
         line, cum, cumEnd: cum, a: bodies[ai]!.id, b: bodies[bi]!.id, dist, rapid, pi,
         samples: prev ? prev.samples : [] };
+      if (prev?.carriedFrom !== undefined) rec.carriedFrom = prev.carriedFrom;
       // Continuation: the pair's contact began on an EARLIER line and has
       // not separated since. A worse sample on the same line keeps the
       // record's existing verdict.
@@ -1457,7 +1467,7 @@ export function* sweepCollisionsIter(
   // records only ever GAIN samples — refines to the same intervals, so the
   // second and every later snapshot (and the final result) reuse them.
   // Values are DIST cum (captured before the track-cum conversion below).
-  const refined = new Map<string, { sig: string; cum: number; cumEnd: number; intervals: Array<[number, number]> }>();
+  const refined = new Map<string, { sig: string; cum: number; cumEnd: number; intervals: Array<[number, number]>; carried: boolean }>();
   const buildResult = (recs: typeof worst, trunc: CollisionResult["truncated"], final: boolean, refine: boolean): CollisionResult => {
     // The REPORTED set first — onsets first when the cap bites: a long
     // penetration's continuation records must never evict a genuinely
@@ -1473,13 +1483,21 @@ export function* sweepCollisionsIter(
     const selected = [...onsetE, ...contE].slice(0, MAX_HITS);
     for (const [key, h] of selected) {
       if (!refine) break;
-      if (h.dist > CONTACT_EPS || h.cum <= 0) continue;  // near-misses keep their closest-approach sample
-      const sig = `${h.samples.length},${h.cum},${h.cumEnd}`;
+      // Near-misses keep their closest-approach sample. A contact from the
+      // start of the axis (the program begins in it) refines too: its entry
+      // needs no walk back, but it may separate and come back on its line —
+      // one window over the clear gap lost the re-entry (Codex R34 VP-I09).
+      if (h.dist > CONTACT_EPS) continue;
+      // carriedFrom is an input too: a promotion without a new contact
+      // sample (a re-entry inside the margin) changes `carried` alone.
+      const sig = `${h.samples.length},${h.cum},${h.cumEnd},${h.carriedFrom ?? ""}`;
       const memo = refined.get(key);
       if (memo && memo.sig === sig) {
         h.cum = memo.cum;
         h.cumEnd = memo.cumEnd;
         h.intervals = memo.intervals.map(iv => [iv[0], iv[1]] as [number, number]);
+        if (memo.carried) h.carried = true;
+        else delete h.carried;
         continue;
       }
       const floor = lineStartDist(h.cum, h.line);
@@ -1506,6 +1524,10 @@ export function* sweepCollisionsIter(
       }
 
       const intervals: Array<[number, number]> = [];
+      // Does the first interval reach back to the line's start, contact all
+      // the way? Then a record that carried its contact in (carriedFrom)
+      // starts with that carried contact.
+      let fromLineStart = false;
       for (let ci = 0; ci < clusters.length; ci++) {
         const [cs, ce] = clusters[ci]!;
         // ENTRY: walk back toward the previous interval's exit / line start.
@@ -1517,6 +1539,7 @@ export function* sweepCollisionsIter(
           hi = lo;  // still in contact — earliest known contact moves back
         }
         const entry = bracketed ? bisectBoundary(hi, lo, h.pi) : hi;
+        if (ci === 0) fromLineStart = !bracketed && entry <= efloor;
         // EXIT: walk forward toward the next cluster / line end.
         const eceil = ci === clusters.length - 1 ? ceil : clusters[ci + 1]![0];
         let elo = Math.max(ce, entry), ehi = elo;
@@ -1534,17 +1557,23 @@ export function* sweepCollisionsIter(
       h.cum = merged[0]![0];
       h.cumEnd = merged[merged.length - 1]![1];
       h.intervals = merged;
-      refined.set(key, { sig, cum: h.cum, cumEnd: h.cumEnd,
+      const carried = h.carriedFrom !== undefined && fromLineStart;
+      if (carried) h.carried = true;
+      else delete h.carried;
+      refined.set(key, { sig, cum: h.cum, cumEnd: h.cumEnd, carried,
                          intervals: merged.map(iv => [iv[0], iv[1]] as [number, number]) });
     }
     // Where each onset's contact finally ENDS, over ALL records (dist cum —
     // refined for selected records, the raw last in-contact sample for the
     // rest): the span the tint and the red extent paint past the cap.
+    // A carried first interval is that onset's contact too.
     const spanEndDist = new Map<string, number>();
     for (const h of recs.values()) {
-      if (h.continuation === undefined) continue;
-      const key = keyFor(h.continuation, h.pi);
-      spanEndDist.set(key, Math.max(spanEndDist.get(key) ?? -Infinity, h.cumEnd));
+      const from = h.continuation ?? (h.carried ? h.carriedFrom : undefined);
+      if (from === undefined) continue;
+      const end = h.continuation !== undefined ? h.cumEnd : h.intervals![0]![1];
+      const key = keyFor(from, h.pi);
+      spanEndDist.set(key, Math.max(spanEndDist.get(key) ?? -Infinity, end));
     }
     // Hits leave the sweep in TRACK cum (time on a time-based track) — the
     // scrub-to-hit target must live on the slider's axis.
@@ -1566,15 +1595,16 @@ export function* sweepCollisionsIter(
     // through (continuations point at their onset by line + pair) — over ALL
     // records: a continuation past the cap still extends its onset's span.
     for (const h of recs.values()) {
-      if (h.continuation === undefined) continue;
-      const onset = recs.get(keyFor(h.continuation, h.pi));
+      const from = h.continuation ?? (h.carried ? h.carriedFrom : undefined);
+      if (from === undefined) continue;
+      const onset = recs.get(keyFor(from, h.pi));
       if (onset) onset.spanEndLine = Math.max(onset.spanEndLine ?? onset.line, h.line);
     }
 
     // Re-sorted by cum after refinement (ScrubBar relies on cum order).
     const hits = selected.map(([, h]) => h)
       .sort((x, y) => x.cum - y.cum)
-      .map(({ pi: _pi, samples: _s, ...rest }) => rest);
+      .map(({ pi: _pi, samples: _s, carriedFrom: _c, ...rest }) => rest);
 
     // Hand the model back wearing its BASE tool body — the model's own
     // (TWP-07): a caller that reuses the model (the resident worker model,
@@ -1830,8 +1860,13 @@ export function* sweepCollisionsIter(
               // Re-entry promotion: a genuine onset on a line whose record
               // was minted as a continuation (contact carried in, separated,
               // came back on the same line) is a real clash — never hidden.
+              // Its carried-in part stays the earlier onset's contact
+              // (carriedFrom → `carried` after refinement, Codex R34 VP-I09).
               const ex = worst.get(keyFor(line, pi));
-              if (ex && ex.continuation !== undefined) delete ex.continuation;
+              if (ex && ex.continuation !== undefined) {
+                ex.carriedFrom = ex.continuation;
+                delete ex.continuation;
+              }
             }
             if (pairCutting[pi]) {
               // Cutting pair (tool × workGroup body): feed contact is
