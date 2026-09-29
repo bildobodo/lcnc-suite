@@ -296,16 +296,17 @@ const HUD_TOGGLES: { key: keyof Omit<HudDefaults, "scale">; label: string }[] = 
 // ─── Viewer setting handlers (emit to App.vue → ThreeViewer) ──────
 // A layer that draws a palette role carries its line sample (fixed palette
 // P3, Codex R30: the legend at the layer rows, not a second list) — the
-// drawn colour, dashed like the line itself.
-const LAYER_LABELS: { key: Layer; label: string; role?: ViewerRole; dashed?: boolean }[] = [
+// drawn colour, dashed or two-tone like the line itself.
+type TwoTone = "long" | "short";
+const LAYER_LABELS: { key: Layer; label: string; role?: ViewerRole; dashed?: boolean; twoTone?: TwoTone }[] = [
   { key: "backplot", label: "Backplot", role: "backplot" },
   { key: "toolpath", label: "Toolpath", role: "feed" },
   { key: "rapids", label: "Rapids", role: "rapid", dashed: true },
   { key: "workzero", label: "Work Zero" },
   { key: "workplane", label: "Work Plane" },
   { key: "surface", label: "Surface" },
-  { key: "toolpathBounds", label: "Toolpath Bounds", role: "toolpathBounds", dashed: true },
-  { key: "bounds", label: "Machine Bounds", role: "bounds" },
+  { key: "toolpathBounds", label: "Toolpath Bounds", role: "toolpathBounds", twoTone: "short" },
+  { key: "bounds", label: "Machine Bounds", role: "bounds", twoTone: "long" },
   { key: "reachRoom", label: "Machine Reach" },
   { key: "reachPart", label: "Part Reach" },
   { key: "machine", label: "Machine" },
@@ -496,18 +497,21 @@ function onColorChange(key: UserRole, value: string) {
 
 // The legend (every role, in drawing order); in Custom the seven user roles
 // are the colour pickers, the two finding roles stay the theme's.
-const PALETTE_ROWS: { role: ViewerRole; label: string; dashed?: boolean }[] = [
+const PALETTE_ROWS: { role: ViewerRole; label: string; dashed?: boolean; twoTone?: TwoTone }[] = [
   { role: "feed", label: "Toolpath" },
   { role: "rapid", label: "Rapid", dashed: true },
   { role: "backplot", label: "Backplot" },
   { role: "limit", label: "Limit violation" },
   { role: "collision", label: "Collision" },
-  { role: "bounds", label: "Machine Bounds" },
-  { role: "toolpathBounds", label: "Toolpath Bounds", dashed: true },
+  { role: "bounds", label: "Machine Bounds", twoTone: "long" },
+  { role: "toolpathBounds", label: "Toolpath Bounds", twoTone: "short" },
   { role: "tool", label: "Tool Shaft" },
   { role: "cutter", label: "Tool Cutter" },
 ];
 const isUserRole = (r: ViewerRole): r is UserRole => (USER_ROLES as readonly string[]).includes(r);
+// A line sample's colour; a two-tone box names both tones (its colour and the light dashes).
+const legendStyle = (role: ViewerRole, twoTone?: TwoTone) =>
+  twoTone ? { "--tone-a": shownPalette.value[role], "--tone-b": shownPalette.value.boundsAlt } : { color: shownPalette.value[role] };
 // The Custom palette's contrast, told and never corrected (plan K3, Codex
 // R25 OP-I05): each custom line on the background and on the lit table
 // (viewer/customContrast.ts — the rules themeTokens.test.ts holds the
@@ -605,8 +609,8 @@ function resetMachineColor(id: string) {
                 @update:modelValue="onLayerChange(lf.key, $event!)"
                 :label="lf.label"
               />
-              <span v-if="lf.role" class="legendLine" :class="{ dashed: lf.dashed }"
-                    :style="{ color: shownPalette[lf.role] }" aria-hidden="true"></span>
+              <span v-if="lf.role" class="legendLine" :class="{ dashed: lf.dashed, twoTone: lf.twoTone, short: lf.twoTone === 'short' }"
+                    :style="legendStyle(lf.role, lf.twoTone)" aria-hidden="true"></span>
             </div>
           </div>
           <!-- The findings drawn ON the path: the same glyph as the timeline
@@ -725,21 +729,21 @@ function resetMachineColor(id: string) {
                 <span class="colorLabel">{{ row.label }}</span>
               </label>
               <div v-else class="row-controls" :data-role="row.role">
-                <span class="legendLine" :class="{ dashed: row.dashed }" :style="{ color: shownPalette[row.role] }" aria-hidden="true"></span>
+                <span class="legendLine" :class="{ dashed: row.dashed, twoTone: row.twoTone, short: row.twoTone === 'short' }" :style="legendStyle(row.role, row.twoTone)" aria-hidden="true"></span>
                 <span class="colorLabel">{{ row.label }}</span>
               </div>
             </template>
           </div>
           <template v-if="contrastRows.length">
-            <div class="settingDesc">Contrast: a line needs 3 : 1 on the background (4.5 : 1 in high contrast) and on the lit table.</div>
+            <div class="settingDesc">Contrast: a line needs 3 : 1 on the background (4.5 : 1 in high contrast) and 1.8 : 1 on the machine's grey surfaces; a two-tone box needs one of its tones.</div>
             <div class="dataTable" data-contrast-hint>
               <table>
-                <thead><tr><th>Color</th><th>On background</th><th>On the table</th></tr></thead>
+                <thead><tr><th>Color</th><th>On background</th><th>On the machine</th></tr></thead>
                 <tbody>
                   <tr v-for="r in contrastRows" :key="r.role" :data-role="r.role">
                     <td>{{ r.label }}</td>
                     <td :class="{ 'text-warn': r.bgLow }">{{ ratioCell(r.onBg, r.bgLow) }}</td>
-                    <td :class="{ 'text-warn': r.tableLow }">{{ ratioCell(r.onTable, r.tableLow) }}</td>
+                    <td :class="{ 'text-warn': r.modelLow }">{{ ratioCell(r.onModel, r.modelLow) }}</td>
                   </tr>
                 </tbody>
               </table>

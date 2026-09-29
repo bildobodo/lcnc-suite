@@ -145,17 +145,17 @@ def write_stl(path, tris):
 
 # ── model geometry (transcribed from xyzac-trt-gui) ──
 
-# Muted machine palette — MUST equal lcnc-webui/src/viewer/palette.ts
-# (palette.test.ts pins the emitted machine.json against it). Keys are the
-# ROLE a part plays; linear slides carry no color at all so the viewer's
-# axis rule (X red / Y green / Z blue, muted) applies.
+# The grey ladder — MUST equal lcnc-webui/src/viewer/palette.ts
+# (palette.test.ts pins the emitted machine.json against it; operator
+# 2026-09-29). Keys are the ROLE a part plays; linear slides carry no color
+# at all so the viewer's per-axis grey step applies.
 COLORS = {
-    "frame":   [0.612, 0.612, 0.612],   # 0x9c9c9c
-    "base":    [0.486, 0.486, 0.486],   # 0x7c7c7c
-    "rotaryA": [0.549, 0.478, 0.388],   # 0x8c7a63 bronze
-    "rotaryC": [0.478, 0.463, 0.565],   # 0x7a7690 slate
-    "marks":   [0.788, 0.788, 0.788],   # 0xc9c9c9
-    "slide":   None,                    # linear axis: no color, axis rule
+    "frame":   [0.341, 0.353, 0.369],   # 0x575a5e
+    "base":    [0.149, 0.165, 0.176],   # 0x262a2d
+    "rotaryA": [0.114, 0.125, 0.137],   # 0x1d2023
+    "rotaryC": [0.18, 0.196, 0.208],    # 0x2e3235
+    "marks":   [0.541, 0.561, 0.58],    # 0x8a8f94
+    "slide":   None,                    # linear axis: no color, axis grey
 }
 
 

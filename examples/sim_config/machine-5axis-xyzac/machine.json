@@ -56,9 +56,9 @@
       "file": "levelling_feet.stl",
       "group": "frame",
       "color": [
-        0.16,
-        0.2,
-        0.23
+        0.071,
+        0.078,
+        0.09
       ]
     },
     {
@@ -66,9 +66,9 @@
       "file": "machine_bed.stl",
       "group": "frame",
       "color": [
-        0.32,
-        0.37,
-        0.4
+        0.149,
+        0.165,
+        0.176
       ]
     },
     {
@@ -76,9 +76,9 @@
       "file": "rear_column.stl",
       "group": "frame",
       "color": [
-        0.8,
-        0.82,
-        0.81
+        0.341,
+        0.353,
+        0.369
       ]
     },
     {
@@ -86,9 +86,9 @@
       "file": "column_foot.stl",
       "group": "frame",
       "color": [
-        0.32,
-        0.37,
-        0.4
+        0.149,
+        0.165,
+        0.176
       ]
     },
     {
@@ -96,9 +96,9 @@
       "file": "chip_pan.stl",
       "group": "frame",
       "color": [
-        0.16,
-        0.2,
-        0.23
+        0.071,
+        0.078,
+        0.09
       ]
     },
     {
@@ -106,9 +106,9 @@
       "file": "y_rail_seats.stl",
       "group": "frame",
       "color": [
-        0.32,
-        0.37,
-        0.4
+        0.149,
+        0.165,
+        0.176
       ]
     },
     {
@@ -116,9 +116,9 @@
       "file": "y_guide_rails.stl",
       "group": "frame",
       "color": [
-        0.65,
-        0.7,
-        0.72
+        0.267,
+        0.282,
+        0.298
       ]
     },
     {
@@ -126,9 +126,9 @@
       "file": "y_guide_blocks.stl",
       "group": "y_table",
       "color": [
-        0.65,
-        0.7,
-        0.72
+        0.267,
+        0.282,
+        0.298
       ]
     },
     {
@@ -136,9 +136,9 @@
       "file": "y_guide_endcaps.stl",
       "group": "y_table",
       "color": [
-        0.12,
-        0.4,
-        0.43
+        0.114,
+        0.125,
+        0.137
       ]
     },
     {
@@ -146,9 +146,9 @@
       "file": "y_saddle.stl",
       "group": "y_table",
       "color": [
-        0.8,
-        0.82,
-        0.81
+        0.341,
+        0.353,
+        0.369
       ]
     },
     {
@@ -156,9 +156,9 @@
       "file": "x_guide_rails.stl",
       "group": "frame",
       "color": [
-        0.65,
-        0.7,
-        0.72
+        0.267,
+        0.282,
+        0.298
       ]
     },
     {
@@ -166,9 +166,9 @@
       "file": "x_guide_blocks.stl",
       "group": "x_saddle",
       "color": [
-        0.65,
-        0.7,
-        0.72
+        0.267,
+        0.282,
+        0.298
       ]
     },
     {
@@ -176,9 +176,9 @@
       "file": "x_guide_endcaps.stl",
       "group": "x_saddle",
       "color": [
-        0.12,
-        0.4,
-        0.43
+        0.114,
+        0.125,
+        0.137
       ]
     },
     {
@@ -186,9 +186,9 @@
       "file": "x_saddle.stl",
       "group": "x_saddle",
       "color": [
-        0.32,
-        0.37,
-        0.4
+        0.149,
+        0.165,
+        0.176
       ]
     },
     {
@@ -196,9 +196,9 @@
       "file": "z_guide_rails.stl",
       "group": "x_saddle",
       "color": [
-        0.65,
-        0.7,
-        0.72
+        0.267,
+        0.282,
+        0.298
       ]
     },
     {
@@ -206,9 +206,9 @@
       "file": "z_guide_blocks.stl",
       "group": "z_head",
       "color": [
-        0.65,
-        0.7,
-        0.72
+        0.267,
+        0.282,
+        0.298
       ]
     },
     {
@@ -216,9 +216,9 @@
       "file": "z_guide_endcaps.stl",
       "group": "z_head",
       "color": [
-        0.12,
-        0.4,
-        0.43
+        0.114,
+        0.125,
+        0.137
       ]
     },
     {
@@ -226,9 +226,9 @@
       "file": "z_slide.stl",
       "group": "z_head",
       "color": [
-        0.8,
-        0.82,
-        0.81
+        0.341,
+        0.353,
+        0.369
       ]
     },
     {
@@ -236,9 +236,9 @@
       "file": "spindle_head.stl",
       "group": "z_head",
       "color": [
-        0.8,
-        0.82,
-        0.81
+        0.341,
+        0.353,
+        0.369
       ]
     },
     {
@@ -246,9 +246,9 @@
       "file": "spindle_motor_cover.stl",
       "group": "z_head",
       "color": [
-        0.12,
-        0.4,
-        0.43
+        0.114,
+        0.125,
+        0.137
       ]
     },
     {
@@ -256,9 +256,9 @@
       "file": "spindle_cartridge.stl",
       "group": "z_head",
       "color": [
-        0.16,
-        0.2,
-        0.23
+        0.071,
+        0.078,
+        0.09
       ]
     },
     {
@@ -266,9 +266,9 @@
       "file": "spindle_nose.stl",
       "group": "z_head",
       "color": [
-        0.65,
-        0.7,
-        0.72
+        0.267,
+        0.282,
+        0.298
       ]
     },
     {
@@ -276,9 +276,9 @@
       "file": "a_bearing_pedestals.stl",
       "group": "y_table",
       "color": [
-        0.8,
-        0.82,
-        0.81
+        0.341,
+        0.353,
+        0.369
       ]
     },
     {
@@ -286,9 +286,9 @@
       "file": "a_bearing_rings.stl",
       "group": "y_table",
       "color": [
-        0.65,
-        0.7,
-        0.72
+        0.267,
+        0.282,
+        0.298
       ]
     },
     {
@@ -296,9 +296,9 @@
       "file": "a_drive_covers.stl",
       "group": "y_table",
       "color": [
-        0.12,
-        0.4,
-        0.43
+        0.114,
+        0.125,
+        0.137
       ]
     },
     {
@@ -306,9 +306,9 @@
       "file": "a_yoke_casting.stl",
       "group": "a_yoke",
       "color": [
-        0.12,
-        0.4,
-        0.43
+        0.114,
+        0.125,
+        0.137
       ]
     },
     {
@@ -316,9 +316,9 @@
       "file": "a_trunnion_shafts.stl",
       "group": "a_yoke",
       "color": [
-        0.65,
-        0.7,
-        0.72
+        0.267,
+        0.282,
+        0.298
       ]
     },
     {
@@ -326,9 +326,9 @@
       "file": "c_bearing_lip.stl",
       "group": "a_yoke",
       "color": [
-        0.16,
-        0.2,
-        0.23
+        0.071,
+        0.078,
+        0.09
       ]
     },
     {
@@ -336,9 +336,9 @@
       "file": "c_faceplate.stl",
       "group": "c_platter",
       "color": [
-        0.65,
-        0.7,
-        0.72
+        0.18,
+        0.196,
+        0.208
       ]
     },
     {
@@ -346,9 +346,9 @@
       "file": "fixture_blank.stl",
       "group": "c_platter",
       "color": [
-        0.72,
-        0.62,
-        0.43
+        0.212,
+        0.227,
+        0.239
       ],
       "stock": true
     }

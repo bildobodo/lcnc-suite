@@ -24,6 +24,10 @@ enthält jeden anderen Branch.
     Befundnavigation, behoben), Nachprüfung R33 (drei Befunde zur Befundnavigation, behoben),
     Nachprüfung R34 (ein Befund zu Wiederkontakten, behoben), **Agreement in R35**
     ([Review](viewer-palette-fest.ideen.md)).
+  - **Neue Palette nach deiner Rückmeldung vom 29. September** (dieselbe Datei): Ideenrunde R38
+    (Befunde VP38-01 bis -03, mit deinen Entscheidungen beantwortet). Teil A (Farben,
+    Graustufen-Modelle, zweifarbige Grenzen) ist umgesetzt, Codex-Prüfung folgt. Teil B
+    (alle Pfade 2 px) läuft als Planrunde R39 und braucht eine Messung auf deinem Mac.
 - **Offline-Gates** (`python3 scripts/test_suite.py offline`):
   - Welle auf `15b46ff`: PASS, Playwright 282/282.
   - Kontrast auf `82418a7`: PASS, Backend 969, Vitest 1684, Playwright 292/292.
@@ -77,7 +81,7 @@ enthält jeden anderen Branch.
 
 | Paket | Worauf achten |
 |---|---|
-| V1 Palette | **Ersetzt** durch die feste Palette (Abschnitt unten). Geblieben: Eilgang gestrichelt, Backplot 2 px breit |
+| V1 Palette | **Ersetzt** durch die neue Palette (Abschnitt unten). Geblieben: Eilgang gestrichelt, Backplot 2 px breit |
 | V2 Auswahl | **Entfallen:** Die aktuelle Zeile wird im 3D-Viewer nicht mehr hervorgehoben (deine Entscheidung vom 28. September) |
 | V3 Code-Panel | Zeilen mit Limit-Verstoß ▲, mit Kollision × vor dem Code |
 | V4 TWP-Ebene | die Ebene nennt ihren Zustand am Objekt („Plane · active / defined / head moved / datum moved / simulated“), veraltet mit gestricheltem Rand; HUD-Zeile ohne Doppelungen |
@@ -88,15 +92,17 @@ enthält jeden anderen Branch.
 ## Bekannte, benannte Grenzen (nicht Teil dieser Abnahme)
 
 - Querformat ab 150 % und 200 % (Gesamtaufteilung).
-- Linienfarben auf mittelgrauen Maschinenflächen erreichen rund 2 : 1; nur die beiden Boxen haben
-  einen Saum.
+- Die Pfadfarben erreichen auf den grauen Flächen von Rohteil und Planscheibe rund 1,9–2,3 : 1
+  (hell) bzw. 1,9–5,5 : 1 (dunkel); in den HC-Themes weniger. Das ist deine gewählte Abstufung;
+  die zweifarbigen Grenzen lesen auf jedem Grau.
 - Neun Achsen im Hochformat bei 150 % in der Setup-Leiste.
 - Tastatur-Erfassung der Belegungen per Tastatur; Tastatur-Alternative zu Halte-Aktionen (K13).
 - Ebenenlabel: in kleinen Szenen groß, in echter Maschinengröße klein.
 
 ## Entscheidungen in deiner Abwesenheit (alle reversibel)
 
-- **E1:** Tritan ist für farbgetrennte Paare Pflicht.
+- **E1:** Tritan ist für farbgetrennte Paare Pflicht. (Abgelöst am 29.09.: Farbschwäche ist kein
+  Kriterium mehr, deine Entscheidung.)
 - **E2:** Schwelle 0,12 als Regressionswächter; Zielwert 0,15.
 - **E3:** Minimaländerung der Farben statt Neuentwurf.
 - **E4, E5:** Auswahl mit Halo — entfallen mit der Hervorhebung (feste Palette).
@@ -205,30 +211,36 @@ R28).
 (Codex R25: direkte Wahl, solange die Leiste im Budget bleibt). Eine einzelne Reihe wäre breiter
 als die Mode-Reihe und würde die 3-Achs-Leiste über ihre Basislinie schieben.
 
-## Feste Viewer-Palette (`feat/viewer-palette`, neu 28. September)
+## Viewer-Palette (`feat/viewer-palette`, neu 29. September)
 
-Dein Auftrag: Linien müssen **untereinander** unterscheidbar sein, und die wichtigen Farben
-dürfen sich beim Theme-Wechsel nicht ändern. Plan, Recherche und Rechnung:
+Deine Entscheidungen nach den Renderings: zwei Schemen mit gleichem Farbton je Rolle, Pfad grün,
+Graustufen-Modelle, zweifarbige Grenzen, alle Pfade 2 px. Plan, Rechnung und Codex-Runden:
 [viewer-palette-fest.ideen.md](viewer-palette-fest.ideen.md).
+
+**Vorher:** Deine gespeicherte eigene Palette (die alten Farben) überdeckt die neuen Pfadfarben.
+Settings → 3D Viewer → „Automatic“ zeigt sie; „Custom“ holt deine alten zurück.
 
 | Prüfung | Worauf achten |
 |---|---|
-| Theme-Wechsel Hell ↔ Dunkel | Vorschub blau `#0f86ba`, Eilgang magenta **gestrichelt** `#ef0197`, Grenzverletzung ocker `#b06c02`, Backplot violett (2 px) `#7c0bfa`, Kollision rot `#c8102e` — **dieselben Farben** in beiden Themes. HC-Hell und HC-Dunkel: dieselben Farbtöne, kräftigere Helligkeit |
-| Linien auf- und nebeneinander | Ein Programm mit engen Bahnen, Eilgängen und Backplot: Vorschub, Eilgang, Backplot und Grenzverletzung klar auseinander, auch vor dem hellen Tisch |
-| Eilgang-Farbe | **Deine Wahl:** Magenta `#ef0197` (jetzt) oder Purpur `#d422e5`. Magenta liegt weiter vom Vorschub, Purpur weiter von der Kollision |
-| Boxen | Maschinen-Box und Werkzeugbahn-Box: heller Kern mit dunklem Saum, die Werkzeugbahn-Box gestrichelt mit Maßen; der Teil außerhalb des Maschinenfensters ocker gestrichelt |
+| Theme-Wechsel Hell ↔ Dunkel | Pfad grün (hell `#00a83c`, dunkel hellgrün `#5cff5c`), Backplot magenta, Eilgang blau **gestrichelt**, Überschreitung orange (hell `#e66b00`, dunkel `#ff7a00`), Kollision rot. Jede Rolle behält ihren Farbton, nur die Helligkeit passt sich an. HC: dieselben Farbtöne, kräftiger |
+| Maschinenmodell | nur Graustufen: Säule, Schlitten und Kopf hell, Führungen mittel, Rohteil und Planscheibe in der Mitte, Bett, Abdeckungen und Wiege dunkel; kein Türkis, kein Gold. Die Pfade stehen vor der Maschine |
+| Linien auf- und nebeneinander | Programm mit engen Bahnen, Eilgängen und Backplot: Pfad, Eilgang, Backplot und Überschreitung klar auseinander, auf dem Rohteil und vor dem Hintergrund |
+| Grenzen | Maschinen-Box und Werkzeugbahn-Box **zweifarbig** (dunkel mit hellen Strichen, keine Umrandung): lange Striche an der Maschine, kurze an der Werkzeugbahn mit Maßen. Vor jedem Grau sichtbar; die Strichlänge bleibt beim Zoomen gleich. Der Teil außerhalb des Maschinenfensters orange gestrichelt |
 | Kollision | Programm `xyzac_collision_check.ngc` laden (absichtliche Kollision, **nie fahren**; laden geht nur referenziert, dann Maschine aus), „Next collision“: der erste Klick landet auf L8, die A-Wiege leuchtet rot; in Zeitleiste und Code-Panel ×, die Grenze ▲ |
 | Keine Zeilen-Hervorhebung | im Lauf und in der Simulation keine hervorgehobene Linie im 3D; die Zeile zeigt das Code-Panel, die Position das Werkzeug |
-| Backplot über einer Grenzverletzung | die ockerfarbene Markierung bleibt sichtbar |
-| Settings → 3D Viewer → Layers | neue Ebene **Rapids**; neben jeder Ebene eine Strichprobe in ihrer Farbe (gestrichelt, gesäumt wie gezeichnet), darunter Grenze ▲ und Kollision × |
+| Backplot über einer Überschreitung | die orange Markierung bleibt sichtbar |
+| Settings → 3D Viewer → Layers | Ebene **Rapids**; neben jeder Ebene eine Strichprobe in ihrer Farbe (gestrichelt bzw. zweifarbig wie gezeichnet), darunter Grenze ▲ und Kollision × |
 | Rapids aus, dann in der Simulation zu einer Grenzverletzung auf einem Eilgang springen | **nur** die Bewegung des Befunds erscheint (nicht alle Eilgänge), im Viewer steht „Rapids shown for this finding — hidden in Layers“, auch bei ausgeschaltetem HUD; ein Theme-Wechsel lässt sie stehen; nach einem Ziehen an der Zeitleiste ist sie wieder aus, die Ebene bleibt aus |
-| Sprung zu einer Grenzverletzung | die Zeitleiste und das Code-Panel zeigen die Zeile des Befunds (vorher landete der Sprung eine Zeile zu spät); der Knopf der Zeitleiste steht auf der Markierung des Befunds, auch beim ersten Sprung mit Anfahrweg |
+| Sprung zu einer Grenzverletzung | die Zeitleiste und das Code-Panel zeigen die Zeile des Befunds; der Knopf der Zeitleiste steht auf der Markierung des Befunds, auch beim ersten Sprung mit Anfahrweg |
 | Befunde durchblättern | „Next“/„Previous“ erreichen jeden Befund einmal; Kontakte auf dem Anfahrweg heißen „→ entry“; nach einem Ziehen an der Zeitleiste geht „Next“ von der neuen Position aus |
-| Custom-Farben | Settings zeigt unter den Farben den Kontrast, für die Boxen mit eigener Spalte „On its casing“, und neu eine Tabelle „Lines / Apart / Color-blind“: welche Linienpaare zu nah beieinander liegen („close“) |
+| Custom-Farben | Settings zeigt unter den Farben den Kontrast „On background“ und „On the machine“ (gegen die grauen Flächen des Modells) und eine Tabelle „Lines / Apart“: welche Linienpaare zu nah beieinander liegen („close“) |
 
 **Beim Ansehen:**
-- Die Werte sind gegen Weiß, den dunklen Grund und den hellen Tisch gerechnet. Die Rechnung ist ein
-  Filter, keine Sichtabnahme (Codex R29) — was zählt, ist dein Eindruck an dichten Bahnen.
+- Die Werte sind gegen Weiß, den dunklen Grund und die gerenderten Flächen von Rohteil und
+  Planscheibe gerechnet. Die Rechnung ist ein Filter, keine Sichtabnahme; was zählt, ist dein
+  Eindruck an dichten Bahnen.
+- Die 2 px für alle Pfade kommen mit Teil B. Bis dahin sind Pfad, Eilgang und Überschreitung noch
+  1 px, der Backplot 2 px.
 - Ausgegraut wird die gefahrene Bahn noch nicht. Das kommt als eigener Schritt mit eigener
   Ideenrunde (Codex R29: Vertrag für Schleifen, Run from line, Abbruch).
 

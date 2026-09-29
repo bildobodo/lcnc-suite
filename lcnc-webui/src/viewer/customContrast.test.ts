@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { contrastRatio, customContrastRows, customPairRows, parseHex } from "./customContrast";
+import { contrastRatio, customContrastRows, customPairRows, parseHex, MODEL_SURFACES, MODEL_MIN } from "./customContrast";
 import type { ViewerPalette } from "./viewerPalette";
 
 const base: ViewerPalette = {
   feed: "#1f5fbf", rapid: "#1e7f3f", backplot: "#a01860", bounds: "#555555", toolpathBounds: "#666666",
-  tool: "#999999", cutter: "#c8a040", limit: "#8a5a00", collision: "#c00000",
+  tool: "#999999", cutter: "#c8a040", limit: "#8a5a00", collision: "#c00000", boundsAlt: "#f0f2f4",
 } as ViewerPalette;
 
 describe("the Custom palette's contrast hint (Codex R25 OP-I05)", () => {
@@ -14,12 +14,15 @@ describe("the Custom palette's contrast hint (Codex R25 OP-I05)", () => {
     expect(parseHex("rgb(1,2,3)")).toBeNull();
     expect(contrastRatio("red", "#fff")).toBeNull();
   });
-  it("a line needs 3 : 1 on the background and on the lit table; 4.5 on the background in high contrast", () => {
-    const rows = customContrastRows({ ...base, feed: "#ffff00" }, "#ffffff", false);
+  it("a line needs 3 : 1 on the background (4.5 in high contrast) and MODEL_MIN on the machine's grey surfaces", () => {
+    const rows = customContrastRows({ ...base, feed: "#ffff00", rapid: "#6a6f74" }, "#ffffff", false);
     const feed = rows.find(r => r.role === "feed")!;
-    expect(feed.bgLow && feed.tableLow).toBe(true);     // yellow on white and on #e0e0e0
-    const ok = rows.find(r => r.role === "rapid")!;
-    expect(ok.bgLow || ok.tableLow).toBe(false);
+    expect([feed.bgLow, feed.modelLow], "yellow: lost on white, fine on the grey model").toEqual([true, false]);
+    const grey = rows.find(r => r.role === "rapid")!;
+    expect([grey.bgLow, grey.modelLow], "a mid grey: fine on white, lost on the grey model").toEqual([false, true]);
+    expect(grey.onModel!).toBeLessThan(MODEL_MIN);
+    // the weakest surface counts
+    expect(grey.onModel).toBeCloseTo(Math.min(...MODEL_SURFACES.map(s => contrastRatio("#6a6f74", s)!)), 6);
     // a 3.5 : 1 line passes a normal theme's background, not a high-contrast one's
     const mid = "#808080";
     expect(contrastRatio(mid, "#ffffff")!).toBeGreaterThan(3);
@@ -27,22 +30,23 @@ describe("the Custom palette's contrast hint (Codex R25 OP-I05)", () => {
     expect(customContrastRows({ ...base, rapid: mid }, "#ffffff", false).find(r => r.role === "rapid")!.bgLow).toBe(false);
     expect(customContrastRows({ ...base, rapid: mid }, "#ffffff", true).find(r => r.role === "rapid")!.bgLow).toBe(true);
   });
-  it("a box is a line like the others (operator 2026-09-29: no casing): its own ratio on the background and the table", () => {
-    // the dark theme's light neutral: plenty on its background, lost on the lit table — told, never corrected
-    const light = customContrastRows({ ...base, bounds: "#cbd5e1" }, "#0b0f14", false).find(r => r.role === "bounds")!;
-    expect([light.bgLow, light.tableLow]).toEqual([false, true]);
-    expect(light.onBg!).toBeGreaterThan(10);
-    // the light theme's dark neutral holds on both
-    const dark = customContrastRows({ ...base, toolpathBounds: "#4b5563" }, "#ffffff", false).find(r => r.role === "toolpathBounds")!;
-    expect([dark.bgLow, dark.tableLow]).toEqual([false, false]);
-    expect(Object.keys(dark).sort(), "no casing column").toEqual(["bgLow", "onBg", "onTable", "role", "tableLow"]);
+  it("a box is two-tone (operator 2026-09-29): it reads where either tone does", () => {
+    // a dark custom box colour on the dark scene: its light dashes carry it
+    const dark = customContrastRows({ ...base, bounds: "#15181c" }, "#0b0f14", false).find(r => r.role === "bounds")!;
+    expect([dark.bgLow, dark.modelLow]).toEqual([false, false]);
+    expect(dark.onBg).toBeCloseTo(contrastRatio("#f0f2f4", "#0b0f14")!, 6);
+    // both tones mid grey: lost on the grey model
+    const lost = customContrastRows({ ...base, toolpathBounds: "#5a5f63", boundsAlt: "#60656a" } as ViewerPalette, "#ffffff", false)
+      .find(r => r.role === "toolpathBounds")!;
+    expect(lost.modelLow).toBe(true);
+    expect(Object.keys(lost).sort(), "background and machine, nothing else").toEqual(["bgLow", "modelLow", "onBg", "onModel", "role"]);
   });
   it("tool shaft and cutter are solids — no row; no selection row (the current line is not drawn in 3D)", () => {
     expect(customContrastRows(base, "#ffffff", false).map(r => r.role)).toEqual(
       ["feed", "rapid", "backplot", "bounds", "toolpathBounds"]);
   });
   it("tells the lines apart from each other — colour-vision deficiency is no criterion (operator 2026-09-29)", () => {
-    const fixed = { ...base, feed: "#0f86ba", rapid: "#ef0197", backplot: "#7c0bfa", limit: "#b06c02" } as ViewerPalette;
+    const fixed = { ...base, feed: "#00a83c", rapid: "#3d8bff", backplot: "#ff00ff", limit: "#e66b00" } as ViewerPalette;
     const rows = customPairRows(fixed, "light");
     expect(rows.map(r => `${r.a}/${r.b}`)).toEqual(
       ["feed/rapid", "feed/limit", "feed/backplot", "rapid/limit", "rapid/backplot", "limit/backplot"]);

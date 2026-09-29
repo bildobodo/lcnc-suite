@@ -9,7 +9,7 @@ import { ref, type Ref } from "vue";
 import { disposeObject } from "./disposal";
 import { createToolpathController, LIMIT_OVERLAY_RENDER_ORDER, type ToolpathCtx, type ToolpathController } from "./toolpathController";
 import { BACKPLOT_RENDER_ORDER } from "./backplotController";
-import { TOOLPATH_BOX_PX } from "./boxLines";
+import { TOOLPATH_BOX_PX, TOOLPATH_BOX_DASH_PX, worldPerPixel } from "./boxLines";
 import type { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import type { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 
@@ -21,7 +21,7 @@ function fakeLabel() {
 }
 
 // The resolved palette the host hands over (viewer/viewerPalette.ts).
-const PALETTE = { feed: "#22b8cf", rapid: "#f5a623", toolpathBounds: "#4b5563", limit: "#ffcc00" };
+const PALETTE = { feed: "#22b8cf", rapid: "#f5a623", toolpathBounds: "#15181c", boundsAlt: "#f0f2f4", limit: "#ffcc00" };
 function makeDeps(overflow: Ref<boolean>) {
   return {
     requestRender: vi.fn(),
@@ -40,8 +40,9 @@ function makeDeps(overflow: Ref<boolean>) {
 const SCENE_BG = "#102030";
 const SCENE_FG = "#e6edf3";
 
-/** The toolpath box: one LineSegments2 (operator 2026-09-29: no casing). */
-const boxOf = (g: THREE.Group) => g.children.find(o => (o as any).material?.userData?.role === "toolpathBounds") as LineSegments2 | undefined;
+/** The toolpath box: a two-tone group (operator 2026-09-29) — the dark solid
+ *  line and the light dashes, two LineSegments2 over one geometry. */
+const boxOf = (g: THREE.Group) => g.children.find(o => o.children.some(k => (k as any).material?.userData?.role === "toolpathBounds")) as THREE.Group | undefined;
 
 function makeCtx(over: Partial<ToolpathCtx> = {}): ToolpathCtx & { workRotGroup: THREE.Group; pathAnchor: THREE.Group; pathRot: THREE.Group } {
   const pathAnchor = new THREE.Group();
@@ -145,28 +146,44 @@ describe("no current-line highlight (operator 2026-09-28)", () => {
       });
     }
     expect([...roles].filter(r => r.startsWith("selection")), "no selection role").toEqual([]);
-    expect(fat, "no screen-space line in the toolpath but the box").toBe(1);
+    expect(fat, "no screen-space line in the toolpath but the box's two tones").toBe(2);
     expect("setHighlight" in c || "setHighlightTrackRange" in c, "no highlight API").toBe(false);
   });
 });
 
-describe("the toolpath box: one dashed line in the theme's neutral, no casing (operator 2026-09-29)", () => {
-  it("draws one screen-space line at the path's width, dashed, clipped to the machine window", () => {
+describe("the toolpath box: two-tone, short dashes held in screen pixels (operator 2026-09-29)", () => {
+  it("draws the dark line and the light dashes at one width over one geometry, clipped to the machine window", () => {
     const ctx = makeCtx();
     c.apply(ctx, GCODE);
     const box = boxOf(ctx.workRotGroup)!;
-    expect(box.isLineSegments2, "one screen-space line, not a group").toBe(true);
-    expect(box.children, "no casing pass").toHaveLength(0);
-    const m = box.material as LineMaterial;
-    expect(m.userData.role).toBe("toolpathBounds");
-    expect(m.linewidth, "CSS px").toBe(TOOLPATH_BOX_PX);
-    expect(m.worldUnits).toBe(false);
-    expect(m.dashed).toBe(true);
-    expect(box.geometry.getAttribute("instanceDistanceStart"), "line distances for the dash").toBeTruthy();
-    expect(m.clippingPlanes).toBe(deps.insideBoundsClipPlanes);
-    expect(m.color.getHexString()).toBe("4b5563");
-    c.setColors({ ...PALETTE, toolpathBounds: "#cbd5e1" });
-    expect(m.color.getHexString()).toBe("cbd5e1");
+    const [solid, dashes] = box.children as LineSegments2[];
+    const sm = solid!.material as LineMaterial, dm = dashes!.material as LineMaterial;
+    expect([sm.userData.role, dm.userData.role]).toEqual(["toolpathBounds", "toolpathBoundsAlt"]);
+    expect([sm.linewidth, dm.linewidth], "one width, CSS px — no casing").toEqual([TOOLPATH_BOX_PX, TOOLPATH_BOX_PX]);
+    expect(sm.worldUnits || dm.worldUnits).toBe(false);
+    expect([sm.dashed, dm.dashed], "the light tone dashes over the solid dark one").toEqual([false, true]);
+    expect(dashes!.renderOrder, "the dashes after the line").toBeGreaterThan(solid!.renderOrder);
+    expect(dashes!.geometry, "one geometry").toBe(solid!.geometry);
+    expect(dashes!.geometry.getAttribute("instanceDistanceStart"), "line distances for the dash").toBeTruthy();
+    expect([sm.clippingPlanes, dm.clippingPlanes]).toEqual([deps.insideBoundsClipPlanes, deps.insideBoundsClipPlanes]);
+    expect([sm.color.getHexString(), dm.color.getHexString()]).toEqual(["15181c", "f0f2f4"]);
+    c.setColors({ ...PALETTE, toolpathBounds: "#000000", boundsAlt: "#ffffff" });
+    expect([sm.color.getHexString(), dm.color.getHexString()]).toEqual(["000000", "ffffff"]);
+  });
+  it("re-expresses the dash in the box's units at every render: TOOLPATH_BOX_DASH_PX on screen at any zoom", () => {
+    const ctx = makeCtx();
+    c.apply(ctx, GCODE);
+    const dashes = boxOf(ctx.workRotGroup)!.children[1] as LineSegments2;
+    const dm = dashes.material as LineMaterial;
+    const renderer = { getSize: (v: THREE.Vector2) => v.set(800, 600) } as unknown as THREE.WebGLRenderer;
+    for (const zoom of [1, 4]) {
+      const cam = new THREE.OrthographicCamera(-400, 400, 300, -300, 0.1, 10000);
+      cam.zoom = zoom; cam.updateProjectionMatrix();
+      (dashes as THREE.Object3D).onBeforeRender(renderer, new THREE.Scene(), cam, dashes.geometry, dm, null as never);
+      const wpp = worldPerPixel(cam, dashes.parent!, 600);
+      expect(wpp, "world units per pixel shrink with the zoom").toBeCloseTo(1 / zoom, 6);
+      expect([dm.dashSize, dm.gapSize]).toEqual([TOOLPATH_BOX_DASH_PX * wpp, TOOLPATH_BOX_DASH_PX * wpp]);
+    }
   });
 });
 
@@ -324,7 +341,7 @@ describe("overflow / visibility / colours", () => {
     // The bounds box (overflow edges need clip planes). Its geometry was
     // previously missed by dispose().
     const boundsBox = boxOf(ctx.workRotGroup)!;
-    const boundsGeomSpy = vi.spyOn(boundsBox.geometry, "dispose");
+    const boundsGeomSpy = vi.spyOn((boundsBox.children[0] as LineSegments2).geometry, "dispose");
     c.dispose();
     expect(geomSpy).toHaveBeenCalled();
     expect(boundsGeomSpy).toHaveBeenCalled();

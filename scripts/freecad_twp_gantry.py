@@ -46,9 +46,13 @@ MACHINE_ZERO_Z = 1325.0
 LIMITS = [[-1500,1500],[-1300,1300],[-1325,0],[-360,360],[-185,185],[-320,320]]
 DEMO = [0, 0, -475, 0, 0, 0]
 WORK_POSE = [0, 140, -475, 0, 0, 0]
-COL = {'cast': [0.39,0.43,0.46], 'paint':[0.78,0.80,0.79],
-       'dark':[0.15,0.19,0.22], 'steel':[0.64,0.68,0.70],
-       'accent':[0.12,0.39,0.43], 'stock':[0.67,0.59,0.43]}
+# The grey ladder — MUST equal lcnc-webui/src/viewer/palette.ts MACHINE_PALETTE
+# (palette.test.ts pins the emitted machine.json against it; operator
+# 2026-09-29: muted metal greys, no hues near the program's line colours).
+COL = {'paint':[0.341,0.353,0.369], 'steel':[0.267,0.282,0.298],
+       'stock':[0.212,0.227,0.239], 'table':[0.18,0.196,0.208],
+       'cast':[0.149,0.165,0.176], 'accent':[0.114,0.125,0.137],
+       'dark':[0.071,0.078,0.09]}
 
 def box(x0,y0,z0,x1,y1,z1):
     return Part.makeBox(x1-x0,y1-y0,z1-z0,V(x0,y0,z0))
@@ -295,7 +299,7 @@ add('a_faceplate','a_table','steel',disk)
 add('a_drive_cover',None,'accent',cyl(300,28,(-2368,0,0),(1,0,0)))
 console=bevel(box(0,-490,-110,1050,490,0),12)
 console=console.cut(compound([box(24,y-7,-17,1020,y+7,2) for y in (-370,-250,250,370)]))
-add('fixture_plate','a_table','cast',console)
+add('fixture_plate','a_table','table',console)
 # Short gussets stay within the rotary disk radius and support the plate.
 gussets=[]
 for y in (-350,350):

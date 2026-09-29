@@ -7,8 +7,8 @@
 // supplements the colour, never replaces it. A line against a BODY (the
 // collision tint) or two non-path objects (the boxes, the plane's states)
 // are `object` pairs: OBJECT_MIN_NORMAL plus the cue the image shows. The
-// two boxes share one neutral by design (`form`: told apart by the dash,
-// the width and the size labels).
+// two boxes share one two-tone pair by design (`form`: told apart by the
+// dash length and the size labels).
 //
 // 0.25 is the search and regression value the palette was chosen by, not a
 // proof that every 1 px line is distinguishable (Codex R29 VP29-01). Pure
@@ -32,8 +32,8 @@ export const OBJECT_MIN_NORMAL = 0.12;
 
 /** A visible cue that separates two roles besides their colour. */
 export type PairCue =
-  | "dashed"   // the rapid (or a stale plane's edge) is dashed
-  | "width"    // the width ladder: path 1 px, backplot and machine box wider
+  | "dashed"   // the rapid (or a stale plane's edge) is dashed; the boxes' dash length
+  | "width"    // the width ladder: path 1 px, backplot wider
   | "object"   // one is a tinted machine body, not a path line
   | "glyph"    // timeline / code panel: ▲ limit, × collision
   | "label";   // a text label on the object (the toolpath box's sizes, the plane's state)
@@ -67,10 +67,9 @@ export const PALETTE_PAIRS: PalettePair[] = [
   { a: "--viewer-rapid", b: "--viewer-collision", where: "a line against a tinted body", kind: "object", cues: ["object", "dashed"] },
   { a: "--viewer-limit", b: "--viewer-collision", where: "3D, timeline, code panel", kind: "object", cues: ["object", "glyph"] },
   { a: "--viewer-backplot", b: "--viewer-collision", where: "a line against a tinted body", kind: "object", cues: ["object"] },
-  // The two boxes: one neutral (operator 2026-09-29) — the toolpath box is
-  // dashed at the path's width and carries its size labels, the machine box
-  // solid and wider.
-  { a: "--viewer-bounds", b: "--viewer-toolpath-bounds", where: "two boxes", kind: "form", cues: ["dashed", "width", "label"] },
+  // The two boxes: one two-tone pair (operator 2026-09-29) — the machine
+  // box with long dashes, the toolpath box with short ones and its size labels.
+  { a: "--viewer-bounds", b: "--viewer-toolpath-bounds", where: "two boxes", kind: "form", cues: ["dashed", "label"] },
   // The tilted work plane's states (V4): the label on the object names the
   // state, a stale plane's edge is dashed.
   { a: "--viewer-plane-active", b: "--viewer-plane-defined", where: "the plane", kind: "object", cues: ["label"] },

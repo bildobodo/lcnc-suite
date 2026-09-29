@@ -415,17 +415,22 @@ test("the viewer palette: Automatic follows the theme, Custom stays, a legacy pa
   await page.evaluate(() => window.__viewerDiag!.tintPart!("tool", true));   // the default tool marker
   expect((await drawn()).drawn.collision).toBe(light.collision);
 
-  // A theme switch keeps every colour (fixed palette, operator 2026-09-28:
-  // other colours after a switch confuse): dark draws light's values; a
-  // high-contrast theme re-resolves the families at its own lightness —
-  // everything drawn, the tint on screen too.
+  // A theme switch re-resolves the palette (two schemes, operator
+  // 2026-09-29: one colour FAMILY per role, each theme at its own lightness —
+  // strong on the light scene, luminous on the dark): dark draws dark's own
+  // values, the shared roles (rapid, collision) stay; the boxes are the same
+  // two tones in every theme — everything drawn, the tint on screen too.
   await send("settings_changed", "dark");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   const dark = { feed: await token("--viewer-feed"), limit: await token("--viewer-limit"), collision: await token("--viewer-collision"), rapid: await token("--viewer-rapid") };
-  expect(dark, "the same palette in light and dark").toEqual(light);
+  expect(dark.feed, "dark: its own, luminous path colour").not.toBe(light.feed);
+  expect([dark.rapid, dark.collision], "the shared roles stay").toEqual([light.rapid, light.collision]);
+  await expect.poll(async () => (await drawn()).drawn.feed).toBe(dark.feed);
   p = await drawn();
-  expect(p.drawn).toMatchObject({ feed: light.feed, limit: light.limit, rapid: light.rapid });
-  expect(p.drawn.collision, "the collision tint too").toBe(light.collision);
+  expect(p.drawn).toMatchObject({ feed: dark.feed, limit: dark.limit, rapid: dark.rapid });
+  expect(p.drawn.collision, "the collision tint too").toBe(dark.collision);
+  expect([p.drawn.bounds, p.drawn.boundsAlt], "the boxes' two tones in every theme")
+    .toEqual([await token("--viewer-bounds"), await token("--viewer-bounds-alt")]);
   await send("settings_changed", "hc-dark");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "hc-dark");
   const hc = { feed: await token("--viewer-feed"), collision: await token("--viewer-collision") };
@@ -470,6 +475,9 @@ test("the viewer palette: Automatic follows the theme, Custom stays, a legacy pa
   await expect(swatch("feed")).toHaveCSS("color", rgb(light.feed));
   await expect(swatch("limit")).toHaveCSS("color", rgb(light.limit));
   await expect(swatch("rapid")).toHaveCSS("border-top-style", "dashed");
+  // the boxes: two-tone samples, the machine box's long dashes and the toolpath box's short ones
+  await expect(swatch("bounds")).toHaveClass(/\btwoTone\b/);
+  await expect(swatch("toolpathBounds")).toHaveClass(/\btwoTone\b.*\bshort\b|\bshort\b.*\btwoTone\b/);
   // Back to Custom: the kept palette returns; its seven roles are pickers.
   await custom.check();
   await expect.poll(async () => (await drawn()).drawn.feed).toBe(OLD.feed);
@@ -481,7 +489,7 @@ test("the viewer palette: Automatic follows the theme, Custom stays, a legacy pa
   const hint = dialog.locator("[data-contrast-hint]");
   const cell = (role: string, col: number) => hint.locator(`tr[data-role="${role}"] td`).nth(col);
   await expect(cell("feed", 1), "the old cyan on the light background").toHaveText(/^\d+\.\d : 1 · low$/);
-  await expect(cell("feed", 2), "and on the lit table").toHaveText(/ · low$/);
+  await expect(cell("feed", 2), "the old light cyan stands off the grey machine").toHaveText(/^\d+\.\d : 1$/);
   await expect(hint.locator("tr[data-role]")).toHaveCount(5);
   // The lines against each other (operator 2026-09-28): six line pairs, one
   // distance each — colour-vision deficiency is no criterion (2026-09-29).
@@ -489,16 +497,16 @@ test("the viewer palette: Automatic follows the theme, Custom stays, a legacy pa
   await expect(pairs.locator("tr[data-pair]")).toHaveCount(6);
   await expect(pairs.locator('tr[data-pair="feed/rapid"] td')).toHaveCount(2);
   await expect(pairs.locator('tr[data-pair="feed/rapid"] td').nth(1)).toHaveText(/^\d\.\d\d$/);
-  // A box is a line like the others (operator 2026-09-29: no casing): its own
-  // ratio on the background and the table, nothing else.
-  await expect(hint.locator("thead th")).toHaveText(["Color", "On background", "On the table"]);
-  await expect(cell("bounds", 1), "the old white box on the light background").toHaveText("1.0 : 1 · low");
+  // A box is two-tone (operator 2026-09-29): it reads where either of its
+  // tones does — on the background and on the machine's grey surfaces.
+  await expect(hint.locator("thead th")).toHaveText(["Color", "On background", "On the machine"]);
+  await expect(cell("bounds", 1), "the old white box and its light dashes on the light background").toHaveText(/^1\.\d : 1 · low$/);
   await legend.locator("label", { hasText: "Machine Bounds" }).locator('input[type="color"]').fill("#3a3f45");
   await expect(cell("bounds", 1)).toHaveText(/^\d+\.\d : 1$/);
   await expect(cell("bounds", 2)).toHaveText(/^\d+\.\d : 1$/);
   await legend.locator('input[type="color"]').first().fill("#1f3f7f");
   await expect(cell("feed", 1), "a picked colour is measured at once").toHaveText(/^\d+\.\d : 1$/);
-  await expect(cell("feed", 2)).toHaveText(/^\d+\.\d : 1$/);
+  await expect(cell("feed", 2), "a dark blue: fine on white, lost on the grey machine").toHaveText(/^1\.\d : 1 · low$/);
   await expect.poll(async () => (await drawn()).drawn.feed, "nothing recoloured").toBe("#1f3f7f");
   await auto.check();
   await expect(hint, "Automatic: the theme's checked colours, no hint").toHaveCount(0);

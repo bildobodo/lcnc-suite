@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
 import { encode } from "@msgpack/msgpack";
 import { ctl, MOCK } from "./ctl";
-import { MACHINE_BOX_PX, TOOLPATH_BOX_PX } from "../src/viewer/boxLines";
+import { MACHINE_BOX_PX, TOOLPATH_BOX_PX, MACHINE_BOX_DASH_PX } from "../src/viewer/boxLines";
 
 // Design wave D8 (UI-K08, review round 6 UI-DI14): the viewer palette on a
 // machine model, a DENSE and a THIN path, a selected line, limit overflow
@@ -98,10 +98,10 @@ test("the palette in four themes, on a model, a dense and a thin path — and no
         { message: `${where}: the feed takes the theme's role` }).toBe(await token("--viewer-feed"));
       const materials = await page.evaluate(() => window.__viewerDiag!.getRoleMaterials!());
       expect(materials.filter(m => m.role.startsWith("selection")), `${where}: no current line drawn`).toEqual([]);
-      // Screen-space lines: the backplot and the two boxes — one line each, no
-      // casing (operator 2026-09-29).
+      // Screen-space lines: the backplot and the two two-tone boxes — a dark
+      // line and its light dashes each (operator 2026-09-29).
       expect(materials.filter(m => m.kind === "fat").map(m => m.role).sort(), `${where}: the backplot and the two boxes`)
-        .toEqual(["backplot", "bounds", "toolpathBounds"]);
+        .toEqual(["backplot", "bounds", "boundsAlt", "toolpathBounds", "toolpathBoundsAlt"]);
       const drawn = (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn;
       if (kind === "dense") expect(drawn.limit, `${where}: the limit overflow's role`).toBe(await token("--viewer-limit"));
       await page.waitForTimeout(200);
@@ -264,22 +264,22 @@ test("the width ladder is drawn: the path and the limit overlay 1 px, the backpl
       }
       expect(widths.backplot!, `${where}: the backplot is 2 CSS px ${dump}`).toBeGreaterThan(1.6 * dpr);
       expect(widths.backplot!, `${where}: the backplot is not wider than 2 CSS px ${dump}`).toBeLessThan(2.6 * dpr);
-      // The boxes (operator 2026-09-29): one screen-space line each, no casing —
-      // the machine box solid and wider than the path, the toolpath box dashed
-      // at the path's width. Across the machine box's edge its neutral, the
-      // scene beyond on either side.
-      expect([kindOf("bounds"), kindOf("toolpathBounds")], `${where}: the boxes`).toEqual([`fat${MACHINE_BOX_PX}`, `fat${TOOLPATH_BOX_PX}`]);
+      // The boxes (operator 2026-09-29): two-tone — a dark line and its light
+      // dashes, one width, no casing. Across the machine box's edge one of its
+      // tones, the scene beyond on either side.
+      expect([kindOf("bounds"), kindOf("boundsAlt"), kindOf("toolpathBounds"), kindOf("toolpathBoundsAlt")], `${where}: the boxes`)
+        .toEqual([`fat${MACHINE_BOX_PX}`, `fat${MACHINE_BOX_PX}`, `fat${TOOLPATH_BOX_PX}`, `fat${TOOLPATH_BOX_PX}`]);
       const edge = await page.evaluate(() => window.__viewerDiag!.projectRole!("bounds"));
       expect(edge, `${where}: a visible box edge`).not.toBeNull();
-      const box = rgbOf(drawn.bounds!);
+      const [dark, light] = [rgbOf(drawn.bounds!), rgbOf(drawn.boundsAlt!)];
       const [out1, out2] = await profileColours(page, shot, edge!, [-8, 8], dpr);
       const beyond = out1!.map((v, i) => (v + out2![i]!) / 2);
-      const named: [string, number[]][] = [["box", box], ["beyond", beyond]];
+      const named: [string, number[]][] = [["dark", dark], ["light", light], ["beyond", beyond]];
       const steps = Array.from({ length: 6 * dpr + 1 }, (_, i) => -3 + i / dpr);
       const seen = (await profileColours(page, shot, edge!, steps, dpr)).map(c => nearestOf(c, named));
-      const boxDump = JSON.stringify({ box, beyond, seen });
+      const boxDump = JSON.stringify({ dark, light, beyond, seen });
       expect([seen[0], seen.at(-1)], `${where}: the scene beyond the edge ${boxDump}`).toEqual(["beyond", "beyond"]);
-      expect(seen, `${where}: the box drawn ${boxDump}`).toContain("box");
+      expect(seen.some(n => n !== "beyond"), `${where}: the box drawn ${boxDump}`).toBe(true);
       await test.info().attach(`ladder-dpr${dpr}-${theme}.png`, { body: shot, contentType: "image/png" });
     }
     // The backplot OVER a limit violation (fixed palette P5, Codex R30): the
@@ -310,13 +310,14 @@ test("the width ladder is drawn: the path and the limit overlay 1 px, the backpl
 });
 
 // The box edge measured ALONE (Codex R31 answer 2 — its isolated scene,
-// kept as the guard; operator 2026-09-29: no casing): everything but the
-// machine box off, one edge with nothing within 8 CSS px, its profile fitted
-// pixel by pixel to background / box coverage in quarter steps (the
-// browser's four samples): the box covers MACHINE_BOX_PX CSS px and nothing
-// else is drawn near it — in light and dark, at DPR 1 and 2; its neutral is
-// dark on the light scene and light on the dark one.
-test("the box edge alone: one line of MACHINE_BOX_PX CSS px in the theme's neutral — at DPR 1 and 2", async ({ browser }) => {
+// kept as the guard; operator 2026-09-29: two-tone, no casing): everything
+// but the machine box off, one edge with nothing within 8 CSS px. Across the
+// edge, at several places along it, the profile is fitted pixel by pixel to
+// background + ONE tone (dark or light) in quarter steps (the browser's four
+// samples): nothing else is drawn near it and it covers MACHINE_BOX_PX CSS
+// px. Along the edge both tones appear, in runs of MACHINE_BOX_DASH_PX CSS px
+// (the dash is held in screen pixels) — in light and dark, at DPR 1 and 2.
+test("the box edge alone: two tones, MACHINE_BOX_PX wide, dashes of MACHINE_BOX_DASH_PX — at DPR 1 and 2", async ({ browser }) => {
   test.setTimeout(120_000);
   for (const dpr of [1, 2]) {
     const context = await browser.newContext({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: dpr });
@@ -332,28 +333,54 @@ test("the box edge alone: one line of MACHINE_BOX_PX CSS px in the theme's neutr
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
       await page.waitForTimeout(300);
       const where = `DPR ${dpr} ${theme}`;
-      const edge = await page.evaluate(() => window.__viewerDiag!.projectRole!("bounds"));
+      const edge = (await page.evaluate(() => window.__viewerDiag!.projectRole!("bounds")))!;
       expect(edge, `${where}: a visible box edge`).not.toBeNull();
+      expect(edge.length, `${where}: an edge long enough for several dashes`).toBeGreaterThan(8 * MACHINE_BOX_DASH_PX);
       const drawn = (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn;
-      const box = rgbOf(drawn.bounds!);
+      const tones = { dark: rgbOf(drawn.bounds!), light: rgbOf(drawn.boundsAlt!) };
       const shot = await page.screenshot();
-      // one sample per device pixel across ±8 CSS px
-      const offsets = Array.from({ length: 16 * dpr + 1 }, (_, i) => (i - 8 * dpr) / dpr);
-      const profile = await profileColours(page, shot, edge!, offsets, dpr);
-      const bg = profile[0]!;
-      const sum = (c: number[]) => c[0]! + c[1]! + c[2]!;
-      expect(sum(box) < sum(bg), `${where}: the neutral is dark on a light scene, light on a dark one`).toBe(theme === "light");
-      const mixes = [0, 1, 2, 3, 4].map(k => ({ c: k / 4, rgb: [0, 1, 2].map(j => (k * box[j]! + (4 - k) * bg[j]!) / 4) }));
-      let boxSum = 0, worst = 0;
-      for (const px of profile) {
-        const m = mixes.slice().sort((a, b) => rgbDist(px, a.rgb) - rgbDist(px, b.rgb))[0]!;
-        boxSum += m.c;
-        worst = Math.max(worst, ...px.map((v, j) => Math.abs(v - m.rgb[j]!)));
-      }
-      const dump = JSON.stringify({ box: boxSum / dpr, worst, edge, profile });
       await test.info().attach(`box-edge-dpr${dpr}-${theme}.png`, { body: shot, contentType: "image/png" });
-      expect(worst, `${where}: every pixel is background and box — nothing else near the edge ${dump}`).toBeLessThan(6);
-      expect(Math.abs(boxSum / dpr - MACHINE_BOX_PX), `${where}: the box covers ${MACHINE_BOX_PX} CSS px ${dump}`).toBeLessThan(0.4);
+      // across the edge, at five places along it: background + one tone
+      const offsets = Array.from({ length: 16 * dpr + 1 }, (_, i) => (i - 8 * dpr) / dpr);
+      let cleanProfiles = 0;
+      for (const t of [-0.35, -0.25, -0.15, -0.05, 0.05, 0.15, 0.25, 0.35]) {
+        const at = { ...edge, x: edge.x + edge.dx * edge.length * t, y: edge.y + edge.dy * edge.length * t };
+        const profile = await profileColours(page, shot, at, offsets, dpr);
+        const bg = profile[0]!;
+        // another edge crossing here (the far and near edges overlap in the
+        // view): drawn pixels away from the line's own 2 px — not this edge's profile
+        if (profile.some((px, i) => Math.abs(offsets[i]!) > 3 && rgbDist(px, bg) > 20)) continue;
+        let best: { tone: string; sum: number; worst: number } | null = null;
+        for (const [tone, rgb] of Object.entries(tones)) {
+          const mixes = [0, 1, 2, 3, 4].map(k => ({ c: k / 4, rgb: [0, 1, 2].map(j => (k * rgb[j]! + (4 - k) * bg[j]!) / 4) }));
+          let sum = 0, worst = 0;
+          for (const px of profile) {
+            const m = mixes.slice().sort((a, b) => rgbDist(px, a.rgb) - rgbDist(px, b.rgb))[0]!;
+            sum += m.c;
+            worst = Math.max(worst, ...px.map((v, j) => Math.abs(v - m.rgb[j]!)));
+          }
+          if (!best || worst < best.worst) best = { tone, sum, worst };
+        }
+        const dump = JSON.stringify({ t, best, profile });
+        // at a dash boundary the pixel mixes both tones: skip it, the others decide
+        if (best!.worst >= 6) continue;
+        cleanProfiles++;
+        expect(Math.abs(best!.sum / dpr - MACHINE_BOX_PX), `${where}: the box covers ${MACHINE_BOX_PX} CSS px ${dump}`).toBeLessThan(0.4);
+      }
+      // along the edge: runs of each tone, one dash long
+      const along = Array.from({ length: Math.floor(edge.length * 0.8) }, (_, i) => i - Math.floor(edge.length * 0.4));
+      const alongAt = { x: edge.x, y: edge.y, dx: -edge.dy, dy: edge.dx };   // profileColours samples along the normal of `at`
+      const samples = await profileColours(page, shot, alongAt, along, dpr);
+      const names = samples.map(c => (rgbDist(c, tones.dark) < rgbDist(c, tones.light) ? "dark" : "light"));
+      const runs: number[] = [];
+      let n = 1;
+      for (let i = 1; i < names.length; i++) { if (names[i] === names[i - 1]) n++; else { runs.push(n); n = 1; } }
+      const inner = runs.slice(1).sort((a, b) => a - b);   // the first run is cut by the window
+      const median = inner[Math.floor(inner.length / 2)] ?? 0;
+      const runDump = JSON.stringify({ runs, median });
+      expect(new Set(names).size, `${where}: both tones along the edge ${runDump}`).toBe(2);
+      expect(Math.abs(median - MACHINE_BOX_DASH_PX), `${where}: dashes of ${MACHINE_BOX_DASH_PX} CSS px ${runDump}`).toBeLessThan(MACHINE_BOX_DASH_PX * 0.3);
+      expect(cleanProfiles, `${where}: clean profiles across the edge`).toBeGreaterThanOrEqual(2);
     }
     await context.close();
   }

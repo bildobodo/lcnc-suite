@@ -149,33 +149,34 @@
   --syntax-coord: #006955;
   --syntax-param: #236482;
   --syntax-comment: #3b6825;
-  /* Viewer palette (design wave D8c; FIXED palette, operator 2026-09-28,
+  /* Viewer palette (design wave D8c; operator 2026-09-28/29,
      docs/reviews/viewer-palette-fest.*): what WebGL draws — literal hex
-     (ThreeViewer's cssColor reads no color-mix), ONE value per role in the
-     light, dark and auto-dark blocks (a theme switch never changes a
-     colour); the HC blocks keep each colour family at their own lightness.
-     A line lies on the scene background AND on the lit machine (a table top
-     renders ≈ #e0e0e0 in every theme): each line role ≥ 3 : 1 on both (on
-     --bg ≥ 4.5 in HC) — one luminance band, so the four path LINES (feed,
-     dashed rapid, limit overlay, backplot) were searched for their distance
-     FROM EACH OTHER: ≥ 0.25 in OKLab (viewer/palettePairs.ts,
-     themeTokens.test.ts; colour-vision deficiency is no criterion, operator
-     2026-09-29). The two boxes are one neutral PER THEME, one line each (no
-     casing — viewer/boxLines.ts). The
-     collision is a body; limits keep the warn family everywhere (overlay,
-     timeline marks, line numbers). Tool and cutter are lit meshes — no line
-     contrast applies. Settings' Automatic palette reads these; Custom
-     replaces the seven user roles. */
-  --viewer-feed: #0f86ba;
-  --viewer-rapid: #ef0197;
-  --viewer-backplot: #7c0bfa;
-  --viewer-limit: #b06c02;
+     (ThreeViewer's cssColor reads no color-mix). ONE COLOUR FAMILY per role
+     in every theme (hue within 15°), at each theme's own lightness: strong
+     tones on the light scene, luminous ones on the dark (green path,
+     magenta backplot, blue dashed rapid, orange limit — complementary where
+     they lie on each other: backplot on path, limit on rapid). Each line
+     ≥ 3 : 1 on --bg (4.5 in HC), stands off the grey-ladder machine models'
+     path-carrying surfaces (themeTokens.test.ts), and ≥ 0.25 in OKLab FROM
+     EACH OTHER (viewer/palettePairs.ts; colour-vision deficiency is no
+     criterion). The two boxes are TWO-TONE and the same in every theme
+     (--viewer-bounds dark, --viewer-bounds-alt light, alternating dashes —
+     viewer/boxLines.ts): one of the two reads on any background and any
+     grey. The collision is a body; limits keep the warn family everywhere
+     (overlay, timeline marks, line numbers). Tool and cutter are lit
+     meshes — no line contrast applies. Settings' Automatic palette reads
+     these; Custom replaces the seven user roles. */
+  --viewer-feed: #00a83c;
+  --viewer-rapid: #3d8bff;
+  --viewer-backplot: #ff00ff;
+  --viewer-limit: #e66b00;
   --viewer-plane-active: #2d81dc;
   --viewer-plane-defined: #a97515;
   --viewer-plane-stale: #cc3333;
   --viewer-collision: #c8102e;
-  --viewer-bounds: #4b5563;
-  --viewer-toolpath-bounds: #4b5563;
+  --viewer-bounds: #15181c;
+  --viewer-toolpath-bounds: #15181c;
+  --viewer-bounds-alt: #f0f2f4;
   --viewer-reach: #6b7280;
   --viewer-tool: #9aa0a6;
   --viewer-cutter: #d4a800;
@@ -334,16 +335,17 @@
     --syntax-coord: #4ec9b0;
     --syntax-param: #9cdcfe;
     --syntax-comment: #7baa66;
-    --viewer-feed: #0f86ba;
-    --viewer-rapid: #ef0197;
-    --viewer-backplot: #7c0bfa;
-    --viewer-limit: #b06c02;
+    --viewer-feed: #5cff5c;
+    --viewer-rapid: #3d8bff;
+    --viewer-backplot: #ff00ff;
+    --viewer-limit: #ff7a00;
     --viewer-plane-active: #2d81dc;
     --viewer-plane-defined: #a97515;
     --viewer-plane-stale: #cc3333;
     --viewer-collision: #c8102e;
-    --viewer-bounds: #cbd5e1;
-    --viewer-toolpath-bounds: #cbd5e1;
+    --viewer-bounds: #15181c;
+    --viewer-toolpath-bounds: #15181c;
+    --viewer-bounds-alt: #f0f2f4;
     --viewer-reach: #6b7280;
     --viewer-tool: #9aa0a6;
     --viewer-cutter: #d4a800;
@@ -375,16 +377,17 @@
   --syntax-coord: #006955;
   --syntax-param: #236482;
   --syntax-comment: #3b6825;
-  --viewer-feed: #0f86ba;
-  --viewer-rapid: #ef0197;
-  --viewer-backplot: #7c0bfa;
-  --viewer-limit: #b06c02;
+  --viewer-feed: #00a83c;
+  --viewer-rapid: #3d8bff;
+  --viewer-backplot: #ff00ff;
+  --viewer-limit: #e66b00;
   --viewer-plane-active: #2d81dc;
   --viewer-plane-defined: #a97515;
   --viewer-plane-stale: #cc3333;
   --viewer-collision: #c8102e;
-  --viewer-bounds: #4b5563;
-  --viewer-toolpath-bounds: #4b5563;
+  --viewer-bounds: #15181c;
+  --viewer-toolpath-bounds: #15181c;
+  --viewer-bounds-alt: #f0f2f4;
   --viewer-reach: #6b7280;
   --viewer-tool: #9aa0a6;
   --viewer-cutter: #d4a800;
@@ -415,16 +418,17 @@
   --syntax-coord: #4ec9b0;
   --syntax-param: #9cdcfe;
   --syntax-comment: #7baa66;
-  --viewer-feed: #0f86ba;
-  --viewer-rapid: #ef0197;
-  --viewer-backplot: #7c0bfa;
-  --viewer-limit: #b06c02;
+  --viewer-feed: #5cff5c;
+  --viewer-rapid: #3d8bff;
+  --viewer-backplot: #ff00ff;
+  --viewer-limit: #ff7a00;
   --viewer-plane-active: #2d81dc;
   --viewer-plane-defined: #a97515;
   --viewer-plane-stale: #cc3333;
   --viewer-collision: #c8102e;
-  --viewer-bounds: #cbd5e1;
-  --viewer-toolpath-bounds: #cbd5e1;
+  --viewer-bounds: #15181c;
+  --viewer-toolpath-bounds: #15181c;
+  --viewer-bounds-alt: #f0f2f4;
   --viewer-reach: #6b7280;
   --viewer-tool: #9aa0a6;
   --viewer-cutter: #d4a800;
@@ -465,16 +469,17 @@
   --syntax-coord: #005c48;
   --syntax-param: #125674;
   --syntax-comment: #2f5b16;
-  --viewer-feed: #0a7bc5;
-  --viewer-rapid: #d7079c;
-  --viewer-backplot: #320578;
-  --viewer-limit: #7c4201;
+  --viewer-feed: #236508;
+  --viewer-rapid: #1f5fe0;
+  --viewer-backplot: #c000c0;
+  --viewer-limit: #c85100;
   --viewer-plane-active: #2b76d3;
   --viewer-plane-defined: #9a6e19;
   --viewer-plane-stale: #cc3333;
-  --viewer-collision: #d51713;
-  --viewer-bounds: #2b3138;
-  --viewer-toolpath-bounds: #2b3138;
+  --viewer-collision: #b0001e;
+  --viewer-bounds: #000000;
+  --viewer-toolpath-bounds: #000000;
+  --viewer-bounds-alt: #ffffff;
   --viewer-reach: #6b7280;
   --viewer-tool: #8a8f96;
   --viewer-cutter: #b38f00;
@@ -514,16 +519,17 @@
   --syntax-coord: #4ec9b0;
   --syntax-param: #9cdcfe;
   --syntax-comment: #7bab66;
-  --viewer-feed: #048ab3;
-  --viewer-rapid: #f40793;
-  --viewer-backplot: #9741fe;
-  --viewer-limit: #ad6302;
+  --viewer-feed: #5cff5c;
+  --viewer-rapid: #6aa6ff;
+  --viewer-backplot: #ff5cff;
+  --viewer-limit: #ff8a1a;
   --viewer-plane-active: #2d81dc;
   --viewer-plane-defined: #a07a0c;
   --viewer-plane-stale: #cc4845;
-  --viewer-collision: #fb1903;
-  --viewer-bounds: #e6e9ee;
-  --viewer-toolpath-bounds: #e6e9ee;
+  --viewer-collision: #ff3344;
+  --viewer-bounds: #000000;
+  --viewer-toolpath-bounds: #000000;
+  --viewer-bounds-alt: #ffffff;
   --viewer-reach: #78808b;
   --viewer-tool: #d0d0d0;
   --viewer-cutter: #ffe14d;
@@ -2191,6 +2197,17 @@ label:has(input:disabled, select:disabled) {
   border-top: 3px solid currentColor;
 }
 .legendLine.dashed { border-top-style: dashed; }
+/* A two-tone line (the viewer's boxes, operator 2026-09-29): the dark tone
+   with the light one in dashes — long for the machine box, short for the
+   toolpath box, like the drawn box. The tones come in as --tone-a / --tone-b. */
+.legendLine.twoTone {
+  border-top: 0;
+  height: 3px;
+  background: repeating-linear-gradient(90deg, var(--tone-a) 0 8px, var(--tone-b) 8px 16px);
+}
+.legendLine.twoTone.short {
+  background: repeating-linear-gradient(90deg, var(--tone-a) 0 4px, var(--tone-b) 4px 8px);
+}
 
 /* Program progress bar (G-code panel). Track flexes to fill its row; fill
    width is driven inline from progress %. */

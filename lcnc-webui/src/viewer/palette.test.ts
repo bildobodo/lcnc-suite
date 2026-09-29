@@ -6,14 +6,18 @@ import { MACHINE_PALETTE, defaultPartHex, paletteCss, paletteRgb } from "./palet
 // import the palette), so they are pinned here: a part's color must be ONE
 // of the palette entries, or absent (linear slide → the axis rule).
 const MODELS = [
+  // the shipped examples (FreeCAD generators, scripts/freecad_*.py COL)
+  "../../../examples/sim_config/machine-5axis-xyzac/machine.json",
+  "../../../examples/sim_config/machine-xyzacb-gantry/machine.json",
+  // the legacy regression fixtures (scripts/vismach_to_stl.py COLORS)
   "../../../scripts/test_fixtures/legacy_sim/machine-xyzac/machine.json",
   "../../../scripts/test_fixtures/legacy_sim/machine-xyzacb-trsrn/machine.json",
 ];
 
 describe("machine palette", () => {
   it("css/rgb forms agree with the hex table", () => {
-    expect(paletteCss("z")).toBe("#62789a");
-    expect(paletteRgb("frame")).toEqual([0.612, 0.612, 0.612]);
+    expect(paletteCss("table")).toBe("#2e3235");
+    expect(paletteRgb("paint")).toEqual([0.341, 0.353, 0.369]);
     expect(defaultPartHex("x")).toBe(MACHINE_PALETTE.x);
     expect(defaultPartHex(null)).toBe(MACHINE_PALETTE.frame);
     expect(defaultPartHex("rot")).toBe(MACHINE_PALETTE.frame);
@@ -29,6 +33,19 @@ describe("machine palette", () => {
         expect(allowed.has(p.color.join(",")), `${rel} part ${p.id} color ${p.color}`).toBe(true);
       }
     }
+  });
+
+  // Operator 2026-09-29: muted metal greys, no rainbow — no part carries a
+  // hue near the program's line colours; grey STEPS tell the parts apart,
+  // and the parts a program lies on sit in the middle of the ladder.
+  it("the palette is a grey ladder: every entry neutral, the steps distinct", () => {
+    for (const [k, hex] of Object.entries(MACHINE_PALETTE)) {
+      const r = (hex >> 16) & 0xff, g = (hex >> 8) & 0xff, b = hex & 0xff;
+      expect(Math.max(r, g, b) - Math.min(r, g, b), `${k}: a grey (a hair of cool bias at most)`).toBeLessThanOrEqual(12);
+    }
+    const ladder = (["paint", "steel", "stock", "table", "cast", "accent", "dark"] as const).map(k => MACHINE_PALETTE[k]);
+    for (let i = 1; i < ladder.length; i++) expect(ladder[i]! & 0xff, "light → dark").toBeLessThan(ladder[i - 1]! & 0xff);
+    expect(MACHINE_PALETTE.stock & 0xff, "the stock a hair lighter than the table it sits on").toBeGreaterThan(MACHINE_PALETTE.table & 0xff);
   });
 
   it("palette entries are muted (no channel saturated, none vivid)", () => {

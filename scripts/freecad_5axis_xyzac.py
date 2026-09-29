@@ -50,9 +50,13 @@ RIB_SPANS = [(-670, 260), (-100, 200), (410, 260)]
 GUIDE = dict(reference='HIWIN HGW45HC / HGR45 envelope; independently drawn simplified profile',
              rail_width=45, rail_height=38, block_width=120, block_length=171.2,
              body_length=128.8, assembly_height=60, hole_pitch=105)
-COL = {'cast': [0.32, 0.37, 0.40], 'paint': [0.80, 0.82, 0.81],
-       'dark': [0.16, 0.20, 0.23], 'steel': [0.65, 0.70, 0.72],
-       'accent': [0.12, 0.40, 0.43], 'stock': [0.72, 0.62, 0.43]}
+# The grey ladder — MUST equal lcnc-webui/src/viewer/palette.ts MACHINE_PALETTE
+# (palette.test.ts pins the emitted machine.json against it; operator
+# 2026-09-29: muted metal greys, no hues near the program's line colours).
+COL = {'paint': [0.341, 0.353, 0.369], 'steel': [0.267, 0.282, 0.298],
+       'stock': [0.212, 0.227, 0.239], 'table': [0.18, 0.196, 0.208],
+       'cast': [0.149, 0.165, 0.176], 'accent': [0.114, 0.125, 0.137],
+       'dark': [0.071, 0.078, 0.09]}
 
 
 def box(x0, y0, z0, x1, y1, z1):
@@ -274,7 +278,7 @@ platter = cyl(200, 40, (0, 0, -40))
 slots = [box(-205, y-6, -12, 205, y+6, 1) for y in (-120, -60, 0, 60, 120)]
 slots += [cyl(6, 18, (170*math.cos(a), 170*math.sin(a), -17))
           for a in [math.radians(i) for i in range(15, 360, 30)]]
-add('c_faceplate', 'c_platter', 'steel', platter.cut(compound(slots)).removeSplitter())
+add('c_faceplate', 'c_platter', 'table', platter.cut(compound(slots)).removeSplitter())
 add('fixture_blank', 'c_platter', 'stock', bevel(box(-65, -65, 0, 65, 65, 60), 3), True)
 
 doc.recompute()

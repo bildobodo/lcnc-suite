@@ -6,7 +6,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Text } from "troika-three-text";
 import { LABEL_FONT_URL } from "./viewer/labelFont";
 import { resolveViewerPalette, type ViewerPalette } from "./viewer/viewerPalette";
-import { makeBoxEdges, MACHINE_BOX_PX, type BoxEdges } from "./viewer/boxLines";
+import { makeBoxEdges, MACHINE_BOX_PX, MACHINE_BOX_DASH_PX, type BoxEdges } from "./viewer/boxLines";
 import { buildToolGeometries, type ToolMeta } from "./toolGeometry";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
@@ -1227,7 +1227,9 @@ function applyMachineBounds(mb: { origin: Vec3; size: Vec3 } | undefined) {
     if (!mb) console.warn("No machine bounds (live joint limits or viewer_init); bounds box will remain default");
     return;
   }
-  applyBox(machineBoundsMesh, mb.size, mb.origin);
+  const [sx, sy, sz] = mb.size, [ox, oy, oz] = mb.origin;
+  machineBoundsMesh.setSize(sx, sy, sz);
+  machineBoundsMesh.position.set(ox + sx / 2, oy + sy / 2, oz + sz / 2);
   // Clipping planes for the outside-bounds overlay (normals point outward),
   // stored in MACHINE-frame local space and transformed to world space each
   // rendered frame in animate().
@@ -1253,14 +1255,6 @@ function applyMachineBounds(mb: { origin: Vec3; size: Vec3 } | undefined) {
   if (_iniBox) {
     _iniBox.set(new THREE.Vector3(bx, by, bz), new THREE.Vector3(bx + bsx, by + bsy, bz + bsz));
   }
-}
-
-function applyBox(mesh: THREE.Object3D, size: Vec3, origin: Vec3) {
-  const [sx, sy, sz] = size;
-  const [ox, oy, oz] = origin;
-
-  mesh.scale.set(Math.max(0.001, sx), Math.max(0.001, sy), Math.max(0.001, sz));
-  mesh.position.set(ox + sx / 2, oy + sy / 2, oz + sz / 2);
 }
 
 function ensureCoreGroups(init: ViewerInit) {
@@ -1506,14 +1500,13 @@ function ensureCoreGroups(init: ViewerInit) {
 
 
 
-  // --- Machine bounds box — wireframe edges only, one solid line a little
-  // wider than the path, in the theme's neutral (operator 2026-09-29) ---
+  // --- Machine bounds box — wireframe edges only, two-tone (a dark line
+  // with light dashes, long ones — operator 2026-09-29): it reads on every
+  // background and on every grey of the model. Built at its real size by
+  // applyMachineBounds, never scaled (a scale would stretch the dashes) ---
   {
-    const boxGeom = new THREE.BoxGeometry(1, 1, 1);
-    const edgeGeom = new THREE.EdgesGeometry(boxGeom);
-    boxGeom.dispose();
-    machineBoundsMesh = makeBoxEdges(edgeGeom, { color: palette.bounds, width: MACHINE_BOX_PX, role: "bounds" });
-    edgeGeom.dispose();
+    machineBoundsMesh = makeBoxEdges([1, 1, 1], { color: palette.bounds, alt: palette.boundsAlt,
+      width: MACHINE_BOX_PX, dashPx: MACHINE_BOX_DASH_PX, role: "bounds" });
     // MACHINE frame, never the rotating work group: the clip planes that
     // decide the yellow outside-bounds overlay live there (7a04909), and the
     // box that stayed under _workGrp swung with A while the clipping did not
@@ -4178,7 +4171,7 @@ function refreshPalette() {
   palette = resolveViewerPalette(readRootToken, viewerDefaults);
   toolpath.setColors(palette);
   backplot.setColor(palette.backplot);
-  machineBoundsMesh?.setColor(palette.bounds);
+  machineBoundsMesh?.setColors(palette.bounds, palette.boundsAlt);
   for (const g of [reachRoomMesh, reachPartMesh]) g?.traverse(o => { const m = (o as THREE.Mesh).material as THREE.Material & { color?: THREE.Color }; m?.color?.set(palette.reach); });
   MAT.tool.color.set(palette.tool);
   MAT.cutter.color.set(palette.cutter);

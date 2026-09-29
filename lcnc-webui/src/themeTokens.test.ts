@@ -7,7 +7,8 @@
 // this pins the blocks the measurement relies on.
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { PALETTE_PAIRS, PATH_ROLES, LINE_MIN_NORMAL, LINE_MIN_NORMAL_HC, OBJECT_MIN_NORMAL, lineMinFor } from "./viewer/palettePairs";
+import { PALETTE_PAIRS, PATH_ROLES, LINE_ROLES, LINE_MIN_NORMAL, LINE_MIN_NORMAL_HC, OBJECT_MIN_NORMAL, lineMinFor } from "./viewer/palettePairs";
+import { MODEL_SURFACES, MODEL_MIN } from "./viewer/customContrast";
 import { contrastRgb as contrast, okDistance, hueChroma, type RGB } from "./viewer/colourMath";
 
 // node:fs, not an import: vitest empties every CSS import, `?raw` included.
@@ -23,7 +24,7 @@ const VIEWER_PATH = ["--viewer-feed", "--viewer-rapid", "--viewer-backplot", "--
 const ROLES = [
   "--fg-muted", "--ok-text", "--warn-text", "--danger-text", "--info-text", "--accent-text", "--focus-ring",
   "--syntax-gcode", "--syntax-mcode", "--syntax-coord", "--syntax-param", "--syntax-comment",
-  ...VIEWER_LINES, "--viewer-bounds", "--viewer-toolpath-bounds", "--viewer-tool", "--viewer-cutter",
+  ...VIEWER_LINES, "--viewer-bounds", "--viewer-toolpath-bounds", "--viewer-bounds-alt", "--viewer-tool", "--viewer-cutter",
 ];
 
 /** The declarations of the first rule whose selector is exactly `selector`. */
@@ -72,30 +73,37 @@ describe("theme text roles", () => {
 
   // The viewer palette checked directly (design wave D8c): WebGL lines are
   // informative graphics — ≥ 3 : 1 on the scene background (the theme's
-  // --bg; ≥ 4.5 in the HC themes) AND on the lit machine: a program lies on
-  // the table / stock, whose top face renders ≈ #e0e0e0 under the scene
-  // lights in every theme (measured, frame metal) — the dark themes' pastel
-  // lines vanished there. The path roles differ from each other by ≥ 0.12
-  // in OKLab (limit vs collision is the close one); the LINE pairs by far
-  // more (the pair table below).
-  // Shadowed faces (mid grey) are no reference: no line colour reaches
-  // 3 : 1 on both mid grey and the background; hue, the rapid's dash and
-  // the legend carry it there.
-  const LIT_METAL: RGB = [224, 224, 224];
+  // --bg; ≥ 4.5 in the HC themes). The path roles differ from each other by
+  // ≥ 0.12 in OKLab (limit vs collision is the close one); the LINE pairs by
+  // far more (the pair table below).
   for (const name of ["root", "dark", "hc-light", "hc-dark"] as const) {
-    it(`${name}: every viewer line reads on the scene background and on the lit machine, and the path roles tell apart`, () => {
+    it(`${name}: every viewer line reads on the scene background, and the path roles tell apart`, () => {
       const b = block(THEMES[name]);
       const bg = hex(b.get("--bg")!);
       const floor = name.startsWith("hc") ? 4.5 : 3;
       for (const r of VIEWER_LINES) {
         expect(contrast(hex(b.get(r)!), bg), `${name} ${r} on --bg`).toBeGreaterThanOrEqual(floor);
-        expect(contrast(hex(b.get(r)!), LIT_METAL), `${name} ${r} on the lit machine`).toBeGreaterThanOrEqual(3);
       }
       for (let i = 0; i < VIEWER_PATH.length; i++) {
         for (let j = i + 1; j < VIEWER_PATH.length; j++) {
           const [a, c] = [VIEWER_PATH[i]!, VIEWER_PATH[j]!];
           expect(okDistance(hex(b.get(a)!), hex(b.get(c)!)), `${name} ${a} vs ${c}`).toBeGreaterThanOrEqual(0.12);
         }
+      }
+    });
+  }
+  // The paths stand in front of the MACHINE by their lightness (operator
+  // 2026-09-29): a program lies on the stock and the faceplate, which the
+  // grey-ladder models render as MODEL_SURFACES (the XYZAC renders — the lit
+  // #e0e0e0 table this rule used to name is gone with the light models).
+  // MODEL_MIN is the chosen palette's own floor, a regression value; the HC
+  // themes are held to their background only (a named limit: their dark
+  // light-theme lines sit near the mid-grey model).
+  for (const name of ["root", "dark", "auto-dark"] as const) {
+    it(`${name}: every path line stands off the machine's grey surfaces`, () => {
+      const b = block(THEMES[name]);
+      for (const r of LINE_ROLES) for (const surface of MODEL_SURFACES) {
+        expect(contrast(hex(b.get(r)!), hex(surface)), `${name} ${r} on ${surface}`).toBeGreaterThanOrEqual(MODEL_MIN);
       }
     });
   }
@@ -135,56 +143,55 @@ describe("theme text roles", () => {
     });
   }
 
-  // ONE colour per role whatever the theme (operator 2026-09-28: "wenn beim
-  // Theme-Wechsel plötzlich andere Farben vorhanden sind" confuses): light,
-  // dark and auto-dark carry the same value for every viewer role.
-  // The boxes follow the theme (operator 2026-09-29: "die Maschinenlimiten
-  // können sich an das Theme anpassen") — see below.
-  const FIXED_ROLES = [...PATH_ROLES, "--viewer-tool", "--viewer-cutter",
-    "--viewer-plane-active", "--viewer-plane-defined", "--viewer-plane-stale", "--viewer-reach"];
-  it("light, dark and auto-dark draw every viewer role in the same colour", () => {
+  // TWO schemes, ONE colour family per role (operator 2026-09-29, replacing
+  // "one value per role" of 2026-09-28): strong tones on the light scene,
+  // luminous ones on the dark — the hue stays, so a role never takes another
+  // role's colour on a theme switch. auto-dark is the dark block (above).
+  // Everything that is not a path role keeps ONE value in light and dark.
+  for (const name of ["dark", "auto-dark", "hc-light", "hc-dark"] as const) {
+    it(`${name}: every path role keeps the light theme's colour family`, () => {
+      const root = block(THEMES.root), b = block(THEMES[name]);
+      for (const r of PATH_ROLES) {
+        const base = hueChroma(hex(root.get(r)!)), other = hueChroma(hex(b.get(r)!));
+        const dh = Math.abs(((other.hue - base.hue + 540) % 360) - 180);
+        expect(dh, `${name} ${r}: hue within 15° of ${root.get(r)}`).toBeLessThanOrEqual(15);
+        expect(other.chroma, `${name} ${r}: a colour, not a grey`).toBeGreaterThanOrEqual(0.08);
+      }
+    });
+  }
+  const FIXED_ROLES = ["--viewer-tool", "--viewer-cutter",
+    "--viewer-plane-active", "--viewer-plane-defined", "--viewer-plane-stale", "--viewer-reach",
+    "--viewer-bounds", "--viewer-toolpath-bounds", "--viewer-bounds-alt"];
+  it("light, dark and auto-dark draw every role but the path roles in the same colour", () => {
     const root = block(THEMES.root);
     for (const name of ["light", "dark", "auto-dark"] as const) {
       const b = block(THEMES[name]);
       for (const r of FIXED_ROLES) expect(b.get(r), `${name} ${r}`).toBe(root.get(r));
     }
   });
-  // The two boxes (operator 2026-09-29: no casing — the machine box a solid,
-  // wider line): ONE neutral per theme, dark on a light scene and light on a
-  // dark one, ≥ 3 : 1 on the background (4.5 in HC). The lit table is no
-  // reference for them: a neutral that reads there on a dark scene is a mid
-  // grey that reads nowhere well.
+  // The two boxes are TWO-TONE (operator 2026-09-29): a dark line with light
+  // dashes, one pair for both boxes. One of the two tones reads on ANY grey
+  // — the model's parts, the white scene, the black one — at 3 : 1 (4.5 in
+  // HC), which a single neutral cannot: it vanished wherever a part had its
+  // lightness.
   for (const name of ["root", "dark", "auto-dark", "hc-light", "hc-dark"] as const) {
-    it(`${name}: the boxes are one neutral that reads on the background, dark on light and light on dark`, () => {
+    it(`${name}: the boxes are two-tone — one of the tones reads on every grey`, () => {
       const b = block(THEMES[name]);
-      const bg = hex(b.get("--bg")!);
       const floor = name.startsWith("hc") ? 4.5 : 3;
-      expect(b.get("--viewer-toolpath-bounds"), `${name}: one neutral for both boxes`).toBe(b.get("--viewer-bounds"));
-      const box = hex(b.get("--viewer-bounds")!);
-      expect(contrast(box, bg), `${name} box on --bg`).toBeGreaterThanOrEqual(floor);
-      expect(hueChroma(box).chroma, `${name}: a neutral, not a colour`).toBeLessThan(0.04);
-      const lum = (c: RGB) => c.reduce((s, v) => s + v, 0);
-      expect(lum(box) < lum(bg), `${name}: dark on a light scene, light on a dark one`).toBe(lum(bg) > 3 * 128);
+      expect(b.get("--viewer-toolpath-bounds"), `${name}: one pair for both boxes`).toBe(b.get("--viewer-bounds"));
+      const dark = hex(b.get("--viewer-bounds")!), light = hex(b.get("--viewer-bounds-alt")!);
+      for (const t of [dark, light]) expect(hueChroma(t).chroma, `${name}: neutral tones`).toBeLessThan(0.04);
+      const weak: number[] = [];
+      for (let g = 0; g <= 255; g++) {
+        const grey: RGB = [g, g, g];
+        if (Math.max(contrast(dark, grey), contrast(light, grey)) < floor) weak.push(g);
+      }
+      expect(weak, `${name}: greys neither tone reads on`).toEqual([]);
     });
   }
   it("no casing: the boxes carry no second colour", () => {
     expect(css).not.toMatch(/--viewer-bounds-casing/);
   });
-
-  // The high-contrast themes keep the colour FAMILY at their own lightness
-  // (operator 2026-09-28; Codex R29 on F7): 4.5 : 1 on their background
-  // needs another lightness, never another hue.
-  for (const name of ["hc-light", "hc-dark"] as const) {
-    it(`${name}: every path role keeps its colour family`, () => {
-      const root = block(THEMES.root), b = block(THEMES[name]);
-      for (const r of PATH_ROLES) {
-        const base = hueChroma(hex(root.get(r)!)), hc = hueChroma(hex(b.get(r)!));
-        const dh = Math.abs(((hc.hue - base.hue + 540) % 360) - 180);
-        expect(dh, `${name} ${r}: hue within 15° of ${root.get(r)}`).toBeLessThanOrEqual(15);
-        expect(hc.chroma, `${name} ${r}: a colour, not a grey`).toBeGreaterThanOrEqual(0.08);
-      }
-    });
-  }
 
   it("no theme draws the current line in 3D (operator 2026-09-28): no selection role", () => {
     expect(css).not.toMatch(/--viewer-selection/);

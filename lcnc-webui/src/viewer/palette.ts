@@ -1,34 +1,45 @@
 // Machine-model palette — the ONE source for the default colors of machine
-// parts (frame, linear-axis slides, rotary assemblies, stock).
+// parts, and the table every shipped machine.json takes its colors from.
 //
-// Why muted: the model is background. The operator reads the toolpath
-// (feed cyan / rapid amber), the TWP plane (info blue / warn amber / stale
-// red) and the axis gizmo AGAINST it, so the model must stay quieter than
-// all of those. The previous defaults were vivid, and the sim machine.json
-// files carried raw vismach colors (pure green, magenta, yellow) that
-// out-shouted every overlay.
+// A GREY LADDER (operator 2026-09-29: "gemutete metallische Farben, die
+// guten Kontrast liefern", no rainbow, grey steps between the parts). The
+// model is background: the program's lines (green path, magenta backplot,
+// blue rapid, orange limit, the two-tone boxes) must stand in FRONT of it by
+// their lightness, so no part carries a hue, and the parts a program lies on
+// (the table / faceplate and the stock) sit in the middle of the ladder —
+// the lines are lighter on the dark scene and stand off them by
+// themeTokens.test's MODEL_MIN on the light one. The axis gizmo says which
+// slide is which axis; the slides are grey steps, not axis hues.
 //
-// Hue rule: the three linear axes keep the gizmo's hue family (X red,
-// Y green, Z blue — axisColors.ts) at low saturation and metallic value,
-// so a slide still says which axis it is. Rotary assemblies get their own
-// muted metals so a trunnion / nutating head / platter read as distinct
-// bodies. Stock is a warm tan (workpiece, cuttable) — the only non-metal.
+// Values are MATERIAL colors: the scene lights make a top face roughly
+// 3.7× brighter in linear light (the table #2e3235 renders ≈ #53585b, the
+// stock #363a3d ≈ #5d6165 — customContrast.MODEL_SURFACES).
 //
-// Two forms like axisColors.ts: numeric hex for Three.js, CSS strings for
-// settings pickers. machine.json parts that carry an explicit `color`
-// must use these exact values (palette.test.ts pins both sim models).
+// Two vocabularies, one ladder: the generator classes of the FreeCAD
+// examples (scripts/freecad_*.py `COL`) and the legacy role names
+// (scripts/vismach_to_stl.py). machine.json parts that carry an explicit
+// `color` must use these exact values (palette.test.ts pins every shipped
+// model).
 
 export const MACHINE_PALETTE = {
-  frame:   0x9c9c9c,  // static frame / column / housings
-  base:    0x7c7c7c,  // bed / base plates (darker so the frame reads as a body on it)
-  x:       0x8f6262,  // X slide — dusty red
-  y:       0x6a8a72,  // Y slide — sage green
-  z:       0x62789a,  // Z slide — steel blue
-  rotaryA: 0x8c7a63,  // A trunnion / tilt table — bronze
-  rotaryB: 0x6c8686,  // B nutating / tilt head — teal grey
-  rotaryC: 0x7a7690,  // C platter / swivel — slate
-  stock:   0xb3a487,  // workpiece — warm tan
-  marks:   0xc9c9c9,  // platter engraving / reference marks
+  // the ladder, light → dark
+  paint:   0x575a5e,  // columns, saddles, heads, pedestals
+  steel:   0x44484c,  // guides, blocks, spindle nose, rings, shafts
+  stock:   0x363a3d,  // workpiece — a hair lighter than the table it sits on
+  table:   0x2e3235,  // tables, faceplates, fixture plates — where the program lies
+  cast:    0x262a2d,  // beds, bases, rail seats
+  accent:  0x1d2023,  // covers, end caps, yokes, drive housings
+  dark:    0x121417,  // feet, chip pans, cartridges
+  marks:   0x8a8f94,  // platter engraving / reference marks
+  // legacy role names on the same ladder
+  frame:   0x575a5e,  // static frame / column / housings = paint
+  base:    0x262a2d,  // bed / base plates = cast
+  x:       0x4d5155,  // X slide
+  y:       0x3b3f43,  // Y slide
+  z:       0x44484c,  // Z slide = steel
+  rotaryA: 0x1d2023,  // A trunnion / tilt table = accent
+  rotaryB: 0x3f4347,  // B nutating / tilt head
+  rotaryC: 0x2e3235,  // C platter / swivel = table
 } as const;
 
 export type PaletteKey = keyof typeof MACHINE_PALETTE;
