@@ -1,0 +1,53 @@
+--- viewer-palette-fest.r49.ledger-probe.ts
++++ viewer-palette-fest.r50.ledger-probe.ts
+@@ -12,7 +12,7 @@
+ import type { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
+ import { disposeObject } from "./disposal";
+ import { fatGeometry, packPairs, PATH_PX } from "./fatPaths";
+-import { createToolpathController, LIMIT_OVERLAY_RENDER_ORDER, type PathLineMode, type ToolpathCtx, __r49Probe } from "./r49.instrumented-controller";
++import { createToolpathController, LIMIT_OVERLAY_RENDER_ORDER, type PathLineMode, type ToolpathCtx, __r50Probe } from "./r50.instrumented-controller";
+ 
+ function program() {
+   const feed: number[] = [];
+@@ -59,7 +59,7 @@
+ import { writeFileSync } from 'node:fs';
+ const observations: Record<string, unknown> = {};
+ 
+-it('R49: compare retained preparation buffers to the ledger buffer set', () => {
++it('R50: compare retained preparation buffers to the ledger buffer set', () => {
+  const data: Record<string,unknown> = {};
+  for(const mode of ['gl','fat'] as const) {
+   const {c,ctx}=build(mode);
+@@ -73,9 +73,9 @@
+   const missing: {name:string,bytes:number}[]=[];
+   const seen=new Set<ArrayBufferLike>();
+   const take=(name:string,a:ArrayBufferView)=>{
+-   if(!__r49Probe.counted.has(a.buffer)&&!seen.has(a.buffer)) {seen.add(a.buffer);missing.push({name,bytes:a.buffer.byteLength});}
++   if(!__r50Probe.counted.has(a.buffer)&&!seen.has(a.buffer)) {seen.add(a.buffer);missing.push({name,bytes:a.buffer.byteLength});}
+   };
+-  for(const [i,s] of __r49Probe.sets.entries()) {
++  for(const [i,s] of __r50Probe.sets.entries()) {
+    take(`sets[${i}].bounds`,s.bounds);
+    for(const [k,o] of s.ovIdx.entries()) if(o) {
+     take(`sets[${i}].ovIdx[${k}].index`,o.index);
+@@ -85,15 +85,14 @@
+   }
+   const omitted=missing.reduce((n,a)=>n+a.bytes,0);
+   data[mode]={pairs:count-1,memory:m,omitted,actualHeldAtLeast:m.cpu.total+omitted,missing};
+-  // Observation assertion; green demonstrates the remaining undercount.
+-  expect(omitted).toBeGreaterThan(0);
+-  if(mode==='fat') expect(missing.some(a=>a.name.endsWith('.index')&&a.bytes===800000)).toBe(true);
+-  else expect(missing.some(a=>a.name.endsWith('.index'))).toBe(false);
++  // R50: no retained preparation buffer may be absent from the ledger.
++  expect(omitted).toBe(0);
++  expect(__r50Probe.sets.every(s=>s.ovIdx.length===0)).toBe(true);
+   c.release();
+   const released=c.pathMemory();
+-  expect(__r49Probe.sets).toHaveLength(0);
++  expect(__r50Probe.sets).toHaveLength(0);
+   expect(released.cpu.total).toBe(released.cpu.payload);
+   c.dispose();
+  }
+- writeFileSync('../evidence/viewer-palette-fest.r49.ledger-probe.json',JSON.stringify(data,null,2)+'\n');
++ writeFileSync('../evidence/viewer-palette-fest.r50.ledger-probe.json',JSON.stringify(data,null,2)+'\n');
+ });

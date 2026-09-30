@@ -1,0 +1,84 @@
+{
+  "gl": {
+    "pairs": 100000,
+    "memory": {
+      "mode": "gl",
+      "cpu": {
+        "base": 800000,
+        "dist": 0,
+        "overlay": 800000,
+        "reveal": 0,
+        "mesh": 0,
+        "box": 580,
+        "source": 1200204,
+        "payload": 500005,
+        "total": 3300789
+      },
+      "gpu": {
+        "base": 0,
+        "dist": 0,
+        "overlay": 0,
+        "reveal": 0,
+        "mesh": 0,
+        "box": 0,
+        "total": 0
+      },
+      "allocated": 3307058,
+      "peak": 5001122,
+      "eager": {
+        "estimate": 0,
+        "packed": 0
+      },
+      "generation": 2,
+      "pairs": {
+        "source": 100000,
+        "lod": 100000,
+        "drawn": 100000
+      }
+    },
+    "omitted": 0,
+    "actualHeldAtLeast": 3300789,
+    "missing": []
+  },
+  "fat": {
+    "pairs": 100000,
+    "memory": {
+      "mode": "fat",
+      "cpu": {
+        "base": 2400000,
+        "dist": 0,
+        "overlay": 2400000,
+        "reveal": 0,
+        "mesh": 3136,
+        "box": 580,
+        "source": 2000204,
+        "payload": 500005,
+        "total": 7303925
+      },
+      "gpu": {
+        "base": 0,
+        "dist": 0,
+        "overlay": 0,
+        "reveal": 0,
+        "mesh": 0,
+        "box": 0,
+        "total": 0
+      },
+      "allocated": 8120402,
+      "peak": 9804258,
+      "eager": {
+        "estimate": 4803136,
+        "packed": 4803136
+      },
+      "generation": 2,
+      "pairs": {
+        "source": 100000,
+        "lod": 100000,
+        "drawn": 100000
+      }
+    },
+    "omitted": 0,
+    "actualHeldAtLeast": 7303925,
+    "missing": []
+  }
+}

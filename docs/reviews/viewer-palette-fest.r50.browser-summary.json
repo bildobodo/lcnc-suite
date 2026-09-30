@@ -1,0 +1,116 @@
+{
+  "stats": {
+    "startTime": "2026-09-30T18:30:18.521Z",
+    "duration": 67651.767,
+    "expected": 8,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "file": "r50.viewer.spec.ts",
+      "line": 70,
+      "title": "R50: a confirmed Save G30 without a sampled busy edge must refresh the displayed point",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 8159,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "r50.viewer.spec.ts",
+      "line": 96,
+      "title": "R50: a late G30 read must not replace the newer displayed point",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 6837,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "toolsetter.viewer.spec.ts",
+      "line": 20,
+      "title": "the tool setter shows where it is set up, and only there",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 4168,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "toolsetter.viewer.spec.ts",
+      "line": 55,
+      "title": "G49 never moves the drawn tool; a table write moves its tip with the backplot's pen up (Codex R44 ST-I03)",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 8378,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "toolsetter.viewer.spec.ts",
+      "line": 94,
+      "title": "the drawn tip keeps the table offset's sign; without a table row it follows the active offset (Codex R45 ST-I04)",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 7515,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "toolsetter.viewer.spec.ts",
+      "line": 142,
+      "title": "the tool setter is a pin drawn over the machine while on top, hidden by the head when not",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 10718,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "toolsetter.viewer.spec.ts",
+      "line": 183,
+      "title": "the tool-change pin stands at the stored G30; without a read there is none",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 9990,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "toolsetter.viewer.spec.ts",
+      "line": 208,
+      "title": "Settings \u203a Layers: an On top column for lines and markers, saved per layer",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 10532,
+          "errors": []
+        }
+      ]
+    }
+  ]
+}

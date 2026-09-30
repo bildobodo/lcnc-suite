@@ -1,0 +1,47 @@
+{
+  "formula": "(fast_feed / 60)^2 / min(axis_z_acceleration,joint_2_acceleration)",
+  "profiles": [
+    {
+      "profile": "3axis_xyz",
+      "units": "mm",
+      "fast": 2000.0,
+      "slow": 200.0,
+      "retract": 3.0,
+      "acceleration": 750.0,
+      "stop_bound": 1.4814814814814818,
+      "remaining_margin": 1.5185185185185182
+    },
+    {
+      "profile": "5axis_xyzac",
+      "units": "mm",
+      "fast": 2000.0,
+      "slow": 200.0,
+      "retract": 3.0,
+      "acceleration": 500.0,
+      "stop_bound": 2.2222222222222228,
+      "remaining_margin": 0.7777777777777772
+    },
+    {
+      "profile": "6axis_twp_xyzabc",
+      "units": "mm",
+      "fast": 2000.0,
+      "slow": 200.0,
+      "retract": 3.0,
+      "acceleration": 700.0,
+      "stop_bound": 1.5873015873015877,
+      "remaining_margin": 1.4126984126984123
+    }
+  ],
+  "source_check": {
+    "version": "LinuxCNC 2.9.4",
+    "archive": "/home/cnc/lcnc-suite/linuxcnc_2.9.4.orig.tar.gz",
+    "entry": "linuxcnc-2.9.4/src/emc/tp/tc.c",
+    "function": "tcGetOverallMaxAccel",
+    "lines": [
+      55,
+      67
+    ],
+    "observation": "Parabolic end condition or blend_prev multiplies a_scale by 0.5; final acceleration is maxaccel * a_scale.",
+    "upstream": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/tp/tc.c#L55"
+  }
+}

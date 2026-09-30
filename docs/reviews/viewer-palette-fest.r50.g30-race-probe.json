@@ -1,0 +1,54 @@
+{
+  "requests": [
+    {
+      "ok": true,
+      "values": {
+        "X": 110,
+        "Y": 0,
+        "Z": -20
+      },
+      "mtime_ms": 110,
+      "units": "mm"
+    },
+    {
+      "ok": true,
+      "values": {
+        "X": 120,
+        "Y": 0,
+        "Z": -20
+      },
+      "mtime_ms": 120,
+      "units": "mm"
+    }
+  ],
+  "replyOrder": [
+    2,
+    1
+  ],
+  "newer": {
+    "visible": true,
+    "top": [
+      120,
+      0,
+      -20
+    ],
+    "screen": {
+      "x": 560.6482322781408,
+      "y": 640.7719220911221
+    },
+    "onTop": true
+  },
+  "afterLate": {
+    "visible": true,
+    "top": [
+      110,
+      0,
+      -20
+    ],
+    "screen": {
+      "x": 543.3241161390704,
+      "y": 633.3848941489669
+    },
+    "onTop": true
+  }
+}

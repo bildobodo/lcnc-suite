@@ -1,0 +1,17 @@
+
+Running 8 tests using 1 worker
+
+(node:2439962) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2439962) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r50.viewer.spec.ts:70:1 › R50: a confirmed Save G30 without a sampled busy edge must refresh the displayed point (8.2s)
+  ✓  2 e2e/r50.viewer.spec.ts:96:1 › R50: a late G30 read must not replace the newer displayed point (6.8s)
+  ✓  3 e2e/toolsetter.viewer.spec.ts:20:1 › the tool setter shows where it is set up, and only there (4.2s)
+  ✓  4 e2e/toolsetter.viewer.spec.ts:55:1 › G49 never moves the drawn tool; a table write moves its tip with the backplot's pen up (Codex R44 ST-I03) (8.4s)
+  ✓  5 e2e/toolsetter.viewer.spec.ts:94:1 › the drawn tip keeps the table offset's sign; without a table row it follows the active offset (Codex R45 ST-I04) (7.5s)
+  ✓  6 e2e/toolsetter.viewer.spec.ts:142:1 › the tool setter is a pin drawn over the machine while on top, hidden by the head when not (10.7s)
+  ✓  7 e2e/toolsetter.viewer.spec.ts:183:1 › the tool-change pin stands at the stored G30; without a read there is none (10.0s)
+  ✓  8 e2e/toolsetter.viewer.spec.ts:208:1 › Settings › Layers: an On top column for lines and markers, saved per layer (10.5s)
+
+  8 passed (1.1m)

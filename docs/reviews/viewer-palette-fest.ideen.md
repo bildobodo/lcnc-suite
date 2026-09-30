@@ -4020,3 +4020,110 @@ echten Maschine und ist so gewollt.
   - Playwright: 375 Tests.
   - Lint, Build und CSS-Audit grün.
 - **Nachgezogen für `4ceb185`:** Backend-pytest, 1113 Tests, alle grün.
+
+## Review R50 · Codex · VP-I17-Rest, Pins, On-top-Spalte und Rückzug · 30. September 2026
+
+**Ergebnis: `findings`. VP-I17 ist geschlossen. Zwei neue P2-Befunde
+betreffen die Aktualisierung des G30-Pins: VP-I18 und VP-I19. Die
+Pin-Darstellung, die On-top-Umstellung und die Beispielwerte für 3 mm
+Rückzug haben im geprüften Umfang keinen weiteren Befund.**
+
+Geprüft: `96cc36d..a519a81`, vollständiger Stand
+`a519a8163c67fc02967d547c858450586e9941f5`, in einer Archivkopie.
+Live nur dieser Anhang und neue R50-Belege; frühere Belege unverändert.
+Keine Maschinenbefehle oder Quittierung.
+[Reproduktion und Prüfgrenzen](viewer-palette-fest.r50.reproduce.md).
+
+### VP-I17 · geschlossen
+
+`ovIdx` wird nach Verbrauch freigegeben; die weiterhin benötigten
+Chunk-Boxen stehen in der Quellenbilanz. Die eigene R49-Sonde mit
+offengelegter Erwartungsanpassung findet nun in beiden Varianten
+**0 ungezählte Byte**. Bei 100.000 markierten Paaren meldet GL
+3.300.789 Byte, fat 7.303.925 Byte; das passt zu den beobachteten
+Referenzen. `release()` hinterlässt nur die Programmlast.
+
+[Ergebnisse](viewer-palette-fest.r50.ledger-probe.json),
+[Sonde](viewer-palette-fest.r50.ledger-probe.ts),
+[Anpassungen](viewer-palette-fest.r50.probe-adaptations.patch).
+Auch die sechs neuen unabhängigen GC-Wächter für GL/fat und
+Tabelle/Raum/Legacy bestehen. Damit sind VP-I13 bis VP-I17 geschlossen;
+die separate Mac-Leistungsprüfung bleibt davon unberührt.
+
+### VP-I18 · P2 · Ein bestätigtes Save G30 aktualisiert den Pin nicht zuverlässig
+
+Der Viewer liest G30 beim Szenenaufbau und bei einer **beobachteten**
+Busy→Idle-Flanke. Die erfolgreiche, bestätigte Speicherung in
+`ToolsetterSettings` erreicht den Viewer dagegen nicht.
+[Idle-Watcher](../../lcnc-webui/src/ThreeViewer.vue#L3110),
+[Speicherung](../../lcnc-webui/src/ToolsetterSettings.vue#L237).
+
+**Gegenprobe über die echte Oberfläche:** G30 startet bei X100; im
+G30-Feld X110 eingeben, Save G30 auslösen, erfolgreiche und bestätigte
+Antwort mit X110 liefern. Auch die HTTP-Position ist jetzt X110.
+Ohne zusätzliches Busy-Statuspaket zeigt die Form
+„G30 saved — confirmed by LinuxCNC“, aber der sichtbare Pin bleibt bei
+**X100**. Vor und nach dem Speichern gibt es dieselben zwei HTTP-Lesungen.
+Erst eine spätere explizite Busy→Idle-Flanke löst die dritte Lesung aus
+und setzt den Pin korrekt auf X110.
+
+[Zustände und positive Kontrolle](viewer-palette-fest.r50.g30-save-probe.json),
+[Bild](viewer-palette-fest.r50.g30-save-stale.png),
+[Sonde](viewer-palette-fest.r50.browser-probe.ts).
+
+Eine kurze Parameterzuweisung muss nicht als Busy-Zustand in einem
+periodischen Statuspaket erscheinen. Das ist auch kein absichtlich älterer
+Interpreterstand: Speichern und Rücklesen wurden bereits bestätigt.
+Form und räumliche Anzeige widersprechen sich bis zur nächsten Aktualisierung.
+
+**Korrektur:** Bestätigte G30-Änderungen/-Lesungen explizit an den Viewer
+weitergeben oder eine gemeinsame G30-Zustandsquelle verwenden. Die
+Idle-Flanke darf zusätzliche Aktualisierungen auslösen, aber nicht der
+einzige Auslöser nach erfolgreichem Save sein. Wächter: bestätigtes Save
+ohne zwischenzeitliches Busy-Paket aktualisiert auch den Pin.
+
+### VP-I19 · P2 · Eine verspätete G30-Antwort setzt den Pin auf einen älteren Stand zurück
+
+`refreshG30()` entprellt nur den noch nicht gestarteten Timer. Bereits
+laufende Reads bleiben parallel aktiv und jede Antwort schreibt unbedingt
+nach `_g30`. Eine Reihenfolgeprüfung fehlt.
+[Leseweg](../../lcnc-webui/src/ThreeViewer.vue#L557).
+
+**Gegenprobe:** Zwei getrennte Busy→Idle-Flanken starten Reads mit X110
+und anschließend X120. Zuerst die zweite Antwort liefern: Pin **X120**.
+Danach die verzögerte erste Antwort liefern: Pin wieder **X110**.
+Beide Antworten sind vollständig und erfolgreich, auch ihre Zeitstempel
+unterscheiden sich in dieser Reihenfolge.
+[Anfragen, Antwortreihenfolge und Pinwerte](viewer-palette-fest.r50.g30-race-probe.json).
+
+**Korrektur:** Lesungen mit einer monotonen Anfragenummer und passendem
+Viewer-/Verbindungskontext binden; überholte Antworten einschließlich
+Fehlern verwerfen. Bei Neuinitialisierung/Abbau alte Anfragen invalidieren.
+Wächter: Die vertauschten Antworten müssen X120 stehen lassen.
+Der vorhandene G30-Editor verwendet bereits Tickets; der neue unabhängige
+Leseweg im Viewer benötigt denselben Schutz.
+
+### Übrige Änderungen und Validierung
+
+- **Pins und On top:** Serverbestätigte Toolsetter-Position, fehlende
+  G30-Koordinate, getrennte Schalter, Migration, Persistenz und erneuter
+  Pfadaufbau sind geprüft. Der Pixeltest am XYZAC-Modell unterscheidet
+  korrekt zwischen Pin über dem Kopf und verdecktem Pin. Die Darstellung
+  ist abgenommen; die offene G30-Aktualisierung steht oben separat.
+  [Über dem Kopf](viewer-palette-fest.r50.pin-on-top.png),
+  [in der Tiefe](viewer-palette-fest.r50.pin-in-depth.png).
+- **3-mm-Rückzug:** Alle drei Profile enthalten F2000/F200/3 mm. Die
+  verwendete Rechnung ergibt Überläufe von 1,4815 / 2,2222 / 1,5873 mm;
+  die kleinste verbleibende Reserve beträgt 0,7778 mm im XYZAC-Profil.
+  Beispielwerte und Offline-Wächter sind abgenommen.
+  [Werte, Rechnung und Quellenkontrolle](viewer-palette-fest.r50.retract.json).
+- **Eigene Checks:** Typecheck/Build PASS; **102/102** bestehende Unit-
+  Tests, **17/17** Backend-Tests, **1/1** eigene Speicher-Nachprobe,
+  **6/6** originale Browserprüfungen und **2/2** reproduzierte G30-
+  Gegenbeispiele auf eigenem Mock `127.0.0.1:4188`, ein Worker, niedrige
+  Priorität. Die grünen Gegenproben weisen Fehler nach und bedeuten keine
+  Abnahme. [Browser-Ergebnisse](viewer-palette-fest.r50.browser-summary.json).
+
+Kein erneutes vollständiges Offline-Gate, keine Mac-Messung und keine
+eigene Live-Tastfahrt. Die nächste Nachprüfung kann auf VP-I18/VP-I19
+und unmittelbar dafür nötige Änderungen begrenzt bleiben.

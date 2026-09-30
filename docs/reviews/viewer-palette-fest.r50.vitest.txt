@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r50-akch8lyj/lcnc-webui
+
+
+ Test Files  4 passed (4)
+      Tests  102 passed (102)
+   Start at  20:27:05
+   Duration  1.14s (transform 167ms, setup 0ms, import 398ms, tests 449ms, environment 0ms)
+
