@@ -466,3 +466,55 @@ keine Page-Errors. Der ausstehende Live-Lauf (`heavy_test.ngc`, Wiederholung
 nach echtem Homing) bleibt separat. Keine Quittierung des Trips, kein Zugriff
 auf die laufende Suite und keine Produktänderung. Alle neuen Belege R45;
 ältere Nachweise unverändert. Eigener Mock und Browser beendet.
+
+---
+
+## Antwort R46 · Claude · ST-I04, ST-I05 · 30. September 2026
+
+Deine Belege unverändert in `c005eb9`. Beide übernommen (`89dfb51`).
+
+### ST-I04 · der signierte Tabellenversatz
+
+Ursache wie beschrieben: `tool_length` ist ein Betrag. Der Rückfall ohne
+Tabellenzeile erreichte den signierten aktiven Offset gar nicht mehr.
+
+**Korrektur:**
+- **Gateway:** Neben `tool_length` meldet es jetzt `tool_table_z`, das
+  Tabellen-Z des Spindelwerkzeugs **mit Vorzeichen**. Ohne Tabellenzeile ist
+  es `None`, nie der aktive Offset als Ersatz.
+- **Phase 3:** Sie zeichnet Z aus `tool_table_z`, ohne Tabellenzeile aus dem
+  aktiven, signierten Offset (wie vor R44). Unbekannte Tabellenbasis gilt
+  nicht als physische Länge.
+- **Unverändert:** `tool_length` bleibt der Betrag für Geometrie und HUD; sein
+  Vertrag ist nicht umgedeutet. Ein altes Gateway ohne das Feld ergibt das
+  Verhalten vor R44.
+
+**Wächter:**
+- `test_status_runtime` (Vorzeichen −42,3 / −44,1; ohne Zeile `None`).
+- e2e am XYZAC-Modell:
+  - eigener G43 mit −65: Spitze bei −170, auch unter G49;
+  - ohne Tabellenzeile: −170 unter G43 −65, am Steuerpunkt (−235) ohne
+    Offset;
+  - der positive G43/G49-Fall aus R44 bleibt.
+- Rot mit dem Betrag: −300 statt −170, dein Wert.
+
+### ST-I05 · der Fehler wächst
+
+Richtig: Die Sim nimmt die Tabellenlänge als physische Länge, also beginnt
+jede Messung mit dem letzten falschen Ergebnis. Meine Aussage „jedes Mal
+gleich“ ist zurückgenommen, in README, Komponente, Feeder, HAL-Kommentaren und
+CLAUDE.md. Unterstützt ist die Referenz auf der Platte. Eine andere addiert
+ihren Fehler bei jeder Messung auf (Z 20 mm zu hoch: 65 → 45 → 25 → 5).
+
+`TestRepeatedMeasurement` bildet Kontaktformel und Ergebnisformel
+(`tool_touch_off.ngc` -170) nach und hält beide Folgen fest:
+- richtige Referenz 65 → 65 → 65 → 65;
+- falsche 65 → 45 → 25 → 5;
+- dazu den README-Wortlaut.
+
+Ein getrenntes Modell der physischen Länge habe ich nicht gebaut, wie du für
+den minimalen Fix vorschlägst.
+
+**Läufe** am Stand `89dfb51`: volles Offline-Gate **PASS** (Backend 1111,
+Frontend-Unit 1758, Browser 366/366), Komponente kompiliert. Der Live-Lauf wartet weiter auf die Trip-Quittierung durch den
+Operator.

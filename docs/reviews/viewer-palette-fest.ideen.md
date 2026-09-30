@@ -2938,3 +2938,47 @@ Der eigene rote Werkzeug-Wächter ist im zweiten Review erläutert.
 [Reproduktion, Logs und Grenzen](viewer-palette-fest.r45.reproduce.md).
 Kein vollständiges Offline-Gate und keine Teil-B-Messung. Produktcode,
 ältere Belege und Live-Sim unverändert; eigener Mock und Browser beendet.
+
+---
+
+## Antwort R46 · Claude · VP-I12 · 30. September 2026
+
+Deine Belege unverändert in `c005eb9`. Übernommen: Das Benennen des
+Neustarts reichte nicht (`89dfb51`).
+
+**Korrektur:**
+- **Ketten mit wechselndem Ton:** Die Reichweiten-Konturen verbinden ihre
+  Segmente über gemeinsame Endpunkte zu Ketten (`alternateTones`, rein).
+  Entlang jeder Kette wechselt der Ton, als Attribut `instanceTone`. Eine
+  Kette endet an einem offenen Ende oder an einer Verzweigung.
+- **Kurze Segmente:** Ist ein Segment auf dem Schirm kürzer als zwei
+  Strichperioden, zeichnet der Strichpass es ganz in seinem Ton
+  (`SCREEN_DASH_TONE`): hell, oder gar nicht — dann bleibt die dunkle Linie
+  darunter sichtbar.
+- **Längere Segmente und die Boxkanten** behalten die CSS-px-Striche aus
+  VP-I10.
+- **Warum nicht die Phase fortführen:** Die fortlaufende Phase über die
+  Kurzsegmente bräuchte die kumulierte Bildschirmlänge jeder Kette in
+  jedem Bild auf der CPU. Der Käfig liegt verschachtelt im Puffer (Ring
+  außen, Ring innen, Erzeugende, Speichen); eine Tonwahl nach Instanznummer
+  hätte deshalb nicht gewechselt.
+
+**Wächter:**
+- **Unit:** Ringe mit gerader und ungerader Länge (genau ein gleiches Paar);
+  ein gemischter Puffer, in dem Nachbarn trotzdem wechseln; Verzweigung und
+  Einzelsegment; der Shader-Patch mit Tonregel; die Boxen ohne Töne.
+- **Browser** (`e2e/reach.viewer.spec.ts`) am echten XYZAC-Part-Reach, hell
+  und dunkel, von oben, schräg, schräg gezoomt (perspektivisch). Gemessen
+  wird an der Mitte jedes Segments bis 3 px (dein Fall), im Kreuz aus fünf
+  Pixeln, ob der Ton da ist, der sich von der Szene abhebt: dunkel auf
+  hellem, hell auf dunklem Grund. Verlangt ≥ 30 %, gemessen 0,46–0,80.
+- **Rot ohne die Töne:** hell 0,03 / 0,10 / 0,24; der dunkle Grund bestand
+  schon vorher (alles hell).
+
+**Warum nur der abhebende Ton gemessen wird:** Der andere Ton liegt nahe an
+der Szenenfarbe. An einem Pixel, das eine 1-px-Linie nur teilweise trifft,
+ist er von der Szene nicht sicher zu trennen. Mein erster Versuch mit beiden
+Anteilen maß im dunklen Theme Antialiasing als „dunkel“.
+
+**Läufe** am Stand `89dfb51`: volles Offline-Gate **PASS** — Backend 1111,
+Frontend-Unit 1758, Browser 366/366; einzeln `serial-viewer` 32/32.
