@@ -4337,3 +4337,147 @@ und nicht als bestanden gezählt.
 Die R50-Befunde sind damit erledigt; für die eingereichten R51-Korrekturen
 ist keine weitere Nachprüfrunde nötig. VP-I20 und die zuvor separat
 belassenen Live-/Leistungsprüfungen bleiben eigenständige Folgearbeiten.
+
+---
+
+## Plan VP-I20 · Claude · geerbter Werkzeugoffset in der Limitprüfung · 30. September 2026 · Fassung 1
+
+Deine Einordnung aus R51 übernehme ich: VP-I20 ist ein Fehler. Die
+Limitprüfung fällt als Ganzes erst nach seiner Behebung unter die Abnahme.
+
+### Grundannahme, live geprüft (22:52)
+
+Ein Programm ohne eigenes G43 läuft an dieser Maschine unter dem geerbten
+G43. Geprüft auf dem XYZAC-Sim (LinuxCNC 2.9.4), T13 in der Spindel, G43
+mit 65,0512 aktiv:
+- Ein bewegungsfreies Prüfprogramm meldet beim Start
+  `(DEBUG, … #5403)` = **65,051200**.
+- Das gilt nach dem Laden und ebenso im zweiten Lauf nach dem M2 des ersten.
+- Das `G49` in `RS274NGC_STARTUP_CODE` greift beim Programmstart nicht.
+
+Der Maschinenstand beim Start ist also der modale Offset, den STAT als
+`tool_offset` meldet.
+
+### Ursache
+
+- Der Parse-Interpreter startet mit Offset 0.
+- Der Canon trägt 0 in jedes Segment vor der ersten TLO-Zeile, der
+  Validator addiert 0 zurück.
+- Ein Zug im Werkstücksystem wird darum ohne den Offset geprüft. In
+  deinem Fall erreicht Z45 bei Offset 10 in Wirklichkeit Z55.
+- Ein `G53`-Ziel rechnet der Interpreter mit 0 ins Programmsystem um. Der
+  Client hebt dasselbe Segment mit dem Live-Offset an. Ein `G53 G0 Z0` vor
+  dem ersten G43 wird deshalb um den Offset versetzt gezeichnet, bei
+  `heavy_test` erwartet um etwa 65 mm. Das ist hergeleitet, nicht
+  gemessen; der Live-Wächter unten misst es.
+
+### Vorschlag
+
+**1. Den Parse im Startzustand beginnen.**
+- Der Worker setzt den angewandten Offset des Startzustands als Initzeile
+  `G43.1 X… Y… Z…` in Maschineneinheiten.
+  - **Position:** nach `unitcode` und `G90` (der `unitcode` wählt die
+    Maschineneinheit) und nach der Rotary-Synchronisierung per `G53`, damit
+    der Offset diesen Zug nicht berührt; vor dem WCS-Code.
+- Das geschieht nur, wenn ein Offset ungleich 0 anliegt.
+- **Quelle des Offsets:** Ein gewöhnlicher Parse nimmt ihn live aus STAT,
+  ein gepinnter Parse aus `seed_tool.applied_tlo`. Diesen Wert meldet er
+  heute schon.
+- **Fester Wert für die Offline-Gates:** Ein Override `ctx["applied_tlo"]`
+  wird nur von den Gates und vom Golden-Rezept gesetzt, nie vom Gateway;
+  nach dem Muster von `override_rotary_position` für `rotary_pose`.
+  - Er greift an derselben Lesestelle. Eingesetzter und gemeldeter Offset
+    können sich so nicht widersprechen.
+  - Sonst hinge jede Vorschau-Golden eines Programms mit Vorlauf davon ab,
+    welches G43 auf der Sim gerade aktiv ist.
+  - Die Programme ohne G43 in `native_pinned_probe` (Abschnitt G92/G30)
+    hängen danach von `s.tool_offset` ab. Das ist die beabsichtigte Folge,
+    keine Regression; die Sonde bekommt dort einen festen Offset.
+- Die Initzeile hat `lineno` 0 und wird deshalb nach der bestehenden Regel
+  keine TLO-Zeile. Die Segmente vor der ersten Programm-TLO-Zeile tragen
+  dann den Startoffset.
+- Der Validator prüft sie gelenkseitig richtig, und `G53`-Ziele zieht der
+  Interpreter so ab, wie es die Maschine tut.
+- Der Client bleibt unverändert. Er hebt die Segmente vor der ersten
+  TLO-Zeile weiter mit dem Live-Offset an. Solange Live gleich Start ist,
+  stimmt das genau.
+
+**2. Die Nutzdaten hängen dann vom Offset ab, aber nur über den Vorlauf.**
+- Der Worker meldet in `__TLO__` zusätzlich `prefix_moves`: die Zahl der
+  Bewegungssegmente vor der ersten TLO-Zeile des Programms, bzw. aller
+  Segmente, wenn das Programm keine TLO-Zeile hat.
+- Ohne Vorlauf, also wenn das Programm vor jeder Bewegung selbst G43 oder
+  G49 setzt, bleiben die Nutzdaten vom Offset unabhängig. Das bleibt so
+  belegt wie in R51.
+
+**3. Den Auslöser nur dort, wo er etwas ändert.**
+- Die Leerlauf-Flanke meldet wieder `tool_offset`, aber nur, wenn der
+  veröffentlichte Parse einen Vorlauf hat (`prefix_moves > 0`) **und** der
+  Live-Offset um mehr als `PREFIX_TLO_EPS` vom Startoffset abweicht.
+- `PREFIX_TLO_EPS` = **0,01 mm**, in Maschineneinheiten umgerechnet.
+  - **Grundlage:** Das langsame Tasten mit F200 rastert auf etwa 3,3 µm
+    pro Servozyklus (1 ms). Zwei Messungen können also um rund 7 µm
+    auseinanderliegen; das ist die 1,5-fache Reserve bis 10 µm.
+    Beobachtet wurden 3,9 µm und 5,1 µm.
+- Ohne Vorlauf löst der Offset nie aus.
+- Dieses Verhalten ist nicht der entfernte Auslöser von vorher. Der hat
+  jede Abweichung über 1e-4 gemeldet, auch dann, wenn der Parse gar nicht
+  vom Offset abhing.
+- **Der Operator-Fall aus R51 bleibt ruhig:**
+  - `heavy_test` hat einen Vorlauf, das `G53 G0 Z0` vor `T13 M600`.
+  - Die Messungen streuen um wenige µm; beobachtet wurden 3,9 µm und
+    5,1 µm.
+  - Nach dem Lauf gibt es deshalb weiterhin keinen zweiten Parse.
+- **Andere Fälle parsen neu:**
+  - ein Werkzeug, das um Millimeter anders gemessen wurde,
+  - ein G43 oder G49 von Hand bei einem Programm mit Vorlauf.
+
+**4. Benannte Grenze:**
+- Innerhalb von 0,01 mm kann ein Vorlaufpunkt, der näher als 0,01 mm an
+  einer Grenze liegt, bis zum nächsten Parse anders bewertet werden.
+- Die Zeichnung eines `G53`-Vorlaufzugs weicht um höchstens diese
+  Differenz ab.
+
+### Alternative, die ich nicht vorschlage
+
+Den Vorlauf nach der Art des Zugs trennen: `G53`-Vorlauf beeinflusst nur
+die Zeichnung, ein Zug im Werkstücksystem die Limitbewertung. Beide
+bekämen eigene Toleranzen. Das bringt zusätzliche Metadaten und eine
+zweite Toleranz, und der Nutzen ist klein.
+
+### Wächter, jeweils zuerst rot
+
+- **Native Sonde:**
+  - Dein Fall: Offset 10, Z-Max 50, Z45 ohne G43 → **Z55 > 50 gemeldet**,
+    `feed_outside` gesetzt.
+  - Positive Kontrolle mit barem G43.
+  - G49 in der ersten Zeile: kein Vorlauf, Nutzdaten unabhängig vom Offset.
+  - `G53 G0 Z0` im Vorlauf: kein Befund, das Canon-Ziel liegt auf
+    Maschine Z0 abzüglich Offset.
+  - Späteres G43 H…: dieselben TLO-Zeilen wie heute.
+- **Byte-Wächter aus R51, umformuliert:**
+  - Ohne Vorlauf bleiben die Nutzdaten gleich für 10 / 10,005 / 0 / 80.
+  - Mit Vorlauf unterscheiden sie sich ausschließlich in den
+    Vorlaufsegmenten, ihren Flags und den Befunden.
+- **Drift, Unit-Tests:**
+  - Vorlauf 0 → nie `tool_offset`.
+  - Vorlauf > 0 und Δ > eps → `tool_offset`.
+  - Vorlauf > 0 und Δ ≤ eps → nichts.
+  - Alte Meta ohne `prefix_moves` → nichts, wie heute.
+- **Live:**
+  - `heavy_test` noch einmal nach meinem Szenario: messen, gepinnter
+    Parse, Abbruch → **kein** zweiter Parse.
+  - Danach `G43.1 Z…` per MDI um 1 mm geändert → ein Parse mit
+    `tool_offset`. Anschließend `G43 H13` wiederherstellen; es ist der
+    Stand des Operators.
+  - Der Vorlauf-Zug `G53 G0 Z0` wird an Maschine Z0 gezeichnet
+    (`__viewerDiag`).
+
+### Frage an dich
+
+- Reicht `PREFIX_TLO_EPS` = 0,01 mm als benannte Grenze? Wäre 0,02 mm
+  sicherer, mit Blick auf die Messstreuung und weiterhin weit unter jeder
+  sichtbaren oder für eine Grenze relevanten Auflösung? Oder willst du für
+  Vorlaufpunkte nahe einer Grenze eine andere Behandlung?
+- Siehst du einen Weg, bei dem die Nutzdaten ganz vom Offset unabhängig
+  bleiben und die Limitbewertung trotzdem stimmt?
