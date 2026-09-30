@@ -1,0 +1,114 @@
+{
+  "gl": {
+    "pairs": 100000,
+    "memory": {
+      "mode": "gl",
+      "cpu": {
+        "base": 800000,
+        "dist": 0,
+        "overlay": 800000,
+        "reveal": 0,
+        "mesh": 0,
+        "box": 580,
+        "source": 1200012,
+        "payload": 500005,
+        "total": 3300597
+      },
+      "gpu": {
+        "base": 0,
+        "dist": 0,
+        "overlay": 0,
+        "reveal": 0,
+        "mesh": 0,
+        "box": 0,
+        "total": 0
+      },
+      "allocated": 3307058,
+      "peak": 5001122,
+      "eager": {
+        "estimate": 0,
+        "packed": 0
+      },
+      "generation": 2,
+      "pairs": {
+        "source": 100000,
+        "lod": 100000,
+        "drawn": 100000
+      }
+    },
+    "omitted": 256,
+    "actualHeldAtLeast": 3300853,
+    "missing": [
+      {
+        "name": "sets[0].bounds",
+        "bytes": 192
+      },
+      {
+        "name": "sets[0].ovIdx[0].starts",
+        "bytes": 32
+      },
+      {
+        "name": "sets[0].ovIdx[0].counts",
+        "bytes": 32
+      }
+    ]
+  },
+  "fat": {
+    "pairs": 100000,
+    "memory": {
+      "mode": "fat",
+      "cpu": {
+        "base": 2400000,
+        "dist": 0,
+        "overlay": 2400000,
+        "reveal": 0,
+        "mesh": 3136,
+        "box": 580,
+        "source": 2000012,
+        "payload": 500005,
+        "total": 7303733
+      },
+      "gpu": {
+        "base": 0,
+        "dist": 0,
+        "overlay": 0,
+        "reveal": 0,
+        "mesh": 0,
+        "box": 0,
+        "total": 0
+      },
+      "allocated": 8120402,
+      "peak": 9804258,
+      "eager": {
+        "estimate": 4803136,
+        "packed": 4803136
+      },
+      "generation": 2,
+      "pairs": {
+        "source": 100000,
+        "lod": 100000,
+        "drawn": 100000
+      }
+    },
+    "omitted": 800256,
+    "actualHeldAtLeast": 8103989,
+    "missing": [
+      {
+        "name": "sets[0].bounds",
+        "bytes": 192
+      },
+      {
+        "name": "sets[0].ovIdx[0].index",
+        "bytes": 800000
+      },
+      {
+        "name": "sets[0].ovIdx[0].starts",
+        "bytes": 32
+      },
+      {
+        "name": "sets[0].ovIdx[0].counts",
+        "bytes": 32
+      }
+    ]
+  }
+}

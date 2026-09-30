@@ -1,0 +1,1061 @@
+{
+  "commit": "a614c70",
+  "cases": [
+    {
+      "case": "control_complete",
+      "verdict": "PASS",
+      "checks": [
+        {
+          "check": "orbit: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "orbit: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "orbit: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "orbit: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "fitdetail: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "fitdetail: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "fitdetail: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "fitdetail: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "jumps: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "jumps: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "jumps: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "jumps: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "overlay_off: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "overlay_off: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "overlay_off: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "overlay_off: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "reveal: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "reveal: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "reveal: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "reveal: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "gl build: every build phase a real build",
+          "ok": true,
+          "detail": "path generations [1, 4, 5]"
+        },
+        {
+          "check": "gl build: the eager estimate bounds the pack",
+          "ok": true,
+          "detail": "estimate / packed MiB: 0.0 / 0.0, 0.0 / 0.0, 0.0 / 0.0"
+        },
+        {
+          "check": "fat build: every build phase a real build",
+          "ok": true,
+          "detail": "path generations [2, 3, 6]"
+        },
+        {
+          "check": "fat build: the eager estimate bounds the pack",
+          "ok": true,
+          "detail": "estimate / packed MiB: 60.0 / 60.0, 60.0 / 60.0, 60.0 / 60.0"
+        },
+        {
+          "check": "build: B's duration \u2264 1.5 \u00d7 A + 100 ms",
+          "ok": true,
+          "detail": "median A 400 ms, B 450 ms, limit 700 ms"
+        },
+        {
+          "check": "build: B's longest main-thread block \u2264 1.5 \u00d7 A + 100 ms",
+          "ok": true,
+          "detail": "median A 110 ms, B 120 ms, limit 265 ms"
+        },
+        {
+          "check": "memory after_load cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB"
+        },
+        {
+          "check": "memory after_load gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 70.0 MiB, B 120.0 MiB"
+        },
+        {
+          "check": "memory after_orbit cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB"
+        },
+        {
+          "check": "memory after_orbit gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 70.0 MiB, B 120.0 MiB"
+        },
+        {
+          "check": "memory after_lods cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB"
+        },
+        {
+          "check": "memory after_lods gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 70.0 MiB, B 120.0 MiB"
+        },
+        {
+          "check": "memory after_nav cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB"
+        },
+        {
+          "check": "memory after_nav gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 70.0 MiB, B 120.0 MiB"
+        },
+        {
+          "check": "memory after_reveal cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB"
+        },
+        {
+          "check": "memory after_reveal gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 70.0 MiB, B 120.0 MiB"
+        },
+        {
+          "check": "memory peak (every phase): B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 120.0 MiB, B 170.0 MiB (upper bound: every allocation of a build alive at once)"
+        },
+        {
+          "check": "gl release: every path byte freed",
+          "ok": true,
+          "detail": "CPU / GPU left besides the program: [(0, 0), (0, 0), (0, 0)]"
+        },
+        {
+          "check": "fat release: every path byte freed",
+          "ok": true,
+          "detail": "CPU / GPU left besides the program: [(0, 0), (0, 0), (0, 0)]"
+        }
+      ],
+      "excluded": []
+    },
+    {
+      "case": "all_peak_values_missing",
+      "verdict": "INCOMPLETE",
+      "checks": [
+        {
+          "check": "gl build: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "gl orbit: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "gl fitdetail: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "gl jumps: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "gl reveal: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "gl release: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "fat build: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "fat orbit: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "fat fitdetail: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "fat jumps: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "fat reveal: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "fat release: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "overlay_off: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "overlay_off: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "overlay_off: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "overlay_off: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        }
+      ],
+      "excluded": [
+        "1/gl/build: no memory.peak",
+        "1/gl/orbit: no memory.peak",
+        "1/gl/fitdetail: no memory.peak",
+        "1/gl/jumps: no memory.peak",
+        "1/gl/reveal: no memory.peak",
+        "1/gl/release: no memory.peak",
+        "2/fat/build: no memory.peak",
+        "2/fat/orbit: no memory.peak",
+        "2/fat/fitdetail: no memory.peak",
+        "2/fat/jumps: no memory.peak",
+        "2/fat/reveal: no memory.peak",
+        "2/fat/release: no memory.peak",
+        "3/fat/build: no memory.peak",
+        "3/fat/orbit: no memory.peak",
+        "3/fat/fitdetail: no memory.peak",
+        "3/fat/jumps: no memory.peak",
+        "3/fat/reveal: no memory.peak",
+        "3/fat/release: no memory.peak",
+        "4/gl/build: no memory.peak",
+        "4/gl/orbit: no memory.peak",
+        "4/gl/fitdetail: no memory.peak",
+        "4/gl/jumps: no memory.peak",
+        "4/gl/reveal: no memory.peak",
+        "4/gl/release: no memory.peak",
+        "5/gl/build: no memory.peak",
+        "5/gl/orbit: no memory.peak",
+        "5/gl/fitdetail: no memory.peak",
+        "5/gl/jumps: no memory.peak",
+        "5/gl/reveal: no memory.peak",
+        "5/gl/release: no memory.peak",
+        "6/fat/build: no memory.peak",
+        "6/fat/orbit: no memory.peak",
+        "6/fat/fitdetail: no memory.peak",
+        "6/fat/jumps: no memory.peak",
+        "6/fat/reveal: no memory.peak",
+        "6/fat/release: no memory.peak"
+      ]
+    },
+    {
+      "case": "fat_reveal_peak_512MiB",
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "check": "orbit: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "orbit: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "orbit: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "orbit: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "fitdetail: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "fitdetail: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "fitdetail: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "fitdetail: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "jumps: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "jumps: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "jumps: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "jumps: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "overlay_off: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "overlay_off: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "overlay_off: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "overlay_off: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "reveal: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "reveal: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "reveal: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "reveal: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "gl build: every build phase a real build",
+          "ok": true,
+          "detail": "path generations [1, 4, 5]"
+        },
+        {
+          "check": "gl build: the eager estimate bounds the pack",
+          "ok": true,
+          "detail": "estimate / packed MiB: 0.0 / 0.0, 0.0 / 0.0, 0.0 / 0.0"
+        },
+        {
+          "check": "fat build: every build phase a real build",
+          "ok": true,
+          "detail": "path generations [2, 3, 6]"
+        },
+        {
+          "check": "fat build: the eager estimate bounds the pack",
+          "ok": true,
+          "detail": "estimate / packed MiB: 60.0 / 60.0, 60.0 / 60.0, 60.0 / 60.0"
+        },
+        {
+          "check": "build: B's duration \u2264 1.5 \u00d7 A + 100 ms",
+          "ok": true,
+          "detail": "median A 400 ms, B 450 ms, limit 700 ms"
+        },
+        {
+          "check": "build: B's longest main-thread block \u2264 1.5 \u00d7 A + 100 ms",
+          "ok": true,
+          "detail": "median A 110 ms, B 120 ms, limit 265 ms"
+        },
+        {
+          "check": "memory after_load cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB"
+        },
+        {
+          "check": "memory after_load gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 70.0 MiB, B 120.0 MiB"
+        },
+        {
+          "check": "memory after_orbit cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB"
+        },
+        {
+          "check": "memory after_orbit gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 70.0 MiB, B 120.0 MiB"
+        },
+        {
+          "check": "memory after_lods cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB"
+        },
+        {
+          "check": "memory after_lods gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 70.0 MiB, B 120.0 MiB"
+        },
+        {
+          "check": "memory after_nav cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB"
+        },
+        {
+          "check": "memory after_nav gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 70.0 MiB, B 120.0 MiB"
+        },
+        {
+          "check": "memory after_reveal cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB"
+        },
+        {
+          "check": "memory after_reveal gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 70.0 MiB, B 120.0 MiB"
+        },
+        {
+          "check": "memory peak (every phase): B \u2212 A \u2264 128 MiB",
+          "ok": false,
+          "detail": "A 120.0 MiB, B 512.0 MiB (upper bound: every allocation of a build alive at once)"
+        },
+        {
+          "check": "gl release: every path byte freed",
+          "ok": true,
+          "detail": "CPU / GPU left besides the program: [(0, 0), (0, 0), (0, 0)]"
+        },
+        {
+          "check": "fat release: every path byte freed",
+          "ok": true,
+          "detail": "CPU / GPU left besides the program: [(0, 0), (0, 0), (0, 0)]"
+        }
+      ],
+      "excluded": []
+    },
+    {
+      "case": "gpu_total_missing",
+      "verdict": "INCOMPLETE",
+      "checks": [
+        {
+          "check": "gl build: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "gl orbit: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "gl fitdetail: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "gl jumps: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "gl reveal: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "gl release: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "fat build: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "fat orbit: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "fat fitdetail: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "fat jumps: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "fat reveal: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "fat release: 3 valid repetitions",
+          "ok": null,
+          "detail": "0 valid \u2014 see excluded"
+        },
+        {
+          "check": "overlay_off: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "overlay_off: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "overlay_off: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "overlay_off: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        }
+      ],
+      "excluded": [
+        "1/gl/build: no memory.gpu.total",
+        "1/gl/orbit: no memory.gpu.total",
+        "1/gl/fitdetail: no memory.gpu.total",
+        "1/gl/jumps: no memory.gpu.total",
+        "1/gl/reveal: no memory.gpu.total",
+        "1/gl/release: no memory.gpu.total",
+        "2/fat/build: no memory.gpu.total",
+        "2/fat/orbit: no memory.gpu.total",
+        "2/fat/fitdetail: no memory.gpu.total",
+        "2/fat/jumps: no memory.gpu.total",
+        "2/fat/reveal: no memory.gpu.total",
+        "2/fat/release: no memory.gpu.total",
+        "3/fat/build: no memory.gpu.total",
+        "3/fat/orbit: no memory.gpu.total",
+        "3/fat/fitdetail: no memory.gpu.total",
+        "3/fat/jumps: no memory.gpu.total",
+        "3/fat/reveal: no memory.gpu.total",
+        "3/fat/release: no memory.gpu.total",
+        "4/gl/build: no memory.gpu.total",
+        "4/gl/orbit: no memory.gpu.total",
+        "4/gl/fitdetail: no memory.gpu.total",
+        "4/gl/jumps: no memory.gpu.total",
+        "4/gl/reveal: no memory.gpu.total",
+        "4/gl/release: no memory.gpu.total",
+        "5/gl/build: no memory.gpu.total",
+        "5/gl/orbit: no memory.gpu.total",
+        "5/gl/fitdetail: no memory.gpu.total",
+        "5/gl/jumps: no memory.gpu.total",
+        "5/gl/reveal: no memory.gpu.total",
+        "5/gl/release: no memory.gpu.total",
+        "6/fat/build: no memory.gpu.total",
+        "6/fat/orbit: no memory.gpu.total",
+        "6/fat/fitdetail: no memory.gpu.total",
+        "6/fat/jumps: no memory.gpu.total",
+        "6/fat/reveal: no memory.gpu.total",
+        "6/fat/release: no memory.gpu.total"
+      ]
+    },
+    {
+      "case": "control_build_blocks_300_10_300",
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "check": "orbit: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "orbit: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "orbit: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "orbit: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "fitdetail: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "fitdetail: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "fitdetail: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "fitdetail: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "jumps: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "jumps: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "jumps: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "jumps: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "overlay_off: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "overlay_off: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "overlay_off: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "overlay_off: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "reveal: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "reveal: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "reveal: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "reveal: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "gl build: every build phase a real build",
+          "ok": true,
+          "detail": "path generations [1, 4, 5]"
+        },
+        {
+          "check": "gl build: the eager estimate bounds the pack",
+          "ok": true,
+          "detail": "estimate / packed MiB: 0.0 / 0.0, 0.0 / 0.0, 0.0 / 0.0"
+        },
+        {
+          "check": "fat build: every build phase a real build",
+          "ok": true,
+          "detail": "path generations [2, 3, 6]"
+        },
+        {
+          "check": "fat build: the eager estimate bounds the pack",
+          "ok": true,
+          "detail": "estimate / packed MiB: 60.0 / 60.0, 60.0 / 60.0, 60.0 / 60.0"
+        },
+        {
+          "check": "build: B's duration \u2264 1.5 \u00d7 A + 100 ms",
+          "ok": true,
+          "detail": "median A 400 ms, B 450 ms, limit 700 ms"
+        },
+        {
+          "check": "build: B's longest main-thread block \u2264 1.5 \u00d7 A + 100 ms",
+          "ok": false,
+          "detail": "median A 110 ms, B 300 ms, limit 265 ms"
+        },
+        {
+          "check": "memory after_load cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB"
+        },
+        {
+          "check": "memory after_load gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 70.0 MiB, B 120.0 MiB"
+        },
+        {
+          "check": "memory after_orbit cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB"
+        },
+        {
+          "check": "memory after_orbit gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 70.0 MiB, B 120.0 MiB"
+        },
+        {
+          "check": "memory after_lods cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB"
+        },
+        {
+          "check": "memory after_lods gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 70.0 MiB, B 120.0 MiB"
+        },
+        {
+          "check": "memory after_nav cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB"
+        },
+        {
+          "check": "memory after_nav gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 70.0 MiB, B 120.0 MiB"
+        },
+        {
+          "check": "memory after_reveal cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB"
+        },
+        {
+          "check": "memory after_reveal gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 70.0 MiB, B 120.0 MiB"
+        },
+        {
+          "check": "memory peak (every phase): B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 120.0 MiB, B 170.0 MiB (upper bound: every allocation of a build alive at once)"
+        },
+        {
+          "check": "gl release: every path byte freed",
+          "ok": true,
+          "detail": "CPU / GPU left besides the program: [(0, 0), (0, 0), (0, 0)]"
+        },
+        {
+          "check": "fat release: every path byte freed",
+          "ok": true,
+          "detail": "CPU / GPU left besides the program: [(0, 0), (0, 0), (0, 0)]"
+        }
+      ],
+      "excluded": []
+    },
+    {
+      "case": "one_build_max_summary_missing_histogram_still_present",
+      "verdict": "FAIL",
+      "checks": [
+        {
+          "check": "orbit: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "orbit: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "orbit: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "orbit: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "fitdetail: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "fitdetail: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "fitdetail: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "fitdetail: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "jumps: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "jumps: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "jumps: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "jumps: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "overlay_off: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "overlay_off: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "overlay_off: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "overlay_off: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "reveal: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)"
+        },
+        {
+          "check": "reveal: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "reveal: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "reveal: no new recurring main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0 in 3.0 s, B 0 in 3.0 s (A's rate predicts 0.0)"
+        },
+        {
+          "check": "gl build: every build phase a real build",
+          "ok": true,
+          "detail": "path generations [1, 4, 5]"
+        },
+        {
+          "check": "gl build: the eager estimate bounds the pack",
+          "ok": true,
+          "detail": "estimate / packed MiB: 0.0 / 0.0, 0.0 / 0.0, 0.0 / 0.0"
+        },
+        {
+          "check": "fat build: every build phase a real build",
+          "ok": true,
+          "detail": "path generations [2, 3, 6]"
+        },
+        {
+          "check": "fat build: the eager estimate bounds the pack",
+          "ok": true,
+          "detail": "estimate / packed MiB: 60.0 / 60.0, 60.0 / 60.0, 60.0 / 60.0"
+        },
+        {
+          "check": "build: B's duration \u2264 1.5 \u00d7 A + 100 ms",
+          "ok": true,
+          "detail": "median A 400 ms, B 450 ms, limit 700 ms"
+        },
+        {
+          "check": "build: B's longest main-thread block \u2264 1.5 \u00d7 A + 100 ms",
+          "ok": false,
+          "detail": "median A 110 ms, B 300 ms, limit 265 ms"
+        },
+        {
+          "check": "memory after_load cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB"
+        },
+        {
+          "check": "memory after_load gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 70.0 MiB, B 120.0 MiB"
+        },
+        {
+          "check": "memory after_orbit cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB"
+        },
+        {
+          "check": "memory after_orbit gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 70.0 MiB, B 120.0 MiB"
+        },
+        {
+          "check": "memory after_lods cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB"
+        },
+        {
+          "check": "memory after_lods gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 70.0 MiB, B 120.0 MiB"
+        },
+        {
+          "check": "memory after_nav cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB"
+        },
+        {
+          "check": "memory after_nav gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 70.0 MiB, B 120.0 MiB"
+        },
+        {
+          "check": "memory after_reveal cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB"
+        },
+        {
+          "check": "memory after_reveal gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 70.0 MiB, B 120.0 MiB"
+        },
+        {
+          "check": "memory peak (every phase): B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 120.0 MiB, B 170.0 MiB (upper bound: every allocation of a build alive at once)"
+        },
+        {
+          "check": "gl release: every path byte freed",
+          "ok": true,
+          "detail": "CPU / GPU left besides the program: [(0, 0), (0, 0), (0, 0)]"
+        },
+        {
+          "check": "fat release: every path byte freed",
+          "ok": true,
+          "detail": "CPU / GPU left besides the program: [(0, 0), (0, 0), (0, 0)]"
+        }
+      ],
+      "excluded": []
+    }
+  ]
+}

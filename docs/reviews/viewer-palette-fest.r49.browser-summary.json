@@ -1,0 +1,142 @@
+{
+  "stats": {
+    "startTime": "2026-09-30T11:57:00.756Z",
+    "duration": 171061.379,
+    "expected": 10,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "file": "abrun.viewer.spec.ts",
+      "line": 62,
+      "title": "the Debug switch rebuilds the paths in the chosen renderer; a run measures every phase and leaves the view as it was",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 31715,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "abrun.viewer.spec.ts",
+      "line": 136,
+      "title": "a run from an open simulation: the same jumps every repetition, the timeline back at its position",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 28222,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "abrun.viewer.spec.ts",
+      "line": 162,
+      "title": "a shown finding on a hidden rapid comes back after a run to its end",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 30343,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "abrun.viewer.spec.ts",
+      "line": 162,
+      "title": "a shown finding on a hidden rapid comes back after a run cancelled mid-run",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 13113,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "r49.viewer.spec.ts",
+      "line": 64,
+      "title": "R49: preserve a selected finding on the hidden rapid layer",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 19676,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "line": 64,
+      "title": "a half-mixed pixel reads as half the limit, not as the backplot",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 1,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "line": 76,
+      "title": "the palette in four themes, on a model, a dense and a thin path \u2014 and no current line drawn",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 8025,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "line": 223,
+      "title": "every path line is drawn 2 CSS px \u2014 the path, the limit overlay and the backplot, at DPR 1 and 2",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 23461,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "line": 370,
+      "title": "the box edge alone: two tones, MACHINE_BOX_PX wide, dashes of MACHINE_BOX_DASH_PX \u2014 at DPR 1 and 2",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 8532,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "line": 446,
+      "title": "box dashes hold MACHINE_BOX_DASH_PX along every projected edge \u2014 parallel and perspective, three directions",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 6938,
+          "errors": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+--- a/src/viewer/toolpathController.ts
++++ b/src/viewer/r49.instrumented-controller.ts
+@@ -443,6 +443,7 @@
+       }
+     }
+     cpu.total = cpu.base + cpu.dist + cpu.overlay + cpu.reveal + cpu.mesh + cpu.box + cpu.source + cpu.payload;
++    __r49Probe.sets = sets; __r49Probe.counted = new Set(seenCpu);
+     gpu.total = gpu.base + gpu.dist + gpu.overlay + gpu.reveal + gpu.mesh + gpu.box;
+     let source = 0, lod = 0, drawn = 0;
+     const shown = (o: THREE.Object3D) => { for (let p: THREE.Object3D | null = o; p; p = p.parent) if (!p.visible) return false; return true; };
+@@ -1357,3 +1358,6 @@
+     get roomSegs() { let n = 0; for (const s of sets) if (s.frame === 1) n += s.pairs; return n; },
+   };
+ }
++
++// Review-only observation: no product behavior is changed.
++export const __r49Probe: { sets: any[]; counted: Set<ArrayBufferLike> } = { sets: [], counted: new Set() };

@@ -1,0 +1,4272 @@
+{
+  "before": {
+    "pos": "182.001291915894",
+    "tip": [
+      0,
+      0,
+      0
+    ],
+    "line": "L14 →",
+    "memory": {
+      "mode": "fat",
+      "cpu": {
+        "base": 792,
+        "dist": 24,
+        "overlay": 216,
+        "reveal": 64,
+        "mesh": 8624,
+        "box": 580,
+        "source": 416,
+        "payload": 273,
+        "total": 10989
+      },
+      "gpu": {
+        "base": 240,
+        "dist": 8,
+        "overlay": 72,
+        "reveal": 32,
+        "mesh": 2744,
+        "box": 0,
+        "total": 3096
+      },
+      "allocated": 15145,
+      "peak": 15114,
+      "eager": {
+        "estimate": 9272,
+        "packed": 9264
+      },
+      "generation": 1,
+      "pairs": {
+        "source": 11,
+        "lod": 10,
+        "drawn": 9
+      }
+    },
+    "rapid": {
+      "x": 540.7254987182097,
+      "y": 552.8662895794749,
+      "dx": 0.9365133980782949,
+      "dy": 0.3506317943653215,
+      "length": 227.53185266523164
+    }
+  },
+  "after": {
+    "pos": "182.001291915894",
+    "tip": [
+      0,
+      0,
+      0
+    ],
+    "line": "L14 →",
+    "memory": {
+      "mode": "fat",
+      "cpu": {
+        "base": 792,
+        "dist": 24,
+        "overlay": 216,
+        "reveal": 64,
+        "mesh": 8624,
+        "box": 580,
+        "source": 416,
+        "payload": 273,
+        "total": 10989
+      },
+      "gpu": {
+        "base": 216,
+        "dist": 0,
+        "overlay": 72,
+        "reveal": 32,
+        "mesh": 2548,
+        "box": 0,
+        "total": 2868
+      },
+      "allocated": 93464,
+      "peak": 15114,
+      "eager": {
+        "estimate": 9272,
+        "packed": 9264
+      },
+      "generation": 8,
+      "pairs": {
+        "source": 11,
+        "lod": 10,
+        "drawn": 9
+      }
+    },
+    "rapid": {
+      "x": 540.7254987182097,
+      "y": 552.866289579475,
+      "dx": 0.9365133980782945,
+      "dy": 0.3506317943653224,
+      "length": 227.53185266523172
+    }
+  },
+  "calibration": [
+    {
+      "rapid": null,
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 792,
+          "dist": 24,
+          "overlay": 216,
+          "reveal": 0,
+          "mesh": 8232,
+          "box": 580,
+          "source": 416,
+          "payload": 273,
+          "total": 10533
+        },
+        "gpu": {
+          "base": 240,
+          "dist": 8,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 2548,
+          "box": 0,
+          "total": 2868
+        },
+        "allocated": 15145,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 1,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 0
+        }
+      }
+    },
+    {
+      "rapid": null,
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 792,
+          "dist": 24,
+          "overlay": 216,
+          "reveal": 0,
+          "mesh": 8232,
+          "box": 580,
+          "source": 416,
+          "payload": 273,
+          "total": 10533
+        },
+        "gpu": {
+          "base": 240,
+          "dist": 8,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 2548,
+          "box": 0,
+          "total": 2868
+        },
+        "allocated": 15145,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 1,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 0
+        }
+      }
+    },
+    {
+      "rapid": null,
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 792,
+          "dist": 24,
+          "overlay": 216,
+          "reveal": 0,
+          "mesh": 8232,
+          "box": 580,
+          "source": 416,
+          "payload": 273,
+          "total": 10533
+        },
+        "gpu": {
+          "base": 240,
+          "dist": 8,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 2548,
+          "box": 0,
+          "total": 2868
+        },
+        "allocated": 15145,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 1,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 0
+        }
+      }
+    }
+  ],
+  "phases": [
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769528419,
+      "t_perf_ms": 3391,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 0,
+      "phase": "meta",
+      "order": "gl,fat,fat,gl,gl,fat",
+      "durations": {
+        "calibrateMs": 300,
+        "warmupMs": 200,
+        "orbitMs": 300,
+        "fitDetailCycles": 1,
+        "fitDetailHoldMs": 200,
+        "jumps": 3,
+        "jumpMs": 180,
+        "overlayMs": 200
+      },
+      "initial": "fat",
+      "commit": "unknown",
+      "build": "production",
+      "ua": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.0 Safari/537.36",
+      "viewport": [
+        1034,
+        588
+      ],
+      "pixel_ratio": 1,
+      "device_pixel_ratio": 1,
+      "zoom": 1,
+      "file": "/ab.ngc",
+      "source": null,
+      "feed_segs": 10,
+      "rapid_segs": 3,
+      "chunks": 11,
+      "overlays": true,
+      "backplot_pts": 0,
+      "backplot_full": false,
+      "path_on_top": false,
+      "projection": "parallel",
+      "theme": "auto",
+      "sim": true
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769528730,
+      "t_perf_ms": 3702,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 1,
+      "rep": -1,
+      "variant": "none",
+      "phase": "calibrate",
+      "status": "ran",
+      "ms": 310,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 17,
+        "p95": 35,
+        "win_p95_max": 35,
+        "max": 34.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 17,
+        "p95": 31,
+        "win_p95_max": 31,
+        "max": 30.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 16,
+        "p95": 35,
+        "win_p95_max": 35,
+        "max": 34.5,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "render": {
+        "calls": 11,
+        "triangles": 462,
+        "lines": 53,
+        "geometries": 24,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769528842,
+      "t_perf_ms": 3814,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 2,
+      "rep": 0,
+      "variant": "gl",
+      "phase": "build",
+      "status": "ran",
+      "ms": 111,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 3,
+        "p95": 77,
+        "win_p95_max": 77,
+        "max": 76.7,
+        "over_50": 1,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 2,
+        "p95": 75,
+        "win_p95_max": 75,
+        "max": 74.5,
+        "over_50": 1,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 2,
+        "p95": 77,
+        "win_p95_max": 77,
+        "max": 76,
+        "over_50": 1,
+        "over_100": 0
+      },
+      "memory_at": "after_load",
+      "memory": {
+        "mode": "gl",
+        "cpu": {
+          "base": 248,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 580,
+          "source": 168,
+          "payload": 273,
+          "total": 1341
+        },
+        "gpu": {
+          "base": 228,
+          "dist": 0,
+          "overlay": 24,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "total": 252
+        },
+        "allocated": 20554,
+        "peak": 5850,
+        "eager": {
+          "estimate": 0,
+          "packed": 0
+        },
+        "generation": 2,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 462,
+        "lines": 65,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769529054,
+      "t_perf_ms": 4027,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 3,
+      "rep": 0,
+      "variant": "gl",
+      "phase": "warmup",
+      "status": "ran",
+      "ms": 212,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 11,
+        "p95": 30,
+        "win_p95_max": 30,
+        "max": 29.5,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 11,
+        "p95": 36,
+        "win_p95_max": 36,
+        "max": 35.4,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 10,
+        "p95": 30,
+        "win_p95_max": 30,
+        "max": 29,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 462,
+        "lines": 65,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769529369,
+      "t_perf_ms": 4341,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 4,
+      "rep": 0,
+      "variant": "gl",
+      "phase": "orbit",
+      "status": "ran",
+      "ms": 314,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 19,
+        "p95": 21,
+        "win_p95_max": 21,
+        "max": 20.8,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 18,
+        "p95": 28,
+        "win_p95_max": 28,
+        "max": 27.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 18,
+        "p95": 21,
+        "win_p95_max": 21,
+        "max": 20.5,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_orbit",
+      "memory": {
+        "mode": "gl",
+        "cpu": {
+          "base": 248,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 580,
+          "source": 168,
+          "payload": 273,
+          "total": 1341
+        },
+        "gpu": {
+          "base": 228,
+          "dist": 0,
+          "overlay": 24,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "total": 252
+        },
+        "allocated": 20554,
+        "peak": 5850,
+        "eager": {
+          "estimate": 0,
+          "packed": 0
+        },
+        "generation": 2,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 462,
+        "lines": 65,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769529573,
+      "t_perf_ms": 4545,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 5,
+      "rep": 0,
+      "variant": "gl",
+      "phase": "fitdetail",
+      "status": "ran",
+      "ms": 203,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 12,
+        "p95": 22,
+        "win_p95_max": 22,
+        "max": 21.8,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 13,
+        "p95": 16,
+        "win_p95_max": 16,
+        "max": 15.3,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 11,
+        "p95": 22,
+        "win_p95_max": 22,
+        "max": 21.4,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_lods",
+      "memory": {
+        "mode": "gl",
+        "cpu": {
+          "base": 248,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 580,
+          "source": 168,
+          "payload": 273,
+          "total": 1341
+        },
+        "gpu": {
+          "base": 228,
+          "dist": 0,
+          "overlay": 24,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "total": 252
+        },
+        "allocated": 20554,
+        "peak": 5850,
+        "eager": {
+          "estimate": 0,
+          "packed": 0
+        },
+        "generation": 2,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 462,
+        "lines": 65,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769530374,
+      "t_perf_ms": 5346,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 6,
+      "rep": 0,
+      "variant": "gl",
+      "phase": "jumps",
+      "status": "ran",
+      "ms": 801,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 40,
+        "p95": 22,
+        "win_p95_max": 22,
+        "max": 111.2,
+        "over_50": 1,
+        "over_100": 1
+      },
+      "mt": {
+        "n": 39,
+        "p95": 34,
+        "win_p95_max": 34,
+        "max": 108.1,
+        "over_50": 1,
+        "over_100": 1
+      },
+      "gpu": {
+        "n": 35,
+        "p95": 22,
+        "win_p95_max": 22,
+        "max": 109.8,
+        "over_50": 1,
+        "over_100": 1
+      },
+      "memory_at": "after_nav",
+      "memory": {
+        "mode": "gl",
+        "cpu": {
+          "base": 248,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 580,
+          "source": 168,
+          "payload": 273,
+          "total": 1341
+        },
+        "gpu": {
+          "base": 228,
+          "dist": 12,
+          "overlay": 24,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "total": 264
+        },
+        "allocated": 20570,
+        "peak": 5850,
+        "eager": {
+          "estimate": 0,
+          "packed": 0
+        },
+        "generation": 2,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 462,
+        "lines": 65,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      },
+      "jumps_at": [
+        20.2247,
+        101.1197,
+        182.0147
+      ]
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769530584,
+      "t_perf_ms": 5556,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 7,
+      "rep": 0,
+      "variant": "gl",
+      "phase": "overlay_off",
+      "status": "ran",
+      "ms": 209,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 11,
+        "p95": 29,
+        "win_p95_max": 29,
+        "max": 28.8,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 12,
+        "p95": 33,
+        "win_p95_max": 33,
+        "max": 32.2,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 10,
+        "p95": 29,
+        "win_p95_max": 29,
+        "max": 28.5,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "render": {
+        "calls": 20,
+        "triangles": 462,
+        "lines": 62,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769531144,
+      "t_perf_ms": 6117,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 8,
+      "rep": 0,
+      "variant": "gl",
+      "phase": "reveal",
+      "status": "ran",
+      "ms": 561,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 33,
+        "p95": 20,
+        "win_p95_max": 20,
+        "max": 19.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 31,
+        "p95": 28,
+        "win_p95_max": 28,
+        "max": 29.1,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 30,
+        "p95": 20,
+        "win_p95_max": 20,
+        "max": 19.7,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_reveal",
+      "memory": {
+        "mode": "gl",
+        "cpu": {
+          "base": 248,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 16,
+          "mesh": 0,
+          "box": 580,
+          "source": 168,
+          "payload": 273,
+          "total": 1357
+        },
+        "gpu": {
+          "base": 228,
+          "dist": 12,
+          "overlay": 24,
+          "reveal": 8,
+          "mesh": 0,
+          "box": 0,
+          "total": 272
+        },
+        "allocated": 20586,
+        "peak": 5850,
+        "eager": {
+          "estimate": 0,
+          "packed": 0
+        },
+        "generation": 2,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 24,
+        "triangles": 462,
+        "lines": 66,
+        "geometries": 24,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      },
+      "jumps_at": [
+        20.2247,
+        101.1197,
+        182.0147
+      ]
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769531356,
+      "t_perf_ms": 6328,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 9,
+      "rep": 0,
+      "variant": "gl",
+      "phase": "release",
+      "status": "ran",
+      "ms": 111,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 7,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 18.5,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 7,
+        "p95": 12,
+        "win_p95_max": 12,
+        "max": 11.7,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 6,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 18.3,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_release",
+      "memory": {
+        "mode": "gl",
+        "cpu": {
+          "base": 0,
+          "dist": 0,
+          "overlay": 0,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "source": 0,
+          "payload": 441,
+          "total": 441
+        },
+        "gpu": {
+          "base": 0,
+          "dist": 0,
+          "overlay": 0,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "total": 0
+        },
+        "allocated": 20586,
+        "peak": 5850,
+        "eager": {
+          "estimate": 0,
+          "packed": 0
+        },
+        "generation": 2,
+        "pairs": {
+          "source": 0,
+          "lod": 0,
+          "drawn": 0
+        }
+      },
+      "render": {
+        "calls": 11,
+        "triangles": 462,
+        "lines": 53,
+        "geometries": 11,
+        "textures": 2,
+        "draw_segs": 0,
+        "chunks": 0,
+        "chunks_visible": 0,
+        "lod_min": 0,
+        "lod_max": 0
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769531475,
+      "t_perf_ms": 6447,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 10,
+      "rep": 1,
+      "variant": "fat",
+      "phase": "build",
+      "status": "ran",
+      "ms": 118,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 7,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 18.3,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 8,
+        "p95": 9,
+        "win_p95_max": 9,
+        "max": 8.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 6,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 18,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_load",
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 792,
+          "dist": 24,
+          "overlay": 216,
+          "reveal": 0,
+          "mesh": 8232,
+          "box": 580,
+          "source": 416,
+          "payload": 273,
+          "total": 10533
+        },
+        "gpu": {
+          "base": 216,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 2352,
+          "box": 0,
+          "total": 2640
+        },
+        "allocated": 35259,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 3,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 534,
+        "lines": 53,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769531679,
+      "t_perf_ms": 6652,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 11,
+      "rep": 1,
+      "variant": "fat",
+      "phase": "warmup",
+      "status": "ran",
+      "ms": 205,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 12,
+        "p95": 21,
+        "win_p95_max": 21,
+        "max": 20.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 12,
+        "p95": 32,
+        "win_p95_max": 32,
+        "max": 31.5,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 11,
+        "p95": 21,
+        "win_p95_max": 21,
+        "max": 20.4,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 534,
+        "lines": 53,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769531990,
+      "t_perf_ms": 6962,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 12,
+      "rep": 1,
+      "variant": "fat",
+      "phase": "orbit",
+      "status": "ran",
+      "ms": 310,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 19,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 18.7,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 19,
+        "p95": 14,
+        "win_p95_max": 14,
+        "max": 13.1,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 18,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 18.4,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_orbit",
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 792,
+          "dist": 24,
+          "overlay": 216,
+          "reveal": 0,
+          "mesh": 8232,
+          "box": 580,
+          "source": 416,
+          "payload": 273,
+          "total": 10533
+        },
+        "gpu": {
+          "base": 216,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 2352,
+          "box": 0,
+          "total": 2640
+        },
+        "allocated": 35259,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 3,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 534,
+        "lines": 53,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769532210,
+      "t_perf_ms": 7182,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 13,
+      "rep": 1,
+      "variant": "fat",
+      "phase": "fitdetail",
+      "status": "ran",
+      "ms": 220,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 13,
+        "p95": 21,
+        "win_p95_max": 21,
+        "max": 20.8,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 12,
+        "p95": 29,
+        "win_p95_max": 29,
+        "max": 28.2,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 12,
+        "p95": 21,
+        "win_p95_max": 21,
+        "max": 20.1,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_lods",
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 792,
+          "dist": 24,
+          "overlay": 216,
+          "reveal": 0,
+          "mesh": 8232,
+          "box": 580,
+          "source": 416,
+          "payload": 273,
+          "total": 10533
+        },
+        "gpu": {
+          "base": 216,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 2352,
+          "box": 0,
+          "total": 2640
+        },
+        "allocated": 35259,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 3,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 534,
+        "lines": 53,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769532892,
+      "t_perf_ms": 7865,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 14,
+      "rep": 1,
+      "variant": "fat",
+      "phase": "jumps",
+      "status": "ran",
+      "ms": 682,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 34,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 143.1,
+        "over_50": 1,
+        "over_100": 1
+      },
+      "mt": {
+        "n": 34,
+        "p95": 27,
+        "win_p95_max": 27,
+        "max": 133.5,
+        "over_50": 1,
+        "over_100": 1
+      },
+      "gpu": {
+        "n": 30,
+        "p95": 18,
+        "win_p95_max": 18,
+        "max": 141.2,
+        "over_50": 1,
+        "over_100": 1
+      },
+      "memory_at": "after_nav",
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 792,
+          "dist": 24,
+          "overlay": 216,
+          "reveal": 0,
+          "mesh": 8232,
+          "box": 580,
+          "source": 416,
+          "payload": 273,
+          "total": 10533
+        },
+        "gpu": {
+          "base": 216,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 2352,
+          "box": 0,
+          "total": 2640
+        },
+        "allocated": 35731,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 3,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 534,
+        "lines": 53,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      },
+      "jumps_at": [
+        20.2247,
+        101.1197,
+        182.0147
+      ]
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769533106,
+      "t_perf_ms": 8078,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 15,
+      "rep": 1,
+      "variant": "fat",
+      "phase": "overlay_off",
+      "status": "ran",
+      "ms": 213,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 13,
+        "p95": 18,
+        "win_p95_max": 18,
+        "max": 17,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 14,
+        "p95": 12,
+        "win_p95_max": 12,
+        "max": 11.7,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 12,
+        "p95": 17,
+        "win_p95_max": 17,
+        "max": 16.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "render": {
+        "calls": 20,
+        "triangles": 516,
+        "lines": 53,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769533656,
+      "t_perf_ms": 8628,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 16,
+      "rep": 1,
+      "variant": "fat",
+      "phase": "reveal",
+      "status": "ran",
+      "ms": 550,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 33,
+        "p95": 18,
+        "win_p95_max": 18,
+        "max": 17.4,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 36,
+        "p95": 13,
+        "win_p95_max": 13,
+        "max": 15.4,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 30,
+        "p95": 18,
+        "win_p95_max": 18,
+        "max": 17.2,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_reveal",
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 792,
+          "dist": 24,
+          "overlay": 216,
+          "reveal": 64,
+          "mesh": 8624,
+          "box": 580,
+          "source": 416,
+          "payload": 273,
+          "total": 10989
+        },
+        "gpu": {
+          "base": 216,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 32,
+          "mesh": 2548,
+          "box": 0,
+          "total": 2868
+        },
+        "allocated": 36203,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 3,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 24,
+        "triangles": 540,
+        "lines": 53,
+        "geometries": 24,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      },
+      "jumps_at": [
+        20.2247,
+        101.1197,
+        182.0147
+      ]
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769533889,
+      "t_perf_ms": 8861,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 17,
+      "rep": 1,
+      "variant": "fat",
+      "phase": "release",
+      "status": "ran",
+      "ms": 116,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 7,
+        "p95": 18,
+        "win_p95_max": 18,
+        "max": 17.1,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 8,
+        "p95": 11,
+        "win_p95_max": 11,
+        "max": 10.7,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 6,
+        "p95": 18,
+        "win_p95_max": 18,
+        "max": 17,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_release",
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 0,
+          "dist": 0,
+          "overlay": 0,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "source": 0,
+          "payload": 441,
+          "total": 441
+        },
+        "gpu": {
+          "base": 0,
+          "dist": 0,
+          "overlay": 0,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "total": 0
+        },
+        "allocated": 36203,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 3,
+        "pairs": {
+          "source": 0,
+          "lod": 0,
+          "drawn": 0
+        }
+      },
+      "render": {
+        "calls": 11,
+        "triangles": 462,
+        "lines": 53,
+        "geometries": 11,
+        "textures": 2,
+        "draw_segs": 0,
+        "chunks": 0,
+        "chunks_visible": 0,
+        "lod_min": 0,
+        "lod_max": 0
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769534006,
+      "t_perf_ms": 8978,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 18,
+      "rep": 2,
+      "variant": "fat",
+      "phase": "build",
+      "status": "ran",
+      "ms": 117,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 7,
+        "p95": 18,
+        "win_p95_max": 18,
+        "max": 17,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 8,
+        "p95": 11,
+        "win_p95_max": 11,
+        "max": 10.8,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 6,
+        "p95": 17,
+        "win_p95_max": 17,
+        "max": 16.8,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_load",
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 792,
+          "dist": 24,
+          "overlay": 216,
+          "reveal": 0,
+          "mesh": 8232,
+          "box": 580,
+          "source": 416,
+          "payload": 273,
+          "total": 10533
+        },
+        "gpu": {
+          "base": 216,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 2352,
+          "box": 0,
+          "total": 2640
+        },
+        "allocated": 50876,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 4,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 534,
+        "lines": 53,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769534210,
+      "t_perf_ms": 9182,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 19,
+      "rep": 2,
+      "variant": "fat",
+      "phase": "warmup",
+      "status": "ran",
+      "ms": 204,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 12,
+        "p95": 33,
+        "win_p95_max": 33,
+        "max": 32.7,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 10,
+        "p95": 42,
+        "win_p95_max": 42,
+        "max": 41.8,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 11,
+        "p95": 33,
+        "win_p95_max": 33,
+        "max": 32.4,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 534,
+        "lines": 53,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769534523,
+      "t_perf_ms": 9495,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 20,
+      "rep": 2,
+      "variant": "fat",
+      "phase": "orbit",
+      "status": "ran",
+      "ms": 312,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 19,
+        "p95": 20,
+        "win_p95_max": 20,
+        "max": 19.3,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 20,
+        "p95": 12,
+        "win_p95_max": 12,
+        "max": 11.3,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 18,
+        "p95": 20,
+        "win_p95_max": 20,
+        "max": 19,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_orbit",
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 792,
+          "dist": 24,
+          "overlay": 216,
+          "reveal": 0,
+          "mesh": 8232,
+          "box": 580,
+          "source": 416,
+          "payload": 273,
+          "total": 10533
+        },
+        "gpu": {
+          "base": 216,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 2352,
+          "box": 0,
+          "total": 2640
+        },
+        "allocated": 50876,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 4,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 534,
+        "lines": 53,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769534724,
+      "t_perf_ms": 9696,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 21,
+      "rep": 2,
+      "variant": "fat",
+      "phase": "fitdetail",
+      "status": "ran",
+      "ms": 201,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 12,
+        "p95": 20,
+        "win_p95_max": 20,
+        "max": 19.3,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 11,
+        "p95": 26,
+        "win_p95_max": 26,
+        "max": 25.3,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 11,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 18.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_lods",
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 792,
+          "dist": 24,
+          "overlay": 216,
+          "reveal": 0,
+          "mesh": 8232,
+          "box": 580,
+          "source": 416,
+          "payload": 273,
+          "total": 10533
+        },
+        "gpu": {
+          "base": 216,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 2352,
+          "box": 0,
+          "total": 2640
+        },
+        "allocated": 50876,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 4,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 534,
+        "lines": 53,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769535393,
+      "t_perf_ms": 10365,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 22,
+      "rep": 2,
+      "variant": "fat",
+      "phase": "jumps",
+      "status": "ran",
+      "ms": 668,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 34,
+        "p95": 21,
+        "win_p95_max": 21,
+        "max": 113.5,
+        "over_50": 1,
+        "over_100": 1
+      },
+      "mt": {
+        "n": 33,
+        "p95": 33,
+        "win_p95_max": 33,
+        "max": 123,
+        "over_50": 1,
+        "over_100": 1
+      },
+      "gpu": {
+        "n": 30,
+        "p95": 21,
+        "win_p95_max": 21,
+        "max": 111.4,
+        "over_50": 1,
+        "over_100": 1
+      },
+      "memory_at": "after_nav",
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 792,
+          "dist": 24,
+          "overlay": 216,
+          "reveal": 0,
+          "mesh": 8232,
+          "box": 580,
+          "source": 416,
+          "payload": 273,
+          "total": 10533
+        },
+        "gpu": {
+          "base": 216,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 2352,
+          "box": 0,
+          "total": 2640
+        },
+        "allocated": 51348,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 4,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 534,
+        "lines": 53,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      },
+      "jumps_at": [
+        20.2247,
+        101.1197,
+        182.0147
+      ]
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769535602,
+      "t_perf_ms": 10574,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 23,
+      "rep": 2,
+      "variant": "fat",
+      "phase": "overlay_off",
+      "status": "ran",
+      "ms": 209,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 12,
+        "p95": 24,
+        "win_p95_max": 24,
+        "max": 23.6,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 13,
+        "p95": 16,
+        "win_p95_max": 16,
+        "max": 15.7,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 11,
+        "p95": 24,
+        "win_p95_max": 24,
+        "max": 23.2,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "render": {
+        "calls": 20,
+        "triangles": 516,
+        "lines": 53,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769536173,
+      "t_perf_ms": 11145,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 24,
+      "rep": 2,
+      "variant": "fat",
+      "phase": "reveal",
+      "status": "ran",
+      "ms": 571,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 35,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 21,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 35,
+        "p95": 25,
+        "win_p95_max": 25,
+        "max": 26.6,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 32,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 20.7,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_reveal",
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 792,
+          "dist": 24,
+          "overlay": 216,
+          "reveal": 64,
+          "mesh": 8624,
+          "box": 580,
+          "source": 416,
+          "payload": 273,
+          "total": 10989
+        },
+        "gpu": {
+          "base": 216,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 32,
+          "mesh": 2548,
+          "box": 0,
+          "total": 2868
+        },
+        "allocated": 51820,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 4,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 24,
+        "triangles": 540,
+        "lines": 53,
+        "geometries": 24,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      },
+      "jumps_at": [
+        20.2247,
+        101.1197,
+        182.0147
+      ]
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769536380,
+      "t_perf_ms": 11352,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 25,
+      "rep": 2,
+      "variant": "fat",
+      "phase": "release",
+      "status": "ran",
+      "ms": 106,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 6,
+        "p95": 20,
+        "win_p95_max": 20,
+        "max": 19.3,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 6,
+        "p95": 15,
+        "win_p95_max": 15,
+        "max": 14.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 5,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 18.3,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_release",
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 0,
+          "dist": 0,
+          "overlay": 0,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "source": 0,
+          "payload": 441,
+          "total": 441
+        },
+        "gpu": {
+          "base": 0,
+          "dist": 0,
+          "overlay": 0,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "total": 0
+        },
+        "allocated": 51820,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 4,
+        "pairs": {
+          "source": 0,
+          "lod": 0,
+          "drawn": 0
+        }
+      },
+      "render": {
+        "calls": 11,
+        "triangles": 462,
+        "lines": 53,
+        "geometries": 11,
+        "textures": 2,
+        "draw_segs": 0,
+        "chunks": 0,
+        "chunks_visible": 0,
+        "lod_min": 0,
+        "lod_max": 0
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769536488,
+      "t_perf_ms": 11460,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 26,
+      "rep": 3,
+      "variant": "gl",
+      "phase": "build",
+      "status": "ran",
+      "ms": 108,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 6,
+        "p95": 25,
+        "win_p95_max": 25,
+        "max": 24.1,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 6,
+        "p95": 25,
+        "win_p95_max": 25,
+        "max": 24.7,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 5,
+        "p95": 23,
+        "win_p95_max": 23,
+        "max": 22,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_load",
+      "memory": {
+        "mode": "gl",
+        "cpu": {
+          "base": 248,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 580,
+          "source": 168,
+          "payload": 273,
+          "total": 1341
+        },
+        "gpu": {
+          "base": 228,
+          "dist": 0,
+          "overlay": 24,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "total": 252
+        },
+        "allocated": 57229,
+        "peak": 5850,
+        "eager": {
+          "estimate": 0,
+          "packed": 0
+        },
+        "generation": 5,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 462,
+        "lines": 65,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769536689,
+      "t_perf_ms": 11661,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 27,
+      "rep": 3,
+      "variant": "gl",
+      "phase": "warmup",
+      "status": "ran",
+      "ms": 201,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 12,
+        "p95": 21,
+        "win_p95_max": 21,
+        "max": 20.7,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 13,
+        "p95": 13,
+        "win_p95_max": 13,
+        "max": 12.8,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 11,
+        "p95": 17,
+        "win_p95_max": 17,
+        "max": 16.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 462,
+        "lines": 65,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769537007,
+      "t_perf_ms": 11979,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 28,
+      "rep": 3,
+      "variant": "gl",
+      "phase": "orbit",
+      "status": "ran",
+      "ms": 317,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 19,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 18.1,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 20,
+        "p95": 12,
+        "win_p95_max": 12,
+        "max": 13.5,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 18,
+        "p95": 18,
+        "win_p95_max": 18,
+        "max": 17.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_orbit",
+      "memory": {
+        "mode": "gl",
+        "cpu": {
+          "base": 248,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 580,
+          "source": 168,
+          "payload": 273,
+          "total": 1341
+        },
+        "gpu": {
+          "base": 228,
+          "dist": 0,
+          "overlay": 24,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "total": 252
+        },
+        "allocated": 57229,
+        "peak": 5850,
+        "eager": {
+          "estimate": 0,
+          "packed": 0
+        },
+        "generation": 5,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 462,
+        "lines": 65,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769537226,
+      "t_perf_ms": 12198,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 29,
+      "rep": 3,
+      "variant": "gl",
+      "phase": "fitdetail",
+      "status": "ran",
+      "ms": 219,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 13,
+        "p95": 21,
+        "win_p95_max": 21,
+        "max": 20,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 14,
+        "p95": 15,
+        "win_p95_max": 15,
+        "max": 14.6,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 12,
+        "p95": 20,
+        "win_p95_max": 20,
+        "max": 19.7,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_lods",
+      "memory": {
+        "mode": "gl",
+        "cpu": {
+          "base": 248,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 580,
+          "source": 168,
+          "payload": 273,
+          "total": 1341
+        },
+        "gpu": {
+          "base": 228,
+          "dist": 0,
+          "overlay": 24,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "total": 252
+        },
+        "allocated": 57229,
+        "peak": 5850,
+        "eager": {
+          "estimate": 0,
+          "packed": 0
+        },
+        "generation": 5,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 462,
+        "lines": 65,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769537892,
+      "t_perf_ms": 12864,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 30,
+      "rep": 3,
+      "variant": "gl",
+      "phase": "jumps",
+      "status": "ran",
+      "ms": 665,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 39,
+        "p95": 24,
+        "win_p95_max": 24,
+        "max": 23.4,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 40,
+        "p95": 18,
+        "win_p95_max": 18,
+        "max": 23.4,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 35,
+        "p95": 23,
+        "win_p95_max": 23,
+        "max": 23.2,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_nav",
+      "memory": {
+        "mode": "gl",
+        "cpu": {
+          "base": 248,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 580,
+          "source": 168,
+          "payload": 273,
+          "total": 1341
+        },
+        "gpu": {
+          "base": 228,
+          "dist": 12,
+          "overlay": 24,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "total": 264
+        },
+        "allocated": 57245,
+        "peak": 5850,
+        "eager": {
+          "estimate": 0,
+          "packed": 0
+        },
+        "generation": 5,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 462,
+        "lines": 65,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      },
+      "jumps_at": [
+        20.2247,
+        101.1197,
+        182.0147
+      ]
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769538098,
+      "t_perf_ms": 13071,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 31,
+      "rep": 3,
+      "variant": "gl",
+      "phase": "overlay_off",
+      "status": "ran",
+      "ms": 206,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 12,
+        "p95": 22,
+        "win_p95_max": 22,
+        "max": 21.7,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 12,
+        "p95": 23,
+        "win_p95_max": 23,
+        "max": 22.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 11,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 18.5,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "render": {
+        "calls": 20,
+        "triangles": 462,
+        "lines": 62,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769538690,
+      "t_perf_ms": 13662,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 32,
+      "rep": 3,
+      "variant": "gl",
+      "phase": "reveal",
+      "status": "ran",
+      "ms": 591,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 35,
+        "p95": 22,
+        "win_p95_max": 22,
+        "max": 27.1,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 34,
+        "p95": 27,
+        "win_p95_max": 27,
+        "max": 27.8,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 32,
+        "p95": 22,
+        "win_p95_max": 22,
+        "max": 26.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_reveal",
+      "memory": {
+        "mode": "gl",
+        "cpu": {
+          "base": 248,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 16,
+          "mesh": 0,
+          "box": 580,
+          "source": 168,
+          "payload": 273,
+          "total": 1357
+        },
+        "gpu": {
+          "base": 228,
+          "dist": 12,
+          "overlay": 24,
+          "reveal": 8,
+          "mesh": 0,
+          "box": 0,
+          "total": 272
+        },
+        "allocated": 57261,
+        "peak": 5850,
+        "eager": {
+          "estimate": 0,
+          "packed": 0
+        },
+        "generation": 5,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 24,
+        "triangles": 462,
+        "lines": 66,
+        "geometries": 24,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      },
+      "jumps_at": [
+        20.2247,
+        101.1197,
+        182.0147
+      ]
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769538922,
+      "t_perf_ms": 13894,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 33,
+      "rep": 3,
+      "variant": "gl",
+      "phase": "release",
+      "status": "ran",
+      "ms": 116,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 7,
+        "p95": 22,
+        "win_p95_max": 22,
+        "max": 21.2,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 8,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 18.5,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 6,
+        "p95": 17,
+        "win_p95_max": 17,
+        "max": 16.5,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_release",
+      "memory": {
+        "mode": "gl",
+        "cpu": {
+          "base": 0,
+          "dist": 0,
+          "overlay": 0,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "source": 0,
+          "payload": 441,
+          "total": 441
+        },
+        "gpu": {
+          "base": 0,
+          "dist": 0,
+          "overlay": 0,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "total": 0
+        },
+        "allocated": 57261,
+        "peak": 5850,
+        "eager": {
+          "estimate": 0,
+          "packed": 0
+        },
+        "generation": 5,
+        "pairs": {
+          "source": 0,
+          "lod": 0,
+          "drawn": 0
+        }
+      },
+      "render": {
+        "calls": 11,
+        "triangles": 462,
+        "lines": 53,
+        "geometries": 11,
+        "textures": 2,
+        "draw_segs": 0,
+        "chunks": 0,
+        "chunks_visible": 0,
+        "lod_min": 0,
+        "lod_max": 0
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769539040,
+      "t_perf_ms": 14013,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 34,
+      "rep": 4,
+      "variant": "gl",
+      "phase": "build",
+      "status": "ran",
+      "ms": 118,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 7,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 18.7,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 7,
+        "p95": 26,
+        "win_p95_max": 26,
+        "max": 25.6,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 6,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 18.3,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_load",
+      "memory": {
+        "mode": "gl",
+        "cpu": {
+          "base": 248,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 580,
+          "source": 168,
+          "payload": 273,
+          "total": 1341
+        },
+        "gpu": {
+          "base": 228,
+          "dist": 0,
+          "overlay": 24,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "total": 252
+        },
+        "allocated": 62670,
+        "peak": 5850,
+        "eager": {
+          "estimate": 0,
+          "packed": 0
+        },
+        "generation": 6,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 462,
+        "lines": 65,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769539256,
+      "t_perf_ms": 14228,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 35,
+      "rep": 4,
+      "variant": "gl",
+      "phase": "warmup",
+      "status": "ran",
+      "ms": 215,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 13,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 18.6,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 14,
+        "p95": 13,
+        "win_p95_max": 13,
+        "max": 12.8,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 12,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 18.4,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 462,
+        "lines": 65,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769539557,
+      "t_perf_ms": 14529,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 36,
+      "rep": 4,
+      "variant": "gl",
+      "phase": "orbit",
+      "status": "ran",
+      "ms": 301,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 18,
+        "p95": 20,
+        "win_p95_max": 20,
+        "max": 19.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 19,
+        "p95": 12,
+        "win_p95_max": 12,
+        "max": 11.4,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 17,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 18.6,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_orbit",
+      "memory": {
+        "mode": "gl",
+        "cpu": {
+          "base": 248,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 580,
+          "source": 168,
+          "payload": 273,
+          "total": 1341
+        },
+        "gpu": {
+          "base": 228,
+          "dist": 0,
+          "overlay": 24,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "total": 252
+        },
+        "allocated": 62670,
+        "peak": 5850,
+        "eager": {
+          "estimate": 0,
+          "packed": 0
+        },
+        "generation": 6,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 462,
+        "lines": 65,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769539773,
+      "t_perf_ms": 14745,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 37,
+      "rep": 4,
+      "variant": "gl",
+      "phase": "fitdetail",
+      "status": "ran",
+      "ms": 216,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 13,
+        "p95": 18,
+        "win_p95_max": 18,
+        "max": 17.8,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 13,
+        "p95": 13,
+        "win_p95_max": 13,
+        "max": 12.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 12,
+        "p95": 18,
+        "win_p95_max": 18,
+        "max": 17.5,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_lods",
+      "memory": {
+        "mode": "gl",
+        "cpu": {
+          "base": 248,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 580,
+          "source": 168,
+          "payload": 273,
+          "total": 1341
+        },
+        "gpu": {
+          "base": 228,
+          "dist": 0,
+          "overlay": 24,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "total": 252
+        },
+        "allocated": 62670,
+        "peak": 5850,
+        "eager": {
+          "estimate": 0,
+          "packed": 0
+        },
+        "generation": 6,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 462,
+        "lines": 65,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769540456,
+      "t_perf_ms": 15428,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 38,
+      "rep": 4,
+      "variant": "gl",
+      "phase": "jumps",
+      "status": "ran",
+      "ms": 683,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 41,
+        "p95": 21,
+        "win_p95_max": 21,
+        "max": 24.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 39,
+        "p95": 27,
+        "win_p95_max": 27,
+        "max": 30.8,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 37,
+        "p95": 21,
+        "win_p95_max": 21,
+        "max": 22.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_nav",
+      "memory": {
+        "mode": "gl",
+        "cpu": {
+          "base": 248,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 580,
+          "source": 168,
+          "payload": 273,
+          "total": 1341
+        },
+        "gpu": {
+          "base": 228,
+          "dist": 12,
+          "overlay": 24,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "total": 264
+        },
+        "allocated": 62686,
+        "peak": 5850,
+        "eager": {
+          "estimate": 0,
+          "packed": 0
+        },
+        "generation": 6,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 462,
+        "lines": 65,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      },
+      "jumps_at": [
+        20.2247,
+        101.1197,
+        182.0147
+      ]
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769540667,
+      "t_perf_ms": 15639,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 39,
+      "rep": 4,
+      "variant": "gl",
+      "phase": "overlay_off",
+      "status": "ran",
+      "ms": 211,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 12,
+        "p95": 23,
+        "win_p95_max": 23,
+        "max": 22.4,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 12,
+        "p95": 28,
+        "win_p95_max": 28,
+        "max": 27.5,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 11,
+        "p95": 22,
+        "win_p95_max": 22,
+        "max": 21.8,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "render": {
+        "calls": 20,
+        "triangles": 462,
+        "lines": 62,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769541234,
+      "t_perf_ms": 16206,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 40,
+      "rep": 4,
+      "variant": "gl",
+      "phase": "reveal",
+      "status": "ran",
+      "ms": 567,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 31,
+        "p95": 25,
+        "win_p95_max": 25,
+        "max": 24.4,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 26,
+        "p95": 33,
+        "win_p95_max": 33,
+        "max": 33.1,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 28,
+        "p95": 24,
+        "win_p95_max": 24,
+        "max": 24.1,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_reveal",
+      "memory": {
+        "mode": "gl",
+        "cpu": {
+          "base": 248,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 16,
+          "mesh": 0,
+          "box": 580,
+          "source": 168,
+          "payload": 273,
+          "total": 1357
+        },
+        "gpu": {
+          "base": 228,
+          "dist": 12,
+          "overlay": 24,
+          "reveal": 8,
+          "mesh": 0,
+          "box": 0,
+          "total": 272
+        },
+        "allocated": 62702,
+        "peak": 5850,
+        "eager": {
+          "estimate": 0,
+          "packed": 0
+        },
+        "generation": 6,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 24,
+        "triangles": 462,
+        "lines": 66,
+        "geometries": 24,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      },
+      "jumps_at": [
+        20.2247,
+        101.1197,
+        182.0147
+      ]
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769541455,
+      "t_perf_ms": 16428,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 41,
+      "rep": 4,
+      "variant": "gl",
+      "phase": "release",
+      "status": "ran",
+      "ms": 113,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 7,
+        "p95": 18,
+        "win_p95_max": 18,
+        "max": 17.4,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 8,
+        "p95": 10,
+        "win_p95_max": 10,
+        "max": 9.8,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 6,
+        "p95": 18,
+        "win_p95_max": 18,
+        "max": 17.3,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_release",
+      "memory": {
+        "mode": "gl",
+        "cpu": {
+          "base": 0,
+          "dist": 0,
+          "overlay": 0,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "source": 0,
+          "payload": 441,
+          "total": 441
+        },
+        "gpu": {
+          "base": 0,
+          "dist": 0,
+          "overlay": 0,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "total": 0
+        },
+        "allocated": 62702,
+        "peak": 5850,
+        "eager": {
+          "estimate": 0,
+          "packed": 0
+        },
+        "generation": 6,
+        "pairs": {
+          "source": 0,
+          "lod": 0,
+          "drawn": 0
+        }
+      },
+      "render": {
+        "calls": 11,
+        "triangles": 462,
+        "lines": 53,
+        "geometries": 11,
+        "textures": 2,
+        "draw_segs": 0,
+        "chunks": 0,
+        "chunks_visible": 0,
+        "lod_min": 0,
+        "lod_max": 0
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769541572,
+      "t_perf_ms": 16544,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 42,
+      "rep": 5,
+      "variant": "fat",
+      "phase": "build",
+      "status": "ran",
+      "ms": 117,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 7,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 18.7,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 9,
+        "p95": 11,
+        "win_p95_max": 11,
+        "max": 10.6,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 6,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 18.5,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_load",
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 792,
+          "dist": 24,
+          "overlay": 216,
+          "reveal": 0,
+          "mesh": 8232,
+          "box": 580,
+          "source": 416,
+          "payload": 273,
+          "total": 10533
+        },
+        "gpu": {
+          "base": 216,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 2352,
+          "box": 0,
+          "total": 2640
+        },
+        "allocated": 77375,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 7,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 534,
+        "lines": 53,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769541789,
+      "t_perf_ms": 16761,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 43,
+      "rep": 5,
+      "variant": "fat",
+      "phase": "warmup",
+      "status": "ran",
+      "ms": 216,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 13,
+        "p95": 18,
+        "win_p95_max": 18,
+        "max": 17.3,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 14,
+        "p95": 13,
+        "win_p95_max": 13,
+        "max": 12.2,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 12,
+        "p95": 17,
+        "win_p95_max": 17,
+        "max": 16.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 534,
+        "lines": 53,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769542110,
+      "t_perf_ms": 17082,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 44,
+      "rep": 5,
+      "variant": "fat",
+      "phase": "orbit",
+      "status": "ran",
+      "ms": 320,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 18,
+        "p95": 26,
+        "win_p95_max": 26,
+        "max": 25.2,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 17,
+        "p95": 25,
+        "win_p95_max": 25,
+        "max": 24.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 17,
+        "p95": 25,
+        "win_p95_max": 25,
+        "max": 24.8,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_orbit",
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 792,
+          "dist": 24,
+          "overlay": 216,
+          "reveal": 0,
+          "mesh": 8232,
+          "box": 580,
+          "source": 416,
+          "payload": 273,
+          "total": 10533
+        },
+        "gpu": {
+          "base": 216,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 2352,
+          "box": 0,
+          "total": 2640
+        },
+        "allocated": 77375,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 7,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 534,
+        "lines": 53,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769542312,
+      "t_perf_ms": 17284,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 45,
+      "rep": 5,
+      "variant": "fat",
+      "phase": "fitdetail",
+      "status": "ran",
+      "ms": 202,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 13,
+        "p95": 24,
+        "win_p95_max": 24,
+        "max": 23.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 8,
+        "p95": 30,
+        "win_p95_max": 30,
+        "max": 29.8,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 12,
+        "p95": 24,
+        "win_p95_max": 24,
+        "max": 23.5,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_lods",
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 792,
+          "dist": 24,
+          "overlay": 216,
+          "reveal": 0,
+          "mesh": 8232,
+          "box": 580,
+          "source": 416,
+          "payload": 273,
+          "total": 10533
+        },
+        "gpu": {
+          "base": 216,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 2352,
+          "box": 0,
+          "total": 2640
+        },
+        "allocated": 77375,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 7,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 534,
+        "lines": 53,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769543008,
+      "t_perf_ms": 17980,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 46,
+      "rep": 5,
+      "variant": "fat",
+      "phase": "jumps",
+      "status": "ran",
+      "ms": 695,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 32,
+        "p95": 45,
+        "win_p95_max": 45,
+        "max": 133.7,
+        "over_50": 1,
+        "over_100": 1
+      },
+      "mt": {
+        "n": 33,
+        "p95": 27,
+        "win_p95_max": 27,
+        "max": 127.6,
+        "over_50": 1,
+        "over_100": 1
+      },
+      "gpu": {
+        "n": 28,
+        "p95": 38,
+        "win_p95_max": 38,
+        "max": 131.7,
+        "over_50": 1,
+        "over_100": 1
+      },
+      "memory_at": "after_nav",
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 792,
+          "dist": 24,
+          "overlay": 216,
+          "reveal": 0,
+          "mesh": 8232,
+          "box": 580,
+          "source": 416,
+          "payload": 273,
+          "total": 10533
+        },
+        "gpu": {
+          "base": 216,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 0,
+          "mesh": 2352,
+          "box": 0,
+          "total": 2640
+        },
+        "allocated": 77847,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 7,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 23,
+        "triangles": 534,
+        "lines": 53,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      },
+      "jumps_at": [
+        20.2247,
+        101.1197,
+        182.0147
+      ]
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769543211,
+      "t_perf_ms": 18183,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 47,
+      "rep": 5,
+      "variant": "fat",
+      "phase": "overlay_off",
+      "status": "ran",
+      "ms": 203,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 12,
+        "p95": 20,
+        "win_p95_max": 20,
+        "max": 19.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 11,
+        "p95": 26,
+        "win_p95_max": 26,
+        "max": 25.2,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 11,
+        "p95": 20,
+        "win_p95_max": 20,
+        "max": 19.7,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "render": {
+        "calls": 20,
+        "triangles": 516,
+        "lines": 53,
+        "geometries": 23,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769543775,
+      "t_perf_ms": 18747,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 48,
+      "rep": 5,
+      "variant": "fat",
+      "phase": "reveal",
+      "status": "ran",
+      "ms": 564,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 34,
+        "p95": 20,
+        "win_p95_max": 20,
+        "max": 22.6,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 33,
+        "p95": 25,
+        "win_p95_max": 25,
+        "max": 29.4,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 31,
+        "p95": 19,
+        "win_p95_max": 19,
+        "max": 22.4,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_reveal",
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 792,
+          "dist": 24,
+          "overlay": 216,
+          "reveal": 64,
+          "mesh": 8624,
+          "box": 580,
+          "source": 416,
+          "payload": 273,
+          "total": 10989
+        },
+        "gpu": {
+          "base": 216,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 32,
+          "mesh": 2548,
+          "box": 0,
+          "total": 2868
+        },
+        "allocated": 78319,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 7,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "render": {
+        "calls": 24,
+        "triangles": 540,
+        "lines": 53,
+        "geometries": 24,
+        "textures": 2,
+        "draw_segs": 10,
+        "chunks": 11,
+        "chunks_visible": 11,
+        "lod_min": 2,
+        "lod_max": 2
+      },
+      "jumps_at": [
+        20.2247,
+        101.1197,
+        182.0147
+      ]
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769544005,
+      "t_perf_ms": 18978,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 49,
+      "rep": 5,
+      "variant": "fat",
+      "phase": "release",
+      "status": "ran",
+      "ms": 113,
+      "hidden": false,
+      "dialog": false,
+      "interacted": false,
+      "sweep_busy": false,
+      "raf": {
+        "n": 7,
+        "p95": 17,
+        "win_p95_max": 17,
+        "max": 16.8,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "mt": {
+        "n": 7,
+        "p95": 26,
+        "win_p95_max": 26,
+        "max": 25.9,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "gpu": {
+        "n": 6,
+        "p95": 17,
+        "win_p95_max": 17,
+        "max": 16.7,
+        "over_50": 0,
+        "over_100": 0
+      },
+      "memory_at": "after_release",
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 0,
+          "dist": 0,
+          "overlay": 0,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "source": 0,
+          "payload": 441,
+          "total": 441
+        },
+        "gpu": {
+          "base": 0,
+          "dist": 0,
+          "overlay": 0,
+          "reveal": 0,
+          "mesh": 0,
+          "box": 0,
+          "total": 0
+        },
+        "allocated": 78319,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 7,
+        "pairs": {
+          "source": 0,
+          "lod": 0,
+          "drawn": 0
+        }
+      },
+      "render": {
+        "calls": 11,
+        "triangles": 462,
+        "lines": 53,
+        "geometries": 11,
+        "textures": 2,
+        "draw_segs": 0,
+        "chunks": 0,
+        "chunks_visible": 0,
+        "lod_min": 0,
+        "lod_max": 0
+      }
+    },
+    {
+      "kind": "viewer.abrun",
+      "t_wall_ms": 1790769544392,
+      "t_perf_ms": 19364,
+      "page": "rigjl8iv",
+      "run": "ab-muo1xvfn",
+      "seq": 50,
+      "phase": "end",
+      "cancelled": false,
+      "skipped": 0,
+      "memory_at": "end",
+      "memory": {
+        "mode": "fat",
+        "cpu": {
+          "base": 792,
+          "dist": 24,
+          "overlay": 216,
+          "reveal": 64,
+          "mesh": 8624,
+          "box": 580,
+          "source": 416,
+          "payload": 273,
+          "total": 10989
+        },
+        "gpu": {
+          "base": 216,
+          "dist": 0,
+          "overlay": 72,
+          "reveal": 32,
+          "mesh": 2548,
+          "box": 0,
+          "total": 2868
+        },
+        "allocated": 93464,
+        "peak": 15114,
+        "eager": {
+          "estimate": 9272,
+          "packed": 9264
+        },
+        "generation": 8,
+        "pairs": {
+          "source": 11,
+          "lod": 10,
+          "drawn": 9
+        }
+      },
+      "restored": {
+        "sim": true,
+        "pos": true,
+        "finding": "L14",
+        "found": true,
+        "reveal_bytes": 64
+      }
+    }
+  ]
+}

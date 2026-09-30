@@ -1,0 +1,144 @@
+{
+  "builds": [
+    {
+      "mode": "gl",
+      "rebuilt": true
+    },
+    {
+      "mode": "fat",
+      "rebuilt": true
+    },
+    {
+      "mode": "fat",
+      "rebuilt": true
+    },
+    {
+      "mode": "gl",
+      "rebuilt": true
+    },
+    {
+      "mode": "gl",
+      "rebuilt": true
+    },
+    {
+      "mode": "fat",
+      "rebuilt": true
+    }
+  ],
+  "buildByteSamples": [
+    {
+      "allocated": 83095,
+      "peak": 18702,
+      "cpuTotal": 15521
+    },
+    {
+      "allocated": 83687,
+      "peak": 18702,
+      "cpuTotal": 15521
+    },
+    {
+      "allocated": 84279,
+      "peak": 18702,
+      "cpuTotal": 15521
+    }
+  ],
+  "sourceCapacity": {
+    "backingBufferBytes": 1048576,
+    "viewBytes": 12,
+    "reported": {
+      "base": 48,
+      "dist": 0,
+      "overlay": 0,
+      "reveal": 0,
+      "mesh": 392,
+      "box": 580,
+      "source": 52,
+      "payload": 1048579,
+      "total": 1049651
+    }
+  },
+  "instances": {
+    "reported": {
+      "source": 2,
+      "lod": 2,
+      "drawn": 1
+    },
+    "actualVisibleGeometryInstances": 1
+  },
+  "released": {
+    "mode": "fat",
+    "cpu": {
+      "base": 0,
+      "dist": 0,
+      "overlay": 0,
+      "reveal": 0,
+      "mesh": 0,
+      "box": 0,
+      "source": 0,
+      "payload": 1048615,
+      "total": 1048615
+    },
+    "gpu": {
+      "base": 0,
+      "dist": 0,
+      "overlay": 0,
+      "reveal": 0,
+      "mesh": 0,
+      "box": 0,
+      "total": 0
+    },
+    "allocated": 85522,
+    "peak": 1049858,
+    "eager": {
+      "estimate": 440,
+      "packed": 440
+    },
+    "generation": 8,
+    "pairs": {
+      "source": 0,
+      "lod": 0,
+      "drawn": 0
+    }
+  },
+  "peakScratch": {
+    "vertices": 4096,
+    "payloadBytes": 65536,
+    "knownConcurrentScratchBytes": 4096,
+    "reported": {
+      "mode": "fat",
+      "cpu": {
+        "base": 0,
+        "dist": 0,
+        "overlay": 0,
+        "reveal": 0,
+        "mesh": 0,
+        "box": 0,
+        "source": 0,
+        "payload": 65536,
+        "total": 65536
+      },
+      "gpu": {
+        "base": 0,
+        "dist": 0,
+        "overlay": 0,
+        "reveal": 0,
+        "mesh": 0,
+        "box": 0,
+        "total": 0
+      },
+      "allocated": 89618,
+      "peak": 69632,
+      "eager": {
+        "estimate": 0,
+        "packed": 0
+      },
+      "generation": 9,
+      "pairs": {
+        "source": 0,
+        "lod": 0,
+        "drawn": 0
+      }
+    },
+    "allocatedByThisApply": 4096
+  }
+}

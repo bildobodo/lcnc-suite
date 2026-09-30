@@ -3800,3 +3800,122 @@ Die Tests lesen sie, auch `scenes.viewer.spec`, das die Breite im Bild misst.
 
 Volles Offline-Gate auf `d848c8f` **PASS**: Backend 1111, Vitest 1804,
 Browser 372, Lint/Build/Audit/Report grün.
+
+## Review R49 · Codex · Nachprüfung VP-I13/I15/I17 und Operator-Punkte · 30. September 2026
+
+**Ergebnis: `findings`. VP-I13 und VP-I15 sind geschlossen. Boxen mit
+1 CSS px und die parallele Kamera sind im geprüften Umfang abgenommen.
+Bei VP-I17 bleibt ein P2-Rest: Die aktuelle CPU-Bilanz lässt gehaltene
+Vorbereitungsbuffer aus.**
+
+Geprüft: `45661ab..a614c70`, vollständiger Stand
+`a614c701799cf76ac0ecc60f1ed349c36146d737`, in einer Archivkopie.
+Live-Suite und frühere Belege unverändert; nur dieser Anhang und neue
+`viewer-palette-fest.r49.*`-Belege. Keine Maschinenbefehle oder
+Trip-Quittierung. [Reproduktion und Grenzen](viewer-palette-fest.r49.reproduce.md).
+
+### Geschlossene Punkte
+
+- **VP-I13:** Alle bisherigen Report-Gegenproben werden korrekt behandelt:
+  fehlende Peaks/GPU-Gesamtwerte ergeben INCOMPLETE statt PASS/Absturz;
+  der hohe Reveal-/Release-Peak ergibt FAIL; ein fehlendes Maximum in der
+  Phasen-Zusammenfassung umgeht die vorhandenen Histogramme nicht mehr.
+  Die vollständigen Kontrollen bleiben PASS. Die Pflichtprüfung der
+  eager-Schätzung ist vorhanden.
+  [Ursprüngliche Gegenproben](viewer-palette-fest.r49.report-probe.json),
+  [R48-Reste](viewer-palette-fest.r49.report-rest-probe.json).
+- **VP-I15:** Die eigene R48-Browser-Sonde mit richtiger Erwartung besteht:
+  vor und nach dem Lauf **L14**, Position `182.001291915894`, Reveal
+  **64 CPU-/32 GPU-Byte**, sichtbarer Abschnitt trotz ausgeschalteter
+  Rapids. `restored` bestätigt Position und Befund. Die originalen
+  Wächter bestehen auch für den Abbruch. Reihenfolge Neuaufbau →
+  Wiederherstellung ist korrekt.
+  [Zustände und Phasen](viewer-palette-fest.r49.browser-probe.json),
+  [Browser-Ergebnisse](viewer-palette-fest.r49.browser-summary.json).
+- **VP-I17, erledigte Teile:** Break-Maske und übrige Allokationen werden
+  nun gezählt; das volle temporäre Indexarray entfällt. Die eigene
+  4096-Abschnitte-Sonde besteht mit der entsprechend angepassten Erwartung.
+  Die Box ist bilanziert und wird freigegeben; die eager-Schätzung liegt
+  vor dem Pack und deckt ihn in den geprüften Fällen. Hohe Peaks außerhalb
+  des Aufbaus fließen in die Reportentscheidung ein.
+  [Controller-Probe](viewer-palette-fest.r49.controller-probe.json),
+  [offengelegte Sondenanpassungen](viewer-palette-fest.r49.probe-adaptations.patch).
+
+### VP-I17-Rest · P2 · Gehaltene Overlay-Indizes fehlen weiterhin im CPU-Gesamtwert
+
+Die neue Vorbereitung speichert pro Set `bounds` sowie `ovIdx` mit
+`index`, `starts` und `counts`. Diese Referenzen bleiben nach `fillSet()`
+bis zum Abbau erhalten. Der Ledger zählt bei den abgeleiteten Quellen
+jedoch nur Stufenindizes, Distanzen und Positionen.
+Belege im Code: [Vorbereitung und Besitz](../../lcnc-webui/src/viewer/toolpathController.ts#L647),
+[Belegung von ovIdx](../../lcnc-webui/src/viewer/toolpathController.ts#L678),
+[Quellenbilanz](../../lcnc-webui/src/viewer/toolpathController.ts#L433).
+
+Bei GL hängt `ovIdx.index` zusätzlich an der gezeichneten Geometrie und
+wird dadurch gezählt. Bei fat werden die Paare in neue Positionsbuffer
+gepackt; der ursprüngliche, weiter gehaltene Overlay-Index fällt aus der
+Bilanz. Damit ist die Unterzählung zwischen A und B unterschiedlich.
+
+**Eigene Gegenprobe:** 100.000 nicht degenerierte, durchgehend markierte
+Feed-Segmente, eine LOD-Stufe, acht Chunks. Die Sonde beobachtet die realen
+Set-Referenzen und die Buffer-Identitäten, die der unveränderte Ledger
+gezählt hat. Die Instrumentierung liegt ausschließlich in einer separaten
+Controller-Kopie im Archiv.
+
+| Variante | Gemeldete CPU-Byte | Zusätzlich gehalten, nicht gezählt | Tatsächlich gehalten mindestens |
+| --- | ---: | ---: | ---: |
+| GL | 3.300.597 | 256 | 3.300.853 |
+| fat | 7.303.733 | 800.256 | 8.103.989 |
+
+Die **800.000 Byte** Differenz stammen exakt aus `ovIdx[0].index`;
+weitere 256 Byte sind Chunk-Boxen und Start-/Anzahllisten. Die Allokation
+dieser Arrays wird bereits korrekt erfasst. Der noch fehlerhafte Wert ist
+`cpu.total` für den aktuellen Besitz, der auch als Ausgangswert späterer
+`_measured()`-Aufbauten verwendet wird. Bei weiteren LOD-Stufen wachsen
+die ausgelassenen Indexbuffer mit. Das ist keine neue Anforderung an
+JS-Objektgrößen oder Troika-Glyphen, sondern betrifft ausdrücklich
+bilanzierte Typed Arrays des Pfadcontrollers.
+
+[Sonde](viewer-palette-fest.r49.ledger-probe.ts),
+[reine Beobachtungsinstrumentierung](viewer-palette-fest.r49.ledger-observation.patch),
+[Array-Namen und Bytewerte](viewer-palette-fest.r49.ledger-probe.json),
+[Lauf](viewer-palette-fest.r49.ledger-probe.txt).
+Der grüne Sondenlauf weist die Auslassung nach; er bedeutet hier keine
+Abnahme. Die neuen Konstruktor-Wächter zählen Allokationen korrekt, prüfen
+aber ihren Ausgangswert für gehaltene Buffer wieder gegen denselben Ledger
+und erkennen diese Auslassung deshalb nicht.
+
+**Korrektur:** Nicht mehr benötigte Vorbereitungsreferenzen nach dem Pack
+freigeben oder die gehaltenen Arrays kapazitätsgerecht und nach
+Buffer-Identität dedupliziert aufnehmen. Die weiterhin benötigten
+Chunk-Boxen gehören ebenfalls dazu. Einen unabhängigen Wächter für den
+aktuellen Besitz beider Varianten ergänzen, einschließlich Overlay- und
+LOD-Fall; die Allokationszähler sollen dabei kumulativ bleiben.
+
+### Operator-Punkte und Validierung
+
+**Boxen:** 1 CSS px ist umgesetzt. Die Rastertests für Breite und
+Zweiton-Strichelung bestehen bei DPR 1 und 2, ebenso die unverändert
+2 CSS px breiten Pfade und Overlays. Die neue, weniger dominante Box
+ist auch in den gerenderten Modellszenen nachvollziehbar:
+[Hell](viewer-palette-fest.r49.scene-dense-light.png),
+[Dunkel](viewer-palette-fest.r49.scene-dense-dark.png),
+[isolierte Kante](viewer-palette-fest.r49.box-edge-dpr1-light.png).
+
+**Parallele Kamera:** Das Zurücksetzen entlang der Blickachse ist für die
+Orthoprojektion passend. Die beiden Kameratests bestehen: 26 Richtungen,
+Presets/Reset und Projektionswechsel; das ganze Raster bleibt auch bei
+zwölf flachen Azimuten und vier Presets zwischen Near/Far.
+[Kamera-Ergebnisse](viewer-palette-fest.r49.camera-summary.json).
+
+**Eigene Prüfung:** Typecheck/Build PASS; **124/124** bestehende
+Viewer-Unit-Tests, **32/32** Report-Tests, **2/2** eigene Controller-/Bilanz-
+Sonden; **12/12** Browserprüfungen in zwei seriellen Läufen auf eigenem
+Mock `127.0.0.1:4188`. Kein erneutes vollständiges Offline-Gate.
+Die Mac-Leistungsprüfung und abschließende Operator-Sichtprüfung bleiben
+separat; die Browserläufe hier sind Funktionsprüfungen, keine
+Leistungsfreigabe.
+
+**Weiteres Vorgehen:** Nur den genannten Bilanzrest nachprüfen; die
+geschlossenen Befunde und die beiden Operator-Korrekturen bleiben
+abgenommen, sofern deren Implementierung dabei unverändert bleibt.

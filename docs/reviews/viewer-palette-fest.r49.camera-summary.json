@@ -1,0 +1,38 @@
+{
+  "stats": {
+    "startTime": "2026-09-30T12:00:28.761Z",
+    "duration": 15912.758,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "file": "viewer.spec.ts",
+      "line": 299,
+      "title": "default framing keeps the eye outside a bed/column model for every direction, preset, projection and reset",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 10267,
+          "errors": []
+        }
+      ]
+    },
+    {
+      "file": "viewer.spec.ts",
+      "line": 390,
+      "title": "the parallel projection never cuts the ground grid while orbiting",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 4958,
+          "errors": []
+        }
+      ]
+    }
+  ]
+}

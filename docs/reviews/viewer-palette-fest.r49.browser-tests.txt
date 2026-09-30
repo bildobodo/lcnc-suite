@@ -1,0 +1,19 @@
+
+Running 10 tests using 1 worker
+
+(node:1942612) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1942612) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [ab-scenes] › e2e/abrun.viewer.spec.ts:62:1 › the Debug switch rebuilds the paths in the chosen renderer; a run measures every phase and leaves the view as it was (31.7s)
+  ✓   2 [ab-scenes] › e2e/abrun.viewer.spec.ts:136:1 › a run from an open simulation: the same jumps every repetition, the timeline back at its position (28.2s)
+  ✓   3 [ab-scenes] › e2e/abrun.viewer.spec.ts:162:3 › a shown finding on a hidden rapid comes back after a run to its end (30.3s)
+  ✓   4 [ab-scenes] › e2e/abrun.viewer.spec.ts:162:3 › a shown finding on a hidden rapid comes back after a run cancelled mid-run (13.1s)
+  ✓   5 [ab-scenes] › e2e/r49.viewer.spec.ts:64:1 › R49: preserve a selected finding on the hidden rapid layer (19.7s)
+  ✓   6 [ab-scenes] › e2e/scenes.viewer.spec.ts:64:1 › a half-mixed pixel reads as half the limit, not as the backplot (1ms)
+  ✓   7 [ab-scenes] › e2e/scenes.viewer.spec.ts:76:1 › the palette in four themes, on a model, a dense and a thin path — and no current line drawn (8.0s)
+  ✓   8 [ab-scenes] › e2e/scenes.viewer.spec.ts:223:1 › every path line is drawn 2 CSS px — the path, the limit overlay and the backplot, at DPR 1 and 2 (23.5s)
+  ✓   9 [ab-scenes] › e2e/scenes.viewer.spec.ts:370:1 › the box edge alone: two tones, MACHINE_BOX_PX wide, dashes of MACHINE_BOX_DASH_PX — at DPR 1 and 2 (8.5s)
+  ✓  10 [ab-scenes] › e2e/scenes.viewer.spec.ts:446:1 › box dashes hold MACHINE_BOX_DASH_PX along every projected edge — parallel and perspective, three directions (6.9s)
+
+  10 passed (2.9m)

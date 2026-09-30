@@ -1,0 +1,63 @@
+--- viewer-palette-fest.r48.controller-probe.ts
++++ viewer-palette-fest.r49.controller-probe.ts
+@@ -58,7 +58,7 @@
+ 
+ import { writeFileSync } from 'node:fs';
+ const observations: Record<string, unknown> = {};
+-it('R48: records real geometry replacement across ABBAAB, source capacity and actual instances', () => {
++it('R49: records real geometry replacement across ABBAAB, source capacity and actual instances', () => {
+   const { c, ctx } = build('fat');
+   const feed = () => ctx.workRotGroup.children.filter(o => (o as any).material?.userData?.role === 'feed');
+   const replacements: unknown[] = [];
+@@ -101,16 +101,16 @@
+   expect(released.cpu.total).toBe(released.cpu.payload);
+   expect(released.gpu.total).toBe(0);
+   // Valid separate singleton sections: no retained index pairs, but the
+-  // frame-index builder must allocate its full-capacity scratch arrays.
++  // frame-index builder now counts first and only allocates the break mask.
+   const count=4096;
+   const allBreaks={feedPos:new Float32Array(count*3),feedBreaks:Uint32Array.from({length:count},(_,i)=>i),rapidPos:new Float32Array(),bounds:{min:[0,0,0],max:[0,0,0]}} as any;
+   const allocBefore=c.pathMemory().allocated;
+   c.apply(ctx,allBreaks);
+   const emptyPath=c.pathMemory();
+-  const scratch=count+Math.max(0,count-1)*2*4; // isBreak + full table, alive together
++  const scratch=count; // isBreak; the full-capacity temporary table was removed
+   observations.peakScratch={vertices:count,payloadBytes:allBreaks.feedPos.byteLength+allBreaks.feedBreaks.byteLength,knownConcurrentScratchBytes:scratch,reported:emptyPath,allocatedByThisApply:emptyPath.allocated-allocBefore};
+-  expect(emptyPath.allocated-allocBefore).toBe(0);
+-  expect(emptyPath.peak).toBeLessThan(allBreaks.feedPos.byteLength+allBreaks.feedBreaks.byteLength+scratch);
++  expect(emptyPath.allocated-allocBefore).toBeGreaterThanOrEqual(scratch);
++  expect(emptyPath.peak).toBeGreaterThanOrEqual(allBreaks.feedPos.byteLength+allBreaks.feedBreaks.byteLength+scratch);
+   c.dispose();
+-  writeFileSync('../evidence/viewer-palette-fest.r48.controller-probe.json', JSON.stringify(observations,null,2)+'\n');
++  writeFileSync('../evidence/viewer-palette-fest.r49.controller-probe.json', JSON.stringify(observations,null,2)+'\n');
+ });
+--- viewer-palette-fest.r48.browser-probe.ts
++++ viewer-palette-fest.r49.browser-probe.ts
+@@ -61,7 +61,7 @@
+ 
+ 
+ import { writeFileSync } from 'node:fs';
+-test('R48: preserve a selected finding on the hidden rapid layer',async({page,context})=>{
++test('R49: preserve a selected finding on the hidden rapid layer',async({page,context})=>{
+  test.setTimeout(120000);
+  const telemetry:Rec[]=[];
+  await setup(page,context,telemetry);
+@@ -84,10 +84,13 @@
+  });
+  await expect.poll(()=>telemetry.some(e=>e.kind==='viewer.abrun'&&e.phase==='end')).toBe(true);
+  const after=await snapshot();
+- writeFileSync('../evidence/viewer-palette-fest.r48.browser-probe.json',JSON.stringify({before,after,calibration,phases:telemetry.filter(e=>e.kind==='viewer.abrun')},null,2)+'\n');
+- writeFileSync('../evidence/viewer-palette-fest.r48.browser-telemetry.json',JSON.stringify(telemetry,null,2)+'\n');
++ writeFileSync('../evidence/viewer-palette-fest.r49.browser-probe.json',JSON.stringify({before,after,calibration,phases:telemetry.filter(e=>e.kind==='viewer.abrun')},null,2)+'\n');
++ writeFileSync('../evidence/viewer-palette-fest.r49.browser-telemetry.json',JSON.stringify(telemetry,null,2)+'\n');
+  expect(telemetry.filter(e=>e.kind==='viewer.abrun'&&e.variant)).toHaveLength(49);
+- // Observation assertion: a green probe reproduces the missing restoration.
+- expect(after.memory.cpu.reveal).toBe(0);
+- expect(after.rapid).toBeNull();
++ // R49: the same finding and its visible hidden-layer section must return.
++ expect(after.line).toBe(before.line);
++ expect(after.pos).toBe(before.pos);
++ expect(after.memory.cpu.reveal).toBe(before.memory.cpu.reveal);
++ expect(after.memory.gpu.reveal).toBe(before.memory.gpu.reveal);
++ expect(after.rapid).not.toBeNull();
+ });
