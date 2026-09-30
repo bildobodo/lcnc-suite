@@ -1,16 +1,17 @@
-// The tool setter puck (operator 2026-09-29): placed only for a SET-UP tool
-// setter, its top face at the contact Z, a machine part in the model's greys.
+// The tool setter and the tool-change position (operator 2026-09-29/30):
+// placed only where the position is known — a SET-UP tool setter, a G30 row
+// read for X, Y and Z. Drawn as a pin with a label (pointMarker.ts).
 import { describe, it, expect } from "vitest";
 import * as THREE from "three";
-import { buildToolsetterMarker, toolsetterPlacement, TOOLSETTER_HEIGHT_MM, TOOLSETTER_DIAMETER_MM } from "./toolsetterMarker";
+import { toolChangePlacement, toolsetterPlacement } from "./toolsetterMarker";
+import { buildPointMarker, pointMarkerSegments, posePointMarker, POINT_MARKER } from "./pointMarker";
 import { toolsetterSetup, TOOLSETTER_FALLBACK } from "../toolsetterSetup";
-import { MACHINE_PALETTE } from "./palette";
 
 const SET_UP = { ...TOOLSETTER_FALLBACK, touchX: 150, touchY: 0, touchZ: -300, fastFeed: 2000, slowFeed: 200,
   traverseFeed: 6000, maxZTravel: 180, retractDist: 2, spindleZeroHeight: 180 };
 
 describe("toolsetterPlacement", () => {
-  it("the XYZAC sim's tool setter: top centre at G53 X150 Y0, contact Z −300", () => {
+  it("the XYZAC sim's tool setter: the contact point at G53 X150 Y0 Z−300", () => {
     const setup = toolsetterSetup(SET_UP);
     expect(setup.ok, JSON.stringify(setup)).toBe(true);
     expect(toolsetterPlacement(setup)).toEqual({ x: 150, y: 0, topZ: -300 });
@@ -22,24 +23,43 @@ describe("toolsetterPlacement", () => {
   });
 });
 
-describe("buildToolsetterMarker", () => {
-  it("its origin is the contact face: everything lies below it, the top exactly at 0", () => {
-    const g = buildToolsetterMarker(1, {});
-    const box = new THREE.Box3().setFromObject(g);
-    expect(box.max.z).toBeCloseTo(0, 9);
-    expect(box.min.z).toBeCloseTo(-TOOLSETTER_HEIGHT_MM, 9);
-    expect(box.max.x - box.min.x).toBeCloseTo(TOOLSETTER_DIAMETER_MM, 1);
+describe("toolChangePlacement", () => {
+  it("the stored G30's X, Y, Z", () => {
+    expect(toolChangePlacement({ ok: true, values: { X: 150, Y: -20, Z: -10, A: 0, C: 90 } })).toEqual({ x: 150, y: -20, z: -10 });
   });
-
-  it("scales with the machine's unit (an inch machine draws 30 mm, not 30 in)", () => {
-    const g = buildToolsetterMarker(1 / 25.4, {});
-    const box = new THREE.Box3().setFromObject(g);
-    expect(box.min.z).toBeCloseTo(-TOOLSETTER_HEIGHT_MM / 25.4, 6);   // float32 geometry
+  it("a failed read, a missing row or a non-number: no position (never 0)", () => {
+    expect(toolChangePlacement(null)).toBeNull();
+    expect(toolChangePlacement({ ok: false, error: "No parameter file" })).toBeNull();
+    expect(toolChangePlacement({ ok: true, values: { X: 150, Y: null, Z: 0 } })).toBeNull();
+    expect(toolChangePlacement({ ok: true, values: { X: 150, Y: 0 } })).toBeNull();
   });
+});
 
-  it("a machine part in the model's greys: steel body, the lighter contact face", () => {
-    const g = buildToolsetterMarker(1, {});
-    const colours = g.children.map(m => ((m as THREE.Mesh).material as THREE.MeshStandardMaterial).color.getHex());
-    expect(colours).toEqual([MACHINE_PALETTE.steel, MACHINE_PALETTE.marks]);
+describe("buildPointMarker", () => {
+  it("a cross at the point and a stem up, the label over the stem — no axis triad", () => {
+    const label = new THREE.Object3D();
+    const m = buildPointMarker({ color: "#15181c", alt: "#f0f2f4", label, name: "toolsetter" });
+    const seg = pointMarkerSegments();
+    expect(seg.length / 6, "three segments: two cross arms, one stem").toBe(3);
+    expect(Math.max(...Array.from(seg).filter((_, i) => i % 3 === 2)), "the stem's top").toBe(POINT_MARKER.stemPx);
+    expect(label.position.z).toBeGreaterThan(POINT_MARKER.stemPx);
+    const roles = new Set<string>();
+    m.traverse(o => { const r = ((o as THREE.Mesh).material as THREE.Material | undefined)?.userData?.role; if (r) roles.add(r); });
+    expect([...roles].sort(), "its own role, never a box's (a box probe picks the longest box segment)").toEqual(["marker", "markerAlt"]);
+  });
+  it("the same size on screen at every zoom, the label up on SCREEN from the point", () => {
+    const label = new THREE.Object3D();
+    const m = buildPointMarker({ color: "#15181c", alt: "#f0f2f4", label, name: "toolChange" });
+    posePointMarker(m, 0.5, new THREE.Vector3(0, 0, 1));   // 0.5 mm per px, a side view (screen up = +Z)
+    m.updateMatrixWorld(true);
+    const top = new THREE.Vector3(0, 0, POINT_MARKER.stemPx).applyMatrix4(m.matrixWorld);
+    expect(top.z).toBeCloseTo(POINT_MARKER.stemPx * 0.5, 9);
+    expect(label.position.z).toBeGreaterThan(POINT_MARKER.stemPx);
+    // seen from above (screen up = +Y): the label beside the point on screen, never on the cross
+    posePointMarker(m, 0.5, new THREE.Vector3(0, 1, 0));
+    expect([label.position.x, label.position.z]).toEqual([0, 0]);
+    expect(label.position.y).toBeGreaterThan(POINT_MARKER.stemPx);
+    posePointMarker(m, 0, new THREE.Vector3(0, 1, 0));   // a degenerate read keeps the last size
+    expect(m.scale.x).toBe(0.5);
   });
 });

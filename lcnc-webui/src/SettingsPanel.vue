@@ -17,7 +17,7 @@ import {
   loadMacrosDefaults, saveMacrosDefaults, syncMacroParams,
   loadDisplayDefaults, saveDisplayDefaults, settingsVersion, serverSettingsReady,
   loadCameraDefaults, saveCameraDefaults,
-  type Layer, type ColorDefaults, type PaletteMode, type PaletteOrigin, type HudDefaults, type HudScale,
+  ON_TOP_LAYERS, type OnTopLayer, type Layer, type ColorDefaults, type PaletteMode, type PaletteOrigin, type HudDefaults, type HudScale,
   type TrackMode, type Projection, type PreviewMode, type ToolChangeMode, type SpindleDir, type SpindleFeedbackUnit,
   type ThemeMode, type MacroDef, type GamepadDefaults,
   GAMEPAD_FALLBACK,
@@ -153,7 +153,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: "setPathOnTop", on: boolean): void;
+  (e: "setLayerOnTop", layer: OnTopLayer, on: boolean): void;
   (e: "setProjection", proj: Projection): void;
   (e: "setTrackMode", mode: TrackMode): void;
   (e: "toggleLayer", layer: Layer, on: boolean): void;
@@ -183,11 +183,11 @@ function resetViewer() {
   for (const k of Object.keys(machineColors)) delete machineColors[k];
   Object.assign(machineColors, vd.machineColors);
   trackingMode.value = vd.trackingMode;
-  pathOnTop.value = vd.pathOnTop;
+  Object.assign(onTop, vd.onTop);
   machineEdgesOn.value = vd.machineEdges;
   projection.value = vd.projection;
   previewMode.value = vd.previewMode;
-  emit("setPathOnTop", vd.pathOnTop);
+  for (const l of ON_TOP_LAYERS) emit("setLayerOnTop", l, vd.onTop[l]);
   emit("setProjection", vd.projection);
   setMachineEdges(vd.machineEdges);
   applyPaletteFromSettings();   // back to Automatic
@@ -257,7 +257,7 @@ const paletteOrigin = ref<PaletteOrigin | undefined>(saved.paletteOrigin);
 const colors = reactive<Partial<ColorDefaults>>({ ...saved.colors });
 const machineColors = reactive<Record<string, string>>({ ...saved.machineColors });
 const trackingMode = ref<TrackMode>(saved.trackingMode);
-const pathOnTop = ref(saved.pathOnTop);
+const onTop = reactive<Record<OnTopLayer, boolean>>({ ...saved.onTop });
 const machineEdgesOn = ref(saved.machineEdges);
 const projection = ref<Projection>(saved.projection);
 const previewMode = ref<PreviewMode>(saved.previewMode);
@@ -272,7 +272,7 @@ function save() {
     machineColors: { ...machineColors },
     machineEdges: machineEdgesOn.value,
     trackingMode: trackingMode.value,
-    pathOnTop: pathOnTop.value,
+    onTop: { ...onTop },
     projection: projection.value,
     previewMode: previewMode.value,
     hud: { ...hud },
@@ -312,7 +312,8 @@ const LAYER_LABELS: { key: Layer; label: string; role?: ViewerRole; dashed?: boo
   { key: "machine", label: "Machine" },
   { key: "groundGrid", label: "Ground Grid" },
   { key: "tool", label: "Tool" },
-  { key: "toolsetter", label: "Tool Setter", help: "Where the next tool measurement probes; its top is the contact height, not a trip area. Needs Probing › Toolsetter." },
+  { key: "toolsetter", label: "Tool Setter", help: "Where the next tool measurement probes: the pin's point is the contact height. Needs Probing › Toolsetter." },
+  { key: "toolChange", label: "Tool Change (G30)", help: "The stored tool-change position (G30), as of the last save of the parameter file." },
   { key: "hud", label: "HUD" },
 ];
 
@@ -322,10 +323,13 @@ function onLayerChange(layer: Layer, on: boolean) {
   emit("toggleLayer", layer, on);
 }
 
-function onPathOnTopChange(on: boolean) {
-  pathOnTop.value = on;
+/** The layers the "On top" column offers (lines and markers, never a body). */
+const offersOnTop = (l: Layer): l is OnTopLayer => (ON_TOP_LAYERS as readonly string[]).includes(l);
+
+function onLayerOnTopChange(layer: OnTopLayer, on: boolean) {
+  onTop[layer] = on;
   save();
-  emit("setPathOnTop", on);
+  emit("setLayerOnTop", layer, on);
 }
 
 function onTrackModeChange(mode: TrackMode) {
@@ -417,7 +421,7 @@ watch(settingsVersion, () => {
   Object.assign(colors, vd.colors);
   Object.assign(machineColors, vd.machineColors);
   trackingMode.value = vd.trackingMode;
-  pathOnTop.value = vd.pathOnTop;
+  Object.assign(onTop, vd.onTop);
   machineEdgesOn.value = vd.machineEdges;
   projection.value = vd.projection;
   previewMode.value = vd.previewMode;
@@ -602,18 +606,45 @@ function resetMachineColor(id: string) {
 
         <div class="stack-controls">
           <div class="sub">Layers</div>
-          <div class="layerGrid" data-layer-legend>
-            <div v-for="lf in LAYER_LABELS" :key="lf.key" class="row-controls" :data-layer="lf.key">
-              <MachineToggle
-                gate="viewerSetting"
-                :modelValue="layers[lf.key]"
-                @update:modelValue="onLayerChange(lf.key, $event!)"
-                :label="lf.label"
-                :help="lf.help"
-              />
-              <span v-if="lf.role" class="legendLine" :class="{ dashed: lf.dashed, twoTone: lf.twoTone, short: lf.twoTone === 'short' }"
-                    :style="legendStyle(lf.role, lf.twoTone)" aria-hidden="true"></span>
-            </div>
+          <div class="settingDesc">On top: drawn over the machine, where a machine part stands in front.</div>
+          <!-- Shown | legend | On top (operator 2026-09-30). The column heads are
+               the first body row: .dataTable's sticky head covers the top row
+               inside the scrolling Settings page (KeyboardTab). -->
+          <div class="dataTable layerTable" data-layer-legend>
+            <table>
+              <tbody>
+                <tr>
+                  <th scope="col">Layer</th>
+                  <td></td>
+                  <th scope="col">On top</th>
+                </tr>
+                <tr v-for="lf in LAYER_LABELS" :key="lf.key" :data-layer="lf.key">
+                  <td>
+                    <MachineToggle
+                      gate="viewerSetting"
+                      :modelValue="layers[lf.key]"
+                      @update:modelValue="onLayerChange(lf.key, $event!)"
+                      :label="lf.label"
+                      :help="lf.help"
+                    />
+                  </td>
+                  <td>
+                    <span v-if="lf.role" class="legendLine" :class="{ dashed: lf.dashed, twoTone: lf.twoTone, short: lf.twoTone === 'short' }"
+                          :style="legendStyle(lf.role, lf.twoTone)" aria-hidden="true"></span>
+                  </td>
+                  <td>
+                    <MachineToggle
+                      v-if="offersOnTop(lf.key)"
+                      gate="viewerSetting"
+                      :modelValue="onTop[lf.key]"
+                      @update:modelValue="onLayerOnTopChange(lf.key as OnTopLayer, $event!)"
+                      :aria-label="`${lf.label} on top`"
+                      data-on-top
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
           <!-- The findings drawn ON the path: the same glyph as the timeline
                and the code panel, the colour the 3D view draws. -->
@@ -650,18 +681,6 @@ function resetMachineColor(id: string) {
               :label="t.label"
             />
           </div>
-        </div>
-
-        <div class="sep"></div>
-
-        <div class="stack-controls">
-          <div class="sub">Toolpath</div>
-          <MachineToggle
-            gate="viewerSetting"
-            :modelValue="pathOnTop"
-            @update:modelValue="onPathOnTopChange($event!)"
-            label="Always on Top"
-          />
         </div>
 
         <div class="sep"></div>
@@ -1090,7 +1109,8 @@ function resetMachineColor(id: string) {
   gap: var(--gap-controls);
 }
 
-.layerGrid label {
+.layerGrid label,
+.layerTable label {
   display: flex;
   align-items: center;
   gap: var(--gap-tight);

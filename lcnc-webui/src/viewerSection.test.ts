@@ -6,19 +6,19 @@
 // section). No case claims to reconstruct what an operator meant: a stored
 // palette stays as it is, as Custom.
 import { describe, it, expect } from "vitest";
-import { mergeViewerSection } from "./viewerSection";
+import { mergeViewerSection, ON_TOP_FALLBACK } from "./viewerSection";
 import { resolveViewerPalette, userColorsOf, ROLE_TOKEN, USER_ROLES } from "./viewer/viewerPalette";
 import type { ViewerDefaults } from "./defaults";
 
 const FB: ViewerDefaults = {
   layers: { backplot: true, toolpath: true, rapids: true, machine: true, bounds: true, toolpathBounds: false, reachRoom: false, reachPart: false,
-    workzero: true, hud: true, surface: true, tool: true, toolsetter: true, workplane: true, groundGrid: true },
+    workzero: true, hud: true, surface: true, tool: true, toolsetter: true, toolChange: true, workplane: true, groundGrid: true },
   paletteMode: "auto",
   colors: {},
   machineColors: {},
   machineEdges: true,
   trackingMode: "none",
-  pathOnTop: false,
+  onTop: { ...ON_TOP_FALLBACK },
   projection: "parallel",
   previewMode: "part",
   hud: { scale: "md", showMachine: true, showTool: true, showFeedSpindle: true, showLoadBar: true },
@@ -162,5 +162,29 @@ describe("viewer palette resolution", () => {
     const seed = userColorsOf(resolveViewerPalette(reader(LIGHT), { paletteMode: "auto", colors: {} }));
     expect(Object.keys(seed).sort()).toEqual([...USER_ROLES].sort());
     expect(seed.bounds).toBe(LIGHT["--viewer-bounds"]);
+  });
+});
+
+describe("on top per layer (operator 2026-09-30)", () => {
+  const fb = FB;
+  it("no stored section: the markers on top, the path and the boxes not", () => {
+    const v = mergeViewerSection(undefined, fb);
+    expect(v.onTop).toEqual(ON_TOP_FALLBACK);
+    expect([v.onTop.workzero, v.onTop.toolsetter, v.onTop.toolChange, v.onTop.toolpath, v.onTop.bounds]).toEqual([true, true, true, false, false]);
+  });
+  it("the old single switch becomes the path's three rows; the rest take their defaults; it is not kept", () => {
+    const on = mergeViewerSection({ pathOnTop: true, layers: {} }, fb);
+    expect([on.onTop.toolpath, on.onTop.rapids, on.onTop.backplot]).toEqual([true, true, true]);
+    expect([on.onTop.workzero, on.onTop.bounds]).toEqual([true, false]);
+    expect("pathOnTop" in on).toBe(false);
+    const off = mergeViewerSection({ pathOnTop: false }, fb);
+    expect([off.onTop.toolpath, off.onTop.rapids, off.onTop.backplot]).toEqual([false, false, false]);
+  });
+  it("a stored per-layer choice wins, also over an old switch still in the blob", () => {
+    const v = mergeViewerSection({ pathOnTop: true, onTop: { rapids: false, bounds: true, workzero: false } }, fb);
+    expect([v.onTop.toolpath, v.onTop.rapids, v.onTop.bounds, v.onTop.workzero]).toEqual([true, false, true, false]);
+  });
+  it("the new Tool Change layer is shown by default in an older blob", () => {
+    expect(mergeViewerSection({ layers: { toolsetter: false } }, fb).layers.toolChange).toBe(true);
   });
 });

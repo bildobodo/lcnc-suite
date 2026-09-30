@@ -11,6 +11,7 @@ import { ref } from "vue";
 import type { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import type { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { disposeObject } from "./disposal";
+import { ON_TOP_ORDER } from "./onTop";
 import { fatGeometry, packPairs, PATH_PX } from "./fatPaths";
 import { createToolpathController, LIMIT_OVERLAY_RENDER_ORDER, type PathLineMode, type ToolpathCtx } from "./toolpathController";
 
@@ -223,13 +224,30 @@ describe("the fat path draws exactly the GL path's pairs (Codex R39)", () => {
     expect(chords.every(p => !flagged.has(`${p[0]},${p[1]}`) && !flagged.has(`${p[3]},${p[4]}`)), "flagged only inside, never at a chord's end").toBe(true);
   });
 
-  it("always on top and the stale mute reach the 2 px materials", () => {
+  it("on top per stream (the Toolpath row = feed + its limit overlay, the Rapids row = rapid), kept across a rebuild; the stale mute reaches the 2 px materials", () => {
     const { c, ctx } = build("fat");
-    const feed = () => roleObjects(ctx.workRotGroup, "feed").map(o => (o as LineSegments2).material as LineMaterial);
-    c.setAlwaysOnTop(true);
+    const mats = (role: string) => roleObjects(ctx.workRotGroup, role).map(o => (o as LineSegments2).material as LineMaterial);
+    const feed = () => mats("feed");
+    c.setOnTop("feed", true);
     expect(feed().every(m => m.depthTest === false && m.depthWrite === false)).toBe(true);
-    c.setAlwaysOnTop(false);
+    // the limit overlays: the feed's follows the feed, the rapid's the rapid
+    expect(new Set(mats("limit").map(m => m.depthTest)), "one overlay per stream, each its stream's").toEqual(new Set([false, true]));
+    expect(mats("rapid").every(m => m.depthTest === true), "the rapid keeps its own").toBe(true);
+    c.rebuild(ctx);
+    expect(feed().every(m => m.depthTest === false), "kept across a rebuild").toBe(true);
+    c.setOnTop("rapid", true);
+    expect(mats("rapid").every(m => m.depthTest === false)).toBe(true);
+    expect(mats("limit").every(m => m.depthTest === false), "both overlays over the machine").toBe(true);
+    c.setOnTop("feed", false); c.setOnTop("rapid", false);
     expect(feed().every(m => m.depthTest === true && m.depthWrite === false)).toBe(true);
+    // the toolpath box: depth test off and drawn after the machine; back as built
+    const box = () => roleObjects(ctx.workRotGroup, "toolpathBounds") as LineSegments2[];
+    const built = box().map(o => o.renderOrder);
+    c.setBoxOnTop(true);
+    expect(box().every(o => (o.material as LineMaterial).depthTest === false && o.renderOrder >= ON_TOP_ORDER.box)).toBe(true);
+    c.setBoxOnTop(false);
+    expect(box().map(o => o.renderOrder)).toEqual(built);
+    expect(box().every(o => (o.material as LineMaterial).depthTest === true)).toBe(true);
     const base = feed()[0]!.color.getHexString();
     c.setStale(true);
     expect(feed()[0]!.color.getHexString(), "muted").not.toBe(base);

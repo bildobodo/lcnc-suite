@@ -1,30 +1,26 @@
-// The tool setter in the 3D view (operator 2026-09-29: "ist die Position
-// bekannt, wo er auslöst? … eine Anzeige der Kontaktposition"). A puck in the
-// MACHINE frame (machineFrameGrp, like the machine box) at the WebUI's tool
-// setter position — where the next measurement the WebUI starts probes:
+// The tool setter and the tool-change position in the 3D view (operator
+// 2026-09-29: "ist die Position bekannt, wo er auslöst? … eine Anzeige der
+// Kontaktposition"; 2026-09-30: a marker with a label, not a model, and the
+// tool-change position too). Both are POINTS in the MACHINE frame
+// (machineFrameGrp, like the machine box), drawn as viewer/pointMarker.ts
+// pins; this module only decides WHERE, or that there is nothing to show.
 //
-// - centre at touchX / touchY (#3100 / #3101, G53);
-// - TOP face at touchZ (#3102): the machine Z of the control point when a
-//   zero-length tool touches — the plate top exactly where the spindle nose
-//   face is drawn at that joint Z (the tool routine: length = contact Z − #3102).
+// The tool setter: at the WebUI's set-up position — where the next
+// measurement the WebUI starts probes — touchX / touchY (#3100 / #3101, G53),
+// touchZ (#3102): the machine Z of the control point when a zero-length tool
+// touches (the tool routine: length = contact Z − #3102). Only for a SET-UP
+// tool setter (confirmedToolsetter().ok): TOOLSETTER_FALLBACK's zeros are no
+// position.
 //
-// Only for a SET-UP tool setter (confirmedToolsetter().ok): TOOLSETTER_FALLBACK's
-// zeros are no position. A machine part, so its greys come from the model's
-// ladder (viewer/palette.ts MACHINE_PALETTE) — no palette role of its own.
-import * as THREE from "three";
+// The tool-change position: the stored G30 (#5181–#5183, GET /g30 — the
+// parameter file as of the interpreter's last synch, a display read).
 import type { ToolsetterSetup } from "../toolsetterSetup";
-import { MACHINE_PALETTE } from "./palette";
-
-/** The puck's size in mm (scaled by the viewer's unit scale). */
-export const TOOLSETTER_DIAMETER_MM = 30;
-export const TOOLSETTER_HEIGHT_MM = 40;
-/** The contact face: a lighter disc on top, this thick. */
-export const TOOLSETTER_CAP_MM = 2;
+import type { G30Response } from "../lcncApi";
 
 export interface ToolsetterPlacement { x: number; y: number; topZ: number }
 
-/** Where the puck's top centre goes (machine units), or null when the tool
- *  setter is not set up. Pure. */
+/** The contact point (machine units), or null when the tool setter is not
+ *  set up. Pure. */
 export function toolsetterPlacement(setup: ToolsetterSetup): ToolsetterPlacement | null {
   if (!setup.ok) return null;
   const { touchX, touchY, touchZ } = setup.values;
@@ -32,23 +28,12 @@ export function toolsetterPlacement(setup: ToolsetterSetup): ToolsetterPlacement
   return { x: touchX, y: touchY, topZ: touchZ };
 }
 
-/** The puck: body + a lighter contact face, its ORIGIN at the top centre (so
- *  placing the group puts the contact face at the placement). Z up. */
-export function buildToolsetterMarker(unitScale: number, surface: THREE.MeshStandardMaterialParameters): THREE.Group {
-  const r = (TOOLSETTER_DIAMETER_MM / 2) * unitScale;
-  const h = TOOLSETTER_HEIGHT_MM * unitScale;
-  const cap = TOOLSETTER_CAP_MM * unitScale;
-  const group = new THREE.Group();
-  group.name = "toolsetter";
-  const body = new THREE.Mesh(
-    new THREE.CylinderGeometry(r, r, h - cap, 40).rotateX(Math.PI / 2),
-    new THREE.MeshStandardMaterial({ ...surface, color: MACHINE_PALETTE.steel }));
-  body.position.z = -cap - (h - cap) / 2;
-  const face = new THREE.Mesh(
-    new THREE.CylinderGeometry(r, r, cap, 40).rotateX(Math.PI / 2),
-    new THREE.MeshStandardMaterial({ ...surface, color: MACHINE_PALETTE.marks }));
-  face.position.z = -cap / 2;
-  body.userData.part = face.userData.part = "toolsetter";
-  group.add(body, face);
-  return group;
+/** The stored tool-change position's X, Y, Z (machine units), or null when
+ *  the read failed or any of the three is missing (a missing row is no
+ *  position — never 0). Pure. */
+export function toolChangePlacement(read: G30Response | null): { x: number; y: number; z: number } | null {
+  if (!read?.ok || !read.values) return null;
+  const { X: x, Y: y, Z: z } = read.values;
+  if (![x, y, z].every(v => typeof v === "number" && Number.isFinite(v))) return null;
+  return { x: x!, y: y!, z: z! };
 }

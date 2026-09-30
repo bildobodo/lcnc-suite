@@ -16,7 +16,7 @@
 // label registry, the troika label factory, the live colour getter, the
 // disposeObject helper, and the overflow ref the HUD reads. Per-call ToolpathCtx
 // carries the REASSIGNED scene-graph pointers (scene/workOrigin/workRotGroup)
-// plus per-program data (pathAlwaysOnTop/units) — never cached.
+// plus per-program data (units) — never cached.
 import * as THREE from "three";
 import { binPairs, buildFrameIndex, CHUNK_MAX, chunkBounds, chunkGrid, cumulativeDistances, splitPairsByFrame } from "./lineChunks";
 import type { AnchorTerms } from "./partFrame";
@@ -26,6 +26,7 @@ import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeome
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { fatBytes, fatGeometry, packPairs, PATH_PX } from "./fatPaths";
 import { allocatedBytes, counted, countedGeometry, f32, u32 } from "./allocMeter";
+import { applyOnTop, ON_TOP_ORDER } from "./onTop";
 import type { Ref } from "vue";
 import type { Text } from "troika-three-text";
 import type { ViewerGcode } from "../lcncWs";
@@ -90,7 +91,6 @@ export interface ToolpathCtx {
   roomRotGroup: THREE.Group | null;
   roomAnchor: THREE.Group | null;
   roomRot: THREE.Group | null;
-  pathAlwaysOnTop: boolean;
   units: string | undefined;
 }
 
@@ -120,7 +120,12 @@ export interface ToolpathController {
    *  (a re-bake of the same program); null ends it. */
   setReveal(r: PathSection | null): void;
   setBoundsVisible(on: boolean): void;
-  setAlwaysOnTop(on: boolean): void;
+  /** Draw a stream over the machine (Settings → Layers' "on top": the
+   *  Toolpath row = feed, the Rapids row = rapid); its limit overlay and a
+   *  finding's section on it follow it. */
+  setOnTop(stream: "feed" | "rapid", on: boolean): void;
+  /** The toolpath box, its overflow edges and size labels over the machine. */
+  setBoxOnTop(on: boolean): void;
   /** The A/B measurement's switch (Codex R39 VP39-03; removed after the
    *  acceptance): rebuild the last applied program in the given line mode —
    *  never both held, so each mode's memory is its own. */
@@ -329,7 +334,10 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   let toolpathVisible = true;
   let rapidsVisible = true;
   let toolpathBoundsVisible = false;
-  let pathAlwaysOnTop = true;
+  // "on top" per stream and for the box (the settings apply them at build
+  // and on change; the controller keeps them across rebuilds)
+  const onTop = { feed: false, rapid: false };
+  let boxOnTop = false;
   let pathStale = false;
   let _chunksVisible = 0;
   let _overlayChunks = 0;
@@ -471,7 +479,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
 
   /** A path material in the current line mode. depthWrite is off explicitly
    *  (LineMaterial starts with it on — Codex R39). */
-  function pathMaterial(colorHex: string, dashed: boolean, role: string): PathMat {
+  function pathMaterial(colorHex: string, dashed: boolean, role: string, stream: "feed" | "rapid"): PathMat {
     let m: PathMat;
     if (lineMode === "fat") {
       const lm = new LineMaterial({ color: colorHex, linewidth: PATH_PX, worldUnits: false });
@@ -482,7 +490,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         : new THREE.LineBasicMaterial({ color: colorHex });
     }
     m.userData.role = role;
-    m.depthTest = !pathAlwaysOnTop;
+    m.depthTest = !onTop[stream];
     m.depthWrite = false;
     return m;
   }
@@ -548,7 +556,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     outside: Uint8Array | null, src: Uint32Array | null,
   ): LineSet | null {
     if (index0.length < 2) return null;
-    const mat = pathMaterial(colorHex, dashed, stream);   // role = the viewer palette's (diagnostics, tests)
+    const mat = pathMaterial(colorHex, dashed, stream, stream);   // role = the viewer palette's (diagnostics, tests)
     // Dashed rapids need a per-vertex distance; the worker precomputes it
     // (P4.1), the legacy/WS path gets it here (indexed geometry cannot use
     // Three's computeLineDistances). A plain BufferAttribute: a
@@ -693,7 +701,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
 
   function packOverlays(s: LineSet) {
     if (!s.ovIdx.some(Boolean)) return;
-    s.overMat = pathMaterial(deps.colors().limit, false, "limit");
+    s.overMat = pathMaterial(deps.colors().limit, false, "limit", s.stream);
     for (let k = 0; k < s.ovIdx.length; k++) {
       const ov = s.ovIdx[k];
       if (!ov) continue;
@@ -817,6 +825,12 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     }
   }
 
+  /** The box's on-top state onto what is built now (the box is rebuilt per
+   *  program; viewer/onTop.ts keeps each object's built values). */
+  function _applyBoxOnTop() {
+    for (const o of [toolpathBoundsBox, toolpathOverflowEdges, toolpathBoundsLabels]) applyOnTop(o, boxOnTop, ON_TOP_ORDER.box);
+  }
+
   function rebuildToolpathBounds(ctx: ToolpathCtx) {
     // The bounds box is in the SAME coordinates as the drawn vertices, so
     // it hangs under the same parent (the baked anchor when there is one;
@@ -873,6 +887,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     }
     toolpathBoundsLabels.visible = toolpathBoundsVisible;
     workRotGroup.add(toolpathBoundsLabels);
+    _applyBoxOnTop();
   }
 
   // The HUD "exceeds bounds" verdict comes from the per-line soft-limit
@@ -974,7 +989,6 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     apply(ctx, g, anchor = null) {
       if (!ctx.scene || !ctx.workOrigin) return;
       _lastApply = { g, anchor };
-      pathAlwaysOnTop = ctx.pathAlwaysOnTop;
       const workRotGroup = ctx.workRotGroup;
       // Baked geometry rides its OWN anchor, posed here and nowhere else —
       // the pose and the vertices change in the same call (the run-time
@@ -1310,15 +1324,22 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     pathMemory() { return ledger(); },
     heldBuffers() { const b = new Set<ArrayBufferLike>(); ledger(b); return b; },
 
-    setAlwaysOnTop(on) {
-      pathAlwaysOnTop = on;
+    setOnTop(stream, on) {
+      onTop[stream] = on;
       const dt = !on; // depthTest: false = always on top
       for (const s of sets) {
+        if (s.stream !== stream) continue;
         for (const m of [s.mat, s.overMat]) {
           if (!m) continue;
           m.depthTest = dt; m.depthWrite = false; m.needsUpdate = true;
         }
       }
+    },
+
+    setBoxOnTop(on) {
+      boxOnTop = on;
+      _applyBoxOnTop();
+      deps.requestRender();
     },
 
     setColors(c) {

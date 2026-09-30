@@ -118,3 +118,116 @@ test("the drawn tip keeps the table offset's sign; without a table row it follow
   await ctl({ op: "status_delta", data: { tool_length: 0, tool_offset: nine(0) } });
   await expect.poll(tipZ, { message: "no row, G49: nothing known beyond the control point" }).toBe(-235);
 });
+
+// The tool setter and the tool-change position (operator 2026-09-30): pins
+// with a label — no model — drawn OVER the machine by default (Settings →
+// Layers' "On top" column). From above, the spindle head standing over the
+// tool setter hides a pin drawn in depth; on top it shows. Drawn over it
+// needs the depth test off AND a draw after the machine (viewer/onTop.ts).
+async function xyzacScene(page: Page, context: import("@playwright/test").BrowserContext, g30: () => object | null) {
+  await context.route("**/xyzac-model/*.stl", r => r.fulfill({ contentType: "application/octet-stream",
+    body: readFileSync(new URL(new URL(r.request().url()).pathname.split("/").pop()!, MODEL)) }));
+  await context.route(/\/g30(\?|$)/, r => { const v = g30(); return v ? r.fulfill({ json: v }) : r.fulfill({ status: 500, body: "no parameter file" }); });
+  await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await ctl({ op: "setViewerInit", data: { units: "mm", stl_base_url: "/xyzac-model/", axes: ["X", "Y", "Z", "A", "C"],
+    parts: machine.parts, groups: machine.groups, kinematics: machine.kinematics,
+    workGroup: machine.workGroup, toolGroup: machine.toolGroup } });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready ? window.__viewerDiag.getAppearance?.().parts.length ?? 0 : 0),
+    { timeout: 20_000 }).toBe(machine.parts.length);
+  await ctl({ op: "status_delta", data: { tool_number: 13, tool_length: 65, tool_table_z: 65, tool_diameter: 6,
+    tool_offset: [0, 0, 65, 0, 0, 0, 0, 0, 0], joint_pos: [150, 0, -235, 0, 0], actual_position: [150, 0, -235, 0, 0] } });
+}
+const QUIET = { hud: false, toolpath: false, rapids: false, bounds: false, toolpathBounds: false, groundGrid: false, workzero: false, backplot: false };
+
+test("the tool setter is a pin drawn over the machine while on top, hidden by the head when not", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  await xyzacScene(page, context, () => null);
+  const settings = (shown: boolean, onTop: boolean) => ({ toolsetter: SET_UP, display: { theme: "light" },
+    viewer: { machineEdges: false, layers: { ...QUIET, toolChange: false, toolsetter: shown }, onTop: { toolsetter: onTop } } });
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: settings(true, true) } });
+  await page.evaluate(() => window.__viewerDiag!.setView!("top"));
+  await page.waitForTimeout(800);
+  const at = (await page.evaluate(() => window.__viewerDiag!.getToolsetter!()))!;
+  expect(at).toMatchObject({ visible: true, top: [150, 0, -300], onTop: true });
+  /** The pixels within ±48 CSS px of the pin's point. */
+  const around = async () => {
+    const png = (await page.screenshot()).toString("base64");
+    return page.evaluate(async ({ png, x, y }) => {
+      const img = new Image(); img.src = `data:image/png;base64,${png}`; await img.decode();
+      const cv = document.createElement("canvas"); cv.width = img.width; cv.height = img.height;
+      const cx = cv.getContext("2d", { willReadFrequently: true })!; cx.drawImage(img, 0, 0);
+      return Array.from(cx.getImageData(Math.round(x) - 48, Math.round(y) - 48, 97, 97).data);
+    }, { png, x: at.screen!.x, y: at.screen!.y });
+  };
+  const changed = (a: number[], b: number[]) => {
+    let n = 0;
+    for (let i = 0; i < a.length; i += 4) if (Math.max(Math.abs(a[i]! - b[i]!), Math.abs(a[i + 1]! - b[i + 1]!), Math.abs(a[i + 2]! - b[i + 2]!)) > 40) n++;
+    return n;
+  };
+  const onTop = await around();
+  await test.info().attach("pin-on-top.png", { body: await page.screenshot(), contentType: "image/png" });
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: settings(true, false) } });
+  await expect.poll(async () => (await page.evaluate(() => window.__viewerDiag!.getToolsetter!()))?.onTop).toBe(false);
+  await page.waitForTimeout(300);
+  const inDepth = await around();
+  await test.info().attach("pin-in-depth.png", { body: await page.screenshot(), contentType: "image/png" });
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: settings(false, false) } });
+  await expect.poll(async () => (await page.evaluate(() => window.__viewerDiag!.getToolsetter!()))?.visible).toBe(false);
+  await page.waitForTimeout(300);
+  const none = await around();
+  const shows = changed(onTop, none), hides = changed(inDepth, none);
+  expect(shows, `on top: the pin and its label show over the head (${shows} px differ from no pin)`).toBeGreaterThan(80);
+  expect(hides, `in depth: the head hides it (${hides} px differ from no pin)`).toBeLessThan(shows / 10);
+});
+
+test("the tool-change pin stands at the stored G30; without a read there is none", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  let g30: object = { ok: true, values: { X: -100, Y: 50, Z: -20, A: 0, C: 0 }, mtime_ms: 1, units: "mm" };
+  await xyzacScene(page, context, () => g30);
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { viewer: { layers: { ...QUIET, toolChange: true } } } } });
+  const pin = () => page.evaluate(() => window.__viewerDiag!.getToolChange!());
+  await expect.poll(async () => (await pin())?.top).toEqual([-100, 50, -20]);
+  expect((await pin())).toMatchObject({ visible: true, onTop: true });
+  // the interpreter back to idle (a G30.1, a Save): read again
+  g30 = { ok: true, values: { X: 120, Y: -30, Z: -5, A: 0, C: 0 }, mtime_ms: 2, units: "mm" };
+  await ctl({ op: "status_delta", data: { interp_state: 2 } });
+  await page.waitForTimeout(200);
+  await ctl({ op: "status_delta", data: { interp_state: 1 } });
+  await expect.poll(async () => (await pin())?.top, { message: "moved with the stored G30" }).toEqual([120, -30, -5]);
+  // a missing row: no position, never 0
+  g30 = { ok: true, values: { X: 120, Y: null, Z: -5, A: 0, C: 0 }, mtime_ms: 3, units: "mm" };
+  await ctl({ op: "status_delta", data: { interp_state: 2 } });
+  await page.waitForTimeout(200);
+  await ctl({ op: "status_delta", data: { interp_state: 1 } });
+  await expect.poll(async () => (await pin())?.visible, { message: "no position, no pin" }).toBe(false);
+});
+
+// Settings → Layers (operator 2026-09-30): an "On top" column for the lines
+// and markers — never a body — whose switch draws its layer over the machine
+// and is saved per layer.
+test("Settings › Layers: an On top column for lines and markers, saved per layer", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  await xyzacScene(page, context, () => null);
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { toolsetter: SET_UP } } });
+  await page.getByTitle("Settings", { exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Settings", exact: true });
+  await dialog.getByRole("tab", { name: "3D Viewer", exact: true }).click();
+  const table = dialog.locator("[data-layer-legend]");
+  for (const l of ["toolpath", "rapids", "backplot", "workzero", "workplane", "toolsetter", "toolChange", "toolpathBounds", "bounds", "reachRoom", "reachPart"]) {
+    await expect(table.locator(`[data-layer="${l}"] [data-on-top]`), `${l}: offered`).toHaveCount(1);
+  }
+  for (const l of ["machine", "groundGrid", "tool", "hud", "surface"]) {
+    await expect(table.locator(`[data-layer="${l}"] [data-on-top]`), `${l}: a body, never on top`).toHaveCount(0);
+  }
+  const ts = dialog.getByRole("checkbox", { name: "Tool Setter on top", exact: true });
+  await expect(ts, "a marker: on top by default").toBeChecked();
+  await expect(dialog.getByRole("checkbox", { name: "Machine Bounds on top", exact: true }), "a box: not").not.toBeChecked();
+  await ctl({ op: "clearCmds" });
+  await ts.uncheck();
+  await expect.poll(async () => (await page.evaluate(() => window.__viewerDiag!.getToolsetter!()))?.onTop).toBe(false);
+  await expect.poll(async () => {
+    const cmds = ((await ctl({ op: "lastCmds" })) as { cmds?: any[] }).cmds ?? [];
+    const save = cmds.filter(c => c.cmd === "save_settings" && c.section === "viewer").at(-1);
+    return save ? JSON.stringify({ ts: save.data.onTop?.toolsetter, bounds: save.data.onTop?.bounds, old: "pathOnTop" in save.data }) : "no save";
+  }).toBe(JSON.stringify({ ts: false, bounds: false, old: false }));
+});

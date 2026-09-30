@@ -1,7 +1,7 @@
 import { ref } from "vue";
 import { TOOLSETTER_FALLBACK } from "./toolsetterSetup";
 import { withToken } from "./auth";
-import { mergeViewerSection } from "./viewerSection";
+import { mergeViewerSection, ON_TOP_FALLBACK, type OnTopLayer } from "./viewerSection";
 import { noteSavePending, noteSaveSent, noteSaveBlocked, noteSaveFailed, noteSaveBeaconed } from "./settingsSaveStatus";
 import { resetServerSettings } from "./lcncApi";
 import type { GamepadProfile } from "./gamepadProfile";
@@ -28,8 +28,9 @@ export const STEP_RAPID_OVERRIDE = 25;
 
 export type Vec3 = [number, number, number];
 
-export type Layer = "backplot" | "toolpath" | "rapids" | "machine" | "bounds" | "toolpathBounds" | "reachRoom" | "reachPart" | "workzero" | "hud" | "surface" | "tool" | "toolsetter" | "workplane" | "groundGrid";
-export const ALL_LAYERS: Layer[] = ["backplot", "toolpath", "rapids", "machine", "bounds", "toolpathBounds", "reachRoom", "reachPart", "workzero", "hud", "surface", "tool", "toolsetter", "workplane", "groundGrid"];
+export type Layer = "backplot" | "toolpath" | "rapids" | "machine" | "bounds" | "toolpathBounds" | "reachRoom" | "reachPart" | "workzero" | "hud" | "surface" | "tool" | "toolsetter" | "toolChange" | "workplane" | "groundGrid";
+export const ALL_LAYERS: Layer[] = ["backplot", "toolpath", "rapids", "machine", "bounds", "toolpathBounds", "reachRoom", "reachPart", "workzero", "hud", "surface", "tool", "toolsetter", "toolChange", "workplane", "groundGrid"];
+export { ON_TOP_LAYERS, ON_TOP_FALLBACK, type OnTopLayer } from "./viewerSection";
 
 export type TrackMode = "none" | "tool" | "wcs";
 export type Projection = "perspective" | "parallel";
@@ -79,7 +80,8 @@ export interface ViewerDefaults {
   machineColors: Record<string, string>;
   machineEdges: boolean;
   trackingMode: TrackMode;
-  pathOnTop: boolean;
+  /** Per layer: drawn over the machine (depth test off, drawn after it). */
+  onTop: Record<OnTopLayer, boolean>;
   projection: Projection;
   previewMode: PreviewMode;
   hud: HudDefaults;
@@ -267,13 +269,13 @@ export const HUD_FALLBACK: HudDefaults = {
 };
 
 const VIEWER_FALLBACK: ViewerDefaults = {
-  layers: { backplot: true, toolpath: true, rapids: true, machine: true, bounds: true, toolpathBounds: false, reachRoom: false, reachPart: false, workzero: true, hud: true, surface: true, tool: true, toolsetter: true, workplane: true, groundGrid: true },
+  layers: { backplot: true, toolpath: true, rapids: true, machine: true, bounds: true, toolpathBounds: false, reachRoom: false, reachPart: false, workzero: true, hud: true, surface: true, tool: true, toolsetter: true, toolChange: true, workplane: true, groundGrid: true },
   paletteMode: "auto",
   colors: {},
   machineColors: {},
   machineEdges: true,
   trackingMode: "none",
-  pathOnTop: false,
+  onTop: { ...ON_TOP_FALLBACK },
   projection: "parallel",
   previewMode: "part",
   hud: { ...HUD_FALLBACK },

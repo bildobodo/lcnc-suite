@@ -46,7 +46,7 @@ import NumberKeypadStrip from "./NumberKeypadStrip.vue";
 import FloatingOverlays from "./FloatingOverlays.vue";
 import { keypadState } from "./useNumberKeypad";
 import { activeKind, openTextSession, closeTextSessionIf, lockTextSessionIf, EDITOR_OWNER, type TextTarget, returnFocusTo } from "./inputSession";
-import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, saveGamepadDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type Layer, type TrackMode, type Projection } from "./defaults";
+import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, saveGamepadDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type Layer, type OnTopLayer, type TrackMode, type Projection } from "./defaults";
 import { confirmedToolsetter, toolsetterVarMap, TOOLSETTER_MDI_KEY } from "./toolsetterVars";
 import { useGamepad } from "./useGamepad";
 import { useMediaMql } from "./useMediaMql";
@@ -520,7 +520,6 @@ watch(probeView, stopJogOnNavigation);
 // Viewer state (initialized from saved defaults, persisted on every change)
 const viewerLayers = reactive<Record<Layer, boolean>>({ ..._vd.layers });
 const viewerTrackMode = ref<TrackMode>(_vd.trackingMode);
-const viewerPathOnTop = ref(_vd.pathOnTop);
 const viewerProjection = ref<Projection>(_vd.projection);
 
 // G-code viewer — gcodeContent is fetched via HTTP by lcncWs on viewer_gcode
@@ -1686,7 +1685,6 @@ watch(settingsVersion, () => {
   const vd = loadViewerDefaults();
   Object.assign(viewerLayers, vd.layers);
   viewerTrackMode.value = vd.trackingMode;
-  viewerPathOnTop.value = vd.pathOnTop;
   viewerProjection.value = vd.projection;
 });
 
@@ -2240,7 +2238,7 @@ watch(viewerGcode, (newGcode) => {
               :gamepadName="gamepad.gamepadName.value"
               :gamepadConfig="gamepadConfig"
               :gamepadMappingSource="gamepad.gamepadMappingSource.value"
-              @setPathOnTop="(on: boolean) => { viewerPathOnTop = on; viewerRef?.setPathAlwaysOnTop?.(on); }"
+              @setLayerOnTop="(l: OnTopLayer, on: boolean) => viewerRef?.setLayerOnTop?.(l, on)"
               @setProjection="(p: Projection) => { viewerProjection = p; setProjection(p); }"
               @setTrackMode="(m: TrackMode) => { viewerTrackMode = m; viewerRef?.setTrackingMode?.(m); }"
               @toggleLayer="(l: Layer, on: boolean) => { viewerLayers[l] = on; viewerRef?.setLayerVisible?.(l, on); }"

@@ -6,7 +6,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Text } from "troika-three-text";
 import { LABEL_FONT_URL } from "./viewer/labelFont";
 import { resolveViewerPalette, type ViewerPalette } from "./viewer/viewerPalette";
-import { makeBoxEdges, makeTwoToneSegments, MACHINE_BOX_PX, MACHINE_BOX_DASH_PX, REACH_PX, REACH_DASH_PX, type BoxEdges, type TwoToneLines } from "./viewer/boxLines";
+import { makeBoxEdges, makeTwoToneSegments, worldPerPixel, MACHINE_BOX_PX, MACHINE_BOX_DASH_PX, REACH_PX, REACH_DASH_PX, type BoxEdges, type TwoToneLines } from "./viewer/boxLines";
 import { buildToolGeometries, type ToolMeta } from "./toolGeometry";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
@@ -15,9 +15,12 @@ import {
 } from "./viewer/machineAssetCache";
 
 import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, type ViewerInit, type ViewerGcode } from "./lcncWs";
-import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
+import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, ON_TOP_FALLBACK, ON_TOP_LAYERS, settingsVersion, type OnTopLayer, type Vec3, type Layer } from "./defaults";
+import { applyOnTop, ON_TOP_ORDER } from "./viewer/onTop";
 import { confirmedToolsetter } from "./toolsetterVars";
-import { buildToolsetterMarker, toolsetterPlacement } from "./viewer/toolsetterMarker";
+import { toolChangePlacement, toolsetterPlacement } from "./viewer/toolsetterMarker";
+import { buildPointMarker, posePointMarker, POINT_MARKER, type PointMarker } from "./viewer/pointMarker";
+import { fetchG30, type G30Response } from "./lcncApi";
 import { INTERP_IDLE } from "./lcnc";
 import { fmtCoord, fmtProgressTimes, fmtRpm, fmtNum, fmtPct, NO_VALUE } from "./format";
 import { framePose as defaultFramePose, DEFAULT_FRAME_DIR, orthoEyeDistance } from "./viewer/cameraFraming";
@@ -472,8 +475,8 @@ function _numArrChanged(prev: number[] | null, next: unknown): boolean {
   return false;
 }
 
-// ---- Path rendering ----
-let pathAlwaysOnTop = true; // default; overridden by setPathAlwaysOnTop()
+// ---- Drawn over the machine, per layer (setLayerOnTop) ----
+const _onTop: Record<OnTopLayer, boolean> = { ...ON_TOP_FALLBACK };
 
 // ---- Unit scale ----
 // 1 for mm machines, 1/25.4 for inch machines. Set in buildFromInit() from viewer_init.units.
@@ -524,10 +527,13 @@ const _bpLocal = new THREE.Vector3();
 const _trackTarget = new THREE.Vector3();
 
 let machineBoundsMesh: BoxEdges | null = null;
-// The tool setter puck (viewer/toolsetterMarker.ts): placed from the
-// server-confirmed tool setter section, shown when it is set up and the
-// "toolsetter" layer is on; re-placed on every settings change.
-let toolsetterMarker: THREE.Group | null = null;
+// The tool setter and the tool-change position (viewer/toolsetterMarker.ts
+// decides where, viewer/pointMarker.ts draws the pin): the tool setter from
+// the server-confirmed section (re-placed on every settings change), G30
+// from GET /g30 — the parameter file as of the interpreter's last synch,
+// read again whenever the interpreter comes back to idle (a G30.1, a Save in
+// Probing › Toolsetter, a program end) — a display, no machine command.
+let toolsetterMarker: PointMarker | null = null;
 let _toolsetterLayerOn = true;
 function applyToolsetterMarker() {
   if (!toolsetterMarker) return;
@@ -537,8 +543,46 @@ function applyToolsetterMarker() {
   requestRender();
 }
 watch(settingsVersion, applyToolsetterMarker);
+let toolChangeMarker: PointMarker | null = null;
+let _toolChangeLayerOn = true;
+let _g30: G30Response | null = null;
+let _g30Warned = false;
+function applyToolChangeMarker() {
+  if (!toolChangeMarker) return;
+  const at = toolChangePlacement(_g30);
+  if (at) toolChangeMarker.position.set(at.x, at.y, at.z);
+  toolChangeMarker.visible = !!at && _toolChangeLayerOn;
+  requestRender();
+}
+let _g30Timer: ReturnType<typeof setTimeout> | null = null;
+/** Read the stored G30 again (debounced); a failure is said once, loudly,
+ *  and shows no marker — never a position at 0. */
+function refreshG30() {
+  if (_g30Timer) clearTimeout(_g30Timer);
+  _g30Timer = setTimeout(async () => {
+    _g30Timer = null;
+    try {
+      _g30 = await fetchG30();
+      if (!_g30.ok && !_g30Warned) { _g30Warned = true; console.warn("[viewer] G30 not read:", _g30.error); }
+    } catch (e) {
+      _g30 = null;
+      if (!_g30Warned) { _g30Warned = true; console.warn("[viewer] G30 not read:", e); }
+    }
+    applyToolChangeMarker();
+  }, 300);
+}
+/** A marker's label: the 3D labels' look, light text on a dark outline — it
+ *  reads on either background, like the pin's two tones. */
+function mkMarkerLabel(text: string): Text {
+  const t = mkTextLabel(text, palette.boundsAlt, POINT_MARKER.labelPx);
+  t.outlineColor = palette.bounds;
+  t.outlineWidth = "12%";
+  _billboardLabels.push(t);
+  return t;
+}
 const _billboardLabels: Text[] = [];
 const _bbQ = new THREE.Quaternion();  // reused for billboard parent compensation
+const _markerUp = new THREE.Vector3();   // the camera's up in world, per frame (posePointMarker)
 const boundsClipPlanes: THREE.Plane[] = [];
 const insideBoundsClipPlanes: THREE.Plane[] = [];
 const _localBoundsPlanes: THREE.Plane[] = [];
@@ -606,7 +650,7 @@ watch(effectiveBounds, (mb) => {
 const _toolpathCtx: ToolpathCtx = {
   scene: null, workOrigin: null, workRotGroup: null, pathAnchor: null, pathRot: null,
   roomOrigin: null, roomRotGroup: null, roomAnchor: null, roomRot: null,
-  pathAlwaysOnTop: false, units: undefined,
+  units: undefined,
 };
 function toolpathCtx(): ToolpathCtx {
   _toolpathCtx.scene = scene;
@@ -618,7 +662,6 @@ function toolpathCtx(): ToolpathCtx {
   _toolpathCtx.roomRotGroup = roomRotGroup;
   _toolpathCtx.roomAnchor = roomAnchor;
   _toolpathCtx.roomRot = roomRot;
-  _toolpathCtx.pathAlwaysOnTop = pathAlwaysOnTop;
   _toolpathCtx.units = viewerInit.value?.units;
   return _toolpathCtx;
 }
@@ -698,6 +741,24 @@ function _modelRadiusAbout(center: THREE.Vector3): number {
     }
   }
   return r;
+}
+
+/** A point marker as drawn (the tool setter's, the tool change's): shown,
+ *  its point (machine frame), where it lands on screen, drawn over the
+ *  machine (depth test off). */
+function _markerDiag(m: PointMarker | null) {
+  if (!m) return null;
+  let shown = m.visible;
+  for (let p = m.parent; p; p = p.parent) shown &&= p.visible;
+  let screen: { x: number; y: number } | null = null;
+  if (camera && renderer) {
+    const rect = renderer.domElement.getBoundingClientRect();
+    const w = m.getWorldPosition(new THREE.Vector3()).project(camera);
+    screen = { x: rect.left + (w.x + 1) / 2 * rect.width, y: rect.top + (1 - w.y) / 2 * rect.height };
+  }
+  let onTop = true;
+  m.traverse(o => { const mat = (o as THREE.Mesh).material as THREE.Material | undefined; if (mat && !Array.isArray(mat)) onTop &&= !mat.depthTest; });
+  return { visible: shown, top: m.position.toArray(), screen, onTop };
 }
 
 /** World AABB per non-stock part — the e2e camera gate's "outside every
@@ -1183,6 +1244,10 @@ function setLayerVisible(layer: Layer, on: boolean) {
       _toolsetterLayerOn = on;
       applyToolsetterMarker();
       break;
+    case "toolChange":
+      _toolChangeLayerOn = on;
+      applyToolChangeMarker();
+      break;
     case "toolpathBounds":
       toolpath.setBoundsVisible(on);
       break;
@@ -1221,12 +1286,33 @@ function setLayerVisible(layer: Layer, on: boolean) {
   requestRender();
 }
 
-function setPathAlwaysOnTop(on: boolean) {
-  pathAlwaysOnTop = on;
-  const dt = !on; // depthTest: false = always on top
-  backplot.setDepthTest(dt);
-  toolpath.setAlwaysOnTop(on);
+/** "On top" per layer (Settings → Layers' column, operator 2026-09-30): the
+ *  ONE mapping from a layer to what it draws. Depth test off AND a draw
+ *  after the machine (viewer/onTop.ts); re-applied after every build that
+ *  makes new objects — buildFromInit, the reach outlines, the markers (the
+ *  toolpath controller keeps its own across programs). */
+function setLayerOnTop(layer: OnTopLayer, on: boolean) {
+  _onTop[layer] = on;
+  switch (layer) {
+    case "toolpath": toolpath.setOnTop("feed", on); break;
+    case "rapids": toolpath.setOnTop("rapid", on); break;
+    case "backplot": backplot.setDepthTest(!on); break;
+    case "toolpathBounds": toolpath.setBoxOnTop(on); break;
+    case "bounds": applyOnTop(machineBoundsMesh, on, ON_TOP_ORDER.box); break;
+    case "reachRoom": applyOnTop(reachRoomMesh, on, ON_TOP_ORDER.reach); break;
+    case "reachPart": applyOnTop(reachPartMesh, on, ON_TOP_ORDER.reach); break;
+    case "workzero":
+      applyOnTop(workAxesGroup, on, ON_TOP_ORDER.marker);
+      applyOnTop(ghostGroup, on, ON_TOP_ORDER.marker);
+      break;
+    case "workplane": applyOnTop(twpPlaneGroup, on, ON_TOP_ORDER.workplane); break;
+    case "toolsetter": applyOnTop(toolsetterMarker, on, ON_TOP_ORDER.marker); break;
+    case "toolChange": applyOnTop(toolChangeMarker, on, ON_TOP_ORDER.marker); break;
+  }
   requestRender();
+}
+function applyAllOnTop() {
+  for (const l of ON_TOP_LAYERS) setLayerOnTop(l, _onTop[l]);
 }
 
 function setTrackingMode(mode: "none" | "tool" | "wcs") {
@@ -1556,7 +1642,7 @@ function ensureCoreGroups(init: ViewerInit) {
   // ---- Backplot line (tool history in WORK coordinates) ----
   // Rebuild under the fresh _workGrp (reassigned each rebuild); the controller
   // replaces its prior line (clearScene already disposed the old one).
-  backplot.build(_workGrp!, palette.backplot, !pathAlwaysOnTop);
+  backplot.build(_workGrp!, palette.backplot, !_onTop.backplot);
 
   // Default tool until the next viewer_state tick rebuilds the real one
   // (_currentToolNum was reset above, so a loaded tool re-triggers needsRebuild).
@@ -1580,11 +1666,17 @@ function ensureCoreGroups(init: ViewerInit) {
     // work chains machineFrameGrp IS _workGrp.
     (machineFrameGrp ?? _workGrp)!.add(machineBoundsMesh);
   }
-  // The tool setter (operator 2026-09-29): a puck in the MACHINE frame at the
-  // set-up tool setter position, its top face at the contact Z.
-  toolsetterMarker = buildToolsetterMarker(_unitScale, MACHINE_SURFACE);
+  // The tool setter and the tool-change position (operator 2026-09-29/30):
+  // pins with a label in the MACHINE frame.
+  toolsetterMarker = buildPointMarker({ color: palette.bounds, alt: palette.boundsAlt,
+    label: mkMarkerLabel("tool setter"), name: "toolsetter" });
   (machineFrameGrp ?? _workGrp)!.add(toolsetterMarker);
   applyToolsetterMarker();
+  toolChangeMarker = buildPointMarker({ color: palette.bounds, alt: palette.boundsAlt,
+    label: mkMarkerLabel("tool change (G30)"), name: "toolChange" });
+  (machineFrameGrp ?? _workGrp)!.add(toolChangeMarker);
+  applyToolChangeMarker();
+  refreshG30();
   // Reach envelope layer (2026-09-12): the cached solids re-hang under the
   // rebuilt frame groups; a new machine model recomputes (inputs key).
   if (_reachRoomOn || _reachPartOn) _reachRequest();
@@ -1891,18 +1983,8 @@ async function buildFromInit(init: ViewerInit) {
           return w.toArray();
         },
         getBackplot: () => ({ points: backplot.count, segments: backplot.segments }),
-        getToolsetter: () => {
-          if (!toolsetterMarker) return null;
-          let shown = toolsetterMarker.visible;
-          for (let p = toolsetterMarker.parent; p; p = p.parent) shown &&= p.visible;
-          let screen: { x: number; y: number } | null = null;
-          if (camera && renderer) {
-            const rect = renderer.domElement.getBoundingClientRect();
-            const w = toolsetterMarker.getWorldPosition(new THREE.Vector3()).project(camera);
-            screen = { x: rect.left + (w.x + 1) / 2 * rect.width, y: rect.top + (1 - w.y) / 2 * rect.height };
-          }
-          return { visible: shown, top: toolsetterMarker.position.toArray(), screen };
-        },
+        getToolsetter: () => _markerDiag(toolsetterMarker),
+        getToolChange: () => _markerDiag(toolChangeMarker),
         // The tilted work plane as drawn (viewer contrast plan, V4): the label
         // on the object, the edge's role, pattern and opacity, the arrow's
         // claim and the HUD's word — one decision behind all of them.
@@ -2028,6 +2110,8 @@ async function buildFromInit(init: ViewerInit) {
     // Re-apply saved layer visibility (objects just created default to visible)
     const _freshVd = loadViewerDefaults();
     for (const layer of ALL_LAYERS) setLayerVisible(layer, _freshVd.layers[layer]);
+    Object.assign(_onTop, _freshVd.onTop);
+    applyAllOnTop();   // the objects just built start as built
 
     // Re-attach surface mesh: ensureCoreGroups() orphans the old surface group
     // (it lived under the previous workRotGroup), and the prop watcher only
@@ -3023,8 +3107,10 @@ function _colScheduleAuto() {
     runCollisionCheck();
   }, 400);
 }
-watch(() => status.value?.data?.interp_state, (st) => {
+watch(() => status.value?.data?.interp_state, (st, prev) => {
   if (st === INTERP_IDLE && _colHeldByRun) _colScheduleAuto();
+  // back to idle: the interpreter synched its parameters — G30 may have moved
+  if (st === INTERP_IDLE && prev != null && prev !== INTERP_IDLE) refreshG30();
 });
 
 // Live WCS or tool dims changed: current results are stale — clear them
@@ -3368,6 +3454,8 @@ function _reachBuildMeshes() {
     reachPartMesh.visible = _reachPartOn;
     _workGrp.add(reachPartMesh);
   }
+  setLayerOnTop("reachRoom", _onTop.reachRoom);
+  setLayerOnTop("reachPart", _onTop.reachPart);
   requestRender();
 }
 
@@ -3679,6 +3767,12 @@ function animate() {
   // each frame; controls.update() runs once at tween completion to re-sync.
   if (!_tweenRaf) controls?.update();
   _orthoEyeOutsideScene();
+  // the point markers: the same size on screen at every zoom, their labels up on screen
+  if (camera && renderer) {
+    const hPx = renderer.domElement.clientHeight;
+    _markerUp.set(0, 1, 0).applyQuaternion(camera.quaternion);
+    for (const m of [toolsetterMarker, toolChangeMarker]) if (m?.visible) posePointMarker(m, worldPerPixel(camera, m, hPx), _markerUp);
+  }
   // Per-chunk overlay gate + frustum count (viewer/lineChunks.ts): decides
   // which outside-bounds overlays are drawn this frame at the current pose.
   if (camera) toolpath.updateCulling(toolpathCtx(), camera, renderer?.domElement.height ?? 1000);
@@ -3844,7 +3938,7 @@ onMounted(() => {
         overlays: toolpath.hasOverlays,
         backplot_pts: backplot.count,
         backplot_full: backplot.isFull,
-        path_on_top: pathAlwaysOnTop,
+        on_top: { ..._onTop },
         projection: camera instanceof THREE.OrthographicCamera ? "parallel" : "perspective",
         theme: document.documentElement.dataset.theme ?? "auto",
         sim: simMode.value,
@@ -3875,10 +3969,11 @@ function applyViewerDefaults() {
   // built/hid the actual edge lines on a settings echo), and before the layer
   // loop because setLayerVisible('machine') reads the machineEdges flag.
   setMachineEdges(viewerDefaults.machineEdges);
-  // Layer visibility, tracking, path-on-top
+  // Layer visibility, tracking, on top per layer
   for (const layer of ALL_LAYERS) setLayerVisible(layer, viewerDefaults.layers[layer]);
   setTrackingMode(viewerDefaults.trackingMode);
-  setPathAlwaysOnTop(viewerDefaults.pathOnTop);
+  Object.assign(_onTop, viewerDefaults.onTop);
+  applyAllOnTop();
 
   // Projection: sync to the persisted value on EVERY apply (mount, settings
   // change, reset) — absolute set, not a blind toggle. Manual changes are
@@ -4390,6 +4485,11 @@ function refreshPalette() {
   toolpath.setColors(palette);
   backplot.setColor(palette.backplot);
   machineBoundsMesh?.setColors(palette.bounds, palette.boundsAlt);
+  for (const m of [toolsetterMarker, toolChangeMarker]) {
+    m?.setColors(palette.bounds, palette.boundsAlt);
+    const label = m?.children.find(c => c instanceof Text) as Text | undefined;
+    if (label) { label.color = palette.boundsAlt; label.outlineColor = palette.bounds; label.sync(requestRender); }
+  }
   for (const g of [reachRoomMesh, reachPartMesh]) g?.setColors(palette.reach, palette.boundsAlt);
   MAT.tool.color.set(palette.tool);
   MAT.cutter.color.set(palette.cutter);
@@ -4423,7 +4523,7 @@ defineExpose({
   setView,
   applyViewDirection,
   setLayerVisible,
-  setPathAlwaysOnTop,
+  setLayerOnTop,
   setTrackingMode,
   switchProjection,
   isOrtho,

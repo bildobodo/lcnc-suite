@@ -49,7 +49,8 @@ interface ViewerDiag {
   // draw a simulated plane (null = none, undefined = back to live).
   getToolTip?: () => number[] | null;
   getBackplot?: () => { points: number; segments: number };
-  getToolsetter?: () => { visible: boolean; top: number[]; screen: { x: number; y: number } | null } | null;
+  getToolsetter?: () => { visible: boolean; top: number[]; screen: { x: number; y: number } | null; onTop: boolean } | null;
+  getToolChange?: () => { visible: boolean; top: number[]; screen: { x: number; y: number } | null; onTop: boolean } | null;
   getPlane?: () => { visible: boolean; label: string | null; role: string | null; dashed: boolean;
     edge: { color: string; opacity: number; transparent: boolean } | null; arrowStale: boolean; hudWord: string | null } | null;
   simulatePlane?: (plane: number[] | null | undefined) => void;
