@@ -72,15 +72,18 @@ The **plate is physical**: a fixed point per profile, set in its `core_sim_N.hal
 | 6 Axis TWP XYZABC (`core_sim_6.hal`) | 10 / 10 / −180 |
 
 Set *Probing › Toolsetter* (X, Y, Z position) to the same point — the
-profile's shipped var file names it (`#3100` / `#3101` / `#3102`). The sim does
-not follow the WebUI's setting: a different setting measures wrong by the
-difference, the same way every time, like a machine whose reference is set
-wrong (a Z set 20 mm too high measures every tool 20 mm short; X/Y more than
-25 mm off never trips).
+profile's shipped var file names it (`#3100` / `#3101` / `#3102`). That is the
+**supported** operation. The sim does not follow the WebUI's setting: a
+different setting measures wrong by the difference, like a machine whose
+reference is set wrong (X/Y more than 25 mm off never trips). Unlike a real
+tool, the sim's tool takes its length FROM THE TABLE, so the wrong result is
+also the next measurement's starting length and the error ADDS UP: a Z set
+20 mm too high measures 65 → 45 → 25 → 5 mm (Codex R45 ST-I05;
+`lcnc-gateway/test_sim_toolsetter.py` pins the sequence).
 
 - With the setting on the plate, the table length is the sim's physical
   length of the tool: a measurement returns it (to a servo period at the slow
-  probe feed) and repeated measurements do not drift.
+  probe feed) and repeated measurements return it again.
 - A tool without a table length, or an empty spindle: nothing trips, the probe
   finds nothing — as on a machine without a tool setter.
 - The tool is taken as vertical (the TWP gantry's head must stand at B0/C0).

@@ -8,13 +8,14 @@ component trips the probe itself, in the servo thread, when the tool TIP
 reaches the plate: the control point (joints 0..2, the slide positions) is
 inside the plate's X/Y window and its Z minus the spindle tool's TABLE
 length is at or below the plate surface. The table length is the sim's
-physical length of the tool, so a measurement returns it (to a servo
-period of the probe feed) and nothing drifts from run to run.
+physical length of the tool, so with the WebUI's reference on the plate a
+measurement returns it (to a servo period of the probe feed), run after run.
 
 The plate is PHYSICAL: a fixed constant per sim profile (setp in its
 core_sim_N.hal), not the WebUI's setting — the WebUI's tool setter must name
-the same point, or it measures wrong by the difference, like a machine with
-a mis-set reference. The control point is the JOINT position
+the same point. Another reference measures wrong by the difference, and as
+the length comes from the table, the next measurement starts from the wrong
+one: the error adds up (supported: the reference on the plate). The control point is the JOINT position
 (joint.N.pos-fb), never the motor position with its home offset. The table
 length is set by sim_toolsetter_feed.py. No length (a tool without a table
 length, an empty spindle) = no automatic trip: the probe finds nothing, as

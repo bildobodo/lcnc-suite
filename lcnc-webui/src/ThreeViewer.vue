@@ -113,6 +113,8 @@ type ViewerState = {
   tool_number?: number | null;
   tool_diameter?: number | null;
   tool_length?: number | null;
+  /** The spindle tool's table Z offset, SIGNED (tool_length is its magnitude); null: no table row. */
+  tool_table_z?: number | null;
   // Folded in by the status watcher from the envelope top level — gateway
   // sends `status_msg["tool_meta"]` (sibling of `data`), not inside `data`.
   tool_meta?: ToolMeta | null;
@@ -436,7 +438,7 @@ function viewerCtx(): ViewerCtx {
 const _pv: {
   jointPos: number[] | null; machinePos: number[] | null;
   g5x: number[] | null; g92: number[] | null; toolOffset: number[] | null;
-  toolNum: number | null; toolDiam: number | null; toolLen: number | null;
+  toolNum: number | null; toolDiam: number | null; toolLen: number | null; toolTableZ: number | null;
   toolMeta: unknown; rotationXy: number | null;
   /** Live fixture table (value-keyed — rows are re-copied each publish).
    *  A WCS-epoch preview re-adds per-fixture rows, so table edits must
@@ -444,7 +446,7 @@ const _pv: {
   wcsTableKey: string; wcsTable: WcsTableRow[] | null;
 } = {
   jointPos: null, machinePos: null, g5x: null, g92: null, toolOffset: null,
-  toolNum: NaN as unknown as number, toolDiam: NaN, toolLen: NaN,
+  toolNum: NaN as unknown as number, toolDiam: NaN, toolLen: NaN, toolTableZ: NaN,
   toolMeta: undefined, rotationXy: NaN,
   wcsTableKey: "", wcsTable: null,
 };
@@ -2036,18 +2038,20 @@ function applyState(init: ViewerInit, st: ViewerState) {
   // tool_offset would put the tip a tool-length delta off the path after an
   // in-program G43 (the fresh-boot 22.000 class); a G49 segment of the
   // program still poses its tip at the control point (named limit, R45).
-  // LIVE the drawn tool is the PHYSICAL one (Codex R44 ST-I03): its length is
-  // the spindle tool's TABLE length (status tool_length; the active offset
-  // only where the table knows none) — G49 during a tool measurement zeroes
-  // the active offset, and the drawn tip used to jump a tool length up while
-  // the tool stayed where it was. Under G43 with the spindle tool's own
-  // offset both are the same. X/Y stay the active offset's.
+  // LIVE the drawn tool is the PHYSICAL one (Codex R44 ST-I03): its Z is the
+  // spindle tool's TABLE offset WITH ITS SIGN (status tool_table_z — never
+  // tool_length, a magnitude: a negative table offset drawn from it put the
+  // tip 2 × L off, R45 ST-I04). G49 during a tool measurement zeroes the
+  // active offset, and the drawn tip used to jump a tool length up while the
+  // tool stayed where it was; under G43 with the spindle tool's own offset
+  // both are the same. Without a table row no physical length is known: the
+  // active (signed) offset, as before. X/Y stay the active offset's.
   let tipOk = false;
   if (_scrubJoints && _scrubTlo) {
     if (_scrubTlo.length >= 3) { _tofsVec.set(_scrubTlo[0] ?? 0, _scrubTlo[1] ?? 0, _scrubTlo[2] ?? 0); tipOk = true; }
   } else {
     const t = st.tool_offset;
-    const len = st.tool_length ?? (t && t.length >= 3 ? t[2] : null);
+    const len = st.tool_table_z ?? (t && t.length >= 3 ? t[2] : null);
     if (len != null) { _tofsVec.set(t?.[0] ?? 0, t?.[1] ?? 0, len); tipOk = true; }
   }
   if (tipOk) _toolGrp.position.sub(_tofsVec);
@@ -2179,6 +2183,7 @@ function applyState(init: ViewerInit, st: ViewerState) {
   if (toolNum !== _pv.toolNum) { _pv.toolNum = toolNum; changed = true; }
   if (toolDiam !== _pv.toolDiam) { _pv.toolDiam = toolDiam; changed = true; _colOnInputChange(); }
   if (toolLen !== _pv.toolLen) { _pv.toolLen = toolLen; changed = true; _colOnInputChange(); }
+  if ((st.tool_table_z ?? null) !== _pv.toolTableZ) { _pv.toolTableZ = st.tool_table_z ?? null; changed = true; }
   if (rotationXy !== _pv.rotationXy) { _pv.rotationXy = rotationXy; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
   // Fixture-table edits (review P2): only the rows the payload's
   // non-rewritten epochs actually RE-ADD participate in the change key
@@ -3270,7 +3275,7 @@ function _reachDispose(g: THREE.Group | null) {
  *  boxes stay the stronger lines; opaque like every role line. */
 function _reachSolidGroup(lines: Float32Array): TwoToneLines {
   return makeTwoToneSegments(lines, { color: palette.reach, alt: palette.boundsAlt,
-    width: REACH_PX, dashPx: REACH_DASH_PX, role: "reach", renderOrder: 3 });
+    width: REACH_PX, dashPx: REACH_DASH_PX, role: "reach", renderOrder: 3, tones: true });
 }
 
 /** (Re)build the scene objects from the cached solids under the current

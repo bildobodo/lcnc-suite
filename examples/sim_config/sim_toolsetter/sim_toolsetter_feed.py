@@ -11,8 +11,11 @@ The PLATE is not fed from here: it is physical, a fixed HAL constant per
 profile (`setp sim-toolsetter.0.plate-*` in the profile's core_sim_N.hal).
 Reading the WebUI's setting back from the var file lagged the interpreter,
 and a measurement right after a change took the old plate (Codex R44
-ST-I01). A WebUI setting that differs from the fixed plate now measures
-wrong the same way every time — a machine with a mis-set reference.
+ST-I01). A WebUI setting that differs from the fixed plate measures wrong
+by the difference — and because the tool's length comes from the table, the
+next measurement starts from that wrong length and the error adds up (a Z
+20 mm too high: 65 → 45 → 25 → 5, Codex R45 ST-I05). Supported operation:
+the WebUI's reference on the plate.
 
 `enable` is false, with the reason on stderr, when the spindle is empty or
 the tool has no positive table length: then nothing trips automatically and

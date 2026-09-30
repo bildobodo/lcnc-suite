@@ -65,7 +65,7 @@ test("G49 never moves the drawn tool; a table write moves its tip with the backp
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: { toolsetter: SET_UP } } });
   const pose = (z: number) => [150, 0, z, 0, 0];
   const nine = (z: number) => [0, 0, z, 0, 0, 0, 0, 0, 0];
-  await ctl({ op: "status_delta", data: { tool_number: 13, tool_length: 65, tool_diameter: 6, tool_offset: nine(65),
+  await ctl({ op: "status_delta", data: { tool_number: 13, tool_length: 65, tool_table_z: 65, tool_diameter: 6, tool_offset: nine(65),
     joint_pos: pose(-235), actual_position: pose(-235) } });
   const tipZ = async () => { const t = await page.evaluate(() => window.__viewerDiag!.getToolTip!()); return t ? Math.round(t[2]! * 1000) / 1000 : null; };
   const segs = () => page.evaluate(() => window.__viewerDiag!.getBackplot!().segments);
@@ -78,11 +78,43 @@ test("G49 never moves the drawn tool; a table write moves its tip with the backp
   expect(await tipZ(), "G49: the tool is where it was").toBe(-300);
   expect(await segs(), "no stroke").toBe(bp);
 
-  await ctl({ op: "status_delta", data: { tool_length: 60 } });        // the routine's table write
+  await ctl({ op: "status_delta", data: { tool_length: 60, tool_table_z: 60 } });   // the routine's table write
   await expect.poll(tipZ, { message: "the new length: the tip 5 mm higher" }).toBe(-295);
   expect(await segs(), "a length is no motion: the pen is up").toBe(bp);
 
   await ctl({ op: "status_delta", data: { joint_pos: pose(-240), actual_position: pose(-240) } });
   await expect.poll(tipZ).toBe(-300);
   await expect.poll(segs, { message: "real motion draws again, from the new tip" }).toBe(bp + 1);
+});
+
+// Codex R45 ST-I04: the physical offset keeps the table's SIGN (status
+// tool_table_z) — tool_length is a magnitude, and a negative table offset
+// drawn from it put the tip 130 mm off (−300 for −170). Without a table row no
+// physical length is known: the active (signed) offset, as before.
+test("the drawn tip keeps the table offset's sign; without a table row it follows the active offset (Codex R45 ST-I04)", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  await context.route("**/xyzac-model/*.stl", r => r.fulfill({ contentType: "application/octet-stream",
+    body: readFileSync(new URL(new URL(r.request().url()).pathname.split("/").pop()!, MODEL)) }));
+  await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await ctl({ op: "setViewerInit", data: { units: "mm", stl_base_url: "/xyzac-model/", axes: ["X", "Y", "Z", "A", "C"],
+    parts: machine.parts, groups: machine.groups, kinematics: machine.kinematics,
+    workGroup: machine.workGroup, toolGroup: machine.toolGroup } });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready ? window.__viewerDiag.getAppearance?.().parts.length ?? 0 : 0),
+    { timeout: 20_000 }).toBe(machine.parts.length);
+  const pose = (z: number) => [150, 0, z, 0, 0];
+  const nine = (z: number) => [0, 0, z, 0, 0, 0, 0, 0, 0];
+  const tipZ = async () => { const t = await page.evaluate(() => window.__viewerDiag!.getToolTip!()); return t ? Math.round(t[2]! * 1000) / 1000 : null; };
+  // a NEGATIVE table offset under its own G43: the tip where the control puts it
+  await ctl({ op: "status_delta", data: { tool_number: 7, tool_length: 65, tool_table_z: -65, tool_diameter: 6,
+    tool_offset: nine(-65), joint_pos: pose(-235), actual_position: pose(-235) } });
+  await expect.poll(tipZ, { message: "G43 with −65: −235 + 65" }).toBe(-170);
+  await ctl({ op: "status_delta", data: { tool_offset: nine(0) } });   // G49
+  await page.waitForTimeout(400);
+  expect(await tipZ(), "G49: the physical tool, sign kept").toBe(-170);
+  // no table row: the gateway's tool_length is |active offset| — only the
+  // active offset carries a sign, and it is what the control applies
+  await ctl({ op: "status_delta", data: { tool_number: 9, tool_length: 65, tool_table_z: null, tool_offset: nine(-65) } });
+  await expect.poll(tipZ, { message: "no row, G43 −65" }).toBe(-170);
+  await ctl({ op: "status_delta", data: { tool_length: 0, tool_offset: nine(0) } });
+  await expect.poll(tipZ, { message: "no row, G49: nothing known beyond the control point" }).toBe(-235);
 });

@@ -14,8 +14,12 @@
 // at the group's centre kept the zoom but not the edge's direction or its
 // perspective depth — a Y edge read 5 px where 10 were promised, a receding X
 // edge under 1 px (Codex R44 VP-I10). Each segment's pattern starts at its
-// first end (a box edge is one segment; a reach cage's short segments restart
-// theirs). Both passes respect depth (a box never hides a path in front of
+// first end (a box edge is one segment). A soup of SHORT segments (the reach
+// cage: ~40 % under one dash on screen) would read all light that way — every
+// segment would start with a light dash (Codex R45 VP-I12): with `tones`
+// the segments are chained through their shared ends and alternate a tone
+// along each chain (alternateTones), and a segment shorter than two dash
+// periods on screen draws WHOLLY in its tone. Both passes respect depth (a box never hides a path in front of
 // it); the dashes draw after the solid line at the same depth.
 import * as THREE from "three";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
@@ -90,18 +94,31 @@ function replaceOnce(src: string, anchor: string, by: string, where: string): st
 }
 
 export function screenDashShaders(vertex: string, fragment: string): { vertex: string; fragment: string } {
-  const varyings = "\n\t\tvarying float vDashW;\n\t\tvarying float vDashInvW;\n";
-  let v = replaceOnce(vertex, SD_VERT_DECL, SD_VERT_DECL + varyings, "vertex declaration");
+  const varyings = "\n\t\tvarying float vDashW;\n\t\tvarying float vDashInvW;\n\t\tvarying float vTone;\n\t\tvarying float vSegPx;\n";
+  const toneAttr = "\n\t\t#ifdef SCREEN_DASH_TONE\n\t\t\tattribute float instanceTone;\n\t\t#endif\n";
+  let v = replaceOnce(vertex, SD_VERT_DECL, SD_VERT_DECL + varyings + toneAttr, "vertex declaration");
   v = replaceOnce(v, SD_VERT_MAIN, `${SD_VERT_MAIN}
 			#ifdef SCREEN_DASH
 				vec2 sdPx = ( ndcEnd.xy - ndcStart.xy ) * 0.5 * resolution;
 				float dPx = ( position.y < 0.5 ) ? 0.0 : length( sdPx );
 				vDashW = dPx * clip.w;
 				vDashInvW = clip.w;
+				vSegPx = length( sdPx );
+				#ifdef SCREEN_DASH_TONE
+					vTone = instanceTone;
+				#else
+					vTone = 1.0;
+				#endif
 			#endif`, "vertex main");
   let f = replaceOnce(fragment, SD_FRAG_DECL, SD_FRAG_DECL + varyings, "fragment declaration");
   f = replaceOnce(f, SD_FRAG_TEST, `#ifdef SCREEN_DASH
-				if ( mod( vDashW / vDashInvW + dashOffset, dashSize + gapSize ) > dashSize ) discard;
+				#ifdef SCREEN_DASH_TONE
+					if ( vSegPx < 2.0 * ( dashSize + gapSize ) ) {
+						if ( vTone < 0.5 ) discard;   // a short segment: wholly its chain's tone
+					} else if ( mod( vDashW / vDashInvW + dashOffset, dashSize + gapSize ) > dashSize ) discard;
+				#else
+					if ( mod( vDashW / vDashInvW + dashOffset, dashSize + gapSize ) > dashSize ) discard;
+				#endif
 			#else
 				${SD_FRAG_TEST}
 			#endif`, "fragment dash test");
@@ -142,8 +159,55 @@ export interface TwoToneLines extends THREE.Group {
   setColors(color: string, alt: string): void;
 }
 
-export function makeTwoToneSegments(positions: Float32Array, o: BoxEdgesOptions & { renderOrder?: number }): TwoToneLines {
+/** A tone per segment (0 = the dark line shows, 1 = the light dash draws),
+ *  alternating along each CHAIN of segments that meet end to end at a vertex
+ *  shared by exactly two segments; a junction (three or more) or an open end
+ *  ends a chain. Pure. `positions` = segment pairs, 6 floats each; ends are
+ *  matched exactly (the reach worker computes a shared point once). */
+export function alternateTones(positions: Float32Array | number[]): Float32Array {
+  const n = Math.floor(positions.length / 6);
+  const key = (s: number, e: number) => {
+    const o = s * 6 + e * 3;
+    return `${positions[o]},${positions[o + 1]},${positions[o + 2]}`;
+  };
+  const at = new Map<string, number[]>();   // vertex → the segment ends there (s * 2 + e)
+  for (let s = 0; s < n; s++) for (let e = 0; e < 2; e++) {
+    const k = key(s, e);
+    const l = at.get(k);
+    if (l) l.push(s * 2 + e); else at.set(k, [s * 2 + e]);
+  }
+  /** The segment end continuing a chain through `s`'s end `e`, or -1. */
+  const next = (s: number, e: number) => {
+    const l = at.get(key(s, e))!;
+    if (l.length !== 2) return -1;
+    return l[0] === s * 2 + e ? l[1]! : l[0]!;
+  };
+  const tones = new Float32Array(n).fill(-1);
+  for (let s0 = 0; s0 < n; s0++) {
+    if (tones[s0] !== -1) continue;
+    // back to the chain's start: an open end, a junction, or once around a ring
+    let s = s0, e = 0;
+    for (let steps = 0; steps < n; steps++) {
+      const o = next(s, e);
+      if (o < 0 || (o >> 1) === s0) break;
+      s = o >> 1; e = 1 - (o & 1);
+    }
+    // forward from there, alternating
+    let tone = 0, cs = s, ce = 1 - e;
+    for (let steps = 0; steps < n && tones[cs] === -1; steps++) {
+      tones[cs] = tone;
+      tone = 1 - tone;
+      const o = next(cs, ce);
+      if (o < 0) break;
+      cs = o >> 1; ce = 1 - (o & 1);
+    }
+  }
+  return tones;
+}
+
+export function makeTwoToneSegments(positions: Float32Array, o: BoxEdgesOptions & { renderOrder?: number; tones?: boolean }): TwoToneLines {
   const geom = new LineSegmentsGeometry().setPositions(positions);
+  if (o.tones) geom.setAttribute("instanceTone", new THREE.InstancedBufferAttribute(alternateTones(positions), 1));
   const material = (color: string, role: string) => {
     const m = new LineMaterial({ color, linewidth: o.width, worldUnits: false });
     m.userData.role = role;
@@ -153,6 +217,10 @@ export function makeTwoToneSegments(positions: Float32Array, o: BoxEdgesOptions 
   const solidMat = material(o.color, o.role);
   const dashMat = material(o.alt, `${o.role}Alt`);
   screenDash(dashMat, o.dashPx);
+  if (o.tones) {
+    dashMat.defines.SCREEN_DASH_TONE = "";
+    dashMat.customProgramCacheKey = () => "screenDashTone";
+  }
   const solid = new LineSegments2(geom, solidMat);
   const dashes = new LineSegments2(geom, dashMat);
   solid.renderOrder = o.renderOrder ?? 0;

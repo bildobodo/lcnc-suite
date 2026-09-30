@@ -4,8 +4,10 @@
 The PLATE is physical: a fixed HAL constant per profile (`setp` in its
 core_sim_N.hal), never the WebUI's setting read back — a setting read from
 the var file lagged the interpreter and a measurement took the old plate
-(ST-I01); a mismatch now measures wrong the same way every time, like a
-machine with a mis-set reference. The control point is the JOINT position
+(ST-I01). The supported operation is the WebUI's reference ON the plate;
+another one measures wrong by the difference, and since the sim's tool
+length is the table's, the error adds up with every measurement (ST-I05,
+pinned below). The control point is the JOINT position
 (joint.N.pos-fb) — the motor position carries the home / motor offset and
 made every measurement drift by it (ST-I02). The feeder only supplies the
 spindle tool's TABLE length. The realtime comparison itself
@@ -127,6 +129,43 @@ def feed_rows(text):
         if len(parts) >= 2 and parts[0].isdigit():
             rows[int(parts[0])] = float(parts[1])
     return rows
+
+
+class TestRepeatedMeasurement(unittest.TestCase):
+    """Codex R45 ST-I05: what the sim model does over repeated measurements.
+    The contact is sim_toolsetter.comp's (trips at Z = plate + length, moving
+    down), the result tool_touch_off.ngc's (new = |reference Z| + contact Z,
+    -170/-180), and the next measurement's length is the TABLE's — the sim's
+    tool has no length of its own. With the reference on the plate the
+    measurement repeats; a wrong reference ADDS UP (the documented limit)."""
+
+    @staticmethod
+    def contact_z(plate_z, length):
+        return plate_z + length          # the comp: z - length <= plate_z
+
+    @staticmethod
+    def result(reference_z, contact):
+        return abs(reference_z) + contact  # tool_touch_off.ngc -170
+
+    def series(self, plate_z, reference_z, start, n):
+        lengths = [start]
+        for _ in range(n):
+            lengths.append(self.result(reference_z, self.contact_z(plate_z, lengths[-1])))
+        return lengths
+
+    def test_the_reference_on_the_plate_returns_the_length_every_time(self):
+        self.assertEqual(self.series(-300.0, -300.0, 65.0, 3), [65.0, 65.0, 65.0, 65.0])
+
+    def test_a_wrong_reference_adds_its_error_every_measurement(self):
+        # Z set 20 mm too high: 65 -> 45 -> 25 -> 5 (Codex's sequence), never a
+        # constant offset — the README says so and names the plate as supported
+        self.assertEqual(self.series(-300.0, -280.0, 65.0, 3), [65.0, 45.0, 25.0, 5.0])
+
+    def test_the_readme_names_the_supported_operation_and_the_sequence(self):
+        readme = _read("README.md")
+        self.assertIn("**supported**", readme)
+        self.assertIn("65 → 45 → 25 → 5", readme)
+        self.assertNotIn("the same way every time", readme)
 
 
 class TestJointCoordinates(unittest.TestCase):

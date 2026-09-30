@@ -420,6 +420,7 @@ class TestPollStatus(unittest.TestCase):
         self.assertEqual(p.spindle_speed, 1200.0)
         self.assertEqual(p.spindle_direction, 1)
         self.assertEqual(p.tool_length, 5.0)  # from tool_offset[2] fallback
+        self.assertIsNone(p.tool_table_z, "no table row: no signed table offset, never the active one")
 
     def test_reader_absence_propagates_none(self):
         # No reader snapshot → every reader-sourced field is None, never a default.
@@ -438,11 +439,13 @@ class TestPollStatus(unittest.TestCase):
         }})
         first = rt.poll_status()
         self.assertEqual(first.tool_length, 42.3)
+        self.assertEqual(first.tool_table_z, -42.3, "the table's own sign (Codex R45 ST-I04)")
         self.assertEqual(first.tool_offset, [0.0, 0.0, 41.9])
         tool.zoffset = -44.1
         stat.tool_offset = (0.0, 0.0, -44.1)
         second = rt.poll_status()
         self.assertEqual(second.tool_length, 44.1)
+        self.assertEqual(second.tool_table_z, -44.1)
         self.assertEqual(second.tool_offset, [0.0, 0.0, -44.1])
 
     def test_spindle_actual_scaled_by_fb_scale(self):

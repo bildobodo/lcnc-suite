@@ -330,6 +330,11 @@ class StatusPayload:
     tool_number: Optional[int]
     tool_diameter: Optional[float]
     tool_length: Optional[float]   # Z length offset (positive magnitude)
+    # The spindle tool's TABLE Z offset with its SIGN — the physical tool the
+    # viewer draws (Codex R45 ST-I04: tool_length is a magnitude, and a
+    # negative table offset drawn from it put the tip 2 × L off). None: no
+    # table row (never the active offset standing in).
+    tool_table_z: Optional[float]
 
     # tool change (HAL iocontrol)
     tool_change_requested: Optional[bool]
@@ -1077,6 +1082,7 @@ class StatusRuntime:
         tool_number = safe_get("tool_in_spindle", None)
         tool_diameter = None
         tool_length = None
+        tool_table_z = None
 
         tt = safe_get("tool_table", None)
         if tool_number is not None and tt:
@@ -1084,6 +1090,7 @@ class StatusRuntime:
                 if t.id == tool_number:
                     tool_diameter = float(t.diameter)
                     tool_length = abs(float(t.zoffset))
+                    tool_table_z = float(t.zoffset)
                     break
 
         if tool_length is None:
@@ -1206,6 +1213,7 @@ class StatusRuntime:
             tool_number=tool_number,
             tool_diameter=tool_diameter,
             tool_length=tool_length,
+            tool_table_z=tool_table_z,
             tool_change_requested=tool_change_requested,
             tool_change_tool=tool_change_tool,
             tool_change_info=tool_change_info,
