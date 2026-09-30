@@ -4,7 +4,11 @@ events and limit findings, not only the ctx the worker was sent.
 
 native_pinned_probe.py runs in its own process (the conftest's fake
 `linuxcnc` must not shadow the real one there); it reports `skip` where the
-native modules are missing (CI without LinuxCNC)."""
+native modules are missing (CI without LinuxCNC). It never touches a running
+LinuxCNC: `linuxcnc.stat` is replaced by a synthetic STAT, `linuxcnc.command`
+raises, `linuxcnc.ini` reads the probe's own temp INI and `gcode.parse` is the
+offline interpreter (no NML) — the result is the same with or without a sim
+running."""
 import json
 import os
 import subprocess
