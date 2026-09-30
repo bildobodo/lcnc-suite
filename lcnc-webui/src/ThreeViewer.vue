@@ -4172,7 +4172,8 @@ const notesOpen = ref(false);
 const abLine = computed(() => abRunLine());
 const hudWarnCount = computed(() => [vst.value?.eoffset_enabled, vst.value?.rotation_xy, foreignWcs.value.length,
   rewrittenWcs.value.length, kinsEndWarn.value, previewSchemaStale.value, previewRefresh.value,
-  !previewRefresh.value && previewWcsStale.value, previewTloStale.value, previewTableStale.value, toolpathOverflow.value,
+  !previewRefresh.value && previewWcsStale.value, !previewRefresh.value && previewTloStale.value,
+  previewTableStale.value, toolpathOverflow.value,
   failedParts.value.length, abLine.value].filter(Boolean).length);
 /** The folded card's one line: the mode and how many warnings wait behind it. */
 /** The mode line: the chip, the fixture, the plane's word — each said once.
@@ -4664,7 +4665,9 @@ defineExpose({
           <div class="progressTrack" :title="fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms)"><div class="progressFill" :style="{ width: previewRefreshPct + '%' }"></div></div>
         </template>
         <div v-else-if="previewWcsStale" class="hudWarn">Preview uses older offsets — re-parses when idle<HelpIcon label="Preview offsets">A work offset changed after parsing — re-parses once the machine is idle.</HelpIcon></div>
-        <div v-if="previewTloStale" class="hudWarn">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parse follows<HelpIcon label="Preview tool length">T{{ previewTloStale.tool }} was {{ fmtNum(previewTloStale.parsed, 3) }} when parsed, now {{ fmtNum(previewTloStale.live, 3) }} — the preview re-parses with it, during a run too.</HelpIcon></div>
+        <!-- While the re-parse runs, its line with the bar says it (operator
+             2026-09-30: no extra line under the bar for the tool measured). -->
+        <div v-if="previewTloStale && !previewRefresh" class="hudWarn">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parse follows<HelpIcon label="Preview tool length">T{{ previewTloStale.tool }} was {{ fmtNum(previewTloStale.parsed, 3) }} when parsed, now {{ fmtNum(previewTloStale.live, 3) }} — the preview re-parses with it, during a run too.</HelpIcon></div>
         <div v-if="previewTableStale" class="hudWarn" data-table-stale>Tool table changed — preview updates after the run<HelpIcon label="Preview tool table">{{ previewTableStale.why === "unsupported"
           ? "This machine's random tool changer cannot be re-parsed during a run; the preview re-parses once idle."
           : "The preview's start state is not known for this program; it re-parses once the machine is idle." }}</HelpIcon></div>

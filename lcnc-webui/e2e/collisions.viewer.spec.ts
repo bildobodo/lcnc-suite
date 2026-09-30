@@ -297,3 +297,40 @@ test("on a machine with no other viewer note the tool-table mark brings the card
   await ctl({ op: "quiet", on: false });
   await ctl({ op: "reset" });
 });
+
+// Operator 2026-09-30: a tool measured during a run re-parses the preview —
+// the viewer says so ONCE, the re-parse line with its bar; the tool-length
+// line ("… re-parse follows") that stood under the bar is gone while it runs.
+test("a mid-run re-parse for a measured tool is one line, never a second one under its bar (operator 2026-09-30)", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  const file = "/measured.ngc";
+  const feed = [[0, 0, 5], [0, 0, -1], [40, 0, -1], [40, 30, -1]];
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream",
+    body: Buffer.from(encode({ file, preview_schema: 9, feed, feed_lines: [1, 2, 3, 4], feed_seq: [1, 2, 3, 4],
+      feed_outside: new Uint8Array(feed.length), rapid: [], violations: [], violations_total: 0,
+      parse_tlos: [[13, 0, 0, 65.064, 8]] })) }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
+    body: Array.from({ length: 6 }, (_, i) => `G1 X${i} F100`).join("\n") }));
+  await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await ctl({ op: "status_delta", data: { active_file: file, tool_number: 13, tool_length: 65.064 } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 4401, file } });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getPalette?.()?.drawn.feed ?? null),
+    { timeout: 30_000 }).toBeTruthy();
+  const lines = page.locator(".hudNotes .hudWarn");
+  const tlo = lines.filter({ hasText: "Preview parsed with a different T13 length" });
+  await expect(page.locator(".hudNotes"), "precondition: nothing opens the card on this machine").toHaveCount(0);
+
+  await ctl({ op: "quiet", on: true });
+  // T13 M600 measured a new length; the mid-run edge has not fired yet
+  await ctl({ op: "status_delta", data: { interp_state: 2, task_mode: 2, tool_length: 65.0589 } });
+  await expect(tlo, "before the re-parse starts the length line says it").toBeVisible();
+  await expect(lines).toHaveCount(1);
+  // the re-parse runs: its line and bar, nothing under it
+  await ctl({ op: "raw", frame: { type: "status_delta", data: {}, preview_refresh:
+    { reason: "midrun:table_mtime", file, expected_ms: 15000, started_ms: 1000, queued: false, superseded: 0 } } });
+  await expect(lines.first()).toContainText("Preview re-parsing · tool measured (program running)");
+  await expect(tlo).toHaveCount(0);
+  await expect(lines, "one line while the re-parse runs").toHaveCount(1);
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
