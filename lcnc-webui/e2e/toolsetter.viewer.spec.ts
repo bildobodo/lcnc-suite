@@ -202,6 +202,78 @@ test("the tool-change pin stands at the stored G30; without a read there is none
   await expect.poll(async () => (await pin())?.visible, { message: "no position, no pin" }).toBe(false);
 });
 
+// Codex R50 VP-I19: reads in flight are ordered — two idle edges' reads
+// answered in reverse leave the NEWER position, and a late failure takes
+// nothing down either.
+test("a late G30 read never puts the pin back on an older position (Codex R50 VP-I19)", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  let value = 100;
+  const read = () => ({ ok: true, values: { X: value, Y: 0, Z: -20, A: 0, C: 0 }, mtime_ms: value, units: "mm" });
+  await xyzacScene(page, context, read);
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { viewer: { layers: { ...QUIET, toolChange: true } } } } });
+  const pin = async () => (await page.evaluate(() => window.__viewerDiag!.getToolChange!()))?.top;
+  await expect.poll(pin).toEqual([100, 0, -20]);
+  // registered last, so it answers first: every read from here on is held
+  const held: { route: import("@playwright/test").Route; data: object }[] = [];
+  await context.route(/\/g30(\?|$)/, route => { held.push({ route, data: read() }); });
+  const edge = async () => {
+    await ctl({ op: "status_delta", data: { interp_state: 2 } });
+    await page.waitForTimeout(150);
+    await ctl({ op: "status_delta", data: { interp_state: 1 } });
+  };
+  value = 110; await edge(); await expect.poll(() => held.length).toBe(1);
+  value = 120; await edge(); await expect.poll(() => held.length).toBe(2);
+  await held[1]!.route.fulfill({ json: held[1]!.data });
+  await expect.poll(pin).toEqual([120, 0, -20]);
+  await held[0]!.route.fulfill({ json: held[0]!.data });
+  await page.waitForTimeout(600);
+  expect(await pin(), "the older reply arrived last and changed nothing").toEqual([120, 0, -20]);
+  // a late FAILURE of an older read neither hides nor moves the pin
+  value = 130; await edge(); await expect.poll(() => held.length).toBe(3);
+  value = 140; await edge(); await expect.poll(() => held.length).toBe(4);
+  await held[3]!.route.fulfill({ json: held[3]!.data });
+  await expect.poll(pin).toEqual([140, 0, -20]);
+  await held[2]!.route.fulfill({ status: 500, body: "no parameter file" });
+  await page.waitForTimeout(600);
+  expect(await page.evaluate(() => window.__viewerDiag!.getToolChange!()), "a late failure changed nothing")
+    .toMatchObject({ visible: true, top: [140, 0, -20] });
+});
+
+// Codex R50 VP-I18: a Save G30 LinuxCNC confirmed moves the pin at once —
+// a short parameter MDI need not show as busy in any status packet, and the
+// form said "confirmed" while the pin stood at the old position.
+test("a confirmed Save G30 moves the tool-change pin without an idle edge (Codex R50 VP-I18)", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  const stored = { X: 100, Y: 0, Z: -26.275, A: 0, C: 0 };
+  let reads = 0;
+  await xyzacScene(page, context, () => { reads++; return { ok: true, values: { ...stored }, mtime_ms: 1, units: "mm" }; });
+  const PERMS = { idle: true, jog: true, override: true, ready: true, run: true, pause: false, resume: false, step: true,
+    abort: true, probe: true, zero: true, machineFrame: true, g30Capture: true, goZero: true, planeFrame: true,
+    touchoff: true, touchoffRotary: true, twpCapture: true, surfaceComp: true, safety: true, setup: true, armed: true, always: true };
+  await ctl({ op: "status_delta", data: { permissions: PERMS, kins_type: 0 } });
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { toolsetter: SET_UP,
+    viewer: { layers: { ...QUIET, toolChange: true } } } } });
+  await ctl({ op: "replies", replies: { set_g30: { ok: true, confirmed: true, values: { ...stored, X: 110 } } } });
+  const pin = async () => (await page.evaluate(() => window.__viewerDiag!.getToolChange!()))?.top;
+  await expect.poll(pin).toEqual([100, 0, -26.275]);
+  await page.getByRole("tab", { name: "Probing", exact: true }).click();
+  await page.getByRole("tab", { name: "Toolsetter", exact: true }).click();
+  const x = page.getByLabel("G30 X", { exact: true });
+  await x.click();
+  await page.keyboard.press("Control+A");
+  await page.keyboard.type("110");
+  await page.keyboard.press("Enter");
+  await expect(x).toHaveValue("110");
+  const readsBefore = reads;
+  stored.X = 110;   // the confirmed reply: the file holds it now
+  await page.getByRole("button", { name: "Save G30", exact: true }).click();
+  await expect(page.locator(".statusNote.ok")).toHaveText("G30 saved — confirmed by LinuxCNC");
+  // no busy→idle edge in any status packet: the confirmation alone moves it
+  await expect.poll(pin, { message: "the pin follows the confirmed save", timeout: 2_000 }).toEqual([110, 0, -26.275]);
+  expect(reads, "handed over, not read again").toBe(readsBefore);
+  await ctl({ op: "replies", replies: {} });
+});
+
 // Settings → Layers (operator 2026-09-30): an "On top" column for the lines
 // and markers — never a body — whose switch draws its layer over the machine
 // and is saved per layer.

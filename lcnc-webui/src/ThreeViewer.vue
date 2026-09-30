@@ -21,6 +21,7 @@ import { confirmedToolsetter } from "./toolsetterVars";
 import { toolChangePlacement, toolsetterPlacement } from "./viewer/toolsetterMarker";
 import { buildPointMarker, posePointMarker, POINT_MARKER, type PointMarker } from "./viewer/pointMarker";
 import { fetchG30, type G30Response } from "./lcncApi";
+import { g30Confirmed } from "./g30Shared";
 import { INTERP_IDLE } from "./lcnc";
 import { fmtCoord, fmtProgressTimes, fmtRpm, fmtNum, fmtPct, NO_VALUE } from "./format";
 import { framePose as defaultFramePose, DEFAULT_FRAME_DIR, orthoEyeDistance } from "./viewer/cameraFraming";
@@ -555,22 +556,40 @@ function applyToolChangeMarker() {
   requestRender();
 }
 let _g30Timer: ReturnType<typeof setTimeout> | null = null;
+/** Reads in flight are ORDERED (Codex R50 VP-I19): a reply — a failure too —
+ *  applies only while no newer read was asked for and no confirmed value
+ *  came (g30Shared); a rebuild asks again and the unmount ends them all.
+ *  Two idle edges' reads answered in reverse used to put the pin back on
+ *  the older position. */
+let _g30Gen = 0;
 /** Read the stored G30 again (debounced); a failure is said once, loudly,
  *  and shows no marker — never a position at 0. */
 function refreshG30() {
+  const gen = ++_g30Gen;   // every read still out is older than this one
   if (_g30Timer) clearTimeout(_g30Timer);
   _g30Timer = setTimeout(async () => {
     _g30Timer = null;
+    let read: G30Response | null = null;
+    let failure: unknown = null;
     try {
-      _g30 = await fetchG30();
-      if (!_g30.ok && !_g30Warned) { _g30Warned = true; console.warn("[viewer] G30 not read:", _g30.error); }
+      read = await fetchG30();
     } catch (e) {
-      _g30 = null;
-      if (!_g30Warned) { _g30Warned = true; console.warn("[viewer] G30 not read:", e); }
+      failure = e;
     }
+    if (gen !== _g30Gen) return;   // a newer read or a confirmed value is shown
+    _g30 = read;
+    if (!read?.ok && !_g30Warned) { _g30Warned = true; console.warn("[viewer] G30 not read:", read?.error ?? failure); }
     applyToolChangeMarker();
   }, 300);
 }
+// A confirmed read or save in Probing › Toolsetter moves the pin at once
+// (Codex R50 VP-I18) — and outdates every read still out.
+watch(g30Confirmed, c => {
+  if (!c) return;
+  _g30Gen++;
+  _g30 = { ok: true, values: { ...c.values } };
+  applyToolChangeMarker();
+});
 /** A marker's label: the 3D labels' look, light text on a dark outline — it
  *  reads on either background, like the pin's two tones. */
 function mkMarkerLabel(text: string): Text {
@@ -4004,6 +4023,9 @@ function applyViewerDefaults() {
 }
 
 onUnmounted(() => {
+  if (_g30Timer) clearTimeout(_g30Timer);
+  _g30Timer = null;
+  _g30Gen++;
   registerAbDriver(null);
   _abDriver?.dispose();
   _abDriver = null;

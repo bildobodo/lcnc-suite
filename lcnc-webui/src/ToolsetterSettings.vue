@@ -10,6 +10,7 @@ import {
 } from "./defaults";
 import { confirmedToolsetter, toolsetterVarMap, TOOLSETTER_REQUIRED } from "./toolsetterVars";
 import { fetchG30 } from "./lcncApi";
+import { noteG30Confirmed } from "./g30Shared";
 import { status, viewerInit, request, connected } from "./lcncWs";
 import { useAxes, DEFAULT_AXES } from "./useAxes";
 import { savePayload, sameG30, contextChanged, replyApplies, type G30Values, type G30Context, type G30Ticket } from "./g30Form";
@@ -164,6 +165,8 @@ function takeStored(t: G30Ticket, values: G30Values | undefined, state: "file" |
   appliedSeq = t.seq;
   g30Stored.value = { ...(values ?? {}) };
   g30StoredState.value = state;
+  // The 3D view's tool-change pin follows a confirmed value at once (Codex R50 VP-I18).
+  if (state === "confirmed") noteG30Confirmed(values);
   const known = g30Letters.value.every(l => g30Stored.value[l] != null);
   g30Basis.value = known ? { ...g30Stored.value } : null;
 }
@@ -260,6 +263,7 @@ async function saveG30() {
     appliedSeq = t.seq;
     g30Stored.value = { ...r.values };
     g30StoredState.value = "confirmed";
+    noteG30Confirmed(r.values);
   } else if (r?.confirmed === false || r === null) {
     g30StoredState.value = "unconfirmed";
   }
