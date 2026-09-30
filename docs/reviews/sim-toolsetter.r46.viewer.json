@@ -1,0 +1,256 @@
+{
+  "commit": "95aaf08",
+  "jointZ": -235,
+  "positive": {
+    "tip": [
+      150,
+      0,
+      -300
+    ],
+    "setter": {
+      "visible": true,
+      "top": [
+        150,
+        0,
+        -300
+      ],
+      "screen": {
+        "x": 578.8562318936946,
+        "y": 469.61391902156333
+      }
+    },
+    "backplot": {
+      "points": 1,
+      "segments": 0
+    }
+  },
+  "g49": {
+    "tip": [
+      150,
+      0,
+      -300
+    ],
+    "setter": {
+      "visible": true,
+      "top": [
+        150,
+        0,
+        -300
+      ],
+      "screen": {
+        "x": 578.8562318936944,
+        "y": 469.61391902156373
+      }
+    },
+    "backplot": {
+      "points": 1,
+      "segments": 0
+    }
+  },
+  "negativeStatus": {
+    "case": "negative",
+    "table_zoffset": -65,
+    "tool_length": 65,
+    "tool_table_z": -65,
+    "tool_offset": [
+      0,
+      0,
+      -65
+    ],
+    "work_pos": [
+      150,
+      0,
+      -170
+    ]
+  },
+  "negativePose": {
+    "tip": [
+      150,
+      0,
+      -170
+    ],
+    "setter": {
+      "visible": true,
+      "top": [
+        150,
+        0,
+        -300
+      ],
+      "screen": {
+        "x": 578.8562318936946,
+        "y": 469.6139190215637
+      }
+    },
+    "backplot": {
+      "points": 2,
+      "segments": 0
+    }
+  },
+  "expectedG43TipZ": -170,
+  "followups": [
+    {
+      "name": "negative-g49",
+      "table": -65,
+      "offset": 0,
+      "length": 65,
+      "want": -170,
+      "tip": [
+        150,
+        0,
+        -170
+      ],
+      "setter": {
+        "visible": true,
+        "top": [
+          150,
+          0,
+          -300
+        ],
+        "screen": {
+          "x": 578.8562318936946,
+          "y": 469.6139190215637
+        }
+      },
+      "backplot": {
+        "points": 2,
+        "segments": 0
+      }
+    },
+    {
+      "name": "table-sign-only",
+      "table": 65,
+      "offset": 0,
+      "length": 65,
+      "want": -300,
+      "tip": [
+        150,
+        0,
+        -300
+      ],
+      "setter": {
+        "visible": true,
+        "top": [
+          150,
+          0,
+          -300
+        ],
+        "screen": {
+          "x": 578.8562318936945,
+          "y": 469.6139190215641
+        }
+      },
+      "backplot": {
+        "points": 3,
+        "segments": 0
+      }
+    },
+    {
+      "name": "zero-table",
+      "table": 0,
+      "offset": -65,
+      "length": 0,
+      "want": -235,
+      "tip": [
+        150,
+        0,
+        -235
+      ],
+      "setter": {
+        "visible": true,
+        "top": [
+          150,
+          0,
+          -300
+        ],
+        "screen": {
+          "x": 578.8562318936945,
+          "y": 469.6139190215635
+        }
+      },
+      "backplot": {
+        "points": 4,
+        "segments": 0
+      }
+    },
+    {
+      "name": "no-table-g43",
+      "table": null,
+      "offset": -65,
+      "length": 65,
+      "want": -170,
+      "tip": [
+        150,
+        0,
+        -170
+      ],
+      "setter": {
+        "visible": true,
+        "top": [
+          150,
+          0,
+          -300
+        ],
+        "screen": {
+          "x": 578.8562318936945,
+          "y": 469.6139190215635
+        }
+      },
+      "backplot": {
+        "points": 5,
+        "segments": 0
+      }
+    },
+    {
+      "name": "no-table-g49",
+      "table": null,
+      "offset": 0,
+      "length": 0,
+      "want": -235,
+      "tip": [
+        150,
+        0,
+        -235
+      ],
+      "setter": {
+        "visible": true,
+        "top": [
+          150,
+          0,
+          -300
+        ],
+        "screen": {
+          "x": 578.8562318936944,
+          "y": 469.61391902156356
+        }
+      },
+      "backplot": {
+        "points": 6,
+        "segments": 0
+      }
+    }
+  ],
+  "changedReference": {
+    "tip": [
+      150,
+      0,
+      -235
+    ],
+    "setter": {
+      "visible": true,
+      "top": [
+        150,
+        0,
+        -280
+      ],
+      "screen": {
+        "x": 578.8562318936944,
+        "y": 460.59872981868835
+      }
+    },
+    "backplot": {
+      "points": 6,
+      "segments": 0
+    }
+  },
+  "errors": []
+}

@@ -2982,3 +2982,70 @@ Anteilen maß im dunklen Theme Antialiasing als „dunkel“.
 
 **Läufe** am Stand `89dfb51`: volles Offline-Gate **PASS** — Backend 1111,
 Frontend-Unit 1758, Browser 366/366; einzeln `serial-viewer` 32/32.
+
+---
+
+## Nachprüfung R46 · Codex · 30. September 2026
+
+**Stand:** `c005eb9..95aaf08`, isoliertes Archiv von `95aaf08`.
+**Ergebnis: agreement — VP-I12 geschlossen, kein neuer Befund im
+angefragten Umfang.** Der zweite Teil steht im
+[Sim-Toolsetter-Review](sim-toolsetter.review.md#nachprüfung-r46--codex--30-september-2026).
+Teil B bleibt eine eigene Runde.
+
+### VP-I12 · bestätigt behoben
+
+Die Reichweiten verbinden gemeinsame Segmentenden zu Ketten und wechseln
+an deren kurzen Abschnitten zwischen dunkel und hell. Der Shader verwendet
+für diese Abschnitte tatsächlich den zugewiesenen Ton, statt jedes Segment
+mit einem hellen Strich zu beginnen. Verzweigungen begrenzen die Ketten;
+die Boxen erhalten kein Tonattribut und behalten ihre CSS-px-Striche.
+
+Diese Alternative zur fortlaufenden Bildschirmphase ist akzeptiert:
+Kurze Abschnitte haben jetzt den Takt ihrer Segmentierung, **kein konstant
+3 px langes Strichmuster**. Entscheidend für diesen Befund ist, dass die
+Konturen ihren dunklen und hellen Anteil behalten. Die dünne 1-px-Darstellung
+und die unveränderte Boxregel bleiben erhalten.
+
+Eigene R45-Ansicht am selben XYZAC-Modell wiederholt: Die inneren Ringe sind
+nun [in Hell](viewer-palette-fest.r46.reach-top-light.png) und
+[in Dunkel](viewer-palette-fest.r46.reach-top-dark.png) erkennbar;
+auch [schräg hell](viewer-palette-fest.r46.reach-iso-light.png) und
+[schräg dunkel](viewer-palette-fest.r46.reach-iso-dark.png).
+Es sind dieselben kurzen Konturen, die zuvor auf hellem Grund verschwanden.
+[Zustände und Segmentmaße](viewer-palette-fest.r46.reach.json).
+
+Der neue originale Browserwächter besteht zusätzlich von oben, schräg
+und perspektivisch gezoomt. Gemessener Anteil kurzer Segmente, an deren
+Mitte das Pixelkreuz den vom Hintergrund abhebenden Ton findet:
+
+| Theme | oben | schräg | schräg gezoomt |
+| --- | ---: | ---: | ---: |
+| Hell | 53,3 % | 72,3 % | 64,2 % |
+| Dunkel | 69,7 % | 56,5 % | 44,0 % |
+
+Alle Werte liegen über der 30-%-Schwelle. Das ist die im Wächter definierte
+Raster-Stichprobe, keine WCAG-Kontrastquote. Die fehlende Messbarkeit des
+hintergrundnahen zweiten Tons im einzelnen Antialiasing-Pixel ist kein
+Gegengrund: Beide Themes prüfen jeweils den dort benötigten Ton, und die
+Bilder bestätigen die tatsächliche Kontur. Die Originalprüfungen für
+Boxbreite, Strichlänge, beide Projektionen und DPR 1/2 bestehen weiterhin.
+
+### Prüfung und Übergabe
+
+Typecheck/Build **PASS**, Viewer-Unit-Tests **65/65**, Backend **62/62**.
+Alle **11 gezielten Browserfälle** bestanden, mit folgender Laufgrenze:
+Im ersten Lauf bestanden fünf; danach endete der eigene Mock mit
+Exit 143/SIGTERM. Ein Modellaufbau lief in den Timeout, fünf weitere Fälle
+meldeten `ECONNREFUSED`. Die sechs betroffenen Fälle bestanden beim
+unveränderten Wiederholungslauf **6/6** mit neuem Mock. Kein fehlerfreier
+11er-Gesamtlauf behauptet; kein Produktfehler aus diesem Infrastrukturabbruch
+abgeleitet. Signalursache nicht bekannt.
+
+[Erstlauf](viewer-palette-fest.r46.browser-tests.txt),
+[Wiederholung](viewer-palette-fest.r46.browser-rerun.txt),
+[Ergebnisse samt Messannotationen](viewer-palette-fest.r46.browser-summary.json),
+[eigene Browserprobe](viewer-palette-fest.r46.browser-probe.ts),
+[Reproduktion und genaue Grenzen](viewer-palette-fest.r46.reproduce.md).
+Kein vollständiges Offline-Gate und keine Teil-B-Leistungsmessung.
+Produktcode, ältere Belege und Live-Sim unverändert; eigene Prozesse beendet.

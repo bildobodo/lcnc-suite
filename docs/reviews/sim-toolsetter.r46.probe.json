@@ -1,0 +1,115 @@
+{
+  "commit": "95aaf08",
+  "native_body_from": "examples/sim_config/sim_toolsetter/sim_toolsetter.comp",
+  "baseline": {
+    "plate": [
+      150.0,
+      0.0,
+      -300.0
+    ],
+    "reference_used_by_routine": -300,
+    "table_length": 65.0,
+    "motor_minus_joint": 0,
+    "contact_G53": -235.0,
+    "motor_at_contact": -235.0,
+    "G10_length": 65.0,
+    "enable": true,
+    "why": "armed"
+  },
+  "repeat_correct_reference_motor_offset_1mm": [
+    {
+      "plate": [
+        150.0,
+        0.0,
+        -300.0
+      ],
+      "reference_used_by_routine": -300,
+      "table_length": 65.0,
+      "motor_minus_joint": 1,
+      "contact_G53": -235.0,
+      "motor_at_contact": -234.0,
+      "G10_length": 65.0,
+      "enable": true,
+      "why": "armed"
+    },
+    {
+      "plate": [
+        150.0,
+        0.0,
+        -300.0
+      ],
+      "reference_used_by_routine": -300,
+      "table_length": 65.0,
+      "motor_minus_joint": 1,
+      "contact_G53": -235.0,
+      "motor_at_contact": -234.0,
+      "G10_length": 65.0,
+      "enable": true,
+      "why": "armed"
+    },
+    {
+      "plate": [
+        150.0,
+        0.0,
+        -300.0
+      ],
+      "reference_used_by_routine": -300,
+      "table_length": 65.0,
+      "motor_minus_joint": 1,
+      "contact_G53": -235.0,
+      "motor_at_contact": -234.0,
+      "G10_length": 65.0,
+      "enable": true,
+      "why": "armed"
+    }
+  ],
+  "repeat_reference_20mm_too_high": [
+    {
+      "plate": [
+        150.0,
+        0.0,
+        -300.0
+      ],
+      "reference_used_by_routine": -280,
+      "table_length": 65.0,
+      "motor_minus_joint": 0,
+      "contact_G53": -235.0,
+      "motor_at_contact": -235.0,
+      "G10_length": 45.0,
+      "enable": true,
+      "why": "armed"
+    },
+    {
+      "plate": [
+        150.0,
+        0.0,
+        -300.0
+      ],
+      "reference_used_by_routine": -280,
+      "table_length": 45.0,
+      "motor_minus_joint": 0,
+      "contact_G53": -255.0,
+      "motor_at_contact": -255.0,
+      "G10_length": 25.0,
+      "enable": true,
+      "why": "armed"
+    },
+    {
+      "plate": [
+        150.0,
+        0.0,
+        -300.0
+      ],
+      "reference_used_by_routine": -280,
+      "table_length": 25.0,
+      "motor_minus_joint": 0,
+      "contact_G53": -275.0,
+      "motor_at_contact": -275.0,
+      "G10_length": 5.0,
+      "enable": true,
+      "why": "armed"
+    }
+  ],
+  "manual_without_length": true,
+  "automatic_without_length": false
+}

@@ -1,0 +1,69 @@
+{
+  "commit": "95aaf08",
+  "cases": [
+    {
+      "case": "positive",
+      "table_zoffset": 65,
+      "tool_length": 65.0,
+      "tool_table_z": 65.0,
+      "tool_offset": [
+        0.0,
+        0.0,
+        65.0
+      ],
+      "work_pos": [
+        150.0,
+        0.0,
+        -300.0
+      ]
+    },
+    {
+      "case": "negative",
+      "table_zoffset": -65,
+      "tool_length": 65.0,
+      "tool_table_z": -65.0,
+      "tool_offset": [
+        0.0,
+        0.0,
+        -65.0
+      ],
+      "work_pos": [
+        150.0,
+        0.0,
+        -170.0
+      ]
+    },
+    {
+      "case": "no_table",
+      "table_zoffset": null,
+      "tool_length": 65.0,
+      "tool_table_z": null,
+      "tool_offset": [
+        0.0,
+        0.0,
+        -65.0
+      ],
+      "work_pos": [
+        150.0,
+        0.0,
+        -170.0
+      ]
+    },
+    {
+      "case": "zero",
+      "table_zoffset": 0,
+      "tool_length": 0.0,
+      "tool_table_z": 0.0,
+      "tool_offset": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "work_pos": [
+        150.0,
+        0.0,
+        -235.0
+      ]
+    }
+  ]
+}

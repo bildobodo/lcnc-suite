@@ -1,0 +1,481 @@
+{
+  "interrupted": {
+    "stats": {
+      "startTime": "2026-09-30T08:22:18.623Z",
+      "duration": 62268.092,
+      "expected": 5,
+      "skipped": 0,
+      "unexpected": 6,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "file": "r46.spec.ts",
+        "line": 24,
+        "title": "R46: actual XYZAC part reach segment lengths and two-tone visibility",
+        "status": "passed",
+        "duration_ms": 8939,
+        "annotations": [],
+        "errors": [],
+        "attachments": []
+      },
+      {
+        "file": "r46.spec.ts",
+        "line": 57,
+        "title": "R46: signed tool offset retains the existing G43 coordinate contract",
+        "status": "passed",
+        "duration_ms": 4678,
+        "annotations": [],
+        "errors": [],
+        "attachments": []
+      },
+      {
+        "file": "reach.viewer.spec.ts",
+        "line": 53,
+        "title": "the part reach's short segments keep both tones \u2014 from above and at an angle, zoomed, light and dark (Codex R45 VP-I12)",
+        "status": "passed",
+        "duration_ms": 8097,
+        "annotations": [
+          {
+            "type": "reach tones",
+            "description": "light top: {\"short\":2976,\"shown\":1586,\"share\":0.5329301075268817}"
+          },
+          {
+            "type": "reach tones",
+            "description": "light iso: {\"short\":2011,\"shown\":1454,\"share\":0.7230233714569866}"
+          },
+          {
+            "type": "reach tones",
+            "description": "light iso zoomed: {\"short\":517,\"shown\":332,\"share\":0.6421663442940039}"
+          },
+          {
+            "type": "reach tones",
+            "description": "dark top: {\"short\":952,\"shown\":664,\"share\":0.6974789915966386}"
+          },
+          {
+            "type": "reach tones",
+            "description": "dark iso: {\"short\":517,\"shown\":292,\"share\":0.5647969052224371}"
+          },
+          {
+            "type": "reach tones",
+            "description": "dark iso zoomed: {\"short\":75,\"shown\":33,\"share\":0.44}"
+          }
+        ],
+        "errors": [],
+        "attachments": []
+      },
+      {
+        "file": "scenes.viewer.spec.ts",
+        "line": 64,
+        "title": "a half-mixed pixel reads as half the limit, not as the backplot",
+        "status": "passed",
+        "duration_ms": 1,
+        "annotations": [],
+        "errors": [],
+        "attachments": []
+      },
+      {
+        "file": "scenes.viewer.spec.ts",
+        "line": 76,
+        "title": "the palette in four themes, on a model, a dense and a thin path \u2014 and no current line drawn",
+        "status": "passed",
+        "duration_ms": 6468,
+        "annotations": [],
+        "errors": [],
+        "attachments": [
+          {
+            "name": "scene-dense-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "scene-dense-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "scene-dense-hc-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "scene-dense-hc-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "scene-thin-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "scene-thin-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "scene-thin-hc-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "scene-thin-hc-dark.png",
+            "contentType": "image/png"
+          }
+        ]
+      },
+      {
+        "file": "scenes.viewer.spec.ts",
+        "line": 221,
+        "title": "the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px \u2014 at DPR 1 and 2",
+        "status": "failed",
+        "duration_ms": 29326,
+        "annotations": [
+          {
+            "type": "widths DPR 1 light",
+            "description": "{\"widths\":{\"feed\":1,\"limit\":0.9940747208881682,\"backplot\":2},\"at\":{\"feed\":{\"x\":285,\"y\":302,\"len\":124},\"limit\":{\"x\":409,\"y\":302,\"len\":99},\"backplot\":{\"x\":326,\"y\":262,\"len\":31}}}"
+          },
+          {
+            "type": "widths DPR 1 dark",
+            "description": "{\"widths\":{\"feed\":1,\"limit\":0.9989487080174847,\"backplot\":2},\"at\":{\"feed\":{\"x\":285,\"y\":302,\"len\":124},\"limit\":{\"x\":409,\"y\":302,\"len\":99},\"backplot\":{\"x\":326,\"y\":262,\"len\":31}}}"
+          },
+          {
+            "type": "widths DPR 1 hc-light",
+            "description": "{\"widths\":{\"feed\":1,\"limit\":0.9928923988153998,\"backplot\":2},\"at\":{\"feed\":{\"x\":285,\"y\":302,\"len\":124},\"limit\":{\"x\":409,\"y\":302,\"len\":99},\"backplot\":{\"x\":326,\"y\":262,\"len\":31}}}"
+          },
+          {
+            "type": "widths DPR 1 hc-dark",
+            "description": "{\"widths\":{\"feed\":1,\"limit\":0.9995783259540375,\"backplot\":2},\"at\":{\"feed\":{\"x\":285,\"y\":302,\"len\":124},\"limit\":{\"x\":409,\"y\":302,\"len\":99},\"backplot\":{\"x\":326,\"y\":262,\"len\":31}}}"
+          }
+        ],
+        "errors": [
+          {
+            "location": {
+              "file": "/tmp/codex-r46-8cgd70p_/lcnc-webui/e2e/scenes.viewer.spec.ts",
+              "column": 65,
+              "line": 50
+            },
+            "message": "Error: the viewer built the model\n\nthe viewer built the model\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 4\u001b[39m\n\u001b[31m+ Received  + 1\u001b[39m\n\n\u001b[32m- Array [\u001b[39m\n\u001b[32m-   \"base\",\u001b[39m\n\u001b[32m-   \"head\",\u001b[39m\n\u001b[32m- ]\u001b[39m\n\u001b[31m+ Array []\u001b[39m\n\nCall Log:\n- Timeout 20000ms exceeded while waiting on the predicate\n\n  48 |   await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready\n  49 |     ? window.__viewerDiag.getAppearance?.().parts.map(p => p.id).sort() ?? null : null),\n> 50 |     { message: \"the viewer built the model\", timeout: 20_000 }).toEqual(ids.slice().sort());\n     |                                                                 ^\n  51 | }\n  52 |\n  53 | /** How much of `top` a pixel shows over `under` (0 = only `under`, 1 = only\n    at modelBuilt (/tmp/codex-r46-8cgd70p_/lcnc-webui/e2e/scenes.viewer.spec.ts:50:65)\n    at /tmp/codex-r46-8cgd70p_/lcnc-webui/e2e/scenes.viewer.spec.ts:255:11"
+          }
+        ],
+        "attachments": [
+          {
+            "name": "ladder-dpr1-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "ladder-dpr1-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "ladder-dpr1-hc-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "ladder-dpr1-hc-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "backplot-on-limit-dpr1-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "backplot-on-limit-dpr1-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "screenshot",
+            "contentType": "image/png"
+          },
+          {
+            "name": "screenshot",
+            "contentType": "image/png"
+          },
+          {
+            "name": "error-context",
+            "contentType": "text/markdown"
+          }
+        ]
+      },
+      {
+        "file": "scenes.viewer.spec.ts",
+        "line": 358,
+        "title": "the box edge alone: two tones, MACHINE_BOX_PX wide, dashes of MACHINE_BOX_DASH_PX \u2014 at DPR 1 and 2",
+        "status": "failed",
+        "duration_ms": 111,
+        "annotations": [],
+        "errors": [
+          {
+            "message": "Error: connect ECONNREFUSED 127.0.0.1:4188"
+          }
+        ],
+        "attachments": [
+          {
+            "name": "screenshot",
+            "contentType": "image/png"
+          },
+          {
+            "name": "error-context",
+            "contentType": "text/markdown"
+          }
+        ]
+      },
+      {
+        "file": "scenes.viewer.spec.ts",
+        "line": 434,
+        "title": "box dashes hold MACHINE_BOX_DASH_PX along every projected edge \u2014 parallel and perspective, three directions",
+        "status": "failed",
+        "duration_ms": 80,
+        "annotations": [],
+        "errors": [
+          {
+            "message": "Error: connect ECONNREFUSED 127.0.0.1:4188"
+          }
+        ],
+        "attachments": [
+          {
+            "name": "screenshot",
+            "contentType": "image/png"
+          },
+          {
+            "name": "error-context",
+            "contentType": "text/markdown"
+          }
+        ]
+      },
+      {
+        "file": "toolsetter.viewer.spec.ts",
+        "line": 20,
+        "title": "the tool setter shows where it is set up, and only there",
+        "status": "failed",
+        "duration_ms": 126,
+        "annotations": [],
+        "errors": [
+          {
+            "message": "Error: connect ECONNREFUSED 127.0.0.1:4188"
+          }
+        ],
+        "attachments": [
+          {
+            "name": "screenshot",
+            "contentType": "image/png"
+          },
+          {
+            "name": "error-context",
+            "contentType": "text/markdown"
+          }
+        ]
+      },
+      {
+        "file": "toolsetter.viewer.spec.ts",
+        "line": 55,
+        "title": "G49 never moves the drawn tool; a table write moves its tip with the backplot's pen up (Codex R44 ST-I03)",
+        "status": "failed",
+        "duration_ms": 123,
+        "annotations": [],
+        "errors": [
+          {
+            "message": "Error: connect ECONNREFUSED 127.0.0.1:4188"
+          }
+        ],
+        "attachments": [
+          {
+            "name": "screenshot",
+            "contentType": "image/png"
+          },
+          {
+            "name": "error-context",
+            "contentType": "text/markdown"
+          }
+        ]
+      },
+      {
+        "file": "toolsetter.viewer.spec.ts",
+        "line": 94,
+        "title": "the drawn tip keeps the table offset's sign; without a table row it follows the active offset (Codex R45 ST-I04)",
+        "status": "failed",
+        "duration_ms": 101,
+        "annotations": [],
+        "errors": [
+          {
+            "message": "Error: connect ECONNREFUSED 127.0.0.1:4188"
+          }
+        ],
+        "attachments": [
+          {
+            "name": "screenshot",
+            "contentType": "image/png"
+          },
+          {
+            "name": "error-context",
+            "contentType": "text/markdown"
+          }
+        ]
+      }
+    ]
+  },
+  "remaining": {
+    "stats": {
+      "startTime": "2026-09-30T08:24:31.787Z",
+      "duration": 40027.094,
+      "expected": 6,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "file": "scenes.viewer.spec.ts",
+        "line": 221,
+        "title": "the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px \u2014 at DPR 1 and 2",
+        "status": "passed",
+        "duration_ms": 15636,
+        "annotations": [
+          {
+            "type": "widths DPR 1 light",
+            "description": "{\"widths\":{\"feed\":1,\"limit\":0.9940747208881682,\"backplot\":2},\"at\":{\"feed\":{\"x\":285,\"y\":302,\"len\":124},\"limit\":{\"x\":409,\"y\":302,\"len\":99},\"backplot\":{\"x\":326,\"y\":349,\"len\":31}}}"
+          },
+          {
+            "type": "widths DPR 1 dark",
+            "description": "{\"widths\":{\"feed\":1,\"limit\":0.9989487080174847,\"backplot\":2},\"at\":{\"feed\":{\"x\":285,\"y\":302,\"len\":124},\"limit\":{\"x\":409,\"y\":302,\"len\":99},\"backplot\":{\"x\":326,\"y\":349,\"len\":31}}}"
+          },
+          {
+            "type": "widths DPR 1 hc-light",
+            "description": "{\"widths\":{\"feed\":1,\"limit\":0.9928923988153998,\"backplot\":2},\"at\":{\"feed\":{\"x\":285,\"y\":302,\"len\":124},\"limit\":{\"x\":409,\"y\":302,\"len\":99},\"backplot\":{\"x\":326,\"y\":349,\"len\":31}}}"
+          },
+          {
+            "type": "widths DPR 1 hc-dark",
+            "description": "{\"widths\":{\"feed\":1,\"limit\":0.9995783259540375,\"backplot\":2},\"at\":{\"feed\":{\"x\":285,\"y\":302,\"len\":124},\"limit\":{\"x\":409,\"y\":302,\"len\":99},\"backplot\":{\"x\":326,\"y\":349,\"len\":31}}}"
+          },
+          {
+            "type": "widths DPR 2 light",
+            "description": "{\"widths\":{\"feed\":0.996854367589616,\"limit\":0.9940747208881682,\"backplot\":4},\"at\":{\"feed\":{\"x\":285,\"y\":302,\"len\":124},\"limit\":{\"x\":409,\"y\":302,\"len\":99},\"backplot\":{\"x\":326,\"y\":349,\"len\":31}}}"
+          },
+          {
+            "type": "widths DPR 2 dark",
+            "description": "{\"widths\":{\"feed\":1.002799238607099,\"limit\":0.9989487080174846,\"backplot\":4},\"at\":{\"feed\":{\"x\":285,\"y\":302,\"len\":124},\"limit\":{\"x\":409,\"y\":302,\"len\":99},\"backplot\":{\"x\":326,\"y\":349,\"len\":31}}}"
+          },
+          {
+            "type": "widths DPR 2 hc-light",
+            "description": "{\"widths\":{\"feed\":0.9913038351560888,\"limit\":0.9948009213557092,\"backplot\":4},\"at\":{\"feed\":{\"x\":285,\"y\":302,\"len\":124},\"limit\":{\"x\":409,\"y\":302,\"len\":99},\"backplot\":{\"x\":326,\"y\":349,\"len\":31}}}"
+          },
+          {
+            "type": "widths DPR 2 hc-dark",
+            "description": "{\"widths\":{\"feed\":1.002799238607099,\"limit\":0.9995783259540375,\"backplot\":4},\"at\":{\"feed\":{\"x\":285,\"y\":302,\"len\":124},\"limit\":{\"x\":409,\"y\":302,\"len\":99},\"backplot\":{\"x\":326,\"y\":349,\"len\":31}}}"
+          }
+        ],
+        "errors": [],
+        "attachments": [
+          {
+            "name": "ladder-dpr1-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "ladder-dpr1-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "ladder-dpr1-hc-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "ladder-dpr1-hc-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "backplot-on-limit-dpr1-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "backplot-on-limit-dpr1-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "ladder-dpr2-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "ladder-dpr2-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "ladder-dpr2-hc-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "ladder-dpr2-hc-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "backplot-on-limit-dpr2-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "backplot-on-limit-dpr2-dark.png",
+            "contentType": "image/png"
+          }
+        ]
+      },
+      {
+        "file": "scenes.viewer.spec.ts",
+        "line": 358,
+        "title": "the box edge alone: two tones, MACHINE_BOX_PX wide, dashes of MACHINE_BOX_DASH_PX \u2014 at DPR 1 and 2",
+        "status": "passed",
+        "duration_ms": 5987,
+        "annotations": [],
+        "errors": [],
+        "attachments": [
+          {
+            "name": "box-edge-dpr1-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "box-edge-dpr1-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "box-edge-dpr2-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "box-edge-dpr2-dark.png",
+            "contentType": "image/png"
+          }
+        ]
+      },
+      {
+        "file": "scenes.viewer.spec.ts",
+        "line": 434,
+        "title": "box dashes hold MACHINE_BOX_DASH_PX along every projected edge \u2014 parallel and perspective, three directions",
+        "status": "passed",
+        "duration_ms": 5066,
+        "annotations": [],
+        "errors": [],
+        "attachments": []
+      },
+      {
+        "file": "toolsetter.viewer.spec.ts",
+        "line": 20,
+        "title": "the tool setter shows where it is set up, and only there",
+        "status": "passed",
+        "duration_ms": 2536,
+        "annotations": [],
+        "errors": [],
+        "attachments": []
+      },
+      {
+        "file": "toolsetter.viewer.spec.ts",
+        "line": 55,
+        "title": "G49 never moves the drawn tool; a table write moves its tip with the backplot's pen up (Codex R44 ST-I03)",
+        "status": "passed",
+        "duration_ms": 5449,
+        "annotations": [],
+        "errors": [],
+        "attachments": []
+      },
+      {
+        "file": "toolsetter.viewer.spec.ts",
+        "line": 94,
+        "title": "the drawn tip keeps the table offset's sign; without a table row it follows the active offset (Codex R45 ST-I04)",
+        "status": "passed",
+        "duration_ms": 4469,
+        "annotations": [],
+        "errors": [],
+        "attachments": []
+      }
+    ]
+  }
+}

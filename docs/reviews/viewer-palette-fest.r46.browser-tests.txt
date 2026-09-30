@@ -1,0 +1,138 @@
+
+Running 11 tests using 1 worker
+
+(node:1649330) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1649330) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/r46.spec.ts:24:1 › R46: actual XYZAC part reach segment lengths and two-tone visibility (8.9s)
+  ✓   2 e2e/r46.spec.ts:57:1 › R46: signed tool offset retains the existing G43 coordinate contract (4.7s)
+  ✓   3 e2e/reach.viewer.spec.ts:53:1 › the part reach's short segments keep both tones — from above and at an angle, zoomed, light and dark (Codex R45 VP-I12) (8.1s)
+  ✓   4 e2e/scenes.viewer.spec.ts:64:1 › a half-mixed pixel reads as half the limit, not as the backplot (1ms)
+  ✓   5 e2e/scenes.viewer.spec.ts:76:1 › the palette in four themes, on a model, a dense and a thin path — and no current line drawn (6.5s)
+  ✘   6 e2e/scenes.viewer.spec.ts:221:1 › the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px — at DPR 1 and 2 (29.3s)
+(node:1651207) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1651207) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   7 e2e/scenes.viewer.spec.ts:358:1 › the box edge alone: two tones, MACHINE_BOX_PX wide, dashes of MACHINE_BOX_DASH_PX — at DPR 1 and 2 (111ms)
+(node:1651286) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1651286) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   8 e2e/scenes.viewer.spec.ts:434:1 › box dashes hold MACHINE_BOX_DASH_PX along every projected edge — parallel and perspective, three directions (80ms)
+(node:1651380) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1651380) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   9 e2e/toolsetter.viewer.spec.ts:20:1 › the tool setter shows where it is set up, and only there (126ms)
+(node:1651464) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1651464) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  10 e2e/toolsetter.viewer.spec.ts:55:1 › G49 never moves the drawn tool; a table write moves its tip with the backplot's pen up (Codex R44 ST-I03) (123ms)
+(node:1651533) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1651533) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  11 e2e/toolsetter.viewer.spec.ts:94:1 › the drawn tip keeps the table offset's sign; without a table row it follows the active offset (Codex R45 ST-I04) (101ms)
+
+
+  1) e2e/scenes.viewer.spec.ts:221:1 › the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px — at DPR 1 and 2 
+
+    Error: the viewer built the model
+
+    the viewer built the model
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 4[39m
+    [31m+ Received  + 1[39m
+
+    [32m- Array [[39m
+    [32m-   "base",[39m
+    [32m-   "head",[39m
+    [32m- ][39m
+    [31m+ Array [][39m
+
+    Call Log:
+    - Timeout 20000ms exceeded while waiting on the predicate
+
+      48 |   await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready
+      49 |     ? window.__viewerDiag.getAppearance?.().parts.map(p => p.id).sort() ?? null : null),
+    > 50 |     { message: "the viewer built the model", timeout: 20_000 }).toEqual(ids.slice().sort());
+         |                                                                 ^
+      51 | }
+      52 |
+      53 | /** How much of `top` a pixel shows over `under` (0 = only `under`, 1 = only
+        at modelBuilt (/tmp/codex-r46-8cgd70p_/lcnc-webui/e2e/scenes.viewer.spec.ts:50:65)
+        at /tmp/codex-r46-8cgd70p_/lcnc-webui/e2e/scenes.viewer.spec.ts:255:11
+
+    attachment #7: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/scenes.viewer-the-width-la-fa3c7-t-2-CSS-px-—-at-DPR-1-and-2/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #8: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/scenes.viewer-the-width-la-fa3c7-t-2-CSS-px-—-at-DPR-1-and-2/test-failed-2.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/scenes.viewer-the-width-la-fa3c7-t-2-CSS-px-—-at-DPR-1-and-2/error-context.md
+
+  2) e2e/scenes.viewer.spec.ts:358:1 › the box edge alone: two tones, MACHINE_BOX_PX wide, dashes of MACHINE_BOX_DASH_PX — at DPR 1 and 2 
+
+    Error: connect ECONNREFUSED 127.0.0.1:4188
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/scenes.viewer-the-box-edge-9d91a-OX-DASH-PX-—-at-DPR-1-and-2/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/scenes.viewer-the-box-edge-9d91a-OX-DASH-PX-—-at-DPR-1-and-2/error-context.md
+
+  3) e2e/scenes.viewer.spec.ts:434:1 › box dashes hold MACHINE_BOX_DASH_PX along every projected edge — parallel and perspective, three directions 
+
+    Error: connect ECONNREFUSED 127.0.0.1:4188
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/scenes.viewer-box-dashes-h-3cbe4-erspective-three-directions/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/scenes.viewer-box-dashes-h-3cbe4-erspective-three-directions/error-context.md
+
+  4) e2e/toolsetter.viewer.spec.ts:20:1 › the tool setter shows where it is set up, and only there ─
+
+    Error: connect ECONNREFUSED 127.0.0.1:4188
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/toolsetter.viewer-the-tool-963ef-it-is-set-up-and-only-there/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/toolsetter.viewer-the-tool-963ef-it-is-set-up-and-only-there/error-context.md
+
+  5) e2e/toolsetter.viewer.spec.ts:55:1 › G49 never moves the drawn tool; a table write moves its tip with the backplot's pen up (Codex R44 ST-I03) 
+
+    Error: connect ECONNREFUSED 127.0.0.1:4188
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/toolsetter.viewer-G49-neve-1a567--s-pen-up-Codex-R44-ST-I03-/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/toolsetter.viewer-G49-neve-1a567--s-pen-up-Codex-R44-ST-I03-/error-context.md
+
+  6) e2e/toolsetter.viewer.spec.ts:94:1 › the drawn tip keeps the table offset's sign; without a table row it follows the active offset (Codex R45 ST-I04) 
+
+    Error: connect ECONNREFUSED 127.0.0.1:4188
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/toolsetter.viewer-the-draw-d4fe0-ve-offset-Codex-R45-ST-I04-/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/toolsetter.viewer-the-draw-d4fe0-ve-offset-Codex-R45-ST-I04-/error-context.md
+
+  6 failed
+    e2e/scenes.viewer.spec.ts:221:1 › the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px — at DPR 1 and 2 
+    e2e/scenes.viewer.spec.ts:358:1 › the box edge alone: two tones, MACHINE_BOX_PX wide, dashes of MACHINE_BOX_DASH_PX — at DPR 1 and 2 
+    e2e/scenes.viewer.spec.ts:434:1 › box dashes hold MACHINE_BOX_DASH_PX along every projected edge — parallel and perspective, three directions 
+    e2e/toolsetter.viewer.spec.ts:20:1 › the tool setter shows where it is set up, and only there ──
+    e2e/toolsetter.viewer.spec.ts:55:1 › G49 never moves the drawn tool; a table write moves its tip with the backplot's pen up (Codex R44 ST-I03) 
+    e2e/toolsetter.viewer.spec.ts:94:1 › the drawn tip keeps the table offset's sign; without a table row it follows the active offset (Codex R45 ST-I04) 
+  5 passed (1.0m)

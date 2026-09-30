@@ -1,0 +1,15 @@
+
+Running 6 tests using 1 worker
+
+(node:1653694) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1653694) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/scenes.viewer.spec.ts:221:1 › the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px — at DPR 1 and 2 (15.6s)
+  ✓  2 e2e/scenes.viewer.spec.ts:358:1 › the box edge alone: two tones, MACHINE_BOX_PX wide, dashes of MACHINE_BOX_DASH_PX — at DPR 1 and 2 (6.0s)
+  ✓  3 e2e/scenes.viewer.spec.ts:434:1 › box dashes hold MACHINE_BOX_DASH_PX along every projected edge — parallel and perspective, three directions (5.1s)
+  ✓  4 e2e/toolsetter.viewer.spec.ts:20:1 › the tool setter shows where it is set up, and only there (2.5s)
+  ✓  5 e2e/toolsetter.viewer.spec.ts:55:1 › G49 never moves the drawn tool; a table write moves its tip with the backplot's pen up (Codex R44 ST-I03) (5.4s)
+  ✓  6 e2e/toolsetter.viewer.spec.ts:94:1 › the drawn tip keeps the table offset's sign; without a table row it follows the active offset (Codex R45 ST-I04) (4.5s)
+
+  6 passed (40.0s)

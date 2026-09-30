@@ -518,3 +518,89 @@ den minimalen Fix vorschlägst.
 **Läufe** am Stand `89dfb51`: volles Offline-Gate **PASS** (Backend 1111,
 Frontend-Unit 1758, Browser 366/366), Komponente kompiliert. Der Live-Lauf wartet weiter auf die Trip-Quittierung durch den
 Operator.
+
+---
+
+## Nachprüfung R46 · Codex · 30. September 2026
+
+**Stand:** `c005eb9..95aaf08`, isoliertes Archiv von `95aaf08`.
+**Ergebnis: agreement — ST-I04 und ST-I05 geschlossen, kein neuer Befund
+im angefragten Umfang.** Der ausstehende Live-Messlauf bleibt separat.
+
+### ST-I04 · bestätigt behoben
+
+Der neue Statuswert `tool_table_z` transportiert das Tabellen-Z des
+Spindelwerkzeugs mit Vorzeichen. Er bleibt ohne Tabellenzeile `None`; der
+aktive Offset wird hier nicht als Tabellenwert ausgegeben. Der bisherige
+Betragsvertrag von `tool_length` bleibt unverändert. Die eigene
+Statussonde prüft auch die serialisierte Ausgabe aus
+`poll_and_serialize()` und verwendet sie im Browser.
+
+Phase 3 liest den neuen Wert mit Nullprüfung. Dadurch ist ein vorhandener
+Tabellenwert 0 gültig; nur ein fehlender Wert fällt auf den signierten
+aktiven Offset zurück. Änderungen allein am neuen Feld lösen auch das
+Neuzeichnen aus. Die R45-Sonde besteht mit unveränderter Erwartung **−170**
+für den negativen G43-Fall; angepasst wurde die Übertragung der neuen
+Schnittstelle, nicht das erwartete Koordinatenergebnis.
+
+Eigene Folge bei unverändertem Gelenk-Z −235 und Betrag 65, soweit passend:
+
+| Fall | Tabellen-Z | aktiver Offset Z | gezeichnete Spitze Z |
+| --- | ---: | ---: | ---: |
+| eigener positiver G43 | +65 | +65 | −300 |
+| positives G49 | +65 | 0 | −300 |
+| eigener negativer G43 | −65 | −65 | −170 |
+| negatives G49 | −65 | 0 | −170 |
+| nur Tabellen-Vorzeichen gewechselt | +65 | 0 | −300 |
+| expliziter Tabellenwert 0 | 0 | −65 | −235 |
+| keine Tabellenzeile, G43 | unbekannt | −65 | −170 |
+| keine Tabellenzeile, G49 | unbekannt | 0 | −235 |
+
+Keiner dieser Basiswechsel erzeugt eine künstliche Backplot-Strecke.
+Der originale Wächter für Tabellenänderung 65 → 60 und anschließende echte
+Bewegung besteht ebenfalls. Ohne Tabellenbasis bzw. mit altem Gateway
+bleibt bewusst das frühere Verhalten anhand des aktiven Offsets bestehen;
+das ist keine behauptete physische G49-Pose. Ein Scrub-G49-Segment bleibt
+die bereits benannte, unveränderte Grenze.
+
+[Statussonde](sim-toolsetter.r46.status-probe.py),
+[Statusdaten](sim-toolsetter.r46.status.json),
+[Viewer-Folgezustände](sim-toolsetter.r46.viewer.json),
+[negative Pose](sim-toolsetter.r46.negative-offset.png),
+[G49 mit positiver Länge](sim-toolsetter.r46.contact-g49.png),
+[exakte Anpassungen der alten Sonden](viewer-palette-fest.r46.probe-adaptations.patch).
+
+### ST-I05 · bestätigt behoben
+
+Die Aussage des gleichbleibenden Fehlers wurde in Antwort, README,
+Komponente, Feeder, HAL-Kommentaren und CLAUDE.md zurückgenommen. Die
+unterstützte Referenz liegt auf der festen Platte; eine Fehlreferenz wirkt
+auf das nächste Sim-Werkzeug zurück, weil dessen Länge aus der Tabelle
+stammt. Die Folge 65 → 45 → 25 → 5 ist nun ausdrücklich dokumentiert.
+Damit ist der in R45 verlangte minimale Fix erfüllt. Ein getrenntes
+physisches Längenmodell wird für diese Abnahme nicht vorausgesetzt.
+
+Die neue Folgenrechnung und die vorhandenen Koordinatenwächter bestehen.
+Zusätzlich die eigene native R45-Sonde erneut gegen den originalen
+C-Funktionsrumpf ausgeführt: korrekte Referenz mit angenommenem
+Motor-minus-Gelenk-Versatz +1 ergibt **65 → 65 → 65 → 65**; Referenz
+20 mm zu hoch ergibt **65 → 45 → 25 → 5**. Kein HAL-/LinuxCNC-Start,
+keine behauptete Live-Taskfolge.
+[Native Sonde](sim-toolsetter.r46.probe.py),
+[Ergebnis](sim-toolsetter.r46.probe.json).
+
+### Prüfung und Übergabe
+
+`test_status_runtime` und `test_sim_toolsetter` **62/62**, gezielte
+Viewer-Unit-Tests **65/65**, Typecheck/Build **PASS**. Eigene Browserfälle
+bestanden; alle drei originalen Toolsetter-Fälle im Wiederholungslauf
+bestanden. Die gemeinsame Browserprüfung umfasst 11 erfolgreiche Fälle
+über zwei Läufe; den SIGTERM-Abbruch des ersten Mocks und die unveränderte
+6/6-Wiederholung dokumentiert die
+[Reproduktion](viewer-palette-fest.r46.reproduce.md), mit
+[Ergebnisübersicht](viewer-palette-fest.r46.browser-summary.json).
+
+Keine Produktänderung, keine Veränderung alter Belege, keine Verbindung zur
+Live-Suite oder Quittierung ihres Trips. Eigener Mock und Browser beendet.
+Das Agreement betrifft die Korrekturen am Stand `95aaf08`; `heavy_test.ngc`
+und wiederholte reale Sim-Messung nach Neustart/Homing bleiben beim Operator.

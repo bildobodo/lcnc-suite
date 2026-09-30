@@ -1,0 +1,144 @@
+--- viewer-palette-fest.r45.browser-probe.ts
++++ viewer-palette-fest.r46.browser-probe.ts
+@@ -7,21 +7,21 @@
+ const model = JSON.parse(readFileSync(new URL('machine.json', modelRoot), 'utf8'));
+ const setup = {touchX:150,touchY:0,touchZ:-300,fastFeed:2000,slowFeed:200,traverseFeed:6000,maxZTravel:180,retractDist:2,spindleZeroHeight:180};
+ async function ready(page:Page) {
+- await page.route('**/r45-model/*.stl', r=>r.fulfill({contentType:'application/octet-stream',
++ await page.route('**/r46-model/*.stl', r=>r.fulfill({contentType:'application/octet-stream',
+   body:readFileSync(new URL(new URL(r.request().url()).pathname.split('/').pop()!, modelRoot))}));
+  await openLayout(page,PROFILES[1]!,VIEWPORTS.find(v=>v.name==='desktop')!);
+- await ctl({op:'setViewerInit',data:{units:'mm',stl_base_url:'/r45-model/',axes:['X','Y','Z','A','C'],
++ await ctl({op:'setViewerInit',data:{units:'mm',stl_base_url:'/r46-model/',axes:['X','Y','Z','A','C'],
+   parts:model.parts,groups:model.groups,kinematics:model.kinematics,workGroup:model.workGroup,toolGroup:model.toolGroup,
+   machine_bounds:{origin:[-250,-200,-400],size:[500,400,400]}}});
+  await expect.poll(()=>page.evaluate(()=>window.__viewerDiag?.ready ? window.__viewerDiag.getAppearance?.().parts.length : 0),{timeout:30000}).toBe(model.parts.length);
+  await ctl({op:'quiet',on:true});
+  await ctl({op:'status_delta',data:{joint_pos:[150,0,-235,0,0],actual_position:[150,0,-235,0,0],
+-  tool_number:13,tool_length:65,tool_diameter:6,tool_offset:[0,0,65,0,0,0,0,0,0],kins_type:0,
++  tool_number:13,tool_length:65,tool_table_z:65,tool_diameter:6,tool_offset:[0,0,65,0,0,0,0,0,0],kins_type:0,
+   g5x_offset:Array(9).fill(0),g92_offset:Array(9).fill(0),rotation_xy:0,interp_state:1,
+   joint_limits:[[-250,250],[-200,200],[-400,0],[-110,110],[-360,360]]}});
+ }
+ 
+-test('R45: actual XYZAC part reach segment lengths and two-tone visibility',async({page})=>{
++test('R46: actual XYZAC part reach segment lengths and two-tone visibility',async({page})=>{
+  test.setTimeout(60000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+  await ready(page);
+  await ctl({op:'raw',frame:{type:'settings_changed',settings:{display:{theme:'light'},viewer:{layers:{
+@@ -42,19 +42,19 @@
+     const visible=all.filter(e=>e.x>=rect.left&&e.x<=rect.right&&e.y>=rect.top&&e.y<=rect.bottom);
+     const lens=visible.map(e=>e.length).sort((a,b)=>a-b);
+     return {palette:d.getPalette!(),camera:d.getCamera!(),rect:{x:rect.x,y:rect.y,width:rect.width,height:rect.height},
+-     allCount:all.length,visibleCount:visible.length,entirelyLightByShader:visible.filter(e=>e.length<=3).length,
++     allCount:all.length,visibleCount:visible.length,segmentsUnder3px:visible.filter(e=>e.length<=3).length,
+      min:lens[0],median:lens[Math.floor(lens.length/2)],max:lens.at(-1),shortSegmentExamples:visible.filter(e=>e.length<=3).slice(0,24),longSegmentExamples:visible.filter(e=>e.length>3).slice(0,12)};
+    });
+    expect(state.visibleCount, 'the reach is actually in the viewer').toBeGreaterThan(100);
+    states.push({view,theme,...state});
+-   await page.locator('.viewerPane').screenshot({path:new URL(`viewer-palette-fest.r45.reach-${view}-${theme}.png`,out).pathname});
++   await page.locator('.viewerPane').screenshot({path:new URL(`viewer-palette-fest.r46.reach-${view}-${theme}.png`,out).pathname});
+   }
+  }
+- writeFileSync(new URL('viewer-palette-fest.r45.reach.json',out),JSON.stringify({commit:'8e2b005',dashPx:3,states,errors},null,2));
++ writeFileSync(new URL('viewer-palette-fest.r46.reach.json',out),JSON.stringify({commit:'95aaf08',dashPx:3,states,errors},null,2));
+  expect(errors).toEqual([]);
+ });
+ 
+-test('R45: signed tool offset retains the existing G43 coordinate contract',async({page})=>{
++test('R46: signed tool offset retains the existing G43 coordinate contract',async({page})=>{
+  test.setTimeout(60000);const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+  await ready(page);
+  await ctl({op:'raw',frame:{type:'settings_changed',settings:{toolsetter:setup,display:{theme:'light'},viewer:{layers:{
+@@ -67,20 +67,32 @@
+  await ctl({op:'status_delta',data:{tool_offset:Array(9).fill(0)}});
+  await page.waitForTimeout(350);
+  const g49=await record();
+- await page.locator('.viewerPane').screenshot({path:new URL('sim-toolsetter.r45.contact-g49.png',out).pathname});
++ await page.locator('.viewerPane').screenshot({path:new URL('sim-toolsetter.r46.contact-g49.png',out).pathname});
+  // Exact Gateway payload from original StatusRuntime with scripted STAT, no live connection.
+- const status=JSON.parse(readFileSync(new URL('sim-toolsetter.r45.status.json',out),'utf8'));
++ const status=JSON.parse(readFileSync(new URL('sim-toolsetter.r46.status.json',out),'utf8'));
+  const negative=status.cases.find((r:any)=>r.case==='negative');
+- await ctl({op:'status_delta',data:{tool_length:negative.tool_length,tool_offset:negative.tool_offset,work_pos:negative.work_pos}});
++ await ctl({op:'status_delta',data:{tool_length:negative.tool_length,tool_table_z:negative.tool_table_z,tool_offset:negative.tool_offset,work_pos:negative.work_pos}});
+  await page.waitForTimeout(350);
+  const negativePose=await record();
+- await page.locator('.viewerPane').screenshot({path:new URL('sim-toolsetter.r45.negative-offset.png',out).pathname});
++ await page.locator('.viewerPane').screenshot({path:new URL('sim-toolsetter.r46.negative-offset.png',out).pathname});
++
++ const followups:any[]=[];
++ for(const [name,table,offset,length,want] of [
++  ['negative-g49',-65,0,65,-170],['table-sign-only',65,0,65,-300],
++  ['zero-table',0,-65,0,-235],['no-table-g43',null,-65,65,-170],['no-table-g49',null,0,0,-235]
++ ] as const) {
++  await ctl({op:'status_delta',data:{tool_table_z:table,tool_offset:[0,0,offset,0,0,0,0,0,0],tool_length:length}});
++  await expect.poll(async()=>(await tip())?.[2],{message:name}).toBe(want);
++  const row=await record();expect(row.backplot.segments,'no segment caused by a basis change').toBe(g49.backplot.segments);
++  followups.push({name,table,offset,length,want,...row});
++ }
++
+  // Keep the marker-reference decision independently visible.
+  await ctl({op:'raw',frame:{type:'settings_changed',settings:{toolsetter:{...setup,touchZ:-280}}}});
+  await expect.poll(async()=>(await record()).setter?.top[2]).toBe(-280);
+  const changedReference=await record();
+- writeFileSync(new URL('sim-toolsetter.r45.viewer.json',out),JSON.stringify({commit:'8e2b005',jointZ:-235,positive,g49,
+-  negativeStatus:negative,negativePose,expectedG43TipZ:negative.work_pos[2],changedReference,errors},null,2));
++ writeFileSync(new URL('sim-toolsetter.r46.viewer.json',out),JSON.stringify({commit:'95aaf08',jointZ:-235,positive,g49,
++  negativeStatus:negative,negativePose,expectedG43TipZ:negative.work_pos[2],followups,changedReference,errors},null,2));
+  expect(errors).toEqual([]);expect(g49.tip).toEqual(positive.tip);expect(g49.backplot).toEqual(positive.backplot);
+  expect(negativePose.tip![2], 'G43 using the spindle tool own negative offset: same coordinate convention as before ST-I03').toBe(negative.work_pos[2]);
+ });
+--- sim-toolsetter.r45.status-probe.py
++++ sim-toolsetter.r46.status-probe.py
+@@ -13,11 +13,12 @@
+ from test_status_runtime import TestPollStatus, _runtime
+ fixture=TestPollStatus()
+ rows=[]
+-for name,z in [('positive',65),('negative',-65),('no_table',None)]:
++for name,z in [('positive',65),('negative',-65),('no_table',None),('zero',0)]:
+  st=fixture._stat(tool_in_spindle=13,tool_table=() if z is None else (SimpleNamespace(id=13,diameter=6,zoffset=z),),
+   tool_offset=(0,0,-65 if z is None else z),joint_actual_position=(150,0,-235),
+   g5x_offset=(0,0,0),g92_offset=(0,0,0))
+- payload=_runtime(stat=st).poll_status()
+- rows.append({'case':name,'table_zoffset':z,'tool_length':payload.tool_length,
++ payload,wire=_runtime(stat=st).poll_and_serialize()
++ assert wire["tool_table_z"]==payload.tool_table_z
++ rows.append({'case':name,'table_zoffset':z,'tool_length':payload.tool_length,'tool_table_z':payload.tool_table_z,
+   'tool_offset':payload.tool_offset,'work_pos':payload.work_pos})
+-print(json.dumps({'commit':'8e2b005','cases':rows},indent=2))
++print(json.dumps({'commit':'95aaf08','cases':rows},indent=2))
+--- sim-toolsetter.r45.probe.py
++++ sim-toolsetter.r46.probe.py
+@@ -1,11 +1,11 @@
+ #!/usr/bin/env python3
+-"""R45 offline contact model: original C body, fixed HAL plate and current
++"""R46 offline contact model: original C body, fixed HAL plate and current
+ feeder. No LinuxCNC/HAL. No servo quantisation, finder/work correction.
+ Run: python3 -B probe.py ARCHIVE_ROOT > probe.json
+ """
+ import ctypes,importlib.util,json,re,subprocess,sys,tempfile
+ from pathlib import Path
+-root=Path(sys.argv[1]);work=Path(tempfile.mkdtemp(prefix='r45-contact-'))
++root=Path(sys.argv[1]);work=Path(tempfile.mkdtemp(prefix='r46-contact-'))
+ source=root/'examples/sim_config/sim_toolsetter/sim_toolsetter.comp'
+ body=source.read_text().split('FUNCTION(_) {',1)[1].rsplit('}',1)[0]
+ c='#include <math.h>\nint trip(double x,double y,double z,double plate_x,double plate_y,double plate_z,double radius,double tool_length,int enable,int manual){int contact,out;'+body+'return out;}\n'
+@@ -13,7 +13,7 @@
+ subprocess.run(['nice','-n','19','cc','-shared','-fPIC','-o',str(work/'contact.so'),str(work/'contact.c'),'-lm'],check=True)
+ lib=ctypes.CDLL(str(work/'contact.so'));trip=lib.trip;trip.argtypes=[ctypes.c_double]*8+[ctypes.c_int]*2;trip.restype=ctypes.c_int
+ p=root/'examples/sim_config/sim_toolsetter/sim_toolsetter_feed.py'
+-spec=importlib.util.spec_from_file_location('r45feed',p);feed=importlib.util.module_from_spec(spec);spec.loader.exec_module(feed)
++spec=importlib.util.spec_from_file_location('r46feed',p);feed=importlib.util.module_from_spec(spec);spec.loader.exec_module(feed)
+ hal=(root/'examples/sim_config/hallib/sim_toolsetter.hal').read_text()
+ for n,axis in enumerate('xyz'):
+  assert re.search(rf'net\s+\S+\s+joint\.{n}\.pos-fb\s+=>\s+sim-toolsetter\.0\.{axis}',hal)
+@@ -34,7 +34,7 @@
+  for i in range(3):
+   row=check(length,reference,motor_offset);rows.append(row);length=row['G10_length']
+  return rows
+-result={'commit':'8e2b005','native_body_from':str(source.relative_to(root)),
++result={'commit':'95aaf08','native_body_from':str(source.relative_to(root)),
+  'baseline':check(65),'repeat_correct_reference_motor_offset_1mm':repeat(-300,1),
+  'repeat_reference_20mm_too_high':repeat(-280,0),
+  'manual_without_length':bool(trip(0,0,0,*plate,25,0,False,True)),
