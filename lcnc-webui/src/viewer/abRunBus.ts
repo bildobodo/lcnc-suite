@@ -89,5 +89,6 @@ export function abRunLine(): string {
   if (!abState.running) return "";
   if (abState.waiting) return "A/B measurement — starts when Settings is closed";
   const p = abState.progress;
+  if (p && p.rep < 0) return "A/B measurement · calibrating — hands off the view";
   return p ? `A/B measurement ${p.rep + 1}/${p.reps} · ${AB_LABELS[p.variant]} · ${p.phase} — hands off the view` : "A/B measurement";
 }

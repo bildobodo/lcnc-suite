@@ -39,7 +39,8 @@ interface ViewerDiag {
   runAbMeasurement?: (durations?: Record<string, number>) => Promise<void>;
   getPathBox?: () => { min: number[]; max: number[] } | null;
   setCameraPose?: (position: number[], target: number[]) => void;
-  getPathMemory?: () => { mode: string; cpu: Record<string, number>; gpu: Record<string, number>; buildBytes: number; instances: number };
+  getPathMemory?: () => { mode: string; cpu: Record<string, number>; gpu: Record<string, number>; allocated: number; peak: number;
+    generation: number; pairs: { source: number; lod: number; drawn: number } };
   projectRole?: (role: string) => { x: number; y: number; dx: number; dy: number; length: number } | null;
   projectRoleSegments?: (role: string) => { x: number; y: number; dx: number; dy: number; length: number }[];
   // Viewer contrast plan (V4): the tilted work plane as drawn, and a seam to

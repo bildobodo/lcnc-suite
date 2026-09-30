@@ -30,6 +30,8 @@ export interface AbDriverDeps {
   root(): HTMLElement | null;
   /** The rapids layer, read and set LOCALLY (never saved). */
   rapidsLayer(on?: boolean): boolean;
+  /** The toolpath layer, read and set LOCALLY (the calibration hides it). */
+  pathLayer(on?: boolean): boolean;
   simActive(): boolean;
   sweepBusy(): boolean;
   interpIdle(): boolean;
@@ -49,7 +51,10 @@ const FRAME_GRACE_MS = 5000;
 export function createAbDriver(deps: AbDriverDeps): AbDriver & { dispose(): void } {
   const flags: AbConditions = { hidden: false, dialog: false, interacted: false, sweepBusy: false };
   let saved: { pos: THREE.Vector3; target: THREE.Vector3; up: THREE.Vector3; zoom: number } | null = null;
-  let simBefore: boolean | null = null;
+  /** The user's timeline when the run began (calibrate captures it): the
+   *  simulation on or off, and its position. */
+  let timeline: { sim: boolean; pos: number | null } | null = null;
+  let notes: Record<string, unknown> = {};
   let rapidsBefore: boolean | null = null;
   const onVisibility = () => { if (document.hidden) flags.hidden = true; };
   document.addEventListener("visibilitychange", onVisibility);
@@ -136,20 +141,65 @@ export function createAbDriver(deps: AbDriverDeps): AbDriver & { dispose(): void
     return { usable, reason: null };
   }
 
-  async function jumps(n: number, ms: number): Promise<string | null> {
+  const bar = () => deps.root()?.querySelector(".scrubBar") ?? null;
+  const slider = () => bar()?.querySelector<HTMLInputElement>(".sliderInput") ?? null;
+  const playing = () => !!bar()?.querySelector('[title="Pause playback"]');
+  /** A manual timeline input (it also ends a shown finding's identity). */
+  function setTimeline(v: number) {
+    const sl = slider();
+    if (!sl || sl.disabled) return;
+    sl.value = String(v);
+    sl.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  function exitSim() {
+    if (deps.simActive()) bar()?.querySelector<HTMLInputElement>(".scrubRow input.toggle")?.click();
+  }
+  function enterSim() {
+    if (!deps.simActive()) bar()?.querySelector<HTMLInputElement>(".scrubRow input.toggle")?.click();
+  }
+  const timelineAt = () => Number(slider()?.value ?? NaN);
+  /** The timeline at `pos` — entering the simulation for it when it is off
+   *  (the position survives leaving it), and leaving it again. */
+  async function putTimeline(pos: number) {
+    if (!(timelineAt() !== pos)) return;
+    const wasOn = deps.simActive();
+    if (!wasOn) { enterSim(); await frames(100); }
+    setTimeline(pos);
+    await frames(100);
+    if (!wasOn) { exitSim(); await frames(100); }
+  }
+
+  /** Finding jumps from the SAME start every repetition (Codex R47 VP-I15):
+   *  the timeline at 0, the shown finding ended; where each jump lands is
+   *  noted for the record; a simulation the run did not find on is left
+   *  again, so every repetition enters it the same way. */
+  /** Back at the start, out of a simulation the run did not find on. */
+  async function jumpsEnd() {
+    if (deps.simActive()) { setTimeline(0); await frames(100); }
+    if (timeline && !timeline.sim) { exitSim(); await frames(100); }
+  }
+
+  async function jumps(n: number, ms: number, reveal = false): Promise<string | null> {
     const { usable, reason } = scrubButtons();
     if (reason) return reason;
-    if (simBefore === null) simBefore = deps.simActive();
+    await putTimeline(0);          // the same start, simulation on or off
+    const at: number[] = [];
     for (let i = 0; i < n && !abCancelled(); i++) {
       usable[i % usable.length]!.click();
       await frames(ms);
+      at.push(+timelineAt().toFixed(4));
     }
+    notes.jumps_at = at;
+    // the reveal's memory is read with the finding's view built: revealEnd
+    // resets after the record
+    if (!reveal) await jumpsEnd();
     return null;
   }
 
   const driver: AbDriver & { dispose(): void } = {
     blocker() {
       if (!deps.camera()) return "No 3D view";
+      if (playing()) return "Timeline playing — pause it first";
       if (deps.toolpath.feedSegs + deps.toolpath.rapidSegs === 0) return "No program drawn — load one first";
       if (!deps.interpIdle()) return "A program is running — measure at idle";
       if (deps.sweepBusy()) return "Collision check running — wait until it ends";
@@ -157,10 +207,30 @@ export function createAbDriver(deps: AbDriverDeps): AbDriver & { dispose(): void
     },
     lineMode: () => deps.toolpath.lineMode as AbVariant,
     async setLineMode(v) {
-      deps.toolpath.setLineMode(v, deps.toolpathCtx());
+      // a REAL build every time (VP-I14): setLineMode keeps its no-op for an
+      // unchanged mode, the benchmark rebuilds
+      if (deps.toolpath.lineMode === v) deps.toolpath.rebuild(deps.toolpathCtx());
+      else deps.toolpath.setLineMode(v, deps.toolpathCtx());
       deps.requestRender();
       await frames(100);
     },
+    async calibrate(ms) {
+      timeline = { sim: deps.simActive(), pos: timelineAt() };
+      saveView();
+      const shown = deps.pathLayer();
+      if (shown) deps.pathLayer(false);
+      try {
+        const f = frame();
+        await frames(ms, f ? () => place(f, 0, 1) : undefined);
+      } finally {
+        if (shown) deps.pathLayer(true);
+      }
+    },
+    async release() {
+      deps.toolpath.release();
+      await frames(100);
+    },
+    notes() { const n = notes; notes = {}; return n; },
     warmUp: ms => { saveView(); const f = frame(); return frames(ms, f ? () => place(f, 0, 1) : undefined); },
     orbit: ms => orbitFor(ms),
     async fitDetail(cycles, holdMs) {
@@ -182,20 +252,22 @@ export function createAbDriver(deps: AbDriverDeps): AbDriver & { dispose(): void
     async revealJumps(n, ms) {
       if (rapidsBefore === null) rapidsBefore = deps.rapidsLayer();
       if (deps.rapidsLayer()) deps.rapidsLayer(false);
-      return jumps(n, ms);
+      return jumps(n, ms, true);
     },
     async revealEnd() {
       if (rapidsBefore !== null && deps.rapidsLayer() !== rapidsBefore) deps.rapidsLayer(rapidsBefore);
       rapidsBefore = null;
+      if (timeline) await jumpsEnd();
     },
     async restore() {
       deps.toolpath.holdOverlays(false);
       await driver.revealEnd();
-      // Leave the simulation the run entered — through the bar's own switch.
-      if (simBefore === false && deps.simActive()) {
-        deps.root()?.querySelector<HTMLInputElement>(".scrubBar .scrubRow input.toggle")?.click();
+      // The user's timeline: the simulation as the run found it, at its position.
+      if (timeline) {
+        if (timeline.pos != null && Number.isFinite(timeline.pos)) await putTimeline(timeline.pos);
+        if (timeline.sim) enterSim(); else exitSim();
       }
-      simBefore = null;
+      timeline = null;
       const cam = deps.camera(), c = deps.controls();
       if (saved && cam && c) {
         cam.position.copy(saved.pos);

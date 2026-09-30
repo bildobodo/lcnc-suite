@@ -7,17 +7,25 @@ sequence, alternating the previous GL line (A, "gl") and the 2 CSS px line
 summary, conditions, memory ledger) and `browser.viewer.abhist` (its raw
 frame-gap / main-thread / GPU histograms, 1 ms bins) into trace.ndjson.
 This report merges the repetitions of each variant and phase and applies
-the limits fixed BEFORE the measurement:
+the limits fixed BEFORE the measurement (Codex R39/R47):
 
+  completeness: THREE valid repetitions of every phase per variant (build,
+    orbit, fitdetail, jumps, overlay_off, reveal, release) with their raf
+    and mt histograms and their memory point — anything missing, skipped or
+    excluded makes the verdict INCOMPLETE with the reason, never PASS;
+  reference rate: the calibration phase (before any build, the path hidden)
+    or --rate — never the variants under test; its limit is compared in the
+    histogram's 1 ms classes (at 60 Hz a p95 below 34 ms passes 33.3 ms);
   steady phases (orbit, fitdetail, jumps, overlay_off, reveal), per phase:
     - B's frame-gap p95 (of the merged samples — never an average of
-      percentiles) within 2 nominal frame periods (33.3 ms at 60 Hz; the
-      nominal rate is the common rate nearest the warm-up's median gap);
+      percentiles) within 2 reference frame periods;
     - B's p95 at most 20 % above A's;
-    - no NEW recurring gaps >= 100 ms (B - A < 2) and no new main-thread
-      blocks >= 50 ms (B - A < 2);
-  build (the rebuild in each renderer): B's blocks >= 50 ms not above A's;
-  memory: B - A at every ledger point <= 128 MiB, CPU and GPU separately.
+    - no NEW recurring gaps >= 100 ms or main-thread blocks >= 50 ms: B's
+      count minus what A's RATE predicts for B's time stays below 2;
+  build (a REAL rebuild each time — distinct path generations): B's median
+    duration and median longest main-thread block at most 1.5 x A's + 100 ms;
+  memory: B - A <= 128 MiB at every ledger point and for the build's peak,
+    CPU and GPU separately; after each release no path byte is left.
 
 p95 and limits compare at the histogram's resolution: a p95 passes when its
 bin is not above the limit's bin (quantiles are bin upper edges —
@@ -26,7 +34,8 @@ scripts/test_fixtures/ab_histogram_cases.json).
 
 A phase recorded hidden, under a dialog, with the camera touched by hand or
 with the collision sweep running is EXCLUDED and named; so is a skipped
-phase (its reason) and a histogram with a missing part.
+phase (its reason), a missing or partial histogram and a missing memory
+point.
 
 Usage:
   python3 scripts/viewer_ab_report.py                    # the last run in the trace
@@ -139,11 +148,16 @@ def p95_within(p95: float | None, limit_ms: float) -> bool:
 COMMON_RATES = (60, 75, 90, 100, 120, 144, 165, 240)
 P95_FRAMES = 2
 RATIO_MAX = 1.20
-NEW_GAPS_MAX = 1          # B - A gaps >= 100 ms per phase; 2+ = new and recurring
-NEW_BLOCKS_MAX = 1        # B - A main-thread blocks >= 50 ms per phase
+NEW_EVENTS = 2            # B's gaps / blocks beyond what A's RATE predicts for B's time: 2+ = new and recurring
+BUILD_RATIO = 1.5         # a build: B's median duration and longest main-thread block
+BUILD_SLACK_MS = 100.0    #   at most 1.5 × A's + 100 ms (the pack is main-thread work)
 MEMORY_MAX_BYTES = 128 * 1024 * 1024
+REPS_REQUIRED = 3         # valid repetitions per variant and phase
 STEADY = ("orbit", "fitdetail", "jumps", "overlay_off", "reveal")
-MEMORY_POINTS = ("after_load", "after_orbit", "after_lods", "after_nav", "after_reveal")
+REQUIRED_SERIES = ("raf", "mt")          # gpu fences: diagnosis only (absent without WebGL2)
+PHASE_MEMORY = {"build": "after_load", "orbit": "after_orbit", "fitdetail": "after_lods",
+                "jumps": "after_nav", "reveal": "after_reveal", "release": "after_release"}
+REQUIRED_PHASES = ("build",) + STEADY + ("release",)
 
 
 def nominal_rate(frame_ms: float | None) -> int | None:
@@ -151,6 +165,14 @@ def nominal_rate(frame_ms: float | None) -> int | None:
         return None
     hz = 1000.0 / frame_ms
     return min(COMMON_RATES, key=lambda r: abs(r - hz))
+
+
+def median(xs: list[float]) -> float | None:
+    xs = sorted(x for x in xs if x is not None)
+    if not xs:
+        return None
+    m = len(xs) // 2
+    return xs[m] if len(xs) % 2 else (xs[m - 1] + xs[m]) / 2
 
 
 # ── reading the trace ─────────────────────────────────────────────────────
@@ -185,13 +207,13 @@ def trace_files(log_dir: str) -> list[str]:
 
 
 # ── the verdict ───────────────────────────────────────────────────────────
-def analyse(rows: list[dict], run: str | None = None) -> dict:
+def analyse(rows: list[dict], run: str | None = None, rate: int | None = None) -> dict:
     runs = [e["run"] for e in rows if e.get("tag") == "browser.viewer.abrun" and e.get("phase") == "meta"]
     if not runs:
         return {"ok": None, "error": "no A/B run in the trace"}
     run = run or runs[-1]
     mine = [e for e in rows if e.get("run") == run]
-    meta = next((e for e in mine if e.get("phase") == "meta"), None)
+    meta = next((e for e in mine if e.get("phase") == "meta"), None) or {}
     end = next((e for e in mine if e.get("phase") == "end"), None)
     phases = {e["seq"]: e for e in mine if e.get("tag") == "browser.viewer.abrun" and "variant" in e}
     parts: dict[tuple[int, str], dict[int, dict]] = defaultdict(dict)
@@ -199,9 +221,15 @@ def analyse(rows: list[dict], run: str | None = None) -> dict:
         if e.get("tag") == "browser.viewer.abhist":
             parts[(e["seq"], e["series"])][e["part"]] = e
 
+    checks: list[dict] = []
+
+    def check(name: str, ok: bool | None, detail: str) -> None:
+        checks.append({"check": name, "ok": ok, "detail": detail})
+
+    # ── every record: its histograms whole, its conditions clean ──
     excluded: list[str] = []
-    hists: dict[tuple[str, str, str], Hist] = {}          # (variant, phase, kind) → merged
-    by_vp: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    valid: dict[tuple[str, str], list[dict]] = defaultdict(list)   # (variant, phase) → records
+    hist: dict[int, dict[str, Hist]] = {}                          # seq → series → histogram
     for seq, p in sorted(phases.items()):
         label = f"{p['rep'] + 1}/{p['variant']}/{p['phase']}"
         why = []
@@ -211,105 +239,154 @@ def analyse(rows: list[dict], run: str | None = None) -> dict:
                            ("interacted", "camera moved by hand"), ("sweep_busy", "collision sweep running")):
             if p.get(flag):
                 why.append(text)
-        kinds = {}
-        for kind in ("raf", "mt", "gpu"):
-            got = parts.get((seq, kind), {})
+        kinds: dict[str, Hist] = {}
+        for series in ("raf", "mt", "gpu"):
+            got = parts.get((seq, series), {})
             if not got:
+                if series in REQUIRED_SERIES and p.get("status") == "ran" and p["phase"] != "release":
+                    why.append(f"no {series} histogram")
                 continue
             want = next(iter(got.values()))["parts"]
             if len(got) != want:
-                why.append(f"{kind} histogram incomplete ({len(got)}/{want} parts)")
+                why.append(f"{series} histogram incomplete ({len(got)}/{want} parts)")
                 continue
             h = Hist()
             for i in range(want):
                 h.add_sparse(got[i]["bins"], got[i].get("max", 0.0))
             if h.n != got[0]["n"]:
-                why.append(f"{kind} histogram count {h.n} ≠ {got[0]['n']}")
+                why.append(f"{series} histogram count {h.n} ≠ {got[0]['n']}")
                 continue
-            kinds[kind] = h
+            kinds[series] = h
+        point = PHASE_MEMORY.get(p["phase"])
+        if point and (p.get("memory_at") != point or not isinstance(p.get("memory"), dict)):
+            why.append(f"no memory at {point}")
         if why:
             excluded.append(f"{label}: {', '.join(why)}")
             continue
-        by_vp[(p["variant"], p["phase"])].append(p)
-        for kind, h in kinds.items():
-            hists.setdefault((p["variant"], p["phase"], kind), Hist()).merge(h)
+        hist[seq] = kinds
+        valid[(p["variant"], p["phase"])].append(p)
 
-    warm = Hist()
-    for v in ("gl", "fat"):
-        if (v, "warmup", "raf") in hists:
-            warm.merge(hists[(v, "warmup", "raf")])
-    frame_ms = warm.median_mid()
-    rate = nominal_rate(frame_ms)
+    # ── the reference rate: the calibration (path hidden), never the variants ──
+    cal = Hist()
+    for p in valid.get(("none", "calibrate"), []):
+        if "raf" in hist[p["seq"]]:
+            cal.merge(hist[p["seq"]]["raf"])
+    frame_ms = cal.median_mid()
+    rate_source = "--rate" if rate else "calibration"
+    rate = rate or nominal_rate(frame_ms)
     limit_ms = P95_FRAMES * 1000.0 / rate if rate else None
+    if limit_ms is None:
+        check("reference frame rate", None, "no calibration phase measured and no --rate")
 
-    checks: list[dict] = []
+    # ── the required matrix: three valid repetitions of every phase ──
+    order = str(meta.get("order", "")).split(",") if meta.get("order") else []
+    reps_planned = {v: order.count(v) for v in ("gl", "fat")}
+    complete: set[tuple[str, str]] = set()
+    for v in ("gl", "fat"):
+        if reps_planned.get(v, 0) < REPS_REQUIRED:
+            check(f"{v}: {REPS_REQUIRED} repetitions planned", None, f"the run planned {reps_planned.get(v, 0)}")
+        for ph in REQUIRED_PHASES:
+            n = len(valid.get((v, ph), []))
+            if n < REPS_REQUIRED:
+                check(f"{v} {ph}: {REPS_REQUIRED} valid repetitions", None, f"{n} valid — see excluded")
+            else:
+                complete.add((v, ph))
 
-    def check(name: str, ok: bool | None, detail: str) -> None:
-        checks.append({"check": name, "ok": ok, "detail": detail})
+    def merged(v: str, ph: str, series: str) -> Hist:
+        h = Hist()
+        for p in valid.get((v, ph), []):
+            if series in hist[p["seq"]]:
+                h.merge(hist[p["seq"]][series])
+        return h
 
+    def seconds(v: str, ph: str) -> float:
+        return sum(p.get("ms", 0) for p in valid.get((v, ph), [])) / 1000.0
+
+    # ── steady phases: p95, ratio, new recurring events by RATE ──
     table = []
     for ph in STEADY:
-        a, b = hists.get(("gl", ph, "raf")), hists.get(("fat", ph, "raf"))
-        am, bm = hists.get(("gl", ph, "mt")), hists.get(("fat", ph, "mt"))
-        wa = max((r["raf"].get("win_p95_max") or 0 for r in by_vp.get(("gl", ph), [])), default=None)
-        wb = max((r["raf"].get("win_p95_max") or 0 for r in by_vp.get(("fat", ph), [])), default=None)
-        row = {"phase": ph,
-               "a_p95": a.quantile(0.95) if a else None, "b_p95": b.quantile(0.95) if b else None,
-               "a_win_p95_max": wa, "b_win_p95_max": wb,
-               "a_gaps100": a.at_least(100) if a else None, "b_gaps100": b.at_least(100) if b else None,
-               "a_blocks50": am.at_least(50) if am else None, "b_blocks50": bm.at_least(50) if bm else None,
-               "a_n": a.n if a else 0, "b_n": b.n if b else 0,
-               "gpu_a_p95": hists[("gl", ph, "gpu")].quantile(0.95) if ("gl", ph, "gpu") in hists else None,
-               "gpu_b_p95": hists[("fat", ph, "gpu")].quantile(0.95) if ("fat", ph, "gpu") in hists else None}
-        table.append(row)
-        if not a or not b:
-            check(f"{ph}: measured", None, "no complete A and B samples — see excluded" if a or b else "not measured — see excluded")
+        row: dict = {"phase": ph}
+        if not {("gl", ph), ("fat", ph)} <= complete:
+            table.append(row)
             continue
+        a, b = merged("gl", ph, "raf"), merged("fat", ph, "raf")
+        am, bm = merged("gl", ph, "mt"), merged("fat", ph, "mt")
+        ag, bg = merged("gl", ph, "gpu"), merged("fat", ph, "gpu")
+        ta, tb = seconds("gl", ph), seconds("fat", ph)
+        row.update({
+            "a_p95": a.quantile(0.95), "b_p95": b.quantile(0.95),
+            "a_win_p95_max": max((p["raf"].get("win_p95_max") or 0 for p in valid[("gl", ph)]), default=None),
+            "b_win_p95_max": max((p["raf"].get("win_p95_max") or 0 for p in valid[("fat", ph)]), default=None),
+            "a_gaps100": a.at_least(100), "b_gaps100": b.at_least(100),
+            "a_blocks50": am.at_least(50), "b_blocks50": bm.at_least(50),
+            "a_s": round(ta, 1), "b_s": round(tb, 1),
+            "gpu_a_p95": ag.quantile(0.95), "gpu_b_p95": bg.quantile(0.95)})
+        table.append(row)
         if limit_ms is not None:
             check(f"{ph}: B p95 within {P95_FRAMES} frames", p95_within(row["b_p95"], limit_ms),
-                  f"B p95 {row['b_p95']} ms, limit {limit_ms:.1f} ms at {rate} Hz")
+                  f"B p95 {row['b_p95']} ms, limit {limit_ms:.1f} ms at {rate} Hz ({rate_source}; 1 ms classes: "
+                  f"below {bin_high(bin_of(limit_ms)):.0f} ms passes)")
         check(f"{ph}: B p95 ≤ {RATIO_MAX:.2f} × A", p95_within(row["b_p95"], RATIO_MAX * row["a_p95"]),
               f"A {row['a_p95']} ms, B {row['b_p95']} ms")
-        check(f"{ph}: no new recurring gaps ≥ 100 ms", row["b_gaps100"] - row["a_gaps100"] <= NEW_GAPS_MAX,
-              f"A {row['a_gaps100']}, B {row['b_gaps100']}")
-        check(f"{ph}: no new main-thread blocks ≥ 50 ms", row["b_blocks50"] - row["a_blocks50"] <= NEW_BLOCKS_MAX,
-              f"A {row['a_blocks50']}, B {row['b_blocks50']}")
-    if limit_ms is None:
-        check("refresh rate measured", None, "no warm-up samples")
+        for name, ca, cb in (("gaps ≥ 100 ms", row["a_gaps100"], row["b_gaps100"]),
+                             ("main-thread blocks ≥ 50 ms", row["a_blocks50"], row["b_blocks50"])):
+            expected = ca / ta * tb if ta > 0 else 0.0
+            check(f"{ph}: no new recurring {name}", cb - expected < NEW_EVENTS,
+                  f"A {ca} in {ta:.1f} s, B {cb} in {tb:.1f} s (A's rate predicts {expected:.1f})")
 
-    ba, bb = hists.get(("gl", "build", "mt")), hists.get(("fat", "build", "mt"))
-    build = {"a_ms": [r["ms"] for r in by_vp.get(("gl", "build"), [])],
-             "b_ms": [r["ms"] for r in by_vp.get(("fat", "build"), [])],
-             "a_blocks50": ba.at_least(50) if ba else None, "b_blocks50": bb.at_least(50) if bb else None,
-             "a_mt_max": ba.max if ba else None, "b_mt_max": bb.max if bb else None}
-    if ba and bb:
-        check("build: no new main-thread blocks ≥ 50 ms", bb.at_least(50) <= ba.at_least(50),
-              f"A {ba.at_least(50)} (max {ba.max:.0f} ms), B {bb.at_least(50)} (max {bb.max:.0f} ms)")
+    # ── builds: real rebuilds, duration and longest block ──
+    build = {}
+    if {("gl", "build"), ("fat", "build")} <= complete:
+        for v in ("gl", "fat"):
+            recs = valid[("gl" if v == "gl" else "fat", "build")]
+            gens = [p["memory"].get("generation") for p in recs]
+            build[v] = {"ms": [p.get("ms") for p in recs], "mt_max": [p["mt"].get("max") for p in recs],
+                        "generations": gens}
+            check(f"{v} build: every build phase a real build", len(set(gens)) == len(gens) and None not in gens,
+                  f"path generations {gens}")
+        for key, name in (("ms", "duration"), ("mt_max", "longest main-thread block")):
+            ma, mb = median(build["gl"][key]), median(build["fat"][key])
+            if ma is None or mb is None:
+                check(f"build {name}", None, "not measured")
+                continue
+            lim = BUILD_RATIO * ma + BUILD_SLACK_MS
+            check(f"build: B's {name} ≤ {BUILD_RATIO} × A + {BUILD_SLACK_MS:.0f} ms", mb <= lim,
+                  f"median A {ma:.0f} ms, B {mb:.0f} ms, limit {lim:.0f} ms")
 
+    # ── memory: held at every point, the build's peak, the release ──
     memory = []
-    for point in MEMORY_POINTS:
-        def peak(v: str, side: str) -> int | None:
-            vals = [r["memory"][side]["total"] for (vv, _), rs in by_vp.items() if vv == v
-                    for r in rs if r.get("memory_at") == point]
-            return max(vals) if vals else None
+    for point in PHASE_MEMORY.values():
         row = {"point": point}
+        ph = next(k for k, v in PHASE_MEMORY.items() if v == point)
         for side in ("cpu", "gpu"):
-            a, b = peak("gl", side), peak("fat", side)
-            row[f"{side}_a"], row[f"{side}_b"] = a, b
-            if a is not None and b is not None:
-                check(f"memory {point} {side}: B − A ≤ 128 MiB", b - a <= MEMORY_MAX_BYTES,
-                      f"A {a / 2**20:.1f} MiB, B {b / 2**20:.1f} MiB, +{(b - a) / 2**20:.1f} MiB")
+            for v, tag in (("gl", "a"), ("fat", "b")):
+                vals = [p["memory"][side]["total"] for p in valid.get((v, ph), [])]
+                row[f"{side}_{tag}"] = max(vals) if vals else None
+            if row[f"{side}_a"] is not None and row[f"{side}_b"] is not None and point != "after_release":
+                check(f"memory {point} {side}: B − A ≤ 128 MiB", row[f"{side}_b"] - row[f"{side}_a"] <= MEMORY_MAX_BYTES,
+                      f"A {row[f'{side}_a'] / 2**20:.1f} MiB, B {row[f'{side}_b'] / 2**20:.1f} MiB")
         memory.append(row)
+    peaks = {v: [p["memory"].get("peak") for p in valid.get((v, "build"), [])] for v in ("gl", "fat")}
+    if all(peaks[v] and None not in peaks[v] for v in ("gl", "fat")):
+        pa, pb = max(peaks["gl"]), max(peaks["fat"])
+        check("memory build peak: B − A ≤ 128 MiB", pb - pa <= MEMORY_MAX_BYTES,
+              f"A {pa / 2**20:.1f} MiB, B {pb / 2**20:.1f} MiB (upper bound: every allocation of a build alive at once)")
+    for v in ("gl", "fat"):
+        recs = valid.get((v, "release"), [])
+        if not recs:
+            continue
+        left = [(p["memory"]["cpu"]["total"] - p["memory"]["cpu"].get("payload", 0), p["memory"]["gpu"]["total"]) for p in recs]
+        check(f"{v} release: every path byte freed", all(c == 0 and g == 0 for c, g in left),
+              f"CPU / GPU left besides the program: {left}")
 
-    complete = bool(end) and not (end or {}).get("cancelled")
-    if not complete:
+    complete_run = bool(end) and not (end or {}).get("cancelled")
+    if not complete_run:
         check("run complete", None, "cancelled" if end else "no end record")
-    # FAIL if any limit is broken; INCOMPLETE if something was not measured.
     ok = False if any(c["ok"] is False for c in checks) else (None if any(c["ok"] is None for c in checks) else True)
     verdict = {True: "PASS", False: "FAIL", None: "INCOMPLETE"}[ok]
-    return {"ok": ok, "verdict": verdict, "run": run, "meta": meta, "frame_ms": frame_ms, "rate_hz": rate, "limit_ms": limit_ms,
-            "table": table, "build": build, "memory": memory, "checks": checks, "excluded": excluded,
-            "complete": complete}
+    return {"ok": ok, "verdict": verdict, "run": run, "meta": meta, "frame_ms": frame_ms, "rate_hz": rate,
+            "rate_source": rate_source, "limit_ms": limit_ms, "table": table, "build": build, "memory": memory,
+            "checks": checks, "excluded": excluded, "complete": complete_run}
 
 
 def render(r: dict) -> str:
@@ -319,15 +396,22 @@ def render(r: dict) -> str:
     out = [f"A/B run {r['run']} — commit {m.get('commit')} ({m.get('build')}), {m.get('file')}",
            f"  viewport {m.get('viewport')} at pixel ratio {m.get('pixel_ratio')} (device {m.get('device_pixel_ratio')}, zoom {m.get('zoom')}),"
            f" {m.get('feed_segs')} feed / {m.get('rapid_segs')} rapid points, overlays {m.get('overlays')}",
-           f"  refresh ≈ {r['rate_hz']} Hz (median gap {r['frame_ms']} ms) → p95 limit {r['limit_ms'] and round(r['limit_ms'], 1)} ms",
-           "", "  phase        A p95  B p95  A win  B win  A≥100 B≥100  A mt≥50 B mt≥50  gpu A  gpu B"]
+           f"  reference {r['rate_hz']} Hz ({r['rate_source']}; calibration median gap {r['frame_ms']} ms) → p95 limit "
+           f"{r['limit_ms'] and round(r['limit_ms'], 1)} ms, compared in 1 ms classes",
+           "", "  phase        A p95  B p95  A win  B win  A≥100 B≥100  A mt≥50 B mt≥50  A s    B s    gpu A  gpu B"]
     for t in r["table"]:
+        if "a_p95" not in t:
+            out.append(f"  {t['phase']:<12} (not all repetitions valid — see excluded)")
+            continue
         out.append("  {phase:<12} {a_p95!s:>5}  {b_p95!s:>5}  {a_win_p95_max!s:>5}  {b_win_p95_max!s:>5}  "
-                   "{a_gaps100!s:>5} {b_gaps100!s:>5}  {a_blocks50!s:>7} {b_blocks50!s:>7}  {gpu_a_p95!s:>5}  {gpu_b_p95!s:>5}".format(**t))
+                   "{a_gaps100!s:>5} {b_gaps100!s:>5}  {a_blocks50!s:>7} {b_blocks50!s:>7}  {a_s!s:>5}  {b_s!s:>5}  "
+                   "{gpu_a_p95!s:>5}  {gpu_b_p95!s:>5}".format(**t))
     b = r["build"]
-    out += ["", f"  build ms  A {b['a_ms']}  B {b['b_ms']}; blocks ≥ 50 ms A {b['a_blocks50']} B {b['b_blocks50']}", "", "  memory (MiB, peak of the repetitions)"]
+    if b:
+        out += ["", f"  build ms  A {b['gl']['ms']}  B {b['fat']['ms']}; longest main-thread block A {b['gl']['mt_max']}  B {b['fat']['mt_max']}"]
+    out += ["", "  memory (MiB, highest of the repetitions)"]
+    f = lambda x: "—" if x is None else f"{x / 2**20:.1f}"  # noqa: E731
     for row in r["memory"]:
-        f = lambda x: "—" if x is None else f"{x / 2**20:.1f}"  # noqa: E731
         out.append(f"  {row['point']:<13} CPU A {f(row['cpu_a'])} B {f(row['cpu_b'])}   GPU A {f(row['gpu_a'])} B {f(row['gpu_b'])}")
     if r["excluded"]:
         out += ["", "  excluded:"] + [f"    {x}" for x in r["excluded"]]
@@ -342,10 +426,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--log-dir", default=None)
     ap.add_argument("--trace", action="append", help="a trace file (repeatable); default: the log dir's rotations")
     ap.add_argument("--run", default=None)
+    ap.add_argument("--rate", type=int, default=None, help="the display's refresh rate (Hz), instead of the calibration")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
     paths = a.trace or trace_files(a.log_dir or _default_log_dir())
-    r = analyse(load(paths), a.run)
+    r = analyse(load(paths), a.run, a.rate)
     print(json.dumps(r, indent=2, default=str) if a.json else render(r))
     if r.get("ok") is None:
         return 2

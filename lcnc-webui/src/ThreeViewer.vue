@@ -3773,6 +3773,7 @@ onMounted(() => {
     setFrameHook: fn => { _abFrameHook = fn; },
     root: () => wrapEl.value,
     rapidsLayer: on => { if (on !== undefined) setLayerVisible("rapids", on); return _pathLayers.rapids; },
+    pathLayer: on => { if (on !== undefined) setLayerVisible("toolpath", on); return _pathLayers.toolpath; },
     simActive: () => simMode.value,
     sweepBusy: () => collisionBusy.value,
     interpIdle: () => (status.value?.data?.interp_state ?? INTERP_IDLE) === INTERP_IDLE,

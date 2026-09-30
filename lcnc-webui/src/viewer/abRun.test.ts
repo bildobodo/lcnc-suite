@@ -27,12 +27,17 @@ function fakeDriver(o: { blocker?: string; skipJumps?: string; hiddenIn?: string
     }
     if (o.hiddenIn === phaseName) flags.hidden = true;
   };
-  const mem = (): PathMemory => ({ mode, cpu: { base: 10, dist: 1, overlay: 2, reveal: 0, source: 5, total: 18 },
-    gpu: { base: 10, dist: 1, overlay: 2, reveal: 0, total: 13 }, buildBytes: mode === "fat" ? 11 : 0, instances: 7 });
+  let generation = 0;
+  const mem = (): PathMemory => ({ mode, cpu: { base: 10, dist: 1, overlay: 2, reveal: 0, mesh: 1, source: 5, payload: 20, total: 39 },
+    gpu: { base: 10, dist: 1, overlay: 2, reveal: 0, mesh: 1, total: 14 }, allocated: 100, peak: 60, generation,
+    pairs: { source: 9, lod: 8, drawn: 7 } });
   const d: AbDriver = {
     blocker: () => o.blocker ?? null,
     lineMode: () => mode,
-    setLineMode: async v => { calls.push(`mode:${v}`); mode = v; phaseName = "build"; await frames(50); },
+    setLineMode: async v => { calls.push(`mode:${v}`); mode = v; generation++; phaseName = "build"; await frames(50); },
+    calibrate: async ms => { calls.push("calibrate"); phaseName = "calibrate"; await frames(ms); },
+    release: async () => { calls.push("release"); },
+    notes: () => (phaseName === "jumps" || phaseName === "reveal" ? { jumps_at: [1, 2] } : {}),
     warmUp: async ms => { phaseName = "warmup"; await frames(ms); },
     orbit: async ms => { phaseName = "orbit"; calls.push("orbit"); await frames(ms); },
     fitDetail: async (c, h) => { phaseName = "fitdetail"; await frames(c * h); },
@@ -59,16 +64,20 @@ describe("runAb", () => {
     const f = fakeDriver({ initial: "gl" });
     const r = await runAb(f.d, { runId: "r1", durations: SHORT });
     expect(r.ok).toBe(true);
+    expect(f.calls[0], "the reference rate first, before any build").toBe("calibrate");
     expect(f.calls.filter(c => c.startsWith("mode:"))).toEqual([...AB_ORDER.map(v => `mode:${v}`), "mode:gl"]);
-    // ending in the start mode already: no extra rebuild
+    expect(f.calls.filter(c => c === "release").length, "a release per repetition").toBe(6);
+    // ending in the start mode still REBUILDS: the last phase released the path (Codex R47 VP-I14/I17)
     const g = fakeDriver({ initial: "fat" });
     await runAb(g.d, { runId: "r1b", durations: SHORT });
-    expect(g.calls.filter(c => c.startsWith("mode:"))).toEqual(AB_ORDER.map(v => `mode:${v}`));
+    expect(g.calls.filter(c => c.startsWith("mode:"))).toEqual([...AB_ORDER.map(v => `mode:${v}`), "mode:fat"]);
     expect(f.calls).toContain("restore");
     expect(f.calls.filter(c => c === "revealEnd").length, "the local rapids come back after every reveal").toBe(6);
     expect(f.tapOn, "the tap is off after the run").toBe(false);
     const phases = f.emitted.filter(e => e.kind === "viewer.abrun").map(e => e.f.phase);
     expect(phases[0]).toBe("meta");
+    expect(phases[1]).toBe("calibrate");
+    expect(phases.filter(p => p === "release").length).toBe(6);
     expect(last(phases)).toBe("end");
     expect(phases.filter(p => p === "orbit").length).toBe(6);
   });
@@ -84,7 +93,10 @@ describe("runAb", () => {
     expect(rec.memory_at).toBe("after_orbit");
     expect(rec.memory.mode).toBe("fat");
     const at = f.emitted.filter(e => e.f.memory_at).map(e => e.f.memory_at);
-    for (const p of ["after_load", "after_orbit", "after_lods", "after_nav", "after_reveal", "end"]) expect(at).toContain(p);
+    for (const p of ["after_load", "after_orbit", "after_lods", "after_nav", "after_reveal", "after_release", "end"]) expect(at).toContain(p);
+    expect(rec.memory).toMatchObject({ allocated: 100, peak: 60, pairs: { source: 9, lod: 8, drawn: 7 } });
+    const jumpRec = f.emitted.find(e => e.kind === "viewer.abrun" && e.f.phase === "jumps")!.f;
+    expect(jumpRec.jumps_at, "where the jumps landed rides the record").toEqual([1, 2]);
     // one histogram record per kind for this phase (small: one part), bins whole
     const hist = f.emitted.filter(e => e.kind === "viewer.abhist" && e.f.seq === rec.seq);
     expect(hist.map(h => h.f.series).sort()).toEqual(["gpu", "mt", "raf"]);

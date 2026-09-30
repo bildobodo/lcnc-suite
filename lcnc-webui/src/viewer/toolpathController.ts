@@ -125,6 +125,18 @@ export interface ToolpathController {
    *  never both held, so each mode's memory is its own. */
   setLineMode(mode: PathLineMode, ctx: ToolpathCtx): void;
   readonly lineMode: PathLineMode;
+  /** The A/B measurement only (Codex R47 VP-I14): rebuild the last applied
+   *  program in the CURRENT mode — every build phase a real build, whether or
+   *  not the mode changes (setLineMode keeps its cheap no-op). apply()
+   *  disposes before it builds, so a rebuild's peak is the new build plus its
+   *  scratch, never old + new. */
+  rebuild(ctx: ToolpathCtx): void;
+  /** The A/B measurement only (VP-I17): dispose every path object, keep the
+   *  program's data — the ledger then holds the payload alone; rebuild()
+   *  restores the view. Never unloads the operator's program. */
+  release(): void;
+  /** Bumped by every path build (apply / rebuild). */
+  readonly generation: number;
   /** The A/B measurement only: hold the limit overlays hidden. */
   holdOverlays(on: boolean): void;
   /** Whether the drawn program carries limit overlays at all. */
@@ -176,16 +188,31 @@ export interface ToolpathController {
 
 export interface PathMemory {
   mode: PathLineMode;
-  /** CPU bytes by owner: the drawn base lines, the dash distances, the limit
-   *  overlays, the finding's reveal, and the source arrays kept for rebuilds
-   *  (positions, level indices, source ids, flags) — each ArrayBuffer once. */
-  cpu: { base: number; dist: number; overlay: number; reveal: number; source: number; total: number };
-  /** GPU bytes of the buffers uploaded so far (a level never drawn is not). */
-  gpu: { base: number; dist: number; overlay: number; reveal: number; total: number };
-  /** Bytes the last build packed (the fat mode's own allocation). */
-  buildBytes: number;
-  /** Drawn segment instances at the current levels (= drawSegs). */
-  instances: number;
+  /** CPU bytes HELD, by owner — each ArrayBuffer ONCE, at its CAPACITY (a
+   *  small view keeps its whole buffer alive; Codex R47 VP-I17): the drawn
+   *  base lines, the dash distances, the limit overlays, the finding's
+   *  reveal, the fat geometries' own quad mesh, the controller's derived
+   *  arrays (binned level indices, computed distances) and the PAYLOAD it
+   *  keeps for rebuilds (the program's positions, LOD lists, breaks, flags,
+   *  source ids). A buffer shared by two owners counts under the first. */
+  cpu: { base: number; dist: number; overlay: number; reveal: number; mesh: number; source: number; payload: number; total: number };
+  /** GPU bytes of the buffers actually uploaded (the uploaded views; a level
+   *  never drawn is not). */
+  gpu: { base: number; dist: number; overlay: number; reveal: number; mesh: number; total: number };
+  /** Bytes the controller allocated since it was created — cumulative (a
+   *  reveal built three times counts three times). */
+  allocated: number;
+  /** For the CURRENT path (since the last apply / rebuild): the highest
+   *  (bytes held when a build began + bytes the build allocated, scratch
+   *  included) — an UPPER bound on the simultaneous footprint, every
+   *  allocation of the build taken as alive at once. */
+  peak: number;
+  /** Builds so far (apply / rebuild). */
+  generation: number;
+  /** Segment pairs: of the source (level 0), at the chunks' CURRENT levels,
+   *  and actually DRAWN (visible objects' instances — degenerate pairs
+   *  dropped by the pack, hidden chunks and layers excluded). */
+  pairs: { source: number; lod: number; drawn: number };
 }
 
 /** One drawn stream in one frame: its chunks (objects sharing the stream's
@@ -297,15 +324,104 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   // The A/B measurement's "overlay off" phase (Codex R39 VP39-03; removed
   // with the switch): the limit overlays held hidden, nothing rebuilt.
   let _overlaysHeld = false;
-  // The memory ledger (Codex R39 VP39-01): GPU bytes count a buffer once it
-  // was actually uploaded (three calls onUpload after the first transfer);
-  // _buildBytes adds up what the last build packed.
+  // The memory ledger (Codex R39 VP39-01, R47 VP-I17): GPU bytes count a
+  // buffer once it was actually uploaded (three calls onUpload after the
+  // first transfer); _allocated counts every array the controller allocates
+  // (capacity), _peak the highest held-at-build-start + allocated-in-build.
   const _uploaded = new WeakSet<object>();
-  let _buildBytes = 0;
+  let _allocated = 0;
+  let _peak = 0;
+  let _generation = 0;
   const _watchUpload = (b: THREE.BufferAttribute | THREE.InterleavedBuffer) => { b.onUpload(() => { _uploaded.add(b); }); };
+  /** Count arrays the controller allocates (their capacity, once each). */
+  function _tally(...arrs: (ArrayBufferView | null | undefined)[]) {
+    const seen = new Set<ArrayBufferLike>();
+    for (const a of arrs) if (a && !seen.has(a.buffer)) { seen.add(a.buffer); _allocated += a.buffer.byteLength; }
+  }
+  /** Run a build step and raise the peak bound by what it allocated. */
+  function _measured<T>(build: () => T): T {
+    const held = ledger().cpu.total, a0 = _allocated;
+    const out = build();
+    _peak = Math.max(_peak, held + (_allocated - a0));
+    return out;
+  }
   // The last apply's DATA (never its ctx — the scene pointers are fresh per
   // call): a line-mode switch rebuilds from it.
   let _lastApply: { g: ViewerGcode; anchor: AnchorTerms | null } | null = null;
+
+  /** The memory ledger now (Codex R39 VP39-01, R47 VP-I17) — see PathMemory. */
+  function ledger(): PathMemory {
+    const seenCpu = new Set<ArrayBufferLike>();
+    const seenGpu = new Set<object>();
+    type Owner = "base" | "dist" | "overlay" | "reveal" | "mesh";
+    const cpu = { base: 0, dist: 0, overlay: 0, reveal: 0, mesh: 0, source: 0, payload: 0, total: 0 };
+    const gpu = { base: 0, dist: 0, overlay: 0, reveal: 0, mesh: 0, total: 0 };
+    const addCpu = (owner: keyof typeof cpu, a: ArrayBufferView | null | undefined) => {
+      if (!a || !ArrayBuffer.isView(a) || seenCpu.has(a.buffer)) return;
+      seenCpu.add(a.buffer);
+      cpu[owner] += a.buffer.byteLength;   // the CAPACITY a view keeps alive
+    };
+    const addGpu = (owner: Owner, buf: THREE.BufferAttribute | THREE.InterleavedBuffer | null | undefined) => {
+      if (!buf || !_uploaded.has(buf) || seenGpu.has(buf)) return;
+      seenGpu.add(buf);
+      gpu[owner] += (buf.array as ArrayBufferView).byteLength;   // what was uploaded
+    };
+    const account = (o: PathObj | null, owner: Owner) => {
+      if (!o) return;
+      const g = o.geometry;
+      const distOwner: Owner = owner === "base" ? "dist" : owner;
+      if ((o as LineSegments2).isLineSegments2) {
+        const st = g.getAttribute("instanceStart") as THREE.InterleavedBufferAttribute;
+        addCpu(owner, st.data.array as Float32Array); addGpu(owner, st.data);
+        const di = g.getAttribute("instanceDistanceStart") as THREE.InterleavedBufferAttribute | undefined;
+        if (di) { addCpu(distOwner, di.data.array as Float32Array); addGpu(distOwner, di.data); }
+        for (const a of [g.getAttribute("position"), g.getAttribute("uv"), g.index] as (THREE.BufferAttribute | null)[]) {
+          if (a) { addCpu("mesh", a.array as ArrayBufferView); addGpu("mesh", a); }
+        }
+        return;
+      }
+      if (g.index) { addCpu(owner, g.index.array as Uint32Array); addGpu(owner, g.index); }
+      addGpu("base", g.getAttribute("position") as THREE.BufferAttribute);
+      addGpu("dist", g.getAttribute("lineDistance") as THREE.BufferAttribute | undefined);
+    };
+    for (const st of sets) {
+      for (const ch of st.chunks) {
+        for (const o of ch.lines) account(o, "base");
+        for (const o of ch.overlays) account(o, "overlay");
+      }
+      account(st.reveal.line, "reveal");
+      account(st.reveal.over, "reveal");
+    }
+    // what the controller derived and keeps (binned levels, computed distances)
+    for (const st of sets) {
+      for (const l of st.levels) addCpu("source", l.index);
+      addCpu("source", st.dist?.array as Float32Array | undefined);
+      addCpu("source", st.posAttr.array as Float32Array);
+    }
+    // the program's data kept for a rebuild (every typed array of the payload)
+    if (_lastApply) {
+      for (const v of Object.values(_lastApply.g as unknown as Record<string, unknown>)) {
+        if (ArrayBuffer.isView(v)) addCpu("payload", v);
+        else if (Array.isArray(v)) for (const e of v) if (ArrayBuffer.isView(e)) addCpu("payload", e);
+      }
+    }
+    cpu.total = cpu.base + cpu.dist + cpu.overlay + cpu.reveal + cpu.mesh + cpu.source + cpu.payload;
+    gpu.total = gpu.base + gpu.dist + gpu.overlay + gpu.reveal + gpu.mesh;
+    let source = 0, lod = 0, drawn = 0;
+    const shown = (o: THREE.Object3D) => { for (let p: THREE.Object3D | null = o; p; p = p.parent) if (!p.visible) return false; return true; };
+    for (const st of sets) {
+      source += st.pairs;
+      for (const ch of st.chunks) {
+        lod += ch.counts[ch.level]! >> 1;
+        const o = ch.lines[ch.level];
+        if (!o || !shown(o)) continue;
+        drawn += (o as LineSegments2).isLineSegments2
+          ? (o.geometry as THREE.InstancedBufferGeometry).instanceCount
+          : o.geometry.drawRange.count === Infinity ? (o.geometry.index?.count ?? 0) >> 1 : o.geometry.drawRange.count >> 1;
+      }
+    }
+    return { mode: lineMode, cpu, gpu, allocated: _allocated, peak: _peak, generation: _generation, pairs: { source, lod, drawn } };
+  }
 
   /** A path material in the current line mode. depthWrite is off explicitly
    *  (LineMaterial starts with it on — Codex R39). */
@@ -333,11 +449,17 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     start: number, count: number, mat: PathMat, dist: THREE.BufferAttribute | null, sphere: THREE.Sphere | null): PathObj {
     if (lineMode === "fat") {
       const packed = packPairs(posAttr.array as Float32Array, index, start, count, dist ? dist.array as Float32Array : null);
-      _buildBytes += packed.positions.byteLength + (packed.distances?.byteLength ?? 0);
+      // a pack that dropped degenerate pairs sliced: the full-size scratch
+      // lived during the build too (count it — it is part of the peak)
+      const n = count >> 1;
+      if (packed.pairs !== n) _allocated += n * 6 * 4 + (dist ? n * 2 * 4 : 0);
       const g = fatGeometry(packed, sphere);
+      const mesh = [g.getAttribute("position"), g.getAttribute("uv"), g.index] as (THREE.BufferAttribute | null)[];
+      _tally(packed.positions, packed.distances, ...mesh.map(a => a?.array as ArrayBufferView | undefined));
       _watchUpload((g.getAttribute("instanceStart") as THREE.InterleavedBufferAttribute).data);
       const d = g.getAttribute("instanceDistanceStart") as THREE.InterleavedBufferAttribute | undefined;
       if (d) _watchUpload(d.data);
+      for (const a of mesh) if (a) _watchUpload(a);
       return new LineSegments2(g, mat as LineMaterial);
     }
     const geom = new THREE.BufferGeometry();
@@ -348,6 +470,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       geom.setDrawRange(start, count);
     } else {
       const own = new THREE.BufferAttribute(index.slice(start, start + count), 1);
+      _tally(own.array as Uint32Array);
       _watchUpload(own);
       geom.setIndex(own);
     }
@@ -396,13 +519,14 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     // Dashed rapids need a per-vertex distance; the worker precomputes it
     // (P4.1), the legacy/WS path gets it here (indexed geometry cannot use
     // Three's computeLineDistances).
-    if (dashed && !distAttr) distAttr = new THREE.Float32BufferAttribute(cumulativeDistances(posAttr.array as Float32Array), 1);
+    if (dashed && !distAttr) { distAttr = new THREE.Float32BufferAttribute(cumulativeDistances(posAttr.array as Float32Array), 1); _tally(distAttr.array as Float32Array); }
     const pos = posAttr.array as Float32Array;
     // One grid from the level-0 pairs, every level binned into it (the index
     // buffers are permuted, the vertex order is not) so chunk c is the same
     // cell at every level; a cell used at any level becomes a chunk.
     const grid = chunkGrid(index0, pos, deps.chunkCells ?? CHUNK_MAX);
     const levels = [index0, ...lod.slice(0, tols.length)].map(l => binPairs(l, pos, grid));
+    _tally(...levels.map(b => b.index));
     const attrs = levels.map(b => new THREE.BufferAttribute(b.index, 1));
     if (lineMode === "gl") {
       _watchUpload(posAttr);
@@ -479,6 +603,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     const nV = s.posAttr.count;
     if (!outside || outside.length !== nV) return;
     const pre = new Uint32Array(nV + 1);
+    _tally(pre);
     for (let i = 0; i < nV; i++) pre[i + 1] = pre[i]! + (outside[i] ? 1 : 0);
     if (pre[nV] === 0) return;
     s.overMat = pathMaterial(deps.colors().limit, false, "limit");
@@ -487,6 +612,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     for (let k = 0; k < s.levels.length; k++) {
       const { index, plan } = s.levels[k]!;
       const flagged = new Uint32Array(index.length);
+      _tally(flagged);
       let w = 0;
       for (let ci = 0; ci < nC; ci++) {
         const r = plan[s.used[ci]!]!;
@@ -500,6 +626,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       }
       if (w === 0) continue;
       const flaggedArr = flagged.slice(0, w);
+      _tally(flaggedArr);
       const attr = lineMode === "gl" ? new THREE.BufferAttribute(flaggedArr, 1) : null;
       if (attr) _watchUpload(attr);
       for (let ci = 0; ci < nC; ci++) {
@@ -586,7 +713,6 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     sets = [];
     feedPosAttr = rapidPosAttr = null;
     _chunksVisible = _overlayChunks = _frameMixed = 0;
-    _buildBytes = 0;
   }
 
   /** Detach + free the bounds box, its labels, and the overflow edges.
@@ -748,8 +874,12 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         pairs.push(p0, p1);
         if (s.outside?.[p0 > p1 ? p0 : p1]) flagged.push(p0, p1);
       }
+      // the JS arrays above were scratch too: ~8 bytes per element (estimate)
+      _allocated += (pairs.length + flagged.length) * 8;
       const make = (idx: number[], mat: PathMat, order: number) => {
-        const o = pathObject(s.posAttr, new Uint32Array(idx), null, 0, idx.length, mat, s.dist, null);
+        const copy = new Uint32Array(idx);
+        _tally(copy);
+        const o = pathObject(s.posAttr, copy, null, 0, idx.length, mat, s.dist, null);
         o.renderOrder = order;
         o.frustumCulled = false;   // a handful of segments
         s.parent.add(o);
@@ -788,6 +918,10 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
 
       // Program change: free every replaced line (geometry + material).
       teardownLines();
+      // The ledger (Codex R47 VP-I17): what is held once the old lines are
+      // gone, and what this build allocates — the peak bound of the rebuild.
+      _generation++;
+      const held0 = ledger().cpu.total, a0 = _allocated;
 
       // Prefer the flat Float32Array buffers from previewWorker (P4.1); fall back to
       // the nested arrays (WS path / older payloads). The wire's raw Uint8Array form
@@ -795,8 +929,12 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       // so the fallback accepts only the nested-list shape. feed_lines is
       // index-aligned to the point index either way.
       const _legacyPts = (v: unknown): number[][] => (Array.isArray(v) ? (v as number[][]) : []);
-      const _flat = (d: number[][] | Float32Array): Float32Array =>
-        d instanceof Float32Array ? d : new Float32Array(d.flat());
+      const _flat = (d: number[][] | Float32Array): Float32Array => {
+        if (d instanceof Float32Array) return d;
+        const f = new Float32Array(d.flat());
+        _tally(f);
+        return f;
+      };
       const feedData: number[][] | Float32Array = g.feedPos ?? _legacyPts(g.feed);
       const rapidData: number[][] | Float32Array = g.rapidPos ?? _legacyPts(g.rapid);
       const _pointCount = (d: number[][] | Float32Array) =>
@@ -830,6 +968,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         if (!Array.isArray(lod)) return out;
         for (let k = 0; k < lodTols.length && k < lod.length; k++) {
           const sp = splitPairsByFrame(lod[k]!, room);
+          _tally(sp.table, sp.room);
           out.table.push(sp.table); out.room.push(sp.room);
           _frameMixed += sp.mixed;
         }
@@ -846,6 +985,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         feedPosAttr = new THREE.BufferAttribute(flat, 3);
         const rm = roomMaskOf(g.feedRoom, n);
         const fi = buildFrameIndex(n, g.feedBreaks ?? null, rm);
+        _tally(fi.table, fi.room);
         _frameMixed += fi.mixed;
         const lv = levelsByFrame(g.feedLod, rm);
         const ov = outsideOf(g.feedOutside, n, "feed");
@@ -865,6 +1005,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         const distAttr = _rapidDist ? new THREE.Float32BufferAttribute(_rapidDist, 1) : null;
         const rm = roomMaskOf(g.rapidRoom, n);
         const fi = buildFrameIndex(n, g.rapidBreaks ?? null, rm);
+        _tally(fi.table, fi.room);
         _frameMixed += fi.mixed;
         const lv = levelsByFrame(g.rapidLod, rm);
         const ov = outsideOf(g.rapidOutside, n, "rapid");
@@ -940,6 +1081,10 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
 
       // Apply stored toolpath visibility (may have been set before lines existed)
       _applyVisibility();
+      // this build's peak — reset per build (a phase record compares ITS
+      // build, never the highest since the controller began); a later reveal
+      // on this path raises it
+      _peak = held0 + (_allocated - a0);
 
       deps.requestRender();
     },
@@ -1020,7 +1165,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
 
     setReveal(r) {
       _section = r ? { run: [r.run[0], r.run[1]], feed: r.feed, rapid: r.rapid } : null;
-      _buildReveal();
+      _measured(() => _buildReveal());
       deps.requestRender();
     },
 
@@ -1038,6 +1183,17 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     },
 
     get lineMode() { return lineMode; },
+
+    rebuild(ctx) {
+      if (_lastApply) this.apply(ctx, _lastApply.g, _lastApply.anchor);
+    },
+
+    release() {
+      teardownLines();
+      deps.requestRender();
+    },
+
+    get generation() { return _generation; },
 
     holdOverlays(on) {
       _overlaysHeld = on;
@@ -1062,59 +1218,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       return out.isEmpty() ? null : out;
     },
 
-    pathMemory() {
-      const seenCpu = new Set<ArrayBufferLike>();
-      const seenGpu = new Set<object>();
-      type Owner = "base" | "dist" | "overlay" | "reveal";
-      const cpu = { base: 0, dist: 0, overlay: 0, reveal: 0, source: 0, total: 0 };
-      const gpu = { base: 0, dist: 0, overlay: 0, reveal: 0, total: 0 };
-      const addCpu = (owner: Owner | "source", a: ArrayBufferView | null | undefined) => {
-        if (!a || seenCpu.has(a.buffer)) return;
-        seenCpu.add(a.buffer);
-        cpu[owner] += a.byteLength;
-      };
-      const addGpu = (owner: Owner, buf: THREE.BufferAttribute | THREE.InterleavedBuffer | null | undefined) => {
-        if (!buf || !_uploaded.has(buf) || seenGpu.has(buf)) return;
-        seenGpu.add(buf);
-        gpu[owner] += (buf.array as ArrayBufferView).byteLength;
-      };
-      const account = (o: PathObj | null, owner: Owner) => {
-        if (!o) return;
-        const g = o.geometry;
-        const distOwner: Owner = owner === "base" ? "dist" : owner;
-        if ((o as LineSegments2).isLineSegments2) {
-          const st = g.getAttribute("instanceStart") as THREE.InterleavedBufferAttribute;
-          addCpu(owner, st.data.array as Float32Array); addGpu(owner, st.data);
-          const di = g.getAttribute("instanceDistanceStart") as THREE.InterleavedBufferAttribute | undefined;
-          if (di) { addCpu(distOwner, di.data.array as Float32Array); addGpu(distOwner, di.data); }
-          return;
-        }
-        if (g.index) { addCpu(owner, g.index.array as Uint32Array); addGpu(owner, g.index); }
-        addGpu("base", g.getAttribute("position") as THREE.BufferAttribute);
-        addGpu("dist", g.getAttribute("lineDistance") as THREE.BufferAttribute | undefined);
-      };
-      for (const st of sets) {
-        for (const ch of st.chunks) {
-          for (const o of ch.lines) account(o, "base");
-          for (const o of ch.overlays) account(o, "overlay");
-        }
-        account(st.reveal.line, "reveal");
-        account(st.reveal.over, "reveal");
-      }
-      // what the controller keeps to rebuild overlays / reveals / modes
-      for (const st of sets) {
-        addCpu("source", st.posAttr.array as Float32Array);
-        for (const l of st.levels) addCpu("source", l.index);
-        addCpu("source", st.src);
-        addCpu("source", st.outside);
-        addCpu("source", st.dist?.array as Float32Array | undefined);
-      }
-      cpu.total = cpu.base + cpu.dist + cpu.overlay + cpu.reveal + cpu.source;
-      gpu.total = gpu.base + gpu.dist + gpu.overlay + gpu.reveal;
-      let instances = 0;
-      for (const st of sets) for (const ch of st.chunks) instances += ch.counts[ch.level]! >> 1;
-      return { mode: lineMode, cpu, gpu, buildBytes: _buildBytes, instances };
-    },
+    pathMemory() { return ledger(); },
 
     setAlwaysOnTop(on) {
       pathAlwaysOnTop = on;

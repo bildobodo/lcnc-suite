@@ -218,7 +218,7 @@ describe("the fat path draws exactly the GL path's pairs (Codex R39)", () => {
     c.dispose();
     expect(count()).toBe(0);
     const m = c.pathMemory();
-    expect([m.cpu.total, m.gpu.total, m.buildBytes, m.instances]).toEqual([0, 0, 0, 0]);
+    expect([m.cpu.total, m.gpu.total, m.pairs.source, m.pairs.drawn]).toEqual([0, 0, 0, 0]);
   });
 
   it("the memory ledger: bytes by owner, CPU once per buffer, GPU only once uploaded", () => {
@@ -229,15 +229,89 @@ describe("the fat path draws exactly the GL path's pairs (Codex R39)", () => {
     expect(m0.cpu.dist, "the rapid's distances").toBeGreaterThan(0);
     expect(m0.cpu.overlay, "the flagged pairs").toBeGreaterThan(0);
     expect(m0.cpu.source).toBeGreaterThan(0);
-    expect(m0.cpu.total).toBe(m0.cpu.base + m0.cpu.dist + m0.cpu.overlay + m0.cpu.reveal + m0.cpu.source);
+    expect(m0.cpu.mesh, "the fat geometries' own quad mesh").toBeGreaterThan(0);
+    expect(m0.cpu.payload, "the program kept for a rebuild").toBeGreaterThan(0);
+    expect(m0.cpu.total).toBe(m0.cpu.base + m0.cpu.dist + m0.cpu.overlay + m0.cpu.reveal + m0.cpu.mesh + m0.cpu.source + m0.cpu.payload);
     expect(m0.gpu.total, "nothing uploaded before a draw").toBe(0);
-    expect(m0.buildBytes).toBeGreaterThanOrEqual(m0.cpu.base + m0.cpu.dist);
+    expect(m0.allocated, "what the build allocated covers what it holds").toBeGreaterThanOrEqual(m0.cpu.total - m0.cpu.payload);
+    expect(m0.peak, "the peak bound covers what is held").toBeGreaterThanOrEqual(m0.cpu.total);
     // three calls a buffer's upload callback after its first transfer
     const o = roleObjects(ctx.workRotGroup, "feed")[0] as LineSegments2;
     const buf = (o.geometry.getAttribute("instanceStart") as THREE.InterleavedBufferAttribute).data;
     buf.onUploadCallback();
     const m1 = c.pathMemory();
     expect(m1.gpu.base).toBe((buf.array as Float32Array).byteLength);
-    expect(m1.instances).toBe(c.drawSegs);
+  });
+
+  // Codex R47 VP-I17: the ledger counts what is HELD — a buffer's capacity,
+  // the program kept for rebuilds, the fat mesh; current, allocated and peak
+  // apart; three pair counts, only the last one "drawn".
+  it("a small view keeps its whole buffer: the ledger counts the capacity", () => {
+    const { c, ctx } = build("fat");
+    const g = program();
+    const big = new ArrayBuffer(1 << 20);                       // 1 MiB behind a small view
+    const view = new Float32Array(big, 0, g.feedPos.length);
+    view.set(g.feedPos);
+    c.apply(ctx, { ...g, feedPos: view });
+    expect(c.pathMemory().cpu.total, "the 1 MiB buffer the view keeps alive").toBeGreaterThanOrEqual(1 << 20);
+  });
+
+  it("three pair counts: source, at the current levels, drawn (visible objects only)", () => {
+    const { c } = build("fat");
+    const p = c.pathMemory().pairs;
+    expect(p.source).toBeGreaterThan(0);
+    expect(p.lod).toBeLessThanOrEqual(p.source);
+    expect(p.drawn).toBeGreaterThan(0);
+    expect(p.drawn).toBeLessThanOrEqual(p.lod);
+    c.setVisible(false);
+    expect(c.pathMemory().pairs.drawn, "a hidden layer draws nothing").toBe(0);
+    expect(c.pathMemory().pairs.lod).toBe(p.lod);
+  });
+
+  it("a finding's view built three times: the same bytes held, three times allocated", () => {
+    const { c } = build("fat");
+    const held: number[] = [], alloc: number[] = [];
+    for (let k = 0; k < 3; k++) {
+      c.setReveal({ run: [0, 40], feed: true, rapid: false } as any);
+      const m = c.pathMemory();
+      held.push(m.cpu.total); alloc.push(m.allocated);
+      expect(m.peak).toBeGreaterThanOrEqual(m.cpu.total);
+    }
+    expect(new Set(held).size, "current: held, not summed").toBe(1);
+    expect(alloc[1]! - alloc[0]!).toBeGreaterThan(0);
+    expect(alloc[2]! - alloc[1]!).toBe(alloc[1]! - alloc[0]!);
+  });
+
+  // Codex R47 VP-I14: every build phase of the A/B run is a real build.
+  for (const mode of ["fat", "gl"] as const) {
+    it(`rebuild (${mode}): new objects every time, whether or not the mode changes; setLineMode keeps its no-op`, () => {
+      const { c, ctx } = build(mode);
+      const objs = () => roleObjects(ctx.workRotGroup, "feed");
+      const g0 = c.generation, first = objs();
+      c.setLineMode(mode, ctx);
+      expect([c.generation, objs().every((o, i) => o === first[i])], "an unchanged mode: nothing rebuilt").toEqual([g0, true]);
+      c.rebuild(ctx);
+      const second = objs();
+      expect(c.generation).toBe(g0 + 1);
+      expect(second.length).toBe(first.length);
+      expect(second.some(o => first.includes(o)), "every object new").toBe(false);
+      c.rebuild(ctx);
+      expect(objs().some(o => second.includes(o))).toBe(false);
+      expect(c.generation).toBe(g0 + 2);
+    });
+  }
+
+  it("release: every path object disposed, the program kept — the ledger holds the payload alone; rebuild restores it", () => {
+    const { c, ctx } = build("fat");
+    const before = c.pathMemory();
+    c.release();
+    const m = c.pathMemory();
+    expect(roleObjects(ctx.workRotGroup, "feed")).toEqual([]);
+    expect([m.cpu.base, m.cpu.dist, m.cpu.overlay, m.cpu.reveal, m.cpu.mesh, m.cpu.source, m.gpu.total]).toEqual([0, 0, 0, 0, 0, 0, 0]);
+    expect(m.cpu.payload, "the program stays").toBeGreaterThan(0);
+    expect(m.cpu.total).toBe(m.cpu.payload);
+    c.rebuild(ctx);
+    expect(c.pathMemory().cpu.total).toBe(before.cpu.total);
+    expect(roleObjects(ctx.workRotGroup, "feed").length).toBeGreaterThan(0);
   });
 });

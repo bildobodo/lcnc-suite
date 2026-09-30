@@ -3,14 +3,20 @@
 // Debug drives a FIXED sequence through the viewer, so both line renderers
 // see the same camera path and the same data:
 //
+//   calibrate    once, before any build, the path hidden: the reference frame
+//                rate (the variants must not set the limit they are judged by)
 //   for each variant in AB_ORDER (A, B, B, A, A, B — the order alternates):
-//     build      rebuild the paths in that renderer (never both held)
+//     build      a REAL rebuild in that renderer, every time (never both held)
 //     warmup     hold still; the measured refresh rate comes from here
 //     orbit      a fixed camera orbit
 //     fitdetail  fit ↔ detail, forcing LOD changes
 //     jumps      finding jumps on the scrub bar (needs the simulation)
 //     overlay_off  the orbit again with the limit overlays hidden
 //     reveal     rapids hidden locally + finding jumps (the finding's view)
+//     release    dispose the drawn path, keep the program: the ledger's return
+//
+// Every jump sequence starts from the SAME timeline state (VP-I15); the
+// user's timeline, simulation and camera are put back at the end.
 //
 // Each phase records its raw samples (viewerPerf's tap) into mergeable
 // histograms and emits them with the phase's conditions — a hidden tab, an
@@ -27,6 +33,7 @@ export const AB_ORDER: readonly AbVariant[] = ["gl", "fat", "fat", "gl", "gl", "
 export const AB_LABELS: Record<AbVariant, string> = { gl: "Previous GL line", fat: "2 CSS px" };
 
 export interface AbDurations {
+  calibrateMs: number;
   warmupMs: number;
   orbitMs: number;
   fitDetailCycles: number;
@@ -36,10 +43,10 @@ export interface AbDurations {
   overlayMs: number;
 }
 export const AB_DURATIONS: AbDurations = {
-  warmupMs: 3000, orbitMs: 30000, fitDetailCycles: 8, fitDetailHoldMs: 1500, jumps: 16, jumpMs: 600, overlayMs: 10000,
+  calibrateMs: 3000, warmupMs: 3000, orbitMs: 30000, fitDetailCycles: 8, fitDetailHoldMs: 1500, jumps: 16, jumpMs: 600, overlayMs: 10000,
 };
 
-export type AbPhase = "build" | "warmup" | "orbit" | "fitdetail" | "jumps" | "overlay_off" | "reveal";
+export type AbPhase = "calibrate" | "build" | "warmup" | "orbit" | "fitdetail" | "jumps" | "overlay_off" | "reveal" | "release";
 
 /** What happened around a phase, since the previous call (sticky flags). */
 export interface AbConditions { hidden: boolean; dialog: boolean; interacted: boolean; sweepBusy: boolean }
@@ -50,8 +57,19 @@ export interface AbDriver {
   /** Why the run cannot start now, else null. */
   blocker(): string | null;
   lineMode(): AbVariant;
-  /** Rebuild the paths in that renderer; resolves once a frame was drawn. */
+  /** REBUILD the paths in that renderer — a real build whether or not the
+   *  mode changes (Codex R47 VP-I14); resolves once a frame was drawn. */
   setLineMode(v: AbVariant): Promise<void>;
+  /** The reference frame rate, measured before any build with the path
+   *  HIDDEN (Codex R47, answer 1: the variants under test must not set the
+   *  limit they are judged by). */
+  calibrate(ms: number): Promise<void>;
+  /** Dispose the drawn path, keep the program (VP-I17: the ledger's return
+   *  to the payload); the next build rebuilds it. */
+  release(): Promise<void>;
+  /** Extra fields for the phase record just measured (e.g. where the finding
+   *  jumps landed — every repetition must see the same sequence, VP-I15). */
+  notes(): Record<string, unknown>;
   warmUp(ms: number): Promise<void>;
   orbit(ms: number): Promise<void>;
   fitDetail(cycles: number, holdMs: number): Promise<void>;
@@ -98,11 +116,13 @@ export async function runAb(d: AbDriver, o: {
   const skipped: string[] = [];
   d.emit("viewer.abrun", { run, seq: seq++, phase: "meta", order: order.join(","), durations: dur, initial, ...d.meta() });
 
-  const memOf = (m: PathMemory) => ({ mode: m.mode, cpu: m.cpu, gpu: m.gpu, build: m.buildBytes, instances: m.instances });
+  const memOf = (m: PathMemory) => ({ mode: m.mode, cpu: m.cpu, gpu: m.gpu, allocated: m.allocated, peak: m.peak,
+    generation: m.generation, pairs: m.pairs });
   let cancelled = false;
   try {
-    for (let rep = 0; rep < order.length; rep++) {
-      const variant = order[rep]!;
+    for (let rep = -1; rep < order.length; rep++) {
+      // rep -1: the calibration, before any build, with no variant
+      const variant = rep < 0 ? "none" as unknown as AbVariant : order[rep]!;
       const phase = async (name: AbPhase, act: () => Promise<string | null | void>, memoryAt?: string) => {
         if (o.cancel?.cancelled) throw new Cancelled();
         o.onProgress?.({ rep, reps: order.length, variant, phase: name });
@@ -129,7 +149,7 @@ export async function runAb(d: AbDriver, o: {
           hidden: cond.hidden, dialog: cond.dialog, interacted: cond.interacted, sweep_busy: cond.sweepBusy,
           raf: sum("raf"), mt: sum("mt"), gpu: sum("gpu"),
           ...(memoryAt ? { memory_at: memoryAt, memory: memOf(d.memory()) } : {}),
-          render: d.render(),
+          render: d.render(), ...d.notes(),
         });
         if (status === "ran") {
           for (const kind of ["raf", "mt", "gpu"] as const) {
@@ -142,6 +162,7 @@ export async function runAb(d: AbDriver, o: {
           }
         }
       };
+      if (rep < 0) { await phase("calibrate", () => d.calibrate(dur.calibrateMs)); continue; }
       await phase("build", async () => { await d.setLineMode(variant); }, "after_load");
       await phase("warmup", () => d.warmUp(dur.warmupMs));
       await phase("orbit", () => d.orbit(dur.orbitMs), "after_orbit");
@@ -150,6 +171,7 @@ export async function runAb(d: AbDriver, o: {
       await phase("overlay_off", () => d.overlayOff(dur.overlayMs));
       try { await phase("reveal", () => d.revealJumps(dur.jumps, dur.jumpMs), "after_reveal"); }
       finally { await d.revealEnd(); }
+      await phase("release", async () => { await d.release(); }, "after_release");
     }
   } catch (e) {
     if (!(e instanceof Cancelled)) throw e;
@@ -157,7 +179,8 @@ export async function runAb(d: AbDriver, o: {
   } finally {
     d.tap(null);
     await d.restore();
-    if (d.lineMode() !== initial) await d.setLineMode(initial);
+    // always a real build: the last phase released the path
+    await d.setLineMode(initial);
     d.emit("viewer.abrun", { run, seq: seq++, phase: "end", cancelled, skipped: skipped.length,
       memory_at: "end", memory: memOf(d.memory()) });
   }

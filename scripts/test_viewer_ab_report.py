@@ -16,8 +16,8 @@ import viewer_ab_report as rep  # noqa: E402
 
 CASES = json.loads((Path(__file__).parent / "test_fixtures" / "ab_histogram_cases.json").read_text())["cases"]
 ORDER = ["gl", "fat", "fat", "gl", "gl", "fat"]
-PHASES = ["build", "warmup", "orbit", "fitdetail", "jumps", "overlay_off", "reveal"]
-MEM_AT = {"build": "after_load", "orbit": "after_orbit", "fitdetail": "after_lods", "jumps": "after_nav", "reveal": "after_reveal"}
+PHASES = ["build", "warmup", "orbit", "fitdetail", "jumps", "overlay_off", "reveal", "release"]
+MEM_AT = {"build": "after_load", "orbit": "after_orbit", "fitdetail": "after_lods", "jumps": "after_nav", "reveal": "after_reveal", "release": "after_release"}
 MiB = 2 ** 20
 
 
@@ -62,43 +62,71 @@ def test_p95_within_compares_at_the_bin_resolution():
 
 
 # ── synthetic runs ────────────────────────────────────────────────────────
-def run_rows(run="ab-test", frames=None, flags=None, mem=None, skip=None, drop_part=None, cancelled=False, split=False):
-    """A whole A/B run. frames(variant, rep, phase) → [(ms, count)] frame gaps;
-    flags / mem / skip likewise per phase; drop_part = (rep, phase) whose raf
-    histogram loses a part."""
+def run_rows(run="ab-test", order=ORDER, frames=None, cal=None, flags=None, mem=None, skip=None, drop_part=None,
+             drop_series=(), drop_memory=False, cancelled=False, split=False, build_ms=None, block_ms=None,
+             generations=None, peak=None, released=None):
+    """A whole A/B run in the shape abRun.ts emits. frames(variant, rep, phase)
+    → [(ms, count)] frame gaps; cal → the calibration's gaps; flags / mem /
+    skip per phase; drop_series = {(phase, series)} left out everywhere."""
     frames = frames or (lambda v, r, p: [(16.7, 180)])
-    rows = [{"tag": "browser.viewer.abrun", "run": run, "seq": 0, "phase": "meta", "commit": "abc1234",
+    cal = cal or [(16.7, 180)]
+    build_ms = build_ms or (lambda v, r: 400 if v == "gl" else 450)
+    block_ms = block_ms or (lambda v, r: 110 if v == "gl" else 120)
+    generations = generations or (lambda v, r: r + 1)
+    peak = peak or (lambda v, r: (120 if v == "gl" else 170) * MiB)
+    released = released or (lambda v, r: 0)
+    rows = [{"tag": "browser.viewer.abrun", "run": run, "seq": 0, "phase": "meta", "commit": "abc1234", "order": ",".join(order),
              "build": "production", "file": "/prog.ngc", "viewport": [800, 600], "pixel_ratio": 2}]
     seq = 1
-    for r, v in enumerate(ORDER):
+
+    def emit(rec, hists, why):
+        rows.append(rec)
+        if why:
+            return
+        for kind, h in hists:
+            if (rec["phase"], kind) in drop_series:
+                continue
+            bins = sparse(h)
+            chunks = [bins[:2], bins[2:]] if (split and len(bins) > 2) else [bins]
+            for i, chunk in enumerate(chunks):
+                if drop_part == (rec["rep"], rec["phase"]) and kind == "raf" and i == 1:
+                    continue
+                rows.append({"tag": "browser.viewer.abhist", "run": run, "seq": rec["seq"], "rep": rec["rep"], "variant": rec["variant"],
+                             "phase": rec["phase"], "series": kind, "part": i, "parts": len(chunks), "n": h.n, "max": h.max, "bins": chunk})
+
+    c = hist_of(cal)
+    emit({"tag": "browser.viewer.abrun", "run": run, "seq": seq, "rep": -1, "variant": "none", "phase": "calibrate",
+          "status": "ran", "ms": 3000, "hidden": False, "dialog": False, "interacted": False, "sweep_busy": False,
+          "raf": {"n": c.n}, "mt": {}, "gpu": {}}, [("raf", c), ("mt", hist_of([(1, c.n)]))], None)
+    seq += 1
+    for r, v in enumerate(order):
         for ph in PHASES:
             why = skip(v, r, ph) if skip else None
             f = (flags(v, r, ph) if flags else None) or {}
             raf = hist_of(frames(v, r, ph))
-            mt = hist_of([(1, raf.n)] if ph != "build" else [(1, 10), (120 if v == "fat" else 110, 1)])
+            mt = hist_of([(1, raf.n)] if ph != "build" else [(1, 10), (block_ms(v, r), 1)])
             gpu = hist_of([(9 if v == "fat" else 5, raf.n)])
             rec = {"tag": "browser.viewer.abrun", "run": run, "seq": seq, "rep": r, "variant": v, "phase": ph,
-                   "status": "skipped" if why else "ran", "ms": 1000,
+                   "status": "skipped" if why else "ran", "ms": build_ms(v, r) if ph == "build" else 1000,
                    "hidden": False, "dialog": False, "interacted": False, "sweep_busy": False,
-                   "raf": {"n": raf.n, "win_p95_max": raf.quantile(0.95)}, "mt": {}, "gpu": {}, "render": {}}
+                   "raf": {"n": raf.n, "win_p95_max": raf.quantile(0.95)}, "mt": {"max": mt.max}, "gpu": {}, "render": {}}
             if why:
                 rec["reason"] = why
             rec.update(f)
-            if ph in MEM_AT:
-                cpu = (mem(v, r, ph) if mem else None) or (100 * MiB if v == "gl" else 150 * MiB)
+            if ph in MEM_AT and not drop_memory:
+                payload = 20 * MiB
+                if ph == "release":
+                    left = released(v, r)
+                    cpu = {"total": payload + left, "payload": payload}
+                    gpu_mem = {"total": 0}
+                else:
+                    tot = (mem(v, r, ph) if mem else None) or (100 * MiB if v == "gl" else 150 * MiB)
+                    cpu = {"total": tot, "payload": payload}
+                    gpu_mem = {"total": tot - 30 * MiB}
                 rec["memory_at"] = MEM_AT[ph]
-                rec["memory"] = {"mode": v, "cpu": {"total": cpu}, "gpu": {"total": cpu - 10 * MiB}}
-            rows.append(rec)
-            if not why:
-                for kind, h in (("raf", raf), ("mt", mt), ("gpu", gpu)):
-                    bins = sparse(h)
-                    chunks = [bins[:2], bins[2:]] if (split and len(bins) > 2) else [bins]
-                    for i, chunk in enumerate(chunks):
-                        if drop_part == (r, ph) and kind == "raf" and i == 1:
-                            continue
-                        rows.append({"tag": "browser.viewer.abhist", "run": run, "seq": seq, "rep": r, "variant": v,
-                                     "phase": ph, "series": kind, "part": i, "parts": len(chunks), "n": h.n, "max": h.max,
-                                     "bins": chunk})
+                rec["memory"] = {"mode": v, "cpu": cpu, "gpu": gpu_mem, "peak": peak(v, r), "generation": generations(v, r),
+                                 "allocated": 0, "pairs": {"source": 1, "lod": 1, "drawn": 1}}
+            emit(rec, [("raf", raf), ("mt", mt), ("gpu", gpu)], why)
             seq += 1
     rows.append({"tag": "browser.viewer.abrun", "run": run, "seq": seq, "phase": "end", "cancelled": cancelled})
     return rows
@@ -108,10 +136,14 @@ def failing(r):
     return [c["check"] for c in r["checks"] if c["ok"] is False]
 
 
+def unmeasured(r):
+    return [c["check"] for c in r["checks"] if c["ok"] is None]
+
+
 def test_equal_renderers_pass_at_60_hz():
     r = rep.analyse(run_rows())
-    assert r["verdict"] == "PASS", failing(r)
-    assert r["rate_hz"] == 60
+    assert r["verdict"] == "PASS", (failing(r), unmeasured(r), r["excluded"])
+    assert (r["rate_hz"], r["rate_source"]) == (60, "calibration")
     assert math.isclose(r["limit_ms"], 1000 * 2 / 60)
     assert r["excluded"] == []
 
@@ -136,38 +168,110 @@ def test_slow_b_fails_the_frame_limit_and_the_ratio():
     assert "fitdetail: B p95 ≤ 1.20 × A" in failing(r)
 
 
-def test_new_recurring_long_gaps_fail_one_does_not():
-    one = rep.analyse(run_rows(frames=lambda v, rp, ph: [(16.7, 179), (150, 1)] if (v, rp, ph) == ("fat", 1, "orbit") else [(16.7, 180)]))
-    assert "orbit: no new recurring gaps ≥ 100 ms" not in failing(one)
-    two = rep.analyse(run_rows(frames=lambda v, rp, ph: [(16.7, 178), (150, 2)] if (v, rp, ph) == ("fat", 1, "orbit") else [(16.7, 180)]))
-    assert "orbit: no new recurring gaps ≥ 100 ms" in failing(two)
+# ── Codex R47 VP-I13: incomplete data is never a PASS ─────────────────────
+def test_no_memory_points_is_incomplete():
+    r = rep.analyse(run_rows(drop_memory=True))
+    assert r["verdict"] == "INCOMPLETE"
+    assert any("no memory at after_load" in x for x in r["excluded"])
 
 
-def test_the_build_may_not_add_a_main_thread_block():
-    # the fake build: A and B each one block (110 / 120 ms) — equal counts pass
-    r = rep.analyse(run_rows())
-    assert next(c for c in r["checks"] if c["check"].startswith("build"))["ok"] is True
-    assert r["build"]["b_mt_max"] == 120
+def test_no_build_histograms_is_incomplete():
+    r = rep.analyse(run_rows(drop_series={("build", "raf"), ("build", "mt"), ("build", "gpu")}))
+    assert r["verdict"] == "INCOMPLETE"
+    assert "gl build: 3 valid repetitions" in unmeasured(r)
 
 
-def test_a_touched_or_hidden_phase_is_excluded_and_named():
+def test_one_repetition_per_variant_is_incomplete():
+    r = rep.analyse(run_rows(order=["gl", "fat"]))
+    assert r["verdict"] == "INCOMPLETE"
+    assert "gl: 3 repetitions planned" in unmeasured(r)
+
+
+def test_a_missing_mt_series_is_incomplete_not_an_exception():
+    r = rep.analyse(run_rows(drop_series={("orbit", "mt")}))
+    assert r["verdict"] == "INCOMPLETE"
+    assert any("orbit" in x and "no mt histogram" in x for x in r["excluded"])
+
+
+def test_unequal_valid_time_is_never_a_count_difference():
+    # A: three orbits with two long gaps each; B: only one valid orbit with four
+    # (the others excluded) — a count difference read 4 − 6 as fine
+    def frames(v, rp, ph):
+        if ph == "orbit":
+            return [(16.7, 178), (150, 2)] if v == "gl" else [(16.7, 176), (150, 4)]
+        return [(16.7, 180)]
+    lost = rep.analyse(run_rows(frames=frames, flags=lambda v, rp, ph: {"interacted": True} if v == "fat" and ph == "orbit" and rp != 1 else None))
+    assert lost["verdict"] == "INCOMPLETE"
+    full = rep.analyse(run_rows(frames=frames))
+    assert "orbit: no new recurring gaps ≥ 100 ms" in failing(full)   # 12 in B's time where A's rate predicts 6
+
+
+def test_one_extra_long_gap_is_no_recurring_regression():
+    r = rep.analyse(run_rows(frames=lambda v, rp, ph: [(16.7, 179), (150, 1)] if (v, rp, ph) == ("fat", 1, "orbit") else [(16.7, 180)]))
+    assert "orbit: no new recurring gaps ≥ 100 ms" not in failing(r)
+
+
+# ── Codex R47 VP-I16 / VP-I14: the build ──────────────────────────────────
+def test_a_longer_build_block_fails_though_the_count_is_equal():
+    r = rep.analyse(run_rows(block_ms=lambda v, rp: 110 if v == "gl" else 1500))
+    assert "build: B's longest main-thread block ≤ 1.5 × A + 100 ms" in failing(r)
+    ok = rep.analyse(run_rows(block_ms=lambda v, rp: 110 if v == "gl" else 260))
+    assert "build: B's longest main-thread block ≤ 1.5 × A + 100 ms" not in failing(ok)
+
+
+def test_the_build_duration_rule():
+    assert "build: B's duration ≤ 1.5 × A + 100 ms" not in failing(rep.analyse(run_rows(build_ms=lambda v, rp: 400 if v == "gl" else 700)))
+    assert "build: B's duration ≤ 1.5 × A + 100 ms" in failing(rep.analyse(run_rows(build_ms=lambda v, rp: 400 if v == "gl" else 800)))
+
+
+def test_a_build_phase_without_a_new_generation_fails():
+    r = rep.analyse(run_rows(generations=lambda v, rp: 7))
+    assert "gl build: every build phase a real build" in failing(r)
+
+
+# ── Codex R47 answer 1: the reference rate ────────────────────────────────
+def test_the_rate_comes_from_the_calibration_never_the_variants():
+    # a slow warm-up (the variants) must not widen the limit: calibration at 120 Hz
+    r = rep.analyse(run_rows(cal=[(8.33, 360)], frames=lambda v, rp, ph: [(20.0, 180)]))
+    assert (r["rate_hz"], r["rate_source"]) == (120, "calibration")
+    assert "orbit: B p95 within 2 frames" in failing(r)       # 20 ms frames against 2 × 8.3 ms
+    # the class tolerance, said: at 120 Hz a p95 below 17 ms passes 16.7 ms
+    assert "below 17 ms passes" in next(c["detail"] for c in r["checks"] if c["check"] == "orbit: B p95 within 2 frames")
+    assert rep.analyse(run_rows(cal=[(8.33, 360)]), rate=60)["rate_source"] == "--rate"
+
+
+def test_no_calibration_is_incomplete():
+    rows = [x for x in run_rows() if x.get("phase") != "calibrate"]
+    assert rep.analyse(rows)["verdict"] == "INCOMPLETE"
+
+
+# ── Codex R47 VP-I17: memory ──────────────────────────────────────────────
+def test_the_build_peak_and_the_release_are_checked():
+    r = rep.analyse(run_rows(peak=lambda v, rp: (100 if v == "gl" else 300) * MiB))
+    assert "memory build peak: B − A ≤ 128 MiB" in failing(r)
+    left = rep.analyse(run_rows(released=lambda v, rp: 4096 if v == "fat" else 0))
+    assert "fat release: every path byte freed" in failing(left)
+    assert "gl release: every path byte freed" not in failing(left)
+
+
+# ── conditions and parts ──────────────────────────────────────────────────
+def test_a_touched_or_hidden_phase_is_excluded_named_and_incomplete():
     r = rep.analyse(run_rows(flags=lambda v, rp, ph: {"interacted": True} if (rp, ph) == (1, "orbit") else
                              ({"hidden": True, "sweep_busy": True} if (rp, ph) == (3, "jumps") else None)))
     assert "2/fat/orbit: camera moved by hand" in r["excluded"]
     assert "4/gl/jumps: tab hidden, collision sweep running" in r["excluded"]
-    assert r["verdict"] == "PASS"                 # the other repetitions still measure both
+    assert r["verdict"] == "INCOMPLETE"      # three valid repetitions are the contract
 
 
 def test_a_phase_skipped_everywhere_is_incomplete_never_pass():
     r = rep.analyse(run_rows(skip=lambda v, rp, ph: "Machine is on — the simulation needs it off" if ph == "jumps" else None))
     assert r["verdict"] == "INCOMPLETE"
     assert "1/gl/jumps: skipped: Machine is on — the simulation needs it off" in r["excluded"]
-    assert any(c["check"] == "jumps: measured" and c["ok"] is None for c in r["checks"])
 
 
 def test_split_histograms_merge_and_a_missing_part_is_named():
     whole = rep.analyse(run_rows(split=True, frames=lambda v, rp, ph: [(16.7, 170), (33.4, 10)]))
-    assert whole["verdict"] == "PASS"
+    assert whole["verdict"] == "PASS", (failing(whole), unmeasured(whole))
     broken = rep.analyse(run_rows(split=True, drop_part=(2, "orbit"), frames=lambda v, rp, ph: [(16.7, 170), (33.4, 10)]))
     assert "3/fat/orbit: raf histogram incomplete (1/2 parts)" in broken["excluded"]
 
@@ -179,21 +283,12 @@ def test_memory_budget_is_checked_per_point_cpu_and_gpu():
     assert "memory after_orbit cpu: B − A ≤ 128 MiB" not in failing(r)
 
 
-def test_120_hz_halves_the_frame_limit():
-    r = rep.analyse(run_rows(frames=lambda v, rp, ph: [(8.33, 360)]))
-    assert r["rate_hz"] == 120
-    assert math.isclose(r["limit_ms"], 1000 * 2 / 120)
-    slow = rep.analyse(run_rows(frames=lambda v, rp, ph: [(8.33, 360)] if ph == "warmup" or v == "gl" else [(20, 360)]))
-    assert "orbit: B p95 within 2 frames" in failing(slow)
-
-
 def test_a_cancelled_run_is_incomplete():
-    r = rep.analyse(run_rows(cancelled=True))
-    assert r["verdict"] == "INCOMPLETE"
+    assert rep.analyse(run_rows(cancelled=True))["verdict"] == "INCOMPLETE"
 
 
 def test_the_last_run_by_default_and_a_named_one(tmp_path):
-    rows = run_rows(run="ab-old", frames=lambda v, rp, ph: [(40, 180)] if v == "fat" and ph != "warmup" else [(16.7, 180)]) + run_rows(run="ab-new")
+    rows = run_rows(run="ab-old", frames=lambda v, rp, ph: [(40, 180)] if v == "fat" else [(16.7, 180)]) + run_rows(run="ab-new")
     trace = tmp_path / "trace.ndjson"
     trace.write_text("\n".join(json.dumps(x) for x in rows) + "\n")
     assert rep.main(["--trace", str(trace)]) == 0
