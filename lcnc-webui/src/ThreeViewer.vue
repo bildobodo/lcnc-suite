@@ -3883,10 +3883,11 @@ function hudModeLine(withPlane: boolean): string {
 }
 const hudNotesSummary = computed(() => [hudModeLine(false),
   hudWarnCount.value ? `${hudWarnCount.value} warning${hudWarnCount.value === 1 ? "" : "s"}` : ""].filter(Boolean).join(" · "));
-/** Anything for the findings card (the mode chip or a warning line). */
-const hasHudNotes = computed(() => !!(hudMode.value || vst.value?.eoffset_enabled || vst.value?.rotation_xy
-  || foreignWcs.value.length || rewrittenWcs.value.length || kinsEndWarn.value || previewSchemaStale.value
-  || previewRefresh.value || previewWcsStale.value || previewTloStale.value || toolpathOverflow.value));
+/** Anything for the findings card: the mode chip or a warning line — read
+ *  from the ONE list of warning lines (hudWarnCount). A second list of its
+ *  own left the mid-run tool-table line out: on a machine with no mode chip
+ *  the card never rendered and the muted path went unexplained (Codex R42). */
+const hasHudNotes = computed(() => !!hudMode.value || hudWarnCount.value > 0);
 const wrapEl = ref<HTMLDivElement | null>(null);
 const hudEl = ref<HTMLDivElement | null>(null);
 const bottomEl = ref<HTMLDivElement | null>(null);

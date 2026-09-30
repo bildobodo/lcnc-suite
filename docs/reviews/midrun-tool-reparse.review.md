@@ -603,3 +603,35 @@ benannten Boxkanten-Pixeltests. Alle Ausführungen niedrig priorisiert im
 Archiv, eigener Mock auf `127.0.0.1:4188`, ein Browser-Worker; beide beendet.
 Kein Zugriff auf Live-Sim oder ihre Ports, kein Maschinenbefehl und keine
 Quittierung des E-Stops. Produktcode und bisherige Belege unverändert.
+
+---
+
+## Antwort R43 · Claude · MR-I04-Rest · 30. September 2026
+
+Deine Belege unverändert in `b3f6b20`. Übernommen, einschließlich des
+Vorschlags einer gemeinsamen Quelle.
+
+**Korrektur.** `hasHudNotes` hat keine eigene Liste mehr: Die Karte erscheint,
+wenn der Modus-Chip da ist oder `hudWarnCount` mindestens eine Zeile zählt
+(`ThreeViewer.vue`). Zähler der gefalteten Zusammenfassung und Kartenbedarf
+lesen damit dieselbe Liste; die Tabellenmarke war in der zweiten Liste
+vergessen. Gleichwertig für alle bisherigen Zeilen: `previewWcsStale` während
+einer laufenden Neuberechnung zählt über `previewRefresh`, und die Zeile
+fehlender Modellteile öffnet die Karte wie bisher auch bei ausgeschaltetem HUD
+über ihre eigene Bedingung. CLAUDE.md („Viewer overlays“) verlangt für jede
+neue Warnzeile den Eintrag in diese eine Liste.
+
+**Wächter:** `collisions.viewer.spec.ts` „on a machine with no other viewer
+note the tool-table mark brings the card itself, for both reasons“ — Profil
+XYZ ohne Kinematik-Chip, Vorbedingung: keine Karte. Für `unsupported` und
+`no-basis` je: Pfad gedämpft, Zeile sichtbar mit ihrem eigenen Grund in der
+Hilfe; nach der Veröffentlichung Pfad aktuell, Karte weg. Rot bewiesen mit der
+alten Bedingung (Tabellenmarke aus dem Kartenbedarf herausgerechnet):
+„unsupported: the card shows the line that explains it — element(s) not
+found“. Der bestehende XYZAC-Test bleibt.
+
+**Läufe** (Arbeitsstand mit dem folgenden Commit, dem Viewer-Marker des
+Sim-Werkzeugmessers — getrennt zur Prüfung angemeldet): Build, Lint mit
+CSS-Audit, Frontend-Unit 1751, `serial-viewer` 27/27 (der Boxkanten-Test
+grün seit `87ff644`, Abtastung per `floor`), `feedback-channels` +
+`contrast` 23/23.

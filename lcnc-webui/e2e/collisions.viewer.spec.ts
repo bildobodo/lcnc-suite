@@ -259,3 +259,41 @@ test("a tool table changed during the run without a re-parse keeps the path mute
   await ctl({ op: "quiet", on: false });
   await ctl({ op: "reset" });
 });
+
+test("on a machine with no other viewer note the tool-table mark brings the card itself, for both reasons (Codex R42)", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  // A plain XYZ machine: no kinematics chip — XYZAC's chip opened the card
+  // without the mark and hid that the mark alone never rendered it.
+  const file = "/tablestale-xyz.ngc";
+  const feed = [[0, 0, 5], [0, 0, -1], [40, 0, -1], [40, 30, -1]];
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream",
+    body: Buffer.from(encode({ file, preview_schema: 9, feed, feed_lines: [1, 2, 3, 4], feed_seq: [1, 2, 3, 4],
+      feed_outside: new Uint8Array(feed.length), rapid: [], violations: [], violations_total: 0 })) }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
+    body: Array.from({ length: 6 }, (_, i) => `G1 X${i} F100`).join("\n") }));
+  await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await ctl({ op: "status_delta", data: { active_file: file } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 4301, file } });
+  const feedColour = () => page.evaluate(() => window.__viewerDiag?.getPalette?.()?.drawn.feed ?? null);
+  await expect.poll(feedColour, { timeout: 30_000 }).toBeTruthy();
+  const fresh = await feedColour();
+  const card = page.locator(".hudNotes");
+  const line = page.locator("[data-table-stale]");
+  await expect(card, "precondition: nothing else opens the card on this machine").toHaveCount(0);
+
+  await ctl({ op: "quiet", on: true });
+  for (const [why, says] of [["unsupported", "random tool changer"], ["no-basis", "start state is not known"]] as const) {
+    const mark = { reason: "table_row", why };
+    await ctl({ op: "raw", frame: { type: "status_delta", data: { interp_state: 2, task_mode: 2 }, preview_table_stale: mark } });
+    await expect.poll(feedColour, { message: `${why}: the path is muted` }).not.toBe(fresh);
+    await expect(line, `${why}: the card shows the line that explains it`).toBeVisible();
+    await expect(line).toContainText("Tool table changed — preview updates after the run");
+    expect(await line.textContent(), `${why}: its own reason`).toContain(says);
+    // cleared (the publish at idle): the explanation goes with the muting
+    await ctl({ op: "raw", frame: { type: "status_delta", data: { interp_state: 1 } } });
+    await expect.poll(feedColour).toBe(fresh);
+    await expect(card).toHaveCount(0);
+  }
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
