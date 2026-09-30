@@ -1,0 +1,164 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r42-ywywptyc/lcnc-webui/playwright.r42.config.ts",
+    "rootDir": "/tmp/codex-r42-ywywptyc/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r42-ywywptyc/evidence/results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/tmp/codex-r42-ywywptyc/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/input-session\\.spec\\.ts|r42\\.spec\\.ts/"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "../evidence/midrun-tool-reparse.r42.playwright.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "r42.spec.ts",
+      "file": "r42.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R42: table staleness must open the warning card on XYZ without an unrelated warning",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 5732,
+                  "error": {
+                    "message": "Error: unsupported alone must explain the muted preview\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m",
+                    "stack": "Error: unsupported alone must explain the muted preview\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\n    at /tmp/codex-r42-ywywptyc/lcnc-webui/e2e/r42.spec.ts:70:97",
+                    "location": {
+                      "file": "/tmp/codex-r42-ywywptyc/lcnc-webui/e2e/r42.spec.ts",
+                      "column": 97,
+                      "line": 70
+                    },
+                    "snippet": "  68 |  expect(noBasisOnly.palette.drawn.feed).toBe(refusedOnly.palette.drawn.feed);\n  69 |  expect(publishedIdle.tableWarningCount).toBe(0);\n> 70 |  expect.soft(refusedOnly.tableWarningCount, 'unsupported alone must explain the muted preview').toBe(1);\n     |                                                                                                 ^\n  71 |  expect.soft(failedIdleOnly.tableWarningCount, 'failed idle parse must retain the explanation').toBe(1);\n  72 |  expect.soft(noBasisOnly.tableWarningCount, 'no-basis alone must explain the muted preview').toBe(1);\n  73 | });"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r42-ywywptyc/lcnc-webui/e2e/r42.spec.ts",
+                        "column": 97,
+                        "line": 70
+                      },
+                      "message": "Error: unsupported alone must explain the muted preview\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\n\n  68 |  expect(noBasisOnly.palette.drawn.feed).toBe(refusedOnly.palette.drawn.feed);\n  69 |  expect(publishedIdle.tableWarningCount).toBe(0);\n> 70 |  expect.soft(refusedOnly.tableWarningCount, 'unsupported alone must explain the muted preview').toBe(1);\n     |                                                                                                 ^\n  71 |  expect.soft(failedIdleOnly.tableWarningCount, 'failed idle parse must retain the explanation').toBe(1);\n  72 |  expect.soft(noBasisOnly.tableWarningCount, 'no-basis alone must explain the muted preview').toBe(1);\n  73 | });\n    at /tmp/codex-r42-ywywptyc/lcnc-webui/e2e/r42.spec.ts:70:97"
+                    },
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r42-ywywptyc/lcnc-webui/e2e/r42.spec.ts",
+                        "column": 97,
+                        "line": 71
+                      },
+                      "message": "Error: failed idle parse must retain the explanation\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\n\n  69 |  expect(publishedIdle.tableWarningCount).toBe(0);\n  70 |  expect.soft(refusedOnly.tableWarningCount, 'unsupported alone must explain the muted preview').toBe(1);\n> 71 |  expect.soft(failedIdleOnly.tableWarningCount, 'failed idle parse must retain the explanation').toBe(1);\n     |                                                                                                 ^\n  72 |  expect.soft(noBasisOnly.tableWarningCount, 'no-basis alone must explain the muted preview').toBe(1);\n  73 | });\n  74 |\n    at /tmp/codex-r42-ywywptyc/lcnc-webui/e2e/r42.spec.ts:71:97"
+                    },
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r42-ywywptyc/lcnc-webui/e2e/r42.spec.ts",
+                        "column": 94,
+                        "line": 72
+                      },
+                      "message": "Error: no-basis alone must explain the muted preview\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m1\u001b[39m\nReceived: \u001b[31m0\u001b[39m\n\n  70 |  expect.soft(refusedOnly.tableWarningCount, 'unsupported alone must explain the muted preview').toBe(1);\n  71 |  expect.soft(failedIdleOnly.tableWarningCount, 'failed idle parse must retain the explanation').toBe(1);\n> 72 |  expect.soft(noBasisOnly.tableWarningCount, 'no-basis alone must explain the muted preview').toBe(1);\n     |                                                                                              ^\n  73 | });\n  74 |\n    at /tmp/codex-r42-ywywptyc/lcnc-webui/e2e/r42.spec.ts:72:94"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-09-30T01:20:11.509Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r42-ywywptyc/evidence/results/r42-R42-table-staleness-mu-7cebe-ithout-an-unrelated-warning/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r42-ywywptyc/evidence/results/r42-R42-table-staleness-mu-7cebe-ithout-an-unrelated-warning/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r42-ywywptyc/lcnc-webui/e2e/r42.spec.ts",
+                    "column": 97,
+                    "line": 70
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "828167ce797eed0b7f8d-9b57c0d9a6151b477050",
+          "file": "r42.spec.ts",
+          "line": 9,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-09-30T01:20:10.876Z",
+    "duration": 6470.648,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

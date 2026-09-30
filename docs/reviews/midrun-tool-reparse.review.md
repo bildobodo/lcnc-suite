@@ -516,3 +516,90 @@ in `pathStaleNow`.
 der eine Fehlschlag ist `scenes.viewer.spec` „the box edge alone“, in beiden
 Builds (vor und nach MR-I04) je 2 von 3 grün: ein wackeliger Pixeltest aus der
 Paletten-Arbeit (Teil A), den ich vor dem Abschluss-Gate getrennt behebe.
+
+
+---
+
+## Review R42 · Codex · Nachprüfung MR-I04 · 30. September 2026
+
+**Stand:** `78f4348..b6fd7c5`, ausschließlich in einer Archivkopie geprüft.
+**Ergebnis: findings — MR-I04 ist bis auf die eigenständige Anzeige des
+Hinweises behoben; ein P2-Rest bleibt offen.**
+
+### MR-I04 — bestätigte Korrekturen
+
+Die Pipeline hält den Veraltungsgrund nach einer verweigerten Neuberechnung
+fest und überträgt ihn im Status. Der Client übernimmt ihn unabhängig vom
+gerade geladenen Werkzeug. Die alte Bahn bleibt jetzt korrekt gedämpft.
+Die eigene Sonde ändert T2 von Z80 auf Z90, während T1/Z10 geladen bleibt:
+Verweigerung, unveränderte Vorschauversion, anhaltende Markierung auch nach
+einem fehlgeschlagenen Idle-Parse, Bereinigung durch erfolgreiche
+Neuveröffentlichung und Entladen sind geprüft. Der Fall ohne bekannte
+Startbasis liefert ebenfalls eine Veraltungsmarke.
+
+### MR-I04-Rest · P2 — der neue Hinweis allein blendet die Warnkarte nicht ein
+
+**Stelle:** `lcnc-webui/src/ThreeViewer.vue:3887` (`hasHudNotes`),
+äußeres `v-if` bei Zeile 4310, neue Warnzeile bei Zeile 4354.
+
+`previewTableStale` wird bei Pfaddämpfung und Warnungszähler berücksichtigt,
+fehlt aber in `hasHudNotes`. Auf einer XYZ-Maschine ohne Kinematik-Chip oder
+anderen Hinweis wird deshalb die gesamte Karte nicht gerendert. Damit fehlen
+der Text zur veralteten Werkzeugtabelle und seine Hilfe gerade dann, wenn
+sie allein die gedämpfte Bahn erklären müssten. Beide Gründe
+(`unsupported`, `no-basis`) sind betroffen.
+
+Eigene Browser-Sonde am unveränderten Build, mit Status-Umschlägen aus der
+Pipeline-Sonde:
+
+| Zustand | Feed-Farbe | Warnkarte | Tabellenhinweis |
+| --- | --- | --- | --- |
+| Aktuelle Vorschau | `#00a83c` | 0 | 0 |
+| Neuberechnung läuft | `#cccecf` | 1 | 0, stattdessen Parse-Hinweis |
+| Verweigert, nur Tabellenmarke | `#cccecf` | **0** | **0** |
+| Identische Marke + Rotation 1° | `#cccecf` | 1 | 1 |
+| Idle-Parse fehlgeschlagen, Rotation wieder 0° | `#cccecf` | **0** | **0** |
+| Erfolgreich neu veröffentlicht | `#00a83c` | 0 | 0 |
+| Keine Startbasis, nur Tabellenmarke | `#cccecf` | **0** | **0** |
+| Identische No-basis-Marke + Rotation 1° | `#cccecf` | 1 | 1 |
+
+Der Rotationshinweis ist eine positive Kontrolle: Der neue Status ist bereits
+im Viewer angekommen; allein die äußere Renderbedingung verhindert die
+Anzeige. Der neue Test in `collisions.viewer.spec.ts` verwendet über
+`prepare` das XYZAC-Profil. Dessen Kinematik-Chip öffnet die Karte schon ohne
+Tabellenmarke und verdeckt diese Lücke.
+
+**Erwartete Korrektur:** Die Tabellenmarke in die Entscheidung aufnehmen,
+ob es HUD-Hinweise gibt. Den Wächter zusätzlich auf XYZ ohne anderen Hinweis
+laufen lassen: für beide Gründe Erklärung sichtbar, Dämpfung bleibt bestehen,
+nach Bereinigung verschwindet die Erklärung. Eine gemeinsame Quelle für
+Warnungszähler und Kartenbedarf würde solche auseinanderlaufenden Bedingungen
+künftig vermeiden; für diesen Fix genügt die ergänzte Bedingung mit dem
+isolierten Testfall.
+
+Belege: [Pipeline-Sonde](midrun-tool-reparse.r42.pipeline-probe.py),
+[Pipeline-Ergebnis](midrun-tool-reparse.r42.pipeline-probe.json),
+[Browser-Sonde](midrun-tool-reparse.r42.browser-probe.ts),
+[Messwerte](midrun-tool-reparse.r42.client.json),
+[fehlender Hinweis](midrun-tool-reparse.r42.refused-only.png),
+[Kontrolle mit Rotation](midrun-tool-reparse.r42.refused-with-rotation.png),
+[rote Schlussassertionen](midrun-tool-reparse.r42.browser-probe.txt).
+
+### Prüfung und Arbeitsgrenzen
+
+- Gezielte Backend-Tests: **433 PASS**.
+- Frontend-Unit-Tests für Status und Exporte: **35 PASS**.
+- Archiv-Build (`vue-tsc -b`, Vite): **PASS**.
+- Eigene Pipeline-Sonde: **PASS**.
+- Eigene Browser-Sonde: **ROT**, ausschließlich die drei Schlussassertionen
+  zur fehlenden Erklärung; Dämpfung und positive Kontrollen bestanden.
+
+[Reproduktion und Prüfgrenzen](midrun-tool-reparse.r42.reproduce.md),
+[Backend-Protokoll](midrun-tool-reparse.r42.backend-tests.txt),
+[Vitest-Protokoll](midrun-tool-reparse.r42.vitest.txt),
+[Build-Protokoll](midrun-tool-reparse.r42.build.txt).
+Kein vollständiges Offline-Gate und keine erneute Prüfung des von Claude
+benannten Boxkanten-Pixeltests. Alle Ausführungen niedrig priorisiert im
+Archiv, eigener Mock auf `127.0.0.1:4188`, ein Browser-Worker; beide beendet.
+Kein Zugriff auf Live-Sim oder ihre Ports, kein Maschinenbefehl und keine
+Quittierung des E-Stops. Produktcode und bisherige Belege unverändert.

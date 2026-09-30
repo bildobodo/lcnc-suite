@@ -1,0 +1,67 @@
+
+Running 1 test using 1 worker
+
+(node:1382321) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1382321) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r42.spec.ts:9:1 › R42: table staleness must open the warning card on XYZ without an unrelated warning (5.7s)
+
+
+  1) e2e/r42.spec.ts:9:1 › R42: table staleness must open the warning card on XYZ without an unrelated warning 
+
+    Error: unsupported alone must explain the muted preview
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m1[39m
+    Received: [31m0[39m
+
+      68 |  expect(noBasisOnly.palette.drawn.feed).toBe(refusedOnly.palette.drawn.feed);
+      69 |  expect(publishedIdle.tableWarningCount).toBe(0);
+    > 70 |  expect.soft(refusedOnly.tableWarningCount, 'unsupported alone must explain the muted preview').toBe(1);
+         |                                                                                                 ^
+      71 |  expect.soft(failedIdleOnly.tableWarningCount, 'failed idle parse must retain the explanation').toBe(1);
+      72 |  expect.soft(noBasisOnly.tableWarningCount, 'no-basis alone must explain the muted preview').toBe(1);
+      73 | });
+        at /tmp/codex-r42-ywywptyc/lcnc-webui/e2e/r42.spec.ts:70:97
+
+    Error: failed idle parse must retain the explanation
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m1[39m
+    Received: [31m0[39m
+
+      69 |  expect(publishedIdle.tableWarningCount).toBe(0);
+      70 |  expect.soft(refusedOnly.tableWarningCount, 'unsupported alone must explain the muted preview').toBe(1);
+    > 71 |  expect.soft(failedIdleOnly.tableWarningCount, 'failed idle parse must retain the explanation').toBe(1);
+         |                                                                                                 ^
+      72 |  expect.soft(noBasisOnly.tableWarningCount, 'no-basis alone must explain the muted preview').toBe(1);
+      73 | });
+      74 |
+        at /tmp/codex-r42-ywywptyc/lcnc-webui/e2e/r42.spec.ts:71:97
+
+    Error: no-basis alone must explain the muted preview
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m1[39m
+    Received: [31m0[39m
+
+      70 |  expect.soft(refusedOnly.tableWarningCount, 'unsupported alone must explain the muted preview').toBe(1);
+      71 |  expect.soft(failedIdleOnly.tableWarningCount, 'failed idle parse must retain the explanation').toBe(1);
+    > 72 |  expect.soft(noBasisOnly.tableWarningCount, 'no-basis alone must explain the muted preview').toBe(1);
+         |                                                                                              ^
+      73 | });
+      74 |
+        at /tmp/codex-r42-ywywptyc/lcnc-webui/e2e/r42.spec.ts:72:94
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/r42-R42-table-staleness-mu-7cebe-ithout-an-unrelated-warning/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/r42-R42-table-staleness-mu-7cebe-ithout-an-unrelated-warning/error-context.md
+
+  1 failed
+    e2e/r42.spec.ts:9:1 › R42: table staleness must open the warning card on XYZ without an unrelated warning 
