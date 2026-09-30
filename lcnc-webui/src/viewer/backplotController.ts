@@ -37,12 +37,18 @@ export interface BackplotController {
   /** Build a fresh line under `parent` (call once per scene rebuild). */
   build(parent: THREE.Object3D, color: string, depthTest: boolean): void;
   push(x: number, y: number, z: number): void;
+  /** Pen up: the next point starts a new piece of the trail, joined to
+   *  nothing — the drawn tip moved without the machine moving (the tool's
+   *  length changed: a measurement's table write, a tool change). */
+  lift(): void;
   reset(): void;
   setVisible(on: boolean): void;
   setColor(color: string): void;
   setDepthTest(depthTest: boolean): void;
   dispose(): void;
   readonly count: number;
+  /** Drawn segments in the ring. */
+  readonly segments: number;
   readonly isFull: boolean;
 }
 
@@ -118,6 +124,8 @@ export function createBackplotController(requestRender: () => void): BackplotCon
       lastX = x; lastY = y; lastZ = z; hasLast = true;
     },
 
+    lift() { hasLast = false; },
+
     reset,
 
     setVisible(on) { if (line) line.visible = on; },
@@ -143,6 +151,7 @@ export function createBackplotController(requestRender: () => void): BackplotCon
     },
 
     get count() { return count; },
+    get segments() { return segs; },
     get isFull() { return count >= BACKPLOT_MAX; },
   };
 }

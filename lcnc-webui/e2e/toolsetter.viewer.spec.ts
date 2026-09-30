@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
 import { ctl } from "./ctl";
 import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
 
@@ -39,4 +40,49 @@ test("the tool setter shows where it is set up, and only there", async ({ page }
   await expect.poll(() => puck(page)).toEqual({ visible: true, top: [-120, 0, -250] });
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: { toolsetter: { touchZ: -300 } } } });
   await expect.poll(async () => (await puck(page))?.visible, { message: "a partial section is no position" }).toBe(false);
+});
+
+// Codex R44 ST-I03: the drawn tool is the PHYSICAL one. The tool routine
+// switches to G49 for its measurement; the drawn tip followed the active
+// offset and jumped a tool length up — while the sim's tool setter (and the
+// machine) had the tool where it was — and the backplot drew the jump as a
+// stroke. On the real XYZAC model, one joint pose: the tip on the puck under
+// G43, the same under G49, the table write moves it with the pen up, real
+// motion draws again.
+const MODEL = new URL("../../examples/sim_config/machine-5axis-xyzac/", import.meta.url);
+const machine = JSON.parse(readFileSync(new URL("machine.json", MODEL), "utf8"));
+
+test("G49 never moves the drawn tool; a table write moves its tip with the backplot's pen up (Codex R44 ST-I03)", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  await context.route("**/xyzac-model/*.stl", r => r.fulfill({ contentType: "application/octet-stream",
+    body: readFileSync(new URL(new URL(r.request().url()).pathname.split("/").pop()!, MODEL)) }));
+  await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await ctl({ op: "setViewerInit", data: { units: "mm", stl_base_url: "/xyzac-model/", axes: ["X", "Y", "Z", "A", "C"],
+    parts: machine.parts, groups: machine.groups, kinematics: machine.kinematics,
+    workGroup: machine.workGroup, toolGroup: machine.toolGroup } });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready ? window.__viewerDiag.getAppearance?.().parts.length ?? 0 : 0),
+    { timeout: 20_000 }).toBe(machine.parts.length);
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { toolsetter: SET_UP } } });
+  const pose = (z: number) => [150, 0, z, 0, 0];
+  const nine = (z: number) => [0, 0, z, 0, 0, 0, 0, 0, 0];
+  await ctl({ op: "status_delta", data: { tool_number: 13, tool_length: 65, tool_diameter: 6, tool_offset: nine(65),
+    joint_pos: pose(-235), actual_position: pose(-235) } });
+  const tipZ = async () => { const t = await page.evaluate(() => window.__viewerDiag!.getToolTip!()); return t ? Math.round(t[2]! * 1000) / 1000 : null; };
+  const segs = () => page.evaluate(() => window.__viewerDiag!.getBackplot!().segments);
+  await expect.poll(tipZ, { message: "G43: the tip on the puck's top (−235 − 65)" }).toBe(-300);
+  expect((await puck(page))!.top[2]).toBe(-300);
+  const bp = await segs();
+
+  await ctl({ op: "status_delta", data: { tool_offset: nine(0) } });   // G49 — the routine measures
+  await page.waitForTimeout(400);
+  expect(await tipZ(), "G49: the tool is where it was").toBe(-300);
+  expect(await segs(), "no stroke").toBe(bp);
+
+  await ctl({ op: "status_delta", data: { tool_length: 60 } });        // the routine's table write
+  await expect.poll(tipZ, { message: "the new length: the tip 5 mm higher" }).toBe(-295);
+  expect(await segs(), "a length is no motion: the pen is up").toBe(bp);
+
+  await ctl({ op: "status_delta", data: { joint_pos: pose(-240), actual_position: pose(-240) } });
+  await expect.poll(tipZ).toBe(-300);
+  await expect.poll(segs, { message: "real motion draws again, from the new tip" }).toBe(bp + 1);
 });

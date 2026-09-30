@@ -356,6 +356,8 @@ const _toolBase = new THREE.Vector3();
 // Reusable scratch — applyState is on the rAF hot path, keep it allocation-free.
 const _kinQuat = new THREE.Quaternion();
 const _tofsVec = new THREE.Vector3();
+/** The physical tip offset of the last live pose — a change lifts the backplot's pen. */
+let _bpTipOfs: [number, number, number] | null = null;
 
 // Visual objects
 let toolMarker: THREE.Group | null = null;
@@ -1803,6 +1805,16 @@ async function buildFromInit(init: ViewerInit) {
         },
         // The tool setter puck (operator 2026-09-29): shown (incl. every
         // parent), its top centre in the machine frame, and its screen point.
+        // The drawn tool tip in the machine frame (the puck's frame) and the
+        // backplot's size (Codex R44 ST-I03: G49 never moves the drawn tool).
+        getToolTip: () => {
+          if (!toolMarker) return null;
+          const w = toolMarker.getWorldPosition(new THREE.Vector3());
+          const frame = machineFrameGrp ?? _workGrp;
+          if (frame) { frame.updateWorldMatrix(true, false); frame.worldToLocal(w); }
+          return w.toArray();
+        },
+        getBackplot: () => ({ points: backplot.count, segments: backplot.segments }),
         getToolsetter: () => {
           if (!toolsetterMarker) return null;
           let shown = toolsetterMarker.visible;
@@ -2018,14 +2030,33 @@ function applyState(init: ViewerInit, st: ViewerState) {
     }
   }
 
-  // Phase 3 — tool spatial compensation: put the tool TIP at TCP by shifting
-  // the tool group by -tool_offset relative to its (base or DOF-composed)
-  // position. Under a scrub pose the SAMPLE's offset is what its joints were
-  // lifted with (schema 8) — live tool_offset would put the tip a tool-length
-  // delta off the path after an in-program G43 (the fresh-boot 22.000 class).
-  const tofs = (_scrubJoints && _scrubTlo) ? _scrubTlo : st.tool_offset;
-  if (tofs && tofs.length >= 3) {
-    _toolGrp.position.sub(_tofsVec.set(tofs[0] ?? 0, tofs[1] ?? 0, tofs[2] ?? 0));
+  // Phase 3 — the tool TIP: shift the tool group by the tool's offset
+  // relative to its (base or DOF-composed) position. Under a scrub pose the
+  // SAMPLE's offset is what its joints were lifted with (schema 8) — live
+  // tool_offset would put the tip a tool-length delta off the path after an
+  // in-program G43 (the fresh-boot 22.000 class); a G49 segment of the
+  // program still poses its tip at the control point (named limit, R45).
+  // LIVE the drawn tool is the PHYSICAL one (Codex R44 ST-I03): its length is
+  // the spindle tool's TABLE length (status tool_length; the active offset
+  // only where the table knows none) — G49 during a tool measurement zeroes
+  // the active offset, and the drawn tip used to jump a tool length up while
+  // the tool stayed where it was. Under G43 with the spindle tool's own
+  // offset both are the same. X/Y stay the active offset's.
+  let tipOk = false;
+  if (_scrubJoints && _scrubTlo) {
+    if (_scrubTlo.length >= 3) { _tofsVec.set(_scrubTlo[0] ?? 0, _scrubTlo[1] ?? 0, _scrubTlo[2] ?? 0); tipOk = true; }
+  } else {
+    const t = st.tool_offset;
+    const len = st.tool_length ?? (t && t.length >= 3 ? t[2] : null);
+    if (len != null) { _tofsVec.set(t?.[0] ?? 0, t?.[1] ?? 0, len); tipOk = true; }
+  }
+  if (tipOk) _toolGrp.position.sub(_tofsVec);
+  // The trail follows the machine, never a length: a changed physical offset
+  // moves the drawn tip with no motion — lift the pen (no stroke to it).
+  if (!_scrubJoints) {
+    const lx = tipOk ? _tofsVec.x : 0, ly = tipOk ? _tofsVec.y : 0, lz = tipOk ? _tofsVec.z : 0;
+    if (_bpTipOfs && (Math.abs(_bpTipOfs[0] - lx) > 1e-6 || Math.abs(_bpTipOfs[1] - ly) > 1e-6 || Math.abs(_bpTipOfs[2] - lz) > 1e-6)) backplot.lift();
+    _bpTipOfs = [lx, ly, lz];
   }
 
   // Work origin offset: place DRO/work zero in machine space. RS274 order

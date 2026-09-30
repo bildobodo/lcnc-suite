@@ -53,6 +53,20 @@ describe("backplotController", () => {
     expect(segments(parent)).toEqual([[0, 0, 0, 1, 0, 0], [1, 0, 0, 2, 0, 0]]);
   });
 
+  it("lift: the next point starts a new piece — joined to nothing (a changed tool length is no motion, Codex R44 ST-I03)", () => {
+    const c = createBackplotController(vi.fn());
+    const parent = new THREE.Group();
+    c.build(parent, "#fff", true);
+    c.push(0, 0, 0);
+    c.push(1, 0, 0);
+    c.lift();
+    c.push(1, 0, 5);        // the tip moved by a length, not by the machine
+    expect(c.segments, "no stroke to the lifted point").toBe(1);
+    c.push(2, 0, 5);
+    expect(segments(parent)).toEqual([[0, 0, 0, 1, 0, 0], [1, 0, 5, 2, 0, 5]]);
+    expect(c.segments).toBe(2);
+  });
+
   it("dedupes points closer than EPS (0.01 mm)", () => {
     const c = createBackplotController(vi.fn());
     const parent = new THREE.Group();

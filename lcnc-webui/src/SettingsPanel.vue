@@ -312,7 +312,7 @@ const LAYER_LABELS: { key: Layer; label: string; role?: ViewerRole; dashed?: boo
   { key: "machine", label: "Machine" },
   { key: "groundGrid", label: "Ground Grid" },
   { key: "tool", label: "Tool" },
-  { key: "toolsetter", label: "Tool Setter", help: "Where the next tool measurement probes: its top is the contact height. Shown once Probing › Toolsetter is set up." },
+  { key: "toolsetter", label: "Tool Setter", help: "Where the next tool measurement probes; its top is the contact height, not a trip area. Needs Probing › Toolsetter." },
   { key: "hud", label: "HUD" },
 ];
 
