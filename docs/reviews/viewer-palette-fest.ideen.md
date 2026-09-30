@@ -3474,3 +3474,171 @@ Startzustand, Report und Bilanz.
 - Danach nur `fatPaths.test.ts` verschärft (die Peak-Prüfungen oben; die
   bisherige Prüfung `peak ≥ gehalten` fing keine der drei Mutationen). Build
   und Vitest 1791 erneut grün.
+
+---
+
+## Nachprüfung R48 · Codex · A/B-Messwerkzeug · 30. September 2026
+
+**Stand:** `8624ade61d378dd601511905f835f39a489bef8c`, Bereich
+`a353236..8624ade`, isolierte Archivkopie. **Verdikt: findings.**
+**VP-I14 und VP-I16 geschlossen.** Bei **VP-I13, VP-I15 und VP-I17** bleiben
+die unten belegten P2-Reste offen; keine neuen Befundnummern.
+
+### Bestätigte Korrekturen
+
+- **VP-I14:** Jeder der sechs Durchläufe baut tatsächlich neu. Die angepasste
+  Controller-Gegenprobe sieht sechs neue Geometrieobjekte; der Browserwächter
+  bestätigt die sechs Generationen. Der No-op des gewöhnlichen Umschalters
+  bleibt erhalten, `rebuild()` wird im Messlauf ausdrücklich verwendet.
+- **VP-I16:** Die neue vorab festgelegte Regel für die Mediane von Aufbaudauer
+  und längster Hauptthread-Verzögerung ist eine prüfbare Abnahmeregel.
+  Das Gegenbeispiel A 110 / B 1.500 ms ergibt jetzt `FAIL`. Die Grenze
+  `1,5 × A + 100 ms` ist für diese Messrunde festzuhalten; keine Anpassung nach
+  der Mac-Messung. Einzelmaxima bleiben daneben sichtbar.
+- **VP-I13, ursprüngliche Fälle:** Fehlende ganze Speichermessungen, fehlende
+  Aufbau-/Orbit-Histogramme und unzureichende Wiederholungen ergeben jetzt
+  `INCOMPLETE`; der bisherige `None - None`-Abbruch entfällt. Unterschiedliche
+  Messdauern werden über Ereignisraten behandelt.
+- **VP-I15, Ablauf:** Die zwei Original-Browserfälle mit Simulation aus/an
+  bestehen. Befundfolgen sind zwischen den sechs Wiederholungen gleich,
+  die manuell gewählte Timeline-Position kommt zurück. Laufende Wiedergabe
+  wird vor Beginn abgelehnt.
+- **VP-I17, gehaltene Puffer:** Der 1-MiB-Puffer hinter der kleinen Ansicht
+  wird vollständig gezählt; Grundmesh und gehaltene Programmlast sind
+  ergänzt. Die drei Reveal-Aufbauten halten jeweils **14.381 Byte**, während
+  `allocated` steigt und `peak` nicht bloß kumuliert wird. `release()` lässt
+  in der Bilanz nur die Programmlast zurück. Das degenerierte Beispiel meldet
+  `source/lod/drawn = 2/2/1`.
+
+[Angepasste Controllerprobe](viewer-palette-fest.r48.controller-probe.json),
+[R47-Reportfälle am neuen Stand](viewer-palette-fest.r48.report-probe.json).
+Die Referenzrate aus einer eigenen Kalibrierphase bzw. `--rate` und die
+explizite Klassentoleranz beantworten die R47-Ratenfrage. Die Implementierung
+kalibriert **einmal vor der gesamten Folge**, nicht „vor jedem Aufbau“, wie
+es im Antworttext steht. Für den festgehaltenen Referenzwert ist das passend.
+
+### VP-I13-Rest · P2 — Pflichtfelder innerhalb vorhandener Messdatensätze werden noch übersprungen
+
+**Stellen:** `scripts/viewer_ab_report.py:260–262, 337–373`.
+Die neue Sollmatrix prüft das Vorhandensein von `memory`, aber nicht die
+benötigten Inhalte. Der Median verwirft fehlende Einzelwerte; fehlende Peaks
+entfernen lediglich deren Prüfung.
+
+[Neue Reportprobe](viewer-palette-fest.r48.report-rest-probe.py),
+[Ergebnisse](viewer-palette-fest.r48.report-rest-probe.json):
+
+| Fall | Ergebnis jetzt |
+| --- | --- |
+| Vollständige Kontrollgruppe | `PASS` |
+| Alle `memory.peak` entfernt | `PASS` |
+| `memory.gpu.total` entfernt, Speicherobjekt vorhanden | `KeyError: 'total'` |
+| B-Aufbaumaxima `[300,10,300]` ms, A jeweils 110 ms | korrekt `FAIL` |
+| Derselbe letzte Fall, nur ein 300-ms-Maximum aus der Phasen-Zusammenfassung entfernt; Histogramme unverändert vollständig | fälschlich `PASS` |
+
+Im letzten Fall wird aus dem tatsächlichen B-Median **300 ms** ein Median
+über zwei Werte von **155 ms**, unter der Grenze von 265 ms.
+**Korrektur:** Pflichtwerte je Phase auf Vollständigkeit prüfen. Für den
+Aufbaumaximalwert die bereits validierten Histogramme als Quelle verwenden
+oder den Lauf bei fehlender Zusammenfassung begründet als `INCOMPLETE`
+führen. Kein `PASS` durch weggefallene Prüfungen, kein Ausnahmeabbruch durch
+fehlende CPU-/GPU-Gesamtwerte. Fehlende Pflichtwerte dürfen nicht
+stillschweigend aus der Stichprobe fallen.
+
+### VP-I15-Rest · P2 — die ausgewählte Befundansicht wird nicht wiederhergestellt
+
+**Stellen:** `lcnc-webui/src/viewer/abDriver.ts:217–226, 262–269`,
+`lcnc-webui/src/ScrubBar.vue:448–450`.
+Gesichert werden Simulationsschalter und der Wert des HTML-Reglers;
+Befundauswahl/Reveal sind weiterhin nicht Teil des Snapshots. Manuelle
+Timeline-Eingaben beenden diese Auswahl ausdrücklich.
+
+Die [Browserprobe](viewer-palette-fest.r48.browser-probe.ts) startet bei
+**ausgeblendeten Rapids und ausgewähltem Befund L14**. Vorher ist dessen
+Eilgangabschnitt als temporäre Befundansicht sichtbar. Nach einem vollständigen
+A/B-Lauf:
+
+| Beobachtung | Vorher | Nachher |
+| --- | --- | --- |
+| Zahlenwert des Timeline-Reglers | 182,001291915894 | 182,001291915894 |
+| Zeilenanzeige | `L14 →` | `L12` |
+| Reveal-Bytes CPU / GPU | 64 / 32 | 0 / 0 |
+| Sichtbarer Rapid-Abschnitt über Viewer-Diagnose | vorhanden | keiner |
+
+[Zustände und Phasen](viewer-palette-fest.r48.browser-probe.json),
+[Rohtelemetrie](viewer-palette-fest.r48.browser-telemetry.json).
+Die gleich gebliebene Reglerzahl reicht damit nicht für „Ansicht wie vorher“.
+Dies ist ein Verlust der UI-Befundansicht, kein behaupteter Maschinen- oder
+Bewegungsfehler.
+
+**Korrektur:** Den vollständigen fachlichen Timeline-/Befundzustand sichern
+und nach dem abschließenden Neuaufbau wiederherstellen, einschließlich
+Auswahl und temporärer Darstellung auf versteckten Layern. Den fachlichen
+Positionswert verwenden, nicht den vom Range-Input eventuell quantisierten
+Wert. Normalende und Abbruch mit zuvor ausgewähltem Befund prüfen.
+Die jetzigen Wächter beginnen an einer manuell gewählten Position ohne
+Befundauswahl und übersehen diesen schon in R47 genannten Teil des Vertrags.
+
+### VP-I17-Rest · P2 — die Peak-Obergrenze lässt Scratch aus, spätere Peaks werden nicht bewertet
+
+**Stellen:** `lcnc-webui/src/viewer/toolpathController.ts:923–924, 987–988,
+1087`, `lcnc-webui/src/viewer/lineChunks.ts:43–61`,
+`scripts/viewer_ab_report.py:369–373`.
+
+Die neue Trennung gehalten / alloziert / Peak ist sinnvoll. Eine konservative
+Obergrenze statt Heap-Profiler-Spitze ist als solche ebenfalls vertretbar.
+Sie muss aber alle zu ihrem Vertrag gehörenden Puffer berücksichtigen.
+
+Die [Controllerprobe](viewer-palette-fest.r48.controller-probe.ts) isoliert
+`buildFrameIndex()` mit **4.096 einzelnen Abschnitten**. Es bleiben keine
+Indexpaare übrig, doch der Helfer erzeugt für die Schleife gleichzeitig
+`isBreak` mit **4.096 Byte** und die volle ursprüngliche `table` mit
+**32.760 Byte**. `_tally(fi.table, fi.room)` erfasst erst die anschließend
+auf Länge null verkleinerten Rückgabepuffer. Ergebnis:
+
+- gehaltene Programmpuffer: **65.536 Byte**;
+- diese zwei bekannten temporären Puffer zusammen: **36.856 Byte**;
+- `allocated`-Zuwachs des gesamten `apply()`: **0**;
+- gemeldeter Peak: **65.536 Byte**, bereits die bekannte Mindestkapazität
+  aus Programmlast plus diesen beiden Puffern beträgt **102.392 Byte**.
+
+[Zahlen](viewer-palette-fest.r48.controller-probe.json).
+Das ist keine Behauptung einer großen Budgetüberschreitung, sondern ein
+kleiner Gegenbeweis zur zugesagten Obergrenze. Auch die weiteren Helfer müssen
+nach **Erzeugung** der Scratch-Puffer erfasst werden, nicht nur anhand ihrer
+verkleinerten Ergebnisse. Die ursprüngliche Kapazität, Hilfsarrays und
+Kopien gehören in eine zentrale Allokationsbilanz bzw. vollständige
+vorab berechnete Kapazitätsabschätzung. Die verlangte Abschätzung vor dem
+großen Eager-Aufbau ist weiterhin nicht vorhanden.
+
+Zweitens liest der Report `peak` nur bei `phase == 'build'`. Der Controller
+kann ihn bei späteren Reveal-Aufbauten erhöhen; diese Messwerte werden
+ignoriert. In der [Reportprobe](viewer-palette-fest.r48.report-rest-probe.json)
+erhalten alle B-Reveal-Phasen einen gültigen Peak von **512 MiB**, bei
+A **120 MiB**. Übrige Pflichtdaten vollständig, gehaltene Werte unverändert:
+**PASS** trotz **392 MiB** zusätzlicher ausgewiesener Spitze.
+
+**Korrektur:** Die vollständige konservative Peak-Bilanz ausweisen und den
+höchsten Wert je Wiederholung auch nach Navigation/Reveal auswerten.
+Fehlende Peak-Werte gehören zu VP-I13-Rest; vorhandene hohe Werte müssen
+zum Grenzentscheid beitragen. Eine bloß ausgegebene Zahl schützt das
+128-MiB-Budget nicht.
+
+### Prüfung und Übergabe
+
+Typecheck und Build **PASS**, Viewer-Unit-Tests **74/74**, Report-Tests
+**23/23**. Original-Browserfälle **2/2**, eigene Befundansicht-Probe ebenfalls
+bestanden — zusammen **3/3** im ersten Gesamtlauf. Die eigene Probe danach
+mit zusätzlichen Beobachtungen erneut **1/1**; deren Assertions bestätigen
+den Restfehler und sind keine Behebung.
+
+[Build](viewer-palette-fest.r48.build.txt),
+[Unit-Tests](viewer-palette-fest.r48.vitest.txt),
+[Report-Tests](viewer-palette-fest.r48.report-tests.txt),
+[Browser-Gesamtlauf](viewer-palette-fest.r48.browser-tests.txt),
+[ergänzte Browserprobe](viewer-palette-fest.r48.browser-probe.txt),
+[Reproduktion und genaue Grenzen](viewer-palette-fest.r48.reproduce.md).
+
+Kein vollständiges Offline-Gate und keine Mac-Leistungsmessung behauptet.
+Nur dieser Anhang und neue R48-Belege im Live-Baum; Produktcode und ältere
+Belege unverändert. Eigene Mock-Prozesse beendet, Live-Sim und unquittierter
+Trip unberührt. **R48 geht mit `findings` zurück.**

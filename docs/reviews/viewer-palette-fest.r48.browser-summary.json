@@ -1,0 +1,54 @@
+{
+  "combined": {
+    "stats": {
+      "startTime": "2026-09-30T10:13:48.054Z",
+      "duration": 77197.509,
+      "expected": 3,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "file": "abrun.viewer.spec.ts",
+        "title": "the Debug switch rebuilds the paths in the chosen renderer; a run measures every phase and leaves the view as it was",
+        "status": "passed",
+        "durationMs": 30299,
+        "errors": []
+      },
+      {
+        "file": "abrun.viewer.spec.ts",
+        "title": "a run from an open simulation: the same jumps every repetition, the timeline back at its position",
+        "status": "passed",
+        "durationMs": 27245,
+        "errors": []
+      },
+      {
+        "file": "r48.viewer.spec.ts",
+        "title": "R48: preserve a selected finding on the hidden rapid layer",
+        "status": "passed",
+        "durationMs": 19097,
+        "errors": []
+      }
+    ]
+  },
+  "probe_with_extra_observation": {
+    "stats": {
+      "startTime": "2026-09-30T10:17:11.353Z",
+      "duration": 20885.432,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "file": "r48.viewer.spec.ts",
+        "title": "R48: preserve a selected finding on the hidden rapid layer",
+        "status": "passed",
+        "durationMs": 20444,
+        "errors": []
+      }
+    ]
+  }
+}

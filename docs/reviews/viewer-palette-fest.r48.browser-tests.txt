@@ -1,0 +1,12 @@
+
+Running 3 tests using 1 worker
+
+(node:1797116) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1797116) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/abrun.viewer.spec.ts:62:1 › the Debug switch rebuilds the paths in the chosen renderer; a run measures every phase and leaves the view as it was (30.3s)
+  ✓  2 e2e/abrun.viewer.spec.ts:136:1 › a run from an open simulation: the same jumps every repetition, the timeline back at its position (27.2s)
+  ✓  3 e2e/r48.viewer.spec.ts:64:1 › R48: preserve a selected finding on the hidden rapid layer (19.1s)
+
+  3 passed (1.3m)

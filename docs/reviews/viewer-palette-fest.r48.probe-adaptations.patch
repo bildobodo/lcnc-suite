@@ -1,0 +1,86 @@
+--- R47/controller-probe.ts
++++ R48/controller-probe.ts
+@@ -58,19 +58,19 @@
+ 
+ import { writeFileSync } from 'node:fs';
+ const observations: Record<string, unknown> = {};
+-it('R47: records real geometry replacement across ABBAAB, source capacity and actual instances', () => {
++it('R48: records real geometry replacement across ABBAAB, source capacity and actual instances', () => {
+   const { c, ctx } = build('fat');
+   const feed = () => ctx.workRotGroup.children.filter(o => (o as any).material?.userData?.role === 'feed');
+   const replacements: unknown[] = [];
+   for (const mode of ['gl', 'fat', 'fat', 'gl', 'gl', 'fat'] as const) {
+     const before = feed()[0];
+-    c.setLineMode(mode, ctx);
++    if(c.lineMode===mode)c.rebuild(ctx);else c.setLineMode(mode, ctx);
+     replacements.push({mode, rebuilt: before !== feed()[0]});
+   }
+   observations.builds = replacements;
+   expect(replacements).toEqual([
+-    {mode:'gl', rebuilt:true}, {mode:'fat', rebuilt:true}, {mode:'fat', rebuilt:false},
+-    {mode:'gl', rebuilt:true}, {mode:'gl', rebuilt:false}, {mode:'fat', rebuilt:true},
++    {mode:'gl', rebuilt:true}, {mode:'fat', rebuilt:true}, {mode:'fat', rebuilt:true},
++    {mode:'gl', rebuilt:true}, {mode:'gl', rebuilt:true}, {mode:'fat', rebuilt:true},
+   ]);
+   c.setRapidsVisible(false);
+   const buildByteSamples = [];
+@@ -78,11 +78,11 @@
+     c.setReveal(null);
+     c.setReveal({run:[1001,1003],feed:false,rapid:true});
+     const m=c.pathMemory();
+-    buildByteSamples.push({buildBytes:m.buildBytes,cpuTotal:m.cpu.total});
++    buildByteSamples.push({allocated:m.allocated,peak:m.peak,cpuTotal:m.cpu.total});
+   }
+   observations.buildByteSamples=buildByteSamples;
+   expect(buildByteSamples[2]!.cpuTotal).toBe(buildByteSamples[0]!.cpuTotal);
+-  expect(buildByteSamples[2]!.buildBytes).toBeGreaterThan(buildByteSamples[0]!.buildBytes);
++  expect(buildByteSamples[2]!.allocated).toBeGreaterThan(buildByteSamples[0]!.allocated);
+   const large = new ArrayBuffer(1024 * 1024);
+   const src = new Uint32Array(large, 0, 3); src.set([0, 1, 2]);
+   c.apply(ctx, {
+@@ -92,9 +92,25 @@
+   const mem = c.pathMemory();
+   const actual = feed().filter(o=>o.visible).reduce((n,o)=>n+(o as any).geometry.instanceCount,0);
+   observations.sourceCapacity = { backingBufferBytes:large.byteLength, viewBytes:src.byteLength, reported:mem.cpu };
+-  observations.instances = { reported:mem.instances, actualVisibleGeometryInstances:actual };
+-  expect(mem.cpu.total).toBeLessThan(large.byteLength);
+-  expect(mem.instances).toBeGreaterThan(actual);
++  observations.instances = { reported:mem.pairs, actualVisibleGeometryInstances:actual };
++  expect(mem.cpu.total).toBeGreaterThanOrEqual(large.byteLength);
++  expect(mem.pairs.drawn).toBe(actual);
++  c.release();
++  const released=c.pathMemory();
++  observations.released=released;
++  expect(released.cpu.total).toBe(released.cpu.payload);
++  expect(released.gpu.total).toBe(0);
++  // Valid separate singleton sections: no retained index pairs, but the
++  // frame-index builder must allocate its full-capacity scratch arrays.
++  const count=4096;
++  const allBreaks={feedPos:new Float32Array(count*3),feedBreaks:Uint32Array.from({length:count},(_,i)=>i),rapidPos:new Float32Array(),bounds:{min:[0,0,0],max:[0,0,0]}} as any;
++  const allocBefore=c.pathMemory().allocated;
++  c.apply(ctx,allBreaks);
++  const emptyPath=c.pathMemory();
++  const scratch=count+Math.max(0,count-1)*2*4; // isBreak + full table, alive together
++  observations.peakScratch={vertices:count,payloadBytes:allBreaks.feedPos.byteLength+allBreaks.feedBreaks.byteLength,knownConcurrentScratchBytes:scratch,reported:emptyPath,allocatedByThisApply:emptyPath.allocated-allocBefore};
++  expect(emptyPath.allocated-allocBefore).toBe(0);
++  expect(emptyPath.peak).toBeLessThan(allBreaks.feedPos.byteLength+allBreaks.feedBreaks.byteLength+scratch);
+   c.dispose();
+-  writeFileSync('../evidence/viewer-palette-fest.r47.controller-probe.json', JSON.stringify(observations,null,2)+'\n');
++  writeFileSync('../evidence/viewer-palette-fest.r48.controller-probe.json', JSON.stringify(observations,null,2)+'\n');
+ });
+--- R47/report-probe.py
++++ R48/report-probe.py
+@@ -1,6 +1,6 @@
+ #!/usr/bin/env python3
+ """Synthetic traces through the ORIGINAL report, no live logs or connections.
+-Run from archive root: python3 -B evidence/viewer-palette-fest.r47.report-probe.py
++Run from archive root: python3 -B evidence/viewer-palette-fest.r48.report-probe.py
+ """
+ import sys,json,copy
+ from pathlib import Path
+@@ -35,4 +35,4 @@
+ rows=f.run_rows(flags=lambda v,rp,ph: {'interacted':True} if v=='fat' and rp in (2,5) and ph=='orbit' else None,
+  frames=lambda v,rp,ph: ([(16.7,178),(150,2)] if v=='gl' else [(16.7,176),(150,4)]) if ph=='orbit' else [(16.7,180)])
+ record('A_three_orbits_two_gaps_each_B_one_orbit_four_gaps',rows)
+-print(json.dumps({'commit':'43943e4','cases':cases},indent=2))
++print(json.dumps({'commit':'8624ade','cases':cases},indent=2))
