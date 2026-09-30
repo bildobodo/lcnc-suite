@@ -4127,3 +4127,106 @@ Leseweg im Viewer benötigt denselben Schutz.
 Kein erneutes vollständiges Offline-Gate, keine Mac-Messung und keine
 eigene Live-Tastfahrt. Die nächste Nachprüfung kann auf VP-I18/VP-I19
 und unmittelbar dafür nötige Änderungen begrenzt bleiben.
+
+---
+
+## Antwort R51 · Claude · VP-I18/I19 und zwei Operator-Punkte · 30. September 2026
+
+Deine R50-Belege stehen unverändert in `8f9ba47`. Umfang: `8f9ba47..HEAD` auf
+`wip/part-b`.
+
+### VP-I18 · bestätigtes Save G30 bewegt den Pin (`4bac47d`)
+
+- **Gemeinsame Quelle:** `g30Shared.ts`. Probing › Toolsetter legt jeden
+  Wert dort ab, den LinuxCNC bestätigt hat. Das gilt für ein gelesenes G30,
+  ein gespeichertes G30 und den gezeigten Stand bei „G30 changed
+  meanwhile“. Der Viewer setzt den Pin sofort darauf.
+- Die Formular-Tickets bleiben davor: Es kommt nur ein Wert an, den das
+  Formular selbst als neuesten übernimmt.
+- Die Lesung an der Flanke busy→idle bleibt als zusätzlicher Auslöser.
+- **Wächter** (`toolsetter.viewer.spec`), deine Gegenprobe über die echte
+  Oberfläche: X110 eingeben, Save G30, bestätigte Antwort.
+  - Ohne Busy-Paket steht der Pin binnen 2 s auf X110.
+  - Er wurde übergeben, es gab keine zusätzliche HTTP-Lesung.
+  - Ohne die Korrektur rot.
+
+### VP-I19 · Lesungen geordnet (`4bac47d`)
+
+- Jede Anfrage bekommt ihre Nummer, sobald sie **angefordert** wird, also
+  noch vor der Entprellung.
+- Eine Antwort gilt nur, solange keine neuere Lesung angefordert wurde und
+  kein bestätigter Wert gekommen ist. Das gilt auch für einen Fehler.
+- Beim Abbau verfallen alle ausstehenden Lesungen. Ein Neuaufbau fordert
+  neu an und entwertet damit die alten.
+- **Wächter**, deine Gegenprobe:
+  - Zwei Flanken lesen X110 und X120, die Antworten kommen vertauscht. Der
+    Pin bleibt auf X120.
+  - Zusätzlich eine späte **Fehl**antwort (HTTP 500) nach einer neueren
+    gültigen Lesung: Der Pin bleibt sichtbar auf X140.
+- **Rot bewiesen:** ohne die Korrektur und mit einer Mutation, die
+  Fehlantworten an der Sperre vorbeilässt.
+
+### Operator-Punkt · kein zweiter Parse nach einem Lauf (`d955178`) — bitte prüfen
+
+Der Operator fragte, warum nach einem Programmabbruch noch einmal geparst
+wird: „zwischen diesen beiden Parses passiert ja nichts“.
+
+- **Ursache:** `evaluate_tlo_drift` verglich die **angewandte**
+  Werkzeuglänge mit der, die der Parse als Startzustand meldete.
+  - `heavy_test.ngc` misst T13 mit M600, jede Messung liegt einige µm
+    daneben (65,064 → 65,0589). Der Mid-Run-Parse übernahm die neue Zeile.
+  - Nach Ende oder Abbruch wendet das Programm-G43 die neue Länge an, der
+    gepinnte Parse meldet die Startlänge. Das ergab „tool_offset“ und nach
+    jedem Lauf einen vollen Parse, 15–17 s.
+  - Im Live-Trace haben die beiden Veröffentlichungen jeweils dieselbe
+    Größe, 7 745 950 Byte gz.
+- **Befund:** Die Nutzdaten hängen von der angewandten Länge gar nicht ab.
+  Der Interpreter des Parses startet ohne Offset und nimmt G43/G49 des
+  Programms aus der Tabelle. Die Segmente vor der ersten TLO-Zeile
+  versieht der Client mit dem Live-Offset (`tloEvents.ts`).
+- **Beleg:** `native_pinned_probe` `the_applied_offset_never_reaches_the_payload`,
+  echter Worker mit nativem Interpreter.
+  - Getestet mit `G53`-Zug, Zug vor `G43`, `G43`, `G49`, jeweils bei
+    STAT.tool_offset 10 / 10,005 / 0 / 80. Die Nutzdaten sind Byte für Byte
+    gleich.
+  - Die Parses laufen nach einem Vor-Parse. Ohne ihn behält der
+    wiederverwendete native Interpreter G43 aus dem vorigen Parse; der
+    Worker im Betrieb ist ein frischer Prozess.
+  - **Rot bewiesen:** Eine Mutation, die STAT.tool_offset in den Canon
+    übernimmt, lässt den Wächter anschlagen (Limit-Befunde ändern sich).
+- **Änderung:** Die Leerlauf-Flanke kennt noch `table_mtime`, `table_row`
+  und `tool_loaded`. Das M6 des Programms ist weiter Drift, weil ein `G43`
+  ohne H die Spindeltasche liest.
+  - `seeded_tool_meta` meldet die angewandte Länge weiter, verglichen wird
+    sie nicht mehr.
+  - Tests: Der Fall nach dem Lauf aus `heavy_test` ergibt `None`, vorher
+    `tool_offset`. Die alten TWP-09-Fälle (G43 H7, G43.1, G49 von Hand)
+    ergeben jetzt keine Drift mehr.
+- **Beobachtung, unverändert und nicht Teil dieser Änderung:** Der
+  Limitprüfer prüft Segmente vor der ersten TLO-Zeile des Programms mit
+  Offset 0. Die Maschine fährt sie mit dem modalen Live-G43. Die entfernte
+  Flanke hat das nie abgedeckt, weil die Nutzdaten nicht davon abhingen.
+  Soll das ein benannter Grenzfall werden, oder willst du einen Befund
+  daraus machen?
+
+### Operator-Punkt · eine Zeile beim Neu-Parsen (`b25d547`)
+
+Bei einer Messung während des Laufs standen unter dem Balken „Preview
+re-parsing · tool measured (program running)“ zusätzlich „Preview parsed
+with a different T13 length — re-parse follows“ und ein „?“. Der Operator
+will nur die Zeile mit dem Balken.
+- Die Längenzeile folgt jetzt dem Muster der Offset-Zeile: Sie wird nur
+  gezeigt, solange kein Neu-Parsen läuft, im Template und in
+  `hudWarnCount`.
+- Vor dem Start des Parses steht sie allein.
+- **Wächter** (`collisions.viewer.spec`): genau eine Zeile, solange der
+  Balken läuft. Ohne die Korrektur rot, zwei Zeilen.
+
+### Prüfstand
+
+- **Offline-Gate PASS** auf `4bac47d`: Backend 1108 Tests (weniger als in
+  R50, weil die TWP-09-Fälle zusammengefasst sind), Vitest 1815, Playwright
+  378, Lint, Build und CSS-Audit grün.
+- **Live:** Die Sim wird mit diesem Stand neu gestartet. Danach wird
+  `heavy_test` einmal komplett gefahren. Erwartet ist ein Parse während des
+  Laufs und nach dem Lauf keiner mehr.
