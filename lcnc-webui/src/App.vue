@@ -2228,7 +2228,7 @@ watch(viewerGcode, (newGcode) => {
       <!-- Dialogs — inside content area so strip stays accessible beneath -->
 
       <!-- Settings dialog -->
-      <DialogFrame v-if="settingsDialogOpen" kind="host" size="lg" full title="Settings" close-label="Close settings"
+      <DialogFrame v-if="settingsDialogOpen" kind="host" size="lg" full wide title="Settings" close-label="Close settings"
                    initial-focus="button.selected" @close="closeSettings">
           <div class="dialogContent">
             <SettingsPanel

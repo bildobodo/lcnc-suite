@@ -24,6 +24,7 @@ import {
   loadKeyboardDefaults, type KeyboardDefaults, DEFAULT_KB_MAPPING,
 } from "./defaults";
 import { resolveViewerPalette, userColorsOf, USER_ROLES, type UserRole, type ViewerRole } from "./viewer/viewerPalette";
+import { LAYER_GROUPS, HUD_LAYER, type TwoTone } from "./viewerLayerGroups";
 import { saveStatus, saveStatusText } from "./settingsSaveStatus";
 import { fmtNum, fmtPct, fmtRatio } from "./format";
 import { customContrastRows, customPairRows } from "./viewer/customContrast";
@@ -294,29 +295,6 @@ const HUD_TOGGLES: { key: keyof Omit<HudDefaults, "scale">; label: string }[] = 
 ];
 
 // ─── Viewer setting handlers (emit to App.vue → ThreeViewer) ──────
-// A layer that draws a palette role carries its line sample (fixed palette
-// P3, Codex R30: the legend at the layer rows, not a second list) — the
-// drawn colour, dashed or two-tone like the line itself.
-type TwoTone = "long" | "short";
-const LAYER_LABELS: { key: Layer; label: string; role?: ViewerRole; dashed?: boolean; twoTone?: TwoTone; help?: string }[] = [
-  { key: "backplot", label: "Backplot", role: "backplot" },
-  { key: "toolpath", label: "Toolpath", role: "feed" },
-  { key: "rapids", label: "Rapids", role: "rapid", dashed: true },
-  { key: "workzero", label: "Work Zero" },
-  { key: "workplane", label: "Work Plane" },
-  { key: "surface", label: "Surface" },
-  { key: "toolpathBounds", label: "Toolpath Bounds", role: "toolpathBounds", twoTone: "short" },
-  { key: "bounds", label: "Machine Bounds", role: "bounds", twoTone: "long" },
-  { key: "reachRoom", label: "Machine Reach" },
-  { key: "reachPart", label: "Part Reach" },
-  { key: "machine", label: "Machine" },
-  { key: "groundGrid", label: "Ground Grid" },
-  { key: "tool", label: "Tool" },
-  { key: "toolsetter", label: "Tool Setter", help: "Where the next tool measurement probes: the pin's point is the contact height. Needs Probing › Toolsetter." },
-  { key: "toolChange", label: "Tool Change (G30)", help: "The stored tool-change position (G30), as of the last save of the parameter file." },
-  { key: "hud", label: "HUD" },
-];
-
 function onLayerChange(layer: Layer, on: boolean) {
   layers[layer] = on;
   save();
@@ -582,139 +560,151 @@ function resetMachineColor(id: string) {
       <template #viewer>
         <div v-if="!serverSettingsReady" class="emptyState loading settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
-        <div class="stack-controls">
-          <div class="sub">View</div>
-          <div class="settingDesc">Projection mode for the 3D viewport.</div>
-          <div class="radioGroup inline">
-            <label><MachineRadio gate="viewerSetting" name="projection" :modelValue="projection" value="perspective" @update:modelValue="onProjectionChange('perspective')" /> Perspective</label>
-            <label><MachineRadio gate="viewerSetting" name="projection" :modelValue="projection" value="parallel" @update:modelValue="onProjectionChange('parallel')" /> Parallel</label>
-          </div>
-          <div class="settingDesc">Camera tracking — keep the tool or WCS origin centered while it moves.</div>
-          <div class="radioGroup inline">
-            <label><MachineRadio gate="viewerSetting" name="tracking" :modelValue="trackingMode" value="none" @update:modelValue="onTrackModeChange('none')" /> None</label>
-            <label><MachineRadio gate="viewerSetting" name="tracking" :modelValue="trackingMode" value="tool" @update:modelValue="onTrackModeChange('tool')" /> Tool</label>
-            <label><MachineRadio gate="viewerSetting" name="tracking" :modelValue="trackingMode" value="wcs" @update:modelValue="onTrackModeChange('wcs')" /> WCS</label>
-          </div>
-          <div class="settingDesc">Toolpath preview on rotary-axis machines — the path relative to the rotating workpiece (matches the backplot) or the programmed XYZ coordinates.</div>
-          <div class="radioGroup inline">
-            <label><MachineRadio gate="viewerSetting" name="previewMode" :modelValue="previewMode" value="part" @update:modelValue="onPreviewModeChange('part')" /> Path on part</label>
-            <label><MachineRadio gate="viewerSetting" name="previewMode" :modelValue="previewMode" value="programmed" @update:modelValue="onPreviewModeChange('programmed')" /> Programmed XYZ</label>
-          </div>
-        </div>
-
-        <div class="sep"></div>
-
-        <div class="stack-controls">
-          <div class="sub">Layers</div>
-          <div class="settingDesc">On top: drawn over the machine, where a machine part stands in front.</div>
-          <!-- Shown | legend | On top (operator 2026-09-30). The column heads are
-               the first body row: .dataTable's sticky head covers the top row
-               inside the scrolling Settings page (KeyboardTab). -->
-          <div class="dataTable layerTable" data-layer-legend>
-            <table>
-              <tbody>
-                <tr>
-                  <th scope="col">Layer</th>
-                  <td></td>
-                  <th scope="col">On top</th>
-                </tr>
-                <tr v-for="lf in LAYER_LABELS" :key="lf.key" :data-layer="lf.key">
-                  <td>
-                    <MachineToggle
-                      gate="viewerSetting"
-                      :modelValue="layers[lf.key]"
-                      @update:modelValue="onLayerChange(lf.key, $event!)"
-                      :label="lf.label"
-                      :help="lf.help"
-                    />
-                  </td>
-                  <td>
-                    <span v-if="lf.role" class="legendLine" :class="{ dashed: lf.dashed, twoTone: lf.twoTone, short: lf.twoTone === 'short' }"
-                          :style="legendStyle(lf.role, lf.twoTone)" aria-hidden="true"></span>
-                  </td>
-                  <td>
-                    <MachineToggle
-                      v-if="offersOnTop(lf.key)"
-                      gate="viewerSetting"
-                      :modelValue="onTop[lf.key]"
-                      @update:modelValue="onLayerOnTopChange(lf.key as OnTopLayer, $event!)"
-                      :aria-label="`${lf.label} on top`"
-                      data-on-top
-                    />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <!-- The findings drawn ON the path: the same glyph as the timeline
-               and the code panel, the colour the 3D view draws. -->
-          <div class="stack-tight" data-finding-legend>
-            <div class="row-controls" data-role="limit">
-              <Triangle :size="12" fill="currentColor" :style="{ color: shownPalette.limit }" aria-hidden="true" />
-              <span class="legendLine" :style="{ color: shownPalette.limit }" aria-hidden="true"></span>
-              <span class="settingDesc">Limit violation — on the path, the box outside the machine window dashed</span>
+        <!-- Two columns where they fit (operator 2026-09-30): the grouped
+             layers left; View, HUD and Camera Overlay right; the colours
+             below across both. One column reads them in this order. -->
+        <div class="sectionColumns">
+          <div class="stack-controls">
+            <div class="sub">Layers</div>
+            <div class="settingDesc">On top: drawn over the machine, where a machine part stands in front.</div>
+            <!-- Shown | legend | On top (operator 2026-09-30). The column heads are
+                 the first body row: .dataTable's sticky head covers the top row
+                 inside the scrolling Settings page (KeyboardTab). The layers in
+                 four row groups (viewerLayerGroups.ts). -->
+            <div class="dataTable layerTable" data-layer-legend>
+              <table>
+                <tbody>
+                  <tr>
+                    <th scope="col">Layer</th>
+                    <th scope="col">On top</th>
+                  </tr>
+                </tbody>
+                <tbody v-for="g in LAYER_GROUPS" :key="g.id" :data-layer-group="g.id">
+                  <tr class="layerGroupHead">
+                    <th scope="rowgroup" colspan="2">{{ g.label }}</th>
+                  </tr>
+                  <tr v-for="lf in g.rows" :key="lf.key" :data-layer="lf.key">
+                    <!-- The line sample at the cell's end, under the name where
+                         the dialog is narrow (150 % portrait) -->
+                    <td>
+                      <div class="layerCell">
+                        <MachineToggle
+                          gate="viewerSetting"
+                          :modelValue="layers[lf.key]"
+                          @update:modelValue="onLayerChange(lf.key, $event!)"
+                          :label="lf.label"
+                          :help="lf.help"
+                        />
+                        <span v-if="lf.role" class="legendLine" :class="{ dashed: lf.dashed, twoTone: lf.twoTone, short: lf.twoTone === 'short' }"
+                              :style="legendStyle(lf.role, lf.twoTone)" aria-hidden="true"></span>
+                      </div>
+                    </td>
+                    <td>
+                      <MachineToggle
+                        v-if="offersOnTop(lf.key)"
+                        gate="viewerSetting"
+                        :modelValue="onTop[lf.key]"
+                        @update:modelValue="onLayerOnTopChange(lf.key as OnTopLayer, $event!)"
+                        :aria-label="`${lf.label} on top`"
+                        data-on-top
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
-            <div class="row-controls" data-role="collision">
-              <X :size="12" :stroke-width="3" :style="{ color: shownPalette.collision }" aria-hidden="true" />
-              <span class="settingDesc">Collision — the machine part glows</span>
+            <!-- The findings drawn ON the path: the same glyph as the timeline
+                 and the code panel, the colour the 3D view draws. -->
+            <div class="stack-tight" data-finding-legend>
+              <div class="row-controls" data-role="limit">
+                <Triangle :size="12" fill="currentColor" :style="{ color: shownPalette.limit }" aria-hidden="true" />
+                <span class="legendLine" :style="{ color: shownPalette.limit }" aria-hidden="true"></span>
+                <span class="settingDesc">Limit violation — on the path, the box outside the machine window dashed</span>
+              </div>
+              <div class="row-controls" data-role="collision">
+                <X :size="12" :stroke-width="3" :style="{ color: shownPalette.collision }" aria-hidden="true" />
+                <span class="settingDesc">Collision — the machine part glows</span>
+              </div>
             </div>
           </div>
-        </div>
+          <div class="stack-panel">
+            <div class="stack-controls">
+              <div class="sub">View</div>
+              <div class="settingDesc">Projection mode for the 3D viewport.</div>
+              <div class="radioGroup inline">
+                <label><MachineRadio gate="viewerSetting" name="projection" :modelValue="projection" value="perspective" @update:modelValue="onProjectionChange('perspective')" /> Perspective</label>
+                <label><MachineRadio gate="viewerSetting" name="projection" :modelValue="projection" value="parallel" @update:modelValue="onProjectionChange('parallel')" /> Parallel</label>
+              </div>
+              <div class="settingDesc">Camera tracking — keep the tool or WCS origin centered while it moves.</div>
+              <div class="radioGroup inline">
+                <label><MachineRadio gate="viewerSetting" name="tracking" :modelValue="trackingMode" value="none" @update:modelValue="onTrackModeChange('none')" /> None</label>
+                <label><MachineRadio gate="viewerSetting" name="tracking" :modelValue="trackingMode" value="tool" @update:modelValue="onTrackModeChange('tool')" /> Tool</label>
+                <label><MachineRadio gate="viewerSetting" name="tracking" :modelValue="trackingMode" value="wcs" @update:modelValue="onTrackModeChange('wcs')" /> WCS</label>
+              </div>
+              <div class="settingDesc">Toolpath preview on rotary-axis machines — the path relative to the rotating workpiece (matches the backplot) or the programmed XYZ coordinates.</div>
+              <div class="radioGroup inline">
+                <label><MachineRadio gate="viewerSetting" name="previewMode" :modelValue="previewMode" value="part" @update:modelValue="onPreviewModeChange('part')" /> Path on part</label>
+                <label><MachineRadio gate="viewerSetting" name="previewMode" :modelValue="previewMode" value="programmed" @update:modelValue="onPreviewModeChange('programmed')" /> Programmed XYZ</label>
+              </div>
+            </div>
 
-        <div class="sep"></div>
+            <div class="sep"></div>
 
-        <div class="stack-controls">
-          <div class="sub">HUD</div>
-          <div class="settingDesc">Largest scale of the position readout. In a short or narrow viewer it steps down to fit.</div>
-          <div class="radioGroup inline">
-            <label v-for="s in HUD_SCALES" :key="s.value">
-              <MachineRadio gate="viewerSetting" name="hudScale" :modelValue="hud.scale" :value="s.value" @update:modelValue="hud.scale = s.value; save()" /> {{ s.label }}
-            </label>
-          </div>
-          <div class="settingDesc">Sections shown on the HUD card. A short viewer folds Machine, F / S and the tool line first. Warnings are always shown, at the viewer's bottom edge.</div>
-          <div class="layerGrid">
-            <MachineToggle
-              v-for="t in HUD_TOGGLES" :key="t.key"
-              gate="viewerSetting"
-              :modelValue="hud[t.key]"
-              @update:modelValue="hud[t.key] = $event!; save()"
-              :label="t.label"
-            />
-          </div>
-        </div>
+            <div class="stack-controls">
+              <div class="sub">HUD</div>
+              <MachineToggle gate="viewerSetting" :modelValue="layers[HUD_LAYER]" @update:modelValue="onLayerChange(HUD_LAYER, $event!)" label="Show HUD" />
+              <div class="settingDesc">Largest scale of the position readout. In a short or narrow viewer it steps down to fit.</div>
+              <div class="radioGroup inline">
+                <label v-for="s in HUD_SCALES" :key="s.value">
+                  <MachineRadio gate="viewerSetting" name="hudScale" :modelValue="hud.scale" :value="s.value" @update:modelValue="hud.scale = s.value; save()" /> {{ s.label }}
+                </label>
+              </div>
+              <div class="settingDesc">Sections shown on the HUD card. A short viewer folds Machine, F / S and the tool line first. Warnings are always shown, at the viewer's bottom edge.</div>
+              <div class="layerGrid">
+                <MachineToggle
+                  v-for="t in HUD_TOGGLES" :key="t.key"
+                  gate="viewerSetting"
+                  :modelValue="hud[t.key]"
+                  @update:modelValue="hud[t.key] = $event!; save()"
+                  :label="t.label"
+                />
+              </div>
+            </div>
 
-        <div class="sep"></div>
+            <div class="sep"></div>
 
-        <div class="stack-controls">
-          <div class="sub">Camera Overlay</div>
-          <div class="settingDesc">Overlays drawn on top of the camera PIP feed.</div>
-          <div class="row-controls">
-            <MachineToggle gate="cameraSetting" v-model="camShowCrosshair" @update:modelValue="saveCamTracked" label="Crosshair" />
-            <MachineToggle gate="cameraSetting" v-model="camShowCircle" @update:modelValue="saveCamTracked" label="Circle" />
-            <MachineToggle gate="cameraSetting" v-model="camShowGrid" @update:modelValue="saveCamTracked" label="Grid" />
-          </div>
-          <div class="formGrid">
-            <FormField label="Circle Radius" unit="px">
-              <template #default="{ input }">
-                <MachineInput v-bind="input" gate="cameraSetting" type="number" v-model.number="camCircleRadius" min="10" max="300" integer @change="saveCamTracked" />
-              </template>
-            </FormField>
-            <FormField label="Grid Spacing" unit="px">
-              <template #default="{ input }">
-                <MachineInput v-bind="input" gate="cameraSetting" type="number" v-model.number="camGridSpacing" min="10" max="200" integer @change="saveCamTracked" />
-              </template>
-            </FormField>
-            <!-- A slider's head shows its value where a field shows its unit -->
-            <FormField label="Opacity" :unit="fmtPct(camOverlayOpacity)">
-              <template #default="{ field }">
-                <MachineSlider v-bind="field" :aria-valuetext="fmtPct(camOverlayOpacity)" gate="cameraSetting" :min="0" :max="1" :step="0.05" v-model="camOverlayOpacity" @update:modelValue="saveCamTracked" />
-              </template>
-            </FormField>
-            <FormField label="Color">
-              <template #default="{ field }">
-                <MachineColor v-bind="field" gate="cameraSetting" v-model="camOverlayColor" @update:modelValue="saveCamTracked" />
-              </template>
-            </FormField>
+            <div class="stack-controls">
+              <div class="sub">Camera Overlay</div>
+              <div class="settingDesc">Overlays drawn on top of the camera PIP feed.</div>
+              <div class="layerGrid">
+                <MachineToggle gate="cameraSetting" v-model="camShowCrosshair" @update:modelValue="saveCamTracked" label="Crosshair" />
+                <MachineToggle gate="cameraSetting" v-model="camShowCircle" @update:modelValue="saveCamTracked" label="Circle" />
+                <MachineToggle gate="cameraSetting" v-model="camShowGrid" @update:modelValue="saveCamTracked" label="Grid" />
+              </div>
+              <div class="formGrid">
+                <FormField label="Circle Radius" unit="px">
+                  <template #default="{ input }">
+                    <MachineInput v-bind="input" gate="cameraSetting" type="number" v-model.number="camCircleRadius" min="10" max="300" integer @change="saveCamTracked" />
+                  </template>
+                </FormField>
+                <FormField label="Grid Spacing" unit="px">
+                  <template #default="{ input }">
+                    <MachineInput v-bind="input" gate="cameraSetting" type="number" v-model.number="camGridSpacing" min="10" max="200" integer @change="saveCamTracked" />
+                  </template>
+                </FormField>
+                <!-- A slider's head shows its value where a field shows its unit -->
+                <FormField label="Opacity" :unit="fmtPct(camOverlayOpacity)">
+                  <template #default="{ field }">
+                    <MachineSlider v-bind="field" :aria-valuetext="fmtPct(camOverlayOpacity)" gate="cameraSetting" :min="0" :max="1" :step="0.05" v-model="camOverlayOpacity" @update:modelValue="saveCamTracked" />
+                  </template>
+                </FormField>
+                <FormField label="Color">
+                  <template #default="{ field }">
+                    <MachineColor v-bind="field" gate="cameraSetting" v-model="camOverlayColor" @update:modelValue="saveCamTracked" />
+                  </template>
+                </FormField>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1070,8 +1060,19 @@ function resetMachineColor(id: string) {
 
 <style scoped>
 .settingsLoading { padding: var(--gap-panel); }
+/* A line may end in a "?" (a layer's help): its invisible hit area reaches
+   past the glyph, and in a scroller that is overflow (2 px sideways at 150 %
+   portrait) — the end padding holds the reach, the negative margin gives
+   the width back (CLAUDE.md, "An invisible hit area is real overflow"). */
+.scrollContent {
+  --help-reach: calc((var(--help-hit) - var(--help-icon-size)) / 2);
+  padding-inline-end: var(--help-reach);
+  margin-inline-end: calc(-1 * var(--help-reach));
+}
+
+/* No padding of its own: the dialog's content box pads it (a second
+   --gap-section took 48 px of the 248 px dialog at 150 % portrait). */
 .settings {
-  padding: var(--gap-section);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -1103,10 +1104,27 @@ function resetMachineColor(id: string) {
 
 
 
+/* Toggles in two columns where each keeps --form-col-min, else one (the
+   .formGrid rule): at 150 % portrait two fixed columns ran out sideways. */
 .layerGrid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit,
+    minmax(min(100%, max(var(--form-col-min), calc((100% - var(--gap-controls)) / 2))), 1fr));
   gap: var(--gap-controls);
+}
+
+/* A row group's name (viewerLayerGroups.ts) stands a section's step below
+   the rows of the group above it. */
+.layerTable .layerGroupHead > th { padding-top: var(--gap-section); }
+/* The layer's switch, then its line sample at the cell's end — under the
+   name where the column is narrow. */
+.layerCell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: var(--gap-controls);
+  row-gap: var(--gap-tight);
 }
 
 .layerGrid label,

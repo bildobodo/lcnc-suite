@@ -1642,3 +1642,77 @@ for (const key of Object.keys(STEP_LAYOUT)) {
     expect(m.sizers, "the step's measures").toEqual([{ hidden: 'true', inert: true }, { hidden: 'true', inert: true }]);
   });
 }
+
+// Settings on the wide tier (operator 2026-09-30: "das Fenster finde ich
+// etwas klein … zumindest im Landscape mehr Breite, wie beim Werkzeug
+// editieren"; "viele Layer-Toggles … brauchen Gruppierung, die Bounds
+// zusammen, die Werkzeugpfad-Optionen"): at the desktop the dialog is as
+// wide as the tool editor and the 3D Viewer tab stands the grouped layers
+// beside View / HUD / Camera Overlay; at 150 % portrait the two stack. The
+// layer rows sit in four groups in order, the HUD's switch in the HUD
+// section — and it still hides the DRO card. Nothing runs out sideways.
+test('Settings: as wide as the tool editor, the 3D Viewer sections side by side, the layers in four groups', async ({ page }) => {
+  test.setTimeout(120_000);
+  const GROUPS = [
+    { id: 'program', rows: ['toolpath', 'rapids', 'backplot'] },
+    { id: 'bounds', rows: ['toolpathBounds', 'bounds', 'reachRoom', 'reachPart'] },
+    { id: 'machine', rows: ['machine', 'tool', 'groundGrid'] },
+    { id: 'references', rows: ['workzero', 'workplane', 'toolsetter', 'toolChange', 'surface'] },
+  ];
+  for (const { vp, zoom, side } of [{ vp: 'desktop', zoom: 1, side: true }, { vp: 'touch-landscape', zoom: 1, side: true },
+    { vp: 'touch-portrait', zoom: 1.5, side: false }]) {
+    await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === vp)!);
+    if (zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
+    await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { display: { theme: 'light' } } } });
+    await page.getByTitle('Settings', { exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Settings', exact: true });
+    const tab = dialog.getByRole('tab', { name: '3D Viewer', exact: true });
+    if (await tab.count()) await tab.click();
+    else await dialog.getByRole('combobox').first().selectOption({ label: '3D Viewer' });
+    await expect(dialog.locator('[data-layer-group]')).toHaveCount(GROUPS.length);
+    await settleLayout(page);
+    const where = `${vp} ${zoom * 100} %`;
+    const m = await dialog.evaluate(d => {
+      const cols = [...d.querySelector('.sectionColumns')!.children].map(c => c.getBoundingClientRect());
+      const scroller = d.querySelector<HTMLElement>('.scrollContent')!;
+      const table = d.querySelector<HTMLElement>('[data-layer-legend]')!;
+      return {
+        // layout px (offsetWidth), whatever the CSS zoom
+        width: (d as HTMLElement).offsetWidth,
+        area: d.parentElement!.clientWidth,   // the overlay over the content area
+        cols: cols.map(r => ({ l: r.left, r: r.right, t: r.top, b: r.bottom })),
+        sideways: scroller.scrollWidth - scroller.clientWidth,
+        tableOver: table.scrollWidth - table.clientWidth,
+        groups: [...d.querySelectorAll<HTMLElement>('[data-layer-group]')].map(g => ({
+          id: g.dataset.layerGroup, rows: [...g.querySelectorAll<HTMLElement>('[data-layer]')].map(r => r.dataset.layer) })),
+        hudInLayers: !!d.querySelector('[data-layer="hud"]'),
+        // what reaches past the scroller's right edge (the outermost only)
+        past: (() => {
+          const edge = scroller.getBoundingClientRect().right + 1;
+          const over = [...scroller.querySelectorAll<HTMLElement>('*')].filter(e => e.getBoundingClientRect().right > edge);
+          return over.filter(e => !over.includes(e.parentElement!)).slice(0, 8)
+            .map(e => `${e.tagName.toLowerCase()}.${[...e.classList].join('.')}[${Math.round(e.getBoundingClientRect().right - edge)}]`);
+        })(),
+      };
+    });
+    const dump = JSON.stringify(m);
+    await dialog.screenshot({ path: test.info().outputPath(`settings-${vp}.png`) });
+    // the wide tier: 760 px wherever the content area leaves the margins
+    expect(Math.abs(m.width - Math.min(760, m.area - 40)), `${where}: the tool editor's width ${dump}`).toBeLessThan(1.5);
+    const [a, b] = m.cols;
+    if (side) expect(Math.abs(a!.t - b!.t) < 2 && b!.l >= a!.r, `${where}: layers beside View ${dump}`).toBe(true);
+    else expect(b!.t >= a!.b, `${where}: one column, layers first ${dump}`).toBe(true);
+    expect(m.sideways, `${where}: nothing runs out sideways ${dump}`).toBeLessThanOrEqual(0);
+    expect(m.tableOver, `${where}: the layer table fits its column ${dump}`).toBeLessThanOrEqual(0);
+    expect(m.groups, `${where}: the four groups in order ${dump}`).toEqual(GROUPS);
+    expect(m.hudInLayers, `${where}: the HUD's switch is not a layer row`).toBe(false);
+    // the HUD's switch in its section still hides the DRO card
+    const show = dialog.getByLabel('Show HUD', { exact: true });
+    await expect(page.locator('.hud')).toBeVisible();
+    await show.click({ force: true });
+    await expect(page.locator('.hud')).toBeHidden();
+    await show.click({ force: true });
+    await expect(page.locator('.hud')).toBeVisible();
+    if (zoom !== 1) await page.evaluate(() => { document.documentElement.style.zoom = ''; });
+  }
+});
