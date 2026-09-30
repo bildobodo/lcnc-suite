@@ -3919,3 +3919,104 @@ Leistungsfreigabe.
 **Weiteres Vorgehen:** Nur den genannten Bilanzrest nachprüfen; die
 geschlossenen Befunde und die beiden Operator-Korrekturen bleiben
 abgenommen, sofern deren Implementierung dabei unverändert bleibt.
+
+---
+
+## Antwort R50 · Claude · VP-I17-Rest und zwei Operator-Punkte · 30. September 2026
+
+Deine R49-Belege stehen unverändert in `96cc36d`. Umfang: `96cc36d..HEAD` auf
+`wip/part-b`.
+
+### VP-I17-Rest · gehaltene Vorbereitung (`efaddc5`)
+
+- `fillOverlays` verbraucht `ovIdx` und gibt es danach frei. Der fat-Pack hat
+  die Paare kopiert, die GL-Overlay-Geometrie hält ihren Index selbst (und
+  wird dort gezählt). Das spart bei deiner Probe die 800 KB.
+- Die Chunk-Boxen, die das Culling weiter liest, zählen als `source`.
+- **Unabhängiger Wächter für den aktuellen Besitz.** Der Spion hält nur
+  schwache Referenzen (`WeakRef`) auf jeden allozierten Puffer. Nach
+  `apply`, einer Befundansicht und einem Neuaufbau folgt ein voller `gc()`
+  (Vitest läuft mit `--expose-gc`). Jeder überlebende Puffer muss unter den
+  Puffern stehen, die die CPU-Seite zählt (`heldBuffers()`).
+  - Geprüft für fat und GL, jeweils Tabellen-, Raum- und Legacy-Weg; die
+    Overlays und eine LOD-Stufe sind darin enthalten.
+  - Die Allokationszähler bleiben kumulativ.
+- **Rot bewiesen:** das behaltene `ovIdx` und die ungezählten Boxen, jeweils
+  in allen sechs Fällen. Die Meldung nennt die allozierende Stelle.
+
+### Operator-Punkte (`ce29a4f`) — bitte prüfen
+
+**Pins statt Puck.** Tool-Setter und Werkzeugwechselposition sind Punkte mit
+Beschriftung (`viewer/pointMarker.ts`).
+- Ein Kreuz am Punkt und ein Stiel nach oben in den Box-Tönen, ohne
+  Achsen-Triad. Der Operator wollte „eine Markierung mit Beschriftung, die
+  man gut sieht“, kein Modell und kein Koordinatensystem.
+- Der Pin ist in CSS px gebaut und wird je Frame posiert: gleich groß bei
+  jedem Zoom. Die Beschriftung sitzt in Bildschirm-Richtung nach oben; von
+  oben verdeckte sie sonst das Kreuz.
+- Die G30-Position kommt aus `GET /g30` (Anzeige-Lesezugriff, Stand der
+  letzten Synchronisierung). Sie wird bei jeder Flanke busy→idle neu
+  gelesen. Ein fehlgeschlagener Lesezugriff oder eine fehlende Zeile zeigt
+  keinen Pin, nie 0.
+
+**„On top“ je Layer** (Entscheidung des Operators: eine Spalte in der
+Layer-Liste, nicht ein Schalter).
+- Settings → Layers ist jetzt eine Tabelle. Linien und Marker lassen sich
+  einzeln über die Maschine legen, gespeichert als `viewer.onTop`.
+- **Vorgaben:** Marker an, alles andere aus. Der alte Schalter `pathOnTop`
+  wird zu den Zeilen Toolpath, Rapids und Backplot.
+- **„Oben“** heißt: Tiefentest aus *und* nach der Maschine zeichnen
+  (`viewer/onTop.ts`, eine Reihenfolge-Leiter). Der Pfad-Controller hält es je
+  Strom (Limit-Overlay und Befundabschnitt folgen dem Strom) und für die
+  Werkzeugweg-Box über Programme hinweg.
+
+**Wächter:**
+- **Migration:** alter Schalter → drei Zeilen; eine gespeicherte Wahl gewinnt.
+- **Je Strom:** „oben“ bleibt über einen Neuaufbau erhalten, die Box geht
+  zurück wie gebaut.
+- **Pixelbeweis:**
+  - Von oben ist der Pin über dem Spindelkopf sichtbar, solange „oben“ gilt.
+  - In der Tiefe verdeckt ihn der Kopf; kaum ein Pixel unterscheidet sich
+    vom Bild ohne Pin.
+  - Rot mit Tiefentest aus, aber unveränderter Reihenfolge (59 statt über
+    80 Pixel) und mit wirkungslosem `applyOnTop`.
+- **G30:** Der Pin folgt seinen Lesungen; eine fehlende Zeile verbirgt ihn.
+- **Settings:** Die Spalte bietet nur Linien und Marker an und speichert je
+  Layer. `serial-layout` ist grün, auch 150 % Hochformat.
+
+### Grenzen
+
+- Die G30-Markierung zeigt den Stand der Parameterdatei nach der letzten
+  Synchronisierung des Interpreters, nicht einen ungesicherten Wert im
+  Interpreter.
+- Vom Pin ist nur der Punkt die Position; Stiel und Beschriftung sind
+  Bildschirmgrößen.
+
+### Operator-Punkt (`4ceb185`) — Rückzug des Tool-Setters
+
+Der Operator meldete beim Programmstart „Probe is already tripped when
+starting G38.2 or G38.3 move“. Ursache, im Sim nachgestellt: Eine
+Tastbewegung bremst unter G64 mit der halben Z-Beschleunigung. Der
+Überlauf der schnellen Tastung ist v²/a. Bei F2000 und 500 mm/s² auf dem
+XYZAC-Sim sind das 2,2 mm, gemessen wurden 2,13 mm. Der eingestellte
+Rückzug von 2 mm reichte also nicht über den Überlauf, und die langsame
+Tastung startete im ausgelösten Taster. Das verhält sich wie an einer
+echten Maschine und ist so gewollt.
+- **Live:** Der Operator bat, die Werte direkt zu setzen. Rückzug 3 mm
+  (Settings und `#3009` im Interpreter), dann eine Messung `T13 M600`:
+  ohne Fehler, gemessen 65,064.
+- **Mitgelieferte Beispiele:** In allen drei `sim.var` stehen jetzt schnell
+  F2000, langsam F200, Rückzug 3 mm.
+- **Wächter** `TestProbeRetract`: Je Profil muss der Rückzug den Überlauf
+  um mindestens 0,5 mm übersteigen. Der Überlauf ist (F/60)² geteilt durch
+  die kleinere Beschleunigung aus `[AXIS_Z]` und `[JOINT_2]`. Mit 2 mm bei
+  F2000 ist der Wächter rot.
+
+### Prüfstand
+
+- **Offline-Gate PASS** auf dem Inhalt von `ce29a4f`:
+  - Backend: 1111 Tests.
+  - Vitest: 1815 Tests.
+  - Playwright: 375 Tests.
+  - Lint, Build und CSS-Audit grün.
+- **Nachgezogen für `4ceb185`:** Backend-pytest, 1113 Tests, alle grün.
