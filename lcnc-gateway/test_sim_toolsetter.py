@@ -131,6 +131,32 @@ def feed_rows(text):
     return rows
 
 
+class TestProbeRetract(unittest.TestCase):
+    """The tool routine probes fast (#3004), retracts #3009 and probes slow.
+    Under G64 LinuxCNC brakes a probe move at HALF the axis acceleration (the
+    parabolic blend), so the fast probe stops v²/a past the contact: a retract
+    shorter than that leaves the tool on the plate and the slow G38.2 starts
+    "already tripped" — the operator's heavy_test with F2000 and 2 mm on the
+    XYZAC sim (500 mm/s²: 2.2 mm, measured 2.13; 2026-09-30). Every shipped
+    profile's seeded values clear it with a margin."""
+
+    MARGIN_MM = 0.5
+
+    def test_every_profile_retracts_past_the_fast_probes_stop(self):
+        for p in json.loads(_read("profiles.json"))["profiles"]:
+            ini = _ini(_read(p["ini"]))
+            accel = min(float(_first(ini, "AXIS_Z", "MAX_ACCELERATION")), float(_first(ini, "JOINT_2", "MAX_ACCELERATION")))
+            seed = feed_rows(_read(p["state_dir"], "sim.var"))
+            v = seed[3004] / 60.0                     # mm/s
+            stop = v * v / accel                      # v² / (2 · a/2)
+            self.assertGreaterEqual(seed[3009], stop + self.MARGIN_MM,
+                                    f"{p['id']}: retract {seed[3009]} mm, the fast probe at F{seed[3004]:.0f} stops {stop:.2f} mm past the contact")
+
+    def test_the_operators_case_fails_the_rule(self):
+        # F2000 with a 2 mm retract at 500 mm/s² — what ended "already tripped"
+        self.assertLess(2.0, (2000 / 60.0) ** 2 / 500 + self.MARGIN_MM)
+
+
 class TestRepeatedMeasurement(unittest.TestCase):
     """Codex R45 ST-I05: what the sim model does over repeated measurements.
     The contact is sim_toolsetter.comp's (trips at Z = plate + length, moving

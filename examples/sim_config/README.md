@@ -90,8 +90,14 @@ also the next measurement's starting length and the error ADDS UP: a Z set
 - The comparison is faithful: after the fast probe the machine decelerates past
   the trip point; if the retract (`#3009`, *Retract distance*) does not clear
   that overshoot, the slow probe starts with the probe still pressed and
-  LinuxCNC stops with "probe already tripped" — as a real machine would. Keep
-  the fast probe feed moderate (e.g. 500 mm/min with a 2 mm retract).
+  LinuxCNC stops with "probe already tripped" — as a real machine would. Under
+  G64 a probe move brakes at HALF the Z acceleration, so the overshoot is
+  v²/a (v = fast feed in mm/s, a = `[AXIS_Z] MAX_ACCELERATION`): at 2000 mm/min
+  that is 1.5 mm on the 3-axis (750 mm/s²), 2.2 mm on the XYZAC (500) and
+  1.6 mm on the TWP (700). The profiles ship fast 2000 / slow 200 mm/min with a
+  3 mm retract (`#3004` / `#3005` / `#3009`), at least 0.5 mm past the
+  overshoot everywhere (`TestProbeRetract` checks it); a faster fast feed needs
+  a longer retract.
 
 `scripts/config_sync_check.py` reports a component that is not installed, with
 the `halcompile` command.
