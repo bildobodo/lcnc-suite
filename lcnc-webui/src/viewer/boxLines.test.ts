@@ -1,11 +1,11 @@
 // The two-tone lines (operator 2026-09-29): the boxes and the reach outlines
 // are a dark solid pass with light dashes over it — one width, one geometry,
-// the dash held in CSS px whatever the zoom.
+// the dash held in CSS px along each PROJECTED segment (Codex R44 VP-I10).
 import { describe, it, expect } from "vitest";
 import * as THREE from "three";
 import type { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
-import type { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
-import { makeBoxEdges, makeTwoToneSegments, worldPerPixel, REACH_PX, REACH_DASH_PX, MACHINE_BOX_PX, MACHINE_BOX_DASH_PX } from "./boxLines";
+import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
+import { makeBoxEdges, makeTwoToneSegments, screenDashShaders, worldPerPixel, REACH_PX, REACH_DASH_PX, MACHINE_BOX_PX, MACHINE_BOX_DASH_PX } from "./boxLines";
 
 const renderer = { getSize: (v: THREE.Vector2) => v.set(800, 600) } as unknown as THREE.WebGLRenderer;
 const render = (line: LineSegments2, cam: THREE.Camera) =>
@@ -28,12 +28,13 @@ describe("two-tone lines", () => {
     expect([solid!.renderOrder, dashes!.renderOrder]).toEqual([3, 4]);
     expect(dashes!.geometry).toBe(solid!.geometry);
     expect([sm.transparent, dm.transparent], "opaque like every role line").toEqual([false, false]);
+    // the dash is CSS px on screen: no world length to re-express per frame
     for (const zoom of [1, 3]) {
-      const cam = ortho(zoom);
-      render(dashes!, cam);
-      expect(dm.dashSize).toBeCloseTo(REACH_DASH_PX * worldPerPixel(cam, g, 600), 9);
-      expect(dm.gapSize).toBe(dm.dashSize);
+      render(dashes!, ortho(zoom));
+      expect([dm.dashSize, dm.gapSize]).toEqual([REACH_DASH_PX, REACH_DASH_PX]);
     }
+    expect("SCREEN_DASH" in dm.defines, "its own program: the screen-space dash").toBe(true);
+    expect("SCREEN_DASH" in sm.defines).toBe(false);
     g.setColors("#000000", "#ffffff");
     expect([sm.color.getHexString(), dm.color.getHexString()]).toEqual(["000000", "ffffff"]);
   });
@@ -51,7 +52,20 @@ describe("two-tone lines", () => {
     expect(Math.max(...xs), "real half-size along X").toBeCloseTo(250, 6);
     const dm = dashes!.material as LineMaterial;
     render(dashes!, ortho(2));
-    expect(dm.dashSize).toBeCloseTo(MACHINE_BOX_DASH_PX * worldPerPixel(ortho(2), box, 600), 9);
+    expect([dm.dashSize, dm.gapSize, "SCREEN_DASH" in dm.defines]).toEqual([MACHINE_BOX_DASH_PX, MACHINE_BOX_DASH_PX, true]);
+  });
+
+  it("the screen-space dash patches LineMaterial's own shader — every anchor exactly once, or it throws", () => {
+    const m = new LineMaterial();
+    const { vertex, fragment } = screenDashShaders(m.vertexShader, m.fragmentShader);
+    expect(vertex).toContain("vDashW = dPx * clip.w;");
+    expect(vertex).toContain("length( sdPx )");
+    expect(fragment).toContain("mod( vDashW / vDashInvW + dashOffset, dashSize + gapSize )");
+    // the world dash stays for every other dashed line (the rapids)
+    expect(fragment).toContain("mod( vLineDistance + dashOffset");
+    // a three upgrade that moves an anchor must fail loudly, never draw world dashes
+    expect(() => screenDashShaders(m.vertexShader.replace("gl_Position = clip;", "gl_Position=clip;"), m.fragmentShader)).toThrow(/vertex main/);
+    expect(() => screenDashShaders(m.vertexShader, m.fragmentShader.replace("// todo - FIX", ""))).toThrow(/fragment dash test/);
   });
 
   it("world units per pixel: orthographic by the frustum and zoom, perspective by the distance", () => {

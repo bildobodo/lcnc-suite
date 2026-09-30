@@ -9,7 +9,7 @@ import { ref, type Ref } from "vue";
 import { disposeObject } from "./disposal";
 import { createToolpathController, LIMIT_OVERLAY_RENDER_ORDER, type ToolpathCtx, type ToolpathController } from "./toolpathController";
 import { BACKPLOT_RENDER_ORDER } from "./backplotController";
-import { TOOLPATH_BOX_PX, TOOLPATH_BOX_DASH_PX, worldPerPixel } from "./boxLines";
+import { TOOLPATH_BOX_PX, TOOLPATH_BOX_DASH_PX } from "./boxLines";
 import type { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import type { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 
@@ -170,7 +170,7 @@ describe("the toolpath box: two-tone, short dashes held in screen pixels (operat
     c.setColors({ ...PALETTE, toolpathBounds: "#000000", boundsAlt: "#ffffff" });
     expect([sm.color.getHexString(), dm.color.getHexString()]).toEqual(["000000", "ffffff"]);
   });
-  it("re-expresses the dash in the box's units at every render: TOOLPATH_BOX_DASH_PX on screen at any zoom", () => {
+  it("dashes TOOLPATH_BOX_DASH_PX on screen along each projected edge (screen-space dash, Codex R44 VP-I10)", () => {
     const ctx = makeCtx();
     c.apply(ctx, GCODE);
     const dashes = boxOf(ctx.workRotGroup)!.children[1] as LineSegments2;
@@ -180,9 +180,7 @@ describe("the toolpath box: two-tone, short dashes held in screen pixels (operat
       const cam = new THREE.OrthographicCamera(-400, 400, 300, -300, 0.1, 10000);
       cam.zoom = zoom; cam.updateProjectionMatrix();
       (dashes as THREE.Object3D).onBeforeRender(renderer, new THREE.Scene(), cam, dashes.geometry, dm, null as never);
-      const wpp = worldPerPixel(cam, dashes.parent!, 600);
-      expect(wpp, "world units per pixel shrink with the zoom").toBeCloseTo(1 / zoom, 6);
-      expect([dm.dashSize, dm.gapSize]).toEqual([TOOLPATH_BOX_DASH_PX * wpp, TOOLPATH_BOX_DASH_PX * wpp]);
+      expect([dm.dashSize, dm.gapSize, "SCREEN_DASH" in dm.defines]).toEqual([TOOLPATH_BOX_DASH_PX, TOOLPATH_BOX_DASH_PX, true]);
     }
   });
 });

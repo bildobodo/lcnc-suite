@@ -40,6 +40,33 @@ function payload(kind: "dense" | "thin") {
   };
 }
 
+/** The viewer has BUILT this model: buildFromInit resets __viewerDiag to
+ *  {ready: false} and replaces it when done — a diagnostic call or a
+ *  status frame (the backplot's moves) before that lands in the old scene or
+ *  in none (Codex R44 VP-I11). */
+async function modelBuilt(page: Page, ids: string[]) {
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready
+    ? window.__viewerDiag.getAppearance?.().parts.map(p => p.id).sort() ?? null : null),
+    { message: "the viewer built the model", timeout: 20_000 }).toEqual(ids.slice().sort());
+}
+
+/** How much of `top` a pixel shows over `under` (0 = only `under`, 1 = only
+ *  `top`): antialiasing mixes a line into its neighbour — a 1 px line on a
+ *  pixel boundary reads half-and-half (Codex R44 VP-I11), never a full tone. */
+const shareOf = (c: number[], top: number[], under: number[]) => {
+  const d = top.map((v, i) => v - under[i]!);
+  return c.reduce((s, v, i) => s + (v - under[i]!) * d[i]!, 0) / d.reduce((s, v) => s + v * v, 0);
+};
+
+// Codex R44 VP-I11's sample: a 1 px limit line on a pixel boundary over the
+// 2 px backplot — half and half. The nearest FULL tone calls it backplot and
+// failed the check; its share of the limit is a half.
+test("a half-mixed pixel reads as half the limit, not as the backplot", () => {
+  const [sample, limit, backplot] = [[243, 54, 128], [230, 107, 0], [255, 0, 255]];
+  expect(nearestOf(sample, [["limit", limit], ["backplot", backplot]]), "the old rule's verdict").toBe("backplot");
+  expect(shareOf(sample, limit, backplot)).toBeCloseTo(0.5, 1);
+});
+
 async function loadProgram(page: Page, kind: "dense" | "thin", version: number) {
   await ctl({ op: "status_delta", data: { active_file: `/${kind}.ngc` } });
   await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version, file: `/${kind}.ngc` } });
@@ -74,6 +101,7 @@ test("the palette in four themes, on a model, a dense and a thin path — and no
     workGroup: "root", toolGroup: "tool",
     machine_bounds: { origin: [-200, -200, -10], size: [400, 400, 200] },
   } });
+  await modelBuilt(page, ["base", "head"]);
   const token = (name: string) => page.evaluate(n => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), name);
   let version = 910;
   for (const kind of ["dense", "thin"] as const) {
@@ -224,6 +252,7 @@ test("the width ladder is drawn: the path and the limit overlay 1 px, the backpl
       // in the measured profile.
       machine_bounds: { origin: [-150, -200, -10], size: [300, 400, 200] },
     } });
+    await modelBuilt(page, ["base", "head"]);   // before the backplot's moves: they must reach the new scene
     await ctl({ op: "status_delta", data: { active_file: "/ladder.ngc" } });
     await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: version++, file: "/ladder.ngc" } });
     await expect(page.locator(".codeLine").nth(3)).toBeVisible();
@@ -304,9 +333,14 @@ test("the width ladder is drawn: the path and the limit overlay 1 px, the backpl
       expect(at, `${where}: the violation line`).not.toBeNull();
       const shot = await page.screenshot();
       const samples = await profileColours(page, shot, at!, [-0.5, 0, 0.5], dpr);
-      const named: [string, number[]][] = [["limit", rgbOf(drawn.limit!)], ["backplot", rgbOf(drawn.backplot!)]];
-      const seen = samples.map(c => nearestOf(c, named));
-      expect(seen, `${where}: the limit shows on top ${JSON.stringify({ samples, named })}`).toContain("limit");
+      // The limit's SHARE over the backplot at the line: a limit line
+      // narrower than the backplot mixes into it at a pixel boundary (1 px
+      // over 2 px: half at worst); one as wide covers it at its centre.
+      const mats = await page.evaluate(() => window.__viewerDiag!.getRoleMaterials!());
+      const px = (role: string) => mats.find(m => m.role === role)?.widthPx ?? 1;
+      const need = px("limit") >= px("backplot") ? 0.9 : 0.4;
+      const shares = samples.map(c => shareOf(c, rgbOf(drawn.limit!), rgbOf(drawn.backplot!)));
+      expect(Math.max(...shares), `${where}: the limit shows on top ${JSON.stringify({ samples, shares, need })}`).toBeGreaterThanOrEqual(need);
       await test.info().attach(`backplot-on-limit-dpr${dpr}-${theme}.png`, { body: shot, contentType: "image/png" });
     }
     await context.close();
@@ -388,4 +422,59 @@ test("the box edge alone: two tones, MACHINE_BOX_PX wide, dashes of MACHINE_BOX_
     }
     await context.close();
   }
+});
+
+// The dashes along EVERY projected box edge (Codex R44 VP-I10): a world dash
+// scaled at the box's centre kept the zoom but not an edge's direction or
+// depth — a Y edge read 5 px, a receding X edge under 1 px, where 10 were
+// promised. Parallel and perspective, three directions (Codex's [1, 0.12,
+// 0.25] among them): along the centre line of each edge long enough for six
+// dashes, the distance between consecutive starts of a light dash is the
+// period, 2 × MACHINE_BOX_DASH_PX CSS px (median, ±2 px).
+test("box dashes hold MACHINE_BOX_DASH_PX along every projected edge — parallel and perspective, three directions", async ({ browser }) => {
+  test.setTimeout(150_000);
+  const context = await browser.newContext({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: 1 });
+  const page = await context.newPage();
+  await ctl({ op: "reset" });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(MOCK);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready)).toBe(true);
+  const failures: string[] = [];
+  let measured = 0;
+  for (const projection of ["parallel", "perspective"] as const) {
+    await ctl({ op: "raw", frame: { type: "settings_changed", settings: { display: { theme: "light" }, viewer: { projection, layers: {
+      hud: false, bounds: true, toolpath: false, tool: false, machine: false, workzero: false, groundGrid: false, toolsetter: false } } } } });
+    await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getCamera?.()?.ortho), { message: `the ${projection} camera` })
+      .toBe(projection === "parallel");
+    for (const dir of [[1, 2, 0.7], [1, 0.12, 0.25], [0.3, 1, 1.2]]) {
+      await page.evaluate(d => window.__viewerDiag!.setViewDirection!(d), dir);
+      await page.waitForTimeout(300);
+      const drawn = (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn;
+      const tones = { dark: rgbOf(drawn.bounds!), light: rgbOf(drawn.boundsAlt!) };
+      const edges = (await page.evaluate(() => window.__viewerDiag!.projectRoleSegments!("boundsAlt")))
+        .filter(e => e.length > 6 * 2 * MACHINE_BOX_DASH_PX);
+      const shot = await page.screenshot();
+      for (const e of edges) {
+        const where = `${projection} ${JSON.stringify(dir)} edge ${Math.round(e.length)} px at (${Math.round(e.x)}, ${Math.round(e.y)})`;
+        const n = Math.floor(e.length) - 16;   // 8 px clear of each corner
+        const along = Array.from({ length: n }, (_, i) => i - n / 2);
+        const samples = await profileColours(page, shot, { x: e.x, y: e.y, dx: -e.dy, dy: e.dx }, along, 1);
+        const cls = samples.map(c => {
+          const dd = rgbDist(c, tones.dark), dl = rgbDist(c, tones.light);
+          return Math.min(dd, dl) > 60 ? "o" : dd < dl ? "d" : "l";
+        });
+        const starts: number[] = [];
+        for (let i = 1; i < cls.length; i++) if (cls[i] === "l" && cls[i - 1] !== "l") starts.push(i);
+        const periods = starts.slice(1).map((s, k) => s - starts[k]!).sort((a, b) => a - b);
+        const pattern = cls.join("");
+        if (periods.length < 3) { failures.push(`${where}: fewer than four dashes — ${pattern}`); continue; }
+        measured++;
+        const median = periods[Math.floor(periods.length / 2)]!;
+        if (Math.abs(median - 2 * MACHINE_BOX_DASH_PX) > 2) failures.push(`${where}: period ${median} px, want ${2 * MACHINE_BOX_DASH_PX} — ${pattern}`);
+      }
+    }
+  }
+  expect(failures, failures.join("\n")).toEqual([]);
+  expect(measured, "edges measured over the six views").toBeGreaterThanOrEqual(12);
+  await context.close();
 });

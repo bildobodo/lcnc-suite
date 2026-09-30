@@ -9,12 +9,14 @@
 // outlines are the same two tones at 1 px, dotted (makeTwoToneSegments).
 //
 // Both passes are screen-space lines (LineSegments2) over ONE geometry built
-// at the box's real size — never a unit cube under a non-uniform scale, which
-// would stretch the dashes differently along X, Y and Z. The dash length is
-// held in CSS px: each frame it is re-expressed in the box's local units at
-// its distance from the camera (world units per pixel). Both passes respect
-// depth (a box never hides a path in front of it); the dashes draw after the
-// solid line at the same depth.
+// at the box's real size. The dashes are measured in CSS px ALONG EACH
+// PROJECTED SEGMENT, in the shader (screenDash): a world dash length scaled
+// at the group's centre kept the zoom but not the edge's direction or its
+// perspective depth — a Y edge read 5 px where 10 were promised, a receding X
+// edge under 1 px (Codex R44 VP-I10). Each segment's pattern starts at its
+// first end (a box edge is one segment; a reach cage's short segments restart
+// theirs). Both passes respect depth (a box never hides a path in front of
+// it); the dashes draw after the solid line at the same depth.
 import * as THREE from "three";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
@@ -62,11 +64,67 @@ export function boxEdgePositions(sx: number, sy: number, sz: number): Float32Arr
 }
 
 const _pos = new THREE.Vector3();
-const _scale = new THREE.Vector3();
 const _camPos = new THREE.Vector3();
 
+// ── screen-space dashes (Codex R44 VP-I10) ────────────────────────────────
+// LineMaterial dashes by a per-instance WORLD distance. screenDash replaces
+// it, for this material only (define SCREEN_DASH — its own program), by the
+// distance from the segment's first end in CSS px on screen: 0 at the first
+// end, the projected length at the other. Varyings interpolate
+// perspective-correctly (linear in the world, not on screen) and GLSL ES 3.00
+// has no `noperspective`: the vertex writes d·w and w, the fragment divides —
+// the ratio interpolates linearly on screen. The anchors are LineMaterial's
+// own source (three r182); a missing one throws — a three upgrade must fail
+// loudly, never draw world dashes again.
+const SD_VERT_DECL = "varying float vLineDistance;";
+const SD_VERT_MAIN = "gl_Position = clip;";
+const SD_FRAG_DECL = "varying float vLineDistance;";
+const SD_FRAG_TEST = "if ( mod( vLineDistance + dashOffset, dashSize + gapSize ) > dashSize ) discard; // todo - FIX";
+
+function replaceOnce(src: string, anchor: string, by: string, where: string): string {
+  const at = src.indexOf(anchor);
+  if (at < 0 || src.indexOf(anchor, at + 1) >= 0) {
+    throw new Error(`screenDash: the ${where} anchor "${anchor}" is not in LineMaterial's shader exactly once`);
+  }
+  return src.slice(0, at) + by + src.slice(at + anchor.length);
+}
+
+export function screenDashShaders(vertex: string, fragment: string): { vertex: string; fragment: string } {
+  const varyings = "\n\t\tvarying float vDashW;\n\t\tvarying float vDashInvW;\n";
+  let v = replaceOnce(vertex, SD_VERT_DECL, SD_VERT_DECL + varyings, "vertex declaration");
+  v = replaceOnce(v, SD_VERT_MAIN, `${SD_VERT_MAIN}
+			#ifdef SCREEN_DASH
+				vec2 sdPx = ( ndcEnd.xy - ndcStart.xy ) * 0.5 * resolution;
+				float dPx = ( position.y < 0.5 ) ? 0.0 : length( sdPx );
+				vDashW = dPx * clip.w;
+				vDashInvW = clip.w;
+			#endif`, "vertex main");
+  let f = replaceOnce(fragment, SD_FRAG_DECL, SD_FRAG_DECL + varyings, "fragment declaration");
+  f = replaceOnce(f, SD_FRAG_TEST, `#ifdef SCREEN_DASH
+				if ( mod( vDashW / vDashInvW + dashOffset, dashSize + gapSize ) > dashSize ) discard;
+			#else
+				${SD_FRAG_TEST}
+			#endif`, "fragment dash test");
+  return { vertex: v, fragment: f };
+}
+
+/** Dash `m` in CSS px along each projected segment: `px` on, `px` off. */
+export function screenDash(m: LineMaterial, px: number): void {
+  m.dashed = true;
+  m.defines.SCREEN_DASH = "";
+  m.dashSize = px;
+  m.gapSize = px;
+  m.onBeforeCompile = shader => {
+    const s = screenDashShaders(shader.vertexShader, shader.fragmentShader);
+    shader.vertexShader = s.vertex;
+    shader.fragmentShader = s.fragment;
+  };
+  m.customProgramCacheKey = () => "screenDash";
+}
+
 /** World units per CSS pixel at `obj`'s origin, seen by `camera` over a
- *  drawing area `heightPx` tall. */
+ *  drawing area `heightPx` tall (a scale at one point — no longer the box
+ *  dashes' rule, see screenDash). */
 export function worldPerPixel(camera: THREE.Camera, obj: THREE.Object3D, heightPx: number): number {
   if (!(heightPx > 0)) return 1;
   const ortho = camera as THREE.OrthographicCamera;
@@ -94,22 +152,15 @@ export function makeTwoToneSegments(positions: Float32Array, o: BoxEdgesOptions 
   };
   const solidMat = material(o.color, o.role);
   const dashMat = material(o.alt, `${o.role}Alt`);
-  dashMat.dashed = true;
+  screenDash(dashMat, o.dashPx);
   const solid = new LineSegments2(geom, solidMat);
   const dashes = new LineSegments2(geom, dashMat);
   solid.renderOrder = o.renderOrder ?? 0;
   dashes.renderOrder = solid.renderOrder + 1;
-  dashes.computeLineDistances();
+  dashes.computeLineDistances();   // LineMaterial's own dash attributes (unused under SCREEN_DASH)
   solid.onBeforeRender = (renderer) => { renderer.getSize(solidMat.resolution); };
+  dashes.onBeforeRender = (renderer) => { renderer.getSize(dashMat.resolution); };
   const group = new THREE.Group() as TwoToneLines;
-  // Object3D's full signature: LineSegments2 declares a renderer-only one.
-  (dashes as THREE.Object3D).onBeforeRender = (renderer, _scene, camera) => {
-    renderer.getSize(dashMat.resolution);
-    group.getWorldScale(_scale);
-    const d = (o.dashPx * worldPerPixel(camera, group, dashMat.resolution.y)) / Math.max(1e-9, _scale.x);
-    dashMat.dashSize = d;
-    dashMat.gapSize = d;
-  };
   group.add(solid, dashes);
   group.setColors = (color, alt) => { solidMat.color.set(color); dashMat.color.set(alt); };
   return group;

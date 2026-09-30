@@ -1790,39 +1790,16 @@ async function buildFromInit(init: ViewerInit) {
         // coordinates): its midpoint and unit direction — the viewer specs
         // sample the rendered pixels across it to measure the drawn width.
         projectRole: (role: string) => {
-          if (!camera || !renderer) return null;
-          const rect = renderer.domElement.getBoundingClientRect();
-          const a = new THREE.Vector3(), b = new THREE.Vector3();
           let best: { x: number; y: number; dx: number; dy: number; length: number } | null = null;
-          const consider = (o: THREE.Object3D) => {
-            a.applyMatrix4(o.matrixWorld).project(camera!);
-            b.applyMatrix4(o.matrixWorld).project(camera!);
-            const ax = rect.left + (a.x + 1) / 2 * rect.width, ay = rect.top + (1 - a.y) / 2 * rect.height;
-            const bx = rect.left + (b.x + 1) / 2 * rect.width, by = rect.top + (1 - b.y) / 2 * rect.height;
-            const length = Math.hypot(bx - ax, by - ay);
-            if (length > (best?.length ?? 0)) best = { x: (ax + bx) / 2, y: (ay + by) / 2, dx: (bx - ax) / length, dy: (by - ay) / length, length };
-          };
-          scene?.traverse(o => {
-            const m = (o as THREE.Mesh).material as THREE.Material | undefined;
-            if (!m || Array.isArray(m) || m.userData?.role !== role) return;
-            for (let p: THREE.Object3D | null = o; p; p = p.parent) if (!p.visible) return;
-            const g = (o as THREE.Mesh).geometry as THREE.BufferGeometry;
-            if ((o as any).isLineSegments2) {
-              const d = (g.getAttribute("instanceStart") as THREE.InterleavedBufferAttribute).data;
-              const arr = d.array as Float32Array, n = Math.min((g as THREE.InstancedBufferGeometry).instanceCount, 20000);
-              for (let i = 0; i < n; i++) { a.fromArray(arr, i * 6); b.fromArray(arr, i * 6 + 3); consider(o); }
-              return;
-            }
-            if (!(o as any).isLineSegments) return;
-            const pos = g.getAttribute("position");
-            const idx = g.index, start = g.drawRange.start;
-            const end = Math.min(idx ? idx.count : pos.count, start + g.drawRange.count, start + 40000);
-            for (let i = start; i + 1 < end; i += 2) {
-              const i0 = idx ? idx.getX(i) : i, i1 = idx ? idx.getX(i + 1) : i + 1;
-              a.fromBufferAttribute(pos, i0); b.fromBufferAttribute(pos, i1); consider(o);
-            }
-          });
+          _projectRoleSegments(role, s => { if (s.length > (best?.length ?? 0)) best = s; });
           return best;
+        },
+        // Every visible segment of a role on screen (Codex R44 VP-I10: the
+        // box dashes measured along each edge, not only the longest).
+        projectRoleSegments: (role: string) => {
+          const out: { x: number; y: number; dx: number; dy: number; length: number }[] = [];
+          _projectRoleSegments(role, s => out.push(s));
+          return out;
         },
         // The tool setter puck (operator 2026-09-29): shown (incl. every
         // parent), its top centre in the machine frame, and its screen point.
@@ -3468,6 +3445,42 @@ function _boundsWorldBox(): THREE.Box3 | null {
   if (!_iniBox || !g) return null;
   g.updateWorldMatrix(true, false);
   return _iniBox.clone().applyMatrix4(g.matrixWorld);
+}
+
+/** Each visible segment of a palette role, projected to the page (CSS px):
+ *  centre, unit direction, length. The diagnostics' scene reader. */
+function _projectRoleSegments(role: string, each: (s: { x: number; y: number; dx: number; dy: number; length: number }) => void) {
+  if (!camera || !renderer) return;
+  const rect = renderer.domElement.getBoundingClientRect();
+  const a = new THREE.Vector3(), b = new THREE.Vector3();
+  const consider = (o: THREE.Object3D) => {
+    a.applyMatrix4(o.matrixWorld).project(camera!);
+    b.applyMatrix4(o.matrixWorld).project(camera!);
+    const ax = rect.left + (a.x + 1) / 2 * rect.width, ay = rect.top + (1 - a.y) / 2 * rect.height;
+    const bx = rect.left + (b.x + 1) / 2 * rect.width, by = rect.top + (1 - b.y) / 2 * rect.height;
+    const length = Math.hypot(bx - ax, by - ay);
+    if (length > 0) each({ x: (ax + bx) / 2, y: (ay + by) / 2, dx: (bx - ax) / length, dy: (by - ay) / length, length });
+  };
+  scene?.traverse(o => {
+    const m = (o as THREE.Mesh).material as THREE.Material | undefined;
+    if (!m || Array.isArray(m) || m.userData?.role !== role) return;
+    for (let p: THREE.Object3D | null = o; p; p = p.parent) if (!p.visible) return;
+    const g = (o as THREE.Mesh).geometry as THREE.BufferGeometry;
+    if ((o as any).isLineSegments2) {
+      const d = (g.getAttribute("instanceStart") as THREE.InterleavedBufferAttribute).data;
+      const arr = d.array as Float32Array, n = Math.min((g as THREE.InstancedBufferGeometry).instanceCount, 20000);
+      for (let i = 0; i < n; i++) { a.fromArray(arr, i * 6); b.fromArray(arr, i * 6 + 3); consider(o); }
+      return;
+    }
+    if (!(o as any).isLineSegments) return;
+    const pos = g.getAttribute("position");
+    const idx = g.index, start = g.drawRange.start;
+    const end = Math.min(idx ? idx.count : pos.count, start + g.drawRange.count, start + 40000);
+    for (let i = start; i + 1 < end; i += 2) {
+      const i0 = idx ? idx.getX(i) : i, i1 = idx ? idx.getX(i + 1) : i + 1;
+      a.fromBufferAttribute(pos, i0); b.fromBufferAttribute(pos, i1); consider(o);
+    }
+  });
 }
 
 function animate() {
