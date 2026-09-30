@@ -57,7 +57,7 @@ import { twpPoseStale, twpDatumStale, kinsModeChip, fixtureOffDatum, stampAForFi
 import { planeView, type PlaneView } from "./viewer/planeView";
 import { Camera, Settings, ChevronDown, ChevronUp } from "lucide-vue-next";
 import { createAbDriver } from "./viewer/abDriver";
-import { abRunLine, registerAbDriver, startAbRun } from "./viewer/abRunBus";
+import { abRunLine, cancelAbRun, registerAbDriver, startAbRun } from "./viewer/abRunBus";
 import { cssZoomOf } from "./helpPlacement";
 import { gcodeTextSource } from "./ws/bulkData";
 
@@ -436,6 +436,7 @@ let _glTriangles = 0;
 let _abFrameHook: ((now: number) => void) | null = null;
 let _abInteract: (() => void) | null = null;
 let _abDriver: ReturnType<typeof createAbDriver> | null = null;
+const scrubBarRef = ref<InstanceType<typeof ScrubBar> | null>(null);
 
 // Fresh per-call snapshot of the reassigned scene-graph pointers for the viewer
 // controllers (they must never cache these — see viewer/viewerContext.ts).
@@ -1802,6 +1803,7 @@ async function buildFromInit(init: ViewerInit) {
         // The A/B run with short phases (the e2e; the operator's run is the
         // Debug tab's button with the full durations).
         runAbMeasurement: (durations?: Record<string, number>) => startAbRun({ durations }),
+        cancelAbMeasurement: () => cancelAbRun(),
         getRoleMaterials: () => {
           const out: { role: string; kind: string; widthPx: number | null; dashed: boolean; opacity: number; transparent: boolean }[] = [];
           const seen = new Set<string>();
@@ -3772,6 +3774,7 @@ onMounted(() => {
     requestRender,
     setFrameHook: fn => { _abFrameHook = fn; },
     root: () => wrapEl.value,
+    timeline: () => scrubBarRef.value?.abTimeline ?? null,
     rapidsLayer: on => { if (on !== undefined) setLayerVisible("rapids", on); return _pathLayers.rapids; },
     pathLayer: on => { if (on !== undefined) setLayerVisible("toolpath", on); return _pathLayers.toolpath; },
     simActive: () => simMode.value,
@@ -4535,6 +4538,7 @@ defineExpose({
 
     <!-- Program-scrub timeline (stage 2) + collision check (stage 3) -->
     <ScrubBar
+      ref="scrubBarRef"
       :collisionBusy="collisionBusy"
       :collisionProgress="collisionProgress"
       :sweepTool="{ num: vst?.tool_number ?? null, diam: vst?.tool_diameter ?? null, programTools }"

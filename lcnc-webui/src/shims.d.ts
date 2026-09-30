@@ -37,6 +37,7 @@ interface ViewerDiag {
   getRoleMaterials?: () => { role: string; kind: string; widthPx: number | null; dashed: boolean; opacity: number; transparent: boolean }[];
   // Part B (Codex R39 VP39-01): the path memory ledger by owner.
   runAbMeasurement?: (durations?: Record<string, number>) => Promise<void>;
+  cancelAbMeasurement?: () => void;
   getPathBox?: () => { min: number[]; max: number[] } | null;
   setCameraPose?: (position: number[], target: number[]) => void;
   getPathMemory?: () => { mode: string; cpu: Record<string, number>; gpu: Record<string, number>; allocated: number; peak: number;

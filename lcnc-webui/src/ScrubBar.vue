@@ -709,6 +709,32 @@ const navSel = shallowRef<NavSelection | null>(null);
 watch(sPos, p => { if (navSel.value && p !== navSel.value.pos) navSel.value = null; }, { flush: "sync" });
 watch(track, () => { navSel.value = null; }, { flush: "sync" });
 
+/** The A/B measurement's hold on the timeline (Codex R48 VP-I15; removed
+ *  with the A/B switch — viewer/abDriver.ts): its EXACT position and the
+ *  finding it shows. The slider's value is quantized to its step, and a
+ *  manual input ends a shown finding — so the run never snapshots or
+ *  restores through the DOM. A finding is shown again by the operator's own
+ *  jump (jumpTo: the position, the selection and the finding's section). */
+defineExpose({
+  abTimeline: {
+    snapshot: (): { pos: number; finding: string | null } => ({ pos: sPos.value, finding: navSel.value?.key ?? null }),
+    /** A position, as a manual input sets it (the shown finding ends). */
+    putPos(v: number) {
+      onScrubInput();
+      sPos.value = Math.min(cumMax.value, Math.max(0, v));
+      applyPos();
+    },
+    /** The finding with this key, jumped to again; false when it is gone. */
+    selectFinding(key: string): boolean {
+      const lim = violationTargets.value.find(f => f.key === key);
+      const hit = lim ? undefined : hitTargets.value.find(f => f.key === key);
+      if (!lim && !hit) return false;
+      jumpTo(lim ?? hit!, lim ? "limit" : "clash");
+      return navSel.value?.key === key;
+    },
+  },
+});
+
 const violationTargets = computed<FindingTarget[]>(() => {
   const t = track.value, b = baseTrack.value;
   if (!t || !b) return [];

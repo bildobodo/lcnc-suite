@@ -72,7 +72,8 @@ describe("runAb", () => {
     const g = fakeDriver({ initial: "fat" });
     await runAb(g.d, { runId: "r1b", durations: SHORT });
     expect(g.calls.filter(c => c.startsWith("mode:"))).toEqual([...AB_ORDER.map(v => `mode:${v}`), "mode:fat"]);
-    expect(f.calls).toContain("restore");
+    expect(f.calls.slice(-2), "the last build, then the view — a build disposes a shown finding's section (Codex R48)")
+      .toEqual(["mode:gl", "restore"]);
     expect(f.calls.filter(c => c === "revealEnd").length, "the local rapids come back after every reveal").toBe(6);
     expect(f.tapOn, "the tap is off after the run").toBe(false);
     const phases = f.emitted.filter(e => e.kind === "viewer.abrun").map(e => e.f.phase);
@@ -136,8 +137,8 @@ describe("runAb", () => {
     const r = await runAb(f.d, { runId: "r6", durations: SHORT,
       onProgress: p => { if (p.rep === 1 && p.phase === "orbit") cancel.cancelled = true; }, cancel });
     expect([r.ok, r.cancelled]).toEqual([false, true]);
-    expect(f.calls[f.calls.length - 2]).toBe("restore");
-    expect(last(f.calls)).toBe("mode:gl");
+    // the last build first, then the view (Codex R48 VP-I15: a build disposes a shown finding's section)
+    expect(f.calls.slice(-2)).toEqual(["mode:gl", "restore"]);
     expect(f.emitted.some(e => e.f.rep === 1 && e.f.phase === "orbit"), "the cancelled orbit is not recorded").toBe(false);
     expect(last(f.emitted)!.f).toMatchObject({ phase: "end", cancelled: true });
   });

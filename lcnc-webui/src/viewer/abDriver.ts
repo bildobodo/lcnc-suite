@@ -28,6 +28,10 @@ export interface AbDriverDeps {
   setFrameHook(fn: ((now: number) => void) | null): void;
   /** The viewer's root element (the scrub bar lives inside). */
   root(): HTMLElement | null;
+  /** ScrubBar's own hold on the timeline (its exact position, the finding
+   *  it shows) — never the DOM slider, whose value is quantized to its step
+   *  and whose manual input ends a shown finding (Codex R48 VP-I15). */
+  timeline(): AbTimeline | null;
   /** The rapids layer, read and set LOCALLY (never saved). */
   rapidsLayer(on?: boolean): boolean;
   /** The toolpath layer, read and set LOCALLY (the calibration hides it). */
@@ -41,6 +45,14 @@ export interface AbDriverDeps {
   onInteract(fn: (() => void) | null): void;
 }
 
+export interface AbTimeline {
+  snapshot(): { pos: number; finding: string | null };
+  /** A position, as a manual input sets it. */
+  putPos(v: number): void;
+  /** The finding with this key shown again (the operator's jump); false when gone. */
+  selectFinding(key: string): boolean;
+}
+
 const ORBIT_PERIOD_MS = 20_000;
 const ELEVATION = THREE.MathUtils.degToRad(30);
 const DETAIL_FACTOR = 12;
@@ -52,8 +64,8 @@ export function createAbDriver(deps: AbDriverDeps): AbDriver & { dispose(): void
   const flags: AbConditions = { hidden: false, dialog: false, interacted: false, sweepBusy: false };
   let saved: { pos: THREE.Vector3; target: THREE.Vector3; up: THREE.Vector3; zoom: number } | null = null;
   /** The user's timeline when the run began (calibrate captures it): the
-   *  simulation on or off, and its position. */
-  let timeline: { sim: boolean; pos: number | null } | null = null;
+   *  simulation on or off, its exact position and the finding it showed. */
+  let timeline: { sim: boolean; pos: number | null; finding: string | null } | null = null;
   let notes: Record<string, unknown> = {};
   let rapidsBefore: boolean | null = null;
   const onVisibility = () => { if (document.hidden) flags.hidden = true; };
@@ -142,14 +154,11 @@ export function createAbDriver(deps: AbDriverDeps): AbDriver & { dispose(): void
   }
 
   const bar = () => deps.root()?.querySelector(".scrubBar") ?? null;
-  const slider = () => bar()?.querySelector<HTMLInputElement>(".sliderInput") ?? null;
   const playing = () => !!bar()?.querySelector('[title="Pause playback"]');
-  /** A manual timeline input (it also ends a shown finding's identity). */
+  /** A manual timeline input (it also ends a shown finding's identity) —
+   *  inside the simulation, where the operator's own input works. */
   function setTimeline(v: number) {
-    const sl = slider();
-    if (!sl || sl.disabled) return;
-    sl.value = String(v);
-    sl.dispatchEvent(new Event("input", { bubbles: true }));
+    if (deps.simActive()) deps.timeline()?.putPos(v);
   }
   function exitSim() {
     if (deps.simActive()) bar()?.querySelector<HTMLInputElement>(".scrubRow input.toggle")?.click();
@@ -157,7 +166,7 @@ export function createAbDriver(deps: AbDriverDeps): AbDriver & { dispose(): void
   function enterSim() {
     if (!deps.simActive()) bar()?.querySelector<HTMLInputElement>(".scrubRow input.toggle")?.click();
   }
-  const timelineAt = () => Number(slider()?.value ?? NaN);
+  const timelineAt = () => deps.timeline()?.snapshot().pos ?? NaN;
   /** The timeline at `pos` — entering the simulation for it when it is off
    *  (the position survives leaving it), and leaving it again. */
   async function putTimeline(pos: number) {
@@ -215,7 +224,8 @@ export function createAbDriver(deps: AbDriverDeps): AbDriver & { dispose(): void
       await frames(100);
     },
     async calibrate(ms) {
-      timeline = { sim: deps.simActive(), pos: timelineAt() };
+      const snap = deps.timeline()?.snapshot() ?? null;
+      timeline = { sim: deps.simActive(), pos: snap?.pos ?? null, finding: snap?.finding ?? null };
       saveView();
       const shown = deps.pathLayer();
       if (shown) deps.pathLayer(false);
@@ -261,11 +271,28 @@ export function createAbDriver(deps: AbDriverDeps): AbDriver & { dispose(): void
     },
     async restore() {
       deps.toolpath.holdOverlays(false);
-      await driver.revealEnd();
-      // The user's timeline: the simulation as the run found it, at its position.
+      await driver.revealEnd();   // the local layers first: a shown finding is built against them
+      // The user's timeline (Codex R48 VP-I15), after the run's last build:
+      // the simulation as the run found it, the finding it showed jumped to
+      // again (its position, selection and section on a hidden layer), else
+      // the exact position. What came back is noted for the record.
       if (timeline) {
-        if (timeline.pos != null && Number.isFinite(timeline.pos)) await putTimeline(timeline.pos);
-        if (timeline.sim) enterSim(); else exitSim();
+        const want = timeline, tl = deps.timeline();
+        if (want.sim) { if (!deps.simActive()) { enterSim(); await frames(100); } } else exitSim();
+        let found: boolean | null = null;
+        if (want.finding && tl) {
+          found = tl.selectFinding(want.finding);
+          await frames(100);
+        } else if (want.pos != null && Number.isFinite(want.pos)) {
+          if (want.sim) { setTimeline(want.pos); await frames(100); } else await putTimeline(want.pos);
+        }
+        const now = tl?.snapshot() ?? null;
+        notes.restored = {
+          sim: deps.simActive() === want.sim,
+          pos: now != null && now.pos === want.pos,
+          finding: want.finding, found,
+          reveal_bytes: deps.toolpath.pathMemory().cpu.reveal,
+        };
       }
       timeline = null;
       const cam = deps.camera(), c = deps.controls();

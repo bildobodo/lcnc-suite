@@ -178,11 +178,13 @@ export async function runAb(d: AbDriver, o: {
     cancelled = true;
   } finally {
     d.tap(null);
-    await d.restore();
-    // always a real build: the last phase released the path
+    // always a real build (the last phase released the path) — BEFORE the
+    // view comes back: the build disposes a finding's section, the restore
+    // shows it again (Codex R48 VP-I15)
     await d.setLineMode(initial);
+    await d.restore();
     d.emit("viewer.abrun", { run, seq: seq++, phase: "end", cancelled, skipped: skipped.length,
-      memory_at: "end", memory: memOf(d.memory()) });
+      memory_at: "end", memory: memOf(d.memory()), ...d.notes() });
   }
   return { ok: !cancelled, runId: run, phases: seq, skipped, cancelled, ...(cancelled ? { reason: "cancelled" } : {}) };
 }

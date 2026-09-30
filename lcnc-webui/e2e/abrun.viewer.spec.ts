@@ -153,3 +153,43 @@ test("a run from an open simulation: the same jumps every repetition, the timeli
   await expect.poll(() => slider.evaluate((el: HTMLInputElement) => Number(el.value)), { message: "the timeline back at its position" })
     .toBeCloseTo(pos, 3);
 });
+
+// Codex R48 VP-I15: a run hands back the finding the operator had shown —
+// the rapids hidden, L14 (on the rapid) selected, its section drawn on the
+// hidden layer — after a whole run AND after a cancel mid-run: the same
+// line, the section's bytes, the rapid section visible, the exact position.
+for (const how of ["to its end", "cancelled mid-run"] as const) {
+  test(`a shown finding on a hidden rapid comes back after a run ${how}`, async ({ page, context }) => {
+    test.setTimeout(120_000);
+    const telemetry: Rec[] = [];
+    await setup(page, context, telemetry);
+    await ctl({ op: "raw", frame: { type: "settings_changed", settings: { viewer: { layers: { rapids: false } } } } });
+    const next = page.locator('.scrubBar [aria-label="Next limit violation"]');
+    for (let i = 0; i < 3; i++) { await next.click(); await page.waitForTimeout(50); }
+    const line = page.locator(".scrubBar .lineSlot");
+    const shown = () => page.evaluate(() => ({
+      reveal: window.__viewerDiag!.getPathMemory!().cpu.reveal,
+      rapid: window.__viewerDiag!.projectRole!("rapid") !== null,
+    }));
+    await expect(line).toHaveText(/^L14/);
+    const before = await shown();
+    expect(before.reveal, "the finding's section is drawn on the hidden layer").toBeGreaterThan(0);
+    expect(before.rapid).toBe(true);
+    if (how === "to its end") {
+      await runShort(page, telemetry);
+    } else {
+      void page.evaluate(d => window.__viewerDiag!.runAbMeasurement!(d), SHORT);
+      await expect.poll(() => telemetry.some(e => e.kind === "viewer.abrun" && e.rep === 1 && e.phase === "orbit"),
+        { timeout: 60_000 }).toBe(true);
+      await page.evaluate(() => window.__viewerDiag!.cancelAbMeasurement!());
+      await expect.poll(() => telemetry.some(e => e.kind === "viewer.abrun" && e.phase === "end"), { timeout: 60_000 }).toBe(true);
+    }
+    const end = telemetry.find(e => e.kind === "viewer.abrun" && e.phase === "end")!;
+    expect(end.cancelled).toBe(how !== "to its end");
+    expect(end.restored, "what came back is on the record").toMatchObject({ sim: true, pos: true, found: true });
+    await expect(line, "the same finding's line").toHaveText(/^L14/);
+    const after = await shown();
+    expect(after.reveal, "its section drawn again").toBe(before.reveal);
+    expect(after.rapid, "the rapid section visible").toBe(true);
+  });
+}
