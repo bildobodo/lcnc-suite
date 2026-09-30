@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r47-s0oaw6vh/lcnc-webui
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  11:06:56
+   Duration  193ms (transform 68ms, setup 0ms, import 132ms, tests 12ms, environment 0ms)
+

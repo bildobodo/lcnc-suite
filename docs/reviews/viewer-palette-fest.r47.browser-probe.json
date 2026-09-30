@@ -1,0 +1,309 @@
+{
+  "before": "39.6649923706055",
+  "after": "0",
+  "simRemainsActive": true,
+  "jumps": [
+    {
+      "target": "→ L7",
+      "position": "60.7179498596191"
+    },
+    {
+      "target": "→ L14",
+      "position": "182.001291915894"
+    },
+    {
+      "target": "→ L4",
+      "position": "0"
+    },
+    {
+      "target": "→ L7",
+      "position": "60.7179498596191"
+    },
+    {
+      "target": "→ L14",
+      "position": "182.001291915894"
+    },
+    {
+      "target": "→ L4",
+      "position": "0"
+    },
+    {
+      "target": "→ L7",
+      "position": "60.7179498596191"
+    },
+    {
+      "target": "→ L14",
+      "position": "182.001291915894"
+    },
+    {
+      "target": "→ L4",
+      "position": "0"
+    },
+    {
+      "target": "→ L7",
+      "position": "60.7179498596191"
+    },
+    {
+      "target": "→ L14",
+      "position": "182.001291915894"
+    },
+    {
+      "target": "→ L4",
+      "position": "0"
+    }
+  ],
+  "phases": [
+    {
+      "rep": 0,
+      "variant": "gl",
+      "phase": "build",
+      "status": "ran"
+    },
+    {
+      "rep": 0,
+      "variant": "gl",
+      "phase": "warmup",
+      "status": "ran"
+    },
+    {
+      "rep": 0,
+      "variant": "gl",
+      "phase": "orbit",
+      "status": "ran"
+    },
+    {
+      "rep": 0,
+      "variant": "gl",
+      "phase": "fitdetail",
+      "status": "ran"
+    },
+    {
+      "rep": 0,
+      "variant": "gl",
+      "phase": "jumps",
+      "status": "ran"
+    },
+    {
+      "rep": 0,
+      "variant": "gl",
+      "phase": "overlay_off",
+      "status": "ran"
+    },
+    {
+      "rep": 0,
+      "variant": "gl",
+      "phase": "reveal",
+      "status": "ran"
+    },
+    {
+      "rep": 1,
+      "variant": "fat",
+      "phase": "build",
+      "status": "ran"
+    },
+    {
+      "rep": 1,
+      "variant": "fat",
+      "phase": "warmup",
+      "status": "ran"
+    },
+    {
+      "rep": 1,
+      "variant": "fat",
+      "phase": "orbit",
+      "status": "ran"
+    },
+    {
+      "rep": 1,
+      "variant": "fat",
+      "phase": "fitdetail",
+      "status": "ran"
+    },
+    {
+      "rep": 1,
+      "variant": "fat",
+      "phase": "jumps",
+      "status": "ran"
+    },
+    {
+      "rep": 1,
+      "variant": "fat",
+      "phase": "overlay_off",
+      "status": "ran"
+    },
+    {
+      "rep": 1,
+      "variant": "fat",
+      "phase": "reveal",
+      "status": "ran"
+    },
+    {
+      "rep": 2,
+      "variant": "fat",
+      "phase": "build",
+      "status": "ran"
+    },
+    {
+      "rep": 2,
+      "variant": "fat",
+      "phase": "warmup",
+      "status": "ran"
+    },
+    {
+      "rep": 2,
+      "variant": "fat",
+      "phase": "orbit",
+      "status": "ran"
+    },
+    {
+      "rep": 2,
+      "variant": "fat",
+      "phase": "fitdetail",
+      "status": "ran"
+    },
+    {
+      "rep": 2,
+      "variant": "fat",
+      "phase": "jumps",
+      "status": "ran"
+    },
+    {
+      "rep": 2,
+      "variant": "fat",
+      "phase": "overlay_off",
+      "status": "ran"
+    },
+    {
+      "rep": 2,
+      "variant": "fat",
+      "phase": "reveal",
+      "status": "ran"
+    },
+    {
+      "rep": 3,
+      "variant": "gl",
+      "phase": "build",
+      "status": "ran"
+    },
+    {
+      "rep": 3,
+      "variant": "gl",
+      "phase": "warmup",
+      "status": "ran"
+    },
+    {
+      "rep": 3,
+      "variant": "gl",
+      "phase": "orbit",
+      "status": "ran"
+    },
+    {
+      "rep": 3,
+      "variant": "gl",
+      "phase": "fitdetail",
+      "status": "ran"
+    },
+    {
+      "rep": 3,
+      "variant": "gl",
+      "phase": "jumps",
+      "status": "ran"
+    },
+    {
+      "rep": 3,
+      "variant": "gl",
+      "phase": "overlay_off",
+      "status": "ran"
+    },
+    {
+      "rep": 3,
+      "variant": "gl",
+      "phase": "reveal",
+      "status": "ran"
+    },
+    {
+      "rep": 4,
+      "variant": "gl",
+      "phase": "build",
+      "status": "ran"
+    },
+    {
+      "rep": 4,
+      "variant": "gl",
+      "phase": "warmup",
+      "status": "ran"
+    },
+    {
+      "rep": 4,
+      "variant": "gl",
+      "phase": "orbit",
+      "status": "ran"
+    },
+    {
+      "rep": 4,
+      "variant": "gl",
+      "phase": "fitdetail",
+      "status": "ran"
+    },
+    {
+      "rep": 4,
+      "variant": "gl",
+      "phase": "jumps",
+      "status": "ran"
+    },
+    {
+      "rep": 4,
+      "variant": "gl",
+      "phase": "overlay_off",
+      "status": "ran"
+    },
+    {
+      "rep": 4,
+      "variant": "gl",
+      "phase": "reveal",
+      "status": "ran"
+    },
+    {
+      "rep": 5,
+      "variant": "fat",
+      "phase": "build",
+      "status": "ran"
+    },
+    {
+      "rep": 5,
+      "variant": "fat",
+      "phase": "warmup",
+      "status": "ran"
+    },
+    {
+      "rep": 5,
+      "variant": "fat",
+      "phase": "orbit",
+      "status": "ran"
+    },
+    {
+      "rep": 5,
+      "variant": "fat",
+      "phase": "fitdetail",
+      "status": "ran"
+    },
+    {
+      "rep": 5,
+      "variant": "fat",
+      "phase": "jumps",
+      "status": "ran"
+    },
+    {
+      "rep": 5,
+      "variant": "fat",
+      "phase": "overlay_off",
+      "status": "ran"
+    },
+    {
+      "rep": 5,
+      "variant": "fat",
+      "phase": "reveal",
+      "status": "ran"
+    }
+  ]
+}

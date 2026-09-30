@@ -1,0 +1,58 @@
+{
+  "builds": [
+    {
+      "mode": "gl",
+      "rebuilt": true
+    },
+    {
+      "mode": "fat",
+      "rebuilt": true
+    },
+    {
+      "mode": "fat",
+      "rebuilt": false
+    },
+    {
+      "mode": "gl",
+      "rebuilt": true
+    },
+    {
+      "mode": "gl",
+      "rebuilt": false
+    },
+    {
+      "mode": "fat",
+      "rebuilt": true
+    }
+  ],
+  "buildByteSamples": [
+    {
+      "buildBytes": 4488,
+      "cpuTotal": 8093
+    },
+    {
+      "buildBytes": 4648,
+      "cpuTotal": 8093
+    },
+    {
+      "buildBytes": 4808,
+      "cpuTotal": 8093
+    }
+  ],
+  "sourceCapacity": {
+    "backingBufferBytes": 1048576,
+    "viewBytes": 12,
+    "reported": {
+      "base": 48,
+      "dist": 0,
+      "overlay": 0,
+      "reveal": 0,
+      "source": 67,
+      "total": 115
+    }
+  },
+  "instances": {
+    "reported": 2,
+    "actualVisibleGeometryInstances": 1
+  }
+}

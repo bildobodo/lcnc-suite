@@ -1,0 +1,1021 @@
+{
+  "commit": "43943e4",
+  "cases": [
+    {
+      "case": "complete_control",
+      "verdict": "PASS",
+      "checks": [
+        {
+          "check": "orbit: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "orbit: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "orbit: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "orbit: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "fitdetail: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "fitdetail: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "fitdetail: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "fitdetail: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "jumps: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "jumps: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "jumps: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "jumps: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "overlay_off: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "overlay_off: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "overlay_off: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "overlay_off: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "reveal: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "reveal: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "reveal: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "reveal: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "build: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 3 (max 110 ms), B 3 (max 120 ms)"
+        },
+        {
+          "check": "memory after_load cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_load gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_orbit cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_orbit gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_lods cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_lods gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_nav cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_nav gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_reveal cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_reveal gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        }
+      ],
+      "excluded": [],
+      "build": {
+        "a_ms": [
+          1000,
+          1000,
+          1000
+        ],
+        "b_ms": [
+          1000,
+          1000,
+          1000
+        ],
+        "a_blocks50": 3,
+        "b_blocks50": 3,
+        "a_mt_max": 110,
+        "b_mt_max": 120
+      }
+    },
+    {
+      "case": "all_memory_samples_missing",
+      "verdict": "PASS",
+      "checks": [
+        {
+          "check": "orbit: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "orbit: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "orbit: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "orbit: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "fitdetail: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "fitdetail: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "fitdetail: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "fitdetail: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "jumps: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "jumps: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "jumps: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "jumps: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "overlay_off: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "overlay_off: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "overlay_off: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "overlay_off: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "reveal: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "reveal: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "reveal: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "reveal: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "build: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 3 (max 110 ms), B 3 (max 120 ms)"
+        }
+      ],
+      "excluded": [],
+      "build": {
+        "a_ms": [
+          1000,
+          1000,
+          1000
+        ],
+        "b_ms": [
+          1000,
+          1000,
+          1000
+        ],
+        "a_blocks50": 3,
+        "b_blocks50": 3,
+        "a_mt_max": 110,
+        "b_mt_max": 120
+      }
+    },
+    {
+      "case": "all_build_histograms_missing",
+      "verdict": "PASS",
+      "checks": [
+        {
+          "check": "orbit: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "orbit: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "orbit: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "orbit: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "fitdetail: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "fitdetail: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "fitdetail: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "fitdetail: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "jumps: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "jumps: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "jumps: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "jumps: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "overlay_off: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "overlay_off: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "overlay_off: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "overlay_off: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "reveal: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "reveal: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "reveal: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "reveal: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "memory after_load cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_load gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_orbit cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_orbit gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_lods cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_lods gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_nav cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_nav gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_reveal cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_reveal gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        }
+      ],
+      "excluded": [],
+      "build": {
+        "a_ms": [
+          1000,
+          1000,
+          1000
+        ],
+        "b_ms": [
+          1000,
+          1000,
+          1000
+        ],
+        "a_blocks50": null,
+        "b_blocks50": null,
+        "a_mt_max": null,
+        "b_mt_max": null
+      }
+    },
+    {
+      "case": "all_steady_mt_histograms_missing",
+      "error": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'NoneType'"
+    },
+    {
+      "case": "only_one_repetition_each",
+      "verdict": "PASS",
+      "checks": [
+        {
+          "check": "orbit: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "orbit: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "orbit: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "orbit: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "fitdetail: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "fitdetail: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "fitdetail: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "fitdetail: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "jumps: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "jumps: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "jumps: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "jumps: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "overlay_off: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "overlay_off: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "overlay_off: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "overlay_off: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "reveal: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "reveal: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "reveal: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "reveal: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "build: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 1 (max 110 ms), B 1 (max 120 ms)"
+        },
+        {
+          "check": "memory after_load cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_load gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_orbit cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_orbit gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_lods cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_lods gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_nav cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_nav gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_reveal cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_reveal gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        }
+      ],
+      "excluded": [],
+      "build": {
+        "a_ms": [
+          1000
+        ],
+        "b_ms": [
+          1000
+        ],
+        "a_blocks50": 1,
+        "b_blocks50": 1,
+        "a_mt_max": 110,
+        "b_mt_max": 120
+      }
+    },
+    {
+      "case": "build_A_110ms_B_1500ms_same_block_count",
+      "verdict": "PASS",
+      "checks": [
+        {
+          "check": "orbit: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "orbit: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "orbit: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "orbit: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "fitdetail: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "fitdetail: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "fitdetail: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "fitdetail: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "jumps: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "jumps: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "jumps: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "jumps: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "overlay_off: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "overlay_off: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "overlay_off: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "overlay_off: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "reveal: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "reveal: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "reveal: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "reveal: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "build: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 3 (max 110 ms), B 3 (max 1500 ms)"
+        },
+        {
+          "check": "memory after_load cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_load gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_orbit cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_orbit gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_lods cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_lods gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_nav cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_nav gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_reveal cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_reveal gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        }
+      ],
+      "excluded": [],
+      "build": {
+        "a_ms": [
+          1000,
+          1000,
+          1000
+        ],
+        "b_ms": [
+          1600,
+          1600,
+          1600
+        ],
+        "a_blocks50": 3,
+        "b_blocks50": 3,
+        "a_mt_max": 110,
+        "b_mt_max": 1500
+      }
+    },
+    {
+      "case": "A_three_orbits_two_gaps_each_B_one_orbit_four_gaps",
+      "verdict": "PASS",
+      "checks": [
+        {
+          "check": "orbit: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "orbit: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "orbit: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 6, B 4"
+        },
+        {
+          "check": "orbit: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "fitdetail: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "fitdetail: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "fitdetail: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "fitdetail: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "jumps: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "jumps: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "jumps: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "jumps: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "overlay_off: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "overlay_off: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "overlay_off: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "overlay_off: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "reveal: B p95 within 2 frames",
+          "ok": true,
+          "detail": "B p95 17 ms, limit 33.3 ms at 60 Hz"
+        },
+        {
+          "check": "reveal: B p95 \u2264 1.20 \u00d7 A",
+          "ok": true,
+          "detail": "A 17 ms, B 17 ms"
+        },
+        {
+          "check": "reveal: no new recurring gaps \u2265 100 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "reveal: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 0, B 0"
+        },
+        {
+          "check": "build: no new main-thread blocks \u2265 50 ms",
+          "ok": true,
+          "detail": "A 3 (max 110 ms), B 3 (max 120 ms)"
+        },
+        {
+          "check": "memory after_load cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_load gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_orbit cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_orbit gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_lods cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_lods gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_nav cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_nav gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_reveal cpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 100.0 MiB, B 150.0 MiB, +50.0 MiB"
+        },
+        {
+          "check": "memory after_reveal gpu: B \u2212 A \u2264 128 MiB",
+          "ok": true,
+          "detail": "A 90.0 MiB, B 140.0 MiB, +50.0 MiB"
+        }
+      ],
+      "excluded": [
+        "3/fat/orbit: camera moved by hand",
+        "6/fat/orbit: camera moved by hand"
+      ],
+      "build": {
+        "a_ms": [
+          1000,
+          1000,
+          1000
+        ],
+        "b_ms": [
+          1000,
+          1000,
+          1000
+        ],
+        "a_blocks50": 3,
+        "b_blocks50": 3,
+        "a_mt_max": 110,
+        "b_mt_max": 120
+      }
+    }
+  ]
+}

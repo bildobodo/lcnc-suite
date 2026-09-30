@@ -3165,3 +3165,197 @@ Befundnavigation, nach der Befundansicht und am Ende.
    „keine durch den neuen Aufbau verursachten Eingabeblockaden“?
 3. INCOMPLETE statt FAIL, wenn eine Phase in allen Wiederholungen übersprungen
    wurde (z. B. Programm ohne Limit-Überhang)?
+
+---
+
+## Implementierungsreview R47 · Codex · Teil B · 30. September 2026
+
+**Stand:** `43943e46f24240848e60ba011b4a8271b1c72f50`, Bereich
+`d540442..43943e4`, isolierte Archivkopie. **Verdikt: findings.**
+Fünf P2-Befunde **VP-I13 bis VP-I17** sind offen. Die Linienumstellung
+besteht die gezielten Darstellungsprüfungen; das A/B-Werkzeug kann derzeit
+keine belastbare Leistungsabnahme liefern. Die noch ausstehende Mac-Messung
+allein ist kein Befund. Zuerst die folgenden Messfehler korrigieren, danach
+mit dem reparierten Werkzeug messen.
+
+### Bestätigte Umsetzung
+
+- Chunk-/LOD-Paare, Eilgangdistanzen, Overlay und Reveal entsprechen in den
+  gezielten Unit-Tests dem GL-Weg; degenerierte Paare werden ausgelassen.
+- Die Original-Browserwächter bestätigen 2 CSS-px bei DPR 1/2, Limit über
+  Backplot, die Box-Strichlängen und einen schmalen Pfad durch die Near-Plane.
+- Histogramme werden zusammengeführt, nicht deren Perzentile gemittelt;
+  geteilte Histogrammteile und Ausschlussgründe sind grundsätzlich vorhanden.
+
+Typecheck/Build **PASS**, Viewer-Unit-Tests **87/87**, Report-Tests **14/14**,
+Original-Browserauswahl **7/7**. Diese grünen Prüfungen decken die folgenden
+Gegenbeispiele noch nicht ab.
+
+### VP-I13 · P2 — unvollständige Messdaten werden als PASS gewertet
+
+**Stellen:** `scripts/viewer_ab_report.py:196–233, 279–317`.
+Die Vollständigkeit wird im Wesentlichen am Enddatensatz festgemacht.
+Fehlende ganze Histogramme und Speichermesspunkte werden übersprungen;
+die erwarteten drei Wiederholungen je Variante werden nicht validiert.
+
+[Eigene Gegenprobe](viewer-palette-fest.r47.report-probe.py),
+[Ergebnisse](viewer-palette-fest.r47.report-probe.json), jeweils durch
+`analyse()` des unveränderten Reports:
+
+| Veränderung gegenüber der vollständigen Kontrollgruppe | Ergebnis jetzt |
+| --- | --- |
+| Alle Speichermessungen entfernt | `PASS` |
+| Alle Histogramme der Aufbauphase entfernt | `PASS` |
+| Nur eine Wiederholung je Variante statt drei, Enddatensatz bleibt | `PASS` |
+| Alle `mt`-Histogramme der Orbitphase entfernt | `TypeError` bei `None - None` |
+| A: drei gültige Orbits mit je zwei langen Lücken; B: nur ein gültiger Orbit mit vier Lücken | `PASS`, weil 4 − 6 statt vergleichbarer Häufigkeit |
+
+Das betrifft beispielsweise verlorene Trace-Datensätze und ausgeschlossene
+Messfenster. **Korrektur:** Sollmatrix aus Wiederholung × Phase × benötigter
+Messreihe/Messpunkt prüfen, fehlende Daten mit Grund als `INCOMPLETE`
+führen, ohne Ausnahmeabbruch. Verbleibende A-/B-Zeiträume müssen vergleichbar
+sein; absolute Ereigniszahlen ungleich vieler Fenster nicht subtrahieren.
+Die vereinbarten drei gültigen Wiederholungen sind nachzuliefern bzw. der
+Lauf bleibt unvollständig. GPU-Fences dürfen als optionale Diagnose behandelt
+werden; CPU-/GPU-Pufferbilanz und Hauptthread-Messung sind keine optionale
+Abnahmegrundlage.
+
+### VP-I14 · P2 — zwei Aufbauphasen bauen überhaupt nicht neu auf
+
+**Stellen:** `lcnc-webui/src/viewer/toolpathController.ts:1034–1037`,
+`abDriver.ts:159–162`, `abRun.ts:145`.
+`setLineMode()` kehrt beim bereits aktiven Modus sofort zurück. Damit führen
+A–B–**B**–A–**A**–B zwei als `build` gemeldete Phasen ohne Aufbau aus.
+Bei Start im GL-Modus entfällt zusätzlich der erste Aufbau.
+
+Die [Controller-Sonde](viewer-palette-fest.r47.controller-probe.ts) vergleicht
+die echten Geometrieobjekte. Ergebnis bei Start in `fat`:
+`[neu, neu, gleich, neu, gleich, neu]`.
+[Messwerte](viewer-palette-fest.r47.controller-probe.json).
+So werden in der Standardfolge zwei wirkliche Aufbauten je Variante als
+drei behandelt; je nach Ausgangsmodus sogar unterschiedlich viele.
+
+**Korrektur:** Für jede Aufbauphase ausdrücklich einen vollständigen
+Neuaufbau desselben Datensatzes auslösen, auch ohne Moduswechsel. Die
+gewöhnliche Umschaltfunktion darf ihren günstigen No-op behalten; der
+Benchmark braucht einen eigenen Rebuild-Vertrag. Einen Wächter am echten
+Controller ergänzen — der Fake-Treiber testet bisher nur die Aufrufreihenfolge.
+
+### VP-I15 · P2 — Befundfolgen und Simulationszustand wandern zwischen den Wiederholungen
+
+**Stellen:** `lcnc-webui/src/viewer/abDriver.ts:139–147, 191–198`,
+`abRun.ts:145–159`.
+Die Navigation klickt jeweils „Next“ aus der gerade erreichten Position.
+Zwischen den Wiederholungen werden Cursor und Befundauswahl nicht auf einen
+definierten Ausgangszustand gesetzt. `restore()` merkt sich lediglich,
+ob der Lauf die Simulation selbst eingeschaltet hat, nicht deren vorherige
+Position.
+
+Die [eigene Browserprobe](viewer-palette-fest.r47.browser-probe.ts) verwendet
+drei Befunde und eine schon aktive Vorschau-Simulation. Bei je einem
+Navigations- und Reveal-Sprung erhält sie folgende Zielpaare:
+`L7/L14`, `L4/L7`, `L14/L4`, dann wiederholt sich die Folge.
+Die Ausgangsposition **39,665** wird nach dem Lauf zu **0**, Simulation
+weiter aktiv. Alle 42 Phasen melden `ran`.
+[Ergebnisse](viewer-palette-fest.r47.browser-probe.json),
+[Telemetrie](viewer-palette-fest.r47.browser-telemetry.json).
+
+Damit vergleichen die Wiederholungen unterschiedliche Posen, Befundtypen
+und gegebenenfalls unterschiedlich teure Reveal-Geometrie. Die zugesagte
+Wiederherstellung des Benutzerzustands ist ebenfalls unvollständig.
+**Korrektur:** Ausgangszustand samt Simulationsposition/Abspielzustand und
+Befundauswahl sichern; jede Wiederholung mit derselben vorgegebenen
+Datensequenz beginnen. Am Ende und bei Abbruch den Ausgangszustand
+wiederherstellen. Bei vorher ausgeschalteter Simulation deren Eintritt in
+allen Varianten gleich behandeln. Der bestehende Originaltest mit nur
+einem Befund und vorher ausgeschalteter Simulation kann dies nicht erkennen.
+
+### VP-I16 · P2 — die Anzahl der Blockaden verdeckt beliebig längere Aufbaupausen
+
+**Stelle:** `scripts/viewer_ab_report.py:279–287`.
+Die Aufbauentscheidung betrachtet nur die Anzahl der ≥50-ms-Proben.
+Der ausgegebene Maximalwert fließt nicht in das Urteil ein.
+In der [Report-Gegenprobe](viewer-palette-fest.r47.report-probe.json)
+haben A und B jeweils eine Blockade pro Aufbau: **A 110 ms, B 1.500 ms**.
+Der längere Aufbauzeitraum ist in den Daten enthalten. Ergebnis: **PASS**.
+
+Die vom neuen Packen verursachte zusätzliche Eingabepause bleibt so unsichtbar,
+obwohl sie für den Operator wesentlich ist. **Korrektur:** Neben der Anzahl
+auch Dauer/Maximum der synchronen Aufbauarbeit und Hauptthread-Verzögerung
+bewerten, mit vor der Mac-Messung festgelegter absoluter oder relativer
+Regressionsgrenze und angemessener Messunsicherheit. Die Zuordnung zur
+Aufbauarbeit explizit halten; ein gleich gebliebener Ereigniszähler genügt
+nicht als Nachweis. Erst VP-I14 beheben, damit überhaupt gleich viele reale
+Aufbauten verglichen werden.
+
+### VP-I17 · P2 — Speicherbilanz und Aufbaupeak erfüllen den vereinbarten Vertrag noch nicht
+
+**Stellen:** `lcnc-webui/src/viewer/toolpathController.ts:302–308, 334–339,
+1065–1116`, `fatPaths.ts:35–58`, `scripts/viewer_ab_report.py:289–302`.
+
+- `addCpu()` dedupliziert nach `ArrayBuffer`, addiert aber `view.byteLength`.
+  Eine gehaltene 12-Byte-Ansicht auf einem **1-MiB-Puffer** ergibt in der
+  Sonde nur **115 Byte gesamten CPU-Bedarf**. Gehalten wird die volle Kapazität.
+- `_lastApply.g` hält auch die Originalarrays für den nächsten Moduswechsel;
+  z. B. ursprüngliche LOD-Indizes/Breaks und die ursprünglichen Rapid-Distanzen
+  werden nicht vollständig neben den gebinnten/kopierten Arrays erfasst.
+  Bei den Fat-Geometrien fehlen zudem die eigenen Grundmesh-Attribute/Indizes
+  in der CPU-/GPU-Erfassung; Uploads werden nur für Endpunkte/Distanzen verfolgt.
+- `buildBytes` summiert gepackte Ergebnisse; das ist kein gleichzeitiger
+  Aufbaupeak. Temporäre Pack-/Slice-Puffer fehlen, während jeder spätere
+  Reveal-Aufbau weiter auf den Zähler addiert wird. Dreimal dieselbe
+  Reveal-Geometrie: CPU jeweils **8.093 Byte**, `buildBytes` wächst
+  **4.488 → 4.648 → 4.808**. Für GL bleibt der Packzähler konstruktiv null.
+  Der Report wertet diesen Zähler überhaupt nicht aus.
+- Die zugesagte gesonderte Lade-/Neulade-/Entladebilanz fehlt im Messlauf;
+  dessen Endpunkt hält weiterhin das Programm. Der bestehende Dispose-Unit-
+  Test ist sinnvoll, ersetzt aber keine Peak-/Freigabebilanz am Messdatensatz.
+
+[Controller-Probe und Zahlen](viewer-palette-fest.r47.controller-probe.json).
+**Korrektur:** Einmalige CPU-Pufferkapazitäten und tatsächlich hochgeladene
+GPU-Puffer getrennt und vollständig zählen; aktuelle Belegung, kumulierte
+Allokationen und Peak klar trennen. Peak und Rückkehr nach Entladen/Wechsel
+als eigene Pflichtwerte erfassen und auswerten, die Eager-Kapazität vor der
+großen Allokation abschätzen. Erst damit ist die 128-MiB-Grenze aussagekräftig.
+
+Kleine zugehörige Metadatenkorrektur: `instances`/`drawSegs` zählt weiterhin
+Indexpaare vor dem Entfernen degenerierter Paare und ohne Sichtbarkeitsfilter.
+Die Sonde meldet **2**, die sichtbare Fat-Geometrie enthält **1** Instanz.
+Quellpaare, gewählte LOD-Paare und wirklich gezeichnete Instanzen getrennt
+benennen/zählen; die neue Metrik nicht als tatsächliche Draw-Zahl ausgeben.
+
+### Antworten auf die drei Fragen
+
+1. **Mit Bedingung:** Zwei Perioden und Vergleich auf deklarierter
+   Histogrammauflösung sind vertretbar. Die Referenzrate muss vorab feststehen
+   oder unabhängig von der belasteten Viewer-Variante bestimmt sein. Ein
+   langsamer Warm-up ist kein zuverlässiger Nachweis der Monitor-Nennrate;
+   der gemeinsame A/B-Warm-up-Median darf die erlaubte Verzögerung nicht
+   nachträglich vergrößern. Die aktuelle Klassenregel lässt bei 60 Hz Werte
+   unter 34 ms statt exakt ≤33,333 ms passieren — diese Auflösungstoleranz
+   ausdrücklich ausweisen, nicht als mathematisch exakte Einhaltung darstellen.
+2. **Nein, als alleinige Regel genügt das nicht.** VP-I16 zeigt die Lücke:
+   gleiche Anzahl kann eine massiv längere Eingabepause bedeuten. Anzahl plus
+   festgelegte Dauer-/Regressionsgrenze, mit wirklichen wiederholten Aufbauten.
+3. **Ja: INCOMPLETE.** Eine mangels Befund nicht ausführbare Phase ist kein
+   bewiesener Leistungsfehler, aber auch keine Gesamtabnahme. Grund nennen,
+   passende Datei ergänzen; fehlende Messdaten müssen ebenso behandelt werden
+   (VP-I13). Ein bereits gemessener Grenzverstoß darf weiterhin `FAIL` ergeben.
+
+### Belege und Übergabe
+
+[Reproduktion und Prüfgrenzen](viewer-palette-fest.r47.reproduce.md),
+[Build](viewer-palette-fest.r47.build.txt),
+[Unit-Tests](viewer-palette-fest.r47.vitest.txt),
+[Report-Tests](viewer-palette-fest.r47.report-tests.txt),
+[Browserlauf 7/7](viewer-palette-fest.r47.browser-tests.txt),
+[eigene Browserprobe](viewer-palette-fest.r47.browser-probe.txt).
+Die Gegenproben prüfen die Fehlbeobachtungen am unveränderten Code;
+ihre grünen Assertions sind keine Behebung. Der erste eigene Browserversuch
+hatte einen mehrdeutigen Testselektor; dessen Korrektur und Erstprotokoll sind
+in der Reproduktion benannt.
+
+Kein vollständiges Offline-Gate und keine Mac-Leistungsmessung behauptet.
+Produktcode und frühere Belege unverändert; nur Review-Anhang und neue
+R47-Belege. Eigene Mock-Prozesse beendet, Live-Sim und unquittierter Trip
+unberührt. **R47 geht mit `findings` zurück.**

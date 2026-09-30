@@ -1,0 +1,50 @@
+
+Running 1 test using 1 worker
+
+(node:1706124) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1706124) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r47.viewer.spec.ts:26:1 › R47: records the simulation cursor and finding sequence across real A/B repetitions (3.1s)
+
+
+  1) e2e/r47.viewer.spec.ts:26:1 › R47: records the simulation cursor and finding sequence across real A/B repetitions 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeEnabled[2m([22m[2m)[22m failed
+
+    Locator: locator('.scrubBar input[type=range]')
+    Expected: enabled
+    Error: strict mode violation: locator('.scrubBar input[type=range]') resolved to 2 elements:
+        1) <input min="0" type="range" value="0.001" data-v-9eb90353="" max="305.1153259277344" step="0.1525576629638672" class="sliderInput rangeOverlayTrack" title="Scrub the program — poses the machine model, nothing moves"/> aka getByRole('slider', { name: 'Scrub the program — poses the' })
+        2) <input max="2" min="-1" value="0" step="0.01" type="range" data-v-9eb90353="" class="speedSlider" title="Playback speed ×0.1–×100"/> aka getByRole('slider', { name: 'Playback speed ×0.1–×' })
+
+    Call log:
+    [2m  - Expect "toBeEnabled" with timeout 10000ms[22m
+    [2m  - waiting for locator('.scrubBar input[type=range]')[22m
+
+
+      40 |   await next.click();
+      41 |   const slider=page.locator('.scrubBar input[type=range]');
+    > 42 |   await expect(slider).toBeEnabled();
+         |                        ^
+      43 |   await slider.evaluate((e:HTMLInputElement)=>{e.value=String(Number(e.max)*.13);e.dispatchEvent(new Event('input',{bubbles:true}));});
+      44 |   await page.waitForTimeout(100);
+      45 |   const before=await slider.inputValue();
+        at /tmp/codex-r47-s0oaw6vh/lcnc-webui/e2e/r47.viewer.spec.ts:42:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r47.viewer-R47-records-the-f4a90-across-real-A-B-repetitions/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r47.viewer-R47-records-the-f4a90-across-real-A-B-repetitions/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r47.viewer-R47-records-the-f4a90-across-real-A-B-repetitions/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r47.viewer-R47-records-the-f4a90-across-real-A-B-repetitions/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/r47.viewer.spec.ts:26:1 › R47: records the simulation cursor and finding sequence across real A/B repetitions 

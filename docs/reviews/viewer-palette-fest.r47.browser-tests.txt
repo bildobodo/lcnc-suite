@@ -1,0 +1,16 @@
+
+Running 7 tests using 1 worker
+
+(node:1703053) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1703053) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/abrun.viewer.spec.ts:24:1 › the Debug switch rebuilds the paths in the chosen renderer; a run measures every phase and leaves the view as it was (23.8s)
+  ✓  2 e2e/fatpaths.viewer.spec.ts:20:1 › a path segment through the near plane: trimmed to a strip, never culled, never a screen-wide triangle (2.0s)
+  ✓  3 e2e/scenes.viewer.spec.ts:64:1 › a half-mixed pixel reads as half the limit, not as the backplot (0ms)
+  ✓  4 e2e/scenes.viewer.spec.ts:76:1 › the palette in four themes, on a model, a dense and a thin path — and no current line drawn (6.0s)
+  ✓  5 e2e/scenes.viewer.spec.ts:223:1 › every path line is drawn 2 CSS px — the path, the limit overlay and the backplot, at DPR 1 and 2 (15.9s)
+  ✓  6 e2e/scenes.viewer.spec.ts:358:1 › the box edge alone: two tones, MACHINE_BOX_PX wide, dashes of MACHINE_BOX_DASH_PX — at DPR 1 and 2 (6.2s)
+  ✓  7 e2e/scenes.viewer.spec.ts:434:1 › box dashes hold MACHINE_BOX_DASH_PX along every projected edge — parallel and perspective, three directions (5.4s)
+
+  7 passed (60.0s)

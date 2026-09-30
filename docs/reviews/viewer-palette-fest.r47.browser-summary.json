@@ -1,0 +1,61 @@
+{
+  "stats": {
+    "startTime": "2026-09-30T09:02:23.254Z",
+    "duration": 59997.341,
+    "expected": 7,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "file": "abrun.viewer.spec.ts",
+      "title": "the Debug switch rebuilds the paths in the chosen renderer; a run measures every phase and leaves the view as it was",
+      "status": "passed",
+      "durationMs": 23790,
+      "errors": []
+    },
+    {
+      "file": "fatpaths.viewer.spec.ts",
+      "title": "a path segment through the near plane: trimmed to a strip, never culled, never a screen-wide triangle",
+      "status": "passed",
+      "durationMs": 1994,
+      "errors": []
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "title": "a half-mixed pixel reads as half the limit, not as the backplot",
+      "status": "passed",
+      "durationMs": 0,
+      "errors": []
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "title": "the palette in four themes, on a model, a dense and a thin path \u2014 and no current line drawn",
+      "status": "passed",
+      "durationMs": 5983,
+      "errors": []
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "title": "every path line is drawn 2 CSS px \u2014 the path, the limit overlay and the backplot, at DPR 1 and 2",
+      "status": "passed",
+      "durationMs": 15893,
+      "errors": []
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "title": "the box edge alone: two tones, MACHINE_BOX_PX wide, dashes of MACHINE_BOX_DASH_PX \u2014 at DPR 1 and 2",
+      "status": "passed",
+      "durationMs": 6208,
+      "errors": []
+    },
+    {
+      "file": "scenes.viewer.spec.ts",
+      "title": "box dashes hold MACHINE_BOX_DASH_PX along every projected edge \u2014 parallel and perspective, three directions",
+      "status": "passed",
+      "durationMs": 5435,
+      "errors": []
+    }
+  ]
+}
