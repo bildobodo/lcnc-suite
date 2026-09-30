@@ -67,6 +67,13 @@ net estop-loop iocontrol.0.user-enable-out iocontrol.0.emc-enable-in
 # probe input: the WebUI's manual trip (probe-in) OR the simulated tool
 # setter (hallib/sim_toolsetter.hal)
 source hallib/sim_toolsetter.hal
+# The TWP XYZABC sim's tool setter plate — PHYSICAL, fixed here (G53: centre
+# X/Y, surface Z). Probing › Toolsetter must name the same point (the
+# profile's shipped var file does: #3100/#3101/#3102); another setting
+# measures wrong by the difference, like a machine with a mis-set reference.
+setp sim-toolsetter.0.plate-x 10
+setp sim-toolsetter.0.plate-y 10
+setp sim-toolsetter.0.plate-z -180
 
 # create signals for tool loading loopback
 net tool-prep-loop iocontrol.0.tool-prepare iocontrol.0.tool-prepared

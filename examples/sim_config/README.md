@@ -57,13 +57,30 @@ the probe input by hand (work probing); for the **tool setter** the probe trips 
 itself, where a real tool setter would: `hallib/sim_toolsetter.hal` (sourced by
 every `core_sim_*.hal`) routes `motion.probe-input` through the realtime
 component `sim_toolsetter`, which compares in the servo thread — the control
-point inside the plate's X/Y window (±25 mm) and its Z minus the spindle tool's
-**table length** at or below the plate surface. `sim_toolsetter/sim_toolsetter_feed.py`
-sets the plate from the WebUI's tool setter position (`#3100` / `#3101` /
-`#3102`, re-read from the var file) and the length from the tool table.
+point (the joint positions, `joint.N.pos-fb`) inside the plate's X/Y window
+(±25 mm) and its Z minus the spindle tool's **table length** at or below the
+plate surface. `sim_toolsetter/sim_toolsetter_feed.py` supplies the length from
+the tool table.
 
-- The table length is the sim's physical length of the tool: a measurement
-  returns it (to a servo period at the slow probe feed) and nothing drifts.
+The **plate is physical**: a fixed point per profile, set in its `core_sim_N.hal`
+(`setp sim-toolsetter.0.plate-x/-y/-z`, G53 — centre X/Y, surface Z):
+
+| Profile | Plate X / Y / Z |
+|---|---|
+| 3 Axis XYZ (`core_sim_3.hal`) | 10 / 10 / −180 |
+| 5 Axis XYZAC (`core_sim_5.hal`) | 150 / 0 / −300 |
+| 6 Axis TWP XYZABC (`core_sim_6.hal`) | 10 / 10 / −180 |
+
+Set *Probing › Toolsetter* (X, Y, Z position) to the same point — the
+profile's shipped var file names it (`#3100` / `#3101` / `#3102`). The sim does
+not follow the WebUI's setting: a different setting measures wrong by the
+difference, the same way every time, like a machine whose reference is set
+wrong (a Z set 20 mm too high measures every tool 20 mm short; X/Y more than
+25 mm off never trips).
+
+- With the setting on the plate, the table length is the sim's physical
+  length of the tool: a measurement returns it (to a servo period at the slow
+  probe feed) and repeated measurements do not drift.
 - A tool without a table length, or an empty spindle: nothing trips, the probe
   finds nothing — as on a machine without a tool setter.
 - The tool is taken as vertical (the TWP gantry's head must stand at B0/C0).
