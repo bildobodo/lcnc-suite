@@ -248,7 +248,7 @@ def test_no_calibration_is_incomplete():
 # ── Codex R47 VP-I17: memory ──────────────────────────────────────────────
 def test_the_build_peak_and_the_release_are_checked():
     r = rep.analyse(run_rows(peak=lambda v, rp: (100 if v == "gl" else 300) * MiB))
-    assert "memory build peak: B − A ≤ 128 MiB" in failing(r)
+    assert "memory peak (every phase): B − A ≤ 128 MiB" in failing(r)
     left = rep.analyse(run_rows(released=lambda v, rp: 4096 if v == "fat" else 0))
     assert "fat release: every path byte freed" in failing(left)
     assert "gl release: every path byte freed" not in failing(left)
@@ -296,3 +296,95 @@ def test_the_last_run_by_default_and_a_named_one(tmp_path):
     empty = tmp_path / "empty.ndjson"
     empty.write_text("")
     assert rep.main(["--trace", str(empty)]) == 2
+
+
+# ── Codex R48: required values inside a record, and every peak ───────────
+def _strip(rows, pred, path):
+    """Remove the key at `path` (a tuple) from every row `pred` selects."""
+    for e in rows:
+        if not pred(e):
+            continue
+        d = e
+        for k in path[:-1]:
+            d = d.get(k) if isinstance(d, dict) else None
+            if d is None:
+                break
+        if isinstance(d, dict):
+            d.pop(path[-1], None)
+    return rows
+
+
+def _rec(phase=None, variant=None, rep_=None):
+    return lambda e: (e.get("tag") == "browser.viewer.abrun" and "variant" in e
+                      and (phase is None or e.get("phase") == phase)
+                      and (variant is None or e.get("variant") == variant)
+                      and (rep_ is None or e.get("rep") == rep_))
+
+
+def test_missing_peaks_are_incomplete_never_a_dropped_check_codex_r48():
+    rows = _strip(run_rows(), _rec(), ("memory", "peak"))
+    r = rep.analyse(rows)
+    assert r["verdict"] == "INCOMPLETE", (failing(r), r["excluded"])
+    assert any("memory.peak" in x for x in r["excluded"])
+
+
+def test_a_missing_gpu_total_is_incomplete_not_an_exception_codex_r48():
+    rows = _strip(run_rows(), _rec(), ("memory", "gpu", "total"))
+    r = rep.analyse(rows)
+    assert r["verdict"] == "INCOMPLETE"
+    assert any("memory.gpu.total" in x for x in r["excluded"])
+
+
+def test_a_later_peak_counts_codex_r48():
+    # B's reveal raises the build's bound to 512 MiB (A 120): the held values
+    # are unchanged, the peak alone is over the budget
+    def pk(v, r_):
+        return (120 if v == "gl" else 170) * MiB
+    rows = run_rows(peak=pk)
+    for e in rows:
+        if _rec("reveal", "fat")(e):
+            e["memory"]["peak"] = 512 * MiB
+    r = rep.analyse(rows)
+    assert r["verdict"] == "FAIL"
+    assert any("peak" in c for c in failing(r)), failing(r)
+
+
+def test_the_build_block_comes_from_the_validated_histogram_codex_r48():
+    # B's longest blocks 300 / 10 / 300 ms against A's 110: FAIL — and still
+    # FAIL with one summary maximum removed (the histogram carries it)
+    rows = run_rows(block_ms=lambda v, r_: 110 if v == "gl" else (10 if r_ == 2 else 300))
+    assert rep.analyse(rows)["verdict"] == "FAIL"
+    _strip(rows, _rec("build", rep_=1), ("mt", "max"))
+    r = rep.analyse(rows)
+    assert r["verdict"] == "FAIL", (r["excluded"], r["checks"])
+    assert sorted(r["build"]["fat"]["mt_max"]) == [10, 300, 300]
+
+
+def test_a_histogram_part_without_its_maximum_is_incomplete_codex_r48():
+    rows = run_rows()
+    for e in rows:
+        if e.get("tag") == "browser.viewer.abhist" and e["phase"] == "build" and e["variant"] == "fat" and e["rep"] == 1 and e["series"] == "mt":
+            e.pop("max")
+    r = rep.analyse(rows)
+    assert r["verdict"] == "INCOMPLETE"
+    assert any("mt histogram part 0 without max" in x for x in r["excluded"]), r["excluded"]
+
+
+def test_a_record_without_its_duration_generation_or_payload_is_incomplete_codex_r48():
+    for phase, path in (("build", ("ms",)), ("build", ("memory", "generation")), ("release", ("memory", "cpu", "payload"))):
+        rows = _strip(run_rows(), _rec(phase, "fat", 2), path)
+        r = rep.analyse(rows)
+        assert r["verdict"] == "INCOMPLETE", (phase, path, failing(r))
+        assert any(".".join(path) in x for x in r["excluded"]), (path, r["excluded"])
+
+
+def test_a_missing_window_maximum_reads_unmeasured_never_zero_codex_r48():
+    rows = _strip(run_rows(), _rec("orbit"), ("raf", "win_p95_max"))
+    orbit = next(t for t in rep.analyse(rows)["table"] if t["phase"] == "orbit")
+    assert orbit["a_win_p95_max"] is None and orbit["b_win_p95_max"] is None
+
+
+def test_the_median_refuses_a_missing_value():
+    import pytest
+    with pytest.raises(ValueError):
+        rep.median([1.0, None, 3.0])

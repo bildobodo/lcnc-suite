@@ -24,8 +24,11 @@ the limits fixed BEFORE the measurement (Codex R39/R47):
       count minus what A's RATE predicts for B's time stays below 2;
   build (a REAL rebuild each time — distinct path generations): B's median
     duration and median longest main-thread block at most 1.5 x A's + 100 ms;
-  memory: B - A <= 128 MiB at every ledger point and for the build's peak,
-    CPU and GPU separately; after each release no path byte is left.
+  memory: B - A <= 128 MiB at every ledger point and for the peak bound of
+    every phase (a reveal raises it), CPU and GPU separately; after each
+    release no path byte is left; a record without a required value (its
+    duration, held totals, peak, generation, payload, a histogram maximum)
+    is excluded — INCOMPLETE, never a dropped check.
 
 p95 and limits compare at the histogram's resolution: a p95 passes when its
 bin is not above the limit's bin (quantiles are bin upper edges —
@@ -168,11 +171,42 @@ def nominal_rate(frame_ms: float | None) -> int | None:
 
 
 def median(xs: list[float]) -> float | None:
-    xs = sorted(x for x in xs if x is not None)
+    """The median; a missing value is an error, never dropped (Codex R48: a
+    missing 300 ms maximum turned a 300 ms median into 155 ms)."""
+    if any(x is None for x in xs):
+        raise ValueError("median of a sample with a missing value")
+    xs = sorted(xs)
     if not xs:
         return None
     m = len(xs) // 2
     return xs[m] if len(xs) % 2 else (xs[m - 1] + xs[m]) / 2
+
+
+def _number(x) -> bool:
+    return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x)
+
+
+def _at(d, path: tuple):
+    for k in path:
+        if not isinstance(d, dict) or k not in d:
+            return None
+        d = d[k]
+    return d
+
+
+def missing_values(p: dict) -> list[str]:
+    """The required values a RAN record lacks (Codex R48 VP-I13): its
+    duration, and at its memory point the held CPU / GPU totals and the peak
+    bound — plus the build's path generation and the release's payload. A
+    missing value excludes the record (→ INCOMPLETE), never drops a check."""
+    need = [("ms",)]
+    if p.get("phase") in PHASE_MEMORY:
+        need += [("memory", "cpu", "total"), ("memory", "gpu", "total"), ("memory", "peak")]
+        if p["phase"] == "build":
+            need.append(("memory", "generation"))
+        if p["phase"] == "release":
+            need.append(("memory", "cpu", "payload"))
+    return [".".join(k) for k in need if not _number(_at(p, k))]
 
 
 # ── reading the trace ─────────────────────────────────────────────────────
@@ -250,9 +284,13 @@ def analyse(rows: list[dict], run: str | None = None, rate: int | None = None) -
             if len(got) != want:
                 why.append(f"{series} histogram incomplete ({len(got)}/{want} parts)")
                 continue
+            no_max = [i for i in range(want) if not _number(got[i].get("max"))]
+            if no_max:
+                why.append(f"{series} histogram part {no_max[0]} without max")
+                continue
             h = Hist()
             for i in range(want):
-                h.add_sparse(got[i]["bins"], got[i].get("max", 0.0))
+                h.add_sparse(got[i]["bins"], got[i]["max"])
             if h.n != got[0]["n"]:
                 why.append(f"{series} histogram count {h.n} ≠ {got[0]['n']}")
                 continue
@@ -260,6 +298,8 @@ def analyse(rows: list[dict], run: str | None = None, rate: int | None = None) -
         point = PHASE_MEMORY.get(p["phase"])
         if point and (p.get("memory_at") != point or not isinstance(p.get("memory"), dict)):
             why.append(f"no memory at {point}")
+        elif p.get("status") == "ran":
+            why += [f"no {k}" for k in missing_values(p)]
         if why:
             excluded.append(f"{label}: {', '.join(why)}")
             continue
@@ -302,6 +342,12 @@ def analyse(rows: list[dict], run: str | None = None, rate: int | None = None) -
     def seconds(v: str, ph: str) -> float:
         return sum(p.get("ms", 0) for p in valid.get((v, ph), [])) / 1000.0
 
+    def win_max(v: str, ph: str) -> float | None:
+        """The highest window p95 of the repetitions (diagnosis) — unmeasured
+        when any repetition lacks it, never read as 0."""
+        vals = [_at(p, ("raf", "win_p95_max")) for p in valid.get((v, ph), [])]
+        return max(vals) if vals and all(_number(x) for x in vals) else None
+
     # ── steady phases: p95, ratio, new recurring events by RATE ──
     table = []
     for ph in STEADY:
@@ -315,8 +361,7 @@ def analyse(rows: list[dict], run: str | None = None, rate: int | None = None) -
         ta, tb = seconds("gl", ph), seconds("fat", ph)
         row.update({
             "a_p95": a.quantile(0.95), "b_p95": b.quantile(0.95),
-            "a_win_p95_max": max((p["raf"].get("win_p95_max") or 0 for p in valid[("gl", ph)]), default=None),
-            "b_win_p95_max": max((p["raf"].get("win_p95_max") or 0 for p in valid[("fat", ph)]), default=None),
+            "a_win_p95_max": win_max("gl", ph), "b_win_p95_max": win_max("fat", ph),
             "a_gaps100": a.at_least(100), "b_gaps100": b.at_least(100),
             "a_blocks50": am.at_least(50), "b_blocks50": bm.at_least(50),
             "a_s": round(ta, 1), "b_s": round(tb, 1),
@@ -340,7 +385,9 @@ def analyse(rows: list[dict], run: str | None = None, rate: int | None = None) -
         for v in ("gl", "fat"):
             recs = valid[("gl" if v == "gl" else "fat", "build")]
             gens = [p["memory"].get("generation") for p in recs]
-            build[v] = {"ms": [p.get("ms") for p in recs], "mt_max": [p["mt"].get("max") for p in recs],
+            # the longest block from the VALIDATED histogram (Codex R48), never
+            # the phase summary a missing field could shorten
+            build[v] = {"ms": [p["ms"] for p in recs], "mt_max": [hist[p["seq"]]["mt"].max for p in recs],
                         "generations": gens}
             check(f"{v} build: every build phase a real build", len(set(gens)) == len(gens) and None not in gens,
                   f"path generations {gens}")
@@ -366,16 +413,18 @@ def analyse(rows: list[dict], run: str | None = None, rate: int | None = None) -
                 check(f"memory {point} {side}: B − A ≤ 128 MiB", row[f"{side}_b"] - row[f"{side}_a"] <= MEMORY_MAX_BYTES,
                       f"A {row[f'{side}_a'] / 2**20:.1f} MiB, B {row[f'{side}_b'] / 2**20:.1f} MiB")
         memory.append(row)
-    peaks = {v: [p["memory"].get("peak") for p in valid.get((v, "build"), [])] for v in ("gl", "fat")}
-    if all(peaks[v] and None not in peaks[v] for v in ("gl", "fat")):
+    # the peak bound of EVERY memory record (Codex R48 VP-I17): a reveal or a
+    # jump after the build raises it, and that value counts
+    peaks = {v: [p["memory"]["peak"] for ph in PHASE_MEMORY for p in valid.get((v, ph), [])] for v in ("gl", "fat")}
+    if all(peaks[v] for v in ("gl", "fat")):
         pa, pb = max(peaks["gl"]), max(peaks["fat"])
-        check("memory build peak: B − A ≤ 128 MiB", pb - pa <= MEMORY_MAX_BYTES,
+        check("memory peak (every phase): B − A ≤ 128 MiB", pb - pa <= MEMORY_MAX_BYTES,
               f"A {pa / 2**20:.1f} MiB, B {pb / 2**20:.1f} MiB (upper bound: every allocation of a build alive at once)")
     for v in ("gl", "fat"):
         recs = valid.get((v, "release"), [])
         if not recs:
             continue
-        left = [(p["memory"]["cpu"]["total"] - p["memory"]["cpu"].get("payload", 0), p["memory"]["gpu"]["total"]) for p in recs]
+        left = [(p["memory"]["cpu"]["total"] - p["memory"]["cpu"]["payload"], p["memory"]["gpu"]["total"]) for p in recs]
         check(f"{v} release: every path byte freed", all(c == 0 and g == 0 for c, g in left),
               f"CPU / GPU left besides the program: {left}")
 
