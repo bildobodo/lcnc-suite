@@ -187,6 +187,8 @@ for (const how of ["to its end", "cancelled mid-run"] as const) {
     const end = telemetry.find(e => e.kind === "viewer.abrun" && e.phase === "end")!;
     expect(end.cancelled).toBe(how !== "to its end");
     expect(end.restored, "what came back is on the record").toMatchObject({ sim: true, pos: true, found: true });
+    // measured after the run's last build: the section the view shows
+    expect(end.restored.reveal_bytes, "the record reads the section as drawn").toBe(before.reveal);
     await expect(line, "the same finding's line").toHaveText(/^L14/);
     const after = await shown();
     expect(after.reveal, "its section drawn again").toBe(before.reveal);
