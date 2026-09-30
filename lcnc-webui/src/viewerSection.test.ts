@@ -12,7 +12,7 @@ import type { ViewerDefaults } from "./defaults";
 
 const FB: ViewerDefaults = {
   layers: { backplot: true, toolpath: true, rapids: true, machine: true, bounds: true, toolpathBounds: false, reachRoom: false, reachPart: false,
-    workzero: true, hud: true, surface: true, tool: true, workplane: true, groundGrid: true },
+    workzero: true, hud: true, surface: true, tool: true, toolsetter: true, workplane: true, groundGrid: true },
   paletteMode: "auto",
   colors: {},
   machineColors: {},

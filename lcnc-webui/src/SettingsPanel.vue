@@ -298,7 +298,7 @@ const HUD_TOGGLES: { key: keyof Omit<HudDefaults, "scale">; label: string }[] = 
 // P3, Codex R30: the legend at the layer rows, not a second list) — the
 // drawn colour, dashed or two-tone like the line itself.
 type TwoTone = "long" | "short";
-const LAYER_LABELS: { key: Layer; label: string; role?: ViewerRole; dashed?: boolean; twoTone?: TwoTone }[] = [
+const LAYER_LABELS: { key: Layer; label: string; role?: ViewerRole; dashed?: boolean; twoTone?: TwoTone; help?: string }[] = [
   { key: "backplot", label: "Backplot", role: "backplot" },
   { key: "toolpath", label: "Toolpath", role: "feed" },
   { key: "rapids", label: "Rapids", role: "rapid", dashed: true },
@@ -312,6 +312,7 @@ const LAYER_LABELS: { key: Layer; label: string; role?: ViewerRole; dashed?: boo
   { key: "machine", label: "Machine" },
   { key: "groundGrid", label: "Ground Grid" },
   { key: "tool", label: "Tool" },
+  { key: "toolsetter", label: "Tool Setter", help: "Where the next tool measurement probes: its top is the contact height. Shown once Probing › Toolsetter is set up." },
   { key: "hud", label: "HUD" },
 ];
 
@@ -608,6 +609,7 @@ function resetMachineColor(id: string) {
                 :modelValue="layers[lf.key]"
                 @update:modelValue="onLayerChange(lf.key, $event!)"
                 :label="lf.label"
+                :help="lf.help"
               />
               <span v-if="lf.role" class="legendLine" :class="{ dashed: lf.dashed, twoTone: lf.twoTone, short: lf.twoTone === 'short' }"
                     :style="legendStyle(lf.role, lf.twoTone)" aria-hidden="true"></span>

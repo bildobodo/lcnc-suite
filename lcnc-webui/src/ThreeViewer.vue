@@ -16,6 +16,8 @@ import {
 
 import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, settingsVersion, type Vec3, type Layer } from "./defaults";
+import { confirmedToolsetter } from "./toolsetterVars";
+import { buildToolsetterMarker, toolsetterPlacement } from "./viewer/toolsetterMarker";
 import { INTERP_IDLE } from "./lcnc";
 import { fmtCoord, fmtProgressTimes, fmtRpm, fmtNum, fmtPct, NO_VALUE } from "./format";
 import { framePose as defaultFramePose, DEFAULT_FRAME_DIR } from "./viewer/cameraFraming";
@@ -506,6 +508,19 @@ const _bpLocal = new THREE.Vector3();
 const _trackTarget = new THREE.Vector3();
 
 let machineBoundsMesh: BoxEdges | null = null;
+// The tool setter puck (viewer/toolsetterMarker.ts): placed from the
+// server-confirmed tool setter section, shown when it is set up and the
+// "toolsetter" layer is on; re-placed on every settings change.
+let toolsetterMarker: THREE.Group | null = null;
+let _toolsetterLayerOn = true;
+function applyToolsetterMarker() {
+  if (!toolsetterMarker) return;
+  const at = toolsetterPlacement(confirmedToolsetter());
+  if (at) toolsetterMarker.position.set(at.x, at.y, at.topZ);
+  toolsetterMarker.visible = !!at && _toolsetterLayerOn;
+  requestRender();
+}
+watch(settingsVersion, applyToolsetterMarker);
 const _billboardLabels: Text[] = [];
 const _bbQ = new THREE.Quaternion();  // reused for billboard parent compensation
 const boundsClipPlanes: THREE.Plane[] = [];
@@ -1120,6 +1135,10 @@ function setLayerVisible(layer: Layer, on: boolean) {
     case "bounds":
       if (machineBoundsMesh) machineBoundsMesh.visible = on;
       break;
+    case "toolsetter":
+      _toolsetterLayerOn = on;
+      applyToolsetterMarker();
+      break;
     case "toolpathBounds":
       toolpath.setBoundsVisible(on);
       break;
@@ -1517,6 +1536,11 @@ function ensureCoreGroups(init: ViewerInit) {
     // work chains machineFrameGrp IS _workGrp.
     (machineFrameGrp ?? _workGrp)!.add(machineBoundsMesh);
   }
+  // The tool setter (operator 2026-09-29): a puck in the MACHINE frame at the
+  // set-up tool setter position, its top face at the contact Z.
+  toolsetterMarker = buildToolsetterMarker(_unitScale, MACHINE_SURFACE);
+  (machineFrameGrp ?? _workGrp)!.add(toolsetterMarker);
+  applyToolsetterMarker();
   // Reach envelope layer (2026-09-12): the cached solids re-hang under the
   // rebuilt frame groups; a new machine model recomputes (inputs key).
   if (_reachRoomOn || _reachPartOn) _reachRequest();
@@ -1799,6 +1823,20 @@ async function buildFromInit(init: ViewerInit) {
             }
           });
           return best;
+        },
+        // The tool setter puck (operator 2026-09-29): shown (incl. every
+        // parent), its top centre in the machine frame, and its screen point.
+        getToolsetter: () => {
+          if (!toolsetterMarker) return null;
+          let shown = toolsetterMarker.visible;
+          for (let p = toolsetterMarker.parent; p; p = p.parent) shown &&= p.visible;
+          let screen: { x: number; y: number } | null = null;
+          if (camera && renderer) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            const w = toolsetterMarker.getWorldPosition(new THREE.Vector3()).project(camera);
+            screen = { x: rect.left + (w.x + 1) / 2 * rect.width, y: rect.top + (1 - w.y) / 2 * rect.height };
+          }
+          return { visible: shown, top: toolsetterMarker.position.toArray(), screen };
         },
         // The tilted work plane as drawn (viewer contrast plan, V4): the label
         // on the object, the edge's role, pattern and opacity, the arrow's
