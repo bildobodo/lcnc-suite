@@ -2612,3 +2612,70 @@ Resolution am tatsächlichen Draw aus dem Viewport (CSS px). Es gibt keine Zentr
 **Box-Überhang:** gehört zu Teil B. `rebuildOverflowEdges` wird ein gestricheltes 2-px-
 `LineSegments2` in der Überschreitungsfarbe, mit den bisherigen Clip-Ebenen
 (`clipIntersection`), ebenfalls in Weltmaß-Strichen wie heute.
+
+---
+
+## Implementierungsrunde R44 · Claude · Teil A, Schneide, Reichweiten · 30. September 2026
+
+**Umfang (Teil 1 dieser Runde):** `ee28e66~1..ee05e20` plus `87ff644`. Die
+Umsetzung der Operator-Entscheidungen oben, ohne Teil B:
+
+- `ee28e66` Viewer palette part A: two schemes, green path, grey-ladder models, two-tone bounds
+- `4bb4ff1` Viewer: the cutter bright steel, the shaft mid steel
+- `ee05e20` Viewer: the reach outlines two-tone and dotted, like the boxes
+- `87ff644` e2e scenes: sample the pixel a point lies in (floor, not round)
+
+Teil 2 derselben Runde steht in
+[sim-toolsetter.review.md](sim-toolsetter.review.md) (Sim-Werkzeugmesser und
+Viewer-Marker). **Teil B (2 px) ist nicht Gegenstand:** Die Pfade zeichnen
+hier noch als GL-Linie; Teil B kommt mit Messwerkzeug als eigene Runde
+(Plan: R39 und meine Antwort oben). Bis dahin stimmt die Breitenleiter der
+Entscheidung 3 (alle Pfade 2 px) nur für Backplot und Boxen.
+
+### Was geprüft werden soll
+
+1. **Rollenfarben** (Entscheidung 1–2): alle fünf Theme-Blöcke in `style.css`
+   (hell/`:root`, dunkel, Auto-dunkel, hc-light, hc-dark) gegen die Tabelle.
+   `themeTokens.test.ts` prüft Farbfamilien über Themes (Farbton ≤ 15°),
+   ≥ 3 : 1 auf `--bg` (HC 4,5), ≥ `MODEL_MIN` 1,8 : 1 auf den gerenderten
+   Modellflächen (`customContrast.MODEL_SURFACES`), die Linienpaare ≥ 0,25
+   OKLab (hc-dark 0,24 als benanntes Band, `lineMinFor`), dass hell, dunkel
+   und Auto-dunkel für alle übrigen Rollen gleich sind. Rot bewiesen gegen die
+   R35-Tokens (18 Fehlschläge).
+2. **Graustufen-Modelle** (Entscheidung 4): `viewer/palette.ts`
+   `MACHINE_PALETTE`; beide FreeCAD-Beispiele, die `COL`-Tabellen ihrer
+   Generatoren, die Legacy-Fixtures und `vismach_to_stl.py`.
+   `palette.test.ts` pinnt jedes ausgelieferte Modell an die Leiter (rot gegen
+   die alten Modelle).
+3. **Zweifarbige Boxen** (Entscheidung 5): `viewer/boxLines.ts` — eine dunkle
+   durchgehende Linie, helle Striche darüber, gleiche Breite, keine Umrandung;
+   Strichlänge in CSS px über `worldPerPixel` im `onBeforeRender` des
+   Strichpasses; die Maschinenbox in ihrer echten Größe statt einer skalierten
+   Einheitsbox. Der Überhang außerhalb der Maschinengrenze bleibt orange
+   gestrichelt (heute GL-Linie; in Teil B ein 2-px-Strich). Wächter:
+   `boxLines.test.ts`, `scenes.viewer.spec` „the box edge alone“ (beide Töne
+   entlang der Kante gegen einen einfarbigen Build rot; `87ff644` tastet das
+   Pixel ab, in dem der Punkt liegt, statt zu runden).
+4. **Schneide** (`4bb4ff1`): `--viewer-cutter` helles Stahlgrau, ≥ 0,25 OKLab
+   von jeder Linienrolle in hell und dunkel (rot mit dem alten Gold); der
+   Schaft mittleres Stahlgrau. Die kleine 2D-Vorschau im Werkzeugdialog
+   behält Gold/Silber (eine Illustration auf dem Panel) — bitte sagen, ob du
+   das als Bruch der Regel liest.
+5. **Reichweiten** (`ee05e20`): dieselben zwei Töne, 1 px, punktiert
+   (`REACH_DASH_PX`), `makeTwoToneSegments` für beliebige Segmentlisten.
+6. **Legende und Custom-Hinweis:** Layer-Zeilen mit Linienprobe
+   (gestrichelt/zweifarbig wie die Linie), Custom-Kontrast „On the machine“
+   (eine Box gilt als lesbar, wo einer der Töne es ist).
+
+### Läufe am Stand `7aad422`
+
+Build, Lint mit CSS-Audit, Frontend-Unit 1751, `serial-viewer` 27/27,
+`feedback-channels` + `contrast` 23/23. Kein vollständiges Offline-Gate an
+diesem Stand (kommt vor der Live-Abnahme).
+
+**Arbeitsort:** wie gehabt. In `~/lcnc-suite` nur an diese Datei und an
+`sim-toolsetter.review.md` anhängen und `viewer-palette-fest.r44.*` bzw.
+`sim-toolsetter.r44.*` ablegen; keine Builds, Tests, Checkouts oder
+Maschinenbefehle dort, kein `:5173`/`:8000`. Bitte eine Archivkopie von
+`7aad422` (oder später) nutzen. Die Sim steht im E-Stop mit einem
+unquittierten Watchdog-Trip — bitte nicht quittieren; das macht der Operator.
