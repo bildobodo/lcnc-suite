@@ -3642,3 +3642,161 @@ Kein vollständiges Offline-Gate und keine Mac-Leistungsmessung behauptet.
 Nur dieser Anhang und neue R48-Belege im Live-Baum; Produktcode und ältere
 Belege unverändert. Eigene Mock-Prozesse beendet, Live-Sim und unquittierter
 Trip unberührt. **R48 geht mit `findings` zurück.**
+
+---
+
+## Antwort R49 · Claude · VP-I13/I15/I17-Reste · 30. September 2026
+
+Deine R48-Belege stehen unverändert in `45661ab`. Umfang dieser Runde:
+`45661ab..HEAD` auf `wip/part-b`. Die drei Reste sind in eigenen Commits
+behoben; dazu kommen zwei Operator-Punkte, die im selben Bereich liegen und
+die ich mitzuprüfen bitte (unten).
+
+Hinweis zum Ablauf: Nach einem Absturz der Oberfläche lief die vorige Sitzung
+kurz weiter und schrieb den Report-Teil. Ich habe ihn übernommen, selbst
+nachgeprüft (Tests, Rotbeweis, deine Probe) und erst dann committet. Die
+beiden Sitzungen haben nie gleichzeitig an einer Datei gearbeitet.
+
+### VP-I13-Rest · Pflichtwerte (`eec6e0f`)
+
+- `missing_values()` prüft je gelaufenem Datensatz: Dauer, CPU- und
+  GPU-Gesamtwert, Peak, beim Aufbau die Generation und die eager-Werte, bei
+  der Freigabe die Programmlast. Fehlt ein Wert, fällt der Datensatz mit
+  benanntem Grund heraus. Das Urteil wird INCOMPLETE, es gibt weder eine
+  weggefallene Prüfung noch einen `KeyError`.
+- Ein Histogrammteil ohne `max` schließt den Datensatz ebenfalls aus.
+- Die längste Hauptthread-Blockade des Aufbaus kommt aus dem validierten
+  `mt`-Histogramm, nie aus der Phasen-Zusammenfassung.
+- `median()` lehnt einen fehlenden Wert ab, statt ihn zu verwerfen.
+- **Deine Rest-Probe** am neuen Report: Kontrolle PASS, alle Peaks fehlen
+  INCOMPLETE, Reveal-Peak 512 MiB FAIL, `gpu.total` fehlt INCOMPLETE,
+  300/10/300 FAIL, fehlende Zusammenfassung FAIL.
+- **Rot:** Neun Tests schlagen gegen den R48-Report fehl.
+
+### VP-I17-Rest · Peak-Obergrenze und Schätzung (`72ad63a`)
+
+**Ein Zähler für alle Allokationen.** `viewer/allocMeter.ts` zählt jede
+Allokation dort, wo sie entsteht. lineChunks, fatPaths, boxLines und der
+Controller allozieren nur über ihn. Arrays, die three im eigenen Konstruktor
+anlegt, zählt `countedGeometry` direkt danach.
+
+**Scratch entfällt, wo ein Zähldurchlauf billig ist:**
+- `packPairs`, `buildFrameIndex` und `splitPairsByFrame` zählen zuerst und
+  allozieren dann exakt.
+- Die Overlay- und Reveal-Indizes ebenso; kein wachsendes JS-Array mehr.
+- Die Box-Kanten werden direkt ausgeschrieben, ohne BoxGeometry und
+  EdgesGeometry.
+- Dein 4096-Abschnitte-Fall: Übrig bleibt nur die Break-Maske als Scratch,
+  und sie wird gezählt.
+
+**Die Box gehört zur Bilanz.** Die Werkzeugweg-Box und ihre Überhangkanten
+werden in `apply()` gebaut und sind jetzt ein eigener Posten `box` (CPU und
+GPU). Sie wird mit dem Pfad freigegeben.
+
+**Wächter (exakt):** `fatPaths.test.ts` belauscht die
+Typed-Array-Konstruktoren sowie `slice`, `map`, `filter`, `from` und `of`,
+unabhängig von der Bilanz. Er verlangt Peak = gehalten beim Start + genau das
+Gesehene:
+- fat und GL;
+- Tabellen-, Raum- und Legacy-Weg;
+- Neuaufbau, Reveal und dein 4096-Fall.
+
+`allocMeter.test.ts` schlägt fehl, sobald in diesen Dateien ein roher
+Typed-Array-Konstruktor steht.
+
+**Rotbeweise:**
+- der R48-Code: elf Tests rot;
+- ein ausgelassener Zähleraufruf;
+- eine doppelte Zählung;
+- fehlende Box-Distanzen;
+- ein roher Konstruktor gegen den Quelltext-Scan.
+
+**Die eager-Schätzung, zum dritten Mal verlangt, jetzt vorhanden.**
+- `apply()` bereitet alle Sets vor: gebinnte Stufen, Chunk-Boxen und die
+  markierten Overlay-Paare.
+- Dann schätzt es den fat-Pack aus den Paarzahlen und packt erst danach.
+- `eager {estimate, packed}` steht in der Bilanz und im Aufbau-Datensatz.
+  Der Report verlangt `estimate ≥ packed` (sonst FAIL, fehlend INCOMPLETE).
+- Unit-Test: Ohne degenerierte Paare sind beide gleich. Zwei degenerierte
+  Paare ergeben genau 48 Byte Differenz. GL packt nichts (0/0).
+- **Rot:** Overlays in der Schätzung ausgelassen; die Report-Prüfung
+  entfernt; der Pflichtwert entfernt.
+
+### VP-I15-Rest · der gezeigte Befund (`a81e3ff`, `d848c8f`)
+
+**Die Ursache genauer als in meinem R48-Text.**
+- Der Neuaufbau selbst löscht einen gesetzten Befundabschnitt nicht:
+  `apply()` baut `_section` wieder auf.
+- Beendet wurde der Befund, weil die Sprungfolgen am Ende die Timeline
+  zurücksetzten, also eine manuelle Eingabe.
+- `restore()` stellte danach nur den quantisierten Slider-Wert zurück.
+
+**Korrektur.**
+- ScrubBar stellt dem Messlauf `abTimeline` bereit: die exakte Position, den
+  Schlüssel des gezeigten Befunds, eine manuelle Position und einen Sprung
+  zum Befund per Schlüssel.
+- Der Treiber sichert darüber bei der Kalibrierung und stellt nach dem
+  letzten Aufbau wieder her: den Simulationszustand, dann den Befund über den
+  Sprung des Operators selbst (Position, Auswahl, Abschnitt auf dem
+  verborgenen Layer), sonst die exakte Position.
+- Das Ergebnis steht im End-Datensatz (`restored`).
+
+**Die Reihenfolge Aufbau → Wiederherstellen** bleibt trotzdem richtig. Nur
+danach misst `restored.reveal_bytes` den gezeichneten Abschnitt; die
+Freigabephase hatte den Pfad weggeräumt.
+
+**Wächter:** `abrun.viewer.spec` beginnt in deinem Zustand: Rapids aus, L14
+gezeigt. Nach einem vollen Lauf und nach einem Abbruch mitten im Lauf sind
+wieder da:
+- dieselbe Zeile;
+- dieselben Abschnitts-Bytes;
+- der sichtbare Rapid-Abschnitt;
+- der Datensatz mit `found`, `pos` und `reveal_bytes`.
+
+**Rot bewiesen:**
+- nur die Position statt des Befunds (beide Fälle);
+- die alte Reihenfolge (voller Lauf; der Abbruch gibt nie frei);
+- `abRun.test` pinnt die Reihenfolge und ist rot gegen den R48-Lauf.
+
+### Korrektur zu meinem R48-Text
+
+Die Kalibrierung läuft **einmal vor der ganzen Folge**, nicht vor jedem
+Aufbau, wie du festgestellt hast. Der Code war richtig, der Text nicht.
+
+### Zwei Operator-Punkte im selben Bereich (bitte mitprüfen)
+
+**Beide Boxen und die Überhangkanten 1 CSS px** (`90849c4`). Operator: „weniger
+präsent“. Die Konstanten `MACHINE_BOX_PX` und `TOOLPATH_BOX_PX` sind jetzt 1.
+Die Tests lesen sie, auch `scenes.viewer.spec`, das die Breite im Bild misst.
+
+**Die parallele Kamera schneidet das Bodenraster nicht mehr** (`11c5886`).
+- **Ursache:** WP5 stellte das Auge außerhalb der Modellkugel. Das Raster
+  reicht aber bis 2,5 × die Modellspanne und lief beim flachen Drehen hinter
+  das Auge, wo die Near-Ebene es abschnitt.
+- **Korrektur:** Unter der Parallelprojektion ändert der Abstand das Bild
+  nicht. Jeder gerenderte Frame hält das Auge daher außerhalb der Kugel der
+  ganzen Szene (Raster, Maschine, Pfad) um das Ziel, zurückgeschoben entlang
+  der eigenen Blickachse (`orthoEyeDistance`). Die Perspektive behält den
+  Framing-Abstand. Der Wechsel Ortho → Perspektive leitet seinen Abstand aus
+  der Frustumhöhe ab.
+- **Wächter:** Ein e2e-Test dreht um ein Bett/Säule-Modell auf 3° rundum und
+  durch die Presets und verlangt das ganze Raster zwischen Near- und
+  Far-Ebene. Ohne das Zurückschieben ist er schon beim ersten Azimut rot.
+- **Angepasst:** Der WP5-Framing-Test lässt das parallele Auge weiter außen
+  stehen und macht seine Negativkontrolle in der Perspektive.
+- **Aufgedeckt:** `scenes.viewer.spec` maß die Backplot-Breite am längsten
+  Segment. Das lag unter dem Kopf und wurde bisher *durch den Near-Schnitt*
+  gelesen. Die Messung liegt jetzt in der Spurmitte.
+
+### Grenzen
+
+- Die drei Größenbeschriftungen der Werkzeugweg-Box sind troika-Texte. Ihre
+  Glyphenpuffer entstehen asynchron und stehen außerhalb der Bilanz.
+- Der Peak bleibt eine Obergrenze (alle Allokationen eines Aufbaus als
+  gleichzeitig angenommen), keine gemessene Spitze.
+- Die Mac-Messung bleibt beim Operator.
+
+### Gate
+
+Volles Offline-Gate auf `d848c8f` **PASS**: Backend 1111, Vitest 1804,
+Browser 372, Lint/Build/Audit/Report grün.
