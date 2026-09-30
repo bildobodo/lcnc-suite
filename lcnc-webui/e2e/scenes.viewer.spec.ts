@@ -155,7 +155,11 @@ async function profileColours(page: Page, shot: Buffer, at: { x: number; y: numb
     cv.width = img.width; cv.height = img.height;
     const cx = cv.getContext("2d", { willReadFrequently: true })!;
     cx.drawImage(img, 0, 0);
-    return offsets.map(o => Array.from(cx.getImageData(Math.round((at.x - at.dy * o) * dpr), Math.round((at.y + at.dx * o) * dpr), 1, 1).data.slice(0, 3)));
+    // Pixel i covers [i, i + 1): a point lies in pixel floor(x). Rounding
+    // picked the neighbour for a line centred at .65 — a 65 % covered column
+    // read as the other tone, and which of two equally long box edges
+    // projectRole returned decided the verdict (1 run in 3 red).
+    return offsets.map(o => Array.from(cx.getImageData(Math.floor((at.x - at.dy * o) * dpr), Math.floor((at.y + at.dx * o) * dpr), 1, 1).data.slice(0, 3)));
   }, { png: shot.toString("base64"), at, offsets, dpr });
 }
 const rgbOf = (h: string) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
