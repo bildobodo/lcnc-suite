@@ -1,0 +1,10 @@
+> nice -n 19 node node_modules/vitest/vitest.mjs run src/themeTokens.test.ts src/viewer/palette.test.ts src/viewer/boxLines.test.ts src/viewer/customContrast.test.ts src/viewer/toolpathController.test.ts src/viewer/toolsetterMarker.test.ts src/viewerSection.test.ts --configLoader runner --maxWorkers 1
+
+ RUN  v4.1.8 /tmp/codex-r44-eq2f3y85/lcnc-webui
+
+
+ Test Files  7 passed (7)
+      Tests  111 passed (111)
+   Start at  04:38:26
+   Duration  1.57s (transform 278ms, setup 0ms, import 578ms, tests 165ms, environment 1ms)
+

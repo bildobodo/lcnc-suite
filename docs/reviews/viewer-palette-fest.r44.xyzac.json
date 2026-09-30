@@ -1,0 +1,354 @@
+{
+  "commit": "f82c323",
+  "states": [
+    {
+      "palette": {
+        "resolved": {
+          "feed": "#00a83c",
+          "rapid": "#3d8bff",
+          "backplot": "#ff00ff",
+          "bounds": "#15181c",
+          "toolpathBounds": "#15181c",
+          "tool": "#6b7178",
+          "cutter": "#eceff1",
+          "limit": "#e66b00",
+          "collision": "#c8102e",
+          "boundsAlt": "#f0f2f4",
+          "reach": "#15181c",
+          "planeActive": "#2d81dc",
+          "planeDefined": "#a97515",
+          "planeStale": "#cc3333"
+        },
+        "drawn": {
+          "planeActive": "#2d81dc",
+          "backplot": "#ff00ff",
+          "reach": "#15181c",
+          "reachAlt": "#f0f2f4",
+          "bounds": "#15181c",
+          "boundsAlt": "#f0f2f4",
+          "tool": "#6b7178",
+          "cutter": "#eceff1"
+        },
+        "mode": "auto"
+      },
+      "materials": [
+        {
+          "role": "planeActive",
+          "kind": "dashed",
+          "widthPx": 1,
+          "opacity": 1,
+          "transparent": false
+        },
+        {
+          "role": "backplot",
+          "kind": "fat",
+          "widthPx": 2,
+          "opacity": 1,
+          "transparent": false
+        },
+        {
+          "role": "reach",
+          "kind": "fat",
+          "widthPx": 1,
+          "opacity": 1,
+          "transparent": false
+        },
+        {
+          "role": "reachAlt",
+          "kind": "fat",
+          "widthPx": 1,
+          "opacity": 1,
+          "transparent": false
+        },
+        {
+          "role": "bounds",
+          "kind": "fat",
+          "widthPx": 2,
+          "opacity": 1,
+          "transparent": false
+        },
+        {
+          "role": "boundsAlt",
+          "kind": "fat",
+          "widthPx": 2,
+          "opacity": 1,
+          "transparent": false
+        }
+      ],
+      "setter": {
+        "visible": true,
+        "top": [
+          150,
+          0,
+          -300
+        ],
+        "screen": {
+          "x": 578.8562318936946,
+          "y": 469.6139190215637
+        }
+      }
+    },
+    {
+      "palette": {
+        "resolved": {
+          "feed": "#5cff5c",
+          "rapid": "#3d8bff",
+          "backplot": "#ff00ff",
+          "bounds": "#15181c",
+          "toolpathBounds": "#15181c",
+          "tool": "#6b7178",
+          "cutter": "#eceff1",
+          "limit": "#ff7a00",
+          "collision": "#c8102e",
+          "boundsAlt": "#f0f2f4",
+          "reach": "#15181c",
+          "planeActive": "#2d81dc",
+          "planeDefined": "#a97515",
+          "planeStale": "#cc3333"
+        },
+        "drawn": {
+          "planeActive": "#2d81dc",
+          "backplot": "#ff00ff",
+          "reach": "#15181c",
+          "reachAlt": "#f0f2f4",
+          "bounds": "#15181c",
+          "boundsAlt": "#f0f2f4",
+          "tool": "#6b7178",
+          "cutter": "#eceff1"
+        },
+        "mode": "auto"
+      },
+      "materials": [
+        {
+          "role": "planeActive",
+          "kind": "dashed",
+          "widthPx": 1,
+          "opacity": 1,
+          "transparent": false
+        },
+        {
+          "role": "backplot",
+          "kind": "fat",
+          "widthPx": 2,
+          "opacity": 1,
+          "transparent": false
+        },
+        {
+          "role": "reach",
+          "kind": "fat",
+          "widthPx": 1,
+          "opacity": 1,
+          "transparent": false
+        },
+        {
+          "role": "reachAlt",
+          "kind": "fat",
+          "widthPx": 1,
+          "opacity": 1,
+          "transparent": false
+        },
+        {
+          "role": "bounds",
+          "kind": "fat",
+          "widthPx": 2,
+          "opacity": 1,
+          "transparent": false
+        },
+        {
+          "role": "boundsAlt",
+          "kind": "fat",
+          "widthPx": 2,
+          "opacity": 1,
+          "transparent": false
+        }
+      ],
+      "setter": {
+        "visible": true,
+        "top": [
+          150,
+          0,
+          -300
+        ],
+        "screen": {
+          "x": 578.8562318936945,
+          "y": 469.6139190215641
+        }
+      }
+    },
+    {
+      "palette": {
+        "resolved": {
+          "feed": "#236508",
+          "rapid": "#1f5fe0",
+          "backplot": "#c000c0",
+          "bounds": "#000000",
+          "toolpathBounds": "#000000",
+          "tool": "#4b5057",
+          "cutter": "#b8bec4",
+          "limit": "#c85100",
+          "collision": "#b0001e",
+          "boundsAlt": "#ffffff",
+          "reach": "#000000",
+          "planeActive": "#2b76d3",
+          "planeDefined": "#9a6e19",
+          "planeStale": "#cc3333"
+        },
+        "drawn": {
+          "planeActive": "#2d81dc",
+          "backplot": "#c000c0",
+          "reach": "#000000",
+          "reachAlt": "#ffffff",
+          "bounds": "#000000",
+          "boundsAlt": "#ffffff",
+          "tool": "#4b5057",
+          "cutter": "#b8bec4"
+        },
+        "mode": "auto"
+      },
+      "materials": [
+        {
+          "role": "planeActive",
+          "kind": "dashed",
+          "widthPx": 1,
+          "opacity": 1,
+          "transparent": false
+        },
+        {
+          "role": "backplot",
+          "kind": "fat",
+          "widthPx": 2,
+          "opacity": 1,
+          "transparent": false
+        },
+        {
+          "role": "reach",
+          "kind": "fat",
+          "widthPx": 1,
+          "opacity": 1,
+          "transparent": false
+        },
+        {
+          "role": "reachAlt",
+          "kind": "fat",
+          "widthPx": 1,
+          "opacity": 1,
+          "transparent": false
+        },
+        {
+          "role": "bounds",
+          "kind": "fat",
+          "widthPx": 2,
+          "opacity": 1,
+          "transparent": false
+        },
+        {
+          "role": "boundsAlt",
+          "kind": "fat",
+          "widthPx": 2,
+          "opacity": 1,
+          "transparent": false
+        }
+      ],
+      "setter": {
+        "visible": true,
+        "top": [
+          150,
+          0,
+          -300
+        ],
+        "screen": {
+          "x": 578.8562318936945,
+          "y": 469.6139190215635
+        }
+      }
+    },
+    {
+      "palette": {
+        "resolved": {
+          "feed": "#5cff5c",
+          "rapid": "#6aa6ff",
+          "backplot": "#ff5cff",
+          "bounds": "#000000",
+          "toolpathBounds": "#000000",
+          "tool": "#8a9097",
+          "cutter": "#f0f2f4",
+          "limit": "#ff8a1a",
+          "collision": "#ff3344",
+          "boundsAlt": "#ffffff",
+          "reach": "#000000",
+          "planeActive": "#2d81dc",
+          "planeDefined": "#a07a0c",
+          "planeStale": "#cc4845"
+        },
+        "drawn": {
+          "planeActive": "#2d81dc",
+          "backplot": "#ff5cff",
+          "reach": "#000000",
+          "reachAlt": "#ffffff",
+          "bounds": "#000000",
+          "boundsAlt": "#ffffff",
+          "tool": "#8a9097",
+          "cutter": "#f0f2f4"
+        },
+        "mode": "auto"
+      },
+      "materials": [
+        {
+          "role": "planeActive",
+          "kind": "dashed",
+          "widthPx": 1,
+          "opacity": 1,
+          "transparent": false
+        },
+        {
+          "role": "backplot",
+          "kind": "fat",
+          "widthPx": 2,
+          "opacity": 1,
+          "transparent": false
+        },
+        {
+          "role": "reach",
+          "kind": "fat",
+          "widthPx": 1,
+          "opacity": 1,
+          "transparent": false
+        },
+        {
+          "role": "reachAlt",
+          "kind": "fat",
+          "widthPx": 1,
+          "opacity": 1,
+          "transparent": false
+        },
+        {
+          "role": "bounds",
+          "kind": "fat",
+          "widthPx": 2,
+          "opacity": 1,
+          "transparent": false
+        },
+        {
+          "role": "boundsAlt",
+          "kind": "fat",
+          "widthPx": 2,
+          "opacity": 1,
+          "transparent": false
+        }
+      ],
+      "setter": {
+        "visible": true,
+        "top": [
+          150,
+          0,
+          -300
+        ],
+        "screen": {
+          "x": 578.8562318936945,
+          "y": 469.6139190215635
+        }
+      }
+    }
+  ],
+  "errors": []
+}

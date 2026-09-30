@@ -1,0 +1,60 @@
+
+Running 4 tests using 1 worker
+
+(node:1428454) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1428454) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/scenes.viewer.spec.ts:49:1 › the palette in four themes, on a model, a dense and a thin path — and no current line drawn (5.0s)
+(node:1428649) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1428649) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 e2e/scenes.viewer.spec.ts:193:1 › the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px — at DPR 1 and 2 (5.2s)
+(node:1428848) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1428848) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 e2e/scenes.viewer.spec.ts:324:1 › the box edge alone: two tones, MACHINE_BOX_PX wide, dashes of MACHINE_BOX_DASH_PX — at DPR 1 and 2 (10.2s)
+  ✓  4 e2e/toolsetter.viewer.spec.ts:19:1 › the tool setter shows where it is set up, and only there (4.2s)
+
+
+  1) e2e/scenes.viewer.spec.ts:49:1 › the palette in four themes, on a model, a dense and a thin path — and no current line drawn 
+
+    Error: page.evaluate: TypeError: window.__viewerDiag.getPalette is not a function
+        at eval (eval at evaluate (:302:30), <anonymous>:1:27)
+        at UtilityScript.evaluate (<anonymous>:304:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:302:30), <anonymous>:1:27)
+        at UtilityScript.evaluate (<anonymous>:304:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at expect.poll.message (/tmp/codex-r44-eq2f3y85/lcnc-webui/e2e/scenes.viewer.spec.ts:97:49)
+        at /tmp/codex-r44-eq2f3y85/lcnc-webui/e2e/scenes.viewer.spec.ts:97:7
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/scenes.viewer-the-palette--7f170-—-and-no-current-line-drawn/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/scenes.viewer-the-palette--7f170-—-and-no-current-line-drawn/error-context.md
+
+  2) e2e/scenes.viewer.spec.ts:193:1 › the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px — at DPR 1 and 2 
+
+    Error: page.evaluate: TypeError: window.__viewerDiag.setView is not a function
+        at eval (eval at evaluate (:302:30), <anonymous>:1:27)
+        at UtilityScript.evaluate (<anonymous>:304:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:302:30), <anonymous>:1:27)
+        at UtilityScript.evaluate (<anonymous>:304:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at /tmp/codex-r44-eq2f3y85/lcnc-webui/e2e/scenes.viewer.spec.ts:235:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/scenes.viewer-the-width-la-fa3c7-t-2-CSS-px-—-at-DPR-1-and-2/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/scenes.viewer-the-width-la-fa3c7-t-2-CSS-px-—-at-DPR-1-and-2/error-context.md
+
+  2 failed
+    e2e/scenes.viewer.spec.ts:49:1 › the palette in four themes, on a model, a dense and a thin path — and no current line drawn 
+    e2e/scenes.viewer.spec.ts:193:1 › the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px — at DPR 1 and 2 
+  2 passed (27.9s)

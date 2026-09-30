@@ -1,0 +1,203 @@
+[
+  {
+    "report": "viewer-palette-fest.r44.own-playwright.json",
+    "stats": {
+      "startTime": "2026-09-30T02:44:51.594Z",
+      "duration": 14692.507,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "title": "R44: real XYZAC palette, reaches and the setter during G49 measurement",
+        "status": "expected",
+        "annotations": [],
+        "results": [
+          {
+            "status": "passed",
+            "duration": 13533,
+            "errors": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "report": "viewer-palette-fest.r44.playwright.json",
+    "stats": {
+      "startTime": "2026-09-30T02:39:52.304Z",
+      "duration": 27911.250999999997,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 2,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "title": "the palette in four themes, on a model, a dense and a thin path \u2014 and no current line drawn",
+        "status": "unexpected",
+        "annotations": [],
+        "results": [
+          {
+            "status": "failed",
+            "duration": 4998,
+            "errors": [
+              {
+                "location": {
+                  "file": "eval at evaluate (:302:30), <anonymous>",
+                  "column": 27,
+                  "line": 1
+                },
+                "message": "Error: page.evaluate: TypeError: window.__viewerDiag.getPalette is not a function\n    at eval (eval at evaluate (:302:30), <anonymous>:1:27)\n    at UtilityScript.evaluate (<anonymous>:304:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at eval (eval at evaluate (:302:30), <anonymous>:1:27)\n    at UtilityScript.evaluate (<anonymous>:304:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at expect.poll.message (/tmp/codex-r44-eq2f3y85/lcnc-webui/e2e/scenes.viewer.spec.ts:97:49)\n    at /tmp/codex-r44-eq2f3y85/lcnc-webui/e2e/scenes.viewer.spec.ts:97:7"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px \u2014 at DPR 1 and 2",
+        "status": "unexpected",
+        "annotations": [],
+        "results": [
+          {
+            "status": "failed",
+            "duration": 5198,
+            "errors": [
+              {
+                "location": {
+                  "file": "eval at evaluate (:302:30), <anonymous>",
+                  "column": 27,
+                  "line": 1
+                },
+                "message": "Error: page.evaluate: TypeError: window.__viewerDiag.setView is not a function\n    at eval (eval at evaluate (:302:30), <anonymous>:1:27)\n    at UtilityScript.evaluate (<anonymous>:304:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at eval (eval at evaluate (:302:30), <anonymous>:1:27)\n    at UtilityScript.evaluate (<anonymous>:304:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)\n    at /tmp/codex-r44-eq2f3y85/lcnc-webui/e2e/scenes.viewer.spec.ts:235:16"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "title": "the box edge alone: two tones, MACHINE_BOX_PX wide, dashes of MACHINE_BOX_DASH_PX \u2014 at DPR 1 and 2",
+        "status": "expected",
+        "annotations": [],
+        "results": [
+          {
+            "status": "passed",
+            "duration": 10228,
+            "errors": []
+          }
+        ]
+      },
+      {
+        "title": "the tool setter shows where it is set up, and only there",
+        "status": "expected",
+        "annotations": [],
+        "results": [
+          {
+            "status": "passed",
+            "duration": 4208,
+            "errors": []
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "report": "viewer-palette-fest.r44.ready-playwright.json",
+    "stats": {
+      "startTime": "2026-09-30T02:46:23.784Z",
+      "duration": 16741.691000000003,
+      "expected": 0,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "title": "the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px \u2014 at DPR 1 and 2",
+        "status": "unexpected",
+        "annotations": [
+          {
+            "type": "widths DPR 1 light",
+            "description": "{\"widths\":{\"feed\":1,\"limit\":0.9940747208881682,\"backplot\":2},\"at\":{\"feed\":{\"x\":285,\"y\":302,\"len\":124},\"limit\":{\"x\":409,\"y\":302,\"len\":99},\"backplot\":{\"x\":326,\"y\":308,\"len\":87}}}"
+          },
+          {
+            "type": "widths DPR 1 dark",
+            "description": "{\"widths\":{\"feed\":1,\"limit\":0.9989487080174847,\"backplot\":2},\"at\":{\"feed\":{\"x\":285,\"y\":302,\"len\":124},\"limit\":{\"x\":409,\"y\":302,\"len\":99},\"backplot\":{\"x\":326,\"y\":308,\"len\":87}}}"
+          },
+          {
+            "type": "widths DPR 1 hc-light",
+            "description": "{\"widths\":{\"feed\":1,\"limit\":0.9928923988153998,\"backplot\":2},\"at\":{\"feed\":{\"x\":285,\"y\":302,\"len\":124},\"limit\":{\"x\":409,\"y\":302,\"len\":99},\"backplot\":{\"x\":326,\"y\":308,\"len\":87}}}"
+          },
+          {
+            "type": "widths DPR 1 hc-dark",
+            "description": "{\"widths\":{\"feed\":1,\"limit\":0.9995783259540375,\"backplot\":2},\"at\":{\"feed\":{\"x\":285,\"y\":302,\"len\":124},\"limit\":{\"x\":409,\"y\":302,\"len\":99},\"backplot\":{\"x\":326,\"y\":308,\"len\":87}}}"
+          }
+        ],
+        "results": [
+          {
+            "status": "failed",
+            "duration": 13979,
+            "errors": [
+              {
+                "location": {
+                  "file": "/tmp/codex-r44-eq2f3y85/lcnc-webui/e2e/scenes.viewer.spec.ts",
+                  "column": 94,
+                  "line": 312
+                },
+                "message": "Error: DPR 1 light backplot on the violation: the limit shows on top {\"samples\":[[243,54,128],[243,54,128],[243,54,128]],\"named\":[[\"limit\",[230,107,0]],[\"backplot\",[255,0,255]]]}\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected value: \u001b[32m\"limit\"\u001b[39m\nReceived array: \u001b[31m[\"backplot\", \"backplot\", \"backplot\"]\u001b[39m\n\n  310 |       const named: [string, number[]][] = [[\"limit\", rgbOf(drawn.limit!)], [\"backplot\", rgbOf(drawn.backplot!)]];\n  311 |       const seen = samples.map(c => nearestOf(c, named));\n> 312 |       expect(seen, `${where}: the limit shows on top ${JSON.stringify({ samples, named })}`).toContain(\"limit\");\n      |                                                                                              ^\n  313 |       await test.info().attach(`backplot-on-limit-dpr${dpr}-${theme}.png`, { body: shot, contentType: \"image/png\" });\n  314 |     }\n  315 |     await context.close();\n    at /tmp/codex-r44-eq2f3y85/lcnc-webui/e2e/scenes.viewer.spec.ts:312:94"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "report": "viewer-palette-fest.r44.waited-playwright.json",
+    "stats": {
+      "startTime": "2026-09-30T02:42:07.498Z",
+      "duration": 14853.115,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "title": "the palette in four themes, on a model, a dense and a thin path \u2014 and no current line drawn",
+        "status": "expected",
+        "annotations": [],
+        "results": [
+          {
+            "status": "passed",
+            "duration": 8731,
+            "errors": []
+          }
+        ]
+      },
+      {
+        "title": "the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px \u2014 at DPR 1 and 2",
+        "status": "unexpected",
+        "annotations": [],
+        "results": [
+          {
+            "status": "failed",
+            "duration": 4848,
+            "errors": [
+              {
+                "location": {
+                  "file": "/tmp/codex-r44-eq2f3y85/lcnc-webui/e2e/scenes.viewer.spec.ts",
+                  "column": 63,
+                  "line": 256
+                },
+                "message": "Error: DPR 1 light: a visible backplot segment\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoBeNull\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mnull\u001b[39m\n\n  254 |       for (const role of [\"feed\", \"limit\", \"backplot\"]) {\n  255 |         const at = await page.evaluate(r => window.__viewerDiag!.projectRole!(r), role);\n> 256 |         expect(at, `${where}: a visible ${role} segment`).not.toBeNull();\n      |                                                               ^\n  257 |         // The backplot is a trail of short segments along one straight line;\n  258 |         // the program's lines are single long segments.\n  259 |         if (role !== \"backplot\") expect(at!.length, `${where}: a ${role} segment long enough to measure across`).toBeGreaterThan(20);\n    at /tmp/codex-r44-eq2f3y85/lcnc-webui/e2e/scenes.viewer.spec.ts:256:63"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

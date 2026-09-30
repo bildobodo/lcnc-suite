@@ -1,0 +1,88 @@
+{
+  "commit": "f82c323",
+  "native_body_from": "examples/sim_config/sim_toolsetter/sim_toolsetter.comp",
+  "baseline": {
+    "plate_read_by_feeder": -300.0,
+    "reference_used_by_routine": -300.0,
+    "table_length": 65.0,
+    "motor_minus_joint": 0,
+    "contact_G53": -235.0,
+    "G10_length": 65.0,
+    "enable": true,
+    "why": "armed"
+  },
+  "stale_plate_after_settings_change": {
+    "plate_read_by_feeder": -300.0,
+    "reference_used_by_routine": -280,
+    "table_length": 65.0,
+    "motor_minus_joint": 0,
+    "contact_G53": -235.0,
+    "G10_length": 45.0,
+    "enable": true,
+    "why": "armed"
+  },
+  "motor_offset_1mm": {
+    "plate_read_by_feeder": -300.0,
+    "reference_used_by_routine": -300.0,
+    "table_length": 65.0,
+    "motor_minus_joint": 1,
+    "contact_G53": -236.0,
+    "G10_length": 64.0,
+    "enable": true,
+    "why": "armed"
+  },
+  "repeat_with_1mm_motor_offset": [
+    {
+      "plate_read_by_feeder": -300.0,
+      "reference_used_by_routine": -300.0,
+      "table_length": 65.0,
+      "motor_minus_joint": 1,
+      "contact_G53": -236.0,
+      "G10_length": 64.0,
+      "enable": true,
+      "why": "armed"
+    },
+    {
+      "plate_read_by_feeder": -300.0,
+      "reference_used_by_routine": -300.0,
+      "table_length": 64.0,
+      "motor_minus_joint": 1,
+      "contact_G53": -237.0,
+      "G10_length": 63.0,
+      "enable": true,
+      "why": "armed"
+    },
+    {
+      "plate_read_by_feeder": -300.0,
+      "reference_used_by_routine": -300.0,
+      "table_length": 63.0,
+      "motor_minus_joint": 1,
+      "contact_G53": -238.0,
+      "G10_length": 62.0,
+      "enable": true,
+      "why": "armed"
+    },
+    {
+      "plate_read_by_feeder": -300.0,
+      "reference_used_by_routine": -300.0,
+      "table_length": 62.0,
+      "motor_minus_joint": 1,
+      "contact_G53": -239.0,
+      "G10_length": 61.0,
+      "enable": true,
+      "why": "armed"
+    },
+    {
+      "plate_read_by_feeder": -300.0,
+      "reference_used_by_routine": -300.0,
+      "table_length": 61.0,
+      "motor_minus_joint": 1,
+      "contact_G53": -240.0,
+      "G10_length": 60.0,
+      "enable": true,
+      "why": "armed"
+    }
+  ],
+  "manual_without_setup": true,
+  "automatic_without_setup": false
+}

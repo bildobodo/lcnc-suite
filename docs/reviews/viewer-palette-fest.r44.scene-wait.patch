@@ -1,0 +1,26 @@
+--- a/e2e/scenes.viewer.spec.ts
++++ b/e2e/scenes.viewer.spec.ts
+@@ -74,6 +74,7 @@
+     workGroup: "root", toolGroup: "tool",
+     machine_bounds: { origin: [-200, -200, -10], size: [400, 400, 200] },
+   } });
++  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getAppearance?.().parts.map(p => p.id).sort())).toEqual(["base", "head"]);
+   const token = (name: string) => page.evaluate(n => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), name);
+   let version = 910;
+   for (const kind of ["dense", "thin"] as const) {
+@@ -224,6 +225,7 @@
+       // in the measured profile.
+       machine_bounds: { origin: [-150, -200, -10], size: [300, 400, 200] },
+     } });
++    await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getAppearance?.().parts.map(p => p.id).sort())).toEqual(["base", "head"]);
+     await ctl({ op: "status_delta", data: { active_file: "/ladder.ngc" } });
+     await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: version++, file: "/ladder.ngc" } });
+     await expect(page.locator(".codeLine").nth(3)).toBeVisible();
+@@ -232,6 +234,7 @@
+       await ctl({ op: "status_delta", data: { joint_pos: [0, -150 + i * 15, 0], actual_position: [0, -150 + i * 15, 0] } });
+       await page.waitForTimeout(30);
+     }
++    await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getAppearance?.().parts.map(p => p.id).sort())).toEqual(["base", "head"]);
+     await page.evaluate(() => window.__viewerDiag!.setView!("top"));
+     for (const theme of LADDER_THEMES) {
+       await ctl({ op: "raw", frame: { type: "settings_init", settings: { display: { theme }, viewer: { layers: { backplot: true, bounds: true, hud: false } } } } });

@@ -1,0 +1,36 @@
+
+Running 1 test using 1 worker
+
+(node:1437313) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1437313) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/scenes.viewer.spec.ts:194:1 › the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px — at DPR 1 and 2 (14.0s)
+
+
+  1) e2e/scenes.viewer.spec.ts:194:1 › the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px — at DPR 1 and 2 
+
+    Error: DPR 1 light backplot on the violation: the limit shows on top {"samples":[[243,54,128],[243,54,128],[243,54,128]],"named":[["limit",[230,107,0]],["backplot",[255,0,255]]]}
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoContain[2m([22m[32mexpected[39m[2m) // indexOf[22m
+
+    Expected value: [32m"limit"[39m
+    Received array: [31m["backplot", "backplot", "backplot"][39m
+
+      310 |       const named: [string, number[]][] = [["limit", rgbOf(drawn.limit!)], ["backplot", rgbOf(drawn.backplot!)]];
+      311 |       const seen = samples.map(c => nearestOf(c, named));
+    > 312 |       expect(seen, `${where}: the limit shows on top ${JSON.stringify({ samples, named })}`).toContain("limit");
+          |                                                                                              ^
+      313 |       await test.info().attach(`backplot-on-limit-dpr${dpr}-${theme}.png`, { body: shot, contentType: "image/png" });
+      314 |     }
+      315 |     await context.close();
+        at /tmp/codex-r44-eq2f3y85/lcnc-webui/e2e/scenes.viewer.spec.ts:312:94
+
+    attachment #5: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/scenes.viewer-the-width-la-fa3c7-t-2-CSS-px-—-at-DPR-1-and-2/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/scenes.viewer-the-width-la-fa3c7-t-2-CSS-px-—-at-DPR-1-and-2/error-context.md
+
+  1 failed
+    e2e/scenes.viewer.spec.ts:194:1 › the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px — at DPR 1 and 2 

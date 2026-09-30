@@ -2679,3 +2679,128 @@ diesem Stand (kommt vor der Live-Abnahme).
 Maschinenbefehle dort, kein `:5173`/`:8000`. Bitte eine Archivkopie von
 `7aad422` (oder später) nutzen. Die Sim steht im E-Stop mit einem
 unquittierten Watchdog-Trip — bitte nicht quittieren; das macht der Operator.
+
+
+---
+
+## Review R44 · Codex · Teil A, Schneide, Reichweiten · 30. September 2026
+
+**Stand:** Archiv `f82c323`; geprüft `ee28e66`, `4bb4ff1`, `ee05e20` und
+`87ff644`. **Ergebnis: findings — VP-I10 (P2) und VP-I11 (P3) offen.**
+Teil B bleibt ausdrücklich außerhalb dieser Runde. Die Sim-/Marker-Befunde
+stehen im [zweiten Review](sim-toolsetter.review.md#review-r44--codex--30-september-2026).
+
+### Bestätigte Umsetzung und Antwort auf die Gestaltungsfrage
+
+- Die Rollenwerte entsprechen den Operator-Entscheidungen: grüne Vorschau,
+  blauer Eilgang, magenta Backplot, oranges Limit, gleiche Farbfamilie über
+  die Themes. Die gezielten Token-, Modell-, Kontrast- und Controller-Tests
+  bestehen. Die niedrigere Modell-Kontrastgrenze ist als eigene
+  Projektentscheidung benannt, nicht als WCAG-Grenze.
+- Die ausgelieferten Modelle und Generator-Paletten folgen der Graustufenleiter.
+  Eigene Renderings am XYZAC-Modell zeigen beide Reichweiten in allen vier
+  expliziten Themes mit zwei deckenden Tönen und 1 CSS-px Breite. Die Boxen
+  besitzen zwei gleich breite Pässe; die isolierte Pixelprüfung mit
+  `Math.floor` besteht an DPR 1 und 2. Der Box-Überhang bleibt wie vereinbart
+  bei Teil B.
+- Schneide in hellem Stahlgrau und Schaft in mittlerem Stahlgrau sind für den
+  3D-Kontext stimmig. **Gold/Silber in der separaten Werkzeugillustration
+  ist kein Bruch dieses Viewer-Vertrags:** Dort trennt die Farbe die
+  Geometriebereiche ohne konkurrierende Pfad-/Limitrollen. Eine spätere
+  Vereinheitlichung wäre eine Gestaltungsentscheidung, kein offener R44-Befund.
+- Die Box-Legende zeigt beide Töne; der Custom-Hinweis berücksichtigt den
+  besser erkennbaren Ton gegen die jeweiligen Referenzflächen. Für die neuen
+  punktierten Reichweiten wäre dieselbe Linienprobe an deren Layer-Zeilen
+  hilfreich; das ist ein ergänzender Vorschlag, kein Blocker.
+
+### VP-I10 · P2 — die Strichlänge ist nicht in Bildschirmpixeln konstant
+
+**Stelle:** `lcnc-webui/src/viewer/boxLines.ts:70–79,105–111`.
+
+`worldPerPixel` liefert einen Maßstab an der Gruppenmitte. Daraus entsteht
+**ein gemeinsamer Weltabstand** für alle Kanten. Richtung und Kameratiefe der
+jeweiligen Kante fehlen. Das stabilisiert den Maßstab beim Zoomen, hält aber
+nicht die zugesagten 10/5 CSS-px auf den projizierten Linien. Die
+Reichweiten verwenden denselben Mechanismus.
+
+Die eigene Sonde benutzt den produktiven Helper und dessen Render-Hook,
+500 × 400 × 310 als Boxgröße, 800 × 600 CSS px und projiziert einen Abstand in der vom Material gesetzten
+Strichlänge an der Mitte einer X-/Y-/Z-Kante:
+
+| Kamera / Blickrichtung | Soll | X-Strich | Y-Strich | Z-Strich |
+| --- | ---: | ---: | ---: | ---: |
+| Orthogonal, `[1,2,0.7]` | 10 px | 9,04 | **5,21** | 9,54 |
+| Orthogonal, `[1,0.12,0.25]` | 10 px | **2,67** | 9,93 | 9,71 |
+| Perspektivisch, `[1,2,0.7]` | 10 px | 11,41 | **2,37** | **13,90** |
+| Perspektivisch, `[1,0.12,0.25]` | 5 px | **0,80** | **7,56** | **7,05** |
+
+Die X-Kante im zweiten Fall ist noch rund 134 Bildschirmpixel lang. Ihre
+Striche schrumpfen also nicht erst bei einer praktisch punktförmigen Kante.
+Bei Kameradrehung kann ein langer Maschinenbox-Strich kürzer erscheinen als
+ein kurzer Werkzeugpfadbox-Strich auf einer anderen Achse; unter einem Pixel
+geht außerdem die Zweifarbigkeit in Rastermischungen über. Das betrifft die
+gewählte Formunterscheidung und den Zweck der zweifarbigen Kanten.
+
+Der bestehende Wächter misst nur die längste projizierte Kante. In seiner
+Blickrichtung passt sie ungefähr zum angenommenen Maßstab und verdeckt die
+abweichenden anderen Achsen.
+
+**Erwartung:** Die Strichphase/-länge auf den tatsächlich projizierten
+Segmenten in CSS px bestimmen, einschließlich perspektivischer Tiefenänderung.
+Den Wächter auf mehrere Achsrichtungen sowie orthogonale und perspektivische
+Ansichten erweitern. Falls geometrisch verkürzte Weltmaß-Striche gewollt sind,
+muss diese Abweichung vom beschlossenen Bildschirmpixel-Vertrag ausdrücklich
+beantwortet werden; die aktuelle Behauptung und der Test reichen dafür nicht.
+
+[Projektionssonde](viewer-palette-fest.r44.dashes.test.ts),
+[Messwerte](viewer-palette-fest.r44.dashes.json).
+
+### VP-I11 · P3 — Szenenwächter liefern falsche Fehler bei Aufbau und Rastermischung
+
+**Stelle:** `e2e/scenes.viewer.spec.ts`, nach `setViewerInit`, vor den
+Backplot-Bewegungen und bei der Limit-/Backplot-Farbklassifikation.
+
+Der unveränderte gezielte Lauf besteht **2/4**. Zwei Szenen rufen
+`getPalette` bzw. `setView` auf, während `buildFromInit` die Diagnose noch auf
+`{ready:false}` zurückgesetzt hat. Ein bereits sichtbarer Codebereich ist
+kein Nachweis für den abgeschlossenen neuen Modellaufbau. In einer
+Archivkopie mit Warten auf die erwarteten Modellteile besteht die
+Vier-Themen-Palettenszene. Bei der Breitenprüfung muss dieses Warten auch
+**vor** die eingespeisten Backplot-Bewegungen, sonst gehen sie im Aufbau verloren.
+
+Danach erreicht die Breitenprüfung ihre letzte DPR-1-Überdeckungsprüfung:
+Alle drei Samples sind `[243,54,128]`, also bis auf Rundung genau halb
+Limit `[230,107,0]`, halb Backplot `[255,0,255]`. Der nächste Vollton wird
+wegen dieser Rundung als `backplot` eingestuft und der Test meldet fälschlich,
+die Limitfarbe liege nicht oben. Die Samples belegen bereits den
+Limit-Beitrag. `floor` für die Pixeladresse ist richtig; es löst diesen
+anderen Klassifikations-Grenzfall nicht.
+
+**Erwartung:** Modellbereitschaft vor Hook-Zugriff und Bewegungssequenz
+abwarten. Beim Überdeckungsnachweis den erwarteten Farbanteil einschließlich
+Antialiasing prüfen, statt eine Halbmischung zwingend genau einem Vollton
+zuzuordnen. Die originale Breitenprüfung wird hier **nicht** als grün gewertet.
+
+[Original-Lauf](viewer-palette-fest.r44.browser-tests.txt),
+[erste Wartekontrolle](viewer-palette-fest.r44.waited-tests.txt),
+[Raster-Grenzfall](viewer-palette-fest.r44.ready-tests.txt),
+[exakte Änderungen der Testkopie](viewer-palette-fest.r44.scene-wait.patch),
+[zusammengefasste Messprotokolle](viewer-palette-fest.r44.browser-summary.json).
+
+### Prüfung und Übergabe
+
+Typecheck/Build **PASS**, gezielte Vitest-Prüfungen **111 PASS**. Eigene
+XYZAC-Browserprobe **PASS**: Modell, Reichweiten und Marker in vier Themes,
+keine Page-Errors. Die mitgelieferte Markerprüfung und die isolierte
+Boxkantenprüfung **PASS**; Grenzen der übrigen Szenen wie VP-I11.
+Kein vollständiges Offline-Gate und keine Teil-B-Leistungsmessung.
+
+[Eigene Browser-Sonde](viewer-palette-fest.r44.browser-probe.ts),
+[XYZAC-Zustände](viewer-palette-fest.r44.xyzac.json),
+[hell](viewer-palette-fest.r44.xyzac-light.png),
+[dunkel](viewer-palette-fest.r44.xyzac-dark.png),
+[HC hell](viewer-palette-fest.r44.xyzac-hc-light.png),
+[HC dunkel](viewer-palette-fest.r44.xyzac-hc-dark.png),
+[Reproduktion und Arbeitsgrenzen](viewer-palette-fest.r44.reproduce.md).
+Nur diese Review-Dateien ergänzt und neue R44-Belege abgelegt. Produktcode,
+ältere Belege und Live-Sim unverändert; eigener Mock und Browser beendet.

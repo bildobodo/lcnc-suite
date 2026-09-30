@@ -1,0 +1,67 @@
+{
+  "commit": "f82c323",
+  "jointZ": -235,
+  "physicalLength": 65,
+  "physicalTipZ": -300,
+  "atG43": {
+    "setter": {
+      "visible": true,
+      "top": [
+        150,
+        0,
+        -300
+      ],
+      "screen": {
+        "x": 600.75,
+        "y": 451.0451356446891
+      }
+    },
+    "camera": {
+      "position": [
+        0,
+        -541.3008281855319,
+        -102.56585092660418
+      ],
+      "target": [
+        0,
+        0,
+        -200
+      ],
+      "near": 0.5,
+      "far": 200000,
+      "ortho": true,
+      "minDistance": 10
+    }
+  },
+  "atG49": {
+    "setter": {
+      "visible": true,
+      "top": [
+        150,
+        0,
+        -300
+      ],
+      "screen": {
+        "x": 600.75,
+        "y": 451.04513564468914
+      }
+    },
+    "camera": {
+      "position": [
+        0,
+        -541.3008281855317,
+        -102.56585092660418
+      ],
+      "target": [
+        0,
+        0,
+        -200
+      ],
+      "near": 0.5,
+      "far": 200000,
+      "ortho": true,
+      "minDistance": 10
+    }
+  },
+  "errors": []
+}

@@ -1,0 +1,122 @@
+[
+  {
+    "projection": "ortho",
+    "dir": [
+      1,
+      2,
+      0.7
+    ],
+    "wantedDashCssPx": 10,
+    "worldDash": 10,
+    "projectedDashCssPx": {
+      "X": 9.043509482069284,
+      "Y": 5.209630985886401,
+      "Z": 9.543305571897804
+    }
+  },
+  {
+    "projection": "ortho",
+    "dir": [
+      1,
+      2,
+      0.7
+    ],
+    "wantedDashCssPx": 5,
+    "worldDash": 5,
+    "projectedDashCssPx": {
+      "X": 4.521754741034623,
+      "Y": 2.6048154929431577,
+      "Z": 4.77165278594891
+    }
+  },
+  {
+    "projection": "ortho",
+    "dir": [
+      1,
+      0.12,
+      0.25
+    ],
+    "wantedDashCssPx": 10,
+    "worldDash": 10,
+    "projectedDashCssPx": {
+      "X": 2.6722401284875854,
+      "Y": 9.932916414084122,
+      "Z": 9.705478051416042
+    }
+  },
+  {
+    "projection": "ortho",
+    "dir": [
+      1,
+      0.12,
+      0.25
+    ],
+    "wantedDashCssPx": 5,
+    "worldDash": 5,
+    "projectedDashCssPx": {
+      "X": 1.3361200642437825,
+      "Y": 4.966458207042061,
+      "Z": 4.852739025708008
+    }
+  },
+  {
+    "projection": "perspective",
+    "dir": [
+      1,
+      2,
+      0.7
+    ],
+    "wantedDashCssPx": 10,
+    "worldDash": 11.045694996615866,
+    "projectedDashCssPx": {
+      "X": 11.409866672546089,
+      "Y": 2.3673841797756494,
+      "Z": 13.899134791123025
+    }
+  },
+  {
+    "projection": "perspective",
+    "dir": [
+      1,
+      2,
+      0.7
+    ],
+    "wantedDashCssPx": 5,
+    "worldDash": 5.522847498307933,
+    "projectedDashCssPx": {
+      "X": 5.7048633901253964,
+      "Y": 1.1836449578271826,
+      "Z": 6.949515437474897
+    }
+  },
+  {
+    "projection": "perspective",
+    "dir": [
+      1,
+      0.12,
+      0.25
+    ],
+    "wantedDashCssPx": 10,
+    "worldDash": 11.045694996615868,
+    "projectedDashCssPx": {
+      "X": 1.606608502291233,
+      "Y": 15.123155842172112,
+      "Z": 14.092704165109879
+    }
+  },
+  {
+    "projection": "perspective",
+    "dir": [
+      1,
+      0.12,
+      0.25
+    ],
+    "wantedDashCssPx": 5,
+    "worldDash": 5.522847498307934,
+    "projectedDashCssPx": {
+      "X": 0.803273049046879,
+      "Y": 7.561569424171835,
+      "Z": 7.046319514973394
+    }
+  }
+]
