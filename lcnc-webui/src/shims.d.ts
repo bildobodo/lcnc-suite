@@ -38,6 +38,7 @@ interface ViewerDiag {
   // Part B (Codex R39 VP39-01): the path memory ledger by owner.
   runAbMeasurement?: (durations?: Record<string, number>) => Promise<void>;
   cancelAbMeasurement?: () => void;
+  getGroundGridDepth?: () => { min: number; max: number; near: number; far: number } | null;
   getPathBox?: () => { min: number[]; max: number[] } | null;
   setCameraPose?: (position: number[], target: number[]) => void;
   getPathMemory?: () => { mode: string; cpu: Record<string, number>; gpu: Record<string, number>; allocated: number; peak: number;

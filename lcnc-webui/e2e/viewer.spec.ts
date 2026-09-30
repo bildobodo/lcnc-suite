@@ -332,7 +332,10 @@ test("default framing keeps the eye outside a bed/column model for every directi
   const maxDim = Math.max(...[0, 1, 2].map(i => frameBox.max[i]! - frameBox.min[i]!));
   const expected = Math.max(2.345 * maxDim, 1.05 * R + cam0.near);
   const d0 = dist(cam0.position, cam0.target);
-  expect(Math.abs(d0 - expected), `default distance ${d0} vs ${expected}`).toBeLessThan(1.5);
+  // the parallel eye may stand further out — outside the whole scene with its
+  // ground grid (orthoEyeDistance); the image is the same
+  if (cam0.ortho) expect(d0, `default distance ${d0} vs ${expected}`).toBeGreaterThan(expected - 1.5);
+  else expect(Math.abs(d0 - expected), `default distance ${d0} vs ${expected}`).toBeLessThan(1.5);
   expect(insidePart(cam0.position, parts)).toBeNull();
   expect(cam0.minDistance).toBeCloseTo(cam0.near * 20, 6);
 
@@ -350,7 +353,8 @@ test("default framing keeps the eye outside a bed/column model for every directi
     expect(insidePart(c.position, parts), `preset ${preset}`).toBeNull();
   }
   const afterReset = await settledCamera(page);
-  expect(Math.abs(dist(afterReset.position, afterReset.target) - expected)).toBeLessThan(1.5);
+  if (afterReset.ortho) expect(dist(afterReset.position, afterReset.target)).toBeGreaterThan(expected - 1.5);
+  else expect(Math.abs(dist(afterReset.position, afterReset.target) - expected)).toBeLessThan(1.5);
   // The OTHER projection (the settings default is parallel, so the first
   // switch lands on perspective): same pose, still outside; Reset lands
   // there again; then back to the default.
@@ -360,18 +364,66 @@ test("default framing keeps the eye outside a bed/column model for every directi
   await page.evaluate(() => window.__viewerDiag!.setView!("reset"));
   const other = await settledCamera(page);
   expect(insidePart(other.position, parts)).toBeNull();
-  expect(Math.abs(dist(other.position, other.target) - expected)).toBeLessThan(1.5);
-  await page.evaluate(() => window.__viewerDiag!.switchProjection!());
-  expect((await camera(page))!.ortho).toBe(startOrtho);
+  if (other.ortho) expect(dist(other.position, other.target)).toBeGreaterThan(expected - 1.5);
+  else expect(Math.abs(dist(other.position, other.target) - expected)).toBeLessThan(1.5);
 
-  // Negative control: the OLD travel-box distance from diagonally below
-  // puts the eye inside the bed — the fixture discriminates.
+  // Negative control, in PERSPECTIVE (the parallel eye is pushed out of the
+  // scene on the next frame): the OLD travel-box distance from diagonally
+  // below puts the eye inside the bed — the fixture discriminates.
+  if ((await camera(page))!.ortho) await page.evaluate(() => window.__viewerDiag!.switchProjection!());
   const oldDistance = 2.345 * maxDim;
   await page.evaluate(({ dir, d }) => window.__viewerDiag!.setViewDirection!(dir, d), { dir: [1, -1, -0.4], d: oldDistance });
   const inside = (await camera(page))!;
   expect(insidePart(inside.position, parts)).toBe("bed");
   await page.evaluate(() => window.__viewerDiag!.setView!("reset"));
   expect(insidePart((await settledCamera(page)).position, parts)).toBeNull();
+  if ((await camera(page))!.ortho !== startOrtho) await page.evaluate(() => window.__viewerDiag!.switchProjection!());
+  expect((await camera(page))!.ortho).toBe(startOrtho);
+});
+
+// The ground grid reaches up to 2.5 × the model's span — past the model
+// sphere the default frame clears. Under the PARALLEL projection (the
+// default) the eye's distance changes nothing in the image, so it stays
+// outside the whole scene: the grid never passes behind it and is never cut
+// at the near plane while orbiting (operator 2026-09-30, after WP5 moved the
+// cut from the machine to the grid). Low elevations all round and the presets.
+test("the parallel projection never cuts the ground grid while orbiting", async ({ page }) => {
+  test.setTimeout(60_000);
+  const bed = new STLExporter().parse(new THREE.Mesh(new THREE.BoxGeometry(2000, 2400, 200)), { binary: true });
+  const column = new STLExporter().parse(new THREE.Mesh(new THREE.BoxGeometry(400, 400, 1800)), { binary: true });
+  await page.route("**/machine/bed.stl", route => route.fulfill({ contentType: "application/octet-stream", body: Buffer.from(bed.buffer) }));
+  await page.route("**/machine/column.stl", route => route.fulfill({ contentType: "application/octet-stream", body: Buffer.from(column.buffer) }));
+  await page.goto(MOCK);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready)).toBe(true);
+  await ctl({ op: "setViewerInit", data: {
+    units: "mm", stl_base_url: "/machine/", axes: ["X", "Y", "Z"],
+    parts: [
+      { id: "bed", file: "bed.stl", group: "root", translate: [0, 400, -300], color: [0.4, 0.4, 0.4] },
+      { id: "column", file: "column.stl", group: "root", translate: [0, 1400, 500], color: [0.5, 0.5, 0.5] },
+    ],
+    groups: [{ id: "head", parent: "root" }], kinematics: [], workGroup: "root", toolGroup: "head",
+    machine_bounds: { origin: [-200, -70, -30], size: [400, 140, 130] }, _rev: 902 } });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getPartBounds?.().length ?? 0)).toBe(2);
+  await ctl({ op: "status_delta", data: { joint_pos: [0, 0, 0] } });
+  await settledCamera(page);
+  if (!(await camera(page))!.ortho) await page.evaluate(() => window.__viewerDiag!.switchProjection!());
+  const clear = () => page.evaluate(() => {
+    const g = window.__viewerDiag!.getGroundGridDepth!();
+    return g ? g.min > g.near && g.max < g.far : null;
+  });
+  const at = async (where: string) => {
+    await expect.poll(clear, { message: `${where}: the whole grid between the near and the far plane`, timeout: 3000 }).toBe(true);
+  };
+  for (let a = 0; a < 360; a += 30) {
+    const r = (a * Math.PI) / 180;
+    await page.evaluate(d => window.__viewerDiag!.setViewDirection!(d), [Math.cos(r), Math.sin(r), 0.05]);
+    await at(`azimuth ${a}°, elevation 3°`);
+  }
+  for (const preset of ["front", "left", "iso", "reset"]) {
+    await page.evaluate(p => window.__viewerDiag!.setView!(p), preset);
+    await settledCamera(page);
+    await at(`preset ${preset}`);
+  }
 });
 
 // Design wave D8c (UI-K08, UI-D05): the viewer palette. Automatic draws the

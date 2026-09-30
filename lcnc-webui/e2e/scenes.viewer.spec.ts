@@ -281,7 +281,19 @@ test("every path line is drawn 2 CSS px — the path, the limit overlay and the 
       const widths: Record<string, number> = {};
       const where2: Record<string, unknown> = {};
       for (const role of ["feed", "limit", "backplot"]) {
-        const at = await page.evaluate(r => window.__viewerDiag!.projectRole!(r), role);
+        // The backplot at the MIDDLE of its trail: its last segment lies under
+        // the head, which seen from above covers it — whole now that the
+        // parallel eye no longer cuts it open at the near plane (ThreeViewer
+        // _orthoEyeOutsideScene); the longest segment used to be read
+        // through that cut.
+        const at = role === "backplot"
+          ? await page.evaluate(() => {
+            const segs: { x: number; y: number; dx: number; dy: number; length: number }[] = [];
+            window.__viewerDiag!.projectRoleSegments!("backplot").forEach(s => segs.push(s));
+            segs.sort((a, b) => a.y - b.y);
+            return segs.length ? segs[segs.length >> 1]! : null;
+          })
+          : await page.evaluate(r => window.__viewerDiag!.projectRole!(r), role);
         expect(at, `${where}: a visible ${role} segment`).not.toBeNull();
         // The backplot is a trail of short segments along one straight line;
         // the program's lines are single long segments.

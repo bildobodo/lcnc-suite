@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_FRAME_DIR, ENVELOPE_FACTOR, MODEL_MARGIN, frameDistance, frameNearFar, framePose, minOrbitDistance } from "./cameraFraming";
+import { DEFAULT_FRAME_DIR, ENVELOPE_FACTOR, MODEL_MARGIN, frameDistance, frameNearFar, framePose, minOrbitDistance, orthoEyeDistance } from "./cameraFraming";
 
 describe("cameraFraming", () => {
   it("keeps the travel-box rule when the model fits inside it", () => {
@@ -47,5 +47,16 @@ describe("cameraFraming", () => {
     expect(Math.hypot(...DEFAULT_FRAME_DIR)).toBeCloseTo(1, 12);
     expect(dx).toBeGreaterThan(0); expect(dy).toBeLessThan(0); expect(dz).toBeGreaterThan(0);
     expect(p.minDistance).toBeCloseTo(minOrbitDistance(p.near), 12);
+  });
+
+  it("the parallel eye clears the whole scene sphere, wherever the target sits in it", () => {
+    // the sphere's farthest point from the target, the margin, the near plane in front
+    expect(orthoEyeDistance(0, 1000, 1)).toBeCloseTo(1.05 * 1000 + 1, 9);
+    expect(orthoEyeDistance(300, 1000, 1)).toBeCloseTo(1.05 * 1300 + 1, 9);
+    for (const [c, r, n] of [[0, 1000, 1], [250, 4000, 0.4], [5000, 10, 2]] as const) {
+      const d = orthoEyeDistance(c, r, n);
+      // any sphere point lies at depth ≥ d − (c + r) along any line of sight: in front of the near plane
+      expect(d - (c + r)).toBeGreaterThan(n);
+    }
   });
 });

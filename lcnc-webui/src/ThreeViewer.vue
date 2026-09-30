@@ -20,7 +20,7 @@ import { confirmedToolsetter } from "./toolsetterVars";
 import { buildToolsetterMarker, toolsetterPlacement } from "./viewer/toolsetterMarker";
 import { INTERP_IDLE } from "./lcnc";
 import { fmtCoord, fmtProgressTimes, fmtRpm, fmtNum, fmtPct, NO_VALUE } from "./format";
-import { framePose as defaultFramePose, DEFAULT_FRAME_DIR } from "./viewer/cameraFraming";
+import { framePose as defaultFramePose, DEFAULT_FRAME_DIR, orthoEyeDistance } from "./viewer/cameraFraming";
 import { useAxes, DEFAULT_AXES } from "./useAxes";
 import { recordApply, recordRafTick, recordRender, setViewerPerfContext, setViewerPerfGl } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
@@ -725,6 +725,34 @@ function _framePose(box: THREE.Box3) {
   const radius = _modelRadiusAbout(center);
   const pose = defaultFramePose([center.x, center.y, center.z], maxDim, radius);
   return { center, maxDim, radius, pose, position: new THREE.Vector3(...pose.position) };
+}
+
+// The parallel eye stays OUTSIDE the whole scene — the ground grid, the
+// machine, the drawn path (cameraFraming.orthoEyeDistance; operator
+// 2026-09-30: the grid was cut off while orbiting — its far half passed
+// behind the eye, which sat just outside the MODEL sphere). Pushed back
+// along its own line of sight, never forward: the image does not change.
+// Run for every rendered frame, so every way the eye moves (orbit, pan,
+// view presets, Reset, a projection switch, tracking) is covered.
+const _sceneBox = new THREE.Box3();
+const _sceneSph = new THREE.Sphere();
+const _eyeOff = new THREE.Vector3();
+function _orthoEyeOutsideScene() {
+  if (!(camera instanceof THREE.OrthographicCamera) || !controls) return;
+  _sceneBox.makeEmpty();
+  if (groundGrid) _sceneBox.expandByObject(groundGrid);
+  for (const m of machineMeshes) _sceneBox.expandByObject(m);
+  const pb = toolpath.pathWorldBox();
+  if (pb) _sceneBox.union(pb);
+  if (_sceneBox.isEmpty()) return;
+  _sceneBox.getBoundingSphere(_sceneSph);
+  const toCenter = controls.target.distanceTo(_sceneSph.center);
+  const need = orthoEyeDistance(toCenter, _sceneSph.radius, camera.near);
+  _eyeOff.subVectors(camera.position, controls.target);
+  const d = _eyeOff.length();
+  if (d > 0 && d < need) camera.position.copy(controls.target).addScaledVector(_eyeOff, need / d);
+  const reach = Math.max(d, need) + toCenter + _sceneSph.radius;
+  if (camera.far < reach) { camera.far = 2 * reach; camera.updateProjectionMatrix(); }
 }
 
 function _applyFrameLimits(near: number, far: number, minDistance: number) {
@@ -1743,6 +1771,21 @@ async function buildFromInit(init: ViewerInit) {
           minDistance: controls.minDistance,
         } : null,
         getPartBounds: _partWorldBounds,
+        /** The ground grid's nearest and farthest point along the line of
+         *  sight (view-space depth) against the camera's near and far. */
+        getGroundGridDepth: () => {
+          if (!camera || !groundGrid) return null;
+          camera.updateMatrixWorld();
+          groundGrid.updateMatrixWorld();
+          const pos = groundGrid.geometry.getAttribute("position");
+          const v = new THREE.Vector3();
+          let min = Infinity, max = -Infinity;
+          for (let i = 0; i < pos.count; i++) {
+            v.fromBufferAttribute(pos, i).applyMatrix4(groundGrid.matrixWorld).applyMatrix4(camera.matrixWorldInverse);
+            min = Math.min(min, -v.z); max = Math.max(max, -v.z);
+          }
+          return { min, max, near: camera.near, far: camera.far };
+        },
         getFrameBox: () => { const b = _boundsWorldBox(); return b ? { min: b.min.toArray(), max: b.max.toArray() } : null; },
         setView: (p: string) => setView(p as ViewPreset),
         setViewDirection: (dir: number[], distance?: number) => {
@@ -3635,6 +3678,7 @@ function animate() {
   // bottom transitions. The tween writes camera.position/quaternion directly
   // each frame; controls.update() runs once at tween completion to re-sync.
   if (!_tweenRaf) controls?.update();
+  _orthoEyeOutsideScene();
   // Per-chunk overlay gate + frustum count (viewer/lineChunks.ts): decides
   // which outside-bounds overlays are drawn this frame at the current pose.
   if (camera) toolpath.updateCulling(toolpathCtx(), camera, renderer?.domElement.height ?? 1000);

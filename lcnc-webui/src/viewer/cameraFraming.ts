@@ -66,3 +66,16 @@ export function framePose(center: readonly [number, number, number], maxDim: num
     minDistance: minOrbitDistance(near),
   };
 }
+
+/** The eye's least distance from the target under the PARALLEL projection
+ *  (operator 2026-09-30: the ground grid was cut off while orbiting). There
+ *  the distance changes nothing in the image — only what lies behind the
+ *  eye, which the near plane cuts: the grid reaches up to 2.5 × the model's
+ *  span, past the model-sphere rule above. So the eye stays outside the
+ *  WHOLE scene's sphere (`radius` about a centre `targetToCenter` from the
+ *  target) with the near plane and a margin in front of it, for every orbit
+ *  direction. The perspective eye keeps framePose's distance: moving it
+ *  would change the view. */
+export function orthoEyeDistance(targetToCenter: number, radius: number, near: number): number {
+  return MODEL_MARGIN * (targetToCenter + radius) + near;
+}
