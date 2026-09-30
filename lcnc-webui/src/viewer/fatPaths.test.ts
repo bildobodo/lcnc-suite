@@ -6,7 +6,7 @@
 // mode switch and the memory ledger.
 import { describe, it, expect, vi } from "vitest";
 import * as THREE from "three";
-import { TOOLPATH_BOX_DASH_PX } from "./boxLines";
+import { TOOLPATH_BOX_DASH_PX, TOOLPATH_BOX_PX } from "./boxLines";
 import { ref } from "vue";
 import type { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import type { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
@@ -229,12 +229,12 @@ describe("the fat path draws exactly the GL path's pairs (Codex R39)", () => {
     expect(feed()[0]!.color.getHexString()).toBe(base);
   });
 
-  it("the box overflow outside the machine window: a 2 px limit line with the clip planes, dashed like the box on screen", () => {
+  it("the box overflow outside the machine window: a limit line at the box's width with the clip planes, dashed like the box on screen", () => {
     const { ctx } = build("fat");
     const [ov] = roleObjects(ctx.workRotGroup, "limitBox") as LineSegments2[];
     expect(ov?.isLineSegments2).toBe(true);
     const m = ov!.material as LineMaterial;
-    expect([m.linewidth, m.dashed, m.clipIntersection, m.clippingPlanes?.length]).toEqual([2, true, true, 1]);
+    expect([m.linewidth, m.dashed, m.clipIntersection, m.clippingPlanes?.length]).toEqual([TOOLPATH_BOX_PX, true, true, 1]);
     // the toolpath box's own screen dash (Codex R44 VP-I10): CSS px along each projected edge
     expect(["SCREEN_DASH" in m.defines, m.dashSize, m.gapSize]).toEqual([true, TOOLPATH_BOX_DASH_PX, TOOLPATH_BOX_DASH_PX]);
   });

@@ -710,7 +710,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       // The box OUTSIDE the machine window, a limit finding: the limit's
       // colour at the box's width, dashed like the box — in CSS px along
       // each projected edge (screenDash, Codex R44 VP-I10; part B, Codex R39
-      // — not a thin exception next to the 2 px box).
+      // — at the box's own width, TOOLPATH_BOX_PX).
       const mat = new LineMaterial({ color: deps.colors().limit, linewidth: TOOLPATH_BOX_PX, worldUnits: false });
       screenDash(mat, TOOLPATH_BOX_DASH_PX);
       mat.clipIntersection = true;

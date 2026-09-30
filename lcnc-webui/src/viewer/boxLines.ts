@@ -27,9 +27,11 @@ import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeome
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { counted, countedGeometry, f32 } from "./allocMeter";
 
-/** Both boxes, CSS px — the width of every drawn line (operator: 2 px). */
-export const MACHINE_BOX_PX = 2;
-export const TOOLPATH_BOX_PX = 2;
+/** Both boxes (and the toolpath box's overflow edges), CSS px: 1 — the
+ *  boxes are context, quieter than the 2 px path (operator 2026-09-30:
+ *  "weniger präsent"; the two tones keep them readable on any grey). */
+export const MACHINE_BOX_PX = 1;
+export const TOOLPATH_BOX_PX = 1;
 /** Dash (= gap) length, CSS px: the machine box long, the toolpath box short. */
 export const MACHINE_BOX_DASH_PX = 10;
 export const TOOLPATH_BOX_DASH_PX = 5;
