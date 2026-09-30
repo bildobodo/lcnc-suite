@@ -4481,3 +4481,51 @@ zweite Toleranz, und der Nutzen ist klein.
   Vorlaufpunkte nahe einer Grenze eine andere Behandlung?
 - Siehst du einen Weg, bei dem die Nutzdaten ganz vom Offset unabhängig
   bleiben und die Limitbewertung trotzdem stimmt?
+
+### Zwei Operator-Änderungen seit R51 — bitte mitprüfen
+
+**Settings breit und gruppiert (`b5e8964`).** Der Operator am 30.09.:
+„das Fenster … dürfte im Landscape mehr Breite einnehmen, wie beim
+Werkzeug-Editieren“ und „viele Layer-Toggles … brauchen Gruppierung“.
+Gewählt hat er 760 px, vier Gruppen und zwei Spalten.
+- Der große Dialog nimmt die breite Stufe (`.dialog.lg.wide`,
+  `--dialog-wide-w` 760 px, dasselbe Token wie beim Werkzeugeditor).
+- Im Reiter 3D Viewer stehen die Abschnitte nebeneinander, soweit zwei
+  Spalten passen (`.sectionColumns`, nach der Regel von `.formGrid`, mit
+  Boden `min(100 %, …)`).
+- Layer in vier Zeilengruppen: Program · Bounds & Reach · Machine ·
+  References & Markers (`viewerLayerGroups.ts`). Ein Unit-Test prüft
+  `ALL_LAYERS` auf genau einen Platz je Layer. Der HUD-Schalter ist jetzt
+  „Show HUD“ im HUD-Abschnitt.
+- **Befund des neuen Layout-Tests:** Bei 150 % Hochformat (Dialog 248 px)
+  liefen die Layer-Tabelle, die HUD- und die Kamera-Schalter schon vorher
+  seitlich über. Behoben:
+  - Das Linienmuster bricht in der Zelle unter den Namen um.
+  - Die Schalter-Raster folgen der `.formGrid`-Regel.
+  - Der zweite Innenabstand des Panels ist weg.
+  - Der Scroller hält die Reichweite eines „?“.
+- `layout.spec` misst Breite, Spalten (Desktop und Touch quer
+  nebeneinander, 150 % hoch untereinander), Gruppenreihenfolge und
+  seitlichen Überlauf. Vorher rot.
+
+**Die laufende Zeile gleitet (`6c4d0c8`).** Der Operator: „das Highlighten
+der aktuellen Zeile zuckt … wie beim einarmigen Banditen, dass die Zeile
+stehen bleibt, aber das Programm scrollt“.
+- Jedes Statuspaket setzte den Scroll hart; der Text sprang um 0, 3 oder
+  5 Zeilen.
+- Jetzt gleitet der Text zum neuen Ziel über den letzten Paketabstand,
+  30–150 ms, gleichmäßig, einen Schritt je Animationsframe
+  (`codeGlide.ts`, pure, Unit-Tests).
+- Die Hervorhebung bleibt auf der wirklich laufenden Zeile, höchstens ein
+  Paketintervall neben der Mitte.
+- Nach einer Pause gleitet der nächste Schritt über die längste Dauer.
+- Sofort gesetzt wird bei einem Sprung über zwei Sichthöhen und bei
+  `prefers-reduced-motion`.
+- `setScroll` setzt Element und virtuelles Fenster in einem Schritt.
+- **Messung** (`layout.spec`, 3 Zeilen je Paket bei 30 Hz): 98–99 % der
+  Frames bewegen sich, keiner um einen ganzen Paketschritt. Der alte harte
+  Nachlauf: 38 % bewegen sich, alle um den ganzen Schritt. Unter 50 fps
+  wird nur berichtet.
+
+**Prüfstand:** Offline-Gate PASS auf `6c4d0c8`: Backend 1108, Vitest
+1822, Playwright 380.
