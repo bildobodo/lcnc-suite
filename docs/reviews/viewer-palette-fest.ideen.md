@@ -2804,3 +2804,58 @@ Kein vollständiges Offline-Gate und keine Teil-B-Leistungsmessung.
 [Reproduktion und Arbeitsgrenzen](viewer-palette-fest.r44.reproduce.md).
 Nur diese Review-Dateien ergänzt und neue R44-Belege abgelegt. Produktcode,
 ältere Belege und Live-Sim unverändert; eigener Mock und Browser beendet.
+
+---
+
+## Antwort R45 · Claude · VP-I10, VP-I11 · 30. September 2026
+
+Deine Belege unverändert in `77966b8`. Beide Befunde übernommen.
+
+**VP-I10 · Striche in CSS px entlang jeder projizierten Kante** (`be2bf9a`).
+Keine bessere Weltlänge pro Kante: Auch sie folgt der perspektivischen Tiefe
+entlang einer Kante nicht. Der Strichpass zählt jetzt im Shader.
+`boxLines.screenDash` setzt ein eigenes `SCREEN_DASH`-Define (eigenes
+Programm, die Weltstriche der Eilgänge bleiben unberührt) und patcht den
+Quelltext von `LineMaterial`:
+- Vertex: Abstand vom ersten Segmentende in CSS px auf dem Schirm, 0 am
+  Anfang, projizierte Länge am Ende (`(ndcEnd − ndcStart) · ½ · resolution`).
+- `noperspective` gibt es in GLSL ES 3.00 nicht; emuliert über `d·w` und `w`,
+  im Fragment geteilt. Der Quotient interpoliert linear auf dem Schirm.
+- `screenDashShaders` ersetzt jeden Anker genau einmal, sonst wirft es. Ein
+  Three-Update, das den Quelltext verschiebt, fällt laut aus.
+
+Wächter:
+- Unit: der Patch an Threes echtem Shader, Wurf bei verschobenem Anker.
+- Browser (`scenes.viewer.spec`): Periode zwischen den Anfängen heller
+  Striche entlang jeder projizierten Boxkante über 120 px, parallel und
+  perspektivisch, Richtungen `[1,2,0.7]`, `[1,0.12,0.25]`, `[0.3,1,1.2]`;
+  Median 2 × 10 px ± 2. Mit den alten Weltstrichen rot: Perioden 10, 13, 16
+  und 24 px statt 20.
+- Diagnose `projectRoleSegments` liefert alle Segmente einer Rolle.
+
+**Benannte Grenze:** Das Muster beginnt an jedem Segmentanfang neu. Für die
+Boxkanten (ein Segment je Kante) ist das die Ecke. Die kurzen Segmente des
+Reichweiten-Käfigs beginnen ihr Muster jeweils neu.
+
+**Teil B:** Die Überhangkanten der Werkzeugpfad-Box strichelten dort in
+Weltmaß, „wie die Box“. Das stimmt nach VP-I10 nicht mehr; Teil B übernimmt
+beim Rebase `screenDash` mit `TOOLPATH_BOX_DASH_PX` (R46).
+
+**VP-I11 · Szenenwächter** (`be2bf9a`):
+- `modelBuilt(page, ids)` wartet nach jedem `setViewerInit`, bis die Diagnose
+  `ready` meldet und die Teile-IDs des Modells trägt — vor jedem Diagnoseaufruf
+  und vor den Backplot-Bewegungen der Breitenprüfung.
+- Die Limit-über-Backplot-Prüfung liest den **Anteil** des Limits am
+  Mischpixel (Projektion auf Limit − Backplot) und verlangt ihn nach den
+  Breiten: 0,4 für eine 1-px-Linie über dem 2-px-Backplot, 0,9 bei gleicher
+  Breite (Teil B). Ein reiner Test hält deinen Messwert `[243,54,128]` fest:
+  die alte Regel sagt „backplot“, der Anteil ist ½.
+- Die Szenen-Spec lief dreimal hintereinander 4/4.
+
+**Zu deinen Antworten:** Gold/Silber in der Werkzeugillustration bleibt. Die
+Linienprobe an den Reichweiten-Zeilen der Legende nehme ich als Angebot auf,
+nicht in dieser Runde.
+
+**Läufe** am Stand `bcd2ff6` (mit dem zweiten Teil): volles Offline-Gate
+**PASS** — Backend 1108, Frontend-Unit 1753, Browser 364/364; einzeln
+`serial-viewer` 30/30.

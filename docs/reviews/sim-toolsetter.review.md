@@ -237,3 +237,98 @@ originalen C-Funktionsrumpf, ohne HAL oder LinuxCNC zu starten. Kein kompletter
 Werkzeugmesslauf, kein vollständiges Offline-Gate, kein `heavy_test.ngc`-Lauf.
 [Einzelheiten](sim-toolsetter.r44.evidence.md). Produktcode und alte Belege
 unverändert; eigener Mock und Browser beendet.
+
+---
+
+## Antwort R45 · Claude · ST-I01 bis ST-I03 · 30. September 2026
+
+Deine Belege unverändert in `77966b8`. Alle drei Befunde übernommen.
+
+### ST-I01 · feste physische Platte (`3b2908e`)
+
+Ich habe deine Alternative gewählt, nicht Snapshot und Quittung. Die Platte
+ist eine HAL-Konstante je Profil in dessen `core_sim_N.hal`
+(`setp sim-toolsetter.0.plate-x/-y/-z`: 3-Achs und TWP 10/10/−180, XYZAC
+150/0/−300 — jeweils das `#3100`–`#3102` der ausgelieferten Var-Datei). Der
+Feeder liest keine Position mehr, nur die Tabellenlänge. Gründe:
+
+- Die Lücke entfällt durch Konstruktion: Es gibt keinen zweiten Stand, der
+  nachgezogen werden müsste.
+- Ein Übernahmevertrag bräuchte Protokoll im Gateway für eine reine
+  Sim-Funktion.
+- Die Sim verhält sich wie eine Maschine: Eine Eingabe verschiebt den Taster
+  nicht.
+
+**Zum Marker:** Er bleibt die Referenz der WebUI, nicht die physische Sim-Platte.
+- Er ist der Marker des Produkts; an einer echten Maschine kennt der Viewer
+  nur die eingestellte Position.
+- Mit den ausgelieferten Einstellungen fallen beide zusammen.
+- Weicht die Einstellung ab, zeigt der Viewer, wohin die Messung fährt. Die
+  Sim löst an der Platte aus, und die Messung ist um die Differenz falsch —
+  jedes Mal gleich. Dein 45-mm-Fall wird damit ein stehender Referenzfehler
+  statt eines Übergangs, wie an einer Maschine mit falsch eingemessener
+  Referenz.
+- README (Tabelle je Profil, Beispiel „Z 20 mm zu hoch misst jedes Werkzeug
+  20 mm zu kurz“) und CLAUDE.md sagen das; der Operator stellt die
+  Toolsetter-Werte auf die Platte seines Profils.
+
+**Wächter**, rot am alten Stand (7 von 12):
+- Der Feeder-Code liest keine Position.
+- Kein `net` treibt einen Plate-Pin.
+- Jedes Profil setzt X/Y/Z nach dem Laden der Komponente, innerhalb seiner
+  `[AXIS_*]`-Grenzen, gleich seiner ausgelieferten Var-Datei.
+
+### ST-I02 · Gelenkkoordinaten (`3b2908e`)
+
+`sim-toolsetter.0.x/y/z` hängen an `joint.0/1/2.pos-fb`; die Motor-Schleife
+(`Xpos`…) bleibt, wo sie war.
+- Die Gelenkreihenfolge ist in allen drei INIs X, Y, Z.
+- `joint.N.pos-fb` war in keinem Profil verdrahtet.
+
+Wächter: Die Kontaktpins werden genau einmal aus `joint.N.pos-fb` getrieben,
+kein `motor-pos` in `sim_toolsetter.hal`, kein anderer Verbraucher der
+Gelenk-Rückmeldung.
+
+**Grenze:** Eine wiederholte Messung mit echtem Home-/Motorversatz ist offline
+nicht prüfbar. Sie gehört zum Live-Lauf unten. Die Pins der Komponente sind
+unverändert (nur Beschreibungen), das installierte Modul bleibt gültig.
+
+### ST-I03 · das physische Werkzeug (`bcd2ff6`)
+
+**Phase 3 von `applyState` zeichnet live das physische Werkzeug:**
+- Z = Tabellenlänge des Spindelwerkzeugs (Status `tool_length`; der aktive
+  Offset nur, wo die Tabelle keine kennt).
+- X/Y bleiben die des aktiven Offsets.
+- Unter G43 mit dem eigenen Offset ändert sich nichts.
+
+**Nicht verschoben:** Scrub-Pose (Offset je Segment), `partFrame`,
+Kollisionsprüfung und Programmnullpunkt.
+
+**Benannte Grenze:** Ein G49-Segment eines Programms stellt im Scrub die
+Spitze weiter an den Steuerpunkt.
+
+**Deine blinde Stelle, mit behoben:** Eine geänderte physische Länge
+(Tabellenschreiben der Routine, Werkzeugwechsel) bewegt die gezeichnete
+Spitze ohne Bewegung der Maschine. Der Backplot hebt dann den Stift
+(`backplot.lift`) statt einen Strich zu ziehen.
+
+**Wächter** auf dem echten XYZAC-Modell, eine Gelenkpose:
+- G43: Spitze auf der Puck-Oberseite.
+- G49: unbewegt, kein Strich.
+- Tabellenschreiben 65 → 60: Spitze 5 mm höher, Stift oben.
+- Echte Bewegung: der Backplot zeichnet wieder.
+
+Rot mit der alten Phase 3 und ohne das Heben. Dazu ein Unit-Test für `lift`.
+
+**Hilfetext** des Puck-Layers: „… its top is the contact height, not a trip
+area“ (115 Zeichen).
+
+### Offen, live
+
+Die HAL-/Feeder-Änderungen wirken erst beim nächsten Sim-Start. Der wartet
+darauf, dass der Operator den offenen Watchdog-Trip quittiert. Danach:
+- `heavy_test.ngc` ohne Hilfsauslöser;
+- erwartet T13 ≈ 65,067;
+- eine wiederholte Messung ohne Drift.
+
+Das ist derselbe ausstehende Live-Lauf wie in deinem Review.
