@@ -117,7 +117,7 @@ export async function runAb(d: AbDriver, o: {
   d.emit("viewer.abrun", { run, seq: seq++, phase: "meta", order: order.join(","), durations: dur, initial, ...d.meta() });
 
   const memOf = (m: PathMemory) => ({ mode: m.mode, cpu: m.cpu, gpu: m.gpu, allocated: m.allocated, peak: m.peak,
-    generation: m.generation, pairs: m.pairs });
+    eager: m.eager, generation: m.generation, pairs: m.pairs });
   let cancelled = false;
   try {
     for (let rep = -1; rep < order.length; rep++) {

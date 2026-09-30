@@ -25,6 +25,7 @@ import * as THREE from "three";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
+import { counted, countedGeometry, f32 } from "./allocMeter";
 
 /** Both boxes, CSS px — the width of every drawn line (operator: 2 px). */
 export const MACHINE_BOX_PX = 2;
@@ -57,13 +58,23 @@ export interface BoxEdges extends THREE.Group {
   setSize(sx: number, sy: number, sz: number): void;
 }
 
-/** The twelve edges of an axis-aligned box centred on the origin, as segment pairs. */
+/** The twelve edges of an axis-aligned box centred on the origin, as segment
+ *  pairs — written out, no BoxGeometry / EdgesGeometry built and dropped for
+ *  it (their arrays were scratch the toolpath ledger never saw, Codex R48). */
 export function boxEdgePositions(sx: number, sy: number, sz: number): Float32Array {
-  const box = new THREE.BoxGeometry(Math.max(sx, 1e-3), Math.max(sy, 1e-3), Math.max(sz, 1e-3));
-  const edges = new THREE.EdgesGeometry(box);
-  const out = Float32Array.from(edges.getAttribute("position").array as Float32Array);
-  box.dispose();
-  edges.dispose();
+  const h = [Math.max(sx, 1e-3) / 2, Math.max(sy, 1e-3) / 2, Math.max(sz, 1e-3) / 2];
+  const out = f32(12 * 6);
+  let o = 0;
+  // per axis a: the four edges along a, at every sign pair of the other two
+  for (let a = 0; a < 3; a++) {
+    const b = (a + 1) % 3, c = (a + 2) % 3;
+    for (const sb of [-1, 1]) for (const sc of [-1, 1]) {
+      for (const sa of [-1, 1]) {
+        out[o + a] = sa * h[a]!; out[o + b] = sb * h[b]!; out[o + c] = sc * h[c]!;
+        o += 3;
+      }
+    }
+  }
   return out;
 }
 
@@ -182,7 +193,7 @@ export function alternateTones(positions: Float32Array | number[]): Float32Array
     if (l.length !== 2) return -1;
     return l[0] === s * 2 + e ? l[1]! : l[0]!;
   };
-  const tones = new Float32Array(n).fill(-1);
+  const tones = f32(n).fill(-1);
   for (let s0 = 0; s0 < n; s0++) {
     if (tones[s0] !== -1) continue;
     // back to the chain's start: an open end, a junction, or once around a ring
@@ -206,7 +217,9 @@ export function alternateTones(positions: Float32Array | number[]): Float32Array
 }
 
 export function makeTwoToneSegments(positions: Float32Array, o: BoxEdgesOptions & { renderOrder?: number; tones?: boolean }): TwoToneLines {
-  const geom = new LineSegmentsGeometry().setPositions(positions);
+  const geom = new LineSegmentsGeometry();
+  countedGeometry(geom);   // three's own quad mesh (allocMeter: the toolpath box is a build's too)
+  geom.setPositions(positions);
   if (o.tones) geom.setAttribute("instanceTone", new THREE.InstancedBufferAttribute(alternateTones(positions), 1));
   const material = (color: string, role: string) => {
     const m = new LineMaterial({ color, linewidth: o.width, worldUnits: false });
@@ -226,6 +239,7 @@ export function makeTwoToneSegments(positions: Float32Array, o: BoxEdgesOptions 
   solid.renderOrder = o.renderOrder ?? 0;
   dashes.renderOrder = solid.renderOrder + 1;
   dashes.computeLineDistances();   // LineMaterial's own dash attributes (unused under SCREEN_DASH)
+  countedLineDistances(geom);
   solid.onBeforeRender = (renderer) => { renderer.getSize(solidMat.resolution); };
   dashes.onBeforeRender = (renderer) => { renderer.getSize(dashMat.resolution); };
   const group = new THREE.Group() as TwoToneLines;
@@ -241,11 +255,19 @@ export function makeBoxEdges(size: [number, number, number], o: BoxEdgesOptions)
   // their GL buffers until the geometry itself is disposed.
   group.setSize = (sx, sy, sz) => {
     const old = solid!.geometry;
-    const next = new LineSegmentsGeometry().setPositions(boxEdgePositions(sx, sy, sz));
+    const next = new LineSegmentsGeometry();
+    countedGeometry(next);
+    next.setPositions(boxEdgePositions(sx, sy, sz));
     solid!.geometry = next;
     dashes!.geometry = next;
     dashes!.computeLineDistances();
+    countedLineDistances(next);
     old.dispose();
   };
   return group;
+}
+
+/** The per-instance distances three's computeLineDistances just allocated. */
+export function countedLineDistances(g: THREE.BufferGeometry): void {
+  counted((g.getAttribute("instanceDistanceStart") as THREE.InterleavedBufferAttribute | undefined)?.data.array as Float32Array | undefined);
 }

@@ -20,11 +20,12 @@
 import * as THREE from "three";
 import { binPairs, buildFrameIndex, CHUNK_MAX, chunkBounds, chunkGrid, cumulativeDistances, splitPairsByFrame } from "./lineChunks";
 import type { AnchorTerms } from "./partFrame";
-import { makeBoxEdges, boxEdgePositions, screenDash, TOOLPATH_BOX_PX, TOOLPATH_BOX_DASH_PX, type BoxEdges } from "./boxLines";
+import { makeBoxEdges, boxEdgePositions, countedLineDistances, screenDash, TOOLPATH_BOX_PX, TOOLPATH_BOX_DASH_PX, type BoxEdges } from "./boxLines";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
-import { fatGeometry, packPairs, PATH_PX } from "./fatPaths";
+import { fatBytes, fatGeometry, packPairs, PATH_PX } from "./fatPaths";
+import { allocatedBytes, counted, countedGeometry, f32, u32 } from "./allocMeter";
 import type { Ref } from "vue";
 import type { Text } from "troika-three-text";
 import type { ViewerGcode } from "../lcncWs";
@@ -194,19 +195,26 @@ export interface PathMemory {
    *  reveal, the fat geometries' own quad mesh, the controller's derived
    *  arrays (binned level indices, computed distances) and the PAYLOAD it
    *  keeps for rebuilds (the program's positions, LOD lists, breaks, flags,
-   *  source ids). A buffer shared by two owners counts under the first. */
-  cpu: { base: number; dist: number; overlay: number; reveal: number; mesh: number; source: number; payload: number; total: number };
+   *  source ids), and the toolpath box with its overflow edges (built with
+   *  the path, Codex R48). A buffer shared by two owners counts under the
+   *  first. */
+  cpu: { base: number; dist: number; overlay: number; reveal: number; mesh: number; box: number; source: number; payload: number; total: number };
   /** GPU bytes of the buffers actually uploaded (the uploaded views; a level
    *  never drawn is not). */
-  gpu: { base: number; dist: number; overlay: number; reveal: number; mesh: number; total: number };
+  gpu: { base: number; dist: number; overlay: number; reveal: number; mesh: number; box: number; total: number };
   /** Bytes the controller allocated since it was created — cumulative (a
    *  reveal built three times counts three times). */
   allocated: number;
   /** For the CURRENT path (since the last apply / rebuild): the highest
    *  (bytes held when a build began + bytes the build allocated, scratch
-   *  included) — an UPPER bound on the simultaneous footprint, every
-   *  allocation of the build taken as alive at once. */
+   *  included — every allocation counted where it happens, viewer/
+   *  allocMeter.ts, Codex R48) — an UPPER bound on the simultaneous
+   *  footprint, every allocation of the build taken as alive at once. */
   peak: number;
+  /** The last build's EAGER pack (Codex R39/R48): its bytes ESTIMATED from
+   *  the pair counts before the first pair was packed, and what the pack
+   *  then allocated (≤ the estimate: degenerate pairs are dropped). */
+  eager: { estimate: number; packed: number };
   /** Builds so far (apply / rebuild). */
   generation: number;
   /** Segment pairs: of the source (level 0), at the chunks' CURRENT levels,
@@ -248,7 +256,7 @@ interface LineSet {
   frame: 0 | 1;
   parent: THREE.Group;
   mat: PathMat;
-  overMat: PathMat | null;  // built with the overlays (buildOverlays)
+  overMat: PathMat | null;  // built with the overlays (fillOverlays)
   bounds: Float32Array;                  // 6 per chunk (union over levels), parent-local coordinates
   tols: number[];                        // tolerance of level k ≥ 1 (machine units)
   chunks: Chunk[];
@@ -262,6 +270,9 @@ interface LineSet {
   /** A finding's section (setReveal): its pairs in the set's material, and
    *  the flagged ones among them in the limit role. */
   reveal: { line: PathObj | null; over: PathObj | null };
+  /** The limit overlays' flagged pairs per level, prepared before the pack:
+   *  one exact index per level with each chunk's range in it. */
+  ovIdx: ({ index: Uint32Array; starts: Uint32Array; counts: Uint32Array } | null)[];
 }
 
 /** A level is used when its tolerance is under this many pixels (device
@@ -324,25 +335,38 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   // The A/B measurement's "overlay off" phase (Codex R39 VP39-03; removed
   // with the switch): the limit overlays held hidden, nothing rebuilt.
   let _overlaysHeld = false;
-  // The memory ledger (Codex R39 VP39-01, R47 VP-I17): GPU bytes count a
-  // buffer once it was actually uploaded (three calls onUpload after the
-  // first transfer); _allocated counts every array the controller allocates
-  // (capacity), _peak the highest held-at-build-start + allocated-in-build.
+  // The memory ledger (Codex R39 VP39-01, R47/R48 VP-I17): GPU bytes count
+  // a buffer once it was actually uploaded (three calls onUpload after the
+  // first transfer); _allocated sums what the builds allocated (the meter's
+  // difference across each build — viewer/allocMeter.ts counts every array
+  // where it is created, scratch included), _peak the highest held-at-build-
+  // start + allocated-in-build.
   const _uploaded = new WeakSet<object>();
   let _allocated = 0;
   let _peak = 0;
   let _generation = 0;
+  let _eager = { estimate: 0, packed: 0 };
   const _watchUpload = (b: THREE.BufferAttribute | THREE.InterleavedBuffer) => { b.onUpload(() => { _uploaded.add(b); }); };
-  /** Count arrays the controller allocates (their capacity, once each). */
-  function _tally(...arrs: (ArrayBufferView | null | undefined)[]) {
-    const seen = new Set<ArrayBufferLike>();
-    for (const a of arrs) if (a && !seen.has(a.buffer)) { seen.add(a.buffer); _allocated += a.buffer.byteLength; }
-  }
+  /** The toolpath box's buffers, watched for their upload (the ledger's "box"). */
+  const _watchBox = (root: THREE.Object3D) => root.traverse(o => {
+    const g = (o as THREE.Mesh).geometry as THREE.BufferGeometry | undefined;
+    if (g) _watchGeometry(g);
+  });
+  /** Every buffer of a geometry, watched for its upload. */
+  const _watchGeometry = (g: THREE.BufferGeometry) => {
+    for (const a of Object.values(g.attributes)) {
+      const inter = (a as THREE.InterleavedBufferAttribute).data;
+      _watchUpload(inter ?? (a as THREE.BufferAttribute));
+    }
+    if (g.index) _watchUpload(g.index);
+  };
   /** Run a build step and raise the peak bound by what it allocated. */
   function _measured<T>(build: () => T): T {
-    const held = ledger().cpu.total, a0 = _allocated;
+    const held = ledger().cpu.total, a0 = allocatedBytes();
     const out = build();
-    _peak = Math.max(_peak, held + (_allocated - a0));
+    const d = allocatedBytes() - a0;
+    _allocated += d;
+    _peak = Math.max(_peak, held + d);
     return out;
   }
   // The last apply's DATA (never its ctx — the scene pointers are fresh per
@@ -353,9 +377,9 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   function ledger(): PathMemory {
     const seenCpu = new Set<ArrayBufferLike>();
     const seenGpu = new Set<object>();
-    type Owner = "base" | "dist" | "overlay" | "reveal" | "mesh";
-    const cpu = { base: 0, dist: 0, overlay: 0, reveal: 0, mesh: 0, source: 0, payload: 0, total: 0 };
-    const gpu = { base: 0, dist: 0, overlay: 0, reveal: 0, mesh: 0, total: 0 };
+    type Owner = "base" | "dist" | "overlay" | "reveal" | "mesh" | "box";
+    const cpu = { base: 0, dist: 0, overlay: 0, reveal: 0, mesh: 0, box: 0, source: 0, payload: 0, total: 0 };
+    const gpu = { base: 0, dist: 0, overlay: 0, reveal: 0, mesh: 0, box: 0, total: 0 };
     const addCpu = (owner: keyof typeof cpu, a: ArrayBufferView | null | undefined) => {
       if (!a || !ArrayBuffer.isView(a) || seenCpu.has(a.buffer)) return;
       seenCpu.add(a.buffer);
@@ -392,6 +416,19 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       account(st.reveal.line, "reveal");
       account(st.reveal.over, "reveal");
     }
+    // the toolpath box and its overflow edges: every array of their geometries
+    const accountBox = (root: THREE.Object3D | null) => root?.traverse(o => {
+      const g = (o as THREE.Mesh).geometry as THREE.BufferGeometry | undefined;
+      if (!g) return;
+      for (const a of Object.values(g.attributes)) {
+        const inter = (a as THREE.InterleavedBufferAttribute).data;
+        const buf = inter ?? (a as THREE.BufferAttribute);
+        addCpu("box", buf.array as ArrayBufferView); addGpu("box", buf);
+      }
+      if (g.index) { addCpu("box", g.index.array as ArrayBufferView); addGpu("box", g.index); }
+    });
+    accountBox(toolpathBoundsBox);
+    accountBox(toolpathOverflowEdges);
     // what the controller derived and keeps (binned levels, computed distances)
     for (const st of sets) {
       for (const l of st.levels) addCpu("source", l.index);
@@ -405,8 +442,8 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         else if (Array.isArray(v)) for (const e of v) if (ArrayBuffer.isView(e)) addCpu("payload", e);
       }
     }
-    cpu.total = cpu.base + cpu.dist + cpu.overlay + cpu.reveal + cpu.mesh + cpu.source + cpu.payload;
-    gpu.total = gpu.base + gpu.dist + gpu.overlay + gpu.reveal + gpu.mesh;
+    cpu.total = cpu.base + cpu.dist + cpu.overlay + cpu.reveal + cpu.mesh + cpu.box + cpu.source + cpu.payload;
+    gpu.total = gpu.base + gpu.dist + gpu.overlay + gpu.reveal + gpu.mesh + gpu.box;
     let source = 0, lod = 0, drawn = 0;
     const shown = (o: THREE.Object3D) => { for (let p: THREE.Object3D | null = o; p; p = p.parent) if (!p.visible) return false; return true; };
     for (const st of sets) {
@@ -420,7 +457,8 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
           : o.geometry.drawRange.count === Infinity ? (o.geometry.index?.count ?? 0) >> 1 : o.geometry.drawRange.count >> 1;
       }
     }
-    return { mode: lineMode, cpu, gpu, allocated: _allocated, peak: _peak, generation: _generation, pairs: { source, lod, drawn } };
+    return { mode: lineMode, cpu, gpu, allocated: _allocated, peak: _peak, eager: { ..._eager }, generation: _generation,
+      pairs: { source, lod, drawn } };
   }
 
   /** A path material in the current line mode. depthWrite is off explicitly
@@ -448,18 +486,9 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   function pathObject(posAttr: THREE.BufferAttribute, index: Uint32Array, indexAttr: THREE.BufferAttribute | null,
     start: number, count: number, mat: PathMat, dist: THREE.BufferAttribute | null, sphere: THREE.Sphere | null): PathObj {
     if (lineMode === "fat") {
-      const packed = packPairs(posAttr.array as Float32Array, index, start, count, dist ? dist.array as Float32Array : null);
-      // a pack that dropped degenerate pairs sliced: the full-size scratch
-      // lived during the build too (count it — it is part of the peak)
-      const n = count >> 1;
-      if (packed.pairs !== n) _allocated += n * 6 * 4 + (dist ? n * 2 * 4 : 0);
-      const g = fatGeometry(packed, sphere);
-      const mesh = [g.getAttribute("position"), g.getAttribute("uv"), g.index] as (THREE.BufferAttribute | null)[];
-      _tally(packed.positions, packed.distances, ...mesh.map(a => a?.array as ArrayBufferView | undefined));
-      _watchUpload((g.getAttribute("instanceStart") as THREE.InterleavedBufferAttribute).data);
-      const d = g.getAttribute("instanceDistanceStart") as THREE.InterleavedBufferAttribute | undefined;
-      if (d) _watchUpload(d.data);
-      for (const a of mesh) if (a) _watchUpload(a);
+      // packed exactly, the mesh counted by fatGeometry (allocMeter)
+      const g = fatGeometry(packPairs(posAttr.array as Float32Array, index, start, count, dist ? dist.array as Float32Array : null), sphere);
+      _watchGeometry(g);
       return new LineSegments2(g, mat as LineMaterial);
     }
     const geom = new THREE.BufferGeometry();
@@ -469,8 +498,8 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       geom.setIndex(indexAttr);
       geom.setDrawRange(start, count);
     } else {
-      const own = new THREE.BufferAttribute(index.slice(start, start + count), 1);
-      _tally(own.array as Uint32Array);
+      // a whole index is taken as it is (the reveal builds its own exactly)
+      const own = new THREE.BufferAttribute(start === 0 && count === index.length ? index : counted(index.slice(start, start + count)), 1);
       _watchUpload(own);
       geom.setIndex(own);
     }
@@ -498,17 +527,13 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     }
   }
 
-  /** Build one stream-in-frame set: chunk objects over the shared position
-   *  attribute. `index` lists the real segment pairs (viewer/lineChunks.ts
-   *  buildFrameIndex — section breaks are already index-skipped: the
-   *  connector into a section start would be a FALSE move skipping the other
-   *  stream's motion). Each chunk's geometry is PER-PROGRAM, not externally
-   *  owned: apply() disposes it on program change, and disposeObject frees it
-   *  on scene teardown — so it is deliberately NOT marked userData._shared
-   *  (that flag is only for the STL cache + MAT.*, which survive a rebuild).
-   *  Disposing one chunk releases the shared GL buffers; the sibling chunks
-   *  go in the same pass, so nothing dangles. */
-  function makeSet(
+  /** Prepare one stream-in-frame set: the chunk grid and the binned level
+   *  indices over the shared position attribute, the chunk boxes and the
+   *  overlays' flagged pairs — everything but the drawn objects. `index`
+   *  lists the real segment pairs (viewer/lineChunks.ts buildFrameIndex —
+   *  section breaks are already index-skipped: the connector into a section
+   *  start would be a FALSE move skipping the other stream's motion). */
+  function prepareSet(
     stream: "feed" | "rapid", frame: 0 | 1, parent: THREE.Group,
     posAttr: THREE.BufferAttribute, index0: Uint32Array, lod: Uint32Array[], tols: number[],
     colorHex: string, dashed: boolean, distAttr: THREE.BufferAttribute | null,
@@ -518,24 +543,18 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     const mat = pathMaterial(colorHex, dashed, stream);   // role = the viewer palette's (diagnostics, tests)
     // Dashed rapids need a per-vertex distance; the worker precomputes it
     // (P4.1), the legacy/WS path gets it here (indexed geometry cannot use
-    // Three's computeLineDistances).
-    if (dashed && !distAttr) { distAttr = new THREE.Float32BufferAttribute(cumulativeDistances(posAttr.array as Float32Array), 1); _tally(distAttr.array as Float32Array); }
+    // Three's computeLineDistances). A plain BufferAttribute: a
+    // Float32BufferAttribute would copy the fresh array once more.
+    if (dashed && !distAttr) distAttr = new THREE.BufferAttribute(cumulativeDistances(posAttr.array as Float32Array), 1);
     const pos = posAttr.array as Float32Array;
     // One grid from the level-0 pairs, every level binned into it (the index
     // buffers are permuted, the vertex order is not) so chunk c is the same
     // cell at every level; a cell used at any level becomes a chunk.
     const grid = chunkGrid(index0, pos, deps.chunkCells ?? CHUNK_MAX);
     const levels = [index0, ...lod.slice(0, tols.length)].map(l => binPairs(l, pos, grid));
-    _tally(...levels.map(b => b.index));
-    const attrs = levels.map(b => new THREE.BufferAttribute(b.index, 1));
-    if (lineMode === "gl") {
-      _watchUpload(posAttr);
-      for (const a of attrs) _watchUpload(a);
-      if (dashed && distAttr) _watchUpload(distAttr);
-    }
     const used: number[] = [];
     for (let c = 0; c < grid.cells; c++) if (levels.some(b => b.plan[c]!.count > 0)) used.push(c);
-    const bounds = new Float32Array(used.length * 6);
+    const bounds = f32(used.length * 6);
     bounds.fill(Infinity); for (let c = 0; c < used.length; c++) bounds.fill(-Infinity, c * 6 + 3, c * 6 + 6);
     for (const b of levels) {
       const bl = chunkBounds(b.index, pos, used.map(c => b.plan[c]!));
@@ -550,8 +569,43 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     const set: LineSet = {
       stream, frame, parent, mat, overMat: null, bounds, tols: tols.slice(0, levels.length - 1),
       chunks: [], posAttr, levels, used, pairs: index0.length >> 1,
-      src, dist: dashed ? distAttr : null, outside, reveal: { line: null, over: null },
+      src, dist: dashed ? distAttr : null, outside, reveal: { line: null, over: null }, ovIdx: [],
     };
+    prepareOverlays(set, outside);
+    return set;
+  }
+
+  /** What filling a prepared set will allocate (Codex R39/R48: the eager
+   *  capacity, known BEFORE the pack): per chunk and level a fat geometry
+   *  over its pairs, per flagged range an overlay geometry. The GL lines
+   *  share the prepared indices and allocate no array. An upper bound —
+   *  the pack drops degenerate pairs. */
+  function estimateSet(s: LineSet): number {
+    if (lineMode !== "fat") return 0;
+    let n = 0;
+    for (const cell of s.used) for (const l of s.levels) n += fatBytes(l.plan[cell]!.count >> 1, !!s.dist);
+    for (const ov of s.ovIdx) {
+      if (!ov) continue;
+      for (let ci = 0; ci < s.used.length; ci++) if (ov.counts[ci]) n += fatBytes(ov.counts[ci]! >> 1, false);
+    }
+    return n;
+  }
+
+  /** The drawn objects of a prepared set: one per chunk and LOD level, then
+   *  the limit overlays. Each chunk's geometry is PER-PROGRAM, not externally
+   *  owned: apply() disposes it on program change, and disposeObject frees it
+   *  on scene teardown — so it is deliberately NOT marked userData._shared
+   *  (that flag is only for the STL cache + MAT.*, which survive a rebuild).
+   *  Disposing one chunk releases the shared GL buffers; the sibling chunks
+   *  go in the same pass, so nothing dangles. */
+  function fillSet(set: LineSet) {
+    const { stream, parent, posAttr, levels, used, bounds, mat, dist } = set;
+    const attrs = levels.map(b => new THREE.BufferAttribute(b.index, 1));
+    if (lineMode === "gl") {
+      _watchUpload(posAttr);
+      for (const a of attrs) _watchUpload(a);
+      if (dist) _watchUpload(dist);
+    }
     for (let ci = 0; ci < used.length; ci++) {
       const cell = used[ci]!;
       const chunk: Chunk = { lines: [], overlays: [], counts: [], ovCounts: [], level: 0,
@@ -562,7 +616,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         // shared attribute — every chunk would then carry the full program's
         // sphere and culling could never fire.
         const line = pathObject(posAttr, levels[k]!.index, attrs[k]!, range.start, range.count, mat,
-          dashed ? distAttr : null, sphereOfBox(bounds, ci * 6));
+          dist, sphereOfBox(bounds, ci * 6));
         line.renderOrder = 10;
         line.frustumCulled = true;
         line.visible = toolpathVisible && (stream !== "rapid" || rapidsVisible) && k === 0 && range.count > 0;
@@ -574,8 +628,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       }
       set.chunks.push(chunk);
     }
-    buildOverlays(set, outside);
-    return set;
+    fillOverlays(set);
   }
 
   /** Outside-limits overlays (2026-09-12): per chunk and LOD level, the
@@ -587,58 +640,63 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
    *  an excursion stays yellow. Plain yellow, opaque, its own index buffer
    *  per level sharing the chunk's vertices; no clip planes, no box gate,
    *  nothing derived from tip geometry (the drawn path is the TOOL TIP,
-   *  the limits bound the JOINTS). null = unchecked: nothing drawn. */
-  function buildOverlays(s: LineSet, outside: Uint8Array | null) {
-    for (const ch of s.chunks) {
-      for (const o of ch.overlays) {
-        if (!o) continue;
-        o.parent?.remove(o);
-        o.geometry.dispose();
-      }
-      ch.overlays = ch.lines.map(() => null);
-      ch.ovCounts = ch.lines.map(() => 0);
-    }
-    s.overMat?.dispose();
-    s.overMat = null;
+   *  the limits bound the JOINTS). null = unchecked: nothing drawn.
+   *  Prepared before the pack — counted, then allocated exactly — so the
+   *  eager estimate knows them. */
+  function prepareOverlays(s: LineSet, outside: Uint8Array | null) {
+    s.ovIdx = s.levels.map(() => null);
     const nV = s.posAttr.count;
     if (!outside || outside.length !== nV) return;
-    const pre = new Uint32Array(nV + 1);
-    _tally(pre);
+    const pre = u32(nV + 1);
     for (let i = 0; i < nV; i++) pre[i + 1] = pre[i]! + (outside[i] ? 1 : 0);
     if (pre[nV] === 0) return;
-    s.overMat = pathMaterial(deps.colors().limit, false, "limit");
+    const flaggedPair = (a: number, b: number) => {
+      const lo = a < b ? a : b, hi = a < b ? b : a;
+      return pre[hi + 1]! - pre[lo + 1]! > 0;
+    };
     const nC = s.used.length;
-    const starts = new Uint32Array(nC), counts = new Uint32Array(nC);
     for (let k = 0; k < s.levels.length; k++) {
       const { index, plan } = s.levels[k]!;
-      const flagged = new Uint32Array(index.length);
-      _tally(flagged);
+      const starts = u32(nC), counts = u32(nC);
       let w = 0;
       for (let ci = 0; ci < nC; ci++) {
         const r = plan[s.used[ci]!]!;
         starts[ci] = w;
-        for (let q = r.start; q < r.start + r.count; q += 2) {
-          const a = index[q]!, b = index[q + 1]!;
-          const lo = a < b ? a : b, hi = a < b ? b : a;
-          if (pre[hi + 1]! - pre[lo + 1]! > 0) { flagged[w++] = a; flagged[w++] = b; }
-        }
+        for (let q = r.start; q < r.start + r.count; q += 2) if (flaggedPair(index[q]!, index[q + 1]!)) w += 2;
         counts[ci] = w - starts[ci]!;
       }
       if (w === 0) continue;
-      const flaggedArr = flagged.slice(0, w);
-      _tally(flaggedArr);
-      const attr = lineMode === "gl" ? new THREE.BufferAttribute(flaggedArr, 1) : null;
-      if (attr) _watchUpload(attr);
+      const flagged = u32(w);
+      let o = 0;
       for (let ci = 0; ci < nC; ci++) {
-        if (counts[ci] === 0) continue;
+        const r = plan[s.used[ci]!]!;
+        for (let q = r.start; q < r.start + r.count; q += 2) {
+          const a = index[q]!, b = index[q + 1]!;
+          if (flaggedPair(a, b)) { flagged[o++] = a; flagged[o++] = b; }
+        }
+      }
+      s.ovIdx[k] = { index: flagged, starts, counts };
+    }
+  }
+
+  function fillOverlays(s: LineSet) {
+    if (!s.ovIdx.some(Boolean)) return;
+    s.overMat = pathMaterial(deps.colors().limit, false, "limit");
+    for (let k = 0; k < s.ovIdx.length; k++) {
+      const ov = s.ovIdx[k];
+      if (!ov) continue;
+      const attr = lineMode === "gl" ? new THREE.BufferAttribute(ov.index, 1) : null;
+      if (attr) _watchUpload(attr);
+      for (let ci = 0; ci < s.used.length; ci++) {
+        if (ov.counts[ci] === 0) continue;
         const ch = s.chunks[ci]!;
-        const ov = pathObject(s.posAttr, flaggedArr, attr, starts[ci]!, counts[ci]!, s.overMat, null, sphereOfBox(s.bounds, ci * 6));
-        ov.renderOrder = LIMIT_OVERLAY_RENDER_ORDER;
-        ov.frustumCulled = true;
-        ov.visible = false;
-        s.parent.add(ov);
-        ch.overlays[k] = ov;
-        ch.ovCounts[k] = counts[ci]!;
+        const o = pathObject(s.posAttr, ov.index, attr, ov.starts[ci]!, ov.counts[ci]!, s.overMat, null, sphereOfBox(s.bounds, ci * 6));
+        o.renderOrder = LIMIT_OVERLAY_RENDER_ORDER;
+        o.frustumCulled = true;
+        o.visible = false;
+        s.parent.add(o);
+        ch.overlays[k] = o;
+        ch.ovCounts[k] = ov.counts[ci]!;
       }
     }
   }
@@ -659,14 +717,19 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       mat.clippingPlanes = deps.boundsClipPlanes;
       mat.depthWrite = false;
       mat.userData.role = "limitBox";
-      const lines = new LineSegments2(new LineSegmentsGeometry().setPositions(boxEdgePositions(sx, sy, sz)), mat);
+      const geom = new LineSegmentsGeometry();
+      countedGeometry(geom);   // three's quad mesh (allocMeter)
+      geom.setPositions(boxEdgePositions(sx, sy, sz));
+      const lines = new LineSegments2(geom, mat);
       lines.computeLineDistances();   // LineMaterial's own dash attributes (unused under SCREEN_DASH)
+      countedLineDistances(geom);
       lines.onBeforeRender = (renderer) => { renderer.getSize(mat.resolution); };
       lines.position.set(ox + sx / 2, oy + sy / 2, oz + sz / 2);
       lines.renderOrder = 2;   // over the neutral box where the two meet
       return lines;
     }
-    const geom = new THREE.EdgesGeometry(new THREE.BoxGeometry(sx, sy, sz));
+    // the box's twelve edges written out (no BoxGeometry / EdgesGeometry scratch)
+    const geom = new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(boxEdgePositions(sx, sy, sz), 3));
     // The box OUTSIDE the machine window: a limit finding, so the limit
     // overlay's ochre (fixed palette P2 — it was the collision red, a line
     // in a body's colour), dashed like the box inside.
@@ -682,6 +745,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     mat.userData.role = "limitBox";
     const lines = new THREE.LineSegments(geom, mat);
     lines.computeLineDistances();
+    counted(geom.getAttribute("lineDistance").array as Float32Array);
     lines.position.set(ox + sx / 2, oy + sy / 2, oz + sz / 2);
     lines.renderOrder = 2;   // over the neutral box where the two meet
     return lines;
@@ -767,6 +831,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     });
     toolpathBoundsBox.position.set(cx, cy, cz);
     toolpathBoundsBox.visible = toolpathBoundsVisible;
+    _watchBox(toolpathBoundsBox);
     workRotGroup.add(toolpathBoundsBox);
 
     toolpathOverflowEdges = rebuildOverflowEdges(
@@ -774,6 +839,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       [toolpathBBox.min[0], toolpathBBox.min[1], toolpathBBox.min[2]],
     );
     if (toolpathOverflowEdges) {
+      _watchBox(toolpathOverflowEdges);
       toolpathOverflowEdges.visible = toolpathBoundsVisible;
       workRotGroup.add(toolpathOverflowEdges);
     }
@@ -865,21 +931,22 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       const r = _section;
       if (!r || !s.src || !(s.stream === "feed" ? r.feed : r.rapid)) continue;
       const [a, b] = r.run;
-      const index = s.levels[0]!.index, src = s.src;
-      const pairs: number[] = [], flagged: number[] = [];
+      const index = s.levels[0]!.index, src = s.src, outside = s.outside;
+      // the segment ending at the pair's later vertex
+      const inRun = (q: number) => { const j = src[Math.max(index[q]!, index[q + 1]!)]!; return j >= a && j <= b; };
+      const isFlagged = (q: number) => !!outside?.[Math.max(index[q]!, index[q + 1]!)];
+      // counted, then allocated exactly (allocMeter — no growing JS array)
+      let np = 0, nf = 0;
+      for (let q = 0; q + 1 < index.length; q += 2) if (inRun(q)) { np++; if (isFlagged(q)) nf++; }
+      const pairs = u32(np * 2), flagged = u32(s.overMat ? nf * 2 : 0);
+      let wp = 0, wf = 0;
       for (let q = 0; q + 1 < index.length; q += 2) {
-        const p0 = index[q]!, p1 = index[q + 1]!;
-        const j = src[p0 > p1 ? p0 : p1]!;   // the segment ending at the pair's later vertex
-        if (j < a || j > b) continue;
-        pairs.push(p0, p1);
-        if (s.outside?.[p0 > p1 ? p0 : p1]) flagged.push(p0, p1);
+        if (!inRun(q)) continue;
+        pairs[wp++] = index[q]!; pairs[wp++] = index[q + 1]!;
+        if (flagged.length && isFlagged(q)) { flagged[wf++] = index[q]!; flagged[wf++] = index[q + 1]!; }
       }
-      // the JS arrays above were scratch too: ~8 bytes per element (estimate)
-      _allocated += (pairs.length + flagged.length) * 8;
-      const make = (idx: number[], mat: PathMat, order: number) => {
-        const copy = new Uint32Array(idx);
-        _tally(copy);
-        const o = pathObject(s.posAttr, copy, null, 0, idx.length, mat, s.dist, null);
+      const make = (idx: Uint32Array, mat: PathMat, order: number) => {
+        const o = pathObject(s.posAttr, idx, null, 0, idx.length, mat, s.dist, null);
         o.renderOrder = order;
         o.frustumCulled = false;   // a handful of segments
         s.parent.add(o);
@@ -920,8 +987,11 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       teardownLines();
       // The ledger (Codex R47 VP-I17): what is held once the old lines are
       // gone, and what this build allocates — the peak bound of the rebuild.
+      // The box goes with the lines: it is rebuilt below, and held from here
+      // on is what this build starts from.
+      teardownBounds();
       _generation++;
-      const held0 = ledger().cpu.total, a0 = _allocated;
+      const held0 = ledger().cpu.total, a0 = allocatedBytes();
 
       // Prefer the flat Float32Array buffers from previewWorker (P4.1); fall back to
       // the nested arrays (WS path / older payloads). The wire's raw Uint8Array form
@@ -931,8 +1001,8 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       const _legacyPts = (v: unknown): number[][] => (Array.isArray(v) ? (v as number[][]) : []);
       const _flat = (d: number[][] | Float32Array): Float32Array => {
         if (d instanceof Float32Array) return d;
-        const f = new Float32Array(d.flat());
-        _tally(f);
+        const f = f32(d.length * 3);   // filled in place: no flat() scratch array
+        for (let i = 0; i < d.length; i++) { const p = d[i]!; f[i * 3] = p[0]!; f[i * 3 + 1] = p[1]!; f[i * 3 + 2] = p[2]!; }
         return f;
       };
       const feedData: number[][] | Float32Array = g.feedPos ?? _legacyPts(g.feed);
@@ -968,7 +1038,6 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         if (!Array.isArray(lod)) return out;
         for (let k = 0; k < lodTols.length && k < lod.length; k++) {
           const sp = splitPairsByFrame(lod[k]!, room);
-          _tally(sp.table, sp.room);
           out.table.push(sp.table); out.room.push(sp.room);
           _frameMixed += sp.mixed;
         }
@@ -979,21 +1048,21 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       // must address THESE vertices, else no section is drawn.
       const srcOf = (m: Uint32Array | undefined, n: number): Uint32Array | null =>
         (m instanceof Uint32Array && m.length === n) ? m : null;
+      const prepared: LineSet[] = [];
       if (lineParent && _pointCount(feedData) >= 2) {
         const flat = _flat(feedData);
         const n = flat.length / 3;
         feedPosAttr = new THREE.BufferAttribute(flat, 3);
         const rm = roomMaskOf(g.feedRoom, n);
         const fi = buildFrameIndex(n, g.feedBreaks ?? null, rm);
-        _tally(fi.table, fi.room);
         _frameMixed += fi.mixed;
         const lv = levelsByFrame(g.feedLod, rm);
         const ov = outsideOf(g.feedOutside, n, "feed");
         const src = srcOf(g.feedSrc, n);
-        const st = makeSet("feed", 0, lineParent, feedPosAttr, fi.table, lv.table, lodTols, feedColor, false, null, ov, src);
-        if (st) sets.push(st);
-        const sr = roomParent ? makeSet("feed", 1, roomParent, feedPosAttr, fi.room, lv.room, lodTols, feedColor, false, null, ov, src) : null;
-        if (sr) sets.push(sr);
+        const st = prepareSet("feed", 0, lineParent, feedPosAttr, fi.table, lv.table, lodTols, feedColor, false, null, ov, src);
+        if (st) prepared.push(st);
+        const sr = roomParent ? prepareSet("feed", 1, roomParent, feedPosAttr, fi.room, lv.room, lodTols, feedColor, false, null, ov, src) : null;
+        if (sr) prepared.push(sr);
       }
       if (lineParent && _pointCount(rapidData) >= 2) {
         const flat = _flat(rapidData);
@@ -1002,19 +1071,24 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
         // Worker-precomputed lineDistance when the flat buffer is in use (P4.1);
         // undefined on the WS/legacy path → the set computes its own.
         const _rapidDist = rapidData === g.rapidPos && g.rapidDist instanceof Float32Array ? g.rapidDist : undefined;
-        const distAttr = _rapidDist ? new THREE.Float32BufferAttribute(_rapidDist, 1) : null;
+        const distAttr = _rapidDist ? new THREE.BufferAttribute(_rapidDist, 1) : null;   // the worker's array, no copy
         const rm = roomMaskOf(g.rapidRoom, n);
         const fi = buildFrameIndex(n, g.rapidBreaks ?? null, rm);
-        _tally(fi.table, fi.room);
         _frameMixed += fi.mixed;
         const lv = levelsByFrame(g.rapidLod, rm);
         const ov = outsideOf(g.rapidOutside, n, "rapid");
         const src = srcOf(g.rapidSrc, n);
-        const st = makeSet("rapid", 0, lineParent, rapidPosAttr, fi.table, lv.table, lodTols, rapidColor, true, distAttr, ov, src);
-        if (st) sets.push(st);
-        const sr = roomParent ? makeSet("rapid", 1, roomParent, rapidPosAttr, fi.room, lv.room, lodTols, rapidColor, true, distAttr, ov, src) : null;
-        if (sr) sets.push(sr);
+        const st = prepareSet("rapid", 0, lineParent, rapidPosAttr, fi.table, lv.table, lodTols, rapidColor, true, distAttr, ov, src);
+        if (st) prepared.push(st);
+        const sr = roomParent ? prepareSet("rapid", 1, roomParent, rapidPosAttr, fi.room, lv.room, lodTols, rapidColor, true, distAttr, ov, src) : null;
+        if (sr) prepared.push(sr);
       }
+      // The EAGER pack (Codex R39/R48): its capacity estimated from the
+      // prepared pair counts BEFORE the first pair is packed, then packed.
+      const estimate = prepared.reduce((n, st) => n + estimateSet(st), 0);
+      const p0 = allocatedBytes();
+      for (const st of prepared) { fillSet(st); sets.push(st); }
+      _eager = { estimate, packed: allocatedBytes() - p0 };
       // Every drawn segment room-fixed ⇒ the bounds box rides the room parent.
       if (roomParent && sets.length && sets.every(s => s.frame === 1)) _lineParent = roomParent;
       _applyStale();   // sticky across rebuilds: a re-parse in flight keeps the new lines muted too
@@ -1084,7 +1158,9 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       // this build's peak — reset per build (a phase record compares ITS
       // build, never the highest since the controller began); a later reveal
       // on this path raises it
-      _peak = held0 + (_allocated - a0);
+      const d = allocatedBytes() - a0;
+      _allocated += d;
+      _peak = held0 + d;
 
       deps.requestRender();
     },
@@ -1190,6 +1266,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
 
     release() {
       teardownLines();
+      teardownBounds();
       deps.requestRender();
     },
 

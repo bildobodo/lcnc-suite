@@ -23,7 +23,9 @@ the limits fixed BEFORE the measurement (Codex R39/R47):
     - no NEW recurring gaps >= 100 ms or main-thread blocks >= 50 ms: B's
       count minus what A's RATE predicts for B's time stays below 2;
   build (a REAL rebuild each time — distinct path generations): B's median
-    duration and median longest main-thread block at most 1.5 x A's + 100 ms;
+    duration and median longest main-thread block at most 1.5 x A's + 100 ms,
+    and the eager pack's capacity estimated before it (the ledger's
+    `eager`) at least what it then allocated;
   memory: B - A <= 128 MiB at every ledger point and for the peak bound of
     every phase (a reveal raises it), CPU and GPU separately; after each
     release no path byte is left; a record without a required value (its
@@ -203,7 +205,7 @@ def missing_values(p: dict) -> list[str]:
     if p.get("phase") in PHASE_MEMORY:
         need += [("memory", "cpu", "total"), ("memory", "gpu", "total"), ("memory", "peak")]
         if p["phase"] == "build":
-            need.append(("memory", "generation"))
+            need += [("memory", "generation"), ("memory", "eager", "estimate"), ("memory", "eager", "packed")]
         if p["phase"] == "release":
             need.append(("memory", "cpu", "payload"))
     return [".".join(k) for k in need if not _number(_at(p, k))]
@@ -387,10 +389,14 @@ def analyse(rows: list[dict], run: str | None = None, rate: int | None = None) -
             gens = [p["memory"].get("generation") for p in recs]
             # the longest block from the VALIDATED histogram (Codex R48), never
             # the phase summary a missing field could shorten
+            eager = [(p["memory"]["eager"]["estimate"], p["memory"]["eager"]["packed"]) for p in recs]
             build[v] = {"ms": [p["ms"] for p in recs], "mt_max": [hist[p["seq"]]["mt"].max for p in recs],
-                        "generations": gens}
+                        "generations": gens, "eager": eager}
             check(f"{v} build: every build phase a real build", len(set(gens)) == len(gens) and None not in gens,
                   f"path generations {gens}")
+            # the capacity estimated BEFORE the pack (Codex R39/R48) must bound it
+            check(f"{v} build: the eager estimate bounds the pack", all(e >= k for e, k in eager),
+                  "estimate / packed MiB: " + ", ".join(f"{e / 2**20:.1f} / {k / 2**20:.1f}" for e, k in eager))
         for key, name in (("ms", "duration"), ("mt_max", "longest main-thread block")):
             ma, mb = median(build["gl"][key]), median(build["fat"][key])
             if ma is None or mb is None:
@@ -457,7 +463,8 @@ def render(r: dict) -> str:
                    "{gpu_a_p95!s:>5}  {gpu_b_p95!s:>5}".format(**t))
     b = r["build"]
     if b:
-        out += ["", f"  build ms  A {b['gl']['ms']}  B {b['fat']['ms']}; longest main-thread block A {b['gl']['mt_max']}  B {b['fat']['mt_max']}"]
+        out += ["", f"  build ms  A {b['gl']['ms']}  B {b['fat']['ms']}; longest main-thread block A {b['gl']['mt_max']}  B {b['fat']['mt_max']}",
+                f"  eager pack MiB (estimated before / packed)  B " + ", ".join(f"{e / 2**20:.1f} / {k / 2**20:.1f}" for e, k in b['fat']['eager'])]
     out += ["", "  memory (MiB, highest of the repetitions)"]
     f = lambda x: "—" if x is None else f"{x / 2**20:.1f}"  # noqa: E731
     for row in r["memory"]:

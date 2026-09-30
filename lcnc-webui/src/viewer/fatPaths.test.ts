@@ -72,7 +72,7 @@ function program() {
   } as any;
 }
 
-function build(mode: PathLineMode) {
+function controller(mode: PathLineMode) {
   const ctx = {
     scene: new THREE.Scene(), workOrigin: new THREE.Group(), workRotGroup: new THREE.Group(),
     pathAnchor: null, pathRot: null, roomOrigin: null, roomRotGroup: null, roomAnchor: null, roomRot: null,
@@ -85,8 +85,59 @@ function build(mode: PathLineMode) {
     sceneBackground: () => new THREE.Color("#ffffff"), sceneForeground: () => new THREE.Color("#000000"),
     axisCss: { x: "#f00", y: "#0f0", z: "#00f" }, overflow: ref(false), chunkCells: 8, lineMode: mode,
   });
+  return { c, ctx };
+}
+
+function build(mode: PathLineMode) {
+  const { c, ctx } = controller(mode);
   c.apply(ctx, program());
   return { c, ctx };
+}
+
+/** Every typed array CONSTRUCTED while `fn` runs, independent of the ledger
+ *  it checks (Codex R48 VP-I17): the constructors — a view on an existing
+ *  ArrayBuffer is no allocation — and the methods that return a NEW array
+ *  (slice, map, filter, from, of). Bytes at the buffer's capacity, and per
+ *  calling site for the diagnosis. */
+function allocationsDuring<T>(fn: () => T): { out: T; bytes: number; sites: Record<string, number> } {
+  const g = globalThis as unknown as Record<string, unknown>;
+  const names = ["Float32Array", "Float64Array", "Uint32Array", "Uint16Array", "Uint8Array", "Uint8ClampedArray",
+    "Int32Array", "Int16Array", "Int8Array"];
+  const proto = Object.getPrototypeOf(Uint8Array).prototype as Record<string, (...a: unknown[]) => unknown>;
+  const saved = names.map(n => g[n]);
+  const savedProto = { slice: proto.slice!, map: proto.map!, filter: proto.filter! };
+  let bytes = 0;
+  const sites: Record<string, number> = {};
+  const note = (a: ArrayBufferView) => {
+    bytes += a.buffer.byteLength;
+    const at = (new Error().stack ?? "").split("\n")[3]?.trim().replace(/^at /, "") ?? "?";
+    sites[at] = (sites[at] ?? 0) + a.buffer.byteLength;
+  };
+  names.forEach((n, i) => {
+    const C = saved[i] as new (...a: unknown[]) => ArrayBufferView;
+    g[n] = new Proxy(C, {
+      construct(t, args) {
+        const a = Reflect.construct(t, args) as ArrayBufferView;
+        if (!(args[0] instanceof ArrayBuffer)) note(a);
+        return a;
+      },
+      get(t, key, r) {
+        const v = Reflect.get(t, key, r);
+        if (key !== "from" && key !== "of") return v;
+        return (...a: unknown[]) => { const x = (v as (...b: unknown[]) => ArrayBufferView).apply(t, a); note(x); return x; };
+      },
+    });
+  });
+  for (const k of ["slice", "map", "filter"] as const) {
+    const f = savedProto[k];
+    proto[k] = function (this: unknown, ...a: unknown[]) { const x = f.apply(this, a) as ArrayBufferView; note(x); return x; };
+  }
+  try {
+    return { out: fn(), bytes, sites };
+  } finally {
+    names.forEach((n, i) => { g[n] = saved[i]; });
+    Object.assign(proto, savedProto);
+  }
 }
 
 /** The drawn pairs of an object as coordinate sextuples (degenerate ones out). */
@@ -231,7 +282,9 @@ describe("the fat path draws exactly the GL path's pairs (Codex R39)", () => {
     expect(m0.cpu.source).toBeGreaterThan(0);
     expect(m0.cpu.mesh, "the fat geometries' own quad mesh").toBeGreaterThan(0);
     expect(m0.cpu.payload, "the program kept for a rebuild").toBeGreaterThan(0);
-    expect(m0.cpu.total).toBe(m0.cpu.base + m0.cpu.dist + m0.cpu.overlay + m0.cpu.reveal + m0.cpu.mesh + m0.cpu.source + m0.cpu.payload);
+    expect(m0.cpu.box, "the toolpath box and its overflow edges, built with the path").toBeGreaterThan(0);
+    expect(m0.cpu.total).toBe(m0.cpu.base + m0.cpu.dist + m0.cpu.overlay + m0.cpu.reveal + m0.cpu.mesh + m0.cpu.box
+      + m0.cpu.source + m0.cpu.payload);
     expect(m0.gpu.total, "nothing uploaded before a draw").toBe(0);
     expect(m0.allocated, "what the build allocated covers what it holds").toBeGreaterThanOrEqual(m0.cpu.total - m0.cpu.payload);
     expect(m0.peak, "the peak bound covers what is held").toBeGreaterThanOrEqual(m0.cpu.total);
@@ -323,5 +376,99 @@ describe("the fat path draws exactly the GL path's pairs (Codex R39)", () => {
       feedBreaks: new Uint32Array([0]), bounds: { min: [0, 0, 0], max: [10, 10, 0] } } as any;
     c.apply(ctx, small);
     expect(c.pathMemory().peak, "a smaller program's build: its own bound").toBeLessThan(after.peak);
+  });
+
+  // Codex R48 VP-I17: the peak bound covers EVERY allocation of a build —
+  // scratch included, counted where it is created, never read off the
+  // results. The spy above counts independently of the ledger; the bound is
+  // EXACTLY held-at-start + what the spy saw (a missed site and an invented
+  // byte both fail).
+  const payloadBytes = (p: Record<string, unknown>) => {
+    const seen = new Set<ArrayBufferLike>();
+    let n = 0;
+    const add = (v: unknown) => { if (ArrayBuffer.isView(v) && !seen.has(v.buffer)) { seen.add(v.buffer); n += v.buffer.byteLength; } };
+    for (const v of Object.values(p)) { add(v); if (Array.isArray(v)) v.forEach(add); }
+    return n;
+  };
+  const roomCtx = (ctx: ToolpathCtx & { workRotGroup: THREE.Group }) =>
+    Object.assign(ctx, { roomRotGroup: new THREE.Group() }) as ToolpathCtx & { workRotGroup: THREE.Group };
+  /** program() with the first rows room-fixed (the room sets), a legacy
+   *  nested variant (no flat buffers, no worker distances), or as is. */
+  const variants: Record<string, () => { p: Record<string, unknown>; room: boolean }> = {
+    table: () => ({ p: program(), room: false }),
+    room: () => {
+      const p = program();
+      const n = p.feedPos.length / 3;
+      // the first 33 vertices room-fixed, with a duplicated break at the flip (the bake's shape)
+      p.feedRoom = Uint8Array.from({ length: n }, (_, i) => (i < 33 ? 1 : 0));
+      p.feedBreaks = new Uint32Array([0, 33, 66]);
+      return { p, room: true };
+    },
+    legacy: () => {
+      const p = program();
+      const nest = (f: Float32Array) => Array.from({ length: f.length / 3 }, (_, i) => [f[i * 3]!, f[i * 3 + 1]!, f[i * 3 + 2]!]);
+      return { p: { feed: nest(p.feedPos), rapid: nest(p.rapidPos), feedOutside: p.feedOutside, rapidOutside: p.rapidOutside,
+        bounds: p.bounds }, room: false };
+    },
+  };
+  for (const mode of ["fat", "gl"] as const) {
+    for (const [name, make] of Object.entries(variants)) {
+      it(`the peak bound is held-at-start + every array the build constructs, scratch included (${mode}, ${name})`, () => {
+        const { c, ctx: base } = controller(mode);
+        const { p, room } = make();
+        const ctx = room ? roomCtx(base) : base;
+        const first = allocationsDuring(() => c.apply(ctx, p as any));
+        expect(first.bytes).toBeGreaterThan(0);
+        expect(c.pathMemory().peak, JSON.stringify(first.sites, null, 1)).toBe(payloadBytes(p) + first.bytes);
+        c.release();
+        const held0 = c.pathMemory().cpu.total;
+        const again = allocationsDuring(() => c.rebuild(ctx));
+        expect(c.pathMemory().peak, JSON.stringify(again.sites, null, 1)).toBe(held0 + again.bytes);
+        expect(c.pathMemory().generation).toBe(2);
+      });
+    }
+    it(`a finding's view: the peak bound covers it (${mode})`, () => {
+      const { c, ctx } = build(mode);
+      c.setRapidsVisible(false);
+      const before = c.pathMemory();
+      const rv = allocationsDuring(() => c.setReveal({ run: [1001, 1003], feed: false, rapid: true } as any));
+      expect(rv.bytes, "the reveal built something").toBeGreaterThan(0);
+      const m = c.pathMemory();
+      expect(m.allocated - before.allocated, JSON.stringify(rv.sites, null, 1)).toBe(rv.bytes);
+      expect(m.peak).toBe(Math.max(before.peak, before.cpu.total + rv.bytes));
+      void ctx;
+    });
+  }
+
+  it("a program of separate single points: the frame index's scratch counts (Codex R48's 4096-section case)", () => {
+    const { c, ctx } = controller("fat");
+    const n = 4096;
+    const p = { feedPos: new Float32Array(n * 3), feedBreaks: Uint32Array.from({ length: n }, (_, i) => i),
+      rapidPos: new Float32Array(), bounds: { min: [0, 0, 0], max: [0, 0, 0] } } as any;
+    const a = allocationsDuring(() => c.apply(ctx, p));
+    expect(a.bytes, "at least the break mask").toBeGreaterThanOrEqual(n);
+    expect(c.pathMemory().peak, JSON.stringify(a.sites, null, 1)).toBe(payloadBytes(p) + a.bytes);
+  });
+
+  // The eager estimate (Codex R39/R47/R48): known before the first pair is
+  // packed, an upper bound on what the pack allocates — equal when no pair
+  // is degenerate, above it by exactly the dropped pairs.
+  it("the eager estimate precedes the pack and bounds it", () => {
+    const { c } = build("fat");
+    const e = c.pathMemory().eager;
+    expect(e.packed).toBeGreaterThan(0);
+    expect(e.estimate).toBe(e.packed);
+    const { c: c2, ctx } = controller("fat");
+    const p = program();
+    // three coincident points in a row: two degenerate feed pairs
+    p.feedPos = new Float32Array([...p.feedPos.slice(0, 3), ...p.feedPos.slice(0, 3), ...p.feedPos]);
+    p.feedOutside = new Uint8Array(p.feedPos.length / 3);
+    p.feedSrc = Uint32Array.from({ length: p.feedPos.length / 3 }, (_, i) => i);
+    p.feedLod = []; p.feedBreaks = new Uint32Array([0]);
+    c2.apply(ctx, p);
+    const d = c2.pathMemory().eager;
+    expect(d.estimate - d.packed, "two dropped pairs, 24 bytes each").toBe(2 * 24);
+    const { c: g } = build("gl");
+    expect(g.pathMemory().eager, "the GL lines share the prepared indices").toEqual({ estimate: 0, packed: 0 });
   });
 });

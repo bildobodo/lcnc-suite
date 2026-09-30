@@ -64,7 +64,7 @@ def test_p95_within_compares_at_the_bin_resolution():
 # ── synthetic runs ────────────────────────────────────────────────────────
 def run_rows(run="ab-test", order=ORDER, frames=None, cal=None, flags=None, mem=None, skip=None, drop_part=None,
              drop_series=(), drop_memory=False, cancelled=False, split=False, build_ms=None, block_ms=None,
-             generations=None, peak=None, released=None):
+             generations=None, peak=None, released=None, eager=None):
     """A whole A/B run in the shape abRun.ts emits. frames(variant, rep, phase)
     → [(ms, count)] frame gaps; cal → the calibration's gaps; flags / mem /
     skip per phase; drop_series = {(phase, series)} left out everywhere."""
@@ -75,6 +75,7 @@ def run_rows(run="ab-test", order=ORDER, frames=None, cal=None, flags=None, mem=
     generations = generations or (lambda v, r: r + 1)
     peak = peak or (lambda v, r: (120 if v == "gl" else 170) * MiB)
     released = released or (lambda v, r: 0)
+    eager = eager or (lambda v, r: {"estimate": 60 * MiB, "packed": 60 * MiB} if v == "fat" else {"estimate": 0, "packed": 0})
     rows = [{"tag": "browser.viewer.abrun", "run": run, "seq": 0, "phase": "meta", "commit": "abc1234", "order": ",".join(order),
              "build": "production", "file": "/prog.ngc", "viewport": [800, 600], "pixel_ratio": 2}]
     seq = 1
@@ -125,6 +126,7 @@ def run_rows(run="ab-test", order=ORDER, frames=None, cal=None, flags=None, mem=
                     gpu_mem = {"total": tot - 30 * MiB}
                 rec["memory_at"] = MEM_AT[ph]
                 rec["memory"] = {"mode": v, "cpu": cpu, "gpu": gpu_mem, "peak": peak(v, r), "generation": generations(v, r),
+                                 "eager": eager(v, r),
                                  "allocated": 0, "pairs": {"source": 1, "lod": 1, "drawn": 1}}
             emit(rec, [("raf", raf), ("mt", mt), ("gpu", gpu)], why)
             seq += 1
@@ -388,3 +390,17 @@ def test_the_median_refuses_a_missing_value():
     import pytest
     with pytest.raises(ValueError):
         rep.median([1.0, None, 3.0])
+
+
+def test_the_eager_estimate_must_bound_the_pack_codex_r48():
+    ok = rep.analyse(run_rows())
+    assert "fat build: the eager estimate bounds the pack" not in failing(ok), failing(ok)
+    low = rep.analyse(run_rows(eager=lambda v, r: {"estimate": 50 * MiB, "packed": 60 * MiB} if (v == "fat" and r == 2)
+                               else {"estimate": 60 * MiB, "packed": 60 * MiB}))
+    assert "fat build: the eager estimate bounds the pack" in failing(low)
+    rows = run_rows()
+    for e in rows:
+        if e.get("phase") == "build" and "memory" in e:
+            e["memory"].pop("eager")
+    r = rep.analyse(rows)
+    assert r["verdict"] == "INCOMPLETE" and any("no memory.eager.estimate" in x for x in r["excluded"]), r["excluded"]

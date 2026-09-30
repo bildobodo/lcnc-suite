@@ -13,7 +13,11 @@
 //
 // Everything here is index arithmetic over typed arrays — no THREE objects —
 // so the same code serves the programmed path (main thread) and the baked
-// path, and is unit-tested headlessly.
+// path, and is unit-tested headlessly. Every array is allocated through
+// viewer/allocMeter.ts (the toolpath ledger's peak sees scratch too — Codex
+// R48 VP-I17); an output is sized by a counting pass, never cut from a
+// full-size scratch.
+import { counted, f32, f32Of, u32, u8 } from "./allocMeter";
 
 /** Target segments per chunk. Three's per-object cost (projectObject, VAO
  *  bind, draw call) is ~5–15 µs, so hundreds of chunks would eat the ≤ 2 ms
@@ -41,26 +45,29 @@ export interface FrameIndex {
  *  other stream's motion). With a `room` mask (1 = room frame) the pairs
  *  are split by the frame of BOTH endpoints. */
 export function buildFrameIndex(n: number, breaks?: Uint32Array | null, room?: Uint8Array | null): FrameIndex {
-  const isBreak = new Uint8Array(Math.max(n, 0));
+  const isBreak = u8(Math.max(n, 0));
   if (breaks) for (const b of breaks) if (b < n) isBreak[b] = 1;
-  const cap = Math.max(0, n - 1) * 2;
-  const table = new Uint32Array(cap);
-  const roomIdx = room ? new Uint32Array(cap) : null;
-  let t = 0, r = 0, mixed = 0;
-  for (let i = 1; i < n; i++) {
-    if (isBreak[i]) continue;
-    if (roomIdx) {
-      const f = room![i]!, fp = room![i - 1]!;
-      if ((f !== 0) !== (fp !== 0)) { mixed++; continue; }
-      if (f) { roomIdx[r++] = i - 1; roomIdx[r++] = i; continue; }
-    }
-    table[t++] = i - 1; table[t++] = i;
-  }
-  return {
-    table: table.subarray(0, t).slice(),
-    room: roomIdx ? roomIdx.subarray(0, r).slice() : new Uint32Array(0),
-    mixed,
+  // 0 = table, 1 = room, -1 = no pair (a break or a frame flip)
+  const kind = (i: number): number => {
+    if (isBreak[i]) return -1;
+    if (!room) return 0;
+    const f = room[i]!, fp = room[i - 1]!;
+    if ((f !== 0) !== (fp !== 0)) return -1;
+    return f ? 1 : 0;
   };
+  let nt = 0, nr = 0, mixed = 0;
+  for (let i = 1; i < n; i++) {
+    const k = kind(i);
+    if (k === 0) nt++; else if (k === 1) nr++;
+    else if (!isBreak[i]) mixed++;
+  }
+  const table = u32(nt * 2), roomIdx = u32(room ? nr * 2 : 0);
+  let t = 0, r = 0;
+  for (let i = 1; i < n; i++) {
+    const k = kind(i);
+    if (k === 0) { table[t++] = i - 1; table[t++] = i; } else if (k === 1) { roomIdx[r++] = i - 1; roomIdx[r++] = i; }
+  }
+  return { table, room: roomIdx, mixed };
 }
 
 /** Contiguous range of an index buffer, in INDEX units (pairs × 2). */
@@ -86,7 +93,7 @@ export function chunkPlan(indexLen: number, targetSegs = CHUNK_TARGET_SEGS, maxC
  *  excluded, so the boxes are tight around what is drawn. An empty chunk
  *  reads as an inverted box (min > max). */
 export function chunkBounds(idx: Uint32Array, pos: Float32Array, plan: readonly ChunkRange[]): Float32Array {
-  const out = new Float32Array(plan.length * 6);
+  const out = f32(plan.length * 6);
   for (let c = 0; c < plan.length; c++) {
     const { start, count } = plan[c]!;
     let minx = Infinity, miny = Infinity, minz = Infinity;
@@ -144,8 +151,8 @@ export function chunkGrid(idx: Uint32Array, pos: Float32Array, maxChunks = CHUNK
  *  with count 0, so ranges line up across LOD levels. */
 export function binPairs(idx: Uint32Array, pos: Float32Array, g: ChunkGrid): { index: Uint32Array; plan: ChunkRange[] } {
   const pairs = idx.length >> 1;
-  const cell = new Uint32Array(pairs);
-  const counts = new Uint32Array(g.cells + 1);
+  const cell = u32(pairs);
+  const counts = u32(g.cells + 1);
   for (let p = 0; p < pairs; p++) {
     const a = idx[p * 2]! * 3, b = idx[p * 2 + 1]! * 3;
     const mx = (pos[a]! + pos[b]!) * 0.5, my = (pos[a + 1]! + pos[b + 1]!) * 0.5, mz = (pos[a + 2]! + pos[b + 2]!) * 0.5;
@@ -157,8 +164,8 @@ export function binPairs(idx: Uint32Array, pos: Float32Array, g: ChunkGrid): { i
     counts[id + 1]!++;
   }
   for (let i = 1; i <= g.cells; i++) counts[i]! += counts[i - 1]!;
-  const cursor = counts.slice(0, g.cells);
-  const out = new Uint32Array(pairs * 2);
+  const cursor = counted(counts.slice(0, g.cells));
+  const out = u32(pairs * 2);
   for (let p = 0; p < pairs; p++) {
     const w = cursor[cell[p]!]!++;
     out[w * 2] = idx[p * 2]!; out[w * 2 + 1] = idx[p * 2 + 1]!;
@@ -180,7 +187,7 @@ export function binPairs(idx: Uint32Array, pos: Float32Array, g: ChunkGrid): { i
  *  are the multi-level form). */
 export function spatialChunks(idx: Uint32Array, pos: Float32Array, maxChunks = CHUNK_MAX): { index: Uint32Array; plan: ChunkRange[] } {
   const pairs = idx.length >> 1;
-  if (pairs === 0) return { index: new Uint32Array(0), plan: [] };
+  if (pairs === 0) return { index: u32(0), plan: [] };
   const { index, plan } = binPairs(idx, pos, chunkGrid(idx, pos, maxChunks));
   return { index, plan: plan.filter(r => r.count > 0) };
 }
@@ -191,7 +198,7 @@ export function spatialChunks(idx: Uint32Array, pos: Float32Array, maxChunks = C
  *  indexed geometry, and every chunk is indexed now. */
 export function cumulativeDistances(pos: Float32Array): Float32Array {
   const n = Math.floor(pos.length / 3);
-  const out = new Float32Array(n);
+  const out = f32(n);
   let d = 0;
   for (let i = 1; i < n; i++) {
     const a = (i - 1) * 3, b = i * 3;
@@ -204,7 +211,7 @@ export function cumulativeDistances(pos: Float32Array): Float32Array {
 
 /** Union of the chunk boxes (same 6-float layout); inverted when empty. */
 export function unionBounds(bounds: Float32Array): Float32Array {
-  const out = new Float32Array([Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]);
+  const out = f32Of([Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]);
   for (let o = 0; o + 5 < bounds.length; o += 6) {
     if (bounds[o]! > bounds[o + 3]!) continue;   // empty chunk
     for (let k = 0; k < 3; k++) {
@@ -243,7 +250,7 @@ export function envelopeInto(pos: Float32Array, out: Float32Array): Float32Array
 /** Diagonal of the axis-aligned envelope of `pos` (0 for < 2 vertices). */
 export function envelopeDiagonal(pos: Float32Array): number {
   if (pos.length < 6) return 0;
-  const e = envelopeInto(pos, new Float32Array([Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]));
+  const e = envelopeInto(pos, f32Of([Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]));
   return Math.sqrt((e[3]! - e[0]!) ** 2 + (e[4]! - e[1]!) ** 2 + (e[5]! - e[2]!) ** 2);
 }
 
@@ -254,28 +261,28 @@ export function envelopeDiagonal(pos: Float32Array): number {
  *  error ≤ the sum. tol ≤ 0 returns a copy. Pure, allocation-bounded. */
 export function decimatePairs(pos: Float32Array, pairs: Uint32Array, tol: number): Uint32Array {
   const np = pairs.length >> 1;
-  if (np === 0 || !(tol > 0)) return pairs.slice(0, np * 2);
+  if (np === 0 || !(tol > 0)) return counted(pairs.slice(0, np * 2));
   const tol2 = tol * tol;
-  const out = new Uint32Array(np * 2);
+  const out = u32(np * 2);
   let w = 0;
   // Run vertex list (indices into pos), reused across runs.
-  let run = new Uint32Array(1024);
-  const keep = { buf: new Uint8Array(1024) };
+  let run = u32(1024);
+  const keep = { buf: u8(1024) };
   const stack: number[] = [];
   let p = 0;
   while (p < np) {
     // Collect one run: pairs chained end-to-start.
     let m = 0;
-    if (run.length < 2) run = new Uint32Array(2);
+    if (run.length < 2) run = u32(2);
     run[m++] = pairs[p * 2]!;
     run[m++] = pairs[p * 2 + 1]!;
     p++;
     while (p < np && pairs[p * 2] === run[m - 1]) {
-      if (m >= run.length) { const g = new Uint32Array(run.length * 2); g.set(run); run = g; }
+      if (m >= run.length) { const g = u32(run.length * 2); g.set(run); run = g; }
       run[m++] = pairs[p * 2 + 1]!;
       p++;
     }
-    if (keep.buf.length < m) keep.buf = new Uint8Array(Math.max(m, keep.buf.length * 2));
+    if (keep.buf.length < m) keep.buf = u8(Math.max(m, keep.buf.length * 2));
     const kp = keep.buf;
     kp.fill(0, 0, m);
     kp[0] = 1; kp[m - 1] = 1;
@@ -315,7 +322,7 @@ export function decimatePairs(pos: Float32Array, pairs: Uint32Array, tol: number
       prev = i;
     }
   }
-  return out.subarray(0, w).slice();
+  return counted(out.subarray(0, w).slice());
 }
 
 /** The LOD levels of both drawn streams (the worker-side entry point):
@@ -330,14 +337,14 @@ export function buildLodLevels(
   rapidPos: Float32Array, rapidBreaks: Uint32Array | undefined,
   feedRoom?: Uint8Array | null, rapidRoom?: Uint8Array | null,
 ): { feedLod: Uint32Array[]; rapidLod: Uint32Array[]; lodTols: number[] } {
-  const env = new Float32Array([Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]);
+  const env = f32Of([Infinity, Infinity, Infinity, -Infinity, -Infinity, -Infinity]);
   envelopeInto(feedPos, env); envelopeInto(rapidPos, env);
   const diag = env[0]! <= env[3]! ? Math.sqrt((env[3]! - env[0]!) ** 2 + (env[4]! - env[1]!) ** 2 + (env[5]! - env[2]!) ** 2) : 0;
   const lodTols = LOD_TOL_FRAC.map(f => f * diag);
   const levelsOf = (pos: Float32Array, breaks: Uint32Array | undefined, room?: Uint8Array | null): Uint32Array[] => {
     const n = Math.floor(pos.length / 3);
     const out: Uint32Array[] = [];
-    if (n < 2 || diag <= 0) { for (const _ of lodTols) out.push(new Uint32Array(0)); return out; }
+    if (n < 2 || diag <= 0) { for (const _ of lodTols) out.push(u32(0)); return out; }
     const fi = buildFrameIndex(n, breaks ?? null, room ?? null);
     let cur = fi.room.length ? concatU32(fi.table, fi.room) : fi.table;
     for (const tol of lodTols) {
@@ -350,7 +357,7 @@ export function buildLodLevels(
 }
 
 function concatU32(a: Uint32Array, b: Uint32Array): Uint32Array {
-  const out = new Uint32Array(a.length + b.length);
+  const out = u32(a.length + b.length);
   out.set(a, 0); out.set(b, a.length);
   return out;
 }
@@ -360,15 +367,20 @@ function concatU32(a: Uint32Array, b: Uint32Array): Uint32Array {
  *  — a level cut without knowing the flips, the programmed path — is
  *  dropped and counted, never drawn across frames). No mask = all table. */
 export function splitPairsByFrame(pairs: Uint32Array, room: Uint8Array | null | undefined): FrameIndex {
-  if (!room) return { table: pairs, room: new Uint32Array(0), mixed: 0 };
+  if (!room) return { table: pairs, room: u32(0), mixed: 0 };
   const np = pairs.length >> 1;
-  const t = new Uint32Array(np * 2), r = new Uint32Array(np * 2);
-  let tw = 0, rw = 0, mixed = 0;
+  let nt = 0, nr = 0, mixed = 0;
+  for (let k = 0; k < np; k++) {
+    const fa = room[pairs[k * 2]!] ? 1 : 0, fb = room[pairs[k * 2 + 1]!] ? 1 : 0;
+    if (fa !== fb) mixed++; else if (fa) nr++; else nt++;
+  }
+  const t = u32(nt * 2), r = u32(nr * 2);
+  let tw = 0, rw = 0;
   for (let k = 0; k < np; k++) {
     const a = pairs[k * 2]!, b = pairs[k * 2 + 1]!;
     const fa = room[a] ? 1 : 0, fb = room[b] ? 1 : 0;
-    if (fa !== fb) { mixed++; continue; }
+    if (fa !== fb) continue;
     if (fa) { r[rw++] = a; r[rw++] = b; } else { t[tw++] = a; t[tw++] = b; }
   }
-  return { table: t.subarray(0, tw).slice(), room: r.subarray(0, rw).slice(), mixed };
+  return { table: t, room: r, mixed };
 }

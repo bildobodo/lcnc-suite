@@ -14,6 +14,7 @@
 // has no direction; it draws nothing either way).
 import * as THREE from "three";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
+import { countedGeometry, f32 } from "./allocMeter";
 
 /** Every path line (feed, rapid, limit overlay, backplot), CSS px. */
 export const PATH_PX = 2;
@@ -27,13 +28,25 @@ export interface PackedPairs {
   pairs: number;
 }
 
+/** The pairs of index[start .. start+count) whose endpoints differ — what
+ *  packPairs keeps. */
+export function packedPairCount(pos: Float32Array, index: ArrayLike<number>, start: number, count: number): number {
+  let w = 0;
+  for (let q = start; q + 1 < start + count; q += 2) {
+    const a = index[q]! * 3, b = index[q + 1]! * 3;
+    if (pos[a] !== pos[b] || pos[a + 1] !== pos[b + 1] || pos[a + 2] !== pos[b + 2]) w++;
+  }
+  return w;
+}
+
 /** Pack the pairs index[start .. start+count) (vertex ids, two per pair) over
- *  `pos` (xyz per vertex). */
+ *  `pos` (xyz per vertex). Counted first, allocated exactly (through the
+ *  meter — no full-size scratch cut down afterwards, Codex R48 VP-I17). */
 export function packPairs(pos: Float32Array, index: ArrayLike<number>, start: number, count: number,
   dist: Float32Array | null = null): PackedPairs {
-  const n = count >> 1;
-  const positions = new Float32Array(n * 6);
-  const distances = dist ? new Float32Array(n * 2) : null;
+  const kept = packedPairCount(pos, index, start, count);
+  const positions = f32(kept * 6);
+  const distances = dist ? f32(kept * 2) : null;
   let w = 0;
   for (let q = start; q + 1 < start + count; q += 2) {
     const a = index[q]! * 3, b = index[q + 1]! * 3;
@@ -46,11 +59,28 @@ export function packPairs(pos: Float32Array, index: ArrayLike<number>, start: nu
     if (distances) { distances[w * 2] = dist![index[q]!]!; distances[w * 2 + 1] = dist![index[q + 1]!]!; }
     w++;
   }
-  return {
-    positions: w === n ? positions : positions.slice(0, w * 6),
-    distances: distances ? (w === n ? distances : distances.slice(0, w * 2)) : null,
-    pairs: w,
-  };
+  return { positions, distances, pairs: w };
+}
+
+/** Bytes three allocates for one LineSegmentsGeometry's own quad mesh
+ *  (position, uv, index — per geometry, whatever it draws), measured once
+ *  from three itself. */
+export const FAT_MESH_BYTES = (() => {
+  const g = new LineSegmentsGeometry();
+  const seen = new Set<ArrayBufferLike>();
+  let n = 0;
+  for (const a of [g.getAttribute("position"), g.getAttribute("uv"), g.index] as (THREE.BufferAttribute | null)[]) {
+    const arr = a?.array as ArrayBufferView | undefined;
+    if (arr && !seen.has(arr.buffer)) { seen.add(arr.buffer); n += arr.buffer.byteLength; }
+  }
+  g.dispose();
+  return n;
+})();
+
+/** What fatGeometry + packPairs allocate for `pairs` pairs (an upper bound:
+ *  degenerate pairs are dropped at packing) — the eager estimate's unit. */
+export function fatBytes(pairs: number, dashed: boolean): number {
+  return FAT_MESH_BYTES + (pairs > 0 ? pairs * (24 + (dashed ? 8 : 0)) : 24);
 }
 
 /** A LineSegmentsGeometry over packed pairs, with the dash distances as the
@@ -60,8 +90,9 @@ export function packPairs(pos: Float32Array, index: ArrayLike<number>, start: nu
  *  nothing (`instanceCount` 0). */
 export function fatGeometry(p: PackedPairs, sphere: THREE.Sphere | null = null): LineSegmentsGeometry {
   const g = new LineSegmentsGeometry();
+  countedGeometry(g);   // three's own quad mesh, before the packed arrays attach
   if (p.pairs === 0) {
-    g.setPositions(new Float32Array(6));
+    g.setPositions(f32(6));
     g.instanceCount = 0;
   } else {
     g.setPositions(p.positions);

@@ -28,8 +28,9 @@ function fakeDriver(o: { blocker?: string; skipJumps?: string; hiddenIn?: string
     if (o.hiddenIn === phaseName) flags.hidden = true;
   };
   let generation = 0;
-  const mem = (): PathMemory => ({ mode, cpu: { base: 10, dist: 1, overlay: 2, reveal: 0, mesh: 1, source: 5, payload: 20, total: 39 },
-    gpu: { base: 10, dist: 1, overlay: 2, reveal: 0, mesh: 1, total: 14 }, allocated: 100, peak: 60, generation,
+  const mem = (): PathMemory => ({ mode, cpu: { base: 10, dist: 1, overlay: 2, reveal: 0, mesh: 1, box: 1, source: 5, payload: 20, total: 40 },
+    gpu: { base: 10, dist: 1, overlay: 2, reveal: 0, mesh: 1, box: 1, total: 15 }, allocated: 100, peak: 60,
+    eager: { estimate: 30, packed: 28 }, generation,
     pairs: { source: 9, lod: 8, drawn: 7 } });
   const d: AbDriver = {
     blocker: () => o.blocker ?? null,
