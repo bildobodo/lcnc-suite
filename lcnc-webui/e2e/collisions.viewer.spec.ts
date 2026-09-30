@@ -226,3 +226,36 @@ test("a sweep held off by a run starts once the machine is idle, without another
   await ctl({ op: "quiet", on: false });
   await ctl({ op: "reset" });
 });
+
+// Codex R41 MR-I04: when no faithful re-parse can follow a tool-table change
+// during a run (a random tool changer the worker refuses to pin, or no
+// published start state), the gateway marks the payload's table stale until
+// idle (`preview_table_stale`). The viewer keeps the path muted and says why
+// — whichever tool changed, not only the loaded one — until the mark goes.
+test("a tool table changed during the run without a re-parse keeps the path muted and says why (Codex R41 MR-I04)", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  const file = "/tablestale.ngc";
+  await prepare(page, context, { file, version: 4201,
+    feed: [[0, 0, -100], [0, 0, -380], [240, 0, -380], [240, 0, -100]], lines: [1, 6, 7, 8],
+    joints: [-100, 0, 0, 0, 0] });
+  const feedColour = () => page.evaluate(() => window.__viewerDiag?.getPalette?.()?.drawn.feed ?? null);
+  const palette = async () => ({ drawn: { feed: await feedColour() } });
+  await expect.poll(feedColour, { timeout: 30_000 }).toBeTruthy();
+  const fresh = (await palette()).drawn.feed;
+  await ctl({ op: "quiet", on: true });
+  const mark = { reason: "table_row", why: "unsupported" };
+  await ctl({ op: "raw", frame: { type: "status_delta", data: { interp_state: 2, task_mode: 2 }, preview_table_stale: mark } });
+  await expect.poll(async () => (await palette()).drawn.feed, { message: "the path is muted" }).not.toBe(fresh);
+  await expect(page.locator("[data-table-stale]")).toBeVisible();
+  // it holds while the gateway keeps the mark — no timer ends it
+  await page.waitForTimeout(1500);
+  await ctl({ op: "raw", frame: { type: "status_delta", data: {}, preview_table_stale: mark } });
+  expect((await palette()).drawn.feed).not.toBe(fresh);
+  await expect(page.locator("[data-table-stale]")).toBeVisible();
+  // the next publish (the idle edge): the mark goes, the path is current
+  await ctl({ op: "raw", frame: { type: "status_delta", data: { interp_state: 1 } } });
+  await expect.poll(async () => (await palette()).drawn.feed).toBe(fresh);
+  await expect(page.locator("[data-table-stale]")).toHaveCount(0);
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});

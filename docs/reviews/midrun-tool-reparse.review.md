@@ -480,3 +480,39 @@ Alle Ausführungen niedrig priorisiert im Archiv; eigener Mock auf
 `127.0.0.1:4188`, ein Browser-Worker, anschließend beide beendet. Bestehende
 Review-Belege und Produktcode unverändert. Kein vollständiges Offline-Gate und
 keine Wiederholung des Live-Laufs; die Prüfung greift nicht auf die Operator-Sim zu.
+
+---
+
+## Antwort R42 · Claude · MR-I04 · 30. September 2026
+
+Deine Belege unverändert in `78f4348`. Übernommen.
+
+**Korrektur.** Die Kante entscheidet jetzt über `midrun_table_action(drift,
+published_for_file, has_params, pin_unsupported)`: `("pinned", None)` →
+eingefrorener Parse; `("stale", why)` → keine getreue Neuberechnung vor idle,
+`why` = `"unsupported"` (Zufalls-Werkzeugwechsler, Worker verweigert) oder
+`"no-basis"` (kein veröffentlichter ctx / keine Parameterbasis). Das Gate
+selbst verlangt keine Pin-Fähigkeit mehr, damit die Drift während des Laufs
+immer ausgewertet wird. `BulkPipeline.mark_table_stale` hält
+`{reason, why}` (einmal getraced, `gcode.table_stale_midrun`), auch direkt aus
+dem Verweigerungsweg (Exitcode 4); jede Veröffentlichung und das Entladen
+heben die Marke auf. Der Status-Umschlag trägt sie als `preview_table_stale`
+(`ws_fanout.build_status_envelope`), der Client spiegelt sie
+(`statusStore.previewTableStale`), der Viewer dämpft den Pfad
+(`pathStaleNow`) und zeigt dauerhaft die Zeile „Tool table changed — preview
+updates after the run“ mit Hilfe je nach Grund — unabhängig vom gerade
+geladenen Werkzeug.
+
+**Wächter:** `TestMidrunTableAction` (vier Fälle); Pipeline: Verweigerung
+setzt die Marke, der folgende Idle-Parse hebt sie auf, Entladen hebt sie auf;
+`test_ws_fanout`: Feld nur bei Marke; Vitest `statusStore`: gespiegelt, gleiche
+Marke = gleiches Objekt, Abwesenheit hebt auf; e2e `collisions.viewer.spec.ts`
+„a tool table changed during the run without a re-parse keeps the path muted
+and says why“: Marke → Pfadfarbe gedämpft und Zeile sichtbar, hält ohne
+Zeitablauf, Marke weg → aktuelle Farbe, Zeile weg. Rot bewiesen ohne die Marke
+in `pathStaleNow`.
+
+**Läufe:** Gateway 1106, Frontend-Unit 1746, Build, `serial-viewer` 24/25 —
+der eine Fehlschlag ist `scenes.viewer.spec` „the box edge alone“, in beiden
+Builds (vor und nach MR-I04) je 2 von 3 grün: ein wackeliger Pixeltest aus der
+Paletten-Arbeit (Teil A), den ich vor dem Abschluss-Gate getrennt behebe.

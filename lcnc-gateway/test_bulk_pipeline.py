@@ -664,7 +664,21 @@ class TestPinnedReparse(unittest.TestCase):
             lcnc_trace.emit = orig
         self.assertTrue(self.b.pin_unsupported)
         self.assertIn("gcode.pinned_unsupported", seen)
-        self.assertEqual(self.b.preview_version, version)   # the stale-marked preview stays
+        self.assertEqual(self.b.preview_version, version)   # no new payload …
+        # … and the viewer is TOLD the payload's table is stale until idle
+        # (MR-I04) — whichever tool changed
+        self.assertEqual(self.b.table_stale, {"reason": "table_mtime", "why": "unsupported"})
+        self.assertIn("gcode.table_stale_midrun", seen)
+        # the idle edge's parse publishes: the mark goes
+        self.refuse_pin = False
+        asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason="table_mtime"))
+        self.assertIsNone(self.b.table_stale)
+
+    def test_the_stale_mark_ends_with_the_program(self):
+        self._load()
+        self.b.mark_table_stale("table_row", "no-basis")
+        self.b.clear_preview()
+        self.assertIsNone(self.b.table_stale)
 
     def test_unload_forgets_the_ctx(self):
         self._load()

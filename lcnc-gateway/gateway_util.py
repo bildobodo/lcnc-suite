@@ -1510,7 +1510,7 @@ def seeded_spindle_row(tools, loaded_tool):
 
 
 def midrun_table_gate_open(active_file, refresh_running, preview_available,
-                           pinnable, task_mode_auto, interp_idle,
+                           task_mode_auto, interp_idle,
                            since_last_check_s, debounce_s=2.0):
     """May the MID-RUN tool-table edge evaluate now? (operator 2026-09-29)
 
@@ -1518,21 +1518,38 @@ def midrun_table_gate_open(active_file, refresh_running, preview_available,
     tool measured by the program (T13 M600 → G10 L1) left the preview stale
     — muted, its limit flags on the old length — for the whole run: the
     program starts cutting right after the measurement and the interpreter
-    is not idle again before M2. This edge re-parses DURING a run, only for
-    a tool-table change, with the published parse's start state pinned
-    (`pinnable`: a published ctx exists for the loaded file) — so the
-    preview shows the program as the machine executes it, from the same
-    start, with the table it now holds.
+    is not idle again before M2. This edge evaluates the TABLE during a run;
+    midrun_table_action decides whether the change re-parses pinned (the
+    published parse's start state — the program as the machine executes
+    it, from the same start, with the table it now holds) or marks the
+    preview stale until idle.
 
     AUTO only: an MDI (Measure Current) also makes the interpreter busy, but
     the idle edge re-parses with live seeds seconds later anyway. Pure."""
     return (bool(active_file)
             and not refresh_running
             and bool(preview_available)
-            and bool(pinnable)
             and bool(task_mode_auto)
             and not interp_idle
             and since_last_check_s >= debounce_s)
+
+
+def midrun_table_action(drift, published_for_file, has_params, pin_unsupported):
+    """What the mid-run edge does with a table drift (Codex R41 MR-I04):
+
+    ("pinned", None)  — re-parse with the published start state pinned;
+    ("stale", why)    — it cannot: the preview is marked stale until the
+                        idle edge re-parses — why = "unsupported" (a random
+                        toolchanger, the worker refused) or "no-basis" (no
+                        published ctx / parameter basis for this file);
+    (None, None)      — no drift. Pure."""
+    if not drift:
+        return None, None
+    if pin_unsupported:
+        return "stale", "unsupported"
+    if not published_for_file or not has_params:
+        return "stale", "no-basis"
+    return "pinned", None
 
 
 def joints_beyond_limits(joint_pos, limits, eps=1e-6):

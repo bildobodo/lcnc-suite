@@ -84,6 +84,12 @@ export const safetyChainIncomplete = ref<string | null>(null);
 // both unit-ambiguous and unsafe to apply silently. Latches server-side until a
 // subsequent successful read; surfaced as a non-blocking banner.
 export const configWarning = ref<{ reason: string; units: boolean } | null>(null);
+// The published payload's tool table is stale and no re-parse can fix it
+// before idle (Codex R41 MR-I04: a random tool changer cannot be re-parsed
+// pinned during a run, or no start state is known): the gateway rides
+// `preview_table_stale` {reason, why} until the next publish or unload, so
+// the viewer keeps the path muted whichever tool changed.
+export const previewTableStale = ref<{ reason: string; why: string } | null>(null);
 // A preview re-parse is RUNNING (2026-09-05): the gateway rides
 // `preview_refresh` on every status frame while its parse worker runs —
 // reason (the edge that scheduled it), file, expected duration (its last
@@ -433,6 +439,15 @@ export function handleStatusMessage(msg: any): void {
   } else if (previewRefresh.value !== null) {
     previewRefresh.value = null;
     _syncPreviewRefreshTimer();
+  }
+  const ts = msg.preview_table_stale;
+  if (ts && typeof ts === "object") {
+    const reason = String(ts.reason ?? ""), why = String(ts.why ?? "");
+    if (previewTableStale.value?.reason !== reason || previewTableStale.value?.why !== why) {
+      previewTableStale.value = { reason, why };
+    }
+  } else if (previewTableStale.value !== null) {
+    previewTableStale.value = null;
   }
   // Reader staleness — set when gateway flag present, clear otherwise.
   const stale = msg.reader_stale === true;

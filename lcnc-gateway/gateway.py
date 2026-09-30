@@ -82,7 +82,7 @@ from gateway_util import (
     PREVIEW_SCHEMA,
     evaluate_tlo_drift,
     evaluate_rotary_drift, drift_gate_open, inflight_stale_reason, preview_file_edge_action,
-    midrun_table_gate_open,
+    midrun_table_gate_open, midrun_table_action,
     rotary_drift_settled,
     evaluate_kins_drift,
     wcs_offset_flat_from_table,
@@ -1728,8 +1728,6 @@ async def _status_poller():
                 # niced; only the table signals count (evaluate_tlo_drift
                 # table_only) — the run's own G43 / M6 are no drift.
                 st.active_file, _bulk.refresh_running, _bulk.preview_available(),
-                (bool(_bulk.published_ctx) and _bulk.published_ctx.get("file") == st.active_file
-                 and not _bulk.pin_unsupported),
                 st.task_mode == linuxcnc.MODE_AUTO,
                 st.interp_state == linuxcnc.INTERP_IDLE,
                 time.monotonic() - _bulk.tlo_check_ts,
@@ -1741,11 +1739,20 @@ async def _status_poller():
                     _mdrift = evaluate_tlo_drift(
                         _bulk.published_tlo, _tt_cur, None, None,
                         table_rows=_rows, table_only=True)
-                if _mdrift:
+                _mact, _mwhy = midrun_table_action(
+                    _mdrift,
+                    bool(_bulk.published_ctx) and _bulk.published_ctx.get("file") == st.active_file,
+                    bool(_bulk.published_params) and _bulk.published_params.get("text") is not None,
+                    _bulk.pin_unsupported)
+                if _mact == "pinned":
                     _trace.emit("gcode.reparse_table_midrun", reason=_mdrift,
                                 tool=st.tool_number)
                     _bulk.schedule_refresh(st.active_file, "midrun:" + _mdrift,
                                            _spawn_preview_task, pinned=True)
+                elif _mact == "stale":
+                    # No faithful re-parse before idle: the viewer keeps the
+                    # path muted and says why (MR-I04).
+                    _bulk.mark_table_stale(_mdrift, _mwhy)
             elif (
                 # TLO drift edge (W2 P4): the per-line limit flags bake the
                 # parse-time tool table, so a toolsetter re-measure after
@@ -8031,6 +8038,7 @@ async def ws_endpoint(ws: WebSocket):
                         reader_stale=_reader_is_stale(),
                         safety_chain=_safety_chain_reason(),
                         preview_refresh=_bulk.preview_refresh_status(),
+                        preview_table_stale=_bulk.table_stale,
                         config_warning=(
                             {
                                 "reason": (_config_warning_reason or _units_fallback_reason

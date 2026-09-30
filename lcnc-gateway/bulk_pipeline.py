@@ -187,6 +187,13 @@ class BulkPipeline:
         # worker refused with PIN_UNSUPPORTED_EXIT): the mid-run edge stops
         # asking; the preview stays stale-marked until idle (MR-I01).
         self.pin_unsupported: bool = False
+        # The published payload's tool table is known stale and no re-parse
+        # can fix it before idle (Codex R41 MR-I04): {"reason": the drift
+        # signal, "why": "unsupported" | "no-basis"}. Rides the status
+        # envelope as `preview_table_stale`, so the viewer keeps the path
+        # muted and says why — whichever tool changed. Cleared by the next
+        # publish and by unload.
+        self.table_stale: Optional[dict] = None
         # Previous drift check's live rotary sample — the settle guard
         # (rotary_drift_settled) compares consecutive 2 s samples so a
         # jog in progress never triggers a reparse.
@@ -289,6 +296,7 @@ class BulkPipeline:
         self.published_limits = None
         self.published_ctx = None
         self.published_params = None
+        self.table_stale = None
         self.rotary_check_prev = None
         self.wcsoff_check_prev = None
 
@@ -381,6 +389,14 @@ class BulkPipeline:
                             "loaded_tool": tlo.get("loaded_tool")}
         ctx["nice"] = self.PINNED_NICE
         return ctx
+
+    def mark_table_stale(self, reason: str, why: str) -> None:
+        """The published payload's tool table is stale and stays so until
+        the idle edge re-parses (MR-I04). Traced once per mark."""
+        mark = {"reason": reason, "why": why}
+        if self.table_stale != mark:
+            _trace.emit("gcode.table_stale_midrun", reason=reason, why=why)
+        self.table_stale = mark
 
     def expected_parse_ms(self, filepath: str) -> int:
         """Expected publish time for `filepath`: the last measured one for
@@ -570,9 +586,10 @@ class BulkPipeline:
                             stderr_tail=(stderr.decode(errors="replace")[-240:] if stderr else ""))
                 return
             if pinned and returncode == PIN_UNSUPPORTED_EXIT:
-                # This config cannot pin a start state: keep the stale-marked
-                # preview and stop asking (MR-I01).
+                # This config cannot pin a start state: stop asking (MR-I01)
+                # and say so — the preview is stale until idle (MR-I04).
                 self.pin_unsupported = True
+                self.mark_table_stale(reason.split(":", 1)[-1], "unsupported")
                 _trace.emit("gcode.pinned_unsupported", level="warn", file=filepath,
                             stderr_tail=(stderr.decode(errors="replace")[-240:] if stderr else ""))
                 return
@@ -737,6 +754,7 @@ class BulkPipeline:
             self.published_kins_seed = worker_kins_seed
             self.published_wcs_off = worker_wcs_off
             self.published_ctx = ctx
+            self.table_stale = None
             self.published_params = worker_params if isinstance(worker_params, dict) else None
             self.preview_version += 1
             self.last_file = filepath

@@ -3828,7 +3828,7 @@ class TestMidrunTableGate(unittest.TestCase):
 
     def _open(self, **over):
         kw = dict(active_file="/x.ngc", refresh_running=False, preview_available=True,
-                  pinnable=True, task_mode_auto=True, interp_idle=False,
+                  task_mode_auto=True, interp_idle=False,
                   since_last_check_s=2.5)
         kw.update(over)
         return gateway_util.midrun_table_gate_open(**kw)
@@ -3848,8 +3848,25 @@ class TestMidrunTableGate(unittest.TestCase):
         self.assertFalse(self._open(active_file=""))
         self.assertFalse(self._open(refresh_running=True))
         self.assertFalse(self._open(preview_available=False))
-        self.assertFalse(self._open(pinnable=False))
         self.assertFalse(self._open(since_last_check_s=1.9))
+
+
+class TestMidrunTableAction(unittest.TestCase):
+    """What a mid-run table drift becomes (Codex R41 MR-I04): a pinned
+    re-parse, or a stale mark the viewer shows until the idle edge."""
+
+    def test_no_drift_nothing(self):
+        self.assertEqual(gateway_util.midrun_table_action(None, True, True, False), (None, None))
+
+    def test_pinnable_re_parses(self):
+        self.assertEqual(gateway_util.midrun_table_action("table_mtime", True, True, False), ("pinned", None))
+
+    def test_a_refused_config_marks_stale(self):
+        self.assertEqual(gateway_util.midrun_table_action("table_row", True, True, True), ("stale", "unsupported"))
+
+    def test_no_basis_marks_stale(self):
+        self.assertEqual(gateway_util.midrun_table_action("table_mtime", False, True, False), ("stale", "no-basis"))
+        self.assertEqual(gateway_util.midrun_table_action("table_mtime", True, False, False), ("stale", "no-basis"))
 
 
 class TestTloDriftTableOnly(unittest.TestCase):

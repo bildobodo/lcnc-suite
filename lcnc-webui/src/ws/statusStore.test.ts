@@ -12,7 +12,7 @@ import {
   handleStatusError, handleStatusMessage, latency, lcncError,
   markMessagesRead, mergeStatusPatch, messages, networkLatency, noteBulkData,
   noteFrameSample, noteHeartbeatSent, notePong, pushMessage,
-  previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct,
+  previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale,
   readerStale, rebaseStatusDelta, resetOnClose, resetTimingStats, safetyChainIncomplete,
   safetyTrip, status, timingStats, unreadCount,
 } from "./statusStore";
@@ -165,6 +165,16 @@ describe("preview_refresh sync (re-parse in flight)", () => {
     handleStatusMessage({ type: "status", data: {} });
     expect(previewRefresh.value).toBeNull();
     expect(previewRefreshElapsedMs.value).toBe(0);
+  });
+
+  it("mirrors preview_table_stale while the gateway marks it, same object for the same mark (Codex R41 MR-I04)", () => {
+    handleStatusMessage({ type: "status", data: {}, preview_table_stale: { reason: "table_mtime", why: "unsupported" } });
+    const first = previewTableStale.value;
+    expect(first).toEqual({ reason: "table_mtime", why: "unsupported" });
+    handleStatusMessage({ type: "status", data: {}, preview_table_stale: { reason: "table_mtime", why: "unsupported" } });
+    expect(previewTableStale.value).toBe(first);
+    handleStatusMessage({ type: "status", data: {} });
+    expect(previewTableStale.value).toBeNull();
   });
 
   it("previewRefreshPct: elapsed over expected, capped at 97 % (only the publish completes it), 0 without an expectation", () => {

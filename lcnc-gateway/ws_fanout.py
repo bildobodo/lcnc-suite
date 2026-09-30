@@ -165,6 +165,7 @@ def build_status_envelope(
     probe_results: Optional[dict] = None,
     rfl_status: Optional[dict] = None,
     preview_refresh: Optional[dict] = None,
+    preview_table_stale: Optional[dict] = None,
 ) -> dict:
     """Assemble the per-tick status envelope.
 
@@ -201,6 +202,10 @@ def build_status_envelope(
         # A preview re-parse is running (bulk_pipeline.preview_refresh_status):
         # reason, file, expected_ms, started_ms, queued, superseded.
         msg["preview_refresh"] = preview_refresh
+    if preview_table_stale is not None:
+        # The payload's tool table is stale until idle (MR-I04) — the
+        # viewer mutes the path and says why.
+        msg["preview_table_stale"] = preview_table_stale
     return msg
 
 

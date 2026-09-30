@@ -36,6 +36,11 @@ class TestBuildStatusEnvelope(unittest.TestCase):
         self.assertTrue(
             build_status_envelope(**self.BASE, reader_stale=True)["reader_stale"])
 
+    def test_preview_table_stale_rides_only_while_marked(self):
+        mark = {"reason": "table_mtime", "why": "unsupported"}
+        self.assertEqual(build_status_envelope(**self.BASE, preview_table_stale=mark)["preview_table_stale"], mark)
+        self.assertNotIn("preview_table_stale", build_status_envelope(**self.BASE))
+
     def test_preview_refresh_rides_only_while_a_parse_runs(self):
         pr = {"reason": "drift", "file": "a.ngc", "expected_ms": 1234,
               "started_ms": 1, "queued": False, "superseded": 0}
