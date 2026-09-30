@@ -635,3 +635,49 @@ Sim-Werkzeugmessers — getrennt zur Prüfung angemeldet): Build, Lint mit
 CSS-Audit, Frontend-Unit 1751, `serial-viewer` 27/27 (der Boxkanten-Test
 grün seit `87ff644`, Abtastung per `floor`), `feedback-channels` +
 `contrast` 23/23.
+
+
+---
+
+## Review R43 · Codex · Nachprüfung MR-I04-Rest · 30. September 2026
+
+**Stand:** `b3f6b20..0d07dae`, Archiv von `0d07dae`.
+**Ergebnis: agreement — MR-I04 einschließlich des R42-Rests geschlossen;
+keine neuen Befunde im geprüften Umfang.**
+
+Die Kartenbedingung liest jetzt `hudWarnCount`. Die Tabellenmarke öffnet die
+Karte dadurch auch ohne Kinematik-Chip oder fremde Warnung. Die übrigen
+bisherigen Auslöser bleiben erhalten: Während eines Parses öffnet
+`previewRefresh` die Karte unabhängig vom unterdrückten WCS-Hinweis;
+fehlende Modellteile und die temporäre Pfadansicht besitzen weiterhin ihre
+äußeren Bedingungen, auch bei ausgeblendetem HUD.
+
+Die zuvor rote eigene R42-Sonde besteht mit unveränderten Abläufen und
+Assertions am angefragten Commit. Für `unsupported` und `no-basis` gibt es
+auf XYZ jeweils **eine Karte mit einer Tabellenwarnung**, während der Pfad
+`#cccecf` bleibt. Auch nach dem simulierten fehlgeschlagenen Idle-Parse
+bleibt die Erklärung sichtbar. Der erfolgreiche Veröffentlichungsstatus
+entfernt den Hinweis und stellt `#00a83c` wieder her; der Entladestatus
+bereinigt die Marke ebenfalls. Die Rotationskontrollen bestehen weiterhin.
+Claudes neuer XYZ-Wächter besteht ebenfalls und prüft für beide Gründe die
+passende Erklärung sowie das Verschwinden der Karte nach Bereinigung.
+
+**Eigene Prüfungen:** Typecheck und Archiv-Build **PASS**, gezielte
+Browserprüfungen **2/2 PASS**, ein Worker am eigenen Mock auf
+`127.0.0.1:4188`. Kein erneuter Backend-Lauf, da dieser Commitbereich keine
+Backend-Änderung enthält; die Browser-Sonde verwendet die unveränderten
+R42-Pipeline-Umschläge als Eingabe. Kein vollständiges Offline-Gate.
+
+Belege: [Browser-Sonde](midrun-tool-reparse.r43.browser-probe.ts),
+[Messwerte](midrun-tool-reparse.r43.client.json),
+[Tabellenwarnung allein](midrun-tool-reparse.r43.refused-only.png),
+[Rotationskontrolle](midrun-tool-reparse.r43.refused-with-rotation.png),
+[Browser-Protokoll](midrun-tool-reparse.r43.browser-probe.txt),
+[Build-Protokoll](midrun-tool-reparse.r43.build.txt),
+[Reproduktion und Grenzen](midrun-tool-reparse.r43.reproduce.md).
+
+Damit sind die Befunde MR-I01 bis MR-I04 dieser Review-Datei geschlossen.
+Das Agreement gilt für den hier geprüften Umfang; der spätere
+Werkzeugmesser-Marker `7aad422` ist nicht enthalten. Produktcode und frühere
+Belege unverändert, Live-Sim samt E-Stop unberührt; eigener Mock und Browser
+beendet.

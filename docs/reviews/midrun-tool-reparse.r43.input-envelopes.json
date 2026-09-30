@@ -1,0 +1,88 @@
+{
+  "commit": "b6fd7c5",
+  "parse_tlos": [
+    [
+      1,
+      0,
+      0,
+      10,
+      6
+    ],
+    [
+      2,
+      0,
+      0,
+      80,
+      6
+    ]
+  ],
+  "changed_tool": 2,
+  "loaded_tool": 1,
+  "during": {
+    "type": "status",
+    "data": {},
+    "errors": [],
+    "clients": [],
+    "armed": true,
+    "preview_refresh": {
+      "reason": "midrun:table_mtime",
+      "file": "program.ngc",
+      "expected_ms": 1,
+      "started_ms": 1790731014175,
+      "queued": false,
+      "superseded": 0
+    }
+  },
+  "refused": {
+    "type": "status",
+    "data": {},
+    "errors": [],
+    "clients": [],
+    "armed": true,
+    "preview_table_stale": {
+      "reason": "table_mtime",
+      "why": "unsupported"
+    }
+  },
+  "next_action": [
+    "stale",
+    "unsupported"
+  ],
+  "failed_idle": {
+    "type": "status",
+    "data": {},
+    "errors": [],
+    "clients": [],
+    "armed": true,
+    "preview_table_stale": {
+      "reason": "table_mtime",
+      "why": "unsupported"
+    }
+  },
+  "published_idle": {
+    "type": "status",
+    "data": {},
+    "errors": [],
+    "clients": [],
+    "armed": true
+  },
+  "no_basis": {
+    "type": "status",
+    "data": {},
+    "errors": [],
+    "clients": [],
+    "armed": true,
+    "preview_table_stale": {
+      "reason": "table_row",
+      "why": "no-basis"
+    }
+  },
+  "unloaded": {
+    "type": "status",
+    "data": {},
+    "errors": [],
+    "clients": [],
+    "armed": true
+  },
+  "checks_passed": true
+}

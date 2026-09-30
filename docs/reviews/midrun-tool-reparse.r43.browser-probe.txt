@@ -1,0 +1,11 @@
+
+Running 2 tests using 1 worker
+
+(node:1415125) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1415125) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/collisions.viewer.spec.ts:263:1 › on a machine with no other viewer note the tool-table mark brings the card itself, for both reasons (Codex R42) (3.5s)
+  ✓  2 e2e/r43.spec.ts:9:1 › R43: table staleness must open the warning card on XYZ without an unrelated warning (4.9s)
+
+  2 passed (9.3s)

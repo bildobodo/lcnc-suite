@@ -1,0 +1,358 @@
+{
+  "commit": "0d07dae",
+  "profile": "3axis-xyz",
+  "changedTool": 2,
+  "loadedTool": 1,
+  "fresh": {
+    "palette": {
+      "resolved": {
+        "feed": "#00a83c",
+        "rapid": "#3d8bff",
+        "backplot": "#ff00ff",
+        "bounds": "#15181c",
+        "toolpathBounds": "#15181c",
+        "tool": "#6b7178",
+        "cutter": "#eceff1",
+        "limit": "#e66b00",
+        "collision": "#c8102e",
+        "boundsAlt": "#f0f2f4",
+        "reach": "#15181c",
+        "planeActive": "#2d81dc",
+        "planeDefined": "#a97515",
+        "planeStale": "#cc3333"
+      },
+      "drawn": {
+        "feed": "#00a83c",
+        "toolpathBounds": "#15181c",
+        "toolpathBoundsAlt": "#f0f2f4",
+        "planeActive": "#2d81dc",
+        "backplot": "#ff00ff",
+        "bounds": "#15181c",
+        "boundsAlt": "#f0f2f4",
+        "tool": "#6b7178",
+        "cutter": "#eceff1"
+      },
+      "mode": "auto"
+    },
+    "cardCount": 0,
+    "tableWarningCount": 0,
+    "warnings": []
+  },
+  "during": {
+    "palette": {
+      "resolved": {
+        "feed": "#00a83c",
+        "rapid": "#3d8bff",
+        "backplot": "#ff00ff",
+        "bounds": "#15181c",
+        "toolpathBounds": "#15181c",
+        "tool": "#6b7178",
+        "cutter": "#eceff1",
+        "limit": "#e66b00",
+        "collision": "#c8102e",
+        "boundsAlt": "#f0f2f4",
+        "reach": "#15181c",
+        "planeActive": "#2d81dc",
+        "planeDefined": "#a97515",
+        "planeStale": "#cc3333"
+      },
+      "drawn": {
+        "feed": "#cccecf",
+        "toolpathBounds": "#15181c",
+        "toolpathBoundsAlt": "#f0f2f4",
+        "planeActive": "#2d81dc",
+        "backplot": "#ff00ff",
+        "bounds": "#15181c",
+        "boundsAlt": "#f0f2f4",
+        "tool": "#6b7178",
+        "cutter": "#eceff1"
+      },
+      "mode": "auto"
+    },
+    "cardCount": 1,
+    "tableWarningCount": 0,
+    "warnings": [
+      "Preview re-parsing · tool measured (program running)?Path, limit marks and simulation update when it lands — 00:00 of ~00:01."
+    ]
+  },
+  "refusedOnly": {
+    "palette": {
+      "resolved": {
+        "feed": "#00a83c",
+        "rapid": "#3d8bff",
+        "backplot": "#ff00ff",
+        "bounds": "#15181c",
+        "toolpathBounds": "#15181c",
+        "tool": "#6b7178",
+        "cutter": "#eceff1",
+        "limit": "#e66b00",
+        "collision": "#c8102e",
+        "boundsAlt": "#f0f2f4",
+        "reach": "#15181c",
+        "planeActive": "#2d81dc",
+        "planeDefined": "#a97515",
+        "planeStale": "#cc3333"
+      },
+      "drawn": {
+        "feed": "#cccecf",
+        "toolpathBounds": "#15181c",
+        "toolpathBoundsAlt": "#f0f2f4",
+        "planeActive": "#2d81dc",
+        "backplot": "#ff00ff",
+        "bounds": "#15181c",
+        "boundsAlt": "#f0f2f4",
+        "tool": "#6b7178",
+        "cutter": "#eceff1"
+      },
+      "mode": "auto"
+    },
+    "cardCount": 1,
+    "tableWarningCount": 1,
+    "warnings": [
+      "Tool table changed — preview updates after the run?This machine's random tool changer cannot be re-parsed during a run; the preview re-parses once idle."
+    ]
+  },
+  "refusedWithRotation": {
+    "palette": {
+      "resolved": {
+        "feed": "#00a83c",
+        "rapid": "#3d8bff",
+        "backplot": "#ff00ff",
+        "bounds": "#15181c",
+        "toolpathBounds": "#15181c",
+        "tool": "#6b7178",
+        "cutter": "#eceff1",
+        "limit": "#e66b00",
+        "collision": "#c8102e",
+        "boundsAlt": "#f0f2f4",
+        "reach": "#15181c",
+        "planeActive": "#2d81dc",
+        "planeDefined": "#a97515",
+        "planeStale": "#cc3333"
+      },
+      "drawn": {
+        "feed": "#cccecf",
+        "toolpathBounds": "#15181c",
+        "toolpathBoundsAlt": "#f0f2f4",
+        "planeActive": "#2d81dc",
+        "backplot": "#ff00ff",
+        "bounds": "#15181c",
+        "boundsAlt": "#f0f2f4",
+        "tool": "#6b7178",
+        "cutter": "#eceff1"
+      },
+      "mode": "auto"
+    },
+    "cardCount": 1,
+    "tableWarningCount": 1,
+    "warnings": [
+      "Rotation 1.0°",
+      "Tool table changed — preview updates after the run?This machine's random tool changer cannot be re-parsed during a run; the preview re-parses once idle."
+    ]
+  },
+  "failedIdleOnly": {
+    "palette": {
+      "resolved": {
+        "feed": "#00a83c",
+        "rapid": "#3d8bff",
+        "backplot": "#ff00ff",
+        "bounds": "#15181c",
+        "toolpathBounds": "#15181c",
+        "tool": "#6b7178",
+        "cutter": "#eceff1",
+        "limit": "#e66b00",
+        "collision": "#c8102e",
+        "boundsAlt": "#f0f2f4",
+        "reach": "#15181c",
+        "planeActive": "#2d81dc",
+        "planeDefined": "#a97515",
+        "planeStale": "#cc3333"
+      },
+      "drawn": {
+        "feed": "#cccecf",
+        "toolpathBounds": "#15181c",
+        "toolpathBoundsAlt": "#f0f2f4",
+        "planeActive": "#2d81dc",
+        "backplot": "#ff00ff",
+        "bounds": "#15181c",
+        "boundsAlt": "#f0f2f4",
+        "tool": "#6b7178",
+        "cutter": "#eceff1"
+      },
+      "mode": "auto"
+    },
+    "cardCount": 1,
+    "tableWarningCount": 1,
+    "warnings": [
+      "Tool table changed — preview updates after the run?This machine's random tool changer cannot be re-parsed during a run; the preview re-parses once idle."
+    ]
+  },
+  "publishedIdle": {
+    "palette": {
+      "resolved": {
+        "feed": "#00a83c",
+        "rapid": "#3d8bff",
+        "backplot": "#ff00ff",
+        "bounds": "#15181c",
+        "toolpathBounds": "#15181c",
+        "tool": "#6b7178",
+        "cutter": "#eceff1",
+        "limit": "#e66b00",
+        "collision": "#c8102e",
+        "boundsAlt": "#f0f2f4",
+        "reach": "#15181c",
+        "planeActive": "#2d81dc",
+        "planeDefined": "#a97515",
+        "planeStale": "#cc3333"
+      },
+      "drawn": {
+        "feed": "#00a83c",
+        "toolpathBounds": "#15181c",
+        "toolpathBoundsAlt": "#f0f2f4",
+        "planeActive": "#2d81dc",
+        "backplot": "#ff00ff",
+        "bounds": "#15181c",
+        "boundsAlt": "#f0f2f4",
+        "tool": "#6b7178",
+        "cutter": "#eceff1"
+      },
+      "mode": "auto"
+    },
+    "cardCount": 0,
+    "tableWarningCount": 0,
+    "warnings": []
+  },
+  "noBasisOnly": {
+    "palette": {
+      "resolved": {
+        "feed": "#00a83c",
+        "rapid": "#3d8bff",
+        "backplot": "#ff00ff",
+        "bounds": "#15181c",
+        "toolpathBounds": "#15181c",
+        "tool": "#6b7178",
+        "cutter": "#eceff1",
+        "limit": "#e66b00",
+        "collision": "#c8102e",
+        "boundsAlt": "#f0f2f4",
+        "reach": "#15181c",
+        "planeActive": "#2d81dc",
+        "planeDefined": "#a97515",
+        "planeStale": "#cc3333"
+      },
+      "drawn": {
+        "feed": "#cccecf",
+        "toolpathBounds": "#15181c",
+        "toolpathBoundsAlt": "#f0f2f4",
+        "planeActive": "#2d81dc",
+        "backplot": "#ff00ff",
+        "bounds": "#15181c",
+        "boundsAlt": "#f0f2f4",
+        "tool": "#6b7178",
+        "cutter": "#eceff1"
+      },
+      "mode": "auto"
+    },
+    "cardCount": 1,
+    "tableWarningCount": 1,
+    "warnings": [
+      "Tool table changed — preview updates after the run?The preview's start state is not known for this program; it re-parses once the machine is idle."
+    ]
+  },
+  "noBasisWithRotation": {
+    "palette": {
+      "resolved": {
+        "feed": "#00a83c",
+        "rapid": "#3d8bff",
+        "backplot": "#ff00ff",
+        "bounds": "#15181c",
+        "toolpathBounds": "#15181c",
+        "tool": "#6b7178",
+        "cutter": "#eceff1",
+        "limit": "#e66b00",
+        "collision": "#c8102e",
+        "boundsAlt": "#f0f2f4",
+        "reach": "#15181c",
+        "planeActive": "#2d81dc",
+        "planeDefined": "#a97515",
+        "planeStale": "#cc3333"
+      },
+      "drawn": {
+        "feed": "#cccecf",
+        "toolpathBounds": "#15181c",
+        "toolpathBoundsAlt": "#f0f2f4",
+        "planeActive": "#2d81dc",
+        "backplot": "#ff00ff",
+        "bounds": "#15181c",
+        "boundsAlt": "#f0f2f4",
+        "tool": "#6b7178",
+        "cutter": "#eceff1"
+      },
+      "mode": "auto"
+    },
+    "cardCount": 1,
+    "tableWarningCount": 1,
+    "warnings": [
+      "Rotation 1.0°",
+      "Tool table changed — preview updates after the run?The preview's start state is not known for this program; it re-parses once the machine is idle."
+    ]
+  },
+  "unloaded": {
+    "palette": {
+      "resolved": {
+        "feed": "#00a83c",
+        "rapid": "#3d8bff",
+        "backplot": "#ff00ff",
+        "bounds": "#15181c",
+        "toolpathBounds": "#15181c",
+        "tool": "#6b7178",
+        "cutter": "#eceff1",
+        "limit": "#e66b00",
+        "collision": "#c8102e",
+        "boundsAlt": "#f0f2f4",
+        "reach": "#15181c",
+        "planeActive": "#2d81dc",
+        "planeDefined": "#a97515",
+        "planeStale": "#cc3333"
+      },
+      "drawn": {
+        "feed": "#00a83c",
+        "toolpathBounds": "#15181c",
+        "toolpathBoundsAlt": "#f0f2f4",
+        "planeActive": "#2d81dc",
+        "backplot": "#ff00ff",
+        "bounds": "#15181c",
+        "boundsAlt": "#f0f2f4",
+        "tool": "#6b7178",
+        "cutter": "#eceff1"
+      },
+      "mode": "auto"
+    },
+    "cardCount": 0,
+    "tableWarningCount": 0,
+    "warnings": []
+  },
+  "cmds": [
+    {
+      "cmd": "hello",
+      "session": "c5647687-e6dd-4aa8-af46-5bff7f87da10",
+      "resume_armed": false
+    },
+    {
+      "cmd": "tab_visibility",
+      "hidden": false
+    },
+    {
+      "cmd": "get_tool_table",
+      "req_id": "0xhtnj-3"
+    },
+    {
+      "cmd": "get_tool_table",
+      "req_id": "0xhtnj-4"
+    },
+    {
+      "cmd": "get_tool_table",
+      "req_id": "0xhtnj-5"
+    }
+  ]
+}
