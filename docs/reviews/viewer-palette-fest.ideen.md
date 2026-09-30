@@ -4529,3 +4529,190 @@ stehen bleibt, aber das Programm scrollt“.
 
 **Prüfstand:** Offline-Gate PASS auf `6c4d0c8`: Backend 1108, Vitest
 1822, Playwright 380.
+
+
+---
+
+## Review R52 · Codex · VP-I20-Plan, Settings und Zeilennachlauf · 30. September 2026
+
+**Ergebnis: `findings`. Settings breit/gruppiert ist abgenommen.
+Am VP-I20-Plan bleiben drei P2-Punkte VP52-01 bis VP52-03 offen.
+Die gleitende Programmzeile hat einen P2-Rückschritt VP-I21: Bei größeren
+Paketschritten verschwindet die laufende Zeile aus dem sichtbaren Bereich.**
+
+Geprüft: `6efc2b1..650b6b6`, vollständiger Stand
+`650b6b625d2379a2ee180b823638efb42a741cb0`, ausschließlich in einer
+Archivkopie. Live nur dieser Anhang und neue R52-Belege; frühere Belege
+unverändert. [Reproduktion/Prüfgrenzen](viewer-palette-fest.r52.reproduce.md).
+
+### VP-I20 · Grundrichtung bestätigt, Fassung 1 noch nicht abgenommen
+
+Den tatsächlichen Startoffset dem Interpreter zu geben, behebt den
+ursprünglichen Z55-statt-Z45-Fall und die Umrechnung des G53-Ziels.
+Eine eigene **Plan-Sonde**, die nur die vorgeschlagene Initzeile vor den
+nativen Parse setzt, bestätigt beides. Sie bestätigt auch, dass diese
+Initzeile in der verwendeten Canon-Regel keine Programm-TLO-Zeile erzeugt.
+Live-/Pinned-Quelle und ein expliziter Gate-Override sind sinnvoll;
+verwendeter und gemeldeter Wert müssen aus derselben Aufnahme stammen.
+[Sonde](viewer-palette-fest.r52.native-case.py),
+[native Ergebnisse](viewer-palette-fest.r52.native-probe.json),
+[Verdichtung](viewer-palette-fest.r52.plan-summary.json).
+
+### VP52-01 · P2 · Die erste TLO-Zeile beendet die Abhängigkeit nicht zuverlässig
+
+`prefix_moves` nach der geplanten Definition ist kein ausreichender
+Nachweis für Offsetunabhängigkeit. Zwei nativ bestätigte Gegenbeispiele,
+jeweils noch vor der ersten Bewegung:
+
+| Programmwort | Start-Z10 → Start-Z20 | Geplantes `prefix_moves` |
+| --- | --- | --- |
+| `G43.1 X2` | TLO-Z10 → Z20; Limitbefunde 1 → 2 | 0 → 0 |
+| `G43.2 Z2` | TLO-Z12 → Z22; unterschiedliche Nutzdaten | 0 → 0 |
+| bares `G43` / `G49` als Kontrolle | je Programm identische Nutzdaten | 0 → 0 |
+
+Bei G43.1 bleiben die nicht genannten Achsen geerbt, G43.2 addiert zum
+bestehenden Offset. Auch das vorhandene `change_tool()` schreibt eine
+TLO-Zeile; diese Zeile allein ist kein Beleg für ein vollständiges
+Zurücksetzen des Offsets.
+[LinuxCNC 2.9.4, `convert_tool_length_offset`](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/rs274ngc/interp_convert.cc),
+[Canon-Ereignisse](../../lcnc-gateway/gcode_canon.py#L208).
+
+**Plan korrigieren:** Abhängigkeit vom Startoffset verfolgen bzw.
+konservativ annehmen, solange ihre Aufhebung nicht belegt ist; nicht
+pauschal am ersten Eintrag in `tlo_events` beenden. Mindestens M6,
+partielle G43.1 und additive G43.2 in den Vertrag und die Wächter aufnehmen.
+Auch „alte Meta ohne `prefix_moves` → nichts“ darf nicht als Nachweis einer
+vollständigen Limitprüfung gelten: einmalige Neuberechnung/Versionierung
+oder ein ausdrücklich unbekannter Zustand fehlt noch im Plan.
+
+### VP52-02 · P2 · Ein gebackener G53-Punkt verträgt keinen beliebigen Live-Offset
+
+„Client unverändert“ genügt nach dem Seeden nicht. Die native Sonde liefert
+für `G53 G0 Z0` bei Startoffset Z10 den Programmpunkt **Z−10**.
+Mit den echten, unveränderten Clientfunktionen ergibt die Rückrechnung:
+
+| Parse-Offset | Live-Offset | rekonstruierter Maschinenwert | G53-Ziel |
+| --- | --- | --- | --- |
+| 10 | 10 | 0 | 0 |
+| 10 | 10,005 | 0,005 | 0 |
+| 10 | 20 | 10 | 0 |
+
+[Client-Sonde](viewer-palette-fest.r52.client-probe.ts),
+[Ergebnisse](viewer-palette-fest.r52.client-basis.json).
+
+Das betrifft nicht nur die kleine tolerierte Änderung nach dem Lauf.
+Während des Laufs können das Programmeigene G43/G49 und ein gepinnter
+Neu-Parse Live- und Startoffset deutlich trennen; die Leerlauf-Flanke
+begrenzt diese Differenz dann nicht. Die Planbehauptung, der G53-Zug weiche
+höchstens um die Toleranz ab, gilt für diesen Zustand nicht.
+
+**Plan korrigieren:** Die verwendete Parse-Basis muss im Vertrag für
+Darstellung, Scrub und Kollisionsprüfung erhalten bleiben. Entweder
+G53-/abhängige Segmente passend an diese Basis binden oder ihre Darstellung
+mit expliziten Abhängigkeitsdaten umrechnen. Bis zum neuen Ergebnis darf
+eine abweichende Basis nicht als aktuelle, vollständig geprüfte Vorschau
+ausgegeben werden. Wächter: G53 vor einem späteren G43/G49, Änderung des
+Live-Offsets während des Laufs und gepinnter Parse mit anderem Startwert.
+
+### VP52-03 · P2 · 0,01 mm als Parse-Schwelle ersetzt keine Behandlung grenznaher Punkte
+
+**Auf die Toleranzfrage: 0,02 mm ist nicht sicherer für die Limitbewertung.**
+Ein größerer Wert unterdrückt mehr Parses, erweitert aber den Bereich
+möglicher unbemerkter Grenzübertritte. Die Messstreuung allein begründet
+keine fachliche Freigabe dieses Bereichs.
+
+Native Gegenprobe bei Z-Max50: Programmziel Z39,999, Startoffset10 →
+**kein Befund**; Startoffset10,005 → **Z50,004 > 50**, Flag gesetzt.
+Beide Zustände liegen innerhalb der vorgeschlagenen 0,01-mm-Schwelle.
+Der neue Plan würde den ersten Befundstand behalten. Das ist genau die
+Richtung eines falsch unauffälligen Ergebnisses, die VP-I20 beseitigen soll.
+[Fall `limit_near`](viewer-palette-fest.r52.native-probe.json).
+
+**Plan korrigieren:** Rechenhäufigkeit und Gültigkeit der Limitbewertung
+trennen. Eine kleine Änderung darf ohne vollen Neu-Parse bleiben, wenn
+für die betroffenen Bewegungen ausreichend Abstand zu den Grenzen
+nachgewiesen ist. Nahe Grenzen zeitnah neu bewerten oder sichtbar als
+ungeprüft/grenznah kennzeichnen; eine konservative Unsicherheitsmarge muss
+im tatsächlich geprüften Maschinen-/Gelenkraum gelten. 0,01 mm kann ein
+Budget für diese Optimierung sein, keine pauschale stillschweigende
+Erweiterung der zulässigen Maschinenlimits. Mit dieser Behandlung ist
+auch der ruhige R51-Operator-Fall erreichbar.
+
+### Antworten und Ergänzungen zum Plan
+
+- **Offsetunabhängige Nutzdaten:** Für einfache Züge lässt sich der teure
+  Interpreterlauf von einer günstigeren erneuten Limitbewertung auf
+  gespeicherten Segmenten trennen. G53 benötigt dabei eine eigene
+  Koordinaten-/Abhängigkeitsinformation; G43.1/G43.2 dürfen nicht verloren
+  gehen. Das wäre mein bevorzugter Weg, falls die Seeding-Lösung sonst
+  erneut regelmäßig einen vollständigen Parse braucht. Eine allgemeine
+  Offsetunabhängigkeit aller G-Code-Nutzdaten ist damit noch nicht bewiesen;
+  der Plan sollte keine solche Zusage voraussetzen.
+- **Live-Beleg:** Die Grundannahme kann stimmen, aber `#5403` allein belegt
+  sie nicht. LinuxCNC 2.9.4 setzt diesen Parameter aus der gespeicherten
+  Offsetzeile des Spindelwerkzeugs. Den tatsächlich angewandten
+  `STAT.tool_offset` beim Start mit erfassen und G49 bzw. einen bewusst
+  abweichenden G43.1-Wert als Kontrolle verwenden.
+  [Versionierte Quelle](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/rs274ngc/interp_convert.cc).
+  Keine eigene Live-Messung in dieser Runde.
+- **Wächter ergänzen:** XYZ-Vektor statt nur Z, Maschinen mit Zoll-Einheit,
+  fehlender/ungültiger gepinnter Startwert, Cache/alte Metadaten sowie die
+  Zustandswechsel aus VP52-01/02. Ein unbekannter Startwert darf nicht
+  stillschweigend als Offset Null oder aktueller Live-Wert eingesetzt werden.
+
+### Settings breit/gruppiert · abgenommen
+
+Die breitere Dialogstufe, vier Layergruppen und zwei Spalten erfüllen den
+beschriebenen Operatorwunsch. Der Originalwächter besteht für Desktop,
+Touch quer und 150 % hoch: 760 px, wo Platz ist, korrekte Gruppenreihenfolge,
+kein horizontaler Überlauf und funktionierendes Show HUD. Die Renderings
+sind geprüft; im schmalen Fall stehen die Abschnitte untereinander.
+[Desktop](viewer-palette-fest.r52.settings-desktop.png),
+[Touch quer](viewer-palette-fest.r52.settings-touch-landscape.png),
+[150 % hoch](viewer-palette-fest.r52.settings-touch-portrait.png).
+
+### VP-I21 · P2 · Beim Gleiten gerät die laufende Zeile aus dem sichtbaren Bereich
+
+Die neue Grenze für sofortiges Nachführen liegt bei **zwei** Sichthöhen.
+Schon kleinere Schritte können die aktive Zeile aber aus dem Fenster
+schieben. Die Hervorhebung wechselt sofort, während der Scroll erst über
+das Paketintervall folgt. Bei fortlaufenden größeren Schritten bleibt
+sie dadurch überwiegend außerhalb der Ansicht.
+[GcodePanel](../../lcnc-webui/src/GcodePanel.vue#L353),
+[Glide-Schwelle](../../lcnc-webui/src/codeGlide.ts#L25).
+
+**Eigene Browser-Gegenprobe:** 4.000 Programmzeilen, 398 px hohes Codefenster,
+36 Statusupdates von L200 bis L920 mit je 20 Zeilen Abstand und 33 ms
+Wartezeit nach jedem Senden. Ohne Bewegungsreduktion liegt die aktive
+Zeile in **87 von 107 Frames (81,3 %)** außerhalb des sichtbaren Bereichs;
+der Abstand zur Mitte erreicht **433,5 px**. Mit sofortigem Nachführen
+(`prefers-reduced-motion`) sind es **0 von 99 Frames**, maximal 0,5 px
+Abstand. Am Ende erreichen beide korrekt L920; nur diesen Endzustand zu
+prüfen übersieht den Fehler während des Laufs.
+[Normale Animation](viewer-palette-fest.r52.glide-normal.json),
+[Kontrolle](viewer-palette-fest.r52.glide-reduced.json),
+[Sonde](viewer-palette-fest.r52.browser-probe.ts).
+
+Der bestehende Test mit drei Zeilen je Paket besteht: 60 fps, 97 % bewegte
+Frames, kein ganzer Paketschritt. Er deckt die größeren Schritte nicht ab.
+
+**Korrektur:** Den Rückstand an einem sichtbaren Bereich um die laufende
+Zeile begrenzen; sofort nachführen, sobald die wahre aktive Zeile sonst
+außerhalb läge. Kleine Schritte dürfen weiter gleiten. Die Prüfung muss
+Sichtbarkeit während des Laufs erfassen, auch bei Rücksprüngen, kleinen
+Codefenstern und skaliertem virtuellem Scrollraum. Keine andere Zeile als
+„aktuell“ markieren, nur um die Hervorhebung mittig zu halten.
+
+### Validierung und nächster Schritt
+
+Typecheck/Build PASS; **34 Unit-Tests**, **2 originale Browserprüfungen**,
+**2 eigene Browser-Sonden** und die eigene **Client-Rechenprobe** ausgeführt.
+Die nativen Planexperimente umfassen **14 relevante erfolgreiche Parses**
+plus zwei dokumentierte Parameter-Diagnosen. Die Gegenproben belegen die
+oben beschriebenen Fehler; ihr erfolgreicher Ablauf bedeutet keine Abnahme.
+[Originaler Browserlauf](viewer-palette-fest.r52.original-browser-summary.json),
+[Prüfgrenzen](viewer-palette-fest.r52.reproduce.md).
+
+Kein vollständiges Offline-Gate und keine Maschinenfahrt wiederholt.
+Nächste Runde auf die überarbeitete VP-I20-Planfassung und VP-I21 begrenzen;
+Settings bleibt abgenommen, sofern es dafür unverändert bleibt.

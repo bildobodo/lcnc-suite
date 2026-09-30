@@ -1,0 +1,39 @@
+{
+  "stats": {
+    "startTime": "2026-09-30T21:26:42.079Z",
+    "duration": 17557.26,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "title": "Settings: as wide as the tool editor, the 3D Viewer sections side by side, the layers in four groups",
+      "status": "expected",
+      "annotations": [],
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 9563
+        }
+      ]
+    },
+    {
+      "title": "the running line glides: the code scrolls evenly under a centred highlight",
+      "status": "expected",
+      "annotations": [
+        {
+          "type": "glide",
+          "description": "60 fps, 178 frames: 97 % move, 0 % by a whole 69 px packet step"
+        }
+      ],
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 7027
+        }
+      ]
+    }
+  ]
+}

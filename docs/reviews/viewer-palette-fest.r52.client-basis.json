@@ -1,0 +1,23 @@
+[
+  {
+    "parseSeedZ": 10,
+    "liveZ": 10,
+    "programZ": -10,
+    "reconstructedMachineZ": 0,
+    "expectedG53MachineZ": 0
+  },
+  {
+    "parseSeedZ": 10,
+    "liveZ": 10.005,
+    "programZ": -10,
+    "reconstructedMachineZ": 0.005000000000000782,
+    "expectedG53MachineZ": 0
+  },
+  {
+    "parseSeedZ": 10,
+    "liveZ": 20,
+    "programZ": -10,
+    "reconstructedMachineZ": 10,
+    "expectedG53MachineZ": 0
+  }
+]

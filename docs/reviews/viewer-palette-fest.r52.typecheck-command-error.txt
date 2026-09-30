@@ -1,0 +1,1 @@
+error TS5094: Compiler option '--tsBuildInfoFile' may not be used with '--build'.

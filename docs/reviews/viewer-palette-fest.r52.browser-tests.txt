@@ -1,0 +1,13 @@
+
+Running 2 tests using 1 worker
+
+(node:2700147) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2700147) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"reduce":false,"line":920,"frames":107,"invisibleFrames":87,"invisibleShare":0.8130841121495327,"viewH":398,"maxAbsOffset":433.5}
+  ✓  1 [probe] › e2e/r52.spec.ts:11:36 › R52 running-line visibility: 20 lines per packet, reduced=false (5.5s)
+{"reduce":true,"line":920,"frames":99,"invisibleFrames":0,"invisibleShare":0,"viewH":398,"maxAbsOffset":0.5}
+  ✓  2 [probe] › e2e/r52.spec.ts:11:36 › R52 running-line visibility: 20 lines per packet, reduced=true (5.1s)
+
+  2 passed (11.3s)

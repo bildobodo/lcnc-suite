@@ -1,0 +1,206 @@
+[
+  {
+    "case": "inherit",
+    "seed": [
+      10.0,
+      20.0
+    ],
+    "prefix_moves": [
+      2,
+      2
+    ],
+    "payload_equal": false,
+    "violations": [
+      1,
+      2
+    ],
+    "tlo_events": [
+      null,
+      null
+    ]
+  },
+  {
+    "case": "g43",
+    "seed": [
+      10.0,
+      20.0
+    ],
+    "prefix_moves": [
+      0,
+      0
+    ],
+    "payload_equal": true,
+    "violations": [
+      1,
+      1
+    ],
+    "tlo_events": [
+      [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ]
+    ]
+  },
+  {
+    "case": "partial",
+    "seed": [
+      10.0,
+      20.0
+    ],
+    "prefix_moves": [
+      0,
+      0
+    ],
+    "payload_equal": false,
+    "violations": [
+      1,
+      2
+    ],
+    "tlo_events": [
+      [
+        [
+          0,
+          1.9999999999999998,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      [
+        [
+          0,
+          1.9999999999999998,
+          0.0,
+          20.0,
+          -1
+        ]
+      ]
+    ]
+  },
+  {
+    "case": "additive",
+    "seed": [
+      10.0,
+      20.0
+    ],
+    "prefix_moves": [
+      0,
+      0
+    ],
+    "payload_equal": false,
+    "violations": [
+      2,
+      2
+    ],
+    "tlo_events": [
+      [
+        [
+          0,
+          0.0,
+          0.0,
+          12.0,
+          -1
+        ]
+      ],
+      [
+        [
+          0,
+          0.0,
+          0.0,
+          22.0,
+          -1
+        ]
+      ]
+    ]
+  },
+  {
+    "case": "g49",
+    "seed": [
+      10.0,
+      20.0
+    ],
+    "prefix_moves": [
+      0,
+      0
+    ],
+    "payload_equal": true,
+    "violations": [
+      0,
+      0
+    ],
+    "tlo_events": [
+      [
+        [
+          0,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      [
+        [
+          0,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ]
+    ]
+  },
+  {
+    "case": "g53",
+    "seed": [
+      10.0,
+      20.0
+    ],
+    "prefix_moves": [
+      2,
+      2
+    ],
+    "payload_equal": false,
+    "violations": [
+      1,
+      1
+    ],
+    "tlo_events": [
+      null,
+      null
+    ]
+  },
+  {
+    "case": "limit_near",
+    "seed": [
+      10.0,
+      10.005
+    ],
+    "prefix_moves": [
+      2,
+      2
+    ],
+    "payload_equal": false,
+    "violations": [
+      0,
+      1
+    ],
+    "tlo_events": [
+      null,
+      null
+    ]
+  }
+]

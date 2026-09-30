@@ -1,0 +1,904 @@
+{
+  "commit": "650b6b625d2379a2ee180b823638efb42a741cb0",
+  "experiment": "proposed G43.1 init injection; actual worker and native interpreter",
+  "fresh_process_per_case": true,
+  "cases": [
+    {
+      "case": "inherit",
+      "seed_z": 10.0,
+      "initcodes": [
+        "G21",
+        "G90",
+        "G43.1 X0 Y0 Z10.000000000",
+        "G54"
+      ],
+      "canon_tlo_events": [],
+      "feed_count": 1,
+      "rapid_count": 1,
+      "planned_prefix_moves": 2,
+      "sha256_except_file": "6297abe91b4099d4241d006db665d0a2136d0575d8e47d0a613a5a1b9d605bb0",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": null,
+      "violations": [
+        {
+          "line": 3,
+          "axis": "Z",
+          "value": 55.0,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 1,
+      "feed_outside": [
+        1
+      ],
+      "rapid_outside": [
+        0
+      ]
+    },
+    {
+      "case": "inherit",
+      "seed_z": 20.0,
+      "initcodes": [
+        "G21",
+        "G90",
+        "G43.1 X0 Y0 Z20.000000000",
+        "G54"
+      ],
+      "canon_tlo_events": [],
+      "feed_count": 1,
+      "rapid_count": 1,
+      "planned_prefix_moves": 2,
+      "sha256_except_file": "3c8c15e9788fe0028f5bfebcc28147b7d19e9279a4e8e52ae7117a865277c0a6",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": null,
+      "violations": [
+        {
+          "line": 2,
+          "axis": "Z",
+          "value": 60.0,
+          "limit": 50.0,
+          "kind": "max"
+        },
+        {
+          "line": 3,
+          "axis": "Z",
+          "value": 65.0,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 2,
+      "feed_outside": [
+        1
+      ],
+      "rapid_outside": [
+        1
+      ]
+    },
+    {
+      "case": "g43",
+      "seed_z": 10.0,
+      "initcodes": [
+        "G21",
+        "G90",
+        "G43.1 X0 Y0 Z10.000000000",
+        "G54"
+      ],
+      "canon_tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.3937007874015748,
+          -1
+        ]
+      ],
+      "feed_count": 1,
+      "rapid_count": 1,
+      "planned_prefix_moves": 0,
+      "sha256_except_file": "312252e410ffa4fa2a2726815359c7b55254b12a42e86d7c6c9f2aae50987633",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "violations": [
+        {
+          "line": 4,
+          "axis": "Z",
+          "value": 55.0,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 1,
+      "feed_outside": [
+        1
+      ],
+      "rapid_outside": [
+        0
+      ]
+    },
+    {
+      "case": "g43",
+      "seed_z": 20.0,
+      "initcodes": [
+        "G21",
+        "G90",
+        "G43.1 X0 Y0 Z20.000000000",
+        "G54"
+      ],
+      "canon_tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.3937007874015748,
+          -1
+        ]
+      ],
+      "feed_count": 1,
+      "rapid_count": 1,
+      "planned_prefix_moves": 0,
+      "sha256_except_file": "312252e410ffa4fa2a2726815359c7b55254b12a42e86d7c6c9f2aae50987633",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "violations": [
+        {
+          "line": 4,
+          "axis": "Z",
+          "value": 55.0,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 1,
+      "feed_outside": [
+        1
+      ],
+      "rapid_outside": [
+        0
+      ]
+    },
+    {
+      "case": "param",
+      "seed_z": 10.0,
+      "initcodes": [
+        "G21",
+        "G90",
+        "G43.1 X0 Y0 Z10.000000000",
+        "G54"
+      ],
+      "canon_tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "feed_count": 1,
+      "rapid_count": 1,
+      "planned_prefix_moves": 0,
+      "sha256_except_file": "12ff85b026e18c917921e1f959a4cf72180ee87697c88e56db2049ae373ae197",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0
+      ]
+    },
+    {
+      "case": "param",
+      "seed_z": 20.0,
+      "initcodes": [
+        "G21",
+        "G90",
+        "G43.1 X0 Y0 Z20.000000000",
+        "G54"
+      ],
+      "canon_tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "feed_count": 1,
+      "rapid_count": 1,
+      "planned_prefix_moves": 0,
+      "sha256_except_file": "12ff85b026e18c917921e1f959a4cf72180ee87697c88e56db2049ae373ae197",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0
+      ]
+    },
+    {
+      "case": "partial",
+      "seed_z": 10.0,
+      "initcodes": [
+        "G21",
+        "G90",
+        "G43.1 X0 Y0 Z10.000000000",
+        "G54"
+      ],
+      "canon_tlo_events": [
+        [
+          0,
+          0.07874015748031496,
+          0.0,
+          0.3937007874015748,
+          -1
+        ]
+      ],
+      "feed_count": 1,
+      "rapid_count": 1,
+      "planned_prefix_moves": 0,
+      "sha256_except_file": "33afdc5d757bd28c0b21e17c288cdb9f4e8b8af1cc60366f052cc5d96f929d3a",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          1.9999999999999998,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "violations": [
+        {
+          "line": 4,
+          "axis": "Z",
+          "value": 55.0,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 1,
+      "feed_outside": [
+        1
+      ],
+      "rapid_outside": [
+        0
+      ]
+    },
+    {
+      "case": "partial",
+      "seed_z": 20.0,
+      "initcodes": [
+        "G21",
+        "G90",
+        "G43.1 X0 Y0 Z20.000000000",
+        "G54"
+      ],
+      "canon_tlo_events": [
+        [
+          0,
+          0.07874015748031496,
+          0.0,
+          0.7874015748031497,
+          -1
+        ]
+      ],
+      "feed_count": 1,
+      "rapid_count": 1,
+      "planned_prefix_moves": 0,
+      "sha256_except_file": "c795017d6cb71be616f8835df01698d4546fd3b653641c31530ba2eb9c5432a2",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          1.9999999999999998,
+          0.0,
+          20.0,
+          -1
+        ]
+      ],
+      "violations": [
+        {
+          "line": 3,
+          "axis": "Z",
+          "value": 60.0,
+          "limit": 50.0,
+          "kind": "max"
+        },
+        {
+          "line": 4,
+          "axis": "Z",
+          "value": 65.0,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 2,
+      "feed_outside": [
+        1
+      ],
+      "rapid_outside": [
+        1
+      ]
+    },
+    {
+      "case": "additive",
+      "seed_z": 10.0,
+      "initcodes": [
+        "G21",
+        "G90",
+        "G43.1 X0 Y0 Z10.000000000",
+        "G54"
+      ],
+      "canon_tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.4724409448818898,
+          -1
+        ]
+      ],
+      "feed_count": 1,
+      "rapid_count": 1,
+      "planned_prefix_moves": 0,
+      "sha256_except_file": "9aff04c8674c4b6a85556759cf2171c80add144b7294deee89ce5dd6e4ccff21",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          12.0,
+          -1
+        ]
+      ],
+      "violations": [
+        {
+          "line": 3,
+          "axis": "Z",
+          "value": 52.0,
+          "limit": 50.0,
+          "kind": "max"
+        },
+        {
+          "line": 4,
+          "axis": "Z",
+          "value": 57.0,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 2,
+      "feed_outside": [
+        1
+      ],
+      "rapid_outside": [
+        1
+      ]
+    },
+    {
+      "case": "additive",
+      "seed_z": 20.0,
+      "initcodes": [
+        "G21",
+        "G90",
+        "G43.1 X0 Y0 Z20.000000000",
+        "G54"
+      ],
+      "canon_tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.8661417322834646,
+          -1
+        ]
+      ],
+      "feed_count": 1,
+      "rapid_count": 1,
+      "planned_prefix_moves": 0,
+      "sha256_except_file": "50c8488b1e052e34f1c00caa20923da24786858fbb6fa0e52d37fa8e4cd261a4",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          22.0,
+          -1
+        ]
+      ],
+      "violations": [
+        {
+          "line": 3,
+          "axis": "Z",
+          "value": 62.0,
+          "limit": 50.0,
+          "kind": "max"
+        },
+        {
+          "line": 4,
+          "axis": "Z",
+          "value": 67.0,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 2,
+      "feed_outside": [
+        1
+      ],
+      "rapid_outside": [
+        1
+      ]
+    },
+    {
+      "case": "g49",
+      "seed_z": 10.0,
+      "initcodes": [
+        "G21",
+        "G90",
+        "G43.1 X0 Y0 Z10.000000000",
+        "G54"
+      ],
+      "canon_tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "feed_count": 1,
+      "rapid_count": 1,
+      "planned_prefix_moves": 0,
+      "sha256_except_file": "e4792150324dabf3d7dcd2977c24f61e99d63fbae247efe18971598959d27b55",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0
+      ]
+    },
+    {
+      "case": "g49",
+      "seed_z": 20.0,
+      "initcodes": [
+        "G21",
+        "G90",
+        "G43.1 X0 Y0 Z20.000000000",
+        "G54"
+      ],
+      "canon_tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "feed_count": 1,
+      "rapid_count": 1,
+      "planned_prefix_moves": 0,
+      "sha256_except_file": "e4792150324dabf3d7dcd2977c24f61e99d63fbae247efe18971598959d27b55",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0
+      ]
+    },
+    {
+      "case": "g53",
+      "seed_z": 10.0,
+      "initcodes": [
+        "G21",
+        "G90",
+        "G43.1 X0 Y0 Z10.000000000",
+        "G54"
+      ],
+      "canon_tlo_events": [],
+      "feed_count": 0,
+      "rapid_count": 2,
+      "planned_prefix_moves": 2,
+      "sha256_except_file": "c1a928e19e699b167882ee9a4cf927917f887d15f976da12802e0e8df7a27945",
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          -10.0
+        ],
+        [
+          0.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "tlo_events": null,
+      "violations": [
+        {
+          "line": 3,
+          "axis": "Z",
+          "value": 55.0,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 1,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        1
+      ]
+    },
+    {
+      "case": "g53",
+      "seed_z": 20.0,
+      "initcodes": [
+        "G21",
+        "G90",
+        "G43.1 X0 Y0 Z20.000000000",
+        "G54"
+      ],
+      "canon_tlo_events": [],
+      "feed_count": 0,
+      "rapid_count": 2,
+      "planned_prefix_moves": 2,
+      "sha256_except_file": "2379c925a47eba0773b02b0a1c411b8284cb9e1ef52298525434fee915c89baa",
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          -20.0
+        ],
+        [
+          0.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "tlo_events": null,
+      "violations": [
+        {
+          "line": 3,
+          "axis": "Z",
+          "value": 65.0,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 1,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        1
+      ]
+    },
+    {
+      "case": "limit_near",
+      "seed_z": 10.0,
+      "initcodes": [
+        "G21",
+        "G90",
+        "G43.1 X0 Y0 Z10.000000000",
+        "G54"
+      ],
+      "canon_tlo_events": [],
+      "feed_count": 1,
+      "rapid_count": 1,
+      "planned_prefix_moves": 2,
+      "sha256_except_file": "50c8856a36b3d12de03028381d418b9c98df9d48b174c65585a6f5c30fa1719c",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          39.999000549316406
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          39.0
+        ]
+      ],
+      "tlo_events": null,
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0
+      ]
+    },
+    {
+      "case": "limit_near",
+      "seed_z": 10.005,
+      "initcodes": [
+        "G21",
+        "G90",
+        "G43.1 X0 Y0 Z10.005000000",
+        "G54"
+      ],
+      "canon_tlo_events": [],
+      "feed_count": 1,
+      "rapid_count": 1,
+      "planned_prefix_moves": 2,
+      "sha256_except_file": "5b9828c32d5d8f2abe81239dfc8e035432d35965f2045e5e4812a7c4f3e43bbd",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          39.999000549316406
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          39.0
+        ]
+      ],
+      "tlo_events": null,
+      "violations": [
+        {
+          "line": 3,
+          "axis": "Z",
+          "value": 50.004,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 1,
+      "feed_outside": [
+        1
+      ],
+      "rapid_outside": [
+        0
+      ]
+    }
+  ],
+  "failures": []
+}

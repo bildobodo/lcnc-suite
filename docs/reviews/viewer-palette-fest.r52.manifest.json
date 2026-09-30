@@ -1,0 +1,150 @@
+{
+  "commit": "650b6b625d2379a2ee180b823638efb42a741cb0",
+  "files": [
+    {
+      "file": "viewer-palette-fest.r52.browser-probe.ts",
+      "bytes": 3197,
+      "sha256": "1743999aef572e2461724888b9289020bcef53d9dae60fdc2ecaf942b1638bcf"
+    },
+    {
+      "file": "viewer-palette-fest.r52.browser-run.py",
+      "bytes": 1312,
+      "sha256": "85e3c062ecfbe682449ba85b14548ab3c7f1942f7ccddfb901915a95709c381a"
+    },
+    {
+      "file": "viewer-palette-fest.r52.browser-tests.txt",
+      "bytes": 860,
+      "sha256": "e969744f1ded7244e723637ea49c3c79f917de35a5a1f2490dec0a37eb843edc"
+    },
+    {
+      "file": "viewer-palette-fest.r52.build.txt",
+      "bytes": 2523,
+      "sha256": "6927bf6db3209cf0201300647fb1937cf45c37cd5e87a8721877b04941e5c206"
+    },
+    {
+      "file": "viewer-palette-fest.r52.client-basis.json",
+      "bytes": 417,
+      "sha256": "dfa058eb77984e666b5561dd61ff866ce51e281f041c72165525aa3ddca48b64"
+    },
+    {
+      "file": "viewer-palette-fest.r52.client-probe.ts",
+      "bytes": 1075,
+      "sha256": "2313549c331446d1a48d25d7375db7a46e674305503552ef7a917e4610444be9"
+    },
+    {
+      "file": "viewer-palette-fest.r52.client-tests.txt",
+      "bytes": 215,
+      "sha256": "5a05955242bf09280cae927d0bc0f394d141348c44e6b1995bc8cacad03843a3"
+    },
+    {
+      "file": "viewer-palette-fest.r52.glide-normal.json",
+      "bytes": 16324,
+      "sha256": "57e867bb6af30da54144bebe6f22753f94ec11ee4038fcdb331038732d098424"
+    },
+    {
+      "file": "viewer-palette-fest.r52.glide-reduced.json",
+      "bytes": 15061,
+      "sha256": "f781a8cab6564242bce08a19bfa54b3a20ae6af813194d9d15ca9ed2cc70d266"
+    },
+    {
+      "file": "viewer-palette-fest.r52.mock.txt",
+      "bytes": 36,
+      "sha256": "532dee4c7f88e513fc1926f00a2a72d36f6588704cb7c0d6c35316c44b4f81b3"
+    },
+    {
+      "file": "viewer-palette-fest.r52.native-case.py",
+      "bytes": 5838,
+      "sha256": "e00e73a24311bab32304a62f35a5c0a715168a5697bc2e4f3c487e1144b1750f"
+    },
+    {
+      "file": "viewer-palette-fest.r52.native-exploration.txt",
+      "bytes": 8165,
+      "sha256": "8c4a723a96b7904d961b2cafa37f8b3059dcc45cb2a1609ab203a137acac57ef"
+    },
+    {
+      "file": "viewer-palette-fest.r52.native-probe.json",
+      "bytes": 16464,
+      "sha256": "24a55afd796f06cf06875de3ae80d6104d259667061bec1bf4838876c2e6b8ee"
+    },
+    {
+      "file": "viewer-palette-fest.r52.native-probe.txt",
+      "bytes": 9009,
+      "sha256": "b50a93d6e1a94ebb5e6e7dfa8799a32711691bc8c3c8337baa2d1d782177bb7f"
+    },
+    {
+      "file": "viewer-palette-fest.r52.native-run.py",
+      "bytes": 1149,
+      "sha256": "391085905cadd187dd57e20da3accd84f6b63c1030488e7f2dad0ed0643115cc"
+    },
+    {
+      "file": "viewer-palette-fest.r52.original-browser-summary.json",
+      "bytes": 885,
+      "sha256": "803506f075671270b00b857c7313ab302074d367550fabdcc95f2ccf61c2bbfe"
+    },
+    {
+      "file": "viewer-palette-fest.r52.original-browser-tests.txt",
+      "bytes": 683,
+      "sha256": "5aedc231245118da5ba8b94e3481a8c9cc236301279b73b3b85499ab0b4f71f0"
+    },
+    {
+      "file": "viewer-palette-fest.r52.original-mock.txt",
+      "bytes": 36,
+      "sha256": "532dee4c7f88e513fc1926f00a2a72d36f6588704cb7c0d6c35316c44b4f81b3"
+    },
+    {
+      "file": "viewer-palette-fest.r52.plan-summary.json",
+      "bytes": 2500,
+      "sha256": "65ac27b040ef03617232a7e23cabcf4932135075178c8683664efc866f0a8bd8"
+    },
+    {
+      "file": "viewer-palette-fest.r52.playwright.config.ts",
+      "bytes": 650,
+      "sha256": "d409bcd7f7523b5751bdc925eced8281e2908051e946674ca219b47eb64fdc7a"
+    },
+    {
+      "file": "viewer-palette-fest.r52.probe-browser-summary.json",
+      "bytes": 692,
+      "sha256": "50c148b5389b47c77ef8f2c959af6c3b9e0c8dc8142acdb31ac5f8706bd4f82d"
+    },
+    {
+      "file": "viewer-palette-fest.r52.probe.config.ts",
+      "bytes": 554,
+      "sha256": "cf32f08a3c0b39614670f38e0fb2ba1584058cd03ef59080c7e99ab4c97b89f2"
+    },
+    {
+      "file": "viewer-palette-fest.r52.reproduce.md",
+      "bytes": 5320,
+      "sha256": "bded8f89667dbfecc1823fbeedb101bc118cac1279630cad9028da1afa8874e9"
+    },
+    {
+      "file": "viewer-palette-fest.r52.settings-desktop.png",
+      "bytes": 56242,
+      "sha256": "d35318a0e25897dab8b1fdab58bb22543ddd71129a62602a8377a1a5ce654dca"
+    },
+    {
+      "file": "viewer-palette-fest.r52.settings-touch-landscape.png",
+      "bytes": 27444,
+      "sha256": "5a196fc1a9a83a1d6f44de9c64160c886dbb2fcefd367834005dd5eda4721c83"
+    },
+    {
+      "file": "viewer-palette-fest.r52.settings-touch-portrait.png",
+      "bytes": 40142,
+      "sha256": "58bca9f98987632d4820d04740bde9ca59ea645322fdc67f846b93ad02ab4edd"
+    },
+    {
+      "file": "viewer-palette-fest.r52.typecheck-command-error.txt",
+      "bytes": 82,
+      "sha256": "e3d4a276bd0a1d0dd97abcda42ac66db2eeff46dde957f369355bf5de3112e4a"
+    },
+    {
+      "file": "viewer-palette-fest.r52.typecheck.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "viewer-palette-fest.r52.vitest.txt",
+      "bytes": 219,
+      "sha256": "23b88db2f0edd648949f3270509346541d7e4d66290991a41c85417f2e37083e"
+    }
+  ]
+}

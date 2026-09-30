@@ -1,0 +1,11 @@
+
+Running 2 tests using 1 worker
+
+(node:2696478) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2696478) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [original] › e2e/layout.spec.ts:1654:1 › Settings: as wide as the tool editor, the 3D Viewer sections side by side, the layers in four groups (9.6s)
+  ✓  2 [original] › e2e/layout.spec.ts:1734:1 › the running line glides: the code scrolls evenly under a centred highlight (7.0s)
+
+  2 passed (17.6s)
