@@ -99,7 +99,12 @@ function build(mode: PathLineMode) {
  *  ArrayBuffer is no allocation — and the methods that return a NEW array
  *  (slice, map, filter, from, of). Bytes at the buffer's capacity, and per
  *  calling site for the diagnosis. */
-function allocationsDuring<T>(fn: () => T): { out: T; bytes: number; sites: Record<string, number> } {
+// WeakRef through globalThis: the browser tsconfig this suite checks under
+// has no ES2021 lib (the test itself runs in node, which has it).
+type WeakRefLike<T> = { deref(): T | undefined };
+const WeakRefOf = (globalThis as unknown as { WeakRef: new <T extends object>(t: T) => WeakRefLike<T> }).WeakRef;
+type Alloc = { ref: WeakRefLike<ArrayBufferLike>; site: string; bytes: number };
+function allocationsDuring<T>(fn: () => T): { out: T; bytes: number; sites: Record<string, number>; refs: Alloc[] } {
   const g = globalThis as unknown as Record<string, unknown>;
   const names = ["Float32Array", "Float64Array", "Uint32Array", "Uint16Array", "Uint8Array", "Uint8ClampedArray",
     "Int32Array", "Int16Array", "Int8Array"];
@@ -108,10 +113,13 @@ function allocationsDuring<T>(fn: () => T): { out: T; bytes: number; sites: Reco
   const savedProto = { slice: proto.slice!, map: proto.map!, filter: proto.filter! };
   let bytes = 0;
   const sites: Record<string, number> = {};
+  const refs: Alloc[] = [];   // WEAK: the spy keeps nothing alive
   const note = (a: ArrayBufferView) => {
     bytes += a.buffer.byteLength;
-    const at = (new Error().stack ?? "").split("\n")[3]?.trim().replace(/^at /, "") ?? "?";
+    // the first caller outside the meter's helpers (the site that allocates)
+    const at = (new Error().stack ?? "").split("\n").slice(3).find(l => !l.includes("allocMeter"))?.trim().replace(/^at /, "") ?? "?";
     sites[at] = (sites[at] ?? 0) + a.buffer.byteLength;
+    refs.push({ ref: new WeakRefOf(a.buffer), site: at, bytes: a.buffer.byteLength });
   };
   names.forEach((n, i) => {
     const C = saved[i] as new (...a: unknown[]) => ArrayBufferView;
@@ -133,7 +141,7 @@ function allocationsDuring<T>(fn: () => T): { out: T; bytes: number; sites: Reco
     proto[k] = function (this: unknown, ...a: unknown[]) { const x = f.apply(this, a) as ArrayBufferView; note(x); return x; };
   }
   try {
-    return { out: fn(), bytes, sites };
+    return { out: fn(), bytes, sites, refs };
   } finally {
     names.forEach((n, i) => { g[n] = saved[i]; });
     Object.assign(proto, savedProto);
@@ -438,6 +446,37 @@ describe("the fat path draws exactly the GL path's pairs (Codex R39)", () => {
       expect(m.peak).toBe(Math.max(before.peak, before.cpu.total + rv.bytes));
       void ctx;
     });
+  }
+
+  // Codex R49 VP-I17: what a build leaves ALIVE is in the ledger — found by
+  // a full collection, independent of the ledger's own walk: every array the
+  // builds allocated that survives gc() must be among the buffers the CPU
+  // side counts (the prepared overlay indices and chunk boxes stayed held
+  // and uncounted).
+  const gc = (globalThis as { gc?: () => void }).gc;
+  const tick = () => new Promise(r => setTimeout(r, 0));
+  async function survivors(refs: Alloc[]) {
+    // a WeakRef keeps its target alive through the job that made it
+    await tick(); gc!(); await tick(); gc!();
+    return refs.flatMap(r => { const b = r.ref.deref(); return b ? [{ buffer: b, site: r.site, bytes: r.bytes }] : []; });
+  }
+  for (const mode of ["fat", "gl"] as const) {
+    for (const [name, make] of Object.entries(variants)) {
+      it(`everything a build and a finding's view leave alive is in the ledger (${mode}, ${name})`, async () => {
+        expect(gc, "vitest runs with --expose-gc").toBeTypeOf("function");
+        const { c, ctx: base } = controller(mode);
+        const { p, room } = make();
+        const ctx = room ? roomCtx(base) : base;
+        const refs = [...allocationsDuring(() => c.apply(ctx, p as any)).refs];
+        c.setRapidsVisible(false);
+        refs.push(...allocationsDuring(() => c.setReveal({ run: [1001, 1003], feed: false, rapid: true } as any)).refs);
+        refs.push(...allocationsDuring(() => c.rebuild(ctx)).refs);
+        const alive = await survivors(refs);
+        expect(alive.length, "the build holds what it drew").toBeGreaterThan(0);
+        const held = c.heldBuffers();
+        expect(alive.filter(a => !held.has(a.buffer)).map(a => `${a.site}: ${a.bytes} B`)).toEqual([]);
+      });
+    }
   }
 
   it("a program of separate single points: the frame index's scratch counts (Codex R48's 4096-section case)", () => {

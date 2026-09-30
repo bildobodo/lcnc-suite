@@ -148,6 +148,9 @@ export interface ToolpathController {
   /** The memory ledger (Codex R39 VP39-01): bytes by owner — CPU per unique
    *  ArrayBuffer, GPU per buffer actually uploaded. */
   pathMemory(): PathMemory;
+  /** The ArrayBuffers the ledger's CPU side counts (a test's view: what a
+   *  build leaves alive must be among them — Codex R49 VP-I17). */
+  heldBuffers(): Set<ArrayBufferLike>;
   /** Live-update feed/rapid/toolpath-bounds colours on existing lines. */
   setColors(c: Colors): void;
   /** Mute the drawn path while it is known not to match the machine's
@@ -271,7 +274,10 @@ interface LineSet {
    *  the flagged ones among them in the limit role. */
   reveal: { line: PathObj | null; over: PathObj | null };
   /** The limit overlays' flagged pairs per level, prepared before the pack:
-   *  one exact index per level with each chunk's range in it. */
+   *  one exact index per level with each chunk's range in it. TRANSIENT —
+   *  fillOverlays consumes it and lets it go (the fat pack copied the pairs,
+   *  a GL overlay's geometry holds its index): nothing the ledger cannot see
+   *  stays held (Codex R49 VP-I17). */
   ovIdx: ({ index: Uint32Array; starts: Uint32Array; counts: Uint32Array } | null)[];
 }
 
@@ -374,7 +380,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   let _lastApply: { g: ViewerGcode; anchor: AnchorTerms | null } | null = null;
 
   /** The memory ledger now (Codex R39 VP39-01, R47 VP-I17) — see PathMemory. */
-  function ledger(): PathMemory {
+  function ledger(collect?: Set<ArrayBufferLike>): PathMemory {
     const seenCpu = new Set<ArrayBufferLike>();
     const seenGpu = new Set<object>();
     type Owner = "base" | "dist" | "overlay" | "reveal" | "mesh" | "box";
@@ -432,6 +438,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     // what the controller derived and keeps (binned levels, computed distances)
     for (const st of sets) {
       for (const l of st.levels) addCpu("source", l.index);
+      addCpu("source", st.bounds);   // the chunk boxes the culling keeps reading
       addCpu("source", st.dist?.array as Float32Array | undefined);
       addCpu("source", st.posAttr.array as Float32Array);
     }
@@ -443,6 +450,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       }
     }
     cpu.total = cpu.base + cpu.dist + cpu.overlay + cpu.reveal + cpu.mesh + cpu.box + cpu.source + cpu.payload;
+    if (collect) for (const b of seenCpu) collect.add(b);
     gpu.total = gpu.base + gpu.dist + gpu.overlay + gpu.reveal + gpu.mesh + gpu.box;
     let source = 0, lod = 0, drawn = 0;
     const shown = (o: THREE.Object3D) => { for (let p: THREE.Object3D | null = o; p; p = p.parent) if (!p.visible) return false; return true; };
@@ -680,6 +688,10 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   }
 
   function fillOverlays(s: LineSet) {
+    try { packOverlays(s); } finally { s.ovIdx = []; }
+  }
+
+  function packOverlays(s: LineSet) {
     if (!s.ovIdx.some(Boolean)) return;
     s.overMat = pathMaterial(deps.colors().limit, false, "limit");
     for (let k = 0; k < s.ovIdx.length; k++) {
@@ -1296,6 +1308,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     },
 
     pathMemory() { return ledger(); },
+    heldBuffers() { const b = new Set<ArrayBufferLike>(); ledger(b); return b; },
 
     setAlwaysOnTop(on) {
       pathAlwaysOnTop = on;

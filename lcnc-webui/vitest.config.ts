@@ -6,5 +6,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],
+    // gc() for the path ledger's HELD-memory guard (fatPaths.test.ts): what
+    // survives a full collection after a build must be in the ledger.
+    execArgv: ["--expose-gc"],
   },
 });
