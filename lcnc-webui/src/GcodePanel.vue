@@ -14,6 +14,7 @@ import { fmtPct } from "./format";
 import { limitViolationText, type LimitViolation } from "./ws/bulkData";
 import { isTouchDevice } from "./touchDetect";
 import { useMediaMql } from "./useMediaMql";
+import { glideAt, planGlide, type Glide } from "./codeGlide";
 import { emitTelemetry, pushMessage } from "./lcncWs";
 import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "./lcnc";
 import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
@@ -313,12 +314,58 @@ function onCodeScroll(ev: Event) {
   tooltip.value = null;
 }
 
+/** Set the scroll position AND the rendered window's input in one step —
+ *  the clamped value the element took, never the requested one. */
+function setScroll(s: number) {
+  const el = codeViewerRef.value;
+  if (!el) return;
+  el.scrollTop = s;
+  scrollTop.value = el.scrollTop;
+}
+
+// The followed line GLIDES (codeGlide.ts, operator 2026-09-30: the
+// highlight "zuckt" — a hard scroll per status packet moved the text by 0,
+// 3, 5 lines at a time): each new target is reached over the last packet
+// gap, one step per animation frame; a far jump, a pause or reduced motion
+// snaps.
+let _glide: Glide | null = null;
+let _glideRaf = 0;
+let _lastFollowAt = -Infinity;
+const reducedMotion = useMediaMql("(prefers-reduced-motion: reduce)");
+function _glideFrame(now: number) {
+  _glideRaf = 0;
+  const g = _glide;
+  if (!g) return;
+  const { pos, done } = glideAt(g, now);
+  setScroll(pos);
+  if (done) _glide = null;
+  else _glideRaf = requestAnimationFrame(_glideFrame);
+}
+function stopGlide() {
+  if (_glideRaf) cancelAnimationFrame(_glideRaf);
+  _glideRaf = 0;
+  _glide = null;
+}
+onUnmounted(stopGlide);
+
 // Scroll to a ROW (mathematical — no DOM search). Target is computed in
 // content space, then mapped to scrollbar space (identity at scale 1).
 function scrollToRow(row: number) {
-  if (!codeViewerRef.value) return;
-  const targetY = row * LINE_HEIGHT.value - codeViewerRef.value.clientHeight / 2 + LINE_HEIGHT.value / 2;
-  codeViewerRef.value.scrollTop = Math.max(0, _contentToScroll(targetY));
+  const el = codeViewerRef.value;
+  if (!el) return;
+  const targetY = row * LINE_HEIGHT.value - el.clientHeight / 2 + LINE_HEIGHT.value / 2;
+  const to = Math.min(Math.max(0, _contentToScroll(targetY)), Math.max(0, el.scrollHeight - el.clientHeight));
+  const now = performance.now();
+  const gap = now - _lastFollowAt;
+  _lastFollowAt = now;
+  const g = planGlide(el.scrollTop, to, now, gap, el.clientHeight, reducedMotion.value);
+  if (!g) {
+    stopGlide();
+    setScroll(to);
+    return;
+  }
+  _glide = g;
+  if (!_glideRaf) _glideRaf = requestAnimationFrame(_glideFrame);
 }
 function scrollToLine(line: number) {
   scrollToRow(rowForMain(line, expansion.value));

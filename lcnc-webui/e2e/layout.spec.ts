@@ -1716,3 +1716,75 @@ test('Settings: as wide as the tool editor, the 3D Viewer sections side by side,
     if (zoom !== 1) await page.evaluate(() => { document.documentElement.style.zoom = ''; });
   }
 });
+
+// The running line GLIDES (operator 2026-09-30: "das Highlighten der
+// aktuellen Zeile zuckt … wie beim einarmigen Banditen, dass die Zeile
+// stehen bleibt, aber das Programm scrollt"): a program advancing three
+// lines per status packet (30 per second) scrolls the code view evenly — no
+// frame moves it a whole packet's step, it never runs backwards, and once
+// the packets stop the running line stands centred. Reduced motion keeps
+// the hard follow (the layout fixtures emulate it; this test switches it
+// off). Frame-timed: below 50 fps (a starved headless renderer) the
+// evenness is not measurable and is reported, not asserted.
+const GLIDE_LINES = 400;
+const GLIDE_FEED = Array.from({ length: GLIDE_LINES }, (_, i) => [i % 2 ? 10 : 0, i * 0.5, 0]);
+const GLIDE_PREVIEW = Buffer.from(encode({ file: '/glide.ngc', preview_schema: 9, feed: GLIDE_FEED,
+  feed_lines: GLIDE_FEED.map((_, i) => i + 1), feed_seq: GLIDE_FEED.map((_, i) => i + 1),
+  feed_outside: new Uint8Array(GLIDE_LINES), rapid: [], violations: [], violations_total: 0 }));
+test('the running line glides: the code scrolls evenly under a centred highlight', async ({ page, context }) => {
+  test.setTimeout(90_000);
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: GLIDE_PREVIEW }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain',
+    body: Array.from({ length: GLIDE_LINES }, (_, i) => `G1 X${i % 2 ? 10 : 0} Y${i * 0.5} F100`).join('\n') }));
+  await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === 'desktop')!);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await ctl({ op: 'status_delta', data: { active_file: '/glide.ngc' } });
+  await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 5101, file: '/glide.ngc' } });
+  const viewer = page.locator('.codeViewer:not(.mdiHistoryList)');
+  await expect(viewer.locator('.codeLine').first()).toBeVisible({ timeout: 30_000 });
+  await ctl({ op: 'quiet', on: true });
+  let line = 60;
+  await ctl({ op: 'status_delta', data: { interp_state: 2, task_mode: 2, motion_line: line } });
+  await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(line));
+  await page.waitForTimeout(700);   // past the glide's pause: the first step starts from rest
+  await page.evaluate(() => {
+    const el = document.querySelector<HTMLElement>('.codeViewer:not(.mdiHistoryList)')!;
+    const w = window as unknown as { __glide: number[][] };
+    w.__glide = [];
+    const t0 = performance.now();
+    const f = (now: number) => { w.__glide.push([now, el.scrollTop]); if (now - t0 < 3500) requestAnimationFrame(f); };
+    requestAnimationFrame(f);
+  });
+  for (let i = 0; i < 60; i++) {
+    line += 3;
+    await ctl({ op: 'status_delta', data: { motion_line: line } });
+    await page.waitForTimeout(33);
+  }
+  await page.waitForTimeout(400);
+  const samples = await page.evaluate(() => (window as unknown as { __glide: number[][] }).__glide);
+  const m = await viewer.evaluate(el => {
+    const active = el.querySelector('.codeLine.active')!;
+    const a = active.getBoundingClientRect(), v = el.getBoundingClientRect();
+    return { line: Number(active.querySelector('.lineNumber')!.textContent), off: (a.top + a.height / 2) - (v.top + v.height / 2),
+      lineH: a.height };
+  });
+  expect(m.line, 'the last line is the highlighted one').toBe(line);
+  expect(Math.abs(m.off), `it stands centred (${m.off} px off)`).toBeLessThan(m.lineH / 2 + 1);
+  const steps = samples.slice(1).map((s, i) => s[1]! - samples[i]![1]!);
+  const fps = (samples.length - 1) / ((samples.at(-1)![0]! - samples[0]![0]!) / 1000);
+  expect(Math.min(...steps), 'the code never scrolls backwards').toBeGreaterThanOrEqual(-0.5);
+  // Over the frames from the first move to the last: a hard follow moves
+  // about every other frame by a whole packet's step and stands still in
+  // between; a glide moves nearly every frame by a part of it. (A single
+  // late frame may still carry a whole step — shares, not the maximum.)
+  const packetStep = 3 * m.lineH;
+  const first = steps.findIndex(v => v > 0.5), last = steps.findLastIndex(v => v > 0.5);
+  const active = steps.slice(first, last + 1);
+  const moving = active.filter(v => v > 0.5).length / active.length;
+  const whole = active.filter(v => v >= 0.9 * packetStep).length / active.length;
+  const note = `${fps.toFixed(0)} fps, ${active.length} frames: ${(moving * 100).toFixed(0)} % move, ${(whole * 100).toFixed(0)} % by a whole ${packetStep} px packet step`;
+  test.info().annotations.push({ type: 'glide', description: note });
+  if (fps < 50) return;
+  expect(whole, `hardly a frame moves a whole packet's step — ${note}`).toBeLessThan(0.1);
+  expect(moving, `nearly every frame moves — ${note}`).toBeGreaterThan(0.75);
+});
