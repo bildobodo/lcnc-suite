@@ -53,6 +53,10 @@ class TestPinnedWorkerNative(unittest.TestCase):
     def test_the_table_time_is_read_before_the_status(self):
         self._check("table_time_read_before_the_status")
 
+    def test_the_applied_offset_never_reaches_the_payload(self):
+        # operator 2026-09-30: no re-parse for the program's own G43 after a run
+        self._check("the_applied_offset_never_reaches_the_payload")
+
     def test_a_random_toolchanger_refuses_the_pin(self):
         self._check("random_toolchanger_refuses_the_pin")
 

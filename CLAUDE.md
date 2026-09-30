@@ -845,8 +845,14 @@ timeout, its duration never enters the idle estimate, a pinned in-flight
 parse is never doomed by the (program's) rotary motion; a second
 measurement during it is picked up by one follow-up parse (the worker reads
 the table's file time BEFORE its STAT read). After the run the idle edge
-sees the program's end state as one `tool_offset` drift and re-parses from
-live. The browser: a publish during a run clears the collision findings and
+re-parses only for what the payload depends on — the table and the spindle
+tool (the program's M6: `tool_loaded`); the APPLIED offset is no drift
+signal (operator 2026-09-30: after every run that measured its tool, the
+program's own G43 with the new length re-parsed the whole program a second
+time, byte for byte the same payload — the parse's interpreter starts with
+no offset, the client applies the live one to the segments before the first
+TLO row; native_pinned_probe `the_applied_offset_never_reaches_the_payload`
+pins it, red when the worker reads STAT.tool_offset). The browser: a publish during a run clears the collision findings and
 the sweep, held while the interpreter runs, starts once it is idle again
 (`_colHeldByRun`, MR-I03). Traces `gcode.reparse_table_midrun`,
 `pinned: true` on `spawn_start` / `publish`, `gcode.pinned_unsupported`;

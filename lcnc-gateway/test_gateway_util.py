@@ -2893,102 +2893,69 @@ class TestFindUnmarkedSubs(unittest.TestCase):
 
 class TestEvaluateTloDrift(unittest.TestCase):
     """W2 P4 drift edge: the per-line limit flags bake the parse-time tool
-    table; this decides when the poller must reparse. G49 (applied offset
-    zero) must never read as drift."""
+    table; this decides when the poller must reparse. The APPLIED offset is
+    no signal (operator 2026-09-30): the payload never depends on it."""
 
     META = {"table_path": "/cfg/tool.tbl", "table_mtime": 100.0,
-            "tlos": [[3, 0.0, 0.0, 156.5596], [7, 0.0, 0.0, 80.0]]}
+            "tlos": [[3, 0.0, 0.0, 156.5596], [7, 0.0, 0.0, 80.0]],
+            "applied_tlo": [0.0, 0.0, 20.0], "loaded_tool": 3}
 
     def test_no_meta_is_never_drift(self):
-        self.assertIsNone(gateway_util.evaluate_tlo_drift(None, 101.0, 3, 156.5596))
-        self.assertIsNone(gateway_util.evaluate_tlo_drift({}, 101.0, 3, 156.5596))
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(None, 101.0, 3))
+        self.assertIsNone(gateway_util.evaluate_tlo_drift({}, 101.0, 3))
 
     def test_table_mtime_change_is_drift(self):
-        self.assertEqual(
-            gateway_util.evaluate_tlo_drift(self.META, 101.0, None, None),
-            "table_mtime")
+        # The W2 P4 defect (re-measured 156.56 → 56.63): G10 L1 writes the file.
+        self.assertEqual(gateway_util.evaluate_tlo_drift(self.META, 101.0, None), "table_mtime")
 
-    def test_matching_mtime_and_offset_is_clean(self):
-        self.assertIsNone(
-            gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 156.5596))
+    def test_matching_mtime_and_tool_is_clean(self):
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, 3))
 
-    def test_applied_offset_drift_on_loaded_tool(self):
-        # The live defect's numbers: parsed 156.5596, re-measured 56.6346.
-        self.assertEqual(
-            gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 56.6346),
-            "tool_offset")
+    def test_the_run_end_state_is_no_drift_operator_20260930(self):
+        # heavy_test: T13 M600 measured 65.064 → 65.0589, the pinned parse
+        # took the new row; after the abort G43 applies the new length while
+        # the parse reports the start's — the same table, the same tool:
+        # nothing to re-parse (the second parse published the same bytes).
+        meta = {"table_mtime": 5.0, "tlos": [[13, 0.0, 0.0, 65.0589, 8.0]],
+                "applied_tlo": [0.0, 0.0, 65.064], "loaded_tool": 13}
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(
+            meta, 5.0, 13, table_rows=[(13, 65.0589)]))
 
-    def test_g49_zero_applied_offset_is_not_drift(self):
-        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 0.0))
-        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, None))
+    def test_the_applied_offset_is_never_compared(self):
+        # G43 H7 with T3 loaded, a G43.1, a G49 by hand, a legacy meta
+        # without the key: the parse starts at no offset either way.
+        for meta in (self.META, dict(self.META, applied_tlo=[0.0, 0.0, 0.0]),
+                     {k: v for k, v in self.META.items() if k != "applied_tlo"}):
+            self.assertIsNone(gateway_util.evaluate_tlo_drift(meta, 100.0, 3))
 
-    def test_unknown_tool_and_no_tool_are_clean(self):
-        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, 5, 42.0))
-        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, 0, 42.0))
-        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, None, 42.0))
+    def test_loaded_tool_change_is_drift(self):
+        self.assertEqual(gateway_util.evaluate_tlo_drift(self.META, 100.0, 5), "tool_loaded")
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, None))
+        legacy = {k: v for k, v in self.META.items() if k != "loaded_tool"}
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(legacy, 100.0, 5))
 
     def test_other_tool_row_drift_detected(self):
         # Schema 8: T7 is NOT loaded (T3 is), yet its row moved 80 → 60 —
         # the sim poses T7's segments with the parse row, so it is stale.
         rows = [(3, 156.5596), (7, 60.0), (9, 1.0)]
         self.assertEqual(
-            gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 156.5596, table_rows=rows),
-            "table_row")
+            gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, table_rows=rows), "table_row")
         # Matching rows: clean; rows for tools the program never touches: ignored.
         rows_ok = [(3, 156.5596), (7, 80.0), (9, 999.0)]
-        self.assertIsNone(
-            gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 156.5596, table_rows=rows_ok))
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, table_rows=rows_ok))
         # A 5-tuple parse row (diameter column) reads the same.
         meta5 = dict(self.META, tlos=[[3, 0.0, 0.0, 156.5596, 6.0], [7, 0.0, 0.0, 80.0, 8.0]])
         self.assertEqual(
-            gateway_util.evaluate_tlo_drift(meta5, 100.0, 3, 156.5596, table_rows=rows),
-            "table_row")
-
-    # ---- TWP-09 (review 2026-09-14): applied vs APPLIED, like with like ----
-    META8 = dict(META, applied_tlo=[0.0, 0.0, 20.0], loaded_tool=3)
-
-    def test_g43_h_not_matching_t_settles_after_one_reparse(self):
-        # T3 loaded, `G43 H7` applied (20, not T3's row 156.56): the row
-        # compare reparsed forever. The parse recorded applied 20; live is 20.
-        for _ in range(3):
-            self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META8, 100.0, 3, 20.0))
-
-    def test_g43_1_dynamic_settles(self):
-        meta = dict(self.META8, applied_tlo=[0.0, 0.0, 12.5])
-        self.assertIsNone(gateway_util.evaluate_tlo_drift(meta, 100.0, 3, 12.5))
-        self.assertEqual(gateway_util.evaluate_tlo_drift(meta, 100.0, 3, 13.0), "tool_offset")
-
-    def test_g49_after_parse_is_one_drift_then_settles(self):
-        self.assertEqual(gateway_util.evaluate_tlo_drift(self.META8, 100.0, 3, 0.0), "tool_offset")
-        meta0 = dict(self.META8, applied_tlo=[0.0, 0.0, 0.0])
-        self.assertIsNone(gateway_util.evaluate_tlo_drift(meta0, 100.0, 3, 0.0))
-        # No live reading: no claim.
-        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META8, 100.0, 3, None))
-
-    def test_loaded_tool_change_is_drift(self):
-        self.assertEqual(gateway_util.evaluate_tlo_drift(self.META8, 100.0, 5, 20.0), "tool_loaded")
-        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META8, 100.0, 3, 20.0))
-        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META8, 100.0, None, 20.0))
-
-    def test_legacy_meta_without_applied_keeps_row_compare(self):
-        self.assertEqual(gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 56.6346), "tool_offset")
-        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 156.5596))
-
-    def test_table_row_still_catches_a_not_loaded_program_tool(self):
-        rows = [(3, 156.5596), (7, 60.0)]
-        self.assertEqual(
-            gateway_util.evaluate_tlo_drift(self.META8, 100.0, 3, 20.0, table_rows=rows), "table_row")
+            gateway_util.evaluate_tlo_drift(meta5, 100.0, 3, table_rows=rows), "table_row")
 
     def test_table_rows_none_keeps_old_behaviour(self):
-        self.assertIsNone(
-            gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 156.5596, table_rows=None))
-        self.assertIsNone(
-            gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, 156.5596, table_rows=[]))
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, table_rows=None))
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, 100.0, 3, table_rows=[]))
 
     def test_missing_mtimes_skip_the_file_signal(self):
         meta = dict(self.META, table_mtime=None)
-        self.assertIsNone(gateway_util.evaluate_tlo_drift(meta, 101.0, None, None))
-        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, None, None, None))
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(meta, 101.0, None))
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(self.META, None, None))
 
 
 class TestWcsEventRewritten(unittest.TestCase):
@@ -3879,21 +3846,19 @@ class TestTloDriftTableOnly(unittest.TestCase):
 
     def test_the_program_own_g43_and_m6_are_no_drift(self):
         f = gateway_util.evaluate_tlo_drift
-        # without table_only these would fire (the idle edge's reasons) …
-        self.assertEqual(f(self.META, 100.0, 13, 32.47955), "tool_offset")
-        self.assertEqual(f(self.META, 100.0, 13, 0.0), "tool_loaded")
-        # … mid-run they are the program's state
-        self.assertIsNone(f(self.META, 100.0, 13, 32.47955, table_only=True))
-        self.assertIsNone(f(self.META, 100.0, 13, 0.0, table_only=True))
+        # without table_only the program's M6 fires (the idle edge's reason) …
+        self.assertEqual(f(self.META, 100.0, 13), "tool_loaded")
+        # … mid-run it is the program's state
+        self.assertIsNone(f(self.META, 100.0, 13, table_only=True))
 
     def test_a_measured_tool_is_drift(self):
         f = gateway_util.evaluate_tlo_drift
-        self.assertEqual(f(self.META, 101.0, None, None, table_only=True), "table_mtime")
+        self.assertEqual(f(self.META, 101.0, None, table_only=True), "table_mtime")
         # the file time already new but STAT still reading the old rows
         # when the parse ran: the rows settle it once STAT has the new length
-        self.assertEqual(f(self.META, 100.0, None, None, table_rows=[(13, 32.47955)],
+        self.assertEqual(f(self.META, 100.0, None, table_rows=[(13, 32.47955)],
                            table_only=True), "table_row")
-        self.assertIsNone(f(self.META, 100.0, None, None, table_rows=[(13, 48.19895)],
+        self.assertIsNone(f(self.META, 100.0, None, table_rows=[(13, 48.19895)],
                             table_only=True))
 
 
@@ -3909,11 +3874,11 @@ class TestSecondMeasurementDuringAPinnedParse(unittest.TestCase):
         # the pinned parse started after the first measurement (t_first) and
         # read that time; the second measurement wrote at t_second meanwhile
         meta = {"table_mtime": t_first, "tlos": [[13, 0, 0, 65.0, 8.0]]}
-        self.assertEqual(f(meta, t_second, None, None, table_rows=[(13, 64.5)], table_only=True),
+        self.assertEqual(f(meta, t_second, None, table_rows=[(13, 64.5)], table_only=True),
                          "table_mtime")
         # the follow-up parse read t_second and the second length: quiet
         meta2 = {"table_mtime": t_second, "tlos": [[13, 0, 0, 64.5, 8.0]]}
-        self.assertIsNone(f(meta2, t_second, None, None, table_rows=[(13, 64.5)], table_only=True))
+        self.assertIsNone(f(meta2, t_second, None, table_rows=[(13, 64.5)], table_only=True))
 
 
 class TestSeededToolMeta(unittest.TestCase):
@@ -3932,10 +3897,12 @@ class TestSeededToolMeta(unittest.TestCase):
         self.assertEqual((applied, loaded), ([0.0, 0.0, 0.0], 1))
         # both rows ride parse_tlos: T13's measured length is the point
         self.assertEqual(extra, {13, 1})
-        # … so after the run the idle edge sees the program's end state as
-        # ONE drift and re-parses from it
+        # … so after the run the idle edge sees the program's M6 as ONE drift
+        # and re-parses (the spindle pocket a bare G43 reads); the program's
+        # own G43 is none (the payload never depends on the applied offset)
         meta = {"table_mtime": 5.0, "tlos": [], "applied_tlo": applied, "loaded_tool": loaded}
-        self.assertEqual(gateway_util.evaluate_tlo_drift(meta, 5.0, 13, 32.48), "tool_offset")
+        self.assertEqual(gateway_util.evaluate_tlo_drift(meta, 5.0, 13), "tool_loaded")
+        self.assertIsNone(gateway_util.evaluate_tlo_drift(dict(meta, loaded_tool=13), 5.0, 13))
 
 
 class TestProgramEndKinsType(unittest.TestCase):

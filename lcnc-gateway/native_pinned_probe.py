@@ -170,6 +170,29 @@ raced = parse(dict(BASE))
 polls.clear()
 checks["table_time_read_before_the_status"] = raced["meta"]["__TLO__"]["table_mtime"] == 1000.0
 
+# The APPLIED offset never reaches the payload (operator 2026-09-30: "between
+# those two parses nothing happens"): the parse's interpreter starts with no
+# offset and takes the program's own G43 / G49 from the TABLE, and the client
+# applies the live offset to the segments before the program's first TLO row.
+# Parses that differ only in STAT.tool_offset give the same payload, so a
+# changed applied offset — the program's own G43 with a freshly measured
+# length after a run, a G43 / G49 by hand — is no reason to re-parse. One
+# priming parse first: this process keeps the native interpreter between
+# parses and M2 does not end a G43 (the gateway starts a fresh worker per
+# parse), so every compared parse starts from the same interpreter state.
+ngc.write_text("G21 G90\nG53 G0 Z0\nG0 X0 Y0 Z45\nG43\nG1 X10 Z40 F100\nG49\nG0 Z45\nM2\n")
+payloads = []
+for z in (10.0, 10.0, 10.005, 0.0, 80.0):
+    s.tool_offset = [0, 0, z] + [0] * 6
+    with contextlib.redirect_stderr(io.StringIO()):
+        payloads.append(worker.parse(dict(BASE)))
+payloads = payloads[1:]
+s.tool_offset = [0, 0, 10] + [0] * 6
+checks["the_applied_offset_never_reaches_the_payload"] = (
+    payloads[0]["parse_error"] is None and len(payloads[0]["rapid"]) > 0
+    and all(p == payloads[0] for p in payloads[1:]))
+diff_keys = sorted({k for p in payloads[1:] for k in set(p) | set(payloads[0]) if p.get(k) != payloads[0].get(k)})
+
 # A random toolchanger cannot pin: the worker refuses with its own code.
 write_ini(random_tc=1)
 try:
@@ -179,4 +202,4 @@ try:
 except SystemExit as e:
     checks["random_toolchanger_refuses_the_pin"] = e.code == getattr(worker, "PIN_UNSUPPORTED_EXIT", None)
 
-print(json.dumps({"checks": checks}))
+print(json.dumps({"checks": checks, "applied_offset_diff_keys": diff_keys}))

@@ -1737,7 +1737,7 @@ async def _status_poller():
                 if _bulk.published_tlo is not None:
                     _tt_cur, _rows = _tool_table_now(_bulk.published_tlo)
                     _mdrift = evaluate_tlo_drift(
-                        _bulk.published_tlo, _tt_cur, None, None,
+                        _bulk.published_tlo, _tt_cur, None,
                         table_rows=_rows, table_only=True)
                 _mact, _mwhy = midrun_table_action(
                     _mdrift,
@@ -1774,11 +1774,8 @@ async def _status_poller():
                 _tlo_meta = _bulk.published_tlo
                 if _tlo_meta is not None:
                     _tt_cur, _rows = _tool_table_now(_tlo_meta)
-                    _tofs = st.tool_offset
                     _drift = evaluate_tlo_drift(
-                        _tlo_meta, _tt_cur, st.tool_number,
-                        _tofs[2] if _tofs and len(_tofs) > 2 else None,
-                        table_rows=_rows)
+                        _tlo_meta, _tt_cur, st.tool_number, table_rows=_rows)
                 if _drift is None:
                     # Rotary-pose drift (W6): the payload poses every
                     # uncommanded-rotary segment at the PARSE-time pose; a
