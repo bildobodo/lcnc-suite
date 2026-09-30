@@ -1,0 +1,224 @@
+{
+  "supplied": {
+    "stats": {
+      "startTime": "2026-09-30T07:21:04.458Z",
+      "duration": 41896.33,
+      "expected": 7,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "file": "scenes.viewer.spec.ts",
+        "line": 64,
+        "title": "a half-mixed pixel reads as half the limit, not as the backplot",
+        "status": "passed",
+        "duration_ms": 5,
+        "errors": [],
+        "attachments": []
+      },
+      {
+        "file": "scenes.viewer.spec.ts",
+        "line": 76,
+        "title": "the palette in four themes, on a model, a dense and a thin path \u2014 and no current line drawn",
+        "status": "passed",
+        "duration_ms": 6800,
+        "errors": [],
+        "attachments": [
+          {
+            "name": "scene-dense-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "scene-dense-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "scene-dense-hc-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "scene-dense-hc-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "scene-thin-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "scene-thin-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "scene-thin-hc-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "scene-thin-hc-dark.png",
+            "contentType": "image/png"
+          }
+        ]
+      },
+      {
+        "file": "scenes.viewer.spec.ts",
+        "line": 221,
+        "title": "the width ladder is drawn: the path and the limit overlay 1 px, the backplot 2 CSS px \u2014 at DPR 1 and 2",
+        "status": "passed",
+        "duration_ms": 14939,
+        "errors": [],
+        "attachments": [
+          {
+            "name": "ladder-dpr1-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "ladder-dpr1-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "ladder-dpr1-hc-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "ladder-dpr1-hc-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "backplot-on-limit-dpr1-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "backplot-on-limit-dpr1-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "ladder-dpr2-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "ladder-dpr2-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "ladder-dpr2-hc-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "ladder-dpr2-hc-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "backplot-on-limit-dpr2-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "backplot-on-limit-dpr2-dark.png",
+            "contentType": "image/png"
+          }
+        ]
+      },
+      {
+        "file": "scenes.viewer.spec.ts",
+        "line": 358,
+        "title": "the box edge alone: two tones, MACHINE_BOX_PX wide, dashes of MACHINE_BOX_DASH_PX \u2014 at DPR 1 and 2",
+        "status": "passed",
+        "duration_ms": 6198,
+        "errors": [],
+        "attachments": [
+          {
+            "name": "box-edge-dpr1-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "box-edge-dpr1-dark.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "box-edge-dpr2-light.png",
+            "contentType": "image/png"
+          },
+          {
+            "name": "box-edge-dpr2-dark.png",
+            "contentType": "image/png"
+          }
+        ]
+      },
+      {
+        "file": "scenes.viewer.spec.ts",
+        "line": 434,
+        "title": "box dashes hold MACHINE_BOX_DASH_PX along every projected edge \u2014 parallel and perspective, three directions",
+        "status": "passed",
+        "duration_ms": 5009,
+        "errors": [],
+        "attachments": []
+      },
+      {
+        "file": "toolsetter.viewer.spec.ts",
+        "line": 20,
+        "title": "the tool setter shows where it is set up, and only there",
+        "status": "passed",
+        "duration_ms": 2765,
+        "errors": [],
+        "attachments": []
+      },
+      {
+        "file": "toolsetter.viewer.spec.ts",
+        "line": 55,
+        "title": "G49 never moves the drawn tool; a table write moves its tip with the backplot's pen up (Codex R44 ST-I03)",
+        "status": "passed",
+        "duration_ms": 5038,
+        "errors": [],
+        "attachments": []
+      }
+    ]
+  },
+  "own": {
+    "stats": {
+      "startTime": "2026-09-30T07:24:39.786Z",
+      "duration": 15076.404,
+      "expected": 1,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    },
+    "tests": [
+      {
+        "file": "r45.spec.ts",
+        "line": 24,
+        "title": "R45: actual XYZAC part reach segment lengths and two-tone visibility",
+        "status": "passed",
+        "duration_ms": 8943,
+        "errors": [],
+        "attachments": []
+      },
+      {
+        "file": "r45.spec.ts",
+        "line": 57,
+        "title": "R45: signed tool offset retains the existing G43 coordinate contract",
+        "status": "failed",
+        "duration_ms": 5226,
+        "errors": [
+          {
+            "location": {
+              "file": "/tmp/codex-r45-_jdohqlz/lcnc-webui/e2e/r45.spec.ts",
+              "column": 126,
+              "line": 85
+            },
+            "message": "Error: G43 using the spindle tool own negative offset: same coordinate convention as before ST-I03\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m-170\u001b[39m\nReceived: \u001b[31m-300\u001b[39m\n\n  83 |   negativeStatus:negative,negativePose,expectedG43TipZ:negative.work_pos[2],changedReference,errors},null,2));\n  84 |  expect(errors).toEqual([]);expect(g49.tip).toEqual(positive.tip);expect(g49.backplot).toEqual(positive.backplot);\n> 85 |  expect(negativePose.tip![2], 'G43 using the spindle tool own negative offset: same coordinate convention as before ST-I03').toBe(negative.work_pos[2]);\n     |                                                                                                                              ^\n  86 | });\n  87 |\n    at /tmp/codex-r45-_jdohqlz/lcnc-webui/e2e/r45.spec.ts:85:126"
+          }
+        ],
+        "attachments": [
+          {
+            "name": "screenshot",
+            "contentType": "image/png"
+          },
+          {
+            "name": "error-context",
+            "contentType": "text/markdown"
+          }
+        ]
+      }
+    ]
+  }
+}

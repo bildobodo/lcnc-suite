@@ -1,0 +1,37 @@
+
+Running 2 tests using 1 worker
+
+(node:1567754) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1567754) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r45.spec.ts:24:1 › R45: actual XYZAC part reach segment lengths and two-tone visibility (8.9s)
+  ✘  2 e2e/r45.spec.ts:57:1 › R45: signed tool offset retains the existing G43 coordinate contract (5.2s)
+
+
+  1) e2e/r45.spec.ts:57:1 › R45: signed tool offset retains the existing G43 coordinate contract ───
+
+    Error: G43 using the spindle tool own negative offset: same coordinate convention as before ST-I03
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m-170[39m
+    Received: [31m-300[39m
+
+      83 |   negativeStatus:negative,negativePose,expectedG43TipZ:negative.work_pos[2],changedReference,errors},null,2));
+      84 |  expect(errors).toEqual([]);expect(g49.tip).toEqual(positive.tip);expect(g49.backplot).toEqual(positive.backplot);
+    > 85 |  expect(negativePose.tip![2], 'G43 using the spindle tool own negative offset: same coordinate convention as before ST-I03').toBe(negative.work_pos[2]);
+         |                                                                                                                              ^
+      86 | });
+      87 |
+        at /tmp/codex-r45-_jdohqlz/lcnc-webui/e2e/r45.spec.ts:85:126
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/results/r45-R45-signed-tool-offset-8c0b7-ing-G43-coordinate-contract/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/results/r45-R45-signed-tool-offset-8c0b7-ing-G43-coordinate-contract/error-context.md
+
+  1 failed
+    e2e/r45.spec.ts:57:1 › R45: signed tool offset retains the existing G43 coordinate contract ────
+  1 passed (15.1s)

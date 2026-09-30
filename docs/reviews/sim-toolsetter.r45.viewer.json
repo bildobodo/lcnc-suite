@@ -1,0 +1,113 @@
+{
+  "commit": "8e2b005",
+  "jointZ": -235,
+  "positive": {
+    "tip": [
+      150,
+      0,
+      -300
+    ],
+    "setter": {
+      "visible": true,
+      "top": [
+        150,
+        0,
+        -300
+      ],
+      "screen": {
+        "x": 600.75,
+        "y": 451.0451356446891
+      }
+    },
+    "backplot": {
+      "points": 1,
+      "segments": 0
+    }
+  },
+  "g49": {
+    "tip": [
+      150,
+      0,
+      -300
+    ],
+    "setter": {
+      "visible": true,
+      "top": [
+        150,
+        0,
+        -300
+      ],
+      "screen": {
+        "x": 600.75,
+        "y": 451.04513564468914
+      }
+    },
+    "backplot": {
+      "points": 1,
+      "segments": 0
+    }
+  },
+  "negativeStatus": {
+    "case": "negative",
+    "table_zoffset": -65,
+    "tool_length": 65,
+    "tool_offset": [
+      0,
+      0,
+      -65
+    ],
+    "work_pos": [
+      150,
+      0,
+      -170
+    ]
+  },
+  "negativePose": {
+    "tip": [
+      150,
+      0,
+      -300
+    ],
+    "setter": {
+      "visible": true,
+      "top": [
+        150,
+        0,
+        -300
+      ],
+      "screen": {
+        "x": 600.75,
+        "y": 451.0451356446891
+      }
+    },
+    "backplot": {
+      "points": 1,
+      "segments": 0
+    }
+  },
+  "expectedG43TipZ": -170,
+  "changedReference": {
+    "tip": [
+      150,
+      0,
+      -300
+    ],
+    "setter": {
+      "visible": true,
+      "top": [
+        150,
+        0,
+        -280
+      ],
+      "screen": {
+        "x": 600.75,
+        "y": 441.2361085157513
+      }
+    },
+    "backplot": {
+      "points": 1,
+      "segments": 0
+    }
+  },
+  "errors": []
+}

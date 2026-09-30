@@ -1,0 +1,17 @@
+test_a_missing_component_is_named_with_its_command (test_sim_toolsetter.TestComponentCheck.test_a_missing_component_is_named_with_its_command) ... ok
+test_the_launcher_names_the_module_dir (test_sim_toolsetter.TestComponentCheck.test_the_launcher_names_the_module_dir) ... ok
+test_armed_with_a_length (test_sim_toolsetter.TestFeedValues.test_armed_with_a_length) ... ok
+test_no_length_no_trip (test_sim_toolsetter.TestFeedValues.test_no_length_no_trip) ... ok
+test_no_tool_no_trip (test_sim_toolsetter.TestFeedValues.test_no_tool_no_trip) ... ok
+test_no_profile_nets_the_joint_feedback_elsewhere (test_sim_toolsetter.TestJointCoordinates.test_no_profile_nets_the_joint_feedback_elsewhere) ... ok
+test_the_contact_reads_joint_positions (test_sim_toolsetter.TestJointCoordinates.test_the_contact_reads_joint_positions) ... ok
+test_empty_spindle_or_unknown_tool (test_sim_toolsetter.TestSpindleLength.test_empty_spindle_or_unknown_tool) ... ok
+test_the_table_row_of_the_spindle_tool (test_sim_toolsetter.TestSpindleLength.test_the_table_row_of_the_spindle_tool) ... ok
+test_every_profile_fixes_its_plate_inside_its_travel_at_the_shipped_setting (test_sim_toolsetter.TestThePlateIsPhysical.test_every_profile_fixes_its_plate_inside_its_travel_at_the_shipped_setting) ... ok
+test_nothing_drives_the_plate_pins (test_sim_toolsetter.TestThePlateIsPhysical.test_nothing_drives_the_plate_pins) ... ok
+test_the_feeder_reads_no_position (test_sim_toolsetter.TestThePlateIsPhysical.test_the_feeder_reads_no_position) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.012s
+
+OK

@@ -2859,3 +2859,82 @@ nicht in dieser Runde.
 **Läufe** am Stand `bcd2ff6` (mit dem zweiten Teil): volles Offline-Gate
 **PASS** — Backend 1108, Frontend-Unit 1753, Browser 364/364; einzeln
 `serial-viewer` 30/30.
+
+---
+
+## Nachprüfung R45 · Codex · 30. September 2026
+
+**Stand:** `77966b8..8e2b005`, isoliertes Archiv von `8e2b005`.
+**Ergebnis: findings — VP-I10 und VP-I11 geschlossen; VP-I12 neu, P2.**
+Der zweite Teil dieser Runde steht im
+[Sim-Toolsetter-Review](sim-toolsetter.review.md#nachprüfung-r45--codex--30-september-2026).
+Teil B ist weiterhin separat.
+
+### VP-I10 / VP-I11 · bestätigt behoben
+
+Die Box-Striche werden jetzt entlang ihrer projizierten Kanten in CSS px
+berechnet. Der Quotient der beiden Varyings kompensiert die perspektivische
+Interpolation. Die alten Weltmaß-Abweichungen sind damit für die Boxkanten
+behoben; die originale neue Mehrkantenprüfung besteht in beiden Projektionen
+und allen drei Blickrichtungen. Auch die isolierte Boxprüfung bei DPR 1/2
+besteht.
+
+Die Szenen warten vor Diagnose und Backplot-Bewegungen auf das gebaute
+Modell. Der Überdeckungswächter akzeptiert den richtigen Limit-Anteil im
+Antialiasing-Mischpixel. Beide unveränderten Specs zusammen **7/7 PASS**,
+einschließlich aller bisherigen R44-Fehlerstellen.
+[Browserlog](viewer-palette-fest.r45.browser-tests.txt),
+[Ergebnisübersicht](viewer-palette-fest.r45.browser-summary.json).
+
+### VP-I12 · P2 — der Phasen-Neustart nimmt kurzen Reichweiten-Konturen den dunklen Anteil
+
+**Stelle:** `lcnc-webui/src/viewer/boxLines.ts:95–104,155`,
+`ThreeViewer.vue:3271–3273`; Segmentierung in
+`viewer/reachEnvelope.ts:380–407`.
+
+Die in der Antwort benannte Grenze ist im ausgelieferten XYZAC-Modell
+sichtbar: Jeder kurze Käfigabschnitt beginnt bei Strichphase 0. Bei einer
+projizierten Länge ≤ `REACH_DASH_PX` (3 px) ist daher sein gesamtes
+Segmentinneres hell; die dunkle Linie darunter bekommt kein reguläres
+Intervall. Benachbarte kurze Abschnitte ergeben so einen fast durchgehend
+hellen Ring. Dunkle Endkappen/Antialiasingreste ersetzen die beabsichtigte
+Zweifarbigkeit nicht.
+
+Eigene Ansicht bei 1600×1000, DPR 1, Werkzeuglänge 65, nur Part Reach sichtbar:
+
+| Ansicht | Segmente mit Mittelpunkt im Viewer | davon ≤ 3 px |
+| --- | ---: | ---: |
+| Oben | 3184 | **1384** |
+| Schräg `[1,2,0.7]` | 2762 | **1123** |
+
+Die inneren Kreise sind [auf hellem Grund kaum sichtbar](viewer-palette-fest.r45.reach-top-light.png),
+[auf dunklem Grund deutlich](viewer-palette-fest.r45.reach-top-dark.png).
+Der neue Shader läuft für die Reichweiten ebenso wie für die Boxen. Ihre
+feine Kurvenzerlegung wird damit zur sichtbaren Strichregel — genau dort
+geht der Schutz gegen hellen Hintergrund wieder verloren. Die langen
+Boxkanten des neuen Wächters decken diesen Fall nicht ab.
+
+**Erwartung:** Für zusammenhängende Reichweiten-Konturen die Strichphase
+über die kurzen Geometriesegmente fortführen oder einen anderen
+nachgewiesenen Kontrastschutz für diese Konturen wählen. Wächter am echten
+Käfig: ein aus kurzen Segmenten bestehender Ring behält einen erkennbaren
+dunklen und hellen Anteil in Hell/Dunkel, auch nach Zoom. Die korrekte
+CSS-Strichlänge der Boxkanten soll dabei erhalten bleiben. Bloßes Benennen
+des Neustarts reicht für den beschlossenen Zweifarb-Kontrast nicht.
+
+[Eigene Browserprobe](viewer-palette-fest.r45.browser-probe.ts),
+[Messdaten](viewer-palette-fest.r45.reach.json),
+[schräg hell](viewer-palette-fest.r45.reach-iso-light.png),
+[schräg dunkel](viewer-palette-fest.r45.reach-iso-dark.png).
+Die Segmentzähler sind geometrische Messungen, keine behauptete
+Pixel-Kontrastmessung; die PNGs zeigen die tatsächliche Darstellung.
+
+### Prüfung und Übergabe
+
+Typecheck/Build **PASS**, vier gezielte Viewer-Unit-Dateien **60/60**,
+Original-Browserwächter **7/7**. Eigene Reichweitenprobe hat Aufbau und
+Messung erfolgreich ausgeführt; das ist keine bestandene Kontrastabnahme.
+Der eigene rote Werkzeug-Wächter ist im zweiten Review erläutert.
+[Reproduktion, Logs und Grenzen](viewer-palette-fest.r45.reproduce.md).
+Kein vollständiges Offline-Gate und keine Teil-B-Messung. Produktcode,
+ältere Belege und Live-Sim unverändert; eigener Mock und Browser beendet.

@@ -332,3 +332,137 @@ darauf, dass der Operator den offenen Watchdog-Trip quittiert. Danach:
 - eine wiederholte Messung ohne Drift.
 
 Das ist derselbe ausstehende Live-Lauf wie in deinem Review.
+
+---
+
+## Nachprüfung R45 · Codex · 30. September 2026
+
+**Stand:** `77966b8..8e2b005`, isoliertes Archiv von `8e2b005`.
+**Ergebnis: findings — ST-I01/ST-I02 geschlossen, der positive G49-Fall
+von ST-I03 behoben; ST-I04 (P2) und ST-I05 (P3) offen.**
+Gemeinsame [Reproduktion und Prüfgrenzen](viewer-palette-fest.r45.reproduce.md).
+
+### Antworten und bestätigte Korrekturen
+
+**ST-I01:** Die feste physische Platte pro Profil ist als Architektur
+akzeptiert. Die Positionswerte werden nach dem Laden der Komponente gesetzt,
+entsprechen den ausgelieferten Referenzen und werden nicht mehr aus der
+Parameterdatei nachgezogen. Damit ist die R44-Übernahmelücke geschlossen.
+
+**Marker-Entscheidung:** Die Abweichung von meinem früheren Alternativvorschlag
+akzeptiere ich: Der Produktmarker darf die **konfigurierte Messreferenz**
+zeigen, wie an einer echten Maschine. Ein zweiter Marker für eine aus dem
+Gateway nicht bekannte physische Position ist für diesen Fix nicht nötig.
+Das ist allerdings keine Bestätigung der tatsächlichen Kontaktfläche bei
+Fehlkalibrierung. Die Probe zeigt den Unterschied ausdrücklich: Referenz
+auf −280 verschoben, physische Platte weiter −300. Der Zusatz „not a trip
+area“ grenzt die schematische Puckgröße passend ab.
+
+**ST-I02:** Die drei Kontaktkoordinaten werden jetzt aus
+`joint.0/1/2.pos-fb` gespeist; der Motor-Loopback bleibt separat. Die native
+Kontaktsonde mit angenommenem Motor-minus-Gelenk-Versatz +1 und richtiger
+Referenz ergibt über drei Messungen **65 → 65 → 65 → 65**, statt der alten
+64/63/62-Folge. Das bestätigt die Koordinatenkorrektur offline, nicht einen
+realen Homing-/Messlauf.
+
+**ST-I03, positiver Tabellenwert:** Im realen XYZAC-Modell bleibt bei Gelenk-Z
+−235 und Tabellenlänge 65 die Spitze sowohl mit G43 als auch G49 auf −300.
+Kein neuer Backplot-Strich durch G49; Tabellenänderung 65 → 60 hebt die Spitze
+mit abgesetztem Stift, danach wird eine echte Bewegung wieder gezeichnet.
+Der originale Browserwächter besteht. Eigene Kontrolle:
+[Zustände](sim-toolsetter.r45.viewer.json),
+[G49-Kontaktbild](sim-toolsetter.r45.contact-g49.png).
+
+### ST-I04 · P2 — ein Längenbetrag wird zum signierten Werkzeugversatz
+
+**Stelle:** `lcnc-webui/src/ThreeViewer.vue:2049–2053`, zusammen mit
+`lcnc-gateway/status_runtime.py:1079–1092`.
+
+`status.tool_length` ist ausdrücklich ein **positiver Betrag**:
+`abs(t.zoffset)` aus der Tabelle; ohne Tabellenzeile
+`abs(tool_offset[2])`. Das bestehende Backend-Testbeispiel mit −44,1 hält
+diese Semantik bereits fest. Phase 3 verwendet diesen Wert nun direkt als
+Z-Versatz und verdrängt damit den bisher vorzeichenrichtigen aktiven Offset.
+Die Aussage „unter G43 mit dem eigenen Offset ändert sich nichts“ gilt
+somit nicht für negative Tabellenoffsets.
+
+Eigene Statussonde durch den originalen `StatusRuntime`, Fake-STAT ohne
+LinuxCNC-Verbindung; deren Payload anschließend im Browser verwendet:
+
+| Gelenk-Z | Tabellen-Z | gemeldetes `tool_length` | aktiver G43-Z-Offset | bisheriger Bezug / Work-Z | neue gezeichnete Spitze |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| −235 | +65 | 65 | +65 | −300 | −300 |
+| −235 | −65 | 65 | −65 | **−170** | **−300** |
+
+Die 130-mm-Abweichung entsteht durch die Änderung in dieser Runde. Das
+betrifft den allgemeinen Viewer, nicht nur die Sim-Platte mit positiven
+Tabellenlängen. Ohne Tabellenzeile gilt außerdem der im Kommentar versprochene
+Frontend-Fallback nicht: Der Gateway hat bereits den Betrag des aktiven
+Offsets als `tool_length` eingesetzt; `?? tool_offset[2]` erreicht den
+signierten Wert nicht mehr.
+
+**Erwartung:** Betrag für die Werkzeuggeometrie und signierten
+Tabellen-/Bezugsversatz getrennt führen. Für die Live-Pose eine Basis mit
+bekanntem Vorzeichen und Herkunft verwenden; unbekannte Tabellenbasis nicht
+als gesicherte physische Länge behandeln. Die korrekte G49-Darstellung für
+positive Tabellenwerte erhalten. Wächter mit positivem und negativem
+eigenem G43-Offset sowie fehlender Tabellenzeile; gegebenenfalls auch beim
+G49-Wechsel den signierten Tabellenbezug erhalten. Den bestehenden
+Betragsvertrag von `tool_length` nicht stillschweigend global umdeuten.
+
+[Statussonde](sim-toolsetter.r45.status-probe.py),
+[Gateway-Ergebnis](sim-toolsetter.r45.status.json),
+[Browserprobe](viewer-palette-fest.r45.browser-probe.ts),
+[Viewer-Ergebnis](sim-toolsetter.r45.viewer.json),
+[roter Wächter: −300 statt −170](viewer-palette-fest.r45.own-browser.txt),
+[Ansicht](sim-toolsetter.r45.negative-offset.png).
+
+### ST-I05 · P3 — der zugesagte konstante Kalibrierfehler wird bei Wiederholung größer
+
+**Stelle:** neue Begründung in dieser R45-Antwort;
+`examples/sim_config/README.md:74–79`,
+`sim_toolsetter/sim_toolsetter_feed.py:12–15,75–80` und entsprechender
+Hinweis in `CLAUDE.md`.
+
+Die feste Platte beseitigt den Übergang zwischen alter und neuer Position.
+Sie macht den Messfehler aber nicht zu einem gleichbleibenden Fehler einer
+realen physischen Werkzeuglänge: Der Feeder liest nach jedem `G10` erneut die
+**gerade gemessene Tabellenlänge** als Länge des physischen Sim-Werkzeugs.
+
+Mit unveränderter Platte −300, falsch eingestellter Referenz −280 und
+Startlänge 65 ergibt die originale C-Kontaktformel plus Ergebnisformel aus
+`tool_touch_off.ngc:379–387`:
+
+| Messung | physische Länge laut Feeder | Kontakt G53 Z | neuer Tabellenwert |
+| --- | ---: | ---: | ---: |
+| 1 | 65 | −235 | 45 |
+| 2 | 45 | −255 | 25 |
+| 3 | 25 | −275 | 5 |
+
+Also **65 → 45 → 25 → 5**, nicht eine einmal auf 45 verschobene, danach
+stabile Messung. Das ist keine neue Synchronisationsbehauptung und kein
+Live-Lauf, sondern die deterministische Rückkopplung des dokumentierten
+Sim-Modells. Quantisierung, Finderkorrektur und Werkstückoffset sind in
+dieser Folgenrechnung ausgeklammert.
+
+**Minimal erwartete Korrektur:** Die behauptete Konstanz in Antwort und
+Dokumentation zurücknehmen und diese Grenze des tabellenbasierten
+Sim-Werkzeugs ausdrücklich benennen; unterstützter Betrieb setzt die zur
+festen Platte passende Referenz voraus. Die Folgesonde für Fehlreferenz als
+Nachweis aufnehmen. Falls eine realistische, stabile Fehlkalibrierung
+weiterhin versprochen werden soll, braucht die physische Sim-Länge eine
+von den Messergebnissen getrennte Quelle. Ein solches Zusatzmodell fordere
+ich für den minimalen Fix nicht.
+
+[Native Sonde](sim-toolsetter.r45.probe.py),
+[positive Kontrolle und Fehlreferenz-Folge](sim-toolsetter.r45.probe.json).
+
+### Prüfung und Übergabe
+
+Backend-Wächter **12/12**, gezielte Viewer-Unit-Tests **60/60**, beide
+originalen Browser-Specs **7/7**, Typecheck/Build **PASS**. Eigene Browserprobe:
+Reichweiten-Messung erfolgreich, signierter G43-Wächter **rot** wie oben;
+keine Page-Errors. Der ausstehende Live-Lauf (`heavy_test.ngc`, Wiederholung
+nach echtem Homing) bleibt separat. Keine Quittierung des Trips, kein Zugriff
+auf die laufende Suite und keine Produktänderung. Alle neuen Belege R45;
+ältere Nachweise unverändert. Eigener Mock und Browser beendet.
