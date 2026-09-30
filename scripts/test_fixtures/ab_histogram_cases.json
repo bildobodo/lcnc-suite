@@ -1,0 +1,121 @@
+{
+  "_doc": "Shared cases for the part-B A/B histograms: lcnc-webui/src/viewer/abHistogram.ts and scripts/viewer_ab_report.py must agree. A case is a list of WINDOWS (3 s each), a window a list of [value_ms, count]. p95 = upper edge of the bin holding the ceil(0.95 n)-th sample; bins 1 ms below 200 ms, 10 ms to 1000 ms, then overflow.",
+  "cases": [
+    {
+      "name": "Codex R39: window p95s 100 and 1 must not average to 50.5",
+      "windows": [
+        [
+          [
+            99.5,
+            20
+          ]
+        ],
+        [
+          [
+            0.5,
+            380
+          ]
+        ]
+      ],
+      "expect": {
+        "p95": 1,
+        "window_p95_max": 100,
+        "window_p95_mean": 50.5,
+        "at_least_100": 0,
+        "at_least_50": 20,
+        "sparse": [
+          0,
+          380,
+          99,
+          20
+        ]
+      }
+    },
+    {
+      "name": "60 Hz with a few long frames",
+      "windows": [
+        [
+          [
+            16.7,
+            170
+          ],
+          [
+            33.4,
+            8
+          ],
+          [
+            120,
+            2
+          ]
+        ],
+        [
+          [
+            16.6,
+            176
+          ],
+          [
+            50,
+            4
+          ]
+        ]
+      ],
+      "expect": {
+        "p95": 17,
+        "window_p95_max": 34,
+        "window_p95_mean": 25.5,
+        "at_least_100": 2,
+        "at_least_50": 6,
+        "sparse": [
+          16,
+          346,
+          33,
+          8,
+          50,
+          4,
+          120,
+          2
+        ]
+      }
+    },
+    {
+      "name": "coarse and overflow bins",
+      "windows": [
+        [
+          [
+            250,
+            1
+          ],
+          [
+            999.9,
+            1
+          ],
+          [
+            1500,
+            1
+          ],
+          [
+            10,
+            17
+          ]
+        ]
+      ],
+      "expect": {
+        "p95": 1000,
+        "window_p95_max": 1000,
+        "window_p95_mean": 1000,
+        "at_least_100": 3,
+        "at_least_50": 3,
+        "sparse": [
+          10,
+          17,
+          205,
+          1,
+          279,
+          1,
+          280,
+          1
+        ]
+      }
+    }
+  ]
+}

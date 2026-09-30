@@ -110,6 +110,7 @@ def offline_commands(component):
         # and never discovers scripts/ — the CSS linter's own pins ride here.
         commands.append(("audit-css", [python(), "-m", "pytest", str(ROOT / "scripts/test_audit_scoped_css.py")], ROOT))
         commands.append(("review-handshake", [python(), "-m", "pytest", str(ROOT / "scripts/test_review_handshake.py")], ROOT))
+        commands.append(("viewer-ab-report", [python(), "-m", "pytest", str(ROOT / "scripts/test_viewer_ab_report.py")], ROOT))
     if component in ("all", "frontend"):
         for name, cmd in (("lint", ["npm", "run", "lint"]),
                           ("build", ["npm", "run", "build"]),

@@ -33,7 +33,8 @@ export default tseslint.config(
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
-      globals: { ...globals.browser, ...globals.worker },
+      // __APP_COMMIT__: vite.config.ts `define` (the served commit, telemetry).
+      globals: { ...globals.browser, ...globals.worker, __APP_COMMIT__: "readonly" },
       parserOptions: {
         parser: tseslint.parser, // parse <script lang="ts"> inside .vue
       },

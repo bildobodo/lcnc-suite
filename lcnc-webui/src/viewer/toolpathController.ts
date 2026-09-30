@@ -125,6 +125,13 @@ export interface ToolpathController {
    *  never both held, so each mode's memory is its own. */
   setLineMode(mode: PathLineMode, ctx: ToolpathCtx): void;
   readonly lineMode: PathLineMode;
+  /** The A/B measurement only: hold the limit overlays hidden. */
+  holdOverlays(on: boolean): void;
+  /** Whether the drawn program carries limit overlays at all. */
+  readonly hasOverlays: boolean;
+  /** The drawn path's box in world coordinates (every chunk of every set,
+   *  at the parents' current pose), or null without a path. */
+  pathWorldBox(): THREE.Box3 | null;
   /** The memory ledger (Codex R39 VP39-01): bytes by owner — CPU per unique
    *  ArrayBuffer, GPU per buffer actually uploaded. */
   pathMemory(): PathMemory;
@@ -287,10 +294,13 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   let _lodMax = 0;
   let _lodMs = 0;
   let lineMode: PathLineMode = deps.lineMode ?? "fat";
+  // The A/B measurement's "overlay off" phase (Codex R39 VP39-03; removed
+  // with the switch): the limit overlays held hidden, nothing rebuilt.
+  let _overlaysHeld = false;
   // The memory ledger (Codex R39 VP39-01): GPU bytes count a buffer once it
   // was actually uploaded (three calls onUpload after the first transfer);
   // _buildBytes adds up what the last build packed.
-  let _uploaded = new WeakSet<object>();
+  const _uploaded = new WeakSet<object>();
   let _buildBytes = 0;
   const _watchUpload = (b: THREE.BufferAttribute | THREE.InterleavedBuffer) => { b.onUpload(() => { _uploaded.add(b); }); };
   // The last apply's DATA (never its ctx — the scene pointers are fresh per
@@ -696,7 +706,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       const on = toolpathVisible && k === ch.level && ch.counts[k]! > 0;
       ch.lines[k]!.visible = on && (s.stream !== "rapid" || rapidsVisible);
       const ov = ch.overlays[k];
-      if (ov) ov.visible = on && !pathStale && (ch.ovCounts[k] ?? 0) > 0;
+      if (ov) ov.visible = on && !pathStale && !_overlaysHeld && (ch.ovCounts[k] ?? 0) > 0;
     }
   }
 
@@ -1032,6 +1042,29 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     },
 
     get lineMode() { return lineMode; },
+
+    holdOverlays(on) {
+      _overlaysHeld = on;
+      _applyVisibility();
+      deps.requestRender();
+    },
+
+    get hasOverlays() { return sets.some(st => st.overMat !== null); },
+
+    pathWorldBox() {
+      const out = new THREE.Box3();
+      const b = new THREE.Box3();
+      for (const st of sets) {
+        st.parent.updateWorldMatrix(true, false);
+        for (let ci = 0; ci < st.chunks.length; ci++) {
+          const o = ci * 6;
+          b.min.set(st.bounds[o]!, st.bounds[o + 1]!, st.bounds[o + 2]!);
+          b.max.set(st.bounds[o + 3]!, st.bounds[o + 4]!, st.bounds[o + 5]!);
+          out.union(b.applyMatrix4(st.parent.matrixWorld));
+        }
+      }
+      return out.isEmpty() ? null : out;
+    },
 
     pathMemory() {
       const seenCpu = new Set<ArrayBufferLike>();

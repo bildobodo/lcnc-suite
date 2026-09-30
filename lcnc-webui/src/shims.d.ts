@@ -35,6 +35,9 @@ interface ViewerDiag {
   // Viewer contrast plan (R1/R2): each role's drawn material kind (the form
   // cue), width and opacity; the longest visible segment of a role on screen.
   getRoleMaterials?: () => { role: string; kind: string; widthPx: number | null; dashed: boolean; opacity: number; transparent: boolean }[];
+  // Part B (Codex R39 VP39-01): the path memory ledger by owner.
+  runAbMeasurement?: (durations?: Record<string, number>) => Promise<void>;
+  getPathMemory?: () => { mode: string; cpu: Record<string, number>; gpu: Record<string, number>; buildBytes: number; instances: number };
   projectRole?: (role: string) => { x: number; y: number; dx: number; dy: number; length: number } | null;
   projectRoleSegments?: (role: string) => { x: number; y: number; dx: number; dy: number; length: number }[];
   // Viewer contrast plan (V4): the tilted work plane as drawn, and a seam to
@@ -82,6 +85,9 @@ interface ViewerLeakProbe {
   textures: number;     // renderer.info.memory.textures
   programs: number;     // renderer.info.programs.length (unique shaders)
 }
+
+/** The commit the app was built / served from (vite.config.ts define). */
+declare const __APP_COMMIT__: string;
 
 interface Window {
   __viewerDiag?: ViewerDiag;

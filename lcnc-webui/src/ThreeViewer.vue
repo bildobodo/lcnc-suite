@@ -56,6 +56,10 @@ import { pathReveal, revealFor, revealText, sectionOf } from "./viewer/pathRevea
 import { twpPoseStale, twpDatumStale, kinsModeChip, fixtureOffDatum, stampAForFixture, poseAbcOf } from "./twpPose";
 import { planeView, type PlaneView } from "./viewer/planeView";
 import { Camera, Settings, ChevronDown, ChevronUp } from "lucide-vue-next";
+import { createAbDriver } from "./viewer/abDriver";
+import { abRunLine, registerAbDriver, startAbRun } from "./viewer/abRunBus";
+import { cssZoomOf } from "./helpPlacement";
+import { gcodeTextSource } from "./ws/bulkData";
 
 const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
 
@@ -425,6 +429,13 @@ function requestRender() { _needsRender = true; }
 // renderer.info of the last main render (perf probe context).
 let _glCalls = 0;
 let _glLines = 0;
+let _glTriangles = 0;
+// The A/B measurement (viewer/abDriver.ts; temporary, Codex R39 VP39-03):
+// its per-frame hook runs at the top of animate(), its notifier on a camera
+// touched by hand.
+let _abFrameHook: ((now: number) => void) | null = null;
+let _abInteract: (() => void) | null = null;
+let _abDriver: ReturnType<typeof createAbDriver> | null = null;
 
 // Fresh per-call snapshot of the reassigned scene-graph pointers for the viewer
 // controllers (they must never cache these — see viewer/viewerContext.ts).
@@ -1774,6 +1785,12 @@ async function buildFromInit(init: ViewerInit) {
         // path line's 2, part B), `dashed` / `basic` a GL line of one device
         // pixel — `dashed` the pair table's form cue on either, and its
         // opacity whether the colour needs compositing.
+        // The part-B memory ledger (Codex R39 VP39-01): bytes by owner, CPU
+        // per unique ArrayBuffer, GPU per buffer actually uploaded.
+        getPathMemory: () => toolpath.pathMemory(),
+        // The A/B run with short phases (the e2e; the operator's run is the
+        // Debug tab's button with the full durations).
+        runAbMeasurement: (durations?: Record<string, number>) => startAbRun({ durations }),
         getRoleMaterials: () => {
           const out: { role: string; kind: string; widthPx: number | null; dashed: boolean; opacity: number; transparent: boolean }[] = [];
           const seen = new Set<string>();
@@ -3524,6 +3541,7 @@ function animate() {
   if (props.active === false) return; // paused — don't schedule next frame
   raf = requestAnimationFrame(animate);
   recordRafTick();   // render-loop cadence + GPU fence poll (viewerPerf)
+  _abFrameHook?.(performance.now());
 
   // Apply pending state before render (natural frame dropping —
   // if multiple status updates arrive between frames, only the latest is used).
@@ -3614,6 +3632,7 @@ function animate() {
   // gizmo pass below would zero them) — read here for the perf probe.
   _glCalls = renderer?.info.render.calls ?? 0;
   _glLines = renderer?.info.render.lines ?? 0;
+  _glTriangles = renderer?.info.render.triangles ?? 0;
 
   // Orientation gizmo — always ortho, render into bottom-right viewport
   // (top-left is the HUD, top-right is the ViewCube + quick-grid).
@@ -3717,7 +3736,7 @@ onMounted(() => {
   // A running collision sweep pauses while the camera moves — the busy
   // worker starved the GPU side of the browser (2026-09-10); its budget
   // counts active time only, so the pause costs the sweep nothing.
-  controls.addEventListener("start", () => { _camMoving = true; _colSetPaused("camera", true); });
+  controls.addEventListener("start", () => { _camMoving = true; _colSetPaused("camera", true); _abInteract?.(); });
   controls.addEventListener("end", () => { _camMoving = false; _colSetPaused("camera", false); });
 
   // Pause RAF when the document is hidden (browser tab switch / system sleep).
@@ -3733,6 +3752,48 @@ onMounted(() => {
   for (const el of [wrapEl.value, bottomEl.value, hudEl.value]) if (el) _hudFitObs.observe(el);
 
   buildGizmo();
+
+  _abDriver = createAbDriver({
+    camera: () => camera,
+    controls: () => controls,
+    toolpath,
+    toolpathCtx,
+    requestRender,
+    setFrameHook: fn => { _abFrameHook = fn; },
+    root: () => wrapEl.value,
+    rapidsLayer: on => { if (on !== undefined) setLayerVisible("rapids", on); return _pathLayers.rapids; },
+    simActive: () => simMode.value,
+    sweepBusy: () => collisionBusy.value,
+    interpIdle: () => (status.value?.data?.interp_state ?? INTERP_IDLE) === INTERP_IDLE,
+    renderInfo: () => ({ calls: _glCalls, triangles: _glTriangles, lines: _glLines,
+      geometries: renderer?.info.memory.geometries ?? 0, textures: renderer?.info.memory.textures ?? 0 }),
+    meta: () => {
+      const el = renderer?.domElement;
+      return {
+        commit: typeof __APP_COMMIT__ !== "undefined" ? __APP_COMMIT__ : "unknown",
+        build: import.meta.env.MODE,
+        ua: navigator.userAgent,
+        viewport: el ? [el.clientWidth, el.clientHeight] : null,
+        pixel_ratio: renderer?.getPixelRatio() ?? null,
+        device_pixel_ratio: window.devicePixelRatio,
+        zoom: el ? +cssZoomOf(el).toFixed(3) : null,
+        file: props.activeFile ?? null,
+        source: gcodeTextSource.value || null,
+        feed_segs: toolpath.feedSegs,
+        rapid_segs: toolpath.rapidSegs,
+        chunks: toolpath.chunks,
+        overlays: toolpath.hasOverlays,
+        backplot_pts: backplot.count,
+        backplot_full: backplot.isFull,
+        path_on_top: pathAlwaysOnTop,
+        projection: camera instanceof THREE.OrthographicCamera ? "parallel" : "perspective",
+        theme: document.documentElement.dataset.theme ?? "auto",
+        sim: simMode.value,
+      };
+    },
+    onInteract: fn => { _abInteract = fn; },
+  });
+  registerAbDriver(_abDriver);
 
   resize();
   animate();
@@ -3789,6 +3850,9 @@ function applyViewerDefaults() {
 }
 
 onUnmounted(() => {
+  registerAbDriver(null);
+  _abDriver?.dispose();
+  _abDriver = null;
   document.removeEventListener("visibilitychange", _colOnVisibility);
   themeMedia?.removeEventListener("change", updateSceneTheme);
   document.removeEventListener("visibilitychange", _onVisibilityChange);
@@ -3950,10 +4014,12 @@ const hudFit = reactive({ scale: viewerDefaults.hud.scale as (typeof HUD_SCALES)
  *  then cover the DRO until it is folded again). */
 const notesOpen = ref(false);
 /** The warning lines the findings card holds (the mode chip aside). */
+/** The A/B measurement's line while it runs (temporary, viewer/abRunBus.ts). */
+const abLine = computed(() => abRunLine());
 const hudWarnCount = computed(() => [vst.value?.eoffset_enabled, vst.value?.rotation_xy, foreignWcs.value.length,
   rewrittenWcs.value.length, kinsEndWarn.value, previewSchemaStale.value, previewRefresh.value,
   !previewRefresh.value && previewWcsStale.value, previewTloStale.value, previewTableStale.value, toolpathOverflow.value,
-  failedParts.value.length].filter(Boolean).length);
+  failedParts.value.length, abLine.value].filter(Boolean).length);
 /** The folded card's one line: the mode and how many warnings wait behind it. */
 /** The mode line: the chip, the fixture, the plane's word — each said once.
  *  A wrong-fixture chip names its fixture already ("TWP · G54"), and the
@@ -4443,6 +4509,7 @@ defineExpose({
         <div v-if="previewTableStale" class="hudWarn" data-table-stale>Tool table changed — preview updates after the run<HelpIcon label="Preview tool table">{{ previewTableStale.why === "unsupported"
           ? "This machine's random tool changer cannot be re-parsed during a run; the preview re-parses once idle."
           : "The preview's start state is not known for this program; it re-parses once the machine is idle." }}</HelpIcon></div>
+        <div v-if="abLine" class="hudWarn" data-ab-run>{{ abLine }}</div>
         <div v-if="toolpathOverflow" class="hudWarn">{{ toolpathOverflowCount }} limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
       </template>
       <div v-if="failedParts.length" class="hudWarn">{{ failedParts.length }} machine part{{ failedParts.length === 1 ? '' : 's' }} failed to load — check the model files<HelpIcon label="Model parts">Not loaded: {{ failedParts.join(', ') }}.</HelpIcon></div>
