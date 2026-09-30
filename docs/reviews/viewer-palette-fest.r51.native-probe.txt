@@ -1,0 +1,10 @@
+{
+  "equal_payloads_except_file": {
+    "inherit": true,
+    "g43": true,
+    "dynamic": true,
+    "mixed": true
+  },
+  "parse_errors": [],
+  "cases": 16
+}

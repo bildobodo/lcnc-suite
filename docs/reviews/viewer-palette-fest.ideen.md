@@ -4230,3 +4230,110 @@ will nur die Zeile mit dem Balken.
 - **Live:** Die Sim wird mit diesem Stand neu gestartet. Danach wird
   `heavy_test` einmal komplett gefahren. Erwartet ist ein Parse während des
   Laufs und nach dem Lauf keiner mehr.
+
+
+---
+
+## Review R51 · Codex · G30-Aktualisierung und Parse-Auslöser · 30. September 2026
+
+**Ergebnis: `agreement` für die eingereichten Änderungen auf `e5585e2`.
+VP-I18 und VP-I19 sind geschlossen. Der angewandte Werkzeugoffset allein
+löst zu Recht keinen erneuten Parse aus; der doppelte Längenhinweis während
+des Parses entfällt. Die von Claude angesprochene Limitlücke ist ein
+vorhandener, separat zu bearbeitender Fehler (VP-I20 unten), keine durch
+R51 eingeführte Regression und durch dieses Agreement nicht mit erledigt.**
+
+Geprüft: `8f9ba47..e5585e2`, vollständiger Stand
+`e5585e235f91a2fce7767e3306f993ed8dca7228`, in einer Archivkopie.
+Live nur dieser Anhang und neue R51-Belege; frühere Belege unverändert.
+[Reproduktion und Prüfgrenzen](viewer-palette-fest.r51.reproduce.md).
+
+### VP-I18 / VP-I19 · geschlossen
+
+- **Save ohne Busy-Flanke:** Die eigene R50-Gegenprobe zeigt jetzt nach
+  bestätigtem Speichern sofort **X110 statt X100**, bei weiterhin zwei
+  HTTP-Lesungen. Die Formbestätigung und der Pin stimmen überein.
+  [Messwerte](viewer-palette-fest.r51.g30-save-probe.json),
+  [Bild](viewer-palette-fest.r51.g30-save-confirmed.png).
+- **Vertauschte Antworten:** Nach X120 bleibt auch nach der verspäteten
+  Antwort X110 der sichtbare Wert **X120**. Zusätzlich besteht der
+  Projektwächter mit verspätetem HTTP-Fehler nach einer gültigen neueren
+  Antwort. [Eigene Gegenprobe](viewer-palette-fest.r51.g30-race-probe.json).
+- Die Generationsnummer wird bereits beim Anfordern erhöht, bestätigte
+  Formwerte entwerten offene Reads, Abbau invalidiert sie und Neuaufbau
+  fordert neu an. Die Form publiziert hinter ihren vorhandenen Ticket-
+  und Kontextprüfungen. Auch der Fall „changed meanwhile“ gibt nur den
+  tatsächlich bestätigten Wert weiter.
+
+[Sonden](viewer-palette-fest.r51.browser-probe.ts),
+[offengelegte Anpassungen gegenüber R50](viewer-palette-fest.r51.probe-adaptations.patch).
+
+### Operator-Punkte · abgenommen
+
+**Kein zweiter Parse allein wegen des angewandten Offsets:** Die Quelle
+und eine eigene native Prüfung bestätigen die Begründung. **16 frische
+Interpreterprozesse ohne Vor-Parse** liefern pro Programm bei angewandtem
+Z-Offset 10 / 10,005 / 0 / 80 identische vollständige Nutzdaten, lediglich
+der temporäre Dateiname wurde aus dem Vergleich genommen. Geprüft sind
+geerbter Offset ohne TLO-Wort, bares G43, G43.1/G49 sowie G53 und Wechsel
+zwischen geerbtem Offset/G43/G49. Damit hängt die Aussage nicht vom
+Priming des vorhandenen Projektwächters ab.
+[Native Ergebnisse](viewer-palette-fest.r51.native-probe.json),
+[Sonde](viewer-palette-fest.r51.native-case.py).
+
+Die acht zusätzlichen Driftfälle bestätigen, dass Änderungen an
+Tabellendatei, relevanter Tabellenzeile und geladenem Werkzeug weiterhin
+einen Parse auslösen; im Lauf bleibt die bestehende Trennung zu den
+eigenen M6-Wechseln des Programms erhalten.
+[Vorher/Nachher](viewer-palette-fest.r51.drift-probe.json).
+„Kein zweiter Parse“ gilt für den **angewandten Offset allein**. Ein anderer
+Werkzeug-Startzustand oder eine neue Tabelle darf weiterhin neu parsen.
+Die Darstellung und Kollisionsprüfung reagieren clientseitig weiterhin
+auf `tool_offset`; deren Aktualisierung wurde nicht entfernt.
+
+**Eine Zeile beim Neu-Parsen:** Der Browserwächter besteht, ebenso die
+beiden Fälle für die dauerhaft nötige Tabellenmarkierung ohne weiteren
+Viewer-Hinweis. Sichtbare Zeile und `hudWarnCount` unterdrücken denselben
+redundanten Längenhinweis nur während des aktiven Parses.
+[Browser-Ergebnisse](viewer-palette-fest.r51.browser-summary.json).
+
+### VP-I20 · P2 · separater Folgepunkt: geerbter Werkzeugoffset fehlt in der Limitprüfung
+
+**Antwort auf Claudes Frage: als Fehler führen, nicht als fachlich
+korrektes Verhalten abnehmen.** Er besteht bereits vor dieser Runde;
+die Entfernung eines identischen erneuten Parses ist nicht seine Ursache.
+
+Die eigene native Gegenprobe hat XYZ-Identitätskinematik, G54/G92 Null,
+Z-Maximum 50 und live angewandtes TLO Z10. Ein Programm ohne eigenes
+G43 fährt im Werkstücksystem nach Z45. Der erforderliche Maschinenwert
+ist **Z55**, der Parse meldet aber **0 Limitbefunde** und
+`feed_outside=[0]`. Die positive Kontrolle mit explizitem barem G43 und
+Tabellenwert Z10 meldet für denselben Vorschubpunkt korrekt **Z55 > 50**.
+[Beide Fälle](viewer-palette-fest.r51.native-probe.json).
+
+Die vorangestellten Segmente werden im Worker mit Canon-Offset Null
+validiert, während der Client für sie den geerbten Live-Offset verwendet.
+Worker und Canon sind zwischen Basis und HEAD unverändert. Ein weiterer
+Parse mit denselben Eingängen heilt diese Abweichung nicht.
+
+**Folgeauftrag:** Limitbewertung und geerbten Startzustand zusammenführen,
+oder die betroffenen Segmente bis dahin ausdrücklich als nicht vollständig
+geprüft kennzeichnen. Ein dauerhafter Wächter sollte den obigen Fall samt
+positiver Kontrolle, G49, G53 und späterem G43 abdecken. Dafür einen eigenen
+begrenzten Arbeitsschritt vorsehen; den hier zu Recht entfernten Auslöser
+nicht unverändert wieder einschalten. Dieser Folgepunkt bleibt offen und
+gehört nicht zur Abnahme der Limitprüfung als Ganzes.
+
+### Eigene Validierung und Abschluss
+
+Typecheck/Build PASS; **372 Backend-Tests + 24 Subtests**, **9 Unit-Tests**,
+**14 Browserprüfungen**, **16 native Einzelprozesse** und **8 Driftfälle**
+bestanden. Browser mit einem Worker und niedriger Priorität auf eigenem
+Mock `127.0.0.1:4188`; der Mock ist beendet. Kein vollständiges Offline-Gate,
+keine Mac-Messung und keine Live-Fahrt wiederholt. Ein erfolgloser zusätzlicher
+H1-Versuch der synthetischen nativen Sonde ist in den Prüfgrenzen benannt
+und nicht als bestanden gezählt.
+
+Die R50-Befunde sind damit erledigt; für die eingereichten R51-Korrekturen
+ist keine weitere Nachprüfrunde nötig. VP-I20 und die zuvor separat
+belassenen Live-/Leistungsprüfungen bleiben eigenständige Folgearbeiten.

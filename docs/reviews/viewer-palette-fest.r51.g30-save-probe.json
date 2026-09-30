@@ -1,0 +1,49 @@
+{
+  "before": {
+    "visible": true,
+    "top": [
+      100,
+      0,
+      -26.275
+    ],
+    "screen": {
+      "x": 525.9999999999998,
+      "y": 639.9039463079187
+    },
+    "onTop": true
+  },
+  "afterSave": {
+    "visible": true,
+    "top": [
+      110,
+      0,
+      -26.275
+    ],
+    "screen": {
+      "x": 543.3241161390703,
+      "y": 647.290974250074
+    },
+    "onTop": true
+  },
+  "afterEdge": {
+    "visible": true,
+    "top": [
+      110,
+      0,
+      -26.275
+    ],
+    "screen": {
+      "x": 543.3241161390703,
+      "y": 647.290974250074
+    },
+    "onTop": true
+  },
+  "file": {
+    "X": 110,
+    "Y": 0,
+    "Z": -26.275
+  },
+  "readsBefore": 2,
+  "readsAfterSave": 2,
+  "readsAfterEdge": 2
+}

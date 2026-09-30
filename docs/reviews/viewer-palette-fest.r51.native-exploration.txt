@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/tmp/codex-r51-fakzpiqh/evidence/viewer-palette-fest.r51.native-run.py", line 9, in <module>
+    if p.returncode:raise RuntimeError(f'{case}/{offset}: rc={p.returncode}, stdout={p.stdout!r}, stderr={p.stderr!r}')
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: g43/10: rc=-11, stdout='', stderr=''

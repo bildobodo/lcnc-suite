@@ -1,0 +1,58 @@
+[
+  {
+    "case": "end_measured_g43",
+    "live_applied_z": 65.0589,
+    "before": "tool_offset",
+    "after": null,
+    "expected": null
+  },
+  {
+    "case": "manual_g49",
+    "live_applied_z": 0.0,
+    "before": "tool_offset",
+    "after": null,
+    "expected": null
+  },
+  {
+    "case": "manual_dynamic",
+    "live_applied_z": 12.5,
+    "before": "tool_offset",
+    "after": null,
+    "expected": null
+  },
+  {
+    "case": "table_file_changed",
+    "live_applied_z": 65.064,
+    "before": "table_mtime",
+    "after": "table_mtime",
+    "expected": "table_mtime"
+  },
+  {
+    "case": "loaded_tool_changed",
+    "live_applied_z": 65.064,
+    "before": "tool_loaded",
+    "after": "tool_loaded",
+    "expected": "tool_loaded"
+  },
+  {
+    "case": "table_row_changed",
+    "live_applied_z": 65.064,
+    "before": "table_row",
+    "after": "table_row",
+    "expected": "table_row"
+  },
+  {
+    "case": "midrun_own_m6",
+    "live_applied_z": 12.5,
+    "before": null,
+    "after": null,
+    "expected": null
+  },
+  {
+    "case": "midrun_table_row_changed",
+    "live_applied_z": 12.5,
+    "before": "table_row",
+    "after": "table_row",
+    "expected": "table_row"
+  }
+]

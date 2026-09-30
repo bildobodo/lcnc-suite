@@ -1,0 +1,27 @@
+
+Running 14 tests using 1 worker
+
+(node:2568498) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2568498) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [g30] › e2e/r51.viewer.spec.ts:70:1 › R51: a confirmed Save G30 without a sampled busy edge must refresh the displayed point (5.4s)
+  ✓   2 [g30] › e2e/r51.viewer.spec.ts:96:1 › R51: a late G30 read must not replace the newer displayed point (6.2s)
+  ✓   3 [g30] › e2e/toolsetter.viewer.spec.ts:20:1 › the tool setter shows where it is set up, and only there (3.9s)
+  ✓   4 [g30] › e2e/toolsetter.viewer.spec.ts:55:1 › G49 never moves the drawn tool; a table write moves its tip with the backplot's pen up (Codex R44 ST-I03) (7.7s)
+  ✓   5 [g30] › e2e/toolsetter.viewer.spec.ts:94:1 › the drawn tip keeps the table offset's sign; without a table row it follows the active offset (Codex R45 ST-I04) (6.2s)
+  ✓   6 [g30] › e2e/toolsetter.viewer.spec.ts:142:1 › the tool setter is a pin drawn over the machine while on top, hidden by the head when not (9.8s)
+  ✓   7 [g30] › e2e/toolsetter.viewer.spec.ts:183:1 › the tool-change pin stands at the stored G30; without a read there is none (8.4s)
+  ✓   8 [g30] › e2e/toolsetter.viewer.spec.ts:208:1 › a late G30 read never puts the pin back on an older position (Codex R50 VP-I19) (10.4s)
+  ✓   9 [g30] › e2e/toolsetter.viewer.spec.ts:245:1 › a confirmed Save G30 moves the tool-change pin without an idle edge (Codex R50 VP-I18) (7.9s)
+  ✓  10 [g30] › e2e/toolsetter.viewer.spec.ts:280:1 › Settings › Layers: an On top column for lines and markers, saved per layer (8.2s)
+(node:2570679) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2570679) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  11 [hud] › e2e/collisions.viewer.spec.ts:166:3 › contacts that separate and come back on one line stay apart, with and without the entry move — a clear first point (control) (Codex R34 VP-I09) (15.4s)
+  ✓  12 [hud] › e2e/collisions.viewer.spec.ts:166:3 › contacts that separate and come back on one line stay apart, with and without the entry move — the program starts in the contact (Codex R34 VP-I09) (13.9s)
+  ✓  13 [hud] › e2e/collisions.viewer.spec.ts:263:1 › on a machine with no other viewer note the tool-table mark brings the card itself, for both reasons (Codex R42) (5.1s)
+  ✓  14 [hud] › e2e/collisions.viewer.spec.ts:304:1 › a mid-run re-parse for a measured tool is one line, never a second one under its bar (operator 2026-09-30) (5.0s)
+
+  14 passed (1.9m)

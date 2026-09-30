@@ -1,0 +1,167 @@
+{
+  "commit": "e5585e235f91a2fce7767e3306f993ed8dca7228",
+  "stats": {
+    "startTime": "2026-09-30T19:59:24.464Z",
+    "duration": 115938.68800000001,
+    "expected": 14,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "title": "R51: a confirmed Save G30 without a sampled busy edge must refresh the displayed point",
+      "project": "g30",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 5423
+        }
+      ]
+    },
+    {
+      "title": "R51: a late G30 read must not replace the newer displayed point",
+      "project": "g30",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 6225
+        }
+      ]
+    },
+    {
+      "title": "the tool setter shows where it is set up, and only there",
+      "project": "g30",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 3874
+        }
+      ]
+    },
+    {
+      "title": "G49 never moves the drawn tool; a table write moves its tip with the backplot's pen up (Codex R44 ST-I03)",
+      "project": "g30",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 7714
+        }
+      ]
+    },
+    {
+      "title": "the drawn tip keeps the table offset's sign; without a table row it follows the active offset (Codex R45 ST-I04)",
+      "project": "g30",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 6229
+        }
+      ]
+    },
+    {
+      "title": "the tool setter is a pin drawn over the machine while on top, hidden by the head when not",
+      "project": "g30",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 9848
+        }
+      ]
+    },
+    {
+      "title": "the tool-change pin stands at the stored G30; without a read there is none",
+      "project": "g30",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 8361
+        }
+      ]
+    },
+    {
+      "title": "a late G30 read never puts the pin back on an older position (Codex R50 VP-I19)",
+      "project": "g30",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 10353
+        }
+      ]
+    },
+    {
+      "title": "a confirmed Save G30 moves the tool-change pin without an idle edge (Codex R50 VP-I18)",
+      "project": "g30",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 7921
+        }
+      ]
+    },
+    {
+      "title": "Settings \u203a Layers: an On top column for lines and markers, saved per layer",
+      "project": "g30",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 8245
+        }
+      ]
+    },
+    {
+      "title": "contacts that separate and come back on one line stay apart, with and without the entry move \u2014 a clear first point (control) (Codex R34 VP-I09)",
+      "project": "hud",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 15426
+        }
+      ]
+    },
+    {
+      "title": "contacts that separate and come back on one line stay apart, with and without the entry move \u2014 the program starts in the contact (Codex R34 VP-I09)",
+      "project": "hud",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 13935
+        }
+      ]
+    },
+    {
+      "title": "on a machine with no other viewer note the tool-table mark brings the card itself, for both reasons (Codex R42)",
+      "project": "hud",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 5079
+        }
+      ]
+    },
+    {
+      "title": "a mid-run re-parse for a measured tool is one line, never a second one under its bar (operator 2026-09-30)",
+      "project": "hud",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 5013
+        }
+      ]
+    }
+  ]
+}

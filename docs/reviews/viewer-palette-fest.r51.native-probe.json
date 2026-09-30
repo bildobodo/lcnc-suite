@@ -1,0 +1,1348 @@
+{
+  "commit": "e5585e235f91a2fce7767e3306f993ed8dca7228",
+  "fresh_process_per_case": true,
+  "equal_payloads_except_file": {
+    "inherit": true,
+    "g43": true,
+    "dynamic": true,
+    "mixed": true
+  },
+  "cases": [
+    {
+      "case": "inherit",
+      "live_offset": 10.0,
+      "sha256_except_file": "2cd9334310f8d2c7da524ed6447a7ede67857ec0f8c721d1e364dd1544f78d0f",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": null,
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0
+      ],
+      "payload_keys": [
+        "bounds",
+        "error_line",
+        "feed",
+        "feed_lineok",
+        "feed_lines",
+        "feed_outside",
+        "feed_seq",
+        "feed_tcum",
+        "file",
+        "lines_untrusted",
+        "lines_untrusted_reason",
+        "motion_bounds",
+        "parse_error",
+        "parse_tlos",
+        "preview_schema",
+        "rapid",
+        "rapid_lineok",
+        "rapid_lines",
+        "rapid_outside",
+        "rapid_rate",
+        "rapid_seq",
+        "rapid_tcum",
+        "rapid_ustart",
+        "rot_rapid_rate",
+        "stats",
+        "tool_change_lines",
+        "violations",
+        "violations_total",
+        "wcs_basis",
+        "wcs_basis_index",
+        "wcs_frames",
+        "wcs_used"
+      ]
+    },
+    {
+      "case": "inherit",
+      "live_offset": 10.005,
+      "sha256_except_file": "2cd9334310f8d2c7da524ed6447a7ede67857ec0f8c721d1e364dd1544f78d0f",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": null,
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0
+      ],
+      "payload_keys": [
+        "bounds",
+        "error_line",
+        "feed",
+        "feed_lineok",
+        "feed_lines",
+        "feed_outside",
+        "feed_seq",
+        "feed_tcum",
+        "file",
+        "lines_untrusted",
+        "lines_untrusted_reason",
+        "motion_bounds",
+        "parse_error",
+        "parse_tlos",
+        "preview_schema",
+        "rapid",
+        "rapid_lineok",
+        "rapid_lines",
+        "rapid_outside",
+        "rapid_rate",
+        "rapid_seq",
+        "rapid_tcum",
+        "rapid_ustart",
+        "rot_rapid_rate",
+        "stats",
+        "tool_change_lines",
+        "violations",
+        "violations_total",
+        "wcs_basis",
+        "wcs_basis_index",
+        "wcs_frames",
+        "wcs_used"
+      ]
+    },
+    {
+      "case": "inherit",
+      "live_offset": 0.0,
+      "sha256_except_file": "2cd9334310f8d2c7da524ed6447a7ede67857ec0f8c721d1e364dd1544f78d0f",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": null,
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0
+      ],
+      "payload_keys": [
+        "bounds",
+        "error_line",
+        "feed",
+        "feed_lineok",
+        "feed_lines",
+        "feed_outside",
+        "feed_seq",
+        "feed_tcum",
+        "file",
+        "lines_untrusted",
+        "lines_untrusted_reason",
+        "motion_bounds",
+        "parse_error",
+        "parse_tlos",
+        "preview_schema",
+        "rapid",
+        "rapid_lineok",
+        "rapid_lines",
+        "rapid_outside",
+        "rapid_rate",
+        "rapid_seq",
+        "rapid_tcum",
+        "rapid_ustart",
+        "rot_rapid_rate",
+        "stats",
+        "tool_change_lines",
+        "violations",
+        "violations_total",
+        "wcs_basis",
+        "wcs_basis_index",
+        "wcs_frames",
+        "wcs_used"
+      ]
+    },
+    {
+      "case": "inherit",
+      "live_offset": 80.0,
+      "sha256_except_file": "2cd9334310f8d2c7da524ed6447a7ede67857ec0f8c721d1e364dd1544f78d0f",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": null,
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0
+      ],
+      "payload_keys": [
+        "bounds",
+        "error_line",
+        "feed",
+        "feed_lineok",
+        "feed_lines",
+        "feed_outside",
+        "feed_seq",
+        "feed_tcum",
+        "file",
+        "lines_untrusted",
+        "lines_untrusted_reason",
+        "motion_bounds",
+        "parse_error",
+        "parse_tlos",
+        "preview_schema",
+        "rapid",
+        "rapid_lineok",
+        "rapid_lines",
+        "rapid_outside",
+        "rapid_rate",
+        "rapid_seq",
+        "rapid_tcum",
+        "rapid_ustart",
+        "rot_rapid_rate",
+        "stats",
+        "tool_change_lines",
+        "violations",
+        "violations_total",
+        "wcs_basis",
+        "wcs_basis_index",
+        "wcs_frames",
+        "wcs_used"
+      ]
+    },
+    {
+      "case": "g43",
+      "live_offset": 10.0,
+      "sha256_except_file": "312252e410ffa4fa2a2726815359c7b55254b12a42e86d7c6c9f2aae50987633",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "violations": [
+        {
+          "line": 4,
+          "axis": "Z",
+          "value": 55.0,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 1,
+      "feed_outside": [
+        1
+      ],
+      "rapid_outside": [
+        0
+      ],
+      "payload_keys": [
+        "bounds",
+        "error_line",
+        "feed",
+        "feed_lineok",
+        "feed_lines",
+        "feed_outside",
+        "feed_seq",
+        "feed_tcum",
+        "file",
+        "lines_untrusted",
+        "lines_untrusted_reason",
+        "motion_bounds",
+        "parse_error",
+        "parse_tlos",
+        "preview_schema",
+        "rapid",
+        "rapid_lineok",
+        "rapid_lines",
+        "rapid_outside",
+        "rapid_rate",
+        "rapid_seq",
+        "rapid_tcum",
+        "rapid_ustart",
+        "rot_rapid_rate",
+        "stats",
+        "tlo_events",
+        "tool_change_lines",
+        "violations",
+        "violations_total",
+        "wcs_basis",
+        "wcs_basis_index",
+        "wcs_frames",
+        "wcs_used"
+      ]
+    },
+    {
+      "case": "g43",
+      "live_offset": 10.005,
+      "sha256_except_file": "312252e410ffa4fa2a2726815359c7b55254b12a42e86d7c6c9f2aae50987633",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "violations": [
+        {
+          "line": 4,
+          "axis": "Z",
+          "value": 55.0,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 1,
+      "feed_outside": [
+        1
+      ],
+      "rapid_outside": [
+        0
+      ],
+      "payload_keys": [
+        "bounds",
+        "error_line",
+        "feed",
+        "feed_lineok",
+        "feed_lines",
+        "feed_outside",
+        "feed_seq",
+        "feed_tcum",
+        "file",
+        "lines_untrusted",
+        "lines_untrusted_reason",
+        "motion_bounds",
+        "parse_error",
+        "parse_tlos",
+        "preview_schema",
+        "rapid",
+        "rapid_lineok",
+        "rapid_lines",
+        "rapid_outside",
+        "rapid_rate",
+        "rapid_seq",
+        "rapid_tcum",
+        "rapid_ustart",
+        "rot_rapid_rate",
+        "stats",
+        "tlo_events",
+        "tool_change_lines",
+        "violations",
+        "violations_total",
+        "wcs_basis",
+        "wcs_basis_index",
+        "wcs_frames",
+        "wcs_used"
+      ]
+    },
+    {
+      "case": "g43",
+      "live_offset": 0.0,
+      "sha256_except_file": "312252e410ffa4fa2a2726815359c7b55254b12a42e86d7c6c9f2aae50987633",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "violations": [
+        {
+          "line": 4,
+          "axis": "Z",
+          "value": 55.0,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 1,
+      "feed_outside": [
+        1
+      ],
+      "rapid_outside": [
+        0
+      ],
+      "payload_keys": [
+        "bounds",
+        "error_line",
+        "feed",
+        "feed_lineok",
+        "feed_lines",
+        "feed_outside",
+        "feed_seq",
+        "feed_tcum",
+        "file",
+        "lines_untrusted",
+        "lines_untrusted_reason",
+        "motion_bounds",
+        "parse_error",
+        "parse_tlos",
+        "preview_schema",
+        "rapid",
+        "rapid_lineok",
+        "rapid_lines",
+        "rapid_outside",
+        "rapid_rate",
+        "rapid_seq",
+        "rapid_tcum",
+        "rapid_ustart",
+        "rot_rapid_rate",
+        "stats",
+        "tlo_events",
+        "tool_change_lines",
+        "violations",
+        "violations_total",
+        "wcs_basis",
+        "wcs_basis_index",
+        "wcs_frames",
+        "wcs_used"
+      ]
+    },
+    {
+      "case": "g43",
+      "live_offset": 80.0,
+      "sha256_except_file": "312252e410ffa4fa2a2726815359c7b55254b12a42e86d7c6c9f2aae50987633",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "violations": [
+        {
+          "line": 4,
+          "axis": "Z",
+          "value": 55.0,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 1,
+      "feed_outside": [
+        1
+      ],
+      "rapid_outside": [
+        0
+      ],
+      "payload_keys": [
+        "bounds",
+        "error_line",
+        "feed",
+        "feed_lineok",
+        "feed_lines",
+        "feed_outside",
+        "feed_seq",
+        "feed_tcum",
+        "file",
+        "lines_untrusted",
+        "lines_untrusted_reason",
+        "motion_bounds",
+        "parse_error",
+        "parse_tlos",
+        "preview_schema",
+        "rapid",
+        "rapid_lineok",
+        "rapid_lines",
+        "rapid_outside",
+        "rapid_rate",
+        "rapid_seq",
+        "rapid_tcum",
+        "rapid_ustart",
+        "rot_rapid_rate",
+        "stats",
+        "tlo_events",
+        "tool_change_lines",
+        "violations",
+        "violations_total",
+        "wcs_basis",
+        "wcs_basis_index",
+        "wcs_frames",
+        "wcs_used"
+      ]
+    },
+    {
+      "case": "dynamic",
+      "live_offset": 10.0,
+      "sha256_except_file": "ed37a5f65cc8a2596c3383fa6458c079fa655715d5f5b68a161933dc00c3783c",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ],
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          12.5,
+          -1
+        ],
+        [
+          2,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [
+        {
+          "line": 3,
+          "axis": "Z",
+          "value": 52.5,
+          "limit": 50.0,
+          "kind": "max"
+        },
+        {
+          "line": 4,
+          "axis": "Z",
+          "value": 57.5,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 2,
+      "feed_outside": [
+        1
+      ],
+      "rapid_outside": [
+        1,
+        0
+      ],
+      "payload_keys": [
+        "bounds",
+        "error_line",
+        "feed",
+        "feed_lineok",
+        "feed_lines",
+        "feed_outside",
+        "feed_seq",
+        "feed_tcum",
+        "file",
+        "lines_untrusted",
+        "lines_untrusted_reason",
+        "motion_bounds",
+        "parse_error",
+        "parse_tlos",
+        "preview_schema",
+        "rapid",
+        "rapid_lineok",
+        "rapid_lines",
+        "rapid_outside",
+        "rapid_rate",
+        "rapid_seq",
+        "rapid_tcum",
+        "rapid_ustart",
+        "rot_rapid_rate",
+        "stats",
+        "tlo_events",
+        "tool_change_lines",
+        "violations",
+        "violations_total",
+        "wcs_basis",
+        "wcs_basis_index",
+        "wcs_frames",
+        "wcs_used"
+      ]
+    },
+    {
+      "case": "dynamic",
+      "live_offset": 10.005,
+      "sha256_except_file": "ed37a5f65cc8a2596c3383fa6458c079fa655715d5f5b68a161933dc00c3783c",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ],
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          12.5,
+          -1
+        ],
+        [
+          2,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [
+        {
+          "line": 3,
+          "axis": "Z",
+          "value": 52.5,
+          "limit": 50.0,
+          "kind": "max"
+        },
+        {
+          "line": 4,
+          "axis": "Z",
+          "value": 57.5,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 2,
+      "feed_outside": [
+        1
+      ],
+      "rapid_outside": [
+        1,
+        0
+      ],
+      "payload_keys": [
+        "bounds",
+        "error_line",
+        "feed",
+        "feed_lineok",
+        "feed_lines",
+        "feed_outside",
+        "feed_seq",
+        "feed_tcum",
+        "file",
+        "lines_untrusted",
+        "lines_untrusted_reason",
+        "motion_bounds",
+        "parse_error",
+        "parse_tlos",
+        "preview_schema",
+        "rapid",
+        "rapid_lineok",
+        "rapid_lines",
+        "rapid_outside",
+        "rapid_rate",
+        "rapid_seq",
+        "rapid_tcum",
+        "rapid_ustart",
+        "rot_rapid_rate",
+        "stats",
+        "tlo_events",
+        "tool_change_lines",
+        "violations",
+        "violations_total",
+        "wcs_basis",
+        "wcs_basis_index",
+        "wcs_frames",
+        "wcs_used"
+      ]
+    },
+    {
+      "case": "dynamic",
+      "live_offset": 0.0,
+      "sha256_except_file": "ed37a5f65cc8a2596c3383fa6458c079fa655715d5f5b68a161933dc00c3783c",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ],
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          12.5,
+          -1
+        ],
+        [
+          2,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [
+        {
+          "line": 3,
+          "axis": "Z",
+          "value": 52.5,
+          "limit": 50.0,
+          "kind": "max"
+        },
+        {
+          "line": 4,
+          "axis": "Z",
+          "value": 57.5,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 2,
+      "feed_outside": [
+        1
+      ],
+      "rapid_outside": [
+        1,
+        0
+      ],
+      "payload_keys": [
+        "bounds",
+        "error_line",
+        "feed",
+        "feed_lineok",
+        "feed_lines",
+        "feed_outside",
+        "feed_seq",
+        "feed_tcum",
+        "file",
+        "lines_untrusted",
+        "lines_untrusted_reason",
+        "motion_bounds",
+        "parse_error",
+        "parse_tlos",
+        "preview_schema",
+        "rapid",
+        "rapid_lineok",
+        "rapid_lines",
+        "rapid_outside",
+        "rapid_rate",
+        "rapid_seq",
+        "rapid_tcum",
+        "rapid_ustart",
+        "rot_rapid_rate",
+        "stats",
+        "tlo_events",
+        "tool_change_lines",
+        "violations",
+        "violations_total",
+        "wcs_basis",
+        "wcs_basis_index",
+        "wcs_frames",
+        "wcs_used"
+      ]
+    },
+    {
+      "case": "dynamic",
+      "live_offset": 80.0,
+      "sha256_except_file": "ed37a5f65cc8a2596c3383fa6458c079fa655715d5f5b68a161933dc00c3783c",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ],
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          12.5,
+          -1
+        ],
+        [
+          2,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [
+        {
+          "line": 3,
+          "axis": "Z",
+          "value": 52.5,
+          "limit": 50.0,
+          "kind": "max"
+        },
+        {
+          "line": 4,
+          "axis": "Z",
+          "value": 57.5,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 2,
+      "feed_outside": [
+        1
+      ],
+      "rapid_outside": [
+        1,
+        0
+      ],
+      "payload_keys": [
+        "bounds",
+        "error_line",
+        "feed",
+        "feed_lineok",
+        "feed_lines",
+        "feed_outside",
+        "feed_seq",
+        "feed_tcum",
+        "file",
+        "lines_untrusted",
+        "lines_untrusted_reason",
+        "motion_bounds",
+        "parse_error",
+        "parse_tlos",
+        "preview_schema",
+        "rapid",
+        "rapid_lineok",
+        "rapid_lines",
+        "rapid_outside",
+        "rapid_rate",
+        "rapid_seq",
+        "rapid_tcum",
+        "rapid_ustart",
+        "rot_rapid_rate",
+        "stats",
+        "tlo_events",
+        "tool_change_lines",
+        "violations",
+        "violations_total",
+        "wcs_basis",
+        "wcs_basis_index",
+        "wcs_frames",
+        "wcs_used"
+      ]
+    },
+    {
+      "case": "mixed",
+      "live_offset": 10.0,
+      "sha256_except_file": "1b5f3e57d6355a842a1c00c563cf34cf14ec698aba522d3a19bdba1618e48062",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          45.0
+        ],
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          2,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ],
+        [
+          3,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0,
+        0,
+        0
+      ],
+      "payload_keys": [
+        "bounds",
+        "error_line",
+        "feed",
+        "feed_lineok",
+        "feed_lines",
+        "feed_outside",
+        "feed_seq",
+        "feed_tcum",
+        "file",
+        "lines_untrusted",
+        "lines_untrusted_reason",
+        "motion_bounds",
+        "parse_error",
+        "parse_tlos",
+        "preview_schema",
+        "rapid",
+        "rapid_lineok",
+        "rapid_lines",
+        "rapid_outside",
+        "rapid_rate",
+        "rapid_seq",
+        "rapid_tcum",
+        "rapid_ustart",
+        "rot_rapid_rate",
+        "stats",
+        "tlo_events",
+        "tool_change_lines",
+        "violations",
+        "violations_total",
+        "wcs_basis",
+        "wcs_basis_index",
+        "wcs_frames",
+        "wcs_used"
+      ]
+    },
+    {
+      "case": "mixed",
+      "live_offset": 10.005,
+      "sha256_except_file": "1b5f3e57d6355a842a1c00c563cf34cf14ec698aba522d3a19bdba1618e48062",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          45.0
+        ],
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          2,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ],
+        [
+          3,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0,
+        0,
+        0
+      ],
+      "payload_keys": [
+        "bounds",
+        "error_line",
+        "feed",
+        "feed_lineok",
+        "feed_lines",
+        "feed_outside",
+        "feed_seq",
+        "feed_tcum",
+        "file",
+        "lines_untrusted",
+        "lines_untrusted_reason",
+        "motion_bounds",
+        "parse_error",
+        "parse_tlos",
+        "preview_schema",
+        "rapid",
+        "rapid_lineok",
+        "rapid_lines",
+        "rapid_outside",
+        "rapid_rate",
+        "rapid_seq",
+        "rapid_tcum",
+        "rapid_ustart",
+        "rot_rapid_rate",
+        "stats",
+        "tlo_events",
+        "tool_change_lines",
+        "violations",
+        "violations_total",
+        "wcs_basis",
+        "wcs_basis_index",
+        "wcs_frames",
+        "wcs_used"
+      ]
+    },
+    {
+      "case": "mixed",
+      "live_offset": 0.0,
+      "sha256_except_file": "1b5f3e57d6355a842a1c00c563cf34cf14ec698aba522d3a19bdba1618e48062",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          45.0
+        ],
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          2,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ],
+        [
+          3,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0,
+        0,
+        0
+      ],
+      "payload_keys": [
+        "bounds",
+        "error_line",
+        "feed",
+        "feed_lineok",
+        "feed_lines",
+        "feed_outside",
+        "feed_seq",
+        "feed_tcum",
+        "file",
+        "lines_untrusted",
+        "lines_untrusted_reason",
+        "motion_bounds",
+        "parse_error",
+        "parse_tlos",
+        "preview_schema",
+        "rapid",
+        "rapid_lineok",
+        "rapid_lines",
+        "rapid_outside",
+        "rapid_rate",
+        "rapid_seq",
+        "rapid_tcum",
+        "rapid_ustart",
+        "rot_rapid_rate",
+        "stats",
+        "tlo_events",
+        "tool_change_lines",
+        "violations",
+        "violations_total",
+        "wcs_basis",
+        "wcs_basis_index",
+        "wcs_frames",
+        "wcs_used"
+      ]
+    },
+    {
+      "case": "mixed",
+      "live_offset": 80.0,
+      "sha256_except_file": "1b5f3e57d6355a842a1c00c563cf34cf14ec698aba522d3a19bdba1618e48062",
+      "parse_error": null,
+      "feed": [
+        [
+          10.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          45.0
+        ],
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          2,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ],
+        [
+          3,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0,
+        0,
+        0
+      ],
+      "payload_keys": [
+        "bounds",
+        "error_line",
+        "feed",
+        "feed_lineok",
+        "feed_lines",
+        "feed_outside",
+        "feed_seq",
+        "feed_tcum",
+        "file",
+        "lines_untrusted",
+        "lines_untrusted_reason",
+        "motion_bounds",
+        "parse_error",
+        "parse_tlos",
+        "preview_schema",
+        "rapid",
+        "rapid_lineok",
+        "rapid_lines",
+        "rapid_outside",
+        "rapid_rate",
+        "rapid_seq",
+        "rapid_tcum",
+        "rapid_ustart",
+        "rot_rapid_rate",
+        "stats",
+        "tlo_events",
+        "tool_change_lines",
+        "violations",
+        "violations_total",
+        "wcs_basis",
+        "wcs_basis_index",
+        "wcs_frames",
+        "wcs_used"
+      ]
+    }
+  ]
+}
