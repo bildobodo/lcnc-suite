@@ -10,7 +10,13 @@
 // lags the machine). After a pause in the packets (a dwell, a long move)
 // the next step glides over the longest duration — a jump from rest was a
 // jerk of its own. A far jump (program start, a timeline drag, a sub
-// expansion) and reduced motion SNAP. Pure.
+// expansion) and reduced motion SNAP. The running line never leaves the
+// view (Codex R52 VP-I21: at 20 lines a packet the highlight moved at once
+// while the text followed over the packet interval — outside the view in
+// 81 % of the frames): a glide starts inside the VISIBLE BAND, the scroll
+// positions that keep the line, with a line of margin, in the viewport; a
+// step past it puts the text at the band's edge at once and glides the
+// rest. Pure.
 
 /** A glide from one scroll position to another. */
 export interface Glide {
@@ -31,16 +37,32 @@ export const GLIDE = {
   snapViews: 2,
 } as const;
 
+/** The scroll positions at which the row [rowY, rowY + lineH] (content px)
+ *  stands wholly in a viewport of `viewH` with one line of margin above and
+ *  below, mapped to scroll space by `toScroll` (the code view's linear
+ *  content → scroll map; the identity below the spacer cap). Null when the
+ *  viewport cannot hold the row with its margins. */
+export function visibleBand(rowY: number, lineH: number, viewH: number,
+                            toScroll: (y: number) => number): [number, number] | null {
+  const lo = rowY + 2 * lineH - viewH;   // the row's bottom a line above the view's bottom
+  const hi = rowY - lineH;               // the row's top a line below the view's top
+  if (!(hi >= lo)) return null;
+  return [toScroll(lo), toScroll(hi)];
+}
+
 /** How to reach `to` from `from`: null = snap (set it at once), else the
- *  glide. `gapMs` = time since the previous target came, `viewH` = the
- *  viewport's height in the same units as the positions. */
+ *  glide — starting at `from` held into `band` (visibleBand of the running
+ *  line; the caller sets that start at once when it differs from `from`).
+ *  `gapMs` = time since the previous target came, `viewH` = the viewport's
+ *  height in the same units as the positions. */
 export function planGlide(from: number, to: number, now: number, gapMs: number, viewH: number,
-                          reducedMotion: boolean): Glide | null {
-  if (reducedMotion || !(viewH > 0)) return null;
+                          reducedMotion: boolean, band: [number, number] | null): Glide | null {
+  if (reducedMotion || !(viewH > 0) || !band) return null;
   if (Math.abs(to - from) > GLIDE.snapViews * viewH) return null;
-  if (to === from) return null;
+  const start = Math.min(band[1], Math.max(band[0], from));
+  if (to === start) return null;
   const gap = Number.isFinite(gapMs) ? gapMs : GLIDE.maxMs;
-  return { from, to, t0: now, dur: Math.min(GLIDE.maxMs, Math.max(GLIDE.minMs, gap)) };
+  return { from: start, to, t0: now, dur: Math.min(GLIDE.maxMs, Math.max(GLIDE.minMs, gap)) };
 }
 
 /** The glide's position at `now` and whether it has arrived (linear: an even

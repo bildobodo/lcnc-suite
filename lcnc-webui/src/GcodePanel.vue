@@ -14,7 +14,7 @@ import { fmtPct } from "./format";
 import { limitViolationText, type LimitViolation } from "./ws/bulkData";
 import { isTouchDevice } from "./touchDetect";
 import { useMediaMql } from "./useMediaMql";
-import { glideAt, planGlide, type Glide } from "./codeGlide";
+import { glideAt, planGlide, visibleBand, type Glide } from "./codeGlide";
 import { emitTelemetry, pushMessage } from "./lcncWs";
 import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "./lcnc";
 import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
@@ -354,16 +354,24 @@ function scrollToRow(row: number) {
   const el = codeViewerRef.value;
   if (!el) return;
   const targetY = row * LINE_HEIGHT.value - el.clientHeight / 2 + LINE_HEIGHT.value / 2;
-  const to = Math.min(Math.max(0, _contentToScroll(targetY)), Math.max(0, el.scrollHeight - el.clientHeight));
+  const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
+  const to = Math.min(Math.max(0, _contentToScroll(targetY)), maxScroll);
   const now = performance.now();
   const gap = now - _lastFollowAt;
   _lastFollowAt = now;
-  const g = planGlide(el.scrollTop, to, now, gap, el.clientHeight, reducedMotion.value);
+  // Where the running line stays in view (VP-I21) — within the scroll range.
+  const vb = visibleBand(row * LINE_HEIGHT.value, LINE_HEIGHT.value, el.clientHeight, _contentToScroll);
+  const band: [number, number] | null = vb && [Math.max(0, vb[0]), Math.min(maxScroll, vb[1])];
+  const g = planGlide(el.scrollTop, to, now, gap, el.clientHeight, reducedMotion.value,
+                      band && band[0] <= band[1] ? band : null);
   if (!g) {
     stopGlide();
     setScroll(to);
     return;
   }
+  // A step past the band: the text jumps to its edge now — the running line
+  // is highlighted in this very frame — and glides the rest.
+  if (g.from !== el.scrollTop) setScroll(g.from);
   _glide = g;
   if (!_glideRaf) _glideRaf = requestAnimationFrame(_glideFrame);
 }

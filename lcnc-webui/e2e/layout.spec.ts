@@ -1720,19 +1720,22 @@ test('Settings: as wide as the tool editor, the 3D Viewer sections side by side,
 // The running line GLIDES (operator 2026-09-30: "das Highlighten der
 // aktuellen Zeile zuckt … wie beim einarmigen Banditen, dass die Zeile
 // stehen bleibt, aber das Programm scrollt"): a program advancing three
-// lines per status packet (30 per second) scrolls the code view evenly — no
-// frame moves it a whole packet's step, it never runs backwards, and once
-// the packets stop the running line stands centred. Reduced motion keeps
-// the hard follow (the layout fixtures emulate it; this test switches it
-// off). Frame-timed: below 50 fps (a starved headless renderer) the
-// evenness is not measurable and is reported, not asserted.
-const GLIDE_LINES = 400;
+// lines per status packet (30 per second) scrolls the code view evenly —
+// hardly a frame moves a whole packet's step, it never runs backwards, and
+// once the packets stop the running line stands centred. And the running
+// line never leaves the view (Codex R52 VP-I21: at 20 lines a packet it was
+// outside in 81 % of the frames): in EVERY frame of both phases, forwards
+// and back, the highlighted row is wholly inside the code view. Reduced
+// motion keeps the hard follow (the layout fixtures emulate it; this test
+// switches it off). Frame-timed: below 50 fps (a starved headless
+// renderer) the evenness is reported, not asserted — the visibility always.
+const GLIDE_LINES = 1200;
 const GLIDE_FEED = Array.from({ length: GLIDE_LINES }, (_, i) => [i % 2 ? 10 : 0, i * 0.5, 0]);
 const GLIDE_PREVIEW = Buffer.from(encode({ file: '/glide.ngc', preview_schema: 9, feed: GLIDE_FEED,
   feed_lines: GLIDE_FEED.map((_, i) => i + 1), feed_seq: GLIDE_FEED.map((_, i) => i + 1),
   feed_outside: new Uint8Array(GLIDE_LINES), rapid: [], violations: [], violations_total: 0 }));
-test('the running line glides: the code scrolls evenly under a centred highlight', async ({ page, context }) => {
-  test.setTimeout(90_000);
+test('the running line glides: the code scrolls evenly under a centred highlight, which never leaves the view', async ({ page, context }) => {
+  test.setTimeout(120_000);
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body: GLIDE_PREVIEW }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain',
     body: Array.from({ length: GLIDE_LINES }, (_, i) => `G1 X${i % 2 ? 10 : 0} Y${i * 0.5} F100`).join('\n') }));
@@ -1740,28 +1743,42 @@ test('the running line glides: the code scrolls evenly under a centred highlight
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await ctl({ op: 'status_delta', data: { active_file: '/glide.ngc' } });
   await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 5101, file: '/glide.ngc' } });
-  const viewer = page.locator('.codeViewer:not(.mdiHistoryList)');
+  const SEL = '.codeViewer:not(.mdiHistoryList)';
+  const viewer = page.locator(SEL);
   await expect(viewer.locator('.codeLine').first()).toBeVisible({ timeout: 30_000 });
   await ctl({ op: 'quiet', on: true });
   let line = 60;
   await ctl({ op: 'status_delta', data: { interp_state: 2, task_mode: 2, motion_line: line } });
   await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(line));
-  await page.waitForTimeout(700);   // past the glide's pause: the first step starts from rest
-  await page.evaluate(() => {
-    const el = document.querySelector<HTMLElement>('.codeViewer:not(.mdiHistoryList)')!;
-    const w = window as unknown as { __glide: number[][] };
+  await page.waitForTimeout(700);   // past the first step: the phases start from rest
+  /** Per animation frame: the time, the scroll and whether the highlighted
+   *  row is wholly inside the code view (±0.5 px). */
+  const sample = (ms: number) => page.evaluate(({ sel, ms }) => {
+    const el = document.querySelector<HTMLElement>(sel)!;
+    const w = window as unknown as { __glide: [number, number, boolean, string][] };
     w.__glide = [];
     const t0 = performance.now();
-    const f = (now: number) => { w.__glide.push([now, el.scrollTop]); if (now - t0 < 3500) requestAnimationFrame(f); };
+    const f = (now: number) => {
+      const v = el.getBoundingClientRect(), a = el.querySelector('.codeLine.active');
+      const r = a?.getBoundingClientRect();
+      const inside = !!r && r.top >= v.top - 0.5 && r.bottom <= v.bottom + 0.5;
+      w.__glide.push([now, el.scrollTop, inside, a?.querySelector('.lineNumber')?.textContent ?? '']);
+      if (now - t0 < ms) requestAnimationFrame(f);
+    };
     requestAnimationFrame(f);
-  });
+  }, { sel: SEL, ms });
+  const samples = () => page.evaluate(() => (window as unknown as { __glide: [number, number, boolean, string][] }).__glide);
+  const hidden = (ss: [number, number, boolean, string][]) => ss.filter(x => !x[2]);
+
+  // Phase 1: three lines a packet — even.
+  await sample(3500);
   for (let i = 0; i < 60; i++) {
     line += 3;
     await ctl({ op: 'status_delta', data: { motion_line: line } });
     await page.waitForTimeout(33);
   }
   await page.waitForTimeout(400);
-  const samples = await page.evaluate(() => (window as unknown as { __glide: number[][] }).__glide);
+  const even = await samples();
   const m = await viewer.evaluate(el => {
     const active = el.querySelector('.codeLine.active')!;
     const a = active.getBoundingClientRect(), v = el.getBoundingClientRect();
@@ -1770,8 +1787,9 @@ test('the running line glides: the code scrolls evenly under a centred highlight
   });
   expect(m.line, 'the last line is the highlighted one').toBe(line);
   expect(Math.abs(m.off), `it stands centred (${m.off} px off)`).toBeLessThan(m.lineH / 2 + 1);
-  const steps = samples.slice(1).map((s, i) => s[1]! - samples[i]![1]!);
-  const fps = (samples.length - 1) / ((samples.at(-1)![0]! - samples[0]![0]!) / 1000);
+  expect(hidden(even).length, `three lines a packet: the running line in view in every frame ${JSON.stringify(hidden(even).slice(0, 5))}`).toBe(0);
+  const steps = even.slice(1).map((x, i) => x[1] - even[i]![1]);
+  const fps = (even.length - 1) / ((even.at(-1)![0] - even[0]![0]) / 1000);
   expect(Math.min(...steps), 'the code never scrolls backwards').toBeGreaterThanOrEqual(-0.5);
   // Over the frames from the first move to the last: a hard follow moves
   // about every other frame by a whole packet's step and stands still in
@@ -1784,7 +1802,28 @@ test('the running line glides: the code scrolls evenly under a centred highlight
   const whole = active.filter(v => v >= 0.9 * packetStep).length / active.length;
   const note = `${fps.toFixed(0)} fps, ${active.length} frames: ${(moving * 100).toFixed(0)} % move, ${(whole * 100).toFixed(0)} % by a whole ${packetStep} px packet step`;
   test.info().annotations.push({ type: 'glide', description: note });
-  if (fps < 50) return;
-  expect(whole, `hardly a frame moves a whole packet's step — ${note}`).toBeLessThan(0.1);
-  expect(moving, `nearly every frame moves — ${note}`).toBeGreaterThan(0.75);
+  if (fps >= 50) {
+    expect(whole, `hardly a frame moves a whole packet's step — ${note}`).toBeLessThan(0.1);
+    expect(moving, `nearly every frame moves — ${note}`).toBeGreaterThan(0.75);
+  }
+
+  // Phase 2 (VP-I21): twenty lines a packet forwards, then back — larger
+  // than the view's half: the running line must still be in every frame.
+  await page.waitForTimeout(700);
+  await sample(3600);
+  for (let i = 0; i < 36; i++) {
+    line += 20;
+    await ctl({ op: 'status_delta', data: { motion_line: line } });
+    await page.waitForTimeout(33);
+  }
+  for (let i = 0; i < 12; i++) {
+    line -= 20;
+    await ctl({ op: 'status_delta', data: { motion_line: line } });
+    await page.waitForTimeout(33);
+  }
+  await page.waitForTimeout(400);
+  const big = await samples();
+  test.info().annotations.push({ type: 'glide', description: `20 lines a packet: ${big.length} frames, ${hidden(big).length} with the running line out of view` });
+  expect(hidden(big).length, `twenty lines a packet: the running line in view in every frame ${JSON.stringify(hidden(big).slice(0, 5))}`).toBe(0);
+  await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(line));
 });
