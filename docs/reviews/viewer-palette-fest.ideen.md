@@ -3049,3 +3049,119 @@ abgeleitet. Signalursache nicht bekannt.
 [Reproduktion und genaue Grenzen](viewer-palette-fest.r46.reproduce.md).
 Kein vollständiges Offline-Gate und keine Teil-B-Leistungsmessung.
 Produktcode, ältere Belege und Live-Sim unverändert; eigene Prozesse beendet.
+
+---
+
+## Implementierungsrunde R47 · Claude · Teil B: alle Pfade 2 px + A/B-Messwerkzeug · 30. September 2026
+
+**Umfang:** `d540442..` auf `wip/part-b` (auf den R45/R46-Korrekturen):
+
+- `6f264f8` Viewer part B: every path line 2 CSS px (LineSegments2 in the chunk / LOD structure)
+- `052be9c` Viewer part B: the A/B measurement — Settings → Debug switch, a fixed run, the report
+- `a6a6b9d` Part B: a segment through the near plane stays a strip; the gate counts the report test
+- `8c4a809` Part B: the toolpath box's overflow edges dash on screen like the box (screenDash)
+
+Plan: R39 und meine Antwort oben (`fd36324`). Mit dieser Anfrage wird Teil B
+in den Live-Stand der Sim übernommen (für die Mac-Messung und die
+Live-Abnahme des Operators); die Mac-Messung selbst steht aus.
+
+**Gate** am Stand `8c4a809`-Code (vor dem reinen Doku-Rebase): volles
+Offline-Gate **PASS** — Backend 1111, Frontend-Unit 1785, Browser 368/368.
+
+### Zeichenweg (VP38-03, R39-Tabelle)
+
+- **Chunks × LOD:** `toolpathController` packt je Chunk und Stufe ein
+  `LineSegments2` (`fatPaths.packPairs` / `fatGeometry`). Die gemeinsame
+  Positionsliste bleibt Quelle für Scrub, Sweep und Navigation. Degenerierte
+  Paare fallen weg.
+- **Eilgang-Striche:** aus dem eigenen `dist` des Stroms, nie neu summiert
+  (Weltmaß wie bisher, `RAPID_DASH`/`RAPID_GAP`).
+- **Overlays, Befundansicht, Überhang:** gleich gepackt. Der Überhang strichelt
+  jetzt wie die Box auf dem Schirm (`screenDash`, R44).
+- **Material:** `depthWrite: false` an jedem `LineMaterial`, Reihenfolge
+  10/11/12, Resolution über den Objekt-Hook (VP39-02, keine Zentralisierung).
+- **Culling:** `updateCulling` erweitert jede Chunk-Sphere um die halbe
+  Linienbreite in Weltmaß am Chunk-Abstand.
+- **Backplot:** `BACKPLOT_WIDTH_PX = PATH_PX`. Die Breite ist kein Merkmal der
+  Paartabelle mehr; `getRoleMaterials` meldet `dashed`.
+
+### Speicherbilanz (VP39-01)
+
+`toolpath.pathMemory()` / `__viewerDiag.getPathMemory`:
+- CPU nach Eigentümer (Basis, Distanzen, Overlay, Reveal, Quellarrays), jeder
+  `ArrayBuffer` einmal;
+- GPU erst nach dem Upload (`onUpload`);
+- `buildBytes` des letzten Aufbaus, gezeichnete Instanzen.
+
+Der Messlauf liest sie nach dem Laden, nach Orbit, nach allen LOD-Stufen, nach
+Befundnavigation, nach der Befundansicht und am Ende.
+
+### Messwerkzeug (VP39-03)
+
+- **Umschalter** Settings → Debug „Path Lines (A/B, temporary)“: bisherige
+  GL-Linie / 2 CSS px, jeweils **neu aufgebaut**, nie beide gehalten.
+- **Ablauf** (`viewer/abRun.ts`, rein, mit Fake-Treiber getestet): A, B, B, A,
+  A, B × build / warmup / orbit / fitdetail / jumps / overlay_off / reveal.
+  Eine Phase, die nicht laufen kann, heißt `skipped` mit Grund — nichts wird
+  erzwungen (Sprünge nur, wie der Operator die Simulation betritt:
+  Maschine aus).
+- **Treiber** (`viewer/abDriver.ts`): rendert jedes Bild über einen Hook in
+  `animate()`, feste Kamerabahn aus der Box des Pfads, drückt die eigenen
+  Befundknöpfe der Scrub-Leiste, blendet die Rapids nur lokal aus, stellt
+  Renderer, Kamera, Layer und Simulation wieder her — auch bei Abbruch.
+- **Bedingungen je Phase:** Tab verborgen, Dialog offen, Kamera von Hand
+  bewegt, Kollisionsprüfung läuft. Start wartet, bis Settings zu ist.
+- **Rohdaten:** `viewerPerf` bekommt einen Abgriff (Bildabstände,
+  Hauptthread-Verspätung, GPU-Fences) → zusammenführbare 1-ms-Histogramme
+  (`viewer/abHistogram.ts`), als `browser.viewer.abrun` / `browser.viewer.abhist`
+  in den Trace, jeder Datensatz unter PIPE_BUF (geteilte Histogramme).
+- **Auswertung** `scripts/viewer_ab_report.py`, Grenzen vorab fest:
+  - p95 der vereinten Stichprobe (nie gemittelte Perzentile), höchstes
+    Fenster-p95 daneben;
+  - ≤ 2 Bildperioden der gemessenen Nennrate (33,3 ms bei 60 Hz), ≤ 1,2 × A;
+  - keine neuen wiederkehrenden Lücken ≥ 100 ms bzw. Blockaden ≥ 50 ms
+    (B − A < 2), im Aufbau keine zusätzliche Blockade;
+  - Speicher B − A ≤ 128 MiB je Messpunkt, CPU und GPU getrennt;
+  - ausgeschlossene Phasen benannt; nicht Messbares ergibt INCOMPLETE,
+    nie PASS.
+  - Die Quantil-Konvention (obere Klassengrenze) ist mit dem TypeScript-
+    Zwilling über `scripts/test_fixtures/ab_histogram_cases.json` gepinnt,
+    einschließlich deines Beispiels (100 und 1 ms → nicht 50,5).
+- `__APP_COMMIT__` (vite `define`) für die Metadaten.
+
+### Wächter (jeweils rot bewiesen)
+
+- `fatPaths.test.ts`: Paare je Chunk/Stufe/Overlay/Reveal wie der GL-Weg,
+  Materialien, Striche, markierter Zwischenpunkt in grober LOD, Culling,
+  Moduswechsel, Programmwechsel/Entladen ohne Instanzen, Bilanz.
+- `scenes.viewer.spec`: alle vier Linien 2 CSS px bei DPR 1 und 2; Limit über
+  Backplot nach Anteil (bei gleicher Breite ≥ 0,9).
+- `fatpaths.viewer.spec`: ein Segment durch die Near-Plane bleibt ein Streifen
+  unter 3 % des Bildes und wird nicht weggecullt — rot mit einer auf 0,1 %
+  geschrumpften Chunk-Sphere (der Chunk verschwindet).
+- `abHistogram`/`abRun`/`test_viewer_ab_report.py`: siehe oben; Mutationen:
+  gemittelte Perzentile, naiver Grenzvergleich, „nicht gemessen“ als bestanden,
+  Quantil aus der Untergrenze.
+- `abrun.viewer.spec`: Umschalter wechselt die Materialart und die Bilanz;
+  ein kurzer Lauf — 42 Phasen gelaufen, Histogramme vollständig, Ansicht
+  wiederhergestellt. Rot ohne lokales Ausblenden der Rapids (keine
+  Befundansicht) und ohne Kamera-Rücksetzung. Er fand zuerst einen echten
+  Fehler: Das Feld `kind` des Histogramms überschrieb den Ereignistyp der
+  Telemetrie (im Trace als `browser.raf`) — jetzt `series`.
+
+### Benannte Grenzen
+
+- Die Leistungsmessung selbst ist die Mac-Messung des Operators; der Mock
+  misst keine Leistung.
+- Der „< 3 %“-Teil der Near-Plane-Prüfung prüft Threes Shader-Trimmung.
+- Seitenrand-Culling: im Unit-Test (Sphere-Erweiterung), nicht im Browser.
+- Striche der Rapids bleiben Weltmaß (gewollt: eine Länge im Werkstück).
+
+### Fragen
+
+1. Trägst du die Grenzregel „2 Perioden der nächsten üblichen Rate, Vergleich
+   auf Klassenauflösung“ mit?
+2. Genügt „keine zusätzliche Blockade ≥ 50 ms im Aufbau“ für deinen Punkt
+   „keine durch den neuen Aufbau verursachten Eingabeblockaden“?
+3. INCOMPLETE statt FAIL, wenn eine Phase in allen Wiederholungen übersprungen
+   wurde (z. B. Programm ohne Limit-Überhang)?
