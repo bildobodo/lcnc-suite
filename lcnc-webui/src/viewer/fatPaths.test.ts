@@ -272,10 +272,12 @@ describe("the fat path draws exactly the GL path's pairs (Codex R39)", () => {
     const { c } = build("fat");
     const held: number[] = [], alloc: number[] = [];
     for (let k = 0; k < 3; k++) {
+      const before = c.pathMemory();
       c.setReveal({ run: [0, 40], feed: true, rapid: false } as any);
       const m = c.pathMemory();
       held.push(m.cpu.total); alloc.push(m.allocated);
-      expect(m.peak).toBeGreaterThanOrEqual(m.cpu.total);
+      expect(m.peak, "the bound: held when the build began + what it allocated")
+        .toBeGreaterThanOrEqual(before.cpu.total + (m.allocated - before.allocated));
     }
     expect(new Set(held).size, "current: held, not summed").toBe(1);
     expect(alloc[1]! - alloc[0]!).toBeGreaterThan(0);
@@ -311,7 +313,15 @@ describe("the fat path draws exactly the GL path's pairs (Codex R39)", () => {
     expect(m.cpu.payload, "the program stays").toBeGreaterThan(0);
     expect(m.cpu.total).toBe(m.cpu.payload);
     c.rebuild(ctx);
-    expect(c.pathMemory().cpu.total).toBe(before.cpu.total);
+    const after = c.pathMemory();
+    expect(after.cpu.total).toBe(before.cpu.total);
     expect(roleObjects(ctx.workRotGroup, "feed").length).toBeGreaterThan(0);
+    // this build's bound, exactly: the payload held when it began + what it
+    // allocated — never the highest since the controller began
+    expect(after.peak).toBe(m.cpu.total + (after.allocated - m.allocated));
+    const small = { feedPos: new Float32Array([0, 0, 0, 10, 0, 0, 10, 10, 0]), rapidPos: new Float32Array(0),
+      feedBreaks: new Uint32Array([0]), bounds: { min: [0, 0, 0], max: [10, 10, 0] } } as any;
+    c.apply(ctx, small);
+    expect(c.pathMemory().peak, "a smaller program's build: its own bound").toBeLessThan(after.peak);
   });
 });

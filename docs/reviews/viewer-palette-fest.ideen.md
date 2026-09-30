@@ -3359,3 +3359,118 @@ Kein vollständiges Offline-Gate und keine Mac-Leistungsmessung behauptet.
 Produktcode und frühere Belege unverändert; nur Review-Anhang und neue
 R47-Belege. Eigene Mock-Prozesse beendet, Live-Sim und unquittierter Trip
 unberührt. **R47 geht mit `findings` zurück.**
+
+---
+
+## Antwort R48 · Claude · VP-I13 bis VP-I17 · 30. September 2026
+
+Deine Belege unverändert in `a353236`. Alle fünf übernommen (`cb2f8f0`).
+Die Reihenfolge folgt deiner Abhängigkeit: erst echte Aufbauten, dann
+Startzustand, Report und Bilanz.
+
+### VP-I14 · jeder Aufbau ein Aufbau
+
+- `toolpath.rebuild(ctx)` baut das zuletzt angewandte Programm im aktuellen
+  Modus neu. `setLineMode` behält seinen No-op für unveränderte Modi.
+- Der Treiber ruft `rebuild` auf, wann immer der Modus gleich bleibt; der
+  Lauf endet mit einem Neuaufbau im Ausgangsmodus, weil die letzte Phase
+  freigegeben hat.
+- `apply()` entsorgt vor dem Bauen. Die Spitze eines Neuaufbaus ist daher
+  „neu + Scratch“, nie „alt + neu“ — im Benchmark wie im Produkt beim
+  erneuten Bake.
+- Eine Baugeneration (`generation`) steht in jedem Speicherdatensatz; der
+  Report verlangt verschiedene Generationen.
+- **Wächter:** Controller-Test in beiden Modi (neue Objekte bei jedem
+  `rebuild`, `setLineMode(gleich)` ändert nichts). Browser: sechs Aufbauten,
+  jeder eine neue Generation, auch fat → fat. Rot bewiesen: `rebuild` leer (drei Unit-Tests),
+  der Treiber mit `setLineMode` statt `rebuild` (beide Browserläufe).
+
+### VP-I15 · derselbe Start in jeder Wiederholung
+
+- Jede Sprungfolge beginnt und endet mit der Timeline bei 0. Ist die
+  Simulation aus, betritt der Treiber sie dafür und verlässt sie wieder
+  (die Position überlebt das). Eine manuelle Eingabe beendet dabei auch den
+  gezeigten Befund.
+- Die Befundansicht setzt erst nach ihrem Speicherpunkt zurück
+  (`revealEnd`).
+- Wo die Sprünge landen, steht als `jumps_at` im Datensatz.
+- Läuft die Wiedergabe, lehnt der Lauf den Start ab. Am Ende stellt er
+  Simulationszustand **und** Position wieder her.
+- **Wächter:** e2e mit drei Befunden, Simulation vorher aus und vorher an
+  bei 37 % der Timeline: alle sechs Folgen gleich (mehr als ein Ziel), die
+  Position zurück. Rot bewiesen: ohne das Zurücksetzen am Anfang beginnt
+  die erste Wiederholung bei 37 % mit einer anderen Folge; ohne das
+  Zurücksetzen am Ende rotierten die Folgen wie in deiner Sonde.
+
+### VP-I13 / VP-I16 · der Report
+
+- **Sollmatrix:** drei gültige Wiederholungen jeder Phase je Variante
+  (Aufbau, Orbit, Fit/Detail, Sprünge, Overlay aus, Reveal, Freigabe), mit
+  `raf`- und `mt`-Histogramm und Speicherpunkt. Sonst INCOMPLETE mit Grund,
+  nie PASS und nie eine Ausnahme. GPU-Fences bleiben Diagnose.
+- **Raten statt Zählungen:** neue wiederkehrende Lücken ≥ 100 ms bzw.
+  Blockaden ≥ 50 ms = Bs Zahl minus das, was As Rate für Bs gültige Zeit
+  erwarten lässt, < 2.
+- **Aufbauregel, vor der Messung festgelegt:** Bs Median von Dauer und
+  längster Hauptthread-Blockade über drei echte Aufbauten ≤ 1,5 × As
+  + 100 ms. Scheitert der Operator-Mac daran, wandert das Packen in einen
+  Worker; die Regel wird nicht nach den Zahlen angepasst.
+- **Referenzrate (deine Antwort 1):** aus einer Kalibrierphase vor jedem
+  Aufbau, mit ausgeblendetem Pfad, oder `--rate`. Der Warm-up ist nur noch
+  Information. Der Report nennt die Klassentoleranz ausdrücklich („below
+  34 ms passes“ bei 60 Hz).
+- **Wächter:** `test_viewer_ab_report.py` mit deinen fünf Gegenproben
+  (keine Speicherpunkte, keine Aufbau-Histogramme, eine Wiederholung, kein
+  `mt` im Orbit, ungleiche Zeiträume), der Aufbau A 110 / B 1500 ms, die
+  Dauerregel, Aufbau ohne neue Generation, Kalibrierung gegen langsame
+  Varianten, `--rate`, Peak, Freigabe. Die neuen Tests laufen gegen den
+  alten Report 13 rot.
+
+### VP-I17 · die Bilanz
+
+- **CPU:** je `ArrayBuffer` einmal, zur **Kapazität** (dein 12-Byte-Fall
+  zählt 1 MiB). Neu gezählt: das eigene Viereck-Netz der Fat-Geometrien und
+  die für Neuaufbauten gehaltene Programmlast (`payload`).
+- **GPU:** hochgeladene Puffer, das Netz eingeschlossen.
+- **Drei Größen getrennt:**
+  - `cpu.total` = gehalten;
+  - `allocated` = kumulierte Allokationen (dreimal dieselbe Befundansicht:
+    gleich gehalten, dreimal alloziert);
+  - `peak` = Obergrenze dieses Aufbaus (gehalten zu Beginn + im Aufbau
+    alloziert, Scratch eingeschlossen, alles als gleichzeitig angenommen).
+- **Freigabephase** je Wiederholung: `release()` entsorgt den Pfad, behält
+  das Programm; die Bilanz hält dann nur die Programmlast. Der Report
+  verlangt null Pfad-Bytes auf CPU und GPU sowie ≤ 128 MiB Unterschied beim
+  Peak.
+- **Paare:** `source`, `lod` (aktuelle Stufen) und `drawn` (sichtbare
+  Objekte, nach dem Packen) getrennt benannt.
+- **Wächter** in `fatPaths.test.ts`, jeder rot bewiesen:
+  - Kapazität (mit `byteLength` statt Pufferkapazität);
+  - Freigabe (`release` ohne Entsorgen);
+  - dreifacher Reveal (Allokation als Maximum statt Summe);
+  - `drawn` nur sichtbarer Objekte (verborgene mitgezählt);
+  - der Peak genau nach seiner Definition:
+    - nach Freigabe und Neuaufbau = gehaltene Programmlast + Allokation
+      des Aufbaus;
+    - nach einem Reveal ≥ gehalten zu Beginn + seine Allokation;
+    - ein kleineres Programm danach hat seinen eigenen, kleineren Wert.
+
+    Rot jeweils ohne den gehaltenen Anteil (Aufbau und Reveal) und mit
+    dem Maximum seit Start statt pro Aufbau.
+
+### Grenzen
+
+- Die Peak-Zahl ist eine Obergrenze, keine gemessene Spitze. Den tatsächlichen
+  gleichzeitigen Speicher sieht nur der Browser-Profiler.
+- Hat der Operator die Timeline bei geschlossener Simulation nicht bei 0
+  stehen lassen, betritt die erste Sprungfolge die Simulation einmal
+  zusätzlich (zum Zurücksetzen).
+- Die Mac-Messung bleibt beim Operator — jetzt mit diesem Werkzeug.
+
+### Gate
+
+- Volles Offline-Gate auf `cb2f8f0` **PASS**: Backend 1111, Vitest 1791,
+  Browser 369, Lint/Build/Audit/Report grün.
+- Danach nur `fatPaths.test.ts` verschärft (die Peak-Prüfungen oben; die
+  bisherige Prüfung `peak ≥ gehalten` fing keine der drei Mutationen). Build
+  und Vitest 1791 erneut grün.
