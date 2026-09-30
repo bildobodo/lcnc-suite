@@ -20,7 +20,7 @@
 import * as THREE from "three";
 import { binPairs, buildFrameIndex, CHUNK_MAX, chunkBounds, chunkGrid, cumulativeDistances, splitPairsByFrame } from "./lineChunks";
 import type { AnchorTerms } from "./partFrame";
-import { makeBoxEdges, boxEdgePositions, worldPerPixel, TOOLPATH_BOX_PX, TOOLPATH_BOX_DASH_PX, type BoxEdges } from "./boxLines";
+import { makeBoxEdges, boxEdgePositions, screenDash, TOOLPATH_BOX_PX, TOOLPATH_BOX_DASH_PX, type BoxEdges } from "./boxLines";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
@@ -523,22 +523,18 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     const [ox, oy, oz] = offset;
     if (lineMode === "fat") {
       // The box OUTSIDE the machine window, a limit finding: the limit's
-      // colour at the box's width, its dash held in CSS px like the box's
-      // (part B, Codex R39 — not a thin exception next to the 2 px box).
+      // colour at the box's width, dashed like the box — in CSS px along
+      // each projected edge (screenDash, Codex R44 VP-I10; part B, Codex R39
+      // — not a thin exception next to the 2 px box).
       const mat = new LineMaterial({ color: deps.colors().limit, linewidth: TOOLPATH_BOX_PX, worldUnits: false });
-      mat.dashed = true;
+      screenDash(mat, TOOLPATH_BOX_DASH_PX);
       mat.clipIntersection = true;
       mat.clippingPlanes = deps.boundsClipPlanes;
       mat.depthWrite = false;
       mat.userData.role = "limitBox";
       const lines = new LineSegments2(new LineSegmentsGeometry().setPositions(boxEdgePositions(sx, sy, sz)), mat);
-      lines.computeLineDistances();
-      (lines as THREE.Object3D).onBeforeRender = (renderer, _scene, camera) => {
-        renderer.getSize(mat.resolution);
-        const d = TOOLPATH_BOX_DASH_PX * worldPerPixel(camera, lines, mat.resolution.y);
-        mat.dashSize = d;
-        mat.gapSize = d;
-      };
+      lines.computeLineDistances();   // LineMaterial's own dash attributes (unused under SCREEN_DASH)
+      lines.onBeforeRender = (renderer) => { renderer.getSize(mat.resolution); };
       lines.position.set(ox + sx / 2, oy + sy / 2, oz + sz / 2);
       lines.renderOrder = 2;   // over the neutral box where the two meet
       return lines;
