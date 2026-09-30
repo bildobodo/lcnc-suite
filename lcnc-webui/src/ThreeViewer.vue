@@ -1788,6 +1788,17 @@ async function buildFromInit(init: ViewerInit) {
         // The part-B memory ledger (Codex R39 VP39-01): bytes by owner, CPU
         // per unique ArrayBuffer, GPU per buffer actually uploaded.
         getPathMemory: () => toolpath.pathMemory(),
+        // The drawn path's world box, and an explicit camera pose (Codex R39:
+        // a segment through the near plane, e2e/fatpaths.viewer.spec.ts).
+        getPathBox: () => { const b = toolpath.pathWorldBox(); return b ? { min: b.min.toArray(), max: b.max.toArray() } : null; },
+        setCameraPose: (position: number[], target: number[]) => {
+          if (!camera || !controls) return;
+          camera.up.set(0, 0, 1);
+          camera.position.set(position[0]!, position[1]!, position[2]!);
+          controls.target.set(target[0]!, target[1]!, target[2]!);
+          controls.update();
+          requestRender();
+        },
         // The A/B run with short phases (the e2e; the operator's run is the
         // Debug tab's button with the full durations).
         runAbMeasurement: (durations?: Record<string, number>) => startAbRun({ durations }),
