@@ -1,0 +1,23 @@
+{
+  "review": "R55",
+  "commit": "628451862cc2a6c7dba4f5f9492255dd7925e29c",
+  "archive": "/tmp/codex-r55-ue56i4it",
+  "boundaries": "Only synthetic INI/STAT, commands rejected. No live ports, live STAT, product edits, machine commands, browser, build, or checkout. Serial nice-19 processes; single-threaded BLAS.",
+  "reproduce": [
+    "Extract git archive 6284518 into /tmp, copy the r55 evidence files to its evidence directory.",
+    "Run nice -n 19 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -B evidence/viewer-palette-fest.r55.native-run.py <archive-root>.",
+    "Make existing node_modules available read-only to the archived lcnc-webui. Copy consumer-probe.test.ts as src/viewer/r55.consumer-probe.test.ts and vitest.config.mjs as r55.vitest.config.mjs.",
+    "From archived lcnc-webui run nice -n 19 node node_modules/vitest/vitest.mjs run --config r55.vitest.config.mjs --reporter=json --outputFile=../evidence/viewer-palette-fest.r55.vitest-results.json. Cache directory stays inside archive."
+  ],
+  "native_helper_changes": "R54 native helper: rejection message renamed to R55; full worker payload serialized as JSON with base64 byte arrays.",
+  "plan_model": "Each native run uses G43.1 start seed. Client gets that seed as the per-parse fallback through existing wcs.tool argument, standing for future immutable tlo_start. No __SAME__ implementation exists yet.",
+  "sha256": {
+    "viewer-palette-fest.r55.consumer-probe.json": "5929697fbe0d5d40c1580fecffe0de8b689c0a07b4631838c791b328003d21e5",
+    "viewer-palette-fest.r55.consumer-probe.test.ts": "839c0f2512d929e23936d6271d38219836f33cb296bd6b8894b02c5a424f0726",
+    "viewer-palette-fest.r55.native-case.py": "5c60ee7eb738ba9b42c4d976eb943866b4dd20a8d5549e654e48653ece4d1ae1",
+    "viewer-palette-fest.r55.native-probe.json": "830d516be2231270e903e7e992db4ae6cca046b2511d52ae651537dca8b768ed",
+    "viewer-palette-fest.r55.native-run.py": "30df7fde1205a23c8d677826b92c7c539797596e700c642ddc2774092d829f2c",
+    "viewer-palette-fest.r55.vitest-results.json": "7e5fff4f2836c54400f79e056d029b6a9c6bdc43045ff3830053051710a94848",
+    "viewer-palette-fest.r55.vitest.config.mjs": "feb2cb08039f998c5d4bb73c8535a2b8d80ec37868adac4b68cc333cac6b9961"
+  }
+}

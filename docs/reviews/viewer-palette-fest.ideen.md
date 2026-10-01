@@ -5604,3 +5604,136 @@ beim Suite-Stopp, Abbruch eines Prozesses.
 
 Plan und eine native Vergleichsmessung. Keine Produktänderung, kein Gate.
 VP-I21 und Settings bleiben unverändert.
+
+---
+
+## Review R55 · Codex · VP-I20 Fassung 4 · 1. Oktober 2026
+
+**Stand:** `74cb462..6284518`. **Ergebnis: findings.** Die Prüfung am
+tatsächlichen Offset schließt **VP52-01 Rest B auf Planebene**. Die beiden
+R54-Gegenproben und R53 Rest B sind damit adressiert. Ein neuer P2-Befund
+**VP55-01** bleibt im vorgesehenen Gleichheitsvergleich offen; deshalb
+noch kein Agreement für Fassung 4 insgesamt. Rest A, VP-I21 und Settings
+bleiben unverändert abgenommen.
+
+Prüfung ausschließlich in einer Archivkopie von `6284518` unter `/tmp`:
+native Offline-Parses mit synthetischer INI/STAT und zwei gezielte Tests
+der vorhandenen Viewer-Funktionen. Kein Zugriff auf die Live-Ports,
+Live-STAT oder Maschinenbefehle; keine Produktänderung.
+
+### VP52-01 Rest B — auf Planebene geschlossen
+
+Der neue Ablauf prüft den tatsächlich eingetretenen Zustand und extrapoliert
+nicht mehr aus zwei Stichproben. Dass ein verschiedenes Prüfergebnis selbst
+der zu veröffentlichende Neu-Parse ist, vermeidet einen weiteren Parse.
+`validated_tlo` als reine Prüfgrundlage bei beibehaltenem `tlo_start` als
+Darstellungsgrundlage ist schlüssig, **sofern die Gleichheit alle
+Verbraucher abdeckt**. Auch Abbruch/Neustart bei einem neueren Seed und
+eine sichtbare Kennzeichnung während der Prüfung sind passend.
+
+Alle drei Kontrollprogramme erneut nativ geparst, jeweils mit Start
+Z10, Z10,001 und Z10,005:
+
+| Programm | ΔZ = 0,001 | ΔZ = 0,005 |
+|---|---|---|
+| R54 nichtlineare Rechnung | kein Limitbefund | L5 überschreitet Z-Max |
+| R54 Verzweigung zwischen den Stichproben | kein Limitbefund | L9 überschreitet Z-Max |
+| R53 G91 nach G49 | kein Limitbefund | L5 überschreitet Z-Max |
+
+Die in Fassung 4 vorgesehenen bytegenauen Vergleiche der Limitbefunde
+erkennen die drei neuen Verstöße zuverlässig. Der Syntaxfehler in
+`f3.run.py` ist ebenfalls behoben.
+
+### VP55-01 — P2: Gleiche Maschinenpunkte sind nicht dieselbe Werkzeugbahn oder derselbe Sweep
+
+**Stelle:** Fassung 4, „Was gleich heißt — alle Verbraucher“, besonders
+die Normalisierung durch Addition der TLO und die Aussage, deren Vektoren
+seien damit bereits vollständig enthalten (`ideen.md:5500–5518`).
+
+Die vorhandenen Verbraucher verwenden den Offset **zweimal für verschiedene
+Zwecke**: zuerst zum Ermitteln der Achsposition, danach zur Lage der
+Werkzeugspitze bzw. des Werkzeugkörpers. Daher können zwei Datensätze
+dieselben Maschinenpunkte besitzen und dennoch verschiedene Viewer-Ergebnisse
+liefern. Die unveränderten Funktionen zeigen das direkt:
+
+- `lcnc-webui/src/viewer/partFrame.ts:544–554`: Achsposition aus Punkt und
+  TLO; anschließend `tipInWorkFrame(..., tloV, ...)` für die Spitze.
+- `lcnc-webui/src/viewer/collision.ts:969–975`: Achsposition; anschließend
+  zusätzliche Verschiebung des Werkzeugkörpers um `-tloSeg`.
+
+**Natives Gegenbeispiel** mit Start Z10 bzw. Z20:
+
+```gcode
+G21 G90
+G53 G0 X0 Y0 Z0
+G53 G0 X10 Y0 Z0
+G49
+G0 Z-40
+G0 Z40
+M2
+```
+
+Beide Parses sind fehlerfrei und ohne Limitbefunde. **Alle Felder des
+Worker-Nutzdatensatzes sind identisch bis auf die rohen `rapid`-Koordinaten**:
+auch Statistik, Bounds, Zeitkanäle, TLO-Ereignisse, Außen-Flags und
+Zeilenstruktur. Die späteren Bewegungen halten die Gesamt-Bounds gleich.
+Nach der geplanten Addition des jeweils geltenden Startoffsets sind auch
+sämtliche Maschinenpunkte exakt identisch. Damit würde dieses Paar die
+vorgeschlagene Gleichheitsregel erfüllen; die übrigen Vergleiche fangen
+den Fall nicht nebenbei ab.
+
+Mit dem echten Decoder, Scrub-Aufbau und Part-Frame-Code, jeweils auf der
+eigenen vorgesehenen `tlo_start`-Basis, ergibt sich dagegen:
+
+| Startoffset | Maschinen-Z der beiden G53-Punkte | Werkzeugpfad im XYZ-Testmodell | Sweep |
+|---|---:|---:|---|
+| Z10 | 0 / 0 | Z−10 / Z−10 | Werkzeug trifft Vorrichtung in L3 |
+| Z20 | 0 / 0 | Z−20 / Z−20 | kein Treffer |
+
+Das Testmodell ist eine einfache XYZ-Maschine mit einer festen Vorrichtung.
+Der Werkzeugzylinder entspricht der synthetischen Tabelle (Ø6, Länge 10).
+Die beiden gezielten Tests benutzen die vorhandenen Produktfunktionen;
+das ist kein nachgebauter Kollisionsalgorithmus.
+
+Bei einem Wechsel **Z20 → Z10** würde `__SAME__` den alten kollisionsfreien
+Datensatz und Sweep behalten, obwohl das frisch geprüfte Ergebnis eine
+andere Werkzeugbahn hat und im selben Modell einen Treffer erzeugt.
+Das ist eine Lücke des geplanten Vergleichs, keine Behauptung über eine
+bereits implementierte `__SAME__`-Funktion.
+
+**Erforderliche Anpassung:** Die aufgelösten XYZ-TLO-Werte je ausgeliefertem
+Punkt/Segment als eigenständige Eingabe der Verbraucher behandeln,
+einschließlich der geerbten Werte vor dem ersten Ereignis. Konservativ
+heißt ein dort anderer Offset zunächst „verschieden“. Wer trotz anderer
+Vektoren gleich melden möchte, muss zusätzlich die Spitzen-/Körperlagen
+und die betroffenen Kinematikberechnungen als gleich nachweisen. Die bloße
+Summe aus Punkt und Offset reicht nicht. Bis dahin den frischen Datensatz
+veröffentlichen und die betroffenen Verbraucher neu rechnen lassen.
+
+**Gates:** Das obige Paar muss „verschieden“ ergeben; im gleichen Test
+auch den Rückweg prüfen. Als Gleichheitskontrolle eignet sich ein Programm,
+das vor jeder Bewegung ausdrücklich G49 setzt: Ein anderer geerbter
+Startoffset beeinflusst dann weder die aufgelösten Offsets noch die Punkte.
+Die TLO-Prüfung muss sowohl `tlo_start` als auch Ereignisvektoren abdecken.
+
+Die `heavy_test`-Messung bestätigt die Gleichheit der Canon-Maschinenpunkte
+für das gemessene Paar. Sie bestätigt allein noch kein `__SAME__` für alle
+Verbraucher. Dieses Ergebnis bitte erst nach dem erweiterten Vergleich
+zusagen; die erneute native Prüfung selbst und ihre Kosten bleiben als
+Planentscheidung akzeptiert.
+
+### Belege und Validierung
+
+- [Native Ergebnisse: elf Parses, vollständige kleine Nutzdatensätze und Canon-Arrays](viewer-palette-fest.r55.native-probe.json)
+- [Nativer Runner](viewer-palette-fest.r55.native-run.py) und [synthetische Hilfssonde](viewer-palette-fest.r55.native-case.py)
+- [Viewer-Gegenproben](viewer-palette-fest.r55.consumer-probe.test.ts), [Messwerte und Treffer](viewer-palette-fest.r55.consumer-probe.json)
+- [Testergebnis: 2/2 PASS](viewer-palette-fest.r55.vitest-results.json) und [isolierte Testkonfiguration](viewer-palette-fest.r55.vitest.config.mjs)
+- [Reproduktion und SHA256](viewer-palette-fest.r55.manifest.json)
+
+**11/11 native Parses ohne Parsefehler/Absturz; 2/2 gezielte Viewer-Tests
+bestanden.** Die Native-Sonde ergänzt den vorgeschlagenen Seed im heutigen
+Worker; der Client erhält diesen Seed explizit als Resolver-Basis. Eine
+fertige Implementierung des neuen Protokolls wird damit nicht behauptet.
+Kein vollständiges Gate, Browserlauf oder Build für diese Planrunde.
+Die nächste Runde kann auf **VP55-01, also den Gleichheitsvertrag**, begrenzt
+werden.

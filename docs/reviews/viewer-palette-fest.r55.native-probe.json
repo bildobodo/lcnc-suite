@@ -1,0 +1,2633 @@
+{
+  "commit": "628451862cc2a6c7dba4f5f9492255dd7925e29c",
+  "method": "11 separate offline native parses, synthetic XYZ mm INI with Z_MAX=50; current worker plus proposed G43.1 start seed. No product equality function exists yet. All payload bytes embedded as base64, all small canon arrays inline.",
+  "cases": [
+    {
+      "case": "g53_same_machine",
+      "program": "G21 G90\nG53 G0 X0 Y0 Z0\nG53 G0 X10 Y0 Z0\nG49\nG0 Z-40\nG0 Z40\nM2\n",
+      "runs": [
+        {
+          "program": "/tmp/codex-r55-ue56i4it/evidence/g53_same_machine.ngc",
+          "seed": [
+            0.0,
+            0.0,
+            10.0
+          ],
+          "initcodes": [
+            "G21",
+            "G90",
+            "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+            "G54"
+          ],
+          "parse_error": null,
+          "feed": 0,
+          "rapid": 4,
+          "tlo_events": [
+            [
+              2,
+              0.0,
+              0.0,
+              0.0,
+              -1
+            ]
+          ],
+          "violations_total": 0,
+          "violations": [],
+          "interp_s": 0.0,
+          "total_s": 0.0,
+          "maxrss_mb": 47.6,
+          "canon": {
+            "feed_seq": [],
+            "feed_line": [],
+            "feed_m": [],
+            "rapid_seq": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "rapid_line": [
+              2,
+              3,
+              5,
+              6
+            ],
+            "rapid_m": [
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                10.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                10.0,
+                0.0,
+                -40.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                10.0,
+                0.0,
+                40.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "unknown": [
+              1,
+              3
+            ]
+          },
+          "payload": {
+            "file": "/tmp/codex-r55-ue56i4it/evidence/g53_same_machine.ngc",
+            "parse_tlos": [
+              [
+                1,
+                0.0,
+                0.0,
+                10.0,
+                6.0
+              ]
+            ],
+            "preview_schema": 9,
+            "feed": {
+              "bytes_b64": ""
+            },
+            "feed_lines": {
+              "bytes_b64": ""
+            },
+            "feed_seq": {
+              "bytes_b64": ""
+            },
+            "rapid_seq": {
+              "bytes_b64": "AQAAAAIAAAADAAAABAAAAA=="
+            },
+            "rapid_lines": {
+              "bytes_b64": "AgAAAAMAAAAFAAAABgAAAA=="
+            },
+            "feed_tcum": {
+              "bytes_b64": ""
+            },
+            "rapid_tcum": {
+              "bytes_b64": "AAAAAAAAgD8AAIA/AAAQQQ=="
+            },
+            "rapid_rate": 10.0,
+            "rot_rapid_rate": null,
+            "tool_change_lines": [],
+            "rapid": {
+              "bytes_b64": "AAAAAAAAAAAAACDBAAAgQQAAAAAAACDBAAAgQQAAAAAAACDCAAAgQQAAAAAAACBC"
+            },
+            "stats": {
+              "feedMoves": 0,
+              "rapidMoves": 4,
+              "linearMoves": 0,
+              "arcMoves": 0,
+              "feedDist": 0.0,
+              "rapidDist": 90.0,
+              "linearDist": 0.0,
+              "arcDist": 0.0,
+              "feedTime": 0.0,
+              "rapidTime": 9.0,
+              "totalTime": 9.0,
+              "feedRates": [],
+              "toolChanges": 0,
+              "toolsUsed": [],
+              "unit": "mm",
+              "fileSize": 63
+            },
+            "bounds": null,
+            "motion_bounds": {
+              "min": [
+                0.0,
+                0.0,
+                -40.0
+              ],
+              "max": [
+                10.0,
+                0.0,
+                40.0
+              ]
+            },
+            "violations": [],
+            "violations_total": 0,
+            "lines_untrusted": false,
+            "lines_untrusted_reason": "",
+            "wcs_basis_index": 1,
+            "wcs_used": [
+              1
+            ],
+            "wcs_basis": {
+              "g5x": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "g92": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation": 0.0
+            },
+            "parse_error": null,
+            "error_line": null,
+            "feed_lineok": {
+              "bytes_b64": ""
+            },
+            "rapid_lineok": {
+              "bytes_b64": "AQEBAQ=="
+            },
+            "rapid_ustart": {
+              "bytes_b64": "AQABAA=="
+            },
+            "wcs_frames": [
+              [
+                0,
+                1,
+                0.0,
+                0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "tlo_events": [
+              [
+                2,
+                0.0,
+                0.0,
+                0.0,
+                -1
+              ]
+            ],
+            "feed_outside": {
+              "bytes_b64": ""
+            },
+            "rapid_outside": {
+              "bytes_b64": "AAAAAA=="
+            }
+          }
+        },
+        {
+          "program": "/tmp/codex-r55-ue56i4it/evidence/g53_same_machine.ngc",
+          "seed": [
+            0.0,
+            0.0,
+            20.0
+          ],
+          "initcodes": [
+            "G21",
+            "G90",
+            "G43.1 X0.000000000 Y0.000000000 Z20.000000000",
+            "G54"
+          ],
+          "parse_error": null,
+          "feed": 0,
+          "rapid": 4,
+          "tlo_events": [
+            [
+              2,
+              0.0,
+              0.0,
+              0.0,
+              -1
+            ]
+          ],
+          "violations_total": 0,
+          "violations": [],
+          "interp_s": 0.0,
+          "total_s": 0.0,
+          "maxrss_mb": 47.7,
+          "canon": {
+            "feed_seq": [],
+            "feed_line": [],
+            "feed_m": [],
+            "rapid_seq": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "rapid_line": [
+              2,
+              3,
+              5,
+              6
+            ],
+            "rapid_m": [
+              [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                10.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                10.0,
+                0.0,
+                -40.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                10.0,
+                0.0,
+                40.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "unknown": [
+              1,
+              3
+            ]
+          },
+          "payload": {
+            "file": "/tmp/codex-r55-ue56i4it/evidence/g53_same_machine.ngc",
+            "parse_tlos": [
+              [
+                1,
+                0.0,
+                0.0,
+                10.0,
+                6.0
+              ]
+            ],
+            "preview_schema": 9,
+            "feed": {
+              "bytes_b64": ""
+            },
+            "feed_lines": {
+              "bytes_b64": ""
+            },
+            "feed_seq": {
+              "bytes_b64": ""
+            },
+            "rapid_seq": {
+              "bytes_b64": "AQAAAAIAAAADAAAABAAAAA=="
+            },
+            "rapid_lines": {
+              "bytes_b64": "AgAAAAMAAAAFAAAABgAAAA=="
+            },
+            "feed_tcum": {
+              "bytes_b64": ""
+            },
+            "rapid_tcum": {
+              "bytes_b64": "AAAAAAAAgD8AAIA/AAAQQQ=="
+            },
+            "rapid_rate": 10.0,
+            "rot_rapid_rate": null,
+            "tool_change_lines": [],
+            "rapid": {
+              "bytes_b64": "AAAAAAAAAAAAAKDBAAAgQQAAAAAAAKDBAAAgQQAAAAAAACDCAAAgQQAAAAAAACBC"
+            },
+            "stats": {
+              "feedMoves": 0,
+              "rapidMoves": 4,
+              "linearMoves": 0,
+              "arcMoves": 0,
+              "feedDist": 0.0,
+              "rapidDist": 90.0,
+              "linearDist": 0.0,
+              "arcDist": 0.0,
+              "feedTime": 0.0,
+              "rapidTime": 9.0,
+              "totalTime": 9.0,
+              "feedRates": [],
+              "toolChanges": 0,
+              "toolsUsed": [],
+              "unit": "mm",
+              "fileSize": 63
+            },
+            "bounds": null,
+            "motion_bounds": {
+              "min": [
+                0.0,
+                0.0,
+                -40.0
+              ],
+              "max": [
+                10.0,
+                0.0,
+                40.0
+              ]
+            },
+            "violations": [],
+            "violations_total": 0,
+            "lines_untrusted": false,
+            "lines_untrusted_reason": "",
+            "wcs_basis_index": 1,
+            "wcs_used": [
+              1
+            ],
+            "wcs_basis": {
+              "g5x": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "g92": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation": 0.0
+            },
+            "parse_error": null,
+            "error_line": null,
+            "feed_lineok": {
+              "bytes_b64": ""
+            },
+            "rapid_lineok": {
+              "bytes_b64": "AQEBAQ=="
+            },
+            "rapid_ustart": {
+              "bytes_b64": "AQABAA=="
+            },
+            "wcs_frames": [
+              [
+                0,
+                1,
+                0.0,
+                0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "tlo_events": [
+              [
+                2,
+                0.0,
+                0.0,
+                0.0,
+                -1
+              ]
+            ],
+            "feed_outside": {
+              "bytes_b64": ""
+            },
+            "rapid_outside": {
+              "bytes_b64": "AAAAAA=="
+            }
+          }
+        }
+      ],
+      "raw_payload_differing_fields": [
+        "rapid"
+      ],
+      "all_canon_machine_points_and_structure_identical": true
+    },
+    {
+      "case": "nonlinear",
+      "program": "G21 G90\nG0 X0 Y0 Z0\nG49\n#1=[#5422-10]\nG1 Z[49.999 + #1 * [1-#1]] F100\nM2\n",
+      "runs": [
+        {
+          "program": "/tmp/codex-r55-ue56i4it/evidence/nonlinear.ngc",
+          "seed": [
+            0.0,
+            0.0,
+            10.0
+          ],
+          "initcodes": [
+            "G21",
+            "G90",
+            "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+            "G54"
+          ],
+          "parse_error": null,
+          "feed": 1,
+          "rapid": 1,
+          "tlo_events": [
+            [
+              1,
+              0.0,
+              0.0,
+              0.0,
+              -1
+            ]
+          ],
+          "violations_total": 0,
+          "violations": [],
+          "interp_s": 0.0,
+          "total_s": 0.0,
+          "maxrss_mb": 47.6,
+          "canon": {
+            "feed_seq": [
+              2
+            ],
+            "feed_line": [
+              5
+            ],
+            "feed_m": [
+              [
+                0.0,
+                0.0,
+                49.999,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "rapid_seq": [
+              1
+            ],
+            "rapid_line": [
+              2
+            ],
+            "rapid_m": [
+              [
+                0.0,
+                0.0,
+                10.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "unknown": [
+              1
+            ]
+          },
+          "payload": {
+            "file": "/tmp/codex-r55-ue56i4it/evidence/nonlinear.ngc",
+            "parse_tlos": [
+              [
+                1,
+                0.0,
+                0.0,
+                10.0,
+                6.0
+              ]
+            ],
+            "preview_schema": 9,
+            "feed": {
+              "bytes_b64": "AAAAAAAAAAD6/kdC"
+            },
+            "feed_lines": {
+              "bytes_b64": "BQAAAA=="
+            },
+            "feed_seq": {
+              "bytes_b64": "AgAAAA=="
+            },
+            "rapid_seq": {
+              "bytes_b64": "AQAAAA=="
+            },
+            "rapid_lines": {
+              "bytes_b64": "AgAAAA=="
+            },
+            "feed_tcum": {
+              "bytes_b64": "xf6/QQ=="
+            },
+            "rapid_tcum": {
+              "bytes_b64": "AAAAAA=="
+            },
+            "rapid_rate": 10.0,
+            "rot_rapid_rate": null,
+            "tool_change_lines": [],
+            "rapid": {
+              "bytes_b64": "AAAAAAAAAAAAAAAA"
+            },
+            "stats": {
+              "feedMoves": 1,
+              "rapidMoves": 1,
+              "linearMoves": 1,
+              "arcMoves": 0,
+              "feedDist": 40.0,
+              "rapidDist": 0.0,
+              "linearDist": 40.0,
+              "arcDist": 0.0,
+              "feedTime": 24.0,
+              "rapidTime": 0.0,
+              "totalTime": 24.0,
+              "feedRates": [
+                100.0
+              ],
+              "toolChanges": 0,
+              "toolsUsed": [],
+              "unit": "mm",
+              "fileSize": 73
+            },
+            "bounds": {
+              "min": [
+                0.0,
+                0.0,
+                49.999
+              ],
+              "max": [
+                0.0,
+                0.0,
+                49.999
+              ]
+            },
+            "motion_bounds": {
+              "min": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "max": [
+                0.0,
+                0.0,
+                49.999
+              ]
+            },
+            "violations": [],
+            "violations_total": 0,
+            "lines_untrusted": false,
+            "lines_untrusted_reason": "",
+            "wcs_basis_index": 1,
+            "wcs_used": [
+              1
+            ],
+            "wcs_basis": {
+              "g5x": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "g92": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation": 0.0
+            },
+            "parse_error": null,
+            "error_line": null,
+            "feed_lineok": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_lineok": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_ustart": {
+              "bytes_b64": "AQ=="
+            },
+            "wcs_frames": [
+              [
+                0,
+                1,
+                0.0,
+                0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "tlo_events": [
+              [
+                1,
+                0.0,
+                0.0,
+                0.0,
+                -1
+              ]
+            ],
+            "feed_outside": {
+              "bytes_b64": "AA=="
+            },
+            "rapid_outside": {
+              "bytes_b64": "AA=="
+            }
+          }
+        },
+        {
+          "program": "/tmp/codex-r55-ue56i4it/evidence/nonlinear.ngc",
+          "seed": [
+            0.0,
+            0.0,
+            10.001
+          ],
+          "initcodes": [
+            "G21",
+            "G90",
+            "G43.1 X0.000000000 Y0.000000000 Z10.001000000",
+            "G54"
+          ],
+          "parse_error": null,
+          "feed": 1,
+          "rapid": 1,
+          "tlo_events": [
+            [
+              1,
+              0.0,
+              0.0,
+              0.0,
+              -1
+            ]
+          ],
+          "violations_total": 0,
+          "violations": [],
+          "interp_s": 0.0,
+          "total_s": 0.0,
+          "maxrss_mb": 47.6,
+          "canon": {
+            "feed_seq": [
+              2
+            ],
+            "feed_line": [
+              5
+            ],
+            "feed_m": [
+              [
+                0.0,
+                0.0,
+                49.999999,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "rapid_seq": [
+              1
+            ],
+            "rapid_line": [
+              2
+            ],
+            "rapid_m": [
+              [
+                0.0,
+                0.0,
+                10.001,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "unknown": [
+              1
+            ]
+          },
+          "payload": {
+            "file": "/tmp/codex-r55-ue56i4it/evidence/nonlinear.ngc",
+            "parse_tlos": [
+              [
+                1,
+                0.0,
+                0.0,
+                10.0,
+                6.0
+              ]
+            ],
+            "preview_schema": 9,
+            "feed": {
+              "bytes_b64": "AAAAAAAAAAAAAEhC"
+            },
+            "feed_lines": {
+              "bytes_b64": "BQAAAA=="
+            },
+            "feed_seq": {
+              "bytes_b64": "AgAAAA=="
+            },
+            "rapid_seq": {
+              "bytes_b64": "AQAAAA=="
+            },
+            "rapid_lines": {
+              "bytes_b64": "AgAAAA=="
+            },
+            "feed_tcum": {
+              "bytes_b64": "xf6/QQ=="
+            },
+            "rapid_tcum": {
+              "bytes_b64": "AAAAAA=="
+            },
+            "rapid_rate": 10.0,
+            "rot_rapid_rate": null,
+            "tool_change_lines": [],
+            "rapid": {
+              "bytes_b64": "AAAAAAAAAAAAAAAA"
+            },
+            "stats": {
+              "feedMoves": 1,
+              "rapidMoves": 1,
+              "linearMoves": 1,
+              "arcMoves": 0,
+              "feedDist": 40.0,
+              "rapidDist": 0.0,
+              "linearDist": 40.0,
+              "arcDist": 0.0,
+              "feedTime": 24.0,
+              "rapidTime": 0.0,
+              "totalTime": 24.0,
+              "feedRates": [
+                100.0
+              ],
+              "toolChanges": 0,
+              "toolsUsed": [],
+              "unit": "mm",
+              "fileSize": 73
+            },
+            "bounds": {
+              "min": [
+                0.0,
+                0.0,
+                49.999999
+              ],
+              "max": [
+                0.0,
+                0.0,
+                49.999999
+              ]
+            },
+            "motion_bounds": {
+              "min": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "max": [
+                0.0,
+                0.0,
+                49.999999
+              ]
+            },
+            "violations": [],
+            "violations_total": 0,
+            "lines_untrusted": false,
+            "lines_untrusted_reason": "",
+            "wcs_basis_index": 1,
+            "wcs_used": [
+              1
+            ],
+            "wcs_basis": {
+              "g5x": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "g92": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation": 0.0
+            },
+            "parse_error": null,
+            "error_line": null,
+            "feed_lineok": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_lineok": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_ustart": {
+              "bytes_b64": "AQ=="
+            },
+            "wcs_frames": [
+              [
+                0,
+                1,
+                0.0,
+                0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "tlo_events": [
+              [
+                1,
+                0.0,
+                0.0,
+                0.0,
+                -1
+              ]
+            ],
+            "feed_outside": {
+              "bytes_b64": "AA=="
+            },
+            "rapid_outside": {
+              "bytes_b64": "AA=="
+            }
+          }
+        },
+        {
+          "program": "/tmp/codex-r55-ue56i4it/evidence/nonlinear.ngc",
+          "seed": [
+            0.0,
+            0.0,
+            10.005
+          ],
+          "initcodes": [
+            "G21",
+            "G90",
+            "G43.1 X0.000000000 Y0.000000000 Z10.005000000",
+            "G54"
+          ],
+          "parse_error": null,
+          "feed": 1,
+          "rapid": 1,
+          "tlo_events": [
+            [
+              1,
+              0.0,
+              0.0,
+              0.0,
+              -1
+            ]
+          ],
+          "violations_total": 1,
+          "violations": [
+            {
+              "line": 5,
+              "axis": "Z",
+              "value": 50.004,
+              "limit": 50.0,
+              "kind": "max"
+            }
+          ],
+          "interp_s": 0.0,
+          "total_s": 0.0,
+          "maxrss_mb": 47.6,
+          "canon": {
+            "feed_seq": [
+              2
+            ],
+            "feed_line": [
+              5
+            ],
+            "feed_m": [
+              [
+                0.0,
+                0.0,
+                50.003975000000004,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "rapid_seq": [
+              1
+            ],
+            "rapid_line": [
+              2
+            ],
+            "rapid_m": [
+              [
+                0.0,
+                0.0,
+                10.005,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "unknown": [
+              1
+            ]
+          },
+          "payload": {
+            "file": "/tmp/codex-r55-ue56i4it/evidence/nonlinear.ngc",
+            "parse_tlos": [
+              [
+                1,
+                0.0,
+                0.0,
+                10.0,
+                6.0
+              ]
+            ],
+            "preview_schema": 9,
+            "feed": {
+              "bytes_b64": "AAAAAAAAAAASBEhC"
+            },
+            "feed_lines": {
+              "bytes_b64": "BQAAAA=="
+            },
+            "feed_seq": {
+              "bytes_b64": "AgAAAA=="
+            },
+            "rapid_seq": {
+              "bytes_b64": "AQAAAA=="
+            },
+            "rapid_lines": {
+              "bytes_b64": "AgAAAA=="
+            },
+            "feed_tcum": {
+              "bytes_b64": "vv6/QQ=="
+            },
+            "rapid_tcum": {
+              "bytes_b64": "AAAAAA=="
+            },
+            "rapid_rate": 10.0,
+            "rot_rapid_rate": null,
+            "tool_change_lines": [],
+            "rapid": {
+              "bytes_b64": "AAAAAAAAAAAAAAAA"
+            },
+            "stats": {
+              "feedMoves": 1,
+              "rapidMoves": 1,
+              "linearMoves": 1,
+              "arcMoves": 0,
+              "feedDist": 40.0,
+              "rapidDist": 0.0,
+              "linearDist": 40.0,
+              "arcDist": 0.0,
+              "feedTime": 24.0,
+              "rapidTime": 0.0,
+              "totalTime": 24.0,
+              "feedRates": [
+                100.0
+              ],
+              "toolChanges": 0,
+              "toolsUsed": [],
+              "unit": "mm",
+              "fileSize": 73
+            },
+            "bounds": {
+              "min": [
+                0.0,
+                0.0,
+                50.003975000000004
+              ],
+              "max": [
+                0.0,
+                0.0,
+                50.003975000000004
+              ]
+            },
+            "motion_bounds": {
+              "min": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "max": [
+                0.0,
+                0.0,
+                50.003975000000004
+              ]
+            },
+            "violations": [
+              {
+                "line": 5,
+                "axis": "Z",
+                "value": 50.004,
+                "limit": 50.0,
+                "kind": "max"
+              }
+            ],
+            "violations_total": 1,
+            "lines_untrusted": false,
+            "lines_untrusted_reason": "",
+            "wcs_basis_index": 1,
+            "wcs_used": [
+              1
+            ],
+            "wcs_basis": {
+              "g5x": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "g92": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation": 0.0
+            },
+            "parse_error": null,
+            "error_line": null,
+            "feed_lineok": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_lineok": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_ustart": {
+              "bytes_b64": "AQ=="
+            },
+            "wcs_frames": [
+              [
+                0,
+                1,
+                0.0,
+                0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "tlo_events": [
+              [
+                1,
+                0.0,
+                0.0,
+                0.0,
+                -1
+              ]
+            ],
+            "feed_outside": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_outside": {
+              "bytes_b64": "AA=="
+            }
+          }
+        }
+      ]
+    },
+    {
+      "case": "branch_between_samples",
+      "program": "G21 G90\nG0 X0 Y0 Z0\nG49\n#1=[#5422-10]\n#2=49.999\no100 if [[#1 GT 0.001] AND [#1 LT 0.009]]\n#2=50.009\no100 endif\nG1 Z#2 F100\nM2\n",
+      "runs": [
+        {
+          "program": "/tmp/codex-r55-ue56i4it/evidence/branch_between_samples.ngc",
+          "seed": [
+            0.0,
+            0.0,
+            10.0
+          ],
+          "initcodes": [
+            "G21",
+            "G90",
+            "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+            "G54"
+          ],
+          "parse_error": null,
+          "feed": 1,
+          "rapid": 1,
+          "tlo_events": [
+            [
+              1,
+              0.0,
+              0.0,
+              0.0,
+              -1
+            ]
+          ],
+          "violations_total": 0,
+          "violations": [],
+          "interp_s": 0.0,
+          "total_s": 0.0,
+          "maxrss_mb": 47.7,
+          "canon": {
+            "feed_seq": [
+              2
+            ],
+            "feed_line": [
+              9
+            ],
+            "feed_m": [
+              [
+                0.0,
+                0.0,
+                49.999,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "rapid_seq": [
+              1
+            ],
+            "rapid_line": [
+              2
+            ],
+            "rapid_m": [
+              [
+                0.0,
+                0.0,
+                10.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "unknown": [
+              1
+            ]
+          },
+          "payload": {
+            "file": "/tmp/codex-r55-ue56i4it/evidence/branch_between_samples.ngc",
+            "parse_tlos": [
+              [
+                1,
+                0.0,
+                0.0,
+                10.0,
+                6.0
+              ]
+            ],
+            "preview_schema": 9,
+            "feed": {
+              "bytes_b64": "AAAAAAAAAAD6/kdC"
+            },
+            "feed_lines": {
+              "bytes_b64": "CQAAAA=="
+            },
+            "feed_seq": {
+              "bytes_b64": "AgAAAA=="
+            },
+            "rapid_seq": {
+              "bytes_b64": "AQAAAA=="
+            },
+            "rapid_lines": {
+              "bytes_b64": "AgAAAA=="
+            },
+            "feed_tcum": {
+              "bytes_b64": "xf6/QQ=="
+            },
+            "rapid_tcum": {
+              "bytes_b64": "AAAAAA=="
+            },
+            "rapid_rate": 10.0,
+            "rot_rapid_rate": null,
+            "tool_change_lines": [],
+            "rapid": {
+              "bytes_b64": "AAAAAAAAAAAAAAAA"
+            },
+            "stats": {
+              "feedMoves": 1,
+              "rapidMoves": 1,
+              "linearMoves": 1,
+              "arcMoves": 0,
+              "feedDist": 40.0,
+              "rapidDist": 0.0,
+              "linearDist": 40.0,
+              "arcDist": 0.0,
+              "feedTime": 24.0,
+              "rapidTime": 0.0,
+              "totalTime": 24.0,
+              "feedRates": [
+                100.0
+              ],
+              "toolChanges": 0,
+              "toolsUsed": [],
+              "unit": "mm",
+              "fileSize": 126
+            },
+            "bounds": {
+              "min": [
+                0.0,
+                0.0,
+                49.999
+              ],
+              "max": [
+                0.0,
+                0.0,
+                49.999
+              ]
+            },
+            "motion_bounds": {
+              "min": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "max": [
+                0.0,
+                0.0,
+                49.999
+              ]
+            },
+            "violations": [],
+            "violations_total": 0,
+            "lines_untrusted": false,
+            "lines_untrusted_reason": "",
+            "wcs_basis_index": 1,
+            "wcs_used": [
+              1
+            ],
+            "wcs_basis": {
+              "g5x": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "g92": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation": 0.0
+            },
+            "parse_error": null,
+            "error_line": null,
+            "feed_lineok": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_lineok": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_ustart": {
+              "bytes_b64": "AQ=="
+            },
+            "wcs_frames": [
+              [
+                0,
+                1,
+                0.0,
+                0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "tlo_events": [
+              [
+                1,
+                0.0,
+                0.0,
+                0.0,
+                -1
+              ]
+            ],
+            "feed_outside": {
+              "bytes_b64": "AA=="
+            },
+            "rapid_outside": {
+              "bytes_b64": "AA=="
+            }
+          }
+        },
+        {
+          "program": "/tmp/codex-r55-ue56i4it/evidence/branch_between_samples.ngc",
+          "seed": [
+            0.0,
+            0.0,
+            10.001
+          ],
+          "initcodes": [
+            "G21",
+            "G90",
+            "G43.1 X0.000000000 Y0.000000000 Z10.001000000",
+            "G54"
+          ],
+          "parse_error": null,
+          "feed": 1,
+          "rapid": 1,
+          "tlo_events": [
+            [
+              1,
+              0.0,
+              0.0,
+              0.0,
+              -1
+            ]
+          ],
+          "violations_total": 0,
+          "violations": [],
+          "interp_s": 0.0,
+          "total_s": 0.0,
+          "maxrss_mb": 47.6,
+          "canon": {
+            "feed_seq": [
+              2
+            ],
+            "feed_line": [
+              9
+            ],
+            "feed_m": [
+              [
+                0.0,
+                0.0,
+                49.999,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "rapid_seq": [
+              1
+            ],
+            "rapid_line": [
+              2
+            ],
+            "rapid_m": [
+              [
+                0.0,
+                0.0,
+                10.001,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "unknown": [
+              1
+            ]
+          },
+          "payload": {
+            "file": "/tmp/codex-r55-ue56i4it/evidence/branch_between_samples.ngc",
+            "parse_tlos": [
+              [
+                1,
+                0.0,
+                0.0,
+                10.0,
+                6.0
+              ]
+            ],
+            "preview_schema": 9,
+            "feed": {
+              "bytes_b64": "AAAAAAAAAAD6/kdC"
+            },
+            "feed_lines": {
+              "bytes_b64": "CQAAAA=="
+            },
+            "feed_seq": {
+              "bytes_b64": "AgAAAA=="
+            },
+            "rapid_seq": {
+              "bytes_b64": "AQAAAA=="
+            },
+            "rapid_lines": {
+              "bytes_b64": "AgAAAA=="
+            },
+            "feed_tcum": {
+              "bytes_b64": "i/2/QQ=="
+            },
+            "rapid_tcum": {
+              "bytes_b64": "AAAAAA=="
+            },
+            "rapid_rate": 10.0,
+            "rot_rapid_rate": null,
+            "tool_change_lines": [],
+            "rapid": {
+              "bytes_b64": "AAAAAAAAAAAAAAAA"
+            },
+            "stats": {
+              "feedMoves": 1,
+              "rapidMoves": 1,
+              "linearMoves": 1,
+              "arcMoves": 0,
+              "feedDist": 40.0,
+              "rapidDist": 0.0,
+              "linearDist": 40.0,
+              "arcDist": 0.0,
+              "feedTime": 24.0,
+              "rapidTime": 0.0,
+              "totalTime": 24.0,
+              "feedRates": [
+                100.0
+              ],
+              "toolChanges": 0,
+              "toolsUsed": [],
+              "unit": "mm",
+              "fileSize": 126
+            },
+            "bounds": {
+              "min": [
+                0.0,
+                0.0,
+                49.999
+              ],
+              "max": [
+                0.0,
+                0.0,
+                49.999
+              ]
+            },
+            "motion_bounds": {
+              "min": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "max": [
+                0.0,
+                0.0,
+                49.999
+              ]
+            },
+            "violations": [],
+            "violations_total": 0,
+            "lines_untrusted": false,
+            "lines_untrusted_reason": "",
+            "wcs_basis_index": 1,
+            "wcs_used": [
+              1
+            ],
+            "wcs_basis": {
+              "g5x": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "g92": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation": 0.0
+            },
+            "parse_error": null,
+            "error_line": null,
+            "feed_lineok": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_lineok": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_ustart": {
+              "bytes_b64": "AQ=="
+            },
+            "wcs_frames": [
+              [
+                0,
+                1,
+                0.0,
+                0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "tlo_events": [
+              [
+                1,
+                0.0,
+                0.0,
+                0.0,
+                -1
+              ]
+            ],
+            "feed_outside": {
+              "bytes_b64": "AA=="
+            },
+            "rapid_outside": {
+              "bytes_b64": "AA=="
+            }
+          }
+        },
+        {
+          "program": "/tmp/codex-r55-ue56i4it/evidence/branch_between_samples.ngc",
+          "seed": [
+            0.0,
+            0.0,
+            10.005
+          ],
+          "initcodes": [
+            "G21",
+            "G90",
+            "G43.1 X0.000000000 Y0.000000000 Z10.005000000",
+            "G54"
+          ],
+          "parse_error": null,
+          "feed": 1,
+          "rapid": 1,
+          "tlo_events": [
+            [
+              1,
+              0.0,
+              0.0,
+              0.0,
+              -1
+            ]
+          ],
+          "violations_total": 1,
+          "violations": [
+            {
+              "line": 9,
+              "axis": "Z",
+              "value": 50.009,
+              "limit": 50.0,
+              "kind": "max"
+            }
+          ],
+          "interp_s": 0.0,
+          "total_s": 0.0,
+          "maxrss_mb": 47.6,
+          "canon": {
+            "feed_seq": [
+              2
+            ],
+            "feed_line": [
+              9
+            ],
+            "feed_m": [
+              [
+                0.0,
+                0.0,
+                50.009,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "rapid_seq": [
+              1
+            ],
+            "rapid_line": [
+              2
+            ],
+            "rapid_m": [
+              [
+                0.0,
+                0.0,
+                10.005,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "unknown": [
+              1
+            ]
+          },
+          "payload": {
+            "file": "/tmp/codex-r55-ue56i4it/evidence/branch_between_samples.ngc",
+            "parse_tlos": [
+              [
+                1,
+                0.0,
+                0.0,
+                10.0,
+                6.0
+              ]
+            ],
+            "preview_schema": 9,
+            "feed": {
+              "bytes_b64": "AAAAAAAAAAA3CUhC"
+            },
+            "feed_lines": {
+              "bytes_b64": "CQAAAA=="
+            },
+            "feed_seq": {
+              "bytes_b64": "AgAAAA=="
+            },
+            "rapid_seq": {
+              "bytes_b64": "AQAAAA=="
+            },
+            "rapid_lines": {
+              "bytes_b64": "AgAAAA=="
+            },
+            "feed_tcum": {
+              "bytes_b64": "6gTAQQ=="
+            },
+            "rapid_tcum": {
+              "bytes_b64": "AAAAAA=="
+            },
+            "rapid_rate": 10.0,
+            "rot_rapid_rate": null,
+            "tool_change_lines": [],
+            "rapid": {
+              "bytes_b64": "AAAAAAAAAAAAAAAA"
+            },
+            "stats": {
+              "feedMoves": 1,
+              "rapidMoves": 1,
+              "linearMoves": 1,
+              "arcMoves": 0,
+              "feedDist": 40.0,
+              "rapidDist": 0.0,
+              "linearDist": 40.0,
+              "arcDist": 0.0,
+              "feedTime": 24.0,
+              "rapidTime": 0.0,
+              "totalTime": 24.0,
+              "feedRates": [
+                100.0
+              ],
+              "toolChanges": 0,
+              "toolsUsed": [],
+              "unit": "mm",
+              "fileSize": 126
+            },
+            "bounds": {
+              "min": [
+                0.0,
+                0.0,
+                50.009
+              ],
+              "max": [
+                0.0,
+                0.0,
+                50.009
+              ]
+            },
+            "motion_bounds": {
+              "min": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "max": [
+                0.0,
+                0.0,
+                50.009
+              ]
+            },
+            "violations": [
+              {
+                "line": 9,
+                "axis": "Z",
+                "value": 50.009,
+                "limit": 50.0,
+                "kind": "max"
+              }
+            ],
+            "violations_total": 1,
+            "lines_untrusted": false,
+            "lines_untrusted_reason": "",
+            "wcs_basis_index": 1,
+            "wcs_used": [
+              1
+            ],
+            "wcs_basis": {
+              "g5x": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "g92": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation": 0.0
+            },
+            "parse_error": null,
+            "error_line": null,
+            "feed_lineok": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_lineok": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_ustart": {
+              "bytes_b64": "AQ=="
+            },
+            "wcs_frames": [
+              [
+                0,
+                1,
+                0.0,
+                0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "tlo_events": [
+              [
+                1,
+                0.0,
+                0.0,
+                0.0,
+                -1
+              ]
+            ],
+            "feed_outside": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_outside": {
+              "bytes_b64": "AA=="
+            }
+          }
+        }
+      ]
+    },
+    {
+      "case": "original_rest_b",
+      "program": "G21 G90\nG0 X0 Y0 Z39.990\nG49\nG91\nG1 Z0.009 F100\nM2\n",
+      "runs": [
+        {
+          "program": "/tmp/codex-r55-ue56i4it/evidence/original_rest_b.ngc",
+          "seed": [
+            0.0,
+            0.0,
+            10.0
+          ],
+          "initcodes": [
+            "G21",
+            "G90",
+            "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+            "G54"
+          ],
+          "parse_error": null,
+          "feed": 1,
+          "rapid": 1,
+          "tlo_events": [
+            [
+              1,
+              0.0,
+              0.0,
+              0.0,
+              -1
+            ]
+          ],
+          "violations_total": 0,
+          "violations": [],
+          "interp_s": 0.0,
+          "total_s": 0.0,
+          "maxrss_mb": 47.6,
+          "canon": {
+            "feed_seq": [
+              2
+            ],
+            "feed_line": [
+              5
+            ],
+            "feed_m": [
+              [
+                0.0,
+                0.0,
+                49.999,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "rapid_seq": [
+              1
+            ],
+            "rapid_line": [
+              2
+            ],
+            "rapid_m": [
+              [
+                0.0,
+                0.0,
+                49.99,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "unknown": [
+              1
+            ]
+          },
+          "payload": {
+            "file": "/tmp/codex-r55-ue56i4it/evidence/original_rest_b.ngc",
+            "parse_tlos": [
+              [
+                1,
+                0.0,
+                0.0,
+                10.0,
+                6.0
+              ]
+            ],
+            "preview_schema": 9,
+            "feed": {
+              "bytes_b64": "AAAAAAAAAAD6/kdC"
+            },
+            "feed_lines": {
+              "bytes_b64": "BQAAAA=="
+            },
+            "feed_seq": {
+              "bytes_b64": "AgAAAA=="
+            },
+            "rapid_seq": {
+              "bytes_b64": "AQAAAA=="
+            },
+            "rapid_lines": {
+              "bytes_b64": "AgAAAA=="
+            },
+            "feed_tcum": {
+              "bytes_b64": "fPKwOw=="
+            },
+            "rapid_tcum": {
+              "bytes_b64": "AAAAAA=="
+            },
+            "rapid_rate": 10.0,
+            "rot_rapid_rate": null,
+            "tool_change_lines": [],
+            "rapid": {
+              "bytes_b64": "AAAAAAAAAADD9R9C"
+            },
+            "stats": {
+              "feedMoves": 1,
+              "rapidMoves": 1,
+              "linearMoves": 1,
+              "arcMoves": 0,
+              "feedDist": 0.01,
+              "rapidDist": 0.0,
+              "linearDist": 0.01,
+              "arcDist": 0.0,
+              "feedTime": 0.0,
+              "rapidTime": 0.0,
+              "totalTime": 0.0,
+              "feedRates": [
+                100.0
+              ],
+              "toolChanges": 0,
+              "toolsUsed": [],
+              "unit": "mm",
+              "fileSize": 51
+            },
+            "bounds": {
+              "min": [
+                0.0,
+                0.0,
+                49.999
+              ],
+              "max": [
+                0.0,
+                0.0,
+                49.999
+              ]
+            },
+            "motion_bounds": {
+              "min": [
+                0.0,
+                0.0,
+                39.99
+              ],
+              "max": [
+                0.0,
+                0.0,
+                49.999
+              ]
+            },
+            "violations": [],
+            "violations_total": 0,
+            "lines_untrusted": false,
+            "lines_untrusted_reason": "",
+            "wcs_basis_index": 1,
+            "wcs_used": [
+              1
+            ],
+            "wcs_basis": {
+              "g5x": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "g92": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation": 0.0
+            },
+            "parse_error": null,
+            "error_line": null,
+            "feed_lineok": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_lineok": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_ustart": {
+              "bytes_b64": "AQ=="
+            },
+            "wcs_frames": [
+              [
+                0,
+                1,
+                0.0,
+                0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "tlo_events": [
+              [
+                1,
+                0.0,
+                0.0,
+                0.0,
+                -1
+              ]
+            ],
+            "feed_outside": {
+              "bytes_b64": "AA=="
+            },
+            "rapid_outside": {
+              "bytes_b64": "AA=="
+            }
+          }
+        },
+        {
+          "program": "/tmp/codex-r55-ue56i4it/evidence/original_rest_b.ngc",
+          "seed": [
+            0.0,
+            0.0,
+            10.001
+          ],
+          "initcodes": [
+            "G21",
+            "G90",
+            "G43.1 X0.000000000 Y0.000000000 Z10.001000000",
+            "G54"
+          ],
+          "parse_error": null,
+          "feed": 1,
+          "rapid": 1,
+          "tlo_events": [
+            [
+              1,
+              0.0,
+              0.0,
+              0.0,
+              -1
+            ]
+          ],
+          "violations_total": 0,
+          "violations": [],
+          "interp_s": 0.0,
+          "total_s": 0.0,
+          "maxrss_mb": 47.6,
+          "canon": {
+            "feed_seq": [
+              2
+            ],
+            "feed_line": [
+              5
+            ],
+            "feed_m": [
+              [
+                0.0,
+                0.0,
+                50.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "rapid_seq": [
+              1
+            ],
+            "rapid_line": [
+              2
+            ],
+            "rapid_m": [
+              [
+                0.0,
+                0.0,
+                49.991,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "unknown": [
+              1
+            ]
+          },
+          "payload": {
+            "file": "/tmp/codex-r55-ue56i4it/evidence/original_rest_b.ngc",
+            "parse_tlos": [
+              [
+                1,
+                0.0,
+                0.0,
+                10.0,
+                6.0
+              ]
+            ],
+            "preview_schema": 9,
+            "feed": {
+              "bytes_b64": "AAAAAAAAAAAAAEhC"
+            },
+            "feed_lines": {
+              "bytes_b64": "BQAAAA=="
+            },
+            "feed_seq": {
+              "bytes_b64": "AgAAAA=="
+            },
+            "rapid_seq": {
+              "bytes_b64": "AQAAAA=="
+            },
+            "rapid_lines": {
+              "bytes_b64": "AgAAAA=="
+            },
+            "feed_tcum": {
+              "bytes_b64": "fPKwOw=="
+            },
+            "rapid_tcum": {
+              "bytes_b64": "AAAAAA=="
+            },
+            "rapid_rate": 10.0,
+            "rot_rapid_rate": null,
+            "tool_change_lines": [],
+            "rapid": {
+              "bytes_b64": "AAAAAAAAAADD9R9C"
+            },
+            "stats": {
+              "feedMoves": 1,
+              "rapidMoves": 1,
+              "linearMoves": 1,
+              "arcMoves": 0,
+              "feedDist": 0.01,
+              "rapidDist": 0.0,
+              "linearDist": 0.01,
+              "arcDist": 0.0,
+              "feedTime": 0.0,
+              "rapidTime": 0.0,
+              "totalTime": 0.0,
+              "feedRates": [
+                100.0
+              ],
+              "toolChanges": 0,
+              "toolsUsed": [],
+              "unit": "mm",
+              "fileSize": 51
+            },
+            "bounds": {
+              "min": [
+                0.0,
+                0.0,
+                50.0
+              ],
+              "max": [
+                0.0,
+                0.0,
+                50.0
+              ]
+            },
+            "motion_bounds": {
+              "min": [
+                0.0,
+                0.0,
+                39.99
+              ],
+              "max": [
+                0.0,
+                0.0,
+                50.0
+              ]
+            },
+            "violations": [],
+            "violations_total": 0,
+            "lines_untrusted": false,
+            "lines_untrusted_reason": "",
+            "wcs_basis_index": 1,
+            "wcs_used": [
+              1
+            ],
+            "wcs_basis": {
+              "g5x": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "g92": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation": 0.0
+            },
+            "parse_error": null,
+            "error_line": null,
+            "feed_lineok": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_lineok": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_ustart": {
+              "bytes_b64": "AQ=="
+            },
+            "wcs_frames": [
+              [
+                0,
+                1,
+                0.0,
+                0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "tlo_events": [
+              [
+                1,
+                0.0,
+                0.0,
+                0.0,
+                -1
+              ]
+            ],
+            "feed_outside": {
+              "bytes_b64": "AA=="
+            },
+            "rapid_outside": {
+              "bytes_b64": "AA=="
+            }
+          }
+        },
+        {
+          "program": "/tmp/codex-r55-ue56i4it/evidence/original_rest_b.ngc",
+          "seed": [
+            0.0,
+            0.0,
+            10.005
+          ],
+          "initcodes": [
+            "G21",
+            "G90",
+            "G43.1 X0.000000000 Y0.000000000 Z10.005000000",
+            "G54"
+          ],
+          "parse_error": null,
+          "feed": 1,
+          "rapid": 1,
+          "tlo_events": [
+            [
+              1,
+              0.0,
+              0.0,
+              0.0,
+              -1
+            ]
+          ],
+          "violations_total": 1,
+          "violations": [
+            {
+              "line": 5,
+              "axis": "Z",
+              "value": 50.004,
+              "limit": 50.0,
+              "kind": "max"
+            }
+          ],
+          "interp_s": 0.0,
+          "total_s": 0.0,
+          "maxrss_mb": 47.6,
+          "canon": {
+            "feed_seq": [
+              2
+            ],
+            "feed_line": [
+              5
+            ],
+            "feed_m": [
+              [
+                0.0,
+                0.0,
+                50.004000000000005,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "rapid_seq": [
+              1
+            ],
+            "rapid_line": [
+              2
+            ],
+            "rapid_m": [
+              [
+                0.0,
+                0.0,
+                49.995000000000005,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "unknown": [
+              1
+            ]
+          },
+          "payload": {
+            "file": "/tmp/codex-r55-ue56i4it/evidence/original_rest_b.ngc",
+            "parse_tlos": [
+              [
+                1,
+                0.0,
+                0.0,
+                10.0,
+                6.0
+              ]
+            ],
+            "preview_schema": 9,
+            "feed": {
+              "bytes_b64": "AAAAAAAAAAAZBEhC"
+            },
+            "feed_lines": {
+              "bytes_b64": "BQAAAA=="
+            },
+            "feed_seq": {
+              "bytes_b64": "AgAAAA=="
+            },
+            "rapid_seq": {
+              "bytes_b64": "AQAAAA=="
+            },
+            "rapid_lines": {
+              "bytes_b64": "AgAAAA=="
+            },
+            "feed_tcum": {
+              "bytes_b64": "fPKwOw=="
+            },
+            "rapid_tcum": {
+              "bytes_b64": "AAAAAA=="
+            },
+            "rapid_rate": 10.0,
+            "rot_rapid_rate": null,
+            "tool_change_lines": [],
+            "rapid": {
+              "bytes_b64": "AAAAAAAAAADD9R9C"
+            },
+            "stats": {
+              "feedMoves": 1,
+              "rapidMoves": 1,
+              "linearMoves": 1,
+              "arcMoves": 0,
+              "feedDist": 0.01,
+              "rapidDist": 0.0,
+              "linearDist": 0.01,
+              "arcDist": 0.0,
+              "feedTime": 0.0,
+              "rapidTime": 0.0,
+              "totalTime": 0.0,
+              "feedRates": [
+                100.0
+              ],
+              "toolChanges": 0,
+              "toolsUsed": [],
+              "unit": "mm",
+              "fileSize": 51
+            },
+            "bounds": {
+              "min": [
+                0.0,
+                0.0,
+                50.004000000000005
+              ],
+              "max": [
+                0.0,
+                0.0,
+                50.004000000000005
+              ]
+            },
+            "motion_bounds": {
+              "min": [
+                0.0,
+                0.0,
+                39.99
+              ],
+              "max": [
+                0.0,
+                0.0,
+                50.004000000000005
+              ]
+            },
+            "violations": [
+              {
+                "line": 5,
+                "axis": "Z",
+                "value": 50.004,
+                "limit": 50.0,
+                "kind": "max"
+              }
+            ],
+            "violations_total": 1,
+            "lines_untrusted": false,
+            "lines_untrusted_reason": "",
+            "wcs_basis_index": 1,
+            "wcs_used": [
+              1
+            ],
+            "wcs_basis": {
+              "g5x": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "g92": [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "rotation": 0.0
+            },
+            "parse_error": null,
+            "error_line": null,
+            "feed_lineok": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_lineok": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_ustart": {
+              "bytes_b64": "AQ=="
+            },
+            "wcs_frames": [
+              [
+                0,
+                1,
+                0.0,
+                0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0
+              ]
+            ],
+            "tlo_events": [
+              [
+                1,
+                0.0,
+                0.0,
+                0.0,
+                -1
+              ]
+            ],
+            "feed_outside": {
+              "bytes_b64": "AQ=="
+            },
+            "rapid_outside": {
+              "bytes_b64": "AA=="
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
