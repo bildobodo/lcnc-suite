@@ -489,8 +489,9 @@ live scene (`viewer/kinematics.ts`), so the preview overlays the backplot
 by construction. TLO rule (W3 P0 + schema 8): the tool-length offset is
 PER-SEGMENT state — the wire's `tlo_events` rows ([seq, xo, yo, zo, tool],
 recorded by the canon at every G43/G43.1/G49 and executed M6 on a program
-line; the LIVE applied offset governs segments before the first row, which
-the run inherits as modal G43 state) — resolved by ONE function
+line; segments before the first row ran under the START tool state the
+parse was seeded with — `tlo_start`, see "Start tool state" below — and
+resolve to the payload's tool basis) — resolved by ONE function
 (`viewer/tloEvents.ts` tloForIndex) and LIFTED by one (`partFrame.ts`
 liftToJoints, on TIP-space terms: epoch terms carry no tool, so the offset
 can never ride twice). It subtracts in the TOOL NODE'S WORLD ROTATION —
@@ -845,20 +846,60 @@ timeout, its duration never enters the idle estimate, a pinned in-flight
 parse is never doomed by the (program's) rotary motion; a second
 measurement during it is picked up by one follow-up parse (the worker reads
 the table's file time BEFORE its STAT read). After the run the idle edge
-re-parses only for what the payload depends on — the table and the spindle
-tool (the program's M6: `tool_loaded`); the APPLIED offset is no drift
-signal (operator 2026-09-30: after every run that measured its tool, the
-program's own G43 with the new length re-parsed the whole program a second
-time, byte for byte the same payload — the parse's interpreter starts with
-no offset, the client applies the live one to the segments before the first
-TLO row; native_pinned_probe `the_applied_offset_never_reaches_the_payload`
-pins it, red when the worker reads STAT.tool_offset). The browser: a publish during a run clears the collision findings and
+re-parses for the table and the spindle tool (the program's M6:
+`tool_loaded`), and VERIFIES a changed start tool state (below). The browser: a publish during a run clears the collision findings and
 the sweep, held while the interpreter runs, starts once it is idle again
 (`_colHeldByRun`, MR-I03). Traces `gcode.reparse_table_midrun`,
 `pinned: true` on `spawn_start` / `publish`, `gcode.pinned_unsupported`;
 banner reason "tool measured (program running)". Tests: `native_pinned_probe.py`
 (the real worker + native interpreter, synthetic STAT) behind
 `test_pinned_worker.py`.
+
+**Start tool state + verify at the actual offset (VP-I20, Codex R51–R57,
+2026-10-01)**: the machine runs every move before a program's own G43/G49
+under its INHERITED modal G43 (live-confirmed: `G0 Z-100` lands at −100 +
+G54 + the applied offset for G43.1 Z12.345 / G49 / G43 H13), but the parse's
+interpreter used to start at offset 0 — Z45 under a start offset of 10 ran
+at Z55 and was not reported. The worker reads the start ONCE
+(`start_tlo_seed`: the gates' `applied_tlo` override, else a pinned parse's
+seed, else STAT — 490 → G49 start, a G43-family code → `G43.1` with the
+applied vector), seeds it as an init line after the rotary sync, and ships
+it as `tlo_start` / `start_known` (+ `start_mode` on `__TLO__`). An unknown
+start (no mode, not finite, an A–W component, a pinned seed without a mode)
+seeds nothing and gives NO limit verdict (`violations: null`,
+`violations_reason: "start_unknown"`, stats "Not validated (start tool
+offset unknown)"). A leading `%` line is INIT, not program
+(`PreviewCanon.init_lines` from `percent_delimiter_line`): LinuxCNC runs the
+initcode block after that line's next_line, so its callbacks arrive numbered
+as it — it used to record the rotary sync as a phantom zero-length point at
+program 0,0,0 and the seed as a TLO row. The idle edge
+(`evaluate_start_drift`) fires on ANY actual change of the start (> 1e-9,
+mode included; no tolerance — two samples prove nothing, Codex R54): reason
+`tool_offset` → a VERIFY parse at the live offset: the gateway hands the
+worker the published bytes (`verify_against`, temp file), the worker
+compares its encoded payload (`compare_preview_payloads`): the published
+one NORMALISED to the new start — points before the first TLO row p +
+tlo_start_old − tlo_start_new within float32 precision, every later point
+bit-equal, the rows byte-equal (they are the offset of every later point —
+the client uses an offset TWICE, axis position and tip/body, Codex VP55-01),
+bounds recomputed, every other field byte-equal. Same → `__SAME__`, no
+stdout, no version bump: only the TOOL BASIS moves (`BulkPipeline.tool_basis`,
+status `preview_tool_basis` {file, version, xyz} while it differs from
+`tlo_start`), and previewWorker re-decodes the SAME bytes it kept
+(`normalizeToToolBasis` — every basis from the original data) so the prefix
+re-tips; ThreeViewer `_programTool()` / ScrubBar resolve the pre-first-row
+offset to the payload's `toolBasis` (a payload without a known start keeps
+the live offset). Different → the verify parse is the re-parse, published.
+Banner "tool offset changed — checking". A pinned parse seeds the tool
+basis. Tests: `native_start_probe.py` behind `test_start_tlo_worker.py`
+(one fresh process per case; Codex's R54/R53 counterexamples differ, his R55
+pair and heavy_test's shape compare same), `viewer/toolBasis.test.ts` (real
+payloads `scripts/test_fixtures/tool_basis_pairs.json`, regenerated by
+`scripts/gen_tool_basis_fixture.py`, through decode, track, part frame,
+scrub pose and sweep both ways), `collisions.viewer.spec`. The goldens are
+pinned to a G49 start (`preview_gate.GOLDEN_APPLIED_TLO`); goldens of `%`
+programs on rotary configs lose the phantom point — regenerate at the suite
+stop with the schema bump.
 
 **Re-parse cancel-and-restart + visibility (2026-09-05)**: every drift
 edge above used to be gated on "no parse running", so an edge raised

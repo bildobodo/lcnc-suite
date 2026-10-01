@@ -17,7 +17,7 @@
 // one state snapshot.
 import { readFileSync, writeFileSync } from "node:fs";
 import { decode as msgpackDecode } from "@msgpack/msgpack";
-import { decodePreviewStreams } from "../src/previewDecode";
+import { decodePreviewStreams, normalizeToToolBasis } from "../src/previewDecode";
 import {
   buildScrubTrack, buildEntryTrack, sampleTrack, jointsForSample,
   type ScrubSample, type ScrubTrack,
@@ -44,11 +44,17 @@ const header = headerLine ? JSON.parse(headerLine) : null;
 if (!header?.header) fail(`${truthPath} has no context header (old capture? re-run sample_run)`);
 
 const axes: string[] = header.axes ?? [];
-const wcs: PartFrameWcs = header.wcs;
+const headerWcs: PartFrameWcs = header.wcs;
 const kinsSpec = specFromWire(header.kins ?? undefined);
 const startJoints: number[] = header.start_joints ?? [];
 
 const d = decodePreviewStreams(payload);
+// VP-I20: the browser normalises a seeded payload to its tool basis — the
+// start the run began with is that basis (the capture header's applied
+// offset), so the replay does exactly what the browser shows for this run.
+const runStart = (headerWcs.tool?.length ?? 0) >= 3 ? headerWcs.tool!.slice(0, 3) : null;
+const toolBasis = normalizeToToolBasis(d, payload.tlo_start, runStart);
+const wcs: PartFrameWcs = toolBasis ? { ...headerWcs, tool: toolBasis } : headerWcs;
 const base = buildScrubTrack(d.feed, d.rapid, d.kinsFrames, d.wcsEvents, d.subNames, d.tloEvents);
 if (!base) fail("scrub track unbuildable from this payload — the sim would not offer itself (that IS a red result)");
 const epochTerms = base.wcsEvents

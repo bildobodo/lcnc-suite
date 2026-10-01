@@ -90,6 +90,11 @@ export const configWarning = ref<{ reason: string; units: boolean } | null>(null
 // `preview_table_stale` {reason, why} until the next publish or unload, so
 // the viewer keeps the path muted whichever tool changed.
 export const previewTableStale = ref<{ reason: string; why: string } | null>(null);
+// The verified TOOL BASIS of the published payload (VP-I20, plan Fassungen
+// 4–6): present after a verify at the actual start offset found the payload,
+// normalised to it, the same for every consumer — bound to the file and
+// version it was verified for. bulkData re-decodes that version at it.
+export const previewToolBasis = ref<{ file: string; version: number; xyz: number[] } | null>(null);
 // A preview re-parse is RUNNING (2026-09-05): the gateway rides
 // `preview_refresh` on every status frame while its parse worker runs —
 // reason (the edge that scheduled it), file, expected duration (its last
@@ -152,7 +157,10 @@ export function previewRefreshLabel(reason: string | null | undefined): string {
   // re-parses DURING a run with the program's start state pinned.
   if (r.startsWith("midrun:")) return "tool measured (program running)";
   if (r === "table_mtime" || r === "table_row") return "tool table change";
-  if (r === "tool_offset") return "tool offset change";
+  // VP-I20: a parse AT the changed start offset, published only if a
+  // consumer would see a difference — "checking", not a re-parse claim.
+  if (r === "tool_offset") return "tool offset changed — checking";
+  if (r === "start_unknown") return "start tool offset";
   if (r === "tool_loaded") return "tool change";
   if (r.startsWith("tlo")) return "tool length change";
   if (r === "file") return "program load";
@@ -439,6 +447,17 @@ export function handleStatusMessage(msg: any): void {
   } else if (previewRefresh.value !== null) {
     previewRefresh.value = null;
     _syncPreviewRefreshTimer();
+  }
+  const tb = msg.preview_tool_basis;
+  if (tb && typeof tb === "object" && Array.isArray(tb.xyz) && tb.xyz.length >= 3) {
+    const cur = previewToolBasis.value;
+    const xyz = [Number(tb.xyz[0]), Number(tb.xyz[1]), Number(tb.xyz[2])];
+    if (!cur || cur.version !== Number(tb.version) || cur.file !== String(tb.file ?? "")
+        || cur.xyz.some((v, i) => v !== xyz[i])) {
+      previewToolBasis.value = { file: String(tb.file ?? ""), version: Number(tb.version), xyz };
+    }
+  } else if (previewToolBasis.value !== null) {
+    previewToolBasis.value = null;
   }
   const ts = msg.preview_table_stale;
   if (ts && typeof ts === "object") {

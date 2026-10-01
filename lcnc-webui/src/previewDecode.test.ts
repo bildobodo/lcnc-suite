@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { decodePreviewStreams, parseRotaryCmd } from "./previewDecode";
+import { decodePreviewStreams, normalizeToToolBasis, parseRotaryCmd, payloadBoxes } from "./previewDecode";
 import { EVENT_NONE } from "./viewer/eventIndex";
 import { TLO_NONE } from "./viewer/tloEvents";
 
@@ -138,5 +138,49 @@ describe("rotary_cmd (2026-09-11)", () => {
     const g = { feed: [[0, 0, 0], [1, 0, 0]], feed_seq: [1, 2], rapid: [], rotary_cmd: { A: null, unknown: null, seed: { A: 0 } } };
     expect(decodePreviewStreams(g).rotaryCmd).toEqual({ A: null, unknown: null, seed: { A: 0 } });
     expect(decodePreviewStreams({ feed: [[0, 0, 0]], rapid: [] }).rotaryCmd).toBeUndefined();
+  });
+});
+
+describe("tool-basis normalisation (VP-I20)", () => {
+  // two rapid points: seq 1 before the first TLO row (seq 1), seq 2 after it
+  const g = () => ({
+    rapid: new Uint8Array(new Float32Array([0, 0, 44.6738, 5, 5, 15]).buffer),
+    rapid_seq: new Uint8Array(new Uint32Array([1, 2]).buffer),
+    tlo_events: [[1, 0, 0, 65.0512, -1]],
+    tlo_start: [0, 0, 65.0512],
+  } as Record<string, any>);
+
+  it("moves only the points before the first row, by tlo_start − basis", () => {
+    const d = decodePreviewStreams(g());
+    expect(normalizeToToolBasis(d, [0, 0, 65.0512], [0, 0, 65.0562])).toEqual([0, 0, 65.0562]);
+    expect(d.rapid.pos[2]).toBeCloseTo(44.6688, 4);
+    expect(Array.from(d.rapid.pos.slice(3))).toEqual([5, 5, 15]);
+    expect(d.rapidPos).toBe(d.rapid.pos);   // the drawing alias moved with it
+  });
+
+  it("the payload's own start moves nothing; a payload without one is left to the live offset", () => {
+    const d = decodePreviewStreams(g());
+    const before = Array.from(d.rapid.pos);
+    expect(normalizeToToolBasis(d, [0, 0, 65.0512], null)).toEqual([0, 0, 65.0512]);
+    expect(Array.from(d.rapid.pos)).toEqual(before);
+    expect(normalizeToToolBasis(d, undefined, [0, 0, 1])).toBeUndefined();
+    expect(normalizeToToolBasis(d, [0, 0], [0, 0, 1])).toBeUndefined();
+    expect(Array.from(d.rapid.pos)).toEqual(before);
+  });
+
+  it("without rows every point is before the first row", () => {
+    const p = g();
+    delete p.tlo_events;
+    const d = decodePreviewStreams(p);
+    normalizeToToolBasis(d, [0, 0, 10], [0, 0, 20]);
+    expect(Array.from(d.rapid.pos, v => Math.round(v * 1e4) / 1e4)).toEqual([0, 0, 34.6738, 5, 5, 5]);
+  });
+
+  it("boxes follow the worker's definition: X/Y over both, Z over feed only", () => {
+    const { bounds, motion } = payloadBoxes(new Float32Array([1, 2, -5, 3, 4, 1]), new Float32Array([0, 9, 40]));
+    expect(bounds).toEqual({ min: [0, 2, -5], max: [3, 9, 1] });
+    expect(motion).toEqual({ min: [0, 2, -5], max: [3, 9, 40] });
+    expect(payloadBoxes(new Float32Array(0), new Float32Array([0, 9, 40]))).toEqual(
+      { bounds: null, motion: { min: [0, 9, 40], max: [0, 9, 40] } });
   });
 });

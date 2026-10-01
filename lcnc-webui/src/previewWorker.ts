@@ -10,10 +10,19 @@
 import { decode as msgpackDecode } from "@msgpack/msgpack";
 import { buildScrubTrack, splitTrackStreams } from "./viewer/scrubTrack";
 import { buildLodLevels } from "./viewer/lineChunks";
-import { decodePreviewStreams } from "./previewDecode";
+import { decodePreviewStreams, normalizeToToolBasis, payloadBoxes } from "./previewDecode";
 import { buildLineIndex, lineIndexTransferables } from "./viewer/lineIndex";
 
-interface Req { version: number; url: string }
+/** `basis`: the verified tool basis to normalise to (VP-I20), null = the
+ *  payload's own start; `basisKey` echoes back so the main thread drops a
+ *  reply for a basis it no longer wants. */
+interface Req { version: number; url: string; basis?: number[] | null; basisKey?: string }
+
+// The raw payload of the last fetched URL: a new tool basis for the SAME
+// version re-decodes it — every basis derived from the original data, never
+// a shift on a shift (Codex R56), and no second download.
+let _lastUrl: string | null = null;
+let _lastBuf: ArrayBuffer | null = null;
 
 // Newest-version-wins: abort any in-flight fetch when a newer preview arrives, so a
 // superseded version no longer burns network + decode CPU (review #2). The main
@@ -21,18 +30,25 @@ interface Req { version: number; url: string }
 let _currentAbort: AbortController | null = null;
 
 self.onmessage = async (e: MessageEvent<Req>) => {
-  const { version, url } = e.data;
+  const { version, url, basis, basisKey } = e.data;
   if (_currentAbort) _currentAbort.abort();
   const ac = new AbortController();
   _currentAbort = ac;
   try {
-    const resp = await fetch(url, { signal: ac.signal });
-    if (!resp.ok) {
-      self.postMessage({ version, error: `HTTP ${resp.status}` });
-      return;
+    let buf: ArrayBuffer;
+    if (url === _lastUrl && _lastBuf) {
+      buf = _lastBuf;
+    } else {
+      const resp = await fetch(url, { signal: ac.signal });
+      if (!resp.ok) {
+        self.postMessage({ version, basisKey, error: `HTTP ${resp.status}` });
+        return;
+      }
+      buf = await resp.arrayBuffer();
+      if (ac.signal.aborted) return;  // superseded during the read — skip the decode
+      _lastUrl = url;
+      _lastBuf = buf;
     }
-    const buf = await resp.arrayBuffer();
-    if (ac.signal.aborted) return;  // superseded during the read — skip the decode
     const g = msgpackDecode(new Uint8Array(buf)) as Record<string, any>;
 
     // Payload → typed stream inputs: ONE decode source (previewDecode.ts),
@@ -42,6 +58,15 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     // thread. null = unbuildable (empty / stale pre-seq cached payload)
     // and the scrub bar simply doesn't offer itself.
     const d = decodePreviewStreams(g);
+    // VP-I20: the points before the first TLO row onto the tool basis —
+    // BEFORE the scrub track, the drawn streams and the LOD are cut from
+    // them; the worker's boxes follow the moved points.
+    const toolBasis = normalizeToToolBasis(d, g.tlo_start, basis);
+    if (toolBasis && (basis?.length ?? 0) >= 3) {
+      const { bounds, motion } = payloadBoxes(d.feed.pos, d.rapid.pos);
+      g.bounds = bounds;
+      g.motion_bounds = motion;
+    }
     let { feedPos, rapidPos, feedLines, feedAbc, rapidAbc } = d;
     const { kinsFrames, wcsEvents, tloEvents } = d;
     const scrubTrack = buildScrubTrack(d.feed, d.rapid, kinsFrames, wcsEvents, d.subNames, tloEvents, d.rotaryCmd);
@@ -152,12 +177,12 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     for (const a of [...feedLod, ...rapidLod]) transfer.push(a.buffer as ArrayBuffer);
 
     self.postMessage(
-      { version, gcode: { ...rest, feedPos, rapidPos, feed_lines: feedLines, feedLineIndex, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, feedWcs, rapidWcs, feedTlo, rapidTlo, feedOutside, rapidOutside, feedSrc, rapidSrc, feedLod, rapidLod, lodTols, lodMs, kinsFrames, wcsEvents, tloEvents, scrubTrack } },
+      { version, basisKey, gcode: { ...rest, toolBasis, feedPos, rapidPos, feed_lines: feedLines, feedLineIndex, rapidDist, feedAbc, rapidAbc, feedBreaks, rapidBreaks, feedMode, rapidMode, feedFrame, rapidFrame, feedWcs, rapidWcs, feedTlo, rapidTlo, feedOutside, rapidOutside, feedSrc, rapidSrc, feedLod, rapidLod, lodTols, lodMs, kinsFrames, wcsEvents, tloEvents, scrubTrack } },
       { transfer },
     );
   } catch (err) {
     if ((err as Error)?.name === "AbortError") return;  // expected on supersede — silent
-    self.postMessage({ version, error: String((err as Error)?.message ?? err) });
+    self.postMessage({ version, basisKey, error: String((err as Error)?.message ?? err) });
   }
 };
 

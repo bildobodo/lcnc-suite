@@ -301,6 +301,49 @@ test("on a machine with no other viewer note the tool-table mark brings the card
 // Operator 2026-09-30: a tool measured during a run re-parses the preview —
 // the viewer says so ONCE, the re-parse line with its bar; the tool-length
 // line ("… re-parse follows") that stood under the bar is gone while it runs.
+test("a changed tool offset is checked, and a verified basis re-tips the prefix without a new payload (VP-I20)", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  const file = "/basis.ngc";
+  // G53 Z0 under the start offset 10: program Z -10 (the path's top), then
+  // the program's own offset row at seq 2 and its cut below
+  const rapid = [[0, 0, -10], [20, 0, -10]];
+  const feed = [[20, 0, -30], [40, 0, -40]];
+  let previews = 0;
+  await context.route(/\/preview(\?|$)/, r => {
+    previews += 1;
+    return r.fulfill({ contentType: "application/octet-stream",
+      body: Buffer.from(encode({ file, preview_schema: 9, rapid, rapid_seq: [1, 2], rapid_lines: [1, 2],
+        feed, feed_seq: [3, 4], feed_lines: [4, 5], feed_outside: new Uint8Array(2), rapid_outside: new Uint8Array(2),
+        violations: [], violations_total: 0, tlo_events: [[2, 0, 0, 0, -1]],
+        start_known: true, tlo_start: [0, 0, 10] })) });
+  });
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
+    body: "G53 G0 Z0\nG0 X20\nG49\nG1 Z-30 F100\nG1 X40 Z-40\n" }));
+  await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await ctl({ op: "status_delta", data: { active_file: file, tool_offset: [0, 0, 10, 0, 0, 0, 0, 0, 0] } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 4501, file } });
+  const topZ = () => page.evaluate(() => window.__viewerDiag?.getPathBox?.()?.max[2] ?? null);
+  await expect.poll(topZ, { timeout: 30_000 }).not.toBeNull();
+  const before = (await topZ())!;
+  expect(previews).toBe(1);
+
+  await ctl({ op: "quiet", on: true });
+  // the operator's G43.1 Z20: the gateway checks at the actual offset
+  await ctl({ op: "status_delta", data: { tool_offset: [0, 0, 20, 0, 0, 0, 0, 0, 0] } });
+  await ctl({ op: "raw", frame: { type: "status_delta", data: {}, preview_refresh:
+    { reason: "tool_offset", file, expected_ms: 4000, started_ms: 2000, queued: false, superseded: 0 } } });
+  const lines = page.locator(".hudNotes .hudWarn");
+  await expect(lines.first()).toContainText("Preview re-parsing · tool offset changed — checking");
+  await expect.poll(topZ, { message: "a live offset alone moves nothing on a seeded payload" }).toBeCloseTo(before, 4);
+  // verified the same at 20: no new version — the same bytes, re-tipped
+  await ctl({ op: "raw", frame: { type: "status_delta", data: {},
+    preview_tool_basis: { file, version: 4501, xyz: [0, 0, 20], mode: 430 } } });
+  await expect.poll(topZ, { timeout: 15_000 }).toBeCloseTo(before - 10, 4);
+  expect(previews, "no second download").toBe(1);
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
 test("a mid-run re-parse for a measured tool is one line, never a second one under its bar (operator 2026-09-30)", async ({ page, context }) => {
   test.setTimeout(60_000);
   const file = "/measured.ngc";

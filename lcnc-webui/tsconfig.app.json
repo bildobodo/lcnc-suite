@@ -20,6 +20,7 @@
   // src/tsconfigCoverage.test.ts enforces it and refuses stale entries.
   "exclude": [
     "src/bundledFonts.test.ts",
+    "src/viewer/toolBasis.test.ts",
     "src/themeTokens.test.ts",
     "src/playwrightProjects.test.ts",
     "src/radioNames.test.ts",

@@ -11,7 +11,8 @@
 // the apply sinks for surface/grid (those write the status ref, which stays
 // in lcncWs until the statusStore extraction) — reassigned scalars stay
 // private to this module by design (A1 rule).
-import { computed, markRaw, ref } from "vue";
+import { computed, markRaw, ref, watch } from "vue";
+import { previewToolBasis } from "./statusStore";
 import { decode as msgpackDecode } from "@msgpack/msgpack";
 import type { LineIndex } from "../viewer/lineIndex";
 import type { Vec3 } from "../defaults";
@@ -385,6 +386,20 @@ export interface ViewerGcode {
   // is the true distinct (line, axis) count.
   violations?: LimitViolation[] | null;
   violations_total?: number;
+  // Why `violations` is null though the INI has limits (VP-I20):
+  // "start_unknown" — the start tool state was not known, so no verdict.
+  violations_reason?: string;
+  // The start tool state the parse was seeded with (VP-I20): `tlo_start` is
+  // the offset the points before the first TLO row were parsed under;
+  // absent with `start_known: false` (+ `start_reason`).
+  start_known?: boolean;
+  tlo_start?: number[];
+  start_reason?: string;
+  // The tool basis previewWorker normalised the payload to (the gateway's
+  // verified `preview_tool_basis` for this version, else `tlo_start`) — the
+  // pre-first-row offset every program transform resolves to. Absent for a
+  // payload without a known start: those consumers keep the live offset.
+  toolBasis?: number[];
   // World-mode (TCP) segments the parse worker could NOT limit-check: the
   // declared kins module has no Python twin. Present only when > 0 —
   // unchecked ≠ clean, so the stats dialog must say "not validated" for
@@ -732,8 +747,9 @@ function _ensurePreviewWorker(): Worker {
   if (_previewWorker) return _previewWorker;
   _previewWorker = new Worker(new URL("../previewWorker.ts", import.meta.url), { type: "module" });
   _previewWorker.onmessage = (ev: MessageEvent) => {
-    const m = ev.data as { version: number; gcode?: ViewerGcode; error?: string };
+    const m = ev.data as { version: number; basisKey?: string; gcode?: ViewerGcode; error?: string };
     if (m.version !== _previewLastVersion) return;  // stale — newer load in flight
+    if (m.basisKey !== undefined && m.basisKey !== _previewBasisKey) return;  // another basis wanted now
     if (m.error) {
       console.error("preview load failed", m.error);
       _previewErr.value = `/preview failed: ${m.error}`;
@@ -755,11 +771,42 @@ function _ensurePreviewWorker(): Worker {
   return _previewWorker;
 }
 
+// The tool basis the current version was (or is being) decoded at (VP-I20):
+// the gateway's verified basis while it names THIS version, else null (the
+// payload's own `tlo_start`). A change re-decodes the same bytes in the
+// worker; replies for another basis are dropped.
+let _previewLastBasis: number[] | null = null;
+let _previewBasisKey = "";
+
+function _basisFor(version: number): number[] | null {
+  const b = previewToolBasis.value;
+  return b && b.version === version ? [...b.xyz] : null;
+}
+
+function _postPreview(version: number, basis: number[] | null) {
+  _previewLastBasis = basis;
+  _previewBasisKey = `${version}:${basis ? basis.join(",") : "start"}`;
+  _ensurePreviewWorker().postMessage({ version, url: `/preview?v=${version}`, basis,
+                                       basisKey: _previewBasisKey });
+}
+
 function _fetchPreview(version: number) {
   if (version === _previewLastVersion) return;
   _previewLastVersion = version;
-  _ensurePreviewWorker().postMessage({ version, url: `/preview?v=${version}` });
+  _postPreview(version, _basisFor(version));
 }
+
+/** A verified tool basis arrived (or went) for the version on screen:
+ *  re-decode it at that basis (VP-I20, plan Fassungen 5–6). */
+export function applyPreviewToolBasis(): void {
+  const version = _previewLastVersion;
+  if (version < 0) return;
+  const want = _basisFor(version);
+  const same = want === null ? _previewLastBasis === null
+    : _previewLastBasis !== null && want.every((v, i) => v === _previewLastBasis![i]);
+  if (!same) _postPreview(version, want);
+}
+watch(previewToolBasis, applyPreviewToolBasis);
 
 /** viewer_init frame: static machine description, once per WS connection. */
 export function handleViewerInit(msg: { data?: ViewerInit | null }): void {

@@ -100,6 +100,71 @@ export function decodePreviewStreams(g: Record<string, any>): DecodedPreview {
   };
 }
 
+/** Normalise a decoded payload to a TOOL BASIS (VP-I20, plan Fassungen
+ *  4–6, Codex R55/R56). The client uses a point's resolved tool offset
+ *  twice — axis position (point + offset) and tip / tool body (the point
+ *  itself) — and the points before the first TLO row were parsed under the
+ *  payload's start `tloStart`. Normalised to a basis b, those points become
+ *  p + tloStart − b and resolve to b (tloForIndex's fallback), so the axis
+ *  position stays the interpreter's and the tip is where a fresh parse at b
+ *  puts it. Shifts the streams' `pos` IN PLACE (decodePreviewStreams copies
+ *  every wire array) — call it once per decode, always from the original
+ *  payload, so bases never sum up. `basis` null/absent = the payload's own
+ *  start (nothing moves). Returns the basis used, or undefined for a payload
+ *  without a known start (an older worker, or `start_known: false`): its
+ *  consumers keep the live applied offset as before. Pure but for the
+ *  in-place shift. */
+export function normalizeToToolBasis(d: DecodedPreview, tloStart: unknown,
+                                     basis: readonly number[] | null | undefined): number[] | undefined {
+  if (!Array.isArray(tloStart) || tloStart.length < 3) return undefined;
+  const s = [Number(tloStart[0]), Number(tloStart[1]), Number(tloStart[2])];
+  if (!s.every(Number.isFinite)) return undefined;
+  const b = basis && basis.length >= 3 ? [Number(basis[0]), Number(basis[1]), Number(basis[2])] : s;
+  const dx = s[0]! - b[0]!, dy = s[1]! - b[1]!, dz = s[2]! - b[2]!;
+  if (dx || dy || dz) {
+    for (const st of [d.feed, d.rapid]) {
+      const pos = st.pos, tlo = st.tlo;
+      const n = pos.length / 3;
+      for (let i = 0; i < n; i++) {
+        if (tlo && tlo[i] !== TLO_NONE) continue;   // after the first row: its row governs
+        pos[i * 3] = pos[i * 3]! + dx;
+        pos[i * 3 + 1] = pos[i * 3 + 1]! + dy;
+        pos[i * 3 + 2] = pos[i * 3 + 2]! + dz;
+      }
+    }
+  }
+  return b;
+}
+
+/** The worker's two boxes over the wire points (gcode_parse_worker): bounds
+ *  = X/Y over feed + rapid, Z over feed only (null without feed); motion =
+ *  every axis over both (null without points). Recomputed after a
+ *  normalisation moved points — as the gateway's verify compares them. */
+export function payloadBoxes(feedPos: Float32Array, rapidPos: Float32Array): {
+  bounds: { min: number[]; max: number[] } | null;
+  motion: { min: number[]; max: number[] } | null;
+} {
+  const box = (pos: Float32Array) => {
+    if (pos.length < 3) return null;
+    const mn = [Infinity, Infinity, Infinity], mx = [-Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < pos.length; i += 3) {
+      for (let k = 0; k < 3; k++) {
+        const v = pos[i + k]!;
+        if (v < mn[k]!) mn[k] = v;
+        if (v > mx[k]!) mx[k] = v;
+      }
+    }
+    return { min: mn, max: mx };
+  };
+  const f = box(feedPos), r = box(rapidPos);
+  const bounds = f ? (r ? { min: [Math.min(f.min[0]!, r.min[0]!), Math.min(f.min[1]!, r.min[1]!), f.min[2]!],
+                            max: [Math.max(f.max[0]!, r.max[0]!), Math.max(f.max[1]!, r.max[1]!), f.max[2]!] }
+                        : f) : null;
+  const motion = f && r ? { min: f.min.map((v, i) => Math.min(v, r.min[i]!)), max: f.max.map((v, i) => Math.max(v, r.max[i]!)) }
+                        : (f ?? r);
+  return { bounds, motion };
+}
+
 /** Wire `rotary_cmd` → RotaryCmd, or undefined for absent/malformed data
  *  (a letter's value must be a non-negative integer seq or null). */
 export function parseRotaryCmd(v: unknown): RotaryCmd | undefined {

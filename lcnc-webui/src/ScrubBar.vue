@@ -249,13 +249,14 @@ const MOTION_EXIT_THRESHOLD = 0.05;
 
 function _wcs() {
   const d = st.value;
-  // tool_offset is the LIVE applied offset — since schema 8 the fallback
-  // for segments before the program's first G43/M6 row (jointsForSample /
-  // the entry inverse resolve each segment's own offset from the track's
-  // tloEvents through it), so derived joints stay TRUE joint-space.
+  // tool: the fallback for segments before the program's first G43/M6 row
+  // (jointsForSample / the entry inverse resolve each segment's own offset
+  // from the track's tloEvents through it) — the payload's TOOL BASIS
+  // (VP-I20: previewWorker normalised those points to it), else, for a
+  // payload without a known start, the LIVE applied offset as before.
   return {
     g5x: d.g5x_offset ?? [], g92: d.g92_offset ?? [],
-    rotationDeg: d.rotation_xy ?? 0, tool: d.tool_offset ?? [],
+    rotationDeg: d.rotation_xy ?? 0, tool: viewerGcode.value?.toolBasis ?? d.tool_offset ?? [],
   };
 }
 
@@ -344,7 +345,7 @@ const _wcsKey = computed(() => {
   // every modern payload, its epoch-aware guard was always open).
   const table = usedWcsRowsKey(track.value?.wcsEvents,
                                d.wcs_table as WcsTableRow[] | undefined);
-  return `${(d.g5x_offset ?? []).join()},${(d.g92_offset ?? []).join()},${d.rotation_xy ?? 0},${(d.tool_offset ?? []).join()},${table}`;
+  return `${(d.g5x_offset ?? []).join()},${(d.g92_offset ?? []).join()},${d.rotation_xy ?? 0},${(viewerGcode.value?.toolBasis ?? d.tool_offset ?? []).join()},${table}`;
 });
 // The pose (and the entry move's program coords) depend on the live WCS.
 // While simulating, a WCS change also re-runs the sweep with the rebuilt

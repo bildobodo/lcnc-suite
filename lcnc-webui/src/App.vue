@@ -527,6 +527,9 @@ const gcodeStats = ref<GcodeStats | null>(null);
 // Per-line soft-limit violations from the parse worker. null = unchecked
 // (no INI limits, or no program) — distinct from [] = checked clean.
 const gcodeViolations = ref<LimitViolation[] | null>(null);
+// Why the worker gave no verdict though the INI has limits (VP-I20):
+// "start_unknown" — the start tool offset was not known.
+const gcodeViolationsReason = ref<string | null>(null);
 const gcodeViolationsTotal = ref(0);
 const gcodeWorldUnchecked = ref(0);
 // Kins-flip honesty counts from the parse worker: flips no twin could
@@ -562,7 +565,9 @@ const gcodeKinsEndMode = computed<number | null>(() =>
 // as "OK" (unchecked ≠ clean).
 const softLimitStatus = computed(() => {
   if (gcodeViolations.value === null)
-    return { cls: "muted", text: "Not validated (no INI limits)" };
+    return gcodeViolationsReason.value === "start_unknown"
+      ? { cls: "warn", text: "Not validated (start tool offset unknown)" }
+      : { cls: "muted", text: "Not validated (no INI limits)" };
   const parts: string[] = [];
   const n = gcodeViolationsTotal.value;
   if (n) parts.push(`${n} violation${n === 1 ? "" : "s"}`);
@@ -1824,6 +1829,7 @@ watch(connected, (c) => {
 watch(viewerGcode, (newGcode) => {
   gcodeStats.value = newGcode?.stats ?? null;
   gcodeViolations.value = newGcode?.violations ?? null;
+  gcodeViolationsReason.value = newGcode?.violations_reason ?? null;
   gcodeViolationsTotal.value = newGcode?.violations_total ?? 0;
   gcodeWorldUnchecked.value = newGcode?.violations_world_unchecked ?? 0;
   gcodeKinsUnresolved.value = newGcode?.kins_flips_unresolved ?? 0;

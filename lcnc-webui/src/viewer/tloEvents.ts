@@ -9,11 +9,14 @@
 // resolved to a per-point index (`ScrubTrack.tlo`, TLO_NONE = before the first
 // row) by the same seq rule as TWP frames and WCS epochs.
 //
-// "Before the first row" is the machine's LIVE modal G43 state: the run
-// inherits it and no parse can know it, so those points resolve to the live
-// applied offset — exactly the pre-8 behavior, now confined to where it is
-// true. Absent channel (program never changes tool or offset, or a legacy
-// payload) ⇒ live everywhere. ONE resolver for every consumer (scrub pose,
+// "Before the first row" is the machine's START tool state (its inherited
+// modal G43): the parse is seeded with it and ships it as `tlo_start`
+// (VP-I20), and previewWorker normalises those points to the payload's TOOL
+// BASIS (its own start, or the start the gateway verified since) — the
+// `live` argument callers pass is that basis (`toolBasis`), and the live
+// applied offset only for a payload without a known start. Absent channel
+// (program never changes tool or offset) ⇒ every point is "before the first
+// row". ONE resolver for every consumer (scrub pose,
 // entry inverse, part-frame lift + peel, collision tool shift, applyState
 // phase 3 under scrub) — the W3 P0 rule made per-segment.
 
@@ -45,8 +48,10 @@ export function parseTloEvents(rows: readonly number[][] | undefined): TloEvent[
 }
 
 /** The tool offset governing a point: the event's when one governs, else
- *  the LIVE applied offset, else zero (nothing known — a fresh page before
- *  the first status tick; the transform re-runs when it arrives). */
+ *  `live` — the payload's tool basis (VP-I20), or for a payload without a
+ *  known start the live applied offset — else zero (nothing known — a fresh
+ *  page before the first status tick; the transform re-runs when it
+ *  arrives). */
 export function tloForIndex(
   idx: number | null | undefined,
   events: readonly TloEvent[] | undefined,

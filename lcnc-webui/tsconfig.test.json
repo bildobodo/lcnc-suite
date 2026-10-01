@@ -34,6 +34,7 @@
   "include": [
     "src/shims.d.ts",
     "src/bundledFonts.test.ts",
+    "src/viewer/toolBasis.test.ts",
     "src/themeTokens.test.ts",
     "src/playwrightProjects.test.ts",
     "src/radioNames.test.ts",

@@ -12,7 +12,7 @@ import {
   handleStatusError, handleStatusMessage, latency, lcncError,
   markMessagesRead, mergeStatusPatch, messages, networkLatency, noteBulkData,
   noteFrameSample, noteHeartbeatSent, notePong, pushMessage,
-  previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale,
+  previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewToolBasis,
   readerStale, rebaseStatusDelta, resetOnClose, resetTimingStats, safetyChainIncomplete,
   safetyTrip, status, timingStats, unreadCount,
 } from "./statusStore";
@@ -167,6 +167,23 @@ describe("preview_refresh sync (re-parse in flight)", () => {
     expect(previewRefreshElapsedMs.value).toBe(0);
   });
 
+  it("mirrors preview_tool_basis, same object for the same basis (VP-I20)", () => {
+    handleStatusMessage({ type: "status", data: {},
+      preview_tool_basis: { file: "/p.ngc", version: 7, xyz: [0, 0, 65.0562], mode: 430 } });
+    const first = previewToolBasis.value;
+    expect(first).toEqual({ file: "/p.ngc", version: 7, xyz: [0, 0, 65.0562] });
+    handleStatusMessage({ type: "status", data: {},
+      preview_tool_basis: { file: "/p.ngc", version: 7, xyz: [0, 0, 65.0562], mode: 430 } });
+    expect(previewToolBasis.value).toBe(first);
+    handleStatusMessage({ type: "status", data: {},
+      preview_tool_basis: { file: "/p.ngc", version: 8, xyz: [0, 0, 65.0562] } });
+    expect(previewToolBasis.value?.version).toBe(8);
+    handleStatusMessage({ type: "status", data: {}, preview_tool_basis: { file: "/p.ngc", version: 8, xyz: [1] } });
+    expect(previewToolBasis.value, "malformed = absent").toBeNull();
+    handleStatusMessage({ type: "status", data: {} });
+    expect(previewToolBasis.value).toBeNull();
+  });
+
   it("mirrors preview_table_stale while the gateway marks it, same object for the same mark (Codex R41 MR-I04)", () => {
     handleStatusMessage({ type: "status", data: {}, preview_table_stale: { reason: "table_mtime", why: "unsupported" } });
     const first = previewTableStale.value;
@@ -208,7 +225,8 @@ describe("preview_refresh sync (re-parse in flight)", () => {
     expect(previewRefreshLabel("tlo:3")).toBe("tool length change");
     expect(previewRefreshLabel("table_mtime")).toBe("tool table change");
     expect(previewRefreshLabel("table_row")).toBe("tool table change");
-    expect(previewRefreshLabel("tool_offset")).toBe("tool offset change");
+    expect(previewRefreshLabel("tool_offset")).toBe("tool offset changed — checking");
+    expect(previewRefreshLabel("start_unknown")).toBe("start tool offset");
     expect(previewRefreshLabel("tool_loaded")).toBe("tool change");
     expect(previewRefreshLabel("midrun:table_mtime")).toBe("tool measured (program running)");
     expect(previewRefreshLabel("file")).toBe("program load");

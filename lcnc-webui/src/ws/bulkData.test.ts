@@ -251,7 +251,7 @@ describe("preview worker channel", () => {
     handleViewerGcodeReady({ version: 5, file: "/nc/part.ngc" });
     const w = FakeWorker.instances[FakeWorker.instances.length - 1]!;
     expect(String(w.url)).toContain("previewWorker");
-    expect(w.posted).toEqual([{ version: 5, url: "/preview?v=5" }]);
+    expect(w.posted).toEqual([{ version: 5, url: "/preview?v=5", basis: null, basisKey: "5:start" }]);
 
     handleViewerGcodeReady({ version: 5, file: "/nc/part.ngc" });  // dedupe both channels
     expect(w.posted).toHaveLength(1);
@@ -259,6 +259,37 @@ describe("preview worker channel", () => {
     await flush();
     expect(gcodeContent.value).toBe("G0 X0");
     expect(fetchCalls.filter(c => c.url.startsWith("/gcode")).length).toBe(1);
+  });
+
+  it("a verified tool basis re-decodes the version on screen — and only it (VP-I20)", async () => {
+    const { previewToolBasis } = await import("./statusStore");
+    const { nextTick } = await import("vue");
+    fetchImpl = () => Promise.resolve(new Response("G0 X0", { status: 200 }));
+    handleViewerGcodeReady({ version: 60, file: "/nc/part.ngc" });
+    const w = FakeWorker.instances[FakeWorker.instances.length - 1]!;
+    const n0 = w.posted.length;
+    expect(w.posted[n0 - 1]).toEqual({ version: 60, url: "/preview?v=60", basis: null, basisKey: "60:start" });
+    // the gateway verified the payload at another start: the same bytes are
+    // re-decoded at it (no new version, no new revision)
+    previewToolBasis.value = { file: "/nc/part.ngc", version: 60, xyz: [0, 0, 65.0562] };
+    await nextTick();
+    expect(w.posted.slice(n0)).toEqual([{ version: 60, url: "/preview?v=60", basis: [0, 0, 65.0562],
+                                          basisKey: "60:0,0,65.0562" }]);
+    expect(gcodeRevision.value).toBe("/nc/part.ngc#60");
+    // a reply decoded at the previous basis is dropped; the current one lands
+    w.onmessage?.({ data: { version: 60, basisKey: "60:start", gcode: { file: "/nc/part.ngc", toolBasis: [0, 0, 65.0512] } } } as any);
+    expect(viewerGcode.value?.toolBasis).not.toEqual([0, 0, 65.0512]);
+    w.onmessage?.({ data: { version: 60, basisKey: "60:0,0,65.0562", gcode: { file: "/nc/part.ngc", toolBasis: [0, 0, 65.0562] } } } as any);
+    expect(viewerGcode.value?.toolBasis).toEqual([0, 0, 65.0562]);
+    // the same basis again, or one for another version: nothing to do
+    previewToolBasis.value = { file: "/nc/part.ngc", version: 60, xyz: [0, 0, 65.0562] };
+    previewToolBasis.value = { file: "/nc/part.ngc", version: 59, xyz: [0, 0, 1] };
+    await nextTick();
+    expect(w.posted.slice(n0 + 1)).toEqual([{ version: 60, url: "/preview?v=60", basis: null, basisKey: "60:start" }]);
+    // the basis gone: back to the payload's own start
+    previewToolBasis.value = null;
+    await nextTick();
+    expect(w.posted.length).toBe(n0 + 2);
   });
 
   it("the published revision moves on ARRIVAL; the text revision follows when the text lands (UI-DI05)", async () => {

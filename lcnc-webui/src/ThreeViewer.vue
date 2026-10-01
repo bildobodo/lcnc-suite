@@ -2354,9 +2354,14 @@ function applyState(init: ViewerInit, st: ViewerState) {
   if (_numArrChanged(_pv.machinePos, st.machine_pos)) { _pv.machinePos = st.machine_pos ? [...st.machine_pos] : null; changed = true; }
   if (_numArrChanged(_pv.g5x, st.g5x_offset)) { _pv.g5x = st.g5x_offset ? [...st.g5x_offset] : null; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
   if (_numArrChanged(_pv.g92, st.g92_offset)) { _pv.g92 = st.g92_offset ? [...st.g92_offset] : null; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
-  // tool_offset is a transform input (joint-space math is G43-inclusive):
-  // refresh the part-frame preview and re-run the sweep like any WCS change.
-  if (_numArrChanged(_pv.toolOffset, st.tool_offset)) { _pv.toolOffset = st.tool_offset ? [...st.tool_offset] : null; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
+  // tool_offset is a transform input (joint-space math is G43-inclusive) only
+  // for a payload without a known start: a seeded one resolves to its tool
+  // basis, which moves with a re-decode at the verified basis (VP-I20) —
+  // the live offset then only moves the markers (the machine's own state).
+  if (_numArrChanged(_pv.toolOffset, st.tool_offset)) {
+    _pv.toolOffset = st.tool_offset ? [...st.tool_offset] : null; changed = true; _markerDirty = true;
+    if (!viewerGcode.value?.toolBasis) { _pfScheduleWcsRefresh(); _colOnInputChange(); }
+  }
   if (toolNum !== _pv.toolNum) { _pv.toolNum = toolNum; changed = true; }
   if (toolDiam !== _pv.toolDiam) { _pv.toolDiam = toolDiam; changed = true; _colOnInputChange(); }
   if (toolLen !== _pv.toolLen) { _pv.toolLen = toolLen; changed = true; _colOnInputChange(); }
@@ -2569,14 +2574,24 @@ const programTools = computed<Array<{ num: number; diam: number }> | null>(() =>
     .sort((a, b) => a.num - b.num);
 });
 
+/** The tool offset of the points before the program's first TLO row in
+ *  every program transform (VP-I20): the payload's TOOL BASIS — previewWorker
+ *  normalised those points to it (its own start, or the start the gateway
+ *  verified since) — else, for a payload without a known start, the live
+ *  applied offset as before. */
+function _programTool(): number[] {
+  return viewerGcode.value?.toolBasis ?? _pv.toolOffset ?? [];
+}
+
 function _pfWcs(): PartFrameWcs {
-  // tool: live TCP offset — makes the transform joint-space-exact (G43).
-  // The part-frame tip peel and the collision worker's tool-body shift
-  // both subtract it back, so the drawn curve is unchanged; the posed
-  // BODIES (spindle housing at joint height) are what it corrects.
+  // tool: the pre-first-row offset (_programTool) — makes the transform
+  // joint-space-exact (G43). The part-frame tip peel and the collision
+  // worker's tool-body shift both subtract it back, so the drawn curve is
+  // unchanged; the posed BODIES (spindle housing at joint height) are what
+  // it corrects.
   return {
     g5x: _pv.g5x ?? [], g92: _pv.g92 ?? [],
-    rotationDeg: _pv.rotationXy ?? 0, tool: _pv.toolOffset ?? [],
+    rotationDeg: _pv.rotationXy ?? 0, tool: _programTool(),
   };
 }
 
