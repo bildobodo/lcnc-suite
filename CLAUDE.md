@@ -804,7 +804,9 @@ used to run through the whole jog); the RESTART waits until the rotary
 pose has held still 1 s (`rotary_hold_update`/`rotary_hold_settled`, the
 schedule gate in the poller), and linear motion never defers or dooms a
 parse — the payload does not depend on where X/Y/Z sit. Acceptance standard: `scripts/sim_parity.py gate --corpus
-scripts/parity_corpus/<config>.json` — per run it saves the RUNNING
+scripts/parity_corpus/<config>.json` (run by `test_suite.py live-twp`, which
+copies the corpus into the program folder: each program is loaded through
+the gateway's `load_file`, never a bare `program_open` — docs/testing.md) — per run it saves the RUNNING
 gateway's cached payload, captures the real run (twp_parity
 sample_run; truth file opens with a context header), replays the
 payload through the ACTUAL client chain (`lcnc-webui/scripts/

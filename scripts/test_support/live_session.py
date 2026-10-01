@@ -12,8 +12,11 @@ from urllib.parse import urlencode
 
 
 class SimulatorClient:
-    def __init__(self, token):
+    def __init__(self, token, session="test-suite-live-twp"):
         self.token = token
+        # hello's session id keys the gateway's armed-resume hold: a second
+        # client must never share the main one's
+        self.session = session
         self.ws = None
         self.stop = threading.Event()
         self.replies = queue.Queue()
@@ -32,7 +35,7 @@ class SimulatorClient:
                         threading.Thread(target=self.heartbeat, daemon=True)]
         for thread in self.threads:
             thread.start()
-        self.request("hello", session="test-suite-live-twp")
+        self.request("hello", session=self.session)
         self.request("arm", armed=True)
 
     def receive(self):
@@ -131,3 +134,24 @@ class SimulatorClient:
             self.ws.close()
         for thread in self.threads:
             thread.join(timeout=3)
+
+
+def gateway_load(path, token):
+    """Load `path` the way the operator does: the gateway's own load_file —
+    the only load it takes as the LOADED program (review R15 B2: a bare
+    program_open is a STAT.file flip it ignores, and the preview never
+    follows it). load_file needs an armed client: a short one of its own,
+    which disarms before it closes — an armed client's disconnect would
+    abort the machine. Returns the reply; raises on a refusal."""
+    client = SimulatorClient(token, session="test-suite-live-load")
+    client.start()
+    try:
+        return client.request("load_file", path=str(path))
+    finally:
+        try:
+            client.request("arm", armed=False)
+        finally:
+            client.stop.set()
+            client.ws.close()
+            for thread in client.threads:
+                thread.join(timeout=3)

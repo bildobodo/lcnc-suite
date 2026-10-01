@@ -12,6 +12,7 @@ import json
 import os
 import re
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import time
@@ -83,13 +84,32 @@ def validate_live_target(ini, running_ini):
     return got
 
 
+# The corpus programs' place inside the machine's program folder: the
+# gateway's load_file takes only files there (sim_parity loads through it
+# since review R15 B2), and the file browser hides a dot folder.
+LIVE_PROGRAMS_DIR = ".lcnc-live-gate"
+
+
+def program_folder(ini):
+    """[DISPLAY] PROGRAM_PREFIX of `ini`, the folder the gateway loads from."""
+    prefix = ini_values(Path(ini).read_text()).get(("DISPLAY", "PROGRAM_PREFIX"), [""])[0]
+    if not prefix:
+        raise ValueError("The INI names no [DISPLAY] PROGRAM_PREFIX — the gateway loads only from there")
+    folder = Path(os.path.expanduser(prefix))
+    if not folder.is_absolute():
+        folder = Path(ini).parent / folder
+    return Path(os.path.abspath(folder))
+
+
 def materialize_corpus(ini, out):
     """Use repository programs, keeping historical 55-degree recordings unchanged."""
     source = ROOT / "scripts/parity_corpus/twp_gantry.json"
     corpus = json.loads(source.read_text())
     corpus["ini"] = str(ini)
-    programs = out / "programs"
-    programs.mkdir()
+    programs = program_folder(ini) / LIVE_PROGRAMS_DIR
+    if programs.exists():
+        shutil.rmtree(programs)   # this run's copies only, never a stale one
+    programs.mkdir(parents=True)
     for entry in corpus["programs"]:
         name = Path(entry["file"]).name
         src = source.parent / entry["file"]

@@ -25,6 +25,10 @@ class TestSuiteRunner(unittest.TestCase):
         text = (ROOT / "examples/sim_config/lcnc_suite_sim_6axis_twp_xyzabc.ini").read_text()
         self.text = text.replace("DISPLAY = lcnc-suite", f"DISPLAY = {ROOT}/lcnc-suite").replace(
             "TOPLEVEL = twp/python/toplevel.py", f"TOPLEVEL = {ROOT}/examples/sim_config/twp/python/toplevel.py")
+        # never the operator's program folder
+        self.programs = self.folder / "nc_files"
+        assert "PROGRAM_PREFIX = ~/linuxcnc/nc_files" in self.text
+        self.text = self.text.replace("PROGRAM_PREFIX = ~/linuxcnc/nc_files", f"PROGRAM_PREFIX = {self.programs}")
         self.ini.write_text(self.text)
 
     def test_accepts_matching_standard_simulator(self):
@@ -90,8 +94,24 @@ class TestSuiteRunner(unittest.TestCase):
         self.assertEqual(demo.name, "twp_simple_example.ngc")
         for entry in data["programs"]:
             self.assertTrue(Path(entry["file"]).is_file())
-            self.assertTrue(Path(entry["file"]).is_relative_to(self.folder))
+            # inside the program folder: the gateway's load_file takes only
+            # files there (review R15 B2 — sim_parity loads through it)
+            self.assertTrue(Path(entry["file"]).is_relative_to(self.programs / suite.LIVE_PROGRAMS_DIR))
+        self.assertTrue(demo.is_relative_to(self.programs / suite.LIVE_PROGRAMS_DIR))
         self.assertEqual(reference.read_bytes(), before)
+
+    def test_corpus_copies_replace_a_previous_run_and_follow_the_ini_prefix(self):
+        stale = self.programs / suite.LIVE_PROGRAMS_DIR / "stale.ngc"
+        stale.parent.mkdir(parents=True)
+        stale.write_text("M2\n")
+        suite.materialize_corpus(self.ini, self.folder)
+        self.assertFalse(stale.exists(), "a previous run's copy is gone")
+        # a relative prefix is the INI folder's, as LinuxCNC reads it
+        self.ini.write_text(self.text.replace(f"PROGRAM_PREFIX = {self.programs}", "PROGRAM_PREFIX = rel_programs"))
+        self.assertEqual(suite.program_folder(self.ini), self.folder / "rel_programs")
+        self.ini.write_text(self.text.replace(f"PROGRAM_PREFIX = {self.programs}", ""))
+        with self.assertRaisesRegex(ValueError, "PROGRAM_PREFIX"):
+            suite.program_folder(self.ini)
 
     def test_child_failure_is_reported_with_output_and_exit_status(self):
         row = suite.run_gate("broken", [suite.python(), "-c", "print('failure detail'); exit(7)"],
