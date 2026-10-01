@@ -890,7 +890,12 @@ stdout, no version bump: only the TOOL BASIS moves (`BulkPipeline.tool_basis`,
 status `preview_tool_basis` {file, version, xyz} while it differs from
 `tlo_start`), and previewWorker re-decodes the SAME bytes it kept
 (`normalizeToToolBasis` — every basis from the original data) so the prefix
-re-tips; ThreeViewer `_programTool()` / ScrubBar resolve the pre-first-row
+re-tips — only for exactly that FILE and version (a basis naming another
+file is never applied; the payload falls back to its own start, Codex R58
+VP-I24), and until that decode is on screen the preview counts as being
+refreshed (`previewBasisPending` → the same "checking" line, muted path,
+sweep findings dropped and not restarted; only the matching reply ends it,
+never an older one or a worker error — VP-I23); ThreeViewer `_programTool()` / ScrubBar resolve the pre-first-row
 offset to the payload's `toolBasis` (a payload without a known start keeps
 the live offset). Different → the verify parse is the re-parse, published.
 Banner "tool offset changed — checking". A pinned parse seeds the tool

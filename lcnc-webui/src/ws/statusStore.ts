@@ -95,6 +95,23 @@ export const previewTableStale = ref<{ reason: string; why: string } | null>(nul
 // normalised to it, the same for every consumer — bound to the file and
 // version it was verified for. bulkData re-decodes that version at it.
 export const previewToolBasis = ref<{ file: string; version: number; xyz: number[] } | null>(null);
+// A changed tool basis not yet APPLIED to the view (VP-I23, Codex R58): set
+// when the status brings a different basis, cleared by bulkData once the
+// payload decoded at it is on screen — or at once when nothing is to be
+// re-decoded (another file or version). Only the matching reply clears it,
+// never an older one or a worker error. While set, the preview counts as
+// being refreshed (previewRefresh, reason "tool_offset").
+export const previewBasisPending = ref(false);
+let _frameHadRefresh = false;
+/** bulkData: the view shows the requested basis (or needs none). */
+export function endPreviewBasisPending(): void {
+  if (!previewBasisPending.value) return;
+  previewBasisPending.value = false;
+  if (!_frameHadRefresh && previewRefresh.value !== null) {
+    previewRefresh.value = null;
+    _syncPreviewRefreshTimer();
+  }
+}
 // A preview re-parse is RUNNING (2026-09-05): the gateway rides
 // `preview_refresh` on every status frame while its parse worker runs —
 // reason (the edge that scheduled it), file, expected duration (its last
@@ -428,8 +445,29 @@ export function handleStatusMessage(msg: any): void {
   } else if (safetyTrip.value !== null) {
     safetyTrip.value = null;
   }
-  // Preview re-parse in flight — present while the gateway's worker runs.
-  const pr = msg.preview_refresh;
+  const tb = msg.preview_tool_basis;
+  if (tb && typeof tb === "object" && Array.isArray(tb.xyz) && tb.xyz.length >= 3) {
+    const cur = previewToolBasis.value;
+    const xyz = [Number(tb.xyz[0]), Number(tb.xyz[1]), Number(tb.xyz[2])];
+    if (!cur || cur.version !== Number(tb.version) || cur.file !== String(tb.file ?? "")
+        || cur.xyz.some((v, i) => v !== xyz[i])) {
+      previewToolBasis.value = { file: String(tb.file ?? ""), version: Number(tb.version), xyz };
+      previewBasisPending.value = true;     // until bulkData applied (or needs nothing)
+    }
+  } else if (previewToolBasis.value !== null) {
+    previewToolBasis.value = null;
+    previewBasisPending.value = true;
+  }
+  // Preview re-parse in flight — present while the gateway's worker runs,
+  // and (VP-I23) while the client still re-decodes the payload at a basis
+  // the gateway verified: the check is not over for the operator until the
+  // view shows its result — the same line, the same muted path.
+  const prWire = msg.preview_refresh;
+  _frameHadRefresh = !!(prWire && typeof prWire === "object");
+  const pr = _frameHadRefresh ? prWire : (previewBasisPending.value
+    ? { reason: "tool_offset", file: previewToolBasis.value?.file ?? previewRefresh.value?.file ?? "",
+        expected_ms: null, started_ms: previewRefresh.value?.started_ms ?? null, queued: false, superseded: 0 }
+    : null);
   if (pr && typeof pr === "object") {
     const cur = previewRefresh.value;
     const sameParse = !!cur && cur.started_ms === (pr.started_ms ?? null) && cur.file === String(pr.file ?? "");
@@ -447,17 +485,6 @@ export function handleStatusMessage(msg: any): void {
   } else if (previewRefresh.value !== null) {
     previewRefresh.value = null;
     _syncPreviewRefreshTimer();
-  }
-  const tb = msg.preview_tool_basis;
-  if (tb && typeof tb === "object" && Array.isArray(tb.xyz) && tb.xyz.length >= 3) {
-    const cur = previewToolBasis.value;
-    const xyz = [Number(tb.xyz[0]), Number(tb.xyz[1]), Number(tb.xyz[2])];
-    if (!cur || cur.version !== Number(tb.version) || cur.file !== String(tb.file ?? "")
-        || cur.xyz.some((v, i) => v !== xyz[i])) {
-      previewToolBasis.value = { file: String(tb.file ?? ""), version: Number(tb.version), xyz };
-    }
-  } else if (previewToolBasis.value !== null) {
-    previewToolBasis.value = null;
   }
   const ts = msg.preview_table_stale;
   if (ts && typeof ts === "object") {

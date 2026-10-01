@@ -50,7 +50,7 @@ export const serverShuttingDown = ref(false);
 export {
   status, lcncError, safetyTrip, readerStale, safetyChainIncomplete, configWarning,
   previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, type PreviewRefresh,
-  previewTableStale,
+  previewTableStale, previewBasisPending,
   latency, networkLatency, timingStats, messages, unreadCount,
   resetTimingStats, getTimingCsv, dismissMessage, clearAllMessages, markMessagesRead,
   pushMessage,

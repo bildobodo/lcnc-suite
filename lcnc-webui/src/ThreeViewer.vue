@@ -14,7 +14,7 @@ import {
   failedParts, loadMachineAssets, getCachedGeometry, getCollisionGeometry, getToolMeta, setToolMeta, machineReady,
 } from "./viewer/machineAssetCache";
 
-import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, type ViewerInit, type ViewerGcode } from "./lcncWs";
+import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewBasisPending, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, ON_TOP_FALLBACK, ON_TOP_LAYERS, settingsVersion, type OnTopLayer, type Vec3, type Layer } from "./defaults";
 import { applyOnTop, ON_TOP_ORDER } from "./viewer/onTop";
 import { confirmedToolsetter } from "./toolsetterVars";
@@ -3134,6 +3134,7 @@ function _colScheduleAuto() {
   _colAutoTimer = setTimeout(() => {
     if (simMode.value) return;               // ScrubBar re-checks with the entry track
     if (!machineReady.value) return;         // geometry loading — machineReady watcher retries
+    if (previewBasisPending.value) return;   // the payload at the new basis schedules it (VP-I23)
     if ((status.value?.data?.interp_state ?? INTERP_IDLE) !== INTERP_IDLE) { _colHeldByRun = true; return; }
     _colHeldByRun = false;
     if (!viewerGcode.value?.scrubTrack) return;
@@ -3160,6 +3161,20 @@ function _colOnInputChange() {
   _updateClashTint(null, null);
   _colScheduleAuto();
 }
+
+// A verified tool basis not yet on screen (VP-I23): the sweep's findings
+// belong to the old basis — gone now, and the sweep starts again when the
+// payload decoded at the new basis lands (the viewerGcode watcher below).
+watch(previewBasisPending, (pending) => {
+  if (!pending) return;
+  cancelCollisionCheck();
+  clearTimeout(_colAutoTimer);
+  collisionResult.value = null;
+  collisionTrack.value = null;
+  _colDropEntry();
+  emit("collision-lines", null);
+  _updateClashTint(null, null);
+});
 
 // A new program (or unload) invalidates results — never show stale clashes.
 watch(viewerGcode, () => {

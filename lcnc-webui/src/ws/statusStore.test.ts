@@ -13,6 +13,7 @@ import {
   markMessagesRead, mergeStatusPatch, messages, networkLatency, noteBulkData,
   noteFrameSample, noteHeartbeatSent, notePong, pushMessage,
   previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewToolBasis,
+  endPreviewBasisPending,
   readerStale, rebaseStatusDelta, resetOnClose, resetTimingStats, safetyChainIncomplete,
   safetyTrip, status, timingStats, unreadCount,
 } from "./statusStore";
@@ -167,6 +168,33 @@ describe("preview_refresh sync (re-parse in flight)", () => {
     expect(previewRefreshElapsedMs.value).toBe(0);
   });
 
+  it("a changed basis keeps the preview refreshing until the view applied it (R58 VP-I23)", async () => {
+    const { endPreviewBasisPending, previewBasisPending } = await import("./statusStore");
+    handleStatusMessage({ type: "status", data: {}, preview_refresh:
+      { reason: "tool_offset", file: "/q.ngc", expected_ms: 4000, started_ms: 77, queued: false, superseded: 0 } });
+    const seen = previewRefresh.value!.seenAt;
+    // the gateway's check ended with a verified basis; the decode is out
+    handleStatusMessage({ type: "status", data: {},
+      preview_tool_basis: { file: "/q.ngc", version: 9, xyz: [0, 0, 20] } });
+    expect(previewBasisPending.value).toBe(true);
+    expect(previewRefresh.value).toMatchObject({ reason: "tool_offset", file: "/q.ngc" });
+    expect(previewRefresh.value!.seenAt, "the same check, the same clock").toBe(seen);
+    handleStatusMessage({ type: "status", data: {}, preview_tool_basis: { file: "/q.ngc", version: 9, xyz: [0, 0, 20] } });
+    expect(previewRefresh.value, "still pending on the next frame").not.toBeNull();
+    endPreviewBasisPending();
+    expect(previewRefresh.value).toBeNull();
+    // ending a pending basis never ends the GATEWAY's own refresh
+    handleStatusMessage({ type: "status", data: {}, preview_tool_basis: { file: "/q.ngc", version: 9, xyz: [0, 0, 30] },
+      preview_refresh: { reason: "file", file: "/q.ngc", expected_ms: 1, started_ms: 88, queued: false, superseded: 0 } });
+    endPreviewBasisPending();
+    expect(previewRefresh.value?.reason).toBe("file");
+    // the basis gone is a change too (back to the payload's own start)
+    handleStatusMessage({ type: "status", data: {} });
+    expect(previewBasisPending.value).toBe(true);
+    endPreviewBasisPending();
+    expect(previewRefresh.value).toBeNull();
+  });
+
   it("mirrors preview_tool_basis, same object for the same basis (VP-I20)", () => {
     handleStatusMessage({ type: "status", data: {},
       preview_tool_basis: { file: "/p.ngc", version: 7, xyz: [0, 0, 65.0562], mode: 430 } });
@@ -182,6 +210,8 @@ describe("preview_refresh sync (re-parse in flight)", () => {
     expect(previewToolBasis.value, "malformed = absent").toBeNull();
     handleStatusMessage({ type: "status", data: {} });
     expect(previewToolBasis.value).toBeNull();
+    endPreviewBasisPending();     // no bulkData here to apply the changes
+    expect(previewRefresh.value).toBeNull();
   });
 
   it("mirrors preview_table_stale while the gateway marks it, same object for the same mark (Codex R41 MR-I04)", () => {

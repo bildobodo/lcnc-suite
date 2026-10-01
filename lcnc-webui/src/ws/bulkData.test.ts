@@ -251,7 +251,7 @@ describe("preview worker channel", () => {
     handleViewerGcodeReady({ version: 5, file: "/nc/part.ngc" });
     const w = FakeWorker.instances[FakeWorker.instances.length - 1]!;
     expect(String(w.url)).toContain("previewWorker");
-    expect(w.posted).toEqual([{ version: 5, url: "/preview?v=5", basis: null, basisKey: "5:start" }]);
+    expect(w.posted).toEqual([{ version: 5, url: "/preview?v=5", basis: null, basisKey: "/nc/part.ngc#5:start" }]);
 
     handleViewerGcodeReady({ version: 5, file: "/nc/part.ngc" });  // dedupe both channels
     expect(w.posted).toHaveLength(1);
@@ -261,35 +261,51 @@ describe("preview worker channel", () => {
     expect(fetchCalls.filter(c => c.url.startsWith("/gcode")).length).toBe(1);
   });
 
-  it("a verified tool basis re-decodes the version on screen — and only it (VP-I20)", async () => {
-    const { previewToolBasis } = await import("./statusStore");
+  it("a verified tool basis re-decodes the payload on screen — this file AND version only (VP-I20, R58 VP-I24)", async () => {
+    const { previewToolBasis, previewBasisPending } = await import("./statusStore");
     const { nextTick } = await import("vue");
     fetchImpl = () => Promise.resolve(new Response("G0 X0", { status: 200 }));
     handleViewerGcodeReady({ version: 60, file: "/nc/part.ngc" });
     const w = FakeWorker.instances[FakeWorker.instances.length - 1]!;
     const n0 = w.posted.length;
-    expect(w.posted[n0 - 1]).toEqual({ version: 60, url: "/preview?v=60", basis: null, basisKey: "60:start" });
-    // the gateway verified the payload at another start: the same bytes are
-    // re-decoded at it (no new version, no new revision)
+    expect(w.posted[n0 - 1]).toEqual({ version: 60, url: "/preview?v=60", basis: null, basisKey: "/nc/part.ngc#60:start" });
+    w.onmessage?.({ data: { version: 60, basisKey: "/nc/part.ngc#60:start", gcode: { file: "/nc/part.ngc", toolBasis: [0, 0, 65.0512] } } } as any);
+    // another file with the same version number, the right file with
+    // another version: nothing re-decoded, nothing pending
+    for (const b of [{ file: "/nc/other.ngc", version: 60, xyz: [0, 0, 30] },
+                     { file: "/nc/part.ngc", version: 59, xyz: [0, 0, 30] }]) {
+      previewToolBasis.value = b;
+      previewBasisPending.value = true;      // statusStore sets it on any change
+      await nextTick();
+      expect(w.posted.length).toBe(n0);
+      expect(previewBasisPending.value).toBe(false);
+    }
+    // this file and version: the same bytes re-decoded at it, no new revision
     previewToolBasis.value = { file: "/nc/part.ngc", version: 60, xyz: [0, 0, 65.0562] };
+    previewBasisPending.value = true;
     await nextTick();
     expect(w.posted.slice(n0)).toEqual([{ version: 60, url: "/preview?v=60", basis: [0, 0, 65.0562],
-                                          basisKey: "60:0,0,65.0562" }]);
+                                          basisKey: "/nc/part.ngc#60:0,0,65.0562" }]);
     expect(gcodeRevision.value).toBe("/nc/part.ngc#60");
-    // a reply decoded at the previous basis is dropped; the current one lands
-    w.onmessage?.({ data: { version: 60, basisKey: "60:start", gcode: { file: "/nc/part.ngc", toolBasis: [0, 0, 65.0512] } } } as any);
-    expect(viewerGcode.value?.toolBasis).not.toEqual([0, 0, 65.0512]);
-    w.onmessage?.({ data: { version: 60, basisKey: "60:0,0,65.0562", gcode: { file: "/nc/part.ngc", toolBasis: [0, 0, 65.0562] } } } as any);
+    expect(previewBasisPending.value).toBe(true);
+    // R58 VP-I23: an older reply and a worker error keep it pending …
+    w.onmessage?.({ data: { version: 60, basisKey: "/nc/part.ngc#60:start", gcode: { file: "/nc/part.ngc", toolBasis: [0, 0, 1] } } } as any);
+    expect(viewerGcode.value?.toolBasis).toEqual([0, 0, 65.0512]);
+    expect(previewBasisPending.value).toBe(true);
+    w.onmessage?.({ data: { version: 60, basisKey: "/nc/part.ngc#60:0,0,65.0562", error: "boom" } } as any);
+    expect(previewBasisPending.value, "a failed decode leaves the old basis on screen").toBe(true);
+    // … a retry (the next ready for this version) that lands ends it
+    handleViewerGcodeReady({ version: 60, file: "/nc/part.ngc" });
+    const key = "/nc/part.ngc#60:0,0,65.0562";
+    expect(w.posted[w.posted.length - 1]).toMatchObject({ basisKey: key });
+    w.onmessage?.({ data: { version: 60, basisKey: key, gcode: { file: "/nc/part.ngc", toolBasis: [0, 0, 65.0562] } } } as any);
     expect(viewerGcode.value?.toolBasis).toEqual([0, 0, 65.0562]);
-    // the same basis again, or one for another version: nothing to do
+    expect(previewBasisPending.value).toBe(false);
+    // the same basis again: nothing to do, nothing pending
     previewToolBasis.value = { file: "/nc/part.ngc", version: 60, xyz: [0, 0, 65.0562] };
-    previewToolBasis.value = { file: "/nc/part.ngc", version: 59, xyz: [0, 0, 1] };
+    previewBasisPending.value = true;
     await nextTick();
-    expect(w.posted.slice(n0 + 1)).toEqual([{ version: 60, url: "/preview?v=60", basis: null, basisKey: "60:start" }]);
-    // the basis gone: back to the payload's own start
-    previewToolBasis.value = null;
-    await nextTick();
-    expect(w.posted.length).toBe(n0 + 2);
+    expect(previewBasisPending.value).toBe(false);
   });
 
   it("the published revision moves on ARRIVAL; the text revision follows when the text lands (UI-DI05)", async () => {

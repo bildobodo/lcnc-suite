@@ -12,7 +12,7 @@
 // in lcncWs until the statusStore extraction) — reassigned scalars stay
 // private to this module by design (A1 rule).
 import { computed, markRaw, ref, watch } from "vue";
-import { previewToolBasis } from "./statusStore";
+import { previewToolBasis, endPreviewBasisPending } from "./statusStore";
 import { decode as msgpackDecode } from "@msgpack/msgpack";
 import type { LineIndex } from "../viewer/lineIndex";
 import type { Vec3 } from "../defaults";
@@ -750,6 +750,7 @@ function _ensurePreviewWorker(): Worker {
     const m = ev.data as { version: number; basisKey?: string; gcode?: ViewerGcode; error?: string };
     if (m.version !== _previewLastVersion) return;  // stale — newer load in flight
     if (m.basisKey !== undefined && m.basisKey !== _previewBasisKey) return;  // another basis wanted now
+    // (a worker error keeps a pending basis change pending — VP-I23)
     if (m.error) {
       console.error("preview load failed", m.error);
       _previewErr.value = `/preview failed: ${m.error}`;
@@ -762,6 +763,10 @@ function _ensurePreviewWorker(): Worker {
     // the ref reassignment, not deep mutation, so raw is correct here.
     viewerGcode.value = m.gcode ? markRaw(m.gcode) : null;
     _previewErr.value = null;
+    if (m.basisKey !== undefined) {
+      _previewAppliedKey = m.basisKey;
+      endPreviewBasisPending();
+    }
   };
   _previewWorker.onerror = (ev) => {
     console.error("previewWorker error", ev.message);
@@ -775,36 +780,50 @@ function _ensurePreviewWorker(): Worker {
 // the gateway's verified basis while it names THIS version, else null (the
 // payload's own `tlo_start`). A change re-decodes the same bytes in the
 // worker; replies for another basis are dropped.
-let _previewLastBasis: number[] | null = null;
-let _previewBasisKey = "";
+let _previewLastFile: string | null = null;
+let _previewBasisKey = "";      // the decode REQUESTED last
+let _previewAppliedKey = "";    // the decode ON SCREEN (its reply landed)
 
-function _basisFor(version: number): number[] | null {
+/** The basis a payload is decoded at: the gateway's verified basis only
+ *  for exactly this file AND version (Codex R58 VP-I24 — the version alone
+ *  is a per-gateway counter, no file identity), else null = its own start. */
+function _basisFor(version: number, file: string | null): number[] | null {
   const b = previewToolBasis.value;
-  return b && b.version === version ? [...b.xyz] : null;
+  return b && file != null && b.file === file && b.version === version ? [...b.xyz] : null;
 }
 
-function _postPreview(version: number, basis: number[] | null) {
-  _previewLastBasis = basis;
-  _previewBasisKey = `${version}:${basis ? basis.join(",") : "start"}`;
+function _keyOf(version: number, file: string | null, basis: number[] | null): string {
+  return `${file ?? ""}#${version}:${basis ? basis.join(",") : "start"}`;
+}
+
+function _postPreview(version: number, file: string | null, basis: number[] | null) {
+  _previewBasisKey = _keyOf(version, file, basis);
   _ensurePreviewWorker().postMessage({ version, url: `/preview?v=${version}`, basis,
                                        basisKey: _previewBasisKey });
 }
 
-function _fetchPreview(version: number) {
+function _fetchPreview(version: number, file: string | null) {
   if (version === _previewLastVersion) return;
   _previewLastVersion = version;
-  _postPreview(version, _basisFor(version));
+  _previewLastFile = file;
+  _postPreview(version, file, _basisFor(version, file));
 }
 
-/** A verified tool basis arrived (or went) for the version on screen:
- *  re-decode it at that basis (VP-I20, plan Fassungen 5–6). */
+/** The verified tool basis changed: re-decode the payload on screen at it
+ *  when it names this file and version (VP-I20, plan Fassungen 5–6); the
+ *  pending state (VP-I23) ends when that reply lands — at once when
+ *  nothing is to be re-decoded. */
 export function applyPreviewToolBasis(): void {
   const version = _previewLastVersion;
-  if (version < 0) return;
-  const want = _basisFor(version);
-  const same = want === null ? _previewLastBasis === null
-    : _previewLastBasis !== null && want.every((v, i) => v === _previewLastBasis![i]);
-  if (!same) _postPreview(version, want);
+  if (version < 0) {
+    // nothing on screen: nothing to wait for; a payload still on screen
+    // after a failed decode stays pending (VP-I23)
+    if (viewerGcode.value == null) endPreviewBasisPending();
+    return;
+  }
+  const want = _keyOf(version, _previewLastFile, _basisFor(version, _previewLastFile));
+  if (want === _previewAppliedKey) { endPreviewBasisPending(); return; }
+  if (want !== _previewBasisKey) _postPreview(version, _previewLastFile, _basisFor(version, _previewLastFile));
 }
 watch(previewToolBasis, applyPreviewToolBasis);
 
@@ -831,7 +850,7 @@ export function handleViewerGcode(msg: { data?: ViewerGcode | null }): void {
 export function handleViewerGcodeReady(msg: { version?: number; file?: string | null }): void {
   const version: number = msg.version ?? 0;
   const file: string | null = msg.file ?? null;
-  _fetchPreview(version);
+  _fetchPreview(version, file);
   _applyGcodeFile(file, version);
 }
 

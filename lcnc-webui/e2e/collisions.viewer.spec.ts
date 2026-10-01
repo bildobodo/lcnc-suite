@@ -340,6 +340,16 @@ test("a changed tool offset is checked, and a verified basis re-tips the prefix 
     preview_tool_basis: { file, version: 4501, xyz: [0, 0, 20], mode: 430 } } });
   await expect.poll(topZ, { timeout: 15_000 }).toBeCloseTo(before - 10, 4);
   expect(previews, "no second download").toBe(1);
+  await expect(lines.filter({ hasText: "Preview re-parsing" }), "the check ends once the view shows it").toHaveCount(0);
+  // Codex R58 VP-I24: a basis for ANOTHER file with the same version number
+  // is not this payload's — never applied (−30); the payload falls back to
+  // its own start, the only basis the gateway still vouches for here
+  await ctl({ op: "raw", frame: { type: "status_delta", data: {},
+    preview_tool_basis: { file: "/different-program.ngc", version: 4501, xyz: [0, 0, 30], mode: 430 } } });
+  await expect.poll(topZ, { timeout: 15_000 }).toBeCloseTo(before, 4);
+  await page.waitForTimeout(500);
+  expect(await topZ()).toBeCloseTo(before, 4);
+  expect(previews).toBe(1);
   await ctl({ op: "quiet", on: false });
   await ctl({ op: "reset" });
 });

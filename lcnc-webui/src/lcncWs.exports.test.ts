@@ -29,7 +29,7 @@ const REF_EXPORTS = [
   "armed", "configWarning", "connected", "gcodeContent", "gcodeRevision", "gcodeTextRevision", "gcodeTextSource",
   "halInitialized", "halParams", "halPins", "halSignals",
   "lastReply", "latency", "lcncError", "messages", "networkLatency",
-  "previewLoadError", "previewParseError", "previewRefresh", "previewRefreshElapsedMs", "previewRefreshPct", "previewRefusal", "previewTableStale", "readerStale", "safetyChainIncomplete",
+  "previewBasisPending", "previewLoadError", "previewParseError", "previewRefresh", "previewRefreshElapsedMs", "previewRefreshPct", "previewRefusal", "previewTableStale", "readerStale", "safetyChainIncomplete",
   "safetyTrip", "serverShuttingDown",
   "status", "timingStats", "toolTableVersion", "unreadCount",
   "viewerGcode", "viewerInit",
