@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r62-g32c1gtj/lcnc-webui
+
+
+ Test Files  4 passed (4)
+      Tests  125 passed (125)
+   Start at  01:03:39
+   Duration  1.14s (transform 204ms, setup 0ms, import 421ms, tests 422ms, environment 0ms)
+

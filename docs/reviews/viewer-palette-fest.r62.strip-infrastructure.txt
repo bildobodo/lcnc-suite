@@ -1,0 +1,33 @@
+
+Running 1 test using 1 worker
+
+(node:4076177) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4076177) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r62-packages.spec.ts:5:1 › R62: compact strips measurements and axes hit targets (11.4s)
+
+
+  1) e2e/r62-packages.spec.ts:5:1 › R62: compact strips measurements and axes hit targets ──────────
+
+    Error: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:4188/
+    Call log:
+    [2m  - navigating to "http://127.0.0.1:4188/", waiting until "load"[22m
+
+
+       at layout-fixtures.ts:91
+
+      89 |   await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      90 |   await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' });
+    > 91 |   await page.goto(MOCK);
+         |              ^
+      92 |   await expect(page.locator('input.setupInput').first()).toBeVisible();
+      93 |   if (viewport.touch) await page.evaluate(() => document.documentElement.classList.add('touch-device'));
+      94 |   await ctl({ op: 'setAxes', axes: profile.axes });
+        at openLayout (/tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/layout-fixtures.ts:91:14)
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:10:3
+
+    Error Context: ../evidence/r62-packages-output/r62-packages-R62-compact-s-ae1b4-ements-and-axes-hit-targets/error-context.md
+
+  1 failed
+    e2e/r62-packages.spec.ts:5:1 › R62: compact strips measurements and axes hit targets ───────────

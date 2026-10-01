@@ -1,0 +1,373 @@
+
+Running 5 tests using 1 worker
+
+(node:4074391) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4074391) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/layout.spec.ts:1655:3 › 5axis-xyzac desktop: rotary jog buttons share a column in landscape, the Setup axis actions are symbols (2.0s)
+  ✓  2 e2e/layout.spec.ts:1655:3 › 5axis-xyzac touch-landscape: rotary jog buttons share a column in landscape, the Setup axis actions are symbols (2.0s)
+  ✓  3 e2e/layout.spec.ts:1655:3 › 6axis-twp desktop: rotary jog buttons share a column in landscape, the Setup axis actions are symbols (1.8s)
+  ✓  4 e2e/layout.spec.ts:1655:3 › 5axis-xyzac touch-portrait: rotary jog buttons share a column in landscape, the Setup axis actions are symbols (2.0s)
+  ✘  5 e2e/r62-packages.spec.ts:5:1 › R62: compact strips measurements and axes hit targets (24.6s)
+
+
+  1) e2e/r62-packages.spec.ts:5:1 › R62: compact strips measurements and axes hit targets ──────────
+
+    Error: 5axis-xyzac desktop A+: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m53.875[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 5axis-xyzac desktop A-: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m53.875[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 5axis-xyzac desktop C+: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m53.875[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 5axis-xyzac desktop C-: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m53.875[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 6axis-twp desktop A+: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m53.875[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 6axis-twp desktop A-: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m53.875[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 6axis-twp desktop B+: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m53.875[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 6axis-twp desktop B-: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m53.875[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 6axis-twp desktop C+: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m115.75[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 6axis-twp desktop C-: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m115.75[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 9axis desktop A+: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m53.875[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 9axis desktop A-: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m53.875[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 9axis desktop B+: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m53.875[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 9axis desktop B-: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m53.875[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 9axis desktop C+: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m115.75[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 9axis desktop C-: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m115.75[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 9axis desktop U+: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m53.875[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 9axis desktop U-: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m53.875[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 9axis desktop V+: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m53.875[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 9axis desktop V-: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m53.875[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 9axis desktop W+: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m115.75[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error: 9axis desktop W-: meets own button floor
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32mNaN[39m
+    Received:    [31m115.75[39m
+
+      20 |   rows.push({profile:profile.name,view:view!.name,...data});
+      21 |   writeFileSync('../evidence/viewer-palette-fest.r62.strip-layout.json',JSON.stringify(rows,null,2)+'\n');
+    > 22 |   for(const b of data.buttons) expect.soft(b.height,`${profile.name} ${view!.name} ${b.name}: meets own button floor`).toBeGreaterThanOrEqual(b.minHeight-0.5);
+         |                                                                                                                        ^
+      23 |   for(let i=0;i<data.buttons.length;i++)for(let j=i+1;j<data.buttons.length;j++){
+      24 |    const a=data.buttons[i]!,b=data.buttons[j]!;
+      25 |    const overlap=Math.min(a.x+a.width,b.x+b.width)-Math.max(a.x,b.x)>0.5 && Math.min(a.y+a.height,b.y+b.height)-Math.max(a.y,b.y)>0.5;
+        at /tmp/codex-r62-strip-75_t_400/lcnc-webui/e2e/r62-packages.spec.ts:22:120
+
+    Error Context: ../evidence/r62-packages-output/r62-packages-R62-compact-s-ae1b4-ements-and-axes-hit-targets/error-context.md
+
+  1 failed
+    e2e/r62-packages.spec.ts:5:1 › R62: compact strips measurements and axes hit targets ───────────
+  4 passed (33.2s)

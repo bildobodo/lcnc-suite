@@ -7222,3 +7222,265 @@ Paketen 2 und 3, die eigene Branches haben.
 - Vier Fragen stehen am Ende des Plans. Gebaut wird erst nach deiner Zustimmung.
 
 Bitte prüfe 1–5 (mit 4a), 7 als Plan, 6 nach Ermessen.
+
+---
+
+## Review R62 · Codex · 2. Oktober 2026
+
+**Urteil: findings für die Planrunde von Paket 4.** Die Korrekturen
+**VP-I25 und VP-I26 sind geschlossen**. Aufräumen und TWP-Gate-Umstellung
+sind im geprüften Umfang akzeptiert; der bisherige Vorbehalt wegen des
+veralteten TWP-Live-Gates ist erledigt. Bei Paket 2 und 3 habe ich keinen
+neuen Implementierungsbefund gefunden. Für **Plan A** bleiben
+**VP62-01 und VP62-02** vor der Umsetzung zu konkretisieren. **Plan B,
+Cyan als zusätzliche Nadelfarbe, unterstütze ich** mit den unten genannten
+Prüfbedingungen. Keine Entscheidung des Operators zur Fortsetzung nötig.
+
+Hauptstand: `56a270f..fec40e5` (`wip/part-b`), geprüft in eigener Archivkopie.
+Der Live-Checkout `0b4019c` auf `feat/keypad-keys` enthält diese Übergabe
+inzwischen; dieser Anhang und die neuen Belege stehen deshalb dort in der
+angefragten Datei. Pakete 2 und 3 sind getrennt an `83a1d73` bzw. `bc16433`
+geprüft, nicht als eigener Integrationsmerge.
+
+### R61-Nachprüfung und Aufräumen
+
+**VP-I25:** Die R61-Browser-Gegenproben zeigen jetzt `0.0000 mm · G49`
+beim Null-Werkzeug unter G49 und `65.0000 mm · G43.1` beim gleich großen
+dynamischen Offset. Der normale G43-Fall bleibt korrekt. Die Funktion
+nennt ohne gemeldeten Modus neutral „Applied“. Numerischer Vergleich und
+Modus sind getrennt, wie gefordert.
+
+**VP-I26:** Mit stummem Mock-Statusstrom folgt die Nadel jetzt beiden
+Aus-/Ein-Schaltfolgen schon auf die empfangene Settings-Nachricht.
+Ein weiterer Maschinenstatus ist nicht nötig. Die gemeinsame Entscheidung
+in `applyState` bleibt erhalten.
+
+Die **unveränderten Soll-Assertions der R61-Sonde bestehen**, ebenso der
+erweiterte Produktwächter. Nur Namen, Metadatum und Ausgabepfade der
+Sondenkopie wurden auf R62 gesetzt. Belege:
+[Zustände und Schaltfolgen](viewer-palette-fest.r62.tool-state.json),
+[Browserprotokoll](viewer-palette-fest.r62.browser.txt).
+
+`holdOverlays`/`hasOverlays` und der nicht mehr erreichbare Zwischenzustand
+sind entfernt. GL bleibt ausdrücklich die akzeptierte Testreferenz,
+`fat` der Produktstandard. Auswahl-/Fat-Path-Tests bestehen. Der korrigierte
+Settings-Text passt zur festen Farbpalette.
+
+### TWP-Gate und verlegte Platte
+
+Die Umstellung ist nachvollziehbar: Das Korpus liegt im zulässigen
+Programmordner; die Vorschau wird über `load_file` des Gateways geladen.
+Der kurze Ladeclient verwendet eine andere Session-ID als der Hauptclient
+und entwaffnet sich vor dem normalen Schließen. Die Runner-Tests arbeiten
+im Temp-Programmordner. Die neue Plattenposition liegt innerhalb der
+mitgelieferten Maschinenfenster und außerhalb des problematischen
+Home-/Korpusbereichs. Die Migration ändert ausschließlich das unveränderte
+alte Tripel ohne gespeicherten Toolsetter; die dazugehörigen Tests bestehen.
+
+Ich habe das **Originalprotokoll des vollständigen Laufs `live-twp5`**
+geprüft: Commit `1812467`, sauberer Arbeitsbaum, `scope: full`, kein
+weggelassenes Gate, alle neun Schritte PASS. Darunter Goldens CLEAN,
+Parität **11/11**, Buttons **40 PASS / 4 SKIP** und die übrigen Prüfungen.
+Die vier Ausnahmen sind benannt: drei oberhalb Z0 auf diesem Profil
+unerreichbare Fälle und die manuell vorgesehene M600-Messung. Die neue
+Platte ist damit nicht zusätzlich durch einen automatischen M600-Lauf
+abgenommen; das behauptet auch die Matrix nicht.
+
+**Damit ist der R61-Vorbehalt zum veralteten TWP-Live-Gate geschlossen.**
+Eigene Prüfung der vorhandenen Protokolle, keine Wiederholung auf der
+Live-Suite. [Dauerhafter Auszug mit Herkunft, Hashes und Skip-Gründen](viewer-palette-fest.r62.live-gate.json).
+Die Änderung an der TCP-Ablehnungszeile prüft weiterhin eine tatsächliche
+Ablehnung und nun den gültigen positiven Wortlaut; sie überspringt den
+Fall nicht.
+
+**Zum beobachteten falschen Jog-Grund:** Als eigenen kleinen Diagnosepunkt
+aufnehmen. `gateway.py:set_mode` behauptet bei jedem unveränderten Modus
+pauschal einen laufenden Jog, obwohl nur das Ausbleiben des Wechsels
+belegt ist. Das ist kein neuer R62-Regressionsbefund und blockiert diese
+Korrekturen nicht. Empfehlung: neutralen Ablehnungstext mit angefordertem
+und beobachtetem Modus verwenden; einen konkreten Grund nur bei belegtem
+Zustand nennen. Fehlendes Homing und aktiver Jog brauchen getrennte Tests.
+Die bereits richtige Weigerung, im falschen Modus weiterzumachen, bleibt.
+
+### Pakete 2 und 3
+
+**Paket 2 (`83a1d73`):** Die Abschnittsfolge ist sichtbar leichter zu lesen;
+innerhalb der Abschnitte wird die verfügbare Breite genutzt. Der vorhandene
+Wächter besteht auf Desktop, Touch-Querformat und 150 % Touch-Hochformat:
+Abschnitte untereinander, innen zwei Spalten bzw. eine, keine horizontale
+Überbreite. Die Ebenenreihenfolge bleibt beim Umbruch erhalten.
+[Desktop](viewer-palette-fest.r62.settings-desktop.png),
+[Hochformat bei 150 %](viewer-palette-fest.r62.settings-touch-portrait.png).
+
+**Paket 3 (`b1192eb` + `bc16433`):** Vier vorhandene Layoutwächter bestehen.
+Die eigene zusätzliche Sonde prüft 3/5/6/9 Achsen jeweils auf Desktop,
+Touch-Querformat und Touch-Hochformat. Die kompakten Achstasten überlappen
+nicht; die kleinste gemessene Höhe beträgt **53,875 px**, die kleinste
+Breite **50 px**. Auch UVW und eine ungerade letzte Achse sind erfasst.
+Die gemessenen Querformatbreiten bestätigen Jog/Setup mit **661,5/551 px**
+bei XYZAC und **735,5/551 px** bei TWP. Die symbolischen Setup-Aktionen
+behalten ihre eindeutigen zugänglichen Namen; die Sammelaktionen helfen
+beim Erlernen der Symbole.
+[Messwerte](viewer-palette-fest.r62.strip-layout.json),
+[Jog](viewer-palette-fest.r62.strip-jog.png),
+[Setup](viewer-palette-fest.r62.strip-setup.png).
+
+Beide Pakete sind aus dieser Code-/Layoutdurchsicht akzeptiert. Die
+angekündigte Sichtabnahme des Operators und die Prüfung eines späteren
+Integrationsstands werden dadurch nicht vorweggenommen.
+
+### VP62-01 · P2 · Plan A braucht einen widerspruchsfreien Mustervertrag
+
+**Stelle:** `viewer-marks.plan.md`, A.1–3 und A.5, zugehörige Wächter.
+
+Die Richtung „an der Geometrie verankert“ ist sinnvoll. Die derzeit
+zugesagten Eigenschaften gelten jedoch nicht gleichzeitig:
+
+- Bei `N = 2^k` **gleich langen, abwechselnd gefärbten Elementen** sind für
+  `k ≥ 1` die beiden Endfarben verschieden. „Beide Enden derselbe Ton“
+  erfordert einen anderen Begriff von N, Rand-Halbelemente oder eine
+  andere Teilung. Das muss vor dem Shader feststehen.
+- Ein weltlinearer Anteil `t` und N aus der **gesamten projizierten Länge**
+  garantieren unter Perspektive keine Elemente zwischen 6 und 12 px.
+  Gegenbeispiel: 95,9 px Kante, N=8, Tiefenverhältnis 10. Der Mittelwert
+  ist 11,99 px, tatsächlich reichen die Zellen von **1,35 bis 56,41 px**.
+  Die Regel verhindert also gerade die angeführte Unterpixelbildung an
+  fliehenden Enden nicht allgemein.
+- Ohne Hysterese ist der Stufenwechsel nicht zwingend selten: die Folge
+  95,99 → 96,01 → 95,99 → 96,01 px wechselt fortwährend N=8/16.
+  Kamerarotation kann diese Schwelle genauso kreuzen wie Zoom. Der rein
+  momentane Vertex-Shader besitzt dafür keinen gespeicherten Vorzustand.
+- Bei sehr kurzen Kanten ist N≥1 zu begrenzen, außerdem muss der
+  Zweifarb-Kontrast erhalten bleiben. N=1 mit nur einem Ton würde den
+  bereits behobenen Verlust eines Tons auf kurzen Konturen wieder öffnen.
+
+**Mein konkreter Vorschlag:** Zuerst eine einfache, harte Oktavteilung
+mit fester Phase und Hysterese prototypisieren, ohne Überblendung. Die
+nicht vom Operator verlangte Zusage gleicher Endfarben streichen; die
+2^k-Zellen und ihre geschachtelten Grenzen bleiben dann wohldefiniert.
+6–12 px als nominales Maß behandeln, mit ausdrücklich benannten
+Perspektiv-/Kurzsegmentregeln. Die Regel für sichtbare kurze Konturen muss
+beide Töne erhalten; unterhalb tatsächlich auflösbarer Größen keine
+unmögliche Lesbarkeitsgarantie formulieren. Die Hysterese braucht einen
+expliziten Zustand je gewählter LOD-Einheit, nicht nur eine Formel aus
+`vSegPx`. Überblendung erst hinzufügen, wenn ein gerenderter Vergleich
+zeigt, dass der harte Wechsel stört; eine graue Zwischenphase darf den
+Kontrast nicht still aufgeben.
+
+**Reach konkretisieren:** Kettenorientierung, Startphase, Verzweigungen,
+geschlossene Ringe und Reset zwischen getrennten Ketten festlegen.
+`LineSegments2.computeLineDistances()` kumuliert die Speicherreihenfolge;
+die vorhandenen `instanceDistanceStart/End` sind nicht automatisch die
+Abstände entlang einer erkannten Konturkette. Eine kleine Gegenprobe mit
+zwei Ketten und umsortierten Segmenten zeigt diesen Unterschied. Das kann
+beim Geometrieaufbau gelöst werden; es gehört nicht in einen neuen
+Topologieaufbau pro Frame.
+
+**Wächter ergänzen:** Zoom innerhalb und über eine Stufe in beide
+Richtungen, Schwellenpendeln, perspektivische Tiefenspanne, Near-Plane-
+Clipping, kurze/degenerierte Kanten, getrennte und umgekehrt gespeicherte
+Reach-Ketten, DPR/CSS-Zoom. Grenzen aus **gezeichneten Pixeln** bzw.
+projizierten Übergängen prüfen; `getRoleMaterials` allein kann weder
+Verankerung noch die tatsächliche Teilung beweisen. Der gemeinsame
+`SCREEN_DASH`-Helfer wird auch von Nadeln und orangefarbenen Box-
+Überlaufkanten verwendet: Den Geltungsbereich ausdrücklich festlegen.
+
+Belege: [Rechnung](viewer-palette-fest.r62.plan-probe.json),
+[Quelltext](viewer-palette-fest.r62.plan-probe.py),
+[Kettenabstände](viewer-palette-fest.r62.chains.json),
+[interaktive Skizze](viewer-palette-fest.r62.pattern.html).
+Die Skizze ist ein mathematischer Vergleich, kein Produktprototyp.
+
+### VP62-02 · P2 · Gemeinsames Boxmuster braucht eine verlässliche Kennzeichnung
+
+**Stelle:** `viewer-marks.plan.md`, A.4 und Frage 3.
+
+Die aktuelle Regel ist anders als im Plan beschrieben: Das Boxpaar ist in
+`palettePairs.ts` bereits **`kind: "form"`**, also ohne 0,12-Farbabstand,
+mit **zwei** Merkmalen `dashed` und `label`. `themeTokens.test.ts` verlangt
+für solche Paare zwei Merkmale. Gleiches Strichmuster nimmt eines davon weg.
+Das ist die zu entscheidende Vertragsänderung.
+
+„Die Maschinen-Box ist die äußere“ trägt nicht als verlässliche Kennzeichnung:
+Boxen können sich überlagern, schneiden oder zusammenfallen. Die bisherigen
+Programmmaße `X: … / Y: … / Z: …` sind weltgroß, an Kanten positioniert und
+können hinter Modellteilen liegen; sie sind keine garantierte, jederzeit
+lesbare Typbeschriftung. Orange benennt eine Überschreitung, nicht jede
+normale Unterscheidung der beiden Boxen.
+
+**Gleiches Muster: ja. Lage als Identität: nein.** Mein bevorzugter
+Gegenentwurf behält das gemeinsame Muster und kennzeichnet die Programm-
+Box zusätzlich wie eine Bemaßung mit kleinen Maß-Endmarken. Dazu eine
+stabile Typbeschriftung „Program bounds“; die Maschinen-Box kann „Machine
+bounds“ tragen. Damit bleibt ein zweites geometrisches Merkmal, ohne neue
+Farbe oder ein anderes Strichmuster einzuführen. Falls bewusst allein
+Typbeschriftungen verwendet werden sollen, diese Regeländerung ausdrücklich
+benennen und ihre Mindestgröße, Zuordnung sowie Sichtbarkeit bei
+Überlagerung absichern, statt den alten Zwei-Merkmal-Test nur zu löschen.
+
+**Abnahmefälle:** beide Boxen gleichzeitig, gleich große/zusammenfallende
+Boxen, Programm teilweise außerhalb, Label vor/hinter Modell, starkes
+Herauszoomen, Hell/Dunkel/HC. Ein unbewegtes Beispiel mit gut sichtbaren
+Maßzahlen genügt dafür nicht.
+
+### Antworten auf die vier Planfragen
+
+1. **Oktaven gegenüber fester Zahl:** Das Unterpixel-/Aliasing-Argument
+   gegen eine feste Zellzahl über jeden Zoom ist tragfähig. Oktaven mit
+   Hysterese sind ein guter erster Prototyp; zunächst ohne Überblendung.
+   Eine dritte Variante sind weltverankerte Striche mit einer bei starker
+   Verkleinerung kontrolliert vereinfachten Kontur. Auch sie braucht eine
+   explizite Kontrastregel. Ableitungsbasierte Kantenglättung ist ein
+   möglicher Baustein, ersetzt diese Entscheidung aber nicht
+   ([Khronos: WebGL 2, `fwidth`/`smoothstep`](https://www.khronos.org/files/webgl20-reference-guide.pdf)).
+2. **Je Segment oder Objekt:** Für die zwölf Boxkanten ist eine LOD je
+   Kante vertretbar, mit stabiler Phase und Hysterese. Reach braucht eine
+   zusammenhängende Phase je Kette und eine ausdrücklich definierte
+   LOD-Bezugsgröße; eine Objekt-Oktave garantiert nicht überall gleiche
+   Pixelgrößen. Das **ändert bewusst VP-I10** von festen Bildschirmmaßen
+   zur Geometrieverankerung. Diese Änderung ist durch den Operatorwunsch
+   gedeckt; die alten Rasterwächter gezielt ersetzen, ihre Kontrastfälle
+   erhalten. Perspektivische Verkürzung und weniger Zellen pro Kante sind
+   zwei verschiedene Effekte, keine gegenseitige Garantie.
+3. **Gleiches Muster für beide Boxen:** Ja, mit dem geklärten
+   Kennzeichnungsvertrag aus VP62-02. Ich würde keine weitere Farbrolle
+   für die Boxen einführen.
+4. **Cyan für Nadeln:** Ja. Die eigene Rechnung bestätigt die genannten
+   OKLab-Abstände ungefähr, einschließlich 0,177 zur Schneide. Auf Weiß
+   beträgt der Kontrast **1,54:1**, auf dem dunklen Grund **12,49:1**,
+   gegenüber `#15181c` **11,58:1**. Der dunkle Träger muss erhalten bleiben.
+   Ich würde **Cyan auch in beiden HC-Themes beibehalten**; ein Wechsel
+   auf Weiß würde den Operatorwunsch nach festen Rollen erneut verlassen
+   und die Nadeln wieder an den hellen Box-Ton annähern. Die neutralen
+   Trägertöne können weiterhin dem Theme folgen.
+
+   Den neuen Pin-Token nicht nur in CSS/Materialmetadaten prüfen:
+   Auf allen drei tatsächlichen Nadeln, auf hellem/dunklem Grund und
+   Modellflächen, beim Themewechsel und nach Szenen-Neuaufbau prüfen.
+   Form, Beschriftung, feste Bildschirmgröße und On-top-Verhalten bleiben.
+   Der OKLab-Abstand ist ein projektspezifischer Farbvergleich, kein
+   Barrierefreiheitsnachweis; bei bedeutungstragenden Grafikteilen ist der
+   Kontrast zu den angrenzenden Farben zu bewerten
+   ([W3C: Non-text Contrast](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html)).
+
+### Validierung und Arbeitsgrenzen
+
+- Hauptarchiv: Typecheck/Build **PASS**, Frontend **125/125**, Backend
+  **62/62**, Browser-Nachprüfung **2/2**.
+- Paket 2: Typecheck/Build **PASS**, Layoutwächter **1/1** mit drei Ansichten.
+- Paket 3: Typecheck/Build **PASS**, vorhandene Layoutwächter **4/4**,
+  eigene Sonde abschließend **1/1** mit zwölf Layoutfällen.
+- Der erste zusätzliche Strip-Lauf hatte einen Fehler der Sonde
+  (`min-height:auto` als NaN). Ein weiterer wurde durch den Verlust des
+  eigenen Mocks unterbrochen. Beides ist getrennt dokumentiert; der
+  abschließende Lauf besteht. Keine Produktfehler daraus abgeleitet.
+- [Reproduktion und Prüfgrenzen](viewer-palette-fest.r62.repro.md),
+  [Frontend](viewer-palette-fest.r62.frontend-tests.txt),
+  [Backend](viewer-palette-fest.r62.backend-tests.txt),
+  [Settings](viewer-palette-fest.r62.settings-browser.txt),
+  [Strip-Wächter](viewer-palette-fest.r62.strip-browser.txt),
+  [abschließende Strip-Sonde](viewer-palette-fest.r62.strip-probe.txt).
+- Kein vollständiges Offline-Gate erneut ausgeführt, keine eigenen
+  Maschinenbefehle und keine eigene Live-Abnahme. Nur dieser Anhang und
+  neue `r62.*`-Belege im Live-Checkout; vorherige Belege unverändert,
+  keine Produktänderung und kein Commit. Eigene Mocks beendet.

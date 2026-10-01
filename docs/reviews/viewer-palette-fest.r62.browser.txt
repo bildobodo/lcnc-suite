@@ -1,0 +1,11 @@
+
+Running 2 tests using 1 worker
+
+(node:4067749) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4067749) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r62.spec.ts:10:1 › R62: tool offset words and layer changes without a new status (10.6s)
+  ✓  2 e2e/toolsetter.viewer.spec.ts:95:1 › G49 with a tool in the spindle: the Tool strip says Off, a pin marks the control point at the nose (operator 2026-10-01) (3.7s)
+
+  2 passed (15.0s)
