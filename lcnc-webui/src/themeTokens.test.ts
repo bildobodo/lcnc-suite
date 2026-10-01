@@ -76,11 +76,16 @@ describe("theme text roles", () => {
   // --bg; ≥ 4.5 in the HC themes). The path roles differ from each other by
   // ≥ 0.12 in OKLab (limit vs collision is the close one); the LINE pairs by
   // far more (the pair table below).
-  for (const name of ["root", "dark", "hc-light", "hc-dark"] as const) {
+  // The light themes draw the same luminous palette (operator 2026-10-01: it
+  // reads on the light ground in renders; the path lies on the model, which
+  // the next test holds): the background floor holds on the dark grounds only.
+  for (const name of ["dark", "hc-dark"] as const) {
     it(`${name}: every viewer line reads on the scene background, and the path roles tell apart`, () => {
       const b = block(THEMES[name]);
       const bg = hex(b.get("--bg")!);
-      const floor = name.startsWith("hc") ? 4.5 : 3;
+      // ONE palette (operator 2026-10-01): the dark theme's floor for the
+      // viewer colours in every dark ground — HC keeps 4.5 for text and controls.
+      const floor = 3;
       for (const r of VIEWER_LINES) {
         expect(contrast(hex(b.get(r)!), bg), `${name} ${r} on --bg`).toBeGreaterThanOrEqual(floor);
       }
@@ -99,7 +104,7 @@ describe("theme text roles", () => {
   // MODEL_MIN is the chosen palette's own floor, a regression value; the HC
   // themes are held to their background only (a named limit: their dark
   // light-theme lines sit near the mid-grey model).
-  for (const name of ["root", "dark", "auto-dark"] as const) {
+  for (const name of ["root", "light", "dark", "auto-dark", "hc-light", "hc-dark"] as const) {
     it(`${name}: every path line stands off the machine's grey surfaces`, () => {
       const b = block(THEMES[name]);
       for (const r of LINE_ROLES) for (const surface of MODEL_SURFACES) {
@@ -143,26 +148,23 @@ describe("theme text roles", () => {
     });
   }
 
-  // TWO schemes, ONE colour family per role (operator 2026-09-29, replacing
-  // "one value per role" of 2026-09-28): strong tones on the light scene,
-  // luminous ones on the dark — the hue stays, so a role never takes another
-  // role's colour on a theme switch. auto-dark is the dark block (above).
-  // Everything that is not a path role keeps ONE value in light and dark.
-  for (const name of ["dark", "auto-dark", "hc-light", "hc-dark"] as const) {
-    it(`${name}: every path role keeps the light theme's colour family`, () => {
-      const root = block(THEMES.root), b = block(THEMES[name]);
-      for (const r of PATH_ROLES) {
-        const base = hueChroma(hex(root.get(r)!)), other = hueChroma(hex(b.get(r)!));
-        const dh = Math.abs(((other.hue - base.hue + 540) % 360) - 180);
-        expect(dh, `${name} ${r}: hue within 15° of ${root.get(r)}`).toBeLessThanOrEqual(15);
-        expect(other.chroma, `${name} ${r}: a colour, not a grey`).toBeGreaterThanOrEqual(0.08);
-      }
+  // ONE palette in every theme (operator 2026-10-01, from renders on the
+  // light ground and on the model — replacing the two schemes of 2026-09-29):
+  // every colour role draws the dark theme's value in all five themes; only
+  // the neutral two-tone box / reach tones stay per theme (pure black and
+  // white in HC).
+  const COLOUR_ROLES = ["--viewer-feed", "--viewer-rapid", "--viewer-backplot", "--viewer-limit", "--viewer-collision",
+    "--viewer-tool", "--viewer-cutter", "--viewer-plane-active", "--viewer-plane-defined", "--viewer-plane-stale"];
+  for (const name of ["root", "light", "auto-dark", "hc-light", "hc-dark"] as const) {
+    it(`${name}: every colour role is the dark theme's`, () => {
+      const dark = block(THEMES.dark), b = block(THEMES[name]);
+      for (const r of COLOUR_ROLES) expect(b.get(r), `${name} ${r}`).toBe(dark.get(r));
     });
   }
   // The cutter meets the path at the tool tip (operator 2026-09-29): bright
   // steel, far from every line role and the collision tint — the gold it
   // replaced sat 0.12 from the orange limit.
-  for (const name of ["root", "dark", "auto-dark"] as const) {
+  for (const name of ["root", "dark", "auto-dark", "hc-light", "hc-dark"] as const) {
     it(`${name}: the cutter stands apart from every line role`, () => {
       const b = block(THEMES[name]);
       const cutter = hex(b.get("--viewer-cutter")!);
@@ -174,7 +176,7 @@ describe("theme text roles", () => {
   const FIXED_ROLES = ["--viewer-tool", "--viewer-cutter",
     "--viewer-plane-active", "--viewer-plane-defined", "--viewer-plane-stale", "--viewer-reach",
     "--viewer-bounds", "--viewer-toolpath-bounds", "--viewer-bounds-alt"];
-  it("light, dark and auto-dark draw every role but the path roles in the same colour", () => {
+  it("light, dark and auto-dark draw the neutral roles in the same colour too", () => {
     const root = block(THEMES.root);
     for (const name of ["light", "dark", "auto-dark"] as const) {
       const b = block(THEMES[name]);
