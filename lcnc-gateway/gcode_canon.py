@@ -121,14 +121,17 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # at one seq (`m6 t3 g43 h3`) resolve last-wins. Rows carry FULL
         # state (a G43 row the current tool, an M6 row the current tlo).
         # `tool` is -1 until the first executed M6 (= inherit the loaded
-        # tool). Segments BEFORE the first row run under the machine's LIVE
-        # modal G43 state, which no parse can know — the client resolves
-        # "no row yet" to the live applied offset; the parse's fresh
-        # interpreter starting at 0 is NOT what the machine runs with, so an
-        # initcode-driven tool_offset (lineno 0) must never become "the
-        # program asserted 0" (the ustart lineno rule). Absent = the program
+        # tool). Segments BEFORE the first row run under the machine's START
+        # tool state (its inherited modal G43): the worker seeds it with an
+        # init-line `G43.1` and ships it as `tlo_start` (VP-I20) — an
+        # initcode-driven tool_offset (lineno 0) is that seed, never "the
+        # program asserted it" (the ustart lineno rule). Absent = the program
         # never changes tool or offset.
         self.tlo_events = []
+        # The line each row was recorded on (parallel to tlo_events): the
+        # worker's `%`-row rule decides by ORIGIN, never by value alone
+        # (VP-I20, Codex R56 VP56-01).
+        self.tlo_event_lines = []
         self.cur_tool = -1
         self.xo = self.yo = self.zo = 0.0
         self.ao = self.bo = self.co = 0.0
@@ -216,6 +219,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self.cur_tool = idx
         if (self.lineno or 0) >= 1:
             self.tlo_events.append((self.seq, self.xo, self.yo, self.zo, idx))
+            self.tlo_event_lines.append(self.lineno)
 
     def tool_offset(self, xo, yo, zo, ao, bo, co, uo, vo, wo):
         self.first_move = True
@@ -230,6 +234,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # differs from "inherit live" (see tlo_events in __init__).
         if (self.lineno or 0) >= 1:
             self.tlo_events.append((self.seq, xo, yo, zo, self.cur_tool))
+            self.tlo_event_lines.append(self.lineno)
 
     # rotate_and_translate keeps straight moves in the same translated frame
     # gcode.arc_to_segments produces for arcs; WCS offsets subtract once at

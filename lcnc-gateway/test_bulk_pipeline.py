@@ -570,7 +570,8 @@ class TestPinnedReparse(unittest.TestCase):
             return (0, b"x" * 8, b'__SCHEMA__\t8\n__ABCSEED__\t{"A": 0.0, "C": 0.0}\n'
                                  b'__TLO__\t{"table_path": "/cfg/tool.tbl", "table_mtime": 5.0, '
                                  b'"tlos": [[13, 0.0, 0.0, 48.2, 8.0]], "applied_tlo": [0.0, 0.0, 0.0], '
-                                 b'"loaded_tool": 1}\n' + self.params_line)
+                                 b'"loaded_tool": 1, "start_known": true, "tlo_start": [0.0, 0.0, 41.5], '
+                                 b'"start_mode": 430, "start_reason": null}\n' + self.params_line)
         self.b._run_gcode_worker_blocking = worker
 
     def tearDown(self):
@@ -578,6 +579,17 @@ class TestPinnedReparse(unittest.TestCase):
 
     def _load(self):
         asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason="file"))
+
+    def test_a_published_parse_without_a_start_seed_pins_none(self):
+        # an older worker's meta (no start fields) or an unknown start: the
+        # pinned parse gets no start state, so it is unknown too (VP-I20)
+        self._load()
+        for meta in ({"applied_tlo": [0.0, 0.0, 9.0], "loaded_tool": 1},
+                     {"applied_tlo": [0.0, 0.0, 9.0], "loaded_tool": 1, "start_known": False,
+                      "tlo_start": None, "start_mode": None, "start_reason": "x"}):
+            self.b.published_tlo = meta
+            self.assertEqual(self.b.pinned_ctx(self.ngc)["seed_tool"],
+                             {"applied_tlo": None, "start_mode": None, "loaded_tool": 1})
 
     def test_the_published_ctx_is_what_the_worker_was_sent(self):
         self._load()
@@ -599,7 +611,10 @@ class TestPinnedReparse(unittest.TestCase):
         for k in ("file", "ini_path", "units", "var_patches", "g5x_index", "kins_type", "kins_frame"):
             self.assertEqual(ctx[k], first[0][k], k)
         self.assertEqual(ctx["rotary_pose"], {"A": 0.0, "C": 0.0})
-        self.assertEqual(ctx["seed_tool"], {"applied_tlo": [0.0, 0.0, 0.0], "loaded_tool": 1})
+        # the START tool state it was seeded with (VP-I20), not its reported
+        # live offset and not the running program's
+        self.assertEqual(ctx["seed_tool"], {"applied_tlo": [0.0, 0.0, 41.5], "start_mode": 430,
+                                            "loaded_tool": 1})
         self.assertEqual(ctx["nice"], BulkPipeline.PINNED_NICE)
         # the parameter basis the published parse ran on (MR-I02): G30,
         # G92 and every other numbered parameter — not re-read live

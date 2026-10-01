@@ -66,7 +66,7 @@ WORKER = os.path.join(_HERE, "..", "lcnc-gateway", "gcode_parse_worker.py")
 
 # ─────────────────────────── stage 1: preview ───────────────────────────
 
-def run_preview(ini_path, ngc, g5x_index=1, units="mm", rotary_pose=None):
+def run_preview(ini_path, ngc, g5x_index=1, units="mm", rotary_pose=None, applied_tlo=None):
     """Spawn the real parse worker exactly as the gateway does.
 
     INI_FILE_NAME must be in the environment or the interpreter initialises
@@ -92,6 +92,10 @@ def run_preview(ini_path, ngc, g5x_index=1, units="mm", rotary_pose=None):
            "var_patches": {}, "g5x_index": g5x_index}
     if rotary_pose:
         ctx["rotary_pose"] = rotary_pose
+    if applied_tlo:
+        # The start tool state (VP-I20), pinned like the rotary pose: the
+        # worker otherwise reads the sim's live applied offset.
+        ctx["applied_tlo"] = applied_tlo
     p = subprocess.run([sys.executable, WORKER],
                        input=msgspec.msgpack.encode(ctx),
                        capture_output=True, env=env,

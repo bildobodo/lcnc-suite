@@ -140,12 +140,18 @@ def _golden_path(config_name, ngc):
 # natural datum — the table frame is datum'd to coincide with machine
 # coordinates at A=0 — and any pose would do as long as it is stated.
 GOLDEN_ROTARY_POSE = {"A": 0.0, "B": 0.0, "C": 0.0}
+#: The start tool state the goldens are parsed under (VP-I20): G49, no
+#: offset — the worker otherwise seeds the sim's live applied offset and
+#: a golden would depend on which tool the sim last measured. G49 adds no
+#: init line, so the goldens recorded before the seed stay valid.
+GOLDEN_APPLIED_TLO = {"xyz": [0.0, 0.0, 0.0], "mode": 490}
 
 
 def run(mode, ini, files, config_name):
     fails = 0
     for ngc in files:
-        payload = run_preview(ini, ngc, rotary_pose=GOLDEN_ROTARY_POSE)
+        payload = run_preview(ini, ngc, rotary_pose=GOLDEN_ROTARY_POSE,
+                              applied_tlo=GOLDEN_APPLIED_TLO)
         # A payload that never parsed is not DRIFT. Comparing it field by
         # field produces a long, confident-looking report ("points.rapid:
         # golden=9 current=0") that describes the symptom and hides the

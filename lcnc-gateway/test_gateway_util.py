@@ -2672,6 +2672,7 @@ class TestCanonFirstMoveRearm(unittest.TestCase):
         c.sub_events = []
         c.unknown_start = []
         c.tlo_events = []
+        c.tlo_event_lines = []
         c.cur_tool = -1
         c.rotation_xy = 0.0
         c.xo = c.yo = c.zo = 0.0
@@ -3903,6 +3904,112 @@ class TestSeededToolMeta(unittest.TestCase):
         meta = {"table_mtime": 5.0, "tlos": [], "applied_tlo": applied, "loaded_tool": loaded}
         self.assertEqual(gateway_util.evaluate_tlo_drift(meta, 5.0, 13), "tool_loaded")
         self.assertIsNone(gateway_util.evaluate_tlo_drift(dict(meta, loaded_tool=13), 5.0, 13))
+
+
+class TestStartTloSeed(unittest.TestCase):
+    """The tool state a program STARTS with (VP-I20, plan Fassungen 3–6)."""
+
+    XYZ = 7          # axis mask X Y Z
+    XYZAC = 1 | 2 | 4 | 8 | 32
+
+    def test_live_g43_is_a_known_start_seeded_with_g43_1(self):
+        seed = gateway_util.start_tlo_seed((0.0, 0.0, 65.0512) + (0.0,) * 6,
+                                           (10, 430, 540), self.XYZAC)
+        self.assertEqual(seed, {"known": True, "xyz": [0.0, 0.0, 65.0512], "mode": 430,
+                                "reason": None})
+        self.assertEqual(gateway_util.start_tlo_initcode(seed, self.XYZAC),
+                         "G43.1 X0.000000000 Y0.000000000 Z65.051200000")
+        # G43.1 / G43.2 are the same start state
+        for code in (431, 432):
+            self.assertEqual(gateway_util.start_tlo_seed((0, 0, 1.5) + (0,) * 6, (code,), self.XYZ)["mode"], 430)
+
+    def test_live_g49_is_a_known_zero_start_with_no_init_line(self):
+        seed = gateway_util.start_tlo_seed((0.0,) * 9, (10, 490), self.XYZ)
+        self.assertEqual(seed, {"known": True, "xyz": [0.0, 0.0, 0.0], "mode": 490, "reason": None})
+        self.assertIsNone(gateway_util.start_tlo_initcode(seed, self.XYZ))
+
+    def test_an_unknown_start_is_never_guessed(self):
+        f = gateway_util.start_tlo_seed
+        cases = {
+            "no tool offset read": f(None, (430,), self.XYZ),
+            "no tool offset mode read": f((0, 0, 1) + (0,) * 6, (10, 540), self.XYZ),
+            "stat: tool offset not finite": f((0, 0, float("nan")) + (0,) * 6, (430,), self.XYZ),
+            "tool offset in A–W": f((0, 0, 1, 0.5) + (0,) * 5, (430,), self.XYZAC),
+            "G49 with a non-zero tool offset": f((0, 0, 1) + (0,) * 6, (490,), self.XYZ),
+            "tool offset on Y, which the machine lacks": f((0, 2, 1) + (0,) * 6, (430,), 1 | 4),
+            "pinned parse without a start seed": f(None, None, self.XYZ,
+                                                   seed_tool={"applied_tlo": [0, 0, 1], "loaded_tool": 1}),
+        }
+        for reason, seed in cases.items():
+            self.assertEqual(seed, {"known": False, "xyz": None, "mode": None, "reason": reason}, reason)
+            self.assertIsNone(gateway_util.start_tlo_initcode(seed, self.XYZ), reason)
+
+    def test_one_read_point_the_override_then_the_pinned_seed_then_stat(self):
+        f = gateway_util.start_tlo_seed
+        live = ((0, 0, 99.0) + (0,) * 6, (430,))
+        self.assertEqual(f(*live, self.XYZ, override={"xyz": [0, 0, 10], "mode": 430})["xyz"], [0, 0, 10])
+        pinned = f(*live, self.XYZ, seed_tool={"applied_tlo": [0, 0, 20], "start_mode": 430, "loaded_tool": 1})
+        self.assertEqual((pinned["xyz"], pinned["mode"]), ([0, 0, 20], 430))
+        self.assertEqual(f(*live, self.XYZ, seed_tool={"applied_tlo": [0, 0, 0], "start_mode": 490})["mode"], 490)
+        self.assertEqual(f(*live, self.XYZ)["xyz"], [0, 0, 99.0])
+
+    def test_the_init_line_names_only_axes_the_machine_has(self):
+        seed = gateway_util.start_tlo_seed((0, 0, 3) + (0,) * 6, (430,), 1 | 4)   # X Z lathe-style mask
+        self.assertEqual(gateway_util.start_tlo_initcode(seed, 1 | 4), "G43.1 X0.000000000 Z3.000000000")
+
+
+class TestPercentStartRow(unittest.TestCase):
+    """The seq-0 drop by ORIGIN (Codex R56 VP56-01, plan Fassung 6)."""
+
+    SEED = (0.0, 0.0, 10.0 / 25.4)
+    PCT = "%\nG21 G90\nG53 G0 Z0\nG0 X1\nM2\n%\n"
+
+    def test_the_leading_percent_row_carrying_the_seed_is_the_start_state(self):
+        ev = [(0, 0.0, 0.0, 10.0 / 25.4, -1)]
+        self.assertTrue(gateway_util.percent_start_row(ev, [1], self.PCT, self.SEED))
+
+    def test_every_condition_alone_keeps_the_row(self):
+        f = gateway_util.percent_start_row
+        ok = (0, 0.0, 0.0, 10.0 / 25.4, -1)
+        self.assertFalse(f([ok], [1], self.PCT, None), "nothing seeded")
+        self.assertFalse(f([(3,) + ok[1:]], [1], self.PCT, self.SEED), "after a motion")
+        self.assertFalse(f([ok[:4] + (13,)], [1], self.PCT, self.SEED), "a tool of its own")
+        self.assertFalse(f([(0, 0.0, 0.0, 10.0 / 25.4 + 1e-15, -1)], [1], self.PCT, self.SEED),
+                         "not bit-equal")
+        self.assertFalse(f([ok], [2], self.PCT, self.SEED), "a program line, not `%`")
+        self.assertFalse(f([ok], [99], self.PCT, self.SEED), "a line the file lacks")
+        self.assertFalse(f([], [], self.PCT, self.SEED), "no rows")
+        self.assertFalse(f([ok], [3], "G21\nG90\n%\n", self.SEED), "a `%` that is no delimiter")
+        self.assertTrue(f([ok], [2], "\n%\nG0 X1\n", self.SEED), "blank lines before it")
+
+    def test_codex_r56_g49_then_g43_1_at_seq_0_keeps_both(self):
+        # G49 (line 2, Z0) then G43.1 Z10 (line 3, Z10 = the seed) before any
+        # motion: the second row carries the seed's value, but neither is the
+        # first row of a `%` line — dropping it made G49 govern (Z0, not Z10).
+        prog = "G21 G90\nG49\nG43.1 Z10\nG0 X0 Y0 Z0\nG0 X10 Y0 Z0\nM2\n"
+        ev = [(0, 0.0, 0.0, 0.0, -1), (0, 0.0, 0.0, 10.0 / 25.4, -1)]
+        self.assertFalse(gateway_util.percent_start_row(ev, [2, 3], prog, self.SEED))
+
+    def test_percent_then_a_program_g43_1_drops_only_the_percent_row(self):
+        prog = "%\nG21 G90\nG43.1 Z10\nG0 X0 Y0 Z0\nM2\n%\n"
+        ev = [(0, 0.0, 0.0, 10.0 / 25.4, -1), (0, 0.0, 0.0, 10.0 / 25.4, -1)]
+        self.assertTrue(gateway_util.percent_start_row(ev, [1, 3], prog, self.SEED))
+        # only row 0 is ever considered: the program's own row stays
+        self.assertFalse(gateway_util.percent_start_row(ev[1:], [3], prog, self.SEED))
+
+    def test_the_seed_in_canon_units_is_what_the_interpreter_computes(self):
+        seed = {"known": True, "xyz": [0.0, 0.0, 65.0512], "mode": 430, "reason": None}
+        # native: the `%` row of a 65.0512 mm seed carries 2.561070866141732
+        self.assertEqual(gateway_util.start_tlo_canon_xyz(seed, 7, "mm"), (0.0, 0.0, 2.561070866141732))
+        self.assertEqual(gateway_util.start_tlo_canon_xyz(dict(seed, xyz=[0, 0, 0.5]), 7, "in"), (0.0, 0.0, 0.5))
+        self.assertIsNone(gateway_util.start_tlo_canon_xyz(dict(seed, mode=490, xyz=[0, 0, 0]), 7, "mm"))
+        self.assertIsNone(gateway_util.start_tlo_canon_xyz({"known": False}, 7, "mm"))
+
+    def test_nth_line(self):
+        self.assertEqual(gateway_util.nth_line("a\n  %  \nc", 2), "  %  ")
+        self.assertEqual(gateway_util.nth_line("a\nb", 2), "b")
+        self.assertIsNone(gateway_util.nth_line("a\nb", 3))
+        self.assertIsNone(gateway_util.nth_line("", 1))
 
 
 class TestProgramEndKinsType(unittest.TestCase):

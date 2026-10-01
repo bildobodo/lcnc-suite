@@ -385,7 +385,12 @@ class BulkPipeline:
         if self.published_rotary_seed:
             ctx["rotary_pose"] = dict(self.published_rotary_seed)
         tlo = self.published_tlo or {}
-        ctx["seed_tool"] = {"applied_tlo": tlo.get("applied_tlo"),
+        # The published parse's START tool state (VP-I20) — not its reported
+        # live offset: the pinned parse reproduces the start it was seeded
+        # with. A published meta without one (an older worker, or an unknown
+        # start) carries no mode, and the pinned parse is then unknown too.
+        ctx["seed_tool"] = {"applied_tlo": tlo.get("tlo_start") if tlo.get("start_known") else None,
+                            "start_mode": tlo.get("start_mode") if tlo.get("start_known") else None,
                             "loaded_tool": tlo.get("loaded_tool")}
         ctx["nice"] = self.PINNED_NICE
         return ctx

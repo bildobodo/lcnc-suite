@@ -1479,6 +1479,154 @@ def seeded_tool_meta(live_applied, live_spindle, seed_tool=None):
     return applied, spindle, extra
 
 
+#: Group-8 codes of the G43 family as STAT.gcodes reports them (G43, G43.1,
+#: G43.2) and G49's.
+_G43_FAMILY = (430, 431, 432)
+_G49_CODE = 490
+
+
+def start_tlo_seed(applied, gcodes, axis_mask, override=None, seed_tool=None):
+    """The tool offset a program STARTS with (VP-I20, Codex R51–R57): the
+    machine inherits its modal G43 state at program start, so the preview
+    interpreter must start there too — else every move before the program's
+    own G43/G49 is limit-checked without the offset the machine runs it with.
+
+    ONE read point for all three sources, so the seeded and the reported
+    start can never disagree:
+    - `override` {"xyz": [x, y, z], "mode": 430|490}: the offline gates'
+      fixed value (the gateway never sets it — like `rotary_pose`);
+    - `seed_tool` {"applied_tlo", "start_mode"}: a PINNED parse reproduces
+      the published parse's start; a seed without a mode (a parse published
+      before this rule) is no start state → unknown;
+    - else the live STAT: `applied` = tool_offset (9 values), `gcodes` =
+      the active G-codes (490 → G49, a G43-family code → G43).
+
+    Returns {"known": bool, "xyz": [x, y, z] | None, "mode": 430|490|None,
+    "reason": str|None}. Unknown — no value, not finite, a mode the codes do
+    not name, a G49 with a non-zero vector, a non-zero A–W component (the
+    client's TLO is XYZ throughout; plan Fassung 3 E) or a non-zero component
+    on an axis the machine lacks — is never guessed: the worker then seeds
+    nothing and withholds the limit verdict (`start_unknown`). Machine
+    units. Pure."""
+    def _unknown(reason):
+        return {"known": False, "xyz": None, "mode": None, "reason": reason}
+
+    if override is not None:
+        vec, mode, src = override.get("xyz"), override.get("mode"), "override"
+    elif seed_tool:
+        vec, mode, src = seed_tool.get("applied_tlo"), seed_tool.get("start_mode"), "seed"
+        if mode is None:
+            return _unknown("pinned parse without a start seed")
+    else:
+        vec, src = applied, "stat"
+        try:
+            codes = set(int(c) for c in (gcodes or ()))
+        except (TypeError, ValueError):
+            codes = set()
+        mode = (_G49_CODE if _G49_CODE in codes
+                else 430 if codes & set(_G43_FAMILY) else None)
+        if vec is None:
+            return _unknown("no tool offset read")
+        if mode is None:
+            return _unknown("no tool offset mode read")
+    try:
+        vals = [float(v) for v in list(vec)]
+    except (TypeError, ValueError):
+        return _unknown(f"{src}: tool offset not a vector")
+    if len(vals) < 3 or not all(math.isfinite(v) for v in vals):
+        return _unknown(f"{src}: tool offset not finite")
+    if any(v != 0.0 for v in vals[3:]):
+        return _unknown("tool offset in A–W")
+    xyz = vals[:3]
+    try:
+        mode = int(mode)
+    except (TypeError, ValueError):
+        return _unknown(f"{src}: tool offset mode {mode!r}")
+    if mode == _G49_CODE:
+        if any(v != 0.0 for v in xyz):
+            return _unknown("G49 with a non-zero tool offset")
+    elif mode not in _G43_FAMILY:
+        return _unknown(f"{src}: tool offset mode {mode}")
+    else:
+        mode = 430
+    for i, letter in enumerate("XYZ"):
+        if xyz[i] != 0.0 and not (int(axis_mask or 0) >> i) & 1:
+            return _unknown(f"tool offset on {letter}, which the machine lacks")
+    return {"known": True, "xyz": xyz, "mode": mode, "reason": None}
+
+
+def start_tlo_initcode(seed, axis_mask):
+    """The init line that puts the preview interpreter in the program's start
+    tool state: `G43.1` with the start vector on the machine's X/Y/Z (in
+    machine units — it runs after the unit code) for a G43 start; nothing for
+    G49 (the interpreter starts there) or an unknown start. Only axes the
+    machine has: the interpreter refuses an axis word it lacks ("Bad
+    character 'w' used", plan Fassung 2). Pure."""
+    if not seed or not seed.get("known") or seed.get("mode") != 430:
+        return None
+    words = []
+    for i, letter in enumerate("XYZ"):
+        if (int(axis_mask or 0) >> i) & 1:
+            words.append("%s%.9f" % (letter, seed["xyz"][i]))
+    return "G43.1 " + " ".join(words) if words else None
+
+
+def start_tlo_canon_xyz(seed, axis_mask, machine_units):
+    """The xyz the init line puts in effect, in the CANON's units (inches —
+    LinuxCNC's internal unit), exactly as the interpreter computes it: the
+    line's own text (`%.9f`, start_tlo_initcode) read back and, on a mm
+    machine, divided by 25.4 — bit-equal to the row a `%` program records
+    (native, plan Fassung 6). None when nothing is seeded. Pure."""
+    if start_tlo_initcode(seed, axis_mask) is None:
+        return None
+    div = 25.4 if machine_units == "mm" else 1.0
+    return tuple(float("%.9f" % v) / div for v in seed["xyz"])
+
+
+def nth_line(text, n):
+    """Line `n` (1-based) of `text`, without its newline; None past the end.
+    Scans only up to that line (the `%` row is line 1 of a 17 MB file). Pure."""
+    if not text or n is None or n < 1:
+        return None
+    start = 0
+    for _ in range(n - 1):
+        nl = text.find("\n", start)
+        if nl < 0:
+            return None
+        start = nl + 1
+    end = text.find("\n", start)
+    return text[start:] if end < 0 else text[start:end]
+
+
+def percent_start_row(events, event_lines, source_text, seed_raw):
+    """Is the FIRST TLO row the interpreter's re-issue of the start offset on
+    a `%` line — the start state itself, not a program event? (Codex R56
+    VP56-01, plan Fassung 6.) All five conditions, by ORIGIN, never by value
+    alone: it is the first row; it sits at seq 0 (no motion recorded yet);
+    its line in the main file reads exactly `%` (whitespace stripped) and is
+    the file's first non-blank line — the program delimiter, so a sub's line
+    number can never point at it by coincidence; its vector is bit-equal to
+    the seeded one (`seed_raw`, start_tlo_canon_xyz — None when nothing was
+    seeded); its tool is the inherited one (-1). Any doubt keeps the row.
+    (Native: the row IS the init line's own canon call, delivered on the `%`
+    line.) Returns True to drop row 0. Pure."""
+    if not events or seed_raw is None or not event_lines:
+        return False
+    ev = events[0]
+    try:
+        if int(ev[0]) != 0 or int(ev[4]) != -1:
+            return False
+        if (float(ev[1]), float(ev[2]), float(ev[3])) != tuple(float(v) for v in seed_raw):
+            return False
+    except (TypeError, ValueError, IndexError):
+        return False
+    n = event_lines[0]
+    line = nth_line(source_text, n)
+    if line is None or line.strip() != "%":
+        return False
+    return all((nth_line(source_text, k) or "").strip() == "" for k in range(1, n))
+
+
 #: The worker's exit code when a PINNED parse cannot pin the start state
 #: (a random toolchanger): the gateway keeps the stale-marked preview and
 #: stops asking for pinned parses on this config (Codex R40 MR-I01).

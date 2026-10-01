@@ -86,6 +86,7 @@ from gateway_util import (
     LINE_NONE, LINE_RAPID, LINE_FEED, LINE_EITHER,
     seed_kins_events, program_end_kins_type, wcs_offset_flat_from_var,
     seeded_tool_meta, seeded_spindle_row, PIN_UNSUPPORTED_EXIT,
+    start_tlo_seed, start_tlo_initcode, start_tlo_canon_xyz, percent_start_row,
     find_unmarked_subs, resolve_subroutine_dirs,
 )
 
@@ -218,6 +219,15 @@ def parse(ctx: dict) -> dict:
         print("__PIN_UNSUPPORTED__\trandom toolchanger", file=sys.stderr, flush=True)
         sys.exit(PIN_UNSUPPORTED_EXIT)
     canon = PreviewCanon(s, random_tc)
+    # The tool state the program STARTS with (VP-I20, Codex R51–R57): the
+    # machine runs every move before the program's own G43/G49 under its
+    # inherited modal G43, so the interpreter starts there too — read ONCE
+    # here (the gates' `applied_tlo` override, else a pinned parse's seed,
+    # else this STAT read), seeded as an init-line G43.1 and reported as
+    # `tlo_start` from the same value. Unknown → nothing seeded and the
+    # limit verdict withheld below (never 0, never live).
+    _start = start_tlo_seed(getattr(s, "tool_offset", None), getattr(s, "gcodes", None),
+                            getattr(s, "axis_mask", 0), ctx.get("applied_tlo"), seed_tool)
     if seed_tool:
         # The interpreter reads the spindle tool from pocket 0 of the canon's
         # table (G43 without H, M6 bookkeeping): a PINNED parse starts with
@@ -283,6 +293,13 @@ def parse(ctx: dict) -> dict:
         # segment of this payload stale (the arc-vs-plunge class).
         _rot_seed = rotary_seed_values(
             getattr(s, "axis_mask", 0), _actual_pos)
+        # The start tool state (above): after the unit code (its values are
+        # machine units) and the rotary sync (a G53 move the offset must not
+        # touch), before the fixture code. Absent for a G49 start (the
+        # interpreter starts there) and for an unknown one.
+        _tlo_init = start_tlo_initcode(_start, getattr(s, "axis_mask", 0))
+        if _tlo_init:
+            initcodes.append(_tlo_init)
         wcs_code = _WCS_CODES.get(g5x_index if isinstance(g5x_index, int) else 0)
         if wcs_code:
             initcodes.append(wcs_code)
@@ -363,6 +380,18 @@ def parse(ctx: dict) -> dict:
             _src_text = f.read()
     except OSError as e:
         _trace.emit_exc("gcode.tool_scan_failed", e)
+    # A `%` program re-issues the start offset on its `%` line before any
+    # motion (plan Fassung 6, native): that row IS the start state —
+    # `tlo_start` carries it — and shipping it would put every point "after
+    # the first row" and hide its start dependence from the client's
+    # normalisation. Dropped by ORIGIN only (percent_start_row: first row,
+    # seq 0, the delimiter line, bit-equal to the seed, inherited tool).
+    if percent_start_row(canon.tlo_events, canon.tlo_event_lines, _src_text,
+                         start_tlo_canon_xyz(_start, getattr(s, "axis_mask", 0), machine_units)):
+        canon.tlo_events = canon.tlo_events[1:]
+        canon.tlo_event_lines = canon.tlo_event_lines[1:]
+        print("tlo: the `%` line's re-issue of the start offset is the start state — "
+              "no row", file=sys.stderr, flush=True)
 
     # Per-line soft-limit validation (offline dry run stage 1). Runs on the
     # FULL canon segment list — the RDP decimation below can shave up to eps
@@ -1181,7 +1210,12 @@ def parse(ctx: dict) -> dict:
     # gateway reparsed every debounce interval forever.
     print("__TLO__\t" + json.dumps(
         {"table_path": _tt_path, "table_mtime": _tt_mtime, "tlos": parse_tlos,
-         "applied_tlo": _applied_tlo, "loaded_tool": _spindle_tool}),
+         "applied_tlo": _applied_tlo, "loaded_tool": _spindle_tool,
+         # The start tool state this parse was seeded with (VP-I20): the
+         # basis the verify edge compares the live offset with, and what a
+         # pinned re-parse reproduces (bulk_pipeline.pinned_ctx).
+         "start_known": _start["known"], "tlo_start": _start["xyz"],
+         "start_mode": _start["mode"], "start_reason": _start["reason"]}),
         file=sys.stderr, flush=True)
     if _rot_seed is not None:
         # Rotary pose this parse was seeded with (W6) — the gateway's
@@ -1239,6 +1273,13 @@ def parse(ctx: dict) -> dict:
               "rapid": rapid_bin, "stats": stats, "bounds": bounds,
               "motion_bounds": motion_bounds,
               "violations": violations, "violations_total": violations_total,
+              # The start tool state (VP-I20): the offset the points before
+              # the first TLO row were parsed under — the client's resolver
+              # basis for them (tloEvents.ts). Absent with `start_known:
+              # false`: nothing seeded, the limit verdict withheld below.
+              "start_known": _start["known"],
+              **({"tlo_start": _start["xyz"]} if _start["known"] else
+                 {"start_reason": _start["reason"]}),
               # Whether the per-point line numbers actually index THIS file.
               # A program that calls an external subroutine or a remap gets
               # motion tagged with that file's line numbers, which collide with
@@ -1383,12 +1424,11 @@ def parse(ctx: dict) -> dict:
         # put in effect at that point (G43/G43.1/G49 and executed M6 on
         # program lines; tool -1 = no M6 executed yet, inherit the loaded
         # tool). A row at seq N governs segments with seq > N; two rows at
-        # one seq resolve last-wins. Segments BEFORE the first row run
-        # under the machine's LIVE modal G43 state (the client resolves
-        # "no row" to the live applied offset — the parse's fresh
-        # interpreter starting at 0 is not what the machine runs with).
-        # Absent = the program never changes tool or offset; the client
-        # applies the live offset throughout, exactly as pre-8.
+        # one seq resolve last-wins. Segments BEFORE the first row ran
+        # under the START tool state the parse was seeded with — `tlo_start`
+        # (VP-I20); the client resolves "no row" to the tool basis it
+        # normalises to (tloEvents.ts). Absent = the program never changes
+        # tool or offset: every point is "before the first row".
         result["tlo_events"] = [
             [int(_s), float(_xo) * unit_scale, float(_yo) * unit_scale,
              float(_zo) * unit_scale, int(_tool)]
@@ -1420,6 +1460,18 @@ def parse(ctx: dict) -> dict:
         # with no WEBUI_SUB markers — the stats dialog shows one info-tier
         # hint. Present only when non-empty.
         result["unmarked_subs"] = unmarked_subs
+    if not _start["known"]:
+        # Unknown start (plan Fassung 3 A, Codex R54): every point before the
+        # program's own G43/G49 — and X/Y alike — ran under an offset nobody
+        # knows, so no verdict is given at all: unchecked ≠ clean.
+        result["violations"] = None
+        result["violations_total"] = 0
+        result["violations_reason"] = "start_unknown"
+        result.pop("feed_outside", None)
+        result.pop("rapid_outside", None)
+        result.pop("violations_world_unchecked", None)
+        print(f"limits: start tool offset unknown ({_start['reason']}) — no verdict",
+              file=sys.stderr, flush=True)
     if _refusal:
         # Present only when a remap refused the program — the operator's
         # reason for an otherwise clean, EMPTY payload (task would refuse
