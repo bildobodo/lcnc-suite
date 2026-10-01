@@ -118,6 +118,24 @@ test("G49 with a tool in the spindle: the Tool strip says Off, a pin marks the c
   await ctl({ op: "status_delta", data: { tool_offset: nine(65), gcodes: [-1, 0, 170, 400, 430, 540, 800, 900, 940, 210] } });
   await expect(offsetRow).toHaveText("· G43");
   await expect.poll(async () => (await pin())?.visible ?? null).toBe(false);
+  // The word is the REPORTED mode, never inferred from a numeric match
+  // (Codex R61 VP-I25): a zero-length tool under G49 says G49, a G43.1 of
+  // the table's value says G43.1 — neither is a warning, neither has a pin.
+  await ctl({ op: "status_delta", data: { tool_table_z: 0, tool_length: 0, tool_offset: nine(0), gcodes: [-1, 0, 170, 400, 490, 540, 800, 900, 940, 210] } });
+  await expect(offsetRow).toHaveText("· G49");
+  await expect(offsetRow).not.toHaveClass(/\bwarn\b/);
+  await ctl({ op: "status_delta", data: { tool_table_z: 65, tool_length: 65, tool_offset: nine(65), gcodes: [-1, 0, 170, 400, 431, 540, 800, 900, 940, 210] } });
+  await expect(offsetRow).toHaveText("· G43.1");
+  await expect.poll(async () => (await pin())?.visible ?? null).toBe(false);
+  // The pin follows the Tool layer at once, with no further status (VP-I26)
+  await ctl({ op: "status_delta", data: { tool_offset: nine(0), gcodes: [-1, 0, 170, 400, 490, 540, 800, 900, 940, 210] } });
+  await expect.poll(async () => (await pin())?.visible ?? null).toBe(true);
+  await ctl({ op: "quiet", on: true });
+  for (const on of [false, true]) {
+    await ctl({ op: "raw", frame: { type: "settings_changed", settings: { viewer: { layers: { tool: on } } } } });
+    await expect.poll(async () => (await pin())?.visible ?? null, { message: `Tool layer ${on ? "on" : "off"}: the pin without a status`, timeout: 3_000 }).toBe(on);
+  }
+  await ctl({ op: "quiet", on: false });
 });
 
 // Codex R45 ST-I04: the physical offset keeps the table's SIGN (status
