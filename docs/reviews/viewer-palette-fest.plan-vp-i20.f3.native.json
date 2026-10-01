@@ -1,0 +1,3417 @@
+{
+ "what": "VP-I20 plan, Fassung 3: the start-offset dependence MEASURED by a shadow parse \u2014 the same program with the start offset moved by eps, every canon point (pre-decimation) compared in the validator's machine frame; d = 0 independent, d = eps depends (coefficient 1), else coupled; any mismatch in point count, seq, line or unknown-start set = misaligned. One fresh process per parse, the real worker + LinuxCNC 2.9.4's offline interpreter.",
+ "main_seed": "G43.1 X0 Y0 Z10 after G21/G90 (synthetic: Z max 50); `unknown` parses its main without an init line",
+ "synthetic_eps_z": {
+  "eps": [
+   0,
+   0,
+   1.0
+  ],
+  "cases": [
+   {
+    "case": "arc_abs_end",
+    "program": "G21 G90\nG0 X0 Y0 Z40\nG49\nG17 G2 X20 Y0 I10 J0 F100\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/arc_abs_end.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 45,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 40.1
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/arc_abs_end.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 45,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 2,
+       "axis": "Z",
+       "value": 51.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 40.0
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 46,
+     "axes": {
+      "Z": {
+       "dep": 46,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        4
+       ],
+       "dep_line_count": 2,
+       "slack_hi": 0.0,
+       "over_hi": null,
+       "slack_lo": 550.0,
+       "over_lo": null
+      }
+     }
+    }
+   },
+   {
+    "case": "arc_rel",
+    "program": "G21 G90\nG0 X0 Y0 Z40\nG49\nG91 G17 G2 X20 Y0 I10 J0 F100\nG90 G0 X0\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/arc_rel.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 45,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 40.2
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/arc_rel.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 45,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 2,
+       "axis": "Z",
+       "value": 51.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 40.2
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 47,
+     "axes": {
+      "Z": {
+       "dep": 47,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        4,
+        5
+       ],
+       "dep_line_count": 3,
+       "slack_hi": 0.0,
+       "over_hi": null,
+       "slack_lo": 550.0,
+       "over_lo": null
+      }
+     }
+    }
+   },
+   {
+    "case": "canned_old_z",
+    "program": "G21 G90\nG0 X0 Y0 Z40\nG81 X10 Y0 Z30 R42 F100\nG49\nX20\nG80\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/canned_old_z.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 2,
+     "rapid": 7,
+     "tlo_events": [
+      [
+       5,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 3,
+       "axis": "Z",
+       "value": 52.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 40.0
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/canned_old_z.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 2,
+     "rapid": 7,
+     "tlo_events": [
+      [
+       5,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 2,
+     "violations": [
+      {
+       "line": 2,
+       "axis": "Z",
+       "value": 51.0,
+       "limit": 50.0,
+       "kind": "max"
+      },
+      {
+       "line": 3,
+       "axis": "Z",
+       "value": 53.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 40.0
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 9,
+     "axes": {
+      "Z": {
+       "dep": 5,
+       "coupled": 0,
+       "indep": 4,
+       "dep_lines": [
+        2,
+        3
+       ],
+       "dep_line_count": 2,
+       "slack_hi": 0.0,
+       "over_hi": 2.0,
+       "slack_lo": 540.0,
+       "over_lo": null
+      }
+     }
+    }
+   },
+   {
+    "case": "carried_z",
+    "program": "G21 G90\nG0 X0 Y0 Z40\nG49\nG0 X10\nG1 Y10 F100\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/carried_z.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/carried_z.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 2,
+     "violations": [
+      {
+       "line": 2,
+       "axis": "Z",
+       "value": 51.0,
+       "limit": 50.0,
+       "kind": "max"
+      },
+      {
+       "line": 4,
+       "axis": "Z",
+       "value": 51.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 3,
+     "axes": {
+      "Z": {
+       "dep": 3,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        4,
+        5
+       ],
+       "dep_line_count": 3,
+       "slack_hi": 0.0,
+       "over_hi": null,
+       "slack_lo": 550.0,
+       "over_lo": null
+      }
+     }
+    }
+   },
+   {
+    "case": "cond_beyond_eps",
+    "program": "G21 G90\nG0 X0 Y0 Z40\nG49\nO1 if [#5422 GT 55]\nG0 X0 Y0 Z0\nO1 else\nG0 X5 Y5 Z5\nO1 endif\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/cond_beyond_eps.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 0,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/cond_beyond_eps.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 0,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 2,
+       "axis": "Z",
+       "value": 51.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 2,
+     "axes": {
+      "Z": {
+       "dep": 1,
+       "coupled": 0,
+       "indep": 1,
+       "dep_lines": [
+        2
+       ],
+       "dep_line_count": 1,
+       "slack_hi": 0.0,
+       "over_hi": null,
+       "slack_lo": 550.0,
+       "over_lo": null
+      }
+     }
+    }
+   },
+   {
+    "case": "cond_within_eps",
+    "program": "G21 G90\nG0 X0 Y0 Z40\nG49\nO1 if [#5422 GT 50.5]\nG0 X0 Y0 Z0\nO1 else\nG0 X5 Y5 Z5\nO1 endif\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/cond_within_eps.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 0,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/cond_within_eps.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 0,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 2,
+       "axis": "Z",
+       "value": 51.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": false,
+     "why": [
+      "rapid_line"
+     ]
+    }
+   },
+   {
+    "case": "g43_family",
+    "program": "G21 G90\nG0 X0 Y0 Z40\nG43.2 Z2\nG0 Z30\nG43\nG0 Z20\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/g43_family.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 0,
+     "rapid": 4,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       12.0,
+       -1
+      ],
+      [
+       3,
+       0.0,
+       0.0,
+       10.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/g43_family.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 0,
+     "rapid": 4,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       12.999999999999998,
+       -1
+      ],
+      [
+       3,
+       0.0,
+       0.0,
+       10.0,
+       -1
+      ]
+     ],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 2,
+       "axis": "Z",
+       "value": 51.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 4,
+     "axes": {
+      "Z": {
+       "dep": 3,
+       "coupled": 0,
+       "indep": 1,
+       "dep_lines": [
+        2,
+        3,
+        4
+       ],
+       "dep_line_count": 3,
+       "slack_hi": 0.0,
+       "over_hi": null,
+       "slack_lo": 514.0,
+       "over_lo": null
+      }
+     }
+    }
+   },
+   {
+    "case": "g49_explicit",
+    "program": "G21 G90\nG49\nG0 X0 Y0 Z40\nG1 X10 Z45 F100\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/g49_explicit.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       0,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/g49_explicit.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       0,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 2,
+     "axes": {
+      "Z": {
+       "dep": 0,
+       "coupled": 0,
+       "indep": 2
+      }
+     }
+    }
+   },
+   {
+    "case": "g49_motion",
+    "program": "G21 G90\nG49 G0 X0 Y0 Z40\nG1 X10 Z45 F100\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/g49_motion.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       0,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/g49_motion.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       0,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 2,
+     "axes": {
+      "Z": {
+       "dep": 0,
+       "coupled": 0,
+       "indep": 2
+      }
+     }
+    }
+   },
+   {
+    "case": "g53_then_incremental",
+    "program": "G21 G90\nG53 G0 Z0\nG49\nG91\nG1 Z5 F100\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/g53_then_incremental.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/g53_then_incremental.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 2,
+     "axes": {
+      "Z": {
+       "dep": 0,
+       "coupled": 0,
+       "indep": 2
+      }
+     }
+    }
+   },
+   {
+    "case": "limit_near",
+    "program": "G21 G90\nG0 X0 Y0 Z39\nG1 X10 Z39.999 F100\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/limit_near.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/limit_near.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 3,
+       "axis": "Z",
+       "value": 50.999,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 2,
+     "axes": {
+      "Z": {
+       "dep": 2,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        3
+       ],
+       "dep_line_count": 2,
+       "slack_hi": 0.001,
+       "over_hi": null,
+       "slack_lo": 549.0,
+       "over_lo": null
+      }
+     }
+    }
+   },
+   {
+    "case": "param_arith",
+    "program": "G21 G90\nG0 X0 Y0 Z40\nG49\n#1=[#5422*2]\nG0 X0 Y0 Z[#1-60]\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/param_arith.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 0,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/param_arith.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 0,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 2,
+       "axis": "Z",
+       "value": 51.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 2,
+     "axes": {
+      "Z": {
+       "dep": 1,
+       "coupled": 1,
+       "indep": 0,
+       "dep_lines": [
+        2
+       ],
+       "dep_line_count": 1,
+       "slack_hi": 0.0,
+       "over_hi": null,
+       "slack_lo": 550.0,
+       "over_lo": null,
+       "coupled_lines": [
+        5
+       ],
+       "coupled_d": [
+        2.0
+       ]
+      }
+     }
+    }
+   },
+   {
+    "case": "relative_after_g49",
+    "program": "G21 G90\nG0 X0 Y0 Z39.990\nG49\nG91\nG1 Z0.009 F100\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/relative_after_g49.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/relative_after_g49.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 2,
+     "violations": [
+      {
+       "line": 2,
+       "axis": "Z",
+       "value": 50.99,
+       "limit": 50.0,
+       "kind": "max"
+      },
+      {
+       "line": 5,
+       "axis": "Z",
+       "value": 50.999,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 2,
+     "axes": {
+      "Z": {
+       "dep": 2,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        5
+       ],
+       "dep_line_count": 2,
+       "slack_hi": 0.001,
+       "over_hi": null,
+       "slack_lo": 549.99,
+       "over_lo": null
+      }
+     }
+    }
+   },
+   {
+    "case": "restore",
+    "program": "G21 G90\nM70\nG49\nG0 X0 Y0 Z0\nM72\nG1 X10 Z45 F100\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/restore.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       0,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ],
+      [
+       1,
+       0.0,
+       0.0,
+       10.0,
+       -1
+      ]
+     ],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 6,
+       "axis": "Z",
+       "value": 55.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/restore.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       0,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ],
+      [
+       1,
+       0.0,
+       0.0,
+       10.0,
+       -1
+      ]
+     ],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 6,
+       "axis": "Z",
+       "value": 55.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 2,
+     "axes": {
+      "Z": {
+       "dep": 0,
+       "coupled": 0,
+       "indep": 2
+      }
+     }
+    }
+   },
+   {
+    "case": "table_param",
+    "program": "G21 G90\n#1=#5403\nG0 X0 Y0 Z[#1+30]\nG49\nG0 Z#1\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/table_param.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 0,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/table_param.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 0,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 3,
+       "axis": "Z",
+       "value": 51.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 2,
+     "axes": {
+      "Z": {
+       "dep": 1,
+       "coupled": 0,
+       "indep": 1,
+       "dep_lines": [
+        3
+       ],
+       "dep_line_count": 1,
+       "slack_hi": 0.0,
+       "over_hi": null,
+       "slack_lo": 550.0,
+       "over_lo": null
+      }
+     }
+    }
+   },
+   {
+    "case": "unknown",
+    "program": "G21 G90\nG0 X0 Y0 Z40\nG1 X10 Z45 F100\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/unknown.ngc",
+     "seed": null,
+     "initcodes": [
+      "G21",
+      "G90",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/unknown.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      1.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z1.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 2,
+     "axes": {
+      "Z": {
+       "dep": 2,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        3
+       ],
+       "dep_line_count": 2,
+       "slack_hi": 5.0,
+       "over_hi": null,
+       "slack_lo": 540.0,
+       "over_lo": null
+      }
+     }
+    }
+   }
+  ]
+ },
+ "synthetic_eps_xyz": {
+  "eps": [
+   0.25,
+   0.5,
+   1.0
+  ],
+  "note": "the first form tried; X/Y moves too",
+  "cases": [
+   {
+    "case": "arc_abs_end",
+    "program": "G21 G90\nG0 X0 Y0 Z40\nG49\nG17 G2 X20 Y0 I10 J0 F100\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/arc_abs_end.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 45,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 40.0
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/arc_abs_end.ngc",
+     "seed": [
+      0.25,
+      0.5,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.250000000 Y0.500000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": "Radius to end of arc differs from radius to start: start=(X0.2500,Y0.5000) center=(X10.2500,Y0.5000) end=(X20.0000,Y0.0000) r1=10.0000 r2=9.7628 abs_err=0.2372 rel_err=2.3719%",
+     "feed": 0,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 2,
+       "axis": "Z",
+       "value": 51.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.8
+    },
+    "diff": {
+     "aligned": false,
+     "why": [
+      "feed_seq",
+      "feed_line"
+     ]
+    }
+   },
+   {
+    "case": "arc_rel",
+    "program": "G21 G90\nG0 X0 Y0 Z40\nG49\nG91 G17 G2 X20 Y0 I10 J0 F100\nG90 G0 X0\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/arc_rel.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 45,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 40.0
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/arc_rel.ngc",
+     "seed": [
+      0.25,
+      0.5,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.250000000 Y0.500000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 45,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 2,
+       "axis": "Z",
+       "value": 51.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 40.2
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 47,
+     "axes": {
+      "X": {
+       "dep": 46,
+       "coupled": 0,
+       "indep": 1,
+       "dep_lines": [
+        2,
+        4
+       ],
+       "dep_line_count": 2,
+       "slack_hi": 480.0,
+       "over_hi": null,
+       "slack_lo": 500.0,
+       "over_lo": null
+      },
+      "Y": {
+       "dep": 47,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        4,
+        5
+       ],
+       "dep_line_count": 3,
+       "slack_hi": 490.006092,
+       "over_hi": null,
+       "slack_lo": 500.0,
+       "over_lo": null
+      },
+      "Z": {
+       "dep": 47,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        4,
+        5
+       ],
+       "dep_line_count": 3,
+       "slack_hi": 0.0,
+       "over_hi": null,
+       "slack_lo": 550.0,
+       "over_lo": null
+      }
+     }
+    }
+   },
+   {
+    "case": "canned_old_z",
+    "program": "G21 G90\nG0 X0 Y0 Z40\nG81 X10 Y0 Z30 R42 F100\nG49\nX20\nG80\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/canned_old_z.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 2,
+     "rapid": 7,
+     "tlo_events": [
+      [
+       5,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 3,
+       "axis": "Z",
+       "value": 52.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 40.0
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/canned_old_z.ngc",
+     "seed": [
+      0.25,
+      0.5,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.250000000 Y0.500000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 2,
+     "rapid": 7,
+     "tlo_events": [
+      [
+       5,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 2,
+     "violations": [
+      {
+       "line": 2,
+       "axis": "Z",
+       "value": 51.0,
+       "limit": 50.0,
+       "kind": "max"
+      },
+      {
+       "line": 3,
+       "axis": "Z",
+       "value": 53.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 40.0
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 9,
+     "axes": {
+      "X": {
+       "dep": 6,
+       "coupled": 0,
+       "indep": 3,
+       "dep_lines": [
+        2,
+        3,
+        5
+       ],
+       "dep_line_count": 3,
+       "slack_hi": 490.0,
+       "over_hi": null,
+       "slack_lo": 500.0,
+       "over_lo": null
+      },
+      "Y": {
+       "dep": 9,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        3,
+        5
+       ],
+       "dep_line_count": 3,
+       "slack_hi": 500.0,
+       "over_hi": null,
+       "slack_lo": 500.0,
+       "over_lo": null
+      },
+      "Z": {
+       "dep": 5,
+       "coupled": 0,
+       "indep": 4,
+       "dep_lines": [
+        2,
+        3
+       ],
+       "dep_line_count": 2,
+       "slack_hi": 0.0,
+       "over_hi": 2.0,
+       "slack_lo": 540.0,
+       "over_lo": null
+      }
+     }
+    }
+   },
+   {
+    "case": "carried_z",
+    "program": "G21 G90\nG0 X0 Y0 Z40\nG49\nG0 X10\nG1 Y10 F100\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/carried_z.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/carried_z.ngc",
+     "seed": [
+      0.25,
+      0.5,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.250000000 Y0.500000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 2,
+     "violations": [
+      {
+       "line": 2,
+       "axis": "Z",
+       "value": 51.0,
+       "limit": 50.0,
+       "kind": "max"
+      },
+      {
+       "line": 4,
+       "axis": "Z",
+       "value": 51.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.8
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 3,
+     "axes": {
+      "X": {
+       "dep": 1,
+       "coupled": 0,
+       "indep": 2,
+       "dep_lines": [
+        2
+       ],
+       "dep_line_count": 1,
+       "slack_hi": 500.0,
+       "over_hi": null,
+       "slack_lo": 500.0,
+       "over_lo": null
+      },
+      "Y": {
+       "dep": 2,
+       "coupled": 0,
+       "indep": 1,
+       "dep_lines": [
+        2,
+        4
+       ],
+       "dep_line_count": 2,
+       "slack_hi": 500.0,
+       "over_hi": null,
+       "slack_lo": 500.0,
+       "over_lo": null
+      },
+      "Z": {
+       "dep": 3,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        4,
+        5
+       ],
+       "dep_line_count": 3,
+       "slack_hi": 0.0,
+       "over_hi": null,
+       "slack_lo": 550.0,
+       "over_lo": null
+      }
+     }
+    }
+   },
+   {
+    "case": "cond_beyond_eps",
+    "program": "G21 G90\nG0 X0 Y0 Z40\nG49\nO1 if [#5422 GT 55]\nG0 X0 Y0 Z0\nO1 else\nG0 X5 Y5 Z5\nO1 endif\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/cond_beyond_eps.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 0,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/cond_beyond_eps.ngc",
+     "seed": [
+      0.25,
+      0.5,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.250000000 Y0.500000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 0,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 2,
+       "axis": "Z",
+       "value": 51.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 2,
+     "axes": {
+      "X": {
+       "dep": 1,
+       "coupled": 0,
+       "indep": 1,
+       "dep_lines": [
+        2
+       ],
+       "dep_line_count": 1,
+       "slack_hi": 500.0,
+       "over_hi": null,
+       "slack_lo": 500.0,
+       "over_lo": null
+      },
+      "Y": {
+       "dep": 1,
+       "coupled": 0,
+       "indep": 1,
+       "dep_lines": [
+        2
+       ],
+       "dep_line_count": 1,
+       "slack_hi": 500.0,
+       "over_hi": null,
+       "slack_lo": 500.0,
+       "over_lo": null
+      },
+      "Z": {
+       "dep": 1,
+       "coupled": 0,
+       "indep": 1,
+       "dep_lines": [
+        2
+       ],
+       "dep_line_count": 1,
+       "slack_hi": 0.0,
+       "over_hi": null,
+       "slack_lo": 550.0,
+       "over_lo": null
+      }
+     }
+    }
+   },
+   {
+    "case": "cond_within_eps",
+    "program": "G21 G90\nG0 X0 Y0 Z40\nG49\nO1 if [#5422 GT 50.5]\nG0 X0 Y0 Z0\nO1 else\nG0 X5 Y5 Z5\nO1 endif\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/cond_within_eps.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 0,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/cond_within_eps.ngc",
+     "seed": [
+      0.25,
+      0.5,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.250000000 Y0.500000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 0,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 2,
+       "axis": "Z",
+       "value": 51.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": false,
+     "why": [
+      "rapid_line"
+     ]
+    }
+   },
+   {
+    "case": "g43_family",
+    "program": "G21 G90\nG0 X0 Y0 Z40\nG43.2 Z2\nG0 Z30\nG43\nG0 Z20\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/g43_family.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 0,
+     "rapid": 4,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       12.0,
+       -1
+      ],
+      [
+       3,
+       0.0,
+       0.0,
+       10.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/g43_family.ngc",
+     "seed": [
+      0.25,
+      0.5,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.250000000 Y0.500000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 0,
+     "rapid": 4,
+     "tlo_events": [
+      [
+       1,
+       0.24999999999999997,
+       0.49999999999999994,
+       12.999999999999998,
+       -1
+      ],
+      [
+       3,
+       0.0,
+       0.0,
+       10.0,
+       -1
+      ]
+     ],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 2,
+       "axis": "Z",
+       "value": 51.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 4,
+     "axes": {
+      "X": {
+       "dep": 4,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        3,
+        4,
+        6
+       ],
+       "dep_line_count": 4,
+       "slack_hi": 500.0,
+       "over_hi": null,
+       "slack_lo": 500.0,
+       "over_lo": null
+      },
+      "Y": {
+       "dep": 4,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        3,
+        4,
+        6
+       ],
+       "dep_line_count": 4,
+       "slack_hi": 500.0,
+       "over_hi": null,
+       "slack_lo": 500.0,
+       "over_lo": null
+      },
+      "Z": {
+       "dep": 3,
+       "coupled": 0,
+       "indep": 1,
+       "dep_lines": [
+        2,
+        3,
+        4
+       ],
+       "dep_line_count": 3,
+       "slack_hi": 0.0,
+       "over_hi": null,
+       "slack_lo": 514.0,
+       "over_lo": null
+      }
+     }
+    }
+   },
+   {
+    "case": "g49_explicit",
+    "program": "G21 G90\nG49\nG0 X0 Y0 Z40\nG1 X10 Z45 F100\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/g49_explicit.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       0,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/g49_explicit.ngc",
+     "seed": [
+      0.25,
+      0.5,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.250000000 Y0.500000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       0,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 2,
+     "axes": {
+      "X": {
+       "dep": 0,
+       "coupled": 0,
+       "indep": 2
+      },
+      "Y": {
+       "dep": 0,
+       "coupled": 0,
+       "indep": 2
+      },
+      "Z": {
+       "dep": 0,
+       "coupled": 0,
+       "indep": 2
+      }
+     }
+    }
+   },
+   {
+    "case": "g49_motion",
+    "program": "G21 G90\nG49 G0 X0 Y0 Z40\nG1 X10 Z45 F100\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/g49_motion.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       0,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/g49_motion.ngc",
+     "seed": [
+      0.25,
+      0.5,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.250000000 Y0.500000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       0,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 2,
+     "axes": {
+      "X": {
+       "dep": 0,
+       "coupled": 0,
+       "indep": 2
+      },
+      "Y": {
+       "dep": 0,
+       "coupled": 0,
+       "indep": 2
+      },
+      "Z": {
+       "dep": 0,
+       "coupled": 0,
+       "indep": 2
+      }
+     }
+    }
+   },
+   {
+    "case": "g53_then_incremental",
+    "program": "G21 G90\nG53 G0 Z0\nG49\nG91\nG1 Z5 F100\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/g53_then_incremental.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/g53_then_incremental.ngc",
+     "seed": [
+      0.25,
+      0.5,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.250000000 Y0.500000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 2,
+     "axes": {
+      "X": {
+       "dep": 0,
+       "coupled": 0,
+       "indep": 2
+      },
+      "Y": {
+       "dep": 0,
+       "coupled": 0,
+       "indep": 2
+      },
+      "Z": {
+       "dep": 0,
+       "coupled": 0,
+       "indep": 2
+      }
+     }
+    }
+   },
+   {
+    "case": "limit_near",
+    "program": "G21 G90\nG0 X0 Y0 Z39\nG1 X10 Z39.999 F100\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/limit_near.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/limit_near.ngc",
+     "seed": [
+      0.25,
+      0.5,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.250000000 Y0.500000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 3,
+       "axis": "Z",
+       "value": 50.999,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.8
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 2,
+     "axes": {
+      "X": {
+       "dep": 2,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        3
+       ],
+       "dep_line_count": 2,
+       "slack_hi": 490.0,
+       "over_hi": null,
+       "slack_lo": 500.0,
+       "over_lo": null
+      },
+      "Y": {
+       "dep": 2,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        3
+       ],
+       "dep_line_count": 2,
+       "slack_hi": 500.0,
+       "over_hi": null,
+       "slack_lo": 500.0,
+       "over_lo": null
+      },
+      "Z": {
+       "dep": 2,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        3
+       ],
+       "dep_line_count": 2,
+       "slack_hi": 0.001,
+       "over_hi": null,
+       "slack_lo": 549.0,
+       "over_lo": null
+      }
+     }
+    }
+   },
+   {
+    "case": "param_arith",
+    "program": "G21 G90\nG0 X0 Y0 Z40\nG49\n#1=[#5422*2]\nG0 X0 Y0 Z[#1-60]\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/param_arith.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 0,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/param_arith.ngc",
+     "seed": [
+      0.25,
+      0.5,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.250000000 Y0.500000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 0,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 2,
+       "axis": "Z",
+       "value": 51.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 2,
+     "axes": {
+      "X": {
+       "dep": 1,
+       "coupled": 0,
+       "indep": 1,
+       "dep_lines": [
+        2
+       ],
+       "dep_line_count": 1,
+       "slack_hi": 500.0,
+       "over_hi": null,
+       "slack_lo": 500.0,
+       "over_lo": null
+      },
+      "Y": {
+       "dep": 1,
+       "coupled": 0,
+       "indep": 1,
+       "dep_lines": [
+        2
+       ],
+       "dep_line_count": 1,
+       "slack_hi": 500.0,
+       "over_hi": null,
+       "slack_lo": 500.0,
+       "over_lo": null
+      },
+      "Z": {
+       "dep": 1,
+       "coupled": 1,
+       "indep": 0,
+       "dep_lines": [
+        2
+       ],
+       "dep_line_count": 1,
+       "slack_hi": 0.0,
+       "over_hi": null,
+       "slack_lo": 550.0,
+       "over_lo": null,
+       "coupled_lines": [
+        5
+       ],
+       "coupled_d": [
+        2.0
+       ]
+      }
+     }
+    }
+   },
+   {
+    "case": "relative_after_g49",
+    "program": "G21 G90\nG0 X0 Y0 Z39.990\nG49\nG91\nG1 Z0.009 F100\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/relative_after_g49.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/relative_after_g49.ngc",
+     "seed": [
+      0.25,
+      0.5,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.250000000 Y0.500000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 2,
+     "violations": [
+      {
+       "line": 2,
+       "axis": "Z",
+       "value": 50.99,
+       "limit": 50.0,
+       "kind": "max"
+      },
+      {
+       "line": 5,
+       "axis": "Z",
+       "value": 50.999,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 2,
+     "axes": {
+      "X": {
+       "dep": 2,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        5
+       ],
+       "dep_line_count": 2,
+       "slack_hi": 500.0,
+       "over_hi": null,
+       "slack_lo": 500.0,
+       "over_lo": null
+      },
+      "Y": {
+       "dep": 2,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        5
+       ],
+       "dep_line_count": 2,
+       "slack_hi": 500.0,
+       "over_hi": null,
+       "slack_lo": 500.0,
+       "over_lo": null
+      },
+      "Z": {
+       "dep": 2,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        5
+       ],
+       "dep_line_count": 2,
+       "slack_hi": 0.001,
+       "over_hi": null,
+       "slack_lo": 549.99,
+       "over_lo": null
+      }
+     }
+    }
+   },
+   {
+    "case": "restore",
+    "program": "G21 G90\nM70\nG49\nG0 X0 Y0 Z0\nM72\nG1 X10 Z45 F100\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/restore.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       0,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ],
+      [
+       1,
+       0.0,
+       0.0,
+       10.0,
+       -1
+      ]
+     ],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 6,
+       "axis": "Z",
+       "value": 55.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/restore.ngc",
+     "seed": [
+      0.25,
+      0.5,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.250000000 Y0.500000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [
+      [
+       0,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ],
+      [
+       1,
+       0.0,
+       0.0,
+       10.0,
+       -1
+      ]
+     ],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 6,
+       "axis": "Z",
+       "value": 55.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 2,
+     "axes": {
+      "X": {
+       "dep": 0,
+       "coupled": 0,
+       "indep": 2
+      },
+      "Y": {
+       "dep": 0,
+       "coupled": 0,
+       "indep": 2
+      },
+      "Z": {
+       "dep": 0,
+       "coupled": 0,
+       "indep": 2
+      }
+     }
+    }
+   },
+   {
+    "case": "table_param",
+    "program": "G21 G90\n#1=#5403\nG0 X0 Y0 Z[#1+30]\nG49\nG0 Z#1\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/table_param.ngc",
+     "seed": [
+      0.0,
+      0.0,
+      10.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 0,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/table_param.ngc",
+     "seed": [
+      0.25,
+      0.5,
+      11.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.250000000 Y0.500000000 Z11.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 0,
+     "rapid": 2,
+     "tlo_events": [
+      [
+       1,
+       0.0,
+       0.0,
+       0.0,
+       -1
+      ]
+     ],
+     "violations_total": 1,
+     "violations": [
+      {
+       "line": 3,
+       "axis": "Z",
+       "value": 51.0,
+       "limit": 50.0,
+       "kind": "max"
+      }
+     ],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 2,
+     "axes": {
+      "X": {
+       "dep": 2,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        3,
+        5
+       ],
+       "dep_line_count": 2,
+       "slack_hi": 500.0,
+       "over_hi": null,
+       "slack_lo": 500.0,
+       "over_lo": null
+      },
+      "Y": {
+       "dep": 2,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        3,
+        5
+       ],
+       "dep_line_count": 2,
+       "slack_hi": 500.0,
+       "over_hi": null,
+       "slack_lo": 500.0,
+       "over_lo": null
+      },
+      "Z": {
+       "dep": 1,
+       "coupled": 0,
+       "indep": 1,
+       "dep_lines": [
+        3
+       ],
+       "dep_line_count": 1,
+       "slack_hi": 0.0,
+       "over_hi": null,
+       "slack_lo": 550.0,
+       "over_lo": null
+      }
+     }
+    }
+   },
+   {
+    "case": "unknown",
+    "program": "G21 G90\nG0 X0 Y0 Z40\nG1 X10 Z45 F100\nM2\n",
+    "main": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/unknown.ngc",
+     "seed": null,
+     "initcodes": [
+      "G21",
+      "G90",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "shadow": {
+     "program": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/vp20diff/progs/unknown.ngc",
+     "seed": [
+      0.25,
+      0.5,
+      1.0
+     ],
+     "initcodes": [
+      "G21",
+      "G90",
+      "G43.1 X0.250000000 Y0.500000000 Z1.000000000",
+      "G54"
+     ],
+     "parse_error": null,
+     "feed": 1,
+     "rapid": 1,
+     "tlo_events": [],
+     "violations_total": 0,
+     "violations": [],
+     "interp_s": 0.0,
+     "total_s": 0.0,
+     "maxrss_mb": 39.9
+    },
+    "diff": {
+     "aligned": true,
+     "why": [],
+     "points": 2,
+     "axes": {
+      "X": {
+       "dep": 2,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        3
+       ],
+       "dep_line_count": 2,
+       "slack_hi": 490.0,
+       "over_hi": null,
+       "slack_lo": 500.0,
+       "over_lo": null
+      },
+      "Y": {
+       "dep": 2,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        3
+       ],
+       "dep_line_count": 2,
+       "slack_hi": 500.0,
+       "over_hi": null,
+       "slack_lo": 500.0,
+       "over_lo": null
+      },
+      "Z": {
+       "dep": 2,
+       "coupled": 0,
+       "indep": 0,
+       "dep_lines": [
+        2,
+        3
+       ],
+       "dep_line_count": 2,
+       "slack_hi": 5.0,
+       "over_hi": null,
+       "slack_lo": 540.0,
+       "over_lo": null
+      }
+     }
+    }
+   }
+  ]
+ },
+ "heavy_test": {
+  "what": "heavy_test.ngc (689 079 lines) on the XYZAC sim INI (read-only), live tool table via a read-only stat; T13 table 65.0512, G54 X -86.025 Z -109.725; one fresh process per parse",
+  "runs": {
+   "main": {
+    "seed": [
+     0.0,
+     0.0,
+     65.0512
+    ],
+    "initcodes": [
+     "G21",
+     "G90",
+     "G43.1 X0.000000000 Y0.000000000 Z65.051200000",
+     "G53 G0 A0.000000000 C0.000000000",
+     "G54"
+    ],
+    "parse_error": null,
+    "feed": 689190,
+    "rapid": 5,
+    "tlo_events": [
+     [
+      0,
+      0.0,
+      0.0,
+      65.0512,
+      -1
+     ],
+     [
+      3,
+      0.0,
+      0.0,
+      65.05119966666669,
+      -1
+     ]
+    ],
+    "violations_total": 0,
+    "violations": [],
+    "interp_s": 1.04,
+    "total_s": 6.43,
+    "maxrss_mb": 1003.5,
+    "returncode": 0
+   },
+   "shadow_xyz": {
+    "seed": [
+     0.25,
+     0.5,
+     66.0512
+    ],
+    "initcodes": [
+     "G21",
+     "G90",
+     "G43.1 X0.250000000 Y0.500000000 Z66.051200000",
+     "G53 G0 A0.000000000 C0.000000000",
+     "G54"
+    ],
+    "parse_error": "Radius to end of arc differs from radius to start: start=(Y168.4060,Z-4.8840) center=(Y168.2190,Z-4.8840) end=(Y167.6730,Z-5.0660) r1=0.1870 r2=0.5755 abs_err=0.3885 rel_err=67.5085%",
+    "feed": 2,
+    "rapid": 4,
+    "tlo_events": [
+     [
+      0,
+      0.24999999999999997,
+      0.49999999999999994,
+      66.0512,
+      -1
+     ],
+     [
+      3,
+      0.0,
+      0.0,
+      65.05119966666669,
+      -1
+     ]
+    ],
+    "violations_total": 0,
+    "violations": [],
+    "interp_s": 0.0,
+    "total_s": 1.77,
+    "maxrss_mb": 123.7,
+    "returncode": 0
+   },
+   "shadow_z": {
+    "seed": [
+     0.0,
+     0.0,
+     66.0512
+    ],
+    "initcodes": [
+     "G21",
+     "G90",
+     "G43.1 X0.000000000 Y0.000000000 Z66.051200000",
+     "G53 G0 A0.000000000 C0.000000000",
+     "G54"
+    ],
+    "parse_error": null,
+    "feed": 689190,
+    "rapid": 5,
+    "tlo_events": [
+     [
+      0,
+      0.0,
+      0.0,
+      66.0512,
+      -1
+     ],
+     [
+      3,
+      0.0,
+      0.0,
+      65.05119966666669,
+      -1
+     ]
+    ],
+    "violations_total": 0,
+    "violations": [],
+    "interp_s": 1.08,
+    "total_s": 6.55,
+    "maxrss_mb": 1003.0,
+    "returncode": 0
+   }
+  },
+  "diff_shadow_xyz": {
+   "aligned": false,
+   "why": [
+    "feed_seq",
+    "feed_line",
+    "rapid_seq",
+    "rapid_line"
+   ]
+  },
+  "diff_shadow_z": {
+   "aligned": true,
+   "why": [],
+   "points": 689195,
+   "axes": {
+    "Z": {
+     "dep": 0,
+     "coupled": 0,
+     "indep": 689195
+    }
+   }
+  }
+ },
+ "percent_row": "a program with a `%` line records a TLO row at seq 0 carrying the seed when a G43.1 seed is given; without a seed it records none (progs: %/G21 G90/G53 G0 Z0/G0 X1/M2/% on the XYZAC INI)"
+}

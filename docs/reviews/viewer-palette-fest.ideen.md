@@ -5061,3 +5061,231 @@ Kein vollständiges Offline-Gate, keine Live-Fahrt; eigener Mock beendet.
 Die nächste Runde kann auf **VP52-01-Rest A/B und die dazu angepasste
 Planfassung** begrenzt bleiben. VP-I21 und Settings bleiben abgenommen,
 solange deren Umsetzung dafür unverändert bleibt.
+
+---
+
+## Antwort R54 · Claude · Plan VP-I20 Fassung 3 · 1. Oktober 2026
+
+Deine R53-Belege stehen unverändert in `c3c8df9`. Rest A und Rest B nehme
+ich an. Beide gehören zur selben Klasse wie R51 (430/490) und R52: Ein
+Regelwerk über Modalzustände erfasst nur die Fälle, die es aufzählt.
+Fassung 3 ersetzt deshalb Abschnitt B, statt ihn zu ergänzen. Die
+Abhängigkeit vom Startoffset wird **gemessen**, nicht aus G49, G53 oder
+G91 hergeleitet. Die Regeln über 490 und 530 entfallen.
+
+### Kern: ein Schattenparse misst die Abhängigkeit
+
+- **Schatten:** dasselbe Programm mit demselben Kontext, aber mit dem
+  Startoffset in Z um **ε = 1 Maschineneinheit** verschoben. Er läuft in
+  einem eigenen frischen Prozess und umfasst nur Interpreter und Canon.
+- **Vergleich je Canon-Punkt:** Feed und Rapid werden vor der Dezimierung
+  im Rahmen des Validators verglichen, also Punkt plus TLO seines Segments.
+  Unter Identitätskinematik ist das die Maschinenkoordinate.
+  - d_Z = 0: unabhängig.
+  - d_Z = ε genau: hängt mit Faktor 1 vom Start ab.
+  - Jedes andere d_Z und jedes d ≠ 0 in X, Y, A–C: **gekoppelt**.
+- **Ausrichtung:** Hauptparse und Schatten müssen in Punktzahl je Strom,
+  `seq`, Zeile und der Menge der unbekannten Starts übereinstimmen.
+  - Jede Abweichung, auch ein Fehler, Abbruch oder Timeout des Schattens,
+    heißt **nicht aufgelöst**.
+  - Dann zählt das ganze Programm so, als hinge jeder Punkt gekoppelt vom
+    Start ab (siehe D). Nie gilt es als unabhängig.
+- **Was damit ohne Regel herausfällt:** G53, G91 nach G49, nicht
+  genannte Achsen, G43.1/G43.2, G43 H, die Reihenfolge im selben Satz,
+  M70/M72, Rückzugsebenen von Bohrzyklen und Bögen. Der Interpreter rechnet
+  es aus.
+- **Warum nur Z:** Ein Schatten, der auch X/Y verschiebt, bricht bei
+  `heavy_test` an N70 ab: „Radius to end of arc differs from radius to
+  start“.
+  - N50 fährt X/Y unter dem Startoffset an. N55 setzt mit `G43 H13` den
+    Offset zurück, aber das Y bleibt stehen, und der YZ-Bogen in N70 beginnt
+    dort.
+  - Y hängt also tatsächlich vom Start ab. Nur ändert sich der X/Y-Offset
+    einer Fräse praktisch nie.
+  - X/Y werden deshalb nicht gemessen, sondern konservativ behandelt (D).
+
+### Nativ geprüft (ein frischer Prozess je Parse)
+
+Beleg [f3.native.json](viewer-palette-fest.plan-vp-i20.f3.native.json),
+Sonden [diffcase](viewer-palette-fest.plan-vp-i20.f3.diffcase.py),
+[compare](viewer-palette-fest.plan-vp-i20.f3.compare.py),
+[run](viewer-palette-fest.plan-vp-i20.f3.run.py),
+[run-heavy](viewer-palette-fest.plan-vp-i20.f3.run-heavy.py).
+Synthetische INI mit Z-Max 50, Startoffset Z10, Schatten Z11:
+
+| Programm | Ergebnis des Schattens |
+|---|---|
+| Dein Rest B (`G0 Z39.990`, G49, G91 `G1 Z0.009`) | L2 und L5 hängen in Z ab; **Abstand oben 0,001 mm** (L5 bei 49,999) |
+| Dein Rest A (`unknown`) mit bekanntem Start 0 | beide Punkte abhängig, Abstand 5 mm |
+| G49 allein · G49 und Bewegung im selben Satz · M70/G49/M72 · G53 dann G91 | kein abhängiger Punkt |
+| `G43.2 Z2` · danach bares `G43` (Tabellenzeile) | G43.2 hält die Abhängigkeit, nach G43 ist Z unabhängig |
+| Z nach G49 nicht genannt · XY-Bogen mit diesem Z · Bohrzyklus mit R-Ebene vor G49 | abhängig; der Zyklus zeigt dazu einen schon bestehenden Befund 2 mm über Z-Max |
+| `#1=[#5422*2]` nach G49 | **gekoppelt** (d = 2) |
+| Verzweigung auf `#5422`, die innerhalb von ε kippt | **nicht ausgerichtet** |
+| Verzweigung auf `#5422`, die erst jenseits von ε kippt | nicht gesehen, siehe Restgrenze |
+| `#5403` in einer Rechnung | unabhängig; `#5403` ist die Tabellenzeile, wie du in R52 notiert hast |
+
+**`heavy_test`** (689 079 Zeilen, XYZAC-INI nur gelesen, Werkzeugtabelle
+live):
+- Schatten in Z ausgerichtet.
+- **0 von 689 195 Punkten hängen in Z vom Start ab.** G53 Z0 legt Z im
+  Maschinenrahmen fest, N50 nennt kein Z, N55 setzt Z absolut unter der
+  Tabellenzeile.
+- Eine Z-Änderung beliebiger Größe löst also keinen Neu-Parse aus. Die
+  Messstreuung von 4–5 µm hängt nicht mehr an `DRAW_EPS`.
+
+**Zeiten auf dieser VM** (vollständiger Worker):
+- 6,4 s, davon Interpreter mit Canon 1,0 s; Spitzen-RSS 1,0 GB.
+- Der Schatten im Experiment war noch ein vollständiger Worker. Im Produkt
+  bleibt er bei Interpreter und einer schlanken Aufzeichnung (E).
+
+**Sondenhinweis:** Unter der echten INI pollt die Sonde einmal ein echtes,
+nur lesendes `linuxcnc.stat()`.
+- LinuxCNC 2.9 löst T und H über die Werkzeugdatenbank der laufenden
+  Instanz auf.
+- Ohne sie stürzt jede T- oder H-Abfrage ab. Das war der Absturz der
+  synthetischen Sonden in R51 bis R53.
+
+### A. Startzustand und unbekannter Start (Rest A)
+
+- **Seed bildet den Live-Modus nach:**
+  - `STAT.gcodes` mit 490: keine Initzeile, Start bekannt mit 0.
+  - G43-Familie (430): `G43.1 X… Y… Z…` mit dem angewandten Vektor.
+  - Lesestelle, gepinnter Parse (`seed_tool`) und Gate-Override
+    `ctx["applied_tlo"]` wie in Fassung 2.
+- **`start_known` ist ein Meta-Flag**, unabhängig vom Interpreterzustand.
+  490 ohne Seed ist kein Nachweis von irgendetwas.
+- **Unbekannter Start:** STAT fehlt, ein Wert ist nicht endlich, ein
+  gepinnter Parse hat keinen Seed, oder der angewandte Offset hat eine
+  A–W-Komponente ≠ 0 (siehe E).
+  - **Die Limitbewertung wird für das ganze Programm zurückgehalten:**
+    `violations: null` mit Grund `start_unknown`, keine Außen-Flags.
+  - Statistik: „Start tool offset unknown — soft limits not validated“.
+  - Nicht nur eine Teilmenge: Ein unbekannter Start lässt auch X/Y offen,
+    und der Schatten misst nur Z.
+  - Praktisch ist das der Übergang eines älteren gepinnten Meta oder ein
+    STAT-Fehler; beides ist selten. Konservativ ist hier richtig.
+
+### B. Abhängigkeit (ersetzt Fassung 2, Rest B)
+
+- Abhängig in Z ist genau, was der Schatten als d_Z = ε zeigt. Gekoppelt
+  ist, was weder 0 noch ε zeigt. Nicht aufgelöst ist ein Programm mit
+  fehlender Ausrichtung.
+- Eine Markierung „vor dem ersten G49“ gibt es nicht mehr.
+  - Die Statistik sagt „N moves depend on the start tool offset (Z)“, aus
+    der tatsächlichen Menge.
+  - Bei fehlender Ausrichtung: „Start dependence not resolved — every tool
+    offset change re-parses“.
+
+### C. Basis (VP52-02, akzeptiert)
+
+- `tlo_start` bleibt die veröffentlichte Basis für Zeichnung, Scrub,
+  Part-Frame und Kollision. Der gepinnte Parse behält sie während des
+  Laufs.
+- **Beobachtet:** Ein Programm mit `%`-Zeile bekommt unter dem Seed eine
+  TLO-Zeile bei seq 0, die genau den Startwert trägt. Ohne Seed entsteht
+  keine.
+  - Die Darstellung ist dieselbe, weil die Zeile `tlo_start` trägt.
+  - Der Wächter prüft beides.
+
+### D. Gültigkeit und Auslöser (VP52-03, mit deinen Gates)
+
+- **Gültigkeitsbereich in Z:**
+  - Die veröffentlichten Befunde gelten, solange **kein abhängiger Punkt
+    eine Grenze überquert**, weder hinaus noch hinein.
+  - Ein Punkt auf der Grenze gilt als innen, wie im Validator.
+  - Daraus folgen je Richtung der Abstand der innen liegenden abhängigen
+    Punkte und der Überstand der außen liegenden.
+  - **Δ = 0 liegt immer im Bereich.** Ein bestehender Befund verschiebt nur
+    eine Seite: Δ, das ihn zurückholt, parst neu; Δ weiter hinaus nicht.
+- **Kein Bereich, nur Δ = 0:** bei gekoppelten Punkten, bei fehlender
+  Ausrichtung und bei abhängigen Punkten unter Welt-Kinematik (TCP/TWP).
+  Dann parst jede Z-Änderung neu.
+- **X und Y** werden nicht gemessen. Jede Änderung über 1e-9 parst neu.
+  - Ihre Werte kommen aus Tabelle oder G43.1, ohne Streuung.
+- **Zeichnung:** Abhängige Punkte liegen auf der Startbasis. Bei |Δz| >
+  `DRAW_EPS` (0,01 mm) und mindestens einem in Z abhängigen Punkt wird neu
+  geparst.
+- **Keine Schleife:** Nach jedem Parse ist `tlo_start` die verwendete
+  Basis. Der nächste Leerlaufvergleich sieht also Δ = 0.
+- Bis zum neuen Parse gilt die bestehende Stale-Markierung.
+
+### E. Schattenprozess, Kosten, Umfang
+
+- **Prozess:**
+  - Der Worker startet den Schatten zu Beginn als frischen Prozess, mit
+    eigener Prozessgruppe und `PR_SET_PDEATHSIG`. Ein Abbruch des Workers
+    beendet beide.
+  - Der Schatten hat dieselbe Priorität; gepinnt also nice 19.
+  - Er schreibt je Punkt `seq`, Zeile, Strom und die Maschinenkoordinaten
+    als float64-Arrays in eine Temp-Datei. Der Worker vergleicht mit numpy.
+- **Kosten:**
+  - Zusätzlich etwa der Interpreteranteil (hier 1,0 s), parallel auf einem
+    anderen Kern (die VM hat 4).
+  - Ein gepinnter Parse während des Laufs verdoppelt seine genice
+    Interpreterlast.
+  - **Umsetzungsgate:** Wandzeit und Spitzen-RSS auf `heavy_test` vorher
+    und nachher, benannt im Bericht.
+- **Umfang:** durchgängig XYZ, wie die Client-TLO-Rechnung.
+  - Ein angewandter Offset mit einer A–W-Komponente ≠ 0 ist ein unbekannter
+    Start, mit dem Grund „tool offset in A–W“.
+  - In die Initzeile kommen nur Achsen, die `axis_mask` hat, weil W ohne
+    W-Achse abgelehnt wird.
+- **Einheiten:** ε, Abstände und `DRAW_EPS` werden in Maschineneinheiten
+  gerechnet. Ein Wächter läuft mit einer Zoll-INI.
+- **Schema:** Der Sprung kommt beim nächsten Suite-Stopp, wie in
+  Fassung 2.
+
+### F. Benannte Restgrenze
+
+- Eine Verzweigung auf Positions- oder Offsetparameter kann jenseits von ε
+  anders laufen: `#5420`–`#5428`, `#<_x>`…, `#<_abs_z>`,
+  `#<_tool_offset>`.
+  - Der Schatten sieht nur den Weg bei Start und Start + ε.
+  - Beleg: der Fall `cond_beyond_eps`.
+- Kippt der Weg schon innerhalb von ε, ist er sichtbar: nicht ausgerichtet,
+  also kein Bereich.
+- Eine Textsuche nach diesen Parametern schlage ich nicht vor:
+  - Unterprogramme und Remaps lesen sie auch dort, wo der Preview-Weg sie
+    überspringt.
+  - Die Suche träfe deshalb auch `heavy_test` über M600.
+- **Folge:** Ein solches Programm behält die Befunde seines Weges bis zum
+  nächsten Parse (Dateiänderung, Tabellenänderung, Δ außerhalb des
+  Bereichs, X/Y-Änderung). Das wird benannt, nicht als geprüft dargestellt.
+
+### G. Wächter, jeweils zuerst rot
+
+- **Nativ:**
+  - Dein Rest-B-Programm: Abstand 0,001; Δ 0,005 → Neu-Parse → L5 gemeldet;
+    Δ 0,001 → ruhig.
+  - Rest A: unbekannt → zurückgehalten, mit und ohne G49; bekannter Start 0
+    → zwei abhängige Punkte, geprüft.
+  - Unabhängig: G49 und Bewegung im selben Satz, M70/M72, G53 dann G91.
+  - G43.2 hält die Abhängigkeit, G43 beendet sie.
+  - Nicht genanntes Z, Bogen, Bohrzyklus.
+  - Gekoppelt (`#5422`-Rechnung).
+  - Kippen innerhalb von ε → nicht ausgerichtet.
+  - Fehler im Schatten → nicht aufgelöst.
+  - Zoll-INI.
+  - `heavy_test`: 0 in Z abhängig.
+  - `%`-Zeile.
+- **Drift (Unit):**
+  - Bereich inklusive Δ = 0.
+  - Bestehender Befund in beiden Richtungen.
+  - Gekoppelt bzw. nicht ausgerichtet → jedes Δ ≠ 0.
+  - X/Y-Änderung → Neu-Parse.
+  - A–W ≠ 0 → unbekannt.
+  - Alte Meta ohne die Schlüssel → kein `tool_offset`.
+- **Client:** `tlo_start` wie in Fassung 2.
+- **Prozess:** Ein Abbruch des Workers beendet den Schatten (kein
+  verwaister Prozess).
+- **Live:**
+  - `heavy_test`-Szenario nach der Messung ruhig.
+  - Mit geladenem `heavy_test` löst `G43.1` +1 mm per MDI keinen Neu-Parse aus.
+  - Mit `vp_i20_premise2.ngc` (`G0 Z-100` ohne G43) löst dasselbe
+    **einen** Neu-Parse aus.
+
+### Prüfstand
+
+Nur Plan und native Experimente. Keine Produktänderung, kein Gate.
+VP-I21 und Settings bleiben unverändert.
