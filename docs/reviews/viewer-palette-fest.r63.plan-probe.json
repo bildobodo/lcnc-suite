@@ -1,0 +1,217 @@
+{
+  "commit": "21a1b68",
+  "kind": "written-plan arithmetic, not a product rendering",
+  "near_clip": {
+    "A": [
+      10.2,
+      0,
+      49
+    ],
+    "B": [
+      0,
+      0,
+      -2
+    ],
+    "near": 1,
+    "focal_css_px": 500,
+    "visible_t": [
+      0.9803921568627451,
+      1
+    ],
+    "visible_length_css_px": 100.00000000000041,
+    "N": 16,
+    "nominal_mean_css_px": 6.250000000000026,
+    "visible_cells": [
+      {
+        "cell": 15,
+        "tone": "light",
+        "t": [
+          0.9803921568627451,
+          1
+        ],
+        "css_px": 100.00000000000041
+      }
+    ],
+    "alternative": {
+      "N": 512,
+      "mean_visible_cell_css_px": 9.96093750000002,
+      "visible_cells": [
+        {
+          "cell": 501,
+          "tone": "light",
+          "t": [
+            0.9803921568627451,
+            0.98046875
+          ],
+          "css_px": 0.7782101167319269
+        },
+        {
+          "cell": 502,
+          "tone": "dark",
+          "t": [
+            0.98046875,
+            0.982421875
+          ],
+          "css_px": 17.982851830171143
+        },
+        {
+          "cell": 503,
+          "tone": "light",
+          "t": [
+            0.982421875,
+            0.984375
+          ],
+          "css_px": 15.00517181933111
+        },
+        {
+          "cell": 504,
+          "tone": "dark",
+          "t": [
+            0.984375,
+            0.986328125
+          ],
+          "css_px": 12.710527852956645
+        },
+        {
+          "cell": 505,
+          "tone": "light",
+          "t": [
+            0.986328125,
+            0.98828125
+          ],
+          "css_px": 10.904853979695389
+        },
+        {
+          "cell": 506,
+          "tone": "dark",
+          "t": [
+            0.98828125,
+            0.990234375
+          ],
+          "css_px": 9.458436416718882
+        },
+        {
+          "cell": 507,
+          "tone": "light",
+          "t": [
+            0.990234375,
+            0.9921875
+          ],
+          "css_px": 8.28189920390751
+        },
+        {
+          "cell": 508,
+          "tone": "dark",
+          "t": [
+            0.9921875,
+            0.994140625
+          ],
+          "css_px": 7.312032707009049
+        },
+        {
+          "cell": 509,
+          "tone": "light",
+          "t": [
+            0.994140625,
+            0.99609375
+          ],
+          "css_px": 6.5031093489668255
+        },
+        {
+          "cell": 510,
+          "tone": "dark",
+          "t": [
+            0.99609375,
+            0.998046875
+          ],
+          "css_px": 5.821385655652733
+        },
+        {
+          "cell": 511,
+          "tone": "light",
+          "t": [
+            0.998046875,
+            1
+          ],
+          "css_px": 5.241521068859198
+        }
+      ]
+    }
+  },
+  "ticks": [
+    {
+      "theme": "light",
+      "background": "#ffffff",
+      "tick": "#15181c",
+      "alternate": "#f0f2f4",
+      "tick_to_background": 17.807059865850146,
+      "light_to_background": 1.122260321779331
+    },
+    {
+      "theme": "dark",
+      "background": "#0b0f14",
+      "tick": "#15181c",
+      "alternate": "#f0f2f4",
+      "tick_to_background": 1.0792992572895637,
+      "light_to_background": 17.125390709038985
+    },
+    {
+      "theme": "hc-light",
+      "background": "#ffffff",
+      "tick": "#000000",
+      "alternate": "#ffffff",
+      "tick_to_background": 21.0,
+      "light_to_background": 1.0
+    },
+    {
+      "theme": "hc-dark",
+      "background": "#000000",
+      "tick": "#000000",
+      "alternate": "#ffffff",
+      "tick_to_background": 1.0,
+      "light_to_background": 21.0
+    }
+  ],
+  "hysteresis": [
+    {
+      "length": 95.99,
+      "N": 8,
+      "mean": 11.99875
+    },
+    {
+      "length": 96.01,
+      "N": 8,
+      "mean": 12.00125
+    },
+    {
+      "length": 95.99,
+      "N": 8,
+      "mean": 11.99875
+    },
+    {
+      "length": 96.01,
+      "N": 8,
+      "mean": 12.00125
+    },
+    {
+      "length": 120.01,
+      "N": 16,
+      "mean": 7.500625
+    },
+    {
+      "length": 119.99,
+      "N": 16,
+      "mean": 7.499375
+    },
+    {
+      "length": 76.79,
+      "N": 8,
+      "mean": 9.59875
+    },
+    {
+      "length": 76.81,
+      "N": 8,
+      "mean": 9.60125
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "commit": "21a1b68",
+  "fake_linuxcnc": true,
+  "cases": [
+    {
+      "case": "unknown",
+      "response": {
+        "ok": false,
+        "error": "ValueError: LinuxCNC kept MANUAL (asked for MDI)"
+      },
+      "mdi_dispatched": false
+    },
+    {
+      "case": "unhomed",
+      "response": {
+        "ok": false,
+        "error": "ValueError: LinuxCNC kept MANUAL (asked for MDI): not all joints are homed"
+      },
+      "mdi_dispatched": false
+    },
+    {
+      "case": "unused_joint_flags",
+      "response": {
+        "ok": false,
+        "error": "ValueError: LinuxCNC kept MANUAL (asked for MDI)"
+      },
+      "mdi_dispatched": false
+    },
+    {
+      "case": "off",
+      "response": {
+        "ok": false,
+        "error": "ValueError: LinuxCNC kept MANUAL (asked for MDI): the machine is off"
+      },
+      "mdi_dispatched": false
+    },
+    {
+      "case": "known_jog",
+      "response": {
+        "ok": false,
+        "error": "ValueError: LinuxCNC kept MANUAL (asked for MDI): a jog is active \u2014 release it"
+      },
+      "mdi_dispatched": false
+    },
+    {
+      "case": "all_seen",
+      "response": {
+        "ok": false,
+        "error": "ValueError: LinuxCNC kept MANUAL (asked for MDI): a jog is active \u2014 release it; the machine is off; not all joints are homed"
+      },
+      "mdi_dispatched": false
+    },
+    {
+      "case": "flags_without_joint_count",
+      "response": {
+        "ok": false,
+        "error": "ValueError: LinuxCNC kept MANUAL (asked for MDI)"
+      },
+      "mdi_dispatched": false
+    },
+    {
+      "case": "manual_no_homing_claim",
+      "error": "LinuxCNC kept MDI (asked for MANUAL): the machine is off"
+    }
+  ],
+  "passed": 8
+}

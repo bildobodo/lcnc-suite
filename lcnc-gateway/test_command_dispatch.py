@@ -216,6 +216,12 @@ class TestHandlerExecution(unittest.TestCase):
     def setUp(self):
         gateway.lcnc_connected = True
         gateway.STAT = linuxcnc.stat()
+        # Payload bounds are cached per session (get_machine_limits); a test
+        # that widens axis_mask must not meet an earlier test's XYZ counts
+        # (the jog tests failed whenever another test of this class ran first).
+        limits = gateway._machine_limits
+        gateway._machine_limits = None
+        self.addCleanup(lambda: setattr(gateway, "_machine_limits", limits))
         self.cmd = _RecordingCmd()
         gateway.CMD = self.cmd
         saved = (getattr(gateway, "_skip_flag_unknown", None), gateway._rfl_task, gateway._rfl_flag_task)
@@ -1444,6 +1450,15 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
     def setUp(self):
         gateway.lcnc_connected = True
         gateway.STAT = linuxcnc.stat()
+        # XYZAC (wire indices 0..4): these tests jog A, index 3 — the fake's
+        # default XYZ made them pass only after an earlier test had widened
+        # it (Codex R63: five failed when the class ran alone)
+        gateway.STAT.axis_mask = 0b101111
+        # the payload bounds are cached per session (get_machine_limits): a
+        # previous test's XYZ counts would refuse axis 3/4 ("above maximum 2")
+        self._limits = gateway._machine_limits
+        gateway._machine_limits = None
+        self.addCleanup(lambda: setattr(gateway, "_machine_limits", self._limits))
         self.cmd = _RecordingCmd()
         gateway.CMD = self.cmd
         self._switchable = gateway._kins_is_switchable
@@ -1795,7 +1810,9 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         # reply must carry the reason (it used to be ok:true + "Must be in MDI
         # mode" in the trace, → Zero pressed while the A jog was held).
         gateway._active_jogs.clear()
-        self._send({"cmd": "jog_cont", "axis": 3, "vel": 2.0})   # a jog the gateway started
+        r = self._send({"cmd": "jog_cont", "axis": 3, "vel": 2.0})   # a jog the gateway started
+        self.assertTrue(r["ok"], r)
+        self.assertIn(3, gateway._active_jogs)
         gateway.STAT.task_mode = linuxcnc.MODE_MANUAL   # the fake never changes it
         r = self._send({"cmd": "mdi", "text": "G0 X1"})
         self.assertFalse(r["ok"])
@@ -1808,18 +1825,13 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         # reply names what is seen: here the unhomed joints, no jog.
         gateway._active_jogs.clear()
         gateway.STAT.task_mode = linuxcnc.MODE_MANUAL
-        homed = getattr(gateway.STAT, "homed", None)
-        gateway.STAT.homed = (0,) * 9
-        try:
-            r = self._send({"cmd": "mdi", "text": "G0 X1"})
-        finally:
-            if homed is None:
-                del gateway.STAT.homed
-            else:
-                gateway.STAT.homed = homed
+        gateway.STAT.joints = 5                      # setUp's STAT is this test's own
+        gateway.STAT.homed = (1, 1, 0, 1, 1) + (0,) * 4
+        r = self._send({"cmd": "mdi", "text": "G0 X1"})
         self.assertFalse(r["ok"])
         self.assertNotIn("jog", r["error"].lower())
         self.assertIn("kept MANUAL (asked for MDI)", r["error"])
+        self.assertIn("not all joints are homed", r["error"])
         self.assertIsNone(self.cmd.args_of("mdi"), "MDI issued into the wrong mode")
 
     def test_jog_stop_without_an_active_jog_is_a_noop(self):

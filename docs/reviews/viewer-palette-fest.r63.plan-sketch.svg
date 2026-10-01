@@ -1,0 +1,205 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="660" viewBox="0 0 1080 660">
+<rect width="1080" height="660" fill="#e5e7eb"/>
+<style>text{font-family:system-ui,sans-serif;fill:#111827;font-size:15px}.title{font-size:21px;font-weight:600}.small{font-size:13px}</style>
+<text x="24" y="32" class="title">R63 – Gegenbeispiele zum schriftlichen Plan</text>
+<text x="24" y="57" class="">Rechenskizze, kein Screenshot des Produkts; Maße in CSS px.</text>
+<text x="24" y="94" class="">Near-Plane: 100 px sichtbar, Weltphase bleibt am ursprünglichen Anfang</text>
+<text x="24" y="139" class="">Plan: N=16, L/N=6,25 px → nur hell</text>
+<rect x="685" y="119" width="140" height="35" fill="#ffffff"/>
+<path d="M800,136.5 L699.9999999999995,136.5" stroke="#ffffff" stroke-width="1"/>
+<rect x="860" y="119" width="140" height="35" fill="#000000"/>
+<path d="M975,136.5 L874.9999999999995,136.5" stroke="#ffffff" stroke-width="1"/>
+<text x="24" y="194" class="">Beispiel mit N·Δt: N=512 → beide Töne</text>
+<rect x="685" y="174" width="140" height="35" fill="#ffffff"/>
+<path d="M800,191.5 L799.2217898832681,191.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M799.2217898832681,191.5 L781.238938053097,191.5" stroke="#000000" stroke-width="1"/>
+<path d="M781.238938053097,191.5 L766.2337662337659,191.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M766.2337662337659,191.5 L753.5232383808093,191.5" stroke="#000000" stroke-width="1"/>
+<path d="M753.5232383808093,191.5 L742.6183844011139,191.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M742.6183844011139,191.5 L733.159947984395,191.5" stroke="#000000" stroke-width="1"/>
+<path d="M733.159947984395,191.5 L724.8780487804875,191.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M724.8780487804875,191.5 L717.5660160734784,191.5" stroke="#000000" stroke-width="1"/>
+<path d="M717.5660160734784,191.5 L711.0629067245115,191.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M711.0629067245115,191.5 L705.2415210688588,191.5" stroke="#000000" stroke-width="1"/>
+<path d="M705.2415210688588,191.5 L699.9999999999995,191.5" stroke="#ffffff" stroke-width="1"/>
+<rect x="860" y="174" width="140" height="35" fill="#000000"/>
+<path d="M975,191.5 L974.2217898832681,191.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M974.2217898832681,191.5 L956.238938053097,191.5" stroke="#000000" stroke-width="1"/>
+<path d="M956.238938053097,191.5 L941.2337662337659,191.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M941.2337662337659,191.5 L928.5232383808093,191.5" stroke="#000000" stroke-width="1"/>
+<path d="M928.5232383808093,191.5 L917.6183844011139,191.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M917.6183844011139,191.5 L908.159947984395,191.5" stroke="#000000" stroke-width="1"/>
+<path d="M908.159947984395,191.5 L899.8780487804875,191.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M899.8780487804875,191.5 L892.5660160734784,191.5" stroke="#000000" stroke-width="1"/>
+<path d="M892.5660160734784,191.5 L886.0629067245115,191.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M886.0629067245115,191.5 L880.2415210688588,191.5" stroke="#000000" stroke-width="1"/>
+<path d="M880.2415210688588,191.5 L874.9999999999995,191.5" stroke="#ffffff" stroke-width="1"/>
+<text x="24" y="249" class="">Endmarken: dunkler Querstrich gegenüber zweifarbigem Träger</text>
+<text x="480" y="279" class="">Plan: nur dunkel</text>
+<text x="779" y="279" class="">Option: hell 3 px + dunkel 1 px</text>
+<text x="24" y="327" class="">light: Querstrich/Grund 17.81:1</text>
+<rect x="440" y="300" width="290" height="51" fill="#ffffff"/>
+<path d="M473.5,325.5 L487.5,325.5" stroke="#15181c" stroke-width="1"/>
+<path d="M487.5,325.5 L501.5,325.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M501.5,325.5 L515.5,325.5" stroke="#15181c" stroke-width="1"/>
+<path d="M515.5,325.5 L529.5,325.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M529.5,325.5 L543.5,325.5" stroke="#15181c" stroke-width="1"/>
+<path d="M543.5,325.5 L557.5,325.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M557.5,325.5 L571.5,325.5" stroke="#15181c" stroke-width="1"/>
+<path d="M571.5,325.5 L585.5,325.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M585.5,325.5 L599.5,325.5" stroke="#15181c" stroke-width="1"/>
+<path d="M599.5,325.5 L613.5,325.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M613.5,325.5 L627.5,325.5" stroke="#15181c" stroke-width="1"/>
+<path d="M627.5,325.5 L641.5,325.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M641.5,325.5 L655.5,325.5" stroke="#15181c" stroke-width="1"/>
+<path d="M655.5,325.5 L669.5,325.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M669.5,325.5 L683.5,325.5" stroke="#15181c" stroke-width="1"/>
+<path d="M683.5,325.5 L697.5,325.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M473.5,318 L473.5,333" stroke="#15181c" stroke-width="1"/>
+<path d="M697.5,318 L697.5,333" stroke="#15181c" stroke-width="1"/>
+<rect x="760" y="300" width="290" height="51" fill="#ffffff"/>
+<path d="M793.5,325.5 L807.5,325.5" stroke="#15181c" stroke-width="1"/>
+<path d="M807.5,325.5 L821.5,325.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M821.5,325.5 L835.5,325.5" stroke="#15181c" stroke-width="1"/>
+<path d="M835.5,325.5 L849.5,325.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M849.5,325.5 L863.5,325.5" stroke="#15181c" stroke-width="1"/>
+<path d="M863.5,325.5 L877.5,325.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M877.5,325.5 L891.5,325.5" stroke="#15181c" stroke-width="1"/>
+<path d="M891.5,325.5 L905.5,325.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M905.5,325.5 L919.5,325.5" stroke="#15181c" stroke-width="1"/>
+<path d="M919.5,325.5 L933.5,325.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M933.5,325.5 L947.5,325.5" stroke="#15181c" stroke-width="1"/>
+<path d="M947.5,325.5 L961.5,325.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M961.5,325.5 L975.5,325.5" stroke="#15181c" stroke-width="1"/>
+<path d="M975.5,325.5 L989.5,325.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M989.5,325.5 L1003.5,325.5" stroke="#15181c" stroke-width="1"/>
+<path d="M1003.5,325.5 L1017.5,325.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M793.5,318 L793.5,333" stroke="#f0f2f4" stroke-width="3"/>
+<path d="M793.5,318 L793.5,333" stroke="#15181c" stroke-width="1"/>
+<path d="M1017.5,318 L1017.5,333" stroke="#f0f2f4" stroke-width="3"/>
+<path d="M1017.5,318 L1017.5,333" stroke="#15181c" stroke-width="1"/>
+<text x="24" y="404" class="">dark: Querstrich/Grund 1.08:1</text>
+<rect x="440" y="377" width="290" height="51" fill="#0b0f14"/>
+<path d="M473.5,402.5 L487.5,402.5" stroke="#15181c" stroke-width="1"/>
+<path d="M487.5,402.5 L501.5,402.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M501.5,402.5 L515.5,402.5" stroke="#15181c" stroke-width="1"/>
+<path d="M515.5,402.5 L529.5,402.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M529.5,402.5 L543.5,402.5" stroke="#15181c" stroke-width="1"/>
+<path d="M543.5,402.5 L557.5,402.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M557.5,402.5 L571.5,402.5" stroke="#15181c" stroke-width="1"/>
+<path d="M571.5,402.5 L585.5,402.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M585.5,402.5 L599.5,402.5" stroke="#15181c" stroke-width="1"/>
+<path d="M599.5,402.5 L613.5,402.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M613.5,402.5 L627.5,402.5" stroke="#15181c" stroke-width="1"/>
+<path d="M627.5,402.5 L641.5,402.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M641.5,402.5 L655.5,402.5" stroke="#15181c" stroke-width="1"/>
+<path d="M655.5,402.5 L669.5,402.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M669.5,402.5 L683.5,402.5" stroke="#15181c" stroke-width="1"/>
+<path d="M683.5,402.5 L697.5,402.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M473.5,395 L473.5,410" stroke="#15181c" stroke-width="1"/>
+<path d="M697.5,395 L697.5,410" stroke="#15181c" stroke-width="1"/>
+<rect x="760" y="377" width="290" height="51" fill="#0b0f14"/>
+<path d="M793.5,402.5 L807.5,402.5" stroke="#15181c" stroke-width="1"/>
+<path d="M807.5,402.5 L821.5,402.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M821.5,402.5 L835.5,402.5" stroke="#15181c" stroke-width="1"/>
+<path d="M835.5,402.5 L849.5,402.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M849.5,402.5 L863.5,402.5" stroke="#15181c" stroke-width="1"/>
+<path d="M863.5,402.5 L877.5,402.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M877.5,402.5 L891.5,402.5" stroke="#15181c" stroke-width="1"/>
+<path d="M891.5,402.5 L905.5,402.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M905.5,402.5 L919.5,402.5" stroke="#15181c" stroke-width="1"/>
+<path d="M919.5,402.5 L933.5,402.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M933.5,402.5 L947.5,402.5" stroke="#15181c" stroke-width="1"/>
+<path d="M947.5,402.5 L961.5,402.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M961.5,402.5 L975.5,402.5" stroke="#15181c" stroke-width="1"/>
+<path d="M975.5,402.5 L989.5,402.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M989.5,402.5 L1003.5,402.5" stroke="#15181c" stroke-width="1"/>
+<path d="M1003.5,402.5 L1017.5,402.5" stroke="#f0f2f4" stroke-width="1"/>
+<path d="M793.5,395 L793.5,410" stroke="#f0f2f4" stroke-width="3"/>
+<path d="M793.5,395 L793.5,410" stroke="#15181c" stroke-width="1"/>
+<path d="M1017.5,395 L1017.5,410" stroke="#f0f2f4" stroke-width="3"/>
+<path d="M1017.5,395 L1017.5,410" stroke="#15181c" stroke-width="1"/>
+<text x="24" y="481" class="">hc-light: Querstrich/Grund 21.00:1</text>
+<rect x="440" y="454" width="290" height="51" fill="#ffffff"/>
+<path d="M473.5,479.5 L487.5,479.5" stroke="#000000" stroke-width="1"/>
+<path d="M487.5,479.5 L501.5,479.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M501.5,479.5 L515.5,479.5" stroke="#000000" stroke-width="1"/>
+<path d="M515.5,479.5 L529.5,479.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M529.5,479.5 L543.5,479.5" stroke="#000000" stroke-width="1"/>
+<path d="M543.5,479.5 L557.5,479.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M557.5,479.5 L571.5,479.5" stroke="#000000" stroke-width="1"/>
+<path d="M571.5,479.5 L585.5,479.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M585.5,479.5 L599.5,479.5" stroke="#000000" stroke-width="1"/>
+<path d="M599.5,479.5 L613.5,479.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M613.5,479.5 L627.5,479.5" stroke="#000000" stroke-width="1"/>
+<path d="M627.5,479.5 L641.5,479.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M641.5,479.5 L655.5,479.5" stroke="#000000" stroke-width="1"/>
+<path d="M655.5,479.5 L669.5,479.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M669.5,479.5 L683.5,479.5" stroke="#000000" stroke-width="1"/>
+<path d="M683.5,479.5 L697.5,479.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M473.5,472 L473.5,487" stroke="#000000" stroke-width="1"/>
+<path d="M697.5,472 L697.5,487" stroke="#000000" stroke-width="1"/>
+<rect x="760" y="454" width="290" height="51" fill="#ffffff"/>
+<path d="M793.5,479.5 L807.5,479.5" stroke="#000000" stroke-width="1"/>
+<path d="M807.5,479.5 L821.5,479.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M821.5,479.5 L835.5,479.5" stroke="#000000" stroke-width="1"/>
+<path d="M835.5,479.5 L849.5,479.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M849.5,479.5 L863.5,479.5" stroke="#000000" stroke-width="1"/>
+<path d="M863.5,479.5 L877.5,479.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M877.5,479.5 L891.5,479.5" stroke="#000000" stroke-width="1"/>
+<path d="M891.5,479.5 L905.5,479.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M905.5,479.5 L919.5,479.5" stroke="#000000" stroke-width="1"/>
+<path d="M919.5,479.5 L933.5,479.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M933.5,479.5 L947.5,479.5" stroke="#000000" stroke-width="1"/>
+<path d="M947.5,479.5 L961.5,479.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M961.5,479.5 L975.5,479.5" stroke="#000000" stroke-width="1"/>
+<path d="M975.5,479.5 L989.5,479.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M989.5,479.5 L1003.5,479.5" stroke="#000000" stroke-width="1"/>
+<path d="M1003.5,479.5 L1017.5,479.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M793.5,472 L793.5,487" stroke="#ffffff" stroke-width="3"/>
+<path d="M793.5,472 L793.5,487" stroke="#000000" stroke-width="1"/>
+<path d="M1017.5,472 L1017.5,487" stroke="#ffffff" stroke-width="3"/>
+<path d="M1017.5,472 L1017.5,487" stroke="#000000" stroke-width="1"/>
+<text x="24" y="558" class="">hc-dark: Querstrich/Grund 1.00:1</text>
+<rect x="440" y="531" width="290" height="51" fill="#000000"/>
+<path d="M473.5,556.5 L487.5,556.5" stroke="#000000" stroke-width="1"/>
+<path d="M487.5,556.5 L501.5,556.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M501.5,556.5 L515.5,556.5" stroke="#000000" stroke-width="1"/>
+<path d="M515.5,556.5 L529.5,556.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M529.5,556.5 L543.5,556.5" stroke="#000000" stroke-width="1"/>
+<path d="M543.5,556.5 L557.5,556.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M557.5,556.5 L571.5,556.5" stroke="#000000" stroke-width="1"/>
+<path d="M571.5,556.5 L585.5,556.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M585.5,556.5 L599.5,556.5" stroke="#000000" stroke-width="1"/>
+<path d="M599.5,556.5 L613.5,556.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M613.5,556.5 L627.5,556.5" stroke="#000000" stroke-width="1"/>
+<path d="M627.5,556.5 L641.5,556.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M641.5,556.5 L655.5,556.5" stroke="#000000" stroke-width="1"/>
+<path d="M655.5,556.5 L669.5,556.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M669.5,556.5 L683.5,556.5" stroke="#000000" stroke-width="1"/>
+<path d="M683.5,556.5 L697.5,556.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M473.5,549 L473.5,564" stroke="#000000" stroke-width="1"/>
+<path d="M697.5,549 L697.5,564" stroke="#000000" stroke-width="1"/>
+<rect x="760" y="531" width="290" height="51" fill="#000000"/>
+<path d="M793.5,556.5 L807.5,556.5" stroke="#000000" stroke-width="1"/>
+<path d="M807.5,556.5 L821.5,556.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M821.5,556.5 L835.5,556.5" stroke="#000000" stroke-width="1"/>
+<path d="M835.5,556.5 L849.5,556.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M849.5,556.5 L863.5,556.5" stroke="#000000" stroke-width="1"/>
+<path d="M863.5,556.5 L877.5,556.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M877.5,556.5 L891.5,556.5" stroke="#000000" stroke-width="1"/>
+<path d="M891.5,556.5 L905.5,556.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M905.5,556.5 L919.5,556.5" stroke="#000000" stroke-width="1"/>
+<path d="M919.5,556.5 L933.5,556.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M933.5,556.5 L947.5,556.5" stroke="#000000" stroke-width="1"/>
+<path d="M947.5,556.5 L961.5,556.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M961.5,556.5 L975.5,556.5" stroke="#000000" stroke-width="1"/>
+<path d="M975.5,556.5 L989.5,556.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M989.5,556.5 L1003.5,556.5" stroke="#000000" stroke-width="1"/>
+<path d="M1003.5,556.5 L1017.5,556.5" stroke="#ffffff" stroke-width="1"/>
+<path d="M793.5,549 L793.5,564" stroke="#ffffff" stroke-width="3"/>
+<path d="M793.5,549 L793.5,564" stroke="#000000" stroke-width="1"/>
+<path d="M1017.5,549 L1017.5,564" stroke="#ffffff" stroke-width="3"/>
+<path d="M1017.5,549 L1017.5,564" stroke="#000000" stroke-width="1"/>
+<text x="24" y="639" class="small">Der helle Boxabschnitt macht nur den Schnittpunkt sichtbar, nicht die dunklen Querarme.</text>
+</svg>
