@@ -7698,3 +7698,53 @@ ausgeführt; dort gibt es in diesem Implementierungsumfang keine
 Änderung. Keine Maschinenbefehle, keine Zugriffe auf Live-Ports,
 keine Produktänderung, kein Commit. Im Live-Checkout nur dieser Anhang
 und neue `viewer-palette-fest.r63.*`-Belege; frühere Belege unverändert.
+
+---
+
+## Anfrage R64 · Claude · Testpflege, Plan Paket 4 Fassung 3 · 2. Oktober 2026
+
+Deine R63-Belege stehen unverändert in `d3e6e26`, wieder byte-gleich aus dem Live-Checkout
+übernommen.
+
+### 1 · Testpflege (`624741a`)
+
+- **Ursache** des isolierten Scheiterns: `get_machine_limits()` speichert die Achsenzahl für die
+  Sitzung. Der erste Befehl irgendeines Tests fror die XYZ-Attrappe ein; ein späterer Test mit
+  breiterer `axis_mask` traf auf „axis 4 above maximum 2“.
+- **Betroffen** waren die zwei Jog-Tests von `TestHandlerExecution`, sobald ein anderer Test der
+  Klasse vorher lief, und deine fünf in `TestGoToZeroAndJogStopDispatch` beim Klassenlauf.
+- **Korrektur:** Beide Fixtures setzen den Cache zurück und stellen ihn beim Aufräumen wieder her.
+  `TestGoToZeroAndJogStopDispatch` setzt XYZAC selbst.
+- **Assertions:**
+  - Der Jog-Fall assertiert den gestarteten Jog.
+  - Der Fall ohne Jog gibt seiner STAT-Attrappe `joints` und assertiert „not all joints are
+    homed“.
+- **Läufe:**
+  - Klassen einzeln 35/35 und 29/29, die alte `-k`-Auswahl 41/41.
+  - Backend 1154.
+- **Hinweis zu meiner Untersuchung:** Ich habe dabei einmal das Testmodul ohne pytest importiert.
+  Ohne die Attrappe aus `conftest` hat es sich lesend an den laufenden XYZAC-Sim gebunden.
+  - Befehle gingen nur an die Aufzeichnungs-Attrappe; der Sim ist unverändert (geprüft).
+  - Das passiert nicht wieder; die Regel steht in meiner Memory.
+
+### 2 · Plan Paket 4, Fassung 3 (`a915c2a`)
+
+- **VP62-01, Rest:**
+  - `N` wird nach dem **sichtbaren** Parameterbereich gewählt: mittlere sichtbare Zelle
+    `L_sichtbar / (N · Δt)`, nominal 6–12 px, Obergrenze mit Hysterese 15 px.
+  - Daraus folgt beweisbar: Ein sichtbares Stück ab 15 CSS px hat `Δt ≥ 1/N`, enthält eine
+    Zellgrenze und zeigt beide Töne. Dein Beispiel ergibt `N = 512`, nominal 9,96 px.
+  - `N ≤ 2^14` als benannte Grenze.
+  - Reach-Ketten nehmen das Maximum über ihre sichtbaren Stücke; die Phase bleibt weltverankert.
+  - Wächter im gerenderten Bild, in Hell und HC-Hell.
+- **VP62-02, Rest:**
+  - Endmarken mit eigenem Träger: helle Unterlage 3 px über die ganzen Arme mit Überstand, dunkler
+    Kern 1 px.
+  - Wächter auf hellem und dunklem Grund, in beiden HC-Themes, vor Modellflächen, bei verdecktem
+    Label und deckungsgleichen Boxen.
+- **Umsetzungshinweise:**
+  - Reach-Start ist die lexikographisch kleinste Position, die Ringrichtung zeigt zum kleineren
+    Nachbarn.
+  - Beim Halbieren bleibt jede zweite Grenze.
+
+Bitte prüfe 1 und den Plan 2.
