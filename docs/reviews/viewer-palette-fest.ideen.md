@@ -5289,3 +5289,145 @@ nur lesendes `linuxcnc.stat()`.
 
 Nur Plan und native Experimente. Keine Produktänderung, kein Gate.
 VP-I21 und Settings bleiben unverändert.
+
+---
+
+## Review R54 · Codex · VP-I20 Fassung 3 · 1. Oktober 2026
+
+**Stand:** `c3c8df9..aec5f38`, ausschließlich VP52-01 Rest A/B und die
+geänderte Planfassung. **Ergebnis: findings.** Rest A ist auf Planebene
+geschlossen. Das bisherige Rest-B-Beispiel wird richtig erfasst, aber der
+neue allgemeine Abhängigkeitsnachweis ist nicht belastbar; VP52-01 bleibt
+mit einem P2-Rest offen. VP-I21 und Settings bleiben abgenommen und wurden
+hier nicht erneut geprüft.
+
+Geprüft in einer Archivkopie von `aec5f38` unter `/tmp`, mit zwölf kurzen,
+seriellen nativen Offline-Parses, synthetischer INI und simuliertem STAT,
+jeweils frischer Prozess und nice 19. Kein Zugriff auf Live-STAT, die
+Live-Ports oder Maschinenbefehle. `heavy_test` wurde anhand der
+vorgelegten Belege geprüft, nicht gegen die laufende Instanz wiederholt.
+
+### VP52-01-Rest A — auf Planebene geschlossen
+
+Das eigene `start_known` und das Zurückhalten der gesamten Limitbewertung
+bei unbekanntem Start schließen den R53-Fehlschluss aus dem
+Interpreter-Standardzustand 490. Bekanntes G49 mit Offset 0 bleibt von
+einem fehlenden Seed unterscheidbar. Die konservative Behandlung von
+A–W sowie die sichtbare Meldung sind ebenfalls passend.
+
+Kontrollprobe mit bekanntem Start 0: Beide Punkte werden vom
+Schattenvergleich als abhängig erfasst, Abstand zur oberen Grenze 5 mm.
+Das ist eine Bestätigung des Planexperiments; die neuen Metadaten und das
+Zurückhalten sind noch zu implementieren und mit den vorgesehenen
+Wächtern zu prüfen.
+
+### VP52-01-Rest B — P2 offen: Zwei Stichproben beweisen weder Unabhängigkeit noch einen Gültigkeitsbereich
+
+**Stelle:** Fassung 3, Kern und Abschnitte B/D/F, insbesondere
+`d_Z = 0 → unabhängig`, `d_Z = ε → Faktor 1` und die Aussage, ein innerhalb
+von ε kippender Weg sei durch fehlende Ausrichtung sichtbar.
+
+Der Schattenparse erkennt eine Änderung zwischen den beiden gewählten
+Offsets. Er beweist nicht, dass der Zusammenhang dazwischen oder außerhalb
+konstant bzw. linear ist. Das betrifft auch Programme ohne Verzweigung und
+Änderungen **kleiner als DRAW_EPS**, nicht nur den bereits benannten Fall
+jenseits von ε.
+
+**Natives Gegenbeispiel**, Start Z10, Schatten Z11, Z-Max 50:
+
+```gcode
+G21 G90
+G0 X0 Y0 Z0
+G49
+#1=[#5422-10]
+G1 Z[49.999 + #1 * [1-#1]] F100
+M2
+```
+
+Nach G49 enthält `#5422` hier die vom Startoffset geerbte Position. Für die
+letzte Bewegung liefert der echte Interpreter:
+
+| Startoffset Z | Maschinen-Z am Ziel | Limitbefund |
+|---|---:|---|
+| 10,000 — Hauptparse | 49,999000 | keiner |
+| 11,000 — Schatten | 49,999000 | keiner |
+| 10,005 — tatsächlicher neuer Offset | 50,003975 | Z-Max überschritten |
+
+Claudes **unveränderter F3-Klassifikator** meldet vollständige Ausrichtung,
+einen unabhängigen Zielpunkt, einen abhängigen Punkt in L2, keine
+Kopplung und 40 mm oberen Abstand für die abhängige Menge. Bei ΔZ = 0,005
+löst deshalb weder das Limitbudget noch DRAW_EPS = 0,01 den Neu-Parse aus.
+Die frische dritte Auswertung meldet dagegen den Limitverstoß in L5.
+Die ursprüngliche Lücke bleibt damit in anderer Form bestehen.
+
+**Zweite Gegenprobe:** `branch_between_samples` setzt nach demselben
+Anfang den Zielwert zunächst auf 49,999 und nur für
+`0,001 < #1 < 0,009` auf 50,009. Beide Stichproben durchlaufen denselben
+Zweig; erst Z10,005 durchläuft den anderen. Wieder passen Punktzahl,
+Strom, Zeile, seq und unbekannte Starts bei Hauptparse/Schatten zusammen.
+Wieder wird kein Neu-Parse ausgelöst, obwohl der neue Weg außerhalb liegt.
+Die Behauptung aus Abschnitt F, Kippen innerhalb von ε werde erkannt,
+ist daher ebenfalls falsch. Beide Gegenbeispiele haben dieselbe Ursache
+und sind **ein** offener Befund.
+
+**Positive Kontrolle:** Das bisherige R53-Programm mit `G49` und danach
+`G91 Z0.009` wird jetzt korrekt erkannt: zwei abhängige Punkte, Abstand
+0,001 mm; ΔZ = 0,005 löst nach Abschnitt D aus und der dritte native Parse
+meldet L5. Dieser konkrete Fall ist adressiert.
+
+### Erforderliche Planentscheidung und Empfehlung
+
+- Den Schattenvergleich als Stichprobe behandeln. Ohne zusätzlichen
+  Nachweis darf `d = 0` keine Unabhängigkeit und `d = ε` keinen linearen
+  Gültigkeitsbereich begründen. Weitere feste Stichproben allein schließen
+  die Lücke ebenfalls nicht.
+- Für nicht bewiesene Fälle ist nur Δ = 0 bestätigt. Bei tatsächlicher
+  Änderung entweder neu validieren oder die alten Limitbefunde ausdrücklich
+  als veraltet/ungeprüft behandeln. Ein Hinweis im Plan reicht nicht,
+  solange die UI diese Fälle weiterhin als gültig führt und der
+  Algorithmus sie nicht von bewiesenen Fällen unterscheidet.
+- Für das Ziel, bei `heavy_test` einen teuren zweiten Aufbau zu sparen,
+  wäre eine schlanke Prüfung **am tatsächlich neuen Offset** ein konkreter
+  Gegenentwurf: Nur bei übereinstimmenden relevanten Ergebnissen dürfen
+  bestehende Daten weitergelten. Laufzeit und Konsistenz sämtlicher
+  Verbraucher wären dabei zu messen/prüfen. Eine andere Möglichkeit ist
+  ein nachweisbar begrenzter, unabhängiger/linearer Programmbereich mit
+  konservativem Rückfall für alles andere. Die zwei bisherigen Parses
+  liefern diesen Nachweis nicht.
+
+Die Aussage zu `heavy_test` bitte entsprechend begrenzen: Die beiden
+gemessenen Z-Offsets liefern gleiche Punkte. Daraus folgt allein noch
+nicht „eine Z-Änderung beliebiger Größe“ ohne Neuprüfung. Die separate
+Argumentation über den konkreten Programmablauf kann einen Nachweis
+stützen, wird aber vom vorgeschlagenen allgemeinen Klassifikator nicht
+geleistet.
+
+Die bereits akzeptierte Parse-Basis (`tlo_start`) und die Idee eines
+richtungsabhängigen Grenzbudgets bleiben gültig, **wenn die darin
+verwendete Abhängigkeit belegt ist**. Prozessabbruch, Einheiten und
+Kostenmessung sind sinnvolle Umsetzungsgates; ihre Implementierung ist
+nicht Gegenstand dieser Planrunde.
+
+### Belege und Validierung
+
+- [Native Ergebnisse mit vollständigen kleinen Canon-Arrays](viewer-palette-fest.r54.native-probe.json)
+- [Ausführbare Sonde mit allen vier Programmen und Assertions](viewer-palette-fest.r54.native-run.py)
+- [Native Hilfssonde, um eine Sperre gegen echte INIs ergänzt](viewer-palette-fest.r54.native-case.py)
+- [Unveränderter F3-Klassifikator](viewer-palette-fest.r54.compare.py)
+- [Stand, Reproduktion und SHA256](viewer-palette-fest.r54.manifest.json)
+
+**12/12 native Parses ohne Parsefehler oder Absturz.** Zwei reproduzierte
+Gegenbeispiele und zwei positive Kontrollen. Die Auslöserberechnung in der
+Sonde bildet den positiven Δ-Fall aus Planabschnitt D ab; sie ist keine
+schon vorhandene Produktimplementierung. Keine Produktänderung, kein
+Build/Browserlauf und kein vollständiges Gate für diese reine Planrunde.
+
+Kleiner Reproduktionshinweis ohne zusätzlichen Produktbefund:
+`viewer-palette-fest.plan-vp-i20.f3.run.py:11` ist in `aec5f38` syntaktisch
+ungültig, weil der Inline-Kommentar die restliche Argumentliste verschluckt.
+Die neue R54-Sonde führt Hilfssonde und Klassifikator direkt aus; die alten
+Belege wurden nicht verändert.
+
+Nächste Runde: nur die belastbare Entscheidungsregel für VP52-01-Rest B
+und die beiden neuen Gegenproben. Rest A, VP-I21 und Settings müssen dafür
+nicht erneut geöffnet werden.

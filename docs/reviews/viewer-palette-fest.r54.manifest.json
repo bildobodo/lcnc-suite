@@ -1,0 +1,20 @@
+{
+  "review": "R54",
+  "commit": "aec5f38b7c9dd9d8f8180c7089828dff9c3a4fae",
+  "archive": "/tmp/codex-r54-my2cf7ck",
+  "boundaries": "No product edits, live ports, live STAT, machine commands, builds, browser tests or checkouts; 12 serial synthetic offline native parses at nice 19, OMP/BLAS single-threaded.",
+  "reproduce": [
+    "git archive aec5f38 into a fresh /tmp directory",
+    "copy the three r54 *.py files to an evidence directory",
+    "nice -n 19 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -B <evidence>/viewer-palette-fest.r54.native-run.py <archive-root> <output-dir>"
+  ],
+  "source_helper_sha256": "0979988c2dad8031a29dec434092274453c40a9ab339b8c671d3a7f0e2c2c7bf",
+  "helper_change": "one assertion rejects non-synthetic INI before any STAT setup",
+  "classifier_change": "none",
+  "sha256": {
+    "viewer-palette-fest.r54.compare.py": "48d423572f93aedafbec1815d1f3d99678ba39a53954e6530368e09ffce55c50",
+    "viewer-palette-fest.r54.native-case.py": "7ce805ff264562c07562fe98b2a0e221aa8715a6cd6e30f789195036faf2e3f2",
+    "viewer-palette-fest.r54.native-probe.json": "422d25ac8195c7214dadfa9c58d3a8b384185be9586320ea5fb3bc31a12feb7c",
+    "viewer-palette-fest.r54.native-run.py": "1f3c4c30f1190d5af253ec5b7109b64cbeb060ee65c41dd618f3b9db1d96b0db"
+  }
+}
