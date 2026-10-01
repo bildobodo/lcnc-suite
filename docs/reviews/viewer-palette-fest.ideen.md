@@ -4914,3 +4914,150 @@ Fall, echter Worker mit dem eingefügten Startoffset; Beleg
   - Allein lief der Test dreimal grün. Der volle Wiederholungslauf ohne
     parallele Last ist grün.
 - **VP-I20:** Noch keine Code-Änderung; diese Runde ist Plan.
+
+
+---
+
+## Review R53 · Codex · VP-I21 und VP-I20 Fassung 2 · 1. Oktober 2026
+
+**Ergebnis: `findings`. VP-I21 ist geschlossen. VP52-02 und die gewählte
+Lösungsrichtung zu VP52-03 sind auf Planebene akzeptiert. VP52-01 bleibt
+mit zwei konkret belegten Resten offen: 490 ist ohne Seed bereits der
+Standardzustand, und G49 löscht keine zuvor entstandene Positionsabhängigkeit.**
+
+Geprüft: `36b35cb..79771e6`, vollständiger Stand
+`79771e678526a15564b90aee25884e6d6e710fe4`, in einer Archivkopie.
+Settings nicht erneut geprüft. Nur dieser Anhang und neue R53-Belege
+im Live-Checkout; frühere Belege unverändert, keine Maschinenbefehle.
+[Reproduktion und Grenzen](viewer-palette-fest.r53.reproduce.md).
+
+### VP-I21 · geschlossen
+
+Das Sichtbarkeitsband behebt die R52-Gegenprobe. Bei 20 Zeilen je Paket
+bleibt die aktive Zeile jetzt in **allen 97 untersuchten Frames** sichtbar;
+mit Bewegungsreduktion in **allen 92 Frames**. Der maximale Abstand zur
+Mitte sinkt im normalen Lauf von 433,5 auf 164,5 px im 398 px hohen Fenster.
+Es wird weiterhin die tatsächlich laufende Zeile markiert.
+[Normal](viewer-palette-fest.r53.glide-normal.json),
+[Bewegungsreduktion](viewer-palette-fest.r53.glide-reduced.json),
+[Sonde](viewer-palette-fest.r53.browser-probe.ts),
+[Erwartungsanpassung](viewer-palette-fest.r53.probe-adaptations.patch).
+
+Der erweiterte Originalwächter besteht ebenfalls: große Schritte vorwärts
+und rückwärts **0/160 Frames außerhalb**; bei drei Zeilen pro Paket
+60 fps, 98 % bewegte Frames und 0 % ganze Paketschritte. Die Unit-Tests
+für kleines Fenster und die Abbildung im skalierten Scrollraum bestehen.
+[Browser-Ergebnisse](viewer-palette-fest.r53.browser-summary.json).
+
+### VP52-01 · P2-Rest A · Ohne Seed ist 490 kein Nachweis eines Programm-G49
+
+Abschnitt A lässt bei unbekanntem Startwert die Initzeile weg. Abschnitt B
+beendet `dep`, sobald der Nachzustand 490 zeigt, und folgert daraus, ein
+G49-Satz sei belegt. Diese Folgerung trifft in diesem Fall nicht zu.
+
+**Native Gegenprobe ohne Initzeile:**
+
+```gcode
+G21 G90
+G0 X0 Y0 Z40
+G1 X10 Z45 F100
+M2
+```
+
+Es gibt weder G49 im Programm noch einen Eintrag in `tlo_events`.
+Trotzdem meldet bereits `next_line` für L2 den Zustand **490**.
+Die geplante Regel setzt damit `dep=false` für beide Bewegungen.
+Die in A versprochene Kennzeichnung als ungeprüft würde sie nicht erfassen.
+[Fall `unknown`](viewer-palette-fest.r53.native-probe.json).
+
+**Plan korrigieren:** Einen tatsächlich ausgeführten, zuordenbaren
+Programm-Reset nachweisen, statt den Standardzustand 490 damit
+gleichzusetzen. Ohne diesen Nachweis bleibt eine unbekannte Startbasis
+unbekannt. Wächter: unbekannter Seed mit und ohne explizites G49,
+einschließlich G49 und Bewegung im selben Satz; bekannter Null-Seed
+separat vom unbekannten Fall.
+
+### VP52-01 · P2-Rest B · Relative Bewegungen nach G49 können weiter vom Start abhängen
+
+G49 beendet den angewandten Offset. Eine schon angefahrene Maschinenposition
+bleibt jedoch erhalten und kann Ausgangspunkt einer relativen Bewegung
+sein. Die geplante dauerhafte Löschung von `dep` verliert diese
+Positionsabhängigkeit.
+
+**Native Gegenprobe, Z-Max50:**
+
+```gcode
+G21 G90
+G0 X0 Y0 Z39.990
+G49
+G91
+G1 Z0.009 F100
+M2
+```
+
+| Startoffset Z | Maschinen-Z nach L2 | Z nach L5 | Limitbefund L5 |
+| --- | --- | --- | --- |
+| 10 | 49,990 | 49,999 | keiner |
+| 10,005 | 49,995 | 50,004 | Z-Max überschritten |
+
+Beide Parses laufen fehlerfrei. Die native TLO-Zeile nach G49 ist Null;
+der Endpunkt der Bewegung L5 hängt trotzdem vom Startoffset ab.
+Fassung 2 markiert gerade diese Bewegung als `dep=false`.
+[Native Ergebnisse](viewer-palette-fest.r53.native-probe.json),
+[Verdichtung und Driftrechnung](viewer-palette-fest.r53.plan-summary.json),
+[Sonde](viewer-palette-fest.r53.native-case.py).
+
+Das führt auch mit der neuen Abstandsschranke zu einem ausgelassenen
+Neu-Parse: Im alten Stand ist nur L2 als abhängig erfasst, mit 0,010 mm
+Abstand oben. **Δ0,005 liegt innerhalb dieses Abstands und unter DRAW_EPS**;
+der neue Grenzübertritt von L5 bleibt unbemerkt. Die Idee aus VP52-03 ist
+richtig, benötigt aber die vollständige Menge abhängiger Bewegungen.
+
+**Plan korrigieren:** Offset- und Positionsabhängigkeit unterscheiden.
+G49 allein darf nur die erste beenden. Bei relativen Bewegungen und nicht
+neu vorgegebenen Achsen kann die zweite fortbestehen. Eine konservative
+Markierung darf länger wahr bleiben; sie darf erst nach belegter
+Unabhängigkeit der betroffenen Positionen entfallen. Bis dahin gehören
+auch diese Segmente in `start_slack` und bei unbekannter Basis in die
+ungeprüfte Menge. Die Anzeige „vor dem ersten G49“ entsprechend durch eine
+Aussage über die tatsächlich betroffenen Bewegungen ersetzen.
+
+### Übrige Planantworten · akzeptiert, mit Umsetzungshinweisen
+
+- **VP52-02:** `tlo_start` als gemeinsame veröffentlichte Basis für
+  Darstellung, Scrub, Part-Frame und Kollision schließt den bisherigen
+  Vertragssprung. Live-Änderungen des Programms während des Laufs dürfen
+  diese Basis nicht ersetzen. Alte Nutzdaten ausdrücklich als ungeprüft
+  zu behandeln und den Schemawechsel beim Suite-Stopp vorzunehmen ist
+  akzeptiert. Die tatsächlichen Verbraucher sind erst bei Umsetzung
+  abzunehmen.
+- **VP52-03:** Den Neu-Parse anhand von Grenzabstand und separater
+  Darstellungsschranke auszulösen, statt 0,01 mm als blinde
+  Limittoleranz zu verwenden, ist akzeptiert. Voraussetzung ist die oben
+  korrigierte Abhängigkeitsmenge. Für TCP/TWP konservativ neu zu rechnen
+  ist ebenfalls passend. Als Umsetzungsgates zusätzlich **Δ=0** sowie
+  bereits vorhandene Grenzbefunde vorsehen: Ein Abstand von Null oder
+  ein negativer Abstand darf ohne neue Änderung keine Parse-Schleife
+  verursachen.
+- **Grundannahme:** Das neue Live-Protokoll enthält nun den angewandten
+  Offset und die passende Gelenkposition für alle drei Kontrollfälle.
+  Die Rechnungen sind konsistent; der frühere Nachweisrest zu `#5403` ist
+  damit adressiert. Das ist die Prüfung des vorgelegten Protokolls, keine
+  eigene Maschinenmessung.
+- **Umfang:** Die bisherige Client-TLO-Rechnung arbeitet mit XYZ.
+  Zusätzliche A–W-Werte aus Abschnitt A/E bei der Umsetzung entweder
+  durchgängig unterstützen und prüfen oder ausdrücklich als ungeprüft
+  begrenzen; das bloße Einsetzen in die Interpreter-Initzeile erweitert
+  die übrigen Verbraucher nicht automatisch.
+
+### Validierung und weitere Runde
+
+Typecheck/Build PASS; **12 Unit-Tests**, **3 Browserprüfungen** und
+**12 native Offline-Parses** ausgeführt, ohne Parsefehler oder Absturz.
+Die nativen Fälle sind Planexperimente mit vorgeschlagener Initzeile und
+beobachteter Zustandsfolge, keine schon vorhandene Produktimplementierung.
+Kein vollständiges Offline-Gate, keine Live-Fahrt; eigener Mock beendet.
+
+Die nächste Runde kann auf **VP52-01-Rest A/B und die dazu angepasste
+Planfassung** begrenzt bleiben. VP-I21 und Settings bleiben abgenommen,
+solange deren Umsetzung dafür unverändert bleibt.

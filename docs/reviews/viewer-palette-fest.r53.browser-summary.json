@@ -1,0 +1,55 @@
+{
+  "commit": "79771e678526a15564b90aee25884e6d6e710fe4",
+  "stats": {
+    "startTime": "2026-10-01T06:44:03.701Z",
+    "duration": 21479.422,
+    "expected": 3,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "title": "the running line glides: the code scrolls evenly under a centred highlight, which never leaves the view",
+      "status": "expected",
+      "annotations": [
+        {
+          "type": "glide",
+          "description": "60 fps, 166 frames: 98 % move, 0 % by a whole 69 px packet step"
+        },
+        {
+          "type": "glide",
+          "description": "20 lines a packet: 160 frames, 0 with the running line out of view"
+        }
+      ],
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 10321
+        }
+      ]
+    },
+    {
+      "title": "R53 running-line visibility: 20 lines per packet, reduced=false",
+      "status": "expected",
+      "annotations": [],
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 5022
+        }
+      ]
+    },
+    {
+      "title": "R53 running-line visibility: 20 lines per packet, reduced=true",
+      "status": "expected",
+      "annotations": [],
+      "results": [
+        {
+          "status": "passed",
+          "duration_ms": 4791
+        }
+      ]
+    }
+  ]
+}

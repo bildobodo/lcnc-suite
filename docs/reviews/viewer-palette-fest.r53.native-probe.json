@@ -1,0 +1,1123 @@
+{
+  "commit": "79771e678526a15564b90aee25884e6d6e710fe4",
+  "experiment": "Fassung 2 dependency, fresh native process with proposed G43.1 init",
+  "cases": [
+    {
+      "case": "g49",
+      "seed_z": 10.0,
+      "program": "G21 G90\nG49\nG0 X0 Y0 Z0\nG1 X10 Z45 F100\nM2\n",
+      "parse_error": null,
+      "next_line": [
+        {
+          "next_line": 0,
+          "previous_line": 0,
+          "post_tlo_mode": 0,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 2,
+          "previous_line": 0,
+          "post_tlo_mode": 430,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 3,
+          "previous_line": 2,
+          "post_tlo_mode": 490,
+          "seq": 0,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 4,
+          "previous_line": 3,
+          "post_tlo_mode": 490,
+          "seq": 1,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 5,
+          "previous_line": 4,
+          "post_tlo_mode": 490,
+          "seq": 2,
+          "dep_fassung2": false
+        }
+      ],
+      "segments": [
+        {
+          "seq": 1,
+          "line": 3,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        },
+        {
+          "seq": 2,
+          "line": 4,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        }
+      ],
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0
+      ]
+    },
+    {
+      "case": "g49",
+      "seed_z": 20.0,
+      "program": "G21 G90\nG49\nG0 X0 Y0 Z0\nG1 X10 Z45 F100\nM2\n",
+      "parse_error": null,
+      "next_line": [
+        {
+          "next_line": 0,
+          "previous_line": 0,
+          "post_tlo_mode": 0,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 2,
+          "previous_line": 0,
+          "post_tlo_mode": 430,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 3,
+          "previous_line": 2,
+          "post_tlo_mode": 490,
+          "seq": 0,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 4,
+          "previous_line": 3,
+          "post_tlo_mode": 490,
+          "seq": 1,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 5,
+          "previous_line": 4,
+          "post_tlo_mode": 490,
+          "seq": 2,
+          "dep_fassung2": false
+        }
+      ],
+      "segments": [
+        {
+          "seq": 1,
+          "line": 3,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        },
+        {
+          "seq": 2,
+          "line": 4,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        }
+      ],
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0
+      ]
+    },
+    {
+      "case": "restore",
+      "seed_z": 10.0,
+      "program": "G21 G90\nM70\nG49\nG0 X0 Y0 Z0\nM72\nG1 X10 Z45 F100\nM2\n",
+      "parse_error": null,
+      "next_line": [
+        {
+          "next_line": 0,
+          "previous_line": 0,
+          "post_tlo_mode": 0,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 3,
+          "previous_line": 0,
+          "post_tlo_mode": 430,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 4,
+          "previous_line": 3,
+          "post_tlo_mode": 490,
+          "seq": 0,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 5,
+          "previous_line": 4,
+          "post_tlo_mode": 490,
+          "seq": 1,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 6,
+          "previous_line": 5,
+          "post_tlo_mode": 430,
+          "seq": 1,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 7,
+          "previous_line": 6,
+          "post_tlo_mode": 430,
+          "seq": 2,
+          "dep_fassung2": false
+        }
+      ],
+      "segments": [
+        {
+          "seq": 1,
+          "line": 4,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        },
+        {
+          "seq": 2,
+          "line": 6,
+          "dep_fassung2": false,
+          "post_tlo_mode": 430,
+          "g53": false
+        }
+      ],
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ],
+        [
+          1,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "violations": [
+        {
+          "line": 6,
+          "axis": "Z",
+          "value": 55.0,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 1,
+      "feed_outside": [
+        1
+      ],
+      "rapid_outside": [
+        0
+      ]
+    },
+    {
+      "case": "restore",
+      "seed_z": 20.0,
+      "program": "G21 G90\nM70\nG49\nG0 X0 Y0 Z0\nM72\nG1 X10 Z45 F100\nM2\n",
+      "parse_error": null,
+      "next_line": [
+        {
+          "next_line": 0,
+          "previous_line": 0,
+          "post_tlo_mode": 0,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 3,
+          "previous_line": 0,
+          "post_tlo_mode": 430,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 4,
+          "previous_line": 3,
+          "post_tlo_mode": 490,
+          "seq": 0,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 5,
+          "previous_line": 4,
+          "post_tlo_mode": 490,
+          "seq": 1,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 6,
+          "previous_line": 5,
+          "post_tlo_mode": 430,
+          "seq": 1,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 7,
+          "previous_line": 6,
+          "post_tlo_mode": 430,
+          "seq": 2,
+          "dep_fassung2": false
+        }
+      ],
+      "segments": [
+        {
+          "seq": 1,
+          "line": 4,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        },
+        {
+          "seq": 2,
+          "line": 6,
+          "dep_fassung2": false,
+          "post_tlo_mode": 430,
+          "g53": false
+        }
+      ],
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ],
+        [
+          1,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "violations": [
+        {
+          "line": 6,
+          "axis": "Z",
+          "value": 55.0,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 1,
+      "feed_outside": [
+        1
+      ],
+      "rapid_outside": [
+        0
+      ]
+    },
+    {
+      "case": "g53_then_incremental",
+      "seed_z": 10.0,
+      "program": "G21 G90\nG53 G0 Z0\nG49\nG91\nG1 Z5 F100\nM2\n",
+      "parse_error": null,
+      "next_line": [
+        {
+          "next_line": 0,
+          "previous_line": 0,
+          "post_tlo_mode": 0,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 2,
+          "previous_line": 0,
+          "post_tlo_mode": 430,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 3,
+          "previous_line": 2,
+          "post_tlo_mode": 430,
+          "seq": 1,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 4,
+          "previous_line": 3,
+          "post_tlo_mode": 490,
+          "seq": 1,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 5,
+          "previous_line": 4,
+          "post_tlo_mode": 490,
+          "seq": 1,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 6,
+          "previous_line": 5,
+          "post_tlo_mode": 490,
+          "seq": 2,
+          "dep_fassung2": false
+        }
+      ],
+      "segments": [
+        {
+          "seq": 1,
+          "line": 2,
+          "dep_fassung2": true,
+          "post_tlo_mode": 430,
+          "g53": true
+        },
+        {
+          "seq": 2,
+          "line": 5,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        }
+      ],
+      "feed": [
+        [
+          0.0,
+          0.0,
+          5.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          -10.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          1,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0
+      ]
+    },
+    {
+      "case": "g53_then_incremental",
+      "seed_z": 20.0,
+      "program": "G21 G90\nG53 G0 Z0\nG49\nG91\nG1 Z5 F100\nM2\n",
+      "parse_error": null,
+      "next_line": [
+        {
+          "next_line": 0,
+          "previous_line": 0,
+          "post_tlo_mode": 0,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 2,
+          "previous_line": 0,
+          "post_tlo_mode": 430,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 3,
+          "previous_line": 2,
+          "post_tlo_mode": 430,
+          "seq": 1,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 4,
+          "previous_line": 3,
+          "post_tlo_mode": 490,
+          "seq": 1,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 5,
+          "previous_line": 4,
+          "post_tlo_mode": 490,
+          "seq": 1,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 6,
+          "previous_line": 5,
+          "post_tlo_mode": 490,
+          "seq": 2,
+          "dep_fassung2": false
+        }
+      ],
+      "segments": [
+        {
+          "seq": 1,
+          "line": 2,
+          "dep_fassung2": true,
+          "post_tlo_mode": 430,
+          "g53": true
+        },
+        {
+          "seq": 2,
+          "line": 5,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        }
+      ],
+      "feed": [
+        [
+          0.0,
+          0.0,
+          5.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          -20.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          1,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0
+      ]
+    },
+    {
+      "case": "unknown",
+      "seed_z": 10.0,
+      "program": "G21 G90\nG0 X0 Y0 Z40\nG1 X10 Z45 F100\nM2\n",
+      "parse_error": null,
+      "next_line": [
+        {
+          "next_line": 0,
+          "previous_line": 0,
+          "post_tlo_mode": 0,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 2,
+          "previous_line": 0,
+          "post_tlo_mode": 490,
+          "seq": 0,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 3,
+          "previous_line": 2,
+          "post_tlo_mode": 490,
+          "seq": 1,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 4,
+          "previous_line": 3,
+          "post_tlo_mode": 490,
+          "seq": 2,
+          "dep_fassung2": false
+        }
+      ],
+      "segments": [
+        {
+          "seq": 1,
+          "line": 2,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        },
+        {
+          "seq": 2,
+          "line": 3,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        }
+      ],
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": null,
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0
+      ]
+    },
+    {
+      "case": "unknown",
+      "seed_z": 20.0,
+      "program": "G21 G90\nG0 X0 Y0 Z40\nG1 X10 Z45 F100\nM2\n",
+      "parse_error": null,
+      "next_line": [
+        {
+          "next_line": 0,
+          "previous_line": 0,
+          "post_tlo_mode": 0,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 2,
+          "previous_line": 0,
+          "post_tlo_mode": 490,
+          "seq": 0,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 3,
+          "previous_line": 2,
+          "post_tlo_mode": 490,
+          "seq": 1,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 4,
+          "previous_line": 3,
+          "post_tlo_mode": 490,
+          "seq": 2,
+          "dep_fassung2": false
+        }
+      ],
+      "segments": [
+        {
+          "seq": 1,
+          "line": 2,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        },
+        {
+          "seq": 2,
+          "line": 3,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        }
+      ],
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": null,
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0
+      ]
+    },
+    {
+      "case": "g49_motion",
+      "seed_z": 10.0,
+      "program": "G21 G90\nG49 G0 X0 Y0 Z40\nG1 X10 Z45 F100\nM2\n",
+      "parse_error": null,
+      "next_line": [
+        {
+          "next_line": 0,
+          "previous_line": 0,
+          "post_tlo_mode": 0,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 2,
+          "previous_line": 0,
+          "post_tlo_mode": 430,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 3,
+          "previous_line": 2,
+          "post_tlo_mode": 490,
+          "seq": 1,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 4,
+          "previous_line": 3,
+          "post_tlo_mode": 490,
+          "seq": 2,
+          "dep_fassung2": false
+        }
+      ],
+      "segments": [
+        {
+          "seq": 1,
+          "line": 2,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        },
+        {
+          "seq": 2,
+          "line": 3,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        }
+      ],
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0
+      ]
+    },
+    {
+      "case": "g49_motion",
+      "seed_z": 20.0,
+      "program": "G21 G90\nG49 G0 X0 Y0 Z40\nG1 X10 Z45 F100\nM2\n",
+      "parse_error": null,
+      "next_line": [
+        {
+          "next_line": 0,
+          "previous_line": 0,
+          "post_tlo_mode": 0,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 2,
+          "previous_line": 0,
+          "post_tlo_mode": 430,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 3,
+          "previous_line": 2,
+          "post_tlo_mode": 490,
+          "seq": 1,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 4,
+          "previous_line": 3,
+          "post_tlo_mode": 490,
+          "seq": 2,
+          "dep_fassung2": false
+        }
+      ],
+      "segments": [
+        {
+          "seq": 1,
+          "line": 2,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        },
+        {
+          "seq": 2,
+          "line": 3,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        }
+      ],
+      "feed": [
+        [
+          10.0,
+          0.0,
+          45.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0
+      ]
+    },
+    {
+      "case": "relative_after_g49",
+      "seed_z": 10.0,
+      "program": "G21 G90\nG0 X0 Y0 Z39.990\nG49\nG91\nG1 Z0.009 F100\nM2\n",
+      "parse_error": null,
+      "next_line": [
+        {
+          "next_line": 0,
+          "previous_line": 0,
+          "post_tlo_mode": 0,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 2,
+          "previous_line": 0,
+          "post_tlo_mode": 430,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 3,
+          "previous_line": 2,
+          "post_tlo_mode": 430,
+          "seq": 1,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 4,
+          "previous_line": 3,
+          "post_tlo_mode": 490,
+          "seq": 1,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 5,
+          "previous_line": 4,
+          "post_tlo_mode": 490,
+          "seq": 1,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 6,
+          "previous_line": 5,
+          "post_tlo_mode": 490,
+          "seq": 2,
+          "dep_fassung2": false
+        }
+      ],
+      "segments": [
+        {
+          "seq": 1,
+          "line": 2,
+          "dep_fassung2": true,
+          "post_tlo_mode": 430,
+          "g53": false
+        },
+        {
+          "seq": 2,
+          "line": 5,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        }
+      ],
+      "feed": [
+        [
+          0.0,
+          0.0,
+          49.999000549316406
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          39.9900016784668
+        ]
+      ],
+      "tlo_events": [
+        [
+          1,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0
+      ]
+    },
+    {
+      "case": "relative_after_g49",
+      "seed_z": 10.005,
+      "program": "G21 G90\nG0 X0 Y0 Z39.990\nG49\nG91\nG1 Z0.009 F100\nM2\n",
+      "parse_error": null,
+      "next_line": [
+        {
+          "next_line": 0,
+          "previous_line": 0,
+          "post_tlo_mode": 0,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 2,
+          "previous_line": 0,
+          "post_tlo_mode": 430,
+          "seq": 0,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 3,
+          "previous_line": 2,
+          "post_tlo_mode": 430,
+          "seq": 1,
+          "dep_fassung2": true
+        },
+        {
+          "next_line": 4,
+          "previous_line": 3,
+          "post_tlo_mode": 490,
+          "seq": 1,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 5,
+          "previous_line": 4,
+          "post_tlo_mode": 490,
+          "seq": 1,
+          "dep_fassung2": false
+        },
+        {
+          "next_line": 6,
+          "previous_line": 5,
+          "post_tlo_mode": 490,
+          "seq": 2,
+          "dep_fassung2": false
+        }
+      ],
+      "segments": [
+        {
+          "seq": 1,
+          "line": 2,
+          "dep_fassung2": true,
+          "post_tlo_mode": 430,
+          "g53": false
+        },
+        {
+          "seq": 2,
+          "line": 5,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        }
+      ],
+      "feed": [
+        [
+          0.0,
+          0.0,
+          50.00400161743164
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          39.9900016784668
+        ]
+      ],
+      "tlo_events": [
+        [
+          1,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [
+        {
+          "line": 5,
+          "axis": "Z",
+          "value": 50.004,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "violations_total": 1,
+      "feed_outside": [
+        1
+      ],
+      "rapid_outside": [
+        0
+      ]
+    }
+  ],
+  "failures": []
+}

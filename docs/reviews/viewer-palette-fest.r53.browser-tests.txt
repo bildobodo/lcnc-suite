@@ -1,0 +1,18 @@
+
+Running 3 tests using 1 worker
+
+(node:2821564) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2821564) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [original] › e2e/layout.spec.ts:1737:1 › the running line glides: the code scrolls evenly under a centred highlight, which never leaves the view (10.3s)
+(node:2821862) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2821862) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"reduce":false,"line":920,"frames":97,"invisibleFrames":0,"invisibleShare":0,"viewH":398,"maxAbsOffset":164.5}
+  ✓  2 [probe] › e2e/r53.spec.ts:11:36 › R53 running-line visibility: 20 lines per packet, reduced=false (5.0s)
+{"reduce":true,"line":920,"frames":92,"invisibleFrames":0,"invisibleShare":0,"viewH":398,"maxAbsOffset":0.5}
+  ✓  3 [probe] › e2e/r53.spec.ts:11:36 › R53 running-line visibility: 20 lines per packet, reduced=true (4.8s)
+
+  3 passed (21.5s)

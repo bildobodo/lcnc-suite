@@ -1,0 +1,129 @@
+{
+  "unknown_without_init": [
+    {
+      "case": "unknown",
+      "seed_z": 10.0,
+      "segments": [
+        {
+          "seq": 1,
+          "line": 2,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        },
+        {
+          "seq": 2,
+          "line": 3,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        }
+      ],
+      "tlo_events": null
+    },
+    {
+      "case": "unknown",
+      "seed_z": 20.0,
+      "segments": [
+        {
+          "seq": 1,
+          "line": 2,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        },
+        {
+          "seq": 2,
+          "line": 3,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        }
+      ],
+      "tlo_events": null
+    }
+  ],
+  "relative_after_g49": [
+    {
+      "case": "relative_after_g49",
+      "seed_z": 10.0,
+      "segments": [
+        {
+          "seq": 1,
+          "line": 2,
+          "dep_fassung2": true,
+          "post_tlo_mode": 430,
+          "g53": false
+        },
+        {
+          "seq": 2,
+          "line": 5,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        }
+      ],
+      "feed": [
+        [
+          0.0,
+          0.0,
+          49.999000549316406
+        ]
+      ],
+      "violations": [],
+      "feed_outside": [
+        0
+      ]
+    },
+    {
+      "case": "relative_after_g49",
+      "seed_z": 10.005,
+      "segments": [
+        {
+          "seq": 1,
+          "line": 2,
+          "dep_fassung2": true,
+          "post_tlo_mode": 430,
+          "g53": false
+        },
+        {
+          "seq": 2,
+          "line": 5,
+          "dep_fassung2": false,
+          "post_tlo_mode": 490,
+          "g53": false
+        }
+      ],
+      "feed": [
+        [
+          0.0,
+          0.0,
+          50.00400161743164
+        ]
+      ],
+      "violations": [
+        {
+          "line": 5,
+          "axis": "Z",
+          "value": 50.004,
+          "limit": 50.0,
+          "kind": "max"
+        }
+      ],
+      "feed_outside": [
+        1
+      ]
+    }
+  ],
+  "planned_drift_comparison": {
+    "old_seed": 10,
+    "new_seed": 10.005,
+    "delta_mm": 0.005,
+    "first_dependent_endpoint_z": 49.99,
+    "slack_upper_mm": 0.01,
+    "draw_eps_mm": 0.01,
+    "plan_reparse": false,
+    "actual_new_endpoint_z": 50.004,
+    "limit_max_z": 50
+  }
+}
