@@ -1794,10 +1794,32 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         # answers DONE; task stays MANUAL. The MDI must NOT be issued and the
         # reply must carry the reason (it used to be ok:true + "Must be in MDI
         # mode" in the trace, → Zero pressed while the A jog was held).
+        gateway._active_jogs.clear()
+        self._send({"cmd": "jog_cont", "axis": 3, "vel": 2.0})   # a jog the gateway started
         gateway.STAT.task_mode = linuxcnc.MODE_MANUAL   # the fake never changes it
         r = self._send({"cmd": "mdi", "text": "G0 X1"})
         self.assertFalse(r["ok"])
-        self.assertIn("jog", r["error"].lower())
+        self.assertIn("a jog is active — release it", r["error"])
+        self.assertIsNone(self.cmd.args_of("mdi"), "MDI issued into the wrong mode")
+
+    def test_an_ignored_switch_without_a_jog_never_names_one(self):
+        # Codex R62: restoring the XYZAC sim, an UNHOMED machine's ignored
+        # switch to AUTO said "a jog is still active — release the jog". The
+        # reply names what is seen: here the unhomed joints, no jog.
+        gateway._active_jogs.clear()
+        gateway.STAT.task_mode = linuxcnc.MODE_MANUAL
+        homed = getattr(gateway.STAT, "homed", None)
+        gateway.STAT.homed = (0,) * 9
+        try:
+            r = self._send({"cmd": "mdi", "text": "G0 X1"})
+        finally:
+            if homed is None:
+                del gateway.STAT.homed
+            else:
+                gateway.STAT.homed = homed
+        self.assertFalse(r["ok"])
+        self.assertNotIn("jog", r["error"].lower())
+        self.assertIn("kept MANUAL (asked for MDI)", r["error"])
         self.assertIsNone(self.cmd.args_of("mdi"), "MDI issued into the wrong mode")
 
     def test_jog_stop_without_an_active_jog_is_a_noop(self):

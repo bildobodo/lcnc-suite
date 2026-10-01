@@ -4379,6 +4379,29 @@ def g30_window_refusal(values: Dict[str, float], letters, limits) -> Optional[st
     return None
 
 
+def mode_switch_ignored_message(want: str, actual: str, *, jogging: bool,
+                                machine_on: Optional[bool], homed: Optional[bool],
+                                coordinated: bool) -> str:
+    """The reply when task IGNORED a mode switch (rc DONE, mode unchanged).
+
+    It says what was asked and what stayed, plus only the states that are
+    SEEN — never a guessed cause (Codex R62: every ignored switch used to say
+    "a jog is still active — release the jog"; restoring the XYZAC sim, an
+    UNHOMED machine read the same while LinuxCNC itself said "all joints must
+    be homed before going into coordinated mode"). `jogging` = a jog the
+    gateway started and has not seen end; `coordinated` = MDI/AUTO asked
+    (homing matters there); None = not known, never claimed."""
+    seen = []
+    if jogging:
+        seen.append("a jog is active — release it")
+    if machine_on is False:
+        seen.append("the machine is off")
+    if coordinated and homed is False:
+        seen.append("not all joints are homed")
+    head = f"LinuxCNC kept {actual} (asked for {want})"
+    return f"{head}: {'; '.join(seen)}" if seen else head
+
+
 def wrap_rotary(v: float) -> float:
     """G30.1's normalisation for a WRAPPED_ROTARY axis: [0, 360)."""
     r = math.fmod(v, 360.0)

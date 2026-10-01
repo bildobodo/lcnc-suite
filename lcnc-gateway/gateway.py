@@ -56,6 +56,7 @@ elif _launcher_bind.get("needs_poll"):
 
 # Pure, linuxcnc-free helpers (importable under pytest without the binding).
 from gateway_util import (
+    mode_switch_ignored_message,
     ALLOWED_EXTENSIONS,
     AXIS_LETTERS,
     g30_param,
@@ -3032,12 +3033,21 @@ async def set_mode(mode: int):
     STAT.poll()
     actual = safe_get("task_mode", None)
     if actual is not None and actual != mode:
+        # Name only what is SEEN (Codex R62): a jog the gateway started, the
+        # machine off, joints unhomed for MDI/AUTO — "a jog is still active"
+        # was said for every ignored switch, an unhomed machine included.
+        task_state = safe_get("task_state", None)
+        homed_flags = safe_get("homed", None)
+        joints = safe_get("joints", None)
+        homed = (all(homed_flags[:joints]) if homed_flags is not None and isinstance(joints, int) else None)
+        jogging = bool(_active_jogs)
         _trace.emit("task.mode_switch_ignored", level="warn", mode=mode, actual=actual,
-                    msg="task ignored the mode switch (a jog is active?)")
-        raise ValueError(
-            f"LinuxCNC ignored the mode switch to {_MODE_NAMES.get(mode, mode)} "
-            f"(task stays {_MODE_NAMES.get(actual, actual)}) — a jog is still active: "
-            f"release the jog, then try again")
+                    jogging=jogging, task_state=task_state, homed=homed)
+        raise ValueError(mode_switch_ignored_message(
+            _MODE_NAMES.get(mode, str(mode)), _MODE_NAMES.get(actual, str(actual)),
+            jogging=jogging,
+            machine_on=None if task_state is None else task_state == linuxcnc.STATE_ON,
+            homed=homed, coordinated=mode in (linuxcnc.MODE_MDI, linuxcnc.MODE_AUTO)))
     if mode in (linuxcnc.MODE_MDI, linuxcnc.MODE_AUTO):
         _active_jogs.clear()   # the switch took (or is unverifiable): no jog is active
 

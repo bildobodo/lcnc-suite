@@ -4301,3 +4301,33 @@ class TestRotaryCommands(unittest.TestCase):
         self.assertEqual(gateway_util.first_rotary_commands(self._streams(self._seg(1, 1)), None, {}),
                          {"unknown": None})
         self.assertEqual(gateway_util.first_rotary_commands([], {"A": 0.0}, {}), {"A": None, "unknown": None})
+
+
+class TestModeSwitchIgnoredMessage(unittest.TestCase):
+    """Codex R62: an ignored mode switch names what is SEEN, never a jog it
+    did not see."""
+    def msg(self, **kw):
+        base = dict(jogging=False, machine_on=True, homed=True, coordinated=True)
+        base.update(kw)
+        return gateway_util.mode_switch_ignored_message("AUTO", "MANUAL", **base)
+
+    def test_a_jog_the_gateway_started_is_named_with_its_remedy(self):
+        self.assertEqual(self.msg(jogging=True), "LinuxCNC kept MANUAL (asked for AUTO): a jog is active — release it")
+
+    def test_an_unhomed_machine_is_never_called_a_jog(self):
+        m = self.msg(homed=False)
+        self.assertNotIn("jog", m)
+        self.assertIn("not all joints are homed", m)
+
+    def test_nothing_seen_says_only_what_was_asked_and_what_stayed(self):
+        self.assertEqual(self.msg(), "LinuxCNC kept MANUAL (asked for AUTO)")
+        self.assertEqual(self.msg(machine_on=None, homed=None), "LinuxCNC kept MANUAL (asked for AUTO)")
+
+    def test_homing_counts_only_for_a_coordinated_mode_and_every_seen_state_is_listed(self):
+        self.assertEqual(gateway_util.mode_switch_ignored_message("MANUAL", "MDI", jogging=False, machine_on=True,
+                                                                  homed=False, coordinated=False),
+                         "LinuxCNC kept MDI (asked for MANUAL)")
+        self.assertEqual(self.msg(jogging=True, machine_on=False, homed=False),
+                         "LinuxCNC kept MANUAL (asked for AUTO): a jog is active — release it; "
+                         "the machine is off; not all joints are homed")
+
