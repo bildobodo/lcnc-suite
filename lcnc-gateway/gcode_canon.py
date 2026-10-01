@@ -128,10 +128,6 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # program asserted it" (the ustart lineno rule). Absent = the program
         # never changes tool or offset.
         self.tlo_events = []
-        # The line each row was recorded on (parallel to tlo_events): the
-        # worker's `%`-row rule decides by ORIGIN, never by value alone
-        # (VP-I20, Codex R56 VP56-01).
-        self.tlo_event_lines = []
         self.cur_tool = -1
         self.xo = self.yo = self.zo = 0.0
         self.ao = self.bo = self.co = 0.0
@@ -157,6 +153,21 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             float(getattr(self, "rotation_xy", 0.0) or 0.0),
         )
 
+    # Lines that belong to the INITCODES, not the program (VP-I20, native):
+    # a file whose first non-blank line is the `%` delimiter has the
+    # interpreter run the initcode block AFTER that line's next_line — the
+    # rotary sync move, the start-offset G43.1, the fixture code all arrive
+    # numbered as the `%` line. That line holds nothing but `%` (RS274NGC),
+    # so whatever arrives on it is init: no recorded motion (the phantom
+    # zero-length rapid at program 0,0,0), no TLO row, no start snapshot.
+    # The worker sets it from the source text (percent_delimiter_line).
+    init_lines = frozenset()
+
+    def _program_line(self):
+        """Is the current callback from a PROGRAM line (not the initcodes)?"""
+        n = self.lineno or 0
+        return n >= 1 and n not in self.init_lines
+
     def next_line(self, st):
         self.state = st
         self.lineno = st.sequence_number
@@ -175,7 +186,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # The initcode block arrives as sequence_number 0 and its offsets are
         # applied AFTER that callback, so the first line with a real (>=1)
         # number is the first moment the post-initcode state is visible.
-        if self.basis_at_start is None and (self.lineno or 0) >= 1:
+        if self.basis_at_start is None and self._program_line():
             self.basis_at_start = self.wcs_basis()
             # Re-arm the first-move suppression for the PROGRAM (schema 5):
             # the rotary-sync initcode (gateway_util.rotary_sync_initcode)
@@ -217,9 +228,8 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         if idx > 0:
             self.tools_used.add(idx)
         self.cur_tool = idx
-        if (self.lineno or 0) >= 1:
+        if self._program_line():
             self.tlo_events.append((self.seq, self.xo, self.yo, self.zo, idx))
-            self.tlo_event_lines.append(self.lineno)
 
     def tool_offset(self, xo, yo, zo, ao, bo, co, uo, vo, wo):
         self.first_move = True
@@ -232,9 +242,8 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self.uo, self.vo, self.wo = uo, vo, wo
         # G49 when already zero IS recorded: the program asserting zero
         # differs from "inherit live" (see tlo_events in __init__).
-        if (self.lineno or 0) >= 1:
+        if self._program_line():
             self.tlo_events.append((self.seq, xo, yo, zo, self.cur_tool))
-            self.tlo_event_lines.append(self.lineno)
 
     # rotate_and_translate keeps straight moves in the same translated frame
     # gcode.arc_to_segments produces for arcs; WCS offsets subtract once at
@@ -295,7 +304,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             # need those lines: a low rapid traverse before the first cut is
             # exactly the classic crash.)
             self.first_move = False
-            if (self.lineno or 0) >= 1:
+            if self._program_line():
                 seq = self._next_seq()
                 self.rapid.append((self.lineno, l, l, (self.xo, self.yo, self.zo), seq))
                 self.unknown_start.append(seq)

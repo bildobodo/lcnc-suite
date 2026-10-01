@@ -1571,60 +1571,23 @@ def start_tlo_initcode(seed, axis_mask):
     return "G43.1 " + " ".join(words) if words else None
 
 
-def start_tlo_canon_xyz(seed, axis_mask, machine_units):
-    """The xyz the init line puts in effect, in the CANON's units (inches —
-    LinuxCNC's internal unit), exactly as the interpreter computes it: the
-    line's own text (`%.9f`, start_tlo_initcode) read back and, on a mm
-    machine, divided by 25.4 — bit-equal to the row a `%` program records
-    (native, plan Fassung 6). None when nothing is seeded. Pure."""
-    if start_tlo_initcode(seed, axis_mask) is None:
-        return None
-    div = 25.4 if machine_units == "mm" else 1.0
-    return tuple(float("%.9f" % v) / div for v in seed["xyz"])
+def percent_delimiter_line(lines):
+    """The line number of a program's leading `%` delimiter, or None.
 
-
-def nth_line(text, n):
-    """Line `n` (1-based) of `text`, without its newline; None past the end.
-    Scans only up to that line (the `%` row is line 1 of a 17 MB file). Pure."""
-    if not text or n is None or n < 1:
-        return None
-    start = 0
-    for _ in range(n - 1):
-        nl = text.find("\n", start)
-        if nl < 0:
-            return None
-        start = nl + 1
-    end = text.find("\n", start)
-    return text[start:] if end < 0 else text[start:end]
-
-
-def percent_start_row(events, event_lines, source_text, seed_raw):
-    """Is the FIRST TLO row the interpreter's re-issue of the start offset on
-    a `%` line — the start state itself, not a program event? (Codex R56
-    VP56-01, plan Fassung 6.) All five conditions, by ORIGIN, never by value
-    alone: it is the first row; it sits at seq 0 (no motion recorded yet);
-    its line in the main file reads exactly `%` (whitespace stripped) and is
-    the file's first non-blank line — the program delimiter, so a sub's line
-    number can never point at it by coincidence; its vector is bit-equal to
-    the seeded one (`seed_raw`, start_tlo_canon_xyz — None when nothing was
-    seeded); its tool is the inherited one (-1). Any doubt keeps the row.
-    (Native: the row IS the init line's own canon call, delivered on the `%`
-    line.) Returns True to drop row 0. Pure."""
-    if not events or seed_raw is None or not event_lines:
-        return False
-    ev = events[0]
-    try:
-        if int(ev[0]) != 0 or int(ev[4]) != -1:
-            return False
-        if (float(ev[1]), float(ev[2]), float(ev[3])) != tuple(float(v) for v in seed_raw):
-            return False
-    except (TypeError, ValueError, IndexError):
-        return False
-    n = event_lines[0]
-    line = nth_line(source_text, n)
-    if line is None or line.strip() != "%":
-        return False
-    return all((nth_line(source_text, k) or "").strip() == "" for k in range(1, n))
+    RS274NGC: the first non-blank line of a file may hold nothing but `%`
+    (whitespace around it), and then the interpreter runs the initcode block
+    on that line — every initcode callback arrives numbered as it (native,
+    VP-I20: the rotary sync move recorded as a phantom point at program
+    0,0,0, the start-offset G43.1 recorded as a TLO row). The canon treats
+    this line as init (PreviewCanon.init_lines). `lines` is any iterable of
+    text lines (a file object reads only up to the first non-blank line).
+    Pure."""
+    for n, line in enumerate(lines, start=1):
+        s = line.strip()
+        if not s:
+            continue
+        return n if s == "%" else None
+    return None
 
 
 #: The worker's exit code when a PINNED parse cannot pin the start state

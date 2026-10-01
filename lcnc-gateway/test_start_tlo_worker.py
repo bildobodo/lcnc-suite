@@ -66,9 +66,17 @@ class TestStartToolState(unittest.TestCase):
         self.assertEqual(r["violations"], [])
         self.assertIsNone(r["tlo_events"])
 
-    def test_the_percent_row_is_the_start_state_and_only_it(self):
-        # the init line's own row, delivered on the `%` line: not shipped
-        self.assertIsNone(probe("percent")["tlo_events"])
+    def test_the_percent_line_is_init_not_program(self):
+        # the interpreter runs the initcodes on a leading `%` line: the
+        # start seed's own row is no program row …
+        r = probe("percent")
+        self.assertIsNone(r["tlo_events"])
+        self.assertEqual(r["rapid"], [[0.0, 0.0, -10.0], [1.0, 0.0, -10.0]])
+        # … and on a rotary machine the rotary sync move is no phantom point
+        # at program 0,0,0 ahead of the program's first move
+        rr = probe("percent_rotary")
+        self.assertEqual(rr["rapid"], [[0.0, 0.0, -10.0], [1.0, 0.0, -10.0]])
+        self.assertIsNone(rr["tlo_events"])
         # a program's G43.1 with the seed's value stays — by origin, not value
         self.assertEqual(probe("percent_then_g43_1")["tlo_events"], [[0, 0.0, 0.0, 10.0, -1]])
         # Codex R56: G49 then G43.1 Z10 at seq 0 — both rows kept, Z10 governs

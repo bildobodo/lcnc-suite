@@ -41,6 +41,9 @@ CASES = {
     "a_w_component": ("G21 G90\nG0 X0 Y0 Z40\nM2\n", "mm", 10.0, (430,), {"a_offset": 0.5}),
     "g53_prefix": ("G21 G90\nG53 G0 Z0\nG0 X0 Y0 Z-60\nM2\n", "mm", 10.0, (430,), {}),
     "percent": ("%\nG21 G90\nG53 G0 Z0\nG0 X1\nM2\n%\n", "mm", 10.0, (430,), {}),
+    # a rotary machine: the initcodes carry the rotary sync move, run on the
+    # `%` line — it used to be recorded as a phantom point at program 0,0,0
+    "percent_rotary": ("%\nG21 G90\nG53 G0 Z0\nG0 X1\nM2\n%\n", "mm", 10.0, (430,), {"rotary": True}),
     "percent_then_g43_1": ("%\nG21 G90\nG43.1 Z10\nG0 X0 Y0 Z0\nM2\n%\n", "mm", 10.0, (430,), {}),
     "codex_r56": ("G21 G90\nG49\nG43.1 Z10\nG0 X0 Y0 Z0\nG0 X10 Y0 Z0\nM2\n", "mm", 10.0, (430,), {}),
     "pinned_seed": ("G21 G90\nG0 X0 Y0 Z40\nM2\n", "mm", 10.0, (430,),
@@ -61,7 +64,7 @@ ini = work / "machine.ini"
 ini.write_text(f"""[EMC]
 MACHINE = START_PROBE
 [TRAJ]
-COORDINATES = XYZ
+COORDINATES = {"XYZA" if extra.get("rotary") else "XYZ"}
 LINEAR_UNITS = {"inch" if inch else "mm"}
 ANGULAR_UNITS = degree
 [RS274NGC]
@@ -96,7 +99,7 @@ def tool(n, z):
     return Tool(n, 0, 0, z, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0)
 
 
-s = SimpleNamespace(poll=lambda: None, axis_mask=7, angular_units=1.0,
+s = SimpleNamespace(poll=lambda: None, axis_mask=(15 if extra.get("rotary") else 7), angular_units=1.0,
                     linear_units=(1.0 / 25.4 if inch else 1.0), block_delete=False,
                     actual_position=[0] * 9, g92_offset=[0] * 9,
                     tool_offset=[0, 0, z_off, extra.get("a_offset", 0)] + [0] * 5,

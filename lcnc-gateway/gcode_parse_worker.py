@@ -86,7 +86,7 @@ from gateway_util import (
     LINE_NONE, LINE_RAPID, LINE_FEED, LINE_EITHER,
     seed_kins_events, program_end_kins_type, wcs_offset_flat_from_var,
     seeded_tool_meta, seeded_spindle_row, PIN_UNSUPPORTED_EXIT,
-    start_tlo_seed, start_tlo_initcode, start_tlo_canon_xyz, percent_start_row,
+    start_tlo_seed, start_tlo_initcode, percent_delimiter_line,
     find_unmarked_subs, resolve_subroutine_dirs,
 )
 
@@ -314,6 +314,15 @@ def parse(ctx: dict) -> dict:
         _reset = getattr(_remap_mod, "webui_preview_reset", None)
         if _reset is not None:
             _reset()
+        # A leading `%` line is where the interpreter runs the initcodes
+        # (native): the canon counts it as init, not as a program line.
+        try:
+            with open(filename, "r", errors="replace") as _f:
+                _pct = percent_delimiter_line(_f)
+        except OSError:
+            _pct = None
+        if _pct is not None:
+            canon.init_lines = frozenset((_pct,))
         t0 = time.monotonic()
         result, seq = gcode.parse(filename, canon, initcodes, "")
         t1 = time.monotonic()
@@ -380,18 +389,6 @@ def parse(ctx: dict) -> dict:
             _src_text = f.read()
     except OSError as e:
         _trace.emit_exc("gcode.tool_scan_failed", e)
-    # A `%` program re-issues the start offset on its `%` line before any
-    # motion (plan Fassung 6, native): that row IS the start state —
-    # `tlo_start` carries it — and shipping it would put every point "after
-    # the first row" and hide its start dependence from the client's
-    # normalisation. Dropped by ORIGIN only (percent_start_row: first row,
-    # seq 0, the delimiter line, bit-equal to the seed, inherited tool).
-    if percent_start_row(canon.tlo_events, canon.tlo_event_lines, _src_text,
-                         start_tlo_canon_xyz(_start, getattr(s, "axis_mask", 0), machine_units)):
-        canon.tlo_events = canon.tlo_events[1:]
-        canon.tlo_event_lines = canon.tlo_event_lines[1:]
-        print("tlo: the `%` line's re-issue of the start offset is the start state — "
-              "no row", file=sys.stderr, flush=True)
 
     # Per-line soft-limit validation (offline dry run stage 1). Runs on the
     # FULL canon segment list — the RDP decimation below can shave up to eps

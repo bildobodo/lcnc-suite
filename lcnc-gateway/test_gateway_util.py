@@ -2672,7 +2672,6 @@ class TestCanonFirstMoveRearm(unittest.TestCase):
         c.sub_events = []
         c.unknown_start = []
         c.tlo_events = []
-        c.tlo_event_lines = []
         c.cur_tool = -1
         c.rotation_xy = 0.0
         c.xo = c.yo = c.zo = 0.0
@@ -3958,58 +3957,54 @@ class TestStartTloSeed(unittest.TestCase):
         self.assertEqual(gateway_util.start_tlo_initcode(seed, 1 | 4), "G43.1 X0.000000000 Z3.000000000")
 
 
-class TestPercentStartRow(unittest.TestCase):
-    """The seq-0 drop by ORIGIN (Codex R56 VP56-01, plan Fassung 6)."""
+class TestPercentDelimiter(unittest.TestCase):
+    """A leading `%` line is where the interpreter runs the initcodes."""
 
-    SEED = (0.0, 0.0, 10.0 / 25.4)
-    PCT = "%\nG21 G90\nG53 G0 Z0\nG0 X1\nM2\n%\n"
+    def test_the_first_non_blank_line_alone(self):
+        f = gateway_util.percent_delimiter_line
+        self.assertEqual(f(["%\n", "G21\n"]), 1)
+        self.assertEqual(f(["\n", "  %  \n", "G0 X1\n"]), 2)
+        self.assertIsNone(f(["G21\n", "%\n"]), "a `%` after program text is no leading delimiter")
+        self.assertIsNone(f(["% G21\n"]), "nothing but `%` on the line")
+        self.assertIsNone(f([]))
+        self.assertIsNone(f(["\n", "  \n"]))
 
-    def test_the_leading_percent_row_carrying_the_seed_is_the_start_state(self):
-        ev = [(0, 0.0, 0.0, 10.0 / 25.4, -1)]
-        self.assertTrue(gateway_util.percent_start_row(ev, [1], self.PCT, self.SEED))
+    def test_it_reads_no_further_than_the_first_non_blank_line(self):
+        def lines():
+            yield "%\n"
+            raise AssertionError("read past the delimiter")
+        self.assertEqual(gateway_util.percent_delimiter_line(lines()), 1)
 
-    def test_every_condition_alone_keeps_the_row(self):
-        f = gateway_util.percent_start_row
-        ok = (0, 0.0, 0.0, 10.0 / 25.4, -1)
-        self.assertFalse(f([ok], [1], self.PCT, None), "nothing seeded")
-        self.assertFalse(f([(3,) + ok[1:]], [1], self.PCT, self.SEED), "after a motion")
-        self.assertFalse(f([ok[:4] + (13,)], [1], self.PCT, self.SEED), "a tool of its own")
-        self.assertFalse(f([(0, 0.0, 0.0, 10.0 / 25.4 + 1e-15, -1)], [1], self.PCT, self.SEED),
-                         "not bit-equal")
-        self.assertFalse(f([ok], [2], self.PCT, self.SEED), "a program line, not `%`")
-        self.assertFalse(f([ok], [99], self.PCT, self.SEED), "a line the file lacks")
-        self.assertFalse(f([], [], self.PCT, self.SEED), "no rows")
-        self.assertFalse(f([ok], [3], "G21\nG90\n%\n", self.SEED), "a `%` that is no delimiter")
-        self.assertTrue(f([ok], [2], "\n%\nG0 X1\n", self.SEED), "blank lines before it")
 
-    def test_codex_r56_g49_then_g43_1_at_seq_0_keeps_both(self):
-        # G49 (line 2, Z0) then G43.1 Z10 (line 3, Z10 = the seed) before any
-        # motion: the second row carries the seed's value, but neither is the
-        # first row of a `%` line — dropping it made G49 govern (Z0, not Z10).
-        prog = "G21 G90\nG49\nG43.1 Z10\nG0 X0 Y0 Z0\nG0 X10 Y0 Z0\nM2\n"
-        ev = [(0, 0.0, 0.0, 0.0, -1), (0, 0.0, 0.0, 10.0 / 25.4, -1)]
-        self.assertFalse(gateway_util.percent_start_row(ev, [2, 3], prog, self.SEED))
+class TestCanonInitLines(unittest.TestCase):
+    """Callbacks numbered as the `%` line are the initcodes' (VP-I20, native)."""
 
-    def test_percent_then_a_program_g43_1_drops_only_the_percent_row(self):
-        prog = "%\nG21 G90\nG43.1 Z10\nG0 X0 Y0 Z0\nM2\n%\n"
-        ev = [(0, 0.0, 0.0, 10.0 / 25.4, -1), (0, 0.0, 0.0, 10.0 / 25.4, -1)]
-        self.assertTrue(gateway_util.percent_start_row(ev, [1, 3], prog, self.SEED))
-        # only row 0 is ever considered: the program's own row stays
-        self.assertFalse(gateway_util.percent_start_row(ev[1:], [3], prog, self.SEED))
+    def _canon(self):
+        c, ns = TestTloEvents._canon(self)
+        c.init_lines = frozenset((1,))
+        return c, ns
 
-    def test_the_seed_in_canon_units_is_what_the_interpreter_computes(self):
-        seed = {"known": True, "xyz": [0.0, 0.0, 65.0512], "mode": 430, "reason": None}
-        # native: the `%` row of a 65.0512 mm seed carries 2.561070866141732
-        self.assertEqual(gateway_util.start_tlo_canon_xyz(seed, 7, "mm"), (0.0, 0.0, 2.561070866141732))
-        self.assertEqual(gateway_util.start_tlo_canon_xyz(dict(seed, xyz=[0, 0, 0.5]), 7, "in"), (0.0, 0.0, 0.5))
-        self.assertIsNone(gateway_util.start_tlo_canon_xyz(dict(seed, mode=490, xyz=[0, 0, 0]), 7, "mm"))
-        self.assertIsNone(gateway_util.start_tlo_canon_xyz({"known": False}, 7, "mm"))
+    def test_the_init_block_on_the_percent_line_records_nothing(self):
+        c, ns = self._canon()
+        c.next_line(ns(sequence_number=0))
+        c.next_line(ns(sequence_number=1))          # the `%` line
+        self.assertIsNone(c.basis_at_start, "no program line ran yet")
+        c.straight_traverse(0, 0, 0, 0, 0, 0, 0, 0, 0)   # the rotary sync
+        c.tool_offset(0, 0, 10 / 25.4, 0, 0, 0, 0, 0, 0)   # the start seed
+        self.assertEqual((c.rapid, c.tlo_events, c.unknown_start), ([], [], []))
+        c.next_line(ns(sequence_number=3))          # the first program line
+        self.assertIsNotNone(c.basis_at_start)
+        c.straight_traverse(0, 0, -10 / 25.4, 0, 0, 0, 0, 0, 0)
+        self.assertEqual(len(c.rapid), 1)
+        self.assertEqual(c.rapid[0][0], 3)
+        c.tool_offset(0, 0, 0, 0, 0, 0, 0, 0, 0)
+        self.assertEqual(len(c.tlo_events), 1)
 
-    def test_nth_line(self):
-        self.assertEqual(gateway_util.nth_line("a\n  %  \nc", 2), "  %  ")
-        self.assertEqual(gateway_util.nth_line("a\nb", 2), "b")
-        self.assertIsNone(gateway_util.nth_line("a\nb", 3))
-        self.assertIsNone(gateway_util.nth_line("", 1))
+    def test_without_a_delimiter_line_1_is_a_program_line(self):
+        c, ns = TestTloEvents._canon(self)
+        c.next_line(ns(sequence_number=1))
+        c.tool_offset(0, 0, 1, 0, 0, 0, 0, 0, 0)
+        self.assertEqual(len(c.tlo_events), 1)
 
 
 class TestProgramEndKinsType(unittest.TestCase):
