@@ -6024,3 +6024,76 @@ bestanden**, einschließlich des reproduzierten Fehlers der breiten
 seq-0-Filterung und der engen Gegenkorrektur. Kein Browserlauf, Build oder
 vollständiges Gate für diese Planrunde. Alle übrigen abgenommenen Punkte
 bleiben geschlossen; nächste Runde nur **VP56-01 / seq-0-Entnahme**.
+
+---
+
+## Antwort R57 · Claude · VP56-01: die seq-0-Entnahme, Fassung 6 · 1. Oktober 2026
+
+Deine R56-Belege stehen unverändert in `a8eff5c`. VP56-01 nehme ich an.
+Die Regel aus Fassung 5 griff über den Wert. Sie muss über die
+**Herkunft** greifen.
+
+### Woher die Zeile kommt (nativ, synthetische INI, Seed Z10)
+
+Bei jedem `tool_offset`-Aufruf wurden Zeile, seq und Werkzeug
+protokolliert ([f6.native.json](viewer-palette-fest.plan-vp-i20.f6.native.json)):
+
+| Programm | Ereignisse vor der ersten Bewegung |
+|---|---|
+| `%` · G21 G90 · G53 G0 Z0 … | **Zeile 1 (die `%`-Zeile)**, seq 0, Z10, Werkzeug −1 |
+| dein Programm: G49 · G43.1 Z10 · … | Zeile 2 (G49) Z0, dann Zeile 3 (G43.1) Z10, beide seq 0 |
+| `%` · G21 G90 · G43.1 Z10 · … | Zeile 1 (`%`) Z10, dann **Zeile 3 (G43.1)** Z10 |
+
+- Die Initzeile mit Zeile 0 zeichnet der Canon schon heute nicht auf.
+- Der `%`-Eintrag entsteht in der `%`-Zeile selbst. Er ist der vom
+  Interpreter neu ausgegebene Startzustand, kein Programmereignis.
+
+### Regel (ersetzt den Satz aus Fassung 5)
+
+Der Worker entnimmt **höchstens einen** Eintrag, und nur wenn **alle**
+Bedingungen gelten:
+1. Er ist der **erste** Eintrag der Liste.
+2. Er steht bei seq 0, also ist noch keine Bewegung aufgezeichnet.
+3. Seine Zeile ist in der Hauptdatei genau `%`, nach Entfernen von
+   Leerraum. Das ist textgeprüft, wie die übrigen Zeilenzuordnungen.
+4. Sein Vektor ist bitgleich mit dem Seed.
+5. Sein Werkzeug ist das geerbte (−1), keine eigene Werkzeugwahl.
+
+**Jeder andere Eintrag bleibt**, in Reihenfolge und mit der Regel
+„gleiche seq → letzter gilt“. Das gilt auch für Einträge mit gleicher seq
+und gleichem Wert wie der Seed.
+
+| Fall | Ergebnis |
+|---|---|
+| Dein Programm (G49, dann `G43.1 Z10`) | keine Entnahme, denn Zeile 2 ist nicht `%`. Die Punkte liegen bei Z10, wie nativ. |
+| `%`, dann `G43.1 Z10` | nur der `%`-Eintrag entfällt. Die `G43.1`-Zeile bleibt und gilt. |
+| `%`, kein eigener Offset vor der ersten Bewegung (`heavy_test`) | der `%`-Eintrag entfällt. Die Punkte von N20 und N50 liegen vor der ersten Zeile und werden normalisiert. |
+| Werkzeugwahl vor der ersten Bewegung (`T… M6`, G43 H…) | eigene Einträge mit Werkzeugnummer und Zeile bleiben |
+| `%` ohne Seed (Live G49) | kein Eintrag, keine Entnahme |
+
+### Umsetzungshinweise aus R56 (übernommen)
+
+- **Originale Daten:** Koordinaten und `tlo_start` bleiben unverändert.
+  Jede Basis wird aus ihnen abgeleitet, damit sich mehrere Prüfungen nicht
+  aufsummieren.
+- **Basiswechsel:** Eine neue Basis wird zusammen mit allen daraus
+  berechneten Darstellungsdaten wirksam. Ein alter Sweep gilt während des
+  Neuaufbaus als veraltet.
+- **Bindung:** Die Werkzeugbasis gilt nur für die Datei und Version, für
+  die sie gesendet wurde. Während eines Laufs bleibt sie fest.
+
+### Wächter, jeweils zuerst rot
+
+- **Mehrere Einträge bei seq 0:** dein Programm. Kein Eintrag entfällt;
+  die erste Achsposition bleibt Z10.
+- **`%` mit `G43.1 Z10` danach:** genau ein Eintrag entfällt; die Punkte
+  bleiben bei Z10.
+- **Werkzeugwahl vor der ersten Bewegung:** Der Eintrag mit eigener
+  Werkzeugnummer bleibt.
+- **Bedingungen einzeln:** Ein `%`-Eintrag, der nicht der erste ist, einen
+  anderen Vektor oder ein eigenes Werkzeug hat, bleibt.
+- Die Wächter aus Fassung 4 und 5 bleiben.
+
+### Prüfstand
+
+Nur Plan und eine native Protokollierung. Keine Produktänderung, kein Gate.

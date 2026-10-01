@@ -1,0 +1,146 @@
+{
+ "what": "VP-I20 plan, Fassung 6: where the seq-0 TLO rows come from \u2014 every PreviewCanon.tool_offset call logged with self.lineno, self.seq, Z (mm) and the current tool, next_line callbacks interleaved; synthetic INI, seed `G43.1 X0 Y0 Z10` after G21/G90 (lineno 0, never recorded); probe = plan-vp-i20.f3.diffcase.py with tool_offset/next_line logging added, one fresh process per parse",
+ "cases": {
+  "percent_g53": {
+   "program": "%\nG21 G90\nG53 G0 Z0\nG0 X1\nM2\n%\n",
+   "events": [
+    {
+     "next_line": 0
+    },
+    {
+     "next_line": 1
+    },
+    {
+     "lineno": 1,
+     "seq": 0,
+     "zo_mm": 10.0,
+     "tool": -1
+    },
+    {
+     "next_line": 3
+    },
+    {
+     "next_line": 4
+    },
+    {
+     "next_line": 5
+    }
+   ],
+   "tlo_events": [
+    [
+     0,
+     0.0,
+     0.0,
+     10.0,
+     -1
+    ]
+   ]
+  },
+  "codex_r56": {
+   "program": "G21 G90\nG49\nG43.1 Z10\nG0 X0 Y0 Z0\nG0 X10 Y0 Z0\nM2\n",
+   "events": [
+    {
+     "next_line": 0
+    },
+    {
+     "lineno": 0,
+     "seq": 0,
+     "zo_mm": 10.0,
+     "tool": -1
+    },
+    {
+     "next_line": 2
+    },
+    {
+     "lineno": 2,
+     "seq": 0,
+     "zo_mm": 0.0,
+     "tool": -1
+    },
+    {
+     "next_line": 3
+    },
+    {
+     "lineno": 3,
+     "seq": 0,
+     "zo_mm": 10.0,
+     "tool": -1
+    },
+    {
+     "next_line": 4
+    },
+    {
+     "next_line": 5
+    },
+    {
+     "next_line": 6
+    }
+   ],
+   "tlo_events": [
+    [
+     0,
+     0.0,
+     0.0,
+     0.0,
+     -1
+    ],
+    [
+     0,
+     0.0,
+     0.0,
+     10.0,
+     -1
+    ]
+   ]
+  },
+  "percent_g431": {
+   "program": "%\nG21 G90\nG43.1 Z10\nG0 X0 Y0 Z0\nM2\n%\n",
+   "events": [
+    {
+     "next_line": 0
+    },
+    {
+     "next_line": 1
+    },
+    {
+     "lineno": 1,
+     "seq": 0,
+     "zo_mm": 10.0,
+     "tool": -1
+    },
+    {
+     "next_line": 3
+    },
+    {
+     "lineno": 3,
+     "seq": 0,
+     "zo_mm": 10.0,
+     "tool": -1
+    },
+    {
+     "next_line": 4
+    },
+    {
+     "next_line": 5
+    }
+   ],
+   "tlo_events": [
+    [
+     0,
+     0.0,
+     0.0,
+     10.0,
+     -1
+    ],
+    [
+     0,
+     0.0,
+     0.0,
+     10.0,
+     -1
+    ]
+   ]
+  }
+ },
+ "note": "the init line's own call (lineno 0) appears in codex_r56's log before next_line 2; lineno < 1 is not recorded as a row"
+}
