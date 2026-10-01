@@ -69,7 +69,15 @@ The **plate is physical**: a fixed point per profile, set in its `core_sim_N.hal
 |---|---|
 | 3 Axis XYZ (`core_sim_3.hal`) | 10 / 10 / −180 |
 | 5 Axis XYZAC (`core_sim_5.hal`) | 150 / 0 / −300 |
-| 6 Axis TWP XYZABC (`core_sim_6.hal`) | 10 / 10 / −180 |
+| 6 Axis TWP XYZABC (`core_sim_6.hal`) | 1200 / 1000 / −1000 |
+
+A plate lies beside the work, never under the parked head: no shipped tool
+may reach it from the home position (`test_sim_toolsetter.py`). The TWP gantry
+carried the 3-axis 10 / 10 / −180 until 2026-10-02 — 14 mm from its home, so
+its 200 mm T1 tripped the setter at the parked pose and the parity programs
+crossed its window. `install_examples.py` replaces that unchanged triple in an
+installed TWP var file when the WebUI saved no toolsetter for the INI, and
+says so.
 
 Set *Probing › Toolsetter* (X, Y, Z position) to the same point — the
 profile's shipped var file names it (`#3100` / `#3101` / `#3102`). That is the
