@@ -1,16 +1,8 @@
 <script setup lang="ts">
-import { ref, useId } from "vue";
+import { ref } from "vue";
 import { timingStats, resetTimingStats, getTimingCsv, send, status, lastReply, type TimingComponentStats } from "./lcncWs";
 import MachineBtn from "./MachineBtn.vue";
-import MachineRadio from "./MachineRadio.vue";
 import { fmtUnit } from "./format";
-import { AB_LABELS, type AbVariant } from "./viewer/abRun";
-import { abRunLine, abState, cancelAbRun, setAbLineMode, startAbRun } from "./viewer/abRunBus";
-
-// Part B's A/B measurement (Codex R39 VP39-03) — TEMPORARY: the switch and
-// the previous GL line are removed after the acceptance.
-const abName = `abLine${useId()}`;
-const abModes: AbVariant[] = ["gl", "fat"];
 
 const timingLogActive = ref(false);
 
@@ -48,21 +40,6 @@ const timingComponents: { key: keyof Omit<import("./lcncWs").TimingStats, "count
 
 <template>
   <div class="scrollContent scroll-thin fade-scroll">
-    <div class="stack-controls" data-ab-measure>
-      <div class="sub">Path Lines (A/B, temporary)</div>
-      <div class="settingDesc">Compares the previous GL line with the 2 CSS px line. Run moves the view by itself for about 8 min once Settings is closed; results go to the trace (scripts/viewer_ab_report.py).</div>
-      <div class="radioGroup inline">
-        <label v-for="m in abModes" :key="m"><MachineRadio gate="viewerSetting" :name="abName" :modelValue="abState.mode" :value="m"
-          :disabled="!abState.available || abState.running" @update:modelValue="setAbLineMode(m)" /> {{ AB_LABELS[m] }}</label>
-      </div>
-      <div class="row-controls">
-        <!-- Refused starts say why in the status line (abBlocker reads the
-             drawn path, which is not reactive). -->
-        <MachineBtn type="inline" :disabled="!abState.available || abState.running" @click="startAbRun()">Run A/B measurement</MachineBtn>
-        <MachineBtn type="inline" :disabled="!abState.running" @click="cancelAbRun">Cancel measurement</MachineBtn>
-      </div>
-      <div class="settingDesc" role="status" aria-live="polite">{{ abState.running ? abRunLine() : abState.last }}</div>
-    </div>
     <div class="stack-controls">
       <div class="sub">Latency Breakdown <span v-if="timingStats" class="text-muted">({{ timingStats.count }} samples)</span></div>
       <div v-if="timingStats" class="timingTable">

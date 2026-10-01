@@ -105,17 +105,6 @@ export function setViewerPerfEnabled(on: boolean): void {
   _enabled = on;
 }
 
-/** Every counted sample, raw, for the part-B A/B measurement (viewer/abRun.ts
- *  — Codex R39 VP39-03: its histograms need samples, the windows here only
- *  keep quantiles): `raf` a render-loop gap, `mt` a main-thread probe's
- *  lateness (0 when on time), `gpu` a fence's submit-to-done ms. Temporary,
- *  removed with the A/B switch after the acceptance. */
-export type ViewerPerfTap = (kind: "raf" | "mt" | "gpu", ms: number, now: number) => void;
-let _tap: ViewerPerfTap | null = null;
-export function setViewerPerfTap(fn: ViewerPerfTap | null): void {
-  _tap = fn;
-}
-
 /** Hand the collector the renderer's context. WebGL2 only (fences); anything
  *  else disables the GPU probe — the `gpu_*` fields then stay absent, not
  *  zero. Pass null on teardown. */
@@ -153,7 +142,6 @@ export function recordRafTick(now: number = performance.now()): void {
     } else {
       if (_rafGaps.length < SAMPLE_CAP) _rafGaps.push(gap);
       if (gap > _rafGapMax) _rafGapMax = gap;
-      _tap?.("raf", gap, now);
     }
   }
   _lastRafTs = now;
@@ -179,7 +167,6 @@ export function noteMainThreadProbe(now: number, hidden: boolean): void {
   if (_mtDue > 0 && _enabled && !hidden) {
     const late = now - _mtDue;
     _mtProbes++;
-    _tap?.("mt", Math.max(0, late), now);
     if (late > 0) {
       if (_mtLate.length < SAMPLE_CAP) _mtLate.push(late);
       if (late > _mtLateMax) _mtLateMax = late;
@@ -250,7 +237,6 @@ function _pollFences(now: number): void {
     if (_gpuBehind.length < SAMPLE_CAP) { _gpuBehind.push(behind); _gpuMs.push(ms); }
     if (behind > _gpuBehindMax) _gpuBehindMax = behind;
     if (ms > _gpuMsMax) _gpuMsMax = ms;
-    _tap?.("gpu", ms, now);
   }
 }
 
