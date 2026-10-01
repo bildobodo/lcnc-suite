@@ -467,27 +467,29 @@ test("the viewer palette: Automatic follows the theme, Custom stays, a legacy pa
   await page.evaluate(() => window.__viewerDiag!.tintPart!("tool", true));   // the default tool marker
   expect((await drawn()).drawn.collision).toBe(light.collision);
 
-  // A theme switch re-resolves the palette (two schemes, operator
-  // 2026-09-29: one colour FAMILY per role, each theme at its own lightness —
-  // strong on the light scene, luminous on the dark): dark draws dark's own
-  // values, the shared roles (rapid, collision) stay; the boxes are the same
-  // two tones in every theme — everything drawn, the tint on screen too.
+  // A theme switch re-resolves the palette. ONE palette (operator 2026-10-01,
+  // from renders: the dark theme's luminous colours in every theme, replacing
+  // the two schemes of 2026-09-29): every colour role is the same in light,
+  // dark and high contrast; only the boxes' neutral two tones are the
+  // theme's own (black / white in high contrast) — and everything drawn
+  // follows the theme's tokens, the tint on screen too.
   await send("settings_changed", "dark");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   const dark = { feed: await token("--viewer-feed"), limit: await token("--viewer-limit"), collision: await token("--viewer-collision"), rapid: await token("--viewer-rapid") };
-  expect(dark.feed, "dark: its own, luminous path colour").not.toBe(light.feed);
-  expect([dark.rapid, dark.collision], "the shared roles stay").toEqual([light.rapid, light.collision]);
-  await expect.poll(async () => (await drawn()).drawn.feed).toBe(dark.feed);
+  expect(dark, "dark: one palette — the same colour roles").toEqual(light);
   p = await drawn();
   expect(p.drawn).toMatchObject({ feed: dark.feed, limit: dark.limit, rapid: dark.rapid });
   expect(p.drawn.collision, "the collision tint too").toBe(dark.collision);
-  expect([p.drawn.bounds, p.drawn.boundsAlt], "the boxes' two tones in every theme")
-    .toEqual([await token("--viewer-bounds"), await token("--viewer-bounds-alt")]);
+  const darkBoxes = [await token("--viewer-bounds"), await token("--viewer-bounds-alt")];
+  expect([p.drawn.bounds, p.drawn.boundsAlt], "the boxes' two tones").toEqual(darkBoxes);
   await send("settings_changed", "hc-dark");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "hc-dark");
-  const hc = { feed: await token("--viewer-feed"), collision: await token("--viewer-collision") };
-  expect(hc.feed, "high contrast: its own lightness").not.toBe(light.feed);
-  await expect.poll(async () => (await drawn()).drawn.feed).toBe(hc.feed);
+  const hc = { feed: await token("--viewer-feed"), collision: await token("--viewer-collision"),
+    boxes: [await token("--viewer-bounds"), await token("--viewer-bounds-alt")] };
+  expect([hc.feed, hc.collision], "high contrast: the same colour roles").toEqual([light.feed, light.collision]);
+  expect(hc.boxes, "high contrast: its own box tones").not.toEqual(darkBoxes);
+  // the re-resolve: the drawn boxes take the new theme's tones
+  await expect.poll(async () => { const d = (await drawn()).drawn; return [d.bounds, d.boundsAlt]; }).toEqual(hc.boxes);
   expect((await drawn()).drawn.collision, "the collision tint follows the theme").toBe(hc.collision);
   await send("settings_changed", "dark");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");

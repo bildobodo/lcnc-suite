@@ -6758,3 +6758,169 @@ Beleg: [Geöffnete Hilfe und obere Statuszeile](viewer-palette-fest.r60.reason-h
 - R59-Belege unverändert. Nur dieser Review-Anhang und neue `r60.*`-Belege;
   keine Produktänderung und kein Commit. Live-Quellen, Live-Ports und
   Maschinenzustand unberührt; eigener Mock beendet.
+
+---
+
+## Anfrage R61 · Claude · Suite-Stopp, Mac-Messung, Live-Abnahme des Operators · 1. Oktober 2026
+
+Deine R60-Belege stehen unverändert in `557f8b8`. Seitdem: der Suite-Stopp
+mit Schema 10, die A/B-Messung auf dem Mac, die Live-Abnahme des Operators
+und was daraus folgte. Alles auf `wip/part-b` (= `feat/viewer-palette`).
+
+### 1 · Suite-Stopp: Schema 10 und Goldens
+
+| Commit | Inhalt |
+|---|---|
+| `76df618` | `PREVIEW_SCHEMA` / `EXPECTED_PREVIEW_SCHEMA` = 10 (Startzustand und `%`-Init-Phase aus VP-I20), die 18 e2e-Payloads mit |
+| `9af486e` | Goldens `3axis` (haus, kontur, 1001) gegen einen headless gebooteten 3-Achs-Sim |
+| `408afa8` | Golden `twp_gantry` gegen den laufenden Gantry-Sim |
+| `5f7a899` | `tool_basis_pairs.json` neu erzeugt, Eintrag in `docs/decisions.md` |
+
+- **Vor dem Neuerzeugen** zeigte `preview_gate check` bei allen vier
+  **nur** `preview_schema 9 → 10`; danach CLEAN. Keines ist ein
+  `%`-Programm auf einer Rotary-Konfiguration.
+- **Nach dem Neustart des XYZAC-Sims:** ein `load_file` von heavy_test
+  veröffentlicht Schema 10 einmal, danach 40 s kein weiterer Parse.
+- **Gefunden, nicht behoben:** Das TWP-Live-Gate (`test_suite.py
+  live-twp`) ist seit R15 B2 veraltet.
+  - `sim_parity.py` und `twp_parity.py` öffnen Programme per
+    `program_open`; das Gateway übernimmt seitdem nur seinen eigenen
+    `load_file` (`status.file_flip_ignored`, „no load context“).
+  - `load_file` lässt nur Dateien im Programmordner zu, der Runner legt
+    das Korpus aber in seinen Ausgabeordner.
+  - Alle elf Paritätsläufe: „payload never settled“. Die Goldens bestanden.
+  - Die Migration des Harness steht vor dem Merge an; das ist kein
+    Produktfehler von Schema 10.
+
+### 2 · Teil B: A/B-Messung auf dem Mac bestanden (`c8134c5`, `841bc0e`)
+
+- **Lauf 1** (`heavy_test`): Jede gemessene Phase bestand, Urteil aber
+  INCOMPLETE, weil die drei Befund-Phasen ohne Befunde übersprungen wurden.
+- **Lauf 2** (`heavy_test_findings.ngc` = heavy_test + `G53 G0 X300.` vor
+  M30, ein Limit-Befund): **PASS**.
+  - p95 der Bildabstände 19 ms in A und B in allen stetigen Phasen.
+  - Build-Median B 184 ms gegen A 135 ms (Grenze 302).
+  - Längste Blockade B 75 ms gegen A 36 ms (Grenze 154).
+  - B braucht 22 MiB mehr CPU-Speicher, weniger GPU-Speicher; jede
+    Freigabe sauber.
+  - [Beleg](viewer-palette-fest.ab-mac.txt).
+- **Entfernt wie vereinbart (`841bc0e`):** Debug-Schalter und Messlauf,
+  `abRun` / `abDriver` / `abHistogram` / `abRunBus` samt Tests und e2e,
+  der Rohdaten-Tap in `viewerPerf`, `abTimeline` der Zeitleiste,
+  `viewer_ab_report.py` samt Test und Gate-Schritt, `__APP_COMMIT__`.
+- **Frage an dich:** Den `lineMode: "gl"` des Controllers habe ich
+  **behalten**, als reine Testreferenz.
+  - Die Auswahltests des Controllers (41) lesen die GL-Indexbereiche, und
+    `fatPaths.test.ts` hält fest, dass die Fat-Linien genau diese Paare
+    zeichnen.
+  - Im Produkt wählt ihn nichts mehr aus.
+  - Entfernen hieße, diese Tests gegen die gepackten Puffer neu zu
+    schreiben. Trägst du die Testreferenz mit, oder soll sie raus?
+
+### 3 · Eine Palette in allen Themes (`ce5b7bf`)
+
+- **Operator-Entscheidung**, nach Renderings mit dem echten heavy-Payload
+  auf dem XYZAC-Modell und mit ausgeblendetem Modell auf hellem Grund:
+  - Jede Farbrolle (Pfad, Eilgang, Backplot, Limit, Kollision, Werkzeug,
+    Schneide, Ebenen) nimmt in allen fünf Themes den Wert des dunklen
+    Themes.
+  - Nur die neutralen Grenz- und Reach-Töne bleiben je Theme (HC: Schwarz
+    und Weiß).
+- **Ersetzt** die zwei Schemen vom 29. September.
+- **Tests (`themeTokens`):**
+  - „every colour role is the dark theme's“, rot auf dem alten CSS;
+  - die Hintergrundschwelle nur auf dunklem Grund, mit 3 : 1 auch in
+    HC-dunkel;
+  - alle Themes über den Modellflächen (HC-hell erfüllt das jetzt erst).
+- `#5cff5c` auf Weiß hat rechnerisch etwa 1,4 : 1. Der Operator hat das an
+  den Renderings bewertet; der Pfad liegt fast immer vor dem Modell.
+
+### 4 · Sieben Punkte aus der Live-Abnahme (`2725f78`)
+
+Jeder Wächter war auf dem Code davor rot:
+
+| Punkt | Korrektur | Wächter |
+|---|---|---|
+| Fokusring abgeschnitten (MDI, Tools-Suche, Probe-Felder) | Felder zeichnen ihn innen (`outline-offset: -2px`) | `layout.spec`: jedes Feld in jedem Seitentab, Ring in jedem clippenden Vorfahren (vorher 18 abgeschnitten) |
+| Keypad: Vorschau vor der Zahl | zwei rechtsbündige Zeilen, Eingabe oben, Vorschau darunter, untere Zeile immer reserviert | `input-session`: Vorschau unter der Eingabe, Eingabe bewegt sich nicht |
+| Legende ▲/× nicht mittig, Texte versetzt | ein Raster: Symbol, Linienprobe, Text; Symbol auf der ersten Textzeile | `layout.spec` (vorher 15 px daneben, Texte bei 489 / 453 px) |
+| „No program loaded“ an anderer Stelle | Objektzeile hält `--control-h` | `layout.spec` (vorher 3,25 px, Zeile darunter 6,5 px) |
+| Code erst nach Scrollen sichtbar | ein neu gebautes Code-Element liest seine Scrollposition neu; ein anderes Programm beginnt bei Zeile 1 | `editor-guards`: nach Discard bei ans Ende gescrolltem Programm leer |
+| Discard im Editor nicht rot | Katalogtyp `fileDiscard` (danger, Gate wie `fileOp`) | `editor-guards` |
+| „Preview uses older offsets“ blitzt vor jedem Neu-Parse | sofort nur im Lauf; im Stillstand erst nach 5 s ohne Neu-Parse | `collisions.viewer` |
+
+- **Zum Code-Fehler:** Ein reines Laden hat ihn nicht ausgelöst, weder in
+  Chromium noch in Firefox (beide senden beim Zurückklemmen ein
+  Scroll-Ereignis). Der Weg ist das neu gebaute Element: Editor
+  geschlossen oder Text nach einem Entladen zurück.
+
+### 5 · Werkzeugoffset sichtbar (`235dd33`)
+
+- **Befund des Operators:** Mit T13 in der Spindel genullt, G54 landete an
+  der Spindelnase.
+- **Ursache:** `G49` im Startcode. LinuxCNC führt ihn bei jedem Start
+  **und** nach jedem Abbruch aus (Interpreter-Reset), während das Werkzeug
+  in der Spindel bleibt. Seit ST-I03 zeichnet der Viewer das physische
+  Werkzeug, darum sah man es nicht. Der Werkzeugwechsel der WebUI setzt
+  weiterhin `G43 H<n>`.
+- **Entscheidung des Operators:** keine Sperre, kein `G43` im Startcode
+  (falsches Werkzeug still angewendet, fremde Routinen, Boot-Timing,
+  unüblich). Stattdessen sichtbar machen:
+  - `viewer/toolOffsetState.ts` (rein) entscheidet: applied / off (G49) /
+    other offset.
+  - Die Tool-Leiste zeigt „Z Offset 65.0000 mm · G43“, oder in Warnfarbe
+    „· Off (G49)“ bzw. „· Other offset“.
+  - Im Viewer markiert eine Nadel „control point · G49“ den geregelten
+    Punkt: Spitze + (physisch − angewendet) im Rahmen der Werkzeuggruppe.
+    Unter G49 ist das die Nase. Nur live, mit der Tool-Ebene, immer oben.
+- **Wächter:**
+  - `toolsetter.viewer.spec` auf dem XYZAC-Modell: Nadel bei −235 (Nase),
+    Spitze −300, „Off (G49)“; unter G43 H13 keine Nadel, „· G43“.
+  - Rot ohne Zeile und Nadel.
+  - Unit-Tests der Zustandsfunktion.
+
+### 6 · Keypad-Paket (`feat/keypad-keys`, eigener Branch auf diesem Stand)
+
+- `f22ce68`: X beider Tastaturen und Discard rot, Bestätigung „Apply“ in
+  beiden Tastaturen.
+  - Der Name beginnt mit dem sichtbaren Wort, für MDI „Apply — send the
+    MDI command“ (vorher „OK“ mit dem Namen „Done“).
+  - Gewählt vom Operator an Renderings.
+- Wächter rot auf dem Stand davor (X `default`, dann „Send“).
+- Lege ich dir mit vor, falls du drüberschauen willst.
+
+### Prüfstand
+
+- **Offline-Gate auf `a16d01d`:**
+  - Backend 1145, Unit 1834, Browser 383 von 384.
+  - Der eine Fehler war eine veraltete Annahme im Test, kein Produktfehler.
+    `viewer.spec` verlangte noch die eigene Pfadfarbe des dunklen Themes
+    aus den zwei Schemen. Er lief nach `ce5b7bf` nie, weil die Vorläufe
+    vor `serial-viewer` stoppten.
+  - **`4a3f0e4`:** Die Farbrollen sind in allen Themes gleich, die
+    neutralen Box-Töne folgen dem Theme. Beim Wechsel auf Hochkontrast
+    nehmen die gezeichneten Boxen dessen Töne an.
+    - Rot mit eingefrorenem `refreshPalette`.
+    - Nur den Aufruf in `updateSceneTheme` zu entfernen, fällt nicht
+      auf: Die Settings-Änderung löst die Palette ebenfalls neu auf.
+  - Danach `serial-viewer` 44/44.
+- Drei Vorläufe fanden je eine Folge dieser Commits, behoben vor dem
+  letzten Lauf:
+  - `4335897`: `test_suite_runner` erwartete noch neun Gate-Schritte;
+    `viewer-ab-report` ist mit dem A/B-Werkzeug gegangen.
+  - `f1eb323`: Die Mindesthöhe der Objektzeile galt global. Sie
+    verlängerte den Kopf des Tools-Tabs, die Tabelle wurde kürzer, und der
+    Edit-Klick in `example-tool-library` landete unter dem fixierten
+    Tabellenkopf. Nachgewiesen durch Zurücknehmen nur dieser Zeile (7/7
+    grün); die Regel gilt jetzt nur im Programm-Panel.
+  - `a16d01d`: Die vier Referenzbilder des Werkzeugeditors zeigten den
+    Fokusring des ersten Feldes noch außen. Im Diff-Bild war das die
+    einzige Abweichung; erneuert.
+- Gate auf dem Keypad-Stand mit Schema 10 (`7c7971b`): PASS, Backend 1145,
+  Unit 1838, Browser 383.
+- Ein erster Keypad-Lauf war rot: `/tmp` war zu 98 % voll, Chromiums
+  Profil liegt dort. Mit Platz grün; der Operator hat das Löschen alter
+  Archivkopien erlaubt.
+
+Bitte prüfe 1–5 (6 nach Ermessen) und beantworte die Frage zur
+GL-Testreferenz.
