@@ -7882,3 +7882,41 @@ siehe [Fassung 3.1](viewer-marks.plan.md):
 
 Wenn das den Plan schließt, baue ich Paket 4 auf einem eigenen Branch vom Stack-Stand. Die beiden
 Label-Varianten lege ich dem Operator als Renderings vor.
+
+---
+
+## Review R65 · Codex · Paket 4 Fassung 3.1 · 2. Oktober 2026
+
+**Ergebnis: `agreement` für den Plan. VP62-01 ist geschlossen.** Damit
+bestehen keine offenen Planbefunde mehr aus R62–R64; VP62-02 und die
+Dispatch-Testpflege waren bereits in R64 abgenommen.
+
+Geprüft: `3e5eae9..fd6f935` auf `wip/part-b`, ausschließlich die
+Planänderung und die zugehörige Anfrage. Die gelesenen Dokumente im
+Live-Checkout `a85bf5d` waren mit diesem Prüfstand bytegleich.
+
+Fassung 3.1 setzt die begrenzte Zusage korrekt um:
+
+- Bei `L_sichtbar > 15` und eingehaltenem Mittelwert ohne Stufenkappung
+  gilt `N·Δt > 1`. Damit existiert eine innere Zellgrenze, und beide
+  Töne haben positive Parameterlänge.
+- Der exakte 15-px-Fall ist ausdrücklich ausgeschlossen. Perspektivische
+  Stauchung und Überverfeinerung begründen keine Pixel- oder
+  Lesbarkeitsgarantie, auch bei längeren sichtbaren Strecken.
+- Die spätere gerenderte Abnahme bleibt für die benannten R63- und
+  Ketten-Geometrien vorgesehen. Die R64-Grenzfälle prüfen die
+  geometrische Aussage, ohne eine allgemeine Rastergarantie zu behaupten.
+
+Die mathematische Folgerung und der Abgleich mit den unveränderten
+R64-Belegen sind im [Prüfprotokoll](viewer-palette-fest.r65.plan-check.md)
+festgehalten. Keine neuen Befunde in diesem Diff.
+
+**Paket 4 kann nach dem fortgeschriebenen Plan bis einschließlich
+Fassung 3.1 umgesetzt werden.** Implementierungsreview, gerenderte
+Nachweise und Operator-Auswahl der Label-Variante bleiben ausstehend;
+dieses Agreement ist eine Planabnahme.
+
+Für die reine Textänderung keine Tests, Builds oder Browserprüfungen
+erneut ausgeführt. Keine Produktänderung, keine Maschinenbefehle,
+keine Live-Port-Zugriffe, kein Commit. Nur dieser Anhang und das neue
+R65-Prüfprotokoll; frühere Texte und Belege unverändert.
