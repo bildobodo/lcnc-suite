@@ -15,7 +15,7 @@
     "feed": 0,
     "rapid": 9
   },
-  "preview_schema": 9,
+  "preview_schema": 10,
   "rotary_cmd": {
     "A": null,
     "B": 4,
