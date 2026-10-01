@@ -371,6 +371,39 @@ test("a return to the basis on screen while a decode is out drops its late reply
   await ctl({ op: "reset" });
 });
 
+// Live look 2026-10-01: "Preview uses older offsets — re-parses when idle"
+// flashed after every touch-off, then "Preview re-parsing" replaced it — in
+// standstill the gateway re-parses within its debounce anyway. The line shows
+// at once only while a program runs (the re-parse waits for idle); in
+// standstill only when no re-parse began within the grace (never silent).
+test("the older-offsets line: at once during a run, in standstill only if no re-parse follows (live look 2026-10-01)", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  const file = "/offsets.ngc";
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream",
+    body: Buffer.from(encode({ file, preview_schema: 10, feed: [[0, 0, 0], [10, 0, 0]], feed_lines: [1, 2], feed_seq: [1, 2],
+      feed_outside: new Uint8Array(2), rapid: [], violations: [], violations_total: 0,
+      wcs_basis: { g5x: [0, 0, 0, 0, 0, 0, 0, 0, 0], g92: [0, 0, 0, 0, 0, 0, 0, 0, 0], rotation: 0 }, wcs_basis_index: 1, wcs_used: [1] })) }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: "G1 X10 F100\n" }));
+  await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await ctl({ op: "status_delta", data: { active_file: file, g5x_index: 1, g5x_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    g92_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0], rotation_xy: 0, interp_state: 1 } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 9201, file } });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getPathBox?.() ?? null), { timeout: 20_000 }).not.toBeNull();
+  const line = page.locator(".hudNotes .hudWarn", { hasText: "older offsets" });
+  // standstill: a touch-off moves G54 — the gateway's re-parse follows within its debounce
+  await ctl({ op: "status_delta", data: { g5x_offset: [5, 0, 0, 0, 0, 0, 0, 0, 0] } });
+  await page.waitForTimeout(2500);
+  await expect(line, "no flash before the re-parse in standstill").toHaveCount(0);
+  // … and if none begins, the line says so (never a silent stale path)
+  await expect(line).toHaveCount(1, { timeout: 8000 });
+  // during a run it shows at once
+  await ctl({ op: "status_delta", data: { g5x_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0] } });
+  await expect(line).toHaveCount(0);
+  await ctl({ op: "status_delta", data: { interp_state: 2, g5x_offset: [7, 0, 0, 0, 0, 0, 0, 0, 0] } });
+  await expect(line).toHaveCount(1, { timeout: 1500 });
+  await ctl({ op: "reset" });
+});
+
 // Operator 2026-09-30: a tool measured during a run re-parses the preview —
 // the viewer says so ONCE, the re-parse line with its bar; the tool-length
 // line ("… re-parse follows") that stood under the bar is gone while it runs.

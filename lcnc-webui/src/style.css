@@ -781,7 +781,10 @@ input[type="range"]::-moz-range-thumb:hover {
 .inputField:focus,
 .inputField.keypad-active {
   outline: 2px solid var(--focus-ring);
-  outline-offset: 1px;
+  /* Drawn INSIDE the field, over its edge (live look 2026-10-01): a ring
+     outside was cut off wherever a field sits flush with a scrolling
+     container's edge — the MDI line, the Tools search, the probe forms. */
+  outline-offset: -2px;
   border-color: color-mix(in oklab, var(--fg) 40%, var(--border));
 }
 
@@ -935,7 +938,7 @@ textarea {
 
 textarea:focus {
   outline: 2px solid var(--focus-ring);
-  outline-offset: 1px;
+  outline-offset: -2px;   /* inside, never cut off (as .inputField) */
   border-color: color-mix(in oklab, var(--fg) 40%, var(--border));
 }
 
@@ -1477,6 +1480,10 @@ label:has(input:disabled, select:disabled) {
   align-items: center;
   gap: var(--gap-controls);
   min-width: 0;
+  /* One height with and without its buttons (live look 2026-10-01: "No
+     program loaded" sat 3 px higher than a loaded name — the Stats button
+     gave the line its height — and every row under it moved). */
+  min-height: var(--control-h);
 }
 .actionGroup {
   display: flex;

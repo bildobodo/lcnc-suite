@@ -13,6 +13,7 @@ import { ctl, MOCK } from "./ctl";
 const TEXT: Record<string, string> = {
   "/A.ngc": "(program A)\nG0 X0\nG1 X10 F100\nM2\n",
   "/B.ngc": "(program B)\nG0 Y0\nG1 Y20 F200\nM2\n",
+  "/LONG.ngc": "(program LONG)\n" + Array.from({ length: 3000 }, (_, i) => `G1 X${i} F100`).join("\n") + "\nM2\n",
 };
 
 async function routeProgramText(page: Page) {
@@ -190,9 +191,33 @@ test("an older save reply never touches a newer session", async ({ page }) => {
   expect(await loadFileCmds()).toEqual([]);
 });
 
+// Live look 2026-10-01: after a load the code sometimes showed nothing
+// until the operator scrolled. The previous program was scrolled far down
+// (following a run); the new, shorter one clamped the scroller without a
+// scroll event, and the virtual window kept rendering rows past its end.
+// A new program opens at its first line, the rows rendered at once.
+test("the code shows at once after the viewer is rebuilt or another program loads (live look 2026-10-01)", async ({ page }) => {
+  await open(page);
+  await loadProgram(page, "/LONG.ngc");
+  await expect(page.locator(".codeLine").first()).toContainText("(program LONG)");
+  await page.locator(".codeViewer", { has: page.locator(".codeLine") }).evaluate(el => { el.scrollTop = el.scrollHeight; });
+  await expect(page.locator(".codeLine", { hasText: "M2" })).toBeVisible();
+  // the viewer is built anew when the editor closes: it must not keep the
+  // old scroll position for its rows (blank until a scroll)
+  await enterEdit(page);
+  await page.locator(".editActions").getByRole("button", { name: "Discard", exact: true }).click();
+  await expect(page.locator(".cm-content")).toHaveCount(0);
+  await expect(page.locator(".codeLine", { hasText: "(program LONG)" }), "the rebuilt viewer shows its rows").toBeVisible();
+  await loadProgram(page, "/B.ngc");
+  await expect(page.locator(".codeLine").first(), "the first line, without scrolling").toContainText("(program B)");
+  await expect(page.locator(".codeLine", { hasText: "G1 Y20 F200" })).toBeVisible();
+});
+
 test("discard: clean closes at once, dirty asks and Keep editing keeps the edit", async ({ page }) => {
   await open(page);
   await enterEdit(page);
+  // every Discard is danger (design wave D1, N31) — the editor's was not (live look 2026-10-01)
+  await expect(page.locator(".editActions").getByRole("button", { name: "Discard", exact: true })).toHaveClass(/\bdanger\b/);
   await page.locator(".editActions").getByRole("button", { name: "Discard", exact: true }).click();
   await expect(page.locator(".dialogOverlay")).toHaveCount(0);
   await expect(page.locator(".cm-content")).toHaveCount(0);

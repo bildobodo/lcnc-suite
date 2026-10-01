@@ -290,6 +290,23 @@ const previewWcsStale = computed(() => {
     g.wcsEvents, g.wcs_basis, s.wcs_table as WcsTableRow[] | undefined,
     { g5x: s.g5x_offset, g92: s.g92_offset, rotationDeg: s.rotation_xy });
 });
+// Its LINE (live look 2026-10-01: "Preview uses older offsets" flashed after
+// every touch-off, then "Preview re-parsing" replaced it): in standstill the
+// gateway's drift edge re-parses within its debounce, so the line waits
+// WCS_STALE_GRACE_MS for that re-parse — shown only if none began (never a
+// silent stale path); during a run (the re-parse waits for idle) it shows at
+// once. The path is muted either way (pathStaleNow).
+const WCS_STALE_GRACE_MS = 5000;
+const wcsStaleGraceOver = ref(false);
+let _wcsStaleTimer: ReturnType<typeof setTimeout> | undefined;
+watch(previewWcsStale, stale => {
+  clearTimeout(_wcsStaleTimer);
+  wcsStaleGraceOver.value = false;
+  if (stale) _wcsStaleTimer = setTimeout(() => { wcsStaleGraceOver.value = true; }, WCS_STALE_GRACE_MS);
+});
+onUnmounted(() => clearTimeout(_wcsStaleTimer));
+const showWcsStaleLine = computed(() => previewWcsStale.value && !previewRefresh.value
+  && ((status.value?.data?.interp_state ?? INTERP_IDLE) !== INTERP_IDLE || wcsStaleGraceOver.value));
 // ---------- DOM ----------
 const host = ref<HTMLDivElement | null>(null);
 const hudVisible = ref(true);
@@ -4224,7 +4241,7 @@ const notesOpen = ref(false);
 const abLine = computed(() => abRunLine());
 const hudWarnCount = computed(() => [vst.value?.eoffset_enabled, vst.value?.rotation_xy, foreignWcs.value.length,
   rewrittenWcs.value.length, kinsEndWarn.value, previewSchemaStale.value, previewRefresh.value,
-  !previewRefresh.value && previewWcsStale.value, !previewRefresh.value && previewTloStale.value,
+  showWcsStaleLine.value, !previewRefresh.value && previewTloStale.value,
   previewTableStale.value, toolpathOverflow.value,
   failedParts.value.length, abLine.value].filter(Boolean).length);
 /** The folded card's one line: the mode and how many warnings wait behind it. */
@@ -4719,7 +4736,7 @@ defineExpose({
           <div class="hudWarn">Preview re-parsing<HelpIcon label="Preview re-parsing">Why: {{ previewRefreshLabel(previewRefresh.reason) }}. Path, limit marks and simulation update when it lands — {{ fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms) }}.</HelpIcon></div>
           <div class="progressTrack" :title="fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms)"><div class="progressFill" :style="{ width: previewRefreshPct + '%' }"></div></div>
         </template>
-        <div v-else-if="previewWcsStale" class="hudWarn">Preview uses older offsets — re-parses when idle<HelpIcon label="Preview offsets">A work offset changed after parsing — re-parses once the machine is idle.</HelpIcon></div>
+        <div v-else-if="showWcsStaleLine" class="hudWarn">Preview uses older offsets — re-parses when idle<HelpIcon label="Preview offsets">A work offset changed after parsing — re-parses once the machine is idle.</HelpIcon></div>
         <!-- While the re-parse runs, its line with the bar says it (operator
              2026-09-30: no extra line under the bar for the tool measured). -->
         <div v-if="previewTloStale && !previewRefresh" class="hudWarn">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parse follows<HelpIcon label="Preview tool length">T{{ previewTloStale.tool }} was {{ fmtNum(previewTloStale.parsed, 3) }} when parsed, now {{ fmtNum(previewTloStale.live, 3) }} — the preview re-parses with it, during a run too.</HelpIcon></div>

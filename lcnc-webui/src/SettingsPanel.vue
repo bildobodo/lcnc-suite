@@ -615,15 +615,20 @@ function resetMachineColor(id: string) {
             </div>
             <!-- The findings drawn ON the path: the same glyph as the timeline
                  and the code panel, the colour the 3D view draws. -->
-            <div class="stack-tight" data-finding-legend>
-              <div class="row-controls" data-role="limit">
-                <Triangle :size="12" fill="currentColor" :style="{ color: shownPalette.limit }" aria-hidden="true" />
-                <span class="legendLine" :style="{ color: shownPalette.limit }" aria-hidden="true"></span>
-                <span class="settingDesc">Limit violation — on the path, the box outside the machine window dashed</span>
+            <!-- One grid for both rows (live look 2026-10-01): glyph, line
+                 sample, text — the texts start at one x (the collision is a
+                 body: its line cell stays empty), and glyph and sample sit
+                 on the text's FIRST line however the text wraps. -->
+            <div class="findingLegend" data-finding-legend>
+              <div class="findingRow" data-role="limit">
+                <span class="findingCell"><Triangle :size="12" fill="currentColor" :style="{ color: shownPalette.limit }" aria-hidden="true" /></span>
+                <span class="findingCell"><span class="legendLine" :style="{ color: shownPalette.limit }" aria-hidden="true"></span></span>
+                <span class="settingDesc findingText">Limit violation — on the path, the box outside the machine window dashed</span>
               </div>
-              <div class="row-controls" data-role="collision">
-                <X :size="12" :stroke-width="3" :style="{ color: shownPalette.collision }" aria-hidden="true" />
-                <span class="settingDesc">Collision — the machine part glows</span>
+              <div class="findingRow" data-role="collision">
+                <span class="findingCell"><X :size="12" :stroke-width="3" :style="{ color: shownPalette.collision }" aria-hidden="true" /></span>
+                <span class="findingCell" aria-hidden="true"></span>
+                <span class="settingDesc findingText">Collision — the machine part glows</span>
               </div>
             </div>
           </div>
@@ -1059,6 +1064,24 @@ function resetMachineColor(id: string) {
 </template>
 
 <style scoped>
+/* The findings legend: three columns shared by both rows; a cell is one
+   text line high (1lh at the description's size) and centres its glyph or
+   line sample on it. */
+.findingLegend {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  column-gap: var(--gap-controls);
+  row-gap: var(--gap-tight);
+  align-items: start;
+}
+.findingRow { display: contents; }
+.findingCell {
+  display: flex;
+  align-items: center;
+  font-size: var(--fs-base);
+  height: 1lh;
+}
+.findingText { margin-bottom: 0; }
 .settingsLoading { padding: var(--gap-panel); }
 /* A line may end in a "?" (a layer's help): its invisible hit area reaches
    past the glyph, and in a scroller that is overflow (2 px sideways at 150 %
