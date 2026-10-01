@@ -3957,6 +3957,148 @@ class TestStartTloSeed(unittest.TestCase):
         self.assertEqual(gateway_util.start_tlo_initcode(seed, 1 | 4), "G43.1 X0.000000000 Z3.000000000")
 
 
+class TestComparePreviewPayloads(unittest.TestCase):
+    """The verify's equality contract (VP-I20, plan Fassungen 4–6, Codex R55)."""
+
+    @staticmethod
+    def payload(start_z, rapid, feed=(), rows=None, **extra):
+        import numpy as np
+        rapid = [list(p) for p in rapid]
+        feed = [list(p) for p in feed]
+        rseq = list(range(1, len(rapid) + 1))
+        fseq = list(range(len(rapid) + 1, len(rapid) + len(feed) + 1))
+        p = {"file": "/p.ngc", "preview_schema": 9, "start_known": True,
+             "tlo_start": [0.0, 0.0, start_z],
+             "rapid": np.asarray(rapid, dtype="<f4").reshape(-1, 3).tobytes(),
+             "rapid_seq": np.asarray(rseq, dtype="<u4").tobytes(),
+             "feed": np.asarray(feed, dtype="<f4").reshape(-1, 3).tobytes(),
+             "feed_seq": np.asarray(fseq, dtype="<u4").tobytes(),
+             "violations": [], "violations_total": 0,
+             "rapid_outside": bytes(len(rapid)), "feed_outside": bytes(len(feed)),
+             "stats": {"rapidDist": 1.0}}
+        if rows is not None:
+            p["tlo_events"] = rows
+        allp = feed + rapid
+        if feed:
+            import numpy as np
+            f = np.asarray(feed, float); r = np.asarray(rapid, float) if rapid else f
+            mn = f.min(0); mx = f.max(0)
+            mn[:2] = np.minimum(mn[:2], r.min(0)[:2]); mx[:2] = np.maximum(mx[:2], r.max(0)[:2])
+            p["bounds"] = {"min": mn.tolist(), "max": mx.tolist()}
+        else:
+            p["bounds"] = None
+        a = np.asarray(allp, float)
+        p["motion_bounds"] = {"min": a.min(0).tolist(), "max": a.max(0).tolist()} if allp else None
+        p.update(extra)
+        return p
+
+    def test_a_g53_prefix_is_the_same_after_normalisation(self):
+        # G53 Z0 under start 65.0512 / 65.0562 (G54 Z -109.725): program Z
+        # 44.6738 / 44.6688 — the same machine point; then G43 H13 (row at
+        # seq 2) and an absolute move: bit-equal
+        rows = [[2, 0.0, 0.0, 65.0512, -1]]
+        old = self.payload(65.0512, [(0, 0, 44.6738), (301.014, 167.906, 44.6738)],
+                           feed=[(301.014, 167.906, 15.0)], rows=rows)
+        new = self.payload(65.0562, [(0, 0, 44.6688), (301.014, 167.906, 44.6688)],
+                           feed=[(301.014, 167.906, 15.0)], rows=rows)
+        self.assertEqual(gateway_util.compare_preview_payloads(old, new), (True, "same"))
+        self.assertEqual(gateway_util.compare_preview_payloads(new, old), (True, "same"))
+
+    def test_a_pre_point_that_did_not_follow_the_offset_differs(self):
+        # program Z unchanged although the start moved: the machine point moved
+        old = self.payload(10.0, [(0, 0, 40.0)])
+        new = self.payload(10.005, [(0, 0, 40.0)])
+        same, why = gateway_util.compare_preview_payloads(old, new)
+        self.assertFalse(same)
+        self.assertIn("before the first TLO row", why)
+        # … but one float32 rounding is no difference
+        self.assertTrue(gateway_util.compare_preview_payloads(
+            self.payload(10.0, [(0, 0, 40.0)]), self.payload(10.005, [(0, 0, 39.995)]))[0])
+
+    def test_after_the_first_row_points_compare_bit_for_bit(self):
+        rows = [[0, 0.0, 0.0, 0.0, -1]]
+        old = self.payload(10.0, [(0, 0, 40.0)], rows=rows)
+        new = self.payload(20.0, [(0, 0, 40.00001)], rows=rows)
+        self.assertEqual(gateway_util.compare_preview_payloads(old, new),
+                         (False, "rapid: a point after the first TLO row differs"))
+
+    def test_rows_flags_counts_and_every_other_field_compare_exactly(self):
+        f = gateway_util.compare_preview_payloads
+        base = dict(rows=[[0, 0.0, 0.0, 10.0, -1]])
+        a = self.payload(10.0, [(0, 0, 1.0)], **base)
+        self.assertFalse(f(a, self.payload(10.0, [(0, 0, 1.0)], rows=[[0, 0.0, 0.0, 10.0, 3]]))[0], "row tool")
+        self.assertFalse(f(a, self.payload(10.0, [(0, 0, 1.0)], rows=[[0, 0.0, 0.0, 10.000001, -1]]))[0], "row vector")
+        self.assertFalse(f(a, self.payload(10.0, [(0, 0, 1.0), (1, 0, 1.0)], **base))[0], "point count")
+        self.assertFalse(f(a, self.payload(10.0, [(0, 0, 1.0)], rapid_outside=b"\x01", **base))[0], "flag")
+        self.assertFalse(f(a, self.payload(10.0, [(0, 0, 1.0)], stats={"rapidDist": 1.5}, **base))[0], "stats")
+        self.assertFalse(f(a, self.payload(10.0, [(0, 0, 1.0)], parse_refused={"line": 2}, **base))[0], "new field")
+        self.assertFalse(f(a, self.payload(10.0, [(0, 0, 1.0)], violations=[{"line": 2}], **base))[0], "verdict")
+        self.assertTrue(f(a, self.payload(10.0, [(0, 0, 1.0)], **base))[0])
+
+    def test_bounds_are_recomputed_from_the_normalised_points(self):
+        # the only rapid is a pre point: its normalised position is the box
+        old = self.payload(10.0, [(0, 0, 40.0)], feed=[(5, 0, 1.0)], rows=[[1, 0.0, 0.0, 0.0, -1]])
+        new = self.payload(20.0, [(0, 0, 30.0)], feed=[(5, 0, 1.0)], rows=[[1, 0.0, 0.0, 0.0, -1]])
+        self.assertEqual(gateway_util.compare_preview_payloads(old, new), (True, "same"))
+        bad = dict(new, motion_bounds={"min": [0, 0, 1.0], "max": [5, 0, 40.0]})
+        self.assertEqual(gateway_util.compare_preview_payloads(old, bad), (False, "field motion_bounds differs"))
+
+    def test_an_unknown_start_is_never_the_same(self):
+        a = self.payload(10.0, [(0, 0, 1.0)])
+        self.assertEqual(gateway_util.compare_preview_payloads(dict(a, start_known=False), a),
+                         (False, "start unknown"))
+        self.assertEqual(gateway_util.compare_preview_payloads(a, dict(a, start_known=False)),
+                         (False, "start unknown"))
+
+
+class TestStartDrift(unittest.TestCase):
+    """The idle edge of the start tool state (VP-I20, plan Fassungen 4–6)."""
+
+    META = {"table_mtime": 5.0, "tlos": [], "loaded_tool": 13, "start_known": True,
+            "tlo_start": [0.0, 0.0, 65.0512], "start_mode": 430, "start_reason": None}
+
+    @staticmethod
+    def live(z, mode=430, known=True):
+        if not known:
+            return {"known": False, "xyz": None, "mode": None, "reason": "x"}
+        return {"known": True, "xyz": [0.0, 0.0, z], "mode": mode, "reason": None}
+
+    def test_any_actual_change_is_verified_and_nothing_else(self):
+        f = gateway_util.evaluate_start_drift
+        self.assertIsNone(f(self.META, None, self.live(65.0512)), "Δ = 0")
+        self.assertIsNone(f(self.META, None, self.live(65.0512 + 1e-12)), "bit noise")
+        self.assertEqual(f(self.META, None, self.live(65.0562)), "tool_offset", "5 µm")
+        self.assertEqual(f(self.META, None, self.live(65.0512, mode=490)), "tool_offset", "mode")
+        self.assertEqual(f(self.META, None, self.live(0, known=False)), "tool_offset",
+                         "the start became unknown: the verify withholds the verdict")
+
+    def test_after_a_verify_the_basis_is_the_reference_so_it_never_loops(self):
+        f = gateway_util.evaluate_start_drift
+        basis = {"xyz": [0.0, 0.0, 65.0562], "mode": 430}
+        self.assertIsNone(f(self.META, basis, self.live(65.0562)))
+        self.assertEqual(f(self.META, basis, self.live(65.0512)), "tool_offset", "and back")
+
+    def test_an_unknown_published_start_reparses_once_when_it_becomes_known(self):
+        f = gateway_util.evaluate_start_drift
+        meta = dict(self.META, start_known=False, tlo_start=None, start_mode=None, start_reason="x")
+        self.assertEqual(f(meta, None, self.live(65.0512)), "start_unknown")
+        self.assertIsNone(f(meta, None, self.live(0, known=False)), "still unknown: no loop")
+
+    def test_an_older_workers_meta_makes_no_claim(self):
+        legacy = {"table_mtime": 5.0, "tlos": [], "applied_tlo": [0, 0, 1.0], "loaded_tool": 13}
+        self.assertIsNone(gateway_util.evaluate_start_drift(legacy, None, self.live(9.0)))
+        self.assertIsNone(gateway_util.evaluate_start_drift(None, None, self.live(9.0)))
+
+    def test_a_running_parse_whose_seed_the_live_start_left_is_stale(self):
+        f = gateway_util.inflight_stale_reason
+        inflight = {"rotary_seed": None, "kins_seed": None, "wcs_off": None,
+                    "tlo_seed": self.live(65.0512)}
+        args = (None, None, None, None, None, None)
+        self.assertIsNone(f(inflight, *args, live_start=self.live(65.0512)))
+        self.assertEqual(f(inflight, *args, live_start=self.live(65.0562)), "tool_offset")
+        self.assertIsNone(f(dict(inflight, tlo_seed=None), *args, live_start=self.live(1.0)), "no seed: no claim")
+
+
 class TestPercentDelimiter(unittest.TestCase):
     """A leading `%` line is where the interpreter runs the initcodes."""
 

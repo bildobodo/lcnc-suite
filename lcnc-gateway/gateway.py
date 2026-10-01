@@ -80,7 +80,7 @@ from gateway_util import (
     evaluate_trip_latch,
     evaluate_safety_chain,
     PREVIEW_SCHEMA,
-    evaluate_tlo_drift,
+    evaluate_tlo_drift, evaluate_start_drift,
     evaluate_rotary_drift, drift_gate_open, inflight_stale_reason, preview_file_edge_action,
     midrun_table_gate_open, midrun_table_action,
     rotary_drift_settled,
@@ -1692,7 +1692,7 @@ async def _status_poller():
                 _stale = inflight_stale_reason(
                     _bulk.inflight, st.rotary_abc, _bulk.rotary_check_prev,
                     st.kins_type, _live_kins_frame_of(st), _wflat,
-                    _bulk.wcsoff_check_prev)
+                    _bulk.wcsoff_check_prev, live_start=_bulk.live_start(st))
                 _bulk.rotary_check_prev = st.rotary_abc
                 _bulk.wcsoff_check_prev = _wflat
                 if _stale:
@@ -1776,6 +1776,13 @@ async def _status_poller():
                     _tt_cur, _rows = _tool_table_now(_tlo_meta)
                     _drift = evaluate_tlo_drift(
                         _tlo_meta, _tt_cur, st.tool_number, table_rows=_rows)
+                    if _drift is None:
+                        # The START tool state (VP-I20): the next run starts
+                        # under the live applied offset — any actual change
+                        # is VERIFIED by a parse at it, published only when
+                        # a consumer would see a difference (bulk_pipeline).
+                        _drift = evaluate_start_drift(
+                            _tlo_meta, _bulk.tool_basis, _bulk.live_start(st))
                 if _drift is None:
                     # Rotary-pose drift (W6): the payload poses every
                     # uncommanded-rotary segment at the PARSE-time pose; a
@@ -8036,6 +8043,7 @@ async def ws_endpoint(ws: WebSocket):
                         safety_chain=_safety_chain_reason(),
                         preview_refresh=_bulk.preview_refresh_status(),
                         preview_table_stale=_bulk.table_stale,
+                        preview_tool_basis=_bulk.tool_basis_status(),
                         config_warning=(
                             {
                                 "reason": (_config_warning_reason or _units_fallback_reason

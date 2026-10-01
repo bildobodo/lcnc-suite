@@ -29,6 +29,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import time
 from typing import Any, Callable, Optional
 
@@ -36,7 +37,8 @@ import msgspec as _msgspec
 
 import lcnc_trace as _trace
 from tool_import import decode_tool_blob
-from gateway_util import PIN_UNSUPPORTED_EXIT, program_source, rotary_seed_values
+from gateway_util import (PIN_UNSUPPORTED_EXIT, program_source, rotary_seed_values,
+                          start_tlo_seed)
 
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 GCODE_WORKER_PATH = os.path.join(_BASE_DIR, "gcode_parse_worker.py")
@@ -59,6 +61,15 @@ async def terminate_parse_proc(proc) -> None:
     except asyncio.TimeoutError:
         proc.kill()
         await asyncio.to_thread(proc.wait)
+
+
+def _write_verify_blob(blob: bytes) -> str:
+    """The published payload as a temp file for a VERIFY parse (VP-I20): the
+    worker reads and decodes it — the gateway never decodes a payload."""
+    fd, path = tempfile.mkstemp(prefix="lcnc-preview-verify-", suffix=".mpk")
+    with os.fdopen(fd, "wb") as f:
+        f.write(blob)
+    return path
 
 
 class BulkPipeline:
@@ -137,6 +148,14 @@ class BulkPipeline:
         # a parse — the stale-flags defect (11,532 false Z-max flags after a
         # toolsetter re-measure). None = legacy worker / nothing published.
         self.published_tlo: Optional[dict] = None
+        # The TOOL BASIS of the published payload (VP-I20, plan Fassungen
+        # 4–6): {"xyz", "mode"} — its own start (`tlo_start`) when it was
+        # published; the live start a VERIFY parse confirmed since (the
+        # payload, normalised to it, gives every consumer the same inputs as
+        # a fresh parse there). None = nothing published or an unknown start.
+        # The idle start edge compares the live start with this; a pinned
+        # parse seeds it.
+        self.tool_basis: Optional[dict] = None
         # Parse-time rotary seed of the published payload (W6), from the
         # worker's `__ABCSEED__` stderr line: {letter: degrees} the sync
         # initcode posed uncommanded rotaries at. The same idle drift edge
@@ -230,6 +249,38 @@ class BulkPipeline:
 
     # ---- preview ----
 
+    @staticmethod
+    def basis_of(tlo_meta: Optional[dict]) -> Optional[dict]:
+        """The start a parse was seeded with, from its __TLO__ meta, as a tool
+        basis {"xyz", "mode"} — None for an unknown start or an older
+        worker's meta (no start fields)."""
+        if not tlo_meta or not tlo_meta.get("start_known") or tlo_meta.get("tlo_start") is None:
+            return None
+        return {"xyz": list(tlo_meta["tlo_start"]), "mode": tlo_meta.get("start_mode")}
+
+    def tool_basis_status(self) -> Optional[dict]:
+        """The status wire's `preview_tool_basis` (VP-I20): the verified tool
+        basis, bound to the published file + version, while it differs from
+        the payload's own `tlo_start` — absent otherwise (the client then
+        resolves to `tlo_start`)."""
+        tlo = self.published_tlo or {}
+        b = self.tool_basis
+        if not b or not self.preview_available() or not tlo.get("start_known"):
+            return None
+        if b.get("xyz") == tlo.get("tlo_start") and b.get("mode") == tlo.get("start_mode"):
+            return None
+        return {"file": self.last_file, "version": self.preview_version,
+                "xyz": list(b["xyz"]), "mode": b.get("mode")}
+
+    def live_start(self, stat=None) -> Optional[dict]:
+        """The live start tool state (start_tlo_seed of the live STAT), or
+        None without a status."""
+        stat = stat if stat is not None else self._get_stat()
+        if stat is None:
+            return None
+        return start_tlo_seed(getattr(stat, "tool_offset", None), getattr(stat, "gcodes", None),
+                              getattr(stat, "axis_mask", 0))
+
     def preview_available(self) -> bool:
         """A preview is servable when either variant exists — the raw copy is
         dropped once the gz exists (every real browser sends Accept-Encoding:
@@ -289,6 +340,7 @@ class BulkPipeline:
         self.published_schema = None
         self.schema_reparse_attempted = None
         self.published_tlo = None
+        self.tool_basis = None
         self.published_rotary_seed = None
         self.published_kins_seed = None
         self.published_wcs_off = None
@@ -385,12 +437,14 @@ class BulkPipeline:
         if self.published_rotary_seed:
             ctx["rotary_pose"] = dict(self.published_rotary_seed)
         tlo = self.published_tlo or {}
-        # The published parse's START tool state (VP-I20) — not its reported
-        # live offset: the pinned parse reproduces the start it was seeded
-        # with. A published meta without one (an older worker, or an unknown
-        # start) carries no mode, and the pinned parse is then unknown too.
-        ctx["seed_tool"] = {"applied_tlo": tlo.get("tlo_start") if tlo.get("start_known") else None,
-                            "start_mode": tlo.get("start_mode") if tlo.get("start_known") else None,
+        # The START tool state of the run (VP-I20) — the published payload's
+        # tool basis (its own start, or the live start a verify confirmed
+        # since: the start this run began with), never its reported live
+        # offset. None (an older worker's meta, an unknown start) → the
+        # pinned parse is unknown too.
+        basis = self.tool_basis or {}
+        ctx["seed_tool"] = {"applied_tlo": basis.get("xyz"),
+                            "start_mode": basis.get("mode"),
                             "loaded_tool": tlo.get("loaded_tool")}
         ctx["nice"] = self.PINNED_NICE
         return ctx
@@ -490,6 +544,7 @@ class BulkPipeline:
         through the parse even for multi-second programs.
         """
         t_start = time.monotonic()
+        _verify_path: Optional[str] = None
         # Snapshot mtime BEFORE the parse: if an edit lands while the subprocess is
         # running, we record the pre-parse mtime, so the poller's next tick still
         # sees a mismatch and re-parses the newest content rather than missing it.
@@ -535,6 +590,17 @@ class BulkPipeline:
                     "kins_type": _live_kt,
                     "kins_frame": _live_kf,
                 }
+            # VERIFY (VP-I20, plan Fassungen 4–6): the start tool state moved
+            # since the publish. Parse at the actual offset as always, and let
+            # the worker compare its payload with the published one — when
+            # every consumer would get the same inputs (the published payload
+            # normalised to the new start), nothing is published: no version
+            # bump, no transfer, no client rebuild beyond the new tool basis.
+            if (reason == "tool_offset" and not pinned and self.tool_basis is not None
+                    and self.last_file == filepath and self.preview_available()):
+                _blob = self.preview_bytes_gz if self.preview_bytes_gz is not None else self.preview_bytes
+                _verify_path = await asyncio.to_thread(_write_verify_blob, _blob)
+                ctx["verify_against"] = _verify_path
             ctx_bytes = _msgspec.msgpack.encode(ctx)
             # Input snapshot of THIS parse in the published seeds' shapes
             # (cancel-and-restart): rotary pose as the worker will seed it
@@ -561,7 +627,11 @@ class BulkPipeline:
                 "rotary_seed": _seed_rot,
                 "kins_seed": {"type": _live_kt, "frame": _live_kf},
                 "wcs_off": _seed_wcs,
+                # the start tool state the worker will seed (VP-I20) — a G43
+                # by hand while it runs stales it (inflight_stale_reason)
+                "tlo_seed": None if pinned else self.live_start(stat),
                 **({"pinned": True} if pinned else {}),
+                **({"verify": True} if _verify_path else {}),
             }
             _trace.emit("gcode.spawn_start",
                         file=os.path.basename(filepath), active_idx=active_idx,
@@ -617,6 +687,7 @@ class BulkPipeline:
             worker_kins_seed: Optional[dict] = None
             worker_wcs_off: Optional[list] = None
             worker_params: Optional[dict] = None
+            worker_same = False
             if stderr:
                 for ln in stderr.decode(errors="replace").splitlines():
                     if not ln.strip():
@@ -699,6 +770,15 @@ class BulkPipeline:
                         except (IndexError, ValueError):
                             _trace.emit("gcode.params_line_malformed",
                                         level="warn", line=ln[:160])
+                    elif ln == "__SAME__":
+                        worker_same = True
+                    elif ln.startswith("__VERIFY__"):
+                        _s = ln.split("\t", 1)
+                        try:
+                            _v = json.loads(_s[1])
+                        except (IndexError, ValueError):
+                            _v = {"malformed": ln[:160]}
+                        _trace.emit("gcode.verify", file=os.path.basename(filepath), **_v)
                     elif ln.startswith("__WCSOFF__"):
                         # Parse-time WCS-offset snapshot for the offset-
                         # drift edge — same malformed-→-None contract.
@@ -713,6 +793,18 @@ class BulkPipeline:
             _trace.emit("gcode.worker_done",
                         parse_ms=round((t_communicated - t_spawn) * 1000, 1),
                         stdout_bytes=len(stdout))
+            if worker_same and not stdout:
+                # Verified at the actual offset: the published payload stays;
+                # only its tool basis moves to the start the worker seeded.
+                if self.basis_of(worker_tlo) is not None:
+                    self.tool_basis = self.basis_of(worker_tlo)
+                    _trace.emit("gcode.reparse_verified_same", file=os.path.basename(filepath),
+                                basis=self.tool_basis, version=self.preview_version,
+                                total_ms=round((time.monotonic() - t_start) * 1000, 1))
+                else:
+                    _trace.emit("gcode.verify_same_without_start", level="warn",
+                                file=os.path.basename(filepath))
+                return
             if not stdout:
                 _trace.emit("gcode.preview_refresh_failed", level="warn",
                             file=filepath, exc="EmptyOutput", msg="worker emitted no bytes")
@@ -753,6 +845,7 @@ class BulkPipeline:
             self.preview_bytes_gz = preview_bytes_gz
             self.published_schema = worker_schema
             self.published_tlo = worker_tlo
+            self.tool_basis = self.basis_of(worker_tlo)
             self.published_rotary_seed = worker_rotary_seed
             self.published_rotary_cmd = worker_rotary_cmd
             self.published_limits = worker_limits
@@ -782,6 +875,11 @@ class BulkPipeline:
             self.refresh_running = False
             self.gcode_parse_proc = None
             self.inflight = None
+            if _verify_path:
+                try:
+                    os.unlink(_verify_path)
+                except OSError:
+                    pass
 
     # ---- surface / comp grid file loading ----
 

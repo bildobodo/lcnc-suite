@@ -58,6 +58,23 @@ CASES = {
     "inch": ("G20 G90\nG0 X0 Y0 Z0.5\nG1 Z1 F10\nM2\n", "in", 0.5, (430,), {}),
 }
 
+# Verify pairs (plan Fassungen 4–6): the same program at two start offsets;
+# test_start_tlo_worker compares the two encoded payloads.
+_PAIRS = {
+    # Codex R55: equal machine points, different tip — the normalisation
+    "r55": "G21 G90\nG53 G0 X0 Y0 Z0\nG53 G0 X10 Y0 Z0\nG49\nG0 Z-40\nG0 Z40\nM2\n",
+    # Codex R54: a quadratic dependence through #5422 after G49
+    "r54_quadratic": "G21 G90\nG0 X0 Y0 Z0\nG49\n#1=[#5422-10]\nG1 Z[49.999 + #1 * [1-#1]] F100\nM2\n",
+    # Codex R53 rest B: G91 after G49 from a start-dependent position
+    "r53_rest_b": "G21 G90\nG0 X0 Y0 Z39.990\nG49\nG91\nG1 Z0.009 F100\nM2\n",
+    # heavy_test's shape: `%`, a G53 retract, X/Y without Z, then the
+    # program's own G43 (the table row) and absolute moves
+    "heavy_like": "%\nG21 G90\nG53 G0 Z0\nG0 X5 Y5\nG43\nG0 Z15\nG1 Z-5 F100\nM2\n%\n",
+}
+for _name, _prog in _PAIRS.items():
+    for _z in ("10", "10.005", "20"):
+        CASES[f"{_name}@{_z}"] = (_prog, "mm", float(_z), (430,), {})
+
 program, units, z_off, gcodes_live, extra = CASES[sys.argv[1]]
 inch = units == "in"
 ini = work / "machine.ini"
@@ -137,6 +154,11 @@ def pts(key):
 
 
 comparable = {k: v for k, v in out.items() if k not in ("file", "tlo_start")}
+if len(sys.argv) > 2:
+    # the encoded payload, as the gateway would publish it
+    out["file"] = "/program.ngc"
+    with open(sys.argv[2], "wb") as f:
+        f.write(__import__("msgspec").msgpack.encode(out))
 print(json.dumps({
     "parse_error": out.get("parse_error"), "feed": pts("feed"), "rapid": pts("rapid"),
     "tlo_events": out.get("tlo_events"), "violations": out.get("violations"),

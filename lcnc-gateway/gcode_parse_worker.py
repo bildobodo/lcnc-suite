@@ -87,6 +87,7 @@ from gateway_util import (
     seed_kins_events, program_end_kins_type, wcs_offset_flat_from_var,
     seeded_tool_meta, seeded_spindle_row, PIN_UNSUPPORTED_EXIT,
     start_tlo_seed, start_tlo_initcode, percent_delimiter_line,
+    compare_preview_payloads,
     find_unmarked_subs, resolve_subroutine_dirs,
 )
 
@@ -1507,6 +1508,26 @@ def apply_nice(level) -> None:
         print(f"__NICE__\tfailed {type(e).__name__}: {e}", file=sys.stderr, flush=True)
 
 
+def verify_same(path, out) -> bool:
+    """Compare this parse's encoded payload with the published one at `path`
+    (raw or gzip msgpack, written by the gateway). Both sides go through the
+    same decode, so the comparison sees exactly what a client would. Any
+    failure to read is "not the same" — the fresh payload is then published.
+    Says why on a `__VERIFY__` stderr line."""
+    import gzip
+    try:
+        with open(path, "rb") as f:
+            raw = f.read()
+        if raw[:2] == b"\x1f\x8b":
+            raw = gzip.decompress(raw)
+        same, why = compare_preview_payloads(msgspec.msgpack.decode(raw),
+                                             msgspec.msgpack.decode(out))
+    except Exception as e:  # noqa: BLE001 — any doubt publishes
+        same, why = False, f"published payload unreadable: {type(e).__name__}: {e}"
+    print("__VERIFY__\t" + json.dumps({"same": same, "why": why}), file=sys.stderr, flush=True)
+    return same
+
+
 def main() -> None:
     import signal
     signal.signal(signal.SIGTERM, _on_sigterm)
@@ -1525,8 +1546,15 @@ def main() -> None:
         sys.exit(3)
     t_parse_done = time.monotonic()
     out = msgspec.msgpack.encode(result)
-    sys.stdout.buffer.write(out)
-    sys.stdout.buffer.flush()
+    if ctx.get("verify_against") and verify_same(ctx["verify_against"], out):
+        # VERIFY at the actual offset (VP-I20, plan Fassungen 4–6): every
+        # consumer gets the same inputs from the published payload,
+        # normalised to this parse's start — nothing to publish. No stdout;
+        # the gateway records the new tool basis from the __TLO__ line.
+        print("__SAME__", file=sys.stderr, flush=True)
+    else:
+        sys.stdout.buffer.write(out)
+        sys.stdout.buffer.flush()
     # Out-of-band schema stamp for the gateway (P1): the pipeline publishes
     # stdout as PASSTHROUGH bytes (GC discipline — it must never decode the
     # multi-MB payload), so the stamp it records at publish time rides stderr,

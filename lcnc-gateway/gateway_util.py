@@ -1571,6 +1571,168 @@ def start_tlo_initcode(seed, axis_mask):
     return "G43.1 " + " ".join(words) if words else None
 
 
+#: Payload fields that ARE the parse's start basis, not an outcome of it: a
+#: verify compares the payload normalised to the new basis, so they differ by
+#: construction (VP-I20, plan Fassungen 4–5).
+VERIFY_BASIS_KEYS = frozenset(("tlo_start", "start_known", "start_reason"))
+#: Point geometry: compared after the normalisation (pre-first-row points
+#: shifted to the new basis) within float32 precision.
+VERIFY_POINT_KEYS = ("feed", "rapid")
+#: Boxes the worker computes over those points: compared as the client
+#: recomputes them from the normalised points (boundsOf), within the same
+#: precision.
+VERIFY_BOX_KEYS = ("bounds", "motion_bounds")
+#: Relative float32 tolerance for the normalised points: two roundings of
+#: one value to float32 (each ≤ half an ulp, 2^-24 relative) — the payload's
+#: own representation precision, nothing physical.
+VERIFY_F32_REL = 2.0 ** -22
+
+
+def _payload_boxes(feed, rapid):
+    """bounds / motion_bounds exactly as the worker defines them (X/Y over
+    feed + rapid, Z over feed only; motion over both), over (n, 3) arrays."""
+    import numpy as np
+    bounds = motion = None
+    if len(feed):
+        mn, mx = feed.min(axis=0).astype(float), feed.max(axis=0).astype(float)
+        if len(rapid):
+            rmn, rmx = rapid.min(axis=0), rapid.max(axis=0)
+            mn[:2] = np.minimum(mn[:2], rmn[:2])
+            mx[:2] = np.maximum(mx[:2], rmx[:2])
+        bounds = {"min": mn.tolist(), "max": mx.tolist()}
+    pts = [a for a in (feed, rapid) if len(a)]
+    if pts:
+        allp = np.concatenate(pts)
+        motion = {"min": allp.min(axis=0).astype(float).tolist(),
+                  "max": allp.max(axis=0).astype(float).tolist()}
+    return bounds, motion
+
+
+def compare_preview_payloads(old, new):
+    """Would every consumer get the same inputs from the published payload
+    `old`, normalised to the start basis of the fresh payload `new`, as from
+    `new` itself? (VP-I20, plan Fassungen 4–6, Codex R55/R56.)
+
+    The client uses each point's resolved tool offset twice — axis position
+    (point + offset) and tip / tool body (the point itself) — so equal
+    machine points are not enough (VP55-01). It NORMALISES a payload to a
+    tool basis b: the points before the first TLO row become p + tlo_start −
+    b with offset b; every later point keeps p and its row. Hence:
+
+    - both starts known, and the TLO rows (vectors and tools) byte-equal —
+      they are the offset of every later point;
+    - points before the first row (seq ≤ its seq; all points without rows):
+      old p + (old tlo_start − new tlo_start) equals new p within float32
+      precision (VERIFY_F32_REL, relative to the larger of 1 and |p|);
+    - points after it: bit-equal;
+    - bounds / motion_bounds: recomputed from the normalised old points equal
+      the fresh payload's within the same precision (the client recomputes
+      them so after a normalisation);
+    - every other field byte-equal (limit verdict, outside flags, stream
+      structure, rotary values, stats, tool changes, sub spans, refusals …),
+      except the basis fields (VERIFY_BASIS_KEYS).
+
+    Returns (same: bool, why: str) — `why` names the first difference. Pure.
+    """
+    import numpy as np
+    if not isinstance(old, dict) or not isinstance(new, dict):
+        return False, "payload missing"
+    if not old.get("start_known") or not new.get("start_known"):
+        return False, "start unknown"
+    s_old, s_new = old.get("tlo_start"), new.get("tlo_start")
+    if not (isinstance(s_old, list) and isinstance(s_new, list) and len(s_old) == len(s_new) == 3):
+        return False, "start basis missing"
+    if set(old) != set(new):
+        return False, "fields differ: " + ",".join(sorted(set(old) ^ set(new)))
+    special = VERIFY_BASIS_KEYS | set(VERIFY_POINT_KEYS) | set(VERIFY_BOX_KEYS)
+    for k in sorted(set(new) - special):
+        if old[k] != new[k]:
+            return False, f"field {k} differs"
+    rows = new.get("tlo_events") or []
+    first_row_seq = rows[0][0] if rows else None
+    shift = np.asarray(s_old, dtype=np.float64) - np.asarray(s_new, dtype=np.float64)
+    norm = {}
+    for k in VERIFY_POINT_KEYS:
+        ob, nb = old.get(k), new.get(k)
+        if not isinstance(ob, (bytes, bytearray)) or not isinstance(nb, (bytes, bytearray)):
+            if ob != nb:
+                return False, f"field {k} differs"
+            norm[k] = np.zeros((0, 3))
+            continue
+        if len(ob) != len(nb):
+            return False, f"{k}: point count differs"
+        op = np.frombuffer(ob, dtype="<f4").reshape(-1, 3)
+        npts = np.frombuffer(nb, dtype="<f4").reshape(-1, 3)
+        seq = np.frombuffer(new.get(k + "_seq") or b"", dtype="<u4")
+        if len(seq) != len(op):
+            return False, f"{k}: seq missing"
+        pre = np.ones(len(op), dtype=bool) if first_row_seq is None else seq <= first_row_seq
+        # after the first row: the same bits
+        if not np.array_equal(op[~pre].view("<u4"), npts[~pre].view("<u4")):
+            return False, f"{k}: a point after the first TLO row differs"
+        o64 = op.astype(np.float64)
+        o64[pre] += shift
+        n64 = npts.astype(np.float64)
+        tol = VERIFY_F32_REL * np.maximum(1.0, np.abs(n64[pre]))
+        d = np.abs(o64[pre] - n64[pre])
+        if d.size and bool((d > tol).any()):
+            return False, f"{k}: a point before the first TLO row differs ({float(d.max()):.6g})"
+        norm[k] = o64
+    ob_box = _payload_boxes(norm["feed"], norm["rapid"])
+    for k, ob in zip(VERIFY_BOX_KEYS, ob_box):
+        nbx = new.get(k)
+        if (ob is None) != (nbx is None):
+            return False, f"field {k} differs"
+        if ob is None:
+            continue
+        a = np.asarray(ob["min"] + ob["max"], dtype=np.float64)
+        b = np.asarray(list(nbx["min"]) + list(nbx["max"]), dtype=np.float64)
+        if bool((np.abs(a - b) > VERIFY_F32_REL * np.maximum(1.0, np.abs(b))).any()):
+            return False, f"field {k} differs"
+    return True, "same"
+
+
+#: Bit-noise floor for "the applied offset changed", machine units — no
+#: physical tolerance (plan Fassung 4: every actual change is verified).
+TLO_BASIS_EPS = 1e-9
+
+
+def start_offset_changed(basis, live, eps=TLO_BASIS_EPS):
+    """Does the live start tool state differ from `basis` (both in
+    start_tlo_seed's shape, `basis` may also be {"xyz", "mode"})? An unknown
+    live state differs from a known basis; two unknown ones do not. Pure."""
+    b_known = basis.get("known", True) and basis.get("xyz") is not None
+    l_known = bool(live and live.get("known"))
+    if not b_known or not l_known:
+        return b_known != l_known
+    if basis.get("mode") != live.get("mode"):
+        return True
+    return max(abs(float(a) - float(b)) for a, b in zip(basis["xyz"], live["xyz"])) > eps
+
+
+def evaluate_start_drift(meta, tool_basis, live_start, eps=TLO_BASIS_EPS):
+    """The idle edge of the start tool state (VP-I20, plan Fassungen 4–6).
+
+    The published payload was parsed under a start (`meta` = its __TLO__
+    line: start_known, tlo_start, start_mode); a verify may since have
+    confirmed it at another one (`tool_basis` {"xyz", "mode"}). The next run
+    starts under `live_start` (start_tlo_seed of the live STAT):
+    - "tool_offset": it differs from the basis — by any amount over the bit
+      noise, mode included, or the start became unknown → a VERIFY parse at
+      the actual offset (bulk_pipeline) publishes only what changed;
+    - "start_unknown": the published start was unknown and the live one is
+      known → one ordinary parse;
+    - None otherwise, and for a meta without the start fields (a worker
+      before VP-I20: no claim, the next file or table edge re-parses).
+    Never loops: after either outcome the basis is the live start. Pure."""
+    if not meta or "start_known" not in meta:
+        return None
+    if not meta.get("start_known"):
+        return "start_unknown" if (live_start and live_start.get("known")) else None
+    basis = tool_basis or {"xyz": meta.get("tlo_start"), "mode": meta.get("start_mode")}
+    return "tool_offset" if start_offset_changed(basis, live_start, eps) else None
+
+
 def percent_delimiter_line(lines):
     """The line number of a program's leading `%` delimiter, or None.
 
@@ -1911,7 +2073,7 @@ def preview_file_edge_action(file_changed, reparse_pending, refresh_running, inf
     return None
 
 def inflight_stale_reason(inflight, rotary_abc, rotary_prev, kins_type, kins_frame,
-                          wcs_flat, wcs_prev):
+                          wcs_flat, wcs_prev, live_start=None):
     """Does an edge raised DURING a running parse stale that parse?
     (cancel-and-restart, 2026-09-05.) `inflight` is bulk_pipeline's input
     snapshot of the running parse — {"rotary_seed", "kins_seed",
@@ -1922,10 +2084,16 @@ def inflight_stale_reason(inflight, rotary_abc, rotary_prev, kins_type, kins_fra
     table held still (a multi-G10 Zero All restarts once), kins type/frame
     as a discrete step. TLO drift is NOT evaluated in flight (it cannot
     come from the zeroing workflow; the post-publish edge still catches
-    it). Returns the reason string or None; an absent snapshot makes no
+    it) — but the START tool state is (VP-I20): a G43 by hand while the
+    parse runs left its seed (`tlo_seed`, start_tlo_seed's shape) behind,
+    compared with `live_start` like the idle edge (start_offset_changed).
+    Returns the reason string or None; an absent snapshot makes no
     claim. Pure."""
     if not inflight:
         return None
+    if live_start is not None and inflight.get("tlo_seed") is not None \
+            and start_offset_changed(inflight["tlo_seed"], live_start):
+        return "tool_offset"
     r = evaluate_rotary_drift(inflight.get("rotary_seed"), rotary_abc)
     if r and rotary_drift_settled(rotary_prev, rotary_abc):
         return r

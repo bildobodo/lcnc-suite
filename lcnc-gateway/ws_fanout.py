@@ -166,6 +166,7 @@ def build_status_envelope(
     rfl_status: Optional[dict] = None,
     preview_refresh: Optional[dict] = None,
     preview_table_stale: Optional[dict] = None,
+    preview_tool_basis: Optional[dict] = None,
 ) -> dict:
     """Assemble the per-tick status envelope.
 
@@ -202,6 +203,11 @@ def build_status_envelope(
         # A preview re-parse is running (bulk_pipeline.preview_refresh_status):
         # reason, file, expected_ms, started_ms, queued, superseded.
         msg["preview_refresh"] = preview_refresh
+    if preview_tool_basis is not None:
+        # The verified tool basis of the published payload (VP-I20): present
+        # only after a verify confirmed it at another start offset than the
+        # payload's `tlo_start` — the client normalises that version to it.
+        msg["preview_tool_basis"] = preview_tool_basis
     if preview_table_stale is not None:
         # The payload's tool table is stale until idle (MR-I04) — the
         # viewer mutes the path and says why.

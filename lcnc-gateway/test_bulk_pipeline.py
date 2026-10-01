@@ -588,6 +588,8 @@ class TestPinnedReparse(unittest.TestCase):
                      {"applied_tlo": [0.0, 0.0, 9.0], "loaded_tool": 1, "start_known": False,
                       "tlo_start": None, "start_mode": None, "start_reason": "x"}):
             self.b.published_tlo = meta
+            self.b.tool_basis = BulkPipeline.basis_of(meta)
+            self.assertIsNone(self.b.tool_basis)
             self.assertEqual(self.b.pinned_ctx(self.ngc)["seed_tool"],
                              {"applied_tlo": None, "start_mode": None, "loaded_tool": 1})
 
@@ -701,3 +703,97 @@ class TestPinnedReparse(unittest.TestCase):
         self.assertIsNone(self.b.published_ctx)
         self.assertIsNone(self.b.published_params)
         self.assertIsNone(self.b.pinned_ctx(self.ngc))
+
+
+class TestVerifyAtTheActualOffset(unittest.TestCase):
+    """VP-I20, plan Fassungen 4–6: an actual change of the start tool state is
+    VERIFIED by a parse at it; the published payload stays when every
+    consumer would get the same inputs from it, normalised to the new start
+    — no version bump, no transfer — and only the tool basis moves."""
+
+    META = (b'__TLO__\t{"table_path": null, "table_mtime": 5.0, "tlos": [], "applied_tlo": [0.0, 0.0, %s], '
+            b'"loaded_tool": 13, "start_known": true, "tlo_start": [0.0, 0.0, %s], "start_mode": 430, '
+            b'"start_reason": null}\n')
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.ini = os.path.join(self.tmp.name, "m.ini")
+        open(self.ini, "w").write("[EMC]\n")
+        self.ngc = os.path.join(self.tmp.name, "p.ngc")
+        open(self.ngc, "w").write("G53 G0 Z0\nG43 H13\nG0 Z5\nM2\n")
+        self.live = types.SimpleNamespace(ini_filename=self.ini, g5x_index=1, axis_mask=0b111,
+                                          actual_position=[0.0] * 9, gcodes=(430,),
+                                          tool_offset=(0.0, 0.0, 65.0512) + (0.0,) * 6)
+        self.b = BulkPipeline(get_stat=lambda: self.live, get_machine_units=lambda: "mm",
+                              build_wcs_rotation_patches=lambda: {})
+        self.sent = []
+        self.reply = None
+
+        def worker(ctx_bytes, timeout):
+            import msgspec
+            ctx = msgspec.msgpack.decode(ctx_bytes)
+            path = ctx.get("verify_against")
+            self.sent.append({"ctx": ctx, "blob": open(path, "rb").read() if path else None,
+                              "inflight": dict(self.b.inflight)})
+            z = b"%.4f" % self.live.tool_offset[2]
+            meta = self.META % (z, z)
+            return self.reply(meta) if self.reply else (0, b"payload@" + z, b"__SCHEMA__\t9\n" + meta)
+        self.b._run_gcode_worker_blocking = worker
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _parse(self, reason):
+        asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason=reason))
+
+    def test_a_publish_sets_the_tool_basis_to_its_own_start(self):
+        self._parse("file")
+        self.assertEqual(self.b.tool_basis, {"xyz": [0.0, 0.0, 65.0512], "mode": 430})
+        self.assertIsNone(self.b.tool_basis_status(), "equal to tlo_start: nothing to say")
+        self.assertNotIn("verify_against", self.sent[0]["ctx"])
+        self.assertEqual(self.sent[0]["inflight"]["tlo_seed"]["xyz"], [0.0, 0.0, 65.0512])
+
+    def test_same_keeps_the_payload_and_moves_only_the_basis(self):
+        self._parse("file")
+        version, published = self.b.preview_version, (self.b.preview_bytes, self.b.preview_bytes_gz)
+        self.live.tool_offset = (0.0, 0.0, 65.0562) + (0.0,) * 6
+        self.reply = lambda meta: (0, b"", b"__SCHEMA__\t9\n" + meta
+                                   + b'__VERIFY__\t{"same": true, "why": "same"}\n__SAME__\n')
+        self._parse("tool_offset")
+        sent = self.sent[-1]
+        # the worker got the published bytes to compare with …
+        self.assertEqual(sent["blob"], published[0] or published[1])
+        self.assertFalse(os.path.exists(sent["ctx"]["verify_against"]), "temp file removed")
+        # … and nothing was published
+        self.assertEqual(self.b.preview_version, version)
+        self.assertEqual((self.b.preview_bytes, self.b.preview_bytes_gz), published)
+        self.assertEqual(self.b.tool_basis, {"xyz": [0.0, 0.0, 65.0562], "mode": 430})
+        self.assertEqual(self.b.tool_basis_status(),
+                         {"file": self.ngc, "version": version, "xyz": [0.0, 0.0, 65.0562], "mode": 430})
+        # the pinned parse of the next run starts from the verified start
+        self.b.published_params = {"text": "", "g92": None}
+        self.b.published_ctx = dict(self.b.published_ctx, file=self.ngc)
+        self.assertEqual(self.b.pinned_ctx(self.ngc)["seed_tool"]["applied_tlo"], [0.0, 0.0, 65.0562])
+
+    def test_a_difference_publishes_the_verify_parse_itself(self):
+        self._parse("file")
+        version = self.b.preview_version
+        self.live.tool_offset = (0.0, 0.0, 66.0512) + (0.0,) * 6
+        self._parse("tool_offset")
+        self.assertIn("verify_against", self.sent[-1]["ctx"])
+        self.assertEqual(self.b.preview_version, version + 1)
+        self.assertEqual(self.b.preview_bytes, b"payload@66.0512")
+        self.assertEqual(self.b.tool_basis, {"xyz": [0.0, 0.0, 66.0512], "mode": 430})
+        self.assertIsNone(self.b.tool_basis_status())
+
+    def test_only_a_published_payload_is_verified(self):
+        self._parse("tool_offset")      # nothing published yet: an ordinary parse
+        self.assertNotIn("verify_against", self.sent[-1]["ctx"])
+        self.assertEqual(self.b.preview_version % 1, 0)
+        self.assertEqual(self.b.preview_bytes, b"payload@65.0512")
+
+    def test_unload_drops_the_basis(self):
+        self._parse("file")
+        self.b.clear_preview()
+        self.assertIsNone(self.b.tool_basis)
+        self.assertIsNone(self.b.tool_basis_status())

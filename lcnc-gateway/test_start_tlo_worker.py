@@ -103,5 +103,55 @@ class TestStartToolState(unittest.TestCase):
         self.assertEqual(r["violations"], [{"line": 3, "axis": "Z", "value": 1.5, "limit": 1.2, "kind": "max"}])
 
 
+def payload(case, tmpdir):
+    path = os.path.join(tmpdir, case.replace("@", "_") + ".mpk")
+    env = dict(os.environ)
+    env.pop("PYTHONPATH", None)
+    p = subprocess.run([sys.executable, os.path.join(HERE, "native_start_probe.py"), case, path],
+                       capture_output=True, text=True, timeout=120, env=env, cwd=HERE)
+    lines = [ln for ln in p.stdout.splitlines() if ln.startswith("{")]
+    if lines and "skip" in json.loads(lines[-1]):
+        raise unittest.SkipTest(json.loads(lines[-1])["skip"])
+    if not os.path.exists(path):
+        raise AssertionError(f"{case}: no payload rc={p.returncode} stderr={p.stderr[-800:]}")
+    import msgspec
+    with open(path, "rb") as f:
+        return msgspec.msgpack.decode(f.read())
+
+
+class TestVerifyNative(unittest.TestCase):
+    """The verify's equality contract on REAL payloads (VP-I20, plan
+    Fassungen 4–6): the published payload at one start, normalised, against
+    the fresh one at another — both directions."""
+
+    @classmethod
+    def setUpClass(cls):
+        import tempfile
+        cls.tmp = tempfile.TemporaryDirectory()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmp.cleanup()
+
+    def compare(self, name, za, zb):
+        import gateway_util
+        a, b = payload(f"{name}@{za}", self.tmp.name), payload(f"{name}@{zb}", self.tmp.name)
+        return gateway_util.compare_preview_payloads(a, b), gateway_util.compare_preview_payloads(b, a)
+
+    def test_codex_r55_pair_is_the_same_after_normalisation(self):
+        # equal machine points, the tip at the start offset: the normalised
+        # payload IS the fresh one (the client re-tips the prefix)
+        self.assertEqual(self.compare("r55", "10", "20"), ((True, "same"), (True, "same")))
+
+    def test_heavy_test_shape_is_the_same_at_a_measuring_scatter(self):
+        self.assertEqual(self.compare("heavy_like", "10", "10.005"), ((True, "same"), (True, "same")))
+
+    def test_the_counterexamples_differ(self):
+        for name in ("r54_quadratic", "r53_rest_b"):
+            (fwd, _), (back, _) = self.compare(name, "10", "10.005")
+            self.assertFalse(fwd, name)
+            self.assertFalse(back, name)
+
+
 if __name__ == "__main__":
     unittest.main()
