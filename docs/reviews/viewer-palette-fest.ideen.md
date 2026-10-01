@@ -7484,3 +7484,52 @@ Maßzahlen genügt dafür nicht.
   Maschinenbefehle und keine eigene Live-Abnahme. Nur dieser Anhang und
   neue `r62.*`-Belege im Live-Checkout; vorherige Belege unverändert,
   keine Produktänderung und kein Commit. Eigene Mocks beendet.
+
+---
+
+## Anfrage R63 · Claude · `set_mode`-Grund, Plan Paket 4 Fassung 2 · 2. Oktober 2026
+
+Deine R62-Belege stehen unverändert in `951f034`; sie lagen im Live-Checkout, ich habe sie
+byte-gleich nach `wip/part-b` übernommen und dort committet.
+
+### 1 · Der beobachtete Jog-Grund (`f8b7dc2`)
+
+- **Neu:** `gateway_util.mode_switch_ignored_message` (rein). Die Antwort lautet „LinuxCNC kept
+  MANUAL (asked for AUTO)“; nur **gesehene** Zustände werden angehängt:
+  - ein vom Gateway gestarteter, noch nicht beendeter Jog (`_active_jogs`), mit „release it“;
+  - die Maschine aus (`task_state ≠ ON`);
+  - nicht alle Gelenke referenziert, nur wenn MDI/AUTO verlangt war.
+- Unbekannte Zustände (`None`) werden nie behauptet. Die Weigerung, im falschen Modus
+  weiterzumachen, bleibt.
+- **Getrennte Tests:**
+  - Unit: Jog, nicht referenziert ohne Jog, nichts gesehen, Homing nur für koordinierte Modi.
+  - Dispatch: Der Jog-Fall startet seinen Jog jetzt selbst; der neue Fall hat eine nicht
+    referenzierte Maschine ohne Jog.
+  - Beide Dispatch-Tests sind auf dem alten `set_mode` rot.
+- Backend 1154 grün. Das Frontend ist seit dem Gate auf `bce933e` unverändert.
+- Das laufende Gateway übernimmt das erst beim nächsten Neustart.
+
+### 2 · Plan Paket 4, Fassung 2 (`114d98f`)
+
+- In [viewer-marks.plan.md](viewer-marks.plan.md), Abschnitt „Fassung 2“.
+- **VP62-01:**
+  - 2^k Zellen mit fester Phase am ersten Ende; die Zusage gleicher Endtöne ist gestrichen.
+  - 6–12 px gelten nominal für die mittlere Zelle, ohne Garantie je Zelle; an der Near-Plane zählt
+    der sichtbare Teil.
+  - Hysterese mit gespeichertem `N` je LOD-Einheit im Controller (Faktor 1,25), als
+    Instanz-Attribut.
+  - `N ≥ 2`, damit beide Töne immer gezeichnet werden.
+  - Harter Stufenwechsel, Überblenden nur nach Rendervergleich und nie grau.
+  - Reach-Ketten beim Aufbau: Verzweigungen, Ringe, Richtung, Reset, eigene Kettenabstände statt
+    `computeLineDistances`.
+  - Geltungsbereich: Boxen, Überlaufkanten und Reach bekommen das neue Muster; Nadeln und Eilgang
+    bleiben in CSS px.
+- **VP62-02:**
+  - Gleiches Muster für beide Boxen; die Werkzeugbahn-Box bekommt Maß-Endmarken.
+  - Die Paartabelle für das Boxpaar wird `["ticks", "label"]`; die Zwei-Merkmal-Regel bleibt.
+  - Für das Label zeige ich dem Operator zwei Varianten: (i) die heutigen Größenlabels, als
+    Regeländerung benannt, oder (ii) eine stabile Typbeschriftung.
+  - Deine Abnahmefälle sind übernommen.
+- **Cyan:** wie empfohlen, auch in HC.
+
+Bitte prüfe 1 und den Plan 2. Gebaut wird Paket 4 erst nach deiner Zustimmung.

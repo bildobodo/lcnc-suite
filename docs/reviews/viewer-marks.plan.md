@@ -120,3 +120,123 @@ die Boxen, Dunkelgrau mit Hellgrau. Neben einer Box-Kante unterscheidet sie nur 
 3. Dürfen Maschinen- und Werkzeugbahn-Box dasselbe Muster tragen, mit Label und Lage als
    Unterscheidung?
 4. Cyan als zweiter Ton der Nadel auf hellem und dunklem Grund, und in HC?
+
+---
+
+## Fassung 2 · nach Codex R62 (VP62-01, VP62-02)
+
+Cyan für die Nadeln (B) ist angenommen, auch in HC; der dunkle Träger bleibt. A ist hier neu
+gefasst. Die Fassung 1 oben bleibt als Verlauf stehen.
+
+### A' · Mustervertrag (VP62-01)
+
+1. **Zellen:**
+   - `N = 2^k` gleich lange Zellen je Einheit, abwechselnd dunkel/hell.
+   - Die Phase ist am **festen ersten Ende** verankert: bei Box-Kanten das Ende mit der kleineren
+     Koordinate entlang der Kante, bei Reach der Kettenanfang (Punkt 6). Sie ist von der Kamera
+     unabhängig.
+   - Die Grenzen verschachteln sich über die Stufen: Jede Grenze bei `N` bleibt eine bei `2N`.
+   - Die Zusage „beide Enden derselbe Ton“ ist **gestrichen**; der Operator hat sie nicht
+     verlangt, und sie widerspricht `2^k`.
+2. **Maß nominal, nicht garantiert:**
+   - `N` wird so gewählt, dass die **mittlere** Zellenlänge auf dem Schirm (projizierte Länge der
+     Einheit durch `N`) zwischen 6 und 12 px liegt.
+   - Unter Perspektive variieren die einzelnen Zellen entlang der Kante wie die Geometrie. Das ist
+     gewollt, das Muster hängt an ihr; Codex' Beispiel reicht von 1,35 bis 56,41 px.
+   - Für einzelne Zellen gibt es keine px-Garantie und keine Lesbarkeitszusage unterhalb der
+     Auflösung.
+   - Eine Kante, die die Near-Plane schneidet, misst ihren sichtbaren Teil.
+3. **Hysterese mit Zustand:**
+   - Je LOD-Einheit (Box-Kante, Reach-Kette) ein gespeichertes `N`. Es wird hochgestuft, wenn die
+     mittlere Zelle 12 · 1,25 px übersteigt, und heruntergestuft unter 6 / 1,25 px.
+   - Ausgewertet wird pro gerendertem Frame auf der CPU: 12 Box-Kanten und die Reach-Ketten.
+   - Weitergereicht wird es als Instanz-Attribut `instanceCells`, hochgeladen nur bei einer
+     Änderung.
+   - Die Folge 95,99 → 96,01 → 95,99 px wechselt nicht mehr.
+   - Der Vertex-Shader bleibt zustandslos; der Zustand liegt im Controller.
+4. **Kurze Einheiten:**
+   - `N ≥ 2`: Eine sichtbare Kontur trägt immer beide Töne, auch wenn sie nur zwei Zellen lang ist.
+   - Damit kann der behobene Tonverlust kurzer Konturen (R45 VP-I12) nicht wiederkehren.
+   - Degenerierte Kanten (Länge 0) werden nicht gezeichnet.
+5. **Kein Überblenden zuerst:** Die Stufe wechselt hart. Eine Überblendung kommt nur, wenn ein
+   gerenderter Vergleich zeigt, dass der Wechsel stört, und auch dann ohne graue Zwischenphase: Beide
+   Töne bleiben voll.
+6. **Reach-Ketten beim Geometrieaufbau** (nicht pro Frame):
+   - Die Ketten bildet dieselbe Erkennung wie `alternateTones`: geteilte Enden, genau zwei
+     Segmente je Knoten.
+   - Ein Verzweigungsknoten (≥ 3) oder ein offenes Ende beendet eine Kette.
+   - Ein geschlossener Ring ist eine Kette, Start am Knoten mit dem kleinsten Index.
+   - Die Richtung zeigt vom Start weg; getrennte Ketten beginnen jede bei 0.
+   - Die Kettenabstände (`instanceChainStart/End`) werden selbst berechnet. Nicht
+     `computeLineDistances()`, das in Speicherreihenfolge kumuliert (Codex' Gegenprobe mit
+     umsortierten Segmenten).
+   - Die LOD-Bezugsgröße einer Kette ist ihre projizierte Gesamtlänge.
+7. **Geltungsbereich:**
+
+   | Neues Muster | Unverändert in CSS-px (`SCREEN_DASH`) |
+   |---|---|
+   | Maschinen-Box | die Nadeln (ein Bildschirm-Marker ohne Geometrie zum Verankern) |
+   | Werkzeugbahn-Box, ihre orangen Überlaufkanten (Orange statt Hell, damit die Box ein Objekt bleibt) | der gestrichelte Eilgang (ein Pfad, kein Rahmen) |
+   | beide Reach-Umrisse | |
+
+   VP-I10 (feste Bildschirmmaße für die Boxen) wird damit bewusst ersetzt. Seine Rasterwächter
+   werden gezielt umgebaut; ihre Kontrastfälle bleiben.
+
+### A'' · Kennzeichnung der Boxen (VP62-02)
+
+- **Ist-Stand:** Das Boxpaar ist in `palettePairs.ts` `kind: "form"`, ohne Farbabstand, mit zwei
+  Merkmalen (`dashed`, `label`). Gleiches Muster nimmt `dashed` weg.
+- **Neues zweites Merkmal:** Die Werkzeugbahn-Box bekommt **Maß-Endmarken**, kurze Querstriche an
+  beiden Enden jeder Kante, wie eine Bemaßung. Sie sind in Bildschirmgröße, im dunklen Ton und
+  liegen über dem hellen.
+- **Paartabelle:** Die Merkmale des Boxpaars werden `["ticks", "label"]`. Die Zwei-Merkmal-Regel in
+  `themeTokens.test.ts` bleibt bestehen, nur die Merkmalsliste ändert sich. Lage („die äußere“)
+  zählt nicht als Merkmal.
+- **Zur Beschriftung** zeige ich dem Operator zwei Varianten an Renderings, Codex' Hinweis folgend:
+  - **(i)** Die heutigen Größenlabels (X/Y/Z-Maße) bleiben das Label-Merkmal. Ehrlich benannt: Sie
+    sind weltgroß, an den Kanten, und können hinter Modellteilen liegen. Sie sind keine jederzeit
+    lesbare Typbeschriftung.
+  - **(ii)** Eine stabile Typbeschriftung „Program bounds“ an einer Ecke der Werkzeugbahn-Box und
+    „Machine bounds“ an der Maschinen-Box. Sie ist bildschirmgroß, liegt immer oben, mit derselben
+    Technik wie die Nadel-Labels, und hat eine Mindestgröße.
+
+  Wählt der Operator (i), ist das als Regeländerung benannt: Das Label-Merkmal ist dann nicht in
+  jeder Ansicht garantiert.
+- **Abnahmefälle:**
+  - beide Boxen sichtbar;
+  - gleich große bzw. deckungsgleiche Boxen;
+  - Programm teilweise außerhalb (orange);
+  - Label vor und hinter einem Modellteil;
+  - starkes Herauszoomen;
+  - hell, dunkel und HC.
+
+### Wächter (ersetzt die Liste der Fassung 1)
+
+- **Zoom innerhalb einer Stufe**, in beide Richtungen: Die Übergänge einer Kante bleiben bei
+  denselben Kantenanteilen. Gemessen wird an projizierten Übergängen aus der Instanzgeometrie
+  (`__viewerDiag`), nicht an Materialmetadaten.
+- **Zoom über eine Stufe**, beide Richtungen: `N` verdoppelt bzw. halbiert sich, die alten Grenzen
+  bleiben.
+- **Schwellenpendeln:** Ein Kamerapfad um 96 px herum bleibt bei einer Stufe; ohne Hysterese ist
+  der Wächter rot.
+- **Perspektive:** eine fliehende Kante mit großer Tiefenspanne. Die Übergänge liegen bei den
+  festen Anteilen `i / N` in Weltkoordinaten; geprüft wird, dass sich auf dem Schirm keine
+  Mittelwert-Garantie einschleicht.
+- **Near-Plane:** Eine Kante, die die Near-Plane schneidet, bekommt ihr `N` aus dem sichtbaren
+  Teil.
+- **Kurz und degeneriert:** `N ≥ 2`, beide Töne gezeichnet; Länge 0 nicht gezeichnet.
+- **Reach-Ketten:**
+  - zwei getrennte Ketten, eine davon umgekehrt gespeichert;
+  - Segmente umsortiert ergeben dieselben Phasen;
+  - ein Ring beginnt am kleinsten Index.
+- **DPR 1/2 und CSS-Zoom 1,5:** Die `N`-Wahl folgt CSS px.
+- **Boxen:**
+  - Endmarken an jeder Kante der Werkzeugbahn-Box, keine an der Maschinen-Box;
+  - die Paartabelle mit `ticks` und `label`;
+  - die Abnahmefälle aus A''.
+- **Nadeln:**
+  - Cyan auf allen drei Nadeln, auf hellem und dunklem Grund und auf Modellflächen;
+  - nach einem Themewechsel und nach einem Szenen-Neuaufbau;
+  - Form, Beschriftung, Bildschirmgröße und On-top unverändert;
+  - `--viewer-pin` in jedem Theme-Block.
+- Jeder Wächter zuerst rot auf dem heutigen Stand.

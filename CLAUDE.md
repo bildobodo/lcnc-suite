@@ -243,7 +243,10 @@ traced no-op — it used to force MANUAL, which aborted an MDI issued a beat
 earlier (the operator's finger leaving the A jog after pressing → Zero); a
 verified switch to MDI/AUTO clears the set (task refuses those while jogging);
 every new jog emits `jog.cmd`. `set_mode` raises on refusal AND when task
-ignored the switch (jog active — "release the jog"); LinuxCNC operator errors
+ignored the switch — the reply says what was asked and what stayed and names
+only the states it SEES (a jog the gateway started → "release it", the
+machine off, joints unhomed for MDI/AUTO; `gateway_util.mode_switch_ignored_message`,
+Codex R62: it said "a jog is still active" for an unhomed machine too); LinuxCNC operator errors
 ride the trace as `nml.error`. A retract NEVER lowers Z: the `G53 G0 Z0` in go_to_zero/home/g30
 is guarded by `#<_abs_z> LT 0` (the same four offset terms a G53 Z word
 subtracts — interp_namedparams NP_ABS_Z / interp_find G_53) and the RFL safe-Z
