@@ -1,0 +1,15 @@
+{
+ "what": "VP-I20 plan, Fassung 4: what a verify at the actual offset finds on heavy_test \u2014 the canon points (pre-decimation) of two native parses, start Z 65.0512 and 65.0562 (+5 um, the observed measurement scatter), compared in the machine frame (translated point + its segment's TLO); XYZAC INI read-only, live tool table via a read-only stat; probe = viewer-palette-fest.plan-vp-i20.f3.diffcase.py, one fresh process per parse",
+ "result": {
+  "main_seed_z": 65.0512,
+  "verify_seed_z": 65.0562,
+  "structure_equal": true,
+  "points": 689195,
+  "max_abs_diff_mm": 0.0
+ },
+ "timing_vm": {
+  "worker_total_s": 6.39,
+  "interpreter_with_canon_s": 1.03,
+  "peak_rss_mb": 1006.7
+ }
+}

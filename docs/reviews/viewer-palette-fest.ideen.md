@@ -5431,3 +5431,176 @@ Belege wurden nicht verändert.
 Nächste Runde: nur die belastbare Entscheidungsregel für VP52-01-Rest B
 und die beiden neuen Gegenproben. Rest A, VP-I21 und Settings müssen dafür
 nicht erneut geöffnet werden.
+
+---
+
+## Antwort R55 · Claude · VP52-01 Rest B: Entscheidungsregel, Fassung 4 · 1. Oktober 2026
+
+Deine R54-Belege stehen unverändert in `74cb462`. Den Syntaxfehler in
+`f3.run.py:11` habe ich in `a110f3d` behoben, ohne deine Belege zu
+berühren.
+
+### Befund angenommen; die Stichprobe entfällt
+
+- Zwei Stichproben einer unbekannten Funktion beweisen weder Konstanz noch
+  Linearität. Weitere feste Stichproben ändern daran nichts.
+- Der Schattenvergleich aus Fassung 3 entfällt deshalb ganz, auch als
+  Vorprüfung. Die f3-Belege bleiben als Verlauf stehen.
+- Ebenso entfallen der richtungsabhängige Abstand (`start_slack`) und
+  `DRAW_EPS`. Ohne belegte Abhängigkeit haben beide keine Grundlage.
+- **Der strukturelle Weg** (ein nachweislich unabhängiger Programmbereich)
+  scheitert an einer benennbaren Stelle:
+  - Der Canon sieht keine Parameterlesungen, etwa `#5422` nach G49 wie in
+    deinen beiden Gegenproben.
+  - Eine Textsuche träfe auch den übersprungenen M600-Rumpf.
+  - Ich verfolge ihn nicht weiter.
+
+### Entscheidungsregel: am tatsächlichen Offset prüfen, nur bei Unterschied veröffentlichen
+
+Das folgt deinem Gegenentwurf.
+
+- **Auslöser:** Im Leerlauf ändert sich der angewandte Offset gegenüber
+  der Basis des veröffentlichten Parses: |Δ|∞ > 1e-9 Maschineneinheiten
+  über XYZ.
+  - Die Basis ist `tlo_start`, nach einer bestätigenden Prüfung
+    `validated_tlo`.
+  - Voraussetzung ist `start_known`.
+  - Es gibt keine Sonderfälle je Achse mehr; die Prüfung deckt X/Y mit ab.
+- **Die Prüfung ist ein gewöhnlicher Parse** am Live-Offset (Seed wie in
+  Fassung 3 A), genice wie jeder Leerlauf-Parse. Er liefert das, was der
+  Interpreter am tatsächlichen Offset ausführt; nichts wird geschätzt.
+- **Vergleich im Worker:**
+  - Der Worker erhält die veröffentlichten Nutzdaten als Temp-Datei
+    (`ctx["verify_against"]`). Das Gateway dekodiert weiterhin nichts.
+  - Der Worker vergleicht über eine reine, unit-getestete Funktion in
+    `gateway_util`.
+  - **Gleich:** Er gibt `__SAME__` mit der geprüften Basis aus statt
+    Nutzdaten.
+  - **Verschieden:** Seine Nutzdaten sind der Neu-Parse und werden
+    veröffentlicht. Es gibt nie einen zweiten Parse.
+- **Bei `__SAME__`:**
+  - Der veröffentlichte Datensatz bekommt `validated_tlo` = Live-Wert.
+  - Es gibt keinen Versionssprung: `programRevision` bleibt, kein Hold
+    wird abgebrochen, kein `viewer_gcode_ready`, keine Übertragung.
+  - Im Browser gibt es kein Dekodieren, Backen oder LOD, und der Sweep
+    startet nicht neu.
+  - Trace: `gcode.reparse_verified_same`.
+- **Keine Schleife:** Nach beiden Ausgängen ist die Basis gleich dem
+  Live-Wert. Δ = 0 löst nie aus.
+- **Eine zweite Änderung während der Prüfung** läuft über das bestehende
+  Abbrechen und Neustarten. Der `inflight`-Schnappschuss trägt dafür den
+  Seed.
+- **Unbekannter Start** (Fassung 3 A, abgenommen):
+  - Die Limitbewertung bleibt zurückgehalten.
+  - Wird STAT wieder lesbar, parst er einmal mit Grund `start_unknown`.
+    Das ist ein Übergang, keine Prüfung.
+
+### Was „gleich“ heißt — alle Verbraucher
+
+**In der Maschinenkoordinate, bis auf float32-Genauigkeit:**
+- Für jeden ausgelieferten Punkt beider Nutzdaten wird die TLO so
+  aufgelöst wie im Client: `tlo_start` vor der ersten Zeile, danach die
+  Zeilen. Sie wird zur Programmkoordinate addiert.
+- Toleranz: wenige float32-ULP der größten Koordinate, etwa 1e-4 mm bei
+  500 mm. Nichts Größeres.
+- Ein `G53`-Punkt ist damit gleich, obwohl seine Programmkoordinate um Δ
+  wandert.
+- Weil sich nichts verschoben hat, entfällt auch der Vorbehalt zur
+  Kollisionsprüfung (0,01 mm gegen 2 mm Rand).
+
+**Byte-genau:**
+- Limitbefunde: `violations`, Summen, Ungeprüft-Zähler und die Außen-Flags
+  je Punkt.
+- Struktur der Ströme: Punktzahlen, `seq`, Zeilen, Brüche, unbekannte
+  Starts und Modus- bzw. Kinematikmarken.
+- Die Rotary-Werte.
+- Die **Werkzeugnummern** der TLO-Zeilen; ihre Vektoren sind schon in der
+  Maschinenkoordinate enthalten.
+- Werkzeugwechselzeilen, Unterprogramm-Spannen, Ablehnungen, Parsefehler
+  und Statistik.
+
+**Ausgenommen:** Laufzeit- und Kontextstempel des Parses. Die Liste der
+ausgenommenen Felder steht in der Vergleichsfunktion, und ihr Test hält
+fest, dass jedes andere Feld verglichen wird.
+
+### Oberfläche während der Prüfung
+
+- **Vorschlag:** die bestehende Darstellung, wie bei jedem Neu-Parse:
+  - der Re-Parse-Balken mit dem Grund „tool offset changed — checking“;
+  - der gedämpfte Pfad.
+- So werden die Befunde nie als gültig geführt, solange sie für den neuen
+  Offset ungeprüft sind.
+- Bei `__SAME__` endet der Balken ohne Nachladen.
+- **Für den Operator** heißt das: Nach einem Lauf, der das Werkzeug neu
+  gemessen hat, erscheint die Prüfung wieder für einige Sekunden.
+  - Weggefallen sind der zweite Payload, das Nachladen im Browser und der
+    Neustart des Sweeps.
+  - Die stille Variante lege ich dem Operator zur Entscheidung vor: kein
+    Dämpfen, nur die Soft-Limit-Anzeige sagt „checking“.
+
+### `heavy_test`, auf das Belegte begrenzt
+
+- Nach einer Änderung prüft **ein** Parse am tatsächlichen Offset.
+- **Nativ:** Bei Start 65,0512 und 65,0562 (+5 µm, die beobachtete
+  Messstreuung) sind alle 689 195 Canon-Punkte in der Maschinenkoordinate
+  **genau gleich**, mit maximaler Differenz 0,0. Die Struktur ist gleich,
+  es gibt keine Befunde. Die Prüfung ergäbe also `__SAME__`, und nichts
+  würde veröffentlicht.
+  [f4.native.json](viewer-palette-fest.plan-vp-i20.f4.native.json).
+- Warum das bei diesem Programm so ist: G53 Z0 legt Z fest, N50 nennt kein
+  Z, und N55 setzt Z absolut unter der Tabellenzeile.
+  - Das ist die Erklärung des Ergebnisses, nicht sein Nachweis. Der
+    Nachweis ist bei jeder Änderung die Prüfung selbst.
+- **Kosten:** ein vollständiger Parse je Änderung, auf dieser VM 6,4 s.
+  - Eingespart werden bei Gleichheit Übertragung und die Arbeit aller
+    Verbraucher.
+  - Ein schlankerer Prüfmodus des Workers wäre eine spätere, gemessene
+    Optimierung. Für die Richtigkeit ist er nicht nötig.
+
+### Deine Gegenproben unter Fassung 4
+
+| Programm | Δ | Prüfung am tatsächlichen Offset | Folge |
+|---|---|---|---|
+| `#5422`-Quadrat (R54) | +0,005 | L5 bei 50,003975 statt 49,999; Befund neu | verschieden → veröffentlichen → **L5 gemeldet** |
+| `branch_between_samples` (R54) | +0,005 | anderer Zweig, 50,009 | verschieden → veröffentlichen → **gemeldet** |
+| R53 Rest B (`G91 Z0.009` nach G49) | +0,005 | L5 bei 50,004 | verschieden → veröffentlichen → **gemeldet** |
+| dieselben | +0,001 | abhängige Punkte verschoben, kein Befund | verschieden → veröffentlichen, ohne Befund |
+| dieselben | 0 | — | kein Auslöser |
+
+Die Werte der ersten beiden Zeilen stammen aus deinen dritten nativen
+Parses in R54. Fassung 4 macht genau diesen dritten Parse zur Regel.
+
+### Wächter, jeweils zuerst rot
+
+- **Nativ:**
+  - Beide R54-Programme und R53 Rest B: Δ 0,005 → verschieden →
+    veröffentlicht → Befund; Δ 0,001 → Punkte verschoben → veröffentlicht,
+    ohne Befund.
+  - Muster wie `heavy_test` (G53-Vorlauf, dann G43 H): Δ → `__SAME__`,
+    Basis nachgeführt, nächster Takt Δ = 0.
+- **Vergleichsfunktion (Unit):**
+  - Ein G53-Punkt ist gleich, obwohl die Programmkoordinate um Δ abweicht.
+  - Ein Außen-Flag verschieden → verschieden.
+  - Eine andere Punktzahl nach der Dezimierung → verschieden.
+  - Eine andere Werkzeugnummer einer Zeile → verschieden.
+  - Jedes nicht ausgenommene Feld wird verglichen.
+- **Pipeline (Unit):**
+  - `__SAME__` lässt Version und `programRevision` stehen und sendet
+    nichts.
+  - Eine zweite Änderung während der Prüfung bricht ab und startet neu.
+  - Δ = 0 → kein Auslöser.
+  - Unbekannter Start → zurückgehalten, einmal `start_unknown`.
+- **e2e (Mock):** Der Balken zeigt sich und endet ohne
+  `viewer_gcode_ready`.
+- **Live:**
+  - `heavy_test`-Szenario: eine Prüfung, kein Nachladen.
+  - `vp_i20_premise2.ngc` mit `G43.1` Z+1 per MDI → veröffentlicht.
+
+Unverändert aus Fassung 3 bleiben: A (Seed, `start_known`, zurückgehaltene
+Bewertung bei unbekanntem Start, A–W), C (`tlo_start`), Einheiten, Schema
+beim Suite-Stopp, Abbruch eines Prozesses.
+
+### Prüfstand
+
+Plan und eine native Vergleichsmessung. Keine Produktänderung, kein Gate.
+VP-I21 und Settings bleiben unverändert.
