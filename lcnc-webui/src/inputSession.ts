@@ -19,9 +19,10 @@
 //     owner (tab switch) LOCKS it: the helper hides, the draft stays. The
 //     owner's visibility is polled here for BOTH kinds (a number owner
 //     through its trigger element, a text owner through target.isVisible).
-//   • Confirmation stays target-specific: number → OK/valid Enter; MDI →
-//     Send; editor → Enter is a newline, Save saves; a search field's Enter
-//     never reaches the machine. Escape stays E-Stop everywhere.
+//   • Confirmation stays target-specific: number → Apply/valid Enter; MDI →
+//     Apply sends the line; editor → Enter is a newline, Save saves; a
+//     search field's Enter never reaches the machine. Both keyboards' confirm
+//     key READS "Apply" (operator 2026-10-01). Escape stays E-Stop everywhere.
 import { computed, reactive, watch } from "vue";
 import { keypadState, closeKeypad, closeKeypadIf, hideKeypad, onKeypadOpen } from "./useNumberKeypad";
 
@@ -62,8 +63,9 @@ export interface TextSessionOpts {
   /** Strip title: "MDI", "Editor · prog.ngc", "Description", … */
   context: string;
   target: TextTarget;
-  /** Label of the Enter key: "Send" (MDI), "newline" (editor icon), "OK". */
-  enterLabel?: "Send" | "newline" | "OK";
+  /** The Enter key: "Apply" (MDI sends, a text field closes — one word in
+   *  both keyboards, operator 2026-10-01) or "newline" (the editor's icon). */
+  enterLabel?: "Apply" | "newline";
 }
 
 export const inputSession = reactive({
@@ -74,7 +76,7 @@ export const inputSession = reactive({
   shift: false,
   /** Owner hidden but mounted (tab switch): helper hidden, session kept. */
   locked: false,
-  enterLabel: "OK" as "Send" | "newline" | "OK",
+  enterLabel: "Apply" as "Apply" | "newline",
   target: null as TextTarget | null,
   /** Bumped per open so the strip re-inits even for the same owner. */
   seq: 0,
@@ -176,7 +178,7 @@ export function openTextSession(opts: TextSessionOpts): void {
   inputSession.ownerId = opts.ownerId;
   inputSession.context = opts.context;
   inputSession.target = opts.target;
-  inputSession.enterLabel = opts.enterLabel ?? (opts.kind === "code" ? "Send" : "OK");
+  inputSession.enterLabel = opts.enterLabel ?? "Apply";
   inputSession.page = opts.kind === "code" ? "code" : "abc";
   inputSession.shift = false;
   inputSession.locked = false;

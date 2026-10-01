@@ -498,7 +498,7 @@ function mdiTarget(): TextTarget {
 }
 function openMdiSession() {
   if (!permissions.value.ready) return;
-  openTextSession({ ownerId: MDI_OWNER, kind: "code", context: "MDI", target: mdiTarget(), enterLabel: "Send" });
+  openTextSession({ ownerId: MDI_OWNER, kind: "code", context: "MDI", target: mdiTarget(), enterLabel: "Apply" });
 }
 // Hidden-but-mounted owners (tab switch): the editor's and the MDI line's
 // sessions LOCK while their tab is not visible — helper hidden, draft kept.

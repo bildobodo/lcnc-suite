@@ -382,12 +382,41 @@ test("tap outside, Tab outside (from the field and from a key) and Close hide th
   expectNoMachineAction(await cmds());
 });
 
+// Operator 2026-10-01 (keypad look): both keyboards' X and the number
+// keypad's Discard are red (danger), and the confirm key reads "Apply" in
+// both keyboards — the MDI line, a plain text field and the number keypad
+// (it read "Send" / "OK" / "Apply"); its accessible name starts with the
+// visible word (WCAG 2.5.3 — "OK" was named "Done").
+test("the keyboards: X and Discard are red, the confirm key reads Apply in both (operator 2026-10-01)", async ({ page }) => {
+  await open(page);
+  await page.locator("input.setupInput").first().click();
+  const nk = page.locator(".nkStrip");
+  await expect(nk).toBeVisible();
+  await expect(nk.locator(".nkClose")).toHaveClass(/\bdanger\b/);
+  await expect(nk.locator(".nkDiscard")).toHaveClass(/\bdanger\b/);
+  await expect(nk.locator(".nkOk")).toHaveText("Apply");
+  await key(nk, "Discard");
+  await expect(nk).toHaveCount(0);
+  await openMdi(page);
+  const tk = page.locator(".tkStrip");
+  await expect(tk.locator(".tkClose")).toHaveClass(/\bdanger\b/);
+  await expect(tk.locator(".tkEnter")).toHaveText("Apply");
+  await expect(tk.locator(".tkEnter")).toHaveAccessibleName(/^Apply\b/);
+  await key(tk, "Close keyboard");
+  await page.getByTitle("G-code Reference", { exact: true }).click();
+  await page.locator(".dialogOverlay input.inputField").first().click();
+  await expect(tk).toBeVisible();
+  await expect(tk.locator(".tkEnter")).toHaveText("Apply");
+  await expect(tk.locator(".tkEnter")).toHaveAccessibleName(/^Apply\b/);
+  expectNoMachineAction(await cmds());
+});
+
 test("Send from the keyboard is the MDI path; Enter in a search field never reaches the machine", async ({ page }) => {
   await open(page);
   const mdi = await openMdi(page);
   const tk = page.locator(".tkStrip");
   await typeKeys(tk, "G0 X5");
-  await key(tk, "Send the MDI command");
+  await key(tk, "Apply — send the MDI command");
   await expect.poll(cmds).toContain("mdi");
   await expect(mdi).toHaveValue("");
   // A search field in a dialog: text session, ABC page, Done closes, no command.
@@ -404,7 +433,7 @@ test("Send from the keyboard is the MDI path; Enter in a search field never reac
   // Tapping inside the dialog on the field does not close it.
   await search.dispatchEvent("pointerdown", { button: 0 });
   await expect(tk).toBeVisible();
-  await key(tk, "Done");
+  await key(tk, "Apply");
   await expect(tk).toHaveCount(0);
   expectNoMachineAction(await cmds());
 });

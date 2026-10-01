@@ -251,14 +251,14 @@ test("an explicit close by keyboard returns focus: Enter/Space on the keyboard's
   }
   await settle(page);
   expectNoMachineAction(await recordedCmds());
-  // A plain text field: Done by Enter leaves the search field focused.
+  // A plain text field: Apply by Enter leaves the search field focused.
   await page.getByTitle("G-code Reference", { exact: true }).click();
   const overlay = page.locator(".dialogOverlay").first();
   const search = overlay.locator("input.inputField").first();
   await search.click();
   await expect(tk).toBeVisible();
   await tk.getByRole("button", { name: "g", exact: true }).click();
-  await tk.getByRole("button", { name: "Done", exact: true }).focus();
+  await tk.getByRole("button", { name: "Apply", exact: true }).focus();
   await page.keyboard.press("Enter");
   await expect(tk).toHaveCount(0);
   await expect(search).toBeFocused();

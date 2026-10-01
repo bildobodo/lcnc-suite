@@ -169,7 +169,7 @@ function openText() {
   if (props.sessionOpen) { props.sessionOpen(); return; }
   if (!sessionEnabled.value) return;
   const context = props.context ?? props.label ?? (typeof attrs.placeholder === 'string' ? attrs.placeholder : 'Text');
-  openTextSession({ ownerId, kind: 'text', context, target: textTarget(), enterLabel: 'OK' });
+  openTextSession({ ownerId, kind: 'text', context, target: textTarget(), enterLabel: 'Apply' });
 }
 // Opening is a deliberate act: a click/tap on the field (touch or mouse) or
 // the keyboard glyph — never focus (UI-15a).

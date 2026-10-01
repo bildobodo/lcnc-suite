@@ -2,7 +2,7 @@
 // On-screen text / code keyboard for the bottom strip (WP8, UI-15) — the
 // one helper for every text-like target: the MDI line, the G-code editor,
 // search and description fields. It reads the input session; the OWNER
-// decides what Enter means (Send / newline / OK) and which navigation keys
+// decides what Enter means (Apply / newline) and which navigation keys
 // it offers. Pages (Code · ABC · 123 · #+=) come from textKeyboardPages.ts;
 // every page has the same cell count so switching never changes the
 // strip's height. Landscape: 5 rows × 6 columns + three rails inside the
@@ -28,9 +28,11 @@ const props = defineProps<{
 const portrait = useMediaMql("(orientation: portrait)");
 const keys = computed(() => pageKeys(inputSession.page, props.axes, inputSession.shift, portrait.value ? 5 : 6));
 const target = computed(() => inputSession.target);
+// The name starts with the visible word (WCAG 2.5.3); the MDI line's Apply
+// sends the command (the editor is the other "code" session: a newline).
 const enterTitle = computed(() =>
-  inputSession.enterLabel === "Send" ? "Send the MDI command"
-  : inputSession.enterLabel === "newline" ? "New line" : "Done");
+  inputSession.enterLabel === "newline" ? "New line"
+  : inputSession.kind === "code" ? "Apply — send the MDI command" : "Apply");
 const tabOrClear = computed<"tab" | "clear" | null>(() =>
   target.value?.tab ? "tab" : target.value?.clear ? "clear" : null);
 
@@ -106,9 +108,9 @@ function keyLabel(k: string): string {
         <MachineBtn v-for="p in PAGE_ORDER" :key="p" type="numOp" class="tkKey" :selected="inputSession.page === p"
                     :aria-pressed="inputSession.page === p" :aria-label="`${PAGE_LABELS[p]} keys`" :title="`${PAGE_LABELS[p]} keys`"
                     @pointerdown.prevent @click="setPage(p)" @contextmenu.prevent>{{ PAGE_LABELS[p] }}</MachineBtn>
-        <MachineBtn type="numOp" class="tkKey tkClose" aria-label="Close keyboard" title="Close keyboard"
+        <MachineBtn type="numClose" class="tkKey tkClose" aria-label="Close keyboard" title="Close keyboard"
                     @pointerdown.prevent @click="closeTextSessionByOperator('closed by the operator')" @contextmenu.prevent>
-          <X :size="16" />
+          <X :size="20" />
         </MachineBtn>
       </div>
     </div>

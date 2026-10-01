@@ -259,8 +259,8 @@ function onKeydown(e: KeyboardEvent) {
              types as the text keyboard's rails, so both strips look alike.
              Explicitly grid-placed; the digit/operator keys auto-place
              around them. -->
-        <MachineBtn type="numOp" class="nkKey nkClose" aria-label="Close keyboard" title="Close keyboard — keeps the entry as a draft" @pointerdown.prevent @click="hide" @contextmenu.prevent><X :size="16" /></MachineBtn>
-        <MachineBtn type="numOp" class="nkKey nkDiscard" aria-label="Discard" title="Discard the entry" @pointerdown.prevent @click="cancel" @contextmenu.prevent>Discard</MachineBtn>
+        <MachineBtn type="numClose" class="nkKey nkClose" aria-label="Close keyboard" title="Close keyboard — keeps the entry as a draft" @pointerdown.prevent @click="hide" @contextmenu.prevent><X :size="20" /></MachineBtn>
+        <MachineBtn type="numDiscard" class="nkKey nkDiscard" aria-label="Discard" title="Discard the entry" @pointerdown.prevent @click="cancel" @contextmenu.prevent>Discard</MachineBtn>
         <MachineBtn type="numEq" class="nkKey nkEq" aria-label="Evaluate" title="Evaluate the expression" :disabled="result === null" @pointerdown.prevent @click="evalExpr" @contextmenu.prevent>═</MachineBtn>
         <MachineBtn type="numKey" variant="primary" class="nkKey nkOk" aria-label="Apply" title="Apply the value" :disabled="verdict.value === null" @pointerdown.prevent @click="confirm" @contextmenu.prevent>Apply</MachineBtn>
     </div>
