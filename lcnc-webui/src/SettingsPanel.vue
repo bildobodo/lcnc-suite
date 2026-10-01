@@ -24,7 +24,7 @@ import {
   loadKeyboardDefaults, type KeyboardDefaults, DEFAULT_KB_MAPPING,
 } from "./defaults";
 import { resolveViewerPalette, userColorsOf, USER_ROLES, type UserRole, type ViewerRole } from "./viewer/viewerPalette";
-import { LAYER_GROUPS, HUD_LAYER, type TwoTone } from "./viewerLayerGroups";
+import { LAYER_COLUMNS, HUD_LAYER, type TwoTone } from "./viewerLayerGroups";
 import { saveStatus, saveStatusText } from "./settingsSaveStatus";
 import { fmtNum, fmtPct, fmtRatio } from "./format";
 import { customContrastRows, customPairRows } from "./viewer/customContrast";
@@ -560,18 +560,18 @@ function resetMachineColor(id: string) {
       <template #viewer>
         <div v-if="!serverSettingsReady" class="emptyState loading settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
-        <!-- Two columns where they fit (operator 2026-09-30): the grouped
-             layers left; View, HUD and Camera Overlay right; the colours
-             below across both. One column reads them in this order. -->
-        <div class="sectionColumns">
-          <div class="stack-controls">
-            <div class="sub">Layers</div>
-            <div class="settingDesc">On top: drawn over the machine, where a machine part stands in front.</div>
-            <!-- Shown | legend | On top (operator 2026-09-30). The column heads are
-                 the first body row: .dataTable's sticky head covers the top row
-                 inside the scrolling Settings page (KeyboardTab). The layers in
-                 four row groups (viewerLayerGroups.ts). -->
-            <div class="dataTable layerTable" data-layer-legend>
+        <!-- The sections one below the other, two columns INSIDE a section
+             where they fit (operator 2026-10-01: sections side by side were
+             hard to take in); one column reads each section in order. -->
+        <div class="stack-controls" data-viewer-section="layers">
+          <div class="sub">Layers</div>
+          <div class="settingDesc">On top: drawn over the machine, where a machine part stands in front.</div>
+          <!-- Layer | legend | On top (operator 2026-09-30). The column heads are
+               the first body row: .dataTable's sticky head covers the top row
+               inside the scrolling Settings page (KeyboardTab). The four row
+               groups (viewerLayerGroups.ts) in two tables, one per column. -->
+          <div class="sectionColumns" data-layer-legend>
+            <div v-for="(col, ci) in LAYER_COLUMNS" :key="ci" class="dataTable layerTable">
               <table>
                 <tbody>
                   <tr>
@@ -579,7 +579,7 @@ function resetMachineColor(id: string) {
                     <th scope="col">On top</th>
                   </tr>
                 </tbody>
-                <tbody v-for="g in LAYER_GROUPS" :key="g.id" :data-layer-group="g.id">
+                <tbody v-for="g in col" :key="g.id" :data-layer-group="g.id">
                   <tr class="layerGroupHead">
                     <th scope="rowgroup" colspan="2">{{ g.label }}</th>
                   </tr>
@@ -613,28 +613,33 @@ function resetMachineColor(id: string) {
                 </tbody>
               </table>
             </div>
-            <!-- The findings drawn ON the path: the same glyph as the timeline
-                 and the code panel, the colour the 3D view draws. -->
-            <!-- One grid for both rows (live look 2026-10-01): glyph, line
-                 sample, text — the texts start at one x (the collision is a
-                 body: its line cell stays empty), and glyph and sample sit
-                 on the text's FIRST line however the text wraps. -->
-            <div class="findingLegend" data-finding-legend>
-              <div class="findingRow" data-role="limit">
-                <span class="findingCell"><Triangle :size="12" fill="currentColor" :style="{ color: shownPalette.limit }" aria-hidden="true" /></span>
-                <span class="findingCell"><span class="legendLine" :style="{ color: shownPalette.limit }" aria-hidden="true"></span></span>
-                <span class="settingDesc findingText">Limit violation — on the path, the box outside the machine window dashed</span>
-              </div>
-              <div class="findingRow" data-role="collision">
-                <span class="findingCell"><X :size="12" :stroke-width="3" :style="{ color: shownPalette.collision }" aria-hidden="true" /></span>
-                <span class="findingCell" aria-hidden="true"></span>
-                <span class="settingDesc findingText">Collision — the machine part glows</span>
-              </div>
+          </div>
+          <!-- The findings drawn ON the path: the same glyph as the timeline
+               and the code panel, the colour the 3D view draws. -->
+          <!-- One grid for both rows (live look 2026-10-01): glyph, line
+               sample, text — the texts start at one x (the collision is a
+               body: its line cell stays empty), and glyph and sample sit
+               on the text's FIRST line however the text wraps. -->
+          <div class="findingLegend" data-finding-legend>
+            <div class="findingRow" data-role="limit">
+              <span class="findingCell"><Triangle :size="12" fill="currentColor" :style="{ color: shownPalette.limit }" aria-hidden="true" /></span>
+              <span class="findingCell"><span class="legendLine" :style="{ color: shownPalette.limit }" aria-hidden="true"></span></span>
+              <span class="settingDesc findingText">Limit violation — on the path, the box outside the machine window dashed</span>
+            </div>
+            <div class="findingRow" data-role="collision">
+              <span class="findingCell"><X :size="12" :stroke-width="3" :style="{ color: shownPalette.collision }" aria-hidden="true" /></span>
+              <span class="findingCell" aria-hidden="true"></span>
+              <span class="settingDesc findingText">Collision — the machine part glows</span>
             </div>
           </div>
-          <div class="stack-panel">
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="stack-controls" data-viewer-section="view">
+          <div class="sub">View</div>
+          <div class="sectionColumns">
             <div class="stack-controls">
-              <div class="sub">View</div>
               <div class="settingDesc">Projection mode for the 3D viewport.</div>
               <div class="radioGroup inline">
                 <label><MachineRadio gate="viewerSetting" name="projection" :modelValue="projection" value="perspective" @update:modelValue="onProjectionChange('perspective')" /> Perspective</label>
@@ -646,17 +651,23 @@ function resetMachineColor(id: string) {
                 <label><MachineRadio gate="viewerSetting" name="tracking" :modelValue="trackingMode" value="tool" @update:modelValue="onTrackModeChange('tool')" /> Tool</label>
                 <label><MachineRadio gate="viewerSetting" name="tracking" :modelValue="trackingMode" value="wcs" @update:modelValue="onTrackModeChange('wcs')" /> WCS</label>
               </div>
+            </div>
+            <div class="stack-controls">
               <div class="settingDesc">Toolpath preview on rotary-axis machines — the path relative to the rotating workpiece (matches the backplot) or the programmed XYZ coordinates.</div>
               <div class="radioGroup inline">
                 <label><MachineRadio gate="viewerSetting" name="previewMode" :modelValue="previewMode" value="part" @update:modelValue="onPreviewModeChange('part')" /> Path on part</label>
                 <label><MachineRadio gate="viewerSetting" name="previewMode" :modelValue="previewMode" value="programmed" @update:modelValue="onPreviewModeChange('programmed')" /> Programmed XYZ</label>
               </div>
             </div>
+          </div>
+        </div>
 
-            <div class="sep"></div>
+        <div class="sep"></div>
 
+        <div class="stack-controls" data-viewer-section="hud">
+          <div class="sub">HUD</div>
+          <div class="sectionColumns">
             <div class="stack-controls">
-              <div class="sub">HUD</div>
               <MachineToggle gate="viewerSetting" :modelValue="layers[HUD_LAYER]" @update:modelValue="onLayerChange(HUD_LAYER, $event!)" label="Show HUD" />
               <div class="settingDesc">Largest scale of the position readout. In a short or narrow viewer it steps down to fit.</div>
               <div class="radioGroup inline">
@@ -664,6 +675,8 @@ function resetMachineColor(id: string) {
                   <MachineRadio gate="viewerSetting" name="hudScale" :modelValue="hud.scale" :value="s.value" @update:modelValue="hud.scale = s.value; save()" /> {{ s.label }}
                 </label>
               </div>
+            </div>
+            <div class="stack-controls">
               <div class="settingDesc">Sections shown on the HUD card. A short viewer folds Machine, F / S and the tool line first. Warnings are always shown, at the viewer's bottom edge.</div>
               <div class="layerGrid">
                 <MachineToggle
@@ -675,47 +688,51 @@ function resetMachineColor(id: string) {
                 />
               </div>
             </div>
+          </div>
+        </div>
 
-            <div class="sep"></div>
+        <div class="sep"></div>
 
+        <div class="stack-controls" data-viewer-section="camera">
+          <div class="sub">Camera Overlay</div>
+          <div class="sectionColumns">
             <div class="stack-controls">
-              <div class="sub">Camera Overlay</div>
               <div class="settingDesc">Overlays drawn on top of the camera PIP feed.</div>
               <div class="layerGrid">
                 <MachineToggle gate="cameraSetting" v-model="camShowCrosshair" @update:modelValue="saveCamTracked" label="Crosshair" />
                 <MachineToggle gate="cameraSetting" v-model="camShowCircle" @update:modelValue="saveCamTracked" label="Circle" />
                 <MachineToggle gate="cameraSetting" v-model="camShowGrid" @update:modelValue="saveCamTracked" label="Grid" />
               </div>
-              <div class="formGrid">
-                <FormField label="Circle Radius" unit="px">
-                  <template #default="{ input }">
-                    <MachineInput v-bind="input" gate="cameraSetting" type="number" v-model.number="camCircleRadius" min="10" max="300" integer @change="saveCamTracked" />
-                  </template>
-                </FormField>
-                <FormField label="Grid Spacing" unit="px">
-                  <template #default="{ input }">
-                    <MachineInput v-bind="input" gate="cameraSetting" type="number" v-model.number="camGridSpacing" min="10" max="200" integer @change="saveCamTracked" />
-                  </template>
-                </FormField>
-                <!-- A slider's head shows its value where a field shows its unit -->
-                <FormField label="Opacity" :unit="fmtPct(camOverlayOpacity)">
-                  <template #default="{ field }">
-                    <MachineSlider v-bind="field" :aria-valuetext="fmtPct(camOverlayOpacity)" gate="cameraSetting" :min="0" :max="1" :step="0.05" v-model="camOverlayOpacity" @update:modelValue="saveCamTracked" />
-                  </template>
-                </FormField>
-                <FormField label="Color">
-                  <template #default="{ field }">
-                    <MachineColor v-bind="field" gate="cameraSetting" v-model="camOverlayColor" @update:modelValue="saveCamTracked" />
-                  </template>
-                </FormField>
-              </div>
+            </div>
+            <div class="formGrid">
+              <FormField label="Circle Radius" unit="px">
+                <template #default="{ input }">
+                  <MachineInput v-bind="input" gate="cameraSetting" type="number" v-model.number="camCircleRadius" min="10" max="300" integer @change="saveCamTracked" />
+                </template>
+              </FormField>
+              <FormField label="Grid Spacing" unit="px">
+                <template #default="{ input }">
+                  <MachineInput v-bind="input" gate="cameraSetting" type="number" v-model.number="camGridSpacing" min="10" max="200" integer @change="saveCamTracked" />
+                </template>
+              </FormField>
+              <!-- A slider's head shows its value where a field shows its unit -->
+              <FormField label="Opacity" :unit="fmtPct(camOverlayOpacity)">
+                <template #default="{ field }">
+                  <MachineSlider v-bind="field" :aria-valuetext="fmtPct(camOverlayOpacity)" gate="cameraSetting" :min="0" :max="1" :step="0.05" v-model="camOverlayOpacity" @update:modelValue="saveCamTracked" />
+                </template>
+              </FormField>
+              <FormField label="Color">
+                <template #default="{ field }">
+                  <MachineColor v-bind="field" gate="cameraSetting" v-model="camOverlayColor" @update:modelValue="saveCamTracked" />
+                </template>
+              </FormField>
             </div>
           </div>
         </div>
 
         <div class="sep"></div>
 
-        <div class="stack-controls">
+        <div class="stack-controls" data-viewer-section="colors">
           <div class="sub">Colors</div>
           <div class="settingDesc">Automatic colors follow the theme. Custom colors stay as you set them; their contrast is shown, never corrected.</div>
           <div class="radioGroup inline">
@@ -750,38 +767,43 @@ function resetMachineColor(id: string) {
               </div>
             </template>
           </div>
-          <template v-if="contrastRows.length">
-            <div class="settingDesc">Contrast: a line needs 3 : 1 on the background (4.5 : 1 in high contrast) and 1.8 : 1 on the machine's grey surfaces; a two-tone box needs one of its tones.</div>
-            <div class="dataTable" data-contrast-hint>
-              <table>
-                <thead><tr><th>Color</th><th>On background</th><th>On the machine</th></tr></thead>
-                <tbody>
-                  <tr v-for="r in contrastRows" :key="r.role" :data-role="r.role">
-                    <td>{{ r.label }}</td>
-                    <td :class="{ 'text-warn': r.bgLow }">{{ ratioCell(r.onBg, r.bgLow) }}</td>
-                    <td :class="{ 'text-warn': r.modelLow }">{{ ratioCell(r.onModel, r.modelLow) }}</td>
-                  </tr>
-                </tbody>
-              </table>
+          <!-- Custom only: the two checks side by side where they fit -->
+          <div v-if="contrastRows.length" class="sectionColumns">
+            <div class="stack-controls">
+              <div class="settingDesc">Contrast: a line needs 3 : 1 on the background (4.5 : 1 in high contrast) and 1.8 : 1 on the machine's grey surfaces; a two-tone box needs one of its tones.</div>
+              <div class="dataTable" data-contrast-hint>
+                <table>
+                  <thead><tr><th>Color</th><th>On background</th><th>On the machine</th></tr></thead>
+                  <tbody>
+                    <tr v-for="r in contrastRows" :key="r.role" :data-role="r.role">
+                      <td>{{ r.label }}</td>
+                      <td :class="{ 'text-warn': r.bgLow }">{{ ratioCell(r.onBg, r.bgLow) }}</td>
+                      <td :class="{ 'text-warn': r.modelLow }">{{ ratioCell(r.onModel, r.modelLow) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <div class="settingDesc">Apart: two lines need 0.25 (0.24 in dark high contrast).</div>
-            <div class="dataTable" data-pair-hint>
-              <table>
-                <thead><tr><th>Lines</th><th>Apart</th></tr></thead>
-                <tbody>
-                  <tr v-for="r in pairRows" :key="`${r.a}/${r.b}`" :data-pair="`${r.a}/${r.b}`">
-                    <td>{{ r.label }}</td>
-                    <td :class="{ 'text-warn': r.normalLow }">{{ apartCell(r.normal, r.normalLow) }}</td>
-                  </tr>
-                </tbody>
-              </table>
+            <div class="stack-controls">
+              <div class="settingDesc">Apart: two lines need 0.25 (0.24 in dark high contrast).</div>
+              <div class="dataTable" data-pair-hint>
+                <table>
+                  <thead><tr><th>Lines</th><th>Apart</th></tr></thead>
+                  <tbody>
+                    <tr v-for="r in pairRows" :key="`${r.a}/${r.b}`" :data-pair="`${r.a}/${r.b}`">
+                      <td>{{ r.label }}</td>
+                      <td :class="{ 'text-warn': r.normalLow }">{{ apartCell(r.normal, r.normalLow) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </template>
+          </div>
         </div>
 
         <div class="sep"></div>
 
-        <div class="stack-controls" v-if="machineParts.length > 0">
+        <div class="stack-controls" v-if="machineParts.length > 0" data-viewer-section="machineColors">
           <div class="sub">Machine Colors</div>
           <div class="stack-controls fieldGroup">
             <div class="colorGrid">

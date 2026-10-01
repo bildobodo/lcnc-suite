@@ -1647,11 +1647,14 @@ for (const key of Object.keys(STEP_LAYOUT)) {
 // etwas klein … zumindest im Landscape mehr Breite, wie beim Werkzeug
 // editieren"; "viele Layer-Toggles … brauchen Gruppierung, die Bounds
 // zusammen, die Werkzeugpfad-Optionen"): at the desktop the dialog is as
-// wide as the tool editor and the 3D Viewer tab stands the grouped layers
-// beside View / HUD / Camera Overlay; at 150 % portrait the two stack. The
-// layer rows sit in four groups in order, the HUD's switch in the HUD
-// section — and it still hides the DRO card. Nothing runs out sideways.
-test('Settings: as wide as the tool editor, the 3D Viewer sections side by side, the layers in four groups', async ({ page }) => {
+// wide as the tool editor. The 3D Viewer tab's sections stand one below the
+// other, each across the whole width, and split into two columns INSIDE
+// where they fit (operator 2026-10-01: "die einzelnen Sektionen wie bis
+// anhin übereinander, aber innerhalb der Sektion zwei Spalten") — the layer
+// groups two and two; at 150 % portrait one column. The layer rows sit in
+// four groups in order, the HUD's switch in the HUD section — and it still
+// hides the DRO card. Nothing runs out sideways.
+test('Settings: as wide as the tool editor, the 3D Viewer sections stacked with two columns inside, the layers in four groups', async ({ page }) => {
   test.setTimeout(120_000);
   const GROUPS = [
     { id: 'program', rows: ['toolpath', 'rapids', 'backplot'] },
@@ -1673,16 +1676,26 @@ test('Settings: as wide as the tool editor, the 3D Viewer sections side by side,
     await settleLayout(page);
     const where = `${vp} ${zoom * 100} %`;
     const m = await dialog.evaluate(d => {
-      const cols = [...d.querySelector('.sectionColumns')!.children].map(c => c.getBoundingClientRect());
       const scroller = d.querySelector<HTMLElement>('.scrollContent')!;
-      const table = d.querySelector<HTMLElement>('[data-layer-legend]')!;
+      const box = (r: DOMRect) => ({ l: r.left, r: r.right, t: r.top, b: r.bottom });
+      // a section is its heading's block, found by the heading's words
+      const heads = [...scroller.querySelectorAll<HTMLElement>('.sub')];
+      const sections = ['Layers', 'View', 'HUD', 'Camera Overlay', 'Colors', 'Machine Colors'].flatMap(name => {
+        const h = heads.find(e => e.textContent!.trim() === name);
+        if (!h) return [];
+        const sec = h.parentElement!;
+        const inner = sec.querySelector(':scope > .sectionColumns');
+        return [{ name, ...box(sec.getBoundingClientRect()),
+          cols: inner ? [...inner.children].map(c => box(c.getBoundingClientRect())) : null }];
+      });
       return {
         // layout px (offsetWidth), whatever the CSS zoom
         width: (d as HTMLElement).offsetWidth,
         area: d.parentElement!.clientWidth,   // the overlay over the content area
-        cols: cols.map(r => ({ l: r.left, r: r.right, t: r.top, b: r.bottom })),
+        sections,
         sideways: scroller.scrollWidth - scroller.clientWidth,
-        tableOver: table.scrollWidth - table.clientWidth,
+        tableOver: Math.max(...[...d.querySelectorAll<HTMLElement>('.layerTable')].map(t => t.scrollWidth - t.clientWidth)),
+        tables: d.querySelectorAll('.layerTable').length,
         groups: [...d.querySelectorAll<HTMLElement>('[data-layer-group]')].map(g => ({
           id: g.dataset.layerGroup, rows: [...g.querySelectorAll<HTMLElement>('[data-layer]')].map(r => r.dataset.layer) })),
         hudInLayers: !!d.querySelector('[data-layer="hud"]'),
@@ -1709,11 +1722,25 @@ test('Settings: as wide as the tool editor, the 3D Viewer sections side by side,
     await dialog.screenshot({ path: test.info().outputPath(`settings-${vp}.png`) });
     // the wide tier: 760 px wherever the content area leaves the margins
     expect(Math.abs(m.width - Math.min(760, m.area - 40)), `${where}: the tool editor's width ${dump}`).toBeLessThan(1.5);
-    const [a, b] = m.cols;
-    if (side) expect(Math.abs(a!.t - b!.t) < 2 && b!.l >= a!.r, `${where}: layers beside View ${dump}`).toBe(true);
-    else expect(b!.t >= a!.b, `${where}: one column, layers first ${dump}`).toBe(true);
+    // the sections one below the other, each across the whole width
+    expect(m.sections.map(x => x.name).slice(0, 5), `${where}: the sections ${dump}`)
+      .toEqual(['Layers', 'View', 'HUD', 'Camera Overlay', 'Colors']);
+    const [first] = m.sections;
+    m.sections.forEach((x, i) => {
+      if (i) expect(x.t, `${where}: ${x.name} below ${m.sections[i - 1]!.name} ${dump}`).toBeGreaterThanOrEqual(m.sections[i - 1]!.b - 0.5);
+      expect(Math.abs(x.l - first!.l) < 1 && Math.abs(x.r - first!.r) < 1, `${where}: ${x.name} across the width ${dump}`).toBe(true);
+    });
+    // two columns inside where they fit, one at 150 % portrait — the layers two tables
+    for (const name of ['Layers', 'View', 'HUD', 'Camera Overlay']) {
+      const cols = m.sections.find(x => x.name === name)!.cols;
+      expect(cols?.length, `${where}: ${name} has two columns ${dump}`).toBe(2);
+      const [a, b] = cols!;
+      if (side) expect(Math.abs(a!.t - b!.t) < 2 && b!.l >= a!.r, `${where}: ${name}'s columns side by side ${dump}`).toBe(true);
+      else expect(b!.t >= a!.b, `${where}: ${name} in one column ${dump}`).toBe(true);
+    }
+    expect(m.tables, `${where}: a layer table per column`).toBe(2);
     expect(m.sideways, `${where}: nothing runs out sideways ${dump}`).toBeLessThanOrEqual(0);
-    expect(m.tableOver, `${where}: the layer table fits its column ${dump}`).toBeLessThanOrEqual(0);
+    expect(m.tableOver, `${where}: each layer table fits its column ${dump}`).toBeLessThanOrEqual(0);
     expect(m.groups, `${where}: the four groups in order ${dump}`).toEqual(GROUPS);
     expect(m.hudInLayers, `${where}: the HUD's switch is not a layer row`).toBe(false);
     for (const r of m.legend) expect(Math.abs(r.glyphMid - r.lineMid), `${where}: the ${r.role} glyph on its text's first line ${dump}`).toBeLessThanOrEqual(1);

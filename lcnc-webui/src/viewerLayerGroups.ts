@@ -52,5 +52,12 @@ export const LAYER_GROUPS: LayerGroup[] = [
   ] },
 ];
 
+/** The layer table's two columns where the Layers section has the width for
+ *  them (operator 2026-10-01: the sections stacked, two columns INSIDE each):
+ *  what the program draws and the limits it is drawn against left, the
+ *  machine and the points of reference right — LAYER_GROUPS read column by
+ *  column, so one column (150 % portrait) keeps their order. */
+export const LAYER_COLUMNS: LayerGroup[][] = [LAYER_GROUPS.slice(0, 2), LAYER_GROUPS.slice(2)];
+
 /** The layer whose switch is the HUD section's "Show HUD". */
 export const HUD_LAYER: Layer = "hud";

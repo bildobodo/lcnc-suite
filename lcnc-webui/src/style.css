@@ -276,8 +276,8 @@
      the grid is one column — and a one-row (inline) field's width. */
   --form-col-min: 160px;
   --form-inline-w: 72px;
-  /* Sections side by side (.sectionColumns): a column's floor — the
-     grouped layer table with its legend and On top column. */
+  /* Two columns inside a section (.sectionColumns): a column's floor — a
+     layer table with its line samples and On top column. */
   --section-col-min: 320px;
   /* The wide dialog tier (tool edit, library import, Settings). */
   --dialog-wide-w: 760px;
@@ -1416,12 +1416,13 @@ label:has(input:disabled, select:disabled) {
 .formGrid > .sub,
 .formGrid > .sep,
 .formGrid > .settingDesc { grid-column: 1 / -1; }
-/* .sectionColumns: sections side by side — two EQUAL columns while each
-   keeps --section-col-min, else one (the .formGrid rule a level up; Settings'
-   3D Viewer, operator 2026-09-30). Each column is a stack of sections with
-   its own separators; one column reads the columns in order. The floor never
-   exceeds the container (min(100%, …)): at 150 % portrait the dialog is
-   narrower than --section-col-min and the one column ran out sideways. */
+/* .sectionColumns: two EQUAL columns INSIDE a section while each keeps
+   --section-col-min, else one (the .formGrid rule a level up). Settings'
+   3D Viewer stacks its sections and splits each one (operator 2026-10-01:
+   sections side by side, 2026-09-30, were hard to take in); one column
+   reads the columns in order. The floor never exceeds the container
+   (min(100%, …)): at 150 % portrait the dialog is narrower than
+   --section-col-min and the one column ran out sideways. */
 .sectionColumns {
   display: grid;
   grid-template-columns: repeat(auto-fit,
@@ -1737,8 +1738,8 @@ label:has(input:disabled, select:disabled) {
 
 .dialog.lg.dialog-full { height: 90%; }
 /* Settings (operator 2026-09-30: "zumindest im Landscape mehr Breite, wie
-   beim Werkzeug-Editieren"): the wide tier on the large dialog — its
-   sections sit side by side where two columns fit (.sectionColumns). */
+   beim Werkzeug-Editieren"): the wide tier on the large dialog — a section
+   splits into two columns where they fit (.sectionColumns). */
 .dialog.lg.wide { width: var(--dialog-wide-w); }
 
 .dialogHeader {
