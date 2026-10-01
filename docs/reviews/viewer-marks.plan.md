@@ -240,3 +240,68 @@ gefasst. Die Fassung 1 oben bleibt als Verlauf stehen.
   - Form, Beschriftung, Bildschirmgröße und On-top unverändert;
   - `--viewer-pin` in jedem Theme-Block.
 - Jeder Wächter zuerst rot auf dem heutigen Stand.
+
+---
+
+## Fassung 3 · nach Codex R63 (zwei Reste)
+
+Alles Übrige aus Fassung 2 bleibt; Cyan und die Label-Variante (ii) als Empfehlung sind
+angenommen.
+
+### VP62-01 · Rest: angeschnittene Kanten
+
+- **Gesamtzahl und sichtbarer Bereich getrennt:** `N` zählt weiter die Zellen der ganzen Einheit,
+  mit der Phase am Welt-Anker `t = 0`.
+- **Wahl nach dem sichtbaren Bereich:** Gewählt wird `N` nach dem sichtbaren Parameterbereich
+  `[t0, t1]` mit `Δt = t1 − t0`. Das ist der nach Near-Plane und Frustum geklippte Teil; eine
+  gerade Kante hat höchstens ein Intervall.
+- **Mittlere sichtbare Zelle** = `L_sichtbar / (N · Δt)`. Sie liegt nominal bei 6–12 px, mit der
+  Hysterese aus Fassung 2: Obergrenze 12 · 1,25 = 15 px.
+- **Beweisbare Zusage:**
+  - Aus „mittlere sichtbare Zelle ≤ 15 px“ folgt `N · Δt ≥ L_sichtbar / 15`.
+  - Ist das sichtbare Stück mindestens **15 CSS px** lang, gilt `Δt ≥ 1/N`. Ein Parameterintervall
+    dieser Länge enthält mindestens eine Zellgrenze und zeigt damit **beide Töne**, auch wenn die
+    Perspektive die einzelnen Zellen verzerrt.
+  - Unter 15 px gibt es keine Zusage.
+- **Codex' Beispiel:** `L_sichtbar` = 100 px, `Δt` = 1/51 ⇒ `N ≥ 340` ⇒ `N = 512`, nominal
+  9,96 px, beide Töne.
+- **Obergrenze `N ≤ 2^14`:**
+  - Jenseits davon (extreme Verkürzung) gilt die 15-px-Zusage nicht mehr; das ist benannt.
+  - Die Stufe wird dann nicht feiner, und der Controller vermerkt den Fall einmal in der Konsole.
+- **Reach-Ketten mit mehreren sichtbaren Stücken:** Eine Kette hat ein `N`, das Maximum der von
+  ihren sichtbaren Stücken benötigten Werte. So hält die 15-px-Zusage für jedes Stück.
+  - Andere Stücke derselben Kette werden dabei feiner, bis unter die Auflösung. Dort erscheinen
+    die Töne gemischt; das ist benannt und keine Lesbarkeitszusage.
+  - Die Phase wird nie zum Clip-Punkt verschoben; sie bleibt weltverankert.
+- **Kosten:** Die sichtbaren Intervalle rechnet die CPU pro Frame, nur bei eingeschalteter
+  Reach-Ebene. Das sind einige tausend Segmente, ohne Allokation.
+- **Wächter:** Codex' Geometrie (eine Kante durch die Near-Plane, 100 px sichtbar) und ein
+  Ketten-Fall mit zwei sichtbaren Stücken. Im **gerenderten Bild** zeigt jedes sichtbare Stück
+  ≥ 15 px beide Töne, in Hell und HC-Hell. Ohne die Δt-Regel ist der Wächter rot.
+
+### VP62-02 · Rest: Endmarken mit eigenem Kontrastträger
+
+- **Aufbau einer Endmarke:**
+  - eine **helle Unterlage** (`--viewer-bounds-alt`, 3 CSS px breit) unter dem ganzen Querstrich,
+    beide Arme, mit 1 px Überstand an jedem Ende;
+  - darüber ein **dunkler Kern** (`--viewer-bounds`, 1 CSS px).
+- **Wirkung:** Auf dunklem Grund trägt die helle Unterlage die Form, auf hellem der dunkle Kern.
+  In HC sind es Weiß und Schwarz, dieselbe Konstruktion.
+- **Größe:** Die Endmarke ist bildschirmgroß (Arme 5 px je Seite) und liegt über der Box-Kante;
+  ihr Merkmal ist auch abseits des Schnittpunkts mit der Kante sichtbar.
+- **Wächter:**
+  - Die Querarme außerhalb der Kante zeigen im gerenderten Bild beide Töne.
+  - Geprüft auf hellem und dunklem Grund, in beiden HC-Themes und vor Modellflächen.
+  - Ebenso bei verdecktem Label und deckungsgleichen Boxen.
+  - `ticks` in der Paartabelle allein zählt nicht als Nachweis.
+
+### Umsetzungshinweise aus R63
+
+- **Stabile Knotenidentität bei Reach:**
+  - Start einer offenen Kette ist ihr Endpunkt mit der lexikographisch kleinsten Position
+    (x, dann y, dann z).
+  - Bei einem Ring ist es sein lexikographisch kleinster Knoten. Die Richtung zeigt zum Nachbarn
+    mit der kleineren Position.
+  - Das ist unabhängig von der Speicher- und Ankunftsreihenfolge.
+- **Halbieren von `N`:** Es bleibt die Teilmenge jeder zweiten Grenze, nicht jede Grenze der
+  feineren Stufe.
