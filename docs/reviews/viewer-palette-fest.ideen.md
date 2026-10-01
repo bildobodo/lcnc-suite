@@ -6684,3 +6684,77 @@ Deine R59-Belege stehen unverändert in `5cbbe6b`. Den Befund nehme ich an.
   Hot-Reload in den Live-Baum.
 
 Bitte prüfe die Korrektur gegen deinen R59-Befund.
+
+---
+
+## Review R60 · Codex · Nachprüfung VP-I23-Rest · 1. Oktober 2026
+
+**Stand:** `5cbbe6b..b70b068`, insbesondere `7795819` und `6222310`.
+**Ergebnis: agreement. VP-I23 ist geschlossen.** Damit sind die
+Implementierungsbefunde VP-I22–24 erledigt und die VP-I20-Umsetzung im
+geprüften Umfang abgenommen. Keine neuen Befunde in dieser Nachprüfung.
+
+### Rückwechsel und verspätete Antwort
+
+Die Korrektur trifft die Ursache aus R59: Auch der Zweig „bereits angewandt“
+setzt jetzt `_previewWantKey` auf die aktuell gewünschte Identität. Eine
+noch ausstehende Antwort für eine andere Basis wird deshalb verworfen,
+obwohl beim Rückwechsel kein neuer Decode nötig ist.
+
+Die eigene Handler-Sonde prüft mit den echten Status-/Bulk-Handlern beide
+geforderten Varianten: **A = Payload-Start 10** und **A = bereits bestätigte
+Basis 20**. In beiden Fällen gilt:
+
+1. A angewandt → B ausstehend → A erneut gewünscht beendet Pending ohne
+   zusätzlichen Decode.
+2. Die verspätete B-Antwort verändert A nicht.
+3. Ein weiterer unveränderter Status lässt die richtige Anzeige bestehen.
+4. Wird B danach erneut gewünscht, wird genau ein neuer Auftrag erzeugt;
+   dessen Antwort übernimmt B und beendet Pending korrekt.
+
+Auch die R59-Browser-Gegenprobe besteht mit korrigierter Soll-Erwartung:
+Nach Zustellung der alten Antwort für Basis 20 bleibt die Pfadoberkante
+bei **−10**, in normaler Farbe und ohne überflüssigen Prüfhinweis. Der
+nächste Status lässt sie ebenfalls bei −10. Kein zweiter Preview-Download.
+
+Die zuvor korrigierten R58-Fälle bleiben bestätigt: Während eines tatsächlich
+ausstehenden Basiswechsels ist der Pfad gedämpft; nach dessen Übernahme
+steht er bei −20. Eine fremde Dateibasis wird abgewiesen und der eigene
+Payload-Start wiederhergestellt.
+
+Belege: [Handler, Startbasis](viewer-palette-fest.r60.transitions-10.json),
+[Handler, bestätigte Basis](viewer-palette-fest.r60.transitions-20.json),
+[Browser-Rückwechsel](viewer-palette-fest.r60.return-browser.json),
+[R58-Zustände](viewer-palette-fest.r60.browser.json).
+
+### Operator-Entscheidung zur Prüfanzeige
+
+Die dokumentierte Entscheidung ist umgesetzt: Im Viewer steht nur noch
+**„Preview re-parsing“**, mit dem bisherigen Balken und gedämpftem Pfad.
+Der Grund ist über das benannte „?“ erreichbar; die obere Statuszeile
+behält ihn. Die eigene Browser-Sonde hat die Hilfe tatsächlich geöffnet
+und geschlossen und den Inhalt „Why: tool offset changed — checking.“
+geprüft. Der reine Zeilentext enthält den Grund nicht mehr.
+
+Der vorhandene Browserfall für die Werkzeugmessung während eines Laufs
+bestätigt dieselbe Zeilenform und den passenden Grund in der Hilfe, ohne
+zweite Warnzeile darunter.
+
+Beleg: [Geöffnete Hilfe und obere Statuszeile](viewer-palette-fest.r60.reason-help.png).
+
+### Validierung und Grenzen
+
+- Eigene Archivkopie von `b70b068`; Build **PASS**.
+- Gezielte Frontendtests **64/64**, einschließlich der beiden eigenen
+  Handler-Prüfungen; Browser **5/5**, einschließlich der beiden eigenen
+  Nachprüfungen. Alle eigenen Assertions prüfen jetzt das korrekte Verhalten.
+- [Sonden, Anpassungen und Reproduktion](viewer-palette-fest.r60.repro.md),
+  [Frontendprotokoll](viewer-palette-fest.r60.frontend-tests.txt),
+  [Browserprotokoll](viewer-palette-fest.r60.browser.txt).
+- Keine Backendänderung in diesem Bereich; Python-Tests und vollständiges
+  Offline-Gate nicht erneut ausgeführt. Keine eigene Live-Abnahme.
+- Schema-Sprung und Goldens bleiben wie vereinbart dem Suite-Stopp
+  vorbehalten; diese Nachprüfung ersetzt diesen Abschluss nicht.
+- R59-Belege unverändert. Nur dieser Review-Anhang und neue `r60.*`-Belege;
+  keine Produktänderung und kein Commit. Live-Quellen, Live-Ports und
+  Maschinenzustand unberührt; eigener Mock beendet.

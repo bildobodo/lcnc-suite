@@ -1,0 +1,14 @@
+
+Running 5 tests using 1 worker
+
+(node:3226003) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3226003) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/collisions.viewer.spec.ts:307:1 › a return to the basis on screen while a decode is out drops its late reply (Codex R59 VP-I23) (2.6s)
+  ✓  2 e2e/collisions.viewer.spec.ts:377:1 › a changed tool offset is checked, and a verified basis re-tips the prefix without a new payload (VP-I20) (2.3s)
+  ✓  3 e2e/collisions.viewer.spec.ts:433:1 › a mid-run re-parse for a measured tool is one line, never a second one under its bar (operator 2026-09-30) (1.8s)
+  ✓  4 e2e/r60.spec.ts:7:67 › R60 r58-cases: worker reply ordering (2.3s)
+  ✓  5 e2e/r60.spec.ts:7:67 › R60 return-to-start: worker reply ordering (2.3s)
+
+  5 passed (11.9s)

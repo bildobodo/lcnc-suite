@@ -1,0 +1,178 @@
+[
+  {
+    "label": "A applied",
+    "wanted": {
+      "file": "/r60-return.ngc",
+      "version": 6020,
+      "xyz": [
+        0,
+        0,
+        20
+      ]
+    },
+    "pending": false,
+    "refresh": null,
+    "applied": [
+      0,
+      0,
+      20
+    ],
+    "requests": [
+      "/r60-return.ngc#6010:start",
+      "/r60-return.ngc#6010:0,0,30",
+      "/r60-return.ngc#6010:0,0,30",
+      "/r60-return.ngc#6010:start",
+      "/r60-return.ngc#6020:start",
+      "/r60-return.ngc#6020:0,0,20"
+    ]
+  },
+  {
+    "label": "B pending",
+    "wanted": {
+      "file": "/r60-return.ngc",
+      "version": 6020,
+      "xyz": [
+        0,
+        0,
+        30
+      ]
+    },
+    "pending": true,
+    "refresh": {
+      "reason": "tool_offset",
+      "file": "/r60-return.ngc",
+      "expected_ms": null,
+      "started_ms": null,
+      "queued": false,
+      "superseded": 0,
+      "seenAt": 106.239098
+    },
+    "applied": [
+      0,
+      0,
+      20
+    ],
+    "requests": [
+      "/r60-return.ngc#6010:start",
+      "/r60-return.ngc#6010:0,0,30",
+      "/r60-return.ngc#6010:0,0,30",
+      "/r60-return.ngc#6010:start",
+      "/r60-return.ngc#6020:start",
+      "/r60-return.ngc#6020:0,0,20",
+      "/r60-return.ngc#6020:0,0,30"
+    ]
+  },
+  {
+    "label": "A wanted again: no extra decode",
+    "wanted": {
+      "file": "/r60-return.ngc",
+      "version": 6020,
+      "xyz": [
+        0,
+        0,
+        20
+      ]
+    },
+    "pending": false,
+    "refresh": null,
+    "applied": [
+      0,
+      0,
+      20
+    ],
+    "requests": [
+      "/r60-return.ngc#6010:start",
+      "/r60-return.ngc#6010:0,0,30",
+      "/r60-return.ngc#6010:0,0,30",
+      "/r60-return.ngc#6010:start",
+      "/r60-return.ngc#6020:start",
+      "/r60-return.ngc#6020:0,0,20",
+      "/r60-return.ngc#6020:0,0,30"
+    ]
+  },
+  {
+    "label": "late B ignored",
+    "wanted": {
+      "file": "/r60-return.ngc",
+      "version": 6020,
+      "xyz": [
+        0,
+        0,
+        20
+      ]
+    },
+    "pending": false,
+    "refresh": null,
+    "applied": [
+      0,
+      0,
+      20
+    ],
+    "requests": [
+      "/r60-return.ngc#6010:start",
+      "/r60-return.ngc#6010:0,0,30",
+      "/r60-return.ngc#6010:0,0,30",
+      "/r60-return.ngc#6010:start",
+      "/r60-return.ngc#6020:start",
+      "/r60-return.ngc#6020:0,0,20",
+      "/r60-return.ngc#6020:0,0,30"
+    ]
+  },
+  {
+    "label": "unchanged status: A stays",
+    "wanted": {
+      "file": "/r60-return.ngc",
+      "version": 6020,
+      "xyz": [
+        0,
+        0,
+        20
+      ]
+    },
+    "pending": false,
+    "refresh": null,
+    "applied": [
+      0,
+      0,
+      20
+    ],
+    "requests": [
+      "/r60-return.ngc#6010:start",
+      "/r60-return.ngc#6010:0,0,30",
+      "/r60-return.ngc#6010:0,0,30",
+      "/r60-return.ngc#6010:start",
+      "/r60-return.ngc#6020:start",
+      "/r60-return.ngc#6020:0,0,20",
+      "/r60-return.ngc#6020:0,0,30"
+    ]
+  },
+  {
+    "label": "B newly requested and applied",
+    "wanted": {
+      "file": "/r60-return.ngc",
+      "version": 6020,
+      "xyz": [
+        0,
+        0,
+        30
+      ]
+    },
+    "pending": false,
+    "refresh": null,
+    "applied": [
+      0,
+      0,
+      30
+    ],
+    "requests": [
+      "/r60-return.ngc#6010:start",
+      "/r60-return.ngc#6010:0,0,30",
+      "/r60-return.ngc#6010:0,0,30",
+      "/r60-return.ngc#6010:start",
+      "/r60-return.ngc#6020:start",
+      "/r60-return.ngc#6020:0,0,20",
+      "/r60-return.ngc#6020:0,0,30",
+      "/r60-return.ngc#6020:0,0,30"
+    ]
+  }
+]
