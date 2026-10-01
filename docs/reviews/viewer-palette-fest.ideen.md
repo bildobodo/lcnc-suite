@@ -6627,3 +6627,60 @@ Die ausführbaren Sonden und ihre Anpassungen sind in der
 
 **Nächste Runde:** ausschließlich VP-I23-Rest zur überholten Antwort nach
 Rückkehr auf die bereits angewandte Basis.
+
+---
+
+## Antwort R60 · Claude · VP-I23-Rest behoben · 1. Oktober 2026
+
+Deine R59-Belege stehen unverändert in `5cbbe6b`. Den Befund nehme ich an.
+
+### VP-I23-Rest · die Antwort wird gegen den aktuellen Wunsch geprüft (`7795819`)
+
+- **Ursache, wie von dir beschrieben:** Der Zweig „bereits angewandt“
+  beendete das Warten, ließ aber den Schlüssel des zuletzt gesendeten
+  Auftrags stehen. Die verspätete Antwort für die andere Basis bestand
+  damit die Prüfung.
+- **Jetzt:** Aus dem Schlüssel „zuletzt angefragt“ wird `_previewWantKey`,
+  die Dekodierung, die **jetzt gewünscht** ist. Sie ist entweder angefragt
+  und ausstehend oder steht schon auf dem Bildschirm.
+  - Auch der Zweig „bereits angewandt“ schreibt den Wunsch fort.
+  - Eine noch ausstehende Antwort für eine andere Basis fällt deshalb durch
+    die Prüfung und wird verworfen.
+  - Wird diese andere Basis später wieder gewünscht, wird sie neu
+    angefragt. Der Rückwechsel selbst braucht keinen Decode.
+- **Wächter, zuerst rot auf `4aab1d3`:**
+  - Unit (`bulkData.test.ts`), deine Folge A angewandt → B ausstehend →
+    A erneut gewünscht → verspätetes B, in zwei Varianten:
+    A = eigener Payload-Start, und A = bereits angewandte verifizierte
+    Basis 20. Rot: B ersetzte A (30 statt 10 bzw. 20). Danach prüft der Test
+    den nächsten unveränderten Status und, dass B bei erneutem Wunsch
+    wieder dekodiert und übernommen wird.
+  - Browser (`collisions.viewer.spec`), dein Rückkehrfall mit
+    zurückgehaltener echter Worker-Antwort: Rot zeigte die Oberkante
+    **−20** nach der Zustellung. Jetzt bleibt sie bei **−10** in normaler
+    Farbe, auch nach dem nächsten Statusframe, ohne zweiten Download.
+- Die R58-Fälle bleiben grün, auch dein R58-Browserfall im selben Spec.
+
+### Operator-Entscheidung zur Anzeige während der Prüfung (`6222310`)
+
+- Der Operator hat die bestehende Darstellung gewählt: Re-Parse-Balken und
+  gedämpfter Pfad, wie bei jedem Neu-Parse. Die stille Variante entfällt.
+- **Zusatzwunsch:** Die Zeile im Viewer heißt nur noch
+  „Preview re-parsing“. Der Grund kostete Breite und steht jetzt im „?“
+  daneben („Why: tool offset changed — checking. …“).
+  - Das gilt für jeden Grund, eine Zeilenform für alle.
+  - Die Statuszeile oben behält den Grund, dort ist genug Breite.
+- **Wächter, zuerst rot:** Beide Re-Parse-Browsertests prüfen den eigenen
+  Text der Zeile (rot: „Preview re-parsing · tool offset changed —
+  checking“ bzw. „· tool measured (program running)“) und den Grund im „?“.
+
+### Prüfstand
+
+- **Offline-Gate auf `7795819`: PASS.** Backend 1145, Unit 1838, Browser
+  382, dazu Lint, Build und CSS-Audit.
+- **Offline-Gate auf `6222310`: PASS.** Backend 1145, Unit 1838, Browser
+  382.
+- **Live:** Beide Änderungen betreffen nur den Client und kommen per
+  Hot-Reload in den Live-Baum.
+
+Bitte prüfe die Korrektur gegen deinen R59-Befund.
