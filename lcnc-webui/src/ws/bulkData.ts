@@ -749,7 +749,7 @@ function _ensurePreviewWorker(): Worker {
   _previewWorker.onmessage = (ev: MessageEvent) => {
     const m = ev.data as { version: number; basisKey?: string; gcode?: ViewerGcode; error?: string };
     if (m.version !== _previewLastVersion) return;  // stale — newer load in flight
-    if (m.basisKey !== undefined && m.basisKey !== _previewBasisKey) return;  // another basis wanted now
+    if (m.basisKey !== undefined && m.basisKey !== _previewWantKey) return;  // another basis wanted now (R59)
     // (a worker error keeps a pending basis change pending — VP-I23)
     if (m.error) {
       console.error("preview load failed", m.error);
@@ -781,7 +781,11 @@ function _ensurePreviewWorker(): Worker {
 // payload's own `tlo_start`). A change re-decodes the same bytes in the
 // worker; replies for another basis are dropped.
 let _previewLastFile: string | null = null;
-let _previewBasisKey = "";      // the decode REQUESTED last
+// The decode WANTED now — requested and outstanding, or already on screen
+// (Codex R59 VP-I23: a return to the basis on screen must invalidate the
+// reply still outstanding for another one, so the reply check reads the
+// wish, never merely the request sent last).
+let _previewWantKey = "";
 let _previewAppliedKey = "";    // the decode ON SCREEN (its reply landed)
 
 /** The basis a payload is decoded at: the gateway's verified basis only
@@ -797,9 +801,9 @@ function _keyOf(version: number, file: string | null, basis: number[] | null): s
 }
 
 function _postPreview(version: number, file: string | null, basis: number[] | null) {
-  _previewBasisKey = _keyOf(version, file, basis);
+  _previewWantKey = _keyOf(version, file, basis);
   _ensurePreviewWorker().postMessage({ version, url: `/preview?v=${version}`, basis,
-                                       basisKey: _previewBasisKey });
+                                       basisKey: _previewWantKey });
 }
 
 function _fetchPreview(version: number, file: string | null) {
@@ -812,7 +816,8 @@ function _fetchPreview(version: number, file: string | null) {
 /** The verified tool basis changed: re-decode the payload on screen at it
  *  when it names this file and version (VP-I20, plan Fassungen 5–6); the
  *  pending state (VP-I23) ends when that reply lands — at once when
- *  nothing is to be re-decoded. */
+ *  nothing is to be re-decoded, and then the wish is what is on screen: a
+ *  reply still outstanding for another basis is dropped (Codex R59). */
 export function applyPreviewToolBasis(): void {
   const version = _previewLastVersion;
   if (version < 0) {
@@ -822,8 +827,8 @@ export function applyPreviewToolBasis(): void {
     return;
   }
   const want = _keyOf(version, _previewLastFile, _basisFor(version, _previewLastFile));
-  if (want === _previewAppliedKey) { endPreviewBasisPending(); return; }
-  if (want !== _previewBasisKey) _postPreview(version, _previewLastFile, _basisFor(version, _previewLastFile));
+  if (want === _previewAppliedKey) { _previewWantKey = want; endPreviewBasisPending(); return; }
+  if (want !== _previewWantKey) _postPreview(version, _previewLastFile, _basisFor(version, _previewLastFile));
 }
 watch(previewToolBasis, applyPreviewToolBasis);
 

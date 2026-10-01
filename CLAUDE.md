@@ -895,7 +895,10 @@ file is never applied; the payload falls back to its own start, Codex R58
 VP-I24), and until that decode is on screen the preview counts as being
 refreshed (`previewBasisPending` → the same "checking" line, muted path,
 sweep findings dropped and not restarted; only the matching reply ends it,
-never an older one or a worker error — VP-I23); ThreeViewer `_programTool()` / ScrubBar resolve the pre-first-row
+never an older one or a worker error — VP-I23). A reply is checked against
+the decode WANTED now (`_previewWantKey`), not the one sent last: a return
+to the basis already on screen ends the wait at once and drops the reply
+still out for the other basis (Codex R59); ThreeViewer `_programTool()` / ScrubBar resolve the pre-first-row
 offset to the payload's `toolBasis` (a payload without a known start keeps
 the live offset). Different → the verify parse is the re-parse, published.
 Banner "tool offset changed — checking". A pinned parse seeds the tool

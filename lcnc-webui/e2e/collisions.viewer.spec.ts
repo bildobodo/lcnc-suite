@@ -298,6 +298,79 @@ test("on a machine with no other viewer note the tool-table mark brings the card
   await ctl({ op: "reset" });
 });
 
+// Codex R59 (VP-I23 rest): the gateway goes back to the published start
+// while the decode at the verified basis 20 is still out. The view shows the
+// start already — the check ends at once — and the late reply for 20 must
+// never replace it (it did: −20 in normal colour, no note, and the next
+// unchanged status did not repair it). Only the worker's DELIVERY is held;
+// the product and its geometry are untouched.
+test("a return to the basis on screen while a decode is out drops its late reply (Codex R59 VP-I23)", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  const file = "/basis.ngc";
+  const heldKey = `${file}#4502:0,0,20`;
+  await page.addInitScript((key: string) => {
+    const w = window as any;
+    const NativeWorker = window.Worker;
+    window.Worker = class extends NativeWorker {
+      set onmessage(fn: any) {
+        super.onmessage = (event: MessageEvent) => {
+          if (event.data?.basisKey === key && !w.__heldReleased) {
+            w.__held = true;
+            w.__release = () => { w.__heldReleased = true; fn.call(this, event); };
+          } else fn.call(this, event);
+        };
+      }
+      get onmessage() { return super.onmessage; }
+    } as any;
+  }, heldKey);
+  let previews = 0;
+  await context.route(/\/preview(\?|$)/, r => {
+    previews += 1;
+    return r.fulfill({ contentType: "application/octet-stream",
+      body: Buffer.from(encode({ file, preview_schema: 9, rapid: [[0, 0, -10], [20, 0, -10]], rapid_seq: [1, 2],
+        rapid_lines: [1, 2], feed: [[20, 0, -30], [40, 0, -40]], feed_seq: [3, 4], feed_lines: [4, 5],
+        feed_outside: new Uint8Array(2), rapid_outside: new Uint8Array(2),
+        violations: [], violations_total: 0, tlo_events: [[2, 0, 0, 0, -1]],
+        start_known: true, tlo_start: [0, 0, 10] })) });
+  });
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
+    body: "G53 G0 Z0\nG0 X20\nG49\nG1 Z-30 F100\nG1 X40 Z-40\n" }));
+  await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await ctl({ op: "status_delta", data: { active_file: file, tool_offset: [0, 0, 10, 0, 0, 0, 0, 0, 0] } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 4502, file } });
+  const topZ = () => page.evaluate(() => window.__viewerDiag?.getPathBox?.()?.max[2] ?? null);
+  const feedColour = () => page.evaluate(() => window.__viewerDiag?.getPalette?.()?.drawn.feed ?? null);
+  await expect.poll(topZ, { timeout: 30_000 }).toBeCloseTo(-10, 4);
+  const shown = await feedColour();
+
+  await ctl({ op: "quiet", on: true });
+  await ctl({ op: "status_delta", data: { tool_offset: [0, 0, 20, 0, 0, 0, 0, 0, 0] } });
+  await ctl({ op: "raw", frame: { type: "status_delta", data: {}, preview_refresh:
+    { reason: "tool_offset", file, expected_ms: 4000, started_ms: 2000, queued: false, superseded: 0 } } });
+  await ctl({ op: "raw", frame: { type: "status_delta", data: {},
+    preview_tool_basis: { file, version: 4502, xyz: [0, 0, 20], mode: 430 } } });
+  await expect.poll(() => page.evaluate(() => (window as any).__held ?? false)).toBe(true);
+  const lines = page.locator(".hudNotes .hudWarn");
+  await expect(lines.filter({ hasText: "checking" })).toHaveCount(1);
+  expect(await topZ()).toBeCloseTo(-10, 4);
+  expect(await feedColour(), "muted while the decode at 20 is out").not.toBe(shown);
+  // the gateway is back on the published start (no preview_tool_basis)
+  await ctl({ op: "raw", frame: { type: "status_delta", data: { tool_offset: [0, 0, 10, 0, 0, 0, 0, 0, 0] } } });
+  await expect(lines.filter({ hasText: "checking" }), "the start is on screen: nothing to wait for").toHaveCount(0);
+  await expect.poll(feedColour).toBe(shown);
+  await page.evaluate(() => (window as any).__release());
+  await page.evaluate(() => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
+  await page.waitForTimeout(500);
+  expect(await topZ(), "the late reply for 20 never replaces the start").toBeCloseTo(-10, 4);
+  await ctl({ op: "raw", frame: { type: "status_delta", data: { tool_offset: [0, 0, 10, 0, 0, 0, 0, 0, 0] } } });
+  await page.waitForTimeout(300);
+  expect(await topZ()).toBeCloseTo(-10, 4);
+  expect(await feedColour()).toBe(shown);
+  expect(previews, "no second download").toBe(1);
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
 // Operator 2026-09-30: a tool measured during a run re-parses the preview —
 // the viewer says so ONCE, the re-parse line with its bar; the tool-length
 // line ("… re-parse follows") that stood under the bar is gone while it runs.

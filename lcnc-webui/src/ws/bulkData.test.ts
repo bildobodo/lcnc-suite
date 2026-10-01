@@ -308,6 +308,53 @@ describe("preview worker channel", () => {
     expect(previewBasisPending.value).toBe(false);
   });
 
+  // Codex R59 (VP-I23 rest): A on screen → B asked for → the gateway goes
+  // back to A before B's reply lands. Pending ends at once (A is on screen),
+  // and B's late reply must not replace it — the reply is checked against
+  // the decode WANTED now, not the one sent last. Asked for again, B is
+  // decoded again.
+  for (const [name, a] of [["the payload's own start", null], ["a verified basis already applied", [0, 0, 20]]] as const) {
+    it(`a return to the basis on screen drops the late reply of the other — A = ${name} (Codex R59 VP-I23)`, async () => {
+      const { previewToolBasis, previewBasisPending } = await import("./statusStore");
+      const { nextTick } = await import("vue");
+      fetchImpl = () => Promise.resolve(new Response("G0 X0", { status: 200 }));
+      const file = "/nc/return.ngc", version = a ? 81 : 80;
+      const keyOf = (xyz: readonly number[] | null) => `${file}#${version}:${xyz ? xyz.join(",") : "start"}`;
+      const reply = (xyz: readonly number[] | null) =>
+        w.onmessage?.({ data: { version, basisKey: keyOf(xyz), gcode: { file, toolBasis: xyz ?? [0, 0, 10] } } } as any);
+      const want = async (xyz: readonly number[] | null) => {
+        previewToolBasis.value = xyz ? { file, version, xyz: [...xyz] } : null;
+        previewBasisPending.value = true;      // statusStore sets it on any change
+        await nextTick();
+      };
+      previewToolBasis.value = null;
+      await nextTick();
+      handleViewerGcodeReady({ version, file });
+      const w = FakeWorker.instances[FakeWorker.instances.length - 1]!;
+      reply(null);
+      if (a) { await want(a); reply(a); }
+      expect(viewerGcode.value?.toolBasis).toEqual(a ?? [0, 0, 10]);
+      const b = [0, 0, 30];
+      await want(b);
+      expect(w.posted[w.posted.length - 1]).toMatchObject({ basisKey: keyOf(b) });
+      expect(previewBasisPending.value).toBe(true);
+      const n = w.posted.length;
+      await want(a);                            // back to what is on screen
+      expect(w.posted.length, "A is on screen: nothing to decode").toBe(n);
+      expect(previewBasisPending.value).toBe(false);
+      reply(b);                                 // B's late reply
+      expect(viewerGcode.value?.toolBasis, "the late reply of B never replaces A").toEqual(a ?? [0, 0, 10]);
+      await want(a);                            // the next unchanged status
+      expect(viewerGcode.value?.toolBasis).toEqual(a ?? [0, 0, 10]);
+      await want(b);                            // B wanted again: decoded again
+      expect(w.posted.slice(n)).toEqual([{ version, url: `/preview?v=${version}`, basis: b, basisKey: keyOf(b) }]);
+      reply(b);
+      expect(viewerGcode.value?.toolBasis).toEqual(b);
+      expect(previewBasisPending.value).toBe(false);
+      previewToolBasis.value = null;
+    });
+  }
+
   it("the published revision moves on ARRIVAL; the text revision follows when the text lands (UI-DI05)", async () => {
     let release!: (r: Response) => void;
     fetchImpl = () => new Promise<Response>(r => { release = r; });
