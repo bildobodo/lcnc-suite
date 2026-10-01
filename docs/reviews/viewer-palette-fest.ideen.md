@@ -6924,3 +6924,150 @@ Jeder Wächter war auf dem Code davor rot:
 
 Bitte prüfe 1–5 (6 nach Ermessen) und beantworte die Frage zur
 GL-Testreferenz.
+
+---
+
+## Review R61 · Codex · 1. Oktober 2026
+
+**Urteil: findings.** Die Punkte 1–4 sind im nachfolgend genannten Umfang
+akzeptiert; bei Punkt 5 bleibt **VP-I25 (P2)** offen. Zusätzlich ist
+**VP-I26 (P3)** dokumentiert. Die GL-Testreferenz kann bleiben. Das bekannte
+TWP-Live-Gate ist weiterhin eine gesonderte Voraussetzung vor dem Merge.
+
+Geprüft ist **`557f8b8..9edcc9b` auf `wip/part-b`**. Die Branchangabe
+`feat/keypad-keys` im Handshake bezeichnet nicht den vollständigen
+Übergabestand: dessen Live-Checkout enthält die R61-Anfrage und Teile der
+Änderungen noch nicht. Deshalb steht dieser Anhang bei der Anfrage im
+Worktree `lcnc-suite-partb`; Build und Sonden liefen ausschließlich in einer
+Archivkopie von `9edcc9b`.
+
+### VP-I25 · P2 · Zahlenvergleich darf keinen G43-Modus behaupten
+
+**Stellen:** `lcnc-webui/src/viewer/toolOffsetState.ts:34` und
+`lcnc-webui/src/ToolStrip.vue:27`.
+
+`toolOffsetState` liefert bei gleichem angewandtem und Tabellen-Z den
+Zustand `applied`, unabhängig von den aktiven G-Codes. Die neue Leiste
+übersetzt diesen numerischen Zustand jedoch immer in den konkreten Text
+**„G43“**. Zwei Browser-Gegenproben auf dem echten XYZAC-Modell:
+
+| Status des Mocks | Tatsächlich angezeigter Text |
+|---|---|
+| T13, Tabellen-Z 0, angewandtes Z 0, `gcodes=[490]` | `Z Offset 0.0000 mm · G43` |
+| T13, Tabellen-Z 65, angewandtes Z 65, `gcodes=[431]` | `Z Offset 65.0000 mm · G43` |
+
+Damit meldet gerade die neue Anzeige, die den Operator über G49 aufklären
+soll, im ersten Fall den falschen Modus. Im zweiten Fall wird der dynamische
+Versatz G43.1 als G43 ausgegeben. Zahlenübereinstimmung beweist weder die
+Aktivierung von G43 noch die Herkunft aus dem Werkzeugtabelleneintrag.
+
+**Korrektur:** Numerische Übereinstimmung und Modalanzeige getrennt führen.
+Für eine Modalanzeige den tatsächlich gemeldeten Modus verwenden; alternativ
+für die reine Zahlenübereinstimmung einen neutralen Text wie „Applied“
+verwenden. Bei unbekanntem Modus keinen G-Code erfinden. Das bestehende
+Verhalten, bei einem Null-Werkzeug ohne geometrischen Unterschied keine
+zusätzliche Nadel zu zeichnen, muss dafür nicht geändert werden.
+
+**Abnahme:** Die beiden Fälle dürfen nicht mehr behaupten, G43 sei aktiv;
+der normale Fall G43 H13 und die Warnung bei G49 mit Länge 65 müssen
+weiterhin stimmen. Der bestehende Unit-Test „a zero-length tool under G49
+needs no offset“ prüft nur die numerische Klassifikation und entdeckt den
+falschen Text nicht.
+
+Belege: [Status und sichtbare Texte](viewer-palette-fest.r61.tool-state.json),
+[Bild der falschen G49-Beschriftung](viewer-palette-fest.r61.g49-label.png),
+[Sonde](viewer-palette-fest.r61.probe.spec.ts),
+[rote Soll-Assertions](viewer-palette-fest.r61.probe.txt).
+
+### VP-I26 · P3 · Neue Nadel folgt der Werkzeug-Ebene erst beim nächsten Status
+
+**Stellen:** `lcnc-webui/src/ThreeViewer.vue:1302` und `:2268`.
+
+`setLayerVisible('tool', on)` schaltet nur `toolMarker`; die unabhängige
+`controlPointMarker` wird ausschließlich in `applyState` nachgeführt.
+Unter G49 bleibt die Nadel deshalb nach dem Ausblenden der Werkzeug-Ebene
+sichtbar, bis ein weiterer Maschinenstatus eintrifft. Umgekehrt bleibt sie
+beim Einblenden zunächst unsichtbar.
+
+In der synchronisierten Sonde ist die Settings-Nachricht bereits im Browser
+angekommen. Zwei Aus-/Ein-Schaltfolgen zeigen jeweils denselben Zustand auch
+nach 700 ms ohne neuen Status. Ein anschließend gesendetes leeres
+`status_delta` korrigiert ihn sofort. Das ist **kein dauerhafter Fehler im
+normalen fortlaufenden Statusstrom**; deshalb P3 und allein kein
+Mergeblocker. Ein Ebenenschalter sollte seine eigenen Objekte dennoch ohne
+zusätzlichen Maschinenstatus aktualisieren.
+
+**Korrektur:** Beim Tool-Ebenenwechsel die gemeinsame Sichtbarkeitsbedingung
+neu anwenden oder die letzte Pose erneut zur Anwendung vormerken; dabei
+Scrub/Live und den Offsetzustand berücksichtigen. Beleg einschließlich der
+empfangenen Frame-Typen: [Schaltfolgen](viewer-palette-fest.r61.tool-state.json).
+
+### Antworten und akzeptierte Teile
+
+1. **Schema 10 / Goldens:** Server und Client erwarten 10. Der eigene
+   rekursive Vergleich bestätigt bei allen vier Goldens sowie den vier
+   Payloads in `tool_basis_pairs.json` ausschließlich `preview_schema`
+   9 → 10; keine versteckte Geometrieänderung. Die gezielten nativen
+   Startzustands-/Init-Tests bestehen. Den Suite-Stopp, den Live-Neustart
+   und die 40-s-Ruhephase bewerte ich anhand der dokumentierten Übergabe;
+   sie wurden nicht an der laufenden Maschine wiederholt.
+2. **Teil B und GL-Frage: Ja, die GL-Testreferenz kann bleiben.**
+   `toolpathController` hat weiterhin `fat` als Standard. Außer Tests
+   wählt kein Produktaufruf `gl` aus; Debug-Umschalter, Treiber,
+   Messbus/-auswertung und die genannten Hooks sind entfernt. Die
+   Vergleichsbasis für Auswahlbereiche und gepackte Segmentpaare ist
+   sinnvoll und kein versteckter automatischer Fallback. Die noch auf
+   das temporäre A/B-Werkzeug verweisenden Kommentare können bereinigt
+   werden; dafür ist kein Umbau der Controller-Tests nötig.
+   Der Mac-Bericht trennt korrekt den unvollständigen ersten Lauf vom
+   vollständigen zweiten Lauf mit Befund. Die angegebenen Mediane,
+   Phasen und Freigaben tragen dessen PASS; keine eigene Mac-Nachmessung.
+3. **Eine Palette:** Die Umsetzung entspricht der ausdrücklich geänderten
+   Operator-Entscheidung. Gleiche Farbrollen in allen fünf Themes und
+   separat wechselnde neutrale Box-Töne sind geprüft. Die akzeptierten
+   etwa 1,4:1 des grünen Pfads auf Weiß bleiben eine benannte Grenze;
+   dieses Agreement ist kein Nachweis ausreichenden Kontrasts auf hellem
+   Hintergrund oder für die gesamte HC-Ansicht.
+4. **Sieben Live-Punkte:** Die gezielten Browserprüfungen für Fokusringe,
+   zweizeilige Zahlenvorschau, Legendenraster, stabile Programmzeile,
+   Wiederaufbau/Dateiwechsel des Codefensters, Discard und die
+   Veraltungsanzeige bestehen. Die Mindesthöhe ist tatsächlich auf das
+   Programm-Panel begrenzt. Die Vorschau bleibt während der Ruhefrist
+   gedämpft; die Warnzeile erscheint im Lauf sofort und im Stillstand
+   nach Ablauf der Frist, falls kein Neu-Parse beginnt.
+5. **Werkzeugoffset:** Der normale XYZAC-Fall ist bestätigt: mit Tabellen-Z
+   65 unter G49 Nadel an der Nase bei −235, physische Spitze bei −300;
+   mit angewandtem Z 65 verschwindet die Nadel. Bei angewandtem Z 42
+   steht sie korrekt bei −277 und trägt „other offset“. In den vier
+   gemessenen Layouts läuft die neue G49-Zeile nicht horizontal über.
+   Die beiden oben genannten Randfälle bleiben offen.
+6. **Optionales Keypad-Paket:** `f22ce68` statisch gelesen: gemeinsame
+   Apply-Beschriftung, passende zugängliche Namen sowie Gefahrentyp für
+   Schließen/Verwerfen sind nachvollziehbar. Es gehört nicht zum
+   Archivstand `9edcc9b`; damit keine zusätzliche Browser- oder
+   Integrationsabnahme des separaten Branches.
+
+### Validierung, Belege und Merge-Grenze
+
+- Eigener Typecheck/Produktionsbuild **PASS**; gezielte Frontendtests
+  **154/154**, Backendtests **16/16**.
+- **9/9 vorhandene Browserprüfungen bestanden.** Der erste Sammellauf
+  enthält zusätzlich eine rote Vorversion der eigenen Diagnosesonde.
+  Die finale, gegen den Frame-Empfang synchronisierte Sonde sichert die
+  Messwerte und scheitert an den Soll-Assertions für VP-I25/VP-I26.
+  Deshalb ausdrücklich kein vollständiges grünes Browser-Gate behauptet.
+- [Reproduktion und Grenzen](viewer-palette-fest.r61.repro.md),
+  [Build](viewer-palette-fest.r61.build.txt),
+  [Frontend](viewer-palette-fest.r61.frontend-tests.txt),
+  [Backend](viewer-palette-fest.r61.backend-tests.txt),
+  [Browser-Sammellauf](viewer-palette-fest.r61.browser.txt),
+  [Schema-Vergleich](viewer-palette-fest.r61.schema.json).
+- Das schon in der Anfrage benannte **TWP-Live-Gate bleibt vor dem Merge
+  offen**: Harness auf Gateway-Ladekontext und zulässigen Korpuspfad
+  umstellen und anschließend erfolgreich ausführen. Ein grünes
+  Offline-Gate oder dieser Schema-Vergleich ersetzt diesen Nachweis nicht.
+  Das wird nicht als neuer Produktfehler von Schema 10 gezählt.
+- Kein vollständiges Offline-Gate wiederholt, keine eigene Live-Abnahme.
+  Nur dieser Anhang und neue `r61.*`-Belege; keine Produktänderung,
+  kein Commit, vorherige Belege unverändert. Live-Quellen, Live-Ports und
+  Maschinenzustand unberührt; eigener Mock beendet.

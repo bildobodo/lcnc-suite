@@ -1,0 +1,18 @@
+
+Running 1 test using 1 worker
+
+(node:3861802) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3861802) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r61.spec.ts:10:1 › R61: tool offset words and layer changes without a new status (85ms)
+
+
+  1) e2e/r61.spec.ts:10:1 › R61: tool offset words and layer changes without a new status ──────────
+
+    Error: connect ECONNREFUSED 127.0.0.1:4188
+
+    Error Context: ../evidence/r61-browser-output/r61-R61-tool-offset-words--36c52-hanges-without-a-new-status/error-context.md
+
+  1 failed
+    e2e/r61.spec.ts:10:1 › R61: tool offset words and layer changes without a new status ───────────
