@@ -71,13 +71,13 @@ class TestSuiteRunner(unittest.TestCase):
         self.assertEqual(commands[0][1][-2:], ["-m", "pytest"])
         # backend, 5axis-model, audit-css (the scoped-CSS linter's pytest pins,
         # WP2 2026-09-20: scripts/ is outside the gateway's testpaths),
-        # review-handshake (its pytest pins, 2461d04 2026-09-26),
-        # viewer-ab-report (the part-B A/B verdict, 2026-09-30) + four
-        # frontend gates.
-        self.assertEqual(len(commands), 9)
+        # review-handshake (its pytest pins, 2461d04 2026-09-26) + four
+        # frontend gates. (viewer-ab-report left with the A/B tooling after
+        # the Mac acceptance, 2026-10-01.)
+        self.assertEqual(len(commands), 8)
         self.assertIn("audit-css", [name for name, _, _ in commands])
         self.assertIn("review-handshake", [name for name, _, _ in commands])
-        self.assertIn("viewer-ab-report", [name for name, _, _ in commands])
+        self.assertNotIn("viewer-ab-report", [name for name, _, _ in commands])
         self.assertFalse(any("sim_parity" in str(command) for _, command, _ in commands))
 
     def test_corpus_is_portable_and_does_not_overwrite_references(self):
