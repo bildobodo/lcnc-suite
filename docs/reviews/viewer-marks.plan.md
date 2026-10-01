@@ -305,3 +305,28 @@ angenommen.
   - Das ist unabhängig von der Speicher- und Ankunftsreihenfolge.
 - **Halbieren von `N`:** Es bleibt die Teilmenge jeder zweiten Grenze, nicht jede Grenze der
   feineren Stufe.
+
+### Fassung 3.1 · Korrektur der Zusage nach Codex R64 (VP62-01, letzter Rest)
+
+In Fassung 3 ersetzen die folgenden Sätze die „beweisbare Zusage“ und den Wächtersatz zur
+15-px-Grenze. Alles andere bleibt.
+
+- **Die Zusage ist geometrisch, nicht pixelbezogen:**
+  - Ohne Stufenkappung (`N < 2^14`) und bei **`L_sichtbar > 15` CSS px** folgt aus der
+    Mittelwertregel `Δt > 1/N`.
+  - Dann liegt mindestens **eine innere Zellgrenze** im sichtbaren Parameterintervall, und beide
+    Töne haben dort positive Parameterlänge.
+  - Bei genau 15 px kann der sichtbare Teil eine einzige Zelle sein (Codex' Fall A, `N = 8`,
+    `t ∈ [7/8, 1]`). Deshalb gilt die Zusage nur bei mehr als 15 px.
+- **Keine Pixel- oder Lesbarkeitsgarantie:** Auch ein langes sichtbares Stück kann unter starker
+  perspektivischer Stauchung einzelne Töne unter die Rasterauflösung drücken.
+  - Codex' Fall B: eine 100-px-Kante mit `N = 16`, deren helle Anteile zusammen 0,106 px lang sind.
+  - Ebenso bei Überverfeinerung anderer Stücke einer Reach-Kette.
+  - Das betrifft nicht nur `N = 2^14` oder Stücke unter 15 px. Es ist dieselbe Grenze, die
+    Fassung 2 für perspektivisch kleine Einzelzellen benannt hat.
+- **Wächter:**
+  - Die gerenderte Zweifarbigkeit wird für die **benannten** Geometrien geprüft: Codex' R63-Fall
+    (Near-Plane, 100 px) und der Ketten-Fall mit zwei sichtbaren Stücken.
+  - Der exakte 15-px-Fall (A) und die starke Perspektive (B) sind als Grenzfälle aufgenommen. Sie
+    prüfen die geometrische Aussage (innere Grenze bzw. keine), nicht sichtbare Farbpixel.
+  - Kein Test behauptet „jedes Stück ≥ 15 px zeigt beide Töne“.

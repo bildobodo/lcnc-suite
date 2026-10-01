@@ -1,0 +1,24 @@
+{
+  "commit": "f1b7e27",
+  "fake_linuxcnc": true,
+  "results": [
+    {
+      "test": "test_command_dispatch.TestHandlerExecution.test_teleop_jog_translates_list_index_to_canonical_axis",
+      "passed": true,
+      "cached_xyz_restored": true,
+      "fake_class_still_xyz": true
+    },
+    {
+      "test": "test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_mode_switch_ignored_while_jogging_is_refused_loudly",
+      "passed": true,
+      "cached_xyz_restored": true,
+      "fake_class_still_xyz": true
+    },
+    {
+      "test": "test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_an_ignored_switch_without_a_jog_never_names_one",
+      "passed": true,
+      "cached_xyz_restored": true,
+      "fake_class_still_xyz": true
+    }
+  ]
+}
