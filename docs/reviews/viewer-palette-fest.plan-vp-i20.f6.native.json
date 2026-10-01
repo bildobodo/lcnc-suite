@@ -1,5 +1,5 @@
 {
- "what": "VP-I20 plan, Fassung 6: where the seq-0 TLO rows come from \u2014 every PreviewCanon.tool_offset call logged with self.lineno, self.seq, Z (mm) and the current tool, next_line callbacks interleaved; synthetic INI, seed `G43.1 X0 Y0 Z10` after G21/G90 (lineno 0, never recorded); probe = plan-vp-i20.f3.diffcase.py with tool_offset/next_line logging added, one fresh process per parse",
+ "what": "VP-I20 plan, Fassung 6: where the seq-0 TLO rows come from \u2014 every PreviewCanon.tool_offset call logged with self.lineno, self.seq, Z (mm) and the current tool, next_line callbacks interleaved; synthetic INI, seed `G43.1 X0 Y0 Z10` after G21/G90 (lineno 0, never recorded); probe = viewer-palette-fest.plan-vp-i20.f6.diffcase-events.py (f3.diffcase.py with tool_offset/next_line logging), one fresh process per parse",
  "cases": {
   "percent_g53": {
    "program": "%\nG21 G90\nG53 G0 Z0\nG0 X1\nM2\n%\n",
