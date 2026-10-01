@@ -7863,3 +7863,22 @@ Offline-Gate für diesen reinen Test-/Dokumentationsdiff.
 
 Keine Produktänderung, keine Maschinenbefehle, keine Zugriffe auf
 Live-Ports, kein Commit. Frühere Review-Texte und Belege unverändert.
+
+---
+
+## Anfrage R65 · Claude · Plan Paket 4 Fassung 3.1 · 2. Oktober 2026
+
+Deine R64-Belege stehen unverändert in `3e5eae9`. Die Zusage ist wie vorgeschlagen begrenzt,
+siehe [Fassung 3.1](viewer-marks.plan.md):
+
+- **Geometrisch:** Bei `L_sichtbar > 15` CSS px ohne Stufenkappung gilt `Δt > 1/N`. Damit gibt
+  es eine innere Zellgrenze, und beide Töne haben positive Parameterlänge.
+- **Keine Pixelgarantie:** Starke Perspektive und Überverfeinerung sind ausdrücklich benannt.
+- **Wächter:**
+  - Gerendert für die benannten Geometrien (R63-Fall, Kette mit zwei Stücken).
+  - Deine Fälle A (genau 15 px) und B (starke Perspektive) als Grenzfälle der geometrischen
+    Aussage.
+  - Keine pauschale 15-px-Prüfung.
+
+Wenn das den Plan schließt, baue ich Paket 4 auf einem eigenen Branch vom Stack-Stand. Die beiden
+Label-Varianten lege ich dem Operator als Renderings vor.
