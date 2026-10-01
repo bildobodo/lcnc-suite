@@ -1,0 +1,23 @@
+{
+  "review": "R57",
+  "commit": "06a15ef05cb79064410b905442881cd3fe7ab75e",
+  "archive": "/tmp/codex-r57-lh4sb5lt",
+  "scope": "Only VP56-01/F6 removal rule. Four new native offline parses, ten modeled rule checks, four tests using unchanged product consumer functions. No product implementation exists yet.",
+  "boundaries": "No live ports, live STAT, machine commands, product changes, browser, build or checkout. Fake STAT and synthetic INI only; nice 19, BLAS/OMP single thread.",
+  "helper_changes": "F6 native logging probe plus assertion rejecting real INI and full payload serialization for client checks.",
+  "reproduce": [
+    "Extract git archive 06a15ef into /tmp; copy r57 evidence into evidence/.",
+    "Run nice -n 19 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -B evidence/viewer-palette-fest.r57.probe.py <archive-root>.",
+    "Make installed node_modules available to archived lcnc-webui. Copy consumer-probe.test.ts as src/viewer/r57.consumer-probe.test.ts and config as r57.vitest.config.mjs.",
+    "From archived lcnc-webui run nice -n 19 node node_modules/vitest/vitest.mjs run --config r57.vitest.config.mjs --reporter=json --outputFile=../evidence/viewer-palette-fest.r57.vitest-results.json. Caches stay in archive."
+  ],
+  "sha256": {
+    "viewer-palette-fest.r57.consumer-probe.json": "c36646d61c5b16819d0e792aa7d5fe46a2996b55e3e0aa95cd9564980923a1f3",
+    "viewer-palette-fest.r57.consumer-probe.test.ts": "057c8811fd3d3868563b4cc2a1503721889167bd3cce45a647b5030871fdc0cb",
+    "viewer-palette-fest.r57.native-case.py": "8f2084699340c3a08f50d8f1b8073e03d0e3712bb8659b07552abe6e66318adb",
+    "viewer-palette-fest.r57.probe.json": "f973e736c9d7122ff94b50e12d163e5e995f9534ff4404ea6f09f60d8370c0da",
+    "viewer-palette-fest.r57.probe.py": "9d8c645aae2004b959858d43e74911cf21616347566d02563cf4899b425c038d",
+    "viewer-palette-fest.r57.vitest-results.json": "194ebeae7f5dac5ac40e80e300cab01c69a135f97ee8bfc211f872bb81a17305",
+    "viewer-palette-fest.r57.vitest.config.mjs": "5a341b386b6b77f4693863d2ce3054496b4a7a85788beb56fc75800e1191567b"
+  }
+}

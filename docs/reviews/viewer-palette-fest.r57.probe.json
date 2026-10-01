@@ -1,0 +1,1221 @@
+{
+  "commit": "06a15ef05cb79064410b905442881cd3fe7ab75e",
+  "method": "Four fresh native offline parses of unchanged worker with proposed seed and event-origin logging. F6 removal rule modeled in this probe; no product implementation exists yet. Fake STAT, synthetic INI, commands rejected, nice 19 and one BLAS/OMP thread.",
+  "cases": [
+    {
+      "case": "percent_g53",
+      "program": "%\nG21 G90\nG53 G0 Z0\nG0 X1\nM2\n%\n",
+      "run": {
+        "events": [
+          {
+            "next_line": 0
+          },
+          {
+            "next_line": 1
+          },
+          {
+            "lineno": 1,
+            "seq": 0,
+            "zo_mm": 10.0,
+            "tool": -1
+          },
+          {
+            "next_line": 3
+          },
+          {
+            "next_line": 4
+          },
+          {
+            "next_line": 5
+          }
+        ],
+        "program": "/tmp/codex-r57-lh4sb5lt/evidence/percent_g53.ngc",
+        "seed": [
+          0.0,
+          0.0,
+          10.0
+        ],
+        "initcodes": [
+          "G21",
+          "G90",
+          "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+          "G54"
+        ],
+        "parse_error": null,
+        "feed": 0,
+        "rapid": 2,
+        "tlo_events": [
+          [
+            0,
+            0.0,
+            0.0,
+            10.0,
+            -1
+          ]
+        ],
+        "violations_total": 0,
+        "violations": [],
+        "interp_s": 0.0,
+        "total_s": 0.0,
+        "maxrss_mb": 47.7
+      },
+      "origins": [
+        1
+      ],
+      "kept_rows": [],
+      "payload": {
+        "file": "/tmp/codex-r57-lh4sb5lt/evidence/percent_g53.ngc",
+        "parse_tlos": [
+          [
+            1,
+            0.0,
+            0.0,
+            10.0,
+            6.0
+          ]
+        ],
+        "preview_schema": 9,
+        "feed": {
+          "bytes_b64": ""
+        },
+        "feed_lines": {
+          "bytes_b64": ""
+        },
+        "feed_seq": {
+          "bytes_b64": ""
+        },
+        "rapid_seq": {
+          "bytes_b64": "AQAAAAIAAAA="
+        },
+        "rapid_lines": {
+          "bytes_b64": "AwAAAAQAAAA="
+        },
+        "feed_tcum": {
+          "bytes_b64": ""
+        },
+        "rapid_tcum": {
+          "bytes_b64": "AAAAAM3MzD0="
+        },
+        "rapid_rate": 10.0,
+        "rot_rapid_rate": null,
+        "tool_change_lines": [],
+        "rapid": {
+          "bytes_b64": "AAAAAAAAAAAAACDBAACAPwAAAAAAACDB"
+        },
+        "stats": {
+          "feedMoves": 0,
+          "rapidMoves": 2,
+          "linearMoves": 0,
+          "arcMoves": 0,
+          "feedDist": 0.0,
+          "rapidDist": 1.0,
+          "linearDist": 0.0,
+          "arcDist": 0.0,
+          "feedTime": 0.0,
+          "rapidTime": 0.1,
+          "totalTime": 0.1,
+          "feedRates": [],
+          "toolChanges": 0,
+          "toolsUsed": [],
+          "unit": "mm",
+          "fileSize": 31
+        },
+        "bounds": null,
+        "motion_bounds": {
+          "min": [
+            0.0,
+            0.0,
+            -10.0
+          ],
+          "max": [
+            0.9999999999999999,
+            0.0,
+            -10.0
+          ]
+        },
+        "violations": [],
+        "violations_total": 0,
+        "lines_untrusted": false,
+        "lines_untrusted_reason": "",
+        "wcs_basis_index": 1,
+        "wcs_used": [
+          1
+        ],
+        "wcs_basis": {
+          "g5x": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "g92": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0
+        },
+        "parse_error": null,
+        "error_line": null,
+        "feed_lineok": {
+          "bytes_b64": ""
+        },
+        "rapid_lineok": {
+          "bytes_b64": "AQE="
+        },
+        "rapid_ustart": {
+          "bytes_b64": "AQA="
+        },
+        "wcs_frames": [
+          [
+            0,
+            1,
+            0.0,
+            0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "tlo_events": [
+          [
+            0,
+            0.0,
+            0.0,
+            10.0,
+            -1
+          ]
+        ],
+        "feed_outside": {
+          "bytes_b64": ""
+        },
+        "rapid_outside": {
+          "bytes_b64": "AAA="
+        }
+      }
+    },
+    {
+      "case": "codex_r56",
+      "program": "G21 G90\nG49\nG43.1 Z10\nG0 X0 Y0 Z0\nG0 X10 Y0 Z0\nM2\n",
+      "run": {
+        "events": [
+          {
+            "next_line": 0
+          },
+          {
+            "lineno": 0,
+            "seq": 0,
+            "zo_mm": 10.0,
+            "tool": -1
+          },
+          {
+            "next_line": 2
+          },
+          {
+            "lineno": 2,
+            "seq": 0,
+            "zo_mm": 0.0,
+            "tool": -1
+          },
+          {
+            "next_line": 3
+          },
+          {
+            "lineno": 3,
+            "seq": 0,
+            "zo_mm": 10.0,
+            "tool": -1
+          },
+          {
+            "next_line": 4
+          },
+          {
+            "next_line": 5
+          },
+          {
+            "next_line": 6
+          }
+        ],
+        "program": "/tmp/codex-r57-lh4sb5lt/evidence/codex_r56.ngc",
+        "seed": [
+          0.0,
+          0.0,
+          10.0
+        ],
+        "initcodes": [
+          "G21",
+          "G90",
+          "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+          "G54"
+        ],
+        "parse_error": null,
+        "feed": 0,
+        "rapid": 2,
+        "tlo_events": [
+          [
+            0,
+            0.0,
+            0.0,
+            0.0,
+            -1
+          ],
+          [
+            0,
+            0.0,
+            0.0,
+            10.0,
+            -1
+          ]
+        ],
+        "violations_total": 0,
+        "violations": [],
+        "interp_s": 0.0,
+        "total_s": 0.0,
+        "maxrss_mb": 47.7
+      },
+      "origins": [
+        2,
+        3
+      ],
+      "kept_rows": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ],
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "payload": {
+        "file": "/tmp/codex-r57-lh4sb5lt/evidence/codex_r56.ngc",
+        "parse_tlos": [
+          [
+            1,
+            0.0,
+            0.0,
+            10.0,
+            6.0
+          ]
+        ],
+        "preview_schema": 9,
+        "feed": {
+          "bytes_b64": ""
+        },
+        "feed_lines": {
+          "bytes_b64": ""
+        },
+        "feed_seq": {
+          "bytes_b64": ""
+        },
+        "rapid_seq": {
+          "bytes_b64": "AQAAAAIAAAA="
+        },
+        "rapid_lines": {
+          "bytes_b64": "BAAAAAUAAAA="
+        },
+        "feed_tcum": {
+          "bytes_b64": ""
+        },
+        "rapid_tcum": {
+          "bytes_b64": "AAAAAAAAgD8="
+        },
+        "rapid_rate": 10.0,
+        "rot_rapid_rate": null,
+        "tool_change_lines": [],
+        "rapid": {
+          "bytes_b64": "AAAAAAAAAAAAAAAAAAAgQQAAAAAAAAAA"
+        },
+        "stats": {
+          "feedMoves": 0,
+          "rapidMoves": 2,
+          "linearMoves": 0,
+          "arcMoves": 0,
+          "feedDist": 0.0,
+          "rapidDist": 10.0,
+          "linearDist": 0.0,
+          "arcDist": 0.0,
+          "feedTime": 0.0,
+          "rapidTime": 1.0,
+          "totalTime": 1.0,
+          "feedRates": [],
+          "toolChanges": 0,
+          "toolsUsed": [],
+          "unit": "mm",
+          "fileSize": 50
+        },
+        "bounds": null,
+        "motion_bounds": {
+          "min": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "max": [
+            10.0,
+            0.0,
+            0.0
+          ]
+        },
+        "violations": [],
+        "violations_total": 0,
+        "lines_untrusted": false,
+        "lines_untrusted_reason": "",
+        "wcs_basis_index": 1,
+        "wcs_used": [
+          1
+        ],
+        "wcs_basis": {
+          "g5x": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "g92": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0
+        },
+        "parse_error": null,
+        "error_line": null,
+        "feed_lineok": {
+          "bytes_b64": ""
+        },
+        "rapid_lineok": {
+          "bytes_b64": "AQE="
+        },
+        "rapid_ustart": {
+          "bytes_b64": "AQA="
+        },
+        "wcs_frames": [
+          [
+            0,
+            1,
+            0.0,
+            0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "tlo_events": [
+          [
+            0,
+            0.0,
+            0.0,
+            0.0,
+            -1
+          ],
+          [
+            0,
+            0.0,
+            0.0,
+            10.0,
+            -1
+          ]
+        ],
+        "feed_outside": {
+          "bytes_b64": ""
+        },
+        "rapid_outside": {
+          "bytes_b64": "AAA="
+        }
+      }
+    },
+    {
+      "case": "percent_g431",
+      "program": "%\nG21 G90\nG43.1 Z10\nG0 X0 Y0 Z0\nM2\n%\n",
+      "run": {
+        "events": [
+          {
+            "next_line": 0
+          },
+          {
+            "next_line": 1
+          },
+          {
+            "lineno": 1,
+            "seq": 0,
+            "zo_mm": 10.0,
+            "tool": -1
+          },
+          {
+            "next_line": 3
+          },
+          {
+            "lineno": 3,
+            "seq": 0,
+            "zo_mm": 10.0,
+            "tool": -1
+          },
+          {
+            "next_line": 4
+          },
+          {
+            "next_line": 5
+          }
+        ],
+        "program": "/tmp/codex-r57-lh4sb5lt/evidence/percent_g431.ngc",
+        "seed": [
+          0.0,
+          0.0,
+          10.0
+        ],
+        "initcodes": [
+          "G21",
+          "G90",
+          "G43.1 X0.000000000 Y0.000000000 Z10.000000000",
+          "G54"
+        ],
+        "parse_error": null,
+        "feed": 0,
+        "rapid": 1,
+        "tlo_events": [
+          [
+            0,
+            0.0,
+            0.0,
+            10.0,
+            -1
+          ],
+          [
+            0,
+            0.0,
+            0.0,
+            10.0,
+            -1
+          ]
+        ],
+        "violations_total": 0,
+        "violations": [],
+        "interp_s": 0.0,
+        "total_s": 0.0,
+        "maxrss_mb": 47.6
+      },
+      "origins": [
+        1,
+        3
+      ],
+      "kept_rows": [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "payload": {
+        "file": "/tmp/codex-r57-lh4sb5lt/evidence/percent_g431.ngc",
+        "parse_tlos": [
+          [
+            1,
+            0.0,
+            0.0,
+            10.0,
+            6.0
+          ]
+        ],
+        "preview_schema": 9,
+        "feed": {
+          "bytes_b64": ""
+        },
+        "feed_lines": {
+          "bytes_b64": ""
+        },
+        "feed_seq": {
+          "bytes_b64": ""
+        },
+        "rapid_seq": {
+          "bytes_b64": "AQAAAA=="
+        },
+        "rapid_lines": {
+          "bytes_b64": "BAAAAA=="
+        },
+        "feed_tcum": {
+          "bytes_b64": ""
+        },
+        "rapid_tcum": {
+          "bytes_b64": "AAAAAA=="
+        },
+        "rapid_rate": 10.0,
+        "rot_rapid_rate": null,
+        "tool_change_lines": [],
+        "rapid": {
+          "bytes_b64": "AAAAAAAAAAAAAAAA"
+        },
+        "stats": {
+          "feedMoves": 0,
+          "rapidMoves": 1,
+          "linearMoves": 0,
+          "arcMoves": 0,
+          "feedDist": 0.0,
+          "rapidDist": 0.0,
+          "linearDist": 0.0,
+          "arcDist": 0.0,
+          "feedTime": 0.0,
+          "rapidTime": 0.0,
+          "totalTime": 0.0,
+          "feedRates": [],
+          "toolChanges": 0,
+          "toolsUsed": [],
+          "unit": "mm",
+          "fileSize": 37
+        },
+        "bounds": null,
+        "motion_bounds": {
+          "min": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "max": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "violations": [],
+        "violations_total": 0,
+        "lines_untrusted": false,
+        "lines_untrusted_reason": "",
+        "wcs_basis_index": 1,
+        "wcs_used": [
+          1
+        ],
+        "wcs_basis": {
+          "g5x": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "g92": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0
+        },
+        "parse_error": null,
+        "error_line": null,
+        "feed_lineok": {
+          "bytes_b64": ""
+        },
+        "rapid_lineok": {
+          "bytes_b64": "AQ=="
+        },
+        "rapid_ustart": {
+          "bytes_b64": "AQ=="
+        },
+        "wcs_frames": [
+          [
+            0,
+            1,
+            0.0,
+            0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "tlo_events": [
+          [
+            0,
+            0.0,
+            0.0,
+            10.0,
+            -1
+          ],
+          [
+            0,
+            0.0,
+            0.0,
+            10.0,
+            -1
+          ]
+        ],
+        "feed_outside": {
+          "bytes_b64": ""
+        },
+        "rapid_outside": {
+          "bytes_b64": "AA=="
+        }
+      }
+    },
+    {
+      "case": "percent_without_seed",
+      "program": "%\nG21 G90\nG53 G0 Z0\nG0 X1\nM2\n%\n",
+      "run": {
+        "events": [
+          {
+            "next_line": 0
+          },
+          {
+            "next_line": 1
+          },
+          {
+            "next_line": 3
+          },
+          {
+            "next_line": 4
+          },
+          {
+            "next_line": 5
+          }
+        ],
+        "program": "/tmp/codex-r57-lh4sb5lt/evidence/percent_without_seed.ngc",
+        "seed": null,
+        "initcodes": [
+          "G21",
+          "G90",
+          "G54"
+        ],
+        "parse_error": null,
+        "feed": 0,
+        "rapid": 2,
+        "tlo_events": [],
+        "violations_total": 0,
+        "violations": [],
+        "interp_s": 0.0,
+        "total_s": 0.0,
+        "maxrss_mb": 47.6
+      },
+      "origins": [],
+      "kept_rows": [],
+      "payload": {
+        "file": "/tmp/codex-r57-lh4sb5lt/evidence/percent_without_seed.ngc",
+        "parse_tlos": [
+          [
+            1,
+            0.0,
+            0.0,
+            10.0,
+            6.0
+          ]
+        ],
+        "preview_schema": 9,
+        "feed": {
+          "bytes_b64": ""
+        },
+        "feed_lines": {
+          "bytes_b64": ""
+        },
+        "feed_seq": {
+          "bytes_b64": ""
+        },
+        "rapid_seq": {
+          "bytes_b64": "AQAAAAIAAAA="
+        },
+        "rapid_lines": {
+          "bytes_b64": "AwAAAAQAAAA="
+        },
+        "feed_tcum": {
+          "bytes_b64": ""
+        },
+        "rapid_tcum": {
+          "bytes_b64": "AAAAAM3MzD0="
+        },
+        "rapid_rate": 10.0,
+        "rot_rapid_rate": null,
+        "tool_change_lines": [],
+        "rapid": {
+          "bytes_b64": "AAAAAAAAAAAAAAAAAACAPwAAAAAAAAAA"
+        },
+        "stats": {
+          "feedMoves": 0,
+          "rapidMoves": 2,
+          "linearMoves": 0,
+          "arcMoves": 0,
+          "feedDist": 0.0,
+          "rapidDist": 1.0,
+          "linearDist": 0.0,
+          "arcDist": 0.0,
+          "feedTime": 0.0,
+          "rapidTime": 0.1,
+          "totalTime": 0.1,
+          "feedRates": [],
+          "toolChanges": 0,
+          "toolsUsed": [],
+          "unit": "mm",
+          "fileSize": 31
+        },
+        "bounds": null,
+        "motion_bounds": {
+          "min": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "max": [
+            0.9999999999999999,
+            0.0,
+            0.0
+          ]
+        },
+        "violations": [],
+        "violations_total": 0,
+        "lines_untrusted": false,
+        "lines_untrusted_reason": "",
+        "wcs_basis_index": 1,
+        "wcs_used": [
+          1
+        ],
+        "wcs_basis": {
+          "g5x": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "g92": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "rotation": 0.0
+        },
+        "parse_error": null,
+        "error_line": null,
+        "feed_lineok": {
+          "bytes_b64": ""
+        },
+        "rapid_lineok": {
+          "bytes_b64": "AQE="
+        },
+        "rapid_ustart": {
+          "bytes_b64": "AQA="
+        },
+        "wcs_frames": [
+          [
+            0,
+            1,
+            0.0,
+            0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "feed_outside": {
+          "bytes_b64": ""
+        },
+        "rapid_outside": {
+          "bytes_b64": "AAA="
+        }
+      }
+    }
+  ],
+  "condition_checks": [
+    {
+      "name": "valid",
+      "rows": [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "origins": [
+        1
+      ],
+      "source": " \t% \n",
+      "seed": [
+        0.0,
+        0.0,
+        10.0
+      ],
+      "kept_rows": [],
+      "pass": true
+    },
+    {
+      "name": "not_first",
+      "rows": [
+        [
+          0,
+          0.0,
+          0.0,
+          5.0,
+          -1
+        ],
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "origins": [
+        2,
+        1
+      ],
+      "source": "%\nG43.1 Z5\n",
+      "seed": [
+        0.0,
+        0.0,
+        10.0
+      ],
+      "kept_rows": [
+        [
+          0,
+          0.0,
+          0.0,
+          5.0,
+          -1
+        ],
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "pass": true
+    },
+    {
+      "name": "not_seq_zero",
+      "rows": [
+        [
+          1,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "origins": [
+        1
+      ],
+      "source": "%\n",
+      "seed": [
+        0.0,
+        0.0,
+        10.0
+      ],
+      "kept_rows": [
+        [
+          1,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "pass": true
+    },
+    {
+      "name": "real_command",
+      "rows": [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "origins": [
+        2
+      ],
+      "source": "%\nG43.1 Z10\n",
+      "seed": [
+        0.0,
+        0.0,
+        10.0
+      ],
+      "kept_rows": [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "pass": true
+    },
+    {
+      "name": "unknown_origin",
+      "rows": [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "origins": [
+        null
+      ],
+      "source": "%\n",
+      "seed": [
+        0.0,
+        0.0,
+        10.0
+      ],
+      "kept_rows": [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "pass": true
+    },
+    {
+      "name": "different_vector",
+      "rows": [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "origins": [
+        1
+      ],
+      "source": "%\n",
+      "seed": [
+        0.0,
+        0.0,
+        20.0
+      ],
+      "kept_rows": [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "pass": true
+    },
+    {
+      "name": "different_vector_bits",
+      "rows": [
+        [
+          0,
+          -0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "origins": [
+        1
+      ],
+      "source": "%\n",
+      "seed": [
+        0.0,
+        0.0,
+        10.0
+      ],
+      "kept_rows": [
+        [
+          0,
+          -0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "pass": true
+    },
+    {
+      "name": "own_tool",
+      "rows": [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          2
+        ]
+      ],
+      "origins": [
+        1
+      ],
+      "source": "%\n",
+      "seed": [
+        0.0,
+        0.0,
+        10.0
+      ],
+      "kept_rows": [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          2
+        ]
+      ],
+      "pass": true
+    },
+    {
+      "name": "at_most_one",
+      "rows": [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ],
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "origins": [
+        1,
+        1
+      ],
+      "source": "%\n",
+      "seed": [
+        0.0,
+        0.0,
+        10.0
+      ],
+      "kept_rows": [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "pass": true
+    },
+    {
+      "name": "no_seed",
+      "rows": [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "origins": [
+        1
+      ],
+      "source": "%\n",
+      "seed": null,
+      "kept_rows": [
+        [
+          0,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "pass": true
+    }
+  ]
+}

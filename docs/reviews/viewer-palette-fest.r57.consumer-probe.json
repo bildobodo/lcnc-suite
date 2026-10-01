@@ -1,0 +1,281 @@
+{
+  "commit": "06a15ef05cb79064410b905442881cd3fe7ab75e",
+  "method": "Actual preview decode, scrub merge, TLO/tool resolver and joint conversion. Proposed immutable tlo_start supplied as fallback; no live status or product changes.",
+  "cases": [
+    {
+      "case": "percent_g53",
+      "original_events": [
+        [
+          0,
+          0,
+          0,
+          10,
+          -1
+        ]
+      ],
+      "retained_events": [],
+      "resolved": [
+        {
+          "p": [
+            0,
+            0,
+            -10
+          ],
+          "abc": [
+            0,
+            0,
+            0
+          ],
+          "offset": [
+            0,
+            0,
+            10
+          ],
+          "tool": 1,
+          "joints": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "p": [
+            1,
+            0,
+            -10
+          ],
+          "abc": [
+            0,
+            0,
+            0
+          ],
+          "offset": [
+            0,
+            0,
+            10
+          ],
+          "tool": 1,
+          "joints": [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "equal": true
+    },
+    {
+      "case": "codex_r56",
+      "original_events": [
+        [
+          0,
+          0,
+          0,
+          0,
+          -1
+        ],
+        [
+          0,
+          0,
+          0,
+          10,
+          -1
+        ]
+      ],
+      "retained_events": [
+        [
+          0,
+          0,
+          0,
+          0,
+          -1
+        ],
+        [
+          0,
+          0,
+          0,
+          10,
+          -1
+        ]
+      ],
+      "resolved": [
+        {
+          "p": [
+            0,
+            0,
+            0
+          ],
+          "abc": [
+            0,
+            0,
+            0
+          ],
+          "offset": [
+            0,
+            0,
+            10
+          ],
+          "tool": 1,
+          "joints": [
+            0,
+            0,
+            10,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "p": [
+            10,
+            0,
+            0
+          ],
+          "abc": [
+            0,
+            0,
+            0
+          ],
+          "offset": [
+            0,
+            0,
+            10
+          ],
+          "tool": 1,
+          "joints": [
+            10,
+            0,
+            10,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "equal": true
+    },
+    {
+      "case": "percent_g431",
+      "original_events": [
+        [
+          0,
+          0,
+          0,
+          10,
+          -1
+        ],
+        [
+          0,
+          0,
+          0,
+          10,
+          -1
+        ]
+      ],
+      "retained_events": [
+        [
+          0,
+          0,
+          0,
+          10,
+          -1
+        ]
+      ],
+      "resolved": [
+        {
+          "p": [
+            0,
+            0,
+            0
+          ],
+          "abc": [
+            0,
+            0,
+            0
+          ],
+          "offset": [
+            0,
+            0,
+            10
+          ],
+          "tool": 1,
+          "joints": [
+            0,
+            0,
+            10,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "equal": true
+    },
+    {
+      "case": "percent_without_seed",
+      "original_events": [],
+      "retained_events": [],
+      "resolved": [
+        {
+          "p": [
+            0,
+            0,
+            0
+          ],
+          "abc": [
+            0,
+            0,
+            0
+          ],
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "tool": 1,
+          "joints": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "p": [
+            1,
+            0,
+            0
+          ],
+          "abc": [
+            0,
+            0,
+            0
+          ],
+          "offset": [
+            0,
+            0,
+            0
+          ],
+          "tool": 1,
+          "joints": [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "equal": true
+    }
+  ]
+}

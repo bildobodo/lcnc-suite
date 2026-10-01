@@ -6097,3 +6097,65 @@ und gleichem Wert wie der Seed.
 ### Prüfstand
 
 Nur Plan und eine native Protokollierung. Keine Produktänderung, kein Gate.
+
+---
+
+## Review R57 · Codex · seq-0-Entnahme Fassung 6 · 1. Oktober 2026
+
+**Stand:** `a8eff5c..06a15ef`, ausschließlich VP56-01.
+**Ergebnis: agreement — VP56-01 auf Planebene geschlossen.**
+Die fünf Bedingungen beschränken die Entnahme auf den führenden,
+textgeprüften `%`-Startzustandseintrag. Die in R56 beanstandete
+wertbasierte Entnahme späterer Programmereignisse entfällt.
+
+Damit besteht **Plan-Agreement für VP-I20 in der zuletzt fortgeschriebenen
+Fassung**. Die übrigen Abnahmen bleiben bestehen. Das ist noch keine
+Implementierungsabnahme; die vereinbarten Wächter, Kostenmessungen und
+Pipeline-Prüfungen bleiben für die Umsetzung erforderlich.
+
+### Nachprüfung
+
+Eigene frische native Offline-Parses bestätigen die Herkunftsangaben:
+
+| Fall | Ergebnis der F6-Regel |
+|---|---|
+| R56: G49, anschließend G43.1 Z10 | Beide Ereignisse aus L2/L3 bleiben; erste Achsposition **Z10** |
+| `%`, anschließend G43.1 Z10 | Nur der Eintrag aus der `%`-Zeile entfällt; das echte G43.1 bleibt, Achsposition **Z10** |
+| `%` mit geerbtem Offset, danach G53 | Genau der führende Startzustandseintrag entfällt; der Resolver übernimmt denselben Offset aus der Parse-Basis |
+| `%` ohne Seed | Kein Ereignis vorhanden, keine Entnahme |
+
+Die vier Datensätze wurden vor und nach der geplanten Entnahme durch den
+vorhandenen Decoder, Scrub-Aufbau, TLO-/Werkzeug-Resolver und die
+Achspositionsrechnung geführt. Aufgelöste Offsets, Werkzeugidentität und
+Achspositionen stimmen jeweils überein. Der R56-Gegenfehler Z0 statt Z10
+tritt unter dieser Regel nicht mehr auf.
+
+Zusätzlich zehn Prüfungen der Auswahlregel: gültiger Eintrag, nicht erster
+Eintrag, seq ungleich 0, echte Programmzeile, unbekannte Herkunft,
+abweichender Vektor bzw. abweichendes Bitmuster, eigene Werkzeugnummer,
+höchstens eine Entnahme und fehlender Seed. Alle bestanden. Die Bedingung
+zur eigenen Werkzeugwahl wurde als gezielter Regeltest geprüft; es wurde
+kein M6 an der laufenden Instanz ausgeführt.
+
+### Umsetzung
+
+Die Herkunft am Canon-Ereignis festhalten und bei der Auswahl diesem
+Eintrag zuordnen; gleiche seq allein unterscheidet die Einträge gerade
+nicht. Bei fehlender oder nicht sicher zuordenbarer Herkunft bleibt der
+Eintrag erhalten. Die übernommenen Regeln zu unveränderten Originaldaten,
+gemeinsamem Basiswechsel, veraltetem Sweep und Datei-/Versionsbindung
+sind passend. **Keine weiteren offenen Planbefunde in diesem Umfang.**
+
+### Belege und Prüfgrenzen
+
+- [Native Herkunftsproben und zehn Regelprüfungen](viewer-palette-fest.r57.probe.json)
+- [Runner mit F6-Regelmodell](viewer-palette-fest.r57.probe.py), [synthetische native Hilfssonde](viewer-palette-fest.r57.native-case.py)
+- [Verbraucherprüfungen](viewer-palette-fest.r57.consumer-probe.test.ts), [aufgelöste Zustände](viewer-palette-fest.r57.consumer-probe.json)
+- [4/4 Viewer-Tests PASS](viewer-palette-fest.r57.vitest-results.json), [isolierte Konfiguration](viewer-palette-fest.r57.vitest.config.mjs)
+- [Reproduktion und SHA256](viewer-palette-fest.r57.manifest.json)
+
+**Vier native Parses ohne Fehler/Absturz, zehn Regelprüfungen und vier
+gezielte Viewer-Tests bestanden.** Archivkopie unter `/tmp`, synthetische
+INI/STAT, seriell mit nice 19. Die Entnahmeregel wurde für diese Planprobe
+modelliert; Produktcode blieb unverändert. Keine Live-Ports, kein Live-STAT,
+keine Maschinenbefehle, kein Browserlauf, Build oder vollständiges Gate.
