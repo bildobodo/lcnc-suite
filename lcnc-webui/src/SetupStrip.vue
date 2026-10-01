@@ -4,6 +4,7 @@ import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import ChoiceGroup from "./ChoiceGroup.vue";
 import type { ChoiceOption } from "./choiceGroup";
+import SetupIcon from "./SetupIcon.vue";
 import HelpIcon from "./HelpIcon.vue";
 import { useAxes, isRotaryAxis } from "./useAxes";
 import { kinsModeChip, type OffDatum } from "./twpPose";
@@ -187,8 +188,16 @@ function zeroAll() {
           <div v-for="(chunk, ci) in axisChunks" :key="ci" class="setupGrid">
             <template v-for="a in chunk" :key="a.letter">
               <MachineInput :gate="isRotaryAxis(a.letter) ? 'touchoffRotary' : 'touchoff'" type="number" :label="targetLabel(a.letter)" :value="fmtAxisInput(workPos[a.index], a.letter)" @input="emit('setAxis', a.index, +($event.target as HTMLInputElement).value, expectNow())" class="setupInput" />
-              <MachineBtn :type="isRotaryAxis(a.letter) ? 'zeroRotary' : 'zero'" @click="emit('setAxis', a.index, 0, expectNow())">Zero {{ a.letter }}</MachineBtn>
-              <MachineBtn :type="homedJoints[a.index] ? 'unhome' : 'home'" @click="homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)"><span class="stable-width"><span :class="{ alt: homedJoints[a.index] }">Home {{ a.letter }}</span><span :class="{ alt: !homedJoints[a.index] }">Unhome {{ a.letter }}</span></span></MachineBtn>
+              <!-- A symbol and the axis letter (operator 2026-10-01: the words
+                   took the strip's width); the name and the hover title say
+                   the action. The two houses are one size: no width jump. -->
+              <MachineBtn :type="isRotaryAxis(a.letter) ? 'zeroRotary' : 'zero'"
+                          :aria-label="`Zero ${a.letter}`" :title="`Hold to zero ${a.letter}`"
+                          @click="emit('setAxis', a.index, 0, expectNow())"><SetupIcon kind="zero" />{{ a.letter }}</MachineBtn>
+              <MachineBtn :type="homedJoints[a.index] ? 'unhome' : 'home'"
+                          :aria-label="`${homedJoints[a.index] ? 'Unhome' : 'Home'} ${a.letter}`"
+                          :title="`Hold to ${homedJoints[a.index] ? 'unhome' : 'home'} ${a.letter}`"
+                          @click="homedJoints[a.index] ? emit('unhomeAxis', a.index) : emit('homeAxis', a.index)"><SetupIcon :kind="homedJoints[a.index] ? 'unhome' : 'home'" />{{ a.letter }}</MachineBtn>
             </template>
           </div>
         </div>
@@ -196,8 +205,10 @@ function zeroAll() {
              none of these acts on a value being typed, and at 150 % the
              column could not hold the edited field above the keypad. -->
         <div class="actionRow aggregateRow foldOnEntry">
-          <MachineBtn type="zero" @click="zeroAll()" :title="isSwitchable ? 'Zero the linear axes only' : undefined">{{ zeroAllLabel }}</MachineBtn>
-          <MachineBtn :type="isHomed ? 'unhome' : 'home'" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome All</span></span></MachineBtn>
+          <!-- The same symbols beside the words: the row the axis symbols are
+               read from -->
+          <MachineBtn type="zero" @click="zeroAll()" :title="isSwitchable ? 'Zero the linear axes only' : undefined"><SetupIcon kind="zero" />{{ zeroAllLabel }}</MachineBtn>
+          <MachineBtn :type="isHomed ? 'unhome' : 'home'" @click="isHomed ? emit('unhomeAll') : emit('homeAll')"><SetupIcon :kind="isHomed ? 'unhome' : 'home'" /><span class="stable-width"><span :class="{ alt: isHomed }">Home All</span><span :class="{ alt: !isHomed }">Unhome All</span></span></MachineBtn>
         </div>
         <!-- Action rows: three EQUAL cells spanning the grid (never one
              button per 80px/1fr/1fr track — the G30 button used to sit in
