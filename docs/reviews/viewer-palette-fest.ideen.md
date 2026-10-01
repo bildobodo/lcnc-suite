@@ -4870,23 +4870,38 @@ Fall, echter Worker mit dem eingefügten Startoffset; Beleg
   Maschinenziel 0.
 - **Drift (Unit):** nur `G53`-Abhängigkeit → nie; Abstand und `DRAW_EPS`
   einzeln.
-- **Live**, sobald der Operator die anstehende Auslösung quittiert hat:
+- **Live:**
   - **Grundannahme, zweite Form:** `G43.1 Z12.345` (anders als die
     Tabelle), `G49` und `G43 H13` jeweils per MDI, ein Programm mit
     `G0 Z-100`. Gelenk Z und `STAT.tool_offset` beim Start werden gegen
     die Erwartung gelesen. Danach wird G43 H13 wiederhergestellt.
+    **Erledigt**, siehe unten.
   - **`heavy_test`-Szenario:** ruhig.
   - **`G43.1` +1 mm per MDI:** ein Neu-Parse.
 
-### Live-Stand und Auslösung
+### Grundannahme, zweite Form: live bestätigt (1. Oktober, 08:4x)
 
-- Der erste Versuch des Live-Belegs in zweiter Form lief um 23:46 in eine
-  **anstehende Sicherheitsauslösung**. Alle Befehle wurden abgelehnt,
-  nichts hat sich bewegt.
-- **Ursache:** Der Browser des Operators trennte sich um 23:38:15 als
-  letzter Client. Um 23:38:18 verriegelte der HAL-Watchdog wie vorgesehen.
-- Ich quittiere nicht; der Live-Beleg folgt nach der Quittierung durch den
-  Operator.
+- Der Operator hat die Auslösung von 23:38 um 08:12 quittiert. Danach lief
+  der Beleg auf dem XYZAC-Sim, LinuxCNC 2.9.4.
+- **Aufbau:** G54 aktiv (Z −109,725), T13 in der Spindel (Tabelle 65,0512).
+  Ein Programm ohne eigenes G43 fährt `G0 Z-100`. Vor jedem Start wird der
+  Offset per MDI gesetzt.
+- **Ergebnis:** Gelenk Z nach dem Zug ist in allen drei Fällen genau
+  −100 + G54 + angewandter Offset:
+
+  | Offset per MDI | angewandt beim Start | Gelenk Z gemessen | erwartet |
+  |---|---|---|---|
+  | `G43.1 Z12.345` (≠ Tabelle) | 12,3450 | −197,3800 | −197,3800 |
+  | `G49` | 0 | −209,7250 | −209,7250 |
+  | `G43 H13` | 65,0512 | −144,6738 | −144,6738 |
+
+- Das Programm übernimmt also den **angewandten** Offset, nicht die
+  Tabellenzeile. Das M2 des Programms lässt ihn stehen.
+- Danach wurden G43 H13 und `heavy_test` wiederhergestellt, und die
+  Maschine ist wieder aus, wie der Operator sie verlassen hat.
+- [Protokoll](viewer-palette-fest.plan-vp-i20.live-premise.txt).
+- Die übrigen Live-Wächter aus F (`heavy_test` ruhig, `G43.1` +1 mm → ein
+  Neu-Parse) gehören zur Umsetzung.
 
 ### Prüfstand
 

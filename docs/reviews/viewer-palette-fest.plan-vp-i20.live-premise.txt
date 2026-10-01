@@ -1,0 +1,15 @@
+VP-I20 plan, Fassung 2 — live premise, second form (Codex R52), XYZAC sim, LinuxCNC 2.9.4, 2026-10-01 08:4x CEST
+Program /home/cnc/linuxcnc/nc_files/vp_i20_premise2.ngc (no G43 of its own):
+  (VP-I20 premise check 2, 2026-09-30: the APPLIED tool offset at program start moves the machine)
+  (DEBUG, VP-I20b start #5403=#5403)
+  G0 Z-100
+  M2
+Per case: MDI <code> → idle → read STAT.tool_offset[2] and g5x_offset[2] → cycle_start → idle → read joint_actual_position[2].
+G54 active (Z -109.725), T13 in the spindle (table Z 65.0512), X 214.591 Y 87.325 (outside the tool setter window).
+Afterwards: G43 H13 restored, heavy_test reloaded, machine off as the operator left it (trip acknowledged by the operator 08:12:54).
+
+A G43.1 Z12.345: applied at start 12.3450  joint Z after G0 Z-100 -197.3800  expected (-100 + G54 -109.725 + applied) -197.3800  applied after 12.3450
+B G49: applied at start 0.0000  joint Z after G0 Z-100 -209.7250  expected (-100 + G54 -109.725 + applied) -209.7250  applied after 0.0000
+C G43 H13: applied at start 65.0512  joint Z after G0 Z-100 -144.6738  expected (-100 + G54 -109.725 + applied) -144.6738  applied after 65.0512
+reload heavy_test: True
+final applied 65.0512 G43 True
