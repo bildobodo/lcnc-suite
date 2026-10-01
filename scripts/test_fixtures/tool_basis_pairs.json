@@ -58,7 +58,7 @@
       6.0
      ]
     ],
-    "preview_schema": 9,
+    "preview_schema": 10,
     "rapid": {
      "bytes_b64": "AAAAAAAAAAAAACDBAACgQAAAoEAAACDBAACgQAAAoEAAAHBB"
     },
@@ -227,7 +227,7 @@
       6.0
      ]
     ],
-    "preview_schema": 9,
+    "preview_schema": 10,
     "rapid": {
      "bytes_b64": "AAAAAAAAAAB7FCDBAACgQAAAoEB7FCDBAACgQAAAoEAAAHBB"
     },
@@ -387,7 +387,7 @@
       6.0
      ]
     ],
-    "preview_schema": 9,
+    "preview_schema": 10,
     "rapid": {
      "bytes_b64": "AAAAAAAAAAAAACDBAAAgQQAAAAAAACDBAAAgQQAAAAAAACDCAAAgQQAAAAAAACBC"
     },
@@ -543,7 +543,7 @@
       6.0
      ]
     ],
-    "preview_schema": 9,
+    "preview_schema": 10,
     "rapid": {
      "bytes_b64": "AAAAAAAAAAAAAKDBAAAgQQAAAAAAAKDBAAAgQQAAAAAAACDCAAAgQQAAAAAAACBC"
     },

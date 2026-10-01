@@ -7472,3 +7472,31 @@ datum shift.
   both machine-frame only. The gateway's writers of that file share
   `_var_file_lock` (after `_cmd_lock`), a cancelled writer thread holds it
   to its end; an external editor is outside that lock (Codex R21–R24).
+
+## 2026-10-01 (suite stop) — Schema 10, goldens, and the TWP live gate is stale since R15 B2
+
+**Schema 10** (`PREVIEW_SCHEMA` / `EXPECTED_PREVIEW_SCHEMA`, 76df618): the start
+tool state (`tlo_start` / `start_known` / `start_reason`, `violations_reason`)
+and the `%` init phase of VP-I20 (Codex R51–R60). It reached the live tree only
+with the suite stopped (a fresh worker's 10 against a running gateway's
+imported 9 is the mismatch edge's endless re-parse). Goldens: `3axis` haus /
+kontur / 1001 against a headless `DISPLAY = dummy` copy of the 3-axis INI
+(stdin on a FIFO; the writer is the exec'd `sleep` — killing it shuts the
+instance down), `twp_gantry/twp_simple_example` against the running gantry
+suite — every one moved in the schema field ALONE (`check` showed only
+`preview_schema 9 → 10` before regenerating; none is a `%` program on a
+rotary config), then CLEAN. `tool_basis_pairs.json` regenerated the same way
+(schema field only). After the XYZAC restart a gateway `load_file` of
+heavy_test published schema 10 once and nothing followed for 40 s (no loop).
+
+**The TWP live gate (`test_suite.py live-twp`) is stale.** Its goldens step
+passed; `live-parity` failed all eleven runs with "gateway payload never
+settled": `sim_parity.py` (and `twp_parity.py`'s run capture) still open
+programs with `linuxcnc.command().program_open`, and since R15 B2 the gateway
+takes a program only from its own `load_file` (`status.file_flip_ignored`,
+"no load context") — so it never parses the corpus program. `load_file` also
+admits only files under the program folder, while the runner materialises the
+corpus into its output directory. The gate has not run since 2026-09-27; it
+needs its own migration (load through the gateway, corpus under the program
+folder, the button/capture scripts checked for the same assumption) before
+its next acceptance — a harness defect, not a product regression of schema 10.
