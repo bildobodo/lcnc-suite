@@ -4716,3 +4716,186 @@ oben beschriebenen Fehler; ihr erfolgreicher Ablauf bedeutet keine Abnahme.
 Kein vollständiges Offline-Gate und keine Maschinenfahrt wiederholt.
 Nächste Runde auf die überarbeitete VP-I20-Planfassung und VP-I21 begrenzen;
 Settings bleibt abgenommen, sofern es dafür unverändert bleibt.
+
+---
+
+## Antwort R53 · Claude · VP-I21 behoben, Plan VP-I20 Fassung 2 · 1. Oktober 2026
+
+Deine R52-Belege stehen unverändert in `36b35cb`.
+
+### VP-I21 · die laufende Zeile bleibt im Bild (`ffd8d52`)
+
+- **Sichtbarkeitsband:** Ein Gleiten beginnt jetzt innerhalb des Bands der
+  laufenden Zeile (`visibleBand`). Das Band sind die Scroll-Positionen, bei
+  denen die Zeile mit einer Zeile Rand ganz im Fenster steht, über die
+  lineare Abbildung des skalierten Scrollraums gerechnet.
+- Ein Schritt über das Band hinaus setzt den Text sofort an dessen Rand,
+  im selben Frame wie der Wechsel der Hervorhebung. Den Rest gleitet er.
+- Ein Fenster unter drei Zeilen setzt sofort.
+- Es wird keine andere Zeile als aktuell markiert.
+- **Wächter** (`layout.spec`): In jedem Frame steht die markierte Zeile
+  ganz im Fenster. Geprüft bei 3 Zeilen je Paket und bei 20 Zeilen je
+  Paket vorwärts, dann rückwärts.
+  - Ohne Band: **128 von 168 Frames** außerhalb (deine Messung: 81 %).
+  - Mit Band: 0 in zwei Läufen.
+  - Die Gleichmäßigkeit bei 3 Zeilen bleibt: 97–99 % der Frames bewegen
+    sich, höchstens 1 % um einen ganzen Paketschritt.
+- **Unit-Tests:** Band, Abbildung über einen halb so hohen Spacer,
+  Rücksprung und zu kleines Fenster.
+
+### VP-I20 · Fassung 2
+
+Ich übernehme VP52-01 bis VP52-03 und die Ergänzungen. Die Grundrichtung
+bleibt: Der Parse beginnt im Startzustand der Maschine.
+
+**Nativ geprüft vor dieser Fassung** (eigene Sonde, ein frischer Prozess je
+Fall, echter Worker mit dem eingefügten Startoffset; Beleg
+[native.json](viewer-palette-fest.plan-vp-i20.native.json), Sonden
+[native-case.py](viewer-palette-fest.plan-vp-i20.native-case.py) und
+[native-case-g53.py](viewer-palette-fest.plan-vp-i20.native-case-g53.py)):
+- **`gcode.linecode` bei einer Offset-Änderung:** Der Canon sieht den
+  Zustand **vor** dem Satz. `tool_length_offset` und die Gruppe-8-Codes
+  zeigen bei G43.1, G43.2, G43 und G49 gleichermaßen 430.
+- **Zustand nach dem Satz** (beim nächsten `next_line`): Nur **G49 → 490**
+  ist unterscheidbar. G43, G43.1 und G43.2 erscheinen alle als **430**.
+- **`G53`:** Der Zustand nach einem `G53`-Satz trägt **530**; der
+  Bewegungsaufruf selbst sieht noch den Zustand davor.
+- **`G53 G0 Z0` bei Startoffset 10:** Der Canon-Punkt liegt auf Z−10 und
+  bestätigt deine Rechnung.
+- **Ein Markerwert auf einer freien Achse scheidet aus.** Ohne W-Achse
+  lehnt der Interpreter `G43.1 … W…` ab: „Bad character 'w' used“.
+- **Nicht lauffähig:** `G43 H2` und `T2 M6` stürzen in dieser
+  synthetischen Sonde ab, wie dein H1-Versuch. Sie sind nicht gezählt.
+
+**A. Start im Startzustand** (wie Fassung 1, mit deinen Ergänzungen):
+- **Initzeile:** `G43.1 X… Y… Z…`, gegebenenfalls mit A–W, wenn die
+  Maschine Werte darin hat, in Maschineneinheiten.
+  - **Position:** nach `unitcode` und `G90` und nach der
+    Rotary-Synchronisierung, vor dem WCS-Code.
+- **Quelle:** live aus STAT, im gepinnten Parse aus
+  `seed_tool.applied_tlo`, für die Gates aus `ctx["applied_tlo"]`. Alle
+  drei an derselben Lesestelle, sodass eingesetzter und gemeldeter Wert
+  derselbe sind.
+- **Unbekannter Startwert** (STAT fehlt, Wert nicht endlich, Pinned ohne
+  Seed): kein Seed. Die abhängigen Segmente werden **ungeprüft**
+  gezählt, nach dem Muster von `violations_world_unchecked`: das Feld
+  `violations_start_unchecked` und eine Zeile „N Züge vor dem ersten G49
+  nicht geprüft“ in der Statistik. Nie stillschweigend 0 und nie live.
+
+**B. Abhängigkeit, konservativ (VP52-01):**
+- **Markierung:** Jedes Segment trägt `dep`. Es ist wahr ab Start, bis der
+  Zustand nach einem Satz **G49 (490)** zeigt. Der Satz des G49 ist damit
+  belegt.
+- **G43-Familie und M6** beenden die Abhängigkeit nicht. Nativ ist G43
+  nicht von G43.1 oder G43.2 zu unterscheiden.
+  - Die konservative Folge: Ein echtes `G43 H…` gilt weiter als abhängig.
+  - Das kostet höchstens einen unnötigen Neu-Parse, nie einen übersehenen
+    Befund.
+  - Optional später: das Ende auch bei einem Ergebnisvektor, der einer
+    Tabellenzeile gleicht und keiner Summe Start + Zeile entspricht. Das
+    schlage ich jetzt nicht vor.
+- **`g53`:** Ein Segment ist ein `G53`-Zug, wenn der Zustand nach seinem
+  Satz 530 trägt. Es wird rückwirkend markiert, über die Segmente seit
+  dem letzten `next_line`.
+
+**C. Basis für Darstellung, Scrub und Kollision (VP52-02):**
+- Die Nutzdaten tragen den Startoffset ausdrücklich als `tlo_start`.
+  - `tloForIndex` löst „vor der ersten TLO-Zeile“ künftig auf `tlo_start`
+    auf, nicht auf den Live-Offset.
+  - Damit gilt eine Basis für Zeichnung, Scrub, Kollision und Part-Frame,
+    denn alle nutzen denselben Resolver.
+  - Ein `G53`-Punkt kommt genau auf sein Maschinenziel zurück, gleich wie
+    der Live-Offset steht.
+- Die Zeilen nach G43.1/G43.2 tragen die Werte, die der Interpreter auf
+  dieser Basis berechnet hat.
+- Nutzdaten ohne `tlo_start` (alt): der bisherige Weg mit dem
+  Live-Offset, benannt.
+- **Während des Laufs:** Das Programm-eigene G43/G49 trennt Live und Start.
+  Das ist keine Drift; der gepinnte Parse behält seine Basis. Verglichen
+  wird erst im Leerlauf (D).
+
+**D. Gültigkeit getrennt von der Rechenhäufigkeit (VP52-03):**
+- **Grenzabstand:** Der Worker berechnet je Achse und Richtung den kleinsten
+  Abstand (`start_slack`) zu den Soft-Limits.
+  - Eingerechnet werden die Gelenkstellungen der Segmente mit `dep` und
+    nicht `g53`, mit Identitätskinematik und im Gelenkraum des Validators.
+  - Eine Änderung Δ des angewandten Offsets verschiebt diese Gelenke genau
+    um Δ. Die Befunde bleiben gültig, solange −Abstand_unten < Δ <
+    Abstand_oben für jede Achse.
+  - Abhängige Segmente unter Welt-Kinematik (TCP/TWP) bekommen den Abstand
+    0, das heißt jede Änderung parst neu.
+- **`G53`-Segmente** sind weder für die Grenze noch für die Zeichnung von
+  Δ abhängig (C), daher nie Anlass.
+- **Zeichnung:** Abhängige Nicht-`G53`-Segmente sind auf der Startbasis
+  gezeichnet, und der echte Lauf liegt um Δ daneben. `DRAW_EPS` = 0,01 mm
+  ist ausschließlich eine Darstellungsschranke.
+- **Leerlauf-Flanke:** `tool_offset` genau dann, wenn abhängige
+  Nicht-`G53`-Segmente existieren und Δ außerhalb des Grenzabstands liegt
+  **oder** |Δ|∞ > `DRAW_EPS`.
+  - Bis der neue Parse da ist, gilt die bestehende Stale-Markierung: Pfad
+    gedämpft, „Preview re-parsing“. Eine abweichende Basis wird nie als
+    aktuell geprüft ausgegeben.
+- **Dein Fall `limit_near`:** Abstand oben 0,001 mm, Δ 0,005 mm → Neu-Parse
+  → Z50,004 > 50 wird gemeldet.
+- **Der R51-Operator-Fall:** Ein `G53`-Vorlauf und Nicht-`G53`-Züge mit
+  µm-Δ unter `DRAW_EPS` und mit mm-Abstand bleiben ruhig. Ob die
+  Unterprogramm-Züge vor dem G49 von M600 Nicht-`G53` sind, zeigt der
+  Live-Test.
+
+**E. Weiteres:**
+- **Einheiten:** Vektor XYZ und, sofern belegt, A–W. Zoll-Maschinen
+  rechnen die Schranken in Maschineneinheiten um.
+- **Alte Metadaten** ohne die neuen Schlüssel: kein `tool_offset`.
+  - Das ist kein Nachweis einer vollständigen Prüfung.
+  - Nach einem Gateway-Neustart parsen ohnehin alle Programme neu.
+  - Ein veröffentlichter Parse ohne die Schlüssel ist daher nur ein
+    Übergangszustand bis zum ersten Parse mit dem neuen Worker. Er wird als
+    „Start nicht geprüft“ geführt, nicht als geprüft.
+- **Schema:** Die neuen Nutzdaten-Schlüssel ändern das Wire-Format. Der
+  Schema-Sprung kommt beim nächsten Suite-Stopp, nicht im laufenden
+  Betrieb.
+
+**F. Wächter, jeweils zuerst rot:**
+- **Native Fälle:**
+  - Z45 bei Startoffset 10 → Z55 gemeldet, positive Kontrolle.
+  - G49 zuerst → keine Abhängigkeit.
+  - `G53 G0 Z0` im Vorlauf: `g53`, kein Befund, Maschinenziel nach C.
+  - G43.1 X2 und G43.2 Z2: Die Abhängigkeit bleibt.
+  - `limit_near`: Abstand 0,001.
+  - Ein Segment unter Welt-Kinematik: Abstand 0.
+  - Unbekannter Startwert: als ungeprüft gezählt.
+  - Zoll-INI.
+- **Client (Vitest):** `tlo_start` für Zeichnung, Scrub und Sweep; dein
+  Rechenfall aus der Client-Sonde ergibt bei Live 20 / Start 10 das
+  Maschinenziel 0.
+- **Drift (Unit):** nur `G53`-Abhängigkeit → nie; Abstand und `DRAW_EPS`
+  einzeln.
+- **Live**, sobald der Operator die anstehende Auslösung quittiert hat:
+  - **Grundannahme, zweite Form:** `G43.1 Z12.345` (anders als die
+    Tabelle), `G49` und `G43 H13` jeweils per MDI, ein Programm mit
+    `G0 Z-100`. Gelenk Z und `STAT.tool_offset` beim Start werden gegen
+    die Erwartung gelesen. Danach wird G43 H13 wiederhergestellt.
+  - **`heavy_test`-Szenario:** ruhig.
+  - **`G43.1` +1 mm per MDI:** ein Neu-Parse.
+
+### Live-Stand und Auslösung
+
+- Der erste Versuch des Live-Belegs in zweiter Form lief um 23:46 in eine
+  **anstehende Sicherheitsauslösung**. Alle Befehle wurden abgelehnt,
+  nichts hat sich bewegt.
+- **Ursache:** Der Browser des Operators trennte sich um 23:38:15 als
+  letzter Client. Um 23:38:18 verriegelte der HAL-Watchdog wie vorgesehen.
+- Ich quittiere nicht; der Live-Beleg folgt nach der Quittierung durch den
+  Operator.
+
+### Prüfstand
+
+- **VP-I21:** Das Offline-Gate auf `ffd8d52` ist bestanden: Backend 1108,
+  Unit 1824, Browser 380, dazu Lint, Build und CSS-Audit.
+  - Ein erster Lauf scheiterte nur in `run-hold.spec:315`, dem Fall „a macro
+    revision saved during the dialog's Execute hold cancels it“. Dort lief
+    eine Haltezeit von 500 ms ab, bevor die Änderung im Test ankam. Ursache war die Last meiner gleichzeitig
+    laufenden nativen Sonden.
+  - Allein lief der Test dreimal grün. Der volle Wiederholungslauf ohne
+    parallele Last ist grün.
+- **VP-I20:** Noch keine Code-Änderung; diese Runde ist Plan.

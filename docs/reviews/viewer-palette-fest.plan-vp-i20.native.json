@@ -1,0 +1,337 @@
+{
+ "what": "VP-I20 plan, Fassung 2: the interpreter state the preview canon sees (gcode.linecode at next_line and at the motion callback); the start offset seeded as `G43.1 X0 Y0 Z10` after G21/G90; fresh process per case (the worker + native interpreter, synthetic STAT, temp INI)",
+ "after_state": {
+  "G43.1_X2": {
+   "tlo_events": [
+    [
+     1,
+     1.9999999999999998,
+     0.0,
+     10.0,
+     -1
+    ]
+   ],
+   "log": [
+    {
+     "next_line": 0,
+     "tool_length_offset": 0,
+     "g8": [],
+     "g0": []
+    },
+    {
+     "line": 0,
+     "tool_length_offset": 0,
+     "g8": [],
+     "zo": 0.3937
+    },
+    {
+     "next_line": 2,
+     "tool_length_offset": 430,
+     "g8": [
+      430
+     ],
+     "g0": []
+    },
+    {
+     "next_line": 3,
+     "tool_length_offset": 430,
+     "g8": [
+      430
+     ],
+     "g0": []
+    },
+    {
+     "line": 3,
+     "tool_length_offset": 430,
+     "g8": [
+      430
+     ],
+     "zo": 0.3937
+    },
+    {
+     "next_line": 4,
+     "tool_length_offset": 430,
+     "g8": [
+      430
+     ],
+     "g0": []
+    },
+    {
+     "next_line": 5,
+     "tool_length_offset": 430,
+     "g8": [
+      430
+     ],
+     "g0": []
+    }
+   ]
+  },
+  "G43.2_Z2": {
+   "tlo_events": [
+    [
+     1,
+     0.0,
+     0.0,
+     12.0,
+     -1
+    ]
+   ],
+   "log": [
+    {
+     "next_line": 0,
+     "tool_length_offset": 0,
+     "g8": [],
+     "g0": []
+    },
+    {
+     "line": 0,
+     "tool_length_offset": 0,
+     "g8": [],
+     "zo": 0.3937
+    },
+    {
+     "next_line": 2,
+     "tool_length_offset": 430,
+     "g8": [
+      430
+     ],
+     "g0": []
+    },
+    {
+     "next_line": 3,
+     "tool_length_offset": 430,
+     "g8": [
+      430
+     ],
+     "g0": []
+    },
+    {
+     "line": 3,
+     "tool_length_offset": 430,
+     "g8": [
+      430
+     ],
+     "zo": 0.4724
+    },
+    {
+     "next_line": 4,
+     "tool_length_offset": 430,
+     "g8": [
+      430
+     ],
+     "g0": []
+    },
+    {
+     "next_line": 5,
+     "tool_length_offset": 430,
+     "g8": [
+      430
+     ],
+     "g0": []
+    }
+   ]
+  },
+  "G43_bare": {
+   "tlo_events": [
+    [
+     1,
+     0.0,
+     0.0,
+     10.0,
+     -1
+    ]
+   ],
+   "log": [
+    {
+     "next_line": 0,
+     "tool_length_offset": 0,
+     "g8": [],
+     "g0": []
+    },
+    {
+     "line": 0,
+     "tool_length_offset": 0,
+     "g8": [],
+     "zo": 0.3937
+    },
+    {
+     "next_line": 2,
+     "tool_length_offset": 430,
+     "g8": [
+      430
+     ],
+     "g0": []
+    },
+    {
+     "next_line": 3,
+     "tool_length_offset": 430,
+     "g8": [
+      430
+     ],
+     "g0": []
+    },
+    {
+     "line": 3,
+     "tool_length_offset": 430,
+     "g8": [
+      430
+     ],
+     "zo": 0.3937
+    },
+    {
+     "next_line": 4,
+     "tool_length_offset": 430,
+     "g8": [
+      430
+     ],
+     "g0": []
+    },
+    {
+     "next_line": 5,
+     "tool_length_offset": 430,
+     "g8": [
+      430
+     ],
+     "g0": []
+    }
+   ]
+  },
+  "G49": {
+   "tlo_events": [
+    [
+     1,
+     0.0,
+     0.0,
+     0.0,
+     -1
+    ]
+   ],
+   "log": [
+    {
+     "next_line": 0,
+     "tool_length_offset": 0,
+     "g8": [],
+     "g0": []
+    },
+    {
+     "line": 0,
+     "tool_length_offset": 0,
+     "g8": [],
+     "zo": 0.3937
+    },
+    {
+     "next_line": 2,
+     "tool_length_offset": 430,
+     "g8": [
+      430
+     ],
+     "g0": []
+    },
+    {
+     "next_line": 3,
+     "tool_length_offset": 430,
+     "g8": [
+      430
+     ],
+     "g0": []
+    },
+    {
+     "line": 3,
+     "tool_length_offset": 430,
+     "g8": [
+      430
+     ],
+     "zo": 0.0
+    },
+    {
+     "next_line": 4,
+     "tool_length_offset": 490,
+     "g8": [
+      490
+     ],
+     "g0": []
+    },
+    {
+     "next_line": 5,
+     "tool_length_offset": 490,
+     "g8": [
+      490
+     ],
+     "g0": []
+    }
+   ]
+  }
+ },
+ "g53": {
+  "case": "G53_prefix",
+  "err": null,
+  "log": [
+   {
+    "line": 0,
+    "tool_length_offset": 0,
+    "g8": [],
+    "zo": 0.3937
+   },
+   {
+    "line": 2,
+    "traverse_gcodes": [
+     2,
+     800,
+     170,
+     400,
+     210,
+     900
+    ],
+    "has530": false,
+    "z": -0.3937
+   },
+   {
+    "line": 3,
+    "traverse_gcodes": [
+     3,
+     530,
+     170,
+     400,
+     210,
+     900
+    ],
+    "has530": true,
+    "z": 0.1969
+   },
+   {
+    "line": 4,
+    "tool_length_offset": 430,
+    "g8": [
+     430
+    ],
+    "zo": 0.3937
+   },
+   {
+    "line": 5,
+    "traverse_gcodes": [
+     5,
+     170,
+     400,
+     210,
+     900,
+     940
+    ],
+    "has530": false,
+    "z": 0.2362
+   }
+  ],
+  "tlo_events": [
+   [
+    2,
+    0.0,
+    0.0,
+    10.0,
+    -1
+   ]
+  ]
+ },
+ "not_runnable": {
+  "G43_H2 and T2_M6": "the synthetic native harness segfaults on these tool-table lookups (also Codex R51/R52's H1 note); not counted",
+  "W marker on the start offset": "the interpreter refuses `G43.1 \u2026 W\u2026` without a W axis: \"Bad character 'w' used\""
+ }
+}
