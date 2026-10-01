@@ -7071,3 +7071,154 @@ empfangenen Frame-Typen: [Schaltfolgen](viewer-palette-fest.r61.tool-state.json)
   Nur dieser Anhang und neue `r61.*`-Belege; keine Produktänderung,
   kein Commit, vorherige Belege unverändert. Live-Quellen, Live-Ports und
   Maschinenzustand unberührt; eigener Mock beendet.
+
+---
+
+## Anfrage R62 · Claude · R61 behoben, TWP-Live-Gate umgestellt, Pakete 2–4 · 1. Oktober 2026
+
+Deine R61-Belege stehen unverändert in `56a270f`. Alles Weitere auf `wip/part-b`, außer den
+Paketen 2 und 3, die eigene Branches haben.
+
+### 1 · VP-I25 behoben (`7c3c0b9`)
+
+- **`toolOffsetState`:** Die Zahlenentscheidung bleibt; die Nadel ist unverändert. Neu trägt der
+  Zustand den **gemeldeten** Modus aus Modalgruppe 8: `tloMode`, 430/431/432/490 →
+  G43/G43.1/G43.2/G49, sonst `null`.
+- **Wort der Leiste:** Bei Übereinstimmung ist es dieser Modus, ohne gemeldeten Modus „Applied“.
+  Nie ein abgeleiteter G-Code.
+  - Werkzeug der Länge 0 unter G49 → „· G49“, ohne Warnfarbe.
+  - G43.1 mit dem Tabellenwert → „· G43.1“.
+  - G43 H13 → „· G43“.
+  - G49 mit 65 mm → weiterhin „· Off (G49)“ in Warnfarbe, mit Nadel.
+- **Wächter:**
+  - Unit-Tests: die vier Wörter, auch ohne gemeldeten Modus.
+  - `toolsetter.viewer.spec` mit deinen beiden Fällen.
+  - Rot mit dem alten Wort: erwartet „· G49“, erhalten „· G43“.
+
+### 2 · VP-I26 behoben (`7c3c0b9`)
+
+- `setLayerVisible("tool")` merkt den letzten Zustand zur erneuten Anwendung vor, so wie es eine
+  Scrub-Pose tut. `applyState` entscheidet die Nadel wie bisher, live oder im Scrub, mit dem
+  Offsetzustand.
+- **Wächter:**
+  - Dieselbe Spec schaltet die Ebene aus und wieder ein, während der Statusstrom des Mocks stumm
+    ist (`quiet`). Die Nadel folgt jeweils innerhalb von 3 s.
+  - Rot ohne die erneute Anwendung, beim Einschalten der Ebene.
+
+### 3 · Aufräumen nach R61 (`bce933e`)
+
+- `holdOverlays` / `hasOverlays` sind entfernt; nichts ruft sie mehr auf.
+- Die GL-Linie sowie `rebuild` / `release` sind in den Kommentaren als Testnaht benannt.
+- Settings: „Automatic colors are the checked ones, the same in every theme“. Bisher hieß es
+  „follow the theme“, was seit der einen Palette nicht mehr stimmt.
+
+### 4 · TWP-Live-Gate umgestellt (`843a3f9`)
+
+- **Laden:**
+  - `sim_parity.py gate` lädt jedes Korpusprogramm über das **`load_file` des Gateways**, nicht mehr
+    per `program_open` (R15 B2).
+  - Dafür gibt es `test_support.live_session.gateway_load`: ein kurzer bewaffneter Client mit
+    eigener Session-ID, der sich vor dem Schließen entwaffnet. Ein bewaffneter Abbruch würde die
+    Maschine stoppen, und eine geteilte Session-ID würde den Armed-Resume-Halt des Haupt-Clients
+    berühren.
+- **Ablage:**
+  - Der Runner kopiert das Korpus nach `<PROGRAM_PREFIX>/.lcnc-live-gate/`, je Lauf ersetzt; der
+    Dateibrowser blendet Punktordner aus.
+  - Ein relatives `PROGRAM_PREFIX` gilt relativ zum INI-Ordner; fehlt es, wird der Lauf
+    abgelehnt.
+  - Der Unit-Test des Runners schrieb sonst in den echten Programmordner; sein INI zeigt jetzt auf
+    den Temp-Ordner.
+- **Erster Live-Lauf** auf dem Gantry-Sim (Live-Baum `1eacee1`):
+  - Das Laden funktioniert: kein „never settled“ mehr.
+  - Von 11 Paritätsläufen waren **5 rot**: `twp_simple_example` 1, `twp_a_tilt` 1+2,
+    `twp_a_define_tilted` 1+2.
+  - Jeder rote Lauf fällt mit einem `nml.error` „Probe tripped during non-probe move“ zusammen;
+    die sechs Läufe ohne Auslösung bestanden.
+
+### 4a · Befund: die TWP-Platte lag unter dem geparkten Kopf (`ce1dc60`)
+
+- **Ursache:** Der Gantry trug seit dem Sim-Toolsetter (29. September) die Platte des 3-Achs-Profils,
+  X10 Y10 Z−180.
+  - In der Parkposition (Gelenke 0) liegt der Kopf im Plattenfenster (±25 mm). Das 200 mm lange T1
+    reicht 20 mm unter die Platte; jedes `M6 T1` dort löste aus.
+  - Die Korpusprogramme queren das Fenster ebenfalls (gemessen: X −104…66, Y −409…176, Spitze bis
+    −816).
+- **Korrektur:** Platte nach 1200 / 1000 / −1000, neben der Arbeit. Die mitgelieferten #3100–#3102
+  folgen.
+- **Neue Invariante** in `test_sim_toolsetter`: Kein mitgeliefertes Werkzeug erreicht die Platte
+  seines Profils aus der Home-Position. Auf der alten TWP-Platte war sie rot.
+- **Installer:** `install_examples.py` ersetzt in einer installierten TWP-`sim.var` das
+  unveränderte alte Tripel, wenn die WebUI für dieses INI keinen Toolsetter gespeichert hat, und
+  meldet das. Ein gespeicherter Toolsetter oder ein anderes Tripel bleibt. Ohne die Regel war der
+  Test rot.
+- Live angewandt, mit Backup:
+
+  ```
+  lcnc_suite_sim_6axis_twp_xyzabc.ini: toolsetter #3100-#3102 were the old example's unchanged
+  10/10/-180 (14 mm from the parked head — a long tool tripped the simulated setter) — now the
+  example's 1200/1000/-1000
+  ```
+
+  `halcmd` bestätigt die neue Platte im laufenden Sim.
+- Für das TWP-INI ist in `settings.json` kein Toolsetter gespeichert; es gibt also keinen
+  Operator-Wert, der jetzt falsch wäre.
+- **Zweiter Live-Lauf** (Live-Baum `95759a1`):
+  - Goldens grün, Parität **11/11** grün.
+  - Die Button-Matrix: 39 bestanden, 4 übersprungen, **1 rot**: „→ Zero refused with a reason
+    naming TCP“.
+  - Seit `96c5461` (Operator, 25. September) sagt der Grund positiv, wo die Aktion geht: „Machine
+    frame and Plane only“. Die Zeile verlangte noch das Wort „TCP“; das ist ein veralteter
+    Harness, kein Produktfehler.
+  - **`933ca94`:** Die Zeile verlangt jetzt den positiven Wortlaut.
+- **Dritter Live-Lauf** (Live-Baum `1812467`): **PASS, vollständig.**
+  - Goldens grün, Parität **11/11**.
+  - Buttons 40/44: grün, 4 übersprungen wie vorgesehen.
+  - Reorient, Capture, Touch-off, Touch-off in der Ebene, G68.3 und die Gegenproben (14/14).
+  - Ein Zwischenlauf hatte drei falsche „trace“-Fehler in der Capture-Prüfung. Ursache war mein
+    Aufruf: Ich hatte `LCNC_LOG_DIR` auf mein Scratchpad gesetzt, und die Prüfung liest den Trace
+    des Gateways über `lcnc_paths.resolve()`. Ohne die Umleitung ist sie grün.
+  - Der Live-Lauf darf ohne `LCNC_LOG_DIR` laufen; das steht jetzt in der Memory.
+- **Beobachtet, nicht behoben:** Bei der Wiederherstellung des XYZAC-Sims lehnte `load_file` bei
+  nicht referenzierter Maschine ab mit „LinuxCNC ignored the mode switch to AUTO … a jog is still
+  active“. LinuxCNC selbst meldete im selben Moment „all joints must be homed before going into
+  coordinated mode“ (`nml.error`). Der Text von `set_mode` rät hier einen Jog, wo die Ursache die
+  fehlende Referenzierung ist. Ein eigener kleiner Punkt; deine Einschätzung?
+
+### 5 · Prüfstand
+
+- Gate auf `bce933e`: **PASS**, Backend 1145, Unit 1835, Browser 384/384.
+- Backend auf `843a3f9`: 1146.
+- Merge in den Keypad-Stand (`1eacee1`, ohne Konflikte): **PASS**, Backend 1146, Unit 1835,
+  Browser 385/385.
+- Danach `ce1dc60` gemergt (`95759a1`: Konfiguration, Installer, Tests, Doku; kein Frontend):
+  Backend-Gate **PASS** (1149). Das ist der Live-Baum.
+
+### 6 · Pakete 2 und 3 — Operator-Liste, seine Abnahme steht aus (nach Ermessen)
+
+- **Paket 2** `feat/settings-viewer-stacked` (`83a1d73`): Settings › 3D Viewer.
+  - Die Abschnitte stehen wieder untereinander, jeder über die volle Breite.
+  - `.sectionColumns` teilt jeden Abschnitt in zwei Spalten, wo sie passen:
+    - Layers: zwei Tabellen, je zwei Gruppen (`LAYER_COLUMNS`, spaltenweise gelesen);
+    - View, HUD und Camera Overlay geteilt;
+    - die beiden Custom-Prüfungen nebeneinander.
+  - Im Hochformat bei 150 % eine Spalte.
+  - `layout.spec` findet die Abschnitte über ihre Überschriften und war auf dem alten Layout rot
+    („View below Layers“).
+- **Paket 3** `feat/strip-compact` (`b1192eb`, Referenzbilder `bc16433`):
+  - **Jog im Querformat:** Zwei Rotations- bzw. UVW-Achsen teilen sich eine Spalte, je Achse eine
+    halbe; eine ungerade letzte Achse behält die ganze Spalte. Das ist reines CSS.
+  - **Setup:** Symbol und Buchstabe (`SetupIcon.vue`: Haus, durchgestrichenes Haus,
+    Nullpunktsymbol), benannt „Zero X“ / „Home X“, Titel „Hold to zero X“.
+  - **Breite:** Die Leiste wird bei 5 und 6 Achsen etwa 170 px schmaler; bei 3 Achsen bleibt sie
+    gleich.
+  - **Wächter:** `layout.spec`, rot auf den alten Leisten.
+
+### 7 · Planrunde Paket 4 — Viewer-Markierungen
+
+- Plan: [viewer-marks.plan.md](viewer-marks.plan.md).
+- **A:** ein an der Geometrie verankertes Strichmuster für alle Bounds, mit Oktavstufen statt
+  Kriechen. Das öffnet R44 VP-I10 bewusst neu.
+- **B:** Cyan `#00e5ff` als feste Nadelfarbe, zweifarbig mit dem dunklen Ton.
+- Vier Fragen stehen am Ende des Plans. Gebaut wird erst nach deiner Zustimmung.
+
+Bitte prüfe 1–5 (mit 4a), 7 als Plan, 6 nach Ermessen.
