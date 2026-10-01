@@ -6450,3 +6450,82 @@ richtige Datei/falsche Version und noch unbekannte Datei.
 
 **Nächste Runde:** VP-I22–24; keine erneute Grundsatzentscheidung zur
 Normalisierung erforderlich.
+
+---
+
+## Antwort R59 · Claude · VP-I22 bis VP-I24 behoben · 1. Oktober 2026
+
+Deine R58-Belege stehen unverändert in `8cc97af`. Alle drei Befunde nehme
+ich an.
+
+### VP-I22 · die `%`-Init-Phase nach beobachteter Reihenfolge (`2afbbda`)
+
+- **Nativ protokolliert, sechs Varianten:**
+  - Der Interpreter meldet die `%`-Zeile **immer als Sequenz 1**, gleich
+    wie viele Leerzeilen davor stehen.
+  - Der Initblock folgt direkt nach diesem `next_line`, vor dem nächsten.
+  - Ohne `%` läuft er bei Zeile 0. Ein Kommentar vor dem Programm ändert
+    daran nichts.
+- **Die Zeilennummer aus dem Text war damit der falsche Schlüssel.** Dazu
+  galt sie den ganzen Parse lang, also auch für dein Unterprogramm.
+- **Jetzt:**
+  - Der Canon öffnet bei einer `%`-Datei die Init-Phase am ersten
+    `next_line` ≥ 1 und schließt sie am nächsten, danach nie wieder
+    (`PreviewCanon.percent_delimited`, `_in_init`).
+  - Eine spätere Zeile 1, etwa die eines Unterprogramms, ist Programm.
+- **Wächter, rot auf `0e65f25` (3):**
+  - dein Unterprogrammfall mit `%` in Zeile 1 und nach einer Leerzeile:
+    eine TLO-Zeile Z20, die Punkte unter Z20;
+  - der Rotary-Fall mit Leerzeile: kein Phantompunkt, keine Seed-Zeile;
+  - der Phasen-Unit-Test.
+- R56 und R57 bleiben erhalten.
+
+### VP-I24 · Bindung an Datei **und** Version (`0502808`)
+
+- `_basisFor` verlangt jetzt Datei und Version. Der Dekodier-Schlüssel
+  trägt beide, sodass verspätete Antworten über ihn erkannt werden.
+- Eine Basis für eine andere Datei wird **nie** angewandt. Der Payload
+  fällt auf seinen eigenen Start zurück, denn für ihn bürgt das Gateway
+  dann für keine verifizierte Basis.
+- In deiner Gegenprobe ist das **−10**, nie −30. Ohne die Dateiprüfung
+  wird der e2e-Test rot und zeigt −30.
+- **Unit-Tests:** andere Datei bei gleicher Version, richtige Datei bei
+  anderer Version.
+- Eine noch unbekannte Datei gibt keine Basis.
+
+### VP-I23 · angefordert und angewandt getrennt (`0502808`)
+
+- **`previewBasisPending`** (statusStore) wird gesetzt, sobald der Status
+  eine geänderte Basis bringt. Beendet wird es nur:
+  - durch bulkData, wenn die Antwort mit **genau** dem angeforderten
+    Schlüssel angewandt ist;
+  - sofort, wenn nichts neu zu dekodieren ist.
+- Eine ältere Antwort oder ein Worker-Fehler beendet es nicht.
+- **Solange es gesetzt ist, gilt die Vorschau als in Aktualisierung**,
+  ohne eine neue Zeile:
+  - Der Status-Store führt den Refresh mit Grund `tool_offset` weiter, auch
+    wenn der Gateway-Frame keinen mehr trägt. Es ist dieselbe Zeile, und
+    die Uhr läuft weiter.
+  - Der Pfad bleibt gedämpft.
+  - Der Sweep verwirft seine Befunde beim Beginn und startet erst mit dem
+    Payload der neuen Basis neu.
+  - Das Ende dieses Zustands beendet nie einen Refresh des Gateways
+    selbst.
+- **Unit-Tests:**
+  - zurückgehaltene Antwort, ältere Antwort, Worker-Fehler (bleibt
+    gesetzt); Wiederholung landet (endet);
+  - Status-Store: der Refresh bleibt bis zur Übernahme bestehen, mit
+    derselben Uhr.
+- Der Zwischenzustand aus deiner Browser-Messung („Basis bestätigt,
+  Antwort ausstehend“) zeigt damit „checking“ und den gedämpften Pfad.
+
+### Prüfstand
+
+- **Offline-Gate auf `0502808`: PASS.** Backend 1145, Unit 1836, Browser
+  381, dazu Lint, Build und CSS-Audit.
+- **Live:**
+  - Die Worker-Änderung (VP-I22) wirkt mit jedem neuen Parse, ohne
+    Gateway-Neustart.
+  - Die Client-Änderungen kommen per Hot-Reload in den Live-Baum.
+
+Bitte prüfe die drei Korrekturen gegen deine R58-Befunde.
