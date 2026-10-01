@@ -35,7 +35,7 @@ function payload(kind: "dense" | "thin") {
   }
   return {
     lines: line,
-    body: Buffer.from(encode({ file: `/${kind}.ngc`, preview_schema: 9, feed, feed_lines: lines, feed_outside: new Uint8Array(outside),
+    body: Buffer.from(encode({ file: `/${kind}.ngc`, preview_schema: 10, feed, feed_lines: lines, feed_outside: new Uint8Array(outside),
       rapid: [[0, 0, 60], [-150, -150, 60], [-150, -150, 5]], rapid_outside: new Uint8Array(3) })),
   };
 }
@@ -170,7 +170,7 @@ function ladderPayload() {
   }
   return {
     lines: line,
-    body: Buffer.from(encode({ file: "/ladder.ngc", preview_schema: 9, feed, feed_lines: lines, feed_seq: seq, feed_outside: new Uint8Array(outside),
+    body: Buffer.from(encode({ file: "/ladder.ngc", preview_schema: 10, feed, feed_lines: lines, feed_seq: seq, feed_outside: new Uint8Array(outside),
       rapid, rapid_lines: rapidLines, rapid_seq: rapidSeq, rapid_outside: new Uint8Array(rapid.length) })),
   };
 }

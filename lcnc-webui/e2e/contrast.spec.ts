@@ -464,7 +464,7 @@ async function thumbs(page: Page, rootSel: string): Promise<{ hits: string[]; ch
   }, { png: shot.toString("base64"), rootSel });
 }
 
-const NONTEXT_PREVIEW = Buffer.from(encode({ file: "/S.ngc", preview_schema: 9,
+const NONTEXT_PREVIEW = Buffer.from(encode({ file: "/S.ngc", preview_schema: 10,
   feed: Array.from({ length: 30 }, (_, i) => [i * 3, i % 2 ? 20 : 0, 0]),
   feed_lines: Array.from({ length: 30 }, (_, i) => i + 3), feed_seq: Array.from({ length: 30 }, (_, i) => i + 3),
   rapid: [[0, 0, 5], [0, 0, 0]], rapid_lines: [1, 2], rapid_seq: [1, 2] }));

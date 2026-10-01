@@ -228,8 +228,10 @@ export interface LimitViolation {
 // every joint a tool length high on a fresh boot: the 22.000 gate catch);
 // 9 = the gateway validator's per-vertex outside-limits verdict
 // (feed_outside/rapid_outside → track.outside → the yellow overlay) — the
-// client carries the flags and derives nothing (one source of truth).
-export const EXPECTED_PREVIEW_SCHEMA = 9;
+// client carries the flags and derives nothing (one source of truth);
+// 10 = the start tool state (tlo_start / start_known / start_reason,
+// violations_reason) and the `%` init phase (VP-I20).
+export const EXPECTED_PREVIEW_SCHEMA = 10;
 
 /** Non-null when the loaded payload was parsed with a DIFFERENT tool length
  *  than the live table now holds for the spindle tool (W2 P4): the per-line

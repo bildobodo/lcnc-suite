@@ -12,7 +12,7 @@ import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
 // viewer draws — a wrong landing shows a wrong move or none.
 async function prepare(page: Page, context: BrowserContext, o: { entry: boolean; short: boolean; close: boolean }) {
   const feed = o.short ? [[0, 0, 0], [10, 0, 0], [10, 0.01, 0], [20, 0.01, 0]] : [[0, 0, 0], [10, 0, 0], [10, 10, 0], [20, 10, 0]];
-  const payload = { file: "/targets.ngc", preview_schema: 9, feed, feed_lines: [1, 6, 7, 8], feed_seq: [1, 2, 3, 4],
+  const payload = { file: "/targets.ngc", preview_schema: 10, feed, feed_lines: [1, 6, 7, 8], feed_seq: [1, 2, 3, 4],
     feed_outside: new Uint8Array([0, 0, 1, o.close ? 1 : 0]), rapid: [],
     // the time axis (seconds, Float32 on the wire like the gateway's): L7
     // lasts 0.1 ms, or 5 ms before L8 when the two findings are close
@@ -71,7 +71,7 @@ for (const c of [
 // entry rapid shown. The finding is the program's move on the base track.
 test("a limit on a first line of two points lands in the program's move, not on the entry move — first and second jump", async ({ page, context }) => {
   test.setTimeout(90_000);
-  const payload = { file: "/first-line.ngc", preview_schema: 9, feed: [[0, 0, 0], [0, 10, 0], [10, 10, 0]],
+  const payload = { file: "/first-line.ngc", preview_schema: 10, feed: [[0, 0, 0], [0, 10, 0], [10, 10, 0]],
     feed_lines: [7, 7, 8], feed_seq: [1, 2, 3], feed_outside: new Uint8Array([0, 1, 0]), rapid: [],
     violations: [{ line: 7, axis: "Y", value: 10, limit: 5, kind: "max" }], violations_total: 1 };
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: Buffer.from(encode(payload)) }));

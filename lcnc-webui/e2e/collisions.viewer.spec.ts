@@ -14,7 +14,7 @@ const machine = JSON.parse(readFileSync(new URL("machine.json", MODEL), "utf8"))
 async function prepare(page: Page, context: BrowserContext, o: {
   file: string; version: number; feed: number[][]; lines: number[]; joints: number[]; extra?: Record<string, unknown>;
 }) {
-  const preview = Buffer.from(encode({ file: o.file, preview_schema: 9, feed: o.feed,
+  const preview = Buffer.from(encode({ file: o.file, preview_schema: 10, feed: o.feed,
     feed_lines: o.lines, feed_seq: o.lines.map((_, i) => i + 1), feed_outside: new Uint8Array(o.feed.length), rapid: [],
     violations: [], violations_total: 0, ...o.extra }));
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: preview }));
@@ -267,7 +267,7 @@ test("on a machine with no other viewer note the tool-table mark brings the card
   const file = "/tablestale-xyz.ngc";
   const feed = [[0, 0, 5], [0, 0, -1], [40, 0, -1], [40, 30, -1]];
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream",
-    body: Buffer.from(encode({ file, preview_schema: 9, feed, feed_lines: [1, 2, 3, 4], feed_seq: [1, 2, 3, 4],
+    body: Buffer.from(encode({ file, preview_schema: 10, feed, feed_lines: [1, 2, 3, 4], feed_seq: [1, 2, 3, 4],
       feed_outside: new Uint8Array(feed.length), rapid: [], violations: [], violations_total: 0 })) }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
     body: Array.from({ length: 6 }, (_, i) => `G1 X${i} F100`).join("\n") }));
@@ -327,7 +327,7 @@ test("a return to the basis on screen while a decode is out drops its late reply
   await context.route(/\/preview(\?|$)/, r => {
     previews += 1;
     return r.fulfill({ contentType: "application/octet-stream",
-      body: Buffer.from(encode({ file, preview_schema: 9, rapid: [[0, 0, -10], [20, 0, -10]], rapid_seq: [1, 2],
+      body: Buffer.from(encode({ file, preview_schema: 10, rapid: [[0, 0, -10], [20, 0, -10]], rapid_seq: [1, 2],
         rapid_lines: [1, 2], feed: [[20, 0, -30], [40, 0, -40]], feed_seq: [3, 4], feed_lines: [4, 5],
         feed_outside: new Uint8Array(2), rapid_outside: new Uint8Array(2),
         violations: [], violations_total: 0, tlo_events: [[2, 0, 0, 0, -1]],
@@ -385,7 +385,7 @@ test("a changed tool offset is checked, and a verified basis re-tips the prefix 
   await context.route(/\/preview(\?|$)/, r => {
     previews += 1;
     return r.fulfill({ contentType: "application/octet-stream",
-      body: Buffer.from(encode({ file, preview_schema: 9, rapid, rapid_seq: [1, 2], rapid_lines: [1, 2],
+      body: Buffer.from(encode({ file, preview_schema: 10, rapid, rapid_seq: [1, 2], rapid_lines: [1, 2],
         feed, feed_seq: [3, 4], feed_lines: [4, 5], feed_outside: new Uint8Array(2), rapid_outside: new Uint8Array(2),
         violations: [], violations_total: 0, tlo_events: [[2, 0, 0, 0, -1]],
         start_known: true, tlo_start: [0, 0, 10] })) });
@@ -435,7 +435,7 @@ test("a mid-run re-parse for a measured tool is one line, never a second one und
   const file = "/measured.ngc";
   const feed = [[0, 0, 5], [0, 0, -1], [40, 0, -1], [40, 30, -1]];
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream",
-    body: Buffer.from(encode({ file, preview_schema: 9, feed, feed_lines: [1, 2, 3, 4], feed_seq: [1, 2, 3, 4],
+    body: Buffer.from(encode({ file, preview_schema: 10, feed, feed_lines: [1, 2, 3, 4], feed_seq: [1, 2, 3, 4],
       feed_outside: new Uint8Array(feed.length), rapid: [], violations: [], violations_total: 0,
       parse_tlos: [[13, 0, 0, 65.064, 8]] })) }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",

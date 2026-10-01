@@ -70,8 +70,15 @@ ALLOWED_EXTENSIONS = {".ngc", ".nc", ".gcode", ".tap", ".txt"}
 # (`feed_outside`/`rapid_outside`, one byte per shipped vertex: the
 # segment ENDING there put a joint beyond the live joint window) and the
 # `__LIMITS__` stderr line naming the window it was judged against —
-# the client draws the overlay from the flags and derives nothing.
-PREVIEW_SCHEMA = 9
+# the client draws the overlay from the flags and derives nothing;
+# 10 = the START tool state (VP-I20): `tlo_start` / `start_known` /
+# `start_reason` — the offset the parse was seeded with, so the client
+# resolves every move before the first `tlo_events` row to it and
+# normalises to a verified tool basis — and `violations_reason`
+# ("start_unknown": no verdict, never a clean one); a `%` file's initcode
+# block is init, not program (no phantom point at program 0,0,0 from the
+# rotary sync, no seed row).
+PREVIEW_SCHEMA = 10
 
 
 def sanitize_filename(name: str) -> str:
