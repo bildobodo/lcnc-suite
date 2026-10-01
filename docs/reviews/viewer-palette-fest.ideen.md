@@ -5737,3 +5737,158 @@ fertige Implementierung des neuen Protokolls wird damit nicht behauptet.
 Kein vollständiges Gate, Browserlauf oder Build für diese Planrunde.
 Die nächste Runde kann auf **VP55-01, also den Gleichheitsvertrag**, begrenzt
 werden.
+
+---
+
+## Antwort R56 · Claude · VP55-01: der Gleichheitsvertrag, Fassung 5 · 1. Oktober 2026
+
+Deine R55-Belege stehen unverändert in `f0265db`. VP55-01 nehme ich an.
+
+- Jeder Verbraucher löst den Offset je Punkt einmal auf (`tloForIndex(…,
+  wcs.tool)`) und verwendet ihn **zweimal**:
+  - für die Achsposition, `liftToJoints`;
+  - für Spitze bzw. Werkzeugkörper, `tipInWorkFrame` bzw. `-tloSeg` im
+    Sweep.
+- Der Programmed-XYZ-Pfad zeichnet die Programmkoordinate `p` direkt;
+  sie ist die Spitze.
+- Gleiche Maschinenpunkte reichen deshalb nicht. Vor der ersten TLO-Zeile
+  wandert die Spitze mit dem Offset, wie dein Paar Z10/Z20 zeigt.
+
+### Vorschlag: die Daten auf die geprüfte Werkzeugbasis normalisieren, die Verbraucher bleiben unverändert
+
+**Werkzeugbasis `tool_basis`:**
+- Mit der Veröffentlichung ist sie `tlo_start`.
+- Nach einer bestätigenden Prüfung ist sie der geprüfte Live-Offset
+  (`validated_tlo` aus Fassung 4).
+- Während eines Laufs bleibt sie fest, denn mitten im Lauf wird nicht
+  geprüft.
+- Das Gateway sendet sie mit Datei und Version des veröffentlichten
+  Parses. Der Client übernimmt sie nur für genau diese Version.
+
+**Normalisierung beim Dekodieren** (eine Stelle, rein, unit-getestet): Die
+Punkte **vor der ersten TLO-Zeile** werden zu
+`p' = p + tlo_start − tool_basis`, und ihr Offset ist `tool_basis`.
+
+| Größe | ergibt | Prüfung |
+|---|---|---|
+| Achsposition | `p' + tool_basis = p + tlo_start` | die vom Interpreter berechnete Maschinenposition |
+| Spitze | `p'`, also die Maschinenposition minus der Werkzeugbasis | bei einer Werkzeugbasis von 10 an deinen G53-Punkten Z−10, wie der frische Parse bei Z10 |
+
+- Nach der ersten Zeile ändert sich nichts. Dort gelten die Zeilen
+  (Vektor und Werkzeug), und `p` ist das, was der Interpreter geliefert
+  hat.
+- **Eine Zeile bei seq 0, die genau den Seed trägt, liefert der Worker
+  nicht aus.**
+  - Beobachtet in Fassung 3: Ein `%`-Programm gibt den Startoffset vor
+    jeder Bewegung erneut aus.
+  - Diese Zeile machte sonst jeden Punkt zu einem „nach der ersten Zeile“
+    und verdeckte die Startabhängigkeit vor der Normalisierung.
+  - Ist sie stattdessen ein absolutes `G43.1`/`G49`, das zufällig den
+    Startwert trifft, enthält der frische Payload bei einem anderen Offset
+    diese Zeile. Der Vergleich ergibt dann „verschieden“; das ist
+    konservativ.
+- **Danach hat jeder Punkt wieder genau einen Offset.**
+  - Part-Frame, Scrub, Sweep, Einfahrbewegung und Programmed-XYZ-Pfad
+    bleiben, wie sie sind.
+  - `tloForIndex` löst „vor der ersten Zeile“ auf `tool_basis` auf statt
+    auf den Live-Offset.
+
+**Was eine Änderung der Werkzeugbasis im Client auslöst:**
+- Dasselbe, was heute jede Änderung von `tool_offset` auslöst
+  (`ThreeViewer.vue:2359`): Part-Frame und Sweep rechnen mit dem neuen
+  Eingang neu.
+- Zusätzlich wird der Pfad aus den schon dekodierten Daten neu gebaut,
+  denn die Punkte vor der ersten Zeile bewegen sich.
+- Es gibt keinen neuen Payload, kein Dekodieren und keinen Versionssprung.
+- Ohne Punkte vor der ersten Zeile ändert sich nichts.
+
+### Gleichheit nach Fassung 5 (ersetzt „Was gleich heißt“ aus Fassung 4)
+
+`__SAME__` gilt genau dann, wenn der **veröffentlichte Payload,
+normalisiert auf die neue Werkzeugbasis, gleich dem frischen Payload** ist,
+dessen `tlo_start` ja die neue Basis ist:
+
+| Bereich | gleich heißt |
+|---|---|
+| Punkte vor der ersten Zeile | `p + tlo_start_alt − basis_neu` gegen `p_frisch`; das ist dieselbe Maschinenposition und dieselbe Spitze |
+| Punkte nach der ersten Zeile | `p` gleich |
+| TLO-Zeilen | **bytegenau, Vektoren und Werkzeuge** — sie sind der Offset jedes späteren Punktes und damit Eingang von Spitze und Körper |
+| Limitbefunde, Außen-Flags, Struktur der Ströme, Rotary-Werte | bytegenau |
+| Statistik und Bounds, Werkzeugwechsel, Unterprogramm-Spannen, Ablehnungen, Parsefehler | bytegenau; eine Bounds-Änderung durch Vorlaufpunkte heißt also „verschieden“ |
+| Laufzeit- und Kontextstempel | ausgenommen |
+
+**Toleranz** nur für die Punkte vor der ersten Zeile, für die
+Darstellungsgenauigkeit des Payloads selbst:
+- Wenige float32-ULP der größten Koordinate.
+- Ein frischer Payload weicht um dieselbe Rundung von der wahren
+  Position ab.
+- Nach der ersten Zeile wird bitgenau verglichen.
+
+**Damit sind die Eingänge aller Verbraucher gleich**, nicht nur die
+Maschinenpunkte:
+- Je Punkt sind Position und Offset dieselben wie beim frischen Payload.
+- Dieselbe Funktion rechnet daraus dasselbe Ergebnis, auch Spitze,
+  Körper und Sweep.
+- Wo das nicht gilt, sind die Daten verschieden, und der frische Payload
+  wird veröffentlicht.
+
+### Dein Paar unter Fassung 5
+
+- **Z20 → Z10:** Die Prüfung bei Z10 findet:
+  - die Maschinenpunkte gleich, nach der ersten Zeile `p` gleich;
+  - die Zeilen gleich (die G49-Zeile);
+  - Befunde, Statistik und Bounds gleich, wie du festgestellt hast.
+  - Also `__SAME__` mit Werkzeugbasis 10.
+- Der Client normalisiert:
+  - Die G53-Punkte liegen bei Spitze Z−10.
+  - Der Sweep rechnet mit dem geänderten Eingang neu und **trifft die
+    Vorrichtung in L3**, wie der frische Parse bei Z10.
+- **Z10 → Z20:** Symmetrisch; Spitze Z−20, kein Treffer.
+- Ohne die Normalisierung wäre das der Fehler aus VP55-01. Der Wächter
+  prüft deshalb beide Richtungen an genau diesem Paar.
+
+**Gleichheitskontrolle** (dein Vorschlag): Ein Programm mit G49 vor jeder
+Bewegung hat keinen Punkt vor einer Zeile. Ein anderer Startoffset ändert
+dort weder Punkte noch Offsets, und die Werkzeugbasis wirkt auf nichts.
+
+**`heavy_test`:**
+- Vor der ersten Zeile (`G43 Z15. H13` in N55) liegen nur die Punkte von
+  N20 (`G53 G0 Z0.`) und N50 (`G0 X Y`). Das gilt, sobald die `%`-Zeile
+  nicht mehr ausgeliefert wird.
+- Ihre Spitzen bewegen sich bei einer Neumessung um Δ, sonst nichts.
+- Ob die Prüfung `__SAME__` ergibt, sage ich erst nach dem erweiterten
+  Vergleich in der Umsetzung zu. Gemessen sind bisher nur die
+  Canon-Maschinenpunkte.
+
+### Wächter, jeweils zuerst rot
+
+- **Client (Vitest)** mit deinem Paar und deinen Verbraucherfunktionen,
+  in beide Richtungen:
+  - Der normalisierte alte Payload ergibt dieselben dekodierten Ströme,
+    Scrub-Spur, Part-Frame-Punkte, Scrub-Pose und Sweep-Treffer wie der
+    frische.
+  - Ohne Normalisierung bleibt der Treffer aus: rot.
+- **Vergleichsfunktion (Unit):**
+  - Vorlaufpunkt gleich nach Normalisierung.
+  - Vorlaufpunkt um eine ULP-Schranke daneben → verschieden.
+  - Zeilenvektor verschieden → verschieden.
+  - Bounds verschieden → verschieden.
+  - Jedes nicht ausgenommene Feld wird verglichen.
+- **Gleichheitskontrolle:** das Programm mit G49 vor jeder Bewegung.
+- **`%`-Zeile:**
+  - Ein `%`-Programm liefert keine Zeile bei seq 0, die den Seed trägt.
+  - Ein absolutes `G43.1` mit dem Startwert als erste Zeile ergibt bei
+    anderem Offset „verschieden“.
+- **Versionsbindung:** Eine Werkzeugbasis für eine andere Version wird
+  nicht übernommen.
+- Die übrigen Wächter aus Fassung 4 bleiben.
+
+Unverändert aus Fassung 3 und 4 bleiben:
+- Auslöser, Prüfung am tatsächlichen Offset, `__SAME__` ohne
+  Versionssprung, Abbruch und Neustart.
+- A (unbekannter Start), Einheiten, Schema.
+- Die Oberfläche während der Prüfung; die Wahl liegt beim Operator.
+
+### Prüfstand
+
+Nur Plan. Keine Produktänderung, kein Gate.
