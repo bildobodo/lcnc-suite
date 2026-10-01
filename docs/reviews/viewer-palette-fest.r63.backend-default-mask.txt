@@ -1,0 +1,96 @@
+[VINIT] session bound to linuxcncsvr pid=4055326 start=19715529
+[VINIT] try_connect_lcnc OK, pid=4055326
+[VINIT] Loaded machine config: 3-Axis Mill
+test_a_jog_the_gateway_started_is_named_with_its_remedy (test_gateway_util.TestModeSwitchIgnoredMessage.test_a_jog_the_gateway_started_is_named_with_its_remedy) ... ok
+test_an_unhomed_machine_is_never_called_a_jog (test_gateway_util.TestModeSwitchIgnoredMessage.test_an_unhomed_machine_is_never_called_a_jog) ... ok
+test_homing_counts_only_for_a_coordinated_mode_and_every_seen_state_is_listed (test_gateway_util.TestModeSwitchIgnoredMessage.test_homing_counts_only_for_a_coordinated_mode_and_every_seen_state_is_listed) ... ok
+test_nothing_seen_says_only_what_was_asked_and_what_stayed (test_gateway_util.TestModeSwitchIgnoredMessage.test_nothing_seen_says_only_what_was_asked_and_what_stayed) ... ok
+test_a_readback_that_disagrees_with_the_scrape_is_reported (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_a_readback_that_disagrees_with_the_scrape_is_reported)
+The remap source says what SHOULD happen; the pin says what did. ... ok
+test_a_trt_without_identityfirst_maps_the_other_way (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_a_trt_without_identityfirst_maps_the_other_way)
+Same remaps, no sparm: raw 0 is the world kins and raw 1 identity ... ok
+test_a_verified_readback_reports_the_raw_type (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_a_verified_readback_reports_the_raw_type) ... ok
+test_an_ignored_switch_without_a_jog_never_names_one (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_an_ignored_switch_without_a_jog_never_names_one) ... ok
+test_jog_stop_during_an_executing_mdi_never_switches_mode (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_jog_stop_during_an_executing_mdi_never_switches_mode) ... FAIL
+test_jog_stop_still_stops_a_real_jog_in_manual (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_jog_stop_still_stops_a_real_jog_in_manual) ... FAIL
+test_jog_stop_without_an_active_jog_is_a_noop (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_jog_stop_without_an_active_jog_is_a_noop) ... FAIL
+test_machine_and_tcp_send_the_shipped_trt_configuration_commands (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_machine_and_tcp_send_the_shipped_trt_configuration_commands)
+R-01 (implementation review 2026-09-15): on the shipped TCP ... ok
+test_machine_frame_calls_the_subroutine_at_the_stamp_angle (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_machine_frame_calls_the_subroutine_at_the_stamp_angle) ... ok
+test_mdi_clears_active_jogs_so_a_late_stop_cannot_abort_it (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_mdi_clears_active_jogs_so_a_late_stop_cannot_abort_it) ... FAIL
+test_mode_switch_ignored_while_jogging_is_refused_loudly (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_mode_switch_ignored_while_jogging_is_refused_loudly) ... FAIL
+test_plane_frame_dispatches_the_twp_goto_zero_sub (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_plane_frame_dispatches_the_twp_goto_zero_sub) ... ok
+test_plane_frame_does_not_need_work_pos (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_plane_frame_does_not_need_work_pos) ... ok
+test_plane_frame_go_zero_refused_when_the_head_moved (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_plane_frame_go_zero_refused_when_the_head_moved) ... ok
+test_plane_is_refused_on_a_family_that_has_no_plane_mode (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_plane_is_refused_on_a_family_that_has_no_plane_mode) ... ok
+test_refused_mode_switch_is_a_loud_reply_not_a_silent_mdi (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_refused_mode_switch_is_a_loud_reply_not_a_silent_mdi) ... ok
+test_refuses_when_no_remap_selects_the_wanted_type (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_refuses_when_no_remap_selects_the_wanted_type)
+A configuration whose remaps cannot reach a mode gets a refusal ... ok
+test_set_kins_mode_0_sends_m428 (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_set_kins_mode_0_sends_m428) ... ok
+test_set_kins_mode_2_refused_when_stale (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_set_kins_mode_2_refused_when_stale) ... ok
+test_set_kins_mode_2_sends_m430_when_aligned (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_set_kins_mode_2_sends_m430_when_aligned) ... ok
+test_tcp_is_refused_with_its_reason (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_tcp_is_refused_with_its_reason) ... ok
+test_touchoff_does_not_adopt_a_readback_from_a_different_row (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_touchoff_does_not_adopt_a_readback_from_a_different_row)
+If the active fixture changed across the write, STAT.g5x_offset ... ok
+test_touchoff_g59_on_plain_mill_dispatches_g10_l20 (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_touchoff_g59_on_plain_mill_dispatches_g10_l20) ... ok
+test_touchoff_names_the_fixture_it_validated (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_touchoff_names_the_fixture_it_validated)
+The write is `G10 L20 P<n>`, never P0: a fixture change after the ... ok
+test_touchoff_refuses_a_route_change_even_without_an_expectation (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_touchoff_refuses_a_route_change_even_without_an_expectation)
+A legacy client carries no expectation, but the route computed from ... ok
+test_touchoff_refuses_when_expect_disagrees_with_live_state (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_touchoff_refuses_when_expect_disagrees_with_live_state) ... ok
+test_touchoff_refuses_when_the_controller_kins_moved_past_the_snapshot (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_touchoff_refuses_when_the_controller_kins_moved_past_the_snapshot)
+The same window on the kinematics half: the reader pin is read at ... ok
+test_touchoff_refuses_when_the_controller_moved_past_the_published_snapshot (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_touchoff_refuses_when_the_controller_moved_past_the_published_snapshot)
+R-02 (implementation review 2026-09-15): the published snapshot and ... ok
+test_touchoff_without_expect_is_unchanged (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_touchoff_without_expect_is_unchanged) ... ok
+
+======================================================================
+FAIL: test_jog_stop_during_an_executing_mdi_never_switches_mode (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_jog_stop_during_an_executing_mdi_never_switches_mode)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/codex-r63-jwqq79x4/lcnc-gateway/test_command_dispatch.py", line 1785, in test_jog_stop_during_an_executing_mdi_never_switches_mode
+    self.assertTrue(r["ok"])
+    ~~~~~~~~~~~~~~~^^^^^^^^^
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_jog_stop_still_stops_a_real_jog_in_manual (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_jog_stop_still_stops_a_real_jog_in_manual)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/codex-r63-jwqq79x4/lcnc-gateway/test_command_dispatch.py", line 1857, in test_jog_stop_still_stops_a_real_jog_in_manual
+    self.assertTrue(r["ok"])
+    ~~~~~~~~~~~~~~~^^^^^^^^^
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_jog_stop_without_an_active_jog_is_a_noop (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_jog_stop_without_an_active_jog_is_a_noop)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/codex-r63-jwqq79x4/lcnc-gateway/test_command_dispatch.py", line 1831, in test_jog_stop_without_an_active_jog_is_a_noop
+    self.assertTrue(r["ok"])
+    ~~~~~~~~~~~~~~~^^^^^^^^^
+AssertionError: False is not true
+
+======================================================================
+FAIL: test_mdi_clears_active_jogs_so_a_late_stop_cannot_abort_it (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_mdi_clears_active_jogs_so_a_late_stop_cannot_abort_it)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/codex-r63-jwqq79x4/lcnc-gateway/test_command_dispatch.py", line 1841, in test_mdi_clears_active_jogs_so_a_late_stop_cannot_abort_it
+    self.assertIn(3, gateway._active_jogs)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 3 not found in set()
+
+======================================================================
+FAIL: test_mode_switch_ignored_while_jogging_is_refused_loudly (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_mode_switch_ignored_while_jogging_is_refused_loudly)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/codex-r63-jwqq79x4/lcnc-gateway/test_command_dispatch.py", line 1802, in test_mode_switch_ignored_while_jogging_is_refused_loudly
+    self.assertIn("a jog is active — release it", r["error"])
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'a jog is active — release it' not found in 'ValueError: LinuxCNC kept MANUAL (asked for MDI)'
+
+----------------------------------------------------------------------
+Ran 33 tests in 1.020s
+
+FAILED (failures=5)
+[GC] +1076ms gen=2 duration=7.7ms collected=281 uncollectable=0

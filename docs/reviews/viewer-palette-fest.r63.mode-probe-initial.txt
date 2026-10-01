@@ -1,0 +1,9 @@
+[VINIT] session bound to linuxcncsvr pid=4055326 start=19715529
+[VINIT] try_connect_lcnc OK, pid=4055326
+[VINIT] Loaded machine config: 3-Axis Mill
+Traceback (most recent call last):
+  File "/tmp/codex-r63-jwqq79x4/evidence/viewer-palette-fest.r63.mode-probe.py", line 47, in <module>
+    assert response['error'] == expected, response
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'ok': False, 'error': 'ValueError: LinuxCNC kept MANUAL (asked for MDI)'}
+[GC] +57ms gen=2 duration=7.4ms collected=0 uncollectable=0

@@ -1,0 +1,28 @@
+[VINIT] Loaded machine config: 3-Axis Mill
+test_a_jog_the_gateway_started_is_named_with_its_remedy (test_gateway_util.TestModeSwitchIgnoredMessage.test_a_jog_the_gateway_started_is_named_with_its_remedy) ... ok
+test_an_unhomed_machine_is_never_called_a_jog (test_gateway_util.TestModeSwitchIgnoredMessage.test_an_unhomed_machine_is_never_called_a_jog) ... ok
+test_homing_counts_only_for_a_coordinated_mode_and_every_seen_state_is_listed (test_gateway_util.TestModeSwitchIgnoredMessage.test_homing_counts_only_for_a_coordinated_mode_and_every_seen_state_is_listed) ... ok
+test_nothing_seen_says_only_what_was_asked_and_what_stayed (test_gateway_util.TestModeSwitchIgnoredMessage.test_nothing_seen_says_only_what_was_asked_and_what_stayed) ... ok
+test_mode_switch_ignored_while_jogging_is_refused_loudly (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_mode_switch_ignored_while_jogging_is_refused_loudly) ... Timeout (0:00:08)!
+Thread 0x0000ffffa06a3ba0 (most recent call first):
+  File "/usr/lib/python3.13/selectors.py", line 452 in select
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 2004 in _run_once
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 683 in run_forever
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 712 in run_until_complete
+  File "/usr/lib/python3.13/asyncio/runners.py", line 72 in close
+  File "/usr/lib/python3.13/asyncio/runners.py", line 62 in __exit__
+  File "/usr/lib/python3.13/asyncio/runners.py", line 194 in run
+  File "/tmp/codex-r63-jwqq79x4/lcnc-gateway/test_command_dispatch.py", line 27 in _run
+  File "/tmp/codex-r63-jwqq79x4/lcnc-gateway/test_command_dispatch.py", line 1511 in _send
+  File "/tmp/codex-r63-jwqq79x4/lcnc-gateway/test_command_dispatch.py", line 1800 in test_mode_switch_ignored_while_jogging_is_refused_loudly
+  File "/usr/lib/python3.13/unittest/case.py", line 606 in _callTestMethod
+  File "/usr/lib/python3.13/unittest/case.py", line 651 in run
+  File "/usr/lib/python3.13/unittest/case.py", line 707 in __call__
+  File "/usr/lib/python3.13/unittest/suite.py", line 122 in run
+  File "/usr/lib/python3.13/unittest/suite.py", line 84 in __call__
+  File "/usr/lib/python3.13/unittest/suite.py", line 122 in run
+  File "/usr/lib/python3.13/unittest/suite.py", line 84 in __call__
+  File "/usr/lib/python3.13/unittest/runner.py", line 240 in run
+  File "/usr/lib/python3.13/unittest/main.py", line 270 in runTests
+  File "/usr/lib/python3.13/unittest/main.py", line 104 in __init__
+  File "<string>", line 1 in <module>
