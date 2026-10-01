@@ -717,7 +717,7 @@ function resetMachineColor(id: string) {
 
         <div class="stack-controls">
           <div class="sub">Colors</div>
-          <div class="settingDesc">Automatic colors follow the theme. Custom colors stay as you set them; their contrast is shown, never corrected.</div>
+          <div class="settingDesc">Automatic colors are the checked ones, the same in every theme. Custom colors stay as you set them; their contrast is shown, never corrected.</div>
           <div class="radioGroup inline">
             <label><MachineRadio gate="viewerSetting" name="paletteMode" :modelValue="paletteMode" value="auto" @update:modelValue="onPaletteModeChange('auto')" /> Automatic</label>
             <label><MachineRadio gate="viewerSetting" name="paletteMode" :modelValue="paletteMode" value="custom" @update:modelValue="onPaletteModeChange('custom')" /> Custom</label>
@@ -726,7 +726,7 @@ function resetMachineColor(id: string) {
                from an earlier version — certain only when it was stored
                without a mode — or of unknown origin, which claims nothing. -->
           <div v-if="paletteMode === 'custom' && paletteOrigin === 'legacy'" class="statusNote warn" role="alert" data-palette-note="legacy">
-            <span>Colors from an earlier version — Automatic uses the theme's checked colors</span>
+            <span>Colors from an earlier version — Automatic uses the checked colors</span>
             <MachineBtn type="inline" @click="onPaletteModeChange('auto')">Use automatic colors</MachineBtn>
           </div>
           <div v-else-if="paletteMode === 'custom' && !paletteOrigin" class="row-controls" data-palette-note="unknown">

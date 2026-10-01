@@ -281,23 +281,37 @@ def cmd_gate(a):
                 raw = msgspec.msgpack.encode(p)
             else:
                 # Load first so the gateway parses this file, then let it
-                # settle (drift edges included).
+                # settle (drift edges included). Through the GATEWAY's
+                # load_file, as the operator loads: since review R15 B2 a
+                # bare program_open is a STAT.file flip the gateway ignores
+                # ("no load context") and the payload never settled. The
+                # program must lie in the program folder (load_file's rule;
+                # test_suite materializes the corpus there).
                 import linuxcnc as _l
-                c = _l.command()
-                c.mode(_l.MODE_AUTO)
-                if c.wait_complete(10) != _l.RCS_DONE:
-                    print(f"[FAIL] {tag}: controller did not acknowledge AUTO mode")
-                    return 1
                 if not os.path.isfile(ngc):
                     print(f"[FAIL] {tag}: corpus program is missing: {ngc}")
                     return 1
-                c.program_open(ngc)
-                loaded = c.wait_complete(10)
+                token = os.environ.get("LCNC_WS_TOKEN")
+                if token is None:
+                    print(f"[FAIL] {tag}: LCNC_WS_TOKEN unset — the gate loads "
+                          f"through the running gateway (test_suite.py live-twp sets it)")
+                    return 1
+                from test_support.live_session import gateway_load
+                try:
+                    gateway_load(ngc, token)
+                except Exception as e:
+                    print(f"[FAIL] {tag}: the gateway did not load {ngc}: {e}")
+                    return 1
                 stat = _l.stat()
-                stat.poll()
-                if loaded != _l.RCS_DONE or stat.file != ngc:
-                    print(f"[FAIL] {tag}: controller did not load {ngc}; "
-                          f"command result={loaded}, active file={stat.file!r}")
+                deadline = time.time() + 10
+                while True:
+                    stat.poll()
+                    if stat.file == ngc or time.time() > deadline:
+                        break
+                    time.sleep(0.1)
+                if stat.file != ngc:
+                    print(f"[FAIL] {tag}: controller did not open {ngc}; "
+                          f"active file={stat.file!r}")
                     return 1
                 # Per-run isolation, same as the capture below: a payload
                 # that never settles must fail THIS run, not the corpus.

@@ -9,9 +9,20 @@
 export type ToolOffsetState =
   | { kind: "none" }                     // no tool in the spindle
   | { kind: "unknown" }                  // a field is missing: no claim
-  | { kind: "applied" }                  // the spindle tool's table length is in effect
+  | { kind: "applied"; mode: TloMode | null } // the table length's NUMBER is in effect; the mode as reported
   | { kind: "off"; g49: boolean }        // no length offset: the control point is the spindle nose
   | { kind: "other"; z: number };        // another offset in effect (G43 H<other>, G43.1, G43.2)
+
+/** The tool-length mode the interpreter REPORTS (modal group 8 in
+ *  `gcodes`), or null — never inferred from the numbers (Codex R61 VP-I25:
+ *  a zero-length tool under G49 and a G43.1 of the table's value both
+ *  matched the table and the strip said "G43"). */
+export type TloMode = "G43" | "G43.1" | "G43.2" | "G49";
+const TLO_CODES: readonly (readonly [number, TloMode])[] = [[430, "G43"], [431, "G43.1"], [432, "G43.2"], [490, "G49"]];
+export function tloMode(gcodes: readonly number[] | null | undefined): TloMode | null {
+  for (const [code, mode] of TLO_CODES) if (gcodes?.includes(code)) return mode;
+  return null;
+}
 
 /** Machine units: the applied offset is the table's value, copied — a
  *  real difference is a different offset, never rounding. */
@@ -30,14 +41,18 @@ export function toolOffsetState(s: ToolOffsetInputs): ToolOffsetState {
   if (tool <= 0) return { kind: "none" };
   const table = s.tool_table_z, z = s.tool_offset?.[2];
   if (table == null || z == null || !Number.isFinite(table) || !Number.isFinite(z)) return { kind: "unknown" };
-  if (Math.abs(z - table) <= TLO_EPS) return { kind: "applied" };
-  if (Math.abs(z) <= TLO_EPS) return { kind: "off", g49: (s.gcodes ?? []).includes(490) };
+  const mode = tloMode(s.gcodes);
+  if (Math.abs(z - table) <= TLO_EPS) return { kind: "applied", mode };
+  if (Math.abs(z) <= TLO_EPS) return { kind: "off", g49: mode === "G49" };
   return { kind: "other", z };
 }
 
-/** The pin's word and the strip's value for a state that needs one. */
+/** The pin's word and the strip's value. In effect: the REPORTED mode — a
+ *  zero-length tool under G49 says G49 — or "Applied" when no mode is
+ *  reported (never an invented G-code). */
 export function toolOffsetWord(st: ToolOffsetState): string | null {
   switch (st.kind) {
+    case "applied": return st.mode ?? "Applied";
     case "off": return st.g49 ? "Off (G49)" : "Off";
     case "other": return "Other offset";
     default: return null;

@@ -1,0 +1,75 @@
+{
+  "commit": "9edcc9b",
+  "results": [
+    {
+      "file": "scripts/preview_goldens/3axis/1001.json",
+      "sha256": "2b9e4447b341ebcc3ae8e51bc323da0fac495d655158baa1b5210c9f0d2a3eda",
+      "changes": [
+        {
+          "path": "/preview_schema",
+          "before": 9,
+          "after": 10
+        }
+      ]
+    },
+    {
+      "file": "scripts/preview_goldens/3axis/haus.json",
+      "sha256": "cd68739899b7264784d37a3020d51063415f027fda6bd133c3e244309e3b5179",
+      "changes": [
+        {
+          "path": "/preview_schema",
+          "before": 9,
+          "after": 10
+        }
+      ]
+    },
+    {
+      "file": "scripts/preview_goldens/3axis/kontur.json",
+      "sha256": "23ea35a1be06ef2489017b5ca2b33de19fe75bdd55d8bf4d7b0bfddf48676006",
+      "changes": [
+        {
+          "path": "/preview_schema",
+          "before": 9,
+          "after": 10
+        }
+      ]
+    },
+    {
+      "file": "scripts/preview_goldens/twp_gantry/twp_simple_example.json",
+      "sha256": "63481db30be2d8fc70a893e0366e94ebb91ee91f27e90c9d2c743a6361abdc01",
+      "changes": [
+        {
+          "path": "/preview_schema",
+          "before": 9,
+          "after": 10
+        }
+      ]
+    },
+    {
+      "file": "scripts/test_fixtures/tool_basis_pairs.json",
+      "sha256": "ba79fe61b29fc4921367894eb628f74b8fb975ae0df3ef46605f971e328ce8a2",
+      "changes": [
+        {
+          "path": "/pairs/heavy_like/10/preview_schema",
+          "before": 9,
+          "after": 10
+        },
+        {
+          "path": "/pairs/heavy_like/10.005/preview_schema",
+          "before": 9,
+          "after": 10
+        },
+        {
+          "path": "/pairs/r55/10/preview_schema",
+          "before": 9,
+          "after": 10
+        },
+        {
+          "path": "/pairs/r55/20/preview_schema",
+          "before": 9,
+          "after": 10
+        }
+      ]
+    }
+  ]
+}

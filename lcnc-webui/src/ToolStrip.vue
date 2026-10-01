@@ -24,7 +24,7 @@ const props = defineProps<{
   offsetState: ToolOffsetState;
 }>();
 const offsetWarn = computed(() => props.offsetState.kind === "off" || props.offsetState.kind === "other");
-const offsetWord = computed(() => props.offsetState.kind === "applied" ? "G43" : toolOffsetWord(props.offsetState));
+const offsetWord = computed(() => toolOffsetWord(props.offsetState));
 
 const emit = defineEmits<{
   (e: "openToolTable"): void;

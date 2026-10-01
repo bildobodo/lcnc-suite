@@ -1,0 +1,44 @@
+
+Running 10 tests using 1 worker
+
+(node:3849952) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3849952) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/collisions.viewer.spec.ts:379:1 › the older-offsets line: at once during a run, in standstill only if no re-parse follows (live look 2026-10-01) (9.1s)
+  ✓   2 e2e/editor-guards.spec.ts:199:1 › the code shows at once after the viewer is rebuilt or another program loads (live look 2026-10-01) (2.5s)
+  ✓   3 e2e/editor-guards.spec.ts:216:1 › discard: clean closes at once, dirty asks and Keep editing keeps the edit (2.3s)
+  ✓   4 e2e/input-session.spec.ts:388:1 › the number keypad shows the result of a calculation in a second line under the entry (operator 2026-10-01) (3.4s)
+  ✓   5 e2e/layout.spec.ts:1654:1 › Settings: as wide as the tool editor, the 3D Viewer sections side by side, the layers in four groups (15.3s)
+  ✓   6 e2e/layout.spec.ts:1848:1 › the program name and the rows under it keep their place with and without a program (7.0s)
+  ✓   7 e2e/layout.spec.ts:1883:1 › a focused field shows its whole focus ring in every side tab (live look 2026-10-01) (11.6s)
+  ✘   8 e2e/r61.spec.ts:10:1 › R61: tool offset words and layer changes without a new status (8.9s)
+(node:3851893) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3851893) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   9 e2e/toolsetter.viewer.spec.ts:95:1 › G49 with a tool in the spindle: the Tool strip says Off, a pin marks the control point at the nose (operator 2026-10-01) (5.9s)
+  ✓  10 e2e/viewer.spec.ts:436:1 › the viewer palette: Automatic follows the theme, Custom stays, a legacy palette is Custom, the legend shows what is drawn (3.1s)
+
+
+  1) e2e/r61.spec.ts:10:1 › R61: tool offset words and layer changes without a new status ──────────
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      37 |   await page.screenshot({path:'../evidence/viewer-palette-fest.r61.tool-layer-off.png'});
+      38 |   // Diagnostic of the visibility defect: the independent marker stays visible.
+    > 39 |   expect((await pin())?.visible).toBe(true);
+         |                                  ^
+      40 |   await ctl({op:'status_delta',data:{}});await settle();
+      41 |   await expect.poll(async()=>(await pin())?.visible).toBe(false);
+      42 |   rows.push({name:'next status hides the marker',pin:await pin()});
+        at /tmp/codex-r61-il3mu84q/lcnc-webui/e2e/r61.spec.ts:39:34
+
+    Error Context: ../evidence/r61-browser-output/r61-R61-tool-offset-words--36c52-hanges-without-a-new-status/error-context.md
+
+  1 failed
+    e2e/r61.spec.ts:10:1 › R61: tool offset words and layer changes without a new status ───────────
+  9 passed (1.2m)

@@ -13,6 +13,16 @@ Playwright Chromium with `npx playwright install --with-deps chromium` there.
 | `python3 scripts/test_suite.py offline --component frontend` | Frontend checks, including recorded parity replay | None |
 | `lcnc-gateway/.venv/bin/python scripts/test_suite.py live-twp --ini /path/lcnc_suite_sim_6axis_twp_xyzabc.ini --allow-sim-motion` | Fresh preview goldens, cached-payload parity and plane invariants, mode/button, capture, reorient, touch-off and adverse-path checks | Yes, simulator only |
 
+The live parity loads every corpus program through the gateway's own
+`load_file`, as the operator loads (since review R15 B2 a bare
+`program_open` is a `STAT.file` flip the gateway ignores — the payload
+never settled). `load_file` takes only files inside the INI's
+`[DISPLAY] PROGRAM_PREFIX`, so the runner copies the corpus to
+`<PROGRAM_PREFIX>/.lcnc-live-gate/` (replaced per run; the file browser
+hides dot folders), and `sim_parity.py gate` needs `LCNC_WS_TOKEN` (the
+runner sets it) for its short armed loader, which disarms before it
+closes.
+
 The existing `lcnc-gateway/run-tests.sh` also uses pytest discovery, including
 new test files automatically. The offline suite excludes `test_viewer_init.py`,
 which starts a separate gateway. NumPy is required for vectorized checks;

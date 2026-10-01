@@ -1298,6 +1298,11 @@ function setLayerVisible(layer: Layer, on: boolean) {
       break;
     case "tool":
       if (toolMarker) toolMarker.visible = on;
+      // The control-point pin follows the Tool layer AT ONCE (Codex R61
+      // VP-I26: it waited for the next status): applyState decides it, live
+      // or scrub — re-apply the last state, as a scrub pose does.
+      if (_lastState && !pendingState) pendingState = _lastState;
+      requestRender();
       break;
     case "workzero":
       // One layer for both "where is zero" markers: the active triad and
@@ -1978,8 +1983,6 @@ async function buildFromInit(init: ViewerInit) {
           controls.update();
           requestRender();
         },
-        // The A/B run with short phases (the e2e; the operator's run is the
-        // Debug tab's button with the full durations).
         getRoleMaterials: () => {
           const out: { role: string; kind: string; widthPx: number | null; dashed: boolean; opacity: number; transparent: boolean }[] = [];
           const seen = new Set<string>();
