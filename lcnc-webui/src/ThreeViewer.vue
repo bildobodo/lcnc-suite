@@ -19,6 +19,7 @@ import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS,
 import { applyOnTop, ON_TOP_ORDER } from "./viewer/onTop";
 import { confirmedToolsetter } from "./toolsetterVars";
 import { toolChangePlacement, toolsetterPlacement } from "./viewer/toolsetterMarker";
+import { toolOffsetState } from "./viewer/toolOffsetState";
 import { buildPointMarker, posePointMarker, POINT_MARKER, type PointMarker } from "./viewer/pointMarker";
 import { fetchG30, type G30Response } from "./lcncApi";
 import { g30Confirmed } from "./g30Shared";
@@ -123,6 +124,8 @@ type ViewerState = {
   tool_length?: number | null;
   /** The spindle tool's table Z offset, SIGNED (tool_length is its magnitude); null: no table row. */
   tool_table_z?: number | null;
+  /** Active G-codes ×10 (STAT.gcodes): 490 = G49 (viewer/toolOffsetState.ts). */
+  gcodes?: number[] | null;
   // Folded in by the status watcher from the envelope top level — gateway
   // sends `status_msg["tool_meta"]` (sibling of `data`), not inside `data`.
   tool_meta?: ToolMeta | null;
@@ -563,6 +566,14 @@ function applyToolsetterMarker() {
 watch(settingsVersion, applyToolsetterMarker);
 let toolChangeMarker: PointMarker | null = null;
 let _toolChangeLayerOn = true;
+// The CONTROL POINT while the spindle tool's own offset is not in effect
+// (operator 2026-10-01, viewer/toolOffsetState.ts): under G49 the DRO,
+// zeroing and touch-off refer to the spindle nose, though the drawn
+// (physical) tool sticks out. A pin there with its reason; posed in
+// applyState next to the tip, shown with the Tool layer, never in a scrub.
+let controlPointMarker: PointMarker | null = null;
+let _controlPointLabel: Text | null = null;
+const _cpDelta = new THREE.Vector3();
 let _g30: G30Response | null = null;
 let _g30Warned = false;
 function applyToolChangeMarker() {
@@ -1712,6 +1723,14 @@ function ensureCoreGroups(init: ViewerInit) {
     label: mkMarkerLabel("tool change (G30)"), name: "toolChange" });
   (machineFrameGrp ?? _workGrp)!.add(toolChangeMarker);
   applyToolChangeMarker();
+  // the control point hangs where the tool group's position is expressed
+  // (its parent): the tip and the pin are one offset apart in that frame
+  _controlPointLabel = mkMarkerLabel("control point · G49");
+  controlPointMarker = buildPointMarker({ color: palette.bounds, alt: palette.boundsAlt,
+    label: _controlPointLabel, name: "controlPoint" });
+  controlPointMarker.visible = false;
+  (_toolGrp?.parent ?? _toolGrp ?? _workGrp)!.add(controlPointMarker);
+  applyOnTop(controlPointMarker, true, ON_TOP_ORDER.marker);
   refreshG30();
   // Reach envelope layer (2026-09-12): the cached solids re-hang under the
   // rebuilt frame groups; a new machine model recomputes (inputs key).
@@ -2021,6 +2040,15 @@ async function buildFromInit(init: ViewerInit) {
         getBackplot: () => ({ points: backplot.count, segments: backplot.segments }),
         getToolsetter: () => _markerDiag(toolsetterMarker),
         getToolChange: () => _markerDiag(toolChangeMarker),
+        // the control-point pin in the machine frame (getToolTip's frame)
+        getControlPoint: () => {
+          if (!controlPointMarker) return null;
+          const w = controlPointMarker.getWorldPosition(new THREE.Vector3());
+          const frame = machineFrameGrp ?? _workGrp;
+          if (frame) { frame.updateWorldMatrix(true, false); frame.worldToLocal(w); }
+          return { ...(_markerDiag(controlPointMarker) ?? {}), visible: controlPointMarker.visible, world: w.toArray(),
+                   label: _controlPointLabel?.text ?? null };
+        },
         // The tilted work plane as drawn (viewer contrast plan, V4): the label
         // on the object, the edge's role, pattern and opacity, the arrow's
         // claim and the HUD's word — one decision behind all of them.
@@ -2249,6 +2277,20 @@ function applyState(init: ViewerInit, st: ViewerState) {
     if (len != null) { _tofsVec.set(t?.[0] ?? 0, t?.[1] ?? 0, len); tipOk = true; }
   }
   if (tipOk) _toolGrp.position.sub(_tofsVec);
+  // The control point (operator 2026-10-01): the tip + (physical − applied)
+  // in the same frame — under G49 the spindle nose. Live only, Tool layer on.
+  if (controlPointMarker) {
+    const ost = _scrubJoints ? null : toolOffsetState(st);
+    const show = !!ost && (ost.kind === "off" || ost.kind === "other") && tipOk && !!toolMarker?.visible;
+    if (show) {
+      const t = st.tool_offset;
+      _cpDelta.set(_tofsVec.x - (t?.[0] ?? 0), _tofsVec.y - (t?.[1] ?? 0), _tofsVec.z - (t?.[2] ?? 0));
+      controlPointMarker.position.copy(_toolGrp.position).add(_cpDelta);
+      const word = `control point · ${ost!.kind === "off" ? (ost!.g49 ? "G49" : "no offset") : "other offset"}`;
+      if (_controlPointLabel && _controlPointLabel.text !== word) { _controlPointLabel.text = word; _controlPointLabel.sync(requestRender); }
+    }
+    controlPointMarker.visible = show;
+  }
   // The trail follows the machine, never a length: a changed physical offset
   // moves the drawn tip with no motion — lift the pen (no stroke to it).
   if (!_scrubJoints) {
@@ -3837,7 +3879,7 @@ function animate() {
   if (camera && renderer) {
     const hPx = renderer.domElement.clientHeight;
     _markerUp.set(0, 1, 0).applyQuaternion(camera.quaternion);
-    for (const m of [toolsetterMarker, toolChangeMarker]) if (m?.visible) posePointMarker(m, worldPerPixel(camera, m, hPx), _markerUp);
+    for (const m of [toolsetterMarker, toolChangeMarker, controlPointMarker]) if (m?.visible) posePointMarker(m, worldPerPixel(camera, m, hPx), _markerUp);
   }
   // Per-chunk overlay gate + frustum count (viewer/lineChunks.ts): decides
   // which outside-bounds overlays are drawn this frame at the current pose.
@@ -4555,7 +4597,7 @@ function refreshPalette() {
   toolpath.setColors(palette);
   backplot.setColor(palette.backplot);
   machineBoundsMesh?.setColors(palette.bounds, palette.boundsAlt);
-  for (const m of [toolsetterMarker, toolChangeMarker]) {
+  for (const m of [toolsetterMarker, toolChangeMarker, controlPointMarker]) {
     m?.setColors(palette.bounds, palette.boundsAlt);
     const label = m?.children.find(c => c instanceof Text) as Text | undefined;
     if (label) { label.color = palette.boundsAlt; label.outlineColor = palette.bounds; label.sync(requestRender); }

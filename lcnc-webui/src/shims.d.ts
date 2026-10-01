@@ -51,6 +51,8 @@ interface ViewerDiag {
   getBackplot?: () => { points: number; segments: number };
   getToolsetter?: () => { visible: boolean; top: number[]; screen: { x: number; y: number } | null; onTop: boolean } | null;
   getToolChange?: () => { visible: boolean; top: number[]; screen: { x: number; y: number } | null; onTop: boolean } | null;
+  /** The control-point pin (operator 2026-10-01): world = the machine frame. */
+  getControlPoint?: () => { visible: boolean; world: number[]; label: string | null } | null;
   getPlane?: () => { visible: boolean; label: string | null; role: string | null; dashed: boolean;
     edge: { color: string; opacity: number; transparent: boolean } | null; arrowStale: boolean; hudWord: string | null } | null;
   simulatePlane?: (plane: number[] | null | undefined) => void;

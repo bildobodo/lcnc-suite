@@ -87,6 +87,39 @@ test("G49 never moves the drawn tool; a table write moves its tip with the backp
   await expect.poll(segs, { message: "real motion draws again, from the new tip" }).toBe(bp + 1);
 });
 
+// Operator 2026-10-01: zeroing with T13 in the spindle under G49 set G54 at
+// the spindle nose — the startup code and every abort run G49 while the
+// tool stays, and the drawn (physical) tool showed nothing of it. The Tool
+// strip names the offset state, and the viewer pins the CONTROL POINT (what
+// the DRO, zeroing and touch-off refer to) while it is not the tool's tip.
+test("G49 with a tool in the spindle: the Tool strip says Off, a pin marks the control point at the nose (operator 2026-10-01)", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  await context.route("**/xyzac-model/*.stl", r => r.fulfill({ contentType: "application/octet-stream",
+    body: readFileSync(new URL(new URL(r.request().url()).pathname.split("/").pop()!, MODEL)) }));
+  await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await ctl({ op: "setViewerInit", data: { units: "mm", stl_base_url: "/xyzac-model/", axes: ["X", "Y", "Z", "A", "C"],
+    parts: machine.parts, groups: machine.groups, kinematics: machine.kinematics,
+    workGroup: machine.workGroup, toolGroup: machine.toolGroup } });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready ? window.__viewerDiag.getAppearance?.().parts.length ?? 0 : 0),
+    { timeout: 20_000 }).toBe(machine.parts.length);
+  const pose = (z: number) => [150, 0, z, 0, 0];
+  const nine = (z: number) => [0, 0, z, 0, 0, 0, 0, 0, 0];
+  const offsetRow = page.locator('[data-strip="tool"] [data-tool-offset]');
+  const pin = () => page.evaluate(() => window.__viewerDiag!.getControlPoint!());
+  const tipZ = async () => { const t = await page.evaluate(() => window.__viewerDiag!.getToolTip!()); return t ? Math.round(t[2]! * 1000) / 1000 : null; };
+  // G49 with T13 (65 mm) in the spindle
+  await ctl({ op: "status_delta", data: { tool_number: 13, tool_length: 65, tool_table_z: 65, tool_diameter: 6, tool_offset: nine(0),
+    gcodes: [-1, 0, 170, 400, 490, 540, 800, 900, 940, 210], joint_pos: pose(-235), actual_position: pose(-235) } });
+  await expect(offsetRow).toContainText("Off (G49)");
+  await expect.poll(async () => (await pin())?.visible ?? null, { message: "the control-point pin shows" }).toBe(true);
+  await expect.poll(tipZ).toBe(-300);
+  expect(Math.round((await pin())!.world[2]! * 1000) / 1000, "the pin at the nose: the tip + the tool's 65 mm").toBe(-235);
+  // G43 H13: the control point is the tip — no pin, the strip says so
+  await ctl({ op: "status_delta", data: { tool_offset: nine(65), gcodes: [-1, 0, 170, 400, 430, 540, 800, 900, 940, 210] } });
+  await expect(offsetRow).toHaveText("· G43");
+  await expect.poll(async () => (await pin())?.visible ?? null).toBe(false);
+});
+
 // Codex R45 ST-I04: the physical offset keeps the table's SIGN (status
 // tool_table_z) — tool_length is a magnitude, and a negative table offset
 // drawn from it put the tip 130 mm off (−300 for −170). Without a table row no

@@ -31,6 +31,7 @@ import { PROBE_VIEWS, type ProbeView } from "./probeViews";
 import MachineSelect from "./MachineSelect.vue";
 import OffsetPanel from "./OffsetPanel.vue";
 import Gate from "./Gate.vue";
+import { toolOffsetState } from "./viewer/toolOffsetState";
 import MachineBtn from "./MachineBtn.vue";
 import DialogFrame from "./DialogFrame.vue";
 import DetailsPopover from "./DetailsPopover.vue";
@@ -875,6 +876,10 @@ const spindleOvrEnabled = computed(() =>
 const rapidOvrAvailable = computed(() => rapidOverrideValue.value !== null);
 
 const taskMode = computed(() => st.value.task_mode ?? 0);
+// Is the spindle tool's own length offset in effect? (operator 2026-10-01;
+// viewer/toolOffsetState.ts — the Tool strip's word, the viewer's pin)
+const toolOffset = computed(() => toolOffsetState({ tool_number: st.value.tool_number, tool_table_z: st.value.tool_table_z,
+  tool_offset: st.value.tool_offset, gcodes: st.value.gcodes }));
 const activeGcodes = computed(() => {
   const codes = st.value.gcodes;
   if (!codes || !Array.isArray(codes)) return "";
@@ -2552,6 +2557,7 @@ watch(viewerGcode, (newGcode) => {
         :toolDiameter="st.tool_diameter ?? null"
         :toolLength="st.tool_length ?? null"
         :linearUnit="linearUnit"
+        :offsetState="toolOffset"
         @openToolTable="activeTab = 'tools'"
       />
 

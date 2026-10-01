@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { toolOffsetWord, type ToolOffsetState } from "./viewer/toolOffsetState";
 import { ref, computed, watch, onMounted } from "vue";
 import { send, lastReply, connected } from "./lcncWs";
 import { toolTypeLabel } from "./toolTypes";
@@ -19,7 +20,11 @@ const props = defineProps<{
   toolDiameter: number | null;
   toolLength: number | null;
   linearUnit: string;
+  /** viewer/toolOffsetState.ts — one decision with the viewer's pin. */
+  offsetState: ToolOffsetState;
 }>();
+const offsetWarn = computed(() => props.offsetState.kind === "off" || props.offsetState.kind === "other");
+const offsetWord = computed(() => props.offsetState.kind === "applied" ? "G43" : toolOffsetWord(props.offsetState));
 
 const emit = defineEmits<{
   (e: "openToolTable"): void;
@@ -68,7 +73,13 @@ const currentToolData = computed(() =>
         <div class="statusRow"><span class="label-muted md">Tool</span><span class="val-status md mono">T{{ currentTool }}</span></div>
         <div class="statusRow"><span class="label-muted md">Pocket</span><span class="val-status md mono">{{ currentToolData?.P ?? NO_VALUE }}</span></div>
         <div class="statusRow"><span class="label-muted md">Diameter</span><span class="val-status md mono">{{ fmtQty(toolDiameter, linearUnit) }}</span></div>
-        <div class="statusRow"><span class="label-muted md">Z Offset</span><span class="val-status md mono">{{ fmtQty(toolLength, linearUnit) }}</span></div>
+        <!-- The table length AND whether it is in effect (operator
+             2026-10-01: under G49 the DRO and zeroing refer to the spindle
+             nose, though the drawn tool sticks out): "· G43" while the
+             spindle tool's own offset applies, a warn word when not. -->
+        <div class="statusRow"><span class="label-muted md">Z Offset</span>
+          <span class="val-status md"><span class="mono">{{ fmtQty(toolLength, linearUnit) }}</span>
+            <span v-if="offsetWord" data-tool-offset class="val-status md" :class="{ warn: offsetWarn }"> · {{ offsetWord }}</span></span></div>
         <div class="statusRow"><span class="label-muted md">Type</span><span class="val-status md">{{ currentToolData ? toolTypeLabel(currentToolData.type) : NO_VALUE }}</span></div>
         <div class="statusRow"><span class="label-muted md">Description</span><span class="val-status md toolDesc">{{ currentToolData?.description || NO_VALUE }}</span></div>
       </div>
