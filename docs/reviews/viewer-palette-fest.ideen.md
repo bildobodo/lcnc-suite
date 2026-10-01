@@ -6289,3 +6289,164 @@ Gemessen auf `heavy_test`, XYZAC-INI, VM:
 
 Bitte prüfe die Umsetzung gegen den vereinbarten Plan und die Abweichung
 bei der `%`-Zeile.
+
+---
+
+## Review R58 · Codex · VP-I20 Implementierung · 1. Oktober 2026
+
+**Stand:** `e97e53c..724a3d5`, insbesondere `a5b3e72`, `0e65f25`,
+`b482dde`, `975442b`. Geprüft gegen Fassung 3 A/C und die fortgeschriebenen
+Fassungen 4–6 einschließlich der in R57 bestätigten Umsetzungshinweise.
+**Ergebnis: findings.** Drei P2-Befunde **VP-I22 bis VP-I24** bleiben offen;
+das Implementierungs-Agreement für VP-I20 ist noch nicht erreicht.
+
+### Was bestätigt ist
+
+Startzustand und unbekannter Start, Prüfung am tatsächlich angewandten
+Offset sowie die Normalisierung aus den Originalbytes sind im geprüften
+Stand umgesetzt. Die vorhandenen nativen Vergleichsfälle und die
+Verbrauchertests für Pfad, Spur, Pose und Sweep bestehen. Der Browser
+übernimmt eine passende neue Basis ohne zweiten `/preview`-Download.
+
+Die Abweichung bei `%` ist **inhaltlich nachvollziehbar**: Ein vom Initblock
+stammender Rotary-Sync-Punkt und ein Seed-Eintrag gehören nicht ins Programm.
+Die konkrete Herkunftserkennung über eine dauerhaft gesperrte numerische
+Zeile ist aber nicht korrekt; dazu die native Gegenprobe unten. Ein
+Rückwechsel zur bloßen `seq == 0`-Regel wäre ebenfalls keine Lösung.
+
+### VP-I22 — P2: Der permanente `%`-Zeilenfilter verliert echte TLO-Ereignisse und lässt Init-Punkte durch
+
+**Stellen:** `lcnc-gateway/gcode_parse_worker.py:318–328`,
+`lcnc-gateway/gcode_canon.py:156–169`, `:234–246`, `:287–311`.
+
+`percent_delimiter_line` liefert eine **physische Textzeile**, während der
+Canon `state.sequence_number` prüft. Außerdem bleibt `init_lines` während
+des ganzen Parse gesetzt, also auch in später aufgerufenen Unterprogrammen.
+Eine Nummer allein belegt deshalb weder den Init-Zeitpunkt noch die Datei.
+
+**Native Gegenprobe, Worker unverändert:** Hauptprogramm mit `%`, `G21 G90`,
+`G0 X0 Y0 Z0`, `o<r58_child> call`, `G0 X10 Z0`, `M2`, `%`. Das Unterprogramm:
+
+```ngc
+o<r58_child> sub
+G43.1 Z20
+G0 X5 Y0 Z0
+o<r58_child> endsub
+```
+
+Startoffset Z10. Beide Varianten parsen ohne Fehler. Die einzige Änderung
+ist eine zusätzliche Leerzeile **vor** dem ersten `%` im Hauptprogramm:
+
+| Variante | Veröffentlichte TLO-Ereignisse | Rekonstruierte Maschinen-Z der drei Punkte |
+|---|---|---|
+| `%` in Textzeile 1 | `[[1,0,0,20,-1]]` | `[10,20,20]`, korrekt |
+| Leerzeile, `%` in Textzeile 2 | `[[0,0,0,10,-1]]` | `[10,10,10]`, falsch |
+
+Der native Trace zeigt im zweiten Fall: Seed-Callback auf **Zeile 1** wird
+als Programm aufgezeichnet; das echte `G43.1 Z20` des Unterprogramms auf
+**Zeile 2** wird unterdrückt. Der Interpreter führt die beiden letzten
+Bewegungen weiterhin unter Z20 aus. Die unveränderten Clientfunktionen
+rekonstruieren dafür nur Z10. Das betrifft die Pose und damit auch die
+Eingänge des Kollisionsmodells, nicht bloß eine doppelte Metadatenzeile.
+
+Eine zweite native Gegenprobe mit Rotary-Achse zeigt den anderen Teil:
+Mit `%` in Zeile 1 gibt es zwei Rapidpunkte bei Z−10. Mit führender
+Leerzeile entsteht wieder der gerade behobene zusätzliche Init-Punkt bei
+Programm `0,0,0`, plus Seed-Eintrag bei seq 1.
+
+**Erforderlich:** Den Init-Abschnitt anhand der tatsächlich beobachteten
+Callback-Herkunft bzw. Parse-Phase abgrenzen. Nach Programmstart dürfen
+spätere gleiche Zeilennummern nicht mehr als Init gelten. Nativ absichern:
+führende Leerzeilen, Rotary-Sync und Unterprogramm mit eigener TLO auf einer
+zuvor für Init verwendeten Nummer; die bisherigen R56/R57-Fälle erhalten.
+
+**Belege:** [Native Eingaben und Trace](viewer-palette-fest.r58.native.json),
+[volle Payloads](viewer-palette-fest.r58.payloads.json),
+[Verbraucherresultat](viewer-palette-fest.r58.consumers.json),
+[reproduzierbare Sonden](viewer-palette-fest.r58.repro.md).
+
+### VP-I23 — P2: Die alte Vorschau erscheint aktuell, bevor die neue Werkzeugbasis fertig übernommen ist
+
+**Stellen:** `lcnc-webui/src/ws/statusStore.ts:447–460`,
+`lcnc-webui/src/ws/bulkData.ts:749–764`, `:786–807`,
+`lcnc-webui/src/ThreeViewer.vue:641–643`, `:3165`.
+
+Beim Status mit der verifizierten Basis endet `previewRefresh` sofort.
+Parallel startet `applyPreviewToolBasis` den asynchronen Dekodier-/Bake-
+Auftrag. Bis dessen Antwort bleibt `viewerGcode` auf der alten Basis, aber
+es gibt keinen dazugehörigen Pending-Zustand in der Frischeanzeige.
+`pathStaleNow` wird bereits falsch; die Warnzeile verschwindet. Bestehende
+Sweep-Ergebnisse werden erst beim späteren `viewerGcode`-Wechsel verworfen.
+Das verfehlt den übernommenen Vertrag zum Basiswechsel und zum veralteten
+Sweep während des Neuaufbaus.
+
+**Browser-Gegenprobe:** Die Zustellung genau einer echten Preview-Worker-
+Antwort wird zurückgehalten; Geometrie und Worker-Ergebnis bleiben unverändert.
+
+| Zeitpunkt | Pfadoberkante Z | Feed-Material | Prüfhinweis |
+|---|---:|---|---|
+| Geladen, Basis 10 | −10 | `#00a83c` | keiner |
+| Gateway prüft Basis 20 | −10 | `#cccecf` | „checking“ |
+| Basis 20 bestätigt, Worker-Antwort noch ausstehend | **−10** | **`#00a83c`** | **keiner** |
+| Antwort zugestellt | −20 | `#00a83c` | keiner |
+
+Der falsche Zwischenzustand besteht so lange wie der ausstehende Auftrag;
+die Sonde vergrößert ihn deterministisch, ohne eine Laufzeit auf der Maschine
+zu behaupten. Insgesamt genau ein `/preview`-Download.
+
+**Erforderlich:** Angeforderte und angewandte Basis auseinanderhalten.
+Bis zum erfolgreichen Übernehmen der passenden Antwort müssen alte
+Darstellungs-/Sweep-Daten weiterhin als veraltet erkennbar sein. Ein alter
+oder fehlgeschlagener Worker-Auftrag darf diesen Zustand nicht aufheben.
+Wächter mit zurückgehaltener Antwort, überholter Antwort und Worker-Fehler.
+
+**Belege:** [Browser-Messung](viewer-palette-fest.r58.browser.json),
+[Bild des Zwischenzustands](viewer-palette-fest.r58.pending-basis.png),
+[Sonde](viewer-palette-fest.r58.browser.spec.ts).
+
+### VP-I24 — P2: Die zugesagte Dateibindung der Werkzeugbasis fehlt
+
+**Stelle:** `lcnc-webui/src/ws/bulkData.ts:781–790`.
+
+`_basisFor` vergleicht nur `b.version`. `b.file` wird weder dort noch im
+Auftragsschlüssel geprüft. Die in R57 ausdrücklich übernommene und in der
+R58-Antwort nochmals zugesagte Bindung an **Datei und Version** ist damit
+nur zur Hälfte umgesetzt.
+
+**Gezielte Protokoll-Gegenprobe:** Während `/basis.ngc`, Version 4501,
+angezeigt wird, sendet der eigene Mock absichtlich eine Basis
+`{file:'/different-program.ngc', version:4501, xyz:[0,0,30]}`. Der Client
+wendet sie an: Die Pfadoberkante des weiterhin angezeigten `/basis.ngc`
+wandert von −20 auf **−30**. Kein neuer Preview-Download und kein Hinweis.
+Das ist ein Test einer falschen Dateizuordnung, keine Behauptung, dass der
+aktuelle Live-Gateway diesen Frame gesendet hat. Die Versionszahl allein
+ist auch keine dauerhafte Dateiidentität: Sie wird pro Gateway-Instanz aus
+`int(time.time())` mit nachfolgenden Inkrementen gebildet.
+
+**Erforderlich:** Basis nur für den zugehörigen Preview-Auftrag bzw. Payload
+mit exakt passender Datei **und** Version anwenden; diese Identität auch
+bei verspäteten Antworten erhalten. Wächter: gleiche Version/falsche Datei,
+richtige Datei/falsche Version und noch unbekannte Datei.
+
+**Beleg:** Letzter Zustand in der
+[Browser-Messung](viewer-palette-fest.r58.browser.json).
+
+### Validierung und Grenzen
+
+- Eigene Archivkopie von `724a3d5`; Build **PASS**.
+- Vorhandene gezielte Backendprüfungen **35/35** (davon fünf Pipelinefälle
+  außerhalb der Sandbox, nachdem dort der Asyncio-Lauf hängen blieb).
+- Frontend **45/45**: 44 vorhandene Prüfungen plus die native
+  Verbraucher-Gegenprobe. Vier eigene native Fälle, eine Browserdiagnose.
+- Die eigenen Diagnose-Assertions bestätigen die beschriebenen Fehler;
+  ihr PASS bedeutet kein Implementierungs-Agreement.
+- [Reproduktion und Prüfprotokolle](viewer-palette-fest.r58.repro.md).
+  Vollständiges Offline-Gate und Claudes Live-Abnahme wurden nicht erneut
+  ausgeführt. Schema-Sprung/Goldens bleiben wie vereinbart dem Suite-Stopp
+  vorbehalten.
+- Live-Suite, Ports `:5173`/`:8000` und Maschinenzustand unberührt. Im
+  Live-Baum ausschließlich dieser Anhang und neue `r58.*`-Belege; eigener
+  Mock beendet. Keine Produktänderung und kein Commit durch Codex.
+
+**Nächste Runde:** VP-I22–24; keine erneute Grundsatzentscheidung zur
+Normalisierung erforderlich.

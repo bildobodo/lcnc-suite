@@ -1,0 +1,268 @@
+{
+  "commit": "724a3d5",
+  "method": "Delay only delivery of one real preview worker reply; own mock 127.0.0.1:4188",
+  "records": [
+    {
+      "label": "loaded",
+      "previews": 1,
+      "pathBox": {
+        "min": [
+          0,
+          0,
+          -40
+        ],
+        "max": [
+          40,
+          0,
+          -10
+        ]
+      },
+      "palette": {
+        "resolved": {
+          "feed": "#00a83c",
+          "rapid": "#3d8bff",
+          "backplot": "#ff00ff",
+          "bounds": "#15181c",
+          "toolpathBounds": "#15181c",
+          "tool": "#6b7178",
+          "cutter": "#eceff1",
+          "limit": "#e66b00",
+          "collision": "#c8102e",
+          "boundsAlt": "#f0f2f4",
+          "reach": "#15181c",
+          "planeActive": "#2d81dc",
+          "planeDefined": "#a97515",
+          "planeStale": "#cc3333"
+        },
+        "drawn": {
+          "feed": "#00a83c",
+          "rapid": "#3d8bff",
+          "toolpathBounds": "#15181c",
+          "toolpathBoundsAlt": "#f0f2f4",
+          "planeActive": "#2d81dc",
+          "backplot": "#ff00ff",
+          "bounds": "#15181c",
+          "boundsAlt": "#f0f2f4",
+          "marker": "#15181c",
+          "markerAlt": "#f0f2f4",
+          "tool": "#6b7178",
+          "cutter": "#eceff1"
+        },
+        "mode": "auto"
+      },
+      "warnings": [],
+      "held": false,
+      "released": false
+    },
+    {
+      "label": "gateway checking",
+      "previews": 1,
+      "pathBox": {
+        "min": [
+          0,
+          0,
+          -40
+        ],
+        "max": [
+          40,
+          0,
+          -10
+        ]
+      },
+      "palette": {
+        "resolved": {
+          "feed": "#00a83c",
+          "rapid": "#3d8bff",
+          "backplot": "#ff00ff",
+          "bounds": "#15181c",
+          "toolpathBounds": "#15181c",
+          "tool": "#6b7178",
+          "cutter": "#eceff1",
+          "limit": "#e66b00",
+          "collision": "#c8102e",
+          "boundsAlt": "#f0f2f4",
+          "reach": "#15181c",
+          "planeActive": "#2d81dc",
+          "planeDefined": "#a97515",
+          "planeStale": "#cc3333"
+        },
+        "drawn": {
+          "feed": "#cccecf",
+          "rapid": "#cccecf",
+          "toolpathBounds": "#15181c",
+          "toolpathBoundsAlt": "#f0f2f4",
+          "planeActive": "#2d81dc",
+          "backplot": "#ff00ff",
+          "bounds": "#15181c",
+          "boundsAlt": "#f0f2f4",
+          "marker": "#15181c",
+          "markerAlt": "#f0f2f4",
+          "tool": "#6b7178",
+          "cutter": "#eceff1"
+        },
+        "mode": "auto"
+      },
+      "warnings": [
+        "Preview re-parsing · tool offset changed — checking?Path, limit marks and simulation update when it lands — 00:00 of ~00:04."
+      ],
+      "held": false,
+      "released": false
+    },
+    {
+      "label": "worker reply held: still the old basis",
+      "previews": 1,
+      "pathBox": {
+        "min": [
+          0,
+          0,
+          -40
+        ],
+        "max": [
+          40,
+          0,
+          -10
+        ]
+      },
+      "palette": {
+        "resolved": {
+          "feed": "#00a83c",
+          "rapid": "#3d8bff",
+          "backplot": "#ff00ff",
+          "bounds": "#15181c",
+          "toolpathBounds": "#15181c",
+          "tool": "#6b7178",
+          "cutter": "#eceff1",
+          "limit": "#e66b00",
+          "collision": "#c8102e",
+          "boundsAlt": "#f0f2f4",
+          "reach": "#15181c",
+          "planeActive": "#2d81dc",
+          "planeDefined": "#a97515",
+          "planeStale": "#cc3333"
+        },
+        "drawn": {
+          "feed": "#00a83c",
+          "rapid": "#3d8bff",
+          "toolpathBounds": "#15181c",
+          "toolpathBoundsAlt": "#f0f2f4",
+          "planeActive": "#2d81dc",
+          "backplot": "#ff00ff",
+          "bounds": "#15181c",
+          "boundsAlt": "#f0f2f4",
+          "marker": "#15181c",
+          "markerAlt": "#f0f2f4",
+          "tool": "#6b7178",
+          "cutter": "#eceff1"
+        },
+        "mode": "auto"
+      },
+      "warnings": [],
+      "held": true,
+      "released": false
+    },
+    {
+      "label": "normalized reply released",
+      "previews": 1,
+      "pathBox": {
+        "min": [
+          0,
+          0,
+          -40
+        ],
+        "max": [
+          40,
+          0,
+          -20
+        ]
+      },
+      "palette": {
+        "resolved": {
+          "feed": "#00a83c",
+          "rapid": "#3d8bff",
+          "backplot": "#ff00ff",
+          "bounds": "#15181c",
+          "toolpathBounds": "#15181c",
+          "tool": "#6b7178",
+          "cutter": "#eceff1",
+          "limit": "#e66b00",
+          "collision": "#c8102e",
+          "boundsAlt": "#f0f2f4",
+          "reach": "#15181c",
+          "planeActive": "#2d81dc",
+          "planeDefined": "#a97515",
+          "planeStale": "#cc3333"
+        },
+        "drawn": {
+          "feed": "#00a83c",
+          "rapid": "#3d8bff",
+          "toolpathBounds": "#15181c",
+          "toolpathBoundsAlt": "#f0f2f4",
+          "planeActive": "#2d81dc",
+          "backplot": "#ff00ff",
+          "bounds": "#15181c",
+          "boundsAlt": "#f0f2f4",
+          "marker": "#15181c",
+          "markerAlt": "#f0f2f4",
+          "tool": "#6b7178",
+          "cutter": "#eceff1"
+        },
+        "mode": "auto"
+      },
+      "warnings": [],
+      "held": true,
+      "released": true
+    },
+    {
+      "label": "basis from another file is accepted",
+      "previews": 1,
+      "pathBox": {
+        "min": [
+          0,
+          0,
+          -40
+        ],
+        "max": [
+          40,
+          0,
+          -30
+        ]
+      },
+      "palette": {
+        "resolved": {
+          "feed": "#00a83c",
+          "rapid": "#3d8bff",
+          "backplot": "#ff00ff",
+          "bounds": "#15181c",
+          "toolpathBounds": "#15181c",
+          "tool": "#6b7178",
+          "cutter": "#eceff1",
+          "limit": "#e66b00",
+          "collision": "#c8102e",
+          "boundsAlt": "#f0f2f4",
+          "reach": "#15181c",
+          "planeActive": "#2d81dc",
+          "planeDefined": "#a97515",
+          "planeStale": "#cc3333"
+        },
+        "drawn": {
+          "feed": "#00a83c",
+          "rapid": "#3d8bff",
+          "toolpathBounds": "#15181c",
+          "toolpathBoundsAlt": "#f0f2f4",
+          "planeActive": "#2d81dc",
+          "backplot": "#ff00ff",
+          "bounds": "#15181c",
+          "boundsAlt": "#f0f2f4",
+          "marker": "#15181c",
+          "markerAlt": "#f0f2f4",
+          "tool": "#6b7178",
+          "cutter": "#eceff1"
+        },
+        "mode": "auto"
+      },
+      "warnings": [],
+      "held": true,
+      "released": true
+    }
+  ]
+}

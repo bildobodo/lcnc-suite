@@ -1,0 +1,525 @@
+{
+  "commit": "724a3d5",
+  "cases": [
+    {
+      "case": "percent_line1",
+      "input": {
+        "program": "%\nG21 G90\nG0 X0 Y0 Z0\no<r58_child> call\nG0 X10 Z0\nM2\n%\n",
+        "subfiles": {
+          "r58_child.ngc": "o<r58_child> sub\nG43.1 Z20\nG0 X5 Y0 Z0\no<r58_child> endsub\n"
+        }
+      },
+      "exit": 0,
+      "result": {
+        "trace": [
+          {
+            "kind": "tool_offset",
+            "line": 1,
+            "seq": 0,
+            "program": false,
+            "xyz_mm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          },
+          {
+            "kind": "traverse",
+            "line": 3,
+            "seq": 0,
+            "program": true,
+            "tip_mm": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          },
+          {
+            "kind": "tool_offset",
+            "line": 2,
+            "seq": 1,
+            "program": true,
+            "xyz_mm": [
+              0.0,
+              0.0,
+              20.0
+            ]
+          },
+          {
+            "kind": "traverse",
+            "line": 3,
+            "seq": 1,
+            "program": true,
+            "tip_mm": [
+              5.0,
+              0.0,
+              0.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              20.0
+            ]
+          },
+          {
+            "kind": "traverse",
+            "line": 5,
+            "seq": 2,
+            "program": true,
+            "tip_mm": [
+              10.0,
+              0.0,
+              0.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              20.0
+            ]
+          }
+        ],
+        "parse_error": null,
+        "feed": [],
+        "rapid": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            5.0,
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "tlo_events": [
+          [
+            1,
+            0.0,
+            0.0,
+            20.0,
+            -1
+          ]
+        ],
+        "violations": [],
+        "violations_total": 0,
+        "violations_reason": null,
+        "feed_outside": [],
+        "rapid_outside": [
+          0,
+          0,
+          0
+        ],
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          10.0
+        ],
+        "start_reason": null,
+        "meta": {
+          "start_known": true,
+          "tlo_start": [
+            0.0,
+            0.0,
+            10.0
+          ],
+          "start_mode": 430,
+          "start_reason": null
+        },
+        "digest_without_start": "143535e8bab96b80acdb2224c1a3726e3561426e583d8ed757488b07bfec46da"
+      }
+    },
+    {
+      "case": "percent_line2",
+      "input": {
+        "program": "\n%\nG21 G90\nG0 X0 Y0 Z0\no<r58_child> call\nG0 X10 Z0\nM2\n%\n",
+        "subfiles": {
+          "r58_child.ngc": "o<r58_child> sub\nG43.1 Z20\nG0 X5 Y0 Z0\no<r58_child> endsub\n"
+        }
+      },
+      "exit": 0,
+      "result": {
+        "trace": [
+          {
+            "kind": "tool_offset",
+            "line": 1,
+            "seq": 0,
+            "program": true,
+            "xyz_mm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          },
+          {
+            "kind": "traverse",
+            "line": 3,
+            "seq": 0,
+            "program": true,
+            "tip_mm": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          },
+          {
+            "kind": "tool_offset",
+            "line": 2,
+            "seq": 1,
+            "program": false,
+            "xyz_mm": [
+              0.0,
+              0.0,
+              20.0
+            ]
+          },
+          {
+            "kind": "traverse",
+            "line": 3,
+            "seq": 1,
+            "program": true,
+            "tip_mm": [
+              5.0,
+              0.0,
+              0.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              20.0
+            ]
+          },
+          {
+            "kind": "traverse",
+            "line": 5,
+            "seq": 2,
+            "program": true,
+            "tip_mm": [
+              10.0,
+              0.0,
+              0.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              20.0
+            ]
+          }
+        ],
+        "parse_error": null,
+        "feed": [],
+        "rapid": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            5.0,
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "tlo_events": [
+          [
+            0,
+            0.0,
+            0.0,
+            10.0,
+            -1
+          ]
+        ],
+        "violations": [],
+        "violations_total": 0,
+        "violations_reason": null,
+        "feed_outside": [],
+        "rapid_outside": [
+          0,
+          0,
+          0
+        ],
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          10.0
+        ],
+        "start_reason": null,
+        "meta": {
+          "start_known": true,
+          "tlo_start": [
+            0.0,
+            0.0,
+            10.0
+          ],
+          "start_mode": 430,
+          "start_reason": null
+        },
+        "digest_without_start": "04fe23e2ed08bc1f4854a7dd0b1d0b9bdbc97a2ebc1f103be8c573f383cf37a8"
+      }
+    },
+    {
+      "case": "percent_rotary_line1",
+      "input": {
+        "program": "%\nG21 G90\nG53 G0 Z0\nG0 X1\nM2\n%\n",
+        "extra": {
+          "rotary": true
+        }
+      },
+      "exit": 0,
+      "result": {
+        "trace": [
+          {
+            "kind": "traverse",
+            "line": 1,
+            "seq": 0,
+            "program": false,
+            "tip_mm": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "kind": "tool_offset",
+            "line": 1,
+            "seq": 0,
+            "program": false,
+            "xyz_mm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          },
+          {
+            "kind": "traverse",
+            "line": 3,
+            "seq": 0,
+            "program": true,
+            "tip_mm": [
+              0.0,
+              0.0,
+              -10.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          },
+          {
+            "kind": "traverse",
+            "line": 4,
+            "seq": 1,
+            "program": true,
+            "tip_mm": [
+              0.9999999999999999,
+              0.0,
+              -10.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          }
+        ],
+        "parse_error": null,
+        "feed": [],
+        "rapid": [
+          [
+            0.0,
+            0.0,
+            -10.0
+          ],
+          [
+            1.0,
+            0.0,
+            -10.0
+          ]
+        ],
+        "tlo_events": null,
+        "violations": [],
+        "violations_total": 0,
+        "violations_reason": null,
+        "feed_outside": [],
+        "rapid_outside": [
+          0,
+          0
+        ],
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          10.0
+        ],
+        "start_reason": null,
+        "meta": {
+          "start_known": true,
+          "tlo_start": [
+            0.0,
+            0.0,
+            10.0
+          ],
+          "start_mode": 430,
+          "start_reason": null
+        },
+        "digest_without_start": "e41f42c5c420f2379926ada3f41d375f2def7ade3c3ae4cbb1a8a84614c6fa90"
+      }
+    },
+    {
+      "case": "percent_rotary_line2",
+      "input": {
+        "program": "\n%\nG21 G90\nG53 G0 Z0\nG0 X1\nM2\n%\n",
+        "extra": {
+          "rotary": true
+        }
+      },
+      "exit": 0,
+      "result": {
+        "trace": [
+          {
+            "kind": "traverse",
+            "line": 1,
+            "seq": 0,
+            "program": true,
+            "tip_mm": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "kind": "tool_offset",
+            "line": 1,
+            "seq": 1,
+            "program": true,
+            "xyz_mm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          },
+          {
+            "kind": "traverse",
+            "line": 3,
+            "seq": 1,
+            "program": true,
+            "tip_mm": [
+              0.0,
+              0.0,
+              -10.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          },
+          {
+            "kind": "traverse",
+            "line": 4,
+            "seq": 2,
+            "program": true,
+            "tip_mm": [
+              0.9999999999999999,
+              0.0,
+              -10.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          }
+        ],
+        "parse_error": null,
+        "feed": [],
+        "rapid": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            -10.0
+          ],
+          [
+            1.0,
+            0.0,
+            -10.0
+          ]
+        ],
+        "tlo_events": [
+          [
+            1,
+            0.0,
+            0.0,
+            10.0,
+            -1
+          ]
+        ],
+        "violations": [],
+        "violations_total": 0,
+        "violations_reason": null,
+        "feed_outside": [],
+        "rapid_outside": [
+          0,
+          0,
+          0
+        ],
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          10.0
+        ],
+        "start_reason": null,
+        "meta": {
+          "start_known": true,
+          "tlo_start": [
+            0.0,
+            0.0,
+            10.0
+          ],
+          "start_mode": 430,
+          "start_reason": null
+        },
+        "digest_without_start": "b0e8b036c453bcc6389739b2fc926b2aae9c1de64f0dce013b3a42a24d5e54c7"
+      }
+    }
+  ]
+}
