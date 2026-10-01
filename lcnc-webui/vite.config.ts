@@ -1,19 +1,6 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { httpRestartPing } from './viteHttpRestartPing'
-import { execSync } from 'node:child_process'
-
-// The commit the app is built / served from — telemetry that compares builds
-// (the part-B A/B measurement) names it. "unknown" when git cannot say.
-function appCommit(): string {
-  try {
-    const head = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim()
-    const dirty = execSync('git status --porcelain --untracked-files=no', { encoding: 'utf8' }).trim()
-    return dirty ? `${head}+dirty` : head
-  } catch {
-    return 'unknown'
-  }
-}
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -21,7 +8,6 @@ export default defineConfig({
   // hold the browser's one-connecting-WebSocket-per-IP slot the gateway socket
   // needs after a suite restart (see viteHttpRestartPing.ts).
   plugins: [vue(), httpRestartPing()],
-  define: { __APP_COMMIT__: JSON.stringify(appCommit()) },
   build: {
     assetsDir: 'static',  // avoid conflict with gateway /assets mount (machine STLs)
     rollupOptions: {

@@ -36,8 +36,6 @@ interface ViewerDiag {
   // cue), width and opacity; the longest visible segment of a role on screen.
   getRoleMaterials?: () => { role: string; kind: string; widthPx: number | null; dashed: boolean; opacity: number; transparent: boolean }[];
   // Part B (Codex R39 VP39-01): the path memory ledger by owner.
-  runAbMeasurement?: (durations?: Record<string, number>) => Promise<void>;
-  cancelAbMeasurement?: () => void;
   getGroundGridDepth?: () => { min: number; max: number; near: number; far: number } | null;
   getPathBox?: () => { min: number[]; max: number[] } | null;
   setCameraPose?: (position: number[], target: number[]) => void;
@@ -51,6 +49,8 @@ interface ViewerDiag {
   getBackplot?: () => { points: number; segments: number };
   getToolsetter?: () => { visible: boolean; top: number[]; screen: { x: number; y: number } | null; onTop: boolean } | null;
   getToolChange?: () => { visible: boolean; top: number[]; screen: { x: number; y: number } | null; onTop: boolean } | null;
+  /** The control-point pin (operator 2026-10-01): world = the machine frame. */
+  getControlPoint?: () => { visible: boolean; world: number[]; label: string | null } | null;
   getPlane?: () => { visible: boolean; label: string | null; role: string | null; dashed: boolean;
     edge: { color: string; opacity: number; transparent: boolean } | null; arrowStale: boolean; hudWord: string | null } | null;
   simulatePlane?: (plane: number[] | null | undefined) => void;
@@ -92,8 +92,6 @@ interface ViewerLeakProbe {
   programs: number;     // renderer.info.programs.length (unique shaders)
 }
 
-/** The commit the app was built / served from (vite.config.ts define). */
-declare const __APP_COMMIT__: string;
 
 interface Window {
   __viewerDiag?: ViewerDiag;

@@ -88,6 +88,9 @@ export const BUTTON_TYPES = {
 
   // File operations
   fileOp:         { gate: 'setup',    variant: 'default', size: 'md' },
+  // The editor's Discard throws the edit away: danger, under fileOp's gate
+  // (every Discard is danger — design wave D1, N31; live look 2026-10-01).
+  fileDiscard:    { gate: 'setup',    variant: 'danger',  size: 'md' },
   fileSave:       { gate: 'setup',    variant: 'primary', size: 'md' },
 
   // Settings / tool table management

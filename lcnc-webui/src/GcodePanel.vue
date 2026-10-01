@@ -314,6 +314,14 @@ function onCodeScroll(ev: Event) {
   tooltip.value = null;
 }
 
+// The viewer element is built anew whenever the editor closes or the text
+// comes back after an unload: it starts at the top, and the rendered window
+// must read THAT position — the old value rendered rows past the visible
+// part, and the code stayed blank until a scroll (live look 2026-10-01).
+watch(codeViewerRef, el => { scrollTop.value = el ? el.scrollTop : 0; }, { flush: "post" });
+// Another program opens at its first line (a run follows its line anyway).
+watch(() => props.activeFile, (now, before) => { if (now !== before) setScroll(0); }, { flush: "post" });
+
 /** Set the scroll position AND the rendered window's input in one step —
  *  the clamped value the element took, never the requested one. */
 function setScroll(s: number) {
@@ -1045,7 +1053,7 @@ async function saveEdit() {
         <div ref="editorHost" class="editorHost" :data-input-area="EDITOR_OWNER" @pointerup="onEditorPointerUp"></div>
         <div class="editActions">
           <MachineBtn type="fileSave" class="actionBtn" @click="saveEdit" :disabled="saving">{{ saving ? 'Saving…' : 'Save' }}</MachineBtn>
-          <MachineBtn type="fileOp" class="actionBtn" @click="discardEdit" :disabled="saving">Discard</MachineBtn>
+          <MachineBtn type="fileDiscard" class="actionBtn" @click="discardEdit" :disabled="saving">Discard</MachineBtn>
         </div>
       </div>
 
@@ -1232,6 +1240,11 @@ async function saveEdit() {
 </template>
 
 <style scoped>
+/* The program's object line keeps one height with and without its Stats
+   button (live look 2026-10-01: "No program loaded" sat 3 px higher than a
+   loaded name, and every row under it moved). This panel only: a taller
+   head elsewhere (Tools) shortened its table. */
+.panelObject { min-height: var(--control-h); }
 .container {
   height: 100%;
 }

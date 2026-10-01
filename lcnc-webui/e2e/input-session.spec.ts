@@ -411,6 +411,32 @@ test("the keyboards: X and Discard are red, the confirm key reads Apply in both 
   expectNoMachineAction(await cmds());
 });
 
+// Operator 2026-10-01 (live look): the result preview of a calculation stood
+// LEFT of the entry on one line and read as part of the number. Two lines:
+// the entry on top, the preview below it, both right-aligned.
+test("the number keypad shows the result of a calculation in a second line under the entry (operator 2026-10-01)", async ({ page }) => {
+  await open(page);
+  await page.locator("input.setupInput").first().click();
+  const nk = page.locator(".nkStrip");
+  await expect(nk).toBeVisible();
+  for (const k of ["1", "2", "Plus", "3"]) await nk.getByRole("button", { name: k, exact: true }).click();
+  const expr = nk.locator(".nkExpr"), preview = nk.locator(".nkPreview").last();
+  await expect(expr).toHaveText("12+3");
+  await expect(preview).toContainText("15");
+  const [e, p] = [(await expr.boundingBox())!, (await preview.boundingBox())!];
+  const box = (await nk.locator(".nkDisplay").boundingBox())!;
+  expect(p.y, "the preview is below the entry").toBeGreaterThanOrEqual(e.y + e.height - 1);
+  expect(Math.abs((p.x + p.width) - (e.x + e.width)), "both right-aligned").toBeLessThanOrEqual(2);
+  expect(p.y + p.height, "inside the readout").toBeLessThanOrEqual(box.y + box.height + 0.5);
+  // the entry keeps its place whether or not a preview shows
+  await nk.getByRole("button", { name: "Discard", exact: true }).click();
+  await page.locator("input.setupInput").first().click();
+  await nk.getByRole("button", { name: "7", exact: true }).click();
+  const e2 = (await expr.boundingBox())!;
+  expect(Math.abs(e2.y - e.y), "the entry line does not move").toBeLessThanOrEqual(0.5);
+  await nk.getByRole("button", { name: "Discard", exact: true }).click();
+});
+
 test("Send from the keyboard is the MDI path; Enter in a search field never reaches the machine", async ({ page }) => {
   await open(page);
   const mdi = await openMdi(page);

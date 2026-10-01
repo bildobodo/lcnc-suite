@@ -1686,6 +1686,16 @@ test('Settings: as wide as the tool editor, the 3D Viewer sections side by side,
         groups: [...d.querySelectorAll<HTMLElement>('[data-layer-group]')].map(g => ({
           id: g.dataset.layerGroup, rows: [...g.querySelectorAll<HTMLElement>('[data-layer]')].map(r => r.dataset.layer) })),
         hudInLayers: !!d.querySelector('[data-layer="hud"]'),
+        // the findings legend (live look 2026-10-01): each glyph centred on
+        // its text's FIRST line, both texts starting at one x
+        legend: [...d.querySelectorAll<HTMLElement>('[data-finding-legend] [data-role]')].map(row => {
+          const g = row.querySelector('svg')!.getBoundingClientRect();
+          const t = row.querySelector<HTMLElement>('.settingDesc')!;
+          // rects are zoomed px, computed lengths CSS px: scale by the zoom
+          const z = parseFloat(document.documentElement.style.zoom || '1') || 1;
+          const tr = t.getBoundingClientRect(), lh = parseFloat(getComputedStyle(t).lineHeight) * z;
+          return { role: row.dataset.role, glyphMid: (g.top + g.bottom) / 2, lineMid: tr.top + lh / 2, textLeft: tr.left };
+        }),
         // what reaches past the scroller's right edge (the outermost only)
         past: (() => {
           const edge = scroller.getBoundingClientRect().right + 1;
@@ -1706,6 +1716,9 @@ test('Settings: as wide as the tool editor, the 3D Viewer sections side by side,
     expect(m.tableOver, `${where}: the layer table fits its column ${dump}`).toBeLessThanOrEqual(0);
     expect(m.groups, `${where}: the four groups in order ${dump}`).toEqual(GROUPS);
     expect(m.hudInLayers, `${where}: the HUD's switch is not a layer row`).toBe(false);
+    for (const r of m.legend) expect(Math.abs(r.glyphMid - r.lineMid), `${where}: the ${r.role} glyph on its text's first line ${dump}`).toBeLessThanOrEqual(1);
+    expect(m.legend.length, `${where}: two finding rows`).toBe(2);
+    expect(Math.abs(m.legend[0]!.textLeft - m.legend[1]!.textLeft), `${where}: both legend texts start at one x ${dump}`).toBeLessThanOrEqual(0.5);
     // the HUD's switch in its section still hides the DRO card
     const show = dialog.getByLabel('Show HUD', { exact: true });
     await expect(page.locator('.hud')).toBeVisible();
@@ -1826,4 +1839,91 @@ test('the running line glides: the code scrolls evenly under a centred highlight
   test.info().annotations.push({ type: 'glide', description: `20 lines a packet: ${big.length} frames, ${hidden(big).length} with the running line out of view` });
   expect(hidden(big).length, `twenty lines a packet: the running line in view in every frame ${JSON.stringify(hidden(big).slice(0, 5))}`).toBe(0);
   await expect(viewer.locator('.codeLine.active .lineNumber')).toHaveText(String(line));
+});
+
+// Live look 2026-10-01: "No program loaded" stood elsewhere than the loaded
+// program's name — the Stats button gives the object line its height, and
+// without a program the line shrank to its text: the name and every row
+// under it moved. The object line keeps one height in both states.
+test('the program name and the rows under it keep their place with and without a program', async ({ page, context }) => {
+  const file = '/nc/place.ngc';
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream',
+    body: Buffer.from(encode({ file, preview_schema: 10, feed: [[0, 0, 0], [10, 0, 0]], feed_lines: [1, 2], rapid: [],
+      stats: { lines: 2, feed_moves: 1, rapid_moves: 0 } })) }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain', body: 'G1 X10 F100\n' }));
+  for (const vp of ['desktop', 'touch-landscape']) {
+    await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === vp)!);
+    await page.getByRole('tab', { name: 'Program', exact: true }).click();
+    // the mock opens with an example loaded: unload it first
+    await ctl({ op: 'status_delta', data: { active_file: '' } });
+    await ctl({ op: 'raw', frame: { type: 'viewer_gcode', data: null } });
+    const name = page.locator('.panelObject .fileName'), next = page.locator('.panelHead .ctrlRow').first();
+    await expect(name).toHaveText('No program loaded');
+    await settleLayout(page);
+    const [n0, r0] = [(await name.boundingBox())!, (await next.boundingBox())!];
+    await ctl({ op: 'status_delta', data: { active_file: file } });
+    await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 9101, file } });
+    await expect(page.locator('.panelObject').getByRole('button', { name: 'Stats', exact: true })).toBeVisible();
+    await expect(name).toHaveText('place.ngc');
+    await settleLayout(page);
+    const [n1, r1] = [(await name.boundingBox())!, (await next.boundingBox())!];
+    const dump = JSON.stringify({ n0, n1, r0, r1 });
+    expect(Math.abs((n0.y + n0.height / 2) - (n1.y + n1.height / 2)), `${vp}: the name keeps its line ${dump}`).toBeLessThanOrEqual(0.5);
+    expect(Math.abs(n0.x - n1.x), `${vp}: the name keeps its start ${dump}`).toBeLessThanOrEqual(0.5);
+    expect(Math.abs(r0.y - r1.y), `${vp}: the run controls keep their place ${dump}`).toBeLessThanOrEqual(0.5);
+    await ctl({ op: 'reset' });
+  }
+});
+
+// Live look 2026-10-01: a field's focus ring was cut off — "the MDI field,
+// fields in the Probing sub-tabs": the ring is drawn OUTSIDE the field
+// (outline + offset), and a field flush with a clipping container's edge
+// (overflow ≠ visible) loses it there. Every field wholly in view in every
+// side tab: its focused ring lies inside every clipping ancestor.
+test('a focused field shows its whole focus ring in every side tab (live look 2026-10-01)', async ({ page }) => {
+  test.setTimeout(180_000);
+  const found: string[] = [];
+  for (const vp of ['desktop', 'touch-landscape']) {
+    await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === vp)!);
+    const side = page.locator('.sidePane');
+    for (const { tab, sub } of SIDE_TABS) {
+      await side.getByRole('tab', { name: tab, exact: true }).click();
+      if (sub) await side.getByRole('tab', { name: sub, exact: true }).click();
+      await settleLayout(page);
+      const where = `${vp} ${sub ? `${tab}/${sub}` : tab}`;
+      const cut = await side.evaluate(pane => {
+        const out: string[] = [];
+        const fields = [...pane.querySelectorAll<HTMLElement>('input.inputField, select.inputField, textarea')]
+          .filter(f => f.offsetParent && !(f as HTMLInputElement).disabled);
+        const clips = (el: HTMLElement) => {
+          const list: DOMRect[] = [];
+          for (let a = el.parentElement; a; a = a.parentElement) {
+            const cs = getComputedStyle(a);
+            if (cs.overflowX !== 'visible' || cs.overflowY !== 'visible') {
+              const r = a.getBoundingClientRect();
+              list.push(new DOMRect(r.left + a.clientLeft, r.top + a.clientTop, a.clientWidth, a.clientHeight));
+            }
+          }
+          return list;
+        };
+        for (const f of fields) {
+          const r = f.getBoundingClientRect();
+          const cl = clips(f);
+          // only a field wholly in view: a scrolled-off field is no defect
+          if (cl.some(c => r.left < c.left - 0.5 || r.right > c.right + 0.5 || r.top < c.top - 0.5 || r.bottom > c.bottom + 0.5)) continue;
+          f.focus({ preventScroll: true });
+          const cs = getComputedStyle(f);
+          const reach = (cs.outlineStyle === 'none' ? 0 : parseFloat(cs.outlineWidth)) + parseFloat(cs.outlineOffset || '0');
+          if (reach <= 0) continue;
+          const ring = { l: r.left - reach, r: r.right + reach, t: r.top - reach, b: r.bottom + reach };
+          const bad = cl.find(c => ring.l < c.left - 0.5 || ring.r > c.right + 0.5 || ring.t < c.top - 0.5 || ring.b > c.bottom + 0.5);
+          if (bad) out.push(`${f.getAttribute('name') ?? f.className} ring ${JSON.stringify(ring)} clip ${JSON.stringify(bad.toJSON())}`);
+          f.blur();
+        }
+        return out;
+      });
+      for (const c of cut) found.push(`${where}: ${c}`);
+    }
+  }
+  expect(found, 'a focus ring cut off by a clipping container').toEqual([]);
 });

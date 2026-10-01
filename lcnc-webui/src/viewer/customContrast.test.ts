@@ -46,7 +46,7 @@ describe("the Custom palette's contrast hint (Codex R25 OP-I05)", () => {
       ["feed", "rapid", "backplot", "bounds", "toolpathBounds"]);
   });
   it("tells the lines apart from each other — colour-vision deficiency is no criterion (operator 2026-09-29)", () => {
-    const fixed = { ...base, feed: "#00a83c", rapid: "#3d8bff", backplot: "#ff00ff", limit: "#e66b00" } as ViewerPalette;
+    const fixed = { ...base, feed: "#5cff5c", rapid: "#3d8bff", backplot: "#ff00ff", limit: "#ff7a00" } as ViewerPalette;   // the one palette (operator 2026-10-01)
     const rows = customPairRows(fixed, "light");
     expect(rows.map(r => `${r.a}/${r.b}`)).toEqual(
       ["feed/rapid", "feed/limit", "feed/backplot", "rapid/limit", "rapid/backplot", "limit/backplot"]);

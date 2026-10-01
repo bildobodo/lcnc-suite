@@ -19,6 +19,7 @@ import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS,
 import { applyOnTop, ON_TOP_ORDER } from "./viewer/onTop";
 import { confirmedToolsetter } from "./toolsetterVars";
 import { toolChangePlacement, toolsetterPlacement } from "./viewer/toolsetterMarker";
+import { toolOffsetState } from "./viewer/toolOffsetState";
 import { buildPointMarker, posePointMarker, POINT_MARKER, type PointMarker } from "./viewer/pointMarker";
 import { fetchG30, type G30Response } from "./lcncApi";
 import { g30Confirmed } from "./g30Shared";
@@ -60,10 +61,6 @@ import { pathReveal, revealFor, revealText, sectionOf } from "./viewer/pathRevea
 import { twpPoseStale, twpDatumStale, kinsModeChip, fixtureOffDatum, stampAForFixture, poseAbcOf } from "./twpPose";
 import { planeView, type PlaneView } from "./viewer/planeView";
 import { Camera, Settings, ChevronDown, ChevronUp } from "lucide-vue-next";
-import { createAbDriver } from "./viewer/abDriver";
-import { abRunLine, cancelAbRun, registerAbDriver, startAbRun } from "./viewer/abRunBus";
-import { cssZoomOf } from "./helpPlacement";
-import { gcodeTextSource } from "./ws/bulkData";
 
 const themeMode = inject<Ref<string>>("themeMode", ref("auto"));
 
@@ -123,6 +120,8 @@ type ViewerState = {
   tool_length?: number | null;
   /** The spindle tool's table Z offset, SIGNED (tool_length is its magnitude); null: no table row. */
   tool_table_z?: number | null;
+  /** Active G-codes ×10 (STAT.gcodes): 490 = G49 (viewer/toolOffsetState.ts). */
+  gcodes?: number[] | null;
   // Folded in by the status watcher from the envelope top level — gateway
   // sends `status_msg["tool_meta"]` (sibling of `data`), not inside `data`.
   tool_meta?: ToolMeta | null;
@@ -290,6 +289,23 @@ const previewWcsStale = computed(() => {
     g.wcsEvents, g.wcs_basis, s.wcs_table as WcsTableRow[] | undefined,
     { g5x: s.g5x_offset, g92: s.g92_offset, rotationDeg: s.rotation_xy });
 });
+// Its LINE (live look 2026-10-01: "Preview uses older offsets" flashed after
+// every touch-off, then "Preview re-parsing" replaced it): in standstill the
+// gateway's drift edge re-parses within its debounce, so the line waits
+// WCS_STALE_GRACE_MS for that re-parse — shown only if none began (never a
+// silent stale path); during a run (the re-parse waits for idle) it shows at
+// once. The path is muted either way (pathStaleNow).
+const WCS_STALE_GRACE_MS = 5000;
+const wcsStaleGraceOver = ref(false);
+let _wcsStaleTimer: ReturnType<typeof setTimeout> | undefined;
+watch(previewWcsStale, stale => {
+  clearTimeout(_wcsStaleTimer);
+  wcsStaleGraceOver.value = false;
+  if (stale) _wcsStaleTimer = setTimeout(() => { wcsStaleGraceOver.value = true; }, WCS_STALE_GRACE_MS);
+});
+onUnmounted(() => clearTimeout(_wcsStaleTimer));
+const showWcsStaleLine = computed(() => previewWcsStale.value && !previewRefresh.value
+  && ((status.value?.data?.interp_state ?? INTERP_IDLE) !== INTERP_IDLE || wcsStaleGraceOver.value));
 // ---------- DOM ----------
 const host = ref<HTMLDivElement | null>(null);
 const hudVisible = ref(true);
@@ -433,14 +449,6 @@ function requestRender() { _needsRender = true; }
 // renderer.info of the last main render (perf probe context).
 let _glCalls = 0;
 let _glLines = 0;
-let _glTriangles = 0;
-// The A/B measurement (viewer/abDriver.ts; temporary, Codex R39 VP39-03):
-// its per-frame hook runs at the top of animate(), its notifier on a camera
-// touched by hand.
-let _abFrameHook: ((now: number) => void) | null = null;
-let _abInteract: (() => void) | null = null;
-let _abDriver: ReturnType<typeof createAbDriver> | null = null;
-const scrubBarRef = ref<InstanceType<typeof ScrubBar> | null>(null);
 
 // Fresh per-call snapshot of the reassigned scene-graph pointers for the viewer
 // controllers (they must never cache these — see viewer/viewerContext.ts).
@@ -546,6 +554,14 @@ function applyToolsetterMarker() {
 watch(settingsVersion, applyToolsetterMarker);
 let toolChangeMarker: PointMarker | null = null;
 let _toolChangeLayerOn = true;
+// The CONTROL POINT while the spindle tool's own offset is not in effect
+// (operator 2026-10-01, viewer/toolOffsetState.ts): under G49 the DRO,
+// zeroing and touch-off refer to the spindle nose, though the drawn
+// (physical) tool sticks out. A pin there with its reason; posed in
+// applyState next to the tip, shown with the Tool layer, never in a scrub.
+let controlPointMarker: PointMarker | null = null;
+let _controlPointLabel: Text | null = null;
+const _cpDelta = new THREE.Vector3();
 let _g30: G30Response | null = null;
 let _g30Warned = false;
 function applyToolChangeMarker() {
@@ -1695,6 +1711,14 @@ function ensureCoreGroups(init: ViewerInit) {
     label: mkMarkerLabel("tool change (G30)"), name: "toolChange" });
   (machineFrameGrp ?? _workGrp)!.add(toolChangeMarker);
   applyToolChangeMarker();
+  // the control point hangs where the tool group's position is expressed
+  // (its parent): the tip and the pin are one offset apart in that frame
+  _controlPointLabel = mkMarkerLabel("control point · G49");
+  controlPointMarker = buildPointMarker({ color: palette.bounds, alt: palette.boundsAlt,
+    label: _controlPointLabel, name: "controlPoint" });
+  controlPointMarker.visible = false;
+  (_toolGrp?.parent ?? _toolGrp ?? _workGrp)!.add(controlPointMarker);
+  applyOnTop(controlPointMarker, true, ON_TOP_ORDER.marker);
   refreshG30();
   // Reach envelope layer (2026-09-12): the cached solids re-hang under the
   // rebuilt frame groups; a new machine model recomputes (inputs key).
@@ -1956,8 +1980,6 @@ async function buildFromInit(init: ViewerInit) {
         },
         // The A/B run with short phases (the e2e; the operator's run is the
         // Debug tab's button with the full durations).
-        runAbMeasurement: (durations?: Record<string, number>) => startAbRun({ durations }),
-        cancelAbMeasurement: () => cancelAbRun(),
         getRoleMaterials: () => {
           const out: { role: string; kind: string; widthPx: number | null; dashed: boolean; opacity: number; transparent: boolean }[] = [];
           const seen = new Set<string>();
@@ -2004,6 +2026,15 @@ async function buildFromInit(init: ViewerInit) {
         getBackplot: () => ({ points: backplot.count, segments: backplot.segments }),
         getToolsetter: () => _markerDiag(toolsetterMarker),
         getToolChange: () => _markerDiag(toolChangeMarker),
+        // the control-point pin in the machine frame (getToolTip's frame)
+        getControlPoint: () => {
+          if (!controlPointMarker) return null;
+          const w = controlPointMarker.getWorldPosition(new THREE.Vector3());
+          const frame = machineFrameGrp ?? _workGrp;
+          if (frame) { frame.updateWorldMatrix(true, false); frame.worldToLocal(w); }
+          return { ...(_markerDiag(controlPointMarker) ?? {}), visible: controlPointMarker.visible, world: w.toArray(),
+                   label: _controlPointLabel?.text ?? null };
+        },
         // The tilted work plane as drawn (viewer contrast plan, V4): the label
         // on the object, the edge's role, pattern and opacity, the arrow's
         // claim and the HUD's word — one decision behind all of them.
@@ -2232,6 +2263,20 @@ function applyState(init: ViewerInit, st: ViewerState) {
     if (len != null) { _tofsVec.set(t?.[0] ?? 0, t?.[1] ?? 0, len); tipOk = true; }
   }
   if (tipOk) _toolGrp.position.sub(_tofsVec);
+  // The control point (operator 2026-10-01): the tip + (physical − applied)
+  // in the same frame — under G49 the spindle nose. Live only, Tool layer on.
+  if (controlPointMarker) {
+    const ost = _scrubJoints ? null : toolOffsetState(st);
+    const show = !!ost && (ost.kind === "off" || ost.kind === "other") && tipOk && !!toolMarker?.visible;
+    if (show) {
+      const t = st.tool_offset;
+      _cpDelta.set(_tofsVec.x - (t?.[0] ?? 0), _tofsVec.y - (t?.[1] ?? 0), _tofsVec.z - (t?.[2] ?? 0));
+      controlPointMarker.position.copy(_toolGrp.position).add(_cpDelta);
+      const word = `control point · ${ost!.kind === "off" ? (ost!.g49 ? "G49" : "no offset") : "other offset"}`;
+      if (_controlPointLabel && _controlPointLabel.text !== word) { _controlPointLabel.text = word; _controlPointLabel.sync(requestRender); }
+    }
+    controlPointMarker.visible = show;
+  }
   // The trail follows the machine, never a length: a changed physical offset
   // moves the drawn tip with no motion — lift the pen (no stroke to it).
   if (!_scrubJoints) {
@@ -3734,7 +3779,6 @@ function animate() {
   if (props.active === false) return; // paused — don't schedule next frame
   raf = requestAnimationFrame(animate);
   recordRafTick();   // render-loop cadence + GPU fence poll (viewerPerf)
-  _abFrameHook?.(performance.now());
 
   // Apply pending state before render (natural frame dropping —
   // if multiple status updates arrive between frames, only the latest is used).
@@ -3820,7 +3864,7 @@ function animate() {
   if (camera && renderer) {
     const hPx = renderer.domElement.clientHeight;
     _markerUp.set(0, 1, 0).applyQuaternion(camera.quaternion);
-    for (const m of [toolsetterMarker, toolChangeMarker]) if (m?.visible) posePointMarker(m, worldPerPixel(camera, m, hPx), _markerUp);
+    for (const m of [toolsetterMarker, toolChangeMarker, controlPointMarker]) if (m?.visible) posePointMarker(m, worldPerPixel(camera, m, hPx), _markerUp);
   }
   // Per-chunk overlay gate + frustum count (viewer/lineChunks.ts): decides
   // which outside-bounds overlays are drawn this frame at the current pose.
@@ -3832,7 +3876,6 @@ function animate() {
   // gizmo pass below would zero them) — read here for the perf probe.
   _glCalls = renderer?.info.render.calls ?? 0;
   _glLines = renderer?.info.render.lines ?? 0;
-  _glTriangles = renderer?.info.render.triangles ?? 0;
 
   // Orientation gizmo — always ortho, render into bottom-right viewport
   // (top-left is the HUD, top-right is the ViewCube + quick-grid).
@@ -3936,7 +3979,7 @@ onMounted(() => {
   // A running collision sweep pauses while the camera moves — the busy
   // worker starved the GPU side of the browser (2026-09-10); its budget
   // counts active time only, so the pause costs the sweep nothing.
-  controls.addEventListener("start", () => { _camMoving = true; _colSetPaused("camera", true); _abInteract?.(); });
+  controls.addEventListener("start", () => { _camMoving = true; _colSetPaused("camera", true); });
   controls.addEventListener("end", () => { _camMoving = false; _colSetPaused("camera", false); });
 
   // Pause RAF when the document is hidden (browser tab switch / system sleep).
@@ -3953,49 +3996,6 @@ onMounted(() => {
 
   buildGizmo();
 
-  _abDriver = createAbDriver({
-    camera: () => camera,
-    controls: () => controls,
-    toolpath,
-    toolpathCtx,
-    requestRender,
-    setFrameHook: fn => { _abFrameHook = fn; },
-    root: () => wrapEl.value,
-    timeline: () => scrubBarRef.value?.abTimeline ?? null,
-    rapidsLayer: on => { if (on !== undefined) setLayerVisible("rapids", on); return _pathLayers.rapids; },
-    pathLayer: on => { if (on !== undefined) setLayerVisible("toolpath", on); return _pathLayers.toolpath; },
-    simActive: () => simMode.value,
-    sweepBusy: () => collisionBusy.value,
-    interpIdle: () => (status.value?.data?.interp_state ?? INTERP_IDLE) === INTERP_IDLE,
-    renderInfo: () => ({ calls: _glCalls, triangles: _glTriangles, lines: _glLines,
-      geometries: renderer?.info.memory.geometries ?? 0, textures: renderer?.info.memory.textures ?? 0 }),
-    meta: () => {
-      const el = renderer?.domElement;
-      return {
-        commit: typeof __APP_COMMIT__ !== "undefined" ? __APP_COMMIT__ : "unknown",
-        build: import.meta.env.MODE,
-        ua: navigator.userAgent,
-        viewport: el ? [el.clientWidth, el.clientHeight] : null,
-        pixel_ratio: renderer?.getPixelRatio() ?? null,
-        device_pixel_ratio: window.devicePixelRatio,
-        zoom: el ? +cssZoomOf(el).toFixed(3) : null,
-        file: props.activeFile ?? null,
-        source: gcodeTextSource.value || null,
-        feed_segs: toolpath.feedSegs,
-        rapid_segs: toolpath.rapidSegs,
-        chunks: toolpath.chunks,
-        overlays: toolpath.hasOverlays,
-        backplot_pts: backplot.count,
-        backplot_full: backplot.isFull,
-        on_top: { ..._onTop },
-        projection: camera instanceof THREE.OrthographicCamera ? "parallel" : "perspective",
-        theme: document.documentElement.dataset.theme ?? "auto",
-        sim: simMode.value,
-      };
-    },
-    onInteract: fn => { _abInteract = fn; },
-  });
-  registerAbDriver(_abDriver);
 
   resize();
   animate();
@@ -4056,9 +4056,6 @@ onUnmounted(() => {
   if (_g30Timer) clearTimeout(_g30Timer);
   _g30Timer = null;
   _g30Gen++;
-  registerAbDriver(null);
-  _abDriver?.dispose();
-  _abDriver = null;
   document.removeEventListener("visibilitychange", _colOnVisibility);
   themeMedia?.removeEventListener("change", updateSceneTheme);
   document.removeEventListener("visibilitychange", _onVisibilityChange);
@@ -4220,13 +4217,11 @@ const hudFit = reactive({ scale: viewerDefaults.hud.scale as (typeof HUD_SCALES)
  *  then cover the DRO until it is folded again). */
 const notesOpen = ref(false);
 /** The warning lines the findings card holds (the mode chip aside). */
-/** The A/B measurement's line while it runs (temporary, viewer/abRunBus.ts). */
-const abLine = computed(() => abRunLine());
 const hudWarnCount = computed(() => [vst.value?.eoffset_enabled, vst.value?.rotation_xy, foreignWcs.value.length,
   rewrittenWcs.value.length, kinsEndWarn.value, previewSchemaStale.value, previewRefresh.value,
-  !previewRefresh.value && previewWcsStale.value, !previewRefresh.value && previewTloStale.value,
+  showWcsStaleLine.value, !previewRefresh.value && previewTloStale.value,
   previewTableStale.value, toolpathOverflow.value,
-  failedParts.value.length, abLine.value].filter(Boolean).length);
+  failedParts.value.length].filter(Boolean).length);
 /** The folded card's one line: the mode and how many warnings wait behind it. */
 /** The mode line: the chip, the fixture, the plane's word — each said once.
  *  A wrong-fixture chip names its fixture already ("TWP · G54"), and the
@@ -4538,7 +4533,7 @@ function refreshPalette() {
   toolpath.setColors(palette);
   backplot.setColor(palette.backplot);
   machineBoundsMesh?.setColors(palette.bounds, palette.boundsAlt);
-  for (const m of [toolsetterMarker, toolChangeMarker]) {
+  for (const m of [toolsetterMarker, toolChangeMarker, controlPointMarker]) {
     m?.setColors(palette.bounds, palette.boundsAlt);
     const label = m?.children.find(c => c instanceof Text) as Text | undefined;
     if (label) { label.color = palette.boundsAlt; label.outlineColor = palette.bounds; label.sync(requestRender); }
@@ -4719,14 +4714,13 @@ defineExpose({
           <div class="hudWarn">Preview re-parsing<HelpIcon label="Preview re-parsing">Why: {{ previewRefreshLabel(previewRefresh.reason) }}. Path, limit marks and simulation update when it lands — {{ fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms) }}.</HelpIcon></div>
           <div class="progressTrack" :title="fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms)"><div class="progressFill" :style="{ width: previewRefreshPct + '%' }"></div></div>
         </template>
-        <div v-else-if="previewWcsStale" class="hudWarn">Preview uses older offsets — re-parses when idle<HelpIcon label="Preview offsets">A work offset changed after parsing — re-parses once the machine is idle.</HelpIcon></div>
+        <div v-else-if="showWcsStaleLine" class="hudWarn">Preview uses older offsets — re-parses when idle<HelpIcon label="Preview offsets">A work offset changed after parsing — re-parses once the machine is idle.</HelpIcon></div>
         <!-- While the re-parse runs, its line with the bar says it (operator
              2026-09-30: no extra line under the bar for the tool measured). -->
         <div v-if="previewTloStale && !previewRefresh" class="hudWarn">Preview parsed with a different T{{ previewTloStale.tool }} length — re-parse follows<HelpIcon label="Preview tool length">T{{ previewTloStale.tool }} was {{ fmtNum(previewTloStale.parsed, 3) }} when parsed, now {{ fmtNum(previewTloStale.live, 3) }} — the preview re-parses with it, during a run too.</HelpIcon></div>
         <div v-if="previewTableStale" class="hudWarn" data-table-stale>Tool table changed — preview updates after the run<HelpIcon label="Preview tool table">{{ previewTableStale.why === "unsupported"
           ? "This machine's random tool changer cannot be re-parsed during a run; the preview re-parses once idle."
           : "The preview's start state is not known for this program; it re-parses once the machine is idle." }}</HelpIcon></div>
-        <div v-if="abLine" class="hudWarn" data-ab-run>{{ abLine }}</div>
         <div v-if="toolpathOverflow" class="hudWarn">{{ toolpathOverflowCount }} limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
       </template>
       <div v-if="failedParts.length" class="hudWarn">{{ failedParts.length }} machine part{{ failedParts.length === 1 ? '' : 's' }} failed to load — check the model files<HelpIcon label="Model parts">Not loaded: {{ failedParts.join(', ') }}.</HelpIcon></div>
@@ -4740,7 +4734,6 @@ defineExpose({
 
     <!-- Program-scrub timeline (stage 2) + collision check (stage 3) -->
     <ScrubBar
-      ref="scrubBarRef"
       :collisionBusy="collisionBusy"
       :collisionProgress="collisionProgress"
       :sweepTool="{ num: vst?.tool_number ?? null, diam: vst?.tool_diameter ?? null, programTools }"

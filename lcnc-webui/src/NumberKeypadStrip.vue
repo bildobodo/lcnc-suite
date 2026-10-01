@@ -222,13 +222,17 @@ function onKeydown(e: KeyboardEvent) {
     <div class="nkGrid">
         <!-- Expression display — .inputField look, so the entry target is
              unmistakable (it's the same visual as the field being edited).
-             Single line: result preview left, expression pinned right — the
-             expression never moves when the preview appears, and an
-             overflowing expression clips at its left (oldest) end. -->
-        <div class="inputField nkDisplay row-tight">
-          <span v-if="isDraft" class="nkPreview label-muted" data-draft>draft</span>
-          <span class="nkPreview" :class="{ invalid: previewInvalid }">{{ previewText }}</span>
+             TWO lines, both right-aligned (live look 2026-10-01: a preview
+             LEFT of the entry read as part of the number): the entry on top,
+             the result preview / draft mark under it. The lower line is
+             always there, so the entry never moves when a preview appears;
+             an overflowing entry clips at its left (oldest) end. -->
+        <div class="inputField nkDisplay">
           <span class="nkExpr">{{ displayExpr }}</span>
+          <span class="nkSub row-tight">
+            <span v-if="isDraft" class="nkPreview label-muted" data-draft>draft</span>
+            <span class="nkPreview" :class="{ invalid: previewInvalid }">{{ previewText || '\u00a0' }}</span>
+          </span>
         </div>
         <!-- Row 1 -->
         <MachineBtn type="numKey" class="nkKey" @pointerdown.prevent @click="append('7')" @contextmenu.prevent>7</MachineBtn>
@@ -273,9 +277,23 @@ function onKeydown(e: KeyboardEvent) {
    tabular-nums) — only layout is added here. Overflow clips at the left
    because content is end-justified. */
 .nkDisplay {
-  justify-content: flex-end;
+  /* two right-aligned lines in the one --key-size row (no stack utility:
+     the lines sit flush, the readout's own padding spaces them) */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  padding-block: 0;
   overflow: hidden;
 }
+/* no max-width: a line wider than the readout overflows at its START
+   (cross-axis end alignment) and clips there — the oldest end of the entry */
+.nkExpr,
+.nkSub {
+  line-height: 1.15;
+  white-space: nowrap;
+}
+.nkSub { justify-content: flex-end; }
 .nkExpr {
   font-size: var(--fs-lg);
   white-space: nowrap;
