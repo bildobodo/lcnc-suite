@@ -1,0 +1,142 @@
+# Part-B A/B measurement on the operator's Mac (Firefox, DPR 2), 2026-10-01
+# scripts/viewer_ab_report.py --log-dir runlogs --run <id>, from the live suite's trace
+
+## Run 1: ab-mupq4ewh, heavy_test.ngc (no findings — the finding phases cannot run)
+A/B run ab-mupq4ewh — commit dbf6228 (development), /home/cnc/linuxcnc/nc_files/heavy_test.ngc
+  viewport [904, 362] at pixel ratio 2 (device 2, zoom 1), 689075 feed / 5 rapid points, overlays False
+  reference 60 Hz (calibration; calibration median gap 17.5 ms) → p95 limit 33.3 ms, compared in 1 ms classes
+
+  phase        A p95  B p95  A win  B win  A≥100 B≥100  A mt≥50 B mt≥50  A s    B s    gpu A  gpu B
+  orbit           19     19     19     19      0     0        0       0   90.0   90.0     18     18
+  fitdetail       19     19     19     19      0     0        0       1   36.1   36.2     18     18
+  jumps        (not all repetitions valid — see excluded)
+  overlay_off  (not all repetitions valid — see excluded)
+  reveal       (not all repetitions valid — see excluded)
+
+  build ms  A [132, 133, 132]  B [164, 167, 167]; longest main-thread block A [38, 30, 23]  B [62, 53, 67]
+  eager pack MiB (estimated before / packed)  B 22.7 / 22.7, 22.7 / 22.7, 22.7 / 22.7
+
+  memory (MiB, highest of the repetitions)
+  after_load    CPU A 29.6 B 52.3   GPU A 13.1 B 4.6
+  after_orbit   CPU A 29.6 B 52.3   GPU A 13.8 B 6.5
+  after_lods    CPU A 29.6 B 52.3   GPU A 13.8 B 6.5
+  after_nav     CPU A — B —   GPU A — B —
+  after_reveal  CPU A — B —   GPU A — B —
+  after_release CPU A 22.0 B 22.0   GPU A 0.0 B 0.0
+
+  excluded:
+    1/gl/jumps: skipped: No findings to jump to in this program
+    1/gl/overlay_off: skipped: No limit overlay in this program
+    1/gl/reveal: skipped: No findings to jump to in this program
+    2/fat/jumps: skipped: No findings to jump to in this program
+    2/fat/overlay_off: skipped: No limit overlay in this program
+    2/fat/reveal: skipped: No findings to jump to in this program
+    3/fat/jumps: skipped: No findings to jump to in this program
+    3/fat/overlay_off: skipped: No limit overlay in this program
+    3/fat/reveal: skipped: No findings to jump to in this program
+    4/gl/jumps: skipped: No findings to jump to in this program
+    4/gl/overlay_off: skipped: No limit overlay in this program
+    4/gl/reveal: skipped: No findings to jump to in this program
+    5/gl/jumps: skipped: No findings to jump to in this program
+    5/gl/overlay_off: skipped: No limit overlay in this program
+    5/gl/reveal: skipped: No findings to jump to in this program
+    6/fat/jumps: skipped: No findings to jump to in this program
+    6/fat/overlay_off: skipped: No limit overlay in this program
+    6/fat/reveal: skipped: No findings to jump to in this program
+
+  N/A   gl jumps: 3 valid repetitions — 0 valid — see excluded
+  N/A   gl overlay_off: 3 valid repetitions — 0 valid — see excluded
+  N/A   gl reveal: 3 valid repetitions — 0 valid — see excluded
+  N/A   fat jumps: 3 valid repetitions — 0 valid — see excluded
+  N/A   fat overlay_off: 3 valid repetitions — 0 valid — see excluded
+  N/A   fat reveal: 3 valid repetitions — 0 valid — see excluded
+  PASS  orbit: B p95 within 2 frames — B p95 19 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)
+  PASS  orbit: B p95 ≤ 1.20 × A — A 19 ms, B 19 ms
+  PASS  orbit: no new recurring gaps ≥ 100 ms — A 0 in 90.0 s, B 0 in 90.0 s (A's rate predicts 0.0)
+  PASS  orbit: no new recurring main-thread blocks ≥ 50 ms — A 0 in 90.0 s, B 0 in 90.0 s (A's rate predicts 0.0)
+  PASS  fitdetail: B p95 within 2 frames — B p95 19 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)
+  PASS  fitdetail: B p95 ≤ 1.20 × A — A 19 ms, B 19 ms
+  PASS  fitdetail: no new recurring gaps ≥ 100 ms — A 0 in 36.1 s, B 0 in 36.2 s (A's rate predicts 0.0)
+  PASS  fitdetail: no new recurring main-thread blocks ≥ 50 ms — A 0 in 36.1 s, B 1 in 36.2 s (A's rate predicts 0.0)
+  PASS  gl build: every build phase a real build — path generations [2, 5, 6]
+  PASS  gl build: the eager estimate bounds the pack — estimate / packed MiB: 0.0 / 0.0, 0.0 / 0.0, 0.0 / 0.0
+  PASS  fat build: every build phase a real build — path generations [3, 4, 7]
+  PASS  fat build: the eager estimate bounds the pack — estimate / packed MiB: 22.7 / 22.7, 22.7 / 22.7, 22.7 / 22.7
+  PASS  build: B's duration ≤ 1.5 × A + 100 ms — median A 132 ms, B 167 ms, limit 298 ms
+  PASS  build: B's longest main-thread block ≤ 1.5 × A + 100 ms — median A 30 ms, B 62 ms, limit 145 ms
+  PASS  memory after_load cpu: B − A ≤ 128 MiB — A 29.6 MiB, B 52.3 MiB
+  PASS  memory after_load gpu: B − A ≤ 128 MiB — A 13.1 MiB, B 4.6 MiB
+  PASS  memory after_orbit cpu: B − A ≤ 128 MiB — A 29.6 MiB, B 52.3 MiB
+  PASS  memory after_orbit gpu: B − A ≤ 128 MiB — A 13.8 MiB, B 6.5 MiB
+  PASS  memory after_lods cpu: B − A ≤ 128 MiB — A 29.6 MiB, B 52.3 MiB
+  PASS  memory after_lods gpu: B − A ≤ 128 MiB — A 13.8 MiB, B 6.5 MiB
+  PASS  memory peak (every phase): B − A ≤ 128 MiB — A 44.2 MiB, B 66.9 MiB (upper bound: every allocation of a build alive at once)
+  PASS  gl release: every path byte freed — CPU / GPU left besides the program: [(0, 0), (0, 0), (0, 0)]
+  PASS  fat release: every path byte freed — CPU / GPU left besides the program: [(0, 0), (0, 0), (0, 0)]
+
+verdict: INCOMPLETE
+
+## Run 2: ab-mupr17xt, heavy_test_findings.ngc (heavy_test + one rapid past X +250: one limit finding with its overlay)
+A/B run ab-mupr17xt — commit dbf6228 (development), /home/cnc/linuxcnc/nc_files/heavy_test_findings.ngc
+  viewport [904, 362] at pixel ratio 2 (device 2, zoom 1), 689075 feed / 6 rapid points, overlays True
+  reference 60 Hz (calibration; calibration median gap 17.5 ms) → p95 limit 33.3 ms, compared in 1 ms classes
+
+  phase        A p95  B p95  A win  B win  A≥100 B≥100  A mt≥50 B mt≥50  A s    B s    gpu A  gpu B
+  orbit           19     19     19     20      0     0        0       0   90.0   90.0     18     18
+  fitdetail       19     19     20     19      0     0        0       0   36.1   36.1     18     18
+  jumps           19     19     20     20      0     0        0       0   29.8   29.7     18     18
+  overlay_off     19     19     19     19      0     0        0       0   30.0   30.0     18     18
+  reveal          19     19     19     19      0     0        0       0   29.1   29.1     18     18
+
+  build ms  A [150, 135, 134]  B [217, 166, 184]; longest main-thread block A [37, 36, 30]  B [116, 60, 75]
+  eager pack MiB (estimated before / packed)  B 22.0 / 22.0, 22.0 / 22.0, 22.0 / 22.0
+
+  memory (MiB, highest of the repetitions)
+  after_load    CPU A 29.1 B 51.2   GPU A 8.5 B 1.7
+  after_orbit   CPU A 29.1 B 51.2   GPU A 8.5 B 1.7
+  after_lods    CPU A 29.1 B 51.2   GPU A 13.7 B 6.9
+  after_nav     CPU A 29.1 B 51.2   GPU A 13.7 B 8.7
+  after_reveal  CPU A 29.1 B 51.2   GPU A 13.7 B 8.7
+  after_release CPU A 21.8 B 21.8   GPU A 0.0 B 0.0
+
+  PASS  orbit: B p95 within 2 frames — B p95 19 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)
+  PASS  orbit: B p95 ≤ 1.20 × A — A 19 ms, B 19 ms
+  PASS  orbit: no new recurring gaps ≥ 100 ms — A 0 in 90.0 s, B 0 in 90.0 s (A's rate predicts 0.0)
+  PASS  orbit: no new recurring main-thread blocks ≥ 50 ms — A 0 in 90.0 s, B 0 in 90.0 s (A's rate predicts 0.0)
+  PASS  fitdetail: B p95 within 2 frames — B p95 19 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)
+  PASS  fitdetail: B p95 ≤ 1.20 × A — A 19 ms, B 19 ms
+  PASS  fitdetail: no new recurring gaps ≥ 100 ms — A 0 in 36.1 s, B 0 in 36.1 s (A's rate predicts 0.0)
+  PASS  fitdetail: no new recurring main-thread blocks ≥ 50 ms — A 0 in 36.1 s, B 0 in 36.1 s (A's rate predicts 0.0)
+  PASS  jumps: B p95 within 2 frames — B p95 19 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)
+  PASS  jumps: B p95 ≤ 1.20 × A — A 19 ms, B 19 ms
+  PASS  jumps: no new recurring gaps ≥ 100 ms — A 0 in 29.8 s, B 0 in 29.7 s (A's rate predicts 0.0)
+  PASS  jumps: no new recurring main-thread blocks ≥ 50 ms — A 0 in 29.8 s, B 0 in 29.7 s (A's rate predicts 0.0)
+  PASS  overlay_off: B p95 within 2 frames — B p95 19 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)
+  PASS  overlay_off: B p95 ≤ 1.20 × A — A 19 ms, B 19 ms
+  PASS  overlay_off: no new recurring gaps ≥ 100 ms — A 0 in 30.0 s, B 0 in 30.0 s (A's rate predicts 0.0)
+  PASS  overlay_off: no new recurring main-thread blocks ≥ 50 ms — A 0 in 30.0 s, B 0 in 30.0 s (A's rate predicts 0.0)
+  PASS  reveal: B p95 within 2 frames — B p95 19 ms, limit 33.3 ms at 60 Hz (calibration; 1 ms classes: below 34 ms passes)
+  PASS  reveal: B p95 ≤ 1.20 × A — A 19 ms, B 19 ms
+  PASS  reveal: no new recurring gaps ≥ 100 ms — A 0 in 29.1 s, B 0 in 29.1 s (A's rate predicts 0.0)
+  PASS  reveal: no new recurring main-thread blocks ≥ 50 ms — A 0 in 29.1 s, B 0 in 29.1 s (A's rate predicts 0.0)
+  PASS  gl build: every build phase a real build — path generations [10, 13, 14]
+  PASS  gl build: the eager estimate bounds the pack — estimate / packed MiB: 0.0 / 0.0, 0.0 / 0.0, 0.0 / 0.0
+  PASS  fat build: every build phase a real build — path generations [11, 12, 15]
+  PASS  fat build: the eager estimate bounds the pack — estimate / packed MiB: 22.0 / 22.0, 22.0 / 22.0, 22.0 / 22.0
+  PASS  build: B's duration ≤ 1.5 × A + 100 ms — median A 135 ms, B 184 ms, limit 302 ms
+  PASS  build: B's longest main-thread block ≤ 1.5 × A + 100 ms — median A 36 ms, B 75 ms, limit 154 ms
+  PASS  memory after_load cpu: B − A ≤ 128 MiB — A 29.1 MiB, B 51.2 MiB
+  PASS  memory after_load gpu: B − A ≤ 128 MiB — A 8.5 MiB, B 1.7 MiB
+  PASS  memory after_orbit cpu: B − A ≤ 128 MiB — A 29.1 MiB, B 51.2 MiB
+  PASS  memory after_orbit gpu: B − A ≤ 128 MiB — A 8.5 MiB, B 1.7 MiB
+  PASS  memory after_lods cpu: B − A ≤ 128 MiB — A 29.1 MiB, B 51.2 MiB
+  PASS  memory after_lods gpu: B − A ≤ 128 MiB — A 13.7 MiB, B 6.9 MiB
+  PASS  memory after_nav cpu: B − A ≤ 128 MiB — A 29.1 MiB, B 51.2 MiB
+  PASS  memory after_nav gpu: B − A ≤ 128 MiB — A 13.7 MiB, B 8.7 MiB
+  PASS  memory after_reveal cpu: B − A ≤ 128 MiB — A 29.1 MiB, B 51.2 MiB
+  PASS  memory after_reveal gpu: B − A ≤ 128 MiB — A 13.7 MiB, B 8.7 MiB
+  PASS  memory peak (every phase): B − A ≤ 128 MiB — A 43.4 MiB, B 65.5 MiB (upper bound: every allocation of a build alive at once)
+  PASS  gl release: every path byte freed — CPU / GPU left besides the program: [(0, 0), (0, 0), (0, 0)]
+  PASS  fat release: every path byte freed — CPU / GPU left besides the program: [(0, 0), (0, 0), (0, 0)]
+
+verdict: PASS
