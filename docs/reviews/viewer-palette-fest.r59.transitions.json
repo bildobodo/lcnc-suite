@@ -1,0 +1,92 @@
+[
+  {
+    "label": "initial start 10 applied",
+    "wanted": null,
+    "pending": false,
+    "refresh": null,
+    "applied": [
+      0,
+      0,
+      10
+    ],
+    "requests": [
+      "/r59-return.ngc#5901:start"
+    ]
+  },
+  {
+    "label": "20 pending",
+    "wanted": {
+      "file": "/r59-return.ngc",
+      "version": 5901,
+      "xyz": [
+        0,
+        0,
+        20
+      ]
+    },
+    "pending": true,
+    "refresh": {
+      "reason": "tool_offset",
+      "file": "/r59-return.ngc",
+      "expected_ms": null,
+      "started_ms": null,
+      "queued": false,
+      "superseded": 0,
+      "seenAt": 364.533229
+    },
+    "applied": [
+      0,
+      0,
+      10
+    ],
+    "requests": [
+      "/r59-return.ngc#5901:start",
+      "/r59-return.ngc#5901:0,0,20"
+    ]
+  },
+  {
+    "label": "start 10 wanted again; no decode necessary",
+    "wanted": null,
+    "pending": false,
+    "refresh": null,
+    "applied": [
+      0,
+      0,
+      10
+    ],
+    "requests": [
+      "/r59-return.ngc#5901:start",
+      "/r59-return.ngc#5901:0,0,20"
+    ]
+  },
+  {
+    "label": "outdated 20 reply arrives",
+    "wanted": null,
+    "pending": false,
+    "refresh": null,
+    "applied": [
+      0,
+      0,
+      20
+    ],
+    "requests": [
+      "/r59-return.ngc#5901:start",
+      "/r59-return.ngc#5901:0,0,20"
+    ]
+  },
+  {
+    "label": "next unchanged gateway status",
+    "wanted": null,
+    "pending": false,
+    "refresh": null,
+    "applied": [
+      0,
+      0,
+      20
+    ],
+    "requests": [
+      "/r59-return.ngc#5901:start",
+      "/r59-return.ngc#5901:0,0,20"
+    ]
+  }
+]

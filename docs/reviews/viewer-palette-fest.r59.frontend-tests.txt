@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r59-wem3j1_r/lcnc-webui
+
+
+ Test Files  5 passed (5)
+      Tests  64 passed (64)
+   Start at  12:08:43
+   Duration  1.56s (transform 375ms, setup 0ms, import 759ms, tests 336ms, environment 0ms)
+

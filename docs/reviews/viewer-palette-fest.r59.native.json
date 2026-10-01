@@ -1,0 +1,484 @@
+{
+  "commit": "4aab1d3",
+  "probe": "Unchanged R58 native.py",
+  "cases": [
+    {
+      "case": "percent_line1",
+      "result": {
+        "trace": [
+          {
+            "kind": "tool_offset",
+            "line": 1,
+            "seq": 0,
+            "program": false,
+            "xyz_mm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          },
+          {
+            "kind": "traverse",
+            "line": 3,
+            "seq": 0,
+            "program": true,
+            "tip_mm": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          },
+          {
+            "kind": "tool_offset",
+            "line": 2,
+            "seq": 1,
+            "program": true,
+            "xyz_mm": [
+              0.0,
+              0.0,
+              20.0
+            ]
+          },
+          {
+            "kind": "traverse",
+            "line": 3,
+            "seq": 1,
+            "program": true,
+            "tip_mm": [
+              5.0,
+              0.0,
+              0.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              20.0
+            ]
+          },
+          {
+            "kind": "traverse",
+            "line": 5,
+            "seq": 2,
+            "program": true,
+            "tip_mm": [
+              10.0,
+              0.0,
+              0.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              20.0
+            ]
+          }
+        ],
+        "parse_error": null,
+        "feed": [],
+        "rapid": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            5.0,
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "tlo_events": [
+          [
+            1,
+            0.0,
+            0.0,
+            20.0,
+            -1
+          ]
+        ],
+        "violations": [],
+        "violations_total": 0,
+        "violations_reason": null,
+        "feed_outside": [],
+        "rapid_outside": [
+          0,
+          0,
+          0
+        ],
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          10.0
+        ],
+        "start_reason": null,
+        "meta": {
+          "start_known": true,
+          "tlo_start": [
+            0.0,
+            0.0,
+            10.0
+          ],
+          "start_mode": 430,
+          "start_reason": null
+        },
+        "digest_without_start": "143535e8bab96b80acdb2224c1a3726e3561426e583d8ed757488b07bfec46da"
+      }
+    },
+    {
+      "case": "percent_line2",
+      "result": {
+        "trace": [
+          {
+            "kind": "tool_offset",
+            "line": 1,
+            "seq": 0,
+            "program": false,
+            "xyz_mm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          },
+          {
+            "kind": "traverse",
+            "line": 3,
+            "seq": 0,
+            "program": true,
+            "tip_mm": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          },
+          {
+            "kind": "tool_offset",
+            "line": 2,
+            "seq": 1,
+            "program": true,
+            "xyz_mm": [
+              0.0,
+              0.0,
+              20.0
+            ]
+          },
+          {
+            "kind": "traverse",
+            "line": 3,
+            "seq": 1,
+            "program": true,
+            "tip_mm": [
+              5.0,
+              0.0,
+              0.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              20.0
+            ]
+          },
+          {
+            "kind": "traverse",
+            "line": 5,
+            "seq": 2,
+            "program": true,
+            "tip_mm": [
+              10.0,
+              0.0,
+              0.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              20.0
+            ]
+          }
+        ],
+        "parse_error": null,
+        "feed": [],
+        "rapid": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            5.0,
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "tlo_events": [
+          [
+            1,
+            0.0,
+            0.0,
+            20.0,
+            -1
+          ]
+        ],
+        "violations": [],
+        "violations_total": 0,
+        "violations_reason": null,
+        "feed_outside": [],
+        "rapid_outside": [
+          0,
+          0,
+          0
+        ],
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          10.0
+        ],
+        "start_reason": null,
+        "meta": {
+          "start_known": true,
+          "tlo_start": [
+            0.0,
+            0.0,
+            10.0
+          ],
+          "start_mode": 430,
+          "start_reason": null
+        },
+        "digest_without_start": "abad7dd148a648e942fb7a1293a6ecaf01cfd5a84544df665417d6e058846fcf"
+      }
+    },
+    {
+      "case": "percent_rotary_line1",
+      "result": {
+        "trace": [
+          {
+            "kind": "traverse",
+            "line": 1,
+            "seq": 0,
+            "program": false,
+            "tip_mm": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "kind": "tool_offset",
+            "line": 1,
+            "seq": 0,
+            "program": false,
+            "xyz_mm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          },
+          {
+            "kind": "traverse",
+            "line": 3,
+            "seq": 0,
+            "program": true,
+            "tip_mm": [
+              0.0,
+              0.0,
+              -10.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          },
+          {
+            "kind": "traverse",
+            "line": 4,
+            "seq": 1,
+            "program": true,
+            "tip_mm": [
+              0.9999999999999999,
+              0.0,
+              -10.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          }
+        ],
+        "parse_error": null,
+        "feed": [],
+        "rapid": [
+          [
+            0.0,
+            0.0,
+            -10.0
+          ],
+          [
+            1.0,
+            0.0,
+            -10.0
+          ]
+        ],
+        "tlo_events": null,
+        "violations": [],
+        "violations_total": 0,
+        "violations_reason": null,
+        "feed_outside": [],
+        "rapid_outside": [
+          0,
+          0
+        ],
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          10.0
+        ],
+        "start_reason": null,
+        "meta": {
+          "start_known": true,
+          "tlo_start": [
+            0.0,
+            0.0,
+            10.0
+          ],
+          "start_mode": 430,
+          "start_reason": null
+        },
+        "digest_without_start": "e41f42c5c420f2379926ada3f41d375f2def7ade3c3ae4cbb1a8a84614c6fa90"
+      }
+    },
+    {
+      "case": "percent_rotary_line2",
+      "result": {
+        "trace": [
+          {
+            "kind": "traverse",
+            "line": 1,
+            "seq": 0,
+            "program": false,
+            "tip_mm": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "kind": "tool_offset",
+            "line": 1,
+            "seq": 0,
+            "program": false,
+            "xyz_mm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          },
+          {
+            "kind": "traverse",
+            "line": 3,
+            "seq": 0,
+            "program": true,
+            "tip_mm": [
+              0.0,
+              0.0,
+              -10.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          },
+          {
+            "kind": "traverse",
+            "line": 4,
+            "seq": 1,
+            "program": true,
+            "tip_mm": [
+              0.9999999999999999,
+              0.0,
+              -10.0
+            ],
+            "tlo_mm": [
+              0.0,
+              0.0,
+              10.0
+            ]
+          }
+        ],
+        "parse_error": null,
+        "feed": [],
+        "rapid": [
+          [
+            0.0,
+            0.0,
+            -10.0
+          ],
+          [
+            1.0,
+            0.0,
+            -10.0
+          ]
+        ],
+        "tlo_events": null,
+        "violations": [],
+        "violations_total": 0,
+        "violations_reason": null,
+        "feed_outside": [],
+        "rapid_outside": [
+          0,
+          0
+        ],
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          10.0
+        ],
+        "start_reason": null,
+        "meta": {
+          "start_known": true,
+          "tlo_start": [
+            0.0,
+            0.0,
+            10.0
+          ],
+          "start_mode": 430,
+          "start_reason": null
+        },
+        "digest_without_start": "fbb48b9f2369be9dbc5598032658aec5e27511cf1375f84009483a327b333bdb"
+      }
+    }
+  ]
+}

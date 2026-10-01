@@ -1,0 +1,628 @@
+{
+  "percent_line1": {
+    "file": "/tmp/start-probe-qic8zfsu/program.ngc",
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "preview_schema": 9,
+    "feed": {
+      "bytes_b64": ""
+    },
+    "feed_lines": {
+      "bytes_b64": ""
+    },
+    "feed_seq": {
+      "bytes_b64": ""
+    },
+    "rapid_seq": {
+      "bytes_b64": "AQAAAAIAAAADAAAA"
+    },
+    "rapid_lines": {
+      "bytes_b64": "AwAAAAMAAAAFAAAA"
+    },
+    "feed_tcum": {
+      "bytes_b64": ""
+    },
+    "rapid_tcum": {
+      "bytes_b64": "AAAAAAAAAAAAAAA/"
+    },
+    "rapid_rate": 10.0,
+    "rot_rapid_rate": null,
+    "tool_change_lines": [],
+    "rapid": {
+      "bytes_b64": "AAAAAAAAAAAAAAAAAACgQAAAAAAAAAAAAAAgQQAAAAAAAAAA"
+    },
+    "stats": {
+      "feedMoves": 0,
+      "rapidMoves": 3,
+      "linearMoves": 0,
+      "arcMoves": 0,
+      "feedDist": 0.0,
+      "rapidDist": 5.0,
+      "linearDist": 0.0,
+      "arcDist": 0.0,
+      "feedTime": 0.0,
+      "rapidTime": 0.5,
+      "totalTime": 0.5,
+      "feedRates": [],
+      "toolChanges": 0,
+      "toolsUsed": [],
+      "unit": "mm",
+      "fileSize": 55
+    },
+    "bounds": null,
+    "motion_bounds": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        10.0,
+        0.0,
+        0.0
+      ]
+    },
+    "violations": [],
+    "violations_total": 0,
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      10.0
+    ],
+    "lines_untrusted": false,
+    "lines_untrusted_reason": "",
+    "wcs_basis_index": 1,
+    "wcs_used": [
+      1
+    ],
+    "wcs_basis": {
+      "g5x": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "g92": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation": 0.0
+    },
+    "parse_error": null,
+    "error_line": null,
+    "feed_lineok": {
+      "bytes_b64": ""
+    },
+    "rapid_lineok": {
+      "bytes_b64": "AQEB"
+    },
+    "rapid_ustart": {
+      "bytes_b64": "AQEA"
+    },
+    "wcs_frames": [
+      [
+        0,
+        1,
+        0.0,
+        0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "tlo_events": [
+      [
+        1,
+        0.0,
+        0.0,
+        20.0,
+        -1
+      ]
+    ],
+    "feed_outside": {
+      "bytes_b64": ""
+    },
+    "rapid_outside": {
+      "bytes_b64": "AAAA"
+    },
+    "unmarked_subs": [
+      "r58_child"
+    ]
+  },
+  "percent_line2": {
+    "file": "/tmp/start-probe-47w802az/program.ngc",
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "preview_schema": 9,
+    "feed": {
+      "bytes_b64": ""
+    },
+    "feed_lines": {
+      "bytes_b64": ""
+    },
+    "feed_seq": {
+      "bytes_b64": ""
+    },
+    "rapid_seq": {
+      "bytes_b64": "AQAAAAIAAAADAAAA"
+    },
+    "rapid_lines": {
+      "bytes_b64": "AwAAAAMAAAAFAAAA"
+    },
+    "feed_tcum": {
+      "bytes_b64": ""
+    },
+    "rapid_tcum": {
+      "bytes_b64": "AAAAAAAAAAAAAAA/"
+    },
+    "rapid_rate": 10.0,
+    "rot_rapid_rate": null,
+    "tool_change_lines": [],
+    "rapid": {
+      "bytes_b64": "AAAAAAAAAAAAAAAAAACgQAAAAAAAAAAAAAAgQQAAAAAAAAAA"
+    },
+    "stats": {
+      "feedMoves": 0,
+      "rapidMoves": 3,
+      "linearMoves": 0,
+      "arcMoves": 0,
+      "feedDist": 0.0,
+      "rapidDist": 5.0,
+      "linearDist": 0.0,
+      "arcDist": 0.0,
+      "feedTime": 0.0,
+      "rapidTime": 0.5,
+      "totalTime": 0.5,
+      "feedRates": [],
+      "toolChanges": 0,
+      "toolsUsed": [],
+      "unit": "mm",
+      "fileSize": 56
+    },
+    "bounds": null,
+    "motion_bounds": {
+      "min": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "max": [
+        10.0,
+        0.0,
+        0.0
+      ]
+    },
+    "violations": [],
+    "violations_total": 0,
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      10.0
+    ],
+    "lines_untrusted": true,
+    "lines_untrusted_reason": "no motion point attributes to a line of this file that could have produced it \u2014 the motion runs in called subroutines or remaps whose line numbers collide with this file's",
+    "wcs_basis_index": 1,
+    "wcs_used": [
+      1
+    ],
+    "wcs_basis": {
+      "g5x": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "g92": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation": 0.0
+    },
+    "parse_error": null,
+    "error_line": null,
+    "feed_lineok": {
+      "bytes_b64": ""
+    },
+    "rapid_lineok": {
+      "bytes_b64": "AAAA"
+    },
+    "rapid_ustart": {
+      "bytes_b64": "AQEA"
+    },
+    "wcs_frames": [
+      [
+        0,
+        1,
+        0.0,
+        0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "tlo_events": [
+      [
+        1,
+        0.0,
+        0.0,
+        20.0,
+        -1
+      ]
+    ],
+    "feed_outside": {
+      "bytes_b64": ""
+    },
+    "rapid_outside": {
+      "bytes_b64": "AAAA"
+    },
+    "unmarked_subs": [
+      "r58_child"
+    ]
+  },
+  "percent_rotary_line1": {
+    "file": "/tmp/start-probe-ig2oye0k/program.ngc",
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "preview_schema": 9,
+    "feed": {
+      "bytes_b64": ""
+    },
+    "feed_lines": {
+      "bytes_b64": ""
+    },
+    "feed_seq": {
+      "bytes_b64": ""
+    },
+    "rapid_seq": {
+      "bytes_b64": "AQAAAAIAAAA="
+    },
+    "rapid_lines": {
+      "bytes_b64": "AwAAAAQAAAA="
+    },
+    "feed_tcum": {
+      "bytes_b64": ""
+    },
+    "rapid_tcum": {
+      "bytes_b64": "AAAAAM3MzD0="
+    },
+    "rapid_rate": 10.0,
+    "rot_rapid_rate": null,
+    "tool_change_lines": [],
+    "rapid": {
+      "bytes_b64": "AAAAAAAAAAAAACDBAACAPwAAAAAAACDB"
+    },
+    "stats": {
+      "feedMoves": 0,
+      "rapidMoves": 2,
+      "linearMoves": 0,
+      "arcMoves": 0,
+      "feedDist": 0.0,
+      "rapidDist": 1.0,
+      "linearDist": 0.0,
+      "arcDist": 0.0,
+      "feedTime": 0.0,
+      "rapidTime": 0.1,
+      "totalTime": 0.1,
+      "feedRates": [],
+      "toolChanges": 0,
+      "toolsUsed": [],
+      "unit": "mm",
+      "fileSize": 31
+    },
+    "bounds": null,
+    "motion_bounds": {
+      "min": [
+        0.0,
+        0.0,
+        -10.0
+      ],
+      "max": [
+        0.9999999999999999,
+        0.0,
+        -10.0
+      ]
+    },
+    "violations": [],
+    "violations_total": 0,
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      10.0
+    ],
+    "lines_untrusted": false,
+    "lines_untrusted_reason": "",
+    "wcs_basis_index": 1,
+    "wcs_used": [
+      1
+    ],
+    "wcs_basis": {
+      "g5x": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "g92": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation": 0.0
+    },
+    "parse_error": null,
+    "error_line": null,
+    "rotary_cmd": {
+      "A": null,
+      "unknown": null,
+      "seed": {
+        "A": 0.0
+      }
+    },
+    "feed_lineok": {
+      "bytes_b64": ""
+    },
+    "rapid_lineok": {
+      "bytes_b64": "AQE="
+    },
+    "rapid_ustart": {
+      "bytes_b64": "AQA="
+    },
+    "wcs_frames": [
+      [
+        0,
+        1,
+        0.0,
+        0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "feed_outside": {
+      "bytes_b64": ""
+    },
+    "rapid_outside": {
+      "bytes_b64": "AAA="
+    }
+  },
+  "percent_rotary_line2": {
+    "file": "/tmp/start-probe-q7b2y2rd/program.ngc",
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "preview_schema": 9,
+    "feed": {
+      "bytes_b64": ""
+    },
+    "feed_lines": {
+      "bytes_b64": ""
+    },
+    "feed_seq": {
+      "bytes_b64": ""
+    },
+    "rapid_seq": {
+      "bytes_b64": "AQAAAAIAAAA="
+    },
+    "rapid_lines": {
+      "bytes_b64": "AwAAAAQAAAA="
+    },
+    "feed_tcum": {
+      "bytes_b64": ""
+    },
+    "rapid_tcum": {
+      "bytes_b64": "AAAAAM3MzD0="
+    },
+    "rapid_rate": 10.0,
+    "rot_rapid_rate": null,
+    "tool_change_lines": [],
+    "rapid": {
+      "bytes_b64": "AAAAAAAAAAAAACDBAACAPwAAAAAAACDB"
+    },
+    "stats": {
+      "feedMoves": 0,
+      "rapidMoves": 2,
+      "linearMoves": 0,
+      "arcMoves": 0,
+      "feedDist": 0.0,
+      "rapidDist": 1.0,
+      "linearDist": 0.0,
+      "arcDist": 0.0,
+      "feedTime": 0.0,
+      "rapidTime": 0.1,
+      "totalTime": 0.1,
+      "feedRates": [],
+      "toolChanges": 0,
+      "toolsUsed": [],
+      "unit": "mm",
+      "fileSize": 32
+    },
+    "bounds": null,
+    "motion_bounds": {
+      "min": [
+        0.0,
+        0.0,
+        -10.0
+      ],
+      "max": [
+        0.9999999999999999,
+        0.0,
+        -10.0
+      ]
+    },
+    "violations": [],
+    "violations_total": 0,
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      10.0
+    ],
+    "lines_untrusted": false,
+    "lines_untrusted_reason": "",
+    "wcs_basis_index": 1,
+    "wcs_used": [
+      1
+    ],
+    "wcs_basis": {
+      "g5x": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "g92": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation": 0.0
+    },
+    "parse_error": null,
+    "error_line": null,
+    "rotary_cmd": {
+      "A": null,
+      "unknown": 1,
+      "seed": {
+        "A": 0.0
+      }
+    },
+    "feed_lineok": {
+      "bytes_b64": ""
+    },
+    "rapid_lineok": {
+      "bytes_b64": "AAE="
+    },
+    "rapid_ustart": {
+      "bytes_b64": "AQA="
+    },
+    "wcs_frames": [
+      [
+        0,
+        1,
+        0.0,
+        0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "feed_outside": {
+      "bytes_b64": ""
+    },
+    "rapid_outside": {
+      "bytes_b64": "AAA="
+    }
+  }
+}

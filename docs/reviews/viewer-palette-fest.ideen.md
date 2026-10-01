@@ -6529,3 +6529,101 @@ ich an.
   - Die Client-Änderungen kommen per Hot-Reload in den Live-Baum.
 
 Bitte prüfe die drei Korrekturen gegen deine R58-Befunde.
+
+---
+
+## Review R59 · Codex · Nachprüfung VP-I22–24 · 1. Oktober 2026
+
+**Stand:** `8cc97af..4aab1d3`, Korrekturen `2afbbda` und `0502808`.
+**Ergebnis: findings.** **VP-I22 und VP-I24 geschlossen. VP-I23 bleibt P2**
+wegen einer überholten Antwort beim Rückwechsel auf die bereits angezeigte
+Basis. Keine erneute Grundsatzfrage und keine neue Befundnummer.
+
+### Bestätigte Korrekturen
+
+**VP-I22:** Die Init-Phase nach beobachteter Reihenfolge besteht die vier
+unveränderten nativen R58-Gegenproben. Das Unterprogramm liefert sowohl
+mit `%` in Textzeile 1 als auch mit führender Leerzeile genau den echten
+TLO-Eintrag Z20. Die Clientfunktionen rekonstruieren in beiden Fällen die
+Maschinen-Z-Folge **`[10,20,20]`**. Beide Rotary-Fälle liefern nur die beiden
+Programmpunkte bei Z−10, ohne Phantompunkt und ohne Seed-Eintrag.
+
+**VP-I24:** Die fremde Datei bei gleicher Version wird im R58-Browserfall
+nicht mehr übernommen. Der Rückfall auf den eigenen Payload-Start Z10
+ist mit `tool_basis_status()` konsistent und wird akzeptiert: Die
+Pfadoberkante kehrt auf **−10** zurück, niemals auf −30. Die zusätzlichen
+Unitfälle für falsche Datei bzw. falsche Version bestehen.
+
+**VP-I23, ursprünglicher Zwischenzustand:** Solange die normale Antwort
+für Basis 20 aussteht, bleibt die Geometrie bei −10 **gedämpft** und die
+bestehende „checking“-Zeile sichtbar. Erst nach der Übernahme steht der
+Pfad bei −20 in seiner normalen Farbe. Kein zweiter `/preview`-Download.
+Auch die vorhandenen Wächter für ältere Antworten und Worker-Fehler bestehen.
+Der folgende Rückwechsel ist davon noch nicht abgedeckt.
+
+Belege: [Native Fälle](viewer-palette-fest.r59.native.json),
+[Verbraucherwerte](viewer-palette-fest.r59.consumers.json),
+[Browser-Nachprüfung der R58-Fälle](viewer-palette-fest.r59.browser.json).
+
+### VP-I23-Rest — P2: Ein Rückwechsel beendet Pending, invalidiert aber die ausstehende andere Basis nicht
+
+**Stelle:** `lcnc-webui/src/ws/bulkData.ts:824–826`, zusammen mit der
+Antwortprüfung in `:749–768`.
+
+Bei `want === _previewAppliedKey` endet Pending sofort. Das ist sinnvoll,
+weil die richtige Geometrie bereits auf dem Bildschirm steht. Allerdings
+bleibt `_previewBasisKey` dabei auf dem vorherigen, noch ausstehenden
+Auftrag. Dessen spätere Antwort besteht deshalb die Prüfung in Zeile 752
+und überschreibt die inzwischen wieder gewünschte Basis.
+
+**Reproduktion mit echten Status-/Bulk-Handlern und zusätzlich im Browser:**
+
+| Schritt | Gewünschte Basis | Angewandte Geometrie, Oberkante Z | Prüfhinweis |
+|---|---|---:|---|
+| Payload geladen | Start 10 | −10 | keiner |
+| Verifizierte Basis 20, Worker-Antwort noch ausstehend | 20 | −10, gedämpft | „checking“ |
+| Gateway kehrt auf den ursprünglichen Start zurück | Start 10 | −10 | keiner, korrekt |
+| Verspätete Antwort für 20 trifft ein | **weiter Start 10** | **−20, normale Farbe** | **keiner** |
+| Nächster unveränderter Statusframe | Start 10 | weiterhin −20 | keiner |
+
+Das Weglassen von `preview_tool_basis` im dritten Schritt ist der reale
+Protokollvertrag bei Rückkehr zur veröffentlichten Startbasis
+(`lcnc-gateway/bulk_pipeline.py:261–272`), kein beschädigter Frame. Die
+Browser-Sonde hält nur die Zustellung einer echten Worker-Antwort zurück;
+Resultat und Geometrie werden nicht verändert. Sie behauptet keine
+bestimmte Verzögerungsdauer auf der Live-Maschine.
+
+Der nächste Status repariert die Anzeige nicht: `previewToolBasis` ist
+weiterhin `null`, also läuft der Watcher nicht nochmals. Damit ist das
+nicht nur ein kurzer Wechsel der Dämpfung, sondern eine dauerhaft auf der
+überholten Basis angezeigte Vorschau bis zu einem weiteren relevanten Ereignis.
+
+**Erforderlich:** Die aktuell gewünschte Datei-/Versions-/Basisidentität
+auch im Zweig „bereits angewandt, kein Decode nötig“ fortschreiben und
+abweichende ausstehende Antworten ungültig machen. Der Antwortfilter muss
+gegen diesen aktuellen Wunsch prüfen, nicht nur gegen den zuletzt wirklich
+abgesendeten Auftrag. Einen neuen Decode braucht dieser Rückwechsel nicht.
+Wächter für **A angewandt → B ausstehend → A erneut gewünscht → verspätetes B**,
+mit Payload-Start und mit einer bereits angewandten verifizierten Basis.
+
+**Belege:** [Handler-Gegenprobe](viewer-palette-fest.r59.transitions.json),
+[Browser-Gegenprobe](viewer-palette-fest.r59.return-browser.json),
+[Bild nach der überholten Antwort](viewer-palette-fest.r59.obsolete-reply.png).
+Die ausführbaren Sonden und ihre Anpassungen sind in der
+[Reproduktionsanleitung](viewer-palette-fest.r59.repro.md) beschrieben.
+
+### Validierung und Grenzen
+
+- Eigene Archivkopie von `4aab1d3`; Build **PASS**.
+- Gezielte Backendprüfungen **32/32**; vier zusätzliche native Offline-Parses.
+- Frontend **64/64**: 62 vorhandene Tests und zwei eigene Sonden.
+- Browser **2/2**: Nachprüfung der R58-Zustände und Rückwechsel-Gegenprobe.
+  Die Assertions der Rückwechsel-Sonden bestätigen den Fehler; deren PASS
+  ist ausdrücklich keine Produktabnahme.
+- R58-Belege unverändert; neue Belege ausschließlich `r59.*`.
+  Kein vollständiges Offline-Gate und keine Live-Abnahme wiederholt.
+- Keine Produktänderung und kein Commit. Live-Quellen, Live-Ports und
+  Maschinenzustand nicht angefasst; eigener Mock auf `127.0.0.1:4188` beendet.
+
+**Nächste Runde:** ausschließlich VP-I23-Rest zur überholten Antwort nach
+Rückkehr auf die bereits angewandte Basis.
