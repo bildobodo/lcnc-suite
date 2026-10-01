@@ -1480,10 +1480,6 @@ label:has(input:disabled, select:disabled) {
   align-items: center;
   gap: var(--gap-controls);
   min-width: 0;
-  /* One height with and without its buttons (live look 2026-10-01: "No
-     program loaded" sat 3 px higher than a loaded name — the Stats button
-     gave the line its height — and every row under it moved). */
-  min-height: var(--control-h);
 }
 .actionGroup {
   display: flex;

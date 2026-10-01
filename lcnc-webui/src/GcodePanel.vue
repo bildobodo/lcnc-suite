@@ -1240,6 +1240,11 @@ async function saveEdit() {
 </template>
 
 <style scoped>
+/* The program's object line keeps one height with and without its Stats
+   button (live look 2026-10-01: "No program loaded" sat 3 px higher than a
+   loaded name, and every row under it moved). This panel only: a taller
+   head elsewhere (Tools) shortened its table. */
+.panelObject { min-height: var(--control-h); }
 .container {
   height: 100%;
 }
