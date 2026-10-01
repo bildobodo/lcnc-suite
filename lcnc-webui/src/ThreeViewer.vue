@@ -1983,8 +1983,6 @@ async function buildFromInit(init: ViewerInit) {
           controls.update();
           requestRender();
         },
-        // The A/B run with short phases (the e2e; the operator's run is the
-        // Debug tab's button with the full durations).
         getRoleMaterials: () => {
           const out: { role: string; kind: string; widthPx: number | null; dashed: boolean; opacity: number; transparent: boolean }[] = [];
           const seen = new Set<string>();

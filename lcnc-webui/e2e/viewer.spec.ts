@@ -563,7 +563,7 @@ test("the viewer palette: Automatic follows the theme, Custom stays, a legacy pa
   await expect(cell("feed", 2), "a dark blue: fine on white, lost on the grey machine").toHaveText(/^1\.\d : 1 · low$/);
   await expect.poll(async () => (await drawn()).drawn.feed, "nothing recoloured").toBe("#1f3f7f");
   await auto.check();
-  await expect(hint, "Automatic: the theme's checked colours, no hint").toHaveCount(0);
+  await expect(hint, "Automatic: the checked colours, no hint").toHaveCount(0);
   expect(errors).toEqual([]);
 });
 

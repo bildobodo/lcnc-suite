@@ -68,8 +68,9 @@ export interface ToolpathDeps {
   /** Spatial grid cells (≈ chunks) per stream — lineChunks.spatialChunks. */
   chunkCells?: number;
   /** The initial line mode (default "fat"); "gl" keeps the previous GL
-   *  lines — for the A/B measurement and the selection tests written against
-   *  their index ranges. */
+   *  lines — a TEST SEAM only: the selection tests read their index ranges
+   *  and fatPaths.test pins the fat lines to the same pairs (the A/B
+   *  measurement that also used it passed on the Mac, 2026-10-01). */
   lineMode?: PathLineMode;
 }
 
@@ -126,27 +127,22 @@ export interface ToolpathController {
   setOnTop(stream: "feed" | "rapid", on: boolean): void;
   /** The toolpath box, its overflow edges and size labels over the machine. */
   setBoxOnTop(on: boolean): void;
-  /** The A/B measurement's switch (Codex R39 VP39-03; removed after the
-   *  acceptance): rebuild the last applied program in the given line mode —
-   *  never both held, so each mode's memory is its own. */
+  /** Test seam: rebuild the last applied program in the given line mode —
+   *  never both held, so each mode's memory is its own (fatPaths.test). */
   setLineMode(mode: PathLineMode, ctx: ToolpathCtx): void;
   readonly lineMode: PathLineMode;
-  /** The A/B measurement only (Codex R47 VP-I14): rebuild the last applied
-   *  program in the CURRENT mode — every build phase a real build, whether or
-   *  not the mode changes (setLineMode keeps its cheap no-op). apply()
-   *  disposes before it builds, so a rebuild's peak is the new build plus its
+  /** Test seam (fatPaths.test, the viewer memory spec): rebuild the last
+   *  applied program in the CURRENT mode — a real build whether or not the
+   *  mode changes (setLineMode keeps its cheap no-op). apply() disposes
+   *  before it builds, so a rebuild's peak is the new build plus its
    *  scratch, never old + new. */
   rebuild(ctx: ToolpathCtx): void;
-  /** The A/B measurement only (VP-I17): dispose every path object, keep the
+  /** Test seam (fatPaths.test): dispose every path object, keep the
    *  program's data — the ledger then holds the payload alone; rebuild()
    *  restores the view. Never unloads the operator's program. */
   release(): void;
   /** Bumped by every path build (apply / rebuild). */
   readonly generation: number;
-  /** The A/B measurement only: hold the limit overlays hidden. */
-  holdOverlays(on: boolean): void;
-  /** Whether the drawn program carries limit overlays at all. */
-  readonly hasOverlays: boolean;
   /** The drawn path's box in world coordinates (every chunk of every set,
    *  at the parents' current pose), or null without a path. */
   pathWorldBox(): THREE.Box3 | null;
@@ -240,12 +236,12 @@ export interface PathMemory {
  *  (no VAO rebind), and disposing every level's geometry frees every index
  *  buffer (a swapped-out index attribute would otherwise leak its GL
  *  buffer: Three only deletes a geometry's CURRENT index on dispose). */
-/** A drawn path object: a GL line (the previous renderer, kept for the A/B
- *  measurement only) or a screen-space line of PATH_PX (part B). */
+/** A drawn path object: a GL line (the previous renderer, kept as a test
+ *  seam only) or a screen-space line of PATH_PX (part B). */
 type PathObj = THREE.LineSegments | LineSegments2;
 type PathMat = THREE.LineBasicMaterial | THREE.LineDashedMaterial | LineMaterial;
 /** "fat" = LineSegments2 at PATH_PX (the product); "gl" = the previous GL
- *  lines, selectable only for the A/B measurement (Codex R39 VP39-03). */
+ *  lines, a test seam no product path selects (Codex R61). */
 export type PathLineMode = "fat" | "gl";
 
 interface Chunk {
@@ -346,9 +342,6 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   let _lodMax = 0;
   let _lodMs = 0;
   let lineMode: PathLineMode = deps.lineMode ?? "fat";
-  // The A/B measurement's "overlay off" phase (Codex R39 VP39-03; removed
-  // with the switch): the limit overlays held hidden, nothing rebuilt.
-  let _overlaysHeld = false;
   // The memory ledger (Codex R39 VP39-01, R47/R48 VP-I17): GPU bytes count
   // a buffer once it was actually uploaded (three calls onUpload after the
   // first transfer); _allocated sums what the builds allocated (the meter's
@@ -921,7 +914,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       const on = toolpathVisible && k === ch.level && ch.counts[k]! > 0;
       ch.lines[k]!.visible = on && (s.stream !== "rapid" || rapidsVisible);
       const ov = ch.overlays[k];
-      if (ov) ov.visible = on && !pathStale && !_overlaysHeld && (ch.ovCounts[k] ?? 0) > 0;
+      if (ov) ov.visible = on && !pathStale && (ch.ovCounts[k] ?? 0) > 0;
     }
   }
 
@@ -1297,14 +1290,6 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     },
 
     get generation() { return _generation; },
-
-    holdOverlays(on) {
-      _overlaysHeld = on;
-      _applyVisibility();
-      deps.requestRender();
-    },
-
-    get hasOverlays() { return sets.some(st => st.overMat !== null); },
 
     pathWorldBox() {
       const out = new THREE.Box3();
