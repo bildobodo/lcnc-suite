@@ -14,7 +14,7 @@ const FEED = Array.from({ length: 10 }, (_, i) => [i * 3, i % 2 ? 20 : 0, 0]);
 // wandering sequence cannot show): two on feed lines, one on the rapid.
 const FEED_OUT = new Uint8Array(FEED.length);
 FEED_OUT[2] = 1; FEED_OUT[6] = 1;
-const PREVIEW = Buffer.from(encode({ file: "/ab.ngc", preview_schema: 9, feed: FEED,
+const PREVIEW = Buffer.from(encode({ file: "/ab.ngc", preview_schema: 10, feed: FEED,
   feed_lines: FEED.map((_, i) => i + 3), feed_seq: FEED.map((_, i) => i + 3),
   feed_outside: FEED_OUT,
   rapid: [[27, 20, 0], [150, 20, 5]], rapid_lines: [13, 14], rapid_seq: [13, 14],

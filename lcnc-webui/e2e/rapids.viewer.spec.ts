@@ -9,7 +9,7 @@ import { openLayout, PROFILES, settleLayout, VIEWPORTS } from "./layout-fixtures
 // for it and says so — without touching the stored choice; a manual scrub
 // ends it, and so does the operator's own switch of the layer.
 const FEED = Array.from({ length: 10 }, (_, i) => [i * 3, i % 2 ? 20 : 0, 0]);
-const PREVIEW = Buffer.from(encode({ file: "/rapids.ngc", preview_schema: 9, feed: FEED,
+const PREVIEW = Buffer.from(encode({ file: "/rapids.ngc", preview_schema: 10, feed: FEED,
   feed_lines: FEED.map((_, i) => i + 3), feed_seq: FEED.map((_, i) => i + 3),
   feed_outside: new Uint8Array(FEED.length),   // the track takes the flags only from both streams
   rapid: [[27, 20, 0], [150, 20, 5]], rapid_lines: [13, 14], rapid_seq: [13, 14],
@@ -113,7 +113,7 @@ for (const form of ["hud-off", "folded"] as const) {
 // rapid along X at Y 20 (line 13), then the finding — a 7 mm rapid along Y
 // (line 14). The shown rapid must be the finding's own move: short AND along
 // Y; the whole layer shows the 90 mm one, an off-by-one the 71 mm one.
-const SECTION = Buffer.from(encode({ file: "/section.ngc", preview_schema: 9, feed: FEED,
+const SECTION = Buffer.from(encode({ file: "/section.ngc", preview_schema: 10, feed: FEED,
   feed_lines: FEED.map((_, i) => i + 3), feed_seq: FEED.map((_, i) => i + 3),
   feed_outside: new Uint8Array(FEED.map((_, i) => (i === 4 ? 1 : 0))),   // line 7: (9,20)→(12,0)
   rapid: [[0, 80, 0], [90, 80, 0], [98, 20, 0], [98, 27, 0]], rapid_lines: [1, 2, 13, 14], rapid_seq: [1, 2, 13, 14],

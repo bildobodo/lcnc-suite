@@ -11,7 +11,7 @@ import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
 // sphere contains the camera, the stroke is in view. Expected: a thin strip
 // from the frame's edge toward the vanishing point, nothing more.
 const FEED = [[-20000, 0, 0], [20000, 0, 0]];
-const PREVIEW = Buffer.from(encode({ file: "/near.ngc", preview_schema: 9, feed: FEED,
+const PREVIEW = Buffer.from(encode({ file: "/near.ngc", preview_schema: 10, feed: FEED,
   feed_lines: [1, 2], feed_seq: [1, 2], feed_outside: new Uint8Array(2), rapid: [],
   violations: [], violations_total: 0 }));
 const OFF = { machine: false, bounds: false, toolpathBounds: false, groundGrid: false, tool: false, toolsetter: false,

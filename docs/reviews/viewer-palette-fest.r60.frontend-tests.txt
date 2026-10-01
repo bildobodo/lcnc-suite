@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r60-sw4f270a/lcnc-webui
+
+
+ Test Files  4 passed (4)
+      Tests  64 passed (64)
+   Start at  13:28:01
+   Duration  664ms (transform 143ms, setup 0ms, import 338ms, tests 129ms, environment 0ms)
+

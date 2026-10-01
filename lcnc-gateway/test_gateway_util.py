@@ -3967,7 +3967,7 @@ class TestComparePreviewPayloads(unittest.TestCase):
         feed = [list(p) for p in feed]
         rseq = list(range(1, len(rapid) + 1))
         fseq = list(range(len(rapid) + 1, len(rapid) + len(feed) + 1))
-        p = {"file": "/p.ngc", "preview_schema": 9, "start_known": True,
+        p = {"file": "/p.ngc", "preview_schema": 10, "start_known": True,
              "tlo_start": [0.0, 0.0, start_z],
              "rapid": np.asarray(rapid, dtype="<f4").reshape(-1, 3).tobytes(),
              "rapid_seq": np.asarray(rseq, dtype="<u4").tobytes(),

@@ -1,0 +1,116 @@
+[
+  {
+    "label": "A applied",
+    "wanted": null,
+    "pending": false,
+    "refresh": null,
+    "applied": [
+      0,
+      0,
+      10
+    ],
+    "requests": [
+      "/r60-return.ngc#6010:start"
+    ]
+  },
+  {
+    "label": "B pending",
+    "wanted": {
+      "file": "/r60-return.ngc",
+      "version": 6010,
+      "xyz": [
+        0,
+        0,
+        30
+      ]
+    },
+    "pending": true,
+    "refresh": {
+      "reason": "tool_offset",
+      "file": "/r60-return.ngc",
+      "expected_ms": null,
+      "started_ms": null,
+      "queued": false,
+      "superseded": 0,
+      "seenAt": 104.532715
+    },
+    "applied": [
+      0,
+      0,
+      10
+    ],
+    "requests": [
+      "/r60-return.ngc#6010:start",
+      "/r60-return.ngc#6010:0,0,30"
+    ]
+  },
+  {
+    "label": "A wanted again: no extra decode",
+    "wanted": null,
+    "pending": false,
+    "refresh": null,
+    "applied": [
+      0,
+      0,
+      10
+    ],
+    "requests": [
+      "/r60-return.ngc#6010:start",
+      "/r60-return.ngc#6010:0,0,30"
+    ]
+  },
+  {
+    "label": "late B ignored",
+    "wanted": null,
+    "pending": false,
+    "refresh": null,
+    "applied": [
+      0,
+      0,
+      10
+    ],
+    "requests": [
+      "/r60-return.ngc#6010:start",
+      "/r60-return.ngc#6010:0,0,30"
+    ]
+  },
+  {
+    "label": "unchanged status: A stays",
+    "wanted": null,
+    "pending": false,
+    "refresh": null,
+    "applied": [
+      0,
+      0,
+      10
+    ],
+    "requests": [
+      "/r60-return.ngc#6010:start",
+      "/r60-return.ngc#6010:0,0,30"
+    ]
+  },
+  {
+    "label": "B newly requested and applied",
+    "wanted": {
+      "file": "/r60-return.ngc",
+      "version": 6010,
+      "xyz": [
+        0,
+        0,
+        30
+      ]
+    },
+    "pending": false,
+    "refresh": null,
+    "applied": [
+      0,
+      0,
+      30
+    ],
+    "requests": [
+      "/r60-return.ngc#6010:start",
+      "/r60-return.ngc#6010:0,0,30",
+      "/r60-return.ngc#6010:0,0,30"
+    ]
+  }
+]

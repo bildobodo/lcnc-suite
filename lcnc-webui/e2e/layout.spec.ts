@@ -750,7 +750,7 @@ const HUD_CASES = [
   { vp: VIEWPORTS.find(v => v.name === 'touch-portrait')!, zoom: 1.5 },
 ];
 const TIMELINE_FEED = Array.from({ length: 30 }, (_, i) => [i * 3, i % 2 ? 20 : 0, 0]);
-const TIMELINE_PREVIEW = Buffer.from(encode({ file: '/leak.ngc', preview_schema: 9, feed: TIMELINE_FEED,
+const TIMELINE_PREVIEW = Buffer.from(encode({ file: '/leak.ngc', preview_schema: 10, feed: TIMELINE_FEED,
   feed_lines: TIMELINE_FEED.map((_, i) => i + 3), feed_seq: TIMELINE_FEED.map((_, i) => i + 3),
   rapid: [[0, 0, 5], [0, 0, 0]], rapid_lines: [1, 2], rapid_seq: [1, 2] }));
 for (const profile of [PROFILES[1], PROFILES[2]]) {
@@ -831,7 +831,7 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
 // both opening orders, every close by a real click.
 const LIMIT_FEED = TIMELINE_FEED.map(p => [...p]);
 LIMIT_FEED[29]![0] = 120;
-const LIMIT_PREVIEW = Buffer.from(encode({ file: '/leak.ngc', preview_schema: 9, feed: LIMIT_FEED,
+const LIMIT_PREVIEW = Buffer.from(encode({ file: '/leak.ngc', preview_schema: 10, feed: LIMIT_FEED,
   feed_lines: LIMIT_FEED.map((_, i) => i + 3), feed_seq: LIMIT_FEED.map((_, i) => i + 3),
   feed_outside: new Uint8Array(LIMIT_FEED.map(p => (p[0]! > 100 ? 1 : 0))),
   violations: [{ line: 32, axis: 'X', value: 120, limit: 100, kind: 'max' }], violations_total: 1,
@@ -1260,7 +1260,7 @@ test('a help icon in the viewer warnings card scrolls nothing and keeps its hit 
 test('a code line names its findings with a glyph: ▲ limit, × collision, both named', async ({ page, context }) => {
   test.setTimeout(120_000);
   const feed = LIMIT_FEED.map(p => [...p]);
-  const body = Buffer.from(encode({ file: '/marks.ngc', preview_schema: 9, feed,
+  const body = Buffer.from(encode({ file: '/marks.ngc', preview_schema: 10, feed,
     feed_lines: feed.map((_, i) => i + 3), feed_seq: feed.map((_, i) => i + 3),
     feed_outside: new Uint8Array(feed.map(p => (p[0]! > 100 ? 1 : 0))),
     violations: [{ line: 20, axis: 'X', value: 120, limit: 100, kind: 'max' }, { line: 32, axis: 'X', value: 120, limit: 100, kind: 'max' }],
@@ -1731,7 +1731,7 @@ test('Settings: as wide as the tool editor, the 3D Viewer sections side by side,
 // renderer) the evenness is reported, not asserted — the visibility always.
 const GLIDE_LINES = 1200;
 const GLIDE_FEED = Array.from({ length: GLIDE_LINES }, (_, i) => [i % 2 ? 10 : 0, i * 0.5, 0]);
-const GLIDE_PREVIEW = Buffer.from(encode({ file: '/glide.ngc', preview_schema: 9, feed: GLIDE_FEED,
+const GLIDE_PREVIEW = Buffer.from(encode({ file: '/glide.ngc', preview_schema: 10, feed: GLIDE_FEED,
   feed_lines: GLIDE_FEED.map((_, i) => i + 1), feed_seq: GLIDE_FEED.map((_, i) => i + 1),
   feed_outside: new Uint8Array(GLIDE_LINES), rapid: [], violations: [], violations_total: 0 }));
 test('the running line glides: the code scrolls evenly under a centred highlight, which never leaves the view', async ({ page, context }) => {
