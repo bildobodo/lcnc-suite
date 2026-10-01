@@ -5892,3 +5892,135 @@ Unverändert aus Fassung 3 und 4 bleiben:
 ### Prüfstand
 
 Nur Plan. Keine Produktänderung, kein Gate.
+
+---
+
+## Review R56 · Codex · Gleichheitsvertrag Fassung 5 · 1. Oktober 2026
+
+**Stand:** `f0265db..89867aa`, nur VP55-01 und die dafür geänderte
+Planregel. **Ergebnis: findings.** Die Normalisierung mit anschließendem
+Neuaufbau der betroffenen Verbraucher schließt **VP55-01 auf Planebene**.
+Ein P2-Rest **VP56-01** liegt in der neu hinzugekommenen Regel zum Entfernen
+von TLO-Zeilen bei seq 0. Dafür reicht eine engere Festlegung; die
+Normalisierung selbst muss nicht erneut entworfen werden.
+
+Isolierte Archivkopie unter `/tmp`, zehn neue native Offline-Parses mit
+synthetischer INI/STAT und zehn gezielte Tests. Das R55-G53-Paar wurde als
+unveränderter Beleg wiederverwendet; seitdem gab es nur Planänderungen.
+Keine Live-Ports, kein Live-STAT, keine Maschinenbefehle oder Produktänderungen.
+
+### VP55-01 — Normalisierung auf Planebene abgenommen
+
+Die neue Regel vergleicht den auf die geprüfte Basis umgerechneten alten
+Datensatz mit dem frischen. Bei Gleichheit werden diesmal auch Pfad,
+Part-Frame und Sweep auf der neuen Basis aufgebaut. Damit entfällt der
+R55-Fehler, bei gleichen Maschinenpunkten die alte Spitze und den alten
+Kollisionsbefund weiterzuverwenden.
+
+Eigene Gegenprüfung mit den vorhandenen Produktfunktionen:
+
+- **Z20 → Z10:** Normalisierter alter Datensatz und frischer Parse ergeben
+  gleiche dekodierte Ströme, Scrub-Spur und Stichproben der Scrub-Pose,
+  Achspositionen, Part-Frame-Punkte und Sweep-Treffer. Die Vorrichtung wird
+  in L3 getroffen.
+- **Z10 → Z20:** Dieselben Vergleiche stimmen überein; kein Treffer.
+- **Mit `%`-Zeile:** Nach Entfernung ihres führenden Seed-Eintrags stimmen
+  ebenfalls beide Richtungen überein.
+- **Negativkontrolle:** Mit dem unverändert behaltenen alten Zustand
+  fehlt bei Z20 → Z10 weiterhin der Treffer, wie in R55.
+- **G49 vor Bewegung:** Gleicher Datensatz trotz anderer Startbasis.
+- **Explizites G43.1 bzw. G49, das zufällig den Seed trifft:** Die
+  unterschiedlichen verbliebenen Ereignislisten verhindern die
+  Gleichheitsmeldung, wie im Plan vorgesehen.
+- **Rückwechsel der Basis:** Ableitung aus den unveränderten Originaldaten
+  stellt den ursprünglichen Zustand wieder her; die Sonde verändert die
+  Ausgangsdaten nicht.
+
+Das ist eine Prüfung des vorgeschlagenen Algorithmus gegen bestehende
+Verbraucher, keine Abnahme einer schon eingebauten Versions-/Update-Pipeline.
+
+### VP56-01 — P2: Nicht jede zum Seed passende seq-0-Zeile darf entfallen
+
+**Stelle:** Fassung 5, Normalisierung: „Eine Zeile bei seq 0, die genau den
+Seed trägt, liefert der Worker nicht aus.“ Die Bedingung begrenzt bisher
+weder die Position innerhalb gleichzeitiger Ereignisse noch deren Herkunft.
+
+**Natives Gegenbeispiel**, Startoffset Z10:
+
+```gcode
+G21 G90
+G49
+G43.1 Z10
+G0 X0 Y0 Z0
+G0 X10 Y0 Z0
+M2
+```
+
+Vor der ersten Bewegung liefert der Canon zwei Ereignisse:
+
+```text
+[0, 0, 0,  0, -1]   # G49
+[0, 0, 0, 10, -1]   # G43.1 Z10
+```
+
+Beide stehen bei seq 0. Das letzte gilt für die folgenden Punkte
+(`eventIndex.ts`: gleiche seq → letzter Eintrag). Die zweite Zeile trägt
+exakt den Seed und erfüllt damit die formulierte Löschbedingung. Entfernt
+man sie, wird die erste Zeile wieder maßgeblich: **G49/Offset 0 statt
+G43.1/Offset 10**. Da noch eine TLO-Zeile vorhanden ist, fallen die Punkte
+auch nicht in den normalisierten Vorlauf zurück.
+
+Der native Interpreter liefert an den beiden Zielen Maschinen-Z10. Der
+unveränderte Decoder/Scrub-Aufbau ergibt nach dieser Zeilenfilterung dagegen
+**Z0**. Das geschieht schon bei unveränderter Werkzeugbasis, also vor jeder
+`__SAME__`-Entscheidung. Ein späterer Unterschied zwischen zwei Payloads
+schützt daher nicht vor dem falsch aufbereiteten einzelnen Payload.
+
+Die eigene Sonde unterscheidet ausdrücklich:
+
+| Aufbereitung bei Basis Z10 | Erste Achsposition Z |
+|---|---:|
+| Originale Ereignisliste | 10 |
+| Jede passende seq-0-Zeile entfernt | 0 |
+| Höchstens den führenden Seed-Carry entfernt | 10 |
+
+**Korrektur des Vertrags:** Die Entnahme auf den führenden reinen
+Startzustandseintrag beschränken bzw. dessen Herkunft explizit kennzeichnen.
+Ein späterer Eintrag darf nicht allein wegen gleicher seq und gleicher
+XYZ-Werte entfallen. Die Reihenfolge und die Letztgültigkeit von
+Programm-Ereignissen müssen erhalten bleiben. Ebenso darf damit keine
+ausgeführte Werkzeugwahl verschwinden; ein Eintrag mit eigener
+Werkzeugnummer ist kein bloßer Seed-Carry.
+
+Die enge Variante „nur führender passender Eintrag mit weiterhin geerbtem
+Werkzeug“ wurde für das Gegenbeispiel mitgeprüft und stellt den korrekten
+Zustand wieder her. Für die Umsetzung zusätzlich einen Wächter mit
+mehreren seq-0-Ereignissen und einen mit tatsächlicher Werkzeugwahl vor
+der ersten Bewegung aufnehmen. Das ist eine lokale Korrektur der
+Löschregel, kein Einwand gegen die bestätigte Normalisierung.
+
+### Umsetzungshinweise innerhalb des akzeptierten Vertrags
+
+Originalkoordinaten und `tlo_start` unverändert behalten. Jede neue Basis
+aus diesen Originaldaten ableiten, damit mehrere Prüfungen keine Offsets
+aufsummieren. Die neue Basis muss gemeinsam mit allen daraus berechneten
+Darstellungsdaten wirksam werden; alte Sweep-Ergebnisse während des
+Neuaufbaus als veraltet behandeln. Die im Plan genannte Datei-/Versionsbindung
+und die eingefrorene Basis während des Laufs bleiben Umsetzungsgates.
+
+Die Zusage für `heavy_test` bleibt richtigerweise vom vollständigen
+Vergleich in der Umsetzung abhängig. Es wurde hier nicht live geprüft.
+
+### Belege und Validierung
+
+- [Native Ergebnisse und Ereignislisten](viewer-palette-fest.r56.native-probe.json)
+- [Nativer Runner](viewer-palette-fest.r56.native-run.py), [synthetische Hilfssonde](viewer-palette-fest.r56.native-case.py)
+- [Normalisierungs- und Verbraucherproben](viewer-palette-fest.r56.consumer-probe.test.ts), [Messwerte](viewer-palette-fest.r56.consumer-probe.json)
+- [10/10 Tests PASS](viewer-palette-fest.r56.vitest-results.json), [isolierte Konfiguration](viewer-palette-fest.r56.vitest.config.mjs)
+- [Reproduktion und SHA256](viewer-palette-fest.r56.manifest.json)
+
+**10/10 neue native Parses ohne Fehler/Absturz; 10/10 gezielte Tests
+bestanden**, einschließlich des reproduzierten Fehlers der breiten
+seq-0-Filterung und der engen Gegenkorrektur. Kein Browserlauf, Build oder
+vollständiges Gate für diese Planrunde. Alle übrigen abgenommenen Punkte
+bleiben geschlossen; nächste Runde nur **VP56-01 / seq-0-Entnahme**.

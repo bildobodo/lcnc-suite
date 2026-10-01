@@ -1,0 +1,24 @@
+{
+  "review": "R56",
+  "commit": "89867aa0362c0fb039cd21eae572729986c81594",
+  "archive": "/tmp/codex-r56-ofrx4kz_",
+  "boundaries": "No live ports, live STAT, commands, product edits, builds, browser or checkout. Synthetic offline native interpreter; serial nice-19 processes, BLAS/OMP one thread.",
+  "scope": "F5 normalization and seq-0 suppression modeled in probes, existing product functions unchanged. Ten new native parses. Original two G53 samples reused verbatim from R55.",
+  "reproduce": [
+    "Extract git archive 89867aa into /tmp, copy r56 evidence files into evidence/.",
+    "Run nice -n 19 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -B evidence/viewer-palette-fest.r56.native-run.py <archive-root>.",
+    "Make existing node_modules available for the archived lcnc-webui; copy consumer-probe.test.ts into src/viewer/r56.consumer-probe.test.ts and config into r56.vitest.config.mjs.",
+    "From archived lcnc-webui: nice -n 19 node node_modules/vitest/vitest.mjs run --config r56.vitest.config.mjs --reporter=json --outputFile=../evidence/viewer-palette-fest.r56.vitest-results.json. All caches stay in archive."
+  ],
+  "native_helper_change": "R55 helper unchanged except rejection message says R56.",
+  "comparison_note": "The broad seq-0 interpretation removes every matching vector at seq 0. The narrow candidate only removes the leading matching inherited-tool row. Both modeled explicitly; no F5 implementation exists.",
+  "sha256": {
+    "viewer-palette-fest.r56.consumer-probe.json": "72d182d127c6982dacb0193328ef6dde2e797c5b729f782cf6f00f707ef7682b",
+    "viewer-palette-fest.r56.consumer-probe.test.ts": "0eee75bd01392a729e01edc78942ce66a817acc2b53ae8f7b4993fba5443dd38",
+    "viewer-palette-fest.r56.native-case.py": "af18e813a8eaa2b7b422c1910d65a3ad526e8c922978b54846ef18bde067b5c9",
+    "viewer-palette-fest.r56.native-probe.json": "94e4b61a9b483221443ed3e990acba7056c390fdecae25c0616016a1c26a6a13",
+    "viewer-palette-fest.r56.native-run.py": "b05b9ef638eb49547da00f0ee10ee814719acd468cd4dc7a25c836618129fb90",
+    "viewer-palette-fest.r56.vitest-results.json": "bcdd2efb2fa80da36e5185245a72562706605ffe01c88a92faf606aa2d4c6704",
+    "viewer-palette-fest.r56.vitest.config.mjs": "53c9b6b86cae4616ea6b5dbbf2724058449f0d713330ebac2939fd09a1d9ae87"
+  }
+}

@@ -1,0 +1,259 @@
+{
+  "commit": "89867aa0362c0fb039cd21eae572729986c81594",
+  "method": "F5 normalization and seq-0 rules modeled in probe; existing product decoder/scrub/part-frame/sweep unchanged. Broad seq-0 interpretation and narrower leading-carry alternative explicitly distinguished; no product implementation exists.",
+  "observations": [
+    {
+      "case": "g53_same_machine",
+      "from": [
+        0,
+        0,
+        10
+      ],
+      "to": [
+        0,
+        0,
+        20
+      ],
+      "equal": true,
+      "path": [
+        0,
+        0,
+        -20,
+        10,
+        0,
+        -20,
+        10,
+        0,
+        -40,
+        10,
+        0,
+        40
+      ],
+      "collisions": []
+    },
+    {
+      "case": "g53_same_machine",
+      "from": [
+        0,
+        0,
+        20
+      ],
+      "to": [
+        0,
+        0,
+        10
+      ],
+      "equal": true,
+      "path": [
+        0,
+        0,
+        -10,
+        10,
+        0,
+        -10,
+        10,
+        0,
+        -40,
+        10,
+        0,
+        40
+      ],
+      "collisions": [
+        {
+          "line": 3,
+          "cum": 0.681611329195343,
+          "cumEnd": 0.899995118257843,
+          "a": "tool",
+          "b": "fixture",
+          "dist": 0,
+          "rapid": true,
+          "intervals": [
+            [
+              0.681611329195343,
+              0.899995118257843
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "case": "percent_g53",
+      "from": [
+        0,
+        0,
+        10
+      ],
+      "to": [
+        0,
+        0,
+        20
+      ],
+      "equal": true,
+      "path": [
+        0,
+        0,
+        -20,
+        10,
+        0,
+        -20,
+        10,
+        0,
+        -40,
+        10,
+        0,
+        40
+      ],
+      "collisions": []
+    },
+    {
+      "case": "percent_g53",
+      "from": [
+        0,
+        0,
+        20
+      ],
+      "to": [
+        0,
+        0,
+        10
+      ],
+      "equal": true,
+      "path": [
+        0,
+        0,
+        -10,
+        10,
+        0,
+        -10,
+        10,
+        0,
+        -40,
+        10,
+        0,
+        40
+      ],
+      "collisions": [
+        {
+          "line": 4,
+          "cum": 0.681611329195343,
+          "cumEnd": 0.899995118257843,
+          "a": "tool",
+          "b": "fixture",
+          "dist": 0,
+          "rapid": true,
+          "intervals": [
+            [
+              0.681611329195343,
+              0.899995118257843
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "case": "g49_then_restore_seed",
+      "seed": [
+        0,
+        0,
+        10
+      ],
+      "originalRows": [
+        [
+          0,
+          0,
+          0,
+          0,
+          -1
+        ],
+        [
+          0,
+          0,
+          0,
+          10,
+          -1
+        ]
+      ],
+      "broadRows": [
+        [
+          0,
+          0,
+          0,
+          0,
+          -1
+        ]
+      ],
+      "trueNativeMachinePoints": [
+        [
+          0,
+          0,
+          10,
+          0,
+          0,
+          0
+        ],
+        [
+          10,
+          0,
+          10,
+          0,
+          0,
+          0
+        ]
+      ],
+      "referenceJoints": [
+        [
+          0,
+          0,
+          10,
+          0,
+          0,
+          0
+        ],
+        [
+          10,
+          0,
+          10,
+          0,
+          0,
+          0
+        ]
+      ],
+      "broadJoints": [
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          10,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "leadingCarryOnlyJoints": [
+        [
+          0,
+          0,
+          10,
+          0,
+          0,
+          0
+        ],
+        [
+          10,
+          0,
+          10,
+          0,
+          0,
+          0
+        ]
+      ]
+    }
+  ]
+}
