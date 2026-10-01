@@ -121,6 +121,29 @@ class TestThePlateIsPhysical(unittest.TestCase):
             seed = feed_rows(_read(p["state_dir"], "sim.var"))
             self.assertEqual((seed[3100], seed[3101], seed[3102]), (plate["x"], plate["y"], plate["z"]), p["id"])
 
+    def test_no_shipped_tool_touches_the_plate_from_the_parked_pose(self):
+        """The plate is a fixed body beside the work, never under the parked
+        head: the TWP gantry carried the 3-axis plate (X10 Y10 Z-180), 14 mm
+        from its home, and its T1 (200 mm) reached 20 mm below the plate
+        there — every M6 T1 at home and every program crossing that window
+        tripped "Probe tripped during non-probe move" (live gate 2026-10-02,
+        five of eleven parity runs). The trip window is the comp's
+        |x − plate_x| <= radius, |y − plate_y| <= radius, z − L <= plate_z."""
+        radius = float(next(ln.split()[2] for ln in _hal_lines(_read("hallib", "sim_toolsetter.hal"))
+                            if ln.startswith("setp sim-toolsetter.0.radius")))
+        for p in json.loads(_read("profiles.json"))["profiles"]:
+            ini = _ini(_read(p["ini"]))
+            core = next(v for k, v in ini["HAL"] if k == "HALFILE" and "core_sim_" in v)
+            plate = {m.group(1): float(m.group(2)) for ln in _hal_lines(_read(*core.split("/")))
+                     if (m := re.fullmatch(r"setp\s+sim-toolsetter\.0\.plate-([xyz])\s+(\S+)", ln))}
+            home = [float(_first(ini, f"JOINT_{j}", "HOME") or 0.0) for j in range(3)]
+            lengths = [float(m.group(1)) for ln in _read(p["state_dir"], "tool.tbl").splitlines()
+                       if (m := re.search(r"\bZ([-+]?[0-9.]+)", ln.split(";", 1)[0]))]
+            self.assertTrue(lengths, f"{p['id']}: no tool lengths read")
+            in_window = abs(home[0] - plate["x"]) <= radius and abs(home[1] - plate["y"]) <= radius
+            touching = [L for L in lengths if in_window and home[2] - L <= plate["z"]]
+            self.assertEqual(touching, [], f"{p['id']}: from home {home} these tool lengths reach the plate {plate}")
+
 
 def feed_rows(text):
     rows = {}

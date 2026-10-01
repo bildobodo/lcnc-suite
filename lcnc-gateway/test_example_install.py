@@ -239,6 +239,68 @@ def subprocess_show(rel):
     return subprocess.check_output(["git", "show", f"3e501ed:examples/sim_config/{rel}"], cwd=ROOT)
 
 
+class TwpToolsetterSeedTest(unittest.TestCase):
+    """The TWP gantry's plate moved off its parked head (2026-10-02): an
+    installed var file with the old example's unchanged 10/10/-180 and no
+    WebUI toolsetter for the INI takes the new plate, said once; a saved
+    toolsetter or any other triple is kept."""
+    NAME = "lcnc_suite_sim_6axis_twp_xyzabc.ini"
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.base = Path(tmp.name)
+        self.dest = self.base / "configs/examples"
+        self.backups = self.base / "backups"
+        self.settings = self.base / "settings.json"
+        home = patch.object(installer.Path, "home", return_value=self.base / "home")
+        home.start()
+        self.addCleanup(home.stop)
+        for name in ("assert_stopped", "gateway_running"):
+            guard = patch.object(installer, name, return_value=False)
+            guard.start()
+            self.addCleanup(guard.stop)
+
+    def install(self, report=None):
+        return installer.install(ROOT, self.dest, self.backups, settings_path=self.settings, report=report)
+
+    def var(self, triple):
+        self.install()
+        var = self.dest / "xyzabc6/sim.var"
+        lines = []
+        for line in var.read_text().splitlines(keepends=True):
+            n = line.split()[0] if line.split() else ""
+            lines.append(f"{n}\t{triple[int(n) - 3100]:.6f}\n" if n in ("3100", "3101", "3102") else line)
+        var.write_text("".join(lines))
+        return var
+
+    def params(self, var):
+        return {int(k): float(v) for k, v in (line.split() for line in var.read_text().splitlines() if line.strip())}
+
+    def test_the_unchanged_old_plate_is_replaced_and_said_once(self):
+        var = self.var((10, 10, -180))
+        others = {k: v for k, v in self.params(var).items() if k not in (3100, 3101, 3102)}
+        report = []
+        self.assertIsNotNone(self.install(report))
+        p = self.params(var)
+        self.assertEqual([p[n] for n in (3100, 3101, 3102)], [1200, 1000, -1000])
+        self.assertEqual({k: v for k, v in p.items() if k not in (3100, 3101, 3102)}, others, "nothing else moves")
+        self.assertTrue(any("#3100" in line and "1200/1000/-1000" in line for line in report), report)
+        self.assertIsNone(self.install(), "once")
+
+    def test_a_saved_webui_toolsetter_or_another_triple_is_kept(self):
+        var = self.var((10, 10, -180))
+        self.settings.write_text(json.dumps({str(self.dest / self.NAME): {"toolsetter": {"touchX": 10, "touchY": 10, "touchZ": -180}}}))
+        report = []
+        self.install(report)
+        self.assertEqual([self.params(var)[n] for n in (3100, 3101, 3102)], [10, 10, -180])
+        self.assertEqual([line for line in report if "#3100" in line], [])
+        self.settings.unlink()
+        var = self.var((300, 0, -500))
+        self.install(report)
+        self.assertEqual([self.params(var)[n] for n in (3100, 3101, 3102)], [300, 0, -500])
+
+
 class XyzacDatumMigrationTest(unittest.TestCase):
     NAME = "lcnc_suite_sim_5axis_xyzac.ini"
 

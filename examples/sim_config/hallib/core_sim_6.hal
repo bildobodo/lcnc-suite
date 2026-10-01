@@ -72,10 +72,14 @@ source hallib/sim_toolsetter.hal
 # profile's shipped var file does: #3100/#3101/#3102) — the supported
 # operation. Another setting measures wrong by the difference, and since the
 # sim's tool length comes from the table, the error adds up with every
-# measurement (README, "Simulated tool setter").
-setp sim-toolsetter.0.plate-x 10
-setp sim-toolsetter.0.plate-y 10
-setp sim-toolsetter.0.plate-z -180
+# measurement (README, "Simulated tool setter"). Beside the work, away from
+# the parked head: the 3-axis example's 10/10/-180 sat 14 mm from home here,
+# a 200 mm T1 reached under it at the parked pose and the corpus programs
+# crossed its window — "Probe tripped during non-probe move" in five of
+# eleven parity runs (live gate 2026-10-02).
+setp sim-toolsetter.0.plate-x 1200
+setp sim-toolsetter.0.plate-y 1000
+setp sim-toolsetter.0.plate-z -1000
 
 # create signals for tool loading loopback
 net tool-prep-loop iocontrol.0.tool-prepare iocontrol.0.tool-prepared

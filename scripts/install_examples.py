@@ -67,6 +67,14 @@ XYZAC_REFERENCE_Z = (5163, 5183)
 # installer cannot tell them apart (Codex R16, XZ-03), so it keeps the point
 # and names what to check.
 XYZAC_OLD_TEMPLATE_TOOLSETTER = (10.0, 10.0, -180.0)
+# The TWP gantry's tool setter plate was the 3-axis example's 10/10/-180 until
+# 2026-10-02: 14 mm from its parked head, so its 200 mm T1 at home and the
+# parity programs tripped the simulated setter (live gate). The plate lives
+# in hallib (a link into the checkout) and moved with it; an installed var
+# file still naming that unchanged triple, with no WebUI toolsetter saved for
+# the INI, takes the example's new one — said. Any other triple is kept.
+TWP_INI = "lcnc_suite_sim_6axis_twp_xyzabc.ini"
+TWP_OLD_TOOLSETTER = (10.0, 10.0, -180.0)
 # Shipped programs a later version superseded, by content: an installed copy
 # byte-identical to one of these was never edited and follows the example.
 SUPERSEDED_PROGRAMS = {
@@ -161,6 +169,24 @@ def migrate_xyzac_var(text, template_text, window, setter_saved, report):
     for number, value in template_rows.items():
         rows.setdefault(number, value)
     return "".join(f"{n}\t{v:.6f}\n" for n, v in sorted(rows.items()))
+
+
+def replace_old_twp_toolsetter(text, template_text, setter_saved, report):
+    """The TWP var file with the old example's unchanged plate replaced by the
+    template's (#3100-#3102 only, every other line as it was); else `text`."""
+    rows = {int(p[0]): float(p[1]) for p in (l.split() for l in text.splitlines()) if len(p) >= 2}
+    if setter_saved or tuple(rows.get(n) for n in (3100, 3101, 3102)) != TWP_OLD_TOOLSETTER:
+        return text
+    new = {int(p[0]): float(p[1]) for p in (l.split() for l in template_text.splitlines()) if len(p) >= 2}
+    lines = []
+    for line in text.splitlines(keepends=True):
+        parts = line.split()
+        number = int(parts[0]) if parts and parts[0].isdigit() else None
+        lines.append(f"{number}\t{new[number]:.6f}\n" if number in (3100, 3101, 3102) else line)
+    report.append(f"{TWP_INI}: toolsetter #3100-#3102 were the old example's unchanged 10/10/-180 "
+                  f"(14 mm from the parked head — a long tool tripped the simulated setter) — now the "
+                  f"example's " + "/".join(fmt_number(new[n]) for n in (3100, 3101, 3102)))
+    return "".join(lines)
 
 
 def seed_xyzac_state(filename, text, local, shipped, report):
@@ -397,6 +423,19 @@ def install(repo, destination, backup_root, settings_path=None, report=None):
                     (destination / rel).read_text() if (destination / rel).is_file() else None)
                 if current is not None:
                     writes[rel] = migrate(current).encode()
+        if name == TWP_INI:
+            rel = profile["state_dir"] + "/sim.var"
+            current = None if rel in from_template else (
+                writes[rel].decode() if rel in writes else
+                (destination / rel).read_text() if (destination / rel).is_file() else None)
+            if current is not None:
+                if settings is None and settings_path.is_file():
+                    settings = json.loads(settings_path.read_text())   # unparsable -> refused, nothing written
+                keys = settings_keys_for(settings, destination / name) if settings is not None else []
+                saved = any(isinstance(settings[k].get("toolsetter"), dict) for k in keys)
+                replaced = replace_old_twp_toolsetter(current, (source / rel).read_text(), saved, report)
+                if replaced != current:
+                    writes[rel] = replaced.encode()
         if name == XYZAC_INI:
             local = values(writes[name].decode())
             for rel in sorted(from_template):
