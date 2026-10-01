@@ -1,0 +1,110 @@
+[
+  {
+    "viewport": "desktop",
+    "text": "Z Offset\n65.0000 mm · Off (G49)",
+    "row": {
+      "x": 1303.5,
+      "y": 859,
+      "width": 255,
+      "height": 19.5,
+      "top": 859,
+      "right": 1558.5,
+      "bottom": 878.5,
+      "left": 1303.5
+    },
+    "strip": {
+      "x": 1286.5,
+      "y": 719,
+      "width": 280,
+      "height": 264,
+      "top": 719,
+      "right": 1566.5,
+      "bottom": 983,
+      "left": 1286.5
+    },
+    "scrollWidth": 255,
+    "clientWidth": 255,
+    "html": "<span data-v-aa760b97=\"\" class=\"label-muted md\">Z Offset</span><span data-v-aa760b97=\"\" class=\"val-status md\"><span data-v-aa760b97=\"\" class=\"mono\">65.0000 mm</span><span data-v-aa760b97=\"\" data-tool-offset=\"\" class=\"val-status md warn\"> · Off (G49)</span></span>"
+  },
+  {
+    "viewport": "compact",
+    "text": "Z Offset\n65.0000 mm · Off (G49)",
+    "row": {
+      "x": 727.5,
+      "y": 627,
+      "width": 255,
+      "height": 19.5,
+      "top": 627,
+      "right": 982.5,
+      "bottom": 646.5,
+      "left": 727.5
+    },
+    "strip": {
+      "x": 710.5,
+      "y": 487,
+      "width": 280,
+      "height": 264,
+      "top": 487,
+      "right": 990.5,
+      "bottom": 751,
+      "left": 710.5
+    },
+    "scrollWidth": 255,
+    "clientWidth": 255,
+    "html": "<span data-v-aa760b97=\"\" class=\"label-muted md\">Z Offset</span><span data-v-aa760b97=\"\" class=\"val-status md\"><span data-v-aa760b97=\"\" class=\"mono\">65.0000 mm</span><span data-v-aa760b97=\"\" data-tool-offset=\"\" class=\"val-status md warn\"> · Off (G49)</span></span>"
+  },
+  {
+    "viewport": "touch-landscape",
+    "text": "Z Offset\n65.0000 mm · Off (G49)",
+    "row": {
+      "x": 992.5,
+      "y": 662,
+      "width": 255,
+      "height": 19.5,
+      "top": 662,
+      "right": 1247.5,
+      "bottom": 681.5,
+      "left": 992.5
+    },
+    "strip": {
+      "x": 975.5,
+      "y": 519,
+      "width": 280,
+      "height": 264,
+      "top": 519,
+      "right": 1255.5,
+      "bottom": 783,
+      "left": 975.5
+    },
+    "scrollWidth": 255,
+    "clientWidth": 255,
+    "html": "<span data-v-aa760b97=\"\" class=\"label-muted md\">Z Offset</span><span data-v-aa760b97=\"\" class=\"val-status md\"><span data-v-aa760b97=\"\" class=\"mono\">65.0000 mm</span><span data-v-aa760b97=\"\" data-tool-offset=\"\" class=\"val-status md warn\"> · Off (G49)</span></span>"
+  },
+  {
+    "viewport": "touch-portrait",
+    "text": "Z Offset\n65.0000 mm · Off (G49)",
+    "row": {
+      "x": 25,
+      "y": 1104.09375,
+      "width": 246,
+      "height": 19.5,
+      "top": 1104.09375,
+      "right": 271,
+      "bottom": 1123.59375,
+      "left": 25
+    },
+    "strip": {
+      "x": 17,
+      "y": 952.09375,
+      "width": 262,
+      "height": 222.5,
+      "top": 952.09375,
+      "right": 279,
+      "bottom": 1174.59375,
+      "left": 17
+    },
+    "scrollWidth": 246,
+    "clientWidth": 246,
+    "html": "<span data-v-aa760b97=\"\" class=\"label-muted md\">Z Offset</span><span data-v-aa760b97=\"\" class=\"val-status md\"><span data-v-aa760b97=\"\" class=\"mono\">65.0000 mm</span><span data-v-aa760b97=\"\" data-tool-offset=\"\" class=\"val-status md warn\"> · Off (G49)</span></span>"
+  }
+]

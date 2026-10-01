@@ -1,0 +1,352 @@
+{
+  "commit": "fec40e5",
+  "rows": [
+    {
+      "name": "G49",
+      "table": 65,
+      "applied": 0,
+      "gcode": 490,
+      "text": "Z Offset\n65.0000 mm · Off (G49)",
+      "pin": {
+        "visible": true,
+        "top": [
+          0,
+          0,
+          0
+        ],
+        "screen": {
+          "x": 511.1877816227111,
+          "y": 406.07212639141665
+        },
+        "onTop": true,
+        "world": [
+          150,
+          0,
+          -235
+        ],
+        "label": "control point · G49"
+      }
+    },
+    {
+      "name": "G43",
+      "table": 65,
+      "applied": 65,
+      "gcode": 430,
+      "text": "Z Offset\n65.0000 mm · G43",
+      "pin": {
+        "visible": false,
+        "top": [
+          0,
+          0,
+          0
+        ],
+        "screen": {
+          "x": 511.187781622711,
+          "y": 406.07212639141653
+        },
+        "onTop": true,
+        "world": [
+          150,
+          0,
+          -235
+        ],
+        "label": "control point · G49"
+      }
+    },
+    {
+      "name": "negative G43",
+      "table": -65,
+      "applied": -65,
+      "gcode": 430,
+      "text": "Z Offset\n65.0000 mm · G43",
+      "pin": {
+        "visible": false,
+        "top": [
+          0,
+          0,
+          0
+        ],
+        "screen": {
+          "x": 511.18778162271093,
+          "y": 406.07212639141693
+        },
+        "onTop": true,
+        "world": [
+          150,
+          0,
+          -235
+        ],
+        "label": "control point · G49"
+      }
+    },
+    {
+      "name": "zero tool under G49",
+      "table": 0,
+      "applied": 0,
+      "gcode": 490,
+      "text": "Z Offset\n0.0000 mm · G49",
+      "pin": {
+        "visible": false,
+        "top": [
+          0,
+          0,
+          0
+        ],
+        "screen": {
+          "x": 511.18778162271093,
+          "y": 406.07212639141665
+        },
+        "onTop": true,
+        "world": [
+          150,
+          0,
+          -235
+        ],
+        "label": "control point · G49"
+      }
+    },
+    {
+      "name": "G43.1 equal to table",
+      "table": 65,
+      "applied": 65,
+      "gcode": 431,
+      "text": "Z Offset\n65.0000 mm · G43.1",
+      "pin": {
+        "visible": false,
+        "top": [
+          0,
+          0,
+          0
+        ],
+        "screen": {
+          "x": 511.18778162271093,
+          "y": 406.07212639141653
+        },
+        "onTop": true,
+        "world": [
+          150,
+          0,
+          -235
+        ],
+        "label": "control point · G49"
+      }
+    },
+    {
+      "name": "other offset",
+      "table": 65,
+      "applied": 42,
+      "gcode": 431,
+      "text": "Z Offset\n65.0000 mm · Other offset",
+      "pin": {
+        "visible": true,
+        "top": [
+          0,
+          0,
+          -42
+        ],
+        "screen": {
+          "x": 511.1877816227109,
+          "y": 410.26059925115936
+        },
+        "onTop": true,
+        "world": [
+          150,
+          0,
+          -277
+        ],
+        "label": "control point · other offset"
+      }
+    },
+    {
+      "name": "tool layer false, no next status",
+      "pin": {
+        "visible": false,
+        "top": [
+          0,
+          0,
+          0
+        ],
+        "screen": {
+          "x": 511.18778162271093,
+          "y": 406.07212639141653
+        },
+        "onTop": true,
+        "world": [
+          150,
+          0,
+          -235
+        ],
+        "label": "control point · G49"
+      },
+      "frames": [
+        "settings_changed",
+        "pong"
+      ]
+    },
+    {
+      "name": "tool layer false, after next status",
+      "pin": {
+        "visible": false,
+        "top": [
+          0,
+          0,
+          0
+        ],
+        "screen": {
+          "x": 511.18778162271093,
+          "y": 406.07212639141653
+        },
+        "onTop": true,
+        "world": [
+          150,
+          0,
+          -235
+        ],
+        "label": "control point · G49"
+      }
+    },
+    {
+      "name": "tool layer true, no next status",
+      "pin": {
+        "visible": true,
+        "top": [
+          0,
+          0,
+          0
+        ],
+        "screen": {
+          "x": 511.187781622711,
+          "y": 406.0721263914166
+        },
+        "onTop": true,
+        "world": [
+          150,
+          0,
+          -235
+        ],
+        "label": "control point · G49"
+      },
+      "frames": [
+        "settings_changed",
+        "pong"
+      ]
+    },
+    {
+      "name": "tool layer true, after next status",
+      "pin": {
+        "visible": true,
+        "top": [
+          0,
+          0,
+          0
+        ],
+        "screen": {
+          "x": 511.187781622711,
+          "y": 406.0721263914166
+        },
+        "onTop": true,
+        "world": [
+          150,
+          0,
+          -235
+        ],
+        "label": "control point · G49"
+      }
+    },
+    {
+      "name": "tool layer false, no next status",
+      "pin": {
+        "visible": false,
+        "top": [
+          0,
+          0,
+          0
+        ],
+        "screen": {
+          "x": 511.187781622711,
+          "y": 406.0721263914166
+        },
+        "onTop": true,
+        "world": [
+          150,
+          0,
+          -235
+        ],
+        "label": "control point · G49"
+      },
+      "frames": [
+        "settings_changed"
+      ]
+    },
+    {
+      "name": "tool layer false, after next status",
+      "pin": {
+        "visible": false,
+        "top": [
+          0,
+          0,
+          0
+        ],
+        "screen": {
+          "x": 511.187781622711,
+          "y": 406.0721263914166
+        },
+        "onTop": true,
+        "world": [
+          150,
+          0,
+          -235
+        ],
+        "label": "control point · G49"
+      }
+    },
+    {
+      "name": "tool layer true, no next status",
+      "pin": {
+        "visible": true,
+        "top": [
+          0,
+          0,
+          0
+        ],
+        "screen": {
+          "x": 511.18778162271093,
+          "y": 406.07212639141665
+        },
+        "onTop": true,
+        "world": [
+          150,
+          0,
+          -235
+        ],
+        "label": "control point · G49"
+      },
+      "frames": [
+        "settings_changed",
+        "pong"
+      ]
+    },
+    {
+      "name": "tool layer true, after next status",
+      "pin": {
+        "visible": true,
+        "top": [
+          0,
+          0,
+          0
+        ],
+        "screen": {
+          "x": 511.18778162271093,
+          "y": 406.07212639141665
+        },
+        "onTop": true,
+        "world": [
+          150,
+          0,
+          -235
+        ],
+        "label": "control point · G49"
+      }
+    }
+  ]
+}

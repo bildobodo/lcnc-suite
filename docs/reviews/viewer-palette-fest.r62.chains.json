@@ -1,0 +1,53 @@
+[
+  {
+    "chain": "A",
+    "start": [
+      7,
+      0,
+      0
+    ],
+    "end": [
+      10,
+      0,
+      0
+    ],
+    "expectedStart": 7,
+    "expectedEnd": 10,
+    "actualStart": 0,
+    "actualEnd": 3
+  },
+  {
+    "chain": "B",
+    "start": [
+      0,
+      10,
+      0
+    ],
+    "end": [
+      5,
+      10,
+      0
+    ],
+    "expectedStart": 0,
+    "expectedEnd": 5,
+    "actualStart": 3,
+    "actualEnd": 8
+  },
+  {
+    "chain": "A",
+    "start": [
+      0,
+      0,
+      0
+    ],
+    "end": [
+      7,
+      0,
+      0
+    ],
+    "expectedStart": 0,
+    "expectedEnd": 7,
+    "actualStart": 8,
+    "actualEnd": 15
+  }
+]

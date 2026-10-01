@@ -1,0 +1,785 @@
+[
+  {
+    "profile": "3axis-xyz",
+    "view": "desktop",
+    "jogWidth": 522.5,
+    "setupWidth": 450,
+    "buttons": [],
+    "names": [
+      "Zero X",
+      "Unhome X",
+      "Zero Y",
+      "Unhome Y",
+      "Zero Z",
+      "Unhome Z"
+    ]
+  },
+  {
+    "profile": "3axis-xyz",
+    "view": "touch-landscape",
+    "jogWidth": 522.5,
+    "setupWidth": 450,
+    "buttons": [],
+    "names": [
+      "Zero X",
+      "Unhome X",
+      "Zero Y",
+      "Unhome Y",
+      "Zero Z",
+      "Unhome Z"
+    ]
+  },
+  {
+    "profile": "3axis-xyz",
+    "view": "touch-portrait",
+    "jogWidth": 262,
+    "setupWidth": 262,
+    "buttons": [],
+    "names": [
+      "Zero X",
+      "Unhome X",
+      "Zero Y",
+      "Unhome Y",
+      "Zero Z",
+      "Unhome Z"
+    ]
+  },
+  {
+    "profile": "5axis-xyzac",
+    "view": "desktop",
+    "jogWidth": 661.5,
+    "setupWidth": 551,
+    "buttons": [
+      {
+        "name": "A+",
+        "x": 627.5,
+        "y": 743.5,
+        "width": 71,
+        "height": 53.875,
+        "minHeight": 0
+      },
+      {
+        "name": "A-",
+        "x": 627.5,
+        "y": 805.375,
+        "width": 71,
+        "height": 53.875,
+        "minHeight": 0
+      },
+      {
+        "name": "C+",
+        "x": 627.5,
+        "y": 867.25,
+        "width": 71,
+        "height": 53.875,
+        "minHeight": 0
+      },
+      {
+        "name": "C-",
+        "x": 627.5,
+        "y": 929.125,
+        "width": 71,
+        "height": 53.875,
+        "minHeight": 0
+      }
+    ],
+    "names": [
+      "Zero X",
+      "Unhome X",
+      "Zero Y",
+      "Unhome Y",
+      "Zero Z",
+      "Unhome Z",
+      "Zero A",
+      "Unhome A",
+      "Zero C",
+      "Unhome C"
+    ]
+  },
+  {
+    "profile": "5axis-xyzac",
+    "view": "touch-landscape",
+    "jogWidth": 661.5,
+    "setupWidth": 551,
+    "buttons": [
+      {
+        "name": "A+",
+        "x": 627.5,
+        "y": 543.5,
+        "width": 71,
+        "height": 53.875,
+        "minHeight": 36
+      },
+      {
+        "name": "A-",
+        "x": 627.5,
+        "y": 605.375,
+        "width": 71,
+        "height": 53.875,
+        "minHeight": 36
+      },
+      {
+        "name": "C+",
+        "x": 627.5,
+        "y": 667.25,
+        "width": 71,
+        "height": 53.875,
+        "minHeight": 36
+      },
+      {
+        "name": "C-",
+        "x": 627.5,
+        "y": 729.125,
+        "width": 71,
+        "height": 53.875,
+        "minHeight": 36
+      }
+    ],
+    "names": [
+      "Zero X",
+      "Unhome X",
+      "Zero Y",
+      "Unhome Y",
+      "Zero Z",
+      "Unhome Z",
+      "Zero A",
+      "Unhome A",
+      "Zero C",
+      "Unhome C"
+    ]
+  },
+  {
+    "profile": "5axis-xyzac",
+    "view": "touch-portrait",
+    "jogWidth": 262,
+    "setupWidth": 262,
+    "buttons": [
+      {
+        "name": "A+",
+        "x": 84.5,
+        "y": 716.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      },
+      {
+        "name": "A-",
+        "x": 84.5,
+        "y": 778.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      },
+      {
+        "name": "C+",
+        "x": 152,
+        "y": 716.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      },
+      {
+        "name": "C-",
+        "x": 152,
+        "y": 778.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      }
+    ],
+    "names": [
+      "Zero X",
+      "Unhome X",
+      "Zero Y",
+      "Unhome Y",
+      "Zero Z",
+      "Unhome Z",
+      "Zero A",
+      "Unhome A",
+      "Zero C",
+      "Unhome C"
+    ]
+  },
+  {
+    "profile": "6axis-twp",
+    "view": "desktop",
+    "jogWidth": 735.5,
+    "setupWidth": 551,
+    "buttons": [
+      {
+        "name": "A+",
+        "x": 627.5,
+        "y": 743.5,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 0
+      },
+      {
+        "name": "A-",
+        "x": 627.5,
+        "y": 805.375,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 0
+      },
+      {
+        "name": "B+",
+        "x": 627.5,
+        "y": 867.25,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 0
+      },
+      {
+        "name": "B-",
+        "x": 627.5,
+        "y": 929.125,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 0
+      },
+      {
+        "name": "C+",
+        "x": 705.5,
+        "y": 743.5,
+        "width": 50,
+        "height": 115.75,
+        "minHeight": 0
+      },
+      {
+        "name": "C-",
+        "x": 705.5,
+        "y": 867.25,
+        "width": 50,
+        "height": 115.75,
+        "minHeight": 0
+      }
+    ],
+    "names": [
+      "Zero X",
+      "Unhome X",
+      "Zero Y",
+      "Unhome Y",
+      "Zero Z",
+      "Unhome Z",
+      "Zero A",
+      "Unhome A",
+      "Zero B",
+      "Unhome B",
+      "Zero C",
+      "Unhome C"
+    ]
+  },
+  {
+    "profile": "6axis-twp",
+    "view": "touch-landscape",
+    "jogWidth": 735.5,
+    "setupWidth": 551,
+    "buttons": [
+      {
+        "name": "A+",
+        "x": 627.5,
+        "y": 543.5,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 36
+      },
+      {
+        "name": "A-",
+        "x": 627.5,
+        "y": 605.375,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 36
+      },
+      {
+        "name": "B+",
+        "x": 627.5,
+        "y": 667.25,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 36
+      },
+      {
+        "name": "B-",
+        "x": 627.5,
+        "y": 729.125,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 36
+      },
+      {
+        "name": "C+",
+        "x": 705.5,
+        "y": 543.5,
+        "width": 50,
+        "height": 115.75,
+        "minHeight": 36
+      },
+      {
+        "name": "C-",
+        "x": 705.5,
+        "y": 667.25,
+        "width": 50,
+        "height": 115.75,
+        "minHeight": 36
+      }
+    ],
+    "names": [
+      "Zero X",
+      "Unhome X",
+      "Zero Y",
+      "Unhome Y",
+      "Zero Z",
+      "Unhome Z",
+      "Zero A",
+      "Unhome A",
+      "Zero B",
+      "Unhome B",
+      "Zero C",
+      "Unhome C"
+    ]
+  },
+  {
+    "profile": "6axis-twp",
+    "view": "touch-portrait",
+    "jogWidth": 262,
+    "setupWidth": 262,
+    "buttons": [
+      {
+        "name": "A+",
+        "x": 84.5,
+        "y": 716.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      },
+      {
+        "name": "A-",
+        "x": 84.5,
+        "y": 778.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      },
+      {
+        "name": "B+",
+        "x": 152,
+        "y": 716.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      },
+      {
+        "name": "B-",
+        "x": 152,
+        "y": 778.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      },
+      {
+        "name": "C+",
+        "x": 219.5,
+        "y": 716.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      },
+      {
+        "name": "C-",
+        "x": 219.5,
+        "y": 778.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      }
+    ],
+    "names": [
+      "Zero X",
+      "Unhome X",
+      "Zero Y",
+      "Unhome Y",
+      "Zero Z",
+      "Unhome Z",
+      "Zero A",
+      "Unhome A",
+      "Zero B",
+      "Unhome B",
+      "Zero C",
+      "Unhome C"
+    ]
+  },
+  {
+    "profile": "9axis",
+    "view": "desktop",
+    "jogWidth": 858.5,
+    "setupWidth": 771,
+    "buttons": [
+      {
+        "name": "A+",
+        "x": 627.5,
+        "y": 743.5,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 0
+      },
+      {
+        "name": "A-",
+        "x": 627.5,
+        "y": 805.375,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 0
+      },
+      {
+        "name": "B+",
+        "x": 627.5,
+        "y": 867.25,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 0
+      },
+      {
+        "name": "B-",
+        "x": 627.5,
+        "y": 929.125,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 0
+      },
+      {
+        "name": "C+",
+        "x": 705.5,
+        "y": 743.5,
+        "width": 50,
+        "height": 115.75,
+        "minHeight": 0
+      },
+      {
+        "name": "C-",
+        "x": 705.5,
+        "y": 867.25,
+        "width": 50,
+        "height": 115.75,
+        "minHeight": 0
+      },
+      {
+        "name": "U+",
+        "x": 767.5,
+        "y": 743.5,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 0
+      },
+      {
+        "name": "U-",
+        "x": 767.5,
+        "y": 805.375,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 0
+      },
+      {
+        "name": "V+",
+        "x": 767.5,
+        "y": 867.25,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 0
+      },
+      {
+        "name": "V-",
+        "x": 767.5,
+        "y": 929.125,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 0
+      },
+      {
+        "name": "W+",
+        "x": 845.5,
+        "y": 743.5,
+        "width": 50,
+        "height": 115.75,
+        "minHeight": 0
+      },
+      {
+        "name": "W-",
+        "x": 845.5,
+        "y": 867.25,
+        "width": 50,
+        "height": 115.75,
+        "minHeight": 0
+      }
+    ],
+    "names": [
+      "Zero X",
+      "Unhome X",
+      "Zero Y",
+      "Unhome Y",
+      "Zero Z",
+      "Unhome Z",
+      "Zero A",
+      "Unhome A",
+      "Zero B",
+      "Unhome B",
+      "Zero C",
+      "Unhome C",
+      "Zero U",
+      "Unhome U",
+      "Zero V",
+      "Unhome V",
+      "Zero W",
+      "Unhome W"
+    ]
+  },
+  {
+    "profile": "9axis",
+    "view": "touch-landscape",
+    "jogWidth": 858.5,
+    "setupWidth": 771,
+    "buttons": [
+      {
+        "name": "A+",
+        "x": 627.5,
+        "y": 543.5,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 36
+      },
+      {
+        "name": "A-",
+        "x": 627.5,
+        "y": 605.375,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 36
+      },
+      {
+        "name": "B+",
+        "x": 627.5,
+        "y": 667.25,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 36
+      },
+      {
+        "name": "B-",
+        "x": 627.5,
+        "y": 729.125,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 36
+      },
+      {
+        "name": "C+",
+        "x": 705.5,
+        "y": 543.5,
+        "width": 50,
+        "height": 115.75,
+        "minHeight": 36
+      },
+      {
+        "name": "C-",
+        "x": 705.5,
+        "y": 667.25,
+        "width": 50,
+        "height": 115.75,
+        "minHeight": 36
+      },
+      {
+        "name": "U+",
+        "x": 767.5,
+        "y": 543.5,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 36
+      },
+      {
+        "name": "U-",
+        "x": 767.5,
+        "y": 605.375,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 36
+      },
+      {
+        "name": "V+",
+        "x": 767.5,
+        "y": 667.25,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 36
+      },
+      {
+        "name": "V-",
+        "x": 767.5,
+        "y": 729.125,
+        "width": 70,
+        "height": 53.875,
+        "minHeight": 36
+      },
+      {
+        "name": "W+",
+        "x": 845.5,
+        "y": 543.5,
+        "width": 50,
+        "height": 115.75,
+        "minHeight": 36
+      },
+      {
+        "name": "W-",
+        "x": 845.5,
+        "y": 667.25,
+        "width": 50,
+        "height": 115.75,
+        "minHeight": 36
+      }
+    ],
+    "names": [
+      "Zero X",
+      "Unhome X",
+      "Zero Y",
+      "Unhome Y",
+      "Zero Z",
+      "Unhome Z",
+      "Zero A",
+      "Unhome A",
+      "Zero B",
+      "Unhome B",
+      "Zero C",
+      "Unhome C",
+      "Zero U",
+      "Unhome U",
+      "Zero V",
+      "Unhome V",
+      "Zero W",
+      "Unhome W"
+    ]
+  },
+  {
+    "profile": "9axis",
+    "view": "touch-portrait",
+    "jogWidth": 262,
+    "setupWidth": 262,
+    "buttons": [
+      {
+        "name": "A+",
+        "x": 84.5,
+        "y": 716.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      },
+      {
+        "name": "A-",
+        "x": 84.5,
+        "y": 778.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      },
+      {
+        "name": "B+",
+        "x": 152,
+        "y": 716.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      },
+      {
+        "name": "B-",
+        "x": 152,
+        "y": 778.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      },
+      {
+        "name": "C+",
+        "x": 219.5,
+        "y": 716.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      },
+      {
+        "name": "C-",
+        "x": 219.5,
+        "y": 778.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      },
+      {
+        "name": "U+",
+        "x": 84.5,
+        "y": 840.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      },
+      {
+        "name": "U-",
+        "x": 84.5,
+        "y": 902.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      },
+      {
+        "name": "V+",
+        "x": 152,
+        "y": 840.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      },
+      {
+        "name": "V-",
+        "x": 152,
+        "y": 902.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      },
+      {
+        "name": "W+",
+        "x": 219.5,
+        "y": 840.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      },
+      {
+        "name": "W-",
+        "x": 219.5,
+        "y": 902.59375,
+        "width": 59.5,
+        "height": 54,
+        "minHeight": 36
+      }
+    ],
+    "names": [
+      "Zero X",
+      "Unhome X",
+      "Zero Y",
+      "Unhome Y",
+      "Zero Z",
+      "Unhome Z",
+      "Zero A",
+      "Unhome A",
+      "Zero B",
+      "Unhome B",
+      "Zero C",
+      "Unhome C",
+      "Zero U",
+      "Unhome U",
+      "Zero V",
+      "Unhome V",
+      "Zero W",
+      "Unhome W"
+    ]
+  }
+]

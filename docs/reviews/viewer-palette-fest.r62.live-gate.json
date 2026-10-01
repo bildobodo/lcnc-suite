@@ -1,0 +1,173 @@
+{
+  "commit": "1812467c95f133483f53cc7369ff1fe33b258ab0",
+  "status": "pass",
+  "scope": "full",
+  "root": "/home/cnc/lcnc-suite",
+  "tracked_changes": [],
+  "changed_file_sha256": {},
+  "omitted_gates": [],
+  "started": "2026-10-01T22:48:01.785847+00:00",
+  "finished": "2026-10-01T22:54:41.909534+00:00",
+  "source_report": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/live-twp5/report.json",
+  "report_sha256": "a3ec61fd04dcbbf89acfc3d9244b6ec4fb0fefae40e320507ab5a67261b592fd",
+  "reviewer_did_not_rerun_live_gate": true,
+  "gates": [
+    {
+      "name": "preview-goldens",
+      "status": "pass",
+      "log": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/live-twp5/preview-goldens.log",
+      "sha256": "264d789a1c3d49ad242447c709dc096b08c2d5cb02537082207e31544e8a5a73",
+      "tail": [
+        "[OK] twp_simple_example.ngc",
+        "",
+        "preview gate: CLEAN"
+      ],
+      "skips": []
+    },
+    {
+      "name": "live-parity",
+      "status": "pass",
+      "log": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/live-twp5/live-parity.log",
+      "sha256": "82be568001018914c9987696d16cbdaaa8924824e6d92fd8492b92b23620e165",
+      "tail": [
+        "sampled 708 rows -> /tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/live-twp5/parity/twp_g683_tilted.run1.truth.ndjson",
+        "[PASS] twp_g683_tilted.run1: truth\u2192sim max 0.649 p99 0.048 | sim\u2192truth max 1.081 p99 0.246 | tol 1.5",
+        "[PASS] twp_g683_tilted.run1: plane invariants: normal_err 0.0035 deg | origin_err 0.0000 mm | planarity 0.008531",
+        "sampled 502 rows -> /tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/live-twp5/parity/twp_g683_tilted.run2.truth.ndjson",
+        "[PASS] twp_g683_tilted.run2: truth\u2192sim max 0.007 p99 0.000 | sim\u2192truth max 0.037 p99 0.019 | tol 1.5",
+        "[PASS] twp_g683_tilted.run2: plane invariants: normal_err 0.0005 deg | origin_err 0.0000 mm | planarity 0.001231",
+        "",
+        "sim parity gate: GREEN"
+      ],
+      "skips": []
+    },
+    {
+      "name": "twp_buttons_check",
+      "status": "pass",
+      "log": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/live-twp5/twp_buttons_check.log",
+      "sha256": "e6f06d4c6ed167cf8318787ea7ba5d7d8b3fae9d6171ff65f73476f6dcd3b6f9",
+      "tail": [
+        "PASS | Plane   | Cycle Start (G54 under Plane kins \u2014 the M2 strand) gate 'run' closed",
+        "PASS | Plane   | \u2192 Zero (G54 under Plane kins) gate 'goZero' closed",
+        "PASS | Plane   | Cycle Start (G59 again) gate 'run' open",
+        "PASS | Plane   | Plane: +Z jog (tool axis) runs joint Z past its ceiling; machine stays ON; status reports joints_beyond_limit == ['Z']",
+        "PASS | Plane   | Plane: after the fault a UI \u2212Z jog moves the joint back inside (joint mode), the report clears, and MDI works again",
+        "",
+        "ALL PASS (40 pass, 4 skip)",
+        "  (teardown: g69, M428, rotaries 0, Z up, G54 + provenance restored)"
+      ],
+      "skips": [
+        "  SKIP  [Machine] \u2192 Zero from ABOVE Z0  \u2014 Z MAX_LIMIT 0.01 <= 50: above machine zero is unreachable \u2014 the guard's skip branch is dead by construction on this config",
+        "  SKIP  [Machine] \u2192 Home from ABOVE Z0  \u2014 Z MAX_LIMIT 0.01 <= 50: above machine zero is unreachable \u2014 the guard's skip branch is dead by construction on this config",
+        "  SKIP  [Machine] \u2192 G30 from ABOVE Z0  \u2014 Z MAX_LIMIT 0.01 <= 50: above machine zero is unreachable \u2014 the guard's skip branch is dead by construction on this config",
+        "  SKIP  [Machine] Tool measure (M600) run  \u2014 toolsetter configured \u2014 run manually, not by this script",
+        "SKIP | Machine | \u2192 Zero from ABOVE Z0",
+        "SKIP | Machine | \u2192 Home from ABOVE Z0",
+        "SKIP | Machine | \u2192 G30 from ABOVE Z0",
+        "SKIP | Machine | Tool measure (M600) run"
+      ]
+    },
+    {
+      "name": "twp_reorient_check",
+      "status": "pass",
+      "log": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/live-twp5/twp_reorient_check.log",
+      "sha256": "341a9224c011dba36bfae61456ade481b484574753993eee2e05ac40c82628a6",
+      "tail": [
+        "  joints after  : [51.097171, -31.538463, -0.0, 35.0, -22.406864, 205.990832]",
+        "  PASS  no joint step on X across the re-orient  \u2014 51.097171 -> 51.097171",
+        "  PASS  no joint step on Y across the re-orient  \u2014 -31.538463 -> -31.538463",
+        "  PASS  no joint step on Z across the re-orient  \u2014 -0.0 -> -0.0",
+        "  PASS  no joint step on A across the re-orient  \u2014 35.0 -> 35.0",
+        "",
+        "ALL CHECKS PASSED",
+        "  (teardown: g69, A0)"
+      ],
+      "skips": []
+    },
+    {
+      "name": "twp_capture_check",
+      "status": "pass",
+      "log": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/live-twp5/twp_capture_check.log",
+      "sha256": "b14236bf605a744a40b4187a28eecc86c9dfcd0952b90efa13b3ee96d188e714",
+      "tail": [
+        "  PASS  G: abort from a second client replies ok in < 1 s while the capture is in flight  \u2014 {'type': 'reply', 'cmd': 'abort', 'ok': True} 54 ms",
+        "  PASS  G: the capture reply says it was preempted (or it completed before the abort landed)  \u2014 {'type': 'reply', 'cmd': 'twp_capture', 'ok': False, 'error': 'Preempted by abort'}",
+        "  capture reply: {'type': 'reply', 'cmd': 'twp_capture', 'ok': False, 'error': 'Preempted by abort'}",
+        "  PASS  G: trace \u2014 ws.command_preempt names the capture, ws.command_preempted by=abort  \u2014 [('ws.command_preempt', 'abort', None, [{'client_id': 49, 'cmd': 'twp_capture', 'ran_ms': 80}]), ('ws.command_preempted', 'abort', 'twp_capture', None)]",
+        "  PASS  G: G69 recovers \u2014 undefined, G54, identity kins, machine ON",
+        "",
+        "=== ALL PASS ===",
+        "  (teardown: g69, A0, G92.1, G54 + G59 + provenance restored)"
+      ],
+      "skips": []
+    },
+    {
+      "name": "twp_touchoff_check",
+      "status": "pass",
+      "log": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/live-twp5/twp_touchoff_check.log",
+      "sha256": "eaaddf222e017f40a20e8f5e36ed2a1c5b1361b34768929622abd0520627920f",
+      "tail": [
+        "",
+        "=== C: orient at the tilted pose and land on the face ===",
+        "  PASS  TOOL kins entered",
+        "  PASS  TWP active",
+        "  PASS  tool normal to the plane after a TILTED touch-off  \u2014 0.0000122 deg",
+        "",
+        "ALL CHECKS PASSED",
+        "  (teardown: g69, A0, G54 + provenance restored)"
+      ],
+      "skips": []
+    },
+    {
+      "name": "twp_touchoff_plane_check",
+      "status": "pass",
+      "log": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/live-twp5/twp_touchoff_plane_check.log",
+      "sha256": "4356dd58588d93c55a53e1528d229d873978ddd87711fcec1e3f07fcad09d702",
+      "tail": [
+        "=== D. the fixture rides the kins mode ===",
+        "  PASS  M428 leaves G59 for G54",
+        "  PASS  M430 selects G59",
+        "  PASS  M429 keeps an operator fixture (G55)",
+        "  PASS  G69 restores G54 on identity kins",
+        "",
+        "=== ALL PASS ===",
+        "  (teardown: g69, A0, G54 + G59 + provenance restored)"
+      ],
+      "skips": []
+    },
+    {
+      "name": "twp_g683_check",
+      "status": "pass",
+      "log": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/live-twp5/twp_g683_check.log",
+      "sha256": "c284650d98491e53f3f63cc562c2cede7836770f8caa396b5fba1f0eb22468cc",
+      "tail": [
+        "  PASS  plane defined",
+        "  stored origin vector : [50.0, 64.0856, -29.8836]",
+        "  Rx(20) * words     : [50.0, 64.0856, -29.8836]",
+        "  PASS  stored origin is the ROTATED vector (no pivot term)  \u2014 err 0.0000 mm",
+        "  (point-path result would be [50.0, -680.26, 191.52], 776.6 mm away)",
+        "",
+        "ALL CHECKS PASSED",
+        "  (teardown: g69, A0)"
+      ],
+      "skips": []
+    },
+    {
+      "name": "twp_adverse_check",
+      "status": "pass",
+      "log": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/live-twp5/twp_adverse_check.log",
+      "sha256": "f28bdbd42a58464b009a7196d49eaa695875cbdc8af198ce8d3501194a2660d9",
+      "tail": [
+        "  PASS  Impossible orient: refused, and says the orientation is not reachable  \u2014 errors=['<RCS_ERROR>']",
+        "  PASS  Impossible orient: the plane DEFINITION survives the refusal  \u2014 defined=1.0 changed=[]",
+        "  PASS  Impossible orient: the machine is left in identity kinematics with the plane INACTIVE  \u2014 kins=0.0 active=0.0",
+        "  PASS  Impossible orient: the fixture is unchanged and the rotaries never moved  \u2014 g5x=1 (was 1) rotaries [0.0, 0.0, 0.0] -> [0.0, 0.0, 0.0]",
+        "  PASS  After a refused orient a reachable plane still orients (kins 2, plane active)  \u2014 kins=2.0 active=1.0",
+        "",
+        "=== summary ===",
+        "14 pass, 0 fail, 2 recorded observations"
+      ],
+      "skips": []
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>R62 – Mustervertrag als mathematische Skizze</title>
+<style>
+body{font:16px system-ui;max-width:980px;margin:40px auto;padding:0 24px;color:#18232d;background:#f5f7f8}h1{font-size:26px}label{display:block;margin:18px 0}input{width:300px;vertical-align:middle}svg{width:100%;height:310px;background:white;border:1px solid #87949f;border-radius:8px}p{line-height:1.5}.small{font-size:14px;color:#465460}output{font-variant-numeric:tabular-nums}
+</style>
+<h1>R62: Was bleibt beim Zoomen fest?</h1>
+<p>Mathematische Skizze, kein Three.js-Renderer und kein Abnahmenachweis.
+Die schwarzen und hellen Zellen haben hier mehr Höhe, damit ihre Grenzen lesbar sind.</p>
+<label>Projizierte Kantenlänge: <input id="length" type="range" min="30" max="850" step="0.1" value="191.9"> <output id="lv"></output> px</label>
+<label>Tiefenverhältnis w₁ / w₀: <input id="depth" type="range" min="1" max="10" step="0.1" value="1"> <output id="dv"></output></label>
+<button id="jitter">Schwelle 191,9 ↔ 192,1 px</button>
+<svg viewBox="0 0 950 310" id="diagram" aria-label="Vergleich von festen Bildschirmzellen, Oktavzellen und fester Zellzahl"></svg>
+<p id="numbers"></p>
+<p class="small">Oktavregel dieser Skizze: N = max(1, 2^floor(log₂(L/6))), ohne Hysterese.
+Geometrischer Anteil t wird perspektivisch projiziert: x/L = t·w₁ / ((1−t)·w₀+t·w₁).
+Ein gleicher Mittelwert garantiert daher keine gleich großen Bildschirmzellen. N gerade führt bei striktem Farbwechsel zu unterschiedlichen Endfarben.</p>
+<script>
+const length=document.querySelector('#length'),depth=document.querySelector('#depth'),svg=document.querySelector('#diagram');
+let timer;
+function draw(){
+ const L=+length.value,r=+depth.value,N=Math.max(1,2**Math.floor(Math.log2(L/6)));
+ document.querySelector('#lv').value=L.toFixed(1);document.querySelector('#dv').value=r.toFixed(1);
+ const project=t=>L*t*r/(1-t+t*r),world=(n)=>Array.from({length:n+1},(_,i)=>project(i/n));
+ const screen=Array.from({length:Math.floor(L/6)+1},(_,i)=>i*6);if(screen.at(-1)<L)screen.push(L);
+ const rows=[['Feste 6-px-Zellen (Bildschirm)',screen],['Oktaven in geometrischem t, N='+N,world(N)],['Feste Zellzahl N=8 in geometrischem t',world(8)]];
+ let html='';rows.forEach(([name,xs],row)=>{
+  const y=35+row*95;html+=`<text x="20" y="${y}" fill="#18232d">${name}</text>`;
+  xs.slice(1).forEach((b,i)=>{const a=xs[i];html+=`<rect x="${20+a}" y="${y+12}" width="${b-a}" height="22" fill="${i%2?'#d7dce0':'#15181c'}"/>`;});
+  html+=`<path d="M20 ${y+9}v28 M${20+L} ${y+9}v28" stroke="#bd4d00"/>`;
+ });svg.innerHTML=html;
+ const xs=world(N),sizes=xs.slice(1).map((b,i)=>b-xs[i]);
+ document.querySelector('#numbers').textContent=`Oktaven: N=${N}, mittlere Zelllänge ${(L/N).toFixed(2)} px; tatsächlich ${Math.min(...sizes).toFixed(2)} bis ${Math.max(...sizes).toFixed(2)} px. Endfarben: ${N%2?'gleich':'verschieden'}.`;
+}
+length.oninput=depth.oninput=draw;
+document.querySelector('#jitter').onclick=()=>{if(timer){clearInterval(timer);timer=undefined;return;}depth.value='1';let high=false;timer=setInterval(()=>{length.value=high?'191.9':'192.1';high=!high;draw();},500);};
+draw();
+</script>

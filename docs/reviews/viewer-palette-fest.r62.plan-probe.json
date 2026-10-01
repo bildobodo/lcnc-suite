@@ -1,0 +1,86 @@
+{
+  "endpoint_colors": [
+    {
+      "N": 1,
+      "first": "dark",
+      "last": "dark"
+    },
+    {
+      "N": 2,
+      "first": "dark",
+      "last": "light"
+    },
+    {
+      "N": 4,
+      "first": "dark",
+      "last": "light"
+    },
+    {
+      "N": 8,
+      "first": "dark",
+      "last": "light"
+    },
+    {
+      "N": 16,
+      "first": "dark",
+      "last": "light"
+    }
+  ],
+  "perspective": {
+    "total_css_px": 95.9,
+    "N": 8,
+    "nominal_css_px": 11.9875,
+    "w_ratio": 10.0,
+    "actual_cell_css_px": [
+      56.4118,
+      17.3575,
+      8.4308,
+      4.9818,
+      3.2899,
+      2.3348,
+      1.7428,
+      1.3507
+    ]
+  },
+  "threshold_without_hysteresis": [
+    {
+      "L": 95.99,
+      "N": 8
+    },
+    {
+      "L": 96.01,
+      "N": 16
+    },
+    {
+      "L": 95.99,
+      "N": 8
+    },
+    {
+      "L": 96.01,
+      "N": 16
+    }
+  ],
+  "cyan_distance": {
+    "--viewer-feed": 0.23225,
+    "--viewer-rapid": 0.24344,
+    "--viewer-backplot": 0.43723,
+    "--viewer-limit": 0.35123,
+    "--viewer-plane-active": 0.27042,
+    "--viewer-plane-defined": 0.34454,
+    "--viewer-plane-stale": 0.44003,
+    "--viewer-collision": 0.47187,
+    "--viewer-bounds": 0.65164,
+    "--viewer-toolpath-bounds": 0.65164,
+    "--viewer-bounds-alt": 0.18415,
+    "--viewer-reach": 0.65164,
+    "--viewer-tool": 0.32798,
+    "--viewer-cutter": 0.1773
+  },
+  "cyan_contrast": {
+    "#ffffff": 1.53827,
+    "#0b0f14": 12.49402,
+    "#000000": 13.65172,
+    "#15181c": 11.57605,
+    "#f0f2f4": 1.37069
+  }
+}
