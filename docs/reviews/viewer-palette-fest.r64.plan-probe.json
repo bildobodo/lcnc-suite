@@ -1,0 +1,171 @@
+{
+  "commit": "f1b7e27",
+  "r63_case_fixed": {
+    "N": 512,
+    "mean": 9.960937499999979,
+    "cells": [
+      501,
+      502,
+      503,
+      504,
+      505,
+      506,
+      507,
+      508,
+      509,
+      510,
+      511
+    ],
+    "tones": [
+      0,
+      1
+    ]
+  },
+  "exact_threshold": [
+    {
+      "length_css_px": 7.5,
+      "N": 8,
+      "mean": 7.5,
+      "visible_cells": [
+        7
+      ],
+      "positive_length_tones": [
+        1
+      ]
+    },
+    {
+      "length_css_px": 10,
+      "N": 8,
+      "mean": 10.0,
+      "visible_cells": [
+        7
+      ],
+      "positive_length_tones": [
+        1
+      ]
+    },
+    {
+      "length_css_px": 14.99,
+      "N": 8,
+      "mean": 14.99,
+      "visible_cells": [
+        7
+      ],
+      "positive_length_tones": [
+        1
+      ]
+    },
+    {
+      "length_css_px": 15,
+      "N": 8,
+      "mean": 15.0,
+      "visible_cells": [
+        7
+      ],
+      "positive_length_tones": [
+        1
+      ]
+    },
+    {
+      "length_css_px": 15.01,
+      "N": 16,
+      "mean": 7.505,
+      "visible_cells": [
+        14,
+        15
+      ],
+      "positive_length_tones": [
+        0,
+        1
+      ]
+    }
+  ],
+  "perspective": {
+    "A": [
+      0,
+      0,
+      -1
+    ],
+    "B": [
+      2000,
+      0,
+      -10000
+    ],
+    "focal_css_px": 500,
+    "visible_t": [
+      0,
+      1
+    ],
+    "N": 16,
+    "nominal_mean": 6.25,
+    "cell_widths_css_px": [
+      99.85022466300549,
+      0.0798243027185066,
+      0.02663647058693641,
+      0.01332356098987475,
+      0.007995841634624412,
+      0.005331271712790908,
+      0.0038083993433417618,
+      0.0028564899084386752,
+      0.002221827213446659,
+      0.001777532864949194,
+      0.0014543920783296471,
+      0.0012120257173506843,
+      0.001025583171440303,
+      0.0008790880337841145,
+      0.0007618887984364164,
+      0.0006666622222581964
+    ],
+    "first_dark_cell_css_px": 99.85022466300549,
+    "sum_light_cell_widths_css_px": 0.10587093416795312,
+    "centre_samples": [
+      {
+        "dpr": 1,
+        "total": 100,
+        "dark": 100,
+        "light": 0
+      },
+      {
+        "dpr": 2,
+        "total": 200,
+        "dark": 200,
+        "light": 0
+      }
+    ],
+    "limit": "Ideal point-sampled projection; not a screenshot or claim about a future antialiasing implementation"
+  },
+  "tick_carrier": [
+    {
+      "theme": "light",
+      "core": "#15181c",
+      "carrier": "#f0f2f4",
+      "background": "#ffffff",
+      "core_contrast": 17.807059865850146,
+      "carrier_contrast": 1.122260321779331
+    },
+    {
+      "theme": "dark",
+      "core": "#15181c",
+      "carrier": "#f0f2f4",
+      "background": "#0b0f14",
+      "core_contrast": 1.0792992572895637,
+      "carrier_contrast": 17.125390709038985
+    },
+    {
+      "theme": "hc-light",
+      "core": "#000000",
+      "carrier": "#ffffff",
+      "background": "#ffffff",
+      "core_contrast": 21.0,
+      "carrier_contrast": 1.0
+    },
+    {
+      "theme": "hc-dark",
+      "core": "#000000",
+      "carrier": "#ffffff",
+      "background": "#000000",
+      "core_contrast": 1.0,
+      "carrier_contrast": 21.0
+    }
+  ]
+}

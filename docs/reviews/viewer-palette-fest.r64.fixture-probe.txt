@@ -1,0 +1,46 @@
+[VINIT] session bound to linuxcncsvr pid=4055326 start=19715529
+[VINIT] try_connect_lcnc OK, pid=4055326
+[VINIT] Loaded machine config: 3-Axis Mill
+test_teleop_jog_translates_list_index_to_canonical_axis (test_command_dispatch.TestHandlerExecution.test_teleop_jog_translates_list_index_to_canonical_axis) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.002s
+
+OK
+test_mode_switch_ignored_while_jogging_is_refused_loudly (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_mode_switch_ignored_while_jogging_is_refused_loudly) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+OK
+test_an_ignored_switch_without_a_jog_never_names_one (test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_an_ignored_switch_without_a_jog_never_names_one) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+OK
+{
+  "commit": "f1b7e27",
+  "fake_linuxcnc": true,
+  "results": [
+    {
+      "test": "test_command_dispatch.TestHandlerExecution.test_teleop_jog_translates_list_index_to_canonical_axis",
+      "passed": true,
+      "cached_xyz_restored": true,
+      "fake_class_still_xyz": true
+    },
+    {
+      "test": "test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_mode_switch_ignored_while_jogging_is_refused_loudly",
+      "passed": true,
+      "cached_xyz_restored": true,
+      "fake_class_still_xyz": true
+    },
+    {
+      "test": "test_command_dispatch.TestGoToZeroAndJogStopDispatch.test_an_ignored_switch_without_a_jog_never_names_one",
+      "passed": true,
+      "cached_xyz_restored": true,
+      "fake_class_still_xyz": true
+    }
+  ]
+}
+[GC] +64ms gen=2 duration=8.1ms collected=0 uncollectable=0
