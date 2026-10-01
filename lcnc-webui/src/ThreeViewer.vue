@@ -4713,7 +4713,10 @@ defineExpose({
         <!-- Same bar as the status banner (one fraction, previewRefreshPct):
              a fixed-width track under the chip, numbers in the tooltip. -->
         <template v-if="previewRefresh">
-          <div class="hudWarn">Preview re-parsing · {{ previewRefreshLabel(previewRefresh.reason) }}<HelpIcon label="Preview re-parsing">Path, limit marks and simulation update when it lands — {{ fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms) }}.</HelpIcon></div>
+          <!-- The line names the state only; the reason sits in its "?"
+               (operator 2026-10-01: "Preview re-parsing" is enough — the
+               reason only took width). -->
+          <div class="hudWarn">Preview re-parsing<HelpIcon label="Preview re-parsing">Why: {{ previewRefreshLabel(previewRefresh.reason) }}. Path, limit marks and simulation update when it lands — {{ fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms) }}.</HelpIcon></div>
           <div class="progressTrack" :title="fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms)"><div class="progressFill" :style="{ width: previewRefreshPct + '%' }"></div></div>
         </template>
         <div v-else-if="previewWcsStale" class="hudWarn">Preview uses older offsets — re-parses when idle<HelpIcon label="Preview offsets">A work offset changed after parsing — re-parses once the machine is idle.</HelpIcon></div>

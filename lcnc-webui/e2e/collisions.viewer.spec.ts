@@ -351,12 +351,12 @@ test("a return to the basis on screen while a decode is out drops its late reply
     preview_tool_basis: { file, version: 4502, xyz: [0, 0, 20], mode: 430 } } });
   await expect.poll(() => page.evaluate(() => (window as any).__held ?? false)).toBe(true);
   const lines = page.locator(".hudNotes .hudWarn");
-  await expect(lines.filter({ hasText: "checking" })).toHaveCount(1);
+  await expect(lines.filter({ hasText: "Preview re-parsing" })).toHaveCount(1);
   expect(await topZ()).toBeCloseTo(-10, 4);
   expect(await feedColour(), "muted while the decode at 20 is out").not.toBe(shown);
   // the gateway is back on the published start (no preview_tool_basis)
   await ctl({ op: "raw", frame: { type: "status_delta", data: { tool_offset: [0, 0, 10, 0, 0, 0, 0, 0, 0] } } });
-  await expect(lines.filter({ hasText: "checking" }), "the start is on screen: nothing to wait for").toHaveCount(0);
+  await expect(lines.filter({ hasText: "Preview re-parsing" }), "the start is on screen: nothing to wait for").toHaveCount(0);
   await expect.poll(feedColour).toBe(shown);
   await page.evaluate(() => (window as any).__release());
   await page.evaluate(() => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
@@ -406,7 +406,10 @@ test("a changed tool offset is checked, and a verified basis re-tips the prefix 
   await ctl({ op: "raw", frame: { type: "status_delta", data: {}, preview_refresh:
     { reason: "tool_offset", file, expected_ms: 4000, started_ms: 2000, queued: false, superseded: 0 } } });
   const lines = page.locator(".hudNotes .hudWarn");
-  await expect(lines.first()).toContainText("Preview re-parsing · tool offset changed — checking");
+  await expect(lines.first()).toContainText("Preview re-parsing");
+  // the line names the state only; the reason is in its "?" (operator 2026-10-01)
+  expect(await lines.first().evaluate(e => e.firstChild?.textContent?.trim())).toBe("Preview re-parsing");
+  await expect(lines.first().locator(".helpPopover")).toContainText("Why: tool offset changed — checking.");
   await expect.poll(topZ, { message: "a live offset alone moves nothing on a seeded payload" }).toBeCloseTo(before, 4);
   // verified the same at 20: no new version — the same bytes, re-tipped
   await ctl({ op: "raw", frame: { type: "status_delta", data: {},
@@ -454,7 +457,9 @@ test("a mid-run re-parse for a measured tool is one line, never a second one und
   // the re-parse runs: its line and bar, nothing under it
   await ctl({ op: "raw", frame: { type: "status_delta", data: {}, preview_refresh:
     { reason: "midrun:table_mtime", file, expected_ms: 15000, started_ms: 1000, queued: false, superseded: 0 } } });
-  await expect(lines.first()).toContainText("Preview re-parsing · tool measured (program running)");
+  await expect(lines.first()).toContainText("Preview re-parsing");
+  expect(await lines.first().evaluate(e => e.firstChild?.textContent?.trim()), "no reason in the line itself (operator 2026-10-01)").toBe("Preview re-parsing");
+  await expect(lines.first().locator(".helpPopover")).toContainText("Why: tool measured (program running).");
   await expect(tlo).toHaveCount(0);
   await expect(lines, "one line while the re-parse runs").toHaveCount(1);
   await ctl({ op: "quiet", on: false });

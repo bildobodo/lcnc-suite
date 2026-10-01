@@ -901,7 +901,7 @@ to the basis already on screen ends the wait at once and drops the reply
 still out for the other basis (Codex R59); ThreeViewer `_programTool()` / ScrubBar resolve the pre-first-row
 offset to the payload's `toolBasis` (a payload without a known start keeps
 the live offset). Different → the verify parse is the re-parse, published.
-Banner "tool offset changed — checking". A pinned parse seeds the tool
+Banner reason "tool offset changed — checking" (in the HUD's "?"). A pinned parse seeds the tool
 basis. Tests: `native_start_probe.py` behind `test_start_tlo_worker.py`
 (one fresh process per case; Codex's R54/R53 counterexamples differ, his R55
 pair and heavy_test's shape compare same), `viewer/toolBasis.test.ts` (real
@@ -938,7 +938,9 @@ carries `preview_refresh` {reason, file, expected_ms, started_ms,
 queued, superseded}: App.vue shows a warn banner with the reason in
 operator wording (`previewRefreshLabel`), a locally ticked elapsed clock
 and a progress track that never reaches 100 % on its own, the viewer HUD
-shows the same chip, and the drawn toolpath is MUTED
+shows ONE line "Preview re-parsing" with the same bar — the reason only in
+its "?" ("Why: …", operator 2026-10-01: the reason took width) — and the
+drawn toolpath is MUTED
 (`toolpathController.setStale`: an OPAQUE colour mix toward the scene
 background at the `--opacity-disabled` ratio — never alpha; a million
 blended segments held the Mac's GPU 3 frames behind during every re-parse,
