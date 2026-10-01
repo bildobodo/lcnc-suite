@@ -6159,3 +6159,133 @@ gezielte Viewer-Tests bestanden.** Archivkopie unter `/tmp`, synthetische
 INI/STAT, seriell mit nice 19. Die Entnahmeregel wurde für diese Planprobe
 modelliert; Produktcode blieb unverändert. Keine Live-Ports, kein Live-STAT,
 keine Maschinenbefehle, kein Browserlauf, Build oder vollständiges Gate.
+
+---
+
+## Antwort R58 · Claude · VP-I20 umgesetzt · 1. Oktober 2026
+
+Deine R57-Belege stehen unverändert in `e97e53c`. Umgesetzt ist der
+vereinbarte Plan: Fassung 3 A und C, Fassungen 4 bis 6. Es gibt eine
+begründete Abweichung bei der `%`-Regel.
+
+### Commits (wip/part-b = feat/viewer-palette)
+
+| Commit | Inhalt |
+|---|---|
+| `a5b3e72` | Teil 1: Startzustand gesät (`start_tlo_seed`, Initzeile `G43.1`), `tlo_start` / `start_known`, unbekannter Start ohne Urteil, gepinnter Parse reproduziert den Start, Goldens auf G49-Start gepinnt |
+| `0e65f25` | `%`-Zeile ist Init, nicht Programm (ersetzt die Fünf-Bedingungen-Regel, siehe unten) |
+| `b482dde` | Teil 2: Prüfung am tatsächlichen Offset (`evaluate_start_drift`, `verify_against`, `compare_preview_payloads`, `__SAME__`, `preview_tool_basis`) |
+| `975442b` | Teil 3: Client normalisiert auf die geprüfte Werkzeugbasis (`normalizeToToolBasis`), Verbraucher über `toolBasis` |
+
+### Abweichung: die `%`-Zeile nach Herkunft der Zeile, nicht des Eintrags
+
+- **Beobachtung** auf der echten XYZAC-INI: Bei `heavy_test` lag die
+  `%`-Zeile bei **seq 1**, nicht 0. Davor stand ein aufgezeichneter Punkt
+  an Programm **0,0,0** auf Zeile 1.
+- **Ursache, nativ protokolliert:** Bei einer führenden `%`-Zeile führt
+  der Interpreter den Initblock erst **nach** deren `next_line` aus.
+  - Rotary-Sync-Zug, Seed-`G43.1` und Fixture-Code kommen alle mit der
+    Nummer der `%`-Zeile an.
+  - Der Sync-Zug wurde dadurch als Nullzug mit unbekanntem Anfang an
+    Programm 0,0,0 aufgezeichnet. Das ist ein **bestehender Fehler** bei
+    jedem `%`-Programm auf einer Rotary-Konfiguration: Die
+    Sim-Einfahrbewegung lief zuerst zum Programmnullpunkt.
+  - Bedingung 2 deiner Regel (seq 0) konnte ihn nie treffen.
+  - Und weil der Phantompunkt nicht mit dem Offset mitwandert, ergab der
+    Vergleich bei `heavy_test` immer „verschieden“.
+- **Korrektur:** RS274NGC lässt auf dieser Zeile nichts außer `%` zu.
+  Alles, was mit ihrer Nummer ankommt, stammt deshalb aus den Initzeilen.
+  - Der Canon zählt sie als Init (`PreviewCanon.init_lines` aus
+    `percent_delimiter_line`, erste nicht leere Zeile).
+  - Dort entstehen keine aufgezeichnete Bewegung, keine TLO-Zeile und kein
+    Start-Schnappschuss.
+- Das ersetzt die Fünf-Bedingungen-Entnahme durch ihre Wurzel. Die
+  Herkunft ist die Zeile, nicht der Wert.
+- Deine Gegenproben bleiben erfüllt: R56 (G49, dann G43.1 Z10) behält
+  beide Zeilen; nach `%` bleibt das Programm-`G43.1`.
+- **Folge für die Goldens:** `%`-Programme auf Rotary-Konfigurationen
+  verlieren den Phantompunkt. Neu erzeugt wird beim Suite-Stopp, zusammen
+  mit dem Schema-Sprung.
+
+### Gleichheitsvertrag, wie umgesetzt
+
+- **Wo verglichen wird:** Der Worker vergleicht seinen **kodierten**
+  Payload, wieder dekodiert, mit den veröffentlichten Bytes. Beide Seiten
+  gehen durch dieselbe Dekodierung (`verify_same`).
+- **Was gleich sein muss:**
+  - Punkte vor der ersten TLO-Zeile normalisiert, mit Toleranz 2⁻²²
+    relativ, also zweimal float32-Rundung.
+  - Alle späteren Punkte bitgleich, die TLO-Zeilen bytegleich.
+  - Bounds werden aus den normalisierten Punkten neu gerechnet.
+  - Jedes andere Feld bytegleich, ausgenommen nur
+    `tlo_start`/`start_known`/`start_reason`.
+- **Auf `heavy_test`** (echte INI, Start 65,0512 gegen 65,0562): Es
+  unterscheiden sich nur `rapid` (die zwei Vorlaufpunkte, um genau Δ) und
+  `tlo_start`. Statistik, Bounds, Zeilen, Zeitkanäle und Urteil sind
+  bitgleich.
+- **Client:**
+  - Der Preview-Worker behält die rohen Bytes der Version. Eine neue Basis
+    dekodiert neu, aus den Originaldaten und ohne zweiten Download.
+  - Antworten für eine andere Basis werden verworfen.
+  - Die Basis gilt nur für Datei und Version, für die sie gesendet wurde.
+  - Ein Live-Offset allein baut einen gesäten Payload nicht mehr neu; nur
+    die Marker folgen ihm.
+
+### Wächter, jeweils zuerst rot
+
+| Wächter | rot ohne |
+|---|---|
+| `test_start_tlo_worker` (nativ, ein Prozess je Fall): VP-I20-Fall Z55 > 50, G49-Start, unbekannter Start (Modus, A–W, Pin ohne Seed), G53-Vorlauf, gepinnter Seed, Gate-Override, Unabhängigkeit ohne Vorlauf, Zoll | Seed aus: 5 Fehlschläge |
+| `%`-Zeile ist Init (auch mit Rotary-Achse: kein Phantompunkt) | Init-Zeile aus: 1 Fehlschlag |
+| `TestVerifyNative`: dein R55-Paar Z10/Z20 und die `heavy_test`-Form bei +5 µm **gleich**, in beiden Richtungen; deine R54-Quadratik und R53 Rest B **verschieden** (Limitbefund L5 50,004) | Normalisierung aus: 5 Fehlschläge |
+| `TestComparePreviewPayloads`, `TestStartDrift`, `TestVerifyAtTheActualOffset` (Pipeline: `__SAME__` ohne Versionssprung, Temp-Datei entfernt, gepinnter Seed aus der Basis; Unterschied → Veröffentlichung) | — (neu) |
+| `toolBasis.test.ts`: echte Payloads durch Dekodierung, Spur, Achspositionen, Part-Frame, Scrub-Pose und Sweep, beide Richtungen; dein R55-Treffer nur mit Normalisierung | Shift aus: 5 Fehlschläge |
+| `collisions.viewer.spec`: „checking“-Zeile, dann verifizierte Basis → Pfadoberkante −10 → −20, kein zweiter `/preview`-Abruf | Beobachter aus: bleibt −10 |
+
+### Kosten (Umsetzungsgate)
+
+Gemessen auf `heavy_test`, XYZAC-INI, VM:
+
+| Parse | Wandzeit | Spitzen-RSS | Ergebnis |
+|---|---|---|---|
+| gewöhnlich bei 65,0512 | 7,53 s | 1006 MB | 18,6 MB Payload |
+| Prüfung bei 65,0562 | 7,53 s | 1006 MB | `__SAME__`, 0 Bytes |
+| gewöhnlich bei 65,0562 | 7,49 s | 1006 MB | 18,6 MB Payload |
+| Prüfung bei 66,0512 | 7,46 s | 1006 MB | `__SAME__` |
+
+- Der Vergleich selbst kostet etwa 25 ms.
+- Bei Gleichheit entfallen die Übertragung von 18,6 MB, das Dekodieren
+  und Backen im Browser und der neue Revisionsstand.
+- Es bleibt die Neu-Dekodierung der schon geladenen Bytes mit
+  verschobenem Vorlauf.
+- [Messung](viewer-palette-fest.vp-i20.cost.json).
+
+### Prüfstand
+
+- **Offline-Gate auf `975442b`: PASS.** Backend 1143, Unit 1835, Browser
+  381, dazu Lint, Build und CSS-Audit.
+- **Live** auf dem XYZAC-Sim, Gateway auf `3a71500` neu gestartet
+  ([Protokoll](viewer-palette-fest.vp-i20.live.txt)):
+  - **Lauf 1** (Spindel leer, `T13 M600` lädt und misst): gepinnter
+    Parse; nach dem Abbruch ein Parse `tool_loaded`. Das ist richtig, weil
+    sich das Spindelwerkzeug geändert hat.
+  - **Lauf 2**, der Operator-Fall. T13 steht unter G43 65,0473, und
+    `M600` misst neu auf 65,0435 (3,8 µm Streuung). Ablauf: gepinnter
+    Parse, Abbruch, dann **eine** Prüfung (`tool_offset`).
+    - Ergebnis: `gcode.verify same`, `reparse_verified_same` mit Basis
+      65,04347 bei **unveränderter Version** 1790845119.
+    - Keine Veröffentlichung und kein gzip.
+  - **Status** trägt `preview_tool_basis` {heavy_test, 1790845119,
+    [0, 0, 65,04347], 430}.
+  - **`vp_i20_premise2.ngc`** (`G0 Z-100` ohne eigenes G43) mit `G43.1`
+    +1 mm per MDI: Die Prüfung ergibt „rapid: a point before the first TLO
+    row differs (1)“, und der Parse wird **veröffentlicht**.
+  - **Keine Schleife:** 30 s Leerlauf ohne weiteren Parse.
+  - **Danach** waren G43 H13 und `heavy_test` wiederhergestellt und die
+    Maschine wieder aus.
+- **Für den Operator offen:** die Anzeige während der Prüfung. Umgesetzt
+  ist der bestehende Re-Parse-Balken mit gedämpftem Pfad.
+- **Schema-Sprung und Goldens:** beim Suite-Stopp.
+
+Bitte prüfe die Umsetzung gegen den vereinbarten Plan und die Abweichung
+bei der `%`-Zeile.

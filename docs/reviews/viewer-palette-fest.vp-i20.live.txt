@@ -1,0 +1,50 @@
+VP-I20 live acceptance, XYZAC sim, LinuxCNC 2.9.4, live tree 3a71500 (gateway restarted on it), 2026-10-01
+
+== run 1 (spindle empty → T13 M600 loads and measures it; abort after the pinned parse) ==
+10:59:05 reply arm True None
+10:59:06 start: T 0 tlo 0.0
+10:59:06 reply cycle_start True None
+10:59:08 tool change confirmed
+10:59:08 reply confirm_tool_change True None
+10:59:27 pinned publish seen
+10:59:47 abort at line 681 tlo 65.0473
+10:59:47 reply abort True None
+11:00:17 end: interp 1 T 13 tlo 65.0473 T13 [65.0473]
+11:00:17 reply arm True None
+10:59:07 gcode.publish {'version': 1790845116}
+10:59:17 gcode.reparse_table_midrun {'reason': 'table_mtime', 'tool': 13}
+10:59:17 gcode.refresh_scheduled {'reason': 'midrun:table_mtime', 'pinned': True}
+10:59:17 gcode.spawn_start {'reason': 'midrun:table_mtime', 'pinned': True}
+10:59:26 gcode.publish {'pinned': True, 'version': 1790845117}
+10:59:49 gcode.reparse_tlo_drift {'reason': 'tool_loaded', 'tool': 13}
+10:59:49 gcode.refresh_scheduled {'reason': 'tool_loaded'}
+10:59:49 gcode.spawn_start {'reason': 'tool_loaded'}
+10:59:59 gcode.publish {'version': 1790845118}
+
+== run 2 (T13 loaded under G43 65.0473 → M600 re-measures 65.0435; abort after the pinned parse) ==
+11:00:25 reply arm True None
+11:00:26 start: T 13 tlo 65.0473
+11:00:26 reply cycle_start True None
+11:00:49 pinned publish seen
+11:01:09 abort at line 671 tlo 65.0435
+11:01:09 reply abort True None
+11:01:39 end: interp 1 T 13 tlo 65.0435 T13 [65.0435]
+11:01:39 reply arm True None
+11:00:39 gcode.reparse_table_midrun {'reason': 'table_mtime', 'tool': 13}
+11:00:39 gcode.refresh_scheduled {'reason': 'midrun:table_mtime', 'pinned': True}
+11:00:39 gcode.spawn_start {'reason': 'midrun:table_mtime', 'pinned': True}
+11:00:48 gcode.publish {'pinned': True, 'version': 1790845119}
+11:01:11 gcode.reparse_tlo_drift {'reason': 'tool_offset', 'tool': 13}
+11:01:11 gcode.refresh_scheduled {'reason': 'tool_offset'}
+11:01:11 gcode.spawn_start {'reason': 'tool_offset'}
+11:01:20 gcode.verify {}
+11:01:20 gcode.reparse_verified_same {'version': 1790845119}
+trace: gcode.verify {file: heavy_test.ngc, same: true, why: same}; gcode.reparse_verified_same {basis: {xyz: [0, 0, 65.04346666666666], mode: 430}, version: 1790845119, total_ms: 9723} — no publish, no gzip
+
+== status basis, premise program + G43.1 +1 mm, restore ==
+(1) status preview_tool_basis: {'file': '/home/cnc/linuxcnc/nc_files/heavy_test.ngc', 'version': 1790845119, 'xyz': [0.0, 0.0, 65.04346666666666], 'mode': 430}
+(2) premise loaded and published: [{'t_wall_ns': 1790845332992494086, 't_mono_ms': 217108.642, 'proc': 'gateway', 'pid': 3006739, 'tag': 'gcode.publish', 'level': 'info', 'version': 1790845120, 'schema': 9, 'gzip_ms': 0.0, 'bytes': 1270, 'bytes_gz': 0, 'total_ms': 56.7}]
+(3) after G43.1 +1: [('gcode.reparse_tlo_drift', {'reason': 'tool_offset', 'same': None, 'why': None, 'version': None}), ('gcode.refresh_scheduled', {'reason': 'tool_offset', 'same': None, 'why': None, 'version': None}), ('gcode.spawn_start', {'reason': 'tool_offset', 'same': None, 'why': None, 'version': None}), ('gcode.verify', {'reason': None, 'same': False, 'why': 'rapid: a point before the first TLO row differs (1)', 'version': None}), ('gcode.publish', {'reason': None, 'same': None, 'why': None, 'version': 1790845121})]
+(4) restored: G43 True tlo 65.0435 heavy_test published: [{'t_wall_ns': 1790845349448412796, 't_mono_ms': 233564.56, 'proc': 'gateway', 'pid': 3006739, 'tag': 'gcode.publish', 'level': 'info', 'version': 1790845123, 'schema': 9, 'gzip_ms': 712.0, 'bytes': 18606560, 'bytes_gz': 7729670, 'total_ms': 8333.4}]
+
+== idle after 11:02:29: no further spawn for 30 s (no loop); machine switched off again as the operator left it ==
