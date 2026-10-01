@@ -1,6 +1,6 @@
 # Live-Sichtprüfung — Design-Welle, Viewer-Kontrast, Operator-Punkte, feste Palette
 
-**Für den Operator · Stand 29. September 2026.** Diese Prüfung ist der letzte Schritt vor dem
+**Für den Operator · Stand 1. Oktober 2026.** Diese Prüfung ist der letzte Schritt vor dem
 Merge aller Branches nach `development`. Du prüfst alles zusammen auf `feat/viewer-palette`; er
 enthält jeden anderen Branch.
 
@@ -25,9 +25,17 @@ enthält jeden anderen Branch.
     Nachprüfung R34 (ein Befund zu Wiederkontakten, behoben), **Agreement in R35**
     ([Review](viewer-palette-fest.ideen.md)).
   - **Neue Palette nach deiner Rückmeldung vom 29. September** (dieselbe Datei): Ideenrunde R38
-    (Befunde VP38-01 bis -03, mit deinen Entscheidungen beantwortet). Teil A (Farben,
-    Graustufen-Modelle, zweifarbige Grenzen) ist umgesetzt, Codex-Prüfung folgt. Teil B
-    (alle Pfade 2 px) läuft als Planrunde R39 und braucht eine Messung auf deinem Mac.
+    (VP38-01 bis -03, mit deinen Entscheidungen beantwortet), Planrunde Teil B R39.
+  - **Seit dem 30. September** (dieselbe Datei, alles auf `feat/viewer-palette`):
+    - Neu-Parse während eines Laufs: Befunde MR-I01 bis MR-I04 in R40–R42, **Agreement R43**.
+    - Sim-Toolsetter und Strichmuster der Grenzen: Befunde in R44 und R45, **Agreement R46**.
+    - Teil B (alle Pfade 2 px) mit dem A/B-Messwerkzeug: Befunde VP-I13 bis -I17 in R47–R49;
+      Pins für Toolsetter und G30 mit der Spalte „On top“: VP-I18/-I19 in R50; **Agreement R51**.
+    - Settings breiter und gleitender Code: Settings in R52 abgenommen, VP-I21 in R53 geschlossen.
+    - Start-Werkzeugoffset der Vorschau (VP-I20): Planrunden R52–R56, **Plan-Agreement R57**;
+      Umsetzung mit Befunden VP-I22 bis -I24 in R58 und R59, **Agreement R60**.
+  - **Keypad** (`feat/keypad-keys`, eigener Branch auf `feat/viewer-palette`): deine Wahl nach
+    den Renderings vom 1. Oktober; ohne Codex-Runde (Aussehen und Beschriftung).
 - **Offline-Gates** (`python3 scripts/test_suite.py offline`):
   - Welle auf `15b46ff`: PASS, Playwright 282/282.
   - Kontrast auf `82418a7`: PASS, Backend 969, Vitest 1684, Playwright 292/292.
@@ -40,13 +48,17 @@ enthält jeden anderen Branch.
     Playwright 353/353.
   - Feste Palette mit der R34-Korrektur: PASS auf `9ac6b3f`, Backend 1069, Vitest 1732,
     Playwright 355/355.
+  - Stand R60 (Teil B, Neu-Parse im Lauf, Sim-Toolsetter, Pins, Settings, Gleiten, VP-I20):
+    PASS auf `6222310`, Backend 1145, Vitest 1838, Playwright 382/382.
+  - Keypad mit Schema 10: PASS auf `7c7971b`, Backend 1145, Vitest 1838, Playwright 383/383.
   - Danach kamen nur noch Review-Dokumente dazu.
 
 ## Vorbereitung
 
 1. Die Suite läuft im Dev-Modus (Vite auf `:5173`) und zeigt den ausgecheckten Branch. Ausgecheckt
-   ist `feat/viewer-palette`; er enthält `feat/operator-backlog`, `feat/viewer-contrast`, die
-   ganze Design-Welle und den XYZAC-Fix.
+   ist `feat/keypad-keys`; er enthält `feat/viewer-palette`, `feat/operator-backlog`,
+   `feat/viewer-contrast`, die ganze Design-Welle und den XYZAC-Fix.
+   - Vorher ist die **A/B-Messung** auf deinem Mac gelaufen (Abschnitt „Vor der Abnahme“).
 2. Den Browser-Tab **einmal hart neu laden** (Strg+Umschalt+R), damit alte Paletten und Stile
    sicher weg sind.
 3. **Settings → 3D Viewer → Colors:** Dort steht „Colors from an earlier version“. Auf **„Use
@@ -98,6 +110,9 @@ enthält jeden anderen Branch.
 - Neun Achsen im Hochformat bei 150 % in der Setup-Leiste.
 - Tastatur-Erfassung der Belegungen per Tastatur; Tastatur-Alternative zu Halte-Aktionen (K13).
 - Ebenenlabel: in kleinen Szenen groß, in echter Maschinengröße klein.
+- Deine neue Liste vom 1. Oktober (Strichmuster der Grenzen, Pin-Farbe, Settings-Sektionen,
+  geteilte Jog-Buttons, Setup-Symbole, Makros): eigene Branches nach dieser Abnahme. Nur das
+  Keypad ist schon dabei.
 
 ## Entscheidungen in deiner Abwesenheit (alle reversibel)
 
@@ -140,7 +155,7 @@ enthält jeden anderen Branch.
 |---|---|
 | Nach Home All | Z steht auf 0, alle Z-Werte der Maschine sind ≤ 0 |
 | → Home, → G30, → Zero | Z fährt zuerst nach oben, nie nach unten |
-| Tools → Measure Current | misst mit „Simulate probe“; die Länge wird gespeichert |
+| Tools → Measure Current | misst am Sim-Toolsetter: die Sonde löst an der Platte aus, ohne „Simulate probe“; die Länge wird gespeichert, eine zweite Messung gibt dieselbe Länge |
 | Probing → Toolsetter | Felder zeigen 150 / 0 / −300; nach „Reset Toolsetter“ sind die Pflichtfelder leer, der Hinweis nennt, was fehlt, und Measure Current ist gedimmt mit Grund („Toolsetter not set up“) |
 | Ohne Programm ein MDI-M600, das abbricht | kein Unterprogramm erscheint als geladenes Programm |
 | Programm mit M600 laden | keine Meldung „M-code greater than 199“ mehr |
@@ -225,7 +240,7 @@ Settings → 3D Viewer → „Automatic“ zeigt sie; „Custom“ holt deine al
 | Theme-Wechsel Hell ↔ Dunkel | Pfad grün (hell `#00a83c`, dunkel hellgrün `#5cff5c`), Backplot magenta, Eilgang blau **gestrichelt**, Überschreitung orange (hell `#e66b00`, dunkel `#ff7a00`), Kollision rot. Jede Rolle behält ihren Farbton, nur die Helligkeit passt sich an. HC: dieselben Farbtöne, kräftiger |
 | Maschinenmodell | nur Graustufen: Säule, Schlitten und Kopf hell, Führungen mittel, Rohteil und Planscheibe in der Mitte, Bett, Abdeckungen und Wiege dunkel; kein Türkis, kein Gold. Die Pfade stehen vor der Maschine |
 | Linien auf- und nebeneinander | Programm mit engen Bahnen, Eilgängen und Backplot: Pfad, Eilgang, Backplot und Überschreitung klar auseinander, auf dem Rohteil und vor dem Hintergrund |
-| Grenzen | Maschinen-Box und Werkzeugbahn-Box **zweifarbig** (dunkel mit hellen Strichen, keine Umrandung): lange Striche an der Maschine, kurze an der Werkzeugbahn mit Maßen. Vor jedem Grau sichtbar; die Strichlänge bleibt beim Zoomen gleich. Der Teil außerhalb des Maschinenfensters orange gestrichelt |
+| Grenzen | Maschinen-Box und Werkzeugbahn-Box **zweifarbig** (dunkel mit hellen Strichen, keine Umrandung), **1 px**: lange Striche an der Maschine, kurze an der Werkzeugbahn mit Maßen. Vor jedem Grau sichtbar; die Strichlänge bleibt auf dem Bildschirm gleich, auch an schräg weglaufenden Kanten. Der Teil außerhalb des Maschinenfensters orange gestrichelt. Machine Reach / Part Reach (Layers): dieselben zwei Töne, gepunktet |
 | Kollision | Programm `xyzac_collision_check.ngc` laden (absichtliche Kollision, **nie fahren**; laden geht nur referenziert, dann Maschine aus), „Next collision“: der erste Klick landet auf L8, die A-Wiege leuchtet rot; in Zeitleiste und Code-Panel ×, die Grenze ▲ |
 | Keine Zeilen-Hervorhebung | im Lauf und in der Simulation keine hervorgehobene Linie im 3D; die Zeile zeigt das Code-Panel, die Position das Werkzeug |
 | Backplot über einer Überschreitung | die orange Markierung bleibt sichtbar |
@@ -239,10 +254,48 @@ Settings → 3D Viewer → „Automatic“ zeigt sie; „Custom“ holt deine al
 - Die Werte sind gegen Weiß, den dunklen Grund und die gerenderten Flächen von Rohteil und
   Planscheibe gerechnet. Die Rechnung ist ein Filter, keine Sichtabnahme; was zählt, ist dein
   Eindruck an dichten Bahnen.
-- Die 2 px für alle Pfade kommen mit Teil B. Bis dahin sind Pfad, Eilgang und Überschreitung noch
-  1 px, der Backplot 2 px.
+- Alle Pfadlinien sind seit Teil B 2 px breit (Abschnitt unten).
 - Ausgegraut wird die gefahrene Bahn noch nicht. Das kommt als eigener Schritt mit eigener
   Ideenrunde (Codex R29: Vertrag für Schleifen, Run from line, Abbruch).
+
+## Vor der Abnahme: A/B-Messung auf deinem Mac (Teil B)
+
+Seit Teil B zeichnet der Viewer alle Pfadlinien mit einer neuen Zeichenart 2 px breit. Die
+Messung vergleicht sie auf deinem Mac mit der bisherigen 1-px-Linie: Bildrate, Ruckler,
+Blockaden, GPU-Rückstand und Speicher. Besteht B, entfallen die alte Linie und der
+Debug-Schalter.
+
+1. Ein großes Programm laden, zum Beispiel `heavy_test`.
+2. Settings → Debug → **„Run A/B measurement“**, Settings schließen.
+3. Etwa 10 Minuten nichts anfassen: keine Maus über dem Viewer, kein Tab-Wechsel. Der Ablauf
+   kalibriert, fährt sechs Durchgänge (A, B, B, A, A, B) und stellt am Ende Kamera, Zeitleiste
+   und Simulation wieder her.
+4. Mir Bescheid sagen. Ich werte den Trace mit `scripts/viewer_ab_report.py` aus; die
+   Grenzwerte stehen vorher fest (Codex R47–R49).
+
+## Seit dem 30. September (`feat/viewer-palette`)
+
+| Bereich | Worauf achten |
+|---|---|
+| Pfade 2 px (Teil B) | Pfad, Eilgang, Überschreitung, Backplot und die eingeblendete Befundbewegung alle 2 px, in jeder Zoomstufe gleich breit; keine Lücken an Segmentgrenzen; ein Pfad, der durch die Kamera-Nahebene läuft, bleibt ein Band |
+| Werkzeug | Schneide hell (Stahl), Schaft mittelgrau; das Werkzeug wird in seiner echten Länge gezeichnet, auch unter G49; eine neue Länge hebt den Backplot-Stift (kein Strich zum neuen Ort) |
+| Kamera | In der Parallelansicht beim Drehen nie ein abgeschnittenes Bodenraster |
+| Toolsetter- und G30-Pin | Layers „Tool Setter“ und „Tool Change (G30)“: je eine beschriftete Nadel („tool setter“, „tool change (G30)“), gleich groß in jeder Zoomstufe, die Beschriftung über dem Punkt. In Probing › Toolsetter G30 speichern oder neu lesen: die G30-Nadel springt sofort an den neuen Ort |
+| Layers → On top | Spalte „On top“ je Ebene: Pfade, Marker und Grenzen über der Maschine zeichnen; die beiden Nadeln stehen ab Werk oben |
+| Neu-Parse im Lauf | Ein Programm, das sein Werkzeug selbst misst (`T13 M600`): Während des Laufs erscheint **eine** Zeile „Preview re-parsing“ mit Balken, der Pfad ist gedämpft, danach steht er mit der neuen Länge; der Kollisions-Sweep wartet, bis die Maschine steht |
+| Start-Werkzeugoffset (VP-I20) | Die Vorschau rechnet ab dem Werkzeugoffset, der beim Start gilt. Nach einer neuen Messung im Stillstand prüft sie nach: „Preview re-parsing“, der Grund steht im „?“ („tool offset changed — checking“); meist ist alles gleich, dann gibt es keinen neuen Download und nur die Bewegungen vor dem ersten eigenen G43 des Programms rücken nach. Ist der Start nicht bekannt, sagt die Statistik „Not validated (start tool offset unknown)“ |
+| Programm mit eigenem G43 | Nach dem Lauf kein Neu-Parse allein wegen des angewendeten Offsets |
+| Code-Panel im Lauf | Die laufende Zeile gleitet: Der Code scrollt gleichmäßig unter einer mittigen Markierung, auch bei schnellen kurzen Sätzen bleibt die Zeile immer im Bild; „Bewegung reduzieren“ springt statt zu gleiten |
+| Settings | So breit wie der Werkzeugeditor (760 px); im 3D Viewer Layers in vier Gruppen. Die Anordnung der Sektionen änderst du gerade (Paket 2 deiner neuen Liste): hier noch der Stand vom 30. September |
+| Zahlenfelder | Ein Doppelklick oder Ziehen auf einem Zahlenfeld markiert nichts mehr; danach geht die echte Tastatur weiter ins Zahlen-Keypad |
+
+## Keypad (`feat/keypad-keys`, neu 1. Oktober)
+
+| Prüfung | Worauf achten |
+|---|---|
+| Zahlen-Keypad | X oben rechts rot, Discard rot, Apply grün; X schließt und behält die Eingabe (beim nächsten Öffnen als Entwurf), Discard wirft sie weg |
+| Texttastatur | X rot; die Bestätigung heißt „Apply“: in der MDI-Zeile sendet sie den Befehl, in einem Textfeld schließt sie; der Editor behält sein Zeilenumbruch-Symbol; der Send-Button der MDI-Zeile selbst heißt weiter „Send“ |
+| Echte Tastatur | Tippen leuchtet keine Bildschirmtaste auf (deine Entscheidung) |
 
 ## Wenn alles passt — Merge (nur `development`, nie `main`)
 
@@ -253,7 +306,12 @@ git merge --no-ff feat/ui-design-wave
 git merge --no-ff feat/viewer-contrast
 git merge --no-ff feat/operator-backlog
 git merge --no-ff feat/viewer-palette
+git merge --no-ff feat/keypad-keys
+git merge --no-ff fix/example-tool-numbers
 ```
+
+`fix/example-tool-numbers` (Werkzeugnummern der Beispieltabellen, T2… neben der Bibliothek ab
+T1001) steht eigenständig auf `development` und kommt zum Schluss.
 
 `feat/viewer-contrast` enthält auch `fix/xyzac-z0-m600`; der XYZAC-Fix kommt also mit. **Nie
 einzeln mergen:** Das Frontend zu Run from line und Messen liegt nur auf `feat/viewer-contrast`.
