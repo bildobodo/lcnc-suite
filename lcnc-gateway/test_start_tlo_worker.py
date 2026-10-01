@@ -74,9 +74,19 @@ class TestStartToolState(unittest.TestCase):
         self.assertEqual(r["rapid"], [[0.0, 0.0, -10.0], [1.0, 0.0, -10.0]])
         # … and on a rotary machine the rotary sync move is no phantom point
         # at program 0,0,0 ahead of the program's first move
-        rr = probe("percent_rotary")
-        self.assertEqual(rr["rapid"], [[0.0, 0.0, -10.0], [1.0, 0.0, -10.0]])
-        self.assertIsNone(rr["tlo_events"])
+        for case in ("percent_rotary", "percent_rotary_blank"):
+            rr = probe(case)
+            self.assertEqual(rr["rapid"], [[0.0, 0.0, -10.0], [1.0, 0.0, -10.0]], case)
+            self.assertIsNone(rr["tlo_events"], case)
+
+    def test_the_init_phase_is_an_order_not_a_line_number(self):
+        # Codex R58 VP-I22: a subroutine's own G43.1 Z20 is a program row,
+        # also when its line number equals the one the init block used; the
+        # two moves after it run under Z20 (machine Z = program Z + 20)
+        for case in ("percent_sub", "percent_sub_blank"):
+            r = probe(case)
+            self.assertEqual([row[1:] for row in r["tlo_events"]], [[0.0, 0.0, 20.0, -1]], case)
+            self.assertEqual(r["rapid"], [[0.0, 0.0, 0.0], [5.0, 0.0, 0.0], [10.0, 0.0, 0.0]], case)
         # a program's G43.1 with the seed's value stays — by origin, not value
         self.assertEqual(probe("percent_then_g43_1")["tlo_events"], [[0, 0.0, 0.0, 10.0, -1]])
         # Codex R56: G49 then G43.1 Z10 at seq 0 — both rows kept, Z10 governs

@@ -1738,10 +1738,11 @@ def percent_delimiter_line(lines):
 
     RS274NGC: the first non-blank line of a file may hold nothing but `%`
     (whitespace around it), and then the interpreter runs the initcode block
-    on that line — every initcode callback arrives numbered as it (native,
+    after it — every initcode callback arrives numbered 1, the number the
+    interpreter gives the `%` line whatever blank lines precede it (native,
     VP-I20: the rotary sync move recorded as a phantom point at program
-    0,0,0, the start-offset G43.1 recorded as a TLO row). The canon treats
-    this line as init (PreviewCanon.init_lines). `lines` is any iterable of
+    0,0,0, the start-offset G43.1 recorded as a TLO row). The canon opens
+    its init phase there (PreviewCanon.percent_delimited). `lines` is any iterable of
     text lines (a file object reads only up to the first non-blank line).
     Pure."""
     for n, line in enumerate(lines, start=1):

@@ -44,6 +44,15 @@ CASES = {
     # a rotary machine: the initcodes carry the rotary sync move, run on the
     # `%` line — it used to be recorded as a phantom point at program 0,0,0
     "percent_rotary": ("%\nG21 G90\nG53 G0 Z0\nG0 X1\nM2\n%\n", "mm", 10.0, (430,), {"rotary": True}),
+    # Codex R58 VP-I22: a subroutine's own G43.1 on its line 2 after the
+    # init phase, with `%` on text line 1 and after a blank line (the `%`
+    # line is sequence 1 either way); a blank line before `%` on a rotary
+    # machine (the phantom point must not come back)
+    "percent_sub": ("%\nG21 G90\nG0 X0 Y0 Z0\no<r58_child> call\nG0 X10 Z0\nM2\n%\n", "mm", 10.0, (430,),
+                    {"subs": {"r58_child.ngc": "o<r58_child> sub\nG43.1 Z20\nG0 X5 Y0 Z0\no<r58_child> endsub\n"}}),
+    "percent_sub_blank": ("\n%\nG21 G90\nG0 X0 Y0 Z0\no<r58_child> call\nG0 X10 Z0\nM2\n%\n", "mm", 10.0, (430,),
+                          {"subs": {"r58_child.ngc": "o<r58_child> sub\nG43.1 Z20\nG0 X5 Y0 Z0\no<r58_child> endsub\n"}}),
+    "percent_rotary_blank": ("\n%\nG21 G90\nG53 G0 Z0\nG0 X1\nM2\n%\n", "mm", 10.0, (430,), {"rotary": True}),
     "percent_then_g43_1": ("%\nG21 G90\nG43.1 Z10\nG0 X0 Y0 Z0\nM2\n%\n", "mm", 10.0, (430,), {}),
     "codex_r56": ("G21 G90\nG49\nG43.1 Z10\nG0 X0 Y0 Z0\nG0 X10 Y0 Z0\nM2\n", "mm", 10.0, (430,), {}),
     "pinned_seed": ("G21 G90\nG0 X0 Y0 Z40\nM2\n", "mm", 10.0, (430,),
@@ -86,6 +95,7 @@ LINEAR_UNITS = {"inch" if inch else "mm"}
 ANGULAR_UNITS = degree
 [RS274NGC]
 PARAMETER_FILE = machine.var
+SUBROUTINE_PATH = {work}
 [EMCIO]
 TOOL_TABLE = tool.tbl
 [AXIS_X]
@@ -107,6 +117,8 @@ os.environ["INI_FILE_NAME"] = str(ini)
     "5161 0\n5181 10\n5210 1\n5211 0\n5212 0\n5213 0\n5220 1\n5221 0\n5222 0\n5223 0\n")
 ngc = work / "program.ngc"
 ngc.write_text(program)
+for _name, _text in extra.get("subs", {}).items():
+    (work / _name).write_text(_text)
 
 Tool = namedtuple("Tool", "id xoffset yoffset zoffset aoffset boffset coffset "
                           "uoffset voffset woffset diameter frontangle backangle orientation")

@@ -868,11 +868,14 @@ it as `tlo_start` / `start_known` (+ `start_mode` on `__TLO__`). An unknown
 start (no mode, not finite, an A–W component, a pinned seed without a mode)
 seeds nothing and gives NO limit verdict (`violations: null`,
 `violations_reason: "start_unknown"`, stats "Not validated (start tool
-offset unknown)"). A leading `%` line is INIT, not program
-(`PreviewCanon.init_lines` from `percent_delimiter_line`): LinuxCNC runs the
-initcode block after that line's next_line, so its callbacks arrive numbered
-as it — it used to record the rotary sync as a phantom zero-length point at
-program 0,0,0 and the seed as a TLO row. The idle edge
+offset unknown)"). A `%`-delimited file has an INIT PHASE
+(`PreviewCanon.percent_delimited` from `percent_delimiter_line`): LinuxCNC
+reports the `%` line as sequence 1 (whatever blank lines precede it) and runs
+the initcode block right after it, so its callbacks arrive numbered 1 — it
+used to record the rotary sync as a phantom zero-length point at program
+0,0,0 and the seed as a TLO row. The phase is the observed ORDER (from that
+next_line to the next one, then never again — a subroutine's line 1 is
+program), never a line number (Codex R58 VP-I22). The idle edge
 (`evaluate_start_drift`) fires on ANY actual change of the start (> 1e-9,
 mode included; no tolerance — two samples prove nothing, Codex R54): reason
 `tool_offset` → a VERIFY parse at the live offset: the gateway hands the

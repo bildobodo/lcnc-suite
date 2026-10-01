@@ -315,15 +315,14 @@ def parse(ctx: dict) -> dict:
         _reset = getattr(_remap_mod, "webui_preview_reset", None)
         if _reset is not None:
             _reset()
-        # A leading `%` line is where the interpreter runs the initcodes
-        # (native): the canon counts it as init, not as a program line.
+        # A leading `%` line: the interpreter runs the initcodes right after
+        # it (native) — the canon's init phase (PreviewCanon._in_init).
         try:
             with open(filename, "r", errors="replace") as _f:
                 _pct = percent_delimiter_line(_f)
         except OSError:
             _pct = None
-        if _pct is not None:
-            canon.init_lines = frozenset((_pct,))
+        canon.percent_delimited = _pct is not None
         t0 = time.monotonic()
         result, seq = gcode.parse(filename, canon, initcodes, "")
         t1 = time.monotonic()

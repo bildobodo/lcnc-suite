@@ -153,24 +153,34 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             float(getattr(self, "rotation_xy", 0.0) or 0.0),
         )
 
-    # Lines that belong to the INITCODES, not the program (VP-I20, native):
-    # a file whose first non-blank line is the `%` delimiter has the
-    # interpreter run the initcode block AFTER that line's next_line — the
-    # rotary sync move, the start-offset G43.1, the fixture code all arrive
-    # numbered as the `%` line. That line holds nothing but `%` (RS274NGC),
-    # so whatever arrives on it is init: no recorded motion (the phantom
-    # zero-length rapid at program 0,0,0), no TLO row, no start snapshot.
-    # The worker sets it from the source text (percent_delimiter_line).
-    init_lines = frozenset()
+    # The INIT PHASE of a `%`-delimited file (VP-I20, native, Codex R58
+    # VP-I22): the interpreter reports the `%` line as sequence 1 — whatever
+    # blank lines precede it — and runs the initcode block right AFTER that
+    # next_line: the rotary sync move, the start-offset G43.1 and the
+    # fixture code arrive numbered 1. The phase is decided by what was
+    # OBSERVED, never by a line number: it opens at the first next_line ≥ 1
+    # of such a file and ends for good at the next one — a later line 1 (a
+    # subroutine's) is program. Without `%` the initcodes run at line 0.
+    # Inside it: no recorded motion (the phantom zero-length rapid at
+    # program 0,0,0), no TLO row, no start snapshot. The worker sets
+    # `percent_delimited` from the source text (percent_delimiter_line).
+    percent_delimited = False
+    _pct_line_seen = False
+    _in_init = False
 
     def _program_line(self):
         """Is the current callback from a PROGRAM line (not the initcodes)?"""
-        n = self.lineno or 0
-        return n >= 1 and n not in self.init_lines
+        return (self.lineno or 0) >= 1 and not self._in_init
 
     def next_line(self, st):
         self.state = st
         self.lineno = st.sequence_number
+        if (self.lineno or 0) >= 1:
+            if self.percent_delimited and not self._pct_line_seen:
+                self._pct_line_seen = True     # the `%` line: the init block follows
+                self._in_init = True
+            else:
+                self._in_init = False          # program from here on, for good
         # PROGRAM-START basis: the offsets in effect after the gateway's
         # initcodes (which force the machine's ACTIVE WCS) and before the
         # program's first line runs.

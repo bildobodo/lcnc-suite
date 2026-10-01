@@ -4118,15 +4118,17 @@ class TestPercentDelimiter(unittest.TestCase):
         self.assertEqual(gateway_util.percent_delimiter_line(lines()), 1)
 
 
-class TestCanonInitLines(unittest.TestCase):
-    """Callbacks numbered as the `%` line are the initcodes' (VP-I20, native)."""
+class TestCanonInitPhase(unittest.TestCase):
+    """A `%` file's initcodes run right after the `%` line's next_line (always
+    sequence 1); the phase is decided by that ORDER, never by a number
+    (VP-I20, Codex R58 VP-I22)."""
 
-    def _canon(self):
+    def _canon(self, pct=True):
         c, ns = TestTloEvents._canon(self)
-        c.init_lines = frozenset((1,))
+        c.percent_delimited = pct
         return c, ns
 
-    def test_the_init_block_on_the_percent_line_records_nothing(self):
+    def test_the_init_block_after_the_percent_line_records_nothing(self):
         c, ns = self._canon()
         c.next_line(ns(sequence_number=0))
         c.next_line(ns(sequence_number=1))          # the `%` line
@@ -4137,13 +4139,20 @@ class TestCanonInitLines(unittest.TestCase):
         c.next_line(ns(sequence_number=3))          # the first program line
         self.assertIsNotNone(c.basis_at_start)
         c.straight_traverse(0, 0, -10 / 25.4, 0, 0, 0, 0, 0, 0)
-        self.assertEqual(len(c.rapid), 1)
-        self.assertEqual(c.rapid[0][0], 3)
-        c.tool_offset(0, 0, 0, 0, 0, 0, 0, 0, 0)
+        self.assertEqual([r[0] for r in c.rapid], [3])
+
+    def test_a_later_line_1_is_program_a_subroutine_s_own_offset(self):
+        # Codex R58: a sub whose G43.1 sits on ITS line 2 (or 1) after the
+        # init phase ended — a number never decides
+        c, ns = self._canon()
+        for n in (0, 1, 3):
+            c.next_line(ns(sequence_number=n))
+        c.next_line(ns(sequence_number=1))          # the sub's line 1
+        c.tool_offset(0, 0, 20 / 25.4, 0, 0, 0, 0, 0, 0)
         self.assertEqual(len(c.tlo_events), 1)
 
     def test_without_a_delimiter_line_1_is_a_program_line(self):
-        c, ns = TestTloEvents._canon(self)
+        c, ns = self._canon(pct=False)
         c.next_line(ns(sequence_number=1))
         c.tool_offset(0, 0, 1, 0, 0, 0, 0, 0, 0)
         self.assertEqual(len(c.tlo_events), 1)
