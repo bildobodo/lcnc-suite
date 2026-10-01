@@ -8,7 +8,8 @@ EPS = json.loads(os.environ.get("EPS", "[0, 0, 1.0]"))
 env = dict(os.environ); env.pop("PYTHONPATH", None)
 def one(prog, ini, seed, tag):
     out = HERE / f"out/{tag}.npz"; out.parent.mkdir(exist_ok=True)
-    p = subprocess.run(["nice", "-n", "10", PY, "-B", "_vp20_diffcase.py"  # = viewer-palette-fest.plan-vp-i20.f3.diffcase.py beside the worker, str(prog), ini, seed, str(out)],
+    # _vp20_diffcase.py = viewer-palette-fest.plan-vp-i20.f3.diffcase.py beside the worker
+    p = subprocess.run(["nice", "-n", "10", PY, "-B", "_vp20_diffcase.py", str(prog), ini, seed, str(out)],
                        cwd=GW, env=env, text=True, capture_output=True, timeout=900)
     if p.returncode:
         return {"returncode": p.returncode, "stderr": p.stderr[-800:]}, None
