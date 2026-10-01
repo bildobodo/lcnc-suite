@@ -553,7 +553,11 @@ gate_row("Cycle Start", T, p, "run", True)
 gate_row("Tool measure / load", T, p, "machineFrame", False)
 gate_row("Probe op", T, p, "machineFrame", False)
 r = ws_cmd({"cmd": "go_to_zero"})
-check("→ Zero refused with a reason naming TCP", T, r.get("ok") is False and "TCP" in str(r.get("error", "")), str(r))
+# A mode restriction says where the action WORKS (operator 2026-09-25: "Not
+# in TCP — …" read as a statement about the current mode) — command_policy
+# _R_GOZERO; this row asked for the word "TCP" until 2026-10-02.
+check("→ Zero refused with a reason naming where it works (Machine frame and Plane)", T,
+      r.get("ok") is False and "Machine frame and Plane only" in str(r.get("error", "")), str(r))
 r = ws_cmd({"cmd": "tool_change", "tool_number": 1})
 check("tool_change refused backend-side (Machine frame required)", T,
       r.get("ok") is False and "Machine frame" in str(r.get("error", "")), str(r))
