@@ -1,0 +1,57 @@
+{
+ "what": "VP-I20 implementation gate: cost of a VERIFY parse on heavy_test.ngc (689 079 lines), XYZAC sim INI read-only, the real worker at 975442b's code with the gates' applied_tlo override (start G43 Z at the given value) and rotary_pose A0 C0; one fresh worker process per parse, sequential, nice 10, on the dev VM (aarch64, 4 cores). Peak RSS = max over the children so far (getrusage RUSAGE_CHILDREN).",
+ "runs": [
+  {
+   "z": 65.0512,
+   "verify": false,
+   "rc": 0,
+   "wall_s": 7.53,
+   "stdout_bytes": 18606560,
+   "max_child_rss_mb_so_far": 1006.1,
+   "log": [
+    "gcode.parse feed=689190 rapid=4 parse_ms=1186",
+    "worker total_ms=7466 parse_section_ms=7445 encode_ms=21 output=18606560B"
+   ]
+  },
+  {
+   "z": 65.0562,
+   "verify": true,
+   "rc": 0,
+   "wall_s": 7.53,
+   "stdout_bytes": 0,
+   "max_child_rss_mb_so_far": 1006.1,
+   "log": [
+    "gcode.parse feed=689190 rapid=4 parse_ms=1226",
+    "__VERIFY__\t{\"same\": true, \"why\": \"same\"}",
+    "__SAME__",
+    "worker total_ms=7467 parse_section_ms=7420 encode_ms=47 output=18606560B"
+   ]
+  },
+  {
+   "z": 65.0562,
+   "verify": false,
+   "rc": 0,
+   "wall_s": 7.49,
+   "stdout_bytes": 18606560,
+   "max_child_rss_mb_so_far": 1006.1,
+   "log": [
+    "gcode.parse feed=689190 rapid=4 parse_ms=1217",
+    "worker total_ms=7424 parse_section_ms=7403 encode_ms=22 output=18606560B"
+   ]
+  },
+  {
+   "z": 66.0512,
+   "verify": true,
+   "rc": 0,
+   "wall_s": 7.46,
+   "stdout_bytes": 0,
+   "max_child_rss_mb_so_far": 1006.1,
+   "log": [
+    "gcode.parse feed=689190 rapid=4 parse_ms=1230",
+    "__VERIFY__\t{\"same\": true, \"why\": \"same\"}",
+    "__SAME__",
+    "worker total_ms=7398 parse_section_ms=7352 encode_ms=46 output=18606560B"
+   ]
+  }
+ ]
+}
