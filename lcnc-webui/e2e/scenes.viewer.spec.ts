@@ -742,8 +742,9 @@ async function pixelPairs(page: Page, shots: [Buffer, Buffer], groups: { x: numb
 // point with the bounds off — in light, dark, hc-light and hc-dark, over the
 // scene's background (machine off) and over the model's surfaces (machine on,
 // a view from above, so the box lies over the base). The labels stand at
-// opposite corners (apart where the boxes coincide), over everything, and a
-// test seam hides them for the operator's variant (i) render.
+// opposite corners (apart where the boxes coincide), drawn over the machine
+// exactly when their box is (operator 2026-10-02), and a test seam hides
+// them for the variant (i) render.
 test("the toolpath box's end marks stand off the background and the model in four themes; the type labels stand apart", async ({ page, context }, testInfo) => {
   test.setTimeout(240_000);
   await ctl({ op: "reset" });
@@ -779,8 +780,9 @@ test("the toolpath box's end marks stand off the background and the model in fou
   await loadProgram(page, "dense", 960);
   const layers = (o: Record<string, boolean>) => ({ hud: false, toolpath: false, rapids: false, backplot: false, tool: false, workzero: false,
     groundGrid: false, toolsetter: false, toolChange: false, bounds: false, toolpathBounds: true, machine: false, ...o });
-  const settle = async (theme: string, o: Record<string, boolean>) => {
-    await ctl({ op: "raw", frame: { type: "settings_changed", settings: { display: { theme }, viewer: { projection: "parallel", layers: layers(o) } } } });
+  const settle = async (theme: string, o: Record<string, boolean>, onTop: Record<string, boolean> = {}) => {
+    await ctl({ op: "raw", frame: { type: "settings_changed", settings: { display: { theme },
+      viewer: { projection: "parallel", layers: layers(o), onTop: { bounds: false, toolpathBounds: false, ...onTop } } } } });
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
     await page.waitForTimeout(300);
   };
@@ -869,15 +871,15 @@ test("the toolpath box's end marks stand off the background and the model in fou
     }
   }
 
-  // The type labels: opposite corners, over everything; the boxes made to
-  // coincide (live joint limits = the program's box) keeps them apart.
+  // The type labels: opposite corners; the boxes made to coincide (live
+  // joint limits = the program's box) keeps them apart.
   await ctl({ op: "status_delta", data: { joint_limits: [[-150, 230], [-150, 125], [0, 60]] } });
   await settle("light", { machine: true, bounds: true });
   await page.evaluate(() => window.__viewerDiag!.setBoxTypeLabelsShown!(true));
   await page.waitForTimeout(300);
   const labels = (await page.evaluate(() => window.__viewerDiag!.getBoxTypeLabels!()))!;
   expect(labels.machine?.visible && labels.program?.visible, "both type labels show").toBe(true);
-  expect(labels.machine?.onTop && labels.program?.onTop, "drawn over everything").toBe(true);
+  expect([labels.machine?.onTop, labels.program?.onTop], "neither box on top: neither label").toEqual([false, false]);
   const apart = Math.hypot(labels.machine!.screen.x - labels.program!.screen.x, labels.machine!.screen.y - labels.program!.screen.y);
   expect(apart, "the labels stand apart where the boxes coincide").toBeGreaterThan(80);
   const withLabels = await page.screenshot();
@@ -896,6 +898,48 @@ test("the toolpath box's end marks stand off the background and the model in fou
     const px = (await pixelPairs(page, [withLabels, without], [pts]))[0]!;
     expect(px.filter(p => p.canvas && rgbDist(p.a, p.b) > 40).length, `the ${name} label's text is drawn`).toBeGreaterThan(5);
   }
+  // A label is drawn over the machine exactly when its box is (the layer's
+  // "On top", operator 2026-10-02). Seen from below, the base lies between
+  // the camera and both labels (they stand at the boxes' top corners): a
+  // label's text shows there only while its box is on top — each box's
+  // switch for its own label alone.
+  const textRegion = (at: { x: number; y: number }) =>
+    [Array.from({ length: 60 }, (_, i) => ({ x: at.x + 8 + (i % 20) * 4, y: at.y - 8 - Math.floor(i / 20) * 4 }))];
+  for (const [onTop, want] of [[{}, [false, false]], [{ bounds: true }, [true, false]], [{ toolpathBounds: true }, [false, true]]] as const) {
+    await settle("light", { machine: true, bounds: true }, onTop);
+    const shown: boolean[] = [], flags: boolean[] = [];
+    for (const [name, corner] of [["machine", [230, 125, 60]], ["program", [-150, -150, 40]]] as const) {
+      await page.evaluate(c => {
+        const d = [-0.35, -0.35, -1], l = Math.hypot(...d);
+        window.__viewerDiag!.setCameraPose!(c.map((v, i) => v + d[i]! / l * 1500), [...c]);
+        window.__viewerDiag!.zoomBy!(4);
+      }, corner);
+      await page.evaluate(() => window.__viewerDiag!.setBoxTypeLabelsShown!(true));
+      await page.waitForTimeout(300);
+      const lab = (await page.evaluate(() => window.__viewerDiag!.getBoxTypeLabels!()))![name]!;
+      expect(lab.visible, `${name} label posed`).toBe(true);
+      flags.push(lab.onTop);
+      const on = await page.screenshot();
+      await page.evaluate(() => window.__viewerDiag!.setBoxTypeLabelsShown!(false));
+      await page.waitForTimeout(300);
+      const off = await page.screenshot();
+      // the base covers the whole text region: it differs there from the bare background
+      await settle("light", { machine: false, bounds: false, toolpathBounds: false }, onTop);
+      const noModel = await page.screenshot();
+      await settle("light", { machine: true, bounds: true }, onTop);
+      const region = textRegion(lab.screen);
+      const cover = (await pixelPairs(page, [off, noModel], region))[0]!;
+      expect(cover.every(p => p.canvas && rgbDist(p.a, p.b) > 40), `the base lies over the ${name} label's region`).toBe(true);
+      const px = (await pixelPairs(page, [on, off], region))[0]!;
+      shown.push(px.filter(p => rgbDist(p.a, p.b) > 40).length > 5);
+      if (name === "machine" && JSON.stringify(onTop) === JSON.stringify({ bounds: true })) {
+        await testInfo.attach("type-label-behind-model-on-top.png", { body: on, contentType: "image/png" });
+      }
+    }
+    expect(flags, `on top ${JSON.stringify(onTop)}: the labels' depth test`).toEqual([...want]);
+    expect(shown, `on top ${JSON.stringify(onTop)}: which label shows through the base`).toEqual([...want]);
+  }
+  await settle("light", { machine: true, bounds: true });
   // a box's label follows its layer
   await settle("light", { machine: true, bounds: false });
   await page.evaluate(() => window.__viewerDiag!.setBoxTypeLabelsShown!(true));

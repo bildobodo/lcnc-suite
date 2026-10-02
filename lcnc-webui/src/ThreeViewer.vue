@@ -617,11 +617,13 @@ function mkMarkerLabel(text: string): Text {
   return t;
 }
 // The bounds' TYPE labels (package 4, plan Fassung 2 A'' — label variant
-// (ii), Codex R62–R64's recommendation; the operator chooses from renders):
+// (ii), Codex R62–R64's recommendation, the operator's choice 2026-10-02):
 // "Machine bounds" at the machine box's (max, max, max) corner, "Program
 // bounds" at the toolpath box's (min, min, max) one — apart even where the
-// two boxes coincide; CSS-px sized like a pin's label and drawn OVER
-// everything, so a model part never hides it. Posed per frame.
+// two boxes coincide; CSS-px sized like a pin's label. A label is drawn over
+// the machine exactly when its BOX is (the layer's "On top", operator
+// 2026-10-02 — setLayerOnTop); otherwise a model part hides it like the box.
+// Posed per frame.
 let _machineTypeLabel: THREE.Group | null = null;
 let _programTypeLabel: THREE.Group | null = null;
 /** Test seam: the operator's variant (i) render hides the type labels. */
@@ -635,8 +637,7 @@ function _mkTypeLabel(text: string, name: string): THREE.Group {
   t.anchorX = "left";
   t.anchorY = "bottom";
   g.add(t);
-  applyOnTop(g, true, ON_TOP_ORDER.marker);
-  g.visible = false;
+  g.visible = false;   // drawn on top or not by its box's layer (applyAllOnTop after the build)
   return g;
 }
 /** Stand a type label at `at` (world), CSS-px sized, 6 px up-right on screen. */
@@ -1429,8 +1430,14 @@ function setLayerOnTop(layer: OnTopLayer, on: boolean) {
     case "toolpath": toolpath.setOnTop("feed", on); break;
     case "rapids": toolpath.setOnTop("rapid", on); break;
     case "backplot": backplot.setDepthTest(!on); break;
-    case "toolpathBounds": toolpath.setBoxOnTop(on); break;
-    case "bounds": applyOnTop(machineBoundsMesh, on, ON_TOP_ORDER.box); break;
+    case "toolpathBounds":
+      toolpath.setBoxOnTop(on);
+      applyOnTop(_programTypeLabel, on, ON_TOP_ORDER.marker);   // a box's label follows its box
+      break;
+    case "bounds":
+      applyOnTop(machineBoundsMesh, on, ON_TOP_ORDER.box);
+      applyOnTop(_machineTypeLabel, on, ON_TOP_ORDER.marker);
+      break;
     case "reachRoom": applyOnTop(reachRoomMesh, on, ON_TOP_ORDER.reach); break;
     case "reachPart": applyOnTop(reachPartMesh, on, ON_TOP_ORDER.reach); break;
     case "workzero":
@@ -2175,7 +2182,7 @@ async function buildFromInit(init: ViewerInit) {
             if (!g || !camera || !renderer) return null;
             const rect = renderer.domElement.getBoundingClientRect();
             const v = g.getWorldPosition(new THREE.Vector3()).project(camera);
-            // an outlined troika label draws two materials: both over everything
+            // an outlined troika label draws two materials: on top = both without a depth test
             let onTop = true;
             g.traverse(o => {
               const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;

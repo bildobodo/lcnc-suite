@@ -7522,8 +7522,10 @@ legibility guarantee beyond that.
 **The second cue.** With one pattern the dash length tells the boxes apart no
 more; the pair table's box cues become `["ticks", "label"]`. The toolpath box
 carries dimension end marks (a light underlay under a dark core); each box a
-type label (variant (ii) — the operator still chooses against (i), the size
-labels alone, from renders).
+type label (variant (ii) — the operator chose it on 2026-10-02 against (i), the
+size labels alone, from renders; a label is drawn over the machine exactly
+when its box is — the layer's "On top", the operator's rule of the same day —
+otherwise a model part hides it like the box).
 
 **Deviation from the agreed plan (named for Codex R66).** The end marks are
 2 px core / 4 px underlay, not Fassung 3's 1 / 3. Measured in the e2e guard

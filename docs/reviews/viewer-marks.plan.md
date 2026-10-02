@@ -363,3 +363,22 @@ Gemessen im neuen e2e-Wächter (`scenes.viewer.spec.ts`, Endmarken), nicht vorab
 - **Offen für den Operator:** Die Typlabels sind großgeschrieben („Machine bounds“,
   „Program bounds“), die Nadel-Labels klein („tool setter“). Die Schreibweise gehört zur
   Labelwahl (i) / (ii).
+
+## Operator-Entscheidung 2. Oktober 2026
+
+- **Beschriftung:** Variante **(ii)**, die festen Typlabels, wie von Codex und mir empfohlen. Die
+  Schreibweise bleibt, wie sie ist.
+- **Neu, vom Operator:** Ein Typlabel liegt **nicht mehr immer oben**. Es folgt dem Schalter
+  „On top“ seiner Box (Settings › 3D Viewer › Layers):
+  - „Machine bounds“ folgt der Maschinen-Box (`bounds`), „Program bounds“ der Werkzeugbahn-Box
+    (`toolpathBounds`).
+  - Ist die Box oben, liegt ihr Label über der Maschine (Reihenfolge der Marker). Sonst verdeckt
+    ein Modellteil das Label wie die Box selbst.
+  - Damit ändert sich der Abnahmefall „Label hinter einem Modellteil“: Das Label liegt dort oben,
+    wenn seine Box oben liegt, sonst ist es verdeckt.
+  - Benannte Folge: Mit den Vorgaben (Boxen nicht oben) ist das Label-Merkmal nicht in jeder
+    Ansicht lesbar. Die Endmarken bleiben das zweite Merkmal der Werkzeugbahn-Box.
+- **Wächter** (`scenes.viewer.spec`, jeder zuerst rot): Von unten gesehen liegt die Grundplatte
+  zwischen Kamera und beiden Labels. Ein Label zeigt sich dort genau dann, wenn seine eigene Box
+  oben liegt. Der Test prüft beide Schalter einzeln. Rot war er, als die Labels wieder immer oben
+  lagen und als die Schalter vertauscht waren.
