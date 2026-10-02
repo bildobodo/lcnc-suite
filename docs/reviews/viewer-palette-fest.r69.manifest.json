@@ -1,0 +1,39 @@
+{
+  "archive_commit": "04ef2e5ed7d59c5f82a9fb2e52fd604752c73fc8",
+  "integration_commit": "3c9cc2581d32a49cf707a952dcbdf2acccaa3316",
+  "archive": "/tmp/codex-r69-1gzigl34",
+  "mock": "127.0.0.1:4188",
+  "priority": "nice 19",
+  "browser_workers": 1,
+  "commands": {
+    "build": "VITE_GATEWAY_PORT=4188 nice -n 19 npm run build",
+    "unit": "nice -n 19 node node_modules/vitest/vitest.mjs run --config r69.vitest.config.ts",
+    "browser": "nice -n 19 node node_modules/@playwright/test/cli.js test --config r69.playwright.config.ts --grep 'the toolpath box.s end marks|CSS-px objects|Settings: as wide|rotary jog buttons share|a reserved work offset|Settings › Layers'"
+  },
+  "archive_only_adjustments": [
+    "node_modules symlink to installed dependencies",
+    "tsconfig tsBuildInfoFile moved from node_modules/.tmp to ../r69-ts-cache",
+    "e2e/ctl.ts: localhost:4174 replaced with 127.0.0.1:4188",
+    "two dedicated test configs"
+  ],
+  "results": {
+    "build": "PASS",
+    "unit_files": 8,
+    "unit_tests": 181,
+    "browser_tests": 9
+  },
+  "limits": [
+    "Targeted integration checks; full reported offline gate not repeated.",
+    "Cached upstream interpreter source inspected; no native cache reproduction and no installed Debian patch verification.",
+    "No live operator visual acceptance."
+  ],
+  "logs": {
+    "viewer-palette-fest.r69.vitest.config.ts": "e379a7706e6d2e765717b08fbaf91fbc1bf66847313d6f022dfed4146910984c",
+    "viewer-palette-fest.r69.playwright.config.ts": "3075d3064de6646b63c107522407348b01f736b8fe85b7bd06a52ee2df9c1e0a",
+    "viewer-palette-fest.r69.source-audit.txt": "9888b0fdd12bde8d9bc92903f8c3036dddd3fcee2fe8f2839b766e7f0961f662",
+    "viewer-palette-fest.r69.integration.txt": "79d89bfbac5aaa3bb2cf0e02f42ec15c78363fca0c4719b1a7b5b4b99d923908",
+    "viewer-palette-fest.r69.browser.txt": "749730337023ccd0a364bbad774397e79b3c7a81776dccb5669e003128bc5842",
+    "viewer-palette-fest.r69.unit.txt": "270d0a52ffd225b4832997e6447aa46c29324b9a59b703909f01a6dba17d2ebc",
+    "viewer-palette-fest.r69.build.txt": "3e666dd3a2d3debd7293045e3e098797b8401ac61de329dd3e4a20a031e6a268"
+  }
+}

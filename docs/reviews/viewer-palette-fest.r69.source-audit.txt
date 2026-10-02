@@ -1,0 +1,615 @@
+R69 source audit, not a native interpreter execution.
+Interpreter source: existing local files used by Claude for the v2.9.4 plan; tag/packaging patches not independently verified. Hashes below pin the exact inspected files.
+Gateway and plan: git archive 04ef2e5 (integration product tree 3c9cc25).
+No connection to LinuxCNC/HAL; no live endpoint was accessed.
+A sandboxed /usr/bin/rs274 -h attempt failed at tool_mmap_creator() lseek fail: Bad file descriptor. No G-code was supplied; no native reproduction is claimed.
+
+FILE /tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/src/rs274ngc_pre.cc
+SHA256 22ab0b327fea7594e8bedabee99c0b4c454e017b3c99f61f17b7dc48831f2aa0
+
+293:   extern const char *call_statenames[];
+294:   extern const char *call_typenames[];
+295:   extern const char *o_ops[];
+296: 
+297:   if (NULL != command) {
+298:     MDImode = 1;
+299:     status = read(command);
+300:     if (status != INTERP_OK) {
+301: 	// if (status > INTERP_MIN_ERROR) 
+302: 	//     _setup.remap_level = 0;
+303: 	return status;
+304:     }
+305:   }
+306:   logDebug("execute:%s %s='%s' mdi_int=%d o_type=%s o_name=%s cl=%d rl=%d type=%s state=%s",
+307: 	   MDImode ? "MDI" : "auto",
+308: 	   command ? "command" : "line",
+309: 	   command ? command : _setup.linetext,
+310: 	    _setup.mdi_interrupt, o_ops[eblock->o_type], eblock->o_name,
+311: 	   _setup.call_level,_setup.remap_level, 
+312: 	   eblock->call_type < 0 ? "*unset*" : call_typenames[eblock->call_type], 
+313: 	   call_statenames[_setup.call_state]);
+314: 
+315:   // process control functions -- will skip if skipping
+316:   if ((eblock->o_name != 0) || _setup.mdi_interrupt)  {
+317:       status = convert_control_functions(eblock, &_setup);
+318:       CHP(status); // relinquish control if INTERP_EXECUTE_FINISH, INTERP_ERROR etc
+319:       
+320:       // let MDI code call subroutines.
+321:       // !!!KL not clear what happens if last execution failed while in
+322:       // !!!KL a subroutine
+323: 
+324:       // NOTE: the last executed file will still be open, because "close"
+325:       // is really a lazy close.
+326:     
+327:       // we had an INTERP_OK, so no need to set up another call to finish after sync()
+328:       if (_setup.mdi_interrupt) {
+329: 	  _setup.mdi_interrupt = false;
+330: 	  MDImode = 1;
+331:       }
+332:       logDebug("!!!KL Open file is:%s:", _setup.filename);
+333:       logDebug("MDImode = %d", MDImode);
+334:       while(MDImode && _setup.call_level) // we are still in a subroutine
+335:       {
+336:           status = read(0);  // reads from current file and calls parse
+337: 	  if (status > INTERP_MIN_ERROR)
+338: 	      CHP(status);
+339:           status = execute();  // special handling for mdi errors
+340:           if (status != INTERP_OK) {
+341: 	      if (status == INTERP_EXECUTE_FINISH) {
+342: 		  _setup.mdi_interrupt = true;
+343: 	      }
+344: 	      CHP(status);
+345:           }
+346:       }
+347:       _setup.mdi_interrupt = false;
+348:       if (MDImode) {
+349: 	  FINISH();
+350:           _setup.offset_map.clear();
+351:       }
+
+455: 	      // the remap phase indicator was returned.
+456: 	      // sanity:
+457: 	      if (cblock->remappings.find(- status) == cblock->remappings.end()) {
+458: 		  ERS("BUG: execute_block: got %d - not in remappings() !! (next_remap=%d)",- status,next_remap);
+459: 	      }
+460: 	      logRemap("initial phase %d",-status);
+461: 	      if (MDImode) {
+462: 		  // need to trigger execution of parsed _setup.block1 here
+463: 		  // replicate MDI oword execution code here
+464: 		  if ((eblock->o_name != 0) ||
+465: 		      (_setup.mdi_interrupt)) { 
+466: 
+467: 		      status = convert_control_functions(eblock, &_setup);
+468: 		      CHP(status);
+469: 		      if (_setup.mdi_interrupt) {
+470: 			  _setup.mdi_interrupt = false;
+471: 			  MDImode = 1;
+472: 		      }
+473: 		      status = INTERP_OK;
+474: 		      while(MDImode && _setup.call_level) { // we are still in a subroutine
+475: 			  CHP(read(0));  // reads from current file and calls parse
+476: 			  status = execute();  // special handling for mdi errors
+477: 			  if (status == INTERP_EXECUTE_FINISH) 
+478: 			      _setup.mdi_interrupt = true;
+479: 			  CHP(status);
+480: 		      }
+481: 		      _setup.mdi_interrupt = false;
+482: 		      // at this point the MDI execution of a remapped block is complete.
+483: 		      logRemap("MDI remap execution complete status=%s\n",interp_status(status));
+484: 		      write_g_codes(eblock, &_setup);
+485: 		      write_m_codes(eblock, &_setup);
+486: 		      write_settings(&_setup);
+487: 		      return INTERP_OK;
+
+FILE /tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/src/interp_o_word.cc
+SHA256 f8c8c49690fedb506570dea58e94c32bbe7063f3f5875da77e691939fe28daf0
+
+93: int Interp::control_save_offset(block_pointer block,        /* pointer to a block of RS274/NGC instructions */
+94: 				setup_pointer settings)     /* pointer to machine settings */
+95: {
+96:     static char name[] = "control_save_offset";
+97:     offset_pointer op = NULL;
+98: 
+99:     logOword("Entered:%s for o_name:|%s|", name, block->o_name);
+100: 
+101:     if (control_find_oword(block, settings, &op) == INTERP_OK) {
+102: 	if (settings->sequence_number -1 == op->sequence_number)
+103: 	    // hit this definition before; must be in illegal location
+104: 	    ERS(_("File:%s line:%d sub: o|%s| found in illegal location"),
+105: 		settings->filename, settings->sequence_number, block->o_name);
+106: 	else
+107: 	    // already exists
+108: 	    ERS(_("File:%s line:%d redefining sub: o|%s| already defined in file:%s"),
+109: 		settings->filename, settings->sequence_number,
+110: 		block->o_name,
+111: 		op->filename);
+112:     }
+113:     offset new_offset;
+114: 
+115:     new_offset.type = block->o_type;
+116:     new_offset.offset = block->offset;
+117:     new_offset.filename = strstore(settings->filename);
+118:     new_offset.repeat_count = -1;
+119:     // the sequence number has already been bumped, so save
+120:     // the proper value
+121:     new_offset.sequence_number = settings->sequence_number - 1;
+122:     settings->offset_map[block->o_name] = new_offset;
+123:     return INTERP_OK;
+124: }
+
+549:     it = settings->offset_map.find(basename(block->o_name));
+550: 
+551:     // #1 already defined
+552:     if (it != settings->offset_map.end()) {
+553: 	op = &it->second;
+554: 	if ((settings->filename[0] != 0) &
+555: 	    (settings->file_pointer == NULL))  {
+556: 	    ERS(NCE_FILE_NOT_OPEN);
+557: 	}
+558: 	if (0 != strcmp(settings->filename,
+559: 			op->filename)) {
+560: 	    // open the new file...
+561: 	    newFP = fopen(op->filename, "r");
+562: 	    // set the line number
+563: 	    settings->sequence_number = 0;
+564:             if (strlen(op->filename) >= sizeof(settings->filename)) {
+565:                 fclose(settings->file_pointer);
+566:                 logOword("filename too long: %s", op->filename);
+567:                 ERS(NCE_UNABLE_TO_OPEN_FILE, op->filename);
+568:             }
+569:             strncpy(settings->filename, op->filename, sizeof(settings->filename));
+570: 
+571: 	    if (newFP) {
+572: 		// close the old file...
+573: 		if (settings->file_pointer) // only close if it was open
+574: 		    fclose(settings->file_pointer);
+575: 		settings->file_pointer = newFP;
+576: 	    } else {
+577: 		logOword("Unable to open file: %s", settings->filename);
+578: 		ERS(NCE_UNABLE_TO_OPEN_FILE,settings->filename);
+579: 	    }
+580: 	}
+581: 	if (settings->file_pointer) { // only seek if it was open
+582: 	    fseek(settings->file_pointer,
+583: 		  op->offset, SEEK_SET);
+584: 	}
+585: 	settings->sequence_number = op->sequence_number;
+586: 	return INTERP_OK;
+587:     }
+588: 
+589:     // #2 open the File
+590:     newFP = find_ngc_file(settings, block->o_name, newFileName);
+
+FILE /tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/src/emctaskmain.cc
+SHA256 1c0fad637343e7a86c8f0c1b6b8b38c61b12d10c67da365883d09a8f19dc468e
+
+682:     // determine when a MDI command actually finishes normally.
+683:     if (interp_list.len() == 0 &&
+684: 	emcTaskCommand == 0 &&
+685: 	emcStatus->task.execState ==  EMC_TASK_EXEC_DONE && 
+686: 	emcStatus->task.interpState != EMC_TASK_INTERP_IDLE && 
+687: 	emcStatus->motion.traj.queue == 0 &&
+688: 	emcStatus->io.status == RCS_DONE && 
+689: 	!mdi_execute_wait && 
+690: 	!mdi_execute_next) {
+691: 
+692: 	// finished. Check for dequeuing of queued MDI command is done in emcTaskPlan().
+693: 	if (emc_debug & EMC_DEBUG_TASK_ISSUE)
+694: 	    rcs_print("mdi_execute_hook: MDI command '%s' done (remaining: %d)\n",
+695: 		      emcStatus->task.command, mdi_input_queue.len());
+696: 	emcStatus->task.command[0] = 0;
+697: 	emcStatus->task.interpState = EMC_TASK_INTERP_IDLE;
+698:     }
+699: 
+
+2228: 		rtapi_strxcpy(emcStatus->task.command, execute_msg->command);
+2229: 	    }
+2230: 
+2231: 	    int level = emcTaskPlanLevel();
+2232: 	    if (emcStatus->task.mode == EMC_TASK_MODE_MDI) {
+2233: 		if (mdi_execute_level < 0)
+2234: 		    mdi_execute_level = level;
+2235: 	    }
+2236: 
+2237: 	    execRetval = emcTaskPlanExecute(command, 0);
+2238: 
+2239: 	    level = emcTaskPlanLevel();
+2240: 
+2241: 	    if (emcStatus->task.mode == EMC_TASK_MODE_MDI) {
+2242: 		if (mdi_execute_level == level) {
+2243: 		    mdi_execute_level = -1;
+2244: 		} else if (level > 0) {
+2245: 		    // Still insude call. Need another execute(0) call
+2246: 		    // but only if we didn't encounter an error
+2247: 		    if (execRetval == INTERP_ERROR) {
+2248: 			mdi_execute_next = 0;
+2249: 		    } else {
+2250: 			mdi_execute_next = 1;
+2251: 		    }
+2252: 		}
+
+2265: 		retval = 0;
+2266: 		break;
+2267: 
+2268: 	    case INTERP_ERROR:
+2269: 		// emcStatus->task.interpState =  EMC_TASK_INTERP_WAITING;
+2270: 		interp_list.clear();
+2271: 		// abort everything
+2272: 		emcTaskAbort();
+2273: 		emcIoAbort(EMC_ABORT_INTERPRETER_ERROR_MDI);
+2274: 	    for (int s = 0; s < emcStatus->motion.traj.spindles; s++) emcSpindleAbort(s);
+2275: 		mdi_execute_abort(); // sets emcStatus->task.interpState to  EMC_TASK_INTERP_IDLE
+2276: 		emcAbortCleanup(EMC_ABORT_INTERPRETER_ERROR_MDI, "interpreter error during MDI");
+2277: 		retval = -1;
+2278: 		break;
+2279: 
+2280: 	    case INTERP_EXIT:
+2281: 	    case INTERP_ENDFILE:
+2282: 	    case INTERP_FILE_NOT_OPEN:
+2283: 		// this caused the error msg on M2 in MDI mode - execRetval == INTERP_EXIT which is would be ok (I think). mah
+2284: 		retval = -1;
+2285: 		break;
+2286: 
+2287: 	    default:
+2288: 		// other codes are OK
+2289: 		retval = 0;
+2290: 	    }
+2291: 	}
+2292: 	break;
+
+FILE /tmp/codex-r69-1gzigl34/lcnc-gateway/gateway.py
+SHA256 bd60ef43a8d5c2b54ac1be2fb2d4a29d961bfc204e104c856e15f5e2e26051b6
+
+2945:     return origin, size
+2946: 
+2947: 
+2948: async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT) -> int:
+2949:     """Run a blocking CMD.* call + optional wait_complete() on a worker thread.
+2950: 
+2951:     Every `CMD.* + wait_complete()` pair must go through here. Returns
+2952:     wait_complete()'s int result — linuxcnc.RCS_DONE (1) on success,
+2953:     linuxcnc.RCS_ERROR (3) when the command was rejected, -1 on timeout,
+2954:     _RC_WAIT_CANCELLED (-2) when the wait was abandoned on cancel — or 0
+2955:     when wait=None. (An earlier version of this docstring said "0 ok, 1
+2956:     failed", which is not the API: the first rc check written against it
+2957:     counted every success as a failure. Use _cmd_rc_failed.)
+2958: 
+2959:     GIL fact (2.9.4 emcmodule.cc, verified 2026-09-05): the binding's
+2960:     wait_complete() is a C poll loop that esleep()s WITHOUT releasing the
+2961:     GIL — `asyncio.to_thread` isolates nothing for that half; a
+2962:     wait_complete(30) would freeze the event loop (heartbeat task, status
+2963:     loop) for as long as the command ran. Live it never showed because every
+2964:     awaited command so far completes in ms. So the wait runs in
+2965:     _CMD_WAIT_SLICE slices: repeated wait_complete(t) calls re-poll the same
+2966:     stored serial (N slices ≡ one long wait to 10 ms), each return lets the
+2967:     loop breathe, and a cancel lands after the current slice. The command
+2968:     WRITE `cmd_fn(*args)` is never interrupted.
+2969: 
+2970:     Caller must hold `_cmd_lock` — NML command channel is not thread-safe.
+2971:     """
+2972:     cancel = threading.Event()
+2973: 
+2974:     def _run():
+2975:         cmd_fn(*args)
+2976:         if wait is None:
+2977:             return 0
+2978:         deadline = time.monotonic() + float(wait)
+2979:         while True:
+2980:             remaining = deadline - time.monotonic()
+
+3010: async def set_mode(mode: int):
+3011:     """Switch LinuxCNC task mode. Caller must hold `_cmd_lock`.
+3012: 
+3013:     A refused or timed-out switch RAISES (ValueError → the dispatcher's
+3014:     bounded ok:false reply). It used to discard the rc while nine other
+3015:     call sites checked theirs — a handler then issued its MDI into the
+3016:     wrong mode and reported ok (2026-09-04)."""
+3017:     STAT.poll()
+3018:     if safe_get("task_mode", None) == mode:
+3019:         if mode in (linuxcnc.MODE_MDI, linuxcnc.MODE_AUTO):
+3020:             _active_jogs.clear()   # task cannot be in MDI/AUTO with a jog active
+3021:         return
+3022:     rc = await _cmd_blocking(CMD.mode, mode)
+3023:     if _cmd_rc_failed(rc):
+3024:         _trace.emit("task.mode_switch_refused", level="warn", mode=mode, rc=rc)
+3025:         raise ValueError(f"LinuxCNC refused the mode switch to {_MODE_NAMES.get(mode, mode)} (rc={rc})")
+
+3750:     return file_ok, mdi_ok
+3751: 
+3752: 
+3753: async def handle_command(msg: Dict[str, Any], armed: bool):
+3754:     # Acquire the CMD lock before dispatching. Every path that touches CMD.*
+3755:     # must hold this lock; see _cmd_lock docstring.
+3756:     async with _get_cmd_lock():
+3757:         return await _handle_command_impl(msg, armed)
+3758: 
+3759: 
+3760: async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
+3761:     global _estop_hold, _skip_flag_unknown
+3762:     cmd = msg.get("cmd")
+3763:     if not cmd:
+3764:         return {"ok": False, "error": "Missing cmd"}
+
+3947:         if cmd == "mdi":
+3948:             require_armed(armed)
+3949: 
+3950:             blocked = reject_if_auto_running()
+3951:             if blocked:
+3952:                 return blocked
+3953: 
+3954:             text = msg.get("text", "")
+3955: 
+3956:             if not isinstance(text, str) or not text.strip():
+3957:                 return {"ok": False, "error": "Missing text"}
+3958:             # `vars`: the routine's parameters, set FIRST and in this same
+3959:             # command — the line goes only once the interpreter took them
+3960:             # (Codex R16 XZ-06). Two commands left the continuation in the
+3961:             # browser between them, where an abort (any client's) never
+3962:             # reached it; here it cancels this handler (_preempt_inflight).
+3963:             vars_to_set = msg.get("vars")
+3964:             if vars_to_set is not None and (not isinstance(vars_to_set, dict) or not vars_to_set):
+3965:                 return {"ok": False, "error": "Missing vars dict"}
+3966:             refused = await _start_guard(armed, clears_flag=vars_to_set is not None)
+3967:             if refused:
+3968:                 return refused
+3969:             reply = {"ok": True}
+3970:             if vars_to_set is not None:
+3971:                 file_ok, mdi_ok = await _apply_probe_vars(_skip_flag_cleared(vars_to_set), armed)
+3972:                 if not mdi_ok:
+3973:                     return {"ok": False, "error": "Parameters not taken over — nothing started",
+3974:                             "file_saved": file_ok, "mdi_set": False}
+3975:                 reply.update(file_saved=file_ok, mdi_set=True)
+3976:             if "3116" in text:
+3977:                 # The operator's own line names the flag: no longer known.
+3978:                 _skip_flag_unknown = True
+3979:             await set_mode(linuxcnc.MODE_MDI)
+3980:             await _cmd_blocking(CMD.mdi, text, wait=None)
+3981:             return reply
+3982: 
+3983:         if cmd == "set_kins_mode":
+3984:             # Kinematics-frame selector (JogStrip), as a TYPED command so the
+3985:             # Plane frame has a backend admission rule (TWP-04): a bare M430
+3986:             # reuses whatever the kins pins last held, so it is refused unless
+3987:             # a plane is defined and the HEAD is still aligned with it (the
+3988:             # A/B/C orient stamp vs the live rotaries —
+3989:             # command_policy.plane_frame_check, the same rule the planeFrame
+3990:             # permission dims the radio with). A raw `mdi M430` stays raw,
+3991:             # like G69.
+3992:             #
+3993:             # `mode` is SEMANTIC (0 Machine / 1 TCP / 2 Plane). Both halves of
+3994:             # the translation to a command are per-configuration (R-01,
+3995:             # implementation review 2026-09-15): which RAW switchkins type is
+3996:             # identity depends on the kins family and `sparm=identityfirst`,
+3997:             # and which M-code selects that raw type depends on the machine's
+
+6626: async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
+6627:                                replace: bool = True) -> int:
+6628:     """Stream an async iterator of byte chunks to ``dest_path`` atomically and
+6629:     bounded, keeping the event loop free. Shared core for ``POST /upload``
+6630:     (multipart) and ``PUT /save`` (raw body) — one machinery, not two.
+6631: 
+6632:     Every blocking disk op (mkstemp/write/flush/fsync/close/replace/unlink) is
+6633:     offloaded via run_in_executor, so a slow disk, an fsync, or a large file
+6634:     can't stall the HAL heartbeat (#35). The body is never materialized whole —
+6635:     that also avoids the multi-MB allocation burst that feeds gen-2 GC (mmw#4).
+6636: 
+6637:     Bounded: rejects with 413 the instant the running byte count exceeds
+6638:     ``max_bytes`` (no oversized buffering). Atomic + durable: writes to a
+6639:     ``.part`` temp in the destination dir, fsyncs, then publishes — with
+6640:     ``os.replace`` when ``replace`` is set, else ``os.link`` which refuses an
+6641:     existing name with 409 (UI-09: an upload never silently overwrites) — and
+6642:     removes the temp on ANY failure, so LinuxCNC never sees a partial file.
+6643:     Returns the number of bytes written.
+6644:     """
+6645:     loop = asyncio.get_event_loop()
+
+6662:                         continue
+6663:                     written += len(chunk)
+6664:                     if written > max_bytes:
+6665:                         raise HTTPException(status_code=413, detail="File too large (max 50 MB)")
+6666:                     await loop.run_in_executor(io_ex, f.write, chunk)
+6667:                 await loop.run_in_executor(io_ex, lambda: (f.flush(), os.fsync(f.fileno())))
+6668:             finally:
+6669:                 await loop.run_in_executor(io_ex, f.close)
+6670:             if replace:
+6671:                 await loop.run_in_executor(io_ex, os.replace, tmp, dest_path)
+6672:                 tmp = None  # published — don't unlink in finally
+6673:             else:
+6674:                 await loop.run_in_executor(io_ex, _publish_no_replace, tmp, dest_path)
+6675:                 # linked — the temp name is unlinked in finally; the data is
+6676:                 # already durable under dest_path.
+6677:             return written
+6678:         finally:
+6679:             if tmp is not None:
+6680:                 await loop.run_in_executor(io_ex, _safe_unlink, tmp)
+
+6700: async def upload_gcode(file: UploadFile = File(...), overwrite: int = Query(0)):
+6701:     """Upload a G-code file to the NC files directory.
+6702: 
+6703:     ``overwrite=0`` (default) never replaces an existing program: a name clash
+6704:     answers 409 ``{"error": "exists", "filename"}`` and the client asks the
+6705:     operator (Cancel / Rename / Replace). ``overwrite=1`` replaces atomically.
+6706:     """
+6707:     if not file.filename:
+6708:         raise HTTPException(status_code=400, detail="No filename provided")
+6709: 
+6710:     safe_name = sanitize_filename(file.filename)
+6711:     if not validate_extension(safe_name):
+6712:         raise HTTPException(
+6713:             status_code=400,
+6714:             detail=f"Invalid file extension. Allowed: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
+6715:         )
+6716: 
+6717:     nc_dir = get_nc_files_dir()
+6718:     dest_path = os.path.join(nc_dir, safe_name)
+6719: 
+6720:     if not validate_path_within(dest_path, nc_dir):
+6721:         raise HTTPException(status_code=400, detail="Invalid filename")
+6722: 
+6723:     try:
+6724:         size = await _atomic_stream_upload(file, dest_path, MAX_UPLOAD_SIZE,
+6725:                                            replace=bool(overwrite))
+6726:     except HTTPException:
+6727:         raise
+6728:     except Exception as e:
+6729:         raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
+6730: 
+6731:     return {"ok": True, "path": dest_path, "filename": safe_name, "size": size}
+6732: 
+6733: 
+6734: @app.put("/save", dependencies=[Depends(require_token)])
+6735: async def save_gcode(request: Request, path: str = Query(...)):
+6736:     """Save edited G-code content back to an existing file.
+6737: 
+6738:     The body is the RAW UTF-8 text, not JSON (#35): a 50 MB `JSON.stringify` on the
+6739:     browser main thread blocked it for seconds and starved the client heartbeat (the
+6740:     gateway never even saw the request — so it never showed as an HB-WAKE). Reading the
+6741:     raw body is async network I/O (no loop block), and it arrives already UTF-8-encoded,
+6742:     so there's no on-loop encode either. Only the atomic write+fsync is offloaded.
+6743:     """
+6744:     nc_dir = get_nc_files_dir()
+6745:     abs_path = os.path.abspath(path)
+6746: 
+6747:     if not validate_path_within(abs_path, nc_dir):
+6748:         raise HTTPException(status_code=400, detail="Path outside NC files directory")
+6749: 
+6750:     if not validate_extension(abs_path):
+6751:         raise HTTPException(
+6752:             status_code=400,
+6753:             detail=f"Invalid file extension. Allowed: {', '.join(sorted(ALLOWED_EXTENSIONS))}"
+6754:         )
+6755: 
+6756:     if not os.path.isfile(abs_path):
+6757:         raise HTTPException(status_code=404, detail="File not found")
+6758: 
+6759:     # Stream the raw UTF-8 body through the same bounded atomic chunk-writer as
+6760:     # /upload (one machinery, not two): the ≤50 MB body is never materialized as
+6761:     # one bytes object (request.body() buffered it whole in RAM), the size bound
+6762:     # rejects mid-stream, and write/fsync/replace serialize off the loop —
+6763:     # LinuxCNC never sees a half-written file.
+6764:     try:
+6765:         size = await _atomic_stream_write(request.stream(), abs_path, MAX_UPLOAD_SIZE)
+6766:     except HTTPException:
+6767:         raise
+6768:     except Exception as e:
+6769:         raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
+6770: 
+6771:     return {"ok": True, "path": abs_path, "size": size}
+6772: 
+6773: 
+6774: # ---- CAM Tool Library Import ----
+6775: 
+
+FILE /tmp/codex-r69-1gzigl34/docs/reviews/makros.plan.md
+SHA256 de3085b82e622913f412ebb988cbbb9b419b3886d62b435aea9376ed71444941
+
+237: - **`PUT /macro?name=&base=<revision>`:** Speichern MIT Konfliktschutz.
+238:   - `base` muss die Revision der Datei auf der Platte sein, sonst 409 mit der aktuellen Revision.
+239:   - `base=new` legt an und scheitert, wenn es den Namen gibt (`os.link`, wie `/upload`).
+240:   - Atomar über `_atomic_stream_write`, unter einer Makrosperre.
+241: - **`POST /macro-upload[?overwrite=1]`:** Import. Name und Kopf werden geprüft, wie `/upload`
+242:   (409 ohne `overwrite`).
+243: - **`DELETE /macro?name=&base=`:** löschen, mit Konfliktschutz.
+244: - **Export** = der Download von `GET /macro` als Datei. Der Browser speichert ihn.
+245: - **Sperren:**
+246:   - Schreibrouten werden abgelehnt, solange der Interpreter nicht ruht („A macro or program
+247:     runs — wait“).
+248:   - Damit ändert die Oberfläche keine Datei, die gerade läuft.
+249:   - Benannte Grenze: Ein Editor außerhalb der Suite kann das nicht verhindern.
+250: 
+251: **Ausführen: neues WS-Kommando `run_macro {name, args, revision}`**
+252: 
+253: - **Ablauf:**
+254:   - Das Gateway baut den Aufruf selbst: `o<name> call [a1] [a2] …`, Zahlen formatiert wie
+255:     `#N=`-Werte.
+256:   - Vorher prüft es Folgendes, und zwar unter der Makrosperre:
+257:     - Name gültig und ausführbar;
+258:     - Anzahl und Bereich der Argumente laut Kopf (ganzzahlig, wo `integer`);
+259:     - `revision` gleich der Datei auf der Platte. Sonst: „Macro changed — hold again“.
+260:     - die gebaute Zeile höchstens 254 Zeichen (`LINELEN`, `interp_read.cc:3140`). Sonst wird
+261:       abgelehnt, nie gekürzt.
+262:   - Danach `_start_guard`, `set_mode(MDI)`, MDI.
+263: - **Gate:** `probe` im Gateway (`COMMAND_GATES`), gleich dem Client und dem Katalogtyp `macro`.
+264:   Heute prüft das Gateway für Makros nur `ready`; das ist eine Verschärfung.
+265: - **Schema:**
+266:   - `COMMAND_SCHEMA`: Name als Muster, Argumente als Liste von höchstens 30 endlichen Zahlen,
+267:     Revision als 64 Hexzeichen.
+268:   - `commandPath.test.ts` bekommt das Kommando.
+269: - Das rohe `mdi` bleibt für den MDI-Tab und die Settings-Makros unverändert.
+
+283: - **Regeln für die Beispiele:**
+284:   - Jeder Rückzug hebt nur (`#<_abs_z>`-Schutz wie `go_to_zero.ngc`).
+285:   - Wer `G53` fährt oder `o<go_to_g30>` ruft, trägt `(FRAME machine)`: Park und Go to G30.
+286:   - Kein Makro hinterlässt einen anderen modalen Zustand als vorher (G90/G91, G20/G21, Vorschub),
+287:     sichtbar am Ende der Datei.
+288: - **Abnahme am Sim:**
+289:   - Park und Go to G30 unter TCP abgelehnt („Machine frame only“), am Button gedimmt mit Grund.
+290:   - jedes Beispiel einmal am XYZAC-Sim mit Ergebnis;
+291:   - Park und Go to G30 aus beiden Z-Lagen, die Z-Prüfung wie in `twp_buttons_check.py`.
+
+352: **Der Editor**
+353: 
+354: - CodeMirror wird aus `GcodePanel.vue` in eine Komponente `CodeEditor.vue` herausgelöst:
+355:   - Sprache, Thema und Bildschirmtastatur (`editorTarget`);
+356:   - Sitzungsnummer gegen späte Antworten;
+357:   - eigener Eingabebesitzer je Verwendung.
+358: - `GcodePanel` behält seine Programmsitzung, Verhalten unverändert; die vorhandenen Editor-Tests
+359:   sind die Probe.
+360: - **Makrositzung:** `{name, revision, original}`.
+361:   - Save sendet `base = revision`. Ein 409 zeigt „Changed on disk“ mit „Reload“ und „Keep
+362:     editing“, nie ein stilles Überschreiben.
+363:   - Gespeichert wird nur die Sitzungsdatei; danach wird nichts als Programm geladen.
+364: - Der Kopf wird beim Speichern vom Gateway geprüft. Ein Kopffehler speichert trotzdem (die Datei
+365:   gehört dem Operator), das Makro ist dann aber nicht ausführbar und der Fehler steht beim Editor.
+366: - **Entwurfswache:** Tabwechsel, Wahl eines anderen Makros und „Neu“ fragen „Discard changes?“
+367:   (Keep editing / Discard), wie der Werkzeugeditor.
+368: - Der Tab-Wächter von App (`activeTab`) sperrt die Editorsitzung beim Wechsel, wie beim G-Code.
+369: 
+370: **Die Settings-Makros**
+371: 
+372: - Sie bleiben, laufen weiter und stehen weiter auf der Leiste, vor den Dateimakros.
+373: - Ihr Editor zieht aus Settings in den Tab als Gruppe „Earlier macros“. Settings › Macros entfällt;
+374:   der Unterreiter nennt keinen Ersatz mehr, weil es nur EINEN Ort gibt.
+375: - **„Convert to file“** je Eintrag, nur auf Wunsch:
+376:   - schreibt `name.ngc` mit `o<name> sub`, der MDI-Zeile und den Parametern als `PARAM` (`{x}` wird
+377:     zu `#n`);
+378:   - die Einstellung bleibt, bis der Operator sie löscht.
+379:   - Ein Name, der schon existiert, wird nicht überschrieben (`base=new`).
+
+401: **Der einzige Cache.** `_setup.offset_map` merkt sich je Name Datei, Byte-Offset der
+402: `o<name> sub`-Zeile und Zeilennummer (`interp_o_word.cc:93-124`). Inhalt wird nicht gehalten,
+403: Datei-Identität und mtime nicht geprüft.
+404: 
+405: **Ein bekannter Name** wird nicht neu gesucht: Datei öffnen, `fseek` auf den alten Offset, weiter
+406: (`interp_o_word.cc:549-586`). Wurde die Datei inzwischen geändert, läuft der Interpreter an der
+407: alten Byte-Stelle in den neuen Text. Er kann Zeilen vor dem Kopf ausführen, Zeilen überspringen
+408: oder ein Bruchstück wie `z-5` als Zeile nehmen.
+409: 
+410: **Wann der Cache leer ist:**
+411: - Am Ende jedes MDI-`o<…> call` auf Ebene 0 (`rs274ngc_pre.cc:348-351`). **Jeder `run_macro`-Aufruf
+412:   sucht und liest die Datei also neu**: Änderungen zwischen zwei Aufrufen greifen, auch von
+413:   außen.
+414: - Bei Fehler, Abort, M2/M30, Programm-Öffnen und jedem Moduswechsel nach MDI oder AUTO (über
+415:   `unwind_call`/`reset`).
+416: - NICHT bei `synch()`, Pause/Weiter, und nicht am Ende einer MDI-Remap-Ausführung
+417:   (`rs274ngc_pre.cc:455-486`).
+418: 
+419: **Folgerungen für den Plan:**
+420: - Im MDI ist der Cache kein Problem: Jeder Aufruf beginnt leer.
+421: - Gefährlich ist eine Änderung, während ein PROGRAMM läuft, das das Makro per `o<…> call` aufruft.
+422:   Der Cache hält dann für den ganzen Lauf, und der Interpreter liest der Bewegung voraus.
+423:   - Darum lehnen die Schreibrouten ab, solange der Interpreter nicht ruht.
+424:   - Ein Editor außerhalb der Suite bleibt die benannte Grenze.
+425: - Höchstens 30 Argumente (`INTERP_SUB_PARAMS`). Nicht übergebene `#N+1…#30` sind im Unterprogramm
+426:   0, anders als die Doku sagt (`interp_read.cc:1781-1785`). `run_macro` übergibt deshalb immer
+427:   alle Parameter des Kopfs.
+428: - Verschachtelung höchstens 9 Ebenen einschließlich Remaps (`interp_o_word.cc:666-670`). Ein
+429:   Makro, das `o<go_to_g30>` ruft, braucht zwei.
+430: - Ein Python-o-Wort gleichen Namens hat Vorrang vor der Datei (`is_pycallable`). Das Gateway sieht
+431:   Python-o-Wörter nicht: benannte Grenze.
+432: 
+433: **Nebenbefund (außerhalb der Makros, nur benannt):** Eine MDI-Remap-Ausführung leert den Cache
+434: nicht. Wird eine Remap-Datei (etwa `m600.ngc`) zwischen zwei MDI-Aufrufen geändert, ohne dass
+435: dazwischen ein Moduswechsel, Abort oder MDI-o-Call liegt, läuft der zweite an der alten Stelle.
+436: Das Gateway überspringt den Moduswechsel, wenn die Maschine schon im MDI ist
+437: (`gateway.py:3018`).

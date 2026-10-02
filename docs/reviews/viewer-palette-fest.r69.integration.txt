@@ -1,0 +1,101 @@
+R69: immutable archive 04ef2e5; product tree equals integration 3c9cc25.
+All git commands below are read-only in the live checkout. No builds/tests there.
+
+$ git rev-parse 04ef2e5 3c9cc25 4b0326f
+04ef2e5ed7d59c5f82a9fb2e52fd604752c73fc8
+3c9cc2581d32a49cf707a952dcbdf2acccaa3316
+4b0326fc5c5880ab285af6cb1f612e103ced7a48
+
+
+$ git diff --name-status 3c9cc25 04ef2e5
+A	docs/reviews/makros.plan.f1.md
+A	docs/reviews/makros.plan.md
+
+
+$ git show --cc 3c9cc25
+commit 3c9cc2581d32a49cf707a952dcbdf2acccaa3316
+Merge: 68f26d3 4b0326f
+Author: bildobodo <160418175+bildobodo@users.noreply.github.com>
+Date:   Fri Oct 2 13:06:27 2026 +0200
+
+    Merge feat/viewer-marks into the backlog integration (operator accepted packages 2–4 from renders, 2026-10-02)
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+    
+    # Conflicts:
+    #       lcnc-webui/src/SettingsPanel.vue
+
+diff --cc lcnc-webui/src/SettingsPanel.vue
+index f00a163,d2d652a..5252e94
+--- a/lcnc-webui/src/SettingsPanel.vue
++++ b/lcnc-webui/src/SettingsPanel.vue
+@@@ -24,7 -24,7 +24,7 @@@ import 
+    loadKeyboardDefaults, type KeyboardDefaults, DEFAULT_KB_MAPPING,
+  } from "./defaults";
+  import { resolveViewerPalette, userColorsOf, USER_ROLES, type UserRole, type ViewerRole } from "./viewer/viewerPalette";
+- import { LAYER_COLUMNS, HUD_LAYER, type TwoTone } from "./viewerLayerGroups";
+ -import { LAYER_GROUPS, HUD_LAYER } from "./viewerLayerGroups";
+++import { LAYER_COLUMNS, HUD_LAYER } from "./viewerLayerGroups";
+  import { saveStatus, saveStatusText } from "./settingsSaveStatus";
+  import { fmtNum, fmtPct, fmtRatio } from "./format";
+  import { customContrastRows, customPairRows } from "./viewer/customContrast";
+
+
+$ git diff 10bbabc 4b0326f -- lcnc-webui/src/ThreeViewer.vue
+diff --git a/lcnc-webui/src/ThreeViewer.vue b/lcnc-webui/src/ThreeViewer.vue
+index ece68f3..647e024 100644
+--- a/lcnc-webui/src/ThreeViewer.vue
++++ b/lcnc-webui/src/ThreeViewer.vue
+@@ -617,11 +617,13 @@ function mkMarkerLabel(text: string): Text {
+   return t;
+ }
+ // The bounds' TYPE labels (package 4, plan Fassung 2 A'' — label variant
+-// (ii), Codex R62–R64's recommendation; the operator chooses from renders):
++// (ii), Codex R62–R64's recommendation, the operator's choice 2026-10-02):
+ // "Machine bounds" at the machine box's (max, max, max) corner, "Program
+ // bounds" at the toolpath box's (min, min, max) one — apart even where the
+-// two boxes coincide; CSS-px sized like a pin's label and drawn OVER
+-// everything, so a model part never hides it. Posed per frame.
++// two boxes coincide; CSS-px sized like a pin's label. A label is drawn over
++// the machine exactly when its BOX is (the layer's "On top", operator
++// 2026-10-02 — setLayerOnTop); otherwise a model part hides it like the box.
++// Posed per frame.
+ let _machineTypeLabel: THREE.Group | null = null;
+ let _programTypeLabel: THREE.Group | null = null;
+ /** Test seam: the operator's variant (i) render hides the type labels. */
+@@ -635,8 +637,7 @@ function _mkTypeLabel(text: string, name: string): THREE.Group {
+   t.anchorX = "left";
+   t.anchorY = "bottom";
+   g.add(t);
+-  applyOnTop(g, true, ON_TOP_ORDER.marker);
+-  g.visible = false;
++  g.visible = false;   // drawn on top or not by its box's layer (applyAllOnTop after the build)
+   return g;
+ }
+ /** Stand a type label at `at` (world), CSS-px sized, 6 px up-right on screen. */
+@@ -1429,8 +1430,14 @@ function setLayerOnTop(layer: OnTopLayer, on: boolean) {
+     case "toolpath": toolpath.setOnTop("feed", on); break;
+     case "rapids": toolpath.setOnTop("rapid", on); break;
+     case "backplot": backplot.setDepthTest(!on); break;
+-    case "toolpathBounds": toolpath.setBoxOnTop(on); break;
+-    case "bounds": applyOnTop(machineBoundsMesh, on, ON_TOP_ORDER.box); break;
++    case "toolpathBounds":
++      toolpath.setBoxOnTop(on);
++      applyOnTop(_programTypeLabel, on, ON_TOP_ORDER.marker);   // a box's label follows its box
++      break;
++    case "bounds":
++      applyOnTop(machineBoundsMesh, on, ON_TOP_ORDER.box);
++      applyOnTop(_machineTypeLabel, on, ON_TOP_ORDER.marker);
++      break;
+     case "reachRoom": applyOnTop(reachRoomMesh, on, ON_TOP_ORDER.reach); break;
+     case "reachPart": applyOnTop(reachPartMesh, on, ON_TOP_ORDER.reach); break;
+     case "workzero":
+@@ -2175,7 +2182,7 @@ async function buildFromInit(init: ViewerInit) {
+             if (!g || !camera || !renderer) return null;
+             const rect = renderer.domElement.getBoundingClientRect();
+             const v = g.getWorldPosition(new THREE.Vector3()).project(camera);
+-            // an outlined troika label draws two materials: both over everything
++            // an outlined troika label draws two materials: on top = both without a depth test
+             let onTop = true;
+             g.traverse(o => {
+               const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;

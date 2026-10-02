@@ -1,0 +1,20 @@
+[2m[WebServer] [22m(node:920890) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 9 tests using 1 worker
+
+(node:920933) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:920933) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/choices.spec.ts:135:1 › a reserved work offset stays focusable and explains itself where it is pressed — nothing is sent (2.0s)
+  ✓  2 e2e/layout.spec.ts:1655:3 › 5axis-xyzac desktop: rotary jog buttons share a column in landscape, the Setup axis actions are symbols (2.1s)
+  ✓  3 e2e/layout.spec.ts:1655:3 › 5axis-xyzac touch-landscape: rotary jog buttons share a column in landscape, the Setup axis actions are symbols (2.2s)
+  ✓  4 e2e/layout.spec.ts:1655:3 › 6axis-twp desktop: rotary jog buttons share a column in landscape, the Setup axis actions are symbols (2.3s)
+  ✓  5 e2e/layout.spec.ts:1655:3 › 5axis-xyzac touch-portrait: rotary jog buttons share a column in landscape, the Setup axis actions are symbols (2.0s)
+  ✓  6 e2e/layout.spec.ts:1713:1 › Settings: as wide as the tool editor, the 3D Viewer sections stacked with two columns inside, the layers in four groups (6.5s)
+  ✓  7 e2e/scenes.viewer.spec.ts:748:1 › the toolpath box's end marks stand off the background and the model in four themes; the type labels stand apart (25.6s)
+  ✓  8 e2e/scenes.viewer.spec.ts:1052:1 › CSS-px objects keep their size in every drawn frame of a view animation (Codex R67) (4.8s)
+  ✓  9 e2e/toolsetter.viewer.spec.ts:331:1 › Settings › Layers: an On top column for lines and markers, saved per layer (3.7s)
+
+  9 passed (52.2s)
