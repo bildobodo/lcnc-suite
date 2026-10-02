@@ -3,7 +3,7 @@
 // switch in Settings. defaults.ts reaches the DOM at import, so its
 // ALL_LAYERS literal is read from the source.
 import { describe, it, expect } from "vitest";
-import { HUD_LAYER, LAYER_GROUPS } from "./viewerLayerGroups";
+import { HUD_LAYER, LAYER_COLUMNS, LAYER_GROUPS } from "./viewerLayerGroups";
 import defaultsSrc from "./defaults.ts?raw";
 
 const ALL = [...(defaultsSrc.match(/export const ALL_LAYERS: Layer\[\] = \[([^\]]*)\]/)?.[1] ?? "")
@@ -21,5 +21,11 @@ describe("viewerLayerGroups", () => {
     const groupOf = (k: string) => LAYER_GROUPS.find(g => g.rows.some(r => r.key === k))?.id;
     expect(["toolpath", "rapids", "backplot"].map(groupOf)).toEqual(["program", "program", "program"]);
     expect(["toolpathBounds", "bounds", "reachRoom", "reachPart"].map(groupOf)).toEqual(["bounds", "bounds", "bounds", "bounds"]);
+  });
+
+  it("reads the groups column by column in their order — two columns, every group once", () => {
+    expect(LAYER_COLUMNS.length).toBe(2);
+    expect(LAYER_COLUMNS.flat().map(g => g.id)).toEqual(LAYER_GROUPS.map(g => g.id));
+    for (const col of LAYER_COLUMNS) expect(col.length, "no empty column").toBeGreaterThan(0);
   });
 });
