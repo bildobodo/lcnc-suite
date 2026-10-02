@@ -236,6 +236,8 @@ o<face_top> endsub
 - **Der Einstieg** (VP69-04, Pflicht ab dem ersten `length`-, `feed`- oder `rpm`-Parameter):
   - Die erste ausführbare Zeile des Rumpfs ist `M73`. Sie sichert die modalen Zustände und stellt
     sie bei `endsub`/`return` wieder her (LinuxCNC M70/M73).
+  - Getrennte Zeilen machen die Reihenfolge unabhängig von der Ausführungsreihenfolge innerhalb
+    einer Zeile: Gesichert wird sicher VOR dem Umstellen.
   - Die zweite setzt, wovon die Parameter abhängen:
     - `G21` bzw. `G20` passend zu `UNITS`;
     - `G94`, wenn ein `feed`-Parameter da ist;
@@ -306,6 +308,12 @@ schon einer offen ist (konkurrierende MDI- und AUTO-Starts).
   - Diese Funktion setzt unter `_source_lock` den Anspruch `_source_claim` mit der
     Seriennummer des Befehls und sendet dann.
   - Ein Quelltest (wie `TestCoverage`) verbietet `CMD.mdi`/`CMD.auto` an jeder anderen Stelle.
+- **Dauer des Anspruchs:**
+  - Ein MDI-Start (Makro, MDI-Zeile) hält ihn bis zum Ende dieses Befehls.
+  - Ein AUTO-Start hält ihn für den GANZEN Lauf: Der Interpreter liest gerufene Dateien während
+    des Laufs, IDLE kommt erst am Programmende.
+  - Solange sind Makro-Schreiber und gleichnamige Programm-Uploads abgelehnt. Programm-Uploads
+    mit anderen Namen bleiben frei.
 - **Freigabe des Anspruchs:**
   - NUR der Statuslauf gibt ihn frei, wenn der Controller nachweislich fertig ist:
     `echo_serial_number` ≥ Seriennummer, Befehlsstatus nicht `RCS_EXEC`, Interpreter `IDLE`, in
@@ -314,6 +322,10 @@ schon einer offen ist (konkurrierende MDI- und AUTO-Starts).
     `finally` im Handler berührt ihn nicht.
   - Abort und E-Stop bleiben jederzeit erreichbar; der Anspruch hält keine Befehlssperre. Nach
     einem Abort gibt ihn derselbe Nachweis frei.
+  - Ein Anspruch, den kein Nachweis mehr freigeben kann, verfällt nur mit einem neuen Binden an
+    eine LinuxCNC-Instanz oder einem Gateway-Neustart. Er wird mit dem Grund getraced
+    (`macro.claim_dropped`) und im Tab als Grund der Ablehnung genannt. Er läuft nie auf einer
+    Zeituhr ab.
 - **Makro-Schreiber** (PUT, Import, DELETE, „Convert to file“):
   - Der langsame Teil (Empfangen, temporäre Datei) läuft außerhalb der Sperre.
   - Unmittelbar vor dem atomaren Veröffentlichen prüft der Schreiber unter `_source_lock`
@@ -329,8 +341,10 @@ schon einer offen ist (konkurrierende MDI- und AUTO-Starts).
   - Neu ist allein die Namensprüfung unten. Sie läuft unter `_source_lock` unmittelbar vor dem
     Veröffentlichen.
 - **Vorrangige Namen:**
-  - `/upload` und `/save` lehnen einen Dateinamen ab, der `<makro>.ngc` eines vorhandenen Makros
-    ist („Name taken by a macro“).
+  - `/upload` und `/save` lehnen einen Dateinamen ab, der genau `<makro>.ngc` eines vorhandenen
+    Makros ist („Name taken by a macro“). Genau diesen Namen öffnet der Interpreter: Er schreibt
+    den o-Wort-Namen klein und hängt `.ngc` an. `Park.ngc` oder `park.NGC` verdecken `park.ngc`
+    auf einem Dateisystem mit Groß-/Kleinschreibung nicht (benannte Annahme: Linux ext4/xfs).
   - Umgekehrt lehnen die Makrorouten einen Namen ab, den es in `PROGRAM_PREFIX` gibt. Beides
     unter `_source_lock`.
   - Damit kann kein Suite-Schreiber ein Makro verdecken, auch nicht zwischen Prüfung und Lesen.
@@ -380,18 +394,41 @@ schon einer offen ist (konkurrierende MDI- und AUTO-Starts).
     - danach `emcTaskPlanSynch()`.
     - `ON_ABORT_COMMAND` läuft dabei nicht; es hängt an `emcAbortCleanup` (`emctask.cc:745`),
       nicht an `emcTaskAbort`.
-  - Der Moduswechsel wird verifiziert wie heute (`set_mode` prüft, dass task gewechselt hat).
-    Erst danach geht der Aufruf hinaus.
+  - **Wann LinuxCNC den Wechsel ignoriert:**
+    - `emcTaskSetMode` kehrt ohne Reset zurück, solange `jogging_is_active()` gilt
+      (`emctask.cc:268-271`, Meldung „Ignoring task mode change while jogging“). Die Antwort ist
+      trotzdem 0.
+    - Ein MDI→MDI-Wechsel zeigt danach denselben Modus wie vorher; die heutige Prüfung von
+      `set_mode` (Modus vorher/nachher) kann „Reset geschehen“ und „ignoriert“ also nicht
+      unterscheiden.
+  - **Die Bedingung wird deshalb selbst geprüft, an ihrer Quelle:**
+    - `jogging_is_active()` liest `emcStatus->motion.jogging_active` (`emctaskmain.cc:155-157`).
+      Das ist der HAL-Pin `motion.jog-is-active` (`control.c:2063`, `:2149`): jeder aktive Jog,
+      auch einer über halui oder ein Handrad, den das Gateway nicht kennt.
+    - Das Gateway liest den Pin über den HAL-Leser mit (`set_extra_pins`, wie `kins_type`).
+    - `run_macro` läuft nur, wenn ein FRISCHER Schnappschuss (jünger als 100 ms) ihn FALSE zeigt.
+      Fehlt er oder ist er alt: Ablehnung „Jog state unknown — wait“; aktiv: „A jog is
+      active — release it“.
+    - Zusätzlich liegt eine Stolperleine auf dem Fehlerkanal: Kommt nach dem Wechsel die Meldung
+      „Ignoring task mode change while jogging“ (unübersetzt in der Quelle), wird abgelehnt und
+      getraced, auch wenn der Pin FALSE zeigte.
+    - Aus MANUAL heraus prüft die heutige Modusprüfung den Wechsel zusätzlich.
+  - Erst danach geht der Aufruf hinaus.
   - Zwischen Reset und Aufruf kann nichts den Cache füllen: Beide laufen unter `_cmd_lock` und dem
     Startanspruch; ein anderer Start wartet.
   - **Abnahmefall** (ein eigenes Sim, kopierte Konfiguration ohne Anzeige wie beim
-    Golden-Rezept, nie die Live-Suite):
-    - Eine Test-Remap `M499` ruft per MDI ein Hilfs-Makro `o<probe_helper>`. Dessen Rumpf meldet
-      zwei Zeilen per `(DEBUG, …)`.
-    - Danach wird der Kopf der Datei gekürzt, sodass der alte Offset mitten in den Rumpf zeigt.
-    - Danach `run_macro probe_helper` ohne Moduswechsel dazwischen.
-    - Ohne den Reset fehlt die erste `DEBUG`-Zeile, oder es kommt ein Fehler. Das ist der
-      Rot-Nachweis. Mit dem Reset kommen beide Zeilen.
+    Golden-Rezept, nie die Live-Suite). Die Byte-Rechnung macht den Rot-Fall herstellbar:
+    - **Datei vorher:** 300 Bytes Beschreibungskommentar, dann `o<probe_helper> sub`. Im Rumpf
+      folgen 20 Zeilen `(DEBUG, step NN)` zu je 20 Bytes, dann `endsub`.
+    - **Der Cache-Eintrag:** Eine Test-Remap `M499` ruft per MDI `o<probe_helper> call`. Ihr Ende
+      leert den Cache nicht (`rs274ngc_pre.cc:455-486`); der Offset 300 bleibt stehen.
+    - **Datei danach:** Der Beschreibungskommentar wird gestrichen; der Kopf steht jetzt bei
+      Byte 0. Byte 300 liegt damit rund 280 Bytes tief im Rumpf, in Zeile 14 oder 15.
+    - **Ohne Reset:** Der Interpreter beginnt dort. Die Meldungen `step 01` … `step 13` fehlen,
+      oder ein Zeilenbruchstück gibt einen Lesefehler. Beides ist rot.
+    - **Mit Reset:** alle 20 Meldungen in Reihenfolge, kein Fehler.
+    - Die Meldungen sind Kommentar-Befehle, die beim AUSFÜHREN ihrer Zeile ausgegeben werden. Das
+      Gateway reicht sie als Maschinenmeldungen weiter.
 - **Gate:** `probe` im Gateway (`COMMAND_GATES`), gleich dem Client und dem Katalogtyp `macro`.
   Heute prüft das Gateway für Makros nur `ready`; das ist eine Verschärfung. Mit `FRAME machine`
   zusätzlich `machineFrame`, in beiden.
