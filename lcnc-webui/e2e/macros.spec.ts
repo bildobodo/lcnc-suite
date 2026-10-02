@@ -430,3 +430,41 @@ test("narrow, the head folds New / Import / Export / Delete behind More; Run and
   await page.locator(".macrosTab .panelHead").getByRole("button", { name: "Delete", exact: true }).click();
   await expect(page.getByRole("dialog", { name: "Delete Face top?" })).toBeVisible();
 });
+
+// Operator 2026-10-02 (live): switching "On bar" made the order buttons
+// appear — the row grew, the columns changed width, and the row moved to the
+// bar group at the top ("es kommt wieder zu einem Springen"). The order slot
+// is reserved in every row and the list stays in name order: nothing in the
+// list moves; the bar shows the order the arrows change.
+test("On bar and the order buttons move nothing in the list: no row height, column width or position changes", async ({ page }) => {
+  for (const touch of [false, true]) {
+    const folder = new Folder();
+    for (const n of ["coolant_flush", "spindle_warmup"]) {
+      folder.files.set(n, { text: `o<${n}> sub\no<${n}> endsub\n`, meta: { title: n, units: null, frame: null, params: [] } });
+    }
+    await ready(page, folder, { macros: { macros: [], bar: ["face_top"] } });
+    if (touch) await page.evaluate(() => document.documentElement.classList.add("touch-device"));
+    await openTab(page);
+    // positions inside the TABLE: the test's own tap may scroll the body
+    const geometry = () => page.evaluate(() => ({
+      rows: [...document.querySelectorAll<HTMLElement>("[data-macro-row]")].map(r => {
+        const b = r.getBoundingClientRect();
+        const t = r.closest("table")!.getBoundingClientRect();
+        return `${r.dataset.macroRow} y${Math.round(b.y - t.y)} h${Math.round(b.height)}`;
+      }),
+      cols: [...document.querySelectorAll<HTMLElement>(".macroTable th")].map(t => Math.round(t.getBoundingClientRect().width)),
+    }));
+    const before = await geometry();
+    await page.locator('[data-macro-row="spindle_warmup"]').getByRole("checkbox").check({ force: true });
+    await expect(page.locator(".macroBar").getByRole("button", { name: "spindle_warmup", exact: true })).toBeVisible();
+    await page.waitForTimeout(200);
+    expect(await geometry(), `${touch ? "touch" : "desktop"}: switching On bar moves nothing`).toEqual(before);
+    // the arrows reorder the BAR; the list stays
+    await page.locator('[data-macro-row="spindle_warmup"]').getByRole("button", { name: "Move spindle_warmup up in the bar order" }).click();
+    await expect(page.locator(".macroBar [data-macro-id]").first()).toHaveAttribute("data-macro-id", "file:spindle_warmup");
+    await page.waitForTimeout(200);
+    expect(await geometry(), `${touch ? "touch" : "desktop"}: reordering the bar moves nothing in the list`).toEqual(before);
+    // a macro off the bar offers no order buttons to Tab or a pointer
+    await expect(page.locator('[data-macro-row="park"]').getByRole("button", { name: "Move park up in the bar order" })).toBeHidden();
+  }
+});
