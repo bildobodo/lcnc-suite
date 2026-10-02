@@ -360,10 +360,11 @@ test("every path line is drawn 2 CSS px — the path, the limit overlay and the 
 });
 
 /** In-page: at `n` evenly spaced points from `a` to `b` (CSS px), the
- *  DARKEST pixel within ±1.5 CSS px across the line — a 1 px line's centre is
+ *  DARKEST (`pick` "max": the lightest) pixel within ±1.5 CSS px across the line — a 1 px line's centre is
  *  known to a pixel, and beside a light cell lies the light scene. */
-async function alongDarkest(page: Page, shot: Buffer, a: { x: number; y: number }, b: { x: number; y: number }, n: number, dpr: number) {
-  return page.evaluate(async ({ png, a, b, n, dpr }) => {
+async function alongDarkest(page: Page, shot: Buffer, a: { x: number; y: number }, b: { x: number; y: number }, n: number, dpr: number,
+  pick: "min" | "max" = "min") {
+  return page.evaluate(async ({ png, a, b, n, dpr, pick }) => {
     const img = new Image();
     img.src = `data:image/png;base64,${png}`;
     await img.decode();
@@ -379,15 +380,16 @@ async function alongDarkest(page: Page, shot: Buffer, a: { x: number; y: number 
       // under an overlay (the cube, a button, a card) the scene is not what shows
       const top = document.elementFromPoint(x, y);
       if (!top || !(top as HTMLElement).dataset || !("viewerCanvas" in (top as HTMLElement).dataset)) { out.push(-1); continue; }
-      let best = Infinity;
+      let best = pick === "min" ? Infinity : -Infinity;
       for (const o of [-1.5, -1, -0.5, 0, 0.5, 1, 1.5]) {
         const d = cx.getImageData(Math.floor((x + nx * o) * dpr), Math.floor((y + ny * o) * dpr), 1, 1).data;
-        best = Math.min(best, 0.2126 * d[0]! + 0.7152 * d[1]! + 0.0722 * d[2]!);
+        const l = 0.2126 * d[0]! + 0.7152 * d[1]! + 0.0722 * d[2]!;
+        best = pick === "min" ? Math.min(best, l) : Math.max(best, l);
       }
       out.push(best);
     }
     return out;
-  }, { png: shot.toString("base64"), a, b, n, dpr });
+  }, { png: shot.toString("base64"), a, b, n, dpr, pick });
 }
 /** Luminance of an sRGB triple. */
 const lum = (c: number[]) => 0.2126 * c[0]! + 0.7152 * c[1]! + 0.0722 * c[2]!;
@@ -402,9 +404,10 @@ const lum = (c: number[]) => 0.2126 * c[0]! + 0.7152 * c[1]! + 0.0722 * c[2]!;
 // (package 4: 6 … 12 CSS px nominal, the hysteresis band 4.8 … 15) — in
 // light and dark, at DPR 1 and 2.
 test("the box edge alone: two tones, MACHINE_BOX_PX wide, cells within the pattern's band — at DPR 1 and 2", async ({ browser }) => {
-  test.setTimeout(120_000);
-  for (const dpr of [1, 2]) {
-    const context = await browser.newContext({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: dpr });
+  test.setTimeout(360_000);
+  // the edge at several sub-pixel positions: three canvas widths (Codex R67)
+  for (const [dpr, width] of [[1, 1400], [1, 1401], [1, 1403], [2, 1400], [2, 1401]] as const) {
+    const context = await browser.newContext({ viewport: { width, height: 1000 }, deviceScaleFactor: dpr });
     const page = await context.newPage();
     await ctl({ op: "reset" });
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -418,14 +421,14 @@ test("the box edge alone: two tones, MACHINE_BOX_PX wide, cells within the patte
         hud: false, bounds: true, toolpath: false, tool: false, machine: false, workzero: false, groundGrid: false } } } } });
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
       await page.waitForTimeout(300);
-      const where = `DPR ${dpr} ${theme}`;
+      const where = `DPR ${dpr} ${width} px ${theme}`;
       const edge = (await page.evaluate(() => window.__viewerDiag!.projectRole!("bounds")))!;
       expect(edge, `${where}: a visible box edge`).not.toBeNull();
       expect(edge.length, `${where}: an edge long enough for several cells`).toBeGreaterThan(120);
       const drawn = (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn;
       const tones = { dark: rgbOf(drawn.bounds!), light: rgbOf(drawn.boundsAlt!) };
       const shot = await page.screenshot();
-      await test.info().attach(`box-edge-dpr${dpr}-${theme}.png`, { body: shot, contentType: "image/png" });
+      await test.info().attach(`box-edge-dpr${dpr}-${width}-${theme}.png`, { body: shot, contentType: "image/png" });
       // across the edge, at five places along it: background + one tone
       const offsets = Array.from({ length: 16 * dpr + 1 }, (_, i) => (i - 8 * dpr) / dpr);
       let cleanProfiles = 0;
@@ -452,11 +455,18 @@ test("the box edge alone: two tones, MACHINE_BOX_PX wide, cells within the patte
         expect(Math.abs(best!.sum / dpr - MACHINE_BOX_PX), `${where}: the box covers ${MACHINE_BOX_PX} CSS px ${dump}`).toBeLessThan(0.4);
       }
       // along the edge: runs of each tone, one cell long — under the
-      // parallel projection every cell of an edge is equally long on screen
-      const along = Array.from({ length: Math.floor(edge.length * 0.8) }, (_, i) => i - Math.floor(edge.length * 0.4));
-      const alongAt = { x: edge.x, y: edge.y, dx: -edge.dy, dy: edge.dx };
-      const samples = await profileColours(page, shot, alongAt, along, dpr);
-      const names = samples.map(c => (rgbDist(c, tones.dark) < rgbDist(c, tones.light) ? "dark" : "light"));
+      // parallel projection every cell of an edge is equally long on screen.
+      // A 1 px line centred on a pixel boundary is two half-covered pixels:
+      // one column read the line or the scene by sub-pixel luck (Codex R67 —
+      // one tone all along at another canvas width). Per sample the pixels
+      // across it (±1.5 CSS px): the tone that stands off the scene is the
+      // cell's — the darkest on the light scene, the lightest on the dark.
+      const half = edge.length * 0.4;
+      const ea = { x: edge.x - edge.dx * half, y: edge.y - edge.dy * half }, eb = { x: edge.x + edge.dx * half, y: edge.y + edge.dy * half };
+      const ld = lum(tones.dark), ll = lum(tones.light);
+      const cut = theme === "light" ? ld + 0.75 * (ll - ld) : ld + 0.25 * (ll - ld);
+      const ext = (await alongDarkest(page, shot, ea, eb, Math.floor(edge.length * 0.8), dpr, theme === "light" ? "min" : "max")).filter(v => v >= 0);
+      const names = ext.map(v => (v < cut ? "dark" : "light"));
       const runs: number[] = [];
       let n = 1;
       for (let i = 1; i < names.length; i++) { if (names[i] === names[i - 1]) n++; else { runs.push(n); n = 1; } }
@@ -986,4 +996,52 @@ test("a reach chain with two visible pieces shows both tones in each (plan Fassu
     }
   }
   await context.close();
+});
+
+// Codex R67 (VP-I28 rest): a CSS-px object keeps its size in the frames
+// actually DRAWN while a view preset animates — the tween writes the
+// camera's position and quaternion and skips controls.update(), so the
+// camera's matrix was renewed only by the render, AFTER the end marks, the
+// pins and the type labels had been sized (8.5–11.7 px for 10). Read
+// through the frame probe (no re-pose before reading); perspective; the
+// fully visible end marks 10 ± 0.05 px, every pin and label at its scale.
+test("CSS-px objects keep their size in every drawn frame of a view animation (Codex R67)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await ctl({ op: "reset" });
+  await page.setViewportSize({ width: 1400, height: 1000 });
+  const pts = [[-150, -150, -10], [150, -150, -10], [150, 150, 100], [-150, 150, 100]];
+  const body = Buffer.from(encode({ file: "/tween.ngc", preview_schema: 10, feed: pts, feed_lines: [1, 2, 3, 4],
+    feed_outside: new Uint8Array(4), rapid: [], rapid_outside: new Uint8Array(0) }));
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: "G1 X-150 Y-150 Z-10\nG1 X150\nG1 Y150 Z100\nG1 X-150\nM2\n" }));
+  await page.goto(MOCK);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready)).toBe(true);
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: {
+    toolsetter: { touchX: 100, touchY: 0, touchZ: -50, fastFeed: 2000, slowFeed: 200, traverseFeed: 6000, maxZTravel: 180, retractDist: 2, spindleZeroHeight: 180 },
+    viewer: { projection: "perspective", layers: { bounds: true, toolpathBounds: true, machine: false, hud: false, groundGrid: false, toolsetter: true } } } } });
+  await ctl({ op: "status_delta", data: { active_file: "/tween.ngc" } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", file: "/tween.ngc", version: 671 } });
+  await expect(page.locator(".codeLine").nth(2)).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getBoxTicks!()?.length)).toBe(24);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getToolsetter!()?.visible)).toBe(true);
+  await page.evaluate(() => window.__viewerDiag!.setCameraPose!([600, 0, 0], [0, 0, 0]));
+  await page.evaluate(() => window.__viewerDiag!.setView!("front"));
+  await page.waitForTimeout(700);
+  const frames: { bars: number[]; scales: { name: string; factor: number }[] }[] = [];
+  for (const view of ["back", "top", "iso"]) {
+    await page.evaluate(v => { window.__viewerDiag!.startFrameProbe!(); window.__viewerDiag!.setView!(v); }, view);
+    await page.waitForTimeout(700);
+    frames.push(...await page.evaluate(() => window.__viewerDiag!.takeFrameProbe!()));
+  }
+  const bars = frames.flatMap(f => f.bars), scales = frames.flatMap(f => f.scales);
+  expect(frames.length, "frames drawn during the animations").toBeGreaterThan(20);
+  expect(bars.length, "end marks measured").toBeGreaterThan(200);
+  const [bmin, bmax] = [Math.min(...bars), Math.max(...bars)];
+  expect(bmin > 9.95 && bmax < 10.05, `end marks 10 px in every drawn frame: ${bmin.toFixed(4)} … ${bmax.toFixed(4)}`).toBe(true);
+  for (const name of [...new Set(scales.map(s => s.name))]) {
+    const f = scales.filter(s => s.name === name).map(s => s.factor);
+    const [fmin, fmax] = [Math.min(...f), Math.max(...f)];
+    expect(fmin > 0.995 && fmax < 1.005, `${name} at its CSS-px scale in every drawn frame: ${fmin.toFixed(4)} … ${fmax.toFixed(4)}`).toBe(true);
+  }
+  expect(new Set(scales.map(s => s.name)).size, "pins and labels measured").toBeGreaterThanOrEqual(3);
 });

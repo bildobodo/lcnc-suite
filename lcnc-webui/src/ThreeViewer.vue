@@ -822,6 +822,7 @@ function _modelRadiusAbout(center: THREE.Vector3): number {
  *  uploads its cells. Shown objects only. */
 function _updateBoundsPattern() {
   if (!camera || !renderer) return;
+  camera.updateMatrixWorld();   // a diagnostic calls this outside the frame loop too
   const w = renderer.domElement.clientWidth, h = renderer.domElement.clientHeight;
   if (!(w > 0 && h > 0)) return;
   for (const g of [machineBoundsMesh, reachRoomMesh, reachPartMesh]) {
@@ -847,6 +848,29 @@ function _updateBoundsPattern() {
   }
   _poseTypeLabel(_machineTypeLabel, machineAt, h);
   _poseTypeLabel(_programTypeLabel, toolpath.boxLabelAnchor(_programCorner), h);
+}
+
+/** The frame probe (Codex R67): after a render, what was DRAWN — the end
+ *  marks' screen lengths and each CSS-px object's scale against the scale
+ *  the drawn camera implies. A diagnostic that re-poses before it reads
+ *  (getBoxTicks) would hide a pose computed from a stale camera. */
+let _frameProbe: { bars: number[]; scales: { name: string; factor: number }[] }[] | null = null;
+function _probeFrame() {
+  const cam = camera!, el = renderer!.domElement, w = el.clientWidth, h = el.clientHeight;
+  const v = new THREE.Vector3();
+  const px = (q: number[]) => { v.set(q[0]!, q[1]!, q[2]!).project(cam); return [(v.x + 1) * w / 2, (1 - v.y) * h / 2, v.z]; };
+  const bars: number[] = [];
+  for (const b of toolpath.boxTicks() ?? []) {
+    const a = px(b.slice(0, 3)), c = px(b.slice(3));
+    if (![a, c].every(q => q[0]! >= 0 && q[0]! <= w && q[1]! >= 0 && q[1]! <= h && Math.abs(q[2]!) < 1)) continue;
+    const l = Math.hypot(c[0]! - a[0]!, c[1]! - a[1]!);
+    if (l > 0.1) bars.push(l);
+  }
+  const scales: { name: string; factor: number }[] = [];
+  for (const o of [toolsetterMarker, toolChangeMarker, controlPointMarker, _machineTypeLabel, _programTypeLabel] as (THREE.Object3D | null)[]) {
+    if (o?.visible) scales.push({ name: o.name || "pin", factor: o.scale.x / worldPerPixel(cam, o, h) });
+  }
+  return { bars, scales };
 }
 
 function _markerDiag(m: PointMarker | null) {
@@ -2000,6 +2024,9 @@ async function buildFromInit(init: ViewerInit) {
         },
         getFrameBox: () => { const b = _boundsWorldBox(); return b ? { min: b.min.toArray(), max: b.max.toArray() } : null; },
         setView: (p: string) => setView(p as ViewPreset),
+        // The frames as drawn from now on (Codex R67) — read without re-posing.
+        startFrameProbe: () => { _frameProbe = []; },
+        takeFrameProbe: () => { const f = _frameProbe ?? []; _frameProbe = null; return f; },
         // Test seam: hang `room` (a segment soup, machine frame) as the
         // Machine Reach outline — the plan's NAMED geometries (a chain with
         // two visible pieces); the worker's real envelope has no fixed shape.
@@ -4016,6 +4043,12 @@ function animate() {
   // each frame; controls.update() runs once at tween completion to re-sync.
   if (!_tweenRaf) controls?.update();
   _orthoEyeOutsideScene();
+  // The camera's matrices for THIS frame, before anything is sized or culled
+  // from them: the tween writes position / quaternion and skips
+  // controls.update(), so only the render renewed them — after the end
+  // marks, pins and labels had been scaled from the last frame's view (Codex
+  // R67: 8.5–11.7 px for 10 while a view preset animated).
+  camera?.updateMatrixWorld();
   // the point markers: the same size on screen at every zoom, their labels up on screen
   if (camera && renderer) {
     const hPx = renderer.domElement.clientHeight;
@@ -4028,6 +4061,7 @@ function animate() {
   if (camera) toolpath.updateCulling(toolpathCtx(), camera, renderer?.domElement.height ?? 1000);
   const _tRender = performance.now();
   renderer?.render(scene!, camera!);
+  if (_frameProbe && camera && renderer) _frameProbe.push(_probeFrame());
   recordRender(performance.now() - _tRender);
   // Draw-call counts of the MAIN pass (info auto-resets per render(), and the
   // gizmo pass below would zero them) — read here for the perf probe.

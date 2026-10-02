@@ -56,6 +56,9 @@ interface ViewerDiag {
     { cells: number[]; segments: { unit: number; a: number[]; b: number[]; ta: number; tb: number }[] } | null;
   /** Zoom about the orbit target (> 1 closer). */
   zoomBy?: (factor: number) => void;
+  /** Record what each rendered frame DREW (end-mark lengths, CSS-px object scale factors). */
+  startFrameProbe?: () => void;
+  takeFrameProbe?: () => { bars: number[]; scales: { name: string; factor: number }[] }[];
   /** Test seam: a segment soup (machine frame) as the Machine Reach outline. */
   setReachSoup?: (room: number[]) => void;
   /** The toolpath box's dimension end marks (package 4), world, 6 floats each. */
