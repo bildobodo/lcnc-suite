@@ -45,6 +45,11 @@ const files = computed<MacroFile[]>(() => macroFolder.value?.macros ?? []);
 const problems = computed(() => macroFolder.value?.problems ?? []);
 /** Bar members first, in bar order; the rest by name. */
 const root = ref<HTMLElement | null>(null);
+// The narrow side pane (150 % portrait) folds the management — New,
+// Import, Export, Delete — behind "More" on the object line (operator
+// 2026-10-02, the Program tab's pattern): the head left an opened macro's
+// editor hardly a line. Run and Abort stay.
+const moreOpen = ref(false);
 const rows = computed(() => {
   const onBar = props.barNames.map(n => files.value.find(f => f.name === n)).filter((f): f is MacroFile => !!f);
   const rest = files.value.filter(f => !props.barNames.includes(f.name)).sort((a, b) => a.name.localeCompare(b.name));
@@ -400,11 +405,18 @@ async function confirmConvert() {
   <div ref="root" class="macrosTab stack-controls">
     <!-- The tab's pattern (design wave D5): what it acts on, the machine
          actions with Abort last at the right edge, then the management -->
-    <div class="panelHead">
+    <div class="panelHead" :class="{ moreOpen }">
       <div class="panelObject">
         <span class="label-muted md">Macro</span>
         <span class="macroObject">{{ selected ? (selected.title ?? selected.name) : 'None selected' }}</span>
-        <span v-if="selected" class="label-muted md mono">{{ selected.name }}.ngc</span>
+        <span v-if="selected" class="label-muted md mono objectFile">{{ selected.name }}.ngc</span>
+        <!-- Narrow only (style.css): the management folds here, like Program's -->
+        <span class="panelMore">
+          <MachineBtn type="inline" :selected="moreOpen" :aria-expanded="moreOpen" aria-controls="macroManage"
+                      aria-label="More macro actions" @click="moreOpen = !moreOpen">
+            More <component :is="moreOpen ? ChevronUp : ChevronDown" :size="14" />
+          </MachineBtn>
+        </span>
       </div>
       <div class="actionGroup">
         <MachineBtn type="macroRun" :hold="!!selected && selected.params.length === 0"
@@ -412,7 +424,7 @@ async function confirmConvert() {
                     :reason="runBlock ?? undefined" @click="selected && emit('run', selected)">Run</MachineBtn>
         <MachineBtn type="abort" class="actionEnd" @click="fire({ cmd: 'abort' }, 'abort')" />
       </div>
-      <div class="actionGroup">
+      <div id="macroManage" class="actionGroup foldNarrow">
         <MachineBtn type="manage" data-macro-new @click="openNew">New</MachineBtn>
         <MachineBtn type="fileOp" @click="pickImport">Import</MachineBtn>
         <MachineBtn type="fileOp" :disabled="!selected" @click="exportSelected">Export</MachineBtn>
@@ -622,6 +634,15 @@ async function confirmConvert() {
 }
 .macroObject {
   font-weight: var(--fw-semibold);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Narrow, the object line holds the title and More: the file name is in
+   the list row right below. */
+.sidePane.narrow .objectFile {
+  display: none;
 }
 .macroTable {
   flex: none;

@@ -391,3 +391,42 @@ test("the editor opens under its own macro and pushes the rest down; a second ta
   const edTop = (await box('[data-macro-editor="z_last"]')).y;
   expect(edTop, "its editor starts in view").toBeLessThan(body.y + body.height);
 });
+
+// Operator 2026-10-02: in the narrow pane (150 % portrait) the head folds its
+// management — New, Import, Export, Delete — behind "More" on the object
+// line, like Program's; Run and Abort stay. The opened macro's editor gets
+// the room. A wide pane has no toggle and folds nothing.
+test("narrow, the head folds New / Import / Export / Delete behind More; Run and Abort stay; wide folds nothing", async ({ page }) => {
+  const folder = new Folder();
+  await ready(page, folder, { macros: { macros: [] } });
+  await openTab(page);
+  const more = page.getByRole("button", { name: "More macro actions" });
+  const manage = ["New", "Import", "Export", "Delete"].map(n => page.locator(".macrosTab .panelHead").getByRole("button", { name: n, exact: true }));
+  await expect(more, "wide: no toggle").toBeHidden();
+  for (const b of manage) await expect(b, "wide: nothing folded").toBeVisible();
+
+  await page.setViewportSize({ width: 900, height: 1200 });
+  await page.evaluate(() => document.documentElement.classList.add("touch-device"));
+  await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
+  await expect(page.getByRole("combobox", { name: "Side panel" })).toBeVisible();
+  await page.locator('[data-macro-row="face_top"]').getByRole("button", { name: "Open face_top.ngc" }).click();
+  await expect(page.locator('[data-macro-editor="face_top"] .cm-content')).toBeVisible();
+  await expect(more).toBeVisible();
+  await expect(more).toHaveAttribute("aria-expanded", "false");
+  for (const b of manage) await expect(b, "narrow: folded").toBeHidden();
+  await expect(page.locator(".macrosTab .panelHead").getByRole("button", { name: "Run", exact: true })).toBeVisible();
+  // More sits on the object line — it costs no row of its own
+  const obj = (await page.locator(".macrosTab .panelObject").boundingBox())!;
+  const mb = (await more.boundingBox())!;
+  expect(mb.y + mb.height / 2, "on the object line").toBeGreaterThan(obj.y);
+  expect(mb.y + mb.height / 2, "on the object line").toBeLessThan(obj.y + obj.height);
+  const folded = (await page.locator(".macrosBody").boundingBox())!.height;
+  await more.click();
+  await expect(more).toHaveAttribute("aria-expanded", "true");
+  for (const b of manage) await expect(b, "unfolded").toBeVisible();
+  const unfolded = (await page.locator(".macrosBody").boundingBox())!.height;
+  expect(folded - unfolded, "folding gives the body a row").toBeGreaterThan(30);
+  // the folded management still works: Delete asks
+  await page.locator(".macrosTab .panelHead").getByRole("button", { name: "Delete", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Delete Face top?" })).toBeVisible();
+});
