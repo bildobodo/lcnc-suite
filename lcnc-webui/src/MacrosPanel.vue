@@ -9,7 +9,7 @@
 // runs NOWHERE — not here, not on the bar, not from its dialog
 // (macroEditorBasis, read by macroRunBlock). Save or Discard / Reload
 // restores one basis; nothing saves on its own.
-import { computed, onUnmounted, ref, watch } from "vue";
+import { computed, nextTick, onUnmounted, ref, watch } from "vue";
 import { ChevronDown, ChevronUp, X } from "lucide-vue-next";
 import CodeEditor from "./CodeEditor.vue";
 import DialogFrame from "./DialogFrame.vue";
@@ -19,7 +19,7 @@ import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineSelect from "./MachineSelect.vue";
 import MachineToggle from "./MachineToggle.vue";
-import { MACRO_EDITOR_OWNER } from "./inputSession";
+import { MACRO_EDITOR_OWNER, returnFocusTo } from "./inputSession";
 import { useFire } from "./permissions";
 import { MACRO_NAME_RE, type MacroDef } from "./defaults";
 import {
@@ -300,6 +300,15 @@ async function exportSelected() {
 
 // ── Delete ──
 const deleteAsk = ref<MacroFile | null>(null);
+const root = ref<HTMLElement | null>(null);
+/** Where the focus goes after a delete (plan, dialog case 20): the next row,
+ *  else the previous, else the head's New — never the Delete button, which
+ *  the lost selection disables (Chromium then drops the focus to body, where
+ *  an arrow key jogs). The guarded return also outranks the dialog's own. */
+function focusAfterDelete(neighbor: string | null) {
+  const row = neighbor ? root.value?.querySelector<HTMLElement>(`[data-macro-row="${neighbor}"] button[aria-label="Open ${neighbor}.ngc"]`) : null;
+  returnFocusTo(row ?? root.value?.querySelector<HTMLElement>("[data-macro-new]") ?? null);
+}
 function askDelete() {
   const f = selected.value;
   if (!f) return;
@@ -309,12 +318,17 @@ async function confirmDelete() {
   const f = deleteAsk.value;
   deleteAsk.value = null;
   if (!f) return;
+  const names = rows.value.map(r => r.name);
+  const at = names.indexOf(f.name);
+  const neighbor = names[at + 1] ?? names[at - 1] ?? null;
   try {
     await deleteMacroFile(f.name, session.value?.name === f.name && session.value.revision ? session.value.revision : f.revision);
     if (session.value?.name === f.name) session.value = null;
     if (props.barNames.includes(f.name)) removeFromBar(f.name);
     note.value = { kind: "ok", text: `Deleted ${f.name}.ngc` };
     void reloadMacroFiles();
+    await nextTick();
+    focusAfterDelete(neighbor);
   } catch (e) {
     note.value = { kind: "error", text: `Not deleted — ${(e as Error).message}` };
   }
@@ -353,7 +367,7 @@ async function confirmConvert() {
 </script>
 
 <template>
-  <div class="macrosTab stack-controls">
+  <div ref="root" class="macrosTab stack-controls">
     <!-- The tab's pattern (design wave D5): what it acts on, the machine
          actions with Abort last at the right edge, then the management -->
     <div class="panelHead">
@@ -369,7 +383,7 @@ async function confirmConvert() {
         <MachineBtn type="abort" class="actionEnd" @click="fire({ cmd: 'abort' }, 'abort')" />
       </div>
       <div class="actionGroup">
-        <MachineBtn type="manage" @click="openNew">New</MachineBtn>
+        <MachineBtn type="manage" data-macro-new @click="openNew">New</MachineBtn>
         <MachineBtn type="fileOp" @click="pickImport">Import</MachineBtn>
         <MachineBtn type="fileOp" :disabled="!selected" @click="exportSelected">Export</MachineBtn>
         <MachineBtn type="manage" :disabled="!selected" @click="askDelete">Delete</MachineBtn>

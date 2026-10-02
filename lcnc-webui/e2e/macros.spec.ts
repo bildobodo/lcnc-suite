@@ -294,3 +294,33 @@ test("the Macros tab never runs out sideways: desktop, portrait 100 % and 150 %"
     expect(sideways, `${vp.w}×${vp.h} ${vp.zoom * 100} %`).toEqual([]);
   }
 });
+
+// Plan, dialog case 20: after a delete the focus goes to the next row, else
+// the previous, else the tab's head (New) — never back to Delete, which the
+// lost selection disables: Chromium then drops the focus to body, where an
+// arrow key jogs.
+test("after a delete the focus goes to the next row, else the previous, else New — never to body", async ({ page }) => {
+  const folder = new Folder();
+  folder.files.set("coolant_flush", { text: "o<coolant_flush> sub\no<coolant_flush> endsub\n",
+    meta: { title: "Coolant flush", units: null, frame: null, params: [] } });
+  await ready(page, folder, { macros: { macros: [] } });
+  await openTab(page);
+  const active = () => page.evaluate(() => {
+    const a = document.activeElement as HTMLElement | null;
+    return !a || a === document.body ? "BODY" : (a.getAttribute("aria-label") ?? a.textContent?.trim() ?? a.tagName);
+  });
+  const remove = async (name: string, title: string) => {
+    await page.locator(`[data-macro-row="${name}"]`).getByRole("button", { name: `Open ${name}.ngc` }).click();
+    await page.getByRole("button", { name: "Delete", exact: true }).click();
+    await page.getByRole("dialog", { name: `Delete ${title}?` }).getByRole("button", { name: "Delete", exact: true }).click();
+    await expect(page.locator(`[data-macro-row="${name}"]`)).toHaveCount(0);
+    await page.waitForTimeout(300);
+  };
+  // rows by name: coolant_flush, face_top, park
+  await remove("coolant_flush", "Coolant flush");
+  expect(await active(), "the next row").toBe("Open face_top.ngc");
+  await remove("park", "Park");
+  expect(await active(), "the previous row (park was last)").toBe("Open face_top.ngc");
+  await remove("face_top", "Face top");
+  expect(await active(), "no row left: the head's New").toBe("New");
+});
