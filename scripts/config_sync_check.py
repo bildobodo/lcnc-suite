@@ -55,12 +55,34 @@ def is_artifact(name):
     return bool(ARTIFACT_RE.search(name))
 
 
-def drifted_lines(repo_text, deployed_text):
+#: INI keys LinuxCNC reads IN ORDER (HAL files load one after the other):
+#: such a line in another place is a real difference.
+ORDERED_INI_KEYS = frozenset({"HALFILE", "HALCMD", "POSTGUI_HALFILE", "SHUTDOWN"})
+
+
+def _ini_sections(lines):
+    """The [SECTION] each line belongs to ("" before the first)."""
+    out, sec = [], ""
+    for ln in lines:
+        st = ln.strip()
+        if st.startswith("[") and st.endswith("]"):
+            sec = st[1:-1].strip().upper()
+        out.append(sec)
+    return out
+
+
+def drifted_lines(repo_text, deployed_text, ini=False):
     """Non-whitelisted drift between two file bodies.
 
     Returns (missing_from_deployed, local_only) — lists of (lineno_hint,
     line) where lineno_hint is the line number in the file the line came
     FROM (repo for missing, deployed for local-only). Pure.
+
+    `ini`: a line that only MOVED inside its INI section (the same text on
+    both sides, the same [SECTION]) is no drift — the installer adds a
+    missing suite key at the section's start, the template has it further
+    down, and LinuxCNC does not read a section's keys in order. Except the
+    keys it does (ORDERED_INI_KEYS); a .hal file is compared in order.
     """
     sm = difflib.SequenceMatcher(
         a=repo_text.splitlines(), b=deployed_text.splitlines(), autojunk=False)
@@ -76,6 +98,26 @@ def drifted_lines(repo_text, deployed_text):
             ln = sm.b[j]
             if ln.strip() and not ln.lstrip().startswith(("#", ";")) and not LOCAL_LINE_RE.match(ln):
                 local.append((j + 1, ln))
+    if ini and missing and local:
+        a_sec, b_sec = _ini_sections(sm.a), _ini_sections(sm.b)
+
+        def moved_key(sec, ln):
+            key = ln.split("=", 1)[0].strip().upper() if "=" in ln else None
+            return None if key in ORDERED_INI_KEYS else (sec, ln.strip())
+        pool = {}
+        for i, ln in local:
+            k = moved_key(b_sec[i - 1], ln)
+            if k:
+                pool.setdefault(k, []).append(i)
+        keep_missing, gone_local = [], set()
+        for i, ln in missing:
+            k = moved_key(a_sec[i - 1], ln)
+            if k and pool.get(k):
+                gone_local.add(pool[k].pop(0))   # the same line, moved within its section
+            else:
+                keep_missing.append((i, ln))
+        missing = keep_missing
+        local = [(j, ln) for j, ln in local if j not in gone_local]
     return missing, local
 
 
@@ -186,7 +228,7 @@ def check(repo_dir, deployed_dir, out=sys.stdout):
                 drift_files += 1
                 print(f"\n[UNREADABLE] {rel}: {e}", file=out)
                 continue
-            missing, local = drifted_lines(rtext, dtext)
+            missing, local = drifted_lines(rtext, dtext, ini=ext == ".ini")
             if not missing and not local:
                 continue
             drift_files += 1
