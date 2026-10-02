@@ -8420,3 +8420,76 @@ dann `front → back → top → iso`. Jedes gezeichnete Bild muss erfüllen:
 
 - **Offline-Gate:** PASS auf `10bbabc` (Backend 1154, Unit 1860, Browser 390).
 - **Offen beim Operator:** Labelwahl (i) / (ii) und Schreibweise.
+
+
+---
+
+## Review R68 · Codex · 2. Oktober 2026
+
+**Prüfstand:** `10bbabc`, Diff `a8138fc..10bbabc`, Paket 4 auf
+`feat/viewer-marks`; Anfrage R68 gelesen. Eigenständige Archivkopie,
+eigener Mock, keine Prüfung gegen den abweichenden Live-Branch.
+
+**Ergebnis: agreement.** VP-I28-Rest ist geschlossen; auch der separate
+Boxkanten-Testhinweis aus R67 ist erledigt. Keine neuen Befunde im
+geprüften Umfang. Zusammen mit den Abnahmen aus R66/R67 besteht damit
+**technisches Implementierungs-Agreement für Paket 4 am Stand `10bbabc`**.
+Die angenommenen Endmarken-Breiten 2/4 CSS-px bleiben angenommen;
+Labelvariante und Schreibweise bleiben die benannte Operator-Wahl.
+
+### VP-I28-Rest geschlossen
+
+Die Kameramatrix wird in `animate()` jetzt nach den Änderungen durch
+Controls/Tween/Parallelkamera und **vor** der Größenberechnung für
+Nadeln, Endmarken, Typlabels und Muster erneuert. Die zusätzliche
+Aktualisierung in `_updateBoundsPattern()` deckt Diagnoseaufrufe
+außerhalb der Bildschleife ab. Der neue Bildwächter liest hinter dem
+Renderaufruf, ohne die Marken vor dem Lesen neu zu positionieren.
+Er prüft neben den Balken auch die Skalen der Nadeln und Labels.
+
+**Unabhängig nachgeprüft:** Die R67-Sonde und ihr passiver Beobachter
+wurden bytegleich auf den neuen Stand übernommen. Keine Gegenkorrektur,
+keine gelockerten Assertions und keine Nutzung der neuen Produkt-Bildsonde.
+Bei denselben Ansichtswechseln `front → back → top → iso` ab Kamera
+`(600,0,0)`, Ziel `(0,0,0)`, messen **alle 1416 vollständig sichtbaren
+Balken in 59 gerenderten Bildern 9,999966–10,000031 CSS-px**.
+Die in R67 rote Sonde ist damit grün.
+[Sonde](viewer-palette-fest.r68.tween.spec.ts),
+[PASS-Lauf](viewer-palette-fest.r68.probe.txt),
+[Messdaten pro Bild](viewer-palette-fest.r68.tween.json),
+[passiver Beobachter](viewer-palette-fest.r68.observer.patch).
+
+### Boxkanten-Messung angenommen
+
+Die neue Querabtastung über ±1,5 CSS-px erfasst die auf benachbarte Pixel
+verteilte 1-px-Kante. Die Wahl des dunkelsten Pixels in Hell bzw. des
+hellsten in Dunkel passt zur isolierten Testszene. Die Anforderungen an
+beide Töne, Zelllängen und Strichbreite bleiben erhalten.
+
+Der zuvor in R67 zweimal rote Wächter besteht jetzt im eigenen Lauf bei
+**allen fünf Breite/DPR-Kombinationen in Hell und Dunkel**. Der benannte
+Rasterlagenfehler ist damit für diese Fälle behoben; daraus entsteht
+keine neue allgemeine Lesbarkeitszusage für extreme Perspektiven oder
+die bereits vereinbarte Stufenkappung.
+
+### Eigene Validierung und Umfang
+
+- Typecheck/Build PASS, **172/172** vorhandene Unit-Tests PASS.
+- **19/19** Browserprüfungen des unveränderten Produktstands PASS:
+  einschließlich neuem Animationswächter, Boxkanten-Messung,
+  Phasenverankerung, Near-Clipping, Zwei-Stück-Kette, Endmarken/Labels
+  und aller zehn Nadelprüfungen.
+- Danach zusätzlich **1/1** unveränderte eigene R67-Animationssonde PASS.
+
+[Build](viewer-palette-fest.r68.build.txt),
+[Unit-Tests](viewer-palette-fest.r68.unit.txt),
+[Browserlauf](viewer-palette-fest.r68.browser.txt),
+[Reproduktion und Grenzen](viewer-palette-fest.r68.repro.md),
+[Artefakt-Prüfsummen](viewer-palette-fest.r68.manifest.json).
+Das vollständige Offline-Gate und Backend wurden für diesen Frontend-Diff
+nicht erneut ausgeführt. Die technische Abnahme ersetzt die ausstehende
+Operator-Sichtwahl nicht.
+
+Keine Produktänderung im Live-Checkout, kein Zugriff auf :5173/:8000,
+keine Maschinenbefehle und kein Commit. Nur dieser Anhang und neue
+R68-Belege; frühere Belege unverändert. Eigener Mock beendet.

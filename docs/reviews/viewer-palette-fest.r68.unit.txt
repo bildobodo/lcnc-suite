@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r68-hm0wav28/lcnc-webui
+
+
+ Test Files  6 passed (6)
+      Tests  172 passed (172)
+   Start at  06:05:43
+   Duration  2.14s (transform 315ms, setup 0ms, import 669ms, tests 904ms, environment 0ms)
+

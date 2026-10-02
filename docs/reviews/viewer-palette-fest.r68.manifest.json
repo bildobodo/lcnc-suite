@@ -1,0 +1,59 @@
+{
+  "product_commit": "10bbabcee36ca1fae7c4010ce6644f03f176db7a",
+  "comparison_base": "a8138fc",
+  "archive": "/tmp/codex-r68-hm0wav28",
+  "files": {
+    "viewer-palette-fest.r68.browser.txt": {
+      "sha256": "83b4aa1af4c3c4ec0128396ca96b78d4092aee4dae8b485929eaa5f8e7121769",
+      "bytes": 3427
+    },
+    "viewer-palette-fest.r68.build.txt": {
+      "sha256": "9d61e1d15828d15496664df08ff8af770a56951835125c152443b81e9779810f",
+      "bytes": 2438
+    },
+    "viewer-palette-fest.r68.observe.py": {
+      "sha256": "1d8c63e76718615582dfef09589803dd6cb1f1542fc56451843d64ec980ccb6d",
+      "bytes": 2019
+    },
+    "viewer-palette-fest.r68.observer-build.txt": {
+      "sha256": "cce4d79c8779bd912cfbdb88985d644951b82ab165d3974455b2656348ace444",
+      "bytes": 2438
+    },
+    "viewer-palette-fest.r68.observer.patch": {
+      "sha256": "e332553b8ec16c60a083c8a0c37950ca270ad1a3b4f14e6fcea9d0a9f0c17d77",
+      "bytes": 1826
+    },
+    "viewer-palette-fest.r68.playwright.config.ts": {
+      "sha256": "16f2a20fa7bd63d4e7e2f8720779d4833b487026f95b235f41ac576b18a5a883",
+      "bytes": 560
+    },
+    "viewer-palette-fest.r68.probe.playwright.config.ts": {
+      "sha256": "dd9a30b7401c30cb096e9bfeba5afa5495ec832b825070c3fe4d43550609cf5d",
+      "bytes": 558
+    },
+    "viewer-palette-fest.r68.probe.txt": {
+      "sha256": "51534dce7a7521589949da7216e71d433faf8140de23aa1616b181d1f69d1ec4",
+      "bytes": 699
+    },
+    "viewer-palette-fest.r68.repro.md": {
+      "sha256": "13482607cda5050b2cd3ee9269ecb0de9653fb3e786d5d4002276cf4afbd0fd1",
+      "bytes": 3591
+    },
+    "viewer-palette-fest.r68.tween.json": {
+      "sha256": "8fa9ed87019795cd42ddbea57ae00a704061023727e9d47c9d8efbe90c3b65cc",
+      "bytes": 214493
+    },
+    "viewer-palette-fest.r68.tween.spec.ts": {
+      "sha256": "8e997bf21090dc68bad2fba7dfa374db23fb465f98624b0c9a14e8369377f846",
+      "bytes": 2837
+    },
+    "viewer-palette-fest.r68.unit.txt": {
+      "sha256": "5605c88fc9055b16acfaba503ac60399578ee83e1a782715dc18499700f0beb0",
+      "bytes": 222
+    },
+    "viewer-palette-fest.r68.vitest.config.ts": {
+      "sha256": "f39f4ff9b53a7f86aa142ffe40761c4c4bbae50a3320a63b365e89b9296151c7",
+      "bytes": 424
+    }
+  }
+}

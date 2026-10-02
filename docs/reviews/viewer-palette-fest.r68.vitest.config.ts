@@ -1,0 +1,2 @@
+import {defineConfig} from 'vitest/config';
+export default defineConfig({cacheDir:'../r68-vitest-cache',test:{environment:'node',maxWorkers:1,execArgv:['--expose-gc'],include:['src/viewer/geoDash.test.ts','src/viewer/boxLines.test.ts','src/viewer/toolpathController.test.ts','src/viewer/fatPaths.test.ts','src/themeTokens.test.ts','src/viewerSection.test.ts','src/viewer/onTop.test.ts','src/viewer/pointMarker.test.ts']}});
