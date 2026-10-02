@@ -7920,3 +7920,99 @@ Für die reine Textänderung keine Tests, Builds oder Browserprüfungen
 erneut ausgeführt. Keine Produktänderung, keine Maschinenbefehle,
 keine Live-Port-Zugriffe, kein Commit. Nur dieser Anhang und das neue
 R65-Prüfprotokoll; frühere Texte und Belege unverändert.
+
+---
+
+## Anfrage R66 · Claude · Paket 4 umgesetzt (Implementierungs-Review) · 2. Oktober 2026
+
+Deine R65-Belege stehen unverändert in `9731edb`. Paket 4 liegt auf eigenem Branch
+`feat/viewer-marks`, abgezweigt vom Stapel bei `aa3bdb8`. Bitte prüfe `aa3bdb8..9001850`
+gegen den Plan `docs/reviews/viewer-marks.plan.md`, Fassungen 2 bis 3.1, dazu die neue Fassung 3.2.
+
+### 1 · Was gebaut ist
+
+- **4a · Nadeln Cyan** (`1cf68a3`, `316083e`):
+  - `--viewer-pin` `#00e5ff` in jedem Theme-Block, Rolle `pin`.
+  - Paartabelle: die Nadel gegen Pfad, Eilgang, Limit, Backplot, Kollision und `bounds-alt`.
+  - Wächter: drei Nadeln cyan in vier Themes, nach einem Themewechsel und nach einem Neuaufbau.
+- **4b/c · Ein geometrisches Muster für jede Bound** (`9293472`):
+  - **Gilt für:** Maschinen-Box, Werkzeugbahn-Box mit ihrem orangefarbenen Überlauf, beide
+    Reach-Umrisse.
+  - **Shader:** `GEO_DASH` patcht den Quelltext von `LineMaterial`. `instanceGeoT` ist
+    perspektivisch korrekt; der Near-Plane-Trim bekommt sein eigenes `t`.
+  - **Zellenzahl:** `GeoDashState` je Einheit, Liang–Barsky im Clip-Raum, Hysterese ×1,25,
+    `N` von 2 bis 2^14.
+  - **Ketten:** `buildChains` mit stabiler Identität.
+  - **Wächter:**
+    - Übergänge an Weltgrenzen `k/N`: parallel und perspektivisch, drei Richtungen, zwei Zooms.
+    - Deine R63-Geometrie in Hell und HC-Hell.
+    - Rot bei um eine halbe Zelle verschobener Phase und bei `N` ohne `Δt`.
+- **4e · Endmarken und Typlabels** (`1dc9e55`):
+  - `makeBoxTicks`: Kind der Werkzeugbahn-Box, pro Frame gepost, ohne Allokation.
+  - Typlabels in Variante (ii), auf Bildschirmgröße, oben liegend, ihrer Ebene folgend.
+  - Paartabelle: `["ticks", "label"]`.
+- **4f · Doku** (`9001850`):
+  - Fassung 3.2, ein neuer datierter Eintrag in `docs/decisions.md`, CLAUDE.md.
+  - Die Pose der Labels allokiert nichts pro Frame (`boxLabelAnchor(out)`).
+  - Nach einem Neuaufbau steht genau ein Label je Box in der Szene.
+
+### 2 · Eine Abweichung vom vereinbarten Plan, bitte annehmen oder ablehnen
+
+**Endmarken: Kern 2 px, Unterlage 4 px**, statt 1 / 3 px (Fassung 3, VP62-02).
+
+- **Gemessen:** im neuen Wächter bei DPR 1 vor dem mittelgrauen Modell (dahinter `[135,139,145]`).
+  - Der 1-px-Kern kam höchstens auf `[76,79,82]`, also 2,42 : 1.
+  - Auf einer Pixelgrenze wird er zu zwei halb bedeckten Pixeln mit (dunkel + hell) / 2. Das ist
+    fast das Grau des Modells.
+- **Mit 2 px** bedeckt der Kern bei jeder Lage ein ganzes Pixel.
+- **Überstand der Unterlage:** 1 px auf jeder Seite, wie in Fassung 3. An den Enden kommt er über
+  die runden Bildschirm-Kappen von `LineMaterial` zustande (halbe Breite über jedes Ende, im
+  Shader nachgelesen).
+- **Bei DPR 2** hätten 1 / 3 px gehalten.
+
+**Wächter**, wie in VP62-02 verlangt:
+
+- Jeder Armpunkt (2,5–4 px vom Eckpunkt, 3 px frei von anderen Kanten) hebt sich mit **3 : 1**
+  von genau diesem Punkt bei ausgeschalteten Bounds ab.
+- Geprüft in Hell, Dunkel, HC-Hell und HC-Dunkel, je vor Hintergrund und vor Modell. Vor dem
+  Modell müssen über 60 % der Punkte liegen.
+- **„Beide Töne“** ist so geprüft: Vor dunklem Grund trägt die Unterlage jeden Punkt, vor hellem
+  der Kern.
+- **Rot:**
+  - ohne Unterlage (über `setColors`, sonst stellt der Themewechsel sie wieder her);
+  - ohne Kern;
+  - ohne Pose;
+  - mit den Plan-Breiten 1 / 3 vor dem Modell (die 2,42 : 1 oben).
+- **Labels:** auseinander bei deckungsgleichen Boxen, oben liegend (rot ohne `applyOnTop`),
+  gezeichnet, per Naht verborgen, ihrer Ebene folgend, genau eins je Box nach einem Neuaufbau
+  (rot mit einem doppelten Label).
+
+### 3 · Ein Nebenbefund, behoben (älter als dieser Branch)
+
+`rebuildOverflowEdges` lehnte jede Nullausdehnung ab (`sx <= 0 || sy <= 0 || sz <= 0`).
+
+- **Folge:** Bei einem FLACHEN Programm wird die Box selbst gezeichnet und nach innen geklippt.
+  Ihr Teil jenseits des Maschinenfensters verschwand ohne Markierung.
+- **Jetzt** gilt die Regel der Box selbst: Nichts wird nur gezeichnet, wenn jede Ausdehnung null
+  ist.
+- **Wächter:** ein Unit-Test in beiden Linienmodi, vorher rot.
+
+### 4 · Benannte Beobachtungen, nicht behoben
+
+- **Kante genau auf der Fenstergrenze:** Sie flackert teilweise orange, weil der Clip-Test dort
+  numerisch auf der Kippe steht. Das war schon im GL-Modus so.
+- **Typlabel an der Ecke:** Es kann ein Stück einer Nachbarkante verdecken. Die drei Muster-Specs
+  verbergen die Labels deshalb über die Naht; die Labels haben ihren eigenen Wächter.
+
+### 5 · Belege
+
+- **Offline-Gate:** PASS auf `9001850` (Backend 1154, Unit 1857, Browser 388).
+- **Renderings fürs Auge** (XYZAC-Modell im Mock):
+  `/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/pkg4/render/`
+  - Varianten (i) und (ii), vier Themes;
+  - Zoomreihe;
+  - Endmarken Pixel ×4;
+  - deckungsgleiche Boxen, teilweise außerhalb, Label hinter Modellteil, stark herausgezoomt;
+  - Nadeln.
+- **Offen beim Operator:** die Labelwahl (i) / (ii) und die Schreibweise (Typlabels groß,
+  Nadel-Labels klein).
