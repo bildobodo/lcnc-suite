@@ -34,6 +34,8 @@ import Gate from "./Gate.vue";
 import { toolOffsetState } from "./viewer/toolOffsetState";
 import MachineBtn from "./MachineBtn.vue";
 import MacroBar from "./MacroBar.vue";
+import MacrosPanel from "./MacrosPanel.vue";
+import { NARROW_PANE_PX } from "./sidePaneNarrow";
 import { macroBarItems, macroParamUnit, type MacroBarItem } from "./macroBar";
 import { macroFolder } from "./macroFiles";
 import DialogFrame from "./DialogFrame.vue";
@@ -49,7 +51,7 @@ import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import NumberKeypadStrip from "./NumberKeypadStrip.vue";
 import FloatingOverlays from "./FloatingOverlays.vue";
 import { keypadState } from "./useNumberKeypad";
-import { activeKind, openTextSession, closeTextSessionIf, lockTextSessionIf, EDITOR_OWNER, type TextTarget, returnFocusTo } from "./inputSession";
+import { activeKind, openTextSession, closeTextSessionIf, lockTextSessionIf, EDITOR_OWNER, MACRO_EDITOR_OWNER, type TextTarget, returnFocusTo } from "./inputSession";
 import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, saveGamepadDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type Layer, type OnTopLayer, type TrackMode, type Projection } from "./defaults";
 import { confirmedToolsetter, toolsetterVarMap, TOOLSETTER_MDI_KEY } from "./toolsetterVars";
 import { useGamepad } from "./useGamepad";
@@ -366,19 +368,37 @@ const contentTabs = [
   { id: "probe", label: "Probing" },
   { id: "offsets", label: "Offsets" },
   { id: "tools", label: "Tools" },
+  { id: "macros", label: "Macros" },
 ];
 
 const activeTab = ref("gcode");
+// Leaving the Macros tab over a draft (a macro file's edit, an earlier
+// macro's form) asks first, like the tool editor (package 5): every switch
+// goes through here — the tab list, the narrow select, the Tool Table button.
+const macrosPanelRef = ref<InstanceType<typeof MacrosPanel> | null>(null);
+const tabLeaveAsk = ref<{ what: string; to: string } | null>(null);
+function requestTab(to: string) {
+  if (to === activeTab.value) return;
+  const what = activeTab.value === "macros" ? macrosPanelRef.value?.unsavedDraft() : null;
+  if (what) { tabLeaveAsk.value = { what, to }; return; }
+  activeTab.value = to;
+}
+function confirmTabLeave() {
+  const ask = tabLeaveAsk.value;
+  tabLeaveAsk.value = null;
+  if (!ask) return;
+  macrosPanelRef.value?.discardAll();
+  activeTab.value = ask.to;
+}
 // Probing's procedure: ProbePanel's 4 × 2 grid and, narrow, the select in
 // the tab bar (design wave D3).
 const probeView = ref<ProbeView>("outside");
 
-// The side pane below 400 px of content width is NARROW (DR decision
-// 2026-09-24): the area and the procedure become two selects on one row —
-// five tabs plus the 4 × 2 grid need 400 px, and at 150 % portrait (271 px)
-// they left fewer than two form rows of content. clientWidth: layout px,
-// the same under the tests' CSS zoom.
-const NARROW_PANE_PX = 400;
+// The side pane below NARROW_PANE_PX of content width is NARROW (DR
+// decision 2026-09-24; 430 px since the sixth tab, measured — see
+// sidePaneNarrow.ts): the area and the procedure become two selects on one
+// row; at 150 % portrait (271 px) tabs left fewer than two form rows of
+// content. clientWidth: layout px, the same under the tests' CSS zoom.
 const sidePaneEl = ref<HTMLElement | null>(null);
 const sideNarrow = ref(false);
 let sidePaneRo: ResizeObserver | null = null;
@@ -517,6 +537,7 @@ function stopJogOnNavigation() {
 watch(activeTab, (tab) => {
   lockTextSessionIf(EDITOR_OWNER, tab !== "gcode");
   lockTextSessionIf(MDI_OWNER, tab !== "mdi");
+  lockTextSessionIf(MACRO_EDITOR_OWNER, tab !== "macros");
   stopJogOnNavigation();
 });
 watch(probeView, stopJogOnNavigation);
@@ -1083,6 +1104,7 @@ function confirmSettingsDiscard() {
 const {
   userMacros,
   macroBarNames,
+  setMacroBar,
   macroParamDialog,
   dialogMacro,
   dialogFile,
@@ -2012,7 +2034,7 @@ watch(viewerGcode, (newGcode) => {
       <!-- ══ Right pane — Program / Probing tabs ══ -->
       <div ref="sidePaneEl" class="sidePane bordered-panel" :class="{ narrow: sideNarrow }">
         <TabPanel :tabs="contentTabs" :modelValue="activeTab" label="Side panel" variant="main" :narrow="sideNarrow"
-                  @update:modelValue="activeTab = $event">
+                  @update:modelValue="requestTab($event)">
           <template #bar>
             <MachineSelect v-if="activeTab === 'probe'" gate="tabSelect" name="probe-view"
                            aria-label="Probing procedure" v-model="probeView">
@@ -2191,7 +2213,18 @@ watch(viewerGcode, (newGcode) => {
               />
             </div>
           </template>
+          <template #macros>
+            <MacrosPanel ref="macrosPanelRef" :bar-names="macroBarNames" @run="runMacroFile" @update-bar="setMacroBar" />
+          </template>
         </TabPanel>
+
+        <DialogFrame v-if="tabLeaveAsk" kind="confirm" title="Discard changes?" @close="tabLeaveAsk = null">
+          <div class="dialogBody">{{ tabLeaveAsk.what }} has unsaved changes. This cannot be undone.</div>
+          <template #actions>
+            <MachineBtn type="dialogCancel" @click="tabLeaveAsk = null">Keep editing</MachineBtn>
+            <MachineBtn type="dialogDanger" @click="confirmTabLeave">Discard</MachineBtn>
+          </template>
+        </DialogFrame>
 
         <!-- Program stats dialog -->
         <DialogFrame v-if="statsDialogOpen && gcodeStats" kind="info" size="md" box-class="statsDialog"
@@ -2619,7 +2652,7 @@ watch(viewerGcode, (newGcode) => {
         :toolLength="st.tool_length ?? null"
         :linearUnit="linearUnit"
         :offsetState="toolOffset"
-        @openToolTable="activeTab = 'tools'"
+        @openToolTable="requestTab('tools')"
       />
 
       <!-- Number keypad: swaps in like the G-code keypad, but keeps the

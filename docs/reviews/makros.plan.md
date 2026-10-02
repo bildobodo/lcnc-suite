@@ -493,6 +493,12 @@ schon einer offen ist (konkurrierende MDI- und AUTO-Starts).
 - Wechselt die Breite über die Schwelle, während ein Reiter den Fokus hat, landet der Fokus auf der
   Auswahl (`tabSelect`) und nicht auf `body`. Das wird ebenfalls geprüft.
 - `tabs.spec` kennt sechs Namen; Pfeile, Home und End sind entsprechend nachgeführt.
+- **Umsetzung:** gemessen 431 px, Schwelle 432 px (`sidePaneNarrow.ts`).
+  - Die Schätzung aus der Textbreite sagte 428 px. Der Wächter fand 1 px Anschnitt je Spalte, eine
+    Breitensuche an der echten Reiterliste dann 431 px.
+  - Der Fokus geht beim Umschalten auf das Select über.
+  - Eine abgelehnte Auswahl im Select wird zurückgesetzt; das Select zeigte sonst den abgelehnten
+    Bereich.
 
 **Aufbau nach dem Tab-Muster (D5)**
 
@@ -554,6 +560,14 @@ schon einer offen ist (konkurrierende MDI- und AUTO-Starts).
 - **Entwurfswache:** Tabwechsel, Wahl eines anderen Makros und „Neu“ fragen „Discard changes?“
   (Keep editing / Discard), wie der Werkzeugeditor.
 - Der Tab-Wächter von App (`activeTab`) sperrt die Editorsitzung beim Wechsel, wie beim G-Code.
+
+- **Umsetzung, Liste:** drei Spalten: Schalter „On bar“, das Makro mit Datei, Wertezahl und
+  Zustand darunter, die Pfeile der Leistenreihenfolge.
+  - Mitglieder der Leiste stehen zuerst, in Leistenreihenfolge.
+  - Nur der Kopf steht fest; darunter scrollt alles. So passt es auch bei 150 % (272 px).
+- **Umsetzung, Editor:** Das Auswählen eines Makros öffnet den Editor ohne Bildschirmtastatur
+  (`autoOpen` aus); ein Tipp in den Text öffnet sie. Beim Programm bleibt „Edit“ die bewusste
+  Handlung.
 
 **Run und Editorentwurf: eine gemeinsame Basis** (VP69-05, nach dem Programmeditor,
 `GcodePanel.vue:937-942`)

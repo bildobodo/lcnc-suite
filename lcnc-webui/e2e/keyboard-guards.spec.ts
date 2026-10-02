@@ -895,55 +895,80 @@ test("settings save status (UI-I12 round 7): a page-hide save that never landed 
   expect(await wsKeyboardSaves()).toBe(0);
 });
 
-test("closing Settings over a changed macro draft asks first, by every path (UI-K16)", async ({ page }) => {
-  // The macro editor is local to the Settings panel: its X, the backdrop
-  // and a header switch to another dialog all unmounted it and lost the
-  // draft without a word. Now each path asks "Discard changes?"; Keep
-  // editing keeps the draft, Discard carries out the original navigation.
+test("leaving the Macros tab over a changed draft asks first, by every path (UI-K16, package 5)", async ({ page }) => {
+  // The earlier macros' editor moved from Settings into the Macros tab: a
+  // switch to another tab hid it with the draft unsaved. Every way out —
+  // the tab list, the strip's Tool Table button, the narrow select — asks
+  // "Discard changes?"; Keep editing keeps the draft, Discard carries out
+  // the switch that asked.
   await openReady(page);
-  const openMacros = async () => {
-    await page.getByTitle("Settings", { exact: true }).click();
-    const settings = page.locator(".dialogOverlay").filter({ has: page.locator(".dialogTitle", { hasText: "Settings" }) });
-    await settings.getByRole("tab", { name: "Macros", exact: true }).click();
-    return settings;
-  };
-  const ask = page.locator(".dialog").filter({ has: page.locator(".dialogTitle", { hasText: "Discard changes?" }) });
-  let settings = await openMacros();
-  // An untouched new macro is no draft: X closes at once.
-  await settings.getByRole("button", { name: "Add Macro", exact: true }).click();
-  await settings.getByRole("button", { name: "Close settings", exact: true }).click();
-  await expect(settings).toHaveCount(0);
+  const tab = (name: string) => page.getByRole("tab", { name, exact: true });
+  const macros = page.locator(".macrosTab");
+  const ask = page.getByRole("dialog", { name: "Discard changes?", exact: true });
+  await tab("Macros").click();
+  // An untouched new form is no draft: the switch happens at once.
+  await macros.getByRole("button", { name: "Add Earlier Macro", exact: true }).click();
+  await tab("Program").click();
   await expect(ask).toHaveCount(0);
+  await expect(tab("Program")).toHaveAttribute("aria-selected", "true");
 
-  settings = await openMacros();
-  await settings.getByRole("button", { name: "Add Macro", exact: true }).click();
-  await settings.getByRole("textbox", { name: "Name", exact: true }).fill("Face top");
-  await settings.getByRole("textbox", { name: "Command", exact: true }).fill("G0 Z{depth}");
+  await tab("Macros").click();
+  await macros.getByRole("textbox", { name: "Name", exact: true }).fill("Face top");
   const paths: [string, () => Promise<void>][] = [
-    ["X", () => settings.getByRole("button", { name: "Close settings", exact: true }).click()],
-    ["backdrop", () => settings.click({ position: { x: 4, y: 4 } })],
-    ["header", () => page.getByTitle("G-code Reference", { exact: true }).click()],
+    ["tab list", () => tab("MDI").click()],
+    ["Tool Table button", () => page.getByRole("button", { name: "Tool Table", exact: true }).click()],
   ];
-  const modalCount = () => page.evaluate(() => (window as any).__modalRegistry.count() as number);
-  const base = await modalCount();
-  for (const [path, close] of paths) {
-    await close();
+  for (const [path, leave] of paths) {
+    await leave();
     await expect(ask, `${path} asks`).toBeVisible();
-    await expect(ask).toContainText("The macro you are editing has unsaved changes.");
-    expect(await modalCount(), "the ask is a registered modal of its own").toBe(base + 1);
+    await expect(ask).toContainText("The earlier macro you are editing has unsaved changes.");
     await ask.getByRole("button", { name: "Keep editing", exact: true }).click();
     await expect(ask).toHaveCount(0);
-    await expect(settings, `${path}: Keep editing keeps Settings open`).toBeVisible();
-    await expect(settings.getByRole("textbox", { name: "Name", exact: true })).toHaveValue("Face top");
+    await expect(tab("Macros"), `${path}: Keep editing stays`).toHaveAttribute("aria-selected", "true");
+    await expect(macros.getByRole("textbox", { name: "Name", exact: true })).toHaveValue("Face top");
   }
-  // Discard carries out the navigation that asked: here, the reference opens.
+  // The narrow select (150 %): the same question.
+  await page.setViewportSize({ width: 900, height: 1200 });
+  await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
+  const area = page.getByRole("combobox", { name: "Side panel", exact: true });
+  await expect(area).toBeVisible();
+  await area.selectOption("offsets");
+  await expect(ask, "the narrow select asks").toBeVisible();
+  await ask.getByRole("button", { name: "Keep editing", exact: true }).click();
+  await expect(area).toHaveValue("macros");
+  // Discard carries out the switch that asked.
+  await area.selectOption("offsets");
+  await ask.getByRole("button", { name: "Discard", exact: true }).click();
+  await expect(area).toHaveValue("offsets");
+  await page.evaluate(() => { document.documentElement.style.zoom = ""; });
+  await tab("Macros").click();
+  await expect(macros.getByRole("textbox", { name: "Name", exact: true })).toHaveCount(0);
+  await settle(page);
+  expectNoMachineAction(await recordedCmds());
+});
+
+test("Settings' one draft left, the gamepad mapping in progress, asks before a header navigation (UI-K16)", async ({ page }) => {
+  await page.addInitScript(() => {
+    const pad = { id: "Test Pad (Vendor: 045e Product: 028e)", index: 0, connected: true, mapping: "standard", timestamp: 0,
+                  axes: [0, 0, 0, 0], buttons: Array.from({ length: 17 }, () => ({ pressed: false, touched: false, value: 0 })) };
+    Object.defineProperty(navigator, "getGamepads", { value: () => [pad, null, null, null] });
+  });
+  await openReady(page);
+  await page.getByTitle("Settings", { exact: true }).click();
+  const settings = page.getByRole("dialog", { name: "Settings", exact: true });
+  await settings.getByRole("tab", { name: "Gamepad", exact: true }).click();
+  await settings.getByRole("button", { name: "Map Buttons…", exact: true }).click();
+  const wizard = page.getByRole("dialog", { name: "Map Controller", exact: true });
+  await expect(wizard).toBeVisible();
+  const ask = page.getByRole("dialog", { name: "Discard changes?", exact: true });
+  await page.getByTitle("G-code Reference", { exact: true }).click();
+  await expect(ask).toContainText("The gamepad mapping in progress has unsaved changes.");
+  await ask.getByRole("button", { name: "Keep editing", exact: true }).click();
+  await expect(wizard).toBeVisible();
   await page.getByTitle("G-code Reference", { exact: true }).click();
   await ask.getByRole("button", { name: "Discard", exact: true }).click();
   await expect(settings).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Search G-code reference", exact: true })).toBeVisible();
-  settings = await openMacros();
-  await expect(settings.getByRole("textbox", { name: "Name", exact: true })).toHaveCount(0);
-  await expect(settings.getByRole("button", { name: "Add Macro", exact: true })).toBeVisible();
   await settle(page);
   expectNoMachineAction(await recordedCmds());
 });

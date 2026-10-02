@@ -11,7 +11,7 @@
 // the shared store.
 
 import { computed, ref, watch } from "vue";
-import { loadMacrosDefaults, settingsVersion, type MacroDef } from "./defaults";
+import { loadMacrosDefaults, saveMacrosDefaults, settingsVersion, type MacroDef } from "./defaults";
 import type { Permissions } from "./permissions";
 import type { MacroFile } from "./lcncApi";
 import { macroFileByName, macroFolder, macroEditorBasis } from "./macroFiles";
@@ -95,6 +95,13 @@ export function useMacros(opts: UseMacrosOptions) {
     userMacros.value = macros;
   }
 
+  /** The macro files on the bar, in order (the Macros tab's toggle and
+   *  arrows): saved with the rest of the section unchanged. */
+  function setMacroBar(names: string[]) {
+    macroBarNames.value = names;
+    saveMacrosDefaults({ ...loadMacrosDefaults(), bar: names });
+  }
+
   function substituteMacro(command: string, values: Record<string, string>): string {
     let cmd = command;
     for (const [key, val] of Object.entries(values)) cmd = cmd.split(`{${key}}`).join(val);
@@ -171,6 +178,7 @@ export function useMacros(opts: UseMacrosOptions) {
   return {
     userMacros,
     macroBarNames,
+    setMacroBar,
     macroParamDialog,
     dialogMacro,
     dialogFile,

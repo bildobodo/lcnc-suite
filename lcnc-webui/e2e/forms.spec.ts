@@ -27,7 +27,7 @@ const PERMS_ALL = {
 };
 const TOOL = { T: 5, P: 5, Z: -40, D: 6, type: "endmill", description: "Test cutter" };
 const PROBE_VIEWS = ["Outside", "Inside", "Angle", "Boss/Pocket", "Ridge/Valley", "Surface", "Calibrate", "Toolsetter"];
-const SETTINGS_TABS = ["3D Viewer", "Machine", "Display", "Macros", "Gamepad", "Keyboard", "HAL", "Debug"];
+const SETTINGS_TABS = ["3D Viewer", "Machine", "Display", "Gamepad", "Keyboard", "HAL", "Debug"];   // Macros: a side tab (package 5)
 const MACROS = { macros: [
   { id: "m-face", name: "Face Top", command: "G0 Z{depth} F{feed}",
     params: [{ name: "depth", label: "Depth", default: "5" }, { name: "feed", label: "Feed", default: "100" }] },
@@ -158,13 +158,24 @@ for (const touch of [false, true]) {
     await page.locator('[role="dialog"]').getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(page.locator('[role="dialog"]')).toHaveCount(0);
 
-    // Every Settings section, the macro editor open.
+    // The Macros tab (package 5): the earlier-macro editor open, then the
+    // New dialog's field.
+    await page.getByRole("tab", { name: "Macros", exact: true }).click();
+    const macros = page.locator(".macrosTab");
+    await macros.getByRole("button", { name: "Add Earlier Macro", exact: true }).click();
+    add(await scan(page, "Macros tab", ".macrosTab"));
+    await macros.getByRole("button", { name: "Cancel", exact: true }).click();
+    await macros.getByRole("button", { name: "New", exact: true }).click();
+    add(await scan(page, "New macro", '[role="dialog"]'));
+    await page.locator('[role="dialog"]').getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page.locator('[role="dialog"]')).toHaveCount(0);
+
+    // Every Settings section.
     await page.getByTitle("Settings", { exact: true }).click();
     const settings = page.getByRole("dialog", { name: "Settings", exact: true });
     for (const tab of SETTINGS_TABS) {
       await settings.getByRole("tab", { name: tab, exact: true }).click();
       await expect(settings.getByRole("tab", { name: tab, exact: true })).toHaveAttribute("aria-selected", "true");
-      if (tab === "Macros") await settings.getByRole("button", { name: "Add Macro", exact: true }).click();
       add(await scan(page, `Settings/${tab}`, '[role="dialog"]'));
     }
     expect(problems, problems.join("\n")).toEqual([]);

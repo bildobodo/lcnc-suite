@@ -63,7 +63,7 @@ test.afterEach(async () => {
 test("tab semantics: tablist, tab, tabpanel — one Tab stop, the panel named by its tab", async ({ page }) => {
   await ready(page);
   const side = page.getByRole("tablist", { name: "Side panel", exact: true });
-  await expect(side.getByRole("tab")).toHaveText(["Program", "MDI", "Probing", "Offsets", "Tools"]);
+  await expect(side.getByRole("tab")).toHaveText(["Program", "MDI", "Probing", "Offsets", "Tools", "Macros"]);
   await expect(selected(side)).toHaveText("Program");
   await expect(stops(side), "one Tab stop: the selected tab").toHaveCount(1);
   await expect(stops(side)).toHaveText("Program");
@@ -81,7 +81,7 @@ test("tab semantics: tablist, tab, tabpanel — one Tab stop, the panel named by
 
   await page.getByTitle("Settings", { exact: true }).click();
   const sections = page.getByRole("tablist", { name: "Settings sections", exact: true });
-  await expect(sections.getByRole("tab")).toHaveCount(8);
+  await expect(sections.getByRole("tab")).toHaveCount(7);   // Macros moved to the side pane (package 5)
   await expect(stops(sections)).toHaveCount(1);
   await sections.getByRole("tab", { name: "HAL", exact: true }).click();
   const hal = page.getByRole("tablist", { name: "HAL view", exact: true });
@@ -109,20 +109,20 @@ test("arrows move focus, Enter selects; every navigation key stays in the list �
   await expect(selected(side), "…and selects nothing (manual activation)").toHaveText("Program");
   await page.keyboard.press("ArrowLeft");
   await page.keyboard.press("ArrowLeft");
-  await expect(tab("Tools"), "ArrowLeft wraps from the first to the last").toBeFocused();
+  await expect(tab("Macros"), "ArrowLeft wraps from the first to the last").toBeFocused();
   await page.keyboard.press("Home");
   await expect(tab("Program")).toBeFocused();
   await page.keyboard.press("End");
-  await expect(tab("Tools")).toBeFocused();
+  await expect(tab("Macros")).toBeFocused();
   await page.keyboard.press("ArrowUp");
   await page.keyboard.press("ArrowDown");
-  await expect(tab("Tools"), "Up / Down do nothing in a single row").toBeFocused();
+  await expect(tab("Macros"), "Up / Down do nothing in a single row").toBeFocused();
   await settle(page);
   expect(await cmds(), "no key on a focused tab reached the jog map").toEqual([]);
 
   await page.keyboard.press("Enter");
-  await expect(selected(side)).toHaveText("Tools");
-  await expect(stops(side)).toHaveText("Tools");
+  await expect(selected(side)).toHaveText("Macros");
+  await expect(stops(side)).toHaveText("Macros");
   await tab("Tools").focus();
   await page.keyboard.press("ArrowLeft");
   await page.keyboard.press(" ");
@@ -209,7 +209,7 @@ test("Probing's 4 × 2 grid: Left / Right in reading order across rows, Up / Dow
 test("a tab switch sends nothing — but a jog still running stops", async ({ page }) => {
   await ready(page);
   const side = page.getByRole("tablist", { name: "Side panel", exact: true });
-  for (const name of ["MDI", "Probing", "Offsets", "Tools", "Program"]) {
+  for (const name of ["MDI", "Probing", "Offsets", "Tools", "Macros", "Program"]) {
     await side.getByRole("tab", { name, exact: true }).click();
   }
   await settle(page);

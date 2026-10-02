@@ -31,6 +31,8 @@ export { saveDraft, takeDraft, dropDraft, dropDrafts, clearDrafts } from "./useN
 export type SessionKind = "number" | "code" | "text";
 /** The G-code editor's fixed owner id (App locks it with the tab). */
 export const EDITOR_OWNER = "gcode-editor";
+/** The Macros tab's file editor (package 5) — its own owner, locked when the tab hides. */
+export const MACRO_EDITOR_OWNER = "macro-editor";
 export type { KeyPage } from "./textKeyboardPages";
 
 /** What the text keyboard can ask its owner to do. Optional entries mean

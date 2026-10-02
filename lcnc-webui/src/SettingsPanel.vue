@@ -14,12 +14,11 @@ import FormField from "./FormField.vue";
 import {
   loadViewerDefaults, saveViewerDefaults, viewerFallback,
   loadMachineDefaults, saveMachineDefaults,
-  loadMacrosDefaults, saveMacrosDefaults, syncMacroParams,
   loadDisplayDefaults, saveDisplayDefaults, settingsVersion, serverSettingsReady,
   loadCameraDefaults, saveCameraDefaults,
   ON_TOP_LAYERS, type OnTopLayer, type Layer, type ColorDefaults, type PaletteMode, type PaletteOrigin, type HudDefaults, type HudScale,
   type TrackMode, type Projection, type PreviewMode, type ToolChangeMode, type SpindleDir, type SpindleFeedbackUnit,
-  type ThemeMode, type MacroDef, type GamepadDefaults,
+  type ThemeMode, type GamepadDefaults,
   GAMEPAD_FALLBACK,
   loadKeyboardDefaults, type KeyboardDefaults, DEFAULT_KB_MAPPING,
 } from "./defaults";
@@ -30,7 +29,7 @@ import { fmtNum, fmtPct, fmtRatio } from "./format";
 import { customContrastRows, customPairRows } from "./viewer/customContrast";
 import type { MappingSource } from "./gamepadProfile";
 import { enableWakeLock, disableWakeLock } from "./wakeLock";
-import { ChevronUp, ChevronDown, Pencil, Trash2, RotateCcw, Triangle, X } from "lucide-vue-next";
+import { RotateCcw, Triangle, X } from "lucide-vue-next";
 import DebugTab from "./DebugTab.vue";
 import HalshowTab from "./HalshowTab.vue";
 import KeyboardTab from "./KeyboardTab.vue";
@@ -48,101 +47,16 @@ const applyPaletteFromSettings = inject<() => void>("applyPaletteFromSettings", 
 // The theme the legend's colours come from (App: the explicit theme, else
 // the system scheme) — a switch re-resolves the shown palette.
 const isDark = inject<Ref<boolean>>("isDark", ref(false));   // with themeMode (below)
-const updateMacros = inject<(macros: MacroDef[]) => void>("updateMacros", () => {});
 
-// ─── Macros CRUD ────────────────────────────────────────────────
-const macros = ref<MacroDef[]>(loadMacrosDefaults().macros);
-const editingMacro = ref<MacroDef | null>(null);
-// The editor's state when it opened: closing Settings over a CHANGED draft
-// asks first (UI-K16) — every close path (X, backdrop, header navigation)
-// used to unmount this panel and lose the draft without a word.
-const macroSnapshot = ref("");
-function snapshotMacro() { macroSnapshot.value = JSON.stringify(editingMacro.value); }
 const gamepadTabRef = ref<{ wizardOpen: () => boolean } | null>(null);
 /** What closing Settings would throw away, in operator words — null when
  *  nothing (settings themselves save automatically). */
 function unsavedDraft(): string | null {
-  if (editingMacro.value && JSON.stringify(editingMacro.value) !== macroSnapshot.value) return "The macro you are editing";
+  // the macros moved to the Macros tab (package 5) with their own guard
   if (gamepadTabRef.value?.wizardOpen()) return "The gamepad mapping in progress";
   return null;
 }
 defineExpose({ unsavedDraft });
-
-// Keep the macro's params in sync with the {placeholders} in its command as the
-// user types. A watcher (not a computed) owns this mutation; the template binds
-// to editingMacro.params directly. syncMacroParams preserves edits to params
-// that remain, so editing a param then changing the command keeps the edit
-// (issue #26).
-watch(
-  () => editingMacro.value?.command,
-  () => {
-    const m = editingMacro.value;
-    if (m) m.params = syncMacroParams(m.command, m.params);
-  },
-);
-
-function addMacro() {
-  editingMacro.value = {
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    name: "",
-    command: "",
-    params: [],
-  };
-  snapshotMacro();
-}
-
-function editMacro(m: MacroDef) {
-  const copy = { ...m, params: m.params.map(p => ({ ...p })) };
-  // Reconcile params with the command on open: the watch fires only when the
-  // command STRING changes, so switching between macros with identical commands
-  // (but drifted stored params) wouldn't otherwise sync the editor (review #4).
-  copy.params = syncMacroParams(copy.command, copy.params);
-  editingMacro.value = copy;
-  snapshotMacro();
-}
-
-function saveMacro() {
-  if (!editingMacro.value) return;
-  const m = editingMacro.value;
-  if (!m.name.trim() || !m.command.trim()) return;
-  // The editor watcher already keeps params in sync with the command; re-run
-  // here to cover a save fired right after a command edit (idempotent).
-  m.params = syncMacroParams(m.command, m.params);
-  const idx = macros.value.findIndex(x => x.id === m.id);
-  if (idx >= 0) macros.value[idx] = m;
-  else macros.value.push(m);
-  editingMacro.value = null;
-  persistMacros();
-}
-
-function deleteMacro(id: string) {
-  macros.value = macros.value.filter(m => m.id !== id);
-  if (editingMacro.value?.id === id) editingMacro.value = null;
-  persistMacros();
-}
-
-// Deletion is confirmed via dialog — the trash button is a ~30px icon
-// target and macro deletion is irreversible.
-const macroDeleteId = ref<string | null>(null);
-const macroDeleteName = computed(() => macros.value.find(m => m.id === macroDeleteId.value)?.name ?? "");
-function confirmMacroDelete() {
-  if (macroDeleteId.value) deleteMacro(macroDeleteId.value);
-  macroDeleteId.value = null;
-}
-
-function moveMacro(idx: number, dir: -1 | 1) {
-  const target = idx + dir;
-  if (target < 0 || target >= macros.value.length) return;
-  const arr = [...macros.value];
-  [arr[idx]!, arr[target]!] = [arr[target]!, arr[idx]!];
-  macros.value = arr;
-  persistMacros();
-}
-
-function persistMacros() {
-  saveMacrosDefaults({ macros: macros.value });
-  updateMacros(macros.value);
-}
 
 const props = defineProps<{
   gamepadConnected?: boolean;
@@ -381,7 +295,6 @@ function saveMachine() {
 
 // Re-read when another client changes settings
 watch(settingsVersion, () => {
-  macros.value = loadMacrosDefaults().macros;
   const md = loadMachineDefaults();
   toolChangeMode.value = md.toolChangeMode;
   runFromLine.value = md.runFromLine;
@@ -440,7 +353,6 @@ const subTabs = [
   { id: "viewer", label: "3D Viewer" },
   { id: "machine", label: "Machine" },
   { id: "display", label: "Display" },
-  { id: "macros", label: "Macros" },
   { id: "gamepad", label: "Gamepad" },
   { id: "keyboard", label: "Keyboard" },
   { id: "halshow", label: "HAL" },
@@ -550,8 +462,8 @@ function resetMachineColor(id: string) {
 <template>
   <div class="settings">
     <!-- The promise and its proof (UX-08): changes save on the server as they
-         are made, except where a section shows Save/Cancel (macro editor,
-         gamepad wizard) — and the status says what the last save did. -->
+         are made, except where a section shows Save/Cancel (the gamepad
+         wizard; the macro editors live in the Macros tab) — and the status says what the last save did. -->
     <div class="settingsHead row-controls">
       <div class="hint">Changes save automatically and are shared across all connected clients.</div>
       <span class="saveStatus" :class="saveStatus.state" role="status" aria-live="polite">{{ saveStatusText(saveStatus) }}</span>
@@ -954,73 +866,6 @@ function resetMachineColor(id: string) {
         </div>
       </template>
 
-      <template #macros>
-        <div v-if="!serverSettingsReady" class="emptyState loading settingsLoading">Waiting for server settings…</div>
-        <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
-          <div class="stack-controls">
-            <div class="sub">User Macros</div>
-
-            <div v-if="macros.length === 0 && !editingMacro" class="emptyState macroSettingsEmpty">
-              No macros configured. Click "Add Macro" to create one.
-            </div>
-
-            <div class="stack-controls">
-              <div v-for="(m, idx) in macros" :key="m.id" class="macroSettingsItem">
-                <div class="macroSettingsInfo stack-micro">
-                  <span class="macroSettingsName">{{ m.name }}</span>
-                  <code class="macroSettingsCmd">{{ m.command }}</code>
-                </div>
-                <div class="macroSettingsActions">
-                  <MachineBtn type="listAction" :disabled="idx === 0" @click="moveMacro(idx, -1)" title="Move up"><ChevronUp :size="14" /></MachineBtn>
-                  <MachineBtn type="listAction" :disabled="idx === macros.length - 1" @click="moveMacro(idx, 1)" title="Move down"><ChevronDown :size="14" /></MachineBtn>
-                  <MachineBtn type="listAction" @click="editMacro(m)" title="Edit" :aria-label="`Edit macro ${m.name}`"><Pencil :size="14" /></MachineBtn>
-                  <!-- A destructive control names its target (UX-06) -->
-                  <MachineBtn type="listAction" @click="macroDeleteId = m.id" title="Delete" :aria-label="`Delete macro ${m.name}`"><Trash2 :size="14" /></MachineBtn>
-                </div>
-              </div>
-            </div>
-
-            <div v-if="editingMacro" class="macroEditForm">
-              <div class="sub">{{ macros.some(m => m.id === editingMacro!.id) ? 'Edit' : 'New' }} Macro</div>
-              <div class="stack-controls fieldGroup">
-                <div class="formGrid">
-                  <FormField label="Name" wide>
-                    <template #default="{ input }">
-                      <MachineInput v-bind="input" gate="macroEdit" type="text" v-model="editingMacro.name" placeholder="e.g. Face Top" />
-                    </template>
-                  </FormField>
-                  <FormField label="Command" wide>
-                    <template #default="{ input }">
-                      <MachineInput v-bind="input" gate="macroEdit" type="text" v-model="editingMacro.command" placeholder="e.g. G0 Z{depth} F{feed}" />
-                    </template>
-                  </FormField>
-                </div>
-                <div class="macroParamHint">
-                  Use <code>{"{name}"}</code> for parameters. Users will be prompted for values.
-                </div>
-
-                <div v-if="editingMacro.params.length > 0" class="macroParamEditor">
-                  <div class="sub">Parameters</div>
-                  <div v-for="p in editingMacro.params" :key="p.name" class="macroParamEditRow">
-                    <code class="macroParamBadge">{{"{"}}{{ p.name }}{{"}"}}</code>
-                    <MachineInput gate="macroEdit" type="text" v-model="p.label" placeholder="Display label" :label="`${p.name} display label`" />
-                    <MachineInput gate="macroEdit" type="text" v-model="p.default" placeholder="Default value" :label="`${p.name} default value`" />
-                  </div>
-                </div>
-              </div>
-              <div class="macroEditActions">
-                <div class="hint">Unsaved edit — Save or Cancel</div>
-                <MachineBtn type="dialogCancel" @click="editingMacro = null">Cancel</MachineBtn>
-                <MachineBtn type="dialogConfirm" @click="saveMacro" :disabled="!editingMacro.name.trim() || !editingMacro.command.trim()">Save</MachineBtn>
-              </div>
-            </div>
-
-            <MachineBtn v-if="!editingMacro && macros.length < 20" type="inlineMd" @click="addMacro">Add Macro</MachineBtn>
-
-          </div>
-        </div>
-      </template>
-
       <template #gamepad>
         <div v-if="!serverSettingsReady" class="emptyState loading settingsLoading">Waiting for server settings…</div>
         <div v-else class="stack-panel scrollContent scroll-thin fade-scroll">
@@ -1063,14 +908,7 @@ function resetMachineColor(id: string) {
 
       <!-- Nested confirmations stack over Settings (DialogFrame teleports
            them to the content area; Settings' helper pauses meanwhile). -->
-      <DialogFrame v-if="macroDeleteId" kind="confirm" :title="`Delete macro &quot;${macroDeleteName}&quot;?`" danger
-                   @close="macroDeleteId = null">
-        <div class="dialogBody">Its button leaves the macro bar. This cannot be undone.</div>
-        <template #actions>
-          <MachineBtn type="dialogCancel" @click="macroDeleteId = null">Cancel</MachineBtn>
-          <MachineBtn type="dialogDanger" @click="confirmMacroDelete">Delete</MachineBtn>
-        </template>
-      </DialogFrame>
+
 
       <DialogFrame v-if="resetTarget" kind="confirm" :title="`Reset ${resetLabels[resetTarget]} settings?`" danger
                    @close="resetTarget = null">
@@ -1133,7 +971,6 @@ function resetMachineColor(id: string) {
    instead of squeezing it to one word per line. */
 .settingsHead > .hint { flex: 1 1 16rem; min-width: 0; }
 .settingsHead > .saveStatus { flex: 0 1 auto; }
-.macroEditActions > .hint { margin-right: auto; }
 .hint {
   font-size: var(--fs-sm);
   color: var(--fg-muted);
@@ -1202,65 +1039,5 @@ function resetMachineColor(id: string) {
 
 
 
-
-/* ─── Macros tab ─────────────────────────────────────────────── */
-.macroSettingsEmpty { padding: var(--gap-panel); }
-.macroSettingsItem {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-controls);
-  padding: var(--gap-tight) var(--gap-controls);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-}
-.macroSettingsInfo {
-  flex: 1;
-  min-width: 0;
-}
-.macroSettingsName {
-  font-weight: var(--fw-semibold);
-}
-.macroSettingsCmd {
-  font-size: var(--fs-sm);
-  color: var(--fg-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.macroSettingsActions {
-  display: flex;
-  gap: var(--gap-tight);
-  flex-shrink: 0;
-}
-.macroEditForm {
-  margin-top: var(--gap-section);
-  padding: var(--gap-controls);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-}
-.macroParamHint {
-  font-size: var(--fs-sm);
-  color: var(--fg-muted);
-}
-.macroParamEditor {
-  margin-top: var(--gap-controls);
-}
-.macroParamEditRow {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-controls);
-  margin-top: var(--gap-tight);
-}
-.macroParamBadge {
-  font-size: var(--fs-sm);
-  min-width: 70px;
-  flex-shrink: 0;
-}
-.macroEditActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--gap-controls);
-  margin-top: var(--gap-section);
-}
 
 </style>

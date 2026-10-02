@@ -12,14 +12,18 @@ import { isTouchDevice } from "./touchDetect";
 import { openTextSession, closeTextSessionIf, inputSession, type TextTarget } from "./inputSession";
 import { emitTelemetry } from "./lcncWs";
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   /** The text the view is created with (read once, on mount). */
   doc: string;
   /** The text keyboard's owner of this editor (its input area too). */
   ownerId: string;
   /** The keyboard readout's context ("Editor · file.ngc"). */
   context: string;
-}>();
+  /** Focus the view and open the strip keyboard on mount (default) — the
+   *  program's Edit is a deliberate act; selecting a macro in its list is
+   *  not, there a tap into the text opens the keyboard. */
+  autoOpen?: boolean;
+}>(), { autoOpen: true });   // an absent Boolean prop would be false
 const emit = defineEmits<{
   /** The text changed (a keystroke, the strip keyboard, undo). */
   change: [];
@@ -77,12 +81,14 @@ onMounted(async () => {
     // Touch: text entry comes from the strip keyboard — suppress the OS
     // keyboard the same way MachineInput does for number fields.
     if (isTouchDevice.value) view.contentDOM.setAttribute("inputmode", "none");
-    // Focus on entry so the caret shows at once.
-    view.focus();
-    // A CODE target of the strip keyboard from the moment it exists (opening
-    // the editor is the deliberate act); a tap into it re-opens a closed
-    // helper (WP8).
-    openSession();
+    if (props.autoOpen) {
+      // Focus on entry so the caret shows at once.
+      view.focus();
+      // A CODE target of the strip keyboard from the moment it exists (opening
+      // the editor is the deliberate act); a tap into it re-opens a closed
+      // helper (WP8).
+      openSession();
+    }
   } catch (e: any) {
     emit("loadError", `Editor failed to load: ${e?.message ?? e}`);
     emitTelemetry("edit.editor_load_failed", { msg: String(e?.message ?? e) });

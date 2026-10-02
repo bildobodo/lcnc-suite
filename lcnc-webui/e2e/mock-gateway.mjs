@@ -74,6 +74,13 @@ const PREVIEW = msgpackEncode({
 
 const server = createServer(async (req, res) => {
   const path = decodeURIComponent((req.url || "/").split("?")[0]);
+  if (path === "/macros") {
+    // Package 5: the macro folder of a configuration without one (specs that
+    // need files serve their own folder through page.route)
+    res.writeHead(200, { "content-type": "application/json" });
+    res.end(JSON.stringify({ ok: true, dir: null, problems: ["No macro folder — set [DISPLAY] WEBUI_MACRO_DIR"], macros: [] }));
+    return;
+  }
   if (path === "/preview") {
     res.writeHead(200, { "content-type": "application/octet-stream" });
     res.end(Buffer.from(PREVIEW));

@@ -137,6 +137,9 @@ export const BUTTON_TYPES = {
   // Execute for one with parameters (opening the dialog is no motion).
   macro:          { gate: 'probe',    variant: 'default', size: 'lg' },
   macroExecute:   { gate: 'probe',    variant: 'primary', size: 'md', hold: true },
+  // The Macros tab's Run (package 5): the bar button's class; a macro with
+  // parameters overrides `hold` — a tap opens its dialog
+  macroRun:       { gate: 'probe',    variant: 'primary', size: 'md', hold: true },
 
   // Safety
   arm:            { gate: 'always',   variant: 'default', size: 'lg' },

@@ -7611,3 +7611,35 @@ against the old installer). Not yet: the native acceptance of the cache reset
 (the plan's byte-arithmetic red case on a headless sim) and the examples on
 a running sim — both owed before the combined review.
 
+## 2026-10-02 — Package 5 stage C: the Macros tab, files on the bar, CodeEditor
+
+**Rule.** See CLAUDE.md `MacrosPanel.vue`, `CodeEditor.vue`, `MacroBar.vue`.
+The decisions worth keeping:
+- The bar shows the earlier settings macros first, then the macro FILES named
+  in the `macros` section's new `bar` key (the merge keeps it; a section from
+  before package 5 passes through unchanged). The earlier editor's save used
+  to write `{ macros }` alone — it would have dropped `bar`; it saves the
+  whole section now.
+- One run rule for every place a macro file runs (VP69-05): `macroRunBlock`
+  reads the open editor's basis — draft, loading, conflict block THAT file.
+- The sixth tab: the narrow threshold is MEASURED (a width scan of the real
+  tab list — first unclipped 431 px; a text-width estimate had said 428 and
+  the new guard caught 1 px clipped per column), 432 px. A width change that
+  flips the navigation while a tab holds the focus hands the focus to the
+  select (it used to fall to body, where an arrow jogs).
+- A refused tab switch from the narrow select left the select SHOWING the
+  refused area (Vue does not touch an element whose bound value did not
+  change): TabPanel puts it back.
+- Selecting a macro opens its editor without the strip keyboard; a tap into
+  the text opens it (the program's Edit stays the deliberate act it was).
+
+**Tests moved with the editor.** Settings' macro draft was the fixture of
+four guard tests: dialog case 3 (now the gamepad wizard through a header
+navigation), case 20 (now in the Macros tab), UI-D01 (a confirmation that
+opens while a program runs — Remove Profile — and the Machine section's text
+field), the stack-close test (its Settings half is gone: no Settings draft
+exists that no dialog covers; the tool editor half stays, with the Space
+check). New dialog cases 23–25 (New macro, Delete macro file, the tab's
+discard). Red: no focus hand-over, no select revert, a draft that does not
+block — each fails its guard.
+

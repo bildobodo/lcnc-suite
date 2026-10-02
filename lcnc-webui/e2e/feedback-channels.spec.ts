@@ -362,7 +362,7 @@ test("every help popover wraps and stays inside the window, in every tab", async
   }
   const side = page.locator(".sidePane");
   await sweep("strips", page.locator(".strip"));
-  for (const tab of ["Program", "MDI", "Offsets", "Tools"]) {
+  for (const tab of ["Program", "MDI", "Offsets", "Tools", "Macros"]) {
     await side.getByRole("tab", { name: tab, exact: true }).click();
     await sweep(tab, side);
   }
@@ -373,7 +373,7 @@ test("every help popover wraps and stays inside the window, in every tab", async
   }
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   const settings = page.locator(".dialogOverlay").last();
-  for (const tab of ["3D Viewer", "Machine", "Display", "Macros", "Gamepad", "Keyboard"]) {
+  for (const tab of ["3D Viewer", "Machine", "Display", "Gamepad", "Keyboard"]) {   // Macros: a side tab (package 5)
     await settings.getByRole("tab", { name: tab, exact: true }).click();
     await sweep(`Settings/${tab}`, settings);
   }
@@ -456,7 +456,7 @@ test("every help icon has one look: full opacity, one colour, enabled, the same 
   }
   const side = page.locator(".sidePane");
   await sweep("strips", page.locator(".strip"));
-  for (const tab of ["Program", "MDI", "Offsets", "Tools"]) {
+  for (const tab of ["Program", "MDI", "Offsets", "Tools", "Macros"]) {
     await side.getByRole("tab", { name: tab, exact: true }).click();
     await sweep(tab, side);
   }
@@ -467,7 +467,7 @@ test("every help icon has one look: full opacity, one colour, enabled, the same 
   }
   await page.getByRole("button", { name: "Settings", exact: true }).click();
   const settings = page.locator(".dialogOverlay").last();
-  for (const tab of ["3D Viewer", "Machine", "Display", "Macros", "Gamepad", "Keyboard"]) {
+  for (const tab of ["3D Viewer", "Machine", "Display", "Gamepad", "Keyboard"]) {   // Macros: a side tab (package 5)
     await settings.getByRole("tab", { name: tab, exact: true }).click();
     await sweep(`Settings/${tab}`, settings);
   }

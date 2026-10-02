@@ -48,6 +48,24 @@ const MACROS = {
   ],
 };
 
+/** One macro FILE for the Macros tab's dialogs (package 5): the gateway's
+ *  routes served from memory, enough for open / new / delete. */
+const PARK_FILE = "(MACRO Park)\no<park> sub\n  M73\n  G90\no<park> endsub\n";
+async function macroFolder(page: Page) {
+  const entry = { name: "park", title: "Park", units: null, frame: null, params: [], description: [], errors: [],
+                  warnings: [], revision: "a".repeat(64), mtime: 0, runnable: true, reason: null };
+  await page.route("**/macros", r => r.fulfill({ json: { ok: true, dir: "/m", problems: [], macros: [entry] } }));
+  await page.route(/\/macro\?/, r => r.request().method() === "GET"
+    ? r.fulfill({ body: PARK_FILE, contentType: "text/plain", headers: { "X-Macro-Revision": entry.revision } })
+    : r.fulfill({ status: 409, json: { detail: { error: "refused", reason: "Not in this test", revision: entry.revision } } }));
+}
+async function openMacrosTab(page: Page): Promise<Locator> {
+  await page.getByRole("tab", { name: "Macros", exact: true }).click();
+  const tab = page.locator(".macrosTab");
+  await expect(tab).toBeVisible();
+  return tab;
+}
+
 async function cmds(): Promise<string[]> {
   const sent = await ctl({ op: "lastCmds" }) as { cmds?: { cmd?: string }[] };
   return (sent.cmds ?? []).map(c => c.cmd ?? "").filter(c => !READ_ONLY_CMDS.includes(c));
@@ -226,15 +244,17 @@ const ROWS: Row[] = [
     close: async (d) => { await byName("Close settings")(d).click(); },
   },
   {
-    id: "3 Settings discard", title: "Discard changes?", tier: "sm", backdrop: "closes",
+    // Settings' one draft since the macros moved to their tab (package 5):
+    // the gamepad mapping in progress. It covers Settings, so a header
+    // button is the way out that asks; the return goes into the wizard.
+    id: "3 Settings discard", title: "Discard changes?", tier: "sm", backdrop: "closes", before: fakeGamepad,
     focus: byName("Keep editing"), actions: ["Keep editing", "Discard"],
     open: async (page) => {
-      const settings = await openSettingsTab(page, "Macros");
-      await settings.getByRole("button", { name: "Add Macro", exact: true }).click();
-      await settings.getByRole("textbox", { name: "Name", exact: true }).fill("Face top");
-      const trigger = settings.getByRole("button", { name: "Close settings", exact: true });
-      await trigger.click();
-      return trigger;
+      const settings = await openSettingsTab(page, "Gamepad");
+      await settings.getByRole("button", { name: "Map Buttons…", exact: true }).click();
+      await expect(page.getByRole("dialog", { name: "Map Controller", exact: true })).toBeVisible();
+      await page.getByTitle("G-code Reference", { exact: true }).click();
+      return null;
     },
     close: async (d) => { await byName("Keep editing")(d).click(); },
   },
@@ -446,11 +466,12 @@ const ROWS: Row[] = [
     close: async (d) => { await byName("Cancel")(d).click(); },
   },
   {
+    // the earlier macros live in the Macros tab now (package 5)
     id: "20 Delete macro", title: 'Delete macro "Face Top"?', tier: "sm", backdrop: "closes", settings: { macros: MACROS },
     focus: byName("Cancel"), actions: ["Cancel", "Delete"],
     open: async (page) => {
-      const settings = await openSettingsTab(page, "Macros");
-      const trigger = settings.getByRole("button", { name: "Delete macro Face Top", exact: true });
+      const tab = await openMacrosTab(page);
+      const trigger = tab.getByRole("button", { name: "Delete macro Face Top", exact: true });
       await trigger.click();
       return trigger;
     },
@@ -466,6 +487,44 @@ const ROWS: Row[] = [
       return trigger;
     },
     close: async (d) => { await byName("Cancel")(d).click(); },
+  },
+  {
+    id: "23 New macro", title: "New Macro", tier: "md", backdrop: "stays", before: macroFolder,
+    focus: (d) => d.getByRole("textbox", { name: "File name", exact: true }), actions: ["Cancel", "Create"],
+    open: async (page) => {
+      const tab = await openMacrosTab(page);
+      const trigger = tab.getByRole("button", { name: "New", exact: true });
+      await trigger.click();
+      return trigger;
+    },
+    close: async (d) => { await byName("Cancel")(d).click(); },
+  },
+  {
+    id: "24 Delete macro file", title: "Delete Park?", tier: "sm", backdrop: "closes", before: macroFolder,
+    focus: byName("Cancel"), actions: ["Cancel", "Delete"],
+    open: async (page) => {
+      const tab = await openMacrosTab(page);
+      await tab.getByRole("button", { name: "Open park.ngc", exact: true }).click();
+      const trigger = tab.getByRole("button", { name: "Delete", exact: true });
+      await expect(trigger).toBeEnabled();
+      await trigger.click();
+      return trigger;
+    },
+    close: async (d) => { await byName("Cancel")(d).click(); },
+  },
+  {
+    // leaving the Macros tab over a draft (the earlier macro's form)
+    id: "25 Macros tab discard", title: "Discard changes?", tier: "sm", backdrop: "closes",
+    focus: byName("Keep editing"), actions: ["Keep editing", "Discard"],
+    open: async (page) => {
+      const tab = await openMacrosTab(page);
+      await tab.getByRole("button", { name: "Add Earlier Macro", exact: true }).click();
+      await tab.getByRole("textbox", { name: "Name", exact: true }).fill("Face top");
+      const trigger = page.getByRole("tab", { name: "Program", exact: true });
+      await trigger.click();
+      return null;
+    },
+    close: async (d) => { await byName("Keep editing")(d).click(); },
   },
   {
     id: "22 Gamepad mapping wizard", title: "Map Controller", tier: "md", backdrop: "stays", before: fakeGamepad,
@@ -551,14 +610,15 @@ for (const row of ROWS) {
 }
 
 test("UI-D01: from inside a dialog Tab reaches the banner's Abort — Enter sends exactly abort, also stacked and with a helper open", async ({ page }) => {
-  await ready(page, { macros: MACROS });
+  await fakeGamepad(page);   // its profile's Remove asks over Settings, open while a program runs
+  await ready(page, { macros: MACROS, gamepad: { profiles: { [PAD_ID]: { id: PAD_ID, buttons: {}, sticks: {} } } } });
   const running = { interp_state: 2, task_mode: 2, permissions: { ...PERMS_ALL, pause: true, idle: false, ready: false, run: false, setup: false } };
   await ctl({ op: "status_delta", data: running });
   const abortBtn = page.locator(".bannerActions").getByRole("button", { name: /Abort/ });
   await expect(abortBtn).toBeVisible();
 
   const tabToAbort = async (dialog: Locator) => {
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 120; i++) {
       await page.keyboard.press("Tab");
       if (await abortBtn.evaluate(el => el === document.activeElement || el.contains(document.activeElement))) return;
       expect(await focusPlace(page, dialog)).toMatch(/^(dialog|helper|safety|banner)$/);
@@ -566,29 +626,30 @@ test("UI-D01: from inside a dialog Tab reaches the banner's Abort — Enter send
     throw new Error("Tab never reached the banner's Abort");
   };
 
-  // 1. Settings (host).
-  const settings = await openSettingsTab(page, "Macros");
+  // 1. Settings (host). (The macro editor this used moved to its tab,
+  // package 5: a confirmation that opens while a program runs stacks below,
+  // the Machine section's text field takes the helper.)
+  const settings = await openSettingsTab(page, "Gamepad");
   await tabToAbort(settings);
   await ctl({ op: "clearCmds" });
   await page.keyboard.press("Enter");
   await expect.poll(cmds).toEqual(["abort"]);
 
-  // 2. Stacked: a draft in the macro editor, Settings' X asks.
+  // 2. Stacked: a confirmation over Settings (Remove Profile asks).
   await ctl({ op: "status_delta", data: running });
-  await settings.getByRole("button", { name: "Add Macro", exact: true }).click();
-  await settings.getByRole("textbox", { name: "Name", exact: true }).fill("Face top");
-  await settings.getByRole("button", { name: "Close settings", exact: true }).click();
-  const ask = page.getByRole("dialog", { name: "Discard changes?", exact: true });
+  await settings.getByRole("button", { name: "Remove Profile", exact: true }).click();
+  const ask = page.getByRole("dialog", { name: "Remove profile?", exact: true });
   await expect(ask).toBeVisible();
   await tabToAbort(ask);
   await ctl({ op: "clearCmds" });
   await page.keyboard.press("Enter");
   await expect.poll(cmds).toEqual(["abort"]);
-  await ask.getByRole("button", { name: "Keep editing", exact: true }).click();
+  await ask.getByRole("button", { name: "Cancel", exact: true }).click();
 
   // 3. A text helper open on a Settings field: Tab passes through its keys.
   await ctl({ op: "status_delta", data: running });
-  await settings.getByRole("textbox", { name: "Name", exact: true }).click();
+  await settings.getByRole("tab", { name: "Machine", exact: true }).click();
+  await settings.getByRole("textbox", { name: "Spindle Load HAL Pin", exact: true }).click();
   await expect(page.locator(".tkStrip")).toBeVisible();
   await tabToAbort(settings);
   await ctl({ op: "clearCmds" });
@@ -672,30 +733,12 @@ test("UI-D06: a dialog over a field's keypad pauses it — the draft survives un
 });
 
 test("closing a whole stack returns focus once, to the control that opened the bottom dialog — Space sends nothing", async ({ page }) => {
-  // Settings → a dirty macro draft → X asks → Discard unmounts BOTH frames in
-  // one tick: the ask's own return target (Settings' X) is gone, the Settings
-  // return must win and land on the header button, never on body (where
-  // Space is Cycle Start). Same for the tool editor's Cancel → Discard.
+  // The tool editor's Cancel → Discard unmounts BOTH frames in one tick: the
+  // ask's own return target (Cancel) is gone, the editor's return must win
+  // and land on + Add, never on body (where Space is Cycle Start). (The
+  // Settings half of this test went with the macro editor, package 5:
+  // Settings keeps no draft that no dialog covers.)
   await ready(page, { macros: MACROS });
-  const opener = page.getByTitle("Settings", { exact: true });
-  const settings = await openSettingsTab(page, "Macros");
-  await settings.getByRole("button", { name: "Add Macro", exact: true }).click();
-  await settings.getByRole("textbox", { name: "Name", exact: true }).fill("Face top");
-  await settings.getByRole("button", { name: "Close settings", exact: true }).click();
-  const ask = page.getByRole("dialog", { name: "Discard changes?", exact: true });
-  await ask.getByRole("button", { name: "Discard", exact: true }).click();
-  await expect(settings).toHaveCount(0);
-  await expect(opener, "focus returns to the header's Settings button").toBeFocused();
-  // Space activates the focused button (Settings opens again) — never the
-  // machine: no command.
-  await ctl({ op: "clearCmds" });
-  await page.keyboard.press(" ");
-  await settle(page);
-  expect(await cmds(), "Space after the stack closed").toEqual([]);
-  const again = page.getByRole("dialog", { name: "Settings", exact: true });
-  if (await again.count()) await again.getByRole("button", { name: "Close settings", exact: true }).click();
-  await expect(again).toHaveCount(0);
-
   await openTools(page);
   const add = page.getByRole("button", { name: "+ Add", exact: true });
   await add.click();
@@ -706,6 +749,12 @@ test("closing a whole stack returns focus once, to the control that opened the b
   await expect(editor).toHaveCount(0);
   await expect(add, "focus returns to + Add").toBeFocused();
   await expectRegistryMatchesDom(page);
+  // Space activates the focused button (the editor opens again) — never the
+  // machine: no command.
+  await ctl({ op: "clearCmds" });
+  await page.keyboard.press(" ");
+  await settle(page);
+  expect(await cmds(), "Space after the stack closed").toEqual([]);
 });
 
 // ── Implementation review round 1 (Codex, 2026-09-26) ──

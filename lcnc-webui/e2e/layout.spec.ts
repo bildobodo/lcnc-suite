@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { encode } from '@msgpack/msgpack';
 import { ctl } from './ctl';
+import { NARROW_PANE_PX } from '../src/sidePaneNarrow';
 import { measureLayout, assertLayout, layoutChanges, measureFrame, frameChanges, type LayoutSnapshot } from './layout-audit';
 import { PROFILES, VIEWPORTS, PANELS, openLayout, setLayoutState, settleLayout, type LayoutState,
   STRIP_STATES, enterStripState, leaveStripState, stripStateRefs, stripStateExempt, SETUP_AXIS_ROWS } from './layout-fixtures';
@@ -48,7 +49,7 @@ for (const profile of PROFILES) {
 // state list includes the kinematics modes on purpose: a mode may change a
 // label, never a control's footprint here.
 const SIDE_TABS: { tab: string; sub?: string }[] = [
-  { tab: 'Program' }, { tab: 'MDI' }, { tab: 'Offsets' }, { tab: 'Tools' },
+  { tab: 'Program' }, { tab: 'MDI' }, { tab: 'Offsets' }, { tab: 'Tools' }, { tab: 'Macros' },
   ...['Outside', 'Inside', 'Angle', 'Boss/Pocket', 'Ridge/Valley', 'Surface', 'Calibrate', 'Toolsetter']
     .map(sub => ({ tab: 'Probing', sub })),
 ];
@@ -172,7 +173,7 @@ for (const st of NAV_STATES) {
       const cs = getComputedStyle(el);
       return el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
     });
-    expect(inner < 400, `side pane content width ${inner} px`).toBe(st.narrow);
+    expect(inner < NARROW_PANE_PX, `side pane content width ${inner} px`).toBe(st.narrow);
     const area = page.getByRole('combobox', { name: 'Side panel', exact: true });
     if (st.narrow) {
       await expect(area).toBeVisible();
@@ -208,6 +209,46 @@ for (const st of NAV_STATES) {
     expect(rows, `probing content ${content} px holds ${rows.toFixed(2)} form rows`).toBeGreaterThanOrEqual(st.rows);
   });
 }
+
+// Package 5, the sixth tab: the narrow threshold is the MEASURED need of six
+// equal tab columns (sidePaneNarrow.ts) — checked just under, at and just
+// over it in touch portrait (the pane's width follows the viewport there):
+// under it the selects, at and over it six whole names; and a tab holding
+// the focus when the width drops under it hands the focus to the select,
+// never to body (where an arrow jogs).
+test('the narrow threshold: selects under it, six whole tab names at and over it; focus survives the switch', async ({ page }) => {
+  const portrait = VIEWPORTS.find(v => v.name === 'touch-portrait')!;
+  await openLayout(page, PROFILES[1]!, portrait);
+  const side = page.locator('.sidePane');
+  const inner = () => side.evaluate(el => {
+    const cs = getComputedStyle(el);
+    return el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  });
+  const offset = portrait.width - await inner();
+  const area = page.getByRole('combobox', { name: 'Side panel', exact: true });
+  for (const d of [-1, 0, 1]) {
+    await page.setViewportSize({ width: NARROW_PANE_PX + d + offset, height: portrait.height });
+    await expect.poll(inner, `pane at the threshold ${d >= 0 ? '+' : ''}${d}`).toBe(NARROW_PANE_PX + d);
+    await settleLayout(page);
+    if (d < 0) {
+      await expect(area).toBeVisible();
+      continue;
+    }
+    await expect(area).toHaveCount(0);
+    const tabs = await side.locator('.tabNav.main [role="tab"]').evaluateAll(els => els.map(e => {
+      const t = e as HTMLElement;
+      return { name: t.textContent!.trim(), over: t.scrollWidth - t.clientWidth, h: t.offsetHeight };
+    }));
+    expect(tabs.map(t => t.name)).toEqual(['Program', 'MDI', 'Probing', 'Offsets', 'Tools', 'Macros']);
+    for (const t of tabs) expect(t.over, `"${t.name}" clipped by ${t.over} px at ${NARROW_PANE_PX + d} px`).toBeLessThanOrEqual(0);
+  }
+  // a focused tab, then the pane drops under the threshold
+  await side.getByRole('tab', { name: 'Macros', exact: true }).focus();
+  await page.setViewportSize({ width: NARROW_PANE_PX - 20 + offset, height: portrait.height });
+  await expect(area).toBeVisible();
+  await expect(area, 'the focus moved to the select').toBeFocused();
+  expect(await page.evaluate(() => document.activeElement === document.body), 'not on body').toBe(false);
+});
 
 // The tab pattern (design wave D5, UI-K05 / N80): every tab with machine
 // actions closes its action group with Abort AT THE RIGHT EDGE — the one
