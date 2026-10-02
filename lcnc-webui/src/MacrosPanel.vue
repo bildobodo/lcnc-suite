@@ -44,12 +44,23 @@ const fire = useFire();
 const files = computed<MacroFile[]>(() => macroFolder.value?.macros ?? []);
 const problems = computed(() => macroFolder.value?.problems ?? []);
 /** Bar members first, in bar order; the rest by name. */
+const root = ref<HTMLElement | null>(null);
 const rows = computed(() => {
   const onBar = props.barNames.map(n => files.value.find(f => f.name === n)).filter((f): f is MacroFile => !!f);
   const rest = files.value.filter(f => !props.barNames.includes(f.name)).sort((a, b) => a.name.localeCompare(b.name));
   return [...onBar, ...rest];
 });
 const missing = computed(() => macroFolder.value ? props.barNames.filter(n => !files.value.some(f => f.name === n)) : []);
+/** The list as drawn: every file row, the open macro's editor right under
+ *  its own row (operator 2026-10-02: the editor is pushed in, the macros
+ *  below move down). A session whose file is not listed (yet) keeps its
+ *  editor at the list's end. */
+const listItems = computed(() => {
+  const items: { name: string; file: MacroFile | null }[] = rows.value.map(f => ({ name: f.name, file: f }));
+  const s = session.value;
+  if (s && !items.some(i => i.name === s.name)) items.push({ name: s.name, file: null });
+  return items;
+});
 
 function setOnBar(name: string, on: boolean) {
   const names = props.barNames.filter(n => n !== name);
@@ -78,6 +89,12 @@ interface Session {
 let seq = 0;
 const session = ref<Session | null>(null);
 const editorRef = ref<InstanceType<typeof CodeEditor> | null>(null);
+/** The editor sits inside the list's v-for (under its own row): a plain
+ *  `ref="editorRef"` there would collect an ARRAY — the draft check read
+ *  `.text()` of an array and never saw an edit. One editor, one function ref. */
+function setEditorRef(el: unknown) {
+  editorRef.value = (el as InstanceType<typeof CodeEditor> | null) ?? null;
+}
 const saving = ref(false);
 const note = ref<{ kind: "error" | "warn" | "ok"; text: string } | null>(null);
 const selected = computed(() => session.value ? files.value.find(f => f.name === session.value!.name) ?? null : null);
@@ -130,9 +147,23 @@ function guarded(then: () => void) {
   if (f) discardAsk.value = { what: `The macro ${f} you are editing`, then };
   else then();
 }
+/** A tap on a macro's name opens its editor under it; a tap on the open
+ *  one closes it — over a draft both ask first. */
 function select(name: string) {
-  if (session.value?.name === name) return;
-  guarded(() => void open(name));
+  if (session.value?.name === name) guarded(() => { session.value = null; });
+  else guarded(() => { void open(name).then(() => nextTick(() => { if (session.value?.name === name) revealRow(name); })); });
+}
+/** The opened macro's row at the top of the scrolling body, under the
+ *  list's sticky head, its editor below it — once the text is there (while
+ *  it loads the body may not scroll that far yet). */
+const body = ref<HTMLElement | null>(null);
+function revealRow(name: string) {
+  const b = body.value;
+  const row = root.value?.querySelector<HTMLElement>(`[data-macro-row="${name}"]`);
+  if (!b || !row) return;
+  const head = root.value?.querySelector<HTMLElement>(".macroTable thead");
+  const zoom = b.getBoundingClientRect().height / (b.offsetHeight || 1) || 1;   // CSS zoom (150 % tests)
+  b.scrollTop += (row.getBoundingClientRect().top - b.getBoundingClientRect().top) / zoom - (head?.offsetHeight ?? 0);
 }
 function confirmDiscard() {
   const ask = discardAsk.value;
@@ -300,7 +331,6 @@ async function exportSelected() {
 
 // ── Delete ──
 const deleteAsk = ref<MacroFile | null>(null);
-const root = ref<HTMLElement | null>(null);
 /** Where the focus goes after a delete (plan, dialog case 20): the next row,
  *  else the previous, else the head's New — never the Delete button, which
  *  the lost selection disables (Chromium then drops the focus to body, where
@@ -391,7 +421,7 @@ async function confirmConvert() {
     </div>
 
     <!-- below the fixed head everything scrolls: Run and Abort stay in reach -->
-    <div class="macrosBody stack-controls scroll-thin">
+    <div ref="body" class="macrosBody stack-controls scroll-thin">
     <div v-for="p in problems" :key="p" class="statusNote warn" role="alert"><span>{{ p }}</span></div>
     <div v-if="macroFolderError" class="statusNote error" role="alert">
       <span>Macros not read — {{ macroFolderError }}</span>
@@ -406,14 +436,15 @@ async function confirmConvert() {
       <MachineBtn type="close" aria-label="Dismiss macro note" title="Dismiss macro note" @click="note = null"><X :size="14" /></MachineBtn>
     </div>
 
-    <div v-if="macroFolder && rows.length === 0 && !problems.length" class="emptyState">No macro files yet — New or Import adds one.</div>
-    <div v-else-if="rows.length" class="dataTable macroTable">
+    <div v-if="macroFolder && listItems.length === 0 && !problems.length" class="emptyState">No macro files yet — New or Import adds one.</div>
+    <div v-else-if="listItems.length" class="dataTable macroTable">
       <table>
         <thead>
           <tr><th scope="col">On bar</th><th scope="col">Macro</th><th scope="col" aria-label="Order on the bar"></th></tr>
         </thead>
         <tbody>
-          <tr v-for="f in rows" :key="f.name" :class="{ selectedRow: session?.name === f.name }" :aria-selected="session?.name === f.name"
+          <template v-for="{ name, file: f } in listItems" :key="name">
+          <tr v-if="f" :class="{ selectedRow: session?.name === f.name }" :aria-selected="session?.name === f.name"
               :data-macro-row="f.name">
             <td>
               <MachineToggle gate="macroEdit" :modelValue="barNames.includes(f.name)" :aria-label="`${f.title ?? f.name} on the bar`"
@@ -421,6 +452,7 @@ async function confirmConvert() {
             </td>
             <td class="macroCell">
               <MachineBtn type="inline" :selected="session?.name === f.name" :aria-label="`Open ${f.name}.ngc`"
+                          :aria-expanded="session?.name === f.name" :aria-controls="`macro-editor-${f.name}`"
                           @click="select(f.name)">{{ f.title ?? f.name }}</MachineBtn>
               <div class="macroFacts">
                 <span class="label-muted md mono fileName">{{ f.name }}.ngc</span>
@@ -439,33 +471,38 @@ async function confirmConvert() {
               </span>
             </td>
           </tr>
+          <!-- the open macro's editor, pushed in under its own row -->
+          <tr v-if="session && session.name === name" class="selectedRow editorRow" :data-macro-editor="name">
+            <td colspan="3">
+              <div :id="`macro-editor-${session.name}`" class="macroEditor editorFill stack-controls">
+                <div v-if="selected?.errors.length" class="statusNote error" role="alert">
+                  <span>Not runnable — line {{ selected.errors[0]!.line }}: {{ selected.errors[0]!.message }}</span>
+                </div>
+                <div v-for="w in selected?.warnings ?? []" :key="w.line + w.message" class="statusNote warn" role="alert">
+                  <span>Line {{ w.line }}: {{ w.message }}</span>
+                </div>
+                <div v-if="session.conflict" class="statusNote warn" role="alert" data-macro-conflict>
+                  <span>{{ session.conflict.reason }} — Reload shows it; Keep editing replaces it on your next Save</span>
+                  <span class="row-tight">
+                    <MachineBtn type="inline" @click="reload">Reload</MachineBtn>
+                    <MachineBtn type="inline" @click="keepEditing">Keep editing</MachineBtn>
+                  </span>
+                </div>
+                <div v-if="session.loading" class="emptyState loading">Loading {{ session.name }}.ngc…</div>
+                <CodeEditor v-else :key="session.key" :ref="setEditorRef" class="macroCode" :doc="session.original"
+                            :owner-id="MACRO_EDITOR_OWNER" :context="`Macro · ${session.name}.ngc`" :auto-open="false"
+                            @change="onChange" @load-error="note = { kind: 'error', text: $event }" />
+                <div class="editActions">
+                  <MachineBtn type="fileSave" @click="save" :disabled="saving || session.loading || (!session.dirty && !session.conflict && !!session.revision)">
+                    {{ saving ? 'Saving…' : 'Save' }}</MachineBtn>
+                  <MachineBtn type="fileDiscard" @click="discardEdit" :disabled="saving || (!session.dirty && !session.conflict)">Discard</MachineBtn>
+                </div>
+              </div>
+            </td>
+          </tr>
+          </template>
         </tbody>
       </table>
-    </div>
-
-    <div v-if="session" class="macroEditor stack-controls">
-      <div v-if="selected?.errors.length" class="statusNote error" role="alert">
-        <span>Not runnable — line {{ selected.errors[0]!.line }}: {{ selected.errors[0]!.message }}</span>
-      </div>
-      <div v-for="w in selected?.warnings ?? []" :key="w.line + w.message" class="statusNote warn" role="alert">
-        <span>Line {{ w.line }}: {{ w.message }}</span>
-      </div>
-      <div v-if="session.conflict" class="statusNote warn" role="alert" data-macro-conflict>
-        <span>{{ session.conflict.reason }} — Reload shows it; Keep editing replaces it on your next Save</span>
-        <span class="row-tight">
-          <MachineBtn type="inline" @click="reload">Reload</MachineBtn>
-          <MachineBtn type="inline" @click="keepEditing">Keep editing</MachineBtn>
-        </span>
-      </div>
-      <div v-if="session.loading" class="emptyState loading">Loading {{ session.name }}.ngc…</div>
-      <CodeEditor v-else :key="session.key" ref="editorRef" class="macroCode" :doc="session.original"
-                  :owner-id="MACRO_EDITOR_OWNER" :context="`Macro · ${session.name}.ngc`" :auto-open="false"
-                  @change="onChange" @load-error="note = { kind: 'error', text: $event }" />
-      <div class="editActions">
-        <MachineBtn type="fileSave" @click="save" :disabled="saving || session.loading || (!session.dirty && !session.conflict && !!session.revision)">
-          {{ saving ? 'Saving…' : 'Save' }}</MachineBtn>
-        <MachineBtn type="fileDiscard" @click="discardEdit" :disabled="saving || (!session.dirty && !session.conflict)">Discard</MachineBtn>
-      </div>
     </div>
 
     <div class="sep"></div>
@@ -598,7 +635,17 @@ async function confirmConvert() {
 .macroEditor {
   flex: none;
 }
-.macroCode {
+/* The editor's cell spans the list; its code (long lines scroll inside
+   CodeMirror) never widens the table: inline-size containment gives it no
+   intrinsic width of its own — it fills what the rows above set. (A
+   width: 0 / min-width: 100 % pair resolved to 0 inside a table cell.) */
+.editorFill {
+  contain: inline-size;
+}
+/* twelve code lines: the host's own flex: 1 would size it to its content
+   in the list's (auto-height) cell */
+.macroEditor .macroCode {
+  flex: none;
   height: calc(12 * var(--code-line-h));
 }
 .editActions {

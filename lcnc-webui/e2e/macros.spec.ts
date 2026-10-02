@@ -324,3 +324,70 @@ test("after a delete the focus goes to the next row, else the previous, else New
   await remove("face_top", "Face top");
   expect(await active(), "no row left: the head's New").toBe("New");
 });
+
+// Operator 2026-10-02: the editor is pushed in RIGHT UNDER the macro it
+// edits, the macros below move down; a second tap on the name closes it
+// (over a draft it asks first); a macro opened further down comes into view.
+test("the editor opens under its own macro and pushes the rest down; a second tap closes it; a lower macro comes into view", async ({ page }) => {
+  const folder = new Folder();
+  for (const n of ["a_first", "b_second", "m_middle", "x_one", "y_two", "z_last"]) {
+    folder.files.set(n, { text: `o<${n}> sub\n  M73\no<${n}> endsub\n`, meta: { title: n, units: null, frame: null, params: [] } });
+  }
+  await ready(page, folder, { macros: { macros: [] } });
+  await openTab(page);
+  const box = async (sel: string) => (await page.locator(sel).boundingBox())!;
+  const open = (n: string) => page.locator(`[data-macro-row="${n}"]`).getByRole("button", { name: `Open ${n}.ngc` });
+
+  await open("face_top").click();
+  await expect(page.locator('[data-macro-editor="face_top"] .cm-content')).toBeVisible();
+  expect(await page.locator('[data-macro-row="face_top"]').evaluate(r => (r.nextElementSibling as HTMLElement | null)?.dataset.macroEditor),
+    "the editor row follows its macro's row").toBe("face_top");
+  const row = await box('[data-macro-row="face_top"]');
+  const ed = await box('[data-macro-editor="face_top"]');
+  const next = await box('[data-macro-row="m_middle"]');
+  expect(ed.y, "under its macro").toBeGreaterThanOrEqual(row.y + row.height - 1);
+  expect(next.y, "the next macro moved down below it").toBeGreaterThanOrEqual(ed.y + ed.height - 1);
+  const code = await box('[data-macro-editor="face_top"] .macroCode');
+  const lineH = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--code-line-h")));
+  expect(code.height, "twelve code lines").toBeGreaterThanOrEqual(12 * lineH - 1);
+  await expect(open("face_top")).toHaveAttribute("aria-expanded", "true");
+
+  // a second tap closes it
+  await open("face_top").click();
+  await expect(page.locator("[data-macro-editor]")).toHaveCount(0);
+  await expect(open("face_top")).toHaveAttribute("aria-expanded", "false");
+
+  // over a draft the close asks first; Keep editing keeps it open
+  await open("face_top").click();
+  await page.locator('[data-macro-editor="face_top"] .cm-content').click();
+  await page.keyboard.type("x");
+  await open("face_top").click();
+  const ask = page.getByRole("dialog", { name: "Discard changes?" });
+  await expect(ask).toBeVisible();
+  await ask.getByRole("button", { name: "Keep editing" }).click();
+  await expect(page.locator('[data-macro-editor="face_top"]')).toHaveCount(1);
+  await open("face_top").click();
+  await page.getByRole("dialog", { name: "Discard changes?" }).getByRole("button", { name: "Discard" }).click();
+  await expect(page.locator("[data-macro-editor]")).toHaveCount(0);
+
+  // a macro tapped at the body's lower edge moves to the top under the list's
+  // head, its editor below it in view — not opened out of sight
+  await page.locator(".macrosBody").evaluate(b => { b.scrollTop = 0; });
+  await page.locator('[data-macro-row="z_last"]').evaluate(r => {
+    const b = r.closest(".macrosBody") as HTMLElement;
+    b.scrollTop += r.getBoundingClientRect().bottom - b.getBoundingClientRect().bottom;   // its row the last visible one
+  });
+  await page.waitForTimeout(100);
+  const before = await box('[data-macro-row="z_last"]');
+  const body = await box(".macrosBody");
+  expect(before.y + before.height, "the row starts at the body's lower edge").toBeGreaterThan(body.y + body.height - 3);
+  const btn = await open("z_last").boundingBox();
+  await page.mouse.click(btn!.x + btn!.width / 2, btn!.y + btn!.height / 2);   // no auto-scroll: where it is
+  await expect(page.locator('[data-macro-editor="z_last"] .cm-content')).toBeVisible();
+  await page.waitForTimeout(200);
+  const head = await box(".macroTable thead");
+  const last = await box('[data-macro-row="z_last"]');
+  expect(Math.abs(last.y - (head.y + head.height)), "the row right under the sticky head").toBeLessThanOrEqual(2);
+  const edTop = (await box('[data-macro-editor="z_last"]')).y;
+  expect(edTop, "its editor starts in view").toBeLessThan(body.y + body.height);
+});
