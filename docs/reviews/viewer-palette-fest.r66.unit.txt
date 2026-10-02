@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r66-zbzn8dd_/lcnc-webui
+
+
+ Test Files  6 passed (6)
+      Tests  169 passed (169)
+   Start at  04:01:26
+   Duration  2.34s (transform 383ms, setup 0ms, import 786ms, tests 892ms, environment 0ms)
+

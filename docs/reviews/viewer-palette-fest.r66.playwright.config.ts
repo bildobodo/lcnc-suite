@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'./e2e',testMatch:['scenes.viewer.spec.ts','toolsetter.viewer.spec.ts','r66.spec.ts'],workers:1,fullyParallel:false,timeout:60000,expect:{timeout:10000},reporter:'list',outputDir:'../evidence/r66-browser-output',use:{browserName:'chromium',headless:true,deviceScaleFactor:1,locale:'en-GB',timezoneId:'UTC',screenshot:'only-on-failure'},webServer:{command:'MOCK_HOST=127.0.0.1 MOCK_PORT=4188 node e2e/mock-gateway.mjs',url:'http://127.0.0.1:4188',reuseExistingServer:false}});

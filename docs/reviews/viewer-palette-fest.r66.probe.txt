@@ -1,0 +1,161 @@
+
+ RUN  v4.1.8 /tmp/codex-r66-zbzn8dd_/lcnc-webui
+
+ ❯ ../evidence/viewer-palette-fest.r66.probe.test.ts (2 tests | 2 failed) 14ms
+   × R66: returning chains at a junction keep their phase when storage is reversed 10ms
+   × R66: end marks stay ten CSS px near the perspective viewport edge 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  ../evidence/viewer-palette-fest.r66.probe.test.ts > R66: returning chains at a junction keep their phase when storage is reversed
+AssertionError: expected [ { edge: [ …(2) ], …(2) }, …(7) ] to deeply equal [ { edge: [ …(2) ], …(2) }, …(7) ]
+
+- Expected
++ Received
+
+@@ -10,12 +10,12 @@
+          -1,
+          0,
+          0,
+        ],
+      ],
+-     "tAtSample": 0.4075,
+-     "toneAtN16": 0,
++     "tAtSample": 0.5925,
++     "toneAtN16": 1,
+    },
+    {
+      "edge": [
+        [
+          -1,
+@@ -26,12 +26,12 @@
+          0,
+          -1,
+          0,
+        ],
+      ],
+-     "tAtSample": 0.5925,
+-     "toneAtN16": 1,
++     "tAtSample": 0.4075,
++     "toneAtN16": 0,
+    },
+    {
+      "edge": [
+        [
+          -1,
+@@ -42,12 +42,12 @@
+          0,
+          0,
+          0,
+        ],
+      ],
+-     "tAtSample": 0.1575,
+-     "toneAtN16": 0,
++     "tAtSample": 0.8425,
++     "toneAtN16": 1,
+    },
+    {
+      "edge": [
+        [
+          0,
+@@ -58,12 +58,12 @@
+          0,
+          0,
+          0,
+        ],
+      ],
+-     "tAtSample": 0.8425,
+-     "toneAtN16": 1,
++     "tAtSample": 0.1575,
++     "toneAtN16": 0,
+    },
+    {
+      "edge": [
+        [
+          0,
+@@ -74,12 +74,12 @@
+          0,
+          1,
+          0,
+        ],
+      ],
+-     "tAtSample": 0.9075,
+-     "toneAtN16": 0,
++     "tAtSample": 0.0925,
++     "toneAtN16": 1,
+    },
+    {
+      "edge": [
+        [
+          0,
+@@ -90,12 +90,12 @@
+          1,
+          0,
+          0,
+        ],
+      ],
+-     "tAtSample": 0.0925,
+-     "toneAtN16": 1,
++     "tAtSample": 0.9075,
++     "toneAtN16": 0,
+    },
+    {
+      "edge": [
+        [
+          0,
+@@ -106,12 +106,12 @@
+          1,
+          1,
+          0,
+        ],
+      ],
+-     "tAtSample": 0.6575,
+-     "toneAtN16": 0,
++     "tAtSample": 0.3425,
++     "toneAtN16": 1,
+    },
+    {
+      "edge": [
+        [
+          1,
+@@ -122,9 +122,9 @@
+          1,
+          1,
+          0,
+        ],
+      ],
+-     "tAtSample": 0.3425,
+-     "toneAtN16": 1,
++     "tAtSample": 0.6575,
++     "toneAtN16": 0,
+    },
+  ]
+
+ ❯ ../evidence/viewer-palette-fest.r66.probe.test.ts:28:24
+     26|   const changed=first.out.filter((v,i)=>v.toneAtN16!==reversed.out[i]!…
+     27|   writeFileSync('../evidence/viewer-palette-fest.r66.chains.json',JSON…
+     28|   expect(reversed.out).toEqual(first.out);
+       |                        ^
+     29| });
+     30|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  ../evidence/viewer-palette-fest.r66.probe.test.ts > R66: end marks stay ten CSS px near the perspective viewport edge
+AssertionError: expected 11.948450429772551 to be close to 10, received difference is 1.9484504297725511, but expected 0.5
+ ❯ ../evidence/viewer-palette-fest.r66.probe.test.ts:52:15
+     50|   writeFileSync('../evidence/viewer-palette-fest.r66.tick-size.json',J…
+     51|   expect(bars.length).toBeGreaterThanOrEqual(18);
+     52|   expect(max).toBeCloseTo(2*TICK_ARM_PX,0);
+       |               ^
+     53| });
+     54|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  04:05:05
+   Duration  150ms (transform 55ms, setup 0ms, import 80ms, tests 14ms, environment 0ms)
+

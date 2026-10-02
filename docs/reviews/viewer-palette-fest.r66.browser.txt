@@ -1,0 +1,17 @@
+[2m[WebServer] [22m(node:134959) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+(node:134987) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:134987) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/scenes.viewer.spec.ts:76:1 › the palette in four themes, on a model, a dense and a thin path — and no current line drawn (6.1s)
+  ✓  2 e2e/scenes.viewer.spec.ts:404:1 › the box edge alone: two tones, MACHINE_BOX_PX wide, cells within the pattern's band — at DPR 1 and 2 (4.7s)
+  ✓  3 e2e/scenes.viewer.spec.ts:483:1 › the box cells hang on the geometry: every transition at a world cell boundary k / N — parallel and perspective, three directions, across a zoom (22.6s)
+  ✓  4 e2e/scenes.viewer.spec.ts:636:1 › an edge cut by the near plane shows both tones on its visible part (Codex R63, plan Fassung 3) (3.2s)
+  ✓  5 e2e/scenes.viewer.spec.ts:737:1 › the toolpath box's end marks stand off the background and the model in four themes; the type labels stand apart (16.5s)
+  ✓  6 e2e/toolsetter.viewer.spec.ts:363:1 › the three pins are cyan over their dark carrier in every theme, after a switch and a rebuild (11.1s)
+
+  6 passed (1.1m)
