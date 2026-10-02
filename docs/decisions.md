@@ -7577,3 +7577,37 @@ orientation change mid-hold, focus, dialog return (red without the focus
 restore and without the re-point). Codex reviews it in tomorrow's combined
 round (no tokens on 2026-10-02).
 
+## 2026-10-02 — Package 5 stage B: macros as files in the gateway
+
+**Why.** The operator chose macros as LinuxCNC subroutine files (plan
+`docs/reviews/makros.plan.md`, Fassung 3; Codex R69 VP69-01..05 answered,
+the R70 plan round pending — Codex was out of tokens, the operator had the
+work continue for one combined review).
+
+**Rule.** See CLAUDE.md "Macro files". The decisions worth keeping:
+- ONE parser, in the gateway (`macro_files.py`); the client shows its result.
+- `run_macro` builds the call line itself, bound to the sha256 revision the
+  operator saw, after a FORCED `SET_MODE(MDI)`: LinuxCNC's subroutine offset
+  cache is emptied at the END of a plain MDI o-call but not after an MDI
+  remap — a helper's stale byte offset would run the edited file from the
+  wrong place. The forced switch is LinuxCNC's own MANUAL→MDI reset path
+  (emcTaskSetMode → emcTaskAbort → Interp::reset → offset_map.clear); its
+  one ignore case, an active jog, is read at its source (`motion.jog-is-active`).
+- ONE admission for writers and starts: a start claim per MDI/AUTO start,
+  released only by the status poller on proof; macro writes publish under
+  `_source_lock` right after re-checking it.
+- The macro folder is the LAST SUBROUTINE_PATH entry (Fassung 3 said first):
+  first, a macro named like a suite routine would replace it for every
+  caller, the tool-change remap included.
+- A finding on the way: LinuxCNC's INI reader cuts a line at 255 bytes —
+  the installed TWP SUBROUTINE_PATH silently lost `surfacemap`. The examples
+  now use relative entries through links; install and config check refuse /
+  report a cut line. The operator's installed INIs change only when they run
+  the installer.
+
+**Guards.** `test_macro_files.py` (18 tests incl. every example), `test_macros_gateway.py`
+(23; eleven mutations each red), `test_example_install.py` (5 new, red
+against the old installer). Not yet: the native acceptance of the cache reset
+(the plan's byte-arithmetic red case on a headless sim) and the examples on
+a running sim — both owed before the combined review.
+

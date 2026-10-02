@@ -1,0 +1,16 @@
+(MACRO Park)
+(FRAME machine)
+(UNITS mm)
+(PARAM 1 x "Park X" length 0)
+(PARAM 2 y "Park Y" length 0)
+(Lifts Z to the top of travel - only ever up - then moves X and Y to the park position, both in machine coordinates.)
+(Example macro of the lcnc-suite: edit it in the Macros tab or replace it.)
+o<park> sub
+  M73
+  G21 G90
+  ; a retract never lowers Z: #<_abs_z> is the frame a G53 Z word addresses
+  o<park_lift> if [#<_abs_z> LT 0]
+    G53 G0 Z0
+  o<park_lift> endif
+  G53 G0 X#1 Y#2
+o<park> endsub

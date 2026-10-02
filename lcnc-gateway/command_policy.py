@@ -627,6 +627,10 @@ COMMAND_GATES: Dict[str, str] = {
     "cycle_pause": "pause",
     "cycle_resume": "resume",
     "mdi": "ready",
+    # a macro file (package 5): the macro bar's own class — `probe` as the
+    # client's catalog type `macro`; a `FRAME machine` header adds
+    # machineFrame in the handler (the gate a G53 move needs)
+    "run_macro": "probe",
     # --- spindle / coolant ---
     "spindle_forward": "ready",
     "spindle_reverse": "ready",
@@ -932,6 +936,10 @@ COMMAND_SCHEMA: Dict[str, Dict[str, object]] = {
     #     an open-ended project and deliberately out of scope.
     "mdi": {"text": Text(max_len=MDI_MAX_CHARS),
             "vars": VarNumbers()},   # set first, the line only once taken over (R16)
+    # --- a macro file: name, the operator's values, the revision shown
+    #     (each value is checked against the file's header in the handler)
+    "run_macro": {"name": Text(max_len=63), "args": Seq(max_len=30),
+                  "revision": Text(max_len=64)},
     # --- work offsets: these become G10 L2 words. Unbounded floats reached the
     #     MDI as `G10 L2 P1 Xinf` before this.
     "set_wcs": {ax: Num() for ax in ("x", "y", "z", "a", "b", "c", "u", "v", "w", "r")},

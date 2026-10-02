@@ -170,3 +170,20 @@ tables remain untouched on upgrade. The library is installed as
 folder as Program, showing library files instead of G-code;
 **Upload** opens a file picker on the client. See the repository
 [tool library guide](../../docs/example-tool-library.md) for import and offset details.
+
+## Macro folder (package 5)
+
+Every profile sets `[DISPLAY] WEBUI_MACRO_DIR = ~/linuxcnc/macros` and puts that
+folder LAST on `[RS274NGC] SUBROUTINE_PATH` (a macro never shadows a suite
+routine). `install_examples.py` creates the folder with the example macros
+(`macros/*.ngc`: spindle warm-up, park, face top, coolant flush, go to G30)
+on the FIRST install only — a macro you delete stays deleted, an edited one
+is never overwritten. A macro is an LinuxCNC subroutine file with a comment
+header; the grammar is in the top-level CLAUDE.md ("Macro files").
+
+`SUBROUTINE_PATH` is relative to the configuration folder through the links
+`subroutines`, `remap_subs` and `twp`: LinuxCNC's INI reader keeps only 255
+bytes of a line, and the earlier absolute paths into the checkout made the
+TWP line longer — its last folder was silently dropped.
+`scripts/config_sync_check.py` reports such a line as `[TRUNCATED]`.
+

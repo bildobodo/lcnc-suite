@@ -1,0 +1,33 @@
+(MACRO Face top)
+(UNITS mm)
+(PARAM 1 width "Width X" length 60 min=1 max=1000)
+(PARAM 2 length "Length Y" length 40 min=1 max=1000)
+(PARAM 3 depth "Depth" length 0.5 min=0 max=5)
+(PARAM 4 step "Stepover" length 8 min=0.1 max=50)
+(PARAM 5 feed "Feed" feed 600 min=1 max=5000)
+(PARAM 6 clear "Clearance Z" length 5 min=1 max=100)
+(Faces the stock top in passes along X from work X0 Y0 toward +X and +Y, at Z = -depth, then lifts to the clearance.)
+(Example macro of the lcnc-suite: edit it in the Macros tab or replace it.)
+o<face_top> sub
+  M73
+  G21 G90 G94
+  ; lift to the clearance only when below it - a retract never lowers Z
+  o<face_lift> if [#<_z> LT #6]
+    G0 Z#6
+  o<face_lift> endif
+  G0 X0 Y0
+  G1 Z[-#3] F#5
+  ; rows spread evenly from Y0 to the length, none further apart than the stepover
+  #<rows> = FUP[#2 / #4]
+  #<row> = 0
+  o<face_rows> while [#<row> LE #<rows>]
+    G1 Y[#2 * #<row> / #<rows>]
+    o<face_dir> if [[#<row> MOD 2] EQ 0]
+      G1 X#1
+    o<face_dir> else
+      G1 X0
+    o<face_dir> endif
+    #<row> = [#<row> + 1]
+  o<face_rows> endwhile
+  G0 Z#6
+o<face_top> endsub

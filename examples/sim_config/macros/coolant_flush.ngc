@@ -1,0 +1,11 @@
+(MACRO Coolant flush)
+(PARAM 1 seconds "Duration" time 10 min=1 max=600)
+(Turns flood coolant on for the duration, then off.)
+(Example macro of the lcnc-suite: edit it in the Macros tab or replace it.)
+o<coolant_flush> sub
+  M73
+  G90
+  M8
+  G4 P#1
+  M9
+o<coolant_flush> endsub

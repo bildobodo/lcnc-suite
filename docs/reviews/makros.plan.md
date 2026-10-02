@@ -156,15 +156,21 @@ hängt nicht an B und C und kommt zuerst, weil sie mit den heutigen Makros funkt
     `/proc/<pid>/cwd` des milltask dieser Instanz. Weicht es vom INI-Ordner ab oder ist es nicht
     lesbar, sind relative Einträge nicht auflösbar: Banner, keine Makrodatei ausführbar.
   - `config_sync_check.py` (und der Installer) lehnen laut ab:
-    - jede INI-Zeile über 254 BYTES, gezählt an den gelesenen Bytes, nicht an Unicode-Zeichen;
+    - jede INI-Zeile über 255 BYTES, gezählt an den gelesenen Bytes, nicht an Unicode-Zeichen
+      (gemessen mit `linuxcnc.ini`: 255 Bytes werden ganz gelesen, 256 auf 255 gekürzt);
     - mehr als 10 `SUBROUTINE_PATH`-Einträge;
     - einen Eintrag, der nicht existiert.
   - Wächter: Test mit der heutigen TWP-INI, zuerst rot.
   - Die installierten INIs ändert erst ein neuer Abgleich durch den Operator. Ich schreibe sie
     nicht selbst um.
 - **Die Beispiel-Konfigurationen:**
-  - Sie setzen `WEBUI_MACRO_DIR = ~/linuxcnc/macros` und nehmen den Ordner als ERSTEN Eintrag in
+  - Sie setzen `WEBUI_MACRO_DIR = ~/linuxcnc/macros` und nehmen den Ordner als LETZTEN Eintrag in
     `SUBROUTINE_PATH` auf.
+  - Umsetzung, gegen Fassung 3 geändert: Als ERSTER Eintrag könnte ein Makro namens `m600` oder
+    `go_to_g30` die Routinen der Suite verdecken, etwa die Werkzeugwechsel-Remap. Als letzter wird
+    umgekehrt das Makro verdeckt („Shadowed by …“), und die Suite bleibt unberührt.
+  - Die Beispielmakros kopiert der Installer nur beim ERSTEN Anlegen des Ordners. Ein gelöschtes
+    Beispiel bleibt gelöscht.
   - `install_examples.py` legt den Ordner an und kopiert die Beispielmakros nur, wenn eine Datei
     fehlt, wie bei den Programmen. Nutzerdaten liegen damit nicht im Checkout.
   - `test_example_install.py` prüft beides.

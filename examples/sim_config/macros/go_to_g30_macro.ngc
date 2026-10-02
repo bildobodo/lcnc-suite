@@ -1,0 +1,9 @@
+(MACRO Go to G30)
+(FRAME machine)
+(Moves to the stored tool-change position: Z up first - only ever up - then X and Y, then Z. The suite's own routine.)
+(Example macro of the lcnc-suite: edit it in the Macros tab or replace it.)
+o<go_to_g30_macro> sub
+  M73
+  G90
+  o<go_to_g30> call
+o<go_to_g30_macro> endsub

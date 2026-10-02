@@ -70,13 +70,70 @@ class ExampleInstallTest(unittest.TestCase):
                 self.assertFalse(path.is_symlink())
                 self.assertNotIn(path, state_files)
                 state_files.add(path)
-            for path in config["RS274NGC", "SUBROUTINE_PATH"].split(":"):
-                self.assertTrue(Path(path).is_dir(), path)
+            # relative to the configuration folder (milltask's working
+            # directory) through its links, the macro folder LAST (package 5)
+            entries = config["RS274NGC", "SUBROUTINE_PATH"].split(":")
+            for path in entries:
+                self.assertTrue(installer.resolve_directory(path, self.dest).is_dir(), path)
+                self.assertFalse(Path(path).is_absolute(), path)
+            self.assertEqual(entries[-1], config["DISPLAY", "WEBUI_MACRO_DIR"])
+            self.assertEqual(installer.ini_line_problems((self.dest / profile["ini"]).read_text()), [])
             for key in [("DISPLAY", "WEBUI_MACHINE_DIR"), ("PYTHON", "TOPLEVEL"),
                         ("DISPLAY", "OPEN_FILE")]:
                 if config.get(key):
                     self.assertTrue((self.dest / config[key]).exists(), key)
         self.assertIsNone(self.install())  # Rerun causes no writes or backup churn.
+        macros = self.user_home / "linuxcnc/macros"
+        self.assertEqual(sorted(p.name for p in macros.glob("*.ngc")),
+                         sorted(Path(m).name for m in CATALOG["macros"]))
+
+    def test_the_example_macros_come_once_and_a_deleted_one_stays_gone(self):
+        self.install()
+        park = self.user_home / "linuxcnc/macros/park.ngc"
+        park.unlink()
+        self.assertIsNone(self.install())
+        self.assertFalse(park.exists())
+
+    def test_the_operators_macro_folder_is_kept_and_stays_last(self):
+        self.install()
+        ini = self.dest / "lcnc_suite_sim_6axis_twp_xyzabc.ini"
+        ini.write_text(ini.read_text().replace("WEBUI_MACRO_DIR = ~/linuxcnc/macros", "WEBUI_MACRO_DIR = my-macros"))
+        (self.dest / "my-macros").mkdir()
+        self.install()
+        config = installer.values(ini.read_text())
+        self.assertEqual(config["DISPLAY", "WEBUI_MACRO_DIR"], "my-macros")
+        self.assertEqual(config["RS274NGC", "SUBROUTINE_PATH"].split(":")[-1], "my-macros")
+
+    def test_an_installed_ini_from_before_loses_its_overlong_line(self):
+        # the shipped TWP INI of 2026-09: absolute checkout paths, 264 bytes
+        self.dest.mkdir(parents=True)
+        name = "lcnc_suite_sim_6axis_twp_xyzabc.ini"
+        old = (SOURCE / name).read_text().replace(
+            "SUBROUTINE_PATH = twp/remap_subs:twp/demos:subroutines/probe_basic:subroutines/tool_length_probe:subroutines/surfacemap:~/linuxcnc/macros",
+            "SUBROUTINE_PATH = " + ":".join(str(ROOT / p) for p in (
+                "examples/sim_config/twp/remap_subs", "examples/sim_config/twp/demos",
+                "subroutines/probe_basic", "subroutines/tool_length_probe", "subroutines/surfacemap"))).replace(
+            "WEBUI_MACRO_DIR = ~/linuxcnc/macros\n", "")
+        (self.dest / name).write_text(old)
+        self.install()
+        config = installer.values((self.dest / name).read_text())
+        self.assertEqual(config["RS274NGC", "SUBROUTINE_PATH"],
+                         "twp/remap_subs:twp/demos:subroutines/probe_basic:subroutines/tool_length_probe:subroutines/surfacemap:~/linuxcnc/macros")
+        self.assertEqual(config["DISPLAY", "WEBUI_MACRO_DIR"], "~/linuxcnc/macros")
+
+    def test_a_line_linuxcnc_would_cut_refuses_the_install(self):
+        self.assertEqual(installer.ini_line_problems("[S]\nKEY = " + "x" * 249 + "\n"), [])   # 255 bytes: read whole
+        self.assertIn("256 bytes", installer.ini_line_problems("[S]\nKEY = " + "x" * 250 + "\n")[0])
+        self.assertIn("bytes", installer.ini_line_problems("[S]\nKEY = " + "ä" * 125 + "\n")[0], "bytes, not characters")
+        eleven = ":".join(f"d{i}" for i in range(11))
+        self.assertIn("11 SUBROUTINE_PATH entries", installer.ini_line_problems(f"[RS274NGC]\nSUBROUTINE_PATH = {eleven}\n")[0])
+        self.dest.mkdir(parents=True)
+        name = "lcnc_suite_sim_3axis_xyz.ini"
+        (self.dest / name).write_text((SOURCE / name).read_text().replace("[DISPLAY]", "[DISPLAY]\nWEBUI_TOKEN = " + "t" * 260))
+        with self.assertRaises(ValueError) as e:
+            self.install()
+        self.assertIn("LinuxCNC reads 255", str(e.exception))
+        self.assertIn("t" * 260, (self.dest / name).read_text(), "nothing written")
 
     def test_upgrade_migrates_state_settings_and_archives_retired_profiles(self):
         self.dest.mkdir(parents=True)

@@ -31,6 +31,34 @@ def values(text):
 # Suite-owned [RS274NGC] entries an older installed INI may lack; a local
 # value is kept, a missing one comes from the template.
 RS274_SUITE_KEYS = ("OWORD_NARGS", "NO_DOWNCASE_OWORD", "ON_ABORT_COMMAND")
+# Suite-owned [DISPLAY] entries added when missing, never replaced: the macro
+# folder (package 5) is the operator's to move.
+DISPLAY_SUITE_KEYS = ("WEBUI_MACRO_DIR",)
+# LinuxCNC's INI reader keeps 255 bytes of a line — the rest is silently
+# cut (measured 2026-10-02 with linuxcnc.ini: a 255-byte line reads whole, a
+# 256-byte one loses its last byte; the installed TWP SUBROUTINE_PATH of 246
+# characters read back as 237, its last folder `…/surfacemap` became `…/s`
+# and was dropped by the interpreter's realpath). The interpreter takes the
+# first MAX_SUB_DIRS (10) SUBROUTINE_PATH entries.
+INI_LINE_MAX_BYTES = 255
+MAX_SUB_DIRS = 10
+
+
+def ini_line_problems(text):
+    """Why LinuxCNC would read this INI differently than it is written."""
+    out, section = [], ""
+    for n, line in enumerate(text.splitlines(), 1):
+        stripped = line.strip()
+        if stripped.startswith("[") and stripped.endswith("]"):
+            section = stripped[1:-1].upper()
+        size = len(line.encode("utf-8"))
+        if size > INI_LINE_MAX_BYTES:
+            out.append(f"line {n} has {size} bytes — LinuxCNC reads {INI_LINE_MAX_BYTES}: {stripped[:60]}…")
+        if section == "RS274NGC" and "=" in line and line.split("=", 1)[0].strip().upper() == "SUBROUTINE_PATH":
+            entries = [e for e in line.split("=", 1)[1].strip().split(":") if e.strip()]
+            if len(entries) > MAX_SUB_DIRS:
+                out.append(f"line {n}: {len(entries)} SUBROUTINE_PATH entries — LinuxCNC uses {MAX_SUB_DIRS}")
+    return out
 # 2026-09-27: the XYZAC example moved its Z datum — machine Z0 is the top of
 # travel, the A/C intersection sits at machine Z -500 (was Z 100..500). The
 # datum IS the kins pin `xyzac-trt-kins.z-rot-point` (where the kinematics
@@ -269,16 +297,30 @@ def render_ini(text, template, repo, migrate_datum=False):
         ("PYTHON", "TOPLEVEL")) if key in ref}
     managed[("DISPLAY", "DISPLAY")] = str(repo / "lcnc-suite")
     # Resolve paths against the source INI, not the installed directory.
-    for key in (("RS274NGC", "SUBROUTINE_PATH"), ("PYTHON", "PATH_APPEND"),
-                ("PYTHON", "TOPLEVEL")):
+    for key in (("PYTHON", "PATH_APPEND"), ("PYTHON", "TOPLEVEL")):
         if key in managed:
             managed[key] = ":".join(str((source / p).resolve())
                                     for p in managed[key].split(":"))
     local = values(text)
+    # SUBROUTINE_PATH stays RELATIVE to the configuration folder — milltask's
+    # working directory: the suite's folders are links there (`subroutines`,
+    # `remap_subs`, `twp`; profiles.json "shared"). Absolute paths into the
+    # checkout made the TWP line longer than LinuxCNC reads. Its LAST entry
+    # is the macro folder — the operator's own WEBUI_MACRO_DIR when set; last,
+    # so a macro can never shadow a suite routine (an `m600.ngc` macro would
+    # otherwise take over the tool-change remap).
+    if ("RS274NGC", "SUBROUTINE_PATH") in managed and ("DISPLAY", "WEBUI_MACRO_DIR") in ref:
+        entries = managed[("RS274NGC", "SUBROUTINE_PATH")].split(":")
+        mine = local.get(("DISPLAY", "WEBUI_MACRO_DIR")) or ref[("DISPLAY", "WEBUI_MACRO_DIR")]
+        if entries and entries[-1] == ref[("DISPLAY", "WEBUI_MACRO_DIR")]:
+            entries[-1] = mine
+        managed[("RS274NGC", "SUBROUTINE_PATH")] = ":".join(entries)
     # Suite-owned RS274NGC entries and remaps the installed INI lacks (a new
     # M600/M601, an abort handler): added from the template, never replaced.
     rs274_missing = [f"{key} = {ref[('RS274NGC', key)]}" for key in RS274_SUITE_KEYS
                      if ("RS274NGC", key) in ref and ("RS274NGC", key) not in local]
+    display_missing = [f"{key} = {ref[('DISPLAY', key)]}" for key in DISPLAY_SUITE_KEYS
+                       if ("DISPLAY", key) in ref and ("DISPLAY", key) not in local]
     local_remaps = remap_lines(text)
     rs274_missing += [line for code, line in remap_lines(template).items() if code not in local_remaps]
     # The initial XYZAC example accidentally used its mutable state directory
@@ -303,6 +345,8 @@ def render_ini(text, template, repo, migrate_datum=False):
                           if key[0] == section and key not in local)
             if section == "RS274NGC":
                 output.extend(rs274_missing)
+            if section == "DISPLAY":
+                output.extend(display_missing)
             continue
         elif "=" in line and not line.lstrip().startswith(("#", ";")):
             key = (section, line.split("=", 1)[0].strip().upper())
@@ -366,7 +410,17 @@ def install(repo, destination, backup_root, settings_path=None, report=None):
         text = existing.read_text() if existing.is_file() else template
         migrate_datum = name == XYZAC_INI and existing.is_file() and xyzac_datum(text, name) == "old"
         writes[name] = render_ini(text, template, repo, migrate_datum).encode()
+        problems = ini_line_problems(writes[name].decode())
+        if problems:
+            raise ValueError(f"{name}: " + "; ".join(problems))
         rendered = values(writes[name].decode())
+        # The macro folder (package 5): created with the example macros on
+        # the first install only — a macro the operator deleted stays gone.
+        if ("DISPLAY", "WEBUI_MACRO_DIR") in rendered:
+            macro_dir = resolve_directory(rendered["DISPLAY", "WEBUI_MACRO_DIR"], destination)
+            if not macro_dir.exists():
+                for rel in catalog.get("macros", []):
+                    libraries[macro_dir / Path(rel).name] = (source / rel).read_bytes()
         library_dir = resolve_directory(rendered["DISPLAY", "TOOL_LIBRARY_DIR"], destination)
         for rel in catalog.get("tool_libraries", []):
             target = library_dir / Path(rel).name

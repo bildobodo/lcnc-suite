@@ -1,0 +1,16 @@
+(MACRO Spindle warm-up)
+(PARAM 1 rpm "Top speed" rpm 6000 min=100 max=24000)
+(PARAM 2 seconds "Duration" time 240 min=20 max=1800)
+(Runs the spindle up in four equal steps to the top speed, each step a quarter of the duration, then stops it.)
+(Example macro of the lcnc-suite: edit it in the Macros tab or replace it.)
+o<spindle_warmup> sub
+  M73
+  G97
+  #<step> = 1
+  o<warmup_steps> while [#<step> LE 4]
+    M3 S[#1 * #<step> / 4]
+    G4 P[#2 / 4]
+    #<step> = [#<step> + 1]
+  o<warmup_steps> endwhile
+  M5
+o<spindle_warmup> endsub

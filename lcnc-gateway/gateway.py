@@ -100,7 +100,7 @@ from gateway_util import (
     wcs_stamp_decision,
     PROV_STAMPED,
 )
-from command_policy import NOT_ARMED, MOTION_UNKNOWN, MACHINE_MOVING, motion_still_of, check_command, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic
+from command_policy import NOT_ARMED, MOTION_UNKNOWN, MACHINE_MOVING, motion_still_of, check_command, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -115,6 +115,7 @@ import bulk_pipeline as _bulk_mod
 from tool_store import ToolLibraryStore
 from tool_import import initial_z_offset
 from tool_files import list_entries as list_tool_files, resolve_entry as resolve_tool_file, EXTENSIONS as TOOL_LIBRARY_EXTENSIONS
+import macro_files
 from camera_broker import CameraBroker
 from tool_refresh import metadata_refresh_revision, plan_metadata_refresh
 
@@ -598,6 +599,13 @@ async def _reader_configure_extra_pins() -> None:
         slp = ""
     if isinstance(slp, str) and _HAL_PIN_RE.match(slp):
         pins["spindle_load"] = slp
+    # The one condition under which LinuxCNC ignores a mode switch
+    # (emcTaskSetMode: jogging_is_active() = emcStatus->motion.jogging_active
+    # = this pin, control.c:2063/2149) — every jog, also one the gateway did
+    # not start (halui, a wheel). run_macro's forced MDI switch is its cache
+    # reset and must not be ignored (package 5, Codex VP69-01). Motion
+    # exports it on every configuration.
+    pins["jog_active"] = "motion.jog-is-active"
     # Live switchkins mode (TCP+TWP phase 2 deferred refinement): sample
     # motion.switchkins-type so the sim entry move can invert the live
     # joints under the machine's ACTUAL kins mode — the machine may be
@@ -1458,6 +1466,8 @@ async def _status_poller():
             t0 = time.monotonic()
             _set_phase("status_poller.poll_and_serialize")
             st, status_dict = await loop.run_in_executor(None, _poll_and_serialize)
+            _release_start_claims()
+            _check_macro_folder()
             t1 = time.monotonic()
             _set_phase("status_poller.read_errors")
             # ERR.poll() is a C-extension call that holds the GIL for its
@@ -1475,6 +1485,8 @@ async def _status_poller():
             surface_scan_done = False
             OPERATOR_DISPLAY = 13
             for kind, text in raw_errs:
+                if _MODE_IGNORED_TEXT in str(text):
+                    _note_mode_ignored()
                 if kind == OPERATOR_DISPLAY:
                     m = _PROBE_EVAL_RE.search(text)
                     if m:
@@ -2945,7 +2957,92 @@ def read_machine_limits_from_ini(stat_obj):
     return origin, size
 
 
-async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT) -> int:
+# ---- Start claims: one admission for program/macro writers and starts ----
+# (package 5 stage B, Codex VP69-02). Every command that makes the
+# interpreter read files — an MDI line, AUTO run / step / resume — goes
+# through _cmd_blocking, which registers a CLAIM under _source_lock before
+# the write; the claim records the command's serial in the sending thread
+# (a cancelled handler cannot lose it) and ONLY the status poller releases
+# it, on proof the controller is through: echo serial ≥ the claim's, the
+# command not RCS_EXEC, the interpreter IDLE. A macro writer publishes only
+# under _source_lock with no claim open and the interpreter IDLE in a fresh
+# poll. Lock order: _cmd_lock before _source_lock, never the reverse;
+# writers never take _cmd_lock. No timer ever releases a claim: a gateway
+# restart (or a new LinuxCNC instance, which ends this gateway) does.
+class _StartClaim:
+    __slots__ = ("what", "serial", "state", "t")
+
+    def __init__(self, what: str):
+        self.what = what
+        self.serial = None        # the command's serial once written
+        self.state = "pending"    # pending → sent (or unsent: dropped)
+        self.t = time.monotonic()
+
+
+_source_lock: Optional[asyncio.Lock] = None
+_source_claims: List[_StartClaim] = []
+
+
+def _get_source_lock() -> asyncio.Lock:
+    global _source_lock
+    if _source_lock is None:
+        _source_lock = asyncio.Lock()
+    return _source_lock
+
+
+def _start_kind(cmd_fn, args) -> Optional[str]:
+    """'mdi' / 'auto' for a command that makes the interpreter read files,
+    else None. By the binding's method name (CMD.mdi / CMD.auto are
+    builtin methods of linuxcnc.command); AUTO only for RUN, STEP, RESUME."""
+    name = getattr(cmd_fn, "__name__", "")
+    if name == "mdi":
+        return "mdi"
+    if name == "auto" and args and args[0] in (
+            getattr(linuxcnc, "AUTO_RUN", None), getattr(linuxcnc, "AUTO_STEP", None),
+            getattr(linuxcnc, "AUTO_RESUME", None)):
+        return "auto"
+    return None
+
+
+def _release_start_claims() -> None:
+    """Status poller, after STAT.poll(): drop claims the controller is
+    through with, and claims whose command was never written."""
+    if not _source_claims:
+        return
+    echo = safe_get("echo_serial_number", None)
+    state = safe_get("state", None)
+    interp = safe_get("interp_state", None)
+    through = (state != getattr(linuxcnc, "RCS_EXEC", 2)
+               and interp == getattr(linuxcnc, "INTERP_IDLE", 1))
+    keep = []
+    for c in _source_claims:
+        if c.state == "unsent":
+            continue
+        if c.state == "sent" and through and (c.serial is None or echo is None or echo >= c.serial):
+            _trace.emit("source.claim_released", what=c.what, serial=c.serial,
+                        held_ms=round((time.monotonic() - c.t) * 1000))
+            continue
+        keep.append(c)
+    _source_claims[:] = keep
+
+
+def _source_write_refusal() -> Optional[str]:
+    """Under _source_lock: why a macro write may not publish NOW, or None."""
+    if _source_claims:
+        return "A macro or program is starting or running — wait"
+    if STAT is None:
+        return None   # no controller connected: nothing reads the files
+    try:
+        STAT.poll()
+    except Exception as e:  # noqa: BLE001 - no fresh read, no write
+        _trace.emit_exc("source.write_poll_failed", e)
+        return "Machine status not read — try again"
+    if safe_get("interp_state", None) != getattr(linuxcnc, "INTERP_IDLE", 1):
+        return "A macro or program runs — wait"
+    return None
+
+
+async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["_StartClaim"] = None) -> int:
     """Run a blocking CMD.* call + optional wait_complete() on a worker thread.
 
     Every `CMD.* + wait_complete()` pair must go through here. Returns
@@ -2970,9 +3067,21 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT) -> int:
     Caller must hold `_cmd_lock` — NML command channel is not thread-safe.
     """
     cancel = threading.Event()
+    if claim is None and _start_kind(cmd_fn, args):
+        async with _get_source_lock():
+            claim = _StartClaim(_start_kind(cmd_fn, args) or "")
+            _source_claims.append(claim)
 
     def _run():
-        cmd_fn(*args)
+        try:
+            cmd_fn(*args)
+        except BaseException:
+            if claim is not None:
+                claim.state = "unsent"   # nothing reached the controller
+            raise
+        if claim is not None:
+            claim.serial = getattr(CMD, "serial", None)
+            claim.state = "sent"
         if wait is None:
             return 0
         deadline = time.monotonic() + float(wait)
@@ -3007,15 +3116,21 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT) -> int:
 _MODE_NAMES = {1: "MANUAL", 2: "AUTO", 3: "MDI"}
 
 
-async def set_mode(mode: int):
+async def set_mode(mode: int, force: bool = False):
     """Switch LinuxCNC task mode. Caller must hold `_cmd_lock`.
+
+    `force` sends the switch even when task is already in `mode`: for MDI
+    and AUTO, emcTaskSetMode then runs emcTaskAbort → Interp::reset — the
+    interpreter's subroutine cache (offset_map) emptied, what every
+    MANUAL→MDI switch does (run_macro, Codex VP69-01). The caller proves
+    no jog is active first: that is the one case task ignores the switch.
 
     A refused or timed-out switch RAISES (ValueError → the dispatcher's
     bounded ok:false reply). It used to discard the rc while nine other
     call sites checked theirs — a handler then issued its MDI into the
     wrong mode and reported ok (2026-09-04)."""
     STAT.poll()
-    if safe_get("task_mode", None) == mode:
+    if safe_get("task_mode", None) == mode and not force:
         if mode in (linuxcnc.MODE_MDI, linuxcnc.MODE_AUTO):
             _active_jogs.clear()   # task cannot be in MDI/AUTO with a jog active
         return
@@ -3979,6 +4094,71 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             await set_mode(linuxcnc.MODE_MDI)
             await _cmd_blocking(CMD.mdi, text, wait=None)
             return reply
+
+        if cmd == "run_macro":
+            # A macro FILE (package 5, stage B; plan makros.plan.md): the
+            # gateway builds `o<name> call [v1] …` itself from the file's
+            # header and the operator's values, bound to the revision the
+            # operator saw, after the interpreter's subroutine cache was
+            # reset by a verified forced MDI switch (Codex VP69-01).
+            require_armed(armed)
+            blocked = reject_if_auto_running()
+            if blocked:
+                return blocked
+            name = msg.get("name")
+            values = msg.get("args") or []
+            revision = msg.get("revision")
+            if not isinstance(name, str) or not macro_files.NAME_RE.match(name):
+                return {"ok": False, "error": "Not a macro name"}
+            if not isinstance(revision, str) or not re.fullmatch(r"[0-9a-f]{64}", revision):
+                return {"ok": False, "error": "Missing revision — reload the macros"}
+            mstate = await asyncio.to_thread(macro_dir_state)
+            if mstate["problems"]:
+                return {"ok": False, "error": mstate["problems"][0]}
+            refused = await _start_guard(armed)
+            if refused:
+                return refused
+            # The one condition under which task ignores the forced switch
+            # (emctask.cc:268-271), read at its source (motion.jog-is-active).
+            if _reader_is_stale() or _reader_get("jog_active") is None:
+                return {"ok": False, "error": "Jog state unknown — wait"}
+            if _reader_get("jog_active"):
+                return {"ok": False, "error": "A jog is active — release it"}
+            path = os.path.join(mstate["dir"], name + ".ngc")
+            async with _get_source_lock():
+                try:
+                    with open(path, "rb") as f:
+                        data = f.read(MAX_MACRO_SIZE + 1)
+                except FileNotFoundError:
+                    return {"ok": False, "error": "Macro not found — reload the macros"}
+                if macro_files.revision_of(data) != revision:
+                    return {"ok": False, "error": "Macro changed — hold again"}
+                entry = _macro_entry(mstate, name, data, 0.0)
+                if not entry["runnable"]:
+                    return {"ok": False, "error": entry["reason"]}
+                if entry["frame"] == "machine":
+                    why = permission_reasons(_live_policy_state(armed)).get("machineFrame")
+                    if why:
+                        return {"ok": False, "error": f"Machine frame only — {why}"}
+                call = macro_files.build_call(entry, values)
+                if "error" in call:
+                    return {"ok": False, "error": call["error"]}
+                claim = _StartClaim("run_macro")
+                _source_claims.append(claim)
+            try:
+                seq0 = _mode_ignored_seq
+                await set_mode(linuxcnc.MODE_MDI, force=True)
+                if not await _status_cycles(2):
+                    raise ValueError("Machine status not read — try again")
+                if _mode_ignored_seq != seq0:
+                    raise ValueError("LinuxCNC ignored the mode switch (a jog) — nothing started")
+                await _cmd_blocking(CMD.mdi, call["line"], wait=None, claim=claim)
+            except BaseException:
+                if claim.state == "pending":
+                    claim.state = "unsent"
+                raise
+            _trace.emit("macros.run", name=name, line=call["line"], serial=claim.serial)
+            return {"ok": True, "line": call["line"]}
 
         if cmd == "set_kins_mode":
             # Kinematics-frame selector (JogStrip), as a TYPED command so the
@@ -6624,7 +6804,7 @@ def _publish_no_replace(tmp: str, dest_path: str) -> None:
 
 
 async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
-                               replace: bool = True) -> int:
+                               replace: bool = True, gate=None) -> int:
     """Stream an async iterator of byte chunks to ``dest_path`` atomically and
     bounded, keeping the event loop free. Shared core for ``POST /upload``
     (multipart) and ``PUT /save`` (raw body) — one machinery, not two.
@@ -6641,6 +6821,11 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
     existing name with 409 (UI-09: an upload never silently overwrites) — and
     removes the temp on ANY failure, so LinuxCNC never sees a partial file.
     Returns the number of bytes written.
+
+    ``gate`` (package 5, Codex VP69-02): a callable returning a refusal or
+    None, run under _source_lock IMMEDIATELY before the publish, the publish
+    still under the lock — the slow part (receiving, fsync) stays outside.
+    A refusal answers 409 with the reason and drops the temp.
     """
     loop = asyncio.get_event_loop()
     dest_dir = os.path.dirname(dest_path) or "."
@@ -6667,13 +6852,23 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
                 await loop.run_in_executor(io_ex, lambda: (f.flush(), os.fsync(f.fileno())))
             finally:
                 await loop.run_in_executor(io_ex, f.close)
-            if replace:
-                await loop.run_in_executor(io_ex, os.replace, tmp, dest_path)
-                tmp = None  # published — don't unlink in finally
+            async def _publish():
+                nonlocal tmp
+                if replace:
+                    await loop.run_in_executor(io_ex, os.replace, tmp, dest_path)
+                    tmp = None  # published — don't unlink in finally
+                else:
+                    await loop.run_in_executor(io_ex, _publish_no_replace, tmp, dest_path)
+                    # linked — the temp name is unlinked in finally; the data is
+                    # already durable under dest_path.
+            if gate is None:
+                await _publish()
             else:
-                await loop.run_in_executor(io_ex, _publish_no_replace, tmp, dest_path)
-                # linked — the temp name is unlinked in finally; the data is
-                # already durable under dest_path.
+                async with _get_source_lock():
+                    why = gate()
+                    if why:
+                        raise HTTPException(status_code=409, detail={"error": "refused", "reason": why})
+                    await _publish()
             return written
         finally:
             if tmp is not None:
@@ -6684,7 +6879,7 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
 
 async def _atomic_stream_upload(file: "UploadFile", dest_path: str,
                                 max_bytes: int, chunk_size: int = 1 << 20,
-                                replace: bool = True) -> int:
+                                replace: bool = True, gate=None) -> int:
     """Multipart-upload adapter over _atomic_stream_write: reads are async
     (Starlette's threadpool — yields to the loop between chunks)."""
     async def _chunks():
@@ -6693,7 +6888,7 @@ async def _atomic_stream_upload(file: "UploadFile", dest_path: str,
             if not chunk:
                 return
             yield chunk
-    return await _atomic_stream_write(_chunks(), dest_path, max_bytes, replace=replace)
+    return await _atomic_stream_write(_chunks(), dest_path, max_bytes, replace=replace, gate=gate)
 
 
 @app.post("/upload", dependencies=[Depends(require_token)])
@@ -6722,7 +6917,8 @@ async def upload_gcode(file: UploadFile = File(...), overwrite: int = Query(0)):
 
     try:
         size = await _atomic_stream_upload(file, dest_path, MAX_UPLOAD_SIZE,
-                                           replace=bool(overwrite))
+                                           replace=bool(overwrite),
+                                           gate=lambda: _program_name_refusal(dest_path))
     except HTTPException:
         raise
     except Exception as e:
@@ -6762,13 +6958,362 @@ async def save_gcode(request: Request, path: str = Query(...)):
     # rejects mid-stream, and write/fsync/replace serialize off the loop —
     # LinuxCNC never sees a half-written file.
     try:
-        size = await _atomic_stream_write(request.stream(), abs_path, MAX_UPLOAD_SIZE)
+        size = await _atomic_stream_write(request.stream(), abs_path, MAX_UPLOAD_SIZE,
+                                          gate=lambda: _program_name_refusal(abs_path))
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save file: {e}")
 
     return {"ok": True, "path": abs_path, "size": size}
+
+
+# ---- Macros as files (package 5, stage B; docs/reviews/makros.plan.md) ----
+# A macro is <name>.ngc in [DISPLAY] WEBUI_MACRO_DIR, a folder on
+# [RS274NGC] SUBROUTINE_PATH, run by `o<name> call […]` (run_macro). The
+# header grammar and every interpreter rule live in macro_files.py (pure).
+MAX_MACRO_SIZE = 1 << 20
+_MODE_IGNORED_TEXT = "Ignoring task mode change while jogging"   # emctask.cc:269, untranslated
+_mode_ignored_seq = 0
+
+
+async def _status_cycles(n: int, timeout: float = 1.0) -> bool:
+    """Wait until the status poller has run `n` more cycles (each reads the
+    error channel), False when it did not within `timeout`."""
+    g0 = _status_gen
+    deadline = time.monotonic() + timeout
+    while _status_gen < g0 + n:
+        if time.monotonic() > deadline:
+            return False
+        await asyncio.sleep(0.01)
+    return True
+
+
+def _note_mode_ignored() -> None:
+    global _mode_ignored_seq
+    _mode_ignored_seq += 1
+    _trace.emit("task.mode_switch_ignored_message", level="warn", seq=_mode_ignored_seq)
+
+
+def _ini_dir_path(ini_path: str, raw: str) -> str:
+    """An INI path value as LinuxCNC resolves it: `~` expanded, relative to
+    the INI's folder (milltask's working directory — checked below)."""
+    p = os.path.expanduser(raw.strip())
+    if not os.path.isabs(p):
+        p = os.path.join(os.path.dirname(os.path.abspath(ini_path)), p)
+    return os.path.realpath(p)
+
+
+def _milltask_cwd(ini_path: str) -> Optional[str]:
+    """The working directory of the milltask running this INI — the first
+    place find_ngc_file looks (rs274ngc_pre.cc:2669-2683) and the base of
+    every relative SUBROUTINE_PATH entry. None when there is not exactly one."""
+    want = os.path.realpath(ini_path)
+    found = []
+    try:
+        pids = [d for d in os.listdir("/proc") if d.isdigit()]
+    except OSError:
+        return None
+    for pid in pids:
+        try:
+            with open(f"/proc/{pid}/comm") as f:
+                if f.read().strip() != "milltask":
+                    continue
+            with open(f"/proc/{pid}/cmdline", "rb") as f:
+                argv = f.read().split(b"\0")
+            ini = next((argv[i + 1].decode() for i, a in enumerate(argv[:-1]) if a == b"-ini"), None)
+            if ini and os.path.realpath(os.path.join(os.readlink(f"/proc/{pid}/cwd"), ini)) == want:
+                found.append(os.readlink(f"/proc/{pid}/cwd"))
+        except OSError:
+            continue
+    return found[0] if len(found) == 1 else None
+
+
+def macro_dir_state() -> Dict[str, Any]:
+    """The macro folder and every reason macros cannot run from it.
+
+    {dir, problems, prefix, subroutine_dirs, cwd}: `dir` None without a
+    configured, existing folder; any problem makes every macro not runnable
+    (a folder problem names itself, never a silent default). Reads the INI
+    through LinuxCNC's own reader — the one that truncates a 255-character
+    line exactly as the interpreter sees it."""
+    out: Dict[str, Any] = {"dir": None, "problems": [], "prefix": "", "subroutine_dirs": [], "cwd": None}
+    ini_path = os.environ.get("LCNC_INI_FILE")
+    if not ini_path:
+        out["problems"].append("No machine configuration (LCNC_INI_FILE)")
+        return out
+    try:
+        ini = linuxcnc.ini(ini_path)
+        raw_dir = ini.find("DISPLAY", "WEBUI_MACRO_DIR")
+        raw_prefix = ini.find("DISPLAY", "PROGRAM_PREFIX") or ""
+        raw_sub = ini.find("RS274NGC", "SUBROUTINE_PATH") or ""
+    except Exception as e:  # noqa: BLE001 - an unreadable INI is a named problem
+        _trace.emit_exc("macros.ini_failed", e, ini_path=ini_path)
+        out["problems"].append("Machine configuration not readable")
+        return out
+    if not raw_dir:
+        out["problems"].append("No macro folder — set [DISPLAY] WEBUI_MACRO_DIR")
+        return out
+    mdir = _ini_dir_path(ini_path, raw_dir)
+    if not os.path.isdir(mdir):
+        out["problems"].append(f"Macro folder {mdir} does not exist")
+        return out
+    out["dir"] = mdir
+    out["prefix"] = _ini_dir_path(ini_path, raw_prefix) if raw_prefix else ""
+    if out["prefix"] and macro_files.folders_overlap(mdir, out["prefix"]):
+        out["problems"].append("Macro folder and PROGRAM_PREFIX overlap — keep them apart")
+    # the interpreter takes the first MAX_SUB_DIRS (10) entries; one that does
+    # not exist is dropped by its realpath (rs274ngc_pre.cc:973-1001)
+    subdirs = []
+    for e in [x for x in raw_sub.split(":") if x.strip()][:10]:
+        d = _ini_dir_path(ini_path, e)
+        if os.path.isdir(d):
+            subdirs.append(d)
+    out["subroutine_dirs"] = subdirs
+    if os.path.realpath(mdir) not in subdirs:
+        out["problems"].append("Macro folder not on [RS274NGC] SUBROUTINE_PATH")
+    cwd = _milltask_cwd(ini_path)
+    out["cwd"] = cwd
+    if cwd is None:
+        out["problems"].append("LinuxCNC not running — macros run once it is")
+    elif os.path.realpath(cwd) != os.path.dirname(os.path.realpath(ini_path)):
+        out["problems"].append("LinuxCNC runs outside the configuration folder — relative paths differ")
+    return out
+
+
+def _macro_entry(state: Dict[str, Any], name: str, data: bytes, mtime: float) -> Dict[str, Any]:
+    """One macro as the client sees it: metadata, revision, runnable/why."""
+    try:
+        text = data.decode("utf-8")
+        meta = macro_files.parse_macro(name, text)
+    except UnicodeDecodeError:
+        meta = {"name": name, "title": None, "units": None, "frame": None, "params": [],
+                "description": [], "warnings": [],
+                "errors": [{"line": 0, "message": "Not UTF-8 text"}]}
+    path = os.path.join(state["dir"], name + ".ngc")
+    if state["problems"]:
+        reason = state["problems"][0]
+    else:
+        resolved = macro_files.resolve_oword(name, state["cwd"], state["prefix"], state["subroutine_dirs"])
+        reason = macro_files.runnable_reason(meta, path, resolved)
+    return {**meta, "revision": macro_files.revision_of(data), "mtime": mtime,
+            "runnable": reason is None, "reason": reason}
+
+
+def _list_macros() -> Dict[str, Any]:
+    state = macro_dir_state()
+    macros = []
+    if state["dir"]:
+        for fn in sorted(os.listdir(state["dir"])):
+            if not fn.endswith(".ngc") or fn.startswith("."):
+                continue
+            path = os.path.join(state["dir"], fn)
+            if not os.path.isfile(path) or not validate_path_within(path, state["dir"]):
+                continue
+            try:
+                with open(path, "rb") as f:
+                    data = f.read(MAX_MACRO_SIZE + 1)
+                    mtime = os.fstat(f.fileno()).st_mtime
+            except OSError:
+                continue
+            macros.append(_macro_entry(state, fn[:-4], data, mtime))
+    return {"ok": True, "dir": state["dir"], "problems": state["problems"], "macros": macros}
+
+
+def _macro_path(name: str) -> Tuple[Dict[str, Any], str]:
+    """The folder state and `<name>.ngc` in it; 400/409 when there is none."""
+    if not isinstance(name, str) or not macro_files.NAME_RE.match(name):
+        raise HTTPException(status_code=400, detail="File name: lower-case letters, digits and _ only, at most 63")
+    state = macro_dir_state()
+    if not state["dir"]:
+        raise HTTPException(status_code=409, detail=state["problems"][0])
+    return state, os.path.join(state["dir"], name + ".ngc")
+
+
+def _file_revision(path: str) -> Optional[str]:
+    try:
+        with open(path, "rb") as f:
+            return macro_files.revision_of(f.read())
+    except FileNotFoundError:
+        return None
+
+
+def _macro_write_gate(state: Dict[str, Any], path: str, base: str):
+    """The refusal check a macro write runs under _source_lock right before
+    it publishes: no start open, the interpreter idle, the base revision
+    still the file on disk (`new` = the name free), and no program of the
+    same name in PROGRAM_PREFIX (it would win the interpreter's lookup)."""
+    def gate():
+        why = _source_write_refusal()
+        if why:
+            return why
+        current = _file_revision(path)
+        if base == "new":
+            if current is not None:
+                return "A macro of that name exists — reload"
+        elif current != base:
+            return "Changed on disk — reload or keep editing"
+        name = os.path.basename(path)
+        if state["prefix"] and os.path.exists(os.path.join(state["prefix"], name)):
+            return f"Name taken by a program in {state['prefix']}"
+        return None
+    return gate
+
+
+def _program_name_refusal(dest_path: str) -> Optional[str]:
+    """A program file would shadow a macro: `<name>.ngc` directly in
+    PROGRAM_PREFIX, the name a macro has (the interpreter lower-cases the
+    o-word and appends `.ngc` — only that exact name shadows)."""
+    try:
+        state = macro_dir_state()
+    except Exception:  # noqa: BLE001 - no macro state, nothing to shadow
+        return None
+    if not state["dir"] or not state["prefix"]:
+        return None
+    if os.path.dirname(os.path.realpath(dest_path)) != state["prefix"]:
+        return None
+    if os.path.isfile(os.path.join(state["dir"], os.path.basename(dest_path))):
+        return "Name taken by a macro — choose another name"
+    return None
+
+
+_macros_version = 0          # bumped on every change of the macro folder
+_macro_sig: Optional[tuple] = None
+_macro_sig_t = 0.0
+_macro_dir_cache: Tuple[Optional[str], Optional[str]] = (None, None)   # (ini, dir)
+
+
+def _macro_folder_path() -> Optional[str]:
+    """WEBUI_MACRO_DIR resolved, cached per INI — the poller's cheap view."""
+    global _macro_dir_cache
+    ini_path = os.environ.get("LCNC_INI_FILE")
+    if _macro_dir_cache[0] == ini_path:
+        return _macro_dir_cache[1]
+    d = None
+    if ini_path:
+        try:
+            raw = linuxcnc.ini(ini_path).find("DISPLAY", "WEBUI_MACRO_DIR")
+            d = _ini_dir_path(ini_path, raw) if raw else None
+        except Exception as e:  # noqa: BLE001 - no folder, no signature
+            _trace.emit_exc("macros.folder_path_failed", e)
+    _macro_dir_cache = (ini_path, d)
+    return d
+
+
+def _macro_folder_sig() -> Optional[tuple]:
+    d = _macro_folder_path()
+    if not d:
+        return None
+    try:
+        out = []
+        with os.scandir(d) as it:
+            for e in it:
+                if e.name.endswith(".ngc") and not e.name.startswith("."):
+                    st = e.stat()
+                    out.append((e.name, st.st_mtime_ns, st.st_size))
+        return tuple(sorted(out))
+    except OSError:
+        return ()
+
+
+def _macros_changed(reason: str) -> None:
+    """Clients reload the list: every client status loop sends
+    `macros_changed` when the version moved (its own writes and the
+    poller's folder check, which also catches an editor outside the suite)."""
+    global _macros_version, _macro_sig
+    _macros_version += 1
+    _macro_sig = _macro_folder_sig()
+    _trace.emit("macros.changed", reason=reason, version=_macros_version)
+
+
+def _check_macro_folder() -> None:
+    """Status poller, at most once a second: the folder's (name, mtime,
+    size) signature; a change made outside the suite bumps the version."""
+    global _macro_sig, _macro_sig_t
+    now = time.monotonic()
+    if now - _macro_sig_t < 1.0:
+        return
+    _macro_sig_t = now
+    sig = _macro_folder_sig()
+    if _macro_sig is not None and sig != _macro_sig:
+        _macros_changed("folder")
+    _macro_sig = sig
+
+
+@app.get("/macros", dependencies=[Depends(require_token)])
+async def list_macros_route():
+    return await asyncio.to_thread(_list_macros)
+
+
+@app.get("/macro", dependencies=[Depends(require_token)])
+async def get_macro(name: str = Query(...)):
+    state, path = await asyncio.to_thread(_macro_path, name)
+    try:
+        data = await asyncio.to_thread(lambda: open(path, "rb").read(MAX_MACRO_SIZE + 1))
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Macro not found")
+    return Response(content=data, media_type="text/plain; charset=utf-8",
+                    headers={"X-Macro-Revision": macro_files.revision_of(data), "Cache-Control": "no-cache"})
+
+
+@app.put("/macro", dependencies=[Depends(require_token)])
+async def put_macro(request: Request, name: str = Query(...), base: str = Query(...)):
+    """Save a macro: `base` = the revision the editor started from (409 when
+    the file is another one now), or `new` to create (409 when it exists).
+    The header is checked AFTER the save — a file with header errors is the
+    operator's file and is kept; it is listed, not runnable."""
+    state, path = await asyncio.to_thread(_macro_path, name)
+    if base != "new" and not re.fullmatch(r"[0-9a-f]{64}", base or ""):
+        raise HTTPException(status_code=400, detail="base: a revision or new")
+    await _atomic_stream_write(request.stream(), path, MAX_MACRO_SIZE,
+                               replace=base != "new", gate=_macro_write_gate(state, path, base))
+    _trace.emit("macros.saved", name=name, created=base == "new")
+    _macros_changed("saved")
+    data = await asyncio.to_thread(lambda: open(path, "rb").read())
+    return {"ok": True, "macro": _macro_entry(state, name, data, os.path.getmtime(path))}
+
+
+@app.post("/macro-upload", dependencies=[Depends(require_token)])
+async def upload_macro(file: UploadFile = File(...), replace: Optional[str] = Query(None)):
+    """Import a macro file. Without `replace` it only creates (409 with the
+    current revision when the name exists); with `replace=<revision>` it
+    replaces exactly the revision the operator confirmed (Codex VP69-03)."""
+    fname = os.path.basename(file.filename or "")
+    if not fname.endswith(".ngc"):
+        raise HTTPException(status_code=400, detail="A macro is a .ngc file")
+    state, path = await asyncio.to_thread(_macro_path, fname[:-4])
+    if replace is not None and not re.fullmatch(r"[0-9a-f]{64}", replace):
+        raise HTTPException(status_code=400, detail="replace: a revision")
+    if replace is None and os.path.exists(path):
+        raise HTTPException(status_code=409, detail={"error": "exists", "filename": fname,
+                                                     "revision": await asyncio.to_thread(_file_revision, path)})
+    try:
+        await _atomic_stream_upload(file, path, MAX_MACRO_SIZE, replace=replace is not None,
+                                    gate=_macro_write_gate(state, path, replace or "new"))
+    except HTTPException as e:
+        if e.status_code == 409 and isinstance(e.detail, dict) and e.detail.get("error") == "refused":
+            e.detail["revision"] = await asyncio.to_thread(_file_revision, path)
+        raise
+    _trace.emit("macros.imported", name=fname[:-4], replaced=replace is not None)
+    _macros_changed("imported")
+    data = await asyncio.to_thread(lambda: open(path, "rb").read())
+    return {"ok": True, "macro": _macro_entry(state, fname[:-4], data, os.path.getmtime(path))}
+
+
+@app.delete("/macro", dependencies=[Depends(require_token)])
+async def delete_macro(name: str = Query(...), base: str = Query(...)):
+    state, path = await asyncio.to_thread(_macro_path, name)
+    if not re.fullmatch(r"[0-9a-f]{64}", base or ""):
+        raise HTTPException(status_code=400, detail="base: a revision")
+    async with _get_source_lock():
+        why = _macro_write_gate(state, path, base)()
+        if why and not why.startswith("Name taken"):
+            raise HTTPException(status_code=409, detail={"error": "refused", "reason": why,
+                                                         "revision": _file_revision(path)})
+        await asyncio.to_thread(os.unlink, path)
+    _trace.emit("macros.deleted", name=name)
+    _macros_changed("deleted")
+    return {"ok": True}
 
 
 # ---- CAM Tool Library Import ----
@@ -7914,6 +8459,7 @@ async def ws_endpoint(ws: WebSocket):
             global _tool_meta_dirty, _fb_scale, _spindle_load_pin
             loop = asyncio.get_event_loop()
             _last_settings_ver = _settings_store.version
+            _last_macros_ver = _macros_version
             _last_gen = 0  # tracks which _status_gen we last processed
             _consec_fails = 0  # consecutive status_loop exceptions — bail after 10
             # Spindle feedback scale: 60 if pin outputs RPS (default), 1 if RPM
@@ -8170,6 +8716,11 @@ async def ws_endpoint(ws: WebSocket):
                     # Log timing to file if enabled
                     if _timing_log_enabled and "timing" in status_msg:
                         _log_timing({**status_msg["timing"], "send_ms": _prev_send_ms})
+
+                    # Macro folder changed (package 5): the client reloads the list
+                    if _last_macros_ver != _macros_version:
+                        _last_macros_ver = _macros_version
+                        await ws_send_json(ws, {"type": "macros_changed", "version": _macros_version})
 
                     # Settings broadcast: send full settings when version changes
                     if _last_settings_ver != _settings_store.version:

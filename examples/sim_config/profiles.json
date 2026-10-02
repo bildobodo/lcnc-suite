@@ -48,7 +48,8 @@
     "twp",
     "machine-5axis-xyzac",
     "machine-xyzacb-gantry",
-    "sim_toolsetter"
+    "sim_toolsetter",
+    "subroutines"
   ],
   "retired": [
     "lcnc_suite_sim.ini",
@@ -67,5 +68,12 @@
   ],
   "tool_libraries": [
     "tool-libraries/fusion-freecad.json"
+  ],
+  "macros": [
+    "macros/spindle_warmup.ngc",
+    "macros/park.ngc",
+    "macros/face_top.ngc",
+    "macros/coolant_flush.ngc",
+    "macros/go_to_g30_macro.ngc"
   ]
 }

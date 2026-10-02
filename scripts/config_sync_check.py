@@ -27,7 +27,7 @@ import json
 import shutil
 from pathlib import Path
 
-from install_examples import render_ini
+from install_examples import render_ini, ini_line_problems
 import re
 import sys
 
@@ -124,6 +124,21 @@ def check_components(repo_dir, out=sys.stdout, modules=None):
     return missing
 
 
+def check_ini_lines(deployed_dir, out=sys.stdout):
+    """Every deployed INI as LinuxCNC's reader sees it: a line over its
+    LINELEN is cut silently (the installed TWP SUBROUTINE_PATH lost its last
+    folder this way). Returns the number of INIs with a problem."""
+    bad = 0
+    for path in sorted(Path(deployed_dir).glob("*.ini")):
+        problems = ini_line_problems(path.read_text(errors="replace"))
+        if problems:
+            bad += 1
+            print(f"\n[TRUNCATED] {path.name} — LinuxCNC reads it differently than written:", file=out)
+            for p in problems:
+                print(f"  {p}", file=out)
+    return bad
+
+
 def check(repo_dir, deployed_dir, out=sys.stdout):
     """Compare every comparable repo file against its deployed twin.
 
@@ -197,6 +212,8 @@ def main():
     n = check(a.repo, a.deployed)
     if n < 0:
         return 2
+    if os.path.isdir(a.deployed):
+        n += check_ini_lines(a.deployed)
     n += check_components(a.repo)
     if n == 0:
         print("config sync: deployed config matches the repo templates "
