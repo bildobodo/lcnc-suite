@@ -1,0 +1,126 @@
+Macro live check (package 5, stage B) — scripts/macro_live_check.py
+2026-10-02, feat/macros 795bbf7 + this commit (the verbatim machineFrame reason)
+
+Target: a FRESH install of this branch's examples (scripts/install_examples.py
+--destination <scratch>, HOME pointed at a scratch folder so nothing in ~/linuxcnc
+was written), the XYZAC profile run headless (LinuxCNC 2.9.4, DISPLAY = this
+branch's launcher, WEBUI_DEV 0, :8010, no browser). Changed in the scratch INI:
+  [DISPLAY]  WEBUI_MACRO_DIR = macros (the five seeded examples copied in)
+  [RS274NGC] SUBROUTINE_PATH = remap_subs:subroutines/probe_basic:subroutines/
+             tool_length_probe:subroutines/surfacemap:testsubs:macros
+  [RS274NGC] REMAP = M499 modalgroup=10 ngc=m499   (testsubs/m499.ngc calls
+             o<probe_helper>, which the check writes into the macro folder)
+The operator's sim was stopped for it and restored afterwards (homed, haus.ngc
+loaded, machine off, the operator's browser reconnected).
+
+=== Run (final code) ===
+PASS examples     all five runnable
+PASS coolant      reply True  spindle 1000.0 → 1000.0 during, flood 1
+PASS units        reply True  x max 10.000 mm, G20 on, G95 on
+PASS park-below   from Z -295.000: reply True , lowest Z -295.000, corner cut 0.0020 (G64 0.012), end X 0.000 Y 0.000 Z -0.000
+PASS park-top     from Z 0: reply True , Z range -0.000..0.000, end X 10.000 Y 20.000 Z 0.000
+PASS g30-top      stored (26.52, -40.0, -20.0), from Z 0.0: reply True , lowest Z before X/Y 0.000, corner cut 0.0008 (G64 0.012), end X 26.520 Y -40.000 Z -20.000
+PASS g30-below    stored (40.944, -40.0, -20.0), from Z -100.0: reply True , lowest Z before X/Y -100.000, corner cut 0.0026 (G64 0.012), end X 40.944 Y -40.000 Z -20.000
+SKIP above-z0     Z MAX_LIMIT 0.0: above machine zero is unreachable on this config
+PASS warmup       reply True , commanded speeds [0.0, 250.0, 500.0, 750.0, 1000.0, 0.0], enabled after 0
+PASS tcp          TCP True | park: Machine frame only | g30: Machine frame only | moved 0.000000
+PASS revision     Macro changed — hold again
+PASS cache-red    remap saw steps [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]; plain MDI after the edit: reply True  steps [], LinuxCNC said ['11:Unknown word starting with e'] (the stale offset)
+PASS cache-green  remap saw steps [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]; run_macro: True  steps [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+{
+ "results": [
+  [
+   "examples",
+   "PASS",
+   "all five runnable"
+  ],
+  [
+   "coolant",
+   "PASS",
+   "reply True  spindle 1000.0 \u2192 1000.0 during, flood 1"
+  ],
+  [
+   "units",
+   "PASS",
+   "reply True  x max 10.000 mm, G20 on, G95 on"
+  ],
+  [
+   "park-below",
+   "PASS",
+   "from Z -295.000: reply True , lowest Z -295.000, corner cut 0.0020 (G64 0.012), end X 0.000 Y 0.000 Z -0.000"
+  ],
+  [
+   "park-top",
+   "PASS",
+   "from Z 0: reply True , Z range -0.000..0.000, end X 10.000 Y 20.000 Z 0.000"
+  ],
+  [
+   "g30-top",
+   "PASS",
+   "stored (26.52, -40.0, -20.0), from Z 0.0: reply True , lowest Z before X/Y 0.000, corner cut 0.0008 (G64 0.012), end X 26.520 Y -40.000 Z -20.000"
+  ],
+  [
+   "g30-below",
+   "PASS",
+   "stored (40.944, -40.0, -20.0), from Z -100.0: reply True , lowest Z before X/Y -100.000, corner cut 0.0026 (G64 0.012), end X 40.944 Y -40.000 Z -20.000"
+  ],
+  [
+   "above-z0",
+   "SKIP",
+   "Z MAX_LIMIT 0.0: above machine zero is unreachable on this config"
+  ],
+  [
+   "warmup",
+   "PASS",
+   "reply True , commanded speeds [0.0, 250.0, 500.0, 750.0, 1000.0, 0.0], enabled after 0"
+  ],
+  [
+   "tcp",
+   "PASS",
+   "TCP True | park: Machine frame only | g30: Machine frame only | moved 0.000000"
+  ],
+  [
+   "revision",
+   "PASS",
+   "Macro changed \u2014 hold again"
+  ],
+  [
+   "cache-red",
+   "PASS",
+   "remap saw steps [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]; plain MDI after the edit: reply True  steps [], LinuxCNC said ['11:Unknown word starting with e'] (the stale offset)"
+  ],
+  [
+   "cache-green",
+   "PASS",
+   "remap saw steps [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]; run_macro: True  steps [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]"
+  ]
+ ]
+}
+
+=== Mutation 1: run_macro without the forced switch (set_mode(MODE_MDI, force=False)) ===
+PASS cache-red    remap saw steps [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]; plain MDI after the edit: reply True  steps [], LinuxCNC said ['11:Unknown word starting with e'] (the stale offset)
+FAIL cache-green  remap saw steps [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]; run_macro: True  steps []
+
+cache-green is red without the forced SET_MODE(MDI): run_macro then runs the
+helper from the offset the M499 remap left cached — no step, like the plain MDI
+of cache-red ("Unknown word starting with e": the cached byte offset lands
+inside the shortened file). With the forced switch all 20 steps run in order.
+
+=== Mutation 2: park.ngc moving X, Y and Z in ONE G53 G0 (the scratch copy) ===
+FAIL park-below   from Z -295.000: reply True , lowest Z -295.000, corner cut 10.3859 (G64 0.012), end X 0.000 Y 0.000 Z 0.000
+PASS park-top     from Z 0: reply True , Z range 0.000..0.000, end X 10.000 Y 20.000 Z 0.000
+
+The path rule: every sample before X/Y reaches its target lies on the vertical
+retract or on the top plane, within the startup code's G64 P (0.01 + 2 µm
+sampling). The planner blends the corner: X/Y begins with Z 0.02 mm short of
+the top, 0.0004 mm off the retract line (measured) — a corner cut of 0.002 mm.
+
+Found by the check and fixed in the same commit: under TCP the refusal read
+"Machine frame only — Machine frame only" (the gateway prefixed the policy's
+reason with the same words); it is now the policy's reason verbatim.
+The check's own traps: a command the gateway's last status (5 Hz at idle) does
+not admit yet is refused "Machine busy" — the check retries those like an
+operator facing a dimmed button; the G30 rows store a position new to the run
+(the parameter file keeps the last run's, which once passed a row whose
+assignment had been refused); the cache rows require the remap to have run
+all 20 steps first (a first version reported the red case PASS with nothing run).

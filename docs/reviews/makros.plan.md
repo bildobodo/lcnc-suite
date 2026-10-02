@@ -473,6 +473,15 @@ schon einer offen ist (konkurrierende MDI- und AUTO-Starts).
   - Park und Go to G30 unter TCP abgelehnt („Machine frame only“), am Button gedimmt mit Grund.
   - jedes Beispiel einmal am XYZAC-Sim mit Ergebnis;
   - Park und Go to G30 aus beiden Z-Lagen, die Z-Prüfung wie in `twp_buttons_check.py`.
+  - **Umsetzung:** `scripts/macro_live_check.py` an einer frischen Installation der Beispiele
+    (Scratch-Ordner, XYZAC headless), Ergebnis `docs/reviews/makros.live-r1.txt`: 12 PASS, 1 SKIP
+    (über Maschinen-Z0 ist auf dieser Konfiguration unerreichbar). Der Rot-Fall des Caches ist
+    belegt („Unknown word starting with e“, kein Schritt), ohne den erzwungenen Wechsel wird auch
+    `run_macro` rot. Die Z-Prüfung tastet den Weg ab: vor dem X/Y-Ziel liegt jeder Punkt auf der
+    senkrechten Rückzugslinie oder auf Z0, innerhalb des `G64 P` aus dem Startcode (der Planer
+    schleift die Ecke: X/Y beginnt 0,02 mm unter Z0). Ein diagonales Park ist rot (10,39 mm).
+    Gefunden: Die TCP-Ablehnung sagte „Machine frame only — Machine frame only“; jetzt der Grund
+    der Rechte-Tabelle wörtlich.
 
 ### Stufe C — der Tab „Macros“ und der Editor
 

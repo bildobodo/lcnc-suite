@@ -354,7 +354,8 @@ class RunMacro(_Folder):
     def test_frame_machine_needs_the_machine_frame(self):
         with patch.object(gateway, "permission_reasons", lambda s: {"machineFrame": "Machine frame and Plane only"}):
             r = self.send(name="park", args=[], revision=rev(PARK))
-        self.assertIn("Machine frame only", r["error"])
+        # the policy's reason verbatim — never "Machine frame only — Machine frame only"
+        self.assertEqual(r["error"], "Machine frame and Plane only")
         self.assertEqual(self.cmd.calls, [])
         r = self.send(name="park", args=[], revision=rev(PARK))
         self.assertTrue(r["ok"], r)

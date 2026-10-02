@@ -4137,9 +4137,11 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 if not entry["runnable"]:
                     return {"ok": False, "error": entry["reason"]}
                 if entry["frame"] == "machine":
+                    # the policy's reason verbatim, like every denied command
+                    # ("Machine frame only" — prefixing it said it twice)
                     why = permission_reasons(_live_policy_state(armed)).get("machineFrame")
                     if why:
-                        return {"ok": False, "error": f"Machine frame only — {why}"}
+                        return {"ok": False, "error": why}
                 call = macro_files.build_call(entry, values)
                 if "error" in call:
                     return {"ok": False, "error": call["error"]}
