@@ -24,7 +24,7 @@ import {
   loadKeyboardDefaults, type KeyboardDefaults, DEFAULT_KB_MAPPING,
 } from "./defaults";
 import { resolveViewerPalette, userColorsOf, USER_ROLES, type UserRole, type ViewerRole } from "./viewer/viewerPalette";
-import { LAYER_GROUPS, HUD_LAYER, type TwoTone } from "./viewerLayerGroups";
+import { LAYER_GROUPS, HUD_LAYER } from "./viewerLayerGroups";
 import { saveStatus, saveStatusText } from "./settingsSaveStatus";
 import { fmtNum, fmtPct, fmtRatio } from "./format";
 import { customContrastRows, customPairRows } from "./viewer/customContrast";
@@ -480,20 +480,20 @@ function onColorChange(key: UserRole, value: string) {
 
 // The legend (every role, in drawing order); in Custom the seven user roles
 // are the colour pickers, the two finding roles stay the theme's.
-const PALETTE_ROWS: { role: ViewerRole; label: string; dashed?: boolean; twoTone?: TwoTone }[] = [
+const PALETTE_ROWS: { role: ViewerRole; label: string; dashed?: boolean; twoTone?: boolean }[] = [
   { role: "feed", label: "Toolpath" },
   { role: "rapid", label: "Rapid", dashed: true },
   { role: "backplot", label: "Backplot" },
   { role: "limit", label: "Limit violation" },
   { role: "collision", label: "Collision" },
-  { role: "bounds", label: "Machine Bounds", twoTone: "long" },
-  { role: "toolpathBounds", label: "Toolpath Bounds", twoTone: "short" },
+  { role: "bounds", label: "Machine Bounds", twoTone: true },
+  { role: "toolpathBounds", label: "Toolpath Bounds", twoTone: true },
   { role: "tool", label: "Tool Shaft" },
   { role: "cutter", label: "Tool Cutter" },
 ];
 const isUserRole = (r: ViewerRole): r is UserRole => (USER_ROLES as readonly string[]).includes(r);
 // A line sample's colour; a two-tone box names both tones (its colour and the light dashes).
-const legendStyle = (role: ViewerRole, twoTone?: TwoTone) =>
+const legendStyle = (role: ViewerRole, twoTone?: boolean) =>
   twoTone ? { "--tone-a": shownPalette.value[role], "--tone-b": shownPalette.value.boundsAlt } : { color: shownPalette.value[role] };
 // The Custom palette's contrast, told and never corrected (plan K3, Codex
 // R25 OP-I05): each custom line on the background and on the lit table
@@ -595,7 +595,7 @@ function resetMachineColor(id: string) {
                           :label="lf.label"
                           :help="lf.help"
                         />
-                        <span v-if="lf.role" class="legendLine" :class="{ dashed: lf.dashed, twoTone: lf.twoTone, short: lf.twoTone === 'short' }"
+                        <span v-if="lf.role" class="legendLine" :class="{ dashed: lf.dashed, twoTone: lf.twoTone }"
                               :style="legendStyle(lf.role, lf.twoTone)" aria-hidden="true"></span>
                       </div>
                     </td>
@@ -745,7 +745,7 @@ function resetMachineColor(id: string) {
                 <span class="colorLabel">{{ row.label }}</span>
               </label>
               <div v-else class="row-controls" :data-role="row.role">
-                <span class="legendLine" :class="{ dashed: row.dashed, twoTone: row.twoTone, short: row.twoTone === 'short' }" :style="legendStyle(row.role, row.twoTone)" aria-hidden="true"></span>
+                <span class="legendLine" :class="{ dashed: row.dashed, twoTone: row.twoTone }" :style="legendStyle(row.role, row.twoTone)" aria-hidden="true"></span>
                 <span class="colorLabel">{{ row.label }}</span>
               </div>
             </template>

@@ -20,12 +20,12 @@
 import * as THREE from "three";
 import { binPairs, buildFrameIndex, CHUNK_MAX, chunkBounds, chunkGrid, cumulativeDistances, splitPairsByFrame } from "./lineChunks";
 import type { AnchorTerms } from "./partFrame";
-import { makeBoxEdges, boxEdgePositions, countedLineDistances, screenDash, TOOLPATH_BOX_PX, TOOLPATH_BOX_DASH_PX, type BoxEdges } from "./boxLines";
+import { makeBoxEdges, boxEdgePositions, geoDash, patternDiag, TOOLPATH_BOX_PX, type BoxEdges } from "./boxLines";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { fatBytes, fatGeometry, packPairs, PATH_PX } from "./fatPaths";
-import { allocatedBytes, counted, countedGeometry, f32, u32 } from "./allocMeter";
+import { allocatedBytes, counted, f32, u32 } from "./allocMeter";
 import { applyOnTop, ON_TOP_ORDER } from "./onTop";
 import type { Ref } from "vue";
 import type { Text } from "troika-three-text";
@@ -108,6 +108,13 @@ export interface ToolpathController {
    *  chunks inside the camera frustum for the perf probe. ~100 sphere
    *  tests; cheaper than tracking dirtiness. */
   updateCulling(ctx: ToolpathCtx, camera: THREE.Camera, heightPx?: number): void;
+  /** The toolpath box's geometry-anchored pattern for this view (package 4):
+   *  re-choose each edge's cell count; true when one changed. `cssW`/`cssH`
+   *  = the drawing area in CSS px. */
+  updateBoxPattern(camera: THREE.Camera, cssW: number, cssH: number): boolean;
+  /** The toolpath box's pattern for diagnostics (boxLines.patternDiag), or
+   *  null without a box. */
+  boxPattern(): ReturnType<typeof patternDiag> | null;
   setVisible(on: boolean): void;
   /** The Rapids layer (fixed palette P3): the rapid lines only — their
    *  limit overlay stays with the toolpath layer. */
@@ -325,7 +332,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
 
   let toolpathBoundsBox: BoxEdges | null = null;
   let toolpathBoundsLabels: THREE.Group | null = null;
-  let toolpathOverflowEdges: PathObj | null = null;
+  let toolpathOverflowEdges: THREE.Object3D | null = null;
 
   let toolpathVisible = true;
   let rapidsVisible = true;
@@ -436,6 +443,8 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     });
     accountBox(toolpathBoundsBox);
     accountBox(toolpathOverflowEdges);
+    // the pattern's own arrays (positions, units, order — t and cells are attributes)
+    for (const a of toolpathBoundsBox?.geo?.arrays() ?? []) addCpu("box", a);
     // what the controller derived and keeps (binned levels, computed distances)
     for (const st of sets) {
       for (const l of st.levels) addCpu("source", l.index);
@@ -714,32 +723,41 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     }
   }
 
-  function rebuildOverflowEdges(size: Vec3, offset: Vec3): PathObj | null {
+  function rebuildOverflowEdges(size: Vec3, offset: Vec3): THREE.Object3D | null {
     if (deps.boundsClipPlanes.length === 0) return null;
     const [sx, sy, sz] = size;
     if (sx <= 0 || sy <= 0 || sz <= 0) return null;
     const [ox, oy, oz] = offset;
     if (lineMode === "fat") {
-      // The box OUTSIDE the machine window, a limit finding: the limit's
-      // colour at the box's width, dashed like the box — in CSS px along
-      // each projected edge (screenDash, Codex R44 VP-I10; part B, Codex R39
-      // — at the box's own width, TOOLPATH_BOX_PX).
-      const mat = new LineMaterial({ color: deps.colors().limit, linewidth: TOOLPATH_BOX_PX, worldUnits: false });
-      screenDash(mat, TOOLPATH_BOX_DASH_PX);
-      mat.clipIntersection = true;
-      mat.clippingPlanes = deps.boundsClipPlanes;
-      mat.depthWrite = false;
-      mat.userData.role = "limitBox";
-      const geom = new LineSegmentsGeometry();
-      countedGeometry(geom);   // three's quad mesh (allocMeter)
-      geom.setPositions(boxEdgePositions(sx, sy, sz));
-      const lines = new LineSegments2(geom, mat);
-      lines.computeLineDistances();   // LineMaterial's own dash attributes (unused under SCREEN_DASH)
-      countedLineDistances(geom);
-      lines.onBeforeRender = (renderer) => { renderer.getSize(mat.resolution); };
-      lines.position.set(ox + sx / 2, oy + sy / 2, oz + sz / 2);
-      lines.renderOrder = 2;   // over the neutral box where the two meet
-      return lines;
+      // The box OUTSIDE the machine window, a limit finding: the box's own
+      // two-tone pattern with the limit's ORANGE as the light tone (package
+      // 4) — on the toolpath box's very geometry, so its cells continue the
+      // box's across the window's face; clipped to the outside as the box is
+      // to the inside.
+      const box = toolpathBoundsBox;
+      if (!box) return null;
+      const geom = (box.children[0] as LineSegments2).geometry as LineSegmentsGeometry;
+      const mat = (color: string, role: string) => {
+        const m = new LineMaterial({ color, linewidth: TOOLPATH_BOX_PX, worldUnits: false });
+        m.clipIntersection = true;
+        m.clippingPlanes = deps.boundsClipPlanes;
+        m.depthWrite = false;
+        m.userData.role = role;
+        return m;
+      };
+      const darkMat = mat(deps.colors().toolpathBounds, "limitBoxDark");
+      const orangeMat = mat(deps.colors().limit, "limitBox");
+      geoDash(orangeMat);
+      const dark = new LineSegments2(geom, darkMat), orange = new LineSegments2(geom, orangeMat);
+      dark.renderOrder = 2; orange.renderOrder = 3;   // over the neutral box where the two meet
+      dark.onBeforeRender = (renderer) => { renderer.getSize(darkMat.resolution); };
+      orange.onBeforeRender = (renderer) => { renderer.getSize(orangeMat.resolution); };
+      // the geometry is the box's: both are torn down together (a second
+      // dispose of it is a no-op), and the ledger counts a buffer once
+      const g = new THREE.Group();
+      g.add(dark, orange);
+      g.position.set(ox + sx / 2, oy + sy / 2, oz + sz / 2);
+      return g;
     }
     // the box's twelve edges written out (no BoxGeometry / EdgesGeometry scratch)
     const geom = new THREE.BufferGeometry().setAttribute("position", new THREE.BufferAttribute(boxEdgePositions(sx, sy, sz), 3));
@@ -841,11 +859,11 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
     const cy = (toolpathBBox.min[1] + toolpathBBox.max[1]) / 2;
     const cz = (toolpathBBox.min[2] + toolpathBBox.max[2]) / 2;
 
-    // Two-tone like the machine box, with SHORT dashes (operator 2026-09-29);
-    // its size labels name it.
+    // Two-tone in the one pattern of every bound (package 4); its dimension
+    // end marks and its label tell it from the machine box.
     const pal = deps.colors();
     toolpathBoundsBox = makeBoxEdges([sx, sy, sz], {
-      color: pal.toolpathBounds, alt: pal.boundsAlt, width: TOOLPATH_BOX_PX, dashPx: TOOLPATH_BOX_DASH_PX,
+      color: pal.toolpathBounds, alt: pal.boundsAlt, width: TOOLPATH_BOX_PX,
       role: "toolpathBounds", clippingPlanes: deps.insideBoundsClipPlanes,
     });
     toolpathBoundsBox.position.set(cx, cy, cz);
@@ -1184,6 +1202,17 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       deps.requestRender();
     },
 
+    updateBoxPattern(camera, cssW, cssH) {
+      const box = toolpathBoundsBox;
+      if (!box || !box.visible || !box.geo) return false;
+      box.updateWorldMatrix(true, false);
+      return box.geo.update(box, camera, cssW, cssH);
+    },
+
+    boxPattern() {
+      return toolpathBoundsBox?.geo ? patternDiag(toolpathBoundsBox) : null;
+    },
+
     updateCulling(_ctx, camera, heightPx = 1000) {
       if (sets.length === 0) { _chunksVisible = _overlayChunks = 0; _lodMin = _lodMax = 0; return; }
       camera.updateMatrixWorld();
@@ -1332,7 +1361,11 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       _rapidBase.set(c.rapid);
       toolpathBoundsBox?.setColors(c.toolpathBounds, c.boundsAlt);
       for (const s of sets) s.overMat?.color.set(c.limit);
-      if (toolpathOverflowEdges) (toolpathOverflowEdges.material as PathMat).color.set(c.limit);
+      toolpathOverflowEdges?.traverse(o => {
+        const m = (o as THREE.Mesh).material as PathMat | undefined;
+        if (m?.userData.role === "limitBox") m.color.set(c.limit);
+        else if (m?.userData.role === "limitBoxDark") m.color.set(c.toolpathBounds);
+      });
       _applyStale();   // the drawn colour is the base or its muted mix — one writer
     },
 

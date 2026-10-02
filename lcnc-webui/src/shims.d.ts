@@ -51,6 +51,15 @@ interface ViewerDiag {
   getToolChange?: () => { visible: boolean; top: number[]; screen: { x: number; y: number } | null; onTop: boolean } | null;
   /** The control-point pin (operator 2026-10-01): world = the machine frame. */
   getControlPoint?: () => { visible: boolean; world: number[]; label: string | null } | null;
+  /** The bounds' geometry-anchored pattern (package 4, boxLines.patternDiag). */
+  getBoundsPattern?: (role: "bounds" | "toolpathBounds" | "reachRoom" | "reachPart") =>
+    { cells: number[]; segments: { unit: number; a: number[]; b: number[]; ta: number; tb: number }[] } | null;
+  /** Zoom about the orbit target (> 1 closer). */
+  zoomBy?: (factor: number) => void;
+  /** The viewer canvas on the page (CSS px). */
+  canvasRect?: () => { left: number; top: number; right: number; bottom: number } | null;
+  /** World points on the page in CSS px; null behind the camera. */
+  projectPoints?: (points: number[][]) => ({ x: number; y: number; inside: boolean } | null)[];
   getPlane?: () => { visible: boolean; label: string | null; role: string | null; dashed: boolean;
     edge: { color: string; opacity: number; transparent: boolean } | null; arrowStale: boolean; hudWord: string | null } | null;
   simulatePlane?: (plane: number[] | null | undefined) => void;

@@ -2234,16 +2234,14 @@ label:has(input:disabled, select:disabled) {
   border-top: 3px solid currentColor;
 }
 .legendLine.dashed { border-top-style: dashed; }
-/* A two-tone line (the viewer's boxes, operator 2026-09-29): the dark tone
-   with the light one in dashes — long for the machine box, short for the
-   toolpath box, like the drawn box. The tones come in as --tone-a / --tone-b. */
+/* A two-tone line (the viewer's bounds, operator 2026-09-29): the dark tone
+   and the light one in alternating cells — ONE pattern for every bound
+   (package 4), its cells the drawn ones' nominal 6 … 12 px. The tones come
+   in as --tone-a / --tone-b. */
 .legendLine.twoTone {
   border-top: 0;
   height: 3px;
   background: repeating-linear-gradient(90deg, var(--tone-a) 0 8px, var(--tone-b) 8px 16px);
-}
-.legendLine.twoTone.short {
-  background: repeating-linear-gradient(90deg, var(--tone-a) 0 4px, var(--tone-b) 4px 8px);
 }
 
 /* Program progress bar (G-code panel). Track flexes to fill its row; fill

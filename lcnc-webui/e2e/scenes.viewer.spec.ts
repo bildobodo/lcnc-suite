@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { STLExporter } from "three/examples/jsm/exporters/STLExporter.js";
 import { encode } from "@msgpack/msgpack";
 import { ctl, MOCK } from "./ctl";
-import { MACHINE_BOX_PX, TOOLPATH_BOX_PX, MACHINE_BOX_DASH_PX } from "../src/viewer/boxLines";
+import { MACHINE_BOX_PX, TOOLPATH_BOX_PX } from "../src/viewer/boxLines";
 
 // Design wave D8 (UI-K08, review round 6 UI-DI14): the viewer palette on a
 // machine model, a DENSE and a THIN path, a selected line, limit overflow
@@ -359,15 +359,49 @@ test("every path line is drawn 2 CSS px — the path, the limit overlay and the 
   }
 });
 
+/** In-page: at `n` evenly spaced points from `a` to `b` (CSS px), the
+ *  DARKEST pixel within ±1.5 CSS px across the line — a 1 px line's centre is
+ *  known to a pixel, and beside a light cell lies the light scene. */
+async function alongDarkest(page: Page, shot: Buffer, a: { x: number; y: number }, b: { x: number; y: number }, n: number, dpr: number) {
+  return page.evaluate(async ({ png, a, b, n, dpr }) => {
+    const img = new Image();
+    img.src = `data:image/png;base64,${png}`;
+    await img.decode();
+    const cv = document.createElement("canvas");
+    cv.width = img.width; cv.height = img.height;
+    const cx = cv.getContext("2d", { willReadFrequently: true })!;
+    cx.drawImage(img, 0, 0);
+    const len = Math.hypot(b.x - a.x, b.y - a.y), nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;
+    const out: number[] = [];
+    for (let i = 0; i < n; i++) {
+      const f = n === 1 ? 0 : i / (n - 1);
+      const x = a.x + (b.x - a.x) * f, y = a.y + (b.y - a.y) * f;
+      // under an overlay (the cube, a button, a card) the scene is not what shows
+      const top = document.elementFromPoint(x, y);
+      if (!top || !(top as HTMLElement).dataset || !("viewerCanvas" in (top as HTMLElement).dataset)) { out.push(-1); continue; }
+      let best = Infinity;
+      for (const o of [-1.5, -1, -0.5, 0, 0.5, 1, 1.5]) {
+        const d = cx.getImageData(Math.floor((x + nx * o) * dpr), Math.floor((y + ny * o) * dpr), 1, 1).data;
+        best = Math.min(best, 0.2126 * d[0]! + 0.7152 * d[1]! + 0.0722 * d[2]!);
+      }
+      out.push(best);
+    }
+    return out;
+  }, { png: shot.toString("base64"), a, b, n, dpr });
+}
+/** Luminance of an sRGB triple. */
+const lum = (c: number[]) => 0.2126 * c[0]! + 0.7152 * c[1]! + 0.0722 * c[2]!;
+
 // The box edge measured ALONE (Codex R31 answer 2 — its isolated scene,
 // kept as the guard; operator 2026-09-29: two-tone, no casing): everything
 // but the machine box off, one edge with nothing within 8 CSS px. Across the
 // edge, at several places along it, the profile is fitted pixel by pixel to
 // background + ONE tone (dark or light) in quarter steps (the browser's four
 // samples): nothing else is drawn near it and it covers MACHINE_BOX_PX CSS
-// px. Along the edge both tones appear, in runs of MACHINE_BOX_DASH_PX CSS px
-// (the dash is held in screen pixels) — in light and dark, at DPR 1 and 2.
-test("the box edge alone: two tones, MACHINE_BOX_PX wide, dashes of MACHINE_BOX_DASH_PX — at DPR 1 and 2", async ({ browser }) => {
+// px. Along the edge both tones appear in cells of the geometry pattern
+// (package 4: 6 … 12 CSS px nominal, the hysteresis band 4.8 … 15) — in
+// light and dark, at DPR 1 and 2.
+test("the box edge alone: two tones, MACHINE_BOX_PX wide, cells within the pattern's band — at DPR 1 and 2", async ({ browser }) => {
   test.setTimeout(120_000);
   for (const dpr of [1, 2]) {
     const context = await browser.newContext({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: dpr });
@@ -378,14 +412,14 @@ test("the box edge alone: two tones, MACHINE_BOX_PX wide, dashes of MACHINE_BOX_
     await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready)).toBe(true);
     await page.evaluate(() => window.__viewerDiag!.setViewDirection!([1, 2, 0.7]));
     for (const theme of ["light", "dark"] as const) {
-      await ctl({ op: "raw", frame: { type: "settings_changed", settings: { display: { theme }, viewer: { layers: {
+      await ctl({ op: "raw", frame: { type: "settings_changed", settings: { display: { theme }, viewer: { projection: "parallel", layers: {
         hud: false, bounds: true, toolpath: false, tool: false, machine: false, workzero: false, groundGrid: false } } } } });
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
       await page.waitForTimeout(300);
       const where = `DPR ${dpr} ${theme}`;
       const edge = (await page.evaluate(() => window.__viewerDiag!.projectRole!("bounds")))!;
       expect(edge, `${where}: a visible box edge`).not.toBeNull();
-      expect(edge.length, `${where}: an edge long enough for several dashes`).toBeGreaterThan(8 * MACHINE_BOX_DASH_PX);
+      expect(edge.length, `${where}: an edge long enough for several cells`).toBeGreaterThan(120);
       const drawn = (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn;
       const tones = { dark: rgbOf(drawn.bounds!), light: rgbOf(drawn.boundsAlt!) };
       const shot = await page.screenshot();
@@ -397,8 +431,6 @@ test("the box edge alone: two tones, MACHINE_BOX_PX wide, dashes of MACHINE_BOX_
         const at = { ...edge, x: edge.x + edge.dx * edge.length * t, y: edge.y + edge.dy * edge.length * t };
         const profile = await profileColours(page, shot, at, offsets, dpr);
         const bg = profile[0]!;
-        // another edge crossing here (the far and near edges overlap in the
-        // view): drawn pixels away from the line's own 2 px — not this edge's profile
         if (profile.some((px, i) => Math.abs(offsets[i]!) > 3 && rgbDist(px, bg) > 20)) continue;
         let best: { tone: string; sum: number; worst: number } | null = null;
         for (const [tone, rgb] of Object.entries(tones)) {
@@ -412,39 +444,42 @@ test("the box edge alone: two tones, MACHINE_BOX_PX wide, dashes of MACHINE_BOX_
           if (!best || worst < best.worst) best = { tone, sum, worst };
         }
         const dump = JSON.stringify({ t, best, profile });
-        // at a dash boundary the pixel mixes both tones: skip it, the others decide
+        // at a cell boundary the pixel mixes both tones: skip it, the others decide
         if (best!.worst >= 6) continue;
         cleanProfiles++;
         expect(Math.abs(best!.sum / dpr - MACHINE_BOX_PX), `${where}: the box covers ${MACHINE_BOX_PX} CSS px ${dump}`).toBeLessThan(0.4);
       }
-      // along the edge: runs of each tone, one dash long
+      // along the edge: runs of each tone, one cell long — under the
+      // parallel projection every cell of an edge is equally long on screen
       const along = Array.from({ length: Math.floor(edge.length * 0.8) }, (_, i) => i - Math.floor(edge.length * 0.4));
-      const alongAt = { x: edge.x, y: edge.y, dx: -edge.dy, dy: edge.dx };   // profileColours samples along the normal of `at`
+      const alongAt = { x: edge.x, y: edge.y, dx: -edge.dy, dy: edge.dx };
       const samples = await profileColours(page, shot, alongAt, along, dpr);
       const names = samples.map(c => (rgbDist(c, tones.dark) < rgbDist(c, tones.light) ? "dark" : "light"));
       const runs: number[] = [];
       let n = 1;
       for (let i = 1; i < names.length; i++) { if (names[i] === names[i - 1]) n++; else { runs.push(n); n = 1; } }
-      const inner = runs.slice(1).sort((a, b) => a - b);   // the first run is cut by the window
+      const inner = runs.slice(1).sort((a, b) => a - b);
       const median = inner[Math.floor(inner.length / 2)] ?? 0;
       const runDump = JSON.stringify({ runs, median });
       expect(new Set(names).size, `${where}: both tones along the edge ${runDump}`).toBe(2);
-      expect(Math.abs(median - MACHINE_BOX_DASH_PX), `${where}: dashes of ${MACHINE_BOX_DASH_PX} CSS px ${runDump}`).toBeLessThan(MACHINE_BOX_DASH_PX * 0.3);
+      expect(median >= 4 && median <= 16, `${where}: cells within 4.8 … 15 CSS px ${runDump}`).toBe(true);
       expect(cleanProfiles, `${where}: clean profiles across the edge`).toBeGreaterThanOrEqual(2);
     }
     await context.close();
   }
 });
 
-// The dashes along EVERY projected box edge (Codex R44 VP-I10): a world dash
-// scaled at the box's centre kept the zoom but not an edge's direction or
-// depth — a Y edge read 5 px, a receding X edge under 1 px, where 10 were
-// promised. Parallel and perspective, three directions (Codex's [1, 0.12,
-// 0.25] among them): along the centre line of each edge long enough for six
-// dashes, the distance between consecutive starts of a light dash is the
-// period, 2 × MACHINE_BOX_DASH_PX CSS px (median, ±2 px).
-test("box dashes hold MACHINE_BOX_DASH_PX along every projected edge — parallel and perspective, three directions", async ({ browser }) => {
-  test.setTimeout(150_000);
+// The cells hang on the GEOMETRY (package 4, plan Fassungen 2–3.1, Codex
+// R62–R65 — replacing R44 VP-I10's screen dash, whose dashes crawled along an
+// edge as its projected length changed): along every projected box edge
+// long enough to measure, each light / dark transition in the image sits at a
+// world cell boundary k / N of that edge (projected, ±1.5 px), the first cell
+// from the edge's fixed end dark. A zoom within a step keeps most edges' N; a
+// zoom across one changes it — and the boundaries are again at k / N: the
+// pattern follows the geometry, never the screen. Parallel and perspective,
+// three directions.
+test("the box cells hang on the geometry: every transition at a world cell boundary k / N — parallel and perspective, three directions, across a zoom", async ({ browser }) => {
+  test.setTimeout(240_000);
   const context = await browser.newContext({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: 1 });
   const page = await context.newPage();
   await ctl({ op: "reset" });
@@ -453,40 +488,199 @@ test("box dashes hold MACHINE_BOX_DASH_PX along every projected edge — paralle
   await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready)).toBe(true);
   const failures: string[] = [];
   let measured = 0;
+  const LAYERS = { hud: false, bounds: true, toolpath: false, tool: false, machine: false, workzero: false, groundGrid: false, toolsetter: false, toolChange: false };
+  const check = async (where: string) => {
+    // the camera settles first (OrbitControls damping keeps it moving after a
+    // pose or a zoom): the image and the projection must be one view
+    const corners = async () => {
+      const p = (await page.evaluate(() => window.__viewerDiag!.getBoundsPattern!("bounds")))!;
+      return (await page.evaluate(q => window.__viewerDiag!.projectPoints!(q), p.segments.map(sg => sg.a))).map(v => (v ? [v.x, v.y] : [0, 0]));
+    };
+    let before = await corners();
+    for (let k = 0; k < 20; k++) {
+      await page.waitForTimeout(150);
+      const now = await corners();
+      const moved = Math.max(...now.map((c, i) => Math.hypot(c[0]! - before[i]![0]!, c[1]! - before[i]![1]!)));
+      before = now;
+      if (moved < 0.05) break;
+    }
+    const pat = (await page.evaluate(() => window.__viewerDiag!.getBoundsPattern!("bounds")))!;
+    const drawn = (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn;
+    // a 1 px line mixes with the white scene: half a dark pixel reads ~130 —
+    // dark below three quarters of the way to the light tone
+    const ld = lum(rgbOf(drawn.bounds!)), ll = lum(rgbOf(drawn.boundsAlt!));
+    const mid = ld + 0.75 * (ll - ld);
+    const shot = await page.screenshot();
+    // the same view without the box: whatever is dark there (an overlay over
+    // the canvas, the cube, the axis triad) is not this edge's cell
+    const rect = (await page.evaluate(() => window.__viewerDiag!.canvasRect!()))!;
+    const ends = await page.evaluate(p => window.__viewerDiag!.projectPoints!(p), pat.segments.flatMap(sg => [sg.a, sg.b]));
+    // settings_changed is the COMPLETE store: the projection rides along
+    await ctl({ op: "raw", frame: { type: "settings_changed", settings: { display: { theme: "light" }, viewer: { projection: proj, layers: { ...LAYERS, bounds: false } } } } });
+    await page.waitForTimeout(250);
+    const bare = await page.screenshot();
+    await ctl({ op: "raw", frame: { type: "settings_changed", settings: { display: { theme: "light" }, viewer: { projection: proj, layers: LAYERS } } } });
+    await page.waitForTimeout(250);
+    for (const seg of pat.segments) {
+      const k = pat.segments.indexOf(seg);
+      const n = pat.cells[seg.unit]!;
+      const lerp = (f: number) => seg.a.map((v, i) => v + (seg.b[i]! - v) * f);
+      const [pa, pb] = [ends[2 * k], ends[2 * k + 1]];
+      if (!pa || !pb) continue;
+      const len = Math.hypot(pb.x - pa.x, pb.y - pa.y);
+      if (len < 150) continue;
+      const ux = (pb.x - pa.x) / len, uy = (pb.y - pa.y) / len;
+      // the part on the canvas, 10 px in (Liang–Barsky in 2D), 6 px clear of either end
+      let s0 = 6, s1 = len - 6;
+      for (const [p0, d, lo, hi] of [[pa.x, ux, rect.left + 10, rect.right - 10], [pa.y, uy, rect.top + 10, rect.bottom - 10]] as const) {
+        if (Math.abs(d) < 1e-9) { if (p0 < lo || p0 > hi) { s1 = -1; } continue; }
+        const a1 = (lo - p0) / d, a2 = (hi - p0) / d;
+        s0 = Math.max(s0, Math.min(a1, a2)); s1 = Math.min(s1, Math.max(a1, a2));
+      }
+      if (s1 - s0 < 120) continue;
+      const bpts = await page.evaluate(p => window.__viewerDiag!.projectPoints!(p), Array.from({ length: n - 1 }, (_, i) => lerp((i + 1) / n)));
+      const expected = bpts.filter(Boolean).map(p => (p!.x - pa.x) * ux + (p!.y - pa.y) * uy);
+      // other edges near this one in the image (crossing it, or running
+      // almost on top of it towards a shared corner): their pixels are not
+      // this edge's cells — a sample within 3.5 px of another edge is out
+      const others = pat.segments.map((_, m) => [ends[2 * m], ends[2 * m + 1]] as const)
+        .filter((e, m) => m !== k && e[0] && e[1]) as unknown as [{ x: number; y: number }, { x: number; y: number }][];
+      const nearOther = (d: number) => {
+        const x = pa.x + ux * d, y = pa.y + uy * d;
+        return others.some(([p, q]) => {
+          const vx = q.x - p.x, vy = q.y - p.y, l2 = vx * vx + vy * vy;
+          const t = l2 > 0 ? Math.max(0, Math.min(1, ((x - p.x) * vx + (y - p.y) * vy) / l2)) : 0;
+          return Math.hypot(x - (p.x + t * vx), y - (p.y + t * vy)) < 3.5;
+        });
+      };
+      const steps = Math.floor((s1 - s0) * 2);
+      const from = { x: pa.x + ux * s0, y: pa.y + uy * s0 }, to = { x: pa.x + ux * s1, y: pa.y + uy * s1 };
+      const dk = await alongDarkest(page, shot, from, to, steps, 1);
+      const bg = await alongDarkest(page, bare, from, to, steps, 1);
+      const pos = (i: number) => s0 + (i / (steps - 1)) * (s1 - s0);
+      const cls = dk.map((v, i) => (v < 0 || nearOther(pos(i)) || bg[i]! < mid ? "x" : v < mid ? "d" : "l"));
+      // runs of one class; a run under 2 px (4 samples) is a single pixel's
+      // flicker inside a cell (a cell is ≥ 4.8 px) — merged into its neighbours
+      const runs: { c: string; i: number; n: number }[] = [];
+      for (let i = 0; i < cls.length; i++) {
+        const r = runs[runs.length - 1];
+        if (r && r.c === cls[i]) r.n++; else runs.push({ c: cls[i]!, i, n: 1 });
+      }
+      const kept = runs.filter(r => r.c === "x" || r.n >= 4);
+      const observed: number[] = [];
+      for (let k = 1; k < kept.length; k++) {
+        const a = kept[k - 1]!, b = kept[k]!;
+        if (a.c !== "x" && b.c !== "x" && a.c !== b.c && b.i === a.i + a.n) observed.push(pos(b.i) - 0.25);
+      }
+      const label = `${where} edge ${seg.unit} (${Math.round(len)} px, N ${n})`;
+      // an edge lying on another in the image, or under an overlay, has no
+      // measurable stretch: not measured (the count below asks for enough)
+      if (cls.filter(c => c !== "x").length < 0.4 * cls.length) continue;
+      if (observed.length < 3) { failures.push(`${label}: fewer than 3 transitions — ${cls.join("")}`); continue; }
+      measured++;
+      // A misplaced phase or a screen-held dash moves nearly every transition;
+      // where another edge runs almost on top of this one in the image a
+      // stray one can appear — at most 5 % (one at least). And the boundaries
+      // themselves show: 80 % of those in the sampled stretch have a transition.
+      const off = observed.filter(o => !expected.some(e => Math.abs(e - o) <= 1.5));
+      if (off.length > Math.max(1, Math.floor(0.05 * observed.length))) failures.push(`${label}: ${off.length} of ${observed.length} transitions off the world cell boundaries at ${off.map(o => o.toFixed(1)).join(", ")} px (expected ${expected.slice(0, 6).map(e => e.toFixed(1)).join(", ")} …)`);
+      const inRange = expected.filter(e => {
+        if (e <= s0 + 2 || e >= s1 - 2) return false;
+        const i = Math.round(((e - s0) / (s1 - s0)) * (steps - 1));
+        return cls.slice(Math.max(0, i - 6), i + 7).every(c => c !== "x");   // only where the edge is in view
+      });
+      const shown = inRange.filter(e => observed.some(o => Math.abs(e - o) <= 1.5)).length;
+      if (inRange.length && shown / inRange.length < 0.8) failures.push(`${label}: only ${shown} of ${inRange.length} world cell boundaries show a transition`);
+      const first = cls.find(c => c !== "x");
+      if (s0 === 6 && expected[0]! > 8 && cls[0] !== "x" && first !== "d") failures.push(`${label}: the first cell from the fixed end is ${first}, not dark`);
+    }
+    return pat.cells;
+  };
+  let proj: "parallel" | "perspective" = "parallel";
   for (const projection of ["parallel", "perspective"] as const) {
-    await ctl({ op: "raw", frame: { type: "settings_changed", settings: { display: { theme: "light" }, viewer: { projection, layers: {
-      hud: false, bounds: true, toolpath: false, tool: false, machine: false, workzero: false, groundGrid: false, toolsetter: false } } } } });
+    proj = projection;
+    await ctl({ op: "raw", frame: { type: "settings_changed", settings: { display: { theme: "light" }, viewer: { projection, layers: LAYERS } } } });
     await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getCamera?.()?.ortho), { message: `the ${projection} camera` })
       .toBe(projection === "parallel");
     for (const dir of [[1, 2, 0.7], [1, 0.12, 0.25], [0.3, 1, 1.2]]) {
       await page.evaluate(d => window.__viewerDiag!.setViewDirection!(d), dir);
-      await page.waitForTimeout(300);
-      const drawn = (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn;
-      const tones = { dark: rgbOf(drawn.bounds!), light: rgbOf(drawn.boundsAlt!) };
-      const edges = (await page.evaluate(() => window.__viewerDiag!.projectRoleSegments!("boundsAlt")))
-        .filter(e => e.length > 6 * 2 * MACHINE_BOX_DASH_PX);
-      const shot = await page.screenshot();
-      for (const e of edges) {
-        const where = `${projection} ${JSON.stringify(dir)} edge ${Math.round(e.length)} px at (${Math.round(e.x)}, ${Math.round(e.y)})`;
-        const n = Math.floor(e.length) - 16;   // 8 px clear of each corner
-        const along = Array.from({ length: n }, (_, i) => i - n / 2);
-        const samples = await profileColours(page, shot, { x: e.x, y: e.y, dx: -e.dy, dy: e.dx }, along, 1);
-        const cls = samples.map(c => {
-          const dd = rgbDist(c, tones.dark), dl = rgbDist(c, tones.light);
-          return Math.min(dd, dl) > 60 ? "o" : dd < dl ? "d" : "l";
-        });
-        const starts: number[] = [];
-        for (let i = 1; i < cls.length; i++) if (cls[i] === "l" && cls[i - 1] !== "l") starts.push(i);
-        const periods = starts.slice(1).map((s, k) => s - starts[k]!).sort((a, b) => a - b);
-        const pattern = cls.join("");
-        if (periods.length < 3) { failures.push(`${where}: fewer than four dashes — ${pattern}`); continue; }
-        measured++;
-        const median = periods[Math.floor(periods.length / 2)]!;
-        if (Math.abs(median - 2 * MACHINE_BOX_DASH_PX) > 2) failures.push(`${where}: period ${median} px, want ${2 * MACHINE_BOX_DASH_PX} — ${pattern}`);
-      }
+      const where = `${projection} ${JSON.stringify(dir)}`;
+      const n0 = await check(where);
+      await page.evaluate(() => window.__viewerDiag!.zoomBy!(1.05));
+      const n1 = await check(`${where} ×1.05`);
+      const kept = n0.filter((v, i) => v === n1[i]).length;
+      if (kept < 10) failures.push(`${where}: a 5 % zoom changed ${12 - kept} of 12 steps — the hysteresis band holds within a step`);
+      await page.evaluate(() => window.__viewerDiag!.zoomBy!(2.6));
+      const n2 = await check(`${where} ×2.6`);
+      if (!n2.some((v, i) => v >= 2 * n1[i]!)) failures.push(`${where}: a 2.6× zoom changed no step (${n1} → ${n2})`);
+      await page.evaluate(() => window.__viewerDiag!.zoomBy!(1 / (1.05 * 2.6)));
     }
   }
   expect(failures, failures.join("\n")).toEqual([]);
-  expect(measured, "edges measured over the six views").toBeGreaterThanOrEqual(12);
+  expect(measured, "edges measured over the views").toBeGreaterThanOrEqual(24);
+  await context.close();
+});
+
+// Codex R63's near-plane case in the viewer (plan Fassung 3): an edge that
+// comes from behind the eye and ends two near-plane distances in front of it,
+// 11.3° off the line of sight — visible over a tiny parameter interval but
+// ~100+ CSS px on screen. N comes from the VISIBLE interval (L_visible /
+// (N · Δt)), so the visible piece holds many cells and shows both tones;
+// without the Δt rule its N would follow the visible length alone and the
+// whole piece would lie in one cell. Light and HC light (where the light
+// tone is the background's white).
+test("an edge cut by the near plane shows both tones on its visible part (Codex R63, plan Fassung 3)", async ({ browser }) => {
+  test.setTimeout(120_000);
+  const context = await browser.newContext({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: 1 });
+  const page = await context.newPage();
+  await ctl({ op: "reset" });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(MOCK);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready)).toBe(true);
+  for (const theme of ["light", "hc-light"] as const) {
+    await ctl({ op: "raw", frame: { type: "settings_changed", settings: { display: { theme }, viewer: { projection: "perspective", layers: {
+      hud: false, bounds: true, toolpath: false, tool: false, machine: false, workzero: false, groundGrid: false, toolsetter: false, toolChange: false } } } } });
+    await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+    await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getCamera?.()?.ortho)).toBe(false);
+    await page.evaluate(() => window.__viewerDiag!.setViewDirection!([1, 2, 0.7]));
+    await page.waitForTimeout(300);
+    const pat = (await page.evaluate(() => window.__viewerDiag!.getBoundsPattern!("bounds")))!;
+    const seg = pat.segments.slice().sort((x, y) => Math.hypot(...y.b.map((v, i) => v - y.a[i]!)) - Math.hypot(...x.b.map((v, i) => v - x.a[i]!)))[0]!;
+    const cam = (await page.evaluate(() => window.__viewerDiag!.getCamera!()))!;
+    const sub = (p: number[], q: number[]) => p.map((v, i) => v - q[i]!);
+    const add = (p: number[], q: number[], k = 1) => p.map((v, i) => v + q[i]! * k);
+    const norm = (p: number[]) => { const l = Math.hypot(...p); return p.map(v => v / l); };
+    const u = norm(sub(seg.b, seg.a));
+    // a unit vector across the edge
+    const ref = Math.abs(u[2]!) < 0.9 ? [0, 0, 1] : [1, 0, 0];
+    const v = norm([u[1]! * ref[2]! - u[2]! * ref[1]!, u[2]! * ref[0]! - u[0]! * ref[2]!, u[0]! * ref[1]! - u[1]! * ref[0]!]);
+    // the line of sight: the edge direction tilted 11.3° (R63's geometry)
+    const th = Math.atan2(10.2, 51);
+    const w = norm(add(u.map(x => x * Math.cos(th)), v, Math.sin(th)));
+    const near = cam.near;
+    const eye = add(seg.b, w, -2 * near);                         // b two near distances ahead
+    const target = add(eye, w, Math.max(4 * near, 1.5 * (cam.minDistance || 0), 10));
+    await page.evaluate(([e, t]) => window.__viewerDiag!.setCameraPose!(e!, t!), [eye, target]);
+    await page.waitForTimeout(400);
+    const after = (await page.evaluate(() => window.__viewerDiag!.getCamera!()))!;
+    expect(Math.hypot(...sub(after.position, eye)), `${theme}: the eye stayed where it was put`).toBeLessThan(near * 0.05 + 1e-6);
+    // the visible piece on screen: from b back towards the near plane
+    const depthPt = (d: number) => add(eye, w, d);   // on the sight line; the edge point at that depth:
+    const onEdge = (d: number) => { const s = (d - 2 * near) / Math.cos(th); return add(seg.b, u, s); };
+    void depthPt;
+    const [pb, pn] = await page.evaluate(p => window.__viewerDiag!.projectPoints!(p), [seg.b, onEdge(1.15 * near)]);
+    expect(pb && pn, `${theme}: both ends of the visible piece on screen`).toBeTruthy();
+    const len = Math.hypot(pn!.x - pb!.x, pn!.y - pb!.y);
+    expect(len, `${theme}: the visible piece is clearly resolvable`).toBeGreaterThan(40);
+    const drawn = (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn;
+    const shot = await page.screenshot();
+    await test.info().attach(`near-plane-${theme}.png`, { body: shot, contentType: "image/png" });
+    const ld = lum(rgbOf(drawn.bounds!)), ll = lum(rgbOf(drawn.boundsAlt!));
+    const cls = (await alongDarkest(page, shot, pb!, pn!, Math.floor(len * 2), 1)).map(v => (v < ld + 0.75 * (ll - ld) ? "d" : "l"));
+    const d = cls.filter(c => c === "d").length, l = cls.filter(c => c === "l").length;
+    const pattern = `${cls.join("")} (cells ${pat.cells[seg.unit]} before the pose)`;
+    expect(d / (d + l), `${theme}: dark cells on the visible piece ${pattern}`).toBeGreaterThan(0.15);
+    expect(l / (d + l), `${theme}: light cells on the visible piece ${pattern}`).toBeGreaterThan(0.15);
+  }
   await context.close();
 });

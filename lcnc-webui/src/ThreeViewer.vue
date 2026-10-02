@@ -6,7 +6,8 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Text } from "troika-three-text";
 import { LABEL_FONT_URL } from "./viewer/labelFont";
 import { resolveViewerPalette, type ViewerPalette } from "./viewer/viewerPalette";
-import { makeBoxEdges, makeTwoToneSegments, worldPerPixel, MACHINE_BOX_PX, MACHINE_BOX_DASH_PX, REACH_PX, REACH_DASH_PX, type BoxEdges, type TwoToneLines } from "./viewer/boxLines";
+import { makeBoxEdges, makeGeoTwoTone, GeoDashState, patternDiag, worldPerPixel, MACHINE_BOX_PX, REACH_PX, type BoxEdges, type GeoTwoTone } from "./viewer/boxLines";
+import { buildChains } from "./viewer/geoDash";
 import { buildToolGeometries, type ToolMeta } from "./toolGeometry";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
@@ -781,6 +782,24 @@ function _modelRadiusAbout(center: THREE.Vector3): number {
 /** A point marker as drawn (the tool setter's, the tool change's): shown,
  *  its point (machine frame), where it lands on screen, drawn over the
  *  machine (depth test off). */
+/** The bounds' geometry-anchored pattern for this view (package 4): each
+ *  unit's cell count re-chosen with hysteresis (GeoDashState); only a change
+ *  uploads its cells. Shown objects only. */
+function _updateBoundsPattern() {
+  if (!camera || !renderer) return;
+  const w = renderer.domElement.clientWidth, h = renderer.domElement.clientHeight;
+  if (!(w > 0 && h > 0)) return;
+  for (const g of [machineBoundsMesh, reachRoomMesh, reachPartMesh]) {
+    if (!g?.geo) continue;
+    let shown = g.visible;
+    for (let p = g.parent; p && shown; p = p.parent) shown = p.visible;
+    if (!shown) continue;
+    g.updateWorldMatrix(true, false);
+    g.geo.update(g, camera, w, h);
+  }
+  toolpath.updateBoxPattern(camera, w, h);
+}
+
 function _markerDiag(m: PointMarker | null) {
   if (!m) return null;
   let shown = m.visible;
@@ -1698,7 +1717,7 @@ function ensureCoreGroups(init: ViewerInit) {
   // applyMachineBounds, never scaled (a scale would stretch the dashes) ---
   {
     machineBoundsMesh = makeBoxEdges([1, 1, 1], { color: palette.bounds, alt: palette.boundsAlt,
-      width: MACHINE_BOX_PX, dashPx: MACHINE_BOX_DASH_PX, role: "bounds" });
+      width: MACHINE_BOX_PX, role: "bounds" });
     // MACHINE frame, never the rotating work group: the clip planes that
     // decide the yellow outside-bounds overlay live there (7a04909), and the
     // box that stayed under _workGrp swung with A while the clipping did not
@@ -1928,6 +1947,20 @@ async function buildFromInit(init: ViewerInit) {
         },
         getFrameBox: () => { const b = _boundsWorldBox(); return b ? { min: b.min.toArray(), max: b.max.toArray() } : null; },
         setView: (p: string) => setView(p as ViewPreset),
+        // Zoom by `factor` about the orbit target (> 1 = closer): the
+        // parallel camera's zoom, the perspective eye's distance.
+        zoomBy: (factor: number) => {
+          if (!camera || !controls || !(factor > 0)) return;
+          if ((camera as THREE.OrthographicCamera).isOrthographicCamera) {
+            const o = camera as THREE.OrthographicCamera;
+            o.zoom *= factor;
+            o.updateProjectionMatrix();
+          } else {
+            camera.position.sub(controls.target).multiplyScalar(1 / factor).add(controls.target);
+          }
+          controls.update();
+          requestRender();
+        },
         setViewDirection: (dir: number[], distance?: number) => {
           if (!camera || !controls) return;
           if (distance != null) {
@@ -2029,6 +2062,34 @@ async function buildFromInit(init: ViewerInit) {
         getBackplot: () => ({ points: backplot.count, segments: backplot.segments }),
         getToolsetter: () => _markerDiag(toolsetterMarker),
         getToolChange: () => _markerDiag(toolChangeMarker),
+        // The bounds' geometry-anchored pattern (package 4): per unit its
+        // cell count, per segment its world ends and unit parameter — after
+        // this frame's choice, so a test reads what is drawn.
+        getBoundsPattern: (role: "bounds" | "toolpathBounds" | "reachRoom" | "reachPart") => {
+          _updateBoundsPattern();
+          if (role === "toolpathBounds") return toolpath.boxPattern();
+          const g = role === "bounds" ? machineBoundsMesh : role === "reachRoom" ? reachRoomMesh : reachPartMesh;
+          return g?.geo ? patternDiag(g) : null;
+        },
+        // The viewer canvas on the page (CSS px).
+        canvasRect: () => {
+          const r = renderer?.domElement.getBoundingClientRect();
+          return r ? { left: r.left, top: r.top, right: r.right, bottom: r.bottom } : null;
+        },
+        // World points on the page (CSS px), null for a point behind the camera.
+        projectPoints: (points: number[][]) => {
+          if (!camera || !renderer) return [];
+          const rect = renderer.domElement.getBoundingClientRect();
+          return points.map(p => {
+            const v = new THREE.Vector3(p[0]!, p[1]!, p[2]!).applyMatrix4(camera!.matrixWorldInverse);
+            if (v.z > -(camera as THREE.PerspectiveCamera).near) return null;
+            v.applyMatrix4(camera!.projectionMatrix);
+            const x = rect.left + (v.x + 1) / 2 * rect.width, y = rect.top + (1 - v.y) / 2 * rect.height;
+            // on the viewer's canvas with a 10 px margin (the page is larger)
+            const inside = x > rect.left + 10 && x < rect.right - 10 && y > rect.top + 10 && y < rect.bottom - 10;
+            return { x, y, inside };
+          });
+        },
         // the control-point pin in the machine frame (getToolTip's frame)
         getControlPoint: () => {
           if (!controlPointMarker) return null;
@@ -3453,8 +3514,8 @@ let _reachPartOn = false;
 let _reachKey = "";                       // inputs the cached data was computed from
 let _reachPendingKey = "";
 let _reachData: { roomLines: Float32Array; partLines: Float32Array | null; info: ReachInfo } | null = null;
-let reachRoomMesh: TwoToneLines | null = null;
-let reachPartMesh: TwoToneLines | null = null;
+let reachRoomMesh: GeoTwoTone | null = null;
+let reachPartMesh: GeoTwoTone | null = null;
 let _reachTimer: ReturnType<typeof setTimeout> | undefined;
 
 function _reachInputsKey(): string | null {
@@ -3528,11 +3589,16 @@ function _reachDispose(g: THREE.Group | null) {
 
 /** One outline as a line-segment soup the worker built (hull creases or
  *  the swept solid's cage): TWO-TONE like the boxes (operator 2026-09-29 —
- *  a mid grey vanished on the grey-ladder model), 1 px and dotted so the
- *  boxes stay the stronger lines; opaque like every role line. */
-function _reachSolidGroup(lines: Float32Array): TwoToneLines {
-  return makeTwoToneSegments(lines, { color: palette.reach, alt: palette.boundsAlt,
-    width: REACH_PX, dashPx: REACH_DASH_PX, role: "reach", renderOrder: 3, tones: true });
+ *  a mid grey vanished on the grey-ladder model), 1 px, in the one
+ *  geometry-anchored pattern of every bound (package 4) — its units are the
+ *  soup's CHAINS with a stable identity (viewer/geoDash.ts buildChains:
+ *  storage order and stored direction change nothing); opaque like every
+ *  role line. */
+function _reachSolidGroup(lines: Float32Array): GeoTwoTone {
+  const ch = buildChains(lines);
+  const state = new GeoDashState(lines, Uint32Array.from(ch.chainOf), ch.t, Uint32Array.from(ch.starts), Uint32Array.from(ch.order));
+  return makeGeoTwoTone(state, { color: palette.reach, alt: palette.boundsAlt,
+    width: REACH_PX, role: "reach", renderOrder: 3 });
 }
 
 /** (Re)build the scene objects from the cached solids under the current
@@ -3868,6 +3934,7 @@ function animate() {
     const hPx = renderer.domElement.clientHeight;
     _markerUp.set(0, 1, 0).applyQuaternion(camera.quaternion);
     for (const m of [toolsetterMarker, toolChangeMarker, controlPointMarker]) if (m?.visible) posePointMarker(m, worldPerPixel(camera, m, hPx), _markerUp);
+    _updateBoundsPattern();
   }
   // Per-chunk overlay gate + frustum count (viewer/lineChunks.ts): decides
   // which outside-bounds overlays are drawn this frame at the current pose.
@@ -3946,6 +4013,7 @@ onMounted(() => {
   camera = perspCam;
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.domElement.dataset.viewerCanvas = "";   // the scene's own canvas (tests tell it from the cube's)
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.localClippingEnabled = true;
   setViewerPerfGl(renderer.getContext());   // GPU completion fences (WebGL2 only)

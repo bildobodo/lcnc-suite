@@ -6,7 +6,7 @@
 // mode switch and the memory ledger.
 import { describe, it, expect, vi } from "vitest";
 import * as THREE from "three";
-import { TOOLPATH_BOX_DASH_PX, TOOLPATH_BOX_PX } from "./boxLines";
+import { TOOLPATH_BOX_PX } from "./boxLines";
 import { ref } from "vue";
 import type { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import type { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
@@ -255,14 +255,24 @@ describe("the fat path draws exactly the GL path's pairs (Codex R39)", () => {
     expect(feed()[0]!.color.getHexString()).toBe(base);
   });
 
-  it("the box overflow outside the machine window: a limit line at the box's width with the clip planes, dashed like the box on screen", () => {
+  it("the box overflow outside the machine window: the box's own pattern with the limit's orange as the light tone, on the box's geometry, clipped outside", () => {
     const { ctx } = build("fat");
-    const [ov] = roleObjects(ctx.workRotGroup, "limitBox") as LineSegments2[];
-    expect(ov?.isLineSegments2).toBe(true);
+    // the box and its overflow are groups of two passes: search the tree
+    const deep = (role: string) => {
+      const out: LineSegments2[] = [];
+      ctx.workRotGroup.traverse(o => { if (((o as THREE.Mesh).material as THREE.Material | undefined)?.userData?.role === role) out.push(o as LineSegments2); });
+      return out;
+    };
+    const [ov] = deep("limitBox"), [dark] = deep("limitBoxDark"), [boxSolid] = deep("toolpathBounds");
+    expect([ov?.isLineSegments2, dark?.isLineSegments2]).toEqual([true, true]);
+    for (const o of [ov!, dark!]) {
+      const m = o.material as LineMaterial;
+      expect([m.linewidth, m.clipIntersection, m.clippingPlanes?.length]).toEqual([TOOLPATH_BOX_PX, true, 1]);
+    }
     const m = ov!.material as LineMaterial;
-    expect([m.linewidth, m.dashed, m.clipIntersection, m.clippingPlanes?.length]).toEqual([TOOLPATH_BOX_PX, true, true, 1]);
-    // the toolpath box's own screen dash (Codex R44 VP-I10): CSS px along each projected edge
-    expect(["SCREEN_DASH" in m.defines, m.dashSize, m.gapSize]).toEqual([true, TOOLPATH_BOX_DASH_PX, TOOLPATH_BOX_DASH_PX]);
+    // package 4: the geometry-anchored cells, continuing the box's own
+    expect(["GEO_DASH" in m.defines, "SCREEN_DASH" in m.defines]).toEqual([true, false]);
+    expect(ov!.geometry, "the box's own geometry: its cells").toBe(boxSolid!.geometry);
   });
 
   it("culling widens each chunk's sphere by the line's reach at its distance", () => {
