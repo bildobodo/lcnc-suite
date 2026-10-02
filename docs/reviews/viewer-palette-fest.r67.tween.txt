@@ -1,0 +1,36 @@
+[2m[WebServer] [22m(node:233746) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:233788) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:233788) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r67.spec.ts:6:1 › R67: rendered end marks keep their CSS size during a view preset tween (4.7s)
+
+
+  1) e2e/r67.spec.ts:6:1 › R67: rendered end marks keep their CSS size during a view preset tween ──
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThan[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: > [32m9.95[39m
+    Received:   [31m8.501309912219291[39m
+
+      36 |  writeFileSync('../evidence/viewer-palette-fest.r67.tween.json',JSON.stringify({min,max,minFactor,maxFactor,runs},null,2));
+      37 |  expect(bars.length).toBeGreaterThan(100);
+    > 38 |  expect(min).toBeGreaterThan(9.95);
+         |              ^
+      39 |  expect(max).toBeLessThan(10.05);
+      40 |  // Labels may be outside the frustum; this assertion covers the FULLY VISIBLE bars only.
+      41 |  // Same tick assertions as the failing original observer test.
+        at /tmp/codex-r67-33ut4bjx/lcnc-webui/e2e/r67.spec.ts:38:14
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r67-observer-output/r67-R67-rendered-end-marks-d8635--during-a-view-preset-tween/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r67-observer-output/r67-R67-rendered-end-marks-d8635--during-a-view-preset-tween/error-context.md
+
+  1 failed
+    e2e/r67.spec.ts:6:1 › R67: rendered end marks keep their CSS size during a view preset tween ───

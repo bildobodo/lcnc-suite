@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r67-33ut4bjx/lcnc-webui
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  05:01:54
+   Duration  157ms (transform 66ms, setup 0ms, import 93ms, tests 9ms, environment 0ms)
+

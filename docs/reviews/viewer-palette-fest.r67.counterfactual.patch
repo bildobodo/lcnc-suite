@@ -1,0 +1,10 @@
+--- a/lcnc-webui/src/ThreeViewer.vue
++++ b/lcnc-webui/src/ThreeViewer.vue
+@@ -4016,6 +4016,7 @@
+   // each frame; controls.update() runs once at tween completion to re-sync.
+   if (!_tweenRaf) controls?.update();
+   _orthoEyeOutsideScene();
++  camera?.updateMatrixWorld();   // R67 counterfactual ONLY, after camera moves and before sizing
+   // the point markers: the same size on screen at every zoom, their labels up on screen
+   if (camera && renderer) {
+     const hPx = renderer.domElement.clientHeight;

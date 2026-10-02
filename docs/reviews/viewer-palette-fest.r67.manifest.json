@@ -1,0 +1,131 @@
+{
+  "product_commit": "a8138fceb94a39d971639c20c50669f5da991188",
+  "comparison_base": "9001850",
+  "archive": "/tmp/codex-r67-33ut4bjx",
+  "files": {
+    "viewer-palette-fest.r67.base-box.txt": {
+      "sha256": "457b72e19d45284331b269126fb8d1868b02e23fbad49000bf2801f06417c6c3",
+      "bytes": 743
+    },
+    "viewer-palette-fest.r67.browser-rerun.txt": {
+      "sha256": "e623ed41a1c19d3ba1ef5fd5d4d7cde3ea1f011f1e267913cb9d75b72aa80907",
+      "bytes": 3193
+    },
+    "viewer-palette-fest.r67.browser.txt": {
+      "sha256": "b196bdeddebe61b2ac480ee4fd618315d19ea0aef2ed115819eea498de91c5d9",
+      "bytes": 5595
+    },
+    "viewer-palette-fest.r67.build.txt": {
+      "sha256": "02379f3775e99ac5c94a6d2bf544ba360dbfea83f531cf607b584332259c8e69",
+      "bytes": 2438
+    },
+    "viewer-palette-fest.r67.chains.json": {
+      "sha256": "34afc114cb205d6a93b7cf85f472656e4b5d841b3c33f3d82ec9997b384012c5",
+      "bytes": 3901
+    },
+    "viewer-palette-fest.r67.counterfactual-build.txt": {
+      "sha256": "09a7082f1004f2905512294fd622e36e709d71bc17c5da72db88acf89b8a2fb4",
+      "bytes": 2438
+    },
+    "viewer-palette-fest.r67.counterfactual.patch": {
+      "sha256": "a68ba0f7bcb24ed2f1faad07633d65d69a4912bd12c4f6ed5ec3ce5bade506d9",
+      "bytes": 510
+    },
+    "viewer-palette-fest.r67.counterfactual.playwright.config.ts": {
+      "sha256": "07779370a4ccfa17e7384eee8a5b5c75501a139473b4ca01e5c3206d99013178",
+      "bytes": 567
+    },
+    "viewer-palette-fest.r67.counterfactual.txt": {
+      "sha256": "471c7c7492c6e35fb8f56228bfbb406130c3bd20e158818c050da216ac820774",
+      "bytes": 699
+    },
+    "viewer-palette-fest.r67.observe.py": {
+      "sha256": "1d8c63e76718615582dfef09589803dd6cb1f1542fc56451843d64ec980ccb6d",
+      "bytes": 2019
+    },
+    "viewer-palette-fest.r67.observer-build.txt": {
+      "sha256": "fdaef88a47a0b6815629621248e5f5c5f203b3858814c56469286efa27c78668",
+      "bytes": 2438
+    },
+    "viewer-palette-fest.r67.observer.patch": {
+      "sha256": "3dfdbfe07ea5390b096ce2114989e9cbbc16e9bd42b9004788151c7089fc1170",
+      "bytes": 1825
+    },
+    "viewer-palette-fest.r67.observer.playwright.config.ts": {
+      "sha256": "f86ffb00a09694a7627f3296e6dbae3cbd6e056043f51110606114a44ef83d0f",
+      "bytes": 561
+    },
+    "viewer-palette-fest.r67.playwright.config.ts": {
+      "sha256": "e4758ff1814aa4bd733a075de1d492434da71d85a0a2131671d889fa538f1a7f",
+      "bytes": 560
+    },
+    "viewer-palette-fest.r67.probe.test.ts": {
+      "sha256": "5d9383a104b9d513ff8f23bdc33397447a7eb1444f4bf328e165860c0f0bb91a",
+      "bytes": 2898
+    },
+    "viewer-palette-fest.r67.probe.txt": {
+      "sha256": "cff708b1adbdd7fe58bd34f9eea3918c4f6ad188a38d6737e3e29cb04938856b",
+      "bytes": 214
+    },
+    "viewer-palette-fest.r67.probe.vitest.config.ts": {
+      "sha256": "1378ac7a08ad8702dac34875940fb4849a3d97389f7619c047209be1c11feff3",
+      "bytes": 206
+    },
+    "viewer-palette-fest.r67.render-404-box-edge-dpr1-light.png": {
+      "sha256": "6bfc3a784ac6b3ebfdd6a0ea8fdcd7fd465b5f588681e6d294afeef251622c16",
+      "bytes": 108454
+    },
+    "viewer-palette-fest.r67.render-912-reach-two-pieces-hc-light.png": {
+      "sha256": "ed203b54d053fa87b485ef03a86e6ce7f01ec946e84dd43cbfeedf79c96b07e0",
+      "bytes": 93357
+    },
+    "viewer-palette-fest.r67.render-912-reach-two-pieces-light.png": {
+      "sha256": "8dd84227d6587d5d170d5517d9ef22fa9ba56ed329062270b3ebfb2061553069",
+      "bytes": 97319
+    },
+    "viewer-palette-fest.r67.reporter.ts": {
+      "sha256": "1cb5d7f0b64f9273815b1ee106527530c209733ae82187d022641c2ca5f3b768",
+      "bytes": 333
+    },
+    "viewer-palette-fest.r67.repro.md": {
+      "sha256": "cc97ca87c9238d32d1de22ea86d1798bf4775f2c9f8c36b65ab46e5bbad20399",
+      "bytes": 5880
+    },
+    "viewer-palette-fest.r67.rerun.playwright.config.ts": {
+      "sha256": "1499d6fde6a0d8ab1be53caf64a4faea53ed534a8e5ee16dc76524a79928dff4",
+      "bytes": 584
+    },
+    "viewer-palette-fest.r67.tick-size.json": {
+      "sha256": "733a257b6017478fc4cfff1ce7a91ae2e63d36b6c38d1d955f288743becedf1c",
+      "bytes": 7125
+    },
+    "viewer-palette-fest.r67.tween-counterfactual.json": {
+      "sha256": "0fccb63464d1556acf9bfc05e33449bd9c2edd473fc59b7547686dd2c0202bad",
+      "bytes": 218282
+    },
+    "viewer-palette-fest.r67.tween-counterfactual.spec.ts": {
+      "sha256": "1e158859377ff3aecf4ca7061d37deeed0ffcfa1ccb5c609c14318f2a304de52",
+      "bytes": 2852
+    },
+    "viewer-palette-fest.r67.tween.json": {
+      "sha256": "6fe445a0a0701c983bb6385c9fcc73ab4d2a5b0d45a45d80389de9a382fcb74b",
+      "bytes": 215208
+    },
+    "viewer-palette-fest.r67.tween.spec.ts": {
+      "sha256": "8e997bf21090dc68bad2fba7dfa374db23fb465f98624b0c9a14e8369377f846",
+      "bytes": 2837
+    },
+    "viewer-palette-fest.r67.tween.txt": {
+      "sha256": "ee8fc0cfb4ba6166cd63496bf05ade6c6b8160804b437d1920d04daa0abdfc48",
+      "bytes": 2405
+    },
+    "viewer-palette-fest.r67.unit.txt": {
+      "sha256": "09a4830f2e9b5c41112741a291ca8a4b58bc1abf102be208530827fb56412c9b",
+      "bytes": 222
+    },
+    "viewer-palette-fest.r67.vitest.config.ts": {
+      "sha256": "42546170b3899d40e6c0abf39aeaee3717b9a0f10ebec0915b3f3929bc06da55",
+      "bytes": 424
+    }
+  }
+}
