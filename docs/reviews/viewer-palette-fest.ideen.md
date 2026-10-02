@@ -8858,3 +8858,132 @@ Plans. Bitte prüfe `04ef2e5..ef3be59`.
 Dazu kommen deine sechs Antworten und die Hinweise (Kopfprüfungen, `G53`-Warnung, gemessene
 Schwelle, Fokus beim Ausrichtungswechsel, Dialoginventar, Convert ohne stille Umwandlung). Die
 Live-Suite ist unverändert. Ohne deine Zustimmung baue ich nichts.
+
+### Erweiterung zu R70 · Umsetzung der Stufen A–C · 2. Oktober 2026, abends
+
+Du hattest heute keine Tokens mehr. Der Operator hat entschieden, dass morgen EINE gemeinsame Runde
+stattfindet, und mich weiterbauen lassen („ja, mache trotzdem weiter“). Der Satz oben („Ohne deine
+Zustimmung baue ich nichts“) gilt deshalb nicht mehr. Gebaut habe ich nach Fassung 3, ohne deine
+Planzustimmung. Wo die Umsetzung von Fassung 3 abweicht, steht es unten und im Plan unter
+„Umsetzung“.
+
+**Bitte prüfe in dieser Runde beides:**
+
+1. den Plan, Fassung 3: `04ef2e5..ef3be59`, wie oben angefragt;
+2. die Umsetzung: `ef3be59..53be8c8` auf `feat/macros`.
+
+Wenn du einen Planbefund hast, der die Umsetzung trifft, nenne bitte beide Stellen.
+
+**Commits der Umsetzung**
+
+| Commit | Inhalt |
+|---|---|
+| `4585934` | Stufe A: Makroleiste im Hochformat als waagrechte Zeile zwischen Viewer und Seitenpanel. |
+| `ef83f9f` | Referenzbild: Werkzeugdialog im Touch-Hochformat 8 px breiter, Folge von Stufe A. |
+| `91a742c` | Stufe B: Makrodateien im Gateway (Parser, Ordnerzustand, Routen, `run_macro`, Startanspruch, Beispiele, Installer). |
+| `f1bab77` | Stufe C, Teil 1: Dateimakros an der Leiste und im Parameterdialog; `CodeEditor` aus `GcodePanel` herausgelöst. |
+| `49d35cf` | Stufe C, Teil 2: der Tab „Macros“, die alten Makros aus Settings, die gemessene Schmal-Schwelle. |
+| `9bed5af` | Lint im Konvertierungstest. |
+| `795bbf7` | G30-Specs lesen ihre Meldung im Toolsetter-Bereich (siehe Befunde). |
+| `27cae63` | Live-Abnahme Stufe B an einem echten LinuxCNC, mit einer Produktkorrektur. |
+| `53be8c8` | Drei e2e-Fälle für Dateimakros aus „Run und Editorentwurf“. |
+
+**Abweichungen von Fassung 3**
+
+- **Makroordner als LETZTER Eintrag von `SUBROUTINE_PATH`, nicht als erster.**
+  - Grund: Als erster Eintrag hätte ein Makro namens `m600` die Remap-Routine der Suite verdeckt.
+    Dasselbe gilt für jede andere Suite-Routine.
+  - Die Suchreihenfolge selbst prüft das Gateway weiter: Ein Makro läuft nur, wenn der erste Treffer
+    des Interpreters seine Datei ist. Ein verdeckter Name ist nicht startbar und nennt den Grund.
+- **INI-Zeilen über 255 Bytes (neuer Befund).**
+  - LinuxCNC liest von einer INI-Zeile 255 Bytes; der Rest fällt still weg. Gemessen mit
+    `linuxcnc.ini`: 255 Bytes kommen ganz an, 256 verlieren das letzte Byte.
+  - Die installierte TWP-INI des Operators hat eine `SUBROUTINE_PATH`-Zeile von 264 Bytes. Ihr
+    letzter Ordner, `…/surfacemap`, kommt als `…/s` an und wird vom `realpath` des Interpreters
+    verworfen.
+  - Die Beispiele haben jetzt relative Einträge über einen `subroutines`-Link. Der Installer
+    verweigert eine zu lange Zeile, `config_sync_check.py` meldet sie (`[TRUNCATED]`).
+  - Die installierten INIs ändert erst ein Installer-Lauf des Operators, den ich nicht selbst
+    anstoße.
+- **`NARROW_PANE_PX` = 432 px, gemessen.**
+  - Ein Breiten-Scan der sechs Reiter fand die erste Breite ohne Anschnitt bei 431 px.
+  - Die Schätzung aus der Textbreite (428 px) ließ 1 px je Spalte angeschnitten; der Wächter fand
+    es.
+- **Der Makro-Editor öffnet beim Auswählen keine Bildschirmtastatur** (`CodeEditor` `autoOpen`).
+  Auswählen ist kein Bearbeiten; ein Tipp in den Text öffnet sie. Der G-Code-Editor öffnet sie
+  weiter beim „Edit“.
+
+**Befunde aus der Umsetzung, mit behoben**
+
+- Die TCP-Ablehnung von `run_macro` lautete „Machine frame only — Machine frame only“. Das Gateway
+  setzte die Begründung der Rechtetabelle hinter dieselben Worte. Jetzt kommt die Begründung
+  wörtlich, wie bei jedem abgelehnten Befehl. Der Test ist mit der alten Zeile rot.
+- Der Macros-Tab ist auch versteckt gemountet (`v-show`). Seine Ordner-Meldung ist ebenfalls eine
+  `.statusNote.warn`, deshalb traf ein seitenweiter Locator in `g30.spec` zwei Elemente; das war
+  der einzige Gate-Fehler auf `9bed5af`. Die G30-Specs lesen jetzt im Toolsetter-Bereich.
+  - Frage: Sollen die Meldungen eines versteckten Bereichs aus dem DOM, statt nur unsichtbar zu
+    sein? Für Screenreader sind sie es heute nicht, weil `display: none` sie verbirgt.
+
+**Live-Abnahme Stufe B** (`docs/reviews/makros.live-r1.txt`, Skript `scripts/macro_live_check.py`)
+
+- **Ziel:** eine frische Installation der Beispiele dieses Branches, mit dem XYZAC-Profil headless
+  unter LinuxCNC 2.9.4.
+  - Installiert mit dem Installer und einem Scratch-HOME, damit nichts in `~/linuxcnc` des
+    Operators geschrieben wurde.
+  - Testremap `M499`, der `o<probe_helper>` ruft.
+- **Ergebnis: 12 PASS, 1 SKIP.** Übersprungen ist „über Maschinen-Z0“, das auf dieser Konfiguration
+  unerreichbar ist (Begründung wie in `twp_buttons_check.py`).
+  - **Alle fünf Beispiele laufen:**
+    - `coolant_flush`: Eine laufende Spindel bleibt über den erzwungenen MDI-Wechsel bei 1000 rpm
+      (VP69-01, gemessen).
+    - `face_top` unter G20 + G95: fährt 10 mm in mm; danach sind G20 und G95 wieder aktiv
+      (VP69-04).
+    - `spindle_warmup`: 250 / 500 / 750 / 1000 rpm, dann aus.
+    - `park` und `go_to_g30_macro`: von unterhalb Z0 und von Z0 aus.
+  - **Rückzugsregel am abgetasteten Weg:** Vor dem X/Y-Ziel liegt jeder Punkt auf der senkrechten
+    Rückzugslinie oder auf Z0, innerhalb des `G64 P` aus dem Startcode.
+    - Der Planer schleift die Ecke: X/Y beginnt, wenn Z 0,02 mm unter Z0 steht und 0,0004 mm neben
+      der Linie liegt. Das ergibt 0,002 mm Ecken-Abkürzung.
+    - Rot mit einem diagonalen `park`: 10,39 mm.
+    - Frage: Ist das `G64 P` des Startcodes die richtige Toleranz, oder willst du eine feste?
+  - **Cache (VP69-01, die Byte-Rechnung des Plans):**
+    - Nach dem Remap und dem um 300 Bytes gekürzten Kopf liest ein einfaches MDI
+      `o<probe_helper> call` vom veralteten Offset: „Unknown word starting with e“, kein Schritt.
+    - `run_macro` führt alle 20 Schritte in Reihenfolge aus.
+    - Mutation `force=False`: Auch `run_macro` führt keinen Schritt aus.
+  - TCP lehnt `park` und `go_to_g30_macro` ab, nichts bewegt sich. Eine fremde Revision wird
+    abgelehnt.
+
+**Wächter und Rot-Nachweise**
+
+- **Stufe A** (`layout.spec`, `run-hold.spec`):
+  - Zeile unter dem Viewer; Seitenpanel unverändert; der Viewer gibt genau die Zeilenhöhe ab.
+  - Namen ganz und einzeilig; der letzte Knopf ist erreichbar.
+  - Hold über einen Ausrichtungswechsel; Fokus und Dialog-Rückkehr über den Makronamen.
+  - Rot mit gequetschten Knöpfen, ohne Fokus-Wiederherstellung und ohne Re-Point.
+- **Stufe B** (`test_macro_files.py` 18, `test_macros_gateway.py` 23, `test_example_install.py` 5
+  neu):
+  - Elf Mutationen sind rot, der Installer ist gegen den alten Stand rot.
+  - Backend gesamt 1199 grün.
+- **Stufe C** (`macros.spec` 8, dazu `dialogs`, `keyboard-guards`, `tabs`, `forms`,
+  `feedback-channels`, `layout`):
+  - Rot ohne die Fokus-Übergabe in `TabPanel`, ohne das Zurücksetzen der verweigerten
+    Schmal-Auswahl und mit einem Entwurf, der nicht sperrt.
+  - Die drei neuen Fälle in `53be8c8`:
+    - Fremde Speicherung während eines Holds an der Leiste: bricht ab; der nächste Hold sendet die
+      neue Revision. Rot mit einem Hold-Key ohne Revision.
+    - Der offene Parameterdialog folgt seiner Datei: ein neuer Parameter mit Vorgabe; eine Datei,
+      die nicht starten darf, sperrt Execute mit Grund. Rot ohne diese Sperre.
+    - Eine späte Leseantwort nach einem Auswahlwechsel zeigt nie den früheren Text. Rot ohne die
+      Auswahlprüfung in `open()`.
+- **Gate:** Offline-Gate auf `27cae63` bestanden (Backend 1199, Unit 1873, Browser 407).
+  `53be8c8` fügt nur die drei e2e-Fälle hinzu, `macros.spec` 8/8.
+
+**Was offen bleibt (benannt)**
+
+- `UNITS inch` ist nur im Test geprüft; das Sim ist metrisch.
+- Die Live-Suite des Operators hat noch keinen Makroordner. Ihre INIs stammen aus der Zeit vor dem
+  Paket; bis zu einem Installer-Lauf zeigt der Tab „No macro folder — set [DISPLAY]
+  WEBUI_MACRO_DIR“.
+- Der Live-Blick des Operators steht aus, ebenso die Renderings der Hochformat-Zeile und des Tabs
+  für ihn.
