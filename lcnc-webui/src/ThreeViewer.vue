@@ -626,7 +626,8 @@ let _machineTypeLabel: THREE.Group | null = null;
 let _programTypeLabel: THREE.Group | null = null;
 /** Test seam: the operator's variant (i) render hides the type labels. */
 let _boxTypeLabelsOn = true;
-const _typeOff = new THREE.Vector3();
+const _typeOff = new THREE.Vector3(), _typeUp = new THREE.Vector3();
+const _machineCorner = new THREE.Vector3(), _programCorner = new THREE.Vector3();
 function _mkTypeLabel(text: string, name: string): THREE.Group {
   const g = new THREE.Group();
   g.name = name;
@@ -645,7 +646,9 @@ function _poseTypeLabel(g: THREE.Group | null, at: THREE.Vector3 | null, hPx: nu
   if (!at || !g.visible) return;
   g.position.copy(at);
   g.scale.setScalar(worldPerPixel(camera, g, hPx));
-  _typeOff.set(1, 0, 0).applyQuaternion(camera.quaternion).add(_markerUp).multiplyScalar(6);
+  // the camera's own right and up: the diagnostics pose outside the frame loop too
+  _typeUp.set(0, 1, 0).applyQuaternion(camera.quaternion);
+  _typeOff.set(1, 0, 0).applyQuaternion(camera.quaternion).add(_typeUp).multiplyScalar(6);
   g.children[0]!.position.copy(_typeOff);
 }
 const _billboardLabels: Text[] = [];
@@ -839,11 +842,11 @@ function _updateBoundsPattern() {
       const P = machineBoundsMesh.geo.positions;
       let x = -Infinity, y = -Infinity, z = -Infinity;
       for (let i = 0; i < P.length; i += 3) { x = Math.max(x, P[i]!); y = Math.max(y, P[i + 1]!); z = Math.max(z, P[i + 2]!); }
-      machineAt = machineBoundsMesh.localToWorld(new THREE.Vector3(x, y, z));
+      machineAt = machineBoundsMesh.localToWorld(_machineCorner.set(x, y, z));
     }
   }
   _poseTypeLabel(_machineTypeLabel, machineAt, h);
-  _poseTypeLabel(_programTypeLabel, toolpath.boxLabelAnchor(), h);
+  _poseTypeLabel(_programTypeLabel, toolpath.boxLabelAnchor(_programCorner), h);
 }
 
 function _markerDiag(m: PointMarker | null) {
@@ -2144,7 +2147,10 @@ async function buildFromInit(init: ViewerInit) {
             return { visible: g.visible, onTop,
               screen: { x: rect.left + (v.x + 1) / 2 * rect.width, y: rect.top + (1 - v.y) / 2 * rect.height } };
           };
-          return { machine: at(_machineTypeLabel), program: at(_programTypeLabel) };
+          // one of each in the scene — a rebuild must not leave an old one
+          let count = 0;
+          scene?.traverse(o => { if (o.name === "machineTypeLabel" || o.name === "programTypeLabel") count++; });
+          return { machine: at(_machineTypeLabel), program: at(_programTypeLabel), count };
         },
         setBoxTypeLabelsShown: (on: boolean) => { _boxTypeLabelsOn = on; requestRender(); },
         // World points on the page (CSS px), null for a point behind the camera.

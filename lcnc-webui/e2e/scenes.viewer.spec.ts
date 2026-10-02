@@ -891,4 +891,13 @@ test("the toolpath box's end marks stand off the background and the model in fou
   await page.evaluate(() => window.__viewerDiag!.setBoxTypeLabelsShown!(true));
   const one = (await page.evaluate(() => window.__viewerDiag!.getBoxTypeLabels!()))!;
   expect([one.machine?.visible, one.program?.visible], "the machine box off: its label too").toEqual([false, true]);
+  expect(one.count, "one label per box in the scene").toBe(2);
+  // a rebuilt model (another viewer_init) leaves no old label behind
+  await ctl({ op: "setViewerInit", data: { units: "mm", stl_base_url: "/machine/", axes: ["X", "Y", "Z"],
+    parts: [{ id: "base", file: "base.stl", group: "root", translate: [0, 0, -40] }],
+    groups: [{ id: "tool", parent: "root" }], kinematics: [], workGroup: "root", toolGroup: "tool",
+    machine_bounds: { origin: [-200, -200, -10], size: [400, 400, 200] } } });
+  await modelBuilt(page, ["base"]);
+  await expect.poll(async () => (await page.evaluate(() => window.__viewerDiag!.getBoxTypeLabels!()))?.count,
+    { message: "after a rebuild: one label per box" }).toBe(2);
 });

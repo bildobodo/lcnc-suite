@@ -60,7 +60,7 @@ interface ViewerDiag {
   getBoxTicks?: () => number[][] | null;
   /** The bounds' type labels (package 4, label variant (ii)). */
   getBoxTypeLabels?: () => { machine: { visible: boolean; onTop: boolean; screen: { x: number; y: number } } | null;
-    program: { visible: boolean; onTop: boolean; screen: { x: number; y: number } } | null };
+    program: { visible: boolean; onTop: boolean; screen: { x: number; y: number } } | null; count: number };
   /** Test seam: hide / show the type labels (the variant (i) render). */
   setBoxTypeLabelsShown?: (on: boolean) => void;
   /** The viewer canvas on the page (CSS px). */

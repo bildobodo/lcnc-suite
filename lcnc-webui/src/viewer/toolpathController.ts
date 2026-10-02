@@ -118,8 +118,9 @@ export interface ToolpathController {
   /** The toolpath box's dimension end marks in world coordinates, or null. */
   boxTicks(): number[][] | null;
   /** Where the box's type label stands: its (min x, min y, max z) corner in
-   *  world coordinates — null without a SHOWN box. */
-  boxLabelAnchor(): THREE.Vector3 | null;
+   *  world coordinates, written into `out` (per frame: no allocation) — null
+   *  without a SHOWN box. */
+  boxLabelAnchor(out: THREE.Vector3): THREE.Vector3 | null;
   setVisible(on: boolean): void;
   /** The Rapids layer (fixed palette P3): the rapid lines only — their
    *  limit overlay stays with the toolpath layer. */
@@ -1229,7 +1230,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       return toolpathBoxTicks.worldSegments();
     },
 
-    boxLabelAnchor() {
+    boxLabelAnchor(out) {
       const box = toolpathBoundsBox;
       if (!box || !box.visible) return null;
       for (let p = box.parent; p; p = p.parent) if (!p.visible) return null;
@@ -1237,7 +1238,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       let x = Infinity, y = Infinity, z = -Infinity;
       for (let i = 0; i < P.length; i += 3) { x = Math.min(x, P[i]!); y = Math.min(y, P[i + 1]!); z = Math.max(z, P[i + 2]!); }
       box.updateWorldMatrix(true, false);
-      return new THREE.Vector3(x, y, z).applyMatrix4(box.matrixWorld);
+      return out.set(x, y, z).applyMatrix4(box.matrixWorld);
     },
 
     boxPattern() {
