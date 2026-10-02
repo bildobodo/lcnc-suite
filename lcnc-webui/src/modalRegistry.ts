@@ -97,6 +97,18 @@ export function popDialog(id: string): { wasTop: boolean } {
   return { wasTop };
 }
 
+/** A dialog whose opener left the document (a control re-mounted in another
+ *  place — the macro bar on an orientation change) returns to its
+ *  replacement: `find` maps the detached opener to the new control, or null
+ *  to keep the old one (the guarded return then takes the fallback). */
+export function repointOpeners(find: (old: HTMLElement) => HTMLElement | null): void {
+  for (const e of stack) {
+    if (!e.opener || e.opener.isConnected) continue;
+    const next = find(e.opener);
+    if (next) e.opener = next;
+  }
+}
+
 /** The topmost open dialog, or null. */
 export const topDialog = computed(() => stack[stack.length - 1] ?? null);
 

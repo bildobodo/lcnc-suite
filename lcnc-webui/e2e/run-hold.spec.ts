@@ -304,6 +304,46 @@ test("a macro without parameters runs on a hold; a command saved during the hold
   await expect.poll(async () => (await sent()).filter(c => c.cmd === "mdi").map(c => c.text)).toEqual(["G53 G0 Z-5"]);
 });
 
+// ── Package 5, stage A: the bar moves with the orientation ──
+// Portrait puts the macro bar in the viewer column, landscape under the
+// content: an orientation change mounts a NEW bar. A hold in progress ends
+// with the old button — nothing runs, the next full hold runs once; a
+// focused macro keeps its focus on the same macro (by its id); an open
+// parameter dialog returns to the new button when it closes.
+test("an orientation change mid-hold runs nothing; the focus and an open dialog's return follow the macro", async ({ page }) => {
+  await ready(page, { macros: MACROS });
+  const PORTRAIT = { width: 1000, height: 1400 }, LANDSCAPE = { width: 1600, height: 1000 };
+  const park = () => page.locator(".macroBar").getByRole("button", { name: "Park", exact: true });
+  const box = (await park().boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(150);
+  await page.setViewportSize(PORTRAIT);
+  await expect(page.locator(".viewerColumn .macroBar"), "the bar moved into the viewer column").toBeVisible();
+  await page.waitForTimeout(HOLD_MS);
+  await page.mouse.up();
+  await page.waitForTimeout(300);
+  expect(await count("mdi"), "the hold ended with its button").toBe(0);
+  await press(page, park(), HOLD_MS);
+  await expect.poll(() => count("mdi"), { message: "a full hold on the new button runs once" }).toBe(1);
+  // the focus follows the macro, not a position
+  await park().focus();
+  await page.setViewportSize(LANDSCAPE);
+  await expect(page.locator(".viewerColumn .macroBar")).toHaveCount(0);
+  await expect(park(), "focus on the same macro in the new bar").toBeFocused();
+  // an open parameter dialog returns to the new button
+  const face = () => page.locator(".macroBar").getByRole("button", { name: "Face Top", exact: true });
+  await face().click();
+  const dialog = page.getByRole("dialog", { name: "Face Top" });
+  await expect(dialog).toBeVisible();
+  await page.setViewportSize(PORTRAIT);
+  await expect(page.locator(".viewerColumn .macroBar")).toBeVisible();
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(face(), "the dialog returned to the new Face Top").toBeFocused();
+  expect(await count("mdi"), "nothing else ran").toBe(1);
+});
+
 // ── The parameter dialog follows its macro (UI-DI08) ──
 // The dialog held a COPY of the macro: a revision saved during the Execute
 // hold ran the old command. It now reads the macro live by id — a new

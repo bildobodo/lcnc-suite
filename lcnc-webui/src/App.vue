@@ -33,6 +33,7 @@ import OffsetPanel from "./OffsetPanel.vue";
 import Gate from "./Gate.vue";
 import { toolOffsetState } from "./viewer/toolOffsetState";
 import MachineBtn from "./MachineBtn.vue";
+import MacroBar from "./MacroBar.vue";
 import DialogFrame from "./DialogFrame.vue";
 import DetailsPopover from "./DetailsPopover.vue";
 import FormField from "./FormField.vue";
@@ -56,7 +57,7 @@ import { useMdiHistory } from "./useMdiHistory";
 import { useTouchoffMath } from "./useTouchoffMath";
 import { useMacros } from "./useMacros";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
-import { modalOpen } from "./modalRegistry";
+import { modalOpen, repointOpeners } from "./modalRegistry";
 import { g5xLabel as fixtureLabel } from "./wcs";
 import { forceStopAllJogs, initJogPointerSafety, destroyJogPointerSafety, activeJogKeys } from "./useJogPointers";
 import {
@@ -1333,6 +1334,28 @@ function attachScrollFades() {
 }
 onMounted(attachScrollFades);
 watch(() => userMacros.value.length, () => nextTick(attachScrollFades));
+// The macro bar changes its place with the orientation (a new element): its
+// fades attach again, a focused macro keeps its focus on the same macro, and
+// an open parameter dialog returns to the new button (package 5, stage A —
+// matched by the macro's id, never by position).
+/** The macro a bar control belongs to: the button carries data-macro-id, a
+ *  dimmed one's .btnTip wrapper holds it (detached elements work too). */
+function macroIdOf(el: Element | null | undefined): string | undefined {
+  if (!el?.closest(".macroBar")) return undefined;
+  return (el.closest<HTMLElement>("[data-macro-id]") ?? el.querySelector<HTMLElement>("[data-macro-id]"))?.dataset.macroId;
+}
+function macroControl(id: string | undefined): HTMLElement | null {
+  const b = id ? document.querySelector<HTMLElement>(`.macroBar [data-macro-id="${CSS.escape(id)}"]`) : null;
+  return b?.closest<HTMLElement>(".btnTip") ?? b;
+}
+watch(isPortrait, () => {
+  const focusedId = macroIdOf(document.activeElement);
+  nextTick(() => {
+    attachScrollFades();
+    repointOpeners(old => macroControl(macroIdOf(old)));
+    if (focusedId) macroControl(focusedId)?.focus();
+  });
+}, { flush: "pre" });
 // Strip content swaps (keypad in/out) change scrollWidth without resizing
 // the strip itself — re-check the edge fades.
 watch(activeKind, () => nextTick(attachScrollFades));
@@ -1949,7 +1972,9 @@ watch(viewerGcode, (newGcode) => {
 
     <!-- ══ Content area — outer Gate wraps tabs ══ -->
     <Gate gate="armed" class="content" id="content-dialog-area">
-      <!-- ══ Left pane — 3D Viewer (always visible) ══ -->
+      <!-- ══ Left pane — 3D Viewer (always visible); in portrait the macro
+           bar sits under it, in the same column (package 5, stage A) ══ -->
+      <div class="viewerColumn stack-controls">
       <div class="viewerPane">
         <ThreeViewer
           ref="viewerRef"
@@ -1967,6 +1992,8 @@ watch(viewerGcode, (newGcode) => {
           @scrub-line="scrubLine = $event"
           @collision-lines="collisionLines = $event"
         />
+      </div>
+      <MacroBar v-if="isPortrait && userMacros.length" :macros="userMacros" :hold-key="macroHoldKey" @run="runMacro" />
       </div>
 
       <!-- ══ Right pane — Program / Probing tabs ══ -->
@@ -2393,17 +2420,9 @@ watch(viewerGcode, (newGcode) => {
       </DialogFrame>
     </Gate><!-- /content (outer gate) -->
 
-    <!-- ══ Macro Bar — thin row of user macro buttons ══ -->
-    <Gate v-if="userMacros.length" gate="armed" class="macroBar bordered-panel row-controls scroll-thin">
-      <!-- Scroll-edge affordances (see .stripFade) — the macro bar has no
-           pinned section, so both edges fade when content is hidden. -->
-      <div class="stripFadeStart" aria-hidden="true"></div>
-      <!-- A macro without parameters runs on a hold bound to its command; one
-           with parameters opens its dialog on a tap (no motion yet) -->
-      <MachineBtn v-for="m in userMacros" :key="m.id" type="macro" :hold="m.params.length === 0"
-                  :hold-key="macroHoldKey(m)" @click="runMacro(m)">{{ m.name }}</MachineBtn>
-      <div class="stripFade" aria-hidden="true"></div>
-    </Gate>
+    <!-- ══ Macro Bar — landscape: a row under the content (portrait: in the
+         viewer column above) ══ -->
+    <MacroBar v-if="!isPortrait && userMacros.length" :macros="userMacros" :hold-key="macroHoldKey" @run="runMacro" />
 
     <!-- ══ Bottom Action Strip — default-deny Gate, SafetyStrip exempt + sticky ══ -->
     <Gate gate="armed" class="strip bordered-panel scroll-thin" tabindex="-1">
@@ -2594,9 +2613,13 @@ watch(viewerGcode, (newGcode) => {
   position: relative; /* containing block for dialogs */
 }
 
-.viewerPane {
+.viewerColumn {
   flex: 1;
   min-width: var(--panel-min-w);
+  min-height: 0;
+}
+.viewerPane {
+  flex: 1;
   min-height: 0;
 }
 
@@ -2612,14 +2635,6 @@ watch(viewerGcode, (newGcode) => {
   border-radius: var(--radius-container);
 }
 
-
-.macroBar {
-  flex-shrink: 0;
-  padding: var(--gap-tight) var(--gap-controls);
-  overflow-x: auto;
-  overflow-y: hidden;
-  border-radius: var(--radius-container);
-}
 
 /* Programmatic focus target (the keypad's fallback when the field that
    opened it is gone): no ring — that focus operates nothing. */
@@ -2665,11 +2680,9 @@ watch(viewerGcode, (newGcode) => {
 
 /* Scroll-edge fades — signal that more sections exist beyond an edge.
    Zero-width sticky children; the gradient hangs inward over the content.
-   The strip needs only the far edge (SafetyStrip pins its near edge);
-   the macro bar has no pinned section and fades both edges. */
-.strip > .stripFade,
-.macroBar > .stripFade,
-.macroBar > .stripFadeStart {
+   The strip needs only the far edge (SafetyStrip pins its near edge); the
+   macro bar's own fades live in MacroBar.vue. */
+.strip > .stripFade {
   position: sticky;
   flex: 0 0 0px;
   align-self: stretch;
@@ -2680,12 +2693,8 @@ watch(viewerGcode, (newGcode) => {
   pointer-events: none;
   z-index: var(--z-raised);
 }
-.strip > .stripFade,
-.macroBar > .stripFade { right: 0; }
-.macroBar > .stripFadeStart { left: 0; }
-.strip > .stripFade::before,
-.macroBar > .stripFade::before,
-.macroBar > .stripFadeStart::before {
+.strip > .stripFade { right: 0; }
+.strip > .stripFade::before {
   content: "";
   position: absolute;
   top: 0;
@@ -2700,8 +2709,7 @@ watch(viewerGcode, (newGcode) => {
    confined to the CONTENT box, but scrolled content stays visible through
    the padding and radius region — without this the fade stops 8px short
    of the visible edge. */
-.strip > .stripFade::before,
-.macroBar > .stripFade::before {
+.strip > .stripFade::before {
   right: calc(-1 * var(--gap-controls));
   -webkit-mask-image: linear-gradient(to right,
     transparent 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.45) 70%,
@@ -2710,18 +2718,7 @@ watch(viewerGcode, (newGcode) => {
     transparent 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.45) 70%,
     rgba(0, 0, 0, 0.8) 88%, black 100%);
 }
-.macroBar > .stripFadeStart::before {
-  left: calc(-1 * var(--gap-controls));
-  -webkit-mask-image: linear-gradient(to right,
-    black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
-    rgba(0, 0, 0, 0.15) 60%, transparent 100%);
-  mask-image: linear-gradient(to right,
-    black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
-    rgba(0, 0, 0, 0.15) 60%, transparent 100%);
-}
-.strip.strip-more > .stripFade,
-.macroBar.strip-more > .stripFade,
-.macroBar.strip-scrolled > .stripFadeStart {
+.strip.strip-more > .stripFade {
   opacity: 1;
 }
 
@@ -3005,11 +3002,11 @@ watch(viewerGcode, (newGcode) => {
 @media (orientation: portrait) {
   .wrap {
     display: grid;
-    grid-template-columns: var(--strip-fixed-w) auto 1fr;
+    grid-template-columns: var(--strip-fixed-w) 1fr;
     grid-template-rows: auto auto 1fr;
   }
 
-  /* Header + status banner span all 3 columns */
+  /* Header + status banner span both columns */
   .wrap > header.hdr {
     grid-column: 1 / -1;
     grid-row: 1;
@@ -3074,64 +3071,22 @@ watch(viewerGcode, (newGcode) => {
       rgba(0, 0, 0, 0.8) 88%, black 100%);
   }
 
-  /* Macro bar: thin middle column, vertical (collapses when no macros) */
-  .wrap > .macroBar {
+  /* Content: right column, viewer on top / side panel below. The viewer
+     and the macro bar are ONE flex item: the bar takes its row out of the
+     viewer, and the side pane sees the same column with or without macros
+     (package 5, stage A — the viewer floor counts the bar) */
+  .wrap > .content {
     grid-column: 2;
     grid-row: 3;
     flex-direction: column;
-    overflow-x: hidden;
-    overflow-y: auto;
-    height: auto;
-    width: auto;
   }
-  /* Vertical scroller: fades move to top/bottom edges (scroll-axis
-     padding is --gap-tight here, not --gap-controls) */
-  .wrap > .macroBar > .stripFade {
-    right: auto;
-    bottom: 0;
-  }
-  .wrap > .macroBar > .stripFadeStart {
-    left: auto;
-    top: 0;
-  }
-  .wrap > .macroBar > .stripFade::before,
-  .wrap > .macroBar > .stripFadeStart::before {
-    right: 0;
-    left: 0;
-    width: auto;
-    height: calc(2 * var(--gap-panel) + var(--gap-tight));
-  }
-  .wrap > .macroBar > .stripFade::before {
-    top: auto;
-    bottom: calc(-1 * var(--gap-tight));
-    -webkit-mask-image: linear-gradient(to bottom,
-      transparent 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.45) 70%,
-      rgba(0, 0, 0, 0.8) 88%, black 100%);
-    mask-image: linear-gradient(to bottom,
-      transparent 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.45) 70%,
-      rgba(0, 0, 0, 0.8) 88%, black 100%);
-  }
-  .wrap > .macroBar > .stripFadeStart::before {
-    bottom: auto;
-    top: calc(-1 * var(--gap-tight));
-    -webkit-mask-image: linear-gradient(to bottom,
-      black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
-      rgba(0, 0, 0, 0.15) 60%, transparent 100%);
-    mask-image: linear-gradient(to bottom,
-      black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
-      rgba(0, 0, 0, 0.15) 60%, transparent 100%);
-  }
-
-  /* Content: right column, viewer on top / side panel below */
-  .wrap > .content {
-    grid-column: 3;
-    grid-row: 3;
-    flex-direction: column;
-  }
-  .viewerPane {
+  .viewerColumn {
     flex: 1 1 0;
     min-width: 0;
     min-height: var(--viewer-min-h-portrait);
+  }
+  .viewerPane {
+    flex: 1 1 0;
   }
   .sidePane {
     flex: 1 1 0;

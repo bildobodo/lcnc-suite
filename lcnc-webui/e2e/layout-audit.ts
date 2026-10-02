@@ -166,7 +166,7 @@ export interface FrameBox {
   x: number; y: number; width: number; height: number;
   clientWidth: number; clientHeight: number;
 }
-export interface FrameSnapshot { strip: FrameBox; viewer: FrameBox; content: FrameBox }
+export interface FrameSnapshot { strip: FrameBox; viewer: FrameBox; content: FrameBox; side: FrameBox }
 export type FrameKey = keyof FrameSnapshot;
 export type FrameDimension = keyof FrameBox;
 
@@ -179,7 +179,7 @@ export async function measureFrame(page: Page): Promise<FrameSnapshot> {
       return { x: r.x, y: r.y, width: r.width, height: r.height,
         clientWidth: el.clientWidth, clientHeight: el.clientHeight };
     };
-    return { strip: box('.strip'), viewer: box('.viewerPane'), content: box('.content') };
+    return { strip: box('.strip'), viewer: box('.viewerPane'), content: box('.content'), side: box('.sidePane') };
   });
 }
 
@@ -189,7 +189,7 @@ export async function measureFrame(page: Page): Promise<FrameSnapshot> {
 export function frameChanges(before: FrameSnapshot, after: FrameSnapshot, exempt: string[] = [],
   tolerance = 1): LayoutIssue[] {
   const out: LayoutIssue[] = [];
-  for (const key of ['strip', 'viewer', 'content'] as const) {
+  for (const key of ['strip', 'viewer', 'content', 'side'] as const) {
     for (const dim of ['x', 'y', 'width', 'height', 'clientWidth', 'clientHeight'] as const) {
       if (exempt.includes(`${key}.${dim}`)) continue;
       const a = before[key][dim], b = after[key][dim];

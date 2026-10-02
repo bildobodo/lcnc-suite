@@ -7544,3 +7544,36 @@ program and clipped to the inside — the part of a 2D program beyond the
 machine window simply vanished, a limit finding with no mark. It now follows
 the box's own rule (nothing drawn only when every extent is zero); red-first
 unit test in both line modes.
+
+## 2026-10-02 — Package 5 stage A: the portrait macro row
+
+**Why.** The operator (2026-10-02, from the package-5 renders): in portrait
+the macros belong "zwischen 3D viewer und dem unteren panel … horizontales
+scrollen … braucht nicht so viel platz". The bar was a vertical middle
+column there — at 900 × 1200 it took 106 px of the content column's width
+(measured: content x 304 → 410, width 588 → 482).
+
+**Rule.** `MacroBar.vue`, mounted in ONE of two places by orientation:
+landscape as before (a row under the content), portrait inside
+`.viewerColumn` — viewer and bar are one flex item carrying the viewer
+floor, so the side pane and the content keep exactly their place and size
+with or without macros and the viewer gives the row (named: the floor
+counts the bar). A button never squeezes (`flex: none`) — the row scrolls;
+nine macros in the portrait column had cut every name off, a defect the new
+guard found (it applied to a crowded landscape bar too). An orientation
+change mounts a new bar: a hold in progress runs nothing (the unmounted
+button's timer is cleared and Vue drops an unmounted component's emit — two
+layers; the guard holds the property), a focused macro keeps the focus by
+its id, an open parameter dialog's opener is re-pointed
+(`modalRegistry.repointOpeners`), the fades re-attach.
+
+**Guards.** `layout.spec` portrait 100/150 % (one row right under the
+viewer, the column's full width, side pane and content unmoved, the viewer
+gives exactly the row, every name whole on one line, the last macro
+reachable by scrolling, the far fade on); the strip-state frame measures the
+side pane too and the portrait exemption shrank to the viewer's height (red
+at 3c9cc25: content and side pane moved 106 px); `run-hold.spec`
+orientation change mid-hold, focus, dialog return (red without the focus
+restore and without the re-point). Codex reviews it in tomorrow's combined
+round (no tokens on 2026-10-02).
+

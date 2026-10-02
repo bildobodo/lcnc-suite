@@ -124,14 +124,16 @@ export function stripStateRefs(state: StripState, portrait = false): string[] {
 }
 
 /** Frame dimensions a state may legitimately change: a macro bar takes a
- * row above the strip in landscape (viewer and content lose height, the
- * strip moves up) and a column beside it in portrait (viewer and content
- * lose width and move right). Nothing else, ever. */
+ * row above the strip in landscape (viewer, side pane and content lose
+ * height, the strip moves up) and, in portrait, a row under the viewer in
+ * the viewer's own column (package 5, stage A: the viewer alone loses height
+ * — content and side pane stay exactly where they were). Nothing else, ever. */
 export function stripStateExempt(state: StripState, portrait = false): string[] {
   if (state !== 'macro-bar') return [];
   return portrait
-    ? ['viewer.x', 'viewer.width', 'viewer.clientWidth', 'content.x', 'content.width', 'content.clientWidth']
-    : ['viewer.height', 'viewer.clientHeight', 'content.height', 'content.clientHeight', 'strip.y'];
+    ? ['viewer.height', 'viewer.clientHeight']
+    : ['viewer.height', 'viewer.clientHeight', 'content.height', 'content.clientHeight',
+       'side.height', 'side.clientHeight', 'strip.y'];
 }
 
 const MACRO_FIXTURE = { macros: [{ id: 'm1', name: 'Face Top', command: 'G0 Z5', params: [] }] };

@@ -681,6 +681,77 @@ for (const viewport of VIEWPORTS) {
   });
 }
 
+// ── Package 5, stage A (operator 2026-10-02): the portrait macro row ──
+// In portrait the macro bar is ONE ROW between the 3D viewer and the side
+// pane, scrolling sideways — the vertical middle column it used to take cost
+// ~155 px of width. Viewer and bar are one flex item (.viewerColumn): the
+// side pane and the content keep exactly their place and size with or
+// without macros, at 100 % and at 150 % (where the side pane holds its
+// three code lines and Abort); the viewer gives the row. Every button is
+// whole in the row's height and reachable by scrolling; the far fade shows
+// while the row overflows.
+const MANY_MACROS = { macros: Array.from({ length: 9 }, (_, i) =>
+  ({ id: `m${i}`, name: `Macro number ${i + 1}`, command: 'G0 Z5', params: [] })) };
+for (const zoom of [1, 1.5]) {
+  test(`touch-portrait ${zoom * 100} %: the macro bar is one row between the viewer and the side pane, which does not move`, async ({ page }) => {
+    await openLayout(page, PROFILES[1], VIEWPORTS.find(v => v.name === 'touch-portrait')!);
+    if (zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
+    await settleLayout(page);
+    const rects = () => page.evaluate(() => {
+      const r = (sel: string) => { const b = document.querySelector(sel)?.getBoundingClientRect(); return b && { x: b.x, y: b.y, w: b.width, h: b.height }; };
+      return { viewer: r('.viewerPane')!, side: r('.sidePane')!, content: r('.content')!, bar: r('.macroBar') };
+    });
+    const before = await rects();
+    expect(before.bar, 'no macros, no bar').toBeUndefined();
+    await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { macros: MANY_MACROS } } });
+    await expect(page.locator('.macroBar [data-macro-id]')).toHaveCount(9);
+    await settleLayout(page);
+    const after = await rects();
+    const bar = after.bar!;
+    for (const k of ['side', 'content'] as const) {
+      for (const d of ['x', 'y', 'w', 'h'] as const) {
+        expect(Math.abs(after[k][d] - before[k][d]), `${k}.${d} ${before[k][d]} → ${after[k][d]}`).toBeLessThanOrEqual(1);
+      }
+    }
+    const geo = await page.locator('.macroBar').evaluate(el => {
+      const gap = parseFloat(getComputedStyle(el.parentElement!).rowGap);
+      const zoomOf = el.getBoundingClientRect().width / (el as HTMLElement).offsetWidth;
+      return { inColumn: !!el.closest('.viewerColumn'), gap: gap * zoomOf,
+        scrollW: el.scrollWidth, clientW: el.clientWidth, more: el.classList.contains('strip-more') };
+    });
+    expect(geo.inColumn, 'the bar sits in the viewer column').toBe(true);
+    expect(Math.abs(bar.y - (after.viewer.y + after.viewer.h) - geo.gap), 'right under the viewer').toBeLessThanOrEqual(1);
+    expect(bar.y + bar.h, 'above the side pane').toBeLessThanOrEqual(after.side.y + 1);
+    expect(Math.abs(bar.x - after.viewer.x) + Math.abs(bar.w - after.viewer.w), "the column's full width").toBeLessThanOrEqual(2);
+    expect(Math.abs(before.viewer.h - after.viewer.h - bar.h - geo.gap), 'the viewer gives exactly the row').toBeLessThanOrEqual(1.5);
+    // one row, every button whole in its height; the row overflows and says so
+    const btns = await page.locator('.macroBar [data-macro-id]').evaluateAll(els => els.map(e => {
+      const b = e.getBoundingClientRect();
+      // the name on ONE line: a squeezed button wraps it (the row then grows)
+      const range = document.createRange();
+      range.selectNodeContents(e);
+      const lines = new Set([...range.getClientRects()].filter(r => r.width > 0).map(r => Math.round(r.top))).size;
+      return { top: b.top, bottom: b.bottom, left: b.left, right: b.right, lines,
+        clipped: (e as HTMLElement).scrollWidth > (e as HTMLElement).clientWidth + 1 };
+    }));
+    expect(new Set(btns.map(b => Math.round(b.top))).size, 'one row').toBe(1);
+    expect(btns.map(b => b.lines), 'every name on one line').toEqual(btns.map(() => 1));
+    expect(btns.filter(b => b.clipped).length, 'no name cut off — buttons never squeeze, the row scrolls').toBe(0);
+    for (const b of btns) {
+      expect(b.top, 'whole in the row (top)').toBeGreaterThanOrEqual(bar.y - 0.5);
+      expect(b.bottom, 'whole in the row (bottom)').toBeLessThanOrEqual(bar.y + bar.h + 0.5);
+    }
+    expect(geo.scrollW, 'nine long names overflow the row').toBeGreaterThan(geo.clientW);
+    expect(geo.more, 'the far fade shows').toBe(true);
+    // the last button comes whole into view by scrolling
+    await page.locator('.macroBar').evaluate(el => { el.scrollLeft = el.scrollWidth; });
+    await settleLayout(page);
+    const last = await page.locator('.macroBar [data-macro-id="m8"]').evaluate(e => e.getBoundingClientRect().right);
+    const barRight = await page.locator('.macroBar').evaluate(e => { const b = e.getBoundingClientRect(); return b.right; });
+    expect(last, 'the last macro reachable').toBeLessThanOrEqual(barRight + 0.5);
+  });
+}
+
 test('negative control (landscape): an auto scrollbar band lets the keypad change the strip height', async ({ page }) => {
   // macOS overlay scrollbars have no band — the control cannot fire there.
   test.skip(process.platform === 'darwin', 'overlay scrollbars have no band to lose');

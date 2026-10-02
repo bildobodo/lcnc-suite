@@ -97,6 +97,9 @@ hängt nicht an B und C und kommt zuerst, weil sie mit den heutigen Makros funkt
   - **Benannte Folge:** Der Viewer-Boden zählt im Hochformat die Leiste mit. Das 3D-Bild ist um die
     Höhe der Zeile (36 px + Abstand) kleiner als ohne Makros. Das ist der Platz, den der Operator
     sparen will: Heute kostet die Leiste eine 155 px breite Spalte.
+- **Buttons schrumpfen nie** (`flex: none`): Die Zeile scrollt, ein Button behält seinen ganzen
+  Namen. Der neue Wächter fand das in der Umsetzung: Neun Makros in der 600-px-Spalte schnitten
+  jeden Namen ab („cro numb“). Mit vielen Makros galt das vorher auch im Querformat.
 - **Keine Makros:** keine Zeile, kein Abstand. Heute bleiben 16 px Lücke, weil die leere
   `auto`-Spalte zwei Rasterabstände trägt. Das entfällt mit der Spalte.
 - **Wächter:**
