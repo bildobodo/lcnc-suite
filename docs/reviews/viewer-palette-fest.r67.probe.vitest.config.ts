@@ -1,0 +1,1 @@
+import {defineConfig} from 'vitest/config';export default defineConfig({cacheDir:'../r67-probe-cache',test:{environment:'node',maxWorkers:1,include:['../evidence/viewer-palette-fest.r66.probe.test.ts']}});

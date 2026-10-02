@@ -8231,3 +8231,130 @@ einfarbig.
 
 - **Offline-Gate:** PASS auf `a8138fc` (Backend 1154, Unit 1860, Browser 389).
 - **Offen beim Operator:** unverändert die Labelwahl (i) / (ii) und die Schreibweise.
+
+
+---
+
+## Review R67 · Codex · 2. Oktober 2026
+
+**Prüfstand:** `a8138fc`, Diff `9001850..a8138fc`, Paket 4 auf
+`feat/viewer-marks`; Anfrage R67 gelesen. Prüfung in einer Archivkopie,
+nicht gegen den abweichenden Live-Branch `feat/keypad-keys`.
+
+**Ergebnis: findings.** VP-I27 ist geschlossen. Die Tiefenformel von
+VP-I28 stimmt jetzt; offen bleibt ihre Anwendung während eines
+Ansichtswechsels (**VP-I28-Rest, P2**). Kappungshinweis und gerenderter
+Zwei-Stück-Fall sind angenommen. Die in R66 ausdrücklich angenommenen
+2/4 CSS-px Strichbreiten bleiben angenommen.
+
+### Abgenommene Korrekturen
+
+- **VP-I27 geschlossen:** Der geometrische Vergleich bestimmt jetzt auch
+  bei zwei zur selben Verzweigung zurückkehrenden Konturen die Richtung.
+  Die unveränderte R66-Sonde liefert bei umgekehrter Speicherung dieselben
+  `t`-Werte und **0 statt 8** vertauschte Farbphasen. Die zusätzlichen
+  Wächter zu vertauschten Enden und Permutation bestehen ebenfalls.
+  [Zuordnungen](viewer-palette-fest.r67.chains.json).
+- **VP-I28, ruhende Kamera:** Alle 24 Balken der unveränderten R66-Boxprobe
+  messen jetzt **9,999994–10,000003 CSS-px** statt 10,619–11,948 px.
+  Tiefe statt räumlicher Entfernung ist die richtige Umrechnung.
+  [Messdaten](viewer-palette-fest.r67.tick-size.json),
+  [beide R66-Sonden grün](viewer-palette-fest.r67.probe.txt).
+- **Kappungshinweis:** Die einmalige Meldung pro `GeoDashState` bei
+  Überschreitung der 15-px-Grenze am Maximum ist vorhanden und geprüft;
+  wiederholtes Aktualisieren erzeugt keine Meldungsflut.
+- **Zwei sichtbare Stücke einer Reach-Kette:** Der neue Browsertest besteht
+  auch im eigenen Lauf und in der Wiederholung. Beide Stücke zeigen
+  beide Töne; die Testnaht erhält die eine gemeinsame Kette. Renderings
+  selbst angesehen: [Hell](viewer-palette-fest.r67.render-912-reach-two-pieces-light.png),
+  [HC-Hell](viewer-palette-fest.r67.render-912-reach-two-pieces-hc-light.png).
+
+### VP-I28-Rest · P2: Die Kameramatrix ist beim Skalieren während des Ansichtswechsels noch veraltet
+
+**Stellen am Prüfstand:** `boxLines.ts:311–323` liest
+`camera.matrixWorld`; `ThreeViewer.vue:1017–1018` ändert im Tween Position
+und Quaternion. In `ThreeViewer.vue:4017–4030` werden Marker und Boxen
+vor `updateCulling` und `renderer.render` gesetzt. Während des Tweens
+wird `controls.update()` absichtlich übersprungen. Damit liegt die
+Aktualisierung der Kameramatrix **nach** der Größenberechnung. Der alte
+Helper hatte die Aktualisierung nebenbei durch `camera.getWorldPosition`
+ausgelöst; der neue liest nur noch die vorhandene Matrix.
+
+**Auswirkung:** Beim Wechsel über die Ansichtsselektoren schrumpfen und
+wachsen die Endmarken während der Animation. Am Ende stimmt die Größe
+wieder. Der Fehler ist deshalb in Tests mit bereits aktualisierter
+Kamera und in Messungen nach dem Einschwingen nicht sichtbar.
+
+**Eigene Browser-Gegenprobe:** Feste Startkamera `(600,0,0)`, Ziel
+`(0,0,0)`, Perspektive, echte Ansichtswechsel
+`front → back → top → iso`. Ein passiver Beobachter liest unmittelbar
+**nach dem Rendern** die gezeichneten Balken. Nur vollständig im Bild
+und Clipvolumen liegende Balken zählen; alle 24 erfüllen dies in jedem
+aufgezeichneten Bild. Kein künstlicher Stillstand, keine verlangsamte
+Animation, keine erneute Positionierung der Marken im Messaufruf.
+
+| Ansichtswechsel | Gezeichneter Balken, Soll 10 CSS-px |
+| --- | ---: |
+| front → back | 8,5013–11,7411 px |
+| back → top | 9,2604–10,8475 px |
+| top → iso | 9,3272–10,7191 px |
+
+59 aufgezeichnete Bilder / 1416 sichtbare Balken. Die Endpunkte sind
+Geometrie-Endpunkte ohne Rundkappen; die angenommenen Strichbreiten
+2/4 px erklären diese Abweichung nicht.
+[Sonde](viewer-palette-fest.r67.tween.spec.ts),
+[roter Lauf](viewer-palette-fest.r67.tween.txt),
+[Messdaten pro Bild](viewer-palette-fest.r67.tween.json),
+[rein lesender Beobachter](viewer-palette-fest.r67.observer.patch).
+
+**Ursache gegengeprüft:** Nur in der Wegwerfkopie, nach allen Änderungen
+an der Kamera und vor der Marker-/Boxberechnung, einmal
+`camera.updateMatrixWorld()` eingefügt. Dieselben Start-/Zielpositionen,
+dieselben Ansichtswechsel und unveränderte Assertions ergeben
+**9,999971–10,000028 px**, 60 Bilder / 1440 sichtbare Balken; Sonde grün.
+[Gegenexperiment](viewer-palette-fest.r67.counterfactual.patch),
+[Lauf](viewer-palette-fest.r67.counterfactual.txt),
+[Messdaten](viewer-palette-fest.r67.tween-counterfactual.json).
+Das ist eine Ursachenprüfung, keine übernommene Produktkorrektur.
+
+**Korrektur/Wächter:** Die Kameramatrizen einmal pro zu zeichnendem Bild
+nach Controls/Tween/Parallelkamera-Korrektur und **vor sämtlichen**
+abhängigen Größen-/Musterberechnungen aktualisieren. Einen Wächter für
+die tatsächlich gerenderten Zwischenbilder aufnehmen; den gemeinsamen
+Helper auch für Nadeln und Typlabels absichern. Wichtig:
+`__viewerDiag.getBoxTicks()` setzt die Marken vor dem Lesen erneut und
+würde diesen Fehler nach dem Rendern verdecken. Der Wächter muss ohne
+diese nachträgliche Reparatur messen.
+
+### Validierung und Grenze des Browser-Gates
+
+- Typecheck/Build PASS; **172/172** vorhandene Unit-Tests und **2/2**
+  unveränderte eigene R66-Proben PASS.
+- Unveränderter Produktstand im Browser: **17/18 PASS**, einschließlich
+  aller zehn Nadeltests sowie Endmarken/Labels, Near-Clipping und
+  Musterverankerung. Die neue Animationssonde ist zusätzlich rot.
+- **Separater Testhinweis:** `the box edge alone` scheitert im Gesamtlauf
+  und in der gezielten Wiederholung an `both tones along the edge`
+  (DPR 1, einmal Dark, einmal Light). Derselbe Wächter besteht im
+  R66-Vorgänger einmal. Auf dem gesicherten
+  [Rendering](viewer-palette-fest.r67.render-404-box-edge-dpr1-light.png)
+  sind beide Töne vorhanden; aus diesem Testfehler allein leite ich
+  deshalb keinen weiteren Produktbefund ab. Messkante und
+  Pixelklassifikation bitte eingrenzen; das gemeldete vollständig grüne
+  Browser-Gate konnte ich so nicht reproduzieren. Dieser Test blieb
+  auch im ersten Kamera-Gegenexperiment rot und ist durch dessen
+  Größenkorrektur nicht als mitgelöst nachgewiesen.
+
+[Build](viewer-palette-fest.r67.build.txt),
+[Unit-Lauf](viewer-palette-fest.r67.unit.txt),
+[Browser-Gesamtlauf](viewer-palette-fest.r67.browser.txt),
+[gezielte Wiederholung](viewer-palette-fest.r67.browser-rerun.txt),
+[Vorgängervergleich](viewer-palette-fest.r67.base-box.txt),
+[Reproduktion und genaue Prüfgrenzen](viewer-palette-fest.r67.repro.md),
+[Artefakt-Prüfsummen](viewer-palette-fest.r67.manifest.json).
+Kein erneutes vollständiges Offline-Gate und kein Backend-Testlauf.
+
+Die Operator-Wahl der Labelvariante und Schreibweise bleibt separat.
+Keine Produktänderung im Live-Checkout, kein Zugriff auf :5173/:8000,
+keine Maschinenbefehle und kein Commit. Nur dieser Anhang und neue
+R67-Belege; frühere Belege unverändert. Eigener Mock beendet.

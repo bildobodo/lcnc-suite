@@ -1,0 +1,12 @@
+[2m[WebServer] [22m(node:228933) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:228961) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:228961) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/scenes.viewer.spec.ts:404:1 › the box edge alone: two tones, MACHINE_BOX_PX wide, cells within the pattern's band — at DPR 1 and 2 (5.3s)
+
+  1 passed (5.9s)

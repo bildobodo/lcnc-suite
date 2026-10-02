@@ -1,0 +1,60 @@
+[2m[WebServer] [22m(node:221341) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 18 tests using 1 worker
+
+(node:221359) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:221359) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/scenes.viewer.spec.ts:64:1 › a half-mixed pixel reads as half the limit, not as the backplot (6ms)
+  ✓   2 e2e/scenes.viewer.spec.ts:76:1 › the palette in four themes, on a model, a dense and a thin path — and no current line drawn (5.7s)
+  ✓   3 e2e/scenes.viewer.spec.ts:223:1 › every path line is drawn 2 CSS px — the path, the limit overlay and the backplot, at DPR 1 and 2 (12.7s)
+  ✘   4 e2e/scenes.viewer.spec.ts:404:1 › the box edge alone: two tones, MACHINE_BOX_PX wide, cells within the pattern's band — at DPR 1 and 2 (2.4s)
+(node:221954) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:221954) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   5 e2e/scenes.viewer.spec.ts:483:1 › the box cells hang on the geometry: every transition at a world cell boundary k / N — parallel and perspective, three directions, across a zoom (22.5s)
+  ✓   6 e2e/scenes.viewer.spec.ts:636:1 › an edge cut by the near plane shows both tones on its visible part (Codex R63, plan Fassung 3) (3.2s)
+  ✓   7 e2e/scenes.viewer.spec.ts:737:1 › the toolpath box's end marks stand off the background and the model in four themes; the type labels stand apart (16.8s)
+  ✓   8 e2e/scenes.viewer.spec.ts:912:1 › a reach chain with two visible pieces shows both tones in each (plan Fassung 3.1, Codex R66) (3.0s)
+  ✓   9 e2e/toolsetter.viewer.spec.ts:20:1 › the tool setter shows where it is set up, and only there (2.0s)
+  ✓  10 e2e/toolsetter.viewer.spec.ts:55:1 › G49 never moves the drawn tool; a table write moves its tip with the backplot's pen up (Codex R44 ST-I03) (4.0s)
+  ✓  11 e2e/toolsetter.viewer.spec.ts:95:1 › G49 with a tool in the spindle: the Tool strip says Off, a pin marks the control point at the nose (operator 2026-10-01) (3.7s)
+  ✓  12 e2e/toolsetter.viewer.spec.ts:145:1 › the drawn tip keeps the table offset's sign; without a table row it follows the active offset (Codex R45 ST-I04) (3.5s)
+  ✓  13 e2e/toolsetter.viewer.spec.ts:193:1 › the tool setter is a pin drawn over the machine while on top, hidden by the head when not (4.8s)
+  ✓  14 e2e/toolsetter.viewer.spec.ts:234:1 › the tool-change pin stands at the stored G30; without a read there is none (4.5s)
+  ✓  15 e2e/toolsetter.viewer.spec.ts:259:1 › a late G30 read never puts the pin back on an older position (Codex R50 VP-I19) (7.2s)
+  ✓  16 e2e/toolsetter.viewer.spec.ts:296:1 › a confirmed Save G30 moves the tool-change pin without an idle edge (Codex R50 VP-I18) (3.9s)
+  ✓  17 e2e/toolsetter.viewer.spec.ts:331:1 › Settings › Layers: an On top column for lines and markers, saved per layer (3.9s)
+  ✓  18 e2e/toolsetter.viewer.spec.ts:363:1 › the three pins are cyan over their dark carrier in every theme, after a switch and a rebuild (11.0s)
+
+
+  1) e2e/scenes.viewer.spec.ts:404:1 › the box edge alone: two tones, MACHINE_BOX_PX wide, cells within the pattern's band — at DPR 1 and 2 
+
+    Error: DPR 1 dark: both tones along the edge {"runs":[],"median":0}
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m2[39m
+    Received: [31m1[39m
+
+      464 |       const median = inner[Math.floor(inner.length / 2)] ?? 0;
+      465 |       const runDump = JSON.stringify({ runs, median });
+    > 466 |       expect(new Set(names).size, `${where}: both tones along the edge ${runDump}`).toBe(2);
+          |                                                                                     ^
+      467 |       expect(median >= 4 && median <= 16, `${where}: cells within 4.8 … 15 CSS px ${runDump}`).toBe(true);
+      468 |       expect(cleanProfiles, `${where}: clean profiles across the edge`).toBeGreaterThanOrEqual(2);
+      469 |     }
+        at /tmp/codex-r67-33ut4bjx/lcnc-webui/e2e/scenes.viewer.spec.ts:466:85
+
+    attachment #3: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r67-browser-output/scenes.viewer-the-box-edge-11bc9-ern-s-band-—-at-DPR-1-and-2/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r67-browser-output/scenes.viewer-the-box-edge-11bc9-ern-s-band-—-at-DPR-1-and-2/error-context.md
+
+  1 failed
+    e2e/scenes.viewer.spec.ts:404:1 › the box edge alone: two tones, MACHINE_BOX_PX wide, cells within the pattern's band — at DPR 1 and 2 
+  17 passed (1.9m)

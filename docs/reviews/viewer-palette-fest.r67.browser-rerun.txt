@@ -1,0 +1,44 @@
+[2m[WebServer] [22m(node:225470) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:225482) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:225482) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/scenes.viewer.spec.ts:404:1 › the box edge alone: two tones, MACHINE_BOX_PX wide, cells within the pattern's band — at DPR 1 and 2 (2.1s)
+(node:225609) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:225609) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 e2e/scenes.viewer.spec.ts:912:1 › a reach chain with two visible pieces shows both tones in each (plan Fassung 3.1, Codex R66) (3.5s)
+
+
+  1) e2e/scenes.viewer.spec.ts:404:1 › the box edge alone: two tones, MACHINE_BOX_PX wide, cells within the pattern's band — at DPR 1 and 2 
+
+    Error: DPR 1 light: both tones along the edge {"runs":[],"median":0}
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m2[39m
+    Received: [31m1[39m
+
+      464 |       const median = inner[Math.floor(inner.length / 2)] ?? 0;
+      465 |       const runDump = JSON.stringify({ runs, median });
+    > 466 |       expect(new Set(names).size, `${where}: both tones along the edge ${runDump}`).toBe(2);
+          |                                                                                     ^
+      467 |       expect(median >= 4 && median <= 16, `${where}: cells within 4.8 … 15 CSS px ${runDump}`).toBe(true);
+      468 |       expect(cleanProfiles, `${where}: clean profiles across the edge`).toBeGreaterThanOrEqual(2);
+      469 |     }
+        at /tmp/codex-r67-33ut4bjx/lcnc-webui/e2e/scenes.viewer.spec.ts:466:85
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r67-rerun-output/scenes.viewer-the-box-edge-11bc9-ern-s-band-—-at-DPR-1-and-2/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r67-rerun-output/scenes.viewer-the-box-edge-11bc9-ern-s-band-—-at-DPR-1-and-2/error-context.md
+
+  1 failed
+    e2e/scenes.viewer.spec.ts:404:1 › the box edge alone: two tones, MACHINE_BOX_PX wide, cells within the pattern's band — at DPR 1 and 2 
+  1 passed (6.7s)
