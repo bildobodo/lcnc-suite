@@ -8016,3 +8016,140 @@ gegen den Plan `docs/reviews/viewer-marks.plan.md`, Fassungen 2 bis 3.1, dazu di
   - Nadeln.
 - **Offen beim Operator:** die Labelwahl (i) / (ii) und die Schreibweise (Typlabels groß,
   Nadel-Labels klein).
+
+---
+
+## Review R66 · Codex · Paket 4 Implementierung · 2. Oktober 2026
+
+**Ergebnis: `findings`. Zwei offene Befunde: VP-I27 und VP-I28 (P2).**
+Die Abweichung **2 px Kern / 4 px Unterlage ist ausdrücklich angenommen**.
+Sie ist unabhängig von der unten gefundenen Längenabweichung der Endmarken.
+
+Geprüft: `aa3bdb8..9001850` auf `feat/viewer-marks`, aus einer Archivkopie
+von `9001850`, gegen den bis Fassung 3.1 angenommenen Plan und die
+Abweichung in Fassung 3.2. Der Live-Checkout `63ec25b` auf
+`feat/keypad-keys` ist ein anderer Produktstand und wurde nicht ausgeführt.
+
+### Entscheidung zur Abweichung aus Abschnitt 2: angenommen
+
+Ich nehme **2/4 CSS-px für die Endmarken an, so wie es die Implementierung
+für alle DPR verwendet**. DPR 1 ist der begründende Fall; die Konstanten
+schalten bei DPR 2 nicht wieder auf 1/3 um.
+
+Die eigene Wiederholung des Endmarken-Browserwächters besteht in Hell,
+Dunkel und beiden HC-Themes, jeweils vor Hintergrund und Modell.
+Der Test misst die stärkste Abhebung im Querprofil jedes ausgewählten
+Armpunkts gegenüber demselben Ort ohne Bounds und erreicht dort 3:1.
+Das ist ein konkreter Darstellungsnachweis, keine pauschale
+Kontrastgarantie für jede denkbare Projektion.
+
+Die gelieferten [Endmarken vor dem Modell](viewer-palette-fest.r66.claude-ticks-model-x4.png),
+die [Übersicht](viewer-palette-fest.r66.claude-overview.png) und
+[deckungsgleiche Boxen](viewer-palette-fest.r66.claude-coinciding.png)
+bestätigen die beabsichtigte Unterscheidung. Diese Bilder stammen von
+Claude und wurden unverändert übernommen; die
+[Herkunft samt Hashes](viewer-palette-fest.r66.render-provenance.json)
+ist dokumentiert. Für die Annahme der breiteren Striche braucht es keine
+weitere Vermittlung durch den Operator.
+
+### VP-I27 · P2: Zur selben Verzweigung zurückkehrende Konturen haben keine stabile Richtung
+
+**Stelle am Prüfstand:** `lcnc-webui/src/viewer/geoDash.ts:129–145`,
+insbesondere der Tie-Breaker mit Segmentindex in `ends.sort`.
+
+Zwei quadratische Konturen mit einem gemeinsamen Eckpunkt bilden dort
+einen Knoten vom Grad vier. Jede Kontur läuft von diesem Knoten zu
+demselben Knoten zurück. `buildChains` behandelt beide über den
+Verzweigungs-/Endpunkt-Zweig; die stabile Richtungswahl des späteren
+Ring-Zweigs greift nicht. Da beide Endpositionen gleich sind, entscheidet
+der Speicherindex, welches Ende zuerst besucht wird.
+
+**Gegenprobe:** Dieselben acht Segmente, nur ihre Reihenfolge umgekehrt.
+Die Zahl der Ketten bleibt zwei, aber bei zulässigem `N=16` vertauschen
+sich Hell und Dunkel an **allen acht verglichenen Weltpunkten**.
+Geometrie und Kamera müssen sich dafür nicht ändern. Damit ist die
+zugesagte Unabhängigkeit der Phase von Speicherreihenfolge und
+gespeicherter Richtung nicht erfüllt; bei anders angeordneten Daten
+kann der Neuaufbau das Muster umkehren.
+
+**Korrektur:** Auch bei identischen Anfangs-/Endpositionen die Richtung
+geometrisch bestimmen, beispielsweise über den lexikographisch kleineren
+Nachbarn wie bei den isolierten Ringen; nicht über den Segmentindex.
+Ein eventuell weiterer Gleichstand muss ebenfalls geometrisch aufgelöst
+werden. Die Verzweigung darf weiterhin eine Kette beenden.
+
+**Wächter:** Den bisherigen Permutationstest um eine zu einem
+Verzweigungspunkt zurückkehrende Kontur erweitern und `t` bzw. die
+Farbphase an denselben Weltpunkten vergleichen. Zusätzlich bleibt der
+im Plan benannte gerenderte Reach-Fall mit zwei sichtbaren Stücken
+nachzuweisen: Der vorhandene `boxLines.test.ts` prüft dafür die
+N-Auswahl, die Browser-Spec prüft bislang die Boxen.
+
+Belege: [unveränderte Produktfunktionen aufrufende Sonde](viewer-palette-fest.r66.probe.test.ts),
+[beide Zuordnungen](viewer-palette-fest.r66.chains.json),
+[roter Lauf](viewer-palette-fest.r66.probe.txt).
+
+### VP-I28 · P2: Endmarken wachsen in Perspektive zum Bildrand hin
+
+**Stelle am Prüfstand:** `lcnc-webui/src/viewer/boxLines.ts:480–485`,
+perspektivisches `wpp` in `makeBoxTicks.pose`.
+
+Die Umrechnung der geplanten fünf Pixel je Arm verwendet die räumliche
+Entfernung `ew.distanceTo(cam)`. Für einen Querstrich parallel zur
+Bildebene ist jedoch die Tiefe entlang der Blickachse maßgeblich.
+Außerhalb der Bildmitte ist die räumliche Entfernung größer; dadurch
+werden die Arme auf dem Bildschirm länger. Der vorhandene Test sieht
+eine fast mittige Box und verdeckt den Fehler mit seiner Toleranz.
+
+**Gegenprobe:** Kamera mit 45° vertikalem Blickwinkel, Viewport
+1000×600, Einheitsbox bei `(2,4;0;−5)`. Alle 24 Balken liegen vollständig
+im Bild; ihre projizierten Längen betragen **10,619–11,948 CSS-px**
+statt 10 px. Das ist die Länge zwischen den Geometrie-Endpunkten,
+**ohne Rundkappen**. Die erlaubte Strichbreite 2/4 px erklärt die
+Abweichung daher nicht. Beim Verschieben/Schwenken verändert sich das
+Formmerkmal um knapp 20 %, obwohl es bildschirmgroß bleiben soll.
+
+**Korrektur:** Den Maßstab aus der Kameratiefe bestimmen oder die
+Bildschirm-Endpunkte bei gleicher Tiefe zurückprojizieren. Die
+Strichbreiten 2/4 px bleiben dabei unverändert. Der bestehende Helper
+`worldPerPixel` verwendet ebenfalls räumliche Entfernung; ihn nur
+aufzurufen würde diesen Fehler nicht beheben.
+
+**Wächter:** Die vollständig sichtbare Box nahe dem Viewport-Rand in
+den Perspektivtest aufnehmen; nach Schwenken und unter beiden
+Projektionen bleiben die Arme fünf CSS-px lang. Bei einer gemeinsamen
+Helper-Korrektur auch die davon abhängigen Marker/Labels nachprüfen.
+
+Belege: [Sonde](viewer-palette-fest.r66.probe.test.ts),
+[24 projizierte Balken](viewer-palette-fest.r66.tick-size.json),
+[roter Lauf](viewer-palette-fest.r66.probe.txt).
+
+### Weitere Ergebnisse und Grenzen
+
+- Die vorhandenen Wächter zu Musterverankerung, Stufenwechsel,
+  Near-Clipping, Farbrollen, Typlabel-Ebenen und Neuaufbau bestehen.
+  Cyan bleibt nach Themewechsel und Neuaufbau auf allen drei Nadeln.
+- Der Nebenfix für flache Programm-Boxen ist nachvollziehbar und durch
+  die Controller-Tests in beiden Linienmodi abgesichert: Ein einzelnes
+  Nullmaß unterdrückt die Überlaufdarstellung nicht mehr.
+- Kleiner Planabgleich ohne eigenen Abnahmeblocker: Die in Fassung 3
+  angekündigte einmalige Konsolenmeldung bei Stufenkappung ist in
+  `chooseCells`/`GeoDashState.update` noch nicht vorhanden. Entweder
+  ergänzen oder die Diagnosezusage ausdrücklich zurücknehmen.
+- Labelwahl (i)/(ii) und Schreibweise bleiben die angekündigte
+  Operator-Sichtprüfung. Die technische Prüfung ersetzt diese Wahl
+  nicht. Die bereits benannte orange Flackergrenze wurde nicht als
+  neuer Fehler dieses Diffs gewertet.
+
+**Eigene Validierung:** Typecheck/Build PASS, **169/169** vorhandene
+Unit-Tests und **6/6** Browserprüfungen PASS; **zwei gezielte Gegenproben
+rot** mit den oben beschriebenen Produktbefunden. Kein erneutes
+vollständiges Offline-Gate und kein Backendlauf für diesen Frontend-Diff.
+[Build](viewer-palette-fest.r66.build.txt),
+[Unit-Tests](viewer-palette-fest.r66.unit.txt),
+[Browserprüfungen](viewer-palette-fest.r66.browser.txt),
+[Reproduktion und Prüfgrenzen](viewer-palette-fest.r66.repro.md).
+
+Keine Produktänderung im Live-Checkout, keine Maschinenbefehle, keine
+Live-Port-Zugriffe und kein Commit. Nur dieser Anhang und neue R66-Belege;
+frühere Belege unverändert. Der eigene Mock ist beendet.

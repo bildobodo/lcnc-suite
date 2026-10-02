@@ -1,0 +1,20 @@
+[
+  {
+    "source": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/pkg4/render/A-overview-ii-light.png",
+    "evidence": "viewer-palette-fest.r66.claude-overview.png",
+    "sha256": "51a70c3525f7a0b984da4b56279cc9d6a144d5cfc52c467f150266268c100484",
+    "origin": "Claude rendering; copied unchanged, not an own browser capture"
+  },
+  {
+    "source": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/pkg4/render/H2-light-model-x4.png",
+    "evidence": "viewer-palette-fest.r66.claude-ticks-model-x4.png",
+    "sha256": "8a60c0ed9fc5debe2287525c7fa2767112017348ead81ce3a6a4af8dbbfc8826",
+    "origin": "Claude rendering; copied unchanged, not an own browser capture"
+  },
+  {
+    "source": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/pkg4/render/D-coinciding-light.png",
+    "evidence": "viewer-palette-fest.r66.claude-coinciding.png",
+    "sha256": "ef992f68b855e3f8e4dc482e1bc4869c6c812dd22c092ee3af86b89d72617996",
+    "origin": "Claude rendering; copied unchanged, not an own browser capture"
+  }
+]
