@@ -263,3 +263,34 @@ test("a late read after a selection change never shows the earlier macro's text"
   await expect(code, "the late park reply changed nothing").toContainText("o<face_top> sub");
   await expect(code).not.toContainText("o<park>");
 });
+
+// The tab never runs out sideways — desktop, touch portrait 100 % and 150 %
+// (narrow, 272 px of content): the list with the longest example names, every
+// file on the bar (the order buttons show), the editor open. Only the code
+// itself may scroll sideways (.cm-scroller). Found by the renders: the order
+// buttons side by side and an unbreakable file name made the list 320 px wide.
+test("the Macros tab never runs out sideways: desktop, portrait 100 % and 150 %", async ({ page }) => {
+  for (const vp of [{ w: 1600, h: 1000, touch: false, zoom: 1 }, { w: 900, h: 1200, touch: true, zoom: 1 },
+                    { w: 900, h: 1200, touch: true, zoom: 1.5 }]) {
+    const folder = new Folder();
+    for (const n of ["go_to_g30_macro", "spindle_warmup", "coolant_flush"]) {
+      folder.files.set(n, { text: `o<${n}> sub\no<${n}> endsub\n`, meta: { title: n, units: null, frame: null, params: [] } });
+    }
+    await ready(page, folder, { macros: { macros: [], bar: ["park", "face_top", "go_to_g30_macro", "spindle_warmup", "coolant_flush"] } });
+    await page.setViewportSize({ width: vp.w, height: vp.h });
+    if (vp.touch) await page.evaluate(() => document.documentElement.classList.add("touch-device"));
+    if (vp.zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, vp.zoom);
+    const select = page.getByRole("combobox", { name: "Side panel" });
+    if (await select.isVisible()) await select.selectOption({ label: "Macros" });
+    else await page.getByRole("tab", { name: "Macros", exact: true }).click();
+    await expect(page.locator(".macrosTab")).toBeVisible();
+    await page.locator('[data-macro-row="go_to_g30_macro"]').getByRole("button", { name: "Open go_to_g30_macro.ngc" }).click();
+    await expect(page.locator(".macroCode .cm-content")).toBeVisible();
+    await page.waitForTimeout(300);
+    const sideways = await page.evaluate(() => [...document.querySelectorAll(".macrosTab, .macrosTab *")]
+      .filter(e => !(e as HTMLElement).closest(".cm-scroller"))
+      .filter(e => getComputedStyle(e).overflowX !== "visible" && e.scrollWidth > e.clientWidth + 1)
+      .map(e => `${(e as HTMLElement).className} ${e.scrollWidth} > ${e.clientWidth}`));
+    expect(sideways, `${vp.w}×${vp.h} ${vp.zoom * 100} %`).toEqual([]);
+  }
+});

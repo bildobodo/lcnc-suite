@@ -409,13 +409,15 @@ async function confirmConvert() {
               <MachineBtn type="inline" :selected="session?.name === f.name" :aria-label="`Open ${f.name}.ngc`"
                           @click="select(f.name)">{{ f.title ?? f.name }}</MachineBtn>
               <div class="macroFacts">
-                <span class="label-muted md mono">{{ f.name }}.ngc</span>
+                <span class="label-muted md mono fileName">{{ f.name }}.ngc</span>
                 <span class="label-muted md">· {{ f.params.length === 1 ? '1 value' : `${f.params.length} values` }} ·</span>
                 <span :class="f.runnable ? 'text-ok' : 'text-warn'">{{ f.runnable ? 'Ready' : f.reason }}</span>
               </div>
             </td>
             <td>
-              <span v-if="barNames.includes(f.name)" class="row-tight">
+              <!-- one above the other: side by side they made the list 320 px
+                   wide in the 272 px of a narrow pane (150 % portrait) -->
+              <span v-if="barNames.includes(f.name)" class="stack-tight">
                 <MachineBtn type="listAction" :disabled="barNames.indexOf(f.name) === 0" :aria-label="`Move ${f.name} up in the bar order`"
                             @click="moveOnBar(f.name, -1)"><ChevronUp :size="14" /></MachineBtn>
                 <MachineBtn type="listAction" :disabled="barNames.indexOf(f.name) === barNames.length - 1"
@@ -559,6 +561,13 @@ async function confirmConvert() {
   flex-wrap: wrap;
   column-gap: var(--gap-tight);
   font-size: var(--fs-sm);
+}
+/* A long file name (go_to_g30_macro.ngc) breaks where the column ends
+   instead of widening the list past a narrow pane (.label-muted is nowrap). */
+.fileName {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .macroObject {
   font-weight: var(--fw-semibold);
