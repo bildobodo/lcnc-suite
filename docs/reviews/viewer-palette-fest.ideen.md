@@ -8613,3 +8613,205 @@ liegt daneben als `makros.plan.f1.md`.
    richtig benannt?
 6. Settings › Macros zieht in den Tab („Earlier macros“); Settings verliert den Unterreiter. Passt
    das zu Anhang B und den Dialogfällen 3 und 20?
+
+---
+
+## Review R69 · Codex · Operator-Entscheidungen, Integration und Makro-Plan · 2. Oktober 2026
+
+**Ergebnis: Teil 1 und Teil 2 angenommen; Teil 3 noch `findings`.** Die Typlabel-Regel auf
+`4b0326f` entspricht der Operator-Entscheidung. Am Integrationsstand `3c9cc25` finde ich in den
+geprüften Änderungen keinen neuen Implementierungsbefund. Für Paket 5, Plan Fassung 2 auf
+`04ef2e5`, bleiben **VP69-01 bis VP69-05** offen. Das sind Planbefunde, keine Behauptung über
+bereits implementierte Makrorouten. Eine Entscheidung des Operators ist dafür nicht nötig.
+
+### Teil 1 und 2: Umsetzung und Integration
+
+- **Typlabels:** `setLayerOnTop` schaltet `bounds` mit dem Maschinenlabel und `toolpathBounds` mit
+  dem Programmlabel. Das bisher feste `applyOnTop(..., true)` bei der Erzeugung entfällt;
+  `applyAllOnTop` setzt den Zustand nach dem Aufbau. Die Prüfung von unten mit verdeckender
+  Grundplatte besteht, einschließlich der getrennten Schalter und der tatsächlichen Textpixel.
+  Dass ein Label bei ausgeschaltetem „On top“ verdeckt sein darf, ist jetzt ausdrücklich
+  angenommen. Das hebt die technische Abnahme aus R68 nicht auf.
+- **Integration:** Die Konfliktauflösung zu `LAYER_COLUMNS, HUD_LAYER` erhält die Spalten aus
+  Paket 2 und entfernt den entfallenen `TwoTone`-Typ aus Paket 4. Die Ebeneneinstellungen,
+  Settings-Anordnung und kompakte Leiste funktionieren in den gezielten gemeinsamen Prüfungen.
+  Der zuvor auffällige Test zur Erklärung eines reservierten Werkstücksystems besteht ebenfalls.
+- **Eigene Prüfung:** Archiv von `04ef2e5`; dessen Produktdateien entsprechen `3c9cc25`, hinzu
+  kommen nur die zwei Makro-Plandateien. Build/Typprüfung **PASS**, **181/181 Unit-Tests** in acht
+  Dateien, **9/9 Browserprüfungen** mit einem Worker. Darunter vier Jog-/Setup-Layouts,
+  Settings bei 100/150 %, Label-Verdeckung/Endmarken in den Themes, Größen während einer
+  Kameraanimation und gespeicherte On-top-Schalter. Das gemeldete vollständige Offline-Gate
+  wurde nicht nochmals ausgeführt. Der vereinbarte letzte Live-Blick des Operators bleibt separat.
+
+### Teil 3: offene Planbefunde
+
+#### VP69-01 · P1 · Ein MDI-o-Call leert den Cache am Ende, nicht zwingend vor seinem ersten Einstieg
+
+**Stelle:** `makros.plan.md:401–437`, insbesondere die Folgerung in Zeile 411 und 420;
+Startablauf in Zeile 253–262.
+
+Die Quellenstelle für das Leeren **nach** einem MDI-o-Call ist richtig. Daraus folgt aber nicht,
+dass jeder `run_macro` mit leerem Cache beginnt. Der im Plan selbst benannte MDI-Remap-Fall
+berührt diesen Vertrag unmittelbar:
+
+1. Ein MDI-Remap ruft eine Makrodatei `o<foo> call` als Helfer auf und endet ohne Fehler und ohne
+   einen zwischenzeitlichen Reset. Dadurch ist `foo` in `offset_map` bekannt.
+2. Im Leerlauf wird `foo.ngc` gespeichert, etwa mit einem längeren Metadatenkopf. Der neue Hash
+   ist korrekt; die alte Byteposition des Unterprogramms passt nicht mehr.
+3. `run_macro` bestätigt diesen neuen Hash. Die Maschine ist schon in MDI, daher kehrt
+   `set_mode(MDI)` ohne Moduswechsel zurück.
+4. `control_back_to` nimmt bei einem bekannten Namen den gespeicherten Dateipfad und Offset.
+   Es überspringt die neue Namensauflösung und sucht nicht den neuen Unterprogrammanfang.
+   Das Leeren beim späteren Ende dieses Aufrufs kommt zu spät.
+
+Das ist eine **Quellcode-Gegenprüfung**, keine hier durchgeführte native Maschinenprobe:
+`rs274ngc_pre.cc:348–351` gegenüber `455–486`, `interp_o_word.cc:549–590`, dazu der normale
+MDI-Abschluss ohne Reset in `emctaskmain.cc:682–699`. Im Gateway bestätigt
+`gateway.py:3010–3025` den frühen Rücksprung bei bereits aktivem MDI. Die benutzten lokalen
+Interpreter-Quellen und ihre Hashes stehen im R69-Quellbeleg; mögliche Debian-Patches wurden
+nicht unabhängig verifiziert.
+
+**Vor Plan-Agreement:** Den leeren beziehungsweise zur bestätigten Datei passenden
+Interpreter-Cache **vor dem eigentlichen Einstieg** sicherstellen und das konkrete Verfahren
+benennen. Ein `synch()` oder das heutige `set_mode(MDI)` allein reicht nicht. Kein impliziter
+Abort als unbegründeter Ersatz. Als Abnahmefall einen MDI-Remap mit anschließend geändertem
+Helferkopf, dann `run_macro` ohne zwischenzeitlichen Moduswechsel aufnehmen. Der Aufruf muss
+nachweislich den neuen Unterprogrammanfang lesen oder vor der Ausführung ablehnen. Die Aussage
+„nur innerhalb eines laufenden Programms“ entsprechend korrigieren.
+
+#### VP69-02 · P1 · Schreibprüfung und Start brauchen einen gemeinsamen Vertrag bis zur Übernahme durch den Interpreter
+
+**Stelle:** `makros.plan.md:237–269`, `419–424`; vorhandene Infrastruktur
+`gateway.py:2945–3007`, `3752–3757`, `6626–6775`.
+
+Eine Makrosperre plus Abfrage „Interpreter ruht“ lässt noch zwei Zeitfenster offen. Eine
+Schreibroute kann im Leerlauf zugelassen werden, während des asynchronen Empfangens/Schreibens
+abgeben und erst **nach** einem anderen Start veröffentlichen. Umgekehrt kann der Start bereits
+an NML gesendet sein, während der beobachtete Interpreterzustand noch IDLE ist. Der vorhandene
+MDI-Pfad verwendet `_cmd_blocking(..., wait=None)`; dessen Rückkehr bestätigt nur das Senden,
+nicht das Lesen der Makrodatei. Die allgemeine `_cmd_lock` ist bisher eine andere Sperre als die
+geplante Makrosperre.
+
+Auch „nur eigene Schreibwege“ ist größer als die neuen Makrorouten: Liegt der Makroordner im
+NC-Verzeichnis, kann `/save` dieselbe Datei erreichen. Selbst bei getrennten Ordnern kann
+`/upload` kurz nach der Namensprüfung eine gleichnamige Datei in `PROGRAM_PREFIX` veröffentlichen;
+sie gewinnt dann die im Plan dokumentierte Suche vor `SUBROUTINE_PATH`. Das ist ein
+Suite-Schreibweg, kein externer Editor.
+
+**Vor Plan-Agreement:** Festlegen, wie alle betroffenen Suite-Schreiber und Starts dieselbe
+Zulassungsentscheidung teilen. Dazu gehören die Lock-Reihenfolge, die erneute Prüfung unmittelbar
+vor dem atomaren Veröffentlichen sowie ein ausstehender Start, bis der Controller seine
+Übernahme beziehungsweise seinen Abschluss nachweislich gemeldet hat. Ein Disconnect oder eine
+Handler-Cancellation darf diesen Zustand nicht vorzeitig freigeben. Auch konkurrierende
+MDI-/AUTO-Starts und das Entstehen eines vorrangigen Namens müssen erfasst sein. Eine andere,
+nachweislich an die bestätigte Quelle gebundene Ausführung ist ebenfalls möglich.
+
+Das verlangt keine während eines ganzen Makrolaufs gehaltene Befehlssperre: langsame Uploads
+außerhalb des kurzen kritischen Abschnitts vorbereiten und Abort/E-Stop erreichbar lassen.
+Abnahmefälle: verzögerter Upload gegen Start; Start bereits gesendet bei noch IDLE meldendem
+Status; Schreiben über `/save`; gleichnamiger Upload in `PROGRAM_PREFIX`; Abbruch des
+anfragenden Clients. Für relative Suchpfade die angenommene milltask-CWD-Bindung als
+Konfigurationsvoraussetzung absichern, statt sie nur aus dem aktuellen Sim abzuleiten.
+
+#### VP69-03 · P2 · Import mit „Replace“ umgeht den vorgesehenen Revisionskonflikt
+
+**Stelle:** `makros.plan.md:237–243`.
+
+PUT und DELETE nennen eine Basisrevision, `POST /macro-upload?overwrite=1` hingegen nur eine
+pauschale Ersetzung. Beispiel: Client A bestätigt das Ersetzen von Revision r1; Client B
+speichert inzwischen r2; As Import ersetzt r2 ohne neuen Konflikt. Genau diesen Verlust schützt
+Save bereits ab. Die Bestätigung „Replace“ ist ohne Zielrevision nicht an den gesehenen Stand
+gebunden.
+
+**Vor Plan-Agreement:** Auch einen ersetzenden Import an die bestätigte Basisrevision binden
+und sie unter derselben Schreibsperre beim Veröffentlichen prüfen. Bei Änderung 409 mit dem
+aktuellen Stand und erneuter bewusster Entscheidung; kein automatisches Wiederholen mit neuer
+Basis. Neuanlage behält die vorhandene atomare Nicht-Ersetzen-Regel. Ein Zwei-Client-Test muss
+r2 erhalten, wenn As Ersetzungsbestätigung noch r1 betrifft.
+
+#### VP69-04 · P2 · Die Einheiten der Parameter brauchen eine Regel für den modalen Eintrittszustand
+
+**Stelle:** `makros.plan.md:208–213`, `253–262`, `283–291`.
+
+`length` wird in Maschineneinheiten angeboten, `feed` in Einheit/min und `rpm` als Drehzahl.
+Der Ablauf übergibt aber zunächst nur Zahlen. Bei einer mm-Maschine mit aktivem G20 würde ein
+Makro, das den angebotenen Wert „10 mm“ direkt als `X#1` verwendet, ihn als 10 inch lesen.
+Analog sind ein geerbtes G95 für einen als Einheit/min angebotenen Vorschub und G96 für einen
+als rpm angebotenen Wert nicht gleichbedeutend. Diese Modi und ihre Bedeutung sind in der
+[LinuxCNC-G-Code-Dokumentation](https://linuxcnc.org/docs/2.9/html/gcode/g-code.html) beschrieben.
+
+**Vor Plan-Agreement:** Festlegen, wer den Vertrag herstellt: etwa eine klare Autorenregel mit
+passendem Einstieg in Vorlagen/Beispielen, oder ein ausdrücklich definierter Aufrufrahmen.
+Die Beispielmakros müssen die benötigten Einheiten und Modi vor der ersten entsprechenden
+Verwendung setzen beziehungsweise korrekt umrechnen; „am Ende wiederherstellen“ allein löst
+es nicht. Tests für metrische/imperiale Maschinenbasis und abweichenden aktiven Längenmodus
+sowie für die benutzten Vorschub-/Spindelmodi aufnehmen.
+
+Die Wiederherstellungszusage außerdem auf die benannten Modengruppen und den normalen Rückweg
+präzisieren. M73 stellt beim `endsub`/`return` wieder her, **nicht bei Abort**; der Bewegungsmodus
+G0/G1 gehört auch nicht zu dessen gespeicherten Zuständen. Das ausdrücklich dokumentieren,
+keine automatische Wiederaufnahme von Spindel oder Bewegung nach Abort ergänzen.
+Quelle: [LinuxCNC M70/M73](https://linuxcnc.org/docs/2.9/html/gcode/m-code.html#mcode:m73).
+
+#### VP69-05 · P2 · Run und sichtbarer Editorentwurf haben noch keine gemeinsame Freigaberegel
+
+**Stelle:** `makros.plan.md:311–318`, `340–367`.
+
+Die Sitzung hält `original`/Revision und schützt Tabwechsel. Es steht aber noch nicht fest, was
+Run macht, solange im sichtbaren Editor ungespeicherter Text steht. Dann können im sichtbaren
+Text bereits andere Zielkoordinaten oder Grenzwerte stehen, während ein korrekt revisionsgebundener
+Aufruf weiterhin den alten Plattentext ausführt. Ein ähnlicher Widerspruch entsteht, wenn die
+Liste eine neue Revision übernimmt, der Editor aber noch den alten Text zeigt. Der Hold-Key
+allein verhindert keinen dieser beiden Fälle.
+
+**Vor Plan-Agreement:** Empfehlung entsprechend dem vorhandenen Programmeditor
+(`GcodePanel.vue:937–942`): Run für **dieselbe Makrodatei**, sowohl im Tab als auch an der Leiste,
+bei ungespeichertem Entwurf, noch laufendem Textladen oder ungelöstem Versionskonflikt sperren,
+mit verständlichem Grund. Erst Save oder Discard/Reload stellt wieder eine gemeinsame Basis
+her; kein stilles Autosave. Andere unveränderte Makros müssen dadurch nicht generell gesperrt
+werden. Import und Delete derselben Datei müssen den Entwurf ebenfalls berücksichtigen.
+
+Abnahmefälle: Änderung des Rumpfs bei unverändertem Kopf; Änderung des Kopfes; neue Revision
+von einem anderen Client; späte Leseantwort nach Auswahlwechsel; vorhandener Parameterdialog
+und laufender Hold. Sichtbarer Text, Parameterdefinition, Hold-Key und Startrevision müssen
+zusammenpassen.
+
+### Antworten auf die sechs Fragen und Umsetzungshinweise
+
+| Frage | Antwort |
+|---|---|
+| 1 · Revision und Schreibsperre | **Noch nicht ausreichend**, siehe VP69-01/02. Hash und Namensauflösung sind sinnvoll, ersetzen aber weder den passenden Interpreter-Cache noch die gemeinsame Zulassung von Schreiben und Start. VP69-03 schließt zusätzlich den Importkonflikt. |
+| 2 · Kopf und Textprüfung | Das kleine Gateway-Format und „fehlerhaft gelistet, nicht ausführbar“ sind passend. VP69-04 ergänzt die Einheitenbedeutung. Doppelte Positionsnummern/Keys, leere Keys, widersprüchliche Grenzen und nicht ganzzahlige Defaults bei `integer` eindeutig ablehnen. Normale Beschreibungskommentare von unbekannten reservierten Metadaten unterscheiden. M2/M30/% als begrenzte Textprüfung beibehalten und auch berechnete beziehungsweise indirekte Befehle als Grenze nennen; das ist keine semantische Prüfung des Programms. |
+| 3 · FRAME machine | **Ja, als ausdrücklicher Autorenvertrag**, einschließlich indirekter G53-Helfer wie `go_to_g30`. Eine direkte G53-Suche kann als zusätzliche Diagnose fehlende Deklarationen finden; sie darf die Deklaration und das Backend-Gate nicht ersetzen, weil Unteraufrufe unsichtbar bleiben. |
+| 4 · Gemeinsame Schmalschwelle | **Ja.** Das gemessene Inhaltsbudget entscheidet, nicht die Schätzung 422. Neben 100/150 % auch unmittelbar unter/an/über der neuen Schwelle prüfen, einschließlich aktivem Reiter, Touchmaßen und Fokus beim Wechsel zur Auswahl. Alle bestehenden Schmalregeln gemeinsam umzuschalten ist konsistent. |
+| 5 · Viewer plus horizontale Leiste | **Ja.** Das Mindesthöhenbudget umfasst die gemeinsame Viewer-/Leistengruppe, die Leiste belegt darin genau ihre eigene Zeile. Das erhält das Seitenpanel. Bei leerer Leiste keine Restlücke. Zusätzlich zum bereits geplanten Hold-Abbruch den Fokus beim Orientierungswechsel einem logischen Makro zuordnen; ein offener Parameterdialog braucht einen gültigen Rückkehrpunkt, wenn sein Auslöser neu gemountet wurde. Scrollen darf keinen Hold auslösen; jeder Button muss per Touch und Tastatur ganz erreichbar sein. |
+| 6 · Umzug aus Settings, Anhang B | **Ja, mit aktualisiertem Dialoginventar.** Fall 20 bleibt eine Löschbestätigung mit Cancel als Initialfokus und einem Ersatz-Fokusziel nach gelöschter Zeile. Fall 3 verliert nur den Makro-Anteil im Settings-Host: die dort weiter vorhandene Gamepad-Entwurfswache bleibt. Der neue Macros-Tab bekommt seine eigene Discard-Wache; Hintergrund/Escape bedeutet „Keep editing“. Fall 6 (Parameterformular ohne Schließen durch Hintergrundklick) bleibt erhalten. |
+
+Zwei ergänzende Hinweise ohne eigene Befundnummer:
+
+- Bei „Convert to file“ sind heutige freie Parametertexte nicht automatisch endliche Zahlen für
+  den neuen Kopf. Nicht konvertierbare Defaults oder Platzhalter gezielt benennen und die alte
+  Definition erhalten; keine stille Zahlkonvertierung. Ein Beispiel mit einem Ausdruck als
+  bisherigem Default gehört zum Migrationstest.
+- Die ältere Bestandsbeschreibung am Plananfang nennt noch die inzwischen korrigierte
+  Suchreihenfolge/Großschreibung. Auf eine Aussage vereinheitlichen. Die INI-Längengrenze an den
+  tatsächlich gelesenen Bytes prüfen, nicht allein an der Anzahl von Unicode-Zeichen.
+
+### Belege und Grenzen der Prüfung
+
+Neue, ausschließlich für diese Runde angelegte Belege:
+
+- [Manifest und Prüfkommandos](viewer-palette-fest.r69.manifest.json)
+- [Integrationsdiff und Produktgleichheit](viewer-palette-fest.r69.integration.txt)
+- [Quellstellen zu Cache, Befehls- und Schreibwegen](viewer-palette-fest.r69.source-audit.txt)
+- [Build/Typprüfung](viewer-palette-fest.r69.build.txt), [181 Unit-Tests](viewer-palette-fest.r69.unit.txt),
+  [neun Browserprüfungen](viewer-palette-fest.r69.browser.txt)
+- [Browser-Konfiguration](viewer-palette-fest.r69.playwright.config.ts),
+  [Unit-Konfiguration](viewer-palette-fest.r69.vitest.config.ts)
+
+Archivkopie, niedrige Priorität, eigener Mock auf `127.0.0.1:4188`; der Mock ist nach den Tests
+beendet. Keine Builds/Tests/Checkouts im Live-Baum, kein Zugriff auf :5173/:8000, keine
+Maschinenbefehle. Ein isolierter `rs274 -h`-Versuch scheiterte bereits an der Tool-Mmap-Anlage;
+es wurde kein G-Code übergeben. Für VP69-01 wird deshalb ausschließlich der dokumentierte
+Quellpfad beansprucht, keine native Reproduktion. Im Live-Baum nur dieser Anhang und die neuen
+R69-Belege; ältere Belege und Produktcode unverändert, kein Commit.
