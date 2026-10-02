@@ -37,6 +37,7 @@
     "src/viewer/machineGantry.test.ts",
     "src/viewer/simReplay.corpus.test.ts",
     "src/tsconfigCoverage.test.ts",
-    "src/viteHttpRestartPing.test.ts"
+    "src/viteHttpRestartPing.test.ts",
+    "src/viteProxyCoverage.test.ts"
   ]
 }

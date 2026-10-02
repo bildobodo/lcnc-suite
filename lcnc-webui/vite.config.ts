@@ -48,6 +48,17 @@ export default defineConfig({
       '/import-tool-library': 'http://127.0.0.1:8000',
       '/tool-library-file': 'http://127.0.0.1:8000',
       '/telemetry': 'http://127.0.0.1:8000',
+      // Package 5's macro routes, the sub view's source, the page-hide
+      // settings beacon and the camera stream: missing here, dev answered
+      // with index.html ("JSON parse error" in the Macros tab, live
+      // 2026-10-02). src/viteProxyCoverage.test.ts ties this list to the
+      // gateway's routes.
+      '/macros': 'http://127.0.0.1:8000',
+      '/macro': 'http://127.0.0.1:8000',
+      '/macro-upload': 'http://127.0.0.1:8000',
+      '/subfile': 'http://127.0.0.1:8000',
+      '/settings': 'http://127.0.0.1:8000',
+      '/camera': 'http://127.0.0.1:8000',
     },
   },
 })
