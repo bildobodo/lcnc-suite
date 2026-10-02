@@ -8358,3 +8358,65 @@ Die Operator-Wahl der Labelvariante und Schreibweise bleibt separat.
 Keine Produktänderung im Live-Checkout, kein Zugriff auf :5173/:8000,
 keine Maschinenbefehle und kein Commit. Nur dieser Anhang und neue
 R67-Belege; frühere Belege unverändert. Eigener Mock beendet.
+
+---
+
+## Anfrage R68 · Claude · R67 behoben · 2. Oktober 2026
+
+Deine R67-Belege stehen unverändert in `6c19f78`. Die Korrektur ist ein Commit auf
+`feat/viewer-marks`: `10bbabc`. Bitte prüfe `a8138fc..10bbabc`.
+
+### 1 · VP-I28-Rest behoben
+
+**Die Korrektur:** Die Bildschleife ruft `camera.updateMatrixWorld()` direkt nach
+Controls/Tween/Parallel-Augpunkt auf. Erst danach werden Nadeln, Endmarken, Typlabels und
+das Muster bemessen und `updateCulling` ausgeführt. Damit rechnet auch das Culling mit der
+Ansicht dieses Bilds. `_updateBoundsPattern` erneuert die Matrizen ebenfalls, weil
+Diagnosen es außerhalb der Schleife aufrufen.
+
+**Die Bildsonde:** `__viewerDiag.startFrameProbe()` / `takeFrameProbe()`. Nach jedem Rendern
+hält sie fest, was das Bild **gezeichnet** hat:
+
+- die Bildschirmlängen der vollständig sichtbaren Endmarken;
+- für jede Nadel und jedes Label den Skalierungsfaktor gegenüber der gezeichneten Kamera.
+
+Sie positioniert vor dem Lesen nichts neu, im Gegensatz zu `getBoxTicks`, wie du gefordert
+hast.
+
+**Der Wächter** (`scenes.viewer.spec`) nutzt deinen Ablauf: Perspektive, Start `(600,0,0)`,
+dann `front → back → top → iso`. Jedes gezeichnete Bild muss erfüllen:
+
+- jede Endmarke 10 ± 0,05 px;
+- jede Nadel und jedes Label Faktor 1 ± 0,005.
+
+**Rot-Nachweise:**
+
+- **Ohne Korrektur:** rot mit 8,4828–11,7337 px, deine Zahlen.
+- **Nur mit der Aktualisierung in `_updateBoundsPattern`:** allein durch die Nadel rot
+  (0,921–1,024). Die Nadel wird vorher gesetzt.
+
+### 2 · „the box edge alone“: Messung, kein Produktfehler
+
+**Reproduziert:** mit Kanvasbreite 1401 (Hell) und 1403 (Dunkel), genau dein Muster
+(`runs: []`).
+
+**Ursache:**
+
+- Eine 1-px-Kante, deren Mitte auf einer Pixelgrenze liegt, besteht aus zwei halb bedeckten
+  Pixeln.
+- Die eine abgetastete Pixelspalte entlang der Kante las je nach Subpixel-Lage die Linie oder
+  die Szene.
+- Dein Rendering zeigt beide Töne.
+
+**Messung jetzt:**
+
+- Je Stichprobe zählt der dunkelste (helle Szene) bzw. hellste (dunkle Szene) Pixel quer zur
+  Kante (±1,5 CSS-px).
+- Geprüft wird bei fünf Kanvasgrößen: DPR 1 mit 1400/1401/1403 px, DPR 2 mit 1400/1401 px.
+
+**Wächter:** weiter rot mit einer einfarbigen Box, dunkel wie hell.
+
+### 3 · Belege
+
+- **Offline-Gate:** PASS auf `10bbabc` (Backend 1154, Unit 1860, Browser 390).
+- **Offen beim Operator:** Labelwahl (i) / (ii) und Schreibweise.
