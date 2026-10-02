@@ -76,8 +76,9 @@ html:not(.touch-device) .b:hover:not(:disabled) { background: var(--hl-hover); }
    (--control-h, 32 / 44 px). Not the icon buttons (.b-icon): a dialog's X
    keeps the header's line box (32 px grew every dialog header by 4 px and
    left Settings 67 px of content at 1280 × 720). The strip keeps its own
-   button sizes (its density: D6). */
-:where(.sidePane, .dialog) .b.md { padding-block: 0; min-height: var(--control-h); }
+   button sizes (its density: D6); the macro bar is a dense area whose md
+   buttons take its compact --control-h. */
+:where(.sidePane, .dialog, .macroBar) .b.md { padding-block: 0; min-height: var(--control-h); }
 
 /* Touch: min-heights come from the global button rule in style.css
    (touch sizing layer); narrow variants additionally need a width floor

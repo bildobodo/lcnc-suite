@@ -135,7 +135,7 @@ export const BUTTON_TYPES = {
   // runs on a hold like every motion button — the bar button itself for a
   // macro without parameters (the caller sets hold + holdKey), the dialog's
   // Execute for one with parameters (opening the dialog is no motion).
-  macro:          { gate: 'probe',    variant: 'default', size: 'lg' },
+  macro:          { gate: 'probe',    variant: 'default', size: 'md' },
   macroExecute:   { gate: 'probe',    variant: 'primary', size: 'md', hold: true },
   // The Macros tab's Run (package 5): the bar button's class; a macro with
   // parameters overrides `hold` — a tap opens its dialog

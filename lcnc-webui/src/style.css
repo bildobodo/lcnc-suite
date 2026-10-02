@@ -778,9 +778,11 @@ input[type="range"]::-moz-range-thumb:hover {
   padding: 3px 6px;
   font-size: var(--fs-sm);
 }
-/* Dense areas: every control inside takes the compact height. */
+/* Dense areas: every control inside takes the compact height. The macro
+   bar too (operator 2026-10-02: a row of macros must not take much room). */
 .strip,
-.dataTable {
+.dataTable,
+.macroBar {
   --control-h: var(--control-h-compact);
 }
 

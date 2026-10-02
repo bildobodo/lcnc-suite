@@ -13,10 +13,15 @@
 // that may not run now is dimmed with its reason
 // at the button (macroRunBlock: the open editor, the gateway's verdict); a
 // `FRAME machine` file also needs the machineFrame gate, like the gateway.
+//
+// Operator 2026-10-02 (live look): the bar is a DENSE area — its buttons
+// take the compact control height (28 / 36 px, like the strip and tables) —
+// and Abort sits at its right end, OUTSIDE the scrolling row: the macros
+// scroll under the fade, Abort never leaves the bar.
 import { computed } from "vue";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
-import { usePermissions, usePermissionReasons } from "./permissions";
+import { useFire, usePermissions, usePermissionReasons } from "./permissions";
 import { macroEditorBasis } from "./macroFiles";
 import { fileHoldKey, macroRunBlock, type MacroBarItem } from "./macroBar";
 
@@ -25,6 +30,7 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ run: [item: MacroBarItem] }>();
 const can = usePermissions();
+const fire = useFire();
 const reasons = usePermissionReasons();
 
 const shown = computed(() => props.items.map(item => {
@@ -36,16 +42,19 @@ const shown = computed(() => props.items.map(item => {
 </script>
 
 <template>
-  <Gate gate="armed" class="macroBar bordered-panel row-controls scroll-thin">
-    <!-- Scroll-edge affordances (see .stripFade) — the macro bar has no
-         pinned section, so both edges fade when content is hidden. -->
-    <div class="stripFadeStart" aria-hidden="true"></div>
-    <!-- A macro without parameters runs on a hold bound to its command; one
-         with parameters opens its dialog on a tap (no motion yet) -->
-    <MachineBtn v-for="b in shown" :key="b.item.key" type="macro" class="macroBtn" :data-macro-id="b.id" :hold="b.hold"
-                :hold-key="b.holdKey" :disabled="!!b.block" :reason="b.block ?? undefined"
-                @click="emit('run', b.item)">{{ b.item.label }}</MachineBtn>
-    <div class="stripFade" aria-hidden="true"></div>
+  <Gate gate="armed" class="macroBar bordered-panel row-controls">
+    <div class="macroScroll row-controls scroll-thin">
+      <!-- Scroll-edge affordances (see .stripFade): both edges fade when
+           content is hidden. -->
+      <div class="stripFadeStart" aria-hidden="true"></div>
+      <!-- A macro without parameters runs on a hold bound to its file's
+           revision; one with parameters opens its dialog on a tap (no motion yet) -->
+      <MachineBtn v-for="b in shown" :key="b.item.key" type="macro" class="macroBtn" :data-macro-id="b.id" :hold="b.hold"
+                  :hold-key="b.holdKey" :disabled="!!b.block" :reason="b.block ?? undefined"
+                  @click="emit('run', b.item)">{{ b.item.label }}</MachineBtn>
+      <div class="stripFade" aria-hidden="true"></div>
+    </div>
+    <MachineBtn type="abort" class="macroAbort" @click="fire({ cmd: 'abort' }, 'abort')" />
   </Gate>
 </template>
 
@@ -53,9 +62,17 @@ const shown = computed(() => props.items.map(item => {
 .macroBar {
   flex-shrink: 0;
   padding: var(--gap-tight) var(--gap-controls);
+  border-radius: var(--radius-container);
+}
+/* The macros scroll; Abort beside them does not. */
+.macroScroll {
+  flex: 1;
+  min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
-  border-radius: var(--radius-container);
+}
+.macroAbort {
+  flex: none;
 }
 
 /* A button keeps its whole name: the row scrolls, a button never squeezes
@@ -65,10 +82,10 @@ const shown = computed(() => props.items.map(item => {
 }
 
 /* Scroll-edge fades — zero-width sticky children; the gradient hangs
-   inward over the content (the strip's own fade lives in App.vue). The bar
-   has no pinned section and fades both edges. */
-.macroBar > .stripFade,
-.macroBar > .stripFadeStart {
+   inward over the content (the strip's own fade lives in App.vue). The
+   scrolling row fades both edges. */
+.macroScroll > .stripFade,
+.macroScroll > .stripFadeStart {
   position: sticky;
   flex: 0 0 0px;
   align-self: stretch;
@@ -77,10 +94,10 @@ const shown = computed(() => props.items.map(item => {
   pointer-events: none;
   z-index: var(--z-raised);
 }
-.macroBar > .stripFade { right: 0; }
-.macroBar > .stripFadeStart { left: 0; }
-.macroBar > .stripFade::before,
-.macroBar > .stripFadeStart::before {
+.macroScroll > .stripFade { right: 0; }
+.macroScroll > .stripFadeStart { left: 0; }
+.macroScroll > .stripFade::before,
+.macroScroll > .stripFadeStart::before {
   content: "";
   position: absolute;
   top: 0;
@@ -91,11 +108,10 @@ const shown = computed(() => props.items.map(item => {
      renders gradient ramps unevenly). */
   background: var(--panel);
 }
-/* Hang past the sticky element by the scroller's edge padding: sticky is
-   confined to the CONTENT box, but scrolled content stays visible through
-   the padding and radius region. */
-.macroBar > .stripFade::before {
-  right: calc(-1 * var(--gap-controls));
+/* The scroller has no padding of its own (the bar pads it): the fades sit
+   at its edges. */
+.macroScroll > .stripFade::before {
+  right: 0;
   -webkit-mask-image: linear-gradient(to right,
     transparent 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.45) 70%,
     rgba(0, 0, 0, 0.8) 88%, black 100%);
@@ -103,8 +119,8 @@ const shown = computed(() => props.items.map(item => {
     transparent 0%, rgba(0, 0, 0, 0.15) 40%, rgba(0, 0, 0, 0.45) 70%,
     rgba(0, 0, 0, 0.8) 88%, black 100%);
 }
-.macroBar > .stripFadeStart::before {
-  left: calc(-1 * var(--gap-controls));
+.macroScroll > .stripFadeStart::before {
+  left: 0;
   -webkit-mask-image: linear-gradient(to right,
     black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
     rgba(0, 0, 0, 0.15) 60%, transparent 100%);
@@ -112,8 +128,8 @@ const shown = computed(() => props.items.map(item => {
     black 0%, rgba(0, 0, 0, 0.8) 12%, rgba(0, 0, 0, 0.45) 30%,
     rgba(0, 0, 0, 0.15) 60%, transparent 100%);
 }
-.macroBar.strip-more > .stripFade,
-.macroBar.strip-scrolled > .stripFadeStart {
+.macroScroll.strip-more > .stripFade,
+.macroScroll.strip-scrolled > .stripFadeStart {
   opacity: 1;
 }
 </style>

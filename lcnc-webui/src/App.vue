@@ -1335,7 +1335,7 @@ function updateScrollFades() {
 }
 function attachScrollFades() {
   fadeRo ??= new ResizeObserver(updateScrollFades);
-  for (const el of document.querySelectorAll<HTMLElement>(".strip, .macroBar")) {
+  for (const el of document.querySelectorAll<HTMLElement>(".strip, .macroScroll")) {
     if (fadeEls.has(el)) continue;
     fadeEls.add(el);
     el.addEventListener("scroll", updateScrollFades, { passive: true });

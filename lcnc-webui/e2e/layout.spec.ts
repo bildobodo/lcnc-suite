@@ -765,8 +765,9 @@ for (const zoom of [1, 1.5]) {
     const geo = await page.locator('.macroBar').evaluate(el => {
       const gap = parseFloat(getComputedStyle(el.parentElement!).rowGap);
       const zoomOf = el.getBoundingClientRect().width / (el as HTMLElement).offsetWidth;
+      const scroller = el.querySelector<HTMLElement>('.macroScroll')!;   // the macros scroll, Abort beside them does not
       return { inColumn: !!el.closest('.viewerColumn'), gap: gap * zoomOf,
-        scrollW: el.scrollWidth, clientW: el.clientWidth, more: el.classList.contains('strip-more') };
+        scrollW: scroller.scrollWidth, clientW: scroller.clientWidth, more: scroller.classList.contains('strip-more') };
     });
     expect(geo.inColumn, 'the bar sits in the viewer column').toBe(true);
     expect(Math.abs(bar.y - (after.viewer.y + after.viewer.h) - geo.gap), 'right under the viewer').toBeLessThanOrEqual(1);
@@ -792,12 +793,22 @@ for (const zoom of [1, 1.5]) {
     }
     expect(geo.scrollW, 'nine long names overflow the row').toBeGreaterThan(geo.clientW);
     expect(geo.more, 'the far fade shows').toBe(true);
-    // the last button comes whole into view by scrolling
-    await page.locator('.macroBar').evaluate(el => { el.scrollLeft = el.scrollWidth; });
+    // Abort at the bar's right end, outside the scroller, in the row
+    // (operator 2026-10-02): visible before and after the macros scroll
+    const abortBox = async () => (await page.locator('.macroBar').getByRole('button', { name: 'Abort', exact: true }).boundingBox())!;
+    const scrollBox = async () => (await page.locator('.macroBar .macroScroll').boundingBox())!;
+    let ab = await abortBox(), sc = await scrollBox();
+    expect(ab.x, 'Abort right of the scrolling macros').toBeGreaterThanOrEqual(sc.x + sc.width - 0.5);
+    expect(ab.x + ab.width, 'Abort inside the bar').toBeLessThanOrEqual(bar.x + bar.w + 0.5);
+    expect(ab.y, 'Abort in the row').toBeGreaterThanOrEqual(bar.y - 0.5);
+    // the last button comes whole into view by scrolling — at the scroller's edge, before Abort
+    await page.locator('.macroBar .macroScroll').evaluate(el => { el.scrollLeft = el.scrollWidth; });
     await settleLayout(page);
     const last = await page.locator('.macroBar [data-macro-id="file:m8"]').evaluate(e => e.getBoundingClientRect().right);
-    const barRight = await page.locator('.macroBar').evaluate(e => { const b = e.getBoundingClientRect(); return b.right; });
-    expect(last, 'the last macro reachable').toBeLessThanOrEqual(barRight + 0.5);
+    sc = await scrollBox();
+    expect(last, 'the last macro reachable').toBeLessThanOrEqual(sc.x + sc.width + 0.5);
+    ab = await abortBox();
+    expect(ab.x, 'Abort did not scroll').toBeGreaterThanOrEqual(sc.x + sc.width - 0.5);
   });
 }
 

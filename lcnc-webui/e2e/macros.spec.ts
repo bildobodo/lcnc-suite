@@ -397,3 +397,23 @@ test("On bar and the order buttons move nothing in the list: no row height, colu
     await expect(page.locator('[data-macro-row="park"]').getByRole("button", { name: "Move park up in the bar order" })).toBeHidden();
   }
 });
+
+// Operator 2026-10-02 (live): the macro bar takes little room — a DENSE area,
+// its buttons the compact control height (28 px desktop, 36 px touch, like
+// the strip and the tables) — and has its own Abort at the right end.
+test("the macro bar is dense: compact buttons, and an Abort at its right end that sends exactly abort", async ({ page }) => {
+  for (const touch of [false, true]) {
+    await ready(page, new Folder(), { macros: { macros: [], bar: ["park", "face_top"] } });
+    if (touch) await page.evaluate(() => document.documentElement.classList.add("touch-device"));
+    const bar = page.locator(".macroBar");
+    const want = touch ? 36 : 28;
+    for (const name of ["Park", "Face top", "Abort"]) {
+      const h = (await bar.getByRole("button", { name, exact: true }).boundingBox())!.height;
+      expect(Math.round(h), `${touch ? "touch" : "desktop"}: ${name} is ${want} px`).toBe(want);
+    }
+    await ctl({ op: "status_delta", data: { permissions: { abort: true, armed: true, always: true, probe: true } } });
+    await ctl({ op: "clearCmds" });
+    await bar.getByRole("button", { name: "Abort", exact: true }).click();
+    await expect.poll(async () => (await sent()).map(c => c.cmd).filter(c => c === "abort")).toEqual(["abort"]);
+  }
+});
