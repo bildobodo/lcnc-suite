@@ -32,14 +32,14 @@ const LIGHT: Record<string, string> = {
   "--viewer-toolpath-bounds": "#047857", "--viewer-tool": "#9aa0a6", "--viewer-cutter": "#d4a800",
   "--viewer-limit": "#a16207", "--viewer-collision": "#c81e1e",
   "--viewer-plane-active": "#2d81dc", "--viewer-plane-defined": "#a97515", "--viewer-plane-stale": "#cc3333",
-  "--viewer-reach": "#6b7280", "--viewer-bounds-alt": "#f0f2f4",
+  "--viewer-reach": "#6b7280", "--viewer-bounds-alt": "#f0f2f4", "--viewer-pin": "#00e5ff",
 };
 const DARK: Record<string, string> = {
   "--viewer-feed": "#56b4e9", "--viewer-rapid": "#34d399", "--viewer-backplot": "#e879f9", "--viewer-bounds": "#cbd5e1",
   "--viewer-toolpath-bounds": "#34d399", "--viewer-tool": "#c0c0c0", "--viewer-cutter": "#ffdd00",
   "--viewer-limit": "#ffcc00", "--viewer-collision": "#ff6b6b",
   "--viewer-plane-active": "#2d81dc", "--viewer-plane-defined": "#a97515", "--viewer-plane-stale": "#cc3333",
-  "--viewer-reach": "#6b7280", "--viewer-bounds-alt": "#f0f2f4",
+  "--viewer-reach": "#6b7280", "--viewer-bounds-alt": "#f0f2f4", "--viewer-pin": "#00e5ff",
 };
 const reader = (t: Record<string, string>) => (name: string) => ` ${t[name] ?? ""} `;   // computed style pads
 
