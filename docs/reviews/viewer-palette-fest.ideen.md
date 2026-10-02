@@ -9015,3 +9015,56 @@ hinzugekommen. Bitte prüfe deshalb `ef3be59..7a7e523`.
   - der Editor unter der Liste am Desktop;
   - das Einklappen des Kopfs hinter „More“ im schmalen Panel, wie bei Program;
   - der Installer-Lauf für den Makroordner.
+
+**Zweiter Nachtrag (2. Oktober, Nacht):** Zwei Operator-Wünsche sind umgesetzt. Bitte prüfe deshalb
+`ef3be59..4dbf30f`.
+
+- **`700b1f2` · Der Editor klappt unter dem Makro auf, das er bearbeitet.**
+  - Wunsch des Operators: Der Editor erscheint direkt unter dem angetippten Makro, die Makros
+    darunter rutschen nach unten.
+  - Der Name ist ein Aufklapp-Schalter (`aria-expanded`/`aria-controls`). Ein zweiter Tipp
+    schließt ihn; über einem Entwurf fragt die eine Discard-Rückfrage des Tabs zuerst.
+  - Sobald der Text da ist, rückt die geöffnete Zeile unter den Sticky-Kopf. Ein Makro am unteren
+    Rand geht nicht außer Sicht auf.
+  - Eine Sitzung, deren Datei (noch) nicht gelistet ist, behält ihren Editor am Listenende.
+  - Gefunden und behoben:
+    - `ref="editorRef"` in der `v-for` sammelt ein **Array**. Die Entwurfsprüfung las `.text()`
+      eines Arrays und sah keine Änderung; drei Entwurfstests wurden rot. Jetzt ein Funktions-Ref.
+    - `flex: 1` des Editor-Hosts machte ihn in der Zelle mit automatischer Höhe 85 px hoch.
+    - `width: 0; min-width: 100 %` löste in einer Tabellenzelle zu 0 auf. Jetzt
+      `contain: inline-size`.
+  - Wächter: Reihenfolge der Zeilen, die nächste Zeile darunter, zwölf Zeilen, `aria-expanded`,
+    Schließen, Rückfrage bei Entwurf, Antippen am unteren Rand. Er ist rot mit dem alten Panel,
+    ohne das Hochscrollen (348 px daneben) und ohne `flex: none`.
+    - Eine erste Mutation kompilierte nicht. Der Build scheiterte, und Playwright prüfte still das
+      alte `dist`. Seitdem prüfe ich den Exit-Code des Builds vor jeder Aussage.
+- **`71bff01` · Im schmalen Panel klappt die Verwaltung hinter „More“.**
+  - Wie im Program-Tab: New, Import, Export und Delete liegen hinter einem Schalter am Ende der
+    Objektzeile. Run und Abort bleiben sichtbar.
+  - Die Objektzeile behält den Titel (gekürzt mit „…“). Der Dateiname steht in der Listenzeile
+    darunter.
+  - Wächter: breit ohne Schalter; schmal liegt der Schalter auf der Objektzeile, und das Einklappen
+    gibt dem Bereich mehr als eine Zeile. Rot mit dem Panel davor.
+- **`4dbf30f` · `config_sync_check` liest eine verschobene INI-Zeile nicht mehr als Drift.**
+  - Nach dem Installer-Lauf des Operators meldete die Prüfung „3 files drifted“ für gleiche
+    Zeilen. Der Installer fügt einen fehlenden Suite-Schlüssel am Anfang des Abschnitts ein, die
+    Vorlage hat ihn weiter unten, und der reihenfolgetreue `difflib`-Vergleich meldete jede solche
+    Zeile doppelt.
+  - Gleiche Zeile im gleichen Abschnitt ist jetzt kein Drift. Ausgenommen sind Schlüssel, die
+    LinuxCNC in Reihenfolge liest (`HALFILE`, `HALCMD`, `POSTGUI_HALFILE`, `SHUTDOWN`). `.hal`-Dateien
+    bleiben reihenfolgetreu.
+  - Tests: `test_config_sync_check.py`, rot mit abgeschaltetem Filter. Backend 1204.
+- **Gates:** `700b1f2` bestanden (Backend 1199, Unit 1873, Browser 413), ebenso `71bff01` (Backend
+  1199, Unit 1873, Browser 414).
+- **Live (mit dem Ja des Operators):**
+  - Der Live-Baum steht jetzt auf `feat/backlog-integration`. Das sind die Pakete 2–5 mit den
+    Review-Dokumenten, `3414874` + `4dbf30f`.
+  - Der Installer lief aus dem Live-Baum, eine Sicherung liegt unter
+    `config-backups/…/20261002T194600Z`. Er hat `~/linuxcnc/macros` mit den fünf Beispielen
+    angelegt, den `subroutines`-Link gesetzt und die drei INIs mit dem kurzen relativen
+    `SUBROUTINE_PATH` geschrieben.
+  - Die TWP-Zeile ist nicht mehr abgeschnitten. Keine Zeile ist über 255 Bytes, und
+    `config_sync_check` ist sauber.
+  - Das XYZAC-Sim ist neu gestartet: alle fünf Makros sind startbar, die Maschine ist referenziert,
+    `haus.ngc` geladen, die Maschine aus.
+  - Wenn du Code-Befunde schreibst: Die Dateien im Live-Baum gehören jetzt zu diesem Branch.
