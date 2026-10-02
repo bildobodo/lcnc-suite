@@ -50,11 +50,11 @@ const root = ref<HTMLElement | null>(null);
 // 2026-10-02, the Program tab's pattern): the head left an opened macro's
 // editor hardly a line. Run and Abort stay.
 const moreOpen = ref(false);
-const rows = computed(() => {
-  const onBar = props.barNames.map(n => files.value.find(f => f.name === n)).filter((f): f is MacroFile => !!f);
-  const rest = files.value.filter(f => !props.barNames.includes(f.name)).sort((a, b) => a.name.localeCompare(b.name));
-  return [...onBar, ...rest];
-});
+// The list stays in NAME order: switching "On bar" or reordering the bar
+// moves no row (operator 2026-10-02, live: the row jumped to the bar group
+// at the top and ran away from the finger on its order buttons). The bar
+// itself shows the order the arrows change.
+const rows = computed(() => [...files.value].sort((a, b) => a.name.localeCompare(b.name)));
 const missing = computed(() => macroFolder.value ? props.barNames.filter(n => !files.value.some(f => f.name === n)) : []);
 /** The list as drawn: every file row, the open macro's editor right under
  *  its own row (operator 2026-10-02: the editor is pushed in, the macros
@@ -474,11 +474,15 @@ async function confirmConvert() {
             </td>
             <td>
               <!-- one above the other: side by side they made the list 320 px
-                   wide in the 272 px of a narrow pane (150 % portrait) -->
-              <span v-if="barNames.includes(f.name)" class="stack-tight">
-                <MachineBtn type="listAction" :disabled="barNames.indexOf(f.name) === 0" :aria-label="`Move ${f.name} up in the bar order`"
+                   wide in the 272 px of a narrow pane (150 % portrait). The
+                   slot is in EVERY row — off the bar it is empty space
+                   (hidden, not focusable), so On bar changes no row height
+                   and no column width (operator 2026-10-02, live). -->
+              <span class="stack-tight orderSlot" :class="{ offBar: !barNames.includes(f.name) }">
+                <MachineBtn type="listAction" :disabled="!barNames.includes(f.name) || barNames.indexOf(f.name) === 0"
+                            :aria-label="`Move ${f.name} up in the bar order`"
                             @click="moveOnBar(f.name, -1)"><ChevronUp :size="14" /></MachineBtn>
-                <MachineBtn type="listAction" :disabled="barNames.indexOf(f.name) === barNames.length - 1"
+                <MachineBtn type="listAction" :disabled="!barNames.includes(f.name) || barNames.indexOf(f.name) === barNames.length - 1"
                             :aria-label="`Move ${f.name} down in the bar order`" @click="moveOnBar(f.name, 1)"><ChevronDown :size="14" /></MachineBtn>
               </span>
             </td>
@@ -668,6 +672,9 @@ async function confirmConvert() {
 .macroEditor .macroCode {
   flex: none;
   height: calc(12 * var(--code-line-h));
+}
+.orderSlot.offBar {
+  visibility: hidden;
 }
 .editActions {
   display: flex;
