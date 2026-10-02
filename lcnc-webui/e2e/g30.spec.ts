@@ -44,6 +44,10 @@ const sent = async () => ((await ctl({ op: "lastCmds" })).cmds as { cmd: string;
 const field = (page: Page, l: string) => page.getByLabel(`G30 ${l}`, { exact: true });
 const values = async (page: Page) => Promise.all(["X", "Y", "Z"].map(l => field(page, l).inputValue()));
 const storedLine = (page: Page) => page.locator(".g30Stored");
+/** The G30 section's inline result — in the Toolsetter procedure, never a
+ *  note of a hidden pane (the Macros tab's folder note is one). */
+const note = (page: Page, kind: string) =>
+  page.getByRole("tabpanel", { name: "Toolsetter", exact: true }).locator(`.statusNote.${kind}`);
 /** Answer the request the page sent for `cmd` — a reply held back so the
  *  operator (or the status) can act while it is out. */
 async function deliver(cmd: string, result: Record<string, unknown>) {
@@ -82,7 +86,7 @@ test("Use Current Position fills the draft and writes nothing; Save is one set_g
   expect((await sent()).map(c => c.cmd), "a capture, no MDI, no write").toEqual(["capture_g30"]);
   await ctl({ op: "clearCmds" });
   await page.getByRole("button", { name: "Save G30", exact: true }).click();
-  await expect(page.locator(".statusNote.ok")).toHaveText("G30 saved — confirmed by LinuxCNC");
+  await expect(note(page, "ok")).toHaveText("G30 saved — confirmed by LinuxCNC");
   const cmds = await sent();
   expect(cmds.map(c => c.cmd)).toEqual(["set_g30"]);
   expect({ values: cmds[0]!.values, based_on: cmds[0]!.based_on }).toEqual({ values: { X: 10, Y: 20, Z: -5 }, based_on: STORED });
@@ -97,7 +101,7 @@ test("a save LinuxCNC did not confirm is never 'saved'", async ({ page }) => {
   await page.getByRole("button", { name: "Use Current Position", exact: true }).click();
   await expect.poll(() => values(page)).toEqual(["10", "20", "-5"]);
   await page.getByRole("button", { name: "Save G30", exact: true }).click();
-  await expect(page.locator(".statusNote.error")).toHaveText("G30 not confirmed — parameters not saved");
+  await expect(note(page, "error")).toHaveText("G30 not confirmed — parameters not saved");
   await expect(storedLine(page)).toHaveText("Stored: not confirmed — refresh · draft not saved");
 });
 
@@ -117,7 +121,7 @@ test("a captured draft is dropped when the kinematics mode changes", async ({ pa
   await expect.poll(() => values(page)).toEqual(["10", "20", "-5"]);
   await ctl({ op: "status_delta", data: { kins_type: 1 } });
   await expect.poll(() => values(page)).toEqual(["100", "0", "-26.275"]);
-  await expect(page.locator(".statusNote.warn")).toHaveText("Draft dropped — units, kinematics or connection changed");
+  await expect(note(page, "warn")).toHaveText("Draft dropped — units, kinematics or connection changed");
 });
 
 // Codex R25 OP-I03: a reply belongs to what its request was SENT under.
