@@ -10,7 +10,10 @@ describe("macroConvert", () => {
     expect(nameFromLabel("Face Top!")).toBe("face_top");
     expect(nameFromLabel("***")).toBe("macro");
     expect(titleFromName("face_top")).toBe("Face top");
-    expect(newMacroText("park")).toMatch(/^\(MACRO Park\)\n[\s\S]*o<park> sub\n  M73\n  G21 G90 G94\n[\s\S]*o<park> endsub\n$/);
+    const t = newMacroText("park");
+    expect(t.startsWith("(MACRO Park)\n")).toBe(true);
+    expect(t).toContain("o<park> sub\n  M73\n  G21 G90 G94\n");
+    expect(t.endsWith("o<park> endsub\n")).toBe(true);
   });
   it("a default that is no finite number is named, never converted", () => {
     const params = [
