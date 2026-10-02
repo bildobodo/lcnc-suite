@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, inject, nextTick, onMounted, onUnmounted, ref, useId, watch, type Ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, useId, watch } from "vue";
 import type { CollisionLineMark } from "./viewer/collision";
 import { listFiles, uploadFile, saveFile, fetchSubfile, UploadConflictError, type FileEntry } from "./lcncApi";
 import DialogFrame from "./DialogFrame.vue";
-import { openTextSession, closeTextSessionIf, inputSession, EDITOR_OWNER, type TextTarget } from "./inputSession";
+import { closeTextSessionIf, EDITOR_OWNER } from "./inputSession";
 import { splitSubLines, expansionAllowed, totalRows, rowAt, rowForMain, rowForSub, type SubExpansion } from "./subRows";
 import { usePermissions } from "./permissions";
 import { loadMachineDefaults, saveMachineDefaults, settingsVersion } from "./defaults";
@@ -26,6 +26,7 @@ import FormField from "./FormField.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineToggle from "./MachineToggle.vue";
 import FileBrowser from "./FileBrowser.vue";
+import CodeEditor from "./CodeEditor.vue";
 export interface GcodeStats {
   feedMoves: number;
   rapidMoves: number;
@@ -683,7 +684,6 @@ function confirmRunFromLine() {
 // renders only the viewport, so the main thread stays free regardless of file
 // size — the same virtualization principle as the read-only viewer above.
 const editing = ref(false);
-const editorHost = ref<HTMLDivElement | null>(null);
 // Portrait edit mode folds the file ops, the run controls and the progress
 // row: none can act while a session is open (Start/Step/Browse/Upload say
 // "Finish or discard the edit first"), and the side pane is what the
@@ -695,17 +695,10 @@ const isPortrait = useMediaMql("(orientation: portrait)");
 const compactEdit = computed(() => isPortrait.value && editing.value && !can.value.pause && !can.value.resume);
 const saving = ref(false);
 const saveError = ref<string | null>(null);
-let _editorView: any = null;
-// The editor's light/dark base theme follows the RESOLVED app theme (App's
-// "isDark": the explicit theme, else the system scheme) — a constant
-// `dark: true` gave the light themes CodeMirror's dark selection and
-// active-line colours (design wave D8). Reconfigured live on a switch.
-const isDark = inject<Ref<boolean>>("isDark", ref(false));
-let _editorTheme: { compartment: any; make: (dark: boolean) => any } | null = null;
-watch(isDark, (dark) => {
-  if (_editorView && _editorTheme) _editorView.dispatch({ effects: _editorTheme.compartment.reconfigure(_editorTheme.make(dark)) });
-});
-let _cm: { deleteCharBackward: any; undo: any; redo: any; cursorCharLeft: any; cursorCharRight: any; insertTab: any } | null = null;
+// The view lives in CodeEditor (package 5, stage C — extracted, shared with
+// the Macros tab); this panel keeps the SESSION.
+const editorRef = ref<InstanceType<typeof CodeEditor> | null>(null);
+const editorDoc = ref("");
 
 // ── Edit SESSION (WP0, UI-01) ──
 // The buffer belongs to the file it was opened on, never to "the loaded
@@ -732,106 +725,22 @@ watch(() => props.activeFile, () => { if (!editing.value) conflictAckFile.value 
 watch(editing, (v) => emit("editingChange", v));
 
 function _isDirty(): boolean {
-  return !!_editorView && !!_session && _editorView.state.doc.toString() !== _session.original;
+  const text = editorRef.value?.text();
+  return text != null && !!_session && text !== _session.original;
 }
 
-async function enterEdit() {
+function enterEdit() {
   if (!props.gcodeContent || !props.activeFile || editing.value) return;
   saveError.value = null;
   const session: EditSession = { id: ++_sessionSeq, path: props.activeFile, original: props.gcodeContent };
   _session = session;
   sessionPath.value = session.path;
   conflictAckFile.value = null;
+  // CodeEditor mounts with this text (bound to the SESSION, not to
+  // props.activeFile: an external program change leaves session A valid —
+  // its view shows A's text and the conflict banner shows).
+  editorDoc.value = session.original;
   editing.value = true;
-  await nextTick();  // v-if mounts the host div
-  if (!editorHost.value) return;
-  const _t = performance.now();
-  try {
-    // Dynamic import: CM6 stays out of the initial bundle (P6 pattern) — it loads
-    // only when someone actually edits.
-    const [{ EditorState, Compartment }, { EditorView, keymap, lineNumbers }, { defaultKeymap, history, historyKeymap, deleteCharBackward, undo, redo, cursorCharLeft, cursorCharRight, insertTab }, { gcodeEditorLanguage }] =
-      await Promise.all([
-        import("@codemirror/state"),
-        import("@codemirror/view"),
-        import("@codemirror/commands"),
-        import("./gcodeCmLanguage"),
-      ]);
-    _cm = { deleteCharBackward, undo, redo, cursorCharLeft, cursorCharRight, insertTab };
-    // Bound to the SESSION, not to props.activeFile: an external program
-    // change during the import leaves session A valid (its view is created
-    // with A's text and the conflict banner shows); only a discarded or
-    // replaced session aborts — the stale import installs nothing.
-    if (_session !== session || !editing.value || !editorHost.value || _editorView) return;
-    const make = (dark: boolean) => EditorView.theme({
-      "&": { backgroundColor: "var(--bg)", color: "var(--fg)", height: "100%" },
-      ".cm-scroller": { fontFamily: "var(--font-mono)", overflow: "auto" },
-      // Line numbers muted by COLOUR, like the viewer's (D8).
-      ".cm-gutters": { backgroundColor: "var(--bg)", color: "var(--fg-muted)", border: "none" },
-      "&.cm-focused": { outline: "none" },
-      // CM's dark base theme paints a WHITE native caret; pin it to the
-      // theme token so it tracks every theme.
-      ".cm-content": { caretColor: "var(--fg)" },
-    }, { dark });
-    _editorTheme = { compartment: new Compartment(), make };
-    const theme = _editorTheme.compartment.of(make(isDark.value));
-    _editorView = new EditorView({
-      state: EditorState.create({
-        doc: session.original,
-        extensions: [lineNumbers(), history(), keymap.of([...defaultKeymap, ...historyKeymap]), theme, gcodeEditorLanguage],
-      }),
-      parent: editorHost.value,
-    });
-    // Touch: text entry comes from the G-code keypad strip — suppress the
-    // OS keyboard the same way MachineInput does for number fields.
-    if (isTouchDevice.value) _editorView.contentDOM.setAttribute("inputmode", "none");
-    // Focus on entry so the caret is visible immediately — without this
-    // there is no insertion-point indication until the first tap/click.
-    _editorView.focus();
-    // The editor is a CODE target of the strip keyboard from the moment it
-    // exists (Edit is the deliberate act); a tap into it re-opens a closed
-    // helper (WP8).
-    openEditorSession();
-  } catch (e: any) {
-    // No silent empty editor: a failed chunk load (offline, stale deploy) left
-    // edit mode open with nothing in it and no message. Surface in the banner.
-    saveError.value = `Editor failed to load: ${e?.message ?? e}`;
-    emitTelemetry("edit.editor_load_failed", { msg: String(e?.message ?? e) });
-    return;
-  }
-  const _dt = performance.now() - _t;
-  if (_dt > 250) emitTelemetry("edit.seed_blocked", { ms: Math.round(_dt), bytes: session.original.length });
-}
-
-function _destroyEditor() {
-  _editorView?.destroy();
-  _editorView = null;
-  _editorTheme = null;
-}
-
-// ── The editor as a text-keyboard target (WP8) ──
-function editorTarget(): TextTarget {
-  const v = () => _editorView;
-  return {
-    insert(text) { const e = v(); if (!e) return; e.dispatch(e.state.replaceSelection(text)); e.focus(); },
-    backspace() { const e = v(); if (!e || !_cm) return; _cm.deleteCharBackward(e); e.focus(); },
-    enter() { const e = v(); if (!e) return; e.dispatch(e.state.replaceSelection("\n")); e.focus(); },
-    moveCursor(d) { const e = v(); if (!e || !_cm) return; (d < 0 ? _cm.cursorCharLeft : _cm.cursorCharRight)(e); e.focus(); },
-    undo() { const e = v(); if (!e || !_cm) return; _cm.undo(e); e.focus(); },
-    redo() { const e = v(); if (!e || !_cm) return; _cm.redo(e); e.focus(); },
-    tab() { const e = v(); if (!e || !_cm) return; _cm.insertTab(e); e.focus(); },
-    canConfirm: () => editing.value && !!_editorView,
-    isVisible: () => !!editorHost.value && editorHost.value.offsetParent !== null,
-    // Explicit close (the X key) hands focus to the content the view itself
-    // focuses — its DOM focus handler restores the selection.
-    focusEl: () => _editorView?.contentDOM ?? null,
-  };
-}
-function openEditorSession() {
-  if (!editing.value || !_editorView) return;
-  openTextSession({ ownerId: EDITOR_OWNER, kind: "code", context: `Editor · ${sessionName.value}`, target: editorTarget(), enterLabel: "newline" });
-}
-function onEditorPointerUp() {
-  if (editing.value && _editorView && !(inputSession.kind && inputSession.ownerId === EDITOR_OWNER)) openEditorSession();
 }
 
 // Discard asks first when the buffer differs from what was opened; a clean
@@ -846,7 +755,6 @@ function _endSession() {
   sessionPath.value = null;
   conflictAckFile.value = null;
   showDiscardConfirm.value = false;
-  _destroyEditor();
 }
 
 function discardEdit() {
@@ -856,11 +764,10 @@ function discardEdit() {
 
 function confirmDiscard() { _endSession(); }
 
-onUnmounted(_destroyEditor);
 
 async function saveEdit() {
   const session = _session;
-  if (!session || !_editorView || saving.value) return;
+  if (!session || !editorRef.value || saving.value) return;
   const path = session.path;
   const name = path.split("/").pop() ?? path;
   saving.value = true;
@@ -868,7 +775,8 @@ async function saveEdit() {
   try {
     // doc.toString() materializes the full text once at save — a one-off cost,
     // sent as a raw body (no JSON.stringify pass).
-    const text: string = _editorView.state.doc.toString();
+    const text = editorRef.value.text();
+    if (text == null) return;
     await saveFile(path, text);
     if (_session !== session) {
       // A newer session replaced this one (or it was discarded) while the
@@ -884,7 +792,8 @@ async function saveEdit() {
       pushMessage(OPERATOR_DISPLAY, `Saved ${name} — the loaded program is ${props.activeFile?.split("/").pop() ?? "another file"}`);
       return;
     }
-    if (_editorView && _editorView.state.doc.toString() !== text) {
+    const now = editorRef.value?.text();
+    if (now != null && now !== text) {
       // Typed while the save was in flight (implementation review UI-I02):
       // the saved text is the new baseline, the newer edits stay in the
       // editor as unsaved — the reply never destroys them. The loaded
@@ -1050,7 +959,8 @@ async function saveEdit() {
             <MachineBtn type="inlineDanger" @click="discardEdit">Discard</MachineBtn>
           </span>
         </div>
-        <div ref="editorHost" class="editorHost" :data-input-area="EDITOR_OWNER" @pointerup="onEditorPointerUp"></div>
+        <CodeEditor ref="editorRef" :doc="editorDoc" :owner-id="EDITOR_OWNER" :context="`Editor · ${sessionName}`"
+                    @load-error="saveError = $event" />
         <div class="editActions">
           <MachineBtn type="fileSave" class="actionBtn" @click="saveEdit" :disabled="saving">{{ saving ? 'Saving…' : 'Save' }}</MachineBtn>
           <MachineBtn type="fileDiscard" class="actionBtn" @click="discardEdit" :disabled="saving">Discard</MachineBtn>
@@ -1416,16 +1326,6 @@ async function saveEdit() {
 .editArea {
   flex: 1;
   min-height: 0;
-}
-
-.editorHost {
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;  /* CM6 owns scrolling via .cm-scroller */
-}
-/* Layout-only deep override (CM6 mounts inside the host): fill the host. */
-.editorHost :deep(.cm-editor) {
-  height: 100%;
 }
 
 .editActions {

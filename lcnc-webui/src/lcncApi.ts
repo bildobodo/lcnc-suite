@@ -27,7 +27,10 @@ async function throwHttpError(resp: Response): Promise<never> {
   let detail: string | undefined;
   try {
     const body = await resp.json();
-    detail = body?.detail;
+    // a refusal with a reason (the gateway's write admission, package 5)
+    // carries {error, reason}; a plain refusal a string
+    detail = typeof body?.detail === "string" ? body.detail
+      : typeof body?.detail?.reason === "string" ? body.detail.reason : undefined;
   } catch {
     detail = undefined;
   }
@@ -195,12 +198,126 @@ export async function uploadFile(file: File, opts: { overwrite?: boolean; name?:
   });
   if (resp.status === 409) {
     let filename = opts.name ?? file.name;
+    let reason: string | null = null;
     try {
       const body = await resp.json();
       if (typeof body?.detail?.filename === "string") filename = body.detail.filename;
+      // not a name clash but a refusal (a macro has this name, package 5)
+      if (body?.detail?.error === "refused" && typeof body.detail.reason === "string") reason = body.detail.reason;
     } catch { /* keep the requested name */ }
+    if (reason) throw new HttpError(reason, 409);
     throw new UploadConflictError(filename);
   }
   if (!resp.ok) await throwHttpError(resp);
   return resp.json();
+}
+
+
+/** ---------- Macro files (package 5, stage B/C) ---------- */
+
+export type MacroUnit = "length" | "feed" | "angle" | "rpm" | "time" | "count" | "none";
+
+/** A macro's parameter, as the gateway parsed its header (the ONE parser). */
+export interface MacroFileParam {
+  n: number;
+  key: string;
+  label: string;
+  unit: MacroUnit;
+  default: number;
+  min: number | null;
+  max: number | null;
+  integer: boolean;
+}
+
+export interface MacroFileNote { line: number; message: string }
+
+/** One macro file: its metadata, the revision (sha256 of its bytes) a run and
+ *  a save are bound to, and whether LinuxCNC will run exactly this file. */
+export interface MacroFile {
+  name: string;
+  title: string | null;
+  units: "mm" | "inch" | null;
+  frame: "machine" | null;
+  params: MacroFileParam[];
+  description: string[];
+  errors: MacroFileNote[];
+  warnings: MacroFileNote[];
+  revision: string;
+  mtime: number;
+  runnable: boolean;
+  reason: string | null;
+}
+
+export interface MacroFolder {
+  ok: boolean;
+  dir: string | null;
+  problems: string[];
+  macros: MacroFile[];
+}
+
+/** A macro write the gateway refused: the reason, and the revision on disk
+ *  now (null when the file is gone) — the caller lets the operator decide;
+ *  nothing retries with the new base on its own (Codex VP69-03). */
+export class MacroConflictError extends Error {
+  readonly revision: string | null;
+  readonly exists: boolean;
+  constructor(message: string, revision: string | null, exists: boolean) {
+    super(message);
+    this.name = "MacroConflictError";
+    this.revision = revision;
+    this.exists = exists;
+  }
+}
+
+async function macroResponse(resp: Response): Promise<any> {
+  if (resp.status === 409) {
+    let body: any = null;
+    try { body = await resp.json(); } catch { /* status only */ }
+    const d = body?.detail;
+    if (d && typeof d === "object") {
+      const exists = d.error === "exists";
+      throw new MacroConflictError(exists ? `A macro named ${d.filename ?? ""} exists` : String(d.reason ?? "Refused"),
+        typeof d.revision === "string" ? d.revision : null, exists);
+    }
+    throw new HttpError(typeof d === "string" ? d : "HTTP 409", 409);
+  }
+  if (!resp.ok) await throwHttpError(resp);
+  return resp;
+}
+
+export async function listMacroFiles(signal?: AbortSignal): Promise<MacroFolder> {
+  const resp = await fetch(`${getBaseUrl()}/macros`, { headers: authHeaders(), signal });
+  if (!resp.ok) await throwHttpError(resp);
+  return resp.json();
+}
+
+/** The macro's text and the revision of exactly these bytes. */
+export async function readMacroFile(name: string, signal?: AbortSignal): Promise<{ text: string; revision: string }> {
+  const resp = await fetch(`${getBaseUrl()}/macro?name=${encodeURIComponent(name)}`, { headers: authHeaders(), signal });
+  if (!resp.ok) await throwHttpError(resp);
+  return { text: await resp.text(), revision: resp.headers.get("X-Macro-Revision") ?? "" };
+}
+
+/** Save: `base` is the revision the editor started from, or "new". */
+export async function saveMacroFile(name: string, base: string, text: string): Promise<MacroFile> {
+  const resp = await macroResponse(await fetch(
+    `${getBaseUrl()}/macro?name=${encodeURIComponent(name)}&base=${encodeURIComponent(base)}`, {
+      method: "PUT", headers: { "Content-Type": "text/plain; charset=utf-8", ...authHeaders() }, body: text }));
+  return (await resp.json()).macro;
+}
+
+/** Import: creates only, or replaces exactly `replace` (a revision). */
+export async function uploadMacroFile(file: File, replace?: string): Promise<MacroFile> {
+  const form = new FormData();
+  form.append("file", file, file.name);
+  const q = replace ? `?replace=${encodeURIComponent(replace)}` : "";
+  const resp = await macroResponse(await fetch(`${getBaseUrl()}/macro-upload${q}`, {
+    method: "POST", headers: authHeaders(), body: form }));
+  return (await resp.json()).macro;
+}
+
+export async function deleteMacroFile(name: string, base: string): Promise<void> {
+  await macroResponse(await fetch(
+    `${getBaseUrl()}/macro?name=${encodeURIComponent(name)}&base=${encodeURIComponent(base)}`, {
+      method: "DELETE", headers: authHeaders() }));
 }

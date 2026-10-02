@@ -26,3 +26,36 @@ export function syncMacroParams(command: string, existing: MacroParam[]): MacroP
     name => byName.get(name) ?? { name, label: name, default: "" },
   );
 }
+
+/** A macro file's name as the gateway accepts it (macro_files.NAME_RE). */
+export const MACRO_NAME_RE = /^[a-z0-9_]{1,63}$/;
+export const MACRO_BAR_MAX = 50;
+
+/** The `macros` settings section as stored → as used. The earlier macros
+ *  are kept as before (valid entries, at most 20); the `bar` key (package 5:
+ *  macro files on the bar, in order) passes through where valid — a section
+ *  saved before package 5 has none, and the first save from this client
+ *  ADDS it next to the unchanged `macros`. */
+export function mergeMacrosSection(saved: any, fb: { macros: any[]; bar?: string[] }): { macros: any[]; bar?: string[] } {
+  const bar = macroBarOf(saved?.bar);
+  if (!saved || !Array.isArray(saved.macros)) return bar ? { ...fb, bar } : { ...fb };
+  const macros = saved.macros
+    .filter((m: any) => m && typeof m.id === "string" && typeof m.name === "string" && typeof m.command === "string")
+    .map((m: any) => ({
+      id: m.id,
+      name: m.name,
+      command: m.command,
+      params: Array.isArray(m.params) ? m.params : [],
+    }))
+    .slice(0, 20);
+  return bar ? { macros, bar } : { macros };
+}
+
+/** A stored bar list kept as stored where it is valid: names only, each
+ *  once, at most MACRO_BAR_MAX — undefined when there is none. */
+function macroBarOf(raw: unknown): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const out: string[] = [];
+  for (const n of raw) if (typeof n === "string" && MACRO_NAME_RE.test(n) && !out.includes(n)) out.push(n);
+  return out.slice(0, MACRO_BAR_MAX);
+}

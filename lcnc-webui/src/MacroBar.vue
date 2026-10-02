@@ -7,15 +7,37 @@
 // An orientation change re-mounts it: a hold in progress ends with the
 // unmounted button (MachineBtn clears its timer), and App puts the focus
 // back on the same macro by its id (data-macro-id).
+//
+// Items (stage C): the earlier settings macros, then the macro FILES named
+// in the `bar` setting. A file that may not run now is dimmed with its reason
+// at the button (macroRunBlock: the open editor, the gateway's verdict); a
+// `FRAME machine` file also needs the machineFrame gate, like the gateway.
+import { computed } from "vue";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
+import { usePermissions, usePermissionReasons } from "./permissions";
+import { macroEditorBasis } from "./macroFiles";
+import { fileHoldKey, macroRunBlock, type MacroBarItem } from "./macroBar";
 import type { MacroDef } from "./defaults";
 
-defineProps<{
-  macros: MacroDef[];
+const props = defineProps<{
+  items: MacroBarItem[];
   holdKey: (m: MacroDef) => string;
 }>();
-const emit = defineEmits<{ run: [m: MacroDef] }>();
+const emit = defineEmits<{ run: [item: MacroBarItem] }>();
+const can = usePermissions();
+const reasons = usePermissionReasons();
+
+const shown = computed(() => props.items.map(item => {
+  if (item.kind === "legacy") {
+    return { item, id: item.macro.id, hold: item.macro.params.length === 0,
+             holdKey: props.holdKey(item.macro), block: null as string | null };
+  }
+  const f = item.file;
+  let block = macroRunBlock(f, macroEditorBasis.value);
+  if (!block && f.frame === "machine" && !can.value.machineFrame) block = reasons.value.machineFrame ?? "Machine frame only";
+  return { item, id: `file:${f.name}`, hold: f.params.length === 0, holdKey: fileHoldKey(f), block };
+}));
 </script>
 
 <template>
@@ -25,8 +47,9 @@ const emit = defineEmits<{ run: [m: MacroDef] }>();
     <div class="stripFadeStart" aria-hidden="true"></div>
     <!-- A macro without parameters runs on a hold bound to its command; one
          with parameters opens its dialog on a tap (no motion yet) -->
-    <MachineBtn v-for="m in macros" :key="m.id" type="macro" class="macroBtn" :data-macro-id="m.id" :hold="m.params.length === 0"
-                :hold-key="holdKey(m)" @click="emit('run', m)">{{ m.name }}</MachineBtn>
+    <MachineBtn v-for="b in shown" :key="b.item.key" type="macro" class="macroBtn" :data-macro-id="b.id" :hold="b.hold"
+                :hold-key="b.holdKey" :disabled="!!b.block" :reason="b.block ?? undefined"
+                @click="emit('run', b.item)">{{ b.item.label }}</MachineBtn>
     <div class="stripFade" aria-hidden="true"></div>
   </Gate>
 </template>

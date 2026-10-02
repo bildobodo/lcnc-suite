@@ -34,6 +34,8 @@ import Gate from "./Gate.vue";
 import { toolOffsetState } from "./viewer/toolOffsetState";
 import MachineBtn from "./MachineBtn.vue";
 import MacroBar from "./MacroBar.vue";
+import { macroBarItems, macroParamUnit, type MacroBarItem } from "./macroBar";
+import { macroFolder } from "./macroFiles";
 import DialogFrame from "./DialogFrame.vue";
 import DetailsPopover from "./DetailsPopover.vue";
 import FormField from "./FormField.vue";
@@ -1080,8 +1082,12 @@ function confirmSettingsDiscard() {
 // before mount.
 const {
   userMacros,
+  macroBarNames,
   macroParamDialog,
   dialogMacro,
+  dialogFile,
+  dialogFileBlock,
+  runMacroFile,
   updateMacros,
   runMacro,
   confirmMacroParams,
@@ -1089,6 +1095,13 @@ const {
   macroHoldKey,
   macroExecuteKey,
 } = useMacros({ fire });
+// The bar's items: earlier settings macros, then the macro files in `bar`
+// (package 5) — one derivation for the bar in either orientation.
+const macroBar = computed(() => macroBarItems(userMacros.value, macroBarNames.value, macroFolder.value));
+function runBarItem(item: MacroBarItem) {
+  if (item.kind === "legacy") runMacro(item.macro);
+  else runMacroFile(item.file);
+}
 
 // Enter in a macro parameter moves on — to the next field, from the last to
 // Execute — and never runs the macro (design wave D6, UI-D02): Execute is a
@@ -1333,7 +1346,7 @@ function attachScrollFades() {
   updateScrollFades();
 }
 onMounted(attachScrollFades);
-watch(() => userMacros.value.length, () => nextTick(attachScrollFades));
+watch(() => macroBar.value.items.length, () => nextTick(attachScrollFades));
 // The macro bar changes its place with the orientation (a new element): its
 // fades attach again, a focused macro keeps its focus on the same macro, and
 // an open parameter dialog returns to the new button (package 5, stage A —
@@ -1993,7 +2006,7 @@ watch(viewerGcode, (newGcode) => {
           @collision-lines="collisionLines = $event"
         />
       </div>
-      <MacroBar v-if="isPortrait && userMacros.length" :macros="userMacros" :hold-key="macroHoldKey" @run="runMacro" />
+      <MacroBar v-if="isPortrait && macroBar.items.length" :items="macroBar.items" :hold-key="macroHoldKey" @run="runBarItem" />
       </div>
 
       <!-- ══ Right pane — Program / Probing tabs ══ -->
@@ -2360,7 +2373,31 @@ watch(viewerGcode, (newGcode) => {
           <div class="dialogContent">
             <!-- The macro is read live (UI-DI08): removed in Settings or by
                  another client while open, it has nothing left to run -->
-            <div v-if="!dialogMacro" class="statusNote warn" role="alert">This macro was removed — nothing to run.</div>
+            <template v-if="macroParamDialog.kind === 'file'">
+              <!-- A macro FILE (package 5): its header's parameters, numbers
+                   with their range and unit; read live from the gateway's list -->
+              <div v-if="dialogFileBlock" class="statusNote warn" role="alert">{{ dialogFileBlock }}</div>
+              <div v-if="dialogFile" class="formGrid">
+                <FormField v-for="p in dialogFile.params" :key="p.key" :label="p.label"
+                           :unit="macroParamUnit(p.unit, dialogFile.units)">
+                  <template #default="{ input }">
+                    <MachineInput
+                      v-bind="input"
+                      gate="macroParam"
+                      type="number"
+                      :min="p.min ?? undefined"
+                      :max="p.max ?? undefined"
+                      :integer="p.integer"
+                      :context="`${dialogFile.title ?? dialogFile.name} · ${p.label}`"
+                      v-model="macroParamDialog.values[p.key]"
+                      @keydown.enter.prevent="focusNextMacroParam"
+                    />
+                  </template>
+                </FormField>
+              </div>
+              <p v-for="(line, i) in dialogFile?.description ?? []" :key="i" class="settingDesc">{{ line }}</p>
+            </template>
+            <div v-else-if="!dialogMacro" class="statusNote warn" role="alert">This macro was removed — nothing to run.</div>
             <div v-else class="formGrid">
               <FormField v-for="p in dialogMacro.params" :key="p.name" :label="p.label || p.name">
                 <template #default="{ input }">
@@ -2374,12 +2411,17 @@ watch(viewerGcode, (newGcode) => {
               </FormField>
             </div>
             <code v-if="dialogMacro" class="macroPreview">{{ macroPreview() }}</code>
+            <code v-else-if="dialogFile" class="macroPreview">{{ dialogFile.name }}.ngc</code>
           </div>
           <template #actions>
             <MachineBtn type="dialogCancel" @click="macroParamDialog = null">Cancel</MachineBtn>
             <!-- A hold bound to the macro, its command and these values: an edit
                  or a save from another client during the hold cancels it -->
-            <MachineBtn type="macroExecute" class="macroExecute" :hold-key="macroExecuteKey()" :disabled="!dialogMacro"
+            <MachineBtn v-if="macroParamDialog.kind === 'file'" type="macroExecute" class="macroExecute"
+                        :hold-key="macroExecuteKey()" :disabled="!!dialogFileBlock || (dialogFile?.frame === 'machine' && !permissions.machineFrame)"
+                        :reason="dialogFileBlock ?? (dialogFile?.frame === 'machine' && !permissions.machineFrame ? 'Machine frame only' : undefined)"
+                        @click="confirmMacroParams">Execute</MachineBtn>
+            <MachineBtn v-else type="macroExecute" class="macroExecute" :hold-key="macroExecuteKey()" :disabled="!dialogMacro"
                         :reason="dialogMacro ? undefined : 'Macro removed — nothing to run'" @click="confirmMacroParams">Execute</MachineBtn>
           </template>
       </DialogFrame>
@@ -2422,7 +2464,7 @@ watch(viewerGcode, (newGcode) => {
 
     <!-- ══ Macro Bar — landscape: a row under the content (portrait: in the
          viewer column above) ══ -->
-    <MacroBar v-if="!isPortrait && userMacros.length" :macros="userMacros" :hold-key="macroHoldKey" @run="runMacro" />
+    <MacroBar v-if="!isPortrait && macroBar.items.length" :items="macroBar.items" :hold-key="macroHoldKey" @run="runBarItem" />
 
     <!-- ══ Bottom Action Strip — default-deny Gate, SafetyStrip exempt + sticky ══ -->
     <Gate gate="armed" class="strip bordered-panel scroll-thin" tabindex="-1">

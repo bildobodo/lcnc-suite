@@ -5,6 +5,7 @@ import { mergeViewerSection, ON_TOP_FALLBACK, type OnTopLayer } from "./viewerSe
 import { noteSavePending, noteSaveSent, noteSaveBlocked, noteSaveFailed, noteSaveBeaconed } from "./settingsSaveStatus";
 import { resetServerSettings } from "./lcncApi";
 import type { GamepadProfile } from "./gamepadProfile";
+import { mergeMacrosSection } from "./macroParams";
 
 // lcncWs registers its WS settings-saver here so this module can flush a save
 // WITHOUT importing lcncWs (which imports defaults) — removes the import cycle and
@@ -460,24 +461,19 @@ export interface MacroDef {
 }
 
 export interface MacrosDefaults {
+  /** The earlier macros: one MDI line with {placeholders} each. */
   macros: MacroDef[];
+  /** Macro FILES on the macro bar, in bar order (package 5): file names
+   *  without `.ngc`. Absent in a section saved before package 5 — the first
+   *  save from this client ADDS it; `macros` passes through unchanged. */
+  bar?: string[];
 }
+
+export { MACRO_NAME_RE, MACRO_BAR_MAX } from "./macroParams";
 
 const MACROS_FALLBACK: MacrosDefaults = { macros: [] };
 
-registerSection<MacrosDefaults>("macros", MACROS_FALLBACK, (saved, fb) => {
-  if (!saved || !Array.isArray(saved.macros)) return { ...fb };
-  const macros: MacroDef[] = saved.macros
-    .filter((m: any) => m && typeof m.id === "string" && typeof m.name === "string" && typeof m.command === "string")
-    .map((m: any) => ({
-      id: m.id,
-      name: m.name,
-      command: m.command,
-      params: Array.isArray(m.params) ? m.params : [],
-    }))
-    .slice(0, 20);
-  return { macros };
-});
+registerSection<MacrosDefaults>("macros", MACROS_FALLBACK, mergeMacrosSection);
 
 export function loadMacrosDefaults(): MacrosDefaults {
   return loadSection<MacrosDefaults>("macros");

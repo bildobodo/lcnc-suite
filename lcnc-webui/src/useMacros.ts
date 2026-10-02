@@ -13,11 +13,16 @@
 import { computed, ref, watch } from "vue";
 import { loadMacrosDefaults, settingsVersion, type MacroDef } from "./defaults";
 import type { Permissions } from "./permissions";
+import type { MacroFile } from "./lcncApi";
+import { macroFileByName, macroFolder, macroEditorBasis } from "./macroFiles";
+import { fileHoldKey, macroRunBlock } from "./macroBar";
 
 /** The open parameter dialog: WHICH macro (by id — the macro itself is read
  *  live from the list, never copied), its name when it opened (the title
  *  once the macro is removed) and the entered values. */
 export interface MacroParamDialogState {
+  /** "file" = a macro file (package 5) — `macroId` is then its file name. */
+  kind?: "legacy" | "file";
   macroId: string;
   name: string;
   values: Record<string, string>;
@@ -30,12 +35,17 @@ interface UseMacrosOptions {
 
 export function useMacros(opts: UseMacrosOptions) {
   const userMacros = ref<MacroDef[]>(loadMacrosDefaults().macros);
+  /** The macro FILES on the bar, in order (package 5): names from the
+   *  `macros` section's `bar` key. */
+  const macroBarNames = ref<string[]>(loadMacrosDefaults().bar ?? []);
   const macroParamDialog = ref<MacroParamDialogState | null>(null);
 
   // Cross-client sync: another tab saved macros → settingsVersion bumps
   // → re-read the shared store.
   watch(settingsVersion, () => {
-    userMacros.value = loadMacrosDefaults().macros;
+    const d = loadMacrosDefaults();
+    userMacros.value = d.macros;
+    macroBarNames.value = d.bar ?? [];
   });
 
   // The dialog's macro, LIVE: a revision saved while the dialog is open (by
@@ -44,8 +54,29 @@ export function useMacros(opts: UseMacrosOptions) {
   // command (implementation review round 4, UI-DI08). null = removed.
   const dialogMacro = computed<MacroDef | null>(() => {
     const d = macroParamDialog.value;
-    return d ? userMacros.value.find(m => m.id === d.macroId) ?? null : null;
+    return d && d.kind !== "file" ? userMacros.value.find(m => m.id === d.macroId) ?? null : null;
   });
+  // A macro FILE's dialog reads the file LIVE from the gateway's list, the
+  // same rule: a save from any client is what it shows and binds to; a
+  // deleted file runs nothing.
+  const dialogFile = computed<MacroFile | null>(() => {
+    const d = macroParamDialog.value;
+    void macroFolder.value;   // re-evaluate when the list changes
+    return d && d.kind === "file" ? macroFileByName(d.macroId) : null;
+  });
+  /** Why the dialog's Execute may not run its file now, or null. */
+  const dialogFileBlock = computed<string | null>(() => {
+    const f = dialogFile.value;
+    if (macroParamDialog.value?.kind !== "file") return null;
+    return f ? macroRunBlock(f, macroEditorBasis.value) : "Macro removed — nothing to run";
+  });
+  watch(() => dialogFile.value?.params, params => {
+    const d = macroParamDialog.value;
+    if (!d || !params) return;
+    for (const p of params) if (!(p.key in d.values)) d.values[p.key] = String(p.default);
+    for (const k of Object.keys(d.values)) if (!params.some(p => p.key === k)) delete d.values[k];
+  });
+  watch(() => dialogFile.value?.title, t => { if (t && macroParamDialog.value?.kind === "file") macroParamDialog.value.name = t; });
   // A changed parameter set: entered values stay, a new parameter shows its
   // default, a dropped one leaves — never a literal `{name}` in the command.
   watch(() => dialogMacro.value?.params, params => {
@@ -72,6 +103,15 @@ export function useMacros(opts: UseMacrosOptions) {
 
   function confirmMacroParams() {
     const d = macroParamDialog.value;
+    if (d?.kind === "file") {
+      const f = dialogFile.value;
+      if (!f || dialogFileBlock.value) return;
+      // numbers as entered; the gateway checks them against the header
+      opts.fire({ cmd: "run_macro", name: f.name, revision: f.revision,
+                  args: f.params.map(p => Number(d.values[p.key])) }, 'probe');
+      macroParamDialog.value = null;
+      return;
+    }
     const m = dialogMacro.value;
     if (!d || !m) return;
     opts.fire({ cmd: "mdi", text: substituteMacro(m.command, d.values) }, 'probe');
@@ -88,6 +128,10 @@ export function useMacros(opts: UseMacrosOptions) {
    *  a removed macro binds nothing (its Execute is disabled). */
   function macroExecuteKey(): string {
     const d = macroParamDialog.value;
+    if (d?.kind === "file") {
+      const f = dialogFile.value;
+      return f ? `${fileHoldKey(f)}\n${JSON.stringify(d.values)}` : "";
+    }
     const m = dialogMacro.value;
     return d && m ? `${macroHoldKey(m)}\n${JSON.stringify(d.values)}` : "";
   }
@@ -96,6 +140,20 @@ export function useMacros(opts: UseMacrosOptions) {
     const d = macroParamDialog.value;
     const m = dialogMacro.value;
     return d && m ? substituteMacro(m.command, d.values) : "";
+  }
+
+  /** A macro FILE from the bar or the Macros tab: with parameters a tap opens
+   *  the dialog (no motion yet); without, a complete hold sends run_macro
+   *  bound to the revision shown. */
+  function runMacroFile(file: MacroFile) {
+    if (macroRunBlock(file, macroEditorBasis.value)) return;
+    if (file.params.length > 0) {
+      const values: Record<string, string> = {};
+      for (const p of file.params) values[p.key] = String(p.default);
+      macroParamDialog.value = { kind: "file", macroId: file.name, name: file.title ?? file.name, values };
+    } else {
+      opts.fire({ cmd: "run_macro", name: file.name, revision: file.revision, args: [] }, 'probe');
+    }
   }
 
   function runMacro(macro: MacroDef) {
@@ -112,8 +170,12 @@ export function useMacros(opts: UseMacrosOptions) {
 
   return {
     userMacros,
+    macroBarNames,
     macroParamDialog,
     dialogMacro,
+    dialogFile,
+    dialogFileBlock,
+    runMacroFile,
     updateMacros,
     runMacro,
     confirmMacroParams,

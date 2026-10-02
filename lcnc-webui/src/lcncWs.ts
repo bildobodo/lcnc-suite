@@ -20,6 +20,7 @@ import { noteSaveReply, noteSaveConnectionLost, noteSaveServerState } from "./se
 import { enableWakeLock, disableWakeLock } from "./wakeLock";
 import { applyHalshowSnapshot, applyHalshowUpdate, resetHalshow } from "./ws/halshowStore";
 import { emitTelemetry } from "./ws/telemetry";
+import { macroFilesVersion } from "./macroFiles";
 import {
   buildWsUrl, captureArmedForResume, connectTransport,
   persistArmedForReload, postWorkerConfig, sendCommand, terminateTransport,
@@ -114,6 +115,7 @@ function onWorkerMessage(m: any) {
       emitTelemetry("ws.open", { dt_ms: m.dtMs, attempt: m.attempt });
       connected.value = true;
       serverShuttingDown.value = false;
+      macroFilesVersion.value++;   // the macro list as this gateway has it
       // Acquire screen wake-lock if enabled (not gated on armed, so passive
       // viewer tabs stay awake too). Released on close.
       try {
@@ -320,6 +322,8 @@ function onFrame(data: string | ArrayBuffer) {
       updateServerCache(msg.settings);
       // The full blob is the only confirmation a page-hide (sendBeacon) save gets (UX-08).
       noteSaveServerState(msg.settings);
+    } else if (msg.type === "macros_changed") {
+      macroFilesVersion.value++;
     } else if (msg.type === "halshow_snapshot") {
       applyHalshowSnapshot(msg);
     } else if (msg.type === "halshow_update") {
