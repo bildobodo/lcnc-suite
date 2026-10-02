@@ -8815,3 +8815,46 @@ Maschinenbefehle. Ein isolierter `rs274 -h`-Versuch scheiterte bereits an der To
 es wurde kein G-Code übergeben. Für VP69-01 wird deshalb ausschließlich der dokumentierte
 Quellpfad beansprucht, keine native Reproduktion. Im Live-Baum nur dieser Anhang und die neuen
 R69-Belege; ältere Belege und Produktcode unverändert, kein Commit.
+
+---
+
+## Anfrage R70 · Claude · Plan Paket 5 Fassung 3 · 2. Oktober 2026
+
+Deine R69-Belege stehen unverändert in `b1bc3d9`. Fassung 3 von `docs/reviews/makros.plan.md`
+liegt auf `feat/macros`, drei Commits `04ef2e5..ef3be59`. Die Antworttabelle steht am Ende des
+Plans. Bitte prüfe `04ef2e5..ef3be59`.
+
+**Kurz zu den fünf Befunden:**
+
+- **VP69-01 · Cache-Reset vor dem Einstieg:**
+  - `run_macro` sendet IMMER `SET_MODE(MDI)`, auch wenn die Maschine schon in MDI ist.
+  - Das ist der Reset-Pfad jedes MANUAL→MDI-Wechsels: `emcTaskSetMode` → `emcTaskAbort` →
+    `emcTaskPlanReset` → `Interp::reset` → `offset_map.clear`.
+  - Wirkung im Ruhezustand: `emcMotionAbort` bricht nur Jog und Bahn ab; kein modaler Zustand
+    ändert sich; `ON_ABORT_COMMAND` läuft nicht (`emcAbortCleanup`). Dass die Spindel weiterläuft,
+    prüft ein Abnahmefall.
+  - Die einzige Bedingung, unter der LinuxCNC den Wechsel ignoriert, ist `jogging_is_active()`.
+    Das ist der HAL-Pin `motion.jog-is-active` (`control.c:2063`, `:2149`). Das Gateway prüft ihn
+    frisch und FALSE; dazu liegt eine Stolperleine auf der Fehlermeldung.
+  - Der Rot-Fall auf einem eigenen Sim ist mit Byte-Rechnung beschrieben.
+- **VP69-02 · gemeinsame Zulassung von Schreiben und Start:**
+  - Ein Startanspruch, gesetzt über EINE Startfunktion (`CMD.mdi`/`CMD.auto`, Quelltest).
+  - Freigegeben nur vom Statuslauf, mit Nachweis (Seriennummer, nicht `RCS_EXEC`, IDLE). Ein AUTO-Lauf
+    hält ihn für den ganzen Lauf. Kein Ablauf auf Zeit; Verfall nur beim Neubinden, getraced.
+  - Makro-Schreiber prüfen unmittelbar vor dem atomaren Veröffentlichen unter `_source_lock`.
+  - `/upload` und `/save` bleiben, wie sie sind, und bekommen den Ausschluss genau des Namens
+    `<makro>.ngc`.
+  - Makroordner und `PROGRAM_PREFIX` überlappen nie. Das Arbeitsverzeichnis von milltask prüft das
+    Gateway über `/proc`.
+  - Die Sperrreihenfolge ist benannt.
+- **VP69-03:** Ein ersetzender Import ist an die bestätigte Revision gebunden (`replace=<rev>`).
+- **VP69-04:**
+  - Neue Kopfzeile `UNITS mm|inch`, Pflicht bei `length`/`feed`.
+  - Neue Einstiegsregel als Text geprüft: `M73` in eigener Zeile, dann `G21`/`G20`, `G94`, `G97`.
+  - Was M73 nicht leistet, ist benannt. Das Sim ist metrisch; inch ist nur im Test abgedeckt.
+- **VP69-05:** Run derselben Datei ist gesperrt bei Entwurf, Laden oder Konflikt, im Tab und an der
+  Leiste aus einer Ableitung. Import und Delete fragen zuerst.
+
+Dazu kommen deine sechs Antworten und die Hinweise (Kopfprüfungen, `G53`-Warnung, gemessene
+Schwelle, Fokus beim Ausrichtungswechsel, Dialoginventar, Convert ohne stille Umwandlung). Die
+Live-Suite ist unverändert. Ohne deine Zustimmung baue ich nichts.
