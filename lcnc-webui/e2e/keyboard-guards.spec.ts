@@ -1,5 +1,6 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { ctl, MOCK } from "./ctl";
+import { Folder, serve } from "./macroFolder";
 
 // WP0 / UI-03 — global keyboard shortcuts behind dialogs and fields.
 //
@@ -896,24 +897,28 @@ test("settings save status (UI-I12 round 7): a page-hide save that never landed 
 });
 
 test("leaving the Macros tab over a changed draft asks first, by every path (UI-K16, package 5)", async ({ page }) => {
-  // The earlier macros' editor moved from Settings into the Macros tab: a
-  // switch to another tab hid it with the draft unsaved. Every way out —
-  // the tab list, the strip's Tool Table button, the narrow select — asks
-  // "Discard changes?"; Keep editing keeps the draft, Discard carries out
-  // the switch that asked.
+  // A macro file's open editor: a switch to another tab hid it with the
+  // draft unsaved. Every way out — the tab list, the strip's Tool Table
+  // button, the narrow select — asks "Discard changes?"; Keep editing keeps
+  // the draft, Discard carries out the switch that asked.
+  await serve(page, new Folder());   // the macro files (macroFolder.ts)
   await openReady(page);
   const tab = (name: string) => page.getByRole("tab", { name, exact: true });
   const macros = page.locator(".macrosTab");
+  const code = macros.locator(".macroCode .cm-content");
   const ask = page.getByRole("dialog", { name: "Discard changes?", exact: true });
   await tab("Macros").click();
-  // An untouched new form is no draft: the switch happens at once.
-  await macros.getByRole("button", { name: "Add Earlier Macro", exact: true }).click();
+  // An untouched open macro is no draft: the switch happens at once.
+  await macros.getByRole("button", { name: "Open park.ngc", exact: true }).click();
+  await expect(code).toBeVisible();
   await tab("Program").click();
   await expect(ask).toHaveCount(0);
   await expect(tab("Program")).toHaveAttribute("aria-selected", "true");
 
   await tab("Macros").click();
-  await macros.getByRole("textbox", { name: "Name", exact: true }).fill("Face top");
+  await code.click();
+  await page.keyboard.press("End");
+  await page.keyboard.type(" (draft)");
   const paths: [string, () => Promise<void>][] = [
     ["tab list", () => tab("MDI").click()],
     ["Tool Table button", () => page.getByRole("button", { name: "Tool Table", exact: true }).click()],
@@ -921,11 +926,11 @@ test("leaving the Macros tab over a changed draft asks first, by every path (UI-
   for (const [path, leave] of paths) {
     await leave();
     await expect(ask, `${path} asks`).toBeVisible();
-    await expect(ask).toContainText("The earlier macro you are editing has unsaved changes.");
+    await expect(ask).toContainText("The macro park.ngc you are editing has unsaved changes.");
     await ask.getByRole("button", { name: "Keep editing", exact: true }).click();
     await expect(ask).toHaveCount(0);
     await expect(tab("Macros"), `${path}: Keep editing stays`).toHaveAttribute("aria-selected", "true");
-    await expect(macros.getByRole("textbox", { name: "Name", exact: true })).toHaveValue("Face top");
+    await expect(code).toContainText("(draft)");
   }
   // The narrow select (150 %): the same question.
   await page.setViewportSize({ width: 900, height: 1200 });
@@ -942,7 +947,7 @@ test("leaving the Macros tab over a changed draft asks first, by every path (UI-
   await expect(area).toHaveValue("offsets");
   await page.evaluate(() => { document.documentElement.style.zoom = ""; });
   await tab("Macros").click();
-  await expect(macros.getByRole("textbox", { name: "Name", exact: true })).toHaveCount(0);
+  await expect(macros.locator(".macroCode .cm-content")).not.toContainText("(draft)");
   await settle(page);
   expectNoMachineAction(await recordedCmds());
 });

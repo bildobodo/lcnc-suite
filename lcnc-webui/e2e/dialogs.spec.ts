@@ -1,5 +1,6 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { ctl, MOCK } from "./ctl";
+import { Folder, serve } from "./macroFolder";
 
 // Design wave D2 (UI-K11, K16(3), UI-D01, UI-D06; plan Anhang B) — the
 // dialog contract, scanned per dialog from ONE table (Anhang B is the only
@@ -41,24 +42,10 @@ const READ_ONLY_CMDS = ["hello", "heartbeat", "get_tool_table", "halshow_live", 
 const PROGRAM = "(program A)\nG0 X0\nG1 X10 F100\nG1 Y10\nM2\n";
 const TOOL = { T: 5, P: 5, Z: -40, D: 6, type: "endmill", description: "Test cutter" };
 const PAD_ID = "Test Pad (Vendor: 045e Product: 028e)";
-const MACROS = {
-  macros: [
-    { id: "m-face", name: "Face Top", command: "G0 Z{depth}", params: [{ name: "depth", label: "Depth", default: "5" }] },
-    { id: "m-park", name: "Park", command: "G53 G0 Z0", params: [] },
-  ],
-};
-
-/** One macro FILE for the Macros tab's dialogs (package 5): the gateway's
- *  routes served from memory, enough for open / new / delete. */
-const PARK_FILE = "(MACRO Park)\no<park> sub\n  M73\n  G90\no<park> endsub\n";
-async function macroFolder(page: Page) {
-  const entry = { name: "park", title: "Park", units: null, frame: null, params: [], description: [], errors: [],
-                  warnings: [], revision: "a".repeat(64), mtime: 0, runnable: true, reason: null };
-  await page.route("**/macros", r => r.fulfill({ json: { ok: true, dir: "/m", problems: [], macros: [entry] } }));
-  await page.route(/\/macro\?/, r => r.request().method() === "GET"
-    ? r.fulfill({ body: PARK_FILE, contentType: "text/plain", headers: { "X-Macro-Revision": entry.revision } })
-    : r.fulfill({ status: 409, json: { detail: { error: "refused", reason: "Not in this test", revision: entry.revision } } }));
-}
+/** The gateway's macro folder (macroFolder.ts): park and face_top; the
+ *  earlier settings macros were dropped 2026-10-02. */
+const macroFolder = (page: Page) => serve(page, new Folder());
+const MACRO_BAR = { macros: { macros: [], bar: ["face_top"] } };
 async function openMacrosTab(page: Page): Promise<Locator> {
   await page.getByRole("tab", { name: "Macros", exact: true }).click();
   const tab = page.locator(".macrosTab");
@@ -299,10 +286,10 @@ const ROWS: Row[] = [
     close: async () => { await ctl({ op: "status_delta", data: { tool_change_requested: false } }); },
   },
   {
-    id: "6 Macro parameters", title: "Face Top", tier: "md", backdrop: "stays", settings: { macros: MACROS },
+    id: "6 Macro parameters", title: "Face top", tier: "md", backdrop: "stays", settings: MACRO_BAR, before: macroFolder,
     focus: firstField, actions: ["Cancel", "Execute"],
     open: async (page) => {
-      const trigger = page.locator(".macroBar").getByRole("button", { name: "Face Top", exact: true });
+      const trigger = page.locator(".macroBar").getByRole("button", { name: "Face top", exact: true });
       await trigger.click();
       return trigger;
     },
@@ -466,18 +453,6 @@ const ROWS: Row[] = [
     close: async (d) => { await byName("Cancel")(d).click(); },
   },
   {
-    // the earlier macros live in the Macros tab now (package 5)
-    id: "20 Delete macro", title: 'Delete macro "Face Top"?', tier: "sm", backdrop: "closes", settings: { macros: MACROS },
-    focus: byName("Cancel"), actions: ["Cancel", "Delete"],
-    open: async (page) => {
-      const tab = await openMacrosTab(page);
-      const trigger = tab.getByRole("button", { name: "Delete macro Face Top", exact: true });
-      await trigger.click();
-      return trigger;
-    },
-    close: async (d) => { await byName("Cancel")(d).click(); },
-  },
-  {
     id: "21 Reset settings", title: "Reset 3D Viewer settings?", tier: "sm", backdrop: "closes",
     focus: byName("Cancel"), actions: ["Cancel", "Reset"],
     open: async (page) => {
@@ -513,13 +488,14 @@ const ROWS: Row[] = [
     close: async (d) => { await byName("Cancel")(d).click(); },
   },
   {
-    // leaving the Macros tab over a draft (the earlier macro's form)
-    id: "25 Macros tab discard", title: "Discard changes?", tier: "sm", backdrop: "closes",
+    // leaving the Macros tab over a draft (a macro file's open editor)
+    id: "25 Macros tab discard", title: "Discard changes?", tier: "sm", backdrop: "closes", before: macroFolder,
     focus: byName("Keep editing"), actions: ["Keep editing", "Discard"],
     open: async (page) => {
       const tab = await openMacrosTab(page);
-      await tab.getByRole("button", { name: "Add Earlier Macro", exact: true }).click();
-      await tab.getByRole("textbox", { name: "Name", exact: true }).fill("Face top");
+      await tab.getByRole("button", { name: "Open park.ngc", exact: true }).click();
+      await tab.locator(".macroCode .cm-content").click();
+      await page.keyboard.type("x");
       const trigger = page.getByRole("tab", { name: "Program", exact: true });
       await trigger.click();
       return null;
@@ -611,7 +587,7 @@ for (const row of ROWS) {
 
 test("UI-D01: from inside a dialog Tab reaches the banner's Abort — Enter sends exactly abort, also stacked and with a helper open", async ({ page }) => {
   await fakeGamepad(page);   // its profile's Remove asks over Settings, open while a program runs
-  await ready(page, { macros: MACROS, gamepad: { profiles: { [PAD_ID]: { id: PAD_ID, buttons: {}, sticks: {} } } } });
+  await ready(page, { gamepad: { profiles: { [PAD_ID]: { id: PAD_ID, buttons: {}, sticks: {} } } } });
   const running = { interp_state: 2, task_mode: 2, permissions: { ...PERMS_ALL, pause: true, idle: false, ready: false, run: false, setup: false } };
   await ctl({ op: "status_delta", data: running });
   const abortBtn = page.locator(".bannerActions").getByRole("button", { name: /Abort/ });
@@ -738,7 +714,7 @@ test("closing a whole stack returns focus once, to the control that opened the b
   // and land on + Add, never on body (where Space is Cycle Start). (The
   // Settings half of this test went with the macro editor, package 5:
   // Settings keeps no draft that no dialog covers.)
-  await ready(page, { macros: MACROS });
+  await ready(page);
   await openTools(page);
   const add = page.getByRole("button", { name: "+ Add", exact: true });
   await add.click();

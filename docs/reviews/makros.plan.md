@@ -610,6 +610,11 @@ schon einer offen ist (konkurrierende MDI- und AUTO-Starts).
 
 **Die Settings-Makros**
 
+- **Umsetzung, Operator-Entscheidung 2. Oktober abends (Live-Blick):** Die Settings-Makros
+  entfallen ganz („ich würde die alten makros fallen lassen“). Die Leiste trägt nur noch Dateien,
+  „Earlier macros“ und „Convert to file“ entfallen. Ein gespeicherter `macros`-Eintrag bleibt in den
+  Settings genau so, wie er ist: nie benutzt, nie umgeschrieben. Die Konsole sagt einmal, dass er da
+  ist. Der Operator hatte keinen. Die Absätze unten beschreiben den Stand vor dieser Entscheidung.
 - Sie bleiben, laufen weiter und stehen weiter auf der Leiste, vor den Dateimakros.
 - Ihr Editor zieht aus Settings in den Tab als Gruppe „Earlier macros“. Settings › Macros entfällt;
   der Unterreiter nennt keinen Ersatz mehr, weil es nur EINEN Ort gibt.

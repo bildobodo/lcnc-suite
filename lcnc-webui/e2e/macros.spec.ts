@@ -1,85 +1,10 @@
 // Package 5, stage C (plan docs/reviews/makros.plan.md): the Macros tab and
-// macro FILES on the bar. The gateway's macro routes are served from an
-// in-memory folder here (page.route): saves, imports and deletes change it
-// for real, with sha256 revisions and the gateway's 409 contracts, so a
-// revision a client saw and a conflict behave as in the product.
+// macro FILES on the bar, against the in-memory folder of macroFolder.ts.
 import { test, expect, type Page } from "@playwright/test";
-import { createHash } from "node:crypto";
 import { ctl, MOCK } from "./ctl";
+import { Folder, serve, rev, PARK, FACE } from "./macroFolder";
 
-const rev = (t: string) => createHash("sha256").update(t).digest("hex");
 const HOLD_MS = 700;
-
-const PARK = "(MACRO Park)\n(FRAME machine)\no<park> sub\n  M73\n  G90\n  G53 G0 Z0\no<park> endsub\n";
-const FACE = `(MACRO Face top)
-(UNITS mm)
-(PARAM 1 depth "Depth" length 0.5 min=0 max=5)
-(PARAM 2 feed "Feed" feed 600 min=1)
-o<face_top> sub
-  M73
-  G21 G90 G94
-  G1 Z[-#1] F#2
-o<face_top> endsub
-`;
-
-interface Entry { text: string; meta: Record<string, unknown> }
-
-/** The gateway's macro folder, in memory. */
-class Folder {
-  files = new Map<string, Entry>();
-  problems: string[] = [];
-  /** The gateway's verdict "may not run", by name (a header error, shadowed). */
-  blocked = new Map<string, string>();
-  constructor() {
-    this.files.set("park", { text: PARK, meta: { title: "Park", units: null, frame: "machine", params: [] } });
-    this.files.set("face_top", { text: FACE, meta: { title: "Face top", units: "mm", frame: null, params: [
-      { n: 1, key: "depth", label: "Depth", unit: "length", default: 0.5, min: 0, max: 5, integer: false },
-      { n: 2, key: "feed", label: "Feed", unit: "feed", default: 600, min: 1, max: null, integer: false }] } });
-  }
-  entry(name: string) {
-    const e = this.files.get(name)!;
-    return { name, description: [], errors: [], warnings: [], mtime: 0, runnable: !this.blocked.has(name),
-             reason: this.blocked.get(name) ?? null, revision: rev(e.text), ...e.meta };
-  }
-  list() {
-    return { ok: true, dir: "/home/cnc/linuxcnc/macros", problems: this.problems,
-             macros: [...this.files.keys()].sort().map(n => this.entry(n)) };
-  }
-  /** Another client (or an editor outside the suite) changes a file. */
-  touch(name: string, text: string) { this.files.get(name)!.text = text; }
-}
-
-async function serve(page: Page, folder: Folder) {
-  await page.route("**/macros", r => r.fulfill({ json: folder.list() }));
-  await page.route(/\/macro\?/, async r => {
-    const url = new URL(r.request().url());
-    const name = url.searchParams.get("name")!;
-    const method = r.request().method();
-    const e = folder.files.get(name);
-    if (method === "GET") {
-      if (!e) return r.fulfill({ status: 404, json: { detail: "Macro not found" } });
-      return r.fulfill({ body: e.text, contentType: "text/plain", headers: { "X-Macro-Revision": rev(e.text) } });
-    }
-    const base = url.searchParams.get("base")!;
-    if (method === "PUT") {
-      const text = r.request().postData() ?? "";
-      if (base === "new" ? !!e : !e || rev(e.text) !== base) {
-        return r.fulfill({ status: 409, json: { detail: { error: "refused",
-          reason: base === "new" ? "A macro of that name exists — reload" : "Changed on disk — reload or keep editing",
-          revision: e ? rev(e.text) : null } } });
-      }
-      if (e) e.text = text;
-      else folder.files.set(name, { text, meta: { title: name, units: null, frame: null, params: [] } });
-      return r.fulfill({ json: { ok: true, macro: folder.entry(name) } });
-    }
-    if (method === "DELETE") {
-      if (!e || rev(e.text) !== base) return r.fulfill({ status: 409, json: { detail: { error: "refused", reason: "Changed on disk", revision: e ? rev(e.text) : null } } });
-      folder.files.delete(name);
-      return r.fulfill({ json: { ok: true } });
-    }
-    return r.fallback();
-  });
-}
 
 async function ready(page: Page, folder: Folder, settings: Record<string, unknown> = {}) {
   await ctl({ op: "reset" });
@@ -387,9 +312,13 @@ test("the editor opens under its own macro and pushes the rest down; a second ta
   await page.waitForTimeout(200);
   const head = await box(".macroTable thead");
   const last = await box('[data-macro-row="z_last"]');
-  expect(Math.abs(last.y - (head.y + head.height)), "the row right under the sticky head").toBeLessThanOrEqual(2);
-  const edTop = (await box('[data-macro-editor="z_last"]')).y;
-  expect(edTop, "its editor starts in view").toBeLessThan(body.y + body.height);
+  const lastEd = await box('[data-macro-editor="z_last"]');
+  expect(last.y, "the row in view, under the sticky head").toBeGreaterThanOrEqual(head.y + head.height - 1);
+  // at the top under the head — or, where the body cannot scroll that far
+  // (the last macro), its editor wholly in view
+  const atTop = Math.abs(last.y - (head.y + head.height)) <= 2;
+  const editorWhole = lastEd.y + lastEd.height <= body.y + body.height + 1;
+  expect(atTop || editorWhole, `row at ${last.y - head.y - head.height} px under the head, editor ends ${lastEd.y + lastEd.height - body.y - body.height} px past the body`).toBe(true);
 });
 
 // Operator 2026-10-02: in the narrow pane (150 % portrait) the head folds its

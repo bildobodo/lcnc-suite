@@ -8,8 +8,9 @@
 // unmounted button (MachineBtn clears its timer), and App puts the focus
 // back on the same macro by its id (data-macro-id).
 //
-// Items (stage C): the earlier settings macros, then the macro FILES named
-// in the `bar` setting. A file that may not run now is dimmed with its reason
+// Items (stage C): the macro FILES named in the `bar` setting, in its order
+// (the earlier settings macros were dropped, operator 2026-10-02). A file
+// that may not run now is dimmed with its reason
 // at the button (macroRunBlock: the open editor, the gateway's verdict); a
 // `FRAME machine` file also needs the machineFrame gate, like the gateway.
 import { computed } from "vue";
@@ -18,21 +19,15 @@ import MachineBtn from "./MachineBtn.vue";
 import { usePermissions, usePermissionReasons } from "./permissions";
 import { macroEditorBasis } from "./macroFiles";
 import { fileHoldKey, macroRunBlock, type MacroBarItem } from "./macroBar";
-import type { MacroDef } from "./defaults";
 
 const props = defineProps<{
   items: MacroBarItem[];
-  holdKey: (m: MacroDef) => string;
 }>();
 const emit = defineEmits<{ run: [item: MacroBarItem] }>();
 const can = usePermissions();
 const reasons = usePermissionReasons();
 
 const shown = computed(() => props.items.map(item => {
-  if (item.kind === "legacy") {
-    return { item, id: item.macro.id, hold: item.macro.params.length === 0,
-             holdKey: props.holdKey(item.macro), block: null as string | null };
-  }
   const f = item.file;
   let block = macroRunBlock(f, macroEditorBasis.value);
   if (!block && f.frame === "machine" && !can.value.machineFrame) block = reasons.value.machineFrame ?? "Machine frame only";

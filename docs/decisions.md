@@ -7643,3 +7643,30 @@ check). New dialog cases 23–25 (New macro, Delete macro file, the tab's
 discard). Red: no focus hand-over, no select revert, a draft that does not
 block — each fails its guard.
 
+## 2026-10-02 — Package 5, operator live look: the earlier macros dropped
+
+The operator's live look of the integrated stack (packages 2–5) asked
+"brauchen wir earlier macro? ist das nicht veraltet?" and decided "ich würde
+die alten makros fallen lassen". Macros are FILES only now:
+
+- The bar shows only macro files (`macroBarItems(bar, folder)`); the
+  parameter dialog reads its file live by name; `useMacros` keeps no
+  settings-macro path, no `updateMacros` provide, no preview.
+- `EarlierMacros.vue`, `macroConvert.ts` ("Convert to file") and the param
+  helpers for `{placeholders}` are gone; the New template moved to
+  `macroTemplate.ts`.
+- A stored `macros` list stays in the `macros` settings section EXACTLY as
+  stored (`mergeMacrosSection` passes it through — no filter, no cap): never
+  used, never rewritten by a save of the bar; the console says once that it
+  is there. Dropping a feature must not drop someone's data silently. The
+  operator had none.
+- A file macro's parameters are number fields: Enter opens the field's
+  keypad (the number-field contract) and never executes — the D6 rule
+  "Enter moves on" was a text-field rule; its handler is gone.
+- Tests: the guards that existed only for settings macros were PORTED to
+  files, not dropped (run-hold: orientation change mid-hold, the Execute
+  hold following its file, Enter never executes; dialogs case 6 and 25,
+  forms, keyboard-guards' leave guard, layout's portrait row and strip
+  state), on ONE mock: `e2e/macroFolder.ts`. Dialog case 20 (delete a
+  settings macro) went with its dialog; case 24 deletes a file.
+

@@ -447,22 +447,13 @@ export function saveDisplayDefaults(data: DisplayDefaults): void {
 
 // ─── Macros section ─────────────────────────────────────────────
 
-export interface MacroParam {
-  name: string;      // placeholder key, e.g. "depth"
-  label: string;     // display label, e.g. "Depth (mm)"
-  default: string;   // default value shown in prompt
-}
-
-export interface MacroDef {
-  id: string;        // unique ID
-  name: string;      // button label, e.g. "Face Top"
-  command: string;   // G-code template, e.g. "G0 Z{depth} F{feed}"
-  params: MacroParam[];
-}
-
 export interface MacrosDefaults {
-  /** The earlier macros: one MDI line with {placeholders} each. */
-  macros: MacroDef[];
+  /** The EARLIER macros (one MDI line with {placeholders} each) — dropped
+   *  2026-10-02 on the operator's word: macros are files now. A stored list
+   *  is kept exactly as stored (never used, never rewritten — a save of the
+   *  section writes it back unchanged); the console says once that it is
+   *  there. */
+  macros: unknown[];
   /** Macro FILES on the macro bar, in bar order (package 5): file names
    *  without `.ngc`. Absent in a section saved before package 5 — the first
    *  save from this client ADDS it; `macros` passes through unchanged. */
@@ -482,11 +473,6 @@ export function loadMacrosDefaults(): MacrosDefaults {
 export function saveMacrosDefaults(data: MacrosDefaults): void {
   saveSection("macros", data);
 }
-
-// Pure macro-param helpers live in a side-effect-free module so they're
-// unit-testable without importing this file's page-lifecycle listeners.
-// Re-exported here for back-compat with existing `from "./defaults"` imports.
-export { extractParams, syncMacroParams } from "./macroParams";
 
 // ─── Camera section ─────────────────────────────────────────────
 

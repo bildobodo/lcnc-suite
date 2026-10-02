@@ -1098,47 +1098,24 @@ function confirmSettingsDiscard() {
   pending?.proceed();
 }
 
-// Macro state + execution. See useMacros.ts. The provide() call below has
-// to run here in App.vue's setup so SettingsPanel (the consumer) sees it
-// before mount.
+// Macro state + execution (macro FILES, package 5). See useMacros.ts.
 const {
-  userMacros,
   macroBarNames,
   setMacroBar,
   macroParamDialog,
-  dialogMacro,
   dialogFile,
   dialogFileBlock,
   runMacroFile,
-  updateMacros,
-  runMacro,
   confirmMacroParams,
-  macroPreview,
-  macroHoldKey,
   macroExecuteKey,
 } = useMacros({ fire });
-// The bar's items: earlier settings macros, then the macro files in `bar`
-// (package 5) — one derivation for the bar in either orientation.
-const macroBar = computed(() => macroBarItems(userMacros.value, macroBarNames.value, macroFolder.value));
+// The bar's items: the macro files in `bar` — one derivation for the bar in
+// either orientation.
+const macroBar = computed(() => macroBarItems(macroBarNames.value, macroFolder.value));
 function runBarItem(item: MacroBarItem) {
-  if (item.kind === "legacy") runMacro(item.macro);
-  else runMacroFile(item.file);
+  runMacroFile(item.file);
 }
 
-// Enter in a macro parameter moves on — to the next field, from the last to
-// Execute — and never runs the macro (design wave D6, UI-D02): Execute is a
-// hold like every motion button.
-function focusNextMacroParam(e: KeyboardEvent) {
-  if (e.repeat || e.isComposing) return;
-  const dialog = (e.target as HTMLElement).closest('[role="dialog"]');
-  if (!dialog) return;
-  const fields = [...dialog.querySelectorAll<HTMLInputElement>("input.inputField:not(:disabled)")];
-  const i = fields.indexOf(e.target as HTMLInputElement);
-  const next = i >= 0 ? fields[i + 1] : undefined;
-  if (next) next.focus();
-  else dialog.querySelector<HTMLButtonElement>(".macroExecute")?.focus();
-}
-provide("updateMacros", updateMacros);
 const toolTableRef = ref<InstanceType<typeof ToolTablePanel> | null>(null);
 // The toolsetter as the SERVER confirmed it (Codex R15 B1): its values go to
 // the machine only once it is set up — TOOLSETTER_FALLBACK is a form's
@@ -1739,7 +1716,7 @@ provide("gamepadLogicalButtons", gamepad.gamepadLogicalButtons);
 provide("gamepadLogicalSticks", gamepad.gamepadLogicalSticks);
 
 // Re-read server-synced settings when another client saves.
-// (userMacros + keyboardConfig refresh via their own composable watchers.)
+// (the macro bar and keyboardConfig refresh via their own composable watchers.)
 watch(settingsVersion, () => {
   const mach = loadMachineDefaults();
   runFromLineEnabled.value = mach.runFromLine;
@@ -2028,7 +2005,7 @@ watch(viewerGcode, (newGcode) => {
           @collision-lines="collisionLines = $event"
         />
       </div>
-      <MacroBar v-if="isPortrait && macroBar.items.length" :items="macroBar.items" :hold-key="macroHoldKey" @run="runBarItem" />
+      <MacroBar v-if="isPortrait && macroBar.items.length" :items="macroBar.items" @run="runBarItem" />
       </div>
 
       <!-- ══ Right pane — Program / Probing tabs ══ -->
@@ -2402,60 +2379,41 @@ watch(viewerGcode, (newGcode) => {
           </template>
       </DialogFrame>
 
-      <DialogFrame v-if="macroParamDialog" kind="form" size="md" :title="macroParamDialog.name">
+      <DialogFrame v-if="macroParamDialog" kind="form" size="md" :title="macroParamDialog.title">
           <div class="dialogContent">
-            <!-- The macro is read live (UI-DI08): removed in Settings or by
-                 another client while open, it has nothing left to run -->
-            <template v-if="macroParamDialog.kind === 'file'">
-              <!-- A macro FILE (package 5): its header's parameters, numbers
-                   with their range and unit; read live from the gateway's list -->
-              <div v-if="dialogFileBlock" class="statusNote warn" role="alert">{{ dialogFileBlock }}</div>
-              <div v-if="dialogFile" class="formGrid">
-                <FormField v-for="p in dialogFile.params" :key="p.key" :label="p.label"
-                           :unit="macroParamUnit(p.unit, dialogFile.units)">
-                  <template #default="{ input }">
-                    <MachineInput
-                      v-bind="input"
-                      gate="macroParam"
-                      type="number"
-                      :min="p.min ?? undefined"
-                      :max="p.max ?? undefined"
-                      :integer="p.integer"
-                      :context="`${dialogFile.title ?? dialogFile.name} · ${p.label}`"
-                      v-model="macroParamDialog.values[p.key]"
-                      @keydown.enter.prevent="focusNextMacroParam"
-                    />
-                  </template>
-                </FormField>
-              </div>
-              <p v-for="(line, i) in dialogFile?.description ?? []" :key="i" class="settingDesc">{{ line }}</p>
-            </template>
-            <div v-else-if="!dialogMacro" class="statusNote warn" role="alert">This macro was removed — nothing to run.</div>
-            <div v-else class="formGrid">
-              <FormField v-for="p in dialogMacro.params" :key="p.name" :label="p.label || p.name">
+            <!-- A macro FILE (package 5): its header's parameters, numbers with
+                 their range and unit, read live from the gateway's list
+                 (UI-DI08): saved or deleted by another client while open, it
+                 shows the new state — a deleted one has nothing left to run -->
+            <div v-if="dialogFileBlock" class="statusNote warn" role="alert">{{ dialogFileBlock }}</div>
+            <div v-if="dialogFile" class="formGrid">
+              <FormField v-for="p in dialogFile.params" :key="p.key" :label="p.label"
+                         :unit="macroParamUnit(p.unit, dialogFile.units)">
                 <template #default="{ input }">
                   <MachineInput
                     v-bind="input"
                     gate="macroParam"
-                    v-model="macroParamDialog.values[p.name]"
-                    @keydown.enter.prevent="focusNextMacroParam"
+                    type="number"
+                    :min="p.min ?? undefined"
+                    :max="p.max ?? undefined"
+                    :integer="p.integer"
+                    :context="`${dialogFile.title ?? dialogFile.name} · ${p.label}`"
+                    v-model="macroParamDialog.values[p.key]"
                   />
                 </template>
               </FormField>
             </div>
-            <code v-if="dialogMacro" class="macroPreview">{{ macroPreview() }}</code>
-            <code v-else-if="dialogFile" class="macroPreview">{{ dialogFile.name }}.ngc</code>
+            <p v-for="(line, i) in dialogFile?.description ?? []" :key="i" class="settingDesc">{{ line }}</p>
+            <code v-if="dialogFile" class="macroPreview">{{ dialogFile.name }}.ngc</code>
           </div>
           <template #actions>
             <MachineBtn type="dialogCancel" @click="macroParamDialog = null">Cancel</MachineBtn>
             <!-- A hold bound to the macro, its command and these values: an edit
                  or a save from another client during the hold cancels it -->
-            <MachineBtn v-if="macroParamDialog.kind === 'file'" type="macroExecute" class="macroExecute"
+            <MachineBtn type="macroExecute" class="macroExecute"
                         :hold-key="macroExecuteKey()" :disabled="!!dialogFileBlock || (dialogFile?.frame === 'machine' && !permissions.machineFrame)"
-                        :reason="dialogFileBlock ?? (dialogFile?.frame === 'machine' && !permissions.machineFrame ? 'Machine frame only' : undefined)"
+                        :reason="dialogFileBlock ?? (dialogFile?.frame === 'machine' && !permissions.machineFrame ? permissionReasons.machineFrame ?? 'Machine frame only' : undefined)"
                         @click="confirmMacroParams">Execute</MachineBtn>
-            <MachineBtn v-else type="macroExecute" class="macroExecute" :hold-key="macroExecuteKey()" :disabled="!dialogMacro"
-                        :reason="dialogMacro ? undefined : 'Macro removed — nothing to run'" @click="confirmMacroParams">Execute</MachineBtn>
           </template>
       </DialogFrame>
 
@@ -2497,7 +2455,7 @@ watch(viewerGcode, (newGcode) => {
 
     <!-- ══ Macro Bar — landscape: a row under the content (portrait: in the
          viewer column above) ══ -->
-    <MacroBar v-if="!isPortrait && macroBar.items.length" :items="macroBar.items" :hold-key="macroHoldKey" @run="runBarItem" />
+    <MacroBar v-if="!isPortrait && macroBar.items.length" :items="macroBar.items" @run="runBarItem" />
 
     <!-- ══ Bottom Action Strip — default-deny Gate, SafetyStrip exempt + sticky ══ -->
     <Gate gate="armed" class="strip bordered-panel scroll-thin" tabindex="-1">

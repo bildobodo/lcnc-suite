@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { ctl, MOCK } from "./ctl";
+import { Folder, serve } from "./macroFolder";
 
 // Design wave D4 (UI-K03, K04, K10, plan WP-D4) — controls and forms:
 //
@@ -28,13 +29,9 @@ const PERMS_ALL = {
 const TOOL = { T: 5, P: 5, Z: -40, D: 6, type: "endmill", description: "Test cutter" };
 const PROBE_VIEWS = ["Outside", "Inside", "Angle", "Boss/Pocket", "Ridge/Valley", "Surface", "Calibrate", "Toolsetter"];
 const SETTINGS_TABS = ["3D Viewer", "Machine", "Display", "Gamepad", "Keyboard", "HAL", "Debug"];   // Macros: a side tab (package 5)
-const MACROS = { macros: [
-  { id: "m-face", name: "Face Top", command: "G0 Z{depth} F{feed}",
-    params: [{ name: "depth", label: "Depth", default: "5" }, { name: "feed", label: "Feed", default: "100" }] },
-] };
 // Run from line on, its preset forward (the speed field shows); gamepad
 // buttons on (the mapping table's selects show).
-const SETTINGS = { macros: MACROS, machine: { runFromLine: true, rflSpindleDir: "forward" },
+const SETTINGS = { macros: { macros: [], bar: ["face_top"] }, machine: { runFromLine: true, rflSpindleDir: "forward" },
   gamepad: { jogEnabled: true, buttonsEnabled: true } };
 
 function viewerInit(linearUnits: string) {
@@ -43,6 +40,7 @@ function viewerInit(linearUnits: string) {
 }
 
 async function ready(page: Page, touch: boolean, linearUnits = "mm", settings: Record<string, unknown> = {}) {
+  await serve(page, new Folder());   // the macro files (macroFolder.ts)
   await ctl({ op: "reset" });
   // The DR geometry (plan WP-DR): desktop 1600 × 1000, touch landscape 1280 × 800.
   await page.setViewportSize(touch ? { width: 1280, height: 800 } : { width: 1600, height: 1000 });
@@ -153,18 +151,16 @@ for (const touch of [false, true]) {
     await expect(page.locator('[role="dialog"]')).toHaveCount(0);
 
     // The macro parameters.
-    await page.locator(".macroBar").getByRole("button", { name: "Face Top", exact: true }).click();
+    await page.locator(".macroBar").getByRole("button", { name: "Face top", exact: true }).click();
     add(await scan(page, "Macro parameters", '[role="dialog"]'));
     await page.locator('[role="dialog"]').getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(page.locator('[role="dialog"]')).toHaveCount(0);
 
-    // The Macros tab (package 5): the earlier-macro editor open, then the
-    // New dialog's field.
+    // The Macros tab (package 5): a macro file open, then the New dialog's field.
     await page.getByRole("tab", { name: "Macros", exact: true }).click();
     const macros = page.locator(".macrosTab");
-    await macros.getByRole("button", { name: "Add Earlier Macro", exact: true }).click();
+    await macros.getByRole("button", { name: "Open park.ngc", exact: true }).click();
     add(await scan(page, "Macros tab", ".macrosTab"));
-    await macros.getByRole("button", { name: "Cancel", exact: true }).click();
     await macros.getByRole("button", { name: "New", exact: true }).click();
     add(await scan(page, "New macro", '[role="dialog"]'));
     await page.locator('[role="dialog"]').getByRole("button", { name: "Cancel", exact: true }).click();

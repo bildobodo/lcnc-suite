@@ -13,21 +13,19 @@ import { computed, nextTick, onUnmounted, ref, watch } from "vue";
 import { ChevronDown, ChevronUp, X } from "lucide-vue-next";
 import CodeEditor from "./CodeEditor.vue";
 import DialogFrame from "./DialogFrame.vue";
-import EarlierMacros from "./EarlierMacros.vue";
 import FormField from "./FormField.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
-import MachineSelect from "./MachineSelect.vue";
 import MachineToggle from "./MachineToggle.vue";
 import { MACRO_EDITOR_OWNER, returnFocusTo } from "./inputSession";
 import { useFire } from "./permissions";
-import { MACRO_NAME_RE, type MacroDef } from "./defaults";
+import { MACRO_NAME_RE } from "./defaults";
 import {
   deleteMacroFile, readMacroFile, saveMacroFile, uploadMacroFile, MacroConflictError, type MacroFile,
 } from "./lcncApi";
 import { macroEditorBasis, macroFolder, macroFolderError, reloadMacroFiles } from "./macroFiles";
 import { fileHoldKey, macroRunBlock } from "./macroBar";
-import { convertToFile, nameFromLabel, newMacroText, nonNumericDefaults, UNIT_KINDS, type ConvertParam } from "./macroConvert";
+import { newMacroText } from "./macroTemplate";
 
 const props = defineProps<{
   /** The macro files on the bar, in order (the `macros` section's `bar`). */
@@ -129,7 +127,6 @@ async function open(name: string) {
 
 /** The tab's draft guard: one question for every way out of a draft. */
 const discardAsk = ref<{ what: string; then: () => void } | null>(null);
-const earlierRef = ref<InstanceType<typeof EarlierMacros> | null>(null);
 function fileDraft(): string | null {
   const s = session.value;
   return s && (s.dirty || (s.conflict && editorRef.value?.text() !== s.original)) ? `${s.name}.ngc` : null;
@@ -137,13 +134,11 @@ function fileDraft(): string | null {
 /** What leaving the tab would throw away, in operator words — null when nothing. */
 function unsavedDraft(): string | null {
   const f = fileDraft();
-  if (f) return `The macro ${f} you are editing`;
-  return earlierRef.value?.unsavedDraft() ?? null;
+  return f ? `The macro ${f} you are editing` : null;
 }
 /** Throw every draft away (the tab's guard said Discard). */
 function discardAll() {
   if (session.value) void open(session.value.name);
-  earlierRef.value?.discardDraft();
 }
 defineExpose({ unsavedDraft, discardAll });
 
@@ -369,36 +364,6 @@ async function confirmDelete() {
   }
 }
 
-// ── Convert an earlier macro ──
-const convert = ref<{ macro: MacroDef; name: string; units: "mm" | "inch"; params: ConvertParam[] } | null>(null);
-function openConvert(m: MacroDef) {
-  convert.value = { macro: m, name: nameFromLabel(m.name), units: "mm",
-                    params: m.params.map(p => ({ name: p.name, label: p.label || p.name, unit: "none", defaultText: p.default })) };
-}
-const convertError = computed(() => {
-  const c = convert.value;
-  if (!c) return null;
-  if (!MACRO_NAME_RE.test(c.name)) return "File name: lower-case letters, digits and _ only";
-  if (files.value.some(f => f.name === c.name)) return "A macro of that name exists";
-  const bad = nonNumericDefaults(c.params);
-  return bad.length ? `Enter a number for ${bad.join(", ")}` : null;
-});
-async function confirmConvert() {
-  const c = convert.value;
-  if (!c || convertError.value) return;
-  const out = convertToFile(c.macro, c.name, c.units, c.params);
-  if ("error" in out) { note.value = { kind: "error", text: out.error }; return; }
-  try {
-    await saveMacroFile(c.name, "new", out.text);   // never over an existing file
-    convert.value = null;
-    note.value = { kind: "ok", text: `Converted to ${c.name}.ngc — the earlier macro stays until you delete it` };
-    await reloadMacroFiles();
-    void open(c.name);
-  } catch (e) {
-    note.value = { kind: "error", text: `Not converted — ${(e as Error).message}` };
-    convert.value = null;
-  }
-}
 </script>
 
 <template>
@@ -521,10 +486,6 @@ async function confirmConvert() {
       </table>
     </div>
 
-    <div class="sep"></div>
-    <div class="sub">Earlier Macros</div>
-    <div class="settingDesc">One MDI line each, stored in the settings — they stay on the bar and keep working.</div>
-    <EarlierMacros ref="earlierRef" @convert="openConvert" />
     </div>
 
     <DialogFrame v-if="newOpen" kind="form" size="md" title="New Macro" @close="newOpen = false">
@@ -568,45 +529,6 @@ async function confirmConvert() {
       </template>
     </DialogFrame>
 
-    <DialogFrame v-if="convert" kind="form" size="md" :title="`Convert ${convert.macro.name} to a File`" @close="convert = null">
-      <div class="dialogContent stack-controls">
-        <div class="formGrid">
-          <FormField label="File name" :error="convertError && convertError.startsWith('File') || convertError?.startsWith('A macro') ? convertError : null">
-            <template #default="{ input }">
-              <MachineInput v-bind="input" gate="macroEdit" type="text" v-model="convert.name" />
-            </template>
-          </FormField>
-          <FormField label="Units">
-            <template #default="{ field }">
-              <MachineSelect v-bind="field" gate="macroEdit" v-model="convert.units">
-                <option value="mm">mm</option>
-                <option value="inch">inch</option>
-              </MachineSelect>
-            </template>
-          </FormField>
-        </div>
-        <div v-if="convert.params.length" class="sub">Values</div>
-        <div v-for="p in convert.params" :key="p.name" class="formGrid">
-          <FormField :label="`{${p.name}} default`">
-            <template #default="{ input }">
-              <MachineInput v-bind="input" gate="macroEdit" type="text" v-model="p.defaultText" />
-            </template>
-          </FormField>
-          <FormField :label="`{${p.name}} kind`">
-            <template #default="{ field }">
-              <MachineSelect v-bind="field" gate="macroEdit" v-model="p.unit">
-                <option v-for="u in UNIT_KINDS" :key="u" :value="u">{{ u }}</option>
-              </MachineSelect>
-            </template>
-          </FormField>
-        </div>
-        <div v-if="convertError" class="statusNote warn" role="alert"><span>{{ convertError }}</span></div>
-      </div>
-      <template #actions>
-        <MachineBtn type="dialogCancel" @click="convert = null">Cancel</MachineBtn>
-        <MachineBtn type="fileSave" :disabled="!!convertError" @click="confirmConvert">Convert</MachineBtn>
-      </template>
-    </DialogFrame>
   </div>
 </template>
 

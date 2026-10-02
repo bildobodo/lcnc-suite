@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { encode } from '@msgpack/msgpack';
 import { ctl } from './ctl';
+import { Folder, serveNow, addPlain } from './macroFolder';
 import { NARROW_PANE_PX } from '../src/sidePaneNarrow';
 import { measureLayout, assertLayout, layoutChanges, measureFrame, frameChanges, type LayoutSnapshot } from './layout-audit';
 import { PROFILES, VIEWPORTS, PANELS, openLayout, setLayoutState, settleLayout, type LayoutState,
@@ -731,8 +732,14 @@ for (const viewport of VIEWPORTS) {
 // three code lines and Abort); the viewer gives the row. Every button is
 // whole in the row's height and reachable by scrolling; the far fade shows
 // while the row overflows.
-const MANY_MACROS = { macros: Array.from({ length: 9 }, (_, i) =>
-  ({ id: `m${i}`, name: `Macro number ${i + 1}`, command: 'G0 Z5', params: [] })) };
+/** Nine macro files with long titles on the bar (macroFolder.ts). */
+const manyMacros = () => {
+  const folder = new Folder();
+  folder.files.clear();
+  for (let i = 0; i < 9; i++) addPlain(folder, `m${i}`, `Macro number ${i + 1}`);
+  return folder;
+};
+const MANY_BAR = { macros: { macros: [], bar: Array.from({ length: 9 }, (_, i) => `m${i}`) } };
 for (const zoom of [1, 1.5]) {
   test(`touch-portrait ${zoom * 100} %: the macro bar is one row between the viewer and the side pane, which does not move`, async ({ page }) => {
     await openLayout(page, PROFILES[1], VIEWPORTS.find(v => v.name === 'touch-portrait')!);
@@ -744,7 +751,8 @@ for (const zoom of [1, 1.5]) {
     });
     const before = await rects();
     expect(before.bar, 'no macros, no bar').toBeUndefined();
-    await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { macros: MANY_MACROS } } });
+    await serveNow(page, manyMacros());
+    await ctl({ op: 'raw', frame: { type: 'settings_init', settings: MANY_BAR } });
     await expect(page.locator('.macroBar [data-macro-id]')).toHaveCount(9);
     await settleLayout(page);
     const after = await rects();
@@ -787,7 +795,7 @@ for (const zoom of [1, 1.5]) {
     // the last button comes whole into view by scrolling
     await page.locator('.macroBar').evaluate(el => { el.scrollLeft = el.scrollWidth; });
     await settleLayout(page);
-    const last = await page.locator('.macroBar [data-macro-id="m8"]').evaluate(e => e.getBoundingClientRect().right);
+    const last = await page.locator('.macroBar [data-macro-id="file:m8"]').evaluate(e => e.getBoundingClientRect().right);
     const barRight = await page.locator('.macroBar').evaluate(e => { const b = e.getBoundingClientRect(); return b.right; });
     expect(last, 'the last macro reachable').toBeLessThanOrEqual(barRight + 0.5);
   });

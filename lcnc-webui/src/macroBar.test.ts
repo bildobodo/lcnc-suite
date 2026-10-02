@@ -10,18 +10,17 @@ const file = (over: Partial<MacroFile> = {}): MacroFile => ({
   warnings: [], revision: "a".repeat(64), mtime: 0, runnable: true, reason: null, ...over,
 });
 const folder = (...files: MacroFile[]): MacroFolder => ({ ok: true, dir: "/m", problems: [], macros: files });
-const legacy = { id: "x1", name: "Old", command: "G0 Z5", params: [] };
 
 describe("macroBarItems", () => {
-  it("the earlier macros first, then the bar's files in the bar's order", () => {
+  it("the bar's files in the bar's order, by their title", () => {
     const f = folder(file({ name: "a", title: null }), file({ name: "b", title: "Bee" }));
-    const { items, missing } = macroBarItems([legacy], ["b", "a"], f);
-    expect(items.map(i => [i.kind, i.label])).toEqual([["legacy", "Old"], ["file", "Bee"], ["file", "a"]]);
+    const { items, missing } = macroBarItems(["b", "a"], f);
+    expect(items.map(i => [i.key, i.label])).toEqual([["file:b", "Bee"], ["file:a", "a"]]);
     expect(missing).toEqual([]);
   });
   it("a name without a file is missing — once the list is known, never before", () => {
-    expect(macroBarItems([], ["gone"], folder()).missing).toEqual(["gone"]);
-    expect(macroBarItems([], ["gone"], null).missing).toEqual([]);
+    expect(macroBarItems(["gone"], folder()).missing).toEqual(["gone"]);
+    expect(macroBarItems(["gone"], null).missing).toEqual([]);
   });
 });
 
@@ -54,10 +53,13 @@ describe("macroParamUnit", () => {
 
 describe("mergeMacrosSection", () => {
   const fb = { macros: [] };
-  it("a section from before package 5 keeps its macros and gets no bar", () => {
-    const saved = { macros: [{ id: "x1", name: "Old", command: "G0 Z{z}", params: [{ name: "z", label: "Z", default: "5" }] }] };
+  it("a stored earlier-macro list passes through EXACTLY as stored — no longer used, never rewritten", () => {
+    // the earlier MDI-line macros were dropped (operator 2026-10-02): a save
+    // of the section must write back what was there, malformed and long lists too
+    const many = Array.from({ length: 25 }, (_, i) => ({ id: `x${i}`, name: `Old ${i}`, command: "G0 Z{z}", params: [] }));
+    const saved = { macros: [...many, { broken: true }, "junk"] };
     const m = mergeMacrosSection(saved, fb);
-    expect(m).toEqual(saved);
+    expect(m.macros).toBe(saved.macros);
     expect("bar" in m).toBe(false);
   });
   it("bar passes through, valid names only, each once, capped", () => {
