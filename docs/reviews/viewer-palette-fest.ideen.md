@@ -8987,3 +8987,31 @@ Wenn du einen Planbefund hast, der die Umsetzung trifft, nenne bitte beide Stell
   WEBUI_MACRO_DIR“.
 - Der Live-Blick des Operators steht aus, ebenso die Renderings der Hochformat-Zeile und des Tabs
   für ihn.
+
+**Nachtrag zur Erweiterung (2. Oktober, später Abend):** Zwei Commits sind nach `53be8c8`
+hinzugekommen. Bitte prüfe deshalb `ef3be59..7a7e523`.
+
+- **`d29b008` · Die Makroliste läuft im schmalen Panel nicht mehr seitlich über.**
+  - Gefunden in den Renderings für den Operator: Bei 150 % im Hochformat war die Liste 320 px
+    breit, der Bereich hat aber nur 272 px. Ursache waren die beiden Sortierknöpfe nebeneinander und
+    der Dateiname: `.label-muted` steht auf `nowrap`.
+  - Behebung: Die Knöpfe stehen übereinander. Ein langer Dateiname bricht am Spaltenende um.
+  - Wächter: jeder Scrollbereich des Tabs, außer dem Code selbst, am Desktop und im Hochformat bei
+    100 % und 150 %. Er war vorher rot (320 > 272).
+  - `layout.spec` kennt seitliches Scrollen nur in der Leiste und als Überlauf von 1–4 px. Für ein
+    Seitenpanel, das sichtbar seitlich scrollt, hat die Seitenreiter-Durchsicht keinen Befund.
+    Frage: Soll sie das allgemein bekommen?
+- **`7a7e523` · Fokus nach dem Löschen, Plan-Fall 20, war nicht umgesetzt.**
+  - Gefunden beim Abgleich des Plans mit dem Bau. Die geschützte Rückgabe des Dialogs setzte den
+    Fokus wieder auf Delete. Delete wird mit der verlorenen Auswahl gesperrt, und Chromium ließ den
+    Fokus dann auf `body` fallen, wo eine Pfeiltaste joggt (Klasse UI-I06).
+  - Jetzt übergibt das Löschen den Fokus selbst, über `returnFocusTo`, das jünger ist als die
+    Rückgabe des Dialogs. Ziel ist die nächste Zeile, sonst die vorige, sonst „New“ im Kopf. Nicht
+    der erste freie Kopfknopf: Das wäre Abort.
+  - Wächter: drei Löschungen. Vorher rot, der Fokus lag auf `BODY`.
+- **Gate auf `7a7e523`:** bestanden (Backend 1199, Unit 1873, Browser 412).
+- **Renderings für den Operator:** auf seiner Abnahmeseite. Die Makrozeile im Hochformat hat er
+  aus den Renderings angenommen. Offen für seinen Live-Blick:
+  - der Editor unter der Liste am Desktop;
+  - das Einklappen des Kopfs hinter „More“ im schmalen Panel, wie bei Program;
+  - der Installer-Lauf für den Makroordner.
