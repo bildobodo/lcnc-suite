@@ -275,6 +275,20 @@ describe("the fat path draws exactly the GL path's pairs (Codex R39)", () => {
     expect(ov!.geometry, "the box's own geometry: its cells").toBe(boxSolid!.geometry);
   });
 
+  it("a FLAT program (no Z extent) beyond the window still shows its box's overflow — in both line modes", () => {
+    // its box is drawn and clipped to the inside; the part outside was simply
+    // not drawn (the overflow refused any zero extent) — a limit finding gone
+    for (const mode of ["fat", "gl"] as const) {
+      const { c, ctx } = controller(mode);
+      const flat = program();
+      flat.bounds = { min: [0, 0, 0], max: [200, 165, 0] };
+      c.apply(ctx, flat);
+      const roles: string[] = [];
+      ctx.workRotGroup.traverse(o => { const r = ((o as THREE.Mesh).material as THREE.Material | undefined)?.userData?.role; if (r) roles.push(r); });
+      expect(roles.filter(r => r.startsWith("limitBox")).length, `${mode}: the overflow beside the flat box`).toBeGreaterThan(0);
+    }
+  });
+
   it("culling widens each chunk's sphere by the line's reach at its distance", () => {
     const { c, ctx } = build("fat");
     const o = roleObjects(ctx.workRotGroup, "feed")[0] as LineSegments2;

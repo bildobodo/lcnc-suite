@@ -33,10 +33,11 @@ export const OBJECT_MIN_NORMAL = 0.12;
 
 /** A visible cue that separates two roles besides their colour. */
 export type PairCue =
-  | "dashed"   // the rapid (or a stale plane's edge) is dashed; the boxes' dash length
+  | "dashed"   // the rapid (or a stale plane's edge) is dashed
   | "object"   // one is a tinted machine body, not a path line
   | "glyph"    // timeline / code panel: ▲ limit, × collision
-  | "label";   // a text label on the object (the toolpath box's sizes, the plane's state)
+  | "ticks"    // the toolpath box's dimension end marks (package 4)
+  | "label";   // a text label on the object (the boxes' type and sizes, the plane's state)
 
 export interface PalettePair {
   a: string;
@@ -67,9 +68,10 @@ export const PALETTE_PAIRS: PalettePair[] = [
   { a: "--viewer-rapid", b: "--viewer-collision", where: "a line against a tinted body", kind: "object", cues: ["object", "dashed"] },
   { a: "--viewer-limit", b: "--viewer-collision", where: "3D, timeline, code panel", kind: "object", cues: ["object", "glyph"] },
   { a: "--viewer-backplot", b: "--viewer-collision", where: "a line against a tinted body", kind: "object", cues: ["object"] },
-  // The two boxes: one two-tone pair (operator 2026-09-29) — the machine
-  // box with long dashes, the toolpath box with short ones and its size labels.
-  { a: "--viewer-bounds", b: "--viewer-toolpath-bounds", where: "two boxes", kind: "form", cues: ["dashed", "label"] },
+  // The two boxes: one two-tone pair in ONE geometric pattern (package 4,
+  // operator 2026-10-01 — the dash length is no cue any more): the toolpath
+  // box carries dimension end marks and its sizes, each box its type label.
+  { a: "--viewer-bounds", b: "--viewer-toolpath-bounds", where: "two boxes", kind: "form", cues: ["ticks", "label"] },
   // The tilted work plane's states (V4): the label on the object names the
   // state, a stale plane's edge is dashed.
   { a: "--viewer-plane-active", b: "--viewer-plane-defined", where: "the plane", kind: "object", cues: ["label"] },

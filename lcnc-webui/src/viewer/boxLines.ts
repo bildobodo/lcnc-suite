@@ -406,6 +406,101 @@ export function makeBoxEdges(size: [number, number, number], o: BoxEdgesOptions)
   return group;
 }
 
+/** The toolpath box's DIMENSION END MARKS (package 4, plan Fassung 2 A'' and
+ *  3, Codex R62/R63): with one pattern for both boxes the toolpath box needs
+ *  a second cue of form — at both ends of every edge a short bar ACROSS the
+ *  edge on screen, like a dimension line's end, TICK_ARM_PX each side. Its
+ *  own contrast carrier: a light underlay TICK_UNDER_PX wide under the whole
+ *  bar, a dark TICK_CORE_PX core over it — on a dark ground the underlay
+ *  carries the form, on a light one the core (a dark mark alone was 1 : 1 on
+ *  HC dark, R63). Built in CSS px and posed per frame from the camera (one
+ *  24-segment buffer rewritten, no allocation); it respects depth like the box. */
+export const TICK_ARM_PX = 5;
+/** The core 2 px, not the plan's 1 (Fassung 3): at DPR 1 a 1 px line centred
+ *  on a pixel boundary is two half-covered pixels — (dark + light) / 2, the
+ *  mid grey of the model's surfaces (2.4 : 1 at best, measured); a 2 px core
+ *  covers a whole pixel at any offset. The underlay keeps the plan's 1 px
+ *  overhang on each side and, through the round caps, at each end. */
+export const TICK_UNDER_PX = 4;
+export const TICK_CORE_PX = 2;
+
+export interface BoxTicks extends THREE.Group {
+  setColors(dark: string, light: string): void;
+  /** Re-pose for this view; `box` is the edges they mark (their parent). */
+  pose(box: GeoTwoTone, camera: THREE.Camera, cssW: number, cssH: number): void;
+  /** The bars in world coordinates (6 floats each), for diagnostics. */
+  worldSegments(): number[][];
+}
+
+export function makeBoxTicks(o: { dark: string; light: string; role: string }): BoxTicks {
+  const geom = new LineSegmentsGeometry();
+  countedGeometry(geom);
+  const pos = f32(24 * 6);
+  geom.setPositions(pos);
+  const buf = (geom.getAttribute("instanceStart") as THREE.InterleavedBufferAttribute).data;
+  buf.setUsage(THREE.DynamicDrawUsage);
+  const mat = (color: string, width: number, role: string) => {
+    const m = new LineMaterial({ color, linewidth: width, worldUnits: false });
+    m.userData.role = role;
+    return m;
+  };
+  const underMat = mat(o.light, TICK_UNDER_PX, `${o.role}TickAlt`), coreMat = mat(o.dark, TICK_CORE_PX, `${o.role}Tick`);
+  const under = new LineSegments2(geom, underMat), core = new LineSegments2(geom, coreMat);
+  under.renderOrder = 2; core.renderOrder = 3;   // over the box's own passes (0, 1)
+  for (const l of [under, core]) {
+    l.frustumCulled = false;   // rewritten every frame: no bounding sphere to trust
+    l.onBeforeRender = (renderer) => { renderer.getSize((l.material as LineMaterial).resolution); };
+  }
+  const g = new THREE.Group() as BoxTicks;
+  g.add(under, core);
+  g.setColors = (dark, light) => { coreMat.color.set(dark); underMat.color.set(light); };
+  const mvp = new THREE.Matrix4(), inv = new THREE.Matrix4(), invR = new THREE.Matrix3();
+  const a = new THREE.Vector4(), b = new THREE.Vector4(), e = new THREE.Vector3(), ew = new THREE.Vector3(), cam = new THREE.Vector3();
+  const right = new THREE.Vector3(), up = new THREE.Vector3(), off = new THREE.Vector3();
+  g.pose = (box, camera, cssW, cssH) => {
+    box.updateWorldMatrix(true, false);
+    mvp.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse).multiply(box.matrixWorld);
+    inv.copy(box.matrixWorld).invert();
+    invR.setFromMatrix4(inv);   // a world offset into the box's frame (no translation)
+    right.set(1, 0, 0).applyQuaternion(camera.quaternion);
+    up.set(0, 1, 0).applyQuaternion(camera.quaternion);
+    camera.getWorldPosition(cam);
+    const P = box.geo.positions, ortho = (camera as THREE.OrthographicCamera).isOrthographicCamera;
+    const persp = camera as THREE.PerspectiveCamera, oc = camera as THREE.OrthographicCamera;
+    for (let s = 0; s < 12; s++) {
+      a.set(P[s * 6]!, P[s * 6 + 1]!, P[s * 6 + 2]!, 1).applyMatrix4(mvp);
+      b.set(P[s * 6 + 3]!, P[s * 6 + 4]!, P[s * 6 + 5]!, 1).applyMatrix4(mvp);
+      let dx = 0, dy = 0;
+      if (a.w > 0 && b.w > 0) { dx = (b.x / b.w - a.x / a.w) * cssW; dy = (b.y / b.w - a.y / a.w) * cssH; }
+      const l = Math.hypot(dx, dy);
+      for (let end = 0; end < 2; end++) {
+        const o6 = (s * 2 + end) * 6, src = s * 6 + end * 3;
+        e.set(P[src]!, P[src + 1]!, P[src + 2]!);
+        if (!(l > 1e-6)) { for (let k = 0; k < 6; k++) pos[o6 + k] = e.getComponent(k % 3); continue; }
+        // world per CSS px at this corner, the bar across the edge's screen direction
+        ew.copy(e).applyMatrix4(box.matrixWorld);
+        const wpp = ortho
+          ? (oc.top - oc.bottom) / (oc.zoom || 1) / cssH
+          : (2 * ew.distanceTo(cam) * Math.tan(THREE.MathUtils.degToRad(persp.fov) / 2)) / (persp.zoom || 1) / cssH;
+        off.copy(right).multiplyScalar(-dy / l).addScaledVector(up, dx / l).multiplyScalar(TICK_ARM_PX * wpp).applyMatrix3(invR);
+        for (let k = 0; k < 3; k++) { pos[o6 + k] = e.getComponent(k) - off.getComponent(k); pos[o6 + 3 + k] = e.getComponent(k) + off.getComponent(k); }
+      }
+    }
+    buf.needsUpdate = true;
+  };
+  g.worldSegments = () => {
+    const out: number[][] = [];
+    const m = g.matrixWorld;
+    for (let i = 0; i < 24; i++) {
+      const p0 = new THREE.Vector3(pos[i * 6]!, pos[i * 6 + 1]!, pos[i * 6 + 2]!).applyMatrix4(m);
+      const p1 = new THREE.Vector3(pos[i * 6 + 3]!, pos[i * 6 + 4]!, pos[i * 6 + 5]!).applyMatrix4(m);
+      out.push([...p0.toArray(), ...p1.toArray()]);
+    }
+    return out;
+  };
+  return g;
+}
+
 /** The per-instance distances three's computeLineDistances just allocated. */
 export function countedLineDistances(g: THREE.BufferGeometry): void {
   counted((g.getAttribute("instanceDistanceStart") as THREE.InterleavedBufferAttribute | undefined)?.data.array as Float32Array | undefined);

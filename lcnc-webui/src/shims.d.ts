@@ -56,6 +56,13 @@ interface ViewerDiag {
     { cells: number[]; segments: { unit: number; a: number[]; b: number[]; ta: number; tb: number }[] } | null;
   /** Zoom about the orbit target (> 1 closer). */
   zoomBy?: (factor: number) => void;
+  /** The toolpath box's dimension end marks (package 4), world, 6 floats each. */
+  getBoxTicks?: () => number[][] | null;
+  /** The bounds' type labels (package 4, label variant (ii)). */
+  getBoxTypeLabels?: () => { machine: { visible: boolean; onTop: boolean; screen: { x: number; y: number } } | null;
+    program: { visible: boolean; onTop: boolean; screen: { x: number; y: number } } | null };
+  /** Test seam: hide / show the type labels (the variant (i) render). */
+  setBoxTypeLabelsShown?: (on: boolean) => void;
   /** The viewer canvas on the page (CSS px). */
   canvasRect?: () => { left: number; top: number; right: number; bottom: number } | null;
   /** World points on the page in CSS px; null behind the camera. */

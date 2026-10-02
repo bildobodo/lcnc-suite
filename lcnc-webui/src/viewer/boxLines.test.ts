@@ -7,8 +7,8 @@ import { describe, it, expect } from "vitest";
 import * as THREE from "three";
 import type { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
-import { boxGeoState, geoDashShaders, makeBoxEdges, makeGeoTwoTone, makeTwoToneSegments, screenDashShaders,
-  worldPerPixel, GeoDashState, REACH_PX, MACHINE_BOX_PX } from "./boxLines";
+import { boxGeoState, geoDashShaders, makeBoxEdges, makeBoxTicks, makeGeoTwoTone, makeTwoToneSegments, screenDashShaders,
+  worldPerPixel, GeoDashState, REACH_PX, MACHINE_BOX_PX, TICK_ARM_PX, TICK_CORE_PX, TICK_UNDER_PX } from "./boxLines";
 import { buildChains, chooseCells, clipParam } from "./geoDash";
 
 const renderer = { getSize: (v: THREE.Vector2) => v.set(800, 600) } as unknown as THREE.WebGLRenderer;
@@ -187,5 +187,70 @@ describe("GeoDashState: the cell count per unit for this view", () => {
     const r1 = (s0.L + s1.L) / (s0.dt + s1.dt), r2 = s2.L / s2.dt;
     expect(st.cellsOf()).toEqual([chooseCells(Math.max(r1, r2), 0)]);
     expect(Math.max(r1, r2) / Math.min(r1, r2), "the pieces differ: the rule picks one").toBeGreaterThan(1.5);
+  });
+});
+
+describe("the toolpath box's dimension end marks", () => {
+  const W = 800, H = 600;
+  /** A world point on the page (CSS px, y down). */
+  const screen = (p: number[], cam: THREE.Camera): [number, number] => {
+    const v = new THREE.Vector3(p[0], p[1], p[2]).project(cam);
+    return [(v.x + 1) / 2 * W, (1 - v.y) / 2 * H];
+  };
+  const persp = () => {
+    const c = new THREE.PerspectiveCamera(40, W / H, 1, 1e5);
+    c.position.set(300, -500, 400); c.up.set(0, 0, 1); c.lookAt(50, 30, 20);
+    c.updateProjectionMatrix(); c.updateMatrixWorld();
+    return c;
+  };
+  for (const [name, mk] of [["parallel", () => { const c = ortho(1.5); c.position.set(200, -300, 400); c.up.set(0, 0, 1); c.lookAt(0, 0, 0); c.updateMatrixWorld(); return c; }],
+    ["perspective", persp]] as const) {
+    it(`a bar across each end of every edge, ${2 * TICK_ARM_PX} px long on screen, centred on the corner (${name})`, () => {
+      const box = makeBoxEdges([120, 80, 40], { color: "#15181c", alt: "#f0f2f4", width: 1, role: "toolpathBounds" });
+      box.position.set(-10, 5, 3);
+      const ticks = makeBoxTicks({ dark: "#15181c", light: "#f0f2f4", role: "toolpathBounds" });
+      box.add(ticks);
+      const cam = mk();
+      box.updateMatrixWorld(true);
+      ticks.pose(box, cam, W, H);
+      ticks.updateMatrixWorld(true);
+      const bars = ticks.worldSegments();
+      expect(bars.length).toBe(24);
+      const P = box.geo!.positions;
+      let checked = 0;
+      for (let s = 0; s < 12; s++) {
+        const a = new THREE.Vector3(P[s * 6], P[s * 6 + 1], P[s * 6 + 2]).applyMatrix4(box.matrixWorld).toArray();
+        const b = new THREE.Vector3(P[s * 6 + 3], P[s * 6 + 4], P[s * 6 + 5]).applyMatrix4(box.matrixWorld).toArray();
+        const [ax, ay] = screen(a, cam), [bx, by] = screen(b, cam);
+        const el = Math.hypot(bx - ax, by - ay);
+        if (el < 1) continue;   // seen end-on: no direction to cross
+        for (let end = 0; end < 2; end++) {
+          const bar = bars[s * 2 + end]!;
+          const [x0, y0] = screen(bar.slice(0, 3), cam), [x1, y1] = screen(bar.slice(3), cam);
+          const len = Math.hypot(x1 - x0, y1 - y0);
+          expect(len, `edge ${s} end ${end}`).toBeCloseTo(2 * TICK_ARM_PX, 0);
+          // across the edge: perpendicular on screen
+          expect(Math.abs((x1 - x0) * (bx - ax) + (y1 - y0) * (by - ay)) / (len * el), `edge ${s}`).toBeLessThan(0.02);
+          // centred on the corner it marks
+          const [cx, cy]: [number, number] = end ? [bx, by] : [ax, ay];
+          expect(Math.hypot((x0 + x1) / 2 - cx, (y0 + y1) / 2 - cy)).toBeLessThan(0.05);
+          checked++;
+        }
+      }
+      expect(checked).toBeGreaterThanOrEqual(18);
+    });
+  }
+
+  it("its own contrast carrier: a light underlay under a dark core, over the box's passes; colours follow setColors", () => {
+    const ticks = makeBoxTicks({ dark: "#15181c", light: "#f0f2f4", role: "toolpathBounds" });
+    const [under, core] = ticks.children as LineSegments2[];
+    const um = under!.material as LineMaterial, cm = core!.material as LineMaterial;
+    expect([um.linewidth, cm.linewidth]).toEqual([TICK_UNDER_PX, TICK_CORE_PX]);
+    expect(um.linewidth).toBeGreaterThan(cm.linewidth);
+    expect([um.userData.role, cm.userData.role]).toEqual(["toolpathBoundsTickAlt", "toolpathBoundsTick"]);
+    expect(core!.renderOrder).toBeGreaterThan(under!.renderOrder);
+    expect(under!.renderOrder).toBeGreaterThan(1);
+    ticks.setColors("#000000", "#ffffff");
+    expect([cm.color.getHexString(), um.color.getHexString()]).toEqual(["000000", "ffffff"]);
   });
 });

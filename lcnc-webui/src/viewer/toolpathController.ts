@@ -20,7 +20,7 @@
 import * as THREE from "three";
 import { binPairs, buildFrameIndex, CHUNK_MAX, chunkBounds, chunkGrid, cumulativeDistances, splitPairsByFrame } from "./lineChunks";
 import type { AnchorTerms } from "./partFrame";
-import { makeBoxEdges, boxEdgePositions, geoDash, patternDiag, TOOLPATH_BOX_PX, type BoxEdges } from "./boxLines";
+import { makeBoxEdges, makeBoxTicks, boxEdgePositions, geoDash, patternDiag, TOOLPATH_BOX_PX, type BoxEdges, type BoxTicks } from "./boxLines";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
@@ -115,6 +115,11 @@ export interface ToolpathController {
   /** The toolpath box's pattern for diagnostics (boxLines.patternDiag), or
    *  null without a box. */
   boxPattern(): ReturnType<typeof patternDiag> | null;
+  /** The toolpath box's dimension end marks in world coordinates, or null. */
+  boxTicks(): number[][] | null;
+  /** Where the box's type label stands: its (min x, min y, max z) corner in
+   *  world coordinates — null without a SHOWN box. */
+  boxLabelAnchor(): THREE.Vector3 | null;
   setVisible(on: boolean): void;
   /** The Rapids layer (fixed palette P3): the rapid lines only — their
    *  limit overlay stays with the toolpath layer. */
@@ -331,6 +336,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   let motionBBox: BBox | null = null;
 
   let toolpathBoundsBox: BoxEdges | null = null;
+  let toolpathBoxTicks: BoxTicks | null = null;   // a child of the box: built, drawn and disposed with it
   let toolpathBoundsLabels: THREE.Group | null = null;
   let toolpathOverflowEdges: THREE.Object3D | null = null;
 
@@ -726,7 +732,10 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
   function rebuildOverflowEdges(size: Vec3, offset: Vec3): THREE.Object3D | null {
     if (deps.boundsClipPlanes.length === 0) return null;
     const [sx, sy, sz] = size;
-    if (sx <= 0 || sy <= 0 || sz <= 0) return null;
+    // the box's own rule: a flat (2D) program's box is drawn — and clipped to
+    // the inside — so its outside part must be drawn too, or a limit finding
+    // vanishes (it used to refuse any zero extent)
+    if (sx <= 0 && sy <= 0 && sz <= 0) return null;
     const [ox, oy, oz] = offset;
     if (lineMode === "fat") {
       // The box OUTSIDE the machine window, a limit finding: the box's own
@@ -817,6 +826,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       toolpathBoundsBox.parent?.remove(toolpathBoundsBox);
       deps.disposeObject(toolpathBoundsBox);
       toolpathBoundsBox = null;
+      toolpathBoxTicks = null;
     }
     if (toolpathBoundsLabels) {
       toolpathBoundsLabels.traverse((c: any) => {
@@ -867,6 +877,9 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       role: "toolpathBounds", clippingPlanes: deps.insideBoundsClipPlanes,
     });
     toolpathBoundsBox.position.set(cx, cy, cz);
+    // its second cue of form beside its label (package 4: one pattern for both boxes)
+    toolpathBoxTicks = makeBoxTicks({ dark: pal.toolpathBounds, light: pal.boundsAlt, role: "toolpathBounds" });
+    toolpathBoundsBox.add(toolpathBoxTicks);
     toolpathBoundsBox.visible = toolpathBoundsVisible;
     _watchBox(toolpathBoundsBox);
     workRotGroup.add(toolpathBoundsBox);
@@ -1206,7 +1219,25 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       const box = toolpathBoundsBox;
       if (!box || !box.visible || !box.geo) return false;
       box.updateWorldMatrix(true, false);
+      toolpathBoxTicks?.pose(box, camera, cssW, cssH);
       return box.geo.update(box, camera, cssW, cssH);
+    },
+
+    boxTicks() {
+      if (!toolpathBoxTicks) return null;
+      toolpathBoxTicks.updateWorldMatrix(true, false);
+      return toolpathBoxTicks.worldSegments();
+    },
+
+    boxLabelAnchor() {
+      const box = toolpathBoundsBox;
+      if (!box || !box.visible) return null;
+      for (let p = box.parent; p; p = p.parent) if (!p.visible) return null;
+      const P = box.geo.positions;
+      let x = Infinity, y = Infinity, z = -Infinity;
+      for (let i = 0; i < P.length; i += 3) { x = Math.min(x, P[i]!); y = Math.min(y, P[i + 1]!); z = Math.max(z, P[i + 2]!); }
+      box.updateWorldMatrix(true, false);
+      return new THREE.Vector3(x, y, z).applyMatrix4(box.matrixWorld);
     },
 
     boxPattern() {
@@ -1360,6 +1391,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       _feedBase.set(c.feed);
       _rapidBase.set(c.rapid);
       toolpathBoundsBox?.setColors(c.toolpathBounds, c.boundsAlt);
+      toolpathBoxTicks?.setColors(c.toolpathBounds, c.boundsAlt);
       for (const s of sets) s.overMat?.color.set(c.limit);
       toolpathOverflowEdges?.traverse(o => {
         const m = (o as THREE.Mesh).material as PathMat | undefined;
@@ -1375,6 +1407,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       feedPosAttr = rapidPosAttr = null;
       _chunksVisible = _overlayChunks = _frameMixed = 0;
       toolpathBoundsBox = toolpathOverflowEdges = null;
+      toolpathBoxTicks = null;
       toolpathBoundsLabels = null;
       toolpathBBox = null;
       motionBBox = null;

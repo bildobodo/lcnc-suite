@@ -410,6 +410,8 @@ test("the box edge alone: two tones, MACHINE_BOX_PX wide, cells within the patte
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(MOCK);
     await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready)).toBe(true);
+    // the pattern alone: the type labels (drawn on top at a corner) are their own guard
+    await page.evaluate(() => window.__viewerDiag!.setBoxTypeLabelsShown!(false));
     await page.evaluate(() => window.__viewerDiag!.setViewDirection!([1, 2, 0.7]));
     for (const theme of ["light", "dark"] as const) {
       await ctl({ op: "raw", frame: { type: "settings_changed", settings: { display: { theme }, viewer: { projection: "parallel", layers: {
@@ -486,6 +488,8 @@ test("the box cells hang on the geometry: every transition at a world cell bound
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(MOCK);
   await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready)).toBe(true);
+  // the pattern alone: the type labels (drawn on top at a corner) are their own guard
+  await page.evaluate(() => window.__viewerDiag!.setBoxTypeLabelsShown!(false));
   const failures: string[] = [];
   let measured = 0;
   const LAYERS = { hud: false, bounds: true, toolpath: false, tool: false, machine: false, workzero: false, groundGrid: false, toolsetter: false, toolChange: false };
@@ -637,6 +641,8 @@ test("an edge cut by the near plane shows both tones on its visible part (Codex 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(MOCK);
   await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready)).toBe(true);
+  // the pattern alone: the type labels (drawn on top at a corner) are their own guard
+  await page.evaluate(() => window.__viewerDiag!.setBoxTypeLabelsShown!(false));
   for (const theme of ["light", "hc-light"] as const) {
     await ctl({ op: "raw", frame: { type: "settings_changed", settings: { display: { theme }, viewer: { projection: "perspective", layers: {
       hud: false, bounds: true, toolpath: false, tool: false, machine: false, workzero: false, groundGrid: false, toolsetter: false, toolChange: false } } } } });
@@ -683,4 +689,206 @@ test("an edge cut by the near plane shows both tones on its visible part (Codex 
     expect(l / (d + l), `${theme}: light cells on the visible piece ${pattern}`).toBeGreaterThan(0.15);
   }
   await context.close();
+});
+
+/** WCAG contrast of two sRGB triples. */
+const contrastOf = (a: number[], b: number[]) => {
+  const rel = (c: number[]) => {
+    const f = (v: number) => { const s = v / 255; return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; };
+    return 0.2126 * f(c[0]!) + 0.7152 * f(c[1]!) + 0.0722 * f(c[2]!);
+  };
+  const [x, y] = [rel(a), rel(b)].sort((p, q) => q - p);
+  return (x! + 0.05) / (y! + 0.05);
+};
+
+/** In-page: for each group of points (CSS px), the pixels of two shots — and
+ *  whether the viewer canvas is what shows there (no overlay over it). */
+async function pixelPairs(page: Page, shots: [Buffer, Buffer], groups: { x: number; y: number }[][]) {
+  return page.evaluate(async ({ pngs, groups }) => {
+    const read = async (png: string) => {
+      const img = new Image();
+      img.src = `data:image/png;base64,${png}`;
+      await img.decode();
+      const cv = document.createElement("canvas");
+      cv.width = img.width; cv.height = img.height;
+      const cx = cv.getContext("2d", { willReadFrequently: true })!;
+      cx.drawImage(img, 0, 0);
+      return (x: number, y: number) => Array.from(cx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data.slice(0, 3));
+    };
+    const [a, b] = [await read(pngs[0]), await read(pngs[1])];
+    return groups.map(g => g.map(p => {
+      const top = document.elementFromPoint(p.x, p.y) as HTMLElement | null;
+      return { canvas: !!top?.dataset && "viewerCanvas" in top.dataset, a: a(p.x, p.y), b: b(p.x, p.y) };
+    }));
+  }, { pngs: [shots[0].toString("base64"), shots[1].toString("base64")], groups });
+}
+
+// Package 4 (plan Fassung 2 A'' and 3, Codex R62/R63): with ONE pattern for
+// both boxes the toolpath box carries DIMENSION END MARKS — a bar across each
+// end of every edge, its own contrast carrier (a light underlay under a dark
+// core) — and each box a TYPE LABEL. The marks must stand off whatever lies
+// behind them: at points on each arm (clear of every box edge) the most
+// distinct pixel across the arm holds 3 : 1 (WCAG 1.4.11) against the SAME
+// point with the bounds off — in light, dark, hc-light and hc-dark, over the
+// scene's background (machine off) and over the model's surfaces (machine on,
+// a view from above, so the box lies over the base). The labels stand at
+// opposite corners (apart where the boxes coincide), over everything, and a
+// test seam hides them for the operator's variant (i) render.
+test("the toolpath box's end marks stand off the background and the model in four themes; the type labels stand apart", async ({ page, context }, testInfo) => {
+  test.setTimeout(240_000);
+  await ctl({ op: "reset" });
+  // a program with all three extents (a flat one has no Z edges to mark):
+  // X −150 … 230 (past the window's 200 — its overflow drawn too), Y −150 … 125, Z 0 … 40
+  const corners = [[-150, -150, 0], [230, -150, 0], [230, 125, 20], [-150, 125, 40], [-150, -150, 40]];
+  const program = { lines: corners.length + 3, body: Buffer.from(encode({ file: "/dense.ngc", preview_schema: 10, feed: corners,
+    feed_lines: corners.map((_, i) => 3 + i), feed_outside: new Uint8Array(corners.map(c => (c[0]! > 200 ? 1 : 0))),
+    rapid: [[0, 0, 60], [-150, -150, 60], [-150, -150, 5]], rapid_outside: new Uint8Array(3) })) };
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: program.body }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
+    body: Array.from({ length: program.lines + 1 }, (_, i) => i === 0 ? "(dense)" : `G1 X${i} Y${i}`).join("\n") }));
+  const stl = (g: THREE.BufferGeometry) => Buffer.from(new STLExporter().parse(new THREE.Mesh(g), { binary: true }).buffer);
+  await page.route("**/machine/base.stl", r => r.fulfill({ contentType: "application/octet-stream", body: stl(new THREE.BoxGeometry(500, 500, 60)) }));
+  await page.route("**/machine/head.stl", r => r.fulfill({ contentType: "application/octet-stream",
+    body: stl(new THREE.CylinderGeometry(40, 40, 160, 32).rotateX(Math.PI / 2)) }));
+  await page.setViewportSize({ width: 1400, height: 1000 });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(MOCK);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready)).toBe(true);
+  await ctl({ op: "setViewerInit", data: {
+    units: "mm", stl_base_url: "/machine/", axes: ["X", "Y", "Z"],
+    parts: [
+      { id: "base", file: "base.stl", group: "root", translate: [0, 0, -40] },
+      { id: "head", file: "head.stl", group: "slide", translate: [0, 0, 400] },
+    ],
+    groups: [{ id: "slide", parent: "root" }, { id: "tool", parent: "slide" }],
+    kinematics: [{ group: "slide", joint: 0, type: "translate", direction: "x", sign: 1 }],
+    workGroup: "root", toolGroup: "tool",
+    machine_bounds: { origin: [-200, -200, -10], size: [400, 400, 200] },
+  } });
+  await modelBuilt(page, ["base", "head"]);
+  await loadProgram(page, "dense", 960);
+  const layers = (o: Record<string, boolean>) => ({ hud: false, toolpath: false, rapids: false, backplot: false, tool: false, workzero: false,
+    groundGrid: false, toolsetter: false, toolChange: false, bounds: false, toolpathBounds: true, machine: false, ...o });
+  const settle = async (theme: string, o: Record<string, boolean>) => {
+    await ctl({ op: "raw", frame: { type: "settings_changed", settings: { display: { theme }, viewer: { projection: "parallel", layers: layers(o) } } } });
+    await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+    await page.waitForTimeout(300);
+  };
+  // aimed at the box's centre from above, the box filling most of the view
+  await page.evaluate(() => {
+    const d = [1, -1.6, 1.1], l = Math.hypot(...d), t = [40, -12, 20];
+    window.__viewerDiag!.setCameraPose!(t.map((v, i) => v + d[i]! / l * 1500), t);
+    window.__viewerDiag!.zoomBy!(2.2);
+  });
+  await page.evaluate(() => window.__viewerDiag!.setBoxTypeLabelsShown!(false));   // the arms alone
+
+  /** The sample points on every arm: 2.5 … 4 px from the corner, both ways,
+   *  each with its across row (±1.5 px along the edge it marks — the core is
+   *  2 px wide, the underlay 4), its centre 3 px clear of every other
+   *  projected box edge (the row's reach + a 1 px line's antialiasing). */
+  const armSamples = async () => {
+    const bars = (await page.evaluate(() => window.__viewerDiag!.getBoxTicks!()))!;
+    expect(bars, "the toolpath box carries its end marks").toHaveLength(24);
+    const pat = (await page.evaluate(() => window.__viewerDiag!.getBoundsPattern!("toolpathBounds")))!;
+    const ends = await page.evaluate(p => window.__viewerDiag!.projectPoints!(p), [
+      ...bars.flatMap(b => [b.slice(0, 3), b.slice(3)]), ...pat.segments.flatMap(s => [s.a, s.b])]);
+    const edges = pat.segments.map((_, i) => [ends[48 + 2 * i], ends[48 + 2 * i + 1]] as const);
+    const distToSeg = (q: { x: number; y: number }, a: { x: number; y: number }, b: { x: number; y: number }) => {
+      const dx = b.x - a.x, dy = b.y - a.y, l2 = dx * dx + dy * dy;
+      const t = l2 > 0 ? Math.max(0, Math.min(1, ((q.x - a.x) * dx + (q.y - a.y) * dy) / l2)) : 0;
+      return Math.hypot(q.x - a.x - t * dx, q.y - a.y - t * dy);
+    };
+    const groups: { x: number; y: number }[][] = [], cornerOf: string[] = [];
+    for (let i = 0; i < 24; i++) {
+      const p0 = ends[2 * i], p1 = ends[2 * i + 1];
+      if (!p0 || !p1 || !p0.inside || !p1.inside) continue;
+      const len = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+      if (len < 5) continue;   // an edge seen end-on has no bar to measure
+      const n = { x: (p1.x - p0.x) / len, y: (p1.y - p0.y) / len }, c = { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 };
+      const own = Math.floor(i / 2);   // bar i marks edge floor(i / 2)
+      const ea = edges[own]?.[0], eb = edges[own]?.[1];
+      if (!ea || !eb || Math.hypot(eb.x - ea.x, eb.y - ea.y) < 40) continue;
+      for (const s of [2.5, 3.25, 4]) for (const sign of [-1, 1]) {
+        const q = { x: c.x + sign * s * n.x, y: c.y + sign * s * n.y };
+        const clear = edges.every(([a, b], k) => k === own || !a || !b || distToSeg(q, a, b) >= 3);
+        if (!clear) continue;
+        groups.push([-1.5, -1, -0.5, 0, 0.5, 1, 1.5].map(o => ({ x: q.x - n.y * o, y: q.y + n.x * o })));
+        cornerOf.push(`${Math.round(c.x)},${Math.round(c.y)}`);
+      }
+    }
+    return { groups, cornerOf };
+  };
+
+  for (const theme of THEMES) {
+    for (const machine of [false, true]) {
+      await settle(theme, { machine });
+      const { groups, cornerOf } = await armSamples();
+      const marked = await page.screenshot();
+      await testInfo.attach(`end-marks-${theme}-${machine ? "model" : "background"}.png`, { body: marked, contentType: "image/png" });
+      if (process.env.SCENE_OUT) await import("node:fs").then(fs => fs.writeFileSync(`${process.env.SCENE_OUT}/end-marks-${theme}-${machine ? "model" : "background"}.png`, marked));
+      await settle(theme, { machine, toolpathBounds: false });
+      const bare = await page.screenshot();
+      const px = await pixelPairs(page, [marked, bare], groups);
+      // the scene's own background at each sample: is it the model behind?
+      await settle(theme, { machine: false, toolpathBounds: false });
+      const scene = await pixelPairs(page, [bare, await page.screenshot()], groups);
+      await settle(theme, { machine });   // back, for the next pass
+      let measured = 0, onModel = 0, byLight = 0, byDark = 0;
+      const weak: string[] = [], corners = new Set<string>();
+      px.forEach((row, gi) => {
+        if (!row.every(p => p.canvas)) return;
+        measured++;
+        corners.add(cornerOf[gi]!);
+        // the most distinct pixel across the arm, and which tone carries it
+        const top = row.slice().sort((p, q) => contrastOf(q.a, q.b) - contrastOf(p.a, p.b))[0]!;
+        const best = contrastOf(top.a, top.b);
+        if (best < 3) weak.push(`${JSON.stringify(groups[gi]![3])} ${best.toFixed(2)} drawn ${JSON.stringify(row.map(p => p.a))} behind ${JSON.stringify(row[3]!.b)}`);
+        else if (lum(top.a) > lum(top.b)) byLight++; else byDark++;
+        // over the model where the bare image differs from the scene's background there
+        if (machine && rgbDist(scene[gi]![3]!.a, scene[gi]![3]!.b) > 12) onModel++;
+      });
+      const where = `${theme} over ${machine ? "the model" : "the background"}`;
+      expect(measured, `${where}: arm points measured`).toBeGreaterThanOrEqual(16);
+      expect(corners.size, `${where}: corners measured`).toBeGreaterThanOrEqual(6);
+      expect(weak, `${where}: every arm stands off what lies behind it (3 : 1)`).toEqual([]);
+      if (machine) expect(onModel / measured, `${where}: the arms lie over the model's surfaces`).toBeGreaterThan(0.6);
+      // both tones do their part: over the scene's background the underlay
+      // carries the mark on a dark theme, the core on a light one (plan
+      // Fassung 3, VP62-02 — ticks in the pair table alone prove nothing)
+      if (!machine) expect(theme.endsWith("dark") ? byLight : byDark, `${where}: the ${theme.endsWith("dark") ? "light underlay" : "dark core"} carries the mark`).toBe(measured);
+    }
+  }
+
+  // The type labels: opposite corners, over everything; the boxes made to
+  // coincide (live joint limits = the program's box) keeps them apart.
+  await ctl({ op: "status_delta", data: { joint_limits: [[-150, 230], [-150, 125], [0, 60]] } });
+  await settle("light", { machine: true, bounds: true });
+  await page.evaluate(() => window.__viewerDiag!.setBoxTypeLabelsShown!(true));
+  await page.waitForTimeout(300);
+  const labels = (await page.evaluate(() => window.__viewerDiag!.getBoxTypeLabels!()))!;
+  expect(labels.machine?.visible && labels.program?.visible, "both type labels show").toBe(true);
+  expect(labels.machine?.onTop && labels.program?.onTop, "drawn over everything").toBe(true);
+  const apart = Math.hypot(labels.machine!.screen.x - labels.program!.screen.x, labels.machine!.screen.y - labels.program!.screen.y);
+  expect(apart, "the labels stand apart where the boxes coincide").toBeGreaterThan(80);
+  const withLabels = await page.screenshot();
+  await testInfo.attach("type-labels-variant-ii.png", { body: withLabels, contentType: "image/png" });
+  if (process.env.SCENE_OUT) await import("node:fs").then(fs => fs.writeFileSync(`${process.env.SCENE_OUT}/type-labels-variant-ii.png`, withLabels));
+  // the text is drawn: the region right of each anchor changes when hidden
+  await page.evaluate(() => window.__viewerDiag!.setBoxTypeLabelsShown!(false));
+  await page.waitForTimeout(300);
+  const hidden = (await page.evaluate(() => window.__viewerDiag!.getBoxTypeLabels!()))!;
+  expect(hidden.machine?.visible || hidden.program?.visible, "the seam hides both").toBe(false);
+  const without = await page.screenshot();
+  await testInfo.attach("type-labels-variant-i.png", { body: without, contentType: "image/png" });
+  if (process.env.SCENE_OUT) await import("node:fs").then(fs => fs.writeFileSync(`${process.env.SCENE_OUT}/type-labels-variant-i.png`, without));
+  for (const [name, at] of [["machine", labels.machine!.screen], ["program", labels.program!.screen]] as const) {
+    const pts = Array.from({ length: 60 }, (_, i) => ({ x: at.x + 8 + (i % 20) * 4, y: at.y - 8 - Math.floor(i / 20) * 4 }));
+    const px = (await pixelPairs(page, [withLabels, without], [pts]))[0]!;
+    expect(px.filter(p => p.canvas && rgbDist(p.a, p.b) > 40).length, `the ${name} label's text is drawn`).toBeGreaterThan(5);
+  }
+  // a box's label follows its layer
+  await settle("light", { machine: true, bounds: false });
+  await page.evaluate(() => window.__viewerDiag!.setBoxTypeLabelsShown!(true));
+  const one = (await page.evaluate(() => window.__viewerDiag!.getBoxTypeLabels!()))!;
+  expect([one.machine?.visible, one.program?.visible], "the machine box off: its label too").toEqual([false, true]);
 });

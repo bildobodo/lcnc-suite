@@ -150,7 +150,7 @@ describe("no current-line highlight (operator 2026-09-28)", () => {
       });
     }
     expect([...roles].filter(r => r.startsWith("selection")), "no selection role").toEqual([]);
-    expect(fat, "no screen-space line in the toolpath but the box's two tones").toBe(2);
+    expect(fat, "no screen-space line in the toolpath but the box's two tones and its end marks' two passes").toBe(4);
     expect("setHighlight" in c || "setHighlightTrackRange" in c, "no highlight API").toBe(false);
   });
 });

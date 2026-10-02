@@ -2243,6 +2243,21 @@ label:has(input:disabled, select:disabled) {
   height: 3px;
   background: repeating-linear-gradient(90deg, var(--tone-a) 0 8px, var(--tone-b) 8px 16px);
 }
+/* The toolpath box's dimension end marks (package 4): a bar across each end
+   of the sample, the dark tone over a light underlay like the drawn ticks
+   (2 px core, 4 px underlay, arms reaching past the line). */
+.legendLine.ticks { position: relative; }
+.legendLine.ticks::before,
+.legendLine.ticks::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  width: 4px;
+  height: 11px;
+  background: linear-gradient(90deg, var(--tone-b) 0 1px, var(--tone-a) 1px 3px, var(--tone-b) 3px 4px);
+}
+.legendLine.ticks::before { left: 0; }
+.legendLine.ticks::after { right: 0; }
 
 /* Program progress bar (G-code panel). Track flexes to fill its row; fill
    width is driven inline from progress %. */

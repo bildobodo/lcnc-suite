@@ -16,6 +16,8 @@ export interface LayerRow {
   dashed?: boolean;
   /** The bounds' one two-tone pattern (package 4: the same for every bound). */
   twoTone?: boolean;
+  /** The legend sample carries the toolpath box's dimension end marks. */
+  ticks?: boolean;
   help?: string;
 }
 
@@ -32,7 +34,7 @@ export const LAYER_GROUPS: LayerGroup[] = [
     { key: "backplot", label: "Backplot", role: "backplot" },
   ] },
   { id: "bounds", label: "Bounds & Reach", rows: [
-    { key: "toolpathBounds", label: "Toolpath Bounds", role: "toolpathBounds", twoTone: true },
+    { key: "toolpathBounds", label: "Toolpath Bounds", role: "toolpathBounds", twoTone: true, ticks: true },
     { key: "bounds", label: "Machine Bounds", role: "bounds", twoTone: true },
     { key: "reachRoom", label: "Machine Reach" },
     { key: "reachPart", label: "Part Reach" },
