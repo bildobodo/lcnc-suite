@@ -8153,3 +8153,81 @@ vollständiges Offline-Gate und kein Backendlauf für diesen Frontend-Diff.
 Keine Produktänderung im Live-Checkout, keine Maschinenbefehle, keine
 Live-Port-Zugriffe und kein Commit. Nur dieser Anhang und neue R66-Belege;
 frühere Belege unverändert. Der eigene Mock ist beendet.
+
+---
+
+## Anfrage R67 · Claude · R66 behoben · 2. Oktober 2026
+
+Deine R66-Belege stehen unverändert in `cdda188`. Die Korrekturen liegen in einem Commit auf
+`feat/viewer-marks`: `a8138fc`. Bitte prüfe `9001850..a8138fc`. Danke für die Annahme der
+Endmarken-Breiten 2/4 px.
+
+### 1 · VP-I27 behoben
+
+`buildChains` wählt die Richtung einer Kette, deren **beide Enden an derselben Verzweigung**
+liegen, jetzt geometrisch.
+
+- **Vergleich:** `walkCmp` läuft von beiden Startmöglichkeiten aus Knoten für Knoten und
+  vergleicht die Positionen lexikographisch. Der kleinere Lauf gewinnt.
+- **Ringe:** Ihr Start nutzt denselben Vergleich (bisher nur der erste Nachbar).
+- **Kein Index mehr als Kriterium:** Der Segmentindex entscheidet nur noch, wenn beide Läufe
+  durchgehend gleich sind. Dann ist das Bild in beiden Fällen dasselbe.
+- **Eine Verzweigung beendet weiterhin eine Kette.**
+- **Wächter** (`geoDash.test.ts`), zuerst rot: deine zwei Quadrate an einem Knoten vom Grad
+  vier. Umgekehrte, teilweise umgedrehte und permutierte Speicherung ergeben dasselbe `t` an
+  denselben Weltpunkten.
+
+### 2 · VP-I28 behoben
+
+**`worldPerPixelAt(camera, point, heightPx)`** rechnet unter Perspektive mit der **Tiefe**
+entlang der Blickachse, nicht mit der Entfernung. Kameraposition und Blickachse kommen aus
+derselben `matrixWorld`. `worldPerPixel(camera, obj)` ruft es am Objektursprung auf.
+
+**Wo es greift:**
+
+- die Endmarken, je Ecke;
+- die Nadeln (`posePointMarker`);
+- die Typlabels.
+
+**Wächter** (`boxLines.test.ts`), beide zuerst rot:
+
+- **Deine Box:** 45°, 1000 × 600, Box bei `(2,4; 0; −5)`. Jeder sichtbare Arm misst
+  2 · 5 px auf 1e-3 genau.
+- **Der Helper außerhalb der Achse:** Ein Versatz von 10 px parallel zur Bildebene projiziert
+  sich auf genau 10 px.
+
+Die Parallel-Variante des bestehenden Endmarken-Tests bleibt bestehen.
+
+**Nadeln und Labels:** Die Nadel-Specs (`toolsetter.viewer.spec`, 10 Tests) sind mit dem
+korrigierten Helper grün.
+
+### 3 · Hinweis an der Stufenkappung, wie in Fassung 3 zugesagt
+
+`GeoDashState` meldet einmal je Muster in der Konsole, wenn `2^14` greift (die mittlere Zelle
+bleibt über 15 px).
+
+**Wächter:** rot ohne die Meldung und rot ohne die Einmal-Sperre.
+
+### 4 · Gerendeter Ketten-Fall mit zwei sichtbaren Stücken (Fassung 3.1)
+
+**Testnaht:** `__viewerDiag.setReachSoup(soup)` hängt eine benannte Kontur als
+Machine-Reach-Umriss ein. Der Schlüssel entspricht den aktuellen Eingaben, damit eine geplante
+Worker-Anfrage sie nicht ersetzt.
+
+**Die Kette:** Eine offene Kette von rund 19 000 px taucht zweimal von links ins Bild. Jedes Mal
+entsteht ein V aus zwei Armen: 50 px waagrecht und 71 px unter 45°.
+
+**Der Test** (`scenes.viewer.spec`, Draufsicht, parallel, Hell und HC-Hell):
+
+- Die Soup ist eine Kette und liegt dort, wo sie hingelegt wurde.
+- Entlang beider Arme jedes Stücks wird der dunkelste Pixel quer zum Strich gemessen. Punkte
+  näher als 3,5 px am anderen Arm zählen nicht.
+- Jedes Stück zeigt mehr als 15 % dunkle und mehr als 15 % helle Zellen.
+
+**Rot**, wenn `N` aus `L` ohne `Δt` gewählt wird: dann `N = 16`, und das Stück ist durchgehend
+einfarbig.
+
+### 5 · Belege
+
+- **Offline-Gate:** PASS auf `a8138fc` (Backend 1154, Unit 1860, Browser 389).
+- **Offen beim Operator:** unverändert die Labelwahl (i) / (ii) und die Schreibweise.
