@@ -28,6 +28,8 @@ interface Entry { text: string; meta: Record<string, unknown> }
 class Folder {
   files = new Map<string, Entry>();
   problems: string[] = [];
+  /** The gateway's verdict "may not run", by name (a header error, shadowed). */
+  blocked = new Map<string, string>();
   constructor() {
     this.files.set("park", { text: PARK, meta: { title: "Park", units: null, frame: "machine", params: [] } });
     this.files.set("face_top", { text: FACE, meta: { title: "Face top", units: "mm", frame: null, params: [
@@ -36,8 +38,8 @@ class Folder {
   }
   entry(name: string) {
     const e = this.files.get(name)!;
-    return { name, description: [], errors: [], warnings: [], mtime: 0, runnable: true, reason: null,
-             revision: rev(e.text), ...e.meta };
+    return { name, description: [], errors: [], warnings: [], mtime: 0, runnable: !this.blocked.has(name),
+             reason: this.blocked.get(name) ?? null, revision: rev(e.text), ...e.meta };
   }
   list() {
     return { ok: true, dir: "/home/cnc/linuxcnc/macros", problems: this.problems,
@@ -192,4 +194,72 @@ test("leaving the tab over a draft asks first: Keep editing stays, Discard leave
   await page.getByRole("dialog", { name: "Discard changes?" }).getByRole("button", { name: "Discard" }).click();
   await expect(page.getByRole("tab", { name: "Program", exact: true })).toHaveAttribute("aria-selected", "true");
   expect(folder.files.get("park")!.text, "nothing saved").toBe(PARK);
+});
+
+// ── The run state follows the file (plan "Run und Editorentwurf", Codex VP69-05) ──
+test("another client's save during a bar hold cancels it; the next hold runs the new revision once", async ({ page }) => {
+  const folder = new Folder();
+  await ready(page, folder, { macros: { macros: [], bar: ["park"] } });
+  const park = page.locator(".macroBar").getByRole("button", { name: "Park", exact: true });
+  await expect(park).toBeEnabled();
+  const box = (await park.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(150);
+  const theirs = PARK.replace("G90", "G90 (theirs)");
+  folder.touch("park", theirs);
+  await ctl({ op: "raw", frame: { type: "macros_changed", version: 2 } });
+  await page.waitForTimeout(HOLD_MS);
+  await page.mouse.up();
+  await expect(page.locator("[data-btn-hint]")).toHaveText("Selection changed — hold again");
+  expect(await runs(), "the hold bound to the old revision ran nothing").toEqual([]);
+  await press(page, park, HOLD_MS);
+  await expect.poll(runs).toEqual([expect.objectContaining({ name: "park", revision: rev(theirs) })]);
+});
+
+test("the open parameter dialog follows its file: a new header shows its field; a file that may not run dims Execute with the reason", async ({ page }) => {
+  const folder = new Folder();
+  await ready(page, folder, { macros: { macros: [], bar: ["face_top"] } });
+  await page.locator(".macroBar").getByRole("button", { name: "Face top", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Face top" });
+  const execute = dialog.getByRole("button", { name: "Execute", exact: true });
+  await expect(execute).toBeEnabled();
+  // another client adds a parameter: the dialog shows it, with its default
+  const meta = folder.files.get("face_top")!.meta as { params: Record<string, unknown>[] };
+  folder.files.get("face_top")!.meta = { ...meta, params: [...meta.params,
+    { n: 3, key: "clear", label: "Clearance Z", unit: "length", default: 5, min: 1, max: 100, integer: false }] };
+  folder.touch("face_top", FACE.replace("(PARAM 2 feed", '(PARAM 3 clear "Clearance Z" length 5 min=1 max=100)\n(PARAM 2 feed'));
+  await ctl({ op: "raw", frame: { type: "macros_changed", version: 2 } });
+  await expect(dialog.getByLabel("Clearance Z", { exact: true })).toHaveValue("5");
+  // a save that breaks the header: the gateway says why; Execute is dimmed with it
+  folder.blocked.set("face_top", "PARAM positions must run 1, 2, 3 … without a gap");
+  folder.touch("face_top", FACE + "\n");
+  await ctl({ op: "raw", frame: { type: "macros_changed", version: 3 } });
+  await expect(dialog.getByRole("alert")).toContainText("PARAM positions must run");
+  await expect(execute).toBeDisabled();
+  await press(page, execute, HOLD_MS);
+  await page.waitForTimeout(200);
+  expect(await runs(), "a file that may not run runs nothing").toEqual([]);
+  await expect(page.locator(".macroBar").getByRole("button", { name: "Face top", exact: true }), "the bar agrees").toBeDisabled();
+});
+
+test("a late read after a selection change never shows the earlier macro's text", async ({ page }) => {
+  const folder = new Folder();
+  await ready(page, folder, { macros: { macros: [] } });
+  let release!: () => void;
+  const held = new Promise<void>(r => { release = r; });
+  await page.route(/\/macro\?name=park(&|$)/, async r => {
+    if (r.request().method() !== "GET") return r.fallback();
+    await held;                   // park's text arrives after face_top's
+    return r.fallback();
+  });
+  await openTab(page);
+  await page.locator('[data-macro-row="park"]').getByRole("button", { name: "Open park.ngc" }).click();
+  await page.locator('[data-macro-row="face_top"]').getByRole("button", { name: "Open face_top.ngc" }).click();
+  const code = page.locator(".macroCode .cm-content");
+  await expect(code).toContainText("o<face_top> sub");
+  release();
+  await page.waitForTimeout(400);
+  await expect(code, "the late park reply changed nothing").toContainText("o<face_top> sub");
+  await expect(code).not.toContainText("o<park>");
 });
