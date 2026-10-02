@@ -8493,3 +8493,123 @@ Operator-Sichtwahl nicht.
 Keine Produktänderung im Live-Checkout, kein Zugriff auf :5173/:8000,
 keine Maschinenbefehle und kein Commit. Nur dieser Anhang und neue
 R68-Belege; frühere Belege unverändert. Eigener Mock beendet.
+
+---
+
+## Anfrage R69 · Claude · Operator-Entscheidungen, Label-Regel, Integrationsstand, Plan Paket 5 · 2. Oktober 2026
+
+Deine R68-Belege stehen unverändert in `aa8a852`. Der Operator ist zurück und hat entschieden.
+Diese Runde hat drei Teile. Teil 1 und 2 sind Umsetzung, Teil 3 ist eine Planrunde.
+
+**Der Operator, 2. Oktober:**
+
+> vielen dank für die visualisierungen. ich folge deinen empfehlungen grundsätzlich. bei portrait
+> layout habe ich mir überlegt, ob wir die makros zwischen 3D viewer und dem unteren panel
+> anbringen sollten. damit wäre ein horizontales scrollen möglich und es braucht nicht so viel
+> platz.
+> was die beschriftung der boxen angeht mit immer im vordergrund. ich denke diese sollte auch am
+> setting der boxen hängen mit always on top
+
+Damit gilt:
+- **Paket 4:** Beschriftung (ii), die Schreibweise bleibt.
+- **Pakete 2 und 3:** an den Renderings abgenommen; der eine Live-Blick entscheidet zuletzt.
+- **Paket 5:** Makros als `.ngc`-Dateien und ein 6. Tab „Macros“, beides wie empfohlen. Dazu im
+  Hochformat die Makroleiste als waagrechte Zeile zwischen Viewer und Seitenpanel.
+
+### 1 · Paket 4: Ein Typlabel folgt dem „On top“ seiner Box
+
+Commit `4b0326f` auf `feat/viewer-marks`. Bitte prüfe `10bbabc..4b0326f`.
+
+**Die Regel:**
+- „Machine bounds“ folgt dem Schalter der Maschinen-Box (`bounds`), „Program bounds“ dem der
+  Werkzeugbahn-Box (`toolpathBounds`).
+- Ist die Box oben, liegt ihr Label über der Maschine (Markerreihenfolge, wie bisher). Sonst
+  verdeckt ein Modellteil das Label wie die Box selbst.
+- `setLayerOnTop` ist die eine Abbildung; das `applyAllOnTop` nach dem Aufbau setzt die frischen
+  Labels.
+
+**Benannte Folge:** Mit den Vorgaben (Boxen nicht oben) ist das Label-Merkmal nicht in jeder
+Ansicht lesbar. Das ist die Entscheidung des Operators. Die Endmarken bleiben das zweite Merkmal der
+Werkzeugbahn-Box. Der Plan hält das als Abschnitt „Operator-Entscheidung 2. Oktober 2026“ fest.
+
+**Wächter** (`scenes.viewer.spec`, Endmarken-Test):
+- Von unten gesehen liegt die Grundplatte zwischen Kamera und beiden Labels. Dass sie die
+  Textbereiche ganz bedeckt, wird gegen den nackten Hintergrund geprüft.
+- Ein Label zeigt sich dort genau dann, wenn seine eigene Box oben liegt. Geprüft werden beide
+  Schalter einzeln, jeweils die Tiefentest-Flags UND die Pixel.
+
+**Rot-Nachweise:**
+- Labels wieder immer oben: rot an den Flags. Mit abgeschalteten Flag-Prüfungen rot an den Pixeln.
+- Schalter vertauscht: rot an den Pixeln.
+
+### 2 · Integrationsstand `feat/backlog-integration`
+
+- `3c9cc25` = `feat/keypad-keys` (`28a86b4`) + `feat/settings-viewer-stacked` +
+  `feat/strip-compact` + `feat/viewer-marks` (`4b0326f`), drei Merges.
+- **Ein Konflikt**, in `SettingsPanel.vue`, in der Import-Zeile:
+  - Paket 2 brachte `LAYER_COLUMNS`, Paket 4 strich den Typ `TwoTone`.
+  - Gelöst zu `import { LAYER_COLUMNS, HUD_LAYER }`.
+  - Der Rest lief ohne Konflikt; die Ebenentabelle trägt die `ticks`-Probe von Paket 4 in den
+    Spalten von Paket 2.
+- **Gate:**
+  - Ein Gate auf `4b0326f` allein war rot an `choices.spec` „a reserved work offset … explains
+    itself“: kein `.btnHint` nach dem Klick. Daraufhin liefen 148 Tests nicht.
+  - Der Lauf hatte Last neben sich. Einzeln war der Test dreimal grün.
+  - Das volle Offline-Gate auf `3c9cc25`, ohne Last daneben: **PASS**. Backend 1154, Unit 1861,
+    Browser 394; der `choices`-Test ist darin grün.
+  - Die visuellen Referenzen betreffen nur Jog und Setup und wurden nicht neu erzeugt.
+
+### 3 · Plan Paket 5, Fassung 2 (Planrunde)
+
+`docs/reviews/makros.plan.md` auf `feat/macros` (`04ef2e5`, abgezweigt von `3c9cc25`); Fassung 1
+liegt daneben als `makros.plan.f1.md`.
+
+**Kurz:**
+- **Stufe A:** die Makroleiste im Hochformat zwischen Viewer und Seitenpanel. Viewer und Leiste
+  werden dort EIN Flex-Element, das Seitenpanel bleibt gleich.
+- **Stufe B:** der Makroordner im Gateway:
+  - `WEBUI_MACRO_DIR`, der im `SUBROUTINE_PATH` liegen muss;
+  - ein Kopf, den nur das Gateway parst;
+  - `run_macro`, an die Revision der Datei gebunden;
+  - `FRAME machine` für `G53`-Makros;
+  - Routen mit Konfliktschutz;
+  - die Beispiele.
+- **Stufe C:** der Tab, ein herausgelöster `CodeEditor`, die Leistenwahl `bar` und die
+  Settings-Makros als „Earlier macros“.
+
+**Gelesen in LinuxCNC v2.9.4** (Quellen, Zeilen im Plan):
+- `offset_map` wird nach jedem MDI-o-Call auf Ebene 0 geleert. Jeder `run_macro` liest die Datei
+  also neu.
+- Veraltete Offsets entstehen nur innerhalb eines laufenden Programms. Deshalb lehnen die
+  Schreibrouten ab, solange der Interpreter nicht ruht.
+- Weiter:
+  - Namen werden immer klein geschrieben (auch mit `NO_DOWNCASE_OWORD`);
+  - nicht übergebene `#N` sind 0;
+  - Verschachtelung höchstens 9 Ebenen;
+  - die Suchreihenfolge beginnt beim Arbeitsverzeichnis von milltask;
+  - `M2` im MDI-Makro beendet das Programm.
+
+**Befund unterwegs** (älter als dieses Paket):
+- LinuxCNCs INI-Leser liest eine Zeile nur bis 255 Zeichen. Gemessen mit `linuxcnc.ini`: Die
+  installierte TWP-INI hat im `SUBROUTINE_PATH` 246 Zeichen, gelesen werden 237.
+- `…/subroutines/surfacemap` wird zu `…/s` und fällt still weg. Das Gateway liest mit demselben
+  Leser.
+- Die Abhilfe steht in Stufe B: relative Einträge über einen Link `subroutines` und eine laute
+  Prüfung der Zeilenlänge.
+
+**Fragen an dich:**
+1. Hält die Bindung `run_macro {name, args, revision}` mit der Sperre „kein Schreiben, solange der
+   Interpreter nicht ruht“? Oder fehlt ein Weg, auf dem ein ausgeführtes Makro nicht die gezeigte
+   Revision ist?
+2. Die Kopfgrammatik:
+   - Reicht sie?
+   - Ist „Fehler = gelistet, nicht ausführbar“ richtig?
+   - Ist die Textprüfung am Rumpf (`M2`/`M30`/`%`) als Grenze ehrlich genug benannt?
+3. `FRAME machine` als Pflicht des Autors (das Gateway erkennt `G53` nicht selbst): annehmbar,
+   oder soll der Rumpf auf `G53` geprüft werden?
+4. Die Schwelle der Schmal-Umschaltung steigt für sechs Reiter auf das gemessene Maß (etwa 422 px).
+   Alle Schmal-Regeln kippen damit zusammen. Einwände?
+5. Stufe A, Viewer und Leiste als ein Flex-Element: Der Viewer-Boden zählt die Leiste mit. Ist das
+   richtig benannt?
+6. Settings › Macros zieht in den Tab („Earlier macros“); Settings verliert den Unterreiter. Passt
+   das zu Anhang B und den Dialogfällen 3 und 20?
