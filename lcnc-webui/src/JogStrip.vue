@@ -277,6 +277,10 @@ onUnmounted(() => {
 });
 watch([stepOptions, isPortrait, () => props.kinsType, () => props.twpCapable], () => nextTick(measureStep));
 
+// Landscape: two axes of a cluster share a column (see the CSS); a last
+// odd axis keeps a whole one.
+const soloAxis = (n: number, i: number) => n % 2 === 1 && i === n - 1;
+
 // ─── XY grid square sizing (aspect-ratio unreliable in flex) ──
 // Measures the PARENT row (.jogBtns) and applies the same value to both
 // wrap dimensions. Observing the parent keeps the loop sound: the wrap's
@@ -502,7 +506,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 
         <!-- ABC axes (rotary — use angularJogVel), tight cluster -->
         <div v-if="abcAxes.length > 0" class="axisCluster">
-          <div v-for="ra in abcAxes" :key="ra.letter" class="axisCol">
+          <div v-for="(ra, i) in abcAxes" :key="ra.letter" class="axisCol" :class="{ solo: soloAxis(abcAxes.length, i) }">
             <MachineBtn
               type="jog"
               class="jogBtn"
@@ -530,7 +534,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 
         <!-- UVW axes (secondary linear — use jogVel), tight cluster -->
         <div v-if="uvwAxes.length > 0" class="axisCluster">
-          <div v-for="ra in uvwAxes" :key="ra.letter" class="axisCol">
+          <div v-for="(ra, i) in uvwAxes" :key="ra.letter" class="axisCol" :class="{ solo: soloAxis(uvwAxes.length, i) }">
             <MachineBtn
               type="jog"
               class="jogBtn"
@@ -712,6 +716,26 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   font-size: var(--fs-xl);
   font-weight: var(--fw-bold);
   line-height: 1;
+}
+
+/* ── Landscape: two rotary / UVW axes share a column (operator 2026-10-01:
+   "so, dass A+ A- den Platz von heute nur A+ einnimmt … jeden Button
+   splitten — das gibt mehr Platz; X, Y, Z können bleiben"): an axis takes
+   HALF a column, its + over its −, the next axis below — a cluster needs
+   half the columns. The cluster is a four-row grid filled down the
+   columns, the axis columns dissolve into it; a last odd axis keeps the
+   whole column (alone it frees nothing). A half-height button puts its
+   arrow beside the letter. Portrait keeps its own grid below. ── */
+@media (orientation: landscape) {
+  .axisCluster {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(4, minmax(0, 1fr));
+    grid-auto-columns: minmax(50px, auto);
+  }
+  .axisCluster > .axisCol { display: contents; }
+  .axisCluster > .axisCol.solo > .jogBtn { grid-row: span 2; }
+  .axisCluster > .axisCol:not(.solo) .jogInner { flex-direction: row; }
 }
 
 /* ── Speed + step columns ── */

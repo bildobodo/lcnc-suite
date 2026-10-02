@@ -40,7 +40,7 @@ function refused(page: Page, selector: string, pointerType: "touch" | "mouse") {
   }, pointerType);
 }
 
-const HOLD_BUTTON = '[data-strip="setup"] button:has-text("Home X")';
+const HOLD_BUTTON = '[data-strip="setup"] button[aria-label="Home X"]';
 const PLAIN_BUTTON = 'button[title="Settings"]';
 // A dimmed control's wrapper: a hold button that just fired is latched busy
 // for 200 ms and re-renders into it — the contextmenu at the END of the

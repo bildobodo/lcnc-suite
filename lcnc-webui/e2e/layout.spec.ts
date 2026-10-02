@@ -1643,6 +1643,62 @@ for (const key of Object.keys(STEP_LAYOUT)) {
   });
 }
 
+// The strips more compact (operator 2026-10-01: "jeden Button splitten — das
+// gibt mehr Platz; X, Y, Z können bleiben"; "mit Symbolen arbeiten bei Home
+// und Zero"). Landscape: two rotary / UVW axes share a jog column — A+ over
+// A− in the top half, the next axis below, a last odd axis keeps a whole
+// column, together exactly the Z column's height; portrait keeps a column
+// per axis. The Setup strip's axis actions show a symbol and the letter and
+// are NAMED for the action (and titled for the hold).
+for (const [name, vpName] of [['5axis-xyzac', 'desktop'], ['5axis-xyzac', 'touch-landscape'],
+  ['6axis-twp', 'desktop'], ['5axis-xyzac', 'touch-portrait']] as const) {
+  test(`${name} ${vpName}: rotary jog buttons share a column in landscape, the Setup axis actions are symbols`, async ({ page }) => {
+    const profile = PROFILES.find(p => p.name === name)!;
+    const viewport = VIEWPORTS.find(v => v.name === vpName)!;
+    await openLayout(page, profile, viewport);
+    await settleLayout(page);
+    const m = await page.evaluate(() => {
+      const jog = document.querySelector('[data-strip="jog"]')!;
+      const btns: Record<string, { l: number; r: number; t: number; b: number }> = {};
+      for (const b of jog.querySelectorAll('button')) {
+        const r = b.getBoundingClientRect();
+        btns[b.textContent!.trim()] = { l: r.left, r: r.right, t: r.top, b: r.bottom };
+      }
+      const setup = document.querySelector('[data-strip="setup"]')!;
+      const axisActions = [...setup.querySelectorAll<HTMLButtonElement>('button[aria-label]')]
+        .filter(b => /^(Zero|Home|Unhome) [A-Z]$/.test(b.getAttribute('aria-label')!))
+        .map(b => ({ name: b.getAttribute('aria-label'), text: b.textContent!.trim(), svg: !!b.querySelector('svg'), title: b.title }));
+      return { btns, axisActions };
+    });
+    const dump = JSON.stringify(m);
+    const b = (k: string) => { expect(m.btns[k], `${k} ${dump}`).toBeTruthy(); return m.btns[k]!; };
+    const h = (k: string) => b(k).b - b(k).t;
+    const portrait = vpName === 'touch-portrait';
+    if (portrait) {
+      expect(Math.abs(b('A+').l - b('C+').l), `portrait: a column per axis ${dump}`).toBeGreaterThan(1);
+      expect(Math.abs(b('A+').l - b('A-').l) < 1 && b('A-').t >= b('A+').b, `portrait: A+ over A- ${dump}`).toBe(true);
+    } else {
+      const pair = name === '6axis-twp' ? ['A+', 'A-', 'B+', 'B-'] : ['A+', 'A-', 'C+', 'C-'];
+      for (const k of pair) expect(Math.abs(b(k).l - b(pair[0]!).l), `${k} in ${pair[0]}'s column ${dump}`).toBeLessThan(1);
+      for (let i = 1; i < 4; i++) expect(b(pair[i]!).t, `${pair[i]} below ${pair[i - 1]} ${dump}`).toBeGreaterThanOrEqual(b(pair[i - 1]!).b - 0.5);
+      for (const k of pair) expect(Math.abs(h(k) - h(pair[0]!)), `${k} as tall as ${pair[0]} ${dump}`).toBeLessThan(1);
+      expect(Math.abs(b(pair[0]!).t - b('Z+').t) < 1 && Math.abs(b(pair[3]!).b - b('Z-').b) < 1, `the pair column spans the Z column ${dump}`).toBe(true);
+      if (name === '6axis-twp') {
+        // the odd last axis keeps a whole column: C+ as tall as Z+
+        expect(b('C+').l, `C in a column of its own ${dump}`).toBeGreaterThan(b('A+').r);
+        expect(Math.abs(h('C+') - h('Z+')), `C+ as tall as Z+ ${dump}`).toBeLessThan(1);
+      }
+    }
+    const letters = profile.name === '6axis-twp' ? 'XYZABC' : 'XYZAC';
+    expect(m.axisActions.length, `a Zero and a Home per axis ${dump}`).toBe(2 * letters.length);
+    for (const a of m.axisActions) {
+      expect(a.text, `${a.name}: the letter beside the symbol`).toBe(a.name!.slice(-1));
+      expect(a.svg, `${a.name}: a symbol`).toBe(true);
+      expect(a.title, `${a.name}: the hover title names the hold`).toBe(`Hold to ${a.name!.split(' ')[0]!.toLowerCase()} ${a.name!.slice(-1)}`);
+    }
+  });
+}
+
 // Settings on the wide tier (operator 2026-09-30: "das Fenster finde ich
 // etwas klein … zumindest im Landscape mehr Breite, wie beim Werkzeug
 // editieren"; "viele Layer-Toggles … brauchen Gruppierung, die Bounds
