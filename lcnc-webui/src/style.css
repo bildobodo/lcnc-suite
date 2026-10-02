@@ -183,6 +183,7 @@
   --viewer-bounds: #15181c;
   --viewer-toolpath-bounds: #15181c;
   --viewer-bounds-alt: #f0f2f4;
+  --viewer-pin: #00e5ff;
   --viewer-reach: #15181c;
   --viewer-tool: #6b7178;
   --viewer-cutter: #eceff1;
@@ -357,6 +358,7 @@
     --viewer-bounds: #15181c;
     --viewer-toolpath-bounds: #15181c;
     --viewer-bounds-alt: #f0f2f4;
+    --viewer-pin: #00e5ff;
     --viewer-reach: #15181c;
     --viewer-tool: #6b7178;
     --viewer-cutter: #eceff1;
@@ -399,6 +401,7 @@
   --viewer-bounds: #15181c;
   --viewer-toolpath-bounds: #15181c;
   --viewer-bounds-alt: #f0f2f4;
+  --viewer-pin: #00e5ff;
   --viewer-reach: #15181c;
   --viewer-tool: #6b7178;
   --viewer-cutter: #eceff1;
@@ -440,6 +443,7 @@
   --viewer-bounds: #15181c;
   --viewer-toolpath-bounds: #15181c;
   --viewer-bounds-alt: #f0f2f4;
+  --viewer-pin: #00e5ff;
   --viewer-reach: #15181c;
   --viewer-tool: #6b7178;
   --viewer-cutter: #eceff1;
@@ -491,6 +495,7 @@
   --viewer-bounds: #000000;
   --viewer-toolpath-bounds: #000000;
   --viewer-bounds-alt: #ffffff;
+  --viewer-pin: #00e5ff;
   --viewer-reach: #000000;
   --viewer-tool: #6b7178;
   --viewer-cutter: #eceff1;
@@ -541,6 +546,7 @@
   --viewer-bounds: #000000;
   --viewer-toolpath-bounds: #000000;
   --viewer-bounds-alt: #ffffff;
+  --viewer-pin: #00e5ff;
   --viewer-reach: #000000;
   --viewer-tool: #6b7178;
   --viewer-cutter: #eceff1;
@@ -2229,17 +2235,30 @@ label:has(input:disabled, select:disabled) {
   border-top: 3px solid currentColor;
 }
 .legendLine.dashed { border-top-style: dashed; }
-/* A two-tone line (the viewer's boxes, operator 2026-09-29): the dark tone
-   with the light one in dashes — long for the machine box, short for the
-   toolpath box, like the drawn box. The tones come in as --tone-a / --tone-b. */
+/* A two-tone line (the viewer's bounds, operator 2026-09-29): the dark tone
+   and the light one in alternating cells — ONE pattern for every bound
+   (package 4), its cells the drawn ones' nominal 6 … 12 px. The tones come
+   in as --tone-a / --tone-b. */
 .legendLine.twoTone {
   border-top: 0;
   height: 3px;
   background: repeating-linear-gradient(90deg, var(--tone-a) 0 8px, var(--tone-b) 8px 16px);
 }
-.legendLine.twoTone.short {
-  background: repeating-linear-gradient(90deg, var(--tone-a) 0 4px, var(--tone-b) 4px 8px);
+/* The toolpath box's dimension end marks (package 4): a bar across each end
+   of the sample, the dark tone over a light underlay like the drawn ticks
+   (2 px core, 4 px underlay, arms reaching past the line). */
+.legendLine.ticks { position: relative; }
+.legendLine.ticks::before,
+.legendLine.ticks::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  width: 4px;
+  height: 11px;
+  background: linear-gradient(90deg, var(--tone-b) 0 1px, var(--tone-a) 1px 3px, var(--tone-b) 3px 4px);
 }
+.legendLine.ticks::before { left: 0; }
+.legendLine.ticks::after { right: 0; }
 
 /* Program progress bar (G-code panel). Track flexes to fill its row; fill
    width is driven inline from progress %. */

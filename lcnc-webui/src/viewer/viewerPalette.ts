@@ -17,7 +17,7 @@ import type { ColorDefaults, PaletteMode } from "../defaults";
 export const USER_ROLES = ["feed", "rapid", "backplot", "bounds", "toolpathBounds", "tool", "cutter"] as const;
 export type UserRole = typeof USER_ROLES[number];
 /** Every role the viewer draws. */
-export type ViewerRole = UserRole | "limit" | "collision" | "boundsAlt" | "reach"
+export type ViewerRole = UserRole | "limit" | "collision" | "boundsAlt" | "reach" | "pin"
   | "planeActive" | "planeDefined" | "planeStale";
 export type ViewerPalette = Record<ViewerRole, string>;
 
@@ -33,6 +33,9 @@ export const ROLE_TOKEN: Record<ViewerRole, string> = {
   collision: "--viewer-collision",
   boundsAlt: "--viewer-bounds-alt",
   reach: "--viewer-reach",
+  // The pins' light tone (tool setter, G30, control point — operator
+  // 2026-10-01, Codex R62): cyan in every theme, over the dark carrier.
+  pin: "--viewer-pin",
   planeActive: "--viewer-plane-active",
   planeDefined: "--viewer-plane-defined",
   planeStale: "--viewer-plane-stale",

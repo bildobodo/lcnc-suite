@@ -6,7 +6,8 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { Text } from "troika-three-text";
 import { LABEL_FONT_URL } from "./viewer/labelFont";
 import { resolveViewerPalette, type ViewerPalette } from "./viewer/viewerPalette";
-import { makeBoxEdges, makeTwoToneSegments, worldPerPixel, MACHINE_BOX_PX, MACHINE_BOX_DASH_PX, REACH_PX, REACH_DASH_PX, type BoxEdges, type TwoToneLines } from "./viewer/boxLines";
+import { makeBoxEdges, makeGeoTwoTone, GeoDashState, patternDiag, worldPerPixel, MACHINE_BOX_PX, REACH_PX, type BoxEdges, type GeoTwoTone } from "./viewer/boxLines";
+import { buildChains } from "./viewer/geoDash";
 import { buildToolGeometries, type ToolMeta } from "./toolGeometry";
 import { toolUnitsPerMillimeter } from "./toolUnits";
 import { AXIS_HEX, AXIS_CSS } from "./axisColors";
@@ -615,6 +616,42 @@ function mkMarkerLabel(text: string): Text {
   _billboardLabels.push(t);
   return t;
 }
+// The bounds' TYPE labels (package 4, plan Fassung 2 A'' — label variant
+// (ii), Codex R62–R64's recommendation, the operator's choice 2026-10-02):
+// "Machine bounds" at the machine box's (max, max, max) corner, "Program
+// bounds" at the toolpath box's (min, min, max) one — apart even where the
+// two boxes coincide; CSS-px sized like a pin's label. A label is drawn over
+// the machine exactly when its BOX is (the layer's "On top", operator
+// 2026-10-02 — setLayerOnTop); otherwise a model part hides it like the box.
+// Posed per frame.
+let _machineTypeLabel: THREE.Group | null = null;
+let _programTypeLabel: THREE.Group | null = null;
+/** Test seam: the operator's variant (i) render hides the type labels. */
+let _boxTypeLabelsOn = true;
+const _typeOff = new THREE.Vector3(), _typeUp = new THREE.Vector3();
+const _machineCorner = new THREE.Vector3(), _programCorner = new THREE.Vector3();
+function _mkTypeLabel(text: string, name: string): THREE.Group {
+  const g = new THREE.Group();
+  g.name = name;
+  const t = mkMarkerLabel(text);
+  t.anchorX = "left";
+  t.anchorY = "bottom";
+  g.add(t);
+  g.visible = false;   // drawn on top or not by its box's layer (applyAllOnTop after the build)
+  return g;
+}
+/** Stand a type label at `at` (world), CSS-px sized, 6 px up-right on screen. */
+function _poseTypeLabel(g: THREE.Group | null, at: THREE.Vector3 | null, hPx: number) {
+  if (!g || !camera) return;
+  g.visible = !!at && _boxTypeLabelsOn;
+  if (!at || !g.visible) return;
+  g.position.copy(at);
+  g.scale.setScalar(worldPerPixel(camera, g, hPx));
+  // the camera's own right and up: the diagnostics pose outside the frame loop too
+  _typeUp.set(0, 1, 0).applyQuaternion(camera.quaternion);
+  _typeOff.set(1, 0, 0).applyQuaternion(camera.quaternion).add(_typeUp).multiplyScalar(6);
+  g.children[0]!.position.copy(_typeOff);
+}
 const _billboardLabels: Text[] = [];
 const _bbQ = new THREE.Quaternion();  // reused for billboard parent compensation
 const _markerUp = new THREE.Vector3();   // the camera's up in world, per frame (posePointMarker)
@@ -781,6 +818,62 @@ function _modelRadiusAbout(center: THREE.Vector3): number {
 /** A point marker as drawn (the tool setter's, the tool change's): shown,
  *  its point (machine frame), where it lands on screen, drawn over the
  *  machine (depth test off). */
+/** The bounds' geometry-anchored pattern for this view (package 4): each
+ *  unit's cell count re-chosen with hysteresis (GeoDashState); only a change
+ *  uploads its cells. Shown objects only. */
+function _updateBoundsPattern() {
+  if (!camera || !renderer) return;
+  camera.updateMatrixWorld();   // a diagnostic calls this outside the frame loop too
+  const w = renderer.domElement.clientWidth, h = renderer.domElement.clientHeight;
+  if (!(w > 0 && h > 0)) return;
+  for (const g of [machineBoundsMesh, reachRoomMesh, reachPartMesh]) {
+    if (!g?.geo) continue;
+    let shown = g.visible;
+    for (let p = g.parent; p && shown; p = p.parent) shown = p.visible;
+    if (!shown) continue;
+    g.updateWorldMatrix(true, false);
+    g.geo.update(g, camera, w, h);
+  }
+  toolpath.updateBoxPattern(camera, w, h);
+  // the type labels: the machine box's (max, max, max) corner while it shows
+  let machineAt: THREE.Vector3 | null = null;
+  if (machineBoundsMesh?.geo) {
+    let shown = machineBoundsMesh.visible;
+    for (let p = machineBoundsMesh.parent; p && shown; p = p.parent) shown = p.visible;
+    if (shown) {
+      const P = machineBoundsMesh.geo.positions;
+      let x = -Infinity, y = -Infinity, z = -Infinity;
+      for (let i = 0; i < P.length; i += 3) { x = Math.max(x, P[i]!); y = Math.max(y, P[i + 1]!); z = Math.max(z, P[i + 2]!); }
+      machineAt = machineBoundsMesh.localToWorld(_machineCorner.set(x, y, z));
+    }
+  }
+  _poseTypeLabel(_machineTypeLabel, machineAt, h);
+  _poseTypeLabel(_programTypeLabel, toolpath.boxLabelAnchor(_programCorner), h);
+}
+
+/** The frame probe (Codex R67): after a render, what was DRAWN — the end
+ *  marks' screen lengths and each CSS-px object's scale against the scale
+ *  the drawn camera implies. A diagnostic that re-poses before it reads
+ *  (getBoxTicks) would hide a pose computed from a stale camera. */
+let _frameProbe: { bars: number[]; scales: { name: string; factor: number }[] }[] | null = null;
+function _probeFrame() {
+  const cam = camera!, el = renderer!.domElement, w = el.clientWidth, h = el.clientHeight;
+  const v = new THREE.Vector3();
+  const px = (q: number[]) => { v.set(q[0]!, q[1]!, q[2]!).project(cam); return [(v.x + 1) * w / 2, (1 - v.y) * h / 2, v.z]; };
+  const bars: number[] = [];
+  for (const b of toolpath.boxTicks() ?? []) {
+    const a = px(b.slice(0, 3)), c = px(b.slice(3));
+    if (![a, c].every(q => q[0]! >= 0 && q[0]! <= w && q[1]! >= 0 && q[1]! <= h && Math.abs(q[2]!) < 1)) continue;
+    const l = Math.hypot(c[0]! - a[0]!, c[1]! - a[1]!);
+    if (l > 0.1) bars.push(l);
+  }
+  const scales: { name: string; factor: number }[] = [];
+  for (const o of [toolsetterMarker, toolChangeMarker, controlPointMarker, _machineTypeLabel, _programTypeLabel] as (THREE.Object3D | null)[]) {
+    if (o?.visible) scales.push({ name: o.name || "pin", factor: o.scale.x / worldPerPixel(cam, o, h) });
+  }
+  return { bars, scales };
+}
+
 function _markerDiag(m: PointMarker | null) {
   if (!m) return null;
   let shown = m.visible;
@@ -1337,8 +1430,14 @@ function setLayerOnTop(layer: OnTopLayer, on: boolean) {
     case "toolpath": toolpath.setOnTop("feed", on); break;
     case "rapids": toolpath.setOnTop("rapid", on); break;
     case "backplot": backplot.setDepthTest(!on); break;
-    case "toolpathBounds": toolpath.setBoxOnTop(on); break;
-    case "bounds": applyOnTop(machineBoundsMesh, on, ON_TOP_ORDER.box); break;
+    case "toolpathBounds":
+      toolpath.setBoxOnTop(on);
+      applyOnTop(_programTypeLabel, on, ON_TOP_ORDER.marker);   // a box's label follows its box
+      break;
+    case "bounds":
+      applyOnTop(machineBoundsMesh, on, ON_TOP_ORDER.box);
+      applyOnTop(_machineTypeLabel, on, ON_TOP_ORDER.marker);
+      break;
     case "reachRoom": applyOnTop(reachRoomMesh, on, ON_TOP_ORDER.reach); break;
     case "reachPart": applyOnTop(reachPartMesh, on, ON_TOP_ORDER.reach); break;
     case "workzero":
@@ -1462,6 +1561,7 @@ function ensureCoreGroups(init: ViewerInit) {
   ghostAxes = null;
   ghostGroup = null;
   machineBoundsMesh = null;
+  _machineTypeLabel = _programTypeLabel = null;   // disposed with the scene
   reachRoomMesh = reachPartMesh = null;   // disposed with the scene; rebuilt from _reachData
   twpNormalArrow = null;
   twpEdgeMat = null;
@@ -1698,7 +1798,7 @@ function ensureCoreGroups(init: ViewerInit) {
   // applyMachineBounds, never scaled (a scale would stretch the dashes) ---
   {
     machineBoundsMesh = makeBoxEdges([1, 1, 1], { color: palette.bounds, alt: palette.boundsAlt,
-      width: MACHINE_BOX_PX, dashPx: MACHINE_BOX_DASH_PX, role: "bounds" });
+      width: MACHINE_BOX_PX, role: "bounds" });
     // MACHINE frame, never the rotating work group: the clip planes that
     // decide the yellow outside-bounds overlay live there (7a04909), and the
     // box that stayed under _workGrp swung with A while the clipping did not
@@ -1708,22 +1808,25 @@ function ensureCoreGroups(init: ViewerInit) {
   }
   // The tool setter and the tool-change position (operator 2026-09-29/30):
   // pins with a label in the MACHINE frame.
-  toolsetterMarker = buildPointMarker({ color: palette.bounds, alt: palette.boundsAlt,
+  toolsetterMarker = buildPointMarker({ color: palette.bounds, alt: palette.pin,
     label: mkMarkerLabel("tool setter"), name: "toolsetter" });
   (machineFrameGrp ?? _workGrp)!.add(toolsetterMarker);
   applyToolsetterMarker();
-  toolChangeMarker = buildPointMarker({ color: palette.bounds, alt: palette.boundsAlt,
+  toolChangeMarker = buildPointMarker({ color: palette.bounds, alt: palette.pin,
     label: mkMarkerLabel("tool change (G30)"), name: "toolChange" });
   (machineFrameGrp ?? _workGrp)!.add(toolChangeMarker);
   applyToolChangeMarker();
   // the control point hangs where the tool group's position is expressed
   // (its parent): the tip and the pin are one offset apart in that frame
   _controlPointLabel = mkMarkerLabel("control point · G49");
-  controlPointMarker = buildPointMarker({ color: palette.bounds, alt: palette.boundsAlt,
+  controlPointMarker = buildPointMarker({ color: palette.bounds, alt: palette.pin,
     label: _controlPointLabel, name: "controlPoint" });
   controlPointMarker.visible = false;
   (_toolGrp?.parent ?? _toolGrp ?? _workGrp)!.add(controlPointMarker);
   applyOnTop(controlPointMarker, true, ON_TOP_ORDER.marker);
+  _machineTypeLabel = _mkTypeLabel("Machine bounds", "machineTypeLabel");
+  _programTypeLabel = _mkTypeLabel("Program bounds", "programTypeLabel");
+  scene!.add(_machineTypeLabel, _programTypeLabel);
   refreshG30();
   // Reach envelope layer (2026-09-12): the cached solids re-hang under the
   // rebuilt frame groups; a new machine model recomputes (inputs key).
@@ -1928,6 +2031,33 @@ async function buildFromInit(init: ViewerInit) {
         },
         getFrameBox: () => { const b = _boundsWorldBox(); return b ? { min: b.min.toArray(), max: b.max.toArray() } : null; },
         setView: (p: string) => setView(p as ViewPreset),
+        // The frames as drawn from now on (Codex R67) — read without re-posing.
+        startFrameProbe: () => { _frameProbe = []; },
+        takeFrameProbe: () => { const f = _frameProbe ?? []; _frameProbe = null; return f; },
+        // Test seam: hang `room` (a segment soup, machine frame) as the
+        // Machine Reach outline — the plan's NAMED geometries (a chain with
+        // two visible pieces); the worker's real envelope has no fixed shape.
+        // Keyed to the current inputs, so a scheduled request keeps it.
+        setReachSoup: (room: number[]) => {
+          _reachData = { roomLines: Float32Array.from(room), partLines: null,
+            info: { samples: 0, corners: 0, hullFaces: 0, notes: ["test seam"], ms: 0 } };
+          _reachKey = _reachInputsKey() ?? "";
+          _reachBuildMeshes();
+        },
+        // Zoom by `factor` about the orbit target (> 1 = closer): the
+        // parallel camera's zoom, the perspective eye's distance.
+        zoomBy: (factor: number) => {
+          if (!camera || !controls || !(factor > 0)) return;
+          if ((camera as THREE.OrthographicCamera).isOrthographicCamera) {
+            const o = camera as THREE.OrthographicCamera;
+            o.zoom *= factor;
+            o.updateProjectionMatrix();
+          } else {
+            camera.position.sub(controls.target).multiplyScalar(1 / factor).add(controls.target);
+          }
+          controls.update();
+          requestRender();
+        },
         setViewDirection: (dir: number[], distance?: number) => {
           if (!camera || !controls) return;
           if (distance != null) {
@@ -2029,6 +2159,58 @@ async function buildFromInit(init: ViewerInit) {
         getBackplot: () => ({ points: backplot.count, segments: backplot.segments }),
         getToolsetter: () => _markerDiag(toolsetterMarker),
         getToolChange: () => _markerDiag(toolChangeMarker),
+        // The bounds' geometry-anchored pattern (package 4): per unit its
+        // cell count, per segment its world ends and unit parameter — after
+        // this frame's choice, so a test reads what is drawn.
+        getBoundsPattern: (role: "bounds" | "toolpathBounds" | "reachRoom" | "reachPart") => {
+          _updateBoundsPattern();
+          if (role === "toolpathBounds") return toolpath.boxPattern();
+          const g = role === "bounds" ? machineBoundsMesh : role === "reachRoom" ? reachRoomMesh : reachPartMesh;
+          return g?.geo ? patternDiag(g) : null;
+        },
+        // The viewer canvas on the page (CSS px).
+        canvasRect: () => {
+          const r = renderer?.domElement.getBoundingClientRect();
+          return r ? { left: r.left, top: r.top, right: r.right, bottom: r.bottom } : null;
+        },
+        // The toolpath box's dimension end marks (world, 6 floats each).
+        getBoxTicks: () => { _updateBoundsPattern(); return toolpath.boxTicks(); },
+        // The bounds' type labels: shown and where on the page.
+        getBoxTypeLabels: () => {
+          _updateBoundsPattern();
+          const at = (g: THREE.Group | null) => {
+            if (!g || !camera || !renderer) return null;
+            const rect = renderer.domElement.getBoundingClientRect();
+            const v = g.getWorldPosition(new THREE.Vector3()).project(camera);
+            // an outlined troika label draws two materials: on top = both without a depth test
+            let onTop = true;
+            g.traverse(o => {
+              const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+              for (const x of m ? (Array.isArray(m) ? m : [m]) : []) onTop &&= !x.depthTest;
+            });
+            return { visible: g.visible, onTop,
+              screen: { x: rect.left + (v.x + 1) / 2 * rect.width, y: rect.top + (1 - v.y) / 2 * rect.height } };
+          };
+          // one of each in the scene — a rebuild must not leave an old one
+          let count = 0;
+          scene?.traverse(o => { if (o.name === "machineTypeLabel" || o.name === "programTypeLabel") count++; });
+          return { machine: at(_machineTypeLabel), program: at(_programTypeLabel), count };
+        },
+        setBoxTypeLabelsShown: (on: boolean) => { _boxTypeLabelsOn = on; requestRender(); },
+        // World points on the page (CSS px), null for a point behind the camera.
+        projectPoints: (points: number[][]) => {
+          if (!camera || !renderer) return [];
+          const rect = renderer.domElement.getBoundingClientRect();
+          return points.map(p => {
+            const v = new THREE.Vector3(p[0]!, p[1]!, p[2]!).applyMatrix4(camera!.matrixWorldInverse);
+            if (v.z > -(camera as THREE.PerspectiveCamera).near) return null;
+            v.applyMatrix4(camera!.projectionMatrix);
+            const x = rect.left + (v.x + 1) / 2 * rect.width, y = rect.top + (1 - v.y) / 2 * rect.height;
+            // on the viewer's canvas with a 10 px margin (the page is larger)
+            const inside = x > rect.left + 10 && x < rect.right - 10 && y > rect.top + 10 && y < rect.bottom - 10;
+            return { x, y, inside };
+          });
+        },
         // the control-point pin in the machine frame (getToolTip's frame)
         getControlPoint: () => {
           if (!controlPointMarker) return null;
@@ -3453,8 +3635,8 @@ let _reachPartOn = false;
 let _reachKey = "";                       // inputs the cached data was computed from
 let _reachPendingKey = "";
 let _reachData: { roomLines: Float32Array; partLines: Float32Array | null; info: ReachInfo } | null = null;
-let reachRoomMesh: TwoToneLines | null = null;
-let reachPartMesh: TwoToneLines | null = null;
+let reachRoomMesh: GeoTwoTone | null = null;
+let reachPartMesh: GeoTwoTone | null = null;
 let _reachTimer: ReturnType<typeof setTimeout> | undefined;
 
 function _reachInputsKey(): string | null {
@@ -3528,11 +3710,16 @@ function _reachDispose(g: THREE.Group | null) {
 
 /** One outline as a line-segment soup the worker built (hull creases or
  *  the swept solid's cage): TWO-TONE like the boxes (operator 2026-09-29 —
- *  a mid grey vanished on the grey-ladder model), 1 px and dotted so the
- *  boxes stay the stronger lines; opaque like every role line. */
-function _reachSolidGroup(lines: Float32Array): TwoToneLines {
-  return makeTwoToneSegments(lines, { color: palette.reach, alt: palette.boundsAlt,
-    width: REACH_PX, dashPx: REACH_DASH_PX, role: "reach", renderOrder: 3, tones: true });
+ *  a mid grey vanished on the grey-ladder model), 1 px, in the one
+ *  geometry-anchored pattern of every bound (package 4) — its units are the
+ *  soup's CHAINS with a stable identity (viewer/geoDash.ts buildChains:
+ *  storage order and stored direction change nothing); opaque like every
+ *  role line. */
+function _reachSolidGroup(lines: Float32Array): GeoTwoTone {
+  const ch = buildChains(lines);
+  const state = new GeoDashState(lines, Uint32Array.from(ch.chainOf), ch.t, Uint32Array.from(ch.starts), Uint32Array.from(ch.order));
+  return makeGeoTwoTone(state, { color: palette.reach, alt: palette.boundsAlt,
+    width: REACH_PX, role: "reach", renderOrder: 3 });
 }
 
 /** (Re)build the scene objects from the cached solids under the current
@@ -3863,17 +4050,25 @@ function animate() {
   // each frame; controls.update() runs once at tween completion to re-sync.
   if (!_tweenRaf) controls?.update();
   _orthoEyeOutsideScene();
+  // The camera's matrices for THIS frame, before anything is sized or culled
+  // from them: the tween writes position / quaternion and skips
+  // controls.update(), so only the render renewed them — after the end
+  // marks, pins and labels had been scaled from the last frame's view (Codex
+  // R67: 8.5–11.7 px for 10 while a view preset animated).
+  camera?.updateMatrixWorld();
   // the point markers: the same size on screen at every zoom, their labels up on screen
   if (camera && renderer) {
     const hPx = renderer.domElement.clientHeight;
     _markerUp.set(0, 1, 0).applyQuaternion(camera.quaternion);
     for (const m of [toolsetterMarker, toolChangeMarker, controlPointMarker]) if (m?.visible) posePointMarker(m, worldPerPixel(camera, m, hPx), _markerUp);
+    _updateBoundsPattern();
   }
   // Per-chunk overlay gate + frustum count (viewer/lineChunks.ts): decides
   // which outside-bounds overlays are drawn this frame at the current pose.
   if (camera) toolpath.updateCulling(toolpathCtx(), camera, renderer?.domElement.height ?? 1000);
   const _tRender = performance.now();
   renderer?.render(scene!, camera!);
+  if (_frameProbe && camera && renderer) _frameProbe.push(_probeFrame());
   recordRender(performance.now() - _tRender);
   // Draw-call counts of the MAIN pass (info auto-resets per render(), and the
   // gizmo pass below would zero them) — read here for the perf probe.
@@ -3946,6 +4141,7 @@ onMounted(() => {
   camera = perspCam;
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.domElement.dataset.viewerCanvas = "";   // the scene's own canvas (tests tell it from the cube's)
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.localClippingEnabled = true;
   setViewerPerfGl(renderer.getContext());   // GPU completion fences (WebGL2 only)
@@ -4537,11 +4733,15 @@ function refreshPalette() {
   backplot.setColor(palette.backplot);
   machineBoundsMesh?.setColors(palette.bounds, palette.boundsAlt);
   for (const m of [toolsetterMarker, toolChangeMarker, controlPointMarker]) {
-    m?.setColors(palette.bounds, palette.boundsAlt);
+    m?.setColors(palette.bounds, palette.pin);
     const label = m?.children.find(c => c instanceof Text) as Text | undefined;
     if (label) { label.color = palette.boundsAlt; label.outlineColor = palette.bounds; label.sync(requestRender); }
   }
   for (const g of [reachRoomMesh, reachPartMesh]) g?.setColors(palette.reach, palette.boundsAlt);
+  for (const g of [_machineTypeLabel, _programTypeLabel]) {
+    const label = g?.children[0] as Text | undefined;
+    if (label) { label.color = palette.boundsAlt; label.outlineColor = palette.bounds; label.sync(requestRender); }
+  }
   MAT.tool.color.set(palette.tool);
   MAT.cutter.color.set(palette.cutter);
   for (const mesh of [...machineMeshes, toolCutterMesh, toolBodyMesh]) {

@@ -9,7 +9,7 @@ import { ref, type Ref } from "vue";
 import { disposeObject } from "./disposal";
 import { createToolpathController, LIMIT_OVERLAY_RENDER_ORDER, type ToolpathCtx, type ToolpathController } from "./toolpathController";
 import { BACKPLOT_RENDER_ORDER } from "./backplotController";
-import { TOOLPATH_BOX_PX, TOOLPATH_BOX_DASH_PX } from "./boxLines";
+import { TOOLPATH_BOX_PX } from "./boxLines";
 import type { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import type { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 
@@ -150,7 +150,7 @@ describe("no current-line highlight (operator 2026-09-28)", () => {
       });
     }
     expect([...roles].filter(r => r.startsWith("selection")), "no selection role").toEqual([]);
-    expect(fat, "no screen-space line in the toolpath but the box's two tones").toBe(2);
+    expect(fat, "no screen-space line in the toolpath but the box's two tones and its end marks' two passes").toBe(4);
     expect("setHighlight" in c || "setHighlightTrackRange" in c, "no highlight API").toBe(false);
   });
 });
@@ -174,18 +174,22 @@ describe("the toolpath box: two-tone, short dashes held in screen pixels (operat
     c.setColors({ ...PALETTE, toolpathBounds: "#000000", boundsAlt: "#ffffff" });
     expect([sm.color.getHexString(), dm.color.getHexString()]).toEqual(["000000", "ffffff"]);
   });
-  it("dashes TOOLPATH_BOX_DASH_PX on screen along each projected edge (screen-space dash, Codex R44 VP-I10)", () => {
+  it("carries the one geometry-anchored pattern of every bound (package 4): its edges' cells follow the view", () => {
     const ctx = makeCtx();
     c.apply(ctx, GCODE);
     const dashes = boxOf(ctx.workRotGroup)!.children[1] as LineSegments2;
-    const dm = dashes.material as LineMaterial;
-    const renderer = { getSize: (v: THREE.Vector2) => v.set(800, 600) } as unknown as THREE.WebGLRenderer;
-    for (const zoom of [1, 4]) {
-      const cam = new THREE.OrthographicCamera(-400, 400, 300, -300, 0.1, 10000);
-      cam.zoom = zoom; cam.updateProjectionMatrix();
-      (dashes as THREE.Object3D).onBeforeRender(renderer, new THREE.Scene(), cam, dashes.geometry, dm, null as never);
-      expect([dm.dashSize, dm.gapSize, "SCREEN_DASH" in dm.defines]).toEqual([TOOLPATH_BOX_DASH_PX, TOOLPATH_BOX_DASH_PX, true]);
-    }
+    expect("GEO_DASH" in (dashes.material as LineMaterial).defines).toBe(true);
+    c.setBoundsVisible(true);   // only a shown box is measured
+    const cells = (zoom: number) => {
+      const cam = new THREE.OrthographicCamera(-400, 400, 300, -300, 0.1, 1e5);
+      cam.position.set(0, 0, 5000); cam.zoom = zoom; cam.updateProjectionMatrix(); cam.updateMatrixWorld();
+      c.updateBoxPattern(cam, 800, 600);
+      return c.boxPattern()!.cells;
+    };
+    const near = cells(1), far = cells(16);
+    expect(near).toHaveLength(12);
+    expect(far.every(n => n >= 2), "never below two cells").toBe(true);
+    expect(near.some((n, i) => n !== far[i]), "a 16× zoom changes some edge's step").toBe(true);
   });
 });
 

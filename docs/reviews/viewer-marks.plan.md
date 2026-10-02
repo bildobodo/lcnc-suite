@@ -330,3 +330,55 @@ In Fassung 3 ersetzen die folgenden Sätze die „beweisbare Zusage“ und den W
   - Der exakte 15-px-Fall (A) und die starke Perspektive (B) sind als Grenzfälle aufgenommen. Sie
     prüfen die geometrische Aussage (innere Grenze bzw. keine), nicht sichtbare Farbpixel.
   - Kein Test behauptet „jedes Stück ≥ 15 px zeigt beide Töne“.
+
+### Fassung 3.2 · Abweichung bei der Umsetzung (VP62-02), zur Prüfung in R66
+
+Gemessen im neuen e2e-Wächter (`scenes.viewer.spec.ts`, Endmarken), nicht vorab gesetzt.
+
+- **Befund:** Bei DPR 1 vor der mittelgrauen Modellfläche (dahinter `[135,139,145]`) erreicht
+  der 1-px-Kern höchstens `[76,79,82]`, also **2,42 : 1**.
+  - Liegt seine Mitte auf einer Pixelgrenze, wird er zu zwei halb bedeckten Pixeln. Ihre Farbe ist
+    (dunkel + hell) / 2, fast genau das Grau der Modellfläche.
+  - Die helle Unterlage allein trägt dort ebenfalls keine 3 : 1.
+  - Damit hielte die Endmarke vor Modellflächen den Wächter aus Fassung 3 nicht.
+- **Umsetzung:** Kern **2 px**, Unterlage **4 px**.
+  - Ein 2-px-Kern bedeckt bei jeder Lage mindestens ein ganzes Pixel.
+  - Die Unterlage behält den Überstand der Fassung 3: 1 px quer zum Strich auf jeder Seite.
+    An den Enden kommt er über die runden Bildschirm-Kappen von `LineMaterial` zustande (halbe
+    Breite über jedes Ende, im Shader nachgelesen).
+- **Geltung:** Bei DPR 2 (Mac des Operators) hätten 1 / 3 px gehalten; die Änderung gilt für
+  DPR-1-Flächen. Die Arme bleiben 5 px je Seite.
+- **Wächter (jeder zuerst rot):**
+  - **Grundprüfung:** Jeder Armpunkt hebt sich mit 3 : 1 vom Grund ab. Geprüft in hell, dunkel,
+    HC-hell und HC-dunkel, jeweils vor Hintergrund und vor Modell.
+  - **Tonzuordnung:** Vor dunklem Grund trägt die Unterlage, vor hellem der Kern. So ist „beide
+    Töne“ geprüft.
+  - **Rot ohne:** ohne Unterlage, ohne Kern und ohne Pose.
+- **Nebenbefund (älter als dieser Branch):** Ein FLACHES Programm (ohne Z-Ausdehnung) verlor
+  seine Überlauf-Kanten.
+  - `rebuildOverflowEdges` lehnte jede Nullausdehnung ab. Die Box selbst wird gezeichnet und nach
+    innen geklippt, der Teil jenseits des Maschinenfensters verschwand also ohne Markierung.
+  - Jetzt gilt die Regel der Box selbst. Abgesichert mit einem roten Unit-Test in beiden
+    Linienmodi.
+- **Offen für den Operator:** Die Typlabels sind großgeschrieben („Machine bounds“,
+  „Program bounds“), die Nadel-Labels klein („tool setter“). Die Schreibweise gehört zur
+  Labelwahl (i) / (ii).
+
+## Operator-Entscheidung 2. Oktober 2026
+
+- **Beschriftung:** Variante **(ii)**, die festen Typlabels, wie von Codex und mir empfohlen. Die
+  Schreibweise bleibt, wie sie ist.
+- **Neu, vom Operator:** Ein Typlabel liegt **nicht mehr immer oben**. Es folgt dem Schalter
+  „On top“ seiner Box (Settings › 3D Viewer › Layers):
+  - „Machine bounds“ folgt der Maschinen-Box (`bounds`), „Program bounds“ der Werkzeugbahn-Box
+    (`toolpathBounds`).
+  - Ist die Box oben, liegt ihr Label über der Maschine (Reihenfolge der Marker). Sonst verdeckt
+    ein Modellteil das Label wie die Box selbst.
+  - Damit ändert sich der Abnahmefall „Label hinter einem Modellteil“: Das Label liegt dort oben,
+    wenn seine Box oben liegt, sonst ist es verdeckt.
+  - Benannte Folge: Mit den Vorgaben (Boxen nicht oben) ist das Label-Merkmal nicht in jeder
+    Ansicht lesbar. Die Endmarken bleiben das zweite Merkmal der Werkzeugbahn-Box.
+- **Wächter** (`scenes.viewer.spec`, jeder zuerst rot): Von unten gesehen liegt die Grundplatte
+  zwischen Kamera und beiden Labels. Ein Label zeigt sich dort genau dann, wenn seine eigene Box
+  oben liegt. Der Test prüft beide Schalter einzeln. Rot war er, als die Labels wieder immer oben
+  lagen und als die Schalter vertauscht waren.

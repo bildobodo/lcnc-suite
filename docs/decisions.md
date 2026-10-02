@@ -7500,3 +7500,47 @@ corpus into its output directory. The gate has not run since 2026-09-27; it
 needs its own migration (load through the gateway, corpus under the program
 folder, the button/capture scripts checked for the same assumption) before
 its next acceptance — a harness defect, not a product regression of schema 10.
+
+## 2026-10-02 — Package 4: one geometric pattern for every bound (replaces R44 VP-I10's screen-px dash)
+
+**Why.** The operator (2026-10-01): the box dashes "ändern beim Zoomen die
+Länge der Elemente" — lines in one place, dots in another. R44 VP-I10 held the
+dash in CSS px along each projected segment, so the dashes crawled along an
+edge whenever its projected length changed. Plan
+`docs/reviews/viewer-marks.plan.md` Fassungen 2–3.1, agreed by Codex R62–R65.
+
+**Rule (replacing VP-I10 for the bounds; the pins keep their screen dash).**
+Every bound — the machine box, the toolpath box with its orange overflow, both
+reach outlines — draws GEOMETRY-ANCHORED cells: a unit (a box edge, a reach
+chain with a stable identity) is cut into N = 2^k equal cells phased at its
+fixed first end; N is per-unit state, re-chosen with hysteresis (×1.25) so the
+mean VISIBLE cell (L_visible / (N · Δt), Δt the visible parameter interval)
+stays 6 … 12 CSS px nominal, N ≥ 2, N ≤ 2^14. Promise: a visible piece longer
+than 15 CSS px below the cap holds an inner cell boundary — no pixel or
+legibility guarantee beyond that.
+
+**The second cue.** With one pattern the dash length tells the boxes apart no
+more; the pair table's box cues become `["ticks", "label"]`. The toolpath box
+carries dimension end marks (a light underlay under a dark core); each box a
+type label (variant (ii) — the operator chose it on 2026-10-02 against (i), the
+size labels alone, from renders; a label is drawn over the machine exactly
+when its box is — the layer's "On top", the operator's rule of the same day —
+otherwise a model part hides it like the box).
+
+**Deviation from the agreed plan (named for Codex R66).** The end marks are
+2 px core / 4 px underlay, not Fassung 3's 1 / 3. Measured in the e2e guard
+at DPR 1 over the model's mid grey (behind `[135,139,145]`): a 1 px core
+centred near a pixel boundary rendered as `[76,79,82]` at best — 2.42 : 1 —
+and on the boundary itself as two half-covered pixels, (dark + light) / 2, the
+model's own grey. A 2 px core covers a whole pixel at any offset; the underlay
+keeps the plan's 1 px overhang across and, through LineMaterial's round
+screen-space caps (half the width beyond each end), at each end. At DPR 2 (the
+operator's Mac) the plan's widths would have held; the change is for DPR 1
+surfaces.
+
+**A defect found on the way (older than this branch).** `rebuildOverflowEdges`
+refused any zero extent while the toolpath box itself is drawn for a FLAT
+program and clipped to the inside — the part of a 2D program beyond the
+machine window simply vanished, a limit finding with no mark. It now follows
+the box's own rule (nothing drawn only when every extent is zero); red-first
+unit test in both line modes.

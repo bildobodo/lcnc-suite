@@ -9,14 +9,15 @@
 import type { Layer } from "./defaults";
 import type { ViewerRole } from "./viewer/viewerPalette";
 
-export type TwoTone = "long" | "short";
-
 export interface LayerRow {
   key: Layer;
   label: string;
   role?: ViewerRole;
   dashed?: boolean;
-  twoTone?: TwoTone;
+  /** The bounds' one two-tone pattern (package 4: the same for every bound). */
+  twoTone?: boolean;
+  /** The legend sample carries the toolpath box's dimension end marks. */
+  ticks?: boolean;
   help?: string;
 }
 
@@ -33,8 +34,8 @@ export const LAYER_GROUPS: LayerGroup[] = [
     { key: "backplot", label: "Backplot", role: "backplot" },
   ] },
   { id: "bounds", label: "Bounds & Reach", rows: [
-    { key: "toolpathBounds", label: "Toolpath Bounds", role: "toolpathBounds", twoTone: "short" },
-    { key: "bounds", label: "Machine Bounds", role: "bounds", twoTone: "long" },
+    { key: "toolpathBounds", label: "Toolpath Bounds", role: "toolpathBounds", twoTone: true, ticks: true },
+    { key: "bounds", label: "Machine Bounds", role: "bounds", twoTone: true },
     { key: "reachRoom", label: "Machine Reach" },
     { key: "reachPart", label: "Part Reach" },
   ] },

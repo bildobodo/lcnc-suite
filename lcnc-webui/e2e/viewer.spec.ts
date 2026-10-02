@@ -531,7 +531,9 @@ test("the viewer palette: Automatic follows the theme, Custom stays, a legacy pa
   await expect(swatch("rapid")).toHaveCSS("border-top-style", "dashed");
   // the boxes: two-tone samples, the machine box's long dashes and the toolpath box's short ones
   await expect(swatch("bounds")).toHaveClass(/\btwoTone\b/);
-  await expect(swatch("toolpathBounds")).toHaveClass(/\btwoTone\b.*\bshort\b|\bshort\b.*\btwoTone\b/);
+  // one pattern for every bound (package 4): no short / long dash any more
+  await expect(swatch("toolpathBounds")).toHaveClass(/\btwoTone\b/);
+  await expect(swatch("toolpathBounds")).not.toHaveClass(/\bshort\b/);
   // Back to Custom: the kept palette returns; its seven roles are pickers.
   await custom.check();
   await expect.poll(async () => (await drawn()).drawn.feed).toBe(OLD.feed);
