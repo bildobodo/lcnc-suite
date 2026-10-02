@@ -154,7 +154,8 @@ describe("theme text roles", () => {
   // the neutral two-tone box / reach tones stay per theme (pure black and
   // white in HC).
   const COLOUR_ROLES = ["--viewer-feed", "--viewer-rapid", "--viewer-backplot", "--viewer-limit", "--viewer-collision",
-    "--viewer-tool", "--viewer-cutter", "--viewer-plane-active", "--viewer-plane-defined", "--viewer-plane-stale"];
+    "--viewer-tool", "--viewer-cutter", "--viewer-plane-active", "--viewer-plane-defined", "--viewer-plane-stale",
+    "--viewer-pin"];
   for (const name of ["root", "light", "auto-dark", "hc-light", "hc-dark"] as const) {
     it(`${name}: every colour role is the dark theme's`, () => {
       const dark = block(THEMES.dark), b = block(THEMES[name]);
@@ -203,6 +204,13 @@ describe("theme text roles", () => {
         if (Math.max(contrast(dark, grey), contrast(light, grey)) < floor) weak.push(g);
       }
       expect(weak, `${name}: greys neither tone reads on`).toEqual([]);
+    });
+  }
+  // The pins (operator 2026-10-01, Codex R62): cyan in EVERY theme block, HC
+  // too — a role defined once would leave a theme drawing the old grey.
+  for (const name of ["root", "light", "dark", "auto-dark", "hc-light", "hc-dark"] as const) {
+    it(`${name}: the pins carry their own cyan`, () => {
+      expect(block(THEMES[name]).get("--viewer-pin"), name).toBe("#00e5ff");
     });
   }
   it("no casing: the boxes carry no second colour", () => {

@@ -354,3 +354,61 @@ test("Settings › Layers: an On top column for lines and markers, saved per lay
     return save ? JSON.stringify({ ts: save.data.onTop?.toolsetter, bounds: save.data.onTop?.bounds, old: "pathOnTop" in save.data }) : "no save";
   }).toBe(JSON.stringify({ ts: false, bounds: false, old: false }));
 });
+
+// The pins carry their own cyan over the dark carrier (operator 2026-10-01:
+// "die Toolsetterposition und G30 sind kaum erkennbar mit den Machine
+// Bounds"; Codex R62: on all three real pins, light and dark ground, after a
+// theme switch and a scene rebuild — CSS tokens and material metadata alone
+// prove nothing). Each pin alone, so a neighbour's cyan never stands in.
+test("the three pins are cyan over their dark carrier in every theme, after a switch and a rebuild", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await xyzacScene(page, context, () => ({ ok: true, values: { X: -100, Y: 50, Z: -20, A: 0, C: 0 }, mtime_ms: 1, units: "mm" }));
+  // G49 with T13 in the spindle: the control-point pin at the nose
+  await ctl({ op: "status_delta", data: { tool_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0], gcodes: [-1, 0, 170, 400, 490, 540, 800, 900, 940, 210] } });
+  const PINS = {
+    toolsetter: { layers: { toolsetter: true }, diag: "getToolsetter" },
+    toolChange: { layers: { toolChange: true }, diag: "getToolChange" },
+    controlPoint: { layers: { tool: true }, diag: "getControlPoint" },
+  } as const;
+  /** Cyan pixels within ±20 CSS px of the pin's point. */
+  const cyanNear = async (diag: string) => {
+    const at = await page.evaluate(d => (window.__viewerDiag as any)[d]() as { visible: boolean; screen: { x: number; y: number } | null }, diag);
+    expect(at?.visible, `${diag}: shown`).toBe(true);
+    const png = (await page.screenshot()).toString("base64");
+    return page.evaluate(async ({ png, x, y }) => {
+      const img = new Image(); img.src = `data:image/png;base64,${png}`; await img.decode();
+      const cv = document.createElement("canvas"); cv.width = img.width; cv.height = img.height;
+      const cx = cv.getContext("2d", { willReadFrequently: true })!; cx.drawImage(img, 0, 0);
+      const d = cx.getImageData(Math.round(x) - 20, Math.round(y) - 20, 41, 41).data;
+      let n = 0;
+      for (let i = 0; i < d.length; i += 4) if (d[i]! < 90 && d[i + 1]! > 170 && d[i + 2]! > 190) n++;
+      return n;
+    }, { png, x: at.screen!.x, y: at.screen!.y });
+  };
+  const show = async (theme: string, pin: keyof typeof PINS) => {
+    await ctl({ op: "raw", frame: { type: "settings_changed", settings: { toolsetter: SET_UP, display: { theme },
+      viewer: { machineEdges: false, layers: { ...QUIET, toolsetter: false, toolChange: false, tool: false, ...PINS[pin].layers } } } } });
+    await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+    await page.waitForTimeout(400);
+  };
+  await page.evaluate(() => window.__viewerDiag!.setView!("front"));
+  for (const theme of ["light", "dark", "hc-light", "hc-dark"]) {
+    for (const pin of Object.keys(PINS) as (keyof typeof PINS)[]) {
+      await show(theme, pin);
+      expect(await cyanNear(PINS[pin].diag), `${theme} ${pin}: cyan on the pin`).toBeGreaterThan(6);
+    }
+  }
+  // the drawn role follows the token
+  expect((await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn.markerAlt).toBe("#00e5ff");
+  // a scene rebuild keeps them cyan
+  await ctl({ op: "setViewerInit", data: { units: "mm", stl_base_url: "/xyzac-model/", axes: ["X", "Y", "Z", "A", "C"],
+    parts: machine.parts, groups: machine.groups, kinematics: machine.kinematics,
+    workGroup: machine.workGroup, toolGroup: machine.toolGroup } });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready ? window.__viewerDiag.getAppearance?.().parts.length ?? 0 : 0),
+    { timeout: 20_000 }).toBe(machine.parts.length);
+  await page.evaluate(() => window.__viewerDiag!.setView!("front"));
+  for (const pin of Object.keys(PINS) as (keyof typeof PINS)[]) {
+    await show("dark", pin);
+    expect(await cyanNear(PINS[pin].diag), `after a rebuild, ${pin}: cyan`).toBeGreaterThan(6);
+  }
+});

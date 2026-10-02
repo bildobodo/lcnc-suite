@@ -1708,18 +1708,18 @@ function ensureCoreGroups(init: ViewerInit) {
   }
   // The tool setter and the tool-change position (operator 2026-09-29/30):
   // pins with a label in the MACHINE frame.
-  toolsetterMarker = buildPointMarker({ color: palette.bounds, alt: palette.boundsAlt,
+  toolsetterMarker = buildPointMarker({ color: palette.bounds, alt: palette.pin,
     label: mkMarkerLabel("tool setter"), name: "toolsetter" });
   (machineFrameGrp ?? _workGrp)!.add(toolsetterMarker);
   applyToolsetterMarker();
-  toolChangeMarker = buildPointMarker({ color: palette.bounds, alt: palette.boundsAlt,
+  toolChangeMarker = buildPointMarker({ color: palette.bounds, alt: palette.pin,
     label: mkMarkerLabel("tool change (G30)"), name: "toolChange" });
   (machineFrameGrp ?? _workGrp)!.add(toolChangeMarker);
   applyToolChangeMarker();
   // the control point hangs where the tool group's position is expressed
   // (its parent): the tip and the pin are one offset apart in that frame
   _controlPointLabel = mkMarkerLabel("control point · G49");
-  controlPointMarker = buildPointMarker({ color: palette.bounds, alt: palette.boundsAlt,
+  controlPointMarker = buildPointMarker({ color: palette.bounds, alt: palette.pin,
     label: _controlPointLabel, name: "controlPoint" });
   controlPointMarker.visible = false;
   (_toolGrp?.parent ?? _toolGrp ?? _workGrp)!.add(controlPointMarker);
@@ -4537,7 +4537,7 @@ function refreshPalette() {
   backplot.setColor(palette.backplot);
   machineBoundsMesh?.setColors(palette.bounds, palette.boundsAlt);
   for (const m of [toolsetterMarker, toolChangeMarker, controlPointMarker]) {
-    m?.setColors(palette.bounds, palette.boundsAlt);
+    m?.setColors(palette.bounds, palette.pin);
     const label = m?.children.find(c => c instanceof Text) as Text | undefined;
     if (label) { label.color = palette.boundsAlt; label.outlineColor = palette.bounds; label.sync(requestRender); }
   }

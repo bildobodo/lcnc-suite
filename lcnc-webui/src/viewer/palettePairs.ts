@@ -75,4 +75,10 @@ export const PALETTE_PAIRS: PalettePair[] = [
   { a: "--viewer-plane-active", b: "--viewer-plane-defined", where: "the plane", kind: "object", cues: ["label"] },
   { a: "--viewer-plane-active", b: "--viewer-plane-stale", where: "the plane", kind: "object", cues: ["label", "dashed"] },
   { a: "--viewer-plane-defined", b: "--viewer-plane-stale", where: "the plane", kind: "object", cues: ["label", "dashed"] },
+  // The pins (tool setter, G30, control point): cyan over the dark carrier
+  // (operator 2026-10-01: they vanished beside the two-tone boxes) — an
+  // object with its label, apart from every line, the tinted body and the
+  // boxes' light tone.
+  ...(["--viewer-feed", "--viewer-rapid", "--viewer-limit", "--viewer-backplot", "--viewer-collision", "--viewer-bounds-alt"] as const)
+    .map(b => ({ a: "--viewer-pin", b, where: "a pin beside a line, a body or a box", kind: "object" as const, cues: ["label" as const] })),
 ];

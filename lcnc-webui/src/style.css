@@ -183,6 +183,7 @@
   --viewer-bounds: #15181c;
   --viewer-toolpath-bounds: #15181c;
   --viewer-bounds-alt: #f0f2f4;
+  --viewer-pin: #00e5ff;
   --viewer-reach: #15181c;
   --viewer-tool: #6b7178;
   --viewer-cutter: #eceff1;
@@ -357,6 +358,7 @@
     --viewer-bounds: #15181c;
     --viewer-toolpath-bounds: #15181c;
     --viewer-bounds-alt: #f0f2f4;
+    --viewer-pin: #00e5ff;
     --viewer-reach: #15181c;
     --viewer-tool: #6b7178;
     --viewer-cutter: #eceff1;
@@ -399,6 +401,7 @@
   --viewer-bounds: #15181c;
   --viewer-toolpath-bounds: #15181c;
   --viewer-bounds-alt: #f0f2f4;
+  --viewer-pin: #00e5ff;
   --viewer-reach: #15181c;
   --viewer-tool: #6b7178;
   --viewer-cutter: #eceff1;
@@ -440,6 +443,7 @@
   --viewer-bounds: #15181c;
   --viewer-toolpath-bounds: #15181c;
   --viewer-bounds-alt: #f0f2f4;
+  --viewer-pin: #00e5ff;
   --viewer-reach: #15181c;
   --viewer-tool: #6b7178;
   --viewer-cutter: #eceff1;
@@ -491,6 +495,7 @@
   --viewer-bounds: #000000;
   --viewer-toolpath-bounds: #000000;
   --viewer-bounds-alt: #ffffff;
+  --viewer-pin: #00e5ff;
   --viewer-reach: #000000;
   --viewer-tool: #6b7178;
   --viewer-cutter: #eceff1;
@@ -541,6 +546,7 @@
   --viewer-bounds: #000000;
   --viewer-toolpath-bounds: #000000;
   --viewer-bounds-alt: #ffffff;
+  --viewer-pin: #00e5ff;
   --viewer-reach: #000000;
   --viewer-tool: #6b7178;
   --viewer-cutter: #eceff1;
