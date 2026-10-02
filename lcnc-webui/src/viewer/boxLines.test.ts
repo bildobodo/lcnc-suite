@@ -3,7 +3,7 @@
 // geometry-anchored pattern (package 4, plan Fassungen 2–3.1, Codex R62–R65);
 // the pins keep a dash in CSS px along each projected segment (R44 VP-I10's
 // screen dash, now theirs alone).
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import * as THREE from "three";
 import type { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
@@ -94,7 +94,7 @@ describe("two-tone lines", () => {
     expect(sd.fragment).toContain("mod( vDashW / vDashInvW + dashOffset, dashSize + gapSize )");
   });
 
-  it("world units per pixel: orthographic by the frustum and zoom, perspective by the distance", () => {
+  it("world units per pixel: orthographic by the frustum and zoom, perspective by the DEPTH along the view axis", () => {
     const o = new THREE.Object3D();
     expect(worldPerPixel(ortho(1), o, 600)).toBeCloseTo(1, 9);
     expect(worldPerPixel(ortho(4), o, 600)).toBeCloseTo(0.25, 9);
@@ -102,6 +102,14 @@ describe("two-tone lines", () => {
     p.position.set(0, 0, 300); p.updateMatrixWorld();
     // 2 · 300 · tan(45°) / 600 = 1
     expect(worldPerPixel(p, o, 600)).toBeCloseTo(1, 6);
+    // off the axis at the same depth: the same scale — an offset parallel to
+    // the image plane projects by the depth, not by the distance (Codex R66 VP-I28)
+    o.position.set(250, 0, 0); o.updateMatrixWorld();
+    expect(worldPerPixel(p, o, 600)).toBeCloseTo(1, 6);
+    // and that scale makes 10 px of offset exactly 10 px on screen there
+    const at = new THREE.Vector3(250, 0, 0), off = at.clone().add(new THREE.Vector3(0, 10 * worldPerPixel(p, o, 600), 0));
+    const a = at.project(p), b = off.project(p);
+    expect(Math.hypot((b.x - a.x) * 300, (b.y - a.y) * 300)).toBeCloseTo(10, 6);
   });
 });
 
@@ -117,6 +125,22 @@ describe("GeoDashState: the cell count per unit for this view", () => {
     st.update(o, ortho(2.5), 800, 600);
     expect(st.cellsOf(), "15.6 px: doubled").toEqual([32]);
     expect(Array.from(st.cells)).toEqual([32]);
+  });
+
+  it("at the cap the cells stop refining and the console says so ONCE (plan Fassung 3, Codex R66)", () => {
+    // a unit far longer than the view: Δt tiny, so L / Δt asks for more than 2^14 cells
+    const st = boxGeoState(new Float32Array([-5e8, 0, 0, 5e8, 0, 0]));
+    const o = new THREE.Object3D(); o.updateMatrixWorld();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const cam = ortho(1);
+      st.update(o, cam, 800, 600);
+      st.update(o, cam, 800, 600);
+      cam.zoom = 2; cam.updateProjectionMatrix();
+      st.update(o, cam, 800, 600);
+      expect(st.cellsOf()).toEqual([2 ** 14]);
+      expect(warn.mock.calls.filter(c => /cap/.test(String(c[0]))).length).toBe(1);
+    } finally { warn.mockRestore(); }
   });
 
   it("an upload only when a count changed", () => {
@@ -240,6 +264,25 @@ describe("the toolpath box's dimension end marks", () => {
       expect(checked).toBeGreaterThanOrEqual(18);
     });
   }
+
+  it("Codex R66 VP-I28: near the edge of a perspective view every arm is still 5 CSS px — the scale is the depth, not the distance", () => {
+    const W2 = 1000, H2 = 600;
+    const camera = new THREE.PerspectiveCamera(45, W2 / H2, 0.1, 1000);
+    camera.updateProjectionMatrix(); camera.updateMatrixWorld();
+    const box = makeBoxEdges([1, 1, 1], { color: "#15181c", alt: "#f0f2f4", width: 1, role: "toolpathBounds" });
+    box.position.set(2.4, 0, -5);
+    const ticks = makeBoxTicks({ dark: "#15181c", light: "#f0f2f4", role: "toolpathBounds" });
+    box.add(ticks); box.updateMatrixWorld(true);
+    ticks.pose(box, camera, W2, H2); ticks.updateMatrixWorld(true);
+    const scr = (q: number[]): [number, number] => {
+      const v = new THREE.Vector3(q[0], q[1], q[2]).project(camera);
+      return [(v.x + 1) / 2 * W2, (1 - v.y) / 2 * H2];
+    };
+    const lens = ticks.worldSegments().map(b => { const [x0, y0] = scr(b.slice(0, 3)), [x1, y1] = scr(b.slice(3)); return Math.hypot(x1 - x0, y1 - y0); })
+      .filter(l => l > 0.1);
+    expect(lens.length).toBeGreaterThanOrEqual(18);
+    for (const l of lens) expect(l).toBeCloseTo(2 * TICK_ARM_PX, 3);
+  });
 
   it("its own contrast carrier: a light underlay under a dark core, over the box's passes; colours follow setColors", () => {
     const ticks = makeBoxTicks({ dark: "#15181c", light: "#f0f2f4", role: "toolpathBounds" });

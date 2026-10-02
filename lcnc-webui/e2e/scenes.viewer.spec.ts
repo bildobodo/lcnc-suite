@@ -901,3 +901,89 @@ test("the toolpath box's end marks stand off the background and the model in fou
   await expect.poll(async () => (await page.evaluate(() => window.__viewerDiag!.getBoxTypeLabels!()))?.count,
     { message: "after a rebuild: one label per box" }).toBe(2);
 });
+
+// Plan Fassung 3.1 (Codex R64–R66): the rendered two-tone check for the
+// NAMED chain case — one reach chain with TWO visible pieces. A long open
+// chain (~19 000 px) dips into the view twice from the left, each time as a
+// V of two arms (50 px across, 71 px at 45°): N comes from the visible
+// pieces' L / Δt, so each piece of ~120 px holds many cells and shows both
+// tones; N taken from L without Δt would give cells of ~1 200 px — one tone
+// per piece. Parallel top view, Machine Reach alone, light and HC light.
+test("a reach chain with two visible pieces shows both tones in each (plan Fassung 3.1, Codex R66)", async ({ browser }) => {
+  test.setTimeout(120_000);
+  const context = await browser.newContext({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: 1 });
+  const page = await context.newPage();
+  await ctl({ op: "reset" });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(MOCK);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready)).toBe(true);
+  await ctl({ op: "status_delta", data: { joint_limits: [[-250, 250], [-200, 200], [-400, 0]] } });
+  for (const theme of ["light", "hc-light"] as const) {
+    await ctl({ op: "raw", frame: { type: "settings_changed", settings: { display: { theme }, viewer: { projection: "parallel", layers: {
+      hud: false, bounds: false, toolpathBounds: false, toolpath: false, rapids: false, tool: false, machine: false, workzero: false,
+      groundGrid: false, toolsetter: false, toolChange: false, reachPart: false, reachRoom: true } } } } });
+    await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+    await page.evaluate(() => window.__viewerDiag!.setView!("top"));
+    await page.waitForTimeout(400);
+    // the page ↔ world map of the top view (z = 0)
+    const [o, ex, ey] = (await page.evaluate(() => window.__viewerDiag!.projectPoints!([[0, 0, 0], [100, 0, 0], [0, 100, 0]])))!;
+    const rect = (await page.evaluate(() => window.__viewerDiag!.canvasRect!()))!;
+    const ax = { x: (ex!.x - o!.x) / 100, y: (ex!.y - o!.y) / 100 }, ay = { x: (ey!.x - o!.x) / 100, y: (ey!.y - o!.y) / 100 };
+    const det = ax.x * ay.y - ax.y * ay.x;
+    const toWorld = (px: number, py: number) => {
+      const dx = px - o!.x, dy = py - o!.y;
+      return [(dx * ay.y - dy * ay.x) / det, (ax.x * dy - ax.y * dx) / det, 0];
+    };
+    const u = 1 / Math.hypot(ax.x, ax.y);   // world per px
+    const L = toWorld(rect.left, (rect.top + rect.bottom) / 2);
+    const cy = L[1]!, lx = L[0]!;
+    // world +Y is up on screen in the top view
+    const yA = cy + 150 * u * Math.sign(-ay.y), yC = cy - 150 * u * Math.sign(-ay.y);
+    const far = lx - 4000 * u, tip = lx + 50 * u, drop = -4050 * u * Math.sign(-ay.y);
+    const P = [[far, yA], [tip, yA], [far, yA + drop], [far, yC - drop], [tip, yC], [far, yC]].map(p => [p[0]!, p[1]!, 0]);
+    const soup = P.slice(0, -1).flatMap((p, i) => [...p, ...P[i + 1]!]);
+    await page.evaluate(s => window.__viewerDiag!.setReachSoup!(s), soup);
+    await page.waitForTimeout(400);
+    const pat = (await page.evaluate(() => window.__viewerDiag!.getBoundsPattern!("reachRoom")))!;
+    expect(pat.cells.length, `${theme}: the soup is ONE chain`).toBe(1);
+    // the injected soup lies where it was put (the machine frame is the world here)
+    const s0 = pat.segments.find(s => Math.hypot(s.a[0]! - far, s.a[1]! - yA) < 1e-3 * u || Math.hypot(s.b[0]! - far, s.b[1]! - yA) < 1e-3 * u);
+    expect(s0, `${theme}: the chain's start where it was put`).toBeTruthy();
+    const drawn = (await page.evaluate(() => window.__viewerDiag!.getPalette!())).drawn;
+    const shot = await page.screenshot();
+    await test.info().attach(`reach-two-pieces-${theme}.png`, { body: shot, contentType: "image/png" });
+    const ld = lum(rgbOf(drawn.reach ?? drawn.bounds!)), ll = lum(rgbOf(drawn.boundsAlt!));
+    const [t1, t2] = await page.evaluate(p => window.__viewerDiag!.projectPoints!(p), [P[1]!, P[4]!]);
+    const [a0, a2, a3, a5] = await page.evaluate(p => window.__viewerDiag!.projectPoints!(p), [P[0]!, P[2]!, P[3]!, P[5]!]);
+    /** Along one arm from its tip into the view: the classes of the samples
+     *  clear of the other arm and the canvas edge. */
+    const arm = async (tipP: { x: number; y: number }, farP: { x: number; y: number }, other: { x: number; y: number }) => {
+      const dx = farP.x - tipP.x, dy = farP.y - tipP.y, len = Math.hypot(dx, dy);
+      const ux = dx / len, uy = dy / len;
+      // the visible length: up to the canvas edge
+      let r = 0;
+      while (r < len && tipP.x + ux * r > rect.left + 2 && tipP.y + uy * r > rect.top + 2 && tipP.y + uy * r < rect.bottom - 2) r += 0.5;
+      const pts: { x: number; y: number }[] = [];
+      for (let s = 6; s <= r - 2; s += 0.5) {
+        const q = { x: tipP.x + ux * s, y: tipP.y + uy * s };
+        // clear of the piece's other arm by 3.5 px
+        const ox = other.x - tipP.x, oy = other.y - tipP.y, ol = Math.hypot(ox, oy);
+        const along = ((q.x - tipP.x) * ox + (q.y - tipP.y) * oy) / ol;
+        if (along > 0 && Math.abs(((q.x - tipP.x) * oy - (q.y - tipP.y) * ox) / ol) < 3.5) continue;
+        pts.push(q);
+      }
+      if (pts.length < 2) return [] as string[];
+      const vals = await alongDarkest(page, shot, pts[0]!, pts[pts.length - 1]!, pts.length, 1);
+      return vals.filter(v => v >= 0).map(v => (v < ld + 0.75 * (ll - ld) ? "d" : "l"));
+    };
+    for (const [name, tip, armA, armB] of [["piece 1", t1!, a0!, a2!], ["piece 2", t2!, a5!, a3!]] as const) {
+      const cls = [...await arm(tip, armA, armB), ...await arm(tip, armB, armA)];
+      const d = cls.filter(c => c === "d").length, l = cls.filter(c => c === "l").length;
+      const dump = `${cls.join("")} (N ${pat.cells[0]})`;
+      expect(d + l, `${theme} ${name}: measured`).toBeGreaterThan(60);
+      expect(d / (d + l), `${theme} ${name}: dark cells ${dump}`).toBeGreaterThan(0.15);
+      expect(l / (d + l), `${theme} ${name}: light cells ${dump}`).toBeGreaterThan(0.15);
+    }
+  }
+  await context.close();
+});

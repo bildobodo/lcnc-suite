@@ -2000,6 +2000,16 @@ async function buildFromInit(init: ViewerInit) {
         },
         getFrameBox: () => { const b = _boundsWorldBox(); return b ? { min: b.min.toArray(), max: b.max.toArray() } : null; },
         setView: (p: string) => setView(p as ViewPreset),
+        // Test seam: hang `room` (a segment soup, machine frame) as the
+        // Machine Reach outline — the plan's NAMED geometries (a chain with
+        // two visible pieces); the worker's real envelope has no fixed shape.
+        // Keyed to the current inputs, so a scheduled request keeps it.
+        setReachSoup: (room: number[]) => {
+          _reachData = { roomLines: Float32Array.from(room), partLines: null,
+            info: { samples: 0, corners: 0, hullFaces: 0, notes: ["test seam"], ms: 0 } };
+          _reachKey = _reachInputsKey() ?? "";
+          _reachBuildMeshes();
+        },
         // Zoom by `factor` about the orbit target (> 1 = closer): the
         // parallel camera's zoom, the perspective eye's distance.
         zoomBy: (factor: number) => {

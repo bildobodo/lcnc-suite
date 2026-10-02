@@ -124,6 +124,28 @@ describe("buildChains", () => {
     expect(out.get("20,0,0|21,1,0")).toBeCloseTo(0.5, 5);
   });
 
+  it("Codex R66 VP-I27: contours that RETURN to a junction keep their phase when storage is reversed or flipped", () => {
+    // two squares sharing one vertex (degree four): each contour runs from
+    // the junction back to it — both ends at the same position
+    const loops: number[][] = [
+      [0, 0, 0, 1, 0, 0], [1, 0, 0, 1, 1, 0], [1, 1, 0, 0, 1, 0], [0, 1, 0, 0, 0, 0],
+      [0, 0, 0, -1, 0, 0], [-1, 0, 0, -1, -1, 0], [-1, -1, 0, 0, -1, 0], [0, -1, 0, 0, 0, 0],
+    ];
+    /** t at a fixed WORLD point of every edge (37 % from its smaller end). */
+    const phases = (list: number[][]) => {
+      const c = buildChains(list.flat());
+      return list.map((sg, i) => {
+        const a = sg.slice(0, 3), b = sg.slice(3), fwd = a.join(",") < b.join(",");
+        const ta = c.t[2 * i + (fwd ? 0 : 1)]!, tb = c.t[2 * i + (fwd ? 1 : 0)]!;
+        return { edge: JSON.stringify(fwd ? [a, b] : [b, a]), t: Math.round((ta + (tb - ta) * 0.37) * 1e6) / 1e6 };
+      }).sort((x, y) => x.edge.localeCompare(y.edge));
+    };
+    const base = phases(loops);
+    expect(phases(loops.slice().reverse())).toEqual(base);
+    expect(phases(loops.map((sg, i) => (i % 3 ? sg : [...sg.slice(3), ...sg.slice(0, 3)])))).toEqual(base);
+    expect(phases([loops[5], loops[0], loops[7], loops[2], loops[4], loops[1], loops[6], loops[3]] as number[][])).toEqual(base);
+  });
+
   it("is independent of the storage order and of each segment's stored direction (Codex R62/R63)", () => {
     const shuffled = [segs[7], segs[3], segs[0], segs[5], segs[2], segs[8], segs[4], segs[1], segs[6]] as number[][];
     const flipped = shuffled.map((s, i) => (i % 2 ? [...s.slice(3), ...s.slice(0, 3)] : s));

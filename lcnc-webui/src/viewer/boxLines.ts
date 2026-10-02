@@ -27,7 +27,7 @@ import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { counted, countedGeometry, f32, u32 } from "./allocMeter";
-import { chooseCells, clipParam, GEO_CELLS_MIN } from "./geoDash";
+import { chooseCells, clipParam, GEO_CELL_MAX_PX, GEO_CELLS_MAX, GEO_CELLS_MIN, GEO_HYSTERESIS } from "./geoDash";
 
 /** Both boxes (and the toolpath box's overflow edges), CSS px: 1 — the
  *  boxes are context, quieter than the 2 px path (operator 2026-09-30:
@@ -76,7 +76,6 @@ export function boxEdgePositions(sx: number, sy: number, sz: number): Float32Arr
 }
 
 const _pos = new THREE.Vector3();
-const _camPos = new THREE.Vector3();
 
 // ── screen-space dashes (Codex R44 VP-I10) ────────────────────────────────
 // LineMaterial dashes by a per-instance WORLD distance. screenDash replaces
@@ -191,6 +190,8 @@ export class GeoDashState {
   private readonly b4 = [0, 0, 0, 0];
   private readonly st = [0, 0];
   private readonly mvp = new THREE.Matrix4();
+  /** The cap was met once (Fassung 3: said once in the console). */
+  private capNoted = false;
 
   readonly positions: Float32Array;   // the segment pairs (6 floats each)
   readonly unitOf: Uint32Array;       // per segment
@@ -251,6 +252,12 @@ export class GeoDashState {
       }
       if (open && pieceDt > 0) ratio = Math.max(ratio, pieceL / pieceDt);
       const n = chooseCells(ratio, this.n[u]!);
+      // the named limit (Fassung 3): past 2^14 cells the 15 px promise no
+      // longer holds — the cells stop refining; said once per pattern
+      if (n === GEO_CELLS_MAX && ratio / n > GEO_CELL_MAX_PX * GEO_HYSTERESIS && !this.capNoted) {
+        this.capNoted = true;
+        console.warn(`[viewer] bound pattern at its cap of ${GEO_CELLS_MAX} cells — the visible cells are longer than ${GEO_CELL_MAX_PX * GEO_HYSTERESIS} px (extreme foreshortening)`);
+      }
       if (n !== this.n[u]) {
         this.n[u] = n;
         for (let k = this.starts[u]!; k < this.starts[u + 1]!; k++) this.cells[this.order[k]!] = n;
@@ -295,18 +302,25 @@ export function attachGeo(geom: LineSegmentsGeometry, state: GeoDashState): void
   state.attrs.push(cells);
 }
 
-/** World units per CSS pixel at `obj`'s origin, seen by `camera` over a
- *  drawing area `heightPx` tall (a scale at one point — no longer the box
- *  dashes' rule, see screenDash). */
-export function worldPerPixel(camera: THREE.Camera, obj: THREE.Object3D, heightPx: number): number {
+/** World units per CSS pixel at the world point `at`, seen by `camera` over
+ *  a drawing area `heightPx` tall — for an offset PARALLEL TO THE IMAGE
+ *  PLANE (a pin, a label, an end mark built in CSS px). Under perspective
+ *  that scale is the point's DEPTH along the view axis, not its distance:
+ *  off the axis the distance is longer and a CSS-px object grew towards the
+ *  edge of the view (Codex R66 VP-I28: end marks 10.6–11.9 px for 10). */
+export function worldPerPixelAt(camera: THREE.Camera, at: THREE.Vector3, heightPx: number): number {
   if (!(heightPx > 0)) return 1;
   const ortho = camera as THREE.OrthographicCamera;
   if (ortho.isOrthographicCamera) return (ortho.top - ortho.bottom) / ortho.zoom / heightPx;
   const persp = camera as THREE.PerspectiveCamera;
-  obj.getWorldPosition(_pos);
-  camera.getWorldPosition(_camPos);
-  const dist = Math.max(1e-6, _pos.distanceTo(_camPos));
-  return (2 * dist * Math.tan(THREE.MathUtils.degToRad(persp.fov ?? 45) / 2)) / (persp.zoom || 1) / heightPx;
+  // the camera's position and view axis from ONE matrix (−Z is forward)
+  const e = camera.matrixWorld.elements;
+  const depth = Math.max(1e-6, -((at.x - e[12]!) * e[8]! + (at.y - e[13]!) * e[9]! + (at.z - e[14]!) * e[10]!));
+  return (2 * depth * Math.tan(THREE.MathUtils.degToRad(persp.fov ?? 45) / 2)) / (persp.zoom || 1) / heightPx;
+}
+/** The same at `obj`'s origin. */
+export function worldPerPixel(camera: THREE.Camera, obj: THREE.Object3D, heightPx: number): number {
+  return worldPerPixelAt(camera, obj.getWorldPosition(_pos), heightPx);
 }
 
 /** Any segment soup as a two-tone line: the dark solid pass and the light
@@ -455,7 +469,7 @@ export function makeBoxTicks(o: { dark: string; light: string; role: string }): 
   g.add(under, core);
   g.setColors = (dark, light) => { coreMat.color.set(dark); underMat.color.set(light); };
   const mvp = new THREE.Matrix4(), inv = new THREE.Matrix4(), invR = new THREE.Matrix3();
-  const a = new THREE.Vector4(), b = new THREE.Vector4(), e = new THREE.Vector3(), ew = new THREE.Vector3(), cam = new THREE.Vector3();
+  const a = new THREE.Vector4(), b = new THREE.Vector4(), e = new THREE.Vector3(), ew = new THREE.Vector3();
   const right = new THREE.Vector3(), up = new THREE.Vector3(), off = new THREE.Vector3();
   g.pose = (box, camera, cssW, cssH) => {
     box.updateWorldMatrix(true, false);
@@ -464,9 +478,7 @@ export function makeBoxTicks(o: { dark: string; light: string; role: string }): 
     invR.setFromMatrix4(inv);   // a world offset into the box's frame (no translation)
     right.set(1, 0, 0).applyQuaternion(camera.quaternion);
     up.set(0, 1, 0).applyQuaternion(camera.quaternion);
-    camera.getWorldPosition(cam);
-    const P = box.geo.positions, ortho = (camera as THREE.OrthographicCamera).isOrthographicCamera;
-    const persp = camera as THREE.PerspectiveCamera, oc = camera as THREE.OrthographicCamera;
+    const P = box.geo.positions;
     for (let s = 0; s < 12; s++) {
       a.set(P[s * 6]!, P[s * 6 + 1]!, P[s * 6 + 2]!, 1).applyMatrix4(mvp);
       b.set(P[s * 6 + 3]!, P[s * 6 + 4]!, P[s * 6 + 5]!, 1).applyMatrix4(mvp);
@@ -477,11 +489,8 @@ export function makeBoxTicks(o: { dark: string; light: string; role: string }): 
         const o6 = (s * 2 + end) * 6, src = s * 6 + end * 3;
         e.set(P[src]!, P[src + 1]!, P[src + 2]!);
         if (!(l > 1e-6)) { for (let k = 0; k < 6; k++) pos[o6 + k] = e.getComponent(k % 3); continue; }
-        // world per CSS px at this corner, the bar across the edge's screen direction
-        ew.copy(e).applyMatrix4(box.matrixWorld);
-        const wpp = ortho
-          ? (oc.top - oc.bottom) / (oc.zoom || 1) / cssH
-          : (2 * ew.distanceTo(cam) * Math.tan(THREE.MathUtils.degToRad(persp.fov) / 2)) / (persp.zoom || 1) / cssH;
+        // world per CSS px at this corner (its depth), the bar across the edge's screen direction
+        const wpp = worldPerPixelAt(camera, ew.copy(e).applyMatrix4(box.matrixWorld), cssH);
         off.copy(right).multiplyScalar(-dy / l).addScaledVector(up, dx / l).multiplyScalar(TICK_ARM_PX * wpp).applyMatrix3(invR);
         for (let k = 0; k < 3; k++) { pos[o6 + k] = e.getComponent(k) - off.getComponent(k); pos[o6 + 3 + k] = e.getComponent(k) + off.getComponent(k); }
       }

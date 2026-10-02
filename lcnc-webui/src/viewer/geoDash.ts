@@ -66,7 +66,9 @@ export function clipParam(a: ArrayLike<number>, b: ArrayLike<number>, out: { [i:
  *  junction (≥ 3) or an open end ends a chain. An open chain starts at its
  *  lexicographically smaller end (x, then y, then z), a ring at its
  *  lexicographically smallest vertex, running towards the smaller of its two
- *  neighbours — independent of the storage order. Per segment: its chain,
+ *  neighbours; a chain with BOTH ends at one junction runs the way whose
+ *  walk is the smaller vertex by vertex (R66 VP-I27) — independent of the
+ *  storage order. Per segment: its chain,
  *  and the chain parameters t of its first and second STORED end (the
  *  chain's world length normalised to 0 … 1). `order` lists each chain's
  *  segments from its start. */
@@ -97,6 +99,23 @@ export function buildChains(positions: ArrayLike<number>): Chains {
     const l = at.get(key(s, e))!;
     if (l.length !== 2) return -1;
     return l[0] === s * 2 + e ? l[1]! : l[0]!;
+  };
+  /** Walks from segment end (s, e) and (s2, e2) — positions after the start
+   *  vertex compared one by one, lexicographically: which walk is the smaller
+   *  GEOMETRICALLY. Ties between two starts at one position (a contour that
+   *  returns to its junction has both ends there) are decided by the shape
+   *  of the walk, never by the storage index (Codex R66 VP-I27). Walks that
+   *  are equal all along draw the same picture either way. */
+  const walkCmp = (s: number, e: number, s2: number, e2: number) => {
+    let a = s, ae = e, b = s2, be = e2;
+    for (let steps = 0; steps < n; steps++) {
+      if (lexLess(a, 1 - ae, b, 1 - be)) return -1;
+      if (lexLess(b, 1 - be, a, 1 - ae)) return 1;
+      const na = next(a, 1 - ae), nb = next(b, 1 - be);
+      if (na < 0 || nb < 0 || na >> 1 === s || nb >> 1 === s2) return 0;
+      a = na >> 1; ae = na & 1; b = nb >> 1; be = nb & 1;
+    }
+    return 0;
   };
   const chainOf = new Int32Array(n).fill(-1);
   const t = new Float32Array(2 * n);
@@ -129,7 +148,8 @@ export function buildChains(positions: ArrayLike<number>): Chains {
   // open chains: every open end (degree ≠ 2); start at the smaller of a chain's two ends
   const ends: [number, number][] = [];
   for (let s = 0; s < n; s++) for (let e = 0; e < 2; e++) if (deg(s, e) !== 2) ends.push([s, e]);
-  ends.sort((x, y) => (lexLess(x[0], x[1], y[0], y[1]) ? -1 : lexLess(y[0], y[1], x[0], x[1]) ? 1 : x[0] - y[0] || x[1] - y[1]));
+  ends.sort((x, y) => (lexLess(x[0], x[1], y[0], y[1]) ? -1 : lexLess(y[0], y[1], x[0], x[1]) ? 1
+    : walkCmp(x[0], x[1], y[0], y[1]) || x[0] - y[0] || x[1] - y[1]));
   for (const [s, e] of ends) if (chainOf[s] === -1) walk(s, e);
   // rings: whatever is left, each from its smallest vertex towards the smaller neighbour
   for (;;) {
@@ -141,7 +161,7 @@ export function buildChains(positions: ArrayLike<number>): Chains {
     // the two segments at that vertex: leave along the one whose far end is smaller
     const l = at.get(key(best, bestE))!.filter(x => chainOf[x >> 1] === -1);
     let pick = l[0]!;
-    for (const x of l) if (lexLess(x >> 1, 1 - (x & 1), pick >> 1, 1 - (pick & 1))) pick = x;
+    for (const x of l) if (walkCmp(x >> 1, x & 1, pick >> 1, pick & 1) < 0) pick = x;
     walk(pick >> 1, pick & 1);
   }
   starts.push(order.length);

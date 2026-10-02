@@ -56,6 +56,8 @@ interface ViewerDiag {
     { cells: number[]; segments: { unit: number; a: number[]; b: number[]; ta: number; tb: number }[] } | null;
   /** Zoom about the orbit target (> 1 closer). */
   zoomBy?: (factor: number) => void;
+  /** Test seam: a segment soup (machine frame) as the Machine Reach outline. */
+  setReachSoup?: (room: number[]) => void;
   /** The toolpath box's dimension end marks (package 4), world, 6 floats each. */
   getBoxTicks?: () => number[][] | null;
   /** The bounds' type labels (package 4, label variant (ii)). */
