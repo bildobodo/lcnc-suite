@@ -44,9 +44,10 @@ Rows:
   claim-done   (Codex R70 VP-I30) an MDI dwell's start claim refuses a macro
                write while it runs ("busy") and is released on its RCS_DONE:
                the write is admitted within 2 s of the end
-  claim-error  an MDI line the interpreter refuses (an unknown word) is
-               released on its OWN error — or every MDI typo would block the
-               macro writes until the next command
+  claim-error  an MDI line the interpreter refuses (an unknown word: the
+               gateway's reply is the send, LinuxCNC's refusal is RCS_ERROR +
+               its message) is released on its OWN error — or every MDI typo
+               would block the macro writes until the next command
   claim-run    run_macro's claim: busy while the macro runs, released after
   refusal      (VP-I31) a PUT on a stale base answers the real route's body:
                exactly the keys of scripts/test_fixtures/macro_refusals.json's
@@ -469,15 +470,20 @@ async def main(ini):
         row("claim-done", r.get("ok") and during == (409, "busy") and lat is not None,
             f"reply {r.get('ok')} {r.get('error', '')}, write during the dwell {during}, admitted {lat if lat is None else round(lat, 2)} s after its end")
 
-        # a start the interpreter refuses: released on its own error
+        # a start the interpreter refuses: released on its own error. The
+        # gateway's `mdi` replies once the line is SENT; the refusal is
+        # LinuxCNC's — RCS_ERROR in the status and its message on the error
+        # channel (the cache-red row reads it the same way)
+        t1 = time.monotonic()
         r = await gw.cmd({"cmd": "mdi", "text": "G0 X1 E5"})
         await asyncio.sleep(0.3)
         p = poll()
         state = (p.state, p.exec_state, p.queued_mdi_commands, p.interp_state)
         lat = await admitted_after(time.monotonic())
-        row("claim-error", not r.get("ok") and lat is not None,
-            f"reply {r.get('ok')} {r.get('error', '')}, (state, exec_state, queued MDI, interp) {state}, "
-            f"admitted {lat if lat is None else round(lat, 2)} s after the reply")
+        said = other_messages(gw, t1)
+        row("claim-error", r.get("ok") and p.state == linuxcnc.RCS_ERROR and said and lat is not None,
+            f"reply {r.get('ok')} {r.get('error', '')}, LinuxCNC said {said}, "
+            f"(state, exec_state, queued MDI, interp) {state}, admitted {lat if lat is None else round(lat, 2)} s after")
 
         # run_macro's claim: busy while the macro dwells, released after
         r = await run(gw, "coolant_flush", [2])
