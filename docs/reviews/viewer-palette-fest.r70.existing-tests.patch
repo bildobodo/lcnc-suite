@@ -1,0 +1,40 @@
+--- a/e2e/macros.spec.ts
++++ b/e2e/r70.existing-copies.spec.ts
+@@ -229,6 +229,8 @@
+     await page.setViewportSize({ width: vp.w, height: vp.h });
+     if (vp.touch) await page.evaluate(() => document.documentElement.classList.add("touch-device"));
+     if (vp.zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, vp.zoom);
++    await page.evaluate(() => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
++    await page.waitForTimeout(300); // R70 copy: await responsive resize before choosing control
+     const select = page.getByRole("combobox", { name: "Side panel" });
+     if (await select.isVisible()) await select.selectOption({ label: "Macros" });
+     else await page.getByRole("tab", { name: "Macros", exact: true }).click();
+@@ -416,6 +418,7 @@
+   await expect(page.locator(".macrosTab .rowPick[tabindex='0']")).toHaveCount(1);
+   await expect(page.locator(".macrosTab .rowPick[tabindex='0']")).toHaveText("Face top");
+ 
++  await ctl({ op: "quiet", on: true }); // R70 copy: freeze the control status during key probe
+   await ctl({ op: "status_delta", data: { homed: [1, 1, 1], permissions: { jog: true, ready: true, idle: true, probe: true,
+     setup: true, armed: true, always: true, abort: true, safety: true, override: true, zero: true } } });
+   await ctl({ op: "raw", frame: { type: "settings_init", settings: { macros: { macros: [], bar: ["park"] }, keyboard: { jogEnabled: true, buttonsEnabled: true,
+@@ -532,6 +535,7 @@
+   // the arrows bound to jog (tabs.spec's setting): an arrow that reached the
+   // shortcut map WOULD jog — the control on the bare page proves it does.
+   await page.locator('[data-macro-row="park"] .rowPick').click();   // narrow: no description column
++  await ctl({ op: "quiet", on: true }); // R70 copy: freeze the control status during key probe
+   await ctl({ op: "status_delta", data: { homed: [1, 1, 1], permissions: { jog: true, ready: true, idle: true, probe: true,
+     setup: true, armed: true, always: true, abort: true, safety: true, override: true, zero: true } } });
+   await ctl({ op: "raw", frame: { type: "settings_init", settings: { macros: { macros: [] }, keyboard: { jogEnabled: true, buttonsEnabled: true,
+@@ -540,10 +544,10 @@
+   const jogs = async () => (await sent()).map(c => c.cmd ?? "").filter(c => c.startsWith("jog"));
+   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+   await ctl({ op: "clearCmds" });
++  await expect(page.getByTitle("Keyboard shortcuts active", {exact:true})).toBeVisible();
+   await page.keyboard.down("ArrowRight");
+-  await page.waitForTimeout(150);
++  await expect.poll(jogs, { message: "control: ArrowRight on the bare page jogs" }).toContain("jog_cont");
+   await page.keyboard.up("ArrowRight");
+-  await expect.poll(jogs, { message: "control: ArrowRight on the bare page jogs" }).toContain("jog_cont");
+   await more.focus();
+   await page.keyboard.press("Enter");
+   const panel = page.locator(`[id="${await more.getAttribute("aria-controls")}"]`);

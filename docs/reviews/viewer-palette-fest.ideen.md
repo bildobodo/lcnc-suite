@@ -9182,3 +9182,266 @@ Entscheidungen und Befunde, alle umgesetzt. Die Rot-Nachweise stehen in den Comm
   - Wächter: `dialogs.spec` misst bei allen 25 Dialogen den Abstand der Knöpfe zum Rand, nach unten,
     links und rechts mindestens 8 px. Rot vor der Korrektur: Dialog 23 mit 1 px.
   - Frontend-Gate bestanden (Unit 1876, Browser 421). Im Live-Baum seit `3ccafe6`.
+
+---
+
+## Review R70 · Codex · Plan Fassung 3 und Umsetzung Paket 5 · 3. Oktober 2026
+
+**Ergebnis: `findings`. Sechs offene Befunde VP-I29 bis VP-I34, davon zwei P1.**
+Geprüft sind `04ef2e5..ef3be59` (Plan) und `ef3be59..e74ac8a` (Umsetzung),
+einschließlich aller fünf Nachträge. Die Änderungen am Makro-Layout und die
+Operator-Entscheidungen sind angenommen. Die gemeinsame Start-/Schreibzulassung
+und die Editorbasis sind noch nicht vollständig belastbar; deshalb weder
+Plan- noch Implementierungs-Agreement für das Gesamtpaket.
+
+Produktprüfung ausschließlich aus `git archive e74ac8a`, eigener Mock auf
+`127.0.0.1:4188`, niedrige Priorität und ein Browser-Worker. Live-Stand
+`feat/backlog-integration bee4732` nur gelesen; keine Maschinenbefehle, keine
+Zugriffe auf :5173/:8000 und keine Produktänderungen. Hier werden nur dieser
+Anhang und neue R70-Belege ergänzt.
+
+### Die fünf R69-Punkte und die bewussten Abweichungen
+
+| Punkt | Nachprüfung |
+|---|---|
+| VP69-01 · Cache | **Geschlossen.** Erzwungenes `SET_MODE(MDI)` vor jedem Dateimakro, frischer Jog-Pin, Fehlerkanal und zwei folgende Statuszyklen sind im Code vorhanden. Claudes Live-Beleg zeigt den Fehler ohne erzwungenen Wechsel und alle 20 Schritte mit ihm; die Spindel bleibt an. Die Startreservierung wird schon unter der Sperre der Dateiprüfung angelegt. |
+| VP69-02 · Start/Schreiben | Architektur angenommen, **offen in VP-I29/I30**. Insbesondere die Planbedingung „nicht RCS_EXEC“ ist kein hinreichender Abschlussnachweis. |
+| VP69-03 · Import | **Revisionsbindung des ersetzenden Imports geschlossen.** Der bestätigte Stand wird erneut geprüft; keine stille Wiederholung. Die gemeinsame Veröffentlichung muss zusätzlich VP-I29 erfüllen. |
+| VP69-04 · Einheiten | **Geschlossen im benannten Umfang.** `UNITS`, angezeigte Einheiten und geprüfter Einstieg stimmen zusammen. Die Autorenverantwortung für den restlichen Makroinhalt und die Grenzen von M73 bleiben ausdrücklich bestehen; inch ist weiterhin nur offline belegt. |
+| VP69-05 · Editor/Run | Gemeinsame Ableitung und normale Entwurfs-/Konfliktfälle umgesetzt; **offen in VP-I31/I32**. |
+
+Angenommen sind: Makroordner **zuletzt** in `SUBROUTINE_PATH` mit Prüfung des
+wirklich aufgelösten Makros; 255-Byte-Grenze statt der früheren Schätzung;
+gemessene 432-px-Schwelle; feste Namenssortierung; kompakte Makroleiste mit
+separatem Abort; Editor als Dialog mit Kopffeldern; Entfernen der alten
+Settings-Makros gemäß Operatorentscheid bei unverändertem gespeichertem JSON.
+Die ursprüngliche Convert-/Accordion-/Leistengruppe-Vorgabe ist dadurch bewusst
+ersetzt und wird nicht als unerfüllte Anforderung weitergeführt.
+
+### VP-I29 · P1: Cancellation gibt die Schreibsperre frei, während die Veröffentlichung noch läuft
+
+**Stellen auf `e74ac8a`:** `lcnc-gateway/gateway.py:6876–6895`
+(`_atomic_stream_write`, Veröffentlichung, `after_publish`, Rücknahme),
+analog `delete_macro:7355`. Betroffen ist der gemeinsame Schreibvertrag aus
+`makros.plan.md`, Abschnitt „Gemeinsame Zulassung von Schreiben und Start“.
+
+`run_in_executor`/`to_thread` beendet beim Abbrechen des wartenden Tasks nicht den
+bereits laufenden Dateisystemaufruf. Das `async with _source_lock` wird trotzdem
+verlassen. Der eigene Einzelthread serialisiert zwar die Dateioperationen dieses
+Requests, hält aber die Gateway-Sperre nicht bis zu ihrem tatsächlichen Ende.
+
+Zwei Gegenproben mit echten Gateway-Funktionen, temporären Dateien und
+ereignisgesteuert angehaltenem Worker reproduzieren die Folgen:
+
+1. PUT steht unmittelbar vor `os.replace`, sein Task wird abgebrochen. Ein
+   anschließender MDI-Start erhält seinen Startanspruch. Danach veröffentlicht
+   der alte Worker dennoch die neue Makrodatei: `file_changed_after_start=true`.
+2. Rename hat den neuen Namen veröffentlicht und steht vor dem Entfernen des
+   alten. Nach Cancellation speichert ein zweiter Client unter dem alten Namen
+   erfolgreich. Der wieder freigegebene erste Worker löscht genau diese bereits
+   bestätigte Speicherung: `second_save_was_acknowledged=true`,
+   `second_save_survives=false`.
+
+Das ist eine Cancellation des Server-Tasks, nicht der normale Cancel-Knopf des
+Editors. Auch für diesen Ablauf muss der ausdrücklich vereinbarte Schreibvertrag
+gelten. Ein einziges PUT und die lexikalische Lage des Locks reichen nicht.
+
+**Korrektur/Abnahme:** Den gesamten Commit einschließlich Entfernen/Rücknahme bis
+zum wirklichen Worker-Ende unter der Sperre halten, auch bei wiederholter
+Cancellation. Das vorhandene Muster `_var_file_thread` ist ein Ausgangspunkt.
+Mit blockiertem `replace`, `link`, `unlink` und Rollback prüfen: kein Start und
+kein zweiter Schreiber gelangt dazwischen; eine bestätigte zweite Speicherung
+bleibt erhalten. DELETE braucht denselben Schutz.
+
+Beleg: [Backend-Sonde](viewer-palette-fest.r70.backend-probe.py),
+[Ergebnisse](viewer-palette-fest.r70.counterprobes.jsonl).
+
+### VP-I30 · P1: RCS_ERROR wird als Beweis eines abgeschlossenen Starts behandelt
+
+**Stellen:** `gateway.py:3006–3025` (`_release_start_claims`) und Plan
+`makros.plan.md:326–329`. **Hier muss auch der Plan korrigiert werden.**
+
+Die Freigabe prüft `state != RCS_EXEC`, `INTERP_IDLE` und eine genügend hohe
+Echo-Seriennummer. Sie akzeptiert damit auch `RCS_ERROR`; fehlende State-/Echo-
+Werte beziehungsweise eine fehlende Claim-Seriennummer werden ebenfalls nicht
+konsequent als fehlender Nachweis behandelt.
+
+Die Gateway-Probe setzt nach einem gesendeten Start `RCS_ERROR`, `INTERP_IDLE`,
+die Echo-Seriennummer eines späteren Befehls und eine noch belegte MDI-Queue.
+Der Anspruch verschwindet; `_source_write_refusal()` erlaubt anschließend das
+Schreiben. Ergebnis: `claims_remaining=0`, `queued_mdi_commands=1`,
+`write_refusal=null`.
+
+Die Quellprüfung erklärt, weshalb der Fehlerstatus keine Queue-Leer-Aussage ist:
+LinuxCNC kann MDI-Befehle puffern; ein zurückgewiesener anderer Task-Befehl setzt
+den Planfehler. Der globale `RCS_ERROR`-Zweig prüft keine leeren Queues, während
+dies der `RCS_DONE`-Zweig ausdrücklich tut. Eine höhere Echo-Nummer ordnet diesen
+Fehler nicht dem offenen Start zu. Das ist eine Herleitung aus der Task-Quelle,
+kein in dieser Runde erzeugter Live-Fehler.
+[LinuxCNC Task-Quelle v2.9.4](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/task/emctaskmain.cc#L3546).
+
+**Korrektur/Abnahme:** Positive, vollständig bekannte Abschlussdaten verlangen.
+Für den normalen Abschluss bietet sich `RCS_DONE` zusammen mit bekanntem Echo
+und IDLE an. Eine Freigabe nach Fehler/Ablehnung/Abort braucht einen separaten
+Nachweis, dass der betreffende Start nicht mehr ausstehen kann; unbekannte Werte
+behalten die Sperre. Die rote Gegenprobe sowie Fehler, späteres Echo, fehlende
+Statusfelder und belegte Queue ergänzen. Ein bloßes `RCS_ERROR → unsent` würde
+den Befund nicht lösen.
+
+Beleg: [Backend-Sonde](viewer-palette-fest.r70.backend-probe.py),
+[Prüfumfang und Quellgrenzen](viewer-palette-fest.r70.checks.md).
+
+### VP-I31 · P2: „Keep editing“ erhält beim Speicherkonflikt keine verwendbare Revision
+
+**Stellen:** `gateway.py:6881–6883` und `_macro_write_gate:7156`;
+`lcnc-webui/src/lcncApi.ts:272–281`, `MacrosPanel.vue:294–298`.
+
+Der reale PUT liefert bei einer veralteten Basis nur
+`{error:"refused", reason:"Changed on disk — reload or keep editing"}`.
+Die aktuelle Revision fehlt. `macroResponse` macht daraus `revision=null`;
+„Keep editing“ interpretiert das als gelöschte Datei und setzt die Basis auf
+`"new"`. Die nächste Speicherung wird abgewiesen, weil die Datei existiert.
+
+Backend-Gegenprobe: der 409-Antwort fehlt der Hash der noch vorhandenen Datei.
+Browser-Gegenprobe mit genau dieser Antwort: die zweite Basis lautet `new`,
+anstelle des aktuellen Hashs; die UI endet bei „A macro of that name exists —
+reload“. Der bestehende Browser-Mock ergänzt dagegen eine Revision und verdeckt
+den Unterschied zur tatsächlichen Route.
+
+**Korrektur/Abnahme:** Den Revisionkonflikt mit der unter derselben Sperre
+festgestellten aktuellen Basis beantworten. Fehlendes Antwortfeld nicht mit
+nachgewiesener Löschung gleichsetzen. Allgemeine Schreibablehnungen wie
+„Machine busy“ ebenfalls nicht als Dateikonflikt behandeln. Zwei Clients vor
+der Ordnerbenachrichtigung prüfen: Konflikt → bewusst Keep editing → Speichern
+mit genau der bestätigten Revision; Entwurf erhalten, kein ungefragter Retry.
+
+Beleg: [Backend-Ergebnis](viewer-palette-fest.r70.counterprobes.jsonl),
+[Browser-Sonde](viewer-palette-fest.r70.browser-probe.spec.ts),
+[JSON](viewer-palette-fest.r70.save-conflict.json),
+[Bild](viewer-palette-fest.r70.save-conflict.png).
+
+### VP-I32 · P2: Katalogänderung während des Lesens hinterlässt einen veralteten, „sauberen“ Editor
+
+**Stellen:** `MacrosPanel.vue:224–235` und `:276–289`;
+`macroBar.ts:MacroEditorBasis` trägt keine Revision.
+
+Der Katalog-Watcher überspringt `loading`. Die nachfolgende Textantwort prüft
+nur noch den Editor-Schlüssel, nicht ihre Revision gegen den inzwischen
+aktuellen Katalog. Weil sich dessen Dateieintrag danach nicht nochmals ändert,
+wird der veraltete Text als sauber übernommen.
+
+Reproduktion: GET von `park` anhalten; währenddessen `macros_changed` mit neuer
+Revision verarbeiten (`Park revised`, `G53 G0 Z-20`); erst dann die alte Antwort
+freigeben. Ergebnis: Im Editor steht weiter `Park`, `G53 G0 Z0`; Save ist
+inaktiv, keine Konfliktmeldung, und die Leiste führt schon `Park revised` mit
+`barDisabled=false`. Das Bild belegt die widersprüchlichen Fassungen. Der
+modale Dialog verhindert weiterhin Hintergrundklicks; eine ausgeführte Bewegung
+wird damit **nicht** behauptet.
+
+**Korrektur/Abnahme:** Vor dem Übergang von loading zu clean gegen den aktuellen
+Dateieintrag prüfen; alte Antworten verwerfen/neu lesen oder als Konflikt
+kennzeichnen. Die freigegebene Editorbasis an die tatsächlich sichtbare Revision
+binden. Gegenprobe auch für Löschen/Neuanlegen desselben Namens während GET;
+kein sauberer Editor mit anderem Inhalt als seiner freigegebenen Dateibasis.
+
+Beleg: [Browser-Sonde](viewer-palette-fest.r70.browser-probe.spec.ts),
+[JSON](viewer-palette-fest.r70.late-editor.json),
+[Bild](viewer-palette-fest.r70.late-editor.png).
+
+### VP-I33 · P2: Direkter Makroabruf umgeht die Verzeichnisgrenze der Liste
+
+**Stellen:** `gateway.py:7136–7143` (`_macro_path`), `:7262–7269` (GET);
+zum Vergleich `_list_macros:7124`.
+
+Die Liste schließt einen Symlink aus, dessen Ziel außerhalb des Makroordners
+liegt. Der direkte GET prüft nur die Schreibweise des Namens und folgt diesem
+Link trotzdem. Die Sonde legt ausschließlich temporäre Testdateien an:
+`escape.ngc → ../outside.ngc`. `escape` fehlt in der Liste, aber
+`GET /macro?name=escape` liefert Status 200 und den fremden Inhalt.
+
+Die Tokenpflicht bleibt wirksam; der Befund ist die inkonsistente
+Verzeichnisgrenze innerhalb der autorisierten Dateifunktion. Ein korrekt
+geformter Name ist kein Beweis, dass seine aufgelöste Datei im Makroordner liegt.
+Auch der Startpfad öffnet die zusammengesetzte Datei direkt und muss dieselbe
+Zulassung verwenden.
+
+**Korrektur/Abnahme:** Gemeinsame Zulassung der tatsächlich aufgelösten Datei für
+Liste, Lesen und Start; externe Symlink-Ziele ablehnen. Pfadprüfungen bei den
+Schreiboperationen entsprechend konsistent halten. Tests für normale Datei,
+zulässigen internen Link und unzulässigen externen Link; der direkte Abruf darf
+keine von der Liste wegen ihrer Herkunft ausgeschlossene Datei zurückgeben.
+
+Beleg: [Backend-Sonde und synthetische Testdatei](viewer-palette-fest.r70.backend-probe.py),
+[JSON](viewer-palette-fest.r70.counterprobes.jsonl).
+
+### VP-I34 · P2: INI-Verschiebungsfilter verschweigt geänderte wirksame Werte bei doppelten Schlüsseln
+
+**Stelle:** `scripts/config_sync_check.py:107–131`, Filter aus `4dbf30f`.
+
+Gleiche Zeilen im gleichen Abschnitt sind nur dann gefahrlos verschiebbar,
+wenn die Reihenfolge ihrer Schlüsselvorkommen keine Bedeutung hat. Der neue
+Filter nimmt das für alle Schlüssel außer vier HAL-Sonderfällen an.
+
+Gegenprobe mit dem installierten **nativen INI-Leser**, ohne Statusverbindung:
+`[JOINT_0]` enthält `MAX_VELOCITY = 10` und danach `MAX_VELOCITY = 20`.
+Nach dem Vertauschen liest `linuxcnc.ini(...).find(...)` **20 statt 10**;
+`drifted_lines(..., ini=True)` meldet trotzdem `([], [])`.
+Der Abgleich meldet damit eine tatsächlich geänderte Konfiguration als gleich.
+
+**Korrektur/Abnahme:** Verschiebungen nur für eindeutig vorkommende Schlüssel
+ignorieren oder die geordnete Folge aller Werte desselben Abschnitt/Schlüssel-
+Paars vergleichen. Doppelte Schlüssel und wiederholte Abschnitte gezielt
+abdecken; die harmlose Bewegung einer einzelnen Suite-Zeile muss weiter grün
+bleiben, die Gegenprobe muss Drift melden.
+
+Beleg: [native INI-Probe](viewer-palette-fest.r70.ini-probe.py),
+[gemessene Werte](viewer-palette-fest.r70.ini-drift.json).
+
+### Antworten auf die Umsetzungsfragen
+
+- **More als Disclosure und Schließen in Capture:** angenommen. Die nativen
+  Buttons/Toggles brauchen hier keine künstliche ARIA-Menürolle. Positionierung,
+  Tastaturfokus, abgefangene Pfeile, Tab-out und Dialogrückkehr bestehen die
+  stabilisierte Gegenprobe. Die Fokusübergabe vor dem Dialogöffner ist sinnvoll.
+- **N80: Abort an den Maschinenaktionen, More rechts:** angenommen. Die
+  Gruppenaufteilung ist in Program/Tools/Macros konsistent; Abort bleibt direkt
+  sichtbar. More darf dabei umbrechen, ohne Abort hinter die Verwaltung zu
+  verschieben. Die konkrete Reihenanordnung und Kopfhöhen sind geprüft.
+- **Rename als ein PUT unter `_source_lock`:** für den ununterbrochenen Ablauf
+  sinnvoll, **noch nicht dicht**; VP-I29 reproduziert genau den konkurrierenden
+  zweiten Schreiber und einen Start nach Cancellation.
+- **Allgemeine Prüfung auf seitlichen Überlauf:** ja, für alle Seitenpanels und
+  Dialoge. Absichtliches Scrollen im Code-Editor und in der Makroleiste sowie
+  Ellipsis/Textfelder explizit ausnehmen. Das ist eine sinnvolle Ergänzung des
+  bestehenden Layout-Audits, kein Anlass für eine neue Layoutarchitektur.
+- **Versteckter, gemounteter Macros-Tab:** `v-show` ist hier in Ordnung; versteckte
+  Meldungen sind nicht sichtbar/fokussierbar. Tests müssen Meldungen auf den
+  sichtbaren Bereich eingrenzen. Bestehende Tab-/Editorwächter bestehen.
+- **Park/G30-Messtoleranz:** für den mit G64 betriebenen Beispieltest die
+  tatsächlich konfigurierte `G64 P`-Toleranz plus getrennt ausgewiesenen
+  Messfehler verwenden, keine beliebige größere Festtoleranz. Der Nachweis
+  beschreibt eine zulässige Bahnabweichung an der Ecke; er beweist kein exakt
+  erreichtes Z0 vor jeder XY-Bewegung. Für einen solchen strengeren Vertrag
+  wäre zuerst die Bewegungsregel zu ändern, nicht die Messschwelle zu lockern.
+
+### Eigene Prüfungen und Übergabe
+
+Build bestanden; **83 bestehende Backend-Tests und 35 Unit-Tests bestanden**.
+Die Browserauswahl hatte **36 bestanden und zwei Fehler im Testaufbau**. Beide
+Originalfehler wiederholt; beide anschließend als dokumentierte Kopien mit
+stabilisiertem Aufbau bestanden. Der Ursprungslauf wird deshalb nicht als
+vollständig grünes Gate ausgegeben. Die eigene Frame-Gegenprobe ist grün:
+Tab und Leiste sperren beide. Fünf neue Backend-Gegenproben und zwei neue
+Browser-Gegenproben sind gezielt rot; dazu die native INI-Messung.
+
+Die zwei Testaufbau-Probleme bitte übernehmen: nach Resize/Zoom den angebotenen
+Tabselektor abwarten; die positive Jog-Kontrolle erst bei aktivem Keyboard-Setup
+und stabilem Mock-Status prüfen und den Befehl während Keydown beobachten.
+Mit diesen Anpassungen bestehen auch die More-Tastatur- und Fokusbehauptungen.
+
+Reproduktion, genaue Auswahl, Umgebungsgrenzen und Logs:
+[Prüfprotokoll](viewer-palette-fest.r70.checks.md). Claudes Live-Protokoll wurde
+fachlich geprüft, nicht an der Operator-Sim wiederholt. Kein eigener vollständiger
+Offline-Gate-Lauf; die konkrete Nachprüfung und die roten Gegenproben sind die
+Grundlage dieser Runde. Nächste Runde: VP-I29–34 mit Antworten und Nachweisen;
+keine weitere Operatorentscheidung nötig.
