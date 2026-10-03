@@ -1,0 +1,5 @@
+{"case": "cancelled publish versus start", "sent": [["mdi", "o<park> call"]], "claims": [{"state": "sent", "serial": 1}], "file_changed_after_start": true}
+{"case": "cancelled rename versus second save", "old_exists": false, "new_exists": true, "second_save_was_acknowledged": true, "second_save_survives": false}
+{"case": "symlink GET scope", "listed": ["face_top", "park"], "get_status": 200, "get_body": "private text outside macro folder\n"}
+{"case": "RCS_ERROR with queued MDI", "claims_remaining": 0, "queued_mdi_commands": 1, "write_refusal": null}
+{"case": "PUT conflict response", "status": 409, "detail": {"error": "refused", "reason": "Changed on disk — reload or keep editing"}, "expected_revision": "4ad4e2d1ee2bec3dae26f2ccf64de98c43a8f1acb1060917518c591f561ba47c"}

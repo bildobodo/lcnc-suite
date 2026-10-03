@@ -1,0 +1,15 @@
+{
+  "repo": "[JOINT_0]\nMAX_VELOCITY = 10\nMAX_VELOCITY = 20\n",
+  "deployed": "[JOINT_0]\nMAX_VELOCITY = 20\nMAX_VELOCITY = 10\n",
+  "repo_effective": "10",
+  "deployed_effective": "20",
+  "drift": [
+    [],
+    []
+  ]
+}
+Traceback (most recent call last):
+  File "/tmp/codex-r70-29ou1cy3/archive/evidence/viewer-palette-fest.r70.ini-probe.py", line 19, in <module>
+    assert out['repo_effective'] == out['deployed_effective'] or any(out['drift']), 'changed effective value must not be classified as unchanged'
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: changed effective value must not be classified as unchanged

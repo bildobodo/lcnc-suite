@@ -1,0 +1,8 @@
+{
+  "bases": [
+    "c90671a40d7db29fb5571a2ce31d643cf0e0f3196096805a7a409695c8c40940",
+    "new"
+  ],
+  "currentRevision": "b7c4d94900b9bf86d7b8c69fdc661d3e894a09c03c48139752a13a124ea53c77",
+  "text": "Edit Macro park\nFile name\nTitle (on the bar)\nDescription\n1\n2\n3\n4\n5\n6\n7\n8\n9\n(MACRO Park)\n(FRAME machine)\no<park> sub\n  M73\n  G90\n  G53 G0 Z0\no<park> endsub\n\n\n; local edit\nCancel\nSaving…"
+}

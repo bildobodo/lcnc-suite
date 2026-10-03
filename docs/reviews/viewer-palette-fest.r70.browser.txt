@@ -1,0 +1,114 @@
+[2m[WebServer] [22m(node:2695399) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 38 tests using 1 worker
+
+(node:2695444) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2695444) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/editor-guards.spec.ts:69:1 › external program change keeps buffer A, shows the conflict, saves A only (3.6s)
+  ✓   2 e2e/editor-guards.spec.ts:100:1 › program change during a delayed save: no reload of the new program from A (3.1s)
+  ✓   3 e2e/editor-guards.spec.ts:127:1 › program change while CodeMirror is still loading: the view shows A and is usable (4.3s)
+  ✓   4 e2e/editor-guards.spec.ts:151:1 › a discarded session's pending import installs nothing (4.8s)
+  ✓   5 e2e/editor-guards.spec.ts:172:1 › an older save reply never touches a newer session (3.6s)
+  ✓   6 e2e/editor-guards.spec.ts:202:1 › the code shows at once after the viewer is rebuilt or another program loads (live look 2026-10-01) (3.0s)
+  ✓   7 e2e/editor-guards.spec.ts:219:1 › discard: clean closes at once, dirty asks and Keep editing keeps the edit (3.3s)
+  ✓   8 e2e/editor-guards.spec.ts:241:1 › the program editor scrolls with the app's thin scrollbar, like every scroller beside it (4.3s)
+  ✓   9 e2e/editor-guards.spec.ts:249:1 › an upload finishing after Edit raises the conflict, never loses the buffer (3.3s)
+  ✓  10 e2e/editor-guards.spec.ts:270:3 › upload name conflict › Cancel / Rename / Replace (3.1s)
+  ✓  11 e2e/layout.spec.ts:264:3 › desktop: Abort ends the machine actions in every tab — only More right of it — the head keeps its order (2.9s)
+  ✓  12 e2e/layout.spec.ts:264:3 › touch-landscape: Abort ends the machine actions in every tab — only More right of it — the head keeps its order (2.7s)
+  ✓  13 e2e/layout.spec.ts:264:3 › touch-portrait: Abort ends the machine actions in every tab — only More right of it — the head keeps its order (2.9s)
+  ✓  14 e2e/layout.spec.ts:264:3 › touch-portrait 150 %: Abort ends the machine actions in every tab — only More right of it — the head keeps its order (2.6s)
+  ✓  15 e2e/layout.spec.ts:772:3 › touch-portrait 100 %: the macro bar is one row between the viewer and the side pane, which does not move (2.6s)
+  ✓  16 e2e/layout.spec.ts:772:3 › touch-portrait 150 %: the macro bar is one row between the viewer and the side pane, which does not move (2.6s)
+  ✓  17 e2e/macros.spec.ts:42:1 › the Macros tab lists the folder; a file put on the bar runs on a hold bound to its revision (3.3s)
+  ✓  18 e2e/macros.spec.ts:58:1 › a macro file with parameters opens its dialog with the header's fields; Execute holds and sends numbers (2.9s)
+  ✓  19 e2e/macros.spec.ts:79:1 › an unsaved draft blocks the run of THAT macro on the bar and in the tab; Save restores it at the new revision (3.1s)
+  ✓  20 e2e/macros.spec.ts:101:1 › another client's save under a draft is a conflict: Reload shows the disk; nothing is overwritten silently (2.7s)
+  ✓  21 e2e/macros.spec.ts:118:1 › closing the editor over a draft asks first, by Cancel and by X: Keep editing stays, Discard closes; nothing saved (3.0s)
+  ✓  22 e2e/macros.spec.ts:144:1 › another client's save during a bar hold cancels it; the next hold runs the new revision once (3.8s)
+  ✓  23 e2e/macros.spec.ts:164:1 › the open parameter dialog follows its file: a new header shows its field; a file that may not run dims Execute with the reason (3.1s)
+  ✓  24 e2e/macros.spec.ts:190:1 › a late read never shows the earlier macro's text: editor closed, another opened (2.7s)
+  ✘  25 e2e/macros.spec.ts:220:1 › the Macros tab and its editor never run out sideways: desktop, portrait 100 % and 150 % (1.0m)
+(node:2698859) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2698859) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  26 e2e/macros.spec.ts:256:1 › after a delete the focus goes to the next row, else the previous, else More — never to body (3.6s)
+  ✓  27 e2e/macros.spec.ts:287:1 › the editor dialog: name, title and description are the header lines; a rename moves the file and its place on the bar (2.8s)
+  ✓  28 e2e/macros.spec.ts:338:1 › New: the name writes the subroutine's label, the title follows it until typed; Create makes the file (3.0s)
+  ✓  29 e2e/macros.spec.ts:368:1 › search, the bar filter and the sort narrow and order the rows (2.4s)
+  ✓  30 e2e/macros.spec.ts:399:1 › a tap on a row selects it for Run; its name is one Tab stop whose keys select and never jog (2.7s)
+  ✓  31 e2e/macros.spec.ts:457:1 › Download saves the file as it is: the selected macro, the loaded program, the tool table (2.9s)
+  ✘  32 e2e/macros.spec.ts:491:1 › one action row: Run and Abort left, More right; its panel, its keys, and a dialog's return to More (12.7s)
+(node:2699920) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2699920) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  33 e2e/macros.spec.ts:582:1 › On bar and the order buttons move nothing in the list: no row height, column width or position changes (5.5s)
+  ✓  34 e2e/macros.spec.ts:618:1 › the macro bar is dense: compact buttons, and an Abort at its right end that sends exactly abort (4.6s)
+  ✓  35 e2e/macros.spec.ts:635:1 › More keeps ONE width: opened, and with the run options switched — Program, Tools, Macros (2.9s)
+  ✓  36 e2e/run-hold.spec.ts:296:1 › an orientation change mid-hold runs nothing; the focus and an open dialog's return follow the macro (4.8s)
+  ✓  37 e2e/tabs.spec.ts:63:1 › tab semantics: tablist, tab, tabpanel — one Tab stop, the panel named by its tab (2.5s)
+  ✓  38 e2e/tabs.spec.ts:263:1 › a hidden panel is not focusable (2.2s)
+
+
+  1) e2e/macros.spec.ts:220:1 › the Macros tab and its editor never run out sideways: desktop, portrait 100 % and 150 % 
+
+    [31mTest timeout of 60000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('tab', { name: 'Macros', exact: true })[22m
+
+
+      232 |     const select = page.getByRole("combobox", { name: "Side panel" });
+      233 |     if (await select.isVisible()) await select.selectOption({ label: "Macros" });
+    > 234 |     else await page.getByRole("tab", { name: "Macros", exact: true }).click();
+          |                                                                       ^
+      235 |     await expect(page.locator(".macrosTab")).toBeVisible();
+      236 |     await page.waitForTimeout(300);
+      237 |     const sideways = (sel: string) => page.evaluate(s => [...document.querySelectorAll(`${s}, ${s} *`)]
+        at /tmp/codex-r70-29ou1cy3/archive/lcnc-webui/e2e/macros.spec.ts:234:71
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r70-browser-output/macros-the-Macros-tab-and--69e6a-sktop-portrait-100-and-150-/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r70-browser-output/macros-the-Macros-tab-and--69e6a-sktop-portrait-100-and-150-/error-context.md
+
+  2) e2e/macros.spec.ts:491:1 › one action row: Run and Abort left, More right; its panel, its keys, and a dialog's return to More 
+
+    Error: control: ArrowRight on the bare page jogs
+
+    control: ArrowRight on the bare page jogs
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoContain[2m([22m[32mexpected[39m[2m) // indexOf[22m
+
+    Expected value: [32m"jog_cont"[39m
+    Received array: [31m[][39m
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      544 |   await page.waitForTimeout(150);
+      545 |   await page.keyboard.up("ArrowRight");
+    > 546 |   await expect.poll(jogs, { message: "control: ArrowRight on the bare page jogs" }).toContain("jog_cont");
+          |                                                                                     ^
+      547 |   await more.focus();
+      548 |   await page.keyboard.press("Enter");
+      549 |   const panel = page.locator(`[id="${await more.getAttribute("aria-controls")}"]`);
+        at /tmp/codex-r70-29ou1cy3/archive/lcnc-webui/e2e/macros.spec.ts:546:85
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r70-browser-output/macros-one-action-row-Run--1beaf-d-a-dialog-s-return-to-More/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r70-browser-output/macros-one-action-row-Run--1beaf-d-a-dialog-s-return-to-More/error-context.md
+
+  2 failed
+    e2e/macros.spec.ts:220:1 › the Macros tab and its editor never run out sideways: desktop, portrait 100 % and 150 % 
+    e2e/macros.spec.ts:491:1 › one action row: Run and Abort left, More right; its panel, its keys, and a dialog's return to More 
+  36 passed (3.2m)

@@ -1,0 +1,161 @@
+[VINIT] session bound to linuxcncsvr pid=2400680 start=30911085
+[VINIT] try_connect_lcnc OK, pid=2400680
+[VINIT] Loaded machine config: 3-Axis Mill
+{"case": "cancelled publish versus start", "sent": [["mdi", "o<park> call"]], "claims": [{"state": "sent", "serial": 1}], "file_changed_after_start": true}
+F{"case": "cancelled rename versus second save", "old_exists": false, "new_exists": true, "second_save_was_acknowledged": true, "second_save_survives": false}
+F{"case": "symlink GET scope", "listed": ["face_top", "park"], "get_status": 200, "get_body": "private text outside macro folder\n"}
+F{"case": "RCS_ERROR with queued MDI", "claims_remaining": 0, "queued_mdi_commands": 1, "write_refusal": null}
+F{"case": "PUT conflict response", "status": 409, "detail": {"error": "refused", "reason": "Changed on disk — reload or keep editing"}, "expected_revision": "4ad4e2d1ee2bec3dae26f2ccf64de98c43a8f1acb1060917518c591f561ba47c"}
+F
+=================================== FAILURES ===================================
+____ ReviewR70.test_cancelled_publish_cannot_replace_the_file_after_a_start ____
+
+self = <test_r70_review.ReviewR70 testMethod=test_cancelled_publish_cannot_replace_the_file_after_a_start>
+
+    def test_cancelled_publish_cannot_replace_the_file_after_a_start(self):
+        entered, release = threading.Event(), threading.Event()
+        old = self.mdir/'park.ngc'
+        orig = os.replace
+        def slow_replace(src, dest):
+            if str(dest)==str(old):
+                entered.set()
+                if not release.wait(8): raise RuntimeError('probe release missing')
+            return orig(src, dest)
+        newer = PARK+'; changed revision\n'
+        async def go():
+            first = asyncio.create_task(gateway.put_macro(request(newer), name='park', base=rev(PARK),
+                                                         rename_from=None, rename_base=None))
+            try:
+                await until(entered.is_set)
+                first.cancel()
+                await until(lambda: not gateway._get_source_lock().locked())
+                self.assertEqual(old.read_text(), PARK)
+                async with gateway._get_cmd_lock():
+                    await gateway._cmd_blocking(self.cmd.mdi, 'o<park> call', wait=None)
+            finally:
+                release.set()
+                try: await first
+                except asyncio.CancelledError: pass
+        with patch.object(gateway.os, 'replace', slow_replace):
+            _run(go())
+        record('cancelled publish versus start', sent=self.cmd.calls,
+               claims=[{'state': c.state, 'serial': c.serial} for c in gateway._source_claims],
+               file_changed_after_start=old.read_text()!=PARK)
+>       self.assertEqual(old.read_text(), PARK, 'a still-running start claim did not prevent a late publish')
+E       AssertionError: '(FRAME machine)\no<park> sub\nG53 G0 Z0\no<park> endsub\n; changed revision\n' != '(FRAME machine)\no<park> sub\nG53 G0 Z0\no<park> endsub\n'
+E         (FRAME machine)
+E         o<park> sub
+E         G53 G0 Z0
+E         o<park> endsub
+E       - ; changed revision
+E        : a still-running start claim did not prevent a late publish
+
+test_r70_review.py:96: AssertionError
+_ ReviewR70.test_cancelled_rename_keeps_old_name_locked_until_unlink_finishes __
+
+self = <test_r70_review.ReviewR70 testMethod=test_cancelled_rename_keeps_old_name_locked_until_unlink_finishes>
+
+    def test_cancelled_rename_keeps_old_name_locked_until_unlink_finishes(self):
+        entered, release = threading.Event(), threading.Event()
+        orig = gateway._unlink_renamed
+        def slow_unlink(path):
+            entered.set()
+            if not release.wait(8): raise RuntimeError('probe release missing')
+            orig(path)
+        newer = PARK + '; second client saved this\n'
+        moved = PARK.replace('o<park>', 'o<park2>')
+        async def go():
+            first = asyncio.create_task(gateway.put_macro(request(moved), name='park2', base='new',
+                rename_from='park', rename_base=rev(PARK)))
+            try:
+                await until(entered.is_set)
+                first.cancel()
+                await until(lambda: not gateway._get_source_lock().locked())
+                second = await gateway.put_macro(request(newer), name='park', base=rev(PARK),
+                                                rename_from=None, rename_base=None)
+                self.assertTrue(second['ok'])
+                self.assertEqual((self.mdir/'park.ngc').read_text(), newer)
+            finally:
+                release.set()
+                try: await first
+                except asyncio.CancelledError: pass
+        with patch.object(gateway, '_unlink_renamed', slow_unlink):
+            _run(go())
+        old, new = self.mdir/'park.ngc', self.mdir/'park2.ngc'
+        record('cancelled rename versus second save', old_exists=old.exists(),
+               new_exists=new.exists(), second_save_was_acknowledged=True,
+               second_save_survives=old.exists() and old.read_text()==newer)
+>       self.assertTrue(old.exists() and old.read_text()==newer,
+                        'cancelled rename deleted the second client\'s acknowledged save')
+E       AssertionError: False is not true : cancelled rename deleted the second client's acknowledged save
+
+test_r70_review.py:64: AssertionError
+_____ ReviewR70.test_macro_get_enforces_the_same_folder_scope_as_the_list ______
+
+self = <test_r70_review.ReviewR70 testMethod=test_macro_get_enforces_the_same_folder_scope_as_the_list>
+
+    def test_macro_get_enforces_the_same_folder_scope_as_the_list(self):
+        outside = self.cfg/'outside.ngc'
+        outside.write_text('private text outside macro folder\n')
+        (self.mdir/'escape.ngc').symlink_to(outside)
+        listed = [e['name'] for e in gateway._list_macros()['macros']]
+        async def go():
+            try:
+                r = await gateway.get_macro(name='escape')
+                return r.status_code, r.body.decode()
+            except gateway.HTTPException as e:
+                return e.status_code, str(e.detail)
+        status, body = _run(go())
+        record('symlink GET scope', listed=listed, get_status=status, get_body=body)
+>       self.assertIn(status, (400,403,404), 'GET read a symlink excluded by the folder list')
+E       AssertionError: 200 not found in (400, 403, 404) : GET read a symlink excluded by the folder list
+
+test_r70_review.py:135: AssertionError
+_______ ReviewR70.test_rcs_error_with_queued_mdi_is_not_completion_proof _______
+
+self = <test_r70_review.ReviewR70 testMethod=test_rcs_error_with_queued_mdi_is_not_completion_proof>
+
+    def test_rcs_error_with_queued_mdi_is_not_completion_proof(self):
+        _run(gateway._cmd_blocking(self.cmd.mdi, 'o<park> call', wait=None))
+        gateway.STAT.echo_serial_number = self.cmd.serial+1
+        gateway.STAT.state = 3 # RCS_ERROR: another rejected command, no queue-empty proof
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        gateway.STAT.queued_mdi_commands = 1
+        gateway._release_start_claims()
+        record('RCS_ERROR with queued MDI', claims_remaining=len(gateway._source_claims),
+               queued_mdi_commands=gateway.STAT.queued_mdi_commands,
+               write_refusal=gateway._source_write_refusal())
+>       self.assertEqual(len(gateway._source_claims), 1, 'RCS_ERROR cleared an unproven pending start')
+E       AssertionError: 0 != 1 : RCS_ERROR cleared an unproven pending start
+
+test_r70_review.py:108: AssertionError
+_ ReviewR70.test_save_conflict_provides_the_revision_required_by_keep_editing __
+
+self = <test_r70_review.ReviewR70 testMethod=test_save_conflict_provides_the_revision_required_by_keep_editing>
+
+    def test_save_conflict_provides_the_revision_required_by_keep_editing(self):
+        async def go():
+            try:
+                await gateway.put_macro(request(PARK+'; draft\n'), name='park', base=rev('old'),
+                                        rename_from=None, rename_base=None)
+            except gateway.HTTPException as e:
+                return e.status_code, e.detail
+            raise AssertionError('expected a conflict')
+        status, detail = _run(go())
+        record('PUT conflict response', status=status, detail=detail, expected_revision=rev(PARK))
+>       self.assertEqual(detail.get('revision'), rev(PARK), 'Keep editing receives null and changes base to new')
+E       AssertionError: None != '4ad4e2d1ee2bec3dae26f2ccf64de98c43a8f1acb1060917518c591f561ba47c' : Keep editing receives null and changes base to new
+
+test_r70_review.py:120: AssertionError
+=========================== short test summary info ============================
+FAILED test_r70_review.py::ReviewR70::test_cancelled_publish_cannot_replace_the_file_after_a_start
+FAILED test_r70_review.py::ReviewR70::test_cancelled_rename_keeps_old_name_locked_until_unlink_finishes
+FAILED test_r70_review.py::ReviewR70::test_macro_get_enforces_the_same_folder_scope_as_the_list
+FAILED test_r70_review.py::ReviewR70::test_rcs_error_with_queued_mdi_is_not_completion_proof
+FAILED test_r70_review.py::ReviewR70::test_save_conflict_provides_the_revision_required_by_keep_editing
+[GC] +179ms gen=2 duration=13.7ms collected=488 uncollectable=0
+[GC] +189ms gen=2 duration=9.9ms collected=0 uncollectable=0
+[GC] +199ms gen=2 duration=10.3ms collected=0 uncollectable=0
+[GC] +211ms gen=2 duration=11.8ms collected=0 uncollectable=0
+[GC] +221ms gen=2 duration=9.7ms collected=0 uncollectable=0
+[GC] +230ms gen=2 duration=9.3ms collected=0 uncollectable=0

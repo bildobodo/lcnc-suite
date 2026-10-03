@@ -1,0 +1,132 @@
+[2m[WebServer] [22m(node:2707160) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 5 tests using 1 worker
+
+(node:2707206) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2707206) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/macros.spec.ts:220:1 › the Macros tab and its editor never run out sideways: desktop, portrait 100 % and 150 % (1.0m)
+(node:2708511) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2708511) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 e2e/macros.spec.ts:491:1 › one action row: Run and Abort left, More right; its panel, its keys, and a dialog's return to More (12.9s)
+(node:2708857) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2708857) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 e2e/r70.review.spec.ts:27:1 › R70: the real PUT conflict response lets Keep editing rebase on the current revision (2.5s)
+(node:2708991) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2708991) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  4 e2e/r70.review.spec.ts:51:1 › R70: a FRAME machine macro is gated the same in the tab as on the bar (2.5s)
+  ✘  5 e2e/r70.review.spec.ts:63:1 › R70: a catalog update while the text loads cannot leave an old clean editor (2.4s)
+
+
+  1) e2e/macros.spec.ts:220:1 › the Macros tab and its editor never run out sideways: desktop, portrait 100 % and 150 % 
+
+    [31mTest timeout of 60000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 60000ms exceeded.
+    Call log:
+    [2m  - waiting for getByRole('tab', { name: 'Macros', exact: true })[22m
+
+
+      232 |     const select = page.getByRole("combobox", { name: "Side panel" });
+      233 |     if (await select.isVisible()) await select.selectOption({ label: "Macros" });
+    > 234 |     else await page.getByRole("tab", { name: "Macros", exact: true }).click();
+          |                                                                       ^
+      235 |     await expect(page.locator(".macrosTab")).toBeVisible();
+      236 |     await page.waitForTimeout(300);
+      237 |     const sideways = (sel: string) => page.evaluate(s => [...document.querySelectorAll(`${s}, ${s} *`)]
+        at /tmp/codex-r70-29ou1cy3/archive/lcnc-webui/e2e/macros.spec.ts:234:71
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r70-probe-output/macros-the-Macros-tab-and--69e6a-sktop-portrait-100-and-150-/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r70-probe-output/macros-the-Macros-tab-and--69e6a-sktop-portrait-100-and-150-/error-context.md
+
+  2) e2e/macros.spec.ts:491:1 › one action row: Run and Abort left, More right; its panel, its keys, and a dialog's return to More 
+
+    Error: control: ArrowRight on the bare page jogs
+
+    control: ArrowRight on the bare page jogs
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoContain[2m([22m[32mexpected[39m[2m) // indexOf[22m
+
+    Expected value: [32m"jog_cont"[39m
+    Received array: [31m[][39m
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      544 |   await page.waitForTimeout(150);
+      545 |   await page.keyboard.up("ArrowRight");
+    > 546 |   await expect.poll(jogs, { message: "control: ArrowRight on the bare page jogs" }).toContain("jog_cont");
+          |                                                                                     ^
+      547 |   await more.focus();
+      548 |   await page.keyboard.press("Enter");
+      549 |   const panel = page.locator(`[id="${await more.getAttribute("aria-controls")}"]`);
+        at /tmp/codex-r70-29ou1cy3/archive/lcnc-webui/e2e/macros.spec.ts:546:85
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r70-probe-output/macros-one-action-row-Run--1beaf-d-a-dialog-s-return-to-More/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r70-probe-output/macros-one-action-row-Run--1beaf-d-a-dialog-s-return-to-More/error-context.md
+
+  3) e2e/r70.review.spec.ts:27:1 › R70: the real PUT conflict response lets Keep editing rebase on the current revision 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"b7c4d94900b9bf86d7b8c69fdc661d3e894a09c03c48139752a13a124ea53c77"[39m
+    Received: [31m"new"[39m
+
+      46 |   saveResult('save-conflict',{bases,currentRevision:rev(disk),text:await d.innerText()});
+      47 |   await page.screenshot({path:'../evidence/viewer-palette-fest.r70.save-conflict.png'});
+    > 48 |   expect(bases[1]).toBe(rev(disk));
+         |                    ^
+      49 | });
+      50 |
+      51 | test('R70: a FRAME machine macro is gated the same in the tab as on the bar',async({page})=>{
+        at /tmp/codex-r70-29ou1cy3/archive/lcnc-webui/e2e/r70.review.spec.ts:48:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r70-probe-output/r70.review-R70-the-real-PU-ed0ff-ase-on-the-current-revision/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r70-probe-output/r70.review-R70-the-real-PU-ed0ff-ase-on-the-current-revision/error-context.md
+
+  4) e2e/r70.review.spec.ts:63:1 › R70: a catalog update while the text loads cannot leave an old clean editor 
+
+    Error: old visible text must reload or block the newer run
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      86 |   saveResult('late-editor',{text,barDisabled:await bar.isDisabled(),oldRevision:rev(PARK),currentRevision:rev(latest)});
+      87 |   await page.screenshot({path:'../evidence/viewer-palette-fest.r70.late-editor.png'});
+    > 88 |   expect(text.includes('Z-20') || await bar.isDisabled(), 'old visible text must reload or block the newer run').toBe(true);
+         |                                                                                                                  ^
+      89 | });
+      90 |
+        at /tmp/codex-r70-29ou1cy3/archive/lcnc-webui/e2e/r70.review.spec.ts:88:114
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r70-probe-output/r70.review-R70-a-catalog-u-5a23d-t-leave-an-old-clean-editor/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r70-probe-output/r70.review-R70-a-catalog-u-5a23d-t-leave-an-old-clean-editor/error-context.md
+
+  4 failed
+    e2e/macros.spec.ts:220:1 › the Macros tab and its editor never run out sideways: desktop, portrait 100 % and 150 % 
+    e2e/macros.spec.ts:491:1 › one action row: Run and Abort left, More right; its panel, its keys, and a dialog's return to More 
+    e2e/r70.review.spec.ts:27:1 › R70: the real PUT conflict response lets Keep editing rebase on the current revision 
+    e2e/r70.review.spec.ts:63:1 › R70: a catalog update while the text loads cannot leave an old clean editor 
+  1 passed (1.4m)
