@@ -1,0 +1,60 @@
+Macro live check, Codex R70 rows — scripts/macro_live_check.py
+2026-10-03, feat/macros 698b1f9 + this commit (the claim-error row reads LinuxCNC's refusal)
+
+Target: the same scratch install as docs/reviews/makros.live-r1.txt (XYZAC profile
+headless, LinuxCNC 2.9.4, DISPLAY = this branch's launcher, WEBUI_DEV 0, :8010, no
+browser, the five examples in macros/, M499 remap → testsubs/m499.ngc). The operator's
+sim was stopped for it and restored afterwards.
+
+=== Run (final code) ===
+PASS examples     all five runnable
+PASS coolant      reply True  spindle 1000.0 → 1000.0 during, flood 1
+PASS units        reply True  x max 10.000 mm, G20 on, G95 on
+PASS park-below   from Z -295.000: reply True , lowest Z -295.000, corner cut 0.0010 (G64 0.012), end X 0.000 Y 0.000 Z -0.000
+PASS park-top     from Z 0: reply True , Z range -0.000..0.000, end X 10.000 Y 20.000 Z 0.000
+PASS g30-top      stored (23.311, -40.0, -20.0), from Z 0.0: reply True , lowest Z before X/Y 0.000, corner cut 0.0021 (G64 0.012), end X 23.311 Y -40.000 Z -20.000
+PASS g30-below    stored (37.659, -40.0, -20.0), from Z -100.0: reply True , lowest Z before X/Y -100.000, corner cut 0.0009 (G64 0.012), end X 37.659 Y -40.000 Z -20.000
+SKIP above-z0     Z MAX_LIMIT 0.0: above machine zero is unreachable on this config
+PASS warmup       reply True , commanded speeds [0.0, 250.0, 500.0, 750.0, 1000.0, 0.0], enabled after 0
+PASS tcp          TCP True | park: Machine frame only | g30: Machine frame only | moved 0.000000
+PASS revision     Macro changed — hold again
+PASS claim-done   reply True , write during the dwell (409, 'busy'), admitted 0.01 s after its end
+PASS claim-error  reply True , LinuxCNC said ['11:E word with no G70, G76, M66, M67 or M68 to use it'], (state, exec_state, queued MDI, interp) (3, 2, 0, 1), admitted 0.01 s after
+PASS claim-run    reply True , write during the macro (409, 'busy'), admitted 0.01 s after
+PASS refusal      409 {'error': 'refused', 'kind': 'conflict', 'name': 'park', 'revision': 'e6428cc4cfa434083c1ca5c93b8b0e09611d6090b2af209ba4ece8462767404d', 'reason': 'Changed on disk — reload or keep editing'}
+PASS admission    listed False, GET 403 {'detail': 'escape.ngc leads out of the macro folder'}, run_macro False escape.ngc leads out of the macro folder
+PASS cache-red    remap saw steps [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]; plain MDI after the edit: reply True  steps [], LinuxCNC said ['11:Unknown word starting with e'] (the stale offset)
+PASS cache-green  remap saw steps [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]; run_macro: True  steps [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+
+The R70 rows:
+- claim-done: an MDI `G4 P2` holds its start claim — a macro write during the
+  dwell is refused `busy` — and the claim is released on its RCS_DONE: the next
+  write is admitted 0.01 s after the end.
+- claim-error: `G0 X1 E5` is refused by the interpreter. The gateway's `mdi`
+  replies once the line is SENT (True); LinuxCNC's refusal is RCS_ERROR in the
+  status and its message on the error channel. The real controller's state is
+  exactly the error rule's premise — (state, exec_state, queued MDI, interp) =
+  (RCS_ERROR, EXEC_DONE, 0, IDLE) — and the claim is released 0.01 s after.
+- claim-run: run_macro's claim (coolant_flush with a 2 s dwell): busy while the
+  macro runs, released after it.
+- refusal: a PUT on a stale base answers exactly the keys of
+  scripts/test_fixtures/macro_refusals.json `conflict`, the revision of the file
+  on disk (sha256 of park.ngc) and its name.
+- admission: escape.ngc, a link out of the macro folder, is not listed, GET is
+  403 "escape.ngc leads out of the macro folder", run_macro is refused with the
+  same words.
+
+=== Mutation: the start claim released only on RCS_DONE (the error rule off) ===
+PASS claim-done   reply True , write during the dwell (409, 'busy'), admitted 0.01 s after its end
+FAIL claim-error  reply True , LinuxCNC said ['11:E word with no G70, G76, M66, M67 or M68 to use it'], (state, exec_state, queued MDI, interp) (3, 2, 0, 1), admitted None s after
+PASS claim-run    reply True , write during the macro (409, 'busy'), admitted 0.01 s after
+
+claim-error is red without the error rule: the refused line's claim stays, and
+no macro write is admitted within 2 s (it would wait for the next command whose
+RCS_DONE echo passes its serial — claim-run, the next row, releases it that way).
+
+The check's own trap, found in the first run: the row expected the gateway's
+`mdi` reply to carry the refusal and reported FAIL with the claim released and
+the controller in the error rule's state. The reply is the send; the row now
+reads the refusal where LinuxCNC reports it (RCS_ERROR + the error channel), as
+the cache-red row does.
