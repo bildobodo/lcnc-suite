@@ -1,0 +1,9 @@
+........................................................................ [ 88%]
+.........                                                                [100%]
+81 passed in 1.84s
+[GC] +1608ms gen=2 duration=14.4ms collected=2694 uncollectable=0
+[GC] +1620ms gen=2 duration=11.7ms collected=0 uncollectable=0
+[GC] +1629ms gen=2 duration=9.9ms collected=0 uncollectable=0
+[GC] +1639ms gen=2 duration=9.3ms collected=0 uncollectable=0
+[GC] +1649ms gen=2 duration=10.2ms collected=0 uncollectable=0
+[GC] +1660ms gen=2 duration=10.4ms collected=0 uncollectable=0

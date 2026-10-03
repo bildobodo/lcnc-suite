@@ -1,0 +1,7 @@
+{
+  "target": "6cd7310a127d46273c438765d0d49918a41485d4",
+  "live_head_observed": "b4d43117fd6b3fc62f3519f564484fe7bcc33ff3",
+  "archive": "/tmp/codex-r72-cjyw0myu/archive",
+  "original_probe_sha256": "a3e48cbc29ec8180c3e7731d8df8a603560c35978768d4689a37ae969bc0eb31",
+  "probe_adaptation": "Only output basename r71.counterprobes -> r72.r71-rerun; assertions unchanged."
+}
