@@ -157,11 +157,16 @@ for (const touch of [false, true]) {
     await page.locator('[role="dialog"]').getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(page.locator('[role="dialog"]')).toHaveCount(0);
 
-    // The Macros tab (package 5): a macro file open, then the New dialog's field.
+    // The Macros tab (package 5): the table with its search row, the editor
+    // dialog on a file, then the New dialog's fields.
     await page.getByRole("tab", { name: "Macros", exact: true }).click();
     const macros = page.locator(".macrosTab");
-    await macros.getByRole("button", { name: "Open park.ngc", exact: true }).click();
     add(await scan(page, "Macros tab", ".macrosTab"));
+    await macros.getByRole("button", { name: "Edit park", exact: true }).click();
+    await expect(page.locator('[role="dialog"] .macroCode .cm-content')).toBeVisible();
+    add(await scan(page, "Edit macro", '[role="dialog"]'));
+    await page.locator('[role="dialog"]').getByRole("button", { name: "Cancel", exact: true }).click();
+    await expect(page.locator('[role="dialog"]')).toHaveCount(0);
     await clickMore(macros.locator(".panelHead"), "New");
     add(await scan(page, "New macro", '[role="dialog"]'));
     await page.locator('[role="dialog"]').getByRole("button", { name: "Cancel", exact: true }).click();

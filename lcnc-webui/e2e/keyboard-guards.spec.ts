@@ -897,31 +897,34 @@ test("settings save status (UI-I12 round 7): a page-hide save that never landed 
   expect(await wsKeyboardSaves()).toBe(0);
 });
 
-test("leaving the Macros tab over a changed draft asks first, by every path (UI-K16, package 5)", async ({ page }) => {
-  // A macro file's open editor: a switch to another tab hid it with the
-  // draft unsaved. Every way out — the tab list, the strip's Tool Table
-  // button, the narrow select — asks "Discard changes?"; Keep editing keeps
-  // the draft, Discard carries out the switch that asked.
+test("a macro editor's draft is never lost without asking, by every way out (UI-K16, package 5)", async ({ page }) => {
+  // The macro editor is a DIALOG (operator 2026-10-03): its Cancel and X,
+  // and the strip's Tool Table button — outside the dialog's scrim — ask
+  // "Discard changes?"; Keep editing keeps the draft, Discard carries out
+  // what asked.
   await serve(page, new Folder());   // the macro files (macroFolder.ts)
   await openReady(page);
   const tab = (name: string) => page.getByRole("tab", { name, exact: true });
-  const macros = page.locator(".macrosTab");
-  const code = macros.locator(".macroCode .cm-content");
   const ask = page.getByRole("dialog", { name: "Discard changes?", exact: true });
+  const editor = page.getByRole("dialog", { name: "Edit Macro park", exact: true });
+  const code = editor.locator(".macroCode .cm-content");
   await tab("Macros").click();
-  // An untouched open macro is no draft: the switch happens at once.
-  await macros.getByRole("button", { name: "Open park.ngc", exact: true }).click();
+  // An untouched editor is no draft: the Tool Table button switches at once.
+  await page.locator(".macrosTab").getByRole("button", { name: "Edit park", exact: true }).click();
   await expect(code).toBeVisible();
-  await tab("Program").click();
+  await page.getByRole("button", { name: "Tool Table", exact: true }).click();
   await expect(ask).toHaveCount(0);
-  await expect(tab("Program")).toHaveAttribute("aria-selected", "true");
+  await expect(tab("Tools")).toHaveAttribute("aria-selected", "true");
+  await expect(editor).toHaveCount(0);
 
   await tab("Macros").click();
+  await page.locator(".macrosTab").getByRole("button", { name: "Edit park", exact: true }).click();
   await code.click();
   await page.keyboard.press("End");
   await page.keyboard.type(" (draft)");
   const paths: [string, () => Promise<void>][] = [
-    ["tab list", () => tab("MDI").click()],
+    ["Cancel", () => editor.getByRole("button", { name: "Cancel", exact: true }).click()],
+    ["X", () => editor.getByRole("button", { name: "Close macro editor", exact: true }).click()],
     ["Tool Table button", () => page.getByRole("button", { name: "Tool Table", exact: true }).click()],
   ];
   for (const [path, leave] of paths) {
@@ -933,22 +936,11 @@ test("leaving the Macros tab over a changed draft asks first, by every path (UI-
     await expect(tab("Macros"), `${path}: Keep editing stays`).toHaveAttribute("aria-selected", "true");
     await expect(code).toContainText("(draft)");
   }
-  // The narrow select (150 %): the same question.
-  await page.setViewportSize({ width: 900, height: 1200 });
-  await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
-  const area = page.getByRole("combobox", { name: "Side panel", exact: true });
-  await expect(area).toBeVisible();
-  await area.selectOption("offsets");
-  await expect(ask, "the narrow select asks").toBeVisible();
-  await ask.getByRole("button", { name: "Keep editing", exact: true }).click();
-  await expect(area).toHaveValue("macros");
   // Discard carries out the switch that asked.
-  await area.selectOption("offsets");
+  await page.getByRole("button", { name: "Tool Table", exact: true }).click();
   await ask.getByRole("button", { name: "Discard", exact: true }).click();
-  await expect(area).toHaveValue("offsets");
-  await page.evaluate(() => { document.documentElement.style.zoom = ""; });
-  await tab("Macros").click();
-  await expect(macros.locator(".macroCode .cm-content")).not.toContainText("(draft)");
+  await expect(tab("Tools")).toHaveAttribute("aria-selected", "true");
+  await expect(editor).toHaveCount(0);
   await settle(page);
   expectNoMachineAction(await recordedCmds());
 });

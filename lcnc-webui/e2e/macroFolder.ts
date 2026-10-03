@@ -8,6 +8,7 @@
 import type { Page } from "@playwright/test";
 import { createHash } from "node:crypto";
 import { ctl } from "./ctl";
+import { readHeader } from "../src/macroHeader";
 
 export const rev = (t: string) => createHash("sha256").update(t).digest("hex");
 
@@ -37,10 +38,15 @@ export class Folder {
       { n: 1, key: "depth", label: "Depth", unit: "length", default: 0.5, min: 0, max: 5, integer: false },
       { n: 2, key: "feed", label: "Feed", unit: "feed", default: 600, min: 1, max: null, integer: false }] } });
   }
+  /** As the gateway lists it: the title and the short description read
+   *  from the TEXT (macroHeader mirrors the gateway's parser), the rest
+   *  from `meta`. */
   entry(name: string) {
     const e = this.files.get(name)!;
-    return { name, description: [], errors: [], warnings: [], mtime: 0, runnable: !this.blocked.has(name),
-             reason: this.blocked.get(name) ?? null, revision: rev(e.text), ...e.meta };
+    const h = readHeader(e.text);
+    return { name, errors: [], warnings: [], mtime: 0, runnable: !this.blocked.has(name),
+             reason: this.blocked.get(name) ?? null, revision: rev(e.text), ...e.meta,
+             title: h.title ?? (e.meta.title as string | null) ?? null, description: h.description ? [h.description] : [] };
   }
   list() {
     return { ok: true, dir: "/home/cnc/linuxcnc/macros", problems: this.problems,
@@ -62,6 +68,18 @@ export async function serve(page: Page, folder: Folder) {
       return r.fulfill({ body: e.text, contentType: "text/plain", headers: { "X-Macro-Revision": rev(e.text) } });
     }
     const base = url.searchParams.get("base")!;
+    if (method === "PUT" && url.searchParams.has("rename_from")) {
+      // a rename: the new name free, the old file still the revision the
+      // editor read — then one step, as the gateway does it
+      const from = url.searchParams.get("rename_from")!, old = folder.files.get(from);
+      if (e || !old || rev(old.text) !== url.searchParams.get("rename_base")) {
+        return r.fulfill({ status: 409, json: { detail: { error: "refused",
+          reason: e ? "A macro of that name exists — reload" : "Changed on disk — reload or keep editing", revision: old ? rev(old.text) : null } } });
+      }
+      folder.files.delete(from);
+      folder.files.set(name, { text: r.request().postData() ?? "", meta: old.meta });
+      return r.fulfill({ json: { ok: true, macro: folder.entry(name) } });
+    }
     if (method === "PUT") {
       const text = r.request().postData() ?? "";
       if (base === "new" ? !!e : !e || rev(e.text) !== base) {

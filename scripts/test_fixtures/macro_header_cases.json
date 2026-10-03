@@ -1,0 +1,65 @@
+[
+ {
+  "why": "the example face_top",
+  "file": "examples/sim_config/macros/face_top.ngc",
+  "name": "face_top",
+  "title": "Face top",
+  "description": "Faces the stock top in passes along X from work X0 Y0 toward +X and +Y, at Z = -depth, then lifts to the clearance."
+ },
+ {
+  "why": "the example park",
+  "file": "examples/sim_config/macros/park.ngc",
+  "name": "park",
+  "title": "Park",
+  "description": "Lifts Z to the top of travel - only ever up - then moves X and Y to the park position, both in machine coordinates."
+ },
+ {
+  "why": "a ; comment is always description, whatever its first word",
+  "text": "; CNC warm-up for the morning\n(MACRO Warm)\no<warm> sub\no<warm> endsub\n",
+  "name": "warm",
+  "title": "Warm",
+  "description": "CNC warm-up for the morning"
+ },
+ {
+  "why": "a paren comment starting with an all-caps word is a header word, never description",
+  "text": "(MACRO Warm)\n(CNC warm-up)\n(spins the spindle up)\no<warm> sub\no<warm> endsub\n",
+  "name": "warm",
+  "title": "Warm",
+  "description": "spins the spindle up"
+ },
+ {
+  "why": "header words, then the description; spaces inside the comment trimmed",
+  "text": "(MACRO  Go home )\n(UNITS mm)\n(PARAM 1 x \"X\" length 0)\n(   moves home   )\no<go_home> sub\no<go_home> endsub\n",
+  "name": "go_home",
+  "title": "Go home",
+  "description": "moves home"
+ },
+ {
+  "why": "no title, no description",
+  "text": "o<bare> sub\nG0 X0\no<bare> endsub\n",
+  "name": "bare",
+  "title": null,
+  "description": null
+ },
+ {
+  "why": "a comment after the sub is no description; the label is read lower-case, spaces removed",
+  "text": "(MACRO T)\nO< Mixed_Case > SUB\n(inside the body)\nO<mixed_case> endsub\n",
+  "name": "mixed_case",
+  "title": "T",
+  "description": null
+ },
+ {
+  "why": "Windows line ends",
+  "text": "(MACRO Crlf)\r\n(with CR LF)\r\no<crlf> sub\r\no<crlf> endsub\r\n",
+  "name": "crlf",
+  "title": "Crlf",
+  "description": "with CR LF"
+ },
+ {
+  "why": "a comment-shaped line that does not end in ) is description as a whole",
+  "text": "(MACRO A)\n(first part) ; second\no<a> sub\no<a> endsub\n",
+  "name": "a",
+  "title": "A",
+  "description": "(first part) ; second"
+ }
+]

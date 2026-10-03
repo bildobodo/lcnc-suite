@@ -86,6 +86,36 @@ class HeaderGrammar(unittest.TestCase):
         self.assertEqual(parse("O< PARK > SUB\nO<park> ENDSUB\n", "park")["errors"], [])
 
 
+class HeaderParity(unittest.TestCase):
+    """The editor dialog's fields read the header in the BROWSER
+    (lcnc-webui/src/macroHeader.ts) — the same cases, the same answers as
+    this parser: scripts/test_fixtures/macro_header_cases.json is read by
+    both tests (operator 2026-10-03, the macro editor dialog)."""
+
+    def test_the_shared_cases_read_as_the_browser_reads_them(self):
+        import json
+        repo = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+        with open(os.path.join(repo, "scripts", "test_fixtures", "macro_header_cases.json"), encoding="utf-8") as f:
+            cases = json.load(f)
+        self.assertGreaterEqual(len(cases), 8)
+        for c in cases:
+            if "file" in c:
+                with open(os.path.join(repo, c["file"]), encoding="utf-8") as f:
+                    text = f.read()
+            else:
+                text = c["text"]
+            meta = mf.parse_macro(c["name"] or "x", text)
+            label = None
+            for line in text.splitlines():
+                m = mf._OWORD_ANY_RE.match(mf._code(line))
+                if m and m.group(2) == "sub":
+                    label = m.group(1)
+                    break
+            self.assertEqual(label, c["name"], c["why"])
+            self.assertEqual(meta["title"], c["title"], c["why"])
+            self.assertEqual(meta["description"][0] if meta["description"] else None, c["description"], c["why"])
+
+
 class BodyChecks(unittest.TestCase):
     def test_m2_m30_and_percent_before_endsub_refuse(self):
         for line, needle in [("M2", "M2 in the macro"), ("G0 X1 M30", "M30 in the macro"), ("m02", "M2 in"),

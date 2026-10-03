@@ -89,6 +89,9 @@ export const BUTTON_TYPES = {
 
   // File operations
   fileOp:         { gate: 'setup',    variant: 'default', size: 'md' },
+  // Download (Program, Tools, Macros): a read — it moves nothing, so it
+  // works whatever the machine does (the outer Gate still needs armed)
+  fileDownload:   { gate: 'always',   variant: 'default', size: 'md' },
   // The editor's Discard throws the edit away: danger, under fileOp's gate
   // (every Discard is danger — design wave D1, N31; live look 2026-10-01).
   fileDiscard:    { gate: 'setup',    variant: 'danger',  size: 'md' },
@@ -315,6 +318,7 @@ export const INPUT_DEFS = {
 
   // Macro editing
   macroEdit:       { gate: 'always' },
+  macroSearch:     { gate: 'always' },
   macroParam:      { gate: 'ready' },
 
   // Keyboard/gamepad config

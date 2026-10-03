@@ -298,10 +298,15 @@ export async function readMacroFile(name: string, signal?: AbortSignal): Promise
   return { text: await resp.text(), revision: resp.headers.get("X-Macro-Revision") ?? "" };
 }
 
-/** Save: `base` is the revision the editor started from, or "new". */
-export async function saveMacroFile(name: string, base: string, text: string): Promise<MacroFile> {
+/** Save: `base` is the revision the editor started from, or "new". A
+ *  RENAME saves under the new name with base "new" and names the old file
+ *  and the revision the editor read (`rename`) — the gateway writes the new
+ *  one and removes the old one in one step, or neither. */
+export async function saveMacroFile(name: string, base: string, text: string,
+                                    rename?: { from: string; base: string }): Promise<MacroFile> {
+  const r = rename ? `&rename_from=${encodeURIComponent(rename.from)}&rename_base=${encodeURIComponent(rename.base)}` : "";
   const resp = await macroResponse(await fetch(
-    `${getBaseUrl()}/macro?name=${encodeURIComponent(name)}&base=${encodeURIComponent(base)}`, {
+    `${getBaseUrl()}/macro?name=${encodeURIComponent(name)}&base=${encodeURIComponent(base)}${r}`, {
       method: "PUT", headers: { "Content-Type": "text/plain; charset=utf-8", ...authHeaders() }, body: text }));
   return (await resp.json()).macro;
 }
@@ -320,4 +325,18 @@ export async function deleteMacroFile(name: string, base: string): Promise<void>
   await macroResponse(await fetch(
     `${getBaseUrl()}/macro?name=${encodeURIComponent(name)}&base=${encodeURIComponent(base)}`, {
       method: "DELETE", headers: authHeaders() }));
+}
+
+/** The program file at `path` as it is on the disk (Program's Download). */
+export async function fetchProgramFile(path: string): Promise<Blob> {
+  const resp = await fetch(`${getBaseUrl()}/gcode?path=${encodeURIComponent(path)}`);
+  if (!resp.ok) await throwHttpError(resp);
+  return resp.blob();
+}
+
+/** The tool table FILE as LinuxCNC reads it, and its name (Tools' Download). */
+export async function fetchToolTableFile(): Promise<{ name: string; data: Blob }> {
+  const resp = await fetch(`${getBaseUrl()}/tool-table`, { headers: authHeaders() });
+  if (!resp.ok) await throwHttpError(resp);
+  return { name: resp.headers.get("X-File-Name") || "tool.tbl", data: await resp.blob() };
 }
