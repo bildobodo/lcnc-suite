@@ -9068,3 +9068,52 @@ hinzugekommen. Bitte prüfe deshalb `ef3be59..7a7e523`.
   - Das XYZAC-Sim ist neu gestartet: alle fünf Makros sind startbar, die Maschine ist referenziert,
     `haus.ngc` geladen, die Maschine aus.
   - Wenn du Code-Befunde schreibst: Die Dateien im Live-Baum gehören jetzt zu diesem Branch.
+
+**Dritter Nachtrag (Nacht zum 3. Oktober): der Live-Blick des Operators.** Bitte prüfe deshalb
+`ef3be59..3ccffae`. Der Operator hat den Gesamtstand im Live-Baum angesehen. Daraus kamen diese
+Entscheidungen und Befunde, alle umgesetzt. Die Rot-Nachweise stehen in den Commit-Texten.
+
+- **`9d8203f` · Dev-Proxy.** Im Macros-Tab stand „JSON parse error“: Der Vite-Proxy kannte `/macros`,
+  `/macro` und `/macro-upload` nicht und lieferte `index.html`. Ältere Lücken derselben Art:
+  - `/subfile`: der Quelltext der Unterprogramm-Ansicht;
+  - `/settings`: der Beacon beim Verlassen der Seite;
+  - `/camera`.
+
+  Wächter: `viteProxyCoverage.test.ts` gleicht die Routen des Gateways mit den Proxy-Schlüsseln ab.
+  Kein Playwright-Test konnte das sehen, sie laufen gegen das gebaute App-Paket mit einem Mock.
+- **`4b887ae` · Liste ohne Springen.** Mit „On bar“ wuchs die Zeile, die Spalten änderten ihre Breite,
+  und die Zeile sprang zur Leistengruppe. Jetzt hat jede Zeile den Platz für die Sortierknöpfe
+  reserviert, und die Liste bleibt nach Namen sortiert. Abweichung vom Plan: Er stellte die Makros der
+  Leiste zuerst.
+- **`b0a8ffd` · Die Settings-Makros entfallen** (Operator: „fallen lassen“).
+  - Ein gespeicherter `macros`-Eintrag bleibt in den Settings genau so, wie er ist.
+  - Die Parameter sind Zahlenfelder: Enter öffnet ihr Keypad und führt nie aus. Die Regel
+    „Enter springt weiter“ aus D6 galt für Textfelder.
+  - Die Wächter, die es nur für Settings-Makros gab, laufen jetzt mit Dateimakros, auf einem Mock
+    (`e2e/macroFolder.ts`).
+- **`8142c5b` · Makroleiste.** Sie ist ein dichter Bereich mit kompakter Knopfhöhe und hat ein eigenes
+  Abort rechts außen, außerhalb des Scrollbereichs.
+- **`3ccffae` · Ein Kopf für drei Tabs.** Program, Tools und Macros: Maschinenaktionen mit Abort daneben
+  links, die Verwaltung hinter „More“ rechts (`MoreMenu.vue`, natives Popover).
+  - Measure Current ist die Hauptaktion (grün).
+  - Neue Wörter: Upload (statt Import), Download (statt Export), New (statt „+ Add“).
+  - N80 neu gefasst: Mit „More“ endet die Zeile mit „More“, sonst mit Abort. Das schmale Einklappen
+    entfällt.
+  - Zwei Befunde beim Bau:
+    - Ein `display` auf dem Popover-Element schlägt die UA-Regel für geschlossene Popover.
+    - Schließen im Bubble des Klicks kam zu spät: Vue rendert den Dialog in den Microtasks zwischen
+      den Listenern. Deshalb schließt das Panel in der Capture-Phase.
+  - Wächter: Pfeiltasten im Panel joggen nie, mit eingeschaltetem Tastatur-Jog und Gegenprobe. Rot
+    ohne `preventDefault`: 9 × `jog_cont`.
+- **Gate auf `3ccffae`:** bestanden (Backend 1204, Unit 1869, Browser 414).
+- **Noch nicht im Live-Baum:** Der Operator schaut gerade. Der Live-Baum steht auf
+  `feat/backlog-integration` mit `4b887ae`. `b0a8ffd..3ccffae` kommen erst nach seinem Ja hinein.
+- **Offen beim Operator:** Program im schmalen Panel hat jetzt drei Kopfzeilen (Start · Step /
+  Pause · Abort / More), eine mehr als mit dem alten Einklappen.
+
+**Fragen an dich**
+
+1. Sind `MoreMenu` als Aufklapper statt ARIA-Menü und das Schließen in der Capture-Phase für dich
+   tragfähig?
+2. Hält die neu gefasste N80-Regel (Abort beendet die Maschinenaktionen, „More“ rechts) deine
+   Bedenken aus D5?
