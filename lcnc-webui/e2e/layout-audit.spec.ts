@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { measureLayout, layoutChanges } from './layout-audit';
+import { measureLayout, layoutChanges, thickScrollbars } from './layout-audit';
 
 test('layout guard finds injected overlaps, clipping, collapsed and missing controls', async ({ page }) => {
   await page.setContent(`<style>
@@ -74,7 +74,7 @@ test('layout guard finds a sliver scroll anywhere and any sideways scroll inside
   // its status columns overflowed by 10 px, past the sliver window, and in
   // the strip nothing is meant to scroll sideways.
   await page.setContent(`<style>
-    .box { width: 200px; height: 60px; overflow: auto; }
+    .box { width: 200px; height: 60px; overflow: auto; scrollbar-width: thin; }
     .wide { height: 20px; }
   </style><div class="strip"><div id="section"><div class="box"><div class="wide" style="width: 200px"></div></div></div></div>
     <div id="panel"><div class="box"><div class="wide" style="width: 200px"></div></div></div>`);
@@ -86,4 +86,21 @@ test('layout guard finds a sliver scroll anywhere and any sideways scroll inside
   expect((await measureLayout(panel, 'fixture', 'div')).issues).toEqual([]);   // a panel may scroll 10 px
   await page.locator('.wide').evaluateAll(els => els.forEach(el => { el.style.width = '202px'; }));
   expect((await measureLayout(panel, 'fixture', 'div')).issues.map(i => i.kind)).toContain('sliver-scroll');
+});
+
+test('layout guard finds a scroller with the browser\'s own scrollbar, scrolling or not', async ({ page }) => {
+  // Operator 2026-10-03: the macro parameter dialog's content drew the
+  // browser's wide black scrollbar — it lacked .scroll-thin. The guard
+  // reads the style, not the overflow: whether it scrolls depends on the
+  // window, and headless Chromium hides every scrollbar.
+  await page.setContent(`<style>
+    .box { width: 200px; height: 60px; overflow-y: auto; }
+    .thin { scrollbar-width: thin; }
+  </style><div id="panel"><div class="box thin"><div style="height: 20px"></div></div></div>`);
+  const panel = page.locator('#panel');
+  expect((await measureLayout(panel, 'fixture', 'div')).issues).toEqual([]);
+  expect(await thickScrollbars(panel)).toEqual([]);
+  await page.locator('.box').evaluate(el => el.classList.remove('thin'));
+  expect((await measureLayout(panel, 'fixture', 'div')).issues.map(i => i.kind)).toEqual(['thick-scrollbar']);
+  expect(await thickScrollbars(panel)).toEqual(['div.box']);
 });

@@ -149,6 +149,15 @@ export async function measureLayout(root: Locator, name: string,
         issues.push({ kind: 'sliver-scroll', controls: [], detail: `${where}: scrolls ${dx}px sideways` });
       if (['auto', 'scroll'].includes(css.overflowY) && dy > 0 && dy <= 4)
         issues.push({ kind: 'sliver-scroll', controls: [], detail: `${where}: scrolls ${dy}px vertically` });
+      // Every scroller draws the app's thin scrollbar (.scroll-thin): a
+      // scroller without it gets the browser's own — on Firefox under a
+      // dark theme a wide black bar (operator 2026-10-03, the macro
+      // parameter dialog). Judged by its STYLE, scrolling or not: whether
+      // it scrolls depends on the window, and headless Chromium hides every
+      // scrollbar, so no screenshot ever showed it.
+      if ((['auto', 'scroll'].includes(css.overflowX) || ['auto', 'scroll'].includes(css.overflowY))
+          && !['thin', 'none'].includes(css.scrollbarWidth))
+        issues.push({ kind: 'thick-scrollbar', controls: [], detail: `${where}: a scroller with the browser's own scrollbar (scrollbar-width ${css.scrollbarWidth})` });
     }
     if (!controls.length) issues.push({ kind: 'empty', controls: [], detail: `${name}: no visible controls` });
     return { name, width: bounds.width, height: bounds.height, controls, issues };
@@ -265,4 +274,19 @@ export async function expectDialogUncovered(dialog: Locator): Promise<void> {
     }).map(([x, y]) => `${Math.round(x)},${Math.round(y)}`);
   });
   expect(covered, `dialog covered at ${covered.join(' ')}`).toEqual([]);
+}
+
+/** Every scroller under `root` (itself included) that would draw the
+ *  browser's own scrollbar instead of the app's thin one — see
+ *  measureLayout's `thick-scrollbar`. For surfaces measureLayout does not
+ *  sweep: the dialogs. */
+export async function thickScrollbars(root: Locator): Promise<string[]> {
+  return root.evaluate(element => [element, ...element.querySelectorAll<HTMLElement>('*')]
+    .filter(box => box.getClientRects().length > 0)
+    .filter(box => {
+      const css = getComputedStyle(box);
+      return (['auto', 'scroll'].includes(css.overflowX) || ['auto', 'scroll'].includes(css.overflowY))
+        && !['thin', 'none'].includes(css.scrollbarWidth);
+    })
+    .map(box => `${box.tagName.toLowerCase()}.${[...box.classList].join('.')}`));
 }
