@@ -1,6 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 import { ctl, MOCK } from './ctl';
 import { Folder, serveNow } from './macroFolder';
+import { clickMore } from './more';
 import { GATE_NAMES, type Permissions } from '../src/permissions';
 
 export const PROFILES = [
@@ -156,7 +157,7 @@ export async function enterStripState(page: Page, profile: Profile, state: Strip
       break;
     case 'keypad-panel':
       await page.getByRole('tab', { name: 'Tools', exact: true }).click();
-      await page.getByRole('button', { name: '+ Add', exact: true }).click();
+      await clickMore(page.locator('.toolsHead'), 'New');
       await expect(page.locator('.editDialog')).toBeVisible();
       await page.locator('.editDialog input.inputField').first().click();
       await expect(page.locator('.nkStrip')).toBeVisible();

@@ -14,6 +14,7 @@ import { ChevronDown, ChevronUp, X } from "lucide-vue-next";
 import CodeEditor from "./CodeEditor.vue";
 import DialogFrame from "./DialogFrame.vue";
 import FormField from "./FormField.vue";
+import MoreMenu from "./MoreMenu.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineToggle from "./MachineToggle.vue";
@@ -43,11 +44,6 @@ const files = computed<MacroFile[]>(() => macroFolder.value?.macros ?? []);
 const problems = computed(() => macroFolder.value?.problems ?? []);
 /** Bar members first, in bar order; the rest by name. */
 const root = ref<HTMLElement | null>(null);
-// The narrow side pane (150 % portrait) folds the management — New,
-// Import, Export, Delete — behind "More" on the object line (operator
-// 2026-10-02, the Program tab's pattern): the head left an opened macro's
-// editor hardly a line. Run and Abort stay.
-const moreOpen = ref(false);
 // The list stays in NAME order: switching "On bar" or reordering the bar
 // moves no row (operator 2026-10-02, live: the row jumped to the bar group
 // at the top and ran away from the finger on its order buttons). The bar
@@ -332,12 +328,13 @@ async function exportSelected() {
 // ── Delete ──
 const deleteAsk = ref<MacroFile | null>(null);
 /** Where the focus goes after a delete (plan, dialog case 20): the next row,
- *  else the previous, else the head's New — never the Delete button, which
+ *  else the previous, else the head's More — never the Delete button, which
  *  the lost selection disables (Chromium then drops the focus to body, where
- *  an arrow key jogs). The guarded return also outranks the dialog's own. */
+ *  an arrow key jogs), nor New, folded in the closed More panel. The guarded
+ *  return also outranks the dialog's own. */
 function focusAfterDelete(neighbor: string | null) {
   const row = neighbor ? root.value?.querySelector<HTMLElement>(`[data-macro-row="${neighbor}"] button[aria-label="Open ${neighbor}.ngc"]`) : null;
-  returnFocusTo(row ?? root.value?.querySelector<HTMLElement>("[data-macro-new]") ?? null);
+  returnFocusTo(row ?? root.value?.querySelector<HTMLElement>(".panelHead .moreTrigger") ?? null);
 }
 function askDelete() {
   const f = selected.value;
@@ -370,30 +367,25 @@ async function confirmDelete() {
   <div ref="root" class="macrosTab stack-controls">
     <!-- The tab's pattern (design wave D5): what it acts on, the machine
          actions with Abort last at the right edge, then the management -->
-    <div class="panelHead" :class="{ moreOpen }">
+    <div class="panelHead">
       <div class="panelObject">
         <span class="label-muted md">Macro</span>
         <span class="macroObject">{{ selected ? (selected.title ?? selected.name) : 'None selected' }}</span>
         <span v-if="selected" class="label-muted md mono objectFile">{{ selected.name }}.ngc</span>
-        <!-- Narrow only (style.css): the management folds here, like Program's -->
-        <span class="panelMore">
-          <MachineBtn type="inline" :selected="moreOpen" :aria-expanded="moreOpen" aria-controls="macroManage"
-                      aria-label="More macro actions" @click="moreOpen = !moreOpen">
-            More <component :is="moreOpen ? ChevronUp : ChevronDown" :size="14" />
-          </MachineBtn>
-        </span>
       </div>
+      <!-- ONE action row (operator 2026-10-02): Run and Abort side by side on
+           the left, the management behind More at the right end -->
       <div class="actionGroup">
         <MachineBtn type="macroRun" :hold="!!selected && selected.params.length === 0"
                     :hold-key="selected ? fileHoldKey(selected) : ''" :disabled="!!runBlock"
                     :reason="runBlock ?? undefined" @click="selected && emit('run', selected)">Run</MachineBtn>
-        <MachineBtn type="abort" class="actionEnd" @click="fire({ cmd: 'abort' }, 'abort')" />
-      </div>
-      <div id="macroManage" class="actionGroup foldNarrow">
-        <MachineBtn type="manage" data-macro-new @click="openNew">New</MachineBtn>
-        <MachineBtn type="fileOp" @click="pickImport">Import</MachineBtn>
-        <MachineBtn type="fileOp" :disabled="!selected" @click="exportSelected">Export</MachineBtn>
-        <MachineBtn type="manage" :disabled="!selected" @click="askDelete">Delete</MachineBtn>
+        <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
+        <MoreMenu class="actionEnd" label="More macro actions">
+          <MachineBtn type="manage" @click="openNew">New</MachineBtn>
+          <MachineBtn type="fileOp" @click="pickImport">Upload</MachineBtn>
+          <MachineBtn type="fileOp" :disabled="!selected" @click="exportSelected">Download</MachineBtn>
+          <MachineBtn type="manage" :disabled="!selected" @click="askDelete">Delete</MachineBtn>
+        </MoreMenu>
       </div>
     </div>
 

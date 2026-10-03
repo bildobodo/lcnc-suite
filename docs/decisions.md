@@ -7670,3 +7670,30 @@ die alten makros fallen lassen". Macros are FILES only now:
   state), on ONE mock: `e2e/macroFolder.ts`. Dialog case 20 (delete a
   settings macro) went with its dialog; case 24 deletes a file.
 
+## 2026-10-02 — Operator live look: one action row per tab, management behind "More"
+
+"vielleicht sollten wir das vereinheitlichen … new, file, upload und wo
+notwendig edit … mit einem drop down button … run und abort nebeneinander,
+vermutlich eher links, und den drop down ganz rechts". Program, Tools and
+Macros now share ONE head shape: the object line, then ONE action row — the
+machine actions with Abort beside them on the left, the management (and
+Program's run options) behind "More" at the right end.
+
+- `MoreMenu.vue` (see CLAUDE.md): a native-popover disclosure, its items the
+  catalog's controls with their gates; arrows prevented inside (keyboard
+  jog); close + focus the trigger in the click CAPTURE phase so a dialog an
+  item opens returns to More.
+- Words unified: Upload (Macros' Import), Download (Macros' Export), New
+  (Tools' "+ Add"). Macros has no Files — its list IS the file list; Program
+  gets no New (not asked).
+- Measure Current is the Tools tab's primary action (green), like Start and
+  Run.
+- N80 reformulated: Abort ENDS the machine actions; with More, More ends the
+  row at its right edge after Abort; without (MDI, Probing), Abort does as
+  before. The narrow-only fold (`.panelMore` / `.foldNarrow`, round 4
+  UI-DI09) is gone: the management is behind More in every width; Program
+  narrow keeps its 2 × 2 run grid with More below Abort and its three code
+  lines (layout.spec).
+- The macro bar is a dense area (compact control height) with its own Abort
+  at the right end, outside its scroller (8142c5b).
+

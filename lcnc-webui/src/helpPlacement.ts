@@ -17,9 +17,12 @@ export interface Placement {
 
 /** `prefer` picks the first side tried: a help popover opens below its
  *  trigger, a control hint above it (the finger covers the control from
- *  below — design wave D1, UI-D08). */
+ *  below — design wave D1, UI-D08). `align`: centred on the trigger, or its
+ *  END edge on the trigger's (a "More" panel under a button at a row's right
+ *  end). Either way clamped into the viewport. */
 export function placePopover(trigger: Box, size: Size, viewport: Size, margin: number,
-                             prefer: "below" | "above" = "below"): Placement {
+                             prefer: "below" | "above" = "below",
+                             align: "center" | "end" = "center"): Placement {
   const triggerBottom = trigger.top + trigger.height;
   const below = viewport.height - margin - (triggerBottom + margin);
   const above = trigger.top - margin - margin;
@@ -36,7 +39,8 @@ export function placePopover(trigger: Box, size: Size, viewport: Size, margin: n
   } else {
     side = "above"; top = margin; maxHeight = Math.max(0, above);
   }
-  let left = trigger.left + trigger.width / 2 - size.width / 2;
+  let left = align === "end" ? trigger.left + trigger.width - size.width
+                             : trigger.left + trigger.width / 2 - size.width / 2;
   if (left + size.width > viewport.width - margin) left = viewport.width - size.width - margin;
   if (left < margin) left = margin;
   return { top, left, maxHeight, side };

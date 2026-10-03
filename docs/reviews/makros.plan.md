@@ -663,6 +663,16 @@ schon einer offen ist (konkurrierende MDI- und AUTO-Starts).
   Datei, Schreiben während eines Laufs, `run_macro` mit falscher Revision, Argumentzahl und
   -bereich, verdeckter Name, Ordner nicht im Pfad.
 
+### Nachtrag: Operator-Live-Blick 2. Oktober abends
+
+- Die Settings-Makros entfallen ganz (siehe „Die Settings-Makros“).
+- Die Makroleiste ist ein dichter Bereich (kompakte Knopfhöhe) und hat ein eigenes Abort rechts außen,
+  außerhalb des scrollenden Bereichs.
+- Ein Kopf für Program, Tools und Macros: Maschinenaktionen mit Abort daneben links, die Verwaltung
+  hinter „More“ rechts. Bei Macros: Run · Abort … More (New, Upload, Download, Delete). Das schmale
+  Einklappen entfällt.
+- Der Editor klappt unter dem Makro auf, das er bearbeitet. Die Liste bleibt alphabetisch.
+
 ## Interpreter-Verhalten
 
 Gelesen in den Quellen von LinuxCNC v2.9.4 (der Tag passt zu den installierten Headern,

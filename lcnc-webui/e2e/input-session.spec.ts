@@ -1,5 +1,6 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { ctl, MOCK } from "./ctl";
+import { clickMore, tapMore } from "./more";
 import { measureLayout, assertLayout, measureFrame, frameChanges } from "./layout-audit";
 
 // WP8 / UI-15 — ONE input helper for every target (MDI line, editor, search
@@ -91,7 +92,7 @@ test("MDI → number → MDI: exactly one helper at a time, the title names the 
   // Leaving the MDI tab locks its session (helper hidden, not ended).
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect(tk).toHaveCount(0);
-  await page.getByRole("button", { name: "+ Add", exact: true }).click();
+  await clickMore(page.locator(".toolsHead"), "New");
   await dialogField(page, "Diameter").click();
   await expect(nk).toBeVisible();
   await expect(tk).toHaveCount(0);
@@ -540,7 +541,7 @@ test("editor → number → editor keeps the buffer; a hidden tab locks, not end
   await open(page);
   await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 7, file: "/A.ngc" } });
   await expect(page.locator(".codeLine").first()).toBeVisible();
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await clickMore(page.locator(".ctrlRow"), "Edit");
   const tk = page.locator(".tkStrip");
   await expect(tk).toBeVisible();
   await expect(tk.locator(".sub")).toHaveText("Editor · A.ngc");
@@ -557,7 +558,7 @@ test("editor → number → editor keeps the buffer; a hidden tab locks, not end
   // the buffer stays; back in the editor a tap re-opens the keyboard.
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect(tk).toHaveCount(0);
-  await page.getByRole("button", { name: "+ Add", exact: true }).click();
+  await clickMore(page.locator(".toolsHead"), "New");
   await dialogField(page, "Diameter").click();
   await expect(page.locator(".nkStrip")).toBeVisible();
   await expect(tk).toHaveCount(0);
@@ -719,7 +720,7 @@ test.describe("touch", () => {
     // Description with an umlaut and Shift in the tool dialog.
     await tapKey(tk, "Close keyboard");
     await page.getByRole("tab", { name: "Tools", exact: true }).tap();
-    await page.getByRole("button", { name: "+ Add", exact: true }).tap();
+    await tapMore(page.locator(".toolsHead"), "New");
     const desc = dialogField(page, "Description");
     await desc.tap();
     await expect(tk.locator(".sub")).toContainText("Description");
@@ -839,7 +840,7 @@ test.describe("portrait, touch", () => {
     for (const zoom of ["1", "1.5"]) {
       await page.evaluate(z => { document.documentElement.style.zoom = z; }, zoom);
       if (!(await tk.count())) {
-        await page.getByRole("button", { name: "Edit", exact: true }).tap();
+        await tapMore(page.locator(".ctrlRow"), "Edit");
         await expect(page.locator(".cm-content")).toBeVisible();
       }
       await expect(tk).toBeVisible();

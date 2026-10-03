@@ -1,5 +1,6 @@
 import { test, expect, type Page, type Route } from "@playwright/test";
 import { ctl, MOCK } from "./ctl";
+import { clickMore, moreItem } from "./more";
 
 // WP0 / UI-01 — the editor buffer belongs to the file it was opened on.
 // An external program change (browse from another tab, an upload landing,
@@ -43,7 +44,7 @@ async function open(page: Page) {
 }
 
 async function enterEdit(page: Page) {
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await clickMore(page.locator(".ctrlRow"), "Edit");
   await expect(page.locator(".cm-content")).toBeVisible();
 }
 
@@ -88,10 +89,11 @@ test("external program change keeps buffer A, shows the conflict, saves A only",
   // The loaded program is B: A is saved, nothing is reloaded, the editor stays.
   await expect(page.locator(".cm-content")).toBeVisible();
   expect(await loadFileCmds()).toEqual([]);
-  // Browse/Unload/Upload are disabled for the session's duration.
-  await expect(page.getByRole("button", { name: "Files", exact: true })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "Unload", exact: true })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "Upload", exact: true })).toBeDisabled();
+  // Files/Unload/Upload (behind More) are disabled for the session's duration.
+  const head = page.locator(".ctrlRow");
+  await expect(await moreItem(head, "Files")).toBeDisabled();
+  await expect(await moreItem(head, "Unload")).toBeDisabled();
+  await expect(await moreItem(head, "Upload")).toBeDisabled();
 });
 
 test("program change during a delayed save: no reload of the new program from A", async ({ page }) => {
@@ -129,7 +131,7 @@ test("program change while CodeMirror is still loading: the view shows A and is 
   });
   await open(page);
   delayNext = true;
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await clickMore(page.locator(".ctrlRow"), "Edit");
   await loadProgram(page, "/B.ngc");
   await expect(page.locator(".cm-content")).toBeVisible({ timeout: 15_000 });
   delayNext = false;
@@ -153,7 +155,7 @@ test("a discarded session's pending import installs nothing", async ({ page }) =
   });
   await open(page);
   delayNext = true;
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await clickMore(page.locator(".ctrlRow"), "Edit");
   await expect(page.locator(".editActions")).toBeVisible();
   await page.locator(".editActions").getByRole("button", { name: "Discard", exact: true }).click();
   await expect(page.locator(".editActions")).toHaveCount(0);

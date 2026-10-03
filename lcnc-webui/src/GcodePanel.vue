@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref, useId, watch } from "vue";
 import type { CollisionLineMark } from "./viewer/collision";
 import { listFiles, uploadFile, saveFile, fetchSubfile, UploadConflictError, type FileEntry } from "./lcncApi";
 import DialogFrame from "./DialogFrame.vue";
+import MoreMenu from "./MoreMenu.vue";
 import { closeTextSessionIf, EDITOR_OWNER } from "./inputSession";
 import { splitSubLines, expansionAllowed, totalRows, rowAt, rowForMain, rowForSub, type SubExpansion } from "./subRows";
 import { usePermissions } from "./permissions";
@@ -18,7 +19,7 @@ import { glideAt, planGlide, visibleBand, type Glide } from "./codeGlide";
 import { emitTelemetry, pushMessage } from "./lcncWs";
 import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "./lcnc";
 import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
-import { Play, SkipForward, Pause, X, ChevronDown, ChevronUp, Triangle } from "lucide-vue-next";
+import { Play, SkipForward, Pause, X, Triangle } from "lucide-vue-next";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineRadio from "./MachineRadio.vue";
@@ -582,11 +583,9 @@ const programHoldKey = computed(() => `${props.activeFile ?? ""}|${props.program
 const programLoading = computed(() => props.programRevision !== props.programTextRevision);
 const LOADING_REASON = "Loading program — wait";
 
-// The narrow side pane folds the run options and the program management
-// behind "More" (style.css `.foldNarrow`, UI-DI09). A run option that is
-// ON stays named on the toggle while folded — it changes how the program
-// runs.
-const moreOpen = ref(false);
+// The run options sit in the More panel (operator 2026-10-02): an option
+// that is ON stays named on More while it is closed — it changes how the
+// program runs.
 const foldedOptions = computed(() =>
   [props.optionalStop && "M01", props.blockDelete && "/BD"].filter(Boolean).join(" "));
 // A line selection belongs to its program AND its text: another program,
@@ -821,23 +820,17 @@ async function saveEdit() {
     <!-- The tab's pattern (design wave D5, UI-K05): what it acts on, the
          machine actions with Abort last at the right edge, then management.
          Portrait edit mode folds both action rows (compactEdit). -->
-    <div class="panelHead" :class="{ moreOpen }">
+    <div class="panelHead">
       <div class="panelObject">
         <div class="fileName">{{ fileName }}</div>
         <span class="fileMeta" v-if="gcodeContent">{{ lineCount }} lines</span>
         <MachineBtn v-if="gcodeStats" type="inline" class="actionBtn" @click="emit('showStats')">Stats</MachineBtn>
-        <!-- Narrow only (style.css): the run options and the management fold here -->
-        <span class="panelMore">
-          <MachineBtn type="inline" :selected="moreOpen" :aria-expanded="moreOpen" aria-controls="programOptions programManage"
-                      :aria-label="`More program actions${foldedOptions && !moreOpen ? ` — ${foldedOptions} on` : ''}`"
-                      @click="moreOpen = !moreOpen">
-            More<template v-if="foldedOptions && !moreOpen"> · {{ foldedOptions }}</template>
-            <component :is="moreOpen ? ChevronUp : ChevronDown" :size="14" />
-          </MachineBtn>
-        </span>
       </div>
 
-      <!-- Program control -->
+      <!-- ONE action row (operator 2026-10-02): the run controls with Abort
+           beside them on the left, the run options and the management behind
+           More at the right end (MoreMenu.vue). An option that is ON stays
+           named on More while it is closed — it changes how the program runs. -->
       <div v-if="!compactEdit" class="ctrlRow actionGroup">
         <!-- A hold bound to the program (D6) — a tap when it only opens the
              Run-from-line dialog (no motion yet; the dialog's action holds) -->
@@ -855,37 +848,34 @@ async function saveEdit() {
           @click="isPaused ? emit('cycleResume') : emit('cyclePause')">
           <span class="stable-width"><span :class="{ alt: isPaused }"><Pause :size="14" class="ctrlIcon" /> Pause</span><span :class="{ alt: !isPaused }"><Play :size="14" class="ctrlIcon" /> Resume</span></span>
         </MachineBtn>
-        <!-- The run options sit before Abort: Abort closes the row (N80) -->
-        <div id="programOptions" class="row-tight switchToggles foldNarrow">
-          <MachineToggle gate="optionalStop" v-model="optionalStopModel" label="M01" />
-          <MachineToggle gate="blockDelete" v-model="blockDeleteModel" label="/BD" />
-        </div>
         <MachineBtn type="abort" class="ctrlBtn" @click="emit('abort')" />
+        <MoreMenu class="ctrlMore" label="More program actions" :folded="foldedOptions || undefined">
+          <div class="row-tight switchToggles">
+            <MachineToggle gate="optionalStop" v-model="optionalStopModel" label="M01" />
+            <MachineToggle gate="blockDelete" v-model="blockDeleteModel" label="/BD" />
+          </div>
+          <MachineBtn type="fileOp" class="actionBtn" @click="enterEdit" :disabled="!activeFile || editing">
+            Edit
+          </MachineBtn>
+          <MachineBtn type="fileOp" class="actionBtn" @click="reloadFile" :disabled="!activeFile || loading || editing">
+            Reload
+          </MachineBtn>
+          <MachineBtn type="fileOp" class="actionBtn" @click="unloadFile" :disabled="!activeFile || loading || editing"
+            :reason="editing ? 'Finish or discard the edit first' : undefined">
+            Unload
+          </MachineBtn>
+          <!-- ONE files toggle (N82): pressed while the browser shows -->
+          <MachineBtn type="fileOp" class="actionBtn" :selected="showBrowser" :aria-pressed="showBrowser" @click="toggleBrowser"
+            :disabled="loading || editing" :reason="editing ? 'Finish or discard the edit first' : undefined">
+            Files
+          </MachineBtn>
+          <MachineBtn type="fileOp" class="actionBtn" @click="($refs.fileInput as HTMLInputElement).click()" :disabled="editing"
+            :reason="editing ? 'Finish or discard the edit first' : undefined">
+            Upload
+          </MachineBtn>
+        </MoreMenu>
       </div>
-
-      <!-- Program management -->
-      <div v-if="!compactEdit" id="programManage" class="actionGroup programManage foldNarrow">
-        <MachineBtn type="fileOp" class="actionBtn" @click="enterEdit" :disabled="!activeFile || editing">
-          Edit
-        </MachineBtn>
-        <MachineBtn type="fileOp" class="actionBtn" @click="reloadFile" :disabled="!activeFile || loading || editing">
-          Reload
-        </MachineBtn>
-        <MachineBtn type="fileOp" class="actionBtn" @click="unloadFile" :disabled="!activeFile || loading || editing"
-          :reason="editing ? 'Finish or discard the edit first' : undefined">
-          Unload
-        </MachineBtn>
-        <!-- ONE files toggle (N82): pressed while the browser shows -->
-        <MachineBtn type="fileOp" class="actionBtn" :selected="showBrowser" :aria-pressed="showBrowser" @click="toggleBrowser"
-          :disabled="loading || editing" :reason="editing ? 'Finish or discard the edit first' : undefined">
-          Files
-        </MachineBtn>
-        <MachineBtn type="fileOp" class="actionBtn" @click="($refs.fileInput as HTMLInputElement).click()" :disabled="editing"
-          :reason="editing ? 'Finish or discard the edit first' : undefined">
-          Upload
-        </MachineBtn>
-        <input ref="fileInput" type="file" accept=".ngc,.nc,.gcode,.tap,.txt" @change="onFileSelect" hidden />
-      </div>
+      <input ref="fileInput" type="file" accept=".ngc,.nc,.gcode,.tap,.txt" @change="onFileSelect" hidden />
     </div>
 
     <!-- Progress bar -->
@@ -1184,16 +1174,15 @@ async function saveEdit() {
    1fr track would squeeze "Pause/Resume" in touch landscape). */
 .ctrlRow {
   display: grid;
-  grid-template-columns: repeat(3, minmax(max-content, 1fr)) auto minmax(max-content, 1fr);
+  grid-template-columns: repeat(4, minmax(max-content, 1fr)) auto;
   align-items: center;
   gap: var(--gap-tight);
 }
-/* Narrow pane (< 400 px, the DR threshold): one row needed 489 px at 150 %
-   portrait and Abort sat off the pane. Two columns — the run options on
-   top (folded behind "More" until asked for), then Start · Step,
-   Pause · Abort: Abort still closes the group at its right edge (N80). */
+/* Narrow pane (the one threshold, 150 % portrait): five buttons do not fit
+   one row. Two columns — Start · Step, Pause · Abort — and More under
+   Abort at the right end. */
 .sidePane.narrow .ctrlRow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.sidePane.narrow .ctrlRow > .switchToggles { grid-row: 1; grid-column: 1 / -1; }
+.sidePane.narrow .ctrlRow > .ctrlMore { grid-column: 2; justify-self: end; }
 
 .ctrlIcon {
   font-size: var(--fs-lg);

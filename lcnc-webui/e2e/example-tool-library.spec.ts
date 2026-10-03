@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import WebSocket from "ws";
 import { assertLayout, layoutChanges, measureLayout } from "./layout-audit";
+import { clickMore, moreItem } from "./more";
 
 const MOCK = process.env.TOOL_IMPORT_TEST_URL ?? "http://localhost:4174/";
 const raw = readFileSync(new URL("../../examples/sim_config/tool-libraries/fusion-freecad.json", import.meta.url));
@@ -61,7 +62,7 @@ async function serverFiles(page: Page) {
 }
 
 async function selectServerFile(page: Page) {
-  await page.getByRole("button", { name: "Files", exact: true }).click();
+  await clickMore(page.locator(".toolsHead"), "Files");
   const browser = page.getByRole("region", { name: "Server tool libraries" });
   await expect(browser).toBeVisible();
   await expect(browser.getByRole("status")).toHaveCount(0);
@@ -73,7 +74,7 @@ async function selectServerFile(page: Page) {
 
 async function selectClientFile(page: Page) {
   const chooser = page.waitForEvent("filechooser");
-  await page.getByRole("button", { name: "Upload", exact: true }).click();
+  await clickMore(page.locator(".toolsHead"), "Upload");
   await (await chooser).setFiles({ name: "my-tools.json", mimeType: "application/json", buffer: raw });
 }
 
@@ -220,14 +221,14 @@ test("a slow server folder does not block client import or cancel", async ({ pag
   });
   await page.route("**/import-tool-library", route => route.fulfill({ json: preview }));
   await openTools(page);
-  await page.getByRole("button", { name: "Files", exact: true }).click();
+  await clickMore(page.locator(".toolsHead"), "Files");
   const dialog = page.getByRole("region", { name: "Server tool libraries" });
   await expect(dialog.getByRole("status")).toHaveText("Loading…");
-  await expect(page.getByRole("button", { name: "Upload", exact: true })).toBeEnabled();
-  await page.getByRole("button", { name: "Files", exact: true }).click();
+  await expect(await moreItem(page.locator(".toolsHead"), "Upload")).toBeEnabled();
+  await clickMore(page.locator(".toolsHead"), "Files");
   release?.();
   await expect(dialog).toHaveCount(0);
-  await page.getByRole("button", { name: "Files", exact: true }).click();
+  await clickMore(page.locator(".toolsHead"), "Files");
   await expect(dialog.getByRole("status")).toHaveText("Loading…");
   await selectClientFile(page);
   release?.();
@@ -246,9 +247,9 @@ for (const viewport of [{ width: 1024, height: 768 }, { width: 900, height: 1200
       : route.fulfill({ body: raw }));
     await page.route("**/import-tool-library", route => route.fulfill({ json: preview }));
     await openTools(page);
-    const actions = page.locator('.toolTabManage');
+    const actions = page.locator('.toolsHead .actionGroup');   // the one action row (More holds Files / Upload)
     const before = await measureLayout(actions, 'tool-file-actions');
-    await page.getByRole("button", { name: "Files", exact: true }).click();
+    await clickMore(page.locator(".toolsHead"), "Files");
     const dialog = page.getByRole("region", { name: "Server tool libraries" });
     await expect(dialog.locator(".browserPath")).toHaveText("/server/nc_files");
     await expect(dialog.getByRole("button", { name: "cutters", exact: true })).toBeVisible();
@@ -256,8 +257,8 @@ for (const viewport of [{ width: 1024, height: 768 }, { width: 900, height: 1200
     const after = await measureLayout(actions, 'tool-file-actions');
     await assertLayout(actions, after, test.info(), layoutChanges(before, after));
     // File access stays inline; the two toolbar actions remain reachable.
-    await page.getByRole("button", { name: "Files", exact: true }).click({ trial: true });
-    await page.getByRole("button", { name: "Upload", exact: true }).click({ trial: true });
+    await (await moreItem(page.locator(".toolsHead"), "Files")).click({ trial: true });
+    await (await moreItem(page.locator(".toolsHead"), "Upload")).click({ trial: true });
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await dialog.screenshot({ path: test.info().outputPath("server-browser.png") });
     await page.locator('.toolsTab').screenshot({ path: test.info().outputPath('browse-upload-tools.png') });
@@ -267,7 +268,7 @@ for (const viewport of [{ width: 1024, height: 768 }, { width: 900, height: 1200
     await dialog.getByRole("button", { name: "cutters", exact: true }).click();
     await dialog.getByRole("button", { name: "fusion-freecad.json", exact: true }).click();
     await expect(dialog.getByRole("alert")).toHaveText("Permission denied");
-    await expect(page.getByRole("button", { name: "Upload", exact: true })).toBeEnabled();
+    await expect(await moreItem(page.locator(".toolsHead"), "Upload")).toBeEnabled();
     failing = false;
     await dialog.getByRole("button", { name: "fusion-freecad.json", exact: true }).click();
     await expect(page.getByLabel("Import mode")).toHaveValue("metadata");

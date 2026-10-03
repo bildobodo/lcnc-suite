@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { ctl, MOCK } from "./ctl";
 import { Folder, serve } from "./macroFolder";
+import { clickMore } from "./more";
 
 // Design wave D4 (UI-K03, K04, K10, plan WP-D4) — controls and forms:
 //
@@ -161,7 +162,7 @@ for (const touch of [false, true]) {
     const macros = page.locator(".macrosTab");
     await macros.getByRole("button", { name: "Open park.ngc", exact: true }).click();
     add(await scan(page, "Macros tab", ".macrosTab"));
-    await macros.getByRole("button", { name: "New", exact: true }).click();
+    await clickMore(macros.locator(".panelHead"), "New");
     add(await scan(page, "New macro", '[role="dialog"]'));
     await page.locator('[role="dialog"]').getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(page.locator('[role="dialog"]')).toHaveCount(0);

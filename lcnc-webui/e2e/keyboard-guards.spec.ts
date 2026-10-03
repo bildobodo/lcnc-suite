@@ -1,5 +1,6 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { ctl, MOCK } from "./ctl";
+import { clickMore } from "./more";
 import { Folder, serve } from "./macroFolder";
 
 // WP0 / UI-03 — global keyboard shortcuts behind dialogs and fields.
@@ -271,7 +272,7 @@ test("an explicit close by keyboard returns focus: Enter/Space on the keyboard's
   await page.getByRole("tab", { name: "Program", exact: true }).click();
   await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 1, file: "/A.ngc" } });
   await expect(page.locator(".codeLine").first()).toBeVisible();
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await clickMore(page.locator(".ctrlRow"), "Edit");
   const content = page.locator(".cm-content");
   await expect(content).toBeVisible();
   await expect(tk).toBeVisible();
@@ -337,7 +338,7 @@ test("tool dialog, messages and reference dialogs block Space/Enter/Backspace", 
   await openReady(page);
   for (const open of [
     async () => { await page.getByRole("tab", { name: "Tools", exact: true }).click();
-      await page.getByRole("button", { name: "+ Add", exact: true }).click(); },
+      await clickMore(page.locator(".toolsHead"), "New"); },
     async () => { await page.getByRole("button", { name: /^Messages \(/ }).click(); },
     async () => { await page.getByTitle("G-code Reference", { exact: true }).click(); },
   ]) {
@@ -368,12 +369,12 @@ test("tool editor: header X and footer Cancel close an unchanged form at once an
   // was already hardened against a mis-grab. One check for both now.
   await openReady(page);
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
-  await page.getByRole("button", { name: "+ Add", exact: true }).click();
+  await clickMore(page.locator(".toolsHead"), "New");
   const dialog = page.locator(".editDialog");
   await expect(dialog).toBeVisible();
   await dialog.getByRole("button", { name: "Close tool editor", exact: true }).click();
   await expect(dialog).toHaveCount(0);
-  await page.getByRole("button", { name: "+ Add", exact: true }).click();
+  await clickMore(page.locator(".toolsHead"), "New");
   await expect(dialog).toBeVisible();
   const desc = dialog.getByRole("textbox", { name: "Description", exact: true });
   await desc.click();
@@ -599,7 +600,7 @@ test.describe("help popover geometry (touch)", () => {
 test("documented remainder: Tab leaves the dialog (no focus trap in this wave)", async ({ page }) => {
   await openReady(page);
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
-  await page.getByRole("button", { name: "+ Add", exact: true }).click();
+  await clickMore(page.locator(".toolsHead"), "New");
   const dialog = page.locator(".dialogOverlay .dialog").last();
   await dialog.getByRole("button", { name: "Add", exact: true }).focus();
   await page.keyboard.press("Tab");
@@ -623,7 +624,7 @@ test("editor open: Space never starts the program", async ({ page }) => {
   await openReady(page);
   await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 1, file: "/A.ngc" } });
   await expect(page.locator(".codeLine").first()).toBeVisible();
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await clickMore(page.locator(".ctrlRow"), "Edit");
   await expect(page.locator(".cm-content")).toBeVisible();
   await ctl({ op: "clearCmds" });
   await page.keyboard.press(" ");          // inside CodeMirror: text, not a shortcut

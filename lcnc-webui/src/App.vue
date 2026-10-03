@@ -35,6 +35,7 @@ import { toolOffsetState } from "./viewer/toolOffsetState";
 import MachineBtn from "./MachineBtn.vue";
 import MacroBar from "./MacroBar.vue";
 import MacrosPanel from "./MacrosPanel.vue";
+import MoreMenu from "./MoreMenu.vue";
 import { NARROW_PANE_PX } from "./sidePaneNarrow";
 import { macroBarItems, macroParamUnit, type MacroBarItem } from "./macroBar";
 import { macroFolder } from "./macroFiles";
@@ -2169,17 +2170,20 @@ watch(viewerGcode, (newGcode) => {
                     <MachineBtn v-if="isDev" type="simTrip" @click="send({ cmd: 'simulate_probe_trip' })">Sim Trip</MachineBtn>
                   </div>
                 </div>
+                <!-- ONE action row (operator 2026-10-02): the machine actions with
+                     Abort beside them on the left, the management behind More at
+                     the right end (MoreMenu.vue) -->
                 <div class="actionGroup">
                   <MachineBtn type="toolMeasure" :disabled="!st.tool_number || !toolsetter.ok" :reason="!st.tool_number ? 'No tool loaded' : toolsetterReason" @click="measureAuto">Measure Current</MachineBtn>
                   <MachineBtn type="toolUnload" :disabled="unloadUsesToolsetter && !toolsetter.ok" :reason="toolsetterReason" @click="unloadTool">Unload</MachineBtn>
-                  <MachineBtn type="abort" class="actionEnd" @click="fire({ cmd: 'abort' }, 'abort')" />
-                </div>
-                <div class="actionGroup toolTabManage">
-                  <MachineBtn type="manage" @click="toolTableRef?.openAdd()">+ Add</MachineBtn>
-                  <!-- ONE files toggle (N82): pressed while the library browser shows -->
-                  <MachineBtn type="fileOp" :selected="!!toolTableRef?.showImportBrowser" :aria-pressed="!!toolTableRef?.showImportBrowser"
-                              :disabled="toolTableRef?.importBusy" @click="toolTableRef?.toggleImportBrowser()">Files</MachineBtn>
-                  <MachineBtn type="fileOp" :disabled="toolTableRef?.importBusy" @click="toolTableRef?.uploadLibrary()">Upload</MachineBtn>
+                  <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
+                  <MoreMenu class="actionEnd" label="More tool actions">
+                    <MachineBtn type="manage" @click="toolTableRef?.openAdd()">New</MachineBtn>
+                    <!-- ONE files toggle (N82): pressed while the library browser shows -->
+                    <MachineBtn type="fileOp" :selected="!!toolTableRef?.showImportBrowser" :aria-pressed="!!toolTableRef?.showImportBrowser"
+                                :disabled="toolTableRef?.importBusy" @click="toolTableRef?.toggleImportBrowser()">Files</MachineBtn>
+                    <MachineBtn type="fileOp" :disabled="toolTableRef?.importBusy" @click="toolTableRef?.uploadLibrary()">Upload</MachineBtn>
+                  </MoreMenu>
                 </div>
               </div>
               <ToolTablePanel

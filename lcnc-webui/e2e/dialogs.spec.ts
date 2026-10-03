@@ -1,5 +1,6 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { ctl, MOCK } from "./ctl";
+import { clickMore, moreItem, moreTrigger } from "./more";
 import { Folder, serve } from "./macroFolder";
 
 // Design wave D2 (UI-K11, K16(3), UI-D01, UI-D06; plan Anhang B) — the
@@ -344,7 +345,7 @@ const ROWS: Row[] = [
     focus: byName("Keep editing"), actions: ["Keep editing", "Discard"],
     open: async (page) => {
       await loadProgram(page);
-      await page.getByRole("button", { name: "Edit", exact: true }).click();
+      await clickMore(page.locator(".ctrlRow"), "Edit");
       await page.locator(".cm-content").click();
       await page.keyboard.press("End");
       await page.keyboard.type("(edited)");
@@ -400,9 +401,8 @@ const ROWS: Row[] = [
     focus: firstField,
     open: async (page) => {
       await openTools(page);
-      const trigger = page.getByRole("button", { name: "+ Add", exact: true });
-      await trigger.click();
-      return trigger;
+      await clickMore(page.locator(".toolsHead"), "New");
+      return moreTrigger(page.locator(".toolsHead"));   // New lives behind More: the return lands on More
     },
     close: async (d) => { await byName("Cancel")(d).click(); },
   },
@@ -411,7 +411,7 @@ const ROWS: Row[] = [
     focus: byName("Keep editing"), actions: ["Keep editing", "Discard"],
     open: async (page) => {
       await openTools(page);
-      await page.getByRole("button", { name: "+ Add", exact: true }).click();
+      await clickMore(page.locator(".toolsHead"), "New");
       const editor = page.getByRole("dialog", { name: "Add Tool", exact: true });
       await editor.getByRole("textbox", { name: "Description", exact: true }).fill("draft");
       const trigger = editor.getByRole("button", { name: "Cancel", exact: true });
@@ -468,9 +468,8 @@ const ROWS: Row[] = [
     focus: (d) => d.getByRole("textbox", { name: "File name", exact: true }), actions: ["Cancel", "Create"],
     open: async (page) => {
       const tab = await openMacrosTab(page);
-      const trigger = tab.getByRole("button", { name: "New", exact: true });
-      await trigger.click();
-      return trigger;
+      await clickMore(tab.locator(".panelHead"), "New");
+      return moreTrigger(tab.locator(".panelHead"));   // New lives behind More: the return lands on More
     },
     close: async (d) => { await byName("Cancel")(d).click(); },
   },
@@ -480,10 +479,10 @@ const ROWS: Row[] = [
     open: async (page) => {
       const tab = await openMacrosTab(page);
       await tab.getByRole("button", { name: "Open park.ngc", exact: true }).click();
-      const trigger = tab.getByRole("button", { name: "Delete", exact: true });
-      await expect(trigger).toBeEnabled();
-      await trigger.click();
-      return trigger;
+      const del = await moreItem(tab.locator(".panelHead"), "Delete");
+      await expect(del).toBeEnabled();
+      await del.click();
+      return moreTrigger(tab.locator(".panelHead"));
     },
     close: async (d) => { await byName("Cancel")(d).click(); },
   },
@@ -650,7 +649,7 @@ test("UI-D01: from inside a dialog Tab reaches the banner's Abort — Enter send
 test("UI-D06: a dialog over a field's keypad pauses it — the draft survives unreachable and comes back exact, nothing is applied", async ({ page }) => {
   await ready(page);
   await openTools(page);
-  await page.getByRole("button", { name: "+ Add", exact: true }).click();
+  await clickMore(page.locator(".toolsHead"), "New");
   const editor = page.getByRole("dialog", { name: "Add Tool", exact: true });
   await expect(editor).toBeVisible();
   const nk = page.locator(".nkStrip");
@@ -711,21 +710,22 @@ test("UI-D06: a dialog over a field's keypad pauses it — the draft survives un
 test("closing a whole stack returns focus once, to the control that opened the bottom dialog — Space sends nothing", async ({ page }) => {
   // The tool editor's Cancel → Discard unmounts BOTH frames in one tick: the
   // ask's own return target (Cancel) is gone, the editor's return must win
-  // and land on + Add, never on body (where Space is Cycle Start). (The
+  // and land on More (New lives behind it), never on body (where Space is
+  // Cycle Start). (The
   // Settings half of this test went with the macro editor, package 5:
   // Settings keeps no draft that no dialog covers.)
   await ready(page);
   await openTools(page);
-  const add = page.getByRole("button", { name: "+ Add", exact: true });
-  await add.click();
+  const add = moreTrigger(page.locator(".toolsHead"));
+  await clickMore(page.locator(".toolsHead"), "New");
   const editor = page.getByRole("dialog", { name: "Add Tool", exact: true });
   await editor.getByRole("textbox", { name: "Description", exact: true }).fill("draft");
   await editor.getByRole("button", { name: "Cancel", exact: true }).click();
   await page.getByRole("dialog", { name: "Discard changes?", exact: true }).getByRole("button", { name: "Discard", exact: true }).click();
   await expect(editor).toHaveCount(0);
-  await expect(add, "focus returns to + Add").toBeFocused();
+  await expect(add, "focus returns to More").toBeFocused();
   await expectRegistryMatchesDom(page);
-  // Space activates the focused button (the editor opens again) — never the
+  // Space activates the focused button (the More panel opens) — never the
   // machine: no command.
   await ctl({ op: "clearCmds" });
   await page.keyboard.press(" ");
@@ -852,8 +852,7 @@ test("UI-DI02: a lower dialog closing under a surviving top leaves focus in the 
 
   // An asynchronous success closes a LOWER form: the tool editor's save
   // replies while Settings (opened meanwhile from the header) is on top.
-  const add = page.getByRole("button", { name: "+ Add", exact: true });
-  await add.click();
+  await clickMore(page.locator(".toolsHead"), "New");
   const editor = page.getByRole("dialog", { name: "Add Tool", exact: true });
   await editor.getByRole("button", { name: "Add", exact: true }).click();
   let save: { req_id?: string } | undefined;
