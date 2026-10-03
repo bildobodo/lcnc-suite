@@ -336,8 +336,12 @@ schon einer offen ist (konkurrierende MDI- und AUTO-Starts).
       `wait_complete` zu), `queued_mdi_commands` = 0, `exec_state` DONE, Interpreter `IDLE`,
       über zwei Polls mindestens 20 ms auseinander (Task reicht eine Queue-Zeile innerhalb eines
       Zyklus weiter).
-  - Benannte Grenze: Die Echo-Nummer ist die des Tasks, nicht dieses Kanals. Ein zweiter
-    Befehlskanal (halui, eine zweite GUI) zählt eigene Nummern.
+  - Die Seriennummer zählt der gemeinsame Befehlspuffer, nicht das einzelne Kanalobjekt:
+    `NML::write` nummeriert aus dem CMS-Puffer. Jeder Schreiber auf Tasks Befehlskanal
+    (halui, eine zweite GUI) zieht aus demselben Zähler, ein Echo bezeichnet also genau einen
+    Befehl (Codex R71, nativ gemessen: zwei `RCS_CMD_CHANNEL` an einem Puffer erhielten 1, 2,
+    3 im Wechsel). Das gilt für den Puffer dieser Instanz; ein eigener Transport neben NML ist
+    nicht erfasst. Die frühere Annahme „jeder Kanal zählt eigene Nummern“ war falsch.
   - Ein Handler, der abbricht, ein Disconnect oder eine Cancellation geben ihn nie frei. Ein
     `finally` im Handler berührt ihn nicht.
   - Abort und E-Stop bleiben jederzeit erreichbar; der Anspruch hält keine Befehlssperre. Nach
@@ -707,6 +711,15 @@ schon einer offen ist (konkurrierende MDI- und AUTO-Starts).
   nennt; sonst liest er neu oder schließt, wenn die Datei fehlt.
 - **VP-I33:** Eine Zulassung der aufgelösten Datei für Liste, Lesen, Schreiben und Start: eine
   reguläre Datei im Makroordner; ein Link nach draußen oder ins Leere ist kein Makro.
+
+### Nachtrag: Codex R71 (3. Oktober)
+
+- **VP-I33-Rest:** Die Zulassung öffnet ohne Warten (`O_NONBLOCK`) und prüft den Typ am
+  Deskriptor, bevor gelesen wird. Eine Named Pipe wartete vorher im `open()` auf einen
+  Schreiber, ein Verzeichnis warf aus `fdopen`. Beide werden jetzt sofort abgelehnt („leads to
+  no file“): Die Liste überspringt sie, Lesen, Schreiben und Löschen antworten 403.
+- **Seriennummern:** Die Nummer zählt der gemeinsame Befehlspuffer, nicht das Kanalobjekt (siehe
+  „Freigabe des Anspruchs“). Die frühere „Benannte Grenze“ war falsch.
 
 ## Interpreter-Verhalten
 

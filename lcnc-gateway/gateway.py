@@ -6,6 +6,7 @@ import json
 import math
 import time
 import errno
+from stat import S_ISREG
 import os
 import subprocess
 import tempfile
@@ -2986,9 +2987,13 @@ def read_machine_limits_from_ini(stat_obj):
 # the interpreter IDLE in a fresh poll. Lock order: _cmd_lock before
 # _source_lock, never the reverse; writers never take _cmd_lock. No timer
 # ever releases a claim: a gateway restart (or a new LinuxCNC instance,
-# which ends this gateway) does. Named limit: the echo is task's, not this
-# channel's — another command channel (halui, a second GUI) has serials of
-# its own; a coincidence keeps or releases by THAT channel's command.
+# which ends this gateway) does. The serial is the command BUFFER's counter,
+# shared by every writer of task's command channel (halui, a second GUI):
+# NML::write numbers the message from the CMS buffer, not per channel
+# object (Codex R71, measured natively — two RCS_CMD_CHANNELs on one buffer
+# got 1, 2, 3 in turn), so an echo names exactly one command whoever sent
+# it. That holds for this instance's buffer; a transport of its own around
+# NML is not covered.
 _CLAIM_ERROR_PROOF_S = 0.02
 
 
@@ -7177,7 +7182,11 @@ def _macro_bytes(state: Dict[str, Any], path: str,
     the folder is followed, as the interpreter follows it), read through a
     descriptor that follows no further link. (bytes, mtime); None when the
     name has no file; _MacroOutside when it leads out of the folder or to
-    no regular file — a correctly formed name proves neither."""
+    no regular file — a correctly formed name proves neither. The open never
+    waits (O_NONBLOCK: a named pipe opens at once instead of waiting for a
+    writer) and the type is checked on the DESCRIPTOR before anything reads
+    from it (Codex R71 VP-I33 rest: a FIFO blocked the open, a directory
+    raised from fdopen)."""
     if not os.path.lexists(path):
         return None
     name = os.path.basename(path)
@@ -7185,17 +7194,21 @@ def _macro_bytes(state: Dict[str, Any], path: str,
     if not real.startswith(os.path.realpath(state["dir"]) + os.sep):
         raise _MacroOutside(f"{name} leads out of the macro folder")
     try:
-        fd = os.open(real, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        fd = os.open(real, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0))
     except FileNotFoundError:
         if os.path.lexists(path):
             raise _MacroOutside(f"{name} leads to no file")
         return None
     except OSError as e:   # ELOOP: a link put there after the check
         raise _MacroOutside(f"{name} leads out of the macro folder") from e
-    with os.fdopen(fd, "rb") as f:
-        st = os.fstat(f.fileno())
-        if not (st.st_mode & 0o170000) == 0o100000:   # S_ISREG
+    try:
+        st = os.fstat(fd)
+        if not S_ISREG(st.st_mode):
             raise _MacroOutside(f"{name} leads to no file")
+    except BaseException:
+        os.close(fd)
+        raise
+    with os.fdopen(fd, "rb") as f:
         return (f.read() if limit is None else f.read(limit)), st.st_mtime
 
 

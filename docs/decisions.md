@@ -7775,3 +7775,27 @@ controller — `docs/reviews/makros.live-r70.txt` — in the R71 request).
   scrollbar (fixed), and two tables that scroll sideways on purpose (the
   Offsets table past its axes, the G-code reference's one-line syntax —
   marked `data-scroll-x`).
+
+## 2026-10-03 — Codex R71: a macro file is admitted without waiting; one serial counter per command buffer
+
+Codex closed VP-I29–32 and VP-I34 and left two points (R71,
+`docs/reviews/viewer-palette-fest.ideen.md`):
+
+- **The admission must not wait** (VP-I33 rest, P2): `_macro_bytes`
+  opened before it checked the type — a named pipe `pipe.ngc` waited in
+  `open()` for a writer (the list, a read, the commit gate under
+  `_source_lock`), a directory `dir.ngc` raised from `fdopen` (500). It now
+  opens with `O_NONBLOCK` (beside `O_NOFOLLOW`) and checks `S_ISREG` on the
+  DESCRIPTOR, closing it on every refusal, before anything reads: both are
+  refused at once, "leads to no file". A pre-check by path alone would leave
+  the type free to change before the open. Red without `O_NONBLOCK` (the
+  admission waits) and with the type checked after `fdopen` (the directory
+  raises); Codex's own probe is green.
+- **The serial is the buffer's** (correction): the plan named a limit —
+  "another command channel counts serials of its own". Codex measured the
+  installed NML natively: two `RCS_CMD_CHANNEL` objects on one buffer got
+  1, 2, 3 in turn — `NML::write` numbers from the CMS buffer. Every writer of
+  task's command channel (halui, a second GUI) draws from one counter, so an
+  echo names exactly one command. No further guard was asked; the binding to
+  this instance's buffer stays the premise.
+
