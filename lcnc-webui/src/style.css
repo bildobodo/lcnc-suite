@@ -1739,7 +1739,12 @@ label:has(input:disabled, select:disabled) {
   overflow: clip;
 }
 
-.dialog.md > .dialogActions {
+/* The structured tiers' action row: the frame's padding around it. The
+   large tier had none — its first dialog with actions, the macro editor,
+   set Cancel and Save on its lower edge (operator 2026-10-03; dialogs.spec
+   measures every dialog's action row against its edges). */
+.dialog.md > .dialogActions,
+.dialog.lg > .dialogActions {
   padding: var(--gap-controls) var(--gap-section);
   margin-top: 0;
 }
