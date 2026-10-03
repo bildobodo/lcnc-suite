@@ -22,6 +22,11 @@
 // the trigger first (capture phase) — before a dialog the item opens takes
 // its opener — so the dialog's guarded return lands on More, never on a
 // hidden item.
+//
+// The trigger keeps ONE width (operator 2026-10-03: "the button length
+// changes"): it reserves its widest label — every option on, in the open
+// state's semibold — so opening it (selected = semibold) or switching an
+// option moves nothing in the row.
 import { onBeforeUnmount, onMounted, ref, useId } from "vue";
 import { ChevronDown, ChevronUp } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
@@ -33,6 +38,9 @@ const props = defineProps<{
   /** Options that are ON while the panel is closed ("M01 /BD"): named on the
    *  trigger — they change how something runs. */
   folded?: string;
+  /** Every option `folded` can name at once ("M01 /BD"): its width is
+   *  reserved, so switching one on or off moves nothing. */
+  reserve?: string;
 }>();
 
 const id = `more-${useId()}`;
@@ -135,8 +143,11 @@ defineExpose({ close: () => close(false) });
 <template>
   <span ref="root" class="moreMenu">
     <MachineBtn type="more" class="moreTrigger" :popovertarget="id" :aria-controls="id" :aria-expanded="open"
-                :aria-label="props.folded && !open ? `${props.label} — ${props.folded} on` : props.label" :selected="open">
-      More<template v-if="props.folded && !open"> · {{ props.folded }}</template>
+                :aria-label="props.folded ? `${props.label} — ${props.folded} on` : props.label" :selected="open">
+      <span class="moreLabel">
+        <span>More<template v-if="props.folded"> · {{ props.folded }}</template></span>
+        <span class="moreReserve" aria-hidden="true">More<template v-if="props.reserve"> · {{ props.reserve }}</template></span>
+      </span>
       <component :is="open ? ChevronUp : ChevronDown" :size="14" />
     </MachineBtn>
     <!-- No display utility on the popover itself: an author `display` beats
@@ -152,5 +163,18 @@ defineExpose({ close: () => close(false) });
 <style scoped>
 .moreMenu {
   display: inline-flex;
+}
+/* The label and its reserve share one grid cell: the cell is as wide as
+   the reserve (the widest label, semibold), the shown label centred in it */
+.moreLabel {
+  display: inline-grid;
+  justify-items: center;
+}
+.moreLabel > * {
+  grid-area: 1 / 1;
+}
+.moreReserve {
+  visibility: hidden;
+  font-weight: var(--fw-semibold);
 }
 </style>

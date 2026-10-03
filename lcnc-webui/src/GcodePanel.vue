@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, useId, watch } from "vue";
 import type { CollisionLineMark } from "./viewer/collision";
-import { listFiles, uploadFile, saveFile, fetchSubfile, UploadConflictError, type FileEntry } from "./lcncApi";
+import { listFiles, uploadFile, saveFile, fetchSubfile, fetchProgramFile, UploadConflictError, type FileEntry } from "./lcncApi";
+import { saveAsFile } from "./download";
 import DialogFrame from "./DialogFrame.vue";
 import MoreMenu from "./MoreMenu.vue";
 import { closeTextSessionIf, EDITOR_OWNER } from "./inputSession";
@@ -435,6 +436,20 @@ const showBrowser = ref(false);
 const currentSubdir = ref("");
 const loading = ref(false);
 const uploadError = ref<string | null>(null);
+const downloadError = ref<string | null>(null);
+
+/** Download: the loaded program as the file it is on the disk (operator
+ *  2026-10-03) — not the editor's draft. */
+async function downloadProgram() {
+  const path = props.activeFile;
+  if (!path) return;
+  downloadError.value = null;
+  try {
+    saveAsFile(path.split("/").pop() || "program.ngc", await fetchProgramFile(path));
+  } catch (e) {
+    downloadError.value = `Download failed: ${(e as Error).message}`;
+  }
+}
 const dragOver = ref(false);
 
 function toggleBrowser() {
@@ -584,7 +599,7 @@ const programLoading = computed(() => props.programRevision !== props.programTex
 const LOADING_REASON = "Loading program — wait";
 
 // The run options sit in the More panel (operator 2026-10-02): an option
-// that is ON stays named on More while it is closed — it changes how the
+// that is ON stays named on More, open or closed — it changes how the
 // program runs.
 const foldedOptions = computed(() =>
   [props.optionalStop && "M01", props.blockDelete && "/BD"].filter(Boolean).join(" "));
@@ -830,7 +845,8 @@ async function saveEdit() {
       <!-- ONE action row (operator 2026-10-02): the run controls with Abort
            beside them on the left, the run options and the management behind
            More at the right end (MoreMenu.vue). An option that is ON stays
-           named on More while it is closed — it changes how the program runs. -->
+           named on More — it changes how the program runs — and More keeps
+           the width of "More · M01 /BD" whatever is on. -->
       <div v-if="!compactEdit" class="ctrlRow actionGroup">
         <!-- A hold bound to the program (D6) — a tap when it only opens the
              Run-from-line dialog (no motion yet; the dialog's action holds) -->
@@ -849,7 +865,7 @@ async function saveEdit() {
           <span class="stable-width"><span :class="{ alt: isPaused }"><Pause :size="14" class="ctrlIcon" /> Pause</span><span :class="{ alt: !isPaused }"><Play :size="14" class="ctrlIcon" /> Resume</span></span>
         </MachineBtn>
         <MachineBtn type="abort" class="ctrlBtn" @click="emit('abort')" />
-        <MoreMenu class="ctrlMore" label="More program actions" :folded="foldedOptions || undefined">
+        <MoreMenu class="ctrlMore" label="More program actions" :folded="foldedOptions || undefined" reserve="M01 /BD">
           <div class="row-tight switchToggles">
             <MachineToggle gate="optionalStop" v-model="optionalStopModel" label="M01" />
             <MachineToggle gate="blockDelete" v-model="blockDeleteModel" label="/BD" />
@@ -873,6 +889,8 @@ async function saveEdit() {
             :reason="editing ? 'Finish or discard the edit first' : undefined">
             Upload
           </MachineBtn>
+          <MachineBtn type="fileDownload" class="actionBtn" :disabled="!activeFile" :reason="!activeFile ? 'No program loaded' : undefined"
+            @click="downloadProgram">Download</MachineBtn>
         </MoreMenu>
       </div>
       <input ref="fileInput" type="file" accept=".ngc,.nc,.gcode,.tap,.txt" @change="onFileSelect" hidden />
@@ -902,6 +920,10 @@ async function saveEdit() {
     <div v-if="uploadError" class="statusNote error" role="alert">
         <span>{{ uploadError }}</span>
         <MachineBtn type="close" aria-label="Dismiss upload error" title="Dismiss upload error" @click="uploadError = null"><X :size="14" /></MachineBtn>
+    </div>
+    <div v-if="downloadError" class="statusNote error" role="alert">
+        <span>{{ downloadError }}</span>
+        <MachineBtn type="close" aria-label="Dismiss download error" title="Dismiss download error" @click="downloadError = null"><X :size="14" /></MachineBtn>
     </div>
 
     <!-- Soft-limit violations surface in the viewer's scrub bar (yellow

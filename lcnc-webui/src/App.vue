@@ -382,6 +382,9 @@ function requestTab(to: string) {
   if (to === activeTab.value) return;
   const what = activeTab.value === "macros" ? macrosPanelRef.value?.unsavedDraft() : null;
   if (what) { tabLeaveAsk.value = { what, to }; return; }
+  // the macro editor is a dialog over its tab: an untouched one closes with
+  // the tab (it would stand over the next one)
+  if (activeTab.value === "macros") macrosPanelRef.value?.discardAll();
   activeTab.value = to;
 }
 function confirmTabLeave() {
@@ -2183,6 +2186,7 @@ watch(viewerGcode, (newGcode) => {
                     <MachineBtn type="fileOp" :selected="!!toolTableRef?.showImportBrowser" :aria-pressed="!!toolTableRef?.showImportBrowser"
                                 :disabled="toolTableRef?.importBusy" @click="toolTableRef?.toggleImportBrowser()">Files</MachineBtn>
                     <MachineBtn type="fileOp" :disabled="toolTableRef?.importBusy" @click="toolTableRef?.uploadLibrary()">Upload</MachineBtn>
+                    <MachineBtn type="fileDownload" @click="toolTableRef?.downloadTable()">Download</MachineBtn>
                   </MoreMenu>
                 </div>
               </div>

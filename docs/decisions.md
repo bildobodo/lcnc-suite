@@ -7697,3 +7697,37 @@ Program's run options) behind "More" at the right end.
 - The macro bar is a dense area (compact control height) with its own Abort
   at the right end, outside its scroller (8142c5b).
 
+## 2026-10-03 — Operator: the Macros tab like the tool table; Download; More keeps its width; thin scrollbars
+
+Rendered first, then decided ("tip auf zeile und dann run oben, kein knopf
+in zeile · eigene felder wie im bild · ja · ja vorerst nur so wie linuxcnc
+es liest"):
+
+- The Macros tab is laid out like the tool table: a search row with a bar
+  filter, one table (Macro sortable · Description · On bar · pencil · trash
+  · bar order), one line per macro. A tap on a row selects it for Run; no
+  button in the row — the row's name is the keyboard's way (one Tab stop,
+  every navigation key prevented). Narrow, the description leaves.
+- The editor is a dialog like Edit Tool: File name, Title and Description
+  as fields over the code. The fields ARE the header lines
+  (`macroHeader.ts`, mirroring the gateway's parser — one shared case file
+  read by both tests). A Save under another name renames the file in ONE
+  gateway step (new name free + old revision unchanged, publish, remove the
+  old — or nothing) and keeps the macro's place on the bar. The inline
+  editor of 2026-10-02 is gone.
+- No Files in Macros: the list IS the folder; a browser would list the same
+  files again.
+- Download in every management More: the loaded program (`GET /gcode`), the
+  tool table FILE as LinuxCNC reads it (new `GET /tool-table`), the selected
+  macro — bytes unchanged. Catalog `fileDownload`, gate `always`.
+- More kept jumping when opened: the named options left the label, and an
+  open More is selected = semibold. It now reserves its widest label in
+  semibold.
+- The macro parameter dialog drew a wide black scrollbar: `.dialogContent`
+  always scrolls in a low window, and seven dialogs lacked `.scroll-thin`.
+  The thin bar is now part of `.dialogContent`; `measureLayout` and
+  `dialogs.spec` flag any scroller without it (`thick-scrollbar`, by style —
+  headless Chromium hides scrollbars, no screenshot ever showed it).
+- Measured on the operator's question: Start, Step, Pause and Abort are one
+  height (32 / 44 px, 66 px at 150 %).
+

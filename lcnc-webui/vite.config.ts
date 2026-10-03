@@ -56,6 +56,7 @@ export default defineConfig({
       '/macros': 'http://127.0.0.1:8000',
       '/macro': 'http://127.0.0.1:8000',
       '/macro-upload': 'http://127.0.0.1:8000',
+      '/tool-table': 'http://127.0.0.1:8000',
       '/subfile': 'http://127.0.0.1:8000',
       '/settings': 'http://127.0.0.1:8000',
       '/camera': 'http://127.0.0.1:8000',

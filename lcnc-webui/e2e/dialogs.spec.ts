@@ -1,7 +1,8 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { ctl, MOCK } from "./ctl";
-import { clickMore, moreItem, moreTrigger } from "./more";
+import { clickMore, moreTrigger } from "./more";
 import { Folder, serve } from "./macroFolder";
+import { thickScrollbars } from "./layout-audit";
 
 // Design wave D2 (UI-K11, K16(3), UI-D01, UI-D06; plan Anhang B) — the
 // dialog contract, scanned per dialog from ONE table (Anhang B is the only
@@ -464,7 +465,9 @@ const ROWS: Row[] = [
     close: async (d) => { await byName("Cancel")(d).click(); },
   },
   {
-    id: "23 New macro", title: "New Macro", tier: "md", backdrop: "stays", before: macroFolder,
+    // the macro editor dialog (operator 2026-10-03, like Edit Tool): New
+    // and the pencil's Edit Macro are the same frame
+    id: "23 New macro", title: "New Macro", tier: "lg", backdrop: "stays", before: macroFolder,
     focus: (d) => d.getByRole("textbox", { name: "File name", exact: true }), actions: ["Cancel", "Create"],
     open: async (page) => {
       const tab = await openMacrosTab(page);
@@ -478,26 +481,25 @@ const ROWS: Row[] = [
     focus: byName("Cancel"), actions: ["Cancel", "Delete"],
     open: async (page) => {
       const tab = await openMacrosTab(page);
-      await tab.getByRole("button", { name: "Open park.ngc", exact: true }).click();
-      const del = await moreItem(tab.locator(".panelHead"), "Delete");
-      await expect(del).toBeEnabled();
+      const del = tab.getByRole("button", { name: "Delete park", exact: true });   // the row's trash
       await del.click();
-      return moreTrigger(tab.locator(".panelHead"));
+      return del;
     },
     close: async (d) => { await byName("Cancel")(d).click(); },
   },
   {
-    // leaving the Macros tab over a draft (a macro file's open editor)
+    // closing the macro editor dialog over a draft: stacked over it
     id: "25 Macros tab discard", title: "Discard changes?", tier: "sm", backdrop: "closes", before: macroFolder,
     focus: byName("Keep editing"), actions: ["Keep editing", "Discard"],
     open: async (page) => {
       const tab = await openMacrosTab(page);
-      await tab.getByRole("button", { name: "Open park.ngc", exact: true }).click();
-      await tab.locator(".macroCode .cm-content").click();
+      await tab.getByRole("button", { name: "Edit park", exact: true }).click();
+      const editor = page.getByRole("dialog", { name: "Edit Macro park", exact: true });
+      await editor.locator(".macroCode .cm-content").click();
       await page.keyboard.type("x");
-      const trigger = page.getByRole("tab", { name: "Program", exact: true });
-      await trigger.click();
-      return null;
+      const cancel = editor.getByRole("button", { name: "Cancel", exact: true });
+      await cancel.click();
+      return cancel;   // Keep editing returns into the editor
     },
     close: async (d) => { await byName("Keep editing")(d).click(); },
   },
@@ -549,6 +551,11 @@ for (const row of ROWS) {
         else expect(names[i]).toMatch(want as unknown as RegExp);
       });
     }
+
+    // Every scroller in the dialog draws the app's thin scrollbar (the
+    // parameter dialog drew the browser's wide black one, operator
+    // 2026-10-03): its .dialogContent scrolls in a low window.
+    expect(await thickScrollbars(dialog), "scrollers with the browser's own scrollbar").toEqual([]);
 
     await expect(row.focus(dialog, page), "initial focus (Anhang B)").toBeFocused();
     await expectFocusVisible(page, dialog, "the initial focus is on screen");

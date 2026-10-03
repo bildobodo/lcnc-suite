@@ -11,7 +11,8 @@ import { CircleDot, Pencil, Trash2, X } from "lucide-vue-next";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import FileBrowser from "./FileBrowser.vue";
-import { listToolLibraries, readToolLibrary, type FileEntry } from "./lcncApi";
+import { listToolLibraries, readToolLibrary, fetchToolTableFile, type FileEntry } from "./lcncApi";
+import { saveAsFile } from "./download";
 import FormField from "./FormField.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineSelect from "./MachineSelect.vue";
@@ -73,6 +74,19 @@ interface Tool extends ToolMeta {
 const tools = ref<Tool[]>([]);
 const loading = ref(false);
 const tableError = ref<string | null>(null);
+const downloadError = ref<string | null>(null);
+
+/** Download (the Tools tab's More, operator 2026-10-03): the tool table
+ *  FILE as LinuxCNC reads it, bytes unchanged. */
+async function downloadTable() {
+  downloadError.value = null;
+  try {
+    const { name, data } = await fetchToolTableFile();
+    saveAsFile(name, data);
+  } catch (e) {
+    downloadError.value = `Tool table not downloaded — ${(e as Error).message}`;
+  }
+}
 // Every tool write (add / save / renumber / delete) keeps its dialog open
 // until the CORRELATED reply (UI-12): the command goes out with a req_id
 // (fire() returns it), the reply that carries the same id closes the dialog
@@ -596,7 +610,7 @@ function onToolTap(tool: Tool, e: MouseEvent) {
 // The loaded tool's row, for the Tools tab's object line (design wave D5).
 const currentDescription = computed(() =>
   tools.value.find(t => t.T === props.currentTool)?.description ?? "");
-defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, importBusy, currentDescription });
+defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showImportBrowser, importBusy, currentDescription });
 </script>
 
 <template>
@@ -628,6 +642,10 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, showImportBrowser, i
     <div v-if="tableError" class="statusNote error" role="alert">
       <span>{{ tableError }}</span>
       <MachineBtn type="retry" :disabled="loading" @click="fetchTools">Retry</MachineBtn>
+    </div>
+    <div v-if="downloadError" class="statusNote error" role="alert">
+      <span>{{ downloadError }}</span>
+      <MachineBtn type="close" aria-label="Dismiss download error" title="Dismiss download error" @click="downloadError = null"><X :size="14" /></MachineBtn>
     </div>
     <div v-if="importError && !importPreview" class="statusNote error" role="alert">
       <span>{{ importError }}</span>

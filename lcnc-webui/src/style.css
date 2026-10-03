@@ -1209,14 +1209,22 @@ label:has(input:disabled, select:disabled) {
   text-align: left;
 }
 
-.scroll-thin {
+/* The app's ONE scrollbar. A dialog's content is ALWAYS a scroller (it
+   scrolls once the window is low), so it carries the thin bar here, not
+   dialog by dialog: seven dialogs without .scroll-thin drew the browser's
+   own — on Firefox under a dark theme a wide black bar (operator
+   2026-10-03, the macro parameter dialog). So does the code editor's
+   scroller (CodeMirror's .cm-scroller — the program editor and the macro
+   editor). layout.spec / dialogs.spec / editor-guards.spec flag any
+   scroller without it (`thick-scrollbar`). */
+.scroll-thin, .dialogContent, .cm-scroller {
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
-.scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
-.scroll-thin::-webkit-scrollbar-track { background: transparent; }
-.scroll-thin::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-md); }
-.scroll-thin::-webkit-scrollbar-thumb:hover { background: color-mix(in oklab, var(--border) 80%, var(--fg)); }
+.scroll-thin::-webkit-scrollbar, .dialogContent::-webkit-scrollbar, .cm-scroller::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-thin::-webkit-scrollbar-track, .dialogContent::-webkit-scrollbar-track, .cm-scroller::-webkit-scrollbar-track { background: transparent; }
+.scroll-thin::-webkit-scrollbar-thumb, .dialogContent::-webkit-scrollbar-thumb, .cm-scroller::-webkit-scrollbar-thumb { background: var(--border); border-radius: var(--radius-md); }
+.scroll-thin::-webkit-scrollbar-thumb:hover, .dialogContent::-webkit-scrollbar-thumb:hover, .cm-scroller::-webkit-scrollbar-thumb:hover { background: color-mix(in oklab, var(--border) 80%, var(--fg)); }
 
 /* ─── Scroll-edge fades (.fade-scroll, driven by scrollFade.ts) ────────
    Sticky ::before/::after gradients signal content hidden above/below.

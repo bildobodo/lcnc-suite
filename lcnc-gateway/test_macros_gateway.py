@@ -264,6 +264,61 @@ class Routes(_Folder):
         self.assertEqual(self.call("DELETE", f"/macro?name=park&base={rev(PARK)}").status_code, 200)
         self.assertFalse((self.mdir / "park.ngc").exists())
 
+    def test_a_rename_is_one_step_bound_to_the_old_revision(self):
+        # the editor dialog's file name (operator 2026-10-03): the text under
+        # the new name, the old file gone — only while the old file is still
+        # the revision the editor read, and only to a free name
+        moved = FACE.replace("o<face_top>", "o<face_flat>")
+        url = "/macro?name=face_flat&base=new&rename_from=face_top&rename_base="
+        r = self.call("PUT", url + rev("someone else's"), content=moved.encode())
+        self.assertEqual(r.status_code, 409)
+        self.assertIn("Changed on disk", r.json()["detail"]["reason"])
+        self.assertEqual((self.mdir / "face_top.ngc").read_text(), FACE)
+        self.assertFalse((self.mdir / "face_flat.ngc").exists())
+        r = self.call("PUT", "/macro?name=park&base=new&rename_from=face_top&rename_base=" + rev(FACE), content=b"x")
+        self.assertEqual(r.status_code, 409, "the new name is taken")
+        self.assertEqual(((self.mdir / "park.ngc").read_text(), (self.mdir / "face_top.ngc").read_text()), (PARK, FACE))
+        gateway._source_claims.append(gateway._StartClaim("mdi"))
+        r = self.call("PUT", url + rev(FACE), content=moved.encode())
+        self.assertEqual(r.status_code, 409, "no rename while a start is open")
+        gateway._source_claims.clear()
+        self.assertTrue((self.mdir / "face_top.ngc").exists())
+        r = self.call("PUT", url + rev(FACE), content=moved.encode())
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual(r.json()["macro"]["name"], "face_flat")
+        self.assertEqual((self.mdir / "face_flat.ngc").read_text(), moved)
+        self.assertFalse((self.mdir / "face_top.ngc").exists())
+        for bad in ["/macro?name=x2&base=" + rev(PARK) + "&rename_from=park&rename_base=" + rev(PARK),
+                    "/macro?name=x2&base=new&rename_from=park&rename_base=nope",
+                    "/macro?name=park&base=new&rename_from=park&rename_base=" + rev(PARK)]:
+            self.assertEqual(self.call("PUT", bad, content=b"x").status_code, 400, bad)
+
+    def test_a_rename_whose_old_name_cannot_leave_renames_nothing(self):
+        def refuse(path):
+            raise PermissionError(13, "Permission denied", path)
+        moved = PARK.replace("o<park>", "o<park2>")
+        with patch.object(gateway, "_unlink_renamed", refuse):
+            r = self.call("PUT", "/macro?name=park2&base=new&rename_from=park&rename_base=" + rev(PARK),
+                          content=moved.encode())
+        self.assertEqual(r.status_code, 500)
+        self.assertIn("Not renamed", r.json()["detail"])
+        self.assertEqual((self.mdir / "park.ngc").read_text(), PARK)
+        self.assertFalse((self.mdir / "park2.ngc").exists(), "the new name left again")
+
+    def test_the_tool_table_downloads_as_linuxcnc_reads_it(self):
+        table = self.cfg / "tool.tbl"
+        table.write_bytes(b"T1 P1 Z12.5 D6 ;end mill\nT2 P2 Z-3 D10 ;\xc3\xa4\n")
+        with patch.object(gateway, "get_tool_tbl_path", lambda: str(table)):
+            self.assertEqual(self.call("GET", "/tool-table", auth=False).status_code, 401)
+            r = self.call("GET", "/tool-table")
+            self.assertEqual(r.status_code, 200)
+            self.assertEqual(r.content, table.read_bytes())
+            self.assertEqual(r.headers["X-File-Name"], "tool.tbl")
+            table.unlink()
+            self.assertEqual(self.call("GET", "/tool-table").status_code, 404)
+        with patch.object(gateway, "get_tool_tbl_path", lambda: None):
+            self.assertEqual(self.call("GET", "/tool-table").status_code, 404)
+
     def test_names_outside_the_rule_are_refused(self):
         for n in ["Park", "../x", "a-b", ""]:
             self.assertIn(self.call("GET", f"/macro?name={n}").status_code, (400, 422), n)

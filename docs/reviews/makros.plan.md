@@ -673,6 +673,17 @@ schon einer offen ist (konkurrierende MDI- und AUTO-Starts).
   Einklappen entfällt.
 - Der Editor klappt unter dem Makro auf, das er bearbeitet. Die Liste bleibt alphabetisch.
 
+### Nachtrag: Operator 3. Oktober — der Tab wie die Werkzeugtabelle
+
+- Suchzeile mit Leistenfilter, eine Tabelle: Makro (sortierbar), Beschreibung (die erste freie
+  Kommentarzeile, einzeilig), On bar, Stift, Papierkorb, Reihenfolge. Ein Tipp auf die Zeile wählt das
+  Makro für Run; in der Zeile gibt es keinen Knopf dafür.
+- Der Editor ist ein Dialog wie „Edit Tool“: Dateiname, Titel und Beschreibung als Felder über dem
+  Code. Die Felder sind die Kopfzeilen der Datei. Speichern unter anderem Namen benennt die Datei in
+  einem Schritt im Gateway um; das Makro behält seinen Platz in der Leiste. Der eingeschobene Editor
+  vom 2. Oktober entfällt.
+- Kein Files: Die Liste ist der Ordner. Download lädt das gewählte Makro.
+
 ## Interpreter-Verhalten
 
 Gelesen in den Quellen von LinuxCNC v2.9.4 (der Tag passt zu den installierten Headern,

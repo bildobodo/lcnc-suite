@@ -6806,7 +6806,7 @@ def _publish_no_replace(tmp: str, dest_path: str) -> None:
 
 
 async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
-                               replace: bool = True, gate=None) -> int:
+                               replace: bool = True, gate=None, after_publish=None) -> int:
     """Stream an async iterator of byte chunks to ``dest_path`` atomically and
     bounded, keeping the event loop free. Shared core for ``POST /upload``
     (multipart) and ``PUT /save`` (raw body) — one machinery, not two.
@@ -6828,6 +6828,11 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
     None, run under _source_lock IMMEDIATELY before the publish, the publish
     still under the lock — the slow part (receiving, fsync) stays outside.
     A refusal answers 409 with the reason and drops the temp.
+
+    ``after_publish`` (a macro rename, operator 2026-10-03): a blocking
+    callable run right after the publish, still under _source_lock (it
+    needs a ``gate``). When it fails, the published file leaves again —
+    nothing was renamed — and the request answers 500.
     """
     loop = asyncio.get_event_loop()
     dest_dir = os.path.dirname(dest_path) or "."
@@ -6871,6 +6876,12 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
                     if why:
                         raise HTTPException(status_code=409, detail={"error": "refused", "reason": why})
                     await _publish()
+                    if after_publish is not None:
+                        try:
+                            await loop.run_in_executor(io_ex, after_publish)
+                        except OSError as e:
+                            await loop.run_in_executor(io_ex, _safe_unlink, dest_path)
+                            raise HTTPException(status_code=500, detail=f"Not renamed — {e.strerror or e}")
             return written
         finally:
             if tmp is not None:
@@ -7258,19 +7269,57 @@ async def get_macro(name: str = Query(...)):
                     headers={"X-Macro-Revision": macro_files.revision_of(data), "Cache-Control": "no-cache"})
 
 
+def _unlink_renamed(path: str) -> None:
+    """The old name of a renamed macro leaves (its own seam for the tests)."""
+    os.unlink(path)
+
+
 @app.put("/macro", dependencies=[Depends(require_token)])
-async def put_macro(request: Request, name: str = Query(...), base: str = Query(...)):
+async def put_macro(request: Request, name: str = Query(...), base: str = Query(...),
+                    rename_from: Optional[str] = Query(None), rename_base: Optional[str] = Query(None)):
     """Save a macro: `base` = the revision the editor started from (409 when
     the file is another one now), or `new` to create (409 when it exists).
     The header is checked AFTER the save — a file with header errors is the
-    operator's file and is kept; it is listed, not runnable."""
+    operator's file and is kept; it is listed, not runnable.
+
+    A RENAME (the editor dialog's file name, operator 2026-10-03) is this
+    save under the new name with `base=new`, plus `rename_from` /
+    `rename_base`: ONE step under _source_lock — the new name must be free
+    AND the old file still the revision the editor read, then the new file
+    is published and the old one removed; if that removal fails, the new
+    one leaves again. The client rewrote the o-word lines."""
     state, path = await asyncio.to_thread(_macro_path, name)
     if base != "new" and not re.fullmatch(r"[0-9a-f]{64}", base or ""):
         raise HTTPException(status_code=400, detail="base: a revision or new")
+    gate = _macro_write_gate(state, path, base)
+    after = None
+    if rename_from is not None:
+        if base != "new":
+            raise HTTPException(status_code=400, detail="A rename writes a new name: base=new")
+        if not re.fullmatch(r"[0-9a-f]{64}", rename_base or ""):
+            raise HTTPException(status_code=400, detail="rename_base: a revision")
+        _, old_path = await asyncio.to_thread(_macro_path, rename_from)
+        if old_path == path:
+            raise HTTPException(status_code=400, detail="A rename needs another name")
+        new_gate, old_gate = gate, _macro_write_gate(state, old_path, rename_base)
+
+        def rename_gate():
+            why = new_gate()
+            if why:
+                return why
+            why = old_gate()
+            # the OLD name taken by a program is no reason to keep it
+            return why if why and not why.startswith("Name taken") else None
+        gate = rename_gate
+        after = lambda: _unlink_renamed(old_path)  # noqa: E731
     await _atomic_stream_write(request.stream(), path, MAX_MACRO_SIZE,
-                               replace=base != "new", gate=_macro_write_gate(state, path, base))
-    _trace.emit("macros.saved", name=name, created=base == "new")
-    _macros_changed("saved")
+                               replace=base != "new", gate=gate, after_publish=after)
+    if rename_from is not None:
+        _trace.emit("macros.renamed", name=name, previous=rename_from)
+        _macros_changed("renamed")
+    else:
+        _trace.emit("macros.saved", name=name, created=base == "new")
+        _macros_changed("saved")
     data = await asyncio.to_thread(lambda: open(path, "rb").read())
     return {"ok": True, "macro": _macro_entry(state, name, data, os.path.getmtime(path))}
 
@@ -7316,6 +7365,22 @@ async def delete_macro(name: str = Query(...), base: str = Query(...)):
     _trace.emit("macros.deleted", name=name)
     _macros_changed("deleted")
     return {"ok": True}
+
+
+@app.get("/tool-table", dependencies=[Depends(require_token)])
+async def get_tool_table():
+    """The tool table FILE as LinuxCNC reads it ([EMCIO] TOOL_TABLE), for
+    the Tools tab's Download (operator 2026-10-03): its bytes unchanged, its
+    name in X-File-Name."""
+    path = get_tool_tbl_path()
+    if not path:
+        raise HTTPException(status_code=404, detail="No tool table in the configuration")
+    try:
+        data = await asyncio.to_thread(lambda: open(path, "rb").read())
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Tool table file not found")
+    return Response(content=data, media_type="text/plain; charset=utf-8",
+                    headers={"X-File-Name": os.path.basename(path), "Cache-Control": "no-cache"})
 
 
 # ---- CAM Tool Library Import ----

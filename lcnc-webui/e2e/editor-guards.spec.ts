@@ -1,6 +1,7 @@
 import { test, expect, type Page, type Route } from "@playwright/test";
 import { ctl, MOCK } from "./ctl";
 import { clickMore, moreItem } from "./more";
+import { thickScrollbars } from "./layout-audit";
 
 // WP0 / UI-01 — the editor buffer belongs to the file it was opened on.
 // An external program change (browse from another tab, an upload landing,
@@ -231,6 +232,18 @@ test("discard: clean closes at once, dirty asks and Keep editing keeps the edit"
   await page.getByRole("dialog", { name: "Discard changes?", exact: true }).getByRole("button", { name: "Keep editing", exact: true }).click();
   await expect(page.locator(".dialogOverlay")).toHaveCount(0);
   await expect(page.locator(".cm-content")).toContainText("(dirty)");
+});
+
+// Operator 2026-10-03: a wide black scrollbar in the macro dialog — the
+// code editor's own scroller (CodeMirror's .cm-scroller) drew the browser's
+// bar too, here and in the macro editor. Every scroller of the side pane
+// with the program editor open draws the app's thin one.
+test("the program editor scrolls with the app's thin scrollbar, like every scroller beside it", async ({ page }) => {
+  await open(page);
+  expect(await thickScrollbars(page.locator(".sidePane")), "the viewer").toEqual([]);
+  await enterEdit(page);
+  await typeIntoEditor(page, "(a line long enough to scroll sideways in the editor, and then some more)");
+  expect(await thickScrollbars(page.locator(".sidePane")), "the editor").toEqual([]);
 });
 
 test("an upload finishing after Edit raises the conflict, never loses the buffer", async ({ page }) => {
