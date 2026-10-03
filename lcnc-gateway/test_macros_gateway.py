@@ -681,6 +681,37 @@ class FolderAdmission(Routes):
         self.assertTrue((self.mdir / "escape.ngc").is_symlink())
         self.assertFalse((self.mdir / "moved.ngc").exists())
 
+    def test_a_pipe_or_a_directory_is_refused_at_once(self):
+        """Codex R71 VP-I33 rest: the admission opened before it checked the
+        type — a named pipe waited in open() for a writer (the list, a read,
+        a start's gate under the lock), a directory raised from fdopen (500).
+        Both are refused AT ONCE, by the descriptor's type."""
+        import concurrent.futures
+        os.mkfifo(self.mdir / "pipe.ngc")
+        (self.mdir / "dir.ngc").mkdir()
+        state = gateway.macro_dir_state()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+            for n in ("pipe", "dir"):
+                job = ex.submit(gateway._macro_bytes, state, str(self.mdir / f"{n}.ngc"))
+                try:
+                    exc = job.exception(timeout=1.0)
+                except concurrent.futures.TimeoutError:
+                    os.close(os.open(self.mdir / "pipe.ngc", os.O_WRONLY | os.O_NONBLOCK))   # free our own reader
+                    job.exception(timeout=1.0)
+                    self.fail(f"{n}.ngc: the admission waited in open()")
+                self.assertIsInstance(exc, gateway._MacroOutside, n)
+                self.assertEqual(str(exc), f"{n}.ngc leads to no file")
+        names = [m["name"] for m in self.call("GET", "/macros").json()["macros"]]
+        self.assertEqual(names, ["alias", "face_top", "park"])
+        for n in ("pipe", "dir"):
+            for method, url, kw in [("GET", f"/macro?name={n}", {}),
+                                    ("PUT", f"/macro?name={n}&base=new", {"content": b"x"}),
+                                    ("DELETE", f"/macro?name={n}&base={'0' * 64}", {})]:
+                r = self.call(method, url, **kw)
+                self.assertEqual(r.status_code, 403, (method, url, r.text))
+                self.assertIn(f"{n}.ngc leads to no file", r.text)
+        self.assertTrue((self.mdir / "dir.ngc").is_dir())
+
 
 class RunMacro(_Folder):
     def setUp(self):
