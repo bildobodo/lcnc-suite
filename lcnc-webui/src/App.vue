@@ -15,6 +15,7 @@ import { connectWs, connected, status, send, request, armed, lastReply, viewerGc
 const ThreeViewer = defineAsyncComponent(() => import("./ThreeViewer.vue"));
 import TabPanel from "./TabPanel.vue";
 import GcodePanel from "./GcodePanel.vue";
+import { gCodeWords, mCodeWords } from "./gcodeRefView";
 import SafetyStrip from "./SafetyStrip.vue";
 import JogStrip from "./JogStrip.vue";
 import StatsDonut from "./StatsDonut.vue";
@@ -908,16 +909,12 @@ const taskMode = computed(() => st.value.task_mode ?? 0);
 // viewer/toolOffsetState.ts — the Tool strip's word, the viewer's pin)
 const toolOffset = computed(() => toolOffsetState({ tool_number: st.value.tool_number, tool_table_z: st.value.tool_table_z,
   tool_offset: st.value.tool_offset, gcodes: st.value.gcodes }));
-const activeGcodes = computed(() => {
-  const codes = st.value.gcodes;
-  if (!codes || !Array.isArray(codes)) return "";
-  return codes.slice(1).filter((c: number) => c !== -1).map((c: number) => `G${(c / 10).toFixed(c % 10 ? 1 : 0)}`).join(" ");
-});
-const activeMcodes = computed(() => {
-  const codes = st.value.mcodes;
-  if (!codes || !Array.isArray(codes)) return "";
-  return codes.slice(1).filter((c: number) => c !== -1).map((c: number) => `M${c}`).join(" ");
-});
+const activeGWords = computed(() => gCodeWords(st.value.gcodes));
+const activeMWords = computed(() => mCodeWords(st.value.mcodes));
+const activeGcodes = computed(() => activeGWords.value.join(" "));
+const activeMcodes = computed(() => activeMWords.value.join(" "));
+// the reference's "Active now" (the strip's codes block opens it)
+const activeCodeWords = computed(() => [...activeGWords.value, ...activeMWords.value]);
 
 // Tool change dialog (global — tool changes can happen from any context)
 const toolChangeRequested = computed(() => !!st.value.tool_change_requested);
@@ -1069,7 +1066,8 @@ const {
   settingsDialogOpen,
   settingsInitialTab,
   gcodeRefOpen,
-  gcodeRefInitialSearch,
+  gcodeRefAt,
+  gcodeRefActive,
   messagesDialogOpen,
   openDialog,
   openMessages,
@@ -2053,7 +2051,7 @@ watch(viewerGcode, (newGcode) => {
               @abort="fire({ cmd: 'abort' }, 'abort')"
               @toggleOptionalStop="toggleOptionalStop"
               @toggleBlockDelete="toggleBlockDelete"
-              @openGcodeRef="openGcodeRef"
+              @openGcodeRef="(code: string) => openGcodeRef({ at: code })"
               @showStats="statsDialogOpen = true"
               @editingChange="gcodeEditActive = $event"
             />
@@ -2328,7 +2326,8 @@ watch(viewerGcode, (newGcode) => {
       </DialogFrame>
 
       <!-- G-code reference dialog -->
-      <GcodeReferenceDialog :open="gcodeRefOpen" :initialSearch="gcodeRefInitialSearch" @close="gcodeRefOpen = false" />
+      <GcodeReferenceDialog :open="gcodeRefOpen" :at="gcodeRefAt" :active="gcodeRefActive" :activeCodes="activeCodeWords"
+        @close="gcodeRefOpen = false" />
 
       <!-- Messages dialog -->
       <DialogFrame v-if="messagesDialogOpen" kind="info" size="lg" full :title="`Messages (${messages.length})`"
@@ -2491,6 +2490,7 @@ watch(viewerGcode, (newGcode) => {
         @estop-reset="send({ cmd: 'estop_reset' })"
         @machine-on="fire({ cmd: 'machine_on' }, 'safety')"
         @machine-off="fire({ cmd: 'machine_off' }, 'safety')"
+        @open-active-codes="openGcodeRef({ active: true })"
       />
       </template>
 

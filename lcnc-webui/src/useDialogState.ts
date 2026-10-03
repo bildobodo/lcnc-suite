@@ -36,7 +36,10 @@ export function useDialogState(opts: UseDialogStateOptions) {
   const settingsDialogOpen = ref(false);
   const settingsInitialTab = ref<string | null>(null);
   const gcodeRefOpen = ref(false);
-  const gcodeRefInitialSearch = ref("");
+  // What the reference opens on: AT a code word (a code tapped in the
+  // program) or on its "Active now" filter (the Safety strip's codes).
+  const gcodeRefAt = ref("");
+  const gcodeRefActive = ref(false);
   const messagesDialogOpen = ref(false);
 
   function closeAllDialogs() {
@@ -102,8 +105,9 @@ export function useDialogState(opts: UseDialogStateOptions) {
     if (!open) settingsInitialTab.value = null;
   });
 
-  function openGcodeRef(code?: string) {
-    gcodeRefInitialSearch.value = code ?? "";
+  function openGcodeRef(on: { at?: string; active?: boolean } = {}) {
+    gcodeRefAt.value = on.at ?? "";
+    gcodeRefActive.value = on.active ?? false;
     openDialog("gcodeRef");
   }
 
@@ -135,7 +139,8 @@ export function useDialogState(opts: UseDialogStateOptions) {
     settingsDialogOpen,
     settingsInitialTab,
     gcodeRefOpen,
-    gcodeRefInitialSearch,
+    gcodeRefAt,
+    gcodeRefActive,
     messagesDialogOpen,
     closeAllDialogs,
     openDialog,

@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
-import { Lock, LockOpen, TriangleAlert, Power } from "lucide-vue-next";
+import { Lock, LockOpen, TriangleAlert, Power, BookOpen } from "lucide-vue-next";
 import { activeKind } from "./inputSession";
 import { useMediaMql } from "./useMediaMql";
 import { NO_VALUE } from "./format";
@@ -38,6 +38,7 @@ const emit = defineEmits<{
   (e: "estopReset"): void;
   (e: "machineOn"): void;
   (e: "machineOff"): void;
+  (e: "openActiveCodes"): void;
 }>();
 
 const modeLabel = computed(() => {
@@ -154,11 +155,18 @@ const compact = computed(() => isPortrait.value && activeKind.value !== null);
         </div>
       </div>
       <div class="sep"></div>
-      <div class="codesRow stack-micro">
-        <span class="codes-value">{{ gcodes }}</span>
-        <div class="sep"></div>
-        <span class="codes-value">{{ mcodes }}</span>
-      </div>
+      <!-- One tap opens the G-code reference on "Active now" (operator
+           2026-10-03, variant B: one big target, the strip unchanged). -->
+      <MachineBtn type="activeCodes" class="codesRow"
+                  :aria-label="`Active codes ${gcodes} ${mcodes} — open in the G-code reference`"
+                  title="Open the active codes in the G-code reference"
+                  @click="emit('openActiveCodes')">
+        <span class="codesStack stack-micro">
+          <span class="codesHead"><span class="codes-value">{{ gcodes }}</span><BookOpen :size="14" class="codesIcon" aria-hidden="true" /></span>
+          <span class="sep"></span>
+          <span class="codes-value">{{ mcodes }}</span>
+        </span>
+      </MachineBtn>
     </div>
   </div>
 </template>
@@ -211,10 +219,17 @@ const compact = computed(() => isPortrait.value && activeKind.value !== null);
   .statusDetail { padding-inline: var(--gap-tight); }
 }
 .codesRow {
-  /* Prevent codes from widening the strip — wrap within status column width */
+  /* Prevent codes from widening the strip — wrap within status column width.
+     The button reaches into the detail's side padding, so its text lines up
+     with the rows above and its tint has room. */
   width: 0;
-  min-width: 100%;
+  min-width: calc(100% + 2 * var(--gap-tight));
+  margin-inline: calc(-1 * var(--gap-tight));
 }
+.codesStack .sep { display: block; }   /* a span inside the button */
+.codesHead { display: flex; align-items: flex-start; gap: var(--gap-tight); }
+.codesHead .codes-value { flex: 1; min-width: 0; }
+.codesIcon { flex: none; color: var(--fg-muted); }
 .codes-value {
   word-break: keep-all;
   overflow-wrap: normal;

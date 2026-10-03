@@ -7799,3 +7799,28 @@ Codex closed VP-I29–32 and VP-I34 and left two points (R71,
   echo names exactly one command. No further guard was asked; the binding to
   this instance's buffer stays the premise.
 
+## 2026-10-03 — Operator: the G-code reference as wide as Settings; the active codes open it on "Active now"; a code jumps to its entry
+
+Two ideas of 2026-10-01, rendered first (acceptance page V10), then chosen
+("variante b hört sich gut an"):
+
+- **(j) Size:** the reference takes Settings' tier (`lg` `wide`, 760 px)
+  instead of 480 px; Name and Syntax wrap, so nothing scrolls sideways (the
+  `data-scroll-x` exemption of R70 is gone and the sideways check now holds
+  the reference too). A dialog under 520 px (portrait at 150 %) shows each
+  row as a card under the same sticky head. Codes sort naturally.
+- **(i) Variant B:** the Safety strip's active codes are one button that
+  opens the reference on a new "Active now" filter — every active code with
+  its explanation at once. Variant A (each code its own chip) was rendered
+  too: on touch every chip needs the 36 px height, the codes took three lines
+  and the M-codes scrolled out of the status box.
+- **Jump:** a code tapped in the program opens the whole list AT its entry,
+  marked (tint, bar, `aria-current`) and scrolled into view; it used to set
+  the code as the search text, and "G1" listed G10 to G19 and every
+  description containing it. G01 resolves to G1, G10 to all its L forms; a
+  word with no entry still searches. Recommended in the renders, built on
+  the operator's standing "follow the recommendations".
+- Guards: `e2e/gcode-reference.spec.ts` (8 mutations red: the narrow tier,
+  one-line syntax, no cards, the block without the filter, no mark, no
+  scroll, the old search, G01) and `gcodeRefView.test.ts`.
+
