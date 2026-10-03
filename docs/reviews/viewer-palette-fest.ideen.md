@@ -9808,3 +9808,56 @@ Seriennummern-Erklärung; keine Operatorentscheidung erforderlich.
   Offline-Lauf läuft mit der nächsten Änderung (G-code-Referenz, eigener Branch).
 - Das laufende Gateway der Operator-Sim trägt die Korrektur ab dem nächsten Neustart.
 - `choices.spec`: Die Ursache des einen Fehlschlags ist weiter offen.
+
+
+---
+
+## Review R72 · Codex · Makro-Zulassung und Seriennummern · 3. Oktober 2026
+
+**Ergebnis: Agreement für `b3ec5ee..6cd7310`. VP-I33-Rest ist geschlossen;
+auch die Seriennummern-Erklärung ist berichtigt.** Damit sind die Befunde
+VP-I29–VP-I34 aus R70 im geprüften Paket-5-Umfang abgearbeitet. Kein neuer
+Befund und keine offene Operatorentscheidung aus dieser Nachprüfung.
+
+### VP-I33-Rest · geschlossen
+
+Die Korrektur greift vor beiden bisherigen Fehlerstellen: `O_NONBLOCK` verhindert
+beim Öffnen der Named Pipe das Warten auf einen Schreiber. `fstat` und `S_ISREG`
+prüfen den bereits geöffneten Deskriptor vor `fdopen`, sodass ein Verzeichnis
+als unzulässige Datei behandelt wird. Der Ablehnungspfad schließt den Deskriptor;
+eine reine Vorprüfung des Pfadnamens wurde nicht eingeführt.
+
+Meine beiden R71-Gegenproben bestehen mit unveränderten Assertions: `pipe.ngc`
+wird ohne Entsperren durch einen Schreiber mit `_MacroOutside` abgelehnt,
+`dir.ngc` liefert **403**. Die bestehenden Makrotests einschließlich der neuen
+Routenprüfung bestehen ebenfalls: Die Liste überspringt beide Typen, GET/PUT/DELETE
+lehnen sie ab; normale Dateien und interne Links bleiben zugelassen.
+
+Belege: [R71-Sonde mit umgelenktem Ausgabepfad](viewer-palette-fest.r72.r71-probe.py),
+[Ergebnisse](viewer-palette-fest.r72.r71-rerun.jsonl),
+[Testlauf: 81 bestanden](viewer-palette-fest.r72.backend.txt).
+
+### Seriennummern · Korrektur angenommen
+
+Gateway-Kommentar, Plan, CLAUDE-Vertrag und Entscheidungsnachtrag beschreiben jetzt
+den gemeinsamen Zähler des Befehlspuffers. Das entspricht der nativen Messung aus
+R71. Die Bindung an den Puffer dieser Instanz und die im Plan benannte Grenze
+für eigene Fremdtransporte bleiben bestehen. Die Startfreigabe selbst wurde in
+dieser Runde nicht geändert; eine zusätzliche Absicherung gegen die zuvor falsch
+angenommenen unabhängigen Kanalzähler ist nicht erforderlich.
+
+### Prüfgrenzen und Aktivierung
+
+Eigener Lauf in einer Archivkopie von `6cd7310`: **79 vorhandene Makrotests plus
+2 R71-Gegenproben bestanden**. Kein eigener voller Offline-Gate-Lauf; das
+unveränderte Frontend wurde nicht erneut gebaut oder im Browser geprüft. Die
+bereits benannten Teststabilitätshinweise aus R71 bleiben bestehen und sind kein
+neuer Produktbefund dieser Runde.
+
+Das ist die technische Abnahme des geprüften Quellstands. Laut Anfrage trägt
+das laufende Gateway den Fix erst nach seinem nächsten Neustart. Die Live-Sim
+wurde nicht angefasst oder neu gestartet.
+
+[Prüfprotokoll und Wiederholung](viewer-palette-fest.r72.checks.md),
+[Stand und Herkunft](viewer-palette-fest.r72.context.json),
+[SHA-256 der neuen Belege](viewer-palette-fest.r72.sha256.json).

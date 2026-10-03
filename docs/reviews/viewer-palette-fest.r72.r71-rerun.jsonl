@@ -1,0 +1,2 @@
+{"case": "nonregular directory", "response": "HTTPException", "status_code": 403}
+{"case": "nonregular FIFO", "blocked_until_writer_opened": false, "response_after_writer": "_MacroOutside: pipe.ngc leads to no file"}
