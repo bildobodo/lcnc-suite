@@ -9107,7 +9107,7 @@ Entscheidungen und Befunde, alle umgesetzt. Die Rot-Nachweise stehen in den Comm
     ohne `preventDefault`: 9 × `jog_cont`.
 - **Gate auf `3ccffae`:** bestanden (Backend 1204, Unit 1869, Browser 414).
 - **Noch nicht im Live-Baum:** Der Operator schaut gerade. Der Live-Baum steht auf
-  `feat/backlog-integration` mit `4b887ae`. `b0a8ffd..3ccffae` kommen erst nach seinem Ja hinein.
+  `feat/backlog-integration` mit `4b887ae`. `b0a8ffd..3ccffae` kommen erst nach dem Ja des Operators hinein.
 - **Offen beim Operator:** Program im schmalen Panel hat jetzt drei Kopfzeilen (Start · Step /
   Pause · Abort / More), eine mehr als mit dem alten Einklappen.
 
