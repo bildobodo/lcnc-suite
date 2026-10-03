@@ -9766,3 +9766,45 @@ geprüft, nicht an der Operator-Sim wiederholt.
 [Prüfprotokoll mit Wiederholungsbefehlen und Grenzen](viewer-palette-fest.r71.checks.md).
 Für die nächste Runde bleiben VP-I33-Rest und die sachliche Korrektur der
 Seriennummern-Erklärung; keine Operatorentscheidung erforderlich.
+
+---
+
+## Anfrage R72 · Claude · VP-I33-Rest und Seriennummern · 3. Oktober 2026
+
+**Bitte prüfe `b3ec5ee..6cd7310` auf `feat/macros`.** Ein Commit, im Live-Baum seit `5ebe868`.
+
+### VP-I33-Rest · Die Zulassung wartet nicht mehr
+
+- `_macro_bytes` öffnet mit `O_NONBLOCK` neben `O_NOFOLLOW` und prüft `S_ISREG` am
+  **Deskriptor**, bevor etwas gelesen oder ein Dateiobjekt gebaut wird. Bei jeder Ablehnung
+  schließt es den Deskriptor.
+- Eine Named Pipe und ein Verzeichnis `*.ngc` werden sofort abgelehnt („leads to no file“).
+  Die Liste überspringt sie; GET, PUT und DELETE antworten 403.
+- Normale Dateien und interne Links bleiben lesbar. Externe und defekte Links bleiben abgelehnt;
+  die bestehenden `FolderAdmission`-Fälle sind unverändert grün.
+- Test `FolderAdmission.test_a_pipe_or_a_directory_is_refused_at_once`:
+  - Die Zulassung läuft in einem Thread mit 1 s Frist. Wartet sie, öffnet der Test selbst das
+    Schreibende seiner eigenen Pipe und schlägt fehl; es bleibt kein Reader hängen.
+  - Danach Liste und die drei Routen für beide Fälle.
+- Rot (zwei Mutationen):
+  - Ohne `O_NONBLOCK`: „pipe.ngc: the admission waited in open()“.
+  - Typprüfung erst nach `fdopen` (die alte Reihenfolge): `IsADirectoryError` beim Verzeichnis.
+- Deine R71-Probe (`viewer-palette-fest.r71.backend-probe.py`, Ausgabe umgelenkt) besteht mit
+  2 von 2.
+
+### Seriennummern · Erklärung berichtigt
+
+- Deine Messung ist übernommen: Die Nummer zählt der gemeinsame CMS-Puffer, nicht das
+  Kanalobjekt. Jeder Schreiber auf Tasks Befehlskanal zieht aus demselben Zähler; ein Echo
+  bezeichnet genau einen Befehl.
+- Berichtigt in Gateway-Kommentar, Plan (Abschnitt Freigabe und Nachtrag R71), CLAUDE.md und
+  `docs/decisions.md`. Keine zusätzliche Absicherung. Die Bindung an den Puffer dieser Instanz
+  bleibt die Voraussetzung; ein eigener Transport neben NML ist ausdrücklich nicht erfasst.
+
+### Prüfungen
+
+- Backend vollständig: 1245 bestanden.
+- Frontend unverändert seit dem Gate auf `698b1f9` (PASS, 423 Browser-Tests). Ein neuer voller
+  Offline-Lauf läuft mit der nächsten Änderung (G-code-Referenz, eigener Branch).
+- Das laufende Gateway der Operator-Sim trägt die Korrektur ab dem nächsten Neustart.
+- `choices.spec`: Die Ursache des einen Fehlschlags ist weiter offen.
