@@ -1,5 +1,6 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { ctl, MOCK } from "./ctl";
+import { Folder, serve, rev } from "./macroFolder";
 
 // Design wave D6 (operator decision 2026-09-25, UI-D02 / N95): starting
 // motion is a HOLD, like every other motion button —
@@ -26,11 +27,10 @@ const PERMS_ALL = {
   surfaceComp: true, safety: true, setup: true, armed: true, always: true,
 };
 const PROGRAM = "(program A)\nG0 X0\nG1 X10 F100\nG1 Y10\nM2\n";
-const MACROS = { macros: [
-  { id: "m-park", name: "Park", command: "G53 G0 Z0", params: [] },
-  { id: "m-face", name: "Face Top", command: "G0 Z{depth} F{feed}",
-    params: [{ name: "depth", label: "Depth", default: "5" }, { name: "feed", label: "Feed", default: "100" }] },
-] };
+/** The macro files on the bar: park (no parameters, a hold) and face_top
+ *  (parameters, a dialog) — macroFolder.ts; the earlier settings macros were
+ *  dropped 2026-10-02. */
+const BAR = { macros: { macros: [], bar: ["park", "face_top"] } };
 const HOLD_MS = 700;   // > HOLD_FIRE_MS (500)
 
 async function sent(): Promise<{ cmd?: string; text?: string; line?: number }[]> {
@@ -42,9 +42,10 @@ const count = async (cmd: string) => (await sent()).filter(c => c.cmd === cmd).l
 // The fingerprint GET /gcode names for the text it serves (Codex R17 XZ-07).
 const SOURCE_A = "a".repeat(64), SOURCE_M = "m".repeat(64);
 
-async function ready(page: Page, settings: Record<string, unknown> = {}) {
+async function ready(page: Page, settings: Record<string, unknown> = {}, folder?: Folder) {
   await ctl({ op: "reset" });
   await page.setViewportSize({ width: 1600, height: 1000 });
+  if (folder) await serve(page, folder);
   await page.route("**/gcode?*", route => route.fulfill({ contentType: "text/plain", body: PROGRAM,
     headers: { "X-Program-Source": SOURCE_A } }));
   await page.goto(MOCK);
@@ -283,26 +284,8 @@ test("the Run-from-line preset and Settings' default preset never uncheck each o
   }
 });
 
-test("a macro without parameters runs on a hold; a command saved during the hold cancels it, the next hold runs the new one once", async ({ page }) => {
-  await ready(page, { macros: MACROS });
-  const park = page.locator(".macroBar").getByRole("button", { name: "Park", exact: true });
-  await press(page, park, 120);
-  await page.waitForTimeout(300);
-  expect(await count("mdi"), "a tap runs nothing").toBe(0);
-  // Another client saves a different command under the same id mid-hold.
-  const box = (await park.boundingBox())!;
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.waitForTimeout(200);
-  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { macros: { macros: [
-    { ...MACROS.macros[0], command: "G53 G0 Z-5" }, MACROS.macros[1]] } } } });
-  await page.waitForTimeout(HOLD_MS);
-  await page.mouse.up();
-  await expect(page.locator("[data-btn-hint]")).toHaveText("Selection changed — hold again");
-  expect(await count("mdi"), "the retargeted hold ran nothing").toBe(0);
-  await press(page, park, HOLD_MS);
-  await expect.poll(async () => (await sent()).filter(c => c.cmd === "mdi").map(c => c.text)).toEqual(["G53 G0 Z-5"]);
-});
+// (A macro without parameters on a hold, a revision saved during the hold:
+// macros.spec "another client's save during a bar hold cancels it".)
 
 // ── Package 5, stage A: the bar moves with the orientation ──
 // Portrait puts the macro bar in the viewer column, landscape under the
@@ -311,7 +294,7 @@ test("a macro without parameters runs on a hold; a command saved during the hold
 // focused macro keeps its focus on the same macro (by its id); an open
 // parameter dialog returns to the new button when it closes.
 test("an orientation change mid-hold runs nothing; the focus and an open dialog's return follow the macro", async ({ page }) => {
-  await ready(page, { macros: MACROS });
+  await ready(page, BAR, new Folder());
   const PORTRAIT = { width: 1000, height: 1400 }, LANDSCAPE = { width: 1600, height: 1000 };
   const park = () => page.locator(".macroBar").getByRole("button", { name: "Park", exact: true });
   const box = (await park().boundingBox())!;
@@ -323,109 +306,129 @@ test("an orientation change mid-hold runs nothing; the focus and an open dialog'
   await page.waitForTimeout(HOLD_MS);
   await page.mouse.up();
   await page.waitForTimeout(300);
-  expect(await count("mdi"), "the hold ended with its button").toBe(0);
+  expect(await count("run_macro"), "the hold ended with its button").toBe(0);
   await press(page, park(), HOLD_MS);
-  await expect.poll(() => count("mdi"), { message: "a full hold on the new button runs once" }).toBe(1);
+  await expect.poll(() => count("run_macro"), { message: "a full hold on the new button runs once" }).toBe(1);
   // the focus follows the macro, not a position
   await park().focus();
   await page.setViewportSize(LANDSCAPE);
   await expect(page.locator(".viewerColumn .macroBar")).toHaveCount(0);
   await expect(park(), "focus on the same macro in the new bar").toBeFocused();
   // an open parameter dialog returns to the new button
-  const face = () => page.locator(".macroBar").getByRole("button", { name: "Face Top", exact: true });
+  const face = () => page.locator(".macroBar").getByRole("button", { name: "Face top", exact: true });
   await face().click();
-  const dialog = page.getByRole("dialog", { name: "Face Top" });
+  const dialog = page.getByRole("dialog", { name: "Face top" });
   await expect(dialog).toBeVisible();
   await page.setViewportSize(PORTRAIT);
   await expect(page.locator(".viewerColumn .macroBar")).toBeVisible();
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(dialog).toHaveCount(0);
-  await expect(face(), "the dialog returned to the new Face Top").toBeFocused();
-  expect(await count("mdi"), "nothing else ran").toBe(1);
+  await expect(face(), "the dialog returned to the new Face top").toBeFocused();
+  expect(await count("run_macro"), "nothing else ran").toBe(1);
 });
 
-// ── The parameter dialog follows its macro (UI-DI08) ──
-// The dialog held a COPY of the macro: a revision saved during the Execute
-// hold ran the old command. It now reads the macro live by id — a new
-// command, a new parameter set or the macro's removal cancels the hold;
-// entered values stay, a new parameter shows its default, and the next
-// complete hold runs exactly the visible command once.
-const faceTop = (over: Record<string, unknown>) => ({ macros: { macros: [MACROS.macros[0], { ...MACROS.macros[1], ...over }] } });
-
-test("a macro revision saved during the dialog's Execute hold cancels it; the next hold runs the visible command once", async ({ page }) => {
-  await ready(page, { macros: MACROS });
+// ── The parameter dialog follows its macro file (UI-DI08) ──
+// The dialog reads its file live by name — a new revision, a new parameter
+// set or the file's deletion cancels the Execute hold; entered values stay,
+// a new parameter shows its default, and the next complete hold runs exactly
+// the visible revision with the visible values once.
+const runs = async () => (await sent()).filter(c => c.cmd === "run_macro") as { name?: string; revision?: string; args?: number[] }[];
+/** A value through the field's keypad, the operator's way. */
+async function enterValue(page: Page, field: Locator, value: string) {
+  await field.click();
+  await page.keyboard.press("Control+A");
+  await page.keyboard.type(value);
+  await page.keyboard.press("Enter");
+  await expect(field).toHaveValue(value);
+}
+test("a macro revision saved during the dialog's Execute hold cancels it; the next hold runs the visible revision once", async ({ page }) => {
+  const folder = new Folder();
+  await ready(page, BAR, folder);
   const hint = page.locator("[data-btn-hint]");
   const dialog = page.getByRole("dialog");
   const execute = dialog.getByRole("button", { name: "Execute", exact: true });
-  const mdi = async () => (await sent()).filter(c => c.cmd === "mdi").map(c => c.text);
+  const face = folder.files.get("face_top")!;
+  const meta = face.meta as { title: string; params: Record<string, unknown>[] };
+  const changed = (version: number) => ctl({ op: "raw", frame: { type: "macros_changed", version } });
 
-  // 1. A new command (and name) for the same id.
-  await page.locator(".macroBar").getByRole("button", { name: "Face Top", exact: true }).click();
-  await holdWhile(page, execute, () => ctl({ op: "raw", frame: { type: "settings_changed",
-    settings: faceTop({ name: "Face Deep", command: "G0 Z-{depth} F{feed}" }) } }));
+  // 1. A new revision (and title) of the same file.
+  await page.locator(".macroBar").getByRole("button", { name: "Face top", exact: true }).click();
+  await holdWhile(page, execute, async () => {
+    folder.touch("face_top", face.text.replace("(MACRO Face top)", "(MACRO Face deep)"));
+    face.meta = { ...meta, title: "Face deep" };
+    await changed(2);
+  });
   await expect(hint).toHaveText("Selection changed — hold again");
-  expect(await mdi(), "the old command did not run").toEqual([]);
-  await expect(page.getByRole("dialog", { name: "Face Deep", exact: true })).toBeVisible();
-  await expect(dialog.locator(".macroPreview")).toHaveText("G0 Z-5 F100");
+  expect(await runs(), "the old revision did not run").toEqual([]);
+  await expect(page.getByRole("dialog", { name: "Face deep", exact: true })).toBeVisible();
   await press(page, execute, HOLD_MS);
-  await expect.poll(mdi).toEqual(["G0 Z-5 F100"]);
+  await expect.poll(runs).toEqual([expect.objectContaining({ name: "face_top", revision: rev(face.text), args: [0.5, 600] })]);
 
   // 2. A new parameter: the entered value stays, the new one shows its default.
   await ctl({ op: "clearCmds" });
-  await page.locator(".macroBar").getByRole("button", { name: "Face Deep", exact: true }).click();
-  await dialog.getByRole("textbox", { name: "Feed", exact: true }).fill("250");
-  await holdWhile(page, execute, () => ctl({ op: "raw", frame: { type: "settings_changed",
-    settings: faceTop({ name: "Face Deep", command: "G0 Z-{depth} F{feed} S{spd}",
-      params: [...MACROS.macros[1].params, { name: "spd", label: "Speed", default: "7" }] }) } }));
-  expect(await mdi(), "a new parameter set cancels").toEqual([]);
-  await expect(dialog.getByRole("textbox", { name: "Feed", exact: true }), "the entered value stays").toHaveValue("250");
-  await expect(dialog.getByRole("textbox", { name: "Speed", exact: true }), "the new parameter's default").toHaveValue("7");
-  await expect(dialog.locator(".macroPreview")).toHaveText("G0 Z-5 F250 S7");
+  await page.locator(".macroBar").getByRole("button", { name: "Face deep", exact: true }).click();
+  const feed = dialog.getByLabel("Feed", { exact: true });
+  await enterValue(page, feed, "250");
+  await holdWhile(page, execute, async () => {
+    folder.touch("face_top", face.text.replace("(PARAM 2 feed", '(PARAM 3 clear "Clearance Z" length 5 min=1 max=100)\n(PARAM 2 feed'));
+    face.meta = { ...face.meta, params: [...meta.params,
+      { n: 3, key: "clear", label: "Clearance Z", unit: "length", default: 5, min: 1, max: 100, integer: false }] };
+    await changed(3);
+  });
+  expect(await runs(), "a new parameter set cancels").toEqual([]);
+  await expect(feed, "the entered value stays").toHaveValue("250");
+  await expect(dialog.getByLabel("Clearance Z", { exact: true }), "the new parameter's default").toHaveValue("5");
   await press(page, execute, HOLD_MS);
-  await expect.poll(mdi).toEqual(["G0 Z-5 F250 S7"]);
+  await expect.poll(runs).toEqual([expect.objectContaining({ name: "face_top", revision: rev(face.text), args: [0.5, 250, 5] })]);
 
-  // 3. The macro removed: the hold ends, nothing runs, the dialog says so.
+  // 3. The file deleted: the hold ends, nothing runs, the dialog says so.
   await ctl({ op: "clearCmds" });
-  await page.locator(".macroBar").getByRole("button", { name: "Face Deep", exact: true }).click();
-  await holdWhile(page, execute, () => ctl({ op: "raw", frame: { type: "settings_changed",
-    settings: { macros: { macros: [MACROS.macros[0]] } } } }));
+  await page.locator(".macroBar").getByRole("button", { name: "Face deep", exact: true }).click();
+  await holdWhile(page, execute, async () => {
+    folder.files.delete("face_top");
+    await changed(4);
+  });
   await page.waitForTimeout(200);
-  expect(await mdi(), "a removed macro runs nothing").toEqual([]);
+  expect(await runs(), "a deleted macro runs nothing").toEqual([]);
   await expect(dialog.getByRole("alert")).toContainText("removed");
   await expect(execute).toBeDisabled();
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(dialog).toHaveCount(0);
 });
 
-test("a macro with parameters opens on a tap; Enter moves on and never executes; Execute is a hold bound to the values", async ({ page }) => {
-  await ready(page, { macros: MACROS });
-  await page.locator(".macroBar").getByRole("button", { name: "Face Top", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Face Top", exact: true });
+test("a macro with parameters opens on a tap; Enter opens a field's keypad and never executes; Execute is a hold bound to the values", async ({ page }) => {
+  const folder = new Folder();
+  await ready(page, BAR, folder);
+  await page.locator(".macroBar").getByRole("button", { name: "Face top", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Face top", exact: true });
   await expect(dialog).toBeVisible();
-  const depth = dialog.getByRole("textbox", { name: "Depth", exact: true });
-  const feed = dialog.getByRole("textbox", { name: "Feed", exact: true });
+  const depth = dialog.getByLabel("Depth", { exact: true });
+  const feed = dialog.getByLabel("Feed", { exact: true });
+  // A macro's parameters are numbers: Enter opens the field's keypad (the
+  // number-field contract), Enter there applies and hands the focus back.
   await depth.focus();
   await page.keyboard.press("Enter");
+  await expect(page.locator(".nkStrip")).toBeVisible();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".nkStrip")).toHaveCount(0);
+  await expect(depth).toBeFocused();
+  await page.keyboard.press("Tab");
   await expect(feed).toBeFocused();
-  await page.keyboard.press("Enter");
   const execute = dialog.getByRole("button", { name: "Execute", exact: true });
-  await expect(execute).toBeFocused();
+  await execute.focus();
   await page.keyboard.press("Enter");
+  await page.keyboard.press("Space");
   await page.waitForTimeout(300);
-  expect(await count("mdi"), "Enter never executes").toBe(0);
+  expect(await count("run_macro"), "Enter and Space never execute").toBe(0);
   await expect(dialog).toBeVisible();
-  // A value changed during the hold cancels it.
-  await feed.fill("250");
-  const box = (await execute.boundingBox())!;
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.waitForTimeout(200);
-  await feed.evaluate((el: HTMLInputElement) => { el.value = "300"; el.dispatchEvent(new Event("input", { bubbles: true })); });
-  await page.waitForTimeout(HOLD_MS);
-  await page.mouse.up();
-  expect(await count("mdi"), "the retargeted hold ran nothing").toBe(0);
+  // The hold runs the entered values (a value changed during a hold re-keys
+  // it: useMacros.test.ts — a number field takes values only through its
+  // keypad, which no pointer holding Execute can reach).
+  await enterValue(page, feed, "300");
+  await press(page, execute, 120);
+  expect(await count("run_macro"), "a tap runs nothing").toBe(0);
   await press(page, execute, HOLD_MS);
-  await expect.poll(async () => (await sent()).filter(c => c.cmd === "mdi").map(c => c.text)).toEqual(["G0 Z5 F300"]);
+  await expect.poll(runs).toEqual([expect.objectContaining({ name: "face_top", revision: rev(folder.files.get("face_top")!.text), args: [0.5, 300] })]);
   // The send checks the button's class: probe closed (ready open) → dimmed.
   await ctl({ op: "status_delta", data: { permissions: { ...PERMS_ALL, probe: false } } });
   await expect(page.locator(".macroBar").getByRole("button", { name: "Park", exact: true })).toBeDisabled();

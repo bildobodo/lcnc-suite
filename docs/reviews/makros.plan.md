@@ -610,6 +610,11 @@ schon einer offen ist (konkurrierende MDI- und AUTO-Starts).
 
 **Die Settings-Makros**
 
+- **Umsetzung, Operator-Entscheidung 2. Oktober abends (Live-Blick):** Die Settings-Makros
+  entfallen ganz („ich würde die alten makros fallen lassen“). Die Leiste trägt nur noch Dateien,
+  „Earlier macros“ und „Convert to file“ entfallen. Ein gespeicherter `macros`-Eintrag bleibt in den
+  Settings genau so, wie er ist: nie benutzt, nie umgeschrieben. Die Konsole sagt einmal, dass er da
+  ist. Der Operator hatte keinen. Die Absätze unten beschreiben den Stand vor dieser Entscheidung.
 - Sie bleiben, laufen weiter und stehen weiter auf der Leiste, vor den Dateimakros.
 - Ihr Editor zieht aus Settings in den Tab als Gruppe „Earlier macros“. Settings › Macros entfällt;
   der Unterreiter nennt keinen Ersatz mehr, weil es nur EINEN Ort gibt.
@@ -657,6 +662,16 @@ schon einer offen ist (konkurrierende MDI- und AUTO-Starts).
 - Gateway: Routen mit 401, Pfad-Einschluss, 409 bei falscher Basis, `base=new` gegen vorhandene
   Datei, Schreiben während eines Laufs, `run_macro` mit falscher Revision, Argumentzahl und
   -bereich, verdeckter Name, Ordner nicht im Pfad.
+
+### Nachtrag: Operator-Live-Blick 2. Oktober abends
+
+- Die Settings-Makros entfallen ganz (siehe „Die Settings-Makros“).
+- Die Makroleiste ist ein dichter Bereich (kompakte Knopfhöhe) und hat ein eigenes Abort rechts außen,
+  außerhalb des scrollenden Bereichs.
+- Ein Kopf für Program, Tools und Macros: Maschinenaktionen mit Abort daneben links, die Verwaltung
+  hinter „More“ rechts. Bei Macros: Run · Abort … More (New, Upload, Download, Delete). Das schmale
+  Einklappen entfällt.
+- Der Editor klappt unter dem Makro auf, das er bearbeitet. Die Liste bleibt alphabetisch.
 
 ## Interpreter-Verhalten
 

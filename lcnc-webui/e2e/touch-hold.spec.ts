@@ -1,5 +1,6 @@
 import { test, expect, type Page, type CDPSession } from "@playwright/test";
 import { ctl, MOCK } from "./ctl";
+import { clickMore } from "./more";
 
 // WP7 / UI-14 — hold-to-fire under REAL touch events. The layout fixtures
 // only add the `touch-device` class; a hold is a pointer sequence, so this
@@ -124,7 +125,7 @@ test("sliding off, a scroll-cancel and a hidden page cancel the hold; the next h
 test("teleported tool dialog under touch: scroll the form, keypad on a field, confirm from the strip, footer reachable", async ({ page }) => {
   const cdp = await open(page);
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
-  await page.getByRole("button", { name: "+ Add", exact: true }).click();
+  await clickMore(page.locator(".toolsHead"), "New");
   const dialog = page.locator(".editDialog");
   await expect(dialog).toBeVisible();
   const content = dialog.locator(".dialogContent");

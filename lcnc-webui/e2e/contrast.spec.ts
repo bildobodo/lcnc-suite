@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { ctl, MOCK } from "./ctl";
+import { clickMore } from "./more";
 import { encode } from "@msgpack/msgpack";
 
 // Design wave D8 (UI-K08 / K09, UI-D07): every text the operator reads
@@ -186,15 +187,15 @@ for (const pass of PASSES) {
     await expect(rfl).toBeVisible();
     await take("Run from line", '[role="dialog"]');
     await rfl.getByRole("button", { name: "Cancel", exact: true }).click();
-    await page.getByRole("button", { name: "Edit", exact: true }).click();
+    await clickMore(page.locator(".ctrlRow"), "Edit");
     await expect(page.locator(".cm-content")).toBeVisible();
     await take("Program/editor", ".sidePane");
     await page.getByRole("button", { name: "Discard", exact: true }).click();
     await expect(page.locator(".cm-content")).toHaveCount(0);
-    await page.getByRole("button", { name: "Files", exact: true }).click();
+    await clickMore(page.locator(".ctrlRow"), "Files");
     await expect(page.getByRole("button", { name: "a.ngc", exact: true })).toBeVisible();
     await take("Program/files", ".sidePane");
-    await page.getByRole("button", { name: "Files", exact: true }).click();
+    await clickMore(page.locator(".ctrlRow"), "Files");
     for (const tab of ["MDI", "Probing", "Offsets", "Tools"]) {
       await page.getByRole("tab", { name: tab, exact: true }).click();
       if (tab === "Tools") {

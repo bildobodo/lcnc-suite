@@ -778,9 +778,11 @@ input[type="range"]::-moz-range-thumb:hover {
   padding: 3px 6px;
   font-size: var(--fs-sm);
 }
-/* Dense areas: every control inside takes the compact height. */
+/* Dense areas: every control inside takes the compact height. The macro
+   bar too (operator 2026-10-02: a row of macros must not take much room). */
 .strip,
-.dataTable {
+.dataTable,
+.macroBar {
   --control-h: var(--control-h-compact);
 }
 
@@ -1494,21 +1496,16 @@ label:has(input:disabled, select:disabled) {
   align-items: center;
   gap: var(--gap-tight);
 }
-/* Abort closes its group at the right edge, wherever the row wraps. */
+/* The END of an action group: the More disclosure (MoreMenu.vue) at the
+   right end of the row, wherever it wraps — the machine actions with Abort
+   beside them stay on the left (operator 2026-10-02; Abort used to close
+   the group at the right edge, N80). */
 .actionGroup > .actionEnd { margin-inline-start: auto; }
-/* The NARROW side pane (`.sidePane.narrow`: App's one threshold, the one
-   that swaps the tab lists for selects — 271 px at 150 % portrait): a
-   tab's management (and Program's run options) fold behind ONE "More"
-   toggle at the end of the object line, and the head's rows sit closer,
-   so the content keeps readable rows and Abort stays in view
-   (implementation review round 4, UI-DI09 / DI10: the Program head took
-   all 272 px of its tab, no code line was left). Unfolded, the tab
-   scrolls and its content keeps its floor. A wide pane has no toggle and
-   folds nothing. */
-.panelMore { display: none; }
-.sidePane.narrow .panelMore { display: inline-flex; margin-inline-start: auto; flex-shrink: 0; }
+/* The NARROW side pane (`.sidePane.narrow`: App's one threshold — 271 px at
+   150 % portrait): the head's rows sit closer, so the content keeps
+   readable rows and Abort stays in view (implementation review round 4,
+   UI-DI09 / DI10). The management lives behind More in every width. */
 .sidePane.narrow .panelHead { gap: var(--gap-tight); }
-.sidePane.narrow .panelHead:not(.moreOpen) .foldNarrow { display: none; }
 
 /* A reset to defaults (design wave D4, UI-N65): ONE place — the end of
    its section, right-aligned — and one confirm under the button's gate. */
@@ -1634,7 +1631,8 @@ label:has(input:disabled, select:disabled) {
    UI-I13; a HUD help once opened as one endless line with a sideways
    scroll). */
 .helpPopover,
-.btnHint {
+.btnHint,
+.moreMenuPanel {
   padding: var(--gap-tight) var(--gap-controls);
   border-radius: var(--radius-lg);
   background: var(--panel);
@@ -1660,6 +1658,22 @@ label:has(input:disabled, select:disabled) {
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
+}
+/* The "More" disclosure's panel (MoreMenu.vue, operator 2026-10-02): the
+   same card, placed under its trigger with the end edges aligned; its items
+   are full-width catalog controls, one per row. */
+.moreMenuPanel {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: var(--gap-tight);
+  min-width: 11rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+.moreMenuItems > * {
+  width: 100%;
 }
 .popTitle {
   font-weight: var(--fw-semibold);

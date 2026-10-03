@@ -64,7 +64,8 @@ export const BUTTON_TYPES = {
 
   // Tool
   toolLoad:       { gate: 'machineFrame',    variant: 'default', size: 'md' },
-  toolMeasure:    { gate: 'machineFrame',    variant: 'default', size: 'md', whileProbing: true, hold: true },
+  // The Tools tab's main action — primary, like Start and Run (operator 2026-10-02)
+  toolMeasure:    { gate: 'machineFrame',    variant: 'primary', size: 'md', whileProbing: true, hold: true },
   toolUnload:     { gate: 'machineFrame',    variant: 'default', size: 'md', whileProbing: true },
 
   // Spindle
@@ -135,7 +136,7 @@ export const BUTTON_TYPES = {
   // runs on a hold like every motion button — the bar button itself for a
   // macro without parameters (the caller sets hold + holdKey), the dialog's
   // Execute for one with parameters (opening the dialog is no motion).
-  macro:          { gate: 'probe',    variant: 'default', size: 'lg' },
+  macro:          { gate: 'probe',    variant: 'default', size: 'md' },
   macroExecute:   { gate: 'probe',    variant: 'primary', size: 'md', hold: true },
   // The Macros tab's Run (package 5): the bar button's class; a macro with
   // parameters overrides `hold` — a tap opens its dialog
@@ -187,6 +188,9 @@ export const BUTTON_TYPES = {
   profileRemove:  { gate: 'always',  variant: 'danger',  size: 'md' },
   nav:            { gate: 'always',  variant: 'default', size: 'md' },
   inline:         { gate: 'always',  variant: 'default', size: 'sm' },
+  // The "More" disclosure's trigger (MoreMenu.vue): opening it is no machine
+  // action — its items keep their own gates.
+  more:           { gate: 'always',  variant: 'default', size: 'md' },
   // An offset cell's value: opens the number keypad for that fixture × axis
   // (operator P5 — the cell used to open only on a click, with no keyboard
   // path). G10 L2 is a probe-tier write (command_policy).

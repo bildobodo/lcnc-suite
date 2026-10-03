@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { ctl, MOCK } from "./ctl";
+import { clickMore } from "./more";
 
 // Design wave D1 — feedback channels (plan WP-D1, UI-K18, UI-D04, UI-D08).
 //  - A dimmed control's reason is told AT the control (the transient hint,
@@ -298,7 +299,7 @@ test("a refused folder keeps the last listing and offers no Retry; a transient f
       : [{ name: "sub", type: "directory", path: "sub" }, { name: "a.ngc", type: "file", path: "a.ngc", size: 20 }] } });
   });
   await openReady(page);
-  await page.getByRole("button", { name: "Files", exact: true }).click();
+  await clickMore(page.locator(".ctrlRow"), "Files");
   const browser = page.getByRole("region", { name: "Server programs" });
   await expect(browser.getByRole("button", { name: "a.ngc", exact: true })).toBeVisible();
 

@@ -58,4 +58,11 @@ describe("help popover placement", () => {
     const edge = placePopover({ left: 1260, top: 500, width: 20, height: 20 }, hint, { width: 1280, height: 900 }, M, "above");
     expect(edge.left + hint.width).toBeLessThanOrEqual(1280 - M);
   });
+  it("end-aligned: the panel's right edge on the trigger's, clamped into the viewport (a More panel at a row's end)", () => {
+    const at = placePopover({ left: 400, top: 100, width: 80, height: 32 }, { width: 200, height: 150 }, { width: 600, height: 800 }, 6, "below", "end");
+    expect(at.left).toBe(280);
+    expect(at.top).toBe(138);
+    const clamped = placePopover({ left: 20, top: 100, width: 80, height: 32 }, { width: 200, height: 150 }, { width: 600, height: 800 }, 6, "below", "end");
+    expect(clamped.left).toBe(6);
+  });
 });

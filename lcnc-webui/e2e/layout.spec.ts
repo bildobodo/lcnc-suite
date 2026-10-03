@@ -1,6 +1,8 @@
 import { test, expect, type Page } from '@playwright/test';
 import { encode } from '@msgpack/msgpack';
 import { ctl } from './ctl';
+import { Folder, serveNow, addPlain } from './macroFolder';
+import { clickMore } from './more';
 import { NARROW_PANE_PX } from '../src/sidePaneNarrow';
 import { measureLayout, assertLayout, layoutChanges, measureFrame, frameChanges, type LayoutSnapshot } from './layout-audit';
 import { PROFILES, VIEWPORTS, PANELS, openLayout, setLayoutState, settleLayout, type LayoutState,
@@ -250,14 +252,16 @@ test('the narrow threshold: selects under it, six whole tab names at and over it
   expect(await page.evaluate(() => document.activeElement === document.body), 'not on body').toBe(false);
 });
 
-// The tab pattern (design wave D5, UI-K05 / N80): every tab with machine
-// actions closes its action group with Abort AT THE RIGHT EDGE — the one
-// place across tabs, wherever the row wraps — nothing interactive sits to
-// its right on its line, and a tab's head keeps the pattern's order (the
-// object line, then the machine actions, then management: top to bottom
-// in DOM order).
+// The tab pattern (design wave D5, UI-K05 / N80, reformulated by the
+// operator 2026-10-02): Abort ENDS the machine actions of every tab — the
+// one place across tabs. Only the More disclosure (MoreMenu.vue, the tab's
+// management) may sit right of it on its line, and then More ends the group
+// at its right edge; without More on its line Abort itself ends at the right
+// edge (MDI, Probing — and Program narrow, where More drops below). A tab's
+// head keeps the pattern's order (the object line, then the action row: top
+// to bottom in DOM order).
 for (const st of NAV_STATES) {
-  test(`${st.name}: Abort closes its action group at the right edge in every tab, the head keeps its order`, async ({ page }) => {
+  test(`${st.name}: Abort ends the machine actions in every tab — only More right of it — the head keeps its order`, async ({ page }) => {
     const viewport = VIEWPORTS.find(v => v.name === st.vp)!;
     await openLayout(page, PROFILES[1]!, viewport);
     if (st.zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, st.zoom);
@@ -280,9 +284,21 @@ for (const st of NAV_STATES) {
           const gr = group.getBoundingClientRect();
           const cs = getComputedStyle(group);
           const right = gr.right - parseFloat(cs.paddingRight) - parseFloat(cs.borderRightWidth);
-          if (Math.abs(ar.right - right) > 1) out.push(`${tab}: Abort ends ${(right - ar.right).toFixed(1)} px before its group's right edge`);
+          const more = group.querySelector<HTMLElement>(':scope > .moreMenu');
+          const mr = more && shown(more) ? more.getBoundingClientRect() : null;
+          if (mr) {
+            // With More: More ends the group at its right edge, AFTER Abort
+            // in the DOM (wherever the row wraps); Abort follows the machine
+            // actions directly — nothing between them.
+            if (Math.abs(mr.right - right) > 1) out.push(`${tab}: More ends ${(right - mr.right).toFixed(1)} px before its group's right edge`);
+            if (!(box.compareDocumentPosition(more!) & Node.DOCUMENT_POSITION_FOLLOWING)) out.push(`${tab}: More comes before Abort`);
+            const prev = box.previousElementSibling;
+            if (prev && !prev.matches('button, .btnTip')) out.push(`${tab}: "${prev.className}" sits between the machine actions and Abort`);
+          } else if (Math.abs(ar.right - right) > 1) {
+            out.push(`${tab}: Abort ends ${(right - ar.right).toFixed(1)} px before its group's right edge`);
+          }
           for (const c of group.querySelectorAll<HTMLElement>('button, input, select, [role="button"]')) {
-            if (c === a || box.contains(c) || !shown(c)) continue;
+            if (c === a || box.contains(c) || !shown(c) || c.closest('.moreMenu')) continue;
             const cr = c.getBoundingClientRect();
             if (cr.left >= ar.right - 1 && cr.top < ar.bottom && cr.bottom > ar.top)
               out.push(`${tab}: "${(c.textContent ?? '').trim() || c.getAttribute('aria-label') || c.closest('label')?.textContent?.trim()}" sits right of Abort`);
@@ -326,10 +342,10 @@ for (const st of NAV_STATES) {
 // UI-DI09 / DI10): at 150 % portrait (touch, 271 × 266 px of tab content)
 // the Program head took all 272 px — no code line — and the tool table's
 // description collapsed to single letters under a 165 px header. Program's
-// management and run options fold behind ONE "More" toggle in its object
-// line (the code keeps three lines, Abort stays in view, the folded
-// controls are reachable unfolded); the tool table is laid out as a whole
-// for the narrow pane. Wide panes have no toggle and fold nothing.
+// management and run options sit behind ONE "More" at the end of its action
+// row in every width (operator 2026-10-02, MoreMenu.vue): the code keeps
+// three lines, Abort and More stay in view, every item is reachable in the
+// opened panel; the tool table is laid out as a whole for the narrow pane.
 const NARROW_PROGRAM = Array.from({ length: 40 }, (_, i) => i === 0 ? '(narrow)' : `G1 X${i} Y${i % 7} F300`).join('\n');
 const NARROW_TOOLS = [
   { T: 5, P: 5, Z: -40.123456, D: 6, type: 'endmill', description: 'Test cutter', remark: '' },
@@ -350,8 +366,19 @@ async function hitInPane(loc: import('@playwright/test').Locator) {
     return inPane && !!at && target.contains(at);
   });
 }
+/** Is the control at its centre, inside the viewport? (a More panel item —
+ *  the panel is a popover in the top layer, it may reach past the pane) */
+async function hitInView(loc: import('@playwright/test').Locator) {
+  return loc.evaluate(el => {
+    const r = el.getBoundingClientRect();
+    const x = r.left + r.width / 2, y = r.top + r.height / 2;
+    const at = document.elementFromPoint(x, y);
+    const target = el.closest('.btnTip') ?? el.closest('label') ?? el;
+    return x > 0 && y > 0 && x < window.innerWidth && y < window.innerHeight && !!at && target.contains(at);
+  });
+}
 for (const zoom of [1.5, 1]) {
-  test(`touch-portrait ${zoom * 100} %: Program keeps code lines and Abort ("More" unfolds the rest); the tool table keeps a readable identity and a whole row`, async ({ page }) => {
+  test(`touch-portrait ${zoom * 100} %: Program keeps code lines, Abort and More (its panel reaches every item); the tool table keeps a readable identity and a whole row`, async ({ page }) => {
     const narrow = zoom !== 1;
     await page.route('**/gcode?*', r => r.fulfill({ contentType: 'text/plain', body: NARROW_PROGRAM }));
     await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === 'touch-portrait')!);
@@ -367,25 +394,21 @@ for (const zoom of [1.5, 1]) {
       v.clientHeight / (v.querySelector('.codeLine') as HTMLElement).offsetHeight);
     expect(lines, `Program shows ${lines.toFixed(2)} code lines`).toBeGreaterThanOrEqual(3);
     expect(await hitInPane(side.getByRole('button', { name: 'Abort', exact: true })), 'Abort in the pane').toBe(true);
+    expect(await hitInPane(more('program')), 'More in the pane').toBe(true);
     const manage = ['Edit', 'Reload', 'Unload', 'Files', 'Upload'];
-    if (narrow) {
-      await expect(more('program')).toHaveAttribute('aria-expanded', 'false');
-      for (const name of manage) await expect(side.getByRole('button', { name, exact: true })).toBeHidden();
-      await more('program').click();
-      await expect(more('program')).toHaveAttribute('aria-expanded', 'true');
-    } else {
-      await expect(more('program'), 'a wide pane folds nothing').toBeHidden();
-    }
+    await expect(more('program')).toHaveAttribute('aria-expanded', 'false');
+    for (const name of manage) await expect(side.getByRole('button', { name, exact: true }), `${name} behind More`).toBeHidden();
+    await more('program').click();
+    await expect(more('program')).toHaveAttribute('aria-expanded', 'true');
     for (const name of manage) {
-      expect(await hitInPane(side.getByRole('button', { name, exact: true })), `${name} reachable`).toBe(true);
+      expect(await hitInView(side.getByRole('button', { name, exact: true })), `${name} reachable`).toBe(true);
     }
     for (const name of ['M01', '/BD']) {
-      expect(await hitInPane(side.getByRole('switch', { name, exact: true })
+      expect(await hitInView(side.getByRole('switch', { name, exact: true })
         .or(side.getByRole('checkbox', { name, exact: true }))), `${name} reachable`).toBe(true);
     }
-    const unfolded = await side.locator('.codeArea .codeViewer').evaluate(v =>
-      v.clientHeight / (v.querySelector('.codeLine') as HTMLElement).offsetHeight);
-    expect(unfolded, 'unfolded, the code keeps its three lines (the tab scrolls)').toBeGreaterThanOrEqual(3);
+    await more('program').click();
+    await expect(more('program')).toHaveAttribute('aria-expanded', 'false');
 
     // Tools (UI-DI10 is the TABLE): a header no taller than a row, the
     // description at a readable width and not covered, a whole tool row at
@@ -423,9 +446,15 @@ for (const zoom of [1.5, 1]) {
     for (const name of ['Edit T5', 'Delete T5']) {
       expect(await hitInPane(side.getByRole('button', { name, exact: true })), `${name} reachable`).toBe(true);
     }
-    for (const name of ['Measure Current', 'Unload', 'Abort', 'Add', 'Files', 'Upload']) {
-      expect(await hitInPane(side.locator('.toolsTab').getByRole('button', { name: new RegExp(`^(\\+ )?${name}$`) })), `${name} reachable`).toBe(true);
+    for (const name of ['Measure Current', 'Unload', 'Abort']) {
+      expect(await hitInPane(side.locator('.toolsTab').getByRole('button', { name, exact: true })), `${name} reachable`).toBe(true);
     }
+    expect(await hitInPane(more('tool')), 'More in the pane').toBe(true);
+    await more('tool').click();
+    for (const name of ['New', 'Files', 'Upload']) {
+      expect(await hitInView(side.locator('.toolsTab').getByRole('button', { name, exact: true })), `${name} reachable`).toBe(true);
+    }
+    await more('tool').click();
   });
 }
 
@@ -555,9 +584,9 @@ for (const viewport of VIEWPORTS) {
     });
     await openLayout(page, PROFILES[1], viewport);
     const panel = page.locator('.sidePane .container').filter({ has: page.locator('.codeArea') });
-    const toolbar = panel.locator('.programManage');
+    const toolbar = panel.locator('.ctrlRow');   // the one action row (More holds Files)
     const before = await measureLayout(toolbar, 'program-toolbar');
-    await panel.getByRole('button', { name: 'Files', exact: true }).click();
+    await clickMore(toolbar, 'Files');
     const browser = panel.getByRole('region', { name: 'Server programs' });
     await expect(browser.locator('.browserPath')).toHaveText(ncDir);
     await expect(browser.getByText('perfmatrix-big.ngc', { exact: true })).toBeVisible();
@@ -616,7 +645,7 @@ for (const viewport of VIEWPORTS) {
       directory, subdir: '', entries: entries('json'),
     } }));
     await openLayout(page, PROFILES[1], viewport);
-    await page.getByRole('button', { name: 'Files', exact: true }).click();
+    await clickMore(page.locator('.ctrlRow'), 'Files');
     const program = page.getByRole('region', { name: 'Server programs' });
     await expect(program.getByRole('button', { name: 'example-0.ngc', exact: true })).toBeVisible();
     const fileStyle = (el: Element) => {
@@ -625,7 +654,7 @@ for (const viewport of VIEWPORTS) {
         padding: s.padding, border: s.borderWidth, radius: s.borderRadius, background: s.backgroundColor };
     };
     const programStyle = await program.locator('.fileItem').first().evaluate(fileStyle);
-    await page.getByRole('button', { name: 'Files', exact: true }).click();
+    await clickMore(page.locator('.ctrlRow'), 'Files');
     await page.getByRole('tab', { name: 'Tools', exact: true }).click();
     const tab = page.locator('.toolsTab');
     const table = tab.locator('.tableWrap');
@@ -635,12 +664,12 @@ for (const viewport of VIEWPORTS) {
       await ctl({ op: 'raw', frame: { type: 'reply', cmd: 'get_tool_table', ok: true, tools } });
       return table.locator('tbody tr').count();
     }).toBe(36);
-    const actions = tab.locator('.toolTabManage');
+    const actions = tab.locator('.toolsHead .actionGroup');   // the one action row (More holds Files)
     const before = await measureLayout(actions, 'tool-actions');
     expect(Math.abs((await actions.boundingBox())!.x
       - (await tab.getByRole('button', { name: 'Measure Current', exact: true }).boundingBox())!.x)).toBeLessThan(1);
     await expect(tab.getByRole('button', { name: /Refresh/ })).toHaveCount(0);
-    await tab.getByRole('button', { name: 'Files', exact: true }).click();
+    await clickMore(tab.locator('.toolsHead'), 'Files');
     const browser = tab.getByRole('region', { name: 'Server tool libraries' });
     await expect(browser.getByRole('button', { name: 'example-0.json', exact: true })).toBeVisible();
     await expect(browser.locator('.browserPath')).toHaveText(directory);
@@ -674,13 +703,13 @@ for (const viewport of VIEWPORTS) {
       return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
     })).toBe(true);
     // The pane must keep its allocated height even with just one library file.
-    await tab.getByRole('button', { name: 'Files', exact: true }).click();
+    await clickMore(tab.locator('.toolsHead'), 'Files');
     await expect(table).toBeVisible();
     await expect(table.locator('tbody tr')).toHaveCount(36);
     await page.route('**/tool-library-files?*', route => route.fulfill({ json: {
       directory, subdir: '', entries: entries('json').slice(0, 1),
     } }));
-    await tab.getByRole('button', { name: 'Files', exact: true }).click();
+    await clickMore(tab.locator('.toolsHead'), 'Files');
     await expect(browser.locator('.fileItem')).toHaveCount(1);
     expect((await browser.boundingBox())!.height).toBeCloseTo(geometry.height, 0);
   });
@@ -731,8 +760,14 @@ for (const viewport of VIEWPORTS) {
 // three code lines and Abort); the viewer gives the row. Every button is
 // whole in the row's height and reachable by scrolling; the far fade shows
 // while the row overflows.
-const MANY_MACROS = { macros: Array.from({ length: 9 }, (_, i) =>
-  ({ id: `m${i}`, name: `Macro number ${i + 1}`, command: 'G0 Z5', params: [] })) };
+/** Nine macro files with long titles on the bar (macroFolder.ts). */
+const manyMacros = () => {
+  const folder = new Folder();
+  folder.files.clear();
+  for (let i = 0; i < 9; i++) addPlain(folder, `m${i}`, `Macro number ${i + 1}`);
+  return folder;
+};
+const MANY_BAR = { macros: { macros: [], bar: Array.from({ length: 9 }, (_, i) => `m${i}`) } };
 for (const zoom of [1, 1.5]) {
   test(`touch-portrait ${zoom * 100} %: the macro bar is one row between the viewer and the side pane, which does not move`, async ({ page }) => {
     await openLayout(page, PROFILES[1], VIEWPORTS.find(v => v.name === 'touch-portrait')!);
@@ -744,7 +779,8 @@ for (const zoom of [1, 1.5]) {
     });
     const before = await rects();
     expect(before.bar, 'no macros, no bar').toBeUndefined();
-    await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { macros: MANY_MACROS } } });
+    await serveNow(page, manyMacros());
+    await ctl({ op: 'raw', frame: { type: 'settings_init', settings: MANY_BAR } });
     await expect(page.locator('.macroBar [data-macro-id]')).toHaveCount(9);
     await settleLayout(page);
     const after = await rects();
@@ -757,8 +793,9 @@ for (const zoom of [1, 1.5]) {
     const geo = await page.locator('.macroBar').evaluate(el => {
       const gap = parseFloat(getComputedStyle(el.parentElement!).rowGap);
       const zoomOf = el.getBoundingClientRect().width / (el as HTMLElement).offsetWidth;
+      const scroller = el.querySelector<HTMLElement>('.macroScroll')!;   // the macros scroll, Abort beside them does not
       return { inColumn: !!el.closest('.viewerColumn'), gap: gap * zoomOf,
-        scrollW: el.scrollWidth, clientW: el.clientWidth, more: el.classList.contains('strip-more') };
+        scrollW: scroller.scrollWidth, clientW: scroller.clientWidth, more: scroller.classList.contains('strip-more') };
     });
     expect(geo.inColumn, 'the bar sits in the viewer column').toBe(true);
     expect(Math.abs(bar.y - (after.viewer.y + after.viewer.h) - geo.gap), 'right under the viewer').toBeLessThanOrEqual(1);
@@ -784,12 +821,22 @@ for (const zoom of [1, 1.5]) {
     }
     expect(geo.scrollW, 'nine long names overflow the row').toBeGreaterThan(geo.clientW);
     expect(geo.more, 'the far fade shows').toBe(true);
-    // the last button comes whole into view by scrolling
-    await page.locator('.macroBar').evaluate(el => { el.scrollLeft = el.scrollWidth; });
+    // Abort at the bar's right end, outside the scroller, in the row
+    // (operator 2026-10-02): visible before and after the macros scroll
+    const abortBox = async () => (await page.locator('.macroBar').getByRole('button', { name: 'Abort', exact: true }).boundingBox())!;
+    const scrollBox = async () => (await page.locator('.macroBar .macroScroll').boundingBox())!;
+    let ab = await abortBox(), sc = await scrollBox();
+    expect(ab.x, 'Abort right of the scrolling macros').toBeGreaterThanOrEqual(sc.x + sc.width - 0.5);
+    expect(ab.x + ab.width, 'Abort inside the bar').toBeLessThanOrEqual(bar.x + bar.w + 0.5);
+    expect(ab.y, 'Abort in the row').toBeGreaterThanOrEqual(bar.y - 0.5);
+    // the last button comes whole into view by scrolling — at the scroller's edge, before Abort
+    await page.locator('.macroBar .macroScroll').evaluate(el => { el.scrollLeft = el.scrollWidth; });
     await settleLayout(page);
-    const last = await page.locator('.macroBar [data-macro-id="m8"]').evaluate(e => e.getBoundingClientRect().right);
-    const barRight = await page.locator('.macroBar').evaluate(e => { const b = e.getBoundingClientRect(); return b.right; });
-    expect(last, 'the last macro reachable').toBeLessThanOrEqual(barRight + 0.5);
+    const last = await page.locator('.macroBar [data-macro-id="file:m8"]').evaluate(e => e.getBoundingClientRect().right);
+    sc = await scrollBox();
+    expect(last, 'the last macro reachable').toBeLessThanOrEqual(sc.x + sc.width + 0.5);
+    ab = await abortBox();
+    expect(ab.x, 'Abort did not scroll').toBeGreaterThanOrEqual(sc.x + sc.width - 0.5);
   });
 }
 

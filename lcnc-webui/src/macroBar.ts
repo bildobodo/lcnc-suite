@@ -3,7 +3,6 @@
 // from the SAME functions, so the bar button, the tab's Run, a hold and the
 // parameter dialog can never disagree about whether a macro may run.
 
-import type { MacroDef } from "./defaults";
 import type { MacroFile, MacroFolder } from "./lcncApi";
 
 /** The open macro editor's relation to its file (Codex VP69-05): the run of
@@ -13,9 +12,7 @@ export interface MacroEditorBasis {
   state: "clean" | "draft" | "loading" | "conflict";
 }
 
-export type MacroBarItem =
-  | { kind: "legacy"; key: string; label: string; macro: MacroDef }
-  | { kind: "file"; key: string; label: string; file: MacroFile };
+export interface MacroBarItem { key: string; label: string; file: MacroFile }
 
 /** Why a macro FILE may not run now, or null: the open editor first (its
  *  visible text is what the operator believes runs), then the gateway's
@@ -36,12 +33,12 @@ export function fileHoldKey(file: MacroFile): string {
   return `file:${file.name}\n${file.revision}`;
 }
 
-/** The bar: the earlier (settings) macros first, as before, then the macro
- *  files named in `bar`, in its order. A name with no file is `missing` —
- *  shown once in the Macros tab, never silently dropped from the setting. */
-export function macroBarItems(legacy: MacroDef[], bar: string[] | undefined,
+/** The bar: the macro files named in `bar`, in its order. A name with no
+ *  file is `missing` — shown once in the Macros tab, never silently dropped
+ *  from the setting. */
+export function macroBarItems(bar: string[] | undefined,
                               folder: MacroFolder | null): { items: MacroBarItem[]; missing: string[] } {
-  const items: MacroBarItem[] = legacy.map(m => ({ kind: "legacy" as const, key: `legacy:${m.id}`, label: m.name, macro: m }));
+  const items: MacroBarItem[] = [];
   const missing: string[] = [];
   for (const name of bar ?? []) {
     const file = folder?.macros.find(f => f.name === name);
@@ -49,7 +46,7 @@ export function macroBarItems(legacy: MacroDef[], bar: string[] | undefined,
       if (folder) missing.push(name);   // before the first list nothing is known
       continue;
     }
-    items.push({ kind: "file", key: `file:${name}`, label: file.title ?? name, file });
+    items.push({ key: `file:${name}`, label: file.title ?? name, file });
   }
   return { items, missing };
 }

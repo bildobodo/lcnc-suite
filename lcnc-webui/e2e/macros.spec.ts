@@ -1,85 +1,11 @@
 // Package 5, stage C (plan docs/reviews/makros.plan.md): the Macros tab and
-// macro FILES on the bar. The gateway's macro routes are served from an
-// in-memory folder here (page.route): saves, imports and deletes change it
-// for real, with sha256 revisions and the gateway's 409 contracts, so a
-// revision a client saw and a conflict behave as in the product.
+// macro FILES on the bar, against the in-memory folder of macroFolder.ts.
 import { test, expect, type Page } from "@playwright/test";
-import { createHash } from "node:crypto";
 import { ctl, MOCK } from "./ctl";
+import { Folder, serve, rev, PARK, FACE } from "./macroFolder";
+import { clickMore, moreTrigger } from "./more";
 
-const rev = (t: string) => createHash("sha256").update(t).digest("hex");
 const HOLD_MS = 700;
-
-const PARK = "(MACRO Park)\n(FRAME machine)\no<park> sub\n  M73\n  G90\n  G53 G0 Z0\no<park> endsub\n";
-const FACE = `(MACRO Face top)
-(UNITS mm)
-(PARAM 1 depth "Depth" length 0.5 min=0 max=5)
-(PARAM 2 feed "Feed" feed 600 min=1)
-o<face_top> sub
-  M73
-  G21 G90 G94
-  G1 Z[-#1] F#2
-o<face_top> endsub
-`;
-
-interface Entry { text: string; meta: Record<string, unknown> }
-
-/** The gateway's macro folder, in memory. */
-class Folder {
-  files = new Map<string, Entry>();
-  problems: string[] = [];
-  /** The gateway's verdict "may not run", by name (a header error, shadowed). */
-  blocked = new Map<string, string>();
-  constructor() {
-    this.files.set("park", { text: PARK, meta: { title: "Park", units: null, frame: "machine", params: [] } });
-    this.files.set("face_top", { text: FACE, meta: { title: "Face top", units: "mm", frame: null, params: [
-      { n: 1, key: "depth", label: "Depth", unit: "length", default: 0.5, min: 0, max: 5, integer: false },
-      { n: 2, key: "feed", label: "Feed", unit: "feed", default: 600, min: 1, max: null, integer: false }] } });
-  }
-  entry(name: string) {
-    const e = this.files.get(name)!;
-    return { name, description: [], errors: [], warnings: [], mtime: 0, runnable: !this.blocked.has(name),
-             reason: this.blocked.get(name) ?? null, revision: rev(e.text), ...e.meta };
-  }
-  list() {
-    return { ok: true, dir: "/home/cnc/linuxcnc/macros", problems: this.problems,
-             macros: [...this.files.keys()].sort().map(n => this.entry(n)) };
-  }
-  /** Another client (or an editor outside the suite) changes a file. */
-  touch(name: string, text: string) { this.files.get(name)!.text = text; }
-}
-
-async function serve(page: Page, folder: Folder) {
-  await page.route("**/macros", r => r.fulfill({ json: folder.list() }));
-  await page.route(/\/macro\?/, async r => {
-    const url = new URL(r.request().url());
-    const name = url.searchParams.get("name")!;
-    const method = r.request().method();
-    const e = folder.files.get(name);
-    if (method === "GET") {
-      if (!e) return r.fulfill({ status: 404, json: { detail: "Macro not found" } });
-      return r.fulfill({ body: e.text, contentType: "text/plain", headers: { "X-Macro-Revision": rev(e.text) } });
-    }
-    const base = url.searchParams.get("base")!;
-    if (method === "PUT") {
-      const text = r.request().postData() ?? "";
-      if (base === "new" ? !!e : !e || rev(e.text) !== base) {
-        return r.fulfill({ status: 409, json: { detail: { error: "refused",
-          reason: base === "new" ? "A macro of that name exists — reload" : "Changed on disk — reload or keep editing",
-          revision: e ? rev(e.text) : null } } });
-      }
-      if (e) e.text = text;
-      else folder.files.set(name, { text, meta: { title: name, units: null, frame: null, params: [] } });
-      return r.fulfill({ json: { ok: true, macro: folder.entry(name) } });
-    }
-    if (method === "DELETE") {
-      if (!e || rev(e.text) !== base) return r.fulfill({ status: 409, json: { detail: { error: "refused", reason: "Changed on disk", revision: e ? rev(e.text) : null } } });
-      folder.files.delete(name);
-      return r.fulfill({ json: { ok: true } });
-    }
-    return r.fallback();
-  });
-}
 
 async function ready(page: Page, folder: Folder, settings: Record<string, unknown> = {}) {
   await ctl({ op: "reset" });
@@ -296,10 +222,10 @@ test("the Macros tab never runs out sideways: desktop, portrait 100 % and 150 %"
 });
 
 // Plan, dialog case 20: after a delete the focus goes to the next row, else
-// the previous, else the tab's head (New) — never back to Delete, which the
+// the previous, else the tab's head (More) — never back to Delete, which the
 // lost selection disables: Chromium then drops the focus to body, where an
 // arrow key jogs.
-test("after a delete the focus goes to the next row, else the previous, else New — never to body", async ({ page }) => {
+test("after a delete the focus goes to the next row, else the previous, else More — never to body", async ({ page }) => {
   const folder = new Folder();
   folder.files.set("coolant_flush", { text: "o<coolant_flush> sub\no<coolant_flush> endsub\n",
     meta: { title: "Coolant flush", units: null, frame: null, params: [] } });
@@ -311,7 +237,7 @@ test("after a delete the focus goes to the next row, else the previous, else New
   });
   const remove = async (name: string, title: string) => {
     await page.locator(`[data-macro-row="${name}"]`).getByRole("button", { name: `Open ${name}.ngc` }).click();
-    await page.getByRole("button", { name: "Delete", exact: true }).click();
+    await clickMore(page.locator(".macrosTab .panelHead"), "Delete");
     await page.getByRole("dialog", { name: `Delete ${title}?` }).getByRole("button", { name: "Delete", exact: true }).click();
     await expect(page.locator(`[data-macro-row="${name}"]`)).toHaveCount(0);
     await page.waitForTimeout(300);
@@ -322,7 +248,7 @@ test("after a delete the focus goes to the next row, else the previous, else New
   await remove("park", "Park");
   expect(await active(), "the previous row (park was last)").toBe("Open face_top.ngc");
   await remove("face_top", "Face top");
-  expect(await active(), "no row left: the head's New").toBe("New");
+  expect(await active(), "no row left: the head's More").toBe("More macro actions");
 });
 
 // Operator 2026-10-02: the editor is pushed in RIGHT UNDER the macro it
@@ -387,48 +313,105 @@ test("the editor opens under its own macro and pushes the rest down; a second ta
   await page.waitForTimeout(200);
   const head = await box(".macroTable thead");
   const last = await box('[data-macro-row="z_last"]');
-  expect(Math.abs(last.y - (head.y + head.height)), "the row right under the sticky head").toBeLessThanOrEqual(2);
-  const edTop = (await box('[data-macro-editor="z_last"]')).y;
-  expect(edTop, "its editor starts in view").toBeLessThan(body.y + body.height);
+  const lastEd = await box('[data-macro-editor="z_last"]');
+  expect(last.y, "the row in view, under the sticky head").toBeGreaterThanOrEqual(head.y + head.height - 1);
+  // at the top under the head — or, where the body cannot scroll that far
+  // (the last macro), its editor wholly in view
+  const atTop = Math.abs(last.y - (head.y + head.height)) <= 2;
+  const editorWhole = lastEd.y + lastEd.height <= body.y + body.height + 1;
+  expect(atTop || editorWhole, `row at ${last.y - head.y - head.height} px under the head, editor ends ${lastEd.y + lastEd.height - body.y - body.height} px past the body`).toBe(true);
 });
 
-// Operator 2026-10-02: in the narrow pane (150 % portrait) the head folds its
-// management — New, Import, Export, Delete — behind "More" on the object
-// line, like Program's; Run and Abort stay. The opened macro's editor gets
-// the room. A wide pane has no toggle and folds nothing.
-test("narrow, the head folds New / Import / Export / Delete behind More; Run and Abort stay; wide folds nothing", async ({ page }) => {
+// Operator 2026-10-02 (live): ONE action row — Run and Abort side by side on
+// the left, the management (New, Upload, Download, Delete) behind More at the
+// right end (MoreMenu.vue), desktop and narrow. The panel opens under More,
+// end edges aligned; by keyboard the focus goes to its first item, the
+// arrows move among the items and never jog; Tab out closes it; an item
+// that opens a dialog hands the dialog's return to More.
+test("one action row: Run and Abort left, More right; its panel, its keys, and a dialog's return to More", async ({ page }) => {
   const folder = new Folder();
   await ready(page, folder, { macros: { macros: [] } });
   await openTab(page);
-  const more = page.getByRole("button", { name: "More macro actions" });
-  const manage = ["New", "Import", "Export", "Delete"].map(n => page.locator(".macrosTab .panelHead").getByRole("button", { name: n, exact: true }));
-  await expect(more, "wide: no toggle").toBeHidden();
-  for (const b of manage) await expect(b, "wide: nothing folded").toBeVisible();
+  const head = page.locator(".macrosTab .panelHead");
+  const more = moreTrigger(head);
+  const row = async () => {
+    const [run, abort, m] = await Promise.all(["Run", "Abort"].map(n => head.getByRole("button", { name: n, exact: true }).boundingBox())
+      .concat(more.boundingBox()));
+    return { run: run!, abort: abort!, more: m! };
+  };
+  for (const narrow of [false, true]) {
+    if (narrow) {
+      await page.setViewportSize({ width: 900, height: 1200 });
+      await page.evaluate(() => document.documentElement.classList.add("touch-device"));
+      await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
+      await expect(page.getByRole("combobox", { name: "Side panel" })).toBeVisible();
+    }
+    const r = await row();
+    const where = narrow ? "narrow" : "wide";
+    expect(new Set([r.run.y, r.abort.y, r.more.y].map(Math.round)).size, `${where}: one row`).toBe(1);
+    expect(r.abort.x - (r.run.x + r.run.width), `${where}: Abort right beside Run`).toBeLessThanOrEqual(16);
+    expect(r.more.x, `${where}: More right of Abort`).toBeGreaterThan(r.abort.x + r.abort.width);
+    const groupRight = await head.locator(".actionGroup").evaluate(g => g.getBoundingClientRect().right);
+    expect(Math.abs(r.more.x + r.more.width - groupRight), `${where}: More at the row's right end`).toBeLessThanOrEqual(1);
+    for (const n of ["New", "Upload", "Download", "Delete"]) {
+      await expect(head.getByRole("button", { name: n, exact: true }), `${where}: ${n} folded`).toBeHidden();
+    }
+    await more.click();
+    await expect(more).toHaveAttribute("aria-expanded", "true");
+    const panel = page.locator(`[id="${await more.getAttribute("aria-controls")}"]`);
+    for (const n of ["New", "Upload", "Download", "Delete"]) await expect(panel.getByRole("button", { name: n, exact: true })).toBeVisible();
+    const pb = (await panel.boundingBox())!, mb = (await more.boundingBox())!;
+    expect(Math.abs(pb.x + pb.width - (mb.x + mb.width)), `${where}: the panel's end on More's`).toBeLessThanOrEqual(1.5);
+    expect(pb.y, `${where}: under More`).toBeGreaterThanOrEqual(mb.y + mb.height - 1);
+    await more.click();
+    await expect(more).toHaveAttribute("aria-expanded", "false");
+  }
 
-  await page.setViewportSize({ width: 900, height: 1200 });
-  await page.evaluate(() => document.documentElement.classList.add("touch-device"));
-  await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
-  await expect(page.getByRole("combobox", { name: "Side panel" })).toBeVisible();
-  await page.locator('[data-macro-row="face_top"]').getByRole("button", { name: "Open face_top.ngc" }).click();
-  await expect(page.locator('[data-macro-editor="face_top"] .cm-content')).toBeVisible();
-  await expect(more).toBeVisible();
+  // keys: Enter opens, the first item takes the focus, the arrows move and never jog
+  // (a macro selected: Download and Delete are enabled too). Keyboard jog ON,
+  // the arrows bound to jog (tabs.spec's setting): an arrow that reached the
+  // shortcut map WOULD jog — the control on the bare page proves it does.
+  await page.locator('[data-macro-row="park"]').getByRole("button", { name: "Open park.ngc" }).click();
+  await ctl({ op: "status_delta", data: { homed: [1, 1, 1], permissions: { jog: true, ready: true, idle: true, probe: true,
+    setup: true, armed: true, always: true, abort: true, safety: true, override: true, zero: true } } });
+  await ctl({ op: "raw", frame: { type: "settings_init", settings: { macros: { macros: [] }, keyboard: { jogEnabled: true, buttonsEnabled: true,
+    mapping: { "jog_x+": "ArrowRight", "jog_x-": "ArrowLeft", "jog_y+": "ArrowUp", "jog_y-": "ArrowDown", "jog_z+": "Home", "jog_z-": "End",
+               estop: "Escape", cycle: " ", abort: "Backspace" } } } } });
+  const jogs = async () => (await sent()).map(c => c.cmd ?? "").filter(c => c.startsWith("jog"));
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await ctl({ op: "clearCmds" });
+  await page.keyboard.down("ArrowRight");
+  await page.waitForTimeout(150);
+  await page.keyboard.up("ArrowRight");
+  await expect.poll(jogs, { message: "control: ArrowRight on the bare page jogs" }).toContain("jog_cont");
+  await more.focus();
+  await page.keyboard.press("Enter");
+  const panel = page.locator(`[id="${await more.getAttribute("aria-controls")}"]`);
+  await expect(panel.getByRole("button", { name: "New", exact: true })).toBeFocused();
+  await ctl({ op: "clearCmds" });
+  await page.keyboard.press("ArrowDown");
+  await expect(panel.getByRole("button", { name: "Upload", exact: true })).toBeFocused();
+  for (const key of ["ArrowLeft", "ArrowRight", "Control+ArrowDown", "Alt+ArrowUp", "Shift+ArrowLeft", "Meta+ArrowRight"]) {
+    await page.keyboard.press(key);
+  }
+  await expect(panel.getByRole("button", { name: "Upload", exact: true }), "a modifier or a side arrow moves nothing").toBeFocused();
+  await page.keyboard.press("End");
+  await expect(panel.getByRole("button", { name: "Delete", exact: true })).toBeFocused();
+  await page.keyboard.press("Home");
+  await expect(panel.getByRole("button", { name: "New", exact: true })).toBeFocused();
+  await page.waitForTimeout(200);
+  expect(await jogs(), "no key in the panel jogs").toEqual([]);
+  // Tab out closes it
+  await page.keyboard.press("End");
+  await page.keyboard.press("Tab");
   await expect(more).toHaveAttribute("aria-expanded", "false");
-  for (const b of manage) await expect(b, "narrow: folded").toBeHidden();
-  await expect(page.locator(".macrosTab .panelHead").getByRole("button", { name: "Run", exact: true })).toBeVisible();
-  // More sits on the object line — it costs no row of its own
-  const obj = (await page.locator(".macrosTab .panelObject").boundingBox())!;
-  const mb = (await more.boundingBox())!;
-  expect(mb.y + mb.height / 2, "on the object line").toBeGreaterThan(obj.y);
-  expect(mb.y + mb.height / 2, "on the object line").toBeLessThan(obj.y + obj.height);
-  const folded = (await page.locator(".macrosBody").boundingBox())!.height;
-  await more.click();
-  await expect(more).toHaveAttribute("aria-expanded", "true");
-  for (const b of manage) await expect(b, "unfolded").toBeVisible();
-  const unfolded = (await page.locator(".macrosBody").boundingBox())!.height;
-  expect(folded - unfolded, "folding gives the body a row").toBeGreaterThan(30);
-  // the folded management still works: Delete asks
-  await page.locator(".macrosTab .panelHead").getByRole("button", { name: "Delete", exact: true }).click();
-  await expect(page.getByRole("dialog", { name: "Delete Face top?" })).toBeVisible();
+  // an item that opens a dialog: closing the dialog returns to More
+  await clickMore(head, "New");
+  const dialog = page.getByRole("dialog", { name: "New Macro" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(more, "the dialog returned to More").toBeFocused();
 });
 
 // Operator 2026-10-02 (live): switching "On bar" made the order buttons
@@ -466,5 +449,25 @@ test("On bar and the order buttons move nothing in the list: no row height, colu
     expect(await geometry(), `${touch ? "touch" : "desktop"}: reordering the bar moves nothing in the list`).toEqual(before);
     // a macro off the bar offers no order buttons to Tab or a pointer
     await expect(page.locator('[data-macro-row="park"]').getByRole("button", { name: "Move park up in the bar order" })).toBeHidden();
+  }
+});
+
+// Operator 2026-10-02 (live): the macro bar takes little room — a DENSE area,
+// its buttons the compact control height (28 px desktop, 36 px touch, like
+// the strip and the tables) — and has its own Abort at the right end.
+test("the macro bar is dense: compact buttons, and an Abort at its right end that sends exactly abort", async ({ page }) => {
+  for (const touch of [false, true]) {
+    await ready(page, new Folder(), { macros: { macros: [], bar: ["park", "face_top"] } });
+    if (touch) await page.evaluate(() => document.documentElement.classList.add("touch-device"));
+    const bar = page.locator(".macroBar");
+    const want = touch ? 36 : 28;
+    for (const name of ["Park", "Face top", "Abort"]) {
+      const h = (await bar.getByRole("button", { name, exact: true }).boundingBox())!.height;
+      expect(Math.round(h), `${touch ? "touch" : "desktop"}: ${name} is ${want} px`).toBe(want);
+    }
+    await ctl({ op: "status_delta", data: { permissions: { abort: true, armed: true, always: true, probe: true } } });
+    await ctl({ op: "clearCmds" });
+    await bar.getByRole("button", { name: "Abort", exact: true }).click();
+    await expect.poll(async () => (await sent()).map(c => c.cmd).filter(c => c === "abort")).toEqual(["abort"]);
   }
 });

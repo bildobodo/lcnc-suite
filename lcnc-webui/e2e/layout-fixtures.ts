@@ -1,5 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 import { ctl, MOCK } from './ctl';
+import { Folder, serveNow } from './macroFolder';
+import { clickMore } from './more';
 import { GATE_NAMES, type Permissions } from '../src/permissions';
 
 export const PROFILES = [
@@ -136,7 +138,8 @@ export function stripStateExempt(state: StripState, portrait = false): string[] 
        'side.height', 'side.clientHeight', 'strip.y'];
 }
 
-const MACRO_FIXTURE = { macros: [{ id: 'm1', name: 'Face Top', command: 'G0 Z5', params: [] }] };
+/** One macro file on the bar (macroFolder.ts): face_top, "Face top". */
+const MACRO_BAR = { macros: { macros: [], bar: ['face_top'] } };
 
 async function keypadCancel(page: Page) {
   const strip = page.locator('.nkStrip');
@@ -154,7 +157,7 @@ export async function enterStripState(page: Page, profile: Profile, state: Strip
       break;
     case 'keypad-panel':
       await page.getByRole('tab', { name: 'Tools', exact: true }).click();
-      await page.getByRole('button', { name: '+ Add', exact: true }).click();
+      await clickMore(page.locator('.toolsHead'), 'New');
       await expect(page.locator('.editDialog')).toBeVisible();
       await page.locator('.editDialog input.inputField').first().click();
       await expect(page.locator('.nkStrip')).toBeVisible();
@@ -165,9 +168,10 @@ export async function enterStripState(page: Page, profile: Profile, state: Strip
       await expect(page.locator('.tkStrip')).toBeVisible();
       break;
     case 'macro-bar':
-      await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { macros: MACRO_FIXTURE } } });
+      await serveNow(page, new Folder());
+      await ctl({ op: 'raw', frame: { type: 'settings_init', settings: MACRO_BAR } });
       await expect(page.locator('.macroBar')).toBeVisible();
-      await expect(page.locator('.macroBar').getByRole('button', { name: 'Face Top', exact: true })).toBeVisible();
+      await expect(page.locator('.macroBar').getByRole('button', { name: 'Face top', exact: true })).toBeVisible();
       break;
     case 'banner-estop':
       await setLayoutState(page, profile, 'estop');

@@ -13,21 +13,20 @@ import { computed, nextTick, onUnmounted, ref, watch } from "vue";
 import { ChevronDown, ChevronUp, X } from "lucide-vue-next";
 import CodeEditor from "./CodeEditor.vue";
 import DialogFrame from "./DialogFrame.vue";
-import EarlierMacros from "./EarlierMacros.vue";
 import FormField from "./FormField.vue";
+import MoreMenu from "./MoreMenu.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
-import MachineSelect from "./MachineSelect.vue";
 import MachineToggle from "./MachineToggle.vue";
 import { MACRO_EDITOR_OWNER, returnFocusTo } from "./inputSession";
 import { useFire } from "./permissions";
-import { MACRO_NAME_RE, type MacroDef } from "./defaults";
+import { MACRO_NAME_RE } from "./defaults";
 import {
   deleteMacroFile, readMacroFile, saveMacroFile, uploadMacroFile, MacroConflictError, type MacroFile,
 } from "./lcncApi";
 import { macroEditorBasis, macroFolder, macroFolderError, reloadMacroFiles } from "./macroFiles";
 import { fileHoldKey, macroRunBlock } from "./macroBar";
-import { convertToFile, nameFromLabel, newMacroText, nonNumericDefaults, UNIT_KINDS, type ConvertParam } from "./macroConvert";
+import { newMacroText } from "./macroTemplate";
 
 const props = defineProps<{
   /** The macro files on the bar, in order (the `macros` section's `bar`). */
@@ -45,11 +44,6 @@ const files = computed<MacroFile[]>(() => macroFolder.value?.macros ?? []);
 const problems = computed(() => macroFolder.value?.problems ?? []);
 /** Bar members first, in bar order; the rest by name. */
 const root = ref<HTMLElement | null>(null);
-// The narrow side pane (150 % portrait) folds the management — New,
-// Import, Export, Delete — behind "More" on the object line (operator
-// 2026-10-02, the Program tab's pattern): the head left an opened macro's
-// editor hardly a line. Run and Abort stay.
-const moreOpen = ref(false);
 // The list stays in NAME order: switching "On bar" or reordering the bar
 // moves no row (operator 2026-10-02, live: the row jumped to the bar group
 // at the top and ran away from the finger on its order buttons). The bar
@@ -129,7 +123,6 @@ async function open(name: string) {
 
 /** The tab's draft guard: one question for every way out of a draft. */
 const discardAsk = ref<{ what: string; then: () => void } | null>(null);
-const earlierRef = ref<InstanceType<typeof EarlierMacros> | null>(null);
 function fileDraft(): string | null {
   const s = session.value;
   return s && (s.dirty || (s.conflict && editorRef.value?.text() !== s.original)) ? `${s.name}.ngc` : null;
@@ -137,13 +130,11 @@ function fileDraft(): string | null {
 /** What leaving the tab would throw away, in operator words — null when nothing. */
 function unsavedDraft(): string | null {
   const f = fileDraft();
-  if (f) return `The macro ${f} you are editing`;
-  return earlierRef.value?.unsavedDraft() ?? null;
+  return f ? `The macro ${f} you are editing` : null;
 }
 /** Throw every draft away (the tab's guard said Discard). */
 function discardAll() {
   if (session.value) void open(session.value.name);
-  earlierRef.value?.discardDraft();
 }
 defineExpose({ unsavedDraft, discardAll });
 
@@ -337,12 +328,13 @@ async function exportSelected() {
 // ── Delete ──
 const deleteAsk = ref<MacroFile | null>(null);
 /** Where the focus goes after a delete (plan, dialog case 20): the next row,
- *  else the previous, else the head's New — never the Delete button, which
+ *  else the previous, else the head's More — never the Delete button, which
  *  the lost selection disables (Chromium then drops the focus to body, where
- *  an arrow key jogs). The guarded return also outranks the dialog's own. */
+ *  an arrow key jogs), nor New, folded in the closed More panel. The guarded
+ *  return also outranks the dialog's own. */
 function focusAfterDelete(neighbor: string | null) {
   const row = neighbor ? root.value?.querySelector<HTMLElement>(`[data-macro-row="${neighbor}"] button[aria-label="Open ${neighbor}.ngc"]`) : null;
-  returnFocusTo(row ?? root.value?.querySelector<HTMLElement>("[data-macro-new]") ?? null);
+  returnFocusTo(row ?? root.value?.querySelector<HTMLElement>(".panelHead .moreTrigger") ?? null);
 }
 function askDelete() {
   const f = selected.value;
@@ -369,66 +361,31 @@ async function confirmDelete() {
   }
 }
 
-// ── Convert an earlier macro ──
-const convert = ref<{ macro: MacroDef; name: string; units: "mm" | "inch"; params: ConvertParam[] } | null>(null);
-function openConvert(m: MacroDef) {
-  convert.value = { macro: m, name: nameFromLabel(m.name), units: "mm",
-                    params: m.params.map(p => ({ name: p.name, label: p.label || p.name, unit: "none", defaultText: p.default })) };
-}
-const convertError = computed(() => {
-  const c = convert.value;
-  if (!c) return null;
-  if (!MACRO_NAME_RE.test(c.name)) return "File name: lower-case letters, digits and _ only";
-  if (files.value.some(f => f.name === c.name)) return "A macro of that name exists";
-  const bad = nonNumericDefaults(c.params);
-  return bad.length ? `Enter a number for ${bad.join(", ")}` : null;
-});
-async function confirmConvert() {
-  const c = convert.value;
-  if (!c || convertError.value) return;
-  const out = convertToFile(c.macro, c.name, c.units, c.params);
-  if ("error" in out) { note.value = { kind: "error", text: out.error }; return; }
-  try {
-    await saveMacroFile(c.name, "new", out.text);   // never over an existing file
-    convert.value = null;
-    note.value = { kind: "ok", text: `Converted to ${c.name}.ngc — the earlier macro stays until you delete it` };
-    await reloadMacroFiles();
-    void open(c.name);
-  } catch (e) {
-    note.value = { kind: "error", text: `Not converted — ${(e as Error).message}` };
-    convert.value = null;
-  }
-}
 </script>
 
 <template>
   <div ref="root" class="macrosTab stack-controls">
     <!-- The tab's pattern (design wave D5): what it acts on, the machine
          actions with Abort last at the right edge, then the management -->
-    <div class="panelHead" :class="{ moreOpen }">
+    <div class="panelHead">
       <div class="panelObject">
         <span class="label-muted md">Macro</span>
         <span class="macroObject">{{ selected ? (selected.title ?? selected.name) : 'None selected' }}</span>
         <span v-if="selected" class="label-muted md mono objectFile">{{ selected.name }}.ngc</span>
-        <!-- Narrow only (style.css): the management folds here, like Program's -->
-        <span class="panelMore">
-          <MachineBtn type="inline" :selected="moreOpen" :aria-expanded="moreOpen" aria-controls="macroManage"
-                      aria-label="More macro actions" @click="moreOpen = !moreOpen">
-            More <component :is="moreOpen ? ChevronUp : ChevronDown" :size="14" />
-          </MachineBtn>
-        </span>
       </div>
+      <!-- ONE action row (operator 2026-10-02): Run and Abort side by side on
+           the left, the management behind More at the right end -->
       <div class="actionGroup">
         <MachineBtn type="macroRun" :hold="!!selected && selected.params.length === 0"
                     :hold-key="selected ? fileHoldKey(selected) : ''" :disabled="!!runBlock"
                     :reason="runBlock ?? undefined" @click="selected && emit('run', selected)">Run</MachineBtn>
-        <MachineBtn type="abort" class="actionEnd" @click="fire({ cmd: 'abort' }, 'abort')" />
-      </div>
-      <div id="macroManage" class="actionGroup foldNarrow">
-        <MachineBtn type="manage" data-macro-new @click="openNew">New</MachineBtn>
-        <MachineBtn type="fileOp" @click="pickImport">Import</MachineBtn>
-        <MachineBtn type="fileOp" :disabled="!selected" @click="exportSelected">Export</MachineBtn>
-        <MachineBtn type="manage" :disabled="!selected" @click="askDelete">Delete</MachineBtn>
+        <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
+        <MoreMenu class="actionEnd" label="More macro actions">
+          <MachineBtn type="manage" @click="openNew">New</MachineBtn>
+          <MachineBtn type="fileOp" @click="pickImport">Upload</MachineBtn>
+          <MachineBtn type="fileOp" :disabled="!selected" @click="exportSelected">Download</MachineBtn>
+          <MachineBtn type="manage" :disabled="!selected" @click="askDelete">Delete</MachineBtn>
+        </MoreMenu>
       </div>
     </div>
 
@@ -521,10 +478,6 @@ async function confirmConvert() {
       </table>
     </div>
 
-    <div class="sep"></div>
-    <div class="sub">Earlier Macros</div>
-    <div class="settingDesc">One MDI line each, stored in the settings — they stay on the bar and keep working.</div>
-    <EarlierMacros ref="earlierRef" @convert="openConvert" />
     </div>
 
     <DialogFrame v-if="newOpen" kind="form" size="md" title="New Macro" @close="newOpen = false">
@@ -568,45 +521,6 @@ async function confirmConvert() {
       </template>
     </DialogFrame>
 
-    <DialogFrame v-if="convert" kind="form" size="md" :title="`Convert ${convert.macro.name} to a File`" @close="convert = null">
-      <div class="dialogContent stack-controls">
-        <div class="formGrid">
-          <FormField label="File name" :error="convertError && convertError.startsWith('File') || convertError?.startsWith('A macro') ? convertError : null">
-            <template #default="{ input }">
-              <MachineInput v-bind="input" gate="macroEdit" type="text" v-model="convert.name" />
-            </template>
-          </FormField>
-          <FormField label="Units">
-            <template #default="{ field }">
-              <MachineSelect v-bind="field" gate="macroEdit" v-model="convert.units">
-                <option value="mm">mm</option>
-                <option value="inch">inch</option>
-              </MachineSelect>
-            </template>
-          </FormField>
-        </div>
-        <div v-if="convert.params.length" class="sub">Values</div>
-        <div v-for="p in convert.params" :key="p.name" class="formGrid">
-          <FormField :label="`{${p.name}} default`">
-            <template #default="{ input }">
-              <MachineInput v-bind="input" gate="macroEdit" type="text" v-model="p.defaultText" />
-            </template>
-          </FormField>
-          <FormField :label="`{${p.name}} kind`">
-            <template #default="{ field }">
-              <MachineSelect v-bind="field" gate="macroEdit" v-model="p.unit">
-                <option v-for="u in UNIT_KINDS" :key="u" :value="u">{{ u }}</option>
-              </MachineSelect>
-            </template>
-          </FormField>
-        </div>
-        <div v-if="convertError" class="statusNote warn" role="alert"><span>{{ convertError }}</span></div>
-      </div>
-      <template #actions>
-        <MachineBtn type="dialogCancel" @click="convert = null">Cancel</MachineBtn>
-        <MachineBtn type="fileSave" :disabled="!!convertError" @click="confirmConvert">Convert</MachineBtn>
-      </template>
-    </DialogFrame>
   </div>
 </template>
 

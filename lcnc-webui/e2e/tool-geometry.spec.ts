@@ -3,6 +3,7 @@ import WebSocket from "ws";
 import { assertLayout, expectDialogUncovered, measureLayout } from "./layout-audit";
 import { VIEWPORTS } from "./layout-fixtures";
 import { ctl as ctlOp } from "./ctl";
+import { clickMore } from "./more";
 
 const MOCK = process.env.TOOL_IMPORT_TEST_URL ?? "http://localhost:4174/";
 function ctl(frame: Record<string, unknown>): Promise<void> {
@@ -154,7 +155,7 @@ async function openAdd(page: Page) {
     return page.getByTitle("Edit tool", { exact: true }).count();
   }).toBe(1);
   await ctlOp({ op: "clearCmds" });
-  await page.getByRole("button", { name: "+ Add", exact: true }).click();
+  await clickMore(page.locator(".toolsHead"), "New");
   await expect(page.locator(".editDialog")).toBeVisible();
 }
 
@@ -204,7 +205,7 @@ test("an old session's late reply never closes a newer dialog", async ({ page })
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(dialog).toHaveCount(0);
   // … opens session B and sends it.
-  await page.getByRole("button", { name: "+ Add", exact: true }).click();
+  await clickMore(page.locator(".toolsHead"), "New");
   await expect(dialog).toBeVisible();
   await dialog.getByRole("button", { name: "Add", exact: true }).click();
   await expect.poll(async () => (await toolCmds("add_tool")).length).toBe(2);

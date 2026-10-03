@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { ctl as ctlSend, MOCK } from "./ctl";
+import { clickMore } from "./more";
 
 // The strip's choice groups (operator P7): buttons with role="radio" in a
 // named group — a dimmed option is aria-disabled (it stays focusable and
@@ -588,7 +589,7 @@ test("tool number field: minimum 1 and whole numbers only, on Enter and on OK", 
   await ctlSend({ op: "quiet", on: true });
   try {
     await page.getByRole("tab", { name: "Tools", exact: true }).click();
-    await page.getByRole("button", { name: "+ Add", exact: true }).click();
+    await clickMore(page.locator(".toolsHead"), "New");
     const dialog = page.locator(".dialogOverlay").last();
     const toolNo = dialog.getByRole("textbox", { name: "Tool #", exact: true });
     const before = await toolNo.inputValue();
@@ -773,7 +774,7 @@ test("keypad owner: dialog close, gate change and a second field end or retarget
   try {
     await ctlSend({ op: "status_delta", data: { permissions: PERMS_ALL } });
     await page.getByRole("tab", { name: "Tools", exact: true }).click();
-    await page.getByRole("button", { name: "+ Add", exact: true }).click();
+    await clickMore(page.locator(".toolsHead"), "New");
     const dialog = page.locator(".editDialog");
     const field = (name: string) => dialog.getByRole("textbox", { name, exact: true });
     await field("Diameter").click();
