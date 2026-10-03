@@ -552,6 +552,22 @@ for (const row of ROWS) {
       });
     }
 
+    // The action row keeps the frame's padding: no button sits on the
+    // dialog's edge (operator 2026-10-03: in the macro editor — the first
+    // LARGE dialog with actions — Cancel and Save hung on its lower edge;
+    // the large tier had no padding for its action row).
+    if (row.actions) {
+      const gaps = await dialog.evaluate(d => {
+        const box = d.getBoundingClientRect();
+        const btns = [...d.querySelectorAll<HTMLElement>(".dialogActions button")].map(b => b.getBoundingClientRect());
+        return { bottom: box.bottom - Math.max(...btns.map(b => b.bottom)),
+                 left: Math.min(...btns.map(b => b.left)) - box.left, right: box.right - Math.max(...btns.map(b => b.right)) };
+      });
+      for (const [side, gap] of Object.entries(gaps)) {
+        expect(gap, `the action row's ${side} gap to the dialog's edge`).toBeGreaterThanOrEqual(8);
+      }
+    }
+
     // Every scroller in the dialog draws the app's thin scrollbar (the
     // parameter dialog drew the browser's wide black one, operator
     // 2026-10-03): its .dialogContent scrolls in a low window.
