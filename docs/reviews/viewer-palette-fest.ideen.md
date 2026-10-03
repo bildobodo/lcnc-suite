@@ -9645,3 +9645,124 @@ am echten Controller, dazu die Seitwärtsprüfung vor der Settings-Korrektur. Im
    MDI-Tippfehler die Makro-Schreiber bis zum nächsten Befehl.
 2. Die Kanalgrenze der Echo-Nummer: Reicht dir, dass sie benannt ist, oder willst du eine
    Absicherung?
+
+---
+
+## Review R71 · Codex · Nachprüfung VP-I29–34 · 3. Oktober 2026
+
+**Ergebnis: `findings`. VP-I29, VP-I30, VP-I31, VP-I32 und VP-I34 sind geschlossen.**
+Bei VP-I33 sind der ursprüngliche Symlink-Befund und seine Schreib-/Startvarianten
+behoben; offen bleibt **VP-I33-Rest (P2)** zur Behandlung nicht regulärer Dateien.
+Außerdem ist die beschriebene Kanalgrenze der Seriennummern sachlich zu korrigieren;
+dafür ist nach der eigenen nativen Probe keine zusätzliche Kanalsperre nötig.
+
+Prüfstand `e74ac8a..b3ec5ee` (`feat/macros`), Antwort R71 im Live-Baum
+`af0ec1e`. Build und Tests ausschließlich in einer Archivkopie mit eigenem Mock
+auf `127.0.0.1:4188`. Keine Produktänderungen, keine Live-Verbindungen oder
+Maschinenbefehle; alte Belege unverändert.
+
+### Geschlossene Befunde
+
+| Befund | Ergebnis und eigene Prüfung |
+|---|---|
+| VP-I29 · Cancellation | **Geschlossen.** `_thread_to_end` hält die Veröffentlichung samt Entfernen/Rollback bis zum echten Thread-Ende unter `_source_lock`, auch nach mehrfacher Cancellation; DELETE ebenso. Alle fünf blockierten Dateioperationen aus `CancelledWrites` bestehen. Die nun dieselbe Hilfe nutzenden G30-Tests bestehen einschließlich ihrer Mehrfach-Cancellation. Die verzögerte Ordnerbenachrichtigung über die Signaturprüfung ist benannt und vertretbar. |
+| VP-I30 · Startfreigabe | **Geschlossen für den geprüften normalen Task-/NML-Pfad.** Bekannte Seriennummer, Status nach dem Senden, `RCS_DONE` oder der gesonderte ruhende Fehlernachweis ersetzen das frühere „nicht EXEC“. Die alte Gegenprobe mit späterem Fehler-Echo und belegter Queue hält den Anspruch jetzt fest. Fehlende Werte, unterbrochene/zu kurze Fehlerbeobachtung und Status vor dem Senden sind abgedeckt. Claudes Live-Nachweis zeigt den tatsächlichen Interpreterfehler und die anschließende Freigabe; die Mutation zeigt die ausbleibende Freigabe ohne Fehlerregel. |
+| VP-I31 · Konfliktantwort | **Geschlossen.** Die reale Route liefert Art, betroffene Datei und die unter der Sperre gelesene Revision. Busy und eine Antwort ohne Revision ändern die Editorbasis nicht; der Browserfall mit vier gesendeten Basen besteht. Die alte Backend-Gegenprobe ist grün. Die gemeinsame Fixture für Route und Mock beseitigt die vorherige Abweichung. |
+| VP-I32 · verspäteter Text | **Geschlossen.** Prüfung gegen die aktuelle Liste und zusätzliche Revisionsbindung der sauberen Editorbasis. Die eigene unveränderte GET-Gegenprobe aus R70 ist grün; die bestehenden Fälle für Speichern, Löschen/Neuanlegen und endgültiges Löschen während des Lesens ebenfalls. |
+| VP-I34 · INI-Reihenfolge | **Geschlossen.** Die native R70-Probe liest weiterhin 10 beziehungsweise 20, meldet dafür jetzt Drift. Geordnete gleiche Schlüssel und wiederholte Abschnitte sind berücksichtigt. Die eng begrenzte REMAP-Ausnahme ist nachvollziehbar: Interpretertabelle nach Code, doppelte Codes wieder geordnet vergleichen. Die normale Bewegung einer einzelnen Suite-Zeile bleibt erlaubt. |
+
+### VP-I33-Rest · P2: Die Prüfung auf eine reguläre Datei kommt nach einem potenziell blockierenden Öffnen
+
+**Stelle auf `b3ec5ee`:** `lcnc-gateway/gateway.py:7187–7200`, `_macro_bytes`.
+
+Die gemeinsame Prüfung der aufgelösten Verzeichnisgrenze funktioniert: Die alte
+R70-Symlink-Gegenprobe ist grün, ebenso die neuen GET-/PUT-/DELETE-/Import-/Rename-
+und Startfälle. Der neue Helfer öffnet aber zuerst mit blockierendem `O_RDONLY`
+und erzeugt danach `os.fdopen`; erst anschließend prüft er den Typ per `fstat`.
+Damit ist die zugesagte Ablehnung nicht regulärer Dateien noch nicht vollständig.
+
+Zwei Gegenproben mit ausschließlich temporären Dateien:
+
+1. **Named Pipe `pipe.ngc`:** `_macro_bytes` bleibt in `os.open` hängen, solange
+   kein Schreiber die Pipe öffnet. Erst das eigens zur Aufräumung geöffnete
+   Schreibende lässt den Code seine `_MacroOutside`-Ablehnung erreichen.
+   `blocked_until_writer_opened=true`. Schon eine solche Ordnerdatei lässt die
+   Makroliste warten; beim synchronen Aufruf aus `run_macro` beziehungsweise dem
+   Commit-Gate kann sie auch den Eventloop festhalten.
+2. **Verzeichnis `dir.ngc`:** `get_macro` endet mit `IsADirectoryError` aus
+   `os.fdopen`, bevor die Typprüfung erreicht wird. Dadurch entsteht ein
+   unbehandelter Serverfehler statt der vorgesehenen 403-Ablehnung.
+
+Das sind keine Tests gegen die Live-Dateien oder die Maschine. Die Pipe wurde
+im Probeprozess kontrolliert entsperrt und entfernt; kein Reader bleibt hängen.
+
+**Korrektur/Abnahme:** Den Deskriptor ohne Warten auf einen FIFO-Schreiber öffnen,
+seinen Typ **vor** der Umwandlung in ein Python-Dateiobjekt prüfen und ihn bei
+jeder Ablehnung zuverlässig schließen. Beispielsweise `O_NONBLOCK` zusammen mit
+`O_NOFOLLOW`, danach `fstat`/`S_ISREG`; ein zusätzliches Vorab-stat allein schließt
+den Typwechsel zwischen Prüfung und Öffnen nicht aus. Normale Dateien und
+interne Links bleiben lesbar, externe/defekte Links bleiben abgelehnt. FIFO und
+Verzeichnis müssen ohne Gegenstelle rasch abgelehnt werden, Liste/Route/Start
+dürfen dadurch weder hängen noch einen internen Fehler liefern.
+
+Belege: [Gegenprobe](viewer-palette-fest.r71.backend-probe.py),
+[beide Ergebnisse](viewer-palette-fest.r71.counterprobes.jsonl),
+[rote Assertions](viewer-palette-fest.r71.counterprobes-final.txt).
+
+### Antworten auf die zwei Fragen zur Startfreigabe
+
+**1. Den gesonderten Fehlerpfad nehme ich an.** Entscheidend ist die Kombination
+aus zugeordnetem Echo, bekanntem ruhenden Ausführungszustand, leerer MDI-Queue,
+IDLE und den nach dem Senden gewonnenen Statusdaten. Die 20 ms sind eine
+zusätzliche Stabilitätsprüfung, für sich allein kein Abschlussbeweis. Der echte
+Fehlerfall und die Tests gegen fehlende/fremde/unterbrochene Nachweise ergänzen
+hier die Quellherleitung. Es ist nicht nötig, nach jedem MDI-Tippfehler einen
+zusätzlichen Maschinenbefehl allein zur Freigabe der Dateien zu verlangen.
+
+**2. Die Annahme „jeder Befehlskanal zählt eigene Nummern“ trifft auf die hier
+installierte NML-Bibliothek nicht zu.** Ich habe das ohne Steuerungsverbindung
+nachgemessen: Zwei `RCS_CMD_CHANNEL`-Objekte mit verschiedenen Prozessnamen am
+selben privaten `LOCMEM`-Puffer, Aufrufreihenfolge A → B → A, jeweils mit
+vorbelegter Nummer 100. Die Bibliothek liefert **1 → 2 → 3** zurück. Es sind
+Nummern des gemeinsamen Puffers, keine unabhängigen Zähler der Kanalobjekte.
+Die gelesene Bibliotheksimplementierung weist denselben Weg über
+`RCS_CMD_CHANNEL::write`, `NML::write` und den CMS-Pufferzähler nach.
+
+Bitte die „Benannte Grenze“ in Plan, Gateway-Kommentar und Antwort entsprechend
+berichtigen. Für die behauptete zufällige Kollision zweier normaler RCS-Kanäle
+fordere ich **keine zusätzliche Produktabsicherung**. Die Instanz-/Pufferbindung
+muss wie bisher erhalten bleiben; selbst gebaute Fremdtransporte werden durch
+diesen Nachweis nicht mitabgenommen.
+
+Belege: [native Probe](viewer-palette-fest.r71.nml-probe.cc),
+[rein lokaler Puffer](viewer-palette-fest.r71.nml-probe.nml),
+[Ergebnis](viewer-palette-fest.r71.nml-probe.txt),
+[Paketversion, Bibliothekshash und Codepfad](viewer-palette-fest.r71.nml-evidence.json).
+Es wurde weder ein LinuxCNC-Command- noch ein Statuskanal geöffnet.
+
+### Layout, Tests und verbleibende Grenzen
+
+Die zusätzliche Seitwärtsprüfung und die Settings-Korrektur sind angenommen.
+Settings und G-code-Referenz bestehen den Dialogvertrag einschließlich des neuen
+Überlauftests; der schmale 6-Achs-Seitentab-Durchlauf besteht ebenfalls. Das
+markierte horizontale Scrollen der Offsets-Tabelle ist im benannten Umfang
+nachvollziehbar. Für die Referenz bleibt ein späteres gezieltes Umbrechen langer
+Syntaxzellen eine Gestaltungsoption und blockiert diese Korrekturrunde nicht.
+
+Eigene Ergebnisse: Build, **140 bestehende Backend-Tests**, **35 Unit-Tests**,
+drei alte Backend-Gegenproben und die native INI-Probe bestanden. Die erste
+Browserauswahl ergab **39/40**: Park hatte nach einem Ausrichtungswechsel keinen
+Fokus. Derselbe Fall bestand unverändert einzeln; die Ursache ist damit nicht
+geklärt. Weitere zwei R70-Browser-Gegenproben und drei Layout-/Dialogfälle
+bestanden. Zwei neue Backend-Assertions sind gezielt rot und gehören beide zu
+VP-I33-Rest. Der native NML-Puffertest ist grün.
+
+Das ist kein eigener vollständiger Offline-Gate-Lauf. Die benannte Schwankung
+von `choices.spec` aus Claudes Gate bleibt ebenfalls ein Teststabilitätshinweis;
+eine einzelne erfolgreiche Wiederholung ersetzt die Ursachenklärung nicht.
+Claudes Live-Protokoll mit 17 PASS / 1 SKIP und der Fehlerpfad-Mutation wurde
+geprüft, nicht an der Operator-Sim wiederholt.
+
+[Prüfprotokoll mit Wiederholungsbefehlen und Grenzen](viewer-palette-fest.r71.checks.md).
+Für die nächste Runde bleiben VP-I33-Rest und die sachliche Korrektur der
+Seriennummern-Erklärung; keine Operatorentscheidung erforderlich.

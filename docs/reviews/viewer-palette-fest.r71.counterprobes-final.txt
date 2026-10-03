@@ -1,0 +1,69 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_____ ReviewR71.test_a_directory_named_ngc_is_a_bounded_admission_refusal ______
+
+self = <test_r71_review.ReviewR71 testMethod=test_a_directory_named_ngc_is_a_bounded_admission_refusal>
+
+    def test_a_directory_named_ngc_is_a_bounded_admission_refusal(self):
+        path=self.mdir/'dir.ngc';path.mkdir()
+        code=None
+        try:
+            _run(gateway.get_macro(name='dir'))
+            response='accepted'
+        except Exception as e:
+            response=type(e).__name__
+            code=getattr(e,'status_code',None)
+        record({'case':'nonregular directory','response':response,'status_code':code})
+>       self.assertEqual(code,403,'directory escaped admission as a server exception')
+E       AssertionError: None != 403 : directory escaped admission as a server exception
+
+test_r71_review.py:57: AssertionError
+----------------------------- Captured stdout call -----------------------------
+{"case": "nonregular directory", "response": "IsADirectoryError", "status_code": null}
+_ ReviewR71.test_a_nonregular_macro_file_is_rejected_without_waiting_for_a_writer _
+
+self = <test_r71_review.ReviewR71 testMethod=test_a_nonregular_macro_file_is_rejected_without_waiting_for_a_writer>
+
+    def test_a_nonregular_macro_file_is_rejected_without_waiting_for_a_writer(self):
+        path = self.mdir/'pipe.ngc'
+        os.mkfifo(path)
+        entered = threading.Event()
+        real_open = os.open
+        def seen_open(p, flags, *a, **kw):
+            if str(p)==str(path): entered.set()
+            return real_open(p, flags, *a, **kw)
+        def read():
+            try:
+                gateway._macro_bytes(self.state, str(path))
+                return 'accepted'
+            except Exception as e:
+                return type(e).__name__+': '+str(e)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+            with patch.object(gateway.os, 'open', seen_open):
+                f=ex.submit(read)
+                assert entered.wait(1), 'probe never reached file open'
+                try:
+                    response=f.result(timeout=.25)
+                    blocked=False
+                except concurrent.futures.TimeoutError:
+                    blocked=True
+                    # Unblock OUR private FIFO; no reader is left running.
+                    fd=real_open(path, os.O_WRONLY | os.O_NONBLOCK)
+                    os.close(fd)
+                    response=f.result(timeout=1)
+        record({'case':'nonregular FIFO', 'blocked_until_writer_opened':blocked,'response_after_writer':response})
+>       self.assertFalse(blocked, 'a file admission must not wait indefinitely to reject a named pipe')
+E       AssertionError: True is not false : a file admission must not wait indefinitely to reject a named pipe
+
+test_r71_review.py:44: AssertionError
+----------------------------- Captured stdout call -----------------------------
+{"case": "nonregular FIFO", "blocked_until_writer_opened": true, "response_after_writer": "_MacroOutside: pipe.ngc leads to no file"}
+=========================== short test summary info ============================
+FAILED test_r71_review.py::ReviewR71::test_a_directory_named_ngc_is_a_bounded_admission_refusal
+FAILED test_r71_review.py::ReviewR71::test_a_nonregular_macro_file_is_rejected_without_waiting_for_a_writer
+[GC] +435ms gen=2 duration=22.7ms collected=553 uncollectable=0
+[GC] +454ms gen=2 duration=19.1ms collected=0 uncollectable=0
+[GC] +475ms gen=2 duration=21.2ms collected=0 uncollectable=0
+[GC] +492ms gen=2 duration=17.1ms collected=0 uncollectable=0
+[GC] +513ms gen=2 duration=20.9ms collected=0 uncollectable=0
+[GC] +533ms gen=2 duration=18.8ms collected=0 uncollectable=0

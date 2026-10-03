@@ -1,0 +1,4 @@
+# Only memory inside the probe's process. No SHMEM, TCP, emcCommand or emcStatus.
+B r71Only LOCMEM localhost 8192 0 0 1 16 queue serial
+P r71A r71Only LOCAL localhost RW 0 1.0 1 0
+P r71B r71Only LOCAL localhost RW 0 1.0 0 1

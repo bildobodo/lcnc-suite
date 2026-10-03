@@ -1,0 +1,14 @@
+[2m[WebServer] [22m(node:2937525) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:2937538) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2937538) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/dialogs.spec.ts:525:3 › dialog 2 Settings: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return (4.8s)
+  ✓  2 e2e/dialogs.spec.ts:525:3 › dialog 9 G-code Reference: role and name, tier, initial focus, Tab scope, Escape = E-Stop, backdrop, focus return (4.0s)
+  ✓  3 e2e/layout.spec.ts:61:5 › 6axis-twp touch-portrait: side panel tabs keep every control's footprint across machine states (16.7s)
+
+  3 passed (26.5s)

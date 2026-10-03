@@ -1,0 +1,1 @@
+{"write_rc":[0,0,0],"supplied_serials":[100,100,100],"assigned_A_B_A":[1,2,3]}

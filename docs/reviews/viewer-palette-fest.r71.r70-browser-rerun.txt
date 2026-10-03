@@ -1,0 +1,13 @@
+[2m[WebServer] [22m(node:2933917) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:2933929) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2933929) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r71.r70.spec.ts:51:1 › R70: a FRAME machine macro is gated the same in the tab as on the bar (3.2s)
+  ✓  2 e2e/r71.r70.spec.ts:63:1 › R70: a catalog update while the text loads cannot leave an old clean editor (3.0s)
+
+  2 passed (6.8s)
