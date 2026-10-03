@@ -7823,4 +7823,11 @@ Two ideas of 2026-10-01, rendered first (acceptance page V10), then chosen
 - Guards: `e2e/gcode-reference.spec.ts` (8 mutations red: the narrow tier,
   one-line syntax, no cards, the block without the filter, no mark, no
   scroll, the old search, G01) and `gcodeRefView.test.ts`.
+- The first gate on it failed in `layout.spec` (17 strip tests): a `.sep`
+  between the G and M lines INSIDE the button counted as a section rule a
+  control lies on — the line is gone, a gap separates them; and in portrait
+  with an input helper the status detail (by design, D7) folds the block
+  away, which the strip-state invariant read as "4 controls became 3" — it
+  now compares the pinned controls there (`refControls`), and the negative
+  control still sees the band's re-flow.
 

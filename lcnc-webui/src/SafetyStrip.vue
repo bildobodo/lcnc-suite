@@ -79,6 +79,9 @@ const overridesActive = computed(() =>
 // return when the helper closes. The safety buttons never move (WP4 pinned
 // controls); landscape is unchanged (fixed section height).
 const isPortrait = useMediaMql("(orientation: portrait)");
+// the block's name carries the codes it shows (WCAG 2.5.3), none before a status
+const codesLabel = computed(() =>
+  ["Active codes", props.gcodes, props.mcodes].filter(Boolean).join(" ") + " — open in the G-code reference");
 const compact = computed(() => isPortrait.value && activeKind.value !== null);
 </script>
 
@@ -157,13 +160,12 @@ const compact = computed(() => isPortrait.value && activeKind.value !== null);
       <div class="sep"></div>
       <!-- One tap opens the G-code reference on "Active now" (operator
            2026-10-03, variant B: one big target, the strip unchanged). -->
-      <MachineBtn type="activeCodes" class="codesRow"
-                  :aria-label="`Active codes ${gcodes} ${mcodes} — open in the G-code reference`"
+      <MachineBtn type="activeCodes" class="codesRow" :aria-label="codesLabel"
                   title="Open the active codes in the G-code reference"
                   @click="emit('openActiveCodes')">
-        <span class="codesStack stack-micro">
+        <!-- G over M by a gap: a .sep is a SECTION rule, never inside a control -->
+        <span class="stack-tight">
           <span class="codesHead"><span class="codes-value">{{ gcodes }}</span><BookOpen :size="14" class="codesIcon" aria-hidden="true" /></span>
-          <span class="sep"></span>
           <span class="codes-value">{{ mcodes }}</span>
         </span>
       </MachineBtn>
@@ -226,7 +228,6 @@ const compact = computed(() => isPortrait.value && activeKind.value !== null);
   min-width: calc(100% + 2 * var(--gap-tight));
   margin-inline: calc(-1 * var(--gap-tight));
 }
-.codesStack .sep { display: block; }   /* a span inside the button */
 .codesHead { display: flex; align-items: flex-start; gap: var(--gap-tight); }
 .codesHead .codes-value { flex: 1; min-width: 0; }
 .codesIcon { flex: none; color: var(--fg-muted); }

@@ -120,6 +120,18 @@ export const SETUP_AXIS_ROWS = '[data-strip="setup"] .axisGrids';
 /** Reference controls that stay visible in a state: the pinned Safety
  * section always, plus the keypad's OWNER section (it keeps its place
  * right of Safety while the others hide; in portrait its axis rows). */
+/** The controls a reference section's invariant compares (undefined = every
+ * control). In PORTRAIT an open input helper folds the Safety section's status
+ * detail away (design wave D7, review UI-I08) — and with it the active-codes
+ * block (operator 2026-10-03): by design, not a re-flow, so there the compare
+ * holds the section's pinned controls (Arm, E-Stop, Power). Landscape keeps
+ * the detail, and every control is compared. */
+export function refControls(sel: string, portrait: boolean): string | undefined {
+  if (!portrait || sel !== PANELS.safety) return undefined;
+  const pinned = (s: string) => `${s}:not(.statusDetail *)`;
+  return [pinned('button'), pinned('input:not([type="hidden"])'), pinned('select'), pinned('textarea'), pinned('[data-layout-slot]')].join(', ');
+}
+
 export function stripStateRefs(state: StripState, portrait = false): string[] {
   if (state === 'keypad-setup') return [PANELS.safety, portrait ? SETUP_AXIS_ROWS : PANELS.setup];
   return [PANELS.safety];

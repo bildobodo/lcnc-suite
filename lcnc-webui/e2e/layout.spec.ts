@@ -6,7 +6,7 @@ import { clickMore } from './more';
 import { NARROW_PANE_PX } from '../src/sidePaneNarrow';
 import { measureLayout, assertLayout, layoutChanges, measureFrame, frameChanges, sidewaysOverflow, type LayoutSnapshot } from './layout-audit';
 import { PROFILES, VIEWPORTS, PANELS, openLayout, setLayoutState, settleLayout, type LayoutState,
-  STRIP_STATES, enterStripState, leaveStripState, stripStateRefs, stripStateExempt, SETUP_AXIS_ROWS } from './layout-fixtures';
+  STRIP_STATES, enterStripState, leaveStripState, stripStateRefs, stripStateExempt, refControls, SETUP_AXIS_ROWS } from './layout-fixtures';
 
 test.afterEach(async () => { await ctl({ op: 'reset' }); });
 
@@ -731,9 +731,9 @@ for (const viewport of VIEWPORTS) {
     const profile = PROFILES[1];
     await openLayout(page, profile, viewport);
     const frame0 = await measureFrame(page);
-    const refs0: Record<string, LayoutSnapshot> = {};
-    for (const sel of [PANELS.safety, PANELS.setup, SETUP_AXIS_ROWS]) refs0[sel] = await measureLayout(page.locator(sel), sel);
     const portrait = viewport.height > viewport.width;
+    const refs0: Record<string, LayoutSnapshot> = {};
+    for (const sel of [PANELS.safety, PANELS.setup, SETUP_AXIS_ROWS]) refs0[sel] = await measureLayout(page.locator(sel), sel, refControls(sel, portrait));
     const evidence: { state: string; frame: unknown; issues: unknown[] }[] = [];
     try {
       for (const state of STRIP_STATES) {
@@ -741,7 +741,7 @@ for (const viewport of VIEWPORTS) {
         const issues = frameChanges(frame0, await measureFrame(page), stripStateExempt(state, portrait));
         for (const sel of stripStateRefs(state, portrait)) {
           const root = page.locator(sel);
-          const snap = await measureLayout(root, sel);
+          const snap = await measureLayout(root, sel, refControls(sel, portrait));
           issues.push(...snap.issues, ...layoutChanges(refs0[sel]!, snap));
         }
         evidence.push({ state, frame: await measureFrame(page), issues });
@@ -871,10 +871,10 @@ test('negative control (portrait): without the always-present band the keypad re
   const pre = await page.locator('.strip').evaluate(el => ({ scrollHeight: el.scrollHeight, clientHeight: el.clientHeight }));
   expect(pre.scrollHeight, 'fixture must overflow vertically for the band to matter').toBeGreaterThan(pre.clientHeight);
   const frameOk = await measureFrame(page);
-  const safetyOk = await measureLayout(page.locator(PANELS.safety), 'safety');
+  const safetyOk = await measureLayout(page.locator(PANELS.safety), 'safety', refControls(PANELS.safety, true));
   await enterStripState(page, PROFILES[1], 'keypad-panel');
   expect(frameChanges(frameOk, await measureFrame(page))).toEqual([]);
-  expect(layoutChanges(safetyOk, await measureLayout(page.locator(PANELS.safety), 'safety'))).toEqual([]);
+  expect(layoutChanges(safetyOk, await measureLayout(page.locator(PANELS.safety), 'safety', refControls(PANELS.safety, true)))).toEqual([]);
   await leaveStripState(page, PROFILES[1], 'keypad-panel');
   // `scrollbar-gutter: stable` would be the natural fix, but the strip is a
   // <fieldset> whose inner scroll box ignores it in Chromium — the control
@@ -882,13 +882,13 @@ test('negative control (portrait): without the always-present band the keypad re
   await page.addStyleTag({ content: '.wrap > .strip { overflow-y: auto !important; }' });
   await settleLayout(page);
   const frameAuto = await measureFrame(page);
-  const safetyAuto = await measureLayout(page.locator(PANELS.safety), 'safety');
+  const safetyAuto = await measureLayout(page.locator(PANELS.safety), 'safety', refControls(PANELS.safety, true));
   await enterStripState(page, PROFILES[1], 'keypad-panel');
   // The strip is a <fieldset>: its `clientWidth` does NOT follow the band of
   // its anonymous inner scroll box (measured 268 px with and without the
   // band), so the frame measure cannot see this change — the pinned Safety
   // controls, which fill the inner width, are the witness (252 → 262 px).
-  const safetyDiff = layoutChanges(safetyAuto, await measureLayout(page.locator(PANELS.safety), 'safety'));
+  const safetyDiff = layoutChanges(safetyAuto, await measureLayout(page.locator(PANELS.safety), 'safety', refControls(PANELS.safety, true)));
   expect(safetyDiff.length, safetyDiff.map(c => c.detail).join('\n')).toBeGreaterThan(0);
   // …while the strip's OUTER box stays 280 px: the original UI-08 class, which
   // a bounding-box compare alone could never see.
