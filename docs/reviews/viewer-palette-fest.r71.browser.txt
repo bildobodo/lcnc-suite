@@ -1,0 +1,91 @@
+[2m[WebServer] [22m(node:2923033) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 40 tests using 1 worker
+
+(node:2923091) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2923091) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/editor-guards.spec.ts:69:1 › external program change keeps buffer A, shows the conflict, saves A only (4.7s)
+  ✓   2 e2e/editor-guards.spec.ts:100:1 › program change during a delayed save: no reload of the new program from A (5.8s)
+  ✓   3 e2e/editor-guards.spec.ts:127:1 › program change while CodeMirror is still loading: the view shows A and is usable (7.2s)
+  ✓   4 e2e/editor-guards.spec.ts:151:1 › a discarded session's pending import installs nothing (6.8s)
+  ✓   5 e2e/editor-guards.spec.ts:172:1 › an older save reply never touches a newer session (4.0s)
+  ✓   6 e2e/editor-guards.spec.ts:202:1 › the code shows at once after the viewer is rebuilt or another program loads (live look 2026-10-01) (3.6s)
+  ✓   7 e2e/editor-guards.spec.ts:219:1 › discard: clean closes at once, dirty asks and Keep editing keeps the edit (3.3s)
+  ✓   8 e2e/editor-guards.spec.ts:241:1 › the program editor scrolls with the app's thin scrollbar, like every scroller beside it (5.1s)
+  ✓   9 e2e/editor-guards.spec.ts:249:1 › an upload finishing after Edit raises the conflict, never loses the buffer (3.9s)
+  ✓  10 e2e/editor-guards.spec.ts:270:3 › upload name conflict › Cancel / Rename / Replace (3.7s)
+  ✓  11 e2e/layout.spec.ts:269:3 › desktop: Abort ends the machine actions in every tab — only More right of it — the head keeps its order (3.2s)
+  ✓  12 e2e/layout.spec.ts:269:3 › touch-landscape: Abort ends the machine actions in every tab — only More right of it — the head keeps its order (3.6s)
+  ✓  13 e2e/layout.spec.ts:269:3 › touch-portrait: Abort ends the machine actions in every tab — only More right of it — the head keeps its order (3.3s)
+  ✓  14 e2e/layout.spec.ts:269:3 › touch-portrait 150 %: Abort ends the machine actions in every tab — only More right of it — the head keeps its order (3.0s)
+  ✓  15 e2e/layout.spec.ts:777:3 › touch-portrait 100 %: the macro bar is one row between the viewer and the side pane, which does not move (3.0s)
+  ✓  16 e2e/layout.spec.ts:777:3 › touch-portrait 150 %: the macro bar is one row between the viewer and the side pane, which does not move (2.8s)
+  ✓  17 e2e/macros.spec.ts:44:1 › the Macros tab lists the folder; a file put on the bar runs on a hold bound to its revision (3.5s)
+  ✓  18 e2e/macros.spec.ts:60:1 › a macro file with parameters opens its dialog with the header's fields; Execute holds and sends numbers (3.0s)
+  ✓  19 e2e/macros.spec.ts:81:1 › an unsaved draft blocks the run of THAT macro on the bar and in the tab; Save restores it at the new revision (3.4s)
+  ✓  20 e2e/macros.spec.ts:103:1 › another client's save under a draft is a conflict: Reload shows the disk; nothing is overwritten silently (2.7s)
+  ✓  21 e2e/macros.spec.ts:126:1 › Save's refusal: a conflict rebases Keep editing on the gateway's revision; busy or unnamed is no conflict (2.9s)
+  ✓  22 e2e/macros.spec.ts:168:1 › a read overtaken by a save, a delete or a new file of the name never leaves an old clean editor (3.1s)
+  ✓  23 e2e/macros.spec.ts:216:1 › closing the editor over a draft asks first, by Cancel and by X: Keep editing stays, Discard closes; nothing saved (7.0s)
+  ✓  24 e2e/macros.spec.ts:242:1 › another client's save during a bar hold cancels it; the next hold runs the new revision once (7.1s)
+  ✓  25 e2e/macros.spec.ts:262:1 › the open parameter dialog follows its file: a new header shows its field; a file that may not run dims Execute with the reason (7.7s)
+  ✓  26 e2e/macros.spec.ts:288:1 › a late read never shows the earlier macro's text: editor closed, another opened (7.3s)
+  ✓  27 e2e/macros.spec.ts:318:1 › the Macros tab and its editor never run out sideways: desktop, portrait 100 % and 150 % (10.3s)
+  ✓  28 e2e/macros.spec.ts:357:1 › after a delete the focus goes to the next row, else the previous, else More — never to body (3.8s)
+  ✓  29 e2e/macros.spec.ts:388:1 › the editor dialog: name, title and description are the header lines; a rename moves the file and its place on the bar (3.1s)
+  ✓  30 e2e/macros.spec.ts:439:1 › New: the name writes the subroutine's label, the title follows it until typed; Create makes the file (2.7s)
+  ✓  31 e2e/macros.spec.ts:469:1 › search, the bar filter and the sort narrow and order the rows (2.5s)
+  ✓  32 e2e/macros.spec.ts:500:1 › a tap on a row selects it for Run; its name is one Tab stop whose keys select and never jog (3.1s)
+  ✓  33 e2e/macros.spec.ts:562:1 › Download saves the file as it is: the selected macro, the loaded program, the tool table (3.1s)
+  ✓  34 e2e/macros.spec.ts:596:1 › one action row: Run and Abort left, More right; its panel, its keys, and a dialog's return to More (3.5s)
+  ✓  35 e2e/macros.spec.ts:691:1 › On bar and the order buttons move nothing in the list: no row height, column width or position changes (5.7s)
+  ✓  36 e2e/macros.spec.ts:727:1 › the macro bar is dense: compact buttons, and an Abort at its right end that sends exactly abort (6.3s)
+  ✓  37 e2e/macros.spec.ts:744:1 › More keeps ONE width: opened, and with the run options switched — Program, Tools, Macros (5.0s)
+  ✘  38 e2e/run-hold.spec.ts:296:1 › an orientation change mid-hold runs nothing; the focus and an open dialog's return follow the macro (16.1s)
+(node:2928268) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2928268) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  39 e2e/tabs.spec.ts:63:1 › tab semantics: tablist, tab, tabpanel — one Tab stop, the panel named by its tab (3.0s)
+  ✓  40 e2e/tabs.spec.ts:263:1 › a hidden panel is not focusable (2.4s)
+
+
+  1) e2e/run-hold.spec.ts:296:1 › an orientation change mid-hold runs nothing; the focus and an open dialog's return follow the macro 
+
+    Error: focus on the same macro in the new bar
+
+    [2mexpect([22m[31mlocator[39m[2m).[22mtoBeFocused[2m([22m[2m)[22m failed
+
+    Locator:  locator('.macroBar').getByRole('button', { name: 'Park', exact: true })
+    Expected: focused
+    Received: inactive
+    Timeout:  10000ms
+
+    Call log:
+    [2m  - focus on the same macro in the new bar with timeout 10000ms[22m
+    [2m  - waiting for locator('.macroBar').getByRole('button', { name: 'Park', exact: true })[22m
+    [2m    23 × locator resolved to <button data-v-847bd897="" data-v-c2118528="" title="Hold to activate" data-macro-id="file:park" class="b md default macroBtn no-drag-scroll holdable">Park</button>[22m
+    [2m       - unexpected value "inactive"[22m
+
+
+      314 |   await page.setViewportSize(LANDSCAPE);
+      315 |   await expect(page.locator(".viewerColumn .macroBar")).toHaveCount(0);
+    > 316 |   await expect(park(), "focus on the same macro in the new bar").toBeFocused();
+          |                                                                  ^
+      317 |   // an open parameter dialog returns to the new button
+      318 |   const face = () => page.locator(".macroBar").getByRole("button", { name: "Face top", exact: true });
+      319 |   await face().click();
+        at /tmp/codex-r71-x9s3njg3/archive/lcnc-webui/e2e/run-hold.spec.ts:316:66
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r71-browser-output/run-hold-an-orientation-ch-ee2e1-g-s-return-follow-the-macro/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r71-browser-output/run-hold-an-orientation-ch-ee2e1-g-s-return-follow-the-macro/error-context.md
+
+  1 failed
+    e2e/run-hold.spec.ts:296:1 › an orientation change mid-hold runs nothing; the focus and an open dialog's return follow the macro 
+  39 passed (3.1m)

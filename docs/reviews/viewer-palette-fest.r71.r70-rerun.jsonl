@@ -1,0 +1,3 @@
+{"case": "symlink GET scope", "listed": ["face_top", "park"], "get_status": 403, "get_body": "escape.ngc leads out of the macro folder"}
+{"case": "RCS_ERROR with queued MDI", "claims_remaining": 1, "queued_mdi_commands": 1, "write_refusal": "A macro or program is starting or running — wait"}
+{"case": "PUT conflict response", "status": 409, "detail": {"error": "refused", "kind": "conflict", "name": "park", "revision": "4ad4e2d1ee2bec3dae26f2ccf64de98c43a8f1acb1060917518c591f561ba47c", "reason": "Changed on disk — reload or keep editing"}, "expected_revision": "4ad4e2d1ee2bec3dae26f2ccf64de98c43a8f1acb1060917518c591f561ba47c"}

@@ -1,0 +1,2 @@
+{"case": "nonregular directory", "response": "IsADirectoryError", "status_code": null}
+{"case": "nonregular FIFO", "blocked_until_writer_opened": true, "response_after_writer": "_MacroOutside: pipe.ngc leads to no file"}

@@ -1,0 +1,6 @@
+{
+  "text": "(MACRO Park revised)\n(FRAME machine)\no<park> sub\n  M73\n  G90\n  G53 G0 Z-20\no<park> endsub\n\n",
+  "barDisabled": false,
+  "oldRevision": "c90671a40d7db29fb5571a2ce31d643cf0e0f3196096805a7a409695c8c40940",
+  "currentRevision": "dcde1594a6598925ffc3e41376f242aae4e8a3f82e763b9fa6458c0c9c8a3e90"
+}
