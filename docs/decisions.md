@@ -7761,9 +7761,13 @@ mutations, 4 frontend mutations, in the R71 request).
   revision the list names now.
 - **One admission of the file** (VP-I33): the list skipped a link out of the
   folder, the direct GET (and a start) followed it.
-- **INI order** (VP-I34): a repeated key is first-wins and a repeated
-  section is read in its first block only — `config_sync_check` compares
-  those lines in order.
+- **INI order** (VP-I34): a moved line is no drift only while LinuxCNC
+  reads the same — its key's values keep their order (first-wins `find`,
+  ordered `findall`), REMAP excepted (a table keyed by the code; with every
+  code once its lines are a set — the installed XYZAC INI has the suite's
+  REMAP lines first, and comparing them in order brought back the false
+  drift the filter was made for), and a repeated section is compared in
+  order (only its first block is read).
 - Codex's answer to the open question: a general sideways check for every
   side tab and dialog. `sidewaysOverflow` (layout-audit) found Settings'
   scroller 6 px past `.tab-content`, whose `overflow: hidden` cut its

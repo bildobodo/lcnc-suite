@@ -41,6 +41,18 @@ Rows:
   tcp          park and go_to_g30_macro are refused under TCP ("Machine
                frame only"), nothing moves
   revision     run_macro with another revision is refused, nothing runs
+  claim-done   (Codex R70 VP-I30) an MDI dwell's start claim refuses a macro
+               write while it runs ("busy") and is released on its RCS_DONE:
+               the write is admitted within 2 s of the end
+  claim-error  an MDI line the interpreter refuses (an unknown word) is
+               released on its OWN error — or every MDI typo would block the
+               macro writes until the next command
+  claim-run    run_macro's claim: busy while the macro runs, released after
+  refusal      (VP-I31) a PUT on a stale base answers the real route's body:
+               exactly the keys of scripts/test_fixtures/macro_refusals.json's
+               `conflict`, the revision of the file on disk, its name
+  admission    (VP-I33) a link out of the macro folder is no macro: not
+               listed, GET 403, run_macro refused
   cache-red    an MDI remap leaves probe_helper in the interpreter's offset
                cache; its header is shortened by 300 bytes; a plain MDI
                `o<probe_helper> call` (no mode switch: the gateway's `mdi`)
@@ -57,6 +69,7 @@ import os
 import re
 import sys
 import time
+import urllib.error
 import urllib.request
 
 import linuxcnc
@@ -161,6 +174,17 @@ class Gateway:
 
     def macros(self):
         return {m["name"]: m for m in json.loads(self.http("/macros"))["macros"]}
+
+    def status_of(self, path, method="GET", body=None):
+        """(HTTP status, the JSON body or text) — a refusal is an answer here."""
+        try:
+            raw, code = self.http(path, method, body), 200
+        except urllib.error.HTTPError as e:
+            raw, code = e.read(), e.code
+        try:
+            return code, json.loads(raw)
+        except ValueError:
+            return code, raw.decode(errors="replace")
 
 
 def poll():
@@ -415,6 +439,80 @@ async def main(ini):
 
         r = await run(gw, "coolant_flush", [1], revision="0" * 64)
         row("revision", not r.get("ok") and "Macro changed" in str(r.get("error")), f"{r.get('error')}")
+
+        # Codex R70: the write admission against the real controller
+        probe = "o<r70_probe> sub\no<r70_probe> endsub\n".encode()
+
+        def write_once():
+            """A macro write (create r70_probe, then delete it again): its
+            status, and its refusal's kind."""
+            code, body = gw.status_of("/macro?name=r70_probe&base=new", "PUT", probe)
+            if code == 200:
+                gw.status_of(f"/macro?name=r70_probe&base={hashlib.sha256(probe).hexdigest()}", "DELETE")
+            return code, (body.get("detail") or {}).get("kind") if isinstance(body, dict) and isinstance(body.get("detail"), dict) else body
+
+        async def admitted_after(t_end, limit=2.0):
+            """Seconds from `t_end` until a macro write is admitted, None past `limit`."""
+            while time.monotonic() - t_end < limit:
+                if write_once()[0] == 200:
+                    return time.monotonic() - t_end
+                await asyncio.sleep(0.05)
+            return None
+
+        # a start that runs (an MDI dwell): busy while it runs, released on its DONE
+        r = await send(gw, {"cmd": "mdi", "text": "G4 P2"})
+        await asyncio.sleep(0.5)
+        during = write_once()
+        await wait_idle()
+        t_end = time.monotonic()
+        lat = await admitted_after(t_end)
+        row("claim-done", r.get("ok") and during == (409, "busy") and lat is not None,
+            f"reply {r.get('ok')} {r.get('error', '')}, write during the dwell {during}, admitted {lat if lat is None else round(lat, 2)} s after its end")
+
+        # a start the interpreter refuses: released on its own error
+        r = await gw.cmd({"cmd": "mdi", "text": "G0 X1 E5"})
+        await asyncio.sleep(0.3)
+        p = poll()
+        state = (p.state, p.exec_state, p.queued_mdi_commands, p.interp_state)
+        lat = await admitted_after(time.monotonic())
+        row("claim-error", not r.get("ok") and lat is not None,
+            f"reply {r.get('ok')} {r.get('error', '')}, (state, exec_state, queued MDI, interp) {state}, "
+            f"admitted {lat if lat is None else round(lat, 2)} s after the reply")
+
+        # run_macro's claim: busy while the macro dwells, released after
+        r = await run(gw, "coolant_flush", [2])
+        await asyncio.sleep(0.8)
+        during = write_once()
+        await wait_idle()
+        lat = await admitted_after(time.monotonic())
+        row("claim-run", r.get("ok") and during == (409, "busy") and lat is not None,
+            f"reply {r.get('ok')} {r.get('error', '')}, write during the macro {during}, admitted {lat if lat is None else round(lat, 2)} s after")
+
+        # the route's refusal body, as the fixture names it
+        fixture = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_fixtures", "macro_refusals.json")))
+        disk = hashlib.sha256(open(os.path.join(mdir, "park.ngc"), "rb").read()).hexdigest()
+        code, body = gw.status_of(f"/macro?name=park&base={'0' * 64}", "PUT", b"(not saved)\n")
+        d = body.get("detail") if isinstance(body, dict) else None
+        row("refusal", code == 409 and isinstance(d, dict) and sorted(d) == sorted(fixture["conflict"]["keys"])
+            and d.get("kind") == "conflict" and d.get("revision") == disk and d.get("name") == "park",
+            f"{code} {d}")
+
+        # a link out of the macro folder is no macro anywhere
+        outside = os.path.join(os.path.dirname(mdir), "r70_outside.ngc")
+        with open(outside, "w") as f:
+            f.write("o<escape> sub\n(DEBUG, outside the macro folder)\no<escape> endsub\n")
+        link = os.path.join(mdir, "escape.ngc")
+        os.symlink(outside, link)
+        try:
+            listed = "escape" in gw.macros()
+            code, body = gw.status_of("/macro?name=escape")
+            r = await send(gw, {"cmd": "run_macro", "name": "escape", "args": [],
+                                "revision": hashlib.sha256(open(outside, "rb").read()).hexdigest()})
+            row("admission", not listed and code == 403 and not r.get("ok") and "leads out of the macro folder" in str(r.get("error")),
+                f"listed {listed}, GET {code} {body}, run_macro {r.get('ok')} {r.get('error')}")
+        finally:
+            os.unlink(link)
+            os.unlink(outside)
 
         # VP69-01: the stale offset cache, red through the plain MDI, green through run_macro
         helper = os.path.join(mdir, "probe_helper.ngc")
