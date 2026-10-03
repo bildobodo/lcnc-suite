@@ -178,8 +178,9 @@ function clearAll() {
       <div class="lockLine text-muted" role="status" :title="lockLine">{{ lockLine }}</div>
     </div>
 
-    <!-- Table -->
-    <div v-sticky-head class="tableWrap dataTable scroll-thin fade-scroll" :style="{ '--val-cols': String(offsetColumns.length) }">
+    <!-- Table: scrolls SIDEWAYS on purpose once the axes outgrow the pane
+         (data-scroll-x — the side-pane sweep's sideways check, Codex R70) -->
+    <div v-sticky-head class="tableWrap dataTable scroll-thin fade-scroll" data-scroll-x :style="{ '--val-cols': String(offsetColumns.length) }">
       <table>
         <thead>
           <tr>

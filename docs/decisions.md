@@ -7731,3 +7731,42 @@ es liest"):
 - Measured on the operator's question: Start, Step, Pause and Abort are one
   height (32 / 44 px, 66 px at 150 %).
 
+## 2026-10-03 — Codex R70: the macro write admission holds through a cancel; a start is released only on proof
+
+Codex reviewed plan package 5 and its implementation in one round (R70,
+`docs/reviews/viewer-palette-fest.ideen.md`) and reproduced each finding
+with a red counterprobe; every fix carries its own red proof (22 gateway
+mutations, 4 frontend mutations, in the R71 request).
+
+- **A thread cannot be cancelled** (VP-I29, P1): a cancelled PUT left
+  `_source_lock` while its `os.replace` still ran — a start got its claim
+  in between, and a cancelled rename removed a second client's
+  acknowledged save. The publish, a rename's removal and its rollback are
+  now ONE commit held to its end under the lock (`_thread_to_end`, the
+  `_var_file_thread` shape), DELETE too. Tests hold each file operation on
+  an Event and cancel twice.
+- **Completion is proven, never inferred** (VP-I30, P1; the plan said
+  "not RCS_EXEC"): task reports RCS_ERROR for a LATER refused command while
+  the MDI still waits in its queue. A claim is released on RCS_DONE (task's
+  DONE needs every queue empty) at an echo ≥ its serial, or on its OWN
+  error (echo = its serial, nothing queued, execution done, interpreter
+  idle, two polls ≥ 20 ms apart), from a status read after the send; an
+  unknown value keeps it.
+- **A refusal says what it is** (VP-I31): `{error, kind, reason, …}` per
+  `scripts/test_fixtures/macro_refusals.json`; a disk conflict carries the
+  revision read under the same lock. The browser mock answers from the same
+  file — it used to add a revision the route never sent, and every spec
+  passed on a Keep editing the product broke.
+- **A late read is checked** (VP-I32): the editor turns clean only on the
+  revision the list names now.
+- **One admission of the file** (VP-I33): the list skipped a link out of the
+  folder, the direct GET (and a start) followed it.
+- **INI order** (VP-I34): a repeated key is first-wins and a repeated
+  section is read in its first block only — `config_sync_check` compares
+  those lines in order.
+- Codex's answer to the open question: a general sideways check for every
+  side tab and dialog. `sidewaysOverflow` (layout-audit) found Settings'
+  scroller 6 px past `.tab-content`, whose `overflow: hidden` cut its
+  scrollbar (fixed), and two tables that scroll sideways on purpose (the
+  Offsets table past its axes, the G-code reference's one-line syntax —
+  marked `data-scroll-x`).

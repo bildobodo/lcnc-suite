@@ -5,12 +5,15 @@ exclusion, the macro folder's state and the run_macro command.
 
 Real gateway module under the fake linuxcnc (pytest only)."""
 import asyncio
+import json
 import os
 import re
 import tempfile
 import threading
+import time
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import httpx
@@ -30,7 +33,11 @@ o<face_top> sub
 o<face_top> endsub
 """
 PARK = "(FRAME machine)\no<park> sub\nG53 G0 Z0\no<park> endsub\n"
-RCS_EXEC = 2
+# the real binding's values (fake_linuxcnc carries the same)
+RCS_DONE, RCS_EXEC, RCS_ERROR = 1, 2, 3
+EXEC_ERROR, EXEC_DONE = 1, 2
+REFUSALS = json.loads((Path(__file__).resolve().parents[1] / "scripts" / "test_fixtures"
+                       / "macro_refusals.json").read_text())
 
 
 def _run(coro):
@@ -140,6 +147,63 @@ class StartClaims(_Base):
                 await t
         _run(go())
         self.assertEqual([(c.state, c.serial) for c in gateway._source_claims], [("sent", 1)])
+
+    def _poll(self, at=None, **values):
+        for k, v in values.items():
+            setattr(gateway.STAT, k, v)
+        gateway._release_start_claims(at)
+        return len(gateway._source_claims)
+
+    def test_only_a_positive_completion_releases_a_claim(self):
+        # Codex R70 VP-I30: "not RCS_EXEC" proved nothing — task reports
+        # RCS_ERROR for a LATER command it refused while the MDI still waits
+        # in its queue. Release: RCS_DONE (task's DONE needs every queue
+        # empty and the interpreter idle) at an echo >= the claim's serial;
+        # every value known.
+        _run(gateway._cmd_blocking(self.cmd.mdi, "o<park> call", wait=None))
+        done = dict(echo_serial_number=1, state=RCS_DONE, interp_state=linuxcnc.INTERP_IDLE,
+                    queued_mdi_commands=0, exec_state=EXEC_DONE)
+        for over in [dict(state=RCS_ERROR, echo_serial_number=2, queued_mdi_commands=1),   # Codex's counterprobe
+                     dict(state=RCS_ERROR, echo_serial_number=2),   # a later command's error is not this start's
+                     dict(echo_serial_number=None), dict(state=None), dict(interp_state=None),
+                     dict(state=RCS_EXEC), dict(echo_serial_number=0),
+                     dict(interp_state=linuxcnc.INTERP_READING)]:
+            for _ in range(3):
+                self.assertEqual(self._poll(**{**done, **over}), 1, over)
+            self.assertIsNotNone(gateway._source_write_refusal(), over)
+        self.assertEqual(self._poll(**done), 0)
+
+    def test_a_refused_start_releases_only_on_its_own_proof(self):
+        # The error path needs its own proof: the start's OWN error (the echo
+        # IS its serial — task read nothing after it), nothing queued, task's
+        # execution done, the interpreter idle, over two polls >= 20 ms
+        # apart (task moves a queued line on within a cycle). Unknown keeps.
+        _run(gateway._cmd_blocking(self.cmd.mdi, "G1 X1 F", wait=None))
+        err = dict(echo_serial_number=1, state=RCS_ERROR, interp_state=linuxcnc.INTERP_IDLE,
+                   queued_mdi_commands=0, exec_state=EXEC_DONE)
+        t = time.monotonic() + 1
+        for over in [dict(queued_mdi_commands=1), dict(queued_mdi_commands=None), dict(exec_state=None),
+                     dict(exec_state=EXEC_ERROR), dict(interp_state=linuxcnc.INTERP_WAITING),
+                     dict(echo_serial_number=2), dict(echo_serial_number=None)]:
+            for _ in range(3):
+                t += 0.05
+                self.assertEqual(self._poll(t, **{**err, **over}), 1, over)
+        t += 0.05
+        self.assertEqual(self._poll(t, **err), 1, "one poll is no proof")
+        self.assertEqual(self._poll(t + 0.005, **err), 1, "nor two within 20 ms")
+        self.assertEqual(self._poll(t + 0.03, **{**err, "queued_mdi_commands": 1}), 1)
+        self.assertEqual(self._poll(t + 0.06, **err), 1, "a poll without the proof starts it again")
+        self.assertEqual(self._poll(t + 0.09, **err), 0)
+
+    def test_a_claim_without_its_serial_or_seen_before_its_send_stays(self):
+        done = dict(echo_serial_number=5, state=RCS_DONE, interp_state=linuxcnc.INTERP_IDLE)
+        c = gateway._StartClaim("mdi")
+        c.state, c.serial, c.sent_t = "sent", None, time.monotonic()
+        gateway._source_claims.append(c)
+        self.assertEqual(self._poll(**done), 1, "no serial: no echo can be past it")
+        c.serial = 1
+        self.assertEqual(self._poll(c.sent_t - 0.01, **done), 1, "a status read before the send proves nothing")
+        self.assertEqual(self._poll(**done), 0)
 
     def test_a_write_waits_for_every_claim_and_for_an_idle_interpreter(self):
         self.assertIsNone(gateway._source_write_refusal())
@@ -345,6 +409,279 @@ class DelayedWrite(_Folder):
         self.assertEqual([p for p in os.listdir(self.mdir) if p.endswith(".part")], [], "no temp left")
 
 
+def _body(text):
+    """A request whose body streams `text` (what put_macro reads)."""
+    async def chunks():
+        yield text.encode()
+    return SimpleNamespace(stream=chunks)
+
+
+async def _until(fn, what):
+    for _ in range(500):
+        if fn():
+            return
+        await asyncio.sleep(0.01)
+    raise AssertionError(f"timed out: {what}")
+
+
+def _held(match):
+    """A blocking replacement for a file operation: calls on `match` wait
+    for `release` (and say so on `entered`); the rest pass through."""
+    entered, release = threading.Event(), threading.Event()
+
+    def wrap(real):
+        def op(*a, **k):
+            if str(a[-1] if len(a) > 1 else a[0]) == str(match):
+                entered.set()
+                if not release.wait(8):
+                    raise RuntimeError("never released")
+            return real(*a, **k)
+        return op
+    return entered, release, wrap
+
+
+class CancelledWrites(_Folder):
+    """Codex R70 VP-I29: a thread cannot be cancelled. A writer whose task is
+    cancelled holds _source_lock until its publish — a rename's removal and a
+    rollback too — has ENDED, through a second cancel as well. Each case
+    holds the file operation, cancels the request twice and checks that no
+    start and no second writer gets in between, and that nothing a second
+    writer was told is saved is removed afterwards."""
+
+    async def _cancel_twice(self, task, entered):
+        await _until(entered.is_set, "the file operation began")
+        task.cancel()
+        await asyncio.sleep(0.02)
+        task.cancel()
+        await asyncio.sleep(0.1)
+        self.assertTrue(gateway._get_source_lock().locked(), "the cancelled writer still holds the lock")
+
+    def _start_after(self, target):
+        """A start (MDI through _cmd_blocking) that records the macro file
+        as the interpreter would read it at that moment."""
+        seen, cmd = [], self.cmd
+
+        def mdi(text):
+            seen.append(Path(target).read_text() if Path(target).exists() else None)
+            cmd.mdi(text)
+
+        async def start():
+            async with gateway._get_cmd_lock():
+                await gateway._cmd_blocking(mdi, "o<park> call", wait=None)
+        return seen, start
+
+    def test_a_cancelled_publish_keeps_a_start_out_until_it_ended(self):
+        target = self.mdir / "park.ngc"
+        newer = PARK + "; saved by the cancelled request\n"
+        entered, release, wrap = _held(target)
+        seen, start = self._start_after(target)
+
+        async def go():
+            first = asyncio.ensure_future(gateway.put_macro(_body(newer), name="park", base=rev(PARK),
+                                                            rename_from=None, rename_base=None))
+            try:
+                await self._cancel_twice(first, entered)
+                second = asyncio.ensure_future(start())
+                await asyncio.sleep(0.1)
+                self.assertEqual(seen, [], "no start while the publish runs")
+            finally:
+                release.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await first
+            await second
+        with patch.object(gateway.os, "replace", wrap(os.replace)):
+            _run(go())
+        self.assertEqual(seen, [newer], "the start read the file after the publish had ended")
+
+    def test_a_cancelled_create_keeps_a_start_out_until_its_link_ended(self):
+        target = self.mdir / "fresh.ngc"
+        text = "o<fresh> sub\no<fresh> endsub\n"
+        entered, release, wrap = _held(target)
+        seen, start = self._start_after(target)
+
+        async def go():
+            first = asyncio.ensure_future(gateway.put_macro(_body(text), name="fresh", base="new",
+                                                            rename_from=None, rename_base=None))
+            try:
+                await self._cancel_twice(first, entered)
+                second = asyncio.ensure_future(start())
+                await asyncio.sleep(0.1)
+                self.assertEqual(seen, [], "no start while the publish runs")
+            finally:
+                release.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await first
+            await second
+        with patch.object(gateway.os, "link", wrap(os.link)):
+            _run(go())
+        self.assertEqual(seen, [text])
+
+    def test_a_cancelled_rename_keeps_a_second_writer_out_until_it_ended(self):
+        # Codex's counterprobe: the second client's save under the old name
+        # was acknowledged and then removed by the released first worker
+        moved = PARK.replace("o<park>", "o<park2>")
+        newer = PARK + "; the second client's save\n"
+        entered, release, wrap = _held(self.mdir / "park.ngc")
+
+        async def go():
+            first = asyncio.ensure_future(gateway.put_macro(_body(moved), name="park2", base="new",
+                                                            rename_from="park", rename_base=rev(PARK)))
+            try:
+                await self._cancel_twice(first, entered)
+                second = asyncio.ensure_future(gateway.put_macro(_body(newer), name="park", base=rev(PARK),
+                                                                 rename_from=None, rename_base=None))
+                await asyncio.sleep(0.1)
+                self.assertFalse(second.done(), "the second writer waits for the rename's end")
+            finally:
+                release.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await first
+            with self.assertRaises(gateway.HTTPException) as e:
+                await second
+            return e.exception
+        with patch.object(gateway, "_unlink_renamed", wrap(gateway._unlink_renamed)):
+            e = _run(go())
+        self.assertEqual(e.status_code, 409)
+        self.assertEqual((e.detail["kind"], e.detail["revision"]), ("conflict", None),
+                         "the second save is told the file is gone — never acknowledged and then removed")
+        self.assertEqual((self.mdir / "park2.ngc").read_text(), moved)
+        self.assertFalse((self.mdir / "park.ngc").exists())
+
+    def test_a_cancelled_rollback_keeps_a_second_writer_out_until_it_ended(self):
+        # the old name cannot leave, so the new file leaves again — a save
+        # of the new name in between would be removed by that rollback
+        moved = PARK.replace("o<park>", "o<park2>")
+        other = "o<park2> sub\n; the second client's macro\no<park2> endsub\n"
+        entered, release, wrap = _held(self.mdir / "park2.ngc")
+
+        def refuse(path):
+            raise PermissionError(13, "Permission denied", path)
+
+        async def go():
+            first = asyncio.ensure_future(gateway.put_macro(_body(moved), name="park2", base="new",
+                                                            rename_from="park", rename_base=rev(PARK)))
+            try:
+                await self._cancel_twice(first, entered)
+                second = asyncio.ensure_future(gateway.put_macro(_body(other), name="park2", base="new",
+                                                                 rename_from=None, rename_base=None))
+                await asyncio.sleep(0.1)
+                self.assertFalse(second.done(), "the second writer waits for the rollback's end")
+            finally:
+                release.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await first
+            return await second
+        with patch.object(gateway, "_unlink_renamed", refuse), \
+                patch.object(gateway, "_safe_unlink", wrap(gateway._safe_unlink)):
+            r = _run(go())
+        self.assertTrue(r["ok"])
+        self.assertEqual((self.mdir / "park2.ngc").read_text(), other, "the acknowledged save survives")
+        self.assertEqual((self.mdir / "park.ngc").read_text(), PARK)
+
+    def test_a_cancelled_delete_keeps_a_second_writer_out_until_it_ended(self):
+        target = self.mdir / "park.ngc"
+        entered, release, wrap = _held(target)
+
+        async def go():
+            first = asyncio.ensure_future(gateway.delete_macro(name="park", base=rev(PARK)))
+            try:
+                await self._cancel_twice(first, entered)
+                second = asyncio.ensure_future(gateway.put_macro(_body(PARK), name="park", base="new",
+                                                                 rename_from=None, rename_base=None))
+                await asyncio.sleep(0.1)
+                self.assertFalse(second.done(), "the second writer waits for the removal's end")
+            finally:
+                release.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await first
+            return await second
+        with patch.object(gateway.os, "unlink", wrap(os.unlink)):
+            r = _run(go())
+        self.assertTrue(r["ok"], "the delete ended first; the create then found the name free")
+        self.assertEqual(target.read_text(), PARK)
+
+
+class RefusalShape(Routes):
+    """Codex R70 VP-I31: a 409 says what kind of refusal it is, and a disk
+    conflict carries the revision on disk, read under the same lock — the
+    editor's Keep editing rebases on exactly it. The body per kind is
+    scripts/test_fixtures/macro_refusals.json, which the browser mock reads."""
+
+    def detail(self, r, kind):
+        self.assertEqual(r.status_code, 409, r.text)
+        d = r.json()["detail"]
+        spec = REFUSALS[kind]
+        self.assertEqual(sorted(d), sorted(spec["keys"]), kind)
+        self.assertEqual((d["error"], d["kind"]), ("refused", spec["kind"]), kind)
+        if "reason" in spec:
+            self.assertEqual(d["reason"], spec["reason"], kind)
+        return d
+
+    def test_every_refusal_has_its_shape(self):
+        d = self.detail(self.call("PUT", f"/macro?name=face_top&base={rev('old')}", content=b"x"), "conflict")
+        self.assertEqual((d["name"], d["revision"]), ("face_top", rev(FACE)))
+        d = self.detail(self.call("DELETE", f"/macro?name=face_top&base={rev('old')}"), "conflict")
+        self.assertEqual(d["revision"], rev(FACE))
+        d = self.detail(self.call("PUT", "/macro?name=park&base=new", content=b"x"), "exists")
+        self.assertEqual((d["name"], d["revision"]), ("park", rev(PARK)))
+        # a rename whose OLD file moved on: the conflict names the old file
+        d = self.detail(self.call("PUT", f"/macro?name=face2&base=new&rename_from=face_top&rename_base={rev('old')}",
+                                  content=b"x"), "conflict")
+        self.assertEqual((d["name"], d["revision"]), ("face_top", rev(FACE)))
+        d = self.detail(self.call("POST", f"/macro-upload?replace={rev('old')}",
+                                  files={"file": ("face_top.ngc", b"x")}), "conflict")
+        self.assertEqual(d["revision"], rev(FACE))
+        (self.nc / "taken.ngc").write_text("G0 X0\n")
+        self.detail(self.call("PUT", "/macro?name=taken&base=new", content=b"x"), "taken")
+        gateway._source_claims.append(gateway._StartClaim("mdi"))
+        self.detail(self.call("PUT", f"/macro?name=face_top&base={rev(FACE)}", content=b"x"), "busy")
+        gateway._source_claims.clear()
+        gateway.STAT.interp_state = linuxcnc.INTERP_READING
+        self.detail(self.call("PUT", f"/macro?name=face_top&base={rev(FACE)}", content=b"x"), "busy")
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        (self.mdir / "park.ngc").unlink()
+        d = self.detail(self.call("PUT", f"/macro?name=park&base={rev(PARK)}", content=b"x"), "deleted")
+        self.assertIsNone(d["revision"])
+        self.assertEqual((self.mdir / "face_top.ngc").read_text(), FACE, "nothing refused was written")
+
+
+class FolderAdmission(Routes):
+    """Codex R70 VP-I33: a macro is the FILE its name resolves to, a regular
+    file inside the macro folder — one admission for the list, a read, a
+    write and a start. A link inside the folder is followed; a link leading
+    out of it (or to nothing) is no macro anywhere."""
+
+    def setUp(self):
+        super().setUp()
+        self.outside = self.cfg / "outside.ngc"
+        self.outside.write_text("o<escape> sub\n(private text outside the macro folder)\no<escape> endsub\n")
+        (self.mdir / "escape.ngc").symlink_to(self.outside)
+        (self.mdir / "alias.ngc").symlink_to(self.mdir / "park.ngc")
+        (self.mdir / "nowhere.ngc").symlink_to(self.mdir / "gone.ngc")
+
+    def test_one_admission_for_the_list_a_read_and_a_write(self):
+        names = [m["name"] for m in self.call("GET", "/macros").json()["macros"]]
+        self.assertEqual(names, ["alias", "face_top", "park"])
+        r = self.call("GET", "/macro?name=alias")
+        self.assertEqual((r.status_code, r.text), (200, PARK), "a link inside the folder is followed")
+        outside = rev(self.outside.read_text())
+        for n, says in (("escape", "leads out of the macro folder"), ("nowhere", "leads to no file")):
+            for method, url, kw in [("GET", f"/macro?name={n}", {}),
+                                    ("PUT", f"/macro?name={n}&base=new", {"content": b"x"}),
+                                    ("PUT", f"/macro?name={n}&base={outside}", {"content": b"x"}),
+                                    ("PUT", f"/macro?name=moved&base=new&rename_from={n}&rename_base={outside}",
+                                     {"content": b"x"}),
+                                    ("DELETE", f"/macro?name={n}&base={outside}", {}),
+                                    ("POST", "/macro-upload", {"files": {"file": (f"{n}.ngc", b"x")}}),
+                                    ("POST", f"/macro-upload?replace={outside}", {"files": {"file": (f"{n}.ngc", b"x")}})]:
+                r = self.call(method, url, **kw)
+                self.assertEqual(r.status_code, 403, (method, url, r.text))
+                self.assertIn(f"{n}.ngc {says}", r.text)
+        self.assertIn("private text", self.outside.read_text())
+        self.assertTrue((self.mdir / "escape.ngc").is_symlink())
+        self.assertFalse((self.mdir / "moved.ngc").exists())
+
+
 class RunMacro(_Folder):
     def setUp(self):
         super().setUp()
@@ -415,6 +752,17 @@ class RunMacro(_Folder):
         r = self.send(name="park", args=[], revision=rev(PARK))
         self.assertTrue(r["ok"], r)
         self.assertEqual(self.mdis(), ["o<park> call"])
+
+    def test_a_link_out_of_the_folder_runs_nothing(self):
+        # Codex R70 VP-I33: the start reads the file through the same
+        # admission as the list
+        outside = self.cfg / "outside.ngc"
+        outside.write_text("o<escape> sub\no<escape> endsub\n")
+        (self.mdir / "escape.ngc").symlink_to(outside)
+        r = self.send(name="escape", args=[], revision=rev(outside.read_text()))
+        self.assertFalse(r["ok"])
+        self.assertIn("leads out of the macro folder", r["error"])
+        self.assertEqual(self.cmd.calls, [])
 
     def test_values_are_checked_against_the_header(self):
         self.assertIn("at most 5", self.send(args=[9, 400])["error"])

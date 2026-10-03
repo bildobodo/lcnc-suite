@@ -255,18 +255,31 @@ export interface MacroFolder {
   macros: MacroFile[];
 }
 
-/** A macro write the gateway refused: the reason, and the revision on disk
- *  now (null when the file is gone) — the caller lets the operator decide;
- *  nothing retries with the new base on its own (Codex VP69-03). */
+/** What a refused macro write was refused for — the 409 body's `kind`
+ *  (scripts/test_fixtures/macro_refusals.json): `conflict` the file on disk
+ *  is not the base, `exists` the name is taken, `busy` a start is open or
+ *  the interpreter runs, `taken` a program of the name, `outside` the name
+ *  leads out of the folder; `refused` anything else. */
+export type MacroRefusalKind = "conflict" | "exists" | "busy" | "taken" | "outside" | "refused";
+const REFUSAL_KINDS: readonly string[] = ["conflict", "exists", "busy", "taken", "outside"];
+
+/** A macro write the gateway refused (Codex R70 VP-I31): its kind, the file
+ *  it concerns, and the revision on disk read under the gateway's lock —
+ *  null when the file is gone, `undefined` when the answer did not say
+ *  (never read as "deleted"). The caller lets the operator decide; nothing
+ *  retries with the new base on its own (Codex VP69-03). */
 export class MacroConflictError extends Error {
-  readonly revision: string | null;
-  readonly exists: boolean;
-  constructor(message: string, revision: string | null, exists: boolean) {
+  readonly kind: MacroRefusalKind;
+  readonly file: string | null;
+  readonly revision: string | null | undefined;
+  constructor(message: string, kind: MacroRefusalKind, revision: string | null | undefined, file: string | null) {
     super(message);
     this.name = "MacroConflictError";
+    this.kind = kind;
     this.revision = revision;
-    this.exists = exists;
+    this.file = file;
   }
+  get exists(): boolean { return this.kind === "exists"; }
 }
 
 async function macroResponse(resp: Response): Promise<any> {
@@ -275,9 +288,13 @@ async function macroResponse(resp: Response): Promise<any> {
     try { body = await resp.json(); } catch { /* status only */ }
     const d = body?.detail;
     if (d && typeof d === "object") {
-      const exists = d.error === "exists";
-      throw new MacroConflictError(exists ? `A macro named ${d.filename ?? ""} exists` : String(d.reason ?? "Refused"),
-        typeof d.revision === "string" ? d.revision : null, exists);
+      // `error: "exists"` without a kind: the no-replace publish lost a race
+      const kind: MacroRefusalKind = d.error === "exists" ? "exists"
+        : REFUSAL_KINDS.includes(d.kind) ? d.kind as MacroRefusalKind : "refused";
+      const revision = !("revision" in d) ? undefined
+        : typeof d.revision === "string" ? d.revision : d.revision === null ? null : undefined;
+      throw new MacroConflictError(String(d.reason ?? (kind === "exists" ? `A macro named ${d.filename ?? ""} exists` : "Refused")),
+        kind, revision, typeof d.name === "string" ? d.name : null);
     }
     throw new HttpError(typeof d === "string" ? d : "HTTP 409", 409);
   }

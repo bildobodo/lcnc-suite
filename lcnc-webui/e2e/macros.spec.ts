@@ -5,6 +5,8 @@ import { ctl, MOCK } from "./ctl";
 import { Folder, serve, rev, PARK, FACE } from "./macroFolder";
 import { clickMore, moreItem, moreTrigger } from "./more";
 import { readFileSync } from "node:fs";
+import { NARROW_PANE_PX } from "../src/sidePaneNarrow";
+import { sidewaysOverflow } from "./layout-audit";
 
 const HOLD_MS = 700;
 
@@ -113,6 +115,102 @@ test("another client's save under a draft is a conflict: Reload shows the disk; 
   expect(folder.files.get("park")!.text, "their save survives").toContain("(theirs)");
   await dialog.locator("[data-macro-conflict]").getByRole("button", { name: "Reload" }).click();
   await expect(dialog.locator(".macroCode .cm-content")).toContainText("(theirs)");
+});
+
+// Codex R70 VP-I31: Save's refusal says what it is. A disk conflict carries
+// the revision the gateway read under its lock and Keep editing rebases on
+// exactly it; a busy machine, or an answer that does not name the revision
+// (the gateway before R70), is "Not saved" and the draft keeps its base.
+// The mock answers from scripts/test_fixtures/macro_refusals.json — the
+// shapes test_macros_gateway.RefusalShape holds the gateway to.
+test("Save's refusal: a conflict rebases Keep editing on the gateway's revision; busy or unnamed is no conflict", async ({ page }) => {
+  const folder = new Folder();
+  await ready(page, folder, { macros: { macros: [] } });
+  await openTab(page);
+  const dialog = await openEditor(page, "park");
+  await dialog.locator(".macroCode .cm-content").click();
+  await page.keyboard.press("Control+End");
+  await page.keyboard.type("\n(mine)");
+  const bases: string[] = [];
+  page.on("request", r => { if (r.method() === "PUT") bases.push(new URL(r.url()).searchParams.get("base")!); });
+  const save = dialog.getByRole("button", { name: "Save", exact: true });
+  const conflict = dialog.locator("[data-macro-conflict]");
+  // busy: the gate refuses before it looks at the file
+  folder.busy = "A macro or program is starting or running — wait";
+  await save.click();
+  await expect(dialog.getByText("Not saved — A macro or program is starting or running — wait")).toBeVisible();
+  await expect(conflict, "a busy machine is no disk conflict").toHaveCount(0);
+  folder.busy = null;
+  // the gateway before R70: a conflict without its revision — never read as "deleted"
+  const old = async (r: import("@playwright/test").Route) => r.request().method() !== "PUT" ? r.fallback()
+    : r.fulfill({ status: 409, json: { detail: { error: "refused", reason: "Changed on disk — reload or keep editing" } } });
+  await page.route(/\/macro\?/, old);
+  await save.click();
+  await expect(dialog.getByText("Not saved — Changed on disk — reload or keep editing")).toBeVisible();
+  await expect(conflict, "no Keep editing without the revision on disk").toHaveCount(0);
+  await page.unroute(/\/macro\?/, old);
+  // another client saved before this one heard of it: Save finds the conflict
+  const disk = PARK.replace("G90", "G90 (theirs)");
+  folder.touch("park", disk);
+  await save.click();
+  await expect(conflict).toBeVisible();
+  await conflict.getByRole("button", { name: "Keep editing" }).click();
+  await save.click();
+  await expect(dialog).toHaveCount(0);
+  expect(bases, "the base stays until the operator keeps editing over the disk's revision").toEqual([rev(PARK), rev(PARK), rev(PARK), rev(disk)]);
+  expect(folder.files.get("park")!.text).toContain("(mine)");
+});
+
+// Codex R70 VP-I32: the list moved while the editor's text was on its way.
+// The editor turns clean only on the revision the list names now — it reads
+// again (a save, a delete and a new file of the same name) or closes when the
+// file is gone; the bar waits meanwhile and never runs beside an old text.
+test("a read overtaken by a save, a delete or a new file of the name never leaves an old clean editor", async ({ page }) => {
+  const folder = new Folder();
+  await ready(page, folder, { macros: { macros: [], bar: ["park"] } });
+  await openTab(page);
+  const latest = PARK.replace("(MACRO Park)", "(MACRO Park revised)").replace("G53 G0 Z0", "G53 G0 Z-20");
+  const meta = folder.files.get("park")!.meta;
+  let version = 10;
+  for (const step of ["saved", "deleted and created", "deleted"] as const) {
+    let release!: () => void;
+    const wait = new Promise<void>(r => { release = r; });
+    let held = false;
+    const late = async (r: import("@playwright/test").Route) => {
+      const u = new URL(r.request().url());
+      if (r.request().method() !== "GET" || u.searchParams.get("name") !== "park" || held) return r.fallback();
+      held = true;
+      await wait;
+      await r.fulfill({ body: PARK, contentType: "text/plain", headers: { "X-Macro-Revision": rev(PARK) } });
+    };
+    await page.route(/\/macro\?/, late);
+    await row(page, "park").getByRole("button", { name: "Edit park", exact: true }).click();
+    await expect.poll(() => held, { message: `${step}: the read is out` }).toBe(true);
+    if (step === "saved") folder.touch("park", latest);
+    else folder.files.delete("park");
+    if (step === "deleted and created") folder.files.set("park", { text: latest, meta });
+    const list = page.waitForResponse(r => new URL(r.url()).pathname === "/macros");
+    await ctl({ op: "raw", frame: { type: "macros_changed", version: ++version } });
+    await list;
+    const barPark = page.locator(".macroBar").getByRole("button", { name: "Park revised", exact: true });
+    if (step !== "deleted") await expect(barPark, `${step}: the bar waits for the editor`).toBeDisabled();
+    release();
+    const dialog = page.getByRole("dialog", { name: "Edit Macro park", exact: true });
+    if (step === "deleted") {
+      await expect(dialog, "the file is gone: no editor").toHaveCount(0);
+      await expect(page.locator(".macrosTab").getByText("park.ngc was deleted while it was read")).toBeVisible();
+    } else {
+      await expect(dialog.locator(".macroCode .cm-content"), `${step}: the text the list names`).toContainText("G53 G0 Z-20");
+      await expect(dialog.getByRole("button", { name: "Save", exact: true }), `${step}: clean`).toBeDisabled();
+      await expect(barPark, `${step}: the bar runs what the editor shows`).toBeEnabled();
+      await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+      await expect(dialog).toHaveCount(0);
+    }
+    await page.unroute(/\/macro\?/, late);
+    folder.files.set("park", { text: PARK, meta });
+    await ctl({ op: "raw", frame: { type: "macros_changed", version: ++version } });
+    await expect(row(page, "park")).toBeVisible();
+  }
 });
 
 test("closing the editor over a draft asks first, by Cancel and by X: Keep editing stays, Discard closes; nothing saved", async ({ page }) => {
@@ -229,18 +327,21 @@ test("the Macros tab and its editor never run out sideways: desktop, portrait 10
     await page.setViewportSize({ width: vp.w, height: vp.h });
     if (vp.touch) await page.evaluate(() => document.documentElement.classList.add("touch-device"));
     if (vp.zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, vp.zoom);
+    // the side pane's narrow flag follows the resize through a
+    // ResizeObserver: wait until it matches the width before choosing tab or
+    // select (Codex R70: read too early, the select was not offered yet)
+    await page.waitForFunction(px => {
+      const pane = document.querySelector<HTMLElement>(".sidePane");
+      return !!pane && pane.classList.contains("narrow") === (pane.clientWidth < px);
+    }, NARROW_PANE_PX);
     const select = page.getByRole("combobox", { name: "Side panel" });
     if (await select.isVisible()) await select.selectOption({ label: "Macros" });
     else await page.getByRole("tab", { name: "Macros", exact: true }).click();
     await expect(page.locator(".macrosTab")).toBeVisible();
     await page.waitForTimeout(300);
-    const sideways = (sel: string) => page.evaluate(s => [...document.querySelectorAll(`${s}, ${s} *`)]
-      .filter(e => !(e as HTMLElement).closest(".cm-scroller"))
-      // a one-line description cut with an ellipsis is cut on purpose; a
-      // field scrolls its own long text
-      .filter(e => getComputedStyle(e).textOverflow !== "ellipsis" && !["INPUT", "TEXTAREA"].includes(e.tagName))
-      .filter(e => getComputedStyle(e).overflowX !== "visible" && e.scrollWidth > e.clientWidth + 1)
-      .map(e => `${(e as HTMLElement).className} ${e.scrollWidth} > ${e.clientWidth}`), sel);
+    // the one sideways rule (layout-audit: a code editor, an ellipsis and a
+    // field's own value scroll or cut on purpose)
+    const sideways = (sel: string) => sidewaysOverflow(page.locator(sel));
     const where = `${vp.w}×${vp.h} ${vp.zoom * 100} %`;
     expect(await sideways(".macrosTab"), `${where}: the tab`).toEqual([]);
     const dialog = await openEditor(page, "go_to_g30_macro");
@@ -416,6 +517,10 @@ test("a tap on a row selects it for Run; its name is one Tab stop whose keys sel
   await expect(page.locator(".macrosTab .rowPick[tabindex='0']")).toHaveCount(1);
   await expect(page.locator(".macrosTab .rowPick[tabindex='0']")).toHaveText("Face top");
 
+  // the jog control (Codex R70): the mock's status frozen so no periodic
+  // packet takes the permissions back, the shortcuts shown active, the jog
+  // observed while the key is held
+  await ctl({ op: "quiet", on: true });
   await ctl({ op: "status_delta", data: { homed: [1, 1, 1], permissions: { jog: true, ready: true, idle: true, probe: true,
     setup: true, armed: true, always: true, abort: true, safety: true, override: true, zero: true } } });
   await ctl({ op: "raw", frame: { type: "settings_init", settings: { macros: { macros: [], bar: ["park"] }, keyboard: { jogEnabled: true, buttonsEnabled: true,
@@ -424,10 +529,10 @@ test("a tap on a row selects it for Run; its name is one Tab stop whose keys sel
   const jogs = async () => (await sent()).map(c => c.cmd ?? "").filter(c => c.startsWith("jog") || c === "cycle_start" || c === "auto_run");
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await ctl({ op: "clearCmds" });
+  await expect(page.getByTitle("Keyboard shortcuts active", { exact: true })).toBeVisible();
   await page.keyboard.down("ArrowDown");
-  await page.waitForTimeout(150);
-  await page.keyboard.up("ArrowDown");
   await expect.poll(jogs, { message: "control: ArrowDown on the bare page jogs" }).toContain("jog_cont");
+  await page.keyboard.up("ArrowDown");
   await page.keyboard.down("ArrowDown");   // release any jog the control left
   await page.keyboard.up("ArrowDown");
   await page.locator(".macrosTab .rowPick[tabindex='0']").focus();
@@ -532,6 +637,10 @@ test("one action row: Run and Abort left, More right; its panel, its keys, and a
   // the arrows bound to jog (tabs.spec's setting): an arrow that reached the
   // shortcut map WOULD jog — the control on the bare page proves it does.
   await page.locator('[data-macro-row="park"] .rowPick').click();   // narrow: no description column
+  // the jog control (Codex R70): the mock's status frozen so no periodic
+  // packet takes the permissions back, the shortcuts shown active, the jog
+  // observed while the key is held
+  await ctl({ op: "quiet", on: true });
   await ctl({ op: "status_delta", data: { homed: [1, 1, 1], permissions: { jog: true, ready: true, idle: true, probe: true,
     setup: true, armed: true, always: true, abort: true, safety: true, override: true, zero: true } } });
   await ctl({ op: "raw", frame: { type: "settings_init", settings: { macros: { macros: [] }, keyboard: { jogEnabled: true, buttonsEnabled: true,
@@ -540,10 +649,10 @@ test("one action row: Run and Abort left, More right; its panel, its keys, and a
   const jogs = async () => (await sent()).map(c => c.cmd ?? "").filter(c => c.startsWith("jog"));
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await ctl({ op: "clearCmds" });
+  await expect(page.getByTitle("Keyboard shortcuts active", { exact: true })).toBeVisible();
   await page.keyboard.down("ArrowRight");
-  await page.waitForTimeout(150);
-  await page.keyboard.up("ArrowRight");
   await expect.poll(jogs, { message: "control: ArrowRight on the bare page jogs" }).toContain("jog_cont");
+  await page.keyboard.up("ArrowRight");
   await more.focus();
   await page.keyboard.press("Enter");
   const panel = page.locator(`[id="${await more.getAttribute("aria-controls")}"]`);

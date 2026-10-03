@@ -72,6 +72,10 @@ def build_module() -> types.ModuleType:
     lc.error_channel = _ErrorChannel
     lc.ini = _Ini
     lc.error = type("error", (Exception,), {})
+    # RCS and task execution states with the real binding's values: the
+    # gateway's start claims tell a done command from a refused one by them
+    lc.RCS_DONE, lc.RCS_EXEC, lc.RCS_ERROR = 1, 2, 3
+    lc.EXEC_ERROR, lc.EXEC_DONE = 1, 2
     lc.__lcnc_fake__ = True
     return lc
 

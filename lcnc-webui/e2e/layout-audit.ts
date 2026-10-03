@@ -276,6 +276,34 @@ export async function expectDialogUncovered(dialog: Locator): Promise<void> {
   expect(covered, `dialog covered at ${covered.join(' ')}`).toEqual([]);
 }
 
+/** Everything under `root` (itself included) that runs out SIDEWAYS: content
+ *  wider than its box where the box does not let it show (`overflow-x`
+ *  other than visible — a sideways scroll, or a cut). For the side pane in
+ *  every tab and every dialog (Codex R70, the answer on a general check;
+ *  the Macros tab and its editor had their own scan). Not counted — on
+ *  purpose: a code editor's `.cm-scroller` (code lines keep their length),
+ *  a box marked `data-scroll-x`, a one-line text cut with an ellipsis, a
+ *  field scrolling its own value. 1 px of rounding is allowed. */
+export async function sidewaysOverflow(root: Locator): Promise<string[]> {
+  return root.evaluate(element => [element, ...element.querySelectorAll<HTMLElement>('*')]
+    .filter(box => box.getClientRects().length > 0 && !box.closest('.cm-scroller, [data-scroll-x]'))
+    .filter(box => !['INPUT', 'TEXTAREA', 'SELECT'].includes(box.tagName))
+    .filter(box => {
+      const css = getComputedStyle(box);
+      return css.overflowX !== 'visible' && css.textOverflow !== 'ellipsis' && box.scrollWidth > box.clientWidth + 1;
+    })
+    .map(box => {
+      // name what sticks out: the deepest element ending past the box
+      const edge = box.getBoundingClientRect().left + box.clientLeft + box.clientWidth;
+      const out = [...box.querySelectorAll<HTMLElement>('*')]
+        .filter(e => e.getClientRects().length && e.getBoundingClientRect().right > edge + 1);
+      const leaf = out.filter(e => !out.some(o => o !== e && e.contains(o)))[0];
+      const name = (e: Element) => `${e.tagName.toLowerCase()}.${[...e.classList].join('.')}`;
+      return `${name(box)}: ${box.scrollWidth - box.clientWidth}px past its box`
+        + (leaf ? ` (${name(leaf)} "${(leaf.textContent ?? '').trim().slice(0, 40)}")` : '');
+    }));
+}
+
 /** Every scroller under `root` (itself included) that would draw the
  *  browser's own scrollbar instead of the app's thin one — see
  *  measureLayout's `thick-scrollbar`. For surfaces measureLayout does not

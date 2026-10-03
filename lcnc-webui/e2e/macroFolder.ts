@@ -7,6 +7,7 @@
 // loaded: send `macros_changed` and the app reads the list again.
 import type { Page } from "@playwright/test";
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { ctl } from "./ctl";
 import { readHeader } from "../src/macroHeader";
 
@@ -26,12 +27,29 @@ o<face_top> endsub
 
 export interface Entry { text: string; meta: Record<string, unknown> }
 
+/** The gateway's 409 body per refusal kind — scripts/test_fixtures/
+ *  macro_refusals.json, which test_macros_gateway.RefusalShape holds the
+ *  gateway to: the mock answers exactly what the route answers, with
+ *  exactly its keys (Codex R70 VP-I31 — it used to add a revision the route
+ *  never sent, and the specs passed on a Keep editing the product broke). */
+const REFUSALS: Record<string, { kind: string; keys: string[]; reason?: string }> = JSON.parse(
+  readFileSync(new URL("../../scripts/test_fixtures/macro_refusals.json", import.meta.url), "utf8"));
+export type RefusalCase = "busy" | "conflict" | "deleted" | "exists" | "taken" | "outside";
+export function refusal(c: RefusalCase, fields: { name?: string; revision?: string | null; reason?: string } = {}) {
+  const spec = REFUSALS[c]!;
+  const all: Record<string, unknown> = { error: "refused", kind: spec.kind, ...fields, reason: spec.reason ?? fields.reason };
+  return { status: 409, json: { detail: Object.fromEntries(spec.keys.map(k => [k, all[k]])) } };
+}
+
 /** The gateway's macro folder, in memory. */
 export class Folder {
   files = new Map<string, Entry>();
   problems: string[] = [];
   /** The gateway's verdict "may not run", by name (a header error, shadowed). */
   blocked = new Map<string, string>();
+  /** A write refusal while a start is open or the interpreter runs (the
+   *  gate's first check) — null: none. */
+  busy: string | null = null;
   constructor() {
     this.files.set("park", { text: PARK, meta: { title: "Park", units: null, frame: "machine", params: [] } });
     this.files.set("face_top", { text: FACE, meta: { title: "Face top", units: "mm", frame: null, params: [
@@ -68,31 +86,35 @@ export async function serve(page: Page, folder: Folder) {
       return r.fulfill({ body: e.text, contentType: "text/plain", headers: { "X-Macro-Revision": rev(e.text) } });
     }
     const base = url.searchParams.get("base")!;
+    // the gateway's gate, in its order: busy, then the file against its base
+    const against = (n: string, b: string) => {
+      const f = folder.files.get(n);
+      if (b === "new") return f ? refusal("exists", { name: n, revision: rev(f.text) }) : null;
+      if (!f) return refusal("deleted", { name: n, revision: null });
+      return rev(f.text) !== b ? refusal("conflict", { name: n, revision: rev(f.text) }) : null;
+    };
+    if (method !== "GET" && folder.busy) return r.fulfill(refusal("busy", { reason: folder.busy }));
     if (method === "PUT" && url.searchParams.has("rename_from")) {
       // a rename: the new name free, the old file still the revision the
       // editor read — then one step, as the gateway does it
       const from = url.searchParams.get("rename_from")!, old = folder.files.get(from);
-      if (e || !old || rev(old.text) !== url.searchParams.get("rename_base")) {
-        return r.fulfill({ status: 409, json: { detail: { error: "refused",
-          reason: e ? "A macro of that name exists — reload" : "Changed on disk — reload or keep editing", revision: old ? rev(old.text) : null } } });
-      }
+      const refused = against(name, "new") ?? against(from, url.searchParams.get("rename_base")!);
+      if (refused || !old) return r.fulfill(refused ?? refusal("deleted", { name: from, revision: null }));
       folder.files.delete(from);
       folder.files.set(name, { text: r.request().postData() ?? "", meta: old.meta });
       return r.fulfill({ json: { ok: true, macro: folder.entry(name) } });
     }
     if (method === "PUT") {
       const text = r.request().postData() ?? "";
-      if (base === "new" ? !!e : !e || rev(e.text) !== base) {
-        return r.fulfill({ status: 409, json: { detail: { error: "refused",
-          reason: base === "new" ? "A macro of that name exists — reload" : "Changed on disk — reload or keep editing",
-          revision: e ? rev(e.text) : null } } });
-      }
+      const refused = against(name, base);
+      if (refused) return r.fulfill(refused);
       if (e) e.text = text;
       else folder.files.set(name, { text, meta: { title: name, units: null, frame: null, params: [] } });
       return r.fulfill({ json: { ok: true, macro: folder.entry(name) } });
     }
     if (method === "DELETE") {
-      if (!e || rev(e.text) !== base) return r.fulfill({ status: 409, json: { detail: { error: "refused", reason: "Changed on disk", revision: e ? rev(e.text) : null } } });
+      const refused = against(name, base);
+      if (refused) return r.fulfill(refused);
       folder.files.delete(name);
       return r.fulfill({ json: { ok: true } });
     }

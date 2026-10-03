@@ -1300,12 +1300,13 @@ def _get_var_file_lock() -> asyncio.Lock:
     return _var_file_lock
 
 
-async def _var_file_thread(fn, *args):
-    """Run a parameter-file read or write in a thread. A cancel — a second
-    one too — waits for the thread's end before it propagates, so the
-    caller's _var_file_lock is never released under a write still running
-    (the _cmd_blocking principle; a thread cannot be cancelled)."""
-    inner = asyncio.ensure_future(asyncio.to_thread(fn, *args))
+async def _thread_to_end(inner):
+    """Await a thread's future to its END. A cancel — a second one too —
+    waits for the thread before it propagates, so a lock the caller holds
+    is never released under an operation still running (the _cmd_blocking
+    principle: a thread cannot be cancelled). For the parameter file's
+    writers and the macro writers' publish under _source_lock (Codex R70
+    VP-I29: a cancelled PUT left the lock while its os.replace still ran)."""
     try:
         return await asyncio.shield(inner)
     except asyncio.CancelledError:
@@ -1317,6 +1318,12 @@ async def _var_file_thread(fn, *args):
         if not inner.cancelled():
             inner.exception()   # retrieved: never "exception was never retrieved"
         raise
+
+
+async def _var_file_thread(fn, *args):
+    """Run a parameter-file read or write in a thread, to its end (the
+    caller's _var_file_lock is never released under a write still running)."""
+    return await _thread_to_end(asyncio.ensure_future(asyncio.to_thread(fn, *args)))
 
 # Timing log (toggled via "timing_log" WS command from Debug tab)
 _timing_log_enabled = False
@@ -1466,7 +1473,7 @@ async def _status_poller():
             t0 = time.monotonic()
             _set_phase("status_poller.poll_and_serialize")
             st, status_dict = await loop.run_in_executor(None, _poll_and_serialize)
-            _release_start_claims()
+            _release_start_claims(t0)
             _check_macro_folder()
             t1 = time.monotonic()
             _set_phase("status_poller.read_errors")
@@ -2963,20 +2970,38 @@ def read_machine_limits_from_ini(stat_obj):
 # through _cmd_blocking, which registers a CLAIM under _source_lock before
 # the write; the claim records the command's serial in the sending thread
 # (a cancelled handler cannot lose it) and ONLY the status poller releases
-# it, on proof the controller is through: echo serial ≥ the claim's, the
-# command not RCS_EXEC, the interpreter IDLE. A macro writer publishes only
-# under _source_lock with no claim open and the interpreter IDLE in a fresh
-# poll. Lock order: _cmd_lock before _source_lock, never the reverse;
-# writers never take _cmd_lock. No timer ever releases a claim: a gateway
-# restart (or a new LinuxCNC instance, which ends this gateway) does.
+# it, on a POSITIVE proof read after the send, every value known (Codex R70
+# VP-I30 — "not RCS_EXEC" proved nothing: task reports RCS_ERROR for a later
+# command it refused while the MDI still waits in its queue):
+#   done  — RCS_DONE at an echo ≥ the claim's serial, the interpreter IDLE
+#           (task's DONE needs its MDI queue, interp list and command empty,
+#           emctaskmain.cc 3546–3565);
+#   error — the start's OWN error (echo = its serial: task read nothing
+#           after it, so the error is this command's period — the binding's
+#           wait_complete attributes it the same way), no MDI queued, task's
+#           execution DONE, the interpreter IDLE, over two polls ≥ 20 ms apart
+#           (task moves a queued line to its interp list and on within a
+#           cycle). An abort's own RCS_DONE releases by the first rule.
+# A macro writer publishes only under _source_lock with no claim open and
+# the interpreter IDLE in a fresh poll. Lock order: _cmd_lock before
+# _source_lock, never the reverse; writers never take _cmd_lock. No timer
+# ever releases a claim: a gateway restart (or a new LinuxCNC instance,
+# which ends this gateway) does. Named limit: the echo is task's, not this
+# channel's — another command channel (halui, a second GUI) has serials of
+# its own; a coincidence keeps or releases by THAT channel's command.
+_CLAIM_ERROR_PROOF_S = 0.02
+
+
 class _StartClaim:
-    __slots__ = ("what", "serial", "state", "t")
+    __slots__ = ("what", "serial", "state", "t", "sent_t", "err_since")
 
     def __init__(self, what: str):
         self.what = what
         self.serial = None        # the command's serial once written
         self.state = "pending"    # pending → sent (or unsent: dropped)
         self.t = time.monotonic()
+        self.sent_t = None        # when the sending thread saw cmd_fn return
+        self.err_since = None     # the first poll of an unbroken error proof
 
 
 _source_lock: Optional[asyncio.Lock] = None
@@ -3004,24 +3029,40 @@ def _start_kind(cmd_fn, args) -> Optional[str]:
     return None
 
 
-def _release_start_claims() -> None:
-    """Status poller, after STAT.poll(): drop claims the controller is
-    through with, and claims whose command was never written."""
+def _release_start_claims(polled_at: Optional[float] = None) -> None:
+    """Status poller, after STAT.poll() — `polled_at` the monotonic time the
+    poll began (None: now): drop claims the controller is proven through
+    with (the rules above), and claims whose command was never written."""
     if not _source_claims:
         return
+    if polled_at is None:
+        polled_at = time.monotonic()
     echo = safe_get("echo_serial_number", None)
     state = safe_get("state", None)
-    interp = safe_get("interp_state", None)
-    through = (state != getattr(linuxcnc, "RCS_EXEC", 2)
-               and interp == getattr(linuxcnc, "INTERP_IDLE", 1))
+    idle = safe_get("interp_state", None) == getattr(linuxcnc, "INTERP_IDLE", 1)
+    done = idle and state == getattr(linuxcnc, "RCS_DONE", 1)
+    err_quiet = (idle and state == getattr(linuxcnc, "RCS_ERROR", 3)
+                 and safe_get("queued_mdi_commands", None) == 0
+                 and safe_get("exec_state", None) == getattr(linuxcnc, "EXEC_DONE", 2))
     keep = []
     for c in _source_claims:
         if c.state == "unsent":
             continue
-        if c.state == "sent" and through and (c.serial is None or echo is None or echo >= c.serial):
-            _trace.emit("source.claim_released", what=c.what, serial=c.serial,
+        seen = (c.state == "sent" and c.sent_t is not None and c.sent_t < polled_at
+                and c.serial is not None and echo is not None)
+        if seen and done and echo >= c.serial:
+            _trace.emit("source.claim_released", what=c.what, serial=c.serial, proof="done",
                         held_ms=round((time.monotonic() - c.t) * 1000))
             continue
+        if seen and err_quiet and echo == c.serial:
+            if c.err_since is None:
+                c.err_since = polled_at
+            elif polled_at - c.err_since >= _CLAIM_ERROR_PROOF_S:
+                _trace.emit("source.claim_released", what=c.what, serial=c.serial, proof="error",
+                            held_ms=round((time.monotonic() - c.t) * 1000))
+                continue
+        else:
+            c.err_since = None
         keep.append(c)
     _source_claims[:] = keep
 
@@ -3081,6 +3122,7 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
             raise
         if claim is not None:
             claim.serial = getattr(CMD, "serial", None)
+            claim.sent_t = time.monotonic()
             claim.state = "sent"
         if wait is None:
             return 0
@@ -4127,10 +4169,12 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             path = os.path.join(mstate["dir"], name + ".ngc")
             async with _get_source_lock():
                 try:
-                    with open(path, "rb") as f:
-                        data = f.read(MAX_MACRO_SIZE + 1)
-                except FileNotFoundError:
+                    got = _macro_bytes(mstate, path)   # the list's admission (Codex R70 VP-I33)
+                except _MacroOutside as e:
+                    return {"ok": False, "error": str(e)}
+                if got is None:
                     return {"ok": False, "error": "Macro not found — reload the macros"}
+                data = got[0]
                 if macro_files.revision_of(data) != revision:
                     return {"ok": False, "error": "Macro changed — hold again"}
                 entry = _macro_entry(mstate, name, data, 0.0)
@@ -6827,12 +6871,19 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
     ``gate`` (package 5, Codex VP69-02): a callable returning a refusal or
     None, run under _source_lock IMMEDIATELY before the publish, the publish
     still under the lock — the slow part (receiving, fsync) stays outside.
-    A refusal answers 409 with the reason and drops the temp.
+    A refusal answers 409 (``{"error": "refused", **refusal}`` for a dict,
+    ``"reason"`` for a string) and drops the temp.
 
     ``after_publish`` (a macro rename, operator 2026-10-03): a blocking
     callable run right after the publish, still under _source_lock (it
     needs a ``gate``). When it fails, the published file leaves again —
     nothing was renamed — and the request answers 500.
+
+    The publish, ``after_publish`` and that rollback are ONE blocking commit
+    held to its END under the lock (`_thread_to_end`, Codex R70 VP-I29): a
+    cancelled request — cancelled twice too — keeps the lock until the
+    commit's thread has finished, so no start and no second writer gets in
+    between a publish and its removal or rollback.
     """
     loop = asyncio.get_event_loop()
     dest_dir = os.path.dirname(dest_path) or "."
@@ -6859,29 +6910,30 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
                 await loop.run_in_executor(io_ex, lambda: (f.flush(), os.fsync(f.fileno())))
             finally:
                 await loop.run_in_executor(io_ex, f.close)
-            async def _publish():
+            def _commit():
                 nonlocal tmp
                 if replace:
-                    await loop.run_in_executor(io_ex, os.replace, tmp, dest_path)
+                    os.replace(tmp, dest_path)
                     tmp = None  # published — don't unlink in finally
                 else:
-                    await loop.run_in_executor(io_ex, _publish_no_replace, tmp, dest_path)
+                    _publish_no_replace(tmp, dest_path)
                     # linked — the temp name is unlinked in finally; the data is
                     # already durable under dest_path.
+                if after_publish is not None:
+                    try:
+                        after_publish()
+                    except OSError as e:
+                        _safe_unlink(dest_path)
+                        raise HTTPException(status_code=500, detail=f"Not renamed — {e.strerror or e}")
             if gate is None:
-                await _publish()
+                await loop.run_in_executor(io_ex, _commit)
             else:
                 async with _get_source_lock():
-                    why = gate()
-                    if why:
-                        raise HTTPException(status_code=409, detail={"error": "refused", "reason": why})
-                    await _publish()
-                    if after_publish is not None:
-                        try:
-                            await loop.run_in_executor(io_ex, after_publish)
-                        except OSError as e:
-                            await loop.run_in_executor(io_ex, _safe_unlink, dest_path)
-                            raise HTTPException(status_code=500, detail=f"Not renamed — {e.strerror or e}")
+                    refusal = gate()
+                    if refusal:
+                        raise HTTPException(status_code=409, detail={"error": "refused", **(
+                            refusal if isinstance(refusal, dict) else {"reason": refusal})})
+                    await _thread_to_end(loop.run_in_executor(io_ex, _commit))
             return written
         finally:
             if tmp is not None:
@@ -7113,6 +7165,40 @@ def _macro_entry(state: Dict[str, Any], name: str, data: bytes, mtime: float) ->
             "runnable": reason is None, "reason": reason}
 
 
+class _MacroOutside(Exception):
+    """A macro name whose file leads out of the macro folder or to no file."""
+
+
+def _macro_bytes(state: Dict[str, Any], path: str,
+                 limit: Optional[int] = MAX_MACRO_SIZE + 1) -> Optional[Tuple[bytes, float]]:
+    """The ONE admission of a macro FILE (Codex R70 VP-I33) — the list, a
+    read, a start and every write's base check go through it: `<name>.ngc`
+    resolved must be a regular file inside the macro folder (a link within
+    the folder is followed, as the interpreter follows it), read through a
+    descriptor that follows no further link. (bytes, mtime); None when the
+    name has no file; _MacroOutside when it leads out of the folder or to
+    no regular file — a correctly formed name proves neither."""
+    if not os.path.lexists(path):
+        return None
+    name = os.path.basename(path)
+    real = os.path.realpath(path)
+    if not real.startswith(os.path.realpath(state["dir"]) + os.sep):
+        raise _MacroOutside(f"{name} leads out of the macro folder")
+    try:
+        fd = os.open(real, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    except FileNotFoundError:
+        if os.path.lexists(path):
+            raise _MacroOutside(f"{name} leads to no file")
+        return None
+    except OSError as e:   # ELOOP: a link put there after the check
+        raise _MacroOutside(f"{name} leads out of the macro folder") from e
+    with os.fdopen(fd, "rb") as f:
+        st = os.fstat(f.fileno())
+        if not (st.st_mode & 0o170000) == 0o100000:   # S_ISREG
+            raise _MacroOutside(f"{name} leads to no file")
+        return (f.read() if limit is None else f.read(limit)), st.st_mtime
+
+
 def _list_macros() -> Dict[str, Any]:
     state = macro_dir_state()
     macros = []
@@ -7120,55 +7206,67 @@ def _list_macros() -> Dict[str, Any]:
         for fn in sorted(os.listdir(state["dir"])):
             if not fn.endswith(".ngc") or fn.startswith("."):
                 continue
-            path = os.path.join(state["dir"], fn)
-            if not os.path.isfile(path) or not validate_path_within(path, state["dir"]):
-                continue
             try:
-                with open(path, "rb") as f:
-                    data = f.read(MAX_MACRO_SIZE + 1)
-                    mtime = os.fstat(f.fileno()).st_mtime
-            except OSError:
-                continue
-            macros.append(_macro_entry(state, fn[:-4], data, mtime))
+                got = _macro_bytes(state, os.path.join(state["dir"], fn))
+            except (_MacroOutside, OSError):
+                continue   # no macro: a read, the writers and a start refuse it alike
+            if got is not None:
+                macros.append(_macro_entry(state, fn[:-4], *got))
     return {"ok": True, "dir": state["dir"], "problems": state["problems"], "macros": macros}
 
 
 def _macro_path(name: str) -> Tuple[Dict[str, Any], str]:
-    """The folder state and `<name>.ngc` in it; 400/409 when there is none."""
+    """The folder state and `<name>.ngc` in it; 400/409 when there is none,
+    403 when the name's file leads out of the folder (`_macro_bytes`)."""
     if not isinstance(name, str) or not macro_files.NAME_RE.match(name):
         raise HTTPException(status_code=400, detail="File name: lower-case letters, digits and _ only, at most 63")
     state = macro_dir_state()
     if not state["dir"]:
         raise HTTPException(status_code=409, detail=state["problems"][0])
-    return state, os.path.join(state["dir"], name + ".ngc")
-
-
-def _file_revision(path: str) -> Optional[str]:
+    path = os.path.join(state["dir"], name + ".ngc")
     try:
-        with open(path, "rb") as f:
-            return macro_files.revision_of(f.read())
-    except FileNotFoundError:
-        return None
+        _macro_bytes(state, path, 0)
+    except _MacroOutside as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    return state, path
+
+
+def _file_revision(state: Dict[str, Any], path: str) -> Optional[str]:
+    """The revision of the macro file on disk (None: no file); raises
+    _MacroOutside like `_macro_bytes`."""
+    got = _macro_bytes(state, path, None)
+    return macro_files.revision_of(got[0]) if got else None
 
 
 def _macro_write_gate(state: Dict[str, Any], path: str, base: str):
     """The refusal check a macro write runs under _source_lock right before
-    it publishes: no start open, the interpreter idle, the base revision
-    still the file on disk (`new` = the name free), and no program of the
-    same name in PROGRAM_PREFIX (it would win the interpreter's lookup)."""
+    it publishes: no start open, the interpreter idle, the name's file
+    inside the folder, the base revision still the file on disk (`new` =
+    the name free), and no program of the same name in PROGRAM_PREFIX (it
+    would win the interpreter's lookup). A refusal is the 409 body's
+    `kind` with its fields — scripts/test_fixtures/macro_refusals.json;
+    `revision` is the file read HERE, under the same lock (Codex R70
+    VP-I31: Keep editing rebases on exactly it; null = the file is gone)."""
+    name = os.path.basename(path)[:-len(".ngc")]
+
     def gate():
         why = _source_write_refusal()
         if why:
-            return why
-        current = _file_revision(path)
+            return {"kind": "busy", "reason": why}
+        try:
+            current = _file_revision(state, path)
+        except _MacroOutside as e:
+            return {"kind": "outside", "reason": str(e), "name": name}
         if base == "new":
             if current is not None:
-                return "A macro of that name exists — reload"
+                return {"kind": "exists", "reason": "A macro of that name exists — reload",
+                        "name": name, "revision": current}
         elif current != base:
-            return "Changed on disk — reload or keep editing"
-        name = os.path.basename(path)
-        if state["prefix"] and os.path.exists(os.path.join(state["prefix"], name)):
-            return f"Name taken by a program in {state['prefix']}"
+            return {"kind": "conflict", "name": name, "revision": current,
+                    "reason": ("Changed on disk — reload or keep editing" if current is not None
+                               else "Deleted on disk — reload or keep editing")}
+        if state["prefix"] and os.path.exists(os.path.join(state["prefix"], name + ".ngc")):
+            return {"kind": "taken", "reason": f"Name taken by a program in {state['prefix']}", "name": name}
         return None
     return gate
 
@@ -7261,12 +7359,21 @@ async def list_macros_route():
 @app.get("/macro", dependencies=[Depends(require_token)])
 async def get_macro(name: str = Query(...)):
     state, path = await asyncio.to_thread(_macro_path, name)
-    try:
-        data = await asyncio.to_thread(lambda: open(path, "rb").read(MAX_MACRO_SIZE + 1))
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Macro not found")
+    got = await _macro_read_or_raise(state, path)
+    data = got[0]
     return Response(content=data, media_type="text/plain; charset=utf-8",
                     headers={"X-Macro-Revision": macro_files.revision_of(data), "Cache-Control": "no-cache"})
+
+
+async def _macro_read_or_raise(state: Dict[str, Any], path: str) -> Tuple[bytes, float]:
+    """`_macro_bytes` for a route: 404 without a file, 403 out of the folder."""
+    try:
+        got = await asyncio.to_thread(_macro_bytes, state, path)
+    except _MacroOutside as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    if got is None:
+        raise HTTPException(status_code=404, detail="Macro not found")
+    return got
 
 
 def _unlink_renamed(path: str) -> None:
@@ -7304,12 +7411,12 @@ async def put_macro(request: Request, name: str = Query(...), base: str = Query(
         new_gate, old_gate = gate, _macro_write_gate(state, old_path, rename_base)
 
         def rename_gate():
-            why = new_gate()
-            if why:
-                return why
-            why = old_gate()
+            refusal = new_gate()
+            if refusal:
+                return refusal
+            refusal = old_gate()
             # the OLD name taken by a program is no reason to keep it
-            return why if why and not why.startswith("Name taken") else None
+            return refusal if refusal and refusal["kind"] != "taken" else None
         gate = rename_gate
         after = lambda: _unlink_renamed(old_path)  # noqa: E731
     await _atomic_stream_write(request.stream(), path, MAX_MACRO_SIZE,
@@ -7320,8 +7427,7 @@ async def put_macro(request: Request, name: str = Query(...), base: str = Query(
     else:
         _trace.emit("macros.saved", name=name, created=base == "new")
         _macros_changed("saved")
-    data = await asyncio.to_thread(lambda: open(path, "rb").read())
-    return {"ok": True, "macro": _macro_entry(state, name, data, os.path.getmtime(path))}
+    return {"ok": True, "macro": _macro_entry(state, name, *await _macro_read_or_raise(state, path))}
 
 
 @app.post("/macro-upload", dependencies=[Depends(require_token)])
@@ -7335,20 +7441,18 @@ async def upload_macro(file: UploadFile = File(...), replace: Optional[str] = Qu
     state, path = await asyncio.to_thread(_macro_path, fname[:-4])
     if replace is not None and not re.fullmatch(r"[0-9a-f]{64}", replace):
         raise HTTPException(status_code=400, detail="replace: a revision")
-    if replace is None and os.path.exists(path):
-        raise HTTPException(status_code=409, detail={"error": "exists", "filename": fname,
-                                                     "revision": await asyncio.to_thread(_file_revision, path)})
-    try:
-        await _atomic_stream_upload(file, path, MAX_MACRO_SIZE, replace=replace is not None,
-                                    gate=_macro_write_gate(state, path, replace or "new"))
-    except HTTPException as e:
-        if e.status_code == 409 and isinstance(e.detail, dict) and e.detail.get("error") == "refused":
-            e.detail["revision"] = await asyncio.to_thread(_file_revision, path)
-        raise
+    if replace is None:
+        # the ask (Replace?) before the upload, in the gate's own shape
+        current = await asyncio.to_thread(_file_revision, state, path)
+        if current is not None:
+            raise HTTPException(status_code=409, detail={
+                "error": "refused", "kind": "exists", "reason": "A macro of that name exists — reload",
+                "name": fname[:-4], "revision": current})
+    await _atomic_stream_upload(file, path, MAX_MACRO_SIZE, replace=replace is not None,
+                                gate=_macro_write_gate(state, path, replace or "new"))
     _trace.emit("macros.imported", name=fname[:-4], replaced=replace is not None)
     _macros_changed("imported")
-    data = await asyncio.to_thread(lambda: open(path, "rb").read())
-    return {"ok": True, "macro": _macro_entry(state, fname[:-4], data, os.path.getmtime(path))}
+    return {"ok": True, "macro": _macro_entry(state, fname[:-4], *await _macro_read_or_raise(state, path))}
 
 
 @app.delete("/macro", dependencies=[Depends(require_token)])
@@ -7357,11 +7461,11 @@ async def delete_macro(name: str = Query(...), base: str = Query(...)):
     if not re.fullmatch(r"[0-9a-f]{64}", base or ""):
         raise HTTPException(status_code=400, detail="base: a revision")
     async with _get_source_lock():
-        why = _macro_write_gate(state, path, base)()
-        if why and not why.startswith("Name taken"):
-            raise HTTPException(status_code=409, detail={"error": "refused", "reason": why,
-                                                         "revision": _file_revision(path)})
-        await asyncio.to_thread(os.unlink, path)
+        refusal = _macro_write_gate(state, path, base)()
+        if refusal and refusal["kind"] != "taken":
+            raise HTTPException(status_code=409, detail={"error": "refused", **refusal})
+        # to its END under the lock, through a cancel (Codex R70 VP-I29)
+        await _thread_to_end(asyncio.ensure_future(asyncio.to_thread(os.unlink, path)))
     _trace.emit("macros.deleted", name=name)
     _macros_changed("deleted")
     return {"ok": True}

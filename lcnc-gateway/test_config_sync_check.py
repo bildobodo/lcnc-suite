@@ -54,6 +54,25 @@ class TestDrift(unittest.TestCase):
         self.assertIn("PROGRAM_PREFIX = ~/linuxcnc/nc_files", missing)
         self.assertEqual(local, ["PROGRAM_PREFIX = ~/elsewhere"])
 
+    def test_a_repeated_key_is_read_in_order(self):
+        # Codex R70 VP-I34, with linuxcnc.ini: the FIRST occurrence wins —
+        # these two read 10 and 20
+        repo = "[JOINT_0]\nMAX_VELOCITY = 10\nMAX_VELOCITY = 20\n"
+        deployed = "[JOINT_0]\nMAX_VELOCITY = 20\nMAX_VELOCITY = 10\n"
+        missing, local = self.drift(deployed, repo=repo)
+        self.assertTrue(missing and local)
+
+    def test_a_key_moved_between_two_blocks_of_one_section_is_drift(self):
+        # only the FIRST block of a repeated [SECTION] is read (measured: a
+        # key in the second [A] block reads None)
+        repo = "[A]\nX = 1\nW = 5\n[B]\nY = 2\n[A]\nZ = 3\n"
+        deployed = "[A]\nX = 1\n[B]\nY = 2\n[A]\nZ = 3\nW = 5\n"
+        missing, local = self.drift(deployed, repo=repo)
+        self.assertTrue(missing and local)
+        # a key that occurs ONCE in a section that occurs once still moves freely
+        repo = "[A]\nX = 1\nW = 5\nV = 7\n[B]\nY = 2\n"
+        self.assertEqual(self.drift("[A]\nV = 7\nX = 1\nW = 5\n[B]\nY = 2\n", repo=repo), ([], []))
+
     def test_a_hal_file_is_compared_in_order(self):
         repo = "loadrt a\nloadrt b\naddf a servo-thread\n"
         deployed = "loadrt b\nloadrt a\naddf a servo-thread\n"

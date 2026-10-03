@@ -155,6 +155,7 @@ watch([editor, dirty], () => {
   macroEditorBasis.value = !e?.disk ? null : {
     name: e.disk,
     state: e.loading ? "loading" : e.conflict ? "conflict" : dirty.value ? "draft" : "clean",
+    revision: e.loading ? null : e.revision,
   };
 }, { deep: true, immediate: true });
 onUnmounted(() => { macroEditorBasis.value = null; });
@@ -221,7 +222,7 @@ function setEditorText(t: string, e: Editor) {
   readFields();
 }
 
-async function openEdit(f: MacroFile) {
+async function openEdit(f: MacroFile, tries = 0) {
   selectedName.value = f.name;
   const mine = ++seq;
   editError.value = null;
@@ -231,6 +232,24 @@ async function openEdit(f: MacroFile) {
   try {
     const { text: t, revision } = await readMacroFile(f.name);
     if (editor.value?.key !== mine) return;   // closed or another file meanwhile: a late reply applies nowhere
+    // The list may have moved while the text was on its way (Codex R70
+    // VP-I32: the watcher below waits while loading). The editor turns
+    // clean only on the revision the list names NOW: else the list is read
+    // again, and a text it does not name is read again (twice at most) —
+    // never shown as the file.
+    const listed = () => files.value.find(m => m.name === f.name) ?? null;
+    if (listed()?.revision !== revision) {
+      await reloadMacroFiles();
+      if (editor.value?.key !== mine) return;
+      const now = listed();
+      if (now?.revision !== revision) {
+        if (now && tries < 2) { void openEdit(now, tries + 1); return; }
+        editor.value = null;
+        note.value = { kind: "error", text: now ? `${f.name}.ngc kept changing while it was read — open it again`
+          : `${f.name}.ngc was deleted while it was read` };
+        return;
+      }
+    }
     setEditorText(t, { ...editor.value, key: ++seq, original: t, revision, loading: false });
   } catch (e) {
     if (editor.value?.key !== mine) return;
@@ -305,7 +324,8 @@ async function save() {
   const t = editorRef.value?.text() ?? text.value;
   if (!e || !canSave.value) return;
   const name = fName.value;
-  const rename = e.disk && name !== e.disk ? { from: e.disk, base: e.revision } : undefined;
+  // a file deleted under the editor (Keep editing: base "new") is no rename
+  const rename = e.disk && name !== e.disk && e.revision !== "new" ? { from: e.disk, base: e.revision } : undefined;
   saving.value = true;
   editError.value = null;
   try {
@@ -319,7 +339,12 @@ async function save() {
     void reloadMacroFiles();
   } catch (err) {
     if (editor.value?.key !== e.key) return;
-    if (err instanceof MacroConflictError && !rename && e.disk && !/exists/.test(err.message)) {
+    // Only a DISK conflict of this editor's file is a conflict — with the
+    // revision the gateway read under its lock (Codex R70 VP-I31); a busy
+    // machine, a taken name or an answer without a revision is a plain
+    // "not saved" and the draft keeps its base.
+    if (err instanceof MacroConflictError && err.kind === "conflict" && err.revision !== undefined
+        && e.disk && (err.file ?? e.disk) === e.disk) {
       editor.value = { ...editor.value, conflict: { revision: err.revision, reason: err.message } };
     } else {
       editError.value = `Not saved — ${(err as Error).message}`;
@@ -348,8 +373,9 @@ async function onImportPicked(file: File | null) {
     note.value = { kind: "ok", text: `Uploaded ${file.name}` };
     void reloadMacroFiles();
   } catch (err) {
-    if (err instanceof MacroConflictError && err.exists) replaceAsk.value = { file, name, revision: err.revision };
-    else note.value = { kind: "error", text: `Not uploaded — ${(err as Error).message}` };
+    if (err instanceof MacroConflictError && err.exists && typeof err.revision === "string") {
+      replaceAsk.value = { file, name, revision: err.revision };
+    } else note.value = { kind: "error", text: `Not uploaded — ${(err as Error).message}` };
   }
 }
 async function confirmReplace() {
@@ -363,7 +389,7 @@ async function confirmReplace() {
     note.value = { kind: "ok", text: `Replaced ${ask.name}.ngc` };
     void reloadMacroFiles();
   } catch (err) {
-    note.value = { kind: "error", text: err instanceof MacroConflictError
+    note.value = { kind: "error", text: err instanceof MacroConflictError && err.kind === "conflict"
       ? `Not replaced — ${ask.name}.ngc changed meanwhile; upload again to decide`
       : `Not replaced — ${(err as Error).message}` };
   }

@@ -2,7 +2,7 @@ import { test, expect, type Page, type Locator } from "@playwright/test";
 import { ctl, MOCK } from "./ctl";
 import { clickMore, moreTrigger } from "./more";
 import { Folder, serve } from "./macroFolder";
-import { thickScrollbars } from "./layout-audit";
+import { sidewaysOverflow, thickScrollbars } from "./layout-audit";
 
 // Design wave D2 (UI-K11, K16(3), UI-D01, UI-D06; plan Anhang B) — the
 // dialog contract, scanned per dialog from ONE table (Anhang B is the only
@@ -572,6 +572,8 @@ for (const row of ROWS) {
     // parameter dialog drew the browser's wide black one, operator
     // 2026-10-03): its .dialogContent scrolls in a low window.
     expect(await thickScrollbars(dialog), "scrollers with the browser's own scrollbar").toEqual([]);
+    // nothing in it runs out sideways (Codex R70: for every dialog)
+    expect(await sidewaysOverflow(dialog), "content past its box sideways").toEqual([]);
 
     await expect(row.focus(dialog, page), "initial focus (Anhang B)").toBeFocused();
     await expectFocusVisible(page, dialog, "the initial focus is on screen");

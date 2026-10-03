@@ -71,6 +71,21 @@ def _ini_sections(lines):
     return out
 
 
+def _order_bound(lines, secs):
+    """What LinuxCNC reads by ORDER in one INI text: every section name that
+    heads more than one block, and every (section, key) that occurs more
+    than once."""
+    blocks, keys = {}, {}
+    for ln, sec in zip(lines, secs):
+        st = ln.strip()
+        if st.startswith("[") and st.endswith("]"):
+            blocks[sec] = blocks.get(sec, 0) + 1
+        elif "=" in st and not st.startswith(("#", ";")):
+            k = (sec, st.split("=", 1)[0].strip().upper())
+            keys[k] = keys.get(k, 0) + 1
+    return {s for s, n in blocks.items() if n > 1} | {k for k, n in keys.items() if n > 1}
+
+
 def drifted_lines(repo_text, deployed_text, ini=False):
     """Non-whitelisted drift between two file bodies.
 
@@ -81,8 +96,13 @@ def drifted_lines(repo_text, deployed_text, ini=False):
     `ini`: a line that only MOVED inside its INI section (the same text on
     both sides, the same [SECTION]) is no drift — the installer adds a
     missing suite key at the section's start, the template has it further
-    down, and LinuxCNC does not read a section's keys in order. Except the
-    keys it does (ORDERED_INI_KEYS); a .hal file is compared in order.
+    down, and LinuxCNC does not read a section's keys in order. Only where
+    the order cannot matter: a key in ORDERED_INI_KEYS is read in order; a
+    key that occurs more than once in its section is read FIRST-wins, and a
+    section that occurs more than once is read in its FIRST block only
+    (both measured with linuxcnc.ini, Codex R70 VP-I34: two swapped
+    MAX_VELOCITY lines read 20 instead of 10, a key in the second [A] block
+    reads nothing) — such lines are compared in order. A .hal file always is.
     """
     sm = difflib.SequenceMatcher(
         a=repo_text.splitlines(), b=deployed_text.splitlines(), autojunk=False)
@@ -100,10 +120,13 @@ def drifted_lines(repo_text, deployed_text, ini=False):
                 local.append((j + 1, ln))
     if ini and missing and local:
         a_sec, b_sec = _ini_sections(sm.a), _ini_sections(sm.b)
+        ordered = _order_bound(sm.a, a_sec) | _order_bound(sm.b, b_sec)
 
         def moved_key(sec, ln):
             key = ln.split("=", 1)[0].strip().upper() if "=" in ln else None
-            return None if key in ORDERED_INI_KEYS else (sec, ln.strip())
+            if key in ORDERED_INI_KEYS or sec in ordered or (sec, key) in ordered:
+                return None
+            return (sec, ln.strip())
         pool = {}
         for i, ln in local:
             k = moved_key(b_sec[i - 1], ln)

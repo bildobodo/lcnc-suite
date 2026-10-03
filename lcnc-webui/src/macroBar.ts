@@ -10,6 +10,10 @@ import type { MacroFile, MacroFolder } from "./lcncApi";
 export interface MacroEditorBasis {
   name: string;
   state: "clean" | "draft" | "loading" | "conflict";
+  /** The revision of the text the editor shows (its base); a CLEAN editor
+   *  on another revision than the listed file is no basis to run that file
+   *  (Codex R70 VP-I32). */
+  revision?: string | null;
 }
 
 export interface MacroBarItem { key: string; label: string; file: MacroFile }
@@ -22,6 +26,9 @@ export function macroRunBlock(file: MacroFile, editor: MacroEditorBasis | null):
     if (editor.state === "draft") return "Unsaved edit — Save or Discard";
     if (editor.state === "loading") return "Loading macro — wait";
     if (editor.state === "conflict") return "Changed on disk — Reload or Keep editing";
+    if (editor.state === "clean" && editor.revision !== undefined && editor.revision !== file.revision) {
+      return "Editor shows another revision — wait";
+    }
   }
   if (!file.runnable) return file.reason ?? "Macro cannot run";
   return null;
