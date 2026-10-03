@@ -32,6 +32,9 @@ describe("macroRunBlock", () => {
     expect(macroRunBlock(f, { name: "park", state: "loading" })).toMatch(/Loading/);
     expect(macroRunBlock(f, { name: "park", state: "conflict" })).toMatch(/Changed on disk/);
     expect(macroRunBlock(f, { name: "park", state: "clean" })).toBeNull();
+    // a clean editor on ANOTHER revision than the file (Codex R70 VP-I32)
+    expect(macroRunBlock(f, { name: "park", state: "clean", revision: f.revision })).toBeNull();
+    expect(macroRunBlock(f, { name: "park", state: "clean", revision: "b".repeat(64) })).toMatch(/another revision/);
     expect(macroRunBlock(f, { name: "other", state: "draft" })).toBeNull();
   });
   it("the gateway's verdict", () => {

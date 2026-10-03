@@ -64,7 +64,9 @@ function toggleSort(key: "code" | "name") {
             <option v-for="g in GCODE_GROUPS" :key="g" :value="g">{{ g }}</option>
           </MachineSelect>
         </div>
-        <div v-sticky-head class="refTable dataTable scroll-thin fade-scroll">
+        <!-- scrolls SIDEWAYS on purpose: Syntax keeps each form on one line
+             (data-scroll-x — the dialog scan's sideways check, Codex R70) -->
+        <div v-sticky-head class="refTable dataTable scroll-thin fade-scroll" data-scroll-x>
           <table>
             <thead>
               <tr>

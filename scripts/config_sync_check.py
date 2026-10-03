@@ -59,6 +59,24 @@ def is_artifact(name):
 #: such a line in another place is a real difference.
 ORDERED_INI_KEYS = frozenset({"HALFILE", "HALCMD", "POSTGUI_HALFILE", "SHUTDOWN"})
 
+#: Repeated keys whose ORDER LinuxCNC does not use: REMAP — rs274ngc reads
+#: every line into a table keyed by its code (rs274ngc_pre.cc 1029,
+#: interp_remap.cc 489: a second line for one code is an error, "already
+#: remapped"). With every code once on each side the lines are a set; with a
+#: code twice they are compared in order.
+SET_INI_KEYS = frozenset({"REMAP"})
+
+
+def _same_reading(key, a, b):
+    """Whether LinuxCNC reads the same from a key's values `a` and `b` (in
+    file order, None = absent)."""
+    if a == b:
+        return True
+    if key in SET_INI_KEYS and a is not None and b is not None:
+        codes = [[v.split()[0].upper() if v.split() else "" for v in vs] for vs in (a, b)]
+        return all(len(set(c)) == len(c) for c in codes) and sorted(a) == sorted(b)
+    return False
+
 
 def _ini_sections(lines):
     """The [SECTION] each line belongs to ("" before the first)."""
@@ -71,6 +89,21 @@ def _ini_sections(lines):
     return out
 
 
+def _ini_reading(lines, secs):
+    """What LinuxCNC reads from one INI text, for the drift's order rule:
+    how many blocks each section name heads, and each (section, key)'s
+    values in file order."""
+    blocks, values = {}, {}
+    for ln, sec in zip(lines, secs):
+        st = ln.strip()
+        if st.startswith("[") and st.endswith("]"):
+            blocks[sec] = blocks.get(sec, 0) + 1
+        elif "=" in st and not st.startswith(("#", ";")):
+            k, v = st.split("=", 1)
+            values.setdefault((sec, k.strip().upper()), []).append(v.strip())
+    return blocks, values
+
+
 def drifted_lines(repo_text, deployed_text, ini=False):
     """Non-whitelisted drift between two file bodies.
 
@@ -81,8 +114,15 @@ def drifted_lines(repo_text, deployed_text, ini=False):
     `ini`: a line that only MOVED inside its INI section (the same text on
     both sides, the same [SECTION]) is no drift — the installer adds a
     missing suite key at the section's start, the template has it further
-    down, and LinuxCNC does not read a section's keys in order. Except the
-    keys it does (ORDERED_INI_KEYS); a .hal file is compared in order.
+    down, and LinuxCNC does not read a section's keys in order. Only where
+    the order cannot matter (Codex R70 VP-I34, measured with linuxcnc.ini):
+    the ORDERED sequence of the key's values in its section must be the same
+    on both sides — `find` takes the first (two swapped MAX_VELOCITY lines
+    read 20 instead of 10), `findall` the list — except a key whose lines
+    LinuxCNC keys by their own content (SET_INI_KEYS: REMAP, one line per
+    code); a section that occurs more than once is read in its FIRST block
+    only (a key in the second [A] block reads nothing), so its lines are
+    compared in order, like a key in ORDERED_INI_KEYS. A .hal file always is.
     """
     sm = difflib.SequenceMatcher(
         a=repo_text.splitlines(), b=deployed_text.splitlines(), autojunk=False)
@@ -100,10 +140,15 @@ def drifted_lines(repo_text, deployed_text, ini=False):
                 local.append((j + 1, ln))
     if ini and missing and local:
         a_sec, b_sec = _ini_sections(sm.a), _ini_sections(sm.b)
+        a_blocks, a_values = _ini_reading(sm.a, a_sec)
+        b_blocks, b_values = _ini_reading(sm.b, b_sec)
 
         def moved_key(sec, ln):
             key = ln.split("=", 1)[0].strip().upper() if "=" in ln else None
-            return None if key in ORDERED_INI_KEYS else (sec, ln.strip())
+            if (key in ORDERED_INI_KEYS or a_blocks.get(sec, 0) > 1 or b_blocks.get(sec, 0) > 1
+                    or not _same_reading(key, a_values.get((sec, key)), b_values.get((sec, key)))):
+                return None
+            return (sec, ln.strip())
         pool = {}
         for i, ln in local:
             k = moved_key(b_sec[i - 1], ln)

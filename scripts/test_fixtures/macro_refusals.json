@@ -1,0 +1,30 @@
+{
+  "_doc": "The gateway's 409 body (`detail`) for a refused macro write, per kind (package 5, Codex R70 VP-I31). `keys` is the exact key set, `reason` the fixed text where there is one. test_macros_gateway.RefusalShape holds the gateway to it and e2e/macroFolder.ts builds its 409s from it: the browser mock answers exactly what the route answers. `revision` is the file on disk read under the same _source_lock as the refusal — null only when the file is gone; a kind without it says nothing about the file.",
+  "busy": {
+    "kind": "busy",
+    "keys": ["error", "kind", "reason"]
+  },
+  "outside": {
+    "kind": "outside",
+    "keys": ["error", "kind", "reason", "name"]
+  },
+  "conflict": {
+    "kind": "conflict",
+    "keys": ["error", "kind", "reason", "name", "revision"],
+    "reason": "Changed on disk — reload or keep editing"
+  },
+  "deleted": {
+    "kind": "conflict",
+    "keys": ["error", "kind", "reason", "name", "revision"],
+    "reason": "Deleted on disk — reload or keep editing"
+  },
+  "exists": {
+    "kind": "exists",
+    "keys": ["error", "kind", "reason", "name", "revision"],
+    "reason": "A macro of that name exists — reload"
+  },
+  "taken": {
+    "kind": "taken",
+    "keys": ["error", "kind", "reason", "name"]
+  }
+}

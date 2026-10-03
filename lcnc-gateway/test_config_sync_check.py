@@ -54,6 +54,42 @@ class TestDrift(unittest.TestCase):
         self.assertIn("PROGRAM_PREFIX = ~/linuxcnc/nc_files", missing)
         self.assertEqual(local, ["PROGRAM_PREFIX = ~/elsewhere"])
 
+    def test_a_repeated_key_is_read_in_order(self):
+        # Codex R70 VP-I34, with linuxcnc.ini: the FIRST occurrence wins —
+        # these two read 10 and 20
+        repo = "[JOINT_0]\nMAX_VELOCITY = 10\nMAX_VELOCITY = 20\n"
+        deployed = "[JOINT_0]\nMAX_VELOCITY = 20\nMAX_VELOCITY = 10\n"
+        missing, local = self.drift(deployed, repo=repo)
+        self.assertTrue(missing and local)
+
+    def test_a_key_moved_between_two_blocks_of_one_section_is_drift(self):
+        # only the FIRST block of a repeated [SECTION] is read (measured: a
+        # key in the second [A] block reads None)
+        repo = "[A]\nX = 1\nW = 5\n[B]\nY = 2\n[A]\nZ = 3\n"
+        deployed = "[A]\nX = 1\n[B]\nY = 2\n[A]\nZ = 3\nW = 5\n"
+        missing, local = self.drift(deployed, repo=repo)
+        self.assertTrue(missing and local)
+        # a key that occurs ONCE in a section that occurs once still moves freely
+        repo = "[A]\nX = 1\nW = 5\nV = 7\n[B]\nY = 2\n"
+        self.assertEqual(self.drift("[A]\nV = 7\nX = 1\nW = 5\n[B]\nY = 2\n", repo=repo), ([], []))
+
+    def test_repeated_keys_move_when_linuxcnc_reads_the_same(self):
+        # a repeated key moves freely while its values keep their order
+        repo = "[DISPLAY]\nA = 1\nUSER = x\nUSER = y\n"
+        self.assertEqual(self.drift("[DISPLAY]\nUSER = x\nUSER = y\nA = 1\n", repo=repo), ([], []))
+        missing, local = self.drift("[DISPLAY]\nUSER = y\nUSER = x\nA = 1\n", repo=repo)
+        self.assertTrue(missing and local, "their order changed: compared in order")
+        # REMAP lines are a table keyed by their code — the installer put the
+        # suite's at the section's start (the installed XYZAC INI): no drift
+        repo = "[RS274NGC]\nREMAP = M428 ngc=428remap\nREMAP = M429 ngc=429remap\nREMAP = M600 ngc=m600\n"
+        deployed = "[RS274NGC]\nREMAP = M600 ngc=m600\nREMAP = M428 ngc=428remap\nREMAP = M429 ngc=429remap\n"
+        self.assertEqual(self.drift(deployed, repo=repo), ([], []))
+        # one code twice: the first line wins, the second is an error — in order
+        repo2 = repo + "REMAP = M600 ngc=other\n"
+        deployed2 = "[RS274NGC]\nREMAP = M600 ngc=other\n" + repo.split("\n", 1)[1]
+        missing, local = self.drift(deployed2, repo=repo2)
+        self.assertTrue(missing and local)
+
     def test_a_hal_file_is_compared_in_order(self):
         repo = "loadrt a\nloadrt b\naddf a servo-thread\n"
         deployed = "loadrt b\nloadrt a\naddf a servo-thread\n"

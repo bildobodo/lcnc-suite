@@ -4,7 +4,7 @@ import { ctl } from './ctl';
 import { Folder, serveNow, addPlain } from './macroFolder';
 import { clickMore } from './more';
 import { NARROW_PANE_PX } from '../src/sidePaneNarrow';
-import { measureLayout, assertLayout, layoutChanges, measureFrame, frameChanges, type LayoutSnapshot } from './layout-audit';
+import { measureLayout, assertLayout, layoutChanges, measureFrame, frameChanges, sidewaysOverflow, type LayoutSnapshot } from './layout-audit';
 import { PROFILES, VIEWPORTS, PANELS, openLayout, setLayoutState, settleLayout, type LayoutState,
   STRIP_STATES, enterStripState, leaveStripState, stripStateRefs, stripStateExempt, SETUP_AXIS_ROWS } from './layout-fixtures';
 
@@ -76,8 +76,13 @@ for (const profile of PROFILES) {
         const name = sub ? `${tab}/${sub}` : tab;
         const base = await measureLayout(side, name);
         found.push(...base.issues.map(i => `${name}: ${i.kind} — ${i.detail}`));
+        // nothing in a tab runs out sideways, in any state (Codex R70)
+        const sideways = await sidewaysOverflow(side);
+        found.push(...sideways.map(d => `${name}: sideways — ${d}`));
         for (const state of states) {
           await setLayoutState(page, profile, state);
+          found.push(...(await sidewaysOverflow(side)).filter(d => !sideways.includes(d))
+            .map(d => `${name}@${state}: sideways — ${d}`));
           const snapshot = await measureLayout(side, `${name}@${state}`);
           const issues = [...snapshot.issues.filter(i => !base.issues.some(b => b.detail === i.detail)),
             ...layoutChanges(base, snapshot)];

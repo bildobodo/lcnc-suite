@@ -952,6 +952,11 @@ function resetMachineColor(id: string) {
   padding-inline-end: var(--help-reach);
   margin-inline-end: calc(-1 * var(--help-reach));
 }
+/* The reach the negative margin gives back lies past the tab content's box:
+   clipped there, it took the scroller's right edge — its scrollbar — with
+   it (found by the dialog scan's sideways check, Codex R70). The dialog's
+   content box pads around it; each pane scrolls itself. */
+.subTabs :deep(.tab-content) { overflow: visible; }
 
 /* No padding of its own: the dialog's content box pads it (a second
    --gap-section took 48 px of the 248 px dialog at 150 % portrait). */

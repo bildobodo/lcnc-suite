@@ -323,10 +323,21 @@ schon einer offen ist (konkurrierende MDI- und AUTO-Starts).
     des Laufs, IDLE kommt erst am Programmende.
   - Solange sind Makro-Schreiber und gleichnamige Programm-Uploads abgelehnt. Programm-Uploads
     mit anderen Namen bleiben frei.
-- **Freigabe des Anspruchs:**
-  - NUR der Statuslauf gibt ihn frei, wenn der Controller nachweislich fertig ist:
-    `echo_serial_number` ≥ Seriennummer, Befehlsstatus nicht `RCS_EXEC`, Interpreter `IDLE`, in
-    einem frischen Poll.
+- **Freigabe des Anspruchs** (korrigiert nach Codex R70, VP-I30: „nicht `RCS_EXEC`“ bewies
+  nichts — Task meldet `RCS_ERROR` auch für einen späteren, abgelehnten Befehl, während die MDI-Zeile
+  noch in seiner Queue wartet):
+  - NUR der Statuslauf gibt ihn frei, mit einem positiven Nachweis aus einem Status, der NACH dem
+    Senden gelesen wurde, alle Werte bekannt (ein unbekannter Wert hält ihn):
+    - **fertig:** Befehlsstatus `RCS_DONE` bei `echo_serial_number` ≥ Seriennummer, Interpreter
+      `IDLE`. Task setzt `RCS_DONE` nur bei leerer MDI-Queue, leerer Interp-Liste und ohne
+      laufenden Befehl (`emctaskmain.cc` 3546–3565).
+    - **eigener Fehler:** `RCS_ERROR` bei `echo_serial_number` = Seriennummer (Task hat danach
+      nichts gelesen, der Fehler gehört in die Zeit dieses Befehls — so ordnet ihn auch
+      `wait_complete` zu), `queued_mdi_commands` = 0, `exec_state` DONE, Interpreter `IDLE`,
+      über zwei Polls mindestens 20 ms auseinander (Task reicht eine Queue-Zeile innerhalb eines
+      Zyklus weiter).
+  - Benannte Grenze: Die Echo-Nummer ist die des Tasks, nicht dieses Kanals. Ein zweiter
+    Befehlskanal (halui, eine zweite GUI) zählt eigene Nummern.
   - Ein Handler, der abbricht, ein Disconnect oder eine Cancellation geben ihn nie frei. Ein
     `finally` im Handler berührt ihn nicht.
   - Abort und E-Stop bleiben jederzeit erreichbar; der Anspruch hält keine Befehlssperre. Nach
@@ -683,6 +694,19 @@ schon einer offen ist (konkurrierende MDI- und AUTO-Starts).
   einem Schritt im Gateway um; das Makro behält seinen Platz in der Leiste. Der eingeschobene Editor
   vom 2. Oktober entfällt.
 - Kein Files: Die Liste ist der Ordner. Download lädt das gewählte Makro.
+
+### Nachtrag: Codex R70 (3. Oktober)
+
+- **VP-I29:** Veröffentlichen, Entfernen beim Umbenennen und Rücknahme sind EIN Commit, der unter
+  `_source_lock` bis zum Ende seines Threads läuft, auch bei wiederholter Cancellation (DELETE ebenso).
+- **VP-I30:** Freigabe nur mit positivem Nachweis (oben korrigiert).
+- **VP-I31:** Jede Ablehnung trägt ihre Art (`busy`, `conflict`, `exists`, `taken`, `outside`); ein
+  Dateikonflikt trägt die unter derselben Sperre gelesene Revision. Die Form steht in
+  `scripts/test_fixtures/macro_refusals.json`, Gateway-Test und Browser-Mock lesen sie.
+- **VP-I32:** Der Editor wird erst sauber, wenn die gelesene Revision die ist, die die Liste JETZT
+  nennt; sonst liest er neu oder schließt, wenn die Datei fehlt.
+- **VP-I33:** Eine Zulassung der aufgelösten Datei für Liste, Lesen, Schreiben und Start: eine
+  reguläre Datei im Makroordner; ein Link nach draußen oder ins Leere ist kein Makro.
 
 ## Interpreter-Verhalten
 
