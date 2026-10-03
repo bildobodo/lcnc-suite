@@ -9117,3 +9117,58 @@ Entscheidungen und Befunde, alle umgesetzt. Die Rot-Nachweise stehen in den Comm
    tragfähig?
 2. Hält die neu gefasste N80-Regel (Abort beendet die Maschinenaktionen, „More“ rechts) deine
    Bedenken aus D5?
+
+**Vierter Nachtrag (3. Oktober): der Tab „Macros“ wie die Werkzeugtabelle.** Bitte prüfe deshalb
+`ef3be59..503cd48`. Der Operator hat die Entwürfe zuerst als Renderings gesehen und dann entschieden.
+`b0a8ffd..3ccffae` sind seit `0b6e3fc` im Live-Baum (sein „du darfst es jederzeit einspielen“).
+
+- **`8d7fd58` · Schmale Scrollbalken überall.** Der Parameterdialog zeigte einen breiten schwarzen
+  Balken. Ursache: `.dialogContent` scrollt in einem niedrigen Fenster, aber sieben Dialoge trugen
+  `.scroll-thin` nicht, ebenso der Scroller von CodeMirror (Programm- und Makro-Editor).
+  - Korrektur an einer Stelle: `.dialogContent` und `.cm-scroller` stehen in der Regel der schmalen
+    Scrollbar.
+  - Wächter: `measureLayout` meldet jeden Scroller ohne sie (`thick-scrollbar`), nach seinem Stil, ob
+    er gerade scrollt oder nicht. Headless-Chromium blendet Scrollbalken aus, darum zeigte kein Bild
+    der Tests je einen. `dialogs.spec` prüft alle 25 Dialoge, `editor-guards.spec` den
+    Programm-Editor.
+  - Rot vor der Korrektur: sieben Dialoge (2, 6, 12, 13, 17, 22, 23) und `.cm-scroller`.
+- **`503cd48` · Der Tab wie die Werkzeugtabelle** (Operator: „Tipp auf Zeile und dann Run oben, kein
+  Knopf in der Zeile · eigene Felder wie im Bild“).
+  - Suchzeile mit Leistenfilter. Eine Tabelle: Makro (sortierbar), Beschreibung (die erste freie
+    Kommentarzeile, einzeilig), On bar, Stift, Papierkorb, Reihenfolge.
+  - Auswahl: Ein Tipp auf die Zeile wählt, Run oben führt aus. Für die Tastatur ist der Name ein
+    `role="radio"` mit einem Tab-Stopp; Enter, Leertaste und die Pfeile wählen. Jede
+    Navigationstaste wird abgefangen, auch mit Modifikator. Rot ohne `preventDefault`: Tastatur-Jog,
+    mit Gegenprobe auf der leeren Seite.
+  - Der Editor ist ein Dialog wie „Edit Tool“: Dateiname, Titel und Beschreibung als Felder über dem
+    Code. Die Felder sind die Kopfzeilen der Datei (`macroHeader.ts`). Es bildet den Parser des
+    Gateways nach; beide Tests lesen dieselbe Fallsammlung
+    (`scripts/test_fixtures/macro_header_cases.json`). Rot, wenn der Browser eine Klammerzeile mit
+    Großbuchstaben-Anfang als Beschreibung liest.
+  - **Umbenennen** ist ein Schritt im Gateway: `PUT /macro?name=<neu>&base=new&rename_from=&rename_base=`.
+    Unter `_source_lock` müssen der neue Name frei und die alte Datei noch in der gelesenen Revision
+    sein. Dann wird die neue Datei veröffentlicht und die alte entfernt
+    (`_atomic_stream_write(after_publish=…)`). Schlägt das Entfernen fehl, verschwindet die neue
+    wieder (500). Der Leistenplatz bleibt.
+    - Rot (pytest): ohne Prüfung der alten Revision; ohne Entfernen; ohne Rücknahme.
+    - Rot (Browser): ohne Mitnahme des Leistenplatzes.
+  - Kein „Files“ bei Macros: Die Liste ist der Ordner.
+  - Ein unberührter Editor schließt mit seinem Tab (`requestTab`). Mit Entwurf fragen Cancel, X und
+    der Tool-Table-Knopf der Leiste. Rot ohne das Schließen: Der Dialog stand über dem Tab „Tools“.
+- **`503cd48` · Download** bei Program (das geladene Programm, `GET /gcode`), bei Tools (die
+  Werkzeugtabellen-Datei, wie LinuxCNC sie liest: neu `GET /tool-table` mit Token, Name in
+  `X-File-Name`) und bei Macros (das gewählte Makro). Die Bytes bleiben unverändert. Katalog
+  `fileDownload` mit Gate `always`: Lesen bewegt nichts. Rot (pytest): ohne `X-File-Name`.
+- **`503cd48` · „More“ springt nicht mehr.** Zwei Ursachen:
+  - Die eingeschalteten Optionen verschwanden beim Öffnen aus dem Text.
+  - Ein offenes More ist `selected`, also semibold, und damit breiter, in allen drei Tabs.
+
+  Jetzt reserviert der Knopf die Breite seines längsten Texts in semibold. Rot ohne die Reserve.
+- **Gemessen auf Frage des Operators:** Start, Step, Pause und Abort sind gleich hoch (32 / 44 px,
+  bei 150 % 66 px).
+- **Gate auf `503cd48`:** bestanden (Backend 1208, Unit 1876, Browser 421; die Browser-Phase braucht jetzt `--timeout 3600`, gate-D1 war bei 2400 s ohne Fehler abgeschnitten). Im Live-Baum seit `8065467`, das Sim ist neu gestartet (neue Routen), `/tool-table` und `/macros` live geprüft.
+
+**Frage an dich**
+
+3. Ist das Umbenennen als ein `PUT` mit `after_publish` unter `_source_lock` für dich dicht, auch
+   gegen einen gleichzeitigen Start und einen zweiten Schreiber auf dem alten Namen?
