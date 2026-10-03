@@ -9172,3 +9172,13 @@ Entscheidungen und Befunde, alle umgesetzt. Die Rot-Nachweise stehen in den Comm
 
 3. Ist das Umbenennen als ein `PUT` mit `after_publish` unter `_source_lock` für dich dicht, auch
    gegen einen gleichzeitigen Start und einen zweiten Schreiber auf dem alten Namen?
+
+**Fünfter Nachtrag (3. Oktober, nachmittags).** Der Prüfbereich endet jetzt bei `e74ac8a`:
+`ef3be59..e74ac8a` auf `feat/macros`.
+
+- **`e74ac8a` · Knopfzeile der großen Dialoge.** Im Makro-Editor saßen Cancel und Save auf der
+  Unterkante des Dialogs (Operator). Die mittlere Stufe gibt `.dialogActions` den Innenabstand des
+  Rahmens, der großen fehlte die Regel. Der Makro-Editor ist der erste große Dialog mit Knopfzeile.
+  - Wächter: `dialogs.spec` misst bei allen 25 Dialogen den Abstand der Knöpfe zum Rand, nach unten,
+    links und rechts mindestens 8 px. Rot vor der Korrektur: Dialog 23 mit 1 px.
+  - Frontend-Gate bestanden (Unit 1876, Browser 421). Im Live-Baum seit `3ccafe6`.
