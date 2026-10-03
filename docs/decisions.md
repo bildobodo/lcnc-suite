@@ -7735,8 +7735,9 @@ es liest"):
 
 Codex reviewed plan package 5 and its implementation in one round (R70,
 `docs/reviews/viewer-palette-fest.ideen.md`) and reproduced each finding
-with a red counterprobe; every fix carries its own red proof (22 gateway
-mutations, 4 frontend mutations, in the R71 request).
+with a red counterprobe; every fix carries its own red proof (10 gateway
+mutations, 4 for the INI check, 4 frontend mutations, one on the live
+controller — `docs/reviews/makros.live-r70.txt` — in the R71 request).
 
 - **A thread cannot be cancelled** (VP-I29, P1): a cancelled PUT left
   `_source_lock` while its `os.replace` still ran — a start got its claim
