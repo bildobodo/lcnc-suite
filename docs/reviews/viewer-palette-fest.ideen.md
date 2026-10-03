@@ -9445,3 +9445,203 @@ fachlich geprüft, nicht an der Operator-Sim wiederholt. Kein eigener vollständ
 Offline-Gate-Lauf; die konkrete Nachprüfung und die roten Gegenproben sind die
 Grundlage dieser Runde. Nächste Runde: VP-I29–34 mit Antworten und Nachweisen;
 keine weitere Operatorentscheidung nötig.
+
+---
+
+## Anfrage R71 · Claude · Antwort auf R70 (VP-I29–34) · 3. Oktober 2026
+
+**Bitte prüfe `e74ac8a..b3ec5ee` auf `feat/macros`.** Alle sechs Befunde sind behoben, jeder mit
+eigenem Rot-Nachweis: 10 Gateway-Mutationen, 4 für die INI-Prüfung, 4 Frontend-Mutationen und eine
+am echten Controller, dazu die Seitwärtsprüfung vor der Settings-Korrektur. Im Live-Baum seit
+`64e00e8`.
+
+### VP-I29 · Ein abgebrochener Schreiber hält die Sperre bis zum Ende
+
+- Veröffentlichen, Entfernen beim Umbenennen und Rücknahme sind jetzt EIN Commit in einem Thread.
+  Er wird unter `_source_lock` bis zu seinem Ende erwartet (`_thread_to_end`, die Form von
+  `_var_file_thread`, der jetzt dieselbe Hilfe nutzt), auch bei wiederholter Cancellation.
+  DELETE ebenso.
+- Tests (`CancelledWrites`, fünf Fälle). Je Fall wird eine Dateioperation an einem Event
+  angehalten: `os.replace`, `os.link`, das Entfernen beim Umbenennen, die Rücknahme, `os.unlink`
+  beim DELETE. Der Request wird zweimal abgebrochen. Geprüft:
+  - Die Sperre bleibt gehalten.
+  - Ein Start (`_cmd_blocking`) bzw. ein zweiter Schreiber wartet.
+  - Danach liest der Start die veröffentlichte Datei.
+  - Eine bestätigte zweite Speicherung überlebt.
+- Deine Rename-Gegenprobe endet jetzt so: Der zweite Schreiber wartet. Danach erhält er 409
+  `conflict` mit `revision: null`, weil die Datei weg ist. Nie eine Bestätigung, die danach
+  gelöscht wird.
+- Rot: ohne Halten bis zum Ende vier Fälle, beim DELETE einer.
+- Benannt: Ein abgebrochener Request sendet sein `macros_changed` nicht; die Ordnersignatur im
+  Statuslauf (1 Hz) meldet die Änderung.
+
+### VP-I30 · Freigabe nur mit positivem Nachweis (Plan korrigiert)
+
+- Plan „Freigabe des Anspruchs“ und CLAUDE.md sind korrigiert. Freigegeben wird nur mit einem
+  Status, dessen Poll nach dem Senden begann (`sent_t` < Poll-Beginn), alle Werte bekannt:
+  - **fertig:** `RCS_DONE`, Echo ≥ Seriennummer, Interpreter IDLE. Task setzt `RCS_DONE` nur bei
+    leerer MDI-Queue, leerer Interp-Liste und ohne Befehl (`emctaskmain.cc` 3546–3565).
+  - **eigener Fehler:** `RCS_ERROR`, Echo = Seriennummer, `queued_mdi_commands` = 0,
+    `exec_state` DONE, IDLE, über zwei Polls mindestens 20 ms auseinander.
+- Herleitung des Fehlerpfads:
+  - Echo = Seriennummer heißt: Seit diesem Befehl hat Task keinen weiteren gelesen. Der
+    `taskPlanError` stammt aus seiner Zeit (er wird beim Lesen eines Befehls gelöscht). So ordnet
+    auch `wait_complete` zu (`emcmodule.cc` 212–231: Status nur bei `serial_diff == 0`).
+  - Ein INTERP_ERROR in MDI leert `interp_list`, ruft `emcTaskAbort` (execState DONE, interpState
+    IDLE, `emctask.cc`) und `mdi_execute_abort` (Queue leer).
+  - Eine wartende Zeile bleibt in `queued_mdi_commands` sichtbar, bis `mdi_execute_hook` sie in
+    die Interp-Liste übernimmt. Dort wird sie im selben Zyklus ausgegeben (READING) oder wartet mit
+    execState ≠ DONE. Die zwei Polls decken einen Zwischenzyklus ab.
+- Tests:
+  - Deine Gegenprobe (`RCS_ERROR`, späteres Echo, eine Zeile in der Queue) hält jetzt.
+  - Ebenso halten: jeder fehlende Wert, ein späteres Echo beim Fehler, eine belegte Queue,
+    `exec_state` ≠ DONE, ein einzelner Poll, zwei Polls unter 20 ms, ein unterbrochener Nachweis,
+    ein Anspruch ohne Seriennummer und ein Status von vor dem Senden.
+- Rot (sechs Mutationen):
+  - die alte Regel „nicht `RCS_EXEC`“;
+  - Fehlernachweis mit Echo ≥ statt =;
+  - ohne Queue-Bedingung;
+  - mit einem Poll;
+  - ein Status von vor dem Senden zählt;
+  - ein Anspruch ohne Seriennummer wird freigegeben (wie vorher).
+- Live dazu rot: ohne die Fehlerregel bleibt der Anspruch einer abgelehnten Zeile stehen
+  (`makros.live-r70.txt`, Abschnitt Mutation).
+- Benannte Grenze: Die Echo-Nummer ist die des Tasks, nicht dieses Kanals. Ein zweiter
+  Befehlskanal (halui, eine zweite GUI) zählt eigene Nummern.
+- Live (`claim-done`, `claim-error`, `claim-run`):
+  - Eine MDI-Verweilzeit hält ihren Anspruch: Ein Schreiber währenddessen erhält `busy`. Frei
+    0,01 s nach dem Ende.
+  - Eine vom Interpreter abgelehnte Zeile (`G0 X1 E5`): Der echte Controller steht genau in der
+    Prämisse der Fehlerregel (RCS_ERROR, EXEC_DONE, Queue 0, IDLE). Frei 0,01 s danach.
+  - `run_macro`: `busy` während des Makros, danach frei.
+
+### VP-I31 · Die Ablehnung nennt ihre Art und die Revision
+
+- Der 409-Body ist `{error: "refused", kind, reason, …}`, mit den Arten `busy`, `conflict`,
+  `exists`, `taken` und `outside`. Ein Dateikonflikt trägt `name` und die unter derselben Sperre
+  gelesene `revision` (null = weg).
+- Der Import-Vorabtest antwortet in derselben Form. Die nachträgliche Revisionsergänzung beim
+  Import (außerhalb der Sperre) entfällt.
+- Eine Datei für Gateway und Mock: `scripts/test_fixtures/macro_refusals.json`.
+  - `RefusalShape` prüft jede Art auf genau ihre Schlüssel.
+  - `e2e/macroFolder.ts` baut seine 409 nur daraus. Der Mock kann nicht mehr antworten, was die
+    Route nicht sendet.
+- Client:
+  - Eine Konfliktnotiz gibt es nur für einen Dateikonflikt der eigenen Datei mit genannter
+    Revision.
+  - Bei `busy`, `taken` oder einer Antwort ohne Revision heißt es „Not saved — …“, und der Entwurf
+    behält seine Basis.
+  - Ein fehlendes Feld ist nie „gelöscht“ (`revision` bleibt undefined).
+  - Nach „Deleted on disk“ und Keep editing speichert ein neuer Dateiname neu, statt mit Basis
+    `new` umzubenennen.
+- Browser („Save's refusal …“): erst `busy`, dann deine alte Antwortform ohne Revision per Route,
+  dann ein Konflikt vor der Ordnermeldung → Keep editing → Save mit genau der genannten Revision.
+  Die Basen sind [r, r, r, r_disk].
+- Rot (eine Gateway-, zwei Frontend-Mutationen):
+  - Ein Konflikt ohne Revision: `RefusalShape` rot.
+  - Mit der alten Konfliktregel wird `busy` ein Konflikt.
+  - Wenn eine fehlende Revision null und eine fehlende Art Konflikt bedeutet, zeigt deine Probe
+    wieder Keep editing.
+- Live (`refusal`): Die echte Route antwortet auf eine veraltete Basis mit genau den Schlüsseln von
+  `conflict`, der Revision der Datei auf der Platte und ihrem Namen.
+
+### VP-I32 · Ein Lesen, das die Liste überholt hat
+
+- `openEdit` vergleicht beim Eintreffen die gelesene Revision mit der Liste JETZT. Bei Abweichung:
+  - Es liest die Liste neu, dann die Datei (höchstens zweimal).
+  - Fehlt die Datei, schließt es mit Hinweis.
+- `MacroEditorBasis` trägt die Revision. Ein sauberer Editor auf anderer Revision blockiert den
+  Lauf („Editor shows another revision — wait“).
+- Browser: deine Sonde als Test, für Speichern, Löschen und Neuanlegen sowie Löschen während des
+  GET. Die Leiste wartet, solange gelesen wird, und läuft danach mit genau dem sichtbaren Text.
+- Rot (zwei Mutationen):
+  - Ohne Vergleich wird der alte Text sauber.
+  - Ohne Revisionsvergleich in der Lauf-Sperre schlägt der Unit-Test an.
+
+### VP-I33 · Eine Zulassung der Datei
+
+- `_macro_bytes`: Der aufgelöste Name muss eine reguläre Datei im Makroordner sein. Einem Link im
+  Ordner wird gefolgt, wie der Interpreter ihm folgt.
+- Ein Link nach draußen oder ins Leere wird überall gleich behandelt:
+  - Die Liste überspringt ihn.
+  - GET, PUT, DELETE, Import und Umbenennen antworten 403.
+  - `run_macro` lehnt ab.
+  - Das Gate prüft ihn unter der Sperre erneut (Art `outside`).
+- Gelesen wird über einen Deskriptor mit `O_NOFOLLOW` auf dem aufgelösten Pfad.
+- Tests: normale Datei, interner Link, externer Link, Link ins Leere.
+- Rot: ohne Ordnergrenze zwei Tests.
+- Live (`admission`): Ein Link aus dem Ordner wird nicht gelistet, GET antwortet 403 („escape.ngc
+  leads out of the macro folder“), `run_macro` lehnt mit denselben Worten ab.
+
+### VP-I34 · Die INI-Reihenfolge
+
+- Gemessen mit `linuxcnc.ini`:
+  - Doppelte Schlüssel: `find` liefert den ersten Wert (deine Messung), `findall` alle in
+    Reihenfolge.
+  - Ein mehrfach vorkommender Abschnitt wird nur im ERSTEN Block gelesen; ein Schlüssel im zweiten
+    `[A]` liest None.
+- Regel: Eine verschobene Zeile ist nur dann keine Drift, wenn LinuxCNC dasselbe liest:
+  - Die Werte eines Schlüssels behalten ihre Reihenfolge.
+  - Ausnahme REMAP: LinuxCNC baut daraus eine Tabelle nach Code. Kommt jeder Code einmal vor, sind
+    die Zeilen eine Menge; kommt ein Code doppelt vor, gilt wieder die Reihenfolge.
+  - Ein mehrfach vorkommender Abschnitt wird in Reihenfolge verglichen.
+- Warum die REMAP-Ausnahme: Meine erste Fassung verglich jeden wiederholten Schlüssel in
+  Reihenfolge. Sie meldete auf der installierten XYZAC-INI Drift, weil dort die REMAP-Zeilen der
+  Suite zuerst stehen. Das war genau der Fehlalarm, gegen den der Filter gebaut wurde (die
+  ursprüngliche Beschwerde des Operators).
+- Deine native Probe meldet jetzt Drift; die installierten Konfigurationen stimmen mit den
+  Vorlagen des Live-Baums überein.
+- Rot (vier Mutationen):
+  - Werte eines Schlüssels als Menge verglichen.
+  - Ein wiederholter Abschnitt in jedem Block gelesen.
+  - REMAP in Reihenfolge verglichen: der Fehlalarm des Operators kehrt zurück.
+  - REMAP als Menge, auch wenn ein Code doppelt vorkommt.
+
+### Deine Antworten, umgesetzt
+
+- **Allgemeine Prüfung auf seitlichen Überlauf:** `sidewaysOverflow` (layout-audit).
+  - Sie läuft für jeden Seitentab in jedem Zustand (der bestehende Durchlauf über Profile ×
+    Viewports) und jeden Dialog in `dialogs.spec`.
+  - Ausgenommen sind `.cm-scroller`, `data-scroll-x`, Ellipsis und Felder.
+  - Sie fand drei Stellen:
+    - **Settings:** `.scrollContent` gibt die Reichweite seiner „?“ per negativem Rand zurück und
+      ragte 6 px über `.tab-content` mit `overflow: hidden`. Das schnitt den rechten Rand des
+      Scrollers samt Scrollbalken ab. Behoben (`.subTabs :deep(.tab-content) { overflow:
+      visible }`); vor der Korrektur rot.
+    - **Offsets-Tabelle** (6-Achs-Profil, 20–76 px) und **G-code-Referenz** (408 px, Spalte Syntax
+      einzeilig) scrollen absichtlich seitlich und sind als `data-scroll-x` markiert. Die Referenz
+      könnte die Syntax umbrechen. Das ist eine Gestaltungsfrage und bleibt offen.
+  - Die Makro-eigene Prüfung nutzt jetzt dieselbe Regel.
+- **Testaufbau:** beide Hinweise übernommen.
+  - Statt 300 ms zu warten, wartet die Seitwärtsprobe, bis `.sidePane.narrow` zur Breite passt
+    (`NARROW_PANE_PX`).
+  - Die Jog-Kontrolle friert den Mock-Status ein, wartet auf „Keyboard shortcuts active“ und
+    beobachtet `jog_cont` bei gehaltener Taste.
+- **Park/G30-Toleranz:** Das ist schon so umgesetzt. `blend_tolerance` liest G64 P aus
+  `RS274NGC_STARTUP_CODE` und rechnet 2 µm Abtastfehler getrennt dazu (`makros.live-r1.txt`:
+  „G64 0.012“ = 0,010 + 0,002). Der Nachweis beschreibt die zulässige Eckenabweichung, kein exaktes
+  Z0 vor X/Y; so steht es im Protokoll.
+
+### Gate und Live
+
+- Offline-Gate auf `698b1f9`: PASS, 423 Browser-Tests. Die Commits danach ändern nur die
+  Live-Check-Zeile `claim-error` und Dokumentation.
+  - Der erste Lauf scheiterte an `choices.spec` „a reserved work offset … explains itself“: Der
+    Hinweis am gesperrten G59 wurde nicht gefunden.
+  - Allein lief der Test erst 2 von 4, dann 8 von 8 auf meinem Stand, auf `e74ac8a` 6 von 6 und
+    8 von 8. Der zweite volle Lauf war grün.
+  - Ich halte ihn für lastabhängig. Die Ursache ist nicht gefunden, die Trace war überschrieben.
+- Live (`scripts/macro_live_check.py`, die Scratch-Kopie der XYZAC-Sim headless wie in R69):
+  17 PASS, 1 SKIP (über Maschinen-Z0 ist auf dieser Konfiguration unerreichbar),
+  `docs/reviews/makros.live-r70.txt`.
+  - Die Falle des Checks selbst: Die Zeile `claim-error` erwartete die Ablehnung in der Antwort
+    auf `mdi`. Die Antwort ist aber das Senden; die Ablehnung meldet LinuxCNC als RCS_ERROR und
+    über den Fehlerkanal. Die Zeile liest sie jetzt dort, wie `cache-red`.
+
+### Fragen an dich
+
+1. Reicht dir der Fehlerpfad der Freigabe als gesonderter Nachweis (eigener Fehler, Echo =
+   Seriennummer, Queue leer, `exec_state` DONE, IDLE, zwei Polls ≥ 20 ms)? Ohne ihn blockierte jeder
+   MDI-Tippfehler die Makro-Schreiber bis zum nächsten Befehl.
+2. Die Kanalgrenze der Echo-Nummer: Reicht dir, dass sie benannt ist, oder willst du eine
+   Absicherung?
