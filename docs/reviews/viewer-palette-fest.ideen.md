@@ -10012,3 +10012,73 @@ Offline-Gate in den Live-Baum. Fünf gehen auf Wünsche und Fehlermeldungen des 
   4. Oktober 05:30 und trägt damit die R71-Korrektur.
 - **Gefragt ist:** ein Implementierungsreview im geprüften Umfang. Die Darstellung hat der
   Operator jeweils aus Renderings entschieden; sein Live-Blick steht noch aus.
+
+
+---
+
+## Review R73 · Codex · Oberfläche seit R72 · 4. Oktober 2026
+
+**Ergebnis: Agreement für `0fab6c5..66b22bc` auf `feat/backlog-integration`.**
+Im angefragten Umfang kein neuer Befund und keine zusätzliche Operatorentscheidung.
+Die sieben Änderungen sind technisch angenommen. Die vereinbarte Live-Sichtprüfung
+und die bereits ausgeschlossene Gesamtaufteilung im Querformat ab 150 % bleiben
+außerhalb dieses Agreements.
+
+### Bewertung der sieben Änderungen
+
+| Bereich | Ergebnis |
+|---|---|
+| G-code-Referenz | Angenommen: normaler Einstieg mit erhaltenem Such-/Gruppenzustand, Sprung auf markierte Formen, unbekanntes Wort als Suche, „Active now“ einschließlich benannter fehlender Einträge. Natürliche Sortierung, breite Ansicht und schmale Karten bestehen. |
+| Firefox-Gruppenmenü | Angenommen: stabile abgeleitete Codewörter und unveränderte Optionen verhindern die nachgewiesenen Schreibvorgänge. Eigene Linux-Firefox-Prüfung bleibt bei laufenden Statusänderungen grün. |
+| Übrige Auswahlmenüs / Gamepad | Angenommen: bestehender Mutationstest grün. Zusätzlich bleibt die Gamepad-Zuordnung unter Pad-/Statusupdates erhalten und lässt sich danach erneut ändern, in Chromium und Firefox; das Memo friert die Bedienung nicht ein. |
+| Werkzeugtabelle und Werkzeugleiste | Angenommen: eigene Antwortzuordnung, jüngste Lesung, endliche Wartezeit, Retry und erneutes Lesen nach Tabellenänderung/Verbindungsaufbau. Die umgestellten Mock-Fixtures prüfen weiterhin die jeweiligen Ergebnisse. |
+| Hinweis nach dem automatischen Scrollen | Angenommen: früher Scroll positioniert den Hinweis erneut, späterer Scroll schließt. Der gezielte Test und der bisher schwankende G59-Fall bestehen. Das 300-ms-Fenster ist eine zeitliche Toleranz; es identifiziert nicht die Ursache eines Scrolls. Pointerdown/Keydown schließen weiterhin sofort. |
+| Meldungsliste | Angenommen: Filter/Suche, Sortierung mit unbekannter Herkunft zuletzt, Kopieren der gezeigten Zeilen, direktes Einzellöschen und bestätigtes Clear All. Herkunft bleibt beim Reload erhalten. Zusätzliche Renderings mit Safety-Trip und langem Text sind im Desktop-/Portrait-Prüfumfang lesbar. |
+| Schmale Dialoge | Angenommen: Mindestbreiten berücksichtigen den verfügbaren Raum. Alle 25 zusätzlichen Portrait-Scans bei 150 % bestehen, auch Program Stats und Run from line; die bestehenden Fokus-/Dialogprüfungen bleiben grün. |
+
+### Eigene Gegenproben zum Werkzeuglesen
+
+Zwei ältere Antworten — eine Ablehnung und ein erfolgreicher Stand mit T5 — wurden
+**nach** den neueren erfolgreichen Antworten mit T6 zugestellt. Tabelle und Leiste
+zeigen weiterhin T6 und keinen alten Fehler. Damit ist die Sequenzwache zusätzlich
+zum bestehenden Test gegen Antworten ohne `req_id` geprüft.
+
+Die Wartefrist wurde mit echter Zeit geprüft: Der Langsam-Hinweis war nach
+**8,47 s** beobachtbar, die Lesung endete nach **60,09 s** mit „No reply …“ und
+„Tool table not read.“. Antworten auf die abgelaufenen Anfragen übernahmen keine
+Tabelle mehr. Retry brachte T7 zurück und beseitigte auch den Fehler der Leiste.
+
+[Vertauschte Antworten](viewer-palette-fest.r73.out-of-order.json),
+[Frist und Retry](viewer-palette-fest.r73.timeout.json),
+[eigene Browserproben](viewer-palette-fest.r73.probe.spec.ts).
+
+### Ergebnisse und ausdrücklich verbleibende Grenze
+
+Eigener Build und **119 Unit-Tests** bestanden. Die bestehende Chromium-Auswahl
+bestand mit **85/85 in einem Lauf**; hinzu kommen vier eigene Fälle und **drei
+Linux-Firefox-Prüfungen**. Bei der eigenen Meldungsprobe war zunächst der Mock falsch
+aufgebaut: normales E-Stop statt des erwarteten Safety-Trips. Nach Korrektur allein
+der Testdaten bestand dieser Fall. Erstlauf und Wiederholung sind getrennt belegt.
+
+Die zusätzliche Messung bei **1280×800 / 150 % / Safety-Trip** ergab nur 75 px
+Dialoghöhe und **0 px Tabellenhöhe**. Das ist ausdrücklich **nicht behoben** und
+wird nicht als grünes Ergebnis ausgegeben. Die gesamte Inhaltsfläche wird dort zu
+klein. [WP-DR](ui-design-welle.plan.md) grenzt Querformat ab 150 % bereits aus und
+führt die Gesamtaufteilung als Folgearbeit. Es entsteht daraus kein neuer
+R73-Regressionsbefund; die Aussage „Dialoge passen“ gilt weiter innerhalb der
+vereinbarten Matrix. Bei 1280×800 / 100 % blieben im selben Fall 145 px Tabellenhöhe.
+
+[Zusatzmessung zur bekannten Grenze](viewer-palette-fest.r73.messages-short.json),
+[rotes Ergebnis außerhalb der Matrix](viewer-palette-fest.r73.messages-short.txt),
+[Portrait mit Systemhinweis](viewer-palette-fest.r73.messages-narrow.png),
+[Desktop mit Systemhinweis](viewer-palette-fest.r73.messages-desktop.png).
+
+[Gesamtes Prüfprotokoll mit Befehlen, Grenzen und allen Ergebnissen](viewer-palette-fest.r73.checks.md),
+[Chromium-Lauf](viewer-palette-fest.r73.browser.txt),
+[Firefox-Lauf](viewer-palette-fest.r73.firefox.txt),
+[Stand und Herkunft](viewer-palette-fest.r73.context.json),
+[Beleghashes](viewer-palette-fest.r73.sha256.json).
+
+Kein eigener vollständiger Offline-Gate-Lauf, keine erneute Backend-Prüfung
+(unverändert), keine macOS-Sichtprüfung. Produktcode und Operator-Suite wurden
+nicht verändert; Build und Browserprüfungen liefen ausschließlich aus der Archivkopie.

@@ -1,0 +1,12 @@
+{
+  "base": "0fab6c5179ea178ef3a7386eae98f0de2e703cbc",
+  "target": "66b22bca3860a7898e6c6fd8ec00873fbf71436b",
+  "liveHeadObserved": "85e7a03894defcf7a98c462ca866568c2ca182c8",
+  "archive": "/tmp/codex-r73-wo4_8y75/archive",
+  "mock": "127.0.0.1:4188",
+  "workers": 1,
+  "priority": "nice -n 19",
+  "originalReviewSha256": "9635f962cc4c22edf81a9e926d6a68087ddbb516cedae1e3154cf53447645fa1",
+  "node": "v22.23.2",
+  "nodeDependencies": "existing installed dependencies; links from archive, local build/test cache paths"
+}

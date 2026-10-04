@@ -1,0 +1,37 @@
+[2m[WebServer] [22m(node:4102330) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:4102358) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4102358) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r73.probe.spec.ts:121:1 › R73: a system banner leaves messages reachable on a short landscape display (3.0s)
+
+
+  1) e2e/r73.probe.spec.ts:121:1 › R73: a system banner leaves messages reachable on a short landscape display 
+
+    Error: {"zoom":1.5,"tableHeight":0,"headHeight":78,"bodyRoom":-78,"dialogHeight":75,"contentClientHeight":24,"contentScrollHeight":109}
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThan[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: > [32m20[39m
+    Received:   [31m-78[39m
+
+      142 |   }
+      143 |   evidence('messages-short',results);
+    > 144 |   for(const r of results) expect(r.bodyRoom,JSON.stringify(r)).toBeGreaterThan(20);
+          |                                                                ^
+      145 | });
+      146 |
+        at /tmp/codex-r73-wo4_8y75/archive/lcnc-webui/e2e/r73.probe.spec.ts:144:64
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r73-probe-output/r73.probe-R73-a-system-ban-a620c-n-a-short-landscape-display/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r73-probe-output/r73.probe-R73-a-system-ban-a620c-n-a-short-landscape-display/error-context.md
+
+  1 failed
+    e2e/r73.probe.spec.ts:121:1 › R73: a system banner leaves messages reachable on a short landscape display 

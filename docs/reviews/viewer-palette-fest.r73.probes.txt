@@ -1,0 +1,51 @@
+[2m[WebServer] [22m(node:4096380) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:4096392) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4096392) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r73.probe.spec.ts:14:1 › R73: newer table wins over old success and refusal in both consumers (4.0s)
+  ✓  2 e2e/r73.probe.spec.ts:42:1 › R73: real 60-second deadline, expired replies ignored, retry recovers (1.1m)
+  ✘  3 e2e/r73.probe.spec.ts:74:1 › R73: messages with an active E-Stop banner and long text remain readable narrow (12.4s)
+(node:4098182) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4098182) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  4 e2e/r73.probe.spec.ts:98:1 › R73: memoized Gamepad choice remains editable while the pad and status update (2.8s)
+
+
+  1) e2e/r73.probe.spec.ts:74:1 › R73: messages with an active E-Stop banner and long text remain readable narrow 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('dialog', { name: /^Messages/ }).locator('.msgContent > .statusNote')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
+    [2m  - waiting for getByRole('dialog', { name: /^Messages/ }).locator('.msgContent > .statusNote')[22m
+
+
+      82 |   await page.getByTitle(/^Messages \(\d+\)$/).click();
+      83 |   const dialog=page.getByRole('dialog',{name:/^Messages/});
+    > 84 |   await expect(dialog.locator('.msgContent > .statusNote')).toBeVisible();
+         |                                                             ^
+      85 |   await settleLayout(page);
+      86 |   const over=await sidewaysOverflow(dialog);
+      87 |   expect(over).toEqual([]);
+        at /tmp/codex-r73-wo4_8y75/archive/lcnc-webui/e2e/r73.probe.spec.ts:84:61
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r73-probe-output/r73.probe-R73-messages-wit-f7acf-text-remain-readable-narrow/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r73-probe-output/r73.probe-R73-messages-wit-f7acf-text-remain-readable-narrow/error-context.md
+
+  1 failed
+    e2e/r73.probe.spec.ts:74:1 › R73: messages with an active E-Stop banner and long text remain readable narrow 
+  3 passed (1.4m)
