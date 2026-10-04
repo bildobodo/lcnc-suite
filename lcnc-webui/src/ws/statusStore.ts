@@ -24,6 +24,10 @@ export interface LcncMessage {
   /** Never counted as unread ("status" and "log" modes) — also not when the
    *  history is restored after a reload (implementation review UI-DI03). */
   uncounted?: boolean;
+  /** Where it came from: LinuxCNC's error channel (task, interpreter, a
+   *  program's (MSG, …)) or the WebUI itself. Absent on a message stored
+   *  before origins were kept (operator 2026-10-04: the center's filter). */
+  source?: "linuxcnc" | "webui";
 }
 
 /**
@@ -228,7 +232,7 @@ let _nextMsgId = _stored.length > 0 ? Math.max(..._stored.map(m => m.id)) + 1 : 
 
 /** Append to the message center in one of the three modes (MessageMode). */
 export function pushMessage(kind: number, text: string, mode: MessageMode = "notify"): void {
-  const entry: LcncMessage = { id: _nextMsgId++, kind, text, ts: Date.now() };
+  const entry: LcncMessage = { id: _nextMsgId++, kind, text, ts: Date.now(), source: "webui" };
   if (mode === "log") entry.quiet = true;
   if (mode !== "notify") entry.uncounted = true;
   messages.value = [...messages.value, entry];
@@ -409,7 +413,7 @@ export function handleStatusMessage(msg: any): void {
   const errs: [number, string][] = msg.errors;
   if (Array.isArray(errs) && errs.length > 0) {
     for (const [kind, text] of errs) {
-      messages.value = [...messages.value, { id: _nextMsgId++, kind, text, ts: Date.now() }];
+      messages.value = [...messages.value, { id: _nextMsgId++, kind, text, ts: Date.now(), source: "linuxcnc" }];
       unreadCount.value++;
     }
     persistMessages(messages.value);

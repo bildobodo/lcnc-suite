@@ -7894,3 +7894,22 @@ as before. Guard: `choices.spec` does the click and the scroll in one task
 (the scroll event always after the hint) — red with every scroll closing;
 the old test passed 30 of 30 under CPU load.
 
+## 2026-10-04 — Operator: the message center like the reference and the Macros tab
+
+The operator asked for the message list rebuilt like the G-code reference and
+the macros: categorised, a sortable head, a filter and a search row, the
+trash instead of the X. Rendered first (acceptance page V12); the operator
+took every recommendation: ONE menu for the type and the origin, LinuxCNC's
+three type names (Error / Info / Display), a Source column, the trash
+deletes at once (Clear All keeps its question), three rows at a time on the
+touchscreen landscape are enough. The renders found the old list broken at
+150 % portrait — its text one letter per line — and no guard had looked:
+`messages.spec` now requires each card's text across the card, no cell over
+another and nothing sideways (red with the table layout there and with the
+first render's actions beside the meta line); the header's Copy / Clear All
+become symbols there (with their words the header ran 8 px out of a 255 px
+dialog). Origins are new: a message stored before them shows "—". The count
+moved into the title (a footer line cost the low touchscreen dialog a row).
+The filter's options are constant, so its `v-memo` carries nothing today —
+the guard (`select-writes`, messages arriving while the center is open) is
+proved red with options whose label changes with every message.

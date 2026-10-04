@@ -692,7 +692,7 @@ DialogFrame.
 | 1 | Program Stats · App.vue:1986 | i | X / – / schließt | – | schließt | X | Stats-Button | – |
 | 2 | Settings · App.vue:2081 | h | X / – / schließt über Wache | `guardSettingsClose` (Makro-Entwurf, Assistent) | Wache | aktiver Unterreiter | Settings-Button im Kopf | 3, 19, 20, 21, 22 |
 | 3 | Settings „Discard changes?“ · App.vue:2109 | c | – / Keep editing / schließt | – | schließt (= Keep editing) | Keep editing | Fokus in Settings bzw. Ziel der Navigation | – |
-| 4 | Messages · App.vue:2124 | i | X (markiert gelesen) / – / schließt (markiert nicht) | – | schließt, markiert gelesen | X | Auslöser (Kopf oder Banner) | neu: Clear-All-Rückfrage |
+| 4 | Messages · App.vue:2124 (seit 2026-10-04 `MessagesDialog.vue`) | i | X (markiert gelesen) / – / schließt (markiert nicht) | – | schließt, markiert gelesen | X; seit 2026-10-04 das Suchfeld (wie #9) | Auslöser (Kopf oder Banner) | neu: Clear-All-Rückfrage |
 | 5 | Werkzeugwechsel · App.vue:2148 | fl | – / Confirm, Abort / nein | Maschinenablauf | nein | Container | Fokus vor dem Öffnen (Panel) | – |
 | 6 | Makro-Parameter · App.vue:2170 | f | – / Cancel, Execute / schließt | – | nein | erstes Feld | Makrobutton | – |
 | 7 | Shutdown · App.vue:2194 | fl | – / Cancel, Shut Down / nein | – | nein | Cancel | Shutdown-Button | – |

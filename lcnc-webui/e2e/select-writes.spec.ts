@@ -124,3 +124,22 @@ test("the tool library import's mode select", async ({ page }) => {
   const seen = await expectNoWrites(page, "import");
   expect(seen.length, `import selects watched: ${seen.join(", ")}`).toBeGreaterThan(1);
 });
+
+test("the message center's filter while messages arrive and the machine talks", async ({ page }) => {
+  // The center re-renders with every message; a status packet alone binds
+  // nothing it shows — so messages arrive here, the real case.
+  await openLayout(page, PROFILES[1]!, VIEWPORTS[0]!);
+  await page.getByTitle(/^Messages \(\d+\)$/).click();
+  const center = page.getByRole("dialog", { name: /^Messages/ });
+  await expect(center).toBeVisible();
+  const writes = await watchSelects(page);
+  for (let i = 0; i < 10; i++) {
+    await ctl({ op: "raw", frame: { type: "status_delta", armed: true,
+      data: { position: [i, 0, 0, 0, 0, 0, 0, 0, 0], current_vel: i % 2 ? 12.5 : 0 },
+      errors: [[i % 2 ? 1 : 6, `message ${i}`]] } });
+  }
+  await expect(center.locator("td.msgText", { hasText: "message 9" })).toHaveCount(1);
+  const got = await writes();
+  expect(Object.keys(got)).toContain("Filter messages");
+  for (const [name, list] of Object.entries(got)) expect(list, `messages · ${name}: written while messages arrive`).toEqual([]);
+});
