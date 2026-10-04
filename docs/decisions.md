@@ -7879,3 +7879,18 @@ binding and label (a `v-memo` on the options, nested in the rows' `v-for`,
 is not honoured — the lint caught it in the first gate). Red: either memo
 removed.
 
+## 2026-10-04 — The hint survives its own press's reveal (choices.spec's flake, root cause)
+
+`choices.spec` "a reserved work offset … explains itself" failed in three
+full gates (the hint at the reserved G59 not found) and passed alone. An
+event log under CPU load showed the order: pointerdown focuses G59 — half
+hidden at the strip's right edge — click shows the hint, and 24 ms later the
+browser scrolls the focused control into view; the hint closes on any
+scroll, so it closed itself. Whether the scroll came before or after the
+hint was timing — hence a flake, and the same for the operator tapping a
+half-hidden option. A scroll within 300 ms of the hint is now the asking
+press's own and re-places the hint at its control; a later scroll closes it
+as before. Guard: `choices.spec` does the click and the scroll in one task
+(the scroll event always after the hint) — red with every scroll closing;
+the old test passed 30 of 30 under CPU load.
+

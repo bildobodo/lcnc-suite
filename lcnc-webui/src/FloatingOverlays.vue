@@ -40,10 +40,20 @@ function placeHint() {
   el.style.top = `${at.top / z}px`;
 }
 
+// When the current hint appeared (its press's own reveal is told apart below).
+let shownAt = -Infinity;
 watch(() => btnHint.seq, async () => {
+  shownAt = performance.now();
   await nextTick();
   requestAnimationFrame(placeHint);
 });
+/** A scroll this soon after the hint appeared is the asking press's own:
+ *  the press focused a half-hidden control and the browser scrolls it into
+ *  view a frame later — the hint follows its control instead of closing
+ *  (choices.spec flaked on exactly this order under load: the hint closed
+ *  24 ms after it appeared, the reserved G59 at the strip's edge "explained
+ *  nothing"). Later scrolls close it, as every press and key does. */
+const OWN_REVEAL_MS = 300;
 
 // The hint belongs to a place on the screen and to the touch that asked for
 // it: it closes when the page scrolls under it (capture — any scroll
@@ -54,14 +64,19 @@ watch(() => btnHint.seq, async () => {
 // button on click, a key on its wrapper) closes the old hint first and
 // shows its own.
 function hideOnInteraction() { if (btnHint.text) hideBtnHint(); }
+function onScroll() {
+  if (!btnHint.text) return;
+  if (performance.now() - shownAt < OWN_REVEAL_MS) requestAnimationFrame(placeHint);
+  else hideBtnHint();
+}
 onMounted(() => {
-  window.addEventListener("scroll", hideOnInteraction, true);
+  window.addEventListener("scroll", onScroll, true);
   window.addEventListener("pointerdown", hideOnInteraction, true);
   window.addEventListener("keydown", hideOnInteraction, true);
   window.addEventListener("resize", placeHint);
 });
 onBeforeUnmount(() => {
-  window.removeEventListener("scroll", hideOnInteraction, true);
+  window.removeEventListener("scroll", onScroll, true);
   window.removeEventListener("pointerdown", hideOnInteraction, true);
   window.removeEventListener("keydown", hideOnInteraction, true);
   window.removeEventListener("resize", placeHint);
