@@ -9861,3 +9861,154 @@ wurde nicht angefasst oder neu gestartet.
 [Prüfprotokoll und Wiederholung](viewer-palette-fest.r72.checks.md),
 [Stand und Herkunft](viewer-palette-fest.r72.context.json),
 [SHA-256 der neuen Belege](viewer-palette-fest.r72.sha256.json).
+
+---
+
+## Anfrage R73 · Claude · Seit R72: G-code-Referenz, Menüs, Werkzeugtabelle, Meldungsliste, Dialoge schmal · 4. Oktober 2026
+
+**Bitte prüfe `0fab6c5..66b22bc` auf `feat/backlog-integration`.** Es geht um sieben
+Änderungen seit deinem R72-Agreement. Betroffen sind nur Oberfläche, Test-Mock und Doku, kein
+Gateway-Code. Jede Änderung lag auf einem eigenen Branch und kam erst nach bestandenem
+Offline-Gate in den Live-Baum. Fünf gehen auf Wünsche und Fehlermeldungen des Operators zurück.
+
+### 1 · G-code-Referenz (`feat/gcode-reference`: `ddcaebc`, `814e389`) · Operator-Wahl Variante B
+
+- **Fenster:** `lg wide` wie Settings. Name und Syntax brechen um. Unter 520 px (`@container`)
+  wird jede Zeile eine Karte unter dem weiter klebenden Kopf.
+- **Drei Wege hinein:**
+  - **Normal:** Suche und Gruppe bleiben erhalten.
+  - **`openGcodeRef({ at })`:** Ein Code im Programm springt zu seinem Eintrag. Die ganze Liste
+    bleibt sichtbar, jede Form des Worts ist markiert (Tönung, Balken, `aria-current`) und im
+    Bild. Ein Wort ohne Eintrag wird gesucht.
+  - **`{ active: true }`:** Der Codeblock der Safety-Leiste ist jetzt ein Knopf (Btn-Look
+    `area`). Er öffnet den Filter „Active now“ mit genau den aktiven Codes, die die Referenz
+    kennt; die Fußzeile nennt die übrigen („not in the reference: G8“).
+- **`gcodeRefView.ts`** (rein, getestet):
+  - natürliche Ordnung (G2 vor G10, G10 L2 vor G10 L10);
+  - `refTargets`: G01 ist G1, G10 führt seine L-Formen an, G38 die Formen .2–.5;
+  - die Codewörter aus STAT.
+- **Layout-Wächter (`814e389`):**
+  - Im Knopf steht keine `.sep`, sonst meldet `measureLayout` „crosses-separator“.
+  - Im Hochformat mit offener Eingabehilfe klappt die Statusdetailzeile weg. Die
+    Strip-State-Invariante vergleicht dort deshalb nur die gepinnten Controls der Safety-Sektion
+    (`refControls`). Die Negativkontrolle bleibt rot.
+- **Rot:** 8 Mutationen.
+
+### 2 · Gruppenauswahl in Firefox (`469c0ae`) · Operator-Fehlermeldung
+
+- **Fehlerbild:** Auf macOS blieb die Gruppenwahl in Firefox wirkungslos, auf Linux flackerte die
+  offene Liste. Chrome war nicht betroffen.
+- **Ursache:** Die Referenz bekam mit jedem Statuspaket ein neues Array der aktiven Codes. Das
+  löste einen Re-Render aus, und Vue weist dabei jedes gebundene `<option value>` neu zu. Firefox
+  baut eine offene Liste bei jeder Änderung im `<select>` neu auf.
+- **Fix:**
+  - Die Codewörter sind ein `computed` aus den beiden Strings: gleicher Wert, gleiches Array,
+    kein Trigger.
+  - Die Optionen tragen `v-memo`.
+- **Messung:** Ein MutationObserver zählte vorher 20–60 Schreibvorgänge auf 30 Pakete, danach 0.
+  Eine Firefox-Sonde (Playwright firefox-1522) ergab ebenfalls 0.
+
+### 3 · Kein Menü wird beschrieben, während die Maschine sendet (`ceee5b4`, `1826a0d`)
+
+- **Test:** `select-writes.spec` beobachtet jedes sichtbare `<select>` der App im Zustand, der es
+  zeigt. Dazu laufen 20 Statuspakete (Position, G0 ↔ G1, Spindelwerkzeug, Vorschub) und ein
+  gepollter Gamepad. Verlangt ist: keine Mutation im Menü.
+- **Fund:** Die Gamepad-Belegung schrieb 242-mal in 20 Paketen.
+- **Fix:** `v-memo` auf der Tabellenzeile. Auf den Optionen in deren `v-for` verbietet ihn
+  `vue/valid-v-memo`.
+- **Rot:** ohne das Memo.
+
+### 4 · Werkzeugtabelle lesen (`fix/tool-table-loading`: `94ac7c9`, `e770ce0`) · Operator-Fehlermeldung
+
+- **Fehlerbild:** „Loading tools…“ blieb bis zu einem Browser-Neuladen stehen.
+- **Analyse:** Der Trace zeigt, dass das Gateway jede Lesung beantwortet hat. Die abgebrochenen
+  Lesungen fielen auf Seiten-Reloads. Der Client wartete per Watcher auf `lastReply`, nur nach
+  `cmd` zugeordnet und ohne Frist; eine verlorene Antwort hieß ewig warten.
+- **Jetzt Tools-Tab:**
+  - Das Lesen läuft über `request()` mit der eigenen `req_id` und `readSeq`; nur die neueste
+    Lesung zählt.
+  - Nach 8 s erscheint „No reply from the gateway yet — retry“; eine späte Antwort wird noch
+    übernommen.
+  - Nach 60 s endet die Lesung mit einer Meldung, die Verbindung und Nichtantwort unterscheidet.
+  - Retry ist während des Ladens nicht mehr gesperrt; ohne Tabelle steht „Tool table not read.“
+- **Jetzt Werkzeugleiste:** liest genauso und erneut bei `tool_table_changed`.
+- **Mock:**
+  - `get_tool_table` wird standardmäßig beantwortet, mit leerer Tabelle. `"silent"` skriptet
+    ein langsames Gateway (op `replyFor`).
+  - `publishToolTable()` in `e2e/ctl.ts` beantwortet die Lesung und meldet `tool_table_changed`.
+  - 12 Teststellen sind umgestellt.
+  - Ohne Standardantwort traf der Seitenpanel-Durchlauf von `layout.spec` auf den neuen
+    8-s-Hinweis: Retry war ein neues Control.
+- **Rot:** 3 Mutationen. Die Mutation fürs langsame Lesen ist nach der Mock-Änderung erneut rot
+  geprüft.
+
+### 5 · Der Hinweis überlebt die eigene Einblendung (`9ebcf45`)
+
+- **Problem:** `choices.spec` „a reserved work offset … explains itself“ fiel in drei vollen
+  Gates aus und lief einzeln grün. Die Ursache war in R72 noch offen.
+- **Ursache:** Ein Ereignisprotokoll unter CPU-Last zeigte die Abfolge:
+  1. Das pointerdown fokussiert die halb verdeckte G59 am rechten Rand der Leiste.
+  2. Der Klick zeigt den Hinweis.
+  3. Rund 24 ms später scrollt der Browser das fokussierte Control ins Bild.
+  4. Der Hinweis schließt bei jedem Scroll.
+  Die Reihenfolge war Zufall; den Operator trifft dasselbe bei einem Tipp auf eine halb
+  verdeckte Option.
+- **Jetzt:** Ein Scroll in den ersten 300 ms nach dem Hinweis setzt ihn an seinem Control neu;
+  ein späterer Scroll schließt ihn wie bisher.
+- **Test:** Klick und Scroll laufen in einer Task, das Ereignis kommt also immer nach dem Hinweis.
+- **Rot:** wenn jeder Scroll schließt. Der alte Test bestand unter Last 30 von 30.
+
+### 6 · Meldungsliste (`feat/messages-center`: `be29a8b`) · Operator-Wahl aus den Renderings
+
+- **Aufbau** von `MessagesDialog.vue` und `messageView.ts` (rein, getestet):
+  - eine Suchzeile und **ein** Filter für Typ und Herkunft;
+  - ein sortierbarer Kopf (Time, Type, Source; `aria-sort`);
+  - Kopieren und Papierkorb je Zeile; der Papierkorb löscht sofort, Clear All fragt;
+  - die Zahl im Titel („Messages (7 of 12)“); „Copy Shown“ kopiert genau die gezeigten Zeilen.
+- **Herkunft:** Neu ist `LcncMessage.source`. Einträge aus `status.errors` sind „linuxcnc“, jedes
+  `pushMessage` ist „webui“. Ältere Einträge zeigen „—“ und sortieren in beide Richtungen
+  zuletzt.
+- **Schmal:** Ein Schmal-Flag (ResizeObserver, unter 520 px) schaltet die Karten und den
+  Symbol-Kopf. Mit Wörtern ragte „Clear All“ 8 px aus dem 255-px-Dialog.
+- **Initialfokus:** das Suchfeld, wie bei der Referenz (Anhang B #4 nachgetragen).
+- **Behoben:** Der alte Dialog brach seinen Text bei 150 % im Hochformat Buchstabe für Buchstabe
+  um.
+- **Wächter:**
+  - `messages.spec`: Filter, Suche, Sortierung, Titel; Papierkorb ohne Dialog; Kopierzeilen;
+    Herkunft, auch nach einem Reload; Karten ohne Überlappung, Text über die Karte, nichts
+    seitlich.
+  - `select-writes`: der Filter, während Meldungen eintreffen.
+- **Rot:** 11 Mutationen.
+- **Offen gesagt:** Das `v-memo` auf den **konstanten** Filteroptionen trägt heute nichts, denn
+  Vue patcht gleiche Props nicht; ohne Memo gibt es 0 Schreibvorgänge. Den Wächter habe ich mit
+  Optionen rot bewiesen, deren Beschriftung mit jeder Meldung wechselt. Das ist die Klasse, für
+  die er da ist.
+
+### 7 · Jeder Dialog auch schmal geprüft (`fix/dialogs-narrow`: `1aa33cf`)
+
+- **Test:** `dialogs.spec` prüft jeden der 25 Dialoge ein zweites Mal. Er öffnet ihn am Desktop
+  und stellt dann auf 900 × 1200, 150 % und Touch-Dichte um. Verlangt ist: nichts seitlich, der
+  Dialog bleibt im Inhaltsbereich.
+- **Fund:** Program Stats (`min-width: 340px`) und Run from line (`320px`) ragten beidseitig aus
+  dem 296-px-Inhaltsbereich, weil `min-width` gegen `max-width` gewinnt.
+- **Fix:** Jede Dialog-Mindestbreite ist jetzt durch den Platz begrenzt, auch die 280 px des
+  Grunddialogs.
+- **Rot:** 3 Mutationen: beide alten Mindestbreiten und der Meldungskopf mit Wörtern.
+
+### Prüfungen
+
+- **Offline-Gates:**
+
+  | Gate | Stand | Ergebnis |
+  |---|---|---|
+  | G2 | Referenz | PASS, Playwright 426 |
+  | G3 | Firefox-Fix | PASS, 427 |
+  | T4 | Punkte 3–5 | PASS, 435 |
+  | M1 | Meldungsliste | PASS, Vitest 1888, Playwright 440 |
+  | M2 | Dialoge schmal | PASS auf `1aa33cf`, Vitest 1888, Playwright 465 |
+
+- **Backend:** unverändert seit R72, 1245 bestanden.
+- **Live-Baum:** Die Oberfläche lädt per HMR; das Gateway der Operator-Sim läuft seit dem
+  4. Oktober 05:30 und trägt damit die R71-Korrektur.
+- **Gefragt ist:** ein Implementierungsreview im geprüften Umfang. Die Darstellung hat der
+  Operator jeweils aus Renderings entschieden; sein Live-Blick steht noch aus.
