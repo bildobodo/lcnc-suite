@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { publishToolTable } from "./ctl";
 import WebSocket from "ws";
 
 const MOCK = process.env.TOOL_IMPORT_TEST_URL ?? "http://localhost:4174/";
@@ -30,7 +31,7 @@ async function openTool(page: Page, row: typeof tool) {
   await expect(page.locator('fieldset[data-gate="armed"]').first()).not.toBeDisabled();
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect.poll(async () => {
-    await ctl({ op: "raw", frame: { type: "reply", cmd: "get_tool_table", ok: true, tools: [row] } });
+    await publishToolTable([row], MOCK);
     return page.getByTitle("Edit tool", { exact: true }).count();
   }).toBe(1);
   await page.getByTitle("Edit tool", { exact: true }).click();

@@ -146,6 +146,38 @@ test("a reserved work offset stays focusable and explains itself where it is pre
   expect(await sent()).toEqual([]);
 });
 
+test("the press's own reveal keeps its hint: the strip scrolls the half-hidden option into view a frame later — the hint follows; a later scroll closes it", async ({ page }) => {
+  // choices.spec's reserved-G59 test flaked under load (3 gates): the press
+  // focused G59, half hidden at the strip's edge; the browser scrolled it
+  // into view a frame later and the hint, which closes on any scroll, closed
+  // 24 ms after it appeared. Made deterministic: the click and the scroll in
+  // ONE task — the scroll event fires after the hint is shown, every time.
+  await open(page);
+  const g59 = option(page, "Work offset", "G59");
+  await expect(g59).toHaveAttribute("aria-disabled", "true");
+  const before = await g59.evaluate(el => {
+    const left = el.getBoundingClientRect().left;
+    (el as HTMLElement).click();                            // asks: the hint shows
+    const strip = el.closest(".strip") as HTMLElement;
+    strip.scrollLeft += 40;                                 // the reveal, a frame later
+    return left;
+  });
+  const hint = page.locator(".btnHint");
+  await page.waitForTimeout(150);
+  await expect(hint, "the press's own reveal keeps the hint").toHaveText("Reserved for the tilted work plane — use G54–G58");
+  const placed = await page.evaluate(() => {
+    const h = document.querySelector(".btnHint")!.getBoundingClientRect();
+    const b = [...document.querySelectorAll<HTMLElement>('[role="radio"]')].find(e => e.textContent?.trim() === "G59")!.getBoundingClientRect();
+    return { hintCentre: h.left + h.width / 2, left: b.left, right: b.right };
+  });
+  expect(placed.left, "the strip did scroll").not.toBeCloseTo(before, 0);
+  expect(placed.hintCentre, "the hint followed its control").toBeGreaterThan(placed.left - 160);
+  await page.waitForTimeout(400);
+  await page.evaluate(() => { (document.querySelector(".strip") as HTMLElement).scrollLeft -= 40; });
+  await expect(hint, "a later scroll closes it").toHaveCount(0);
+  expect(await sent()).toEqual([]);
+});
+
 test("portrait: the work offsets are 3 × 3 by row — width is fixed there, height the price; the arrows follow the rows", async ({ page }) => {
   await openLayout(page, TWP, VIEWPORTS.find(v => v.name === "touch-portrait")!);
   await settleLayout(page);

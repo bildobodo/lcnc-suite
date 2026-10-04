@@ -7843,3 +7843,54 @@ Two ideas of 2026-10-01, rendered first (acceptance page V10), then chosen
   A sweep found no other select written by status (side panel, probing
   procedure, jog step, tool and macro filters: 0).
 
+## 2026-10-04 — Operator: the tool table hung on "Loading tools…" until a browser refresh
+
+The Tools tab sent `get_tool_table` and waited — with no limit — for any
+reply carrying that command name. The gateway answered every read (the
+trace's only cancelled reads, at 07:47 and 10:34, had run 0–5 ms: pages
+reloading when the Mac woke and when a merge reached the served tree), so
+the read was lost on the client side: a request dropped in a reconnect, a
+page that reloaded mid-read. Nothing ended the wait and there was no Retry
+(it showed only with an error).
+
+- Both readers (Tools tab, Tool strip) go through `request()`: their own
+  reply by req_id, the newest read only. A slow read is said after 8 s
+  ("No reply from the gateway yet — retry") and its late reply is still
+  taken — a long command ahead of it in this client's FIFO is legitimate;
+  60 s without a reply or a lost connection end the read with the reason.
+  A table not read says so instead of "No tools in the table".
+- The strip read the table only by riding on the tab's replies; it now
+  reads again on `tool_table_changed` itself.
+- Twelve e2e sites pushed an UNSOLICITED `get_tool_table` reply into the
+  page — a path the gateway does not have. They now serve the table like
+  the gateway (`publishToolTable`: the mock's new `replyFor` answers each
+  read with its req_id, then `tool_table_changed`).
+
+## 2026-10-04 — No select is written while the machine talks (a guard for every menu)
+
+After the reference's group list (Firefox, the same day) the operator asked
+whether every menu had the fix. `select-writes.spec` now watches every select
+of the app in the state that shows it while 20 status packets flow (position,
+the motion mode G0 ↔ G1, the spindle tool, the feed) and a gamepad is polled,
+and requires no mutation inside any. It found one more: the gamepad mapping
+selects in Settings were rewritten 242 times in 20 packets with a pad
+connected — every poll re-rendered the tab. Their ROWS are `v-memo`'d by
+binding and label (a `v-memo` on the options, nested in the rows' `v-for`,
+is not honoured — the lint caught it in the first gate). Red: either memo
+removed.
+
+## 2026-10-04 — The hint survives its own press's reveal (choices.spec's flake, root cause)
+
+`choices.spec` "a reserved work offset … explains itself" failed in three
+full gates (the hint at the reserved G59 not found) and passed alone. An
+event log under CPU load showed the order: pointerdown focuses G59 — half
+hidden at the strip's right edge — click shows the hint, and 24 ms later the
+browser scrolls the focused control into view; the hint closes on any
+scroll, so it closed itself. Whether the scroll came before or after the
+hint was timing — hence a flake, and the same for the operator tapping a
+half-hidden option. A scroll within 300 ms of the hint is now the asking
+press's own and re-places the hint at its control; a later scroll closes it
+as before. Guard: `choices.spec` does the click and the scroll in one task
+(the scroll event always after the hint) — red with every scroll closing;
+the old test passed 30 of 30 under CPU load.
+

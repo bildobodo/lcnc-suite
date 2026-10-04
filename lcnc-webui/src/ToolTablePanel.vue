@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, defineAsyncComponent } from "vue";
-import { send, lastReply, connected, toolTableVersion } from "./lcncWs";
+import { request, lastReply, connected, toolTableVersion } from "./lcncWs";
 import { useFire } from "./permissions";
 import { useToolsetterMdi } from "./toolsetterVars";
 import { loadMachineDefaults, type ToolChangeMode } from "./defaults";
@@ -32,6 +32,8 @@ import { vStickyHead } from "./stickyHead";
 const ToolPreview = defineAsyncComponent(() => import("./ToolPreview.vue"));
 
 const FETCH_DELAY_MS = 500;
+const TOOL_READ_SLOW_MS = 8000;
+const TOOL_READ_TIMEOUT_MS = 60_000;
 const REFETCH_AFTER_DELETE_MS = 300;
 // Parametric preview canvas in the edit dialog — one constant drives the
 // canvas size AND the preview column's width (--preview-w).
@@ -134,28 +136,36 @@ function toggleSort(key: "T" | "D" | "Z") {
   else { sortKey.value = key; sortAsc.value = true; }
 }
 
-// Fetch tool table from gateway
-function fetchTools() {
+// Read the tool table from the gateway: ITS reply (req_id), within a time
+// limit — the read used to wait for any reply named get_tool_table with no
+// limit, so a request lost in a reconnect (a page reloaded while the socket
+// came up, a command dropped by the worker) left "Loading tools…" until a
+// browser refresh (operator 2026-10-04). A slow reply is said after
+// TOOL_READ_SLOW_MS (a long command ahead of it in this client's queue is
+// legitimate) and still taken when it comes; no reply at all, or a lost
+// connection, ends the read with the reason and Retry; a reconnect reads
+// again. Only the newest read applies.
+let readSeq = 0;
+async function fetchTools() {
+  const seq = ++readSeq;
   loading.value = true;
   tableError.value = null;
-  send({ cmd: "get_tool_table" });
-}
-
-// Handle replies from gateway
-watch(lastReply, (reply) => {
-  if (!reply || !loading.value) return;
-  // Only consume the reply to OUR get_tool_table request. The gateway echoes
-  // the command name (issue #28), so an unrelated failed command no longer
-  // poisons this panel's error/loading state.
-  if (reply.cmd !== "get_tool_table") return;
-  if (reply.ok && Array.isArray(reply.tools)) {
+  const slow = setTimeout(() => {
+    if (seq === readSeq && loading.value) tableError.value = "No reply from the gateway yet — retry";
+  }, TOOL_READ_SLOW_MS);
+  const reply = await request({ cmd: "get_tool_table" }, TOOL_READ_TIMEOUT_MS);
+  clearTimeout(slow);
+  if (seq !== readSeq) return;
+  loading.value = false;
+  if (reply?.ok && Array.isArray(reply.tools)) {
     tools.value = reply.tools;
-    loading.value = false;
-  } else if (reply.ok === false && reply.error) {
-    tableError.value = reply.error;
-    loading.value = false;
+    tableError.value = null;
+  } else {
+    tableError.value = reply === null
+      ? (connected.value ? "No reply from the gateway — retry" : "Not connected — the table reads again on reconnect")
+      : (reply.error ?? "Tool table unavailable");
   }
-});
+}
 
 // Fetch on mount and when connection re-establishes
 onMounted(fetchTools);
@@ -641,7 +651,9 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showI
     <!-- Error banner -->
     <div v-if="tableError" class="statusNote error" role="alert">
       <span>{{ tableError }}</span>
-      <MachineBtn type="retry" :disabled="loading" @click="fetchTools">Retry</MachineBtn>
+      <!-- never disabled while a read is out: a SLOW read is exactly when
+           Retry is wanted, and only the newest read applies -->
+      <MachineBtn type="retry" @click="fetchTools">Retry</MachineBtn>
     </div>
     <div v-if="downloadError" class="statusNote error" role="alert">
       <span>{{ downloadError }}</span>
@@ -980,6 +992,10 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showI
           <!-- Empty, no match and loading say different things (N84) -->
           <tr v-if="loading && tools.length === 0">
             <td colspan="7" class="emptyState loading">Loading tools…</td>
+          </tr>
+          <!-- a table that was not read is not empty (the note above says why) -->
+          <tr v-else-if="tools.length === 0 && tableError">
+            <td colspan="7" class="emptyState">Tool table not read.</td>
           </tr>
           <tr v-else-if="tools.length === 0">
             <td colspan="7" class="emptyState">No tools in the table. Add tools manually or import a Fusion 360 or FreeCAD library.</td>

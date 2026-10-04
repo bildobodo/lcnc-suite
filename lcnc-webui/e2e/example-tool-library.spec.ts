@@ -20,15 +20,23 @@ print(json.dumps([dict(t,P=t['T'],Z=initial_z_offset(t)) for t in tools]))
 const preview = { tools, total: 36, existing_count: 3, skipped_duplicates: [],
   metadata_refresh: { rows: [], updated: [], skipped: [], revision: "examples-review" } };
 
-function sendFrame(frame: Record<string, unknown>): Promise<void> {
+function ctlOp(op: Record<string, unknown>): Promise<void> {
   return new Promise((resolve, reject) => {
     const socket = new WebSocket(new URL("ctl", MOCK).href.replace(/^http/, "ws"));
-    socket.once("open", () => socket.send(JSON.stringify({ op: "raw", frame })));
+    socket.once("open", () => socket.send(JSON.stringify(op)));
     socket.once("message", () => { socket.close(); resolve(); });
     socket.once("error", reject);
   });
 }
-const publishTable = () => sendFrame({ type: "reply", cmd: "get_tool_table", ok: true, tools });
+const sendFrame = (frame: Record<string, unknown>) => ctlOp({ op: "raw", frame });
+// The table as the gateway serves it: every get_tool_table answered with its
+// req_id, and tool_table_changed makes the Tools tab read again (ctl.ts
+// publishToolTable — an unsolicited reply is taken by nothing any more).
+let tableVersion = 200;
+const publishTable = async (rows: unknown[] = tools) => {
+  await ctlOp({ op: "replyFor", cmd: "get_tool_table", reply: { ok: true, tools: rows } });
+  await sendFrame({ type: "tool_table_changed", version: ++tableVersion });
+};
 
 async function expectUncovered(dialog: Locator) {
   // Panel-local geometry alone misses clipping/occlusion by an outer tab pane.
@@ -118,7 +126,8 @@ test("server library requires review and renders source shapes with nominal Z of
   await replaceConfirm.getByRole("button", { name: "Replace table", exact: true }).click();
   await expect(page.getByText(/Imported 36 tools. Z offsets initialized from nominal example lengths/)).toBeVisible();
   expect(applies).toBe(1);
-  await expect.poll(async () => { await publishTable(); return page.getByTitle("Edit tool", { exact: true }).count(); }).toBe(36);
+  await publishTable();
+  await expect.poll(() => page.getByTitle("Edit tool", { exact: true }).count()).toBe(36);
   await page.screenshot({ path: test.info().outputPath("example-tool-table.png") });
   for (const number of [1012, 1020, 2011, 2015]) {
     const tool = tools.find(t => t.T === number)!;
@@ -192,14 +201,11 @@ test("preview errors survive table refresh and can be dismissed and retried", as
   const error = page.getByRole("alert").filter({ hasText: "Library preview rejected" });
   await selectClientFile(page);
   await expect(error).toBeVisible();
-  await sendFrame({ type: "tool_table_changed", version: 101 });
-  await expect.poll(async () => { await publishTable(); return page.getByTitle("Edit tool", { exact: true }).count(); }).toBe(36);
+  await publishTable();
+  await expect.poll(() => page.getByTitle("Edit tool", { exact: true }).count()).toBe(36);
   await expect(error).toBeVisible();
-  await sendFrame({ type: "tool_table_changed", version: 1 });
-  await expect.poll(async () => {
-    await sendFrame({ type: "reply", cmd: "get_tool_table", ok: true, tools: tools.slice(1) });
-    return page.getByTitle("Edit tool", { exact: true }).count();
-  }).toBe(35);
+  await publishTable(tools.slice(1));
+  await expect.poll(() => page.getByTitle("Edit tool", { exact: true }).count()).toBe(35);
   await expect(error).toBeVisible();
   await page.getByRole("button", { name: "Dismiss import error" }).click();
   await expect(error).toHaveCount(0);

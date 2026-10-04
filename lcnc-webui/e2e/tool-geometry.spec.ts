@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import WebSocket from "ws";
 import { assertLayout, expectDialogUncovered, measureLayout } from "./layout-audit";
 import { VIEWPORTS } from "./layout-fixtures";
-import { ctl as ctlOp } from "./ctl";
+import { ctl as ctlOp, publishToolTable } from "./ctl";
 import { clickMore } from "./more";
 
 const MOCK = process.env.TOOL_IMPORT_TEST_URL ?? "http://localhost:4174/";
@@ -65,7 +65,7 @@ test("unverified geometry is visible in the table, editor and both import modes"
   await expect(page.locator('fieldset[data-gate="armed"]').first()).not.toBeDisabled();
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect.poll(async () => {
-    await ctl({ type: "reply", cmd: "get_tool_table", ok: true, tools: [tool] });
+    await publishToolTable([tool], MOCK);
     return page.getByTitle("Edit tool", { exact: true }).count();
   }).toBe(1);
   const row = page.locator("tbody tr").filter({ hasText: tool.description });
@@ -111,7 +111,7 @@ for (const viewport of VIEWPORTS) {
     if (viewport.touch) await page.evaluate(() => document.documentElement.classList.add("touch-device"));
     await page.getByRole("tab", { name: "Tools", exact: true }).click();
     await expect.poll(async () => {
-      await ctl({ type: "reply", cmd: "get_tool_table", ok: true, tools: [tool] });
+      await publishToolTable([tool], MOCK);
       return page.getByTitle("Edit tool", { exact: true }).count();
     }).toBe(1);
     await page.getByTitle("Edit tool", { exact: true }).click();
@@ -151,7 +151,7 @@ async function openAdd(page: Page) {
   await expect(page.locator('fieldset[data-gate="armed"]').first()).not.toBeDisabled();
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect.poll(async () => {
-    await ctl({ type: "reply", cmd: "get_tool_table", ok: true, tools: [tool] });
+    await publishToolTable([tool], MOCK);
     return page.getByTitle("Edit tool", { exact: true }).count();
   }).toBe(1);
   await ctlOp({ op: "clearCmds" });

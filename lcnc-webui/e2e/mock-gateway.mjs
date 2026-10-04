@@ -225,7 +225,12 @@ wss.on("connection", (ws) => {
       if (cmds.length > 50) cmds.shift();
     }
     if (cmd === "heartbeat") ws.send(JSON.stringify({ type: "pong" }));
-    if (cmd && replies[cmd]) ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ...replies[cmd] }));
+    // "silent": a gateway that does not answer (yet) — the scripted slow read
+    if (cmd && replies[cmd] === "silent") { /* no reply */ }
+    else if (cmd && replies[cmd]) ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ...replies[cmd] }));
+    // a gateway always answers a table read: an empty table unless scripted
+    // (the Tools tab says a missing reply after 8 s — 2026-10-04)
+    else if (cmd === "get_tool_table") ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, tools: [] }));
     if (cmd === "halshow_live") ws.send(JSON.stringify(HALSHOW_SNAPSHOT));
     if (!quiet) ws.send(JSON.stringify(state)); // answer everything -> stay connected & armed
   });
@@ -331,6 +336,10 @@ ctlWss.on("connection", (ws) => {
       return;
     } else if (m.op === "replies") {
       replies = m.replies && typeof m.replies === "object" ? m.replies : {};
+    } else if (m.op === "replyFor") {
+      // one command's correlated reply, the others kept (null removes it)
+      replies = { ...replies, [m.cmd]: m.reply ?? undefined };
+      if (m.reply == null) delete replies[m.cmd];
     } else if (m.op === "refuseWs") {
       refuseWs = m.on === true;
     } else if (m.op === "shutdownClose") {
