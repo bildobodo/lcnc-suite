@@ -249,7 +249,8 @@ const ROWS: Row[] = [
   },
   {
     id: "4 Messages", title: /^Messages/, tier: "lg", backdrop: "closes",
-    focus: byName("Close messages"),
+    // laid out like the reference (operator 2026-10-04): the search first
+    focus: (d) => d.getByRole("textbox", { name: "Search messages", exact: true }),
     open: async (page) => {
       const trigger = page.getByTitle(/^Messages \(\d+\)$/);
       await trigger.click();

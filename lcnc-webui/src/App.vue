@@ -8,7 +8,7 @@ import { semanticKinsMode } from "./viewer/kins";
 import { runLineState, subExecState, resolveCurrentLine } from "./trackHighlight";
 import { clearSubfileCache } from "./lcncApi";
 import { mainLinesTrusted, type ScrubTrack } from "./viewer/scrubTrack";
-import { connectWs, connected, status, send, request, armed, lastReply, viewerGcode, viewerInit, gcodeContent, gcodeRevision, gcodeTextRevision, gcodeTextSource, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, previewRefusal, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, serverShuttingDown, type LcncMessage } from "./lcncWs";
+import { connectWs, connected, status, send, request, armed, lastReply, viewerGcode, viewerInit, gcodeContent, gcodeRevision, gcodeTextRevision, gcodeTextSource, lcncError, latency, networkLatency, messages, unreadCount, dismissMessage, clearAllMessages, markMessagesRead, pushMessage, safetyTrip, acknowledgeSafetyTrip, readerStale, safetyChainIncomplete, configWarning, previewLoadError, previewParseError, previewRefusal, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, serverShuttingDown } from "./lcncWs";
 // Lazy-load the 3D viewer so Three.js (~866 KB) + troika load as a separate async
 // chunk after first paint instead of blocking the initial bundle (P6). The viewerRef
 // methods are all `?.`-guarded, so calls during the brief load gap safely no-op.
@@ -17,6 +17,7 @@ import TabPanel from "./TabPanel.vue";
 import GcodePanel from "./GcodePanel.vue";
 import { gCodeWords, mCodeWords } from "./gcodeRefView";
 import SafetyStrip from "./SafetyStrip.vue";
+import MessagesDialog from "./MessagesDialog.vue";
 import JogStrip from "./JogStrip.vue";
 import StatsDonut from "./StatsDonut.vue";
 import SetupStrip from "./SetupStrip.vue";
@@ -48,7 +49,7 @@ import { highlightGcode } from "./gcodeHighlight";
 import { fmtElapsed, fmtDuration, fmtDist, fmtSize, fmtProgressTimes, fmtNum, fmtQty, fmtMs, NO_VALUE } from "./format";
 import type { GcodeStats } from "./GcodePanel.vue";
 import type { LimitViolation } from "./ws/bulkData";
-import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, ClipboardCopy, Expand, Shrink, X, Activity } from "lucide-vue-next";
+import { Settings, MessageSquare, PowerOff, Gamepad2, Keyboard, BookOpen, Expand, Shrink, Activity } from "lucide-vue-next";
 import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import NumberKeypadStrip from "./NumberKeypadStrip.vue";
 import FloatingOverlays from "./FloatingOverlays.vue";
@@ -1221,20 +1222,6 @@ const probeIndicatorClass = computed(() => {
 });
 
 // Message popover helpers
-function msgKindClass(kind: number): string {
-  if (kind <= 2) return "error";
-  if (kind <= 4) return "info";
-  return "display";
-}
-function msgKindLabel(kind: number): string {
-  if (kind <= 2) return "ERROR";
-  if (kind <= 4) return "INFO";
-  return "DISPLAY";
-}
-function msgFormatTime(ts: number): string {
-  const d = new Date(ts);
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " + d.toLocaleTimeString();
-}
 
 // navigator.clipboard is only exposed in secure contexts (HTTPS or
 // localhost). The gateway binds 0.0.0.0 by design so the UI is reached
@@ -1270,16 +1257,7 @@ function fallbackCopy(text: string): boolean {
   }
 }
 
-function copyMessage(msg: LcncMessage) {
-  copyToClipboard(`[${msgKindLabel(msg.kind)}] ${msgFormatTime(msg.ts)} — ${msg.text}`);
-}
 
-function copyAllMessages() {
-  const text = [...messages.value].reverse().map(m =>
-    `[${msgKindLabel(m.kind)}] ${msgFormatTime(m.ts)} — ${m.text}`
-  ).join("\n");
-  copyToClipboard(text);
-}
 
 /** ---------- actions ---------- */
 function arm(v: boolean) {
@@ -2334,29 +2312,11 @@ watch(viewerGcode, (newGcode) => {
       <GcodeReferenceDialog :open="gcodeRefOpen" :at="gcodeRefAt" :active="gcodeRefActive" :activeCodes="activeCodeWords"
         @close="gcodeRefOpen = false" />
 
-      <!-- Messages dialog -->
-      <DialogFrame v-if="messagesDialogOpen" kind="info" size="lg" full :title="`Messages (${messages.length})`"
-                   close-label="Close messages" @close="closeMessages">
-          <template #header>
-            <MachineBtn type="inline" @click="copyAllMessages" :disabled="messages.length === 0">Copy All</MachineBtn>
-            <MachineBtn type="inline" @click="clearMessagesAsk = true" :disabled="messages.length === 0">Clear All</MachineBtn>
-          </template>
-          <div class="dialogContent stack-tight scroll-thin fade-scroll">
-            <!-- The banner's current condition with its "why" — a tap on the
-                 banner lands here (UI-N26: nothing essential only in a title). -->
-            <div v-if="bannerLine" class="statusNote" :class="bannerLine.tier" role="alert">
-              <span><strong>{{ bannerLine.text }}</strong><template v-if="bannerLine.detail"><br>{{ bannerLine.detail }}</template></span>
-            </div>
-            <div v-for="msg in [...messages].reverse()" :key="msg.id" class="msgItem" :class="msgKindClass(msg.kind)">
-              <span class="msgTime">{{ msgFormatTime(msg.ts) }}</span>
-              <span class="msgKind">{{ msgKindLabel(msg.kind) }}</span>
-              <span class="msgText">{{ msg.text }}</span>
-              <MachineBtn type="listAction" @click="copyMessage(msg)" title="Copy" aria-label="Copy message"><ClipboardCopy :size="12" /></MachineBtn>
-              <MachineBtn type="listAction" @click="dismissMessage(msg.id)" title="Dismiss" aria-label="Dismiss message"><X :size="12" /></MachineBtn>
-            </div>
-            <div v-if="messages.length === 0" class="emptyState msgEmpty">No messages</div>
-          </div>
-      </DialogFrame>
+      <!-- Messages dialog (operator 2026-10-04: like the reference and the
+           Macros tab — search, one filter, a sortable head, the trash) -->
+      <MessagesDialog v-if="messagesDialogOpen" :messages="messages" :banner="bannerLine"
+                      @close="closeMessages" @dismiss="dismissMessage" @clear-all="clearMessagesAsk = true"
+                      @copy="copyToClipboard" />
 
       <!-- Clear All asks first (N47): the message center is the protocol. -->
       <DialogFrame v-if="clearMessagesAsk" kind="confirm" title="Clear all messages?" danger @close="clearMessagesAsk = false">
@@ -2963,35 +2923,6 @@ watch(viewerGcode, (newGcode) => {
    (.statsGrid/.donut/.legendDot etc. are global — see style.css and
     StatsDonut.vue) */
 
-/* ---- Messages dialog ---- */
-.msgItem {
-  display: flex;
-  align-items: center;
-  gap: var(--gap-controls);
-  padding: var(--gap-tight) var(--gap-controls);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-}
-.msgItem.error { border-color: color-mix(in oklab, var(--danger) var(--tint-heavy), var(--border)); }
-.msgItem.display { border-color: color-mix(in oklab, var(--display) var(--tint-heavy), var(--border)); }
-.msgTime {
-  font-size: var(--fs-2xs);
-  font-variant-numeric: tabular-nums;
-  color: var(--fg-muted);
-  flex-shrink: 0;
-}
-.msgKind {
-  font-size: var(--fs-2xs);
-  font-weight: var(--fw-bold);
-  flex-shrink: 0;
-  min-width: 50px;
-}
-.msgText {
-  flex: 1;
-  font-size: var(--fs-sm);
-  word-break: break-word;
-}
-.msgEmpty { padding: var(--gap-panel); }
 
 
 /* ─── MDI tab ─── */
