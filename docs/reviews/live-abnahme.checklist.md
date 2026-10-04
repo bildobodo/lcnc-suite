@@ -44,7 +44,9 @@ und kommt beim Merge zum Schluss dazu.
     - Paket 5 (Makros als `.ngc`-Dateien, Tab „Macros“, Makroleiste): Plan R69/R70, Umsetzung
       mit Befunden VP-I29 bis -I34 in R70 und R71, **Agreement R72**.
     - Seit R72 (G-code-Referenz, Menüs in Firefox, Werkzeugtabelle, Meldungsliste, Dialoge
-      im Hochformat): Review R73 angefragt.
+      im Hochformat): **Agreement R73** ohne Befund. Codex nennt die bekannte Grenze erneut:
+      Im Querformat bei 150 % mit Safety-Trip-Banner bleibt der Meldungsliste keine
+      Tabellenhöhe (die Gesamtaufteilung ab 150 % quer ist ausgenommen, Folgearbeit).
 - **Offline-Gates** (`python3 scripts/test_suite.py offline`):
   - Welle auf `15b46ff`: PASS, Playwright 282/282.
   - Kontrast auf `82418a7`: PASS, Backend 969, Vitest 1684, Playwright 292/292.
