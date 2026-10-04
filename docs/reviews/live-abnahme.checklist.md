@@ -1,8 +1,9 @@
-# Live-Sichtprüfung — Design-Welle, Viewer-Kontrast, Operator-Punkte, feste Palette
+# Live-Sichtprüfung — Design-Welle, Viewer-Kontrast, Operator-Punkte, Palette, Pakete 2–5
 
-**Für den Operator · Stand 1. Oktober 2026.** Diese Prüfung ist der letzte Schritt vor dem
-Merge aller Branches nach `development`. Du prüfst alles zusammen auf `feat/viewer-palette`; er
-enthält jeden anderen Branch.
+**Für den Operator · Stand 4. Oktober 2026.** Diese Prüfung ist der letzte Schritt vor dem
+Merge nach `development`. Du prüfst alles zusammen auf `feat/backlog-integration`, dem
+Live-Baum; er enthält jeden Branch dieser Liste. Nur `fix/example-tool-numbers` steht für sich
+und kommt beim Merge zum Schluss dazu.
 
 - **Codex:**
   - Design-Welle: Implementierungs-Agreement DR + D0–D10 (Runde 10,
@@ -36,6 +37,14 @@ enthält jeden anderen Branch.
       Umsetzung mit Befunden VP-I22 bis -I24 in R58 und R59, **Agreement R60**.
   - **Keypad** (`feat/keypad-keys`, eigener Branch auf `feat/viewer-palette`): deine Wahl nach
     den Renderings vom 1. Oktober; ohne Codex-Runde (Aussehen und Beschriftung).
+  - **Deine Liste vom 1. Oktober, Pakete 2–5** (dieselbe Datei):
+    - Pakete 2 und 3 (Settings › 3D Viewer, Jog und Setup kompakter): in R62 ohne Befund.
+    - Paket 4 (Strichmuster, Endmarken, Typlabels, Nadelfarbe): Plan R62–R65, Umsetzung mit
+      Befunden in R66 und R67, **Agreement R68**.
+    - Paket 5 (Makros als `.ngc`-Dateien, Tab „Macros“, Makroleiste): Plan R69/R70, Umsetzung
+      mit Befunden VP-I29 bis -I34 in R70 und R71, **Agreement R72**.
+    - Seit R72 (G-code-Referenz, Menüs in Firefox, Werkzeugtabelle, Meldungsliste, Dialoge
+      im Hochformat): Review R73 angefragt.
 - **Offline-Gates** (`python3 scripts/test_suite.py offline`):
   - Welle auf `15b46ff`: PASS, Playwright 282/282.
   - Kontrast auf `82418a7`: PASS, Backend 969, Vitest 1684, Playwright 292/292.
@@ -51,14 +60,18 @@ enthält jeden anderen Branch.
   - Stand R60 (Teil B, Neu-Parse im Lauf, Sim-Toolsetter, Pins, Settings, Gleiten, VP-I20):
     PASS auf `6222310`, Backend 1145, Vitest 1838, Playwright 382/382.
   - Keypad mit Schema 10: PASS auf `7c7971b`, Backend 1145, Vitest 1838, Playwright 383/383.
-  - Danach kamen nur noch Review-Dokumente dazu.
+  - Makros mit den R70-Korrekturen: PASS auf `698b1f9`, Playwright 423/423.
+  - Meldungsliste: PASS auf `be29a8b`, Playwright 440/440.
+  - Dialoge im Hochformat: PASS auf `1aa33cf`, Backend 1245, Vitest 1888, Playwright 465/465.
 
 ## Vorbereitung
 
 1. Die Suite läuft im Dev-Modus (Vite auf `:5173`) und zeigt den ausgecheckten Branch. Ausgecheckt
-   ist `feat/keypad-keys`; er enthält `feat/viewer-palette`, `feat/operator-backlog`,
-   `feat/viewer-contrast`, die ganze Design-Welle und den XYZAC-Fix.
-   - Vorher ist die **A/B-Messung** auf deinem Mac gelaufen (Abschnitt „Vor der Abnahme“).
+   ist `feat/backlog-integration`; er enthält `feat/keypad-keys`, `feat/viewer-palette`,
+   `feat/operator-backlog`, `feat/viewer-contrast`, die ganze Design-Welle, den XYZAC-Fix und
+   alle Pakete seit dem 1. Oktober.
+   - Die **A/B-Messung** auf deinem Mac ist am 1. Oktober bestanden (Abschnitt „Vor der
+     Abnahme“).
 2. Den Browser-Tab **einmal hart neu laden** (Strg+Umschalt+R), damit alte Paletten und Stile
    sicher weg sind.
 3. **Settings → 3D Viewer → Colors:** Dort steht „Colors from an earlier version“. Auf **„Use
@@ -297,26 +310,45 @@ Debug-Schalter.
 | Texttastatur | X rot; die Bestätigung heißt „Apply“: in der MDI-Zeile sendet sie den Befehl, in einem Textfeld schließt sie; der Editor behält sein Zeilenumbruch-Symbol; der Send-Button der MDI-Zeile selbst heißt weiter „Send“ |
 | Echte Tastatur | Tippen leuchtet keine Bildschirmtaste auf (deine Entscheidung) |
 
+## Seit dem 2. Oktober (`feat/backlog-integration`)
+
+| Bereich | Worauf achten |
+|---|---|
+| Settings › 3D Viewer (Paket 2) | Die Abschnitte stehen untereinander, jeder über die ganze Breite; innen zwei Spalten, wo sie passen (Layers als zwei Tabellen, die Legende darunter). Bei 150 % im Hochformat steht alles einspaltig, nichts läuft seitlich hinaus |
+| Jog und Setup (Paket 3) | Im Querformat teilen sich zwei Drehachsen eine Spalte: je Achse + über −. Setup zeigt Symbole statt Wörter (Haus = Home, durchgestrichenes Haus = Unhome, Bezugszeichen = Zero), ihr Tooltip nennt die Aktion |
+| Grenzen und Nadeln (Paket 4) | Die Striche der Maschinen- und Programmbox und der Reichweiten-Umrisse kleben an der Geometrie: Beim Zoomen wandern sie nicht. Die Programmbox hat Endmarken an jeder Kante; „Machine bounds“ und „Program bounds“ stehen an ihrer Box und folgen deren „On top“. Die Nadeln sind cyan |
+| Makros (Paket 5) | Tab „Macros“ wie die Werkzeugtabelle: Suche, Filter (All / On the bar / Not on the bar), nach Name sortierbar. Ein Tipp auf die Zeile wählt das Makro, Run im Kopf läuft per Halten (mit Parametern öffnet ein Tipp den Dialog). Der Stift öffnet den Editor als Dialog mit File name, Title und Description über dem Code; ein anderer Name benennt die Datei um. Die Makroleiste liegt quer über der Leiste, im Hochformat zwischen Viewer und Seitenpanel, Abort steht rechts außerhalb des Scrollbereichs |
+| Köpfe der Tabs | Program, Tools und Macros: links die Maschinenaktionen mit Abort, rechts „More“ mit der Verwaltung (New, Files, Upload, Download …). More behält seine Breite, auch mit „· M01“ und offen |
+| Download | In More: das geladene Programm, die Werkzeugtabelle (die Datei, wie LinuxCNC sie liest), das gewählte Makro |
+| Scrollbalken | In jedem Dialog und in beiden Code-Editoren der dünne Balken der App, nie der breite schwarze des Browsers |
+| G-code-Referenz | So breit wie Settings. Der Codeblock in der Safety-Leiste ist ein Knopf und öffnet die Referenz auf „Active now“; ein Tipp auf einen Code im Programm springt zu seinem Eintrag (markiert). Im Hochformat bei 150 % Karten. In Firefox (Mac und Linux) reagiert die Gruppenauswahl und flackert nicht |
+| Menüs | Kein Auswahlmenü flackert oder verliert die Wahl, während die Maschine läuft (Firefox); auch die Tastenbelegung im Gamepad-Tab mit angeschlossenem Pad |
+| Werkzeugtabelle | Nie mehr dauerhaft „Loading tools…“: Nach 8 s ohne Antwort steht dort „No reply from the gateway yet — retry“, Retry ist immer bedienbar |
+| Meldungsliste | Suche, ein Filter für Typ und Herkunft, sortierbarer Kopf (Time, Type, Source), Kopieren und Papierkorb je Zeile, die Zahl im Titel („Messages (7 of 12)“). Im Hochformat bei 150 % Karten, Copy / Clear All als Symbole. Ältere Meldungen zeigen bei Source „—“ |
+| Dialoge im Hochformat | Bei 150 % passt jeder Dialog in den Inhaltsbereich: Program Stats und Run from line ragten links und rechts hinaus |
+| Hinweisblase | Ein Tipp auf eine halb verdeckte Option am Rand der Leiste (z. B. die reservierte G59 auf der TWP-Maschine): Die Leiste scrollt sie ins Bild, und der Hinweis bleibt an ihr stehen |
+
+**Noch deine Entscheidung:** der Program-Kopf im schmalen Panel (Hochformat 150 %). Heute drei
+Zeilen (Start · Step / Pause · Abort / More), Alternative zwei Zeilen (Start · Step · Pause /
+Abort … More), sofern „Start L123“ darin Platz hat.
+
 ## Wenn alles passt — Merge (nur `development`, nie `main`)
 
 ```bash
 cd ~/lcnc-suite
 git checkout development
-git merge --no-ff feat/ui-design-wave
-git merge --no-ff feat/viewer-contrast
-git merge --no-ff feat/operator-backlog
-git merge --no-ff feat/viewer-palette
-git merge --no-ff feat/keypad-keys
+git merge --no-ff feat/backlog-integration
 git merge --no-ff fix/example-tool-numbers
 ```
 
-`fix/example-tool-numbers` (Werkzeugnummern der Beispieltabellen, T2… neben der Bibliothek ab
-T1001) steht eigenständig auf `development` und kommt zum Schluss.
+`feat/backlog-integration` enthält alle Branches dieser Liste in der richtigen Reihenfolge, auch
+`fix/xyzac-z0-m600` zusammen mit dem Frontend auf `feat/viewer-contrast`, das er braucht. Einzeln
+gemergt würde das Gateway des Fix-Branches jedes Run from line ablehnen („Program changed —
+confirm Run from line again“).
 
-`feat/viewer-contrast` enthält auch `fix/xyzac-z0-m600`; der XYZAC-Fix kommt also mit. **Nie
-einzeln mergen:** Das Frontend zu Run from line und Messen liegt nur auf `feat/viewer-contrast`.
-Allein würde das Gateway des Fix-Branches jedes Run from line ablehnen („Program changed — confirm
-Run from line again“).
+`fix/example-tool-numbers` (Werkzeugnummern der Beispieltabellen, T2… neben der Bibliothek ab
+T1001) steht eigenständig auf `development`, kommt zum Schluss und lässt sich konfliktfrei
+dazumergen (geprüft am 4. Oktober).
 
 Danach die Suite neu starten. Ein `git push` ist deine Entscheidung; die bisherigen Merges nach
 `development` waren lokal. Wenn etwas nicht passt: kurz notieren, was und wo (Theme, Zoom,
