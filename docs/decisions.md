@@ -7866,3 +7866,14 @@ page that reloaded mid-read. Nothing ended the wait and there was no Retry
   the gateway (`publishToolTable`: the mock's new `replyFor` answers each
   read with its req_id, then `tool_table_changed`).
 
+## 2026-10-04 — No select is written while the machine talks (a guard for every menu)
+
+After the reference's group list (Firefox, the same day) the operator asked
+whether every menu had the fix. `select-writes.spec` now watches every select
+of the app in the state that shows it while 20 status packets flow (position,
+the motion mode G0 ↔ G1, the spindle tool, the feed) and a gamepad is polled,
+and requires no mutation inside any. It found one more: the gamepad mapping
+selects in Settings were rewritten 242 times in 20 packets with a pad
+connected — every poll re-rendered the tab. Their options are `v-memo`'d
+like the reference's. Red: either `v-memo` removed.
+

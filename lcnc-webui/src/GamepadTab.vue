@@ -211,7 +211,11 @@ const rawSummary = computed(() => {
                 v-model="gpMapping[key]"
                 @update:modelValue="onGpMappingChanged"
               >
-                <option v-for="a in GAMEPAD_ACTIONS" :key="a.value" :value="a.value">{{ a.label }}</option>
+                <!-- v-memo: the tab re-renders at the pad's poll rate, and Vue
+                     re-assigns a bound <option value> on every render; Firefox
+                     rebuilds an OPEN dropdown on any change inside it (2026-10-04,
+                     select-writes.spec: 242 writes in 20 packets) -->
+                <option v-for="a in GAMEPAD_ACTIONS" :key="a.value" v-memo="[a.value, a.label]" :value="a.value">{{ a.label }}</option>
               </MachineSelect>
             </td>
             <td class="gpMapKey">{{ label }}</td>
