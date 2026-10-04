@@ -142,3 +142,32 @@ test("the reference is as wide as Settings; nothing sideways at 100 % and at 150
   await expect(dialog.getByRole("button", { name: /^Code/ })).toBeVisible();
   await expect.poll(() => marked(page)).toEqual({ codes: ["G1"], inView: true });
 });
+
+test("nothing writes into the group list while status flows — Firefox rebuilds an OPEN dropdown on any change inside it", async ({ page }) => {
+  // Operator 2026-10-04: Firefox on macOS dropped the chosen group, on Linux
+  // the open list flickered back to the current one. Every status packet
+  // re-rendered the dialog (a new active-codes array) and Vue re-assigns a
+  // bound <option value> on every render. Counted here as DOM mutations
+  // inside the select — browser-neutral; Firefox is what reacts to them.
+  await setup(page);
+  const G = GCODES, M = MCODES;
+  for (const open of ["header", "block"] as const) {
+    if (open === "header") await page.getByTitle("G-code Reference", { exact: true }).click();
+    else await codesBlock(page).click();
+    await expect(reference(page)).toBeVisible();
+    await reference(page).locator("select").evaluate(sel => {
+      const w = window as unknown as { __selMuts: string[] };
+      w.__selMuts = [];
+      new MutationObserver(ms => ms.forEach(m => w.__selMuts.push(`${m.type} ${(m.target as Element).tagName} ${m.attributeName ?? ""}`)))
+        .observe(sel, { subtree: true, childList: true, attributes: true, characterData: true });
+    });
+    const muts = () => page.evaluate(() => (window as unknown as { __selMuts: string[] }).__selMuts);
+    for (let i = 0; i < 20; i++) await ctl({ op: "status_delta", data: { position: [i, 0, 0, 0, 0, 0, 0, 0, 0] } });
+    expect(await muts(), `${open}, idle: the position moves, the codes stay`).toEqual([]);
+    for (let i = 0; i < 20; i++) await ctl({ op: "status_delta", data: { gcodes: G.map((c, j) => j === 1 ? (i % 2 ? 10 : 0) : c), mcodes: M } });
+    await expect.poll(() => shownCodes(page)).toBeTruthy();
+    expect(await muts(), `${open}, a run: the motion mode flips G0 ↔ G1`).toEqual([]);
+    await close(page);
+    await ctl({ op: "status_delta", data: { gcodes: G } });
+  }
+});

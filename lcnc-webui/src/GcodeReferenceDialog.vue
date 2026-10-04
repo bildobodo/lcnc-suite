@@ -75,9 +75,14 @@ function toggleSort(key: "code" | "name") {
             class="refSearch"
           />
           <MachineSelect gate="filter" v-model="filterGroup" name="gcodeGroupFilter" aria-label="Filter by group">
+            <!-- v-memo: Vue re-assigns a bound <option value> on EVERY render,
+                 and Firefox rebuilds an OPEN dropdown on any change inside the
+                 select — while a run changes the active codes the list
+                 flickered on Linux and lost the choice on macOS (operator
+                 2026-10-04). The options never change; nothing writes them. -->
             <option value="">All groups</option>
-            <option v-if="activeCodes.length" :value="ACTIVE_FILTER">Active now</option>
-            <option v-for="g in GCODE_GROUPS" :key="g" :value="g">{{ g }}</option>
+            <option v-if="activeCodes.length" v-memo="[]" :value="ACTIVE_FILTER">Active now</option>
+            <option v-for="g in GCODE_GROUPS" :key="g" v-memo="[g]" :value="g">{{ g }}</option>
           </MachineSelect>
         </div>
         <!-- Nothing scrolls sideways: Name and Syntax wrap at Settings'

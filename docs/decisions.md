@@ -7830,4 +7830,16 @@ Two ideas of 2026-10-01, rendered first (acceptance page V10), then chosen
   away, which the strip-state invariant read as "4 controls became 3" — it
   now compares the pinned controls there (`refControls`), and the negative
   control still sees the band's re-flow.
+- **Firefox, 2026-10-04 (operator: macOS — choosing a group did nothing;
+  Linux — the open list flickered back to the current group):** the dialog
+  took the active codes as a NEW array from every status packet, re-rendered
+  5–30 times a second, and Vue re-assigns a bound `<option value>` on every
+  render — Firefox rebuilds an OPEN dropdown on any change inside the select
+  (measured: 20–60 writes per 30 packets; Chrome ignores them). The codes now
+  come from the two strings (an unchanged packet hands over the same array)
+  and the options are `v-memo`'d, so a run changing the codes writes nothing
+  into the list either. Guard: `gcode-reference.spec` counts mutations
+  inside the select over 20 idle and 20 run packets — red without `v-memo`.
+  A sweep found no other select written by status (side panel, probing
+  procedure, jog step, tool and macro filters: 0).
 
