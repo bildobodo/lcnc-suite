@@ -13,7 +13,10 @@ const TOOL = { T: 5, P: 5, D: 6, Z: -40, type: "endmill", description: "Five mil
 
 test("a slow read says so, keeps waiting and takes its late reply; Retry reads again", async ({ page }) => {
   test.setTimeout(60_000);
-  await openLayout(page, PROFILES[1]!, VIEWPORTS[0]!);       // the mock reset: get_tool_table unanswered
+  await openLayout(page, PROFILES[1]!, VIEWPORTS[0]!);
+  // a gateway slow to answer: the read after a table change stays out
+  await ctl({ op: "replyFor", cmd: "get_tool_table", reply: "silent" });
+  await ctl({ op: "raw", frame: { type: "tool_table_changed", version: 70 } });
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   const tab = page.locator(".toolsTab");
   const loading = tab.locator(".emptyState.loading");
@@ -36,7 +39,7 @@ test("a slow read says so, keeps waiting and takes its late reply; Retry reads a
   await expect(tab.getByRole("button", { name: "Edit T5", exact: true })).toBeVisible();
 
   // Retry while slow: a new read, answered now
-  await ctl({ op: "replyFor", cmd: "get_tool_table", reply: null });
+  await ctl({ op: "replyFor", cmd: "get_tool_table", reply: "silent" });
   await ctl({ op: "raw", frame: { type: "tool_table_changed", version: 77 } });
   await expect(note).toContainText("No reply from the gateway yet", { timeout: 12_000 });
   await ctl({ op: "replyFor", cmd: "get_tool_table", reply: { ok: true, tools: [TOOL, { ...TOOL, T: 6, P: 6, description: "Six mill" }] } });

@@ -284,6 +284,9 @@ test("tool table: T# and description first, the sort announced, the loaded tool 
   // Design wave D5 (K07, N84).
   await ready(page, false);
   await ctl({ op: "status_delta", data: { tool_number: 7 } });
+  // a read still out (a gateway slow to answer) says "Loading", not "empty"
+  await ctl({ op: "replyFor", cmd: "get_tool_table", reply: "silent" });
+  await ctl({ op: "raw", frame: { type: "tool_table_changed", version: 1 } });
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   const table = page.locator(".sidePane .tableWrap:visible");
   await expect(table.locator(".emptyState.loading")).toHaveText("Loading tools…");
@@ -291,7 +294,7 @@ test("tool table: T# and description first, the sort announced, the loaded tool 
   await expect(table.locator(".emptyState:not(.loading):not(.noMatch)")).toContainText("No tools in the table");
   // The table changed on the server: the panel asks again (a server slow to
   // answer — no reply yet), then gets the rows.
-  await ctl({ op: "replyFor", cmd: "get_tool_table", reply: null });
+  await ctl({ op: "replyFor", cmd: "get_tool_table", reply: "silent" });
   await ctl({ op: "raw", frame: { type: "tool_table_changed", version: 2 } });
   await expect(table.locator(".emptyState.loading")).toHaveText("Loading tools…");
   await publishToolTable([TOOL, { ...TOOL, T: 7, P: 7, D: 3, description: "Drill 3" }]);

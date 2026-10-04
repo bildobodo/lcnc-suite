@@ -27,8 +27,9 @@ function ctlAt(base: string, op: Record<string, unknown>): Promise<unknown> {
   });
 }
 
-/** Serve the tool table the way the gateway does: the mock answers every
- *  `get_tool_table` with its req_id (the Tools tab and the strip read through
+/** Serve the tool table the way the gateway does (the mock answers a read
+ *  with an EMPTY table by default; `replyFor … "silent"` scripts a gateway
+ *  slow to answer): the mock answers every `get_tool_table` with its req_id (the Tools tab and the strip read through
  *  request() and take only their own reply — operator 2026-10-04, a lost
  *  reply left "Loading tools…"), and `tool_table_changed` makes both read it
  *  again. Never push an unsolicited reply: nothing takes it any more. */
