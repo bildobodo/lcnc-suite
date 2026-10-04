@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
-import { Lock, LockOpen, TriangleAlert, Power } from "lucide-vue-next";
+import { Lock, LockOpen, TriangleAlert, Power, BookOpen } from "lucide-vue-next";
 import { activeKind } from "./inputSession";
 import { useMediaMql } from "./useMediaMql";
 import { NO_VALUE } from "./format";
@@ -38,6 +38,7 @@ const emit = defineEmits<{
   (e: "estopReset"): void;
   (e: "machineOn"): void;
   (e: "machineOff"): void;
+  (e: "openActiveCodes"): void;
 }>();
 
 const modeLabel = computed(() => {
@@ -78,6 +79,9 @@ const overridesActive = computed(() =>
 // return when the helper closes. The safety buttons never move (WP4 pinned
 // controls); landscape is unchanged (fixed section height).
 const isPortrait = useMediaMql("(orientation: portrait)");
+// the block's name carries the codes it shows (WCAG 2.5.3), none before a status
+const codesLabel = computed(() =>
+  ["Active codes", props.gcodes, props.mcodes].filter(Boolean).join(" ") + " — open in the G-code reference");
 const compact = computed(() => isPortrait.value && activeKind.value !== null);
 </script>
 
@@ -154,11 +158,17 @@ const compact = computed(() => isPortrait.value && activeKind.value !== null);
         </div>
       </div>
       <div class="sep"></div>
-      <div class="codesRow stack-micro">
-        <span class="codes-value">{{ gcodes }}</span>
-        <div class="sep"></div>
-        <span class="codes-value">{{ mcodes }}</span>
-      </div>
+      <!-- One tap opens the G-code reference on "Active now" (operator
+           2026-10-03, variant B: one big target, the strip unchanged). -->
+      <MachineBtn type="activeCodes" class="codesRow" :aria-label="codesLabel"
+                  title="Open the active codes in the G-code reference"
+                  @click="emit('openActiveCodes')">
+        <!-- G over M by a gap: a .sep is a SECTION rule, never inside a control -->
+        <span class="stack-tight">
+          <span class="codesHead"><span class="codes-value">{{ gcodes }}</span><BookOpen :size="14" class="codesIcon" aria-hidden="true" /></span>
+          <span class="codes-value">{{ mcodes }}</span>
+        </span>
+      </MachineBtn>
     </div>
   </div>
 </template>
@@ -211,10 +221,16 @@ const compact = computed(() => isPortrait.value && activeKind.value !== null);
   .statusDetail { padding-inline: var(--gap-tight); }
 }
 .codesRow {
-  /* Prevent codes from widening the strip — wrap within status column width */
+  /* Prevent codes from widening the strip — wrap within status column width.
+     The button reaches into the detail's side padding, so its text lines up
+     with the rows above and its tint has room. */
   width: 0;
-  min-width: 100%;
+  min-width: calc(100% + 2 * var(--gap-tight));
+  margin-inline: calc(-1 * var(--gap-tight));
 }
+.codesHead { display: flex; align-items: flex-start; gap: var(--gap-tight); }
+.codesHead .codes-value { flex: 1; min-width: 0; }
+.codesIcon { flex: none; color: var(--fg-muted); }
 .codes-value {
   word-break: keep-all;
   overflow-wrap: normal;

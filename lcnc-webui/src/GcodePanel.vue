@@ -20,6 +20,7 @@ import { glideAt, planGlide, visibleBand, type Glide } from "./codeGlide";
 import { emitTelemetry, pushMessage } from "./lcncWs";
 import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "./lcnc";
 import { GCODE_LOOKUP, GCODE_REFERENCE } from "./gcodeReference";
+import { refTargets, normaliseCode } from "./gcodeRefView";
 import { Play, SkipForward, Pause, X, Triangle } from "lucide-vue-next";
 import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
@@ -127,19 +128,14 @@ const tooltip = ref<{ code: string; name: string; desc: string; x: number; y: nu
 
 function onTokenMouseEnter(ev: MouseEvent, token: Token) {
   if (token.type !== 'gcode' && token.type !== 'mcode') return;
-  const code = token.text.toUpperCase();
-  const entry = GCODE_LOOKUP.get(code);
+  // its entry, else every form it heads (G10 → G10 L2, G10 L20 …); G01 is G1
+  const targets = refTargets(GCODE_REFERENCE, token.text);
   const rect = (ev.target as HTMLElement).getBoundingClientRect();
+  const entry = targets.length === 1 ? GCODE_LOOKUP.get(targets[0]!) : undefined;
   if (entry) {
     tooltip.value = { code: entry.code, name: entry.name, desc: entry.desc, x: rect.left + rect.width / 2, y: rect.top };
-  } else {
-    // Prefix match for compound codes (G10 → G10 L2, G10 L20, etc.)
-    const matches = GCODE_REFERENCE.filter(e => e.code.toUpperCase().startsWith(code + " ") || e.code.toUpperCase().startsWith(code + "."));
-    if (matches.length === 1) {
-      tooltip.value = { code: matches[0]!.code, name: matches[0]!.name, desc: matches[0]!.desc, x: rect.left + rect.width / 2, y: rect.top };
-    } else if (matches.length > 1) {
-      tooltip.value = { code, name: `${matches.length} forms`, desc: "Click for details", x: rect.left + rect.width / 2, y: rect.top };
-    }
+  } else if (targets.length > 1) {
+    tooltip.value = { code: normaliseCode(token.text), name: `${targets.length} forms`, desc: "Click for details", x: rect.left + rect.width / 2, y: rect.top };
   }
 }
 

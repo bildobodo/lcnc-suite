@@ -7,6 +7,9 @@ defineProps<{
   /** A value that IS the control (an offset cell): the cell's own text,
    *  no chrome — the table cell carries the editable look (operator P5). */
   value?: boolean;
+  /** A block of readout text that IS the control (the Safety strip's active
+   *  codes): its own typography, wrapping; a tint on hover and press. */
+  area?: boolean;
   block?: boolean;
   active?: boolean;
   selected?: boolean;
@@ -25,9 +28,9 @@ defineProps<{
 <template>
   <button
     :class="[
-      icon ? 'b-icon' : inline ? 'b-inline' : value ? 'b-value' : 'b',
-      !inline && !value && (size ?? 'md'),
-      !icon && !inline && !value && (variant ?? 'default'),
+      icon ? 'b-icon' : inline ? 'b-inline' : value ? 'b-value' : area ? 'b-area' : 'b',
+      !inline && !value && !area && (size ?? 'md'),
+      !icon && !inline && !value && !area && (variant ?? 'default'),
       { active, selected, flashing, warning, block, muted, mono, holding },
       tab && `tab-${tab}`,
     ]"
@@ -298,6 +301,25 @@ html:not(.touch-device) .b-inline:hover:not(:disabled) { background: var(--hl-ho
   text-align: inherit;
   cursor: inherit;
 }
+
+/* ---- Area button (a readout that opens more, operator 2026-10-03) ----
+   The text keeps its own typography and wraps; the placing class gives the
+   width. A tint shows it is a control; focus is the global ring. */
+.b-area {
+  display: block;
+  padding: var(--gap-micro) var(--gap-tight);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+html:not(.touch-device) .b-area:hover:not(:disabled) { background: var(--hl-hover); border-color: var(--border); }
+.b-area:active:not(:disabled) { background: var(--hl-active); }
+.b-area:disabled { opacity: var(--opacity-disabled); cursor: not-allowed; }
 
 /* Motion is optional (design wave D8): the E-Stop flash and the warning
    pulse stop; the state stays the static fill. */

@@ -13,6 +13,9 @@ export interface ButtonDef {
   inline?: boolean;
   /** The value look (Btn.vue `.b-value`): an editable table value. */
   value?: boolean;
+  /** The area look (Btn.vue `.b-area`): a block of readout text that IS the
+   *  control — its own typography, wrapping, a tint on hover/press. */
+  area?: boolean;
   mono?: boolean;
   // Disable while a probe operation is in flight (st.probing). Centralises
   // the ~14 ad-hoc `:disabled="probing"` props that were scattered across
@@ -198,6 +201,9 @@ export const BUTTON_TYPES = {
   // (operator P5 — the cell used to open only on a click, with no keyboard
   // path). G10 L2 is a probe-tier write (command_policy).
   offsetCell:     { gate: 'probe',   variant: 'default', size: 'sm',  value: true },
+  // The Safety strip's active G/M codes: one tap opens the G-code reference
+  // on "Active now" (operator 2026-10-03, variant B). Navigation only.
+  activeCodes:    { gate: 'always',  variant: 'default', size: 'sm',  area: true },
   // G30's stored position (operator P4, Codex R21–R24): no motion. Taking
   // the current position over and saving are machine-frame only (our G30
   // routines address it with G53 moves); a confirming read synchs — idle.
