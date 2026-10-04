@@ -1,0 +1,7 @@
+{
+  "slowAfterMs": 8468,
+  "expiredAfterMs": 60088,
+  "ignoredExpiredReply": true,
+  "retryTable": "T7",
+  "stripRetryCleared": true
+}

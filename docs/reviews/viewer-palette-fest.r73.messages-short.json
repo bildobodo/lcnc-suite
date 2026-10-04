@@ -1,0 +1,20 @@
+[
+  {
+    "zoom": 1,
+    "tableHeight": 145,
+    "headHeight": 52,
+    "bodyRoom": 93,
+    "dialogHeight": 348,
+    "contentClientHeight": 293,
+    "contentScrollHeight": 293
+  },
+  {
+    "zoom": 1.5,
+    "tableHeight": 0,
+    "headHeight": 78,
+    "bodyRoom": -78,
+    "dialogHeight": 75,
+    "contentClientHeight": 24,
+    "contentScrollHeight": 109
+  }
+]
