@@ -7874,6 +7874,8 @@ of the app in the state that shows it while 20 status packets flow (position,
 the motion mode G0 ↔ G1, the spindle tool, the feed) and a gamepad is polled,
 and requires no mutation inside any. It found one more: the gamepad mapping
 selects in Settings were rewritten 242 times in 20 packets with a pad
-connected — every poll re-rendered the tab. Their options are `v-memo`'d
-like the reference's. Red: either `v-memo` removed.
+connected — every poll re-rendered the tab. Their ROWS are `v-memo`'d by
+binding and label (a `v-memo` on the options, nested in the rows' `v-for`,
+is not honoured — the lint caught it in the first gate). Red: either memo
+removed.
 

@@ -202,7 +202,12 @@ const rawSummary = computed(() => {
           <tr><td>XY continuous jog (proportional)</td><td class="gpMapKey">Left Stick</td></tr>
           <tr><td>Z continuous jog (proportional)</td><td class="gpMapKey">Right Stick Y</td></tr>
           <tr><td>XY discrete jog (full speed)</td><td class="gpMapKey">D-pad</td></tr>
-          <tr v-for="(label, key) in GP_BTN_LABELS" :key="key">
+          <!-- v-memo on the ROW (a v-memo inside a v-for is not honoured):
+               the tab re-renders at the pad's poll rate, and Vue re-assigns a
+               bound <option value> on every render; Firefox rebuilds an OPEN
+               dropdown on any change inside it (2026-10-04, select-writes.spec:
+               242 writes in 20 packets). The row changes with its binding. -->
+          <tr v-for="(label, key) in GP_BTN_LABELS" :key="key" v-memo="[gpMapping[key], label]">
             <td>
               <MachineSelect
                 gate="inputConfig"
@@ -211,11 +216,7 @@ const rawSummary = computed(() => {
                 v-model="gpMapping[key]"
                 @update:modelValue="onGpMappingChanged"
               >
-                <!-- v-memo: the tab re-renders at the pad's poll rate, and Vue
-                     re-assigns a bound <option value> on every render; Firefox
-                     rebuilds an OPEN dropdown on any change inside it (2026-10-04,
-                     select-writes.spec: 242 writes in 20 packets) -->
-                <option v-for="a in GAMEPAD_ACTIONS" :key="a.value" v-memo="[a.value, a.label]" :value="a.value">{{ a.label }}</option>
+                <option v-for="a in GAMEPAD_ACTIONS" :key="a.value" :value="a.value">{{ a.label }}</option>
               </MachineSelect>
             </td>
             <td class="gpMapKey">{{ label }}</td>
