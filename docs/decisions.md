@@ -7913,3 +7913,17 @@ moved into the title (a footer line cost the low touchscreen dialog a row).
 The filter's options are constant, so its `v-memo` carries nothing today —
 the guard (`select-writes`, messages arriving while the center is open) is
 proved red with options whose label changes with every message.
+
+## 2026-10-04 — Every dialog scanned narrow too (150 % portrait, touch)
+
+The message center's header ran 8 px out of its dialog at 150 % portrait and
+no guard saw it: `dialogs.spec` checked sideways overflow at the desktop size
+only. Each of its 25 dialogs is now scanned a second time — opened at the
+desktop size (its way in is a desktop tab or button), then 900 × 1200 at
+150 % with touch density: nothing sideways, the dialog inside the content
+area. It found two more: Program Stats (`min-width: 340px`) and Run from line
+(`320px`) ran out of the 296 px content area on both sides — a min-width
+beats a max-width. Every dialog min-width is now capped by the room like its
+max-width. Red: either floor restored, the message center's header with its
+words.
+

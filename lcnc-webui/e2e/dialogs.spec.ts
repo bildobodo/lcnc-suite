@@ -610,6 +610,37 @@ for (const row of ROWS) {
   });
 }
 
+// The same dialogs NARROW — 900 × 1200 at 150 %, touch density: nothing runs
+// out sideways and the dialog stays inside the content area. The scan above
+// runs at the desktop size only, and the message center's header ran 8 px
+// out of its dialog there unseen (2026-10-04). Each dialog opens at the
+// desktop size (its way in is a desktop tab or button), then the window
+// turns portrait.
+for (const row of ROWS) {
+  test(`dialog ${row.id} at 150 % portrait (touch): nothing sideways, inside the content area`, async ({ page }) => {
+    await row.before?.(page);
+    await ready(page, row.settings);
+    await row.open(page);
+    const dialog = page.getByRole("dialog", { name: row.title, exact: typeof row.title === "string" });
+    await expect(dialog).toBeVisible();
+    await page.setViewportSize({ width: 900, height: 1200 });
+    await page.evaluate(() => {
+      document.documentElement.classList.add("touch-device");
+      document.documentElement.style.zoom = "1.5";
+    });
+    await settle(page);
+    await settle(page);
+    await expect(dialog).toBeVisible();
+    expect(await sidewaysOverflow(dialog), "content past its box sideways").toEqual([]);
+    const edges = await dialog.evaluate(d => {
+      const box = d.getBoundingClientRect(), area = document.getElementById("content-dialog-area")!.getBoundingClientRect();
+      return { left: box.left - area.left, right: area.right - box.right };
+    });
+    expect(edges.left, "the dialog's left edge inside the content area").toBeGreaterThanOrEqual(-0.5);
+    expect(edges.right, "the dialog's right edge inside the content area").toBeGreaterThanOrEqual(-0.5);
+  });
+}
+
 test("UI-D01: from inside a dialog Tab reaches the banner's Abort — Enter sends exactly abort, also stacked and with a helper open", async ({ page }) => {
   await fakeGamepad(page);   // its profile's Remove asks over Settings, open while a program runs
   await ready(page, { gamepad: { profiles: { [PAD_ID]: { id: PAD_ID, buttons: {}, sticks: {} } } } });

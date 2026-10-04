@@ -1706,9 +1706,12 @@ label:has(input:disabled, select:disabled) {
   z-index: var(--z-modal);
 }
 /* Per-dialog box sizes: global, because DialogFrame renders the box and a
-   caller's scoped rule never reaches it (box-class). */
-.dialog.statsDialog { min-width: 340px; max-width: 480px; }
-.dialog.runDialog { min-width: 320px; }
+   caller's scoped rule never reaches it (box-class). A min-width is capped
+   by the room like every max-width: it beats max-width, and at 150 %
+   portrait (a 296 px content area) Program Stats and Run from line ran out
+   of the content area on both sides (2026-10-04). */
+.dialog.statsDialog { min-width: min(340px, calc(100% - 2 * var(--gap-panel))); max-width: 480px; }
+.dialog.runDialog { min-width: min(320px, calc(100% - 2 * var(--gap-panel))); }
 .dialog.gpWizard { width: min(440px, 90vw); }   /* no resize between wizard steps */
 
 /* A machine flow (tool change, shutdown, compensation) sits above every
@@ -1722,7 +1725,7 @@ label:has(input:disabled, select:disabled) {
   border: 1px solid var(--border);
   border-radius: var(--radius-2xl);
   padding: var(--gap-panel);
-  min-width: 280px;
+  min-width: min(280px, calc(100% - 2 * var(--gap-panel)));
   max-width: min(380px, calc(100% - 2 * var(--gap-panel)));
   font-size: var(--fs-base);
   text-align: center;
