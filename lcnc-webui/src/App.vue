@@ -913,8 +913,13 @@ const activeGWords = computed(() => gCodeWords(st.value.gcodes));
 const activeMWords = computed(() => mCodeWords(st.value.mcodes));
 const activeGcodes = computed(() => activeGWords.value.join(" "));
 const activeMcodes = computed(() => activeMWords.value.join(" "));
-// the reference's "Active now" (the strip's codes block opens it)
-const activeCodeWords = computed(() => [...activeGWords.value, ...activeMWords.value]);
+// the reference's "Active now" (the strip's codes block opens it) — derived
+// from the two STRINGS, so a status packet that leaves the codes as they were
+// hands the reference the SAME array (a computed whose value is unchanged
+// triggers nothing): a new one per packet re-rendered the open dialog 5–30
+// times a second, and every re-render rewrote its <option>s (operator
+// 2026-10-04, Firefox: the open group list flickered / dropped the choice)
+const activeCodeWords = computed(() => `${activeGcodes.value} ${activeMcodes.value}`.split(" ").filter(Boolean));
 
 // Tool change dialog (global — tool changes can happen from any context)
 const toolChangeRequested = computed(() => !!st.value.tool_change_requested);
