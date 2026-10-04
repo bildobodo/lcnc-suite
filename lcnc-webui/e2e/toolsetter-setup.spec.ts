@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
-import { ctl, MOCK } from "./ctl";
+import { ctl, MOCK, publishToolTable } from "./ctl";
 
 // Codex review R15 B1: the toolsetter's values reach the machine only when it
 // is SET UP — every required field in the section the SERVER confirmed, each
@@ -70,8 +70,7 @@ test("without the server's settings, and without a saved section, Measure Curren
 test("the gate sits in the call path: a tool-table load in M600 mode sends nothing while the setter is not set up", async ({ page }) => {
   await open(page, { ...M600, toolsetter: { touchZ: -300 } });
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
-  await ctl({ op: "raw", frame: { type: "reply", cmd: "get_tool_table", ok: true,
-    tools: [{ T: 7, P: 7, Z: -40, D: 6, type: "endmill", description: "Load me" }] } });
+  await publishToolTable([{ T: 7, P: 7, Z: -40, D: 6, type: "endmill", description: "Load me" }]);
   await page.getByRole("button", { name: "T7", exact: true }).click();
   await expect(page.locator(".bannerContent")).toContainText(`Load T7 not sent — ${UNSET}`);
   expect(await sent()).toEqual([]);

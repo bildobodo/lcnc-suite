@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { publishToolTable } from "./ctl";
 import WebSocket from "ws";
 import { readFileSync } from "node:fs";
 const bundle = JSON.parse(readFileSync(new URL("../../test-fixtures/freecad/custom-native.json", import.meta.url), "utf8"));
@@ -23,7 +24,7 @@ test("FreeCAD preview retains measured offsets, renders a custom shape, and expl
   await expect(page.locator('fieldset[data-gate="armed"]').first()).not.toBeDisabled();
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect.poll(async () => {
-    await ctl({ type: "reply", cmd: "get_tool_table", ok: true, tools: [tool] });
+    await publishToolTable([tool], MOCK);
     return page.getByTitle("Edit tool", { exact: true }).count();
   }).toBe(1);
   await page.getByTitle("Edit tool", { exact: true }).click();

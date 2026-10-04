@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
-import { ctl, MOCK } from "./ctl";
+import { ctl, MOCK, publishToolTable } from "./ctl";
 import { clickMore, moreTrigger } from "./more";
 import { Folder, serve } from "./macroFolder";
 import { sidewaysOverflow, thickScrollbars } from "./layout-audit";
@@ -105,7 +105,7 @@ async function loadProgram(page: Page) {
 async function openTools(page: Page) {
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect.poll(async () => {
-    await ctl({ op: "raw", frame: { type: "reply", cmd: "get_tool_table", ok: true, tools: [TOOL] } });
+    await publishToolTable([TOOL]);
     return page.getByTitle("Edit tool", { exact: true }).count();
   }).toBe(1);
 }

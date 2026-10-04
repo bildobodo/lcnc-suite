@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
-import { ctl } from './ctl';
+import { ctl, publishToolTable } from './ctl';
 import { assertLayout, measureLayout } from './layout-audit';
 import { openLayout, PANELS, PROFILES, setLayoutState, settleLayout, VIEWPORTS, type LayoutState } from './layout-fixtures';
 
@@ -52,7 +52,7 @@ for (const viewport of VIEWPORTS) {
     await openLayout(page, PROFILES[0], viewport);
     await page.getByRole('tab', { name: 'Tools', exact: true }).click();
     await expect.poll(async () => {
-      await ctl({ op: 'raw', frame: { type: 'reply', cmd: 'get_tool_table', ok: true, tools: [barrel] } });
+      await publishToolTable([barrel]);
       return page.getByTitle('Edit tool', { exact: true }).count();
     }).toBe(1);
     await page.getByTitle('Edit tool', { exact: true }).click();

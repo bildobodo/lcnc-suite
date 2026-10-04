@@ -331,6 +331,10 @@ ctlWss.on("connection", (ws) => {
       return;
     } else if (m.op === "replies") {
       replies = m.replies && typeof m.replies === "object" ? m.replies : {};
+    } else if (m.op === "replyFor") {
+      // one command's correlated reply, the others kept (null removes it)
+      replies = { ...replies, [m.cmd]: m.reply ?? undefined };
+      if (m.reply == null) delete replies[m.cmd];
     } else if (m.op === "refuseWs") {
       refuseWs = m.on === true;
     } else if (m.op === "shutdownClose") {

@@ -7843,3 +7843,26 @@ Two ideas of 2026-10-01, rendered first (acceptance page V10), then chosen
   A sweep found no other select written by status (side panel, probing
   procedure, jog step, tool and macro filters: 0).
 
+## 2026-10-04 — Operator: the tool table hung on "Loading tools…" until a browser refresh
+
+The Tools tab sent `get_tool_table` and waited — with no limit — for any
+reply carrying that command name. The gateway answered every read (the
+trace's only cancelled reads, at 07:47 and 10:34, had run 0–5 ms: pages
+reloading when the Mac woke and when a merge reached the served tree), so
+the read was lost on the client side: a request dropped in a reconnect, a
+page that reloaded mid-read. Nothing ended the wait and there was no Retry
+(it showed only with an error).
+
+- Both readers (Tools tab, Tool strip) go through `request()`: their own
+  reply by req_id, the newest read only. A slow read is said after 8 s
+  ("No reply from the gateway yet — retry") and its late reply is still
+  taken — a long command ahead of it in this client's FIFO is legitimate;
+  60 s without a reply or a lost connection end the read with the reason.
+  A table not read says so instead of "No tools in the table".
+- The strip read the table only by riding on the tab's replies; it now
+  reads again on `tool_table_changed` itself.
+- Twelve e2e sites pushed an UNSOLICITED `get_tool_table` reply into the
+  page — a path the gateway does not have. They now serve the table like
+  the gateway (`publishToolTable`: the mock's new `replyFor` answers each
+  read with its req_id, then `tool_table_changed`).
+

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { ctl, MOCK } from "./ctl";
+import { ctl, MOCK, publishToolTable } from "./ctl";
 import { clickMore } from "./more";
 import { encode } from "@msgpack/msgpack";
 
@@ -199,10 +199,8 @@ for (const pass of PASSES) {
     for (const tab of ["MDI", "Probing", "Offsets", "Tools"]) {
       await page.getByRole("tab", { name: tab, exact: true }).click();
       if (tab === "Tools") {
-        await expect.poll(async () => {
-          await ctl({ op: "raw", frame: { type: "reply", cmd: "get_tool_table", ok: true, tools: TOOLS } });
-          return page.locator(".toolsTab tbody tr").count();
-        }).toBe(2);
+        await publishToolTable(TOOLS);
+        await expect.poll(() => page.locator(".toolsTab tbody tr").count()).toBe(2);
       }
       await take(tab, ".sidePane");
       if (tab === "Probing") {

@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { encode } from '@msgpack/msgpack';
-import { ctl } from './ctl';
+import { ctl, publishToolTable } from './ctl';
 import { Folder, serveNow, addPlain } from './macroFolder';
 import { clickMore } from './more';
 import { NARROW_PANE_PX } from '../src/sidePaneNarrow';
@@ -421,7 +421,7 @@ for (const zoom of [1.5, 1]) {
     if (narrow) await page.getByRole('combobox', { name: 'Side panel', exact: true }).selectOption('tools');
     else await side.getByRole('tab', { name: 'Tools', exact: true }).click();
     await expect.poll(async () => {
-      await ctl({ op: 'raw', frame: { type: 'reply', cmd: 'get_tool_table', ok: true, tools: NARROW_TOOLS } });
+      await publishToolTable(NARROW_TOOLS);
       return side.locator('.toolsTab tbody tr').count();
     }).toBe(3);
     await settleLayout(page);
@@ -666,7 +666,7 @@ for (const viewport of VIEWPORTS) {
     const tools = Array.from({ length: 36 }, (_, i) => ({ T: 1001 + i, P: 1001 + i, Z: 50, D: 6,
       type: 'endmill', description: `Example tool ${i}`, remark: `Example tool ${i}` }));
     await expect.poll(async () => {
-      await ctl({ op: 'raw', frame: { type: 'reply', cmd: 'get_tool_table', ok: true, tools } });
+      await publishToolTable(tools);
       return table.locator('tbody tr').count();
     }).toBe(36);
     const actions = tab.locator('.toolsHead .actionGroup');   // the one action row (More holds Files)
@@ -1715,7 +1715,7 @@ for (const st of [NAV_STATES[0], NAV_STATES[3]]) {
     const checked: string[] = [];
     await open('Tools', 'tools');
     await expect.poll(async () => {
-      await ctl({ op: 'raw', frame: { type: 'reply', cmd: 'get_tool_table', ok: true, tools: MANY_TOOLS } });
+      await publishToolTable(MANY_TOOLS);
       return side.locator('.toolsTab tbody tr').count();
     }).toBe(MANY_TOOLS.length);
     await settleLayout(page);

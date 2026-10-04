@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { ctl, MOCK } from "./ctl";
+import { ctl, MOCK, publishToolTable } from "./ctl";
 import { Folder, serve } from "./macroFolder";
 import { clickMore } from "./more";
 
@@ -119,10 +119,8 @@ for (const touch of [false, true]) {
     for (const tab of ["Program", "MDI", "Offsets", "Tools"]) {
       await page.getByRole("tab", { name: tab, exact: true }).click();
       if (tab === "Tools") {
-        await expect.poll(async () => {
-          await ctl({ op: "raw", frame: { type: "reply", cmd: "get_tool_table", ok: true, tools: [TOOL] } });
-          return page.getByTitle("Edit tool", { exact: true }).count();
-        }).toBe(1);
+        await publishToolTable([TOOL]);
+        await expect.poll(() => page.getByTitle("Edit tool", { exact: true }).count()).toBe(1);
       }
       add(await scan(page, tab, ".sidePane"));
     }
@@ -255,7 +253,7 @@ test("list editors: one row-action look, action before binding, gamepad inversio
   // same look as every other list row's actions.
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect.poll(async () => {
-    await ctl({ op: "raw", frame: { type: "reply", cmd: "get_tool_table", ok: true, tools: [TOOL, { ...TOOL, T: 7, P: 7 }] } });
+    await publishToolTable([TOOL, { ...TOOL, T: 7, P: 7 }]);
     return page.getByRole("button", { name: "Edit T7", exact: true }).count();
   }).toBe(1);
   const edit = page.getByRole("button", { name: "Edit T7", exact: true });
@@ -289,13 +287,14 @@ test("tool table: T# and description first, the sort announced, the loaded tool 
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   const table = page.locator(".sidePane .tableWrap:visible");
   await expect(table.locator(".emptyState.loading")).toHaveText("Loading tools…");
-  const publish = (tools: unknown[]) => ctl({ op: "raw", frame: { type: "reply", cmd: "get_tool_table", ok: true, tools } });
-  await publish([]);
+  await publishToolTable([]);
   await expect(table.locator(".emptyState:not(.loading):not(.noMatch)")).toContainText("No tools in the table");
-  // The table changed on the server: the panel asks again, then gets the rows.
+  // The table changed on the server: the panel asks again (a server slow to
+  // answer — no reply yet), then gets the rows.
+  await ctl({ op: "replyFor", cmd: "get_tool_table", reply: null });
   await ctl({ op: "raw", frame: { type: "tool_table_changed", version: 2 } });
   await expect(table.locator(".emptyState.loading")).toHaveText("Loading tools…");
-  await publish([TOOL, { ...TOOL, T: 7, P: 7, D: 3, description: "Drill 3" }]);
+  await publishToolTable([TOOL, { ...TOOL, T: 7, P: 7, D: 3, description: "Drill 3" }]);
   await expect(table.getByRole("button", { name: "T7", exact: true })).toBeVisible();
   // Recognition first: T#, what the tool is, then its numbers; no P#, no Flutes.
   const heads = (await table.locator("thead th").allTextContents()).map(t => t.replace(/[▲▼]/g, "").trim()).filter(Boolean);
