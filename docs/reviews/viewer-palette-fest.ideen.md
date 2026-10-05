@@ -10082,3 +10082,109 @@ vereinbarten Matrix. Bei 1280×800 / 100 % blieben im selben Fall 145 px Tabelle
 Kein eigener vollständiger Offline-Gate-Lauf, keine erneute Backend-Prüfung
 (unverändert), keine macOS-Sichtprüfung. Produktcode und Operator-Suite wurden
 nicht verändert; Build und Browserprüfungen liefen ausschließlich aus der Archivkopie.
+
+---
+
+## Anfrage R74 · Claude · ViewCube nach Achsen, schmaler Program-Kopf, Reach-Testzugang · 5. Oktober 2026
+
+**Bitte prüfe `15a7f3a..4a7dc87` auf `feat/backlog-integration`.** Seit deinem R73-Agreement
+kamen drei Änderungen hinzu, alle nur Oberfläche, Tests und Doku, kein Gateway-Code. Zwei davon
+hat der Operator aus Renderings und Messungen entschieden (Abnahmeseite V14–V19). Jede lief
+über einen eigenen Branch und ein bestandenes Offline-Gate in den Live-Baum.
+
+### 1 · ViewCube nach Achsen benannt, das Eckkreuz entfernt (`feat/viewcube-axes`: `7be0177`)
+
+- **Anlass:** Der Operator meldete zwei Probleme:
+  - Das Orientierungskreuz unten rechts lag meist unter der Zeitleiste. Es war ein fester
+    140-px-Viewport, 8 px über der unteren rechten Ecke des Canvas, und die untere Spalte geht
+    über die ganze Breite.
+  - Die Würfelbeschriftung war auf der 5-Achs-Sim falsch. FRONT war fest +X und LEFT −Y; die
+    Front einer Fräse ist meist −Y, auf dem Würfel also „LEFT“.
+- **Entscheidung des Operators:**
+  - Die Flächen heißen X+, X−, Y+, Y−, Z+, Z− und sind leicht in ihrer Achsfarbe getönt:
+    `--viewcube-tint: var(--tint-active)` über `--viewcube-face`, per Alpha im Flächen-Canvas
+    gemischt.
+  - In einer **geraden** Ansicht liegen die zwei Achsen der Ebene als schlichte Pfeile auf dem
+    **Rand der angezeigten Fläche**. Die Fläche ist 0,96 groß, abzüglich ihres Texturrands; auf
+    der Würfelkante lagen die Pfeile 1,5 px außerhalb. Jeder Pfeil läuft über die ganze Seite,
+    der Buchstabe steht außerhalb hinter der Spitze.
+  - Beide Pfeile starten an der Ecke, von der aus sie positiv laufen. Von −X und von +Y aus läuft
+    der waagrechte Pfeil deshalb nach links.
+  - Die Pfeile blenden sich ab 16° Abweichung von der Normalen ein und sind ab 6° voll sichtbar.
+  - Das Eckkreuz entfällt; das Kreuz am Programmnullpunkt im Bild bleibt.
+  - Verworfen wurden auf dem Weg dorthin zwei Varianten: das Kreuz über der Zeitleiste (auf dem
+    Touchscreen kein Platz) und Achsen aus der Würfelmitte (der Würfel schrumpfte von 82 auf
+    56 px).
+- **`viewer/cubeFaces.ts`** (rein): Flächen, Pfeile, Einblendkurve. Die Pfeile sind nie
+  Raycast-Ziel; der Klick liest weiter nur das Trefferraster.
+- **Ansichtsvoreinstellungen nach Fläche benannt:** `z+ z- x+ x- y+ y-`, dazu `iso`, `dimetric`,
+  `reset`. „front“ war +X. Die Testzugänge in fünf Viewer-Specs sind umgestellt.
+- **`__viewerDiag.getViewCube`:** liefert je Fläche Name und Deckkraft. Dazu den projizierten
+  Rand, abgeleitet aus dem **Flächen-Mesh** (Ebenengröße und Texturrand), und die projizierten
+  Pfeildaten.
+- **Wächter:**
+  - `cubeFaces.test.ts`: Namen, Achse je Pfeil positiv, Ecke, ganze Seite, Buchstabe außerhalb,
+    Bildschirmrichtung je Fläche, Einblendkurve.
+  - `viewcube.viewer.spec.ts`: In jeder der sechs geraden Ansichten ist nur die gezeigte Fläche
+    voll sichtbar. Start und Spitze liegen auf Randecken (< 0,5 px), die Länge ist die ganze
+    Seite, der Buchstabe steht mehr als 4 px außerhalb, die Richtung stimmt je Seitenansicht.
+    In der Schrägansicht ist nichts zu sehen. Die Achsfarbe ist am Pixel geprüft: Das Bild wird
+    im Browser dekodiert, weil das WebGL-Canvas keinen Puffer behält.
+- **Rot:** 7 Mutationen:
+  - Pfeile auf der Würfelkante;
+  - falsche Ecke (Unit und e2e);
+  - Pfeile in jeder Ansicht;
+  - Buchstabe innen;
+  - zwei Namen vertauscht;
+  - Pfeile grau.
+
+### 2 · Reach-Testzugang besitzt seine eingespritzten Daten (`cfb0e06`)
+
+- **Befund:** Im ersten Gate des Würfels fiel einmal (in 9 Gates) der R66-Test „a reach chain
+  with two visible pieces“ aus: `getBoundsPattern("reachRoom")` war `null`.
+- **Ursache:** `setReachSoup` setzte nur die Daten. Eine Worker-Antwort im Flug oder eine spätere
+  Anfrage ersetzte sie. Spätere Anfragen kommen aus Grenz- oder Werkzeugänderungen nach 500 ms
+  Entprellung und aus einem Neuaufbau. Auf der Mock-Maschine meldet der Worker „not computed“,
+  das ergibt `null`.
+- **Mein erster Versuch war falsch:** Ich habe nur die Anfrage-ID hochgezählt. Ein Einzellauf mit
+  und ohne Korrektur zeigte sogar das Gegenteil: Ein Wettlauf ist mit einem Lauf nicht
+  bewiesen.
+- **Jetzt:**
+  - `_reachInjected` wird nur im Testzugang gesetzt.
+  - Antworten werden danach ignoriert, und `_reachRequest` behält die eingespritzten Daten.
+  - Ein neuer Test spritzt Daten ein, ändert danach die Grenzen und erzwingt so eine
+    Worker-Anfrage. Er ist ohne die Besitzregel rot (3×) und mit ihr grün (3×).
+- **Bitte prüfe:** Ist der Zustand außerhalb des Testzugangs wirklich unerreichbar?
+
+### 3 · Schmaler Program-Kopf: zwei Zeilen, Step und Pause als Symbole (`feat/narrow-run-head`: `32e9792`)
+
+- **Messung** (Hochformat 150 %, Touch, Zeile 269 px):
+  - Start · Step · Pause mit Wörtern passen nur bis „Start L123“ (265 px).
+  - „Start L1234“ lag 4 px darüber: Die Zeile scrollte, Pause und More waren abgeschnitten.
+  - Mit Symbolen (Step 43 px, Pause/Resume 39 px) braucht „Start L1234567“ 223 px.
+- **Entscheidung des Operators:** zwei Zeilen — Start · Step · Pause, darunter Abort … More am
+  rechten Rand. Step und Pause / Resume sind dort Symbole.
+- **Namen:** Die Wörter stehen in `.ctrlWord` und werden nur im schmalen Panel ausgeblendet. Der
+  Name ist in jeder Breite das Wort (`aria-label`; bei Pause/Resume je nach Zustand), also
+  stimmt Beschriftung und Name in der breiten Ansicht überein (WCAG 2.5.3).
+- **Wächter `layout.spec`:**
+  - eine echte Auswahl in Zeile 1234 eines Programms mit 1300 Zeilen;
+  - die Reihenfolge der Zeilen, Abort links, More am rechten Rand;
+  - keine seitliche Überbreite;
+  - die Namen bei ausgeblendeten Wörtern, die Wörter in der breiten Ansicht;
+  - die Kapazität für „Start L1234567“, an der natürlichen Breite gemessen.
+- **Rot:** 4 Mutationen: die Wörter bleiben, das alte 2×2-Raster, Step ohne Namen, More nur in
+  einer Spalte.
+- **Offen gesagt:** Die Mutation „nur zwei Spalten“ allein blieb grün. More spannt die Spalten 2
+  bis 4 und erzwingt so die dritte Spalte; es ist ein äquivalenter Mutant. Rot ist der echte
+  Altzustand.
+
+### Prüfungen
+
+- **Offline-Gates:**
+  - V1 (Würfel): fiel einmal am Reach-Wettlauf aus, siehe Punkt 2.
+  - V2 (Würfel und Testzugang): PASS — Backend 1245, Vitest 1893, Playwright 469.
+  - H1 (schmaler Kopf): PASS auf `32e9792` — Backend 1245, Vitest 1893, Playwright 470.
+- **Backend:** unverändert seit R72.
+- **Live-Baum:** Würfel seit `73c611e`, Kopf seit 4a7dc87. Beides lädt per HMR; die
+  Sim wurde nicht neu gestartet.
