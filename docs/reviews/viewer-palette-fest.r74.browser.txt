@@ -1,0 +1,23 @@
+[2m[WebServer] [22m(node:491359) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 12 tests using 1 worker
+
+(node:491405) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:491405) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/layout.spec.ts:392:1 › touch-portrait 150 %: the Program head is two rows — Start L1234 · Step · Pause, then Abort … More; the symbols keep their names, nothing sideways (3.7s)
+  ✓   2 e2e/layout.spec.ts:458:3 › touch-portrait 150 %: Program keeps code lines, Abort and More (its panel reaches every item); the tool table keeps a readable identity and a whole row (3.8s)
+  ✓   3 e2e/layout.spec.ts:458:3 › touch-portrait 100 %: Program keeps code lines, Abort and More (its panel reaches every item); the tool table keeps a readable identity and a whole row (3.4s)
+  ✓   4 e2e/reach.viewer.spec.ts:53:1 › the part reach's short segments keep both tones — from above and at an angle, zoomed, light and dark (Codex R45 VP-I12) (7.9s)
+  ✓   5 e2e/run-hold.spec.ts:71:1 › Start, Step and Resume fire on a complete hold only — a tap says why; Pause stays a tap (6.2s)
+  ✓   6 e2e/run-hold.spec.ts:101:1 › Run from line: Start only opens the dialog on a tap; the dialog's action is a hold bound to the program and the line (3.7s)
+  ✓   7 e2e/scenes.viewer.spec.ts:970:1 › an injected reach soup survives the layer's own worker reply in flight (3.5s)
+  ✓   8 e2e/scenes.viewer.spec.ts:989:1 › a reach chain with two visible pieces shows both tones in each (plan Fassung 3.1, Codex R66) (2.9s)
+  ✓   9 e2e/scenes.viewer.spec.ts:1075:1 › CSS-px objects keep their size in every drawn frame of a view animation (Codex R67) (5.1s)
+  ✓  10 e2e/viewcube.viewer.spec.ts:41:1 › the faces are named by axis, and an oblique view shows no arrows (1.9s)
+  ✓  11 e2e/viewcube.viewer.spec.ts:49:1 › a straight view shows its face's arrows on the displayed border, the whole side, the letter outside past the tip (4.2s)
+  ✓  12 e2e/viewcube.viewer.spec.ts:86:1 › the arrows are drawn in their axis colour on the border (pixels, top view) (2.4s)
+
+  12 passed (50.6s)
