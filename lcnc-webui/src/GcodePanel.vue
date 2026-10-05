@@ -851,14 +851,16 @@ async function saveEdit() {
           :reason="editing ? 'Finish or discard the edit first' : !activeFile ? 'No program loaded' : programLoading ? LOADING_REASON : undefined">
           <Play :size="14" class="ctrlIcon" /> {{ selectedLine && selectedLine > 1 ? `Start L${selectedLine}` : 'Start' }}
         </MachineBtn>
-        <MachineBtn type="step" class="ctrlBtn" @click="emit('cycleStep')" :disabled="!(activeFile || can.resume) || editing || programLoading"
+        <!-- Step and Pause / Resume are symbols in the narrow pane
+             (.ctrlWord): their NAME is the word in every width -->
+        <MachineBtn type="step" class="ctrlBtn" aria-label="Step" @click="emit('cycleStep')" :disabled="!(activeFile || can.resume) || editing || programLoading"
           :hold-key="programHoldKey"
           :reason="editing ? 'Finish or discard the edit first' : !(activeFile || can.resume) ? 'No program loaded' : programLoading ? LOADING_REASON : undefined">
-          <SkipForward :size="14" class="ctrlIcon" /> Step
+          <SkipForward :size="14" class="ctrlIcon" /><span class="ctrlWord"> Step</span>
         </MachineBtn>
-        <MachineBtn :type="isPaused ? 'resume' : 'pause'" class="ctrlBtn" :hold-key="programHoldKey"
+        <MachineBtn :type="isPaused ? 'resume' : 'pause'" class="ctrlBtn" :aria-label="isPaused ? 'Resume' : 'Pause'" :hold-key="programHoldKey"
           @click="isPaused ? emit('cycleResume') : emit('cyclePause')">
-          <span class="stable-width"><span :class="{ alt: isPaused }"><Pause :size="14" class="ctrlIcon" /> Pause</span><span :class="{ alt: !isPaused }"><Play :size="14" class="ctrlIcon" /> Resume</span></span>
+          <span class="stable-width"><span :class="{ alt: isPaused }"><Pause :size="14" class="ctrlIcon" /><span class="ctrlWord"> Pause</span></span><span :class="{ alt: !isPaused }"><Play :size="14" class="ctrlIcon" /><span class="ctrlWord"> Resume</span></span></span>
         </MachineBtn>
         <MachineBtn type="abort" class="ctrlBtn" @click="emit('abort')" />
         <MoreMenu class="ctrlMore" label="More program actions" :folded="foldedOptions || undefined" reserve="M01 /BD">
@@ -1197,10 +1199,14 @@ async function saveEdit() {
   gap: var(--gap-tight);
 }
 /* Narrow pane (the one threshold, 150 % portrait): five buttons do not fit
-   one row. Two columns — Start · Step, Pause · Abort — and More under
-   Abort at the right end. */
-.sidePane.narrow .ctrlRow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.sidePane.narrow .ctrlRow > .ctrlMore { grid-column: 2; justify-self: end; }
+   one row. Two rows (operator 2026-10-05, from measurements): Start · Step ·
+   Pause, then Abort … More at the right end; Step and Pause / Resume as
+   symbols — with their words "Start L1234" was 4 px too wide for the 269 px
+   row, with the symbols "Start L1234567" leaves 46 px. A grid track, not
+   flex: the floor of each is its label (see .ctrlRow). */
+.sidePane.narrow .ctrlRow { grid-template-columns: repeat(3, minmax(max-content, 1fr)); }
+.sidePane.narrow .ctrlRow > .ctrlMore { grid-column: 2 / 4; justify-self: end; }
+.sidePane.narrow .ctrlWord { display: none; }
 
 .ctrlIcon {
   font-size: var(--fs-lg);

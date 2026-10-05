@@ -382,6 +382,78 @@ async function hitInView(loc: import('@playwright/test').Locator) {
     return x > 0 && y > 0 && x < window.innerWidth && y < window.innerHeight && !!at && target.contains(at);
   });
 }
+// The narrow Program head is TWO rows (operator 2026-10-05, from the
+// measurements on the acceptance page): Start · Step · Pause, then Abort …
+// More at the right end; Step and Pause / Resume are symbols there and keep
+// their names. With their words "Start L1234" ran 4 px out of the 269 px
+// row (a scrollbar, Pause and More cut); with the symbols any line number of
+// a real program fits.
+const LONG_PROGRAM = Array.from({ length: 1300 }, (_, i) => i === 0 ? 'G21 G90 (line 1)' : `G1 X${i} F100 (line ${i + 1})`).join('\n') + '\nM2\n';
+test('touch-portrait 150 %: the Program head is two rows — Start L1234 · Step · Pause, then Abort … More; the symbols keep their names, nothing sideways', async ({ page }) => {
+  await page.route('**/gcode?*', r => r.fulfill({ contentType: 'text/plain', body: LONG_PROGRAM }));
+  await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === 'touch-portrait')!);
+  await ctl({ op: 'raw', frame: { type: 'settings_init', settings: { machine: { runFromLine: true } } } });
+  await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 9, file: '/layout-example.ngc' } });
+  await expect(page.locator('.codeLine').first()).toContainText('line 1');
+  const side = page.locator('.sidePane');
+  const row = side.locator('.ctrlRow');
+  const word = (name: string) => row.locator('.ctrlWord', { hasText: name }).first();
+
+  // wide (100 %): the words show
+  await settleLayout(page);
+  await expect(word('Step')).toBeVisible();
+  await expect(word('Pause')).toBeVisible();
+
+  await page.evaluate(() => { document.documentElement.style.zoom = '1.5'; });
+  await settleLayout(page);
+  await expect(side).toHaveClass(/narrow/);
+  // a real selection: line 1234
+  await side.locator('.codeViewer:visible').first().evaluate(el => {
+    el.scrollTop = (1234 - 1.5) / 1302 * el.scrollHeight;
+    el.dispatchEvent(new Event('scroll'));
+  });
+  await side.locator('.codeLine', { hasText: '(line 1234)' }).click();
+  const start = side.getByRole('button', { name: 'Start L1234', exact: true });
+  await expect(start).toBeVisible();
+  await settleLayout(page);
+
+  // the symbols keep their names; the words are gone here
+  await expect(side.getByRole('button', { name: 'Step', exact: true })).toBeVisible();
+  await expect(side.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
+  await expect(word('Step')).toBeHidden();
+  await expect(word('Pause')).toBeHidden();
+
+  // two rows: Start · Step · Pause, then Abort at the left and More at the right end
+  const geo = await row.evaluate(r => {
+    const box = r.getBoundingClientRect();
+    const kids = [...r.children].map(c => c.getBoundingClientRect());
+    return { box: { l: box.left, r: box.right, w: r.clientWidth, sw: r.scrollWidth },
+      tops: kids.map(k => Math.round(k.top)), lefts: kids.map(k => k.left), rights: kids.map(k => k.right) };
+  });
+  const [tStart, tStep, tPause, tAbort, tMore] = geo.tops;
+  expect([tStep, tPause], 'Start · Step · Pause in one row').toEqual([tStart, tStart]);
+  expect(tAbort, 'Abort in the second row').toBeGreaterThan(tStart!);
+  expect(tMore, 'More beside Abort').toBe(tAbort);
+  expect(Math.abs(geo.lefts[3]! - geo.box.l), 'Abort at the left').toBeLessThan(1);
+  expect(Math.abs(geo.rights[4]! - geo.box.r), 'More at the right end').toBeLessThan(1);
+  expect(geo.box.sw, 'the row never scrolls sideways').toBeLessThanOrEqual(geo.box.w);
+  expect(await sidewaysOverflow(side), 'nothing in the pane sideways').toEqual([]);
+
+  // capacity: the longest label a real program reaches ("Start L1234567",
+  // measured by its natural width) and the two symbols fit the row
+  const fits = await row.evaluate(r => {
+    const natural = (el: HTMLElement) => { const o = el.style.width; el.style.width = 'max-content'; const w = el.offsetWidth; el.style.width = o; return w; };
+    const kids = [...r.children] as HTMLElement[];
+    const btn = kids[0]!.matches('button') ? kids[0]! : kids[0]!.querySelector('button')!;
+    const text = [...btn.childNodes].find(n => n.nodeType === 3 && /Start/.test(n.nodeValue ?? ''))!;
+    const orig = text.nodeValue; text.nodeValue = ' Start L1234567 ';
+    const startW = natural(kids[0]!); text.nodeValue = orig;
+    const gap = parseFloat(getComputedStyle(r).columnGap);
+    return { need: startW + natural(kids[1]!) + natural(kids[2]!) + 2 * gap, room: r.clientWidth };
+  });
+  expect(fits.need, `Start L1234567 · Step · Pause need ${fits.need} px of ${fits.room}`).toBeLessThanOrEqual(fits.room);
+});
+
 for (const zoom of [1.5, 1]) {
   test(`touch-portrait ${zoom * 100} %: Program keeps code lines, Abort and More (its panel reaches every item); the tool table keeps a readable identity and a whole row`, async ({ page }) => {
     const narrow = zoom !== 1;
