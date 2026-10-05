@@ -1,0 +1,18 @@
+{
+  "viewer-palette-fest.r76.build.txt": "0ceed45ff1fa0e4fdbf457aeee5e784dcacf54f6fa2587143b0d6c36264a76a2",
+  "viewer-palette-fest.r76.checks.md": "552314b541a51f04be4b97869fc2066097feeb1093a4110fbf78270f3058bfe1",
+  "viewer-palette-fest.r76.chromium-lifecycle.json": "aaef1831362c3f4a4176e62e222a1c4450e7699b83054100e9970b84e5a2eaef",
+  "viewer-palette-fest.r76.chromium-remount.json": "2731337205cf2cc04797daeb90444820a02bc8501d8eab5c1eacc074e1261668",
+  "viewer-palette-fest.r76.chromium.config.ts": "a18485743b1f2dc90c572513a1506967e9207375ee85ed0b00aa2e3b180d40af",
+  "viewer-palette-fest.r76.chromium.txt": "0743e86984591764d030085ba1a73fbb4bbf869f9d7becbe956f62751913b49e",
+  "viewer-palette-fest.r76.context.json": "711201c324a6a02ed6cd5d10503e536de1c5d7a84ae39430577b8a5f375b17ad",
+  "viewer-palette-fest.r76.firefox-colour-samples.json": "b968c760c1239fcb46c3294e1b1347923f1da7148d03230768bfc355f77451a2",
+  "viewer-palette-fest.r76.firefox-colours.txt": "0c36b42d93be942256462f50b5d033d066f0097f6536221027520889665de74b",
+  "viewer-palette-fest.r76.firefox-lifecycle.json": "edc949c7a33b70099584dc5d5670cca969f10a74a312f483c526576b229da4f8",
+  "viewer-palette-fest.r76.firefox-remount.json": "76a29b9160131e165b11aa6e949a8a73cfc3fcb715954d8c10e65c6b7296b9e3",
+  "viewer-palette-fest.r76.firefox.config.ts": "e0988b16aac27fd9284a215facb878070a9d968adf4a09fa70d5b9a3187f8fc2",
+  "viewer-palette-fest.r76.firefox.txt": "0d05f60e01e4667dcf9b763bf3b51f3720c8bad0d5fb5c394e3da20ef01cb580",
+  "viewer-palette-fest.r76.probe.spec.ts": "17a254ee807f40faafa01e76afa9a4d9fea2a0ce09e790697bfbe23e58008c5c",
+  "viewer-palette-fest.r76.unit.txt": "d3ea58eaaecbbaa2335919a4a0457b4bda199ddd54e3bf9e38f55fcc1bdd6f09",
+  "viewer-palette-fest.r76.vitest.config.ts": "9dfe0438bbbeed3d000f3511c8ee7eccf47278dcd165a2e770cada2b9c4017d2"
+}

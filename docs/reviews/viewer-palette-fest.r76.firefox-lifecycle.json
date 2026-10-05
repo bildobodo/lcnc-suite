@@ -1,0 +1,150 @@
+{
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0",
+  "snapshots": [
+    {
+      "label": "both running",
+      "starts": [
+        [
+          0
+        ],
+        [
+          0
+        ]
+      ],
+      "oldStates": [
+        "running",
+        "running"
+      ]
+    },
+    {
+      "label": "button class removed by status",
+      "starts": [
+        [
+          0
+        ],
+        []
+      ],
+      "oldStates": [
+        "running",
+        "idle"
+      ]
+    },
+    {
+      "label": "button recreated",
+      "starts": [
+        [
+          0
+        ],
+        [
+          0
+        ]
+      ],
+      "oldStates": [
+        "running",
+        "idle"
+      ]
+    },
+    {
+      "label": "reduced motion cancels both",
+      "starts": [
+        [],
+        []
+      ],
+      "oldStates": [
+        "idle",
+        "idle"
+      ]
+    },
+    {
+      "label": "preference restored",
+      "starts": [
+        [
+          0
+        ],
+        [
+          0
+        ]
+      ],
+      "oldStates": [
+        "idle",
+        "idle"
+      ]
+    },
+    {
+      "label": "status cleared, ordinary pulse unaffected",
+      "starts": [
+        [],
+        []
+      ],
+      "oldStates": [
+        "idle",
+        "idle"
+      ]
+    }
+  ],
+  "pulse": [
+    2181.42
+  ],
+  "events": [
+    {
+      "type": "animationstart",
+      "name": "flash-danger-73939ea4",
+      "at": 148.44
+    },
+    {
+      "type": "animationcancel",
+      "name": "flash-danger-73939ea4",
+      "at": 465.12
+    },
+    {
+      "type": "animationstart",
+      "name": "flash-danger-73939ea4",
+      "at": 964.82
+    },
+    {
+      "type": "animationstart",
+      "name": "flash-estop-423535d9",
+      "at": 1381.5
+    },
+    {
+      "type": "animationcancel",
+      "name": "flash-estop-423535d9",
+      "at": 1497.8
+    },
+    {
+      "type": "animationstart",
+      "name": "flash-estop-423535d9",
+      "at": 1614.28
+    },
+    {
+      "type": "animationcancel",
+      "name": "flash-danger-73939ea4",
+      "at": 1715.02
+    },
+    {
+      "type": "animationcancel",
+      "name": "flash-estop-423535d9",
+      "at": 1715.02
+    },
+    {
+      "type": "animationstart",
+      "name": "flash-danger-73939ea4",
+      "at": 2097.74
+    },
+    {
+      "type": "animationstart",
+      "name": "flash-estop-423535d9",
+      "at": 2097.74
+    },
+    {
+      "type": "animationcancel",
+      "name": "flash-danger-73939ea4",
+      "at": 2197.9
+    },
+    {
+      "type": "animationcancel",
+      "name": "flash-estop-423535d9",
+      "at": 2197.9
+    }
+  ]
+}

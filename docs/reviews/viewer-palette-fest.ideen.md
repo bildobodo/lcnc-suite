@@ -10458,3 +10458,94 @@ Operator hatte sie für synchron gehalten.
 - Offline-Gate F1: PASS auf `780e066` — Backend 1245, Vitest 1897, Playwright 472.
 - Backend unverändert seit R72.
 - Live-Baum: seit `2796ab9` (HMR; `main.ts` geändert, also ein voller Reload).
+
+---
+
+## Review R76 · Codex · 5. Oktober 2026
+
+**Ergebnis: findings — die Blinkfunktion ist technisch bestätigt; offen ist
+VP-I36 (P3), ein Fehler im neuen Firefox-Farbvergleich des Tests.** Kein neuer
+Produktfehler im angefragten Umfang. Der Testfehler lässt sich gezielt korrigieren,
+ohne die gemeinsame Uhr zu ändern.
+
+Geprüft: `d560d22..2796ab9`, Fix `780e066`, Anfrage im Live-Stand `b670b6e`.
+Eigener Build und Browserprüfungen ausschließlich aus `git archive 2796ab9` in
+`/tmp`, mit einem Worker, niedriger Priorität und eigenem Mock auf
+`127.0.0.1:4188`. Keine Zugriffe auf die Live-Suite, keine Maschinenbefehle,
+keine Änderungen am Produktcode oder an bestehenden Belegen.
+
+### VP-I36 · P3 · Der neue Farbvergleich erkennt Firefox-Farben immer als „aus“
+
+**Ort:** [appearance.spec.ts](../../lcnc-webui/e2e/appearance.spec.ts),
+Zeilen 127–130, Helfer `tinted`.
+
+Der Nicht-`oklab`-Zweig behandelt alle Werte wie RGB-Kanäle auf der Skala 0–255
+und verlangt eine Kanaldifferenz größer als 4. **Firefox 150 unter Linux liefert
+hier `color(srgb …)` mit Kanälen auf der Skala 0–1.** Auch die sichtbare
+Gefahr-Tönung wird deshalb als „aus“ eingestuft. Der neu hinzugefügte Test scheitert
+im unveränderten Firefox-Lauf an `both flash on and off`: Er beobachtet nur
+`banner false` und `button false`, obwohl beide tatsächlich blinken.
+
+Konkrete Messung: Das Banner liefert im eingeschalteten Zustand
+`color(srgb 0.928905 0.679034 0.65195)`, also **RGB [237, 173, 166]**. Die jetzige
+Funktion berechnet ungefähr 0,277 statt einer Differenz von 71 und liefert false.
+Das ist ein Fehler der Prüfaussage; die gemeinsame Uhr funktioniert dabei.
+
+**Korrektur:** Die gelieferte CSS-Farbe vor dem Vergleich in eine einheitliche
+Skala umwandeln, beispielsweise über den Canvas-Farbparser, und den Fall in
+Firefox wiederholen. Die zusätzliche Sonde macht genau das und besteht. Sie
+prüft außerdem, dass beide Zustände tatsächlich vorkommen und in jeder Probe
+gleichzeitig aktiv sind; bloß gleiche `startTime`-Werte reichen dafür nicht.
+
+[Unveränderter Firefox-Lauf, 5/6 bestanden](viewer-palette-fest.r76.firefox.txt),
+[native Farben, RGBA und Animationszeiten](viewer-palette-fest.r76.firefox-colour-samples.json),
+[unabhängige Farbgegenprobe, bestanden](viewer-palette-fest.r76.firefox-colours.txt),
+[Sondencode](viewer-palette-fest.r76.probe.spec.ts).
+
+### Antworten auf die beiden Prüffragen
+
+1. **Firefox akzeptiert `startTime = 0`; CSS behält die Kontrolle.** Im getesteten
+   Firefox 150 sind die Startzeiten beider Animationen 0 und ihre laufenden Zeiten
+   und Phasen gleich. Die unabhängige Farbgegenprobe bestätigt über 30 Messpunkte
+   synchrones An/Aus. Ein Statuswechsel entfernt die Button-Animation, während
+   der Trip-Balken weiterblinkt. Die alte Animation wechselt zu `idle`; die neue
+   Instanz startet anschließend wieder bei 0. Wenn beide Zustände verschwinden,
+   sind beide alten Flash-Animationen beendet; der normale Banner-Puls startet
+   mit eigener Zeit größer als 0. **Das ist ein Linux-Firefox-Nachweis, keine
+   macOS-Live-Abnahme.**
+2. **Im aktuellen Produktpfad keinen Start ohne Ausrichtung gefunden.** Der
+   Listener wird vor Settings-Abruf und Vue-Mount installiert. Beide vorhandenen
+   Blinkanimationen sind CSS-Animationen mit dem erfassten `flash-`-Präfix und
+   gleicher Dauer; die scoped Namen bleiben erfasst. Zusätzlich geprüft:
+   Klassenentfernung und erneuter Zustand, Umschalten der Betriebssystem-Präferenz
+   für reduzierte Bewegung sowie `display:none`/Wiedereinblenden und Entfernen/
+   Wiedereinfügen eines DOM-Testelements mit der echten Button-CSS. Jeder neue
+   Flash wurde wieder ausgerichtet. Die DOM-Probe verwendet eine nicht bediente
+   Kopie des Buttons; sie löst keinen Maschinenbefehl aus.
+
+Unter reduzierter Bewegung werden beide aktiven Animationen abgebrochen und bleiben
+aus. Nach Rückkehr zu normaler Bewegung starten sie wieder synchron. Die bisherigen
+Prüfungen für statische Zustandsfarben, normale Pulse und Forced Colors bestehen
+in beiden Browsern. Übergänge und Pulse werden weiterhin vom Namensfilter ausgenommen.
+
+[Firefox: Zustands- und Bewegungswechsel](viewer-palette-fest.r76.firefox-lifecycle.json),
+[Firefox: Ausblenden und DOM-Neuaufnahme](viewer-palette-fest.r76.firefox-remount.json),
+[Chromium: Zustandswechsel](viewer-palette-fest.r76.chromium-lifecycle.json),
+[Chromium: DOM-Neuaufnahme](viewer-palette-fest.r76.chromium-remount.json).
+
+### Prüfungen und Grenzen
+
+- Eigener Produktionsbuild und **3/3 Unit-Tests** bestanden.
+- Chromium: **6/6** in einem Lauf — vier bestehende Appearance-Tests und zwei
+  eigene Lebenszyklusproben.
+- Firefox: **5/6** im gleichen Prüfumfang; nur der oben benannte Farbdecoder ist
+  rot. Die anschließend ergänzte unabhängige Farbgegenprobe besteht **1/1**.
+
+Kein eigener vollständiger Offline-Gate- oder Backend-Lauf, keine macOS-/Live-
+Sichtprüfung. Der originale rote Firefox-Test wurde nicht verändert oder als
+grün gewertet. Für den Abschluss der Runde bleibt seine Farbnormalisierung offen.
+
+[Prüfprotokoll und Wiederholung](viewer-palette-fest.r76.checks.md),
+[Chromium-Lauf](viewer-palette-fest.r76.chromium.txt),
+[Stand und Herkunft](viewer-palette-fest.r76.context.json),
+[Beleghashes](viewer-palette-fest.r76.sha256.json).

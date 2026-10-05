@@ -1,0 +1,140 @@
+{
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.0 Safari/537.36",
+  "snapshots": [
+    {
+      "label": "both running",
+      "starts": [
+        [
+          0
+        ],
+        [
+          0
+        ]
+      ],
+      "oldStates": [
+        "running",
+        "running"
+      ]
+    },
+    {
+      "label": "button class removed by status",
+      "starts": [
+        [
+          0
+        ],
+        []
+      ],
+      "oldStates": [
+        "running",
+        "idle"
+      ]
+    },
+    {
+      "label": "button recreated",
+      "starts": [
+        [
+          0
+        ],
+        [
+          0
+        ]
+      ],
+      "oldStates": [
+        "running",
+        "idle"
+      ]
+    },
+    {
+      "label": "reduced motion cancels both",
+      "starts": [
+        [],
+        []
+      ],
+      "oldStates": [
+        "idle",
+        "idle"
+      ]
+    },
+    {
+      "label": "preference restored",
+      "starts": [
+        [
+          0
+        ],
+        [
+          0
+        ]
+      ],
+      "oldStates": [
+        "idle",
+        "idle"
+      ]
+    },
+    {
+      "label": "status cleared, ordinary pulse unaffected",
+      "starts": [
+        [],
+        []
+      ],
+      "oldStates": [
+        "idle",
+        "idle"
+      ]
+    }
+  ],
+  "pulse": [
+    2754.4
+  ],
+  "events": [
+    {
+      "type": "animationstart",
+      "name": "flash-danger-73939ea4",
+      "at": 1554.4
+    },
+    {
+      "type": "animationstart",
+      "name": "flash-estop-423535d9",
+      "at": 1954.4
+    },
+    {
+      "type": "animationcancel",
+      "name": "flash-estop-423535d9",
+      "at": 2071.2
+    },
+    {
+      "type": "animationstart",
+      "name": "flash-estop-423535d9",
+      "at": 2187.8
+    },
+    {
+      "type": "animationcancel",
+      "name": "flash-danger-73939ea4",
+      "at": 2271.1
+    },
+    {
+      "type": "animationcancel",
+      "name": "flash-estop-423535d9",
+      "at": 2271.1
+    },
+    {
+      "type": "animationstart",
+      "name": "flash-danger-73939ea4",
+      "at": 2654.4
+    },
+    {
+      "type": "animationstart",
+      "name": "flash-estop-423535d9",
+      "at": 2654.4
+    },
+    {
+      "type": "animationcancel",
+      "name": "flash-danger-73939ea4",
+      "at": 2771
+    },
+    {
+      "type": "animationcancel",
+      "name": "flash-estop-423535d9",
+      "at": 2771
+    }
+  ]
+}

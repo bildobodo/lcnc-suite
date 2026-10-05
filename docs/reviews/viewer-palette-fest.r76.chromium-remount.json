@@ -1,0 +1,56 @@
+{
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.0 Safari/537.36",
+  "fixtureStarts": [
+    0
+  ],
+  "originalStarts": [
+    [
+      0
+    ],
+    [
+      0
+    ]
+  ],
+  "events": [
+    {
+      "type": "animationstart",
+      "name": "flash-danger-73939ea4",
+      "at": 136.3
+    },
+    {
+      "type": "animationcancel",
+      "name": "flash-danger-73939ea4",
+      "at": 319.7
+    },
+    {
+      "type": "animationstart",
+      "name": "flash-danger-73939ea4",
+      "at": 1553
+    },
+    {
+      "type": "animationstart",
+      "name": "flash-estop-423535d9",
+      "at": 1553
+    },
+    {
+      "type": "animationstart",
+      "name": "flash-estop-423535d9",
+      "at": 1702.9
+    },
+    {
+      "type": "animationcancel",
+      "name": "flash-estop-423535d9",
+      "at": 1786.4
+    },
+    {
+      "type": "animationstart",
+      "name": "flash-estop-423535d9",
+      "at": 2069.6
+    },
+    {
+      "type": "animationstart",
+      "name": "flash-estop-423535d9",
+      "at": 2436.3
+    }
+  ]
+}

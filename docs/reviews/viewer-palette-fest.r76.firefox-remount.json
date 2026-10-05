@@ -1,0 +1,56 @@
+{
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0",
+  "fixtureStarts": [
+    0
+  ],
+  "originalStarts": [
+    [
+      0
+    ],
+    [
+      0
+    ]
+  ],
+  "events": [
+    {
+      "type": "animationstart",
+      "name": "flash-danger-73939ea4",
+      "at": 147.22
+    },
+    {
+      "type": "animationcancel",
+      "name": "flash-danger-73939ea4",
+      "at": 346.84
+    },
+    {
+      "type": "animationstart",
+      "name": "flash-danger-73939ea4",
+      "at": 913.36
+    },
+    {
+      "type": "animationstart",
+      "name": "flash-estop-423535d9",
+      "at": 913.36
+    },
+    {
+      "type": "animationstart",
+      "name": "flash-estop-423535d9",
+      "at": 1030.54
+    },
+    {
+      "type": "animationcancel",
+      "name": "flash-estop-423535d9",
+      "at": 1147.22
+    },
+    {
+      "type": "animationstart",
+      "name": "flash-estop-423535d9",
+      "at": 1430.54
+    },
+    {
+      "type": "animationstart",
+      "name": "flash-estop-423535d9",
+      "at": 1813.88
+    }
+  ]
+}
