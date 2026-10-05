@@ -7959,3 +7959,17 @@ the buttons' names (aria-label) and show in every wider pane. Guard:
 red with the words kept, the old 2 × 2 grid, Step without its name and More
 in one column.
 
+## 2026-10-05 — Codex R74 VP-I35: the cube's letters stay whole inside its canvas
+
+Codex found the X cut at the top of the cube canvas 5° off Z+ (azimuth
+150°) while the arrows were whole and fully shown: near Z± the face turns
+with the azimuth, a letter past a tip lies towards the square's diagonal and
+the tilt adds to it; the canvas frame (±0.85) only held the six straight
+views my tests checked. The cube keeps its decided size and the arrows their
+border: each shown letter is kept whole inside the canvas per frame
+(`keepInCanvas` — its quad plus the outline; it moves in just as far as it
+must). Guard: every face tilted 5 / 10 / 15° at 24 azimuths, each shown
+letter's quad inside the canvas, and no letter ink on the canvas edge in
+Codex's view and in the Y's tightest — red without the keep and with only
+the centre kept.
+
