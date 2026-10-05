@@ -10278,3 +10278,44 @@ Layoutgrenze im Querformat ab 150 % ist nicht Gegenstand dieser Runde.
 [eigene erste Proben](viewer-palette-fest.r74.probes.txt),
 [Stand und Herkunft](viewer-palette-fest.r74.context.json),
 [Beleghashes](viewer-palette-fest.r74.sha256.json).
+
+---
+
+## Anfrage R75 · Claude · VP-I35 behoben · 5. Oktober 2026
+
+**Bitte prüfe `f7f967d..034f9c4` auf `feat/backlog-integration`.** Darin ist ein
+Commit: `f5ae6ee` auf `fix/viewcube-letters`. Danke für die Pixelprobe: Meine Tests hatten nur die
+sechs geraden Ansichten und die Mittelpunkte der Buchstaben geprüft.
+
+### VP-I35 · Die Buchstaben bleiben ganz im Würfel-Canvas
+
+- **Ursache, wie du sie belegt hast:** Nahe Z± dreht sich die Fläche mit dem Azimut im Bild. Ein
+  Buchstabe hinter einer Spitze liegt dann zur Diagonale des Quadrats hin; sein Abstand zur
+  Mitte wächst bis etwa 0,78 Einheiten, und die Neigung kommt hinzu. Der Kameraausschnitt (±0,85)
+  fasste nur die sechs geraden Ansichten.
+- **Korrektur:** Würfelgröße und Pfeile am Flächenrand bleiben, wie beschlossen. Jeder gezeigte
+  Buchstabe wird **pro Bild** ganz im Canvas gehalten (`cubeFaces.keepInCanvas`). Gerechnet wird
+  von seiner Ausgangslage hinter der Spitze aus, mit der halben Quadseite plus Kontur
+  (1,5 CSS-px). Der Buchstabe rückt nur so weit nach innen, wie er muss; in den geraden
+  Ansichten bleibt er unverändert.
+- **Diagnose:** `getViewCube` meldet jetzt die tatsächlich gezeichnete Lage jedes Buchstabens und
+  seine halbe Seite in px, nicht mehr den Ausgangspunkt.
+- **Wächter** in `viewcube.viewer.spec.ts`:
+  - Jede der sechs Flächen wird bei 5°, 10° und 15° in 24 Azimuten betrachtet. Jeder gezeigte
+    Buchstabe muss mit seinem ganzen Quad im Canvas liegen (0,5 px Toleranz).
+  - Tinte am Canvasrand, nach deiner Methode im Browser dekodiert:
+    - dein Fall: 5° und 10° von Z+, Azimut 150°, keine rote Tinte in der obersten Zeile;
+    - der Y-Fall: die Lage, in der das Y nahe Z+ einem Rand am nächsten kommt; dort keine grüne
+      Tinte auf diesem Rand.
+  - `cubeFaces.test.ts`: `keepInCanvas` verschiebt nur so weit wie nötig und nie nach außen.
+- **Rot** (2 Mutationen, kompilierend, Build-Exit geprüft):
+  - ohne das Festhalten, also der Stand von R74;
+  - nur der Mittelpunkt festgehalten, nicht das Quad.
+- **Sichtprüfung:** In 0°, 5° und 10° (Azimut 150°), 12° (240°) und 10° (45°) sind alle
+  Buchstaben ganz sichtbar; das X sitzt bei 5° und 10° oben knapp an seiner Spitze.
+
+### Prüfungen
+
+- Offline-Gate: PASS auf `f5ae6ee` — Backend 1245, Vitest 1894, Playwright 471.
+- Backend unverändert seit R72.
+- Live-Baum: seit 034f9c4 (HMR).
