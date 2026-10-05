@@ -1,0 +1,44 @@
+{
+  "review": "R76",
+  "created_utc": "2026-10-05T19:30:14.638135+00:00",
+  "base": "d560d227c6dd69ef58d7506671f1f4e21fd078f1",
+  "tested_head": "2796ab92c09c57d4597e9c1a304c42ae610db835",
+  "fix": "780e066a901231841a2a7c585cbc97e8fbd380db",
+  "live_head_before_append": "b670b6ebe8073687a700e1636aff930407b9a3cd",
+  "branch": "feat/backlog-integration",
+  "status_before_append": "",
+  "archive": "/tmp/codex-r76-9l3nh3b2/archive",
+  "mock": "http://127.0.0.1:4188",
+  "workers": 1,
+  "nice": 19,
+  "no_live_service_access": true,
+  "no_machine_commands": true,
+  "source_and_original_tests_verified_against_commit": {
+    "lcnc-webui/src/flashClock.ts": "080fb6ac05d1c4d78dec01efdf01718c76371d198445191374f6e73a46209270",
+    "lcnc-webui/src/flashClock.test.ts": "7151312600126d28ffad025a6b91c7e2c020e4f644cc9e8520979d57677b9b06",
+    "lcnc-webui/src/main.ts": "bb3e5e3db8263d86c88523c6bde4282336cdbaa83a5a3dbd90ef1f1a87cbbf98",
+    "lcnc-webui/e2e/appearance.spec.ts": "8ff69f301d2cc1876438bf8f4566223d25f4c36284e0a9cfcea116d89ac80d07",
+    "lcnc-webui/src/Btn.vue": "d58021669c8a361ca65c99ef713081bd46ec63034aa5aeae3bf47590431d47c6",
+    "lcnc-webui/src/App.vue": "f2e2913737f02f23734594fe92d3f669cac4e50cfd869549e3fd530e6b8715e4"
+  },
+  "original_review_sha256": "4f8890cfd930c669a69a38dfb87e0e21fa921076fe597df05240a91b4a73123d",
+  "changed_paths": [
+    "CLAUDE.md",
+    "docs/decisions.md",
+    "docs/reviews/live-abnahme.checklist.md",
+    "lcnc-webui/e2e/appearance.spec.ts",
+    "lcnc-webui/src/flashClock.test.ts",
+    "lcnc-webui/src/flashClock.ts",
+    "lcnc-webui/src/main.ts"
+  ],
+  "result": {
+    "build": "pass",
+    "unit": "3/3",
+    "chromium": "6/6",
+    "firefox_original_selection": "5/6: new colour decoder fails",
+    "firefox_independent_colour_probe": "1/1",
+    "firefox_colour_samples": 30,
+    "all_colour_phases_equal": true,
+    "verdict": "findings: VP-I36 P3 (test only), function independently confirmed"
+  }
+}

@@ -1,0 +1,55 @@
+[2m[WebServer] [22m(node:1101113) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+(node:1101125) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1101125) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/appearance.spec.ts:59:1 › a pulse moves the background, never the text: the banner stays fully opaque while it pulses (3.2s)
+  ✓  2 e2e/appearance.spec.ts:68:1 › reduced motion: no pulse and no flash — the state stays a static fill (2.4s)
+  ✘  3 e2e/appearance.spec.ts:101:1 › the E-Stop Reset and the state banner flash in step, whichever started first (3.0s)
+(node:1101680) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1101680) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  4 e2e/appearance.spec.ts:144:1 › forced colours: the focus ring, the selected tab and the state banner stay distinguishable (1.7s)
+  ✓  5 e2e/r76.probe.spec.ts:36:1 › R76: CSS still cancels and recreates aligned flashes through state and reduced-motion changes (3.2s)
+  ✓  6 e2e/r76.probe.spec.ts:85:1 › R76: a CSS flash aligns again after hide/show and DOM removal, without losing CSS ownership (2.1s)
+
+
+  1) e2e/appearance.spec.ts:101:1 › the E-Stop Reset and the state banner flash in step, whichever started first 
+
+    Error: both flash on and off
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 2[39m
+    [31m+ Received  + 0[39m
+
+    [2m  Array [[22m
+    [2m    "banner false",[22m
+    [32m-   "banner true",[39m
+    [2m    "button false",[22m
+    [32m-   "button true",[39m
+    [2m  ][22m
+
+      138 |     await page.waitForTimeout(45);
+      139 |   }
+    > 140 |   expect([...new Set(seen)].sort(), "both flash on and off").toEqual(["banner false", "banner true", "button false", "button true"]);
+          |                                                              ^
+      141 |   expect(apart, apart.slice(0, 6).join("\n")).toEqual([]);
+      142 | });
+      143 |
+        at /tmp/codex-r76-9l3nh3b2/archive/lcnc-webui/e2e/appearance.spec.ts:140:62
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r76-firefox-output/appearance-the-E-Stop-Rese-6872d-tep-whichever-started-first/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r76-firefox-output/appearance-the-E-Stop-Rese-6872d-tep-whichever-started-first/error-context.md
+
+  1 failed
+    e2e/appearance.spec.ts:101:1 › the E-Stop Reset and the state banner flash in step, whichever started first 
+  5 passed (17.8s)

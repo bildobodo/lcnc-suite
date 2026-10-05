@@ -1,0 +1,17 @@
+[2m[WebServer] [22m(node:1100168) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+(node:1100196) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1100196) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/appearance.spec.ts:59:1 › a pulse moves the background, never the text: the banner stays fully opaque while it pulses (3.7s)
+  ✓  2 e2e/appearance.spec.ts:68:1 › reduced motion: no pulse and no flash — the state stays a static fill (3.3s)
+  ✓  3 e2e/appearance.spec.ts:101:1 › the E-Stop Reset and the state banner flash in step, whichever started first (3.8s)
+  ✓  4 e2e/appearance.spec.ts:144:1 › forced colours: the focus ring, the selected tab and the state banner stay distinguishable (2.1s)
+  ✓  5 e2e/r76.probe.spec.ts:36:1 › R76: CSS still cancels and recreates aligned flashes through state and reduced-motion changes (4.0s)
+  ✓  6 e2e/r76.probe.spec.ts:85:1 › R76: a CSS flash aligns again after hide/show and DOM removal, without losing CSS ownership (3.0s)
+
+  6 passed (20.6s)
