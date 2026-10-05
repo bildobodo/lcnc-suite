@@ -7945,3 +7945,17 @@ The view presets are renamed by the face they show ("front" was +X). Guards:
 cube's edge, from the wrong corner, in every view, the letter inside, two
 names swapped and the arrows grey.
 
+## 2026-10-05 — The narrow Program head is two rows, Step and Pause as symbols
+
+At 150 % portrait the run grid was three rows (Start · Step / Pause · Abort /
+More) and the panel scrolled with two code lines in view. Measured for the
+operator (acceptance page V14): in the 269 px row, Start · Step · Pause with
+their words fit only up to "Start L123" (265 px) — "Start L1234" was 4 px too
+wide, the row scrolled and cut Pause and More. With Step and Pause / Resume
+as symbols (43 + 39 px) "Start L1234567" needs 223 px. The operator chose the
+symbols: two rows, Start · Step · Pause, then Abort … More; the words stay
+the buttons' names (aria-label) and show in every wider pane. Guard:
+`layout.spec` with a real selection at line 1234 of a 1300-line program —
+red with the words kept, the old 2 × 2 grid, Step without its name and More
+in one column.
+

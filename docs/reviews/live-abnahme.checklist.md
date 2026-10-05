@@ -331,9 +331,10 @@ Debug-Schalter.
 | ViewCube | Die Seiten heißen X+, X−, Y+, Y−, Z+, Z− und sind leicht rot / grün / blau getönt. In einer geraden Ansicht (Klick auf eine Fläche) liegen zwei schlichte Pfeile auf dem Rand des Quadrats, über die ganze Seite, der Buchstabe außerhalb hinter der Spitze; in der Schrägansicht keine. Das Achsenkreuz unten rechts ist weg |
 | Hinweisblase | Ein Tipp auf eine halb verdeckte Option am Rand der Leiste (z. B. die reservierte G59 auf der TWP-Maschine): Die Leiste scrollt sie ins Bild, und der Hinweis bleibt an ihr stehen |
 
-**Noch deine Entscheidung:** der Program-Kopf im schmalen Panel (Hochformat 150 %). Heute drei
-Zeilen (Start · Step / Pause · Abort / More), Alternative zwei Zeilen (Start · Step · Pause /
-Abort … More), sofern „Start L123“ darin Platz hat.
+**Program-Kopf im schmalen Panel** (Hochformat 150 %, deine Wahl vom 5. Oktober): zwei Zeilen,
+Start · Step · Pause, darunter Abort … More am rechten Rand; Step und Pause / Resume als Symbole
+(Name und Tooltip bleiben die Wörter). Auch mit einer langen Zeilennummer („Start L1234“) läuft
+nichts seitlich über; drei Codezeilen bleiben sichtbar.
 
 ## Wenn alles passt — Merge (nur `development`, nie `main`)
 
