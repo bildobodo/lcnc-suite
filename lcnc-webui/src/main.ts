@@ -7,12 +7,14 @@ import { VALID_GATES } from './permissions'
 import { initDragScroll } from './dragScroll'
 import { initScrollFade } from './scrollFade'
 import { initTouchDetect } from './touchDetect'
+import { initFlashClock } from './flashClock'
 import { startClientDiag } from './clientDiag'
 
 const SERVER_SECTIONS = ["macros", "machine", "camera", "mdi", "gamepad", "keyboard", "probe", "toolsetter", "display", "viewer", "panels"];
 
 async function bootstrap() {
   initTouchDetect();
+  initFlashClock();
 
   let serverSettings: Record<string, any> = {};
   let fetchOk = false;

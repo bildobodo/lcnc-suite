@@ -7973,3 +7973,23 @@ letter's quad inside the canvas, and no letter ink on the canvas edge in
 Codex's view and in the Y's tightest — red without the keep and with only
 the centre kept.
 
+
+## 2026-10-05 — Operator: every flash runs on one clock
+
+The operator saw the E-Stop button's Reset and the state banner blink
+independently. Both flash on `--flash-duration` (0.6 s, step-start), which
+fixes the RATE and never the PHASE: a CSS animation starts when its own
+element starts flashing. The banner flashes from the safety trip (or a lost
+connection) on, the button only from the E-Stop state a status later — in
+the mock 315 ms apart, half a period, the two exactly against each other.
+Live, the trip flag (the reader's latch) and STAT's estop ride different
+polls, and after a reload the first status can land in the frame of the
+connect, so the banner keeps its "disconnected" start. `flashClock.ts`
+puts every `flash-` animation on the document timeline's phase
+(`startTime = 0`, one `animationstart` listener at the document): every
+flash of one duration is in step whatever started first and however often
+an element re-mounts. Pulses, transitions and the banner's fade are left
+alone. Guard (`appearance.spec`): trip first, E-Stop 300 ms later — both
+starts at the timeline's, and banner on ⇔ button on at every sample over two
+periods; red without the listener and with a wrong prefix, the samples
+alone red too (banner on, button off).

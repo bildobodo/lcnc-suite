@@ -10,6 +10,8 @@ import { ctl, MOCK } from "./ctl";
 //     text included;
 //   - prefers-reduced-motion stops every pulse and flash; the state stays
 //     as a static fill;
+//   - every flash runs on ONE clock: the E-Stop Reset and the banner flash
+//     in step, whichever started first (operator 2026-10-05);
 //   - forced colours (Windows high contrast): the focus ring, the selected
 //     tab and the state banner stay distinguishable — backgrounds and
 //     shadows are dropped there, and the selection was a background plus
@@ -88,6 +90,55 @@ test("reduced motion: no pulse and no flash — the state stays a static fill", 
     d.remove();
     return a;
   })).toBe("none");
+});
+
+// Operator 2026-10-05: the E-Stop Reset and the banner flash at one rate
+// (--flash-duration), but a CSS animation's phase starts when ITS element
+// starts flashing — a safety trip lights the banner a status before the
+// E-Stop state lights the button (live, the trip flag and STAT's estop ride
+// different polls): 315 ms apart, half a period, the two blinking against
+// each other. One clock (flashClock.ts): both on the document timeline.
+test("the E-Stop Reset and the state banner flash in step, whichever started first", async ({ page }) => {
+  await ready(page);
+  const banner = page.locator(".statusBanner"), button = page.locator(".safetyStrip button.flashing");
+  // The gateway sends the trip in EVERY frame until it is acknowledged; the
+  // mock's full-status echo (on every heartbeat) carries none — off for this.
+  await ctl({ op: "quiet", on: true });
+  const trip = { reason: "hb_timeout" };
+  await ctl({ op: "raw", frame: { type: "status_delta", armed: true, data: {}, safety_trip: trip } });
+  await expect(banner).toHaveClass(/banner-flash/);
+  await expect(button).toHaveCount(0);
+  await page.waitForTimeout(300); // half a flash period: against each other without the clock
+  await ctl({ op: "raw", frame: { type: "status_delta", armed: true,
+    data: { estop: true, is_estop: true, enabled: false, is_enabled: false }, safety_trip: trip } });
+  await expect(button).toHaveAccessibleName("Reset E-Stop");
+  // the banner's colour cross-fade (a transition, not the flash) first
+  for (const el of [banner, button]) {
+    await el.evaluate(e => Promise.all(e.getAnimations()
+      .filter(a => a.effect?.getComputedTiming().iterations !== Infinity).map(a => a.finished)));
+  }
+  // one start: the document timeline's
+  const flashStarts = () => page.evaluate(() => [".statusBanner", ".safetyStrip button.flashing"].map(sel =>
+    document.querySelector(sel)!.getAnimations().filter(a => (a as CSSAnimation).animationName?.startsWith("flash-")).map(a => a.startTime)));
+  await expect.poll(flashStarts, { message: "the banner's and the button's flash start" }).toEqual([[0], [0]]);
+  // what the operator sees: both read at the same instant, over two periods
+  // — "on" is the danger tint, "off" the neutral panel / button grey (the
+  // flash interpolates in oklab: an off value reads oklab(L ~0 ~0), not rgb)
+  const tinted = (c: string) => {
+    const n = (c.match(/-?[\d.]+/g) ?? []).map(Number);
+    return c.startsWith("oklab") ? Math.abs(n[1]!) + Math.abs(n[2]!) > 0.01 : Math.max(n[0]!, n[1]!, n[2]!) - Math.min(n[0]!, n[1]!, n[2]!) > 4;
+  };
+  const seen: string[] = [], apart: string[] = [];
+  for (let i = 0; i < 30; i++) {
+    const [b, k] = await page.evaluate(() => [".statusBanner", ".safetyStrip button.flashing"]
+      .map(sel => getComputedStyle(document.querySelector(sel)!).backgroundColor));
+    const bannerOn = tinted(b!), buttonOn = tinted(k!);
+    seen.push(`banner ${bannerOn}`, `button ${buttonOn}`);
+    if (bannerOn !== buttonOn) apart.push(`sample ${i}: banner ${bannerOn ? "on" : "off"}, button ${buttonOn ? "on" : "off"}`);
+    await page.waitForTimeout(45);
+  }
+  expect([...new Set(seen)].sort(), "both flash on and off").toEqual(["banner false", "banner true", "button false", "button true"]);
+  expect(apart, apart.slice(0, 6).join("\n")).toEqual([]);
 });
 
 test("forced colours: the focus ring, the selected tab and the state banner stay distinguishable", async ({ page }) => {
