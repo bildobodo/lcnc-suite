@@ -1,4 +1,5 @@
-// Shared 3D axis colors for viewer helper geometry — gizmo arrows, axis labels,
+// Shared 3D axis colors for viewer helper geometry — the ViewCube's face tints
+// and straight-view arrows, the work-zero triad, axis labels,
 // and work-plane labels. These are Three.js / WebGL canvas colors, NOT CSS theme
 // values, so design tokens don't apply (issue #25, rescoped). Centralized here
 // only to avoid duplicating the same X/Y/Z triple across ThreeViewer.vue and

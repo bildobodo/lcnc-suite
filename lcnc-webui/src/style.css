@@ -226,6 +226,9 @@
   --viewcube-edge:  color-mix(in oklab, var(--fg) 55%, var(--bg));
   --viewcube-label: var(--fg);
   --viewcube-hover: var(--info);
+  /* a face's light tint of its axis colour (X red, Y green, Z blue —
+     axisColors.ts), composited over --viewcube-face (operator 2026-10-05) */
+  --viewcube-tint:  var(--tint-active);
 
   /* Radius scale */
   --radius-sm: 3px;

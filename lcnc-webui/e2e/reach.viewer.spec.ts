@@ -71,7 +71,7 @@ test("the part reach's short segments keep both tones — from above and at an a
     await expect.poll(() => page.evaluate(() => window.__viewerDiag?.projectRoleSegments?.("reachAlt").length ?? 0),
       { timeout: 30_000, message: "the part reach is built" }).toBeGreaterThan(100);
     for (const view of ["top", "iso", "iso zoomed"] as const) {
-      if (view === "top") await page.evaluate(() => window.__viewerDiag!.setView!("top"));
+      if (view === "top") await page.evaluate(() => window.__viewerDiag!.setView!("z+"));
       else {
         const cam = (await page.evaluate(() => window.__viewerDiag!.getCamera!()))!;
         const dist = Math.hypot(...cam.position.map((v, i) => v - cam.target[i]!));

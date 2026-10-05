@@ -263,7 +263,7 @@ test("every path line is drawn 2 CSS px — the path, the limit overlay and the 
       await ctl({ op: "status_delta", data: { joint_pos: [0, -150 + i * 15, 0], actual_position: [0, -150 + i * 15, 0] } });
       await page.waitForTimeout(30);
     }
-    await page.evaluate(() => window.__viewerDiag!.setView!("top"));
+    await page.evaluate(() => window.__viewerDiag!.setView!("z+"));
     for (const theme of LADDER_THEMES) {
       await ctl({ op: "raw", frame: { type: "settings_init", settings: { display: { theme }, viewer: { layers: { backplot: true, bounds: true, hud: false } } } } });
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
@@ -963,6 +963,29 @@ test("the toolpath box's end marks stand off the background and the model in fou
 // pieces' L / Δt, so each piece of ~120 px holds many cells and shows both
 // tones; N taken from L without Δt would give cells of ~1 200 px — one tone
 // per piece. Parallel top view, Machine Reach alone, light and HC light.
+// The test seam's own race (gate 2026-10-05): a worker request still out
+// when a test injects its soup, or one a later input change asks for, used
+// to replace the soup with its reply ("not computed" on the mock's machine,
+// or a real envelope). The soup is injected, then the limits change.
+test("an injected reach soup survives the layer's own worker reply in flight", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: 1 });
+  const page = await context.newPage();
+  await ctl({ op: "reset" });
+  await page.goto(MOCK);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready)).toBe(true);
+  await ctl({ op: "status_delta", data: { joint_limits: [[-250, 250], [-200, 200], [-400, 0]] } });
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { viewer: { layers: { reachRoom: true } } } } });
+  const soup = [0, 0, 0, 100, 0, 0, 100, 0, 0, 100, 100, 0];
+  await page.evaluate(s => window.__viewerDiag!.setReachSoup!(s), soup);
+  // a later input change asks the worker again (after its 500 ms debounce)
+  await ctl({ op: "status_delta", data: { joint_limits: [[-260, 260], [-210, 210], [-410, 0]] } });
+  await page.waitForTimeout(2500);
+  const pat = await page.evaluate(() => window.__viewerDiag!.getBoundsPattern!("reachRoom"));
+  expect(pat, "the injected soup is still drawn").not.toBeNull();
+  expect(pat!.segments.length, "exactly the injected chain").toBe(2);
+  await context.close();
+});
+
 test("a reach chain with two visible pieces shows both tones in each (plan Fassung 3.1, Codex R66)", async ({ browser }) => {
   test.setTimeout(120_000);
   const context = await browser.newContext({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: 1 });
@@ -977,7 +1000,7 @@ test("a reach chain with two visible pieces shows both tones in each (plan Fassu
       hud: false, bounds: false, toolpathBounds: false, toolpath: false, rapids: false, tool: false, machine: false, workzero: false,
       groundGrid: false, toolsetter: false, toolChange: false, reachPart: false, reachRoom: true } } } } });
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
-    await page.evaluate(() => window.__viewerDiag!.setView!("top"));
+    await page.evaluate(() => window.__viewerDiag!.setView!("z+"));
     await page.waitForTimeout(400);
     // the page ↔ world map of the top view (z = 0)
     const [o, ex, ey] = (await page.evaluate(() => window.__viewerDiag!.projectPoints!([[0, 0, 0], [100, 0, 0], [0, 100, 0]])))!;
@@ -1069,10 +1092,10 @@ test("CSS-px objects keep their size in every drawn frame of a view animation (C
   await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getBoxTicks!()?.length)).toBe(24);
   await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getToolsetter!()?.visible)).toBe(true);
   await page.evaluate(() => window.__viewerDiag!.setCameraPose!([600, 0, 0], [0, 0, 0]));
-  await page.evaluate(() => window.__viewerDiag!.setView!("front"));
+  await page.evaluate(() => window.__viewerDiag!.setView!("x+"));
   await page.waitForTimeout(700);
   const frames: { bars: number[]; scales: { name: string; factor: number }[] }[] = [];
-  for (const view of ["back", "top", "iso"]) {
+  for (const view of ["x-", "z+", "iso"]) {
     await page.evaluate(v => { window.__viewerDiag!.startFrameProbe!(); window.__viewerDiag!.setView!(v); }, view);
     await page.waitForTimeout(700);
     frames.push(...await page.evaluate(() => window.__viewerDiag!.takeFrameProbe!()));
