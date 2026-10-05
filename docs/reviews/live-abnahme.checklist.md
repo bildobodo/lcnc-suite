@@ -47,6 +47,8 @@ und kommt beim Merge zum Schluss dazu.
       im Hochformat): **Agreement R73** ohne Befund. Codex nennt die bekannte Grenze erneut:
       Im Querformat bei 150 % mit Safety-Trip-Banner bleibt der Meldungsliste keine
       Tabellenhöhe (die Gesamtaufteilung ab 150 % quer ist ausgenommen, Folgearbeit).
+    - Seit R73 (ViewCube nach Achsen, schmaler Program-Kopf, Reach-Testzugang): R74 mit einem
+      Befund (VP-I35: Achsbuchstaben am Würfelrand abgeschnitten, behoben), **Agreement R75**.
 - **Offline-Gates** (`python3 scripts/test_suite.py offline`):
   - Welle auf `15b46ff`: PASS, Playwright 282/282.
   - Kontrast auf `82418a7`: PASS, Backend 969, Vitest 1684, Playwright 292/292.
@@ -65,6 +67,8 @@ und kommt beim Merge zum Schluss dazu.
   - Makros mit den R70-Korrekturen: PASS auf `698b1f9`, Playwright 423/423.
   - Meldungsliste: PASS auf `be29a8b`, Playwright 440/440.
   - Dialoge im Hochformat: PASS auf `1aa33cf`, Backend 1245, Vitest 1888, Playwright 465/465.
+  - ViewCube, schmaler Kopf, Buchstaben im Würfel: PASS auf `f5ae6ee`, Backend 1245, Vitest 1894,
+    Playwright 471/471.
 
 ## Vorbereitung
 
