@@ -1,0 +1,17 @@
+{
+  "viewer-palette-fest.r75.browser.txt": "0c5bee9eccd391aab24746389d195568cd39aeb18636d2d8d939633cc7e379a6",
+  "viewer-palette-fest.r75.build.txt": "f43a1d22bd1bf3f22aade44176747223ddbdae5d2aeec863b33428b5524a1eb8",
+  "viewer-palette-fest.r75.checks.md": "4f9c4f0cc9f214c1714658c9a69d3dc7c21744da8c685e6c8fe66fefae171fd1",
+  "viewer-palette-fest.r75.context.json": "95cae6858712b5133b6757ace4811b39b697fe8cc1a2096a8431ef76f6c8796a",
+  "viewer-palette-fest.r75.cube-5deg.png": "ba4756fa09dc6f130093d28b1f656d9ee5d1919a5162ac967133135037f91d1f",
+  "viewer-palette-fest.r75.cube-clipped-centres.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+  "viewer-palette-fest.r75.cube-orbit.json": "653a55e2cb2f45ed662defe11338b621796c5509a12f16c95580f1b035d9b34f",
+  "viewer-palette-fest.r75.glyph-0deg.png": "491355ca9b0e9a404af55752b425e0265c0971baf54ccdecbd92ffabdeeaf83f",
+  "viewer-palette-fest.r75.glyph-10deg.png": "9db492f42add21a749c4d382547281f3d57d47c69550e3ca9fa1a84049aa6e31",
+  "viewer-palette-fest.r75.glyph-5deg.png": "ba4756fa09dc6f130093d28b1f656d9ee5d1919a5162ac967133135037f91d1f",
+  "viewer-palette-fest.r75.glyph-clipping.json": "78832e80de85c7d52ef411e6812a0df7403a3a7c16fe93a334d816dbc30275ad",
+  "viewer-palette-fest.r75.playwright.config.ts": "0d51a82a43a4b10981bba8344f34072096165997f78675fbe6d664b1a967f8fa",
+  "viewer-palette-fest.r75.r74-probe.spec.ts": "48d94faedb332b2aa471959bacc4398be5fee46a5546364bc80ed34e71db5a59",
+  "viewer-palette-fest.r75.unit.txt": "34fe1685e3a38a8d96f836e75b1451dc534643633c2707f1b3de5c381831ff48",
+  "viewer-palette-fest.r75.vitest.config.ts": "f83a8c8aaf87cf3888f0c4300890b12526c8e575bcd9ae2bb88d4f7c28b97134"
+}

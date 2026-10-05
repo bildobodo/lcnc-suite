@@ -1,0 +1,41 @@
+{
+  "review": "R75",
+  "created_utc": "2026-10-05T12:44:00.380484+00:00",
+  "requested_base": "f7f967d654dbb1bb8345345d67d73fb1c29f150a",
+  "tested_head": "034f9c4e4b73b1bd2606647c54b06f1180b7ecdf",
+  "fix": "f5ae6ee8f996cc669b2ec7b03e9a7bfa5577a491",
+  "live_head_before_append": "85658393e9b249db048bc1caa7ac3824b852c0a9",
+  "branch": "feat/backlog-integration",
+  "status_before_append": "",
+  "archive": "/tmp/codex-r75-t4qhfn_t/archive",
+  "mock": "http://127.0.0.1:4188",
+  "workers": 1,
+  "nice": 19,
+  "no_live_service_access": true,
+  "no_machine_commands": true,
+  "r74_probe_sha256_unchanged": "48d94faedb332b2aa471959bacc4398be5fee46a5546364bc80ed34e71db5a59",
+  "product_and_test_sha256_verified_against_tested_commit": {
+    "lcnc-webui/src/ViewCube.vue": "0ab60c814663ae0c9ce613d5c7ac461eeb1c3e4fffee6a6f1ccd5398f9d7e218",
+    "lcnc-webui/src/viewer/cubeFaces.ts": "798653398ea6041df68a66e83895b016a1d46e58145fb4809f679f1935583e4d",
+    "lcnc-webui/src/viewer/cubeFaces.test.ts": "24e2cad479242def3eb0f19d9cde0962b845657271ab6fee1c733de68ae95ba4",
+    "lcnc-webui/e2e/viewcube.viewer.spec.ts": "fc823617b2b49a4bad215ff5d50626ef92b0619740fcb52799534ff78e11ce93",
+    "lcnc-webui/src/shims.d.ts": "f11c5cd1527b07c5ed34a4954590d0a0c1b6eaed3932cc534861b9da4b2ffe06"
+  },
+  "original_review_sha256": "7ecace4d1a846cf4c8d07b8b7b66939a3306f5283f78dc8d294f71a70a6710ea",
+  "changed_paths": [
+    "CLAUDE.md",
+    "docs/decisions.md",
+    "lcnc-webui/e2e/viewcube.viewer.spec.ts",
+    "lcnc-webui/src/ViewCube.vue",
+    "lcnc-webui/src/shims.d.ts",
+    "lcnc-webui/src/viewer/cubeFaces.test.ts",
+    "lcnc-webui/src/viewer/cubeFaces.ts"
+  ],
+  "result": {
+    "build": "pass",
+    "unit": 6,
+    "browser": 6,
+    "r74_pixel_probe": "pass (previously failed)",
+    "verdict": "agreement: VP-I35 closed"
+  }
+}
