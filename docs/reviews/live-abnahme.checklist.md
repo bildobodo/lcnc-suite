@@ -333,6 +333,7 @@ Debug-Schalter.
 | Meldungsliste | Suche, ein Filter für Typ und Herkunft, sortierbarer Kopf (Time, Type, Source), Kopieren und Papierkorb je Zeile, die Zahl im Titel („Messages (7 of 12)“). Im Hochformat bei 150 % Karten, Copy / Clear All als Symbole. Ältere Meldungen zeigen bei Source „—“ |
 | Dialoge im Hochformat | Bei 150 % passt jeder Dialog in den Inhaltsbereich: Program Stats und Run from line ragten links und rechts hinaus |
 | ViewCube | Die Seiten heißen X+, X−, Y+, Y−, Z+, Z− und sind leicht rot / grün / blau getönt. In einer geraden Ansicht (Klick auf eine Fläche) liegen zwei schlichte Pfeile auf dem Rand des Quadrats, über die ganze Seite, der Buchstabe außerhalb hinter der Spitze; in der Schrägansicht keine. Das Achsenkreuz unten rechts ist weg |
+| Blinken im Gleichtakt | In E-Stop blinken der Reset-Button und der Statusbalken **gleichzeitig**, auch nach einem Safety Trip und nach einem Neuladen der Seite |
 | Hinweisblase | Ein Tipp auf eine halb verdeckte Option am Rand der Leiste (z. B. die reservierte G59 auf der TWP-Maschine): Die Leiste scrollt sie ins Bild, und der Hinweis bleibt an ihr stehen |
 
 **Program-Kopf im schmalen Panel** (Hochformat 150 %, deine Wahl vom 5. Oktober): zwei Zeilen,
