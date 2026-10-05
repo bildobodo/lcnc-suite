@@ -2016,6 +2016,12 @@ async function buildFromInit(init: ViewerInit) {
         // two visible pieces); the worker's real envelope has no fixed shape.
         // Keyed to the current inputs, so a scheduled request keeps it.
         setReachSoup: (room: number[]) => {
+          // The injected soup OWNS the reach outline from now on: neither a
+          // worker reply in flight nor a later request (a limits or tool
+          // change, a rebuild) replaces it — one did, under gate load
+          // (2026-10-05). Never set outside this seam.
+          _reachInjected = true;
+          _reachReqId++;
           _reachData = { roomLines: Float32Array.from(room), partLines: null,
             info: { samples: 0, corners: 0, hullFaces: 0, notes: ["test seam"], ms: 0 } };
           _reachKey = _reachInputsKey() ?? "";
@@ -3607,6 +3613,7 @@ watch(() => JSON.stringify(_jointLimitsPlain()), (cur, prev) => {
 // recomputed only when the inputs change while either is on.
 let _reachWorker: Worker | null = null;
 let _reachReqId = 0;
+let _reachInjected = false;               // __viewerDiag.setReachSoup took over (tests only)
 let _reachRoomOn = false;
 let _reachPartOn = false;
 let _reachKey = "";                       // inputs the cached data was computed from
@@ -3628,7 +3635,7 @@ function _reachGetWorker(): Worker {
     _reachWorker = new Worker(new URL("./viewer/reachWorker.ts", import.meta.url), { type: "module" });
     _reachWorker.onmessage = (ev: MessageEvent) => {
       const m = ev.data as { id: number; error?: string; roomLines?: Float32Array; partLines?: Float32Array | null; info?: ReachInfo };
-      if (m.id !== _reachReqId) return;   // superseded
+      if (m.id !== _reachReqId || _reachInjected) return;   // superseded
       if (m.error || !m.roomLines || !m.info) {
         console.error("[reach] envelope not computed:", m.error ?? "empty reply");
         _reachData = null; _reachKey = "";
@@ -3656,6 +3663,7 @@ function _reachSchedule() {
 /** Compute (or re-hang the cached) envelope for the current inputs. */
 function _reachRequest() {
   if (!_reachRoomOn && !_reachPartOn) return;
+  if (_reachInjected) { _reachBuildMeshes(); return; }
   const key = _reachInputsKey();
   if (!key) {
     // No limits yet (or no model): nothing honest to draw. Says so once per

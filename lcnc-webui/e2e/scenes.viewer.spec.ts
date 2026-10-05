@@ -963,6 +963,29 @@ test("the toolpath box's end marks stand off the background and the model in fou
 // pieces' L / Δt, so each piece of ~120 px holds many cells and shows both
 // tones; N taken from L without Δt would give cells of ~1 200 px — one tone
 // per piece. Parallel top view, Machine Reach alone, light and HC light.
+// The test seam's own race (gate 2026-10-05): a worker request still out
+// when a test injects its soup, or one a later input change asks for, used
+// to replace the soup with its reply ("not computed" on the mock's machine,
+// or a real envelope). The soup is injected, then the limits change.
+test("an injected reach soup survives the layer's own worker reply in flight", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: 1 });
+  const page = await context.newPage();
+  await ctl({ op: "reset" });
+  await page.goto(MOCK);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready)).toBe(true);
+  await ctl({ op: "status_delta", data: { joint_limits: [[-250, 250], [-200, 200], [-400, 0]] } });
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { viewer: { layers: { reachRoom: true } } } } });
+  const soup = [0, 0, 0, 100, 0, 0, 100, 0, 0, 100, 100, 0];
+  await page.evaluate(s => window.__viewerDiag!.setReachSoup!(s), soup);
+  // a later input change asks the worker again (after its 500 ms debounce)
+  await ctl({ op: "status_delta", data: { joint_limits: [[-260, 260], [-210, 210], [-410, 0]] } });
+  await page.waitForTimeout(2500);
+  const pat = await page.evaluate(() => window.__viewerDiag!.getBoundsPattern!("reachRoom"));
+  expect(pat, "the injected soup is still drawn").not.toBeNull();
+  expect(pat!.segments.length, "exactly the injected chain").toBe(2);
+  await context.close();
+});
+
 test("a reach chain with two visible pieces shows both tones in each (plan Fassung 3.1, Codex R66)", async ({ browser }) => {
   test.setTimeout(120_000);
   const context = await browser.newContext({ viewport: { width: 1400, height: 1000 }, deviceScaleFactor: 1 });
