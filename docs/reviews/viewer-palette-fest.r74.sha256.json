@@ -1,0 +1,22 @@
+{
+  "viewer-palette-fest.r74.browser.txt": "a04fd6bc8398d61cb2196a56ee3f9fab123b22d2cf83f4756ab7232a3858c40e",
+  "viewer-palette-fest.r74.build.txt": "df7b1f62b8537cfc09fbb0e763b2e506a0f1e38af339cdfe04cbb1f75b615d35",
+  "viewer-palette-fest.r74.checks.md": "7e7307643220f0e6f55aadf9fcec226e1226235edcf438f26076fcdb1ff84eaf",
+  "viewer-palette-fest.r74.context.json": "f9aa7dfa56c9bf7b575e4f13495aa861428c09ae735ca61e2798b1588d6994bf",
+  "viewer-palette-fest.r74.cube-5deg.png": "a3cad13d974f1ce9f6b10b269fe686c67500a05b7f2e41b84f8f32d4df38518c",
+  "viewer-palette-fest.r74.cube-clipped-centres.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+  "viewer-palette-fest.r74.cube-orbit.json": "101b05feced938de90b1c32e9936d26b9487e2e3fa6153a51f39b9b75370d0c1",
+  "viewer-palette-fest.r74.glyph-0deg.png": "491355ca9b0e9a404af55752b425e0265c0971baf54ccdecbd92ffabdeeaf83f",
+  "viewer-palette-fest.r74.glyph-10deg.png": "af88fba08f4ba9d9f2fdff8b1cef3011b26bdffecf18a8612c744fbfdb602c7e",
+  "viewer-palette-fest.r74.glyph-5deg.png": "a3cad13d974f1ce9f6b10b269fe686c67500a05b7f2e41b84f8f32d4df38518c",
+  "viewer-palette-fest.r74.glyph-clipping.json": "126141588ab17183371b27793bd36dab0828d12304d990a1f743e6b80cba369a",
+  "viewer-palette-fest.r74.glyph-clipping.txt": "bdd048245fb0a818eba046bd31c6036aa8641f2782502481967687c2847187ff",
+  "viewer-palette-fest.r74.narrow-commands.json": "e205d1f07aea1cbfb4801c182e32c1d641ae80a7b28ed01efcc56b73ffad0c4a",
+  "viewer-palette-fest.r74.playwright.config.ts": "30142e226c7a2136d105f674608d47a9253165274f46ad093a2eef3c2c794377",
+  "viewer-palette-fest.r74.probe.spec.ts": "48d94faedb332b2aa471959bacc4398be5fee46a5546364bc80ed34e71db5a59",
+  "viewer-palette-fest.r74.probes.config.ts": "887269fc3dd6ced440dac900ad57cecf1dd9b43d6d534394edce8e4f489f9737",
+  "viewer-palette-fest.r74.probes.txt": "66c10a639529d129ddb45cf3dfa43cd014cb52556d8915adc61510c4e65de30d",
+  "viewer-palette-fest.r74.program-head-paused.png": "053fcc2ec29340a07e03ea32ad6229498e43521b4e6e608530cb64b6c5495bc9",
+  "viewer-palette-fest.r74.unit.txt": "b6e39b405df6a19cd54b7cd81e7ad2b1c792c3398ce40482f2b64de878f3539b",
+  "viewer-palette-fest.r74.vitest.config.ts": "d77cd56c23055517e6713b427ecd8550206e983bac79344ee8f1d885f0ef01b9"
+}

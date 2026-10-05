@@ -1,0 +1,51 @@
+{
+  "review": "R74",
+  "created_utc": "2026-10-05T11:40:14.742383+00:00",
+  "requested_base": "15a7f3ad5f4ab90a6420f7e666e3e3adabaaf888",
+  "tested_head": "4a7dc8772161fb4864ac37912992cfd944909201",
+  "live_head_before_append": "af5862874e41dfb5a00326c839e5a8319054a7d7",
+  "branch": "feat/backlog-integration",
+  "working_copy": "/tmp/codex-r74-w8dspjni/archive",
+  "archive_source": "git archive 4a7dc87",
+  "status_before_append": "",
+  "mock": "http://127.0.0.1:4188",
+  "workers": 1,
+  "nice": 19,
+  "browser": "Chromium",
+  "no_live_service_access": true,
+  "no_machine_commands": true,
+  "product_sha256_verified_against_tested_git_commit": {
+    "lcnc-webui/src/ViewCube.vue": "eb025d73fe4508c21034bbc46da99ba95ae4608dcb93642b5a920ab3688c2461",
+    "lcnc-webui/src/ThreeViewer.vue": "09f778ab9355cf263662294eda485b50127fc91fe70a763d08929e66af756cb9",
+    "lcnc-webui/src/GcodePanel.vue": "45106715801144f71d4e5a6bb43ffb49655f0d05e5aeaa55b00a51b8aafa9f43",
+    "lcnc-webui/src/viewer/cubeFaces.ts": "d4706441c549d87f92fd5de3a455c201732c280ce6547f0a0b707e8d380a9bd6"
+  },
+  "review_original_sha256": "26a24b055f7df1739a2e70e3ca3dea70365e8bb1c454786c45b881ad597c48cd",
+  "changed_paths": [
+    "CLAUDE.md",
+    "docs/decisions.md",
+    "docs/reviews/live-abnahme.checklist.md",
+    "lcnc-webui/e2e/layout.spec.ts",
+    "lcnc-webui/e2e/reach.viewer.spec.ts",
+    "lcnc-webui/e2e/scenes.viewer.spec.ts",
+    "lcnc-webui/e2e/toolsetter.viewer.spec.ts",
+    "lcnc-webui/e2e/viewcube.viewer.spec.ts",
+    "lcnc-webui/e2e/viewer.spec.ts",
+    "lcnc-webui/src/GcodePanel.vue",
+    "lcnc-webui/src/ThreeViewer.vue",
+    "lcnc-webui/src/ViewCube.vue",
+    "lcnc-webui/src/axisColors.ts",
+    "lcnc-webui/src/shims.d.ts",
+    "lcnc-webui/src/style.css",
+    "lcnc-webui/src/viewer/cubeFaces.test.ts",
+    "lcnc-webui/src/viewer/cubeFaces.ts",
+    "lcnc-webui/src/viewer/palette.ts"
+  ],
+  "result": {
+    "build": "pass",
+    "unit": 65,
+    "existing_browser": 12,
+    "own_initial_probes": 2,
+    "own_glyph_probe": "fail: VP-I35"
+  }
+}

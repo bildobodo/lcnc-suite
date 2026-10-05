@@ -1,0 +1,45 @@
+[2m[WebServer] [22m(node:497088) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:497116) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:497116) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r74.probe.spec.ts:64:1 › R74: the visible axis glyph must not be cut by the cube canvas edge at ten degrees from Z+ (3.1s)
+
+
+  1) e2e/r74.probe.spec.ts:64:1 › R74: the visible axis glyph must not be cut by the cube canvas edge at ten degrees from Z+ 
+
+    Error: the X is visibly truncated by the drawing-buffer edge
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 6[39m
+
+    [32m- Array [][39m
+    [31m+ Array [[39m
+    [31m+   76,[39m
+    [31m+   77,[39m
+    [31m+   78,[39m
+    [31m+   79,[39m
+    [31m+ ][39m
+
+      91 |   expect(records[0]!.redGlyphPixelsOnTopBorder).toEqual([]);
+      92 |   expect(records[2]!.opacity).toBeGreaterThan(.7);
+    > 93 |   expect(records[2]!.redGlyphPixelsOnTopBorder,'the X is visibly truncated by the drawing-buffer edge').toEqual([]);
+         |                                                                                                         ^
+      94 | });
+      95 |
+        at /tmp/codex-r74-w8dspjni/archive/lcnc-webui/e2e/r74.probe.spec.ts:93:105
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r74-probe-output/r74.probe-R74-the-visible--04d8f-edge-at-ten-degrees-from-Z-/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r74-probe-output/r74.probe-R74-the-visible--04d8f-edge-at-ten-degrees-from-Z-/error-context.md
+
+  1 failed
+    e2e/r74.probe.spec.ts:64:1 › R74: the visible axis glyph must not be cut by the cube canvas edge at ten degrees from Z+ 

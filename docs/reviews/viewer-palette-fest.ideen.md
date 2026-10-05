@@ -10188,3 +10188,93 @@ hat der Operator aus Renderings und Messungen entschieden (Abnahmeseite V14–V1
 - **Backend:** unverändert seit R72.
 - **Live-Baum:** Würfel seit `73c611e`, Kopf seit 4a7dc87. Beides lädt per HMR; die
   Sim wurde nicht neu gestartet.
+
+---
+
+## Review R74 · Codex · 5. Oktober 2026
+
+**Ergebnis: findings — ein neuer P2-Befund VP-I35 am ViewCube.** Reichweiten-Testzugang
+und schmaler Program-Kopf sind im angefragten Umfang angenommen. Die vereinbarte
+Achsenbenennung und der Ersatz des Eckkreuzes sind umgesetzt; für deren vollständige
+Abnahme bleibt das unten belegte Abschneiden der Achsbuchstaben zu korrigieren.
+
+Geprüft: `15a7f3a..4a7dc87`, Anfrage im Live-Stand `af58628`. Build und Browser laufen
+ausschließlich aus `git archive 4a7dc87` in `/tmp`, mit eigenem Mock auf
+`127.0.0.1:4188`, einem Worker und niedriger Priorität. Keine Zugriffe auf die
+Operator-Suite, keine Maschinenbefehle, keine Änderungen am Produktcode.
+
+### VP-I35 · P2 · Achsbuchstaben werden beim Drehen nahe einer geraden Ansicht abgeschnitten
+
+**Ort:** [ViewCube.vue](../../lcnc-webui/src/ViewCube.vue), Zeilen 164–169
+(Position und Größe der Buchstaben), zusammen mit dem festen Kameraausschnitt in
+Zeile 393. Die außerhalb der Pfeilspitze gesetzte Beschriftung bleibt beim Drehen
+nicht vollständig innerhalb des 140×140-px-Canvas.
+
+**Reproduktion:** Desktop 1600×1000, 100 %, DPR 1, XYZAC-Mock. Blickrichtung 5° von
+Z+ entfernt, Azimut 150° um Z. Der bestehende Diagnoseaufruf
+`setViewDirection([-0.07547908730517333, 0.043577871373829076, 0.9961946980917455])`
+stellt diese normale Orbit-Kamerapose über den Produktcode ein. Das X steht dann
+mit seinem Mittelpunkt bei **(77,95; 3,22) CSS-px**. Obwohl die Pfeile und
+Buchstaben bereits **Deckkraft 1** haben, fehlt der obere Teil des X am Canvasrand.
+Bei 10° derselben Richtung liegt der Mittelpunkt bei **y = 0,38 px** und die
+Deckkraft noch bei **0,708**: Ein größerer Teil des Buchstabens wird abgeschnitten.
+Der Pfeil selbst bleibt im Bild.
+
+[Gerade Ansicht als Kontrolle](viewer-palette-fest.r74.glyph-0deg.png),
+[5°: voll sichtbares, oben abgeschnittenes X](viewer-palette-fest.r74.glyph-5deg.png),
+[10°: stärker abgeschnittenes X](viewer-palette-fest.r74.glyph-10deg.png),
+[Messwerte und Blickrichtungen](viewer-palette-fest.r74.glyph-clipping.json).
+
+Die zusätzliche Pixelprobe ist **rot**: In der 10°-Ansicht läuft die rote
+Buchstabentinte bei x = 76–79 direkt durch die oberste Bildzeile; die gerade
+Kontrollansicht besteht. Die 5°-Ansicht zeigt denselben Befund bei x = 74–81.
+Die vorhandenen Tests bestehen, weil sie die sechs geraden Ansichten prüfen.
+Auch die zusätzliche Abtastung von 96 Orbit-Posen besteht für die **Mittelpunkte**
+der Buchstaben — gerade das genügt nicht für die Ausdehnung der gezeichneten Schrift.
+
+**Erforderliche Korrektur:** Den Platzbedarf des ganzen sichtbaren Buchstabens in
+den freigegebenen Kamerawinkeln berücksichtigen, einschließlich seiner Kontur.
+Die beschlossene Würfelgröße und die Pfeile am Flächenrand sollen dabei erhalten
+bleiben. Einen Bild-/Geometriewächter für die Zwischenwinkel ergänzen, insbesondere
+5°/10° nahe Z+ mit diesem Azimut und dem entsprechenden Y-Fall. Nur die sechs
+Normalen oder nur die projizierten Buchstabenmittelpunkte decken den Fehler nicht ab.
+
+[Reproduzierbare Sonde](viewer-palette-fest.r74.probe.spec.ts),
+[rotes Prüfergebnis](viewer-palette-fest.r74.glyph-clipping.txt),
+[Orbit-Abtastung](viewer-palette-fest.r74.cube-orbit.json).
+
+### Antworten zu den drei Änderungen
+
+| Änderung | Ergebnis |
+|---|---|
+| ViewCube / Eckkreuz | Achsnamen, positive Pfeilrichtungen, gemeinsame Ecke, Randlage, Einblendkurve, Achsfarben und umbenannte Ansichtsvoreinstellungen sind konsistent. Das separate Eckkreuz ist entfernt; das Programmnullpunkt-Kreuz bleibt. Die vorhandenen Würfelprüfungen bestehen. Offen bleibt **VP-I35**. |
+| Besitz eingespritzter Reach-Daten | **Angenommen.** `_reachInjected` wird ausschließlich durch `__viewerDiag.setReachSoup` gesetzt. Normale UI-Aktionen, Statusmeldungen und der Worker setzen es nicht. Anfrage-ID und Besitzprüfung verwerfen alte Antworten; spätere Anfragen bauen aus den eingespritzten Daten neu auf. Der neue Test mit geänderten Grenzen besteht, ebenso der bestehende Test des echten Reach-Workers ohne Einspritzung. |
+| Schmaler Program-Kopf | **Angenommen.** Zweizeilige Reihenfolge, Abort links und More rechts, echte Zeilenauswahl 1234, Platzbudget für den langen Start-Text sowie zugängliche Namen bestehen. Zusätzlich im schmalen Portrait-Layout bei 150 % geprüft: kurzes Tippen auf Step/Resume sendet nichts, Halten sendet je genau einen Befehl; Pause reagiert auf kurzes Tippen. Der Name wechselt korrekt zu Resume. |
+
+Zur ausdrücklichen Reach-Frage: **Außerhalb des Diagnoseaufrufs gibt es keinen
+Schreibpfad in diesen Zustand.** Der Diagnosezugang selbst ist jedoch auch im
+normalen Build auf `window.__viewerDiag` vorhanden; „tests only“ beschreibt seinen
+Zweck, keine technische Build-Sperre. Ein direkter Aufruf in den Entwicklertools
+setzt die Besitzregel ebenfalls. Das ist kein unbeabsichtigter UI-Fallback und
+kein zusätzlicher Befund dieser Runde.
+
+[Schmaler Kopf im Pausenzustand](viewer-palette-fest.r74.program-head-paused.png),
+[gezählte Mock-Befehle](viewer-palette-fest.r74.narrow-commands.json).
+
+### Eigene Prüfungen und Grenzen
+
+- Build bestanden; **65 Unit-Tests** bestanden.
+- **12/12 bestehende Chromium-Prüfungen** bestanden: ViewCube, Reach-Worker und
+  Einspritzung, Reichweitenmuster/CSS-Maßstab, schmaler Kopf und Haltebedienung.
+- Zwei eigene Proben bestanden: Orbit-Abtastung der Mittelpunkte und Haltebedienung
+  im schmalen Kopf. Die zusätzliche Schrift-/Pixelprobe scheitert an **VP-I35**.
+
+Kein eigener vollständiger Offline-Gate-Lauf, keine erneute Backend-Prüfung
+(unverändert), keine macOS-/Live-Sichtprüfung. Die bereits abgegrenzte allgemeine
+Layoutgrenze im Querformat ab 150 % ist nicht Gegenstand dieser Runde.
+
+[Prüfprotokoll und Wiederholung](viewer-palette-fest.r74.checks.md),
+[bestehende Browsertests](viewer-palette-fest.r74.browser.txt),
+[eigene erste Proben](viewer-palette-fest.r74.probes.txt),
+[Stand und Herkunft](viewer-palette-fest.r74.context.json),
+[Beleghashes](viewer-palette-fest.r74.sha256.json).
