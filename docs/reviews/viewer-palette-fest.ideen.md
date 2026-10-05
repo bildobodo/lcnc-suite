@@ -10380,3 +10380,81 @@ Review-Text wurden nicht verändert.
 [Build](viewer-palette-fest.r75.build.txt),
 [Stand und Herkunft](viewer-palette-fest.r75.context.json),
 [Beleghashes](viewer-palette-fest.r75.sha256.json).
+
+---
+
+## Anfrage R76 · Claude · Blinken im Gleichtakt · 5. Oktober 2026
+
+**Bitte prüfe `d560d22..2796ab9` auf `feat/backlog-integration`.** Darin ist ein Commit:
+`780e066` auf `fix/blink-sync`. Er ändert nur Oberfläche, Tests und Doku, kein Gateway-Code.
+
+### Anlass (Operator, 5. Oktober)
+
+Der Reset-Button der E-Stop-Taste und der Statusbalken blinken unabhängig voneinander. Der
+Operator hatte sie für synchron gehalten.
+
+### Ursache
+
+- Beide blinken mit `--flash-duration` (0,6 s, step-start): `flash-estop` in Btn.vue,
+  `flash-danger` am `.statusBanner` in App.vue. Das legt die **Frequenz** fest, nicht die
+  **Phase**. Eine CSS-Animation beginnt, wenn ihr eigenes Element die Klasse bekommt.
+- Der Balken blinkt ab `safetyTrip` oder `disconnected`, der Button erst ab `is_estop`. Kommt
+  der Trip einen Status vor dem E-Stop-Zustand (im Mock 300 ms dazwischen), liegen die
+  Startzeiten 315 ms auseinander. Das ist eine halbe Periode: Die beiden blinken genau
+  gegeneinander.
+- Gemessen im Mock (`getAnimations().startTime`):
+  - Gleichzeitiger E-Stop: beide gleich. Arm/Disarm und Trip setzen/löschen starten den
+    Button nicht neu.
+  - Neuladen und Reconnect in E-Stop: Der Mock schiebt zwischen „disconnected“ und dem ersten
+    Status einen Render ohne Blinken ein (163 ms). Der Balken startet dabei neu und läuft
+    zufällig im Takt.
+  - Live kann der erste Status im Frame des Verbindungsaufbaus landen. Dann behält der Balken
+    seinen „disconnected“-Start. Das ist eine begründete Vermutung, nicht reproduziert.
+- Live kommen das Trip-Flag (Latch des Readers) und `is_estop` aus STAT in verschiedenen
+  Polls.
+
+### Korrektur: `src/flashClock.ts`
+
+- Ein `animationstart`-Listener am Dokument (capture), installiert in `main.ts` neben
+  `initTouchDetect()`.
+- Er setzt jede gestartete Animation, deren Name mit `flash-` beginnt, auf
+  `startTime = 0`. Vues scoped Namen behalten den Präfix (`flash-estop-<hash>`). Damit ist ihre
+  lokale Zeit die Zeit der Dokument-Timeline: Jedes Blinken gleicher Dauer läuft im Takt, egal
+  was zuerst startete oder wie oft ein Element neu gemountet wird.
+- Nur Animationen mit genau dem Namen des Events auf diesem Element. Transitionen (die 0,4 s
+  Farbüberblendung des Balkens), `banner-fade` und die sanften Pulse bleiben unberührt. Unter
+  `prefers-reduced-motion` startet nichts.
+- Der Startframe zeigt die „aus“-Hälfte (step-start nimmt ab Beginn den 50-%-Keyframe), also
+  das Aussehen ohne Blinken. Die Ausrichtung im nächsten Frame springt deshalb nicht sichtbar.
+
+### Wächter
+
+- `appearance.spec` „the E-Stop Reset and the state banner flash in step, whichever started
+  first“:
+  - Mock-Echo aus (`quiet`): Der Mock beantwortet jeden Heartbeat mit dem vollen Zustand ohne
+    Trip und löschte so Trip und E-Stop aus den Roh-Frames, eine eigene Falle.
+  - Ablauf: Trip, 300 ms warten, dann E-Stop mit Trip.
+  - Prüfung: Beide Startzeiten sind 0. Über zwei Perioden ist in jeder Probe (30 × 45 ms, beide
+    im selben Moment gelesen) der Balken genau dann an, wenn der Button an ist. „An“ ist die
+    Gefahr-Tönung; der Aus-Wert wird in oklab interpoliert ausgegeben.
+- `flashClock.test.ts`: Nur `flash-`-Animationen mit dem Namen des Events werden ausgerichtet,
+  Transition und Puls nicht; kein Fehler ohne Ziel.
+- **Rot** (kompilierend, Build-Exit geprüft, Build je Mutation):
+  - ohne Installation in `main.ts`;
+  - mit falschem Präfix.
+  - Die Farbproben allein (ohne die Startzeit-Prüfung) sind ohne Uhr ebenfalls rot:
+    „sample 0: banner on, button off“.
+
+### Bitte besonders prüfen
+
+1. **Firefox** (der Browser des Operators, macOS): Hält `startTime = 0` an einer
+   CSSAnimation? Bleibt sie danach weiter von CSS gesteuert, also abgebrochen, wenn die Klasse
+   geht, und neu, wenn sie wiederkommt?
+2. Gibt es einen Pfad, auf dem das Blinken startet, ohne dass `animationstart` ankommt, und
+   unausgerichtet bleibt?
+
+### Prüfungen
+
+- Offline-Gate F1: PASS auf `780e066` — Backend 1245, Vitest 1897, Playwright 472.
+- Backend unverändert seit R72.
+- Live-Baum: seit `2796ab9` (HMR; `main.ts` geändert, also ein voller Reload).
