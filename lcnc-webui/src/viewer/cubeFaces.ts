@@ -84,3 +84,18 @@ export function arrowOpacity(cosToCamera: number): number {
   const from = Math.cos((FADE_FROM_DEG * Math.PI) / 180), full = Math.cos((FULL_AT_DEG * Math.PI) / 180);
   return Math.min(1, Math.max(0, (cosToCamera - from) / (full - from)));
 }
+
+/** A letter's side (cube-scene units): the sprite quad it is drawn in. */
+export const LETTER_SIZE = 0.22;
+
+/** Keep a letter whole inside the cube canvas (Codex R74 VP-I35): near Z±
+ *  the face turns with the azimuth, a letter past a tip lies towards the
+ *  square's DIAGONAL and the tilt adds to it — at 5° off Z+ the X ran out
+ *  of the top. `ndc` is the letter's centre, `halfNdc` its quad's half side
+ *  plus the outline, both in normalised device units (±1 = the canvas
+ *  edge): the centre moves in just as far as the quad needs, never out. */
+export function keepInCanvas(ndc: readonly [number, number], halfNdc: number): [number, number] {
+  const m = 1 - halfNdc;
+  return [Math.min(m, Math.max(-m, ndc[0])), Math.min(m, Math.max(-m, ndc[1]))];
+}
+

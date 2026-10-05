@@ -3,7 +3,8 @@ import * as THREE from "three";
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import { AXIS_CSS, AXIS_HEX } from "./axisColors";
 import {
-  CUBE_FACES, CUBE_SIZE, FACE_SIZE, FACE_TEX_PX, FACE_BORDER_PX, faceArrows, arrowOpacity, type CubeFace, type AxisLetter,
+  CUBE_FACES, CUBE_SIZE, FACE_SIZE, FACE_TEX_PX, FACE_BORDER_PX, LETTER_SIZE, faceArrows, arrowOpacity, keepInCanvas,
+  type CubeFace, type AxisLetter,
 } from "./viewer/cubeFaces";
 
 const props = defineProps<{
@@ -141,7 +142,9 @@ function letterTexture(letter: string, css: string): THREE.CanvasTexture {
 // the full side long, the letter outside past the tip (cubeFaces
 // faceArrows). Drawn over the cube (no depth test) and faded by tick() so
 // only the face a straight view looks at shows them. Never a raycast target.
-const ARROW_SHAFT_R = 0.013, ARROW_HEAD_R = 0.045, ARROW_HEAD_LEN = 0.15, LETTER_SCALE = 0.22;
+const ARROW_SHAFT_R = 0.013, ARROW_HEAD_R = 0.045, ARROW_HEAD_LEN = 0.15;
+/** The letter's dark outline reaches this far past its quad (CSS px). */
+const LETTER_OUTLINE_PX = 1.5;
 function buildArrows(): THREE.Group {
   const root = new THREE.Group();
   const up = new THREE.Vector3(0, 1, 0);
@@ -163,9 +166,10 @@ function buildArrows(): THREE.Group {
       head.position.copy(start).addScaledVector(dir, len - ARROW_HEAD_LEN / 2);
       const smat = new THREE.SpriteMaterial({ map: letterTexture(a.axis, AXIS_CSS[key]), depthTest: false, transparent: true, opacity: 0 });
       const letter = new THREE.Sprite(smat);
-      letter.scale.set(LETTER_SCALE, LETTER_SCALE, 1);
+      letter.scale.set(LETTER_SIZE, LETTER_SIZE, 1);
       letter.position.set(...a.label);
       letter.userData.letter = a.axis;
+      letter.userData.home = new THREE.Vector3(...a.label);
       for (const o of [shaft, head, letter]) { o.renderOrder = 10; o.raycast = () => {}; g.add(o); }
       g.userData.materials.push(mat, smat);
     }
@@ -304,16 +308,30 @@ function tick() {
 }
 
 // Each face's arrows by how straight the view looks at it (cubeFaces
-// arrowOpacity: none beyond 16°, whole within 6°).
-const _toCam = new THREE.Vector3();
+// arrowOpacity: none beyond 16°, whole within 6°), and every shown letter
+// whole inside the canvas (keepInCanvas — near Z± the face turns with the
+// azimuth and a letter past a tip ran out of the canvas, Codex R74 VP-I35).
+const _toCam = new THREE.Vector3(), _ndc = new THREE.Vector3();
 function fadeArrows() {
   if (!arrowRoot || !cam) return;
   _toCam.copy(cam.position).normalize();
+  cam.updateMatrixWorld();
+  const unitsPerNdc = (cam.right - cam.left) / 2 / cam.zoom;
+  const halfNdc = LETTER_SIZE / 2 / unitsPerNdc + (2 * LETTER_OUTLINE_PX) / CANVAS_PX;
   for (const g of arrowRoot.children) {
     const f = g.userData.face as CubeFace;
     const o = arrowOpacity(_toCam.x * f.normal[0] + _toCam.y * f.normal[1] + _toCam.z * f.normal[2]);
     g.visible = o > 0;
     for (const m of g.userData.materials as THREE.MeshBasicMaterial[]) m.opacity = o;
+    if (!g.visible) continue;
+    for (const obj of g.children) {
+      const home = obj.userData.home as THREE.Vector3 | undefined;
+      if (!home) continue;
+      _ndc.copy(home).project(cam);
+      const [x, y] = keepInCanvas([_ndc.x, _ndc.y], halfNdc);
+      if (x === _ndc.x && y === _ndc.y) obj.position.copy(home);
+      else obj.position.copy(_ndc.set(x, y, _ndc.z).unproject(cam));
+    }
   }
 }
 
@@ -369,8 +387,12 @@ function diag() {
     const corners = [[-half, -half], [half, -half], [half, half], [-half, half]].map(([x, y]) =>
       px(new THREE.Vector3(x, y, 0).applyMatrix4(mesh.matrixWorld)));
     const g = arrowRoot!.children.find(a => a.userData.face === f)!;
+    const sprites = g.children.filter(o => o.userData.home);
+    const letterHalf = LETTER_SIZE / 2 * w / ((cam!.right - cam!.left) / cam!.zoom);
     const arrows = (g.userData.arrows as ReturnType<typeof faceArrows>).map(a => ({
-      axis: a.axis, start: px(new THREE.Vector3(...a.start)), tip: px(new THREE.Vector3(...a.tip)), letter: px(new THREE.Vector3(...a.label)),
+      axis: a.axis, start: px(new THREE.Vector3(...a.start)), tip: px(new THREE.Vector3(...a.tip)),
+      // where the letter IS drawn (kept inside the canvas), and its half side
+      letter: px(sprites.find(o => o.userData.letter === a.axis)!.position), letterHalf,
     }));
     const opacity = g.visible ? (g.userData.materials as THREE.MeshBasicMaterial[])[0]!.opacity : 0;
     return { label: f.label, opacity, border: corners, arrows };

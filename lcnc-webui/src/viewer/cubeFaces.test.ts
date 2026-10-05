@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { CUBE_FACES, CUBE_SIZE, FACE_SIZE, FACE_BORDER_HALF, faceArrows, arrowOpacity, type Vec3 } from "./cubeFaces";
+import { CUBE_FACES, CUBE_SIZE, FACE_SIZE, FACE_BORDER_HALF, faceArrows, arrowOpacity, keepInCanvas, type Vec3 } from "./cubeFaces";
 
 const dot = (a: Vec3, b: Vec3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
@@ -68,5 +68,16 @@ describe("the ViewCube's faces, named by axis", () => {
     }
     expect(arrowOpacity(cos(11))).toBeGreaterThan(0);
     expect(arrowOpacity(cos(11))).toBeLessThan(1);
+  });
+
+  it("a letter is kept whole inside the canvas: moved in just as far as its quad needs, never out", () => {
+    expect(keepInCanvas([0.2, -0.3], 0.15)).toEqual([0.2, -0.3]);
+    expect(keepInCanvas([0.97, 0.1], 0.15)).toEqual([0.85, 0.1]);
+    expect(keepInCanvas([-1.2, 1.05], 0.15)).toEqual([-0.85, 0.85]);
+    for (const [x, y] of [[0.99, 0.99], [-0.9, 0.2], [0.5, -1.5]] as const) {
+      const [cx, cy] = keepInCanvas([x, y], 0.1);
+      expect(Math.abs(cx) + 0.1).toBeLessThanOrEqual(1);
+      expect(Math.abs(cy) + 0.1).toBeLessThanOrEqual(1);
+    }
   });
 });
