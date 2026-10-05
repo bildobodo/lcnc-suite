@@ -10319,3 +10319,64 @@ sechs geraden Ansichten und die Mittelpunkte der Buchstaben geprüft.
 - Offline-Gate: PASS auf `f5ae6ee` — Backend 1245, Vitest 1894, Playwright 471.
 - Backend unverändert seit R72.
 - Live-Baum: seit 034f9c4 (HMR).
+
+---
+
+## Review R75 · Codex · 5. Oktober 2026
+
+**Ergebnis: agreement — VP-I35 geschlossen.** Die Korrektur aus `f5ae6ee` ist am
+angefragten Stand `034f9c4` technisch abgenommen. Damit ist auch der noch offene
+ViewCube-Teil aus R74 im geprüften Umfang angenommen; dessen bereits abgenommene
+Reach- und Program-Kopf-Änderungen bleiben unverändert.
+
+Geprüft: `f7f967d..034f9c4`, Anfrage im Live-Stand `8565839`. Eigener Build und
+Browserprüfungen ausschließlich aus `git archive 034f9c4` in `/tmp`, ein Worker,
+niedrige Priorität, eigener Mock auf `127.0.0.1:4188`. Die Live-Suite wurde nicht
+angesprochen; keine Maschinenbefehle und keine Änderungen am Produktcode.
+
+### VP-I35 · Korrektur und unabhängige Nachprüfung
+
+Die Begrenzung berücksichtigt jetzt die ganze Sprite-Fläche plus 1,5 CSS-px
+Randreserve. `fadeArrows` aktualisiert zuerst die Kameramatrix und berechnet die
+Position in jedem Bild aus `home` neu. Dadurch bleibt die Beschriftung innerhalb
+des Canvas und kehrt ohne aufgelaufenen Versatz an ihren ursprünglichen Ort zurück.
+Würfelgröße, Randpfeile, Einblendkurve und Trefferraster sind unverändert. Die
+Diagnose liefert nun die tatsächliche Sprite-Position statt des ursprünglichen
+Beschriftungspunkts.
+
+**Die R74-Sonde wurde bytegleich übernommen**, ihre beiden relevanten Fälle wurden
+erneut ausgeführt. Die zuvor rote Pixelprobe besteht jetzt: Bei 5° und 10° von Z+
+(Azimut 150°) liegt der X-Mittelpunkt bei **y = 10,56 CSS-px**, zuvor bei 3,22 bzw.
+0,38 px. In beiden Bildern liegt keine rote Buchstabentinte mehr auf der obersten
+Bildzeile. Die Deckkraft bleibt 1 bzw. 0,708; der Fehler wird nicht durch früheres
+Ausblenden verdeckt. Die gespeicherten Bilder wurden auch direkt angesehen.
+
+[5° nach Korrektur](viewer-palette-fest.r75.glyph-5deg.png),
+[10° nach Korrektur](viewer-palette-fest.r75.glyph-10deg.png),
+[gerade Kontrollansicht](viewer-palette-fest.r75.glyph-0deg.png),
+[Messwerte](viewer-palette-fest.r75.glyph-clipping.json),
+[unveränderte R74-Sonde als Kopie](viewer-palette-fest.r75.r74-probe.spec.ts).
+
+Der neue Wächter besteht ebenfalls: **432 Posen** aus sechs Flächen × drei
+Neigungen × 24 Azimuten, jeweils mit den ganzen Buchstabenflächen im Canvas.
+Zusätzlich besteht seine Pixelprüfung für X und den randnahen Y-Fall. Die bisherigen
+geraden Ansichten bestehen weiter mit Randlage, Pfeilrichtung, Achsfarbe und
+Beschriftung außerhalb der Spitze.
+
+### Prüfungen und Grenzen
+
+- Eigener Produktionsbuild bestanden.
+- **6/6 Unit-Tests** in `cubeFaces.test.ts` bestanden.
+- **6/6 Chromium-Prüfungen** in einem Lauf bestanden: vier bestehende ViewCube-Tests
+  einschließlich des neuen Umlauftests und zwei unveränderte R74-Gegenproben.
+
+Keine neuen Befunde im angefragten Umfang. Kein erneuter vollständiger Offline-Gate-
+oder Backend-Lauf, keine macOS-/Live-Sichtprüfung. Frühere Belege und der bisherige
+Review-Text wurden nicht verändert.
+
+[Prüfprotokoll und Wiederholung](viewer-palette-fest.r75.checks.md),
+[Browserlauf](viewer-palette-fest.r75.browser.txt),
+[Unit-Lauf](viewer-palette-fest.r75.unit.txt),
+[Build](viewer-palette-fest.r75.build.txt),
+[Stand und Herkunft](viewer-palette-fest.r75.context.json),
+[Beleghashes](viewer-palette-fest.r75.sha256.json).

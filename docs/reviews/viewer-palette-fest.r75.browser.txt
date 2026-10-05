@@ -1,0 +1,17 @@
+[2m[WebServer] [22m(node:590609) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+(node:590637) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:590637) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r74.probe.spec.ts:7:1 › R74: all visible cube arrow letters stay inside their canvas while orbiting near a face (5.8s)
+  ✓  2 e2e/r74.probe.spec.ts:64:1 › R74: the visible axis glyph must not be cut by the cube canvas edge at ten degrees from Z+ (2.6s)
+  ✓  3 e2e/viewcube.viewer.spec.ts:41:1 › the faces are named by axis, and an oblique view shows no arrows (2.1s)
+  ✓  4 e2e/viewcube.viewer.spec.ts:49:1 › a straight view shows its face's arrows on the displayed border, the whole side, the letter outside past the tip (4.1s)
+  ✓  5 e2e/viewcube.viewer.spec.ts:86:1 › the arrows are drawn in their axis colour on the border (pixels, top view) (2.7s)
+  ✓  6 e2e/viewcube.viewer.spec.ts:139:1 › orbiting near a face, every shown letter stays whole inside the cube canvas (Codex R74 VP-I35) (17.0s)
+
+  6 passed (35.3s)
