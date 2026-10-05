@@ -7993,3 +7993,10 @@ alone. Guard (`appearance.spec`): trip first, E-Stop 300 ms later — both
 starts at the timeline's, and banner on ⇔ button on at every sample over two
 periods; red without the listener and with a wrong prefix, the samples
 alone red too (banner on, button off).
+Codex R76 confirmed the clock in Chromium and Linux Firefox (startTime 0
+holds, CSS still cancels and restarts the animation) and found VP-I36 in the
+guard: Firefox serialises the computed colour as `color(srgb …)` on a 0–1
+scale, which the sample check read as "off" every time. Each sampled colour
+now goes through the page's canvas parser to RGB 0–255 before the tint is
+judged; green in Chromium and Firefox, the samples alone red in both
+without the clock.

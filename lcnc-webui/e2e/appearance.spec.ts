@@ -122,17 +122,23 @@ test("the E-Stop Reset and the state banner flash in step, whichever started fir
     document.querySelector(sel)!.getAnimations().filter(a => (a as CSSAnimation).animationName?.startsWith("flash-")).map(a => a.startTime)));
   await expect.poll(flashStarts, { message: "the banner's and the button's flash start" }).toEqual([[0], [0]]);
   // what the operator sees: both read at the same instant, over two periods
-  // — "on" is the danger tint, "off" the neutral panel / button grey (the
-  // flash interpolates in oklab: an off value reads oklab(L ~0 ~0), not rgb)
-  const tinted = (c: string) => {
-    const n = (c.match(/-?[\d.]+/g) ?? []).map(Number);
-    return c.startsWith("oklab") ? Math.abs(n[1]!) + Math.abs(n[2]!) > 0.01 : Math.max(n[0]!, n[1]!, n[2]!) - Math.min(n[0]!, n[1]!, n[2]!) > 4;
-  };
+  // — "on" is the danger tint, "off" the neutral panel / button grey. Each
+  // browser serialises the computed colour its own way (Chromium oklab(…) —
+  // the flash interpolates in oklab —, Firefox color(srgb …) on a 0–1 scale,
+  // Codex R76 VP-I36): the page's canvas parser turns each into RGB 0–255
+  // first.
   const seen: string[] = [], apart: string[] = [];
   for (let i = 0; i < 30; i++) {
-    const [b, k] = await page.evaluate(() => [".statusBanner", ".safetyStrip button.flashing"]
-      .map(sel => getComputedStyle(document.querySelector(sel)!).backgroundColor));
-    const bannerOn = tinted(b!), buttonOn = tinted(k!);
+    const [bannerOn, buttonOn] = await page.evaluate(() => {
+      const ctx = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
+      return [".statusBanner", ".safetyStrip button.flashing"].map(sel => {
+        ctx.clearRect(0, 0, 1, 1);
+        ctx.fillStyle = getComputedStyle(document.querySelector(sel)!).backgroundColor;
+        ctx.fillRect(0, 0, 1, 1);
+        const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+        return Math.max(r!, g!, b!) - Math.min(r!, g!, b!) > 16;
+      });
+    });
     seen.push(`banner ${bannerOn}`, `button ${buttonOn}`);
     if (bannerOn !== buttonOn) apart.push(`sample ${i}: banner ${bannerOn ? "on" : "off"}, button ${buttonOn ? "on" : "off"}`);
     await page.waitForTimeout(45);
