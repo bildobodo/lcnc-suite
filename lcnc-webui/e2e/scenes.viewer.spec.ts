@@ -263,7 +263,7 @@ test("every path line is drawn 2 CSS px — the path, the limit overlay and the 
       await ctl({ op: "status_delta", data: { joint_pos: [0, -150 + i * 15, 0], actual_position: [0, -150 + i * 15, 0] } });
       await page.waitForTimeout(30);
     }
-    await page.evaluate(() => window.__viewerDiag!.setView!("top"));
+    await page.evaluate(() => window.__viewerDiag!.setView!("z+"));
     for (const theme of LADDER_THEMES) {
       await ctl({ op: "raw", frame: { type: "settings_init", settings: { display: { theme }, viewer: { layers: { backplot: true, bounds: true, hud: false } } } } });
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
@@ -977,7 +977,7 @@ test("a reach chain with two visible pieces shows both tones in each (plan Fassu
       hud: false, bounds: false, toolpathBounds: false, toolpath: false, rapids: false, tool: false, machine: false, workzero: false,
       groundGrid: false, toolsetter: false, toolChange: false, reachPart: false, reachRoom: true } } } } });
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
-    await page.evaluate(() => window.__viewerDiag!.setView!("top"));
+    await page.evaluate(() => window.__viewerDiag!.setView!("z+"));
     await page.waitForTimeout(400);
     // the page ↔ world map of the top view (z = 0)
     const [o, ex, ey] = (await page.evaluate(() => window.__viewerDiag!.projectPoints!([[0, 0, 0], [100, 0, 0], [0, 100, 0]])))!;
@@ -1069,10 +1069,10 @@ test("CSS-px objects keep their size in every drawn frame of a view animation (C
   await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getBoxTicks!()?.length)).toBe(24);
   await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getToolsetter!()?.visible)).toBe(true);
   await page.evaluate(() => window.__viewerDiag!.setCameraPose!([600, 0, 0], [0, 0, 0]));
-  await page.evaluate(() => window.__viewerDiag!.setView!("front"));
+  await page.evaluate(() => window.__viewerDiag!.setView!("x+"));
   await page.waitForTimeout(700);
   const frames: { bars: number[]; scales: { name: string; factor: number }[] }[] = [];
-  for (const view of ["back", "top", "iso"]) {
+  for (const view of ["x-", "z+", "iso"]) {
     await page.evaluate(v => { window.__viewerDiag!.startFrameProbe!(); window.__viewerDiag!.setView!(v); }, view);
     await page.waitForTimeout(700);
     frames.push(...await page.evaluate(() => window.__viewerDiag!.takeFrameProbe!()));

@@ -196,7 +196,7 @@ test("the tool setter is a pin drawn over the machine while on top, hidden by th
   const settings = (shown: boolean, onTop: boolean) => ({ toolsetter: SET_UP, display: { theme: "light" },
     viewer: { machineEdges: false, layers: { ...QUIET, toolChange: false, toolsetter: shown }, onTop: { toolsetter: onTop } } });
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: settings(true, true) } });
-  await page.evaluate(() => window.__viewerDiag!.setView!("top"));
+  await page.evaluate(() => window.__viewerDiag!.setView!("z+"));
   await page.waitForTimeout(800);
   const at = (await page.evaluate(() => window.__viewerDiag!.getToolsetter!()))!;
   expect(at).toMatchObject({ visible: true, top: [150, 0, -300], onTop: true });
@@ -392,7 +392,7 @@ test("the three pins are cyan over their dark carrier in every theme, after a sw
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
     await page.waitForTimeout(400);
   };
-  await page.evaluate(() => window.__viewerDiag!.setView!("front"));
+  await page.evaluate(() => window.__viewerDiag!.setView!("x+"));
   for (const theme of ["light", "dark", "hc-light", "hc-dark"]) {
     for (const pin of Object.keys(PINS) as (keyof typeof PINS)[]) {
       await show(theme, pin);
@@ -407,7 +407,7 @@ test("the three pins are cyan over their dark carrier in every theme, after a sw
     workGroup: machine.workGroup, toolGroup: machine.toolGroup } });
   await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready ? window.__viewerDiag.getAppearance?.().parts.length ?? 0 : 0),
     { timeout: 20_000 }).toBe(machine.parts.length);
-  await page.evaluate(() => window.__viewerDiag!.setView!("front"));
+  await page.evaluate(() => window.__viewerDiag!.setView!("x+"));
   for (const pin of Object.keys(PINS) as (keyof typeof PINS)[]) {
     await show("dark", pin);
     expect(await cyanNear(PINS[pin].diag), `after a rebuild, ${pin}: cyan`).toBeGreaterThan(6);

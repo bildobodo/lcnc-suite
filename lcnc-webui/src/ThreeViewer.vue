@@ -96,7 +96,10 @@ function closePip() {
 // ViewerInit and ViewerGcode imported from lcncWs.ts — shared with App.vue
 // so the ref types and consumer types are in lockstep.
 
-type ViewPreset = "top" | "bottom" | "left" | "right" | "front" | "back" | "iso" | "dimetric" | "reset";
+/** A straight view is named by the ViewCube face it shows (viewer/cubeFaces:
+ *  "z+" looks from above at Z+, "y-" from −Y at Y−) — FRONT/LEFT were fixed
+ *  to the world frame and read wrong on a machine whose front is −Y. */
+type ViewPreset = "x+" | "x-" | "y+" | "y-" | "z+" | "z-" | "iso" | "dimetric" | "reset";
 
 
 type ViewerState = {
@@ -320,11 +323,6 @@ let orthoCam: THREE.OrthographicCamera | null = null;
 const isOrtho = ref(false);
 let controls: OrbitControls | null = null;
 let raf = 0;
-
-// Orientation gizmo (viewport overlay)
-let _gizmoScene: THREE.Scene | null = null;
-let _gizmoCam: THREE.OrthographicCamera | null = null;
-const GIZMO_SIZE = 140; // pixels
 
 // Transform groups (logical)
 const groups: Record<string, THREE.Group> = {};
@@ -764,29 +762,6 @@ function mkTextLabel(text: string, color: string, fontSize: number): Text {
   return t;
 }
 
-function buildGizmo() {
-  _gizmoScene = new THREE.Scene();
-  const al = 60, ah = al * 0.15, aw = al * 0.08;
-  _gizmoScene.add(new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), new THREE.Vector3(), al, AXIS_HEX.x, ah, aw));
-  _gizmoScene.add(new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), new THREE.Vector3(), al, AXIS_HEX.y, ah, aw));
-  _gizmoScene.add(new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(), al, AXIS_HEX.z, ah, aw));
-
-  const fs = al * 0.35;
-  const lblOff = al * 1.15;
-  for (const [text, color, pos] of [
-    ["X", AXIS_CSS.x, [lblOff, 0, 0]],
-    ["Y", AXIS_CSS.y, [0, lblOff, 0]],
-    ["Z", AXIS_CSS.z, [0, 0, lblOff]],
-  ] as [string, string, number[]][]) {
-    const lbl = mkTextLabel(text, color, fs);
-    lbl.position.set(pos[0]!, pos[1]!, pos[2]!);
-    _gizmoScene.add(lbl);
-  }
-
-  _gizmoCam = new THREE.OrthographicCamera(-80, 80, 80, -80, 1, 500);
-  _gizmoCam.up.set(0, 0, 1);
-}
-
 function resetBackplot() {
   backplot.reset();
 }
@@ -1150,12 +1125,12 @@ function setView(p: ViewPreset) {
   const up = new THREE.Vector3(0, 0, 1);
 
   switch (p) {
-    case "top":      dir.set(0, 0, 1);      break;
-    case "bottom":   dir.set(0, 0, -1);     break;
-    case "front":    dir.set(1, 0, 0);      break;
-    case "back":     dir.set(-1, 0, 0);     break;
-    case "left":     dir.set(0, -1, 0);     break;
-    case "right":    dir.set(0, 1, 0);      break;
+    case "z+":       dir.set(0, 0, 1);      break;
+    case "z-":       dir.set(0, 0, -1);     break;
+    case "x+":       dir.set(1, 0, 0);      break;
+    case "x-":       dir.set(-1, 0, 0);     break;
+    case "y-":       dir.set(0, -1, 0);     break;
+    case "y+":       dir.set(0, 1, 0);      break;
     case "iso":      dir.set(1, -1, 0.8);   break;
     case "dimetric": dir.set(0.7, -0.7, 1); break;
   }
@@ -2031,6 +2006,8 @@ async function buildFromInit(init: ViewerInit) {
         },
         getFrameBox: () => { const b = _boundsWorldBox(); return b ? { min: b.min.toArray(), max: b.max.toArray() } : null; },
         setView: (p: string) => setView(p as ViewPreset),
+        // The ViewCube's faces and straight-view arrows (ViewCube diag()).
+        getViewCube: () => viewCubeRef.value?.diag() ?? null,
         // The frames as drawn from now on (Codex R67) — read without re-posing.
         startFrameProbe: () => { _frameProbe = []; },
         takeFrameProbe: () => { const f = _frameProbe ?? []; _frameProbe = null; return f; },
@@ -2092,8 +2069,8 @@ async function buildFromInit(init: ViewerInit) {
         // sweep — the palette spec checks the tint follows a theme switch.
         // Every troika label in the scenes and how many have laid out (a
         // glyph layout exists) — the offline spec asks this directly; a
-        // texture count compared with a moment before raced the gizmo's
-        // labels, which build the shared glyph atlas first.
+        // texture count compared with a moment before raced the first
+        // labels, which build the shared glyph atlas.
         // Every role-tagged material as DRAWN (viewer contrast plan, R1/R2):
         // its kind — `fat` a screen-space line with its CSS-px width (every
         // path line's 2, part B), `dashed` / `basic` a GL line of one device
@@ -2240,7 +2217,7 @@ async function buildFromInit(init: ViewerInit) {
         simulatePlane: (plane: number[] | null | undefined) => { _diagSimulatedPlane = plane; _twpSig = ""; _twpRefresh(); },
         getLabels: () => {
           let total = 0, laidOut = 0;
-          for (const sc of [scene, _gizmoScene]) sc?.traverse(o => {
+          scene?.traverse(o => {
             if (o instanceof Text) { total++; if ((o as any).textRenderInfo) laidOut++; }
           });
           return { total, laidOut };
@@ -4075,33 +4052,6 @@ function animate() {
   _glCalls = renderer?.info.render.calls ?? 0;
   _glLines = renderer?.info.render.lines ?? 0;
 
-  // Orientation gizmo — always ortho, render into bottom-right viewport
-  // (top-left is the HUD, top-right is the ViewCube + quick-grid).
-  if (renderer && _gizmoScene && _gizmoCam && camera) {
-    _gizmoCam.position.set(0, 0, 200).applyQuaternion(camera.quaternion);
-    _gizmoCam.quaternion.copy(camera.quaternion);
-
-    // Billboard gizmo labels
-    _gizmoScene.traverse((c: any) => { if (c instanceof Text) c.quaternion.copy(_gizmoCam!.quaternion); });
-
-    // setViewport/setScissor take CSS pixels — three.js multiplies by pixelRatio
-    // internally. Passing framebuffer pixels (el.width) double-multiplies on
-    // Retina (DPR=2), pushing the scene off the upper-right corner.
-    const el = renderer.domElement;
-    const w = el.clientWidth, h = el.clientHeight;
-    const gs = GIZMO_SIZE;
-    const gx = w - gs - 8, gy = 8;
-    renderer.setViewport(gx, gy, gs, gs);
-    renderer.setScissor(gx, gy, gs, gs);
-    renderer.setScissorTest(true);
-    renderer.autoClear = false;
-    renderer.clearDepth();
-    renderer.render(_gizmoScene, _gizmoCam);
-    renderer.setScissorTest(false);
-    renderer.autoClear = true;
-    renderer.setViewport(0, 0, w, h);
-  }
-
   _needsRender = false;
 }
 
@@ -4193,7 +4143,6 @@ onMounted(() => {
   _hudFitObs = new ResizeObserver(() => fitHud());
   for (const el of [wrapEl.value, bottomEl.value, hudEl.value]) if (el) _hudFitObs.observe(el);
 
-  buildGizmo();
 
 
   resize();
@@ -4290,12 +4239,6 @@ onUnmounted(() => {
   for (const lbl of _billboardLabels) lbl.dispose();
   _billboardLabels.length = 0;
 
-  // Dispose gizmo
-  if (_gizmoScene) {
-    _gizmoScene.traverse((c: any) => { if (c.dispose) c.dispose(); });
-    _gizmoScene = null;
-  }
-  _gizmoCam = null;
 
   if (scene) clearScene();
 
@@ -4445,6 +4388,7 @@ const hudNotesSummary = computed(() => [hudModeLine(false),
 const hasHudNotes = computed(() => !!hudMode.value || hudWarnCount.value > 0);
 const wrapEl = ref<HTMLDivElement | null>(null);
 const hudEl = ref<HTMLDivElement | null>(null);
+const viewCubeRef = ref<InstanceType<typeof ViewCube> | null>(null);
 const bottomEl = ref<HTMLDivElement | null>(null);
 const simBannerEl = ref<HTMLDivElement | null>(null);
 let _hudFitObs: ResizeObserver | null = null;
@@ -4845,6 +4789,7 @@ defineExpose({
 
     <!-- View navigation cube (top-right) -->
     <ViewCube
+      ref="viewCubeRef"
       :get-camera-quaternion="getMainCameraQuaternion"
       @view-change="applyViewDirection"
     />

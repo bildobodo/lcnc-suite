@@ -7927,3 +7927,21 @@ beats a max-width. Every dialog min-width is now capped by the room like its
 max-width. Red: either floor restored, the message center's header with its
 words.
 
+## 2026-10-05 — The ViewCube named by axis; the corner gizmo is gone
+
+The operator reported the corner gizmo under the scrub bar (it was drawn in a
+fixed 140 px viewport 8 px above the canvas's bottom-right, and the bottom
+column spans the whole width) and then that the cube's labels were wrong on
+the 5-axis sim: FRONT/LEFT were fixed to +X / −Y, while a mill's front is
+usually −Y — its "LEFT". From renders (acceptance page V14–V18) the operator
+chose: the faces named X+ … Z−, lightly tinted by axis; in a straight view the
+two in-plane axes as plain arrows (no dark outline, like the old gizmo) on the
+DISPLAYED square's border — the whole side long, the letter outside past the
+tip — fading in only near a straight view; no corner gizmo. Rejected on the
+way: the gizmo lifted above the bottom column (no room on the touchscreen,
+there it vanished) and axes out of the cube (the cube shrank 82 → 56 px).
+The view presets are renamed by the face they show ("front" was +X). Guards:
+`cubeFaces.test.ts`, `viewcube.viewer.spec.ts`; red with the arrows on the
+cube's edge, from the wrong corner, in every view, the letter inside, two
+names swapped and the arrows grey.
+

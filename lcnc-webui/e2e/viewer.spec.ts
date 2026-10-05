@@ -144,8 +144,8 @@ test("the viewer fetches nothing from outside the gateway (an offline machine)",
   // Every label laid out with the bundled font (a label without it fetched
   // its font from a CDN and, offline, never laid out). Asked of the labels
   // themselves: a texture count compared with a moment before raced the
-  // gizmo's labels, which build the shared glyph atlas first (flaked once
-  // in ~10 gate runs, 2026-09-27).
+  // first labels, which build the shared glyph atlas (flaked once in ~10
+  // gate runs, 2026-09-27).
   await expect.poll(async () => {
     const l = await page.evaluate(() => window.__viewerDiag?.getLabels?.());
     return l && l.total > 0 && l.laidOut === l.total ? "laid out" : JSON.stringify(l);
@@ -347,7 +347,7 @@ test("default framing keeps the eye outside a bed/column model for every directi
     expect(Math.abs(dist(c.position, c.target) - d0)).toBeLessThan(1.5);
   }
   // Presets (animated) and Reset's endpoint.
-  for (const preset of ["top", "bottom", "front", "back", "left", "right", "iso", "dimetric", "reset"]) {
+  for (const preset of ["z+", "z-", "x+", "x-", "y-", "y+", "iso", "dimetric", "reset"]) {
     await page.evaluate(p => window.__viewerDiag!.setView!(p), preset);
     const c = await settledCamera(page);
     expect(insidePart(c.position, parts), `preset ${preset}`).toBeNull();
@@ -419,7 +419,7 @@ test("the parallel projection never cuts the ground grid while orbiting", async 
     await page.evaluate(d => window.__viewerDiag!.setViewDirection!(d), [Math.cos(r), Math.sin(r), 0.05]);
     await at(`azimuth ${a}°, elevation 3°`);
   }
-  for (const preset of ["front", "left", "iso", "reset"]) {
+  for (const preset of ["x+", "y-", "iso", "reset"]) {
     await page.evaluate(p => window.__viewerDiag!.setView!(p), preset);
     await settledCamera(page);
     await at(`preset ${preset}`);

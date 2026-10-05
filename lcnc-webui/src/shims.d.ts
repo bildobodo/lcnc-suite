@@ -87,6 +87,8 @@ interface ViewerDiag {
   getPartBounds?: () => { id: string; min: number[]; max: number[] }[];
   getFrameBox?: () => { min: number[]; max: number[] } | null;
   setView?: (preset: string) => void;
+  getViewCube?: () => { canvas: number[]; faces: { label: string; opacity: number; border: number[][];
+    arrows: { axis: string; start: number[]; tip: number[]; letter: number[] }[] }[] } | null;
   setViewDirection?: (dir: number[], distance?: number) => void;
   switchProjection?: () => void;
   defaultFrameDir?: number[];

@@ -8,7 +8,7 @@
 // their lightness, so no part carries a hue, and the parts a program lies on
 // (the table / faceplate and the stock) sit in the middle of the ladder —
 // the lines are lighter on the dark scene and stand off them by
-// themeTokens.test's MODEL_MIN on the light one. The axis gizmo says which
+// themeTokens.test's MODEL_MIN on the light one. The ViewCube says which
 // slide is which axis; the slides are grey steps, not axis hues.
 //
 // Values are MATERIAL colors: the scene lights make a top face roughly
