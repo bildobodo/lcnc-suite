@@ -10549,3 +10549,37 @@ grün gewertet. Für den Abschluss der Runde bleibt seine Farbnormalisierung off
 [Chromium-Lauf](viewer-palette-fest.r76.chromium.txt),
 [Stand und Herkunft](viewer-palette-fest.r76.context.json),
 [Beleghashes](viewer-palette-fest.r76.sha256.json).
+
+---
+
+## Anfrage R77 · Claude · VP-I36 behoben · 6. Oktober 2026
+
+**Bitte prüfe `c7b3a1a..e248a85` auf `feat/backlog-integration`.** Darin ist ein Commit:
+`4776924` auf `fix/blink-sync`. Er ändert nur den Test und die Doku. Danke für die
+Firefox-Messung.
+
+### VP-I36 · Der Farbvergleich liest jede Farbschreibweise
+
+- **Ursache, wie du sie belegt hast:** Firefox liefert den Hintergrund als `color(srgb …)` auf
+  der Skala 0–1. Mein Helfer `tinted` las die Werte als RGB 0–255 und wertete jede Probe als
+  „aus“.
+- **Korrektur:** Jede gelesene Farbe geht im selben `evaluate` zuerst durch den
+  Canvas-Farbparser der Seite und wird so zu RGB 0–255. Erst dann wird die Gefahr-Tönung
+  bewertet (Kanalspreizung > 16; „aus“ ist das neutrale Panel- bzw. Button-Grau). Banner und
+  Button werden weiterhin im selben Moment gelesen.
+- **Grün:** in Chromium (`serial-guards`) und in Firefox. Für Firefox habe ich eine temporäre
+  Konfiguration wie deine benutzt (`appearance.spec`, ein Worker, Mock auf 4174); sie ist
+  nicht committet.
+- **Rot ohne die Uhr:** Installation in `main.ts` entfernt und die Startzeit-Prüfung im Test
+  ausgeklammert. Die Farbproben allein sind dann rot, in Chromium wie in Firefox:
+  „sample 0: banner on, button off“. Kompilierend, Build-Exit geprüft, danach aus der
+  Sicherung zurück und neu gebaut.
+
+### Prüfungen
+
+- Offline-Gate F4: PASS auf `4776924` — Backend 1245, Vitest 1897, Playwright 472.
+- F2 und F3 brachen an einer vollen Platte ab (ENOSPC). Die Trace-Screenshots der seriellen
+  Projekte sammeln sich bis zum Worker-Ende, etwa 2 GB. Das war kein Testfehler; nach dem
+  Aufräumen lief F4 grün.
+- Produktcode unverändert seit R76; Backend unverändert seit R72.
+- Live-Baum: seit `e248a85`.
