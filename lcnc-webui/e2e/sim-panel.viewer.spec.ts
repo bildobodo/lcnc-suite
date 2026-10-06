@@ -97,10 +97,13 @@ const KEYBOARD = { keyboard: { jogEnabled: true, buttonsEnabled: true, mapping: 
 } } };
 const jogs = async () => ((await ctl({ op: "lastCmds" })).cmds as { cmd: string }[]).map(c => c.cmd).filter(c => /jog/.test(c));
 /** The machine on or off — waited for in the CLIENT (the strip's power
- *  button names the next action), not only in the mock's reply. */
+ *  button names the next action), not only in the mock's reply. By the
+ *  button's NAME: its stable width keeps both words in the DOM, the other
+ *  one hidden, so the strip's text held both in either state (Codex R79
+ *  VP-I40). */
 async function machine(page: Page, on: boolean) {
   await ctl({ op: "status_delta", data: { is_enabled: on, enabled: on } });
-  await expect(page.locator(".safetyStrip")).toContainText(on ? /power off/i : /power on/i);
+  await expect(page.locator(".safetyStrip").getByRole("button", { name: on ? "Power off" : "Power on", exact: true })).toBeVisible();
 }
 /** The machine on (homed by the layout fixture), the keyboard jog bound to
  *  the arrows — and proven live: an arrow on the unfocused page jogs. */

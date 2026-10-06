@@ -8045,3 +8045,12 @@ both ways with the wrap, the reveal ended by a row and by a step, after a
 finding on a hidden feed and on a hidden rapid — each red without its fix. Codex's note on the keys test taken: it waits for the
 client's machine state and retries the control jog until the settings
 arrived.
+
+## 2026-10-06 — Codex R79: VP-I37–I39 closed; a machine-state wait by the button's name
+
+VP-I40 (P3, test care): the Sim keys test waited for the machine state by the
+safety strip's TEXT ("power off" / "power on") — the power button keeps its
+width with both words in the DOM, the other one `visibility: hidden`, so the
+strip's text held both in either state and the wait passed before the state
+arrived (an occasional Chromium timeout after Machine OFF). It waits for the
+button by its exact accessible name now, which only the shown word gives.
