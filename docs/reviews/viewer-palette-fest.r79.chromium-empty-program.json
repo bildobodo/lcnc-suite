@@ -1,0 +1,9 @@
+{
+  "focus": {
+    "tag": "DIV",
+    "cls": "simPanel stack-controls",
+    "label": null,
+    "inPanel": true
+  },
+  "cmds": []
+}

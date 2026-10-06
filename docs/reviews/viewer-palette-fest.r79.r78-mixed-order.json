@@ -1,0 +1,34 @@
+{
+  "displayed": [
+    "T10",
+    "C12|tool|table|0",
+    "L20",
+    "C20|tool|table|0",
+    "C26|tool|table|0",
+    "L32"
+  ],
+  "sequence": [
+    "C12|tool|table|0",
+    "L20",
+    "C20|tool|table|0",
+    "C26|tool|table|0",
+    "L32",
+    "T10"
+  ],
+  "previous": [
+    "C12|tool|table|0",
+    "T10",
+    "L32",
+    "C26|tool|table|0",
+    "C20|tool|table|0",
+    "L20"
+  ],
+  "expected": [
+    "C12|tool|table|0",
+    "L20",
+    "C20|tool|table|0",
+    "C26|tool|table|0",
+    "L32",
+    "T10"
+  ]
+}

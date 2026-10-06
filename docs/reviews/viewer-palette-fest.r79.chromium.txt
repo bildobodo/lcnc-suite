@@ -1,0 +1,262 @@
+[2m[WebServer] [22m(node:1577677) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 15 tests using 1 worker
+
+(node:1577739) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1577739) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   1 e2e/r78.probe.spec.ts:45:1 › R78: mixed next and previous follow the displayed order at a shared timeline position (127ms)
+(node:1577819) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1577819) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   2 e2e/r78.probe.spec.ts:70:1 › R78: replacing collision results retains keyboard focus inside the Sim panel (106ms)
+(node:1577901) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1577901) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   3 e2e/r78.probe.spec.ts:98:1 › R78: a tool-change jump ends the old finding-only path reveal (119ms)
+(node:1577969) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1577969) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   4 e2e/r78.probe.spec.ts:112:1 › R78: the Sim table and dense inputs fit at the agreed touch sizes (109ms)
+(node:1578050) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1578050) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   5 e2e/r79.transitions.spec.ts:61:1 › R79: empty program parks owned focus on the panel, navigation stays local (118ms)
+(node:1578150) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1578150) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   6 e2e/r79.transitions.spec.ts:70:1 › R79: a focused step survives a new machine-on reason without jog (113ms)
+(node:1578217) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1578217) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   7 e2e/r79.transitions.spec.ts:81:1 › R79: refreshing results does not steal focus from outside the panel (110ms)
+(node:1578298) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1578298) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   8 e2e/sim-panel.viewer.spec.ts:42:1 › the list is the timeline's marks: one row each, in timeline order, each kind in its words (104ms)
+(node:1578379) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1578379) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘   9 e2e/sim-panel.viewer.spec.ts:64:1 › a row shows its finding; the steps go through the shown kind; the next row follows the position (123ms)
+(node:1578478) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1578478) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  10 e2e/sim-panel.viewer.spec.ts:121:1 › the rows' keys move the focus, never a jog; Enter shows; the machine on explains at the row (114ms)
+(node:1578547) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1578547) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  11 e2e/sim-panel.viewer.spec.ts:143:1 › stepping through the findings never changes the bar: the same box, the same timeline (127ms)
+(node:1578626) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1578626) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  12 e2e/sim-panel.viewer.spec.ts:174:1 › a result change under the focus keeps it in the panel; no arrow jogs (110ms)
+(node:1578708) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1578708) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  13 e2e/sim-panel.viewer.spec.ts:204:1 › the steps through mixed kinds follow the list's own order, ties included (105ms)
+(node:1578795) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1578795) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  14 e2e/sim-panel.viewer.spec.ts:228:1 › a tool change shown after a finding ends the finding's reveal, the stored layer untouched (108ms)
+(node:1578875) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1578875) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  15 e2e/sim-panel.viewer.spec.ts:259:1 › a tool change shown after a finding on a hidden rapid ends the rapids' reveal (107ms)
+
+
+  1) e2e/r78.probe.spec.ts:45:1 › R78: mixed next and previous follow the displayed order at a shared timeline position 
+
+    AggregateError: 
+
+    AggregateError: 
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r79-chromium-output/r78.probe-R78-mixed-next-a-48265--a-shared-timeline-position/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r79-chromium-output/r78.probe-R78-mixed-next-a-48265--a-shared-timeline-position/error-context.md
+
+  2) e2e/r78.probe.spec.ts:70:1 › R78: replacing collision results retains keyboard focus inside the Sim panel 
+
+    AggregateError: 
+
+    AggregateError: 
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r79-chromium-output/r78.probe-R78-replacing-co-31c28--focus-inside-the-Sim-panel/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r79-chromium-output/r78.probe-R78-replacing-co-31c28--focus-inside-the-Sim-panel/error-context.md
+
+  3) e2e/r78.probe.spec.ts:98:1 › R78: a tool-change jump ends the old finding-only path reveal ────
+
+    AggregateError: 
+
+    AggregateError: 
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r79-chromium-output/r78.probe-R78-a-tool-chang-2904d-ld-finding-only-path-reveal/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r79-chromium-output/r78.probe-R78-a-tool-chang-2904d-ld-finding-only-path-reveal/error-context.md
+
+  4) e2e/r78.probe.spec.ts:112:1 › R78: the Sim table and dense inputs fit at the agreed touch sizes 
+
+    AggregateError: 
+
+    AggregateError: 
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r79-chromium-output/r78.probe-R78-the-Sim-tabl-9db1c-t-at-the-agreed-touch-sizes/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r79-chromium-output/r78.probe-R78-the-Sim-tabl-9db1c-t-at-the-agreed-touch-sizes/error-context.md
+
+  5) e2e/r79.transitions.spec.ts:61:1 › R79: empty program parks owned focus on the panel, navigation stays local 
+
+    AggregateError: 
+
+    AggregateError: 
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r79-chromium-output/r79.transitions-R79-empty--ab316-anel-navigation-stays-local/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r79-chromium-output/r79.transitions-R79-empty--ab316-anel-navigation-stays-local/error-context.md
+
+  6) e2e/r79.transitions.spec.ts:70:1 › R79: a focused step survives a new machine-on reason without jog 
+
+    AggregateError: 
+
+    AggregateError: 
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r79-chromium-output/r79.transitions-R79-a-focu-4656b-chine-on-reason-without-jog/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r79-chromium-output/r79.transitions-R79-a-focu-4656b-chine-on-reason-without-jog/error-context.md
+
+  7) e2e/r79.transitions.spec.ts:81:1 › R79: refreshing results does not steal focus from outside the panel 
+
+    AggregateError: 
+
+    AggregateError: 
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r79-chromium-output/r79.transitions-R79-refres-d7695-ocus-from-outside-the-panel/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r79-chromium-output/r79.transitions-R79-refres-d7695-ocus-from-outside-the-panel/error-context.md
+
+  8) e2e/sim-panel.viewer.spec.ts:42:1 › the list is the timeline's marks: one row each, in timeline order, each kind in its words 
+
+    AggregateError: 
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r79-chromium-output/sim-panel.viewer-the-list--42bce-rder-each-kind-in-its-words/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r79-chromium-output/sim-panel.viewer-the-list--42bce-rder-each-kind-in-its-words/error-context.md
+
+  9) e2e/sim-panel.viewer.spec.ts:64:1 › a row shows its finding; the steps go through the shown kind; the next row follows the position 
+
+    AggregateError: 
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r79-chromium-output/sim-panel.viewer-a-row-sho-ab3be-xt-row-follows-the-position/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r79-chromium-output/sim-panel.viewer-a-row-sho-ab3be-xt-row-follows-the-position/error-context.md
+
+  10) e2e/sim-panel.viewer.spec.ts:121:1 › the rows' keys move the focus, never a jog; Enter shows; the machine on explains at the row 
+
+    AggregateError: 
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r79-chromium-output/sim-panel.viewer-the-rows--bc731-hine-on-explains-at-the-row/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r79-chromium-output/sim-panel.viewer-the-rows--bc731-hine-on-explains-at-the-row/error-context.md
+
+  11) e2e/sim-panel.viewer.spec.ts:143:1 › stepping through the findings never changes the bar: the same box, the same timeline 
+
+    AggregateError: 
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r79-chromium-output/sim-panel.viewer-stepping--33772--same-box-the-same-timeline/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r79-chromium-output/sim-panel.viewer-stepping--33772--same-box-the-same-timeline/error-context.md
+
+  12) e2e/sim-panel.viewer.spec.ts:174:1 › a result change under the focus keeps it in the panel; no arrow jogs 
+
+    AggregateError: 
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r79-chromium-output/sim-panel.viewer-a-result--34c1c--in-the-panel-no-arrow-jogs/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r79-chromium-output/sim-panel.viewer-a-result--34c1c--in-the-panel-no-arrow-jogs/error-context.md
+
+  13) e2e/sim-panel.viewer.spec.ts:204:1 › the steps through mixed kinds follow the list's own order, ties included 
+
+    AggregateError: 
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r79-chromium-output/sim-panel.viewer-the-steps-77ee1-t-s-own-order-ties-included/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r79-chromium-output/sim-panel.viewer-the-steps-77ee1-t-s-own-order-ties-included/error-context.md
+
+  14) e2e/sim-panel.viewer.spec.ts:228:1 › a tool change shown after a finding ends the finding's reveal, the stored layer untouched 
+
+    AggregateError: 
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r79-chromium-output/sim-panel.viewer-a-tool-ch-ac97c--the-stored-layer-untouched/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r79-chromium-output/sim-panel.viewer-a-tool-ch-ac97c--the-stored-layer-untouched/error-context.md
+
+  15) e2e/sim-panel.viewer.spec.ts:259:1 › a tool change shown after a finding on a hidden rapid ends the rapids' reveal 
+
+    AggregateError: 
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r79-chromium-output/sim-panel.viewer-a-tool-ch-36e62-apid-ends-the-rapids-reveal/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r79-chromium-output/sim-panel.viewer-a-tool-ch-36e62-apid-ends-the-rapids-reveal/error-context.md
+
+  15 failed
+    e2e/r78.probe.spec.ts:45:1 › R78: mixed next and previous follow the displayed order at a shared timeline position 
+    e2e/r78.probe.spec.ts:70:1 › R78: replacing collision results retains keyboard focus inside the Sim panel 
+    e2e/r78.probe.spec.ts:98:1 › R78: a tool-change jump ends the old finding-only path reveal ─────
+    e2e/r78.probe.spec.ts:112:1 › R78: the Sim table and dense inputs fit at the agreed touch sizes 
+    e2e/r79.transitions.spec.ts:61:1 › R79: empty program parks owned focus on the panel, navigation stays local 
+    e2e/r79.transitions.spec.ts:70:1 › R79: a focused step survives a new machine-on reason without jog 
+    e2e/r79.transitions.spec.ts:81:1 › R79: refreshing results does not steal focus from outside the panel 
+    e2e/sim-panel.viewer.spec.ts:42:1 › the list is the timeline's marks: one row each, in timeline order, each kind in its words 
+    e2e/sim-panel.viewer.spec.ts:64:1 › a row shows its finding; the steps go through the shown kind; the next row follows the position 
+    e2e/sim-panel.viewer.spec.ts:121:1 › the rows' keys move the focus, never a jog; Enter shows; the machine on explains at the row 
+    e2e/sim-panel.viewer.spec.ts:143:1 › stepping through the findings never changes the bar: the same box, the same timeline 
+    e2e/sim-panel.viewer.spec.ts:174:1 › a result change under the focus keeps it in the panel; no arrow jogs 
+    e2e/sim-panel.viewer.spec.ts:204:1 › the steps through mixed kinds follow the list's own order, ties included 
+    e2e/sim-panel.viewer.spec.ts:228:1 › a tool change shown after a finding ends the finding's reveal, the stored layer untouched 
+    e2e/sim-panel.viewer.spec.ts:259:1 › a tool change shown after a finding on a hidden rapid ends the rapids' reveal 

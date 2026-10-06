@@ -1,0 +1,39 @@
+[2m[WebServer] [22m(node:1585027) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:1585039) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1585039) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r79.keyboard-exact.spec.ts:121:1 › the rows' keys move the focus, never a jog; Enter shows; the machine on explains at the row (4.5s)
+  ✘  2 e2e/r79.wait.spec.ts:44:1 › R79: the machine-state wait must distinguish ON from OFF (3.5s)
+
+
+  1) e2e/r79.wait.spec.ts:44:1 › R79: the machine-state wait must distinguish ON from OFF ──────────
+
+    Error: OFF wait must not succeed while the machine is confirmed ON
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mfalse[39m
+    Received: [31mtrue[39m
+
+      54 |  const evidence={machineState:await page.locator('.statusBanner').innerText(),onWaitPassed:true,offWaitPassed:true,...sample};
+      55 |  writeFileSync('../evidence/viewer-palette-fest.r79.power-wait.json',JSON.stringify(evidence,null,2)+'\n');
+    > 56 |  expect(evidence.offWaitPassed,'OFF wait must not succeed while the machine is confirmed ON').toBe(false);
+         |                                                                                               ^
+      57 | });
+      58 |
+        at /tmp/codex-r79-mgex7_jw/archive/lcnc-webui/e2e/r79.wait.spec.ts:56:95
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r79-chromium-output/r79.wait-R79-the-machine-s-b8d45-ust-distinguish-ON-from-OFF/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r79-chromium-output/r79.wait-R79-the-machine-s-b8d45-ust-distinguish-ON-from-OFF/error-context.md
+
+  1 failed
+    e2e/r79.wait.spec.ts:44:1 › R79: the machine-state wait must distinguish ON from OFF ───────────
+  1 passed (9.1s)

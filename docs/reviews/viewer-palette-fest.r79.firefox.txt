@@ -1,0 +1,20 @@
+[2m[WebServer] [22m(node:1583121) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 9 tests using 1 worker
+
+(node:1583181) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1583181) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r78.probe.spec.ts:70:1 › R78: replacing collision results retains keyboard focus inside the Sim panel (4.0s)
+  ✓  2 e2e/r79.transitions.spec.ts:61:1 › R79: empty program parks owned focus on the panel, navigation stays local (3.0s)
+  ✓  3 e2e/r79.transitions.spec.ts:70:1 › R79: a focused step survives a new machine-on reason without jog (3.1s)
+  ✓  4 e2e/r79.transitions.spec.ts:81:1 › R79: refreshing results does not steal focus from outside the panel (2.6s)
+  ✓  5 e2e/sim-panel.viewer.spec.ts:121:1 › the rows' keys move the focus, never a jog; Enter shows; the machine on explains at the row (3.1s)
+  ✓  6 e2e/sim-panel.viewer.spec.ts:174:1 › a result change under the focus keeps it in the panel; no arrow jogs (3.6s)
+  ✓  7 e2e/sim-panel.viewer.spec.ts:204:1 › the steps through mixed kinds follow the list's own order, ties included (3.7s)
+  ✓  8 e2e/sim-panel.viewer.spec.ts:228:1 › a tool change shown after a finding ends the finding's reveal, the stored layer untouched (2.7s)
+  ✓  9 e2e/sim-panel.viewer.spec.ts:259:1 › a tool change shown after a finding on a hidden rapid ends the rapids' reveal (2.4s)
+
+  9 passed (30.6s)

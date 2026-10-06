@@ -1,0 +1,62 @@
+[2m[WebServer] [22m(node:1579634) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 15 tests using 1 worker
+
+(node:1579676) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1579676) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/r78.probe.spec.ts:45:1 › R78: mixed next and previous follow the displayed order at a shared timeline position (5.1s)
+  ✓   2 e2e/r78.probe.spec.ts:70:1 › R78: replacing collision results retains keyboard focus inside the Sim panel (4.4s)
+  ✓   3 e2e/r78.probe.spec.ts:98:1 › R78: a tool-change jump ends the old finding-only path reveal (4.2s)
+  ✓   4 e2e/r78.probe.spec.ts:112:1 › R78: the Sim table and dense inputs fit at the agreed touch sizes (11.4s)
+  ✓   5 e2e/r79.transitions.spec.ts:61:1 › R79: empty program parks owned focus on the panel, navigation stays local (4.3s)
+  ✓   6 e2e/r79.transitions.spec.ts:70:1 › R79: a focused step survives a new machine-on reason without jog (4.6s)
+  ✓   7 e2e/r79.transitions.spec.ts:81:1 › R79: refreshing results does not steal focus from outside the panel (3.9s)
+  ✓   8 e2e/sim-panel.viewer.spec.ts:42:1 › the list is the timeline's marks: one row each, in timeline order, each kind in its words (3.4s)
+  ✓   9 e2e/sim-panel.viewer.spec.ts:64:1 › a row shows its finding; the steps go through the shown kind; the next row follows the position (3.9s)
+  ✘  10 e2e/sim-panel.viewer.spec.ts:121:1 › the rows' keys move the focus, never a jog; Enter shows; the machine on explains at the row (14.1s)
+(node:1581193) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1581193) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  11 e2e/sim-panel.viewer.spec.ts:143:1 › stepping through the findings never changes the bar: the same box, the same timeline (15.3s)
+  ✓  12 e2e/sim-panel.viewer.spec.ts:174:1 › a result change under the focus keeps it in the panel; no arrow jogs (4.6s)
+  ✓  13 e2e/sim-panel.viewer.spec.ts:204:1 › the steps through mixed kinds follow the list's own order, ties included (4.8s)
+  ✓  14 e2e/sim-panel.viewer.spec.ts:228:1 › a tool change shown after a finding ends the finding's reveal, the stored layer untouched (3.6s)
+  ✓  15 e2e/sim-panel.viewer.spec.ts:259:1 › a tool change shown after a finding on a hidden rapid ends the rapids' reveal (3.7s)
+
+
+  1) e2e/sim-panel.viewer.spec.ts:121:1 › the rows' keys move the focus, never a jog; Enter shows; the machine on explains at the row 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('.simBanner')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 10000ms[22m
+    [2m  - waiting for locator('.simBanner')[22m
+
+
+      137 |   await page.keyboard.press("ArrowDown");
+      138 |   await page.keyboard.press("Enter");
+    > 139 |   await expect(page.locator(".simBanner")).toBeVisible();
+          |                                            ^
+      140 |   await expect(page.locator(".simPanel .shownRow .rowPick")).toBeFocused();
+      141 | });
+      142 |
+        at /tmp/codex-r79-mgex7_jw/archive/lcnc-webui/e2e/sim-panel.viewer.spec.ts:139:44
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r79-chromium-output/sim-panel.viewer-the-rows--bc731-hine-on-explains-at-the-row/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r79-chromium-output/sim-panel.viewer-the-rows--bc731-hine-on-explains-at-the-row/error-context.md
+
+  1 failed
+    e2e/sim-panel.viewer.spec.ts:121:1 › the rows' keys move the focus, never a jog; Enter shows; the machine on explains at the row 
+  14 passed (1.6m)

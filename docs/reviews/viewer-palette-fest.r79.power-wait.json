@@ -1,0 +1,20 @@
+{
+  "machineState": "IDLE",
+  "onWaitPassed": true,
+  "offWaitPassed": true,
+  "text": "SafetyArmDisarmE-StopResetPower onPower offE-StopACTIVECLEARPowerONOFFAxesHOMEDUNHOMEDOverridesACTIVENONEModeMANUALAUTOMDI—InterpIDLERUNNINGPAUSEDWAITING—MotionWORLDJOINTElapsed00:00",
+  "powerLabels": [
+    {
+      "text": "Power on",
+      "cls": "alt",
+      "visibility": "hidden",
+      "display": "flex"
+    },
+    {
+      "text": "Power off",
+      "cls": "",
+      "visibility": "visible",
+      "display": "flex"
+    }
+  ]
+}
