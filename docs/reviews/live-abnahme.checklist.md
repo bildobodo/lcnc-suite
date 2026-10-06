@@ -1,6 +1,6 @@
 # Live-Sichtprüfung — Design-Welle, Viewer-Kontrast, Operator-Punkte, Palette, Pakete 2–5
 
-**Für den Operator · Stand 4. Oktober 2026.** Diese Prüfung ist der letzte Schritt vor dem
+**Für den Operator · Stand 6. Oktober 2026.** Diese Prüfung ist der letzte Schritt vor dem
 Merge nach `development`. Du prüfst alles zusammen auf `feat/backlog-integration`, dem
 Live-Baum; er enthält jeden Branch dieser Liste. Nur `fix/example-tool-numbers` steht für sich
 und kommt beim Merge zum Schluss dazu.
@@ -49,6 +49,11 @@ und kommt beim Merge zum Schluss dazu.
       Tabellenhöhe (die Gesamtaufteilung ab 150 % quer ist ausgenommen, Folgearbeit).
     - Seit R73 (ViewCube nach Achsen, schmaler Program-Kopf, Reach-Testzugang): R74 mit einem
       Befund (VP-I35: Achsbuchstaben am Würfelrand abgeschnitten, behoben), **Agreement R75**.
+    - Blinken im Gleichtakt: R76 mit einem Befund (VP-I36, die Farbprobe des Tests in Firefox,
+      behoben), **Agreement R77**.
+    - Sim-Tab, einzeilige Zeitleiste, kompakte Filterzeilen: R78 mit drei Befunden (VP-I37 bis
+      -I39: Fokus, Reihenfolge, Einblendung), R79 mit einem Testbefund (VP-I40), alles behoben,
+      **Agreement R80**.
 - **Offline-Gates** (`python3 scripts/test_suite.py offline`):
   - Welle auf `15b46ff`: PASS, Playwright 282/282.
   - Kontrast auf `82418a7`: PASS, Backend 969, Vitest 1684, Playwright 292/292.
@@ -69,6 +74,9 @@ und kommt beim Merge zum Schluss dazu.
   - Dialoge im Hochformat: PASS auf `1aa33cf`, Backend 1245, Vitest 1888, Playwright 465/465.
   - ViewCube, schmaler Kopf, Buchstaben im Würfel: PASS auf `f5ae6ee`, Backend 1245, Vitest 1894,
     Playwright 471/471.
+  - Blinken im Gleichtakt: PASS auf `4776924`, Backend 1245, Vitest 1897, Playwright 472/472.
+  - Sim-Tab mit den R78-Korrekturen: PASS auf `4d8f595`, Backend 1245, Vitest 1901,
+    Playwright 480/480. Danach nur noch Tests und Doku (Build, Lint und die Sim-Tests je Commit).
 
 ## Vorbereitung
 
@@ -76,8 +84,8 @@ und kommt beim Merge zum Schluss dazu.
    ist `feat/backlog-integration`; er enthält `feat/keypad-keys`, `feat/viewer-palette`,
    `feat/operator-backlog`, `feat/viewer-contrast`, die ganze Design-Welle, den XYZAC-Fix und
    alle Pakete seit dem 1. Oktober.
-   - Die **A/B-Messung** auf deinem Mac ist am 1. Oktober bestanden (Abschnitt „Vor der
-     Abnahme“).
+   - Die **A/B-Messung** auf deinem Mac ist am 1. Oktober bestanden (Abschnitt „A/B-Messung
+     auf deinem Mac“).
 2. Den Browser-Tab **einmal hart neu laden** (Strg+Umschalt+R), damit alte Paletten und Stile
    sicher weg sind.
 3. **Settings → 3D Viewer → Colors:** Dort steht „Colors from an earlier version“. Auf **„Use
@@ -106,7 +114,7 @@ und kommt beim Merge zum Schluss dazu.
 | Leisten, Makros | Start/Step/Resume/Run-from-line und Makros **halten** zum Auslösen; Reset-Buttons nennen ihren Zielwert |
 | Eingabehilfen | X oben rechts bei Zahlenfeld und Tastatur; Code-Seite mit Ziffernblock |
 | Farben, Themes | alle Texte gut lesbar in allen vier Themes; Fokusring deutlich |
-| Viewer-Overlays | DRO-Karte passt sich an; Warnkarte unten links, bei wenig Platz eingeklappt; Zeitleiste im schmalen Viewer kompakt mit „More“; Simulationshinweis über der DRO, nie verdeckt |
+| Viewer-Overlays | DRO-Karte passt sich an; Warnkarte unten links, bei wenig Platz eingeklappt; Zeitleiste in einer Zeile, im schmalen Viewer in einer eigenen Zeile (kein „More“ mehr, siehe „Simulation“ unten); Simulationshinweis über der DRO, nie verdeckt |
 
 ## Viewer-Kontrast (V1–V6)
 
@@ -129,9 +137,6 @@ und kommt beim Merge zum Schluss dazu.
 - Neun Achsen im Hochformat bei 150 % in der Setup-Leiste.
 - Tastatur-Erfassung der Belegungen per Tastatur; Tastatur-Alternative zu Halte-Aktionen (K13).
 - Ebenenlabel: in kleinen Szenen groß, in echter Maschinengröße klein.
-- Deine neue Liste vom 1. Oktober (Strichmuster der Grenzen, Pin-Farbe, Settings-Sektionen,
-  geteilte Jog-Buttons, Setup-Symbole, Makros): eigene Branches nach dieser Abnahme. Nur das
-  Keypad ist schon dabei.
 
 ## Entscheidungen in deiner Abwesenheit (alle reversibel)
 
@@ -247,8 +252,9 @@ als die Mode-Reihe und würde die 3-Achs-Leiste über ihre Basislinie schieben.
 
 ## Viewer-Palette (`feat/viewer-palette`, neu 29. September)
 
-Deine Entscheidungen nach den Renderings: zwei Schemen mit gleichem Farbton je Rolle, Pfad grün,
-Graustufen-Modelle, zweifarbige Grenzen, alle Pfade 2 px. Plan, Rechnung und Codex-Runden:
+Deine Entscheidungen nach den Renderings: Pfad grün, Graustufen-Modelle, zweifarbige Grenzen,
+alle Pfade 2 px. Seit dem 1. Oktober gilt **eine** Palette in allen Themes (die zwei Schemen vom
+29. September sind ersetzt). Plan, Rechnung und Codex-Runden:
 [viewer-palette-fest.ideen.md](viewer-palette-fest.ideen.md).
 
 **Vorher:** Deine gespeicherte eigene Palette (die alten Farben) überdeckt die neuen Pfadfarben.
@@ -256,17 +262,17 @@ Settings → 3D Viewer → „Automatic“ zeigt sie; „Custom“ holt deine al
 
 | Prüfung | Worauf achten |
 |---|---|
-| Theme-Wechsel Hell ↔ Dunkel | Pfad grün (hell `#00a83c`, dunkel hellgrün `#5cff5c`), Backplot magenta, Eilgang blau **gestrichelt**, Überschreitung orange (hell `#e66b00`, dunkel `#ff7a00`), Kollision rot. Jede Rolle behält ihren Farbton, nur die Helligkeit passt sich an. HC: dieselben Farbtöne, kräftiger |
+| Theme-Wechsel Hell ↔ Dunkel | In allen Themes dieselben Farben: Pfad hellgrün `#5cff5c`, Backplot magenta `#ff00ff`, Eilgang blau `#3d8bff` **gestrichelt**, Überschreitung orange `#ff7a00`, Kollision rot, Nadeln cyan |
 | Maschinenmodell | nur Graustufen: Säule, Schlitten und Kopf hell, Führungen mittel, Rohteil und Planscheibe in der Mitte, Bett, Abdeckungen und Wiege dunkel; kein Türkis, kein Gold. Die Pfade stehen vor der Maschine |
 | Linien auf- und nebeneinander | Programm mit engen Bahnen, Eilgängen und Backplot: Pfad, Eilgang, Backplot und Überschreitung klar auseinander, auf dem Rohteil und vor dem Hintergrund |
-| Grenzen | Maschinen-Box und Werkzeugbahn-Box **zweifarbig** (dunkel mit hellen Strichen, keine Umrandung), **1 px**: lange Striche an der Maschine, kurze an der Werkzeugbahn mit Maßen. Vor jedem Grau sichtbar; die Strichlänge bleibt auf dem Bildschirm gleich, auch an schräg weglaufenden Kanten. Der Teil außerhalb des Maschinenfensters orange gestrichelt. Machine Reach / Part Reach (Layers): dieselben zwei Töne, gepunktet |
-| Kollision | Programm `xyzac_collision_check.ngc` laden (absichtliche Kollision, **nie fahren**; laden geht nur referenziert, dann Maschine aus), „Next collision“: der erste Klick landet auf L8, die A-Wiege leuchtet rot; in Zeitleiste und Code-Panel ×, die Grenze ▲ |
+| Grenzen | Maschinen-Box und Programm-Box **zweifarbig** (dunkel mit hellen Strichen, keine Umrandung), **1 px**, vor jedem Grau sichtbar; das Strichmuster klebt an der Geometrie (Paket 4 unten). Der Teil außerhalb des Maschinenfensters orange gestrichelt. Machine Reach / Part Reach (Layers): dieselben zwei Töne |
+| Kollision | Programm `xyzac_collision_check.ngc` laden (absichtliche Kollision, **nie fahren**; laden geht nur referenziert, dann Maschine aus), im Tab „Sim“ Filter „Collisions“, dann ›: der erste Sprung landet auf L8, die A-Wiege leuchtet rot; in Zeitleiste, Liste und Code-Panel ×, die Grenze ▲ |
 | Keine Zeilen-Hervorhebung | im Lauf und in der Simulation keine hervorgehobene Linie im 3D; die Zeile zeigt das Code-Panel, die Position das Werkzeug |
 | Backplot über einer Überschreitung | die orange Markierung bleibt sichtbar |
 | Settings → 3D Viewer → Layers | Ebene **Rapids**; neben jeder Ebene eine Strichprobe in ihrer Farbe (gestrichelt bzw. zweifarbig wie gezeichnet), darunter Grenze ▲ und Kollision × |
 | Rapids aus, dann in der Simulation zu einer Grenzverletzung auf einem Eilgang springen | **nur** die Bewegung des Befunds erscheint (nicht alle Eilgänge), im Viewer steht „Rapids shown for this finding — hidden in Layers“, auch bei ausgeschaltetem HUD; ein Theme-Wechsel lässt sie stehen; nach einem Ziehen an der Zeitleiste ist sie wieder aus, die Ebene bleibt aus |
 | Sprung zu einer Grenzverletzung | die Zeitleiste und das Code-Panel zeigen die Zeile des Befunds; der Knopf der Zeitleiste steht auf der Markierung des Befunds, auch beim ersten Sprung mit Anfahrweg |
-| Befunde durchblättern | „Next“/„Previous“ erreichen jeden Befund einmal; Kontakte auf dem Anfahrweg heißen „→ entry“; nach einem Ziehen an der Zeitleiste geht „Next“ von der neuen Position aus |
+| Befunde durchblättern | Im Tab „Sim“ erreichen ‹ › jeden Befund einmal; Kontakte auf dem Anfahrweg stehen als „entry“ in der Liste; nach einem Ziehen an der Zeitleiste geht › von der neuen Position aus |
 | Custom-Farben | Settings zeigt unter den Farben den Kontrast „On background“ und „On the machine“ (gegen die grauen Flächen des Modells) und eine Tabelle „Lines / Apart“: welche Linienpaare zu nah beieinander liegen („close“) |
 
 **Beim Ansehen:**
@@ -277,20 +283,11 @@ Settings → 3D Viewer → „Automatic“ zeigt sie; „Custom“ holt deine al
 - Ausgegraut wird die gefahrene Bahn noch nicht. Das kommt als eigener Schritt mit eigener
   Ideenrunde (Codex R29: Vertrag für Schleifen, Run from line, Abbruch).
 
-## Vor der Abnahme: A/B-Messung auf deinem Mac (Teil B)
+## A/B-Messung auf deinem Mac (Teil B) — erledigt
 
-Seit Teil B zeichnet der Viewer alle Pfadlinien mit einer neuen Zeichenart 2 px breit. Die
-Messung vergleicht sie auf deinem Mac mit der bisherigen 1-px-Linie: Bildrate, Ruckler,
-Blockaden, GPU-Rückstand und Speicher. Besteht B, entfallen die alte Linie und der
-Debug-Schalter.
-
-1. Ein großes Programm laden, zum Beispiel `heavy_test`.
-2. Settings → Debug → **„Run A/B measurement“**, Settings schließen.
-3. Etwa 10 Minuten nichts anfassen: keine Maus über dem Viewer, kein Tab-Wechsel. Der Ablauf
-   kalibriert, fährt sechs Durchgänge (A, B, B, A, A, B) und stellt am Ende Kamera, Zeitleiste
-   und Simulation wieder her.
-4. Mir Bescheid sagen. Ich werte den Trace mit `scripts/viewer_ab_report.py` aus; die
-   Grenzwerte stehen vorher fest (Codex R47–R49).
+Am 1. Oktober bestanden ([Bericht](viewer-palette-fest.ab-mac.txt)): Die 2-px-Linien laufen auf
+deinem Mac so flüssig wie die alten 1-px-Linien. Die alte Linie und der Debug-Schalter
+„Run A/B measurement“ sind entfernt. Nichts mehr zu tun.
 
 ## Seit dem 30. September (`feat/viewer-palette`)
 
@@ -305,7 +302,7 @@ Debug-Schalter.
 | Start-Werkzeugoffset (VP-I20) | Die Vorschau rechnet ab dem Werkzeugoffset, der beim Start gilt. Nach einer neuen Messung im Stillstand prüft sie nach: „Preview re-parsing“, der Grund steht im „?“ („tool offset changed — checking“); meist ist alles gleich, dann gibt es keinen neuen Download und nur die Bewegungen vor dem ersten eigenen G43 des Programms rücken nach. Ist der Start nicht bekannt, sagt die Statistik „Not validated (start tool offset unknown)“ |
 | Programm mit eigenem G43 | Nach dem Lauf kein Neu-Parse allein wegen des angewendeten Offsets |
 | Code-Panel im Lauf | Die laufende Zeile gleitet: Der Code scrollt gleichmäßig unter einer mittigen Markierung, auch bei schnellen kurzen Sätzen bleibt die Zeile immer im Bild; „Bewegung reduzieren“ springt statt zu gleiten |
-| Settings | So breit wie der Werkzeugeditor (760 px); im 3D Viewer Layers in vier Gruppen. Die Anordnung der Sektionen änderst du gerade (Paket 2 deiner neuen Liste): hier noch der Stand vom 30. September |
+| Settings | So breit wie der Werkzeugeditor (760 px); im 3D Viewer Layers in vier Gruppen, die Anordnung siehe Paket 2 unten |
 | Zahlenfelder | Ein Doppelklick oder Ziehen auf einem Zahlenfeld markiert nichts mehr; danach geht die echte Tastatur weiter ins Zahlen-Keypad |
 
 ## Keypad (`feat/keypad-keys`, neu 1. Oktober)
