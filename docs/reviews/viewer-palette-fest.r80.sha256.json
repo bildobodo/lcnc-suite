@@ -1,0 +1,13 @@
+{
+  "viewer-palette-fest.r80.checks.md": "93eb14e88a009be08ab81aabad4da80ce2eeca16a4208d256d7bff6b29b0d29a",
+  "viewer-palette-fest.r80.chromium-states.json": "42d6a71d6d5a1694a78dbda7e1bbe75bda249c53bcbddd21611f4d6f9a79066a",
+  "viewer-palette-fest.r80.chromium.config.ts": "6848d10e9e97bd775a2ec57d895a8cd48f1a6957489600df8706b9ad887cef1b",
+  "viewer-palette-fest.r80.chromium.txt": "8c42fa7ed69499953650a93851cdaf48c627230172cfd5a8ff729d7e5351eb5c",
+  "viewer-palette-fest.r80.context.json": "7ca437271862a87f658eae504854711a0f3eca973130a0d12631902bf4815fd2",
+  "viewer-palette-fest.r80.dist-sha256.json": "a6cfd41993515d79840c08f71b6bfacec3427cb9897faee9e8cfaf71e4f72042",
+  "viewer-palette-fest.r80.firefox-states.json": "42d6a71d6d5a1694a78dbda7e1bbe75bda249c53bcbddd21611f4d6f9a79066a",
+  "viewer-palette-fest.r80.firefox.config.ts": "d8f03ce485c3ec830a63b828695ee26a3ccbc59ba8d94349554fb57253d12aec",
+  "viewer-palette-fest.r80.firefox.txt": "d9aeb99aedfd397248c6f72c2b077d0cdf1dfd4aa814c4086b841bd7b5128d2e",
+  "viewer-palette-fest.r80.isolation.patch": "4108ef0e273852bed6a9d4dd735e0832dde3c0605eaada6488e396eae623abed",
+  "viewer-palette-fest.r80.power-state.spec.ts": "6722198e490c80f4eb98436ea67915290bd91415b19f93ddadba46d747724ae7"
+}

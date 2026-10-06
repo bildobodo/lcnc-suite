@@ -1,0 +1,29 @@
+[
+  {
+    "on": true,
+    "banner": "IDLE",
+    "expectedName": "Power off",
+    "expectedCount": 1,
+    "wrongCount": 0,
+    "oldOnPredicate": true,
+    "oldOffPredicate": true
+  },
+  {
+    "on": false,
+    "banner": "MACHINE OFF",
+    "expectedName": "Power on",
+    "expectedCount": 1,
+    "wrongCount": 0,
+    "oldOnPredicate": true,
+    "oldOffPredicate": true
+  },
+  {
+    "on": true,
+    "banner": "IDLE",
+    "expectedName": "Power off",
+    "expectedCount": 1,
+    "wrongCount": 0,
+    "oldOnPredicate": true,
+    "oldOffPredicate": true
+  }
+]
