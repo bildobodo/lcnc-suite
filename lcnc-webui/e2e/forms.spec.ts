@@ -13,7 +13,8 @@ import { clickMore } from "./more";
 //   - ONE height per density: a field (.inputField) and an md button in the
 //     side pane or a dialog are --control-h tall (32 px desktop, 44 px
 //     touch); inside a dense area (the strip, a data table) a field is at
-//     least the compact height (28 / 36 px);
+//     least the compact height (28 / 36 px), in a dense ROW (.denseArea: a
+//     search with its filter, operator 2026-10-05) exactly that;
 //   - a form field's unit follows the machine's linear unit (mm → in), is
 //     part of its description and of the keypad readout; a label tap opens
 //     the field.
@@ -87,7 +88,9 @@ async function scan(page: Page, surface: string, scope: string): Promise<Found> 
       if (!shown(f)) continue;
       const h = Math.round(f.getBoundingClientRect().height * 10) / 10;
       const who = f.getAttribute("name") ?? f.getAttribute("aria-label") ?? f.tagName;
-      if (f.closest(".strip, .dataTable")) {
+      if (f.closest(".denseArea")) {
+        if (Math.abs(h - compactH) > 0.5) out.push(`${surface}: dense-row field ${who} is ${h} px (≠ ${compactH})`);
+      } else if (f.closest(".strip, .dataTable")) {
         if (h < compactH - 0.5) out.push(`${surface}: dense field ${who} is ${h} px (< ${compactH})`);
       } else if (Math.abs(h - controlH) > 0.5) out.push(`${surface}: field ${who} is ${h} px (≠ ${controlH})`);
     }
@@ -95,7 +98,7 @@ async function scan(page: Page, surface: string, scope: string): Promise<Found> 
     // are compact); the strip keeps its own button sizes until D6.
     for (const b of el.querySelectorAll<HTMLElement>("button.b.md")) {
       if (!shown(b) || !b.closest(".sidePane, .dialog")) continue;
-      const want = b.closest(".dataTable") ? compactH : controlH;
+      const want = b.closest(".dataTable, .denseArea") ? compactH : controlH;
       const h = Math.round(b.getBoundingClientRect().height * 10) / 10;
       if (Math.abs(h - want) > 0.5) out.push(`${surface}: md button "${b.textContent!.trim().slice(0, 20)}" is ${h} px (≠ ${want})`);
     }
