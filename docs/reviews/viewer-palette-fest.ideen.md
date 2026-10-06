@@ -10583,3 +10583,59 @@ Firefox-Messung.
   Aufräumen lief F4 grün.
 - Produktcode unverändert seit R76; Backend unverändert seit R72.
 - Live-Baum: seit `e248a85`.
+
+---
+
+## Review R77 · Codex · 6. Oktober 2026
+
+**Ergebnis: agreement — VP-I36 geschlossen.** Die Testkorrektur aus `4776924`
+ist am Stand `e248a85` abgenommen. Damit ist auch R76 im geprüften Umfang
+abgeschlossen: Die gemeinsame Blinksteuerung war bereits bestätigt; ihr
+Farbwächter funktioniert nun ebenfalls in Chromium und Firefox.
+
+Geprüft: `c7b3a1a..e248a85`, Anfrage im Live-Stand `e32d7a2`. Der Diff enthält
+ausschließlich `appearance.spec.ts` und `docs/decisions.md`. Keine Änderungen
+am Produktcode, an der Live-Suite oder an bisherigen Review-Belegen.
+
+### VP-I36 · Nachprüfung
+
+Die nativen CSS-Farben werden im Browser durch den Canvas-Parser in einheitliche
+RGB-Kanäle von 0–255 umgewandelt. Beide Elemente werden weiter im selben
+`evaluate` erfasst. Die Prüfung verlangt weiterhin, dass An und Aus tatsächlich
+vorkommen und beide Elemente zu jedem Messpunkt übereinstimmen; sie beschränkt
+sich nicht auf die gleichen Startzeiten.
+
+**Die korrigierte Testfassung aus `e248a85` besteht ohne weitere Anpassungen in
+Firefox 150 unter Linux.** Alle vier Appearance-Tests bestehen auch in Chromium 148. Zusätzlich
+wurde die unabhängige Farbgegenprobe aus R76 **bytegleich** in beiden Browsern
+ausgeführt; beide Läufe bestehen mit je 30 Messpunkten.
+
+Firefox liefert weiterhin `color(srgb …)`. Die unabhängige Messung ergibt im
+Aus-Zustand eine RGB-Kanalspreizung von **0**, im An-Zustand von **71**. Damit
+trennt der neue Schwellwert **16** die beobachteten Zustände klar. Banner und
+Button wechseln synchron; der frühere Skalenfehler tritt nicht mehr auf.
+
+[Firefox-Lauf](viewer-palette-fest.r77.firefox.txt),
+[Chromium-Lauf](viewer-palette-fest.r77.chromium.txt),
+[Firefox-Rohfarben und RGBA](viewer-palette-fest.r77.firefox-colour-samples.json),
+[Chromium-Rohfarben und RGBA](viewer-palette-fest.r77.chromium-colour-samples.json),
+[unveränderte R76-Sonde als Kopie](viewer-palette-fest.r77.r76-probe.spec.ts).
+
+### Prüfungen und Grenzen
+
+- **Firefox: 5/5 bestanden**, vier Appearance-Tests plus unabhängige Farbprobe.
+- **Chromium: 5/5 bestanden**, gleicher Prüfumfang.
+- Keine neuen Befunde. Die vorhandenen Prüfungen zu reduzierter Bewegung,
+  unverändert lesbarem Text beim Pulsieren und Forced Colors bestehen ebenfalls.
+
+Ausführung mit einem Worker und niedriger Priorität in einer isolierten
+Archivkopie des aktuellen `lcnc-webui`, eigener Mock `127.0.0.1:4188`. Der geprüfte
+R76-Produktionsbuild wurde wiederverwendet: Git bestätigt, dass sich seit seinem
+Quellstand `2796ab9` innerhalb von `lcnc-webui` ausschließlich der Browsertest
+geändert hat. Build-Dateien und aktuelle Testfassung sind per Hash dokumentiert.
+Kein neuer Build-/Unit-/Backend-/Offline-Gate-Lauf und keine macOS-/Live-Abnahme.
+
+[Prüfprotokoll und Wiederholung](viewer-palette-fest.r77.checks.md),
+[Stand und Herkunft](viewer-palette-fest.r77.context.json),
+[Build-Dateien](viewer-palette-fest.r77.dist-sha256.json),
+[Beleghashes](viewer-palette-fest.r77.sha256.json).
