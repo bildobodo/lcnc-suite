@@ -1,0 +1,67 @@
+{
+  "review": "R77",
+  "created_utc": "2026-10-06T05:36:29.778061+00:00",
+  "base": "c7b3a1a81b1c86b0af9641a85755cc6c633d8264",
+  "tested_head": "e248a85aa95fc799fef89c22abbf51630a5418de",
+  "fix": "47769247edb0c2007e649f06a77eed8dbaab0feb",
+  "live_head_before_append": "e32d7a2cdaf52a66836ef513f791fb14c8ac7212",
+  "branch": "feat/backlog-integration",
+  "status_before_append": "",
+  "archive": "/tmp/codex-r77-2k2btvhh/archive",
+  "archive_paths": [
+    "lcnc-webui"
+  ],
+  "mock": "http://127.0.0.1:4188",
+  "workers": 1,
+  "nice": 19,
+  "no_live_service_access": true,
+  "no_machine_commands": true,
+  "source_and_current_test_verified_against_commit": {
+    "lcnc-webui/src/flashClock.ts": "080fb6ac05d1c4d78dec01efdf01718c76371d198445191374f6e73a46209270",
+    "lcnc-webui/src/main.ts": "bb3e5e3db8263d86c88523c6bde4282336cdbaa83a5a3dbd90ef1f1a87cbbf98",
+    "lcnc-webui/e2e/appearance.spec.ts": "106ed297a8c0374daa20bed890bcf1235ba9f17c27138afce304ed380099991e",
+    "lcnc-webui/e2e/mock-gateway.mjs": "8082a67c9bfc0f891616353dadce706e3a9fb12f79865496a3fecb17540e8051"
+  },
+  "original_review_sha256": "d027e30b5bbfaddbac89e144314e6858a24faab8b4056092f35257ccd9a7e18b",
+  "r76_probe_sha256_unchanged": "17a254ee807f40faafa01e76afa9a4d9fea2a0ce09e790697bfbe23e58008c5c",
+  "changed_paths": [
+    "docs/decisions.md",
+    "lcnc-webui/e2e/appearance.spec.ts"
+  ],
+  "r76_build_reused": {
+    "dist": "/tmp/codex-r76-9l3nh3b2/archive/lcnc-webui/dist",
+    "source": "2796ab92c09c57d4597e9c1a304c42ae610db835",
+    "ui_changes_since_build": [
+      "lcnc-webui/e2e/appearance.spec.ts"
+    ],
+    "files": 26,
+    "new_build_run": false
+  },
+  "result": {
+    "chromium": "5/5",
+    "firefox": "5/5",
+    "verdict": "agreement: VP-I36 closed"
+  },
+  "independent_colour_probe": {
+    "firefox": {
+      "user_agent": "Mozilla/5.0 (X11; Linux x86_64; rv:150.0) Gecko/20100101 Firefox/150.0",
+      "samples": 30,
+      "off_channel_spreads": [
+        0
+      ],
+      "on_channel_spreads": [
+        71
+      ]
+    },
+    "chromium": {
+      "user_agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.0 Safari/537.36",
+      "samples": 30,
+      "off_channel_spreads": [
+        0
+      ],
+      "on_channel_spreads": [
+        71
+      ]
+    }
+  }
+}

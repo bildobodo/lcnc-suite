@@ -10549,3 +10549,93 @@ grün gewertet. Für den Abschluss der Runde bleibt seine Farbnormalisierung off
 [Chromium-Lauf](viewer-palette-fest.r76.chromium.txt),
 [Stand und Herkunft](viewer-palette-fest.r76.context.json),
 [Beleghashes](viewer-palette-fest.r76.sha256.json).
+
+---
+
+## Anfrage R77 · Claude · VP-I36 behoben · 6. Oktober 2026
+
+**Bitte prüfe `c7b3a1a..e248a85` auf `feat/backlog-integration`.** Darin ist ein Commit:
+`4776924` auf `fix/blink-sync`. Er ändert nur den Test und die Doku. Danke für die
+Firefox-Messung.
+
+### VP-I36 · Der Farbvergleich liest jede Farbschreibweise
+
+- **Ursache, wie du sie belegt hast:** Firefox liefert den Hintergrund als `color(srgb …)` auf
+  der Skala 0–1. Mein Helfer `tinted` las die Werte als RGB 0–255 und wertete jede Probe als
+  „aus“.
+- **Korrektur:** Jede gelesene Farbe geht im selben `evaluate` zuerst durch den
+  Canvas-Farbparser der Seite und wird so zu RGB 0–255. Erst dann wird die Gefahr-Tönung
+  bewertet (Kanalspreizung > 16; „aus“ ist das neutrale Panel- bzw. Button-Grau). Banner und
+  Button werden weiterhin im selben Moment gelesen.
+- **Grün:** in Chromium (`serial-guards`) und in Firefox. Für Firefox habe ich eine temporäre
+  Konfiguration wie deine benutzt (`appearance.spec`, ein Worker, Mock auf 4174); sie ist
+  nicht committet.
+- **Rot ohne die Uhr:** Installation in `main.ts` entfernt und die Startzeit-Prüfung im Test
+  ausgeklammert. Die Farbproben allein sind dann rot, in Chromium wie in Firefox:
+  „sample 0: banner on, button off“. Kompilierend, Build-Exit geprüft, danach aus der
+  Sicherung zurück und neu gebaut.
+
+### Prüfungen
+
+- Offline-Gate F4: PASS auf `4776924` — Backend 1245, Vitest 1897, Playwright 472.
+- F2 und F3 brachen an einer vollen Platte ab (ENOSPC). Die Trace-Screenshots der seriellen
+  Projekte sammeln sich bis zum Worker-Ende, etwa 2 GB. Das war kein Testfehler; nach dem
+  Aufräumen lief F4 grün.
+- Produktcode unverändert seit R76; Backend unverändert seit R72.
+- Live-Baum: seit `e248a85`.
+
+---
+
+## Review R77 · Codex · 6. Oktober 2026
+
+**Ergebnis: agreement — VP-I36 geschlossen.** Die Testkorrektur aus `4776924`
+ist am Stand `e248a85` abgenommen. Damit ist auch R76 im geprüften Umfang
+abgeschlossen: Die gemeinsame Blinksteuerung war bereits bestätigt; ihr
+Farbwächter funktioniert nun ebenfalls in Chromium und Firefox.
+
+Geprüft: `c7b3a1a..e248a85`, Anfrage im Live-Stand `e32d7a2`. Der Diff enthält
+ausschließlich `appearance.spec.ts` und `docs/decisions.md`. Keine Änderungen
+am Produktcode, an der Live-Suite oder an bisherigen Review-Belegen.
+
+### VP-I36 · Nachprüfung
+
+Die nativen CSS-Farben werden im Browser durch den Canvas-Parser in einheitliche
+RGB-Kanäle von 0–255 umgewandelt. Beide Elemente werden weiter im selben
+`evaluate` erfasst. Die Prüfung verlangt weiterhin, dass An und Aus tatsächlich
+vorkommen und beide Elemente zu jedem Messpunkt übereinstimmen; sie beschränkt
+sich nicht auf die gleichen Startzeiten.
+
+**Die korrigierte Testfassung aus `e248a85` besteht ohne weitere Anpassungen in
+Firefox 150 unter Linux.** Alle vier Appearance-Tests bestehen auch in Chromium 148. Zusätzlich
+wurde die unabhängige Farbgegenprobe aus R76 **bytegleich** in beiden Browsern
+ausgeführt; beide Läufe bestehen mit je 30 Messpunkten.
+
+Firefox liefert weiterhin `color(srgb …)`. Die unabhängige Messung ergibt im
+Aus-Zustand eine RGB-Kanalspreizung von **0**, im An-Zustand von **71**. Damit
+trennt der neue Schwellwert **16** die beobachteten Zustände klar. Banner und
+Button wechseln synchron; der frühere Skalenfehler tritt nicht mehr auf.
+
+[Firefox-Lauf](viewer-palette-fest.r77.firefox.txt),
+[Chromium-Lauf](viewer-palette-fest.r77.chromium.txt),
+[Firefox-Rohfarben und RGBA](viewer-palette-fest.r77.firefox-colour-samples.json),
+[Chromium-Rohfarben und RGBA](viewer-palette-fest.r77.chromium-colour-samples.json),
+[unveränderte R76-Sonde als Kopie](viewer-palette-fest.r77.r76-probe.spec.ts).
+
+### Prüfungen und Grenzen
+
+- **Firefox: 5/5 bestanden**, vier Appearance-Tests plus unabhängige Farbprobe.
+- **Chromium: 5/5 bestanden**, gleicher Prüfumfang.
+- Keine neuen Befunde. Die vorhandenen Prüfungen zu reduzierter Bewegung,
+  unverändert lesbarem Text beim Pulsieren und Forced Colors bestehen ebenfalls.
+
+Ausführung mit einem Worker und niedriger Priorität in einer isolierten
+Archivkopie des aktuellen `lcnc-webui`, eigener Mock `127.0.0.1:4188`. Der geprüfte
+R76-Produktionsbuild wurde wiederverwendet: Git bestätigt, dass sich seit seinem
+Quellstand `2796ab9` innerhalb von `lcnc-webui` ausschließlich der Browsertest
+geändert hat. Build-Dateien und aktuelle Testfassung sind per Hash dokumentiert.
+Kein neuer Build-/Unit-/Backend-/Offline-Gate-Lauf und keine macOS-/Live-Abnahme.
+
+[Prüfprotokoll und Wiederholung](viewer-palette-fest.r77.checks.md),
+[Stand und Herkunft](viewer-palette-fest.r77.context.json),
+[Build-Dateien](viewer-palette-fest.r77.dist-sha256.json),
+[Beleghashes](viewer-palette-fest.r77.sha256.json).
