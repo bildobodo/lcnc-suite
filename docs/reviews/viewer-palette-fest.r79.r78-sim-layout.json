@@ -1,0 +1,407 @@
+[
+  {
+    "vp": "desktop",
+    "zoom": 1,
+    "panel": {
+      "x": 1061,
+      "y": 148,
+      "w": 522,
+      "h": 535
+    },
+    "table": {
+      "x": 1061,
+      "y": 272,
+      "w": 522,
+      "h": 411
+    },
+    "row": {
+      "x": 1061,
+      "y": 296.5,
+      "w": 522,
+      "h": 25
+    },
+    "overflow": 6,
+    "outside": [],
+    "descriptions": [
+      {
+        "text": "Tool change → T3",
+        "title": "Tool change → T3",
+        "w": 359,
+        "content": 359
+      },
+      {
+        "text": "Tool ↔ Table · Feed",
+        "title": "Tool ↔ Table",
+        "w": 359,
+        "content": 359
+      },
+      {
+        "text": "X 110 mm > max 100 mm",
+        "title": "X 110 mm > max 100 mm",
+        "w": 359,
+        "content": 359
+      },
+      {
+        "text": "Tool ↔ Table · Rapid",
+        "title": "Tool ↔ Table",
+        "w": 359,
+        "content": 359
+      },
+      {
+        "text": "X 120 mm > max 100 mm",
+        "title": "X 120 mm > max 100 mm",
+        "w": 359,
+        "content": 359
+      }
+    ],
+    "fields": [
+      {
+        "name": "Playback speed",
+        "x": 1105,
+        "y": 148,
+        "w": 70,
+        "h": 28
+      },
+      {
+        "name": "Help: Collision check",
+        "x": 1570,
+        "y": 186.5,
+        "w": 13,
+        "h": 13
+      },
+      {
+        "name": "Show on the list",
+        "x": 1061,
+        "y": 236,
+        "w": 409,
+        "h": 28
+      },
+      {
+        "name": "Previous on the timeline",
+        "x": 1478,
+        "y": 237,
+        "w": 36,
+        "h": 26
+      },
+      {
+        "name": "Next on the timeline",
+        "x": 1522,
+        "y": 237,
+        "w": 36,
+        "h": 26
+      },
+      {
+        "name": "Help: Timeline list",
+        "x": 1570,
+        "y": 243.5,
+        "w": 13,
+        "h": 13
+      },
+      {
+        "name": "Show L10: Tool change → T3",
+        "x": 1097,
+        "y": 300.5,
+        "w": 23,
+        "h": 16.5
+      },
+      {
+        "name": "Show L12: Tool ↔ Table",
+        "x": 1097,
+        "y": 326,
+        "w": 23,
+        "h": 16.5
+      },
+      {
+        "name": "Show L20: X 110 mm > max 100 mm",
+        "x": 1097,
+        "y": 351.5,
+        "w": 23,
+        "h": 16.5
+      },
+      {
+        "name": "Show L26: Tool ↔ Table",
+        "x": 1097,
+        "y": 377,
+        "w": 23,
+        "h": 16.5
+      },
+      {
+        "name": "Show L32: X 120 mm > max 100 mm",
+        "x": 1097,
+        "y": 402.5,
+        "w": 23,
+        "h": 16.5
+      }
+    ]
+  },
+  {
+    "vp": "touch-landscape",
+    "zoom": 1,
+    "panel": {
+      "x": 741,
+      "y": 162,
+      "w": 522,
+      "h": 321
+    },
+    "table": {
+      "x": 741,
+      "y": 302,
+      "w": 522,
+      "h": 181
+    },
+    "row": {
+      "x": 741,
+      "y": 334.5,
+      "w": 512,
+      "h": 33
+    },
+    "overflow": 4,
+    "outside": [],
+    "descriptions": [
+      {
+        "text": "Tool change → T3",
+        "title": "Tool change → T3",
+        "w": 349,
+        "content": 349
+      },
+      {
+        "text": "Tool ↔ Table · Feed",
+        "title": "Tool ↔ Table",
+        "w": 349,
+        "content": 349
+      },
+      {
+        "text": "X 110 mm > max 100 mm",
+        "title": "X 110 mm > max 100 mm",
+        "w": 349,
+        "content": 349
+      },
+      {
+        "text": "Tool ↔ Table · Rapid",
+        "title": "Tool ↔ Table",
+        "w": 349,
+        "content": 349
+      },
+      {
+        "text": "X 120 mm > max 100 mm",
+        "title": "X 120 mm > max 100 mm",
+        "w": 349,
+        "content": 349
+      }
+    ],
+    "fields": [
+      {
+        "name": "Playback speed",
+        "x": 785,
+        "y": 162,
+        "w": 70,
+        "h": 36
+      },
+      {
+        "name": "Help: Collision check",
+        "x": 1247,
+        "y": 207,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "name": "Show on the list",
+        "x": 741,
+        "y": 258,
+        "w": 390,
+        "h": 36
+      },
+      {
+        "name": "Previous on the timeline",
+        "x": 1139,
+        "y": 258,
+        "w": 44,
+        "h": 36
+      },
+      {
+        "name": "Next on the timeline",
+        "x": 1191,
+        "y": 258,
+        "w": 44,
+        "h": 36
+      },
+      {
+        "name": "Help: Timeline list",
+        "x": 1247,
+        "y": 268,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "name": "Show L10: Tool change → T3",
+        "x": 777,
+        "y": 342.5,
+        "w": 23,
+        "h": 16.5
+      },
+      {
+        "name": "Show L12: Tool ↔ Table",
+        "x": 777,
+        "y": 376,
+        "w": 23,
+        "h": 16.5
+      },
+      {
+        "name": "Show L20: X 110 mm > max 100 mm",
+        "x": 777,
+        "y": 409.5,
+        "w": 23,
+        "h": 16.5
+      },
+      {
+        "name": "Show L26: Tool ↔ Table",
+        "x": 777,
+        "y": 443,
+        "w": 23,
+        "h": 16.5
+      },
+      {
+        "name": "Show L32: X 120 mm > max 100 mm",
+        "x": 777,
+        "y": 476.5,
+        "w": 23,
+        "h": 16.5
+      }
+    ]
+  },
+  {
+    "vp": "touch-portrait",
+    "zoom": 1.5,
+    "panel": {
+      "x": 457,
+      "y": 764.5,
+      "w": 278.6666666666667,
+      "h": 273.6666666666667
+    },
+    "table": {
+      "x": 457,
+      "y": 974.5,
+      "w": 278.6666666666667,
+      "h": 133.66666666666666
+    },
+    "row": {
+      "x": 457,
+      "y": 1023.25,
+      "w": 272,
+      "h": 32.833333333333336
+    },
+    "overflow": 4,
+    "outside": [],
+    "descriptions": [
+      {
+        "text": "Tool change → T3",
+        "title": "Tool change → T3",
+        "w": 159,
+        "content": 159
+      },
+      {
+        "text": "Tool ↔ Table · Feed",
+        "title": "Tool ↔ Table",
+        "w": 159,
+        "content": 159
+      },
+      {
+        "text": "X 110 mm > max 100 mm",
+        "title": "X 110 mm > max 100 mm",
+        "w": 159,
+        "content": 159
+      },
+      {
+        "text": "Tool ↔ Table · Rapid",
+        "title": "Tool ↔ Table",
+        "w": 159,
+        "content": 159
+      },
+      {
+        "text": "X 120 mm > max 100 mm",
+        "title": "X 120 mm > max 100 mm",
+        "w": 159,
+        "content": 159
+      }
+    ],
+    "fields": [
+      {
+        "name": "Playback speed",
+        "x": 521,
+        "y": 764.5,
+        "w": 67.33333333333333,
+        "h": 36
+      },
+      {
+        "name": "Help: Collision check",
+        "x": 851,
+        "y": 832,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "name": "Show on the list",
+        "x": 457,
+        "y": 908.5,
+        "w": 146.66666666666666,
+        "h": 36
+      },
+      {
+        "name": "Previous on the timeline",
+        "x": 689,
+        "y": 908.5,
+        "w": 44,
+        "h": 36
+      },
+      {
+        "name": "Next on the timeline",
+        "x": 767,
+        "y": 908.5,
+        "w": 44,
+        "h": 36
+      },
+      {
+        "name": "Help: Timeline list",
+        "x": 851,
+        "y": 923.5,
+        "w": 16,
+        "h": 16
+      },
+      {
+        "name": "Show L10: Tool change → T3",
+        "x": 511,
+        "y": 1035.25,
+        "w": 22,
+        "h": 16.5
+      },
+      {
+        "name": "Show L12: Tool ↔ Table",
+        "x": 511,
+        "y": 1085,
+        "w": 22,
+        "h": 16.5
+      },
+      {
+        "name": "Show L20: X 110 mm > max 100 mm",
+        "x": 511,
+        "y": 1134.75,
+        "w": 22,
+        "h": 16.5
+      },
+      {
+        "name": "Show L26: Tool ↔ Table",
+        "x": 511,
+        "y": 1184.5,
+        "w": 22,
+        "h": 16.5
+      },
+      {
+        "name": "Show L32: X 120 mm > max 100 mm",
+        "x": 511,
+        "y": 1234.25,
+        "w": 22,
+        "h": 16.5
+      }
+    ]
+  }
+]

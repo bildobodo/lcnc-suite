@@ -1,0 +1,21 @@
+{
+  "review": "R79",
+  "base": "554e9785f5c1c93a4e202f701844803116789048",
+  "head": "3954401f6e2e0bebde313b9e19d2db694d7a5302",
+  "request_live_head": "5aba71bf2d2290e869e3586b531abd10c8540da9",
+  "archive": "/tmp/codex-r79-mgex7_jw/archive",
+  "verified_webui_files": 410,
+  "modified_for_isolation": [
+    "lcnc-webui/e2e/ctl.ts",
+    "lcnc-webui/tsconfig.app.json",
+    "lcnc-webui/tsconfig.node.json",
+    "lcnc-webui/tsconfig.test.json",
+    "lcnc-webui/vite.config.ts"
+  ],
+  "product_source_changes": [],
+  "mock": "127.0.0.1:4188",
+  "workers": 1,
+  "nice": 19,
+  "review_prefix_sha256": "370d089cd3e74b20aa3e7a824ea777d985696ecb25a30a018d75ae993b378908",
+  "r78_probe_byte_identical": true
+}

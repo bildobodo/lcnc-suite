@@ -10999,3 +10999,110 @@ Doku, kein Gateway-Code. Danke für die drei Gegenproben.
   Build und Lint, kein weiteres Gate.
 - Backend unverändert seit R72.
 - Live-Baum: seit `3954401`.
+
+---
+
+## Review R79 · Codex · Nachprüfung VP-I37–I39 · 6. Oktober 2026
+
+**Ergebnis: `findings`, nur noch Testpflege. VP-I37, VP-I38 und VP-I39 sind
+geschlossen.** Die drei Produktkorrekturen sind am Stand `3954401` bestätigt.
+Offen bleibt VP-I40 (P3): Die neue Wartebedingung des Tastaturtests kann Ein
+und Aus nicht unterscheiden; der Chromium-Lauf scheitert dadurch weiterhin
+gelegentlich beim Übergang zu Machine OFF.
+
+Geprüft: `554e978..3954401`, Anfrage im Live-Stand `5aba71b`. Isolierte
+Archivkopie, eigener Mock `127.0.0.1:4188`, ein Worker, niedrige Priorität.
+Keine Produktänderungen, keine Live-Ports und keine Maschinenbefehle an die
+echte Suite. Die R78-Sonde wurde **bytegleich** übernommen; bisherige Belege
+bleiben unverändert.
+
+### VP-I40 · P3 · Der neue Maschinenzustands-Wächter wartet auf beide Zustände zugleich
+
+**Ort:** `lcnc-webui/e2e/sim-panel.viewer.spec.ts:103`.
+
+`machine()` prüft mit `toContainText(on ? /power off/i : /power on/i)` den
+gesamten Text der `.safetyStrip`. Dort stehen aber immer beide Beschriftungen:
+Die stabile Buttonbreite wird mit zwei Spans hergestellt; der gerade
+unbenutzte ist lediglich `visibility: hidden`. `toContainText` berücksichtigt
+auch diesen Text. Damit erfüllt derselbe DOM-Zustand beide Wartebedingungen.
+
+**Deterministische Gegenprobe:** Maschine im Mock bestätigt ON (`IDLE`,
+sichtbarer Button „Power off“). Ohne Zustandswechsel bestehen unmittelbar
+nacheinander sowohl `/power off/i` als auch `/power on/i`. Der Datensatz zeigt
+„Power on“ als verborgen und „Power off“ als sichtbar. Der Wächter für OFF
+kann somit schon vor Ankunft des OFF-Status weiterlaufen.
+
+Im unveränderten Chromium-Test führt das hier erneut zum Timeout auf
+`.simBanner` nach ArrowDown/Enter. Die neue Jog-Kontrollprobe besteht dabei;
+sie ist nicht mehr die Ursache. In Firefox besteht derselbe Tastaturtest,
+was die unzuverlässige zeitliche Absicherung nicht korrigiert.
+
+**Korrektur:** Auf den konkreten Power-Button mit seinem exakten zugänglichen
+Aktionsnamen warten, statt auf Text irgendwo in der Leiste. Eine private
+Kopie, in der ausschließlich diese eine Assertion geändert wurde, besteht
+in Chromium mit allen ursprünglichen Tastatur-Assertions:
+
+```ts
+await expect(page.locator(".safetyStrip").getByRole("button", {
+  name: on ? "Power off" : "Power on", exact: true,
+})).toBeVisible();
+```
+
+[Beide Bedingungen im selben Zustand](viewer-palette-fest.r79.power-wait.json),
+[rote Gegenprobe und grüne Testkopie](viewer-palette-fest.r79.wait-and-exact.txt),
+[Gegenprobe](viewer-palette-fest.r79.wait.spec.ts),
+[Testkopie mit exakter Auswahl](viewer-palette-fest.r79.keyboard-exact.spec.ts),
+[ursprünglicher Chromium-Fehler](viewer-palette-fest.r79.keyboard-failure.md).
+
+### Bestätigte Korrekturen
+
+- **VP-I37 geschlossen:** Die R78-Fokussonde besteht in Chromium und Firefox.
+  Nach dem Entfernen der fokussierten Kollisionszeile bleibt eine `.rowPick`
+  fokussiert; kein Jog-Befehl. Der neue Wächter bestätigt auch die leere
+  gefilterte Liste mit Fokus auf dem Filter. Drei zusätzliche Gegenproben
+  bestehen in beiden Browsern: Beim Entladen des Programms übernimmt das
+  Panel selbst den Fokus und fängt Pfeiltasten ab; beim Sperren eines
+  fokussierten Schrittknopfs übernimmt der Filter; ein bereits außerhalb
+  gesetzter Fokus wird durch neue Ergebnisse nicht ins Panel gezogen.
+- **VP-I38 geschlossen:** Liste und Schritte verwenden denselben Comparator.
+  Die bytegleiche R78-Sonde besteht. Der neue Wächter bestätigt den dreifachen
+  Gleichstand Werkzeug/Grenze/Kollision, beide Richtungen und den Umlauf in
+  Chromium und Firefox.
+- **VP-I39 geschlossen:** Der Werkzeug-Sprung beendet die temporäre
+  Befundeinblendung über den bestehenden Rücksetzpfad. R78 zeigt jetzt T10
+  ohne alten Hinweis. Die ergänzten Wächter bestehen in beiden Browsern für
+  Vorschub und Eilgang, jeweils per Zeilenklick und Schritt; die gespeicherten
+  Layer bleiben aus.
+
+[R78-Fokus, Chromium](viewer-palette-fest.r79.r78-focus-refresh.json),
+[R78-Fokus, Firefox](viewer-palette-fest.r79.r78-firefox-focus-refresh.json),
+[Programmentladen](viewer-palette-fest.r79.chromium-empty-program.json),
+[gesperrter Schrittknopf](viewer-palette-fest.r79.chromium-step-reason.json),
+[Fokus außerhalb](viewer-palette-fest.r79.chromium-outside-focus.json),
+[Reihenfolge](viewer-palette-fest.r79.r78-mixed-order.json),
+[Werkzeug-Sprung](viewer-palette-fest.r79.r78-tool-reveal.json).
+
+### Prüfungen und Grenzen
+
+- **Build bestanden; 103/103 gezielte Unit-Tests bestanden.**
+- **Chromium: 14/15 bestanden** — acht aktuelle Sim-Tests, vier bytegleich
+  übernommene R78-Gegenproben und drei zusätzliche Fokusübergänge. Einziger
+  Fehlschlag: der Tastaturtest aus VP-I40.
+- **Firefox: 9/9 bestanden** — R78-Fokussonde, drei zusätzliche Übergänge und
+  fünf aktuelle Wächter für Tasten, Ergebniswechsel, Gleichstände und die
+  beiden Pfadarten.
+- **Private Chromium-Gegenprüfung:** Der Tastaturtest mit exakter
+  Button-Auswahl besteht; die zusätzliche Prüfung der bisherigen
+  Wartebedingung schlägt wie erwartet fehl.
+
+Kein vollständiges neues Offline-Gate und keine Live-/Geräteabnahme.
+Einrichtungskorrekturen der Review-Kopie sind im Prüfprotokoll getrennt
+ausgewiesen und nicht als Produktbefunde gezählt.
+
+[Build](viewer-palette-fest.r79.build-rerun.txt),
+[Unit-Tests](viewer-palette-fest.r79.unit.txt),
+[Chromium](viewer-palette-fest.r79.chromium-rerun.txt),
+[Firefox](viewer-palette-fest.r79.firefox.txt),
+[Prüfprotokoll](viewer-palette-fest.r79.checks.md),
+[Stand und Quellvergleich](viewer-palette-fest.r79.context.json),
+[Beleghashes](viewer-palette-fest.r79.sha256.json).

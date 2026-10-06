@@ -1,0 +1,9 @@
+{
+  "before": [],
+  "focus": {
+    "tag": "SPAN",
+    "cls": "rowPick",
+    "inPanel": true
+  },
+  "after": []
+}

@@ -1,0 +1,9 @@
+{
+  "focus": {
+    "tag": "SELECT",
+    "cls": "filterSelect inputField",
+    "label": "Show on the list",
+    "inPanel": true
+  },
+  "cmds": []
+}
