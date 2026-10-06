@@ -100,7 +100,7 @@ und kommt beim Merge zum Schluss dazu.
 | Begriffe, Einheiten | „Program“, „Work offset“, „Collision“; Prozent als „120 %“; „—“ nur für fehlende Anzeigewerte |
 | Rückmeldungen | Grund eines gedimmten Controls erscheint als Blase **am Control**, verschwindet beim nächsten Tipp; Banner in zwei Stufen (rot Sicherheit/Maschine, gelb Programm/Vorschau); Ergebnisse als Hinweis im Panel |
 | Dialoge | Escape ist immer E-Stop; Fokus bleibt im obersten Dialog; Safety-Leiste und Abort bleiben erreichbar; Abbrechen links, Verb rechts |
-| Reiter | fünf Hauptreiter; Probing als 4×2-Raster; im schmalen Seitenpanel (150 % hoch) zwei Auswahlfelder |
+| Reiter | sieben Hauptreiter (Program … Macros, Sim); Probing als 4×2-Raster; im schmalen Seitenpanel (unter 498 px, z. B. 150 % hoch) zwei Auswahlfelder |
 | Formulare | Label über dem Feld, Einheit rechts; einheitliche Feldhöhe (44 px auf Touch) |
 | Panel-Aufbau | Abort ganz rechts in der Aktionsgruppe; „Files“ als ein Umschalter |
 | Leisten, Makros | Start/Step/Resume/Run-from-line und Makros **halten** zum Auslösen; Reset-Buttons nennen ihren Zielwert |
@@ -334,7 +334,7 @@ Debug-Schalter.
 | Dialoge im Hochformat | Bei 150 % passt jeder Dialog in den Inhaltsbereich: Program Stats und Run from line ragten links und rechts hinaus |
 | ViewCube | Die Seiten heißen X+, X−, Y+, Y−, Z+, Z− und sind leicht rot / grün / blau getönt. In einer geraden Ansicht (Klick auf eine Fläche) liegen zwei schlichte Pfeile auf dem Rand des Quadrats, über die ganze Seite, der Buchstabe außerhalb hinter der Spitze; in der Schrägansicht keine. Das Achsenkreuz unten rechts ist weg |
 | Blinken im Gleichtakt | In E-Stop blinken der Reset-Button und der Statusbalken **gleichzeitig**, auch nach einem Safety Trip und nach einem Neuladen der Seite |
-| Simulation (neu) | Die Leiste im Viewer hat eine Zeile: Sim, Play, Zeitleiste, Zeit; im schmalen Viewer steht die Zeitleiste in einer eigenen Zeile. Der neue Tab „Sim“: Geschwindigkeit in Stufen, Kollisionsprüfung mit Prozent, eine Liste aller Markierungen (× Kollision mit dem Körperpaar, ▲ Grenzverletzung, ● Werkzeugwechsel). Ein Tipp auf eine Zeile zeigt den Befund; ‹ › blättern; beim Durchklicken ändert die Leiste ihre Größe nie. Bei eingeschalteter Maschine sagt eine Zeile, warum nicht |
+| Simulation (neu) | Die Leiste im Viewer hat eine Zeile: Sim, Play, Zeitleiste, Zeit; im schmalen Viewer steht die Zeitleiste in einer eigenen Zeile. Der neue Tab „Sim“: Geschwindigkeit in Stufen, Kollisionsprüfung mit Prozent, eine Liste aller Markierungen (× Kollision mit dem Körperpaar, ▲ Grenzverletzung, ● Werkzeugwechsel). Ein Tipp auf eine Zeile zeigt den Befund; ‹ › blättern; beim Durchklicken ändert die Leiste ihre Größe nie. Bei eingeschalteter Maschine sagt eine Zeile, warum nicht. Mit Pfeil-Jog-Belegung joggen die Pfeiltasten auf einer Zeile nie, auch wenn ein neues Prüfergebnis die Liste ersetzt; ein Sprung auf einen Werkzeugwechsel beendet die Einblendung eines Befunds auf ausgeblendetem Pfad (Codex R78) |
 | Auswahlfelder | Such- und Filterzeilen (Tools, Macros, Meldungen, G-Code-Referenz) und das Bereichsmenü im schmalen Panel sind niedriger (36 statt 44 px auf Touch) |
 | Hinweisblase | Ein Tipp auf eine halb verdeckte Option am Rand der Leiste (z. B. die reservierte G59 auf der TWP-Maschine): Die Leiste scrollt sie ins Bild, und der Hinweis bleibt an ihr stehen |
 
