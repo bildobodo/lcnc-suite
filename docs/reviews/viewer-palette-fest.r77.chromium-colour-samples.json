@@ -1,0 +1,995 @@
+{
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.0 Safari/537.36",
+  "samples": [
+    {
+      "at": 3860.8,
+      "values": [
+        {
+          "colour": "oklab(0.970145 0.0000441968 0.0000194311)",
+          "rgba": [
+            245,
+            245,
+            245,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 3860.7999999999997,
+          "progress": 0.43466666666666676,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.982112 0.0000446141 0.0000196695)",
+          "rgba": [
+            249,
+            249,
+            249,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 3860.7999999999997,
+          "progress": 0.43466666666666676,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 3910.8,
+      "values": [
+        {
+          "colour": "oklab(0.805848 0.0684076 0.0331621)",
+          "rgba": [
+            237,
+            173,
+            166,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 3910.8,
+          "progress": 0.5180000000000007,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.813028 0.0684079 0.0331622)",
+          "rgba": [
+            239,
+            175,
+            168,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 3910.8,
+          "progress": 0.5180000000000007,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 3960.7,
+      "values": [
+        {
+          "colour": "oklab(0.805848 0.0684076 0.0331621)",
+          "rgba": [
+            237,
+            173,
+            166,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 3960.7000000000003,
+          "progress": 0.6011666666666668,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.813028 0.0684079 0.0331622)",
+          "rgba": [
+            239,
+            175,
+            168,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 3960.7000000000003,
+          "progress": 0.6011666666666668,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 4010.7,
+      "values": [
+        {
+          "colour": "oklab(0.805848 0.0684076 0.0331621)",
+          "rgba": [
+            237,
+            173,
+            166,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 4010.7,
+          "progress": 0.6844999999999999,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.813028 0.0684079 0.0331622)",
+          "rgba": [
+            239,
+            175,
+            168,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 4010.7,
+          "progress": 0.6844999999999999,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 4060.8,
+      "values": [
+        {
+          "colour": "oklab(0.805848 0.0684076 0.0331621)",
+          "rgba": [
+            237,
+            173,
+            166,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 4060.8,
+          "progress": 0.7680000000000007,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.813028 0.0684079 0.0331622)",
+          "rgba": [
+            239,
+            175,
+            168,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 4060.8,
+          "progress": 0.7680000000000007,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 4110.7,
+      "values": [
+        {
+          "colour": "oklab(0.805848 0.0684076 0.0331621)",
+          "rgba": [
+            237,
+            173,
+            166,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 4110.7,
+          "progress": 0.851166666666666,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.813028 0.0684079 0.0331622)",
+          "rgba": [
+            239,
+            175,
+            168,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 4110.7,
+          "progress": 0.851166666666666,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 4160.7,
+      "values": [
+        {
+          "colour": "oklab(0.805848 0.0684076 0.0331621)",
+          "rgba": [
+            237,
+            173,
+            166,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 4160.700000000001,
+          "progress": 0.9345000000000008,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.813028 0.0684079 0.0331622)",
+          "rgba": [
+            239,
+            175,
+            168,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 4160.700000000001,
+          "progress": 0.9345000000000008,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 4210.7,
+      "values": [
+        {
+          "colour": "oklab(0.970145 0.0000441968 0.0000194311)",
+          "rgba": [
+            245,
+            245,
+            245,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 4210.7,
+          "progress": 0.017833333333333812,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.982112 0.0000446141 0.0000196695)",
+          "rgba": [
+            249,
+            249,
+            249,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 4210.7,
+          "progress": 0.017833333333333812,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 4260.7,
+      "values": [
+        {
+          "colour": "oklab(0.970145 0.0000441968 0.0000194311)",
+          "rgba": [
+            245,
+            245,
+            245,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 4260.7,
+          "progress": 0.10116666666666685,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.982112 0.0000446141 0.0000196695)",
+          "rgba": [
+            249,
+            249,
+            249,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 4260.7,
+          "progress": 0.10116666666666685,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 4310.8,
+      "values": [
+        {
+          "colour": "oklab(0.970145 0.0000441968 0.0000194311)",
+          "rgba": [
+            245,
+            245,
+            245,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 4310.8,
+          "progress": 0.18466666666666764,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.982112 0.0000446141 0.0000196695)",
+          "rgba": [
+            249,
+            249,
+            249,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 4310.8,
+          "progress": 0.18466666666666764,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 4360.7,
+      "values": [
+        {
+          "colour": "oklab(0.970145 0.0000441968 0.0000194311)",
+          "rgba": [
+            245,
+            245,
+            245,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 4360.7,
+          "progress": 0.2678333333333329,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.982112 0.0000446141 0.0000196695)",
+          "rgba": [
+            249,
+            249,
+            249,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 4360.7,
+          "progress": 0.2678333333333329,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 4410.7,
+      "values": [
+        {
+          "colour": "oklab(0.970145 0.0000441968 0.0000194311)",
+          "rgba": [
+            245,
+            245,
+            245,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 4410.700000000001,
+          "progress": 0.35116666666666774,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.982112 0.0000446141 0.0000196695)",
+          "rgba": [
+            249,
+            249,
+            249,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 4410.700000000001,
+          "progress": 0.35116666666666774,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 4460.7,
+      "values": [
+        {
+          "colour": "oklab(0.970145 0.0000441968 0.0000194311)",
+          "rgba": [
+            245,
+            245,
+            245,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 4460.7,
+          "progress": 0.4345000000000008,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.982112 0.0000446141 0.0000196695)",
+          "rgba": [
+            249,
+            249,
+            249,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 4460.7,
+          "progress": 0.4345000000000008,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 4510.7,
+      "values": [
+        {
+          "colour": "oklab(0.805848 0.0684076 0.0331621)",
+          "rgba": [
+            237,
+            173,
+            166,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 4510.7,
+          "progress": 0.5178333333333338,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.813028 0.0684079 0.0331622)",
+          "rgba": [
+            239,
+            175,
+            168,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 4510.7,
+          "progress": 0.5178333333333338,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 4560.7,
+      "values": [
+        {
+          "colour": "oklab(0.805848 0.0684076 0.0331621)",
+          "rgba": [
+            237,
+            173,
+            166,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 4560.7,
+          "progress": 0.6011666666666668,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.813028 0.0684079 0.0331622)",
+          "rgba": [
+            239,
+            175,
+            168,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 4560.7,
+          "progress": 0.6011666666666668,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 4610.7,
+      "values": [
+        {
+          "colour": "oklab(0.805848 0.0684076 0.0331621)",
+          "rgba": [
+            237,
+            173,
+            166,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 4610.7,
+          "progress": 0.6844999999999999,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.813028 0.0684079 0.0331622)",
+          "rgba": [
+            239,
+            175,
+            168,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 4610.7,
+          "progress": 0.6844999999999999,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 4660.7,
+      "values": [
+        {
+          "colour": "oklab(0.805848 0.0684076 0.0331621)",
+          "rgba": [
+            237,
+            173,
+            166,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 4660.700000000001,
+          "progress": 0.7678333333333338,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.813028 0.0684079 0.0331622)",
+          "rgba": [
+            239,
+            175,
+            168,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 4660.700000000001,
+          "progress": 0.7678333333333338,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 4710.7,
+      "values": [
+        {
+          "colour": "oklab(0.805848 0.0684076 0.0331621)",
+          "rgba": [
+            237,
+            173,
+            166,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 4710.7,
+          "progress": 0.8511666666666668,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.813028 0.0684079 0.0331622)",
+          "rgba": [
+            239,
+            175,
+            168,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 4710.7,
+          "progress": 0.8511666666666668,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 4760.7,
+      "values": [
+        {
+          "colour": "oklab(0.805848 0.0684076 0.0331621)",
+          "rgba": [
+            237,
+            173,
+            166,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 4760.7,
+          "progress": 0.9344999999999999,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.813028 0.0684079 0.0331622)",
+          "rgba": [
+            239,
+            175,
+            168,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 4760.7,
+          "progress": 0.9344999999999999,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 4810.7,
+      "values": [
+        {
+          "colour": "oklab(0.970145 0.0000441968 0.0000194311)",
+          "rgba": [
+            245,
+            245,
+            245,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 4810.7,
+          "progress": 0.017833333333333812,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.982112 0.0000446141 0.0000196695)",
+          "rgba": [
+            249,
+            249,
+            249,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 4810.7,
+          "progress": 0.017833333333333812,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 4860.7,
+      "values": [
+        {
+          "colour": "oklab(0.970145 0.0000441968 0.0000194311)",
+          "rgba": [
+            245,
+            245,
+            245,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 4860.7,
+          "progress": 0.10116666666666596,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.982112 0.0000446141 0.0000196695)",
+          "rgba": [
+            249,
+            249,
+            249,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 4860.7,
+          "progress": 0.10116666666666596,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 4910.7,
+      "values": [
+        {
+          "colour": "oklab(0.970145 0.0000441968 0.0000194311)",
+          "rgba": [
+            245,
+            245,
+            245,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 4910.700000000001,
+          "progress": 0.18450000000000166,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.982112 0.0000446141 0.0000196695)",
+          "rgba": [
+            249,
+            249,
+            249,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 4910.700000000001,
+          "progress": 0.18450000000000166,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 4960.7,
+      "values": [
+        {
+          "colour": "oklab(0.970145 0.0000441968 0.0000194311)",
+          "rgba": [
+            245,
+            245,
+            245,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 4960.7,
+          "progress": 0.2678333333333338,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.982112 0.0000446141 0.0000196695)",
+          "rgba": [
+            249,
+            249,
+            249,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 4960.7,
+          "progress": 0.2678333333333338,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 5010.7,
+      "values": [
+        {
+          "colour": "oklab(0.970145 0.0000441968 0.0000194311)",
+          "rgba": [
+            245,
+            245,
+            245,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 5010.7,
+          "progress": 0.35116666666666774,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.982112 0.0000446141 0.0000196695)",
+          "rgba": [
+            249,
+            249,
+            249,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 5010.7,
+          "progress": 0.35116666666666774,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 5060.7,
+      "values": [
+        {
+          "colour": "oklab(0.970145 0.0000441968 0.0000194311)",
+          "rgba": [
+            245,
+            245,
+            245,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 5060.7,
+          "progress": 0.4344999999999999,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.982112 0.0000446141 0.0000196695)",
+          "rgba": [
+            249,
+            249,
+            249,
+            255
+          ],
+          "on": false,
+          "startTime": 0,
+          "currentTime": 5060.7,
+          "progress": 0.4344999999999999,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 5110.7,
+      "values": [
+        {
+          "colour": "oklab(0.805848 0.0684076 0.0331621)",
+          "rgba": [
+            237,
+            173,
+            166,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 5110.7,
+          "progress": 0.5178333333333338,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.813028 0.0684079 0.0331622)",
+          "rgba": [
+            239,
+            175,
+            168,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 5110.7,
+          "progress": 0.5178333333333338,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 5160.7,
+      "values": [
+        {
+          "colour": "oklab(0.805848 0.0684076 0.0331621)",
+          "rgba": [
+            237,
+            173,
+            166,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 5160.700000000001,
+          "progress": 0.6011666666666677,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.813028 0.0684079 0.0331622)",
+          "rgba": [
+            239,
+            175,
+            168,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 5160.700000000001,
+          "progress": 0.6011666666666677,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 5210.6,
+      "values": [
+        {
+          "colour": "oklab(0.805848 0.0684076 0.0331621)",
+          "rgba": [
+            237,
+            173,
+            166,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 5210.6,
+          "progress": 0.6843333333333348,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.813028 0.0684079 0.0331622)",
+          "rgba": [
+            239,
+            175,
+            168,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 5210.6,
+          "progress": 0.6843333333333348,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 5260.6,
+      "values": [
+        {
+          "colour": "oklab(0.805848 0.0684076 0.0331621)",
+          "rgba": [
+            237,
+            173,
+            166,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 5260.6,
+          "progress": 0.7676666666666669,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.813028 0.0684079 0.0331622)",
+          "rgba": [
+            239,
+            175,
+            168,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 5260.6,
+          "progress": 0.7676666666666669,
+          "playState": "running"
+        }
+      ]
+    },
+    {
+      "at": 5310.6,
+      "values": [
+        {
+          "colour": "oklab(0.805848 0.0684076 0.0331621)",
+          "rgba": [
+            237,
+            173,
+            166,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 5310.6,
+          "progress": 0.8510000000000009,
+          "playState": "running"
+        },
+        {
+          "colour": "oklab(0.813028 0.0684079 0.0331622)",
+          "rgba": [
+            239,
+            175,
+            168,
+            255
+          ],
+          "on": true,
+          "startTime": 0,
+          "currentTime": 5310.6,
+          "progress": 0.8510000000000009,
+          "playState": "running"
+        }
+      ]
+    }
+  ]
+}
