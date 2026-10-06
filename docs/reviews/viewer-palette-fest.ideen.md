@@ -10639,3 +10639,133 @@ Kein neuer Build-/Unit-/Backend-/Offline-Gate-Lauf und keine macOS-/Live-Abnahme
 [Stand und Herkunft](viewer-palette-fest.r77.context.json),
 [Build-Dateien](viewer-palette-fest.r77.dist-sha256.json),
 [Beleghashes](viewer-palette-fest.r77.sha256.json).
+
+---
+
+## Anfrage R78 · Claude · Sim-Tab, einzeilige Zeitleiste, kompakte Such- und Filterzeilen · 6. Oktober 2026
+
+**Bitte prüfe `67494d4..ff9e6b9` auf `feat/backlog-integration`.** Darin ist der Branch
+`feat/sim-panel` (`2bf67c0`, `4461242`, `16ded0f` und ein Merge der Basis). Er ändert nur Oberfläche,
+Tests und Doku, kein Gateway-Code. Der Operator hat aus zwei gerenderten Varianten gewählt
+(„ich folge deinen Empfehlungen“).
+
+### Anlass (Operator, 5. Oktober)
+
+- Beim Durchklicken der Kollisionen änderte sich der Text der Befundzeile („→ L42 (rapid)
+  ~2.0 mm … through L45“, die Werkzeugliste des Sweeps). Die Leiste kippte dabei in ihre
+  kompakte Form und zurück. Aufgeklappt stapelte sie vier Zeilen über die DRO-Karte.
+- Gewählt aus den Renderings: Variante A, ein eigener Tab. Die zweite Variante, der Befundblock
+  im Program-Tab, verdrängte auf dem Touchscreen (1280 × 800) den Code vollständig.
+- Dazu: „Das Dropdown ist sehr hoch und der Text darin braucht den Platz nicht.“
+
+### 1 · Die Leiste: eine Zeile
+
+- Inhalt: Sim, Play, die Zeitleiste mit Markierungen und Bändern, die Zeit in festem Slot.
+  Keine kompakte Form, kein „More“, keine Befundzeile.
+- Im schmalen Viewer (`.narrowViewer`, nach der Breite des Viewers, nie nach dem Inhalt)
+  bekommt die Zeitleiste eine eigene Zeile.
+- Weggefallen: `fitScrub`, `notesOpen`/`more-open` zwischen Leiste und Warnkarte, die
+  Klassenumschaltung der Leiste in `fitDro`.
+
+### 2 · Der Tab „Sim“ (`SimPanel.vue`, `simPanelStore.ts`, `viewer/simRows.ts`)
+
+- **Kopf:** Geschwindigkeit als Auswahl in 1-2-5-Stufen (×0.1 … ×100), daneben Zeile und Zeit
+  der Leiste.
+- **Kollisionsprüfung:** Fortschritt in Prozent (der Anteil des überstrichenen Bands), das
+  Ergebnis in Worten wie bisher, `*` wenn die Garantie nicht hält. Das „?“ nennt die Details
+  und die Werkzeuge der Prüfung.
+- **Eine Liste** aller Markierungen der Zeitleiste in Zeitleistenreihenfolge:
+  - × Kollision mit Körperpaar (`partLabel`), Eilgang oder Vorschub, Wiedereintritt,
+    Beinahe-Treffer, „through L45“;
+  - ▲ die Grenzsätze der Zeile in Worten;
+  - ● „Tool change → T3“;
+  - die Zeit (mm:ss, auf der Distanzachse %).
+- **Filter und Schritte:** Der Filter zeigt die Zahlen in den Optionen. ‹ › tragen den Namen der
+  gezeigten Art: „Next collision“, „Previous limit violation“, „Next on the timeline“.
+- **Zeile:** Ein Tipp zeigt den Befund. Die Tastatur bedient die Zeilennummer (`.rowPick`,
+  `role="button"`, ein Tab-Stopp). Enter und Leertaste zeigen den Befund; die Pfeile, Home und
+  End bewegen nur den Fokus. Jede Navigationstaste wird abgefangen, auch mit Modifier.
+- **Markierung:** Der gezeigte Befund bekommt Tönung, Balken und `aria-current`. Ohne
+  gezeigten Befund trägt die nächste Zeile vor der Position den Balken; das ist die Vorausschau
+  bei Wiedergabe und echtem Lauf.
+- **Maschine an:** Zeile und Schritte nennen den Grund am Element („Machine on — power off to
+  simulate“).
+- **Eine Navigation:** `ScrubBar` bleibt alleiniger Besitzer der Simulation und der
+  Befundnavigation (R31–R34). Sie veröffentlicht Zeilen aus ihren eigenen Zielen; der Tab ruft
+  ihre Sprünge über `jump(key)` und `step(kinds, dir)` (`targetAfter`/`targetBefore` über die
+  gewählten Arten). Werkzeugwechsel sind Ziele wie Befunde: Schlüssel `T<line>`, Ausdehnung der
+  Bewegung, die sie beginnen. Ihr Sprung deckt keine verborgene Ebene auf.
+- **Tabname „Sim“:** Mit „Simulation“ brauchten sieben gleiche Spalten 574 px, mehr als das
+  522-px-Panel auf Desktop und Touch-Querformat. Mit „Sim“ ergab der Breitenscan 497 px; daher
+  `NARROW_PANE_PX` = 498 (vorher 432).
+
+### 3 · `.denseArea`
+
+- `.denseArea` steht neben `.strip`, `.dataTable` und `.macroBar` und setzt
+  `--control-h` = `--control-h-compact` (28/36 px).
+- Verwendet in den Such- und Filterzeilen von Tools, Macros, Meldungsliste und G-Code-Referenz,
+  in der Zeile der Bereichsauswahl im schmalen Panel und in den Zeilen des Sim-Tabs.
+- Formulare behalten die volle Höhe.
+
+### Wächter
+
+- **`sim-panel.viewer.spec`:**
+  - Die Liste entspricht den Markierungen: je Art gleiche Zahl, Zeitleistenreihenfolge.
+  - Die Texte der Zeilen; Filter und Zahlen; Prozentanzeige und Ergebnis.
+  - Zeile zeigt den Befund; die Schritte einer Art: L20 → L32 → L20; die nächste Zeile folgt
+    der Position.
+  - Tasten mit eingeschalteter Maschine und Pfeil-Jog-Belegung: Eine Gegenprobe joggt auf
+    freier Seite. Auf einer Zeile kommt kein Jog-Befehl an. Enter nennt den Grund; nach dem
+    Ausschalten zeigt Enter die Zeile.
+  - Das Durchklicken ändert die Leiste nie: gleiche Box, gleiche Zeitleistenbreite, in
+    Desktop, Touch quer und 150 % hoch; im schmalen Viewer hat die Zeitleiste die ganze Breite.
+- **`select-writes.spec`:** Geschwindigkeit und Filter des Tabs während einer Wiedergabe mit
+  ×10.
+- **`layout.spec`:**
+  - die Schwelle 498 (ein Pixel darunter, auf und darüber);
+  - die Auswahlfelder des schmalen Panels und die Tools-Suchzeile in der kompakten Höhe;
+  - die Innenseite der Leiste: Zeitleiste ≥ 120, Bedienelemente erreichbar, Zeit vollständig,
+    die Warnkarte auf und zu, beim Simulieren und bei Zoomwechsel.
+- **Umgestellt:** `collisions`/`findings`/`rapids` erreichen „Next collision“ bzw. „Next limit
+  violation“ jetzt über den gefilterten Tab (`e2e/simTab.ts`); Inhalt und Assertions der
+  R31–R34-Tests sind unverändert.
+- **`simRows.test.ts`:** Namen, Reihenfolge, Notizen, die nächste Zeile.
+
+### Rot (kompilierend, Build-Exit geprüft, Build je Mutation, aus Sicherung zurück)
+
+- Leistentext abhängig vom Befund.
+- Werkzeugwechsel nicht in der Liste.
+- Pfeiltasten nicht abgefangen.
+- Kein Grund an der Zeile.
+- Gezeigte Zeile nicht markiert.
+- Schmaler Viewer ohne eigene Zeitleistenzeile (die Regeln entfernt).
+- Alte Schwelle 432.
+- Eine Option, die je Render neu geschrieben wird.
+- `.denseArea` ohne Regel.
+
+**Offen gesagt** zu drei Mutationen, die zuerst überlebten:
+
+- **Pfeile:** Die Maschine war aus und der Tastatur-Jog nicht belegt. Es konnte also gar nichts
+  joggen.
+- **Schmaler Viewer:** Ich maß in Gerätepixeln. Außerdem bricht die Zeitleiste in diesem
+  Viewport schon wegen Platzmangels um; die Flex-Basis allein ist dort kein echter Unterschied.
+- **`v-memo`:** Konstante Optionen schreibt Vue ohnehin nicht neu (bekannt aus R73). Rot ist eine
+  Option, die je Render wechselt. Der Test spielt jetzt mit ×10, damit der Tab während der
+  Pakete wirklich neu rendert.
+
+### Bitte besonders prüfen
+
+1. Gibt es Zustände, in denen Liste und Markierungen auseinanderlaufen? Zum Beispiel:
+   Anfahrbewegung, Teilergebnis, Wiederaufnahme nach Parken, Ergebnis der Anfahrt zusammengeführt.
+2. Fehlt ein Wächter dafür, dass `step` über gemischte Arten dieselben Ziele trifft wie die
+   früheren Einzelknöpfe?
+3. Ist `.denseArea` an Stellen gesetzt, an denen Touch 36 px zu wenig ist?
+
+### Prüfungen
+
+- Offline-Gate S3: PASS auf `16ded0f` — Backend 1245, Vitest 1901, Playwright 477.
+- S1 scheiterte am fehlenden venv-Link des neuen Worktrees (kein pytest). S2 scheiterte an
+  `forms.spec`: Die Dichte-Regel kannte `.denseArea` nicht und verlangte die volle Höhe.
+  Behoben in `16ded0f`: In einer kompakten Zeile hat ein Feld genau die kompakte Höhe.
+- Backend unverändert seit R72.
+- Live-Baum: seit `ff9e6b9`.
