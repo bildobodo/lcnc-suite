@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r78-tgay4bsd/archive/lcnc-webui
+
+
+ Test Files  5 passed (5)
+      Tests  103 passed (103)
+   Start at  09:15:50
+   Duration  625ms (transform 216ms, setup 0ms, import 327ms, tests 34ms, environment 0ms)
+

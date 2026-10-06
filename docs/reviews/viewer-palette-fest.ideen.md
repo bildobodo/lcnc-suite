@@ -10769,3 +10769,157 @@ Tests und Doku, kein Gateway-Code. Der Operator hat aus zwei gerenderten Variant
   Behoben in `16ded0f`: In einer kompakten Zeile hat ein Feld genau die kompakte Höhe.
 - Backend unverändert seit R72.
 - Live-Baum: seit `ff9e6b9`.
+
+---
+
+## Review R78 · Codex · Sim-Tab, Zeitleiste und kompakte Filter · 6. Oktober 2026
+
+**Ergebnis: `findings`.** Die neue Aufteilung und die kompakteren Filter sind
+im geprüften Layout tragfähig. Offen bleiben drei reproduzierte Rückschritte,
+darunter ein P1: Eine verschwindende Tabellenzeile verliert ihren Tastaturfokus;
+die nächste Pfeiltaste erreicht dadurch die globale Jog-Belegung.
+
+Geprüft: `67494d4..ff9e6b9`, Anfrage im Live-Stand `ba35c41`. Alle Läufe fanden
+in einer isolierten Archivkopie von `ff9e6b9` statt, mit eigenem Mock auf
+`127.0.0.1:4188`, einem Worker und niedriger Priorität. Produktquellen und
+Live-Suite wurden nicht verändert; keine Zugriffe auf die Live-Ports und keine
+Maschinenbefehle an die echte Suite.
+
+### VP-I37 · P1 · Ein Ergebniswechsel gibt die Navigationstasten an Jog frei
+
+**Ort:** `lcnc-webui/src/SimPanel.vue:58`, `:71`, `:142`.
+
+`rowStop` bestimmt den Tab-Stopp; die Pfeiltasten werden am jeweiligen
+`.rowPick` abgefangen. Es fehlt aber eine Fokusübernahme, wenn eine fokussierte
+Zeile beim Ersetzen der Ergebnisse verschwindet. Der Browser setzt den Fokus
+dann auf `BODY`. Die nächste Pfeiltaste gehört damit wieder der globalen
+Tastaturbelegung.
+
+**Gegenprobe in Chromium und Firefox:** Maschine im Mock an, referenziert,
+Pfeil-Jog belegt. Fokus auf Kollision L12, ArrowRight: kein Befehl. Danach
+Kollisionsliste durch ein Ergebnis ohne Treffer ersetzt; Werkzeug- und
+Grenzzeilen bleiben vorhanden. Fokus jetzt `BODY`, außerhalb des Sim-Panels.
+ArrowRight sendet `jog_cont` für Achse 0 mit `vel: 10`, beim Loslassen
+`jog_stop`. Der Datenwechsel erfolgt über den vorhandenen Diagnosezugang
+`setCollisionHits([])`; die Sonde entfernt keine DOM-Knoten und manipuliert
+keinen Fokus. Damit ist der Übergang beim Ergebniswechsel geprüft, nicht ein
+realer Maschinenlauf oder ein vollständig ausgelöster neuer Sweep.
+
+**Korrektur:** Den vom Panel besessenen Fokus über Ergebniswechsel erhalten:
+auf eine verbleibende benachbarte Zeile oder, bei leerer Liste, auf ein stabiles
+Panel-Bedienelement übertragen. Der Test muss aktive Jog-Belegung und das
+Verschwinden der fokussierten Zeile einschließen, einschließlich leerer Liste.
+Der bisherige Wächter für Tasten auf einer unverändert vorhandenen Zeile
+deckt diesen Übergang nicht ab.
+
+[Chromium: Fokus und Befehle](viewer-palette-fest.r78.focus-refresh.json),
+[Firefox: Fokus und Befehle](viewer-palette-fest.r78.firefox-focus-refresh.json),
+[Firefox-Lauf](viewer-palette-fest.r78.firefox-focus-final.txt).
+
+### VP-I38 · P2 · Gemischte Schritte folgen bei gleichem Zeitpunkt nicht der Liste
+
+**Ort:** `lcnc-webui/src/ScrubBar.vue:990`,
+`lcnc-webui/src/viewer/simRows.ts:53` und `:85`,
+`lcnc-webui/src/SimPanel.vue:25`.
+
+Die sichtbare Liste sortiert Gleichstände nach Werkzeug → Grenze → Kollision.
+`step()` sortiert dagegen nur nach `cum`; bei Gleichstand bleibt die
+Einfügereihenfolge Kollision → Grenze → Werkzeug erhalten. Damit wechselt
+„Next on the timeline“ sichtbar erst nach unten und anschließend wieder
+nach oben.
+
+**Gegenprobe:** Grenze und Kollision auf L20 teilen denselben Zeitpunkt.
+Die Liste zeigt `T10, C12, L20, C20, C26, L32`. Ab C12 durchläuft Next aber
+`C12, C20, L20, C26, L32, T10`. Auch Previous folgt dieser abweichenden
+Reihenfolge. Die Befunde gehen nicht verloren; die zugesagte gemeinsame
+Navigation stimmt jedoch nicht mit der dargestellten Reihenfolge überein.
+
+**Korrektur:** Eine gemeinsame vollständige Sortierregel für Liste und
+Navigation verwenden. Den Wächter um gemischte Arten mit identischem
+Zeitpunkt, beide Richtungen und den Umlauf ergänzen; auch Werkzeugwechsel
+am selben Zeitpunkt einbeziehen.
+
+[Reihenfolgen](viewer-palette-fest.r78.mixed-order.json),
+[Liste](viewer-palette-fest.r78.mixed-order.png).
+
+### VP-I39 · P2 · Werkzeugwechsel lässt die Pfadeinblendung des alten Befunds stehen
+
+**Ort:** `lcnc-webui/src/ScrubBar.vue:795–800`; Wirkung über
+`lcnc-webui/src/ThreeViewer.vue:1311–1314`.
+
+Der neue Werkzeug-Sprung setzt Position und ausgewählte Zeile und kehrt dann
+vor dem `finding`-Ereignis zurück. Eine schon bestehende `pathReveal` wird
+dabei nicht beendet. Der Werkzeugwechsel deckt somit zwar selbst keine neue
+Ebene auf, übernimmt aber die eingeblendete Strecke des vorigen Befunds.
+
+**Gegenprobe:** Vorschubpfad in Layers ausblenden, Kollision L12 zeigen,
+danach Werkzeugwechsel T10 wählen. T10 ist ausgewählt, aber Strecke und
+Hinweis „Toolpath shown for this finding — hidden in Layers“ von L12 bleiben
+sichtbar. Modellposition, Tabellenmarkierung und eingeblendeter Befund passen
+dadurch nicht mehr zusammen.
+
+**Korrektur:** Beim Wechsel auf ein Werkzeugziel die temporäre
+Befundeinblendung ausdrücklich beenden, ohne die gespeicherten Layer zu ändern.
+Wächter für Zeilenklick und gemischten Schritt, jeweils nach Befunden auf
+ausgeblendeten Vorschub- und Eilgangpfaden.
+
+[Zustand](viewer-palette-fest.r78.tool-reveal.json),
+[Viewer nach dem Werkzeug-Sprung](viewer-palette-fest.r78.tool-reveal.png).
+
+### Antworten auf die drei Fragen
+
+1. **Liste und Markierungen:** Die gemeinsame Quelle aus `hitTargets`,
+   `violationTargets` und `toolTargets` ist sinnvoll; das zum angezeigten
+   Track gehörende Ergebnis bleibt maßgeblich. Die bestehenden Prüfungen zu
+   Anfahrt, zusammengeführten Kontakten, Wiederkontakten und kurzen
+   Grenzverletzungen bestehen. Kein weiterer Mengenversatz nachgewiesen.
+   Ergebniswechsel sind aber wegen VP-I37 nicht abgeschlossen; gemischte
+   Reihenfolge und Wechsel zum Werkzeugziel wegen VP-I38/39 ebenfalls nicht.
+   Parken/Wiederaufnahme und alle Teilergebniszustände wurden nicht als eigene
+   vollständige Browserabläufe erneut ausgeführt; dort stützt sich die Prüfung
+   auf Quellcode und die gezielten Track-/Merge-Tests.
+2. **Gemischte Schritte:** Ja, der Wächter fehlt für Gleichstände und den
+   Übergang Befund → Werkzeug. Die beiden roten Gegenproben zeigen konkrete
+   Lücken, die reine Einzelarten-Schritte nicht erkennen.
+3. **36 px Touch:** Für die bewusst kompakter gewählten Such-, Filter- und
+   Ansichtszeilen im geprüften Umfang akzeptiert. Formulare bleiben bei ihrer
+   bisherigen Höhe; die Änderung verkleinert keine zusätzlichen
+   Maschinenaktionen. Die Messungen bestätigen 36 CSS-px für die betreffenden
+   Touch-Auswahlen und Sim-Schrittknöpfe, auch bei 150 % im Hochformat.
+   Die Zeitleiste behält ihre Größe beim Durchklicken; schmal bekommt der
+   Regler seine eigene Zeile. Das ist eine geometrische Prüfung, keine
+   erneute praktische Finger-/Handschuhabnahme am Gerät.
+
+[Layoutmessung](viewer-palette-fest.r78.sim-layout.json),
+[Touch quer](viewer-palette-fest.r78.sim-touch-landscape.png),
+[Touch hoch, 150 %](viewer-palette-fest.r78.sim-touch-portrait.png).
+
+### Prüfungen und Testpflege
+
+- **Build bestanden; 103/103 gezielte Unit-Tests bestanden.**
+- Bestehende Chromium-Auswahl: **37/39 bestanden**. Der Pfad-Render-Test
+  scheiterte zunächst an seiner Kamera-Kontrollmessung und bestand beim
+  unveränderten Wiederholen. Der neue Tastaturtest scheiterte erst an der
+  Jog-Kontrollprobe, beim Wiederholen am sofortigen Enter nach Machine OFF.
+  Eine separate Testkopie mit Warten auf die angezeigten Maschinenzustände
+  und 150 ms Zustellzeit nach der Settings-Nachricht besteht. Diese Kopie ist
+  als solche abgelegt; der unveränderte Gesamtlauf wird nicht als grün gezählt.
+- Finale eigene Chromium-Sonde: **drei erwartete Fehlschläge für VP-I37–39,
+  eine bestandene Layoutprüfung**. VP-I37 zusätzlich in Firefox bestätigt.
+- Empfehlung zur Testpflege: Vor Tastaturaktionen auf den tatsächlich im
+  Client angekommenen Zustand warten, nicht nur auf die Mock-Antwort.
+  Das ist vom produktseitigen Fokusverlust VP-I37 getrennt.
+
+Kein neues vollständiges Offline-Gate und keine Live-Abnahme. Die
+Belegbeschreibung nennt auch die behobenen Einrichtungsmängel der anfänglich
+zu kleinen Archivkopie und die korrigierte Messannahme der eigenen Layoutsonde.
+
+[Build](viewer-palette-fest.r78.build-rerun.txt),
+[Unit-Tests](viewer-palette-fest.r78.unit.txt),
+[bestehende Browserauswahl](viewer-palette-fest.r78.browser-rerun.txt),
+[finale Gegenproben](viewer-palette-fest.r78.probes-final.txt),
+[Testkopie mit Zustandswartezeit](viewer-palette-fest.r78.keyboard-settled.spec.ts),
+[deren Lauf](viewer-palette-fest.r78.keyboard-settled.txt),
+[Prüfprotokoll und Wiederholung](viewer-palette-fest.r78.checks.md),
+[Stand und Quellvergleich](viewer-palette-fest.r78.context.json),
+[Beleghashes](viewer-palette-fest.r78.sha256.json).

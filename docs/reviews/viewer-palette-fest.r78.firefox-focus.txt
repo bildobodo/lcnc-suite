@@ -1,0 +1,53 @@
+[2m[WebServer] [22m(node:1481043) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:1481071) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1481071) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r78.probe.spec.ts:70:1 › R78: replacing collision results retains keyboard focus inside the Sim panel (2.6s)
+
+
+  1) e2e/r78.probe.spec.ts:70:1 › R78: replacing collision results retains keyboard focus inside the Sim panel 
+
+    Error: A refreshed results list must not hand its navigation keys to global jog
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  -  1[39m
+    [31m+ Received  + 13[39m
+
+    [32m- Array [][39m
+    [31m+ Array [[39m
+    [31m+   Object {[39m
+    [31m+     "axis": 0,[39m
+    [31m+     "cmd": "jog_cont",[39m
+    [31m+     "req_id": "e7u5l8-5",[39m
+    [31m+     "vel": 10,[39m
+    [31m+   },[39m
+    [31m+   Object {[39m
+    [31m+     "axis": 0,[39m
+    [31m+     "cmd": "jog_stop",[39m
+    [31m+     "req_id": "e7u5l8-6",[39m
+    [31m+   },[39m
+    [31m+ ][39m
+
+      91 |   const after=(await ctl({op:'lastCmds'})).cmds;
+      92 |   save('focus-refresh',{before,focus,after});
+    > 93 |   expect(after.filter((x:{cmd:string})=>/jog/.test(x.cmd)),'A refreshed results list must not hand its navigation keys to global jog').toEqual([]);
+         |                                                                                                                                        ^
+      94 | });
+      95 |
+      96 | test('R78: a tool-change jump ends the old finding-only path reveal',async({page,context})=>{
+        at /tmp/codex-r78-tgay4bsd/archive/lcnc-webui/e2e/r78.probe.spec.ts:93:136
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r78-firefox-output/r78.probe-R78-replacing-co-31c28--focus-inside-the-Sim-panel/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r78-firefox-output/r78.probe-R78-replacing-co-31c28--focus-inside-the-Sim-panel/error-context.md
+
+  1 failed
+    e2e/r78.probe.spec.ts:70:1 › R78: replacing collision results retains keyboard focus inside the Sim panel 

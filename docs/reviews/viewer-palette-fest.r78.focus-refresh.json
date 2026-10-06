@@ -1,0 +1,21 @@
+{
+  "before": [],
+  "focus": {
+    "tag": "BODY",
+    "cls": "",
+    "inPanel": false
+  },
+  "after": [
+    {
+      "cmd": "jog_cont",
+      "axis": 0,
+      "vel": 10,
+      "req_id": "7bp9ps-5"
+    },
+    {
+      "cmd": "jog_stop",
+      "axis": 0,
+      "req_id": "7bp9ps-6"
+    }
+  ]
+}
