@@ -8054,3 +8054,29 @@ width with both words in the DOM, the other one `visibility: hidden`, so the
 strip's text held both in either state and the wait passed before the state
 arrived (an occasional Chromium timeout after Machine OFF). It waits for the
 button by its exact accessible name now, which only the shown word gives.
+
+## 2026-10-06 — The Sim list follows the position; the bar's claim survives a re-mount; table lists keep the scrollbar's room
+
+Operator, live look: (1) ‹ › in the Sim tab did nothing although the
+simulation was on. The page had been open across the hot reload that
+brought the R78 fixes: Vue builds the re-mounted ScrubBar before the old
+one's onUnmounted runs, and that hook cleared the tab's actions
+unconditionally — the new bar's registration with them. `claimSimActions`
+returns a release that ends only its own claim (actions, rows, availability);
+`simPanelStore.test.ts` swaps a keyed bar through a minimal custom renderer
+(Vue's own order, no DOM) and is red with an unconditional release. A fresh
+page stepped through the operator's program (haus.ngc on XYZAC, 201 rows)
+in the mock. (2) The list follows the position like the code panel: the
+marked row — shown, else next — stands in the middle of the list's view
+while scrubbing, playing or running; it glides (reduced motion snaps), moves
+only the list, and a hidden tab catches up on its next resize.
+`sim-panel.viewer.spec` scrubs a 50-row list to three places — red without
+the follow. (3) The Macros table's columns moved when the first macro went
+on the bar: the macro bar came in, the table started scrolling and the
+scrollbar took 10 px from every column's place. `.dataTable.scroll-thin`
+keeps the scrollbar's room (`scrollbar-gutter: stable`) — Tools, Macros,
+messages, reference and the Sim list alike; `macros.spec` holds every
+column's place and width across that change (1440 × 800, red without the
+rule). Measured first: with the mock's four macros at 1600 × 1000 nothing
+moved in Chromium or Firefox — the change needs a table that fits before
+the bar and scrolls after it.

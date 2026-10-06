@@ -54,7 +54,23 @@ interface SimActions {
   step(kinds: readonly SimRowKind[], dir: 1 | -1): void;
 }
 let _actions: SimActions | null = null;
-/** ScrubBar registers its actions while mounted (null on unmount). */
-export function registerSimActions(a: SimActions | null): void { _actions = a; }
+let _owner: object | null = null;
+/** ScrubBar claims the tab while mounted; the returned release ends only ITS
+ *  claim — the actions and what the tab shows. A re-mount (a hot reload in
+ *  dev, any keyed swap) builds the new bar BEFORE the old bar's onUnmounted
+ *  runs: an unconditional clear there disconnected the new bar, and ‹ › and
+ *  the rows did nothing until a page reload (operator 2026-10-06, live). */
+export function claimSimActions(a: SimActions): () => void {
+  const claim = {};
+  _owner = claim;
+  _actions = a;
+  return () => {
+    if (_owner !== claim) return;
+    _owner = null;
+    _actions = null;
+    simView.available = false;
+    simRows.value = [];
+  };
+}
 export function simJump(key: string): void { _actions?.jump(key); }
 export function simStep(kinds: readonly SimRowKind[], dir: 1 | -1): void { _actions?.step(kinds, dir); }
