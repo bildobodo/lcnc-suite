@@ -12052,3 +12052,107 @@ die Antwortzeit beim Operator am meisten zählt und 1 das Datenmodell nicht fest
 - Backend unverändert seit R72.
 - Live-Baum: seit `8880a17d`.
 - Die privaten Eingaben zu `haus.ngc` liegen weiter nur im ignorierten `.review-handshake/r84/`.
+
+---
+
+## Review R85 · Codex · D1, Kennfarben, Trefferfläche und Reihenfolge · 6. Oktober 2026
+
+**Votum: `findings` wegen eines kleinen Testbefunds (VP-I44). Die drei
+UI-Korrekturen sind angenommen; VP-I43 ist geschlossen.** Geprüft wurde
+`cf4a9142..8880a17d`; bis zum Anfrage-Stand `9d5c6c37` kam nur der Review-Text
+hinzu. VP84-01–03 bleiben die vereinbarten Folgearbeiten.
+
+### VP-I44 · P3 · Der neue Randflächen-Wächter erreicht seinen Prüffall in Firefox nicht
+
+`lcnc-webui/e2e/sim-panel.viewer.spec.ts:450–453` setzt voraus, dass zwölf
+Kollisionen und der zehnstellige Gesamtwert bei 1600 × 1000 die Limit-Zeile
+kürzen. In Firefox passen diese Texte vollständig hinein:
+`scrollWidth == clientWidth == 283`. Der neue Test scheitert dadurch an
+seiner Vorbedingung, **bevor** er den äußeren Rand anklickt. Das ist ein
+Fehlalarm des Wächters, kein fortbestehendes Clipping der Oberfläche.
+
+Die Vorbedingung bitte **nicht entfernen**: Mit dieser Vorlage funktioniert
+der Randklick in Firefox sogar ohne das neue Polster, weil die natürliche
+Zeilenbreite noch Platz lässt. Eine hinreichend lange Vorlage, etwa ein
+längerer synthetischer Zählwert oder ein langer Teilprüfungs-Befund, muss
+die Kürzung tatsächlich erzwingen. Danach den Rand anklicken und als rote
+Kontrolle das Polster entfernen.
+
+Meine Gegenprobe mit einem längeren Gesamtwert bestätigt genau das:
+324 px Text bei 283 px Platz, äußere Hilfe erreichbar; ohne Polster liegt
+der gleiche relative Klick außerhalb des Tabs und öffnet die Hilfe nicht.
+Nur im Browser der Sonde wurde das Polster vorübergehend entfernt.
+
+[Unveränderter Firefox-Testlauf](viewer-palette-fest.r85.firefox.txt),
+[Fehlerbild](viewer-palette-fest.r85.firefox-guard-failure.png),
+[Geometrie und beide Kontrollen](viewer-palette-fest.r85.firefox-edge-control.json),
+[Sonde](viewer-palette-fest.r85.edge.spec.ts),
+[Kontrolllauf](viewer-palette-fest.r85.edge-firefox.txt).
+
+### Angenommen
+
+- **D1:** `clashTintBodies` entscheidet je Paar und vereinigt dessen aktive
+  Körper. Die neun mitgelieferten Fälle einschließlich beider Anfahr-Merges
+  bestehen. Meine zusätzliche Sonde prüft gemeinsame Körper, freie Lücken,
+  Annäherung, Kontaktende und Ergebnisunabhängigkeit von der Satzreihenfolge.
+  Auch ein synthetisches `continuation: 0` ist unschädlich; daraus folgt
+  keine Behauptung, dass der heutige Merge diesen Wert erzeugt. Der Aufrufer
+  hält die Bindung an den angezeigten Track über `_colResultFor` bei.
+  Die bekannte 16-Intervall-Kappung und die Spannen aus Annäherungssätzen
+  bleiben ausdrücklich D2; hier ist nur die vereinbarte Färbungsregel abgenommen.
+- **VP-I43:** Das Polster hält die äußere Trefferfläche im Tab. Die R83-Sonde
+  besteht jetzt in Chromium und Firefox, einschließlich langem Teilbefund,
+  vier Themes, Quer-/Hochformat und 100/150 % CSS-Zoom. Ihre frühere temporäre
+  Layoutkorrektur wird dabei nicht mehr benötigt. Tastatur und Touch öffnen
+  weiterhin die richtige Summary-Hilfe.
+- **Kennfarben:** Die dokumentierte Operator-Entscheidung ist umgesetzt.
+  Gemessene Zeichen, Zähltexte und Striche behalten in allen sechs Theme-Modi
+  dieselben drei Farben. Die Kontrastausnahme vergleicht den Text selbst mit
+  den Kennfarben (RGB-Toleranz eine Kanalstufe); sie befreit keine ganzen
+  Container. In meiner Gegenprobe werden andere schlechte Textfarben und
+  anders gefärbte Kindtexte weiterhin gefunden, die drei Kennfarben nicht.
+  Die Annahme betrifft diese bewusst gewählte Darstellung, nicht einen
+  Lesekontrast-Nachweis für die ausgenommenen Texte.
+
+[Unit-Prüfung](viewer-palette-fest.r85.unit.txt),
+[zusätzliche Färbungsfälle](viewer-palette-fest.r85.tint.json),
+[Firefox: vollständige Trefferflächen](viewer-palette-fest.r85.firefox-summary-partial.json),
+[Farben in sechs Modi](viewer-palette-fest.r85.firefox-mark-colors.json),
+[Grenzen der Kontrastausnahme](viewer-palette-fest.r85.firefox-contrast-exception.json).
+
+### Antwort zur Reihenfolge
+
+**Kein Einwand gegen 1 → 2 → 3.** Frühe Rückmeldung und Messung können vor dem
+Kontaktmodell kommen. Für Schritt 1 gelten drei Umsetzungshinweise:
+
+1. Die erste Meldung braucht einen bestätigten Kontakt des aktuellen
+   Prüflaufs; „noch keiner gefunden“ darf währenddessen nicht „CLEAR“ heißen.
+   Programm-/Trackwechsel müssen auch diese Meldung verwerfen.
+2. Der Berechnungskontext im „?“ stammt aus der geprüften Basis, nicht aus
+   dem gerade aktuellen Live-Status. Fortschritt, vorhandene Kollision und
+   Vollständigkeit der Meldungen bleiben unterschiedliche Aussagen.
+3. Die frühe Meldung sollte ohne vollständiges Verfeinern aller bisherigen
+   Sätze entstehen. Sonst wird das teure `buildResult` nur häufiger aufgerufen.
+   Vorher/nachher getrennt messen: erste Meldung, Gesamtkosten und Paarabfragen.
+
+Das ist Zustimmung zur Reihenfolge; der vollständige Vertrag für D2/D3 und
+die angekündigte Operator-Entscheidung zum Start werden damit nicht ersetzt.
+
+### Prüfungen
+
+Build und **71 gezielte Unit-Tests bestanden**. Chromium: **19/19**;
+Firefox: **18/19**, ausschließlich VP-I44 rot. Die zusätzliche Firefox-
+Randkontrolle besteht. Ergebnis der fünf bestehenden Textkontrast-Prüfungen:
+**5/5 bestanden**.
+
+Kein erneutes Offline-/Backend-Gesamtgate, kein vollständiger haus.ngc-Sweep
+und keine Maschinenbefehle. Alle Tests liefen mit einem Worker und niedriger
+Priorität in einer Archivkopie, ausschließlich am eigenen Mock `127.0.0.1:4188`.
+Produktquellen, Live-Suite und frühere Belege bleiben unverändert.
+
+[Build](viewer-palette-fest.r85.build.txt),
+[Chromium](viewer-palette-fest.r85.chromium.txt),
+[Textkontrast-Prüfungen](viewer-palette-fest.r85.contrast.txt),
+[Prüfaufbau und Grenzen](viewer-palette-fest.r85.checks.md),
+[Stand und Quellvergleich](viewer-palette-fest.r85.context.json),
+[Beleghashes](viewer-palette-fest.r85.sha256.json).

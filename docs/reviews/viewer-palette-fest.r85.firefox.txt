@@ -1,0 +1,57 @@
+[2m[WebServer] [22m(node:2276227) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 19 tests using 1 worker
+
+(node:2276242) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2276242) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/r85.marks.spec.ts:48:1 › R85: one mark palette reaches the rendered surfaces in all six theme modes (3.9s)
+  ✓   2 e2e/r85.marks.spec.ts:72:1 › R85: the contrast exception does not swallow other text or descendants (179ms)
+  ✓   3 e2e/r85.summary.spec.ts:63:1 › R85: summary stays one line across themes, zoom and counts axes separately from lines (4.7s)
+  ✓   4 e2e/r85.summary.spec.ts:84:1 › R85: capped-list explanation is readable by keyboard and a real touch tap (2.9s)
+  ✓   5 e2e/r85.summary.spec.ts:111:1 › R85: a long partial verdict and caveat keep the summary height (2.8s)
+  ✓   6 e2e/r85.summary.spec.ts:165:1 › R85: help drops the cap when the preview becomes complete or unchecked (2.9s)
+  ✓   7 e2e/sim-panel.viewer.spec.ts:43:1 › the list is the timeline's marks: one row each, in timeline order, each kind in its words (2.3s)
+  ✓   8 e2e/sim-panel.viewer.spec.ts:65:1 › a row shows its finding; the steps go through the shown kind; the next row follows the position (2.7s)
+  ✓   9 e2e/sim-panel.viewer.spec.ts:125:1 › the rows' keys move the focus, never a jog; Enter shows; the machine on explains at the row (3.3s)
+  ✓  10 e2e/sim-panel.viewer.spec.ts:147:1 › stepping through the findings never changes the bar: the same box, the same timeline (8.3s)
+  ✓  11 e2e/sim-panel.viewer.spec.ts:178:1 › a result change under the focus keeps it in the panel; no arrow jogs (3.3s)
+  ✓  12 e2e/sim-panel.viewer.spec.ts:208:1 › the steps through mixed kinds follow the list's own order, ties included (3.2s)
+  ✓  13 e2e/sim-panel.viewer.spec.ts:232:1 › a tool change shown after a finding ends the finding's reveal, the stored layer untouched (2.5s)
+  ✓  14 e2e/sim-panel.viewer.spec.ts:263:1 › a tool change shown after a finding on a hidden rapid ends the rapids' reveal (2.1s)
+  ✓  15 e2e/sim-panel.viewer.spec.ts:303:1 › the list follows the position: the marked row stays in the middle of its view (1.8s)
+  ✓  16 e2e/sim-panel.viewer.spec.ts:344:1 › playback at ×100 with normal motion: the marked row never leaves the list's view (4.2s)
+  ✓  17 e2e/sim-panel.viewer.spec.ts:384:1 › the summary line is always there: a re-check moves nothing under it (3.5s)
+  ✓  18 e2e/sim-panel.viewer.spec.ts:410:1 › the summary names each kind: words in the wide pane, the glyph and the number narrow; a capped list says so (4.2s)
+  ✘  19 e2e/sim-panel.viewer.spec.ts:447:1 › the summary's "?" answers in its whole hit area, at the right edge of a full line (2.3s)
+
+
+  1) e2e/sim-panel.viewer.spec.ts:447:1 › the summary's "?" answers in its whole hit area, at the right edge of a full line 
+
+    Error: the line is full: its limit text gives way
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      451 |   await page.evaluate(() => window.__viewerDiag?.setCollisionHits?.(Array.from({ length: 12 }, (_, i) => ({ line: 5 + i, frac: (2 + i) / 29 }))));
+      452 |   await settleLayout(page);
+    > 453 |   expect(await page.locator(".simPanel .sumLimit .sumWide").evaluate(el => el.scrollWidth > el.clientWidth), "the line is full: its limit text gives way").toBe(true);
+          |                                                                                                                                                            ^
+      454 |   const help = page.locator('.simPanel .simSummaryRow [aria-label="Help: Summary"]');
+      455 |   const g = await help.evaluate(el => {
+      456 |     const r = el.getBoundingClientRect(), tab = el.closest(".tab-content")!.getBoundingClientRect();
+        at /tmp/codex-r85-t57utcjg/archive/lcnc-webui/e2e/sim-panel.viewer.spec.ts:453:156
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r85-firefox-output/sim-panel.viewer-the-summa-e4db6-e-right-edge-of-a-full-line/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r85-firefox-output/sim-panel.viewer-the-summa-e4db6-e-right-edge-of-a-full-line/error-context.md
+
+  1 failed
+    e2e/sim-panel.viewer.spec.ts:447:1 › the summary's "?" answers in its whole hit area, at the right edge of a full line 
+  18 passed (1.0m)

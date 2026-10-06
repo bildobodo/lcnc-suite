@@ -1,0 +1,54 @@
+[
+  {
+    "line": 20,
+    "cum": 21,
+    "expect": [
+      "column",
+      "cover",
+      "saddle"
+    ],
+    "got": [
+      "column",
+      "cover",
+      "saddle"
+    ]
+  },
+  {
+    "line": 20,
+    "cum": 25,
+    "expect": [
+      "column",
+      "saddle"
+    ],
+    "got": [
+      "column",
+      "saddle"
+    ]
+  },
+  {
+    "line": 21,
+    "cum": 25,
+    "expect": [],
+    "got": []
+  },
+  {
+    "line": 0,
+    "cum": 42,
+    "expect": [
+      "column",
+      "saddle",
+      "tool"
+    ],
+    "got": [
+      "column",
+      "saddle",
+      "tool"
+    ]
+  },
+  {
+    "line": 99,
+    "cum": 51,
+    "expect": [],
+    "got": []
+  }
+]

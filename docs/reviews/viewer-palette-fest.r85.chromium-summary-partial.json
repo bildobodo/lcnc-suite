@@ -1,0 +1,176 @@
+[
+  {
+    "zoom": 1,
+    "themeRead": null,
+    "help": {
+      "width": 16,
+      "height": 16,
+      "hit": 24,
+      "hitChecks": [
+        {
+          "x": 1571,
+          "y": 241,
+          "reaches": true,
+          "got": "SPAN.helpIcon"
+        },
+        {
+          "x": 1582,
+          "y": 241,
+          "reaches": true,
+          "got": "SPAN.helpIcon"
+        },
+        {
+          "x": 1560,
+          "y": 241,
+          "reaches": true,
+          "got": "SPAN.helpIcon"
+        },
+        {
+          "x": 1571,
+          "y": 252,
+          "reaches": true,
+          "got": "SPAN.helpIcon"
+        },
+        {
+          "x": 1571,
+          "y": 230,
+          "reaches": true,
+          "got": "SPAN.helpIcon"
+        }
+      ]
+    },
+    "width": 494,
+    "scrollWidth": 494,
+    "height": 18,
+    "left": 1061,
+    "right": 1555,
+    "narrow": false,
+    "listHead": 26,
+    "items": [
+      {
+        "name": "30 collisions in 99 % swept (not certified)",
+        "text": "30 collisions in 99 % swept\n*",
+        "left": 1061,
+        "right": 1249,
+        "height": 18,
+        "visibleText": "30 collisions in 99 % swept",
+        "textWidth": 161,
+        "textScroll": 161,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636 limit violations · the first 100 lines listed",
+        "left": 1257,
+        "right": 1446,
+        "height": 18,
+        "visibleText": "200636 limit violations · the first 100 lines listed",
+        "textWidth": 174,
+        "textScroll": 279,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2 tool changes",
+        "left": 1454,
+        "right": 1555,
+        "height": 18,
+        "visibleText": "2 tool changes",
+        "textWidth": 87,
+        "textScroll": 87,
+        "shortShown": false,
+        "tabIndex": -1
+      }
+    ],
+    "taps": null
+  },
+  {
+    "zoom": 1.5,
+    "themeRead": null,
+    "help": {
+      "width": 24,
+      "height": 24,
+      "hit": 24,
+      "hitChecks": [
+        {
+          "x": 706.5,
+          "y": 883,
+          "reaches": true,
+          "got": "SPAN.helpIcon"
+        },
+        {
+          "x": 723,
+          "y": 883,
+          "reaches": true,
+          "got": "SPAN.helpIcon"
+        },
+        {
+          "x": 690,
+          "y": 883,
+          "reaches": true,
+          "got": "SPAN.helpIcon"
+        },
+        {
+          "x": 706.5,
+          "y": 899.5,
+          "reaches": true,
+          "got": "SPAN.helpIcon"
+        },
+        {
+          "x": 706.5,
+          "y": 866.5,
+          "reaches": true,
+          "got": "SPAN.helpIcon"
+        }
+      ]
+    },
+    "width": 150,
+    "scrollWidth": 150,
+    "height": 27,
+    "left": 457,
+    "right": 682.5,
+    "narrow": true,
+    "listHead": 39,
+    "items": [
+      {
+        "name": "30 collisions in 99 % swept (not certified)",
+        "text": "30…\n*",
+        "left": 457,
+        "right": 535,
+        "height": 27,
+        "visibleText": "30…",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636",
+        "left": 547,
+        "right": 637.5,
+        "height": 27,
+        "visibleText": "200636",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2",
+        "left": 649.5,
+        "right": 682.5,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      }
+    ],
+    "taps": null
+  }
+]

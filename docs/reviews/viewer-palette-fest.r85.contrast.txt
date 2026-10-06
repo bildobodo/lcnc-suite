@@ -1,0 +1,16 @@
+[2m[WebServer] [22m(node:2289591) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 5 tests using 1 worker
+
+(node:2289603) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2289603) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/contrast.spec.ts:169:3 › light: every readable text meets 4.5 : 1 on what is rendered behind it (37.9s)
+  ✓  2 e2e/contrast.spec.ts:169:3 › dark: every readable text meets 4.5 : 1 on what is rendered behind it (37.0s)
+  ✓  3 e2e/contrast.spec.ts:169:3 › hc-light: every readable text meets 4.5 : 1 on what is rendered behind it (36.9s)
+  ✓  4 e2e/contrast.spec.ts:169:3 › hc-dark: every readable text meets 4.5 : 1 on what is rendered behind it (38.0s)
+  ✓  5 e2e/contrast.spec.ts:169:3 › auto-dark: every readable text meets 4.5 : 1 on what is rendered behind it (37.1s)
+
+  5 passed (3.1m)
