@@ -1,0 +1,175 @@
+{
+  "before": {
+    "themeRead": null,
+    "help": {
+      "width": 24,
+      "height": 24,
+      "hit": 24,
+      "hitChecks": [
+        {
+          "x": 664.5,
+          "y": 883,
+          "reaches": true
+        },
+        {
+          "x": 681,
+          "y": 883,
+          "reaches": true
+        },
+        {
+          "x": 648,
+          "y": 883,
+          "reaches": true
+        },
+        {
+          "x": 664.5,
+          "y": 899.5,
+          "reaches": true
+        },
+        {
+          "x": 664.5,
+          "y": 866.5,
+          "reaches": true
+        }
+      ]
+    },
+    "width": 122,
+    "scrollWidth": 122,
+    "height": 27,
+    "left": 457,
+    "right": 640.5,
+    "narrow": true,
+    "listHead": 39,
+    "items": [
+      {
+        "name": "2 collisions",
+        "text": "2",
+        "left": 457,
+        "right": 493,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636",
+        "left": 505,
+        "right": 595.5,
+        "height": 27,
+        "visibleText": "200636",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2",
+        "left": 607.5,
+        "right": 640.5,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      }
+    ]
+  },
+  "accessible": "- img \"2 collisions\": \"2\"\n- img \"200636 limit violations · the first 100 lines listed\": \"200636\"\n- img \"2 tool changes\": \"2\"",
+  "keyboardText": "200636 limit violations, a line and an axis each. The parse sends the first 200; the list shows their 100 lines.",
+  "touchText": "200636 limit violations, a line and an axis each. The parse sends the first 200; the list shows their 100 lines.",
+  "pop": {
+    "left": 448.5,
+    "right": 880.5,
+    "top": 901,
+    "bottom": 986.765625,
+    "vw": 900,
+    "vh": 1200,
+    "cw": 287,
+    "sw": 287
+  },
+  "after": {
+    "themeRead": null,
+    "help": {
+      "width": 24,
+      "height": 24,
+      "hit": 24,
+      "hitChecks": [
+        {
+          "x": 664.5,
+          "y": 883,
+          "reaches": true
+        },
+        {
+          "x": 681,
+          "y": 883,
+          "reaches": true
+        },
+        {
+          "x": 648,
+          "y": 883,
+          "reaches": true
+        },
+        {
+          "x": 664.5,
+          "y": 899.5,
+          "reaches": true
+        },
+        {
+          "x": 664.5,
+          "y": 866.5,
+          "reaches": true
+        }
+      ]
+    },
+    "width": 122,
+    "scrollWidth": 122,
+    "height": 27,
+    "left": 457,
+    "right": 640.5,
+    "narrow": true,
+    "listHead": 39,
+    "items": [
+      {
+        "name": "2 collisions",
+        "text": "2",
+        "left": 457,
+        "right": 493,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636",
+        "left": 505,
+        "right": 595.5,
+        "height": 27,
+        "visibleText": "200636",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2",
+        "left": 607.5,
+        "right": 640.5,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      }
+    ]
+  }
+}

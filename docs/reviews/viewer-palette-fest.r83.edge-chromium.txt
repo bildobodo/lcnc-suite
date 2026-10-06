@@ -1,0 +1,38 @@
+[2m[WebServer] [22m(node:2136331) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:2136343) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2136343) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r83.summary.spec.ts:111:1 › R83: a long partial verdict and caveat keep the summary height (4.6s)
+
+
+  1) e2e/r83.summary.spec.ts:111:1 › R83: a long partial verdict and caveat keep the summary height 
+
+    Error: the 24 px help target must stay reachable to its right edge
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      160 |  expect(measurements.every(m=>m.scrollWidth<=m.width+1)).toBe(true);
+      161 |  expect(measurements.map(m=>m.height/m.zoom!)).toEqual([18,18]);
+    > 162 |  expect(measurements.every(m=>m.help.hitChecks.every(p=>p.reaches)),'the 24 px help target must stay reachable to its right edge').toBe(true);
+          |                                                                                                                                    ^
+      163 | });
+      164 |
+      165 | test('R83: help drops the cap when the preview becomes complete or unchecked',async({page,context})=>{
+        at /tmp/codex-r83-tbcw1bd4/archive/lcnc-webui/e2e/r83.summary.spec.ts:162:132
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r83-chromium-output/r83.summary-R83-a-long-par-ed084-eat-keep-the-summary-height/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r83-chromium-output/r83.summary-R83-a-long-par-ed084-eat-keep-the-summary-height/error-context.md
+
+  1 failed
+    e2e/r83.summary.spec.ts:111:1 › R83: a long partial verdict and caveat keep the summary height ─
