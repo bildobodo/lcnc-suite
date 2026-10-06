@@ -1,0 +1,20 @@
+{
+  "review": "R81",
+  "base": "0ddd4038b50b4596da7ad6d157cb7f555502086e",
+  "head": "91557369d2a4cc1326b12116314dda17dcde395a",
+  "live_head": "aa5040fd1e88fda0715e18f38b48254bf1821c94",
+  "archive": "/tmp/codex-r81-4ytcrmd2/archive",
+  "verified_webui_files": 411,
+  "modified_for_isolation": [
+    "lcnc-webui/e2e/ctl.ts",
+    "lcnc-webui/tsconfig.app.json",
+    "lcnc-webui/tsconfig.node.json",
+    "lcnc-webui/tsconfig.test.json",
+    "lcnc-webui/vite.config.ts"
+  ],
+  "product_source_changes": [],
+  "mock": "127.0.0.1:4188",
+  "workers": 1,
+  "nice": 19,
+  "review_prefix_sha256": "be4e523e734c31dc462953f6eb4038a574334c12b27f6a6f1f6a3204e900693c"
+}

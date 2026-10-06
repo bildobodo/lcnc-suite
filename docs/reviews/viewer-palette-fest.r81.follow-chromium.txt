@@ -1,0 +1,40 @@
+[2m[WebServer] [22m(node:1860467) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:1860495) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1860495) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r81.follow.spec.ts:35:1 › R81: follow catches up on reopening, resizing and zoom without moving focus (4.5s)
+  ✓  2 e2e/r81.follow.spec.ts:50:1 › R81: the list follows mock run positions without simulation or focus movement (3.0s)
+  ✘  3 e2e/r81.follow.spec.ts:66:1 › R81: continuous normal-motion playback keeps the current marker visible (5.6s)
+
+
+  1) e2e/r81.follow.spec.ts:66:1 › R81: continuous normal-motion playback keeps the current marker visible 
+
+    Error: the followed marker must stay within the list while playing
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m0[39m
+    Received: [31m23[39m
+
+      76 |  const active=samples.filter(s=>s.key);
+      77 |  // A continuously moving target may trail its centre; it should still be visible.
+    > 78 |  expect(active.filter(s=>!s.inView).length,'the followed marker must stay within the list while playing').toBe(0);
+         |                                                                                                           ^
+      79 | });
+      80 |
+        at /tmp/codex-r81-4ytcrmd2/archive/lcnc-webui/e2e/r81.follow.spec.ts:78:107
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r81-chromium-output/r81.follow-R81-continuous--8925e--the-current-marker-visible/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r81-chromium-output/r81.follow-R81-continuous--8925e--the-current-marker-visible/error-context.md
+
+  1 failed
+    e2e/r81.follow.spec.ts:66:1 › R81: continuous normal-motion playback keeps the current marker visible 
+  2 passed (14.0s)

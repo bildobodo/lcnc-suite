@@ -1,0 +1,47 @@
+[
+  {
+    "phase": "reopen",
+    "key": "L49",
+    "scrollTop": 859,
+    "height": 421,
+    "headBottom": 296.5,
+    "boxBottom": 693,
+    "rowTop": 482.5,
+    "rowBottom": 508,
+    "rowH": 25.5,
+    "inView": true,
+    "offCentre": 0.5,
+    "focus": null,
+    "pageY": 0
+  },
+  {
+    "phase": "portrait150",
+    "key": "L49",
+    "scrollTop": 1324.6666259765625,
+    "height": 134,
+    "headBottom": 1023.25,
+    "boxBottom": 1175,
+    "rowTop": 1075.5,
+    "rowBottom": 1125.25,
+    "rowH": 49.75,
+    "inView": true,
+    "offCentre": 1.25,
+    "focus": "Side panel",
+    "pageY": 0
+  },
+  {
+    "phase": "smooth",
+    "key": "L25",
+    "scrollTop": 546,
+    "height": 134,
+    "headBottom": 1023.25,
+    "boxBottom": 1175,
+    "rowTop": 1049.5,
+    "rowBottom": 1099.25,
+    "rowH": 49.75,
+    "inView": true,
+    "offCentre": 24.75,
+    "focus": "Playback speed",
+    "pageY": 0
+  }
+]
