@@ -1126,8 +1126,8 @@ onUnmounted(releaseSim);
 .scrubBand.track { left: calc(var(--range-thumb) / 2); width: calc(100% - var(--range-thumb)); background: var(--range-track); }
 .scrubBand.track.dim { opacity: var(--opacity-disabled); }   /* mirrors the disabled slider */
 .scrubBand.swept { background: color-mix(in oklab, var(--info) var(--tint-heavy), transparent); }
-.scrubBand.limit { background: color-mix(in oklab, var(--warn) var(--tint-heavy), transparent); }
-.scrubBand.clash { background: color-mix(in oklab, var(--danger) var(--tint-edge), transparent); }
+.scrubBand.limit { background: color-mix(in oklab, var(--mark-limit) var(--tint-heavy), transparent); }
+.scrubBand.clash { background: color-mix(in oklab, var(--mark-clash) var(--tint-edge), transparent); }
 /* One tick for every mark kind (full track height); the glyph under it is
    what tells the kinds apart when the colours don't (dark theme). */
 .scrubTick {
@@ -1141,9 +1141,9 @@ onUnmounted(releaseSim);
      rapid-crash clusters) and crisps every tick against the track. */
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--bg) 90%, transparent);
 }
-.scrubTick.tool  { background: var(--info);   color: var(--info-text); }
-.scrubTick.limit { background: var(--warn);   color: var(--warn-text); }
-.scrubTick.clash { background: var(--danger); color: var(--danger-text); }
+.scrubTick.tool  { background: var(--mark-tool);  color: var(--mark-tool); }
+.scrubTick.limit { background: var(--mark-limit); color: var(--mark-limit); }
+.scrubTick.clash { background: var(--mark-clash); color: var(--mark-clash); }
 .scrubTick.near  { opacity: var(--opacity-muted); }   /* clearance warning, never touches */
 .scrubGlyph {
   position: absolute;

@@ -534,12 +534,12 @@ function resetMachineColor(id: string) {
                on the text's FIRST line however the text wraps. -->
           <div class="findingLegend" data-finding-legend>
             <div class="findingRow" data-role="limit">
-              <span class="findingCell"><Triangle :size="12" fill="currentColor" :style="{ color: shownPalette.limit }" aria-hidden="true" /></span>
+              <span class="findingCell"><Triangle :size="12" fill="currentColor" class="markGlyph limit" aria-hidden="true" /></span>
               <span class="findingCell"><span class="legendLine" :style="{ color: shownPalette.limit }" aria-hidden="true"></span></span>
               <span class="settingDesc findingText">Limit violation — on the path, the box outside the machine window dashed</span>
             </div>
             <div class="findingRow" data-role="collision">
-              <span class="findingCell"><X :size="12" :stroke-width="3" :style="{ color: shownPalette.collision }" aria-hidden="true" /></span>
+              <span class="findingCell"><X :size="12" :stroke-width="3" class="markGlyph clash" aria-hidden="true" /></span>
               <span class="findingCell" aria-hidden="true"></span>
               <span class="settingDesc findingText">Collision — the machine part glows</span>
             </div>
@@ -924,6 +924,10 @@ function resetMachineColor(id: string) {
 </template>
 
 <style scoped>
+/* The findings' glyphs are the timeline's and the code panel's: the mark
+   colours, one set in every theme (operator 2026-10-06). */
+.markGlyph.limit { color: var(--mark-limit); }
+.markGlyph.clash { color: var(--mark-clash); }
 /* The findings legend: three columns shared by both rows; a cell is one
    text line high (1lh at the description's size) and centres its glyph or
    line sample on it. */

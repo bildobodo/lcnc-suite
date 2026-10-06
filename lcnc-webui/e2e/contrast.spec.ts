@@ -107,6 +107,14 @@ function scan(args: { rootSel: string; floor: number }): { hits: Hit[]; checked:
   const hits: Hit[] = [];
   let checked = 0;
   const seen = new Set<Element>();
+  // The timeline-mark colours (× ▲ ●) are IDENTIFICATION colours, one bright
+  // set in every theme, the background secondary (operator 2026-10-06): a
+  // text drawn in one of them — a count of that kind, a marked line number —
+  // is exempt from the reading contrast. themeTokens.test holds the set
+  // apart from each other instead.
+  const rootCs = getComputedStyle(document.documentElement);
+  const marks = ["--mark-clash", "--mark-limit", "--mark-tool"].map(v => rgba(rootCs.getPropertyValue(v).trim()));
+  const isMark = (c: RGBA) => marks.some(m => Math.abs(m[0] - c[0]) <= 1 && Math.abs(m[1] - c[1]) <= 1 && Math.abs(m[2] - c[2]) <= 1);
   for (const host of document.querySelectorAll(args.rootSel)) {
     const walker = document.createTreeWalker(host, NodeFilter.SHOW_TEXT);
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {
@@ -117,8 +125,9 @@ function scan(args: { rootSel: string; floor: number }): { hits: Hit[]; checked:
       const r = el.getBoundingClientRect();
       const cs = getComputedStyle(el);
       if (!r.width || !r.height || cs.visibility === "hidden" || el.closest("[aria-hidden='true']") || inactive(el)) continue;
-      checked++;
       const fg0 = rgba(cs.color);
+      if (isMark(fg0)) continue;
+      checked++;
       const a = fg0[3] * opacityChain(el);
       let worst: { q: number; fg: RGB; bg: RGB } | null = null;
       for (const bg of backdrops(el)) {

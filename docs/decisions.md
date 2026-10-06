@@ -8149,3 +8149,31 @@ it): a pair with a record on the line → its intervals; without → its span.
 `clashTint.test.ts` holds the haus.ngc shape — red with the per-line test.
 The record cap, the static exclusion and the cost of persistent contacts
 are an idea round with Codex (R84) and Fable.
+
+## 2026-10-06 — The timeline marks: one bright set in every theme
+
+Operator: "forget the contrasts, and the dark/light distinction — these
+colours are too dark and hard to tell apart; what counts is that they tell
+apart, the background is secondary; the same colours in every theme, the
+bright variant" — and "the text for limit violations and tool changes can
+take its symbol's colour", "check other situations where this happens".
+The ▲ was `--warn-text` (#8d4500 in the light themes) beside the × in
+`--danger-text` (#9c0003): 0.095 OKLab apart, both dark — the operator read
+the ▲ as red. The legend in Settings drew the same glyphs in the viewer's
+colours, the timeline's ticks in the fills: three colours for one kind.
+`--mark-clash` #ff3355, `--mark-limit` #ffa000, `--mark-tool` #3d8bff, the
+same in all six theme blocks (0.22 / 0.37 / 0.38 apart; the 3D limit orange
+#ff7a00 would have left red and orange 0.17 apart), on every mark of the
+three kinds: timeline ticks, bands, glyphs; the Sim list and summary (with
+the words that count a kind); the code panel's marked lines; the legend; the
+HUD's limit count. The text roles of states (CLEAR, warnings, errors, the
+message types) keep their reading contrast — named to the operator as the
+other places, not changed. `contrast.spec` exempts mark-coloured text by its
+colour; `themeTokens.test` pins the set and the distances (red with a
+drifted block and with the ▲ moved near the ×).
+
+Codex R83 VP-I43 (P3): with a full summary line its "?" sat at the tab
+content's clip edge and the outer 4 px of its hit area were cut off. The row
+keeps the reach (`--help-reach` padding, the Settings/HUD pattern);
+`sim-panel.viewer.spec` taps the hit area's outer edge on a full line — red
+without the padding.

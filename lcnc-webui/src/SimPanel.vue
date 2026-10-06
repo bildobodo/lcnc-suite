@@ -256,20 +256,20 @@ function onRootKey(e: KeyboardEvent) {
         <div class="simSummary row-controls">
           <span class="sumItem row-tight" role="img" :aria-label="sumClash.name" :title="sumClash.name">
             <X class="sumGlyph clash" :size="12" :stroke-width="3" aria-hidden="true" />
-            <span v-if="simView.sweep" class="checkVerdict sumWide" :class="`text-${simView.sweep.tone}`">{{ simView.sweep.verdict }}</span>
+            <span v-if="simView.sweep" class="checkVerdict sumWide" :class="simView.sweep.tone === 'danger' ? 'sumKind clash' : `text-${simView.sweep.tone}`">{{ simView.sweep.verdict }}</span>
             <span v-else class="sumWide text-muted">Collisions not checked</span>
-            <span class="sumShort mono" :class="`text-${sumClash.tone}`">{{ sumClash.short }}</span>
+            <span class="sumShort mono" :class="sumClash.tone === 'danger' ? 'sumKind clash' : `text-${sumClash.tone}`">{{ sumClash.short }}</span>
             <span v-if="simView.sweep?.caveat" class="text-warn" title="Not certified — see the collision check help">*</span>
           </span>
           <span class="sumItem sumLimit row-tight" role="img" :aria-label="sumLimit.name" :title="sumLimit.name">
             <Triangle class="sumGlyph limit" :size="11" fill="currentColor" aria-hidden="true" />
-            <span class="sumWide" :class="{ 'text-muted': sumLimit.muted }">{{ sumLimit.name }}</span>
-            <span class="sumShort mono" :class="{ 'text-muted': sumLimit.muted }">{{ sumLimit.short }}</span>
+            <span class="sumWide" :class="sumLimit.muted ? 'text-muted' : 'sumKind limit'">{{ sumLimit.name }}</span>
+            <span class="sumShort mono" :class="sumLimit.muted ? 'text-muted' : 'sumKind limit'">{{ sumLimit.short }}</span>
           </span>
           <span class="sumItem row-tight" role="img" :aria-label="sumTool.name" :title="sumTool.name">
             <Circle class="sumGlyph tool" :size="10" fill="currentColor" aria-hidden="true" />
-            <span class="sumWide" :class="{ 'text-muted': sumTool.muted }">{{ sumTool.name }}</span>
-            <span class="sumShort mono" :class="{ 'text-muted': sumTool.muted }">{{ sumTool.short }}</span>
+            <span class="sumWide" :class="sumTool.muted ? 'text-muted' : 'sumKind tool'">{{ sumTool.name }}</span>
+            <span class="sumShort mono" :class="sumTool.muted ? 'text-muted' : 'sumKind tool'">{{ sumTool.short }}</span>
           </span>
         </div>
         <HelpIcon label="Summary">{{ sumHelp }}</HelpIcon>
@@ -328,7 +328,14 @@ function onRootKey(e: KeyboardEvent) {
 .checkPct { white-space: nowrap; }
 /* The summary keeps ONE line whatever it says: the limit item gives way
    (an ellipsis; the whole text is its name and title). */
-.simSummaryRow { flex-shrink: 0; }
+/* The "?" ends the row: its invisible hit area reaches past the glyph, and
+   the tab content clips — the row keeps that reach inside (Codex R83 VP-I43:
+   with a full line the outer 4 px were cut off). */
+.simSummaryRow {
+  flex-shrink: 0;
+  --help-reach: calc((var(--help-hit) - var(--help-icon-size)) / 2);
+  padding-inline-end: var(--help-reach);
+}
 /* The "?" stays outside the clipped line: its hit area reaches past it. */
 .simSummary { flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; }
 .sumItem { flex: none; }
@@ -346,9 +353,14 @@ tbody tr { cursor: pointer; }
 .shownRow td:first-child,
 .nextRow td:first-child { box-shadow: inset 3px 0 0 var(--info); }
 .colKind { width: 1%; text-align: center; }
-.colKind.clash, .sumGlyph.clash { color: var(--danger-text); }
-.colKind.limit, .sumGlyph.limit { color: var(--warn-text); }
-.colKind.tool, .sumGlyph.tool { color: var(--info-text); }
+.colKind.clash, .sumGlyph.clash { color: var(--mark-clash); }
+.colKind.limit, .sumGlyph.limit { color: var(--mark-limit); }
+.colKind.tool, .sumGlyph.tool { color: var(--mark-tool); }
+/* The words that count a kind take its mark's colour (operator 2026-10-06);
+   the collision verdict where it found collisions. */
+.sumKind.clash { color: var(--mark-clash); }
+.sumKind.limit { color: var(--mark-limit); }
+.sumKind.tool { color: var(--mark-tool); }
 .sumGlyph { flex: none; }
 .colLine, .colMove, .colAt { width: 1%; white-space: nowrap; }
 .rowPick { display: block; }

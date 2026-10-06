@@ -4848,7 +4848,7 @@ defineExpose({
         <div v-if="previewTableStale" class="hudWarn" data-table-stale>Tool table changed — preview updates after the run<HelpIcon label="Preview tool table">{{ previewTableStale.why === "unsupported"
           ? "This machine's random tool changer cannot be re-parsed during a run; the preview re-parses once idle."
           : "The preview's start state is not known for this program; it re-parses once the machine is idle." }}</HelpIcon></div>
-        <div v-if="toolpathOverflow" class="hudWarn">{{ toolpathOverflowCount }} limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
+        <div v-if="toolpathOverflow" class="hudWarn hudMarkLimit">{{ toolpathOverflowCount }} limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
       </template>
       <div v-if="failedParts.length" class="hudWarn">{{ failedParts.length }} machine part{{ failedParts.length === 1 ? '' : 's' }} failed to load — check the model files<HelpIcon label="Model parts">Not loaded: {{ failedParts.join(', ') }}.</HelpIcon></div>
       </div>
@@ -4883,6 +4883,9 @@ defineExpose({
 </template>
 
 <style scoped>
+/* A count of limit violations reads in the ▲ mark's colour (operator
+   2026-10-06). */
+.hudWarn.hudMarkLimit { color: var(--mark-limit); }
 .viewerWrapper {
   position: relative;
   width: 100%;
