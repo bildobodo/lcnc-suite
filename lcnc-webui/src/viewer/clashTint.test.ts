@@ -36,6 +36,18 @@ describe("the clash tint", () => {
     expect([...clashTintBodies(gap, 5, 15)], "inside line 5's gap").toEqual([]);
     expect([...clashTintBodies(gap, 5, 25)].sort()).toEqual(["t", "w"]);
   });
+  it("the entry move's onset glows from its start: cum 0 on the raw line 0 (no line match)", () => {
+    const entry = [hit({ line: 17, a: "rear_column", b: "y_saddle", cum: 0, cumEnd: 5, intervals: [[0, 5]], entry: true })];
+    expect([...clashTintBodies(entry, 0, 0.5)].sort()).toEqual(["rear_column", "y_saddle"]);
+  });
+  it("a near-miss record of the pair on the line is proximity: its span does not glow there", () => {
+    const near = [
+      hit({ line: 17, a: "p", b: "q", cum: 1, cumEnd: 2, intervals: [[1, 2]], spanEndLine: 90, spanCumEnd: 1000 }),
+      hit({ line: 50, a: "p", b: "q", cum: 505, cumEnd: 505, dist: 1.5, continuation: 17 }),
+    ];
+    expect([...clashTintBodies(near, 50, 505)], "line 50: the pair only near").toEqual([]);
+    expect([...clashTintBodies(near, 60, 600)].sort(), "line 60, no record: the span").toEqual(["p", "q"]);
+  });
   it("a near miss never glows", () => {
     expect([...clashTintBodies([hit({ line: 1, a: "t", b: "w", cum: 1, cumEnd: 1, dist: 1.5 })], 1, 1)]).toEqual([]);
   });
