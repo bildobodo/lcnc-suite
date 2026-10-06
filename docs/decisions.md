@@ -8041,7 +8041,7 @@ steps now share `simRowOrder`. VP-I39 (P2): a jump to a tool change kept the
 previous finding's reveal; it ends it now (the stored layers untouched).
 Guards: a result change under a focused row and an emptied list with the
 jog bound (a control jog first), the mixed steps through a three-way tie
-both ways with the wrap, the reveal ended by a row and by a step — each red
-without its fix. Codex's note on the keys test taken: it waits for the
+both ways with the wrap, the reveal ended by a row and by a step, after a
+finding on a hidden feed and on a hidden rapid — each red without its fix. Codex's note on the keys test taken: it waits for the
 client's machine state and retries the control jog until the settings
 arrived.

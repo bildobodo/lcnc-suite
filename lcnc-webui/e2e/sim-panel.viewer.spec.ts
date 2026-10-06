@@ -244,3 +244,42 @@ test("a tool change shown after a finding ends the finding's reveal, the stored 
   await expect(reveal, "a step to a tool change ends it").toHaveCount(0);
   await expect.poll(() => page.evaluate(() => window.__viewerDiag!.projectRole!("feed")), { message: "the stored layer stays off" }).toBeNull();
 });
+
+// The same on a hidden RAPID (Codex R78 VP-I39: feed and rapid): line 14's
+// rapid runs out of the X window; T3 M6 on line 5.
+const RAPID_FEED = Array.from({ length: 10 }, (_, i) => [i * 3, i % 2 ? 20 : 0, 0]);
+const RAPID_PREVIEW = Buffer.from(encode({ file: "/simrapid.ngc", preview_schema: 10, feed: RAPID_FEED,
+  feed_lines: RAPID_FEED.map((_, i) => i + 3), feed_seq: RAPID_FEED.map((_, i) => i + 3),
+  feed_outside: new Uint8Array(RAPID_FEED.length),
+  rapid: [[27, 20, 0], [150, 20, 5]], rapid_lines: [13, 14], rapid_seq: [13, 14],
+  rapid_outside: new Uint8Array([0, 1]),
+  violations: [{ line: 14, axis: "X", value: 150, limit: 100, kind: "max" }], violations_total: 1 }));
+const RAPID_TEXT = Array.from({ length: 16 }, (_, i) => i === 0 ? "(simrapid)" : i === 4 ? "T3 M6" : `G1 X${i} F100`).join("\n");
+
+test("a tool change shown after a finding on a hidden rapid ends the rapids' reveal", async ({ page, context }) => {
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: RAPID_PREVIEW }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: RAPID_TEXT }));
+  await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await ctl({ op: "status_delta", data: { active_file: "/simrapid.ngc", is_enabled: false, enabled: false } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5200, file: "/simrapid.ngc" } });
+  await simShow(page, "all");
+  await expect(page.locator('.simPanel tr[data-sim-row="T5"]')).toBeVisible({ timeout: 15_000 });
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { viewer: { layers: { rapids: false } } } } });
+  const rapidShown = () => page.evaluate(() => window.__viewerDiag!.projectRole!("rapid") != null);
+  await expect.poll(rapidShown, { message: "the Rapids layer hides the rapid lines" }).toBe(false);
+  const reveal = page.locator("[data-path-reveal]");
+  // by a row
+  await page.locator('.simPanel tr[data-sim-row="L14"]').click();
+  await expect(reveal).toHaveText("Rapids shown for this finding — hidden in Layers");
+  await page.locator('.simPanel tr[data-sim-row="T5"]').click();
+  await expect(reveal, "a row's tool change ends the reveal").toHaveCount(0);
+  await expect.poll(rapidShown, { message: "the rapids hidden again" }).toBe(false);
+  // by a step of the tool changes, from the finding
+  await page.locator('.simPanel tr[data-sim-row="L14"]').click();
+  await expect(reveal).toHaveCount(1);
+  await simShow(page, "tool");
+  await simStepBtn(page, "Previous tool change").click();
+  await expect(page.locator(".simPanel .shownRow")).toHaveAttribute("data-sim-row", "T5");
+  await expect(reveal, "a step to a tool change ends it").toHaveCount(0);
+  await expect.poll(rapidShown, { message: "the stored layer stays off" }).toBe(false);
+});
