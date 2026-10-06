@@ -11621,3 +11621,107 @@ die Prüfmatrix zur Zeilenhöhe und zur Zählung.
 - Offline-Gate R5: PASS auf `482f7d17` — Backend 1245, Vitest 1902, Playwright 486.
 - Backend unverändert seit R72.
 - Live-Baum: seit `20769171`.
+
+---
+
+## Review R83 · Codex · Hilfe zur Sim-Übersicht · 6. Oktober 2026
+
+**Ergebnis: `findings`. VP-I42 ist geschlossen. Neu bleibt VP-I43 (P3):
+Am rechten Rand wird ein Teil der vergrößerten Trefferfläche des neuen
+Hilfezeichens abgeschnitten.** Der mittige Tap und die Tastaturbedienung
+funktionieren; dies ist eine kleine Layoutkorrektur.
+
+Geprüft: `d7602eb7..20769171`, insbesondere `482f7d17`. Eigener Build aus
+einer Archivkopie von `20769171`, Mock ausschließlich auf `127.0.0.1:4188`,
+ein Worker und niedrige Priorität. Live-Stand `8509cf82` unterscheidet sich
+danach nur durch die Review-Anfrage. Keine Produktänderungen oder Zugriffe
+auf die Live-Dienste; keine Maschinenbefehle.
+
+### VP-I43 · P3 · Die rechte Außenfläche des neuen „?“ wird vom Tab-Inhalt abgeschnitten
+
+**Stelle:** `lcnc-webui/src/SimPanel.vue:275` und `:331–333` am Prüfstand.
+Das Hilfezeichen steht zwar außerhalb von `.simSummary`, bei ausgelasteter
+Zeile aber direkt am rechten Rand von `.tab-content`. Dieser Vorfahr hat
+`overflow: hidden` (`TabPanel.vue:90`). Die nach außen vergrößerte
+Trefferfläche aus `.helpIcon::before` bekommt dort keinen Platz.
+
+**Reproduktion in Chromium und Firefox:** 1600 × 1000, Touch-Modus,
+100 % Zoom, langes Teilergebnis `30 collisions in 99 % swept` mit `*`,
+gekappte Grenzliste und zwei Werkzeugwechsel. Die Antwort des
+Kollisions-Workers ist eine Testeingabe; die Formatierung und das Layout
+sind unverändert aus dem Prüfstand.
+
+- Das Zeichen steht bei x=1567–1583; die vorgesehene 24-px-Trefferfläche
+  reicht bis x=1587. `.tab-content` endet bereits bei x=1583.
+- Ein echter emulierter Touch-Tap bei **(1586, 241)** erreicht stattdessen
+  `.sidePane` und öffnet keine Hilfe. Der mittige Tap bei (1575, 241)
+  öffnet sie korrekt.
+- Als kausale Gegenprobe wurden **nur im Browser-Dokument** vorübergehend
+  4 px Platz rechts in `.simSummaryRow` reserviert: Der entsprechende Tap
+  am rechten Rand öffnet die Hilfe dann in beiden Browsern. Der Eingriff
+  wurde anschließend zurückgenommen; Quelle und Bundle bleiben unverändert.
+
+**Korrektur:** Die nach außen ragende Hälfte von `--help-hit` auch gegenüber
+dem abschneidenden Vorfahren im Layout reservieren. Die Reserve sollte sich
+aus Treffer- und Zeichengröße ergeben; die gemessenen 4 px gelten für den
+16-px-Touch-Kreis. Die Höhe der Zeile kann unverändert bleiben. Ein Wächter
+soll neben dem Mittelpunkt auch die äußere Trefferfläche per Tap prüfen.
+
+Dies betrifft den zusätzlich zugesagten Trefferbereich, nicht den sichtbaren
+Kreis oder den nun erreichbaren Hilfetext. Der geprüfte schmale Fall bei
+150 % hat ausreichend Platz und besteht.
+
+[Chromium: Geometrie, Empfänger und Tap-Kontrollen](viewer-palette-fest.r83.chromium-summary-partial.json),
+[Firefox: gleiche Gegenprobe](viewer-palette-fest.r83.firefox-summary-partial.json),
+[Ansicht des breiten Panels](viewer-palette-fest.r83.chromium-summary-edge.png),
+[gezielte Chromium-Wiederholung](viewer-palette-fest.r83.edge-chromium.txt),
+[Sonde](viewer-palette-fest.r83.summary.spec.ts).
+
+### VP-I42 geschlossen; eigener Hilfeweg akzeptiert
+
+Die eigene Hilfe „Summary“ ist eine ausreichende Alternative zur Erweiterung
+der Listenhilfe. Bei 900 × 1200 und 150 % CSS-Zoom nennen **Enter und ein
+echter emulierter Touch-Tap** den vollständigen Satz mit 200636 gemeldeten
+Befunden, 200 übertragenen Zeile/Achse-Datensätzen und 100 Listenzeilen.
+Der Popover bleibt im Fenster und läuft horizontal nicht über.
+
+Auch die tatsächliche Tab-Reihenfolge erreicht den neuen Knopf. Space
+schließt die Hilfe und behält den Fokus; erneutes Antippen öffnet und
+schließt sie. Beim Wechsel zu vollständiger Übermittlung, null Befunden
+oder ungeprüften Limits verschwindet der Kappungssatz und die allgemeine
+Erklärung erscheint. Die Anzeige unterscheidet weiterhin „0“ und ungeprüft.
+
+Die bestehende R82-Sonde wurde dafür angepasst: neue Hilfe statt „Timeline
+list“, neuer Wrapper bei der Geometriemessung und zusätzliche Bedien- und
+Trefferprüfungen. Die Änderungen sind als Diff beigefügt; die alten Belege
+bleiben unverändert.
+
+[Sichtbarer Hilfetext, Chromium](viewer-palette-fest.r83.chromium-summary-disclosure.json),
+[Firefox](viewer-palette-fest.r83.firefox-summary-disclosure.json),
+[Bild der erreichbaren Hilfe](viewer-palette-fest.r83.firefox-summary-help.png),
+[Zustandswechsel](viewer-palette-fest.r83.chromium-summary-states.json),
+[Anpassungen der Sonde](viewer-palette-fest.r83.probe-changes.patch).
+
+### Prüfungen und Grenzen
+
+- **Build bestanden. Alle zwölf bestehenden Sim-Tests bestehen in beiden
+  Browsern**, einschließlich Neuveröffentlichung ohne Verschieben des
+  Listenkopfs und ×100-Nachführung.
+- Eigene Sonde je Browser: **drei bestanden, ein gezielt belegter Fehler**
+  an der äußeren Trefferfläche (VP-I43). Somit je **15/16** im Gesamtlauf;
+  der Randfall wurde danach in Chromium mit den zusätzlichen echten Taps
+  und der positiven Layoutkontrolle nochmals bestätigt.
+- Vier Themes × vier Größen-/Zoomkombinationen je Browser: kein Überlauf,
+  stabile Zeilenhöhe. Auch der lange Teilprüfungs-Text bleibt einzeilig;
+  seine Höhe ist 18 Layout-px bzw. 27 sichtbare px bei 150 %.
+- Keine erneute Unit-/Backend-Gesamtsuite, kein vollständiges Offline-Gate,
+  kein echter Screenreader-/Geräteversuch oder Live-Lauf.
+
+[Build](viewer-palette-fest.r83.build.txt),
+[Chromium](viewer-palette-fest.r83.chromium.txt),
+[Firefox](viewer-palette-fest.r83.firefox.txt),
+[Chromium-Matrix](viewer-palette-fest.r83.chromium-summary-matrix.json),
+[Firefox-Matrix](viewer-palette-fest.r83.firefox-summary-matrix.json),
+[Prüfprotokoll](viewer-palette-fest.r83.checks.md),
+[Stand und Quellvergleich](viewer-palette-fest.r83.context.json),
+[Beleghashes](viewer-palette-fest.r83.sha256.json).

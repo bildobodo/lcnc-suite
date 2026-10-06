@@ -1,0 +1,21 @@
+{
+  "base": "d7602eb7b36efb3dab34ab58715203b9bbcf2a4f",
+  "reviewed_head": "207691712ed1f393705afa896d6aab5a519e2262",
+  "live_head": "8509cf82ecf34a1e9c63301a5db25fb4bb63c978",
+  "archive": "/tmp/codex-r83-tbcw1bd4/archive",
+  "source_files_matching_git_blobs": 411,
+  "isolation_only_changes": [
+    "lcnc-webui/e2e/ctl.ts",
+    "lcnc-webui/tsconfig.app.json",
+    "lcnc-webui/tsconfig.node.json",
+    "lcnc-webui/tsconfig.test.json",
+    "lcnc-webui/vite.config.ts"
+  ],
+  "product_src_modified": false,
+  "review_original_sha256": "667c6b162dbbdbb5dac7216272f337204b6bfb765a0c257dd2dea5b84d1537f1",
+  "mock": "127.0.0.1:4188",
+  "workers": 1,
+  "nice": 19,
+  "build_before_external_probes": true,
+  "browser_dom_control": "For the clipped target only, row padding-right:4px temporarily set and then restored; no source or bundle edit."
+}

@@ -1,0 +1,152 @@
+[
+  {
+    "state": "complete",
+    "themeRead": null,
+    "help": "× the collision check's verdict · ▲ soft-limit records, a line and an axis each · ● the program's tool changes.",
+    "width": 89,
+    "scrollWidth": 89,
+    "height": 27,
+    "left": 457,
+    "right": 589.8000030517578,
+    "narrow": true,
+    "listHead": 39,
+    "items": [
+      {
+        "name": "Collisions not checked",
+        "text": "—",
+        "left": 457,
+        "right": 499,
+        "height": 27,
+        "visibleText": "—",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "3 limit violations",
+        "text": "3",
+        "left": 511,
+        "right": 545.1499938964844,
+        "height": 27,
+        "visibleText": "3",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2",
+        "left": 557.1500244140625,
+        "right": 589.8000335693359,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      }
+    ]
+  },
+  {
+    "state": "zero",
+    "themeRead": null,
+    "help": "× the collision check's verdict · ▲ soft-limit records, a line and an axis each · ● the program's tool changes.",
+    "width": 89,
+    "scrollWidth": 89,
+    "height": 27,
+    "left": 457,
+    "right": 589.8000030517578,
+    "narrow": true,
+    "listHead": 39,
+    "items": [
+      {
+        "name": "Collisions not checked",
+        "text": "—",
+        "left": 457,
+        "right": 499,
+        "height": 27,
+        "visibleText": "—",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "No limit violations",
+        "text": "0",
+        "left": 511,
+        "right": 545.1499938964844,
+        "height": 27,
+        "visibleText": "0",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2",
+        "left": 557.1500244140625,
+        "right": 589.8000335693359,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      }
+    ]
+  },
+  {
+    "state": "unchecked",
+    "themeRead": null,
+    "help": "× the collision check's verdict · ▲ soft-limit records, a line and an axis each · ● the program's tool changes.",
+    "width": 93,
+    "scrollWidth": 93,
+    "height": 27,
+    "left": 457,
+    "right": 596.1499938964844,
+    "narrow": true,
+    "listHead": 39,
+    "items": [
+      {
+        "name": "Collisions not checked",
+        "text": "—",
+        "left": 457,
+        "right": 499,
+        "height": 27,
+        "visibleText": "—",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "Limits not checked",
+        "text": "—",
+        "left": 511,
+        "right": 551.5,
+        "height": 27,
+        "visibleText": "—",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2",
+        "left": 563.5,
+        "right": 596.1499938964844,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      }
+    ]
+  }
+]
