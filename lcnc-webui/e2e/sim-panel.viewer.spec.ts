@@ -440,3 +440,26 @@ test("the summary names each kind: words in the wide pane, the glyph and the num
   await help.click();
   await expect(page.locator(".helpPopover:popover-open"), "a tap: the cap in words").toHaveText(said);
 });
+
+// Codex R83 VP-I43: with a full summary line the "?" sat at the tab
+// content's clipping edge and the outer 4 px of its 24 px hit area were cut
+// off — a tap there landed on the side pane. The row keeps the reach.
+test("the summary's \"?\" answers in its whole hit area, at the right edge of a full line", async ({ page, context }) => {
+  // A FULL line (Codex's case: 1600 × 1000): twelve collisions and a
+  // ten-digit total — the limit text gives way, the "?" ends the line.
+  await prepare(page, context, "desktop", Buffer.from(encode({ ...PREVIEW_FIELDS, violations_total: 1234567890 })));
+  await page.evaluate(() => window.__viewerDiag?.setCollisionHits?.(Array.from({ length: 12 }, (_, i) => ({ line: 5 + i, frac: (2 + i) / 29 }))));
+  await settleLayout(page);
+  expect(await page.locator(".simPanel .sumLimit .sumWide").evaluate(el => el.scrollWidth > el.clientWidth), "the line is full: its limit text gives way").toBe(true);
+  const help = page.locator('.simPanel .simSummaryRow [aria-label="Help: Summary"]');
+  const g = await help.evaluate(el => {
+    const r = el.getBoundingClientRect(), tab = el.closest(".tab-content")!.getBoundingClientRect();
+    const z = r.width / (el as HTMLElement).offsetWidth;
+    const hit = parseFloat(getComputedStyle(el, "::before").width);
+    return { right: r.right, cy: (r.top + r.bottom) / 2, reach: (hit * z - r.width) / 2, tabRight: tab.right };
+  });
+  expect(g.reach, "the hit area reaches past the glyph").toBeGreaterThan(1);
+  expect(g.tabRight - g.right, "the \"?\" ends the full line, its reach inside the tab").toBeLessThanOrEqual(g.reach + 1);
+  await page.mouse.click(g.right + g.reach - 1, g.cy);
+  await expect(page.locator(".helpPopover:popover-open"), "a tap at the hit area's outer edge").toHaveCount(1);
+});

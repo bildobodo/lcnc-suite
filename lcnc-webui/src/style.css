@@ -184,6 +184,15 @@
   --viewer-toolpath-bounds: #15181c;
   --viewer-bounds-alt: #f0f2f4;
   --viewer-pin: #00e5ff;
+  /* The three kinds of timeline mark — × collision, ▲ soft limit, ● tool
+     change — ONE bright set in every theme (operator 2026-10-06: the dark
+     text tones read alike, brown-orange as red beside the red ×; what
+     counts is that the kinds tell apart, the background is secondary).
+     Glyphs, ticks, bands, the code panel's marks, and the words that name
+     a count of them. themeTokens.test pins one set and the distances. */
+  --mark-clash: #ff3355;
+  --mark-limit: #ffa000;
+  --mark-tool: #3d8bff;
   --viewer-reach: #15181c;
   --viewer-tool: #6b7178;
   --viewer-cutter: #eceff1;
@@ -362,6 +371,9 @@
     --viewer-toolpath-bounds: #15181c;
     --viewer-bounds-alt: #f0f2f4;
     --viewer-pin: #00e5ff;
+    --mark-clash: #ff3355;
+    --mark-limit: #ffa000;
+    --mark-tool: #3d8bff;
     --viewer-reach: #15181c;
     --viewer-tool: #6b7178;
     --viewer-cutter: #eceff1;
@@ -405,6 +417,9 @@
   --viewer-toolpath-bounds: #15181c;
   --viewer-bounds-alt: #f0f2f4;
   --viewer-pin: #00e5ff;
+  --mark-clash: #ff3355;
+  --mark-limit: #ffa000;
+  --mark-tool: #3d8bff;
   --viewer-reach: #15181c;
   --viewer-tool: #6b7178;
   --viewer-cutter: #eceff1;
@@ -447,6 +462,9 @@
   --viewer-toolpath-bounds: #15181c;
   --viewer-bounds-alt: #f0f2f4;
   --viewer-pin: #00e5ff;
+  --mark-clash: #ff3355;
+  --mark-limit: #ffa000;
+  --mark-tool: #3d8bff;
   --viewer-reach: #15181c;
   --viewer-tool: #6b7178;
   --viewer-cutter: #eceff1;
@@ -499,6 +517,9 @@
   --viewer-toolpath-bounds: #000000;
   --viewer-bounds-alt: #ffffff;
   --viewer-pin: #00e5ff;
+  --mark-clash: #ff3355;
+  --mark-limit: #ffa000;
+  --mark-tool: #3d8bff;
   --viewer-reach: #000000;
   --viewer-tool: #6b7178;
   --viewer-cutter: #eceff1;
@@ -550,6 +571,9 @@
   --viewer-toolpath-bounds: #000000;
   --viewer-bounds-alt: #ffffff;
   --viewer-pin: #00e5ff;
+  --mark-clash: #ff3355;
+  --mark-limit: #ffa000;
+  --mark-tool: #3d8bff;
   --viewer-reach: #000000;
   --viewer-tool: #6b7178;
   --viewer-cutter: #eceff1;
@@ -1897,11 +1921,11 @@ label:has(input:disabled, select:disabled) {
    bar's timeline marks; a line with both reads danger — later rule wins). */
 .codeLine.violation .lineNumber,
 .codeLine.violation .lineMark {
-  color: var(--warn-text);
+  color: var(--mark-limit);
 }
 .codeLine.collision .lineNumber,
 .codeLine.collision .lineMark {
-  color: var(--danger-text);
+  color: var(--mark-clash);
 }
 /* The finding's glyph (viewer contrast plan, V3) in the 16 px the number's
    margin used to hold: the code starts where it did. */

@@ -44,6 +44,7 @@ import { boundsFromJointLimits, sameBox, type JointLimits, type MachineBox } fro
 import { displayDecision } from "./viewer/displayPipeline";
 import type { CollisionBody, CollisionResult, CollisionLineMark } from "./viewer/collision";
 import { partCollides } from "./viewer/collision";
+import { clashTintBodies } from "./viewer/clashTint";
 import { mergeEntryResult } from "./viewer/sweepMerge";
 import { planEntryCheck } from "./viewer/sweepEntry";
 import { previewSchemaMismatch, parseTloMismatch, type ScrubTrack } from "./ws/bulkData";
@@ -3853,36 +3854,9 @@ function _tintMesh(mesh: THREE.Mesh, on: boolean) {
 // (dist ≈ 0 — near-misses never touch, so they never glow). The glow is the
 // visual proof the detection fired where the metal meets. Hit cums are only
 // meaningful on the track they were swept on — stale results never tint.
-const CONTACT_TINT_EPS = 1e-3;
 function _updateClashTint(line: number | null, cum: number | null) {
-  const want = new Set<string>();
   const res = _colResultFor(_scrubTrackRef);
-  if (line != null && cum != null && res) {
-    // A line with records of its own decides by its refined intervals; a
-    // line WITHOUT one (past the MAX_HITS cap of a contact that never
-    // separates) glows while the cum sits inside an onset's SPAN — the
-    // contact has provably not cleared there (2026-09-12).
-    const lineHasRecord = res.hits.some(h => h.line === line && h.dist <= CONTACT_TINT_EPS);
-    for (const h of res.hits) {
-      if (h.dist > CONTACT_TINT_EPS) continue;
-      if (h.line === line) {
-        // Contact within a line can be intermittent — glow only INSIDE a
-        // refined interval, never across the verified-clear gaps between.
-        const ivs = h.intervals ?? [[h.cum, h.cumEnd] as [number, number]];
-        for (const [en, ex] of ivs) {
-          if (cum >= en - CONTACT_TINT_EPS && cum <= ex + CONTACT_TINT_EPS) {
-            want.add(h.a);
-            want.add(h.b);
-            break;
-          }
-        }
-      } else if (!lineHasRecord && h.continuation === undefined && h.spanCumEnd != null
-                 && cum > h.cumEnd && cum <= h.spanCumEnd + CONTACT_TINT_EPS) {
-        want.add(h.a);
-        want.add(h.b);
-      }
-    }
-  }
+  const want = line != null && cum != null && res ? clashTintBodies(res.hits, line, cum) : new Set<string>();
   let changed = false;
   for (const id of _clashOnIds) {
     if (!want.has(id)) {
@@ -4874,7 +4848,7 @@ defineExpose({
         <div v-if="previewTableStale" class="hudWarn" data-table-stale>Tool table changed — preview updates after the run<HelpIcon label="Preview tool table">{{ previewTableStale.why === "unsupported"
           ? "This machine's random tool changer cannot be re-parsed during a run; the preview re-parses once idle."
           : "The preview's start state is not known for this program; it re-parses once the machine is idle." }}</HelpIcon></div>
-        <div v-if="toolpathOverflow" class="hudWarn">{{ toolpathOverflowCount }} limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
+        <div v-if="toolpathOverflow" class="hudWarn hudMarkLimit">{{ toolpathOverflowCount }} limit violation{{ toolpathOverflowCount === 1 ? '' : 's' }}</div>
       </template>
       <div v-if="failedParts.length" class="hudWarn">{{ failedParts.length }} machine part{{ failedParts.length === 1 ? '' : 's' }} failed to load — check the model files<HelpIcon label="Model parts">Not loaded: {{ failedParts.join(', ') }}.</HelpIcon></div>
       </div>
@@ -4909,6 +4883,9 @@ defineExpose({
 </template>
 
 <style scoped>
+/* A count of limit violations reads in the ▲ mark's colour (operator
+   2026-10-06). */
+.hudWarn.hudMarkLimit { color: var(--mark-limit); }
 .viewerWrapper {
   position: relative;
   width: 100%;

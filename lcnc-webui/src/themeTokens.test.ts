@@ -25,7 +25,14 @@ const ROLES = [
   "--fg-muted", "--ok-text", "--warn-text", "--danger-text", "--info-text", "--accent-text", "--focus-ring",
   "--syntax-gcode", "--syntax-mcode", "--syntax-coord", "--syntax-param", "--syntax-comment",
   ...VIEWER_LINES, "--viewer-bounds", "--viewer-toolpath-bounds", "--viewer-bounds-alt", "--viewer-tool", "--viewer-cutter",
+  "--mark-clash", "--mark-limit", "--mark-tool",
 ];
+/** The timeline marks' kinds: × collision, ▲ soft limit, ● tool change. */
+const MARKS = ["--mark-clash", "--mark-limit", "--mark-tool"];
+/** How far apart the marks stay (OKLab): the operator's criterion is that
+ *  the kinds tell apart (2026-10-06) — the dark text tones they replace
+ *  stood 0.095 apart (× and ▲, light theme) and read alike. */
+const MARK_MIN = 0.2;
 
 /** The declarations of the first rule whose selector is exactly `selector`. */
 function block(selector: string): Map<string, string> {
@@ -162,6 +169,21 @@ describe("theme text roles", () => {
       for (const r of COLOUR_ROLES) expect(b.get(r), `${name} ${r}`).toBe(dark.get(r));
     });
   }
+  // The timeline marks: ONE bright set in every theme, the kinds apart from
+  // each other — the background secondary (operator 2026-10-06).
+  for (const name of ["root", "light", "auto-dark", "hc-light", "hc-dark"] as const) {
+    it(`${name}: the mark colours are the one set`, () => {
+      const dark = block(THEMES.dark), b = block(THEMES[name]);
+      for (const r of MARKS) expect(b.get(r), `${name} ${r}`).toBe(dark.get(r));
+    });
+  }
+  it("the three marks tell apart", () => {
+    const b = block(THEMES.dark);
+    for (let i = 0; i < MARKS.length; i++) for (let j = i + 1; j < MARKS.length; j++) {
+      const [x, y] = [MARKS[i]!, MARKS[j]!];
+      expect(okDistance(hex(b.get(x)!), hex(b.get(y)!)), `${x} vs ${y}`).toBeGreaterThanOrEqual(MARK_MIN);
+    }
+  });
   // The cutter meets the path at the tool tip (operator 2026-09-29): bright
   // steel, far from every line role and the collision tint — the gold it
   // replaced sat 0.12 from the orange limit.
