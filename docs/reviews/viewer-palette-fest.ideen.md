@@ -11821,3 +11821,118 @@ Zahlen stammen aus einem Wegwerftest. Zum Nachrechnen liegen Payload, Live-Init 
 `.review-handshake/r84/` (`haus-preview.bin`, `live-init.json`, `zz_haus_sweep.test.ts`). Der
 Ordner ist von Git ausgenommen, weil das Programm des Operators nicht ins öffentliche Repository
 gehört. Die Pfade im Test zeigen auf mein Scratchpad, bitte anpassen.
+
+---
+
+## Review R84 · Codex · Ideen zur Kollisionsanalyse · 6. Oktober 2026
+
+**Votum: `findings` für das weitere Vorhaben; die D1-Regel je Paar ist
+angenommen.** Vor D2–D4 sollten die drei unten benannten Verträge feststehen.
+Das ist keine Implementierungsabnahme; VP-I43 bleibt für die nächste Runde
+offen. Meine Reihenfolge:
+
+1. **D1 jetzt korrigieren: Färbung je Paar, Körper als Vereinigung aktiver
+   Paare.** Ein Satz von Paar B darf die fortdauernde Färbung von A nicht
+   unterdrücken. Eigene Intervalle des jeweiligen Paars haben Vorrang vor
+   dessen Fortsetzungsspanne; bestätigte Lücken bleiben frei. `carried`
+   unterdrückt einen zusätzlichen Navigationsanfang, **nicht** den Kontakt
+   des ersten Intervalls. Nach dem Anfahr-Merge müssen alle Grenzen auf
+   derselben Track-Achse liegen. **Risiko:** eine Spanne überbrückt Lücken
+   oder eine rohe Zeilennummer verwechselt Anfahrt und Programm bzw.
+   wiederholte Ausführungen. **Belegen:** Dauerkontakt A + Wiedereintritt B,
+   zwei Intervalle mit freier Lücke, `carried`, `continuation: 0`, Anfahr-Merge,
+   veralteter Track und reine Annäherung. Letztere darf nicht wie tatsächlicher
+   Kontakt färben. Keine neue Farbe je Paar: betroffene Körper behalten die
+   Kollisionsfarbe; ein ausgewähltes Paar kann gesondert hervorgehoben werden.
+
+2. **D2 als Kontaktverläufe speichern — VP84-01: Vollständigkeit verbindlich
+   regeln.** Pro Paar zusammenhängende Kontaktintervalle mit stabiler
+   Identität, Track-/Programmversion und Herkunft; Zeilen sind Zuordnungen,
+   keine Ereignis-IDs. Ein langer Kontakt verbraucht damit keinen Satz je
+   Zeile. Liste/Navigation, aktive Färbung, Zeitleistenbänder und Code-Marken
+   werden aus diesem gemeinsamen Modell abgeleitet. `clashTargets` allein
+   reicht dafür heute nicht: es lässt Fortsetzungen und das erste `carried`-
+   Intervall bewusst weg; Färbung und Code-Marken lesen andere Ableitungen.
+   **Risiko:** Eine endliche harte Speicherkappung kann für beliebig viele
+   Wiedereintritte nicht verlustfrei sein. Empfehlung: nur die sichtbare
+   Liste begrenzen/virtualisieren, Daten bei Bedarf blockweise halten; bei
+   erschöpftem Datenbudget ausdrücklich unvollständig werden oder pausieren.
+   Keine stille Zusammenfassung freier Lücken. **Belegen:** 201 Anfänge,
+   17 Intervalle auf einer Zeile, wiederholte Quellzeile, langer Dauerkontakt
+   und Anfahr-Merge. Alle Ansichten müssen dieselben erhaltenen Ereignisse
+   und dieselben unbekannten Bereiche zeigen.
+
+3. **D3 durch deklarierte Modellregeln ersetzen — VP84-02: erlaubte Kontakte
+   und deren Gültigkeitsbereich.** Gelenk-/Führungspaare mit Begründung und
+   gültigem mechanischem Weg deklarieren; Endanschläge als eigene prüfbare
+   Körper belassen. Ein Führungspaar darf konstruktiv ausgenommen sein,
+   ohne dadurch Wagen/Endkappe oder Wagen/Säule auszunehmen. Außerhalb des
+   deklarierten Bereichs muss die Ausnahme enden bzw. ein mechanischer
+   Bereichsverstoß sichtbar werden. Zwei überlappende Ausgangsposen sind
+   kein Nachweis einer zulässigen Verbindung. Deklarierte Paarregeln und
+   getrennte Darstellungs-/Kollisionsgeometrie sind auch bei MoveIt etablierte
+   Mittel; automatisch durch Stichproben erzeugte Ausnahmen würde ich nicht
+   als Garantie übernehmen.
+   ([Paarregeln](https://moveit.picknik.ai/main/doc/concepts/kinematics.html#allowed-collision-matrix-acm),
+   [Modellgeometrie und Grenzen der Stichproben](https://moveit.picknik.ai/main/doc/examples/urdf_srdf/urdf_srdf_tutorial.html))
+   **Risiko/Gegenentwurf:** „erst tiefere Durchdringung melden“ scheidet mit
+   dem jetzigen Abstandskern aus: geringe und tiefe Überschneidung liefern
+   beide 0; vollständiges Einschließen kann sogar positiven Oberflächenabstand
+   liefern. **Belegen:** zulässiger Führungslauf, Überfahrt bei absichtlich
+   zu weitem INI-Fenster, Start im Crash, Einschließen und unabhängiger
+   Kontakt zu einem dritten Körper.
+
+4. **D4 zuerst messen und früher antworten — VP84-03: keine größere
+   Schrittweite als versteckte Beschleunigung.** Den ersten bestätigten
+   Crash sofort melden: „Kollision gefunden · X % geprüft“, dann weitere
+   Analyse fortsetzen oder ausdrücklich pausieren lassen. Das senkt die
+   Wartezeit auf eine brauchbare Antwort, ohne vollständige Prüfung
+   vorzutäuschen. Für Rechenzeit: vorhandenes `profile` je Paar nutzen,
+   Zeilensatz-Erzeugung von geometrischen Abfragen trennen, unveränderte
+   **relative** Posen mit unveränderter Geometrie wiederverwenden. An Tool-,
+   TLO-, Frame- oder Geometriewechseln neu prüfen. Ein echtes Zertifikat
+   für anhaltende Durchdringung wäre eine spätere Erweiterung; bloßes
+   `dist == 0` reicht nicht. **Korrektur zur Ausgangsthese:** `MIN_ADV` ist
+   0,25; `EXPLORE` im gelieferten Test ist standardmäßig **5**, und zusätzlich
+   wird pro Kontaktzeile abgefragt. Die 803922 `samples` sind auch nicht die
+   Anzahl aller Paar-Abstandsabfragen. **Belegen:** gleiche Ereignisse und
+   Abdeckung vorher/nachher, dünnes Hindernis, Trennen/Wiedereintritt,
+   Rotationen und Werkzeugwechsel; Zeit bis erster Meldung, aktive CPU-Zeit,
+   Abfragen je Paar, Speicher und Pause-/Abbruchreaktion getrennt messen.
+
+5. **D5: Ergebnis, Abdeckung und Ausschlüsse getrennt lesbar machen.** Eine
+   bestehende Übersichtszeile sollte etwa „Kollision gefunden · 100 % geprüft ·
+   Meldungen gekürzt“ ausdrücken können; Details nennen die ausgeschlossenen
+   Paare. „Starts in collision“ nur bei nachgewiesenem, nicht erlaubtem
+   Startkontakt; Abstandswarnung, zulässige Verbindung, Anfahrbewegung und
+   Programmstart unterscheiden. Für diesen Fall hilft außerdem ein sichtbarer
+   Berechnungskontext: TCP, A-Winkel, G54 und Werkzeugbasis. **Eigene Idee:**
+   optional nach Paar gruppieren, mit erster Fundstelle, Dauer und Anzahl
+   Wiedereintritte; explizit „Paar zeigen“, statt bei jeder Meldung automatisch
+   die Kamera umzusetzen. **Risiko:** graue Teile oder „zertifiziert“ werden
+   als vollständig kollisionsfrei verstanden. **Belegen:** vollständige,
+   gekappte, pausierte, ausgeschlossene und veraltete Ergebnisse sowie
+   Touch-/Tastaturbedienung der Details.
+
+**Zusätzliche Belege zur Entscheidung:** Drei kleine synthetische Proben
+auf unverändertem `092d00b1` bestehen und bestätigen die heutigen Grenzen:
+
+- 201 getrennte Anfänge → 200 Meldungen, `truncated: null`, kein eigenes
+  Kennzeichen für die gekürzte Ausgabe. Onsets haben bereits Vorrang vor
+  Fortsetzungen; ein bloß höheres Zeilensatzlimit löst den Vertrag nicht.
+- 17 Kontakte auf derselben Zeile → 16 Intervalle; das letzte überbrückt
+  eine eindeutig freie Position. Neben `MAX_HITS` existiert also eine
+  zweite verlustbehaftete Kappung, die D2 mit behandeln muss.
+- Die Abstandsabfrage unterscheidet 0,1 und 1,8 Einheiten Überschneidung
+  nicht; ein eingeschlossener kleiner Würfel liefert 0,75 Abstand.
+
+[Messwerte](viewer-palette-fest.r84.synthetic.json),
+[reproduzierbare Sonde](viewer-palette-fest.r84.synthetic.test.ts),
+[Protokoll](viewer-palette-fest.r84.synthetic.txt),
+[Quellstellen, Quellen und Prüfgrenzen](viewer-palette-fest.r84.basis.md),
+[Stand und Quellvergleich](viewer-palette-fest.r84.context.json),
+[Beleghashes](viewer-palette-fest.r84.sha256.json).
+Der vollständige `haus.ngc`-Sweep wurde nicht wiederholt; 657 s und die
+Paarzählungen bleiben Claudes Messung. Private Eingaben bleiben außerhalb
+der Review-Belege. Keine Produktänderung, kein Browser-/Live-Zugriff und
+keine Maschinenbefehle.

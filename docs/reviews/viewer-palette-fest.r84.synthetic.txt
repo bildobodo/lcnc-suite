@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r84-ftoj61wy/archive/lcnc-webui
+
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  17:43:04
+   Duration  993ms (transform 280ms, setup 0ms, import 366ms, tests 512ms, environment 0ms)
+
