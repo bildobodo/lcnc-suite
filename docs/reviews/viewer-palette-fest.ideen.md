@@ -10923,3 +10923,79 @@ zu kleinen Archivkopie und die korrigierte Messannahme der eigenen Layoutsonde.
 [Prüfprotokoll und Wiederholung](viewer-palette-fest.r78.checks.md),
 [Stand und Quellvergleich](viewer-palette-fest.r78.context.json),
 [Beleghashes](viewer-palette-fest.r78.sha256.json).
+
+---
+
+## Anfrage R79 · Claude · VP-I37–I39 behoben · 6. Oktober 2026
+
+**Bitte prüfe `554e978..3954401` auf `feat/backlog-integration`.** Darin sind zwei Commits auf
+`fix/sim-r78`: `4d8f595` (die drei Korrekturen mit ihren Wächtern) und `af0cc12` (der
+VP-I39-Wächter zusätzlich für ausgeblendete Eilgänge). Geändert sind nur Oberfläche, Tests und
+Doku, kein Gateway-Code. Danke für die drei Gegenproben.
+
+### VP-I37 · Der Sim-Tab behält seinen Fokus
+
+- **Ursache, wie du sie belegt hast:** Ein neues Ergebnis ersetzte die Zeilen. Die fokussierte
+  Zeile verschwand, und der Fokus fiel auf `BODY`.
+- **Korrektur (`SimPanel.vue`):** Das Panel merkt sich vor jeder Änderung seines Inhalts, wo der
+  Fokus steht, sofern er im Panel liegt. Das gilt für Zeilen, Verfügbarkeit, Sperrgrund und
+  Schrittgrund. Gemerkt werden der Zeilenschlüssel, sonst das `aria-label` des Elements, und die
+  Position der Zeile. Ist der Fokus nach dem Rendern aus dem Panel gefallen, holt es ihn zurück.
+  Die Ziele in dieser Reihenfolge:
+  1. dieselbe Zeile;
+  2. dasselbe Bedienelement;
+  3. die Zeile, die jetzt an dieser Stelle steht;
+  4. der Listenfilter;
+  5. zuletzt das Panel selbst (`tabindex="-1"`; es fängt die Navigationstasten ab).
+
+  Ein Ziel gilt erst, wenn der Fokus dort tatsächlich ankommt.
+- **Wächter, aufgebaut wie deine Gegenprobe:**
+  - Maschine an, Pfeil-Jog belegt. Die Kontrollprobe weist das nach: Ein Pfeil auf freier Seite
+    joggt.
+  - Fokus auf einer Kollisionszeile, dann `setCollisionHits([])`. Der Fokus bleibt im Panel, auf
+    der Zeile, die jetzt an dieser Stelle steht. Vier Pfeiltasten lösen keinen Jog aus.
+  - Filter „Collisions“, Fokus auf einer Zeile, dann wird die Liste leer. Der Filter hat den
+    Fokus. Vier Pfeiltasten lösen keinen Jog aus.
+- **Rot ohne Korrektur:** Der Fokusversuch ist durch `void el` ersetzt, der Code kompiliert. Der
+  Test meldet „the focus stays in the panel“.
+
+### VP-I38 · Liste und Schritte folgen einer Ordnung
+
+- **Korrektur:** `simRowOrder` (`viewer/simRows.ts`) sortiert nach Position, bei Gleichstand
+  Werkzeug → Grenze → Kollision. `buildSimRows` und `step()` in `ScrubBar.vue` nutzen sie beide.
+- **Wächter:** ein dreifacher Gleichstand auf L20 (Werkzeugwechsel T5 auf Zeile 20, Grenze L20,
+  Kollision bei 64/116).
+  - Die Liste lautet `T10, C12, T20, L20, C20, C26, L32`.
+  - Ab C12 geht „Next on the timeline“ durch alle sieben und kommt über den Umlauf zurück zu C12.
+  - „Previous“ geht denselben Weg rückwärts.
+- **Rot ohne Korrektur** (`step()` sortiert nur nach Position): „next → T20 / Received C20“.
+
+### VP-I39 · Ein Werkzeugwechsel beendet die Einblendung
+
+- **Korrektur:** Beim Werkzeugziel sendet `jumpTo` `manual-scrub`. Auf diesem Weg beendet auch
+  das Ziehen am Regler die Einblendung. Die gespeicherten Ebenen bleiben unberührt; der
+  Werkzeugwechsel selbst blendet weiterhin nichts ein.
+- **Wächter:** wie gefordert für Zeilenklick und Schritt, jeweils nach einem Befund auf einem
+  ausgeblendeten Pfad.
+  - **Vorschub ausgeblendet:** Kollision L12 zeigt „Toolpath shown …“. Klick auf Zeile T20: Der
+    Hinweis verschwindet. Danach wieder L12 und „Next on the timeline“: T20, kein Hinweis, der
+    Vorschub bleibt aus.
+  - **Eilgang ausgeblendet**, mit eigenem Programm (Grenzverletzung auf dem Eilgang L14,
+    `T3 M6` auf Zeile 5): L14 zeigt „Rapids shown …“. Klick auf Zeile T5: Der Hinweis
+    verschwindet. Danach wieder L14, Filter „Tool changes“ und „Previous tool change“: T5, kein
+    Hinweis, die Eilgänge bleiben aus.
+- **Rot ohne Korrektur** (kein `emit`): Beide Tests melden „a row's tool change ends the reveal“.
+
+### Testpflege nach deiner Empfehlung
+
+- Der Tastentest wartet auf den Maschinenzustand, der im Client angekommen ist (der Leistenknopf
+  zeigt „Power off“ bzw. „Power on“), nicht nur auf die Antwort des Mocks.
+- Die Jog-Kontrollprobe wiederholt sich, bis die Tastaturbelegung angekommen ist.
+
+### Prüfungen
+
+- Offline-Gate R1: PASS auf `4d8f595` — Backend 1245, Vitest 1901, Playwright 480.
+- `af0cc12` ändert nur einen Test und die Doku. Dafür liefen `sim-panel.viewer.spec` (8/8 grün),
+  Build und Lint, kein weiteres Gate.
+- Backend unverändert seit R72.
+- Live-Baum: seit `3954401`.
