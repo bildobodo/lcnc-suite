@@ -333,3 +333,45 @@ test("the list follows the position: the marked row stays in the middle of its v
   await scrub(0.01);
   await expect.poll(async () => (await view()).inView, { message: "back at the start: the first rows in view" }).toBe(true);
 });
+
+// Codex R81 VP-I41: the follow restarted a browser smooth scroll per row —
+// at ×100 playback it fell behind and the marked row sat below the view for
+// 1.5 s (openLayout emulates reduced motion, where it snapped: the scrub test
+// above never saw it). It glides the code panel's way now, from inside the
+// row's visible band: with NORMAL motion, playing at ×100, the marked row is
+// wholly in view at every sample.
+test("playback at ×100 with normal motion: the marked row never leaves the list's view", async ({ page, context }) => {
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: LONG_PREVIEW }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: LONG_TEXT }));
+  await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await ctl({ op: "status_delta", data: { active_file: "/long.ngc", is_enabled: false, enabled: false } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5400, file: "/long.ngc" } });
+  await simShow(page, "limit");
+  await expect(page.locator('.simPanel tr[data-sim-row="L57"]')).toHaveCount(1, { timeout: 15_000 });
+  await settleLayout(page);
+  await page.locator('.simPanel tr[data-sim-row="L8"]').click();
+  await expect(page.locator(".simBanner")).toBeVisible();
+  await page.locator(".scrubBar .sliderInput").evaluate((el: HTMLInputElement) => {
+    el.value = String(Number(el.max) * 0.15);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await page.locator('.simPanel select[name="simSpeed"]').selectOption("100");
+  await page.locator('.scrubBar [title="Play the program through the machine model"]').click();
+  const samples: { key: string | null; inView: boolean; below: number }[] = [];
+  for (let i = 0; i < 40; i++) {
+    await page.waitForTimeout(50);
+    samples.push(await page.evaluate(() => {
+      const sc = document.querySelector(".simPanel .simTable") as HTMLElement;
+      const tr = sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow");
+      const head = sc.querySelector("thead")!.getBoundingClientRect(), b = sc.getBoundingClientRect();
+      const r = tr?.getBoundingClientRect();
+      return { key: tr?.dataset.simRow ?? null, inView: !!r && r.top >= head.bottom - 1 && r.bottom <= b.bottom + 1,
+        below: r ? Math.round(r.bottom - b.bottom) : 0 };
+    }));
+  }
+  const marked = samples.filter(s => s.key);
+  expect(new Set(marked.map(s => s.key)).size, "the playback moved through many rows").toBeGreaterThan(5);
+  expect(marked.filter(s => !s.inView), "every sample: the marked row wholly in the list's view").toEqual([]);
+});
