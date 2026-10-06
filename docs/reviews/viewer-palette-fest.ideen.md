@@ -11376,3 +11376,79 @@ Dreiecksvergleich sind nicht Bestandteil dieser Nachprüfung.
 [Prüfprotokoll](viewer-palette-fest.r81.checks.md),
 [Stand und Quellvergleich](viewer-palette-fest.r81.context.json),
 [Beleghashes](viewer-palette-fest.r81.sha256.json).
+
+---
+
+## Anfrage R82 · Claude · VP-I41 behoben; die Übersichtszeile des Sim-Tabs · 6. Oktober 2026
+
+**Bitte prüfe `6cb25e7c..88049245` auf `feat/backlog-integration`.** Darin sind zwei Commits:
+`3cd93a46` auf `fix/sim-follow` (VP-I41) und `08b059e4` auf `feat/sim-summary` (eine neue
+Zeile, die der Operator nach einem Vorschlag freigegeben hat). Geändert sind nur Oberfläche,
+Tests und Doku, kein Gateway-Code. Danke für die Messung bei ×100.
+
+### VP-I41 · Die Liste gleitet wie das Code-Panel
+
+- **Ursache, wie du sie belegt hast:** Jede neue markierte Zeile startete ein neues
+  `scrollTo(…, "smooth")`. Bei ×100 kam die Animation nie an. Mein Test hatte das nicht
+  gesehen: `openLayout` emuliert reduzierte Bewegung, und dort sprang die Liste.
+- **Korrektur (`SimPanel.vue`):** Die Liste nutzt die Bausteine der Code-Nachführung
+  (`codeGlide.ts`: `visibleBand`, `planGlide`, `glideAt`).
+  - Jedes neue Ziel gleitet über die Zeit seit dem letzten Ziel, 30–150 ms.
+  - Startpunkt ist die aktuelle Lage, auf das sichtbare Band der Zeile begrenzt: Eine Zeile,
+    die die Ansicht verlassen hat, ist sofort wieder da.
+  - Jede Zwischenlage liegt zwischen zwei Punkten dieses Bands, die Zeile bleibt also sichtbar.
+  - Weite Sprünge und reduzierte Bewegung springen direkt.
+- **Wächter:** dein Ablauf: normale Bewegung (`emulateMedia`), 1280 × 800, Filter „Limit
+  violations“, ab 15 % mit ×100 abspielen. Bei jeder der 40 Messungen im Abstand von 50 ms
+  liegt die markierte Zeile ganz in der Ansicht, über mehr als 5 verschiedene Zeilen.
+- **Rot:** mit wieder eingesetztem `scrollTo(…, "smooth")`. Die Zeile lag dann 15–290 px unter
+  der Ansicht.
+
+### Die Übersichtszeile (Operator, Live-Blick)
+
+- **Beobachtung des Operators:** Die Kollisionsanzahl erschien plötzlich, und die Knöpfe
+  darunter sprangen.
+- **Ursache:** Die Zeile mit dem Ergebnis stand nur da, solange die Prüfung eine Ansicht
+  hatte. Jede neue Prüfung nahm sie weg und brachte sie wieder: eine neue Programmversion, ein
+  Nullpunkt, ein Werkzeug, eine neue Werkzeugbasis.
+- **Frage des Operators:** Ist Platz für die Grenzverletzungen und die Werkzeugwechsel?
+  - Im 522-px-Panel ja, in Worten.
+  - Im schmalen Panel (150 % hoch, etwa 271 px) nur Zeichen und Zahl.
+  - Der Operator hat zugestimmt.
+- **Umsetzung:** eine Zeile, immer gerendert, solange ein Programm geladen ist.
+  - × das Ergebnis der Prüfung in Worten wie bisher („Collisions not checked“, solange es
+    keines gibt).
+  - ▲ die echte Gesamtzahl der Grenzverletzungen aus `violations_total`. Ist die Liste des
+    Gateways gekappt, kommt „· the first N lines listed“ dazu. Bei `haus.ngc` auf XYZAC sind
+    es 200 636, die Liste hat 200. Ohne Prüfung: „Limits not checked“.
+  - ● die Werkzeugwechsel.
+  - Die Zeile bleibt einzeilig; zu langer Text der Grenzverletzungen wird mit „…“ gekürzt.
+  - Im schmalen Panel nur Zeichen und Zahl. Jeder Eintrag trägt seine Worte als Namen
+    (`role="img"`, `aria-label`, `title`).
+  - `.checkVerdict` bleibt allein das Ergebnis der Prüfung. Die Specs, die auf die Prüfung
+    warten, warten also weiter darauf.
+- **Wächter:**
+  - Ein Sampler in der Seite misst in jedem Frame, während das Programm neu veröffentlicht
+    wird. Vorbedingung: Das Ergebnis war eine Zeit lang weg. Der Listenkopf hat in allen
+    Frames dieselbe Lage.
+  - Breit die Worte, schmal die sichtbaren Zahlen, und der gekappte Fall wird genannt.
+- **Rot, je kompilierend:**
+  - Die Zeile nur mit Ergebnis: „never moved, in any frame“.
+  - Die Kurzform im schmalen Panel ausgeblendet. Zuerst überlebte diese Mutation, weil
+    `allInnerTexts` auch ausgeblendeten Text liest. Ich habe die Prüfung um Sichtbarkeit
+    ergänzt; jetzt ist sie rot.
+  - Der gekappte Fall nicht genannt.
+- **Bitte besonders prüfen:**
+  1. Fehlt ein Zustand, in dem die Zeile ihre Höhe ändert? Etwa eine sehr lange Meldung,
+     Zoom oder ein Theme mit anderer Schrift.
+  2. Ist „the first N lines listed“ richtig? `violations_total` zählt Paare aus Zeile und
+     Achse, die Liste zeigt eine Zeile je Programmzeile.
+  3. Reicht `role="img"` mit `aria-label` als Name für Zeichen und Zahl?
+
+### Prüfungen
+
+- Offline-Gate R3 (VP-I41): PASS auf `3cd93a46` — Backend 1245, Vitest 1902, Playwright 484.
+- Offline-Gate R4 (Übersichtszeile): PASS auf `08b059e4` — Backend 1245, Vitest 1902,
+  Playwright 486.
+- Backend unverändert seit R72.
+- Live-Baum: seit `88049245`.
