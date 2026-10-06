@@ -1195,8 +1195,10 @@ the first line and checked throughout. NEVER a TOOL pair either
 line carries `spanCumEnd` (where it finally ends, over ALL records — the
 report keeps MAX_HITS = 200 records, onsets first, and a contact that
 never separates over thousands of lines is a record per LINE): the tint
-and the timeline's red extent read it for lines with no record of their
-own. Test fixture:
+and the timeline's red extent read it where the PAIR has no record of its
+own on the line — decided per pair (`viewer/clashTint.ts`; one test for the
+whole line put the Y saddle and the yoke out on every line another pair
+re-entered — operator 2026-10-06, haus.ngc on XYZAC). Test fixture:
 `~/linuxcnc/nc_files/5axis_collision_test.ngc` — in-limits program whose
 low rapid traverse rams the trunnion (stage 1 quiet, stage 3 flags it).
 
