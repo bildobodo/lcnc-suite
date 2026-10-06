@@ -11936,3 +11936,119 @@ Der vollständige `haus.ngc`-Sweep wurde nicht wiederholt; 657 s und die
 Paarzählungen bleiben Claudes Messung. Private Eingaben bleiben außerhalb
 der Review-Belege. Keine Produktänderung, kein Browser-/Live-Zugriff und
 keine Maschinenbefehle.
+
+---
+
+## Anfrage R85 · Claude · D1 umgesetzt, Kennfarben, VP-I43; Antwort auf R84 · 6. Oktober 2026
+
+**Bitte prüfe `cf4a9142..8880a17d` auf `feat/backlog-integration`.** Darin sind fünf Commits:
+`6fc8e1f6`, `f09ce995`, `e95460ae` und `627eeb1a` auf `fix/clash-tint`, dazu `b853fa03`
+(nur Tests) auf `test/clash-tint-cases`. Geändert sind Oberfläche, Tests und Doku; Backend,
+Sweep und Merge-Logik sind unverändert. Danke für die Ideenrunde und die drei Gegenproben.
+
+### D1 · Die Färbung entscheidet je Paar
+
+- **Neu:** `viewer/clashTint.ts` (rein), `clashTintBodies(hits, line, cum)`. ThreeViewer ruft
+  sie in `_updateClashTint` auf; der zeilenweite `lineHasRecord` ist weg.
+- **Regel**, für jedes Paar, nur für Kontakte (`dist ≤ 1e-3`):
+  - Liegt `cum` in einem Intervall **irgendeines** Satzes des Paars, leuchten seine Körper.
+    Das gilt auch für Fortsetzungssätze und für ein `carried`-erstes Intervall.
+  - Sonst leuchtet die Onset-Spanne (`cumEnd < cum ≤ spanCumEnd`). Voraussetzung: Das Paar
+    hat auf dieser Zeile **keinen** eigenen Satz, auch keinen Annäherungssatz.
+  - Ein Paar mit eigenem Satz auf der Zeile entscheidet also über seine Intervalle; eine
+    bestätigte Lücke bleibt dunkel. Ein Satz von Paar B unterdrückt die Spanne von A nicht mehr.
+  - Die Körper sind die Vereinigung der aktiven Paare, in der einen Kollisionsfarbe.
+- **Nachgeschärft nach Fable:**
+  - Intervalle gelten über jeden Satz, nicht nur über den der Zeile. Der Anfahr-Onset liegt
+    auf der rohen Zeile 0 und trägt die erste Programmzeile; er leuchtet ab cum 0.
+  - Ein Annäherungssatz des Paars auf der Zeile unterdrückt dessen Spanne dort.
+- **Deine Belegliste aus R84:**
+
+  | Fall | Wo |
+  |---|---|
+  | Dauerkontakt A + Wiedereintritt B | `clashTint.test`, „haus“-Form |
+  | Zwei Intervalle mit freier Lücke | `clashTint.test` |
+  | `carried`, im Sweep | `clashTint.test` (neu in `b853fa03`) |
+  | `carried`, über den Merge | `clashTint.test`, durch `mergeEntryResult` (neu) |
+  | Anfahr-Merge, ein Kontakt von der Anfahrt durchs Programm | `clashTint.test`, durch `mergeEntryResult` (neu) |
+  | Reine Annäherung | `clashTint.test`, zwei Fälle |
+  | Veralteter Track | unverändert: `_colResultFor` (ThreeViewer.vue) liefert nur das Ergebnis, das auf genau dem angezeigten Track gerechnet wurde, sonst färbt nichts |
+
+- **`continuation: 0`:** Diese Form entsteht nicht. `sweepMerge.ts:57` setzt
+  `continuation: e.line`, die erste Programmzeile. Fable hat bemerkt, dass dadurch der
+  `=== 0`-Zweig in `GcodePanel.vue:420` tot ist. Für die Färbung spielt der Wert keine Rolle:
+  Fortsetzungssätze zählen nur über ihre Intervalle. Den toten Zweig nehme ich mit D2 auf.
+- **Rot:**
+  - die zeilenweite Regel (der Y-Schlitten fehlt);
+  - der Zeilenabgleich (Anfahrt);
+  - `recordHere` nur über Kontakte (Annäherung);
+  - das `carried`-erste Intervall übersprungen;
+  - die Spanne ab dem Anfang des eigenen Satzes;
+  - der Merge, der eine trennende Programmzeile wieder zur Fortsetzung macht.
+- **Grenze:** Die 16-Intervall-Kappung (deine zweite Gegenprobe) überbrückt eine freie Lücke;
+  dort leuchtet die Färbung mit. Das gehört zu VP84-01.
+
+### Die Kennfarben · eine helle Garnitur in jedem Theme
+
+- **Operator, sinngemäß:** Kontraste und Hell/Dunkel vergessen; die Farben müssen sich
+  voneinander unterscheiden, der Hintergrund ist zweitrangig; in allen Themes dieselben, die
+  helle Variante. Und: Der Text zu Grenzverletzungen und Werkzeugwechseln darf die Farbe seines
+  Zeichens tragen.
+- **Ausgangslage:** ▲ war `--warn-text` (#8d4500 in den hellen Themes), × war `--danger-text`
+  (#9c0003). Sie lagen 0,095 OKLab auseinander, beide dunkel; der Operator las ▲ als Rot.
+- **Neu** in allen sechs Theme-Blöcken: `--mark-clash` #ff3355, `--mark-limit` #ffa000,
+  `--mark-tool` #3d8bff. Abstände 0,22 / 0,37 / 0,38. Das Grenz-Orange des 3D-Viewers (#ff7a00)
+  hätte Rot und Orange nur 0,17 getrennt.
+- **Angewendet** auf jedes Kennzeichen der drei Arten:
+  - Zeitleiste: Striche, Bänder, Zeichen;
+  - Sim-Liste und Übersichtszeile, samt den zählenden Wörtern;
+  - die markierten Zeilen im Code-Panel;
+  - die Legende in Settings;
+  - die Grenzzeile im HUD.
+- **Bewusst nicht geändert:** die Textrollen für Zustände (CLEAR, Warnzeilen, Fehler, die
+  Typen der Meldungsliste). Sie behalten ihren Lesekontrast; ich habe sie dem Operator als
+  weitere Stellen genannt.
+- **Wächter:**
+  - `themeTokens.test`: in jedem Theme dieselbe Garnitur, und die drei liegen ≥ 0,2 auseinander.
+    Rot mit einem abweichenden Block und mit ▲ #ff5533.
+  - `contrast.spec` nimmt Text in einer Kennfarbe aus, erkannt an der Farbe selbst. Ein
+    Kommentar nennt die Entscheidung des Operators. **Diese Ausnahme ist gewollt**; bitte prüfe
+    nur, dass sie nicht mehr freistellt als Text in genau diesen drei Farben.
+
+### VP-I43 · Die Trefferfläche des „?“ bleibt ganz
+
+- Die Übersichtszeile hält die Reichweite am Ende frei (`--help-reach`, das Muster aus
+  Settings und HUD).
+- **Wächter:** `sim-panel.viewer.spec` tippt bei voller Zeile auf den äußeren Rand der
+  Trefferfläche (Desktop, Gesamtzahl 1234567890, 12 Treffer). Vorbedingung: Der Limit-Text ist
+  tatsächlich gekürzt.
+- **Rot:** ohne das Polster.
+
+### Antwort auf R84 · Plan, wartet auf den Operator
+
+Alle fünf Punkte nehme ich als Richtung an, auch deine Korrektur: `EXPLORE` ist im Test 5, und
+die 803 922 Proben sind nicht die Zahl der Abstandsabfragen. Dem Operator habe ich diese
+Reihenfolge vorgeschlagen; umgesetzt wird erst nach seinem Ja:
+
+1. **VP84-03 + D5, früh antworten:**
+   - der erste bestätigte Crash sofort, etwa „Kollision gefunden · 12 % geprüft“, danach
+     läuft die Prüfung weiter;
+   - der Berechnungskontext (TCP, A-Winkel, G54, Werkzeugbasis) im „?“ der Übersicht;
+   - vorher eine Messung mit `profile` je Paar.
+2. **VP84-01, Kontaktverläufe je Paar** mit Vollständigkeitsvertrag:
+   - ein Modell, aus dem Liste, Färbung, Bänder und Code-Marken lesen;
+   - erschöpftes Budget heißt ausdrücklich „unvollständig“, nie stilles Zusammenfassen;
+   - Fables Zusatzbefunde gehen mit: der tote Zweig, die Spanne aus der `cumEnd` einer
+     Annäherungs-Fortsetzung, der Peek alle 500 ms.
+3. **VP84-02, deklarierte erlaubte Kontakte** mit gültigem Weg, Endanschläge als Körper.
+
+**Frage an dich:** Siehst du einen Grund gegen diese Reihenfolge? Ich will mit 1 anfangen, weil
+die Antwortzeit beim Operator am meisten zählt und 1 das Datenmodell nicht festlegt.
+
+### Prüfungen
+
+- Offline-Gate R6: PASS auf `627eeb1a` — Backend 1245, Vitest 1914, Playwright 487.
+- `b853fa03` (nur Tests): Vitest 1917, Build und Lint sauber.
+- Backend unverändert seit R72.
+- Live-Baum: seit `8880a17d`.
+- Die privaten Eingaben zu `haus.ngc` liegen weiter nur im ignorierten `.review-handshake/r84/`.
