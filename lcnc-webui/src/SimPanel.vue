@@ -6,7 +6,7 @@
 // the machine off); ‹ › step through the shown kind. The list and its
 // actions are the scrub bar's own (simPanelStore.ts): the marks, the rows and
 // prev/next are one navigation. During a run the list marks the next event.
-import { computed, nextTick, ref } from "vue";
+import { computed, nextTick, ref, watch } from "vue";
 import { ChevronLeft, ChevronRight, Circle, Triangle, X } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSelect from "./MachineSelect.vue";
@@ -85,10 +85,48 @@ function onPickKey(e: KeyboardEvent, r: SimRow) {
   if (to) void nextTick(() => pickEl(to)?.focus());
 }
 const rowName = (r: SimRow) => `Show ${r.lineLabel}: ${r.what}`;
+
+// ── The panel OWNS the focus it holds (Codex R78 VP-I37): a new result, the
+// entry merge or a parked sweep replaces the rows, and a focused row — or a
+// step button re-rendered with its reason — left the DOM under the focus.
+// The focus fell to BODY and the next arrow jogged. Before every change of
+// what the panel renders, note where the focus is; after it, a focus that
+// fell out of the panel goes to the same row, the same control, the row now
+// at its place, the list filter, else the panel itself — which keeps the
+// navigation keys (onRootKey).
+const renders = () => [rows.value, simView.available, simView.jumpReason, stepReason.value] as const;
+let held: { key: string | null; label: string | null; index: number } | null = null;
+watch(renders, (_now, before) => {
+  const r = root.value, a = document.activeElement as HTMLElement | null;
+  if (!r || !a || !r.contains(a)) { held = null; return; }
+  const key = a.closest<HTMLElement>("[data-sim-row]")?.dataset.simRow ?? null;
+  const old = (before?.[0] ?? []) as readonly SimRow[];
+  held = { key, label: key ? null : a.getAttribute("aria-label"), index: key ? old.findIndex(x => x.key === key) : -1 };
+}, { flush: "pre" });
+watch(renders, () => {
+  const h = held, r = root.value;
+  held = null;
+  if (!h || !r || r.contains(document.activeElement)) return;
+  const keys = rows.value.map(x => x.key);
+  const tries: (HTMLElement | null)[] = [];
+  if (h.key && keys.includes(h.key)) tries.push(pickEl(h.key));
+  if (h.label) tries.push(r.querySelector<HTMLElement>(`[aria-label="${CSS.escape(h.label)}"]`));
+  if (keys.length && h.index >= 0) tries.push(pickEl(keys[Math.min(h.index, keys.length - 1)]!));
+  tries.push(r.querySelector<HTMLElement>('select[name="simFilter"]'), r);
+  for (const el of tries) {
+    el?.focus();
+    if (el && document.activeElement === el) return;
+  }
+}, { flush: "post" });
+/** The panel itself, holding a parked focus, keeps the navigation keys —
+ *  one that reached the shortcut map would jog. */
+function onRootKey(e: KeyboardEvent) {
+  if (e.target === root.value && NAV_KEYS.includes(e.key)) e.preventDefault();
+}
 </script>
 
 <template>
-  <div ref="root" class="simPanel stack-controls">
+  <div ref="root" class="simPanel stack-controls" tabindex="-1" @keydown="onRootKey">
     <div v-if="!simView.available" class="emptyState">Load a program to simulate it.</div>
     <template v-else>
       <!-- ONE row: the speed and where the simulation (or the run) stands.
