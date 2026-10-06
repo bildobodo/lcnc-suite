@@ -1,0 +1,120 @@
+{
+  "distance": {
+    "rows": [
+      {
+        "x": 2.5,
+        "surfaceDistance": 0.5,
+        "analyticOverlap": 0
+      },
+      {
+        "x": 1.9,
+        "surfaceDistance": 0,
+        "analyticOverlap": 0.10000000000000009
+      },
+      {
+        "x": 0.2,
+        "surfaceDistance": 0,
+        "analyticOverlap": 1.8
+      }
+    ],
+    "fullyContainedSurfaceDistance": 0.75
+  },
+  "intervalCap": {
+    "expectedEpisodes": 17,
+    "records": 1,
+    "targets": 16,
+    "intervals": [
+      [
+        40.0004638671875,
+        49.999755859375
+      ],
+      [
+        130.00009765625,
+        140.00009765625
+      ],
+      [
+        220.00009765625,
+        230.00009765625
+      ],
+      [
+        310.0004638671875,
+        319.999755859375
+      ],
+      [
+        400.0004638671875,
+        409.999755859375
+      ],
+      [
+        490.0004638671875,
+        499.999755859375
+      ],
+      [
+        580.0004638671875,
+        589.999755859375
+      ],
+      [
+        670.0004638671875,
+        679.999755859375
+      ],
+      [
+        760.0004638671875,
+        769.999755859375
+      ],
+      [
+        850.0004638671875,
+        859.999755859375
+      ],
+      [
+        940.0004638671875,
+        949.999755859375
+      ],
+      [
+        1030.00009765625,
+        1040.00009765625
+      ],
+      [
+        1120.00009765625,
+        1130.00009765625
+      ],
+      [
+        1210.00009765625,
+        1220.00009765625
+      ],
+      [
+        1300.00009765625,
+        1310.00009765625
+      ],
+      [
+        1390.00009765625,
+        1490.00009765625
+      ]
+    ],
+    "knownClearCum": 1440,
+    "clearInsideReportedInterval": true,
+    "truncated": null,
+    "uncertified": null,
+    "samples": 250
+  },
+  "recordCap": {
+    "expectedEpisodes": 201,
+    "records": 200,
+    "targets": 200,
+    "lastReportedLine": 400,
+    "lastExpectedOnsetLine": 402,
+    "truncated": null,
+    "uncertified": null,
+    "samples": 2413,
+    "resultKeys": [
+      "hits",
+      "staticContacts",
+      "samples",
+      "coarsened",
+      "uncertified",
+      "pairCount",
+      "pairsPrescreened",
+      "bvhMs",
+      "sweepMs",
+      "truncated"
+    ]
+  }
+}

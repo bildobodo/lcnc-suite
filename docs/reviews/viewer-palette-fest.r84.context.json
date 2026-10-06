@@ -1,0 +1,23 @@
+{
+  "round": "R84",
+  "review_kind": "ideas, no implementation approval",
+  "source_head": "092d00b1beab9d6379a2019293abced5ff3b8a9b",
+  "requested_base": "207691712ed1f393705afa896d6aab5a519e2262",
+  "archive": "/tmp/codex-r84-ftoj61wy/archive",
+  "archived_tracked_files_matched": 416,
+  "comparison": "Git blob SHA-1 recomputed for every archived lcnc-webui file",
+  "product_changes": false,
+  "private_inputs_copied_to_evidence": false,
+  "live_browser_or_gateway_access": false,
+  "server_ports_used": [],
+  "machine_commands": false,
+  "full_haus_sweep_repeated": false,
+  "synthetic_tests": {
+    "passed": 3,
+    "failed": 0,
+    "workers": 1,
+    "priority": "nice 19",
+    "meaning": "diagnostic reproduction of existing limitations"
+  },
+  "prior_review": "VP-I43 remains open and is outside R84"
+}
