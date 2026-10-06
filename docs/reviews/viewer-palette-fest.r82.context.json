@@ -1,0 +1,21 @@
+{
+  "base": "6cb25e7c823afc01638b94a6f686b0573e678504",
+  "reviewed_head": "880492457c634d4334f2ec7d9c58b37656041b4c",
+  "live_head": "719ef272235689c00c680a4c3a443faafd661005",
+  "archive": "/tmp/codex-r82-dau10sks/archive",
+  "source_files_matching_git_blobs": 411,
+  "isolation_only_changes": [
+    "lcnc-webui/e2e/ctl.ts",
+    "lcnc-webui/tsconfig.app.json",
+    "lcnc-webui/tsconfig.node.json",
+    "lcnc-webui/tsconfig.test.json",
+    "lcnc-webui/vite.config.ts"
+  ],
+  "product_src_modified": false,
+  "r81_probe_byte_identical": true,
+  "review_original_sha256": "4e6d1643eb440aebda71d55567b321b3a3cd9850b924cfc6ff9d83354f955f21",
+  "mock": "127.0.0.1:4188",
+  "workers": 1,
+  "nice": 19,
+  "build_before_external_probes": true
+}

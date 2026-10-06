@@ -1,0 +1,45 @@
+[2m[WebServer] [22m(node:2043775) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:2043819) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2043819) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r82.summary.spec.ts:58:1 › R82: summary stays one line across themes, zoom and counts axes separately from lines (5.0s)
+  ✘  2 e2e/r82.summary.spec.ts:77:1 › R82: capped-list explanation is reachable with the keyboard through the existing help (3.0s)
+(node:2044275) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2044275) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 e2e/r82.summary.spec.ts:95:1 › R82: a long partial verdict and caveat keep the summary height (3.3s)
+
+
+  1) e2e/r82.summary.spec.ts:77:1 › R82: capped-list explanation is reachable with the keyboard through the existing help 
+
+    Error: the existing keyboard/touch help must explain why 200636 violations give only 100 listed lines
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoMatch[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected pattern: [32m/first 100|200636|capped|truncat|limited to|records/i[39m
+    Received string:  [31m"One row per mark on the timeline: × collision, ▲ soft limit (offsets as parsed), ● tool change."[39m
+
+      87 |  save('summary-disclosure',{before,accessible,afterTap,helpText});
+      88 |  await page.locator('.sidePane').screenshot({path:`../evidence/viewer-palette-fest.r82.${process.env.R82_BROWSER||'chromium'}-summary-help.png`});
+    > 89 |  expect(helpText,'the existing keyboard/touch help must explain why 200636 violations give only 100 listed lines').toMatch(/first 100|200636|capped|truncat|limited to|records/i);
+         |                                                                                                                    ^
+      90 | });
+      91 |
+      92 | // A fixture at the existing collision worker boundary, not a product edit:
+        at /tmp/codex-r82-dau10sks/archive/lcnc-webui/e2e/r82.summary.spec.ts:89:116
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r82-firefox-output/r82.summary-R82-capped-lis-56a77-d-through-the-existing-help/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r82-firefox-output/r82.summary-R82-capped-lis-56a77-d-through-the-existing-help/error-context.md
+
+  1 failed
+    e2e/r82.summary.spec.ts:77:1 › R82: capped-list explanation is reachable with the keyboard through the existing help 
+  2 passed (13.5s)

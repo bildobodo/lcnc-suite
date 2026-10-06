@@ -1,0 +1,99 @@
+{
+  "before": {
+    "width": 279,
+    "scrollWidth": 279,
+    "height": 27,
+    "left": 457,
+    "right": 875,
+    "narrow": true,
+    "listHead": 39,
+    "items": [
+      {
+        "name": "2 collisions",
+        "text": "2",
+        "left": 457,
+        "right": 492.6499938964844,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636",
+        "left": 504.6499938964844,
+        "right": 597.0500030517578,
+        "height": 27,
+        "visibleText": "200636",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2",
+        "left": 609.0499877929688,
+        "right": 641.6999816894531,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      }
+    ]
+  },
+  "accessible": "- img \"2 collisions\": \"2\"\n- img \"200636 limit violations · the first 100 lines listed\": \"200636\"\n- img \"2 tool changes\": \"2\"",
+  "afterTap": {
+    "popoverCount": 0,
+    "width": 279,
+    "scrollWidth": 279,
+    "height": 27,
+    "left": 457,
+    "right": 875,
+    "narrow": true,
+    "listHead": 39,
+    "items": [
+      {
+        "name": "2 collisions",
+        "text": "2",
+        "left": 457,
+        "right": 492.6499938964844,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636",
+        "left": 504.6499938964844,
+        "right": 597.0500030517578,
+        "height": 27,
+        "visibleText": "200636",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2",
+        "left": 609.0499877929688,
+        "right": 641.6999816894531,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      }
+    ]
+  },
+  "helpText": "One row per mark on the timeline: × collision, ▲ soft limit (offsets as parsed), ● tool change."
+}

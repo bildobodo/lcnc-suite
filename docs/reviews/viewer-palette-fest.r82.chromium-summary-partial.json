@@ -1,0 +1,98 @@
+[
+  {
+    "zoom": 1,
+    "width": 522,
+    "scrollWidth": 522,
+    "height": 18,
+    "left": 1061,
+    "right": 1583,
+    "narrow": false,
+    "listHead": 26,
+    "items": [
+      {
+        "name": "30 collisions in 99 % swept (not certified)",
+        "text": "30 collisions in 99 % swept\n*",
+        "left": 1061,
+        "right": 1249,
+        "height": 18,
+        "visibleText": "30 collisions in 99 % swept",
+        "textWidth": 161,
+        "textScroll": 161,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636 limit violations · the first 100 lines listed",
+        "left": 1257,
+        "right": 1474,
+        "height": 18,
+        "visibleText": "200636 limit violations · the first 100 lines listed",
+        "textWidth": 202,
+        "textScroll": 279,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2 tool changes",
+        "left": 1482,
+        "right": 1583,
+        "height": 18,
+        "visibleText": "2 tool changes",
+        "textWidth": 87,
+        "textScroll": 87,
+        "shortShown": false,
+        "tabIndex": -1
+      }
+    ]
+  },
+  {
+    "zoom": 1.5,
+    "width": 279,
+    "scrollWidth": 279,
+    "height": 27,
+    "left": 457,
+    "right": 875,
+    "narrow": true,
+    "listHead": 39,
+    "items": [
+      {
+        "name": "30 collisions in 99 % swept (not certified)",
+        "text": "30…\n*",
+        "left": 457,
+        "right": 535,
+        "height": 27,
+        "visibleText": "30…",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636",
+        "left": 547,
+        "right": 637.5,
+        "height": 27,
+        "visibleText": "200636",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2",
+        "left": 649.5,
+        "right": 682.5,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      }
+    ]
+  }
+]

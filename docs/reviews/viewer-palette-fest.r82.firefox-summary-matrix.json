@@ -1,0 +1,786 @@
+[
+  {
+    "theme": "light",
+    "zoom": 1,
+    "width": 522,
+    "scrollWidth": 522,
+    "height": 18,
+    "left": 1061,
+    "right": 1583,
+    "narrow": false,
+    "listHead": 26,
+    "items": [
+      {
+        "name": "2 collisions",
+        "text": "2 collisions",
+        "left": 1061,
+        "right": 1140.3000030517578,
+        "height": 18,
+        "visibleText": "2 collisions",
+        "textWidth": 63,
+        "textScroll": 63,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636 limit violations · the first 100 lines listed",
+        "left": 1148.300048828125,
+        "right": 1432.3167114257812,
+        "height": 18,
+        "visibleText": "200636 limit violations · the first 100 lines listed",
+        "textWidth": 269,
+        "textScroll": 269,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2 tool changes",
+        "left": 1440.316650390625,
+        "right": 1537.9833221435547,
+        "height": 18,
+        "visibleText": "2 tool changes",
+        "textWidth": 84,
+        "textScroll": 84,
+        "shortShown": false,
+        "tabIndex": -1
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "zoom": 1.5,
+    "width": 523,
+    "scrollWidth": 523,
+    "height": 27,
+    "left": 791,
+    "right": 1575,
+    "narrow": false,
+    "listHead": 39,
+    "items": [
+      {
+        "name": "2 collisions",
+        "text": "2 collisions",
+        "left": 791,
+        "right": 907.8666687011719,
+        "height": 27,
+        "visibleText": "2 collisions",
+        "textWidth": 62,
+        "textScroll": 62,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636 limit violations · the first 100 lines listed",
+        "left": 919.86669921875,
+        "right": 1338.2833862304688,
+        "height": 27,
+        "visibleText": "200636 limit violations · the first 100 lines listed",
+        "textWidth": 264,
+        "textScroll": 264,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2 tool changes",
+        "left": 1350.2833251953125,
+        "right": 1494.3666534423828,
+        "height": 27,
+        "visibleText": "2 tool changes",
+        "textWidth": 82,
+        "textScroll": 82,
+        "shortShown": false,
+        "tabIndex": -1
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "zoom": 1,
+    "width": 578,
+    "scrollWidth": 578,
+    "height": 18,
+    "left": 305,
+    "right": 883,
+    "narrow": false,
+    "listHead": 26,
+    "items": [
+      {
+        "name": "2 collisions",
+        "text": "2 collisions",
+        "left": 305,
+        "right": 384.3000030517578,
+        "height": 18,
+        "visibleText": "2 collisions",
+        "textWidth": 63,
+        "textScroll": 63,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636 limit violations · the first 100 lines listed",
+        "left": 392.29998779296875,
+        "right": 676.316650390625,
+        "height": 18,
+        "visibleText": "200636 limit violations · the first 100 lines listed",
+        "textWidth": 269,
+        "textScroll": 269,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2 tool changes",
+        "left": 684.316650390625,
+        "right": 781.9833221435547,
+        "height": 18,
+        "visibleText": "2 tool changes",
+        "textWidth": 84,
+        "textScroll": 84,
+        "shortShown": false,
+        "tabIndex": -1
+      }
+    ]
+  },
+  {
+    "theme": "light",
+    "zoom": 1.5,
+    "width": 279,
+    "scrollWidth": 279,
+    "height": 27,
+    "left": 457,
+    "right": 875,
+    "narrow": true,
+    "listHead": 39,
+    "items": [
+      {
+        "name": "2 collisions",
+        "text": "2",
+        "left": 457,
+        "right": 492.6499938964844,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636",
+        "left": 504.6499938964844,
+        "right": 597.0500030517578,
+        "height": 27,
+        "visibleText": "200636",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2",
+        "left": 609.0499877929688,
+        "right": 641.6999816894531,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "zoom": 1,
+    "width": 522,
+    "scrollWidth": 522,
+    "height": 18,
+    "left": 1061,
+    "right": 1583,
+    "narrow": false,
+    "listHead": 26,
+    "items": [
+      {
+        "name": "2 collisions",
+        "text": "2 collisions",
+        "left": 1061,
+        "right": 1140.3000030517578,
+        "height": 18,
+        "visibleText": "2 collisions",
+        "textWidth": 63,
+        "textScroll": 63,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636 limit violations · the first 100 lines listed",
+        "left": 1148.300048828125,
+        "right": 1432.3167114257812,
+        "height": 18,
+        "visibleText": "200636 limit violations · the first 100 lines listed",
+        "textWidth": 269,
+        "textScroll": 269,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2 tool changes",
+        "left": 1440.316650390625,
+        "right": 1537.9833221435547,
+        "height": 18,
+        "visibleText": "2 tool changes",
+        "textWidth": 84,
+        "textScroll": 84,
+        "shortShown": false,
+        "tabIndex": -1
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "zoom": 1.5,
+    "width": 523,
+    "scrollWidth": 523,
+    "height": 27,
+    "left": 791,
+    "right": 1575,
+    "narrow": false,
+    "listHead": 39,
+    "items": [
+      {
+        "name": "2 collisions",
+        "text": "2 collisions",
+        "left": 791,
+        "right": 907.8666687011719,
+        "height": 27,
+        "visibleText": "2 collisions",
+        "textWidth": 62,
+        "textScroll": 62,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636 limit violations · the first 100 lines listed",
+        "left": 919.86669921875,
+        "right": 1338.2833862304688,
+        "height": 27,
+        "visibleText": "200636 limit violations · the first 100 lines listed",
+        "textWidth": 264,
+        "textScroll": 264,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2 tool changes",
+        "left": 1350.2833251953125,
+        "right": 1494.3666534423828,
+        "height": 27,
+        "visibleText": "2 tool changes",
+        "textWidth": 82,
+        "textScroll": 82,
+        "shortShown": false,
+        "tabIndex": -1
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "zoom": 1,
+    "width": 578,
+    "scrollWidth": 578,
+    "height": 18,
+    "left": 305,
+    "right": 883,
+    "narrow": false,
+    "listHead": 26,
+    "items": [
+      {
+        "name": "2 collisions",
+        "text": "2 collisions",
+        "left": 305,
+        "right": 384.3000030517578,
+        "height": 18,
+        "visibleText": "2 collisions",
+        "textWidth": 63,
+        "textScroll": 63,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636 limit violations · the first 100 lines listed",
+        "left": 392.29998779296875,
+        "right": 676.316650390625,
+        "height": 18,
+        "visibleText": "200636 limit violations · the first 100 lines listed",
+        "textWidth": 269,
+        "textScroll": 269,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2 tool changes",
+        "left": 684.316650390625,
+        "right": 781.9833221435547,
+        "height": 18,
+        "visibleText": "2 tool changes",
+        "textWidth": 84,
+        "textScroll": 84,
+        "shortShown": false,
+        "tabIndex": -1
+      }
+    ]
+  },
+  {
+    "theme": "dark",
+    "zoom": 1.5,
+    "width": 279,
+    "scrollWidth": 279,
+    "height": 27,
+    "left": 457,
+    "right": 875,
+    "narrow": true,
+    "listHead": 39,
+    "items": [
+      {
+        "name": "2 collisions",
+        "text": "2",
+        "left": 457,
+        "right": 492.6499938964844,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636",
+        "left": 504.6499938964844,
+        "right": 597.0500030517578,
+        "height": 27,
+        "visibleText": "200636",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2",
+        "left": 609.0499877929688,
+        "right": 641.6999816894531,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      }
+    ]
+  },
+  {
+    "theme": "hc-light",
+    "zoom": 1,
+    "width": 522,
+    "scrollWidth": 522,
+    "height": 18,
+    "left": 1061,
+    "right": 1583,
+    "narrow": false,
+    "listHead": 26,
+    "items": [
+      {
+        "name": "2 collisions",
+        "text": "2 collisions",
+        "left": 1061,
+        "right": 1140.3000030517578,
+        "height": 18,
+        "visibleText": "2 collisions",
+        "textWidth": 63,
+        "textScroll": 63,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636 limit violations · the first 100 lines listed",
+        "left": 1148.300048828125,
+        "right": 1432.3167114257812,
+        "height": 18,
+        "visibleText": "200636 limit violations · the first 100 lines listed",
+        "textWidth": 269,
+        "textScroll": 269,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2 tool changes",
+        "left": 1440.316650390625,
+        "right": 1537.9833221435547,
+        "height": 18,
+        "visibleText": "2 tool changes",
+        "textWidth": 84,
+        "textScroll": 84,
+        "shortShown": false,
+        "tabIndex": -1
+      }
+    ]
+  },
+  {
+    "theme": "hc-light",
+    "zoom": 1.5,
+    "width": 523,
+    "scrollWidth": 523,
+    "height": 27,
+    "left": 791,
+    "right": 1575,
+    "narrow": false,
+    "listHead": 39,
+    "items": [
+      {
+        "name": "2 collisions",
+        "text": "2 collisions",
+        "left": 791,
+        "right": 907.8666687011719,
+        "height": 27,
+        "visibleText": "2 collisions",
+        "textWidth": 62,
+        "textScroll": 62,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636 limit violations · the first 100 lines listed",
+        "left": 919.86669921875,
+        "right": 1338.2833862304688,
+        "height": 27,
+        "visibleText": "200636 limit violations · the first 100 lines listed",
+        "textWidth": 264,
+        "textScroll": 264,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2 tool changes",
+        "left": 1350.2833251953125,
+        "right": 1494.3666534423828,
+        "height": 27,
+        "visibleText": "2 tool changes",
+        "textWidth": 82,
+        "textScroll": 82,
+        "shortShown": false,
+        "tabIndex": -1
+      }
+    ]
+  },
+  {
+    "theme": "hc-light",
+    "zoom": 1,
+    "width": 578,
+    "scrollWidth": 578,
+    "height": 18,
+    "left": 305,
+    "right": 883,
+    "narrow": false,
+    "listHead": 26,
+    "items": [
+      {
+        "name": "2 collisions",
+        "text": "2 collisions",
+        "left": 305,
+        "right": 384.3000030517578,
+        "height": 18,
+        "visibleText": "2 collisions",
+        "textWidth": 63,
+        "textScroll": 63,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636 limit violations · the first 100 lines listed",
+        "left": 392.29998779296875,
+        "right": 676.316650390625,
+        "height": 18,
+        "visibleText": "200636 limit violations · the first 100 lines listed",
+        "textWidth": 269,
+        "textScroll": 269,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2 tool changes",
+        "left": 684.316650390625,
+        "right": 781.9833221435547,
+        "height": 18,
+        "visibleText": "2 tool changes",
+        "textWidth": 84,
+        "textScroll": 84,
+        "shortShown": false,
+        "tabIndex": -1
+      }
+    ]
+  },
+  {
+    "theme": "hc-light",
+    "zoom": 1.5,
+    "width": 279,
+    "scrollWidth": 279,
+    "height": 27,
+    "left": 457,
+    "right": 875,
+    "narrow": true,
+    "listHead": 39,
+    "items": [
+      {
+        "name": "2 collisions",
+        "text": "2",
+        "left": 457,
+        "right": 492.6499938964844,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636",
+        "left": 504.6499938964844,
+        "right": 597.0500030517578,
+        "height": 27,
+        "visibleText": "200636",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2",
+        "left": 609.0499877929688,
+        "right": 641.6999816894531,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      }
+    ]
+  },
+  {
+    "theme": "hc-dark",
+    "zoom": 1,
+    "width": 522,
+    "scrollWidth": 522,
+    "height": 18,
+    "left": 1061,
+    "right": 1583,
+    "narrow": false,
+    "listHead": 26,
+    "items": [
+      {
+        "name": "2 collisions",
+        "text": "2 collisions",
+        "left": 1061,
+        "right": 1140.3000030517578,
+        "height": 18,
+        "visibleText": "2 collisions",
+        "textWidth": 63,
+        "textScroll": 63,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636 limit violations · the first 100 lines listed",
+        "left": 1148.300048828125,
+        "right": 1432.3167114257812,
+        "height": 18,
+        "visibleText": "200636 limit violations · the first 100 lines listed",
+        "textWidth": 269,
+        "textScroll": 269,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2 tool changes",
+        "left": 1440.316650390625,
+        "right": 1537.9833221435547,
+        "height": 18,
+        "visibleText": "2 tool changes",
+        "textWidth": 84,
+        "textScroll": 84,
+        "shortShown": false,
+        "tabIndex": -1
+      }
+    ]
+  },
+  {
+    "theme": "hc-dark",
+    "zoom": 1.5,
+    "width": 523,
+    "scrollWidth": 523,
+    "height": 27,
+    "left": 791,
+    "right": 1575,
+    "narrow": false,
+    "listHead": 39,
+    "items": [
+      {
+        "name": "2 collisions",
+        "text": "2 collisions",
+        "left": 791,
+        "right": 907.8666687011719,
+        "height": 27,
+        "visibleText": "2 collisions",
+        "textWidth": 62,
+        "textScroll": 62,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636 limit violations · the first 100 lines listed",
+        "left": 919.86669921875,
+        "right": 1338.2833862304688,
+        "height": 27,
+        "visibleText": "200636 limit violations · the first 100 lines listed",
+        "textWidth": 264,
+        "textScroll": 264,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2 tool changes",
+        "left": 1350.2833251953125,
+        "right": 1494.3666534423828,
+        "height": 27,
+        "visibleText": "2 tool changes",
+        "textWidth": 82,
+        "textScroll": 82,
+        "shortShown": false,
+        "tabIndex": -1
+      }
+    ]
+  },
+  {
+    "theme": "hc-dark",
+    "zoom": 1,
+    "width": 578,
+    "scrollWidth": 578,
+    "height": 18,
+    "left": 305,
+    "right": 883,
+    "narrow": false,
+    "listHead": 26,
+    "items": [
+      {
+        "name": "2 collisions",
+        "text": "2 collisions",
+        "left": 305,
+        "right": 384.3000030517578,
+        "height": 18,
+        "visibleText": "2 collisions",
+        "textWidth": 63,
+        "textScroll": 63,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636 limit violations · the first 100 lines listed",
+        "left": 392.29998779296875,
+        "right": 676.316650390625,
+        "height": 18,
+        "visibleText": "200636 limit violations · the first 100 lines listed",
+        "textWidth": 269,
+        "textScroll": 269,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2 tool changes",
+        "left": 684.316650390625,
+        "right": 781.9833221435547,
+        "height": 18,
+        "visibleText": "2 tool changes",
+        "textWidth": 84,
+        "textScroll": 84,
+        "shortShown": false,
+        "tabIndex": -1
+      }
+    ]
+  },
+  {
+    "theme": "hc-dark",
+    "zoom": 1.5,
+    "width": 279,
+    "scrollWidth": 279,
+    "height": 27,
+    "left": 457,
+    "right": 875,
+    "narrow": true,
+    "listHead": 39,
+    "items": [
+      {
+        "name": "2 collisions",
+        "text": "2",
+        "left": 457,
+        "right": 492.6499938964844,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636",
+        "left": 504.6499938964844,
+        "right": 597.0500030517578,
+        "height": 27,
+        "visibleText": "200636",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2",
+        "left": 609.0499877929688,
+        "right": 641.6999816894531,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      }
+    ]
+  }
+]

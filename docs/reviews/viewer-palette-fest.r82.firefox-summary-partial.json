@@ -1,0 +1,98 @@
+[
+  {
+    "zoom": 1,
+    "width": 522,
+    "scrollWidth": 522,
+    "height": 18,
+    "left": 1061,
+    "right": 1583,
+    "narrow": false,
+    "listHead": 26,
+    "items": [
+      {
+        "name": "30 collisions in 99 % swept (not certified)",
+        "text": "30 collisions in 99 % swept\n*",
+        "left": 1061,
+        "right": 1242.3666687011719,
+        "height": 18,
+        "visibleText": "30 collisions in 99 % swept",
+        "textWidth": 155,
+        "textScroll": 155,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636 limit violations · the first 100 lines listed",
+        "left": 1250.36669921875,
+        "right": 1477.3333587646484,
+        "height": 18,
+        "visibleText": "200636 limit violations · the first 100 lines listed",
+        "textWidth": 212,
+        "textScroll": 269,
+        "shortShown": false,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2 tool changes",
+        "left": 1485.3333740234375,
+        "right": 1583.0000457763672,
+        "height": 18,
+        "visibleText": "2 tool changes",
+        "textWidth": 84,
+        "textScroll": 84,
+        "shortShown": false,
+        "tabIndex": -1
+      }
+    ]
+  },
+  {
+    "zoom": 1.5,
+    "width": 279,
+    "scrollWidth": 279,
+    "height": 27,
+    "left": 457,
+    "right": 875,
+    "narrow": true,
+    "listHead": 39,
+    "items": [
+      {
+        "name": "30 collisions in 99 % swept (not certified)",
+        "text": "30…\n*",
+        "left": 457,
+        "right": 533.9166717529297,
+        "height": 27,
+        "visibleText": "30…",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "200636 limit violations · the first 100 lines listed",
+        "text": "200636",
+        "left": 545.9166870117188,
+        "right": 638.3166809082031,
+        "height": 27,
+        "visibleText": "200636",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      },
+      {
+        "name": "2 tool changes",
+        "text": "2",
+        "left": 650.316650390625,
+        "right": 682.9666442871094,
+        "height": 27,
+        "visibleText": "2",
+        "textWidth": 0,
+        "textScroll": 0,
+        "shortShown": true,
+        "tabIndex": -1
+      }
+    ]
+  }
+]

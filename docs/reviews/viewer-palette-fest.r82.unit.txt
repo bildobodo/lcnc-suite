@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r82-dau10sks/archive/lcnc-webui
+
+
+ Test Files  7 passed (7)
+      Tests  111 passed (111)
+   Start at  16:02:28
+   Duration  1.74s (transform 512ms, setup 0ms, import 858ms, tests 77ms, environment 1ms)
+

@@ -1,0 +1,16 @@
+[
+  {
+    "browser": "chromium",
+    "samples": 42,
+    "with_marker": 25,
+    "different_markers": 25,
+    "not_fully_visible": 0
+  },
+  {
+    "browser": "firefox",
+    "samples": 42,
+    "with_marker": 23,
+    "different_markers": 23,
+    "not_fully_visible": 0
+  }
+]
