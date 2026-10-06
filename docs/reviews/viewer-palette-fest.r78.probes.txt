@@ -1,0 +1,22 @@
+[2m[WebServer] [22m(node:1477319) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+SyntaxError: /tmp/codex-r78-tgay4bsd/archive/lcnc-webui/e2e/r78.probe.spec.ts: Unexpected token, expected "," (75:6)
+
+  73 |   await ctl({op:'raw',frame:{type:'settings_init',settings:{keyboard:{jogEnabled:true,buttonsEnabled:true,mapping:{
+  74 |     'jog_x+':'ArrowRight','jog_x-':'ArrowLeft','jog_y+':'ArrowUp','jog_y-':'ArrowDown',estop:'Escape',cycle:' ',abort:'Backspace'
+> 75 |   }}}});
+     |       ^
+  76 |   await page.locator('[data-sim-row^="C12|"] .rowPick').focus();
+  77 |   await expect(page.locator('[data-sim-row^="C12|"] .rowPick')).toBeFocused();
+  78 |   await ctl({op:'clearCmds'});
+
+   at r78.probe.spec.ts:75
+
+  73 |   await ctl({op:'raw',frame:{type:'settings_init',settings:{keyboard:{jogEnabled:true,buttonsEnabled:true,mapping:{
+  74 |     'jog_x+':'ArrowRight','jog_x-':'ArrowLeft','jog_y+':'ArrowUp','jog_y-':'ArrowDown',estop:'Escape',cycle:' ',abort:'Backspace'
+> 75 |   }}}});
+     |      ^
+  76 |   await page.locator('[data-sim-row^="C12|"] .rowPick').focus();
+  77 |   await expect(page.locator('[data-sim-row^="C12|"] .rowPick')).toBeFocused();
+  78 |   await ctl({op:'clearCmds'});
+

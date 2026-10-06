@@ -1,0 +1,115 @@
+[2m[WebServer] [22m(node:1470592) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 39 tests using 1 worker
+
+(node:1470620) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1470620) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/collisions.viewer.spec.ts:53:1 › a collision jump on the real XYZAC model lands on its line and shows its move — across the entry move (4.5s)
+  ✓   2 e2e/collisions.viewer.spec.ts:87:1 › entry-move and program contacts on the same line and pairs stay apart: a chosen program contact survives the entry result, next reaches every contact once (Codex R33 VP-I07) (7.1s)
+  ✓   3 e2e/collisions.viewer.spec.ts:126:1 › a manual move away and back ends the shown contact for good: next goes by position (Codex R33 VP-I08) (6.3s)
+  ✓   4 e2e/collisions.viewer.spec.ts:171:3 › contacts that separate and come back on one line stay apart, with and without the entry move — a clear first point (control) (Codex R34 VP-I09) (6.6s)
+  ✓   5 e2e/collisions.viewer.spec.ts:171:3 › contacts that separate and come back on one line stay apart, with and without the entry move — the program starts in the contact (Codex R34 VP-I09) (6.5s)
+  ✓   6 e2e/findings.viewer.spec.ts:48:3 › a limit jump lands in the finding and shows its move — no entry move (control) (2.0s)
+  ✓   7 e2e/findings.viewer.spec.ts:48:3 › a limit jump lands in the finding and shows its move — the first jump builds the entry move (2.0s)
+  ✓   8 e2e/findings.viewer.spec.ts:48:3 › a limit jump lands in the finding and shows its move — a 0.1 ms violating move on the time axis (2.0s)
+  ✓   9 e2e/findings.viewer.spec.ts:48:3 › a limit jump lands in the finding and shows its move — two findings 5 ms apart (2.2s)
+  ✓  10 e2e/findings.viewer.spec.ts:75:1 › a limit on a first line of two points lands in the program's move, not on the entry move — first and second jump (2.0s)
+  ✓  11 e2e/forms.spec.ts:112:3 › desktop: every field is named, every label labels a control, one density is one height (8.1s)
+  ✓  12 e2e/forms.spec.ts:112:3 › touch: every field is named, every label labels a control, one density is one height (8.0s)
+  ✓  13 e2e/layout.spec.ts:173:3 › desktop: side-pane navigation fits its budget (tabs or selects, no clipped name, three form rows) (2.3s)
+  ✓  14 e2e/layout.spec.ts:173:3 › touch-landscape: side-pane navigation fits its budget (tabs or selects, no clipped name, three form rows) (2.3s)
+  ✓  15 e2e/layout.spec.ts:173:3 › touch-portrait: side-pane navigation fits its budget (tabs or selects, no clipped name, three form rows) (2.4s)
+  ✓  16 e2e/layout.spec.ts:173:3 › touch-portrait 150 %: side-pane navigation fits its budget (tabs or selects, no clipped name, three form rows) (2.4s)
+  ✓  17 e2e/layout.spec.ts:233:1 › the narrow threshold: selects under it, every tab name whole at and over it; focus survives the switch (2.4s)
+  ✓  18 e2e/layout.spec.ts:1156:3 › 5axis-xyzac: the scrub bar's insides, the simulation banner and the opened details fit the narrow viewer (35.0s)
+  ✓  19 e2e/layout.spec.ts:1156:3 › 6axis-twp: the scrub bar's insides, the simulation banner and the opened details fit the narrow viewer (34.3s)
+  ✓  20 e2e/layout.spec.ts:1305:3 › 5axis-xyzac: with the HUD layer off the banner and the bottom column still follow the viewer (11.9s)
+  ✓  21 e2e/layout.spec.ts:1305:3 › 6axis-twp: with the HUD layer off the banner and the bottom column still follow the viewer (11.9s)
+  ✓  22 e2e/rapids.viewer.spec.ts:20:1 › hidden rapids keep their limit finding; a jump to it shows them for the finding and says so (2.4s)
+  ✓  23 e2e/rapids.viewer.spec.ts:81:3 › a finding's view on hidden rapids is told — hud-off (2.1s)
+  ✓  24 e2e/rapids.viewer.spec.ts:81:3 › a finding's view on hidden rapids is told — folded (2.5s)
+  ✘  25 e2e/rapids.viewer.spec.ts:125:1 › a finding shows its own move of a hidden layer — not the layer (2.1s)
+(node:1474820) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1474820) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  26 e2e/select-writes.spec.ts:151:1 › the Simulation tab's speed and list filter while the simulation plays (2.4s)
+  ✓  27 e2e/sim-panel.viewer.spec.ts:41:1 › the list is the timeline's marks: one row each, in timeline order, each kind in its words (2.5s)
+  ✓  28 e2e/sim-panel.viewer.spec.ts:63:1 › a row shows its finding; the steps go through the shown kind; the next row follows the position (2.8s)
+  ✘  29 e2e/sim-panel.viewer.spec.ts:99:1 › the rows' keys move the focus, never a jog; Enter shows; the machine on explains at the row (12.2s)
+(node:1475404) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1475404) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  30 e2e/sim-panel.viewer.spec.ts:131:1 › stepping through the findings never changes the bar: the same box, the same timeline (10.0s)
+  ✓  31 e2e/tabs.spec.ts:63:1 › tab semantics: tablist, tab, tabpanel — one Tab stop, the panel named by its tab (1.9s)
+  ✓  32 e2e/tabs.spec.ts:92:1 › arrows move focus, Enter selects; every navigation key stays in the list — no jog (1.9s)
+  ✓  33 e2e/tabs.spec.ts:134:1 › a navigation key with a modifier on a focused tab never reaches the jog map (UI-DI06) (2.8s)
+  ✓  34 e2e/tabs.spec.ts:179:1 › Probing's 4 × 2 grid: Left / Right in reading order across rows, Up / Down change the row (1.8s)
+  ✓  35 e2e/tabs.spec.ts:209:1 › a tab switch sends nothing — but a jog still running stops (2.1s)
+  ✓  36 e2e/tabs.spec.ts:226:1 › a Probing procedure switch stops a running jog like a main tab — in the grid and in the narrow select (UI-DI11) (2.0s)
+  ✓  37 e2e/tabs.spec.ts:263:1 › a hidden panel is not focusable (1.7s)
+  ✓  38 e2e/tabs.spec.ts:286:1 › the Run-from-line spindle preset is one option group: Rev, Stop, Fwd (2.2s)
+  ✓  39 e2e/tabs.spec.ts:301:1 › narrow side pane (150 % portrait): the area and the procedure are two labelled selects on one row (1.8s)
+
+
+  1) e2e/rapids.viewer.spec.ts:125:1 › a finding shows its own move of a hidden layer — not the layer 
+
+    Error: with every rapid shown the longest runs along X
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThan[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: > [32m0.95[39m
+    Received:   [31m0.9198662110077999[39m
+
+      138 |   await expect.poll(async () => (await role("rapid"))?.length ?? 0).toBeGreaterThan(0);
+      139 |   const all = (await role("rapid"))!;
+    > 140 |   expect(Math.abs(all.dx), "with every rapid shown the longest runs along X").toBeGreaterThan(0.95);
+          |                                                                               ^
+      141 |
+      142 |   // Rapids off, jump to the finding on line 14 (the second finding in order).
+      143 |   await ctl({ op: "raw", frame: { type: "settings_changed", settings: { viewer: { layers: { rapids: false } } } } });
+        at /tmp/codex-r78-tgay4bsd/archive/lcnc-webui/e2e/rapids.viewer.spec.ts:140:79
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r78-chromium-output/rapids.viewer-a-finding-sh-7bab7-idden-layer-—-not-the-layer/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r78-chromium-output/rapids.viewer-a-finding-sh-7bab7-idden-layer-—-not-the-layer/error-context.md
+
+  2) e2e/sim-panel.viewer.spec.ts:99:1 › the rows' keys move the focus, never a jog; Enter shows; the machine on explains at the row 
+
+    Error: control: an arrow on the unfocused page jogs
+
+    control: an arrow on the unfocused page jogs
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoContain[2m([22m[32mexpected[39m[2m) // indexOf[22m
+
+    Expected value: [32m"jog_cont"[39m
+    Received array: [31m[][39m
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      107 |   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      108 |   await page.keyboard.down("ArrowRight");
+    > 109 |   await expect.poll(jogs, "control: an arrow on the unfocused page jogs").toContain("jog_cont");
+          |                                                                           ^
+      110 |   await page.keyboard.up("ArrowRight");
+      111 |   await expect.poll(jogs).toContain("jog_stop");
+      112 |   await ctl({ op: "clearCmds" });
+        at /tmp/codex-r78-tgay4bsd/archive/lcnc-webui/e2e/sim-panel.viewer.spec.ts:109:75
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r78-chromium-output/sim-panel.viewer-the-rows--bc731-hine-on-explains-at-the-row/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r78-chromium-output/sim-panel.viewer-the-rows--bc731-hine-on-explains-at-the-row/error-context.md
+
+  2 failed
+    e2e/rapids.viewer.spec.ts:125:1 › a finding shows its own move of a hidden layer — not the layer 
+    e2e/sim-panel.viewer.spec.ts:99:1 › the rows' keys move the focus, never a jog; Enter shows; the machine on explains at the row 
+  37 passed (3.7m)

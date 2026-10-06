@@ -1,0 +1,87 @@
+[2m[WebServer] [22m(node:1469833) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+Error: ENOENT: no such file or directory, open '/tmp/codex-r78-tgay4bsd/archive/scripts/test_fixtures/macro_refusals.json'
+
+   at macroFolder.ts:36
+
+  34 |  *  never sent, and the specs passed on a Keep editing the product broke). */
+  35 | const REFUSALS: Record<string, { kind: string; keys: string[]; reason?: string }> = JSON.parse(
+> 36 |   readFileSync(new URL("../../scripts/test_fixtures/macro_refusals.json", import.meta.url), "utf8"));
+     |   ^
+  37 | export type RefusalCase = "busy" | "conflict" | "deleted" | "exists" | "taken" | "outside";
+  38 | export function refusal(c: RefusalCase, fields: { name?: string; revision?: string | null; reason?: string } = {}) {
+  39 |   const spec = REFUSALS[c]!;
+    at /tmp/codex-r78-tgay4bsd/archive/lcnc-webui/e2e/macroFolder.ts:36:3
+Error: ENOENT: no such file or directory, open '/tmp/codex-r78-tgay4bsd/archive/scripts/test_fixtures/macro_refusals.json'
+
+   at macroFolder.ts:36
+
+  34 |  *  never sent, and the specs passed on a Keep editing the product broke). */
+  35 | const REFUSALS: Record<string, { kind: string; keys: string[]; reason?: string }> = JSON.parse(
+> 36 |   readFileSync(new URL("../../scripts/test_fixtures/macro_refusals.json", import.meta.url), "utf8"));
+     |   ^
+  37 | export type RefusalCase = "busy" | "conflict" | "deleted" | "exists" | "taken" | "outside";
+  38 | export function refusal(c: RefusalCase, fields: { name?: string; revision?: string | null; reason?: string } = {}) {
+  39 |   const spec = REFUSALS[c]!;
+    at /tmp/codex-r78-tgay4bsd/archive/lcnc-webui/e2e/macroFolder.ts:36:3
+Error: ENOENT: no such file or directory, open '/tmp/codex-r78-tgay4bsd/archive/scripts/test_fixtures/macro_refusals.json'
+
+   at macroFolder.ts:36
+
+  34 |  *  never sent, and the specs passed on a Keep editing the product broke). */
+  35 | const REFUSALS: Record<string, { kind: string; keys: string[]; reason?: string }> = JSON.parse(
+> 36 |   readFileSync(new URL("../../scripts/test_fixtures/macro_refusals.json", import.meta.url), "utf8"));
+     |   ^
+  37 | export type RefusalCase = "busy" | "conflict" | "deleted" | "exists" | "taken" | "outside";
+  38 | export function refusal(c: RefusalCase, fields: { name?: string; revision?: string | null; reason?: string } = {}) {
+  39 |   const spec = REFUSALS[c]!;
+    at /tmp/codex-r78-tgay4bsd/archive/lcnc-webui/e2e/macroFolder.ts:36:3
+Error: ENOENT: no such file or directory, open '/tmp/codex-r78-tgay4bsd/archive/scripts/test_fixtures/macro_refusals.json'
+
+   at macroFolder.ts:36
+
+  34 |  *  never sent, and the specs passed on a Keep editing the product broke). */
+  35 | const REFUSALS: Record<string, { kind: string; keys: string[]; reason?: string }> = JSON.parse(
+> 36 |   readFileSync(new URL("../../scripts/test_fixtures/macro_refusals.json", import.meta.url), "utf8"));
+     |   ^
+  37 | export type RefusalCase = "busy" | "conflict" | "deleted" | "exists" | "taken" | "outside";
+  38 | export function refusal(c: RefusalCase, fields: { name?: string; revision?: string | null; reason?: string } = {}) {
+  39 |   const spec = REFUSALS[c]!;
+    at /tmp/codex-r78-tgay4bsd/archive/lcnc-webui/e2e/macroFolder.ts:36:3
+Error: ENOENT: no such file or directory, open '/tmp/codex-r78-tgay4bsd/archive/scripts/test_fixtures/macro_refusals.json'
+
+   at macroFolder.ts:36
+
+  34 |  *  never sent, and the specs passed on a Keep editing the product broke). */
+  35 | const REFUSALS: Record<string, { kind: string; keys: string[]; reason?: string }> = JSON.parse(
+> 36 |   readFileSync(new URL("../../scripts/test_fixtures/macro_refusals.json", import.meta.url), "utf8"));
+     |   ^
+  37 | export type RefusalCase = "busy" | "conflict" | "deleted" | "exists" | "taken" | "outside";
+  38 | export function refusal(c: RefusalCase, fields: { name?: string; revision?: string | null; reason?: string } = {}) {
+  39 |   const spec = REFUSALS[c]!;
+    at /tmp/codex-r78-tgay4bsd/archive/lcnc-webui/e2e/macroFolder.ts:36:3
+Error: ENOENT: no such file or directory, open '/tmp/codex-r78-tgay4bsd/archive/scripts/test_fixtures/macro_refusals.json'
+
+   at macroFolder.ts:36
+
+  34 |  *  never sent, and the specs passed on a Keep editing the product broke). */
+  35 | const REFUSALS: Record<string, { kind: string; keys: string[]; reason?: string }> = JSON.parse(
+> 36 |   readFileSync(new URL("../../scripts/test_fixtures/macro_refusals.json", import.meta.url), "utf8"));
+     |   ^
+  37 | export type RefusalCase = "busy" | "conflict" | "deleted" | "exists" | "taken" | "outside";
+  38 | export function refusal(c: RefusalCase, fields: { name?: string; revision?: string | null; reason?: string } = {}) {
+  39 |   const spec = REFUSALS[c]!;
+    at /tmp/codex-r78-tgay4bsd/archive/lcnc-webui/e2e/macroFolder.ts:36:3
+Error: ENOENT: no such file or directory, open '/tmp/codex-r78-tgay4bsd/archive/scripts/test_fixtures/macro_refusals.json'
+
+   at macroFolder.ts:36
+
+  34 |  *  never sent, and the specs passed on a Keep editing the product broke). */
+  35 | const REFUSALS: Record<string, { kind: string; keys: string[]; reason?: string }> = JSON.parse(
+> 36 |   readFileSync(new URL("../../scripts/test_fixtures/macro_refusals.json", import.meta.url), "utf8"));
+     |   ^
+  37 | export type RefusalCase = "busy" | "conflict" | "deleted" | "exists" | "taken" | "outside";
+  38 | export function refusal(c: RefusalCase, fields: { name?: string; revision?: string | null; reason?: string } = {}) {
+  39 |   const spec = REFUSALS[c]!;
+    at /tmp/codex-r78-tgay4bsd/archive/lcnc-webui/e2e/macroFolder.ts:36:3
+

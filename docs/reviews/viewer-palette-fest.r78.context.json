@@ -1,0 +1,22 @@
+{
+  "review": "R78",
+  "base": "67494d4fd44d3549b59fe9ec96cff00cf0097f4d",
+  "head": "ff9e6b99e61033f819ea96d2ed18e77269e0b9b3",
+  "request_live_head": "ba35c411d2ec555bd3a3e8423d391b46f5baa901",
+  "archive": "/tmp/codex-r78-tgay4bsd/archive",
+  "live_branch": "feat/backlog-integration",
+  "tracked_webui_files_verified": 410,
+  "tracked_webui_files_changed_for_isolation": [
+    "lcnc-webui/e2e/ctl.ts",
+    "lcnc-webui/tsconfig.app.json",
+    "lcnc-webui/tsconfig.node.json",
+    "lcnc-webui/tsconfig.test.json",
+    "lcnc-webui/vite.config.ts"
+  ],
+  "source_files_changed": [],
+  "mock": "127.0.0.1:4188",
+  "workers": 1,
+  "nice": 19,
+  "review_prefix_sha256": "b692e244b356f92ca411c2eabe8d808e59d101dd15210911be3429cf13d5c112",
+  "limits": "No live ports, machine commands or live builds/tests; Linux browsers, no hardware touch acceptance."
+}

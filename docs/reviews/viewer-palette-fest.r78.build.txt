@@ -1,0 +1,32 @@
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+src/formToolGeometry.test.ts(3,22): error TS2307: Cannot find module '../../test-fixtures/fusion-tool-contours.json' or its corresponding type declarations.
+src/formToolGeometry.test.ts(4,24): error TS2307: Cannot find module '../../test-fixtures/fusion-form-simulation/native-silhouette.json' or its corresponding type declarations.
+src/formToolGeometry.test.ts(5,30): error TS2307: Cannot find module '../../test-fixtures/fusion-form-simulation/tip-offset-plus10/native-silhouette.json' or its corresponding type declarations.
+src/formToolGeometry.test.ts(21,37): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/formToolGeometry.test.ts(22,65): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/formToolGeometry.test.ts(164,74): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/formToolGeometry.test.ts(178,48): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/toolGeometry.test.ts(6,30): error TS2307: Cannot find module '../../test-fixtures/fusion-tool-contours.json' or its corresponding type declarations.
+src/toolGeometry.test.ts(7,30): error TS2307: Cannot find module '../../test-fixtures/fusion-tool-shoulders.json' or its corresponding type declarations.
+src/toolGeometry.test.ts(8,33): error TS2307: Cannot find module '../../test-fixtures/fusion-tool-tapers-threads.json' or its corresponding type declarations.
+src/toolGeometry.test.ts(9,33): error TS2307: Cannot find module '../../test-fixtures/fusion-tool-chamfers-slots.json' or its corresponding type declarations.
+src/toolGeometry.test.ts(10,29): error TS2307: Cannot find module '../../test-fixtures/fusion-tool-specials.json' or its corresponding type declarations.
+src/toolGeometry.test.ts(11,30): error TS2307: Cannot find module '../../test-fixtures/fusion-tool-followup.json' or its corresponding type declarations.
+src/toolGeometry.test.ts(12,25): error TS2307: Cannot find module '../../test-fixtures/fusion-tool-form-offsets.json' or its corresponding type declarations.
+src/toolGeometry.test.ts(148,39): error TS7006: Parameter 'move' implicitly has an 'any' type.
+src/toolGeometry.test.ts(148,45): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/toolHolder.test.ts(7,22): error TS2307: Cannot find module '../../test-fixtures/fusion-tool-holders.json' or its corresponding type declarations.
+src/toolHolder.test.ts(101,44): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/toolPreviewNotice.test.ts(5,24): error TS2307: Cannot find module '../../test-fixtures/fusion-tool-unverified.json' or its corresponding type declarations.
+src/toolPreviewNotice.test.ts(6,22): error TS2307: Cannot find module '../../test-fixtures/fusion-tool-followup.json' or its corresponding type declarations.
+src/toolPreviewNotice.test.ts(7,24): error TS2307: Cannot find module '../../test-fixtures/fusion-tool-followup-simulation/native-silhouettes.json' or its corresponding type declarations.
+src/toolPreviewNotice.test.ts(22,29): error TS7006: Parameter 'fixture' implicitly has an 'any' type.
+src/toolPreviewNotice.test.ts(22,38): error TS7006: Parameter 'i' implicitly has an 'any' type.
+src/toolPreviewNotice.test.ts(47,51): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/toolSimulationGeometry.test.ts(8,31): error TS2307: Cannot find module '../../test-fixtures/fusion-tool-simulation/native-silhouettes.json' or its corresponding type declarations.
+src/toolSimulationGeometry.test.ts(9,31): error TS2307: Cannot find module '../../test-fixtures/fusion-tool-followup-simulation/native-silhouettes.json' or its corresponding type declarations.
+src/toolSimulationGeometry.test.ts(12,34): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/toolSimulationGeometry.test.ts(13,34): error TS7006: Parameter 'c' implicitly has an 'any' type.

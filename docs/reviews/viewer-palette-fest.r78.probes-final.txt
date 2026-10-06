@@ -1,0 +1,134 @@
+[2m[WebServer] [22m(node:1487681) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:1487707) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1487707) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r78.probe.spec.ts:45:1 › R78: mixed next and previous follow the displayed order at a shared timeline position (2.7s)
+(node:1487863) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1487863) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 e2e/r78.probe.spec.ts:70:1 › R78: replacing collision results retains keyboard focus inside the Sim panel (2.7s)
+(node:1488003) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1488003) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 e2e/r78.probe.spec.ts:98:1 › R78: a tool-change jump ends the old finding-only path reveal (2.5s)
+(node:1488124) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1488124) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  4 e2e/r78.probe.spec.ts:112:1 › R78: the Sim table and dense inputs fit at the agreed touch sizes (7.7s)
+
+
+  1) e2e/r78.probe.spec.ts:45:1 › R78: mixed next and previous follow the displayed order at a shared timeline position 
+
+    Error: Next follows the visible rows including ties
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 1[39m
+
+    [2m  Array [[22m
+    [2m    "C12|tool|table|0",[22m
+    [32m-   "L20",[39m
+    [2m    "C20|tool|table|0",[22m
+    [31m+   "L20",[39m
+    [2m    "C26|tool|table|0",[22m
+    [2m    "L32",[22m
+    [2m    "T10",[22m
+    [2m  ][22m
+
+      65 |   save('mixed-order',{displayed,sequence,previous,expected});
+      66 |   await page.locator('.simPanel').screenshot({path:'../evidence/viewer-palette-fest.r78.mixed-order.png'});
+    > 67 |   expect(sequence,'Next follows the visible rows including ties').toEqual(expected);
+         |                                                                   ^
+      68 | });
+      69 |
+      70 | test('R78: replacing collision results retains keyboard focus inside the Sim panel',async({page,context})=>{
+        at /tmp/codex-r78-tgay4bsd/archive/lcnc-webui/e2e/r78.probe.spec.ts:67:67
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r78-chromium-output/r78.probe-R78-mixed-next-a-48265--a-shared-timeline-position/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r78-chromium-output/r78.probe-R78-mixed-next-a-48265--a-shared-timeline-position/error-context.md
+
+  2) e2e/r78.probe.spec.ts:70:1 › R78: replacing collision results retains keyboard focus inside the Sim panel 
+
+    Error: A refreshed results list must not hand its navigation keys to global jog
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  -  1[39m
+    [31m+ Received  + 13[39m
+
+    [32m- Array [][39m
+    [31m+ Array [[39m
+    [31m+   Object {[39m
+    [31m+     "axis": 0,[39m
+    [31m+     "cmd": "jog_cont",[39m
+    [31m+     "req_id": "7bp9ps-5",[39m
+    [31m+     "vel": 10,[39m
+    [31m+   },[39m
+    [31m+   Object {[39m
+    [31m+     "axis": 0,[39m
+    [31m+     "cmd": "jog_stop",[39m
+    [31m+     "req_id": "7bp9ps-6",[39m
+    [31m+   },[39m
+    [31m+ ][39m
+
+      93 |   const after=(await ctl({op:'lastCmds'})).cmds;
+      94 |   save('focus-refresh',{before,focus,after});
+    > 95 |   expect(after.filter((x:{cmd:string})=>/jog/.test(x.cmd)),'A refreshed results list must not hand its navigation keys to global jog').toEqual([]);
+         |                                                                                                                                        ^
+      96 | });
+      97 |
+      98 | test('R78: a tool-change jump ends the old finding-only path reveal',async({page,context})=>{
+        at /tmp/codex-r78-tgay4bsd/archive/lcnc-webui/e2e/r78.probe.spec.ts:95:136
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r78-chromium-output/r78.probe-R78-replacing-co-31c28--focus-inside-the-Sim-panel/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r78-chromium-output/r78.probe-R78-replacing-co-31c28--focus-inside-the-Sim-panel/error-context.md
+
+  3) e2e/r78.probe.spec.ts:98:1 › R78: a tool-change jump ends the old finding-only path reveal ────
+
+    Error: There is no longer a finding selected
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 3[39m
+
+    [32m- Array [][39m
+    [31m+ Array [[39m
+    [31m+   "Toolpath shown for this finding — hidden in Layers",[39m
+    [31m+ ][39m
+
+      107 |   save('tool-reveal',{old,shown:await page.locator('.shownRow').getAttribute('data-sim-row'),note});
+      108 |   await page.locator('.viewerPane').screenshot({path:'../evidence/viewer-palette-fest.r78.tool-reveal.png'});
+    > 109 |   expect(note,'There is no longer a finding selected').toEqual([]);
+          |                                                        ^
+      110 | });
+      111 |
+      112 | test('R78: the Sim table and dense inputs fit at the agreed touch sizes',async({page,context})=>{
+        at /tmp/codex-r78-tgay4bsd/archive/lcnc-webui/e2e/r78.probe.spec.ts:109:56
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r78-chromium-output/r78.probe-R78-a-tool-chang-2904d-ld-finding-only-path-reveal/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r78-chromium-output/r78.probe-R78-a-tool-chang-2904d-ld-finding-only-path-reveal/error-context.md
+
+  3 failed
+    e2e/r78.probe.spec.ts:45:1 › R78: mixed next and previous follow the displayed order at a shared timeline position 
+    e2e/r78.probe.spec.ts:70:1 › R78: replacing collision results retains keyboard focus inside the Sim panel 
+    e2e/r78.probe.spec.ts:98:1 › R78: a tool-change jump ends the old finding-only path reveal ─────
+  1 passed (17.3s)
