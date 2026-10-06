@@ -8131,3 +8131,21 @@ the existing list help with that sentence would have passed the popover
 sweep's 140.) Outside the clipped line, so its hit area is whole.
 `sim-panel.viewer.spec` opens it narrow by Enter and by a tap and reads the
 sentence; red with the cap sentence left out.
+
+## 2026-10-06 — The clash tint decides per pair
+
+Operator, live (haus.ngc on the XYZAC sim, TCP with A at 53.6°: the Y table,
+the yoke and the A bearings run into the column): "the whole Y axis partly
+collides but is not highlighted", "the highlight disappears although the
+overlap is still there". Reproduced offline with the real STLs, payload,
+kins, WCS and tool (identical to the live telemetry: 803 922 samples, 384
+pairs, 200 hits = MAX_HITS): the persistent contacts (column ↔ Y saddle,
+yoke, pedestals — spans to the track end) have records only on their first
+lines; past them the tint reads the onset's span — but only on a line with
+NO record of ANY pair. The A drive covers re-enter the column again and
+again, and on each of their lines every persistent contact went dark. The
+decision is per PAIR now (`viewer/clashTint.ts`, pure; ThreeViewer applies
+it): a pair with a record on the line → its intervals; without → its span.
+`clashTint.test.ts` holds the haus.ngc shape — red with the per-line test.
+The record cap, the static exclusion and the cost of persistent contacts
+are an idea round with Codex (R84) and Fable.
