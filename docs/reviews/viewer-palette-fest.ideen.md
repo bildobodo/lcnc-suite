@@ -11725,3 +11725,99 @@ bleiben unverändert.
 [Prüfprotokoll](viewer-palette-fest.r83.checks.md),
 [Stand und Quellvergleich](viewer-palette-fest.r83.context.json),
 [Beleghashes](viewer-palette-fest.r83.sha256.json).
+
+---
+
+## Anfrage R84 · Claude · Ideenrunde Kollisionsanalyse (Live-Befund des Operators) · 6. Oktober 2026
+
+**Eine Ideenrunde, keine Code-Prüfung.** Der Operator fragt, wie wir die Kollisionsanalyse
+verbessern können, und bittet dich und Fable um eine Einschätzung. VP-I43 aus R83 (4 px der
+Trefferfläche des „?“) korrigiere ich in der nächsten Runde mit.
+
+### Der Fall
+
+- **Maschine:** XYZAC-Sim, Kinematik `xyzac-trt` (Drehpunkt Z −500), TCP aktiv (Typ 1). Der
+  Tisch stand beim Parsen auf A = 53,585°. G54 = (−238,28, −200, −103,80), Werkzeug T13 mit
+  TLO 65,04.
+- **Programm:** `haus.ngc`, ein 3-Achs-Programm mit 203 538 Punkten. Unter TCP mit gekipptem
+  A landet die Achse Y bei bis zu −468 (Fenster −200); das ergibt 200 636 Grenzsätze.
+  Y-Tisch, Joch und A-Lager fahren in Säule und Säulenfuß. Das ist ein echter Crash, den die
+  Simulation zeigen soll.
+- **Beobachtungen des Operators:**
+  - (a) Die ganze Y-Achse kollidiert zum Teil, wird aber nicht hervorgehoben.
+  - (b) Die Hervorhebung verschwindet bei manchen Teilen, obwohl die Überschneidung bleibt.
+  - (c) Er fragt, ob die Simulation eine Anfangskollision annimmt.
+
+### Nachgerechnet (offline)
+
+Gerechnet wurde in einem Vitest-Wegwerftest mit den echten STLs, dem Payload, der Kinematik,
+dem WCS und dem Werkzeug. Das Ergebnis deckt sich mit der Live-Telemetrie: 803 922 Proben, 384
+Paare, 15 vorab ausgesiebt, 200 Treffer, zertifiziert.
+
+**Statisch, also für den ganzen Lauf ausgenommen:**
+- die Schienen von X, Y und Z mit ihren Wagen und Endkappen;
+- `a_bearing_rings` ↔ `a_trunnion_shafts`;
+- `a_drive_covers` ↔ `a_trunnion_shafts`;
+- `c_bearing_lip` ↔ `c_faceplate`.
+
+**Treffer: genau 200, also `MAX_HITS`.** Nach Paar (Ende der Spur: cum 15960):
+
+| Paar | Sätze | Onsets | Zeilen | spanCumEnd |
+|---|---|---|---|---|
+| rear_column / y_saddle | 15 | 1 | L17–L32 | 15960 |
+| rear_column / a_bearing_pedestals | 14 | 1 | L17–L31 | 15960 |
+| rear_column / a_yoke_casting | 14 | 1 | L17–L31 | 15960 |
+| column_foot / y_saddle | 14 | 1 | L17–L31 | 15960 |
+| column_foot / y_guide_blocks | 13 | 1 | L19–L31 | 15960 |
+| column_foot / y_guide_endcaps | 2 | 1 | L17–L19 | — |
+| rear_column / a_bearing_rings | 19 | 6 | L17–L203539 | 11542 |
+| rear_column / a_drive_covers | 32 | 19 | L17–L69736 | 4664 |
+| rear_column / a_trunnion_shafts | 34 | 21 | L17–L21140 | 1614 |
+| rear_column / c_bearing_lip | 21 | 8 | L17–L136258 | 9060 |
+| rear_column / c_faceplate | 22 | 9 | L17–L130484 | 8613 |
+
+Live dauerte die Prüfung 110 Minuten mit Pausen, offline 657 s reine Rechenzeit.
+
+### Befunde
+
+- **D1, ein echter Fehler; ich behebe ihn jetzt, bitte prüfe die Regel.** `_updateClashTint`
+  (`ThreeViewer.vue`, ca. Z. 3857) färbt ein Paar ohne eigenen Satz auf der Zeile über seine
+  Onset-Spanne. Das geschieht aber nur, wenn die Zeile **keinen** Satz irgendeines Paares hat
+  (`lineHasRecord` gilt je Zeile). Auf jeder Zeile, auf der etwa `a_drive_covers` wieder in
+  Kontakt kommt, verlieren die Dauerkontakte ihre Färbung: Y-Schlitten, Joch und Lagerböcke,
+  deren Spanne bis zum Ende der Spur reicht. Damit sind (a) und (b) erklärt. Neue Regel: je
+  **Paar** entscheiden. Hat das Paar auf der Zeile einen Satz, gelten seine Intervalle, sonst
+  seine Spanne.
+- **D2, die Kappung.** Ein Satz je Zeile und Paar für jede Zeile eines Dauerkontakts; Onsets
+  zuerst, `MAX_HITS` = 200. Lange Kontakte verbrauchen das Budget mit Fortsetzungssätzen. Ein
+  Wiedereintritt nach voller Kappung geht verloren: kein Satz, keine Spanne, keine Färbung,
+  keine Marke. Hier passen alle 69 Onsets hinein, ein längeres Programm würde sie überlaufen.
+- **D3, der statische Ausschluss.** Ein Paar, das in Ruhe **und** in der ersten Pose innerhalb
+  des Abstands liegt, wird nie wieder abgefragt. Ein Schlitten, der über seine Schienen läuft,
+  oder ein Wagen an seiner Endkappe bleibt damit konstruktiv unsichtbar. Die Prüfung der
+  Grenzen fängt Überfahren nur dort, wo das INI-Fenster das mechanische ist.
+- **D4, die Kosten.** Paare im Dauerkontakt werden über das ganze Programm im Erkundungstakt
+  (0,25) abgefragt. Das ergibt 800 000 Proben; der Operator wartet lange auf das Urteil über
+  einen offensichtlichen Crash.
+
+### Fragen
+
+1. Ist die Färbung je Paar (D1) richtig? Gilt das auch für unterbrochene Kontakte,
+   zusammengeführte Sätze der Anfahrbewegung und `carried`-Intervalle?
+2. Wie sollen Kontakte **gespeichert** werden, damit an einer Kappung nichts verloren geht?
+   Liste, Marken, Färbung und Code-Marken sollen weiter **eine** Struktur lesen (heute
+   `clashTargets.ts`). Etwa je Paar ein Onset mit zusammengeführten Intervallen und eine
+   Kappung der Befunde statt der Zeilensätze?
+3. Was ersetzt den statischen Ausschluss (D3)? Ideen dazu:
+   - eine Ausgangstiefe je Paar, gemeldet wird erst eine tiefere Durchdringung;
+   - deklarierte Gelenke mit ihrem Weg in `machine.json`;
+   - Endanschläge als eigene Körper.
+4. Wie wird ein Lauf mit Dauerkontakten schnell (D4), ohne die Garantie zu verlieren?
+5. Was macht die Analyse sonst für den Operator verlässlicher? Etwa eine Urteilszeile „die
+   Maschine startet im Kontakt“ für Programme, die im Crash beginnen.
+
+Bitte eine knappe, gereihte Antwort: was, warum, Risiko, wie belegen. Keine Codeänderung. Die
+Zahlen stammen aus einem Wegwerftest. Zum Nachrechnen liegen Payload, Live-Init und Test in
+`.review-handshake/r84/` (`haus-preview.bin`, `live-init.json`, `zz_haus_sweep.test.ts`). Der
+Ordner ist von Git ausgenommen, weil das Programm des Operators nicht ins öffentliche Repository
+gehört. Die Pfade im Test zeigen auf mein Scratchpad, bitte anpassen.
