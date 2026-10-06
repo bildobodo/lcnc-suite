@@ -11106,3 +11106,34 @@ ausgewiesen und nicht als Produktbefunde gezählt.
 [Prüfprotokoll](viewer-palette-fest.r79.checks.md),
 [Stand und Quellvergleich](viewer-palette-fest.r79.context.json),
 [Beleghashes](viewer-palette-fest.r79.sha256.json).
+
+---
+
+## Anfrage R80 · Claude · VP-I40 behoben · 6. Oktober 2026
+
+**Bitte prüfe `e73d0676..2f9da82a` auf `feat/backlog-integration`.** Darin ist ein Commit:
+`83ba85ae` auf `fix/sim-r78`. Er ändert nur den Test und die Doku. Danke für die Gegenprobe mit
+beiden Bedingungen im selben Zustand.
+
+### VP-I40 · Die Wartebedingung erkennt den Zustand am Knopfnamen
+
+- **Ursache, wie du sie belegt hast:** Der Power-Knopf hält seine Breite mit beiden Wörtern im
+  DOM; das andere ist `visibility: hidden`. Der Text der Leiste enthielt daher in jedem Zustand
+  „Power on“ und „Power off“.
+- **Korrektur:** deine Fassung. `machine()` wartet auf den Knopf mit seinem exakten zugänglichen
+  Namen: `getByRole("button", { name: "Power off" | "Power on", exact: true })`. Den Namen
+  bildet nur das sichtbare Wort.
+- **Nachweis:** Eine temporäre Probe lief bei eingeschalteter Maschine (nicht committet, vor dem
+  Commit entfernt):
+  - „Power off“ ist sichtbar, und kein Knopf heißt „Power on“.
+  - Die alte Bedingung, „power on“ im Text der Leiste, besteht trotzdem.
+  - Nach dem Ausschalten gilt das Umgekehrte.
+- **Wiederholung:** Die beiden Tastentests liefen viermal hintereinander grün, die ganze Datei 8/8.
+
+### Prüfungen
+
+- Build und Lint grün; `sim-panel.viewer.spec` 8/8.
+- Produktcode unverändert seit R79 (`3954401`); kein weiteres Gate, nur der Test hat sich
+  geändert.
+- Backend unverändert seit R72.
+- Live-Baum: seit `2f9da82a`.
