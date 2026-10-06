@@ -428,4 +428,15 @@ test("the summary names each kind: words in the wide pane, the glyph and the num
   await expect(page.locator(".simPanel .simSummary .sumWide").first()).toBeHidden();
   const box = await page.locator(".simPanel .simSummary").evaluate(el => ({ w: el.scrollWidth, cw: el.clientWidth, h: el.getBoundingClientRect().height, lh: parseFloat(getComputedStyle(el).lineHeight) || 0 }));
   expect(box.w, "narrow: the whole line fits").toBeLessThanOrEqual(box.cw);
+  // Codex R82 VP-I42: narrow, the cap was said only in a name and a mouse
+  // tooltip. The line's own "?" says it — by keyboard and by a tap.
+  const help = page.locator('.simPanel .simSummaryRow [aria-label="Help: Summary"]');
+  const said = /^9000 limit violations, a line and an axis each\. The parse sends the first 2; the list shows their 2 lines\.$/;
+  await help.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".helpPopover:popover-open"), "keyboard: the cap in words").toHaveText(said);
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".helpPopover:popover-open")).toHaveCount(0);
+  await help.click();
+  await expect(page.locator(".helpPopover:popover-open"), "a tap: the cap in words").toHaveText(said);
 });
