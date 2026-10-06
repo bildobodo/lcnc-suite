@@ -164,10 +164,10 @@ for (const viewport of VIEWPORTS) {
 // the HelpIcon's hit area INVISIBLY, then the label's line box rules and
 // this goes back to 3.
 const NAV_STATES = [
-  { name: 'desktop', vp: 'desktop', zoom: 1, narrow: false, h: 32, rows: 3 },
-  { name: 'touch-landscape', vp: 'touch-landscape', zoom: 1, narrow: false, h: 44, rows: 3 },
-  { name: 'touch-portrait', vp: 'touch-portrait', zoom: 1, narrow: false, h: 44, rows: 3 },
-  { name: 'touch-portrait 150 %', vp: 'touch-portrait', zoom: 1.5, narrow: true, h: 44, rows: 3 },
+  { name: 'desktop', vp: 'desktop', zoom: 1, narrow: false, h: 32, hc: 28, rows: 3 },
+  { name: 'touch-landscape', vp: 'touch-landscape', zoom: 1, narrow: false, h: 44, hc: 36, rows: 3 },
+  { name: 'touch-portrait', vp: 'touch-portrait', zoom: 1, narrow: false, h: 44, hc: 36, rows: 3 },
+  { name: 'touch-portrait 150 %', vp: 'touch-portrait', zoom: 1.5, narrow: true, h: 44, hc: 36, rows: 3 },
 ] as const;
 for (const st of NAV_STATES) {
   test(`${st.name}: side-pane navigation fits its budget (tabs or selects, no clipped name, three form rows)`, async ({ page }) => {
@@ -190,7 +190,8 @@ for (const st of NAV_STATES) {
       const [a, p] = await Promise.all([area.evaluate(e => [(e as HTMLElement).offsetTop, (e as HTMLElement).offsetHeight]),
         procedure.evaluate(e => [(e as HTMLElement).offsetTop, (e as HTMLElement).offsetHeight])]);
       expect(a[0], 'the two selects share one row').toBe(p[0]);
-      expect(a[1], 'select height = --control-h').toBe(st.h);
+      // a dense row (operator 2026-10-05: its text does not need the room)
+      expect(a[1], 'select height = the dense row\'s --control-h-compact').toBe(st.hc);
     } else {
       await expect(area).toHaveCount(0);
       await side.getByRole('tab', { name: 'Probing', exact: true }).click();
@@ -214,16 +215,22 @@ for (const st of NAV_STATES) {
       return [el.clientHeight, (el.clientHeight + gap) / (field.offsetHeight + gap)];
     });
     expect(rows, `probing content ${content} px holds ${rows.toFixed(2)} form rows`).toBeGreaterThanOrEqual(st.rows);
+    // A search with its filter is a dense row: both fields take the compact
+    // height (operator 2026-10-05), a form's field the full one.
+    if (st.narrow) await area.selectOption('tools');
+    else await side.getByRole('tab', { name: 'Tools', exact: true }).click();
+    const search = await side.locator('.toolSearchRow').evaluate(r => [...r.querySelectorAll<HTMLElement>('input.inputField, select.inputField')].map(e => e.offsetHeight));
+    expect(search, 'the Tools search and filter: the compact height').toEqual([st.hc, st.hc]);
   });
 }
 
-// Package 5, the sixth tab: the narrow threshold is the MEASURED need of six
-// equal tab columns (sidePaneNarrow.ts) — checked just under, at and just
-// over it in touch portrait (the pane's width follows the viewport there):
-// under it the selects, at and over it six whole names; and a tab holding
+// The narrow threshold is the MEASURED need of the equal tab columns —
+// seven since the Sim tab (sidePaneNarrow.ts) — checked just under, at and
+// just over it in touch portrait (the pane's width follows the viewport
+// there): under it the selects, at and over it every name whole; and a tab holding
 // the focus when the width drops under it hands the focus to the select,
 // never to body (where an arrow jogs).
-test('the narrow threshold: selects under it, six whole tab names at and over it; focus survives the switch', async ({ page }) => {
+test('the narrow threshold: selects under it, every tab name whole at and over it; focus survives the switch', async ({ page }) => {
   const portrait = VIEWPORTS.find(v => v.name === 'touch-portrait')!;
   await openLayout(page, PROFILES[1]!, portrait);
   const side = page.locator('.sidePane');
@@ -246,7 +253,7 @@ test('the narrow threshold: selects under it, six whole tab names at and over it
       const t = e as HTMLElement;
       return { name: t.textContent!.trim(), over: t.scrollWidth - t.clientWidth, h: t.offsetHeight };
     }));
-    expect(tabs.map(t => t.name)).toEqual(['Program', 'MDI', 'Probing', 'Offsets', 'Tools', 'Macros', 'Simulation']);
+    expect(tabs.map(t => t.name)).toEqual(['Program', 'MDI', 'Probing', 'Offsets', 'Tools', 'Macros', 'Sim']);
     for (const t of tabs) expect(t.over, `"${t.name}" clipped by ${t.over} px at ${NARROW_PANE_PX + d} px`).toBeLessThanOrEqual(0);
   }
   // a focused tab, then the pane drops under the threshold

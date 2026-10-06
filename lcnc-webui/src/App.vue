@@ -373,7 +373,7 @@ const contentTabs = [
   { id: "offsets", label: "Offsets" },
   { id: "tools", label: "Tools" },
   { id: "macros", label: "Macros" },
-  { id: "sim", label: "Simulation" },
+  { id: "sim", label: "Sim" },
 ];
 
 const activeTab = ref("gcode");

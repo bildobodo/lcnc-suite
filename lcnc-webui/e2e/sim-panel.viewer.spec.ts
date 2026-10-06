@@ -88,46 +88,66 @@ test("a row shows its finding; the steps go through the shown kind; the next row
   expect(all.indexOf(next), "the next row is the first past the position").toBeGreaterThan(0);
 });
 
+// Keyboard jog ON with the navigation keys bound to jog (tabs.spec's map): a
+// key a row failed to keep would move the machine.
+const KEYBOARD = { keyboard: { jogEnabled: true, buttonsEnabled: true, mapping: {
+  "jog_x+": "ArrowRight", "jog_x-": "ArrowLeft", "jog_y+": "ArrowUp", "jog_y-": "ArrowDown",
+  "jog_z+": "Home", "jog_z-": "End", estop: "Escape", cycle: " ", abort: "Backspace",
+} } };
+const jogs = async () => ((await ctl({ op: "lastCmds" })).cmds as { cmd: string }[]).map(c => c.cmd).filter(c => /jog/.test(c));
+
 test("the rows' keys move the focus, never a jog; Enter shows; the machine on explains at the row", async ({ page, context }) => {
   await prepare(page, context);
   await simShow(page, "all");
+  // The machine on (homed by the layout fixture) and the keyboard jog live.
+  await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true } });
+  await ctl({ op: "raw", frame: { type: "settings_init", settings: KEYBOARD } });
+  // Control: an arrow on the unfocused page jogs.
+  await ctl({ op: "clearCmds" });
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+  await page.keyboard.down("ArrowRight");
+  await expect.poll(jogs, "control: an arrow on the unfocused page jogs").toContain("jog_cont");
+  await page.keyboard.up("ArrowRight");
+  await expect.poll(jogs).toContain("jog_stop");
   await ctl({ op: "clearCmds" });
   const picks = page.locator(".simPanel .rowPick");
   await picks.first().focus();
   for (const key of ["ArrowDown", "ArrowDown", "Control+ArrowDown", "ArrowUp", "End", "Home", "ArrowLeft", "ArrowRight"]) await page.keyboard.press(key);
   await expect(picks.first(), "Home brought the focus back to the first row").toBeFocused();
-  await expect(page.locator(".simBanner"), "moving the focus shows nothing").toHaveCount(0);
-  const cmds = (await ctl({ op: "lastCmds" })).cmds as { cmd: string }[];
-  expect(cmds.filter(c => /jog/.test(c.cmd)), "no arrow reached the jog map").toEqual([]);
+  await page.waitForTimeout(300);
+  expect(await jogs(), "no key on a row reached the jog map").toEqual([]);
+  // the machine on: Enter on a row says why at the row, nothing else happens
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".btnHint")).toHaveText("Machine on — power off to simulate");
+  await expect(page.locator(".simBanner")).toHaveCount(0);
+  // the machine off: Enter shows the row
+  await ctl({ op: "status_delta", data: { is_enabled: false, enabled: false } });
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");
   await expect(page.locator(".simBanner")).toBeVisible();
   await expect(page.locator(".simPanel .shownRow .rowPick")).toBeFocused();
-  // the machine on: a row says why at the row, nothing else happens
-  await page.locator(".scrubBar input.toggle").uncheck();
-  await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true } });
-  await rows(page).first().click();
-  await expect(page.locator(".btnHint")).toHaveText("Machine on — power off to simulate");
-  await expect(page.locator(".simBanner")).toHaveCount(0);
 });
 
-test("stepping through the findings never changes the bar: one row, the same box, the same timeline", async ({ page, context }) => {
+test("stepping through the findings never changes the bar: the same box, the same timeline", async ({ page, context }) => {
   for (const [vp, zoom] of [["desktop", 1], ["touch-landscape", 1], ["touch-portrait", 1.5]] as const) {
     await prepare(page, context, vp);
     if (zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
     await settleLayout(page);
     await simShow(page, "all");
-    const bar = () => page.locator(".scrubBar").evaluate(b => {
-      const r = b.getBoundingClientRect(), s = b.querySelector(".sliderInput")!.getBoundingClientRect();
-      return { w: Math.round(r.width), h: Math.round(r.height), slider: Math.round(s.width), rows: b.querySelectorAll(".scrubRow").length };
+    // Layout px (CSS zoom aside): the bar, the timeline, the bar's content box.
+    const bar = () => page.locator(".scrubBar").evaluate(el => {
+      const b = el as HTMLElement, cs = getComputedStyle(b);
+      return { w: b.offsetWidth, h: b.offsetHeight, slider: (b.querySelector(".sliderWrap") as HTMLElement).offsetWidth,
+        content: b.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), narrow: !!b.closest(".narrowViewer") };
     });
     const step = simStepBtn(page, "Next on the timeline");
     await step.click();
     await expect(page.locator(".simBanner")).toBeVisible();
     await settleLayout(page);
     const at = await bar();
-    expect(at.rows, `${vp}: one row`).toBe(1);
+    expect(at.narrow, `${vp}: a narrow viewer only at 150 % portrait`).toBe(vp === "touch-portrait");
     expect(at.slider, `${vp}: the timeline keeps its room`).toBeGreaterThanOrEqual(120);
+    if (at.narrow) expect(at.slider, `${vp}: a narrow viewer gives the timeline a row of its own`).toBeGreaterThanOrEqual(at.content - 1);
     for (let i = 0; i < 6; i++) {
       await step.click();
       expect(await bar(), `${vp}: step ${i + 2} — the bar as it was`).toEqual(at);

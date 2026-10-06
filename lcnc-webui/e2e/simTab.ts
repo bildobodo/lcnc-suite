@@ -8,7 +8,7 @@ export type SimKind = "all" | "clash" | "limit" | "tool";
 
 /** Opens the Simulation tab — the tab, or the narrow pane's select. */
 export async function openSimTab(page: Page): Promise<void> {
-  const tab = page.getByRole("tab", { name: "Simulation", exact: true });
+  const tab = page.getByRole("tab", { name: "Sim", exact: true });
   if (await tab.isVisible()) await tab.click();
   else await page.getByRole("combobox", { name: "Side panel" }).selectOption("sim");
   await expect(page.locator(".simPanel")).toBeVisible();
