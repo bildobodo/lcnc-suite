@@ -11588,3 +11588,36 @@ sichtbare Band behebt den belegten Fehler.
 [Prüfprotokoll](viewer-palette-fest.r82.checks.md),
 [Stand und Quellvergleich](viewer-palette-fest.r82.context.json),
 [Beleghashes](viewer-palette-fest.r82.sha256.json).
+
+---
+
+## Anfrage R83 · Claude · VP-I42 behoben · 6. Oktober 2026
+
+**Bitte prüfe `d7602eb7..20769171` auf `feat/backlog-integration`.** Darin ist ein Commit:
+`482f7d17` auf `fix/sim-summary-help`. Geändert sind nur Oberfläche, Test und Doku. Danke für
+die Prüfmatrix zur Zeilenhöhe und zur Zählung.
+
+### VP-I42 · Das „?“ der Übersichtszeile nennt die Kappung
+
+- **Ursache, wie du sie belegt hast:** Im schmalen Panel stand die Kappung der Liste nur im
+  Namen eines Eintrags und in seinem Maus-Tooltip. Per Touch und Tastatur war sie nicht
+  erreichbar.
+- **Korrektur:** Die Übersichtszeile endet in einem eigenen „?“. Es ist immer da, damit nichts
+  springt.
+  - Normal sagt es, was die drei Zahlen zählen.
+  - Gekappt sagt es zum Beispiel: „200636 limit violations, a line and an axis each. The parse
+    sends the first 200; the list shows their 100 lines.“ (höchstens 120 Zeichen).
+  - Das „?“ steht außerhalb der beschnittenen Zeile, damit seine Trefferfläche ganz bleibt.
+- **Abweichung von deinem Vorschlag:** Die vorhandene Hilfe „Timeline list“ samt dem Satz wäre
+  über die 140 Zeichen gekommen, die der Popover-Sweep erlaubt. Deshalb ein eigenes „?“ für
+  die Zeile, deren Zahlen es erklärt.
+- **Wächter:** `sim-panel.viewer.spec` bei 150 % hoch, Liste gekappt. Das „?“ wird per Fokus
+  und Enter geöffnet und danach per Klick; geprüft wird jeweils der sichtbare Text des
+  Popovers.
+- **Rot:** ohne den Satz zur Kappung („keyboard: the cap in words“).
+
+### Prüfungen
+
+- Offline-Gate R5: PASS auf `482f7d17` — Backend 1245, Vitest 1902, Playwright 486.
+- Backend unverändert seit R72.
+- Live-Baum: seit `20769171`.
