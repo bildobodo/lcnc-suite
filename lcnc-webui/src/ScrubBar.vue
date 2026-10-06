@@ -37,7 +37,7 @@ import { fmtElapsed } from "./format";
 import { Play, Pause, X, Triangle, Circle } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
-import { buildSimRows, nextRowKey, type SimRowKind } from "./viewer/simRows";
+import { buildSimRows, nextRowKey, simRowOrder, type SimRowKind } from "./viewer/simRows";
 import { simRows, simView, registerSimActions, type SimSweepView } from "./simPanelStore";
 import MachineToggle from "./MachineToggle.vue";
 
@@ -91,7 +91,8 @@ const emit = defineEmits<{
    *  entry move) — the viewer shows that section of a hidden layer
    *  (viewer/pathReveal.ts). */
   (e: "finding", onRapid: boolean, run: [number, number] | null): void;
-  /** The operator moved the timeline by hand — a finding's temporary view ends. */
+  /** A finding's temporary view ends: the operator moved the timeline by
+   *  hand, or a jump went to a tool change (a place, not a finding). */
   (e: "manual-scrub"): void;
   /** Sim entry: the entry-extended track + the base it was built from —
    *  ThreeViewer sweeps only the ENTRY SEGMENT when the base result is
@@ -796,8 +797,10 @@ function jumpTo(pick: FindingTarget | null, kind: SimRowKind) {
   navSel.value = { key: target.key, pos: sPos.value };
   applyPos();
   // A tool change is a place on the timeline, not a finding: nothing of a
-  // hidden layer to reveal.
-  if (kind === "tool") return;
+  // hidden layer to reveal — and the previous finding's reveal ends with the
+  // jump (Codex R78 VP-I39: its move and its line stayed shown at the tool
+  // change), the stored layers untouched.
+  if (kind === "tool") { emit("manual-scrub"); return; }
   // The finding's SECTION (Codex R31 VP-I03): the run of its move around the
   // jumped-to segment, in BASE-track indices — the drawn streams' source
   // map addresses the base track, the entry track prepends its points. A
@@ -988,8 +991,8 @@ registerSimActions({
     }
   },
   step(kinds, dir) {
-    const list = kinds.flatMap(k => targetsOf(k).map(t => ({ ...t, kind: k })))
-      .sort((a, b) => a.cum - b.cum);
+    // the list's own order (simRowOrder), ties included — Codex R78 VP-I38
+    const list = kinds.flatMap(k => targetsOf(k).map(t => ({ ...t, kind: k }))).sort(simRowOrder);
     const t = dir > 0 ? targetAfter(list, sPos.value, navSel.value) : targetBefore(list, sPos.value, navSel.value);
     if (t) jumpTo(t, t.kind);
   },

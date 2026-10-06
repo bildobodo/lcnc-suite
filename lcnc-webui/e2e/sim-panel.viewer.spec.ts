@@ -20,7 +20,8 @@ const PREVIEW = Buffer.from(encode({ file: "/sim.ngc", preview_schema: 10, feed:
   feed_tcum: new Uint8Array(new Float32Array(FEED.map((_, i) => i * 4)).buffer),
   violations: [{ line: 20, axis: "X", value: 110, limit: 100, kind: "max" }, { line: 32, axis: "X", value: 120, limit: 100, kind: "max" }],
   violations_total: 2 }));
-const TEXT = Array.from({ length: 34 }, (_, i) => i === 0 ? "(sim)" : i === 9 ? "T3 M6" : `G1 X${i} F100`).join("\n");
+// T3 on line 10; T5 on line 20 — the same moment as line 20's limit
+const TEXT = Array.from({ length: 34 }, (_, i) => i === 0 ? "(sim)" : i === 9 ? "T3 M6" : i === 19 ? "T5 M6" : `G1 X${i} F100`).join("\n");
 
 async function prepare(page: Page, context: BrowserContext, vp = "desktop") {
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: PREVIEW }));
@@ -95,21 +96,32 @@ const KEYBOARD = { keyboard: { jogEnabled: true, buttonsEnabled: true, mapping: 
   "jog_z+": "Home", "jog_z-": "End", estop: "Escape", cycle: " ", abort: "Backspace",
 } } };
 const jogs = async () => ((await ctl({ op: "lastCmds" })).cmds as { cmd: string }[]).map(c => c.cmd).filter(c => /jog/.test(c));
+/** The machine on or off — waited for in the CLIENT (the strip's power
+ *  button names the next action), not only in the mock's reply. */
+async function machine(page: Page, on: boolean) {
+  await ctl({ op: "status_delta", data: { is_enabled: on, enabled: on } });
+  await expect(page.locator(".safetyStrip")).toContainText(on ? /power off/i : /power on/i);
+}
+/** The machine on (homed by the layout fixture), the keyboard jog bound to
+ *  the arrows — and proven live: an arrow on the unfocused page jogs. */
+async function jogLive(page: Page) {
+  await machine(page, true);
+  await ctl({ op: "raw", frame: { type: "settings_init", settings: KEYBOARD } });
+  await ctl({ op: "clearCmds" });
+  await expect.poll(async () => {
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.keyboard.down("ArrowRight");
+    await page.waitForTimeout(100);
+    await page.keyboard.up("ArrowRight");
+    return jogs();
+  }, { message: "control: an arrow on the unfocused page jogs" }).toEqual(expect.arrayContaining(["jog_cont", "jog_stop"]));
+  await ctl({ op: "clearCmds" });
+}
 
 test("the rows' keys move the focus, never a jog; Enter shows; the machine on explains at the row", async ({ page, context }) => {
   await prepare(page, context);
   await simShow(page, "all");
-  // The machine on (homed by the layout fixture) and the keyboard jog live.
-  await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true } });
-  await ctl({ op: "raw", frame: { type: "settings_init", settings: KEYBOARD } });
-  // Control: an arrow on the unfocused page jogs.
-  await ctl({ op: "clearCmds" });
-  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-  await page.keyboard.down("ArrowRight");
-  await expect.poll(jogs, "control: an arrow on the unfocused page jogs").toContain("jog_cont");
-  await page.keyboard.up("ArrowRight");
-  await expect.poll(jogs).toContain("jog_stop");
-  await ctl({ op: "clearCmds" });
+  await jogLive(page);
   const picks = page.locator(".simPanel .rowPick");
   await picks.first().focus();
   for (const key of ["ArrowDown", "ArrowDown", "Control+ArrowDown", "ArrowUp", "End", "Home", "ArrowLeft", "ArrowRight"]) await page.keyboard.press(key);
@@ -121,7 +133,7 @@ test("the rows' keys move the focus, never a jog; Enter shows; the machine on ex
   await expect(page.locator(".btnHint")).toHaveText("Machine on — power off to simulate");
   await expect(page.locator(".simBanner")).toHaveCount(0);
   // the machine off: Enter shows the row
-  await ctl({ op: "status_delta", data: { is_enabled: false, enabled: false } });
+  await machine(page, false);
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("Enter");
   await expect(page.locator(".simBanner")).toBeVisible();
@@ -154,4 +166,81 @@ test("stepping through the findings never changes the bar: the same box, the sam
     }
     await ctl({ op: "reset" });
   }
+});
+
+// Codex R78 VP-I37: a result change removed the focused row (or re-rendered a
+// focused step button) and the focus fell to BODY — the next arrow jogged.
+// The panel owns its focus: the row now at its place, else the list filter.
+test("a result change under the focus keeps it in the panel; no arrow jogs", async ({ page, context }) => {
+  await prepare(page, context);
+  await simShow(page, "all");
+  await jogLive(page);
+  const inPanel = () => page.evaluate(() => !!document.activeElement?.closest(".simPanel"));
+  const tryJog = async () => {
+    for (const k of ["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp"]) await page.keyboard.press(k);
+    await page.waitForTimeout(300);
+    return jogs();
+  };
+  // a focused collision row, then a result without collisions
+  await page.locator('.simPanel tr[data-sim-row^="C"] .rowPick').first().focus();
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([]) ?? false)).toBe(true);
+  await expect(page.locator('.simPanel tr[data-sim-row^="C"]')).toHaveCount(0);
+  expect(await inPanel(), "the focus stays in the panel").toBe(true);
+  await expect(page.locator(".simPanel .rowPick:focus"), "on the row now at its place").toHaveCount(1);
+  expect(await tryJog(), "no arrow reached the jog map").toEqual([]);
+  // the list filtered to collisions, a focused row, then the list empties
+  await page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([{ line: 12, frac: 9 / 29 }]));
+  await simShow(page, "clash");
+  await page.locator(".simPanel .rowPick").first().focus();
+  await page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([]));
+  await expect(page.locator(".simPanel tbody tr")).toHaveCount(0);
+  await expect(page.locator('.simPanel select[name="simFilter"]'), "an empty list: the filter holds the focus").toBeFocused();
+  expect(await tryJog(), "no arrow reached the jog map").toEqual([]);
+});
+
+// Codex R78 VP-I38: the steps sorted by position alone — where a tool change,
+// a limit and a collision share one moment, "Next on the timeline" went down
+// the list and back up. One order for both, ties and the wrap included.
+test("the steps through mixed kinds follow the list's own order, ties included", async ({ page, context }) => {
+  await prepare(page, context);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.(
+    [{ line: 12, frac: 9 / 29 }, { line: 20, frac: 64 / 116 }, { line: 26, frac: 23 / 29, rapid: true }]) ?? false)).toBe(true);
+  await simShow(page, "all");
+  const list = await rows(page).evaluateAll(trs => trs.map(t => t.getAttribute("data-sim-row")!.split("|")[0]));
+  expect(list, "the list: the tool, the limit and the collision of L20 at one moment").toEqual(["T10", "C12", "T20", "L20", "C20", "C26", "L32"]);
+  const shownKey = () => page.locator(".simPanel .shownRow").getAttribute("data-sim-row").then(k => k?.split("|")[0]);
+  await page.locator('.simPanel tr[data-sim-row^="C12"]').click();
+  await expect.poll(shownKey).toBe("C12");
+  const next = simStepBtn(page, "Next on the timeline"), prev = simStepBtn(page, "Previous on the timeline");
+  for (const want of ["T20", "L20", "C20", "C26", "L32", "T10", "C12"]) {
+    await next.click();
+    await expect.poll(shownKey, `next → ${want}`).toBe(want);
+  }
+  for (const want of ["T10", "L32", "C26", "C20", "L20", "T20", "C12"]) {
+    await prev.click();
+    await expect.poll(shownKey, `previous → ${want}`).toBe(want);
+  }
+});
+
+// Codex R78 VP-I39: a jump to a tool change kept the previous finding's
+// reveal — its move and the line "Toolpath shown for this finding" stayed at
+// the tool change. A tool change ends it; the stored layer stays off.
+test("a tool change shown after a finding ends the finding's reveal, the stored layer untouched", async ({ page, context }) => {
+  await prepare(page, context);
+  await simShow(page, "all");
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { viewer: { layers: { toolpath: false } } } } });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.projectRole!("feed"))).toBeNull();
+  const reveal = page.locator("[data-path-reveal]");
+  // by a row
+  await page.locator('.simPanel tr[data-sim-row^="C12"]').click();
+  await expect(reveal).toHaveText("Toolpath shown for this finding — hidden in Layers");
+  await page.locator('.simPanel tr[data-sim-row="T20"]').click();
+  await expect(reveal, "a row's tool change ends the reveal").toHaveCount(0);
+  // by a step: from the collision the next on the timeline is the tool change
+  await page.locator('.simPanel tr[data-sim-row^="C12"]').click();
+  await expect(reveal).toHaveCount(1);
+  await simStepBtn(page, "Next on the timeline").click();
+  await expect(page.locator(".simPanel .shownRow")).toHaveAttribute("data-sim-row", "T20");
+  await expect(reveal, "a step to a tool change ends it").toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.projectRole!("feed")), { message: "the stored layer stays off" }).toBeNull();
 });

@@ -51,6 +51,13 @@ export interface SimRowInput {
 }
 
 const KIND_ORDER: Record<SimRowKind, number> = { tool: 0, limit: 1, clash: 2 };
+/** THE order of the list AND of the steps through it (Codex R78 VP-I38: the
+ *  steps sorted by position alone and went down, then back up, where two
+ *  marks share a moment): the position, then tool → limit → collision (a
+ *  stable sort keeps a kind's own order). */
+export function simRowOrder(a: { cum: number; kind: SimRowKind }, b: { cum: number; kind: SimRowKind }): number {
+  return a.cum - b.cum || KIND_ORDER[a.kind] - KIND_ORDER[b.kind];
+}
 
 export function buildSimRows(i: SimRowInput): SimRow[] {
   const at = (cum: number) => i.timeBased
@@ -82,7 +89,7 @@ export function buildSimRows(i: SimRowInput): SimRow[] {
     rows.push({ key: t.key, kind: "tool", line: t.line, lineLabel: `L${t.line}`, cum: t.cum, cumEnd: t.cumEnd,
       what: `Tool change → T${t.tool || "?"}`, note: "", rapid: null, at: at(t.cum) });
   }
-  return rows.sort((a, b) => a.cum - b.cum || KIND_ORDER[a.kind] - KIND_ORDER[b.kind]);
+  return rows.sort(simRowOrder);
 }
 
 /** The first row AFTER the position (the run's look-ahead and the

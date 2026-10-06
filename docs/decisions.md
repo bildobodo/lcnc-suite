@@ -8025,3 +8025,23 @@ need the room". `.denseArea` joins `.strip` / `.dataTable` / `.macroBar` as
 an area whose controls take the compact height (28 / 36 px): the search and
 filter rows (Tools, Macros, messages, reference), the narrow pane's area
 select row and the Simulation tab's rows. Forms keep the full height.
+
+## 2026-10-06 — Codex R78: the Sim tab owns its focus; one order; a tool change ends a reveal
+
+VP-I37 (P1): a new collision result replaced the rows while one held the
+focus — it fell to body, and with keyboard jog bound to the arrows the next
+arrow jogged. The tab now owns the focus it holds: before every change of
+what it renders it notes where the focus is, after it a focus that fell out
+goes to the same row, the same control, the row now at its place, the list
+filter (a select — the shortcut map leaves its keys alone), else the panel
+itself, which keeps the navigation keys. VP-I38 (P2): the steps through
+mixed kinds sorted by position alone; where a tool change, a limit and a
+collision share a moment they went down the list and back up — list and
+steps now share `simRowOrder`. VP-I39 (P2): a jump to a tool change kept the
+previous finding's reveal; it ends it now (the stored layers untouched).
+Guards: a result change under a focused row and an emptied list with the
+jog bound (a control jog first), the mixed steps through a three-way tie
+both ways with the wrap, the reveal ended by a row and by a step — each red
+without its fix. Codex's note on the keys test taken: it waits for the
+client's machine state and retries the control jog until the settings
+arrived.
