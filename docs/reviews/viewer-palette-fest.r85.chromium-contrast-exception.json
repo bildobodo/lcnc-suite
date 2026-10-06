@@ -1,0 +1,29 @@
+{
+  "hits": [
+    {
+      "where": "body > div > p",
+      "text": "different-red",
+      "ratio": 3.61,
+      "fg": "rgb(255,49,85)",
+      "bg": "rgb(255,255,255)",
+      "min": 4.5
+    },
+    {
+      "where": "body > div > p",
+      "text": "bad-text",
+      "ratio": 1.16,
+      "fg": "rgb(238,238,238)",
+      "bg": "rgb(255,255,255)",
+      "min": 4.5
+    },
+    {
+      "where": "div > div > span",
+      "text": "descendant-bad-text",
+      "ratio": 1.16,
+      "fg": "rgb(238,238,238)",
+      "bg": "rgb(255,255,255)",
+      "min": 4.5
+    }
+  ],
+  "checked": 4
+}

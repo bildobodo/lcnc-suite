@@ -1,0 +1,35 @@
+{
+  "round": "R85",
+  "base": "cf4a9142ce15fa8e2ae4a98d8ada95f79d2ae8a7",
+  "reviewed_head": "8880a17d6e5d44dc36fbd8e3e06fb942e3242523",
+  "request_head": "9d5c6c37621c74364448d8111c49236bb3ed7031",
+  "archive": "/tmp/codex-r85-t57utcjg/archive",
+  "source_files_matching_git_blobs": 413,
+  "isolation_only_changes": [
+    "lcnc-webui/e2e/ctl.ts",
+    "lcnc-webui/tsconfig.app.json",
+    "lcnc-webui/tsconfig.node.json",
+    "lcnc-webui/tsconfig.test.json",
+    "lcnc-webui/vite.config.ts"
+  ],
+  "product_src_modified": false,
+  "review_original_sha256": "12f6fb1c1e1a6accba9d9cee569fac3545554116920ed3272d2ab407c2b8143c",
+  "mock": "127.0.0.1:4188",
+  "workers": 1,
+  "nice": 19,
+  "live_browser_gateway_or_machine_access": false,
+  "private_operator_inputs_used": false,
+  "build_before_external_probes": true,
+  "browser_dom_control": "The diagnostic edge test removes only the summary row padding in its own browser page, then restores it; no product source/bundle edit.",
+  "chromium_runner_exit": 143,
+  "chromium_runner_note": "All 19 test results and final 19 passed summary were present; exec returned 143 after teardown.",
+  "firefox_initial_suite": "18 passed, 1 failed at guard fixture precondition",
+  "edge_control_final": "passed; original total does not fill row even without padding; larger synthetic total tests both positive and negative controls",
+  "verification": {
+    "unit": "71/71",
+    "chromium": "19/19 tests reported passed",
+    "firefox": "18/19; VP-I44 at fixture precondition",
+    "firefox_edge_control": "1/1",
+    "chromium_text_contrast": "5/5"
+  }
+}
