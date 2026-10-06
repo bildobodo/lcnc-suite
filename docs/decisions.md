@@ -8080,3 +8080,19 @@ column's place and width across that change (1440 × 800, red without the
 rule). Measured first: with the mock's four macros at 1600 × 1000 nothing
 moved in Chromium or Firefox — the change needs a table that fits before
 the bar and scrolls after it.
+
+## 2026-10-06 — Codex R81: the Sim list glides the code panel's way (VP-I41)
+
+The follow of the morning restarted a browser smooth scroll for every row;
+at ×100 playback Chromium's restarted animation never caught up and the
+marked row sat up to 690 px below a 211 px list for 1.5 s (Firefox 1.2 s).
+The scrub test had not seen it: `openLayout` emulates reduced motion, where
+the follow snapped. The list now glides like the code panel (`codeGlide.ts`
+— `visibleBand`, `planGlide`, `glideAt`): each new target over the time
+since the last one (30–150 ms), started from the current position held in
+the row's visible band, so a row that left the view is back at once and
+every glide position keeps it in view; far jumps and reduced motion snap.
+`sim-panel.viewer.spec` plays the 50-row list at ×100 with NORMAL motion
+(1280 × 800, from 15 %) and requires the marked row wholly in view at each
+of 40 samples — red with the smooth scroll restored (rows 15–290 px below).
+The claim and the stable Macros columns were confirmed in R81.

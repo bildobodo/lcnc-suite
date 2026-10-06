@@ -16,6 +16,7 @@ import { usePermissions } from "./permissions";
 import { explainAt } from "./gateExplain";
 import { fmtPct } from "./format";
 import { cssZoomOf } from "./helpPlacement";
+import { glideAt, planGlide, visibleBand, type Glide } from "./codeGlide";
 import { SIM_SPEEDS, simJump, simRows, simStep, simView } from "./simPanelStore";
 import type { SimRow, SimRowKind } from "./viewer/simRows";
 
@@ -122,25 +123,49 @@ watch(renders, () => {
 // ── The list FOLLOWS the position (operator 2026-10-06: "like the code
 // panel when the program runs"): the marked row — the shown finding, else
 // the next one ahead — stands in the middle of the list's view while the
-// simulation scrubs or plays and while a program runs. It glides (snaps
-// with reduced motion), moves the list only, never the focus; a list that
-// fits does not move.
+// simulation scrubs or plays and while a program runs. It glides the code
+// panel's way (codeGlide.ts): each new target over the time since the last
+// one (30–150 ms), from a start held in the row's VISIBLE BAND — a row that
+// left the view comes back at once, the rest glides. A browser smooth
+// scroll restarted per row fell behind at ×100 playback and the marked row
+// sat below the view for 1.5 s (Codex R81 VP-I41). A far jump and reduced
+// motion snap; the list moves, never the focus; a list that fits stays.
 const scroller = ref<HTMLElement | null>(null);
 const marked = computed(() => rows.value.find(r => shown(r) || isNext(r))?.key ?? null);
 const reduceMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-function follow(glide: boolean) {
+let glide: Glide | null = null;
+let glideRaf = 0;
+let lastTargetAt = -Infinity;
+function glideStep() {
+  const sc = scroller.value, g = glide;
+  if (!sc || !g) return;
+  const { pos, done } = glideAt(g, performance.now());
+  sc.scrollTop = pos;
+  if (done) glide = null;
+  else glideRaf = requestAnimationFrame(glideStep);
+}
+function follow(animate: boolean) {
   const sc = scroller.value, key = marked.value;
   if (!sc || !key || !sc.clientHeight) return;
   const tr = sc.querySelector<HTMLElement>(`tr[data-sim-row="${CSS.escape(key)}"]`);
   if (!tr) return;
-  // In the list's own px: the row's place in the scrolled content, the view
-  // under the sticky head.
+  // In the list's own px: the row's place in the scrolled content; the view
+  // is what the sticky head leaves.
   const head = sc.querySelector<HTMLElement>("thead")?.offsetHeight ?? 0;
-  const rowTop = (tr.getBoundingClientRect().top - sc.getBoundingClientRect().top) / cssZoomOf(sc) + sc.scrollTop;
-  const top = Math.max(0, Math.min(sc.scrollHeight - sc.clientHeight,
-    rowTop - head - (sc.clientHeight - head - tr.offsetHeight) / 2));
-  if (Math.abs(top - sc.scrollTop) < 1) return;
-  sc.scrollTo({ top, behavior: glide && !reduceMotion() ? "smooth" : "auto" });
+  const rowY = (tr.getBoundingClientRect().top - sc.getBoundingClientRect().top) / cssZoomOf(sc) + sc.scrollTop - head;
+  const lineH = tr.offsetHeight, viewH = sc.clientHeight - head;
+  const max = Math.max(0, sc.scrollHeight - sc.clientHeight);
+  const clamp = (y: number) => Math.max(0, Math.min(max, y));
+  const to = clamp(rowY - (viewH - lineH) / 2);
+  const now = performance.now(), gap = now - lastTargetAt;
+  lastTargetAt = now;
+  cancelAnimationFrame(glideRaf);
+  glide = null;
+  const plan = animate ? planGlide(sc.scrollTop, to, now, gap, viewH, reduceMotion(), visibleBand(rowY, lineH, viewH, clamp)) : null;
+  if (!plan) { sc.scrollTop = to; return; }
+  sc.scrollTop = plan.from;   // into the band at once — the row is in view from here on
+  glide = plan;
+  glideRaf = requestAnimationFrame(glideStep);
 }
 watch([marked, rows], () => follow(true), { flush: "post" });
 // A hidden tab has no height: it catches up when it shows (or resizes).
@@ -149,7 +174,7 @@ watch(scroller, (el, old) => {
   if (old) sized?.unobserve(old);
   if (el) sized?.observe(el);
 });
-onUnmounted(() => sized?.disconnect());
+onUnmounted(() => { sized?.disconnect(); cancelAnimationFrame(glideRaf); });
 
 /** The panel itself, holding a parked focus, keeps the navigation keys —
  *  one that reached the shortcut map would jog. */
