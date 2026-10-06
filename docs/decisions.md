@@ -8177,3 +8177,37 @@ content's clip edge and the outer 4 px of its hit area were cut off. The row
 keeps the reach (`--help-reach` padding, the Settings/HUD pattern);
 `sim-panel.viewer.spec` taps the hit area's outer edge on a full line — red
 without the padding.
+
+## 2026-10-06 — The sweep's distance horizon; the tint over a partial result
+
+Operator, live on haus.ngc (XYZAC sim, TCP, A 61.3°): "the first collision
+is detected; jumping to the next, the A axis is already inside the column —
+not detected, no highlight". Reproduced offline with the live payload, WCS,
+tool and joints (the entry move's length matched the browser's to 1e-15).
+Along the entry move the sweep reported the yoke 230 mm of travel late and
+the Y saddle, the A bearing pedestals and the drive covers not at all.
+
+Cause: `pairDistance` asks three-mesh-bvh's `closestPointToGeometry` with
+`maxThreshold = HORIZON` (20 mm) and took any non-null answer as the
+clearance. The library visits only the bounds nearer than the threshold
+and returns the closest of the triangles it visited, which may lie far
+beyond the threshold while nearer triangles sat in pruned bounds: 291 mm
+returned at a true 82. The certificate `(d − margin)/V` then jumped from
+120 mm to 666 mm along a 686 mm move. Now a distance above the horizon is
+"beyond the horizon" (the sweep treats it as HORIZON). The guarantee the
+sweep claims never held for this query shape; the component-box lower
+bound (2026-09-13) made it reachable on the real models, a box overlap with
+a far mesh. `collisionHorizon.test.ts`: the operator's entry move over the
+shipped XYZAC model, every part's first contact (measured apart from the
+sweep: 0.5 mm steps with an unbounded query, bisected) to 0.01 mm — red
+without the fix (the yoke at 506 mm instead of 275).
+
+The same reproduction showed no part ever wholly inside the column (a
+closed mesh, three-ray parity at 5089 poses): the "swallowed body reads as
+clear" class (Codex R84) did not occur here; the alternating contacts of
+the A bearings, drive covers and C parts are real.
+
+The tint over a PARTIAL result (while the sweep runs): an unrefined record
+knows its first and last contact sample on the line only, so it no longer
+suppresses its pair's span — only a refined record (intervals) or a near
+miss proves a gap there.

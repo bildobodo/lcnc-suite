@@ -1177,7 +1177,14 @@ query), each body carries its connected components' AABBs
 answers every above-margin query without the BVH, and a cutting pair in
 feed-begun contact owes no per-line sample. The wall gantry's ~450 pairs
 over 236k triangles made a 1.2 M-point sweep take hours; a 20k-point slice
-went 203 s → 5.1 s (docs/decisions.md 2026-09-13).
+went 203 s → 5.1 s (docs/decisions.md 2026-09-13). The BVH query runs with
+a horizon (`HORIZON`, 20 mm) and a distance it returns ABOVE the horizon is
+"beyond the horizon", never a clearance: three-mesh-bvh visits only the
+bounds nearer than its threshold and returns the closest of the triangles
+it visited — 291 mm at a true 82 on the XYZAC column, and the certificate
+jumped 230 mm past the yoke's first contact (operator 2026-10-06, live;
+`collisionHorizon.test.ts` drives that entry move over the real model and
+requires every part's first contact to 0.01 mm).
 Baseline subtraction keeps it quiet: pairs inside the margin at the
 program's FIRST pose AND at the model's REST pose (every joint at zero —
 the designed pose the machine-model tests require to be self-collision-
@@ -1198,7 +1205,10 @@ never separates over thousands of lines is a record per LINE): the tint
 and the timeline's red extent read it where the PAIR has no record of its
 own on the line — decided per pair (`viewer/clashTint.ts`; one test for the
 whole line put the Y saddle and the yoke out on every line another pair
-re-entered — operator 2026-10-06, haus.ngc on XYZAC). Test fixture:
+re-entered — operator 2026-10-06, haus.ngc on XYZAC). Only a REFINED record
+(intervals) or a near miss counts as the pair's own: the live partial result
+while the sweep runs knows a record's first and last contact sample only,
+which proves no gap. Test fixture:
 `~/linuxcnc/nc_files/5axis_collision_test.ngc` — in-limits program whose
 low rapid traverse rams the trunnion (stage 1 quiet, stage 3 flags it).
 

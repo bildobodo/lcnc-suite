@@ -52,6 +52,19 @@ describe("the clash tint", () => {
   it("a near miss never glows", () => {
     expect([...clashTintBodies([hit({ line: 1, a: "t", b: "w", cum: 1, cumEnd: 1, dist: 1.5 })], 1, 1)]).toEqual([]);
   });
+  it("while the sweep runs (records not yet refined) a record on the line proves no gap: the span glows", () => {
+    // The live partial result: no intervals yet, a record's cum..cumEnd are
+    // its first and last contact SAMPLE on its line. Line 18 starts at 1.5;
+    // the pair's L18 record has its first sample at 2.2.
+    const partial: CollisionHit[] = [
+      hit({ line: 17, a: "rear_column", b: "a_yoke_casting", cum: 1, cumEnd: 1.4, spanEndLine: 900, spanCumEnd: 50 }),
+      hit({ line: 18, a: "rear_column", b: "a_yoke_casting", cum: 2.2, cumEnd: 2.9, continuation: 17 }),
+      hit({ line: 18, a: "rear_column", b: "a_drive_covers", cum: 1.7, cumEnd: 1.9 }),
+    ];
+    expect([...clashTintBodies(partial, 18, 1.8)].sort(), "the next finding: the yoke still in the column")
+      .toEqual(["a_drive_covers", "a_yoke_casting", "rear_column"]);
+    expect([...clashTintBodies(partial, 18, 2.5)].sort()).toEqual(["a_yoke_casting", "rear_column"]);
+  });
   it("a carried first interval is contact: it glows, the gap after it stays dark", () => {
     const carried: CollisionHit[] = [
       hit({ line: 3, a: "t", b: "w", cum: 1, cumEnd: 2, intervals: [[1, 2]], spanEndLine: 5, spanCumEnd: 12 }),

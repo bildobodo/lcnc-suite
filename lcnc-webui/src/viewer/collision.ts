@@ -1027,7 +1027,12 @@ export function* sweepCollisionsIter(
     const lb = boxLowerBound(O, I, relMat);
     if (lb > opts.margin) return lb;         // no contact possible; bound for the certificate
     const res = O.bvh.closestPointToGeometry(I.geom, relMat, target1, target2, 0, maxT);
-    return res ? target1.distance : Infinity;  // null: provably beyond maxT
+    // null: provably beyond maxT. So is a distance ABOVE maxT: the library
+    // visits only the bounds nearer than maxT, and what it returns past it is
+    // the closest of the triangles it happened to visit — not the minimum
+    // (three-mesh-bvh 0.9.14; live haus.ngc 2026-10-06: 291 returned at a
+    // true 82, the certificate jumped 230 mm past the yoke's onset).
+    return res && target1.distance <= maxT ? target1.distance : Infinity;
   };
 
   // ── Whole-program reach prescreen (2026-09-13) ────────────────────────

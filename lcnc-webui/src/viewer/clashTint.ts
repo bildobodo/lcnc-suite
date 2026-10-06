@@ -22,12 +22,22 @@ const pairOf = (h: CollisionHit) => `${h.a}\u0000${h.b}`;
  * - a pair with NO record of its own on this line — of any distance: a
  *   near-miss continuation is proximity, not contact — glows while the cum
  *   lies inside one of its onsets' SPAN (past the MAX_HITS cap of a contact
- *   that never separated). Fable's review, 2026-10-06.
+ *   that never separated). Fable's review, 2026-10-06. An UNREFINED contact
+ *   record (a partial result) does not count as one: it proves no gap.
  */
 export function clashTintBodies(hits: readonly CollisionHit[], line: number, cum: number): Set<string> {
   const want = new Set<string>();
   const recordHere = new Set<string>();
-  for (const h of hits) if (h.line === line) recordHere.add(pairOf(h));
+  // Only a REFINED record proves a gap (its intervals' boundaries are
+  // bisected); a near miss proves the pair stayed clear at its samples. An
+  // unrefined contact record — the live partial result while the sweep runs —
+  // knows only its first and last contact sample on the line: the contact
+  // carried in from the line before was there between the line's start and
+  // that first sample too (live haus.ngc, operator 2026-10-06: at the next
+  // finding the yoke stood in the column, unlit).
+  for (const h of hits) {
+    if (h.line === line && (h.dist > CONTACT_TINT_EPS || h.intervals !== undefined)) recordHere.add(pairOf(h));
+  }
   const glow = (h: CollisionHit) => { want.add(h.a); want.add(h.b); };
   for (const h of hits) {
     if (h.dist > CONTACT_TINT_EPS) continue;
