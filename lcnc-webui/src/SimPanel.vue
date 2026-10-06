@@ -69,6 +69,17 @@ const sumLimit = computed(() => {
   const lines = count("limit");
   return { name: total > records ? `${words} · the first ${lines} line${lines === 1 ? "" : "s"} listed` : words, short: String(total), muted: false };
 });
+/** The summary's "?" — reachable by touch and keyboard (Codex R82 VP-I42:
+ *  narrow, the capped list was said only in a name and a mouse tooltip).
+ *  Capped: the total, what the parse sent, the lines the list shows. */
+const sumHelp = computed(() => {
+  const { total, records } = simView.limits;
+  if (total != null && total > records) {
+    const lines = count("limit");
+    return `${total} limit violations, a line and an axis each. The parse sends the first ${records}; the list shows their ${lines} line${lines === 1 ? "" : "s"}.`;
+  }
+  return "× the collision check's verdict · ▲ soft-limit records, a line and an axis each · ● the program's tool changes.";
+});
 const sumTool = computed(() => {
   const n = count("tool");
   return { name: n ? `${n} tool change${n === 1 ? "" : "s"}` : "No tool changes", short: String(n), muted: !n };
@@ -241,24 +252,27 @@ function onRootKey(e: KeyboardEvent) {
       </div>
       <!-- ONE summary line, always there: nothing under it moves with the
            check's result. Narrow: the glyph and the number. -->
-      <div class="simSummary row-controls">
-        <span class="sumItem row-tight" role="img" :aria-label="sumClash.name" :title="sumClash.name">
-          <X class="sumGlyph clash" :size="12" :stroke-width="3" aria-hidden="true" />
-          <span v-if="simView.sweep" class="checkVerdict sumWide" :class="`text-${simView.sweep.tone}`">{{ simView.sweep.verdict }}</span>
-          <span v-else class="sumWide text-muted">Collisions not checked</span>
-          <span class="sumShort mono" :class="`text-${sumClash.tone}`">{{ sumClash.short }}</span>
-          <span v-if="simView.sweep?.caveat" class="text-warn" title="Not certified — see the collision check help">*</span>
-        </span>
-        <span class="sumItem sumLimit row-tight" role="img" :aria-label="sumLimit.name" :title="sumLimit.name">
-          <Triangle class="sumGlyph limit" :size="11" fill="currentColor" aria-hidden="true" />
-          <span class="sumWide" :class="{ 'text-muted': sumLimit.muted }">{{ sumLimit.name }}</span>
-          <span class="sumShort mono" :class="{ 'text-muted': sumLimit.muted }">{{ sumLimit.short }}</span>
-        </span>
-        <span class="sumItem row-tight" role="img" :aria-label="sumTool.name" :title="sumTool.name">
-          <Circle class="sumGlyph tool" :size="10" fill="currentColor" aria-hidden="true" />
-          <span class="sumWide" :class="{ 'text-muted': sumTool.muted }">{{ sumTool.name }}</span>
-          <span class="sumShort mono" :class="{ 'text-muted': sumTool.muted }">{{ sumTool.short }}</span>
-        </span>
+      <div class="simSummaryRow row-tight">
+        <div class="simSummary row-controls">
+          <span class="sumItem row-tight" role="img" :aria-label="sumClash.name" :title="sumClash.name">
+            <X class="sumGlyph clash" :size="12" :stroke-width="3" aria-hidden="true" />
+            <span v-if="simView.sweep" class="checkVerdict sumWide" :class="`text-${simView.sweep.tone}`">{{ simView.sweep.verdict }}</span>
+            <span v-else class="sumWide text-muted">Collisions not checked</span>
+            <span class="sumShort mono" :class="`text-${sumClash.tone}`">{{ sumClash.short }}</span>
+            <span v-if="simView.sweep?.caveat" class="text-warn" title="Not certified — see the collision check help">*</span>
+          </span>
+          <span class="sumItem sumLimit row-tight" role="img" :aria-label="sumLimit.name" :title="sumLimit.name">
+            <Triangle class="sumGlyph limit" :size="11" fill="currentColor" aria-hidden="true" />
+            <span class="sumWide" :class="{ 'text-muted': sumLimit.muted }">{{ sumLimit.name }}</span>
+            <span class="sumShort mono" :class="{ 'text-muted': sumLimit.muted }">{{ sumLimit.short }}</span>
+          </span>
+          <span class="sumItem row-tight" role="img" :aria-label="sumTool.name" :title="sumTool.name">
+            <Circle class="sumGlyph tool" :size="10" fill="currentColor" aria-hidden="true" />
+            <span class="sumWide" :class="{ 'text-muted': sumTool.muted }">{{ sumTool.name }}</span>
+            <span class="sumShort mono" :class="{ 'text-muted': sumTool.muted }">{{ sumTool.short }}</span>
+          </span>
+        </div>
+        <HelpIcon label="Summary">{{ sumHelp }}</HelpIcon>
       </div>
 
       <!-- The list's head: what it shows, and the steps through it -->
@@ -314,7 +328,9 @@ function onRootKey(e: KeyboardEvent) {
 .checkPct { white-space: nowrap; }
 /* The summary keeps ONE line whatever it says: the limit item gives way
    (an ellipsis; the whole text is its name and title). */
-.simSummary { flex-shrink: 0; min-width: 0; overflow: hidden; white-space: nowrap; }
+.simSummaryRow { flex-shrink: 0; }
+/* The "?" stays outside the clipped line: its hit area reaches past it. */
+.simSummary { flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; }
 .sumItem { flex: none; }
 .sumLimit { flex: 0 1 auto; min-width: 0; }
 .sumLimit .sumWide { min-width: 0; overflow: hidden; text-overflow: ellipsis; }

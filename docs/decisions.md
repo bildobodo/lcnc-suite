@@ -8118,3 +8118,16 @@ place in every frame; red with the line rendered only with a result), the
 words wide, the numbers narrow and visible, the capped total said (red with
 the short form hidden and with the cap unsaid — the first visibility check
 read hidden text and passed, tightened).
+
+## 2026-10-06 — Codex R82: VP-I41 closed; the summary's "?" says the cap (VP-I42)
+
+Narrow, the summary shows the glyph and the number; that the gateway's list
+is capped ("the first N lines listed") was only an item's name and its
+mouse tooltip — out of reach by touch and keyboard. The summary line ends
+in its own "?" (always there, so nothing moves): what the three count, and
+when capped "200636 limit violations, a line and an axis each. The parse
+sends the first 200; the list shows their 100 lines." (≤ 120 characters —
+the existing list help with that sentence would have passed the popover
+sweep's 140.) Outside the clipped line, so its hit area is whole.
+`sim-panel.viewer.spec` opens it narrow by Enter and by a tap and reads the
+sentence; red with the cap sentence left out.
