@@ -1,0 +1,21 @@
+{
+  "review": "R80",
+  "head": "2f9da82ae58342378ca742ce53cea2fa1c2482fc",
+  "base": "e73d06761797c9dda3e88aacfe0f5339eed4231a",
+  "live_head": "b70a08678a0178160ef9ffd2d0aa1d670dc227b7",
+  "build_reused_from": "3954401",
+  "webui_changes_since_build": [
+    "lcnc-webui/e2e/sim-panel.viewer.spec.ts"
+  ],
+  "build_hashes_verified": 26,
+  "archive": "/tmp/codex-r80-1l7jv8mb/archive",
+  "mock": "127.0.0.1:4188",
+  "workers": 1,
+  "nice": 19,
+  "review_prefix_sha256": "568af315f8fd8eaba4adf23ee80183257a56b37fd6a97798c0ea3da0a856af2e",
+  "verified_webui_files": 414,
+  "modified_for_isolation": [
+    "lcnc-webui/e2e/ctl.ts"
+  ],
+  "product_source_changes": []
+}

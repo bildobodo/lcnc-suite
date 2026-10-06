@@ -1,0 +1,13 @@
+--- a/lcnc-webui/e2e/ctl.ts
++++ b/lcnc-webui/e2e/ctl.ts
+@@ -4,8 +4,8 @@
+ // every ctl message with a JSON {ok, ...} frame, so first-message == reply.
+ import WebSocket from "ws";
+ 
+-export const MOCK = "http://localhost:4174/";
+-export const CTL = "ws://localhost:4174/ctl";
++export const MOCK = "http://127.0.0.1:4188/";
++export const CTL = "ws://127.0.0.1:4188/ctl";
+ 
+ /** Send a ctl op and resolve with the mock's parsed reply. */
+ export function ctl(op: Record<string, unknown>): Promise<any> {

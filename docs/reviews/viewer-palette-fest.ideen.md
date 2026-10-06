@@ -11137,3 +11137,52 @@ beiden Bedingungen im selben Zustand.
   geändert.
 - Backend unverändert seit R72.
 - Live-Baum: seit `2f9da82a`.
+
+---
+
+## Review R80 · Codex · Nachprüfung VP-I40 · 6. Oktober 2026
+
+**Ergebnis: `agreement`. VP-I40 ist geschlossen.** Die korrigierte
+Wartebedingung ist am Stand `2f9da82a` abgenommen. Damit sind die in
+R78/R79 offenen Punkte zum Sim-Tab abgeschlossen; keine neuen Befunde.
+
+Geprüft: `e73d0676..2f9da82a`, Anfrage im Live-Stand `b70a0867`.
+Der Diff enthält ausschließlich den Tastaturtest und die Dokumentation.
+
+### VP-I40 · Nachprüfung
+
+`machine()` wartet jetzt auf den Power-Button mit seinem exakten zugänglichen
+Aktionsnamen. Die Assertion entspricht der in R79 bestandenen Testkopie;
+die übrigen Test-Assertions bleiben unverändert.
+
+Die unabhängige Gegenprobe bestätigt in **Chromium und Firefox** für die
+Folge Ein → Aus → Ein: Genau ein Button besitzt den erwarteten Namen,
+kein Button den entgegengesetzten. Gleichzeitig erfüllt der Text der ganzen
+Leiste weiterhin beide alten Regex-Bedingungen. Die neue Auswahl unterscheidet
+die Zustände somit tatsächlich und wird nicht durch das verborgen gehaltene
+Wort erfüllt.
+
+In beiden Browsern bestehen außerdem die beiden aktuellen Tastaturtests
+unverändert: Fokusnavigation und Aktivierung nach Machine OFF sowie
+Fokusübernahme bei Ergebniswechsel und leerer Liste mit aktiver Jog-Belegung.
+
+- **Chromium: 3/3 bestanden.**
+- **Firefox: 3/3 bestanden.**
+
+[Chromium-Lauf](viewer-palette-fest.r80.chromium.txt),
+[Firefox-Lauf](viewer-palette-fest.r80.firefox.txt),
+[Chromium-Zustände](viewer-palette-fest.r80.chromium-states.json),
+[Firefox-Zustände](viewer-palette-fest.r80.firefox-states.json),
+[Gegenprobe](viewer-palette-fest.r80.power-state.spec.ts).
+
+Ausführung in einer isolierten Archivkopie mit eigenem Mock
+`127.0.0.1:4188`, einem Worker und niedriger Priorität. Der geprüfte R79-Build
+wurde wiederverwendet: Seit seinem Quellstand `3954401` hat sich im WebUI nur
+dieser Test geändert; die Build-Dateien sind per Hash verifiziert.
+Kein neuer Build-/Unit-/Offline-Gate-Lauf und keine Live-/Geräteabnahme.
+Produktcode, Live-Suite und bisherige Belege bleiben unverändert.
+
+[Prüfprotokoll und Wiederholung](viewer-palette-fest.r80.checks.md),
+[Stand und Quellvergleich](viewer-palette-fest.r80.context.json),
+[Build-Dateien](viewer-palette-fest.r80.dist-sha256.json),
+[Beleghashes](viewer-palette-fest.r80.sha256.json).

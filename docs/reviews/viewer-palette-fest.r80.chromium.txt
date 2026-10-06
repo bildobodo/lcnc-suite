@@ -1,0 +1,14 @@
+[2m[WebServer] [22m(node:1597988) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:1598030) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1598030) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r80.power-state.spec.ts:6:1 › R80: the exact power-button name distinguishes both states while the old text does not (3.4s)
+  ✓  2 e2e/sim-panel.viewer.spec.ts:124:1 › the rows' keys move the focus, never a jog; Enter shows; the machine on explains at the row (4.1s)
+  ✓  3 e2e/sim-panel.viewer.spec.ts:177:1 › a result change under the focus keeps it in the panel; no arrow jogs (4.3s)
+
+  3 passed (13.0s)
