@@ -37,6 +37,10 @@ export const simView = reactive({
   lineTitle: "",
   time: "",
   sweep: null as SimSweepView | null,
+  /** The program's soft-limit records: `total` distinct (line, axis) records
+   *  (null = not validated — unchecked ≠ clean), `records` the ones the
+   *  payload carries (the gateway caps the list at 200). */
+  limits: { total: null as number | null, records: 0 },
   /** Why a row cannot be shown now (the machine is on), else undefined. */
   jumpReason: undefined as string | undefined,
   /** Playback speed, ×0.1 … ×100 in fixed steps. */

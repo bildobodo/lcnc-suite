@@ -981,6 +981,8 @@ watchEffect(() => {
   simView.lineTitle = lineTitle.value;
   simView.time = posText.value;
   simView.sweep = sweepView.value;
+  const v = violations.value;
+  simView.limits = { total: v == null ? null : viewerGcode.value?.violations_total ?? v.length, records: v?.length ?? 0 };
   simView.jumpReason = hitNavReason.value;
 });
 const releaseSim = claimSimActions({

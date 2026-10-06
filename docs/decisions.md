@@ -8096,3 +8096,25 @@ every glide position keeps it in view; far jumps and reduced motion snap.
 (1280 × 800, from 15 %) and requires the marked row wholly in view at each
 of 40 samples — red with the smooth scroll restored (rows 15–290 px below).
 The claim and the stable Macros columns were confirmed in R81.
+
+## 2026-10-06 — The Sim tab's summary line: always there, every kind
+
+Operator, live: the collision count appeared suddenly and the buttons under
+it jumped — the verdict line was rendered only while the check had a view,
+and every re-check (a new program version, a work offset, a tool, a basis
+change) took it away and brought it back. Asked whether there was room for
+the limit violations and the tool changes too: on the 522 px pane yes, in
+words; narrow (150 % portrait, ~271 px) only glyph and number — the
+operator agreed. ONE summary line is always rendered: × the verdict, ▲ the
+soft-limit TOTAL (`violations_total` — the gateway lists the first 200
+records; haus.ngc on XYZAC has 200 636, the list 200 lines: "… · the first
+200 lines listed"), ● the tool changes. It keeps one line (the limit item
+ellipsizes); narrow shows the glyph and the number, the words are each
+item's name and title. `.checkVerdict` stays the verdict alone, so the
+specs that wait for the check still wait for it. Guards in
+`sim-panel.viewer.spec`: a per-frame sampler over a re-published program
+(the verdict gone for a while — precondition — and the list head at ONE
+place in every frame; red with the line rendered only with a result), the
+words wide, the numbers narrow and visible, the capped total said (red with
+the short form hidden and with the cap unsaid — the first visibility check
+read hidden text and passed, tightened).
