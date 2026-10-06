@@ -11186,3 +11186,79 @@ Produktcode, Live-Suite und bisherige Belege bleiben unverändert.
 [Stand und Quellvergleich](viewer-palette-fest.r80.context.json),
 [Build-Dateien](viewer-palette-fest.r80.dist-sha256.json),
 [Beleghashes](viewer-palette-fest.r80.sha256.json).
+
+---
+
+## Anfrage R81 · Claude · Live-Blick: Pfeile, mitwandernde Liste, Spalten der Makro-Tabelle · 6. Oktober 2026
+
+**Bitte prüfe `0ddd4038..91557369` auf `feat/backlog-integration`.** Darin ist ein Commit:
+`3a9832c6` auf `fix/sim-follow`. Er ändert Oberfläche, Tests und Doku, kein Gateway-Code. Anlass
+sind drei Rückmeldungen des Operators aus dem Live-Blick.
+
+### 1 · ‹ › im Sim-Tab ohne Wirkung — die Leiste meldet nur noch ihre eigene Anmeldung ab
+
+- **Beobachtung des Operators:** Im Simulationsmodus bewirkten die Pfeile nichts.
+- **Ursache:** Die Seite war offen, als die R78-Korrekturen per Hot-Reload kamen. Vue baut beim
+  Neu-Mounten die neue `ScrubBar`, bevor `onUnmounted` der alten läuft. Dieser Hook setzte die
+  Aktionen des Tabs bedingungslos auf `null` und löschte damit auch die Anmeldung der neuen
+  Leiste. Schritte und Zeilen liefen danach ins Leere, bis die Seite neu geladen wurde.
+- **Gegenprobe:** Auf einer frischen Seite schaltete ‹ › mit dem Programm des Operators
+  (`haus.ngc` auf XYZAC, 201 Zeilen) im Mock 16-mal weiter.
+- **Korrektur:** `claimSimActions` (`simPanelStore.ts`) gibt eine Freigabe zurück, die nur den
+  eigenen Anspruch beendet: Aktionen, Zeilen, Verfügbarkeit.
+- **Wächter:** `simPanelStore.test.ts` tauscht eine Komponente per Schlüssel aus. Ein minimaler
+  eigener Renderer (`createRenderer`, ohne DOM) sorgt für Vues eigene Reihenfolge.
+  - Mit Korrektur: Die Schritte erreichen die neue Leiste, und die Liste bleibt.
+  - Rot mit bedingungsloser Freigabe: „the steps reach the new bar: expected [] …“.
+- **Grenze:** Ein Hot-Reload der echten `ScrubBar` lässt sich in Playwright (gebautes `dist`)
+  nicht auslösen. Der Wächter prüft den Vertrag des Stores unter Vues Reihenfolge.
+
+### 2 · Die Liste wandert mit der Position
+
+- **Wunsch des Operators:** „wie der G-Code, wenn das Programm läuft“.
+- **Umsetzung (`SimPanel.vue`):** Die markierte Zeile steht in der Mitte der Listenansicht, unter
+  dem fixierten Kopf. Markiert ist der gezeigte Befund, sonst der nächste voraus. Das gilt beim
+  Scrubben, beim Abspielen und im echten Lauf.
+  - `scrollTo`, gleitend; mit reduzierter Bewegung springt die Liste.
+  - Nur die Liste bewegt sich, nie der Fokus.
+  - Eine Liste, die ganz hineinpasst, bleibt stehen.
+  - Ein verborgener Tab holt die Position bei der nächsten Größenänderung nach
+    (`ResizeObserver`).
+- **Wächter:** `sim-panel.viewer.spec` mit 50 Grenzzeilen. Nach dem Scrubben auf 70 %, 25 % und
+  50 % steht die nächste Zeile in der Mitte (Abweichung ≤ eine Zeilenhöhe), am Anfang ist sie
+  sichtbar. Rot ohne das Mitscrollen: „scrubbed to 0.7 …“.
+
+### 3 · Die Spalten der Makro-Tabelle rücken
+
+- **Beobachtung des Operators:** Die Spalte der Reihenfolge-Pfeile ändert sich leicht, wenn die
+  Pfeile erscheinen.
+- **Messung:** Mit den vier Makros des Mocks bei 1600 × 1000 bewegt sich nichts, auf 0,01 px
+  genau, in Chromium und Firefox. Die Änderung entsteht erst, wenn die Tabelle vorher passt und
+  nachher scrollt.
+- **Ursache:** Der Operator hat fünf Makros und eine leere Leiste. Das erste Makro auf der
+  Leiste blendet die Makroleiste ein, der Tab wird niedriger, und die Tabelle beginnt zu
+  scrollen. Bei 1440 × 800 nimmt die Scrollleiste dann 10 px weg: Die rechten Spalten rücken
+  um 10 px nach links, die Beschreibung wird 10 px schmaler.
+- **Korrektur:** `.dataTable.scroll-thin { scrollbar-gutter: stable; }`. Das gilt für alle
+  scrollenden Tabellenlisten: Tools, Macros, Meldungen, Referenz, Sim-Liste.
+- **Wächter:** `macros.spec` bei 1440 × 800. Vorbedingung: Die Tabelle passt vorher und scrollt
+  nachher. Lage und Breite jeder Spalte bleiben gleich. Rot mit `scrollbar-gutter: auto`.
+
+### Eine Frage ohne Codeänderung
+
+Der Operator las die Grenzverletzungen als „rot statt orange“. Die Farbrollen sind seit R77
+unverändert:
+- Strich auf der Zeitleiste: `--warn` `#f5a623`.
+- ▲ auf der Zeitleiste und neu in der Liste: `--warn-text`, im hellen Theme `#8d4500`.
+
+Neu ist nur die Menge der braunen ▲ in der Liste. Ich lege dem Operator einen Vergleich vor:
+heute gegen ein ▲ in `--warn` mit einem Rand in `--warn-text`. Das ist noch nicht gebaut, und
+du musst es nicht prüfen; die Entscheidung liegt beim Operator.
+
+### Prüfungen
+
+- **Offline-Gate R2:** PASS auf `3a9832c6` — Backend 1245, Vitest 1902, Playwright 483.
+- **Rot ohne Korrektur:** alle drei Gegenproben, je kompilierend, mit geprüftem Build-Exit und
+  einem Build je Mutation, danach aus der Sicherung zurück.
+- **Backend:** unverändert seit R72.
+- **Live-Baum:** seit `91557369`.
