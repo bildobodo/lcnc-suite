@@ -14,17 +14,18 @@ import { openSimTab, simLine, simShow, simStepBtn } from "./simTab";
 const FEED = Array.from({ length: 30 }, (_, i) => [i * 3, i % 2 ? 20 : 0, 0]);
 FEED[17]![0] = 110;   // line 20 out of the X window
 FEED[29]![0] = 120;   // line 32 out of the X window
-const PREVIEW = Buffer.from(encode({ file: "/sim.ngc", preview_schema: 10, feed: FEED,
+const PREVIEW_FIELDS = { file: "/sim.ngc", preview_schema: 10, feed: FEED,
   feed_lines: FEED.map((_, i) => i + 3), feed_seq: FEED.map((_, i) => i + 3),
   feed_outside: new Uint8Array(FEED.map(p => (p[0]! > 100 ? 1 : 0))),
   feed_tcum: new Uint8Array(new Float32Array(FEED.map((_, i) => i * 4)).buffer),
   violations: [{ line: 20, axis: "X", value: 110, limit: 100, kind: "max" }, { line: 32, axis: "X", value: 120, limit: 100, kind: "max" }],
-  violations_total: 2 }));
+  violations_total: 2 };
+const PREVIEW = Buffer.from(encode(PREVIEW_FIELDS));
 // T3 on line 10; T5 on line 20 — the same moment as line 20's limit
 const TEXT = Array.from({ length: 34 }, (_, i) => i === 0 ? "(sim)" : i === 9 ? "T3 M6" : i === 19 ? "T5 M6" : `G1 X${i} F100`).join("\n");
 
-async function prepare(page: Page, context: BrowserContext, vp = "desktop") {
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: PREVIEW }));
+async function prepare(page: Page, context: BrowserContext, vp = "desktop", preview = PREVIEW) {
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: preview }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: TEXT }));
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === vp)!);
   await ctl({ op: "status_delta", data: { active_file: "/sim.ngc", is_enabled: false, enabled: false } });
@@ -374,4 +375,57 @@ test("playback at ×100 with normal motion: the marked row never leaves the list
   const marked = samples.filter(s => s.key);
   expect(new Set(marked.map(s => s.key)).size, "the playback moved through many rows").toBeGreaterThan(5);
   expect(marked.filter(s => !s.inView), "every sample: the marked row wholly in the list's view").toEqual([]);
+});
+
+// Operator 2026-10-06 (live): the collision verdict came in with the
+// check's result — and left with every re-check — and the filter and the
+// steps under it jumped. ONE summary line is always there: × the check's
+// verdict, ▲ the program's limit records, ● the tool changes.
+test("the summary line is always there: a re-check moves nothing under it", async ({ page, context }) => {
+  await prepare(page, context);
+  // Every frame: where the list head sits, and whether a verdict shows.
+  await page.evaluate(() => {
+    const w = window as unknown as { __sumFrames: { y: number; verdict: boolean }[] };
+    w.__sumFrames = [];
+    const tick = () => {
+      const head = document.querySelector(".simPanel .listHead"), panel = document.querySelector(".simPanel");
+      if (head && panel) w.__sumFrames.push({ y: Math.round((head.getBoundingClientRect().top - panel.getBoundingClientRect().top) * 10) / 10,
+        verdict: !!document.querySelector(".simPanel .checkVerdict") });
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+  await page.waitForTimeout(300);
+  // A new version of the program clears the check's result; the check starts
+  // again once the payload is decoded: no verdict for a while, then back.
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5101, file: "/sim.ngc" } });
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __sumFrames: { verdict: boolean }[] }).__sumFrames.some(f => !f.verdict)),
+    { message: "the re-check cleared the verdict for a while", timeout: 15_000 }).toBe(true);
+  await expect(page.locator(".simPanel .checkVerdict")).toHaveCount(1, { timeout: 30_000 });
+  await page.waitForTimeout(300);
+  const ys = await page.evaluate(() => [...new Set((window as unknown as { __sumFrames: { y: number }[] }).__sumFrames.map(f => f.y))]);
+  expect(ys, "the filter and the steps never moved, in any frame").toHaveLength(1);
+});
+
+test("the summary names each kind: words in the wide pane, the glyph and the number narrow; a capped list says so", async ({ page, context }) => {
+  await prepare(page, context);
+  const items = page.locator(".simPanel .simSummary [role=img]");
+  await expect(items).toHaveCount(3);
+  expect(await items.evaluateAll(els => els.map(e => e.getAttribute("aria-label")))).toEqual(["2 collisions", "2 limit violations", "2 tool changes"]);
+  await expect(page.locator(".simPanel .simSummary .sumWide").first()).toBeVisible();
+  await expect(page.locator(".simPanel .simSummary .sumShort").first()).toBeHidden();
+  await ctl({ op: "reset" });
+  // The gateway's list holds its first 200 records; the summary says the total.
+  await prepare(page, context, "touch-portrait", Buffer.from(encode({ ...PREVIEW_FIELDS, violations_total: 9000 })));
+  await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
+  await settleLayout(page);
+  await expect(page.locator(".sidePane.narrow"), "150 % portrait: the narrow pane").toHaveCount(1);
+  expect(await items.evaluateAll(els => els.map(e => e.getAttribute("aria-label"))))
+    .toEqual(["2 collisions", "9000 limit violations · the first 2 lines listed", "2 tool changes"]);
+  const shorts = page.locator(".simPanel .simSummary .sumShort");
+  expect(await shorts.allInnerTexts(), "narrow: the number").toEqual(["2", "9000", "2"]);
+  for (let i = 0; i < 3; i++) await expect(shorts.nth(i), "narrow: each number shows").toBeVisible();
+  await expect(page.locator(".simPanel .simSummary .sumWide").first()).toBeHidden();
+  const box = await page.locator(".simPanel .simSummary").evaluate(el => ({ w: el.scrollWidth, cw: el.clientWidth, h: el.getBoundingClientRect().height, lh: parseFloat(getComputedStyle(el).lineHeight) || 0 }));
+  expect(box.w, "narrow: the whole line fits").toBeLessThanOrEqual(box.cw);
 });

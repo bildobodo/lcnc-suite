@@ -14,7 +14,7 @@ import HelpIcon from "./HelpIcon.vue";
 import { vStickyHead } from "./stickyHead";
 import { usePermissions } from "./permissions";
 import { explainAt } from "./gateExplain";
-import { fmtPct } from "./format";
+import { fmtPct, NO_VALUE } from "./format";
 import { cssZoomOf } from "./helpPlacement";
 import { glideAt, planGlide, visibleBand, type Glide } from "./codeGlide";
 import { SIM_SPEEDS, simJump, simRows, simStep, simView } from "./simPanelStore";
@@ -45,6 +45,33 @@ const stepReason = computed(() => !rows.value.length ? "Nothing of this kind on 
 const speed = computed({
   get: () => String(simView.speed),
   set: (v: string) => { simView.speed = Number(v); },
+});
+
+// ── ONE summary line, always there (operator 2026-10-06): the collision
+// verdict came in with the check's result — and left with every re-check —
+// and moved the filter and the steps under it. Each kind with the list's
+// glyph: the check's verdict, the program's soft-limit records (the true
+// total — the list holds the gateway's first 200 records), the tool
+// changes. Narrow, the glyph and the number; the words are each item's name.
+const sumClash = computed(() => {
+  const sw = simView.sweep, n = count("clash");
+  return {
+    name: sw ? sw.verdict + (sw.caveat ? " (not certified)" : "") : "Collisions not checked",
+    short: !sw || sw.state === "nopairs" ? NO_VALUE : `${n}${sw.state === "done" ? "" : "…"}`,
+    tone: sw?.tone ?? "muted",
+  };
+});
+const sumLimit = computed(() => {
+  const { total, records } = simView.limits;
+  if (total == null) return { name: "Limits not checked", short: NO_VALUE, muted: true };
+  if (total === 0) return { name: "No limit violations", short: "0", muted: true };
+  const words = `${total} limit violation${total === 1 ? "" : "s"}`;
+  const lines = count("limit");
+  return { name: total > records ? `${words} · the first ${lines} line${lines === 1 ? "" : "s"} listed` : words, short: String(total), muted: false };
+});
+const sumTool = computed(() => {
+  const n = count("tool");
+  return { name: n ? `${n} tool change${n === 1 ? "" : "s"}` : "No tool changes", short: String(n), muted: !n };
 });
 
 /** The row that is shown, else the next one ahead of the position. */
@@ -212,8 +239,26 @@ function onRootKey(e: KeyboardEvent) {
         <span v-else class="text-muted">Not checked</span>
         <HelpIcon label="Collision check">{{ simView.sweep?.detail || "Tool and machine parts checked against each other along the program." }}</HelpIcon>
       </div>
-      <div v-if="simView.sweep" class="checkVerdict" :class="`text-${simView.sweep.tone}`">
-        {{ simView.sweep.verdict }}<span v-if="simView.sweep.caveat" class="text-warn" title="Not certified — see the collision check help"> *</span>
+      <!-- ONE summary line, always there: nothing under it moves with the
+           check's result. Narrow: the glyph and the number. -->
+      <div class="simSummary row-controls">
+        <span class="sumItem row-tight" role="img" :aria-label="sumClash.name" :title="sumClash.name">
+          <X class="sumGlyph clash" :size="12" :stroke-width="3" aria-hidden="true" />
+          <span v-if="simView.sweep" class="checkVerdict sumWide" :class="`text-${simView.sweep.tone}`">{{ simView.sweep.verdict }}</span>
+          <span v-else class="sumWide text-muted">Collisions not checked</span>
+          <span class="sumShort mono" :class="`text-${sumClash.tone}`">{{ sumClash.short }}</span>
+          <span v-if="simView.sweep?.caveat" class="text-warn" title="Not certified — see the collision check help">*</span>
+        </span>
+        <span class="sumItem sumLimit row-tight" role="img" :aria-label="sumLimit.name" :title="sumLimit.name">
+          <Triangle class="sumGlyph limit" :size="11" fill="currentColor" aria-hidden="true" />
+          <span class="sumWide" :class="{ 'text-muted': sumLimit.muted }">{{ sumLimit.name }}</span>
+          <span class="sumShort mono" :class="{ 'text-muted': sumLimit.muted }">{{ sumLimit.short }}</span>
+        </span>
+        <span class="sumItem row-tight" role="img" :aria-label="sumTool.name" :title="sumTool.name">
+          <Circle class="sumGlyph tool" :size="10" fill="currentColor" aria-hidden="true" />
+          <span class="sumWide" :class="{ 'text-muted': sumTool.muted }">{{ sumTool.name }}</span>
+          <span class="sumShort mono" :class="{ 'text-muted': sumTool.muted }">{{ sumTool.short }}</span>
+        </span>
       </div>
 
       <!-- The list's head: what it shows, and the steps through it -->
@@ -267,7 +312,13 @@ function onRootKey(e: KeyboardEvent) {
 .simWhere { margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .checkRow .progressTrack { min-width: 48px; }
 .checkPct { white-space: nowrap; }
-.checkVerdict { flex-shrink: 0; }
+/* The summary keeps ONE line whatever it says: the limit item gives way
+   (an ellipsis; the whole text is its name and title). */
+.simSummary { flex-shrink: 0; min-width: 0; overflow: hidden; white-space: nowrap; }
+.sumItem { flex: none; }
+.sumLimit { flex: 0 1 auto; min-width: 0; }
+.sumLimit .sumWide { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.sumShort { display: none; }
 .filterSelect { flex: 1; min-width: 0; }
 .simTable { flex: 1; min-height: 0; overflow: auto; }
 tbody tr { cursor: pointer; }
@@ -279,9 +330,10 @@ tbody tr { cursor: pointer; }
 .shownRow td:first-child,
 .nextRow td:first-child { box-shadow: inset 3px 0 0 var(--info); }
 .colKind { width: 1%; text-align: center; }
-.colKind.clash { color: var(--danger-text); }
-.colKind.limit { color: var(--warn-text); }
-.colKind.tool { color: var(--info-text); }
+.colKind.clash, .sumGlyph.clash { color: var(--danger-text); }
+.colKind.limit, .sumGlyph.limit { color: var(--warn-text); }
+.colKind.tool, .sumGlyph.tool { color: var(--info-text); }
+.sumGlyph { flex: none; }
 .colLine, .colMove, .colAt { width: 1%; white-space: nowrap; }
 .rowPick { display: block; }
 /* What takes what the rest leaves and stays ONE line (the whole text in its
@@ -292,4 +344,6 @@ tbody tr { cursor: pointer; }
    joins the What text. */
 .sidePane.narrow .colMove { display: none; }
 .sidePane.narrow .moveInline { display: inline; }
+.sidePane.narrow .sumWide { display: none; }
+.sidePane.narrow .sumShort { display: inline; }
 </style>
