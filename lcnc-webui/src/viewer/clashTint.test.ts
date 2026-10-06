@@ -3,8 +3,9 @@
 // end of the program, but went dark on every line where another pair — the
 // A drive covers re-entering — had a record of its own).
 import { describe, expect, it } from "vitest";
-import type { CollisionHit } from "./collision";
+import type { CollisionHit, CollisionResult } from "./collision";
 import { clashTintBodies } from "./clashTint";
+import { mergeEntryResult } from "./sweepMerge";
 
 const hit = (h: Partial<CollisionHit> & Pick<CollisionHit, "line" | "a" | "b" | "cum" | "cumEnd">): CollisionHit =>
   ({ dist: 0, rapid: false, ...h });
@@ -50,5 +51,47 @@ describe("the clash tint", () => {
   });
   it("a near miss never glows", () => {
     expect([...clashTintBodies([hit({ line: 1, a: "t", b: "w", cum: 1, cumEnd: 1, dist: 1.5 })], 1, 1)]).toEqual([]);
+  });
+  it("a carried first interval is contact: it glows, the gap after it stays dark", () => {
+    const carried: CollisionHit[] = [
+      hit({ line: 3, a: "t", b: "w", cum: 1, cumEnd: 2, intervals: [[1, 2]], spanEndLine: 5, spanCumEnd: 12 }),
+      hit({ line: 5, a: "t", b: "w", cum: 10, cumEnd: 30, intervals: [[10, 12], [20, 30]], carried: true }),
+    ];
+    expect([...clashTintBodies(carried, 5, 11)].sort(), "the carried contact").toEqual(["t", "w"]);
+    expect([...clashTintBodies(carried, 5, 15)], "the verified gap").toEqual([]);
+    expect([...clashTintBodies(carried, 5, 25)].sort(), "the re-entry").toEqual(["t", "w"]);
+  });
+});
+
+// Through the entry merge (`sweepMerge.ts`): every cum on the ENTRY track's
+// axis, the entry onset holding the program contact it runs into.
+describe("the clash tint after the entry merge", () => {
+  const SHIFT = 50;
+  const result = (hits: CollisionHit[]): CollisionResult => ({
+    hits, staticContacts: [], samples: 0, coarsened: false, uncertified: null,
+    pairCount: 1, pairsPrescreened: 0, bvhMs: 0, sweepMs: 0, truncated: null,
+  });
+  const entry = result([hit({ line: 17, a: "column", b: "saddle", cum: 30, cumEnd: SHIFT, intervals: [[30, SHIFT]] })]);
+  it("one contact from the entry move through the program: the entry, its line and the lines after glow", () => {
+    const base = result([
+      hit({ line: 17, a: "column", b: "saddle", cum: 0, cumEnd: 4, intervals: [[0, 4]], spanEndLine: 900, spanCumEnd: 400 }),
+      hit({ line: 18, a: "column", b: "saddle", cum: 4, cumEnd: 6, intervals: [[4, 6]], continuation: 17 }),
+    ]);
+    const m = mergeEntryResult(entry, base, SHIFT, 500);
+    expect([...clashTintBodies(m.hits, 0, 40)].sort(), "the entry move (raw line 0)").toEqual(["column", "saddle"]);
+    expect([...clashTintBodies(m.hits, 17, SHIFT + 2)].sort(), "the program's first line").toEqual(["column", "saddle"]);
+    expect([...clashTintBodies(m.hits, 400, SHIFT + 300)].sort(), "a line without a record").toEqual(["column", "saddle"]);
+    expect([...clashTintBodies(m.hits, 950, SHIFT + 420)], "past the contact's end").toEqual([]);
+    expect([...clashTintBodies(m.hits, 0, 10)], "the entry before its contact").toEqual([]);
+  });
+  it("the program contact separates on its first line: the gap stays dark, its re-entry glows", () => {
+    const base = result([
+      hit({ line: 17, a: "column", b: "saddle", cum: 0, cumEnd: 9, intervals: [[0, 3], [6, 9]] }),
+    ]);
+    const m = mergeEntryResult(entry, base, SHIFT, 500);
+    expect(m.hits.find(h => !h.entry)?.carried, "the merge marks it carried").toBe(true);
+    expect([...clashTintBodies(m.hits, 17, SHIFT + 1)].sort(), "the carried contact").toEqual(["column", "saddle"]);
+    expect([...clashTintBodies(m.hits, 17, SHIFT + 4.5)], "the gap").toEqual([]);
+    expect([...clashTintBodies(m.hits, 17, SHIFT + 7)].sort(), "the re-entry").toEqual(["column", "saddle"]);
   });
 });
