@@ -20,6 +20,9 @@ export interface ClashTarget {
   /** A second (or later) contact interval on the SAME line/pair — a real
    *  re-entry, flagged so two stops on one line read as intended. */
   reentry?: boolean;
+  /** The body pair (tool side, work side) — the Simulation tab names it. */
+  a: string;
+  b: string;
 }
 
 /**
@@ -42,7 +45,7 @@ export function clashTargets(hits: readonly CollisionHit[]): ClashTarget[] {
     for (let k = h.carried ? 1 : 0; k < ivs.length; k++) {
       const t: ClashTarget = { cum: ivs[k]![0], cumEnd: ivs[k]![1],
         key: `${h.entry ? "E" : "C"}${h.line}|${h.a}|${h.b}|${k}`,
-        line: h.line, rapid: h.rapid, dist: h.dist, spanEndLine: h.spanEndLine };
+        line: h.line, rapid: h.rapid, dist: h.dist, spanEndLine: h.spanEndLine, a: h.a, b: h.b };
       if (h.entry) t.entry = true;
       if (k > 0) t.reentry = true;
       out.push(t);

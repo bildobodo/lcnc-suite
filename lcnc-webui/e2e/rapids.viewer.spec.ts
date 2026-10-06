@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { encode } from "@msgpack/msgpack";
 import { ctl } from "./ctl";
+import { simLine, simShow, simStepBtn } from "./simTab";
 import { openLayout, PROFILES, settleLayout, VIEWPORTS } from "./layout-fixtures";
 
 // The Rapids layer and a finding on a hidden rapid (fixed viewer palette P3,
@@ -24,8 +25,9 @@ test("hidden rapids keep their limit finding; a jump to it shows them for the fi
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
   await ctl({ op: "status_delta", data: { active_file: "/rapids.ngc" } });
   await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 970, file: "/rapids.ngc" } });
-  const next = page.locator('.scrubBar [aria-label="Next limit violation"]');
-  await expect(next).toBeVisible({ timeout: 15_000 });
+  await simShow(page, "limit");
+  const next = simStepBtn(page, "Next limit violation");
+  await expect(page.locator(".simPanel [data-sim-row]").first()).toBeVisible({ timeout: 15_000 });
   const shown = (role: string) => page.evaluate(r => window.__viewerDiag!.projectRole!(r) != null, role);
   await expect.poll(() => shown("rapid"), { message: "the rapids draw by default" }).toBe(true);
 
@@ -91,9 +93,8 @@ for (const form of ["hud-off", "folded"] as const) {
     await settleLayout(page);
     if (form === "hud-off") await expect(page.locator(".viewerPane .hud")).toBeHidden();
     else await expect(page.locator(".viewerPane .hudNotes.needsCompact"), "the warnings card folds at 150 % portrait").toHaveCount(1);
-    // The findings row may sit behind the compact bar's More.
-    const next = page.locator('.scrubBar [aria-label="Next limit violation"]');
-    if (!(await next.isVisible())) await page.locator(".scrubBar .moreToggle").click();
+    await simShow(page, "limit");
+    const next = simStepBtn(page, "Next limit violation");
     await next.click();
     await expect(page.locator(".simBanner")).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.__viewerDiag!.projectRole!("rapid") != null), { message: "shown for the finding" }).toBe(true);
@@ -129,8 +130,9 @@ test("a finding shows its own move of a hidden layer — not the layer", async (
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
   await ctl({ op: "status_delta", data: { active_file: "/section.ngc", is_enabled: false, enabled: false } });
   await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 973, file: "/section.ngc" } });
-  const next = page.locator('.scrubBar [aria-label="Next limit violation"]');
-  await expect(next).toBeVisible({ timeout: 15_000 });
+  await simShow(page, "limit");
+  const next = simStepBtn(page, "Next limit violation");
+  await expect(page.locator(".simPanel [data-sim-row]").first()).toBeVisible({ timeout: 15_000 });
   await page.evaluate(() => window.__viewerDiag!.setViewDirection!([0, 0, 1]));
   const role = (r: string) => page.evaluate(x => window.__viewerDiag!.projectRole!(x), r);
   await expect.poll(async () => (await role("rapid"))?.length ?? 0).toBeGreaterThan(0);
@@ -162,7 +164,7 @@ test("a finding shows its own move of a hidden layer — not the layer", async (
   await expect(page.locator("[data-path-reveal]")).toHaveText("Toolpath shown for this finding — hidden in Layers");
   // The jump lands IN the violating line's move — a point carries the line of
   // the move ending there, and the target used to be that end (read "L8").
-  await expect(page.locator(".scrubBar .lineSlot")).toHaveText(/^L7\b/);
+  await expect(simLine(page)).toHaveText(/^L7\b/);
   const feed = (await role("feed"))!;
   expect(feed, "the finding's feed move is shown").not.toBeNull();
   expect(feed.length, "one move of the zigzag, not the long diagonal into it").toBeLessThan(all.length / 3);

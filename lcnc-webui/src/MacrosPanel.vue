@@ -460,7 +460,7 @@ async function confirmDelete() {
     </div>
 
     <!-- Search and the bar filter: one row of fields, like the tool table's -->
-    <div class="macroSearchRow row-controls">
+    <div class="macroSearchRow row-controls denseArea">
       <MachineInput gate="macroSearch" type="text" v-model="searchText" label="Search macros"
                     placeholder="Search macros…" class="macroSearch" />
       <MachineSelect gate="macroSearch" v-model="barFilter" name="macroBarFilter" aria-label="Filter by the bar">

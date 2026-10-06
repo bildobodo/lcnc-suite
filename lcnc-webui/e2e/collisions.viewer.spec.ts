@@ -2,6 +2,7 @@ import { test, expect, type Page, type BrowserContext } from "@playwright/test";
 import { encode } from "@msgpack/msgpack";
 import { readFileSync } from "node:fs";
 import { ctl } from "./ctl";
+import { simLine, simShow, simStepBtn } from "./simTab";
 import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
 
 // COLLISION jumps on the real 5-axis model (examples/sim_config/machine-
@@ -30,14 +31,18 @@ async function prepare(page: Page, context: BrowserContext, o: {
     g5x_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0], g92_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0], tool_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0],
     rotation_xy: 0, is_enabled: false, enabled: false } });
   await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: o.version, file: o.file } });
+  // The findings live in the side pane's Simulation tab, its list on the collisions.
+  await simShow(page, "clash");
 }
-const nextHit = (page: Page) => page.locator('.scrubBar [aria-label="Next collision"]');
+const nextHit = (page: Page) => simStepBtn(page, "Next collision");
+/** The list's collision rows (the list is filtered to collisions). */
+const clashRows = (page: Page) => page.locator(".simPanel tbody tr");
 const slider = (page: Page) => page.locator(".scrubBar .sliderInput");
 const at = async (page: Page) => Number(await slider(page).inputValue());
 /** The collision count the findings button reads ("9 collisions"). */
-const hitCount = async (page: Page) => Number((await page.locator(".scrubBar").innerText()).match(/(\d+) collisions?/)?.[1] ?? 0);
+const hitCount = async (page: Page) => clashRows(page).count();
 /** The sweep has ended: the findings show from the live partial on ("… so far"). */
-const sweepDone = async (page: Page) => !/so far/.test(await page.locator(".scrubBar").innerText());
+const sweepDone = async (page: Page) => !/so far/.test(await page.locator(".simPanel").innerText());
 
 // L7 traverses the spindle nose at Z −380 sideways into the A yoke's wall
 // (top −350) — inside the soft limits, clear at rest and at the first pose.
@@ -52,15 +57,15 @@ test("a collision jump on the real XYZAC model lands on its line and shows its m
     feed: [[0, 0, -100], [0, 0, -380], [240, 0, -380], [240, 0, -100]] });
   // The sweep runs on load (the base track): one collision, on L7.
   const next = nextHit(page);
-  await expect(next, "the sweep finds the nose in the yoke").toBeVisible({ timeout: 60_000 });
-  await expect(page.locator(".scrubBar .navTarget").last()).toContainText("L7");
+  await expect(clashRows(page).first(), "the sweep finds the nose in the yoke").toBeVisible({ timeout: 60_000 });
+  await expect(clashRows(page).first().locator(".rowPick")).toHaveText("L7");
   await page.evaluate(() => window.__viewerDiag!.setViewDirection!([0, 0, 1]));
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: { viewer: { layers: { toolpath: false, rapids: false } } } } });
   await expect.poll(() => page.evaluate(() => window.__viewerDiag!.projectRole!("feed"))).toBeNull();
 
   await next.click();
   await expect(page.locator(".simBanner")).toBeVisible();
-  await expect(page.locator(".scrubBar .lineSlot"), "the FIRST click lands on the collision's line").toHaveText(/^L7\b/);
+  await expect(simLine(page), "the FIRST click lands on the collision's line").toHaveText(/^L7\b/);
   await expect(page.locator("[data-path-reveal]")).toHaveText("Toolpath shown for this finding — hidden in Layers");
   const move = (await page.evaluate(() => window.__viewerDiag!.projectRole!("feed")))!;
   expect(move, "the collision's move is shown").not.toBeNull();
@@ -83,7 +88,7 @@ test("entry-move and program contacts on the same line and pairs stay apart: a c
   test.setTimeout(120_000);
   await prepare(page, context, { file: "/entry-repeat.ngc", version: 3301, ...IN_THE_YOKE });
   const next = nextHit(page);
-  await expect(next, "the program's sweep finds the nose and the tool in the yoke").toBeVisible({ timeout: 60_000 });
+  await expect(clashRows(page).first(), "the program's sweep finds the nose and the tool in the yoke").toBeVisible({ timeout: 60_000 });
   await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
   const programHits = await hitCount(page);
   expect(programHits).toBe(2);
@@ -126,7 +131,7 @@ test("a manual move away and back ends the shown contact for good: next goes by 
   await prepare(page, context, { file: "/entry-repeat.ngc", version: 3302, ...IN_THE_YOKE,
     extra: { rapid_rate: 300, feed_tcum: new Uint8Array(new Float32Array([0, 0.5, 1]).buffer) } });
   const next = nextHit(page);
-  await expect(next).toBeVisible({ timeout: 60_000 });
+  await expect(clashRows(page).first()).toBeVisible({ timeout: 60_000 });
   await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
   await next.click();
   await expect(page.locator(".simBanner")).toBeVisible();
@@ -167,7 +172,7 @@ for (const c of [
     test.setTimeout(120_000);
     await prepare(page, context, { file: "/reentry.ngc", version: c.version, lines: c.lines, joints: c.joints, feed: c.feed });
     const next = nextHit(page);
-    await expect(next).toBeVisible({ timeout: 60_000 });
+    await expect(clashRows(page).first()).toBeVisible({ timeout: 60_000 });
     await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
     expect(await hitCount(page), "the program alone: two contacts per pair").toBe(4);
     await next.click();
@@ -206,7 +211,7 @@ test("a sweep held off by a run starts once the machine is idle, without another
     feed: [[0, 0, -100], [0, 0, -380], [240, 0, -380], [240, 0, -100]], lines: [1, 6, 7, 8],
     joints: [-100, 0, 0, 0, 0] });
   await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true, interp_state: 1 } });
-  await expect(nextHit(page), "the program's collisions, swept at load").toBeVisible({ timeout: 30_000 });
+  await expect(clashRows(page).first(), "the program's collisions, swept at load").toBeVisible({ timeout: 30_000 });
   await expect.poll(() => sweepDone(page), { timeout: 30_000 }).toBe(true);
   const found = await hitCount(page);
   expect(found).toBeGreaterThan(0);
@@ -215,12 +220,12 @@ test("a sweep held off by a run starts once the machine is idle, without another
   await ctl({ op: "status_delta", data: run });
   // the mid-run publication: the old findings go, nothing sweeps while it runs
   await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 4002, file } });
-  await expect(nextHit(page)).toHaveCount(0);
+  await expect(clashRows(page)).toHaveCount(0);
   await page.waitForTimeout(800);   // past the 400 ms auto timer, still running
-  await expect(nextHit(page)).toHaveCount(0);
+  await expect(clashRows(page)).toHaveCount(0);
   // the run ends: idle, no further parse — the held sweep starts by itself
   await ctl({ op: "status_delta", data: { interp_state: 1, current_vel: 0, motion_line: 0 } });
-  await expect(nextHit(page), "the sweep restarted at idle").toBeVisible({ timeout: 30_000 });
+  await expect(clashRows(page).first(), "the sweep restarted at idle").toBeVisible({ timeout: 30_000 });
   await expect.poll(() => sweepDone(page), { timeout: 30_000 }).toBe(true);
   expect(await hitCount(page)).toBe(found);
   await ctl({ op: "quiet", on: false });

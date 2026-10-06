@@ -4461,12 +4461,11 @@ function fitDro(wrap: HTMLElement, card: HTMLElement, notes: HTMLElement | null,
   // layout each, then restored. The pick depends only on the pane and the
   // content, never on the state the cards are in now: measuring the bottom
   // at the CURRENT scale let the next pick change it and the fit swung
-  // between two sizes forever (review round 6, UI-DI13). An OPENED detail
-  // view — the warnings card, the scrub bar's More — is measured folded: the
-  // operator asked for it over the DRO, and the DRO keeps its form (opening
-  // More used to shrink it a step for an overlap it could not avoid).
-  const scrub = wrap.querySelector<HTMLElement>(".scrubBar");
-  const wasCard = card.className, wasNotes = notes?.className ?? "", wasScrub = scrub?.className ?? "";
+  // between two sizes forever (review round 6, UI-DI13). An OPENED warnings
+  // card is measured folded: the operator asked for it over the DRO, and the
+  // DRO keeps its form (opening it used to shrink the DRO a step for an
+  // overlap it could not avoid).
+  const wasCard = card.className, wasNotes = notes?.className ?? "";
   // The bottom column's cap (below) off while measuring: the candidates see
   // its natural folded height.
   wrap.style.removeProperty("--viewer-bottom-max");
@@ -4482,7 +4481,6 @@ function fitDro(wrap: HTMLElement, card: HTMLElement, notes: HTMLElement | null,
     card.classList.toggle("hudFoldHead", t.fold >= 4);
     notes?.classList.toggle("needsCompact", t.notesCompact);
     notes?.classList.remove("notesOpen");
-    scrub?.classList.remove("moreOpen");
     const bottom = bottomEl.value?.offsetHeight ?? 0;
     const banner = simBannerEl.value?.offsetHeight ?? 0;
     const availH = H - 2 * gap - (bottom ? bottom + between : 0) - (banner ? banner + between : 0);
@@ -4490,7 +4488,6 @@ function fitDro(wrap: HTMLElement, card: HTMLElement, notes: HTMLElement | null,
   }
   card.className = wasCard;
   if (notes) notes.className = wasNotes;
-  if (scrub) scrub.className = wasScrub;
   Object.assign(hudFit, { scale: pick.scale, fold: pick.fold, notesCompact: pick.notesCompact, narrow, overflow: !fits });
   if (!pick.notesCompact) notesOpen.value = false;
 }
@@ -4905,8 +4902,6 @@ defineExpose({
       @finding="onFinding"
       @manual-scrub="endPathReveal"
       @cancel-check="_colInvalidate"
-      :notesOpen="notesOpen"
-      @more-open="notesOpen = false"
     />
     </div>
 
@@ -4958,7 +4953,7 @@ defineExpose({
   position: absolute;
   /* The bottom column (later in the DOM, same layer) paints above it: the
      fit keeps them apart, so they meet only when the operator opened a
-     detail view (the findings, the scrub bar's More) — which then shows
+     detail view (the warnings card) — which then shows
      whole. */
   z-index: var(--z-float);
   top: var(--gap-section);

@@ -8000,3 +8000,28 @@ scale, which the sample check read as "off" every time. Each sampled colour
 now goes through the page's canvas parser to RGB 0–255 before the tint is
 judged; green in Chromium and Firefox, the samples alone red in both
 without the clock.
+
+## 2026-10-05 — Operator: the simulation gets a side tab; the bar is one row
+
+Clicking through collisions changed the findings row's text ("→ L42
+(rapid) ~2.0 mm … through L45", the sweep's tool list) and the bar folded
+into its compact form and back under the operator's finger; opened, the
+compact form stacked four rows over the DRO in an order the operator called
+"extrem ineffizient". From renders (variant A of two; B — the findings
+inside the Program tab — pushed the code out of view on the 1280 × 800
+touchscreen): the scrub bar is ONE row (Sim, play, the timeline, the time;
+a narrow viewer gives the timeline its own row, by width), and a seventh
+side tab "Simulation" holds the collision check with its progress in %,
+ONE list of the timeline's marks (× ▲ ●) with the body pair or the limit in
+words, a filter and ‹ › named for the shown kind, and the speed in 1-2-5
+steps. The tab never takes the focus by itself when the simulation starts;
+during a run its list marks the next event. ScrubBar stays the ONE owner of
+the simulation and of the finding navigation (Codex R31–R34): it publishes
+the rows built from its own targets and the tab calls its jumps
+(`simPanelStore.ts`) — a second navigation would drift from the marks.
+
+Same day, the operator: "the dropdown is very tall and its text does not
+need the room". `.denseArea` joins `.strip` / `.dataTable` / `.macroBar` as
+an area whose controls take the compact height (28 / 36 px): the search and
+filter rows (Tools, Macros, messages, reference), the narrow pane's area
+select row and the Simulation tab's rows. Forms keep the full height.
