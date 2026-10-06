@@ -1,0 +1,42 @@
+{
+  "viewer-palette-fest.r81.chromium-playback-capture.json": {
+    "samples": 42,
+    "marked": 22,
+    "not_fully_visible": 20,
+    "fully_outside": 19,
+    "longest_observed_clipped_ms": 1465,
+    "max_below_viewport_px": 676.5,
+    "first_fully_outside_ms": 252,
+    "last_fully_outside_ms": 1651
+  },
+  "viewer-palette-fest.r81.chromium-playback-reduced.json": {
+    "samples": 42,
+    "marked": 23,
+    "not_fully_visible": 0,
+    "fully_outside": 0,
+    "longest_observed_clipped_ms": 0,
+    "max_below_viewport_px": 0,
+    "first_fully_outside_ms": null,
+    "last_fully_outside_ms": null
+  },
+  "viewer-palette-fest.r81.chromium-playback.json": {
+    "samples": 42,
+    "marked": 25,
+    "not_fully_visible": 23,
+    "fully_outside": 22,
+    "longest_observed_clipped_ms": 1514,
+    "max_below_viewport_px": 691.5,
+    "first_fully_outside_ms": 269,
+    "last_fully_outside_ms": 1718
+  },
+  "viewer-palette-fest.r81.firefox-playback.json": {
+    "samples": 42,
+    "marked": 25,
+    "not_fully_visible": 22,
+    "fully_outside": 5,
+    "longest_observed_clipped_ms": 1209,
+    "max_below_viewport_px": 29.5,
+    "first_fully_outside_ms": 846,
+    "last_fully_outside_ms": 1739
+  }
+}

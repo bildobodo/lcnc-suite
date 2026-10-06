@@ -1,0 +1,55 @@
+--- a/lcnc-webui/e2e/ctl.ts
++++ b/lcnc-webui/e2e/ctl.ts
+@@ -4,8 +4,8 @@
+ // every ctl message with a JSON {ok, ...} frame, so first-message == reply.
+ import WebSocket from "ws";
+ 
+-export const MOCK = "http://localhost:4174/";
+-export const CTL = "ws://localhost:4174/ctl";
++export const MOCK = "http://127.0.0.1:4188/";
++export const CTL = "ws://127.0.0.1:4188/ctl";
+ 
+ /** Send a ctl op and resolve with the mock's parsed reply. */
+ export function ctl(op: Record<string, unknown>): Promise<any> {
+--- a/lcnc-webui/tsconfig.app.json
++++ b/lcnc-webui/tsconfig.app.json
+@@ -1,7 +1,7 @@
+ {
+   "extends": "@vue/tsconfig/tsconfig.dom.json",
+   "compilerOptions": {
+-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
++    "tsBuildInfoFile": "../r81-ts-cache/tsconfig.app.tsbuildinfo",
+     "types": ["vite/client"],
+ 
+     /* Linting */
+--- a/lcnc-webui/tsconfig.node.json
++++ b/lcnc-webui/tsconfig.node.json
+@@ -1,6 +1,6 @@
+ {
+   "compilerOptions": {
+-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
++    "tsBuildInfoFile": "../r81-ts-cache/tsconfig.node.tsbuildinfo",
+     "target": "ES2023",
+     "lib": ["ES2023"],
+     "module": "ESNext",
+--- a/lcnc-webui/tsconfig.test.json
++++ b/lcnc-webui/tsconfig.test.json
+@@ -8,7 +8,7 @@
+   // src/tsconfigCoverage.test.ts keeps this list and tsconfig.app.json's
+   // exclude list in step and refuses stale entries.
+   "compilerOptions": {
+-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
++    "tsBuildInfoFile": "../r81-ts-cache/tsconfig.test.tsbuildinfo",
+     "target": "ES2023",
+     "lib": ["ES2023", "DOM", "DOM.Iterable"],
+     "module": "ESNext",
+--- a/lcnc-webui/vite.config.ts
++++ b/lcnc-webui/vite.config.ts
+@@ -4,6 +4,7 @@
+ 
+ // https://vite.dev/config/
+ export default defineConfig({
++ cacheDir: "../r81-vite-cache",
+   // httpRestartPing: dev only — Vite's restart ping over HTTP, so it cannot
+   // hold the browser's one-connecting-WebSocket-per-IP slot the gateway socket
+   // needs after a suite restart (see viteHttpRestartPing.ts).

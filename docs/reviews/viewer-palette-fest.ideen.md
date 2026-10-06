@@ -11262,3 +11262,117 @@ du musst es nicht prüfen; die Entscheidung liegt beim Operator.
   einem Build je Mutation, danach aus der Sicherung zurück.
 - **Backend:** unverändert seit R72.
 - **Live-Baum:** seit `91557369`.
+
+---
+
+## Review R81 · Codex · Aktionsanmeldung, Listen-Nachführung und Makrospalten · 6. Oktober 2026
+
+**Ergebnis: `findings`.** Die Korrekturen der Aktionsanmeldung und der
+Tabellenspalten sind im geprüften Umfang bestätigt. Offen bleibt **VP-I41
+(P2)**: Bei fortlaufender Wiedergabe mit normaler Animation läuft die
+Sim-Liste ihrer Markierung hinterher, bis diese außerhalb der Ansicht liegt.
+
+Geprüft: `0ddd4038..91557369`, Anfrage im Live-Stand `aa5040fd`. Isolierte
+Archivkopie von `91557369`, eigener Mock `127.0.0.1:4188`, ein Worker und
+niedrige Priorität. Keine Produktänderungen, keine Live-Ports und keine
+Maschinenbefehle an die echte Suite; bisherige Belege unverändert.
+
+### VP-I41 · P2 · Wiederholtes Smooth-Scrollen verliert die laufende Markierung
+
+**Ort:** `lcnc-webui/src/SimPanel.vue:143–145`.
+
+Jeder Wechsel der markierten Zeile löst ein neues `scrollTo(..., behavior:
+"smooth")` aus. Bei fortlaufenden schnellen Zeilenwechseln kommt die
+Scrollposition nicht rechtzeitig nach. Das betrifft nicht nur die zugesagte
+Zentrierung: Die markierte Zeile verschwindet vollständig unterhalb der
+sichtbaren Liste.
+
+**Gegenprobe:** Die 50 Grenzzeilen aus dem neuen Wächter, 1280 × 800,
+`prefers-reduced-motion: no-preference`, Filter „Limit violations“,
+Wiedergabe ab 15 % mit dem angebotenen Faktor ×100. Vor Play ist die
+Markierung bereits zentriert. Gemessen werden DOM-Rechtecke von Zeile,
+Tabellenkopf und Listenansicht; keine Produktzustände werden dafür verändert.
+
+- **Chromium:** Von 25 Messpunkten mit vorhandener Markierung liegt sie
+  23-mal nicht vollständig in der Ansicht, davon 22-mal vollständig
+  außerhalb. Aufeinanderfolgende Messpunkte zeigen rund **1,5 Sekunden**
+  Verlust der vollständigen Sichtbarkeit. Der untere Zeilenrand liegt
+  zeitweise **691,5 px** unterhalb einer nur **211 px** hohen Listenansicht.
+- **Firefox:** 22 von 25 Messpunkten nicht vollständig sichtbar, davon fünf
+  vollständig außerhalb; rund **1,2 Sekunden** in aufeinanderfolgenden
+  Messpunkten unvollständig sichtbar. Hier beträgt der maximale Überstand
+  **29,5 px**, also weniger als in Chromium, aber ebenfalls außerhalb.
+- **Kontrolle mit reduzierter Bewegung:** Derselbe Ablauf in Chromium
+  besteht; alle 23 Messpunkte mit Markierung liegen vollständig in der
+  Ansicht. Auch die finale Gegenprobe, die vorübergehenden Animationsverzug
+  bis 500 ms zulässt, bleibt bei normaler Animation rot und mit reduzierter
+  Bewegung grün.
+
+Das Bild zeigt beispielsweise bereits L26 im Kopf, während die sichtbare
+Liste noch L15–L21 darstellt. Die Markierung ist nicht zu sehen.
+
+**Korrektur:** Eine laufende Animation so nachführen, dass ihr Abstand zur
+Zielzeile begrenzt bleibt; bei großem Rückstand die Zeile zunächst wieder
+sichtbar machen. Die vorhandene G-Code-Nachführung kann dafür als Vergleich
+dienen. Der Wächter muss fortlaufende Wiedergabe mit normaler Bewegung
+abdecken. Der bisherige neue Test verwendet einzelne Scrub-Sprünge und
+`openLayout`, das reduzierte Bewegung einschaltet; er erkennt diesen Fall
+daher nicht.
+
+[Bild während der Wiedergabe](viewer-palette-fest.r81.chromium-playback-hidden.png),
+[Messübersicht](viewer-palette-fest.r81.playback-summary.json),
+[Chromium-Messpunkte](viewer-palette-fest.r81.chromium-playback.json),
+[Firefox-Messpunkte](viewer-palette-fest.r81.firefox-playback.json),
+[finale rote Gegenprobe](viewer-palette-fest.r81.playback-capture.txt),
+[grüne Kontrolle](viewer-palette-fest.r81.playback-reduced-final.txt),
+[Sonde](viewer-palette-fest.r81.follow.spec.ts).
+
+### Bestätigte Teile
+
+- **Aktionsanmeldung:** Die Freigabe prüft den eigenen Anspruch, bevor sie
+  Aktionen, Zeilen und Verfügbarkeit löscht. Der neue Test besteht mit Vues
+  tatsächlicher Mount-/Unmount-Reihenfolge im eigenen Renderer. Ein später
+  abgemeldeter Vorgänger lässt die neue Instanz bestehen; deren eigenes
+  Abmelden räumt anschließend auf. Kein echter Vite-Hot-Reload im Browser
+  nachgestellt; die Zusage ist auf diesen geprüften Lebenszyklusvertrag
+  begrenzt.
+- **Stabile Spalten:** Der neue Übergang von passender zu scrollender
+  Makrotabelle sowie der bestehende Test zum Einblenden der Reihenfolgeknöpfe
+  bestehen in Chromium und Firefox. Der zusätzliche Platz für die Scrollleiste
+  führt in der ausgewählten Chromium-Matrix auch bei Tools/Formularen,
+  Seitenpanel und Makroeditor bis Hochformat 150 % zu keinem neuen Befund.
+- **Listen-Nachführung bei einzelnen Änderungen:** Wiederöffnen des Tabs,
+  Resize/Zoom auf Touch-Hochformat 150 %, ein einzelner gleitender Sprung
+  sowie drei Mock-Laufpositionen bestehen in beiden Browsern. Die jeweiligen
+  Fokusprüfungen bestehen ebenfalls. VP-I41 betrifft die fortlaufende
+  animierte Nachführung, nicht diese Fälle.
+
+[Übergänge, Chromium](viewer-palette-fest.r81.chromium-follow-transitions.json),
+[Übergänge, Firefox](viewer-palette-fest.r81.firefox-follow-transitions.json),
+[Mock-Lauf, Chromium](viewer-palette-fest.r81.chromium-run-follow.json),
+[Mock-Lauf, Firefox](viewer-palette-fest.r81.firefox-run-follow.json).
+
+### Prüfungen und Grenzen
+
+- **Build bestanden; 104/104 gezielte Unit-Tests bestanden**, einschließlich
+  des neuen Tests zur Aktionsanmeldung.
+- **Chromium: 18/18 bestehende Prüfungen bestanden**, darunter alle neun
+  aktuellen Sim-Tests, drei Makro-/Spaltentests sowie sechs Formular- und
+  Seitenpanel-Prüfungen.
+- **Eigene Chromium-Sonde:** zwei bestanden, Wiedergabe-Gegenprobe rot.
+- **Firefox-Auswahl:** fünf bestanden, Wiedergabe-Gegenprobe rot.
+- Finale begrenzte Wiedergabe-Gegenprobe: normal rot, reduzierte Bewegung
+  grün; die Messungen unterscheiden kurze Übergänge von anhaltendem Verlust.
+
+Kein vollständiges neues Offline-Gate, kein realer Maschinenlauf und keine
+Live-/Geräteabnahme. Die unveränderten Farbrollen und der noch nicht gebaute
+Dreiecksvergleich sind nicht Bestandteil dieser Nachprüfung.
+
+[Build](viewer-palette-fest.r81.build.txt),
+[Unit-Tests](viewer-palette-fest.r81.unit.txt),
+[Chromium-Auswahl](viewer-palette-fest.r81.chromium.txt),
+[eigene Chromium-Sonde](viewer-palette-fest.r81.follow-chromium.txt),
+[Firefox](viewer-palette-fest.r81.firefox.txt),
+[Prüfprotokoll](viewer-palette-fest.r81.checks.md),
+[Stand und Quellvergleich](viewer-palette-fest.r81.context.json),
+[Beleghashes](viewer-palette-fest.r81.sha256.json).

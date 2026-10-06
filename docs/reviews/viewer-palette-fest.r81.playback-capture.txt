@@ -1,0 +1,37 @@
+[2m[WebServer] [22m(node:1866090) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:1866148) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1866148) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r81.follow.spec.ts:66:1 › R81: continuous normal-motion playback keeps the current marker visible (5.6s)
+
+
+  1) e2e/r81.follow.spec.ts:66:1 › R81: continuous normal-motion playback keeps the current marker visible 
+
+    Error: the followed marker must not remain clipped or outside for over 500 ms
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m500[39m
+    Received:    [31m1465[39m
+
+      84 |   if(s.key&&!s.inView){if(since==null)since=s.at;longest=Math.max(longest,s.at-since);}else since=null;
+      85 |  }
+    > 86 |  expect(longest,'the followed marker must not remain clipped or outside for over 500 ms').toBeLessThanOrEqual(500);
+         |                                                                                           ^
+      87 | });
+      88 |
+        at /tmp/codex-r81-4ytcrmd2/archive/lcnc-webui/e2e/r81.follow.spec.ts:86:91
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r81-chromium-output/r81.follow-R81-continuous--8925e--the-current-marker-visible/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r81-chromium-output/r81.follow-R81-continuous--8925e--the-current-marker-visible/error-context.md
+
+  1 failed
+    e2e/r81.follow.spec.ts:66:1 › R81: continuous normal-motion playback keeps the current marker visible 
