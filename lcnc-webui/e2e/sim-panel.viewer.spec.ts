@@ -286,3 +286,50 @@ test("a tool change shown after a finding on a hidden rapid ends the rapids' rev
   await expect(reveal, "a step to a tool change ends it").toHaveCount(0);
   await expect.poll(rapidShown, { message: "the stored layer stays off" }).toBe(false);
 });
+
+// The list FOLLOWS the position (operator 2026-10-06: "like the code panel
+// when the program runs"): a list longer than its view keeps the marked row
+// — the next one ahead — in the middle while the simulation scrubs.
+const LONG_FEED = Array.from({ length: 60 }, (_, i) => [i * 2, i % 2 ? 20 : 0, 0]);
+const LONG_PREVIEW = Buffer.from(encode({ file: "/long.ngc", preview_schema: 10, feed: LONG_FEED,
+  feed_lines: LONG_FEED.map((_, i) => i + 3), feed_seq: LONG_FEED.map((_, i) => i + 3),
+  feed_outside: new Uint8Array(LONG_FEED.length),
+  feed_tcum: new Uint8Array(new Float32Array(LONG_FEED.map((_, i) => i * 4)).buffer),
+  violations: Array.from({ length: 50 }, (_, i) => ({ line: i + 8, axis: "X", value: 110, limit: 100, kind: "max" })),
+  violations_total: 50 }));
+const LONG_TEXT = Array.from({ length: 64 }, (_, i) => i === 0 ? "(long)" : `G1 X${i} F100`).join("\n");
+
+test("the list follows the position: the marked row stays in the middle of its view", async ({ page, context }) => {
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: LONG_PREVIEW }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: LONG_TEXT }));
+  await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await ctl({ op: "status_delta", data: { active_file: "/long.ngc", is_enabled: false, enabled: false } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5300, file: "/long.ngc" } });
+  await simShow(page, "all");
+  await expect(page.locator('.simPanel tr[data-sim-row="L57"]')).toHaveCount(1, { timeout: 15_000 });
+  const view = () => page.evaluate(() => {
+    const sc = document.querySelector(".simPanel .simTable") as HTMLElement;
+    const tr = sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow");
+    const head = sc.querySelector("thead")!.getBoundingClientRect(), b = sc.getBoundingClientRect();
+    const r = tr?.getBoundingClientRect();
+    return { key: tr?.dataset.simRow ?? null, overflows: sc.scrollHeight > sc.clientHeight + 1,
+      inView: !!r && r.top >= head.bottom - 1 && r.bottom <= b.bottom + 1,
+      offCentre: r ? Math.abs((r.top + r.bottom) / 2 - (head.bottom + b.bottom) / 2) : Infinity, rowH: r?.height ?? 0 };
+  });
+  expect((await view()).overflows, "the list is longer than its view").toBe(true);
+  // Into the simulation by the first row, then scrub.
+  await page.locator('.simPanel tr[data-sim-row="L8"]').click();
+  await expect(page.locator(".simBanner")).toBeVisible();
+  const scrub = (f: number) => page.locator(".scrubBar .sliderInput").evaluate((el: HTMLInputElement, at) => {
+    el.value = String(Number(el.max) * at);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  }, f);
+  for (const f of [0.7, 0.25, 0.5]) {
+    await scrub(f);
+    await expect.poll(async () => { const v = await view(); return v.inView && v.offCentre <= v.rowH; },
+      { message: `scrubbed to ${f}: the next row in the middle of the list` }).toBe(true);
+  }
+  // Back to the start: the first row, the list at its top.
+  await scrub(0.01);
+  await expect.poll(async () => (await view()).inView, { message: "back at the start: the first rows in view" }).toBe(true);
+});

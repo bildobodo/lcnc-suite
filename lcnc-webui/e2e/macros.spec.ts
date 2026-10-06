@@ -721,6 +721,35 @@ test("On bar and the order buttons move nothing in the list: no row height, colu
   }
 });
 
+// Operator 2026-10-06 (live): the first macro put on the bar brings the
+// macro bar in, the tab gets lower, its table starts scrolling — and the
+// scrollbar's width moved every column, the order arrows' too. A scrolling
+// table keeps the scrollbar's room either way (.dataTable.scroll-thin).
+test("a table that starts scrolling keeps its columns: the first macro on the bar moves no column", async ({ page }) => {
+  const folder = new Folder();
+  for (const n of ["coolant_flush", "spindle_warmup", "go_to_g30_macro"]) {
+    folder.files.set(n, { text: `(MACRO ${n})\n(Moves to the stored position: Z up first, then X and Y.)\no<${n}> sub\no<${n}> endsub\n`,
+      meta: { title: n, units: null, frame: null, params: [] } });
+  }
+  await ready(page, folder, { macros: { macros: [], bar: [] } });
+  await page.setViewportSize({ width: 1440, height: 800 });
+  await openTab(page);
+  const geometry = () => page.evaluate(() => {
+    const wrap = document.querySelector<HTMLElement>(".macrosTab .tableWrap")!;
+    return { scrolls: wrap.scrollHeight > wrap.clientHeight + 1,
+      cols: [...document.querySelectorAll<HTMLElement>(".macrosTab th")].map(t => { const b = t.getBoundingClientRect(); return `${b.x.toFixed(1)}+${b.width.toFixed(1)}`; }) };
+  });
+  await page.waitForTimeout(200);
+  const before = await geometry();
+  expect(before.scrolls, "the table fits before the bar comes in").toBe(false);
+  await page.locator('[data-macro-row="face_top"]').getByRole("checkbox").check({ force: true });
+  await expect(page.locator(".macroBar").getByRole("button", { name: "Face top", exact: true })).toBeVisible();
+  await page.waitForTimeout(200);
+  const after = await geometry();
+  expect(after.scrolls, "with the macro bar in, the table scrolls").toBe(true);
+  expect(after.cols, "no column moved or changed its width").toEqual(before.cols);
+});
+
 // Operator 2026-10-02 (live): the macro bar takes little room — a DENSE area,
 // its buttons the compact control height (28 px desktop, 36 px touch, like
 // the strip and the tables) — and has its own Abort at the right end.

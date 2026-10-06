@@ -6,7 +6,7 @@
 // the machine off); ‹ › step through the shown kind. The list and its
 // actions are the scrub bar's own (simPanelStore.ts): the marks, the rows and
 // prev/next are one navigation. During a run the list marks the next event.
-import { computed, nextTick, ref, watch } from "vue";
+import { computed, nextTick, onUnmounted, ref, watch } from "vue";
 import { ChevronLeft, ChevronRight, Circle, Triangle, X } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSelect from "./MachineSelect.vue";
@@ -15,6 +15,7 @@ import { vStickyHead } from "./stickyHead";
 import { usePermissions } from "./permissions";
 import { explainAt } from "./gateExplain";
 import { fmtPct } from "./format";
+import { cssZoomOf } from "./helpPlacement";
 import { SIM_SPEEDS, simJump, simRows, simStep, simView } from "./simPanelStore";
 import type { SimRow, SimRowKind } from "./viewer/simRows";
 
@@ -118,6 +119,38 @@ watch(renders, () => {
     if (el && document.activeElement === el) return;
   }
 }, { flush: "post" });
+// ── The list FOLLOWS the position (operator 2026-10-06: "like the code
+// panel when the program runs"): the marked row — the shown finding, else
+// the next one ahead — stands in the middle of the list's view while the
+// simulation scrubs or plays and while a program runs. It glides (snaps
+// with reduced motion), moves the list only, never the focus; a list that
+// fits does not move.
+const scroller = ref<HTMLElement | null>(null);
+const marked = computed(() => rows.value.find(r => shown(r) || isNext(r))?.key ?? null);
+const reduceMotion = () => typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+function follow(glide: boolean) {
+  const sc = scroller.value, key = marked.value;
+  if (!sc || !key || !sc.clientHeight) return;
+  const tr = sc.querySelector<HTMLElement>(`tr[data-sim-row="${CSS.escape(key)}"]`);
+  if (!tr) return;
+  // In the list's own px: the row's place in the scrolled content, the view
+  // under the sticky head.
+  const head = sc.querySelector<HTMLElement>("thead")?.offsetHeight ?? 0;
+  const rowTop = (tr.getBoundingClientRect().top - sc.getBoundingClientRect().top) / cssZoomOf(sc) + sc.scrollTop;
+  const top = Math.max(0, Math.min(sc.scrollHeight - sc.clientHeight,
+    rowTop - head - (sc.clientHeight - head - tr.offsetHeight) / 2));
+  if (Math.abs(top - sc.scrollTop) < 1) return;
+  sc.scrollTo({ top, behavior: glide && !reduceMotion() ? "smooth" : "auto" });
+}
+watch([marked, rows], () => follow(true), { flush: "post" });
+// A hidden tab has no height: it catches up when it shows (or resizes).
+const sized = typeof ResizeObserver === "function" ? new ResizeObserver(() => follow(false)) : null;
+watch(scroller, (el, old) => {
+  if (old) sized?.unobserve(old);
+  if (el) sized?.observe(el);
+});
+onUnmounted(() => sized?.disconnect());
+
 /** The panel itself, holding a parked focus, keeps the navigation keys —
  *  one that reached the shortcut map would jog. */
 function onRootKey(e: KeyboardEvent) {
@@ -171,7 +204,7 @@ function onRootKey(e: KeyboardEvent) {
       </div>
 
       <div v-if="!rows.length" class="emptyState">{{ simRows.length ? "None of this kind." : "No collisions, limit violations or tool changes." }}</div>
-      <div v-else v-sticky-head class="simTable dataTable scroll-thin fade-scroll" :class="{ locked: !can.armed }">
+      <div v-else ref="scroller" v-sticky-head class="simTable dataTable scroll-thin fade-scroll" :class="{ locked: !can.armed }">
         <table>
           <thead>
             <tr><th class="colKind" aria-label="Kind"></th><th class="colLine">Line</th><th class="colWhat">What</th><th class="colMove">Move</th><th class="colAt">Time</th></tr>

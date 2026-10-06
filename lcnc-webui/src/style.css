@@ -2451,6 +2451,14 @@ html:not(.touch-device) .choice:hover:not(.dimmed) { background: var(--hl-hover)
 .dataTable {
   scroll-padding-top: var(--sticky-head-h, 0px);
 }
+/* A table list that scrolls keeps its scrollbar's room whether or not it
+   overflows: a list that starts scrolling — the macro bar appearing under
+   the Macros tab, a longer result — moved every column by the bar's width
+   (operator 2026-10-06, live: the order arrows' column shifted when a macro
+   went on the bar). */
+.dataTable.scroll-thin {
+  scrollbar-gutter: stable;
+}
 .dataTable.fade-scroll::before {
   display: none;
 }

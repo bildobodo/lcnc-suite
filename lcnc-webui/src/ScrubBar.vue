@@ -38,7 +38,7 @@ import { Play, Pause, X, Triangle, Circle } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
 import { buildSimRows, nextRowKey, simRowOrder, type SimRowKind } from "./viewer/simRows";
-import { simRows, simView, registerSimActions, type SimSweepView } from "./simPanelStore";
+import { simRows, simView, claimSimActions, type SimSweepView } from "./simPanelStore";
 import MachineToggle from "./MachineToggle.vue";
 
 const props = defineProps<{
@@ -983,7 +983,7 @@ watchEffect(() => {
   simView.sweep = sweepView.value;
   simView.jumpReason = hitNavReason.value;
 });
-registerSimActions({
+const releaseSim = claimSimActions({
   jump(key: string) {
     for (const kind of ["clash", "limit", "tool"] as const) {
       const t = targetsOf(kind).find(x => x.key === key);
@@ -997,11 +997,9 @@ registerSimActions({
     if (t) jumpTo(t, t.kind);
   },
 });
-onUnmounted(() => {
-  registerSimActions(null);
-  simView.available = false;
-  simRows.value = [];
-});
+// Only this bar's claim: a re-mounted bar has claimed the tab before this
+// hook runs.
+onUnmounted(releaseSim);
 </script>
 
 <template>
