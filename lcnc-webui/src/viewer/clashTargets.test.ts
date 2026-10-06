@@ -21,7 +21,7 @@ describe("clashTargets — one list for count, marks and navigation", () => {
   });
   it("a near-miss (no intervals) counts once at its closest approach", () => {
     const t = clashTargets([hit({ line: 30, cum: 200, dist: 1.2 })]);
-    expect(t).toEqual([{ cum: 200, cumEnd: 200, key: "C30|tool|work|0", line: 30, rapid: false, dist: 1.2, spanEndLine: undefined }]);
+    expect(t).toEqual([{ cum: 200, cumEnd: 200, key: "C30|tool|work|0", line: 30, rapid: false, dist: 1.2, spanEndLine: undefined, a: "tool", b: "work" }]);
   });
   it("targets are cum-sorted across records and carry rapid/spanEndLine", () => {
     const t = clashTargets([

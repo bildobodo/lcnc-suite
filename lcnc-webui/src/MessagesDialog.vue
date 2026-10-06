@@ -82,7 +82,7 @@ function copyShown() { emit("copy", rows.value.map(m => messageLine(m, time(m.ts
       <div v-if="banner" class="statusNote" :class="banner.tier" role="alert">
         <span><strong>{{ banner.text }}</strong><template v-if="banner.detail"><br>{{ banner.detail }}</template></span>
       </div>
-      <div class="msgSearchRow row-controls">
+      <div class="msgSearchRow row-controls denseArea">
         <MachineInput gate="search" type="text" v-model="search" label="Search messages"
                       placeholder="Search messages…" class="msgSearch" />
         <MachineSelect gate="filter" v-model="filter" name="messageFilter" aria-label="Filter messages">

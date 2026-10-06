@@ -246,7 +246,7 @@ test('the narrow threshold: selects under it, six whole tab names at and over it
       const t = e as HTMLElement;
       return { name: t.textContent!.trim(), over: t.scrollWidth - t.clientWidth, h: t.offsetHeight };
     }));
-    expect(tabs.map(t => t.name)).toEqual(['Program', 'MDI', 'Probing', 'Offsets', 'Tools', 'Macros']);
+    expect(tabs.map(t => t.name)).toEqual(['Program', 'MDI', 'Probing', 'Offsets', 'Tools', 'Macros', 'Simulation']);
     for (const t of tabs) expect(t.over, `"${t.name}" clipped by ${t.over} px at ${NARROW_PANE_PX + d} px`).toBeLessThanOrEqual(0);
   }
   // a focused tab, then the pane drops under the threshold
@@ -1055,16 +1055,18 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
 }
 
 // Review rounds 7 and 8: the scrub bar's CONTENTS, the simulation banner
-// and the opened detail views in the narrow viewer. The bar fitted as a card
+// and the opened warnings in the narrow viewer. The bar fitted as a card
 // while its insides ran out of it (UI-DI15: the timeline slider 0 px wide,
-// the speed button and the position readout past the window, the findings'
-// "?" off screen); the banner ran past both edges and over the DRO
-// (UI-DI16); an opened detail view — the scrub bar's More, the warnings card
-// — grew the bottom column over the banner and out of the viewer, its close
-// toggle with it (UI-DI16/17). Three programs — no findings, one limit
-// violation, the limit plus two collisions — portrait at 100 % and 150 %,
-// idle and in a client-local simulation at a stopped machine: folded, then
-// both opening orders, every close by a real click.
+// the position readout past the window); the banner ran past both edges and
+// over the DRO (UI-DI16); the opened warnings card grew the bottom column
+// over the banner and out of the viewer, its close toggle with it
+// (UI-DI16/17). The bar is ONE row since 2026-10-05 (the findings moved to
+// the Simulation tab; a narrow viewer gives the timeline a row of its own) —
+// no compact form, no More. Three programs — no findings, one limit
+// violation, the limit plus two collisions (marks on the timeline) —
+// portrait at 100 % and 150 %, idle and in a client-local simulation at a
+// stopped machine, the warnings folded and opened, every close by a real
+// click.
 const LIMIT_FEED = TIMELINE_FEED.map(p => [...p]);
 LIMIT_FEED[29]![0] = 120;
 const LIMIT_PREVIEW = Buffer.from(encode({ file: '/leak.ngc', preview_schema: 10, feed: LIMIT_FEED,
@@ -1099,7 +1101,7 @@ async function viewerColumn(page: Page, label: string) {
       body.scrollTo(0, 0);
     }
     // A body that scrolls must take the pointer (a touch scrolls it).
-    const deaf = [...document.querySelectorAll('.viewerPane .hudNotesBody, .viewerPane .findingsRow')]
+    const deaf = [...document.querySelectorAll('.viewerPane .hudNotesBody')]
       .filter(e => (e as HTMLElement).offsetParent !== null && e.scrollHeight > e.clientHeight + 1 && getComputedStyle(e).pointerEvents === 'none')
       .map(e => e.className);
     // A body scrolls only where a line is CUT: sideways never, down only
@@ -1108,7 +1110,7 @@ async function viewerColumn(page: Page, label: string) {
     // invisible hit area (--help-hit around a smaller glyph) made the body
     // scroll 6 px sideways and 3 px down: a scrollbar under the off-datum
     // chip, and a body that took the pointer (operator, 2026-09-27).
-    const slivers = [...document.querySelectorAll<HTMLElement>('.viewerPane .hudNotesBody, .viewerPane .findingsRow')]
+    const slivers = [...document.querySelectorAll<HTMLElement>('.viewerPane .hudNotesBody')]
       .filter(e => e.offsetParent !== null)
       .flatMap(e => {
         e.scrollTo(0, 0);
@@ -1124,14 +1126,13 @@ async function viewerColumn(page: Page, label: string) {
       });
     return { pane, banner: box(document.querySelector('.simBanner')), notes: box(document.querySelector('.viewerPane .hudNotes')),
       scrub: box(document.querySelector('.viewerPane .scrubBar')), bottom: box(document.querySelector('.viewerPane .viewerBottom')),
-      notesToggle: centre('.viewerPane .notesToggle'), moreToggle: centre('.viewerPane .moreToggle'),
-      notesOpen: document.querySelector('.viewerPane .notesToggle')?.getAttribute('aria-expanded') === 'true',
-      moreOpen: document.querySelector('.viewerPane .moreToggle')?.getAttribute('aria-expanded') === 'true', lines, deaf, slivers };
+      notesToggle: centre('.viewerPane .notesToggle'),
+      notesOpen: document.querySelector('.viewerPane .notesToggle')?.getAttribute('aria-expanded') === 'true', lines, deaf, slivers };
   });
   const dump = JSON.stringify(c);
   expect(inside(c.bottom!, c.pane), `${label}: the bottom column inside the viewer ${dump}`).toBe(true);
   if (c.notes) expect(inside(c.notes, c.pane), `${label}: the warnings card inside the viewer ${dump}`).toBe(true);
-  for (const k of ['notesToggle', 'moreToggle'] as const) {
+  for (const k of ['notesToggle'] as const) {
     const t = c[k];
     if (t) expect(pointIn(t, c.pane), `${label}: ${k} inside the viewer ${dump}`).toBe(true);
   }
@@ -1172,20 +1173,19 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
       };
       // The sweep's verdict first (the "?" of the collision check needs it),
       // then — with both — two collisions on the swept track.
-      await expect.poll(() => page.locator('.scrubBar [aria-label="Help: Collision check"]').count(),
+      await expect.poll(() => page.locator('.simPanel .checkVerdict').count(),
         { message: `${where('')}: the collision verdict`, timeout: 15_000 }).toBe(1);
-      if (v !== 'none') await expect(page.locator('.scrubBar [aria-label="Next limit violation"]')).toBeAttached();   // folded = hidden, still there
+      if (v !== 'none') await expect(page.locator('.simPanel [data-sim-row="L32"]')).toBeAttached();   // the tab's list, behind its tab
       if (v === 'both') {
         await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([{ line: 12, frac: 0.3 }, { line: 22, frac: 0.6, rapid: true }]) ?? false),
           { message: `${where('')}: collisions on the track` }).toBe(true);
-        await expect(page.locator('.scrubBar [aria-label="Next collision"]')).toBeAttached();
+        await expect(page.locator('.simPanel tr[data-sim-row^="C"]').first()).toBeAttached();
       }
       // The bar's insides, measured: the slider's width, every visible row
-      // within its box, every rendered control (button, "?", slider, readout
-      // slot) scrolled into view (the findings scroll in a capped column)
-      // and hit-tested at its centre inside the window, every button's words
-      // whole. `required` names what must be RENDERED in this state.
-      const insides = (required: string[]) => page.evaluate(required => {
+      // within its box, every rendered control (button, "?", slider, the
+      // time) hit-tested at its centre inside the window, every button's
+      // words whole.
+      const insides = () => page.evaluate(() => {
         const zoom = parseFloat(document.documentElement.style.zoom || '1');
         const bar = document.querySelector('.scrubBar')!;
         const nameOf = (e: Element) => e.getAttribute('aria-label') || (e as HTMLElement).innerText?.trim() || [...e.classList].join('.');
@@ -1197,39 +1197,27 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
           const top = document.elementFromPoint(x, y);
           return top && (top === e || e.contains(top) || top.contains(e)) ? 'ok' : `covered by ${top?.className}`;
         };
-        const rendered = [...bar.querySelectorAll('button, [role="button"], input[type="range"], .posSlot, .lineSlot')]
+        const rendered = [...bar.querySelectorAll('button, [role="button"], input[type="range"], .posSlot')]
           .filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
-        const names = rendered.map(nameOf);
         const rows = [...bar.querySelectorAll('.scrubRow')].filter(r => (r as HTMLElement).offsetParent !== null)
           .map(r => r.scrollWidth - r.clientWidth);
         const unreachable = rendered.map(e => [nameOf(e), reach(e)]).filter(([, s]) => s !== 'ok');
-        bar.querySelector('.findingsRow')?.scrollTo(0, 0);
         return {
           slider: bar.querySelector('.sliderInput')!.getBoundingClientRect().width / zoom,
           rowOverflow: Math.max(0, ...rows),
-          compact: bar.classList.contains('compact'),
-          moreLabel: bar.querySelector('.moreToggle')?.getAttribute('aria-label') ?? '',
           unreachable,
           clipped: rendered.filter(e => e.tagName === 'BUTTON' && e.scrollWidth > e.clientWidth + 1).map(nameOf),
-          missing: required.filter(n => !names.some(m => m === n || m.startsWith(n))),
         };
-      }, required);
-      const findingsNames = [
-        ...(v !== 'none' ? ['Previous limit violation', '1 limit violation', 'Next limit violation', 'Help: Limit violations'] : []),
-        ...(v === 'both' ? ['Previous collision', '2 collisions', 'Next collision'] : []),
-        'Help: Collision check'];
-      const expectInsides = async (state: string, open: boolean) => {
-        const b = await insides(open ? ['×', ...findingsNames] : []);
+      });
+      const expectInsides = async (state: string) => {
+        const b = await insides();
         expect(b.slider, `${where(state)}: the timeline keeps its width`).toBeGreaterThanOrEqual(120);
         expect(b.rowOverflow, `${where(state)}: no row runs out of the bar`).toBeLessThanOrEqual(1);
         expect(b.unreachable, `${where(state)}: every rendered control reachable`).toEqual([]);
         expect(b.clipped, `${where(state)}: every button's words whole`).toEqual([]);
-        if (open) {
-          expect(b.missing, `${where(state)}: speed, position, findings and their help rendered`).toEqual([]);
-          const pos = await page.locator('.scrubBar .posSlot').evaluate(e => ({ text: (e as HTMLElement).innerText, whole: e.scrollWidth <= e.clientWidth + 1 }));
-          expect(pos.text, `${where(state)}: the position readout (time, or % on a distance axis)`).toMatch(/\d/);
-          expect(pos.whole, `${where(state)}: the position readout whole`).toBe(true);
-        }
+        const pos = await page.locator('.scrubBar .posSlot').evaluate(e => ({ text: (e as HTMLElement).innerText, whole: e.scrollWidth <= e.clientWidth + 1 }));
+        expect(pos.text, `${where(state)}: the position readout (time, or % on a distance axis)`).toMatch(/\d/);
+        expect(pos.whole, `${where(state)}: the position readout whole`).toBe(true);
         return b;
       };
       // The bottom column against the VIEWER: the column and the warnings
@@ -1245,42 +1233,18 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
       const toggle = (sel: string) => page.locator(`.viewerPane ${sel}`).click({ timeout: 3000 });
       const details = async (state: string) => {
         await settle(state);
-        const b = await expectInsides(`${state} folded`, false);
+        await expectInsides(`${state} folded`);
         const form = await hudForm();
         await column(`${state} folded`);
         const hasNotes = await page.locator('.viewerPane .notesToggle').isVisible();
-        // The case under test exists: at 150 % both views fold behind toggles.
-        if (zoom !== 1) expect([hasNotes, b.compact], `${where(state)}: both toggles offered`).toEqual([true, true]);
-        const keep = async (s: string) => expect(await hudForm(), `${where(s)}: an opened view leaves the DRO's form`).toBe(form);
-        if (!b.compact) await expectInsides(`${state} whole bar`, true);
-        else if (v !== 'none') expect(b.moreLabel, where(state)).toContain(v === 'both' ? '1 limit violation, 2 collisions' : '1 limit violation');
-        // Order A: More, then the warnings (which fold More — one detail
-        // view at a time), then the warnings closed by their own toggle.
-        if (b.compact) {
-          await toggle('.moreToggle'); await settle(`${state} More`);
-          await expectInsides(`${state} More`, true); await column(`${state} More`); await keep(`${state} More`);
-          if (hasNotes) {
-            await toggle('.notesToggle'); await settle(`${state} More → warnings`);
-            const c = await column(`${state} More → warnings`); await keep(`${state} More → warnings`);
-            expect([c.notesOpen, c.moreOpen], `${where(state)}: one detail view at a time`).toEqual([true, false]);
-            await toggle('.notesToggle'); await settle(`${state} warnings closed`); await column(`${state} warnings closed`);
-          } else {
-            await toggle('.moreToggle'); await settle(`${state} More closed`); await column(`${state} More closed`);
-          }
-        }
-        // Order B: the warnings, then More, then More closed by its toggle.
+        // The case under test exists: at 150 % the warnings fold behind their toggle.
+        if (zoom !== 1) expect(hasNotes, `${where(state)}: the warnings toggle offered`).toBe(true);
         if (hasNotes) {
           await toggle('.notesToggle'); await settle(`${state} warnings`);
-          await column(`${state} warnings`); await keep(`${state} warnings`);
-          if (b.compact) {
-            await toggle('.moreToggle'); await settle(`${state} warnings → More`);
-            const c = await column(`${state} warnings → More`); await keep(`${state} warnings → More`);
-            expect([c.notesOpen, c.moreOpen], `${where(state)}: one detail view at a time`).toEqual([false, true]);
-            await expectInsides(`${state} warnings → More`, true);
-            await toggle('.moreToggle'); await settle(`${state} More closed`); await column(`${state} More closed`);
-          } else {
-            await toggle('.notesToggle'); await settle(`${state} warnings closed`); await column(`${state} warnings closed`);
-          }
+          await column(`${state} warnings`);
+          expect(await hudForm(), `${where(state)}: the opened warnings leave the DRO's form`).toBe(form);
+          await expectInsides(`${state} warnings`);
+          await toggle('.notesToggle'); await settle(`${state} warnings closed`); await column(`${state} warnings closed`);
         }
       };
       await details('idle');
@@ -1326,10 +1290,10 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
 // (the banner's short form with its "?") and the bottom column's cap — must
 // follow the pane with the DRO card switched off (Settings → Layers → HUD):
 // fitHud returned early without the card, so a resize after switching it off
-// kept the desktop's cap and the long banner, and More covered the banner's
-// explanation. Switched off at the desktop and then resized, and off from
-// the start (the first settings after connecting); a zoom change while
-// simulating with More open; the HUD back on as the counter-check.
+// kept the desktop's cap and the long banner. Switched off at the desktop and
+// then resized, and off from the start (the first settings after
+// connecting); a zoom change while simulating; the HUD back on as the
+// counter-check.
 for (const profile of [PROFILES[1], PROFILES[2]]) {
   test(`${profile.name}: with the HUD layer off the banner and the bottom column still follow the viewer`, async ({ page, context }) => {
     test.setTimeout(300_000);
@@ -1352,7 +1316,7 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
       await ctl({ op: 'status_delta', data: { active_file: '/leak.ngc', eoffset_enabled: true, eoffset_z: 0.123, rotation_xy: 12 } });
       await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 800 + version++, file: '/leak.ngc' } });
       await expect(page.locator('.scrubBar')).toBeVisible();
-      await expect.poll(() => page.locator('.scrubBar [aria-label="Help: Collision check"]').count(), { timeout: 15_000 }).toBe(1);
+      await expect.poll(() => page.locator('.simPanel .checkVerdict').count(), { timeout: 15_000 }).toBe(1);
       await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([{ line: 12, frac: 0.3 }, { line: 22, frac: 0.6, rapid: true }]) ?? false)).toBe(true);
     };
     const zoom = (z: number) => page.evaluate(z => { document.documentElement.style.zoom = z === 1 ? '' : String(z); }, z);
@@ -1384,7 +1348,6 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
       await viewerColumn(page, label);
       return g;
     };
-    const more = (label: string) => page.locator('.viewerPane .moreToggle').click({ timeout: 3000 }).then(() => geometry(label, true));
     const simOn = async () => {
       await ctl({ op: 'status_delta', data: { is_enabled: false, enabled: false } });
       await page.locator('.scrubBar input.toggle').check();
@@ -1405,14 +1368,11 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
     await simOn();
     const a = await geometry('A simulating', true);
     expect(a.hudShown, 'A: the DRO stays off').toBe(false);
-    await more('A simulating, More');
-    // A zoom change with More open: the geometry follows both ways.
+    // A zoom change while simulating: the geometry follows both ways.
     await zoom(1);
-    await geometry('A simulating, More, 100 %', false);
+    await geometry('A simulating, 100 %', false);
     await zoom(1.5);
-    await geometry('A simulating, More, back at 150 %', true);
-    await page.locator('.viewerPane .moreToggle').click({ timeout: 3000 });
-    await geometry('A simulating, More closed', true);
+    await geometry('A simulating, back at 150 %', true);
     await page.locator('.scrubBar input.toggle').uncheck();
     await geometry('A simulation off', true);
     // Counter-check: the HUD back on.
@@ -1420,9 +1380,7 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
     await expect(page.locator('.viewerPane .hud')).toBeVisible();
     await simOn();
     await geometry('A HUD back on, simulating', true);
-    await more('A HUD back on, More');
     await expect(page.locator('.viewerPane .hud')).toHaveAttribute('data-hud-fit', 'fits');
-    await page.locator('.viewerPane .moreToggle').click({ timeout: 3000 });
     await page.locator('.scrubBar input.toggle').uncheck();
     await zoom(1);
 
@@ -1436,8 +1394,6 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
     await geometry('B portrait 150 %, HUD off', true);
     await simOn();
     await geometry('B simulating', true);
-    await more('B simulating, More');
-    await page.locator('.viewerPane .moreToggle').click({ timeout: 3000 });
     await page.locator('.scrubBar input.toggle').uncheck();
     await geometry('B simulation off', true);
     await zoom(1);
@@ -1507,7 +1463,7 @@ test('a code line names its findings with a glyph: ▲ limit, × collision, both
   await openLayout(page, PROFILES[1], VIEWPORTS.find(v => v.name === 'desktop')!);
   await ctl({ op: 'status_delta', data: { active_file: '/marks.ngc' } });
   await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 990, file: '/marks.ngc' } });
-  await expect.poll(() => page.locator('.scrubBar [aria-label="Help: Collision check"]').count(), { timeout: 15_000 }).toBe(1);
+  await expect.poll(() => page.locator('.simPanel .checkVerdict').count(), { timeout: 15_000 }).toBe(1);
   await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([{ line: 12, frac: 0.3 }, { line: 32, frac: 0.95 }]) ?? false)).toBe(true);
   const line = (n: number) => page.locator('.codeViewer:visible .codeLine').filter({ has: page.locator('.lineNumber', { hasText: new RegExp(`^${n}$`) }) });
   // The code viewer renders only the lines near its window: scroll to one first.

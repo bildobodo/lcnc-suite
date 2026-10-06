@@ -65,7 +65,7 @@ function toggleSort(key: "code" | "name") {
                initial-focus="input.refSearch" @close="emit('close')">
       <div class="stack-controls refContent">
         <!-- Search and group filter: one row of fields (design wave D4) -->
-        <div class="refSearchRow row-controls">
+        <div class="refSearchRow row-controls denseArea">
           <MachineInput
             gate="search"
             type="text"

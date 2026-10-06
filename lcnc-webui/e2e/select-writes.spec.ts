@@ -143,3 +143,20 @@ test("the message center's filter while messages arrive and the machine talks", 
   expect(Object.keys(got)).toContain("Filter messages");
   for (const [name, list] of Object.entries(got)) expect(list, `messages · ${name}: written while messages arrive`).toEqual([]);
 });
+
+// The Simulation tab (operator 2026-10-05): its speed and its list filter
+// stand in a panel that re-renders as the simulation plays (the time, the
+// next row) — while the machine talks, neither may be written.
+test("the Simulation tab's speed and list filter while the simulation plays", async ({ page }) => {
+  await openLayout(page, PROFILES[1]!, VIEWPORTS[0]!);
+  await ctl({ op: "status_delta", data: { active_file: "/leak.ngc", is_enabled: false, enabled: false } });
+  await ctl({ op: "loadGcode" });
+  await expect(page.locator(".scrubBar")).toBeVisible();
+  await page.getByRole("tab", { name: "Simulation", exact: true }).click();
+  await page.getByRole("combobox", { name: "Playback speed" }).selectOption("0.1");
+  await page.locator(".scrubBar input.toggle").check();
+  await expect(page.locator(".simBanner")).toBeVisible();
+  await page.locator('.scrubBar [title="Play the program through the machine model"]').click();
+  const seen = await expectNoWrites(page, "Simulation");
+  expect(seen).toEqual(expect.arrayContaining(["Playback speed", "Show on the list"]));
+});

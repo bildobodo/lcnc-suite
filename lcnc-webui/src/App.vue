@@ -15,6 +15,7 @@ import { connectWs, connected, status, send, request, armed, lastReply, viewerGc
 const ThreeViewer = defineAsyncComponent(() => import("./ThreeViewer.vue"));
 import TabPanel from "./TabPanel.vue";
 import GcodePanel from "./GcodePanel.vue";
+import SimPanel from "./SimPanel.vue";
 import { gCodeWords, mCodeWords } from "./gcodeRefView";
 import SafetyStrip from "./SafetyStrip.vue";
 import MessagesDialog from "./MessagesDialog.vue";
@@ -372,6 +373,7 @@ const contentTabs = [
   { id: "offsets", label: "Offsets" },
   { id: "tools", label: "Tools" },
   { id: "macros", label: "Macros" },
+  { id: "sim", label: "Simulation" },
 ];
 
 const activeTab = ref("gcode");
@@ -2178,6 +2180,9 @@ watch(viewerGcode, (newGcode) => {
                 :linearUnit="linearUnit"
               />
             </div>
+          </template>
+          <template #sim>
+            <SimPanel />
           </template>
           <template #macros>
             <MacrosPanel ref="macrosPanelRef" :bar-names="macroBarNames" @run="runMacroFile" @update-bar="setMacroBar" />

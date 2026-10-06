@@ -334,6 +334,8 @@ Debug-Schalter.
 | Dialoge im Hochformat | Bei 150 % passt jeder Dialog in den Inhaltsbereich: Program Stats und Run from line ragten links und rechts hinaus |
 | ViewCube | Die Seiten heißen X+, X−, Y+, Y−, Z+, Z− und sind leicht rot / grün / blau getönt. In einer geraden Ansicht (Klick auf eine Fläche) liegen zwei schlichte Pfeile auf dem Rand des Quadrats, über die ganze Seite, der Buchstabe außerhalb hinter der Spitze; in der Schrägansicht keine. Das Achsenkreuz unten rechts ist weg |
 | Blinken im Gleichtakt | In E-Stop blinken der Reset-Button und der Statusbalken **gleichzeitig**, auch nach einem Safety Trip und nach einem Neuladen der Seite |
+| Simulation (neu) | Die Leiste im Viewer hat eine Zeile: Sim, Play, Zeitleiste, Zeit; im schmalen Viewer steht die Zeitleiste in einer eigenen Zeile. Der neue Tab „Simulation“: Geschwindigkeit in Stufen, Kollisionsprüfung mit Prozent, eine Liste aller Markierungen (× Kollision mit dem Körperpaar, ▲ Grenzverletzung, ● Werkzeugwechsel). Ein Tipp auf eine Zeile zeigt den Befund; ‹ › blättern; beim Durchklicken ändert die Leiste ihre Größe nie. Bei eingeschalteter Maschine sagt eine Zeile, warum nicht |
+| Auswahlfelder | Such- und Filterzeilen (Tools, Macros, Meldungen, G-Code-Referenz) und das Bereichsmenü im schmalen Panel sind niedriger (36 statt 44 px auf Touch) |
 | Hinweisblase | Ein Tipp auf eine halb verdeckte Option am Rand der Leiste (z. B. die reservierte G59 auf der TWP-Maschine): Die Leiste scrollt sie ins Bild, und der Hinweis bleibt an ihr stehen |
 
 **Program-Kopf im schmalen Panel** (Hochformat 150 %, deine Wahl vom 5. Oktober): zwei Zeilen,

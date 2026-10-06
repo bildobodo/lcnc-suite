@@ -63,7 +63,7 @@ test.afterEach(async () => {
 test("tab semantics: tablist, tab, tabpanel — one Tab stop, the panel named by its tab", async ({ page }) => {
   await ready(page);
   const side = page.getByRole("tablist", { name: "Side panel", exact: true });
-  await expect(side.getByRole("tab")).toHaveText(["Program", "MDI", "Probing", "Offsets", "Tools", "Macros"]);
+  await expect(side.getByRole("tab")).toHaveText(["Program", "MDI", "Probing", "Offsets", "Tools", "Macros", "Simulation"]);
   await expect(selected(side)).toHaveText("Program");
   await expect(stops(side), "one Tab stop: the selected tab").toHaveCount(1);
   await expect(stops(side)).toHaveText("Program");

@@ -50,7 +50,7 @@ watch(() => props.narrow, () => {
 <template>
   <div class="tab-panel stack-tight">
     <div ref="navArea" class="navArea">
-    <div v-if="narrow" class="narrowBar">
+    <div v-if="narrow" class="narrowBar denseArea">
       <MachineSelect gate="tabSelect" :name="`${base}-area`" :aria-label="props.label"
                      :model-value="modelValue" @update:model-value="onSelect">
         <option v-for="t in tabs" :key="t.id" :value="t.id">{{ t.label }}</option>

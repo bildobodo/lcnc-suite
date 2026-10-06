@@ -630,7 +630,7 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showI
 
     <!-- Search and type filter: one row of fields (design wave D4; the
          filter left the Type column header, K07) -->
-    <div v-show="!showImportBrowser" class="toolSearchRow row-controls">
+    <div v-show="!showImportBrowser" class="toolSearchRow row-controls denseArea">
       <MachineInput
         gate="toolSearch"
         type="text"

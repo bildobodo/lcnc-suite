@@ -1,6 +1,7 @@
 import { test, expect, type Page, type BrowserContext } from "@playwright/test";
 import { encode } from "@msgpack/msgpack";
 import { ctl } from "./ctl";
+import { simLine, simShow, simStepBtn } from "./simTab";
 import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
 
 // A jump to a limit finding lands IN the finding and shows its move (Codex
@@ -29,13 +30,14 @@ async function prepare(page: Page, context: BrowserContext, o: { entry: boolean;
   await ctl({ op: "status_delta", data: { active_file: "/targets.ngc", joint_pos: [x, 0, 0], actual_position: [x, 0, 0],
     g5x_offset: [0, 0, 0], g92_offset: [0, 0, 0], tool_offset: [0, 0, 0], rotation_xy: 0, is_enabled: false, enabled: false } });
   await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 2100 + (o.entry ? 1 : 0) + (o.short ? 2 : 0) + (o.close ? 4 : 0), file: "/targets.ngc" } });
-  await expect(page.locator('.scrubBar [aria-label="Next limit violation"]')).toBeVisible({ timeout: 15_000 });
+  await simShow(page, "limit");
+  await expect(page.locator(".simPanel [data-sim-row]").first()).toBeVisible({ timeout: 15_000 });
   await page.evaluate(() => window.__viewerDiag!.setViewDirection!([0, 0, 1]));
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: { viewer: { layers: { toolpath: false, rapids: false } } } } });
   await expect.poll(() => page.evaluate(() => window.__viewerDiag!.projectRole!("feed"))).toBeNull();
 }
 const role = (page: Page, r: string) => page.evaluate(x => window.__viewerDiag!.projectRole!(x), r);
-const line = (page: Page) => page.locator(".scrubBar .lineSlot");
+const line = (page: Page) => simLine(page);
 
 for (const c of [
   { name: "no entry move (control)", entry: false, short: false, close: false },
@@ -46,7 +48,8 @@ for (const c of [
   test(`a limit jump lands in the finding and shows its move — ${c.name}`, async ({ page, context }) => {
     test.setTimeout(90_000);
     await prepare(page, context, c);
-    const next = page.locator('.scrubBar [aria-label="Next limit violation"]');
+    await simShow(page, "limit");
+    const next = simStepBtn(page, "Next limit violation");
     await next.click();
     await expect(page.locator(".simBanner")).toBeVisible();
     await expect(line(page), "the FIRST click lands on the chosen finding").toHaveText(/^L7\b/);
@@ -59,7 +62,7 @@ for (const c of [
     if (c.close) {
       await next.click();
       await expect(line(page), "next reaches the finding 5 ms later").toHaveText(/^L8\b/);
-      await page.locator('.scrubBar [aria-label="Previous limit violation"]').click();
+      await simStepBtn(page, "Previous limit violation").click();
       await expect(line(page), "previous comes back").toHaveText(/^L7\b/);
     }
   });
@@ -81,8 +84,9 @@ test("a limit on a first line of two points lands in the program's move, not on 
   await ctl({ op: "status_delta", data: { active_file: "/first-line.ngc", joint_pos: [-100, 0, 0], actual_position: [-100, 0, 0],
     g5x_offset: [0, 0, 0], g92_offset: [0, 0, 0], tool_offset: [0, 0, 0], rotation_xy: 0, is_enabled: false, enabled: false } });
   await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 2110, file: "/first-line.ngc" } });
-  const next = page.locator('.scrubBar [aria-label="Next limit violation"]');
-  await expect(next).toBeVisible({ timeout: 15_000 });
+  await simShow(page, "limit");
+  const next = simStepBtn(page, "Next limit violation");
+  await expect(page.locator(".simPanel [data-sim-row]").first()).toBeVisible({ timeout: 15_000 });
   await page.evaluate(() => window.__viewerDiag!.setViewDirection!([0, 0, 1]));
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: { viewer: { layers: { toolpath: false, rapids: false } } } } });
   await expect.poll(() => role(page, "feed")).toBeNull();

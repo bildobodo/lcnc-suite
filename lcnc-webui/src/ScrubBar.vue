@@ -9,7 +9,7 @@
 // the interpreter idle; exit is the Exit button or one of the auto-exits
 // (program run start, program change, machine powered on elsewhere, real
 // joint motion as a backstop). ThreeViewer shows the .simBanner while active.
-import { computed, markRaw, nextTick, onUnmounted, ref, shallowRef, watch } from "vue";
+import { computed, markRaw, onUnmounted, ref, shallowRef, watch, watchEffect } from "vue";
 import { lineRange } from "./viewer/lineIndex";
 import { status, viewerGcode, viewerInit, gcodeContent, emitTelemetry } from "./lcncWs";
 import { INTERP_IDLE } from "./lcnc";
@@ -33,12 +33,12 @@ import type { ScrubTrack } from "./ws/bulkData";
 import type { CollisionResult } from "./viewer/collision";
 import { EVENT_NONE } from "./viewer/eventIndex";
 import { mergedSweptFraction } from "./viewer/sweepMerge";
-import { limitViolationText } from "./ws/bulkData";
-import { fmtElapsed, fmtDist } from "./format";
-import { Play, Pause, X, Triangle, Circle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-vue-next";
+import { fmtElapsed } from "./format";
+import { Play, Pause, X, Triangle, Circle } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
-import HelpIcon from "./HelpIcon.vue";
 import MachineSlider from "./MachineSlider.vue";
+import { buildSimRows, nextRowKey, type SimRowKind } from "./viewer/simRows";
+import { simRows, simView, registerSimActions, type SimSweepView } from "./simPanelStore";
 import MachineToggle from "./MachineToggle.vue";
 
 const props = defineProps<{
@@ -72,9 +72,6 @@ const props = defineProps<{
    *  it continues by itself once the pose settles. */
   collisionStopped: { covered: number; reason: "motion" } | null;
   collisionResumable: boolean;
-  /** The viewer's warnings card is opened: ONE detail view at a time in a
-   *  short viewer (review round 8, UI-DI17) — it folds More. */
-  notesOpen: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -103,8 +100,6 @@ const emit = defineEmits<{
   /** A sim-time input edge (the WCS rows this track re-adds): nothing is
    *  current — followed by check-entry with the rebuilt entry track. */
   (e: "cancel-check"): void;
-  /** More opened: the viewer folds its warnings card (one detail view). */
-  (e: "more-open"): void;
 }>();
 
 const st = computed<Record<string, any>>(() => status.value?.data ?? {});
@@ -126,8 +121,6 @@ const machineOff = computed(() => !st.value.is_enabled);
 // explain path (design wave D1, UI-N32), not a hover title on a wrapper.
 const SIM_OFF_REASON = "Machine on — power off to simulate";
 const hitNavReason = computed(() => (!simMode.value && !machineOff.value ? SIM_OFF_REASON : undefined));
-const violationNavReason = computed(() =>
-  !violationTargets.value.length ? "No limit violation to jump to" : hitNavReason.value);
 // Visible whenever a track exists — during a real run the bar is a
 // READ-ONLY display (all controls are dead via the existing gating): live
 // playhead on the estimate axis, findings/tool marks as look-ahead.
@@ -135,15 +128,10 @@ const visible = computed(() => !!track.value);
 
 const sPos = ref(0);          // scrub parameter (seconds on a time-based track)
 const playing = ref(false);
-// Continuous log-scale playback speed, ×0.1 … ×100 (Fusion-style). On a
-// time-based track ×1 is REAL TIME; on the distance fallback the base pace
-// is BASE_MM_S.
-const speedLog = ref(0);
-const speed = computed(() => Math.pow(10, speedLog.value));
-const speedLabel = computed(() => {
-  const s = speed.value;
-  return s >= 10 ? s.toFixed(0) : s >= 1 ? s.toFixed(1) : s.toFixed(2);
-});
+// Playback speed, ×0.1 … ×100 in fixed steps — set in the Simulation tab
+// (simPanelStore). On a time-based track ×1 is REAL TIME; on the distance
+// fallback the base pace is BASE_MM_S.
+const speed = computed(() => simView.speed);
 const BASE_MM_S = 30;
 
 const cumMax = computed(() => {
@@ -622,36 +610,7 @@ const posText = computed(() => (running.value ? `~${posLabel.value}` : posLabel.
 // sub names ellipsize with the full text in the title.
 const posSlotCh = computed(() =>
   track.value?.timeBased ? fmtElapsed(Math.floor(cumMax.value)).length * 2 + 2 : 5);
-const lineSlotCh = computed(() => {
-  const maxLine = Math.max(track.value?.lineIndex.maxLine ?? 0, 1);
-  return Math.max(5, 1 + String(maxLine).length + 2);
-});
 
-/** ---------- collision results (stage 3) ---------- */
-// Loaded-tool note for the sweep (see the row-2 comment). Dims are the
-// DISPLAYED marker dims ThreeViewer feeds the sweep (props from _pv).
-const sweepToolText = computed(() => {
-  const pt = props.sweepTool?.programTools;
-  if (pt?.length) {
-    return "sweep: program tools " + pt.map(t => `T${t.num} Ø${t.diam.toFixed(1)}`).join(" · ");
-  }
-  const n = props.sweepTool?.num;
-  // a label, so a missing number reads as none (the live tool comes from
-  // the reactive status — it used to be the viewer's non-reactive cache,
-  // whose NaN start showed "sweep: TNaN", review round 6 evidence)
-  if (n == null || !Number.isFinite(n) || n <= 0) return "sweep: no tool loaded — 6 mm stub";
-  const d = props.sweepTool?.diam;
-  return `sweep: T${n}${d != null && d > 0 ? ` Ø${d.toFixed(1)}` : ""}`;
-});
-const sweepToolTitle = computed(() => {
-  if (props.sweepTool?.programTools?.length) {
-    return "The collision sweep poses each segment with the tool the program has active there (dims from the parse-time tool table); segments before the first M6 use the loaded tool";
-  }
-  const n = props.sweepTool?.num;
-  return (n == null || !Number.isFinite(n) || n <= 0)
-    ? "The collision sweep checks a 6 mm × 60 mm stub cylinder because no tool is loaded — load the program's tool for a real check (the program's T sequence is not consulted yet)"
-    : "The collision sweep checks the LOADED tool's table dimensions for the whole program — the program's own tool changes are not consulted yet";
-});
 // Sweep progress is drawn ON THE TIMELINE (the swept band, sweptFrac below)
 // so a scrub shows which section is already checked, and the clashes found
 // so far show as the sweep finds them (collisionPartial). There is no
@@ -674,21 +633,7 @@ const simToggleModel = computed({
 
 /** ---------- soft-limit violations (stage 1) in the bar ---------- */
 const violations = computed(() => viewerGcode.value?.violations ?? null);
-const violationsTotal = computed(() => viewerGcode.value?.violations_total ?? 0);
 const linearUnit = computed(() => (viewerGcode.value?.stats?.unit as string) ?? "mm");
-const violationsTitle = computed(() => {
-  const list = violations.value ?? [];
-  if (!list.length) return "";
-  const shown = list.slice(0, 8).map(v => `L${v.line}: ${limitViolationText(v, linearUnit.value)}`).join("\n");
-  const more = violationsTotal.value > 8 ? `\n… ${violationsTotal.value - 8} more` : "";
-  // The violations are real either way — only their L-numbers index a
-  // called file when the attribution is untrusted, and the reader must
-  // know that before chasing the wrong line.
-  const caveat = viewerGcode.value?.lines_untrusted
-    ? "\n(line numbers index a called sub/remap file, not this program)" : "";
-  return `Soft-limit violations\n${shown}${more}${caveat}`;
-});
-
 /** ---------- position-aware finding navigation ---------- */
 // Targets are timeline extents [cum, cumEnd] named by a key; prev/next go
 // from the finding a jump showed (by its key, while the timeline still
@@ -819,11 +764,8 @@ const sweptFrac = computed(() => {
 // the whole extent. The COUNT, the timeline marks and prev/next all read
 // THIS list (viewer/clashTargets.ts) — they used to disagree (count per
 // record, marks per interval: "1 clash, 2 marks").
-const hitTargets = computed<FindingTarget[]>(() => clashTargets(hits.value));
+const hitTargets = computed(() => clashTargets(hits.value));
 
-const nextViolationT = computed(() => targetAfter(violationTargets.value, sPos.value, navSel.value));
-const nextHitT = computed(() => targetAfter(hitTargets.value, sPos.value, navSel.value));
-const prevOf = (list: FindingTarget[]) => targetBefore(list, sPos.value, navSel.value);
 
 /** The entry move's length on a track built from the base (0 = the base). */
 function entryLenOf(x: ScrubTrack): number {
@@ -832,7 +774,7 @@ function entryLenOf(x: ScrubTrack): number {
   return x.cum[x.count - 1]! - b.cum[b.count - 1]!;
 }
 
-function jumpTo(pick: FindingTarget | null, kind: "limit" | "clash") {
+function jumpTo(pick: FindingTarget | null, kind: SimRowKind) {
   if (!pick) return;
   const from = track.value;
   if (!enterSim()) return;
@@ -845,7 +787,7 @@ function jumpTo(pick: FindingTarget | null, kind: "limit" | "clash") {
   const t = track.value;
   let target = pick;
   if (t && from && t !== from) {
-    target = (kind === "limit" ? violationTargets.value : hitTargets.value).find(f => f.key === pick.key)
+    target = targetsOf(kind).find(f => f.key === pick.key)
       ?? mapAcrossEntry(pick, entryLenOf(from), entryLenOf(t));
   }
   // Inside the finding's extent: its start cum is the previous move's end,
@@ -853,6 +795,9 @@ function jumpTo(pick: FindingTarget | null, kind: "limit" | "clash") {
   sPos.value = Math.min(cumMax.value, Math.max(0, sampleCum(target)));
   navSel.value = { key: target.key, pos: sPos.value };
   applyPos();
+  // A tool change is a place on the timeline, not a finding: nothing of a
+  // hidden layer to reveal.
+  if (kind === "tool") return;
   // The finding's SECTION (Codex R31 VP-I03): the run of its move around the
   // jumped-to segment, in BASE-track indices — the drawn streams' source
   // map addresses the base track, the entry track prepends its points. A
@@ -878,36 +823,27 @@ const textToolLines = computed(() => toolChangeLinesFromText(gcodeContent.value)
 // where the next line that has one STARTS moving (lineSpanCum — its first
 // point is where that move already ended). Read on the DISPLAYED track: a
 // change before the first motion runs before the entry move, at its start.
-function cumAtOrAfterLine(t: ScrubTrack, line: number): number | undefined {
+function spanAtOrAfterLine(t: ScrubTrack, line: number): [number, number] | undefined {
   for (let l = line; l <= t.lineIndex.maxLine; l++) {
     const span = lineSpanCum(t, l);
-    if (span) return span[0];
+    if (span) return span;
   }
   return undefined;
 }
+// A target like a finding (key T<line>, the extent of the move it starts):
+// the Simulation tab lists it and a tap shows it.
 const toolTargets = computed(() => {
   const t = track.value;
-  const out: Array<{ cum: number; line: number; tool: number }> = [];
+  const out: Array<FindingTarget & { tool: number }> = [];
   if (!t) return out;
   const byLine = new Map<number, number>();
   for (const [line, tool] of viewerGcode.value?.tool_change_lines ?? []) byLine.set(line, tool);
   for (const [line, tool] of textToolLines.value) if (!byLine.has(line)) byLine.set(line, tool);
   for (const [line, tool] of byLine) {
-    const cum = cumAtOrAfterLine(t, line);
-    if (cum !== undefined) out.push({ cum, line, tool });
+    const span = spanAtOrAfterLine(t, line);
+    if (span) out.push({ cum: span[0], cumEnd: span[1], key: `T${line}`, line, tool });
   }
   return out.sort((a, b) => a.cum - b.cum);
-});
-const nextTool = computed(() =>
-  toolTargets.value.find(x => x.cum > sPos.value) ?? null,
-);
-const nextToolLabel = computed(() => {
-  const nt = nextTool.value;
-  if (!nt) return "";
-  const dist = track.value?.timeBased
-    ? `in ${fmtElapsed(Math.floor(nt.cum - sPos.value))}`
-    : `L${nt.line}`;
-  return `T${nt.tool || "?"} ${dist}`;   // 0 = no T word found (text-scanned line)
 });
 
 /** ---------- timeline marks + extents (2026-09-12) ---------- */
@@ -982,60 +918,96 @@ onUnmounted(() => {
   exitSim();
 });
 
-// ─── Compact form (review round 7, UI-DI15) ─────────────────────────────
-// In a narrow viewer the bar's CONTENTS ran out of it (the timeline slider
-// shrank to 0 px, the speed and position readouts and the findings' "?" sat
-// past the window's edge). Decided by content, not a width constant: with
-// the compact class off, the timeline must keep SLIDER_MIN px and the
-// findings row must not overflow — else compact: row 1 keeps Sim, play and a
-// full-width timeline, everything else (speed, readouts, the findings
-// groups, the tool label) waits behind ONE toggle whose name says the
-// findings. Never decided by the viewer's HUD fit (which measures the bar
-// as it is — an opened bar is the operator's choice), so the fit cannot swing.
-const SLIDER_MIN = 120;
-const compact = ref(false);
-const moreOpen = ref(false);
-const rootEl = ref<HTMLElement | null>(null);
-const sliderWrapEl = ref<HTMLElement | null>(null);
-const findingsRowEl = ref<HTMLElement | null>(null);
-function fitScrub() {
-  const root = rootEl.value, wrap = sliderWrapEl.value, row = findingsRowEl.value;
-  if (!root || !wrap || !row || root.offsetParent === null) return;
-  const was = root.classList.contains("compact");
-  root.classList.remove("compact");
-  const need = wrap.offsetWidth < SLIDER_MIN || row.scrollWidth > row.clientWidth + 1;
-  root.classList.toggle("compact", was);
-  compact.value = need;
-  if (!need) moreOpen.value = false;
+// ─── The Simulation tab (operator 2026-10-05) ───────────────────────────
+// The bar keeps Sim, play, the timeline and the time; the findings, the
+// collision check and the speed live in the side pane's Simulation tab. Its
+// list is built from THIS component's targets and its actions are this
+// component's jumps (simPanelStore.ts), so the marks, the list and prev/next
+// are one navigation. The bar has no compact form any more: nothing in it
+// changes its width with the content.
+function targetsOf(kind: SimRowKind): FindingTarget[] {
+  return kind === "limit" ? violationTargets.value : kind === "clash" ? hitTargets.value : toolTargets.value;
 }
-let _scrubObs: ResizeObserver | null = null;
-watch(rootEl, el => {
-  _scrubObs?.disconnect();
-  _scrubObs = null;
-  if (el) { _scrubObs = new ResizeObserver(() => fitScrub()); _scrubObs.observe(el); }
+const rowsNow = computed(() => buildSimRows({
+  clash: hitTargets.value, limit: violationTargets.value, tool: toolTargets.value,
+  violations: violations.value ?? [], unit: linearUnit.value,
+  timeBased: !!track.value?.timeBased, axisEnd: cumMax.value,
+}));
+watch(rowsNow, r => { simRows.value = r; }, { immediate: true });
+// Per frame while playing, but it only CHANGES where the playhead passes a
+// row — the tab re-renders then, not per frame.
+const nextKeyNow = computed(() => nextRowKey(rowsNow.value, sPos.value));
+/** What the collision check has done, in the tab's words. */
+const sweepView = computed<SimSweepView | null>(() => {
+  const r = shownResult.value;
+  if (!r && !props.collisionBusy) return null;
+  const n = hitTargets.value.length;
+  const found = `${n} collision${n === 1 ? "" : "s"}`;
+  const tools = sweepToolSentence.value;
+  const detail = (r ? verdictDetail.value + " " : "") + tools;
+  if (r && r.pairCount === 0) return { state: "nopairs", frac: 0, verdict: "No moving pairs", tone: "muted", caveat: false, detail };
+  const caveat = !!sweepCaveat.value;
+  if (props.collisionBusy) {
+    return { state: "checking", frac: sweptFrac.value, verdict: n ? `${found} so far` : "No collision so far",
+      tone: n ? "danger" : "muted", caveat: false, detail };
+  }
+  const covered = props.collisionStopped && props.collisionResumable ? props.collisionStopped.covered
+    : r?.truncated ? r.truncated.covered : null;
+  if (covered != null) {
+    return { state: props.collisionStopped && props.collisionResumable ? "paused" : "partial", frac: sweptFrac.value,
+      verdict: n ? `${found} in ${pctOf(covered)} swept` : `No collision in ${pctOf(covered)} swept`,
+      tone: n ? "danger" : "warn", caveat, detail };
+  }
+  return { state: "done", frac: 1, verdict: n ? found : "Clear", tone: n ? "danger" : "ok", caveat, detail };
 });
-onUnmounted(() => { _scrubObs?.disconnect(); _scrubObs = null; });
-// What changes the rows' widths without resizing the bar: the findings, the
-// verdict, the labels — re-fit after they render (never per playback frame).
-watch(() => [violationsTotal.value, hits.value.length, shownResult.value?.pairCount, props.collisionBusy,
-  sweepToolText.value, nextToolLabel.value, simMode.value, lineSlotCh.value, posSlotCh.value],
-  () => nextTick(fitScrub));
-// One detail view at a time (UI-DI17): More and the warnings card fold
-// each other — in a short viewer two opened views left each a sliver.
-watch(moreOpen, open => { if (open) emit("more-open"); });
-watch(() => props.notesOpen, open => { if (open) moreOpen.value = false; });
-/** The folded bar's toggle names the findings behind it. */
-const moreLabel = computed(() => {
-  const parts: string[] = [];
-  if (violationsTotal.value) parts.push(`${violationsTotal.value} limit violation${violationsTotal.value === 1 ? "" : "s"}`);
-  if (shownResult.value && hitTargets.value.length) parts.push(`${hitTargets.value.length} collision${hitTargets.value.length === 1 ? "" : "s"}`);
-  return `${moreOpen.value ? "Fewer" : "More"} timeline controls${parts.length ? " — " + parts.join(", ") : ""}`;
+/** Which tools the check poses — said in the check's "?", not on the bar. */
+const sweepToolSentence = computed(() => {
+  const pt = props.sweepTool?.programTools;
+  if (pt?.length) return "Checked with the program's tools " + pt.map(t => `T${t.num} Ø${t.diam.toFixed(1)}`).join(", ") + ".";
+  const n = props.sweepTool?.num;
+  if (n == null || !Number.isFinite(n) || n <= 0) return "No tool loaded: checked with a 6 mm stub.";
+  const d = props.sweepTool?.diam;
+  return `Checked with the loaded T${n}${d != null && d > 0 ? ` Ø${d.toFixed(1)}` : ""} throughout.`;
+});
+watchEffect(() => {
+  simView.available = visible.value;
+  simView.shownKey = navSel.value?.key ?? null;
+  simView.nextKey = nextKeyNow.value;
+  simView.line = lineText.value;
+  simView.lineOffPath = lineOffPath.value;
+  simView.lineTitle = lineTitle.value;
+  simView.time = posText.value;
+  simView.sweep = sweepView.value;
+  simView.jumpReason = hitNavReason.value;
+});
+registerSimActions({
+  jump(key: string) {
+    for (const kind of ["clash", "limit", "tool"] as const) {
+      const t = targetsOf(kind).find(x => x.key === key);
+      if (t) { jumpTo(t, kind); return; }
+    }
+  },
+  step(kinds, dir) {
+    const list = kinds.flatMap(k => targetsOf(k).map(t => ({ ...t, kind: k })))
+      .sort((a, b) => a.cum - b.cum);
+    const t = dir > 0 ? targetAfter(list, sPos.value, navSel.value) : targetBefore(list, sPos.value, navSel.value);
+    if (t) jumpTo(t, t.kind);
+  },
+});
+onUnmounted(() => {
+  registerSimActions(null);
+  simView.available = false;
+  simRows.value = [];
 });
 </script>
 
 <template>
-  <div v-if="visible" ref="rootEl" class="scrubBar overlay-card stack-tight" :class="{ compact, moreOpen }">
-    <!-- Row 1 — timeline + play/pause + the position readouts -->
+  <!-- ONE row (operator 2026-10-05): Sim, play, the timeline with its marks,
+       the time. Nothing here changes its width with the content, so the bar
+       never folds; the findings, the collision check and the speed are in
+       the side pane's Simulation tab. A narrow viewer gives the timeline a
+       row of its own — by the viewer's width, never by content. -->
+  <div v-if="visible" class="scrubBar overlay-card">
     <div class="row-controls scrubRow">
       <!-- Sim mode toggle — same switch as settings/coolant toggles. The
            parent-authoritative model snaps it back if entry is refused. -->
@@ -1049,28 +1021,26 @@ const moreLabel = computed(() => {
         <Pause v-if="playing" :size="14" />
         <Play v-else :size="14" />
       </MachineBtn>
-      <div ref="sliderWrapEl" class="sliderWrap">
+      <div class="sliderWrap">
         <MachineSlider gate="scrubPos" class="sliderInput rangeOverlayTrack" :min="0" :max="cumMax"
                        :step="cumMax / 2000 || 1" v-model="sPos" :disabled="!simMode"
                        title="Scrub the program — poses the machine model, nothing moves"
                        @input="onScrubInput" />
-        <!-- Timeline overlays, non-interactive (row 2 navigates). ONE
-             coordinate system — the thumb-centre travel: the thumb's centre
-             runs from half its diameter to width − half (--range-thumb,
-             16px / 20px on touch — read the token, never a literal), and
-             every overlay maps cum
-             onto that span: ticks at the thumb's centre for their cum, bands
-             from the centre for their start to the centre for their end, and
-             the visible TRACK itself. The native track is transparent here
-             (.rangeOverlayTrack, style.css) because it spans the input's
-             full width, half a thumb past the travel at each end — against it a
-             band either stopped short of the track's ends or began before
-             its own tick (both operator-caught, 2026-09-12/13). Now a clash's
-             red starts exactly at its × and an extent to program end reaches
-             the track's end. Paint order: track, swept band, limit extents
-             (warn), clash extents (danger, on top), the ticks with their
-             glyphs (× clash, ▲ soft limit, ● tool change), and the input's
-             thumb above them all. -->
+        <!-- Timeline overlays, non-interactive (the Simulation tab
+             navigates). ONE coordinate system — the thumb-centre travel: the
+             thumb's centre runs from half its diameter to width − half
+             (--range-thumb, 16px / 20px on touch — read the token, never a
+             literal), and every overlay maps cum onto that span: ticks at the
+             thumb's centre for their cum, bands from the centre for their
+             start to the centre for their end, and the visible TRACK itself.
+             The native track is transparent here (.rangeOverlayTrack,
+             style.css) because it spans the input's full width, half a thumb
+             past the travel at each end — against it a band either stopped
+             short of the track's ends or began before its own tick (both
+             operator-caught, 2026-09-12/13). Paint order: track, swept band,
+             limit extents (warn), clash extents (danger, on top), the ticks
+             with their glyphs (× clash, ▲ soft limit, ● tool change), and the
+             input's thumb above them all. -->
         <div class="scrubBand track" :class="{ dim: !simMode }"></div>
         <div class="scrubBand swept" :style="{ left: 'calc(var(--range-thumb) / 2)', width: `calc((100% - var(--range-thumb)) * ${sweptFrac})` }"></div>
         <div v-for="(b, i) in limitBands" :key="'lb' + i" class="scrubBand limit"
@@ -1086,111 +1056,10 @@ const moreLabel = computed(() => {
           </span>
         </div>
       </div>
-      <!-- Compact (UI-DI15): the rest of the bar waits behind this toggle. -->
-      <MachineBtn type="windowToggle" class="moreToggle" :aria-expanded="moreOpen" :aria-label="moreLabel" :title="moreLabel"
-                  @click="moreOpen = !moreOpen"><ChevronDown v-if="moreOpen" :size="14" /><ChevronUp v-else :size="14" /></MachineBtn>
-      <MachineSlider gate="simSpeed" class="speedSlider" :min="-1" :max="2" :step="0.01"
-                     v-model="speedLog" :disabled="!simMode"
-                     :title="`Playback speed ×0.1–×100${track?.timeBased ? ' of real time' : ''}`" />
-      <MachineBtn type="scrub" class="speedVal" :disabled="!simMode"
-                  title="Reset playback speed to ×1" @click="speedLog = 0">
-        &times;{{ speedLabel }}
-      </MachineBtn>
-      <!-- Fixed slots sized per program (see lineSlotCh / posSlotCh): line /
-           sub readout, then the timer. "off path" during a run lives in the
-           line slot, warn-tinted. -->
-      <span class="val-slot lineSlot val-status mono" :class="{ muted: !simMode && !running, warn: lineOffPath }"
-            :style="{ '--slot-w': lineSlotCh + 'ch' }" :title="lineTitle">{{ lineText }}</span>
+      <!-- The time in a FIXED slot sized per program (posSlotCh): the
+           timeline is the one flexible item, so it never moves. -->
       <span class="val-slot posSlot val-status mono" :class="{ muted: !simMode && !running }"
             :style="{ '--slot-w': posSlotCh + 'ch' }">{{ posText }}</span>
-    </div>
-
-    <!-- Row 2 — findings navigation (prev/next, anchored to the CURRENT
-         timeline position). Buttons keep CONSTANT labels and every
-         variable-width readout sits AFTER the last button of its group, so
-         click positions never shift while stepping through or while a sweep
-         changes state. A disabled stop says WHY at the button (MachineBtn's
-         reason → explain path, design wave D1); the titles are hover names. The sweep itself has no control here (2026-09-13):
-         its progress is the timeline's swept band. Each findings group
-         (prev · count · next · target · "?") is ONE span: in the compact
-         form the groups wrap as units, so a group's buttons keep their
-         places while its text may push the NEXT group to a new line. -->
-    <div ref="findingsRowEl" class="row-controls scrubRow findingsRow scroll-thin">
-      <template v-if="violations && violations.length">
-        <span class="navGroup">
-        <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)" aria-label="Previous limit violation" title="Previous limit violation (from the current timeline position)"
-                      :reason="violationNavReason"
-                      @click="jumpTo(prevOf(violationTargets), 'limit')"><ChevronLeft :size="14" /></MachineBtn>
-        <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)" :title="violationsTitle"
-                      :reason="violationNavReason"
-                      @click="jumpTo(nextViolationT, 'limit')">
-            {{ violationsTotal }} limit violation{{ violationsTotal === 1 ? "" : "s" }}
-          </MachineBtn>
-        <MachineBtn type="scrub" variant="warn" :disabled="!violationTargets.length || (!simMode && !machineOff)" aria-label="Next limit violation" title="Next limit violation"
-                      :reason="violationNavReason"
-                      @click="jumpTo(nextViolationT, 'limit')"><ChevronRight :size="14" /></MachineBtn>
-        <span class="navTarget val-status mono">{{ nextViolationT ? "→ L" + nextViolationT.line : "" }}</span>
-        <!-- Both findings explain themselves HERE, where they are navigated
-             (operator, D1 live look: the limits' "?" sat in the HUD, the
-             collisions' in this bar). -->
-        <HelpIcon label="Limit violations">Moves beyond a soft limit, checked with the offsets as parsed. The arrows step through them with the machine off.</HelpIcon>
-        </span>
-        <div class="sep-v"></div>
-      </template>
-
-      <!-- Verdict (2026-09-12): the timeline band says how much was swept;
-           this says what it found — LIVE while the sweep runs ("so far",
-           from the unrefined partial). Parked/truncated with no hits is "no
-           clash in N % swept" — never "clear" for a part-swept program. -->
-      <span v-if="shownResult" class="navGroup">
-        <span v-if="shownResult.pairCount === 0" class="val-status muted" title="No body pair moves relative to another — nothing to check">No moving pairs</span>
-        <template v-else-if="hits.length">
-          <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff" aria-label="Previous collision" title="Previous collision (from the current timeline position)"
-                        :reason="hitNavReason"
-                        @click="jumpTo(prevOf(hitTargets), 'clash')"><ChevronLeft :size="14" /></MachineBtn>
-          <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff"
-                      title="Simulate the next collision"
-                      :reason="hitNavReason"
-                      @click="jumpTo(nextHitT, 'clash')">
-            {{ hitTargets.length }} collision{{ hitTargets.length === 1 ? "" : "s" }}
-          </MachineBtn>
-          <MachineBtn type="scrub" variant="danger" :disabled="!simMode && !machineOff" aria-label="Next collision" title="Next collision"
-                        :reason="hitNavReason"
-                        @click="jumpTo(nextHitT, 'clash')"><ChevronRight :size="14" /></MachineBtn>
-          <span class="navTarget val-status mono">{{ nextHitT ? "→ " + (nextHitT.line && !nextHitT.entry ? "L" + nextHitT.line : "entry") + (nextHitT.reentry ? " (re-entry)" : "") + (nextHitT.rapid ? " (rapid)" : "") + ((nextHitT.dist ?? 0) > 0.001 ? ` ~${fmtDist(nextHitT.dist ?? 0, linearUnit)}` : "") + ((nextHitT.spanEndLine ?? nextHitT.line) > nextHitT.line ? ` … through L${nextHitT.spanEndLine}` : "") : "" }}</span>
-          <span v-if="collisionBusy" class="val-status muted" title="The collision check is still running — positions refine when it ends">so far</span>
-          <span v-else-if="collisionStopped && collisionResumable" class="val-status warn" :title="stoppedTitle">in {{ pctOf(collisionStopped.covered) }} swept</span>
-        </template>
-        <span v-else-if="collisionBusy" class="val-status muted" title="The collision check is still running">No collision so far</span>
-        <span v-else-if="collisionStopped && collisionResumable" class="val-status warn" :title="stoppedTitle">
-          No collision in {{ pctOf(collisionStopped.covered) }} swept
-        </span>
-        <span v-else-if="shownResult.truncated" class="val-status warn"
-              title="Part of the program is unchecked — see the collision check help">
-          No collision in {{ pctOf(shownResult.truncated.covered) }} swept
-        </span>
-        <span v-else class="val-status ok" title="No collision in the whole program">
-          Clear
-        </span>
-        <!-- Shown on BOTH branches: a sweep that found clashes is no more
-             certified than one that found none, so the caveat cannot live
-             only next to "clear". -->
-        <span v-if="sweepCaveat" class="val-status warn" title="Not certified — see the collision check help">*</span>
-        <HelpIcon label="Collision check">{{ verdictDetail }}</HelpIcon>
-      </span>
-
-      <template v-if="nextTool">
-        <div class="sep-v"></div>
-        <span class="val-status mono toolNext"
-              :title="`Next tool change ahead of the ${running ? 'machine' : 'scrub'} position (estimate axis)`">
-          {{ nextToolLabel }}
-        </span>
-      </template>
-      <!-- What the sweep is checking WITH (user decision 2026-08-30): the
-           LOADED tool's table row, or a stub when nothing is loaded. Per-line
-           tool dims from the program's T sequence are on the schema-8 TLO
-           ledger — until then this is said, not implied. -->
-      <span class="val-status muted sweepTool" :title="sweepToolTitle">{{ sweepToolText }}</span>
     </div>
   </div>
 </template>
@@ -1204,41 +1073,12 @@ const moreLabel = computed(() => {
      above it, the viewer's --gap-section around it). */
   position: relative;
   padding: var(--gap-tight) var(--gap-controls);
-  --scrub-slider-min: 120px;   /* SLIDER_MIN in the script */
 }
-/* A findings group wraps as ONE unit in the compact form (UI-DI15). */
-.navGroup {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--gap-controls);
-  flex-shrink: 0;
-}
-/* A finding's "?" sits --gap-tight from its text like every help icon (its
-   own margin); in a group the flex gap already spaces siblings, so the
-   margin gives the difference back. Layout only. */
-.navGroup > :deep(.helpIcon) { margin-inline-start: calc(var(--gap-tight) - var(--gap-controls)); }
-.moreToggle { display: none; }
-/* Compact (fitScrub): row 1 keeps Sim, play and the toggle, the timeline on
-   its own full-width line; opened, speed, the readouts and the findings
-   wrap below. */
-.scrubBar.compact .scrubRow { flex-wrap: wrap; row-gap: var(--gap-tight); }
-.scrubBar.compact .moreToggle { display: inline-flex; margin-left: auto; }
-.scrubBar.compact .sliderWrap { order: 1; flex: 1 1 100%; min-width: var(--scrub-slider-min); }
-.scrubBar.compact :is(.speedSlider, .speedVal, .lineSlot, .posSlot) { order: 2; }
-.scrubBar.compact:not(.moreOpen) :is(.speedSlider, .speedVal, .lineSlot, .posSlot),
-.scrubBar.compact:not(.moreOpen) .findingsRow { display: none; }
-.scrubBar.compact .sep-v { display: none; }
-/* A group wider than the bar (prev · "1 limit violation" · next · target ·
-   "?" is ~300 px at 150 % portrait) wraps its tail — the buttons keep their
-   places, the target and the "?" go below them. */
-.scrubBar.compact .navGroup { flex-wrap: wrap; row-gap: var(--gap-tight); max-width: 100%; }
-/* In the viewer's capped bottom column (UI-DI17) the opened bar shrinks:
-   row 1 — Sim, play, the timeline, More (the way back), speed and the
-   readouts — stays whole, the findings scroll under it. */
-.scrubBar.compact { min-height: 0; overflow: hidden; }
-.scrubBar.compact > .scrubRow:first-child { flex: none; }
-.scrubBar.compact .findingsRow { min-height: 0; overflow-y: auto; }
-.scrubBar.compact .sweepTool { white-space: normal; margin-left: 0; }
+/* A narrow viewer: the timeline takes a row of its own (the viewer's width
+   decides — fitHud's .narrowViewer —, never the content). */
+.narrowViewer .scrubRow { flex-wrap: wrap; row-gap: var(--gap-tight); }
+.narrowViewer .sliderWrap { order: 1; flex: 1 1 100%; }
+.narrowViewer .posSlot { margin-left: auto; }
 .scrubRow {
   align-items: center;
 }
@@ -1309,40 +1149,13 @@ const moreLabel = computed(() => {
   transform: translateX(-50%);
   line-height: 0;
 }
-.speedSlider {
-  width: 72px;
-  flex-shrink: 0;
-}
-.speedVal {
-  width: 6ch;   /* fixed: ×0.1 … ×100 all fit; a min-width still let it grow */
-  white-space: nowrap;
-}
-.toolNext {
-  white-space: nowrap;
-  color: var(--info-text);
-}
-/* Row-1 fixed slots (--slot-w is the global .val-slot width var, bound
-   inline PER PROGRAM — lineSlotCh / posSlotCh). Every content-sized sibling
-   of the timeline gets a fixed slot, so the slider — the one flex:1 item —
-   keeps its edges while text changes. FIXED, not min-width (2026-09-12): a
-   floor let "L1234 (sub_name) →" grow the slot and the ellipsis never
-   engaged — every extra character came out of the timeline. */
-.lineSlot, .posSlot {
+/* The time's fixed slot (--slot-w is the global .val-slot width var, bound
+   inline PER PROGRAM — posSlotCh): FIXED, not min-width (2026-09-12), so
+   the timeline — the one flex:1 item — keeps its edges while text changes. */
+.posSlot {
   flex: 0 0 var(--slot-w);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.sweepTool { white-space: nowrap; margin-left: auto; }
-/* Row 2 keeps its height whether or not it has findings: the bar is
-   bottom-anchored, so a row that came and went with each auto-sweep pushed
-   the timeline up and down. */
-.scrubRow + .scrubRow { min-height: var(--touch-target-compact); }
-/* Moving next-target readout — fixed floor so row width stays stable. */
-.navTarget {
-  white-space: nowrap;
-  min-width: 9ch;
-  text-align: left;
-}
-/* .btnTip (tooltip wrapper for a disabled button) is global now — style.css (U-06). */
 </style>

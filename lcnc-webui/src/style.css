@@ -782,10 +782,16 @@ input[type="range"]::-moz-range-thumb:hover {
   font-size: var(--fs-sm);
 }
 /* Dense areas: every control inside takes the compact height. The macro
-   bar too (operator 2026-10-02: a row of macros must not take much room). */
+   bar too (operator 2026-10-02: a row of macros must not take much room).
+   .denseArea is the same choice for a row whose fields hold a short word
+   (operator 2026-10-05: "the dropdown is very tall and its text does not
+   need the room") — a search with its filter, the narrow pane's area
+   select, the Simulation tab's speed and list filter; a FORM keeps the full
+   height, its fields stand together. */
 .strip,
 .dataTable,
-.macroBar {
+.macroBar,
+.denseArea {
   --control-h: var(--control-h-compact);
 }
 
