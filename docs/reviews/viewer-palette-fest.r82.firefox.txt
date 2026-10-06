@@ -1,0 +1,26 @@
+[2m[WebServer] [22m(node:2037859) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 15 tests using 1 worker
+
+(node:2037887) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2037887) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/r82.follow.spec.ts:35:1 › R81: follow catches up on reopening, resizing and zoom without moving focus (3.1s)
+  ✓   2 e2e/r82.follow.spec.ts:50:1 › R81: the list follows mock run positions without simulation or focus movement (2.2s)
+  ✓   3 e2e/r82.follow.spec.ts:66:1 › R81: continuous normal-motion playback keeps the current marker visible (4.9s)
+  ✓   4 e2e/sim-panel.viewer.spec.ts:43:1 › the list is the timeline's marks: one row each, in timeline order, each kind in its words (2.3s)
+  ✓   5 e2e/sim-panel.viewer.spec.ts:65:1 › a row shows its finding; the steps go through the shown kind; the next row follows the position (2.7s)
+  ✓   6 e2e/sim-panel.viewer.spec.ts:125:1 › the rows' keys move the focus, never a jog; Enter shows; the machine on explains at the row (3.2s)
+  ✓   7 e2e/sim-panel.viewer.spec.ts:147:1 › stepping through the findings never changes the bar: the same box, the same timeline (8.5s)
+  ✓   8 e2e/sim-panel.viewer.spec.ts:178:1 › a result change under the focus keeps it in the panel; no arrow jogs (3.3s)
+  ✓   9 e2e/sim-panel.viewer.spec.ts:208:1 › the steps through mixed kinds follow the list's own order, ties included (3.3s)
+  ✓  10 e2e/sim-panel.viewer.spec.ts:232:1 › a tool change shown after a finding ends the finding's reveal, the stored layer untouched (2.6s)
+  ✓  11 e2e/sim-panel.viewer.spec.ts:263:1 › a tool change shown after a finding on a hidden rapid ends the rapids' reveal (2.0s)
+  ✓  12 e2e/sim-panel.viewer.spec.ts:303:1 › the list follows the position: the marked row stays in the middle of its view (1.8s)
+  ✓  13 e2e/sim-panel.viewer.spec.ts:344:1 › playback at ×100 with normal motion: the marked row never leaves the list's view (4.2s)
+  ✓  14 e2e/sim-panel.viewer.spec.ts:384:1 › the summary line is always there: a re-check moves nothing under it (3.4s)
+  ✓  15 e2e/sim-panel.viewer.spec.ts:410:1 › the summary names each kind: words in the wide pane, the glyph and the number narrow; a capped list says so (4.4s)
+
+  15 passed (53.4s)

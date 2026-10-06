@@ -11452,3 +11452,139 @@ Tests und Doku, kein Gateway-Code. Danke für die Messung bei ×100.
   Playwright 486.
 - Backend unverändert seit R72.
 - Live-Baum: seit `88049245`.
+
+---
+
+## Review R82 · Codex · Nachführung und Sim-Übersicht · 6. Oktober 2026
+
+**Ergebnis: `findings`. VP-I41 ist geschlossen; ein neuer Befund VP-I42 (P2)
+bleibt an der Erklärung der gekappten Liste offen.** Die freigegebene
+einzeilige Übersicht mit Zahlen im schmalen Panel kann bestehen bleiben.
+
+Geprüft: `6cb25e7c..88049245`, einschließlich `3cd93a46` und `08b059e4`.
+Eigener Build aus einer Archivkopie von `88049245`, eigener Mock auf
+`127.0.0.1:4188`, ein Worker, niedrige Priorität. Live-Stand beim Review:
+`719ef272`; danach gegenüber dem Prüfstand nur die Review-Anfrage geändert.
+Keine Produktänderungen, keine Zugriffe auf die Live-Dienste oder
+Maschinenbefehle.
+
+### VP-I42 · P2 · Die Begrenzung der Liste ist schmal nur im Namen und Maus-Tooltip erklärt
+
+**Stelle:** `lcnc-webui/src/SimPanel.vue:252–255`, `:273` und `:347–348`
+am Prüfstand. `.sumLimit` hat `aria-label` und `title`; sein langer Text
+wird schmal ausgeblendet. Der Eintrag hat weder einen Fokusplatz noch eine
+Aktion zum Aufdecken. Die vorhandene Listenhilfe erklärt nur die drei
+Zeichen, nicht die Begrenzung oder den Unterschied zwischen Datensätzen
+und Programmzeilen.
+
+**Reproduktion in Chromium und Firefox:** synthetischer Vorschau-Datensatz
+mit gemeldetem `violations_total = 200636`, 200 übermittelten Datensätzen
+auf 100 verschiedenen Programmzeilen (je X und Y). Bei 900 × 1200 und
+150 % CSS-Zoom zeigt die Übersicht `▲ 200636`; der Filter zählt 100
+Grenzverletzungszeilen. Der zugängliche Name lautet korrekt
+`200636 limit violations · the first 100 lines listed`, bleibt aber für
+sehende Nutzer mit Touch oder Tastatur unsichtbar:
+
+- Ein emulierter Touch-Tap auf die Zahl öffnet keine Erklärung.
+- Alle drei Zusammenfassungseinträge haben `tabIndex = -1`.
+- Die vorhandene Hilfe lässt sich mit Fokus und Enter öffnen. Sie nennt
+  weder die Kappung noch die unterschiedlichen Zähleinheiten.
+
+So ist auf dem schmalen Gerät nicht erkennbar, dass die Liste nur einen
+Ausschnitt der gemeldeten Befunde enthält. Die neuen Wächter prüfen den
+zugänglichen Namen und die sichtbaren Zahlen, aber nicht diesen Leseweg.
+Die eigene Gegenprobe ist in beiden Browsern an der fehlenden Erklärung
+rot.
+
+**Korrekturvorschlag:** Die vorhandene Hilfe „Timeline list“ um den aktuellen
+Umfang ergänzen: Gesamtzahl der Zeile/Achse-Befunde, Anzahl übermittelter
+Datensätze, daraus dargestellte Programmzeilen und gegebenenfalls den
+Hinweis auf die gekappte Übermittlung. Damit bleibt die Zahlenzeile unverändert
+und es entsteht kein zusätzlicher Knopf. Ein gleichwertiger, per Touch und
+Tastatur erreichbarer Aufdeckweg wäre ebenfalls ausreichend. Den Wächter
+am sichtbaren Hilfetext festmachen, nicht ausschließlich am `aria-label`.
+
+Dies ist keine Forderung nach ausgeschriebenen Labels im schmalen Panel.
+`role="img"` mit einem Namen ist für die zusammengehörigen Zeichen und
+Zahlen als Grafikgruppe verwendbar; der Name erscheint in beiden geprüften
+ARIA-Snapshots. Er ersetzt aber nicht den sichtbaren Zugang zum Zusatztext.
+Die ARIA-Spezifikation erlaubt beschriftete zusammengesetzte Grafiken;
+der HTML-Standard rät von `title` als einzigem Zugang ab, ausdrücklich auch
+für Tastatur- und Touchbedienung.
+([WAI-ARIA: img](https://www.w3.org/TR/wai-aria-1.2/#img),
+[HTML: title](https://html.spec.whatwg.org/multipage/dom.html#the-title-attribute))
+
+[Bild mit geöffneter Hilfe](viewer-palette-fest.r82.chromium-summary-help.png),
+[Chromium: Namen, Tap und Hilfetext](viewer-palette-fest.r82.chromium-summary-disclosure.json),
+[Firefox: gleiche Probe](viewer-palette-fest.r82.firefox-summary-disclosure.json),
+[Sonde](viewer-palette-fest.r82.summary.spec.ts),
+[Chromium-Protokoll](viewer-palette-fest.r82.summary-chromium.txt),
+[Firefox-Protokoll](viewer-palette-fest.r82.summary-firefox.txt).
+
+### VP-I41 geschlossen
+
+Die R81-Sonde wurde **bytegleich** erneut ausgeführt. Bei normaler Bewegung
+und ×100 liegen in Chromium alle 25 Messpunkte mit Markierung und in
+Firefox alle 23 vollständig in der Listenansicht, jeweils ebenso viele
+verschiedene markierte Zeilen; kein Messpunkt mit abgeschnittener oder
+außerhalb liegender Zeile. Vorher hielt der Verlust bis etwa 1,5 s an.
+
+Auch Wiederöffnen des Tabs, Größen-/Zoomwechsel, ein einzelner gleitender
+Sprung und die drei Mock-Laufpositionen bestehen einschließlich der
+Fokusprüfungen. Der neue strengere Wiedergabe-Wächter aus dem Produkt besteht
+ebenfalls in beiden Browsern. Die Begrenzung des Startpunkts auf das
+sichtbare Band behebt den belegten Fehler.
+
+[Messübersicht](viewer-palette-fest.r82.playback-summary.json),
+[Chromium-Messpunkte](viewer-palette-fest.r82.chromium-playback.json),
+[Firefox-Messpunkte](viewer-palette-fest.r82.firefox-playback.json),
+[unveränderte R81-Sonde](viewer-palette-fest.r82.follow.spec.ts).
+
+### Antworten auf die drei Fragen
+
+1. **Höhe:** Kein neuer Befund in der geprüften Matrix. Die vier Themes,
+   Quer-/Hochformat und 100/150 % CSS-Zoom halten die Übersicht bei einer
+   Zeile: 18 Layout-px, entsprechend 27 sichtbare px bei 150 %. Die
+   tatsächliche Neuveröffentlichung des Programms verschiebt den Listenkopf
+   in den bestehenden Frame-Samplern nicht. Zusätzlich wurde eine
+   unvollständige Worker-Antwort mit `30 collisions in 99 % swept` und
+   Zertifizierungshinweis eingespeist: ebenfalls gleiche Höhe, kein
+   horizontaler Überlauf; der lange Grenztext wird wie vorgesehen gekürzt.
+2. **Zählen:** Die Trennung stimmt im geprüften Mehr-Achsen-Fall: 200
+   Datensätze ergeben 100 Listenzeilen, die Übersicht übernimmt die
+   gemeldete Gesamtzahl. Die normale Gateway-Prüfung sortiert nach
+   Zeile/Achse und kappt danach (`gateway_util.py:4535`); der Client fasst
+   navigierbare Datensätze einer Zeile zusammen (`ScrubBar.vue:660`).
+   „the first N lines listed“ ist für diesen Fall richtig. Eine Erklärung
+   von „Datensätze“ gegenüber „Programmzeilen“ in der Hilfe macht die
+   unterschiedliche Anzahl verständlich. Das ist keine zusätzliche Prüfung
+   aller Berechnungspfade des unveränderten Backends.
+3. **Name:** Ja, als Name der Grafikgruppe; **nicht als alleiniger Zugang
+   zur Kappungserklärung**. Siehe VP-I42. Kein tatsächlicher Screenreader-
+   oder Geräteversuch, sondern ARIA-Snapshot, Touch-Emulation und
+   Tastaturbedienung in den beiden Browsern.
+
+[Chromium-Matrix](viewer-palette-fest.r82.chromium-summary-matrix.json),
+[Firefox-Matrix](viewer-palette-fest.r82.firefox-summary-matrix.json),
+[langer Teilprüfungs-Text, Chromium](viewer-palette-fest.r82.chromium-summary-partial.json),
+[langer Teilprüfungs-Text, Firefox](viewer-palette-fest.r82.firefox-summary-partial.json).
+
+### Prüfungen und Grenzen
+
+- Build bestanden; **111/111 gezielte Unit-Tests** bestanden.
+- **Chromium 15/15, Firefox 15/15**: alle zwölf aktuellen Sim-Tests und
+  die drei unveränderten R81-Gegenproben.
+- Eigene Zusammenfassungs-Sonde je Browser: **zwei bestanden, eine rot**
+  ausschließlich wegen VP-I42; 16 Größen-/Theme-Kombinationen sowie zwei
+  Größen mit langem Teilprüfungs-Text je Browser.
+- Kein vollständiges neues Offline-Gate, kein Backend-/Maschinenlauf,
+  keine Live-Abnahme. Die unvollständige Kollisionsantwort ist eine
+  Testeingabe an der Worker-Grenze, kein neu berechneter Kollisionsnachweis.
+
+[Build](viewer-palette-fest.r82.build.txt),
+[Unit-Tests](viewer-palette-fest.r82.unit.txt),
+[Chromium](viewer-palette-fest.r82.chromium.txt),
+[Firefox](viewer-palette-fest.r82.firefox.txt),
+[Prüfprotokoll](viewer-palette-fest.r82.checks.md),
+[Stand und Quellvergleich](viewer-palette-fest.r82.context.json),
+[Beleghashes](viewer-palette-fest.r82.sha256.json).
