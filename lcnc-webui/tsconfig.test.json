@@ -47,6 +47,7 @@
     "src/viewer/palette.test.ts",
     "src/viewer/programZero.test.ts",
     "src/viewer/machineModel.test.ts",
+    "src/viewer/collisionBounds.test.ts",
     "src/viewer/collisionHorizon.test.ts",
     "src/viewer/machineTrsrn.test.ts",
     "src/viewer/machineGantry.test.ts",

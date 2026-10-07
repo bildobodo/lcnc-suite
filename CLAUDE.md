@@ -1189,7 +1189,19 @@ bounds nearer than its threshold and returns the closest of the triangles
 it visited — 291 mm at a true 82 on the XYZAC column, and the certificate
 jumped 230 mm past the yoke's first contact (operator 2026-10-06, live;
 `collisionHorizon.test.ts` drives that entry move over the real model and
-requires every part's first contact to 0.01 mm).
+requires every part's first contact to 0.01 mm). The library's own pruning
+distance was wrong too: `OrientedBox.distanceToBox` (three-mesh-bvh 0.9.14,
+still in 0.9.15) built the axis-aligned box's edges with `max[f2]` for
+`max[f3]` and could overstate a node's distance — a query below 121 mm missed
+a pair 120 mm apart on the TWP gantry. `viewer/bvhBoxDistance.ts` installs a
+corrected distanceToBox on the library's OrientedBox when collision.ts loads
+(`bvhBoxDistance.test.ts`: exact against a 15-axis / surface-triangle
+reference; the library's original still overstating, so an update that fixes
+it says the file can go). The estimators are held to the truth on every
+shipped model by `collisionBounds.test.ts` (sphere and component boxes per
+body, the bounded query at the sweep's scale, small pairs against a brute
+force over every triangle pair — `triDistance.ts`, written apart from the
+library).
 Baseline subtraction keeps it quiet: pairs inside the margin at the
 program's FIRST pose AND at the model's REST pose (every joint at zero —
 the designed pose the machine-model tests require to be self-collision-

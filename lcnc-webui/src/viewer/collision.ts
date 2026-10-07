@@ -56,6 +56,12 @@ import { liftToJoints, tipWcs, wcsTerms, type PartFrameWcs, type WcsTerms } from
 import { tloForIndex, toolForIndex, type TloEvent } from "./tloEvents";
 import { EVENT_NONE } from "./eventIndex";
 import { kinsForSegment, makeKins, worldModeForSpec, type KinsModel, type KinsSpec } from "./kins";
+import { installBoxDistanceFix } from "./bvhBoxDistance";
+
+// Every bounded closest-point query prunes by the library's box-to-box
+// distance, which came out too large (bvhBoxDistance.ts): corrected before
+// any model is built.
+installBoxDistanceFix();
 /** The subset of the scrub track the sweep consumes. The worker request
  *  ships a COPIED projection of the real ScrubTrack (typed arrays only —
  *  line index and the time-axis fields never cross), so the

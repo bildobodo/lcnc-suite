@@ -8236,3 +8236,39 @@ absolute position computed with the last chunk's V; it is now re-expressed
 in each chunk's V like every carried certificate (a still segment followed
 by a fast one on the same line overshot by 5 units). Tests: "a touch inside
 the margin" in `collision.test.ts`, each red with its own mutation.
+
+## 2026-10-07 — three-mesh-bvh's box distance overstated; corrected locally
+
+The estimator test (`collisionBounds.test.ts`) held the library's bounded
+closest-point query to a brute force over every triangle pair and found it
+answering "nothing below 121 mm" for the TWP gantry's saddle plates and side
+walls, 120.000 mm apart — the unbounded query, the library's own triangle
+distance and the brute force agreed on 120. Cause: `OrientedBox.distanceToBox`,
+which the query prunes every bound by, builds the axis-aligned box's edges
+with `start[f3] = i2 ? min[f3] : max[f2]` (and the same for `end`) — `max[f2]`
+where `max[f3]` belongs — so its edge-to-edge distances run against wrong
+edges and the box distance can come out too large; the bound holding the
+closest triangles is then pruned. Still so in 0.9.15 (2026-09-09), the
+latest. For the sweep it is the horizon bug's class: pairDistance reads the
+pruned answer as "beyond" and the certificate jumps.
+
+`viewer/bvhBoxDistance.ts` puts a corrected `distanceToBox` on the library's
+`OrientedBox` prototype when collision.ts loads: the library's algorithm
+(0 when its separating-axis test cannot separate — it tests 6 of the 15 axes,
+which can only say "intersecting" for boxes that are apart, a smaller
+distance, never a larger one; else corners against the other box and the
+12 × 12 edge pairs) with the right edges and Ericson's segment distance.
+`bvhBoxDistance.test.ts` holds it exact against a reference (15-axis
+separation, else the closest pair of the boxes' surface triangles) over 600
+random boxes — red without the edge pairs — and requires the library's
+original to still overstate somewhere: when an update fixes it, that test
+fails and the correction can go. Not reported upstream yet (the operator's
+call).
+
+The same hunt restructured the estimator test (the unbounded query took
+278 s for one pair on the 1.1 M-triangle 3-axis table): the sphere and the
+component boxes are checked per body (every vertex in the sphere, every
+triangle in one of its boxes — they then hold at every pose), the queries at
+the sweep's own scale (≤ HORIZON), small pairs against the brute force. Red
+with the horizon fix reverted, with the correction not installed and with
+the box bound 1 too large.
