@@ -89,7 +89,8 @@ test("the sweep runs on several workers and finds what the single sweep finds", 
   await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
   const cores = await page.evaluate(() => navigator.hardwareConcurrency);
   const s = (await page.evaluate(() => window.__viewerDiag!.getCollisionSummary!()))!;
-  if (cores >= 3) expect(s.shards, `${cores} cores: more than one worker`).toBeGreaterThan(1);
+  // Two cores stay with the page and the browser (Codex R90): four make two shards.
+  if (cores >= 4) expect(s.shards, `${cores} cores: more than one worker`).toBeGreaterThan(1);
   expect([...new Set(s.onsets)], "the collisions begin on L7 alone, as the single sweep has it").toEqual([7]);
   expect(s.truncated, "swept whole").toBeNull();
   // The entry move's side sweep beside the shards: the jump lands on L7.
