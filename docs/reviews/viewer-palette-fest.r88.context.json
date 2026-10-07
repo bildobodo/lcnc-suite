@@ -1,0 +1,23 @@
+{
+  "base": "53261fc0",
+  "code_head": "a288433d6993323f2f8d8a2b5703e63fcebe8e55",
+  "request_head": "a242980e50452b7efa59182902cd1d6020dd45ea",
+  "branch": "feat/backlog-integration",
+  "archive": "/tmp/codex-r88-t1l6uwzb/archive",
+  "frontend_matching_git_blobs": 419,
+  "isolation_only_differences": [
+    "lcnc-webui/e2e/ctl.ts",
+    "lcnc-webui/tsconfig.app.json",
+    "lcnc-webui/tsconfig.node.json",
+    "lcnc-webui/tsconfig.test.json",
+    "lcnc-webui/vite.config.ts"
+  ],
+  "previous_evidence_verified": 26,
+  "old_probes_byte_equal": [
+    "recontact",
+    "boundaries"
+  ],
+  "facets_probe_only_change": "unusableNote \u2192 geometryNote",
+  "live_status_before_evidence": "",
+  "review_append_base_sha256": "6178f12549a283879294bd0a648b4aca4bc3ab19fd2972e0b774bc4704632c55"
+}

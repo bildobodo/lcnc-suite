@@ -1,0 +1,18 @@
+{
+  "pairs": 1,
+  "label": "Clear (not certified)",
+  "text": "Clear\n*",
+  "warning": 1,
+  "helpText": "Not certified: Clearance guarantee not certified for this sweep: damaged: no facet with area — not checked. No tool loaded: checked with a 6 mm stub.",
+  "workerResult": {
+    "hits": [],
+    "staticContacts": [],
+    "samples": 0,
+    "coarsened": false,
+    "uncertified": "damaged: no facet with area — not checked",
+    "pairCount": 1,
+    "bvhMs": 0,
+    "sweepMs": 0,
+    "truncated": null
+  }
+}
