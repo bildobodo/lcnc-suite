@@ -1,0 +1,37 @@
+[2m[WebServer] [22m(node:3046103) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:3046141) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3046141) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r87.uncertified.spec.ts:8:26 › missing body remains visibly uncertified with 1 remaining moving pairs (7.7s)
+  ✘  2 e2e/r87.uncertified.spec.ts:8:26 › missing body remains visibly uncertified with 0 remaining moving pairs (7.4s)
+
+
+  1) e2e/r87.uncertified.spec.ts:8:26 › missing body remains visibly uncertified with 0 remaining moving pairs 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoContain[2m([22m[32mexpected[39m[2m) // indexOf[22m
+
+    Expected substring: [32m"not certified"[39m
+    Received string:    [31m"No moving pairs"[39m
+
+      31 |  await page.screenshot({path:`../evidence/viewer-palette-fest.r87.uncertified-${pairs}.png`});
+      32 |  writeFileSync(`../evidence/viewer-palette-fest.r87.uncertified-${pairs}.json`,JSON.stringify({pairs,label,text,warning,helpText,workerResult:await page.evaluate(()=>(window as any).__r87WorkerResult)},null,2)+'\n');
+    > 33 |  expect(helpText).toContain(note);expect(label).toContain('not certified');expect(warning).toBeGreaterThan(0);
+         |                                                 ^
+      34 | });
+      35 |
+        at /tmp/codex-r87-o7nuff94/archive/lcnc-webui/e2e/r87.uncertified.spec.ts:33:49
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r87-browser-output/r87.uncertified-missing-bo-f4c2a-th-0-remaining-moving-pairs/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r87-browser-output/r87.uncertified-missing-bo-f4c2a-th-0-remaining-moving-pairs/error-context.md
+
+  1 failed
+    e2e/r87.uncertified.spec.ts:8:26 › missing body remains visibly uncertified with 0 remaining moving pairs 
+  1 passed (17.6s)

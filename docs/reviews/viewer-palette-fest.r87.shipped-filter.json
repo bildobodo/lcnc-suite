@@ -1,0 +1,386 @@
+[
+  {
+    "model": "lcnc-gateway/machine",
+    "body": "frame",
+    "triangles": 209644,
+    "dropped": 0
+  },
+  {
+    "model": "lcnc-gateway/machine",
+    "body": "x_axis",
+    "triangles": 1123860,
+    "dropped": 0
+  },
+  {
+    "model": "lcnc-gateway/machine",
+    "body": "y_axis",
+    "triangles": 22844,
+    "dropped": 0
+  },
+  {
+    "model": "lcnc-gateway/machine",
+    "body": "z_axis",
+    "triangles": 38600,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "levelling_feet",
+    "triangles": 2496,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "machine_bed",
+    "triangles": 212,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "rear_column",
+    "triangles": 380,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "column_foot",
+    "triangles": 44,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "chip_pan",
+    "triangles": 92,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "y_rail_seats",
+    "triangles": 24,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "y_guide_rails",
+    "triangles": 7680,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "y_guide_blocks",
+    "triangles": 7280,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "y_guide_endcaps",
+    "triangles": 544,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "y_saddle",
+    "triangles": 44,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "x_guide_rails",
+    "triangles": 11040,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "x_guide_blocks",
+    "triangles": 7280,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "x_guide_endcaps",
+    "triangles": 544,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "x_saddle",
+    "triangles": 44,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "z_guide_rails",
+    "triangles": 6840,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "z_guide_blocks",
+    "triangles": 7280,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "z_guide_endcaps",
+    "triangles": 544,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "z_slide",
+    "triangles": 44,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "spindle_head",
+    "triangles": 44,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "spindle_motor_cover",
+    "triangles": 44,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "spindle_cartridge",
+    "triangles": 416,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "spindle_nose",
+    "triangles": 4618,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "a_bearing_pedestals",
+    "triangles": 1624,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "a_bearing_rings",
+    "triangles": 1680,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "a_drive_covers",
+    "triangles": 832,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "a_yoke_casting",
+    "triangles": 1252,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "a_trunnion_shafts",
+    "triangles": 832,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "c_bearing_lip",
+    "triangles": 416,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "c_faceplate",
+    "triangles": 5576,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-5axis-xyzac",
+    "body": "fixture_blank",
+    "triangles": 44,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "bed",
+    "triangles": 44,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "x_side_walls",
+    "triangles": 88,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "x_guide_rails",
+    "triangles": 96,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "x_guide_blocks",
+    "triangles": 96,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "x_guide_endcaps",
+    "triangles": 192,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "x_saddle_plates",
+    "triangles": 88,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "x_bridge_casting",
+    "triangles": 44,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "x_drive_housings",
+    "triangles": 88,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "bridge_rear_panel",
+    "triangles": 12,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "y_guide_rails",
+    "triangles": 48,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "y_guide_blocks",
+    "triangles": 48,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "y_guide_endcaps",
+    "triangles": 96,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "y_carriage",
+    "triangles": 44,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "z_ram",
+    "triangles": 44,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "z_guide_rails",
+    "triangles": 24,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "z_guide_blocks",
+    "triangles": 48,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "z_guide_endcaps",
+    "triangles": 96,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "z_top_motor",
+    "triangles": 44,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "c_head",
+    "triangles": 734,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "b_head",
+    "triangles": 914,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "spindle_nose",
+    "triangles": 3956,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "c_mount_ring",
+    "triangles": 356,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "b_joint_ring",
+    "triangles": 720,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "a_headstock",
+    "triangles": 384,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "a_bearing_ring",
+    "triangles": 356,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "a_faceplate",
+    "triangles": 3424,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "a_drive_cover",
+    "triangles": 356,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "fixture_plate",
+    "triangles": 108,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "fixture_ribs",
+    "triangles": 16,
+    "dropped": 0
+  },
+  {
+    "model": "examples/sim_config/machine-xyzacb-gantry",
+    "body": "work_piece",
+    "triangles": 12,
+    "dropped": 0
+  }
+]
