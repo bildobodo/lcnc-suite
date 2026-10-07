@@ -551,7 +551,41 @@ export interface CollisionModel {
    *  the whole-program reach prescreen compares them in (2026-09-13). */
   pairLca: number[];
   machine: CollisionMachine;
+  /** Bodies with no facet that has area (VP-I46): left out of the model, so
+   *  never checked — every sweep's `uncertified` names them. */
+  unusable: string[];
   bvhMs: number;
+}
+
+/** A triangle soup without its facets that have no area — three distinct
+ *  collinear vertices, coincident ones, or a coordinate that is not finite
+ *  (VP-I46: three-mesh-bvh read a collinear facet as touching a triangle
+ *  1.5 mm away). "No area" is relative: twice the area at most 1e-10 of the
+ *  longest edge squared — a sliver 1e-7 mm wide over 1 m is a line. */
+export function withoutArealessFacets(pos: Float32Array): { positions: Float32Array; dropped: number } {
+  const nTri = Math.floor(pos.length / 9);
+  const keep = new Uint8Array(nTri);
+  let kept = 0;
+  for (let t = 0; t < nTri; t++) {
+    const o = t * 9;
+    const ax = pos[o]!, ay = pos[o + 1]!, az = pos[o + 2]!;
+    const ux = pos[o + 3]! - ax, uy = pos[o + 4]! - ay, uz = pos[o + 5]! - az;
+    const vx = pos[o + 6]! - ax, vy = pos[o + 7]! - ay, vz = pos[o + 8]! - az;
+    const wx = vx - ux, wy = vy - uy, wz = vz - uz;
+    const cx = uy * vz - uz * vy, cy = uz * vx - ux * vz, cz = ux * vy - uy * vx;
+    const cross2 = cx * cx + cy * cy + cz * cz;
+    const edge2 = Math.max(ux * ux + uy * uy + uz * uz, vx * vx + vy * vy + vz * vz, wx * wx + wy * wy + wz * wz);
+    if (Number.isFinite(cross2) && Number.isFinite(edge2) && cross2 > 1e-20 * edge2 * edge2) { keep[t] = 1; kept++; }
+  }
+  if (kept === nTri) return { positions: pos, dropped: 0 };
+  const out = new Float32Array(kept * 9);
+  for (let t = 0, k = 0; t < nTri; t++) if (keep[t]) { out.set(pos.subarray(t * 9, t * 9 + 9), k); k += 9; }
+  return { positions: out, dropped: nTri - kept };
+}
+
+/** The note a sweep's `uncertified` carries for the bodies left out (VP-I46). */
+export function unusableNote(model: CollisionModel): string | null {
+  return model.unusable.length ? `${model.unusable.join(", ")}: no facet with area — not checked` : null;
 }
 
 export function buildCollisionModel(machine: CollisionMachine, bodyDefs: CollisionBody[]): CollisionModel {
@@ -561,6 +595,7 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
   const t0 = performance.now();
 
   const bodies: BuiltBody[] = [];
+  const unusable: string[] = [];
   const _e = new THREE.Euler();
   const _size = new THREE.Vector3();
   for (const def of bodyDefs) {
@@ -569,8 +604,18 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
     const side = toolSide.has(def.group) ? "tool" : workSide.has(def.group) ? "work" : "other";
     // Unit-scale a copy of the triangle soup so all collision math is in
     // machine units (matches node bases and joint values).
-    const scaled = new Float32Array(def.positions.length);
-    for (let i = 0; i < scaled.length; i++) scaled[i] = def.positions[i]! * machine.unitScale;
+    const raw = new Float32Array(def.positions.length);
+    for (let i = 0; i < raw.length; i++) raw[i] = def.positions[i]! * machine.unitScale;
+    // Facets without area (VP-I46, Codex R86): three-mesh-bvh takes three
+    // DISTINCT collinear vertices for a triangle — its zero normal leaves the
+    // separating axis and the plane useless, and the distance from such a
+    // facet to one 1.5 mm away came out 0, a contact that is none. A facet
+    // without area is a line on its neighbours' edges and carries no surface:
+    // it is dropped (so is one with a coordinate that is not finite). A body
+    // left with none is not checked — every sweep names it in `uncertified`.
+    const { positions: scaled, dropped } = withoutArealessFacets(raw);
+    if (dropped) console.warn(`[collision] ${def.id}: ${dropped} of ${raw.length / 9} facets without area dropped`);
+    if (scaled.length === 0) { unusable.push(def.id); continue; }
     const geom = new THREE.BufferGeometry();
     geom.setAttribute("position", new THREE.BufferAttribute(scaled, 3));
     const bvh = new MeshBVH(geom);
@@ -653,7 +698,7 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
   }
   const toolBodyIdx = bodies.findIndex(b => isToolBody(b) || b.id === "tool");
   const baseTool = toolBodyIdx >= 0 ? toolVariantOf(bodies[toolBodyIdx]!) : null;
-  return { nodes, bodies, toolBodyIdx, baseTool, pairs, pairDofs, pairCutting, pairTool, pairLca, machine, bvhMs: performance.now() - t0 };
+  return { nodes, bodies, toolBodyIdx, baseTool, pairs, pairDofs, pairCutting, pairTool, pairLca, machine, unusable, bvhMs: performance.now() - t0 };
 }
 
 // Distance lower bound from the two bodies' component boxes, `rel` mapping
@@ -975,7 +1020,8 @@ export function* sweepCollisionsIter(
   // Report it instead of assuming it: unchecked is not clear.
   const tFrames = track.frames;
   let vertModel: KinsModel[] | null = null;
-  let uncertified: string | null = null;
+  let uncertified: string | null = unusableNote(model);
+  let fellBack = false;
   if (track.mode && !abortedInit) {
     const vm = new Array<KinsModel>(n);
     const worldLut: (boolean | undefined)[] = [];
@@ -1000,8 +1046,10 @@ export function* sweepCollisionsIter(
         cur = m; pType = ty; pFrame = fi; pTlo = li;
       }
       vm[i] = cur;
-      if (world && uncertified === null && cur.type === "trivkins") {
-        uncertified = `non-identity segments fell back to trivkins (declared `
+      if (world && !fellBack && cur.type === "trivkins") {
+        fellBack = true;
+        uncertified = (uncertified ? uncertified + "; " : "")
+          + `non-identity segments fell back to trivkins (declared `
           + `${machine.kins?.type ?? "unknown"}) — poses and clearance bounds `
           + `are identity approximations`;
       }
@@ -1011,7 +1059,7 @@ export function* sweepCollisionsIter(
   if (abortedInit) {
     // Nothing posed, nothing queried (same contract as the prescreen abort).
     restoreBaseTool(model);
-    return { hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified: null,
+    return { hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified,
              pairCount: model.pairs.length, pairsPrescreened: 0, bvhMs: model.bvhMs,
              sweepMs: clock() - t0, truncated: { covered: 0, reason: "stopped" } };
   }
@@ -1252,6 +1300,9 @@ export function* sweepCollisionsIter(
   // touching carries a clearance certificate like a clear pair — see the
   // advancement loop.
   const touching = new Uint8Array(pairs.length).fill(1);
+  // Where a pair's last TOUCHING query was (NaN: none yet) — the start of the
+  // stretch re-sampled when it is next found not touching (VP-I45).
+  const lastTouch = new Float64Array(pairs.length).fill(NaN);
   const staticContacts: CollisionResult["staticContacts"] = [];
   // Contact from the program's first point: an ONSET on the first line the
   // sweep's first sample records; later lines' records are continuations.
@@ -1361,6 +1412,17 @@ export function* sweepCollisionsIter(
   // Pose the track at an arbitrary cum parameter and return one pair's
   // distance — the contact-refinement probe. Interpolates the same way the
   // sweep does, so refined parameters lie exactly on the swept path.
+  // The segment a dist parameter lies on (the one ENDING at the returned
+  // vertex; its line and rapid flag are that vertex's).
+  const segAtDist = (s: number): number => {
+    let lo = 1, hi = n - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (dcum[mid]! < s) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
+  };
   const distAtCum = (s: number, pi: number): number => {
     let lo = 1, hi = n - 1;
     while (lo < hi) {
@@ -1896,6 +1958,26 @@ export function* sweepCollisionsIter(
           } else {
             d = pairDistance(A, B, HORIZON, opts.margin);
           }
+          // VP-I45 (Codex R86): a touching pair re-probes every EXPLORE, and
+          // inside that stride the contact can end, the pair separate and
+          // touch AGAIN — a second contact wider than MIN_ADV no sample saw.
+          // Found not touching now, the stretch since its last touch is
+          // re-sampled at MIN_ADV, before this sample's state changes (the
+          // stretch belongs to the contact): every touch there is recorded
+          // on its own line. A pair still touching keeps the stretch as
+          // contact — an unchecked gap never reads as clear.
+          if (touching[pi] && d > CONTACT_EPS && s - lastTouch[pi]! > MIN_ADV) {
+            for (let x = lastTouch[pi]! + MIN_ADV; x < s - 1e-9; x += MIN_ADV) {
+              done++;
+              const dx = distAtCum(x, pi);
+              if (dx > CONTACT_EPS) continue;
+              const seg = segAtDist(x);
+              const rapidX = track.rapid[seg] === 1;
+              if (!pairCutting[pi]) recordHit(track.lines[seg]!, x, rapidX, pi, dx);
+              else if (rapidX && onsetRapid[pi]) recordHit(track.lines[seg]!, x, true, pi, dx);
+            }
+            interpPose(i, (s - c0) / L);   // this sample's pose for the pairs after this one
+          }
           if (d <= opts.margin) {
             if (!inContact[pi]) {
               inContact[pi] = 1;
@@ -1937,6 +2019,7 @@ export function* sweepCollisionsIter(
             } else {
               clear[pi] = 0;
               touching[pi] = 1;
+              lastTouch[pi] = s;
               sSafe[pi] = s + EXPLORE;  // re-probe cadence inside the contact
             }
             sQ[pi] = s;

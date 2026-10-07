@@ -3,7 +3,7 @@ import * as THREE from "three";
 import { emptyLineIndex } from "./lineIndex";
 import { describe, expect, it } from "vitest";
 import {
-  buildCollisionModel, sweepCollisions, sweepCollisionsIter, toolCylinderPositions, restoreBaseTool, type SnapshotHandle,
+  buildCollisionModel, sweepCollisions, withoutArealessFacets, poseModel, pairDistance, sweepCollisionsIter, toolCylinderPositions, restoreBaseTool, type SnapshotHandle,
   type CollisionBody, type CollisionMachine, type CollisionResult, type CollisionOptions, mergeContiguousIntervals, componentBoxes } from "./collision";
 import type { ScrubTrack } from "../ws/bulkData";
 import { buildScrubTrack } from "./scrubTrack";
@@ -1603,6 +1603,27 @@ describe("a touch inside the margin (the oracle hunt, 2026-10-07)", () => {
     }
   });
 
+  it("a second touch inside a touching pair's stride is a contact too (Codex R86 VP-I45)", () => {
+    // A second bump X 103.25…103.5 (contact 102.75…104, 0.5 clear at 102):
+    // after the first touch the pair re-probed only every EXPLORE, and the
+    // whole second contact fell inside that stride — no interval, at every
+    // phase. The stretch since the last touch is re-sampled when the pair is
+    // next found clear; an unchecked gap may merge the two, never read clear.
+    const twoBumps = buildCollisionModel(SLIDE, [
+      { id: "wall", group: "frame", positions: join(slab(180, 10, 10, 110, 11.5, 0), slab(1, 2.5, 10, 100.5, 5.25, 0), slab(0.25, 2.5, 10, 103.375, 5.25, 0)) },
+      { id: "slide", group: "xslide", positions: slab(1, 10, 10, 0, 0, 0) },
+    ]);
+    for (const x0 of [48, 48.3, 48.6, 49, 49.5]) {
+      const r = sweepCollisions(twoBumps, track([[x0, 0, 0], [180, 0, 0]], undefined, [1, 2]), WCS0, { margin: 2 });
+      const ivs = r.hits.flatMap(h => (h.intervals ?? []).map(([a, b]) => [a + x0, b + x0] as [number, number]));
+      for (const x of [99.6, 101.4, 102.8, 103.9]) {
+        expect(ivs.some(([a, b]) => a <= x && x <= b), `start ${x0}: the touch at X ${x} lies in a contact interval — ${JSON.stringify(ivs)}`).toBe(true);
+      }
+      expect(Math.min(...ivs.map(iv => iv[0])), `start ${x0}: no contact before the first bump`).toBeGreaterThan(99.5 - 1e-3);
+      expect(Math.max(...ivs.map(iv => iv[1])), `start ${x0}: no contact past the second`).toBeLessThan(104 + 1e-3);
+    }
+  });
+
   it("carries the clearance into a faster chunk in that chunk's speed", () => {
     // Line 7 first moves Y — which drives nothing the pair rides (V 0) —
     // with the slide 1.5 from the wall, then X into the bump. A certificate
@@ -1610,5 +1631,56 @@ describe("a touch inside the margin (the oracle hunt, 2026-10-07)", () => {
     // the X segment's start (X 103): the bump lay inside it.
     const r = sweepCollisions(model(), track([[98, 0, 0], [98, 10, 0], [180, 10, 0]], undefined, [7, 7, 7]), WCS0, { margin: 2 });
     touch(r, 98 - 10);
+  });
+});
+
+describe("facets without area (Codex R86 VP-I46)", () => {
+  // three-mesh-bvh takes three DISTINCT collinear vertices for a triangle:
+  // its zero normal leaves the separating axis and the plane useless, and
+  // the distance from such a facet to a triangle 1.5 mm away came out 0.
+  const tri = (...v: number[]) => new Float32Array(v);
+  const COLLINEAR = tri(0, 0, 0, 4, 0, 0, 2, 0, 0);
+  const NEAR = tri(0, 1.5, 0, 2, 1.5, 0, 1, 2.5, 0);
+  const BELOW = tri(0, -10, 0, 4, -10, 0, 2, -9, 0);
+  const FLAT: CollisionMachine = {
+    groups: [{ id: "frame", parent: "root" }, { id: "xslide", parent: "root" }],
+    kinematics: [{ group: "xslide", joint: 0, type: "translate", direction: "x", sign: 1 }],
+    workGroup: "frame", toolGroup: "xslide", unitScale: 1, axes: ["X", "Y", "Z"],
+  };
+  const join = (...a: Float32Array[]) => {
+    const o = new Float32Array(a.reduce((s, x) => s + x.length, 0));
+    let k = 0;
+    for (const x of a) { o.set(x, k); k += x.length; }
+    return o;
+  };
+
+  it("drops collinear, coincident and non-finite facets and keeps the rest", () => {
+    const r = withoutArealessFacets(join(COLLINEAR, NEAR, tri(1, 1, 1, 1, 1, 1, 3, 3, 3), tri(0, 0, 0, 1, 0, 0, NaN, 1, 0), BELOW));
+    expect(r.dropped).toBe(3);
+    expect(Array.from(r.positions)).toEqual([...NEAR, ...BELOW]);
+    // A sliver with area stays: 0.01 wide over 100.
+    expect(withoutArealessFacets(tri(0, 0, 0, 100, 0, 0, 50, 0.01, 0)).dropped).toBe(0);
+  });
+
+  it("a body's collinear facet is no contact: the distance is its real surface's", () => {
+    const model = buildCollisionModel(FLAT, [
+      { id: "flat", group: "frame", positions: join(COLLINEAR, BELOW) },
+      { id: "plate", group: "xslide", positions: NEAR },
+    ]);
+    poseModel(model, [0, 0, 0]);
+    // Plate at y ≥ 1.5, the real facet's top vertex at (2, −9): 10.5 apart.
+    expect(pairDistance(model.bodies[0]!, model.bodies[1]!, 20, 2)).toBeCloseTo(10.5, 6);
+  });
+
+  it("a body with no facet that has area is left out and named, never read as clear", () => {
+    const model = buildCollisionModel(FLAT, [
+      { id: "line", group: "frame", positions: COLLINEAR },
+      { id: "plate", group: "xslide", positions: NEAR },
+      { id: "post", group: "frame", positions: BELOW },
+    ]);
+    expect(model.unusable).toEqual(["line"]);
+    expect(model.bodies.map(b => b.id)).toEqual(["plate", "post"]);
+    const r = sweepCollisions(model, track([[0, 0, 0], [5, 0, 0]]), WCS0, { margin: 2 });
+    expect(r.uncertified).toMatch(/^line: no facet with area — not checked/);
   });
 });
