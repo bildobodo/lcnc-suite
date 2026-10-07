@@ -1165,7 +1165,38 @@ between them — no terminate, the BVH model stays RESIDENT under a
 lacks the model answers `needBodies`); OrbitControls start/end pause and
 resume a running sweep, because a busy worker is off the main thread but
 not off the machine (it starved the Mac's GPU 3–4 frames behind,
-2026-09-10). Results reflect check-time
+2026-09-10). PARALLEL (2026-10-07, operator): a main request is split over
+K sub-workers — instances of collisionWorker.ts itself, each sweeping one
+SHARD of the model's pairs (`CollisionOptions.shard`: after the baseline
+every shard splits the pairs the same way, longest first by a cost — a pair
+inside the margin at the first pose weighs its two meshes' triangles, else
+1 — and checks only its own;
+`pairAssign.ts`) — and the worker the page holds only coordinates: it keeps
+the bodies and sends them to a shard that lacks the model, forwards cancel /
+stop / continue / pause / resume to every shard, reports the least swept
+shard's progress, merges the shards' partials and results
+(`sweepShards.ts` `mergeShardResults`: hits concatenated and capped onsets
+first, static contacts and the prescreened count from shard 0 alone),
+posts `stopped` when every shard is parked or done, and runs the entry
+move's side sweep on shard 0. The pair is the unit because each carries its
+own certificates, contact state, cutting origin and records — no state
+crosses a shard. K = the cores but one, at most 8, and no more copies of the
+model than 4 M triangles allow (every shard holds the whole BVH model); one
+shard, no Worker in the worker's scope or a sub-worker that fails to load:
+the single-core path as before. The ceiling is the costliest pair: on
+haus.ngc (XYZAC, A 61°) the rear column against the C faceplate is 24.5 % of
+the query time — ×3.9 with 4 shards, ×4.1 from 6 on (measured per pair with
+`profile`). Measured in the browser (headless Chromium, the live payload, 4
+cores): one worker 1036 s, 3 shards 482 s (×2.15), the same 85 onsets; an
+onset in a line shorter than MIN_ADV may land one line apart (44857 / 44858 —
+the first touching sample differs, the position on the timeline does not). `result.shards` says how many swept; `__viewerDiag.
+getCollisionSummary`. Tests: `sweepShards.test.ts` (the merged shards
+against the single sweep on the shipped models — 2, 3, a random split and
+the shard option; a record or a touch in one run only must be a run no
+wider than MIN_ADV, the truth decides — red when a shard loses pairs or the
+merge loses static contacts), `collisions.viewer.spec` (more than one worker
+in Chromium and Firefox, the same onsets — red with one shard forced).
+Results reflect check-time
 WCS/tool and clear on program change; GcodePanel reuses
 `.codeLine.violation` markers via `collisionLines`. SEMANTIC LIMIT (no
 stock model): a program cutting at the work surface reports tool-vs-

@@ -2234,6 +2234,15 @@ async function buildFromInit(init: ViewerInit) {
         // (`frac` = a place on the track's axis): the layout spec measures the
         // findings row with them (review round 7, UI-DI15). Needs a finished
         // sweep; a program change drops them with the result.
+        setCollisionShards: (n: number | null) => { _colMaxShards = n ?? undefined; },
+        // The shown sweep's shape: how many workers swept it (the parallel
+        // sweep), what it found and left out.
+        getCollisionSummary: () => {
+          const r = collisionResult.value;
+          return r ? { shards: r.shards ?? 1, hits: r.hits.length, pairCount: r.pairCount, pairsPrescreened: r.pairsPrescreened,
+            staticContacts: r.staticContacts.length, truncated: r.truncated, sweepMs: r.sweepMs, samples: r.samples,
+            onsets: r.hits.filter(h => h.continuation === undefined).map(h => h.line) } : null;
+        },
         // The result's `uncertified` note alone (Codex R87 VP-I46: a body
         // left out must stay visible whatever else the result says).
         setCollisionNote: (note: string | null) => {
@@ -3196,6 +3205,10 @@ function _colModelKey(init: ViewerInit): string {
  *  machine STL) go over only when the worker does not already hold this
  *  model — a touch-off used to re-post + rebuild the BVHs every time. Null
  *  when nothing can be posted (no viewer init). */
+/** At most this many workers per sweep (the parallel sweep) — a test seam
+ *  (`__viewerDiag.setCollisionShards`): undefined = as many as the worker
+ *  chooses. */
+let _colMaxShards: number | undefined;
 function _colBuildRequest(track: ScrubTrack, id: number, side: boolean) {
   const init = viewerInit.value;
   if (!init) return null;
@@ -3263,6 +3276,7 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean) {
     track: trackCopy,
     wcs: _pfWcs(),
     side: side || undefined,   // beside the main sweep (entry segment)
+    maxShards: _colMaxShards,
     options: {
       margin: COLLISION_MARGIN_MM * _unitScale,
       // Per-epoch re-add terms (review P2) — the sweep converts each

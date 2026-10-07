@@ -8394,3 +8394,51 @@ in 960 s with 85 collisions — the same 85 the pooled run found. On a large
 program the live findings come every few seconds instead of every half
 second; the result at the end is unchanged.
 
+## 2026-10-07 — The collision sweep runs on several cores, split by pair
+
+Operator: "konnte schon etwas parallelisiert werden? dass mehrere Kerne
+daran arbeiten?" — then "du entscheidest": the parallel sweep comes before
+the inside check.
+
+The unit of work is the PAIR. Every pair carries its own clearance
+certificates, contact state, cutting origin, re-sampling and records, so
+shards over disjoint pairs need no stitching: their results merge by
+concatenation and the one global cap. Splitting the TRACK would carry
+contact state, the cutting onset and the re-sampling after a touch across
+every cut — exactly where the horizon bug and VP-I45 lived. What a shard
+changes is where a pair is sampled (the sweep steps to the nearest expiry
+among the pairs it checks); the guarantee is per pair, and the comparison
+holds the merged result to the single sweep under that relation, with the
+truth deciding every record or touch only one run has.
+
+The worker the page creates coordinates; its shards are instances of the
+same script (`new Worker(self.location.href, {type: "module"})` — the built
+worker is a classic IIFE, which loads as a module too; in dev it is a
+module). Each shard assigns its own pairs after the baseline from the same
+deterministic cost, so the coordinator never builds the model. Cost: inside
+the margin at the first pose = 10 + the two meshes' triangles, else 1 — the
+permanent contacts are what a long sweep spends its time on, and a query
+walks the meshes (on haus.ngc the C faceplate's 5576 triangles: 252 s; the
+Y saddle's 44: 78 s). With all such pairs alike the slowest of 3 shards had
+514 s of work; by triangles 395 s.
+
+Measured on haus.ngc (the live payload, per-pair `profile`): 96 % of the
+time is distance queries; the costliest pair (rear column / C faceplate)
+holds 24.5 % — the ceiling of any pair split: ×3.9 with 4 shards, ×4.1
+from 6 on. Going further needs that pair's own cost down (an early exit on
+a touch made touching queries ×1.3 faster in an interleaved measurement,
+identical answers — a later step) or a track split for it alone.
+
+K = min(cores − 1, 8, 4 M triangles / model triangles): every shard holds
+the whole BVH model, and the shipped 3-axis table alone is 1.1 M triangles.
+One shard, no Worker in the worker's scope, or a sub-worker that fails to
+load: the single-core path, unchanged.
+
+Measured in the browser (headless Chromium, the live haus payload, the
+4-core VM, snapshots paced, touching queries stopping at the first touch):
+one worker 1036 s wall (852 s active), 3 shards 482 s (395 s) — ×2.15, the
+same 85 onsets. Six onsets lie one line apart (44857 / 44858): haus.ngc's
+lines are about 0.08 mm, shorter than MIN_ADV, so the first touching sample
+— and with it the onset's line — depends on where each run samples; the
+position on the timeline is the same within MIN_ADV.
+
