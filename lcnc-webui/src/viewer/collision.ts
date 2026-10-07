@@ -1476,6 +1476,11 @@ export function* sweepCollisionsIter(
     }
     return lo;
   };
+  // Does the path between dist parameters a < b run on any rapid segment?
+  const rapidBetween = (a: number, b: number): boolean => {
+    for (let seg = segAtDist(a), end = segAtDist(b); seg <= end; seg++) if (track.rapid[seg] === 1) return true;
+    return false;
+  };
   const distAtCum = (s: number, pi: number, maxT: number = opts.margin): number => {
     let lo = 1, hi = n - 1;
     while (lo < hi) {
@@ -2022,8 +2027,15 @@ export function* sweepCollisionsIter(
           // re-contact after a feed contact was taken for its benign retract
           // (R87). Queried to HORIZON, so a separation can be seen at all.
           // A pair still touching keeps the stretch as contact — an
-          // unchecked gap never reads as clear.
-          if (touching[pi] && d > CONTACT_EPS && s - lastTouch[pi]! > MIN_ADV) {
+          // unchecked gap never reads as clear — EXCEPT a cutting pair in a
+          // feed-begun contact whose stretch reaches a rapid (R88): touching
+          // again at this sample, it would carry the feed contact's benign
+          // origin over a separation and a rapid re-entry inside the stretch,
+          // the gouge never reported. Feed-only stretches need no look: a
+          // re-entry on a feed is machining.
+          const resample = touching[pi] && s - lastTouch[pi]! > MIN_ADV
+            && (d > CONTACT_EPS || (pairCutting[pi] && !onsetRapid[pi] && rapidBetween(lastTouch[pi]!, s)));
+          if (resample) {
             for (let x = lastTouch[pi]! + MIN_ADV; x < s - 1e-9; x += MIN_ADV) {
               done++;
               const dx = distAtCum(x, pi, HORIZON);

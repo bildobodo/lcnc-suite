@@ -8357,3 +8357,20 @@ check": it now reads "Not checked" with the marker and says no part that
 could be checked moves (sim-panel spec, Chromium and Firefox, red with the
 old early return; `__viewerDiag.setCollisionNote`).
 
+## 2026-10-07 — A cutter's stretch into a rapid is re-sampled even when it touches again (Codex R88)
+
+VP-I45 rest (P1). The re-sampling after a touch ran only when the next main
+sample found the pair clear. When that sample already lay in a SECOND
+contact, the stretch before it — a separation past 2 × margin and a rapid
+re-entry — was never looked at, and for a cutting pair the re-entry
+inherited the feed contact's benign origin: Codex moved the R87 rotary
+case's second block from 13° to 14.5° and 15° and the gouge was gone. For a
+non-cutting pair the merged contact only over-reports (accepted in R87); for
+a cutter in a FEED-begun contact it suppresses a report. Such a pair's
+stretch is now re-sampled whenever it reaches a rapid segment
+(`rapidBetween`), whatever the next sample finds; a feed-only stretch needs
+no look (a re-entry on a feed is machining). Cost: at most EXPLORE / MIN_ADV
+poses per stride, only while a cutter in stock moves on a rapid — a retract
+out of the material. Test: the rotary case at 13°, 14.5°, 15° and 15.5° —
+red at 14.5° with the old condition.
+
