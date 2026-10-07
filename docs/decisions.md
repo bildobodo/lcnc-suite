@@ -8442,8 +8442,11 @@ with the triangle weights (Codex R90 counted them; I had reported six for
 both), every one a line LATER in the pool (44857 / 44858): haus.ngc's lines
 are about 0.08 mm, shorter than MIN_ADV; the onset's line is the
 discovering sample's, and a shard with fewer pairs steps further before it
-samples a pair. The refined contact's position on the timeline is the same.
-Deriving the line from the refined start is a later step.
+samples a pair. The refinement walks back no further than the discovering
+line's start (lineStartDist — through-contact across lines must not
+collapse onto the first line), so the shown start lies up to one such line
+late, under MIN_ADV; I had written that the position was the same. Deriving
+an onset's line from its refined start is a later step.
 
 ## 2026-10-07 — The pool's coordinator keeps the owner's state (Codex R90)
 

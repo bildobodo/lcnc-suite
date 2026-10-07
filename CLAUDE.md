@@ -1208,8 +1208,10 @@ cores): one worker 1036 s, 3 shards 482 s (×2.15), the same 85 onsets; an
 onset in a line shorter than MIN_ADV may land one line apart (6 of 85 with
 equal costs, 8 with the triangle weights, every one a line LATER in the pool,
 44857 / 44858: the onset's line is the discovering sample's, and a shard
-with fewer pairs steps further before it samples a pair — the refined
-contact's position on the timeline is the same). `result.shards` says how many swept; `__viewerDiag.
+with fewer pairs steps further before it samples a pair; the refinement walks back no further than that line's
+start (lineStartDist), so the shown start lies up to one such line late —
+under MIN_ADV; deriving an onset's line from its refined start is a later
+step). `result.shards` says how many swept; `__viewerDiag.
 getCollisionSummary`. Tests: `sweepShards.test.ts` (the merged shards
 against the single sweep on the shipped models — 2, 3, a random split and
 the shard option; a record or a touch in one run only must be a run no
