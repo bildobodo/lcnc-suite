@@ -1208,7 +1208,10 @@ it says the file can go). The estimators are held to the truth on every
 shipped model by `collisionBounds.test.ts` (sphere and component boxes per
 body, the bounded query at the sweep's scale, small pairs against a brute
 force over every triangle pair — `triDistance.ts`, written apart from the
-library).
+library), the sweep itself by `collisionOracle.test.ts` (random tracks on
+the shipped models, identity / TCP / TWP TCP, stepped every 0.5 of the
+sweep's parameter: every touch and in-margin pose reported unless narrower
+than MIN_ADV, every reported onset a real touch).
 Baseline subtraction keeps it quiet: pairs inside the margin at the
 program's FIRST pose AND at the model's REST pose (every joint at zero —
 the designed pose the machine-model tests require to be self-collision-
