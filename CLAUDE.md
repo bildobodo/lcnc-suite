@@ -1101,9 +1101,14 @@ a query's clearance d − margin is decremented by each chunk's V × Lc and
 re-expressed in the next chunk's V, so a far pair costs nothing until the
 motion could have closed the gap — the old per-chunk reset re-queried every
 pair at every segment, which on a program of a million 0.09 mm segments
-was ~2 h per sweep (now 31 s, certified). Pairs inside the margin keep
-their EXPLORE re-probe cadence but are sampled at least once on every line
-they stay in contact with (the per-line continuation marks). The sweep is a
+was ~2 h per sweep (now 31 s, certified). A pair inside the margin that
+is TOUCHING keeps the EXPLORE re-probe cadence; one inside the margin but
+not touching advances by its distance to a touch (d / V, the same MIN_ADV
+floor) — the fixed cadence stepped over a touch between two in-margin
+samples and reported "near miss, 1.5 mm apart" for parts that met 1 mm
+deep (2026-10-07); its clearance carries across chunks in each chunk's V
+like any certificate. Both are sampled at least once on every line they
+stay in contact with (the per-line continuation marks). The sweep is a
 resumable iterator (`sweepCollisionsIter`, checkpoints every 16 segments /
 512 samples and every 8 ms of clock) with an optional WALL-CLOCK budget
 (`maxMs`, sync API + tests only — the worker runs sweeps OPEN-ENDED since
@@ -1150,9 +1155,16 @@ hit. CUTTING SEMANTICS: only a body flagged `stock: true` is cuttable —
 machine parts NEVER are (without a stock body the tool may touch nothing:
 real programs cut stock sitting above the fixture, so tool contact with
 any machine body is a crash by definition; the platter is workholding).
-For stock bodies: FEED contact is machining and never reports; contact
-whose ONSET falls in a RAPID is the gouge class and reports; a rapid
-RETRACT leaving feed-begun contact is benign. Stock pairs are never
+Only the CUTTER cuts: the tool body (`CollisionBody.tool`) × a stock body
+is a cutting pair, never any other tool-side body — the spindle nose, the
+ram or the head feeding into the stock is a crash (2026-10-07: every
+tool-SIDE body counted, and since the tool chain's ancestors are on it, the
+column and the bed on the shared frame group did too — a ram in the work
+piece on a feed, a column against the blank on a feed were never reported).
+For the cutter in the stock: FEED contact is machining and never reports;
+contact whose ONSET falls in a RAPID is the gouge class and reports; a rapid
+RETRACT leaving feed-begun contact is benign (the cutter body is the whole
+tool cylinder: a shank in the stock counts as cutting). Stock pairs are never
 baseline-excluded (parked-on-work is normal); they seed the in-contact
 state instead. The (local-only) machine-dmu160p example carries the first
 stock body
@@ -1184,7 +1196,22 @@ bounds nearer than its threshold and returns the closest of the triangles
 it visited — 291 mm at a true 82 on the XYZAC column, and the certificate
 jumped 230 mm past the yoke's first contact (operator 2026-10-06, live;
 `collisionHorizon.test.ts` drives that entry move over the real model and
-requires every part's first contact to 0.01 mm).
+requires every part's first contact to 0.01 mm). The library's own pruning
+distance was wrong too: `OrientedBox.distanceToBox` (three-mesh-bvh 0.9.14,
+still in 0.9.15) built the axis-aligned box's edges with `max[f2]` for
+`max[f3]` and could overstate a node's distance — a query below 121 mm missed
+a pair 120 mm apart on the TWP gantry. `viewer/bvhBoxDistance.ts` installs a
+corrected distanceToBox on the library's OrientedBox when collision.ts loads
+(`bvhBoxDistance.test.ts`: exact against a 15-axis / surface-triangle
+reference; the library's original still overstating, so an update that fixes
+it says the file can go). The estimators are held to the truth on every
+shipped model by `collisionBounds.test.ts` (sphere and component boxes per
+body, the bounded query at the sweep's scale, small pairs against a brute
+force over every triangle pair — `triDistance.ts`, written apart from the
+library), the sweep itself by `collisionOracle.test.ts` (random tracks on
+the shipped models, identity / TCP / TWP TCP, stepped every 0.5 of the
+sweep's parameter: every touch and in-margin pose reported unless narrower
+than MIN_ADV, every reported onset a real touch).
 Baseline subtraction keeps it quiet: pairs inside the margin at the
 program's FIRST pose AND at the model's REST pose (every joint at zero —
 the designed pose the machine-model tests require to be self-collision-

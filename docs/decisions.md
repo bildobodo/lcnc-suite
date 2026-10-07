@@ -8211,3 +8211,88 @@ The tint over a PARTIAL result (while the sweep runs): an unrefined record
 knows its first and last contact sample on the line only, so it no longer
 suppresses its pair's span — only a refined record (intervals) or a near
 miss proves a gap there.
+
+## 2026-10-07 — A touch inside the margin is a contact, not a near miss
+
+Found by the soundness hunt agreed with the operator after the horizon bug.
+Inside the 2 mm margin the sweep re-probed a pair every EXPLORE (5 units of
+path, 5° on a rotary move) with no certificate, because a record for the
+line already existed. A touch between two such samples was never sampled:
+the record stayed a near miss ("near miss, 1.5 mm apart", the tint dark —
+"a near miss proves the pair stayed clear at its samples"). Reproduced with
+a slide passing a wall at 1.5 mm into a 1 mm bump: contact over 2 mm of
+travel, reported as a near miss at 1.5 / 1.2 / 0.9 / 0.5 mm depending on
+where the samples fell. On a rotary move with a long lever, 5° can pass one
+part through another.
+
+Now a pair inside the margin that is not touching advances by d / V — its
+distance to a touch over the same conservative speed bound — with the
+MIN_ADV floor, so the guarantee is the margin's: no touch wider than 0.25
+units of path is missed. A touching pair keeps the EXPLORE cadence (a gap
+in its contact only over-reports; its interval is refined). The clearance
+of a pair still flagged in contact but not touching (inside the margin, or
+back out to 2 × margin) used to be carried into the next chunk as an
+absolute position computed with the last chunk's V; it is now re-expressed
+in each chunk's V like every carried certificate (a still segment followed
+by a fast one on the same line overshot by 5 units). Tests: "a touch inside
+the margin" in `collision.test.ts`, each red with its own mutation.
+
+## 2026-10-07 — three-mesh-bvh's box distance overstated; corrected locally
+
+The estimator test (`collisionBounds.test.ts`) held the library's bounded
+closest-point query to a brute force over every triangle pair and found it
+answering "nothing below 121 mm" for the TWP gantry's saddle plates and side
+walls, 120.000 mm apart — the unbounded query, the library's own triangle
+distance and the brute force agreed on 120. Cause: `OrientedBox.distanceToBox`,
+which the query prunes every bound by, builds the axis-aligned box's edges
+with `start[f3] = i2 ? min[f3] : max[f2]` (and the same for `end`) — `max[f2]`
+where `max[f3]` belongs — so its edge-to-edge distances run against wrong
+edges and the box distance can come out too large; the bound holding the
+closest triangles is then pruned. Still so in 0.9.15 (2026-09-09), the
+latest. For the sweep it is the horizon bug's class: pairDistance reads the
+pruned answer as "beyond" and the certificate jumps.
+
+`viewer/bvhBoxDistance.ts` puts a corrected `distanceToBox` on the library's
+`OrientedBox` prototype when collision.ts loads: the library's algorithm
+(0 when its separating-axis test cannot separate — it tests 6 of the 15 axes,
+which can only say "intersecting" for boxes that are apart, a smaller
+distance, never a larger one; else corners against the other box and the
+12 × 12 edge pairs) with the right edges and Ericson's segment distance.
+`bvhBoxDistance.test.ts` holds it exact against a reference (15-axis
+separation, else the closest pair of the boxes' surface triangles) over 600
+random boxes — red without the edge pairs — and requires the library's
+original to still overstate somewhere: when an update fixes it, that test
+fails and the correction can go. Not reported upstream yet (the operator's
+call).
+
+The same hunt restructured the estimator test (the unbounded query took
+278 s for one pair on the 1.1 M-triangle 3-axis table): the sphere and the
+component boxes are checked per body (every vertex in the sphere, every
+triangle in one of its boxes — they then hold at every pose), the queries at
+the sweep's own scale (≤ HORIZON), small pairs against the brute force. Red
+with the horizon fix reverted, with the correction not installed and with
+the box bound 1 too large.
+
+## 2026-10-07 — Only the cutter cuts
+
+The sweep-vs-oracle hunt (`collisionOracle.test.ts`) found two crashes the
+sweep never reported, both from one rule: a pair was "cutting" — feed contact
+is machining, never reported; contact present at the program's start is
+"engaged", benign — when ONE body was on the tool side and the other a
+stock body. The tool side is the tool group's chain up to the root, and
+that chain holds the machine's shared ancestors too: on the TWP gantry the
+Z ram rested in the work piece from the first pose over 1 m of path,
+unreported; on the XYZAC model the rear column (group `frame`) ran into the
+fixture blank on a rapid — reported as a gouge — and stayed in it on the
+following feed line with no record at all.
+
+Now only the cutter — the tool body (`CollisionBody.tool`, the worker's
+parametric cylinder) × a stock body — is a cutting pair. Every other body
+against the stock is a machine part touching the work: a crash, on feed and
+rapid alike. Consequence on real programs: a spindle nose, a head or a ram
+that dips into the stock on a feed is now a finding; the cutter cylinder
+still includes the shank (flute and shank are not split in the sweep), so a
+shank in the stock still counts as cutting. `side` keeps one use, the order
+of the two bodies in a record. Test: "only the cutter cuts" in
+`collision.test.ts` (red with the old rule); the cutting test's cutter now
+carries `tool: true`.
