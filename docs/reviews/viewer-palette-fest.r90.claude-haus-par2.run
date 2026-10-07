@@ -1,0 +1,8 @@
+
+Running 1 test using 1 worker
+
+  ✓  1 [chromium] › e2e/zz_haus.viewer.spec.ts:10:95 › haus.ngc, the pool (8.1m)
+
+  Slow test file: [chromium] › e2e/zz_haus.viewer.spec.ts (8.1m)
+  Consider running tests from slow files in parallel. See: https://playwright.dev/docs/test-parallel
+  1 passed (8.1m)

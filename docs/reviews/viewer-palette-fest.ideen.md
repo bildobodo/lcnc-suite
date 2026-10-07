@@ -12658,3 +12658,73 @@ Die zurückgenommene Laufzeitaussage ist damit geklärt. Diese Runde enthält ke
 3. **Seitenlauf beim Ausfall:** Lädt ein Teil-Worker nicht, wechselt der Hauptlauf auf den Einzelpfad. Ein Seitenlauf, der in diesem Moment auf Teil 0 lag, bekommt keine Antwort; der nächste Simulationsstart fragt neu. Nicht getestet, weil ein Teil-Worker nach dem ersten Laden nicht mehr nachlädt.
 4. **Entwicklungsmodus:** Live läuft Vite im Dev-Modus (Worker als ES-Modul); die e2e-Specs prüfen das gebaute dist (klassisches IIFE, als Modul geladen). Der Dev-Pfad ist bisher nur durch das Live-Laden belegt.
 5. **Decke ×4,1:** Weiter geht es nur, wenn das teuerste Paar billiger wird oder für dieses Paar allein die Bahn geteilt wird — ein späterer Schritt, nicht Teil dieser Runde.
+
+## Review R90 · Codex · Parallele Kollisionsprüfung · 7. Oktober 2026
+
+**Ergebnis: `findings`. Vier offene P2-Befunde im Worker-Koordinator (VP-I47–VP-I50). Paaraufteilung und reguläre Endergebnisse bestehen die geprüften Vergleiche; die Fehler betreffen Zwischenstände, Ausfallbehandlung und Abbruch.**
+
+Geprüft: `aa250780..5af78ad1`, Anfrage `f7ebef8e`, in einer Archivkopie. Nach dem geprüften Produktstand wurde nur die Anfrage ergänzt. Keine Produktänderung und keine Maschinenbefehle; eigene Browser ausschließlich auf `127.0.0.1:4188/4189`.
+
+### VP-I47 · P2 · Fertige Teile fehlen in späteren Zwischenständen
+
+**Stellen:** `collisionWorker.ts:380–397`, insbesondere `run.partial` in Zeile 384 und `run.final` in Zeile 391.
+
+Der Koordinator baut Zwischenstände ausschließlich aus `run.partial`. Ein fertiger Teil legt sein Ergebnis jedoch nur in `run.final` ab. Seine endgültigen Befunde gelangen damit erst zur Oberfläche, wenn auch der langsamste Teil fertig ist. Ein vorhandener früherer Zwischenstand dieses Teils bleibt zudem auf seinem alten Stand stehen.
+
+**Gegenprobe:** Teil 0 meldet ein Endergebnis mit einem Kontakt auf L7, ohne vorherigen Zwischenstand. Teil 1 meldet danach 30 % mit leerem Zwischenstand. Der Koordinator gibt **`progress: 0.3, partial.hits: []`** aus. `ThreeViewer.vue:2940` übernimmt genau diese Liste; die Sim-Ansicht kann „No collision so far“ anzeigen, obwohl der Koordinator den Kontakt bereits kennt. Der reguläre gemeinsame Endabschluss enthält ihn später wieder.
+
+Im selben Zusammenführungspfad wird ein noch nicht vertretener Teil bei den Metadaten ausgelassen: Einziger Zwischenstand 80 %, vom zweiten Teil noch keine Nachricht → äußeres `progress: 0`, aber `partial.truncated.covered: 0.8` und kein `shards: 2`. Der Fortschrittsbalken liest derzeit den korrekten äußeren Wert; das Ergebnisobjekt selbst vertritt den Pool nicht korrekt.
+
+**Erforderlich:** Pro Teil den neuesten gültigen Stand verwenden, insbesondere ein fertiges/refiniertes Ergebnis anstelle seines früheren Zwischenstands. Bekannte Befunde auch vor Abschluss aller Teile veröffentlichen. Gesamt-Abdeckung und Teilanzahl auf den ganzen Pool beziehen, einschließlich noch nicht gemeldeter bzw. vorzeitig beendeter Teile.
+
+### VP-I48 · P2 · Ein Worker-Ausfall lässt die Einfahrprüfung ohne Abschluss
+
+**Stellen:** `collisionWorker.ts:410–418`, `:451–457`; Verbraucher `ThreeViewer.vue:3117` und `viewer/sweepEntry.ts:46`.
+
+Beim Worker-Fehler werden alle Teile beendet und nur der Hauptlauf lokal neu gestartet. Die auf Teil 0 ausstehende Seitenanfrage bekommt weder Ergebnis noch Fehler, Abbruchbestätigung oder Wiederholungsanforderung. `_sideOnShard` wird dabei ebenfalls nicht bereinigt.
+
+**Gegenprobe:** Hauptanfrage 3, Seitenanfrage −3 auf Teil 0, danach Fehler von Teil 1. Beide Teil-Worker sind beendet. Als einzige Abschlussnachricht folgt das Ergebnis zu 3; **zu −3 kommt nichts**. Die Oberfläche behält `_colSide` als ausstehend. Für dieselbe Entry-Track-Identität verweigert `planEntryCheck` gerade deshalb eine neue Seitenprüfung.
+
+**Erforderlich:** Jede betroffene Seitenanfrage explizit abschließen oder mit ihrem vollständigen Kontext neu ausführen; die Besitzerzustände auf beiden Seiten bereinigen. Den in Frage 3 benannten Verlust nehme ich nicht als akzeptierte Grenze an. Dafür ist kein realer Ladefehler nötig: Der injizierte Worker-Fehler prüft genau diesen Zweig reproduzierbar.
+
+### VP-I49 · P2 · Rückfall auf den Einzelpfad verliert Pause und Parkzustand
+
+**Stellen:** `collisionWorker.ts:410–418`, `:433–444`; lokaler Neustart mit ungesetzten Haltezuständen in `:227–232`.
+
+Pause/Stop werden an die Teile weitergereicht, beim Ersatzlauf aber nicht wiederhergestellt. `w.onerror` reagiert außerdem auf Worker-Fehler während des Betriebs, nicht ausschließlich auf ein fehlgeschlagenes erstes Laden.
+
+**Zwei Gegenproben:** Nach `pause: hidden` erzeugt ein Teilfehler sofort ein normales Ergebnis des lokalen Ersatzlaufs, ohne `resume`. Dasselbe passiert bei einem bereits gemeinsam bestätigten `stopped`-Ergebnis, ohne `continue`. Der Ersatzlauf hat also tatsächlich gerechnet, obwohl der Besitzer ihn weiterhin angehalten betrachtet. Im Viewer kann ein normales Ergebnis den zuvor geparkten Stand anschließend wieder als abgeschlossen setzen.
+
+**Erforderlich:** Halte-/Park-/Abbruchzustand im Koordinator führen und beim Wechsel bewahren. Falls ein transparenter Wechsel nach Verlust der Generatoren nicht möglich ist, den Lauf ausdrücklich als fehlgeschlagen bzw. nicht fortsetzbar abschließen. Ein angehaltener Lauf darf nicht still neu rechnen. Kamera-Pause und Abbruch während des Übergangs ebenfalls absichern.
+
+### VP-I50 · P2 · Die gültige Seiten-ID −1 kollidiert mit „kein Seitenlauf“
+
+**Stellen:** `collisionWorker.ts:342`, `:362`, `:434`; `ThreeViewer.vue:3342` erzeugt die erste Seiten-ID mit `-(++_colSideSeq)`.
+
+`_sideOnShard` beginnt bei −1 und wird nach Abschluss wieder auf −1 gesetzt. Genau −1 ist aber die erste gültige Einfahrprüfungs-ID. Läuft diese im Einzelpfad, nimmt `{cancel: -1}` den vermeintlichen Shard-Zweig, versucht `_shards[0]?.postMessage` und kehrt zurück. Bei leerem Pool erreicht der Abbruch `handleLocal` nie.
+
+**Gegenprobe:** Lokale Seitenanfrage −1 am ersten Slice angehalten; danach Cancel −1 und nächster Pump-Schritt. Der echte Worker liest weiter **`cancelled: false`** und sendet erneut Fortschritt, keine Abbruchbestätigung. Nur der Slice-Treiber ist für diese Probe kontrolliert, damit die Seitenprüfung nicht schon vorher endet.
+
+**Erforderlich:** „Keine Seitenanfrage“ mit einem Wert außerhalb des ID-Raums darstellen und Seitenkontrollen an ihren tatsächlichen Ausführungsort routen. Den ersten lokalen Seitenlauf genauso wie den Pool-Seitenlauf prüfen.
+
+Gemeinsame Belege für VP-I47–50: [Koordinator-Sonde](viewer-palette-fest.r90.coordinator.test.ts), [Nachrichten und Kontrollwerte](viewer-palette-fest.r90.coordinator.json), [sechs rote Gegenproben, eine grüne Ablaufkontrolle](viewer-palette-fest.r90.coordinator.txt).
+
+### Antworten auf die fünf Fragen
+
+1. **Freier Kern:** Als konservative Voreinstellung empfehle ich bei mindestens vier logischen Kernen zunächst zwei für die übrige Anwendung/Systemlast frei zu lassen. Das ist eine Empfehlung, kein durch diese Runde belegter Grenzwert. Die Mac-Prüfung sollte den Pool während Wiedergabe und Kamerabedienung vergleichen: Bildzeiten und Eingabelatenz, jeweils mit zwei bzw. drei Workern auf einem Vierkernsystem. Die reine Sweep-Wandzeit beantwortet diese Frage nicht. Die Pause aller Teile bleibt sinnvoll; VP-I49 muss auch im Ausfallpfad gelten.
+2. **Probenbremse je Teil:** Einverstanden als ausdrücklich gemeldete Notbremse je Teil, nicht als gleiches Gesamt-Rechenbudget wie beim Einzellauf. **Zahlen korrigieren:** Der aktuelle Code setzt `maxSamples` standardmäßig auf 4 Mio.; `coarsened` beginnt dort, der harte Abbruch erst bei **`done > maxSamples * 4`**, also ungefähr 16 Mio. je Teil (`collision.ts:340`, `:2134`). Ein Pool hat entsprechend eine größere Gesamtschwelle. `coarsened`, Abbruchgrund und kleinste geprüfte Abdeckung müssen beim Zusammenführen erhalten bleiben.
+3. **Seitenlauf bei Ausfall:** Nicht akzeptiert; VP-I48 und VP-I50. Der Besitzer braucht eine eindeutige Antwort und einen konsistenten Zustand, ohne auf eine zufällige spätere Neuanfrage angewiesen zu sein.
+4. **Dev-Modus:** Jetzt zusätzlich geprüft: Die unveränderte Worker-Quelle über einen isolierten Vite-Server lädt in **Chromium und Firefox jeweils drei Teil-Worker** und beantwortet Haupt- und anschließende Seitenprüfung korrekt. Einfache Geometrie, echter verschachtelter Worker, vier gemeldete Kerne. Das deckt den normalen Dev-Lade-/Nachrichtenpfad ab; die Fehlerzweige sind die separaten Koordinator-Proben. [Sonde](viewer-palette-fest.r90.dev.spec.ts), [Lauf](viewer-palette-fest.r90.dev.txt), [Chromium](viewer-palette-fest.r90.dev-chromium.json), [Firefox](viewer-palette-fest.r90.dev-firefox.json).
+5. **Decke ×4,1:** Als grobe Abschätzung aus dem teuersten unteilbaren Paar nachvollziehbar. Der nächste Schritt braucht ein neues Profil, bevor eine Bahnaufteilung samt Zustandsübergaben beschlossen wird. Keine Erweiterung des Umfangs dieser Runde nötig.
+
+### Messung, bestätigte Teile und Prüfgrenzen
+
+Die vorhandenen **Claude-Protokolle** enthalten 1036/624/482 s Wandzeit und jeweils 85 Onsets. 1036 → 482 entspricht etwa **×2,15** in dieser Messung. Die langen haus.ngc-Läufe habe ich nicht wiederholt. Die Protokolle stützen die berichteten Einzelläufe, keine allgemeine Hardware- oder Wiederholbarkeitszusage.
+
+**Kleine Korrektur der Auswertung:** Die gespeicherte Pool-Datei enthält zwei hintereinander angehängte Listen. Gegen den Einzellauf unterscheiden sich im ersten Pool-Lauf sechs, im jüngsten Lauf mit Dreiecksgewichtung **acht** sortierte Onset-Zeilen, jeweils um eins. Die Zahl 85 stimmt in beiden. Nur aus diesen Zeilenlisten kann ich die behauptete Lage innerhalb MIN_ADV nicht unabhängig bestätigen; die geometrischen Vergleichstests sind separat grün. [Auswertung mit Quellenhashes](viewer-palette-fest.r90.performance-check.json), [ursprüngliches Zeitprotokoll](viewer-palette-fest.r90.claude-haus-par.txt).
+
+Die deterministische Paarverteilung, Kappung und reguläre Zusammenführung bestehen die vorhandenen Tests. Für den frühen Berührungsabbruch besteht in den geprüften Fällen weiterhin dasselbe Kontaktprädikat; auch die bytegleichen R89-Gegenproben zu VP-I45/46 bleiben grün. Die neue Snapshot-Wartezeit wird nach dem Ende der Aufnahme und anhand ihrer Kosten bestimmt; kein zusätzlicher Befund zur Drosselungsformel.
+
+**Eigene Prüfungen:** Build einschließlich TypeScript grün; **138/138** Kern-, Shard- und übernommene Review-Prüfungen; **7/7** Orakel-/Schrankenprüfungen; gebautes Frontend **2/2 Chromium und 2/2 Firefox**; Dev-Worker **2/2**. Die Koordinator-Sonde ergibt **sechs rote Fälle und eine grüne Kontrolle** für reguläres Stop/Continue, Abschluss und explizite Shard-Fehler. Kein vollständiges Offline-Gate, kein weiterer Deep-Hunt und keine Live-Maschinenprüfung.
+
+[Prüfaufbau und Wiederholung](viewer-palette-fest.r90.checks.md), [Stand und Quellvergleich](viewer-palette-fest.r90.context.json), [Kernprüfungen](viewer-palette-fest.r90.core.txt), [Orakel/Schranken](viewer-palette-fest.r90.oracle-bounds.txt), [Build](viewer-palette-fest.r90.build.txt), [Chromium](viewer-palette-fest.r90.chromium.txt), [Firefox](viewer-palette-fest.r90.firefox.txt), [Beleghashes](viewer-palette-fest.r90.sha256.json).

@@ -1,0 +1,784 @@
+[
+  {
+    "standard": {
+      "second": 13,
+      "fine": false,
+      "suffix": false,
+      "distances": [
+        {
+          "a": 10,
+          "d": 0
+        },
+        {
+          "a": 11.5,
+          "d": 10.584500406864805
+        },
+        {
+          "a": 13,
+          "d": 0
+        },
+        {
+          "a": 20,
+          "d": 101.3199562444855
+        }
+      ],
+      "result": {
+        "hits": [
+          {
+            "line": 3,
+            "cum": 7.120323698555611,
+            "cumEnd": 8.88033346418061,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                7.120323698555611,
+                8.88033346418061
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 41,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 1.559550999999999,
+        "sweepMs": 18.968483000000006,
+        "truncated": null
+      }
+    },
+    "fine": {
+      "second": 13,
+      "fine": true,
+      "suffix": false,
+      "distances": [
+        {
+          "a": 10,
+          "d": 0
+        },
+        {
+          "a": 11.5,
+          "d": 10.584500406864805
+        },
+        {
+          "a": 13,
+          "d": 0
+        },
+        {
+          "a": 20,
+          "d": 101.3199562444855
+        }
+      ],
+      "result": {
+        "hits": [
+          {
+            "line": 3,
+            "cum": 7.12109375,
+            "cumEnd": 8.8798828125,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                7.12109375,
+                8.8798828125
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 41,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 0.4297519999999935,
+        "sweepMs": 4.465525999999997,
+        "truncated": null
+      }
+    },
+    "suffix": {
+      "second": 13,
+      "fine": false,
+      "suffix": true,
+      "distances": [
+        {
+          "a": 10,
+          "d": 0
+        },
+        {
+          "a": 11.5,
+          "d": 10.584500406864805
+        },
+        {
+          "a": 13,
+          "d": 0
+        },
+        {
+          "a": 20,
+          "d": 101.3199562444855
+        }
+      ],
+      "result": {
+        "hits": [
+          {
+            "line": 3,
+            "cum": 0.620361328125,
+            "cumEnd": 2.3800048828125,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                0.620361328125,
+                2.3800048828125
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 23,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 0.33733499999999594,
+        "sweepMs": 2.8709750000000014,
+        "truncated": null
+      }
+    }
+  },
+  {
+    "standard": {
+      "second": 14.5,
+      "fine": false,
+      "suffix": false,
+      "distances": [
+        {
+          "a": 10,
+          "d": 0
+        },
+        {
+          "a": 12.25,
+          "d": 23.238705436570715
+        },
+        {
+          "a": 14.5,
+          "d": 0
+        },
+        {
+          "a": 20,
+          "d": 75.289463282724
+        }
+      ],
+      "result": {
+        "hits": [
+          {
+            "line": 3,
+            "cum": 8.617306336659926,
+            "cumEnd": 10,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                8.617306336659926,
+                10
+              ]
+            ],
+            "spanCumEnd": 10.3836669921875,
+            "spanEndLine": 4
+          },
+          {
+            "line": 4,
+            "cum": 10,
+            "cumEnd": 10.3836669921875,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "continuation": 3,
+            "intervals": [
+              [
+                10,
+                10.3836669921875
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 52,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 0.28104300000001103,
+        "sweepMs": 3.529978,
+        "truncated": null
+      }
+    },
+    "fine": {
+      "second": 14.5,
+      "fine": true,
+      "suffix": false,
+      "distances": [
+        {
+          "a": 10,
+          "d": 0
+        },
+        {
+          "a": 12.25,
+          "d": 23.238705436570715
+        },
+        {
+          "a": 14.5,
+          "d": 0
+        },
+        {
+          "a": 20,
+          "d": 75.289463282724
+        }
+      ],
+      "result": {
+        "hits": [
+          {
+            "line": 3,
+            "cum": 8.61733254744611,
+            "cumEnd": 10,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                8.61733254744611,
+                10
+              ]
+            ],
+            "spanCumEnd": 10.3837890625,
+            "spanEndLine": 4
+          },
+          {
+            "line": 4,
+            "cum": 10,
+            "cumEnd": 10.3837890625,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "continuation": 3,
+            "intervals": [
+              [
+                10,
+                10.3837890625
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 43,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 0.44050300000000675,
+        "sweepMs": 3.173600999999991,
+        "truncated": null
+      }
+    },
+    "suffix": {
+      "second": 14.5,
+      "fine": false,
+      "suffix": true,
+      "distances": [
+        {
+          "a": 10,
+          "d": 0
+        },
+        {
+          "a": 12.25,
+          "d": 23.238705436570715
+        },
+        {
+          "a": 14.5,
+          "d": 0
+        },
+        {
+          "a": 20,
+          "d": 75.289463282724
+        }
+      ],
+      "result": {
+        "hits": [
+          {
+            "line": 3,
+            "cum": 1.3667514692265412,
+            "cumEnd": 2.75,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                1.3667514692265412,
+                2.75
+              ]
+            ],
+            "spanCumEnd": 3.1336669921875,
+            "spanEndLine": 4
+          },
+          {
+            "line": 4,
+            "cum": 2.75,
+            "cumEnd": 3.1336669921875,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "continuation": 3,
+            "intervals": [
+              [
+                2.75,
+                3.1336669921875
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 28,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 0.24279300000000603,
+        "sweepMs": 2.7907240000000115,
+        "truncated": null
+      }
+    }
+  },
+  {
+    "standard": {
+      "second": 15,
+      "fine": false,
+      "suffix": false,
+      "distances": [
+        {
+          "a": 10,
+          "d": 0
+        },
+        {
+          "a": 12.5,
+          "d": 27.49058609486306
+        },
+        {
+          "a": 15,
+          "d": 0
+        },
+        {
+          "a": 20,
+          "d": 66.59088519262104
+        }
+      ],
+      "result": {
+        "hits": [
+          {
+            "line": 3,
+            "cum": 9.1158309890445,
+            "cumEnd": 10,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                9.1158309890445,
+                10
+              ]
+            ],
+            "spanCumEnd": 10.8848876953125,
+            "spanEndLine": 4
+          },
+          {
+            "line": 4,
+            "cum": 10,
+            "cumEnd": 10.8848876953125,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "continuation": 3,
+            "intervals": [
+              [
+                10,
+                10.8848876953125
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 52,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 0.713671000000005,
+        "sweepMs": 3.078475999999995,
+        "truncated": null
+      }
+    },
+    "fine": {
+      "second": 15,
+      "fine": true,
+      "suffix": false,
+      "distances": [
+        {
+          "a": 10,
+          "d": 0
+        },
+        {
+          "a": 12.5,
+          "d": 27.49058609486306
+        },
+        {
+          "a": 15,
+          "d": 0
+        },
+        {
+          "a": 20,
+          "d": 66.59088519262104
+        }
+      ],
+      "result": {
+        "hits": [
+          {
+            "line": 3,
+            "cum": 9.116038993204462,
+            "cumEnd": 10,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                9.116038993204462,
+                10
+              ]
+            ],
+            "spanCumEnd": 10.884765625,
+            "spanEndLine": 4
+          },
+          {
+            "line": 4,
+            "cum": 10,
+            "cumEnd": 10.884765625,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "continuation": 3,
+            "intervals": [
+              [
+                10,
+                10.884765625
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 44,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 0.2079180000000065,
+        "sweepMs": 2.9406000000000176,
+        "truncated": null
+      }
+    },
+    "suffix": {
+      "second": 15,
+      "fine": false,
+      "suffix": true,
+      "distances": [
+        {
+          "a": 10,
+          "d": 0
+        },
+        {
+          "a": 12.5,
+          "d": 27.49058609486306
+        },
+        {
+          "a": 15,
+          "d": 0
+        },
+        {
+          "a": 20,
+          "d": 66.59088519262104
+        }
+      ],
+      "result": {
+        "hits": [
+          {
+            "line": 3,
+            "cum": 1.6158954594554102,
+            "cumEnd": 2.5,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                1.6158954594554102,
+                2.5
+              ]
+            ],
+            "spanCumEnd": 3.3848876953125,
+            "spanEndLine": 4
+          },
+          {
+            "line": 4,
+            "cum": 2.5,
+            "cumEnd": 3.3848876953125,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "continuation": 3,
+            "intervals": [
+              [
+                2.5,
+                3.3848876953125
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 29,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 0.19808499999999185,
+        "sweepMs": 2.460847000000001,
+        "truncated": null
+      }
+    }
+  },
+  {
+    "standard": {
+      "second": 15.5,
+      "fine": false,
+      "suffix": false,
+      "distances": [
+        {
+          "a": 10,
+          "d": 0
+        },
+        {
+          "a": 12.75,
+          "d": 31.763529729384203
+        },
+        {
+          "a": 15.5,
+          "d": 0
+        },
+        {
+          "a": 20,
+          "d": 57.8862354255048
+        }
+      ],
+      "result": {
+        "hits": [
+          {
+            "line": 3,
+            "cum": 9.614274736431064,
+            "cumEnd": 10,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                9.614274736431064,
+                10
+              ]
+            ],
+            "spanCumEnd": 11.3861083984375,
+            "spanEndLine": 4
+          },
+          {
+            "line": 4,
+            "cum": 10,
+            "cumEnd": 11.3861083984375,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "continuation": 3,
+            "intervals": [
+              [
+                10,
+                11.3861083984375
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 54,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 0.2741680000000031,
+        "sweepMs": 2.5066389999999785,
+        "truncated": null
+      }
+    },
+    "fine": {
+      "second": 15.5,
+      "fine": true,
+      "suffix": false,
+      "distances": [
+        {
+          "a": 10,
+          "d": 0
+        },
+        {
+          "a": 12.75,
+          "d": 31.763529729384203
+        },
+        {
+          "a": 15.5,
+          "d": 0
+        },
+        {
+          "a": 20,
+          "d": 57.8862354255048
+        }
+      ],
+      "result": {
+        "hits": [
+          {
+            "line": 3,
+            "cum": 9.614905063069973,
+            "cumEnd": 10,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                9.614905063069973,
+                10
+              ]
+            ],
+            "spanCumEnd": 11.3857421875,
+            "spanEndLine": 4
+          },
+          {
+            "line": 4,
+            "cum": 10,
+            "cumEnd": 11.3857421875,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "continuation": 3,
+            "intervals": [
+              [
+                10,
+                11.3857421875
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 45,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 0.1932090000000244,
+        "sweepMs": 4.434900999999996,
+        "truncated": null
+      }
+    },
+    "suffix": {
+      "second": 15.5,
+      "fine": false,
+      "suffix": true,
+      "distances": [
+        {
+          "a": 10,
+          "d": 0
+        },
+        {
+          "a": 12.75,
+          "d": 31.763529729384203
+        },
+        {
+          "a": 15.5,
+          "d": 0
+        },
+        {
+          "a": 20,
+          "d": 57.8862354255048
+        }
+      ],
+      "result": {
+        "hits": [
+          {
+            "line": 3,
+            "cum": 1.8643915737636054,
+            "cumEnd": 2.25,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                1.8643915737636054,
+                2.25
+              ]
+            ],
+            "spanCumEnd": 3.6361083984375,
+            "spanEndLine": 4
+          },
+          {
+            "line": 4,
+            "cum": 2.25,
+            "cumEnd": 3.6361083984375,
+            "a": "tool",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "continuation": 3,
+            "intervals": [
+              [
+                2.25,
+                3.6361083984375
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 29,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 0.20454300000000103,
+        "sweepMs": 1.7127179999999953,
+        "truncated": null
+      }
+    }
+  }
+]

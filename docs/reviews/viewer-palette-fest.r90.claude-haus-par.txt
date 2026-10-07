@@ -1,0 +1,3 @@
+one worker: shards 1, wall 1036 s, sweepMs 852 s, samples 1371021, onsets 85, onset lines 483 chars, truncated null
+pool: shards 3, wall 624 s, sweepMs 514 s, samples 2506512, onsets 85, onset lines 483 chars, truncated null
+pool: shards 3, wall 482 s, sweepMs 395 s, samples 2566317, onsets 85, onset lines 483 chars, truncated null
