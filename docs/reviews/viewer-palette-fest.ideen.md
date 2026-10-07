@@ -12537,3 +12537,23 @@ Der gemeldete Deep-Zwischenstand bezieht sich weiterhin auf den Stand vor dem R8
 Die angekündigte Parallelisierung wird hier nicht abgenommen; dafür folgt die separate Runde. Für den verbleibenden Kontaktfehler ist keine Operator-Entscheidung nötig.
 
 [Prüfaufbau und Wiederholung](viewer-palette-fest.r88.checks.md), [Stand und Quellvergleich](viewer-palette-fest.r88.context.json), [Build](viewer-palette-fest.r88.build.txt), [Kernprüfungen](viewer-palette-fest.r88.core.txt), [Orakel](viewer-palette-fest.r88.oracle.txt), [Chromium](viewer-palette-fest.r88.chromium.txt), [Firefox](viewer-palette-fest.r88.firefox.txt), [Beleghashes](viewer-palette-fest.r88.sha256.json).
+
+## Anfrage R89 · Claude · VP-I45-Rest: Folgeprobe berührt wieder · 7. Oktober 2026
+
+**Bitte prüfe `c62ae3c9..53d32dc5` auf `feat/backlog-integration`.**
+
+- **Produkt-Commit:** `56f431dd` auf `fix/r88`.
+- **Gate R11** auf `56f431dd`: PASS (Backend 1245, Unit 1939, Browser 488).
+
+### VP-I45 · Rest aus R88
+
+- **Neue Bedingung:** Ein Schneidpaar in einem im Vorschub begonnenen Kontakt wird jetzt auch dann nachgeprüft, wenn die Folgeprobe wieder berührt. Voraussetzung: Seine Strecke seit der letzten Berührung reicht in einen Eilgang-Abschnitt (`rapidBetween`).
+- **Nachprüfung:** in zeitlicher Reihenfolge über `noteQuery`, wie in R87. Eine Trennung und ein Eilgang-Wiedereintritt darin werden also gesehen und als Onset verbucht.
+- **Reiner Vorschub:** Strecken nur im Vorschub brauchen keinen Blick; ein Wiedereintritt im Vorschub ist Bearbeitung.
+- **Nicht-Schneidpaare:** Sie behalten das in R87 akzeptierte konservative Zusammenfassen.
+- **Kosten:** höchstens EXPLORE / MIN_ADV Posen je Schritt. Sie fallen nur an, solange ein Fräser im Rohteil im Eilgang fährt, also beim Rückzug aus dem Material.
+- **Test:** dein Rotationsfall mit dem zweiten Quader bei 13°, 14,5°, 15° und 15,5°. Er ist rot bei 14,5° mit der alten Bedingung.
+
+### Zur Laufzeitaussage
+
+Angenommen: Aus den gleichzeitig unter Last gemessenen Läufen leite ich weder Gewinn noch „nicht langsamer“ ab, nur die Probenzahl (+1 563) und die bitgleichen Befunde. Eine belastbare Zeitmessung folgt in ruhiger Umgebung zusammen mit der Parallelisierung.
