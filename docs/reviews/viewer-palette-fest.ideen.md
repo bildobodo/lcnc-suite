@@ -12357,3 +12357,73 @@ Danke für den Zwei-Kontakt-Fall und die analytische Facette.
   - die Kosten auf einem Programm mit vielen kurzen Kontakten.
 - **Die Schwelle 1e-10 für „ohne Fläche“:** ob sie zu einem Bibliotheksfehler bei fast-kollinearen Facetten passt. Deine 20 000 regulären Paare bestanden; dünne, aber nicht kollineare Facetten habe ich nicht gesondert gesucht.
 - **Die Darstellung von `uncertified`:** wenn nur ein Körper fehlt.
+
+## Review R87 · Codex · Nachabtastung und Facettenfilter · 7. Oktober 2026
+
+**Ergebnis: `findings`. Die ursprünglichen Gegenfälle sind bearbeitet, VP-I45 und VP-I46 bleiben mit klar eingegrenzten Resten offen. VP-I45: Eine nacherfasste Trennung setzt den Schneidzustand nicht zurück; ein anschließender Eilgangkontakt kann fehlen. VP-I46: Teilweise beschädigte Geometrie bleibt als vollständig prüfbar ausgewiesen, und der Warnmarker geht beim Ergebnis ohne bewegte Paare verloren.**
+
+Geprüft: `6dc05030..39023b64`, Anfrage `e5dad958`, in einer Archivkopie. `39023b64..e5dad958` ändert nur die Anfrage. Produktcode und Live-Suite unverändert; keine Maschinenbefehle, keine Zugriffe auf `:5173`/`:8000`. Claudes laufender Deep-Hunt wurde nicht angefasst.
+
+### VP-I45 · P1 · Rest: Trennung beim Nachabtasten beendet den alten Schneidkontakt nicht
+
+**Stelle:** `lcnc-webui/src/viewer/collision.ts:1969–1977`.
+
+Die Nachabtastung überspringt jede freie Probe mit `if (dx > CONTACT_EPS) continue`. Dadurch bleibt auch eine tatsächlich gemessene Trennung über **2 × Marge** ohne Wirkung auf `inContact`, `onsetRapid` und `onsetLine`. Der folgende Kontakt wird weiterhin mit dem Zustand vom früheren Vorschubkontakt bewertet. Für Schneidpaare fällt er an `rapidX && onsetRapid[pi]` heraus.
+
+**Gegenprobe mit der normalen Marge 2 mm:** Ein expliziter Werkzeugkörper läuft auf einem Rotationsradius von 1.000 mm an zwei Quadern eines Rohteil-Meshs vorbei. Vorschub von A = 5° nach 10°, anschließend Eilgang nach 15° und 20°. Keine Werkzeugänderung, keine Bruchstelle, kein Limit und kein statisch ausgeschiedenes Paar.
+
+| Pose | Gemessener Oberflächenabstand | Bedeutung |
+|---|---:|---|
+| A = 10° | 0 mm | erlaubter Vorschubkontakt |
+| A = 11,5° | 10,5845 mm | echte Trennung, deutlich über 4 mm |
+| A = 13° | 0 mm | erneuter Kontakt im Eilgang |
+| A = 15° | 18,9499 mm | wieder getrennt |
+
+**Standardlauf:** `hits: []`, `uncertified: null`, `truncated: null`. **Kontrolle mit 0,25-Schrittweite:** Eilgangkollision auf Zeile 3, Kontakt etwa A = 12,1211°–13,8799°. Der Kontakt ist damit wesentlich breiter als MIN_ADV. Die zusätzlichen Nachproben finden die Geometrie, verbuchen sie aber nicht als neue Eilgangkollision.
+
+Eine zweite, rein translatorische Sonde mit 0,2 Marge reproduziert denselben Zustandsfehler; dort sind sowohl feinere Abtastung als auch die separat geprüfte Restbahn grün. Die Rotationsprobe benötigt diese kleinere Marge ausdrücklich nicht.
+
+**Erforderlich:** Beim Nachabtasten die relevanten Zustandsübergänge in zeitlicher Reihenfolge nachführen, einschließlich geprüfter Trennung über 2 × Marge und neuem Onset auf der zutreffenden Zeile/Bewegungsart. Ein wiederholter Kontakt nach Trennung ist keine gutartige Rückzugsbewegung aus dem alten Vorschubkontakt. Den Rotationsfall als Wächter aufnehmen; ein bloßes zusätzliches Kontaktintervall für Nicht-Schneidpaare schließt diesen Rest nicht.
+
+Belege: [Sonde](viewer-palette-fest.r87.boundaries.test.ts), [Abstände und vollständige Ergebnisse](viewer-palette-fest.r87.boundaries.json), [zwei rote Gegenfälle und grüne Grenzkontrolle](viewer-palette-fest.r87.boundaries.txt).
+
+### VP-I46 · P2 · Rest A: Eine nicht endliche Facette macht auch einen teilweise erhaltenen Körper unvollständig
+
+**Stellen:** `lcnc-webui/src/viewer/collision.ts:579`, `:617–619`.
+
+Der Filter fasst nachweislich flächenlose und **nicht auswertbare** Facetten zusammen. Bei NaN ist aber gerade nicht bekannt, dass die Facette nur eine Linie auf Nachbarkanten war. Bleibt irgendeine gültige Facette übrig, gibt es ausschließlich `console.warn`; `model.unusable` bleibt leer und das Ergebnis trägt `uncertified: null`.
+
+**Gegenprobe:** Körper `damaged` aus einer gültigen, entfernten Fläche und einer Facette mit NaN-Koordinate, gegenüber einer bewegten gültigen Fläche. Die beschädigte Facette wird entfernt. Das verbleibende Paar wird bereits durch die Reichweite ausgeschieden, der Lauf beendet sich mit `hits: []`, `pairCount: 1`, `pairsPrescreened: 1`, `uncertified: null`. Die Oberfläche würde daraus ihr uneingeschränktes „Clear“ bilden.
+
+**Erforderlich:** Nachweislich flächenlose Facetten und nicht endliche/beschädigte Eingaben getrennt behandeln. Verbleibende gültige Geometrie darf weiter geprüft werden; die wegen beschädigter Facetten nicht geprüfte Oberfläche muss trotzdem im Ergebnis und damit für den Operator erkennbar sein. Die Bedingung „nur warnen, wenn der ganze Körper leer wird“ reicht dafür nicht. Kein Befund gegen das Entfernen der analytisch kollinearen R86-Facette selbst.
+
+Belege: [Sonde](viewer-palette-fest.r87.facets.test.ts), [Ergebnisse einschließlich Worker und Abbruch](viewer-palette-fest.r87.facets.json), [roter Lauf](viewer-palette-fest.r87.facets.txt).
+
+### VP-I46 · P2 · Rest B: Ohne verbleibende bewegte Paare geht die sichtbare Einschränkung verloren
+
+**Stelle:** `lcnc-webui/src/ScrubBar.vue:951`, neuer Eingangsfall aus `collisionWorker.ts:205`.
+
+Der Worker liefert den fehlenden Körper korrekt in `uncertified`, auch bei `pairCount: 0`. `sweepView` kehrt für diesen Fall aber vor der Auswertung der Einschränkung mit `caveat: false` zurück. Damit fehlen der Warnmarker in der Sim-Übersicht und „not certified“ im zugänglichen Namen. Die Hilfe beginnt sogar mit „No parts move against each other — nothing to check“, obwohl die eigentliche Ursache fehlende prüfbare Geometrie sein kann.
+
+**Browser-Gegenprobe auf dem gebauten Stand:** Derselbe fehlende Körper bei einem verbleibenden Paar zeigt `Clear *`, zugänglicher Name `Clear (not certified)` und die konkrete Erklärung. Bei null verbleibenden Paaren steht nur `No moving pairs`, ohne Marker und ohne Einschränkung im zugänglichen Namen. Der konkrete Grund ist erst nach Öffnen der Hilfe sichtbar. Der Worker-Fall ohne Paar wurde separat mit dem echten Modellaufbau geprüft; die Browserprobe speist diese Ergebnisform an der Worker-Nachrichtengrenze ein.
+
+**Erforderlich:** Die fehlende Geometrie auch im `nopairs`-Zweig sichtbar und zugänglich kennzeichnen; „nichts zu prüfen“ darf nicht die Ursache „Körper nicht prüfbar“ ersetzen. Bei einem unverändert gültigen Modell ohne bewegte Paare bleibt der bisherige neutrale Zustand sinnvoll.
+
+Belege: [Browserprobe](viewer-palette-fest.r87.uncertified.spec.ts), [Lauf](viewer-palette-fest.r87.browser.txt), [ohne Paare: Messwerte](viewer-palette-fest.r87.uncertified-0.json) und [Bild](viewer-palette-fest.r87.uncertified-0.png), [ein Paar: Kontrollwerte](viewer-palette-fest.r87.uncertified-1.json) und [Bild](viewer-palette-fest.r87.uncertified-1.png).
+
+### Bestätigte Korrekturen, Kosten und Suche
+
+- Die **bytegleiche R86-Wiederkontaktsonde** besteht mit allen fünf Startphasen. Der Standardlauf deckt jetzt beide Kontakte ab, beispielsweise mit dem gemeinsamen Intervall X = 99,5–104. Die ausdrücklich benannte konservative Zusammenfassung akzeptiere ich für diese Korrektur; daraus folgt keine bestätigte Berührung in jeder Zwischenposition. VP-I45 oben betrifft eine unterdrückte echte Kollision, nicht diese Darstellungsgrenze.
+- Zusätzliche Zeilen- und Null-Längen-/Bruchproben behalten den zweiten Kontakt. Die vorhandenen Werkzeug-/TLO- und übrigen Kollisionswächter sind grün.
+- Die ursprüngliche vollständig kollineare Geometrie folgt jetzt dem angekündigten Vertrag „nicht prüfbar“. Grund und Körpername bleiben im frühen Init-Abbruch und im echten Worker-Ergebnis ohne Paar erhalten. Diese Kernpfade sind abgenommen; die Anzeigegrenze steht oben.
+- Zur **1e-10-Schwelle** kein zusätzlicher Befund: 20.000 gezielt dünne Float32-Dreieckspaare mit Saat 20261007; 11 A-Facetten gefiltert, 19.989 erhaltene Fälle ohne Abweichung über 1e-5 zur separaten Referenz, keine nicht endlichen Referenzergebnisse. Das ist eine Gegenprobe, kein Beweis über alle Geometrien. Mit dem tatsächlichen neuen Filter bleiben alle **1.477.314** ausgelieferten Kollisionsfacetten erhalten.
+- **Kosten bei vielen kurzen Kontakten:** analytisches Wand-/Schlittenmodell, gleiche Standardoptionen, Vergleich mit `collision.ts` aus `6dc05030`. Bei 30/100/200 Kontakten genau **19 zusätzliche gezählte Proben je Kontaktende**; kein Abbruch. Bei 100 Kontakten 651 → 2.551 Proben und etwa 0,39 → 1,06 s, bei 200 Kontakten 1.251 → 5.051 und etwa 0,71 → 2,06 s. Die Mehrarbeit entspricht der angekündigten begrenzten Nachabtastung. Einzelmessung auf der gemeinsam genutzten VM, inklusive Warm-up-/Scheduling-Einflüssen; daraus keine absolute Laufzeitzusage ableiten. [Sonde](viewer-palette-fest.r87.cost.test.ts), [Messwerte](viewer-palette-fest.r87.cost.json), [ausgelieferte Facetten](viewer-palette-fest.r87.shipped-filter.json).
+- Das verschärfte kurze Orakel besteht **4/4** in 97,6 s. Bisektion der Laufbreite und 0,25-Raster im Deep-Modus passen zur beschriebenen Suchabsicht; die verbleibende Raster-/Referenzgrenze ist jetzt ausdrücklich dokumentiert. Der in der Anfrage gemeldete Deep-Zwischenstand vor VP-I45 bleibt ein Zwischenstand. Der parallele neue Deep-Hunt wurde hier weder wiederholt noch vorzeitig als abgeschlossen bewertet.
+
+### Prüfungen und Grenzen
+
+Build einschließlich TypeScript bestanden. **100 bestehende Kernprüfungen und zwei bytegleiche R86-Kontrollen grün**; zusätzlich vier kurze Orakelfälle grün. Eigene Grenzproben: ein Test grün, zwei Eilgangfälle rot. Facetten-/Worker-Proben: drei grün, ein Fall teilweise beschädigter Geometrie rot. Kosten-/Korpusprüfung 2/2 grün. Chromium: ein Anzeigefall grün, der `nopairs`-Fall rot.
+
+Alle eigenen CPU-Läufe mit niedriger Priorität und einem Worker, eigene Läufe nacheinander; Browser nur auf eigenem Mock `127.0.0.1:4188` nach den eigenen Kollisionsproben. Kein vollständiges Offline-Gate und keine zusätzliche Live-Abnahme.
+
+[Prüfaufbau und Wiederholung](viewer-palette-fest.r87.checks.md), [Stand und Quellvergleich](viewer-palette-fest.r87.context.json), [Build](viewer-palette-fest.r87.build.txt), [Kernprüfungen](viewer-palette-fest.r87.core.txt), [R86-Sonde am neuen Stand](viewer-palette-fest.r87.recontact.json), [Orakel](viewer-palette-fest.r87.oracle.txt), [Kostenlauf](viewer-palette-fest.r87.cost.txt), [Beleghashes](viewer-palette-fest.r87.sha256.json).
