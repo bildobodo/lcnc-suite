@@ -1,0 +1,133 @@
+
+ RUN  v4.1.8 /tmp/codex-r90-9a989x_7/archive/lcnc-webui
+
+ ❯ src/viewer/r90.coordinator.test.ts (7 tests | 6 failed) 134ms
+   × completed shards contribute their final hits to every later partial 120ms
+   × an unfinished shard without a snapshot cannot be treated as covered by another snapshot 2ms
+   × a shard load failure resolves the outstanding side request 5ms
+   × a shard failure preserves a hidden-tab pause in the local replacement 2ms
+   × a shard failure does not resume a parked sweep without continue 2ms
+   × the first local side request with id minus one can be cancelled 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r90.coordinator.test.ts > completed shards contribute their final hits to every later partial
+AssertionError: a completed shard has found L7; it must already be shown: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/viewer/r90.coordinator.test.ts:33:108
+     31|  out.finishedShard=sent;save();
+     32|  const partial=sent.find(m=>m.partial)?.partial;
+     33|  expect(partial.hits.some((h:any)=>h.line===7),'a completed shard has …
+       |                                                                                                            ^
+     34| });
+     35| it('an unfinished shard without a snapshot cannot be treated as covere…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  src/viewer/r90.coordinator.test.ts > an unfinished shard without a snapshot cannot be treated as covered by another snapshot
+AssertionError: no word yet from shard 1: expected 0.8 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 0.8
+
+ ❯ src/viewer/r90.coordinator.test.ts:39:92
+     37|  workers[0]!.emit({id:2,progress:.8,partial:result([hit()],.8)});
+     38|  out.coverage=sent;save();const m=sent.at(-1);
+     39|  expect(m.progress).toBe(0);expect(m.partial.truncated.covered,'no wor…
+       |                                                                                            ^
+     40|  expect(m.partial.shards,'both workers belong to this partial').toBe(2…
+     41| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  src/viewer/r90.coordinator.test.ts > a shard load failure resolves the outstanding side request
+AssertionError: the side request needs one terminal answer or an explicit retry: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/viewer/r90.coordinator.test.ts:47:148
+     45|  workers[1]!.fail();await vi.runAllTimersAsync();
+     46|  out.sideFailure={sent,terminated:workers.map(w=>w.terminated)};save();
+     47|  expect(sent.some(m=>m.id===-3&&(m.result||m.error||m.cancelled||m.nee…
+       |                                                                                                                                                    ^
+     48| });
+     49| it('a shard failure preserves a hidden-tab pause in the local replacem…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  src/viewer/r90.coordinator.test.ts > a shard failure preserves a hidden-tab pause in the local replacement
+AssertionError: hidden run must wait for resume: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/viewer/r90.coordinator.test.ts:53:109
+     51|  expect(workers.every(w=>w.messages.some(m=>m.pause===4))).toBe(true);
+     52|  workers[1]!.fail();
+     53|  out.pausedFailure={sent};save();expect(sent.some(m=>m.id===4&&m.resul…
+       |                                                                                                             ^
+     54| });
+     55| it('a shard failure does not resume a parked sweep without continue',a…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  src/viewer/r90.coordinator.test.ts > a shard failure does not resume a parked sweep without continue
+AssertionError: parked sweep must wait for continue: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/viewer/r90.coordinator.test.ts:60:125
+     58|  expect(sent.at(-1).stopped).toBe(true);sent.length=0;
+     59|  workers[1]!.fail();
+     60|  out.parkedFailure={sent};save();expect(sent.some(m=>m.id===5&&m.resul…
+       |                                                                                                                             ^
+     61| });
+     62| it('normal stop, continue, finish and explicit error still reach the o…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  src/viewer/r90.coordinator.test.ts > the first local side request with id minus one can be cancelled
+AssertionError: id -1 is a real first side id, not the no-side sentinel: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/viewer/r90.coordinator.test.ts:84:105
+     82|  send({cancel:-1});await vi.advanceTimersToNextTimerAsync();
+     83|  out.firstSideCancel={sent,checks};save();
+     84|  expect(sent.some(m=>m.id===-1&&m.cancelled),'id -1 is a real first si…
+       |                                                                                                         ^
+     85| });
+     86|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  6 failed | 1 passed (7)
+   Start at  21:02:19
+   Duration  233ms (transform 118ms, setup 0ms, import 45ms, tests 134ms, environment 0ms)
+

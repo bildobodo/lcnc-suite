@@ -1,0 +1,109 @@
+{
+  "source_files": {
+    "haus-par.txt": {
+      "source": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/haus-par.txt",
+      "sha256": "413d0a7438de82c28a2d7db412c7ebb9885fed14ec1c79f6b444b50ef0512ee4"
+    },
+    "haus-par.run": {
+      "source": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/haus-par.run",
+      "sha256": "3fd3aa3fc4044df32ef610d42f50b25860cc2470f6fac4eef1ab9e36f446b55f"
+    },
+    "haus-par2.run": {
+      "source": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/haus-par2.run",
+      "sha256": "ee9ceb222201b86ab6c85210ddbda79152c3a65f11a4e2a69cd8c4cab17b4a45"
+    },
+    "haus-par-onsets-one.json": {
+      "source": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/haus-par-onsets-one.json",
+      "sha256": "95a9f8d3c273e289fa79dc84e99e19712fbb1db6ae87ee0eb93bb58d04ad8620"
+    },
+    "haus-par-onsets-pool.json": {
+      "source": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/haus-par-onsets-pool.json",
+      "sha256": "683e5c7b84dd1d4ae7fc2b6e38af4d6c9bbb84faf16f98b3d126741a71cc4f7c"
+    }
+  },
+  "one_onsets": 85,
+  "pool_onsets": [
+    85,
+    85
+  ],
+  "different_sorted_line_positions": [
+    [
+      {
+        "index": 26,
+        "one": 44857,
+        "pool": 44858
+      },
+      {
+        "index": 30,
+        "one": 46260,
+        "pool": 46261
+      },
+      {
+        "index": 34,
+        "one": 47544,
+        "pool": 47545
+      },
+      {
+        "index": 53,
+        "one": 105424,
+        "pool": 105425
+      },
+      {
+        "index": 65,
+        "one": 108432,
+        "pool": 108433
+      },
+      {
+        "index": 66,
+        "one": 108702,
+        "pool": 108703
+      }
+    ],
+    [
+      {
+        "index": 26,
+        "one": 44857,
+        "pool": 44858
+      },
+      {
+        "index": 34,
+        "one": 47544,
+        "pool": 47545
+      },
+      {
+        "index": 38,
+        "one": 100952,
+        "pool": 100953
+      },
+      {
+        "index": 39,
+        "one": 101393,
+        "pool": 101394
+      },
+      {
+        "index": 42,
+        "one": 102486,
+        "pool": 102487
+      },
+      {
+        "index": 53,
+        "one": 105424,
+        "pool": 105425
+      },
+      {
+        "index": 65,
+        "one": 108432,
+        "pool": 108433
+      },
+      {
+        "index": 66,
+        "one": 108702,
+        "pool": 108703
+      }
+    ]
+  ],
+  "wall_ratio": 2.1493775933609958,
+  "active_ratio": 2.1569620253164556,
+  "own_performance_rerun": false,
+  "scope": "existing Claude logs and line lists; no per-pair positions or repeated steady-state timing independently measured"
+}

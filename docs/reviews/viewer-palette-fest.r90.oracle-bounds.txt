@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r90-9a989x_7/archive/lcnc-webui
+
+
+ Test Files  2 passed (2)
+      Tests  7 passed (7)
+   Start at  20:54:14
+   Duration  148.60s (transform 129ms, setup 0ms, import 211ms, tests 148.27s, environment 0ms)
+
