@@ -1,0 +1,33 @@
+
+ RUN  v4.1.8 /tmp/codex-r88-t1l6uwzb/archive/lcnc-webui
+
+ ❯ src/viewer/r88.touching.test.ts (1 test | 1 failed) 175ms
+   × a feed-to-rapid recontact remains detected when the next coarse query is touching again 173ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r88.touching.test.ts > a feed-to-rapid recontact remains detected when the next coarse query is touching again
+AssertionError: production defaults, every phase of the second block: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/viewer/r88.touching.test.ts:24:99
+     22|  const clash=(r:ReturnType<typeof run>)=>r.result.hits.some(h=>h.rapid…
+     23|  expect(cases.every(r=>clash(r.fine)&&clash(r.suffix)),'controls: fine…
+     24|  expect(cases.every(r=>clash(r.standard)),'production defaults, every …
+       |                                                                                                   ^
+     25| });
+     26|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  14:23:35
+   Duration  566ms (transform 228ms, setup 0ms, import 294ms, tests 175ms, environment 0ms)
+

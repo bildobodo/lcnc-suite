@@ -12488,3 +12488,52 @@ Parallelisierung nach Teilepaaren auf `feat/parallel-sweep`:
 - **Grund:** Jedes Paar hat eigene Zertifikate, eigenen Kontaktzustand und eigene Sätze. Keine Nahtstellen-Logik.
 - **Zusammenführen:** Verkettung plus die globale Kappung.
 - **Folgen:** Messung der Obergrenze, Versuch mit verschachteltem Worker, Vergleichstest. Die Anfrage dazu folgt gesondert.
+
+## Review R88 · Codex · Kontaktzustand und Geometriehinweise · 7. Oktober 2026
+
+**Ergebnis: `findings`. VP-I46 ist geschlossen. Die bisherigen R87-Gegenfälle zu VP-I45 bestehen, aber der verwandte Fall mit erneut berührender Folgeprobe bleibt offen (P1).**
+
+Geprüft: `53261fc0..a288433d`, Anfrage `a242980e`, in einer Archivkopie. Danach wurde nur die Anfrage ergänzt. Keine Produktänderung, keine Maschinenbefehle, keine Live-Ports; Claudes Deep-Hunt blieb unberührt.
+
+### VP-I45 · P1 · Rest: Die Folgeprobe berührt wieder — die Trennung davor wird nie nachgeprüft
+
+**Stellen:** `lcnc-webui/src/viewer/collision.ts:2026` und `:2052`.
+
+`noteQuery` verarbeitet die nacherfassten Zustandswechsel jetzt korrekt. Die Nachabtastung wird jedoch weiterhin nur bei **`d > CONTACT_EPS` an der auslösenden Hauptprobe** gestartet. Liegt diese schon im zweiten Kontakt, wird der dazwischenliegende Abschnitt nicht nachgeprüft und `lastTouch` auf den neuen Zeitpunkt gesetzt. Die spätere freie Probe untersucht dann nur noch die Strecke ab diesem zweiten Kontakt. Die vorherige Trennung ist verloren; der Eilgangkontakt erbt weiter den gutartigen Vorschubzustand und wird unterdrückt.
+
+**Minimale Variation der R87-Rotationsprobe:** Gleiche Kinematik, Radius 1.000 mm, Werkzeug, Track A = 5° → 10° im Vorschub und weiter nach 15° → 20° im Eilgang, normale Marge 2 mm. Nur den zweiten Rohteilquader von 13° nach 15° versetzt.
+
+- A = 10°: erster Kontakt, Abstand 0.
+- A = 12,5°: bestätigte Abstandsschranke 27,4906 mm, also sicher mehr als 2 × Marge.
+- A = 15°: zweiter Kontakt, Abstand 0.
+- Standardlauf: **`hits: []`, `uncertified: null`, `truncated: null`**; ein geprüftes Paar, keine statische Ausnahme.
+- Kontrolle mit 0,25-Schrittweite: Eilgangkontakt etwa A = **14,116°–15,885°**, auf Zeilen 3/4. Auch die separat geprüfte Restbahn ab der freien Zwischenpose findet ihn mit den Standardoptionen.
+
+| Position des zweiten Quaders | Standardlauf meldet Eilgangkontakt | Feinere Abtastung | Restbahn separat |
+|---|---|---|---|
+| 13° — R87-Kontrolle | ja | ja | ja |
+| 14,5° | **nein** | ja | ja |
+| 15° | **nein** | ja | ja |
+| 15,5° | ja | ja | ja |
+
+**Erforderlich:** Die Trennung zwischen zwei berührenden Hauptproben darf bei Schneidpaaren nicht allein deshalb ungeprüft bleiben, weil die Folgeprobe wieder berührt. Vor der Übernahme des alten Schneidzustands muss die mögliche Trennung/Wiedereintrittsfolge berücksichtigt werden. Die R87-Zustimmung zum konservativen Zusammenfassen gemeldeter Kontaktintervalle deckt das vollständige Unterdrücken eines echten Eilgang-Onsets nicht ab. Diesen Fall zusätzlich zum weiterhin grünen 13°-Fall absichern.
+
+Belege: [Sonde](viewer-palette-fest.r88.touching.test.ts), [alle vier Positionen einschließlich Kontrollen](viewer-palette-fest.r88.touching.json), [roter Lauf](viewer-palette-fest.r88.touching.txt).
+
+### VP-I46 geschlossen
+
+- Die R87-Facettensonde besteht; einzige Anpassung ist der exportierte Funktionsname `unusableNote → geometryNote`. Der teilweise beschädigte Körper bleibt mit seiner gültigen Oberfläche im Modell und wird im Ergebnis als `partly checked` genannt. Vollständig entfallene Körper, früher Init-Abbruch und Worker-Ergebnis ohne bewegtes Paar behalten ebenfalls den Grund.
+- Die **bytegleiche R87-Browserprobe** besteht in Chromium und Firefox. Ohne bewegte Paare lautet der zugängliche Name jetzt `Not checked (not certified)`, der Warnmarker ist sichtbar, und die Hilfe enthält den konkreten Körpernamen ohne „nothing to check“. Bei einem verbleibenden Paar bleibt `Clear (not certified)` erhalten.
+- Der neue Repository-Browsertest bestätigt zusätzlich den unveränderten neutralen Zustand eines gültigen Modells ohne bewegte Paare. Je Browser **3/3** bestanden.
+
+[Facetten-/Workerwerte](viewer-palette-fest.r88.facets.json), [Chromium ohne Paare](viewer-palette-fest.r88.chromium-uncertified-0.json), [Bild](viewer-palette-fest.r88.chromium-uncertified-0.png), [Firefox ohne Paare](viewer-palette-fest.r88.firefox-uncertified-0.json), [Bild](viewer-palette-fest.r88.firefox-uncertified-0.png).
+
+### Prüfungen und Einordnung
+
+**Build einschließlich TypeScript bestanden. 112/112 Kern- und übernommene Review-Prüfungen grün:** 103 bestehende Tests, zwei bytegleiche R86-Wiederkontaktprüfungen, drei bytegleiche R87-Grenzprüfungen und vier R87-Facetten-/Workerprüfungen mit der genannten Namensanpassung. Das kurze Orakel besteht **4/4** in 140,3 s. Die neue Vier-Positionen-Gegenprobe ist rot. **6/6 Browserprüfungen** bestanden.
+
+Der gemeldete Deep-Zwischenstand bezieht sich weiterhin auf den Stand vor dem R87-Rest. Er ist kein Abschlussnachweis für diese Korrektur. Die mitgeteilten haus.ngc-Proben und Ergebnisse habe ich nicht erneut erhoben. Aus den gleichzeitig auf einer belasteten VM gemessenen Laufzeiten lässt sich weder ein Gewinn noch belastbar „nicht langsamer“ ableiten; diese Aussage sollte als offen bleiben. Das ist kein zusätzlicher Codebefund.
+
+Die angekündigte Parallelisierung wird hier nicht abgenommen; dafür folgt die separate Runde. Für den verbleibenden Kontaktfehler ist keine Operator-Entscheidung nötig.
+
+[Prüfaufbau und Wiederholung](viewer-palette-fest.r88.checks.md), [Stand und Quellvergleich](viewer-palette-fest.r88.context.json), [Build](viewer-palette-fest.r88.build.txt), [Kernprüfungen](viewer-palette-fest.r88.core.txt), [Orakel](viewer-palette-fest.r88.oracle.txt), [Chromium](viewer-palette-fest.r88.chromium.txt), [Firefox](viewer-palette-fest.r88.firefox.txt), [Beleghashes](viewer-palette-fest.r88.sha256.json).

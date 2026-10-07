@@ -1,0 +1,14 @@
+[2m[WebServer] [22m(node:3178135) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:3178161) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3178161) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r88.uncertified.spec.ts:8:26 › missing body remains visibly uncertified with 1 remaining moving pairs (4.0s)
+  ✓  2 e2e/r88.uncertified.spec.ts:8:26 › missing body remains visibly uncertified with 0 remaining moving pairs (3.3s)
+  ✓  3 e2e/sim-panel.viewer.spec.ts:209:1 › a part left out of the check stays marked, with or without moving pairs (3.3s)
+
+  3 passed (12.9s)
