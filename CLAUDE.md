@@ -1108,17 +1108,24 @@ floor) — the fixed cadence stepped over a touch between two in-margin
 samples and reported "near miss, 1.5 mm apart" for parts that met 1 mm
 deep (2026-10-07); its clearance carries across chunks in each chunk's V
 like any certificate. A touching pair found NOT touching at its next sample
-has the stretch since its last touch re-sampled at MIN_ADV, every touch there
-recorded on its own line — inside one EXPLORE stride the contact could end
-and a second, 1.25 wide, begin and end unseen (Codex R86 VP-I45); a pair
-still touching keeps the stretch as contact, so an unchecked gap never reads
-as clear. Both are sampled at least once on every line they stay in contact
+has the stretch since its last touch re-sampled at MIN_ADV — inside one
+EXPLORE stride the contact could end and a second, 1.25 wide, begin and end
+unseen (Codex R86 VP-I45) — each sample through the main loop's own state
+step (`noteQuery`) in time order, queried to HORIZON: a separation past
+2 × margin there ends the old contact, a touch after it is a new onset on its
+line and kind of move (a cutter's rapid re-contact after its feed contact was
+taken for the benign retract, R87); a pair still touching keeps the stretch
+as contact, so an unchecked gap never reads as clear. Both are sampled at least once on every line they stay in contact
 with (the per-line continuation marks). Facets WITHOUT AREA (three distinct
 collinear vertices, coincident ones, a coordinate not finite) are dropped
 when the model is built (`withoutArealessFacets`): three-mesh-bvh read a
 collinear facet as touching a triangle 1.5 mm away (VP-I46); a body left
 with none is not checked and every result's `uncertified` names it
-(`model.unusable`). The shipped models have none. The sweep is a
+(`model.unusable`); a body that lost facets with a coordinate that is not a
+number is checked on the rest and named "partly checked" (`model.damaged`,
+`geometryNote`). With no moving pair left, the Simulation tab says "Not
+checked" with the marker instead of "No moving pairs" (R87). The shipped
+models have none. The sweep is a
 resumable iterator (`sweepCollisionsIter`, checkpoints every 16 segments /
 512 samples and every 8 ms of clock) with an optional WALL-CLOCK budget
 (`maxMs`, sync API + tests only — the worker runs sweeps OPEN-ENDED since

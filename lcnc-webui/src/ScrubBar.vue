@@ -707,7 +707,7 @@ const verdictDetail = computed<string>(() => {
   if (props.collisionBusy) parts.push("Still checking — positions refine when it ends.");
   else if (stopped && props.collisionResumable) parts.push(stoppedTitle.value);
   else if (r.truncated) parts.push(`${pctOf(r.truncated.covered)} checked — the rest is unchecked.`);
-  if (r.pairCount === 0) parts.push("No parts move against each other — nothing to check.");
+  if (r.pairCount === 0) parts.push(r.uncertified ? "No part that could be checked moves against another." : "No parts move against each other — nothing to check.");
   if (hits.value.length) parts.push("A stop shows the first contact (machine off).");
   if (r.staticContacts.length) parts.push(`${r.staticContacts.length} contact${r.staticContacts.length === 1 ? "" : "s"} at the start ignored.`);
   if (sweepCaveat.value) parts.push(`Not certified: ${sweepCaveat.value}.`);
@@ -948,8 +948,16 @@ const sweepView = computed<SimSweepView | null>(() => {
   const found = `${n} collision${n === 1 ? "" : "s"}`;
   const tools = sweepToolSentence.value;
   const detail = (r ? verdictDetail.value + " " : "") + tools;
-  if (r && r.pairCount === 0) return { state: "nopairs", frac: 0, verdict: "No moving pairs", tone: "muted", caveat: false, detail };
   const caveat = !!sweepCaveat.value;
+  // No moving pair: nothing to check — unless a body was left out or lost
+  // damaged facets (VP-I46, Codex R87): then "nothing to check" would hide
+  // that a part could not be checked, so the view says it and is marked
+  // like every result the guarantee does not cover.
+  if (r && r.pairCount === 0) {
+    return r.uncertified
+      ? { state: "nopairs", frac: 0, verdict: "Not checked", tone: "warn", caveat, detail }
+      : { state: "nopairs", frac: 0, verdict: "No moving pairs", tone: "muted", caveat: false, detail };
+  }
   if (props.collisionBusy) {
     return { state: "checking", frac: sweptFrac.value, verdict: n ? `${found} so far` : "No collision so far",
       tone: n ? "danger" : "muted", caveat: false, detail };

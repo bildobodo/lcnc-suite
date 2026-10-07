@@ -36,7 +36,7 @@
 // the owner omits `bodies` when it knows the worker holds the model; a
 // worker that does not (recreated after a failure) answers `needBodies`
 // instead of guessing.
-import { restoreBaseTool, unusableNote,
+import { restoreBaseTool, geometryNote,
   buildCollisionModel, sweepCollisionsIter, toolCylinderPositions,
   type CollisionBody, type CollisionMachine, type CollisionModel, type CollisionOptions,
   type CollisionResult, type CollisionTrack, type SnapshotHandle,
@@ -202,7 +202,7 @@ self.onmessage = (e: MessageEvent<CollisionReq | CollisionCancel | CollisionPaus
       // relative motion — nothing to check. Surface it honestly.
       // No moving pair: nothing to certify, so the guarantee holds vacuously
       // — unless a body was left out for having no facet with area (VP-I46).
-      self.postMessage({ id, result: { hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified: unusableNote(model), pairCount: 0, bvhMs: model.bvhMs, sweepMs: 0, truncated: null } });
+      self.postMessage({ id, result: { hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified: geometryNote(model), pairCount: 0, bvhMs: model.bvhMs, sweepMs: 0, truncated: null } });
       return;
     }
     const run: Run = {

@@ -2234,6 +2234,14 @@ async function buildFromInit(init: ViewerInit) {
         // (`frac` = a place on the track's axis): the layout spec measures the
         // findings row with them (review round 7, UI-DI15). Needs a finished
         // sweep; a program change drops them with the result.
+        // The result's `uncertified` note alone (Codex R87 VP-I46: a body
+        // left out must stay visible whatever else the result says).
+        setCollisionNote: (note: string | null) => {
+          const r = collisionResult.value;
+          if (!r) return false;
+          collisionResult.value = { ...r, uncertified: note };
+          return true;
+        },
         setCollisionHits: (hits: { line: number; frac: number; rapid?: boolean }[]) => {
           const r = collisionResult.value, t = collisionTrack.value;
           if (!r || !t || !t.count) return false;

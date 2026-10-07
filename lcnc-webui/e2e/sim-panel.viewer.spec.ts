@@ -202,6 +202,43 @@ test("a result change under the focus keeps it in the panel; no arrow jogs", asy
   expect(await tryJog(), "no arrow reached the jog map").toEqual([]);
 });
 
+// Codex R87 VP-I46: a part left out of the check (no facet with area) is
+// named in the result's `uncertified`; with no moving pair left the view
+// returned "No moving pairs" before it read that note — no marker, no "not
+// certified" in the name, and the help began "nothing to check".
+test("a part left out of the check stays marked, with or without moving pairs", async ({ page, context }) => {
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: PREVIEW }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: TEXT }));
+  await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
+  await ctl({ op: "status_delta", data: { active_file: "/sim.ngc", is_enabled: false, enabled: false } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5101, file: "/sim.ngc" } });
+  await expect.poll(() => page.locator(".simPanel .checkVerdict").count(), { timeout: 30_000 }).toBe(1);
+  await openSimTab(page);
+  const item = page.locator(".simPanel .simSummary .sumItem").first();
+  const help = async () => {
+    await page.getByRole("button", { name: "Help: Collision check", exact: true }).click();
+    const text = await page.locator(".helpPopover:popover-open").innerText();
+    await page.keyboard.press("Tab");   // light dismiss without Escape (E-Stop)
+    await page.mouse.click(5, 5);
+    return text;
+  };
+  // Control: the layout mock's model has no moving pair and nothing left out.
+  await expect(item).toHaveAttribute("aria-label", "No moving pairs");
+  await expect(item.locator('span[title^="Not certified"]')).toHaveCount(0);
+  const note = "damaged: no facet with area — not checked";
+  expect(await page.evaluate(n => window.__viewerDiag?.setCollisionNote?.(n) ?? false, note)).toBe(true);
+  await expect(item, "no moving pair, a part left out").toHaveAttribute("aria-label", "Not checked (not certified)");
+  await expect(item.locator('span[title^="Not certified"]'), "the marker").toHaveCount(1);
+  const text = await help();
+  expect(text).toContain(note);
+  expect(text, "never \"nothing to check\" over a part that could not be checked").not.toContain("nothing to check");
+  // With a moving pair the same note marks the clear verdict.
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([]) ?? false)).toBe(true);
+  await page.evaluate(n => window.__viewerDiag?.setCollisionNote?.(n), note);
+  await expect(item).toHaveAttribute("aria-label", "Clear (not certified)");
+  await expect(item.locator('span[title^="Not certified"]')).toHaveCount(1);
+});
+
 // Codex R78 VP-I38: the steps sorted by position alone — where a tool change,
 // a limit and a collision share one moment, "Next on the timeline" went down
 // the list and back up. One order for both, ties and the wrap included.
