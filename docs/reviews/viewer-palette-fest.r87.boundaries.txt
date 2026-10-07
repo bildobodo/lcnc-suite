@@ -1,0 +1,53 @@
+
+ RUN  v4.1.8 /tmp/codex-r87-o7nuff94/archive/lcnc-webui
+
+ ❯ src/viewer/r87.boundaries.test.ts (3 tests | 2 failed) 249ms
+   × a feed engagement followed by real separation and a rapid re-entry reports the rapid contact 89ms
+   × rotary rapid re-entry after feed and a gap beyond twice the DEFAULT 2 mm margin is reported 14ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r87.boundaries.test.ts > a feed engagement followed by real separation and a rapid re-entry reports the rapid contact
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/viewer/r87.boundaries.test.ts:25:65
+     23|  expect(fine.hits.some(h=>h.rapid&&h.line===3&&h.dist===0)).toBe(true);
+     24|  expect(suffix.hits.some(h=>h.rapid&&h.line===3&&h.dist===0)).toBe(tru…
+     25|  expect(standard.hits.some(h=>h.rapid&&h.line===3&&h.dist===0)).toBe(t…
+       |                                                                 ^
+     26| });
+     27| it('recontact across ordinary lines and zero-length breaks preserves l…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/viewer/r87.boundaries.test.ts > rotary rapid re-entry after feed and a gap beyond twice the DEFAULT 2 mm margin is reported
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/viewer/r87.boundaries.test.ts:52:65
+     50|  out.rotary={distances,standard,fine};save();
+     51|  expect(distances[1]!.d).toBeGreaterThan(4);expect(fine.hits.some(h=>h…
+     52|  expect(standard.hits.some(h=>h.rapid&&h.line===3&&h.dist===0)).toBe(t…
+       |                                                                 ^
+     53| });
+     54|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  12:51:34
+   Duration  650ms (transform 218ms, setup 0ms, import 289ms, tests 249ms, environment 0ms)
+

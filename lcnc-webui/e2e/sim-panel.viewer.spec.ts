@@ -483,8 +483,10 @@ test("the summary names each kind: words in the wide pane, the glyph and the num
 // off — a tap there landed on the side pane. The row keeps the reach.
 test("the summary's \"?\" answers in its whole hit area, at the right edge of a full line", async ({ page, context }) => {
   // A FULL line (Codex's case: 1600 × 1000): twelve collisions and a
-  // ten-digit total — the limit text gives way, the "?" ends the line.
-  await prepare(page, context, "desktop", Buffer.from(encode({ ...PREVIEW_FIELDS, violations_total: 1234567890 })));
+  // sixteen-digit total — the limit text gives way, the "?" ends the line.
+  // A ten-digit total fitted in Firefox (283 px of 283) and the guard never
+  // reached its case there (Codex R85 VP-I44); the precondition below stays.
+  await prepare(page, context, "desktop", Buffer.from(encode({ ...PREVIEW_FIELDS, violations_total: Number.MAX_SAFE_INTEGER })));
   await page.evaluate(() => window.__viewerDiag?.setCollisionHits?.(Array.from({ length: 12 }, (_, i) => ({ line: 5 + i, frac: (2 + i) / 29 }))));
   await settleLayout(page);
   expect(await page.locator(".simPanel .sumLimit .sumWide").evaluate(el => el.scrollWidth > el.clientWidth), "the line is full: its limit text gives way").toBe(true);

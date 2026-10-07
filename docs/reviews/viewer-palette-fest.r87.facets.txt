@@ -1,0 +1,29 @@
+
+ RUN  v4.1.8 /tmp/codex-r87-o7nuff94/archive/lcnc-webui
+
+stderr | src/viewer/r87.facets.test.ts > a non-finite facet in an otherwise usable body is reported as unchecked geometry
+[collision] damaged: 1 of 2 facets without area dropped
+
+ ❯ src/viewer/r87.facets.test.ts (4 tests | 1 failed) 438ms
+   × a non-finite facet in an otherwise usable body is reported as unchecked geometry 8ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r87.facets.test.ts > a non-finite facet in an otherwise usable body is reported as unchecked geometry
+AssertionError: partly damaged geometry must not be certified: expected null not to be null
+ ❯ src/viewer/r87.facets.test.ts:24:134
+     22|  const model=buildCollisionModel(machine,[{id:'damaged',group:'frame',…
+     23|  const result=sweepCollisions(model,track,wcs,{margin:2});
+     24|  out.partial={unusable:model.unusable,result};save();expect(result.unc…
+       |                                                                                                                                      ^
+     25| });
+     26| it('thin retained Float32 triangles versus the separate reference, see…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)
+   Start at  13:02:08
+   Duration  1.40s (transform 639ms, setup 0ms, import 786ms, tests 438ms, environment 0ms)
+

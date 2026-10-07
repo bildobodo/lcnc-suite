@@ -1,0 +1,62 @@
+[
+  {
+    "bumps": 30,
+    "variant": "before",
+    "elapsedMs": 461.02172500000006,
+    "maxResumeMs": 157.60308099999997,
+    "resumes": 10,
+    "samples": 231,
+    "hits": 1,
+    "truncated": null
+  },
+  {
+    "bumps": 30,
+    "variant": "after",
+    "elapsedMs": 307.386581,
+    "maxResumeMs": 53.74897800000008,
+    "resumes": 11,
+    "samples": 801,
+    "hits": 1,
+    "truncated": null
+  },
+  {
+    "bumps": 100,
+    "variant": "before",
+    "elapsedMs": 389.57611700000007,
+    "maxResumeMs": 136.00538900000015,
+    "resumes": 23,
+    "samples": 651,
+    "hits": 1,
+    "truncated": null
+  },
+  {
+    "bumps": 100,
+    "variant": "after",
+    "elapsedMs": 1062.600113,
+    "maxResumeMs": 112.2288950000002,
+    "resumes": 22,
+    "samples": 2551,
+    "hits": 1,
+    "truncated": null
+  },
+  {
+    "bumps": 200,
+    "variant": "before",
+    "elapsedMs": 705.8141599999999,
+    "maxResumeMs": 162.86231599999974,
+    "resumes": 42,
+    "samples": 1251,
+    "hits": 1,
+    "truncated": null
+  },
+  {
+    "bumps": 200,
+    "variant": "after",
+    "elapsedMs": 2063.0269990000006,
+    "maxResumeMs": 127.50047099999938,
+    "resumes": 41,
+    "samples": 5051,
+    "hits": 1,
+    "truncated": null
+  }
+]

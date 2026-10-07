@@ -1,0 +1,47 @@
+
+ RUN  v4.1.8 /tmp/codex-r86-jp5m9k02/archive/lcnc-webui
+
+ ❯ src/viewer/r86.recontact.test.ts (2 tests | 1 failed) 371ms
+   × both contacts wider than MIN_ADV must be represented with the production defaults 144ms
+ ❯ src/viewer/r86.geometry.test.ts (2 tests | 1 failed) 139ms
+   × three distinct collinear Float32 vertices must not create a contact 1.5 millimetres away 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r86.geometry.test.ts > three distinct collinear Float32 vertices must not create a contact 1.5 millimetres away
+AssertionError: expected +0 to be close to 1.5, received difference is 1.5, but expected 5e-9
+ ❯ src/viewer/r86.geometry.test.ts:30:21
+     28|  const viaProduct=pairDistance(model.bodies[0]!,model.bodies[1]!,20,2);
+     29|  out.collinear={a,b,analyticDistance:1.5,direct,viaProduct,detectedDeg…
+     30|  expect(viaProduct).toBeCloseTo(1.5,8);
+       |                     ^
+     31| });
+     32|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/viewer/r86.recontact.test.ts > both contacts wider than MIN_ADV must be represented with the production defaults
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/viewer/r86.recontact.test.ts:27:46
+     25|  const rows=[48,48.3,48.6,49,49.5].map(x=>run(x));out.production=rows;…
+     26|  expect(rows.every(r=>r.truncated===null&&r.uncertified===null)).toBe(…
+     27|  expect(rows.every(r=>r.secondTouchCovered)).toBe(true);
+       |                                              ^
+     28| });
+     29|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 2 passed (4)
+   Start at  11:32:39
+   Duration  1.02s (transform 196ms, setup 0ms, import 334ms, tests 510ms, environment 0ms)
+
