@@ -251,6 +251,13 @@ export interface CollisionOptions {
    *  `model.pairs` — the tool for finding which pairs a slow sweep spends its
    *  time on. Off by default; costs nothing when absent. */
   profile?: { queries?: Uint32Array; ms?: Float64Array };
+  /** The pairs this sweep checks (1 = check), indexed like `model.pairs`: a
+   *  SHARD of the parallel sweep (sweepShards.ts). Pairs are independent —
+   *  each has its own certificates, contact state and records — so shards
+   *  over disjoint masks merge by concatenation. A masked-out pair is never
+   *  queried, takes no part in the baseline and is not counted as
+   *  prescreened. Absent = every pair. */
+  pairMask?: Uint8Array;
 }
 
 export interface CollisionResult {
@@ -327,7 +334,9 @@ const DEFAULTS = { linStepMm: 5, rotStepDeg: 4, maxSamples: 4_000_000 };
 const SAMPLES_PER_YIELD = 512;
 const SAMPLES_PER_CLOCK = 32;
 const YIELD_MS = 8;
-const MAX_HITS = 200;
+/** Records a result reports — onsets first (see buildResult); the parallel
+ *  sweep's merge applies the same cap over its shards (sweepShards.ts). */
+export const MAX_HITS = 200;
 
 export interface Node {
   id: string;
@@ -1251,6 +1260,7 @@ export function* sweepCollisionsIter(
   const rsA = { c: new THREE.Vector3(), r: 0 }, rsB = { c: new THREE.Vector3(), r: 0 };
   for (let pi = 0; pi < pairs.length && !abortedEarly; pi++) {
     if ((pi & 255) === 255 && (yield 0) === true) { abortedEarly = true; break; }
+    if (opts.pairMask && !opts.pairMask[pi]) { unreachable[pi] = 1; continue; }   // another shard's
     const [ai, bi] = pairs[pi]!;
     reachSphere(ai, pairLca[pi]!, rsA);
     reachSphere(bi, pairLca[pi]!, rsB);
