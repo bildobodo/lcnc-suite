@@ -8492,3 +8492,14 @@ Tests: `collisionWorker.test.ts` drives the coordinator through fake
 sub-workers (Codex's probe extended): every case of the four findings, the
 fall back from each owner state, the pacing, the kept bodies; each of 12
 compiling mutations turns its case red.
+
+Codex R91 closed VP-I48 and VP-I50 and found a rest of each of the other
+two: a shard that ended at its sample backstop counted as 1 in the pool's
+progress (80 % shown where 20 % was swept) — it now counts with its own
+coverage; and a stop still unanswered when a sub-worker failed before any
+shard had a word started a run here that waited under a hidden pause, the
+stop open — it is now answered at once as an error ("stopped, not
+resumable"): nothing computes, the owner shows the check as not run, the next
+request sweeps afresh. Codex had named a parked, honestly unchecked state as
+the other way; it needs a pair count the coordinator does not have (a result
+of 0 pairs reads "No moving pairs"), so the error it called equally clear.

@@ -86,6 +86,17 @@ describe("a partial is every shard's latest word (VP-I47)", () => {
     const m = last(sent);
     expect([m.progress, m.partial.truncated.covered, m.partial.shards]).toEqual([0, 0, 2]);
   });
+  it("a shard stopped at its sample backstop counts with what it swept", async () => {
+    // Codex R91 VP-I47: a shard's result set its progress to 1 whatever it
+    // covered — the pool read 80 % swept where every pair was swept to 20 %.
+    const { sent, workers, send } = await setup();
+    send(req(5));
+    workers[0]!.emit({ id: 5, result: { ...result([hit()], 0.2), truncated: { covered: 0.2, reason: "samples" }, coarsened: true } });
+    workers[1]!.emit({ id: 5, progress: 0.8 });
+    expect(last(sent).progress).toBe(0.2);
+    workers[1]!.emit({ id: 5, result: result() });
+    expect(last(sent).result.truncated).toEqual({ covered: 0.2, reason: "samples" });
+  });
   it("shard partials go out at most every PEEK_MS; the next progress carries a held one", async () => {
     const { sent, workers, send } = await setup();
     send(req(3));
@@ -191,15 +202,23 @@ describe("a failing sub-worker (VP-I48, VP-I49)", () => {
     expect(parked[0]!.result.truncated).toEqual({ covered: 0, reason: "stopped" });
     expect(sent.some(m => m.id === 17 && m.result && !m.stopped), "parked, not run").toBe(false);
   });
-  it("an unanswered stop with nothing swept yet is answered once from this core", async () => {
-    // Parked at the first checkpoint here — or done, when the sweep is
-    // shorter than a slice, as this one is (the single path answers a stop so).
-    const { sent, workers, send } = await setup();
-    send(req(18));
-    send({ stop: 18 });
-    workers[1]!.fail();
-    await vi.runAllTimersAsync();
-    expect(sent.filter(m => m.id === 18 && (m.stopped || m.result))).toHaveLength(1);
+  it("an unanswered stop with nothing swept yet is answered at once as the end — paused or not", async () => {
+    // Codex R91 VP-I49: the run started here for it waited under a hidden
+    // pause for a resume that never came, and the owner's stop stayed open.
+    for (const paused of [false, true]) {
+      const { sent, workers, send } = await setup();
+      send(req(18));
+      if (paused) send({ pause: 18, why: "hidden" });
+      send({ stop: 18 });
+      workers[1]!.fail();
+      await vi.advanceTimersByTimeAsync(60_000);
+      const answers = sent.filter(m => m.id === 18 && terminal(m) || m.id === 18 && m.stopped);
+      expect(answers.map(m => Object.keys(m).filter(k => k !== "id").sort()), `paused=${paused}`).toEqual([["error"]]);
+      expect(vi.getTimerCount(), `paused=${paused}: nothing left running`).toBe(0);
+      send({ continue: 18 });
+      await vi.runAllTimersAsync();
+      expect(sent.filter(m => m.id === 18 && m.result), "an error is the end").toHaveLength(0);
+    }
   });
   it("a cancelled sweep is acknowledged, not run again", async () => {
     const { sent, workers, send } = await setup();
