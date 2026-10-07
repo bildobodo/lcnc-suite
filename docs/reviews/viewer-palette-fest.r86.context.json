@@ -1,0 +1,24 @@
+{
+  "base": "9d5c6c37",
+  "code_head": "104f44a37cb641159bb553dc361669f28f8cf379",
+  "request_head": "5c4b795cda326ac7def8f83afcbacce524fad67a",
+  "branch": "feat/backlog-integration",
+  "archive": "/tmp/codex-r86-jp5m9k02/archive",
+  "frontend_matching_git_blobs": 419,
+  "isolation_only_differences": [
+    "lcnc-webui/e2e/ctl.ts",
+    "lcnc-webui/tsconfig.app.json",
+    "lcnc-webui/tsconfig.node.json",
+    "lcnc-webui/tsconfig.test.json",
+    "lcnc-webui/vite.config.ts"
+  ],
+  "missing_tracked_frontend_files": [],
+  "previous_evidence_verified": 43,
+  "live_status_before_evidence": "",
+  "worker": "collisionWorker-CNQ5KxOH.js",
+  "worker_distance_assignments": [
+    "sestPointToPoint(e,c),e.distanceTo(c)}})(),Mt.prototype.distanceToBox=(function(){const c=[\"x\",\"y\",\"z\"],t=new Array(12).fill().map(()=>",
+    ".sqrt(a)}return Math.sqrt(a)}function Vc(){Mt.prototype.distanceToBox=Rc}Vc();const Ln={linStepMm:5,rotStepDeg:4,maxSamples:4e6},Uc=512"
+  ],
+  "review_append_base_sha256": "62be93063e5e8d2830b151d3e88cfb205bf7cebef20fb3d5b62cbfda57f30538"
+}

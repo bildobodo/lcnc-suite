@@ -1634,6 +1634,63 @@ describe("a touch inside the margin (the oracle hunt, 2026-10-07)", () => {
   });
 });
 
+describe("re-sampling after a touch follows the contact state (Codex R87 VP-I45)", () => {
+  // The re-sampling after a touch recorded only touches and ignored what
+  // else it measured: a separation past 2 × margin in the stretch did not
+  // end the old contact, so a cutting pair's rapid re-contact after its feed
+  // contact was taken for the benign retract from it and never reported.
+  const slab = (w: number, h: number, d: number, x: number, y: number) => {
+    const g = new THREE.BoxGeometry(w, h, d).translate(x, y, 0).toNonIndexed();
+    const p = new Float32Array(g.getAttribute("position").array as Float32Array);
+    g.dispose();
+    return p;
+  };
+  const join = (...a: Float32Array[]) => {
+    const o = new Float32Array(a.reduce((s, x) => s + x.length, 0));
+    let k = 0;
+    for (const x of a) { o.set(x, k); k += x.length; }
+    return o;
+  };
+  const rapidOnLine3 = (r: CollisionResult) => r.hits.some(h => h.rapid && h.line === 3 && h.dist <= 1e-4);
+
+  it("a rotary rapid re-contact after a feed contact and a real separation is a gouge", () => {
+    // The cutter on a 1000 mm radius passes two stock blocks: feed A 5→10°
+    // touches the first (machining), 11.5° is 10.6 mm clear, the rapid
+    // 10→15° touches the second at 12.1…13.9° — wider than MIN_ADV.
+    const R = 1000, rad = Math.PI / 180;
+    const ROT: CollisionMachine = {
+      groups: [{ id: "frame", parent: "root" }, { id: "arm", parent: "root" }],
+      kinematics: [{ group: "arm", joint: 3, type: "rotate", direction: "z", sign: 1 }],
+      workGroup: "frame", toolGroup: "arm", unitScale: 1, axes: ["X", "Y", "Z", "A"],
+    };
+    const model = buildCollisionModel(ROT, [
+      { id: "stock", group: "frame", stock: true, positions: join(
+        slab(10, 10, 10, R * Math.cos(10 * rad), R * Math.sin(10 * rad)),
+        slab(10, 10, 10, R * Math.cos(13 * rad), R * Math.sin(13 * rad))) },
+      { id: "tool", group: "arm", tool: true, positions: slab(2, 20, 20, R, 0) },
+    ]);
+    const t: ScrubTrack = { ...track([[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+      [[5, 0, 0], [10, 0, 0], [15, 0, 0], [20, 0, 0]], [1, 2, 3, 4], [0, 0, 1, 1]) };
+    expect(rapidOnLine3(sweepCollisions(model, t, WCS0, { margin: 2 }))).toBe(true);
+  });
+
+  it("a translated rapid re-contact after a feed contact and a separation is a gouge too", () => {
+    // Margin 0.2: the feed into the first bump (X 99.5…101.5), clear past
+    // 0.4 at X 102, the rapid into the second (102.75…104).
+    const SLIDE: CollisionMachine = {
+      groups: [{ id: "frame", parent: "root" }, { id: "xslide", parent: "root" }],
+      kinematics: [{ group: "xslide", joint: 0, type: "translate", direction: "x", sign: 1 }],
+      workGroup: "frame", toolGroup: "xslide", unitScale: 1, axes: ["X", "Y", "Z"],
+    };
+    const model = buildCollisionModel(SLIDE, [
+      { id: "wall", group: "frame", stock: true, positions: join(slab(180, 10, 10, 110, 11.5), slab(1, 2.5, 10, 100.5, 5.25), slab(0.25, 2.5, 10, 103.375, 5.25)) },
+      { id: "slide", group: "xslide", tool: true, positions: slab(1, 10, 10, 0, 0) },
+    ]);
+    const t = track([[48, 0, 0], [100, 0, 0], [105, 0, 0], [180, 0, 0]], undefined, [1, 2, 3, 4], [0, 0, 1, 1]);
+    expect(rapidOnLine3(sweepCollisions(model, t, WCS0, { margin: 0.2 }))).toBe(true);
+  });
+});
+
 describe("facets without area (Codex R86 VP-I46)", () => {
   // three-mesh-bvh takes three DISTINCT collinear vertices for a triangle:
   // its zero normal leaves the separating axis and the plane useless, and
@@ -1657,6 +1714,7 @@ describe("facets without area (Codex R86 VP-I46)", () => {
   it("drops collinear, coincident and non-finite facets and keeps the rest", () => {
     const r = withoutArealessFacets(join(COLLINEAR, NEAR, tri(1, 1, 1, 1, 1, 1, 3, 3, 3), tri(0, 0, 0, 1, 0, 0, NaN, 1, 0), BELOW));
     expect(r.dropped).toBe(3);
+    expect(r.damaged, "the facet with NaN is damaged, not merely without area").toBe(1);
     expect(Array.from(r.positions)).toEqual([...NEAR, ...BELOW]);
     // A sliver with area stays: 0.01 wide over 100.
     expect(withoutArealessFacets(tri(0, 0, 0, 100, 0, 0, 50, 0.01, 0)).dropped).toBe(0);
@@ -1682,5 +1740,20 @@ describe("facets without area (Codex R86 VP-I46)", () => {
     expect(model.bodies.map(b => b.id)).toEqual(["plate", "post"]);
     const r = sweepCollisions(model, track([[0, 0, 0], [5, 0, 0]]), WCS0, { margin: 2 });
     expect(r.uncertified).toMatch(/^line: no facet with area — not checked/);
+  });
+
+  it("a body that lost a damaged facet is checked on what is left and said to be partly checked (Codex R87)", () => {
+    // A facet with a coordinate that is not a number is surface nobody can
+    // check — unlike a facet without area, it may have been anything. The
+    // rest of the body is checked; the result must not read as a plain clear.
+    const model = buildCollisionModel(FLAT, [
+      { id: "damaged", group: "frame", positions: join(BELOW, tri(0, 0, 0, 4, 0, 0, NaN, 1, 0)) },
+      { id: "plate", group: "xslide", positions: NEAR },
+    ]);
+    expect(model.unusable).toEqual([]);
+    expect(model.damaged).toEqual(["damaged"]);
+    expect(model.bodies.map(b => b.id)).toEqual(["damaged", "plate"]);
+    const r = sweepCollisions(model, track([[0, 0, 0], [5, 0, 0]]), WCS0, { margin: 2 });
+    expect(r.uncertified).toBe("damaged: facets with coordinates that are not numbers — partly checked");
   });
 });

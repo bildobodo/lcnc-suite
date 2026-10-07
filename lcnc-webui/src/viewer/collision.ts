@@ -563,18 +563,23 @@ export interface CollisionModel {
   /** Bodies with no facet that has area (VP-I46): left out of the model, so
    *  never checked — every sweep's `uncertified` names them. */
   unusable: string[];
+  /** Bodies that lost facets with a coordinate that is not finite (R87):
+   *  their remaining surface is checked, the result says "partly checked". */
+  damaged: string[];
   bvhMs: number;
 }
 
 /** A triangle soup without its facets that have no area — three distinct
- *  collinear vertices, coincident ones, or a coordinate that is not finite
- *  (VP-I46: three-mesh-bvh read a collinear facet as touching a triangle
- *  1.5 mm away). "No area" is relative: twice the area at most 1e-10 of the
- *  longest edge squared — a sliver 1e-7 mm wide over 1 m is a line. */
-export function withoutArealessFacets(pos: Float32Array): { positions: Float32Array; dropped: number } {
+ *  collinear vertices or coincident ones (VP-I46: three-mesh-bvh read a
+ *  collinear facet as touching a triangle 1.5 mm away) — and without its
+ *  DAMAGED ones, a coordinate that is not finite. "No area" is relative:
+ *  twice the area at most 1e-10 of the longest edge squared — a sliver
+ *  1e-7 mm wide over 1 m is a line on its neighbours' edges, nothing is lost.
+ *  A damaged facet is surface nobody can check (R87): counted apart. */
+export function withoutArealessFacets(pos: Float32Array): { positions: Float32Array; dropped: number; damaged: number } {
   const nTri = Math.floor(pos.length / 9);
   const keep = new Uint8Array(nTri);
-  let kept = 0;
+  let kept = 0, damaged = 0;
   for (let t = 0; t < nTri; t++) {
     const o = t * 9;
     const ax = pos[o]!, ay = pos[o + 1]!, az = pos[o + 2]!;
@@ -584,17 +589,24 @@ export function withoutArealessFacets(pos: Float32Array): { positions: Float32Ar
     const cx = uy * vz - uz * vy, cy = uz * vx - ux * vz, cz = ux * vy - uy * vx;
     const cross2 = cx * cx + cy * cy + cz * cz;
     const edge2 = Math.max(ux * ux + uy * uy + uz * uz, vx * vx + vy * vy + vz * vz, wx * wx + wy * wy + wz * wz);
-    if (Number.isFinite(cross2) && Number.isFinite(edge2) && cross2 > 1e-20 * edge2 * edge2) { keep[t] = 1; kept++; }
+    if (!Number.isFinite(cross2) || !Number.isFinite(edge2)) { damaged++; continue; }
+    if (cross2 > 1e-20 * edge2 * edge2) { keep[t] = 1; kept++; }
   }
-  if (kept === nTri) return { positions: pos, dropped: 0 };
+  if (kept === nTri) return { positions: pos, dropped: 0, damaged: 0 };
   const out = new Float32Array(kept * 9);
   for (let t = 0, k = 0; t < nTri; t++) if (keep[t]) { out.set(pos.subarray(t * 9, t * 9 + 9), k); k += 9; }
-  return { positions: out, dropped: nTri - kept };
+  return { positions: out, dropped: nTri - kept, damaged };
 }
 
-/** The note a sweep's `uncertified` carries for the bodies left out (VP-I46). */
-export function unusableNote(model: CollisionModel): string | null {
-  return model.unusable.length ? `${model.unusable.join(", ")}: no facet with area — not checked` : null;
+/** The note a sweep's `uncertified` carries for the model's geometry: the
+ *  bodies left out (VP-I46) and the bodies checked without their damaged
+ *  facets (R87) — never a plain "clear" over surface nobody checked. */
+export function geometryNote(model: CollisionModel): string | null {
+  const notes: string[] = [];
+  if (model.unusable.length) notes.push(`${model.unusable.join(", ")}: no facet with area — not checked`);
+  const partly = model.damaged.filter(id => !model.unusable.includes(id));
+  if (partly.length) notes.push(`${partly.join(", ")}: facets with coordinates that are not numbers — partly checked`);
+  return notes.length ? notes.join("; ") : null;
 }
 
 export function buildCollisionModel(machine: CollisionMachine, bodyDefs: CollisionBody[]): CollisionModel {
@@ -605,6 +617,7 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
 
   const bodies: BuiltBody[] = [];
   const unusable: string[] = [];
+  const damaged: string[] = [];
   const _e = new THREE.Euler();
   const _size = new THREE.Vector3();
   for (const def of bodyDefs) {
@@ -622,8 +635,9 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
     // without area is a line on its neighbours' edges and carries no surface:
     // it is dropped (so is one with a coordinate that is not finite). A body
     // left with none is not checked — every sweep names it in `uncertified`.
-    const { positions: scaled, dropped } = withoutArealessFacets(raw);
-    if (dropped) console.warn(`[collision] ${def.id}: ${dropped} of ${raw.length / 9} facets without area dropped`);
+    const { positions: scaled, dropped, damaged: bad } = withoutArealessFacets(raw);
+    if (dropped) console.warn(`[collision] ${def.id}: ${dropped} of ${raw.length / 9} facets dropped (${bad} with coordinates that are not numbers)`);
+    if (bad) damaged.push(def.id);
     if (scaled.length === 0) { unusable.push(def.id); continue; }
     const geom = new THREE.BufferGeometry();
     geom.setAttribute("position", new THREE.BufferAttribute(scaled, 3));
@@ -707,7 +721,7 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
   }
   const toolBodyIdx = bodies.findIndex(b => isToolBody(b) || b.id === "tool");
   const baseTool = toolBodyIdx >= 0 ? toolVariantOf(bodies[toolBodyIdx]!) : null;
-  return { nodes, bodies, toolBodyIdx, baseTool, pairs, pairDofs, pairCutting, pairTool, pairLca, machine, unusable, bvhMs: performance.now() - t0 };
+  return { nodes, bodies, toolBodyIdx, baseTool, pairs, pairDofs, pairCutting, pairTool, pairLca, machine, unusable, damaged, bvhMs: performance.now() - t0 };
 }
 
 // Distance lower bound from the two bodies' component boxes, `rel` mapping
@@ -1029,7 +1043,7 @@ export function* sweepCollisionsIter(
   // Report it instead of assuming it: unchecked is not clear.
   const tFrames = track.frames;
   let vertModel: KinsModel[] | null = null;
-  let uncertified: string | null = unusableNote(model);
+  let uncertified: string | null = geometryNote(model);
   let fellBack = false;
   if (track.mode && !abortedInit) {
     const vm = new Array<KinsModel>(n);
@@ -1405,6 +1419,45 @@ export function* sweepCollisionsIter(
     }
   };
 
+  // One query's answer for a pair's CONTACT STATE and records — the main
+  // loop's and the re-sampling's after a touch (VP-I45, R87): the onset
+  // (with the re-entry promotion), the record under the cutting rule, a
+  // verified separation past 2 × margin. The main loop then sets the pair's
+  // certificates; the re-sampling sets none.
+  const noteQuery = (pi: number, s: number, line: number, isRapid: boolean, d: number) => {
+    if (d <= opts.margin) {
+      if (!inContact[pi]) {
+        inContact[pi] = 1;
+        onsetRapid[pi] = isRapid ? 1 : 0;
+        onsetLine[pi] = line;
+        // Re-entry promotion: a genuine onset on a line whose record
+        // was minted as a continuation (contact carried in, separated,
+        // came back on the same line) is a real clash — never hidden.
+        // Its carried-in part stays the earlier onset's contact
+        // (carriedFrom → `carried` after refinement, Codex R34 VP-I09).
+        const ex = worst.get(keyFor(line, pi));
+        if (ex && ex.continuation !== undefined) {
+          ex.carriedFrom = ex.continuation;
+          delete ex.continuation;
+        }
+      }
+      if (pairCutting[pi]) {
+        // Cutting pair (the cutter × a stock body): feed contact is
+        // MACHINING — never reported. A contact whose ONSET fell in a
+        // rapid is the gouge class and reports for that rapid; a
+        // retract leaving contact begun on a feed (or present from
+        // the program start) is benign.
+        if (isRapid && onsetRapid[pi]) recordHit(line, s, true, pi, d);
+      } else {
+        recordHit(line, s, isRapid, pi, d);
+      }
+    } else if (inContact[pi] && d > opts.margin * 2) {
+      inContact[pi] = 0;
+      onsetRapid[pi] = 0;
+      onsetLine[pi] = -1;  // verified separation: the next touch is a new onset
+    }
+  };
+
   // Conservative lever arm of a rotary DOF for one body at the CURRENT pose:
   // distance from the DOF's world axis line to the body's bounding sphere.
   const _axisPos = new THREE.Vector3();
@@ -1433,7 +1486,7 @@ export function* sweepCollisionsIter(
     }
     return lo;
   };
-  const distAtCum = (s: number, pi: number): number => {
+  const distAtCum = (s: number, pi: number, maxT: number = opts.margin): number => {
     let lo = 1, hi = n - 1;
     while (lo < hi) {
       const mid = (lo + hi) >> 1;
@@ -1456,7 +1509,7 @@ export function* sweepCollisionsIter(
       toolFor(lo),
     );
     const [ai, bi] = pairs[pi]!;
-    return pairDistance(bodies[ai]!, bodies[bi]!, opts.margin, opts.margin);
+    return pairDistance(bodies[ai]!, bodies[bi]!, maxT, opts.margin);
   };
 
   // ---- Conservative advancement ----
@@ -1968,52 +2021,29 @@ export function* sweepCollisionsIter(
           } else {
             d = pairDistance(A, B, HORIZON, opts.margin);
           }
-          // VP-I45 (Codex R86): a touching pair re-probes every EXPLORE, and
-          // inside that stride the contact can end, the pair separate and
+          // VP-I45 (Codex R86/R87): a touching pair re-probes every EXPLORE,
+          // and inside that stride the contact can end, the pair separate and
           // touch AGAIN — a second contact wider than MIN_ADV no sample saw.
           // Found not touching now, the stretch since its last touch is
-          // re-sampled at MIN_ADV, before this sample's state changes (the
-          // stretch belongs to the contact): every touch there is recorded
-          // on its own line. A pair still touching keeps the stretch as
-          // contact — an unchecked gap never reads as clear.
+          // re-sampled at MIN_ADV BEFORE this sample's state changes, each
+          // sample through the same state step in time order: a separation
+          // past 2 × margin there ends the old contact, and a touch after it
+          // is a new onset on its own line and kind of move — a rapid
+          // re-contact after a feed contact was taken for its benign retract
+          // (R87). Queried to HORIZON, so a separation can be seen at all.
+          // A pair still touching keeps the stretch as contact — an
+          // unchecked gap never reads as clear.
           if (touching[pi] && d > CONTACT_EPS && s - lastTouch[pi]! > MIN_ADV) {
             for (let x = lastTouch[pi]! + MIN_ADV; x < s - 1e-9; x += MIN_ADV) {
               done++;
-              const dx = distAtCum(x, pi);
-              if (dx > CONTACT_EPS) continue;
+              const dx = distAtCum(x, pi, HORIZON);
               const seg = segAtDist(x);
-              const rapidX = track.rapid[seg] === 1;
-              if (!pairCutting[pi]) recordHit(track.lines[seg]!, x, rapidX, pi, dx);
-              else if (rapidX && onsetRapid[pi]) recordHit(track.lines[seg]!, x, true, pi, dx);
+              noteQuery(pi, x, track.lines[seg]!, track.rapid[seg] === 1, dx);
             }
             interpPose(i, (s - c0) / L);   // this sample's pose for the pairs after this one
           }
+          noteQuery(pi, s, line, isRapid, d);
           if (d <= opts.margin) {
-            if (!inContact[pi]) {
-              inContact[pi] = 1;
-              onsetRapid[pi] = isRapid ? 1 : 0;
-              onsetLine[pi] = line;
-              // Re-entry promotion: a genuine onset on a line whose record
-              // was minted as a continuation (contact carried in, separated,
-              // came back on the same line) is a real clash — never hidden.
-              // Its carried-in part stays the earlier onset's contact
-              // (carriedFrom → `carried` after refinement, Codex R34 VP-I09).
-              const ex = worst.get(keyFor(line, pi));
-              if (ex && ex.continuation !== undefined) {
-                ex.carriedFrom = ex.continuation;
-                delete ex.continuation;
-              }
-            }
-            if (pairCutting[pi]) {
-              // Cutting pair (the cutter × a stock body): feed contact is
-              // MACHINING — never reported. A contact whose ONSET fell in a
-              // rapid is the gouge class and reports for that rapid; a
-              // retract leaving contact begun on a feed (or present from
-              // the program start) is benign.
-              if (isRapid && onsetRapid[pi]) recordHit(line, s, true, pi, d);
-            } else {
-              recordHit(line, s, isRapid, pi, d);
-            }
             if (d > CONTACT_EPS) {
               // Inside the margin but not touching: the distance certifies
               // that the pair cannot TOUCH before s + d/V. The fixed EXPLORE
@@ -2036,11 +2066,6 @@ export function* sweepCollisionsIter(
             qLine[pi] = line;
           } else {
             touching[pi] = 0;
-            if (inContact[pi] && d > opts.margin * 2) {
-              inContact[pi] = 0;
-              onsetRapid[pi] = 0;
-              onsetLine[pi] = -1;  // verified separation: the next touch is a new onset
-            }
             const bound = d === Infinity ? HORIZON : d;
             clear[pi] = bound - opts.margin;
             sQ[pi] = s;

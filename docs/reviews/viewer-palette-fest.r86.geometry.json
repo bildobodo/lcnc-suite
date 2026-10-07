@@ -1,0 +1,48 @@
+{
+  "ordinary": {
+    "seed": 20261007,
+    "compared": 20000,
+    "badCount": 0,
+    "bad": []
+  },
+  "collinear": {
+    "a": [
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        4,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        0
+      ]
+    ],
+    "b": [
+      [
+        0,
+        1.5,
+        0
+      ],
+      [
+        2,
+        1.5,
+        0
+      ],
+      [
+        1,
+        2.5,
+        0
+      ]
+    ],
+    "analyticDistance": 1.5,
+    "direct": 0,
+    "viaProduct": 0,
+    "detectedDegenerate": false
+  }
+}

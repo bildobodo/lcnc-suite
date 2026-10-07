@@ -1,0 +1,72 @@
+[
+  {
+    "total": 1234567890,
+    "width": 1600,
+    "padding": "as-built",
+    "x": 1581.88330078125,
+    "y": 219,
+    "reach": 5.5,
+    "tabRight": 1583,
+    "glyphRight": 1577.38330078125,
+    "clipped": false,
+    "limitClient": 283,
+    "limitScroll": 283,
+    "reaches": true,
+    "opened": 1,
+    "openText": [
+      "1234567890 limit violations, a line and an axis each. The parse sends the first 2; the list shows their 2 lines."
+    ]
+  },
+  {
+    "total": 1234567890,
+    "width": 1600,
+    "padding": "without-padding",
+    "x": 1581.88330078125,
+    "y": 219,
+    "reach": 5.5,
+    "tabRight": 1583,
+    "glyphRight": 1577.38330078125,
+    "clipped": false,
+    "limitClient": 283,
+    "limitScroll": 283,
+    "reaches": true,
+    "opened": 1,
+    "openText": [
+      "1234567890 limit violations, a line and an axis each. The parse sends the first 2; the list shows their 2 lines."
+    ]
+  },
+  {
+    "total": 9007199254740991,
+    "width": 1600,
+    "padding": "as-built",
+    "x": 1582,
+    "y": 219,
+    "reach": 5.5,
+    "tabRight": 1583,
+    "glyphRight": 1577.5,
+    "clipped": true,
+    "limitClient": 283,
+    "limitScroll": 324,
+    "reaches": true,
+    "opened": 1,
+    "openText": [
+      "9007199254740991 limit violations, a line and an axis each. The parse sends the first 2; the list shows their 2 lines."
+    ]
+  },
+  {
+    "total": 9007199254740991,
+    "width": 1600,
+    "padding": "without-padding",
+    "x": 1587.5,
+    "y": 219,
+    "reach": 5.5,
+    "tabRight": 1583,
+    "glyphRight": 1583,
+    "clipped": true,
+    "limitClient": 288,
+    "limitScroll": 324,
+    "reaches": false,
+    "opened": 0,
+    "openText": []
+  }
+]

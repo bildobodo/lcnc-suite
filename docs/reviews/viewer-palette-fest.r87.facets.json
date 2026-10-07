@@ -1,0 +1,75 @@
+{
+  "empty": {
+    "unusable": [
+      "line"
+    ],
+    "note": "line: no facet with area — not checked",
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 3,
+      "coarsened": false,
+      "uncertified": "line: no facet with area — not checked",
+      "pairCount": 0,
+      "pairsPrescreened": 0,
+      "bvhMs": 1.5255500000000666,
+      "sweepMs": 1.3608410000000504,
+      "truncated": null
+    },
+    "early": {
+      "value": {
+        "hits": [],
+        "staticContacts": [],
+        "samples": 0,
+        "coarsened": false,
+        "uncertified": "line: no facet with area — not checked",
+        "pairCount": 0,
+        "pairsPrescreened": 0,
+        "bvhMs": 1.5255500000000666,
+        "sweepMs": 53.086228000000006,
+        "truncated": {
+          "covered": 0,
+          "reason": "stopped"
+        }
+      },
+      "done": true
+    }
+  },
+  "partial": {
+    "unusable": [],
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 3,
+      "coarsened": false,
+      "uncertified": null,
+      "pairCount": 1,
+      "pairsPrescreened": 1,
+      "bvhMs": 0.6538779999999633,
+      "sweepMs": 0.5356699999999819,
+      "truncated": null
+    }
+  },
+  "slivers": {
+    "retained": 19989,
+    "dropped": 11,
+    "nanReference": 0,
+    "bad": []
+  },
+  "worker": [
+    {
+      "id": 87,
+      "result": {
+        "hits": [],
+        "staticContacts": [],
+        "samples": 0,
+        "coarsened": false,
+        "uncertified": "line: no facet with area — not checked",
+        "pairCount": 0,
+        "bvhMs": 0.31766799999991235,
+        "sweepMs": 0,
+        "truncated": null
+      }
+    }
+  ]
+}

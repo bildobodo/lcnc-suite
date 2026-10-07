@@ -8332,3 +8332,28 @@ whose collinear facet no longer reads as contact (10.5, the real facet's
 distance), and a body of only such facets left out and named — both red
 without the filter.
 
+## 2026-10-07 — The re-sampling follows the contact state; damaged facets are said (Codex R87)
+
+VP-I45 rest (P1). The re-sampling after a touch recorded only touches: a
+separation past 2 × margin it measured did not end the old contact, so the
+next touch kept the old contact's origin — a cutter's rapid re-contact after
+its feed contact and a 10.6 mm separation (Codex: a 1000 mm radius, the
+second block at 12.1…13.9°) was taken for the benign retract and never
+reported. The main loop's contact-state step is now one function,
+`noteQuery` (the onset with the re-entry promotion, the record under the
+cutting rule, the verified separation), and the re-sampling runs every
+sample through it in time order, queried to HORIZON so a separation can be
+seen; the certificates stay the main loop's. Tests: Codex's rotary case at
+the default margin and a translated one at 0.2 — both red with the old
+re-sampling.
+
+VP-I46 rest (P2). A facet with a coordinate that is not a number was dropped
+like a facet without area, but nothing says it was only a line: such a body
+is now checked on what is left and named "partly checked" in `uncertified`
+(`model.damaged`, `geometryNote` — red without the note). And with no moving
+pair left, the Simulation tab returned "No moving pairs" before it read the
+note — no marker, no "not certified" in the name, help beginning "nothing to
+check": it now reads "Not checked" with the marker and says no part that
+could be checked moves (sim-panel spec, Chromium and Firefox, red with the
+old early return; `__viewerDiag.setCollisionNote`).
+
