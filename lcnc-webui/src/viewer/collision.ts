@@ -321,7 +321,7 @@ const SAMPLES_PER_CLOCK = 32;
 const YIELD_MS = 8;
 const MAX_HITS = 200;
 
-interface Node {
+export interface Node {
   id: string;
   parentIdx: number;
   base: THREE.Vector3;
@@ -330,7 +330,7 @@ interface Node {
   world: THREE.Matrix4;
 }
 
-interface BuiltBody {
+export interface BuiltBody {
   id: string;
   nodeIdx: number;
   side: "tool" | "work" | "other";
@@ -645,6 +645,84 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
   return { nodes, bodies, toolBodyIdx, baseTool, pairs, pairDofs, pairCutting, pairTool, pairLca, machine, bvhMs: performance.now() - t0 };
 }
 
+// Distance lower bound from the two bodies' component boxes, `rel` mapping
+// B's frame into A's (see BuiltBody.comps): each B box's eight corners →
+// an AABB in A's frame, min box-to-box gap over all component pairs.
+// Exported for the estimator test (collisionBounds.test.ts).
+export function boxLowerBound(A: BuiltBody, B: BuiltBody, rel: THREE.Matrix4): number {
+  const ca = A.comps, cb = B.comps;
+  if (!ca.length || !cb.length) return 0;
+  const e = rel.elements;
+  let best = Infinity;
+  for (let j = 0; j < cb.length; j += 6) {
+    let x0 = Infinity, y0 = Infinity, z0 = Infinity, x1 = -Infinity, y1 = -Infinity, z1 = -Infinity;
+    for (let k = 0; k < 8; k++) {
+      const bx = (k & 1) ? cb[j + 3]! : cb[j]!, by = (k & 2) ? cb[j + 4]! : cb[j + 1]!, bz = (k & 4) ? cb[j + 5]! : cb[j + 2]!;
+      const x = e[0]! * bx + e[4]! * by + e[8]! * bz + e[12]!;
+      const y = e[1]! * bx + e[5]! * by + e[9]! * bz + e[13]!;
+      const z = e[2]! * bx + e[6]! * by + e[10]! * bz + e[14]!;
+      if (x < x0) x0 = x; if (x > x1) x1 = x;
+      if (y < y0) y0 = y; if (y > y1) y1 = y;
+      if (z < z0) z0 = z; if (z > z1) z1 = z;
+    }
+    for (let i = 0; i < ca.length; i += 6) {
+      const gx = Math.max(0, ca[i]! - x1, x0 - ca[i + 3]!);
+      const gy = Math.max(0, ca[i + 1]! - y1, y0 - ca[i + 4]!);
+      const gz = Math.max(0, ca[i + 2]! - z1, z0 - ca[i + 5]!);
+      const d = Math.sqrt(gx * gx + gy * gy + gz * gz);
+      if (d < best) { best = d; if (best === 0) return 0; }
+    }
+  }
+  return best;
+}
+
+const _pdInv = new THREE.Matrix4();
+const _pdRel = new THREE.Matrix4();
+const _pdT1 = { point: new THREE.Vector3(), distance: 0, faceIndex: -1 };
+const _pdT2 = { point: new THREE.Vector3(), distance: 0, faceIndex: -1 };
+
+/**
+ * Closest distance between two POSED bodies, or a valid LOWER bound when
+ * that is already above `maxT` (sphere gap), above `margin` (component
+ * boxes — exact contact is then impossible and the certificate needs only a
+ * bound), or Infinity when provably beyond `maxT` (BVH). The larger body is
+ * the outer traversal (BuiltBody.extent). Every finite answer is ≤ the true
+ * distance — the sweep's certificates rest on it; collisionBounds.test.ts
+ * holds every estimator to it on the shipped models.
+ */
+export function pairDistance(A: BuiltBody, B: BuiltBody, maxT: number, margin: number): number {
+  const centerDist = A.worldCenter.distanceTo(B.worldCenter);
+  const sphereGap = centerDist - A.radius - B.radius;
+  if (sphereGap > maxT) return sphereGap;  // valid LOWER bound on true distance
+  const O = A.extent >= B.extent ? A : B;
+  const I = O === A ? B : A;
+  _pdInv.copy(O.world).invert();
+  _pdRel.multiplyMatrices(_pdInv, I.world);
+  const lb = boxLowerBound(O, I, _pdRel);
+  if (lb > margin) return lb;               // no contact possible; bound for the certificate
+  const res = O.bvh.closestPointToGeometry(I.geom, _pdRel, _pdT1, _pdT2, 0, maxT);
+  // null: provably beyond maxT. So is a distance ABOVE maxT: the library
+  // visits only the bounds nearer than maxT, and what it returns past it is
+  // the closest of the triangles it happened to visit — not the minimum
+  // (three-mesh-bvh 0.9.14; live haus.ngc 2026-10-06: 291 returned at a
+  // true 82, the certificate jumped 230 mm past the yoke's onset).
+  return res && _pdT1.distance <= maxT ? _pdT1.distance : Infinity;
+}
+
+/** Pose every node and body at `jointVals` (joint order; no tool offset) —
+ *  the sweep's own compose. Exported for the estimator and oracle tests. */
+export function poseModel(model: CollisionModel, jointVals: number[]): void {
+  poseTree(model.nodes, jointVals, _poseScratch);
+  for (const body of model.bodies) {
+    body.world.multiplyMatrices(model.nodes[body.nodeIdx]!.world, body.localMat);
+    body.worldCenter.copy(body.center).applyMatrix4(body.world);
+  }
+}
+const _poseScratch = {
+  pos: new THREE.Vector3(), quat: new THREE.Quaternion(),
+  step: new THREE.Quaternion(), one: new THREE.Vector3(1, 1, 1),
+};
+
 /** One kinematic pose: evaluate every node's world matrix from joint values. */
 function poseTree(nodes: Node[], jointVals: number[], scratch: {
   pos: THREE.Vector3; quat: THREE.Quaternion; step: THREE.Quaternion; one: THREE.Vector3;
@@ -931,10 +1009,6 @@ export function* sweepCollisionsIter(
     pos: new THREE.Vector3(), quat: new THREE.Quaternion(),
     step: new THREE.Quaternion(), one: new THREE.Vector3(1, 1, 1),
   };
-  const relMat = new THREE.Matrix4();
-  const invA = new THREE.Matrix4();
-  const target1 = { point: new THREE.Vector3(), distance: 0, faceIndex: -1 };
-  const target2 = { point: new THREE.Vector3(), distance: 0, faceIndex: -1 };
 
   // Worst hit per (line, pair) — same attribution shape as stage 1. `pi`
   // (pair index), `samples` (in-contact sample cums, the interval
@@ -976,63 +1050,6 @@ export function* sweepCollisionsIter(
       }
       body.worldCenter.copy(body.center).applyMatrix4(body.world);
     }
-  };
-
-  // Distance between two posed bodies, capped at `maxT`: returns Infinity
-  // when provably ≥ maxT (sphere prescreen — its slack also LOWER-bounds the
-  // true distance, so advancement can use it — then BVH closest-point with
-  // early-out; the matrix maps B's geometry into A's local frame: A⁻¹ · B).
-  // Distance lower bound from the two bodies' component boxes, `rel` mapping
-  // B's frame into A's (see BuiltBody.comps): each B box's eight corners →
-  // an AABB in A's frame, min box-to-box gap over all component pairs.
-  const boxLowerBound = (A: BuiltBody, B: BuiltBody, rel: THREE.Matrix4): number => {
-    const ca = A.comps, cb = B.comps;
-    if (!ca.length || !cb.length) return 0;
-    const e = rel.elements;
-    let best = Infinity;
-    for (let j = 0; j < cb.length; j += 6) {
-      let x0 = Infinity, y0 = Infinity, z0 = Infinity, x1 = -Infinity, y1 = -Infinity, z1 = -Infinity;
-      for (let k = 0; k < 8; k++) {
-        const bx = (k & 1) ? cb[j + 3]! : cb[j]!, by = (k & 2) ? cb[j + 4]! : cb[j + 1]!, bz = (k & 4) ? cb[j + 5]! : cb[j + 2]!;
-        const x = e[0]! * bx + e[4]! * by + e[8]! * bz + e[12]!;
-        const y = e[1]! * bx + e[5]! * by + e[9]! * bz + e[13]!;
-        const z = e[2]! * bx + e[6]! * by + e[10]! * bz + e[14]!;
-        if (x < x0) x0 = x; if (x > x1) x1 = x;
-        if (y < y0) y0 = y; if (y > y1) y1 = y;
-        if (z < z0) z0 = z; if (z > z1) z1 = z;
-      }
-      for (let i = 0; i < ca.length; i += 6) {
-        const gx = Math.max(0, ca[i]! - x1, x0 - ca[i + 3]!);
-        const gy = Math.max(0, ca[i + 1]! - y1, y0 - ca[i + 4]!);
-        const gz = Math.max(0, ca[i + 2]! - z1, z0 - ca[i + 5]!);
-        const d = Math.sqrt(gx * gx + gy * gy + gz * gz);
-        if (d < best) { best = d; if (best === 0) return 0; }
-      }
-    }
-    return best;
-  };
-  // Closest distance between two bodies at the current pose, or a valid
-  // LOWER bound when that is already above `maxT` (sphere gap), above the
-  // margin (component boxes — exact contact is then impossible and the
-  // certificate needs only a bound), or provably beyond maxT (BVH). The
-  // larger body is the outer traversal (BuiltBody.extent).
-  const pairDistance = (A: BuiltBody, B: BuiltBody, maxT: number): number => {
-    const centerDist = A.worldCenter.distanceTo(B.worldCenter);
-    const sphereGap = centerDist - A.radius - B.radius;
-    if (sphereGap > maxT) return sphereGap;  // valid LOWER bound on true distance
-    const O = A.extent >= B.extent ? A : B;
-    const I = O === A ? B : A;
-    invA.copy(O.world).invert();
-    relMat.multiplyMatrices(invA, I.world);
-    const lb = boxLowerBound(O, I, relMat);
-    if (lb > opts.margin) return lb;         // no contact possible; bound for the certificate
-    const res = O.bvh.closestPointToGeometry(I.geom, relMat, target1, target2, 0, maxT);
-    // null: provably beyond maxT. So is a distance ABOVE maxT: the library
-    // visits only the bounds nearer than maxT, and what it returns past it is
-    // the closest of the triangles it happened to visit — not the minimum
-    // (three-mesh-bvh 0.9.14; live haus.ngc 2026-10-06: 291 returned at a
-    // true 82, the certificate jumped 230 mm past the yoke's onset).
-    return res && target1.distance <= maxT ? target1.distance : Infinity;
   };
 
   // ── Whole-program reach prescreen (2026-09-13) ────────────────────────
@@ -1249,7 +1266,7 @@ export function* sweepCollisionsIter(
   for (let pi = 0; pi < pairs.length; pi++) {
     if (unreachable[pi]) continue;   // provably beyond the margin everywhere (prescreen)
     const [ai, bi] = pairs[pi]!;
-    const dist = pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
+    const dist = pairDistance(bodies[ai]!, bodies[bi]!, opts.margin, opts.margin);
     if (dist <= opts.margin) {
       if (pairCutting[pi]) {
         inContact[pi] = 1;  // engaged from the start — a later retract is benign
@@ -1265,7 +1282,7 @@ export function* sweepCollisionsIter(
     poseRest();
     for (const pi of candidates) {
       const [ai, bi] = pairs[pi]!;
-      if (pairDistance(bodies[ai]!, bodies[bi]!, opts.margin) <= opts.margin) {
+      if (pairDistance(bodies[ai]!, bodies[bi]!, opts.margin, opts.margin) <= opts.margin) {
         staticExcluded[pi] = 1;   // touching at rest too: a slide, a bearing, a mount
         staticContacts.push({ a: bodies[ai]!.id, b: bodies[bi]!.id, dist: firstDist[pi]! });
       } else {
@@ -1351,7 +1368,7 @@ export function* sweepCollisionsIter(
       toolFor(lo),
     );
     const [ai, bi] = pairs[pi]!;
-    return pairDistance(bodies[ai]!, bodies[bi]!, opts.margin);
+    return pairDistance(bodies[ai]!, bodies[bi]!, opts.margin, opts.margin);
   };
 
   // ---- Conservative advancement ----
@@ -1851,11 +1868,11 @@ export function* sweepCollisionsIter(
           let d: number;
           if (prof) {
             const tq = clock();
-            d = pairDistance(A, B, HORIZON);
+            d = pairDistance(A, B, HORIZON, opts.margin);
             prof.ms![pi] = prof.ms![pi]! + (clock() - tq);
             prof.queries![pi] = prof.queries![pi]! + 1;
           } else {
-            d = pairDistance(A, B, HORIZON);
+            d = pairDistance(A, B, HORIZON, opts.margin);
           }
           if (d <= opts.margin) {
             if (!inContact[pi]) {
