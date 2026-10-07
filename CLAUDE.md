@@ -1168,8 +1168,9 @@ not off the machine (it starved the Mac's GPU 3–4 frames behind,
 2026-09-10). PARALLEL (2026-10-07, operator): a main request is split over
 K sub-workers — instances of collisionWorker.ts itself, each sweeping one
 SHARD of the model's pairs (`CollisionOptions.shard`: after the baseline
-every shard splits the pairs the same way, longest first by a cost — inside
-the margin at the first pose weighs 100, else 1 — and checks only its own;
+every shard splits the pairs the same way, longest first by a cost — a pair
+inside the margin at the first pose weighs its two meshes' triangles, else
+1 — and checks only its own;
 `pairAssign.ts`) — and the worker the page holds only coordinates: it keeps
 the bodies and sends them to a shard that lacks the model, forwards cancel /
 stop / continue / pause / resume to every shard, reports the least swept
@@ -1185,7 +1186,10 @@ shard, no Worker in the worker's scope or a sub-worker that fails to load:
 the single-core path as before. The ceiling is the costliest pair: on
 haus.ngc (XYZAC, A 61°) the rear column against the C faceplate is 24.5 % of
 the query time — ×3.9 with 4 shards, ×4.1 from 6 on (measured per pair with
-`profile`). `result.shards` says how many swept; `__viewerDiag.
+`profile`). Measured in the browser (headless Chromium, the live payload, 4
+cores): one worker 1036 s, 3 shards 482 s (×2.15), the same 85 onsets; an
+onset in a line shorter than MIN_ADV may land one line apart (44857 / 44858 —
+the first touching sample differs, the position on the timeline does not). `result.shards` says how many swept; `__viewerDiag.
 getCollisionSummary`. Tests: `sweepShards.test.ts` (the merged shards
 against the single sweep on the shipped models — 2, 3, a random split and
 the shard option; a record or a touch in one run only must be a run no

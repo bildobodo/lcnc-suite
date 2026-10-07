@@ -8416,8 +8416,11 @@ same script (`new Worker(self.location.href, {type: "module"})` — the built
 worker is a classic IIFE, which loads as a module too; in dev it is a
 module). Each shard assigns its own pairs after the baseline from the same
 deterministic cost, so the coordinator never builds the model. Cost: inside
-the margin at the first pose = 100, else 1 — the permanent contacts are
-what a long sweep spends its time on.
+the margin at the first pose = 10 + the two meshes' triangles, else 1 — the
+permanent contacts are what a long sweep spends its time on, and a query
+walks the meshes (on haus.ngc the C faceplate's 5576 triangles: 252 s; the
+Y saddle's 44: 78 s). With all such pairs alike the slowest of 3 shards had
+514 s of work; by triangles 395 s.
 
 Measured on haus.ngc (the live payload, per-pair `profile`): 96 % of the
 time is distance queries; the costliest pair (rear column / C faceplate)
@@ -8430,3 +8433,12 @@ K = min(cores − 1, 8, 4 M triangles / model triangles): every shard holds
 the whole BVH model, and the shipped 3-axis table alone is 1.1 M triangles.
 One shard, no Worker in the worker's scope, or a sub-worker that fails to
 load: the single-core path, unchanged.
+
+Measured in the browser (headless Chromium, the live haus payload, the
+4-core VM, snapshots paced, touching queries stopping at the first touch):
+one worker 1036 s wall (852 s active), 3 shards 482 s (395 s) — ×2.15, the
+same 85 onsets. Six onsets lie one line apart (44857 / 44858): haus.ngc's
+lines are about 0.08 mm, shorter than MIN_ADV, so the first touching sample
+— and with it the onset's line — depends on where each run samples; the
+position on the timeline is the same within MIN_ADV.
+
