@@ -12794,3 +12794,56 @@ Bitte schon jetzt auf Einwände prüfen; der Fix kommt als eigene Runde.
 - **`M6`:** Die Sim-Konfigurationen haben weder `TOOL_CHANGE_POSITION` noch eine M6-Remap. Ein `M6` bewegt dort nichts, also gilt dieselbe Behandlung. Mit `TOOL_CHANGE_POSITION` beginnt die Bewegung an der G53-Wechselposition.
 - **Wirklich unbekannte Starts** (eine M6-Remap, `M600` ohne Rückfahrt mit `#3106` = 0) behalten `ustart`. Sie werden aber in der Oberfläche benannt, statt still nur am Endpunkt geprüft.
 - **Zweiter Live-Befund:** Ganz eingetauchte Teile, hier die Y-Endkappen im Säulenfuß, gelten über den Oberflächenabstand als getrennt. Das ist Schritt 2 (Innenprüfung) und kommt danach.
+
+## Review R91 · Codex · Koordinator-Nachprüfung und Vorschau R92 · 7. Oktober 2026
+
+**Ergebnis: `findings`. VP-I48 und VP-I50 geschlossen. VP-I47 und VP-I49 bleiben mit jeweils einem reproduzierbaren P2-Rest offen. Die bisherigen sieben R90-Gegenproben bestehen.**
+
+Geprüft: `3da407b1..385052e5`, Anfrage `e6f2d198`. Ausführung in einer Archivkopie; keine Produktänderung und keine Maschinenbefehle. R92 ist hier ausschließlich die erbetene Vorabprüfung der Richtung.
+
+### VP-I47 · P2 · Rest: vorzeitig beendeter Teil wird im sichtbaren Fortschritt als vollständig geprüft gezählt
+
+**Stellen:** `lcnc-webui/src/viewer/collisionWorker.ts:465–468`, `:420–432`; Verbraucher `ThreeViewer.vue:2938–2940` und `ScrubBar.vue:743–754`.
+
+`poolView` enthält jetzt korrekt die fertigen Befunde, die gesamte Teilanzahl und die kleinste Abdeckung. Der separate äußere Fortschritt ist noch falsch, wenn ein Teil an seiner Probenbremse endet: `onShardMessage` setzt bei jedem nicht geparkten Ergebnis `run.progress[k] = 1`, auch bei `result.truncated.covered < 1`.
+
+**Gegenprobe:** Teil 0 endet mit `reason: samples`, `covered: 0.2`; Teil 1 meldet danach 0.8. Die ausgehende Nachricht enthält korrekt `partial.truncated.covered: 0.2`, aber **`progress: 0.8`**. Die Oberfläche übernimmt den äußeren Wert, und die Zeitleiste benutzt ihn während `collisionBusy` als geprüften Bereich. Damit werden 80 % statt der für alle Paare geprüften 20 % dargestellt. Das spätere gemeinsame Endergebnis kann wieder 20 % melden; der laufende Stand bleibt bis dahin irreführend.
+
+**Erforderlich:** Auch beim Abschluss eines Teils seine tatsächlich geprüfte Abdeckung in der Fortschrittsführung bewahren. Die Darstellung darf während anderer weiterlaufender Teile nicht über die Abdeckung des abgebrochenen Teils hinausgehen. Der erfolgreiche Vollabschluss darf weiterhin als 1 zählen.
+
+### VP-I49 · P2 · Rest: Stop vor dem ersten Zwischenstand bleibt beim pausierten Ersatzlauf ohne Antwort
+
+**Stellen:** `collisionWorker.ts:508–512` und `:261–268`; Besitzer `ThreeViewer.vue:3054–3067`.
+
+Bei `stopPending` ohne bisheriges Ergebnis startet der Rückfall einen lokalen Lauf mit erhaltenen Pausen und `stopRequested: true`. Dessen Generator wurde noch nicht betreten, also ist `snapshot.take` leer. Der Pause-Zweig kann nur mit vorhandenem `snapshot.take` parken; andernfalls wartet er auf Resume. Bei `pausedHidden` kann das unbegrenzt dauern.
+
+**Gegenprobe:** Hauptlauf → `pause: hidden` → `stop` → Fehler eines Teil-Workers, bevor irgendein Teil einen Zwischenstand liefert. Nach **60 Sekunden virtueller Zeit** sind beide Teil-Worker beendet; **keine einzige Antwort** wurde gesendet, ein Pause-Polltimer bleibt aktiv. Der Besitzer erhält weder den angeforderten Parkstand noch einen expliziten Fehler und behält `collisionBusy`/`_colStopPending`. Das kann beim automatisch ausgelösten Stop nach einer Statusänderung auch hinter einem verborgenen Tab auftreten; Stop und Pause sind unabhängige Nachrichten.
+
+**Erforderlich:** Den Stop auch ohne ersten Snapshot ausdrücklich abschließen, ohne von der Freigabe der Pause abhängig zu sein und ohne die angehaltene Bahnprüfung still weiterlaufen zu lassen. Ein ehrlich als ungeprüft gekennzeichneter Parkzustand mit erhaltenem Anfragekontext und Neustart erst bei Continue ist eine mögliche Lösung; ein expliziter nicht fortsetzbarer Fehler wäre ebenfalls eindeutig. Den kombinierten Fall `pause + stop + Ausfall vor erstem Snapshot` absichern.
+
+Beide Reste: [neue Gegenproben](viewer-palette-fest.r91.codex-edges.test.ts), [Nachrichten und Timerzustand](viewer-palette-fest.r91.codex-edges.json), [zwei rote und zwei grüne Fälle](viewer-palette-fest.r91.codex-edges.txt).
+
+### Geschlossene und bestätigte Teile
+
+- **VP-I48 geschlossen:** Die ausstehende Seitenanfrage wird beim Teil-Ausfall erneut ausgeführt; ein schon angeforderter Abbruch wird bestätigt. Zusätzlich besteht der echte Browser-Fehlerpfad mit gleichzeitig ausstehender Haupt- und Seitenanfrage in Chromium und Firefox.
+- **VP-I50 geschlossen:** `null` trennt „kein Seitenlauf“ von der gültigen ID −1; die unverändert übernommene lokale Cancel-Gegenprobe besteht.
+- **VP-I47 überwiegend behoben:** Fertige Ergebnisse ersetzen ältere Zwischenstände sofort; fehlende Teile zählen im Ergebnisobjekt als 0, die Teilanzahl bleibt vollständig. Die Drosselung und das Beibehalten geparkter Stände nach Continue sind durch die neuen Tests gedeckt. Offen bleibt die getrennte Fortschrittsführung oben.
+- **VP-I49 überwiegend behoben:** Bereits geparkte Läufe rechnen nach dem Pool-Verlust nicht selbständig weiter. Kamera- und Hidden-Pause bleiben unabhängig erhalten; Continue nach Verlust des Pools und verspätete Fehler bereits beendeter Worker bestehen die zusätzlichen Ablaufproben. Offen bleibt die noch unbeantwortete Stop-Anfrage ohne Snapshot oben.
+- **Native Fehlerweitergabe:** In beiden Browsern erreichen behandelte Teil-Workerfehler die Seite nicht mehr; beide betroffenen Anfragen liefern danach ein lokales Ergebnis. **Kopie der Körperliste** und **K = Kerne − 2** sind im Code nachvollziehbar und in den Repository-Tests grün. Die normale Browserprobe meldet bei vier Kernen zwei Teile. Die Empfehlung zur Mac-Bildzeitmessung bleibt eine separate Live-Prüfung.
+
+### Hinweise zur Vorschau R92
+
+Die Richtung „reine Offset-Umbenennung von einer echten Bewegung und einem unbekannten Start trennen“ ist richtig. Vor der Umsetzung bitte diese Präzisierungen übernehmen:
+
+1. **Die Rückrechnung ist bereits da.** `gcode_canon.py:244–252` verschiebt `self.lo` schon um alten minus neuen Offset, einschließlich aller neun Achswerte. Diese Umrechnung genau einmal erhalten. Der neue Teil ist die korrekte Aufzeichnung/Trennung der Zustandsänderung und der nachfolgenden Bewegung; keine zweite Delta-Anwendung hinzufügen. Ein schon unbekannter Start wird durch G43/G49 allein nicht bekannt.
+2. **Der aktuelle Befund betrifft speziell Traverse.** Nur `straight_traverse` macht bei `first_move` aus der Bewegung einen Null-Längen-Endpunkt. `straight_feed` und `straight_arcsegments` setzen das Flag zurück und zeichnen bereits vom bisherigen `lo` aus. Daher G43/G49 allein, im selben Block mit G0 und mit G1 sowie vor einem Bogen getrennt prüfen. Eine reine Umbenennung muss dieselbe Maschinenpose und null Fahrdauer haben; die anschließende bekannte Bewegung ihre tatsächliche Strecke, Dauer und durchgehende Kollisionsprüfung. Für wirklich unbekannte Starts darf auch ein Feed/Bogen keine erfundene Verbindung liefern.
+3. **M6 nicht nur anhand von TOOL_CHANGE_POSITION einordnen.** Die Standard-Sim-INIs stützen den hier beschriebenen bewegungslosen Fall. LinuxCNC kennt daneben im Standardpfad `TOOL_CHANGE_QUILL_UP` und `TOOL_CHANGE_AT_G30`; der Interpreter erzeugt diese Fahrten vor `CHANGE_TOOL` und synchronisiert danach die Position neu. Für eine allgemeine Regel braucht es daher den tatsächlich unterstützten Wechselablauf, einschließlich der Bewegung zum Wechselort und der dort geltenden Werkzeuggeometrie. Eine bekannte G53-Endposition allein belegt nicht den vorherigen Wechselweg. Nicht unterstützte oder durch Remaps unbekannte Abschnitte mit benannter Prüflücke behandeln. [Inspektierter nativer Quellausschnitt](viewer-palette-fest.r91.codex-r92-source.txt).
+4. **Roter Wächter am Segment, nicht nur an der Reihenfolge der Liste:** Ein Hindernis ausschließlich in der Mitte der bisherigen G43-Eilbewegung muss gefunden werden, obwohl beide Endpunkte frei sind. Dazu positive Dauer und zeitliche Trennung zu L19 prüfen. Daneben Umbenennung ohne Phantomfahrt, bewegungsloses M6 und ein ausdrücklich unbekannter M6/M600-Start. So wird die Ursache geprüft und nicht nur die Darstellung sortiert.
+
+Die Innenprüfung vollständig enthaltener Körper ist als gesonderter Folgeschritt sinnvoll; der Oberflächenabstand allein schließt Volumenüberschneidung nicht aus. Hierzu und zu R92 wird mit dieser Runde noch keine Implementierungsabnahme erteilt.
+
+### Prüfungen und Belege
+
+**Eigene Ergebnisse:** Build einschließlich TypeScript grün; **127/127** Koordinator-/Kernprüfungen einschließlich der sieben übernommenen R90-Fälle; zusätzliche Randfälle **2 rot / 2 grün**; **4/4** echte Worker-Browserprüfungen in Chromium und Firefox. Die übernommene R90-Sonde hat ausschließlich `hardwareConcurrency: 4` statt 3, passend zur neuen Kernregel. Keine neue Langzeitmessung, kein vollständiges Offline-Gate und keine Live-Maschinenprüfung.
+
+[Prüfaufbau und Wiederholung](viewer-palette-fest.r91.codex-checks.md), [Stand und Quellvergleich](viewer-palette-fest.r91.codex-context.json), [R90-Sonde am neuen Stand](viewer-palette-fest.r91.codex-coordinator.test.ts), [ihre Nachrichten](viewer-palette-fest.r91.codex-coordinator.json), [127 Prüfungen](viewer-palette-fest.r91.codex-core.txt), [Browser-Sonde](viewer-palette-fest.r91.codex-dev.spec.ts), [Browser-Lauf](viewer-palette-fest.r91.codex-dev.txt), [Build](viewer-palette-fest.r91.codex-build.txt), [Beleghashes](viewer-palette-fest.r91.codex-sha256.json).
