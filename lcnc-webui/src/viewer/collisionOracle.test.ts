@@ -6,11 +6,14 @@
 // margin — and whether it touches. Then:
 //  · every touch the oracle finds lies in a contact interval of its pair,
 //    and every in-margin pose has a record of its pair on its line — unless
-//    the run around it is no wider than the sweep's guarantee (MIN_ADV);
+//    the run around it, its ends bisected, is no wider than the sweep's
+//    guarantee (MIN_ADV). The oracle's own grid sees runs of STEP and wider:
+//    the gate's 0.5, a hunt's 0.25;
 //  · every reported onset is a real touch, every near miss a real distance.
 // What the oracle shares with the sweep is the pose (the kinematics mirror
-// and the group-tree compose, each pinned by its own tests) and the
-// estimators collisionBounds.test.ts proves; the stepping, the certificates,
+// and the group-tree compose, each pinned by its own tests), the estimators
+// collisionBounds.test.ts proves and the library's bounded query — a search
+// tool, not an independent proof (Codex R86); the stepping, the certificates,
 // the in-margin cadence, the records and their refinement are what it
 // checks. A body wholly inside another reads as clear to both (surface
 // distance) — the inside check is its own step of the plan.
@@ -26,16 +29,19 @@ import { kinsForSegment, type KinsSpec } from "./kins";
 
 const ROOT = path.resolve(__dirname, "../../..");
 const MARGIN = 2, CONTACT = 1e-4, MIN_ADV = 0.25;
-const STEP = 0.5;           // the oracle's stride along the sweep's distance parameter
 const TOL = 0.01;           // interval boundaries are bisected to 1e-3
 // COLLISION_HUNT=deep runs the hunt: every case's tracks at full length,
 // hours on this VM, and requires each case to reach touches and near poses.
 // The default is the gate's share: one short track per case — the bugs the
 // hunt found have their own unit tests; this keeps the walk itself honest.
 const DEEP = process.env.COLLISION_HUNT === "deep";
+const STEP = DEEP ? MIN_ADV : 0.5;   // the oracle's stride along the sweep's distance parameter
 // Per case: a slow run fails by name, never hangs; COLLISION_HUNT_BUDGET=0
 // lifts it (a seed that ran out of time in the gate's search).
 const BUDGET_MS = process.env.COLLISION_HUNT_BUDGET === "0" || DEEP ? Infinity : 60_000;
+// vitest cannot interrupt a synchronous test, but it marks one that ran past
+// its timeout failed after all its checks passed: a hunt lifts it (a day).
+const TIMEOUT_MS = BUDGET_MS === Infinity ? 86_400_000 : 600_000;
 const WCS0 = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0 } as any;
 
 function parseBinSTL(buf: Buffer): Float32Array {
@@ -141,7 +147,7 @@ function randomTrack(c: Case, rand: () => number): CollisionTrack {
 
 describe("the sweep against a brute-force oracle", () => {
   for (const c of CASES) {
-    it(`${c.name}: every touch and every in-margin pose the oracle finds is reported, every report is real`, { timeout: 600_000 }, () => {
+    it(`${c.name}: every touch and every in-margin pose the oracle finds is reported, every report is real`, { timeout: TIMEOUT_MS }, () => {
       const { model, stock } = loadModel(c);
       const t0 = performance.now();
       const seed = Number(process.env.COLLISION_HUNT_SEED) || (DEEP ? 20261007 + c.name.length : c.seed ?? 20261007 + c.name.length);
@@ -216,17 +222,31 @@ describe("the sweep against a brute-force oracle", () => {
           (h.intervals ?? []).some(([a, b]) => s >= a - TOL && s <= b + TOL)
           || (h.spanCumEnd !== undefined && s >= h.cum - TOL && s <= h.spanCumEnd + TOL));
         // Is the run around s where the pair is below `e` wider than the
-        // sweep's guarantee? Walked at MIN_ADV, it stops as soon as it is:
-        // a missed run of a metre would otherwise cost thousands of poses.
-        const WIDE = 3 * MIN_ADV;
+        // sweep's guarantee? Each end is walked out at MIN_ADV — stopping as
+        // soon as the run is wider than WIDE (a missed run of a metre would
+        // otherwise cost thousands of poses) — then bisected to 1e-3, so the
+        // test holds the sweep to MIN_ADV itself, not to a grid's slack
+        // (Codex R86: 0.75 let a 1.25-wide miss of the same kind look narrow).
+        const WIDE = MIN_ADV + 1e-3;
         const runWide = (pi: number, s: number, e: number): boolean => {
           const A = model.bodies[model.pairs[pi]![0]]!, B = model.bodies[model.pairs[pi]![1]]!;
           const inside = (x: number) => { poseAt(x); return below(A, B, e) !== null; };
           const end = track.cum[track.count - 1]!;
-          let lo = s, hi = s;
-          while (hi - lo <= WIDE && lo > 0 && inside(Math.max(0, lo - MIN_ADV))) lo = Math.max(0, lo - MIN_ADV);
-          while (hi - lo <= WIDE && hi < end && inside(Math.min(end, hi + MIN_ADV))) hi = Math.min(end, hi + MIN_ADV);
-          return hi - lo > WIDE;
+          const edge = (dir: 1 | -1): number => {
+            let x = s;
+            for (;;) {
+              const y = dir > 0 ? Math.min(end, x + MIN_ADV) : Math.max(0, x - MIN_ADV);
+              if (y === x) return x;                  // the track's end: the run reaches it
+              if (Math.abs(y - s) > WIDE + MIN_ADV) return y;   // wide already
+              if (!inside(y)) {                       // bracketed: bisect between x (in) and y (out)
+                let a = x, b = y;
+                while (Math.abs(b - a) > 1e-3) { const m = (a + b) / 2; if (inside(m)) a = m; else b = m; }
+                return a;
+              }
+              x = y;
+            }
+          };
+          return edge(1) - edge(-1) > WIDE;
         };
         const end = track.cum[track.count - 1]!;
         for (let s = STEP / 2; s < end; s += STEP) {

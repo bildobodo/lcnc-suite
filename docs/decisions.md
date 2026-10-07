@@ -8296,3 +8296,39 @@ shank in the stock still counts as cutting. `side` keeps one use, the order
 of the two bodies in a record. Test: "only the cutter cuts" in
 `collision.test.ts` (red with the old rule); the cutting test's cutter now
 carries `tool: true`.
+
+## 2026-10-07 — A second contact inside a stride; facets without area (Codex R86)
+
+VP-I45 (P1). After a sample that found a pair touching, the sweep re-probed
+it only every EXPLORE (5 units of path), and inside that stride the contact
+could end, the pair separate and touch again: Codex's second bump on the
+wall-and-slide model (contact 102.75…104, 1.25 wide, 0.5 clear at 102) had
+no interval at any of five sample phases, and the refinement of the first
+contact never looks past its own exit. Now, when a pair whose last query
+touched is found not touching, the stretch since that touch is re-sampled at
+MIN_ADV before the sample's state changes (the stretch belongs to the
+contact) — every touch there recorded on its own line, the cutting rule
+applied as in the main loop — and the pose is restored for the pairs after
+it. A pair still touching at its next sample keeps the stretch as contact:
+the two contacts may merge into one interval, an unchecked gap never reads
+as clear. At most EXPLORE / MIN_ADV (20) extra poses per contact exit. Test:
+"a second touch inside a touching pair's stride" (collision.test.ts, the
+five phases, red without the re-sampling). The oracle now bisects a missed
+run's ends and holds it to MIN_ADV itself (it allowed 0.75 — Codex: its 0.5
+grid cannot back the 0.25 promise alone); a hunt samples at 0.25.
+
+VP-I46 (P2). three-mesh-bvh's ExtendedTriangle detects a degenerate
+triangle only by coincident vertices; three DISTINCT collinear ones get a
+zero normal, a useless separating axis and plane, and the distance from
+(0,0,0) (4,0,0) (2,0,0) to a triangle 1.5 mm away came out 0 — through
+buildCollisionModel → pairDistance too. `withoutArealessFacets` drops every
+facet whose doubled area is at most 1e-10 of its longest edge squared (and
+any with a coordinate that is not finite) when the model is built: such a
+facet is a line on its neighbours' edges and carries no surface. A body
+left with none is left out (`model.unusable`) and named in every sweep's
+`uncertified`, the worker's no-pair result included. The three shipped
+models lose no facet (1 477 314 checked). Tests: the filter's cases, a body
+whose collinear facet no longer reads as contact (10.5, the real facet's
+distance), and a body of only such facets left out and named — both red
+without the filter.
+
