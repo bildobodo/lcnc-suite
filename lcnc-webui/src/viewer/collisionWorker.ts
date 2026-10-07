@@ -139,9 +139,13 @@ const clearSnapshot = (s: SnapshotHandle) => { s.take = null; s.peek = null; s.r
 
 type Msg = CollisionReq | CollisionCancel | CollisionPause | CollisionResume | CollisionStop | CollisionContinue;
 
+/** Holds a run starts with — the owner's pause, carried over when a pooled
+ *  sweep falls back to this core (Codex R90 VP-I49). */
+interface Holds { pausedCam?: boolean; pausedCamAt?: number; pausedHidden?: boolean; stopRequested?: boolean }
+
 /** One sweep in THIS worker — the single-core path, a shard's work, and every
  *  side run. */
-function handleLocal(d: Msg): void {
+function handleLocal(d: Msg, holds: Holds = {}): void {
   if ("cancel" in d) {
     if (_side && _side.id === d.cancel) { _side.cancelled = true; return; }
     if (_run && _run.id === d.cancel) {
@@ -196,7 +200,9 @@ function handleLocal(d: Msg): void {
   try {
     let model: CollisionModel;
     if (d.bodies) {
-      const bodies = d.bodies;
+      // Never the request's own array: the coordinator keeps it for its
+      // shards, and a tool pushed into it rode along as a second tool body.
+      const bodies = d.bodies.slice();
       if (tool) {
         // toolCylinderPositions works in machine units already; the model
         // builder multiplies by unitScale (machine.json mm → machine units),
@@ -225,9 +231,10 @@ function handleLocal(d: Msg): void {
     }
     const run: Run = {
       id, it: null as unknown as SweepIter, cancelled: false,
-      pausedCam: false, pausedCamAt: 0, pausedHidden: false, activeMs: 0, sliceStart: 0,
+      pausedCam: !!holds.pausedCam, pausedCamAt: holds.pausedCamAt ?? 0, pausedHidden: !!holds.pausedHidden,
+      activeMs: 0, sliceStart: 0,
       snapshot: { take: null, peek: null, records: null },
-      stopped: false, stopRequested: false, nextPeekAt: 0, lastPeekRecords: 0, pump: () => {},
+      stopped: false, stopRequested: !!holds.stopRequested, nextPeekAt: 0, lastPeekRecords: 0, pump: () => {},
       model,
     };
     // The slot this run lives in — cleared only if it still holds this run
@@ -308,38 +315,73 @@ function handleLocal(d: Msg): void {
 //   - it keeps the request's bodies and sends them to a shard that lacks the
 //     model (a new shard, a needBodies) — never builds the model itself;
 //   - cancel / stop / continue / pause / resume go to every shard; progress
-//     is the least swept shard's; a partial is the merge of each shard's
-//     latest; the result comes when every shard has one, `stopped` when every
-//     shard is parked or done (a continue resumes the parked ones);
+//     is the least swept shard's; a partial merges every shard's LATEST word
+//     — its result once it has one, else its last partial — and counts a
+//     shard not heard from yet as swept 0 (Codex R90 VP-I47); a shard's
+//     result goes out as a partial at once (what it found shows before the
+//     slowest shard ends), shard partials at most every PEEK_MS; the result
+//     comes when every shard has one, `stopped` when every shard is parked
+//     or done (a continue resumes the parked ones);
 //   - a side request (the sim-entry segment) runs on shard 0, which holds
 //     the model, with every pair;
 //   - one shard's error ends the sweep with that error (the others are
 //     cancelled) — never a merge of what the rest found.
-// K: the cores but one for the page, at most MAX_SHARDS, and never more
-// copies of the model than SHARD_TRIANGLES allows (every shard holds the
-// whole BVH model: the shipped 3-axis table alone is 1.1 M triangles). One
-// shard, no Worker in this scope, or a sub-worker that fails to load: the
-// single-core path, exactly as before.
+// A sub-worker that FAILS (it does not load, or throws past its own handler)
+// takes the pool down for good, and what was in flight moves to this core
+// with the owner's state (VP-I48/I49): a running sweep starts again here with
+// its pauses; a cancelled one is acknowledged; a parked one — or one whose
+// stop is not answered yet — computes nothing: the owner keeps (or gets) what
+// the shards swept as the parked result, and a continue starts it again from
+// the beginning here (the shards' generators are gone); a side run starts
+// again here, a cancelled one is acknowledged.
+// K: the cores but TWO, for the page and the browser's own processes (Codex
+// R90 — one busy worker once held the Mac's GPU frames behind; four cores
+// make two shards), at most MAX_SHARDS, and never more copies of the model
+// than SHARD_TRIANGLES allows (every shard holds the whole BVH model: the
+// shipped 3-axis table alone is 1.1 M triangles). One shard, no Worker in
+// this scope, or a pool that failed: the single-core path, as before.
 const MAX_SHARDS = 8;
 const SHARD_TRIANGLES = 4_000_000;
 
 interface PoolRun {
   id: number;
   k: number;
+  /** The request as the owner sent it — what a fall back to this core runs. */
+  req: CollisionReq;
   progress: number[];
   partial: Array<CollisionResult | undefined>;
   final: Array<CollisionResult | undefined>;   // a shard's result, or its parked snapshot
   parked: boolean[];
+  /** Cancel acknowledgements counted so far. */
   cancelled: number;
   ended: boolean;
   /** The progress last posted — a shard's slice moves nothing it alone. */
   posted: number;
+  /** A shard's word not yet in a posted partial, and when the next may go. */
+  partialDirty: boolean;
+  nextPartialAt: number;
+  /** The owner's controls, kept for a fall back to this core. */
+  pausedCam: boolean;
+  pausedCamAt: number;
+  pausedHidden: boolean;
+  /** A stop went out and is not answered yet. */
+  stopPending: boolean;
+  /** The owner holds a `stopped` result: parked until continue. */
+  parkedPosted: boolean;
+  cancelling: boolean;
 }
+/** A parked pooled sweep whose shards failed: nothing computes until the
+ *  owner continues it (from the beginning, here) or cancels it. */
+interface LostParked { req: CollisionReq; pausedCam: boolean; pausedCamAt: number; pausedHidden: boolean }
+
 let _shards: Worker[] = [];
 let _shardModel: string[] = [];          // the modelKey each shard holds
 let _bodies: { key: string; bodies: CollisionBody[] } | null = null;
 let _poolRun: PoolRun | null = null;
-let _sideOnShard = -1;                    // the side request forwarded to shard 0
+let _lostParked: LostParked | null = null;
+/** The side request on shard 0. Null is none — every number is a side id
+ *  the owner may use (−1 is its first; Codex R90 VP-I50). */
+let _sideOnShard: { req: CollisionReq; cancelling: boolean } | null = null;
 let _poolBroken = typeof Worker !== "function";
 
 function shardCount(d: CollisionReq): number {
@@ -347,7 +389,7 @@ function shardCount(d: CollisionReq): number {
   const bodies = d.bodies ?? (_bodies?.key === d.modelKey ? _bodies.bodies : null);
   if (!bodies) return 1;   // the model is not known here: the single path asks for it
   const tris = bodies.reduce((n, b) => n + b.positions.length / 9, 0);
-  const cores = (self.navigator?.hardwareConcurrency ?? 2) - 1;
+  const cores = (self.navigator?.hardwareConcurrency ?? 2) - 2;
   return Math.max(1, Math.min(MAX_SHARDS, cores, d.maxShards ?? MAX_SHARDS, Math.floor(SHARD_TRIANGLES / Math.max(tris, 1))));
 }
 
@@ -358,12 +400,49 @@ function shardRequest(d: CollisionReq, k: number, of: number): CollisionReq {
            options: of > 1 ? { ...d.options, shard: { index: k, of } } : d.options };
 }
 
+/** The pool's sweep so far: every shard's latest word merged, a shard not
+ *  heard from yet swept 0 — the coverage and the shard count are the whole
+ *  pool's. Null before any shard has a word. */
+function poolView(run: PoolRun, reason: "running" | "stopped"): CollisionResult | null {
+  const words: CollisionResult[] = [];
+  let covered = 1;
+  for (let k = 0; k < run.k; k++) {
+    const w = run.final[k] ?? run.partial[k];
+    if (w) words.push(w);
+    covered = Math.min(covered, w ? (w.truncated?.covered ?? 1) : 0);
+  }
+  if (!words.length) return null;
+  return { ...mergeShardResults(words), shards: run.k, truncated: { covered, reason } };
+}
+
+/** Progress, with the merged partial when a shard's word is new — at once
+ *  (`now`), else at most every PEEK_MS. */
+function postProgress(run: PoolRun, now: boolean): void {
+  const progress = Math.min(...run.progress);
+  if (run.partialDirty && (now || performance.now() >= run.nextPartialAt)) {
+    const partial = poolView(run, "running");
+    if (partial) {
+      run.partialDirty = false;
+      run.nextPartialAt = performance.now() + PEEK_MS;
+      self.postMessage({ id: run.id, progress, partial });
+      run.posted = progress;
+      return;
+    }
+  }
+  if (progress !== run.posted) self.postMessage({ id: run.id, progress });
+  run.posted = progress;
+}
+
 function onShardMessage(k: number, m: any): void {
-  if (m.id === _sideOnShard) { self.postMessage(m); if (m.result || m.error || m.cancelled || m.needBodies) _sideOnShard = -1; return; }
+  if (_sideOnShard && m.id === _sideOnShard.req.id) {
+    self.postMessage(m);
+    if (m.result || m.error || m.cancelled || m.needBodies) _sideOnShard = null;
+    return;
+  }
   const run = _poolRun;
   if (!run || m.id !== run.id || run.ended) return;   // a superseded run's late word
   if (m.needBodies) {
-    if (_bodies) { _shardModel[k] = ""; _shards[k]!.postMessage(shardRequest(_lastReq!, k, run.k)); }
+    if (_bodies?.key === run.req.modelKey) { _shardModel[k] = ""; _shards[k]!.postMessage(shardRequest(run.req, k, run.k)); }
     else { run.ended = true; self.postMessage({ id: run.id, needBodies: true }); }
     return;
   }
@@ -379,12 +458,8 @@ function onShardMessage(k: number, m: any): void {
   }
   if (m.progress !== undefined) {
     run.progress[k] = m.progress;
-    if (m.partial) run.partial[k] = m.partial;
-    const progress = Math.min(...run.progress);
-    const parts = run.partial.filter((r): r is CollisionResult => !!r);
-    if (m.partial && parts.length) self.postMessage({ id: run.id, progress, partial: mergeShardResults(parts) });
-    else if (progress !== run.posted) self.postMessage({ id: run.id, progress });
-    run.posted = progress;
+    if (m.partial) { run.partial[k] = m.partial; run.partialDirty = true; }
+    postProgress(run, false);
     return;
   }
   if (m.result) {
@@ -393,9 +468,59 @@ function onShardMessage(k: number, m: any): void {
     if (!m.stopped) run.progress[k] = 1;   // done: no longer the least swept
     if (run.final.every(r => r)) {
       const merged = mergeShardResults(run.final as CollisionResult[]);
-      if (run.parked.some(p => p)) self.postMessage({ id: run.id, stopped: true, result: merged });
-      else { run.ended = true; self.postMessage({ id: run.id, result: merged }); }
+      if (run.parked.some(p => p)) {
+        run.stopPending = false;
+        run.parkedPosted = true;
+        self.postMessage({ id: run.id, stopped: true, result: merged });
+      } else {
+        run.ended = true;
+        self.postMessage({ id: run.id, result: merged });
+      }
+      return;
     }
+    run.partialDirty = true;
+    postProgress(run, true);
+  }
+}
+
+/** A request to run on this core: on the resident model when it is this one,
+ *  else with the bodies kept here, else without (the run asks the owner). */
+function onThisCore(req: CollisionReq): CollisionReq {
+  if (_resident?.key === req.modelKey) return { ...req, bodies: undefined };
+  return { ...req, bodies: _bodies?.key === req.modelKey ? _bodies.bodies : undefined };
+}
+
+/** A sub-worker failed: the pool is gone for good; what was in flight moves
+ *  to this core with the owner's state (see the header). */
+function poolFailed(): void {
+  _poolBroken = true;
+  _shards.forEach(x => x.terminate());
+  _shards = [];
+  _shardModel = [];
+  const run = _poolRun, side = _sideOnShard;
+  _poolRun = null;
+  _sideOnShard = null;
+  if (run && !run.ended) {
+    run.ended = true;
+    const holds = { pausedCam: run.pausedCam, pausedCamAt: run.pausedCamAt, pausedHidden: run.pausedHidden };
+    if (run.cancelling) {
+      self.postMessage({ id: run.id, cancelled: true });
+    } else if (run.parkedPosted || run.stopPending) {
+      const swept = run.stopPending ? poolView(run, "stopped") : null;
+      if (run.stopPending && !swept) {
+        // Nothing swept yet to hand over: park here at the first checkpoint.
+        handleLocal(onThisCore(run.req), { ...holds, stopRequested: true });
+      } else {
+        if (swept) self.postMessage({ id: run.id, stopped: true, result: swept });
+        _lostParked = { req: run.req, ...holds };
+      }
+    } else {
+      handleLocal(onThisCore(run.req), holds);
+    }
+  }
+  if (side) {
+    if (side.cancelling) self.postMessage({ id: side.req.id, cancelled: true });
+    else handleLocal(onThisCore(side.req));
   }
 }
 
@@ -407,15 +532,11 @@ function ensureShards(n: number): boolean {
     try { w = new Worker(self.location.href, { type: "module" }); }
     catch { _poolBroken = true; return false; }
     w.onmessage = (e: MessageEvent) => onShardMessage(k, e.data);
-    w.onerror = () => {
-      // A shard that cannot load: the pool is gone for good, and the sweep
-      // in flight runs on this core instead (it asks for the bodies again
-      // if they are not here).
-      _poolBroken = true;
-      _shards.forEach(x => x.terminate()); _shards = []; _shardModel = [];
-      const run = _poolRun;
-      _poolRun = null;
-      if (run && !run.ended && _lastReq) handleLocal({ ..._lastReq, bodies: _bodies?.key === _lastReq.modelKey ? _bodies.bodies : undefined });
+    w.onerror = (ev: Event) => {
+      // Handled HERE: unhandled, a sub-worker's error goes on to this
+      // worker's scope and the page's onerror, which drops the sweep.
+      ev.preventDefault?.();
+      if (_shards.includes(w)) poolFailed();
     };
     _shards.push(w);
     _shardModel.push("");
@@ -423,7 +544,19 @@ function ensureShards(n: number): boolean {
   return true;
 }
 
-let _lastReq: CollisionReq | null = null;
+/** A control message for a parked sweep whose shards failed. */
+function onLostParked(lp: LostParked, d: Msg): void {
+  if ("cancel" in d) { _lostParked = null; self.postMessage({ id: lp.req.id, cancelled: true }); }
+  else if ("continue" in d) { _lostParked = null; handleLocal(onThisCore(lp.req), lp); }
+  else if ("pause" in d) {
+    if (d.why === "hidden") lp.pausedHidden = true;
+    else if (!lp.pausedCam) { lp.pausedCam = true; lp.pausedCamAt = performance.now(); }
+  } else if ("resume" in d) {
+    if (d.why === "hidden") lp.pausedHidden = false;
+    else lp.pausedCam = false;
+  }
+  // A stop: it is parked already.
+}
 
 self.onmessage = (e: MessageEvent<Msg>) => {
   const d = e.data;
@@ -431,15 +564,35 @@ self.onmessage = (e: MessageEvent<Msg>) => {
   const ctrlId = "cancel" in d ? d.cancel : "stop" in d ? d.stop : "continue" in d ? d.continue
     : "pause" in d ? d.pause : "resume" in d ? d.resume : null;
   if (ctrlId !== null) {
-    if (_sideOnShard === ctrlId && "cancel" in d) { _shards[0]?.postMessage(d); return; }
+    if (_sideOnShard && _sideOnShard.req.id === ctrlId) {
+      // A side run takes nothing but a cancel (see the header).
+      if ("cancel" in d) { _sideOnShard.cancelling = true; _shards[0]?.postMessage(d); }
+      return;
+    }
+    if (_lostParked && _lostParked.req.id === ctrlId) { onLostParked(_lostParked, d); return; }
     const run = _poolRun;
     if (run && run.id === ctrlId && !run.ended) {
       if ("continue" in d) {
-        run.parked.forEach((p, k) => { if (p) { run.parked[k] = false; run.final[k] = undefined; } });
+        run.stopPending = false;
+        run.parkedPosted = false;
+        // A parked shard's snapshot stays its word until it says more.
+        run.parked.forEach((p, k) => {
+          if (p) { run.parked[k] = false; run.partial[k] = run.final[k]; run.final[k] = undefined; }
+        });
+      } else if ("stop" in d) {
+        if (!run.parkedPosted) run.stopPending = true;
+      } else if ("cancel" in d) {
+        run.cancelling = true;
+        // A shard already done has no run to cancel and sends no word: it
+        // counts as acknowledged.
+        run.cancelled = run.final.filter((r, i) => r && !run.parked[i]).length;
+      } else if ("pause" in d) {
+        if (d.why === "hidden") run.pausedHidden = true;
+        else if (!run.pausedCam) { run.pausedCam = true; run.pausedCamAt = performance.now(); }
+      } else if ("resume" in d) {
+        if (d.why === "hidden") run.pausedHidden = false;
+        else run.pausedCam = false;
       }
-      // A shard already done has no run to cancel and sends no word: it
-      // counts as acknowledged.
-      if ("cancel" in d) run.cancelled = run.final.filter((r, i) => r && !run.parked[i]).length;
       for (const w of _shards) w.postMessage(d);
       return;
     }
@@ -451,7 +604,7 @@ self.onmessage = (e: MessageEvent<Msg>) => {
   if (req.side) {
     // The entry segment: on shard 0 (which holds the model) while a pool runs.
     if (_shards.length) {
-      _sideOnShard = req.id;
+      _sideOnShard = { req, cancelling: false };
       const hasModel = _shardModel[0] === req.modelKey;
       _shardModel[0] = req.modelKey;
       _shards[0]!.postMessage({ ...req, bodies: hasModel ? undefined : _bodies?.key === req.modelKey ? _bodies.bodies : undefined });
@@ -460,6 +613,7 @@ self.onmessage = (e: MessageEvent<Msg>) => {
     handleLocal(req);
     return;
   }
+  _lostParked = null;   // a new request supersedes a parked one
   const k = shardCount(req);
   if (k <= 1 || !ensureShards(k)) {
     if (_poolRun) { for (const w of _shards) w.postMessage({ cancel: _poolRun.id }); _poolRun = null; }
@@ -468,8 +622,9 @@ self.onmessage = (e: MessageEvent<Msg>) => {
   }
   // A pooled sweep supersedes the in-process one, as a new request does.
   if (_run) handleLocal({ cancel: _run.id });
-  _lastReq = req;
-  _poolRun = { id: req.id, k, progress: new Array(k).fill(0), partial: new Array(k).fill(undefined),
-               final: new Array(k).fill(undefined), parked: new Array(k).fill(false), cancelled: 0, ended: false, posted: -1 };
+  _poolRun = { id: req.id, k, req, progress: new Array(k).fill(0), partial: new Array(k).fill(undefined),
+               final: new Array(k).fill(undefined), parked: new Array(k).fill(false), cancelled: 0, ended: false,
+               posted: -1, partialDirty: false, nextPartialAt: 0, pausedCam: false, pausedCamAt: 0,
+               pausedHidden: false, stopPending: false, parkedPosted: false, cancelling: false };
   _shards.forEach((w, i) => w.postMessage(shardRequest(req, i, k)));
 };

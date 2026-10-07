@@ -1010,8 +1010,9 @@ MEMOIZED per unchanged record) and a settled pose continues it — the
 worker keeps the suspended generator with every clearance certificate and
 contact state, `SnapshotHandle.take` hands out the sweep-so-far without
 ending it; parked reads "no clash in N % swept" / "in N % swept". The
-iterator's 4 M-sample backstop is the only hard limit (`truncated`,
-reason "samples"). The findings, the verdict and the line readout are
+iterator's sample backstop is the only hard limit: past 4 M samples it
+steps coarser (`coarsened`), past 16 M it stops (`truncated`, reason
+"samples"). The findings, the verdict and the line readout are
 the Simulation tab's (since 2026-10-05); the bar's time readout is a
 FIXED slot sized PER PROGRAM (flex basis, ellipsis; "mm:ss/mm:ss" + "~";
 the timer shows always — "00:00/45:00" at idle, never "live") — a
@@ -1134,7 +1135,8 @@ resumable iterator (`sweepCollisionsIter`, checkpoints every 16 segments /
 (`maxMs`, sync API + tests only — the worker runs sweeps OPEN-ENDED since
 2026-09-13): on breach it stops and the result says `truncated`
 {covered, reason} — ScrubBar reads "no clash in N % swept", never "clear".
-The sample budget (4 M) is only a runaway backstop, and its breach is
+The sample budget is only a runaway backstop (coarser steps past 4 M
+samples, a stop past 16 M), and its breach is
 `truncated.reason = "samples"`, no longer a silent break.
 A sweep whose guarantee does not hold — a declared kins this client
 cannot evaluate falls back to trivkins, whose bound is legitimately 0 —
@@ -1178,24 +1180,47 @@ shard's progress, merges the shards' partials and results
 (`sweepShards.ts` `mergeShardResults`: hits concatenated and capped onsets
 first, static contacts and the prescreened count from shard 0 alone),
 posts `stopped` when every shard is parked or done, and runs the entry
-move's side sweep on shard 0. The pair is the unit because each carries its
+move's side sweep on shard 0. A partial is every shard's LATEST word — its
+result once it has one — with a shard not heard from counted as swept 0, a
+finished shard's findings posted at once, shard partials at most every
+PEEK_MS (Codex R90 VP-I47). The pair is the unit because each carries its
 own certificates, contact state, cutting origin and records — no state
-crosses a shard. K = the cores but one, at most 8, and no more copies of the
-model than 4 M triangles allow (every shard holds the whole BVH model); one
-shard, no Worker in the worker's scope or a sub-worker that fails to load:
-the single-core path as before. The ceiling is the costliest pair: on
+crosses a shard. K = the cores but TWO (the page and the browser's own
+processes — Codex R90; four cores make two shards), at most 8, and no more
+copies of the model than 4 M triangles allow (every shard holds the whole
+BVH model); one shard or no Worker in the worker's scope: the single-core
+path as before. A sub-worker that FAILS takes the pool down for good and
+moves what was in flight to this core WITH the owner's state (VP-I48/I49):
+a running sweep starts again with its pauses, a cancelled one is
+acknowledged, a parked one (or one whose stop is unanswered) computes
+nothing — the owner keeps or gets the shards' sweep as the parked result and
+a continue starts it from the beginning — and the side run on shard 0 runs
+again here; the coordinator handles the sub-worker's error event
+(`preventDefault`): unhandled, Chromium and Firefox pass it on to the page's
+`onerror`, which drops the sweep (measured). "No side run on a shard" is
+`null`, never an id (−1 is the owner's first side id, VP-I50). The sample
+backstop is per shard: `coarsened` from 4 M samples, the hard stop
+(`truncated.reason = "samples"`) past 16 M — a pool may take K times that. The ceiling is the costliest pair: on
 haus.ngc (XYZAC, A 61°) the rear column against the C faceplate is 24.5 % of
 the query time — ×3.9 with 4 shards, ×4.1 from 6 on (measured per pair with
 `profile`). Measured in the browser (headless Chromium, the live payload, 4
 cores): one worker 1036 s, 3 shards 482 s (×2.15), the same 85 onsets; an
-onset in a line shorter than MIN_ADV may land one line apart (44857 / 44858 —
-the first touching sample differs, the position on the timeline does not). `result.shards` says how many swept; `__viewerDiag.
+onset in a line shorter than MIN_ADV may land one line apart (6 of 85 with
+equal costs, 8 with the triangle weights, every one a line LATER in the pool,
+44857 / 44858: the onset's line is the discovering sample's, and a shard
+with fewer pairs steps further before it samples a pair; the refinement walks back no further than that line's
+start (lineStartDist), so the shown start lies up to one such line late —
+under MIN_ADV; deriving an onset's line from its refined start is a later
+step). `result.shards` says how many swept; `__viewerDiag.
 getCollisionSummary`. Tests: `sweepShards.test.ts` (the merged shards
 against the single sweep on the shipped models — 2, 3, a random split and
 the shard option; a record or a touch in one run only must be a run no
 wider than MIN_ADV, the truth decides — red when a shard loses pairs or the
-merge loses static contacts), `collisions.viewer.spec` (more than one worker
-in Chromium and Firefox, the same onsets — red with one shard forced).
+merge loses static contacts), `collisionWorker.test.ts` (the coordinator
+through fake sub-workers: partials, the fall back with every owner state,
+the side id −1, the kept bodies — 12 mutations red), `collisions.viewer.spec`
+(more than one worker in Chromium and Firefox, the same onsets — red with one
+shard forced).
 Results reflect check-time
 WCS/tool and clear on program change; GcodePanel reuses
 `.codeLine.violation` markers via `collisionLines`. SEMANTIC LIMIT (no

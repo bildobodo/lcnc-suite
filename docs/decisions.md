@@ -8437,8 +8437,58 @@ load: the single-core path, unchanged.
 Measured in the browser (headless Chromium, the live haus payload, the
 4-core VM, snapshots paced, touching queries stopping at the first touch):
 one worker 1036 s wall (852 s active), 3 shards 482 s (395 s) — ×2.15, the
-same 85 onsets. Six onsets lie one line apart (44857 / 44858): haus.ngc's
-lines are about 0.08 mm, shorter than MIN_ADV, so the first touching sample
-— and with it the onset's line — depends on where each run samples; the
-position on the timeline is the same within MIN_ADV.
+same 85 onsets. Onsets lie one line apart — 6 of 85 with equal costs, 8
+with the triangle weights (Codex R90 counted them; I had reported six for
+both), every one a line LATER in the pool (44857 / 44858): haus.ngc's lines
+are about 0.08 mm, shorter than MIN_ADV; the onset's line is the
+discovering sample's, and a shard with fewer pairs steps further before it
+samples a pair. The refinement walks back no further than the discovering
+line's start (lineStartDist — through-contact across lines must not
+collapse onto the first line), so the shown start lies up to one such line
+late, under MIN_ADV; I had written that the position was the same. Deriving
+an onset's line from its refined start is a later step.
 
+## 2026-10-07 — The pool's coordinator keeps the owner's state (Codex R90)
+
+Codex R90 found four P2 defects in the coordinator, none in the split or the
+merge of finished results:
+
+- VP-I47: a partial was built from the shards' partials alone — a finished
+  shard's findings showed only once the slowest shard ended, and a shard
+  not heard from yet was left out of the coverage. A partial now merges
+  every shard's LATEST word (its result once it has one), counts an unheard
+  shard as swept 0 and names the whole pool (`shards`); a shard's result
+  goes out at once, shard partials at most every PEEK_MS (K shards would
+  otherwise post K times as often). After a continue a parked shard's
+  snapshot stays its word until it says more.
+- VP-I48: a failing sub-worker took the entry move's side run on shard 0
+  with it — no answer, and the owner refused a new side run for the same
+  track. It runs again on this core (or is acknowledged when cancelled).
+- VP-I49: the fall back to this core restarted the sweep without the
+  owner's state: a hidden-tab pause or a park computed anyway, a cancel ran
+  again. The coordinator keeps pause, stop, park and cancel; a running
+  sweep restarts with its pauses, a cancelled one is acknowledged, a parked
+  one computes nothing (the shards' generators are gone: a continue starts
+  it again from the beginning here, the owner keeps the shards' sweep as the
+  parked result meanwhile; an unanswered stop gets it as the answer).
+- VP-I50: "no side run on a shard" was −1, the owner's first side id; a
+  cancel of a local side run −1 went to an absent shard. It is `null`.
+
+Found beside them: a sub-worker's unhandled error went on to the page's
+`onerror`, which drops the whole sweep (`_colFail`) — measured in Chromium
+and Firefox with a nested worker that throws, both pass it on unless the
+parent's handler calls `preventDefault`, which the coordinator now does.
+And a run on this core pushed the tool body into the request's own `bodies`
+array, which the coordinator keeps for its shards: a pool after a local run
+of the same model got two tool bodies. The run copies the array.
+
+K is now the cores but TWO (Codex's recommendation for the page and the
+browser's processes; a busy worker once held the Mac's GPU frames behind):
+four cores make two shards, the ceiling of ×4.1 is reached at six. The
+sample backstop is per shard (coarser past 4 M samples, a stop past 16 M —
+I had written 4 M for the stop).
+
+Tests: `collisionWorker.test.ts` drives the coordinator through fake
+sub-workers (Codex's probe extended): every case of the four findings, the
+fall back from each owner state, the pacing, the kept bodies; each of 12
+compiling mutations turns its case red.
