@@ -1,0 +1,17 @@
+# R91 — compiling mutations against src/viewer/collisionWorker.test.ts (fix/r90 6e27d204)
+# each: one fix taken back, vue-tsc -b (build), the test run; restored from a byte copy after each
+# M8/M9's first forms did not compile (build 2) and count for nothing; their compiling forms follow at the end
+M1 final not in view | build 0 | red: a finished shard's findings show at once, and stay while the others run;
+M2 unheard shard covered | build 0 | red: a shard not heard from counts as swept 0, and the partial names the whole pool;an unanswered stop gets what the shards swept as the parked result;
+M3 continue drops parked word | build 0 | red: after continue a parked shard's snapshot stays in the view until it says more;
+M4 side not rerun | build 0 | red: the side request on shard 0 is answered;
+M5 holds not carried | build 0 | red: a hidden-tab pause holds the run here until resume;
+M6 parked recomputes | build 0 | red: a parked sweep computes nothing until continue — then from the beginning;a parked sweep is cancelled with an acknowledgement;an unanswered stop gets what the shards swept as the parked result;
+M7 cancel reruns | build 0 | red: a cancelled sweep is acknowledged, not run again;
+M8 side id -1 as none | build 2 | red: the first local side request can be cancelled;
+M9 no preventDefault | build 2 | red: is handled where it happens — it never reaches the page's onerror;
+M10 bodies mutated | build 0 | red: the bodies kept for the shards never wear a tool a local run added;
+M11 cores - 1 | build 0 | red: leaves two cores to the page and the browser;
+M12 no partial pacing | build 0 | red: shard partials go out at most every PEEK_MS; the next progress carries a held one;
+M8 side id -1 as none (compiling form) | build 0 | red: the first local side request can be cancelled;
+M9 no preventDefault (compiling form) | build 0 | red: is handled where it happens — it never reaches the page's onerror;

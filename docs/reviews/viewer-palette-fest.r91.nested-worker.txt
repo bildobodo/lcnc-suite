@@ -1,0 +1,37 @@
+# R91 — does an unhandled error in a nested worker reach the page's Worker.onerror? (scratch experiment, Playwright 1.x, python http.server)
+
+## page.html
+<!doctype html><meta charset="utf-8"><script>
+window.run = (prevent) => new Promise(res => {
+  const out = { pageError: 0, msgs: [] };
+  const w = new Worker("outer.js", { type: "module" });
+  w.onerror = e => { out.pageError++; e.preventDefault(); };
+  w.onmessage = e => out.msgs.push(e.data);
+  w.postMessage(prevent);
+  setTimeout(() => { w.terminate(); res(out); }, 1500);
+});
+</script>
+
+## outer.js
+onmessage = (e) => {
+  const inner = new Worker(new URL("inner.js", self.location.href), { type: "module" });
+  inner.onerror = (ev) => { if (e.data) ev.preventDefault(); postMessage("outer saw the inner error"); };
+};
+
+## inner.js
+setTimeout(() => { throw new Error("boom"); }, 50);
+
+## run.mjs
+import { chromium, firefox } from "/home/cnc/lcnc-suite-par/lcnc-webui/node_modules/playwright/index.mjs";
+for (const [name, bt] of [["chromium", chromium], ["firefox", firefox]]) {
+  const b = await bt.launch(); const p = await b.newPage();
+  await p.goto("http://127.0.0.1:4191/page.html");
+  for (const prevent of [false, true]) console.log(name, "preventDefault:", prevent, JSON.stringify(await p.evaluate(v => window.run(v), prevent)));
+  await b.close();
+}
+
+## Result
+chromium preventDefault: false {"pageError":1,"msgs":["outer saw the inner error"]}
+chromium preventDefault: true {"pageError":0,"msgs":["outer saw the inner error"]}
+firefox preventDefault: false {"pageError":1,"msgs":["outer saw the inner error"]}
+firefox preventDefault: true {"pageError":0,"msgs":["outer saw the inner error"]}

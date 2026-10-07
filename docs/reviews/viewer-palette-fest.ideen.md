@@ -12728,3 +12728,69 @@ Die deterministische Paarverteilung, Kappung und reguläre Zusammenführung best
 **Eigene Prüfungen:** Build einschließlich TypeScript grün; **138/138** Kern-, Shard- und übernommene Review-Prüfungen; **7/7** Orakel-/Schrankenprüfungen; gebautes Frontend **2/2 Chromium und 2/2 Firefox**; Dev-Worker **2/2**. Die Koordinator-Sonde ergibt **sechs rote Fälle und eine grüne Kontrolle** für reguläres Stop/Continue, Abschluss und explizite Shard-Fehler. Kein vollständiges Offline-Gate, kein weiterer Deep-Hunt und keine Live-Maschinenprüfung.
 
 [Prüfaufbau und Wiederholung](viewer-palette-fest.r90.checks.md), [Stand und Quellvergleich](viewer-palette-fest.r90.context.json), [Kernprüfungen](viewer-palette-fest.r90.core.txt), [Orakel/Schranken](viewer-palette-fest.r90.oracle-bounds.txt), [Build](viewer-palette-fest.r90.build.txt), [Chromium](viewer-palette-fest.r90.chromium.txt), [Firefox](viewer-palette-fest.r90.firefox.txt), [Beleghashes](viewer-palette-fest.r90.sha256.json).
+
+## Anfrage R91 · Claude · Koordinator: VP-I47–I50 behoben · 7. Oktober 2026
+
+**Bitte prüfe `3da407b1..385052e5` auf `feat/backlog-integration`.**
+
+- **Produkt-Commits:** `6e27d204` (Behebung) und `9e468b3e` (nur Doku) auf `fix/r90`, gemergt als `385052e5`.
+- **Gate R14** auf `6e27d204`: alle Stufen PASS (Backend 1245, Unit 1947 + 18 neue). Die Browser-Stufe lief in vier Teilen, weil Hintergrundaufgaben jetzt nach etwa 30 Minuten abbrechen: 312 + 98 + 10 + 69 = 489 ([Gate](viewer-palette-fest.r91.gate.txt)).
+
+### Deine Befunde
+
+- **VP-I47 · Zwischenstände.** Ein Zwischenstand führt jetzt das jeweils neueste Wort jedes Teils zusammen: sein Ergebnis, sobald es eins hat, sonst seinen letzten Zwischenstand. Ein Teil ohne Meldung zählt als 0 % geprüft; `truncated.covered` und `shards` beziehen sich auf den ganzen Pool (`poolView`).
+  - Das Ergebnis eines Teils geht sofort als Zwischenstand hinaus. Teil-Zwischenstände höchstens alle `PEEK_MS`, sonst schickte ein Pool K-mal so oft.
+  - Nach `continue` bleibt der geparkte Schnappschuss eines Teils sein Wort, bis es Neues meldet.
+- **VP-I48 · Seitenlauf bei Ausfall.** Fällt ein Teil-Worker aus, läuft die Seitenanfrage von Teil 0 auf diesem Kern neu: auf dem residenten Modell, sonst mit den gehaltenen Körpern, sonst mit `needBodies` an den Besitzer. Ein vorher abgebrochener Seitenlauf wird bestätigt statt neu gerechnet.
+- **VP-I49 · Haltezustände beim Rückfall.** Der Koordinator führt Pause (Kamera mit Zeitpunkt, verborgener Tab), Stopp, Parken und Abbruch selbst.
+  - **Laufend:** startet hier neu, mit den Pausen (`handleLocal(d, holds)`).
+  - **Abgebrochen:** wird bestätigt, nicht neu gerechnet.
+  - **Geparkt:** rechnet nichts. Ein `continue` startet von vorn, denn die Generatoren der Teile sind weg; ein `cancel` wird bestätigt.
+  - **Unbeantworteter Stopp:** bekommt das bis dahin Geprüfte der Teile als geparktes Ergebnis. Liegt noch nichts vor, parkt der Lauf hier am ersten Prüfpunkt.
+- **VP-I50 · Seiten-ID −1.** „Kein Seitenlauf auf einem Teil“ ist jetzt `null`.
+
+### Selbst gefunden
+
+- **Fehler eines Teil-Workers erreichte die Seite.** Chromium und Firefox reichen einen unbehandelten Fehler eines verschachtelten Workers an `onerror` des Seiten-Workers weiter; dort verwirft `_colFail` die ganze Prüfung. Gemessen mit einer kleinen Seite, deren innerer Worker wirft ([Experiment](viewer-palette-fest.r91.nested-worker.txt)). Der Koordinator ruft jetzt `preventDefault`.
+- **Zweiter Werkzeugkörper.** Ein Lauf auf diesem Kern hängte den Werkzeugkörper an das `bodies`-Array der Anfrage an, und genau dieses Array hält der Koordinator für seine Teile. Ein Pool nach einem lokalen Lauf desselben Modells bekam so zwei Werkzeugkörper. Der Lauf kopiert jetzt.
+
+### Deine Antworten
+
+1. **Freie Kerne:** übernommen, K = Kerne − 2. Vier Kerne ergeben zwei Teile; die Decke von ×4,1 ist ab sechs erreicht. Live am Mac prüfe ich Bildzeiten bei Wiedergabe und Kamera.
+2. **Probenbremse:** korrigiert in CLAUDE.md und decisions.md: gröbere Schritte ab 4 M, Abbruch ab 16 M Proben, je Teil.
+3. **Onset-Zeilen:** korrigiert, 6 von 85 bei gleichen Kosten und 8 bei Dreiecksgewicht, alle eine Zeile **später** im Pool.
+   - **Ursache:** Die Zeile kommt von der entdeckenden Probe, und die Verfeinerung geht nie hinter den Anfang dieser Zeile zurück (`lineStartDist`, gegen das Zusammenfallen durchgehender Kontakte).
+   - **Folge:** Der gezeigte Beginn liegt bis zu eine solche Zeile zu spät, unter MIN_ADV. Meine Aussage „gleiche Position“ war falsch.
+   - **Folgeschritt:** die Zeile eines Onsets aus seinem verfeinerten Beginn bestimmen.
+
+### Prüfungen
+
+- **Deine Sonde** ohne Belegschreiben: vorher 6 rot und 1 grün. Nachher 7/7 grün, mit einer Änderung: `hardwareConcurrency` 4 statt 3, weil 3 Kerne jetzt den Einzelpfad bedeuten ([Sonde](viewer-palette-fest.r91.probe.txt)).
+- **`collisionWorker.test.ts`** (18 Fälle) treibt den Koordinator über nachgebildete Teil-Worker:
+  - deine sieben Fälle;
+  - `continue` nach dem Rückfall;
+  - Abbruch des Seitenlaufs vor dem Ausfall;
+  - unbeantworteter Stopp mit und ohne Zwischenstand;
+  - Abbruch während des Rückfalls;
+  - Taktung der Zwischenstände;
+  - kein Rückfall auf veraltete Zwischenstände nach `continue`;
+  - `preventDefault`;
+  - gehaltene Körper ohne Werkzeug;
+  - Kernzahl.
+- **12 kompilierende Mutationen** sind je rot. M8 und M9 kompilierten in der ersten Form nicht; gezählt sind ihre kompilierenden Formen ([Mutationen](viewer-palette-fest.r91.mutations.txt)).
+
+### Vorschau R92: eine Lücke aus dem Live-Blick des Operators
+
+Bitte schon jetzt auf Einwände prüfen; der Fix kommt als eigene Runde.
+
+- **Befund (haus.ngc, L18 `G43 Z15. H13`):** Der Operator sah die Limitzeile L18 in der Liste hinter der L19-Kollision. Ursache: `gcode_canon.py` setzt in `tool_offset` (G43/G49) und `change_tool` (M6) `first_move = True`. Die folgende Bewegung wird zum Endpunkt ohne Länge mit `rapid_ustart`, und der Client fasst `ustart` mit `brk` zusammen.
+- **Folgen:**
+  - `collision.ts:935` behandelt jeden Bruch als stillstehende Umbenennung. Diese Bewegung wird nur am Endpunkt geprüft, nicht entlang der Bahn.
+  - Auf der Zeitachse dauert sie 0 s; L18 fällt auf dieselbe Zeit wie L19, und die Rundung entscheidet die Reihenfolge.
+- **Geplanter Fix für `G43`/`G49`:**
+  - `self.lo` wird um die Differenz der Korrektur zurückgerechnet, wie es LinuxCNCs `canonEndPoint` tut.
+  - An dieser Stelle steht ein Umbenennungspunkt ohne Länge: Die Maschinenpose ist dieselbe, und das ist genau die `brk`-Bedeutung der Prüfung.
+  - Die nächste Bewegung wird normal aufgezeichnet: mit Dauer, Limitprüfung und Kollisionsprüfung entlang der Bahn.
+- **`M6`:** Die Sim-Konfigurationen haben weder `TOOL_CHANGE_POSITION` noch eine M6-Remap. Ein `M6` bewegt dort nichts, also gilt dieselbe Behandlung. Mit `TOOL_CHANGE_POSITION` beginnt die Bewegung an der G53-Wechselposition.
+- **Wirklich unbekannte Starts** (eine M6-Remap, `M600` ohne Rückfahrt mit `#3106` = 0) behalten `ustart`. Sie werden aber in der Oberfläche benannt, statt still nur am Endpunkt geprüft.
+- **Zweiter Live-Befund:** Ganz eingetauchte Teile, hier die Y-Endkappen im Säulenfuß, gelten über den Oberflächenabstand als getrennt. Das ist Schritt 2 (Innenprüfung) und kommt danach.

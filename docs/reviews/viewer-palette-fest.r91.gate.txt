@@ -1,0 +1,13 @@
+# R91 — gate R14 on fix/r90 6e27d204 (offline gate; the browser stage in four runs, the task limit is ~30 min)
+PASS backend (44.7s)
+PASS 5axis-model (0.73s)
+PASS audit-css (1.0s)
+PASS review-handshake (4.57s)
+PASS frontend-lint (5.67s)
+PASS frontend-build (11.24s)
+PASS frontend-unit (103.03s)
+browser A: 312 passed (18.3m) (exit 0)
+browser B: 98 passed (11.3m) (exit 0)
+browser C: 10 passed (29.3s) (exit 0)
+browser D: 69 passed (6.1m) (exit 0)
+A = --project=serial-guards (chromium … serial-guards), B = serial-layout --no-deps, C = serial-visual --no-deps, D = serial-viewer --no-deps; 312 + 98 + 10 + 69 = 489
