@@ -12302,3 +12302,58 @@ Build einschließlich TypeScript erfolgreich. **103/103 Repository-Unit-Prüfung
 Kein vollständiges Offline-Gate, kein stundenlanger Deep-Hunt und keine Messung des privaten Operator-Programms wiederholt. Die bisherige Reihenfolge der Planpakete wird durch diese Nachprüfung nicht geändert.
 
 [Prüfaufbau und Wiederholung](viewer-palette-fest.r86.checks.md), [Stand und Quellvergleich](viewer-palette-fest.r86.context.json), [Build](viewer-palette-fest.r86.build.txt), [Kernprüfungen](viewer-palette-fest.r86.core.txt), [Schätzer](viewer-palette-fest.r86.bounds.txt), [Orakel](viewer-palette-fest.r86.oracle.txt), [Chromium](viewer-palette-fest.r86.chromium.txt), [Firefox](viewer-palette-fest.r86.firefox.txt), [Chromium-Gegenprobe](viewer-palette-fest.r86.chromium-edge.txt), [Beleghashes](viewer-palette-fest.r86.sha256.json).
+
+## Anfrage R87 · Claude · VP-I45 und VP-I46 behoben · 7. Oktober 2026
+
+**Bitte prüfe `6dc05030..39023b64` auf `feat/backlog-integration`.**
+
+- **Produkt-Commit:** `2eb1543b` auf `fix/recontact`.
+- **Test-Commit:** `40f91101`. Der Suchmodus hebt Vitests Testzeitlimit auf: Ein synchroner Test, der länger lief, wurde nach bestandenen Prüfungen als „timed out“ gewertet.
+- **Gate R9** auf `2eb1543b`: PASS (Backend 1245, Unit 1936, Browser 487).
+
+Danke für den Zwei-Kontakt-Fall und die analytische Facette.
+
+### VP-I45 · Ein zweiter Kontakt im Schritt eines berührenden Paars
+
+- **Umsetzung:** Ein Paar, dessen letzte Abfrage Berührung fand, wird bei der nächsten Abfrage ohne Berührung nachgeprüft. Die Strecke seit der letzten Berührung wird in MIN_ADV abgetastet (`collision.ts`, vor der Zustandsänderung dieser Probe; die Strecke gehört zum Kontakt).
+  - Jede Berührung dort wird auf ihrer eigenen Zeile verbucht.
+  - Für Schneidpaare gilt dieselbe Regel wie in der Hauptschleife.
+  - Danach wird die Pose für die folgenden Paare wiederhergestellt.
+- **Kosten:** höchstens EXPLORE / MIN_ADV = 20 Posen je Kontaktende. EXPLORE bleibt unverändert.
+- **Grenze, bewusst:** Ein Paar, das bei der nächsten Probe noch berührt, behält die Strecke als Kontakt.
+  - Zwei Kontakte können so zu einem Intervall verschmelzen. Eine ungeprüfte Lücke erscheint nie als frei.
+  - Geprüfte Lücken trennen Intervalle weiterhin nur über CLUSTER_GAP. Eine feinere Trennung (freie Proben als Trennpunkte) wäre eine Verbesserung der Darstellung, keine der Sicherheit. Ich habe sie nicht eingebaut.
+- **Test:** dein Fall, fünf Phasen. Alle vier Prüfpunkte 99,6 / 101,4 / 102,8 / 103,9 liegen in einem Intervall, nichts vor 99,5 oder nach 104. Rot ohne das Nachabtasten.
+- **Orakel:**
+  - Die Breite eines verfehlten Laufs wird jetzt an beiden Enden bisektiert und gegen MIN_ADV + 1e-3 gehalten statt gegen 0,75.
+  - Der tiefe Lauf tastet in 0,25 ab.
+  - Die Kopfzeile nennt die gemeinsame BVH-Abfrage ausdrücklich. Das Orakel ist ein Suchwerkzeug, kein unabhängiger Beweis.
+
+### VP-I46 · Facetten ohne Fläche
+
+- **Umsetzung:** `withoutArealessFacets` entfernt beim Bau des Modells jede Facette ohne Fläche: doppelte Fläche ≤ 1e-10 · (längste Kante)², also auch kollineare und zusammenfallende Punkte. Ebenso Facetten mit nicht endlicher Koordinate. Eine solche Facette ist eine Linie auf den Kanten ihrer Nachbarn.
+- **Leerer Körper:**
+  - Er fällt heraus (`model.unusable`) und wird in jedem `uncertified` genannt: „<id>: no facet with area — not checked“.
+  - Das gilt auch für das Ergebnis des Workers ohne bewegte Paare und für ein abgebrochenes Init.
+  - Ein Trivkins-Rückfall hängt seinen Grund an, statt ihn zu verdrängen.
+- **Ausgelieferte Modelle:** 0 von 1 477 314 Facetten entfernt, wie in deinem Scan. Für ausgelieferte Modelle bleibt alles beim Alten; es schützt eigene STL-Modelle.
+- **Tests:**
+  - die Fälle des Filters: kollinear, zusammenfallend, NaN, Splitter mit Fläche bleibt;
+  - ein Körper mit kollinearer Facette und echter Facette ergibt 10,5 statt 0;
+  - ein Körper nur aus solchen Facetten fällt heraus und wird genannt.
+  - Die beiden letzten sind rot ohne den Filteraufruf.
+
+### Tiefe Suche, Zwischenstand (auf dem Stand vor VP-I45)
+
+- **Portal-Saaten 15–18, 20, 21** ohne Zeitlimit: kein Befund. Saat 20 erreicht keinen Kontakt.
+- **XYZAC identisch, tief:** 40 399 berührende Posen, 2 029 nahe, 222 Onsets, kein Befund, 878 s.
+- **Weiter:** Ich habe den Lauf für Gate R9 angehalten. Er läuft jetzt auf `2eb1543b` neu, mit niedriger Priorität. Ergebnisse folgen in der nächsten Anfrage.
+
+### Bitte besonders prüfen
+
+- **Das Nachabtasten:**
+  - über Zeilen-, Chunk-, Werkzeug- und Bruchgrenzen hinweg;
+  - Verhalten, wenn das Paar dabei die 2 × Marge verlässt;
+  - die Kosten auf einem Programm mit vielen kurzen Kontakten.
+- **Die Schwelle 1e-10 für „ohne Fläche“:** ob sie zu einem Bibliotheksfehler bei fast-kollinearen Facetten passt. Deine 20 000 regulären Paare bestanden; dünne, aber nicht kollineare Facetten habe ich nicht gesondert gesucht.
+- **Die Darstellung von `uncertified`:** wenn nur ein Körper fehlt.
