@@ -8357,6 +8357,43 @@ check": it now reads "Not checked" with the marker and says no part that
 could be checked moves (sim-panel spec, Chromium and Firefox, red with the
 old early return; `__viewerDiag.setCollisionNote`).
 
+## 2026-10-07 — A cutter's stretch into a rapid is re-sampled even when it touches again (Codex R88)
+
+VP-I45 rest (P1). The re-sampling after a touch ran only when the next main
+sample found the pair clear. When that sample already lay in a SECOND
+contact, the stretch before it — a separation past 2 × margin and a rapid
+re-entry — was never looked at, and for a cutting pair the re-entry
+inherited the feed contact's benign origin: Codex moved the R87 rotary
+case's second block from 13° to 14.5° and 15° and the gouge was gone. For a
+non-cutting pair the merged contact only over-reports (accepted in R87); for
+a cutter in a FEED-begun contact it suppresses a report. Such a pair's
+stretch is now re-sampled whenever it reaches a rapid segment
+(`rapidBetween`), whatever the next sample finds; a feed-only stretch needs
+no look (a re-entry on a feed is machining). Cost: at most EXPLORE / MIN_ADV
+poses per stride, only while a cutter in stock moves on a rapid — a retract
+out of the material. Test: the rotary case at 13°, 14.5°, 15° and 15.5° —
+red at 14.5° with the old condition.
+
+## 2026-10-07 — Live snapshots of a sweep are paced by their cost
+
+The browser's collision sweep posts its findings so far while it runs
+(`SnapshotHandle.peek`, every PEEK_MS = 500 ms when the record count
+changed). A snapshot copies and orders EVERY record so far, and a program
+in permanent contact has a record per line and pair: haus.ngc on the XYZAC
+sim (A 61°, about ten pairs in contact throughout) reached 500 000 records
+by a fifth of the program and 0.5 s per snapshot, growing. Measured from the
+snapshot's START, the 500 ms had passed again when it ended — a snapshot
+after every 40 ms slice: the browser sweep stood at 42 % after an hour,
+where the same sweep in node, without snapshots, takes 22 minutes. The
+operator had asked why the check took so long.
+
+Now the next snapshot waits PEEK_DUTY (9) times as long as the last one took
+(and at least PEEK_MS): snapshots take at most a tenth of the sweep. Measured
+in the browser (headless Chromium, the live haus payload, one worker): done
+in 960 s with 85 collisions — the same 85 the pooled run found. On a large
+program the live findings come every few seconds instead of every half
+second; the result at the end is unchanged.
+
 ## 2026-10-07 — The collision sweep runs on several cores, split by pair
 
 Operator: "konnte schon etwas parallelisiert werden? dass mehrere Kerne
@@ -8393,4 +8430,3 @@ K = min(cores − 1, 8, 4 M triangles / model triangles): every shard holds
 the whole BVH model, and the shipped 3-axis table alone is 1.1 M triangles.
 One shard, no Worker in the worker's scope, or a sub-worker that fails to
 load: the single-core path, unchanged.
-

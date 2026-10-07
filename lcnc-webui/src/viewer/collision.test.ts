@@ -1655,23 +1655,29 @@ describe("re-sampling after a touch follows the contact state (Codex R87 VP-I45)
 
   it("a rotary rapid re-contact after a feed contact and a real separation is a gouge", () => {
     // The cutter on a 1000 mm radius passes two stock blocks: feed A 5→10°
-    // touches the first (machining), 11.5° is 10.6 mm clear, the rapid
-    // 10→15° touches the second at 12.1…13.9° — wider than MIN_ADV.
+    // touches the first (machining), then clear by far more than 2 × margin,
+    // the rapid 10→15° touches the second. With the second block at 13° the
+    // next coarse sample (15°) is clear again (R87); at 14.5° and 15° it
+    // TOUCHES again, and the separation before it was never looked at —
+    // the rapid re-entry inherited the feed contact's benign origin (R88).
     const R = 1000, rad = Math.PI / 180;
     const ROT: CollisionMachine = {
       groups: [{ id: "frame", parent: "root" }, { id: "arm", parent: "root" }],
       kinematics: [{ group: "arm", joint: 3, type: "rotate", direction: "z", sign: 1 }],
       workGroup: "frame", toolGroup: "arm", unitScale: 1, axes: ["X", "Y", "Z", "A"],
     };
-    const model = buildCollisionModel(ROT, [
-      { id: "stock", group: "frame", stock: true, positions: join(
-        slab(10, 10, 10, R * Math.cos(10 * rad), R * Math.sin(10 * rad)),
-        slab(10, 10, 10, R * Math.cos(13 * rad), R * Math.sin(13 * rad))) },
-      { id: "tool", group: "arm", tool: true, positions: slab(2, 20, 20, R, 0) },
-    ]);
-    const t: ScrubTrack = { ...track([[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
-      [[5, 0, 0], [10, 0, 0], [15, 0, 0], [20, 0, 0]], [1, 2, 3, 4], [0, 0, 1, 1]) };
-    expect(rapidOnLine3(sweepCollisions(model, t, WCS0, { margin: 2 }))).toBe(true);
+    for (const second of [13, 14.5, 15, 15.5]) {
+      const model = buildCollisionModel(ROT, [
+        { id: "stock", group: "frame", stock: true, positions: join(
+          slab(10, 10, 10, R * Math.cos(10 * rad), R * Math.sin(10 * rad)),
+          slab(10, 10, 10, R * Math.cos(second * rad), R * Math.sin(second * rad))) },
+        { id: "tool", group: "arm", tool: true, positions: slab(2, 20, 20, R, 0) },
+      ]);
+      const t: ScrubTrack = { ...track([[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
+        [[5, 0, 0], [10, 0, 0], [15, 0, 0], [20, 0, 0]], [1, 2, 3, 4], [0, 0, 1, 1]) };
+      const r = sweepCollisions(model, t, WCS0, { margin: 2 });
+      expect(r.hits.some(h => h.rapid && h.line >= 3 && h.dist <= 1e-4), `second block at ${second}°: the rapid gouge — ${JSON.stringify(r.hits.map(h => [h.line, h.rapid, h.dist]))}`).toBe(true);
+    }
   });
 
   it("a translated rapid re-contact after a feed contact and a separation is a gouge too", () => {

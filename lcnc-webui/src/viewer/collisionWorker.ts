@@ -29,9 +29,11 @@
 //     A side run never parks or pauses; a new side request supersedes the
 //     previous one; only `cancel` with its id addresses it.
 //   - Progress posts carry `partial` (2026-09-13): the unrefined sweep-so-far
-//     (collision.ts SnapshotHandle.peek) at most every PEEK_MS and only when
-//     the record count changed, so clashes show on the timeline as they are
-//     found. The refined result replaces it at the end.
+//     (collision.ts SnapshotHandle.peek) at most every PEEK_MS — and never
+//     more than a tenth of the time (PEEK_DUTY: a snapshot of a million
+//     records takes a second) — and only when the record count changed, so
+//     clashes show on the timeline as they are found. The refined result
+//     replaces it at the end.
 // The collision model (bodies + BVHs) stays RESIDENT under its `modelKey`:
 // the owner omits `bodies` when it knows the worker holds the model; a
 // worker that does not (recreated after a failure) answers `needBodies`
@@ -89,6 +91,16 @@ const PAUSE_POLL_MS = 50;
 const PAUSE_MAX_MS = 30_000;
 /** Minimum interval between live `partial` snapshots. */
 const PEEK_MS = 500;
+/** A snapshot copies and orders every record so far — on a program in
+ *  permanent contact a record per line and pair, 500 000 by a fifth of
+ *  haus.ngc and 0.5 s a snapshot, growing. Taken every PEEK_MS from its
+ *  START, it ran after every 40 ms slice once it took 500 ms itself: the
+ *  browser's sweep spent nearly all its time on snapshots and stood at 42 %
+ *  after an hour where the sweep alone takes 22 minutes (2026-10-07). The
+ *  next one waits PEEK_DUTY times as long as the last took: snapshots take
+ *  at most a tenth of the sweep, the live findings come less often on a
+ *  large program. */
+const PEEK_DUTY = 9;
 
 interface Run {
   id: number;
@@ -107,8 +119,8 @@ interface Run {
   stopped: boolean;
   /** A stop arrived; honoured at the next slice boundary. */
   stopRequested: boolean;
-  /** Live-snapshot pacing. */
-  lastPeekAt: number;
+  /** Live-snapshot pacing: no snapshot before this time (performance.now). */
+  nextPeekAt: number;
   lastPeekRecords: number;
   /** Re-entry point for `continue`. */
   pump: () => void;
@@ -215,7 +227,7 @@ function handleLocal(d: Msg): void {
       id, it: null as unknown as SweepIter, cancelled: false,
       pausedCam: false, pausedCamAt: 0, pausedHidden: false, activeMs: 0, sliceStart: 0,
       snapshot: { take: null, peek: null, records: null },
-      stopped: false, stopRequested: false, lastPeekAt: 0, lastPeekRecords: 0, pump: () => {},
+      stopped: false, stopRequested: false, nextPeekAt: 0, lastPeekRecords: 0, pump: () => {},
       model,
     };
     // The slot this run lives in — cleared only if it still holds this run
@@ -263,10 +275,12 @@ function handleLocal(d: Msg): void {
       if (!slice.done) {
         let partial: CollisionResult | undefined;
         const recs = run.snapshot.records?.() ?? 0;
-        if (run.snapshot.peek && recs !== run.lastPeekRecords && performance.now() - run.lastPeekAt >= PEEK_MS) {
-          run.lastPeekAt = performance.now();
+        if (run.snapshot.peek && recs !== run.lastPeekRecords && performance.now() >= run.nextPeekAt) {
+          const t0 = performance.now();
           run.lastPeekRecords = recs;
           partial = run.snapshot.peek();
+          const took = performance.now() - t0;
+          run.nextPeekAt = performance.now() + Math.max(PEEK_MS, PEEK_DUTY * took);
         }
         self.postMessage(partial ? { id, progress: slice.progress, partial } : { id, progress: slice.progress });
         if (run.stopRequested && run.snapshot.take) { park(); return; }

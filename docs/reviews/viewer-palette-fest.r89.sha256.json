@@ -1,0 +1,20 @@
+{
+  "viewer-palette-fest.r89.boundaries.json": "4ee8405cfb36f19eec1fcd0780a93848c793b67bcd0455358117656941f75e97",
+  "viewer-palette-fest.r89.boundaries.test.ts": "e5f7744082324db9b6b9fa4cc3ff6e0d0f797265870dea2fa820643d6e456882",
+  "viewer-palette-fest.r89.build.txt": "c6b220678d674b1564bdcb191a92101354fdc65d3df47fcd2a5e5072deea8025",
+  "viewer-palette-fest.r89.checks.md": "853ea5375cf5facd3cb6d380eeef03ef19746ea8d31fb7893b4a432016464989",
+  "viewer-palette-fest.r89.context.json": "7aa2eae9a408f5d1d5abe9612de2d1cd2a74313104ac4710688d025910316bea",
+  "viewer-palette-fest.r89.core.txt": "a70cbc356dfd87b91730a3dc3a00789dc7a985ea28a8e53883ec7e634d34215a",
+  "viewer-palette-fest.r89.edges.json": "12cc4cf84e0783a1000e731d6b309ffe452208158aa474c43ed422cb7bad5cf8",
+  "viewer-palette-fest.r89.edges.test.ts": "1c77c7130dd21e0c96cd54726b9f23d9ff3086c86cfbb5b97af10cc1ce1beead",
+  "viewer-palette-fest.r89.edges.txt": "2f1bb51d46e7fcbdf28a738e7d6b8264fdde46324019652aa07050686545cb9c",
+  "viewer-palette-fest.r89.facets.json": "77a79f51afdd52b88b2213be7afb569a4e9170ade2f9f734604e0de28e2bd19a",
+  "viewer-palette-fest.r89.facets.test.ts": "b30c72c94dfef79fd13db6092bddb85d92bdfc417c5f04a5a24c9a351f3d128b",
+  "viewer-palette-fest.r89.isolation.patch": "2a1546f2a2cdca91028698ca1c8771f3bfe3a7d913adf0c9814b6e60d7fac844",
+  "viewer-palette-fest.r89.oracle.txt": "a5c833b0d2bbb619073eef921c1a1a4851bac4d38a7bd97bdc8894241b255ce1",
+  "viewer-palette-fest.r89.recontact.json": "9fa834d8f25831c44eb2ecde5b585a3da1798f361a4e443fb045b63e41c31f97",
+  "viewer-palette-fest.r89.recontact.test.ts": "4e3ef03a644265d57aef9365a8ca3f726987858f494639ff27a6ffa865887f45",
+  "viewer-palette-fest.r89.touching.json": "b938c27535ff7fc65710eea37cac4a133a60d927117d24580ae93edbb0969916",
+  "viewer-palette-fest.r89.touching.test.ts": "41da53ce6d308f03b86de8290bf431cc403367bfe26fbefda5dc4bf34d4880da",
+  "viewer-palette-fest.r89.vitest.config.ts": "a459200a80112528228232e40816798f185f96fc0672ba51e1fb30b430e0bbc6"
+}

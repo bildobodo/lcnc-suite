@@ -1115,7 +1115,10 @@ step (`noteQuery`) in time order, queried to HORIZON: a separation past
 2 × margin there ends the old contact, a touch after it is a new onset on its
 line and kind of move (a cutter's rapid re-contact after its feed contact was
 taken for the benign retract, R87); a pair still touching keeps the stretch
-as contact, so an unchecked gap never reads as clear. Both are sampled at least once on every line they stay in contact
+as contact, so an unchecked gap never reads as clear — except a cutter in a
+FEED-begun contact whose stretch reaches a rapid: re-sampled even when the
+next sample touches again, or a separation and a rapid re-entry inside it
+inherited the feed contact's benign origin (R88). Both are sampled at least once on every line they stay in contact
 with (the per-line continuation marks). Facets WITHOUT AREA (three distinct
 collinear vertices, coincident ones, a coordinate not finite) are dropped
 when the model is built (`withoutArealessFacets`): three-mesh-bvh read a
