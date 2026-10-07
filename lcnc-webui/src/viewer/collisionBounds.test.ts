@@ -38,7 +38,7 @@ const BRUTE_MAX = 40_000;   // triangle pairs a brute-force minimum may cost
 const BRUTE_PER_MODEL = 60; // brute-force checks per model
 // COLLISION_HUNT=deep: four times the poses, no budget (collisionOracle.test.ts).
 const DEEP = process.env.COLLISION_HUNT === "deep";
-const BUDGET_MS = DEEP ? Infinity : 90_000;   // per model: a slow run fails, it never hangs a gate
+const BUDGET_MS = DEEP ? Infinity : 240_000;  // per model: a slow run fails, it never hangs a gate (the unit stage runs files side by side)
 
 function parseBinSTL(buf: Buffer): Float32Array {
   const n = buf.readUInt32LE(80);

@@ -345,6 +345,17 @@ const DEFAULTS = { linStepMm: 5, rotStepDeg: 4, maxSamples: 4_000_000 };
 const SAMPLES_PER_YIELD = 512;
 const SAMPLES_PER_CLOCK = 32;
 const YIELD_MS = 8;
+/** A distance at or below this is a TOUCH: a full closest distance of ~1e-8
+ *  (float) is never a clean 0. The refinement shares it. */
+export const CONTACT_EPS = 1e-4;
+/** A query stops at the first triangle pair nearer than this: a touch is
+ *  all a touching pair's query decides (every reader compares a distance
+ *  with CONTACT_EPS or more), and the exact minimum of two meshes in each
+ *  other cost a walk over every overlapping leaf — ×1.3 on haus.ngc's
+ *  permanent contacts, the same answers (2026-10-07). Above it the result
+ *  is the exact distance, unchanged. */
+const TOUCH_STOP = CONTACT_EPS / 2;
+
 /** Records a result reports — onsets first (see buildResult); the parallel
  *  sweep's merge applies the same cap over its shards (sweepShards.ts). */
 export const MAX_HITS = 200;
@@ -790,7 +801,7 @@ export function pairDistance(A: BuiltBody, B: BuiltBody, maxT: number, margin: n
   _pdRel.multiplyMatrices(_pdInv, I.world);
   const lb = boxLowerBound(O, I, _pdRel);
   if (lb > margin) return lb;               // no contact possible; bound for the certificate
-  const res = O.bvh.closestPointToGeometry(I.geom, _pdRel, _pdT1, _pdT2, 0, maxT);
+  const res = O.bvh.closestPointToGeometry(I.geom, _pdRel, _pdT1, _pdT2, TOUCH_STOP, maxT);
   // null: provably beyond maxT. So is a distance ABOVE maxT: the library
   // visits only the bounds nearer than maxT, and what it returns past it is
   // the closest of the triangles it happened to visit — not the minimum
@@ -1406,9 +1417,6 @@ export function* sweepCollisionsIter(
     if (opts.shard.index !== 0) { staticContacts.length = 0; pairsPrescreened = 0; }
   }
 
-  // Full closest distance of ~1e-8 (float) never a clean 0 — see the
-  // refinement pass, which shares this contact threshold.
-  const CONTACT_EPS = 1e-4;
   const keyFor = (line: number, pi: number) => {
     const [ai, bi] = pairs[pi]!;
     return `${line}|${bodies[ai]!.id}|${bodies[bi]!.id}`;
