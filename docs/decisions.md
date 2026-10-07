@@ -8374,3 +8374,23 @@ poses per stride, only while a cutter in stock moves on a rapid — a retract
 out of the material. Test: the rotary case at 13°, 14.5°, 15° and 15.5° —
 red at 14.5° with the old condition.
 
+## 2026-10-07 — Live snapshots of a sweep are paced by their cost
+
+The browser's collision sweep posts its findings so far while it runs
+(`SnapshotHandle.peek`, every PEEK_MS = 500 ms when the record count
+changed). A snapshot copies and orders EVERY record so far, and a program
+in permanent contact has a record per line and pair: haus.ngc on the XYZAC
+sim (A 61°, about ten pairs in contact throughout) reached 500 000 records
+by a fifth of the program and 0.5 s per snapshot, growing. Measured from the
+snapshot's START, the 500 ms had passed again when it ended — a snapshot
+after every 40 ms slice: the browser sweep stood at 42 % after an hour,
+where the same sweep in node, without snapshots, takes 22 minutes. The
+operator had asked why the check took so long.
+
+Now the next snapshot waits PEEK_DUTY (9) times as long as the last one took
+(and at least PEEK_MS): snapshots take at most a tenth of the sweep. Measured
+in the browser (headless Chromium, the live haus payload, one worker): done
+in 960 s with 85 collisions — the same 85 the pooled run found. On a large
+program the live findings come every few seconds instead of every half
+second; the result at the end is unchanged.
+
