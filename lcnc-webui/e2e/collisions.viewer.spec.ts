@@ -75,6 +75,29 @@ test("a collision jump on the real XYZAC model lands on its line and shows its m
   await ctl({ op: "reset" });
 });
 
+// The parallel sweep (operator 2026-10-07): with cores to spare the worker
+// splits the model's pairs over sub-workers of its own and merges their
+// results; the page sees one sweep. Its equality with the single sweep is
+// sweepShards.test.ts's (the same sweep and merge, in node); this holds the
+// browser's plumbing to it — the sub-workers load, the merged result reaches
+// the tab, the entry move's side sweep runs beside them.
+test("the sweep runs on several workers and finds what the single sweep finds", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await prepare(page, context, { file: "/crash-par.ngc", version: 2210, lines: [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0],
+    feed: [[0, 0, -100], [0, 0, -380], [240, 0, -380], [240, 0, -100]] });
+  await expect(clashRows(page).first(), "the nose in the yoke, found").toBeVisible({ timeout: 60_000 });
+  await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
+  const cores = await page.evaluate(() => navigator.hardwareConcurrency);
+  const s = (await page.evaluate(() => window.__viewerDiag!.getCollisionSummary!()))!;
+  if (cores >= 3) expect(s.shards, `${cores} cores: more than one worker`).toBeGreaterThan(1);
+  expect([...new Set(s.onsets)], "the collisions begin on L7 alone, as the single sweep has it").toEqual([7]);
+  expect(s.truncated, "swept whole").toBeNull();
+  // The entry move's side sweep beside the shards: the jump lands on L7.
+  await nextHit(page).click();
+  await expect(simLine(page)).toHaveText(/^L7\b/);
+  await ctl({ op: "reset" });
+});
+
 // Codex R33's XYZAC probes: the machine stands at X 300 with the nose at
 // Z −380 already INSIDE the yoke — the live pose touches it with several
 // pairs. The entry move (300 mm back to the first point) leaves them; the

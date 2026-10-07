@@ -57,6 +57,7 @@ import { tloForIndex, toolForIndex, type TloEvent } from "./tloEvents";
 import { EVENT_NONE } from "./eventIndex";
 import { kinsForSegment, makeKins, worldModeForSpec, type KinsModel, type KinsSpec } from "./kins";
 import { installBoxDistanceFix } from "./bvhBoxDistance";
+import { assignPairs } from "./pairAssign";
 
 // Every bounded closest-point query prunes by the library's box-to-box
 // distance, which came out too large (bvhBoxDistance.ts): corrected before
@@ -258,6 +259,13 @@ export interface CollisionOptions {
    *  queried, takes no part in the baseline and is not counted as
    *  prescreened. Absent = every pair. */
   pairMask?: Uint8Array;
+  /** This sweep is shard `index` of `of` (the parallel sweep): after the
+   *  baseline every shard splits the remaining pairs the same way — the
+   *  ones inside the margin at the first pose weigh most, they are the ones
+   *  queried along the program — and checks only its own. The static
+   *  contacts and the prescreened count are reported by shard 0 alone, so the
+   *  merge sums to the single sweep's. Absent = every pair. */
+  shard?: { index: number; of: number };
 }
 
 export interface CollisionResult {
@@ -291,6 +299,9 @@ export interface CollisionResult {
    *  "N % swept" text show). Null = the whole track was swept. A truncated
    *  sweep with no hits is NOT "clear": only the covered part is. */
   truncated: { covered: number; reason: "time" | "samples" | "stopped" | "running" } | null;
+  /** How many workers swept it (the parallel sweep, sweepShards.ts); absent
+   *  = one. */
+  shards?: number;
 }
 
 /** Driver-side stop/continue (2026-09-12). The iterator installs `take` once
@@ -1354,11 +1365,13 @@ export function* sweepCollisionsIter(
   poseFirst();
   const candidates: number[] = [];   // machine pairs inside the margin at the first pose
   const firstDist = new Float64Array(pairs.length);
+  const nearFirst = new Uint8Array(pairs.length);   // inside the margin at the first pose (shard costs)
   for (let pi = 0; pi < pairs.length; pi++) {
     if (unreachable[pi]) continue;   // provably beyond the margin everywhere (prescreen)
     const [ai, bi] = pairs[pi]!;
     const dist = pairDistance(bodies[ai]!, bodies[bi]!, opts.margin, opts.margin);
     if (dist <= opts.margin) {
+      nearFirst[pi] = 1;
       if (pairCutting[pi]) {
         inContact[pi] = 1;  // engaged from the start — a later retract is benign
       } else if (pairTool[pi]) {
@@ -1384,6 +1397,14 @@ export function* sweepCollisionsIter(
   }
   done++;
   for (let pi = 0; pi < pairs.length; pi++) if (staticExcluded[pi]) skipPair[pi] = 1;
+  if (opts.shard && opts.shard.of > 1) {
+    // Every shard computes this same split from the same baseline.
+    const cost = new Float64Array(pairs.length);
+    for (let pi = 0; pi < pairs.length; pi++) cost[pi] = skipPair[pi] ? 0 : nearFirst[pi] ? 100 : 1;
+    const mine = assignPairs(cost, opts.shard.of)[opts.shard.index]!;
+    for (let pi = 0; pi < pairs.length; pi++) if (!mine[pi]) skipPair[pi] = 1;
+    if (opts.shard.index !== 0) { staticContacts.length = 0; pairsPrescreened = 0; }
+  }
 
   // Full closest distance of ~1e-8 (float) never a clean 0 — see the
   // refinement pass, which shares this contact threshold.

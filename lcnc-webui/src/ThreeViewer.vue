@@ -2234,6 +2234,14 @@ async function buildFromInit(init: ViewerInit) {
         // (`frac` = a place on the track's axis): the layout spec measures the
         // findings row with them (review round 7, UI-DI15). Needs a finished
         // sweep; a program change drops them with the result.
+        // The shown sweep's shape: how many workers swept it (the parallel
+        // sweep), what it found and left out.
+        getCollisionSummary: () => {
+          const r = collisionResult.value;
+          return r ? { shards: r.shards ?? 1, hits: r.hits.length, pairCount: r.pairCount, pairsPrescreened: r.pairsPrescreened,
+            staticContacts: r.staticContacts.length, truncated: r.truncated,
+            onsets: r.hits.filter(h => h.continuation === undefined).map(h => h.line) } : null;
+        },
         // The result's `uncertified` note alone (Codex R87 VP-I46: a body
         // left out must stay visible whatever else the result says).
         setCollisionNote: (note: string | null) => {

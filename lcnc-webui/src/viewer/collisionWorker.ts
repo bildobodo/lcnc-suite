@@ -42,6 +42,7 @@ import { restoreBaseTool, geometryNote,
   type CollisionResult, type CollisionTrack, type SnapshotHandle,
 } from "./collision";
 import { runSweepSlice, type SweepIter } from "./sweepPump";
+import { mergeShardResults } from "./sweepShards";
 import type { PartFrameWcs } from "./partFrame";
 
 export interface CollisionReq {
@@ -122,8 +123,11 @@ let _side: Run | null = null;
 
 const clearSnapshot = (s: SnapshotHandle) => { s.take = null; s.peek = null; s.records = null; };
 
-self.onmessage = (e: MessageEvent<CollisionReq | CollisionCancel | CollisionPause | CollisionResume | CollisionStop | CollisionContinue>) => {
-  const d = e.data;
+type Msg = CollisionReq | CollisionCancel | CollisionPause | CollisionResume | CollisionStop | CollisionContinue;
+
+/** One sweep in THIS worker — the single-core path, a shard's work, and every
+ *  side run. */
+function handleLocal(d: Msg): void {
   if ("cancel" in d) {
     if (_side && _side.id === d.cancel) { _side.cancelled = true; return; }
     if (_run && _run.id === d.cancel) {
@@ -277,4 +281,179 @@ self.onmessage = (e: MessageEvent<CollisionReq | CollisionCancel | CollisionPaus
   } catch (err) {
     self.postMessage({ id, error: String((err as Error)?.message ?? err) });
   }
+}
+
+// ─── The parallel sweep (operator 2026-10-07: "dass mehrere Kerne daran
+// arbeiten") ────────────────────────────────────────────────────────────
+// A MAIN request without a shard of its own is split over K sub-workers —
+// instances of THIS script, each sweeping one shard of the model's pairs
+// (CollisionOptions.shard: the pairs are independent, so the shards merge by
+// concatenation, sweepShards.ts) — and this instance only coordinates:
+//   - it keeps the request's bodies and sends them to a shard that lacks the
+//     model (a new shard, a needBodies) — never builds the model itself;
+//   - cancel / stop / continue / pause / resume go to every shard; progress
+//     is the least swept shard's; a partial is the merge of each shard's
+//     latest; the result comes when every shard has one, `stopped` when every
+//     shard is parked or done (a continue resumes the parked ones);
+//   - a side request (the sim-entry segment) runs on shard 0, which holds
+//     the model, with every pair;
+//   - one shard's error ends the sweep with that error (the others are
+//     cancelled) — never a merge of what the rest found.
+// K: the cores but one for the page, at most MAX_SHARDS, and never more
+// copies of the model than SHARD_TRIANGLES allows (every shard holds the
+// whole BVH model: the shipped 3-axis table alone is 1.1 M triangles). One
+// shard, no Worker in this scope, or a sub-worker that fails to load: the
+// single-core path, exactly as before.
+const MAX_SHARDS = 8;
+const SHARD_TRIANGLES = 4_000_000;
+
+interface PoolRun {
+  id: number;
+  k: number;
+  progress: number[];
+  partial: Array<CollisionResult | undefined>;
+  final: Array<CollisionResult | undefined>;   // a shard's result, or its parked snapshot
+  parked: boolean[];
+  cancelled: number;
+  ended: boolean;
+  /** The progress last posted — a shard's slice moves nothing it alone. */
+  posted: number;
+}
+let _shards: Worker[] = [];
+let _shardModel: string[] = [];          // the modelKey each shard holds
+let _bodies: { key: string; bodies: CollisionBody[] } | null = null;
+let _poolRun: PoolRun | null = null;
+let _sideOnShard = -1;                    // the side request forwarded to shard 0
+let _poolBroken = typeof Worker !== "function";
+
+function shardCount(d: CollisionReq): number {
+  if (_poolBroken || d.options.shard) return 1;
+  const bodies = d.bodies ?? (_bodies?.key === d.modelKey ? _bodies.bodies : null);
+  if (!bodies) return 1;   // the model is not known here: the single path asks for it
+  const tris = bodies.reduce((n, b) => n + b.positions.length / 9, 0);
+  const cores = (self.navigator?.hardwareConcurrency ?? 2) - 1;
+  return Math.max(1, Math.min(MAX_SHARDS, cores, Math.floor(SHARD_TRIANGLES / Math.max(tris, 1))));
+}
+
+function shardRequest(d: CollisionReq, k: number, of: number): CollisionReq {
+  const hasModel = _shardModel[k] === d.modelKey;
+  _shardModel[k] = d.modelKey;
+  return { ...d, bodies: hasModel ? undefined : _bodies!.bodies,
+           options: of > 1 ? { ...d.options, shard: { index: k, of } } : d.options };
+}
+
+function onShardMessage(k: number, m: any): void {
+  if (m.id === _sideOnShard) { self.postMessage(m); if (m.result || m.error || m.cancelled || m.needBodies) _sideOnShard = -1; return; }
+  const run = _poolRun;
+  if (!run || m.id !== run.id || run.ended) return;   // a superseded run's late word
+  if (m.needBodies) {
+    if (_bodies) { _shardModel[k] = ""; _shards[k]!.postMessage(shardRequest(_lastReq!, k, run.k)); }
+    else { run.ended = true; self.postMessage({ id: run.id, needBodies: true }); }
+    return;
+  }
+  if (m.error) {
+    run.ended = true;
+    _shards.forEach((w, i) => { if (i !== k) w.postMessage({ cancel: run.id }); });
+    self.postMessage({ id: run.id, error: m.error });
+    return;
+  }
+  if (m.cancelled) {
+    if (++run.cancelled >= run.k) { run.ended = true; self.postMessage({ id: run.id, cancelled: true }); }
+    return;
+  }
+  if (m.progress !== undefined) {
+    run.progress[k] = m.progress;
+    if (m.partial) run.partial[k] = m.partial;
+    const progress = Math.min(...run.progress);
+    const parts = run.partial.filter((r): r is CollisionResult => !!r);
+    if (m.partial && parts.length) self.postMessage({ id: run.id, progress, partial: mergeShardResults(parts) });
+    else if (progress !== run.posted) self.postMessage({ id: run.id, progress });
+    run.posted = progress;
+    return;
+  }
+  if (m.result) {
+    run.final[k] = m.result;
+    run.parked[k] = !!m.stopped;
+    if (!m.stopped) run.progress[k] = 1;   // done: no longer the least swept
+    if (run.final.every(r => r)) {
+      const merged = mergeShardResults(run.final as CollisionResult[]);
+      if (run.parked.some(p => p)) self.postMessage({ id: run.id, stopped: true, result: merged });
+      else { run.ended = true; self.postMessage({ id: run.id, result: merged }); }
+    }
+  }
+}
+
+function ensureShards(n: number): boolean {
+  while (_shards.length > n) { _shards.pop()!.terminate(); _shardModel.pop(); }
+  while (_shards.length < n) {
+    const k = _shards.length;
+    let w: Worker;
+    try { w = new Worker(self.location.href, { type: "module" }); }
+    catch { _poolBroken = true; return false; }
+    w.onmessage = (e: MessageEvent) => onShardMessage(k, e.data);
+    w.onerror = () => {
+      // A shard that cannot load: the pool is gone for good, and the sweep
+      // in flight runs on this core instead (it asks for the bodies again
+      // if they are not here).
+      _poolBroken = true;
+      _shards.forEach(x => x.terminate()); _shards = []; _shardModel = [];
+      const run = _poolRun;
+      _poolRun = null;
+      if (run && !run.ended && _lastReq) handleLocal({ ..._lastReq, bodies: _bodies?.key === _lastReq.modelKey ? _bodies.bodies : undefined });
+    };
+    _shards.push(w);
+    _shardModel.push("");
+  }
+  return true;
+}
+
+let _lastReq: CollisionReq | null = null;
+
+self.onmessage = (e: MessageEvent<Msg>) => {
+  const d = e.data;
+  // Control messages for the pooled run go to every shard.
+  const ctrlId = "cancel" in d ? d.cancel : "stop" in d ? d.stop : "continue" in d ? d.continue
+    : "pause" in d ? d.pause : "resume" in d ? d.resume : null;
+  if (ctrlId !== null) {
+    if (_sideOnShard === ctrlId && "cancel" in d) { _shards[0]?.postMessage(d); return; }
+    const run = _poolRun;
+    if (run && run.id === ctrlId && !run.ended) {
+      if ("continue" in d) {
+        run.parked.forEach((p, k) => { if (p) { run.parked[k] = false; run.final[k] = undefined; } });
+      }
+      // A shard already done has no run to cancel and sends no word: it
+      // counts as acknowledged.
+      if ("cancel" in d) run.cancelled = run.final.filter((r, i) => r && !run.parked[i]).length;
+      for (const w of _shards) w.postMessage(d);
+      return;
+    }
+    handleLocal(d);
+    return;
+  }
+  const req = d as CollisionReq;
+  if (req.bodies) _bodies = { key: req.modelKey, bodies: req.bodies };
+  if (req.side) {
+    // The entry segment: on shard 0 (which holds the model) while a pool runs.
+    if (_shards.length) {
+      _sideOnShard = req.id;
+      const hasModel = _shardModel[0] === req.modelKey;
+      _shardModel[0] = req.modelKey;
+      _shards[0]!.postMessage({ ...req, bodies: hasModel ? undefined : _bodies?.key === req.modelKey ? _bodies.bodies : undefined });
+      return;
+    }
+    handleLocal(req);
+    return;
+  }
+  const k = shardCount(req);
+  if (k <= 1 || !ensureShards(k)) {
+    if (_poolRun) { for (const w of _shards) w.postMessage({ cancel: _poolRun.id }); _poolRun = null; }
+    handleLocal(req);
+    return;
+  }
+  // A pooled sweep supersedes the in-process one, as a new request does.
+  if (_run) handleLocal({ cancel: _run.id });
+  _lastReq = req;
+  _poolRun = { id: req.id, k, progress: new Array(k).fill(0), partial: new Array(k).fill(undefined),
+               final: new Array(k).fill(undefined), parked: new Array(k).fill(false), cancelled: 0, ended: false, posted: -1 };
+  _shards.forEach((w, i) => w.postMessage(shardRequest(req, i, k)));
 };

@@ -8357,3 +8357,40 @@ check": it now reads "Not checked" with the marker and says no part that
 could be checked moves (sim-panel spec, Chromium and Firefox, red with the
 old early return; `__viewerDiag.setCollisionNote`).
 
+## 2026-10-07 — The collision sweep runs on several cores, split by pair
+
+Operator: "konnte schon etwas parallelisiert werden? dass mehrere Kerne
+daran arbeiten?" — then "du entscheidest": the parallel sweep comes before
+the inside check.
+
+The unit of work is the PAIR. Every pair carries its own clearance
+certificates, contact state, cutting origin, re-sampling and records, so
+shards over disjoint pairs need no stitching: their results merge by
+concatenation and the one global cap. Splitting the TRACK would carry
+contact state, the cutting onset and the re-sampling after a touch across
+every cut — exactly where the horizon bug and VP-I45 lived. What a shard
+changes is where a pair is sampled (the sweep steps to the nearest expiry
+among the pairs it checks); the guarantee is per pair, and the comparison
+holds the merged result to the single sweep under that relation, with the
+truth deciding every record or touch only one run has.
+
+The worker the page creates coordinates; its shards are instances of the
+same script (`new Worker(self.location.href, {type: "module"})` — the built
+worker is a classic IIFE, which loads as a module too; in dev it is a
+module). Each shard assigns its own pairs after the baseline from the same
+deterministic cost, so the coordinator never builds the model. Cost: inside
+the margin at the first pose = 100, else 1 — the permanent contacts are
+what a long sweep spends its time on.
+
+Measured on haus.ngc (the live payload, per-pair `profile`): 96 % of the
+time is distance queries; the costliest pair (rear column / C faceplate)
+holds 24.5 % — the ceiling of any pair split: ×3.9 with 4 shards, ×4.1
+from 6 on. Going further needs that pair's own cost down (an early exit on
+a touch made touching queries ×1.3 faster in an interleaved measurement,
+identical answers — a later step) or a track split for it alone.
+
+K = min(cores − 1, 8, 4 M triangles / model triangles): every shard holds
+the whole BVH model, and the shipped 3-axis table alone is 1.1 M triangles.
+One shard, no Worker in the worker's scope, or a sub-worker that fails to
+load: the single-core path, unchanged.
+
