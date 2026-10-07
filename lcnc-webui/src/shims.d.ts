@@ -31,6 +31,7 @@ interface ViewerDiag {
   getPalette?: () => { resolved: Record<string, string>; drawn: Record<string, string>; mode: string };
   tintPart?: (id: string, on: boolean) => void;
   setCollisionHits?: (hits: { line: number; frac: number; rapid?: boolean }[]) => boolean;
+  setCollisionNote?: (note: string | null) => boolean;
   getLabels?: () => { total: number; laidOut: number };
   // Viewer contrast plan (R1/R2): each role's drawn material kind (the form
   // cue), width and opacity; the longest visible segment of a role on screen.
