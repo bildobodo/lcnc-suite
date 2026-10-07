@@ -79,7 +79,7 @@ const MODELS: Array<{ name: string; dir: string; poses: number; brute?: false; r
 
 describe("the sweep's clearance estimates are lower bounds", () => {
   for (const M of MODELS) {
-    it(`${M.name}: every estimator ≤ the true distance, contact never hidden`, { timeout: 2 * BUDGET_MS }, () => {
+    it(`${M.name}: every estimator ≤ the true distance, contact never hidden`, { timeout: DEEP ? 86_400_000 : 2 * BUDGET_MS }, () => {
       const t0 = performance.now();
       const dir = path.join(ROOT, M.dir);
       const mj = JSON.parse(fs.readFileSync(path.join(dir, "machine.json"), "utf8"));

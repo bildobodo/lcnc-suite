@@ -36,6 +36,9 @@ const DEEP = process.env.COLLISION_HUNT === "deep";
 // Per case: a slow run fails by name, never hangs; COLLISION_HUNT_BUDGET=0
 // lifts it (a seed that ran out of time in the gate's search).
 const BUDGET_MS = process.env.COLLISION_HUNT_BUDGET === "0" || DEEP ? Infinity : 60_000;
+// vitest cannot interrupt a synchronous test, but it marks one that ran past
+// its timeout failed after all its checks passed: a hunt lifts it (a day).
+const TIMEOUT_MS = BUDGET_MS === Infinity ? 86_400_000 : 600_000;
 const WCS0 = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0 } as any;
 
 function parseBinSTL(buf: Buffer): Float32Array {
@@ -141,7 +144,7 @@ function randomTrack(c: Case, rand: () => number): CollisionTrack {
 
 describe("the sweep against a brute-force oracle", () => {
   for (const c of CASES) {
-    it(`${c.name}: every touch and every in-margin pose the oracle finds is reported, every report is real`, { timeout: 600_000 }, () => {
+    it(`${c.name}: every touch and every in-margin pose the oracle finds is reported, every report is real`, { timeout: TIMEOUT_MS }, () => {
       const { model, stock } = loadModel(c);
       const t0 = performance.now();
       const seed = Number(process.env.COLLISION_HUNT_SEED) || (DEEP ? 20261007 + c.name.length : c.seed ?? 20261007 + c.name.length);
