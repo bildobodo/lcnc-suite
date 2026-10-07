@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r89-wl82mchr/archive/lcnc-webui
+
+
+ Test Files  9 passed (9)
+      Tests  113 passed (113)
+   Start at  15:49:20
+   Duration  8.90s (transform 362ms, setup 0ms, import 816ms, tests 7.39s, environment 1ms)
+
