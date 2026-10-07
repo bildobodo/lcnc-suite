@@ -61,6 +61,8 @@ export interface CollisionReq {
   options: CollisionOptions;
   /** Run beside the main sweep instead of superseding it (see header). */
   side?: boolean;
+  /** At most this many shards (the parallel sweep; a test seam). */
+  maxShards?: number;
 }
 
 export interface CollisionCancel { cancel: number }
@@ -332,7 +334,7 @@ function shardCount(d: CollisionReq): number {
   if (!bodies) return 1;   // the model is not known here: the single path asks for it
   const tris = bodies.reduce((n, b) => n + b.positions.length / 9, 0);
   const cores = (self.navigator?.hardwareConcurrency ?? 2) - 1;
-  return Math.max(1, Math.min(MAX_SHARDS, cores, Math.floor(SHARD_TRIANGLES / Math.max(tris, 1))));
+  return Math.max(1, Math.min(MAX_SHARDS, cores, d.maxShards ?? MAX_SHARDS, Math.floor(SHARD_TRIANGLES / Math.max(tris, 1))));
 }
 
 function shardRequest(d: CollisionReq, k: number, of: number): CollisionReq {
