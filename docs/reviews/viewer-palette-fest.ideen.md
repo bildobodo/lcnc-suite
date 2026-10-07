@@ -12595,3 +12595,66 @@ Beispiel 15°: Der Standardlauf erfasst jetzt etwa A = **14,116°–15,885°**, 
 Die zurückgenommene Laufzeitaussage ist damit geklärt. Diese Runde enthält keine neue Leistungsmessung und keinen Abschlussnachweis des separaten Deep-Hunts. Die bekannte Abtastgrenze und die bereits akzeptierte konservative Zusammenfassung bleiben bestehen. Die angekündigte Parallelisierung braucht weiterhin ihre eigene Prüfung.
 
 [Prüfaufbau](viewer-palette-fest.r89.checks.md), [Stand und Quellvergleich](viewer-palette-fest.r89.context.json), [Kernprüfungen](viewer-palette-fest.r89.core.txt), [Orakel](viewer-palette-fest.r89.oracle.txt), [Build](viewer-palette-fest.r89.build.txt), [Beleghashes](viewer-palette-fest.r89.sha256.json).
+
+## Anfrage R90 · Claude · Parallele Kollisionsprüfung, Drosselung der Zwischenstände · 7. Oktober 2026
+
+**Bitte prüfe `aa250780..5af78ad1` auf `feat/backlog-integration`.**
+
+- **Produkt-Commits:** `69cb5902`, `33e9cdb9`, `3b913e19`, `b5461e91`, `69841626`, `c1e0a512` (Zweig `feat/parallel-sweep`, gemergt als `5af78ad1`).
+- **Gate R13** auf `38db7ebc` (gleicher Produktstand): PASS (Backend 1245, Unit 1947, Browser 489).
+- **Anlass:** Operator-Frage, warum die Prüfung so lange dauert, dann „dass mehrere Kerne daran arbeiten“ → „du entscheidest“. Die Parallelisierung kommt vor der Innenprüfung (Punkt 2 des Plans).
+
+### 1 · Drosselung der Zwischenstände (`3b913e19`)
+
+- **Befund:** Der Browser-Lauf auf haus.ngc (XYZAC, A 61°, etwa zehn Paare dauerhaft im Kontakt) stand nach einer Stunde bei 42 %; derselbe Lauf in node ohne Zwischenstände braucht 22 Minuten.
+- **Ursache:** `SnapshotHandle.peek` kopiert und sortiert alle Datensätze bisher; haus erreicht etwa 500 000 Datensätze bei einem Fünftel und 0,5 s je Zwischenstand. Gemessen ab dem Start des Zwischenstands waren die 500 ms beim Ende schon wieder um — nach jeder 40-ms-Scheibe ein Zwischenstand.
+- **Änderung:** Der nächste Zwischenstand wartet `PEEK_DUTY` (9) mal so lange, wie der letzte dauerte, mindestens `PEEK_MS`. Zwischenstände belegen höchstens ein Zehntel der Zeit.
+- **Nicht geändert:** das Endergebnis, der Inhalt jedes Zwischenstands, Pause, Parken und Abbruch.
+
+### 2 · Prüfung über mehrere Worker, aufgeteilt nach Paar (`69cb5902`, `33e9cdb9`, `69841626`, `c1e0a512`)
+
+- **Einheit ist das Paar, nicht ein Abschnitt der Bahn.** Jedes Paar trägt seine eigenen Zertifikate, seinen Kontaktzustand, die Schneid-Herkunft, die Nachprüfung nach einer Berührung und seine Datensätze. Teilmengen disjunkter Paare brauchen deshalb keine Naht: Die Ergebnisse werden verkettet und einmal gemeinsam gekappt. Eine Aufteilung der Bahn hätte Kontaktzustand, Schneid-Onset und Nachprüfung über jeden Schnitt tragen müssen — genau dort lagen der Horizont-Fehler und VP-I45.
+- **`CollisionOptions.pairMask`** schränkt die Prüfung auf eine Paarmenge ein; **`CollisionOptions.shard {index, of}`**: Jeder Teil berechnet nach der Grundlinie dieselbe deterministische Aufteilung (`assignPairs`, LPT, Gleichstand nach Index) und behält seine Paare. Statische Kontakte und die Zahl der vorab ausgeschlossenen Paare liefert nur Teil 0.
+- **Kosten je Paar:** in der Marge bei der ersten Pose = 10 + Dreiecke beider Netze, sonst 1. Die Dauerkontakte bestimmen die Laufzeit, und eine Abfrage läuft durch die Netze (C-Planscheibe 5576 Dreiecke: 252 s; Y-Schlitten 44: 78 s).
+- **`mergeShardResults`:** Datensätze verketten, Kappe wie im Einzellauf (erst Onsets, dann Fortsetzungen, je nach Position), nach Position sortieren; Proben und Ausschlüsse summieren; Abdeckung = die des am wenigsten abgedeckten Teils; Feld `shards`.
+- **Koordinator** (`collisionWorker.ts`): Der vom Seiten-Thread erzeugte Worker startet K Teil-Worker aus demselben Skript (`new Worker(self.location.href, {type: "module"})`) und baut das Modell selbst nicht.
+  - K = min(Kerne − 1, 8, 4 M Dreiecke / Modelldreiecke) — jeder Teil hält das ganze BVH-Modell.
+  - Abbruch, Parken, Fortsetzen, Pause und Wiederaufnahme gehen an alle Teile. Fortschritt = der kleinste; Zwischenstand = Zusammenführung der jeweils letzten; Ergebnis, wenn alle eines haben; `stopped`, wenn alle geparkt oder fertig sind.
+  - Der Seitenlauf (Einfahrbewegung beim Simulationsstart) läuft auf Teil 0 mit allen Paaren.
+  - Der Fehler eines Teils beendet den Lauf mit diesem Fehler, die anderen werden abgebrochen — nie ein Ergebnis aus dem Rest.
+  - Ein Teil, der nicht lädt, ein Worker-Bereich ohne `Worker` oder K = 1: der bisherige Einzelpfad, unverändert.
+
+### 3 · Abfrage endet bei der ersten Berührung (`b5461e91`)
+
+- `closestPointToGeometry` bekommt als Mindestschwelle `TOUCH_STOP = CONTACT_EPS / 2`: Sobald ein Dreieckspaar näher liegt, endet die Abfrage mit diesem Abstand.
+- Das Prädikat „berührt“ (d ≤ CONTACT_EPS) liefert damit dasselbe; der gemeldete Abstand eines berührenden Datensatzes kann ein anderer Wert unter CONTACT_EPS / 2 sein als das Minimum.
+- In einer verschränkten Messung waren berührende Abfragen ×1,3 schneller, mit gleichen Antworten.
+
+### 4 · Messung
+
+- **Profil haus.ngc** (node, Live-Payload, `profile` je Paar): 96 % der Zeit sind Abstandsabfragen; das teuerste Paar (hintere Säule / C-Planscheibe) hält 24,5 %. Das ist die Decke jeder Paar-Aufteilung: ×3,9 mit 4 Teilen, ×4,1 ab 6.
+- **Browser** (headless Chromium, Live-Payload, Zwischenstände gedrosselt, VM mit 4 Kernen). Ein Worker und der erste Pool liefen nacheinander in einem Playwright-Lauf, der dritte Lauf einzeln danach; daneben lief die Sim:
+
+| Lauf | Wand | aktiv | Proben | Onsets |
+|---|---|---|---|---|
+| ein Worker | 1036 s | 852 s | 1 371 021 | 85 |
+| 3 Teile, Kosten gleich | 624 s | 514 s | 2 506 512 | 85 |
+| 3 Teile, nach Dreiecken | 482 s | 395 s | 2 566 317 | 85 |
+
+- Mehr Proben im Pool: Jeder Teil schreitet zum nächsten Zertifikatsablauf **seiner** Paare; die Summe über die Teile ist größer, je Paar nicht.
+- **Sechs der 85 Onsets** liegen eine Zeile auseinander (z. B. 44857 / 44858): haus hat Zeilen von etwa 0,08 mm, kürzer als MIN_ADV. Die erste berührende Probe — und damit die Onset-Zeile — hängt davon ab, wo ein Lauf abtastet; die Position auf der Zeitachse stimmt innerhalb MIN_ADV.
+
+### 5 · Prüfungen
+
+- **`sweepShards.test.ts`:** `assignPairs` und `mergeShardResults` als Einheiten; dazu der Vergleich gegen den Einzellauf auf XYZAC (Identität, TCP) und dem TWP-Portal mit 2 und 3 Teilen, einer Zufallsaufteilung auf 4 und der Option `shard` mit 3. Gleich sein müssen: Paarzahl, Ausschluss, statische Kontakte. Ein Datensatz oder eine Berührung, die nur ein Lauf hat, muss laut Wahrheit (`trackTruth.runWide`) schmaler als MIN_ADV sein. Jeder Intervallbeginn liegt im Intervall des anderen Laufs (Toleranz 0,01), in beide Richtungen.
+  - Rot mit einem Merge, der die statischen Kontakte verliert, und mit einem Teil, der Paare verliert.
+- **`e2e/collisions.viewer.spec.ts`** „the sweep runs on several workers and finds what the single sweep finds“: `shards > 1` bei mindestens 3 Kernen, Onsets [7], der Sprung landet auf L7. Rot mit K = 1. Die ganze Spec 26/26 in Chromium und Firefox (gebautes dist).
+- Orakel und Schranken-Tests unverändert grün; die Gate-Laufzeit von `collisionBounds.test.ts` wurde unter Volllast auf 240 s Budget angehoben.
+
+### Offene Punkte und Fragen
+
+1. **Grafikflüssigkeit:** Ein einzelner Sweep-Worker hat am Mac des Operators die GPU 3–4 Frames hinter sich gelassen (2026-09-10); behoben durch Pause bei Kamerabedienung. Mit K = Kerne − 1 belegt der Pool fast alle Kerne. Die Pause gilt für alle Teile; während einer Wiedergabe läuft der Pool weiter. Ich prüfe es live am Mac. Siehst du einen Grund, schon jetzt einen Kern mehr frei zu lassen?
+2. **Probenbremse je Teil:** Die 4-M-Proben-Notbremse gilt je Teil, ein Pool kann insgesamt K × 4 M Proben nehmen. Für mich eine Notbremse gegen Endlosläufe, keine Garantiegrenze — einverstanden?
+3. **Seitenlauf beim Ausfall:** Lädt ein Teil-Worker nicht, wechselt der Hauptlauf auf den Einzelpfad. Ein Seitenlauf, der in diesem Moment auf Teil 0 lag, bekommt keine Antwort; der nächste Simulationsstart fragt neu. Nicht getestet, weil ein Teil-Worker nach dem ersten Laden nicht mehr nachlädt.
+4. **Entwicklungsmodus:** Live läuft Vite im Dev-Modus (Worker als ES-Modul); die e2e-Specs prüfen das gebaute dist (klassisches IIFE, als Modul geladen). Der Dev-Pfad ist bisher nur durch das Live-Laden belegt.
+5. **Decke ×4,1:** Weiter geht es nur, wenn das teuerste Paar billiger wird oder für dieses Paar allein die Bahn geteilt wird — ein späterer Schritt, nicht Teil dieser Runde.
