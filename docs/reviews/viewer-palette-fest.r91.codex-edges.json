@@ -1,0 +1,133 @@
+{
+  "truncatedShard": [
+    {
+      "id": 91,
+      "progress": 0,
+      "partial": {
+        "hits": [
+          {
+            "line": 7,
+            "cum": 2,
+            "cumEnd": 3,
+            "a": "moving",
+            "b": "fixed",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                2,
+                3
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 20,
+        "coarsened": true,
+        "uncertified": null,
+        "pairCount": 2,
+        "pairsPrescreened": 0,
+        "bvhMs": 1,
+        "sweepMs": 20,
+        "truncated": {
+          "covered": 0,
+          "reason": "running"
+        },
+        "shards": 2
+      }
+    },
+    {
+      "id": 91,
+      "progress": 0.8,
+      "partial": {
+        "hits": [
+          {
+            "line": 7,
+            "cum": 2,
+            "cumEnd": 3,
+            "a": "moving",
+            "b": "fixed",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                2,
+                3
+              ]
+            ]
+          },
+          {
+            "line": 7,
+            "cum": 2,
+            "cumEnd": 3,
+            "a": "moving",
+            "b": "fixed",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                2,
+                3
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 40,
+        "coarsened": true,
+        "uncertified": null,
+        "pairCount": 2,
+        "pairsPrescreened": 0,
+        "bvhMs": 1,
+        "sweepMs": 20,
+        "truncated": {
+          "covered": 0.2,
+          "reason": "running"
+        },
+        "shards": 2
+      }
+    }
+  ],
+  "stopBeforeSnapshot": {
+    "sent": [],
+    "timers": 1,
+    "terminated": [
+      true,
+      true
+    ]
+  },
+  "twoPauses": [
+    {
+      "id": 93,
+      "result": {
+        "hits": [],
+        "staticContacts": [],
+        "samples": 4,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 0,
+        "sweepMs": 0,
+        "truncated": null
+      }
+    }
+  ],
+  "lostParked": [
+    {
+      "id": 94,
+      "result": {
+        "hits": [],
+        "staticContacts": [],
+        "samples": 4,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 0,
+        "sweepMs": 0,
+        "truncated": null
+      }
+    }
+  ]
+}

@@ -1,0 +1,140 @@
+Local native source copy inspected read-only; no live/controller calls.
+Source: /tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/src/interp_convert.cc
+SHA256: f2e7cf41ec6bc4b1cd86bf6a5620c7d6028314f66a2980491ffab19156a506cb
+Excerpt with source line numbers (R92 planning only):
+
+5488: /*! convert_tool_change
+5489: 
+5490: Returned Value: int (INTERP_OK)
+5491: 
+5492: Side effects:
+5493:    This makes function calls to canonical machining functions, and sets
+5494:    the machine model as described below.
+5495: 
+5496: Called by: convert_m
+5497: 
+5498: This function carries out an M6 command, which changes the tool.
+5499: If M61 is called, the toolnumber gets changed (without causing an actual toolchange).
+5500: 
+5501: When the CHANGE_TOOL call completes, the specified tool should be
+5502: loaded.  What this means varies by machine.  According to configuration,
+5503: the interpreter may also issue commands to do one or more of the
+5504: following things before calling CHANGE_TOOL:
+5505: 
+5506: 1. stop the spindle
+5507: 2. move the quill up (Z to machine zero, like G0 G53 Z0)
+5508: 3. move the axes to reference point #2 (like G30)
+5509: 
+5510: Further, the interpreter makes no assumptions about the axis positions
+5511: after the tool change completes.  This state is queried and the internal
+5512: model is resynched before the program continues.  This means CHANGE_TOOL
+5513: itself can also issue motion (and it currently may, according to
+5514: configuration).
+5515: 
+5516: This implements the "Next tool in T word" approach to tool selection.
+5517: The tool is selected when the T word is read (and the carousel may
+5518: move at that time) but is changed when M6 is read.
+5519: 
+5520: Note that if a different tool is put into the spindle, the current_z
+5521: location setting will be incorrect. It is assumed the program will
+5522: contain an appropriate USE_TOOL_LENGTH_OFFSET (G43) command before any
+5523: subsequent motion.  It is also assumed that the program will restart the
+5524: spindle and make new entry moves if necessary.
+5525: 
+5526: */
+5527: 
+5528: int Interp::convert_tool_change(setup_pointer settings)  //!< pointer to machine settings
+5529: {
+5530: 
+5531:   if (settings->selected_pocket < 0) {
+5532:     ERS(NCE_TXX_MISSING_FOR_M6);
+5533:   }
+5534: 
+5535:   CHKS((settings->cutter_comp_side),
+5536:        (_("Cannot change tools with cutter radius compensation on")));
+5537: 
+5538:   START_CHANGE(); // indicate start of change operation
+5539:   if (!settings->tool_change_with_spindle_on) {
+5540: 	  for (int s = 0; s < settings->num_spindles; s++){
+5541: 		  STOP_SPINDLE_TURNING(s);
+5542: 		  settings->spindle_turning[s] = CANON_STOPPED;
+5543: 	  }
+5544:   }
+5545: 
+5546:   if (settings->tool_change_quill_up) {
+5547:       double up_z;
+5548:       double discard;
+5549:       find_relative(0., 0., 0., 0., 0., 0., 0., 0., 0.,
+5550:                     &discard, &discard, &up_z,
+5551:                     &discard, &discard, &discard,
+5552:                     &discard, &discard, &discard,
+5553:                     settings);
+5554:       COMMENT("AXIS,hide");
+5555:       STRAIGHT_TRAVERSE(-1, settings->current_x, settings->current_y, up_z,
+5556:                         settings->AA_current, settings->BB_current, settings->CC_current,
+5557:                         settings->u_current, settings->v_current, settings->w_current);
+5558:       COMMENT("AXIS,show");
+5559:       settings->current_z = up_z;
+5560:   }
+5561: 
+5562:   if (settings->tool_change_at_g30) {
+5563:       double end_x;
+5564:       double end_y;
+5565:       double end_z;
+5566:       double AA_end;
+5567:       double BB_end;
+5568:       double CC_end;
+5569:       double u_end;
+5570:       double v_end;
+5571:       double w_end;
+5572: 
+5573:       find_relative(USER_TO_PROGRAM_LEN(settings->parameters[5181]),
+5574:                     USER_TO_PROGRAM_LEN(settings->parameters[5182]),
+5575:                     USER_TO_PROGRAM_LEN(settings->parameters[5183]),
+5576:                     USER_TO_PROGRAM_ANG(settings->parameters[5184]),
+5577:                     USER_TO_PROGRAM_ANG(settings->parameters[5185]),
+5578:                     USER_TO_PROGRAM_ANG(settings->parameters[5186]),
+5579:                     USER_TO_PROGRAM_LEN(settings->parameters[5187]),
+5580:                     USER_TO_PROGRAM_LEN(settings->parameters[5188]),
+5581:                     USER_TO_PROGRAM_LEN(settings->parameters[5189]),
+5582:                     &end_x, &end_y, &end_z,
+5583:                     &AA_end, &BB_end, &CC_end,
+5584:                     &u_end, &v_end, &w_end, settings);
+5585:       COMMENT("AXIS,hide");
+5586: 
+5587:       // move indexers first, one at a time
+5588:       // JOINTS_AXES settings->*_indexer_jnum == -1 means notused
+5589:       if (AA_end != settings->AA_current && (-1 != settings->a_indexer_jnum) )
+5590:           issue_straight_index(3,settings->a_indexer_jnum, AA_end, -1, settings);
+5591:       if (BB_end != settings->BB_current && (-1 != settings->b_indexer_jnum) )
+5592:           issue_straight_index(4,settings->b_indexer_jnum, BB_end, -1, settings);
+5593:       if (CC_end != settings->CC_current && (-1 != settings->c_indexer_jnum) )
+5594:           issue_straight_index(5,settings->c_indexer_jnum, CC_end, -1, settings);
+5595: 
+5596:       STRAIGHT_TRAVERSE(-1, end_x, end_y, end_z,
+5597:                         AA_end, BB_end, CC_end,
+5598:                         u_end, v_end, w_end);
+5599:       COMMENT("AXIS,show");
+5600:       settings->current_x = end_x;
+5601:       settings->current_y = end_y;
+5602:       settings->current_z = end_z;
+5603:       settings->AA_current = AA_end;
+5604:       settings->BB_current = BB_end;
+5605:       settings->CC_current = CC_end;
+5606:       settings->u_current = u_end;
+5607:       settings->v_current = v_end;
+5608:       settings->w_current = w_end;
+5609:   }
+5610: 
+5611:   CHANGE_TOOL(settings->selected_pocket);
+5612: 
+5613:   settings->current_pocket = settings->selected_pocket;
+5614:   // tool change can move the controlled point.  reread it:
+5615:   settings->toolchange_flag = true;
+5616:   set_tool_parameters();
+5617:   return INTERP_OK;
+5618: }
+5619: 
+5620: /****************************************************************************/
+5621: 
+5622: /*! convert_tool_length_offset

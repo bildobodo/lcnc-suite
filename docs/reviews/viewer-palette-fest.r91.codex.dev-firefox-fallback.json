@@ -1,0 +1,130 @@
+{
+  "main": {
+    "id": 1,
+    "result": {
+      "hits": [
+        {
+          "line": 2,
+          "cum": 6,
+          "cumEnd": 14,
+          "a": "slide",
+          "b": "fixed",
+          "dist": 0,
+          "rapid": true,
+          "intervals": [
+            [
+              6,
+              14
+            ]
+          ]
+        }
+      ],
+      "staticContacts": [],
+      "samples": 27,
+      "coarsened": false,
+      "uncertified": null,
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 3,
+      "sweepMs": 26,
+      "truncated": null
+    }
+  },
+  "side": {
+    "id": -1,
+    "result": {
+      "hits": [
+        {
+          "line": 2,
+          "cum": 6,
+          "cumEnd": 14,
+          "a": "slide",
+          "b": "fixed",
+          "dist": 0,
+          "rapid": true,
+          "intervals": [
+            [
+              6,
+              14
+            ]
+          ]
+        }
+      ],
+      "staticContacts": [],
+      "samples": 27,
+      "coarsened": false,
+      "uncertified": null,
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 3,
+      "sweepMs": 12,
+      "truncated": null
+    }
+  },
+  "messages": [
+    {
+      "id": 1,
+      "result": {
+        "hits": [
+          {
+            "line": 2,
+            "cum": 6,
+            "cumEnd": 14,
+            "a": "slide",
+            "b": "fixed",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                6,
+                14
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 27,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 3,
+        "sweepMs": 26,
+        "truncated": null
+      }
+    },
+    {
+      "id": -1,
+      "result": {
+        "hits": [
+          {
+            "line": 2,
+            "cum": 6,
+            "cumEnd": 14,
+            "a": "slide",
+            "b": "fixed",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                6,
+                14
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 27,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 3,
+        "sweepMs": 12,
+        "truncated": null
+      }
+    }
+  ],
+  "errors": [],
+  "cores": 4
+}
