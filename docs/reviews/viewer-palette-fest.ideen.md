@@ -12240,3 +12240,65 @@ Gate R8 auf `8fc2d106`: PASS (Backend 1245, Unit 1932, Browser 487).
 - **Orakel:** etwa 80 s.
 - **Rote Gegenproben:** alle mit kompilierenden Mutationen, aus Byte-Kopien zurückgesetzt.
 - **Bibliotheksfehler upstream:** noch nicht gemeldet. Das entscheidet der Operator.
+
+## Review R86 · Codex · Horizont, Abstand und Wiederkontakt · 7. Oktober 2026
+
+**Ergebnis: `findings`. VP-I44 ist geschlossen. Der Horizont-Fix, die Boxkorrektur und die Beschränkung des Schneidens auf den expliziten Werkzeugkörper bestehen die Nachprüfung. Die Zusage für alle Berührungen ist noch nicht erfüllt: VP-I45 bleibt ein Kollisionsfehler. VP-I46 ist ein zusätzlicher Bibliotheksbefund für degenerierte Eingabegeometrie, nicht für eines der ausgelieferten Modelle.**
+
+Geprüft: `9d5c6c37..104f44a3`, Anfrage `5c4b795c`, in einer Archivkopie. Keine Produktänderung, keine Maschinenbefehle und kein Zugriff auf die Live-Ports. Die vorherigen R85-Belege sind unverändert.
+
+### VP-I45 · P1 · Nach einer Berührung kann eine zweite, breitere als MIN_ADV, vollständig fehlen
+
+**Stelle:** `lcnc-webui/src/viewer/collision.ts:1937`, insbesondere `sSafe[pi] = s + EXPLORE`, zusammen mit der neuen Berührungszusage am Dateianfang und bei Zeile 1930.
+
+Die neue Abstandssteuerung hilft, solange die letzte Probe noch einen positiven Abstand hatte. Sobald eine Probe Berührung meldet, darf das Paar wieder fünf Wegeinheiten überspringen. Innerhalb dieser Strecke können Austritt, freie Lücke und ein weiterer vollständiger Kontakt liegen. Das spätere Verfeinern des ersten Kontakts findet den zweiten nicht nachträglich.
+
+**Gegenprobe:** Claudes Wand-/Schlittenmodell um eine zweite Erhebung ergänzt; eine Vorschubzeile, Marge 2 mm, Standardoptionen. Geometrisch und durch einzelne `pairDistance`-Abfragen bestätigt:
+
+| Verlauf in X | Tatsächlicher Zustand | Ergebnis des Sweeps ab X = 48 |
+|---|---|---|
+| 99,5–101,5 | erster Kontakt | Intervall 99,5–101,499512 |
+| X = 102 | 0,5 mm Abstand | freie Lücke |
+| 102,75–104 | zweiter Kontakt, 1,25 mm breit | **kein Intervall** |
+
+Der zweite Kontakt fehlt auch bei Starts 48,3 / 48,6 / 49 / 49,5. `truncated` und `uncertified` sind jeweils `null`; es gibt nur einen Befundsatz. Das ist kein MAX_HITS-Problem. Beim Scrubben auf X = 103 kann die Färbung aus diesem verfeinerten Satz den wirklichen Kontakt ebenfalls nicht anzeigen.
+
+**Kontrollen:** Mit `linStepMm = rotStepDeg = 0.25` liefert dieselbe Geometrie beide exakten Intervalle. Auch die ab X = 102 separat geprüfte Restbahn findet den zweiten Kontakt mit den Standardoptionen. Die Geometrie und die Abstandsabfrage sind damit von der Abtastlücke getrennt. Eine pauschale Verkleinerung von EXPLORE ist hier nur eine Kontrolle, keine ungeprüfte Leistungsempfehlung.
+
+**Erforderlich:** Die Erkundung innerhalb eines bereits gefundenen Kontakts muss Wiederkontakte nach einer Lücke entsprechend der zugesagten Mindestbreite berücksichtigen. Diesen deterministischen Zwei-Kontakt-Fall als Wächter übernehmen; auch die Darstellung darf die fehlende Prüfung nicht als gesicherte freie Lücke behandeln. Der zweite Kontakt ist sogar breiter als die 0,75 Einheiten, die das neue Zufallsorakel toleriert.
+
+Belege: [Sonde](viewer-palette-fest.r86.recontact.test.ts), [Geometrie, fünf Phasen und Kontrollen](viewer-palette-fest.r86.recontact.json), [roter Lauf](viewer-palette-fest.r86.final-counterexamples.txt).
+
+### VP-I46 · P2 · Kollineare Facette wird in der Bibliothek zur falschen Berührung
+
+**Stellen:** `lcnc-webui/src/viewer/collision.ts:572` übernimmt die Dreieckssuppe ohne Flächenprüfung; `collision.ts:715` verwendet die Bibliotheksantwort. In der installierten `three-mesh-bvh`-Fassung liegt die Ursache in `ExtendedTriangle.update` / `intersectsTriangle` / `distanceToTriangle`, nicht in der neuen Boxkorrektur.
+
+Zwei exakt darstellbare Float32-Facetten:
+
+- A: `(0,0,0), (4,0,0), (2,0,0)` — drei verschiedene kollineare Punkte.
+- B: `(0,1.5,0), (2,1.5,0), (1,2.5,0)` — ein reguläres Dreieck.
+
+Der Abstand ist analytisch 1,5 mm. Sowohl `ExtendedTriangle.distanceToTriangle` als auch **`buildCollisionModel → poseModel → pairDistance(..., 20, 2)` liefern 0**. Die Bibliothek erkennt A hier nicht als entartetes Segment: Sie behandelt zusammenfallende Eckpunkte, aber nicht diesen kollinearen Fall. Der Sweep kann dadurch Nähe als Berührung bewerten.
+
+**Grenze des Befunds:** Ein vorhandener Bibliotheks-/Eingangsfehler, keine durch R86 neu eingeführte Regression. Die Prüfung von 1.477.314 Kollisionsdreiecken der drei ausgelieferten Modelle fand keine Facette mit exakt null Fläche und keine nicht endliche Koordinate. Ebenso bestanden 20.000 zusätzliche reguläre Float32-Dreieckspaare, einschließlich paralleler und koplanarer Fälle, den Vergleich mit der separaten Referenz. Ein Fehler im aktuellen XYZAC-Modell ist damit ausdrücklich **nicht** nachgewiesen.
+
+**Erforderlich für den Eingangsvertrag:** Degenerierte Facetten müssen entweder kontrolliert behandelt oder als nicht unterstützte Geometrie erkannt werden, bevor ihr Bibliothekswert als echte Berührung gilt. Bei einer Bereinigung muss auch ein danach leerer Körper eine definierte Behandlung haben. Die Box-Prototypkorrektur allein schließt diesen anderen Bibliothekspfad nicht. Der Beleg bleibt absichtlich ein kleiner analytischer Fall; sein Sollwert hängt nicht von derselben Bibliothek ab.
+
+Belege: [Sonde](viewer-palette-fest.r86.geometry.test.ts), [Messwerte](viewer-palette-fest.r86.geometry.json), [roter Lauf](viewer-palette-fest.r86.final-counterexamples.txt), [STL-Prüfung](viewer-palette-fest.r86.mesh-scan.py), [Ergebnisse je Körper](viewer-palette-fest.r86.mesh-scan.json).
+
+### Abgenommene Teile und Aussagegrenzen
+
+- **VP-I44 geschlossen:** Der Repository-Test besteht in Chromium und Firefox. Die übernommene R85-Gegenprobe bestätigt in beiden Browsern: Mit `Number.MAX_SAFE_INTEGER` wird der Text tatsächlich gekürzt; mit Polster öffnet der äußere Klick die Hilfe, ohne Polster verfehlt er sie. Vier Browserprüfungen bestanden.
+- **Horizont:** Die Antwort oberhalb der begrenzten Suche wird nicht mehr als gemessener Freiraum verwendet. Die fünf Erstkontakte der realen XYZAC-Geometrie bestehen den bestehenden Horizont-Test. Kein neuer Live-Lauf.
+- **Boxkorrektur:** Keine weitere Abweichung in den geprüften regulären Boxfällen. Der aktuelle BVH-Aufruf nutzt `distanceToBox` ohne positiven Frühabbruch-Schwellwert. Die sechs Trennachsen können für die hier verwendeten starren Transformationen Abstand unterschätzen; daraus entsteht kein zu großer Freiraum. Das gebaute Worker-Bundle enthält Original und anschließende Ersetzung an derselben Klasse.
+- **Schneidregel:** Ein Werkzeugseiten-Körper ohne `tool: true` erhält jetzt keine Schneidausnahme; die Gehäuse-/Rohteil-Gegenprobe ist grün. Ohne expliziten Fräserkörper wird folgerichtig kein Maschinenkörper ersatzweise zum Fräser. Der bekannte gemeinsame Zylinder für Schneide und Schaft bleibt eine benannte Modellgrenze.
+- **Zertifikate:** Die Umrechnung positiver Freiheit in die Geschwindigkeit des nächsten Chunks ist nachvollziehbar. Die vorhandenen Kollisionsprüfungen einschließlich Werkzeug-/TLO-/Bruchfällen bestehen. Das behebt jedoch nicht VP-I45 nach einem bereits beobachteten Kontakt.
+- **Orakel:** Nützlich als Suchwerkzeug, kein unabhängiger Vollständigkeitsbeweis. Es teilt Pose, Schätzer und BVH-Abfrage mit dem Sweep; die zusätzliche Dreiecks-Brute-Force prüft nur kleine Paare. Seine vier kurzen Bahnen bestehen, obwohl VP-I45 reproduzierbar bleibt. Den deterministischen Fall ergänzen und die stärkere 0,25-Zusage nicht allein aus dem 0,5-Raster mit 0,75-Toleranz ableiten.
+
+### Durchgeführte Prüfungen
+
+Build einschließlich TypeScript erfolgreich. **103/103 Repository-Unit-Prüfungen:** 96 aus `collision`, `clashTint`, `bvhBoxDistance`, `collisionHorizon`, `sweepMerge`; drei Schätzerfälle (145 s); vier Orakelfälle (88 s). Eigene abschließende Gegenproben: zwei Kontrollen grün, zwei Fehler rot. **4/4 Browserprüfungen**, seriell und erst nach den Kollisionsharnessen, auf eigenem Mock `127.0.0.1:4188`.
+
+Kein vollständiges Offline-Gate, kein stundenlanger Deep-Hunt und keine Messung des privaten Operator-Programms wiederholt. Die bisherige Reihenfolge der Planpakete wird durch diese Nachprüfung nicht geändert.
+
+[Prüfaufbau und Wiederholung](viewer-palette-fest.r86.checks.md), [Stand und Quellvergleich](viewer-palette-fest.r86.context.json), [Build](viewer-palette-fest.r86.build.txt), [Kernprüfungen](viewer-palette-fest.r86.core.txt), [Schätzer](viewer-palette-fest.r86.bounds.txt), [Orakel](viewer-palette-fest.r86.oracle.txt), [Chromium](viewer-palette-fest.r86.chromium.txt), [Firefox](viewer-palette-fest.r86.firefox.txt), [Chromium-Gegenprobe](viewer-palette-fest.r86.chromium-edge.txt), [Beleghashes](viewer-palette-fest.r86.sha256.json).

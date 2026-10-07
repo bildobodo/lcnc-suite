@@ -1,0 +1,448 @@
+{
+  "controls": {
+    "fine": {
+      "x0": 48,
+      "fine": true,
+      "distances": [
+        {
+          "x": 99,
+          "d": 0.5
+        },
+        {
+          "x": 100,
+          "d": 0
+        },
+        {
+          "x": 102,
+          "d": 0.5
+        },
+        {
+          "x": 103,
+          "d": 0
+        },
+        {
+          "x": 105,
+          "d": 1
+        }
+      ],
+      "expected": [
+        [
+          99.5,
+          101.5
+        ],
+        [
+          102.75,
+          104
+        ]
+      ],
+      "intervals": [
+        [
+          99.5,
+          101.5
+        ],
+        [
+          102.75,
+          104
+        ]
+      ],
+      "secondTouchCovered": true,
+      "hits": [
+        {
+          "line": 2,
+          "cum": 51.5,
+          "cumEnd": 56,
+          "a": "slide",
+          "b": "wall",
+          "dist": 0,
+          "rapid": false,
+          "intervals": [
+            [
+              51.5,
+              53.5
+            ],
+            [
+              54.75,
+              56
+            ]
+          ]
+        }
+      ],
+      "truncated": null,
+      "uncertified": null
+    },
+    "suffix": {
+      "x0": 102,
+      "fine": false,
+      "distances": [
+        {
+          "x": 99,
+          "d": 0.5
+        },
+        {
+          "x": 100,
+          "d": 0
+        },
+        {
+          "x": 102,
+          "d": 0.5
+        },
+        {
+          "x": 103,
+          "d": 0
+        },
+        {
+          "x": 105,
+          "d": 1
+        }
+      ],
+      "expected": [
+        [
+          99.5,
+          101.5
+        ],
+        [
+          102.75,
+          104
+        ]
+      ],
+      "intervals": [
+        [
+          102.75,
+          104
+        ]
+      ],
+      "secondTouchCovered": true,
+      "hits": [
+        {
+          "line": 2,
+          "cum": 0.75,
+          "cumEnd": 2,
+          "a": "slide",
+          "b": "wall",
+          "dist": 0,
+          "rapid": false,
+          "intervals": [
+            [
+              0.75,
+              2
+            ]
+          ]
+        }
+      ],
+      "truncated": null,
+      "uncertified": null
+    }
+  },
+  "production": [
+    {
+      "x0": 48,
+      "fine": false,
+      "distances": [
+        {
+          "x": 99,
+          "d": 0.5
+        },
+        {
+          "x": 100,
+          "d": 0
+        },
+        {
+          "x": 102,
+          "d": 0.5
+        },
+        {
+          "x": 103,
+          "d": 0
+        },
+        {
+          "x": 105,
+          "d": 1
+        }
+      ],
+      "expected": [
+        [
+          99.5,
+          101.5
+        ],
+        [
+          102.75,
+          104
+        ]
+      ],
+      "intervals": [
+        [
+          99.5,
+          101.49951171875
+        ]
+      ],
+      "secondTouchCovered": false,
+      "hits": [
+        {
+          "line": 2,
+          "cum": 51.5,
+          "cumEnd": 53.49951171875,
+          "a": "slide",
+          "b": "wall",
+          "dist": 0,
+          "rapid": false,
+          "intervals": [
+            [
+              51.5,
+              53.49951171875
+            ]
+          ]
+        }
+      ],
+      "truncated": null,
+      "uncertified": null
+    },
+    {
+      "x0": 48.3,
+      "fine": false,
+      "distances": [
+        {
+          "x": 99,
+          "d": 0.5
+        },
+        {
+          "x": 100,
+          "d": 0
+        },
+        {
+          "x": 102,
+          "d": 0.5
+        },
+        {
+          "x": 103,
+          "d": 0
+        },
+        {
+          "x": 105,
+          "d": 1
+        }
+      ],
+      "expected": [
+        [
+          99.5,
+          101.5
+        ],
+        [
+          102.75,
+          104
+        ]
+      ],
+      "intervals": [
+        [
+          99.49994969465736,
+          101.50007176496986
+        ]
+      ],
+      "secondTouchCovered": false,
+      "hits": [
+        {
+          "line": 2,
+          "cum": 51.19994969465736,
+          "cumEnd": 53.20007176496986,
+          "a": "slide",
+          "b": "wall",
+          "dist": 0,
+          "rapid": false,
+          "intervals": [
+            [
+              51.19994969465736,
+              53.20007176496986
+            ]
+          ]
+        }
+      ],
+      "truncated": null,
+      "uncertified": null
+    },
+    {
+      "x0": 48.6,
+      "fine": false,
+      "distances": [
+        {
+          "x": 99,
+          "d": 0.5
+        },
+        {
+          "x": 100,
+          "d": 0
+        },
+        {
+          "x": 102,
+          "d": 0.5
+        },
+        {
+          "x": 103,
+          "d": 0
+        },
+        {
+          "x": 105,
+          "d": 1
+        }
+      ],
+      "expected": [
+        [
+          99.5,
+          101.5
+        ],
+        [
+          102.75,
+          104
+        ]
+      ],
+      "intervals": [
+        [
+          99.49999857050457,
+          101.49951028925457
+        ]
+      ],
+      "secondTouchCovered": false,
+      "hits": [
+        {
+          "line": 2,
+          "cum": 50.89999857050457,
+          "cumEnd": 52.89951028925457,
+          "a": "slide",
+          "b": "wall",
+          "dist": 0,
+          "rapid": false,
+          "intervals": [
+            [
+              50.89999857050457,
+              52.89951028925457
+            ]
+          ]
+        }
+      ],
+      "truncated": null,
+      "uncertified": null
+    },
+    {
+      "x0": 49,
+      "fine": false,
+      "distances": [
+        {
+          "x": 99,
+          "d": 0.5
+        },
+        {
+          "x": 100,
+          "d": 0
+        },
+        {
+          "x": 102,
+          "d": 0.5
+        },
+        {
+          "x": 103,
+          "d": 0
+        },
+        {
+          "x": 105,
+          "d": 1
+        }
+      ],
+      "expected": [
+        [
+          99.5,
+          101.5
+        ],
+        [
+          102.75,
+          104
+        ]
+      ],
+      "intervals": [
+        [
+          99.5,
+          101.49951171875
+        ]
+      ],
+      "secondTouchCovered": false,
+      "hits": [
+        {
+          "line": 2,
+          "cum": 50.5,
+          "cumEnd": 52.49951171875,
+          "a": "slide",
+          "b": "wall",
+          "dist": 0,
+          "rapid": false,
+          "intervals": [
+            [
+              50.5,
+              52.49951171875
+            ]
+          ]
+        }
+      ],
+      "truncated": null,
+      "uncertified": null
+    },
+    {
+      "x0": 49.5,
+      "fine": false,
+      "distances": [
+        {
+          "x": 99,
+          "d": 0.5
+        },
+        {
+          "x": 100,
+          "d": 0
+        },
+        {
+          "x": 102,
+          "d": 0.5
+        },
+        {
+          "x": 103,
+          "d": 0
+        },
+        {
+          "x": 105,
+          "d": 1
+        }
+      ],
+      "expected": [
+        [
+          99.5,
+          101.5
+        ],
+        [
+          102.75,
+          104
+        ]
+      ],
+      "intervals": [
+        [
+          99.5,
+          101.49951171875
+        ]
+      ],
+      "secondTouchCovered": false,
+      "hits": [
+        {
+          "line": 2,
+          "cum": 50,
+          "cumEnd": 51.99951171875,
+          "a": "slide",
+          "b": "wall",
+          "dist": 0,
+          "rapid": false,
+          "intervals": [
+            [
+              50,
+              51.99951171875
+            ]
+          ]
+        }
+      ],
+      "truncated": null,
+      "uncertified": null
+    }
+  ]
+}
