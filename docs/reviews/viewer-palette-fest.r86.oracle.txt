@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r86-jp5m9k02/archive/lcnc-webui
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  11:25:34
+   Duration  88.16s (transform 210ms, setup 0ms, import 274ms, tests 87.80s, environment 0ms)
+
