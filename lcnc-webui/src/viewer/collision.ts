@@ -619,8 +619,13 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
     return { dofs: out, lca };
   };
 
-  // Cutting pairs: tool-side body × an EXPLICIT stock body. No machine part
-  // is ever implicitly cuttable — the platter is workholding, not stock.
+  // Cutting pairs: the CUTTER (the tool body) × an EXPLICIT stock body. No
+  // machine part is ever implicitly cuttable — the platter is workholding,
+  // not stock — and nothing but the cutter cuts: the spindle nose, the ram or
+  // the head feeding into the stock is a crash. Every tool-SIDE body used to
+  // count, and a ram driven into the work piece on a feed (or resting in it
+  // at the program's start) was never reported (2026-10-07, the oracle hunt
+  // on the TWP gantry).
   const stockIds = new Set(bodyDefs.filter(d => d.stock).map(d => d.id));
   const toolIds = new Set(bodyDefs.filter(b => b.tool).map(b => b.id));
   const isCuttingBody = (b: BuiltBody) => stockIds.has(b.id);
@@ -642,9 +647,7 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
       else pairs.push([a, b]);
       pairDofs.push(dofs);
       pairLca.push(lca);
-      pairCutting.push(
-        (A.side === "tool" && isCuttingBody(B)) || (B.side === "tool" && isCuttingBody(A)),
-      );
+      pairCutting.push((isToolBody(A) && isCuttingBody(B)) || (isToolBody(B) && isCuttingBody(A)));
       pairTool.push(isToolBody(A) || isToolBody(B));
     }
   }
@@ -1910,7 +1913,7 @@ export function* sweepCollisionsIter(
               }
             }
             if (pairCutting[pi]) {
-              // Cutting pair (tool × workGroup body): feed contact is
+              // Cutting pair (the cutter × a stock body): feed contact is
               // MACHINING — never reported. A contact whose ONSET fell in a
               // rapid is the gouge class and reports for that rapid; a
               // retract leaving contact begun on a feed (or present from

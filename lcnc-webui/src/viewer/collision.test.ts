@@ -572,7 +572,7 @@ describe("sweepCollisions", () => {
     // reported. A retract rapid leaving feed-begun contact stays benign.
     const bodies: CollisionBody[] = [
       { id: "stock", group: "platter", positions: boxPositions(10), stock: true },
-      { id: "spindle", group: "head", positions: boxPositions(10) },
+      { id: "spindle", group: "head", positions: boxPositions(10), tool: true },
     ];
     const model = buildCollisionModel(PLUNGE, bodies);
     // Feed plunge into the stock, feed retract: pure cutting.
@@ -589,6 +589,23 @@ describe("sweepCollisions", () => {
     r = sweepCollisions(model, track(
       [[0, 0, 0], [0, 0, -43], [0, 0, 0]], undefined, [7, 8, 9], [0, 0, 1]), WCS0, { margin: 2 });
     expect(r.hits).toEqual([]);
+  });
+
+  it("only the cutter cuts: another tool-side body feeding into the stock is a crash", () => {
+    // The same feed plunge with the head's box NOT the cutter (a spindle
+    // housing, a ram): every tool-side body used to count as cutting, and a
+    // ram driven into the work piece on a feed was never reported
+    // (2026-10-07, the oracle hunt on the TWP gantry).
+    const model = buildCollisionModel(PLUNGE, [
+      { id: "stock", group: "platter", positions: boxPositions(10), stock: true },
+      { id: "housing", group: "head", positions: boxPositions(10) },
+    ]);
+    const r = sweepCollisions(model, track(
+      [[0, 0, 0], [0, 0, -43], [0, 0, 0]], undefined, [7, 8, 9], [0, 0, 0]), WCS0, { margin: 2 });
+    const onset = r.hits.find(h => h.dist <= 1e-4 && h.continuation === undefined);
+    expect(onset, "the feed into the stock is reported").toBeDefined();
+    expect([onset!.a, onset!.b].sort()).toEqual(["housing", "stock"]);
+    expect(onset!.rapid).toBe(false);
   });
 
   it("detects collisions with root-attached static frame bodies", () => {

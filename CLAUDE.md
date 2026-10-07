@@ -1155,9 +1155,16 @@ hit. CUTTING SEMANTICS: only a body flagged `stock: true` is cuttable —
 machine parts NEVER are (without a stock body the tool may touch nothing:
 real programs cut stock sitting above the fixture, so tool contact with
 any machine body is a crash by definition; the platter is workholding).
-For stock bodies: FEED contact is machining and never reports; contact
-whose ONSET falls in a RAPID is the gouge class and reports; a rapid
-RETRACT leaving feed-begun contact is benign. Stock pairs are never
+Only the CUTTER cuts: the tool body (`CollisionBody.tool`) × a stock body
+is a cutting pair, never any other tool-side body — the spindle nose, the
+ram or the head feeding into the stock is a crash (2026-10-07: every
+tool-SIDE body counted, and since the tool chain's ancestors are on it, the
+column and the bed on the shared frame group did too — a ram in the work
+piece on a feed, a column against the blank on a feed were never reported).
+For the cutter in the stock: FEED contact is machining and never reports;
+contact whose ONSET falls in a RAPID is the gouge class and reports; a rapid
+RETRACT leaving feed-begun contact is benign (the cutter body is the whole
+tool cylinder: a shank in the stock counts as cutting). Stock pairs are never
 baseline-excluded (parked-on-work is normal); they seed the in-contact
 state instead. The (local-only) machine-dmu160p example carries the first
 stock body

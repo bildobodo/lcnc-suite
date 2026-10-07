@@ -8272,3 +8272,27 @@ triangle in one of its boxes — they then hold at every pose), the queries at
 the sweep's own scale (≤ HORIZON), small pairs against the brute force. Red
 with the horizon fix reverted, with the correction not installed and with
 the box bound 1 too large.
+
+## 2026-10-07 — Only the cutter cuts
+
+The sweep-vs-oracle hunt (`collisionOracle.test.ts`) found two crashes the
+sweep never reported, both from one rule: a pair was "cutting" — feed contact
+is machining, never reported; contact present at the program's start is
+"engaged", benign — when ONE body was on the tool side and the other a
+stock body. The tool side is the tool group's chain up to the root, and
+that chain holds the machine's shared ancestors too: on the TWP gantry the
+Z ram rested in the work piece from the first pose over 1 m of path,
+unreported; on the XYZAC model the rear column (group `frame`) ran into the
+fixture blank on a rapid — reported as a gouge — and stayed in it on the
+following feed line with no record at all.
+
+Now only the cutter — the tool body (`CollisionBody.tool`, the worker's
+parametric cylinder) × a stock body — is a cutting pair. Every other body
+against the stock is a machine part touching the work: a crash, on feed and
+rapid alike. Consequence on real programs: a spindle nose, a head or a ram
+that dips into the stock on a feed is now a finding; the cutter cylinder
+still includes the shank (flute and shank are not split in the sweep), so a
+shank in the stock still counts as cutting. `side` keeps one use, the order
+of the two bodies in a record. Test: "only the cutter cuts" in
+`collision.test.ts` (red with the old rule); the cutting test's cutter now
+carries `tool: true`.
