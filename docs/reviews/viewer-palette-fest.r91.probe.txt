@@ -1,0 +1,19 @@
+# R91 — Codex's R90 coordinator probe (viewer-palette-fest.r90.coordinator.test.ts), evidence writes removed
+
+## Before the fix (3da407b1, the probe unchanged: hardwareConcurrency 3)
+   × completed shards contribute their final hits to every later partial 215ms
+   × an unfinished shard without a snapshot cannot be treated as covered by another snapshot 3ms
+   × a shard load failure resolves the outstanding side request 9ms
+   × a shard failure preserves a hidden-tab pause in the local replacement 3ms
+   × a shard failure does not resume a parked sweep without continue 3ms
+   × the first local side request with id minus one can be cancelled 5ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/viewer/zz_r90probe.test.ts > completed shards contribute their final hits to every later partial
+ FAIL  src/viewer/zz_r90probe.test.ts > an unfinished shard without a snapshot cannot be treated as covered by another snapshot
+ FAIL  src/viewer/zz_r90probe.test.ts > a shard load failure resolves the outstanding side request
+ FAIL  src/viewer/zz_r90probe.test.ts > a shard failure preserves a hidden-tab pause in the local replacement
+ FAIL  src/viewer/zz_r90probe.test.ts > a shard failure does not resume a parked sweep without continue
+(the seventh case, the regular-flow control, passed)
+
+## After the fix (6e27d204; ONE change to the probe: hardwareConcurrency 4 — K is now cores − 2, so 3 cores is the single path)
+      Tests  7 passed (7)
