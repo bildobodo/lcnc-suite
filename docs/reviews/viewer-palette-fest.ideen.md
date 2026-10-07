@@ -12557,3 +12557,41 @@ Die angekündigte Parallelisierung wird hier nicht abgenommen; dafür folgt die 
 ### Zur Laufzeitaussage
 
 Angenommen: Aus den gleichzeitig unter Last gemessenen Läufen leite ich weder Gewinn noch „nicht langsamer“ ab, nur die Probenzahl (+1 563) und die bitgleichen Befunde. Eine belastbare Zeitmessung folgt in ruhiger Umgebung zusammen mit der Parallelisierung.
+
+## Review R89 · Codex · VP-I45: Wiederkontakt auf der Folgeprobe · 7. Oktober 2026
+
+**Ergebnis: `agreement`. VP-I45 ist mit dieser Korrektur geschlossen; kein neuer Befund im angefragten Umfang.**
+
+Geprüft: `c62ae3c9..53d32dc5` (Produkt-Commit `56f431dd`), Anfrage `77c9092e`, in einer Archivkopie. Nach dem geprüften Stand wurde nur die Anfrage ergänzt. Produktcode, Live-Suite und Belege früherer Runden blieben unverändert.
+
+### Korrektur bestätigt
+
+Die neue Bedingung prüft den gesamten Abschnitt seit der letzten berührenden Hauptprobe auf Eilgang. Bei einem Schneidpaar mit Vorschubursprung wird dieser Abschnitt nun auch nachgetastet, wenn die nächste Hauptprobe erneut berührt. `noteQuery` verarbeitet dabei Trennung und Wiedereintritt in zeitlicher Reihenfolge. Die Entscheidung hängt damit nicht allein von der Bewegungsart oder dem Abstand am Ende des Abschnitts ab.
+
+Die **bytegleiche R88-Gegenprobe** besteht jetzt für alle vier Positionen. Jeder Standardlauf meldet den Eilgang-Onset auf Zeile 3; bei fortgesetztem Kontakt folgt Zeile 4 als Fortsetzung. Kein Abbruch und keine Einschränkung verdecken das Ergebnis.
+
+| Zweiter Rohteilquader | R88-Standardlauf | R89-Standardlauf |
+|---|---|---|
+| 13° | Kontakt erkannt | Kontakt erkannt |
+| 14,5° | Kontakt fehlte | Kontakt erkannt |
+| 15° | Kontakt fehlte | Kontakt erkannt |
+| 15,5° | Kontakt erkannt | Kontakt erkannt |
+
+Beispiel 15°: Der Standardlauf erfasst jetzt etwa A = **14,116°–15,885°**, einschließlich des Übergangs von Zeile 3 nach 4. Feinere Abtastung und separat geprüfte Restbahn bleiben grün. [Bytegleiche Sonde](viewer-palette-fest.r89.touching.test.ts), [Ergebnisse](viewer-palette-fest.r89.touching.json).
+
+### Zusätzliche Gegenproben
+
+- **130 Kombinationen** aus beiden Drehrichtungen, fünf Startlagen und 13 Positionen des zweiten Quaders: Der Standardlauf und die feinere 0,25-Abtastung erkennen jeweils den Eilgangkontakt.
+- **Acht Kombinationen** für reine Vorschubbearbeitung und Rückzug aus dem ersten Quader: Beide bleiben ohne Kollisionsmeldung. Die Korrektur erklärt normalen Materialkontakt somit nicht pauschal zur Kollision.
+- **Acht Fälle mit Eilgang und anschließendem Vorschub**: Der Eilgang-Onset bleibt erhalten, auch wenn die Bahn noch im zweiten Kontakt wieder in Vorschub übergeht.
+- **Vier Fälle mit vielen kurzen und längenlosen Segmenten**, gleichen bzw. verschiedenen Zeilennummern und beiden Drehrichtungen: Der Eilgang-Onset bleibt erhalten.
+
+[Sonde](viewer-palette-fest.r89.edges.test.ts), [Messwerte und Kontrollläufe](viewer-palette-fest.r89.edges.json), [Lauf](viewer-palette-fest.r89.edges.txt).
+
+### Prüfungen und Grenzen
+
+**113/113 Kern- und übernommene Review-Prüfungen bestanden**, darunter die vier bytegleichen Sonden aus R88; zusätzlich **4/4 neue Grenzprüfungen** und **4/4 kurze Orakelfälle**. Build einschließlich TypeScript bestanden. Keine Browserwiederholung: R89 verändert weder Anzeigen noch Worker-Nachrichten; VP-I46 bleibt wie in R88 abgenommen.
+
+Die zurückgenommene Laufzeitaussage ist damit geklärt. Diese Runde enthält keine neue Leistungsmessung und keinen Abschlussnachweis des separaten Deep-Hunts. Die bekannte Abtastgrenze und die bereits akzeptierte konservative Zusammenfassung bleiben bestehen. Die angekündigte Parallelisierung braucht weiterhin ihre eigene Prüfung.
+
+[Prüfaufbau](viewer-palette-fest.r89.checks.md), [Stand und Quellvergleich](viewer-palette-fest.r89.context.json), [Kernprüfungen](viewer-palette-fest.r89.core.txt), [Orakel](viewer-palette-fest.r89.oracle.txt), [Build](viewer-palette-fest.r89.build.txt), [Beleghashes](viewer-palette-fest.r89.sha256.json).
