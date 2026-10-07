@@ -12156,3 +12156,87 @@ Produktquellen, Live-Suite und frühere Belege bleiben unverändert.
 [Prüfaufbau und Grenzen](viewer-palette-fest.r85.checks.md),
 [Stand und Quellvergleich](viewer-palette-fest.r85.context.json),
 [Beleghashes](viewer-palette-fest.r85.sha256.json).
+
+## Anfrage R86 · Claude · Horizont-Fehler, Fehlersuche im Prüfkern, VP-I44 · 7. Oktober 2026
+
+**Bitte prüfe `9d5c6c37..104f44a3` auf `feat/backlog-integration`.** Die Produkt-Commits:
+
+| Commit | Inhalt |
+|---|---|
+| `5f35112d` | Horizont des Abstands; Färbung über einem Teilergebnis |
+| `cf70216e` | VP-I44 (nur Test) |
+| `6273bfb6` | Schätzer als Modulfunktionen (ohne Verhaltensänderung) |
+| `dee3fdfb` | Berührung innerhalb der Marge |
+| `a18f3b74` | Boxabstand von three-mesh-bvh korrigiert; Schätzer-Test |
+| `926e5c8d` | Nur der Fräser schneidet |
+| `8fc2d106` | Sweep gegen Brute-Force-Orakel (nur Test) |
+
+Gate R8 auf `8fc2d106`: PASS (Backend 1245, Unit 1932, Browser 487).
+
+### Der Horizont-Fehler (`5f35112d`), Live-Befund des Operators
+
+- **Befund:** haus.ngc auf dem XYZAC-Sim, TCP, A 61,3°. Die Anfahrbewegung fährt Joch, Y-Schlitten, A-Lagerböcke und Antriebsdeckel in die hintere Säule. Gemeldet wurde das Joch 230 mm zu spät, die anderen gar nicht.
+- **Ursache:** `closestPointToGeometry(…, maxThreshold = 20)` lieferte 291 mm bei wahren 82 mm. Die Bibliothek besucht nur die Knoten unter der Schwelle. Ein Ergebnis über der Schwelle ist nur das Minimum der besuchten Dreiecke. `pairDistance` nahm es als Freiraum.
+- **Jetzt:** Ein Wert über der Schwelle heißt „jenseits“.
+- **Test:** `collisionHorizon.test.ts`, die Live-Anfahrt über dem echten Modell, jeder Erstkontakt auf 0,01 mm.
+- **Färbung über einem Teilergebnis:** Ein noch nicht verfeinerter Satz beweist keine Lücke mehr. Nur Intervalle oder eine Annäherung unterdrücken die Spanne.
+
+### VP-I44 (`cf70216e`)
+
+- Die Summe ist jetzt `Number.MAX_SAFE_INTEGER`.
+- Der Test ist in Chromium und Firefox grün und in beiden rot ohne die `--help-reach`-Polsterung.
+- Die ganze Sim-Spec läuft in beiden Browsern: 26/26.
+
+### Fehlersuche im Prüfkern (Plan Schritt 1, mit dem Operator vereinbart)
+
+**1. Schätzer gegen die Wahrheit** (`collisionBounds.test.ts`)
+- **Strukturelle Prüfung je Körper:** jeder Punkt in seiner Kugel, jedes Dreieck in einer seiner Komponentenboxen.
+- **Abfragen auf der Skala des Sweeps (≤ HORIZON):** `pairDistance` bei 2 und 20; Kontakt exakt beantwortet.
+- **Kleine Paare** gegen eine Brute Force über alle Dreieckspaare (`triDistance.ts`, ohne die Bibliothek geschrieben).
+- **Gefunden:** `OrientedBox.distanceToBox` (0.9.14, unverändert in 0.9.15) baut die Kanten der achsparallelen Box mit `max[f2]` statt `max[f3]`. Der Boxabstand kann dadurch zu groß werden. Am Portal antwortete eine Abfrage unter 121 mm „nichts“ für zwei Teile, die 120,000 mm auseinanderliegen.
+- **Korrektur:** `bvhBoxDistance.ts` setzt beim Laden von collision.ts ein korrigiertes `distanceToBox` auf das Prototyp-Objekt.
+  - Der Algorithmus ist der der Bibliothek: 6-Achsen-Trennung, sonst 0; Ecken gegen die Box; 12 × 12 Kantenpaare, mit der Segmentdistanz nach Ericson.
+  - Nur das Worker-Bundle trägt den Boxcode der Bibliothek; beide Zuweisungen sind darin.
+- **Test:** exakt gegen eine Referenz aus 15-Achsen-Trennung plus Oberflächendreiecken, 600 Zufallsboxen. Er ist rot ohne Kantenpaare und verlangt, dass das Original noch überschätzt; der Test fällt also, sobald ein Update den Fehler behebt.
+- **Rot:** mit zurückgenommenem Horizont-Fix, ohne die Korrektur, mit Boxschranke +1.
+
+**2. Berührung innerhalb der Marge** (`dee3fdfb`)
+- **Fehler:** Innerhalb der 2-mm-Marge prüfte der Sweep ein Paar fest alle EXPLORE (5 Einheiten) ohne Zertifikat. Eine Berührung zwischen zwei Proben blieb „Beinahe-Kollision, 1,5 mm“.
+- **Jetzt:**
+  - Nicht berührende Paare in der Marge rücken um d / V vor, mit MIN_ADV als Untergrenze; berührende behalten EXPLORE.
+  - Die Freiheit eines solchen Paars wird am Chunkbeginn in der V des neuen Chunks ausgedrückt. Früher wurde sie als absolutes sSafe übertragen.
+- **Tests:** zwei synthetische, je rot mit eigener Mutation.
+- **Kosten auf haus.ngc:** gleiche Probenzahl (1 369 458), gleiche Befunde.
+
+**3. Nur der Fräser schneidet** (`926e5c8d`)
+- **Alte Regel:** „Schneidend“ war jedes Paar Werkzeugseite × Rohteil. Die Werkzeugseite ist die Kette bis zur Wurzel, enthält also auch gemeinsame Vorfahren wie `frame`.
+- **Folgen:** Am Portal steckte die Z-Pinole über 1 m Weg im Werkstück, ohne Meldung. Am XYZAC blieb die hintere Säule in einer Vorschubzeile im Rohteil, ohne Satz.
+- **Jetzt:** Nur `tool` × `stock` schneidet.
+- **Bewusste Verhaltensänderung:** mehr Befunde bei Programmen mit Rohteil. Der Werkzeugzylinder enthält weiterhin den Schaft.
+
+**4. Orakel** (`collisionOracle.test.ts`)
+- **Verfahren:** Zufallsbahnen auf den ausgelieferten Modellen (XYZAC identisch und TCP, Portal-TCP, 3 Achsen), Schritt 0,5 im Distanzparameter des Sweeps.
+- **Forderungen:**
+  - jede Berührung in einem Intervall ihres Paars;
+  - jede Margen-Lage mit einem Satz auf ihrer Zeile;
+  - jeweils außer bei Läufen ≤ 3 × MIN_ADV;
+  - jeder Onset echt, jede Annäherung so nah wie gemeldet.
+- **Gemeinsam mit dem Sweep:** Pose (Kinematik-Spiegel und Gruppenbaum) und die Schätzer aus Teil 1.
+- **Größe:** Im Gate eine kurze Bahn je Fall (etwa 80 s). `COLLISION_HUNT=deep` lässt die volle Suche laufen, auf dieser VM mehrere Stunden. `COLLISION_HUNT_SEED`, `COLLISION_HUNT_BUDGET=0` und `COLLISION_HUNT_LOG` dienen der Saatsuche.
+- **Rot** in Gate-Größe gegen alle drei alten Fehler (Horizont, alte Schneidregel, EXPLORE in der Marge).
+- **Offen:** Sechs der zwölf gesuchten Portal-Saaten liefen nur ins Zeitlimit. Der tiefe Lauf ohne Limit folgt nach dieser Runde.
+
+### Bitte besonders prüfen
+
+- **Die Prototyp-Korrektur:** Sind andere Pfade von `closestPointToGeometry` ebenso fehlerhaft, die wir nutzen (`ExtendedTriangle.distanceToTriangle`, `intersectsBox`, die Kantensegmente)? Die Brute Force deckt nur kleine Paare ab.
+- **Der neue Margen-Schritt:** über Chunk- und Zeilengrenzen, bei Werkzeug- und Bruchgrenzen, sowie das Zusammenspiel mit `inContact` zwischen Marge und 2 × Marge.
+- **Die Schneidregel:** Folgen und Lücken, etwa ein Werkzeug ohne `tool`-Körper.
+- **Gegenproben mit beiden Harnessen** (Plan Schritt 1, dritter Teil). Bitte seriell: keine Playwright-Läufe gegen :4174, während deine Sonden laufen. Die tiefe Suche läuft Stunden; für einzelne Fälle lieber `-t` und eine Saat.
+
+### Prüfungen
+
+- **Gate R8:** PASS (Backend 1245, Unit 1932, Browser 487).
+- **Schätzer-Test:** etwa 2 min.
+- **Orakel:** etwa 80 s.
+- **Rote Gegenproben:** alle mit kompilierenden Mutationen, aus Byte-Kopien zurückgesetzt.
+- **Bibliotheksfehler upstream:** noch nicht gemeldet. Das entscheidet der Operator.
