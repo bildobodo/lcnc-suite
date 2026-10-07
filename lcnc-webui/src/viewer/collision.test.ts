@@ -1540,3 +1540,58 @@ describe("initialization checkpoints (TWP-11, review 2026-09-14)", () => {
   });
 });
 
+
+describe("a touch inside the margin (the oracle hunt, 2026-10-07)", () => {
+  // A thin slide passes 1.5 mm from a wall — inside the 2 mm margin the
+  // whole way — and runs 1 mm deep into a 1 mm bump on it: contact for
+  // X 99.5…101.5. The sweep stepped a pair inside the margin by a fixed
+  // EXPLORE (5) and the bump fell between two samples: "near miss, 1.5 mm
+  // apart" for a real touch, the tint dark.
+  const slab = (w: number, h: number, d: number, x: number, y: number, z: number) => {
+    const g = new THREE.BoxGeometry(w, h, d).translate(x, y, z).toNonIndexed();
+    const p = new Float32Array(g.getAttribute("position").array as Float32Array);
+    g.dispose();
+    return p;
+  };
+  const join = (...a: Float32Array[]) => {
+    const o = new Float32Array(a.reduce((s, x) => s + x.length, 0));
+    let k = 0;
+    for (const x of a) { o.set(x, k); k += x.length; }
+    return o;
+  };
+  const SLIDE: CollisionMachine = {
+    groups: [{ id: "frame", parent: "root" }, { id: "xslide", parent: "root" }],
+    kinematics: [{ group: "xslide", joint: 0, type: "translate", direction: "x", sign: 1 }],
+    workGroup: "frame", toolGroup: "xslide", unitScale: 1, axes: ["X", "Y", "Z"],
+  };
+  // Wall face at Y 6.5 from X 20 (clear of the slide at rest, X 0), the bump
+  // X 100…101 down to Y 4; the slide is 1 wide in X, its top at Y 5.
+  const model = () => buildCollisionModel(SLIDE, [
+    { id: "wall", group: "frame", positions: join(slab(180, 10, 10, 110, 11.5, 0), slab(1, 2.5, 10, 100.5, 5.25, 0)) },
+    { id: "slide", group: "xslide", positions: slab(1, 10, 10, 0, 0, 0) },
+  ]);
+  const touch = (r: CollisionResult, x0: number) => {
+    expect(r.hits.filter(h => h.dist > 1e-4), "no near-miss record stands for the touch").toEqual([]);
+    const h = r.hits.find(x => x.dist <= 1e-4)!;
+    expect(h, "the touch is a contact").toBeDefined();
+    expect(h.intervals!.map(([a, b]) => [a + x0, b + x0].map(v => +v.toFixed(3))), "where it touches").toEqual([[99.5, 101.5]]);
+  };
+
+  it("is a contact wherever the samples fall", () => {
+    // Every phase of the old 5-unit cadence against the bump: 48 put the
+    // samples at 98 and 103.
+    for (const x0 of [48, 48.3, 48.6, 49, 49.5]) {
+      const r = sweepCollisions(model(), track([[x0, 0, 0], [180, 0, 0]], undefined, [1, 2]), WCS0, { margin: 2 });
+      touch(r, x0);
+    }
+  });
+
+  it("carries the clearance into a faster chunk in that chunk's speed", () => {
+    // Line 7 first moves Y — which drives nothing the pair rides (V 0) —
+    // with the slide 1.5 from the wall, then X into the bump. A certificate
+    // carried as an absolute position from the still segment reached 5 past
+    // the X segment's start (X 103): the bump lay inside it.
+    const r = sweepCollisions(model(), track([[98, 0, 0], [98, 10, 0], [180, 10, 0]], undefined, [7, 7, 7]), WCS0, { margin: 2 });
+    touch(r, 98 - 10);
+  });
+});

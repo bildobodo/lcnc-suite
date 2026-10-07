@@ -8211,3 +8211,28 @@ The tint over a PARTIAL result (while the sweep runs): an unrefined record
 knows its first and last contact sample on the line only, so it no longer
 suppresses its pair's span — only a refined record (intervals) or a near
 miss proves a gap there.
+
+## 2026-10-07 — A touch inside the margin is a contact, not a near miss
+
+Found by the soundness hunt agreed with the operator after the horizon bug.
+Inside the 2 mm margin the sweep re-probed a pair every EXPLORE (5 units of
+path, 5° on a rotary move) with no certificate, because a record for the
+line already existed. A touch between two such samples was never sampled:
+the record stayed a near miss ("near miss, 1.5 mm apart", the tint dark —
+"a near miss proves the pair stayed clear at its samples"). Reproduced with
+a slide passing a wall at 1.5 mm into a 1 mm bump: contact over 2 mm of
+travel, reported as a near miss at 1.5 / 1.2 / 0.9 / 0.5 mm depending on
+where the samples fell. On a rotary move with a long lever, 5° can pass one
+part through another.
+
+Now a pair inside the margin that is not touching advances by d / V — its
+distance to a touch over the same conservative speed bound — with the
+MIN_ADV floor, so the guarantee is the margin's: no touch wider than 0.25
+units of path is missed. A touching pair keeps the EXPLORE cadence (a gap
+in its contact only over-reports; its interval is refined). The clearance
+of a pair still flagged in contact but not touching (inside the margin, or
+back out to 2 × margin) used to be carried into the next chunk as an
+absolute position computed with the last chunk's V; it is now re-expressed
+in each chunk's V like every carried certificate (a still segment followed
+by a fast one on the same line overshot by 5 units). Tests: "a touch inside
+the margin" in `collision.test.ts`, each red with its own mutation.

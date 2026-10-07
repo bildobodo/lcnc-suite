@@ -1101,9 +1101,14 @@ a query's clearance d − margin is decremented by each chunk's V × Lc and
 re-expressed in the next chunk's V, so a far pair costs nothing until the
 motion could have closed the gap — the old per-chunk reset re-queried every
 pair at every segment, which on a program of a million 0.09 mm segments
-was ~2 h per sweep (now 31 s, certified). Pairs inside the margin keep
-their EXPLORE re-probe cadence but are sampled at least once on every line
-they stay in contact with (the per-line continuation marks). The sweep is a
+was ~2 h per sweep (now 31 s, certified). A pair inside the margin that
+is TOUCHING keeps the EXPLORE re-probe cadence; one inside the margin but
+not touching advances by its distance to a touch (d / V, the same MIN_ADV
+floor) — the fixed cadence stepped over a touch between two in-margin
+samples and reported "near miss, 1.5 mm apart" for parts that met 1 mm
+deep (2026-10-07); its clearance carries across chunks in each chunk's V
+like any certificate. Both are sampled at least once on every line they
+stay in contact with (the per-line continuation marks). The sweep is a
 resumable iterator (`sweepCollisionsIter`, checkpoints every 16 segments /
 512 samples and every 8 ms of clock) with an optional WALL-CLOCK budget
 (`maxMs`, sync API + tests only — the worker runs sweeps OPEN-ENDED since

@@ -13,8 +13,10 @@
 // conservative bound on the pair's relative surface speed (translations
 // exact; rotations × endpoint lever arms with documented inflation,
 // segments chunked ≤22.5° of rotary sweep so lever drift stays bounded).
-// Pairs are re-queried only when their certificate expires. Guarantee: no
-// margin crossing wider than MIN_ADV (0.25 units) of path is missed —
+// Pairs are re-queried only when their certificate expires; inside the
+// margin a pair not touching is re-queried by its distance to a touch.
+// Guarantee: no margin crossing — and no touch — wider than MIN_ADV (0.25
+// units) of path is missed —
 // clear programs stride in a handful of samples, approaches tighten
 // automatically. Per sample: lerp the track segment, program→machine via
 // the shared wcsTerms/programToMachine, letters→joints via
@@ -1236,6 +1238,11 @@ export function* sweepCollisionsIter(
   // non-cutting branch too: a record minted on a later line while the pair
   // never separated is a CONTINUATION, not a new clash.
   const onsetLine = new Int32Array(pairs.length).fill(-1);
+  // A pair in contact (inContact) whose LAST query found it touching
+  // (d ≤ CONTACT_EPS): it keeps the EXPLORE cadence. One that was not
+  // touching carries a clearance certificate like a clear pair — see the
+  // advancement loop.
+  const touching = new Uint8Array(pairs.length).fill(1);
   const staticContacts: CollisionResult["staticContacts"] = [];
   // Contact from the program's first point: an ONSET on the first line the
   // sweep's first sample records; later lines' records are continuations.
@@ -1830,7 +1837,13 @@ export function* sweepCollisionsIter(
           // watching for separation (2026-09-13: on a 0.7 mm-line random walk
           // the per-line rule queried the tool×stock pair 7× more often than
           // its cadence, a fifth of the whole sweep).
-          if (qLine[pi] !== line && !(pairCutting[pi] && !onsetRapid[pi])) sSafe[pi] = s0;
+          if (qLine[pi] !== line && !(pairCutting[pi] && !onsetRapid[pi])) { sSafe[pi] = s0; continue; }
+          // Not touching at its last query: its clearance (to a touch inside
+          // the margin, to the margin past it) was measured in the last
+          // chunk's V and is re-expressed in this chunk's, like every carried
+          // certificate — a certificate carried as an absolute sSafe
+          // overshot wherever V grew (a rotary chunk's longer lever).
+          if (!touching[pi]) sSafe[pi] = s0 + Math.max(0, clear[pi]!) / Math.max(pairV[pi]!, 1e-9);
           continue;
         }
         const c = clear[pi]!;
@@ -1900,11 +1913,27 @@ export function* sweepCollisionsIter(
             } else {
               recordHit(line, s, isRapid, pi, d);
             }
-            sSafe[pi] = s + EXPLORE;  // re-probe cadence inside the contact
-            clear[pi] = 0;
+            if (d > CONTACT_EPS) {
+              // Inside the margin but not touching: the distance certifies
+              // that the pair cannot TOUCH before s + d/V. The fixed EXPLORE
+              // cadence stepped over a touch between two in-margin samples
+              // and the record stayed "near miss, 1.5 mm apart" while the
+              // parts met 1 mm deep (2026-10-07, the oracle hunt; on a
+              // rotary move 5° of a long lever passes a part through
+              // another). Same floor as the margin guarantee: no touch wider
+              // than MIN_ADV of path is missed.
+              clear[pi] = d;
+              touching[pi] = 0;
+              sSafe[pi] = s + Math.max(MIN_ADV, Math.min(EXPLORE, d / Math.max(pairV[pi]!, 1e-9)));
+            } else {
+              clear[pi] = 0;
+              touching[pi] = 1;
+              sSafe[pi] = s + EXPLORE;  // re-probe cadence inside the contact
+            }
             sQ[pi] = s;
             qLine[pi] = line;
           } else {
+            touching[pi] = 0;
             if (inContact[pi] && d > opts.margin * 2) {
               inContact[pi] = 0;
               onsetRapid[pi] = 0;
@@ -1931,7 +1960,7 @@ export function* sweepCollisionsIter(
       // Chunk done: what this chunk could have consumed of each carried
       // clearance since its last query (or since the chunk start).
       for (let pi = 0; pi < pairs.length; pi++) {
-        if (skipPair[pi] || inContact[pi]) continue;
+        if (skipPair[pi] || (inContact[pi] && touching[pi])) continue;
         clear[pi] = clear[pi]! - pairV[pi]! * (s1 - sQ[pi]!);
       }
     }
