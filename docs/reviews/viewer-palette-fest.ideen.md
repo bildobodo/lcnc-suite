@@ -12427,3 +12427,64 @@ Build einschließlich TypeScript bestanden. **100 bestehende Kernprüfungen und 
 Alle eigenen CPU-Läufe mit niedriger Priorität und einem Worker, eigene Läufe nacheinander; Browser nur auf eigenem Mock `127.0.0.1:4188` nach den eigenen Kollisionsproben. Kein vollständiges Offline-Gate und keine zusätzliche Live-Abnahme.
 
 [Prüfaufbau und Wiederholung](viewer-palette-fest.r87.checks.md), [Stand und Quellvergleich](viewer-palette-fest.r87.context.json), [Build](viewer-palette-fest.r87.build.txt), [Kernprüfungen](viewer-palette-fest.r87.core.txt), [R86-Sonde am neuen Stand](viewer-palette-fest.r87.recontact.json), [Orakel](viewer-palette-fest.r87.oracle.txt), [Kostenlauf](viewer-palette-fest.r87.cost.txt), [Beleghashes](viewer-palette-fest.r87.sha256.json).
+
+## Anfrage R88 · Claude · R87-Reste behoben · 7. Oktober 2026
+
+**Bitte prüfe `53261fc0..a288433d` auf `feat/backlog-integration`.**
+
+- **Produkt-Commit:** `25c395cc` auf `fix/r87`. `9345fe51` ist nur die Zusammenführung des Live-Stands für das Gate.
+- **Gate R10** auf `9345fe51`: PASS (Backend 1245, Unit 1939, Browser 488).
+
+### VP-I45 · Rest: Die Nachabtastung folgt dem Kontaktzustand
+
+- **Ein Zustandsschritt:** Der Kontaktzustands-Schritt der Hauptschleife ist jetzt eine Funktion, `noteQuery`. Sie umfasst den Onset mit Wiedereintritts-Beförderung, die Verbuchung nach der Schneidregel und die geprüfte Trennung über 2 × Marge.
+- **Nachabtasten:** Jede Probe läuft in zeitlicher Reihenfolge durch diese Funktion, vor der Zustandsänderung der auslösenden Probe. Abgefragt wird bis HORIZON, damit eine Trennung überhaupt sichtbar wird.
+  - Eine Trennung beendet den alten Kontakt.
+  - Ein Kontakt danach ist ein neuer Onset, auf seiner Zeile und mit seiner Bewegungsart.
+  - Die Zertifikate setzt weiterhin nur die Hauptschleife.
+- **Tests:** dein Rotationsfall mit Standardmarge und der translatorische Fall mit Marge 0,2. Beide sind rot mit der alten Nachabtastung, die nur Berührungen verbuchte.
+
+### VP-I46 · Rest A: Beschädigte Facetten werden genannt
+
+- **Getrennte Zählung:** `withoutArealessFacets` zählt Facetten mit nicht endlicher Koordinate getrennt (`damaged`).
+- **Prüfung und Hinweis:** Ein Körper mit solchen Facetten wird auf dem Rest geprüft. `uncertified` nennt ihn „partly checked“ (`model.damaged`, `geometryNote`, auch im Worker-Ergebnis ohne Paare).
+- **Test:** dein Fall, `damaged` mit gültiger Fläche plus NaN-Facette. Rot ohne den Vermerk.
+
+### VP-I46 · Rest B: Ohne bewegte Paare bleibt die Einschränkung sichtbar
+
+- **Anzeige:** `sweepView` liest die Einschränkung jetzt vor dem `nopairs`-Zweig.
+  - Mit Hinweis: „Not checked“, Warnton, Marker, zugänglicher Name „Not checked (not certified)“.
+  - Die Hilfe sagt dann „No part that could be checked moves against another.“ statt „nothing to check“.
+  - Ohne Hinweis bleibt der neutrale Zustand „No moving pairs“.
+- **Test in der Sim-Spec:** Kontrolle ohne Hinweis, dann ohne Paare mit Hinweis, dann mit einem Paar („Clear (not certified)“).
+  - Die Testschnittstelle `__viewerDiag.setCollisionNote` setzt nur den Hinweis.
+  - Chromium und Firefox grün; rot mit dem alten frühen Rücksprung.
+
+### Tiefe Suche (auf `2eb1543b`, vor diesem Rest)
+
+| Fall | berührende Posen | nahe | Onsets | Befund | Dauer |
+|---|---:|---:|---:|---|---:|
+| XYZAC identisch | 80 804 | 4 000 | 222 | keiner | 1 910 s |
+| XYZAC TCP | 6 546 | 131 | 38 | keiner | 1 082 s |
+| Portal TCP | 91 787 | 786 | 64 | keiner | 2 315 s |
+
+- **Weiter:** Das 3-Achs-Modell und der Schätzer-Test im Suchmodus laufen noch.
+- **Grenze:** Das Raster ist 0,25. Das Orakel teilt Pose und Abfrage mit dem Sweep, wie in R86 festgehalten.
+
+### Kosten auf haus.ngc (beide Läufe gleichzeitig)
+
+| | Rechenzeit | Proben |
+|---|---:|---:|
+| `5f35112d` (nur Horizont) | 1 449 s | 1 369 458 |
+| `2eb1543b` | 1 306 s | 1 371 021 |
+
+- **Befunde:** bitgleich in beiden Läufen.
+- **Mehrproben:** 1 563 aus der Nachabtastung.
+- **Zeitdifferenz:** Die VM war zugleich mit Gate und tiefer Suche belegt. Die Differenz deute ich nicht als Gewinn, nur als „nicht langsamer“.
+
+### Nächster Schritt (vom Operator entschieden)
+
+Parallelisierung nach Teilepaaren auf `feat/parallel-sweep`:
+- **Grund:** Jedes Paar hat eigene Zertifikate, eigenen Kontaktzustand und eigene Sätze. Keine Nahtstellen-Logik.
+- **Zusammenführen:** Verkettung plus die globale Kappung.
+- **Folgen:** Messung der Obergrenze, Versuch mit verschachteltem Worker, Vergleichstest. Die Anfrage dazu folgt gesondert.
