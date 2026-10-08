@@ -1005,15 +1005,27 @@ change position names STALE (`canon.stale`, `tool_change_axes` from the
 value count 3 / 6 / 9; another count makes all nine stale, said on stderr);
 while one is, every motion — traverse, feed, probe, tap, arc (collapsed to
 its end) — is a zero-length unknown-start endpoint. A BLOCK re-establishes
-the stale axes whose PROGRAM coordinate its motions moved (`_program`
-inverts rotate_and_translate: under a rotated frame an X move changes
-machine X and Y, and Y was never commanded — Codex R93 B), and only after
+the stale axes whose PROGRAM coordinate it ENDED away from where it began
+(`_block_start`; `_program` inverts rotate_and_translate: under a rotated
+frame an X move changes machine X and Y, and Y was never commanded — Codex
+R93 B; a G76 ends on its drive line, the stale X — R94 C), and only after
 it ran, if it ran absolute: `next_line` delivers the state BEFORE its block,
 so the mode a block ran in is the next line's (R93 A: a `G91 G81` in one
 block recorded its feed and retract as known; a `G90 G0 X Y Z` left the next
-move unknown). Nothing is re-established inside a block; an axis commanded
-to the value the preview already believes cannot be told from one left out
-and stays stale; no relabel is inserted in front of an unknown start. The
+move unknown). A canned cycle under G98 never re-establishes its plane's
+normal axis (G17 Z, G18 Y, G19 X, the .1 planes W V U): it retracts to
+max(the height before it, R) — the REAL, unknown height (R94 C; the believed
+height above R returned to it, below R the preview retracts to R). Slot 0 of
+the state's `gcodes` is the LINE NUMBER, never read as a code (line 910 is
+no G91). A change of the XY rotation — G10 L2 R or a switch to a rotated
+fixture, both through `set_xy_rotation` — while X or Y is stale makes both
+stale: the new program X holds the unknown old Y (R94 D). Nothing is
+re-established inside a block; an axis commanded to the value the preview
+already believes cannot be told from one left out and stays stale; no
+relabel is inserted in front of an unknown start. NOT followed (a named
+limit): an offset register written FROM a stale position — `G92`, `G10 L20`
+on a stale axis — is wrong in the preview, and positions in its frame later
+read as known (the canon cannot tell an L20 from an L2). The
 interpreter's own quill-up / G30 moves at an M6 are canon traverses and
 recorded — they arrive as line −1, which the canon keeps on the M6's line
 (`next_line`; a −1 ended every such parse in an OverflowError on the wire's
@@ -1024,10 +1036,13 @@ the preview cannot know — not checked until the position is known again
 the worker (`collisions.viewer.spec`). Tests: `test_tool_change_motion_worker.py`
 (the real worker + native interpreter: G43 alone, in the block of a G0 / G1,
 before an arc, after an unknown start; M6 in place, at G30, at a tool change
-position; every motion kind after it, partial and G91 re-establishment),
+position; every motion kind after it, partial and G91 re-establishment,
+the block's end, G98 / G99 in G17 and G18, G76, a later rotation and a
+rotated fixture, line numbers 810 / 910),
 `toolChangePayloads.test.ts` (the native payloads, `scripts/gen_tool_change_payloads.py`,
-through the client's decode, track and sweep — red on the previous worker's
-payloads), `collision.test.ts` (an obstacle only in the middle of the move
+through the client's decode, track and sweep, the track handed over as the
+page does (`wcs` = its epochs: without them a rotated move is swept
+unrotated) — red on the previous worker's payloads), `collision.test.ts` (an obstacle only in the middle of the move
 after the relabel is found; an unknown start is said). Not yet followed: a
 preview-skipped M600's own motion (plan step 3). The preview goldens change
 for every program with a G43 (the live gate; regenerate at the next suite

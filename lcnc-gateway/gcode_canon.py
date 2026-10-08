@@ -49,16 +49,25 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     # motion — traverse, feed, probe, tap or arc — is recorded as a
     # zero-length unknown-start endpoint at its end: no invented path, no
     # duration, the sweep names it. A block re-establishes the axes whose
-    # PROGRAM coordinate its motions moved (`_program`: a rotated frame turns
-    # an X move into a machine X and Y change — Codex R93 VP-I51 B) — only
-    # once the block has run and only if it ran ABSOLUTE: the distance mode a
-    # block runs in shows at the NEXT line (the state arrives before its
-    # block), so nothing is re-established inside a block (a G91 G81 in one
-    # block recorded its feed and retract as known — R93 A) and a G90 G0 X Y Z
-    # makes the next block known. Always REASSIGNED (frozenset): the class
-    # value is the shared default.
+    # PROGRAM coordinate differs between where the block began and where it
+    # ENDED (`_program`: a rotated frame turns an X move into a machine X and
+    # Y change — Codex R93 VP-I51 B; a G76 ends with X on its drive line, the
+    # stale start, so X stays stale — R94 C) — only once the block
+    # has run and only if it ran ABSOLUTE: the distance mode a block runs in
+    # shows at the NEXT line (the state arrives before its block), so nothing
+    # is re-established inside a block (a G91 G81 in one block recorded its
+    # feed and retract as known — R93 A) and a G90 G0 X Y Z makes the next
+    # block known. A change of the XY rotation while X or Y is stale makes
+    # both stale: the new program X holds the unknown old Y (R94 D). A canned
+    # cycle under G98 never re-establishes its plane's normal axis: it
+    # retracts to max(the height before the cycle, R) — the real, unknown
+    # height when that lies above R, whatever the preview believes
+    # (interp_cycles `if (old_cc < r) … clear_cc = old_cc`). Always
+    # REASSIGNED (frozenset): the class value is the shared default.
     stale = frozenset()
-    _block_moved = frozenset()
+    _block_start = None
+    _CYCLES = frozenset((730, 810, 820, 830, 840, 850, 860, 870, 880, 890))
+    _PLANE_NORMAL = {170: 2, 180: 1, 190: 0, 171: 8, 181: 7, 191: 6}
 
     """Lightweight canon that collects feed/rapid polylines for 3D preview."""
 
@@ -216,13 +225,21 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     def next_line(self, st):
         self.state = st
         if (st.sequence_number or 0) >= 0 or (self.lineno or 0) < 1:
-            # A new block: the one that ran before it ran in the distance
-            # mode this state shows — absolute (G90, not 910) re-establishes
-            # the stale axes its motions moved, G91 none.
-            if self._block_moved:
-                if 910 not in (getattr(st, "gcodes", None) or ()):
-                    self.stale = self.stale - self._block_moved
-                self._block_moved = frozenset()
+            # A new block: the one that ran before it ran in the modes this
+            # state shows — absolute (G90, not 910) re-establishes the stale
+            # axes whose program coordinate it ENDED away from where it
+            # began (but a G98 cycle's normal axis), G91 none. Slot 0 is the
+            # sequence NUMBER — line 910 is no G91, line 810 no G81.
+            if self._block_start is not None:
+                g = tuple(getattr(st, "gcodes", None) or ())[1:]
+                if 910 not in g:
+                    keep = frozenset()
+                    if 980 in g and not self._CYCLES.isdisjoint(g):
+                        keep = frozenset(self._PLANE_NORMAL[c] for c in g if c in self._PLANE_NORMAL)
+                    p0, p1 = self._program(self._block_start), self._program(self.lo)
+                    self.stale = self.stale - frozenset(
+                        i for i in self.stale - keep if abs(p1[i] - p0[i]) > 1e-9)
+                self._block_start = None
         if (st.sequence_number or 0) < 0 and (self.lineno or 0) >= 1:
             # A motion the interpreter makes itself inside the current block —
             # an M6's quill-up or G30 move (TOOL_CHANGE_QUILL_UP /
@@ -361,7 +378,13 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
 
     def set_xy_rotation(self, *args, **kw):
         self._wcs_dirty = True
-        return super().set_xy_rotation(*args, **kw)
+        before = getattr(self, "rotation_xy", 0) or 0
+        r = super().set_xy_rotation(*args, **kw)
+        # A turned frame mixes the program's X and Y: one of them unknown
+        # makes both unknown (Codex R94 VP-I51 D).
+        if self.stale & {0, 1} and abs((getattr(self, "rotation_xy", 0) or 0) - before) > 1e-12:
+            self.stale = self.stale | {0, 1}
+        return r
 
     def _program(self, p):
         """A translated point back in the PROGRAM frame of the offsets in
@@ -380,16 +403,14 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     def _unknown_move(self, end):
         """A motion from a position with a stale axis: its end as a
         zero-length unknown-start endpoint (rapid stream, like the program's
-        own first move); the stale axes whose PROGRAM coordinate it moved are
-        noted for the block (re-established at the next line if the block ran
-        absolute)."""
+        own first move); the block's start is noted (the next line compares
+        the block's end with it)."""
         if self._program_line():
             seq = self._next_seq()
             self.rapid.append((self.lineno, end, end, (self.xo, self.yo, self.zo), seq))
             self.unknown_start.append(seq)
-        p0, p1 = self._program(self.lo), self._program(end)
-        self._block_moved = self._block_moved | frozenset(
-            i for i in self.stale if abs(p1[i] - p0[i]) > 1e-9)
+        if self._block_start is None:
+            self._block_start = self.lo
         self.lo = end
 
     def straight_traverse(self, x, y, z, a, b, c, u, v, w):

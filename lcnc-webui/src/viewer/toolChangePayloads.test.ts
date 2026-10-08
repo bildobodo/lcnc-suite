@@ -14,6 +14,7 @@ import { describe, expect, it } from "vitest";
 import { decodePreviewStreams } from "../previewDecode";
 import { buildScrubTrack } from "./scrubTrack";
 import { buildCollisionModel, sweepCollisions, type CollisionMachine } from "./collision";
+import { epochTermsFor } from "./wcsEpochs";
 
 const DIR = path.resolve(__dirname, "../../../scripts/test_fixtures/tool_change_payloads");
 const MACHINE: CollisionMachine = {
@@ -38,9 +39,13 @@ function load(name: string) {
   const track = buildScrubTrack(d.feed, d.rapid, d.kinsFrames, d.wcsEvents, d.subNames, d.tloEvents)!;
   return { raw, d, track };
 }
+// The track as the page hands it to the sweep (ThreeViewer's trackCopy): the
+// scrub track's per-point WCS epochs travel as `wcs` — without them every
+// segment is posed in the first epoch's frame, a rotated one unrotated.
+const swept = (track: ReturnType<typeof load>["track"]) => ({ ...track, wcs: track.wcsEpoch });
 function sweep(name: string, obstacleZ = 500) {
   const { raw, d, track } = load(name);
-  const result = sweepCollisions(model(obstacleZ), track,
+  const result = sweepCollisions(model(obstacleZ), swept(track),
     { g5x: [], g92: [], rotationDeg: 0, tool: raw.tlo_start } as any, { margin: 0.1, tloEvents: d.tloEvents });
   return { result, track };
 }
@@ -100,6 +105,64 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
     expect(r.result.uncertified).toMatch(/^2 moves after a tool change run .*\(L5, L6\)$/);
     expect(r.track.ustart![3]).toBe(0);
     expect(r.track.cum[3]! - r.track.cum[2]!).toBeCloseTo(1, 5);
+  });
+  describe("the end of a block decides, and a later rotation counts (Codex R94)", () => {
+    // A head that rides X, Y and Z (Codex R94's probe) and a 0.5 mm obstacle
+    // in the middle of the path a stale start would invent for the last move.
+    const XYZ: CollisionMachine = {
+      groups: [{ id: "x", parent: "root" }, { id: "y", parent: "x" }, { id: "head", parent: "y" }, { id: "table", parent: "root" }],
+      kinematics: [{ group: "x", joint: 0, type: "translate", direction: "x", sign: 1 },
+                   { group: "y", joint: 1, type: "translate", direction: "y", sign: 1 },
+                   { group: "head", joint: 2, type: "translate", direction: "z", sign: 1 }],
+      workGroup: "table", toolGroup: "head", unitScale: 1, axes: ["X", "Y", "Z"],
+    };
+    const small = () => {
+      const g = new THREE.BoxGeometry(0.5, 0.5, 0.5).toNonIndexed();
+      const p = new Float32Array(g.getAttribute("position").array);
+      g.dispose();
+      return p;
+    };
+    function sweepXYZ(name: string, obstacle: [number, number, number]) {
+      const { raw, d, track } = load(name);
+      const wcs = { g5x: [], g92: [], rotationDeg: 0, tool: raw.tlo_start } as any;
+      const result = sweepCollisions(buildCollisionModel(XYZ, [
+        { id: "fixed", group: "table", positions: small(), translate: obstacle },
+        { id: "head", group: "head", positions: small() },
+      ]), swept(track), wcs, { margin: 0.1, tloEvents: d.tloEvents,
+        epochTerms: d.wcsEvents?.length ? epochTermsFor(d.wcsEvents, wcs, undefined) : undefined });
+      return { result, track, last: track.count - 1 };
+    }
+    it("a G98 cycle returns to the stale height: the next move named, never swept along a guessed path", () => {
+      // Believed above R (Codex's case) and below R (the preview retracts to
+      // R, the machine to its real height): L6 unknown either way.
+      for (const [name, obstacle] of [["r94_g98_cycle", [15, 5, 40]], ["r94_g98_below_r", [15, 5, 2]]] as const) {
+        const { result, track, last } = sweepXYZ(name, [...obstacle]);
+        expect(result.uncertified, name).toMatch(/^5 moves after a tool change run .*\(L4, L6\)$/);
+        expect(track.ustart![last], name).toBe(1);
+        expect(track.cum[last], name).toBe(0);
+        expect(result.hits, name).toHaveLength(0);
+      }
+    });
+    it("G76 ends on its drive line — the stale X — so the next X move stays unknown", () => {
+      const { result, track, last } = sweepXYZ("r94_g76_returns_x", [10, 3, -10]);
+      expect(result.uncertified).toMatch(/^23 moves after a tool change run .*\(L5, L6, L7\)$/);
+      expect(track.ustart![last]).toBe(1);
+      expect(result.hits).toHaveLength(0);
+    });
+    it("a rotation after X alone was known keeps the next move unknown; a full target makes it known", () => {
+      let r = sweepXYZ("r94_rotated_after_partial", [6.0355339059, 13.1066017178, 15]);
+      expect(r.result.uncertified).toMatch(/^3 moves after a tool change run .*\(L4, L6, L7\)$/);
+      expect(r.track.ustart![r.last]).toBe(1);
+      expect(r.track.cum[r.last]).toBe(0);
+      expect(r.result.hits).toHaveLength(0);
+      // the full target: L7 known, timed and swept in the rotated frame —
+      // an obstacle on its real path R45·(15, 5) is found
+      r = sweepXYZ("r94_rotated_complete", [7.0710678, 14.1421356, 15]);
+      expect(r.result.uncertified).toMatch(/^2 moves after a tool change run .*\(L4, L6\)$/);
+      expect(r.track.ustart![r.last]).toBe(0);
+      expect(r.track.cum[r.last]! - r.track.cum[r.last - 1]!).toBeCloseTo(1, 5);
+      expect(r.result.hits.some(h => h.line === 7)).toBe(true);
+    });
   });
   it("an M6 that moves nothing, and the interpreter's own quill-up and G30 moves, stay known", () => {
     for (const name of ["m6_in_place", "r92_m6_quill_g30"]) {
