@@ -1897,6 +1897,30 @@ describe("a body wholly inside another (the inside check, collision-inside.plan.
     expect(r.hits.find(h => h.line === 3)?.continuation).toBe(2);
   });
 
+  it("an inside answer holds only while no surface crossing can have come — used up line by line", () => {
+    // The cube starts 10 off the post's centre (surfaces 19.5 apart, inside
+    // the horizon) and leaves in 2 mm lines. The answer certified at the
+    // start must be used up by each line's travel: kept whole per line, it
+    // would outlast the crossing out (X 29.5) and the contact would never end.
+    const pts = Array.from({ length: 21 }, (_, i) => -30 + 2 * i);   // the cube at 10 … 50
+    const r = sweepCollisions(buildCollisionModel(machine(40), [post(), nub]), xs(pts), WCS0, { margin: 0.1 });
+    expect(r.hits.filter(h => h.continuation === undefined).map(h => h.line)).toEqual([2]);
+    // in contact to the crossing out: the cube at 30.5 (cum 20.5), on line 12
+    expect(Math.max(...r.hits.map(h => h.line))).toBe(12);
+    expect(Math.max(...r.hits.flatMap(h => h.intervals!.map(iv => iv[1])))).toBeCloseTo(20.5, 2);
+  });
+
+  it("an inside answer does not cross a jump", () => {
+    // Inside under the first epoch, then a relabel puts the cube 100 away:
+    // the line after the break is clear, whatever was certified before it.
+    const t = { ...track([[0, 0, 0], [5, 0, 0], [5, 0, 0], [6, 0, 0]]),
+                wcs: new Uint32Array([0, 0, 1, 1]), brk: new Uint8Array([0, 0, 1, 0]) };
+    const zero = { ox: 0, oy: 0, oz: 0, oa: 0, ob: 0, oc: 0, tx: 0, ty: 0, tz: 0, cth: 1, sth: 0 };
+    const r = sweepCollisions(buildCollisionModel(machine(40), [post(), nub]), t, WCS0,
+                              { margin: 0.1, epochTerms: [{ ...zero, ox: -40 }, { ...zero, ox: 60 }] });
+    expect(r.hits.map(h => h.line)).toEqual([2]);
+  });
+
   it("a container whose surface is not closed is named once for the model and keeps the surface's guarantee", () => {
     // The post without one facet: no inside to decide. The sweep sees the
     // two surface crossings as two contacts (the surface's reading), asks

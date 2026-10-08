@@ -1743,6 +1743,14 @@ export function* sweepCollisionsIter(
   // summed piecewise over the chunks the pair skipped.
   const clear = new Float64Array(pairs.length);   // clearance left since the last query
   const sQ = new Float64Array(pairs.length);      // path parameter of that query (or chunk start)
+  // An INSIDE answer's certificate (inside check, plan step 5): the answer
+  // can only change through a surface crossing, and none can happen before
+  // the surfaces' distance is used up at the pair's speed bound — carried
+  // like `clear` (the distance at `inQ`, re-expressed in each chunk's V).
+  // Until then the pair's samples (a long inside contact owes one per line)
+  // need neither the distance query nor the rays. 0 = no certificate.
+  const inClear = new Float64Array(pairs.length);
+  const inQ = new Float64Array(pairs.length);
   const qLine = new Int32Array(pairs.length).fill(-1);   // line of that query (per-line contact marks)
   const rotLever = pairDofs.map(list => new Float64Array(list.length));
   const jv0: number[] = new Array(jointVals.length).fill(0);
@@ -2097,7 +2105,7 @@ export function* sweepCollisionsIter(
       for (let pi = 0; pi < pairs.length; pi++) {
         if (skipPair[pi]) continue;
         // No continuous motion here: what was outside may be inside after it.
-        if (breakBoundary || pairTool[pi]) { clear[pi] = 0; needInside[pi] = 1; }
+        if (breakBoundary || pairTool[pi]) { clear[pi] = 0; needInside[pi] = 1; inClear[pi] = 0; }
       }
     }
     prevTool = segTool; prevTlo = segTlo;
@@ -2242,7 +2250,10 @@ export function* sweepCollisionsIter(
           const A = bodies[ai]!, B = bodies[bi]!;
           let d: number;
           let v: InsideVerdict | null = null;
-          if (prof) {
+          const inCert = inClear[pi]! > 0 && s - inQ[pi]! < inClear[pi]! / Math.max(pairV[pi]!, 1e-9);
+          if (inCert) {
+            d = 0;   // still inside: no surface crossing since it was measured
+          } else if (prof) {
             const tq = clock();
             d = pairDistance(A, B, HORIZON, opts.margin);
             if (d > CONTACT_EPS && askInside(pi)) v = pairInside(A, B);
@@ -2256,7 +2267,13 @@ export function* sweepCollisionsIter(
           }
           needInside[pi] = 0;
           const unknownInside = v === "undecidable";
-          if (v === "inside") d = 0;
+          if (v === "inside") {
+            inClear[pi] = d === Infinity ? HORIZON : Math.min(d, HORIZON);   // a lower bound of the surfaces' distance
+            inQ[pi] = s;
+            d = 0;
+          } else if (!inCert) {
+            inClear[pi] = 0;
+          }
           // VP-I45 (Codex R86/R87): a touching pair re-probes every EXPLORE,
           // and inside that stride the contact can end, the pair separate and
           // touch AGAIN — a second contact wider than MIN_ADV no sample saw.
@@ -2346,7 +2363,12 @@ export function* sweepCollisionsIter(
       // Chunk done: what this chunk could have consumed of each carried
       // clearance since its last query (or since the chunk start).
       for (let pi = 0; pi < pairs.length; pi++) {
-        if (skipPair[pi] || (inContact[pi] && touching[pi])) continue;
+        if (skipPair[pi]) continue;
+        if (inClear[pi]! > 0) {
+          inClear[pi] = inClear[pi]! - pairV[pi]! * (s1 - inQ[pi]!);
+          inQ[pi] = s1;
+        }
+        if (inContact[pi] && touching[pi]) continue;
         clear[pi] = clear[pi]! - pairV[pi]! * (s1 - sQ[pi]!);
       }
     }

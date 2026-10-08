@@ -1251,7 +1251,14 @@ break or a tool change (`needInside`), every separation decision (a pair
 whose last query touched — Infinity past the horizon included — and every
 re-sampled point after a touch), and a pair whose last answer was
 undecidable; the refinement's predicate is touching OR inside OR
-undecidable. Inside is a touch (distance 0); undecidable gives no record, no
+undecidable. Inside is a touch (distance 0) with a certificate of its own:
+the answer can change only through a surface crossing, so it holds until
+the surfaces' distance at that query (beyond the horizon: the horizon) is
+used up at the pair's speed bound — carried across chunks like a clearance,
+dropped at a break or a tool change (`inClear` / `inQ`): a long inside
+contact owes a sample per line, and those need no query (haus.ngc's end caps
+in the column foot: 268 s → 3.3 s for that pair, the same records). Undecidable
+gives no record, no
 separation, no clearance certificate (asked again at the contact cadence),
 never a static exclusion, and its stretch stays named ("inside check
 undecidable for A ↔ B (L5–L9)"). A container whose surface is NOT CLOSED is
@@ -1262,7 +1269,7 @@ model's frame, x_axis, y_axis); its pairs keep the surface's guarantee.
 and entry merges unite them (`unitedNotes` — shard 0's note alone lost the
 other shards' pairs). Tests: insideCheck.test.ts, collision.test.ts ("a body
 wholly inside another"), collisionInside.test.ts (undecidable, the rays
-mocked), the oracle (below); 14 mutations red. The sweep is a
+mocked), the oracle (below); 18 mutations red. The sweep is a
 resumable iterator (`sweepCollisionsIter`, checkpoints every 16 segments /
 512 samples and every 8 ms of clock) with an optional WALL-CLOCK budget
 (`maxMs`, sync API + tests only — the worker runs sweeps OPEN-ENDED since
