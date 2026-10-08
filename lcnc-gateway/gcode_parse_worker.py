@@ -78,7 +78,7 @@ from gateway_util import (
     kins_marker_policy, mode_boundary_indices, event_boundary_indices,
     classify_motion_lines, line_trust_flags, resolve_sub_indices,
     attribute_sub_callers, resolve_sub_callers, refusal_payload, main_file_tool_changes,
-    read_var_snapshot, TOOLSETTER_BASIS_KEYS,
+    read_var_snapshot, TOOLSETTER_BASIS_KEYS, toolsetter_assigned_keys,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
     wcs_rewrite_targets, ustart_start_tuple,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
@@ -1307,6 +1307,14 @@ def parse(ctx: dict) -> dict:
         _g92_list = [float(v) for v in _g92_used] if _g92_used is not None else None
     except (TypeError, ValueError):
         _g92_list = None
+    # The toolsetter basis (M600 plan, section 2): does the program run the
+    # bundled routine (the gateway reads its values back when unconfirmed,
+    # and re-parses when they change), and which of them may it write itself
+    # (null: any — those turn "assumed" when it starts).
+    _ts_writes = toolsetter_assigned_keys(_src_text or "")
+    print("__TOOLSETTER__\t" + json.dumps({
+        "routine": any(_ev[1] == "tool_touch_off" for _ev in canon.sub_events),
+        "writes": None if _ts_writes is None else sorted(_ts_writes)}), file=sys.stderr, flush=True)
     print("__PARAMS__\t" + json.dumps({"text": param_text, "g92": _g92_list}),
           file=sys.stderr, flush=True)
 

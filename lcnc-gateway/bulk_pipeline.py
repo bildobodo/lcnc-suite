@@ -81,6 +81,7 @@ class BulkPipeline:
         build_wcs_rotation_patches: Callable[[], dict],
         get_live_kins: Optional[Callable[[], tuple]] = None,
         get_wcs_off_flat: Optional[Callable[[], Optional[list]]] = None,
+        get_toolsetter_ctx: Optional[Callable[[], Optional[dict]]] = None,
     ) -> None:
         self._get_stat = get_stat
         self._get_machine_units = get_machine_units
@@ -94,6 +95,10 @@ class BulkPipeline:
         # (non-switchable configs, tests) — the worker then seeds nothing
         # and the drift edge makes no claim.
         self._get_live_kins = get_live_kins or (lambda: (None, None))
+        # The toolsetter basis for the parse ctx (M600 plan, section 2:
+        # gateway_util.toolsetter_ctx). None: the worker reads the file as
+        # it is (tests, a gateway without the bookkeeping).
+        self._get_toolsetter_ctx = get_toolsetter_ctx or (lambda: None)
 
         # ---- G-code preview (passthrough bytes; GET /preview) ----
         self.preview_pending: Optional[dict] = None   # {"file"} metadata only — consumers only read .get("file")
@@ -202,6 +207,10 @@ class BulkPipeline:
         # every other numbered parameter a pinned re-parse must not re-read
         # from a file the running program has persisted since).
         self.published_params: Optional[dict] = None
+        # The worker's `__TOOLSETTER__` line (M600 plan, section 2): {"routine":
+        # the program runs the bundled tool_touch_off.ngc, "writes": the
+        # toolsetter keys its text may write, null = any}. None = unknown.
+        self.published_toolsetter: Optional[dict] = None
         # This config cannot pin a start state (random toolchanger — the
         # worker refused with PIN_UNSUPPORTED_EXIT): the mid-run edge stops
         # asking; the preview stays stale-marked until idle (MR-I01).
@@ -348,6 +357,7 @@ class BulkPipeline:
         self.published_limits = None
         self.published_ctx = None
         self.published_params = None
+        self.published_toolsetter = None
         self.table_stale = None
         self.rotary_check_prev = None
         self.wcsoff_check_prev = None
@@ -590,6 +600,11 @@ class BulkPipeline:
                     "kins_type": _live_kt,
                     "kins_frame": _live_kf,
                 }
+                # The toolsetter values the routine reads (a pinned parse
+                # keeps the published ctx's: the basis it ran with).
+                _ts_ctx = self._get_toolsetter_ctx()
+                if _ts_ctx:
+                    ctx["toolsetter"] = _ts_ctx
             # VERIFY (VP-I20, plan Fassungen 4–6): the start tool state moved
             # since the publish. Parse at the actual offset as always, and let
             # the worker compare its payload with the published one — when
@@ -687,6 +702,7 @@ class BulkPipeline:
             worker_kins_seed: Optional[dict] = None
             worker_wcs_off: Optional[list] = None
             worker_params: Optional[dict] = None
+            worker_toolsetter: Optional[dict] = None
             worker_same = False
             if stderr:
                 for ln in stderr.decode(errors="replace").splitlines():
@@ -759,6 +775,14 @@ class BulkPipeline:
                             worker_kins_seed = json.loads(_s[1])
                         except (IndexError, ValueError):
                             _trace.emit("gcode.kinsseed_line_malformed",
+                                        level="warn", line=ln[:160])
+                    elif ln.startswith("__TOOLSETTER__"):
+                        # same malformed-→-None-loudly contract
+                        _s = ln.split("\t", 1)
+                        try:
+                            worker_toolsetter = json.loads(_s[1])
+                        except (IndexError, ValueError):
+                            _trace.emit("gcode.toolsetter_line_malformed",
                                         level="warn", line=ln[:160])
                     elif ln.startswith("__PARAMS__"):
                         # The parameter basis this parse ran on (MR-I02) —
@@ -854,6 +878,7 @@ class BulkPipeline:
             self.published_ctx = ctx
             self.table_stale = None
             self.published_params = worker_params if isinstance(worker_params, dict) else None
+            self.published_toolsetter = worker_toolsetter if isinstance(worker_toolsetter, dict) else None
             self.preview_version += 1
             self.last_file = filepath
             self.last_mtime = _mtime_at_parse

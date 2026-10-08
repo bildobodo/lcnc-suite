@@ -83,6 +83,7 @@ from gateway_util import (
     evaluate_safety_chain,
     PREVIEW_SCHEMA,
     evaluate_tlo_drift, evaluate_start_drift,
+    TOOLSETTER_BASIS_KEYS, toolsetter_assigned_keys, toolsetter_basis_view, toolsetter_ctx,
     evaluate_rotary_drift, drift_gate_open, inflight_stale_reason, preview_file_edge_action,
     midrun_table_gate_open, midrun_table_action,
     rotary_drift_settled,
@@ -883,6 +884,8 @@ _bulk = _bulk_mod.BulkPipeline(
     # a touch-off against exactly what the running parse was seeded with.
     get_wcs_off_flat=lambda: wcs_offset_flat_from_table(
         _wcs_cache, getattr(STAT, "g92_offset", None)),
+    # the toolsetter values the routine reads (M600 plan, section 2)
+    get_toolsetter_ctx=lambda: _toolsetter_parse_ctx(),
 )
 
 
@@ -1889,11 +1892,19 @@ async def _status_poller():
                 elif _drift:
                     _trace.emit("gcode.reparse_tlo_drift", reason=_drift,
                                 tool=st.tool_number)
+                # The toolsetter basis (M600 plan, section 2): read the values
+                # back once while unconfirmed, re-parse when they changed.
+                _ts_reason = _ts_poll(st)
+                if not _drift and _ts_reason:
+                    _drift = _ts_reason
+                    _trace.emit("gcode.reparse_toolsetter", version=_ts_basis_version)
                 if _drift:
                     # The specific edge ("wcsoff:G54:x", "rotary:A", "kins:type",
                     # "tlo:…") is the reason the trace and the operator's
                     # banner carry — not the bare "drift" it used to be.
-                    _bulk.schedule_refresh(st.active_file, _drift, _spawn_preview_task)
+                    if (_bulk.schedule_refresh(st.active_file, _drift, _spawn_preview_task)
+                            and _drift == "toolsetter"):
+                        _ts_reparse_asked()
             elif not st.active_file and (_bulk.last_file is not None
                                          or _bulk.preview_available()):
                 # Unload: one contract (clear_preview — it was dead code
@@ -3832,6 +3843,7 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
         async with _get_cmd_lock():
             await set_mode(linuxcnc.MODE_AUTO)
             await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None)
+        _ts_mark_assumed(_ts_program_writes())
         # Consumed by the skim (o<450> self-clears #3116); _skip_flag_unknown
         # stays set — an abort in the skim leaves it, the next start clears.
         flag_armed = False
@@ -3850,6 +3862,158 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
             # here, so a second cancel cannot skip it (Codex R17 XZ-10); the
             # latch and the end report follow the task (_rfl_finished).
             _rfl_clear_flag()
+
+
+# ---- The toolsetter basis (M600 in the preview, plan section 2, Codex R102–R104) ----
+# What the bundled tool_touch_off.ngc would read are the INTERPRETER's values,
+# booked here per key (gateway_util.TOOLSETTER_BASIS_KEYS) with where they are
+# known from: applied (a chunk of _apply_probe_vars ended RCS_DONE), read (a
+# confirmed read, _ts_read_back), assumed (the parameter file, unconfirmed),
+# unknown (a chunk failed, was cut short or timed out). One LinuxCNC instance
+# per gateway process (session binding), so the book lives with the process:
+# at its start every key is `assumed` from the file. The parse ctx carries it
+# (toolsetter_ctx); a change re-parses a program that runs the routine.
+_ts_basis: Dict[int, Dict[str, Any]] = {}
+_ts_basis_version = 0
+_ts_readback_task: Optional[asyncio.Task] = None
+_ts_readback_tried: Optional[tuple] = None     # (version, file) the last read-back ran for
+_ts_reparse_for: Optional[int] = None          # the version a toolsetter re-parse was asked for
+
+
+def _ts_book(values: Dict[int, Optional[float]], origin: str) -> None:
+    global _ts_basis_version
+    now = time.time()
+    changed = []
+    for k, v in values.items():
+        if k not in TOOLSETTER_BASIS_KEYS:
+            continue
+        old = _ts_basis.get(k)
+        if old is None or old["value"] != v or old["origin"] != origin:
+            changed.append(k)
+        _ts_basis[k] = {"value": v, "origin": origin, "t": now}
+    if changed:
+        _ts_basis_version += 1
+        _trace.emit("toolsetter.basis", origin=origin, keys=changed, version=_ts_basis_version)
+
+
+def _ts_file_values(keys) -> Dict[int, Optional[float]]:
+    """The parameter file's values (None: no line — or no file, said). A few
+    KB, written atomically (write_var_file_updates, save_parameters)."""
+    path = _resolve_var_file_path()
+    if not path:
+        return {k: None for k in keys}
+    try:
+        _ino, vals = read_var_snapshot(path, [str(k) for k in keys])
+    except OSError as e:
+        _trace.emit("toolsetter.file_unread", level="warn", exc=type(e).__name__, msg=str(e))
+        return {k: None for k in keys}
+    return {k: vals[str(k)] for k in keys}
+
+
+def _ts_ensure() -> None:
+    """At the process's start: every key `assumed` from the file."""
+    if not _ts_basis:
+        _ts_book(_ts_file_values(TOOLSETTER_BASIS_KEYS), "assumed")
+
+
+def _ts_mark_assumed(keys) -> None:
+    """An MDI line, a macro or a program that may write `keys` (None: any)
+    was started: the file's value is all that is known — until a confirmed
+    read (the interpreter writes the file only at its next synch)."""
+    _ts_ensure()
+    ks = list(TOOLSETTER_BASIS_KEYS) if keys is None else [k for k in keys if k in TOOLSETTER_BASIS_KEYS]
+    if ks:
+        _ts_book(_ts_file_values(ks), "assumed")
+
+
+def _ts_program_writes():
+    """The keys the LOADED program may write (the worker's text scan), None:
+    any, or no scan of exactly that program."""
+    pts = _bulk.published_toolsetter
+    loaded = _status_runtime.program.loaded
+    if not pts or not loaded or canonical_path(_bulk.last_file or "") != canonical_path(loaded):
+        return None
+    return pts.get("writes")
+
+
+def _toolsetter_parse_ctx() -> dict:
+    _ts_ensure()
+    return toolsetter_ctx(_ts_basis, _ts_basis_version)
+
+
+async def _ts_read_back(file: str) -> None:
+    """A confirmed read of the toolsetter values (the G30 contract): the
+    interpreter writes every line of the parameter file from its own values
+    at task_plan_synch (rs274ngc_pre.cc save_parameters), a NEW inode proves
+    the fresh file (a failed write keeps it). Nothing is written to the
+    machine. Under _cmd_lock then _var_file_lock; an abort cancels it
+    (_preempt_inflight). A failure leaves the basis as it was, said."""
+    path = _resolve_var_file_path()
+    keys = [str(k) for k in TOOLSETTER_BASIS_KEYS]
+    if not path:
+        _trace.emit("toolsetter.read_back_failed", level="warn", why="no parameter file")
+        return
+    try:
+        async with _get_cmd_lock():
+            async with _get_var_file_lock():
+                ino0, _ = await _var_file_thread(read_var_snapshot, path, keys)
+                rc = await _cmd_blocking(CMD.task_plan_synch, wait=5)
+                if rc != getattr(linuxcnc, "RCS_DONE", 1):
+                    _trace.emit("toolsetter.read_back_failed", level="warn", why="not synched", rc=rc)
+                    return
+                ino1, vals = await _var_file_thread(read_var_snapshot, path, keys)
+    except OSError as e:
+        _trace.emit("toolsetter.read_back_failed", level="warn", why="file", exc=type(e).__name__, msg=str(e))
+        return
+    if ino1 == ino0:
+        _trace.emit("toolsetter.read_back_failed", level="warn", why="not saved")
+        return
+    _ts_book({int(k): v for k, v in vals.items()}, "read")
+    _trace.emit("toolsetter.read_back", file=os.path.basename(file), version=_ts_basis_version,
+                state=toolsetter_basis_view(_ts_basis)["state"])
+
+
+def _ts_read_back_due(st) -> bool:
+    """Read the values back now? A loaded program that runs the routine, a
+    basis not confirmed, once per (basis version, program), the machine
+    standing with no command in flight (idle gate: the caller)."""
+    pts = _bulk.published_toolsetter
+    if not pts or not pts.get("routine") or _bulk.last_file != st.active_file:
+        return False
+    if toolsetter_basis_view(_ts_basis)["state"] == "confirmed":
+        return False
+    if _ts_readback_tried == (_ts_basis_version, st.active_file):
+        return False
+    if _ts_readback_task is not None and not _ts_readback_task.done():
+        return False
+    return not (_get_cmd_lock().locked() or _rfl_busy() or _active_jogs or st.current_vel)
+
+
+def _ts_poll(st) -> Optional[str]:
+    """The idle drift block's toolsetter step: start the read-back when it is
+    due; the re-parse reason when the published parse read other values."""
+    global _ts_readback_task, _ts_readback_tried
+    if _ts_read_back_due(st):
+        _ts_readback_tried = (_ts_basis_version, st.active_file)
+        _ts_readback_task = asyncio.create_task(_ts_read_back(st.active_file))
+    return _ts_drift_reason()
+
+
+def _ts_reparse_asked() -> None:
+    global _ts_reparse_for
+    _ts_reparse_for = _ts_basis_version
+
+
+def _ts_drift_reason() -> Optional[str]:
+    """The published parse read other toolsetter values than the book holds
+    now — and the program runs the routine: re-parse (once per version)."""
+    pts = _bulk.published_toolsetter
+    if not pts or not pts.get("routine"):
+        return None
+    pv = ((_bulk.published_ctx or {}).get("toolsetter") or {}).get("version")
+    if pv == _ts_basis_version or _ts_reparse_for == _ts_basis_version:
+        return None
+    return "toolsetter"
 
 
 async def _apply_probe_vars(vars_to_set: Dict[str, Any], armed: bool):
@@ -3885,25 +4049,46 @@ async def _apply_probe_vars(vars_to_set: Dict[str, Any], armed: bool):
     mdi_ok = False
     STAT.poll()
     if armed and bool(safe_get("enabled", False)) and not reject_if_auto_running():
+        # The toolsetter basis is booked PER CHUNK: a chunk that ended
+        # RCS_DONE is the interpreter's (applied); one that failed, timed out
+        # or was cut short is unknown — the take-over is no transaction, an
+        # earlier chunk is not rolled back (Codex R103). A chunk never sent
+        # leaves its keys as booked: the interpreter did not change.
+        _ts_ensure()
+        inflight: Optional[Dict[int, Optional[float]]] = None
         try:
-            items = [f"#{k}={finite_float(v):.6f}" for k, v in vars_to_set.items()]
-            chunks, current = [], ""
-            for item in items:
+            items = [(f"#{k}={finite_float(v):.6f}", int(k), float(f"{finite_float(v):.6f}"))
+                     for k, v in vars_to_set.items()]
+            chunks: List[tuple] = []
+            current, booked = "", {}
+            for item, key, val in items:
                 if current and len(current) + 1 + len(item) > 250:
-                    chunks.append(current)
-                    current = item
+                    chunks.append((current, booked))
+                    current, booked = item, {key: val}
                 else:
                     current = f"{current} {item}".strip() if current else item
+                    booked[key] = val
             if current:
-                chunks.append(current)
+                chunks.append((current, booked))
             await set_mode(linuxcnc.MODE_MDI)
             mdi_ok = True
-            for chunk in chunks:
+            for chunk, booked in chunks:
+                inflight = booked
                 ret = await _cmd_blocking(CMD.mdi, chunk, wait=5)
+                inflight = None
                 if _cmd_rc_failed(ret):   # success is RCS_DONE (1), not 0
                     mdi_ok = False
+                    _ts_book({k: None for k in booked}, "unknown")
+                else:
+                    _ts_book(booked, "applied")
+        except asyncio.CancelledError:
+            if inflight is not None:
+                _ts_book({k: None for k in inflight}, "unknown")
+            raise
         except Exception as e:
             mdi_ok = False
+            if inflight is not None:
+                _ts_book({k: None for k in inflight}, "unknown")
             _trace.emit("probe.mdi_set_failed", level="warn",
                         exc=type(e).__name__, msg=str(e))
     if mdi_ok and any(str(k) == "3116" and finite_float(v) == 0 for k, v in vars_to_set.items()):
@@ -4140,6 +4325,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 _skip_flag_unknown = True
             await set_mode(linuxcnc.MODE_MDI)
             await _cmd_blocking(CMD.mdi, text, wait=None)
+            # a line that may write the toolsetter's values: from the file now
+            _ts_mark_assumed(toolsetter_assigned_keys(text))
             return reply
 
         if cmd == "run_macro":
@@ -4209,6 +4396,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                     claim.state = "unsent"
                 raise
             _trace.emit("macros.run", name=name, line=call["line"], serial=claim.serial)
+            # a macro file is another file: it may write any toolsetter value
+            _ts_mark_assumed(None)
             return {"ok": True, "line": call["line"]}
 
         if cmd == "set_kins_mode":
@@ -4515,6 +4704,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                     return refused
                 await set_mode(linuxcnc.MODE_AUTO)
                 await _cmd_blocking(CMD.auto, linuxcnc.AUTO_STEP, wait=None)
+                _ts_mark_assumed(_ts_program_writes())
             return {"ok": True}
 
         if cmd == "auto_run":
@@ -4765,6 +4955,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 return refused
             await set_mode(linuxcnc.MODE_AUTO)
             await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, 0, wait=None)  # Start from beginning
+            _ts_mark_assumed(_ts_program_writes())
             return {"ok": True}
 
         if cmd == "cycle_pause":
@@ -8384,6 +8575,11 @@ def _preempt_inflight(by: str, from_client: int) -> int:
     if rfl is not None and not rfl.done():
         rfl.cancel()
         _trace.emit("rfl.cancelled", level="warn", by=by, from_client=from_client)
+    # ...and the toolsetter read-back (a task_plan_synch under _cmd_lock)
+    ts = _ts_readback_task
+    if ts is not None and not ts.done():
+        ts.cancel()
+        _trace.emit("toolsetter.read_back_cancelled", level="warn", by=by)
     return len(victims)
 
 
