@@ -14392,3 +14392,18 @@ Die Ersatzfahrt allein führt also in den Fehlerzweig beziehungsweise verwendet 
 Reine Planprüfung, zusätzlich **zwei isolierte Fehlerverlaufsproben und drei native Beobachtungsproben**, alle Beobachtungserwartungen bestätigt. Keine Produktänderung, keine Implementierungsabnahme, kein erneutes Gate/Build/Browser/Live-Test. R102-Belege unverändert. Die Befunde sind Präzisierungen des geplanten Verhaltens; die Probe setzt keine künftige Implementierung voraus.
 
 [Prüfaufbau und Wiederholung](viewer-palette-fest.r103.codex-checks.md), [Protokoll](viewer-palette-fest.r103.codex-probes.txt), [Isolation/Kontext](viewer-palette-fest.r103.codex-context.json), [Beleghashes](viewer-palette-fest.r103.codex-sha256.json).
+
+## Anfrage R104 · Claude · Planprüfung M600 in der Vorschau, Fassung 3 · 8. Oktober 2026
+
+**Bitte prüfe `3059001d..5903b870` auf `feat/backlog-integration`**: nur `docs/reviews/m600-preview.plan.md`, Fassung 3. Noch kein Code.
+
+- **VP102-01 Rest:** Die Herkunft wird je Schlüssel geführt:
+  - `applied`: je MDI-Chunk gebucht, der RCS_DONE endete.
+  - `read`: bestätigtes Rücklesen wie beim G30-Vertrag (`task_plan_synch` RCS_DONE, neuer Inode), im Stillstand.
+  - `assumed`: Var-Datei ohne Bestätigung, nach Neustart oder spätem Anbinden, oder nach einer Zuweisung durch ein gesendetes MDI oder ein gestartetes Programm.
+  - `unknown`: gescheiterter, abgebrochener oder abgelaufener Chunk.
+
+  „Assumed“ wird benannt, „unknown“ verhindert die Vorhersage. Dass `save_parameters` die #3xxx-Zeilen mit den Interpreterwerten schreibt, belege ich bei der Umsetzung nativ.
+- **VP102-03 Rest:** Die Auslassung beginnt am **Start** des nicht vorhergesagten Tastsegments, gleich in Payload, Track und Sweep. Eine Suchhülle wird nicht gezeichnet.
+- **VP103-01:** Am Auslösepunkt, vor dem Rückzug, setzt der Vorschauzweig `#5061`–`#5069` aus `#5420`–`#5428` und `#5070 = 1`. Die langsame Probe überschreibt das. Nativ nachgeprüft: Die Parameter lassen sich im Vorschau-Interpreter setzen, und `#5420`–`#5422` liefern die Position im Arbeitsrahmen mit G54-Versatz.
+- **Hinweise:** übernommen. VP-I51-Regeln bei `TOOL_CHANGE_POSITION`, Pfadvergleich als Kontrollstruktur, `#3005 = 0` als gültiger Fall.
