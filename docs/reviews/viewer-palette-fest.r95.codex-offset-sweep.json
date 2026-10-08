@@ -1,0 +1,878 @@
+{
+  "r95_g92_from_stale": {
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      10,
+      5,
+      15,
+      10,
+      5,
+      15,
+      20,
+      5,
+      15
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      0
+    ],
+    "brk": [
+      1,
+      1,
+      1,
+      0
+    ],
+    "wcsEvents": [
+      {
+        "seq": 0,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": false,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "seq": 2,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": true,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          30,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "endMachine": [
+      20,
+      5,
+      45,
+      0,
+      0,
+      0
+    ],
+    "obstacle": [
+      15,
+      5,
+      45
+    ],
+    "result": {
+      "hits": [
+        {
+          "line": 6,
+          "cum": 0.45004638671875,
+          "cumEnd": 0.550009765625,
+          "a": "head",
+          "b": "fixed",
+          "dist": 0,
+          "rapid": true,
+          "intervals": [
+            [
+              0.45004638671875,
+              0.550009765625
+            ]
+          ]
+        }
+      ],
+      "staticContacts": [],
+      "samples": 25,
+      "coarsened": false,
+      "uncertified": "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L5)",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 1.2390919999999994,
+      "sweepMs": 15.861154999999997,
+      "truncated": null
+    }
+  },
+  "r95_l20_from_stale": {
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      10,
+      5,
+      15,
+      10,
+      5,
+      15,
+      20,
+      5,
+      15
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      0
+    ],
+    "brk": [
+      1,
+      1,
+      1,
+      0
+    ],
+    "wcsEvents": [
+      {
+        "seq": 0,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": true,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "seq": 2,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": true,
+        "g5x": [
+          0,
+          0,
+          30,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "endMachine": [
+      20,
+      5,
+      45,
+      0,
+      0,
+      0
+    ],
+    "obstacle": [
+      15,
+      5,
+      45
+    ],
+    "result": {
+      "hits": [
+        {
+          "line": 6,
+          "cum": 0.45004638671875,
+          "cumEnd": 0.550009765625,
+          "a": "head",
+          "b": "fixed",
+          "dist": 0,
+          "rapid": true,
+          "intervals": [
+            [
+              0.45004638671875,
+              0.550009765625
+            ]
+          ]
+        }
+      ],
+      "staticContacts": [],
+      "samples": 25,
+      "coarsened": false,
+      "uncertified": "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L5)",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.3092940000000226,
+      "sweepMs": 5.4587060000000065,
+      "truncated": null
+    }
+  },
+  "r95_l20_inactive": {
+    "lines": [
+      2,
+      5,
+      7,
+      7,
+      8
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      10,
+      5,
+      15,
+      10,
+      5,
+      -15,
+      20,
+      5,
+      25,
+      30,
+      5,
+      25
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      4.123105525970459,
+      5.123105525970459
+    ],
+    "ustart": [
+      1,
+      1,
+      0,
+      0,
+      0
+    ],
+    "brk": [
+      1,
+      1,
+      1,
+      0,
+      0
+    ],
+    "wcsEvents": [
+      {
+        "seq": 0,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": false,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "seq": 4,
+        "idx": 2,
+        "rotationDeg": 0,
+        "rewritten": true,
+        "g5x": [
+          0,
+          0,
+          30,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "endMachine": [
+      30,
+      5,
+      55,
+      0,
+      0,
+      0
+    ],
+    "obstacle": [
+      25,
+      5,
+      55
+    ],
+    "result": {
+      "hits": [
+        {
+          "line": 8,
+          "cum": 4.573151912689209,
+          "cumEnd": 4.673115291595459,
+          "a": "head",
+          "b": "fixed",
+          "dist": 0,
+          "rapid": true,
+          "intervals": [
+            [
+              4.573151912689209,
+              4.673115291595459
+            ]
+          ]
+        }
+      ],
+      "staticContacts": [],
+      "samples": 29,
+      "coarsened": false,
+      "uncertified": "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L5)",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.2650849999999991,
+      "sweepMs": 3.684776999999997,
+      "truncated": null
+    }
+  },
+  "r95_g92_from_stale_position_control": {
+    "lines": [
+      2,
+      3,
+      5,
+      5,
+      6
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      0,
+      20,
+      30,
+      0,
+      20,
+      10,
+      10,
+      5,
+      15,
+      20,
+      5,
+      15
+    ],
+    "cum": [
+      0,
+      2.2360680103302,
+      2.2360680103302,
+      4.106896877288818,
+      5.106896877288818
+    ],
+    "ustart": [
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    "brk": [
+      1,
+      0,
+      1,
+      0,
+      0
+    ],
+    "wcsEvents": [
+      {
+        "seq": 0,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": false,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "seq": 4,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": true,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          20,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "endMachine": [
+      20,
+      5,
+      35,
+      0,
+      0,
+      0
+    ],
+    "obstacle": [
+      15,
+      5,
+      45
+    ],
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 10,
+      "coarsened": false,
+      "uncertified": null,
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.21346000000002618,
+      "sweepMs": 0.1737929999999892,
+      "truncated": null
+    }
+  },
+  "r95_l20_from_stale_position_control": {
+    "lines": [
+      2,
+      3,
+      5,
+      5,
+      6
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      0,
+      20,
+      30,
+      0,
+      20,
+      10,
+      10,
+      5,
+      15,
+      20,
+      5,
+      15
+    ],
+    "cum": [
+      0,
+      2.2360680103302,
+      2.2360680103302,
+      4.106896877288818,
+      5.106896877288818
+    ],
+    "ustart": [
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    "brk": [
+      1,
+      0,
+      1,
+      0,
+      0
+    ],
+    "wcsEvents": [
+      {
+        "seq": 0,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": true,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "seq": 4,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": true,
+        "g5x": [
+          0,
+          0,
+          20,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "endMachine": [
+      20,
+      5,
+      35,
+      0,
+      0,
+      0
+    ],
+    "obstacle": [
+      15,
+      5,
+      45
+    ],
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 10,
+      "coarsened": false,
+      "uncertified": null,
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.3849609999999757,
+      "sweepMs": 0.14600099999998406,
+      "truncated": null
+    }
+  },
+  "r95_l20_inactive_position_control": {
+    "lines": [
+      2,
+      3,
+      5,
+      7,
+      7,
+      8
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      0,
+      20,
+      30,
+      10,
+      5,
+      15,
+      10,
+      5,
+      -5,
+      20,
+      5,
+      25,
+      30,
+      5,
+      25
+    ],
+    "cum": [
+      0,
+      2.2360680103302,
+      4.581275939941406,
+      4.581275939941406,
+      7.743553638458252,
+      8.743553161621094
+    ],
+    "ustart": [
+      1,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "brk": [
+      1,
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    "wcsEvents": [
+      {
+        "seq": 0,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": false,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "seq": 6,
+        "idx": 2,
+        "rotationDeg": 0,
+        "rewritten": true,
+        "g5x": [
+          0,
+          0,
+          20,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "endMachine": [
+      30,
+      5,
+      45,
+      0,
+      0,
+      0
+    ],
+    "obstacle": [
+      25,
+      5,
+      55
+    ],
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 12,
+      "coarsened": false,
+      "uncertified": null,
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.1433759999999893,
+      "sweepMs": 0.6153790000000186,
+      "truncated": null
+    }
+  },
+  "r95_l2_constant": {
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      10,
+      5,
+      15,
+      10,
+      5,
+      15,
+      20,
+      5,
+      15
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      0
+    ],
+    "brk": [
+      1,
+      1,
+      1,
+      0
+    ],
+    "wcsEvents": [
+      {
+        "seq": 0,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": true,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "seq": 2,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": true,
+        "g5x": [
+          0,
+          0,
+          30,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "endMachine": [
+      20,
+      5,
+      45,
+      0,
+      0,
+      0
+    ],
+    "obstacle": [
+      15,
+      5,
+      45
+    ],
+    "result": {
+      "hits": [
+        {
+          "line": 6,
+          "cum": 0.45004638671875,
+          "cumEnd": 0.550009765625,
+          "a": "head",
+          "b": "fixed",
+          "dist": 0,
+          "rapid": true,
+          "intervals": [
+            [
+              0.45004638671875,
+              0.550009765625
+            ]
+          ]
+        }
+      ],
+      "staticContacts": [],
+      "samples": 25,
+      "coarsened": false,
+      "uncertified": "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L5)",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.14145899999999756,
+      "sweepMs": 2.693769000000003,
+      "truncated": null
+    }
+  }
+}

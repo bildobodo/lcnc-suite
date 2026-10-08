@@ -1,0 +1,37 @@
+
+ RUN  v4.1.8 /tmp/codex-r95-zrkk6jln/archive/lcnc-webui
+
+ ❯ src/viewer/r95.offsets.test.ts (7 tests | 3 failed) 41ms
+   × r95_g92_from_stale: uncertainty in an offset derived from a stale position reaches the final result 22ms
+   × r95_l20_from_stale: uncertainty in an offset derived from a stale position reaches the final result 7ms
+   × r95_l20_inactive: uncertainty in an offset derived from a stale position reaches the final result 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r95.offsets.test.ts > r95_g92_from_stale: uncertainty in an offset derived from a stale position reaches the final result
+ FAIL  src/viewer/r95.offsets.test.ts > r95_l20_from_stale: uncertainty in an offset derived from a stale position reaches the final result
+ FAIL  src/viewer/r95.offsets.test.ts > r95_l20_inactive: uncertainty in an offset derived from a stale position reaches the final result
+AssertionError: 1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L5): expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/viewer/r95.offsets.test.ts:53:75
+     51|   // still claims that this following move was reconstructed correctly.
+     52|   const named = /offset|(?:frame|basis).*(?:unknown|uncertain)/i.test(…
+     53|   expect(r.ustart.at(-1)===1 || named, r.result.uncertified??'no cavea…
+       |                                                                           ^
+     54|  });
+     55| }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 4 passed (7)
+   Start at  12:59:40
+   Duration  247ms (transform 118ms, setup 0ms, import 157ms, tests 41ms, environment 0ms)
+

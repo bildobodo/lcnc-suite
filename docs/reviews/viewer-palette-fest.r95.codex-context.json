@@ -1,0 +1,39 @@
+{
+  "review": "R95",
+  "base": "2e20faa0",
+  "product_commit": "e18fc0e0ea0c469abf29b66366dd5bf440e0de4f",
+  "request_head": "5af8130642cf5ee39976e820cba53a912dae10ac",
+  "archive": "/tmp/codex-r95-zrkk6jln/archive",
+  "byte_equal_files": 513,
+  "byte_equal_by_root": {
+    "lcnc-webui": 426,
+    "lcnc-gateway": 87
+  },
+  "isolation_changes": [
+    "lcnc-webui/tsconfig.app.json",
+    "lcnc-webui/tsconfig.node.json",
+    "lcnc-webui/tsconfig.test.json",
+    "lcnc-webui/vite.config.ts"
+  ],
+  "hydrated_lfs_verified": [
+    "lcnc-gateway/machine/frame.stl",
+    "lcnc-gateway/machine/x_axis.stl",
+    "lcnc-gateway/machine/y_axis.stl",
+    "lcnc-gateway/machine/z_axis.stl"
+  ],
+  "previous_evidence": {
+    "r93": {
+      "files": 47,
+      "unchanged": true
+    },
+    "r94": {
+      "files": 52,
+      "unchanged": true
+    }
+  },
+  "machine_commands": false,
+  "network_access": false,
+  "browser_runs": false,
+  "priority": "nice 19",
+  "workers": 1
+}
