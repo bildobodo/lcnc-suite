@@ -317,6 +317,18 @@ usability judgement. It does not certify every viewport, browser, dialog,
 translation, occluding overlay or real touchscreen. Operator guidance and
 whether a workflow is understandable still need human review.
 
+## Collision sweep tests on real payloads
+
+A test that sweeps a native payload (`toolChangePayloads.test.ts`) must hand
+the sweep the track the way the page does (`ThreeViewer.vue`'s `trackCopy`):
+the scrub track keeps its per-point WCS epochs as `wcsEpoch`, the sweep reads
+them as `wcs`. A `ScrubTrack` passed straight to `sweepCollisions` has no
+`wcs`, and every segment is posed in the first epoch's frame — a move under a
+later `G10 L2 R45` is swept unrotated (found 2026-10-08; Codex R94's probe had
+the same blind spot). Pass `{ ...track, wcs: track.wcsEpoch }` with the
+`epochTerms` from `epochTermsFor`, and keep an obstacle on the rotated path
+as the control that goes red without them.
+
 ## Live TWP setup
 
 Use **6 Axis TWP XYZABC**, the 45-degree gantry installed by the suite.

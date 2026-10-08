@@ -8603,6 +8603,26 @@ from a stale position (G92, G10 L20 on a stale axis) is wrong in the
 preview, and the positions in its frame read as known — the canon sees the
 new offset, never whether it came from an L2 or an L20.
 
+## 2026-10-08 — The run stops at the first soft limit at the latest
+
+The operator's extreme test (haus.ngc on the XYZAC sim, Y −477 against a
+−200 window, over 200 000 limit records) lists collisions in poses no
+machine reaches, and the operator agreed to mark them, the check running on.
+Where the machine stops was read from LinuxCNC 2.9's `command.c`, not
+assumed: the motion module checks a move's END when the move is QUEUED
+(`EMCMOT_SET_LINE` / `SET_CIRCLE`: `inRange` → "move on line N would exceed
+joint J's limit", `tpAbort` of what is running). With readahead the machine
+therefore halts BEFORE the violating move — where, no preview knows — so the
+claim is "at the latest": the first limit row of the Sim tab says "the run
+stops here at the latest", every row that starts after it says "after the
+limit stop at L…". One rule for every kind (a limit row or a tool change past
+the stop is as unreached as a collision); strictly after: a row AT the
+violating move's start — a contact in the pose the move before reached, a
+tool change before it — is not claimed unreached. The rows stay listed and the sweep
+runs on. Narrow, "Rapid" / "Feed" now stands before the note, so a long note
+never cuts the move off the line. The summary count and the timeline marks
+are unchanged — a presentation the operator decides from renders.
+
 ## 2026-10-08 — An offset set from an unknown position stays unknown (Codex R95 VP-I53)
 
 After a tool change at a position the preview cannot see, an offset computed
