@@ -26,6 +26,18 @@ _ARC_MAX_SEGS = 64
 
 
 class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
+    # Does the CONTROLLER move the machine at an M6 where the preview cannot
+    # see it? Only [EMCIO] TOOL_CHANGE_POSITION does — task's CHANGE_TOOL
+    # issues that motion itself, no canon call. Then the move after the
+    # change starts where no parse can know (first_move). The interpreter's
+    # own quill-up (TOOL_CHANGE_QUILL_UP) and G30 (TOOL_CHANGE_AT_G30) moves
+    # are STRAIGHT_TRAVERSE canon calls before CHANGE_TOOL (interp_convert.cc
+    # convert_tool_change) and recorded here like a remap's own moves, so
+    # without a tool change position the next move starts where the machine
+    # stands. The worker sets it from the INI; the default keeps the unknown
+    # start.
+    tool_change_moves = True
+
     """Lightweight canon that collects feed/rapid polylines for 3D preview."""
 
     def __init__(self, s, random=0):
@@ -128,6 +140,13 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # program asserted it" (the ustart lineno rule). Absent = the program
         # never changes tool or offset.
         self.tlo_events = []
+        # Seqs at which a PROGRAM line changed the tool offset (G43 / G49 /
+        # G43.1 — tool_offset, never an M6): the last emitted seq, so the
+        # next tuple starts in the new frame. The parse worker inserts a
+        # relabel vertex there for EVERY such event, whatever the value —
+        # the payload's structure must not depend on the start offset
+        # (the VP-I20 verify compares two parses at different starts).
+        self.offset_events = []
         self.cur_tool = -1
         self.xo = self.yo = self.zo = 0.0
         self.ao = self.bo = self.co = 0.0
@@ -174,6 +193,14 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
 
     def next_line(self, st):
         self.state = st
+        if (st.sequence_number or 0) < 0 and (self.lineno or 0) >= 1:
+            # A motion the interpreter makes itself inside the current block —
+            # an M6's quill-up or G30 move (TOOL_CHANGE_QUILL_UP /
+            # TOOL_CHANGE_AT_G30, interp_convert.cc STRAIGHT_TRAVERSE(-1, …))
+            # arrives as line -1: it belongs to the block that runs it, and a
+            # -1 on the wire's uint32 line arrays ended every such parse in an
+            # OverflowError (found 2026-10-08 with Codex R91's R92 notes).
+            return
         self.lineno = st.sequence_number
         if (self.lineno or 0) >= 1:
             if self.percent_delimited and not self._pct_line_seen:
@@ -229,7 +256,8 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
 
     def change_tool(self, idx):
         StatMixin.change_tool(self, idx)
-        self.first_move = True
+        if self.tool_change_moves:
+            self.first_move = True
         self.tool_changes += 1
         # (lineno, tool) per executed M6 — timeline event markers. NOTE: only
         # canon-executed changes appear here (an M600 remap whose body is
@@ -242,7 +270,17 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             self.tlo_events.append((self.seq, self.xo, self.yo, self.zo, idx))
 
     def tool_offset(self, xo, yo, zo, ao, bo, co, uo, vo, wo):
-        self.first_move = True
+        # G43 / G49 move nothing: the machine stands, and only the frame the
+        # program's coordinates are read in changes — `lo` is re-expressed in
+        # it below (LinuxCNC's canon moves its end point the same way). So the
+        # NEXT move starts at the new `lo`, a known pose: it is recorded as a
+        # real segment (timed, limit-checked, swept along its path), and the
+        # parse worker inserts the re-expression as a relabel vertex
+        # (insert_flip_relabels, a tool-offset flip). Before 2026-10-07 this
+        # set first_move like axis' preview does — the move after a G43
+        # became a zero-length unknown-start endpoint: 0 s on the timeline,
+        # checked for collisions at its end only (operator, haus.ngc L18
+        # `G43 Z15. H13`). A first move still unknown stays so.
         x, y, z, a, b, c, u, v, w = self.lo
         self.lo = (x - xo + self.xo, y - yo + self.yo, z - zo + self.zo,
                    a - ao + self.ao, b - bo + self.bo, c - co + self.co,
@@ -254,6 +292,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # differs from "inherit live" (see tlo_events in __init__).
         if self._program_line():
             self.tlo_events.append((self.seq, xo, yo, zo, self.cur_tool))
+            self.offset_events.append(self.seq)
 
     # rotate_and_translate keeps straight moves in the same translated frame
     # gcode.arc_to_segments produces for arcs; WCS offsets subtract once at

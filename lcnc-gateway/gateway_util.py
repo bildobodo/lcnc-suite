@@ -2429,7 +2429,7 @@ def _kins_flip_pose(kins_cfg, ktype, frame, tlo, unit_scale, world=None, joints=
 
 def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
                          kins_cfg, unit_scale=1.0, ustart_seqs=frozenset(),
-                         start_type=0, start_frame=None):
+                         start_type=0, start_frame=None, offset_seqs=frozenset()):
     """Insert the RELABELED start vertex at every kins or WCS-epoch flip.
 
     KINS flips (the W8 phantom-jump defect): a switchkins flip swaps the
@@ -2455,6 +2455,16 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
     the new epoch's frame on the wire, giving the drawn section, the scrub
     lerp, and the sweep a same-frame start for the following real move.
     No twins involved.
+
+    TOOL-OFFSET flips (2026-10-07, operator: haus.ngc L18 `G43 Z15. H13`
+    took 0 s and was swept at its end only): a G43 / G49 / G43.1 moves
+    nothing either — the canon re-expresses its `lo` in the new offset's
+    frame (gcode_canon.tool_offset) and records the next move from there, so
+    the relabel is that move's canon start verbatim, like an epoch flip.
+    `offset_seqs` = RAW canon seqs of those events (the last emitted seq):
+    EVERY event relabels, whatever its value, so the payload's structure
+    never depends on the start offset (the VP-I20 verify compares parses at
+    two starts — a value test inserted a vertex at 10.005 and none at 10).
 
     Either way the inserted vertex is a zero-length rapid: the segment
     INTO it is the relabel (flagged via the returned seq set -> wire
@@ -2504,7 +2514,8 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
         t[5] *= 2
     for t in rapid:
         t[4] *= 2
-    if (not kins_events and len(wcs_events) < 2) or (not feed and not rapid):
+    if (not kins_events and len(wcs_events) < 2 and not offset_seqs) \
+            or (not feed and not rapid):
         return feed, rapid, events2, frames2, wcs_events2, set(), 0, 0
 
     # Execution-ordered view: (seq2, stream_list, index). Both lists are
@@ -2602,12 +2613,16 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
     ustart2 = {s * 2 for s in ustart_seqs}
     _fr0 = frames_vals[fidx[0]] if merged and fidx[0] is not None else None
 
+    offset_raw = frozenset(offset_seqs)
     for k in range(len(merged)):
         seq_n, lst_n, i_n = merged[k]
         nxt = lst_n[i_n]
         nxt_start = nxt[1]
         nxt_end = nxt[2]
         tlo_n = nxt[4] if lst_n is feed else nxt[3]
+        # a G43 / G49 between the previous tuple and this one (its event seq
+        # is the previous tuple's raw seq — seqs are doubled here)
+        tlo_flip = k > 0 and (merged[k - 1][0] // 2) in offset_raw
 
         if k == 0:
             # k=0 is a PATCH IN PLACE, never an insertion: the wire ships
@@ -2620,7 +2635,7 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
             type_p = start_type
         else:
             kins_flip = types[k] != types[k - 1] or fidx[k] != fidx[k - 1]
-            flip = kins_flip or eidx[k] != eidx[k - 1]
+            flip = kins_flip or eidx[k] != eidx[k - 1] or tlo_flip
             fr_p = frames_vals[fidx[k - 1]] if fidx[k - 1] is not None else None
             fr_n = frames_vals[fidx[k]] if fidx[k] is not None else None
             type_p = types[k - 1]
@@ -2661,9 +2676,9 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
                 live[i] = abs(corr[i]) > _EPS
             start_c = list(end)
         elif flip:
-            # Epoch-only flip: the machine holds still at a fixture switch, so
-            # the relabel is the post-flip start verbatim (carry included);
-            # only its EPOCH differs.
+            # Epoch or tool-offset flip: the machine holds still at a fixture
+            # switch or a G43 / G49, so the relabel is the post-flip start
+            # verbatim (carry included); only its epoch or offset differs.
             end = list(start_c)
         elif not any(live):
             continue          # nothing to relabel and nothing to carry

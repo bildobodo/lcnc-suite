@@ -1279,6 +1279,51 @@ describe("clearance across a break (R-03, implementation review 2026-09-15)", ()
   });
 });
 
+describe("the move after a G43 or a tool change (operator 2026-10-07, haus.ngc L18)", () => {
+  // A G43 moves nothing: the parse puts a relabel vertex where the machine
+  // stands and records the move after it as a real one — swept along its
+  // path. A move whose start no parse can know (a tool change the controller
+  // moves at) stays an unknown start: checked at its end, and SAID.
+  const M: CollisionMachine = {
+    groups: [{ id: "table", parent: "root" }, { id: "part", parent: "table" }, { id: "head", parent: "root" }],
+    kinematics: [{ group: "head", joint: 0, type: "translate", direction: "x", sign: 1 }],
+    workGroup: "part", toolGroup: "head", unitScale: 1, axes: ["X", "Y", "Z"],
+  };
+  const model = () => buildCollisionModel(M, [
+    { id: "vise", group: "table", positions: boxPositions(2), translate: [0, 0, 1] },
+    { id: "tool", group: "head", positions: toolCylinderPositions(2, 2), tool: true },
+  ]);
+  const rapids = (xs: number[], lines: number[], flags: { brk?: number[]; ustart?: number[] }) =>
+    buildScrubTrack({ pos: new Float32Array() }, {
+      pos: new Float32Array(xs.flatMap(x => [x, 0, 0])),
+      abc: new Float32Array(xs.length * 3),
+      lines: new Uint32Array(lines),
+      seq: new Uint32Array(xs.map((_, i) => i + 1)),
+      ...(flags.brk ? { brk: new Uint8Array(flags.brk) } : {}),
+      ...(flags.ustart ? { ustart: new Uint8Array(flags.ustart) } : {}),
+    })!;
+
+  it("sweeps the move after a relabel along its path", () => {
+    // L1 the first point, L3 `G43 … G0 X-20`: the relabel vertex where the
+    // head stands (X20), then the move through the vise.
+    const r = sweepCollisions(model(), rapids([20, 20, -20], [1, 3, 3], { brk: [0, 1, 0] }), WCS0, { margin: 0.1 });
+    expect(r.hits.some(h => h.line === 3 && [h.a, h.b].sort().join("|") === "tool|vise")).toBe(true);
+    expect(r.uncertified).toBeNull();
+  });
+
+  it("says which moves start unknown — checked at their end only", () => {
+    // The same move as an unknown start (what every G43 used to be): the
+    // path into X-20 is not swept and X-20 itself is clear — so nothing is
+    // found, and the result must not read as certified.
+    const r = sweepCollisions(model(), rapids([20, -20], [1, 3], { ustart: [1, 1] }), WCS0, { margin: 0.1 });
+    expect(r.hits).toHaveLength(0);
+    expect(r.uncertified).toMatch(/^1 move after a tool change start where the preview cannot know — checked at the end only \(L3\)$/);
+    // the program's own first point is the entry move's, never counted
+    const first = sweepCollisions(model(), rapids([20, 30], [1, 3], { ustart: [1, 0] }), WCS0, { margin: 0.1 });
+    expect(first.uncertified).toBeNull();
+  });
+});
+
 describe("tool geometry lifetime (TWP-06/07, review 2026-09-14)", () => {
   // The review probes' fixture: a tool on an X-driven head approaches a
   // fixed vise (cube 2 at z 0..2) from X 20 to X 5; the tool cylinder

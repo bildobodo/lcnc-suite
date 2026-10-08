@@ -33,7 +33,7 @@ interface ViewerDiag {
   setCollisionHits?: (hits: { line: number; frac: number; rapid?: boolean }[]) => boolean;
   setCollisionNote?: (note: string | null) => boolean;
   setCollisionShards?: (n: number | null) => void;
-  getCollisionSummary?: () => { shards: number; hits: number; pairCount: number; pairsPrescreened: number; staticContacts: number; truncated: unknown; sweepMs: number; samples: number; onsets: number[] } | null;
+  getCollisionSummary?: () => { shards: number; hits: number; pairCount: number; pairsPrescreened: number; staticContacts: number; truncated: unknown; sweepMs: number; samples: number; onsets: number[]; uncertified: string | null } | null;
   getLabels?: () => { total: number; laidOut: number };
   // Viewer contrast plan (R1/R2): each role's drawn material kind (the form
   // cue), width and opacity; the longest visible segment of a role on screen.

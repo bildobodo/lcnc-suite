@@ -141,7 +141,7 @@ type Msg = CollisionReq | CollisionCancel | CollisionPause | CollisionResume | C
 
 /** Holds a run starts with — the owner's pause, carried over when a pooled
  *  sweep falls back to this core (Codex R90 VP-I49). */
-interface Holds { pausedCam?: boolean; pausedCamAt?: number; pausedHidden?: boolean; stopRequested?: boolean }
+interface Holds { pausedCam?: boolean; pausedCamAt?: number; pausedHidden?: boolean }
 
 /** One sweep in THIS worker — the single-core path, a shard's work, and every
  *  side run. */
@@ -234,7 +234,7 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
       pausedCam: !!holds.pausedCam, pausedCamAt: holds.pausedCamAt ?? 0, pausedHidden: !!holds.pausedHidden,
       activeMs: 0, sliceStart: 0,
       snapshot: { take: null, peek: null, records: null },
-      stopped: false, stopRequested: !!holds.stopRequested, nextPeekAt: 0, lastPeekRecords: 0, pump: () => {},
+      stopped: false, stopRequested: false, nextPeekAt: 0, lastPeekRecords: 0, pump: () => {},
       model,
     };
     // The slot this run lives in — cleared only if it still holds this run
@@ -332,8 +332,9 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
 // its pauses; a cancelled one is acknowledged; a parked one — or one whose
 // stop is not answered yet — computes nothing: the owner keeps (or gets) what
 // the shards swept as the parked result, and a continue starts it again from
-// the beginning here (the shards' generators are gone); a side run starts
-// again here, a cancelled one is acknowledged.
+// the beginning here (the shards' generators are gone) — with nothing swept
+// yet to hand over, the stop is answered as an error at once (R91); a side
+// run starts again here, a cancelled one is acknowledged.
 // K: the cores but TWO, for the page and the browser's own processes (Codex
 // R90 — one busy worker once held the Mac's GPU frames behind; four cores
 // make two shards), at most MAX_SHARDS, and never more copies of the model
@@ -465,7 +466,10 @@ function onShardMessage(k: number, m: any): void {
   if (m.result) {
     run.final[k] = m.result;
     run.parked[k] = !!m.stopped;
-    if (!m.stopped) run.progress[k] = 1;   // done: no longer the least swept
+    // Done: its own coverage from now on — 1 when it swept its pairs whole,
+    // what its backstop let it sweep when it stopped there (Codex R91 VP-I47:
+    // counted as 1, the pool showed 80 % swept where 20 % was).
+    if (!m.stopped) run.progress[k] = m.result.truncated ? m.result.truncated.covered : 1;
     if (run.final.every(r => r)) {
       const merged = mergeShardResults(run.final as CollisionResult[]);
       if (run.parked.some(p => p)) {
@@ -508,8 +512,12 @@ function poolFailed(): void {
     } else if (run.parkedPosted || run.stopPending) {
       const swept = run.stopPending ? poolView(run, "stopped") : null;
       if (run.stopPending && !swept) {
-        // Nothing swept yet to hand over: park here at the first checkpoint.
-        handleLocal(onThisCore(run.req), { ...holds, stopRequested: true });
+        // Nothing swept yet to hand over, and no generator here to park (a
+        // run started for it would compute under a pause until its first
+        // checkpoint — Codex R91 VP-I49: a hidden tab never let it): the stop
+        // is answered at once, as the end of this sweep. The owner shows the
+        // check as not run; the next request sweeps afresh.
+        self.postMessage({ id: run.id, error: "a sweep worker failed before anything was swept — stopped, not resumable" });
       } else {
         if (swept) self.postMessage({ id: run.id, stopped: true, result: swept });
         _lostParked = { req: run.req, ...holds };

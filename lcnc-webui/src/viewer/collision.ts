@@ -85,6 +85,11 @@ export interface CollisionTrack {
    *  at a stationary pose — zero machine motion, excluded from the sweep
    *  and from its distance parameterization. Absent = legacy track. */
   brk?: Uint8Array;
+  /** Unknown-start flags (wire rapid_ustart): ustart[i]=1 ⇒ point i is
+   *  reached by a path no parse can know (a tool change the controller moves
+   *  at) — its segment is a brk too. The sweep names every one after the
+   *  program's own start in `uncertified`. Absent = none. */
+  ustart?: Uint8Array;
   /** Per-segment WCS epoch index (review P2) — selects the entry of
    *  CollisionOptions.epochTerms that converts this segment's program
    *  coords to machine coords. Absent = single-basis (live wcs terms). */
@@ -1067,6 +1072,20 @@ export function* sweepCollisionsIter(
   const tFrames = track.frames;
   let vertModel: KinsModel[] | null = null;
   let uncertified: string | null = geometryNote(model);
+  // A move whose START no parse can know (an unknown-start point after the
+  // first — the program's own start is the entry move's): the controller
+  // moved the machine at a tool change ([EMCIO] TOOL_CHANGE_POSITION) where
+  // the preview does not see it. Its end is checked, the path into it is
+  // not — said, never assumed (2026-10-07; a G43 is no such move any more,
+  // gcode_canon.tool_offset).
+  const unknownStarts: number[] = [];
+  if (track.ustart) for (let i = 1; i < n; i++) if (track.ustart[i]) unknownStarts.push(track.lines[i]!);
+  if (unknownStarts.length) {
+    const k = unknownStarts.length;
+    uncertified = (uncertified ? uncertified + "; " : "")
+      + `${k} move${k === 1 ? "" : "s"} after a tool change start where the preview cannot know — `
+      + `checked at the end only (${unknownStarts.slice(0, 3).map(l => "L" + l).join(", ")}${k > 3 ? " …" : ""})`;
+  }
   let fellBack = false;
   if (track.mode && !abortedInit) {
     const vm = new Array<KinsModel>(n);

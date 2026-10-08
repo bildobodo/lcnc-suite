@@ -2241,7 +2241,8 @@ async function buildFromInit(init: ViewerInit) {
           const r = collisionResult.value;
           return r ? { shards: r.shards ?? 1, hits: r.hits.length, pairCount: r.pairCount, pairsPrescreened: r.pairsPrescreened,
             staticContacts: r.staticContacts.length, truncated: r.truncated, sweepMs: r.sweepMs, samples: r.samples,
-            onsets: r.hits.filter(h => h.continuation === undefined).map(h => h.line) } : null;
+            onsets: r.hits.filter(h => h.continuation === undefined).map(h => h.line),
+            uncertified: r.uncertified } : null;
         },
         // The result's `uncertified` note alone (Codex R87 VP-I46: a body
         // left out must stay visible whatever else the result says).
@@ -3252,6 +3253,7 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean) {
     frame: track.frame?.slice(),  // TWP frame indices (+ triplets below)
     frames: track.frames,         // small list — structured-cloned, not transferred
     brk: track.brk?.slice(),      // kins-flip relabel flags — excluded from the sweep
+    ustart: track.ustart?.slice(), // unknown starts — named in the result, never assumed swept
     wcs: track.wcsEpoch?.slice(), // per-segment WCS epoch (terms in options below)
     tlo: track.tlo?.slice(),      // per-segment TLO/tool event (events in options below)
   };
