@@ -11,7 +11,7 @@ from typing import Dict, List
 from rs274.interpret import Translated, ArcsToSegmentsMixin, StatMixin
 
 from gateway_util import (
-    parse_kinstype_marker, parse_twpframe_marker, parse_sub_marker,
+    parse_kinstype_marker, parse_twpframe_marker, parse_sub_marker, parse_m600_marker,
 )
 
 
@@ -92,6 +92,35 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     _reg_unknown = {}
     _pending_offset_lines = ()
     _block_start = None
+    # M600 in the preview (docs/reviews/m600-preview.plan.md, Codex R102–R104):
+    # the bundled tool_touch_off.ngc runs in the preview. Where its probe
+    # cannot be predicted it stops at the probe's start with
+    # `(WEBUI_PROBE_UNPREDICTED=<reason>)`: the machine's probe may trip
+    # anywhere on its travel, the length it measures and the offset the
+    # routine applies are unknown, so from there EVERY axis is unknown to the
+    # program's end — `_frame_unknown`, which no move re-establishes (the
+    # state table's rows from the probe's start on). The worker says so
+    # (`toolsetter_unpredictable`) where the toolsetter's values are unknown:
+    # then from the routine's start. `probe_events` [(seq, tool, reason)].
+    # `(WEBUI_TOOLLEN_TABLE)` before the routine's G10 / G43 says the length
+    # they apply is the TABLE's (assumed): paired with the next G43 of the
+    # same call only — any sub marker before it (the call's end) discards it.
+    # `toollen_events` [(seq, tool, zo)].
+    probe_events = ()
+    toollen_events = ()
+    toolsetter_unpredictable = None
+    _probe_unknown = False
+    _toollen_open = False
+    # An M600 / M601 remap that is not the suite's (gateway_util
+    # foreign_m600_codes): the preview cannot know what the call does — from
+    # it, every axis is unknown. Its lines from the main file's text; in
+    # text order (`ordered`) the mark lands where the block BEFORE the call
+    # has run (a remap trigger line gets no next_line), else — lines that
+    # need not run in text order — at the program's start.
+    foreign_m600_lines = frozenset()
+    foreign_m600_mode = "ordered"
+    _next_block = {}
+    _foreign_pending = False
     _CYCLES = frozenset((730, 810, 820, 830, 840, 850, 860, 870, 880, 890))
     _PLANE_NORMAL = {170: 2, 180: 1, 190: 0, 171: 8, 181: 7, 191: 6}
 
@@ -116,7 +145,11 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self.arc_moves = 0
         self.tools_used = set()
         self.tool_changes = 0
-        self.tool_change_events = []   # [(lineno, tool_idx)] in execution order
+        # [(lineno, tool_idx, k)] in execution order; k = the sub-span
+        # markers seen so far (len(sub_events)): an M6 inside a marked sub —
+        # the M600 routine's own — carries the SUB file's line
+        # (gateway_util.main_file_tool_changes)
+        self.tool_change_events = []
         # Switchkins mode markers `(WEBUI_KINSTYPE=n)` from the toggle
         # remaps (TCP+TWP phase 2): [(seq_at_marker, kinstype)] in
         # execution order — a marker at seq N applies to segments seq > N.
@@ -307,6 +340,13 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
                 self._in_init = True
             else:
                 self._in_init = False          # program from here on, for good
+        if self.foreign_m600_lines and not self._probe_unknown and self._program_line():
+            n = int(self.lineno)
+            if (self.foreign_m600_mode != "ordered" or self._foreign_pending
+                    or n in self.foreign_m600_lines):
+                self._mark_probe_unknown("foreign_remap")
+            elif self._next_block.get(n) in self.foreign_m600_lines:
+                self._foreign_pending = True
         # PROGRAM-START basis: the offsets in effect after the gateway's
         # initcodes (which force the machine's ACTIVE WCS) and before the
         # program's first line runs.
@@ -348,6 +388,27 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         sub = parse_sub_marker(text)
         if sub is not None:
             self.sub_events.append((self.seq, sub[1], sub[2]))
+            self._toollen_open = False
+            if sub[0] == "start" and sub[1] == "tool_touch_off" and self.toolsetter_unpredictable:
+                self._mark_probe_unknown(self.toolsetter_unpredictable)
+            return
+        mark = parse_m600_marker(text)
+        if mark is not None and self._program_line():
+            if mark[0] == "unpredicted":
+                self._mark_probe_unknown(mark[1])
+            elif not self._probe_unknown:
+                self._toollen_open = True
+
+    def _mark_probe_unknown(self, reason):
+        """From here every axis is unknown to the program's end."""
+        self.probe_events = self.probe_events + ((self.seq, self.cur_tool, reason),)
+        self._toollen_open = False
+        if not self._probe_unknown:
+            self._probe_unknown = True
+            every = frozenset(range(9))
+            self._frame_unknown = every
+            self.stale = every
+            self._pending_offset_lines = ()
     def message(self, _): pass
     def check_abort(self): pass
     def user_defined_function(self, i, p, q): pass
@@ -362,7 +423,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # (lineno, tool) per executed M6 — timeline event markers. NOTE: only
         # canon-executed changes appear here (an M600 remap whose body is
         # preview-skipped contributes none — same honesty rule as the stats).
-        self.tool_change_events.append((self.lineno, idx))
+        self.tool_change_events.append((self.lineno, idx, len(self.sub_events)))
         if idx > 0:
             self.tools_used.add(idx)
         self.cur_tool = idx
@@ -393,6 +454,9 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         if self._program_line():
             self.tlo_events.append((self.seq, xo, yo, zo, self.cur_tool))
             self.offset_events.append(self.seq)
+            if self._toollen_open:
+                self._toollen_open = False
+                self.toollen_events = self.toollen_events + ((self.seq, self.cur_tool, zo),)
 
     # rotate_and_translate keeps straight moves in the same translated frame
     # gcode.arc_to_segments produces for arcs; WCS offsets subtract once at
@@ -422,7 +486,10 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     def _position_write(self, line, target, axes):
         """A value written from the position while `axes` are stale: the
         active frame's (or every fixture's) axes stay stale to the end; an
-        inactive fixture's wait for the switch to it."""
+        inactive fixture's wait for the switch to it. After an unpredicted
+        probe every axis already is, for its own reason (probe_events)."""
+        if self._probe_unknown:
+            return
         idx = getattr(self, "g5x_index", None)
         if target in ("all", "active") or target == idx:
             self._frame_unknown = self._frame_unknown | axes
@@ -650,9 +717,28 @@ def apply_var_patches(path: str, patches: Dict[str, str]) -> None:
                     seen.add(parts[0])
                 else:
                     lines.append(line)
-        for pnum, val in patches.items():
-            if pnum not in seen:
-                lines.append(f"{pnum}\t{val}\n")
+        # A parameter the file lacks goes IN ORDER: LinuxCNC reads the file
+        # ascending only ("Parameter file out of order" — a toolsetter key
+        # appended after the 52xx fixture rows refused the whole parse).
+        add = sorted((int(p), p) for p in patches if p not in seen)
+        if add:
+            def _num(line):
+                parts = line.split()
+                try:
+                    return int(parts[0]) if len(parts) >= 2 else None
+                except ValueError:
+                    return None
+            out: List[str] = []
+            ai = 0
+            for line in lines:
+                n = _num(line)
+                while ai < len(add) and n is not None and add[ai][0] < n:
+                    out.append(f"{add[ai][1]}\t{patches[add[ai][1]]}\n")
+                    ai += 1
+                out.append(line if line.endswith("\n") else line + "\n")
+            for _, p in add[ai:]:
+                out.append(f"{p}\t{patches[p]}\n")
+            lines = out
         with open(path, "w") as f:
             f.writelines(lines)
     except Exception as e:

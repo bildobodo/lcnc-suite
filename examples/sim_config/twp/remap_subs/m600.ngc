@@ -14,7 +14,7 @@
 ; in the Machine frame — machineFrame gate; this covers a PROGRAM's M6/
 ; M600 while tilted).
 o<m600> sub
-(WEBUI_SUB=m600) ;lcnc-suite: preview sub-span marker, silent in task
+(WEBUI_SUB=m600 CALLER=m600) ;lcnc-suite: preview sub-span marker, silent in task
 #<saved_kins> = 0
 o100 if [EXISTS[#<_webui_kinstype>]]
   #<saved_kins> = #<_webui_kinstype>

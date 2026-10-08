@@ -8,6 +8,7 @@ against the real canon skip when the LinuxCNC rs274 package is unavailable.
 
 import math
 import os
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -1997,6 +1998,45 @@ class TestLineTrustMachinery(unittest.TestCase):
                          ("end", None, None))
         self.assertIsNone(gateway_util.parse_sub_marker("WEBUI_KINSTYPE=2"))
         self.assertIsNone(gateway_util.parse_sub_marker("plain comment"))
+
+    def test_parse_m600_marker(self):
+        # the bundled tool_touch_off.ngc's preview markers (M600 in the preview)
+        p = gateway_util.parse_m600_marker
+        for reason in ("length", "setter_z", "travel", "feed", "retract", "slow_limit"):
+            self.assertEqual(p(f"WEBUI_PROBE_UNPREDICTED={reason}"), ("unpredicted", reason))
+        self.assertEqual(p(" webui_probe_unpredicted = Travel "), ("unpredicted", "travel"))
+        # a word the list does not know is still a stop
+        self.assertEqual(p("WEBUI_PROBE_UNPREDICTED=newer_reason"), ("unpredicted", "newer_reason"))
+        self.assertEqual(p("WEBUI_TOOLLEN_TABLE"), ("table", None))
+        self.assertEqual(p(" WEBUI_TOOLLEN_TABLE "), ("table", None))
+        self.assertIsNone(p("WEBUI_PROBE_UNPREDICTED="))
+        self.assertIsNone(p("WEBUI_TOOLLEN_TABLE=5"))
+        self.assertIsNone(p("WEBUI_SUB=tool_touch_off"))
+        self.assertIsNone(p("Slow Probe Rule, if Slow Probe FR is set to 0, Slow Probe is Bypassed"))
+        # every reason the routine writes is one the list names
+        routine = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "subroutines",
+                               "tool_length_probe", "tool_touch_off.ngc")
+        with open(routine, encoding="utf-8") as f:
+            written = set(re.findall(r"WEBUI_PROBE_UNPREDICTED=([a-z_]+)", f.read()))
+        self.assertTrue(written)
+        self.assertLessEqual(written, set(gateway_util.PROBE_UNPREDICTED_REASONS))
+
+    def test_main_file_tool_changes(self):
+        # an M6 of the main file keeps its line; one inside a marked sub (the
+        # M600 routine's own) takes the outermost span's verified call line,
+        # else none — never the sub file's line
+        f = gateway_util.main_file_tool_changes
+        subs = [(4, "m600", "m600"), (4, "tool_touch_off", None), (9, None, None), (9, None, None),
+                (12, "m600", "m600"), (12, "tool_touch_off", None), (15, None, None), (15, None, None)]
+        events = [(2, 1, 0),        # main L2, before any span
+                  (263, 2, 2),      # inside the first call (both spans open)
+                  (7, 3, 4),        # main L7, between the calls
+                  (263, 4, 6)]      # inside the second call
+        self.assertEqual(f(events, subs, {0: 3, 4: 11}), [[2, 1], [3, 2], [7, 3], [11, 4]])
+        # the second call has no verified site: its M6 names no line
+        self.assertEqual(f(events, subs, {0: 3}), [[2, 1], [3, 2], [7, 3]])
+        self.assertEqual(f(events, subs, {}), [[2, 1], [7, 3]])
+        self.assertEqual(f([(5, 1, 0)], [], {}), [[5, 1]])
 
 
 class TestSegmentOutsideFlags(unittest.TestCase):
@@ -4494,3 +4534,98 @@ class TestModeSwitchIgnoredMessage(unittest.TestCase):
                          "LinuxCNC kept MANUAL (asked for AUTO): a jog is active — release it; "
                          "the machine is off; not all joints are homed")
 
+
+
+class TestToolsetterBasis(unittest.TestCase):
+    """M600 in the preview, plan section 2: the values the routine reads are
+    the interpreter's — booked per key with where they are known from."""
+
+    KEYS = gateway_util.TOOLSETTER_BASIS_KEYS
+
+    def basis(self, origin="read", **over):
+        b = {k: {"value": float(k), "origin": origin, "t": 100.0} for k in self.KEYS}
+        for k, e in over.items():
+            b[int(k[1:])] = e
+        return b
+
+    def test_assigned_keys(self):
+        f = gateway_util.toolsetter_assigned_keys
+        self.assertEqual(f("G21\n#3009 = 4\n#3100=10 (#3101=1)\n#1 = #3102\nM2\n"), frozenset({3009, 3100}))
+        self.assertEqual(f("#3009=#3009+1 ; #3010 = 5\n"), frozenset({3009}))
+        self.assertEqual(f("T2 M600\nG0 X1\n"), frozenset())
+        self.assertEqual(f("#5221 = 3\n#3116 = 0\n"), frozenset(), "not toolsetter keys")
+        self.assertIsNone(f("#[3000 + 9] = 4\n"), "indirect: any")
+        self.assertIsNone(f("o<other> call\n"), "a call into another file: any")
+        self.assertIsNone(f("M98 P100\n"))
+        # a sub this text defines is read with it
+        self.assertEqual(f("o100 sub\n#3007 = 2\no100 endsub\no100 call\nM2\n"), frozenset({3007}))
+
+    def test_view(self):
+        v = gateway_util.toolsetter_basis_view
+        self.assertEqual(v(self.basis()), {"state": "confirmed", "unknown": [], "assumed": [], "origin": "read", "t": 100.0})
+        b = self.basis(k3009={"value": 3.0, "origin": "applied", "t": 200.0})
+        self.assertEqual((v(b)["origin"], v(b)["t"]), ("applied", 200.0), "the latest confirmation")
+        self.assertEqual(v(self.basis(k3009={"value": 3.0, "origin": "assumed", "t": 0}))["state"], "assumed")
+        u = v(self.basis(k3009={"value": 3.0, "origin": "unknown", "t": 0}, k3010={"value": None, "origin": "read", "t": 0}))
+        self.assertEqual((u["state"], u["unknown"]), ("unknown", [3009, 3010]))
+        self.assertEqual(v({k: {"value": None, "origin": "assumed", "t": 0} for k in self.KEYS})["state"], "not_set_up")
+        self.assertEqual(v({})["state"], "not_set_up")
+
+    def test_ctx(self):
+        c = gateway_util.toolsetter_ctx(self.basis(k3009={"value": 3.0, "origin": "assumed", "t": 0}), 7)
+        self.assertEqual(c["version"], 7)
+        self.assertNotIn("3009", c["patches"], "an assumed key keeps the file's value")
+        self.assertEqual(c["patches"]["3100"], "3100.000000")
+        self.assertEqual(c["patches"]["3116"], "0.000000")
+        self.assertIsNone(c["unpredictable"])
+        self.assertEqual(gateway_util.toolsetter_ctx(self.basis(k3009={"value": None, "origin": "unknown", "t": 0}), 1)["unpredictable"],
+                         "toolsetter_unknown")
+        self.assertEqual(gateway_util.toolsetter_ctx({}, 1)["unpredictable"], "toolsetter_not_set_up")
+
+
+class TestForeignM600(unittest.TestCase):
+    """M600 plan, section 4, last row: an M600 / M601 remap that is not the
+    suite's routine — the preview cannot know what the call does."""
+
+    def test_which_remaps_are_foreign(self):
+        f = gateway_util.foreign_m600_codes
+        with tempfile.TemporaryDirectory() as d1, tempfile.TemporaryDirectory() as d2:
+            def w(d, name, text):
+                with open(os.path.join(d, name), "w") as fh:
+                    fh.write(text)
+            w(d2, "m600.ngc", "o<m600> sub\n(WEBUI_SUB=m600 CALLER=m600)\n(WEBUI_SUB_END)\no<m600> endsub\n")
+            w(d2, "m601.ngc", "o<m601> sub\n(WEBUI_SUB=m601)\no<m601> endsub\n")
+            w(d2, "othertc.ngc", "o<othertc> sub\nM6\no<othertc> endsub\n")
+            suite = ["M600 modalgroup=6 ngc=m600", "M601 modalgroup=6 ngc=m601", "M428 modalgroup=10 ngc=428remap"]
+            self.assertEqual(f(suite, [d1, d2]), frozenset())
+            self.assertEqual(f(["M600 modalgroup=6 ngc=othertc"], [d1, d2]), frozenset({"m600"}))
+            self.assertEqual(f(["M601 modalgroup=6 python=measure"], [d2]), frozenset({"m601"}), "no ngc")
+            self.assertEqual(f(["M600 modalgroup=6 ngc=missing"], [d2]), frozenset({"m600"}), "not found")
+            # the FIRST hit on the path decides: a plain m600.ngc ahead shadows ours
+            w(d1, "m600.ngc", "o<m600> sub\nM6\no<m600> endsub\n")
+            self.assertEqual(f(suite, [d1, d2]), frozenset({"m600"}))
+            self.assertEqual(f([], [d1]), frozenset(), "no remap: none")
+
+    def test_the_call_lines_and_what_runs_next(self):
+        text = "G21\n(M600 in a comment)\nT2 M600\n\n; nothing\nG0 X1 M0601\nM6000\nM2\n"
+        self.assertEqual(gateway_util.m_code_lines(text, {"m600", "m601"}), frozenset({3, 6}))
+        self.assertEqual(gateway_util.m_code_lines(text, {"m601"}), frozenset({6}))
+        nb = gateway_util.next_block_lines(text)
+        self.assertEqual((nb[1], nb[3], nb[4], nb[6]), (3, 6, 6, 7))
+
+
+class TestApplyVarPatchesOrder(unittest.TestCase):
+
+    def test_a_missing_parameter_goes_in_order(self):
+        # LinuxCNC reads the file ascending only: a key appended after the
+        # 52xx rows refused the whole parse
+        from gcode_canon import apply_var_patches
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "m.var")
+            with open(p, "w") as f:
+                f.write("3004\t1\n5161\t0\n5221\t2\n")
+            apply_var_patches(p, {"5221": "9", "3100": "10", "3116": "0", "6000": "1", "31": "5"})
+            with open(p) as f:
+                rows = [line.split() for line in f]
+            self.assertEqual([r[0] for r in rows], ["31", "3004", "3100", "3116", "5161", "5221", "6000"])
+            self.assertEqual(dict(rows)["5221"], "9")

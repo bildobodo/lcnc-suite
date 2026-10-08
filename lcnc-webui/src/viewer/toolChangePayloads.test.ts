@@ -16,6 +16,8 @@ import { buildScrubTrack } from "./scrubTrack";
 import { buildCollisionModel, sweepCollisions, type CollisionMachine } from "./collision";
 import { epochTermsFor } from "./wcsEpochs";
 import { buildSimRows, limitStopOf } from "./simRows";
+import { unknownProgramTools } from "./tloEvents";
+import { parseProbeStops } from "./probeStop";
 
 const DIR = path.resolve(__dirname, "../../../scripts/test_fixtures/tool_change_payloads");
 const MACHINE: CollisionMachine = {
@@ -311,5 +313,91 @@ describe("a crossing is no stop (Codex R97 VP-I55)", () => {
       "after the first limit crossing at L3",
     ]);
     for (const r of rows) expect(r.note).not.toMatch(/limit stop|stops (here|in this line) at the latest/);
+  });
+});
+
+describe("M600 in the preview (docs/reviews/m600-preview.plan.md, Codex R102–R104)", () => {
+  // The bundled tool_touch_off.ngc through the M600 remap (native payloads):
+  // the setter at X10 Y10 machine Z −180, T2 80 mm long — the fast probe
+  // starts at −95 and trips at −100. A head that rides X, Y and Z carrying a
+  // cutter (the tool body) and, 5 mm above it, the spindle (a machine body);
+  // a 0.5 mm box on the table.
+  const XYZ: CollisionMachine = {
+    groups: [{ id: "x", parent: "root" }, { id: "y", parent: "x" }, { id: "head", parent: "y" }, { id: "table", parent: "root" }],
+    kinematics: [{ group: "x", joint: 0, type: "translate", direction: "x", sign: 1 },
+                 { group: "y", joint: 1, type: "translate", direction: "y", sign: 1 },
+                 { group: "head", joint: 2, type: "translate", direction: "z", sign: 1 }],
+    workGroup: "table", toolGroup: "head", unitScale: 1, axes: ["X", "Y", "Z"],
+  };
+  const small = () => {
+    const g = new THREE.BoxGeometry(0.5, 0.5, 0.5).toNonIndexed();
+    const p = new Float32Array(g.getAttribute("position").array);
+    g.dispose();
+    return p;
+  };
+  // T2's table row as the gateway's parse_tlos would carry it ([id, xo, yo, zo, diameter])
+  function sweepM600(name: string, obstacle: [number, number, number], t2Length: number) {
+    const { raw, d, track } = load(name);
+    const wcs = { g5x: [], g92: [], rotationDeg: 0, tool: raw.tlo_start } as any;
+    const result = sweepCollisions(buildCollisionModel(XYZ, [
+      { id: "fixed", group: "table", positions: small(), translate: obstacle },
+      { id: "cutter", group: "head", positions: small(), tool: true },
+      { id: "spindle", group: "head", positions: small(), translate: [0, 0, 5] },
+    ]), swept(track), wcs, { margin: 0.1, tloEvents: d.tloEvents,
+      // as the page hands them over (ThreeViewer's sweep options)
+      probeStops: parseProbeStops(raw.probe_unpredicted),
+      unknownTools: unknownProgramTools(d.tloEvents, [[1, 0, 0, 10, 6], [2, 0, 0, t2Length, 6]]) });
+    return { raw, result, track, last: track.count - 1 };
+  }
+  const pairs = (r: { hits: { a: string; b: string }[] }) => [...new Set(r.hits.map(h => [h.a, h.b].sort().join("×")))].sort();
+
+  it("a predicted measurement is swept along the probe's path, with the new tool", () => {
+    // the box at the trip point's height under the setter: the cutter meets
+    // it on the fast probe's way down, the spindle 5 mm later never does
+    const { result, track } = sweepM600("m600_known", [10, 10, -99], 80);
+    expect(result.uncertified).toBeNull();
+    expect(track.unpredicted).toBeUndefined();
+    expect(pairs(result)).toEqual(["cutter×fixed"]);
+    expect(result.hits.every(h => !h.rapid)).toBe(true);
+    // the probe moves take their feeds' time: 5 mm at 2000 mm/min
+    const zs = Array.from({ length: track.count }, (_, i) => track.pos[i * 3 + 2]!);
+    const at = zs.indexOf(-95);
+    expect(track.cum[at + 1]! - track.cum[at]!).toBeCloseTo(5 / (2000 / 60), 4);
+  });
+
+  it("an unknown length: the machine is checked on the way down, the tool is not — and nothing after the probe's start", () => {
+    // the box 15 mm under machine Z0 at the setter: on the way down to the
+    // probe start (−30) both bodies pass it — only the spindle is checked
+    const { result, track, last } = sweepM600("m600_length_unknown", [10, 10, -15], 0);
+    expect(pairs(result)).toEqual(["fixed×spindle"]);
+    const notes = result.notes ?? [];
+    expect(notes).toContain("Tool measurement not predicted (T2 has no length in the table) — 1 move after it not checked to the program's end (L4)");
+    expect(notes.some(n => /^T2 has no length in the table: its own contacts are not checked/.test(n))).toBe(true);
+    // the move after the stop: an unknown start, no time, flagged
+    expect(track.unpredicted![last]).toBe(1);
+    expect(track.ustart![last]).toBe(1);
+    expect(track.cum[last]).toBe(track.cum[last - 1]);
+    expect(Array.from(track.unpredicted!.subarray(0, last))).toEqual(new Array(last).fill(0));
+    // with T2's length known the same descent finds the cutter too
+    expect(pairs(sweepM600("m600_length_unknown", [10, 10, -15], 80).result)).toEqual(["cutter×fixed", "fixed×spindle"]);
+  });
+
+  it("unknown toolsetter values: the routine is not run in the preview, nothing from its start is checked", () => {
+    // the gateway cannot vouch for the values the routine reads: it returns at
+    // once (tool_touch_off.ngc -0-) — no tool change, no move of its own —
+    // and the program goes on from an unknown position
+    const { raw, result, track } = sweepM600("m600_basis_unknown", [10, 10, -15], 80);
+    expect(result.hits).toHaveLength(0);
+    expect(raw.tool_change_lines).toEqual([]);
+    expect(result.notes).toContain(
+      "Tool measurement not predicted (the toolsetter values are not confirmed) — 1 move after it not checked to the program's end (L4)");
+    for (let i = 1; i < track.count; i++) expect(track.cum[i]).toBe(track.cum[0]);
+  });
+
+  it("a move past the limit after the stop is no finding, and takes no time", () => {
+    const { raw, track, last } = sweepM600("m600_unknown_then_high", [500, 500, 500], 0);
+    expect(raw.violations).toEqual([]);
+    expect(track.unpredicted![last]).toBe(1);
+    expect(track.cum[last]).toBe(track.cum[last - 1]);
   });
 });

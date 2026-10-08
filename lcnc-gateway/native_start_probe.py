@@ -10,10 +10,13 @@ Prints one JSON line: {"skip": reason} without the native modules, else the
 payload fields the case is judged on. Synthetic STAT, a temporary INI / var
 file / tool table; `linuxcnc.command` raises. Run by test_start_tlo_worker.py.
 """
+import atexit
 import contextlib
+import ctypes
 import io
 import json
 import os
+import shutil
 import sys
 import tempfile
 from collections import namedtuple
@@ -30,6 +33,7 @@ except ImportError as e:
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 work = Path(tempfile.mkdtemp(prefix="start-probe-"))
+atexit.register(shutil.rmtree, work, True)   # one per case: 10 000 were left in /tmp
 os.environ["LCNC_LOG_DIR"] = str(work / "logs")
 
 CASES = {
@@ -253,6 +257,107 @@ for _name, _prog in _PAIRS.items():
     for _z in ("10", "10.005", "20"):
         CASES[f"{_name}@{_z}"] = (_prog, "mm", float(_z), (430,), {})
 
+# M600 in the preview (Codex R102–R104, plan docs/reviews/m600-preview.plan.md):
+# the bundled tool_touch_off.ngc through the M600 remap, the toolsetter values
+# in the parameter file (the 3-axis sim profile's: setter X10 Y10 at machine
+# Z −180, G30 X10), T2 80 mm long in the table. The fast probe starts at
+# −180 + 80 + 5 = −95; the trip point is −100.
+_TS_VARS = {3004: 2000, 3005: 200, 3006: 3000, 3007: 60, 3009: 3, 3010: 150, 3013: 0, 3014: 0,
+            3100: 10, 3101: 10, 3102: -180, 3103: 1, 3104: 5, 3105: 0, 3106: 1, 3107: 5, 3108: 0,
+            3109: 0, 3110: 0, 3111: 0, 3112: 0, 3113: 0, 3114: 0, 3115: 0, 3116: 0}
+_M600_SUBS = ("tool_length_probe/m600.ngc", "tool_length_probe/tool_touch_off.ngc")
+_M600_PROG = "G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG0 X60 Y60\nM2\n"
+
+
+def _m600(var=None, prog=_M600_PROG, **extra):
+    # var={} (an empty dict): the parameter file holds no toolsetter key
+    return (prog, "mm", 0.0, (490,), {"rs274ngc": "REMAP=M600 modalgroup=6 ngc=m600",
+                                     "bundled": _M600_SUBS,
+                                     "var": {} if var == {} else {**_TS_VARS, **(var or {})},
+                                     **extra})
+
+
+CASES.update({
+    "m600_known": _m600(),
+    "m600_length_unknown": _m600(tools=[(1, 10), (2, 0)]),
+    "m600_setter_above": _m600({3102: 10}),
+    # Codex R102: a 1 mm travel from −95 never reaches −100
+    "m600_trip_outside": _m600({3007: 1}),
+    # the Z limit clamps the travel: to 4 mm (ends at −99) / to 13 mm (−108)
+    "m600_clamp_out": _m600(zmin=-101),
+    "m600_clamp_in": _m600(zmin=-110),
+    # the fast probe reaches −100.5; the slow one would end at −103, past −102.5
+    "m600_slow_limit": _m600(zmin=-102.5),
+    "m600_single": _m600({3005: 0}),
+    "m600_retract_zero": _m600({3009: 0}),
+    "m600_feed_zero": _m600({3004: 0}),
+    # T2 is the edge finder: its own X/Y, the reference 5 mm higher
+    "m600_finder": _m600({3014: 2, 3113: 30, 3114: 40, 3115: 5}),
+    "m600_no_back": _m600({3106: 0}),
+    "m600_no_prepos": _m600({3108: 1}),
+    # T2 is 6 mm across: 50 % of it, towards X+
+    "m600_diameter": _m600({3111: 5, 3112: 50, 3013: 1}),
+    # M601: the same routine in manual mode (#2000 = 0) — no G30, no way back
+    "m601_known": ("G21 G90\nG0 X50 Y50 Z-100\nT2 M601\nG0 X60 Y60\nM2\n", "mm", 0.0, (490,),
+                   {"rs274ngc": "REMAP=M601 modalgroup=6 ngc=m601",
+                    "bundled": ("tool_length_probe/m601.ngc", "tool_length_probe/tool_touch_off.ngc"),
+                    "var": _TS_VARS}),
+    # two M600 lines: no unique call site — the routine's M6 names no line
+    # (the text scan finds both)
+    "m600_twice": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG0 X60\nT1 M600\nG0 X70\nM2\n"),
+    # the gateway's word that the toolsetter values are unknown: nothing from
+    # the routine's start on
+    "m600_basis_unknown": _m600(ctx={"toolsetter_unpredictable": "toolsetter_unknown"}),
+    # the gateway's basis (plan section 2): confirmed values patched over a
+    # parameter file whose own lines differ (the gateway wrote them, the
+    # interpreter never took them) — the preview reads the booked ones
+    "m600_basis_patched": _m600({3102: -150, 3007: 1}, ctx={"toolsetter": {
+        "version": 3, "patches": {"3102": "-180.000000", "3007": "60.000000", "3116": "0.000000"},
+        "unpredictable": None, "view": {"state": "confirmed", "unknown": [], "assumed": [], "origin": "applied", "t": 5.0}}}),
+    # the file lacks every key and no basis says otherwise: never stored
+    "m600_not_set_up": _m600(var={}, ctx={"toolsetter": {
+        "version": 1, "patches": {"3116": "0.000000"}, "unpredictable": "toolsetter_not_set_up",
+        "view": {"state": "not_set_up", "unknown": [], "assumed": []}}}),
+    # an M600 remap that is NOT the suite's (M600 plan, section 4): the
+    # preview cannot know what the call does — nothing from it on
+    "m600_foreign": ("G21 G90\nG0 X50 Y50 Z-100\nG1 X55 F100\nT2 M600\nG0 X60 Y60\nM2\n", "mm", 0.0, (490,),
+                     {"rs274ngc": "REMAP=M600 modalgroup=6 ngc=othertc",
+                      "subs": {"othertc.ngc": "o<othertc> sub\nG53 G0 Z0\nM6\no<othertc> endsub\nM2\n"}}),
+    # ...in a program with o-words: its lines need not run in text order —
+    # from the program's start
+    "m600_foreign_oword": ("G21 G90\nG0 X50 Y50 Z-100\no100 if [1]\nT2 M600\no100 endif\nG0 X60 Y60\nM2\n",
+                           "mm", 0.0, (490,),
+                           {"rs274ngc": "REMAP=M600 modalgroup=6 ngc=othertc",
+                            "subs": {"othertc.ngc": "o<othertc> sub\nM6\no<othertc> endsub\nM2\n"}}),
+    # a move past Z max (50) after the call: a violation where the measurement
+    # is predicted, no verdict where it is not
+    "m600_known_then_high": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG0 X60 Y60 Z200\nM2\n"),
+    "m600_unknown_then_high": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG0 X60 Y60 Z200\nM2\n",
+                                    tools=[(1, 10), (2, 0)]),
+    # a G92 after the stop: every axis is unknown already, for the probe's
+    # reason — no offset line of its own
+    "m600_unknown_then_g92": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG92 Z5\nG0 X70\nM2\n",
+                                   tools=[(1, 10), (2, 0)]),
+    # the canon's pairing rule on a synthetic call: the marker pairs with the
+    # FIRST G43 of the call only, and one left open dies with the call
+    "toollen_pairing": ("G21 G90\nG0 X0 Y0 Z0\no<tl_pair> call\nG43 H2\nG0 X5\no<tl_open> call\nG43 H1\nG0 X6\nM2\n",
+                        "mm", 0.0, (490,), {"subs": {
+                            "tl_pair.ngc": "o<tl_pair> sub\n(WEBUI_SUB=tl_pair)\n(WEBUI_TOOLLEN_TABLE)\n"
+                                           "T2 M6\nG43 H2\nG0 X1\nG43 H1\nG0 X2\n(WEBUI_SUB_END)\no<tl_pair> endsub\nM2\n",
+                            "tl_open.ngc": "o<tl_open> sub\n(WEBUI_SUB=tl_open)\n(WEBUI_TOOLLEN_TABLE)\n"
+                                           "G0 X3\n(WEBUI_SUB_END)\no<tl_open> endsub\nM2\n"}}),
+    # a G43 after the call is no table-length claim of the routine's
+    "m600_g43_after": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG43 H2\nG0 X60 Y60\nM2\n"),
+    "m600_t0": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT0 M600\nG0 X60 Y60\nM2\n"),
+    # Codex VP103-01: the program reads the probe result after the call, in
+    # G54 Z10 and G92 Z−5; earlier results must not count
+    "m600_result": _m600(ctx={"var_patches": {**{str(b + j): "0" for b in range(5220, 5381, 20)
+                                                  for j in range(1, 11)}, "5223": "10"}}, prog=(
+        "G21 G90\n#5063 = -999\n#5070 = 0\nG0 X50 Y50 Z-100\nG92 Z-95\nT2 M600\n"
+        "o100 if [#5070 EQ 1]\n  G0 X5\no100 else\n  G0 X7\no100 endif\n"
+        "G0 Y[#5063]\nM2\n")),
+})
+
 program, units, z_off, gcodes_live, extra = CASES[sys.argv[1]]
 inch = units == "in"
 ini = work / "machine.ini"
@@ -265,6 +370,7 @@ ANGULAR_UNITS = degree
 [RS274NGC]
 PARAMETER_FILE = machine.var
 SUBROUTINE_PATH = {work}
+{extra.get("rs274ngc", "")}
 [EMCIO]
 TOOL_TABLE = tool.tbl
 {extra.get("emcio", "")}
@@ -277,14 +383,44 @@ MIN_LIMIT = -500
 MAX_LIMIT = 500
 MAX_VELOCITY = 10
 [AXIS_Z]
-MIN_LIMIT = -500
+MIN_LIMIT = {extra.get("zmin", -500)}
 MAX_LIMIT = {1.2 if inch else 50}
 MAX_VELOCITY = 10
 """)
 os.environ["INI_FILE_NAME"] = str(ini)
-(work / "tool.tbl").write_text("T1 P1 Z10 D6\nT2 P2 Z80 D6\n")
-(work / "machine.var").write_text(
-    "5161 0\n5181 10\n5210 1\n5211 0\n5212 0\n5213 0\n5220 1\n5221 0\n5222 0\n5223 0\n")
+# (tool, Z): the table file and STAT's — the preview reads tools through the
+# canon (get_tool → STAT.tool_table), the mmap only keeps it from crashing
+_tools = extra.get("tools", [(1, 10), (2, 80)])
+(work / "tool.tbl").write_text("".join(f"T{n} P{n} Z{z} D6\n" for n, z in _tools))
+_var = {5161: 0, 5181: 10, 5210: 1, 5211: 0, 5212: 0, 5213: 0, 5220: 1, 5221: 0, 5222: 0, 5223: 0,
+        **extra.get("var", {})}
+# LinuxCNC reads the parameter file in ascending order only
+(work / "machine.var").write_text("".join(f"{k} {_var[k]}\n" for k in sorted(_var)))
+# The suite's own subroutines, as shipped (a copy, the way the INI's
+# SUBROUTINE_PATH reaches them)
+for _rel in extra.get("bundled", ()):
+    shutil.copy(HERE.parent / "subroutines" / _rel, work / Path(_rel).name)
+# The interpreter reads tools from the tool data mmap a running LinuxCNC's
+# iocontrol creates ($HOME/.tool.mmap); offline there is none and every tool
+# lookup (Tn M6, G43 Hn, #5403) segfaults. Create one in THIS process under a
+# private HOME (the work dir) - never the user's, where a live instance's
+# lives - and load the same table, the way iocontrol does
+# (tool_mmap_creator, tooldata_init, tooldata_load; libtooldata 2.9).
+os.environ["HOME"] = str(work)
+_td = ctypes.CDLL("libtooldata.so.0")
+_tool_stat = ctypes.create_string_buffer(1 << 20)   # kept alive: the library keeps the pointer
+_td["_Z17tool_mmap_creatorPK13EMC_TOOL_STATi"](_tool_stat, 0)
+_td["_Z13tooldata_initb"].argtypes = [ctypes.c_bool]
+_td["_Z13tooldata_initb"](False)
+_load = _td["_Z13tooldata_loadPKcPPc"]
+_load.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.c_char_p)]
+# tooldata_load clears CANON_POCKETS_MAX (1001) comment strings before it
+# reads: 1000 pointers let it write through whatever followed the array
+_comments = [ctypes.create_string_buffer(256) for _ in range(1001)]
+_ptrs = (ctypes.c_char_p * 1001)(*[ctypes.cast(b, ctypes.c_char_p) for b in _comments])
+if _load(str(work / "tool.tbl").encode(), _ptrs) != 0:
+    print(json.dumps({"error": "tool table not loaded"}))
+    sys.exit(1)
 ngc = work / "program.ngc"
 ngc.write_text(program)
 for _name, _text in extra.get("subs", {}).items():
@@ -302,7 +438,7 @@ s = SimpleNamespace(poll=lambda: None, axis_mask=(15 if extra.get("rotary") else
                     linear_units=(1.0 / 25.4 if inch else 1.0), block_delete=False,
                     actual_position=[0] * 9, g92_offset=[0] * 9,
                     tool_offset=[0, 0, z_off, extra.get("a_offset", 0)] + [0] * 5,
-                    tool_in_spindle=1, tool_table=[tool(1, 10), tool(1, 10), tool(2, 80)],
+                    tool_in_spindle=1, tool_table=[tool(*_tools[0])] + [tool(n, z) for n, z in _tools],
                     joint=None)
 if gcodes_live is not None:
     s.gcodes = gcodes_live
@@ -322,8 +458,12 @@ ctx = {"file": str(ngc), "ini_path": str(ini), "units": units, "g5x_index": 1,
        "var_patches": {str(b + j): "0" for b in range(5220, 5381, 20) for j in range(1, 11)},
        "kins_type": 0, "kins_frame": None, **extra.get("ctx", {})}
 err = io.StringIO()
+_mmap = (work / ".tool.mmap").read_bytes()
 with contextlib.redirect_stderr(err):
     out = worker.parse(ctx)
+# the preview never writes the tool data a live LinuxCNC shares (a G10 L1 / M6
+# in it changes the interpreter's own copy only)
+_mmap_unchanged = (work / ".tool.mmap").read_bytes() == _mmap
 meta = {}
 for ln in err.getvalue().splitlines():
     if ln.startswith("__TLO__"):
@@ -347,6 +487,11 @@ if len(sys.argv) > 2:
     with open(sys.argv[2], "wb") as f:
         f.write(__import__("msgspec").msgpack.encode(out))
 print(json.dumps({
+    "mmap_unchanged": _mmap_unchanged,
+    "probe_unpredicted": out.get("probe_unpredicted"), "toollen_table": out.get("toollen_table"),
+    "feed_sub": u("feed_sub", "<u1"), "rapid_sub": u("rapid_sub", "<u1"), "sub_names": out.get("sub_names"),
+    "toolsetter_basis": out.get("toolsetter_basis"),
+    "feed_lines": u("feed_lines", "<u4"), "tool_change_lines": out.get("tool_change_lines"),
     "parse_error": out.get("parse_error"), "feed": pts("feed"), "rapid": pts("rapid"),
     "tlo_events": out.get("tlo_events"), "violations": out.get("violations"),
     "violations_total": out.get("violations_total"), "violations_reason": out.get("violations_reason"),

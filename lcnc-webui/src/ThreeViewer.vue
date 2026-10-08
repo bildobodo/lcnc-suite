@@ -35,7 +35,8 @@ import { lineDistances, tipWcs, wcsTerms, type PartFrameMachine, type PartFrameW
 import type { ReachInfo } from "./viewer/reachEnvelope";
 import type { LineIndex } from "./viewer/lineIndex";
 import { MACHINE_PALETTE, defaultPartHex } from "./viewer/palette";
-import { toolDimsFor } from "./viewer/tloEvents";
+import { toolDimsFor, unknownProgramTools } from "./viewer/tloEvents";
+import { parseProbeStops } from "./viewer/probeStop";
 import { boundsOf, epochTermsFor, previewWcsStaleFor, rebasePositions, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import { specFromWire, worldModeForSpec, semanticKinsMode } from "./viewer/kins";
 import { workMarkers, markerInputsChanged, newMarkerInputsPrev, G5X_NAMES, chainRotaryLetters, type ProgramZeroPose } from "./viewer/programZero";
@@ -2792,12 +2793,19 @@ function _programToolDims(): Record<number, { diam: number; len: number }> | und
   const g = viewerGcode.value;
   if (!g?.tloEvents?.length || !g.parse_tlos?.length) return undefined;
   const out: Record<number, { diam: number; len: number }> = {};
+  const unknown = _unknownProgramTools();
   for (const ev of g.tloEvents) {
-    if (ev.tool == null || ev.tool <= 0 || out[ev.tool]) continue;
+    if (ev.tool == null || ev.tool <= 0 || out[ev.tool] || unknown.includes(ev.tool)) continue;
     const d = toolDimsFor(ev.tool, g.parse_tlos, _unitScale, { diam: null, len: null });
     if (d.known) out[ev.tool] = _toolVisual(d.diam, d.len);
   }
   return Object.keys(out).length ? out : undefined;
+}
+/** Program tools without a length in the table: their body is unknown, the
+ *  sweep does not check their own pairs (M600 plan, row 3). */
+function _unknownProgramTools(): number[] {
+  const g = viewerGcode.value;
+  return unknownProgramTools(g?.tloEvents, g?.parse_tlos);
 }
 const programTools = computed<Array<{ num: number; diam: number }> | null>(() => {
   const dims = _programToolDims();
@@ -3256,6 +3264,8 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean) {
     ustart: track.ustart?.slice(), // unknown starts — named in the result, never assumed swept
     wcs: track.wcsEpoch?.slice(), // per-segment WCS epoch (terms in options below)
     tlo: track.tlo?.slice(),      // per-segment TLO/tool event (events in options below)
+    unpredicted: track.unpredicted?.slice(),  // after an unpredicted tool measurement (M600)
+    lineOk: track.lineOk?.slice(), sub: track.sub?.slice(), cline: track.cline?.slice(),  // the lines a note names
   };
   // ArrayBuffer[] (not Transferable[]): every entry is a buffer, and the
   // TS-only Transferable name trips eslint's no-undef in SFC scripts.
@@ -3297,6 +3307,10 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean) {
       // note names its line (Codex R95 VP-I53). Plain arrays, clone fine.
       staleOffsetLines: viewerGcode.value?.stale_offset_lines?.slice(),
       staleOffsetUntracked: viewerGcode.value?.stale_offset_untracked,
+      // M600 (docs/reviews/m600-preview.plan.md): the measurement the
+      // preview cannot predict, and the program tools whose body is unknown.
+      probeStops: parseProbeStops(viewerGcode.value?.probe_unpredicted).map(p => ({ tool: p.tool, reason: p.reason })),
+      unknownTools: _unknownProgramTools(),
     },
   };
   return { msg, transfer, modelKey, bodies: bodies.length };

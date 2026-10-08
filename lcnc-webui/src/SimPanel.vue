@@ -63,22 +63,29 @@ const sumClash = computed(() => {
 });
 const sumLimit = computed(() => {
   const { total, records } = simView.limits;
-  if (total == null) return { name: "Limits not checked", short: NO_VALUE, muted: true };
-  if (total === 0) return { name: "No limit violations", short: "0", muted: true };
+  if (total == null) return { name: "Limits not checked", short: NO_VALUE, muted: true, cut: false };
+  // a tool measurement the preview cannot predict: checked up to it only
+  const cut = !!simView.stop;
+  const upTo = cut ? " · checked to the tool measurement" : "";
+  if (total === 0) return { name: `No limit violations${upTo}`, short: "0", muted: !cut, cut };
   const words = `${total} limit violation${total === 1 ? "" : "s"}`;
   const lines = count("limit");
-  return { name: total > records ? `${words} · the first ${lines} line${lines === 1 ? "" : "s"} listed` : words, short: String(total), muted: false };
+  return { name: (total > records ? `${words} · the first ${lines} line${lines === 1 ? "" : "s"} listed` : words) + upTo,
+           short: String(total), muted: false, cut };
 });
 /** The summary's "?" — reachable by touch and keyboard (Codex R82 VP-I42:
  *  narrow, the capped list was said only in a name and a mouse tooltip).
  *  Capped: the total, what the parse sent, the lines the list shows. */
 const sumHelp = computed(() => {
+  // the stop first: it bounds all three
+  if (simView.stop) return `${simView.stop}: from there no path, no time, no collision or limit check.`;
   const { total, records } = simView.limits;
   if (total != null && total > records) {
     const lines = count("limit");
     return `${total} limit violations, a line and an axis each. The parse sends the first ${records}; the list shows their ${lines} line${lines === 1 ? "" : "s"}.`;
   }
-  return "× the collision check's verdict · ▲ soft-limit records, a line and an axis each · ● the program's tool changes.";
+  return "× the collision check's verdict · ▲ soft-limit records, a line and an axis each · ● the program's tool changes."
+    + (simView.basis ? ` ${simView.basis}.` : "");
 });
 const sumTool = computed(() => {
   const n = count("tool");
@@ -265,6 +272,7 @@ function onRootKey(e: KeyboardEvent) {
             <Triangle class="sumGlyph limit" :size="11" fill="currentColor" aria-hidden="true" />
             <span class="sumWide" :class="sumLimit.muted ? 'text-muted' : 'sumKind limit'">{{ sumLimit.name }}</span>
             <span class="sumShort mono" :class="sumLimit.muted ? 'text-muted' : 'sumKind limit'">{{ sumLimit.short }}</span>
+            <span v-if="sumLimit.cut" class="text-warn" title="Checked to the tool measurement only — see the summary help">*</span>
           </span>
           <span class="sumItem row-tight" role="img" :aria-label="sumTool.name" :title="sumTool.name">
             <Circle class="sumGlyph tool" :size="10" fill="currentColor" aria-hidden="true" />

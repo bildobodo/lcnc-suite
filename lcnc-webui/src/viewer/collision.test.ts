@@ -1457,6 +1457,53 @@ describe("tool geometry lifetime (TWP-06/07, review 2026-09-14)", () => {
     expect(sweepCollisions(makeModel(), lifted, WCS0, opts({ tloEvents: ev })).hits).toEqual([]);
   });
 
+  // M600 plan, state table row 3: T3 — no length in the table — is in the
+  // spindle for vertices 28–33 (the segments of lines 29–34). The model's own
+  // tool is the Ø20 here, so a query in that stretch WOULD find the vise
+  // (contact from X ≈ 11, vertex 24): what is not checked must not be asked.
+  const wide = () => buildCollisionModel(M, [
+    { id: "vise", group: "table", positions: boxPositions(2), translate: [0, 0, 1] },
+    { id: "tool", group: "head", positions: toolCylinderPositions(20, 2), tool: true },
+  ]);
+  const unknownT3 = (lines?: number[], extra: Partial<CollisionOptions> = {}) => {
+    const ev: TloEvents = [...EVENTS, { seq: 2, xyz: [0, 0, 0], tool: 3 }];
+    const t = approach(40); t.tlo.fill(1); t.tlo.fill(2, 28, 34);
+    if (lines) t.lines.set(lines);
+    return { t, ev, r: sweepCollisions(wide(), t, WCS0, opts({ tloEvents: ev, unknownTools: [3], ...extra })) };
+  };
+  const outsideStretch = (r: CollisionResult, t: ScrubTrack) => {
+    for (const h of r.hits) for (const [a, b] of h.intervals ?? []) {
+      expect(a >= t.cum[33]! - 1e-6 || b <= t.cum[27]! + 1e-6, `L${h.line} [${a}, ${b}]`).toBe(true);
+    }
+  };
+
+  it("a tool whose body is unknown: its contacts are not checked there, and none carries across (M600 plan, row 3)", () => {
+    // a contact cadence (0.5) shorter than the stretch (2.3): it would be asked
+    const { t, ev, r } = unknownT3(undefined, { linStepMm: 0.5, rotStepDeg: 0.5 });
+    const lines = contactLines(r);
+    expect(lines.filter(l => l >= 29 && l <= 34)).toEqual([]);
+    expect(lines.some(l => l <= 28)).toBe(true);
+    expect(lines.some(l => l >= 35)).toBe(true);
+    // a touch after the stretch is a new onset, never its continuation
+    expect(onsets(r)).toBe(2);
+    expect(r.notes).toContain("T3 has no length in the table: its own contacts are not checked (L29, L30, L31 …)");
+    outsideStretch(r, t);
+    // the same track with T3 known (Ø20): one contact all the way
+    const known = sweepCollisions(wide(), t, WCS0, opts({ tloEvents: ev, toolDims: { ...DIMS, 3: { diam: 20, len: 2 } },
+                                                          linStepMm: 0.5, rotStepDeg: 0.5 }));
+    expect(onsets(known)).toBe(1);
+    expect((known.notes ?? []).some(n => /no length in the table/.test(n))).toBe(false);
+  });
+
+  it("one program line across the stretch: its refinement stays out of it", () => {
+    // every point on line 1 — the record's samples sit on both sides of the
+    // stretch, closer than a cluster gap (the default 5 mm cadence), and their
+    // boundaries are walked toward each other
+    const { t, r } = unknownT3(new Array(40).fill(1));
+    expect(r.hits.length).toBeGreaterThan(0);
+    outsideStretch(r, t);
+  });
+
   it("interleaving a side run at the initial checkpoint leaves the main run's findings unchanged (TWP-07)", () => {
     const large = approach(2); large.tlo.fill(1);
     const standalone = sweepCollisions(makeModel(), large, WCS0, opts());

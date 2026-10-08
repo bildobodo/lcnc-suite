@@ -78,6 +78,26 @@ export function toolForIndex(
   return liveTool != null && liveTool > 0 ? liveTool : null;
 }
 
+/** Program tools whose BODY is unknown (M600 plan, state table row 3): a
+ *  tool number > 0 a TLO/tool event row names that has no parse-time table
+ *  row, or a row without a length — an unmeasured tool. The sweep does not
+ *  check its own pairs while it is in the spindle (toolDimsFor would wear a
+ *  60 mm stub for it). Pure. */
+export function unknownProgramTools(
+  events: readonly { tool: number | null }[] | undefined,
+  parseTlos: readonly (readonly (number | undefined)[])[] | undefined,
+): number[] {
+  const out: number[] = [];
+  for (const ev of events ?? []) {
+    const tn = ev.tool;
+    if (tn == null || tn <= 0 || out.includes(tn)) continue;
+    const row = parseTlos?.find(r => r[0] === tn);
+    const len = row && row.length >= 5 ? Math.abs(Number(row[3] ?? 0)) : 0;
+    if (!(len > 0)) out.push(tn);
+  }
+  return out;
+}
+
 /** Tool dimensions for the collision cylinder / marker: the parse-time
  *  table row (`parse_tlos` [id, xo, yo, zo, diameter], machine units) for
  *  a program tool, else the live loaded-tool dims, else the historical

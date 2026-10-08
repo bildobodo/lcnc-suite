@@ -497,6 +497,40 @@ test("the summary names each kind: words in the wide pane, the glyph and the num
   await expect(page.locator(".helpPopover:popover-open"), "a tap: the cap in words").toHaveText(said);
 });
 
+test("a predicted measurement: the summary's \"?\" says where the toolsetter values come from", async ({ page, context }) => {
+  await prepare(page, context, "desktop", Buffer.from(encode({ ...PREVIEW_FIELDS, toollen_table: [[12, 5, 65.04]],
+    toolsetter_basis: { state: "assumed", routine: true, values: { "3009": 3 } } })));
+  const help = page.locator('.simPanel .simSummaryRow [aria-label="Help: Summary"]');
+  await help.click();
+  await expect(page.locator(".helpPopover:popover-open")).toContainText(
+    "Toolsetter values assumed from the parameter file — not verified.");
+});
+
+// M600 in the preview (docs/reviews/m600-preview.plan.md): a tool measurement
+// the preview cannot predict bounds every verdict — the summary and its "?"
+// say so, the time says there is more, and a tool-change row says where its
+// length comes from (the table's, assumed) or why it is not predicted.
+test("a tool measurement the preview cannot predict: the summary, the time and the rows say what is not known", async ({ page, context }) => {
+  await prepare(page, context, "desktop", Buffer.from(encode({ ...PREVIEW_FIELDS,
+    probe_unpredicted: [[20, 3, "length"]], toollen_table: [[12, 5, 65.04]] })));
+  const items = page.locator(".simPanel .simSummary [role=img]");
+  await expect(items.nth(1)).toHaveAttribute("aria-label", "2 limit violations · checked to the tool measurement");
+  await expect(page.locator(".simPanel .simSummary .sumLimit .text-warn")).toHaveText("*");
+  const help = page.locator('.simPanel .simSummaryRow [aria-label="Help: Summary"]');
+  await help.click();
+  await expect(page.locator(".helpPopover:popover-open")).toHaveText(
+    "Tool measurement not predicted (T3 has no length in the table): from there no path, no time, no collision or limit check.");
+  await help.click();
+  const pos = await page.locator(".scrubBar .posSlot").evaluate(e => ({
+    text: (e as HTMLElement).innerText, whole: e.scrollWidth <= e.clientWidth + 1, title: e.getAttribute("title") }));
+  expect(pos.text, "the total is the time to the measurement").toMatch(/^\d\d:\d\d\/\d\d:\d\d\+$/);
+  expect(pos.whole, "the slot holds the +").toBe(true);
+  expect(pos.title).toMatch(/after it unknown/);
+  await expect(page.locator('.simPanel [data-sim-row="T10"] .colWhat')).toContainText("measurement not predicted: T3 has no length in the table");
+  await expect(page.locator('.simPanel [data-sim-row="T20"] .colWhat')).toContainText("65.040 mm from the table (assumed)");
+  await expect(page.locator(".simPanel")).not.toContainText(/\bmeasured\b/);
+});
+
 // Codex R83 VP-I43: with a full summary line the "?" sat at the tab
 // content's clipping edge and the outer 4 px of its 24 px hit area were cut
 // off — a tap there landed on the side pane. The row keeps the reach.

@@ -729,8 +729,10 @@ TRAJ/AXIS MAX_VELOCITY; also `rapid_rate`/`rot_rapid_rate` for the
 client-built entry move) and the track merge diffs them per stream.
 `timeBased: false` (no INI velocity / legacy payload) falls back to the
 distance axis (1° ≙ 1 mm), honest not guessed. Tool-change events ride
-the wire as `tool_change_lines` (canon M6 only — preview-skipped M600
-remaps contribute none) and the client unions them with a TEXT scan for
+the wire as `tool_change_lines` (canon M6 on a line of this file; the M600
+routine's own M6 at its call line when that is the program's only one,
+else none — `main_file_tool_changes`; see "M600 in the preview") and the
+client unions them with a TEXT scan for
 M6 / M600 / M601 lines (`viewer/toolChangeScan.ts`, tool from the T word
 on or before the line; "T13 M600" had no mark) — a change line has no
 motion, so its mark sits at the next line with one; info-blue ● marks +
@@ -865,6 +867,64 @@ the sweep, held while the interpreter runs, starts once it is idle again
 banner reason "tool measured (program running)". Tests: `native_pinned_probe.py`
 (the real worker + native interpreter, synthetic STAT) behind
 `test_pinned_worker.py`.
+
+**M600 in the preview (collision plan step 3, Codex R102–R104, plan
+`docs/reviews/m600-preview.plan.md` Fassung 3)**: the bundled
+`tool_touch_off.ngc` runs in the preview (`#<_task> EQ 0`) — it used to be
+skipped whole (`o<400> if [#<_task> EQ 1]`): no M6, no positioning moves, the
+old tool on. The positioning is the same code in both; preview-only blocks
+`o<500>`–`o<540>` guard what a preview cannot reproduce (the log file, M50,
+M00/M01, and the two probes). The preview's G38 never trips (full travel,
+`#5070 = 0`, measured), so o<520>/o<530> move to the point the tool's TABLE
+length trips at (`#3102 + L`, + `#3115` for the edge finder) with the probe
+feeds and set `#5061`–`#5069` from `#5420`–`#5428` there, before the retract,
+`#5070 = 1` — the routine's own length formula gives L, G10 L1 / G43 H apply
+it; `(WEBUI_TOOLLEN_TABLE)` before them pairs with that G43 only (canon
+`toollen_events`, wire `toollen_table`: "65.040 mm from the table (assumed)",
+never "measured"). Only where the machine's probe would trip there too
+(o<510>): a known length, `#3102 ≤ 0`, the trip strictly inside the clamped
+fast travel, positive probe feed and retract, a slow probe ending inside the
+Z limit (motion refuses a probe END outside, command.c). Else the routine
+stops at the probe's start with `(WEBUI_PROBE_UNPREDICTED=<reason>)` — canon
+`probe_events`, wire `probe_unpredicted` [seq, tool, reason]: from there
+EVERY axis is unknown to the program's end (`_frame_unknown`, so every later
+motion is a zero-length unknown-start endpoint: no path, time, collision or
+limit check — the worker skips them in every limit check; the sweep's note,
+the Sim tab's summary "*" and "?", the bar's time "+", the stats row and the
+tool-change row say why, `viewer/probeStop.ts`). The task path is pinned to
+the routine before the change as a control structure
+(`test_tool_touch_off_paths.py`, `scripts/test_fixtures/tool_touch_off.before_preview.ngc`).
+`(WEBUI_SUB_END)` precedes every `return` (a return skips the endsub's
+marker: the program after it was taken for the call). The routine's M6 is a
+canon tool change on the SUB's line: `main_file_tool_changes` ships it at
+the verified call line (`CALLER=m600` / `m601` on the wrappers' markers),
+else none. A program tool without a length (or a row) has an unknown BODY
+(`tloEvents.unknownProgramTools`): while it is in the spindle the sweep skips
+the tool's own pairs (the machine's are checked), a contact of the tool
+restarts after such a stretch, no refinement walks into it — it used to
+wear a 60 mm stub. The TOOLSETTER BASIS (plan section 2): the values the
+routine reads are the INTERPRETER's; the gateway books them per key
+(`_ts_basis`: applied per `_apply_probe_vars` chunk that ended RCS_DONE,
+unknown for one that failed / timed out / was cut short, read by a confirmed
+read — task_plan_synch RCS_DONE + a new inode, save_parameters writes every
+line from the interpreter — assumed from the file at the process's start and
+after an MDI line, a macro or a program start that may write it). The parse
+ctx carries `toolsetter_ctx` (confirmed values patched into the worker's
+parameter copy, #3116 = 0); unknown or never-stored values set
+`#<_webui_toolsetter_stop>` by initcode — the routine returns at once,
+named from its start. An unconfirmed basis is read back once per version
+while a program that runs the routine is loaded (idle, nothing in flight; an
+abort cancels it); a change re-parses it (reason `toolsetter`). An M600 /
+M601 remap that is not the suite's (`foreign_m600_codes`) is unknown from
+its call (text order) or from the program's start. Named limits:
+`#5064`–`#5066` are copied without the wrapped-rotary fold; another writer of
+the interpreter (a second GUI, halui) is not seen; a mid-run measurement's
+rest check is its own later plan. Tests: `test_m600_preview_worker.py`
+(native, `native_start_probe.py` with the shipped routine and a tool data
+mmap — libtooldata needs 1001 comment pointers — and a check that the
+preview never writes it), `test_toolsetter_basis.py`,
+`toolChangePayloads.test.ts` (the native payloads through decode, track and
+sweep), `probeStop.test.ts`, `sim-panel.viewer.spec`.
 
 **Start tool state + verify at the actual offset (VP-I20, Codex R51–R57,
 2026-10-01)**: the machine runs every move before a program's own G43/G49
@@ -1088,8 +1148,8 @@ L20 — and G54 again),
 through the client's decode, track and sweep, the track handed over as the
 page does (`wcs` = its epochs: without them a rotated move is swept
 unrotated) — red on the previous worker's payloads; the note's offset line handed over by the page: `collisions.viewer.spec`), `collision.test.ts` (an obstacle only in the middle of the move
-after the relabel is found; an unknown start is said). Not yet followed: a
-preview-skipped M600's own motion (plan step 3). The preview goldens change
+after the relabel is found; an unknown start is said). An M600's own motion:
+see "M600 in the preview". The preview goldens change
 for every program with a G43 (the live gate; regenerate at the next suite
 stop). The sweep
 keeps itself current with NO manual trigger: auto-runs on program load

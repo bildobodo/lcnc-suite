@@ -64,6 +64,9 @@ export interface ScrubStream {
    *  gateway validator's per-vertex flag (wire feed_outside/rapid_outside).
    *  Absent = unchecked. */
   outside?: Uint8Array;
+  /** 1 = after a tool measurement the preview cannot predict (decoded
+   *  from the payload's `probe_unpredicted` by seq). Absent = none. */
+  unpredicted?: Uint8Array;
   /** Per-point line trust (wire feed_lineok/rapid_lineok, W2 P6). Absent
    *  = pre-schema-4 payload. */
   lineOk?: Uint8Array;
@@ -153,6 +156,11 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
   // never-cross-the-connector behavior with no per-consumer changes.
   const brk = (hasBrk || hasUstart) ? new Uint8Array(n) : undefined;
   const ustart = hasUstart ? new Uint8Array(n) : undefined;
+  // After an unpredicted tool measurement: the same tolerance rules.
+  const hasUnpred = !!(feed.unpredicted || rapid.unpredicted)
+    && (!feed.unpredicted || feed.unpredicted.length === nf)
+    && (!rapid.unpredicted || rapid.unpredicted.length === nr);
+  const unpredicted = hasUnpred ? new Uint8Array(n) : undefined;
   // WCS epochs (review P2): like mode — present iff every non-empty stream
   // carries the per-point index and an events list exists to deref into.
   const hasWcs = !!wcsEvents?.length
@@ -219,6 +227,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     if (frameIdx) frameIdx[i] = src.frame?.[si] ?? EVENT_NONE;
     if (brk) brk[i] = (src.brk?.[si] ?? 0) | (src.ustart?.[si] ?? 0);
     if (ustart) ustart[i] = src.ustart?.[si] ?? 0;
+    if (unpredicted) unpredicted[i] = src.unpredicted?.[si] ?? 0;
     if (wcsEpoch) wcsEpoch[i] = src.wcs?.[si] ?? 0;
     if (tlo) tlo[i] = src.tlo?.[si] ?? TLO_NONE;
     if (lineOk) lineOk[i] = src.lineOk?.[si] ?? 0;
@@ -276,7 +285,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
   }
 
   return { pos, abc, lines, rapid: rapidFlag, mode, outside, frame: frameIdx,
-           frames: hasFrame ? frames : undefined, brk, ustart,
+           frames: hasFrame ? frames : undefined, brk, ustart, unpredicted,
            wcsEpoch, wcsEvents: hasWcs ? wcsEvents : undefined,
            tlo, tloEvents: hasTlo ? tloEvents : undefined,
            lineOk, sub, subNames: hasSub ? subNames : undefined, cline,
@@ -547,7 +556,7 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
  *  (`viaCall: true`) — the o-call/remap line the operator wrote — so the
  *  highlight tracks execution through subs instead of going dark. */
 export function displayLineForPoint(
-  t: ScrubTrack, i: number, wholesaleTrusted: boolean,
+  t: Pick<ScrubTrack, "lines" | "lineOk" | "sub" | "cline" | "subNames">, i: number, wholesaleTrusted: boolean,
 ): { line: number | null; subName: string | null; viaCall: boolean } {
   const ln = t.lines[i] ?? 0;
   const ok = t.lineOk ? t.lineOk[i] === 1 : wholesaleTrusted;
@@ -886,6 +895,7 @@ export function sliceTrack(t: ScrubTrack, a: number, b: number): ScrubTrack {
   if (t.frames) out.frames = t.frames;
   if (t.brk) out.brk = u8(t.brk);
   if (t.ustart) out.ustart = u8(t.ustart);
+  if (t.unpredicted) out.unpredicted = u8(t.unpredicted);
   if (t.wcsEpoch) out.wcsEpoch = u32(t.wcsEpoch);
   if (t.lineOk) out.lineOk = u8(t.lineOk);
   if (t.sub) out.sub = u8(t.sub);
@@ -976,6 +986,14 @@ export function prependEntry(
     ustart[0] = 0;
     ustart[1] = 0;
   }
+  let unpredicted: Uint8Array | undefined;
+  if (t.unpredicted) {
+    // The entry move runs before the program: never after its measurement.
+    unpredicted = new Uint8Array(n);
+    unpredicted.set(t.unpredicted, 1);
+    unpredicted[0] = 0;
+    unpredicted[1] = 0;
+  }
   let wcsEpoch: Uint32Array | undefined;
   if (t.wcsEpoch) {
     // The entry move targets the track's first point, whose coords live in
@@ -1037,7 +1055,7 @@ export function prependEntry(
   const inheritedEnd = t.inheritedEnd
     ? { A: t.inheritedEnd.A + 1, B: t.inheritedEnd.B + 1, C: t.inheritedEnd.C + 1, unknown: t.inheritedEnd.unknown + 1 }
     : undefined;
-  return { pos, abc, lines, rapid, mode, frame, frames: t.frames, brk, ustart,
+  return { pos, abc, lines, rapid, mode, frame, frames: t.frames, brk, ustart, unpredicted,
            wcsEpoch, wcsEvents: t.wcsEvents, tlo, tloEvents: t.tloEvents, outside,
            lineOk, sub, subNames: t.subNames, cline, inheritedEnd,
            cum, count: n, lineIndex: buildLineIndex(lines, cum), timeBased: t.timeBased };

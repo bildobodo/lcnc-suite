@@ -188,6 +188,8 @@ export function previewRefreshLabel(reason: string | null | undefined): string {
   if (r === "reparse") return "operator reparse";
   if (r === "schema") return "suite upgrade";
   if (r === "drift") return "machine state change";
+  // M600 (plan section 2): the toolsetter values the routine reads changed
+  if (r === "toolsetter") return "toolsetter values changed";
   return r || "machine state change";
 }
 

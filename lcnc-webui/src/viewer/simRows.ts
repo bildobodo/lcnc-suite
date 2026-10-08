@@ -53,6 +53,10 @@ export interface SimRowInput {
    *  feed_outside / rapid_outside), with its line; null without flags. Where
    *  the run actually stops is not determined (Codex R97 VP-I55). */
   stop?: { cum: number; line: number } | null;
+  /** A note per tool for its tool-change rows (probeStop.m600ToolNotes):
+   *  where a tool measurement's length comes from, or why it is not
+   *  predicted. */
+  toolNotes?: ReadonlyMap<number, string>;
 }
 
 const KIND_ORDER: Record<SimRowKind, number> = { tool: 0, limit: 1, clash: 2 };
@@ -92,7 +96,7 @@ export function buildSimRows(i: SimRowInput): SimRow[] {
   }
   for (const t of i.tool) {
     rows.push({ key: t.key, kind: "tool", line: t.line, lineLabel: `L${t.line}`, cum: t.cum, cumEnd: t.cumEnd,
-      what: `Tool change → T${t.tool || "?"}`, note: "", rapid: null, at: at(t.cum) });
+      what: `Tool change → T${t.tool || "?"}`, note: i.toolNotes?.get(t.tool) ?? "", rapid: null, at: at(t.cum) });
   }
   rows.sort(simRowOrder);
   markLimitStop(rows, i.stop ?? null);

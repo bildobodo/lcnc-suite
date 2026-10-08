@@ -162,6 +162,10 @@ export interface ScrubTrack {
    *  2026-09-12): the gateway validator's per-vertex flag, merged like
    *  mode — present iff every non-empty stream carried it. */
   outside?: Uint8Array;
+  /** 1 = the point lies after a tool measurement the preview cannot predict
+   *  (payload `probe_unpredicted`): its position is unknown — merged from
+   *  the streams' flags (previewDecode). Absent = no such measurement. */
+  unpredicted?: Uint8Array;
   tloEvents?: import("../viewer/tloEvents").TloEvent[];
   /** Monotonic scrub parameter: SECONDS when `timeBased` (unified timeline
    *  phase 1 — per-segment feed + INI rapid velocities), else distance
@@ -420,9 +424,25 @@ export interface ViewerGcode {
   // for the client-built entry move's duration; null = INI didn't say.
   rapid_rate?: number | null;
   rot_rapid_rate?: number | null;
-  // Executed tool changes as [line, tool] in execution order (canon M6 only
-  // — a preview-skipped M600 remap contributes none, same as the stats).
+  // Executed tool changes as [line, tool] in execution order (canon M6 on a
+  // line of this file; the M600 routine's own M6 at its call line when that
+  // is the program's only one, else none — gateway_util.main_file_tool_changes).
   tool_change_lines?: [number, number][];
+  /** M600 in the preview (docs/reviews/m600-preview.plan.md): where the
+   *  bundled routine stopped predicting — [seq, tool, reason]
+   *  (gateway_util.PROBE_UNPREDICTED_REASONS). From the first one on every
+   *  point is an unknown start (`ScrubTrack.unpredicted`) and nothing is
+   *  limit-checked. Absent = every measurement predicted (or none). */
+  probe_unpredicted?: [number, number, string][];
+  /** Where the routine's G43 applied the TABLE's length — [seq, tool,
+   *  length] (machine units): an assumption, never a measurement. */
+  toollen_table?: [number, number, number][];
+  /** The toolsetter basis the routine was read with (plan section 2):
+   *  `state` confirmed / assumed / unknown / not_set_up, the latest
+   *  confirmation's `origin` (applied / read) and `t` (epoch s), the values
+   *  read (var number → value), `routine` = the program runs the routine. */
+  toolsetter_basis?: { state?: string; origin?: string; t?: number; version?: number; routine?: boolean;
+                       values?: Record<string, number | null>; unknown?: number[]; assumed?: number[] };
   /** Lines that set an offset or a stored position from the unknown
    *  position after a tool change (Codex R95 VP-I53); absent = none. */
   stale_offset_lines?: number[];

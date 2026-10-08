@@ -8786,3 +8786,37 @@ query. VP-I58: an undecidable answer the refinement meets is named (per pair
 and line), apart from the forward sweep's state. Codex accepted Fassung 3
 (open meshes named once per model) in the same round.
 
+
+## 2026-10-08 — M600 in the preview: the table length predicts the trip, or nothing is claimed (plan Fassung 3, Codex R102–R104)
+
+The bundled tool_touch_off.ngc was skipped whole in the preview: no tool
+change, no positioning moves, the old tool on. It now runs there; its
+positioning is the same code in both, and the preview-only blocks guard what
+a preview cannot reproduce. The preview's G38 runs its whole travel and
+never trips, so the routine moves to where the tool's TABLE length would
+trip the setter — only where the machine's probe would trip there too — and
+sets the probe results there; its own formula then applies the table length.
+That is an assumption, said as one ("from the table (assumed)"), never a
+measurement. Where the condition fails, the preview stops at the probe's
+start and from there claims nothing to the program's end: the machine's
+probe may trip anywhere on its travel, and the offset it applies is what it
+measures. The machine path is pinned to the routine before the change as a
+control structure, so a task run executes what it did.
+
+What the routine reads are the interpreter's values. A value in the
+parameter file is not one the interpreter took over (the gateway writes the
+file before the MDI that sets them, and the interpreter writes the file only
+at its synchs — save_parameters rewrites every line from its own values).
+The gateway therefore books each value with where it is known from, per
+chunk of the MDI that set it, and reads back confirmed (the G30 contract)
+when a program that runs the routine is loaded and the book is not
+confirmed. "Not set up" became "never stored": a parameter file without any
+of the routine's keys — a measurement with values the machine may not hold
+would end the parse with an error, so the routine returns at once instead.
+
+Implementation finds: the preview reads tools through the canon (STAT's
+tool table) but the interpreter needs a tool data mmap not to crash
+offline (libtooldata wants 1001 comment pointers); a return skipped the
+routine's sub-span end marker and the program after an early return was
+taken for the call; the routine's M6 carried the sub file's line onto the
+timeline; a program tool without a table length was swept as a 60 mm stub.

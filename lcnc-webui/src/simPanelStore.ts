@@ -41,6 +41,12 @@ export const simView = reactive({
    *  (null = not validated — unchecked ≠ clean), `records` the ones the
    *  payload carries (the gateway caps the list at 200). */
   limits: { total: null as number | null, records: 0 },
+  /** A tool measurement the preview cannot predict (M600): what and why —
+   *  from there no path, no time, no collision or limit check. */
+  stop: null as string | null,
+  /** Where the toolsetter values the routine was predicted with come from
+   *  (probeStop.toolsetterBasisLine), null without the routine. */
+  basis: null as string | null,
   /** Why a row cannot be shown now (the machine is on), else undefined. */
   jumpReason: undefined as string | undefined,
   /** Playback speed, ×0.1 … ×100 in fixed steps. */

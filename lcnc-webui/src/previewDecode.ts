@@ -8,6 +8,7 @@
 import { parseWcsFrames, type WcsEpoch } from "./viewer/wcsEpochs";
 import { TLO_NONE, parseTloEvents, type TloEvent } from "./viewer/tloEvents";
 import { EVENT_NONE, eventIdxFor } from "./viewer/eventIndex";
+import { firstProbeStopSeq } from "./viewer/probeStop";
 import type { ScrubStream } from "./viewer/scrubTrack";
 import type { RotaryCmd } from "./ws/bulkData";
 
@@ -84,17 +85,30 @@ export function decodePreviewStreams(g: Record<string, any>): DecodedPreview {
   const rapidTloWire = eventIdxFor(rapidSeq, tloSeqs, TLO_NONE);
 
   const rotaryCmd = parseRotaryCmd(g.rotary_cmd);
+  // M600 (docs/reviews/m600-preview.plan.md): every point after the first
+  // measurement the preview cannot predict (wire probe_unpredicted, by seq).
+  const stopSeq = firstProbeStopSeq(g.probe_unpredicted);
+  const after = (seq: Uint32Array | undefined, n: number) => {
+    if (stopSeq == null || !seq || seq.length !== n) return undefined;
+    const out = new Uint8Array(n);
+    for (let i = 0; i < n; i++) out[i] = seq[i]! > stopSeq ? 1 : 0;
+    return out;
+  };
+  const feedUnpred = after(feedSeq, feedPos.length / 3);
+  const rapidUnpred = after(rapidSeq, rapidPos.length / 3);
 
   return {
     feed: { pos: feedPos, abc: feedAbc, lines: feedLines, seq: feedSeq,
             tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? toF32(g.feed_tcum) : undefined,
             mode: feedModeWire, frame: feedFrameWire, wcs: feedWcsWire, tlo: feedTloWire,
-            lineOk: feedLineOkWire, sub: feedSubWire, cline: feedClineWire, outside: feedOutsideWire },
+            lineOk: feedLineOkWire, sub: feedSubWire, cline: feedClineWire, outside: feedOutsideWire,
+            unpredicted: feedUnpred },
     rapid: { pos: rapidPos, abc: rapidAbc, lines: toU32(g.rapid_lines), seq: rapidSeq,
              tcum: g.rapid_tcum != null && (g.rapid_tcum as Uint8Array).length ? toF32(g.rapid_tcum) : undefined,
              mode: rapidModeWire, frame: rapidFrameWire, brk: rapidBrkWire,
              ustart: rapidUstartWire, wcs: rapidWcsWire, tlo: rapidTloWire,
-             lineOk: rapidLineOkWire, sub: rapidSubWire, cline: rapidClineWire, outside: rapidOutsideWire },
+             lineOk: rapidLineOkWire, sub: rapidSubWire, cline: rapidClineWire, outside: rapidOutsideWire,
+             unpredicted: rapidUnpred },
     kinsFrames, wcsEvents, tloEvents, subNames, rotaryCmd,
     feedPos, rapidPos, feedLines, feedAbc, rapidAbc,
   };

@@ -10,7 +10,7 @@
 ; TWP example's: here M429 selects identity and M428 TCP
 ; (xyzac-trt-kins sparm=identityfirst).
 o<m601> sub
-(WEBUI_SUB=m601) ;lcnc-suite: preview sub-span marker, silent in task
+(WEBUI_SUB=m601 CALLER=m601) ;lcnc-suite: preview sub-span marker, silent in task
 #<saved_kins> = 0
 o100 if [EXISTS[#<_webui_kinstype>]]
   #<saved_kins> = #<_webui_kinstype>

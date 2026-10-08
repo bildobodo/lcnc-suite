@@ -1,5 +1,5 @@
 o<m601> sub
-(WEBUI_SUB=m601) ;lcnc-suite: preview sub-span marker, silent in task
+(WEBUI_SUB=m601 CALLER=m601) ;lcnc-suite: preview sub-span marker, silent in task
 
 ;Subprogram to start the "tool_touch_off 5.x.x" subroutine in manual mode for other GUIs than Probe Basic.
 ;Stand: 2024-12-10
