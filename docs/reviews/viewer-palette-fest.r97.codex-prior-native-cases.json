@@ -1,0 +1,117 @@
+{
+  "r92_m6_feed": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\nG1 X10 Y5 Z15 F100\nM2\n",
+    "mm",
+    0.0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 0 0"
+    }
+  ],
+  "r92_m6_feed_then_rapid": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\nG1 X10 Y5 Z15 F100\nG0 Z20\nM2\n",
+    "mm",
+    0.0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 0 0"
+    }
+  ],
+  "r92_m6_arc": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\nG2 X10 Y0 I5 J0 F100\nM2\n",
+    "mm",
+    0.0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 0 0"
+    }
+  ],
+  "r92_m6_g43_feed": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\nG43\nG1 X10 Y5 Z15 F100\nM2\n",
+    "mm",
+    0.0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 0 0"
+    }
+  ],
+  "r92_m6_quill": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\nG0 X10 Y5\nM2\n",
+    "mm",
+    0.0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_QUILL_UP = 1"
+    }
+  ],
+  "r92_g49": [
+    "G21 G90\nG0 X0 Y0 Z40\nG49\nG0 X10 Z15\nM2\n",
+    "mm",
+    10.0,
+    [
+      430
+    ],
+    {}
+  ],
+  "r92_g49_repeat": [
+    "G21 G90\nG0 X0 Y0 Z40\nG49\nG0 X10 Z15\nG49\nG0 Z10\nM2\n",
+    "mm",
+    10.0,
+    [
+      430
+    ],
+    {}
+  ],
+  "r92_m6_g30_twice": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\nG0 Z20\nM6\nG0 X10 Y5\nM2\n",
+    "mm",
+    0.0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_AT_G30 = 1"
+    }
+  ],
+  "r92_m6_quill_g30": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\nG0 X10 Y5\nM2\n",
+    "mm",
+    0.0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_QUILL_UP = 1\nTOOL_CHANGE_AT_G30 = 1"
+    }
+  ],
+  "r92_g43_mid": [
+    "G21 G90\nG0 X0 Y0 Z40\nG43.1 Z10\nG0 Z0\nM2\n",
+    "mm",
+    0.0,
+    [
+      490
+    ],
+    {}
+  ],
+  "r92_m6_rapid": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\nG0 X10 Y5 Z15\nM2\n",
+    "mm",
+    0.0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 0 0"
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'./e2e',testMatch:['collisions.viewer.spec.ts','sim-panel.viewer.spec.ts'],workers:1,fullyParallel:false,timeout:120000,expect:{timeout:10000},reporter:'list',outputDir:'../evidence/r97-firefox-output',use:{browserName:'firefox',headless:true,locale:'en-GB',timezoneId:'UTC',trace:'off',screenshot:'only-on-failure'},webServer:{command:'MOCK_HOST=127.0.0.1 MOCK_PORT=4188 node e2e/mock-gateway.mjs',url:'http://127.0.0.1:4188',reuseExistingServer:false}});

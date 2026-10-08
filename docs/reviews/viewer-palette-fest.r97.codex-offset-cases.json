@@ -1,0 +1,79 @@
+{
+  "r95_g92_from_stale": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\nG92 Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ],
+  "r95_l20_from_stale": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L20 P1 Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ],
+  "r95_l20_inactive": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L20 P2 Z10\nG0 X10 Y5 Z15\nG55\nG0 X20 Z25\nG0 X30\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ],
+  "r95_l2_constant": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L2 P1 Z30\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ],
+  "r95_g92_from_stale_position_control": [
+    "G21 G90\nG0 X0 Y0 Z40\nG0 X0 Y20 Z30\nG92 Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ],
+  "r95_l20_from_stale_position_control": [
+    "G21 G90\nG0 X0 Y0 Z40\nG0 X0 Y20 Z30\nG10 L20 P1 Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ],
+  "r95_l20_inactive_position_control": [
+    "G21 G90\nG0 X0 Y0 Z40\nG0 X0 Y20 Z30\nG10 L20 P2 Z10\nG0 X10 Y5 Z15\nG55\nG0 X20 Z25\nG0 X30\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ]
+}
