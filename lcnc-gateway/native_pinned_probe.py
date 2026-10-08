@@ -6,10 +6,12 @@ installs a fake `linuxcnc`, and this needs the real `gcode` module. Never
 instantiates linuxcnc.stat/command against a machine. Prints one JSON line:
 {"skip": reason} when the native modules are missing, else {"checks": {...}}.
 """
+import atexit
 import contextlib
 import io
 import json
 import os
+import shutil
 import sys
 import tempfile
 from collections import namedtuple
@@ -26,6 +28,7 @@ except ImportError as e:
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 work = Path(tempfile.mkdtemp(prefix="pinned-probe-"))
+atexit.register(shutil.rmtree, work, True)   # one per case, never left in /tmp
 os.environ["LCNC_LOG_DIR"] = str(work / "logs")
 
 

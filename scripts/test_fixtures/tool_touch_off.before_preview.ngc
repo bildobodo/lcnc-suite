@@ -15,14 +15,9 @@
 o<tool_touch_off> sub
 (WEBUI_SUB=tool_touch_off) ;lcnc-suite: preview sub-span marker, silent in task
 
-;lcnc-suite: the routine runs in the preview too (#<_task> EQ 0, Codex R102-R104).
-;Its positioning is the same code in both. What a preview cannot reproduce is
-;guarded by #<_task>: the two probes (o<520>/o<530> move to the trip point the
-;tool's table length predicts, o<510> stops with a WEBUI_PROBE_UNPREDICTED
-;marker where it cannot), M50, M00/M01 and the log file. Under task
-;(#<_task> EQ 1) the routine executes what it did before; the preview-only
-;blocks are o<500>-o<540> (lcnc-gateway/test_tool_touch_off_paths.py compares
-;the task path with the original upstream routine's).
+;Ensures that the routine is not run when checking the CNC program. 
+;This can sometimes lead to unjustified errors.
+o<400> if [#<_task> EQ 1]
 
 ;-1- Fixed parameters (read from var file #3100-#3116, set via web UI)
 ;-MAIN-
@@ -76,7 +71,6 @@ o<401> endif
 
 
 ;-3- Create debug mode log file
-o<500> if [#<_task> EQ 1]          ;lcnc-suite: never a log file from the preview
 o<10> if [#<debug_mode> GT 0]
   (DEBUG, "logfile.txt" created in the configuration folder.)
   ;(DEBUG, "logfile.txt" im Konfigurationsordner erstellt.)
@@ -120,7 +114,6 @@ o<10> if [#<debug_mode> GT 0]
   (LOG, === OPTION Pre change pos ===)
   (LOG, ============================)
 o<10>endif
-o<500> endif
 
 
 
@@ -128,9 +121,7 @@ o<500> endif
 
 
 ;-10- Check for manual tool calibration and new parameters
-o<501> if [#<_task> EQ 1]          ;lcnc-suite: task only
 M50 P0
-o<501> endif
 
 
 
@@ -160,9 +151,7 @@ o<501> endif
 o<450> if [#<rfl_skip_tool> GT 0 AND #<rfl_skip_tool> EQ #<tool_selected> AND #<tool_selected> EQ #<tool_in_spindle>]
   #3116 = 0
   G43
-  o<502> if [#<_task> EQ 1]          ;lcnc-suite: task only
   M50 P1
-  o<502> endif
   (LOG, RFL guard: tool #<tool_selected> already measured via MDI - skipping re-measurement)
   (LOGCLOSE)
   o<tool_touch_off> return
@@ -202,9 +191,7 @@ o<100> if [#<tool_selected> EQ 0]
   o<101> endif
   M6 T#<tool_selected>
   G49
-  o<503> if [#<_task> EQ 1]          ;lcnc-suite: task only
   M50 P1
-  o<503> endif
   (LOG, END M6 T0)
   (LOGCLOSE)
   o<tool_touch_off> return
@@ -326,63 +313,12 @@ o<200> do
   G53 G1 F#<traverse_fr> Z#<probe_start_pos_z>
 
 
-  ;-125- lcnc-suite preview: the trip point a table length predicts (Codex R102-R104)
-  ;The preview's G38 never trips (it runs the whole travel, #5070 = 0). The preview
-  ;moves to where the tool's TABLE length would trip instead (o<520>/o<530>), but
-  ;only where the machine's probe would trip there too: a known length, the setter
-  ;at or below machine Z0 (the length formula -170- takes its ABS), the trip point
-  ;strictly inside the fast probe's travel, a positive probe feed and retract, and
-  ;a slow probe that ends inside the Z limit (LinuxCNC refuses a probe move whose
-  ;end is outside). Elsewhere the preview stops HERE, at the probe's start, and
-  ;says why: nothing from this point on is predicted.
-  o<510> if [#<_task> EQ 0]
-    #<preview_trip_z> = [#<tool_touch_z_coords> + #<tool_length_old>]
-    o<511> if [#<tool_selected> EQ #<finder_number>]
-      #<preview_trip_z> = [#<preview_trip_z> + #<finder_diff_z>]
-    o<511> endif
-    #<preview_unpredicted> = 1
-    o<512> if [#<tool_length_old> LE 0]
-      (WEBUI_PROBE_UNPREDICTED=length) ;lcnc-suite: preview marker, never in task
-    o<512> elseif [#<tool_touch_z_coords> GT 0]
-      (WEBUI_PROBE_UNPREDICTED=setter_z) ;lcnc-suite: preview marker, never in task
-    o<512> elseif [#<preview_trip_z> GE #<probe_start_pos_z> OR #<preview_trip_z> LE [#<probe_start_pos_z> - #<z_max_travel>]]
-      (WEBUI_PROBE_UNPREDICTED=travel) ;lcnc-suite: preview marker, never in task
-    o<512> elseif [#<fast_probe_fr> LE 0]
-      (WEBUI_PROBE_UNPREDICTED=feed) ;lcnc-suite: preview marker, never in task
-    o<512> elseif [#<retract_distance> LE 0]
-      (WEBUI_PROBE_UNPREDICTED=retract) ;lcnc-suite: preview marker, never in task
-    o<512> elseif [#<slow_probe_fr> GT 0 AND [#<preview_trip_z> - #<retract_distance>] LT #<_ini[AXIS_Z]MIN_LIMIT>]
-      (WEBUI_PROBE_UNPREDICTED=slow_limit) ;lcnc-suite: preview marker, never in task
-    o<512> else
-      #<preview_unpredicted> = 0
-    o<512> endif
-    o<513> if [#<preview_unpredicted> EQ 1]
-      o<tool_touch_off> return
-    o<513> endif
-  o<510> endif
-
-
   ;-130- Fast probe
   G91
   o<190> if [#<_task> EQ 1]
     F #<fast_probe_fr>
   o<190> endif
-  o<520> if [#<_task> EQ 1]
   G38.3 Z-[#<z_max_travel>]    (fast tool probe)
-  o<520> else
-    ;lcnc-suite preview: to the trip point o<510> admitted
-    G1 F#<fast_probe_fr> Z-[#<probe_start_pos_z> - #<preview_trip_z>]
-    #5061 = #5420                  ;the probe results as LinuxCNC sets them at a trip:
-    #5062 = #5421                  ;the position in the program frame (G5x, G92, TLO),
-    #5063 = #5422                  ;before the retract
-    #5064 = #5423
-    #5065 = #5424
-    #5066 = #5425
-    #5067 = #5426
-    #5068 = #5427
-    #5069 = #5428
-    #5070 = 1
-  o<520> endif
   G1 F#<traverse_fr> Z[#<retract_distance>]    (retract tool retract distance amount)
   G90
   #<addreps> = [#<addreps> - 1]
@@ -421,22 +357,7 @@ o<120> if [#<slow_probe_fr> GT 0]
   o<125> if [#<_task> EQ 1]
     F[#<slow_probe_fr>]    (set probe slow feedrate)
   o<125> endif
-  o<530> if [#<_task> EQ 1]
   G38.2 Z-[#<retract_distance> * 2]    (slow tool probe)
-  o<530> else
-    ;lcnc-suite preview: back down the retract to the same trip point
-    G1 F#<slow_probe_fr> Z-[#<retract_distance>]
-    #5061 = #5420                  ;the probe results as LinuxCNC sets them at a trip:
-    #5062 = #5421                  ;the position in the program frame (G5x, G92, TLO),
-    #5063 = #5422                  ;before the retract
-    #5064 = #5423
-    #5065 = #5424
-    #5066 = #5425
-    #5067 = #5426
-    #5068 = #5427
-    #5069 = #5428
-    #5070 = 1
-  o<530> endif
   ;#<z_slow_probe> = #5063
   G1 F#<traverse_fr> Z[#<retract_distance>]
   G90
@@ -462,13 +383,6 @@ o<131>endif
 (LOG, New tool length: #<new_tool_length_offset>)
 
 
-;-175- lcnc-suite preview: the length -180-/-190- apply is the TABLE's (assumed,
-;never measured); the canon pairs this marker with the G43 of this call
-o<540> if [#<_task> EQ 0]
-  (WEBUI_TOOLLEN_TABLE) ;lcnc-suite: preview marker, never in task
-o<540> endif
-
-
 ;-180- Save new tool length
 G10 L1 P #5400 Z [#<new_tool_length_offset>]  (5400 = tool number)
 
@@ -491,22 +405,19 @@ o<140> if [#<mode> EQ 1]
   o<141> endif
   
   ;Selects the type of pause after the survey.
-  o<504> if [#<_task> EQ 1]          ;lcnc-suite: task only
   o<142> if [ #<brake_after_M600> EQ 1]
     M00			;Interrupts the program flow until you press Start again
   o<142> elseif [#<brake_after_M600> EQ 2]
     M01			;If option is selected and [M01 BREAK] is selected in the interface, the machine pauses.
   o<142> endif
-  o<504> endif
 
 o<140> endif
 
-o<505> if [#<_task> EQ 1]          ;lcnc-suite: task only
 M50 P1
-o<505> endif
 
 (LOG, END)
 (LOGCLOSE)
+o<400> endif
 (WEBUI_SUB_END) ;lcnc-suite: preview sub-span marker
 o<tool_touch_off> endsub
 
