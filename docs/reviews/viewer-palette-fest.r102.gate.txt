@@ -1,0 +1,9 @@
+# R102 — gate R23 on fix/r101 0a09b8d6: every offline stage, the browser in four runs
+PASS backend, 5axis-model, audit-css, review-handshake
+backend: 1273 passed, 427 subtests passed in 50.07s
+frontend lint / build / unit: lint exit 0, build exit 0, unit exit 0 — Tests  2021 passed (2021)
+browser A (--project=serial-guards): 312 passed (17.6m)
+browser serial-layout --no-deps: 98 passed (10.8m)
+browser serial-visual --no-deps: 10 passed (28.7s)
+browser serial-viewer --no-deps: 71 passed (6.1m)
+312 + 98 + 10 + 71 = 491

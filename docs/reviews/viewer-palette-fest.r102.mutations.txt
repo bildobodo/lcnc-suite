@@ -1,0 +1,33 @@
+# R102 — compiling mutations of collision.ts / kins.ts, each restored from a byte copy (cmp verified)
+# vue-tsc --noEmit -p tsconfig.app.json per mutation; tests: collision.test.ts, collisionInside.test.ts, kinsBulge.test.ts
+
+RED    MV1 the sweep's budget back to |Δj| + bulge (vue-tsc exit 2)
+       Tests  1 failed | 117 passed (118)
+       - × one chunk (C ±11.25°): out of the box at the analytic exit, back in at its mirror 7ms
+RED    MV2 the speed bound at 1 × bulge (vue-tsc exit 0)
+       Tests  5 failed | 113 passed (118)
+       - × xyzac-trt (world): no sampled speed exceeds |Δj| + 4·bulge 3ms
+       - × xyzbc-trt (world): no sampled speed exceeds |Δj| + 4·bulge 1ms
+       - × xyzacb-trsrn mode 1 (TCP): no sampled speed exceeds |Δj| + 4·bulge 1ms
+       - × Codex R101's chunk: x = 1000·cos C over ±11.25° — equal ends, speed 76.6 per chunk 3ms
+       - × one chunk (C ±11.25°): out of the box at the analytic exit, back in at its mirror 7ms
+RED    MV3 no ask where a crossing may have been stepped over (vue-tsc exit 0)
+       Tests  1 failed | 117 passed (118)
+       - × four chunks (C ±45°): the budget carried across the chunk boundaries finds the return too 7ms
+GREEN  MV4 the surface budget not used up across chunks (vue-tsc exit 0)
+       Tests  118 passed (118)
+GREEN  MV5 the surface budget kept across a jump (vue-tsc exit 0)
+       Tests  118 passed (118)
+RED    MV6 the refinement's undecidable answer unnamed (vue-tsc exit 0)
+       Tests  1 failed | 117 passed (118)
+       - × met only by the refinement, it is named too (Codex R101 VP-I58) 15ms
+RED    MV1 the sweep's budget back to |Δj| + bulge (compiling form) (vue-tsc exit 0) — rerun
+       Tests  1 failed | 118 passed (119)
+       - × one chunk (C ±11.25°): out of the box at the analytic exit, back in at its mirror 8ms
+GREEN  MV4 the surface budget not used up across chunks (vue-tsc exit 0) — rerun
+       Tests  119 passed (119)
+RED    MV3 no ask where a crossing may have been stepped over — rerun with the identity floor test
+       - × a crossing narrower than the sampling floor, into the inside across a line boundary
+RED    MV4 the surface budget not used up across chunks — rerun with the identity floor test (cube 0.01, margin 0.01, line boundary 0.2 deep inside)
+       - × a crossing narrower than the sampling floor, into the inside across a line boundary
+(MV5 — the budget reset at a jump — was redundant with needInside and is removed from the product; MV1 rerun in compiling form above)
