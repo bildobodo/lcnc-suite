@@ -8503,6 +8503,7 @@ resumable"): nothing computes, the owner shows the check as not run, the next
 request sweeps afresh. Codex had named a parked, honestly unchecked state as
 the other way; it needs a pair count the coordinator does not have (a result
 of 0 pairs reads "No moving pairs"), so the error it called equally clear.
+
 ## 2026-10-08 — The move after a G43 is a real move; an M6 only where the controller moves
 
 Operator, live look at haus.ngc on the XYZAC sim: the limit row of L18
