@@ -35,6 +35,7 @@ import MachineSelect from "./MachineSelect.vue";
 import OffsetPanel from "./OffsetPanel.vue";
 import Gate from "./Gate.vue";
 import { toolOffsetState } from "./viewer/toolOffsetState";
+import { parseProbeStops, probeStopWhy, type ProbeStop } from "./viewer/probeStop";
 import MachineBtn from "./MachineBtn.vue";
 import MacroBar from "./MacroBar.vue";
 import MacrosPanel from "./MacrosPanel.vue";
@@ -565,6 +566,9 @@ const gcodeViolations = ref<LimitViolation[] | null>(null);
 const gcodeViolationsReason = ref<string | null>(null);
 const gcodeViolationsTotal = ref(0);
 const gcodeWorldUnchecked = ref(0);
+// Tool measurements the preview cannot predict (M600): the limits are
+// validated up to the first only.
+const gcodeProbeStops = ref<ProbeStop[]>([]);
 // Kins-flip honesty counts from the parse worker: flips no twin could
 // resolve (segments keep phantom geometry) and frame-relabel CARRY spans
 // (geometry corrected under an assumption canon replay cannot verify —
@@ -606,6 +610,9 @@ const softLimitStatus = computed(() => {
   if (n) parts.push(`${n} violation${n === 1 ? "" : "s"}`);
   const w = gcodeWorldUnchecked.value;
   if (w) parts.push(`${w} TCP segment${w === 1 ? "" : "s"} not validated`);
+  // M600: nothing after a tool measurement the preview cannot predict
+  const stop = gcodeProbeStops.value[0];
+  if (stop) parts.push(`not validated after the tool measurement (${probeStopWhy(stop)})`);
   return parts.length ? { cls: "warn", text: parts.join(" · ") }
                       : { cls: "ok", text: "OK" };
 });
@@ -1859,6 +1866,7 @@ watch(viewerGcode, (newGcode) => {
   gcodeViolationsReason.value = newGcode?.violations_reason ?? null;
   gcodeViolationsTotal.value = newGcode?.violations_total ?? 0;
   gcodeWorldUnchecked.value = newGcode?.violations_world_unchecked ?? 0;
+  gcodeProbeStops.value = parseProbeStops(newGcode?.probe_unpredicted);
   gcodeKinsUnresolved.value = newGcode?.kins_flips_unresolved ?? 0;
   gcodeKinsCarrySpans.value = newGcode?.kins_carry_spans ?? 0;
   gcodeUnmarkedSubs.value = newGcode?.unmarked_subs ?? [];

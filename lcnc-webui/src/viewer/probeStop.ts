@@ -7,6 +7,7 @@
 // every position is unknown to the program's end — no path, no time, no
 // collision or limit check. Pure: the sweep's note, the Simulation tab and
 // the stats dialog read the same words.
+import { fmtQty } from "../format";
 
 export interface ProbeStop { seq: number; tool: number; reason: string }
 
@@ -50,4 +51,26 @@ export function probeStopWhy(stop: { tool: number; reason: string }): string {
  *  no length in the table)"). */
 export function probeStopTitle(stop: { tool: number; reason: string }): string {
   return `Tool measurement not predicted (${probeStopWhy(stop)})`;
+}
+
+/** The Simulation tab's note per tool on its tool-change rows: a measurement
+ *  not predicted says why; a predicted one says its length is the TABLE's —
+ *  an assumption, never "measured" (plan section 5; payload `toollen_table`
+ *  rows [seq, tool, length]). A stop without a tool (the routine's values
+ *  unknown) annotates no row: the summary says it. */
+export function m600ToolNotes(stops: readonly ProbeStop[], toollen: unknown, unit: string): Map<number, string> {
+  const out = new Map<number, string>();
+  for (const st of stops) {
+    if (st.tool > 0 && !out.has(st.tool)) out.set(st.tool, `measurement not predicted: ${probeStopWhy(st)}`);
+  }
+  if (Array.isArray(toollen)) {
+    for (const row of toollen) {
+      if (!Array.isArray(row)) continue;
+      const [seq, tool, len] = row;
+      if (typeof seq !== "number" || !Number.isInteger(seq) || seq < 0) continue;   // malformed: claims nothing
+      if (typeof tool !== "number" || tool <= 0 || typeof len !== "number" || !Number.isFinite(len)) continue;
+      if (!out.has(tool)) out.set(tool, `${fmtQty(len, unit, 3)} from the table (assumed)`);
+    }
+  }
+  return out;
 }

@@ -38,6 +38,7 @@ import { Play, Pause, X, Triangle, Circle } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
 import { buildSimRows, limitStopOf, nextRowKey, simRowOrder, type SimRowKind } from "./viewer/simRows";
+import { m600ToolNotes, parseProbeStops, probeStopTitle } from "./viewer/probeStop";
 import { simRows, simView, claimSimActions, type SimSweepView } from "./simPanelStore";
 import MachineToggle from "./MachineToggle.vue";
 
@@ -443,11 +444,15 @@ function onScrubInput() {
   cancelAnimationFrame(raf);
 }
 
+// A tool measurement the preview cannot predict (M600, payload
+// `probe_unpredicted`): from there the positions — and so the time — are
+// unknown; the total is the time to it, "+" says there is more.
+const probeStops = computed(() => parseProbeStops(viewerGcode.value?.probe_unpredicted));
 // Position readout: elapsed/total time on a time-based track, percent on
 // the distance fallback.
 const posLabel = computed(() => {
   if (track.value?.timeBased) {
-    return `${fmtElapsed(Math.floor(sPos.value))}/${fmtElapsed(Math.floor(cumMax.value))}`;
+    return `${fmtElapsed(Math.floor(sPos.value))}/${fmtElapsed(Math.floor(cumMax.value))}${probeStops.value.length ? "+" : ""}`;
   }
   return `${pct.value} %`;
 });
@@ -610,7 +615,9 @@ const posText = computed(() => (running.value ? `~${posLabel.value}` : posLabel.
 // the last line + " →" (the rapid marker), 5ch floor for "entry"/"end";
 // sub names ellipsize with the full text in the title.
 const posSlotCh = computed(() =>
-  track.value?.timeBased ? fmtElapsed(Math.floor(cumMax.value)).length * 2 + 2 : 5);
+  track.value?.timeBased ? fmtElapsed(Math.floor(cumMax.value)).length * 2 + 2 + (probeStops.value.length ? 1 : 0) : 5);
+const posTitle = computed(() => probeStops.value.length
+  ? "The time to the tool measurement the preview cannot predict — after it unknown" : undefined);
 
 // Sweep progress is drawn ON THE TIMELINE (the swept band, sweptFrac below)
 // so a scrub shows which section is already checked, and the clashes found
@@ -941,6 +948,7 @@ const rowsNow = computed(() => buildSimRows({
   violations: violations.value ?? [], unit: linearUnit.value,
   timeBased: !!track.value?.timeBased, axisEnd: cumMax.value,
   stop: limitStop.value,
+  toolNotes: m600ToolNotes(probeStops.value, viewerGcode.value?.toollen_table, linearUnit.value),
 }));
 watch(rowsNow, r => { simRows.value = r; }, { immediate: true });
 // Per frame while playing, but it only CHANGES where the playhead passes a
@@ -997,6 +1005,7 @@ watchEffect(() => {
   simView.sweep = sweepView.value;
   const v = violations.value;
   simView.limits = { total: v == null ? null : viewerGcode.value?.violations_total ?? v.length, records: v?.length ?? 0 };
+  simView.stop = probeStops.value.length ? probeStopTitle(probeStops.value[0]!) : null;
   simView.jumpReason = hitNavReason.value;
 });
 const releaseSim = claimSimActions({
@@ -1076,7 +1085,7 @@ onUnmounted(releaseSim);
       <!-- The time in a FIXED slot sized per program (posSlotCh): the
            timeline is the one flexible item, so it never moves. -->
       <span class="val-slot posSlot val-status mono" :class="{ muted: !simMode && !running }"
-            :style="{ '--slot-w': posSlotCh + 'ch' }">{{ posText }}</span>
+            :style="{ '--slot-w': posSlotCh + 'ch' }" :title="posTitle">{{ posText }}</span>
     </div>
   </div>
 </template>
