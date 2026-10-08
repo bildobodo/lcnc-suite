@@ -43,6 +43,7 @@ export function probeStopWhy(stop: { tool: number; reason: string }): string {
     case "slow_limit": return "the slow probe would end past the Z limit";
     case "toolsetter_unknown": return "the toolsetter values are not confirmed";
     case "toolsetter_not_set_up": return "the toolsetter is not set up";
+    case "foreign_remap": return "the tool change remap is not the suite's routine";
     default: return stop.reason ? `not predicted: ${stop.reason}` : "not predicted";
   }
 }

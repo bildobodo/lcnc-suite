@@ -79,6 +79,7 @@ from gateway_util import (
     classify_motion_lines, line_trust_flags, resolve_sub_indices,
     attribute_sub_callers, resolve_sub_callers, refusal_payload, main_file_tool_changes,
     read_var_snapshot, TOOLSETTER_BASIS_KEYS, toolsetter_assigned_keys,
+    foreign_m600_codes, m_code_lines, next_block_lines,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
     wcs_rewrite_targets, ustart_start_tuple,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
@@ -230,6 +231,27 @@ def parse(ctx: dict) -> dict:
     # never stored values), else None.
     _ts = ctx.get("toolsetter") or {}
     _ts_used = None
+    # An M600 / M601 remap that is not the suite's (M600 plan, section 4): its
+    # call lines from the main file's text — read here only when there is one.
+    _foreign = foreign_m600_codes(
+        ini.findall("RS274NGC", "REMAP") or [],
+        resolve_subroutine_dirs(ini.find("DISPLAY", "PROGRAM_PREFIX"), ini_path)
+        + resolve_subroutine_dirs(ini.find("RS274NGC", "SUBROUTINE_PATH"), ini_path))
+    if _foreign:
+        try:
+            with open(filename, "r", errors="replace") as f:
+                _ftext = f.read()
+            canon.foreign_m600_lines = m_code_lines(_ftext, _foreign)
+            if canon.foreign_m600_lines:
+                _, canon.foreign_m600_mode = position_write_lines(_ftext)
+                canon._next_block = next_block_lines(_ftext)
+                print(f"foreign remap {sorted(_foreign)}: not predicted from its first call",
+                      file=sys.stderr, flush=True)
+        except OSError as e:
+            # unreadable: every line may be one — from the program's start
+            canon.foreign_m600_lines = frozenset({0})
+            canon.foreign_m600_mode = "unread"
+            _trace.emit_exc("gcode.foreign_remap_scan_failed", e)
     canon.toolsetter_unpredictable = ctx.get("toolsetter_unpredictable") or _ts.get("unpredictable") or None
     # The controller's own motion at an M6 (gcode_canon.tool_change_moves):
     # only a tool change position makes the move after it start where no

@@ -164,6 +164,30 @@ class TestPredictedMeasurement(unittest.TestCase):
         self.assertEqual([(v["line"], v["axis"], v["value"]) for v in r["violations"]], [(4, "Z", 280.0)])
 
 
+class TestForeignRemap(unittest.TestCase):
+
+    def test_a_foreign_m600_is_not_predicted_from_the_block_before_it(self):
+        # `REMAP=M600 ngc=othertc` (no suite marker): what the call does is
+        # unknown — the program's G1 at L3 is known, its own G53 move and the
+        # program after it are not
+        r = probe("m600_foreign")
+        self.assertIsNone(r["parse_error"])
+        ev = path(r)
+        g1 = next(q for q, k, p, ln in ev if k == "F" and ln == 3)
+        self.assertEqual(r["probe_unpredicted"], [[g1, -1, "foreign_remap"]])
+        ustart = dict(zip(r["rapid_seq"], r["rapid_ustart"]))
+        self.assertEqual({(k, ustart.get(q)) for q, k, _, _ in ev if q > g1}, {("R", 1)})
+
+    def test_with_o_words_from_the_programs_start(self):
+        r = probe("m600_foreign_oword")
+        self.assertEqual(r["probe_unpredicted"][0][2], "foreign_remap")
+        ustart = dict(zip(r["rapid_seq"], r["rapid_ustart"]))
+        self.assertEqual(set(ustart.values()), {1})
+
+    def test_the_suites_own_routine_is_not_foreign(self):
+        self.assertIsNone(probe("m600_known")["probe_unpredicted"])
+
+
 class TestSubSpans(unittest.TestCase):
 
     def test_the_program_after_the_call_is_outside_every_span(self):

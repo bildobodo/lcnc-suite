@@ -111,6 +111,16 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     toolsetter_unpredictable = None
     _probe_unknown = False
     _toollen_open = False
+    # An M600 / M601 remap that is not the suite's (gateway_util
+    # foreign_m600_codes): the preview cannot know what the call does — from
+    # it, every axis is unknown. Its lines from the main file's text; in
+    # text order (`ordered`) the mark lands where the block BEFORE the call
+    # has run (a remap trigger line gets no next_line), else — lines that
+    # need not run in text order — at the program's start.
+    foreign_m600_lines = frozenset()
+    foreign_m600_mode = "ordered"
+    _next_block = {}
+    _foreign_pending = False
     _CYCLES = frozenset((730, 810, 820, 830, 840, 850, 860, 870, 880, 890))
     _PLANE_NORMAL = {170: 2, 180: 1, 190: 0, 171: 8, 181: 7, 191: 6}
 
@@ -330,6 +340,13 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
                 self._in_init = True
             else:
                 self._in_init = False          # program from here on, for good
+        if self.foreign_m600_lines and not self._probe_unknown and self._program_line():
+            n = int(self.lineno)
+            if (self.foreign_m600_mode != "ordered" or self._foreign_pending
+                    or n in self.foreign_m600_lines):
+                self._mark_probe_unknown("foreign_remap")
+            elif self._next_block.get(n) in self.foreign_m600_lines:
+                self._foreign_pending = True
         # PROGRAM-START basis: the offsets in effect after the gateway's
         # initcodes (which force the machine's ACTIVE WCS) and before the
         # program's first line runs.

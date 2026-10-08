@@ -4583,6 +4583,37 @@ class TestToolsetterBasis(unittest.TestCase):
         self.assertEqual(gateway_util.toolsetter_ctx({}, 1)["unpredictable"], "toolsetter_not_set_up")
 
 
+class TestForeignM600(unittest.TestCase):
+    """M600 plan, section 4, last row: an M600 / M601 remap that is not the
+    suite's routine — the preview cannot know what the call does."""
+
+    def test_which_remaps_are_foreign(self):
+        f = gateway_util.foreign_m600_codes
+        with tempfile.TemporaryDirectory() as d1, tempfile.TemporaryDirectory() as d2:
+            def w(d, name, text):
+                with open(os.path.join(d, name), "w") as fh:
+                    fh.write(text)
+            w(d2, "m600.ngc", "o<m600> sub\n(WEBUI_SUB=m600 CALLER=m600)\n(WEBUI_SUB_END)\no<m600> endsub\n")
+            w(d2, "m601.ngc", "o<m601> sub\n(WEBUI_SUB=m601)\no<m601> endsub\n")
+            w(d2, "othertc.ngc", "o<othertc> sub\nM6\no<othertc> endsub\n")
+            suite = ["M600 modalgroup=6 ngc=m600", "M601 modalgroup=6 ngc=m601", "M428 modalgroup=10 ngc=428remap"]
+            self.assertEqual(f(suite, [d1, d2]), frozenset())
+            self.assertEqual(f(["M600 modalgroup=6 ngc=othertc"], [d1, d2]), frozenset({"m600"}))
+            self.assertEqual(f(["M601 modalgroup=6 python=measure"], [d2]), frozenset({"m601"}), "no ngc")
+            self.assertEqual(f(["M600 modalgroup=6 ngc=missing"], [d2]), frozenset({"m600"}), "not found")
+            # the FIRST hit on the path decides: a plain m600.ngc ahead shadows ours
+            w(d1, "m600.ngc", "o<m600> sub\nM6\no<m600> endsub\n")
+            self.assertEqual(f(suite, [d1, d2]), frozenset({"m600"}))
+            self.assertEqual(f([], [d1]), frozenset(), "no remap: none")
+
+    def test_the_call_lines_and_what_runs_next(self):
+        text = "G21\n(M600 in a comment)\nT2 M600\n\n; nothing\nG0 X1 M0601\nM6000\nM2\n"
+        self.assertEqual(gateway_util.m_code_lines(text, {"m600", "m601"}), frozenset({3, 6}))
+        self.assertEqual(gateway_util.m_code_lines(text, {"m601"}), frozenset({6}))
+        nb = gateway_util.next_block_lines(text)
+        self.assertEqual((nb[1], nb[3], nb[4], nb[6]), (3, 6, 6, 7))
+
+
 class TestApplyVarPatchesOrder(unittest.TestCase):
 
     def test_a_missing_parameter_goes_in_order(self):

@@ -26,6 +26,7 @@ describe("probe stops", () => {
     expect(why("slow_limit")).toBe("the slow probe would end past the Z limit");
     expect(why("toolsetter_unknown", -1)).toBe("the toolsetter values are not confirmed");
     expect(why("toolsetter_not_set_up", -1)).toBe("the toolsetter is not set up");
+    expect(why("foreign_remap", -1)).toBe("the tool change remap is not the suite's routine");
     expect(why("length", -1)).toBe("the tool has no length in the table");
     // a word this client does not know is still a stop, said as it came
     expect(why("newer_reason")).toBe("not predicted: newer_reason");

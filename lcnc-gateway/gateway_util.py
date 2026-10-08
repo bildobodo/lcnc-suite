@@ -3983,9 +3983,69 @@ _SUB_END_MARKER = re.compile(r"^\s*WEBUI_SUB_END\s*$", re.IGNORECASE)
 # sub-span markers. The reasons the routine writes, and the gateway's own
 # for a toolsetter whose values the preview cannot know.
 PROBE_UNPREDICTED_REASONS = ("length", "setter_z", "travel", "feed", "retract", "slow_limit",
-                             "toolsetter_unknown", "toolsetter_not_set_up")
+                             "toolsetter_unknown", "toolsetter_not_set_up", "foreign_remap")
 _PROBE_UNPREDICTED_MARKER = re.compile(r"^\s*WEBUI_PROBE_UNPREDICTED\s*=\s*([a-z_]+)\s*$", re.IGNORECASE)
 _TOOLLEN_TABLE_MARKER = re.compile(r"^\s*WEBUI_TOOLLEN_TABLE\s*$", re.IGNORECASE)
+
+
+def foreign_m600_codes(remap_lines, search_dirs, max_read=65536) -> frozenset:
+    """The M600 / M601 remaps that are not the suite's (M600 plan, section 4,
+    last row): a REMAP for the code whose ngc file — the first hit on the
+    search path, LinuxCNC's rule — carries no `(WEBUI_SUB=m600)` /
+    `(WEBUI_SUB=m601)` marker or cannot be found or read, or a remap without
+    an ngc (python=). The preview cannot know what such a call does to the
+    tool and the machine's state. A code without a REMAP is none. Lower-case
+    codes ("m600", "m601"). Reads the files, else pure."""
+    out = set()
+    for raw in remap_lines or ():
+        parts = str(raw or "").split()
+        if not parts or parts[0].lower() not in ("m600", "m601"):
+            continue
+        code = parts[0].lower()
+        m = re.search(r"\bngc\s*=\s*(\S+)", str(raw), re.IGNORECASE)
+        if not m:
+            out.add(code)
+            continue
+        name = m.group(1).strip().lower()
+        name = name[:-4] if name.endswith(".ngc") else name
+        text = None
+        for d in search_dirs or ():
+            path = os.path.join(d, name + ".ngc")
+            if os.path.isfile(path):
+                try:
+                    with open(path, encoding="utf-8", errors="replace") as f:
+                        text = f.read(max_read)
+                except OSError:
+                    text = None
+                break
+        if text is None or not re.search(r"\(\s*WEBUI_SUB\s*=\s*" + code + r"\b", text, re.IGNORECASE):
+            out.add(code)
+    return frozenset(out)
+
+
+def m_code_lines(source_text, codes) -> frozenset:
+    """The main file's lines (1-based) whose block carries one of `codes`
+    ("m600" …) as an M word, comments out. Pure."""
+    nums = "|".join(re.escape(c[1:].lstrip("0") or "0") for c in codes or () if c.lower().startswith("m"))
+    if not nums:
+        return frozenset()
+    rx = re.compile(r"(?:^|[^a-z0-9.])m\s*0*(?:" + nums + r")(?![0-9.])", re.IGNORECASE)
+    return frozenset(i + 1 for i, raw in enumerate((source_text or "").splitlines())
+                     if rx.search(strip_gcode_comments(raw)))
+
+
+def next_block_lines(source_text) -> dict:
+    """line → the next line (1-based) whose block is not empty, comments out
+    — what runs next in text order. Pure."""
+    out = {}
+    pending = []
+    for i, raw in enumerate((source_text or "").splitlines()):
+        if strip_gcode_comments(raw).strip():
+            for p in pending:
+                out[p] = i + 1
+            pending = []
+        pending.append(i + 1)
+    return out
 
 
 def parse_m600_marker(text):

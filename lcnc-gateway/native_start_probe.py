@@ -318,6 +318,17 @@ CASES.update({
     "m600_not_set_up": _m600(var={}, ctx={"toolsetter": {
         "version": 1, "patches": {"3116": "0.000000"}, "unpredictable": "toolsetter_not_set_up",
         "view": {"state": "not_set_up", "unknown": [], "assumed": []}}}),
+    # an M600 remap that is NOT the suite's (M600 plan, section 4): the
+    # preview cannot know what the call does — nothing from it on
+    "m600_foreign": ("G21 G90\nG0 X50 Y50 Z-100\nG1 X55 F100\nT2 M600\nG0 X60 Y60\nM2\n", "mm", 0.0, (490,),
+                     {"rs274ngc": "REMAP=M600 modalgroup=6 ngc=othertc",
+                      "subs": {"othertc.ngc": "o<othertc> sub\nG53 G0 Z0\nM6\no<othertc> endsub\nM2\n"}}),
+    # ...in a program with o-words: its lines need not run in text order —
+    # from the program's start
+    "m600_foreign_oword": ("G21 G90\nG0 X50 Y50 Z-100\no100 if [1]\nT2 M600\no100 endif\nG0 X60 Y60\nM2\n",
+                           "mm", 0.0, (490,),
+                           {"rs274ngc": "REMAP=M600 modalgroup=6 ngc=othertc",
+                            "subs": {"othertc.ngc": "o<othertc> sub\nM6\no<othertc> endsub\nM2\n"}}),
     # a move past Z max (50) after the call: a violation where the measurement
     # is predicted, no verdict where it is not
     "m600_known_then_high": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG0 X60 Y60 Z200\nM2\n"),
