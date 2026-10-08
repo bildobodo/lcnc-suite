@@ -1,0 +1,42 @@
+{
+  "review": "R104",
+  "verdict": "agreement (plan only)",
+  "base": "3059001d",
+  "plan_head": "5903b87078c0c1edb1bb334efd98735114fce453",
+  "request_head": "9dff8814a47caefecc70f6e7595abda808b5e7c7",
+  "plan_sha256": "e0a3aa3a1543f9b846eb04df108264378d53d7a4b6a6858d33223aca68e3c19e",
+  "changed_files": [
+    "docs/reviews/m600-preview.plan.md",
+    "docs/reviews/viewer-palette-fest.ideen.md"
+  ],
+  "archive": "/tmp/codex-r104-ekild8df/archive",
+  "byte_equal_files": 173,
+  "hydrated_lfs_verified": [
+    "lcnc-gateway/machine/frame.stl",
+    "lcnc-gateway/machine/x_axis.stl",
+    "lcnc-gateway/machine/y_axis.stl",
+    "lcnc-gateway/machine/z_axis.stl"
+  ],
+  "product_edits": false,
+  "live_ports_accessed": false,
+  "machine_commands": false,
+  "task_plan_synch_live": false,
+  "browser_runs": [],
+  "build": null,
+  "gate": null,
+  "native_premise_cases": [
+    "single_touch",
+    "old_probe_overwritten",
+    "g54",
+    "g54_g92",
+    "g54_rotation",
+    "slow_overwrites",
+    "rotary_a"
+  ],
+  "native_premise_pass": 7,
+  "priority": "nice 19",
+  "previous_evidence_verified": {
+    "102": 29,
+    "103": 8
+  }
+}
