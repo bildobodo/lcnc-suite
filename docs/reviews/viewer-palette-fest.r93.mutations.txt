@@ -1,0 +1,13 @@
+# R93 — compiling mutations against the native worker tests (fix/r92 3605bc8f), one rule taken back each, restored from a byte copy
+MS1 a feed ignores stale axes | red: TestUnknownStartAfterAToolChange::test_every_motion_kind_from_an_unknown_start_is_an_endpoint;TestUnknownStartAfterAToolChange::test_the_position_is_known_again_once_every_stale_axis_is_commanded;
+MS2 an arc ignores stale axes | red: TestUnknownStartAfterAToolChange::test_every_motion_kind_from_an_unknown_start_is_an_endpoint;
+MS3 no retroactive G91 | red: TestUnknownStartAfterAToolChange::test_g91_never_re_establishes_an_axis;
+MS5 relabel before an unknown start | red: TestToolOffsetMove::test_a_g43_does_not_make_an_unknown_start_known;TestUnknownStartAfterAToolChange::test_every_motion_kind_from_an_unknown_start_is_an_endpoint;
+MS6 every axis stale after any TC position | red: TestUnknownStartAfterAToolChange::test_the_position_is_known_again_once_every_stale_axis_is_commanded;
+MS4 G91 re-establishes axes | red: TestUnknownStartAfterAToolChange::test_g91_never_re_establishes_an_axis;
+
+# toolChangePayloads.test.ts on payloads the PREVIOUS worker (feat/backlog-integration 35a3afa2) writes for the same cases: 2 failed | 3 passed — the VP-I51 cases red, the G43 relabel and the known controls green; on the fixtures: 5 passed
+
+# VP-I52, Codex's cold-model control rebuilt: prepare's STL route delayed 1.5 s (a temporary zz copy, removed)
+fixed poll (optional calls): 1 passed (7.9 s)
+the old poll (window.__viewerDiag!.getCollisionSummary!()): 1 failed — page.evaluate: TypeError: window.__viewerDiag.getCollisionSummary is not a function

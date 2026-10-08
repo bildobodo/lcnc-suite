@@ -1,0 +1,15 @@
+# R93 — gate R16 on fix/r92 3605bc8f (+ aec75164, a test-only fix in serial-viewer): every offline stage, the browser in four runs
+PASS backend (46.89s)
+PASS 5axis-model (0.69s)
+PASS audit-css (0.97s)
+PASS review-handshake (4.59s)
+backend: 1256 passed, 427 subtests passed in 46.61s
+frontend lint / build / unit: frontend-lint exit 0 frontend-build exit 0 frontend-test exit 0  — Tests  1973 passed (1973)
+browser A (--project=serial-guards): 312 passed (17.3m)
+browser serial-layout --no-deps: 98 passed (10.7m)
+browser serial-visual --no-deps: 10 passed (28.9s)
+browser serial-viewer --no-deps (first run): 1 failed, 69 passed — rapids.viewer.spec:125 read the longest rapid's direction 0.92 before the top view held
+  that test alone, 20 runs each: 35a3afa2 (no change of mine) 2 failed / 18 passed; fix/r92 20 passed — a race of the test, not of the change
+  aec75164 (path drawn first, then the view, the direction polled): 30 of 30 on 35a3afa2 and on fix/r92
+browser serial-viewer --no-deps (rerun with aec75164): 70 passed (6.1m)
+312 + 98 + 10 + 70 = 490
