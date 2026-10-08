@@ -197,6 +197,15 @@ CASES = {
     "r95_oword_g92": ("G21 G90\nG0 X0 Y0 Z40\no100 repeat [1]\nM6\no100 endrepeat\nG92 Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
     "r95_sub_g92": ("G21 G90\nG0 X0 Y0 Z40\nM6\no<setz> call\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,),
                     {"emcio": "TOOL_CHANGE_POSITION = 0 20 30", "subs": {"setz.ngc": "o<setz> sub\nG92 Z10\no<setz> endsub\nM2\n"}}),
+    # Codex R98 VP-I53 rest / VP-I56: a call into another file spelled with
+    # spaces (whitespace counts nowhere outside a comment) is a call; its
+    # G92 is the sub file's line 2 — never the main file's explicit L2.
+    "r98_foreign_plain": ("G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\no<touch> call\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,),
+                          {"emcio": "TOOL_CHANGE_POSITION = 0 20 30", "subs": {"touch.ngc": "o<touch> sub\nG92 Z40\no<touch> endsub\n"}}),
+    "r98_foreign_spaced": ("G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\no<touch> c a l l\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,),
+                           {"emcio": "TOOL_CHANGE_POSITION = 0 20 30", "subs": {"touch.ngc": "o<touch> sub\nG92 Z40\no<touch> endsub\n"}}),
+    "r98_foreign_spaced_position_control": ("G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nG0 X0 Y20 Z30\no<touch> c a l l\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,),
+                                            {"emcio": "TOOL_CHANGE_POSITION = 0 20 30", "subs": {"touch.ngc": "o<touch> sub\nG92 Z40\no<touch> endsub\n"}}),
     "r95_oword_no_write": ("G21 G90\nG0 X0 Y0 Z40\no100 repeat [1]\nM6\no100 endrepeat\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
     # Own: a fixture switch to a ROTATED fixture is a rotation change too.
     "r94_fixture_rotated_after_partial": ("G21 G90\nG10 L2 P2 R45\nG0 X0 Y0 Z40\nM6\nG0 X10 Z15\nG55\nG0 Y5 Z20\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 0"}),

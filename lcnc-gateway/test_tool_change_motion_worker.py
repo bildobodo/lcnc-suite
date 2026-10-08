@@ -273,6 +273,22 @@ class TestUnknownStartAfterAToolChange(unittest.TestCase):
         self.assertIsNone(r["stale_offset_lines"])
         self.assertIs(r["stale_offset_untracked"], True)
 
+    def test_a_call_into_another_file_spelled_any_way(self):
+        # Codex R98 VP-I53 rest: `o<touch> c a l l` is a call (whitespace
+        # counts nowhere outside a comment) — the main file's explicit L2 of
+        # the same number does not swallow the sub file's G92, L7 stays
+        # unknown. VP-I56: that G92 is named 0, never the main file's L2.
+        for case in ("r98_foreign_plain", "r98_foreign_spaced"):
+            r = probe(case)
+            self.assertIsNone(r["parse_error"], case)
+            self.assertEqual(r["rapid_ustart"][-1], 1, case)
+            self.assertEqual(set(r["rapid_tcum"][-2:]), {r["rapid_tcum"][-3]}, case)
+            self.assertEqual(r["stale_offset_lines"], [0], case)
+            self.assertIs(r["stale_offset_untracked"], True, case)
+        r = probe("r98_foreign_spaced_position_control")
+        self.assertEqual(r["rapid_ustart"][-1], 0)
+        self.assertIsNone(r["stale_offset_lines"])
+
     def test_any_spelling_of_a_write_is_seen(self):
         # Codex R96 VP-I53 rest: G92.0, G10.0, G28.10 are the same codes; a
         # G word the text cannot settle (G[90+2]) counts as a write. An

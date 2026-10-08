@@ -48,9 +48,10 @@ export interface SimRowInput {
   /** The displayed track's axis: seconds when time-based, else its length. */
   timeBased: boolean;
   axisEnd: number;
-  /** The latest moment the run can reach: the first track point a move
-   *  ENDS beyond the joint window at (the gateway's per-vertex flag — wire
-   *  feed_outside / rapid_outside), with its line; null without flags. */
+  /** The first PREDICTED limit crossing: the first track point a move ENDS
+   *  beyond the joint window at (the gateway's per-vertex flag — wire
+   *  feed_outside / rapid_outside), with its line; null without flags. Where
+   *  the run actually stops is not determined (Codex R97 VP-I55). */
   stop?: { cum: number; line: number } | null;
 }
 
