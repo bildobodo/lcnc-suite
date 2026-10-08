@@ -1,0 +1,24 @@
+# R98 — Codex's fifteen R97 programs, the braking arc, and the R96 / R95 offset cases: the REAL parse worker + native interpreter (native_start_probe.py, fix/r97 ae99ec4d)
+r97_l_plus_active {"err": null, "lines": [2, 5, 5, 6], "tcum": [0.0, 0.0, 0.0, 0.0], "ustart": [1, 0, 1, 1], "stale_offset_lines": [4], "untracked": null}
+r97_l_plain_active {"err": null, "lines": [2, 5, 5, 6], "tcum": [0.0, 0.0, 0.0, 0.0], "ustart": [1, 0, 1, 1], "stale_offset_lines": [4], "untracked": null}
+r97_g_plus_active {"err": null, "lines": [2, 5, 5, 6], "tcum": [0.0, 0.0, 0.0, 0.0], "ustart": [1, 0, 1, 1], "stale_offset_lines": [4], "untracked": null}
+r97_l_plus_explicit {"err": null, "lines": [2, 5, 5, 6], "tcum": [0.0, 0.0, 0.0, 1.0], "ustart": [1, 0, 1, 0], "stale_offset_lines": null, "untracked": null}
+r97_l_plus_inactive {"err": null, "lines": [2, 5, 7, 7, 8], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 0, 1, 1], "stale_offset_lines": [4], "untracked": null}
+r97_store_plus {"err": null, "lines": [2, 5, 6, 6, 7], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1, 1], "stale_offset_lines": [4], "untracked": null}
+r97_branch_same_g92 {"err": null, "lines": [2, 7, 8], "tcum": [0.0, 0.0, 0.0], "ustart": [1, 1, 1], "stale_offset_lines": [5], "untracked": true}
+r97_branch_same_l20 {"err": null, "lines": [2, 7, 8], "tcum": [0.0, 0.0, 0.0], "ustart": [1, 1, 1], "stale_offset_lines": [5], "untracked": true}
+r97_branch_different_g92 {"err": null, "lines": [2, 7, 7, 8], "tcum": [0.0, 0.0, 0.0, 0.0], "ustart": [1, 0, 1, 1], "stale_offset_lines": [5], "untracked": true}
+r97_branch_reselect {"err": null, "lines": [2, 7, 8], "tcum": [0.0, 0.0, 1.0], "ustart": [1, 1, 0], "stale_offset_lines": null, "untracked": true}
+r97_l_plus_active_position_control {"err": null, "lines": [2, 3, 5, 5, 6], "tcum": [0.0, 2.236068, 2.236068, 4.106897, 5.106897], "ustart": [1, 0, 0, 0, 0], "stale_offset_lines": null, "untracked": null}
+r97_l_plus_inactive_position_control {"err": null, "lines": [2, 3, 5, 7, 7, 8], "tcum": [0.0, 2.236068, 4.581276, 4.581276, 7.743554, 8.743553], "ustart": [1, 0, 0, 0, 0, 0], "stale_offset_lines": null, "untracked": null}
+r97_store_plus_position_control {"err": null, "lines": [2, 3, 5, 6, 7], "tcum": [0.0, 2.236068, 4.581276, 6.926484, 8.926484], "ustart": [1, 0, 0, 0, 0], "stale_offset_lines": null, "untracked": null}
+r97_branch_same_g92_position_control {"err": null, "lines": [2, 3, 7, 7, 8], "tcum": [0.0, 2.236068, 2.236068, 5.318275, 6.318275], "ustart": [1, 0, 0, 0, 0], "stale_offset_lines": null, "untracked": null}
+r97_branch_same_l20_position_control {"err": null, "lines": [2, 3, 7, 7, 8], "tcum": [0.0, 2.236068, 2.236068, 5.318275, 6.318275], "ustart": [1, 0, 0, 0, 0], "stale_offset_lines": null, "untracked": null}
+r97_arc_braking {"err": null, "lines": [2], "tcum": [0.0], "ustart": [1], "stale_offset_lines": null, "untracked": null}
+r96_branch_not_run {"err": null, "lines": [2, 7, 8], "tcum": [0.0, 0.0, 1.0], "ustart": [1, 1, 0], "stale_offset_lines": null, "untracked": true}
+r96_branch_inactive_l20 {"err": null, "lines": [2, 7, 9, 9, 10], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 0, 1, 1], "stale_offset_lines": [5], "untracked": true}
+r96_g92_expression {"err": null, "lines": [2, 5, 5, 6], "tcum": [0.0, 0.0, 0.0, 0.0], "ustart": [1, 0, 1, 1], "stale_offset_lines": [4], "untracked": null}
+r95_sub_g92 {"err": null, "lines": [2, 5, 5, 6], "tcum": [0.0, 0.0, 0.0, 0.0], "ustart": [1, 0, 1, 1], "stale_offset_lines": [0], "untracked": true}
+r95_oword_g92 {"err": null, "lines": [2, 7, 7, 8], "tcum": [0.0, 0.0, 0.0, 0.0], "ustart": [1, 0, 1, 1], "stale_offset_lines": [6], "untracked": true}
+r95_l2_constant {"err": null, "lines": [2, 5, 5, 6], "tcum": [0.0, 0.0, 0.0, 1.0], "ustart": [1, 0, 1, 0], "stale_offset_lines": null, "untracked": null}
+r94_fixture_rotated_complete {"err": null, "lines": [3, 5, 7, 7, 8], "tcum": [0.0, 0.0, 0.0, 0.0, 1.0], "ustart": [1, 1, 0, 1, 0], "stale_offset_lines": null, "untracked": null}
