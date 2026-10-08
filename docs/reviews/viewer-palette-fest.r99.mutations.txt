@@ -1,0 +1,26 @@
+# R99 — compiling mutations, each restored from a byte copy (cmp verified)
+
+## VP-I53 rest: gateway_util.position_write_lines (the o-word reader)
+RED    M1 o-words read WITH their whitespace (the R98 defect's first half)
+       test_gateway_util.py::TestPositionWriteLines::test_order_is_lost_with_o_words_numbers_with_a_call_into_another_file  FAILED
+       test_tool_change_motion_worker.py::…::test_a_call_into_another_file_spelled_any_way  passed —
+       the second rule (an o-word it cannot read is foreign) already catches
+       `O<TOUCH> C A L L` alone: two guards
+RED    M2 a word LinuxCNC does not know taken as local flow
+       test_gateway_util.py::TestPositionWriteLines::test_order_is_lost_with_o_words_numbers_with_a_call_into_another_file  FAILED
+RED    M1 + M2 together (the R98 code's behaviour)
+       test_tool_change_motion_worker.py::…::test_a_call_into_another_file_spelled_any_way  FAILED
+         AssertionError: 0 != 1 : r98_foreign_plain   (L7 known again)
+       payloads regenerated under it → toolChangePayloads.test.ts -t R98  FAILED
+         r98_foreign_plain: expected +0 to be 1   (track.ustart at L7)
+
+## VP-I56: gcode_canon._backstop_line
+RED    M3 a foreign callback named by a main-file line the text lists
+       test_tool_change_motion_worker.py::…::test_a_call_into_another_file_spelled_any_way  FAILED
+       test_gateway_util.py::TestOffsetWriteBackstop::test_a_reported_write_counts_whatever_its_value  FAILED
+       payloads regenerated under it → toolChangePayloads.test.ts -t R98  FAILED
+         r98_foreign_plain: the note names "at L2" instead of "an offset set from that position"
+
+Restored: gateway_util.py, gcode_canon.py and both payloads cmp-identical;
+a regeneration from the restored code is byte-identical to the committed
+payloads.

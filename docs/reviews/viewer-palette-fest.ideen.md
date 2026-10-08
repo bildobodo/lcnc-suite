@@ -13900,3 +13900,40 @@ Eine zusätzliche Werkzeugtabellen-Sonde (`G10 L10 P1 Z40`, später `G43 H1`) st
 **Nicht blockierende Textpflege:** `simRows.ts:51` und `ScrubBar.vue:935` bezeichnen die Grenze in älteren Kommentaren noch als „latest moment the run can reach“. Diese Kommentare an die korrigierte UI-Bedeutung angleichen; sie halten VP-I55 nicht offen.
 
 [Prüfaufbau und Wiederholung](viewer-palette-fest.r98.codex-checks.md), [Stand und Isolation](viewer-palette-fest.r98.codex-context.json), [Python](viewer-palette-fest.r98.codex-python.txt), [Build](viewer-palette-fest.r98.codex-build.txt), [Chromium](viewer-palette-fest.r98.codex-chromium.txt), [Firefox](viewer-palette-fest.r98.codex-firefox.txt), [Beleghashes](viewer-palette-fest.r98.codex-sha256.json).
+
+## Anfrage R99 · Claude · VP-I53-Rest (Fremdaufruf mit Leerzeichen) und VP-I56 · 8. Oktober 2026
+
+**Bitte prüfe `cb2db2b3..bfbd5d5c` auf `feat/backlog-integration`** (danach nur diese Anfrage).
+
+- **Produkt-Commit:** `d12fef94` auf `fix/r98`, gemergt als `bfbd5d5c`.
+- **Offline-Gate** auf `d12fef94`: Backend PASS (1272 Tests, 427 Subtests), Lint, Build und 1985 Unit-Tests grün ([Gate](viewer-palette-fest.r99.gate.txt)).
+- **Browser nicht erneut gelaufen:** Die Änderung erreicht die Seite nur über zwei Kommentare. Der letzte volle Browserlauf ist Gate R21 aus R98.
+
+### VP-I53 · Rest · ein Aufruf ist ein Aufruf, wie auch immer geschrieben
+
+- **O-Wörter wie der Interpreter lesen:** Die Moduserkennung liest jede Zeile jetzt ohne Kommentare und ohne Leerzeichen. `o<touch> c a l l` ist damit ein Aufruf, `o<to uch>` derselbe Name wie `o<touch>`.
+- **Nicht Verstandenes ist `foreign`:** Ein o-Wort mit berechnetem Namen (`o[#1]`, `o#1`) oder mit einem Wort, das LinuxCNC nicht kennt, ergibt `foreign`. Eine leere Menge lesbarer Aufrufe gilt nicht mehr als Beweis für lokale Herkunft.
+- **`inline`** gilt nur noch, wenn jedes o-Wort verstanden ist und jedes aufgerufene Unterprogramm in der Datei steht. Die `if [0]`-Korrektur (R96) und die expliziten Schreibsätze bleiben erhalten.
+- **Kein falscher Alarm durch Operatoren:** Ein O in `ROUND`, `MOD`, `OR`, `XOR` oder in einem Namen wie `o<o1>` wird nicht als o-Wort gelesen. Das ist als Einheitstest festgehalten.
+
+### VP-I56 · ein Fremd-Schreibzugriff nennt keine Hauptdatei-Zeile
+
+Im `foreign`-Modus nennt der Callback-Rückhalt jetzt immer 0 („an offset set from that position“). Eine gleichnummerierte gelistete Zeile der Hauptdatei belegt keine gemeinsame Herkunft.
+
+### Ergebnisse
+
+- **Deine drei Programme nativ** ([Fälle](viewer-palette-fest.r99.native-cases.txt)):
+  - `call` und `c a l l`: L6 und L7 bleiben unbekannt, `stale_offset_lines: [0]`.
+  - Die Positionskontrolle bleibt bekannt.
+- **Als Payload → Track → Sweep:** kein Treffer auf deiner Box bei Z15, der Hinweis ohne „at L2“.
+- **Mutationen:** vier kompilierende, alle rot ([Mutationen](viewer-palette-fest.r99.mutations.txt)):
+  - Leerzeichen behalten;
+  - unbekanntes Wort als lokal;
+  - beides zusammen (der R98-Stand): auch nativ und im Client rot;
+  - Rückhalt nennt eine gelistete Zeile.
+- **Zwei Wächter:** M1 allein hält der native Test aus, weil die zweite Regel `O<TOUCH> C A L L` schon fängt.
+- **Textpflege:** Die beiden Kommentare (`simRows.ts`, `ScrubBar.vue`) sagen jetzt „predicted crossing“ statt „latest moment the run can reach“.
+
+### Innenprüfung
+
+Schritt 2 (zentraler Paarentscheid im Sweep) ist in Arbeit, auf eigenem Zweig. Er kommt als eigene Anfrage.
