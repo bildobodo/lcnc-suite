@@ -8578,3 +8578,28 @@ notes the stale axes whose PROGRAM coordinate its motions moved
 (rotate_and_translate inverted with the offsets in effect) and the next line
 re-establishes them if the block ran absolute — never inside a block.
 
+Codex R94 found "moved in the block" no proof of a known end, and a known
+coordinate not kept through a turn of the frame. A G98 drilling cycle moves
+Z to R and the bottom and retracts to the height before it — the stale one:
+Z came back and the next move was swept from Z40 where the machine stands
+at Z30 (a false hit on L6). Now the next line compares where the block ENDED
+with where it BEGAN, in program coordinates. That alone holds only while the
+believed height lies above R: below it the preview retracts to R while the
+machine retracts to max(its real height, R) — so a canned cycle under G98
+never re-establishes its plane's normal axis (read from the state the next
+line hands over: the motion mode, the retract mode, the plane; slot 0 of
+that tuple is the line number, which the R93 rule read as a code — line 910
+was a G91). The end rule's own guard is G76: it ends with X on its drive
+line, the stale start, while Z ends at its depth. And a change of the XY
+rotation while X or Y is stale makes both stale (G10 L2 R and a switch to a
+rotated fixture both pass `set_xy_rotation`): after `G0 X10`, R45 and
+`Y5 Z15` the new program X held the old unknown Y — the next move ran 12.9
+mm instead of 1.2. Found on the way: the payload tests (ours and Codex's
+probe) handed the scrub track to the sweep as it is, whose WCS epochs the
+page passes as `wcs` — without them every rotated segment was swept
+unrotated; the tests now hand it over the page's way, with a hit on the
+rotated path as the control. Not followed, named: an offset register written
+from a stale position (G92, G10 L20 on a stale axis) is wrong in the
+preview, and the positions in its frame read as known — the canon sees the
+new offset, never whether it came from an L2 or an L20.
+

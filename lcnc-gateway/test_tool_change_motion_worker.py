@@ -157,6 +157,64 @@ class TestUnknownStartAfterAToolChange(unittest.TestCase):
         self.assertEqual(r["rapid_ustart"], [1, 1, 0])
         self.assertAlmostEqual(r["rapid_tcum"][2] - r["rapid_tcum"][1], 1.0, places=5)
 
+    def test_a_block_re_establishes_an_axis_only_by_where_it_ends(self):
+        # Codex R94 VP-I51 C: a G98 cycle moves Z to R and the bottom and
+        # returns to the height before it — a stale one. Its end decides, and
+        # under G98 its plane's normal axis never comes back: the machine
+        # retracts to max(its REAL height, R), so the believed height below R
+        # (the preview retracts to R, its block ends elsewhere) stays unknown
+        # too, in G17 and in G18 (Y the cycle's axis). G99 ends at R: known.
+        for case, n in (("r94_g98_cycle", 6), ("r94_g98_below_r", 6), ("r94_g98_g18_below_r", 7)):
+            r = probe(case)
+            self.assertIsNone(r["parse_error"], case)
+            self.assertEqual(r["rapid_lines"][-1], n, case)
+            self.assertEqual(set(r["rapid_ustart"]), {1}, case)
+            self.assertEqual(set(r["rapid_tcum"]), {0.0}, case)
+        for case in ("r94_g99_cycle", "r94_g99_below_r", "r94_g99_g18_below_r"):
+            r = probe(case)
+            self.assertEqual(r["rapid_ustart"][-1], 0, case)
+            self.assertAlmostEqual(r["rapid_tcum"][-1] - r["rapid_tcum"][-2], 1.0, places=5, msg=case)
+        # Codex's position control: the G98 retract really goes to the
+        # tool change height (Z30), not to the believed Z40.
+        self.assertEqual(probe("r94_g98_cycle_position_control")["rapid"][-1], [20, 5, 30])
+        # G76 moves X in and out and ends on its drive line — the stale start
+        # — while Z ends at its commanded depth: X stays unknown, Z does not.
+        r = probe("r94_g76_returns_x")
+        self.assertIsNone(r["parse_error"])
+        self.assertEqual((r["rapid_lines"][-1], r["rapid_ustart"][-1], r["rapid_tcum"][-1]), (7, 1, 0.0))
+        self.assertEqual(r["rapid"][-2], [0, 3, -10], "G76 ends on its drive line X0")
+
+    def test_a_later_rotation_makes_a_known_x_or_y_unknown_again(self):
+        # Codex R94 VP-I51 D: X known, Y stale, then the frame turns — by
+        # G10 L2 R or by a switch to a rotated fixture: the new program X
+        # holds the unknown old Y, so `Y5 Z15` leaves the next move unknown.
+        # A full target re-establishes it; without a turn (R0) the partial
+        # knowledge stands.
+        for case, n in (("r94_rotated_after_partial", 7), ("r94_fixture_rotated_after_partial", 8)):
+            r = probe(case)
+            self.assertIsNone(r["parse_error"], case)
+            self.assertEqual(r["rapid_lines"][-1], n, case)
+            self.assertEqual(set(r["rapid_ustart"][1:]) - {0}, {1}, case)
+            self.assertEqual(r["rapid_ustart"][-1], 1, case)
+            self.assertEqual(set(r["rapid_tcum"]), {0.0}, case)
+        for case in ("r94_unrotated_after_partial", "r94_rotated_complete", "r94_fixture_rotated_complete"):
+            r = probe(case)
+            self.assertEqual(r["rapid_ustart"][-1], 0, case)
+            self.assertAlmostEqual(r["rapid_tcum"][-1] - r["rapid_tcum"][-2], 1.0, places=5, msg=case)
+        # Codex's position control: the omitted program X is 21.213 there.
+        r = probe("r94_rotated_after_partial_position_control")
+        self.assertAlmostEqual(r["rapid_tcum"][-1] - r["rapid_tcum"][-2], 0.121320, places=5)
+
+    def test_the_line_number_is_no_g_code(self):
+        # Slot 0 of the state's G codes is the sequence number: the move at
+        # line 910 does not read as G91, the one at line 810 under G98 not as
+        # a G81 — the full target before each makes it known.
+        for case, n in (("r94_line_910", 910), ("r94_line_810_g98", 810)):
+            r = probe(case)
+            self.assertEqual(r["rapid_lines"][-1], n, case)
+            self.assertEqual(r["rapid_ustart"][-1], 0, case)
+            self.assertAlmostEqual(r["rapid_tcum"][-1] - r["rapid_tcum"][-2], 1.0, places=5, msg=case)
+
     def test_the_interpreter_s_own_tool_change_moves_stay_known(self):
         # Codex R92's controls: quill-up, G30 twice, both — canon traverses on
         # the M6's line, the move after them timed.
