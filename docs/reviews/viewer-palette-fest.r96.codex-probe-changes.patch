@@ -1,0 +1,98 @@
+--- r95/prior-payload.test.ts
++++ r96/prior-payload.test.ts
+@@ -8,9 +8,9 @@
+ import {buildCollisionModel,sweepCollisions,type CollisionMachine} from './collision';
+ 
+ const evidence:Record<string,unknown>={};
+-const save=()=>writeFileSync('../evidence/viewer-palette-fest.r95.codex-native-sweep.json',JSON.stringify(evidence,null,2)+'\n');
++const save=()=>writeFileSync('../evidence/viewer-palette-fest.r96.codex-native-sweep.json',JSON.stringify(evidence,null,2)+'\n');
+ const load=(name:string)=>{
+- const wire=decode(readFileSync('../evidence/viewer-palette-fest.r95.codex-'+name+'.msgpack')) as Record<string,any>;
++ const wire=decode(readFileSync('../evidence/viewer-palette-fest.r96.codex-'+name+'.msgpack')) as Record<string,any>;
+  const arr=(key:string,ctor:any)=>wire[key] instanceof Uint8Array ? new ctor(Uint8Array.from(wire[key]).buffer) : undefined;
+  const events=parseTloEvents(wire.tlo_events);
+  const stream=(prefix:string):ScrubStream=>{
+@@ -32,7 +32,7 @@
+ ]);
+ const sweep=(name:string,z=500)=>{
+  const {wire,events,track}=load(name);
+- const result=sweepCollisions(model(z),track,{g5x:[],g92:[],rotationDeg:0,tool:wire.tlo_start},{margin:.1,tloEvents:events});
++ const result=sweepCollisions(model(z),track,{g5x:[],g92:[],rotationDeg:0,tool:wire.tlo_start},{margin:.1,staleOffsetLines:wire.stale_offset_lines,staleOffsetUntracked:wire.stale_offset_untracked,tloEvents:events});
+  evidence[name]={result,lines:Array.from(track.lines),cum:Array.from(track.cum),brk:Array.from(track.brk??[]),ustart:Array.from(track.ustart??[])};save();return {result,track};
+ };
+ for(const name of ['r92_m6_feed','r92_m6_feed_then_rapid','r92_m6_arc','r92_m6_g43_feed']) {
+--- r95/recovery.test.ts
++++ r96/recovery.test.ts
+@@ -13,14 +13,14 @@
+  workGroup:'table',toolGroup:'head',unitScale:1,axes:['X','Y','Z']};
+ const cube=()=>{const g=new THREE.BoxGeometry(.5,.5,.5).toNonIndexed();const p=new Float32Array(g.getAttribute('position').array);g.dispose();return p;};
+ function inspect(name:string){
+- const raw=decode(readFileSync('../evidence/viewer-palette-fest.r95.codex-'+name+'.msgpack')) as Record<string,any>;
++ const raw=decode(readFileSync('../evidence/viewer-palette-fest.r96.codex-'+name+'.msgpack')) as Record<string,any>;
+  const d=decodePreviewStreams(raw);
+  const track=buildScrubTrack(d.feed,d.rapid,d.kinsFrames,d.wcsEvents,d.subNames,d.tloEvents)!;
+  const model=buildCollisionModel(machine,[{id:'fixed',group:'table',positions:cube(),translate:[0,0,39]},{id:'head',group:'head',positions:cube()}]);
+  const wcs={g5x:[],g92:[],rotationDeg:0,tool:raw.tlo_start};
+- const result=sweepCollisions(model,{...track,wcs:track.wcsEpoch},wcs,{margin:.1,tloEvents:d.tloEvents,epochTerms:d.wcsEvents?.length?epochTermsFor(d.wcsEvents,wcs,undefined):undefined});
++ const result=sweepCollisions(model,{...track,wcs:track.wcsEpoch},wcs,{margin:.1,staleOffsetLines:raw.stale_offset_lines,staleOffsetUntracked:raw.stale_offset_untracked,tloEvents:d.tloEvents,epochTerms:d.wcsEvents?.length?epochTermsFor(d.wcsEvents,wcs,undefined):undefined});
+  const report={lines:Array.from(track.lines),pos:Array.from(track.pos),cum:Array.from(track.cum),ustart:Array.from(track.ustart??[]),rapid:Array.from(track.rapid),result};
+- evidence[name]=report;writeFileSync('../evidence/viewer-palette-fest.r95.codex-recovery.json',JSON.stringify(evidence,null,2)+'\n');
++ evidence[name]=report;writeFileSync('../evidence/viewer-palette-fest.r96.codex-recovery.json',JSON.stringify(evidence,null,2)+'\n');
+  return report;
+ }
+ for(const name of ['r93_inline_g91_cycle','r93_separate_g91_cycle','r93_rotated_partial','r93_unrotated_partial']){
+--- r95/edges.test.ts
++++ r96/edges.test.ts
+@@ -20,7 +20,7 @@
+   const p = new Float32Array(g.getAttribute('position').array); g.dispose(); return p;
+ }
+ function inspect(name: string, passEpochs = true) {
+-  const raw = decode(readFileSync('../evidence/viewer-palette-fest.r95.codex-'+name+'.msgpack')) as Record<string,any>;
++  const raw = decode(readFileSync('../evidence/viewer-palette-fest.r96.codex-'+name+'.msgpack')) as Record<string,any>;
+   const d = decodePreviewStreams(raw);
+   const track = buildScrubTrack(d.feed,d.rapid,d.kinsFrames,d.wcsEvents,d.subNames,d.tloEvents)!;
+   const obstacle: [number,number,number] = name.includes('cycle') ? [15,5,40] : [6.0355339059,13.1066017178,15];
+@@ -29,12 +29,12 @@
+     {id:'head',group:'head',positions:cube()},
+   ]);
+   const wcs = {g5x:[],g92:[],rotationDeg:0,tool:raw.tlo_start};
+-  const result = sweepCollisions(model,{...track,wcs:passEpochs ? track.wcsEpoch : undefined},wcs,{margin:.1,tloEvents:d.tloEvents,
++  const result = sweepCollisions(model,{...track,wcs:passEpochs ? track.wcsEpoch : undefined},wcs,{margin:.1,staleOffsetLines:raw.stale_offset_lines,staleOffsetUntracked:raw.stale_offset_untracked,tloEvents:d.tloEvents,
+     epochTerms:d.wcsEvents?.length?epochTermsFor(d.wcsEvents,wcs,undefined):undefined});
+   const report = {lines:Array.from(track.lines),pos:Array.from(track.pos),cum:Array.from(track.cum),
+     ustart:Array.from(track.ustart??[]),brk:Array.from(track.brk??[]),wcsEvents:d.wcsEvents,obstacle,result};
+   reports[name + (passEpochs ? '' : '_without_wcs')] = report;
+-  writeFileSync('../evidence/viewer-palette-fest.r95.codex-edges-sweep.json',JSON.stringify(reports,null,2)+'\n');
++  writeFileSync('../evidence/viewer-palette-fest.r96.codex-edges-sweep.json',JSON.stringify(reports,null,2)+'\n');
+   return report;
+ }
+ for (const name of ['r94_g98_cycle','r94_rotated_after_partial']) {
+--- r95/offsets.test.ts
++++ r96/offsets.test.ts
+@@ -21,7 +21,7 @@
+   const p = new Float32Array(g.getAttribute('position').array); g.dispose(); return p;
+ }
+ function inspect(name: string) {
+-  const raw = decode(readFileSync('../evidence/viewer-palette-fest.r95.codex-'+name+'.msgpack')) as Record<string,any>;
++  const raw = decode(readFileSync('../evidence/viewer-palette-fest.r96.codex-'+name+'.msgpack')) as Record<string,any>;
+   const d = decodePreviewStreams(raw);
+   const track = buildScrubTrack(d.feed,d.rapid,d.kinsFrames,d.wcsEvents,d.subNames,d.tloEvents)!;
+   const obstacle: [number,number,number] = name.includes('inactive') ? [25,5,55] : [15,5,45];
+@@ -30,7 +30,7 @@
+     {id:'head',group:'head',positions:cube()},
+   ]);
+   const wcs = {g5x:[],g92:[],rotationDeg:0,tool:raw.tlo_start};
+-  const result = sweepCollisions(model,{...track,wcs:track.wcsEpoch},wcs,{margin:.1,tloEvents:d.tloEvents,
++  const result = sweepCollisions(model,{...track,wcs:track.wcsEpoch},wcs,{margin:.1,staleOffsetLines:raw.stale_offset_lines,staleOffsetUntracked:raw.stale_offset_untracked,tloEvents:d.tloEvents,
+     epochTerms:d.wcsEvents?.length?epochTermsFor(d.wcsEvents,wcs,undefined):undefined});
+   const terms = epochTermsFor(d.wcsEvents!,wcs,undefined);
+   const endMachine: number[] = [];
+@@ -39,7 +39,7 @@
+   const report = {lines:Array.from(track.lines),pos:Array.from(track.pos),cum:Array.from(track.cum),
+     ustart:Array.from(track.ustart??[]),brk:Array.from(track.brk??[]),wcsEvents:d.wcsEvents,endMachine,obstacle,result};
+   reports[name] = report;
+-  writeFileSync('../evidence/viewer-palette-fest.r95.codex-offset-sweep.json',JSON.stringify(reports,null,2)+'\n');
++  writeFileSync('../evidence/viewer-palette-fest.r96.codex-offset-sweep.json',JSON.stringify(reports,null,2)+'\n');
+   return report;
+ }
+ 

@@ -1,0 +1,49 @@
+{
+  "review": "R96",
+  "base": "8d26b6e0",
+  "product_commit": "71558c9d80ca31fc4eafc5430f11128bafb2ea35",
+  "request_head": "51ee829dc37d944ebe89609b207b8d75bb15c196",
+  "archive": "/tmp/codex-r96-qtn1i4st/archive",
+  "byte_equal_files": 512,
+  "byte_equal_by_root": {
+    "lcnc-gateway": 87,
+    "lcnc-webui": 425
+  },
+  "isolation_changes": [
+    "lcnc-webui/e2e/ctl.ts",
+    "lcnc-webui/tsconfig.app.json",
+    "lcnc-webui/tsconfig.node.json",
+    "lcnc-webui/tsconfig.test.json",
+    "lcnc-webui/vite.config.ts"
+  ],
+  "hydrated_lfs_verified": [
+    "lcnc-gateway/machine/frame.stl",
+    "lcnc-gateway/machine/x_axis.stl",
+    "lcnc-gateway/machine/y_axis.stl",
+    "lcnc-gateway/machine/z_axis.stl"
+  ],
+  "previous_evidence": {
+    "r93": {
+      "files": 47,
+      "unchanged": true
+    },
+    "r94": {
+      "files": 52,
+      "unchanged": true
+    },
+    "r95": {
+      "files": 66,
+      "unchanged": true
+    }
+  },
+  "machine_commands": false,
+  "live_ports_accessed": false,
+  "mock": "127.0.0.1:4188",
+  "browser_runs": [
+    "chromium",
+    "firefox"
+  ],
+  "priority": "nice 19",
+  "workers": 1,
+  "native_programs": 41
+}
