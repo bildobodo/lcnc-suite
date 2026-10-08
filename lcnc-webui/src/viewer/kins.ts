@@ -75,9 +75,29 @@ export interface KinsModel {
    *  and a chunk symmetric about an extremum has EQUAL endpoints around a real
    *  bulge — the miss class this exists to price.
    *
+   *  HOW IT IS BUILT — the contract the sweep's speed bound rests on: the
+   *  value is M/8, M an upper bound on |d²j/du²| over the chunk (u ∈ [0, 1]),
+   *  every family summing `bulgeTerm`s (identity: 0). The chord deviation of
+   *  such a function is at most M/8; its SPEED is at most |Δj| + M/2 =
+   *  `jointSpeedBound(|Δj|, jointBulge)` — NOT |Δj| + bulge: the deviation
+   *  from the chord is no speed (Codex R101 VP-I57: x = 1000·cos C over
+   *  C ±11.25° has equal ends, a 19.3 bulge and a speed of 76.6 per chunk).
+   *  kinsBulge.test.ts certifies both against dense sampling.
+   *
    *  Fills every index of `out`; joints this model does not drive stay 0. */
   jointBulge(w0: ReadonlyArray<number>, w1: ReadonlyArray<number>,
              out: Float64Array): Float64Array;
+}
+
+/** An upper bound on |dj/du| over a chunk (u ∈ [0, 1]) for a joint whose
+ *  ends differ by `delta` and whose `jointBulge` is `bulge` (= M/8, M a bound
+ *  on |j''|): for any t, j'(t) − Δj = ∫₀¹ (j'(t) − j'(s)) ds, and
+ *  |j'(t) − j'(s)| ≤ M·|t − s|, so |j'(t)| ≤ |Δj| + M·∫₀¹|t − s| ds ≤ |Δj| + M/2.
+ *  It bounds the joint's travel between ANY two points of the chunk by its
+ *  fraction of the chunk — what a clearance or an inside certificate spends
+ *  (collision.ts). */
+export function jointSpeedBound(delta: number, bulge: number): number {
+  return Math.abs(delta) + 4 * bulge;
 }
 
 /** Chord-deviation budget for one term `A(t)·h(t)` of a joint expression,

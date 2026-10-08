@@ -55,7 +55,7 @@ import { normalizeKinematics, type KinRuntime } from "./kinematics";
 import { liftToJoints, tipWcs, wcsTerms, type PartFrameWcs, type WcsTerms } from "./partFrame";
 import { tloForIndex, toolForIndex, type TloEvent } from "./tloEvents";
 import { EVENT_NONE } from "./eventIndex";
-import { kinsForSegment, makeKins, worldModeForSpec, type KinsModel, type KinsSpec } from "./kins";
+import { jointSpeedBound, kinsForSegment, makeKins, worldModeForSpec, type KinsModel, type KinsSpec } from "./kins";
 import { installBoxDistanceFix } from "./bvhBoxDistance";
 import { assignPairs } from "./pairAssign";
 import { inLocalBoxes, meshClosure, pointInside, type InsideVerdict } from "./insideCheck";
@@ -1126,8 +1126,11 @@ export function* sweepCollisionsIter(
   // tool-vs-column during a C sweep) the rotary lever term supplies no
   // budget at all (review finding: the old note claimed it did). The fix is
   // KinsModel.jointBulge: each family bounds its OWN per-joint mid-chunk
-  // excursion from its own geometry, and this file no longer knows any
-  // family's parameter names. It used to read the trt-only KinsParams, which
+  // curvature from its own geometry (the bulge is M/8 of a bound M on j''),
+  // and the speed budget is `jointSpeedBound(|Δj|, bulge)` = |Δj| + M/2 —
+  // the bulge itself is a chord deviation, no speed: |Δj| + bulge let a
+  // C sweep about an extremum cross a part unseen (Codex R101 VP-I57). This
+  // file knows no family's parameter names. It used to read the trt-only KinsParams, which
   // a trsrn spec does not carry at all — so that machine's ~2 m rotary lever
   // came out as the distance from the machine origin. Certified per family by
   // kinsBulge.test.ts.
@@ -1751,6 +1754,15 @@ export function* sweepCollisionsIter(
   // need neither the distance query nor the rays. 0 = no certificate.
   const inClear = new Float64Array(pairs.length);
   const inQ = new Float64Array(pairs.length);
+  // The surfaces' distance at the pair's last query (a lower bound; beyond the
+  // horizon the horizon), used up at the pair's speed bound like `clear`. Spent,
+  // a surface crossing may have come since — the sampling floor (MIN_ADV)
+  // steps past a touch narrower than itself, and through one the pair can have
+  // gone wholly inside: the inside answer is asked again then (a 0.08° touch
+  // at 12 mm/° on a C sweep left the inside stretch after it unseen,
+  // collision.test "a world kins' speed").
+  const surf = new Float64Array(pairs.length);
+  const surfQ = new Float64Array(pairs.length);
   const qLine = new Int32Array(pairs.length).fill(-1);   // line of that query (per-line contact marks)
   const rotLever = pairDofs.map(list => new Float64Array(list.length));
   const jv0: number[] = new Array(jointVals.length).fill(0);
@@ -1826,8 +1838,20 @@ export function* sweepCollisionsIter(
   // The refinement's predicate: touching OR wholly inside — and undecidable
   // counts as contact (the interval grows, it never shrinks over an answer
   // nobody has). Its boundaries are where the surfaces cross.
-  const contactAtDist = (s: number, pi: number): boolean =>
-    distAtCum(s, pi) <= CONTACT_EPS || insideOf(pi) !== "outside";
+  // An undecidable answer here is named too (Codex R101 VP-I58) — apart from
+  // the forward sweep's time-ordered state (`undecided` / `undecSpans`), which
+  // a refinement walking back must not touch: per pair, the lines it hit.
+  const refineUndec = new Map<number, Set<number>>();
+  const contactAtDist = (s: number, pi: number): boolean => {
+    if (distAtCum(s, pi) <= CONTACT_EPS) return true;
+    const v = insideOf(pi);
+    if (v === "undecidable") {
+      let lines = refineUndec.get(pi);
+      if (!lines) refineUndec.set(pi, lines = new Set());
+      lines.add(track.lines[segAtDist(s)]!);
+    }
+    return v !== "outside";
+  };
   // Bisect a contact boundary between a known in-contact cum and a known
   // clear cum (either order); returns the refined in-contact-side cum.
   const bisectBoundary = (contactCum: number, clearCum: number, pi: number): number => {
@@ -1859,7 +1883,16 @@ export function* sweepCollisionsIter(
   const insideNotes = (): string[] => {
     const at = (spans: Array<[number, number]>) =>
       spans.slice(0, 3).map(([a, b]) => (a === b ? `L${a}` : `L${a}–L${b}`)).join(", ") + (spans.length > 3 ? " …" : "");
-    return [...undecSpans.entries()]
+    // the forward sweep's stretches and the refinement's lines, per pair
+    const byPair = new Map<number, Array<[number, number]>>();
+    for (const [pi, spans] of undecSpans) byPair.set(pi, spans.slice());
+    for (const [pi, lines] of refineUndec) {
+      const spans = byPair.get(pi) ?? [];
+      for (const l of lines) if (!spans.some(([a, b]) => l >= Math.min(a, b) && l <= Math.max(a, b))) spans.push([l, l]);
+      byPair.set(pi, spans);
+    }
+    return [...byPair.entries()]
+      .map(([pi, spans]) => [pi, spans.sort((x, y) => x[0] - y[0])] as const)
       .sort((x, y) => x[1][0]![0] - y[1][0]![0] || x[0] - y[0])
       .map(([pi, spans]) => {
         const [ai, bi] = pairs[pi]!;
@@ -2160,16 +2193,18 @@ export function* sweepCollisionsIter(
         const [ai, bi] = pairs[pi]!;
         const A = bodies[ai]!, B = bodies[bi]!;
         const list = pairDofs[pi]!;
-        // Each linear DOF on this pair's path contributes its endpoint delta
-        // PLUS its own mid-chunk bulge — per joint, so a pair riding only X
-        // pays only X's. The budget then flows into the rotary lever+trans
-        // recursion below, which needs it too.
+        // Each linear DOF on this pair's path contributes a bound on its
+        // speed over the chunk (its endpoint delta and four times its bulge)
+        // — per joint, so a pair riding only X pays only X's. The budget then
+        // flows into the rotary lever+trans recursion below, which needs it
+        // too: the speed bounds the travel over the whole chunk as well.
         let trans = 0;
         let rotRadLever = 0;
         for (let di = 0; di < list.length; di++) {
           const pd = list[di]!;
           const dJ = Math.abs((jv1[pd.dof.joint] ?? 0) - (jv0[pd.dof.joint] ?? 0));
-          if (!pd.dof.rotate) trans += dJ + (jointBulge[pd.dof.joint] ?? 0);
+          // a SPEED bound, never the chord deviation (VP-I57)
+          if (!pd.dof.rotate) trans += jointSpeedBound(dJ, jointBulge[pd.dof.joint] ?? 0);
           else {
             const lever = Math.max(rotLever[pi]![di]!, leverFor(pd, A), leverFor(pd, B));
             rotRadLever += (dJ * Math.PI / 180) * (lever + trans);
@@ -2251,21 +2286,26 @@ export function* sweepCollisionsIter(
           let d: number;
           let v: InsideVerdict | null = null;
           const inCert = inClear[pi]! > 0 && s - inQ[pi]! < inClear[pi]! / Math.max(pairV[pi]!, 1e-9);
+          const mayHaveCrossed = surf[pi]! - pairV[pi]! * (s - surfQ[pi]!) <= 0;
           if (inCert) {
             d = 0;   // still inside: no surface crossing since it was measured
           } else if (prof) {
             const tq = clock();
             d = pairDistance(A, B, HORIZON, opts.margin);
-            if (d > CONTACT_EPS && askInside(pi)) v = pairInside(A, B);
+            if (d > CONTACT_EPS && (askInside(pi) || mayHaveCrossed)) v = pairInside(A, B);
             prof.ms![pi] = prof.ms![pi]! + (clock() - tq);
             prof.queries![pi] = prof.queries![pi]! + 1;
           } else {
             d = pairDistance(A, B, HORIZON, opts.margin);
             // Decided at THIS sample's pose, before the re-sampling below
             // moves the model (it poses it back for the pairs after this one).
-            if (d > CONTACT_EPS && askInside(pi)) v = pairInside(A, B);
+            if (d > CONTACT_EPS && (askInside(pi) || mayHaveCrossed)) v = pairInside(A, B);
           }
           needInside[pi] = 0;
+          if (!inCert) {
+            surf[pi] = d === Infinity ? HORIZON : Math.min(d, HORIZON);
+            surfQ[pi] = s;
+          }
           const unknownInside = v === "undecidable";
           if (v === "inside") {
             inClear[pi] = d === Infinity ? HORIZON : Math.min(d, HORIZON);   // a lower bound of the surfaces' distance
@@ -2368,6 +2408,8 @@ export function* sweepCollisionsIter(
           inClear[pi] = inClear[pi]! - pairV[pi]! * (s1 - inQ[pi]!);
           inQ[pi] = s1;
         }
+        surf[pi] = surf[pi]! - pairV[pi]! * (s1 - surfQ[pi]!);
+        surfQ[pi] = s1;
         if (inContact[pi] && touching[pi]) continue;
         clear[pi] = clear[pi]! - pairV[pi]! * (s1 - sQ[pi]!);
       }

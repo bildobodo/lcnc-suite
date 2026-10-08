@@ -25,7 +25,7 @@
 // caller contract in kins.ts. It says nothing about how faithfully that model
 // tracks a real machine's trajectory between program points.
 import { describe, expect, it } from "vitest";
-import { kinsFor, kinsForSegment, makeKins, specFromWire, type KinsModel } from "./kins";
+import { jointSpeedBound, kinsFor, kinsForSegment, makeKins, specFromWire, type KinsModel } from "./kins";
 
 const AXES5 = ["X", "Y", "Z", "A", "C"];
 const AXES5BC = ["X", "Y", "Z", "B", "C"];
@@ -66,6 +66,25 @@ function sampledBulge(model: KinsModel, w0: number[], w1: number[], n: number): 
       const dev = Math.abs(c - (a + (b - a) * t));
       if (dev > worst[ji]!) worst[ji] = dev;
     }
+  }
+  return worst;
+}
+
+/** Max |dj/du| per joint over a densely sampled chunk (difference quotients
+ *  of adjacent samples — each ≤ the true max speed, and converging to it). */
+function sampledSpeed(model: KinsModel, w0: number[], w1: number[], n: number): number[] {
+  const at = (t: number) => model.inverse(w0.map((v, i) => v + (w1[i]! - v) * t), []);
+  let prev = at(0);
+  const worst = prev.map(() => 0);
+  for (let k = 1; k <= n; k++) {
+    const cur = at(k / n);
+    for (let ji = 0; ji < cur.length; ji++) {
+      const a = prev[ji], b = cur[ji];
+      if (a == null || b == null) continue;
+      const v = Math.abs(b - a) * n;
+      if (v > worst[ji]!) worst[ji] = v;
+    }
+    prev = cur;
   }
   return worst;
 }
@@ -258,5 +277,51 @@ describe("jointBulge is a genuine upper bound", () => {
           .toBeLessThanOrEqual(out[ji]! + 1e-9);
       }
     }
+  });
+});
+
+// The sweep spends a SPEED: a clearance certificate assumes a joint travels at
+// most V·Δu in any part Δu of a chunk. The chord deviation is no such bound
+// (Codex R101 VP-I57: x = 1000·cos C over C ±11.25° has equal ends, a 19.3
+// bulge and a speed of 76.6 per chunk — |Δj| + bulge priced it at 19.3).
+// `jointSpeedBound(|Δj|, bulge)` = |Δj| + 4·bulge rests on bulge = M/8 of a
+// second-derivative bound M; this certifies the result itself, per family,
+// and that the old |Δj| + bulge is exceeded where it matters.
+describe("jointSpeedBound(|Δj|, jointBulge) bounds every joint's speed", () => {
+  for (const c of CASES) {
+    it(`${c.name}: no sampled speed exceeds |Δj| + 4·bulge`, () => {
+      const r = rng(0x5bee + c.name.length);
+      const out = new Float64Array(c.nJoints);
+      let oldExceeded = 0;
+      for (let trial = 0; trial < 300; trial++) {
+        const [w0, w1] = c.draw(r);
+        c.model.jointBulge(w0, w1, out);
+        const j0 = c.model.inverse(w0, []), j1 = c.model.inverse(w1, []);
+        const speed = sampledSpeed(c.model, w0, w1, 400);
+        for (let ji = 0; ji < c.nJoints; ji++) {
+          if (j0[ji] == null || j1[ji] == null) continue;
+          const delta = Math.abs(j1[ji]! - j0[ji]!);
+          const bound = jointSpeedBound(delta, out[ji]!);
+          expect(speed[ji]!, `${c.name} joint ${ji}: sampled speed ${speed[ji]} > bound ${bound}`)
+            .toBeLessThanOrEqual(bound * (1 + 1e-9) + 1e-9);
+          if (speed[ji]! > delta + out[ji]! + 1e-6) oldExceeded++;
+        }
+      }
+      // Teeth: on a world family the old budget |Δj| + bulge is exceeded on
+      // sampled chunks — the bound this replaces would fail here.
+      if (!c.exact) expect(oldExceeded).toBeGreaterThan(0);
+    });
+  }
+
+  it("Codex R101's chunk: x = 1000·cos C over ±11.25° — equal ends, speed 76.6 per chunk", () => {
+    const m = kinsFor(AXES5, { type: "xyzac-trt", identityFirst: true, params: {} }, 0);
+    const w0 = [1000, 0, 0, 0, 0, -11.25], w1 = [1000, 0, 0, 0, 0, 11.25];   // X Y Z A B C
+    const out = new Float64Array(5);
+    m.jointBulge(w0, w1, out);
+    const speed = sampledSpeed(m, w0, w1, 4000)[0]!;
+    const truth = 1000 * Math.sin(11.25 * Math.PI / 180) * (22.5 * Math.PI / 180);
+    expect(speed).toBeCloseTo(truth, 1);
+    expect(out[0]! + 0, "the old budget (Δ = 0)").toBeLessThan(truth);
+    expect(jointSpeedBound(0, out[0]!)).toBeGreaterThanOrEqual(truth);
   });
 });

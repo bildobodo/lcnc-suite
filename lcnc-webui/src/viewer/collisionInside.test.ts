@@ -96,6 +96,29 @@ describe("an undecidable inside check in the sweep", () => {
     } finally { ctl.when = null; }
   });
 
+  it("met only by the refinement, it is named too (Codex R101 VP-I58)", () => {
+    // A 1 mm cube in a closed post with a 40 mm cavity, from the cavity's
+    // centre to its wall (contact from cube X 19.5). Undecidable only where
+    // the cube's corner lies between X 18 and 19.5: the refinement walking
+    // back from the touch meets it and grows the interval conservatively —
+    // and the result must say why.
+    const outer = box(60), inner = box(40);
+    for (let i = 0; i < inner.length; i += 9) for (let k = 0; k < 3; k++) {   // the cavity's faces point in
+      const v = inner[i + k]!; inner[i + k] = inner[i + 3 + k]!; inner[i + 3 + k] = v;
+    }
+    const hollow: CollisionBody = { ...POST, positions: new Float32Array([...outer, ...inner]) };
+    const run = () => sweepCollisions(buildCollisionModel(machine(40), [hollow, nub()]), xs([-40, -20]), WCS0, { margin: 0.1 });
+    const control = run();
+    expect(control.hits.map(h => +h.cum.toFixed(2))).toEqual([19.5]);
+    expect(control.notes).toEqual([]);
+    ctl.when = p => p.x > 18 && p.x < 19.5;
+    try {
+      const r = run();
+      expect(r.hits[0]!.cum).toBeLessThan(19);
+      expect(r.notes).toEqual(["inside check undecidable for nub ↔ post (L2) — a part wholly inside the other is not found there"]);
+    } finally { ctl.when = null; }
+  });
+
   it("is named by the shard that sweeps the pair, and the merge names every one", () => {
     // Two cubes in the post, two pairs, one per shard: each shard names its
     // own pair only, the merge both — as the single sweep does.

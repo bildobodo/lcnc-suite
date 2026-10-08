@@ -107,7 +107,7 @@ Die frühen Antworten von `pairDistance` (`:807–823`) vertragen sich mit der I
 - Ein offener Körper wird als umgebender Körper **nicht gefragt**.
 - Er wird **einmal pro Modell** in `uncertified` benannt: „frame, x_axis, y_axis: surface not closed — a part wholly inside them is not found“ (`CollisionModel.open`, `geometryNote`).
 - Seine Paare behalten die Garantie der Oberflächen.
-- Ein statischer Ausschluss entsteht für sie wie bisher nur aus der Oberflächenberührung, nie aus einer Innenlage.
+- Ein statischer Ausschluss entsteht für sie wie bisher nur aus der Oberflächenberührung, nie aus einer Innenlage **in** dem offenen Körper. Die Gegenrichtung, ein offener Körper ganz in einem geschlossenen, wird weiter erkannt (Codex R101).
 
 Die Gegenrichtung bleibt geprüft: Ein geschlossener Körper in einem offenen wird gegen den geschlossenen gefragt, falls umgekehrt.
 
