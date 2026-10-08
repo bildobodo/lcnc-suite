@@ -238,7 +238,7 @@ def parse(ctx: dict) -> dict:
         # the canon falls back to its callbacks, and the note says so.
         try:
             with open(filename, "r", errors="replace") as f:
-                canon.write_lines, canon.writes_ordered = position_write_lines(f.read())
+                canon.write_lines, canon.write_mode = position_write_lines(f.read())
         except OSError as e:
             _trace.emit_exc("gcode.write_scan_failed", e)
     # The tool state the program STARTS with (VP-I20, Codex R51–R57): the
@@ -1298,7 +1298,7 @@ def parse(ctx: dict) -> dict:
               # ...and a program whose writes the text cannot place (o-words,
               # M98, an unreadable file): the note says they are not tracked.
               **({"stale_offset_untracked": True}
-                 if canon.ever_stale and (canon.write_lines is None or not canon.writes_ordered) else {}),
+                 if canon.ever_stale and (canon.write_lines is None or canon.write_mode != "ordered") else {}),
               "rapid": rapid_bin, "stats": stats, "bounds": bounds,
               "motion_bounds": motion_bounds,
               "violations": violations, "violations_total": violations_total,

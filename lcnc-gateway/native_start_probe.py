@@ -144,6 +144,26 @@ CASES = {
     "r96_branch_not_run": ("G21 G90\nG0 X0 Y0 Z40\nM6\no100 if [0]\nG92 Z10\no100 endif\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
     "r96_branch_run": ("G21 G90\nG0 X0 Y0 Z40\nM6\no100 if [1]\nG92 Z10\no100 endif\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
     "r96_branch_inactive_l20": ("G21 G90\nG0 X0 Y0 Z40\nM6\no100 if [1]\nG10 L20 P2 Z10\no100 endif\nG0 X10 Y5 Z15\nG55\nG0 X20 Z25\nG0 X30\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    # Codex R97 VP-I53 rest: a sign on a number; a write the preview computes
+    # equal to the old value inside a branch that runs (G92 Z40 at a believed
+    # Z40) — the event is the evidence; G54 again inside a branch, no call.
+    "r97_l_plus_active": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L+20 P1 Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r97_l_plain_active": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L20 P1 Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r97_g_plus_active": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG+92 Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r97_l_plus_explicit": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L+2 P1 Z30\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r97_l_plus_inactive": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L+20 P2 Z10\nG0 X10 Y5 Z15\nG55\nG0 X20 Z25\nG0 X30\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r97_store_plus": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG+28.1\nG0 X10 Y5 Z15\nG28\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r97_branch_same_g92": ("G21 G90\nG0 X0 Y0 Z40\nM6\no100 if [1]\nG92 Z40\no100 endif\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r97_branch_same_l20": ("G21 G90\nG0 X0 Y0 Z40\nM6\no100 if [1]\nG10 L20 P1 Z40\no100 endif\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r97_branch_different_g92": ("G21 G90\nG0 X0 Y0 Z40\nM6\no100 if [1]\nG92 Z10\no100 endif\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r97_branch_reselect": ("G21 G90\nG0 X0 Y0 Z40\nM6\no100 if [1]\nG54\no100 endif\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r97_l_plus_active_position_control": ("G21 G90\nG0 X0 Y0 Z40\nG0 X0 Y20 Z30\nG10 L+20 P1 Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r97_l_plus_inactive_position_control": ("G21 G90\nG0 X0 Y0 Z40\nG0 X0 Y20 Z30\nG10 L+20 P2 Z10\nG0 X10 Y5 Z15\nG55\nG0 X20 Z25\nG0 X30\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r97_store_plus_position_control": ("G21 G90\nG0 X0 Y0 Z40\nG0 X0 Y20 Z30\nG+28.1\nG0 X10 Y5 Z15\nG28\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r97_branch_same_g92_position_control": ("G21 G90\nG0 X0 Y0 Z40\nG0 X0 Y20 Z30\no100 if [1]\nG92 Z40\no100 endif\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r97_branch_same_l20_position_control": ("G21 G90\nG0 X0 Y0 Z40\nG0 X0 Y20 Z30\no100 if [1]\nG10 L20 P1 Z40\no100 endif\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    # Codex R97 VP-I55 rest: the same arc at F300 — the crossing is no stop
+    "r97_arc_braking": ("G21 G90 G18\nG0 X0 Y0 Z40\nG2 X0 Z40 I0 K10 F300\nM2\n", "mm", 0.0, (490,), {}),
     # Codex R96 VP-I55: an arc whose ends lie inside the window (max Z 50)
     # crosses it in its middle — the run stops there, not at its start.
     "r96_arc_interior_limit": ("G21 G90 G18\nG0 X0 Y0 Z40\nG2 X0 Z40 I0 K10 F100\nM2\n", "mm", 0.0, (490,), {}),

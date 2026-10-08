@@ -2648,42 +2648,56 @@ class TestRotarySyncInitcode(unittest.TestCase):
 
 @unittest.skipUnless(_HAVE_RS274, "rs274 (LinuxCNC python) not importable")
 class TestOffsetWriteBackstop(unittest.TestCase):
-    """The callbacks behind the text scan (Codex R96 VP-I53 rest): with
-    ordered text a line the scan does not list that CHANGES the active
-    register is a write it did not recognise — "not found" is no proof of
-    none; unchanged values (a re-selection) and listed lines are not."""
+    """The callbacks behind the text scan (Codex R96/R97 VP-I53 rest): a
+    register write the controller REPORTS is the evidence, whatever value the
+    preview computes (a G92 Z40 at a believed Z40 gives the old offset); the
+    text only clears an explicit line, and in text order leaves a listed one
+    to its own scan. Re-selecting the active fixture makes no call at all;
+    a switch's G92 re-apply is the switch's."""
 
-    def _canon(self, listed):
+    def _canon(self, listed, mode="ordered"):
         import gcode_canon
         c = object.__new__(gcode_canon.PreviewCanon)
         c.lineno = 2
         c.set_g92_offset(0, 0, 0, 0, 0, 0, 0, 0, 0)
         c.set_g5x_offset(1, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-        c.write_lines, c.writes_ordered = listed, True
+        c.write_lines, c.write_mode = listed, mode
         c.stale = frozenset((0, 1, 2))
         c.lineno = 4
         return c
 
-    def test_an_unlisted_change_is_a_write(self):
-        c = self._canon({})
-        c.set_g92_offset(0, 0, 10, 0, 0, 0, 0, 0, 0)
-        self.assertEqual((c._frame_unknown, c._pending_offset_lines), (frozenset((0, 1, 2)), (4,)))
-        c = self._canon({})
-        c.set_g5x_offset(1, 0, 0, 30, 0, 0, 0, 0, 0, 0)
-        self.assertEqual(c._frame_unknown, frozenset((0, 1, 2)))
+    def test_a_reported_write_counts_whatever_its_value(self):
+        for listed, mode in (({}, "ordered"), ({}, "inline"), ({4: "all"}, "inline"), ({4: "all"}, "foreign"), (None, "ordered")):
+            c = self._canon(listed, mode)
+            c.set_g92_offset(0, 0, 0, 0, 0, 0, 0, 0, 0)             # the same value: still a write
+            self.assertEqual(c._frame_unknown, frozenset((0, 1, 2)), (listed, mode))
+            c = self._canon(listed, mode)
+            c.set_g5x_offset(1, 0, 0, 30, 0, 0, 0, 0, 0, 0)          # the active fixture written
+            self.assertEqual(c._frame_unknown, frozenset((0, 1, 2)), (listed, mode))
+        # named by its line where the numbers are this file's, else 0 unless listed
+        self.assertEqual(self._dummy_pending({}, "ordered"), (4,))
+        self.assertEqual(self._dummy_pending({}, "foreign"), (0,))
+        self.assertEqual(self._dummy_pending({4: "all"}, "foreign"), (4,))
 
-    def test_no_change_a_listed_line_or_a_switch_is_not(self):
-        c = self._canon({})
-        c.set_g92_offset(0, 0, 0, 0, 0, 0, 0, 0, 0)             # the same values
-        c.set_g5x_offset(1, 0, 0, 0, 0, 0, 0, 0, 0, 0)          # G54 again
-        self.assertEqual(c._frame_unknown, frozenset())
-        for t in ("explicit", "all"):                          # the scan's own business
-            c = self._canon({4: t})
+    def _dummy_pending(self, listed, mode):
+        c = self._canon(listed, mode)
+        c.set_g92_offset(0, 0, 10, 0, 0, 0, 0, 0, 0)
+        return c._pending_offset_lines
+
+    def test_an_explicit_line_a_listed_line_in_order_or_a_switch_is_not(self):
+        for mode in ("ordered", "inline"):
+            c = self._canon({4: "explicit"}, mode)
             c.set_g92_offset(0, 0, 10, 0, 0, 0, 0, 0, 0)
-            self.assertEqual(c._frame_unknown, frozenset(), t)
-        c = self._canon({})
-        c.set_g5x_offset(2, 0, 0, 30, 0, 0, 0, 0, 0, 0)         # a switch reads the table
+            self.assertEqual(c._frame_unknown, frozenset(), mode)
+        c = self._canon({4: "all"})                               # the scan's, at the next line
+        c.set_g92_offset(0, 0, 10, 0, 0, 0, 0, 0, 0)
         self.assertEqual(c._frame_unknown, frozenset())
+        c = self._canon({})
+        c.set_g5x_offset(2, 0, 0, 30, 0, 0, 0, 0, 0, 0)          # a switch reads the table ...
+        c.set_g92_offset(0, 0, 0, 0, 0, 0, 0, 0, 0)               # ... and re-applies G92
+        self.assertEqual(c._frame_unknown, frozenset())
+        c.set_g92_offset(0, 0, 10, 0, 0, 0, 0, 0, 0)              # a second G92 there is a write
+        self.assertEqual(c._frame_unknown, frozenset((0, 1, 2)))
 
 
 class TestCanonFirstMoveRearm(unittest.TestCase):
@@ -3192,19 +3206,30 @@ class TestPositionWriteLines(unittest.TestCase):
             "G#1 Z0",                  # 28 all
             "G28 X0",                  # 29 nothing (a move, no store)
             "G92.10",                  # 30 explicit (G92.1)
+            "G10 L+20 P1 Z10",         # 31 fixture 1 — numbers take a sign (Codex R97)
+            "G+28.1",                  # 32 all
+            "G10 L+2 P1 Z30",          # 33 explicit
+            "G10 L P1 Z0",             # 34 all — an L word it cannot read is no proof of none
+            "G10 L20 P Z0",            # 35 all — so is a P
         ])
-        out, ordered = gateway_util.position_write_lines(text)
-        self.assertTrue(ordered)
+        out, mode = gateway_util.position_write_lines(text)
+        self.assertEqual(mode, "ordered")
         self.assertEqual(out, {2: "all", 3: "explicit", 4: "explicit", 5: 2, 6: 2, 7: "active", 8: "active",
                                9: "all", 10: "all", 11: "explicit", 12: "all", 13: "all", 14: "all",
                                15: "explicit", 16: "all", 20: "all", 21: 1, 22: "all", 23: "all",
-                               24: 1, 25: "all", 26: "all", 27: "explicit", 28: "all", 30: "explicit"})
+                               24: 1, 25: "all", 26: "all", 27: "explicit", 28: "all", 30: "explicit",
+                               31: 1, 32: "all", 33: "explicit", 34: "all", 35: "all"})
 
-    def test_order_is_lost_with_o_words_or_m98(self):
-        for text in ("o100 repeat [2]\nG92 Z0\no100 endrepeat\n", "o<sub> call\n", "M98 P100\n", "M098 P1\n"):
-            self.assertFalse(gateway_util.position_write_lines(text)[1], text)
-        for text in ("(go to the corner)\nG0 X0\n", "G0 X0 ; o100 call\n", "#<_o> = 1\nG0 X#<_o>\n", "M9\n"):
-            self.assertTrue(gateway_util.position_write_lines(text)[1], text)
+    def test_order_is_lost_with_o_words_numbers_with_a_call_into_another_file(self):
+        mode = lambda t: gateway_util.position_write_lines(t)[1]
+        for text in ("o100 repeat [2]\nG92 Z0\no100 endrepeat\n", "o100 if [1]\nG92 Z0\no100 endif\n",
+                     "o<here> sub\nG92 Z0\no<here> endsub\no<here> call\n", "o100 sub\no100 endsub\no100 call\n"):
+            self.assertEqual(mode(text), "inline", text)
+        for text in ("o<sub> call\n", "o<here> sub\no<here> endsub\no<there> call\n", "M98 P100\n", "M098 P1\n"):
+            self.assertEqual(mode(text), "foreign", text)
+        for text in ("(go to the corner)\nG0 X0\n", "G0 X0 ; o100 call\n", "#<_o> = 1\nG0 X#<_o>\n", "M9\n",
+                     "(o<sub> call)\nG0 X0\n"):
+            self.assertEqual(mode(text), "ordered", text)
 
 
 class TestWcsRewriteTargets(unittest.TestCase):

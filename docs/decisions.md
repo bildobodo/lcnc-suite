@@ -8670,3 +8670,28 @@ go unmarked, the claim stays on the safe side. The inside-check plan was
 revised in the same round (Fassung 2: three-valued decision, one
 non-degenerate ray, an exact local-box point filter, the winding number as
 the independent check).
+
+## 2026-10-08 — The controller's report is the evidence; a crossing is no stop (Codex R97)
+
+Two rests of the offset rule. A sign is part of a LinuxCNC number
+(`G10 L+20`, `G+28.1`) and the word reader now takes it; an L or P word it
+cannot read is no proof of none. And the callbacks judged a write by its
+value — a `G92 Z40` inside a branch that runs, at the believed Z40, computes
+the old offset again and was ignored, while the machine's offset became −10.
+Measured natively: re-selecting the active fixture makes no call at all, a
+fixture switch re-applies G92 through the same callback, every G92 calls it
+whatever its value. So the reported EVENT is the evidence now; only an
+explicit line of this file's text, or a listed line in text order (its own
+scan), stays out, and the switch's re-apply is the switch's. The text's
+mode splits in three: ordered (the range scan), inline (o-words with every
+called sub in the file: the numbers are the file's, so a line that had its
+own `next_line` ran — an inactive fixture's L20 in a branch is tracked),
+foreign (a call into another file, M98: callbacks only); stored positions
+in branches and writes in called files stay untracked, and the note says so.
+
+The limit mark: the first point beyond the window is a crossing, not a
+proven stop — the controller decelerates after the abort (tp.c), at least
+1.25 mm in Codex's 5 mm/s case — so the Sim tab now says "first predicted
+limit crossing — where the run stops is not determined" and "after the first
+limit crossing at L…"; the boundary itself is unchanged. The inside-check
+plan (Fassung 2) was accepted in the same round.

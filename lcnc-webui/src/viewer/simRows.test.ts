@@ -60,12 +60,12 @@ describe("simRows", () => {
     expect(rows.map(r => [r.key, r.note])).toEqual([
       ["C4|tool|a_yoke_casting|0", ""],
       ["T9", ""],
-      ["L9", "the run stops in this line at the latest"],
+      ["L9", "first predicted limit crossing — where the run stops is not determined"],
       ["C9|t|w|0", ""],
       ["C9|t|w|1", "re-entry"],                       // AT the boundary: the pose reached there
-      ["T20", "after the limit stop at L9"],
-      ["C12|t|w|1", "re-entry · after the limit stop at L9"],
-      ["L30", "after the limit stop at L9"],
+      ["T20", "after the first limit crossing at L9"],
+      ["C12|t|w|1", "re-entry · after the first limit crossing at L9"],
+      ["L30", "after the first limit crossing at L9"],
     ]);
     // no flags, no claim
     expect(buildSimRows({ clash: [clash({ cum: 10, line: 4 })], limit: [{ key: "L3", line: 3, cum: 5, cumEnd: 6 }],
@@ -82,9 +82,9 @@ describe("simRows", () => {
       violations: [], unit: "mm", timeBased: true, axisEnd: 30, stop: { cum: 9.7183, line: 3 },
     });
     expect(rows.map(r => [r.key, r.note])).toEqual([
-      ["L3", "the run stops in this line at the latest"],
+      ["L3", "first predicted limit crossing — where the run stops is not determined"],
       ["C3|t|w|0", ""],
-      ["C3|t|w|1", "re-entry · after the limit stop at L3"],
+      ["C3|t|w|1", "re-entry · after the first limit crossing at L3"],
     ]);
   });
 

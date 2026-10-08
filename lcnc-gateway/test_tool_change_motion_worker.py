@@ -290,8 +290,7 @@ class TestUnknownStartAfterAToolChange(unittest.TestCase):
     def test_a_branch_that_never_runs_writes_nothing(self):
         # Codex R96 VP-I54: with o-words a gap between line numbers proves
         # nothing ran — the G92 of an `if [0]` writes nothing, L8 is known
-        # again; run (`if [1]`), its callback reports it. An inactive
-        # fixture's write in a branch is what stays untracked — said.
+        # again; run (`if [1]`), its callback reports it.
         r = probe("r96_branch_not_run")
         self.assertEqual(r["rapid_ustart"][-1], 0)
         self.assertAlmostEqual(r["rapid_tcum"][-1] - r["rapid_tcum"][-2], 1.0, places=5)
@@ -300,9 +299,31 @@ class TestUnknownStartAfterAToolChange(unittest.TestCase):
         r = probe("r96_branch_run")
         self.assertEqual(r["rapid_ustart"][-1], 1)
         self.assertEqual(r["stale_offset_lines"], [5])
-        r = probe("r96_branch_inactive_l20")
-        self.assertIsNone(r["stale_offset_lines"])
-        self.assertIs(r["stale_offset_untracked"], True)
+        # (an inactive fixture's L20 in a branch that runs: tracked since R97,
+        # test_a_sign_and_a_value_computed_equal_hide_no_write)
+
+    def test_a_sign_and_a_value_computed_equal_hide_no_write(self):
+        # Codex R97 VP-I53 rest: numbers take a sign (L+20, G+28.1, G+92);
+        # a G92 Z40 / G10 L20 Z40 inside a branch that runs computes the old
+        # value at the believed Z40 — the controller's report is the
+        # evidence, not the value. The position controls stay known.
+        for case, line in (("r97_l_plus_active", 4), ("r97_g_plus_active", 4), ("r97_l_plus_inactive", 4),
+                           ("r97_store_plus", 4), ("r97_branch_same_g92", 5), ("r97_branch_same_l20", 5),
+                           ("r97_branch_different_g92", 5)):
+            r = probe(case)
+            self.assertIsNone(r["parse_error"], case)
+            self.assertEqual(r["rapid_ustart"][-1], 1, case)
+            self.assertEqual(set(r["rapid_tcum"]), {0.0}, case)
+            self.assertEqual(r["stale_offset_lines"], [line], case)
+        for case in ("r97_l_plus_explicit", "r97_branch_reselect", "r97_l_plus_active_position_control",
+                     "r97_l_plus_inactive_position_control", "r97_store_plus_position_control",
+                     "r97_branch_same_g92_position_control", "r97_branch_same_l20_position_control"):
+            r = probe(case)
+            self.assertEqual(r["rapid_ustart"][-1], 0, case)
+            self.assertIsNone(r["stale_offset_lines"], case)
+        # an inactive fixture's L20 inside a branch that runs: the line had its
+        # own next_line (it ran), and inline subs keep this file's numbers
+        self.assertEqual(probe("r96_branch_inactive_l20")["stale_offset_lines"], [5])
 
     def test_the_interpreter_s_own_tool_change_moves_stay_known(self):
         # Codex R92's controls: quill-up, G30 twice, both — canon traverses on

@@ -58,11 +58,11 @@ test("the list is the timeline's marks: one row each, in timeline order, each ki
   // gateway's flag — L20's end); its row says so, every row after it is
   // marked, a tool change at L20's start and a row before it are not — and
   // every row stays listed.
-  await expect(page.locator('.simPanel [data-sim-row="L20"] .colWhat')).toContainText("the run stops in this line at the latest");
-  await expect(page.locator(".simPanel tr").filter({ hasText: "L26" }).locator(".colWhat")).toContainText("after the limit stop at L20");
-  await expect(page.locator('.simPanel [data-sim-row="L32"] .colWhat')).toContainText("after the limit stop at L20");
-  await expect(page.locator('.simPanel [data-sim-row="T20"] .colWhat')).not.toContainText("limit stop");
-  await expect(page.locator(".simPanel tr").filter({ hasText: "L12" }).locator(".colWhat")).not.toContainText("limit stop");
+  await expect(page.locator('.simPanel [data-sim-row="L20"] .colWhat')).toContainText("first predicted limit crossing — where the run stops is not determined");
+  await expect(page.locator(".simPanel tr").filter({ hasText: "L26" }).locator(".colWhat")).toContainText("after the first limit crossing at L20");
+  await expect(page.locator('.simPanel [data-sim-row="L32"] .colWhat')).toContainText("after the first limit crossing at L20");
+  await expect(page.locator('.simPanel [data-sim-row="T20"] .colWhat')).not.toContainText("limit crossing");
+  await expect(page.locator(".simPanel tr").filter({ hasText: "L12" }).locator(".colWhat")).not.toContainText("limit crossing");
   // the filter counts and narrows
   await expect(page.locator('.simPanel select[name="simFilter"] option[value="clash"]')).toHaveText("Collisions (2)");
   await simShow(page, "limit");
@@ -467,7 +467,7 @@ test("the summary names each kind: words in the wide pane, the glyph and the num
   await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
   await settleLayout(page);
   await expect(page.locator(".sidePane.narrow"), "150 % portrait: the narrow pane").toHaveCount(1);
-  // Narrow, the move joins the What text BEFORE the note: the limit stop's
+  // Narrow, the move joins the What text BEFORE the note: the limit crossing's
   // note (on every row after L20) never cuts "Rapid" off the line.
   const move = await page.locator(".simPanel tr").filter({ hasText: "L26" }).evaluate(tr => {
     const cell = tr.querySelector(".colWhat")!, inl = tr.querySelector(".moveInline")!;

@@ -109,27 +109,27 @@ export function limitStopOf(t: { count: number; cum: ArrayLike<number>; lines: A
   return null;
 }
 
-/** The run stops at the first soft-limit violation AT THE LATEST (operator
- *  2026-10-08: a program past its first violation shows moments no machine
- *  reaches). LinuxCNC refuses a move whose END lies beyond the window when it
- *  is queued and aborts what runs (2.9 command.c SET_LINE / SET_CIRCLE:
- *  `inRange` → `tpAbort`) — with readahead before that move; an arc whose
- *  ends lie inside runs until the commanded joint crosses the limit
- *  (control.c's run-time check — Codex R96 VP-I55: the line's start was
- *  claimed for it). So the boundary is the first track point a move ends
- *  beyond the window at (`stop`, the gateway's per-vertex flag): every stop
- *  lies at or before it — for an arc between its last point inside and it,
- *  for a refused move earlier still. Rows that START after it are marked
- *  (strictly: one at the point itself is the pose reached there); rows
- *  between a refused move's start and its end go unmarked — the claim stays
- *  on the safe side. The violating line's limit row says the run stops in it
- *  at the latest. Everything stays listed — the check runs on. */
+/** Rows after the first PREDICTED limit crossing (operator 2026-10-08: a
+ *  program past its first violation shows moments a machine would not run
+ *  through; the check runs on). The boundary is the first track point a move
+ *  ends beyond the joint window at (`stop`, the gateway's per-vertex flag) —
+ *  the line's start was claimed for an arc whose ends lie inside (Codex R96
+ *  VP-I55). It is a crossing, not a proven stop: LinuxCNC refuses a move
+ *  whose END is outside when it is queued (2.9 command.c `inRange` →
+ *  `tpAbort`), and an arc runs until control.c's run-time check sees the
+ *  commanded joint past the limit — then the trajectory still DECELERATES
+ *  (tp.c `tpHandleAbort`), so the stop may lie past the crossing (Codex R97:
+ *  ≥ 1.25 mm at 5 mm/s and 10 mm/s²). Where it stops is not determined, and
+ *  the notes say only what is known: the crossing line's limit row "first
+ *  predicted limit crossing — where the run stops is not determined", every
+ *  row starting after the point (strictly) "after the first limit crossing
+ *  at L…". Everything stays listed. */
 function markLimitStop(rows: SimRow[], stop: { cum: number; line: number } | null): void {
   if (!stop) return;
   const add = (r: SimRow, text: string) => { r.note = r.note ? `${r.note} · ${text}` : text; };
   const own = rows.find(r => r.kind === "limit" && r.line === stop.line && r.cum <= stop.cum);
-  if (own) add(own, "the run stops in this line at the latest");
-  for (const r of rows) if (r !== own && r.cum > stop.cum) add(r, `after the limit stop at L${stop.line}`);
+  if (own) add(own, "first predicted limit crossing — where the run stops is not determined");
+  for (const r of rows) if (r !== own && r.cum > stop.cum) add(r, `after the first limit crossing at L${stop.line}`);
 }
 
 /** The first row AFTER the position (the run's look-ahead and the

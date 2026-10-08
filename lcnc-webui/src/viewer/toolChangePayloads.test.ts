@@ -178,7 +178,7 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       // still reports itself, and the note says what is not tracked.
       r = sweepXYZ("r95_oword_g92", [15, 5, 45]);
       expect(r.track.ustart![r.last]).toBe(1);
-      expect(r.result.uncertified).toMatch(/at L6 stays unknown .*; in subroutines and loops only G92 and the active fixture's offsets are tracked$/);
+      expect(r.result.uncertified).toMatch(/at L6 stays unknown .*; in subroutines and loops, stored positions \(G28.1 \/ G30.1\) and fixture writes in called files are not tracked$/);
       // A G92 in a called subroutine file: caught by its callback, its line
       // the sub file's — the note names none rather than a wrong one.
       r = sweepXYZ("r95_sub_g92", [15, 5, 45]);
@@ -197,7 +197,21 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       r = sweepXYZ("r96_branch_not_run", [100, 100, 100]);
       expect(r.track.ustart![r.last]).toBe(0);
       expect(r.track.cum[r.last]! - r.track.cum[r.last - 1]!).toBeCloseTo(1, 5);
-      expect(r.result.uncertified).toMatch(/not checked until the position is known again \(L7\); in subroutines and loops only G92 and the active fixture's offsets are tracked$/);
+      expect(r.result.uncertified).toMatch(/not checked until the position is known again \(L7\); in subroutines and loops, stored positions \(G28.1 \/ G30.1\) and fixture writes in called files are not tracked$/);
+    });
+    it("a sign on a number, and a write computed equal to the old value, hide nothing (Codex R97)", () => {
+      // G10 L+20 P1 Z10: L6 stays unknown, no false hit at Z45, L4 named.
+      let r = sweepXYZ("r97_l_plus_active", [15, 5, 45]);
+      expect(r.track.ustart![r.last]).toBe(1);
+      expect(r.result.hits).toHaveLength(0);
+      expect(r.result.uncertified).toMatch(/the offset set from that position at L4 stays unknown/);
+      // `o100 if [1]` around G92 Z40 at the believed Z40: the old offset again
+      // in the preview, -10 on the machine — L8 stays unknown (Codex's box on
+      // the preview's Z15 path is not hit), L5 named.
+      r = sweepXYZ("r97_branch_same_g92", [15, 5, 15]);
+      expect(r.track.ustart![r.last]).toBe(1);
+      expect(r.result.hits).toHaveLength(0);
+      expect(r.result.uncertified).toMatch(/the offset set from that position at L5 stays unknown/);
     });
     it("a rotation after X alone was known keeps the next move unknown; a full target makes it known", () => {
       let r = sweepXYZ("r94_rotated_after_partial", [6.0355339059, 13.1066017178, 15]);
@@ -223,7 +237,7 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
   });
 });
 
-describe("where the run stops at the latest (Codex R96 VP-I55)", () => {
+describe("the first predicted limit crossing (Codex R96/R97 VP-I55)", () => {
   it("an arc whose ends lie inside the window: the first point beyond it, not the line's start", () => {
     // G2 from Z40 over Z60 back to Z40 under max Z 50, as the native worker
     // writes it: the limit record names L3; the run stops where the arc
@@ -244,9 +258,31 @@ describe("where the run stops at the latest (Codex R96 VP-I55)", () => {
       violations: raw.violations, unit: "mm", timeBased: true, axisEnd: track.cum[track.count - 1]!, stop,
     });
     expect(rows.map(r => [r.key, r.note])).toEqual([
-      ["L3", "the run stops in this line at the latest"],
+      ["L3", "first predicted limit crossing — where the run stops is not determined"],
       ["C3|t|w|0", ""],
-      ["C3|t|w|1", "re-entry · after the limit stop at L3"],
+      ["C3|t|w|1", "re-entry · after the first limit crossing at L3"],
     ]);
+  });
+});
+
+describe("a crossing is no stop (Codex R97 VP-I55)", () => {
+  it("the same arc at F300: the notes name the crossing and never claim where the run stops", () => {
+    // Crossing Z50 at 5 mm/s with 10 mm/s² takes at least 1.25 mm to stop
+    // (Codex's bound): a contact just past the crossing may still be run
+    // through. The marks say "after the first limit crossing" — a fact —
+    // and the crossing row says where the run stops is not determined.
+    const { raw, track } = load("r97_arc_braking");
+    const stop = limitStopOf(track)!;
+    expect(stop.line).toBe(3);
+    const rows = buildSimRows({
+      clash: [{ key: "C3|t|w|0", line: 3, cum: stop.cum + 0.01, cumEnd: stop.cum + 0.01, a: "tool", b: "w" }],
+      limit: [{ key: "L3", line: 3, cum: 0, cumEnd: stop.cum }], tool: [],
+      violations: raw.violations, unit: "mm", timeBased: true, axisEnd: track.cum[track.count - 1]!, stop,
+    });
+    expect(rows.map(r => r.note)).toEqual([
+      "first predicted limit crossing — where the run stops is not determined",
+      "after the first limit crossing at L3",
+    ]);
+    for (const r of rows) expect(r.note).not.toMatch(/limit stop|stops (here|in this line) at the latest/);
   });
 });
