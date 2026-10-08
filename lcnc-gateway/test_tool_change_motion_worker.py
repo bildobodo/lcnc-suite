@@ -129,6 +129,34 @@ class TestUnknownStartAfterAToolChange(unittest.TestCase):
             self.assertEqual(set(r["rapid_ustart"][1:]), {1}, case)
             self.assertEqual(set(r["rapid_tcum"]), {0.0}, case)
 
+    def test_the_mode_a_block_runs_in_decides_after_it_ran(self):
+        # Codex R93 VP-I51 A: the distance mode of a block shows only at the
+        # next line, so no axis comes back inside a block — a G91 cycle or a
+        # G91 G28 in one block, or with G91 before it, stays unknown with no
+        # duration — and a G90 in the block of a full XYZ target makes the
+        # next move known, as a G90 of its own line does.
+        for case in ("r93_inline_g91_cycle", "r93_separate_g91_cycle", "r93_inline_g91_g28"):
+            r = probe(case)
+            self.assertEqual(set(r["rapid_ustart"]), {1}, case)
+            self.assertEqual(set(r["rapid_tcum"]), {0.0}, case)
+            self.assertEqual(r["feed"], [], case)
+        for case in ("r93_g90_same_block", "r93_g90_separate_block"):
+            r = probe(case)
+            self.assertEqual(r["rapid_ustart"][-1], 0, case)
+            self.assertAlmostEqual(r["rapid_tcum"][-1] - r["rapid_tcum"][-2], 1.0, places=5, msg=case)
+
+    def test_a_rotated_frame_never_confirms_an_axis_left_out(self):
+        # Codex R93 VP-I51 B: under G10 L2 R45 an `X10 Z15` moves machine X
+        # and Y; Y was never commanded, so the next move stays unknown — with
+        # R0 too — while a full `X10 Y5 Z15` makes it known.
+        for case in ("r93_rotated_partial", "r93_unrotated_partial"):
+            r = probe(case)
+            self.assertEqual(r["rapid_ustart"], [1, 1, 1], case)
+            self.assertEqual(set(r["rapid_tcum"]), {0.0}, case)
+        r = probe("r93_rotated_complete")
+        self.assertEqual(r["rapid_ustart"], [1, 1, 0])
+        self.assertAlmostEqual(r["rapid_tcum"][2] - r["rapid_tcum"][1], 1.0, places=5)
+
     def test_the_interpreter_s_own_tool_change_moves_stay_known(self):
         # Codex R92's controls: quill-up, G30 twice, both — canon traverses on
         # the M6's line, the move after them timed.

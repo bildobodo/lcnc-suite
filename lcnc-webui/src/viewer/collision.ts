@@ -1083,9 +1083,10 @@ export function* sweepCollisionsIter(
   if (track.ustart) for (let i = 1; i < n; i++) if (track.ustart[i]) unknownStarts.push(track.lines[i]!);
   if (unknownStarts.length) {
     const k = unknownStarts.length;
+    const at = [...new Set(unknownStarts)];   // a cycle is several moves on one line
     uncertified = (uncertified ? uncertified + "; " : "")
       + `${k} move${k === 1 ? "" : "s"} after a tool change run${k === 1 ? "s" : ""} from a position the preview cannot know — `
-      + `not checked until the position is known again (${unknownStarts.slice(0, 3).map(l => "L" + l).join(", ")}${k > 3 ? " …" : ""})`;
+      + `not checked until the position is known again (${at.slice(0, 3).map(l => "L" + l).join(", ")}${at.length > 3 ? " …" : ""})`;
   }
   let fellBack = false;
   if (track.mode && !abortedInit) {

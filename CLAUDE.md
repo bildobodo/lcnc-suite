@@ -1004,12 +1004,16 @@ move are computed from the old position. The canon keeps the axes the tool
 change position names STALE (`canon.stale`, `tool_change_axes` from the
 value count 3 / 6 / 9; another count makes all nine stale, said on stderr);
 while one is, every motion — traverse, feed, probe, tap, arc (collapsed to
-its end) — is a zero-length unknown-start endpoint, and an ABSOLUTE move
-re-establishes the axes it moves (an axis commanded to the value the preview
-already believes cannot be told from one left out — it stays stale); under
-G91 none, also within a G91 block of several motions, and a block that
-switched to G91 is corrected at the next line (Codex R92 VP-I51); no relabel
-is inserted in front of an unknown start. The
+its end) — is a zero-length unknown-start endpoint. A BLOCK re-establishes
+the stale axes whose PROGRAM coordinate its motions moved (`_program`
+inverts rotate_and_translate: under a rotated frame an X move changes
+machine X and Y, and Y was never commanded — Codex R93 B), and only after
+it ran, if it ran absolute: `next_line` delivers the state BEFORE its block,
+so the mode a block ran in is the next line's (R93 A: a `G91 G81` in one
+block recorded its feed and retract as known; a `G90 G0 X Y Z` left the next
+move unknown). Nothing is re-established inside a block; an axis commanded
+to the value the preview already believes cannot be told from one left out
+and stays stale; no relabel is inserted in front of an unknown start. The
 interpreter's own quill-up / G30 moves at an M6 are canon traverses and
 recorded — they arrive as line −1, which the canon keeps on the M6's line
 (`next_line`; a −1 ended every such parse in an OverflowError on the wire's

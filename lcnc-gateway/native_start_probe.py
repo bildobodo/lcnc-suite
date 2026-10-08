@@ -104,6 +104,17 @@ CASES = {
     # A G91 block with several motions (a drilling cycle): no axis may come
     # back INSIDE it — the correction at the next line comes too late there.
     "m6_tc_g91_cycle": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG91\nG81 X10 Y5 Z-5 R2 F100\nG80\nG90\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 0 0"}),
+    # Codex R93's VP-I51 rests: a G91 / G90 in the move's own block (the mode
+    # a block runs in is known only at the next line) and a rotated G54 (an
+    # X move changes machine X and Y; Y was never commanded).
+    "r93_inline_g91_cycle": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG91 G81 X10 Y5 Z-5 R2 F100\nG80\nG0 X5\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 0 0"}),
+    "r93_separate_g91_cycle": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG91\nG81 X10 Y5 Z-5 R2 F100\nG80\nG0 X5\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 0 0"}),
+    "r93_inline_g91_g28": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG91 G28 X10 Y5 Z-5\nG0 X5\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 0 0"}),
+    "r93_rotated_partial": ("G21 G90\nG10 L2 P1 R45\nG54\nG0 X0 Y0 Z40\nM6\nG0 X10 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 0"}),
+    "r93_unrotated_partial": ("G21 G90\nG10 L2 P1 R0\nG54\nG0 X0 Y0 Z40\nM6\nG0 X10 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 0"}),
+    "r93_rotated_complete": ("G21 G90\nG10 L2 P1 R45\nG54\nG0 X0 Y0 Z40\nM6\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 0"}),
+    "r93_g90_same_block": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG91\nG0 X1 Y2 Z3\nG90 G0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 0 0"}),
+    "r93_g90_separate_block": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG91\nG0 X1 Y2 Z3\nG90\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 0 0"}),
     # Codex R92's green controls: the interpreter's own tool-change moves
     "r92_m6_quill": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG0 X10 Y5\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_QUILL_UP = 1"}),
     "r92_m6_g30_twice": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG0 Z20\nM6\nG0 X10 Y5\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_AT_G30 = 1"}),

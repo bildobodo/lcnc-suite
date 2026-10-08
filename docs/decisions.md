@@ -8566,3 +8566,15 @@ track → sweep probe is now a repository test on payloads the native worker
 writes; the browser test reads its diagnostic through optional calls (VP-I52:
 a cold model threw before the diagnostic existed).
 
+Codex R93 found the re-establishment decided at the wrong moment and in the
+wrong frame. The distance mode `next_line` hands over is the state BEFORE
+its block, so a block that switched to G91 itself (`G91 G81 …`, `G91 G28 …`)
+re-established its axes at its first motion and recorded its feed and
+retract as known paths (3.5 s invented, a hit at Z39 from the stale
+position) — and a `G90 G0 X10 Y5 Z15` after a G91 move left the next move
+unknown. And comparing translated points read a rotated `X10 Z15` (G10 L2
+R45) as a move of machine Y: Y, never commanded, came back. Now a block
+notes the stale axes whose PROGRAM coordinate its motions moved
+(rotate_and_translate inverted with the offsets in effect) and the next line
+re-establishes them if the block ran absolute — never inside a block.
+
