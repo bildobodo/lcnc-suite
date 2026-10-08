@@ -1134,11 +1134,13 @@ def parse(ctx: dict) -> dict:
         file_size = 0
 
     # Tool stats need BOTH sources. The interpreter only fires change_tool on
-    # an executed M6 — this machine's M600/M601 remap reaches its inner M6 via
-    # tool_touch_off.ngc, whose body is skipped in preview (#<_task> guard), so
-    # the canon counts 0 for M600 programs. The textual scan sees M6/M600/M601
-    # in the program text but can't expand subroutine loops the interpreter
-    # does execute. Max/union of the two is the best honest estimate.
+    # an executed M6 — the M600/M601 remap reaches its inner M6 via
+    # tool_touch_off.ngc, which runs in the preview since the M600 plan, but
+    # not where the toolsetter values are not vouched for, nor for a foreign
+    # remap or a branch the preview does not take. The textual scan sees
+    # M6/M600/M601 in the program text but can't expand subroutine loops the
+    # interpreter does execute. Max/union of the two is the best honest
+    # estimate.
     text_changes = 0
     text_tools = set()
     if _src_text:   # read once, further up (rotary-rebase command scan)
