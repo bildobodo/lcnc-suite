@@ -831,6 +831,76 @@ describe("contact-window refinement (glow window)", () => {
   });
 });
 
+describe("a world kins' speed, not its chord deviation (Codex R101 VP-I57)", () => {
+  // XYZAC under TCP, program X1000 held while C sweeps: the X joint is
+  // 1000·cos C — equal at both ends of a sweep symmetric about C 0, so the
+  // endpoint delta is 0 and only the curvature prices the motion. A 1 mm cube
+  // starts at the centre of a 20 mm box, leaves it as X grows and comes back
+  // as C sweeps on: two contacts, analytically. The budget |Δj| + bulge
+  // (the chord deviation) priced a quarter of the speed — the inside answer
+  // ran to 10° and the return was never seen.
+  const M: CollisionMachine = {
+    groups: [{ id: "table", parent: "root" }, { id: "part", parent: "table" }, { id: "head", parent: "root" }],
+    kinematics: [{ group: "head", joint: 0, type: "translate", direction: "x", sign: 1 }],
+    workGroup: "part", toolGroup: "head", unitScale: 1, axes: ["X", "Y", "Z", "A", "C"],
+    kins: { type: "xyzac-trt", identityFirst: true, params: {} },
+  };
+  const sweepC = (half: number) => {
+    const x0 = 1000 * Math.cos(half * Math.PI / 180);
+    const model = buildCollisionModel(M, [
+      { id: "outer", group: "table", positions: boxPositions(20), translate: [x0, 0, 0] },
+      { id: "inner", group: "head", positions: boxPositions(1) },
+    ]);
+    const t: ScrubTrack = {
+      pos: new Float32Array([1000, 0, 0, 1000, 0, 0]), abc: new Float32Array([0, 0, -half, 0, 0, half]),
+      cum: new Float32Array([0, 2 * half]), lines: new Uint32Array([1, 2]), rapid: new Uint8Array(2),
+      mode: new Uint8Array([1, 1]), count: 2, lineIndex: emptyLineIndex(), timeBased: false,
+    };
+    const r = sweepCollisions(model, t, WCS0, { margin: 0.1 });
+    const exit = half - Math.acos((x0 + 10.5) / 1000) * 180 / Math.PI;
+    return { r, exit, end: 2 * half };
+  };
+  const ivs = (r: CollisionResult) => r.hits.flatMap(h => h.intervals ?? []).map(([a, b]) => [+a.toFixed(2), +b.toFixed(2)]);
+
+  it("one chunk (C ±11.25°): out of the box at the analytic exit, back in at its mirror", () => {
+    const { r, exit, end } = sweepC(11.25);
+    expect(r.uncertified).toBeNull();
+    expect(ivs(r)).toEqual([[0, +exit.toFixed(2)], [+(end - exit).toFixed(2), end]]);
+  });
+
+  it("short lines into the box: the surface budget is used up across their boundaries", () => {
+    // From C 30 to 45 in 0.2° lines (each its own chunk): the cube enters
+    // the box through a 0.08° touch near C 44.14 and stays wholly inside to
+    // the end. Each line ends sampled, but a pair whose distance was measured
+    // in an earlier line has spent part of it since: unspent, the pair would
+    // read "no crossing possible" at the next line and the inside stretch
+    // would stay unseen.
+    const x0 = 1000 * Math.cos(Math.PI / 4);
+    const model = buildCollisionModel(M, [
+      { id: "outer", group: "table", positions: boxPositions(20), translate: [x0, 0, 0] },
+      { id: "inner", group: "head", positions: boxPositions(1) },
+    ]);
+    const cs = Array.from({ length: 76 }, (_, i) => 30 + i * 0.2);
+    const n = cs.length;
+    const t: ScrubTrack = {
+      pos: new Float32Array(cs.flatMap(() => [1000, 0, 0])), abc: new Float32Array(cs.flatMap(c => [0, 0, c])),
+      cum: Float32Array.from(cs, c => c - 30), lines: Uint32Array.from(cs, (_, i) => i + 1), rapid: new Uint8Array(n),
+      mode: new Uint8Array(n).fill(1), count: n, lineIndex: emptyLineIndex(), timeBased: false,
+    };
+    const r = sweepCollisions(model, t, WCS0, { margin: 0.1 });
+    const entry = Math.acos((x0 + 10.5) / 1000) * 180 / Math.PI - 30;
+    const all = r.hits.flatMap(h => h.intervals ?? []);
+    expect(Math.min(...all.map(iv => iv[0]))).toBeCloseTo(entry, 1);
+    expect(Math.max(...all.map(iv => iv[1]))).toBeCloseTo(15, 2);
+  });
+
+  it("four chunks (C ±45°): the budget carried across the chunk boundaries finds the return too", () => {
+    const { r, exit, end } = sweepC(45);
+    expect(r.uncertified).toBeNull();
+    expect(ivs(r)).toEqual([[0, +exit.toFixed(2)], [+(end - exit).toFixed(2), end]]);
+  });
+});
+
 describe("world-kins conservative advancement (sagitta slack)", () => {
   // The review's miss class: a C sweep symmetric about the joint-X
   // extremum. The pair's DOF path is {X} only, so chunk-endpoint joint
@@ -1941,6 +2011,23 @@ describe("a body wholly inside another (the inside check, collision-inside.plan.
     expect(shape(full)).toEqual(shape(sync));
     expect([full.samples, full.notes]).toEqual([sync.samples, sync.notes]);
     expect(sync.hits.filter(h => h.continuation === undefined)).toHaveLength(1);
+  });
+
+  it("a crossing narrower than the sampling floor, into the inside across a line boundary", () => {
+    // A 0.01 mm cube toward a 20 mm box (+X face at 10), margin 0.01: queried
+    // last on line 2 at the margin (cum 4.985), its next sample would be the
+    // floor's 0.25 later — by then it has crossed the face (a 0.01 wide touch)
+    // and lies 0.2 deep. Line 3 starts at cum 5.225: its first sample finds
+    // the surfaces 0.22 apart, past twice the margin, which reads as a
+    // separation unless the distance measured on line 2 — used up across the
+    // boundary — says a crossing may have come, and the inside is asked.
+    const r = sweepCollisions(buildCollisionModel(machine(), [post(boxPositions(20)), { id: "nub", group: "head", positions: boxPositions(0.01) }]),
+                              xs([15, 9.775, 5]), WCS0, { margin: 0.01 });
+    // one contact from the face to the end, carried onto line 3
+    expect(r.hits.filter(h => h.continuation === undefined).map(h => h.line)).toEqual([2]);
+    expect(r.hits.find(h => h.line === 3)?.continuation).toBe(2);
+    const end = Math.max(...r.hits.flatMap(h => h.intervals?.map(iv => iv[1]) ?? [h.cumEnd]));
+    expect(end).toBeCloseTo(10, 2);
   });
 
   it("a container whose surface is not closed is named once for the model and keeps the surface's guarantee", () => {

@@ -8762,3 +8762,27 @@ touch and sweeps a short track from a recorded inside pose per case; the
 gate's random XYZAC track already ran through the operator's end-cap pose.
 Cost: the oracle file 51 → 83 s (its winding numbers on the inside tracks);
 the sweep's own cost is step 5.
+
+## 2026-10-08 — The bulge is no speed; a crossing under the sampling floor is asked about (Codex R101)
+
+VP-I57: under a world kins the sweep priced a linear joint's motion over a
+chunk as |Δj| + bulge, but the bulge is the chord DEVIATION (M/8 of a bound
+M on j''), not a speed: x = 1000·cos C over C ±11.25° has equal ends, a
+19.3 bulge and a speed of 76.6 per chunk. Clearance and inside certificates
+both spend a speed, so both were too long — Codex's analytic case had the
+inside answer run to 10° (truth 3.68) and the return into the box never
+seen. A function on [0, 1] with |f''| ≤ M moves at most |Δf| + M/2, so the
+sweep spends `jointSpeedBound(|Δj|, bulge)` = |Δj| + 4·bulge; the contract
+in kins.ts says what the bulge is, and kinsBulge.test.ts certifies the speed
+per family against dense difference quotients.
+
+Fixing it found a second hole, on identity kins too: the sampling floor
+(MIN_ADV) steps past a touch narrower than itself — allowed by the
+guarantee — but through such a touch a part can go wholly inside, and a
+pair taken for clear was never asked again: the whole inside stretch went
+unseen. The sweep now carries each pair's surface distance like a clearance
+and asks the inside answer whenever it may have been used up since the last
+query. VP-I58: an undecidable answer the refinement meets is named (per pair
+and line), apart from the forward sweep's state. Codex accepted Fassung 3
+(open meshes named once per model) in the same round.
+

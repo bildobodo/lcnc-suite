@@ -1187,13 +1187,18 @@ simultaneous rotaries reach 67.5°, where the inflation's
 joints are trigonometric in the swept rotary, so endpoint deltas can
 read 0 across a symmetric bulge and a pair whose path lacks the rotary
 has no lever budget — the miss class. Each kins family bounds its OWN
-per-joint mid-chunk excursion via `KinsModel.jointBulge`; collision.ts
+per-joint mid-chunk CURVATURE via `KinsModel.jointBulge` (= M/8, M a bound on
+|j''| over the chunk — the chord deviation), and the sweep spends a SPEED,
+`jointSpeedBound(|Δj|, bulge)` = |Δj| + M/2 (Codex R101 VP-I57: it spent
+|Δj| + bulge — a quarter of x = 1000·cos C's speed over C ±11.25° — and a C
+sweep crossed a part unseen); collision.ts
 reads no family's parameter names (it used to read the trt-only
 `KinsParams`, which a trsrn spec does not carry, collapsing a 2 m rotary
 lever to the distance from the machine origin). Bounds are CERTIFIED per
 family by `kinsBulge.test.ts` — randomized chunks, densely resampled,
 requiring the sampled excursion never to exceed the declared bound for
-any joint; trivkins and trsrn mode 2 are exactly 0 because their inverses
+any joint, and the sampled speed never to exceed |Δj| + 4·bulge (the old
+|Δj| + bulge is exceeded on every world family); trivkins and trsrn mode 2 are exactly 0 because their inverses
 are affine in the coords. Adversarial pins: the trt C-sweep-into-wall and
 the trsrn A-sweep, both verified red with the bound stubbed to 0);
 pairs re-query only on certificate
@@ -1249,9 +1254,14 @@ so the sweep asks (`pairInside`) only where it is not known: the baseline
 (the first pose; the rest pose for a candidate), the first query after a
 break or a tool change (`needInside`), every separation decision (a pair
 whose last query touched — Infinity past the horizon included — and every
-re-sampled point after a touch), and a pair whose last answer was
+re-sampled point after a touch), a pair whose surfaces' distance at its
+last query is used up since (`surf` / `surfQ`, carried across chunks like a
+clearance: the sampling floor steps past a touch narrower than MIN_ADV, and
+through it a part can go wholly inside — a pair taken for clear was never
+asked again, on identity kins too), and a pair whose last answer was
 undecidable; the refinement's predicate is touching OR inside OR
-undecidable. Inside is a touch (distance 0) with a certificate of its own:
+undecidable, and an undecidable answer met there is named too (per pair and
+line, apart from the forward sweep's time-ordered state — VP-I58). Inside is a touch (distance 0) with a certificate of its own:
 the answer can change only through a surface crossing, so it holds until
 the surfaces' distance at that query (beyond the horizon: the horizon) is
 used up at the pair's speed bound — carried across chunks like a clearance,
