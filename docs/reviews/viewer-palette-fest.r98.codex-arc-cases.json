@@ -1,0 +1,11 @@
+{
+  "r96_arc_interior_limit": [
+    "G21 G90 G18\nG0 X0 Y0 Z40\nG2 X0 Z40 I0 K10 F100\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {}
+  ]
+}

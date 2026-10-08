@@ -1,0 +1,46 @@
+
+ RUN  v4.1.8 /tmp/codex-r98-9k3yqhs1/archive/lcnc-webui
+
+ ❯ src/viewer/r98.foreign.test.ts (4 tests | 2 failed) 28ms
+   × a foreign call with spaced keyword must not use a main-file explicit write to clear the real write 23ms
+   × foreign line 2 must not be attributed to unrelated main-file line 2 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r98.foreign.test.ts > a foreign call with spaced keyword must not use a main-file explicit write to clear the real write
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/viewer/r98.foreign.test.ts:48:74
+     46|
+     47| it('a foreign call with spaced keyword must not use a main-file explic…
+     48|  const r=inspect('r98_foreign_collision_spaced');expect(r.ustart.at(-1…
+       |                                                                          ^
+     49| });
+     50| it('the ordinary spelling keeps the foreign write unknown',()=>{
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/viewer/r98.foreign.test.ts > foreign line 2 must not be attributed to unrelated main-file line 2
+AssertionError: expected [ 2 ] to not include 2
+ ❯ src/viewer/r98.foreign.test.ts:54:84
+     52| });
+     53| it('foreign line 2 must not be attributed to unrelated main-file line …
+     54|  const r=inspect('r98_foreign_collision_plain');expect(r.staleOffsetLi…
+       |                                                                                    ^
+     55| });
+     56| it('the observable position control follows Z5, not the preview false …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed (4)
+   Start at  16:31:37
+   Duration  234ms (transform 117ms, setup 0ms, import 156ms, tests 28ms, environment 0ms)
+
