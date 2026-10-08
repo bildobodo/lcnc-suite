@@ -1,8 +1,9 @@
 # M600 in der Vorschau — die Werkzeugmessung, die das Programm selbst ausführt
 
-**Plan, Fassung 2 · 8. Oktober 2026 · Kollisionsplan Schritt 3 (Operator 2026-10-06).**
+**Plan, Fassung 3 · 8. Oktober 2026 · Kollisionsplan Schritt 3 (Operator 2026-10-06).**
 - Fassung 1 ging mit R102 zur Planprüfung an Codex.
-- Fassung 2 nimmt VP102-01 bis 05 auf (Antworttabelle am Ende).
+- Fassung 2 nahm VP102-01 bis 05 auf; Codex hat in R103 VP102-02, VP102-04 und die Ausgliederung (VP102-05) angenommen.
+- Fassung 3 nimmt die Reste von VP102-01 und VP102-03 sowie VP103-01 auf (Antworttabellen am Ende).
 - Noch kein Code.
 
 ## Befund
@@ -45,11 +46,24 @@ Den Wache-Block einfach zu entfernen, würde also eine **falsche Länge** berech
 | `[AXIS_Z] MIN_LIMIT` | Begrenzung des Tastwegs | INI wie heute |
 | #2000 | Modus (`m600.ngc` setzt 1) | der Aufruf selbst |
 
-Es gilt, was **übernommen** ist, nicht was gespeichert ist:
-- **Basis:** Der Interpreter liest die Toolsetter-Werte aus seinem Speicher. Das sind die zuletzt per MDI übernommenen (`_apply_probe_vars` mit `mdi_set = true`) oder, ohne Übernahme in dieser LinuxCNC-Instanz, die Var-Datei vom Start.
-- **Kein Push beim Start:** Ein gewöhnlicher Programmstart sendet keine Werte (`cycleStart`).
-- **Gateway-Buchführung:** Je Instanz ein Eintrag `toolsetter_basis` mit Werten, Herkunft (`applied` um Zeit X / `boot file`) und Version. Der Worker setzt genau diese Werte in seine Kopie der Parameterdatei; die Maschine wird nicht beschrieben.
-- **Benennen:** Die Vorschau sagt, worauf sie steht: „Toolsetter values taken over 14:02“ bzw. „as LinuxCNC read them at start“. Weicht die bestätigte Sektion ab, steht dabei: „Settings has newer values — the next measurement the WebUI starts takes them over“.
+Es gilt der Stand **im Interpreter**, nicht der gespeicherte. Ein gewöhnlicher Programmstart sendet keine Werte (`cycleStart`). Das Gateway bucht deshalb **je Schlüssel** Wert, Herkunft und Gültigkeit (`toolsetter_basis`, je LinuxCNC-Instanz und Gateway-Prozess):
+
+| Herkunft | Wann | Gültigkeit |
+|---|---|---|
+| `applied` | Ein MDI-Chunk von `_apply_probe_vars`, der den Schlüssel enthält, endete RCS_DONE (schlüsselweise je Chunk gebucht) | bestätigt |
+| `read` | Bestätigtes Rücklesen wie beim G30-Vertrag: `task_plan_synch` RCS_DONE, **neuer Inode** der Var-Datei, im Stillstand unter `_cmd_lock` | bestätigt |
+| `assumed` | Wert aus der Var-Datei ohne Bestätigung in diesem Prozess: nach einem Gateway-Neustart oder späten Anbinden, und für einen Schlüssel, den ein gesendetes MDI oder ein gestartetes Programm (Textscan) seither zuweist | Annahme |
+| `unknown` | Ein Chunk mit dem Schlüssel scheiterte, wurde abgebrochen oder lief in den Timeout (die Übernahme rollt frühere Chunks nicht zurück: Codex R103) | unbekannt |
+
+Regeln:
+- **Rücklesen:** Ist ein Schlüssel nicht bestätigt und ist ein Programm mit M600 geladen (Textscan), liest das Gateway im Stillstand einmal bestätigt zurück, wie `read_g30`. Das macht `assumed` und `unknown` zu `read`. Die Maschine wird dabei nicht beschrieben; `task_plan_synch` schreibt nur die Var-Datei aus dem Interpreter.
+  - Dass `save_parameters` die #3xxx-Zeilen der Datei mit den Interpreterwerten schreibt, ist bei der Umsetzung nativ zu belegen.
+  - Gelingt es nicht, bleibt der Stand benannt.
+- **Vorschau:** Der Worker setzt die gebuchten Werte in seine Kopie der Parameterdatei.
+  - Alle Schlüssel `applied` oder `read`: „Toolsetter values taken over 14:02“ bzw. „read 14:05“.
+  - Einer `assumed`: Die Vorschau rechnet, benennt die Basis aber als Annahme: „toolsetter values assumed from the var file — not verified“.
+  - Einer `unknown`: M600 wird nicht vorhergesagt (Abschnitt 4: Toolsetter-Werte unbekannt).
+  - Weicht die bestätigte Settings-Sektion ab: „Settings has newer values — the next measurement the WebUI starts takes them over“.
 - **Programmeigene Zuweisungen** (`#3009 = …` im Programm) wirken danach in Ausführungsreihenfolge, wie im Interpreter.
 - **Cache und Mittellauf-Parse:** Die Basis mit Version gehört in den Parse-Kontext und den Cache-Schlüssel. Die angeheftete Mittellauf-Parse behält die eingefrorene Basis über ihren Parametertext (`param_text`).
 
@@ -61,9 +75,19 @@ Die Vorschau sagt eine **erfolgreiche** Messung nur voraus, wenn alle Bedingunge
 3. **Auslösepunkt auf dem Tastsegment:** `Z_trip = #3102 + L` (beim Kantentaster `+ #3115`) liegt auf dem Weg, den die Routine wirklich fährt. Das heißt: unterhalb der Startposition und oberhalb von Start − Tastweg, wobei die Startposition und der Tastweg (`#3007`, beim neuen Werkzeug `#3010`, gekappt auf die Achsgrenze) genau wie in der Routine berechnet werden.
 4. **Langsame Probe:** Nach dem Rückzug um `#3009` (> 0) erreicht die langsame Probe (2 × `#3009`) den Punkt wieder. Mit `#3005 = 0` entfällt sie, wie in der Maschine.
 
-Gelten sie, fährt die Vorschau statt G38 zum Auslösepunkt und zurück, mit denselben Vorschüben. Sie setzt `#<new_tool_length_offset> = L` (die Formel der Routine ergibt in diesem Bereich genau L); `G10 L1` schreibt denselben Wert, `G43 H` aktiviert ihn. Der Arbeitskoordinatenrahmen bleibt, wie die Routine ihn hat; die Ersatzfahrt setzt keine Probe-Parameter.
+Gelten sie, fährt die Vorschau statt G38 zum Auslösepunkt und zurück, mit denselben Vorschüben.
 
-Gilt eine Bedingung nicht: Die Vorschau zeichnet die bekannten Wege bis zum Ende des Tastsegments (die Probe läuft voll durch, wie es die Maschine ohne Auslösung täte). Ab dort sagt sie „probe not predicted (T13: …) — not checked from L…“ mit dem Grund. Es gibt keinen erfundenen G10/G43-Folgepfad, und die Fehler- und Wiederholbehandlung der Routine wird nicht nachgebildet.
+- **Probe-Ergebnisse** (VP103-01): Am Auslösepunkt, **vor** dem Rückzug, setzt der Vorschauzweig `#5061`–`#5069` auf die aktuelle Position im damaligen Arbeitsrahmen (`#5420`–`#5428`) und `#5070 = 1`.
+  - Die langsame Probe überschreibt das; mit `#3005 = 0` bleibt das Ergebnis der schnellen.
+  - Nachfolgender NC-Code, der `#5063` oder `#5070` liest, sieht so das angenommene Ereignis und nicht alte Werte.
+  - Nativ geprüft (8. Oktober 2026): Die Parameter lassen sich im Vorschau-Interpreter setzen, und `#5420`–`#5422` liefern die Position im Arbeitsrahmen (G54-Versatz eingerechnet).
+  - Das ist ein **angenommenes Vorschauergebnis**, kein Nachweis einer Messung.
+- **Länge:** `#<new_tool_length_offset> = L` (die Formel der Routine ergibt in diesem Bereich genau L). `G10 L1` schreibt denselben Wert, `G43 H` aktiviert ihn.
+
+Gilt eine Bedingung nicht (VP102-03): Die Vorschau zeichnet die bekannte Positionierung bis zum **Start** des Tastsegments. Ab diesem G38-Segment gibt es keine Weg-, Zeit- oder Kollisionsaussage, weil der Taster schon vorher auslösen kann.
+- **Gleiche Grenze überall:** Payload, Track und Sweep beginnen die Auslassung an derselben Stelle.
+- **Benennung:** „probe not predicted (T13: …) — not checked from L…“ mit dem Grund.
+- **Kein Ersatzpfad:** Es gibt keinen erfundenen G10/G43-Folgepfad, keine gezeichnete Suchhülle und keine Nachbildung der Fehler- und Wiederholbehandlung der Routine.
 
 **4. Zustand und Abdeckung, wenn etwas unbekannt ist** (VP102-03).
 
@@ -72,15 +96,17 @@ Gilt eine Bedingung nicht: Die Vorschau zeichnet die bekannten Wege bis zum Ende
 | Vor M600 | bekannt | wie bisher | altes Werkzeug | alle Paare |
 | Ab M6, L bekannt | bekannt (G53-Fahrten) | G49 (0) | neues Werkzeug (Tabelle) | alle Paare |
 | Ab M6, L unbekannt (≤ 0 / keine Zeile) | bekannt | G49 (0) | **unbekannt** | Maschinenpaare ja, Werkzeugpaare **nicht** |
-| Ab der Probe ohne Vorhersage (Bedingung 1–4 verletzt) | **unbekannt** (Z nach der Probe) | danach aus unbekannter Messung | wie davor | **nichts**, bis Programmende |
+| Ab dem **Start** einer nicht vorhergesagten Probe (Bedingung 1–4 verletzt) | **unbekannt** | danach aus unbekannter Messung | wie davor | **nichts**, bis Programmende |
 | Späteres `G43` / `G43 H13` nach unbekannter Messung | unbekannt | Tabellenzeile T13 aus unbekannter Messung: **unbekannt** | — | nichts |
 | Späteres `G49` | bleibt unbekannt (Programmrahmen aus unbekanntem Stand) | 0 | unbekannt | nichts |
 | Wechsel auf ein anderes Werkzeug mit bekannter Zeile | bleibt unbekannt | — | bekannt | nichts |
-| M600 ohne eingerichteten Toolsetter, oder eine fremde M600-Remap | unbekannt (der Aufruf hätte Werkzeug und Zustand geändert) | unbekannt | unbekannt | **nichts**, bis Programmende |
+| M600 ohne eingerichteten Toolsetter, mit unbekannten Toolsetter-Werten (Abschnitt 2), oder eine fremde M600-Remap | unbekannt (der Aufruf hätte Werkzeug und Zustand geändert) | unbekannt | unbekannt | **nichts**, bis Programmende |
 
 Begründung für „bis Programmende“: Ein aus unbekanntem Ergebnis abgeleiteter Offset- oder Registerwert bleibt unbekannt, bis seine Ursache nachweislich ersetzt ist. Diese Fassung liefert keine gezielte Wiederzulassung, sondern eine konservative, dauerhaft benannte Auslassung, wie beim Offset aus unbekannter Position (VP-I53).
 
 Die Maschinenpaare mit bekannter Position laufen beim unbekannten Werkzeugkörper weiter (Zeile 3). Ein unbekannter Körper darf eine bekannte Position nicht verschwinden lassen.
+
+„Position bekannt“ gilt nur, soweit die vorhandenen Regeln es belegen. Bei `TOOL_CHANGE_POSITION` bleiben die unbekannten Achsen nach dem M6 bestehen (VP-I51). Eine absolute G53-Fahrt der Routine stellt den Endzustand ihrer Achsen wieder her, nicht rückwirkend ihren Anfang. Die Tabelle ersetzt diese Regeln nicht, sie setzt auf ihnen auf.
 
 **5. Herkunft der Länge: nie „gemessen“ ohne Nachweis** (VP102-04).
 
@@ -97,13 +123,21 @@ Nach einer echten Messung im Lauf den Rest des Programms ab der laufenden Stelle
 
 ## Prüfungen
 
-- **Maschinenpfad unverändert:** Ein Test streicht die `_task EQ 0`-Zweige und vergleicht mit der bisherigen Routine (Anweisungen und Zweigstruktur).
+- **Maschinenpfad unverändert:** Ein Test vergleicht den `_task = 1`-Pfad der neuen Routine mit der bisherigen als **Kontrollstruktur**: einen o-Wort-Baum aus Bedingungen, Schleifen, Rücksprüngen und Anweisungen, nicht nur Text zwischen Markern.
 - **Nativ** (`native_start_probe.py` mit der echten Routine als Unterdatei, Toolsetter-Basis gesetzt):
   - L bekannt: die Fahrten in Maschinenkoordinaten, der Auslösepunkt `#3102 + L`, M6 als Werkzeugwechsel, G43 mit L.
-  - Je verletzte Bedingung aus Abschnitt 3 ein Fall: L ≤ 0, `#3102 > 0`, Auslösepunkt außerhalb des Tastwegs bei `#3007 = 1` (Codex' Fall), Kappung durch die Achsgrenze, `#3005 = 0`.
+  - Je verletzte Bedingung aus Abschnitt 3 ein Fall: L ≤ 0, `#3102 > 0`, Auslösepunkt außerhalb des Tastwegs bei `#3007 = 1` (Codex' Fall), Kappung durch die Achsgrenze. `#3005 = 0` ist ein gültiger Fall mit einer Probe, keine Verletzung.
+  - Unbekannte Länge mit Kontakt vor dem programmierten Ende und einem Hindernis erst dahinter: nichts ab dem Start der Probe geprüft, nichts dort gemeldet.
+  - Probe-Ergebnisse: Codex' Verzweigung `o100 if [#5070 EQ 1]` und ein Folgeweg mit `#5063` nehmen den angenommenen Erfolg; ein früheres abweichendes Probe-Ergebnis zählt nicht; WCS/G92 und Kantentaster.
   - Kantentaster, Durchmesserversatz, `#3106` (Rückfahrt), `#3108` (ohne Wechselposition).
   - Geänderte #3009/#3013 bei unveränderten #3100–#3115. Die Kantentasternummer nur in der Probe-Sektion geändert.
-- **Basis:** gespeichert, aber nicht übernommen (`mdi_set = false`). Neu-Parse nach einer Settings-Änderung bei laufendem Programm (die eingefrorene Basis bleibt).
+- **Basis:**
+  - gespeichert, aber nicht übernommen;
+  - zwei Chunks, der zweite scheitert (die Schlüssel des ersten `applied`, die des zweiten `unknown`);
+  - Abbruch nach dem ersten bestätigten Chunk;
+  - Gateway-Neustart bei laufender Instanz (alles `assumed` bis zum Rücklesen);
+  - ein gesendetes MDI, das `#3009` zuweist;
+  - Neu-Parse nach einer Settings-Änderung bei laufendem Programm (die eingefrorene Basis bleibt).
 - **Zustandstabelle:** je Zeile ein Payload → Track → Sweep. Darunter ein Hindernis zwischen M6 und G38 bei unbekannter Länge (Maschinenpaar gefunden, Werkzeugpaar benannt), G43 erneut für dasselbe unbekannte Werkzeug, G49, Wechsel auf ein bekanntes Werkzeug, fehlendes Setup mit weiteren Bewegungen.
 - **Herkunft:** Marker ohne zugehöriges G43 (T0, RFL-Rücksprung) vervollständigt nichts; ein G43 außerhalb des Aufrufs ebenfalls nicht.
 - **Live:** ein M600-Programm im Sim-Parity-Korpus. Im Sim gleicht die Tabellenlänge der physischen, weil der Sim-Taster sie auslöst.
@@ -114,6 +148,15 @@ Nach einer echten Messung im Lauf den Rest des Programms ab der laufenden Stelle
 2. Vorschauzweig der Routine mit Gültigkeitsbereich, Maschinenpfad-Test, native Fälle.
 3. Zustandstabelle und Herkunft im Canon und im Sweep.
 4. Payload → Track → Sweep; Korpus-Programm live.
+
+## Antworten auf Codex R103
+
+| Punkt | Antwort | Planänderung |
+|---|---|---|
+| VP102-01 Rest | Angenommen. Eine Teilübernahme ist weder die alte noch die neue Basis. | Abschnitt 2: Herkunft je Schlüssel (`applied` je Chunk, `read`, `assumed`, `unknown`); bestätigtes Rücklesen wie bei G30; Neustart und andere Schreiber machen `assumed`; `unknown` verhindert die Vorhersage. |
+| VP102-03 Rest | Angenommen. Der Taster kann vor dem programmierten Ende auslösen. | Abschnitt 3 und Tabelle: Auslassung ab dem **Start** des Tastsegments, gleich in Payload, Track und Sweep; keine gezeichnete Suchhülle. |
+| VP103-01 | Angenommen; nativ nachgeprüft. | Abschnitt 3: `#5061`–`#5069` aus `#5420`–`#5428` am Auslösepunkt vor dem Rückzug, `#5070 = 1`; langsame Probe überschreibt. |
+| Hinweise | Übernommen. | Tabellenhinweis zu den Regeln aus VP-I51; Pfadvergleich als Kontrollstruktur; `#3005 = 0` als gültiger Fall. |
 
 ## Antworten auf Codex R102
 
