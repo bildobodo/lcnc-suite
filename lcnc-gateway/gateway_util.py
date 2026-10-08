@@ -4393,6 +4393,40 @@ def resolve_sub_callers(seqs, sub_events, caller_by_event):
     return out
 
 
+def main_file_tool_changes(events, sub_events, caller_by_event):
+    """The canon's tool changes as MAIN-file lines (M600 in the preview).
+
+    events          -- [(lineno, tool, k)] in execution order; k = how many
+                       sub-span markers had been seen when the M6 ran.
+    sub_events      -- canon triples [(seq, name|None, caller|None)].
+    caller_by_event -- attribute_sub_callers' map (depth-0 start event
+                       index -> verified main-file line).
+
+    An M6 outside every marked span keeps its line. One inside a span —
+    the bundled M600 routine's own M6 — carries the SUB file's line, which
+    collides with this file's (a mark at L263 of a long program): it takes
+    the outermost span's verified call line, else it is dropped (the text
+    scan still finds the M600 line, toolChangeScan.ts). Pure.
+    """
+    out = []
+    stack = []
+    ei = 0
+    for line, tool, k in events:
+        while ei < min(k, len(sub_events)):
+            ev = sub_events[ei]
+            if ev[1] is None:
+                if stack:
+                    stack.pop()
+            else:
+                stack.append(caller_by_event.get(ei, 0))
+            ei += 1
+        if not stack:
+            out.append([int(line), int(tool)])
+        elif stack[0] > 0:
+            out.append([int(stack[0]), int(tool)])
+    return out
+
+
 _OCALL_RE = re.compile(r"^\s*o<([a-z0-9_.\-]+)>\s*call\b", re.IGNORECASE | re.MULTILINE)
 _OSUB_RE = re.compile(r"^\s*o<([a-z0-9_.\-]+)>\s*sub\b", re.IGNORECASE | re.MULTILINE)
 

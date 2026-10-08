@@ -295,6 +295,14 @@ CASES.update({
     "m600_no_prepos": _m600({3108: 1}),
     # T2 is 6 mm across: 50 % of it, towards X+
     "m600_diameter": _m600({3111: 5, 3112: 50, 3013: 1}),
+    # M601: the same routine in manual mode (#2000 = 0) — no G30, no way back
+    "m601_known": ("G21 G90\nG0 X50 Y50 Z-100\nT2 M601\nG0 X60 Y60\nM2\n", "mm", 0.0, (490,),
+                   {"rs274ngc": "REMAP=M601 modalgroup=6 ngc=m601",
+                    "bundled": ("tool_length_probe/m601.ngc", "tool_length_probe/tool_touch_off.ngc"),
+                    "var": _TS_VARS}),
+    # two M600 lines: no unique call site — the routine's M6 names no line
+    # (the text scan finds both)
+    "m600_twice": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG0 X60\nT1 M600\nG0 X70\nM2\n"),
     # the gateway's word that the toolsetter values are unknown: nothing from
     # the routine's start on
     "m600_basis_unknown": _m600(ctx={"toolsetter_unpredictable": "toolsetter_unknown"}),

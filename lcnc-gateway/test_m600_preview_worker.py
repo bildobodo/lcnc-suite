@@ -58,8 +58,9 @@ class TestPredictedMeasurement(unittest.TestCase):
         # back to where the program stood (in its frame: under the new offset)
         self.assertEqual(feeds_at(r, 50, 50)[-2:], [-80, -100])
         self.assertEqual(path(r)[-1][2], (60, 60, -100))
-        # one tool change, to T2
-        self.assertEqual([t for _, t in r["tool_change_lines"]], [2])
+        # one tool change, to T2 — the routine's M6, at the M600 line (its
+        # unique call site; the sub file's own line would collide)
+        self.assertEqual(r["tool_change_lines"], [[3, 2]])
         # the length the routine's G43 applied is the table's — said with that
         # G43's own row; nothing stopped
         g43 = [row for row in r["tlo_events"] if row[3] != 0]
@@ -124,11 +125,31 @@ class TestPredictedMeasurement(unittest.TestCase):
     def test_t0_unloads_without_a_probe(self):
         r = probe("m600_t0")
         self._clean(r)
-        self.assertEqual([t for _, t in r["tool_change_lines"]], [0])
+        self.assertEqual(r["tool_change_lines"], [[3, 0]])
         self.assertEqual(feeds_at(r, 10, 10), [])
         self.assertEqual({row[4] for row in r["tlo_events"]}, {0})
         self.assertIsNone(r["toollen_table"], "no table-length claim without the routine's marker")
         self.assertIsNone(r["probe_unpredicted"])
+
+    def test_m601_measures_in_manual_mode(self):
+        # #2000 = 0: to the setter before the change already (-70-, no G30),
+        # no way back after
+        r = probe("m601_known")
+        self._clean(r)
+        self.assertEqual(feeds_at(r, 10, 0), [])
+        self.assertEqual(feeds_at(r, 10, 10)[:8], [0, 0, 0, -95, -100, -97, -100, -97])
+        self.assertAlmostEqual(tool_rows(r, 2)[-1][3], 80.0, places=9)
+        self.assertEqual(r["tool_change_lines"], [[3, 2]])
+        self.assertEqual(path(r)[-1][2], (60, 60, -80))
+
+    def test_a_routine_called_from_two_lines_names_no_line(self):
+        # T2 (80 mm) then T1 (10 mm: trip at −170): both predicted; the two
+        # M6 have no unique call site — no line, rather than a sub's
+        r = probe("m600_twice")
+        self._clean(r)
+        self.assertEqual(r["tool_change_lines"], [])
+        self.assertEqual([(t, z) for _, t, z in r["toollen_table"]], [(2, 80.0), (1, 10.0)])
+        self.assertIn(-170, feeds_at(r, 10, 10))
 
     def test_only_the_routines_own_g43_carries_the_table_length(self):
         # the program's G43 H2 after the call applies 80 too — its own, no claim
@@ -181,7 +202,7 @@ class TestUnpredictedMeasurement(unittest.TestCase):
                 self.assertEqual(feeds_at(r, 10, 10), [0, start])
                 self.assertEqual([row for row in tool_rows(r, 2) if row[3] != 0], [], "no G43 with a length")
                 self.assertEqual(path(r)[-1][2], (60, 60, start))
-                self.assertEqual([t for _, t in r["tool_change_lines"]], [2])
+                self.assertEqual(r["tool_change_lines"], [[3, 2]])
                 self.assertIsNone(r["toollen_table"])
                 # the stop is at the probe start's own point; every point after
                 # it is an unknown-start endpoint (rapid stream, zero length)

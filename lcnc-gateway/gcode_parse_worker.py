@@ -77,7 +77,7 @@ from gateway_util import (
     kins_nonidentity_flags, kins_frame_indices, check_limit_violations_trsrn,
     kins_marker_policy, mode_boundary_indices, event_boundary_indices,
     classify_motion_lines, line_trust_flags, resolve_sub_indices,
-    attribute_sub_callers, resolve_sub_callers, refusal_payload,
+    attribute_sub_callers, resolve_sub_callers, refusal_payload, main_file_tool_changes,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
     wcs_rewrite_targets, ustart_start_tuple,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
@@ -1306,7 +1306,8 @@ def parse(ctx: dict) -> dict:
               "rapid_lines": rapid_lines_bin,
               "feed_tcum": feed_tcum_bin, "rapid_tcum": rapid_tcum_bin,
               "rapid_rate": rapid_vel, "rot_rapid_rate": rot_rapid_vel,
-              "tool_change_lines": [[int(l), int(t)] for l, t in canon.tool_change_events],
+              "tool_change_lines": main_file_tool_changes(canon.tool_change_events,
+                                                          canon.sub_events, _caller_map),
               # M600 (docs/reviews/m600-preview.plan.md): where the routine
               # stopped predicting — [seq, tool, reason]; from the first one on
               # every point is an unknown-start endpoint and nothing is

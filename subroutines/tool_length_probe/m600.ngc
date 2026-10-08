@@ -1,5 +1,5 @@
 o<m600> sub
-(WEBUI_SUB=m600) ;lcnc-suite: preview sub-span marker, silent in task
+(WEBUI_SUB=m600 CALLER=m600) ;lcnc-suite: preview sub-span marker, silent in task
 
 ;Subprogram to start the "tool_touch_off 5.x.x" subroutine in automatic mode.
 ;Stand: 2024-12-10

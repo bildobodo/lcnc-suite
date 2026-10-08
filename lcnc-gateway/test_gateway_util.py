@@ -2021,6 +2021,23 @@ class TestLineTrustMachinery(unittest.TestCase):
         self.assertTrue(written)
         self.assertLessEqual(written, set(gateway_util.PROBE_UNPREDICTED_REASONS))
 
+    def test_main_file_tool_changes(self):
+        # an M6 of the main file keeps its line; one inside a marked sub (the
+        # M600 routine's own) takes the outermost span's verified call line,
+        # else none — never the sub file's line
+        f = gateway_util.main_file_tool_changes
+        subs = [(4, "m600", "m600"), (4, "tool_touch_off", None), (9, None, None), (9, None, None),
+                (12, "m600", "m600"), (12, "tool_touch_off", None), (15, None, None), (15, None, None)]
+        events = [(2, 1, 0),        # main L2, before any span
+                  (263, 2, 2),      # inside the first call (both spans open)
+                  (7, 3, 4),        # main L7, between the calls
+                  (263, 4, 6)]      # inside the second call
+        self.assertEqual(f(events, subs, {0: 3, 4: 11}), [[2, 1], [3, 2], [7, 3], [11, 4]])
+        # the second call has no verified site: its M6 names no line
+        self.assertEqual(f(events, subs, {0: 3}), [[2, 1], [3, 2], [7, 3]])
+        self.assertEqual(f(events, subs, {}), [[2, 1], [7, 3]])
+        self.assertEqual(f([(5, 1, 0)], [], {}), [[5, 1]])
+
 
 class TestSegmentOutsideFlags(unittest.TestCase):
     """2026-09-12: the per-vertex outside verdict the viewer paints — one

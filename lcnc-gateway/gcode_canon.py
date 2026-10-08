@@ -135,7 +135,11 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self.arc_moves = 0
         self.tools_used = set()
         self.tool_changes = 0
-        self.tool_change_events = []   # [(lineno, tool_idx)] in execution order
+        # [(lineno, tool_idx, k)] in execution order; k = the sub-span
+        # markers seen so far (len(sub_events)): an M6 inside a marked sub —
+        # the M600 routine's own — carries the SUB file's line
+        # (gateway_util.main_file_tool_changes)
+        self.tool_change_events = []
         # Switchkins mode markers `(WEBUI_KINSTYPE=n)` from the toggle
         # remaps (TCP+TWP phase 2): [(seq_at_marker, kinstype)] in
         # execution order — a marker at seq N applies to segments seq > N.
@@ -402,7 +406,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # (lineno, tool) per executed M6 — timeline event markers. NOTE: only
         # canon-executed changes appear here (an M600 remap whose body is
         # preview-skipped contributes none — same honesty rule as the stats).
-        self.tool_change_events.append((self.lineno, idx))
+        self.tool_change_events.append((self.lineno, idx, len(self.sub_events)))
         if idx > 0:
             self.tools_used.add(idx)
         self.cur_tool = idx
