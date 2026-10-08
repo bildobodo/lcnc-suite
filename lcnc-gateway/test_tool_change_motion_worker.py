@@ -273,6 +273,37 @@ class TestUnknownStartAfterAToolChange(unittest.TestCase):
         self.assertIsNone(r["stale_offset_lines"])
         self.assertIs(r["stale_offset_untracked"], True)
 
+    def test_any_spelling_of_a_write_is_seen(self):
+        # Codex R96 VP-I53 rest: G92.0, G10.0, G28.10 are the same codes; a
+        # G word the text cannot settle (G[90+2]) counts as a write. An
+        # explicit G10.0 L2 stays explicit.
+        for case in ("r96_g92_decimal", "r96_g92_expression", "r96_g10_decimal",
+                     "r96_g92_standard", "r96_store_decimal"):
+            r = probe(case)
+            self.assertIsNone(r["parse_error"], case)
+            self.assertEqual(r["rapid_ustart"][-1], 1, case)
+            self.assertEqual(r["stale_offset_lines"], [4], case)
+        r = probe("r96_l2_decimal")
+        self.assertEqual(r["rapid_ustart"][-1], 0)
+        self.assertIsNone(r["stale_offset_lines"])
+
+    def test_a_branch_that_never_runs_writes_nothing(self):
+        # Codex R96 VP-I54: with o-words a gap between line numbers proves
+        # nothing ran — the G92 of an `if [0]` writes nothing, L8 is known
+        # again; run (`if [1]`), its callback reports it. An inactive
+        # fixture's write in a branch is what stays untracked — said.
+        r = probe("r96_branch_not_run")
+        self.assertEqual(r["rapid_ustart"][-1], 0)
+        self.assertAlmostEqual(r["rapid_tcum"][-1] - r["rapid_tcum"][-2], 1.0, places=5)
+        self.assertIsNone(r["stale_offset_lines"])
+        self.assertIs(r["stale_offset_untracked"], True)
+        r = probe("r96_branch_run")
+        self.assertEqual(r["rapid_ustart"][-1], 1)
+        self.assertEqual(r["stale_offset_lines"], [5])
+        r = probe("r96_branch_inactive_l20")
+        self.assertIsNone(r["stale_offset_lines"])
+        self.assertIs(r["stale_offset_untracked"], True)
+
     def test_the_interpreter_s_own_tool_change_moves_stay_known(self):
         # Codex R92's controls: quill-up, G30 twice, both — canon traverses on
         # the M6's line, the move after them timed.

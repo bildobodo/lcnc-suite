@@ -2297,11 +2297,21 @@ _NAMED_PARAM_RE = re.compile(r"#<[^>]*>")
 #: Candidate lines for position_write_lines: a settings or store word.
 #: LinuxCNC reads `G1 0` as G10 (spaces count nowhere): the candidate
 #: allows them; the decision is taken on the line without whitespace.
-_POSWRITE_CANDIDATE_RE = re.compile(r"G[\s0]*(?:1\s*0|9\s*2|5\s*2|2\s*8\s*\.\s*1|3\s*0\s*\.\s*1)", re.I)
-_STORE_RE = re.compile(r"G0*(?:28|30)\.1(?![\d.])")
-_G92_RE = re.compile(r"G0*92(?![\d.])")
-_G92X_RE = re.compile(r"G0*92\.[123](?![\d.])")
-_G52_RE = re.compile(r"G0*52(?![\d.])")
+_POSWRITE_CANDIDATE_RE = re.compile(r"G[\s0]*(?:1\s*0|9\s*2|5\s*2|2\s*8|3\s*0|[\[#])", re.I)
+#: A word's value as LinuxCNC reads it — a number in any spelling (`92`,
+#: `092`, `92.0`, `28.10`), or `[` / `#` for one the text cannot settle.
+_NUM = r"(?:([\[#])|(\d+\.?\d*|\.\d+))"
+_G_WORDS_RE = re.compile(r"G" + _NUM)
+_L_NUM_RE = re.compile(r"L" + _NUM)
+_P_NUM_RE = re.compile(r"P" + _NUM)
+
+
+def _word_value(m):
+    """A word match's value ×10 rounded (LinuxCNC reads G codes so: G92.1 =
+    921), or None for an expression or a parameter."""
+    if m is None or m.group(1):
+        return None
+    return int(round(float(m.group(2)) * 10))
 #: An o-word (`o100 …`, `o<name> …`) or M98/M99: the main file's lines no
 #: longer run in text order (calls, loops, branches).
 _FLOW_RE = re.compile(r"O[\d<#\[]|M0*9[89](?![\d.])")
@@ -2345,17 +2355,22 @@ def position_write_lines(text):
         line = strip_gcode_comments(raw)
         s = _OWORD_NAME_RE.sub("O0", _NAMED_PARAM_RE.sub("#0", re.sub(r"\s+", "", line))).upper()
         expr = "#" in s or "[" in s
-        if _STORE_RE.search(s) or _G92_RE.search(s):
+        gm = list(_G_WORDS_RE.finditer(s))
+        codes = {_word_value(m) for m in gm}
+        if None in codes:
+            out[line_no] = "all"                 # a G word the text cannot settle (Codex R96)
+        elif codes & {281, 301, 920}:
             out[line_no] = "all"
-        elif _G92X_RE.search(s):
+        elif codes & {921, 922, 923}:
             out[line_no] = "explicit"
-        elif _G52_RE.search(s):
+        elif 520 in codes:
             out[line_no] = "all" if expr else "explicit"
-        elif _G10_WORD_RE.search(s):
-            lw = _L_WORD_RE.search(s)
-            l_no = int(lw.group(1)) if lw and lw.group(1).isdigit() else None
-            pw = _P_WORD_RE.search(s)
-            p_no = int(pw.group(1)) if pw and pw.group(1).isdigit() else None
+        elif 100 in codes:
+            lw = _L_NUM_RE.search(s)
+            pw = _P_NUM_RE.search(s)
+            l10, p10 = _word_value(lw), _word_value(pw)
+            l_no = l10 // 10 if l10 is not None and l10 % 10 == 0 else None
+            p_no = p10 // 10 if p10 is not None and p10 % 10 == 0 else None
             if lw is None:
                 out[line_no] = "explicit"        # no L: writes nothing (an error)
             elif l_no is None or l_no in (10, 11):
@@ -2365,7 +2380,8 @@ def position_write_lines(text):
             elif l_no == 1:
                 out[line_no] = "all"
             elif l_no in (2, 20):
-                out[line_no] = p_no if p_no else ("all" if pw is not None and p_no is None else "active")
+                out[line_no] = ("all" if pw is not None and p_no is None else
+                                p_no if p_no else "active")
             else:
                 out[line_no] = "all"
     for m in _FLOW_CANDIDATE_RE.finditer(t):

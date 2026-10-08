@@ -133,6 +133,20 @@ CASES = {
     "r94_g99_below_r": ("G21 G90 G99\nG0 X0 Y0 Z0\nM6\nG81 X10 Y5 Z-5 R2 F100\nG80\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
     "r94_g98_g18_below_r": ("G21 G90 G98 G18\nG0 X0 Y0 Z0\nM6\nG0 Z5\nG81 X10 Z5 Y-5 R2 F100\nG80\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 30 20"}),
     "r94_g99_g18_below_r": ("G21 G90 G99 G18\nG0 X0 Y0 Z0\nM6\nG0 Z5\nG81 X10 Z5 Y-5 R2 F100\nG80\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 30 20"}),
+    # Codex R96 VP-I53 rest: any spelling of the number, an expression; VP-I54:
+    # a branch that never runs writes nothing.
+    "r96_g92_decimal": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG92.0 Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r96_g92_expression": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG[90+2] Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r96_g10_decimal": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG10.0 L20 P1 Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r96_g92_standard": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG92 Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r96_l2_decimal": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG10.0 L2 P1 Z30\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r96_store_decimal": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG28.10\nG0 X10 Y5 Z15\nG28\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r96_branch_not_run": ("G21 G90\nG0 X0 Y0 Z40\nM6\no100 if [0]\nG92 Z10\no100 endif\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r96_branch_run": ("G21 G90\nG0 X0 Y0 Z40\nM6\no100 if [1]\nG92 Z10\no100 endif\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r96_branch_inactive_l20": ("G21 G90\nG0 X0 Y0 Z40\nM6\no100 if [1]\nG10 L20 P2 Z10\no100 endif\nG0 X10 Y5 Z15\nG55\nG0 X20 Z25\nG0 X30\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    # Codex R96 VP-I55: an arc whose ends lie inside the window (max Z 50)
+    # crosses it in its middle — the run stops there, not at its start.
+    "r96_arc_interior_limit": ("G21 G90 G18\nG0 X0 Y0 Z40\nG2 X0 Z40 I0 K10 F100\nM2\n", "mm", 0.0, (490,), {}),
     # Own: G76 returns X to its drive line — the start, a stale one — while
     # Z ends at its commanded depth: the end decides, not "moved in the block".
     "r94_g76_returns_x": ("G21 G90 G18\nG0 X0 Y0 Z40\nM6\nS500 M3\nG0 Y3\nG76 P1.5 Z-10 I-1 J0.2 K1\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 10 0 30"}),

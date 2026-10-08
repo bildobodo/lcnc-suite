@@ -1,6 +1,9 @@
 # Innenprüfung — ein Körper ganz in einem anderen
 
-**Plan, Fassung 1 · 8. Oktober 2026 · Kollisionsplan Schritt 2 (Operator 2026-10-06/07) · zur Planprüfung an Codex mit R96, vor dem ersten Code.**
+**Plan, Fassung 2 · 8. Oktober 2026 · Kollisionsplan Schritt 2 (Operator 2026-10-06/07).**
+- Fassung 1 ging mit R96 zur Planprüfung an Codex.
+- Fassung 2 nimmt VP96-01 bis 03 und die Antworten auf die drei Fragen auf (Antworttabelle am Ende).
+- Noch kein Code.
 
 ## Befund
 
@@ -10,56 +13,97 @@ Live gesehen (Operator 2026-10-07, haus.ngc auf XYZAC, weit außerhalb der Verfa
 
 ## Was die stetige Bewegung schon leistet
 
-Hinein kommt ein Körper bei stetiger Bewegung nur über eine Berührung der Oberflächen. Den Beginn findet der Sweep mit seiner Garantie: Kein Kreuzen breiter als `MIN_ADV` wird übersehen. Die Lücke liegt an drei Stellen:
+Hinein kommt ein Körper bei stetiger Bewegung nur über eine Berührung der Oberflächen, heraus ebenso. Den Beginn findet der Sweep mit seiner Garantie: Kein Kreuzen breiter als `MIN_ADV` wird übersehen.
 
-1. **Trennungsentscheidung.** Ein berührendes Paar, dessen nächste Abfrage `d > CONTACT_EPS` liefert, gilt als getrennt. Steckt der Körper inzwischen tiefer drin, ist das falsch: Der Kontakt endet zu früh, Einfärbung und Ausdehnung brechen ab.
-2. **Erste Stellung und Ruhestellung** (Basislinie). Ein Paar, das schon drinsteckt, wird nie als Kontakt erkannt.
-3. **Nach einem Sprung.** Gemeint sind Umbenennungspunkte, unbekannte Starts und der Werkzeugtausch, also jede Stelle, an der der Sweep nicht stetig fährt.
+Daraus folgt eine **Invariante**: Ein Paar, das zu einem Zeitpunkt bekannt **nicht** ineinander steckt und ein Freiraumzertifikat hat, kann bis zum Ablauf des Zertifikats nicht hineingeraten. Die Innenprüfung ist also genau dort nötig, wo „nicht ineinander“ noch nicht bekannt ist oder wo das Freiraumzertifikat ohne sie entstünde:
 
-Heraus kommt ein Körper ebenfalls nur über eine Berührung: `d` fällt wieder gegen null. Das Ende eines Innen-Kontakts ist also wie heute über die Oberfläche bestimmbar.
+1. **Basislinie** (erste Stellung und Ruhestellung, `collision.ts:1423/1440`);
+2. **nach jedem Sprung**: Umbenennungspunkte, unbekannte Starts, Werkzeugtausch (`installToolVariant`), also jede Stelle, an der der Sweep nicht stetig fährt;
+3. **jede Trennungsentscheidung**: Ein berührendes Paar, dessen nächste Abfrage `d > CONTACT_EPS` liefert, auch `Infinity` jenseits des Horizonts;
+4. **die Verfeinerung** (`:1596`, Bisektion von Beginn und Ende): Das Prädikat dort ist „berührt oder steckt drin“.
+
+Die frühen Antworten von `pairDistance` (`:807–823`) vertragen sich mit der Innenlage:
+- **Kugelabstand:** Steckt I in O, liegt Is Mittelpunkt in Os Kugel, also `centerDist − rO − rI ≤ −rI < 0`. Kein Frühausstieg.
+- **Komponentenboxen:** Is Boxen schneiden die Box der umgebenden Komponente, die untere Schranke ist 0. Kein Frühausstieg.
+- **Horizont:** Jenseits des Horizonts liefert die Abfrage `Infinity`. Ein tief steckender Körper sieht dort „weit weg“ aus. Deshalb gilt Punkt 3 ausdrücklich auch für `Infinity`.
 
 ## Vorgehen
 
-**1. Prädikat `contained(A, B)`.** Gilt für geschlossene Netze und nur, wenn die Oberflächen sich nicht berühren. Dann liegt eine Zusammenhangskomponente des einen Körpers entweder ganz innen oder ganz außen im anderen. Ein Punkt je Komponente genügt also.
+**1. Dreiwertige Entscheidung `inside(A, B)`: `outside | inside | undecidable`** (VP96-03).
 
-- Je Komponente von A ein Eckpunkt wird gegen B per **Strahlparität** geprüft, und umgekehrt. Ungerade Zahl der Durchstoßungen heißt innen.
-- **Umsetzung:** `MeshBVH.raycast` mit `DoubleSide`, alle Treffer.
-- **Robustheit gegen Kanten- und Eckentreffer:** drei feste, „schiefe“ Richtungen, Mehrheitsentscheid. Sind sich die drei nicht einig, gilt das als **unentschieden**, und unentschieden zählt als Kontakt (konservativ).
-- **Alternative:** die verallgemeinerte Windungszahl, exakt und robust, aber O(Dreiecke) je Punkt. Frage an dich unten.
+- **Gültigkeit:** Sie gilt nur, wenn die Oberflächen sich nicht berühren (`d > CONTACT_EPS`). Dann liegt jede Zusammenhangskomponente des einen Körpers ganz innen oder ganz außen im anderen. Je Komponente genügt also ein Stellvertreterpunkt (`compVerts`, ein Eckpunkt).
+- **Vorgehen:** Die Punkte von A werden gegen B geprüft und umgekehrt. Ist ein Punkt innen, ist das Paar `inside`. Ist einer unentscheidbar und keiner innen, ist es `undecidable`.
+- **Verbraucher:**
+  - `inside` zählt wie Berührung: Kontaktzustand, EXPLORE-Kadenz, Zeilenmarken, Intervalle, Einfärbung.
+  - Für das Schnittpaar Werkzeug × Rohteil gilt die bestehende Vorschub/Eilgang-Regel (`pairCutting`); keine Ausweitung, siehe Frage 3.
+  - `undecidable` erzeugt **weder** ein Freiraumzertifikat **noch** einen statischen Ausschluss. Das Paar wird mit EXPLORE-Kadenz weiter abgefragt.
+  - Ein unentscheidbares Paar wird nicht als Kollision gemeldet, aber in `uncertified` benannt („inside check undecidable: endcaps ↔ column foot at L…“).
+  - Wird es an Erst- und Ruhestellung festgestellt, schließt es nicht aus: `staticExcluded` verlangt eine **entschiedene** Berührung oder Innenlage.
 
-**2. Vorfilter.** Die Box einer Komponente, in den Rahmen des anderen Körpers gebracht, muss in einer Komponentenbox des anderen liegen, sonst ist sie nicht drin. Das ist billig; `componentBoxes` gibt es schon.
-- Neu sind Stellvertreterpunkte je Komponente (`compVerts`), ohne die Kappung `MAX_COMPS`.
-- Ein Körper mit sehr vielen Komponenten (Dreieckssuppe) kostet viele Strahlen. Ab einer Grenze wird er als „Innen nicht prüfbar“ benannt statt geprüft.
+**2. Zählung der Durchtritte** (VP96-02): ein Strahl mit festgelegten Regeln, kein Mehrheitsentscheid.
 
-**3. Wo geprüft wird:**
-- (a) Basislinie: Ein Paar, das in der ersten **und** in der Ruhestellung drinsteckt, ist ein statischer Kontakt wie heute. Nur in der ersten Stellung drin heißt: Das Programm beginnt in einer Kollision (Einsatz auf der ersten Zeile).
-- (b) Jede Trennungsentscheidung eines berührenden Paars: drin → weiter Kontakt.
-- (c) Nach jedem Sprung: alle Paare, deren Vorfilter passt.
-- (d) Die Verfeinerung (Bisektion von Beginn und Ende) nutzt „berührt oder drin“.
-- (e) Innen-Kontakt verhält sich in Zertifikaten, Kadenz und Folgemarken wie Berührung (EXPLORE-Kadenz, Zeilenmarken). Die Schnittpaare Werkzeug × Rohteil bekommen dieselbe Vorschub/Eilgang-Semantik. Ein Fräser ganz im Rohteil ist Zerspanen, sein Beginn im Eilgang bleibt der Befund.
+- **Strahlrichtungen:** fest, nicht achsenparallel, als Liste von K = 6 Richtungen.
+- **Treffer:** Für die Treffer eines Strahls (`MeshBVH.raycast`, `DoubleSide`, alle Treffer) wird geprüft, ob einer **degeneriert** ist:
+  - eine baryzentrische Koordinate unter ε_b = 1e-6, also nahe an Kante oder Ecke;
+  - oder |cos(Strahl, Dreiecksnormale)| unter ε_n = 1e-6, also nahezu tangential;
+  - oder zwei Treffer mit Abstandsunterschied unter ε_t = 1e-6 · Körperdiagonale.
+- **Bewertung:** Ist der Strahl frei von Degeneration, ist jeder Treffer ein echter Durchtritt durch eine geschlossene Fläche, und die Parität gilt exakt. Ein degenerierter Strahl wird verworfen, die nächste Richtung folgt.
+- **Ergebnis:** Der erste nicht degenerierte Strahl entscheidet. Sind alle K degeneriert, ist das Ergebnis `undecidable`.
+- **Codex' Gegenprobe** (Boxmittelpunkt, Strahl durch eine gemeinsame Kante, zwei Treffer am selben Abstand) wird damit als degeneriert erkannt und verworfen, statt außen zu melden. Sie wird Einheitstest.
 
-**4. Geschlossene Netze als Voraussetzung.** Ein Modelltest verlangt für jeden kollidierenden Körper geschlossene Komponenten: Zu jeder gerichteten Kante gibt es die Gegenkante, keine doppelte Kante in gleicher Richtung.
+**3. Vorfilter nur als zulässiger Ausschluss** (VP96-01).
 
-Stand 2026-10-08:
-- **XYZAC und TWP-Portal:** alle Körper geschlossen.
-- **3-Achs-Modell:** `frame`, `x_axis` und `y_axis` haben 270, 122 und 184 gleichgerichtete Doppelkanten (Display-STLs ohne Kollisionsproxy). Für Paare mit ihnen ist die Innenprüfung nicht entscheidbar. Das wird in `uncertified` benannt („enclosure not checked: frame, x_axis, y_axis“), bis Proxies (Boxen je Komponente, `stl_collision_proxy.py`) sie ersetzen.
+- **Kein Ausschluss aus aufgeblähten Boxen:** Kein „außen“ aus dem Einschluss einer transformierten, aufgeblähten Box.
+- **Zulässig ist ein Punkttest im Bezug des umgebenden Körpers:** Der Stellvertreterpunkt von A wird exakt in Bs lokalen Bezug gebracht. Liegt er außerhalb **aller** lokalen Komponentenboxen von B, kann diese Komponente von A nicht in B stecken.
+  - Begründung: In B liegen heißt im Volumen einer Komponente von B liegen, und die liegt in ihrer lokalen Box.
+  - Die lokalen Boxen von B sind exakt, nicht transformiert.
+- **Codex' Quader-Gegenprobe** (lokal um 45° gedreht, ganz in einer Box) besteht damit: Der Punkt liegt in der Box. Sie wird Einheitstest, zusammen mit dem zuerst geplanten Filter, der dort rot sein muss.
 
-**5. Orakel.** `collisionOracle.test.ts` bekommt eine eigene Innen-Wahrheit: Parität über alle Dreiecke, ohne BVH, unabhängig vom Produkt. Die Zufallsbahnen werden um Stellungen ergänzt, in denen ein Körper ganz in einem anderen steckt.
+**4. Gültigkeit der Netze zur Laufzeit, nicht nur im Repository.**
 
-**6. Tests:**
-- **Einheiten:** verschachtelte Boxen; ein Hohlkörper (Punkt im Hohlraum ist außen); mehrere Komponenten; Strahl genau durch eine Kante oder Ecke.
-- **Sweep:**
-  - hineinfahren und drin bleiben: ein Kontakt bis zum Herausfahren;
-  - drin beginnen: Beginn auf der ersten Zeile;
-  - nach einem Sprung drin;
-  - drin in der Ruhestellung: statisch.
-- **Echtes Modell:** die Endkappen-Stellung aus haus.ngc auf XYZAC.
-- **Mutationen:** Prädikat aus, nur an der Basislinie, Mehrheit ersetzt durch einen Strahl, unentschieden als außen.
+- **Beim Modellbau** (`buildCollisionModel`) prüft jeder Körper je Komponente, ob sein Netz geschlossen ist: zu jeder gerichteten Kante die Gegenkante, keine gleichgerichtete Doppelkante, nach `withoutArealessFacets`.
+- **Nicht geschlossen** führt zu `insideCheckable = false`. Für Paare mit diesem Körper ist die Innenprüfung `undecidable` (Punkt 1).
+- **Dasselbe gilt für:**
+  - Werkzeugvarianten (`installToolVariant`; der parametrische Zylinder ist geschlossen, importierte STL-Werkzeuge werden geprüft);
+  - Körper über der Komponentengrenze `MAX_COMPS` (dort zählt die Komponentenzahl der Stellvertreterpunkte, nicht die gekappte Boxliste);
+  - beschädigte Körper (`model.damaged`).
+- **Stand der eingecheckten Modelle** (Messung 2026-10-08):
+  - XYZAC und TWP-Portal: alle Körper geschlossen.
+  - 3-Achs-Modell: `frame`, `x_axis` und `y_axis` haben gleichgerichtete Doppelkanten (270, 122, 184). Sie werden als „inside check not possible“ benannt, bis Kollisionsproxies sie ersetzen.
+- **Ein Repository-Test** hält den Stand der eingecheckten Modelle fest.
 
-**7. Kosten.** Gemessen wird am haus-Payload vor und nach (`profile`). Prüfungen fallen nur an Trennungsentscheidungen, an der Basislinie und an Sprüngen an. Im Dauerkontakt mit berührenden Oberflächen entfallen sie. Ganz drin kostet jede EXPLORE-Probe Komponenten × 3 Strahlen; die Endkappen haben 16 Komponenten.
+**5. Unabhängige Kontrolle** (VP96-02).
 
-## Fragen an dich
+- **Analytische Fälle:** Box in Box, Hohlkörper (Punkt im Hohlraum ist außen), zwei Komponenten, Kanten- und Eckenstrahlen, mit bekannter Antwort.
+- **Anders hergeleitete Innenentscheidung:** verallgemeinerte Windungszahl, Raumwinkelsumme nach Van Oosterom–Strackee über alle Dreiecke, ohne BVH. Netzvertrag: geschlossen, einheitlich orientiert. Grenze: |w − round(w)| < 0,25, sonst unentscheidbar.
+- **Prüfung:** Beide Wege werden an den analytischen Fällen gemessen und gegeneinander auf Zufallspunkten der mitgelieferten Modelle.
+- **Orakel:** `collisionOracle.test.ts` nutzt die Windungszahl als Innen-Wahrheit, nicht den Produktweg. Die Zufallsbahnen werden um Stellungen ergänzt, in denen ein Körper ganz in einem anderen steckt.
 
-1. **Mehrheit aus drei Strahlen oder Windungszahl?** Bei der Mehrheit zählt unentschieden als Kontakt. Die Windungszahl ist exakt, kostet aber O(Dreiecke) je Punkt; bei 5576 Dreiecken der C-Planscheibe sind das etwa 0,1 ms je Punkt.
-2. **Teil- und Zwischenstände (Shards, Peek):** Reicht es, das Prädikat in den Kern zu legen? Alle Wege laufen über `noteQuery` und die Verfeinerung. Oder siehst du einen Pfad, der es umgeht?
-3. **Fräser im Rohteil:** Soll „ganz drin“ für das Schnittpaar anders gelten? Der Schaft im Rohteil zählt heute als Zerspanen.
+**6. Ein Kern, alle Wege.** Die Entscheidung liegt in **einer** Funktion vor jeder Schlussfolgerung „getrennt“: Basislinie, Sprung, Werkzeugtausch, `noteQuery`, Verfeinerung. Repository-Prüfungen:
+- Basislinie: drin in Erst- **und** Ruhestellung ist statisch; nur in der ersten ist Einsatz auf der ersten Zeile; `undecidable` in beiden schließt **nicht** aus.
+- Sprung: drin nach einem Umbenennungspunkt.
+- Werkzeugtausch: ein Werkzeug, das nach dem Tausch im Rohteil oder in einem Bauteil steckt.
+- Verfeinerung: Beginn und Ende eines Innen-Kontakts an der Oberflächenkreuzung.
+- Gleichheit von Einzel- und Shard-Lauf, Peek und Weiterlauf, Nebenfahrt (`sweepShards.test.ts`-Muster).
+- Echtes Modell: die Endkappen-Stellung aus haus.ngc auf XYZAC (Payload im Scratchpad, nicht eingecheckt: Operator-Daten).
+
+**7. Kosten** erst nach der Korrektheit gemessen, am haus-Payload mit `profile`. Prüfungen fallen nur an den vier Stellen oben an; im Dauerkontakt berührender Oberflächen entfallen sie. Ganz drin kostet jede EXPLORE-Probe Komponenten × Strahl(e); die Endkappen haben 16 Komponenten.
+
+## Reihenfolge (Codex R96)
+
+1. Gültigkeits- und Unentscheidbarkeitsvertrag mit den kleinen Gegenproben (Kantenstrahl, gedrehter Quader, Hohlkörper).
+2. Zentraler Paarentscheid mit Basislinie und Verfeinerung.
+3. Sprünge und Werkzeugvarianten.
+4. Gleichheit über alle Worker-Wege und der haus-Modellfall.
+5. Kostenmessung.
+
+## Antworten auf Codex R96
+
+| Punkt | Antwort | Planänderung |
+|---|---|---|
+| VP96-01 | Angenommen; die Quader-Gegenprobe ist richtig. | Abschnitt 3: Ausschluss nur per Punkttest gegen die exakten lokalen Boxen des umgebenden Körpers; die Gegenprobe wird Test. |
+| VP96-02 | Angenommen. Trefferparität ohne Regel zählt eine Kante doppelt; „Mehrheit“ und „Uneinigkeit → unentschieden“ waren zwei Regeln. | Abschnitt 2: ein nicht degenerierter Strahl entscheidet (Degeneration nach ε_b / ε_n / ε_t), alle K degeneriert → `undecidable`. Abschnitt 5: analytische Fälle plus Windungszahl als anders hergeleiteter Kontrollweg. |
+| VP96-03 | Angenommen. | Abschnitt 1: dreiwertig bis zu den Verbrauchern; `undecidable` gibt weder Zertifikat noch statischen Ausschluss. Abschnitt 4: Laufzeitprüfung der Netze, Werkzeugvarianten, Kappung, beschädigte Körper. |
+| Frage 1 | Einzelstrahl mit Degenerationsregel im Produkt, Windungszahl als Kontrolle. | Abschnitte 2 und 5. |
+| Frage 2 | Ein Kern vor jeder Schlussfolgerung „getrennt“, nicht nur in `noteQuery`. | Abschnitt „Was die stetige Bewegung schon leistet“ (vier Stellen, Horizont) und Abschnitt 6. |
+| Frage 3 | Bestehende Schnittpaar-Semantik, keine Ausweitung. | Abschnitt 1. |

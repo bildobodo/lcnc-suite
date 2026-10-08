@@ -15,6 +15,7 @@ import { decodePreviewStreams } from "../previewDecode";
 import { buildScrubTrack } from "./scrubTrack";
 import { buildCollisionModel, sweepCollisions, type CollisionMachine } from "./collision";
 import { epochTermsFor } from "./wcsEpochs";
+import { buildSimRows, limitStopOf } from "./simRows";
 
 const DIR = path.resolve(__dirname, "../../../scripts/test_fixtures/tool_change_payloads");
 const MACHINE: CollisionMachine = {
@@ -185,6 +186,19 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       expect(r.result.hits).toHaveLength(0);
       expect(r.result.uncertified).toMatch(/not checked to the program's end: an offset set from that position stays unknown whatever is positioned after \(L5, L6\); in subroutines/);
     });
+    it("any spelling of the write counts; a branch that never runs writes nothing (Codex R96)", () => {
+      // G92.0 is G92: L6 stays unknown, no false hit at Z45, L4 named.
+      let r = sweepXYZ("r96_g92_decimal", [15, 5, 45]);
+      expect(r.track.ustart![r.last]).toBe(1);
+      expect(r.result.hits).toHaveLength(0);
+      expect(r.result.uncertified).toMatch(/the offset set from that position at L4 stays unknown/);
+      // `o100 if [0]` around a G92: it never runs — L8 is known and timed
+      // again, the note claims no offset line, and says what is untracked.
+      r = sweepXYZ("r96_branch_not_run", [100, 100, 100]);
+      expect(r.track.ustart![r.last]).toBe(0);
+      expect(r.track.cum[r.last]! - r.track.cum[r.last - 1]!).toBeCloseTo(1, 5);
+      expect(r.result.uncertified).toMatch(/not checked until the position is known again \(L7\); in subroutines and loops only G92 and the active fixture's offsets are tracked$/);
+    });
     it("a rotation after X alone was known keeps the next move unknown; a full target makes it known", () => {
       let r = sweepXYZ("r94_rotated_after_partial", [6.0355339059, 13.1066017178, 15]);
       expect(r.result.uncertified).toMatch(/^3 moves after a tool change run .*\(L4, L6, L7\)$/);
@@ -206,5 +220,33 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       expect(result.uncertified, name).toBeNull();
       expect(track.cum[track.count - 1]!, name).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("where the run stops at the latest (Codex R96 VP-I55)", () => {
+  it("an arc whose ends lie inside the window: the first point beyond it, not the line's start", () => {
+    // G2 from Z40 over Z60 back to Z40 under max Z 50, as the native worker
+    // writes it: the limit record names L3; the run stops where the arc
+    // crosses Z50 — the first point flagged beyond the window, ~9.7 s in.
+    const { raw, track } = load("r96_arc_interior_limit");
+    expect((raw.violations as { line: number }[]).map(v => v.line)).toEqual([3]);
+    const stop = limitStopOf(track)!;
+    expect(stop.line).toBe(3);
+    expect(stop.cum).toBeGreaterThan(9);
+    expect(stop.cum).toBeLessThan(10.5);
+    let first = -1;
+    for (let i = 0; i < track.count; i++) if (track.lines[i] === 3) { first = i; break; }
+    // a contact 1 s into the arc is reached; one past the crossing is not
+    const rows = buildSimRows({
+      clash: [{ key: "C3|t|w|0", line: 3, cum: 1, cumEnd: 1, a: "tool", b: "w" },
+        { key: "C3|t|w|1", line: 3, cum: stop.cum + 1, cumEnd: stop.cum + 1, a: "tool", b: "w", reentry: true }],
+      limit: [{ key: "L3", line: 3, cum: track.cum[Math.max(0, first - 1)]!, cumEnd: stop.cum }], tool: [],
+      violations: raw.violations, unit: "mm", timeBased: true, axisEnd: track.cum[track.count - 1]!, stop,
+    });
+    expect(rows.map(r => [r.key, r.note])).toEqual([
+      ["L3", "the run stops in this line at the latest"],
+      ["C3|t|w|0", ""],
+      ["C3|t|w|1", "re-entry · after the limit stop at L3"],
+    ]);
   });
 });
