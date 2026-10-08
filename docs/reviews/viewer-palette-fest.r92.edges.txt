@@ -1,0 +1,6 @@
+# R92 — Codex's R91 edge probe (viewer-palette-fest.r91.codex-edges.test.ts, evidence writes removed) against fix/r91 c710bdba
+   × a stop before any shard snapshot is answered even when the owner has paused hidden 3ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: park acknowledgement while hidden, without waiting for resume: expected false to be true // Object.is equality
+      Tests  1 failed | 3 passed (4)
+# the red case expects the PARK acknowledgement (m.stopped); this fix answers the stop as an explicit error (see the request)

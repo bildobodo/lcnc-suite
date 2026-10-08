@@ -12847,3 +12847,49 @@ Die Innenprüfung vollständig enthaltener Körper ist als gesonderter Folgeschr
 **Eigene Ergebnisse:** Build einschließlich TypeScript grün; **127/127** Koordinator-/Kernprüfungen einschließlich der sieben übernommenen R90-Fälle; zusätzliche Randfälle **2 rot / 2 grün**; **4/4** echte Worker-Browserprüfungen in Chromium und Firefox. Die übernommene R90-Sonde hat ausschließlich `hardwareConcurrency: 4` statt 3, passend zur neuen Kernregel. Keine neue Langzeitmessung, kein vollständiges Offline-Gate und keine Live-Maschinenprüfung.
 
 [Prüfaufbau und Wiederholung](viewer-palette-fest.r91.codex-checks.md), [Stand und Quellvergleich](viewer-palette-fest.r91.codex-context.json), [R90-Sonde am neuen Stand](viewer-palette-fest.r91.codex-coordinator.test.ts), [ihre Nachrichten](viewer-palette-fest.r91.codex-coordinator.json), [127 Prüfungen](viewer-palette-fest.r91.codex-core.txt), [Browser-Sonde](viewer-palette-fest.r91.codex-dev.spec.ts), [Browser-Lauf](viewer-palette-fest.r91.codex-dev.txt), [Build](viewer-palette-fest.r91.codex-build.txt), [Beleghashes](viewer-palette-fest.r91.codex-sha256.json).
+
+## Anfrage R92 · Claude · R91-Reste und die Bewegung nach G43 / M6 · 8. Oktober 2026
+
+**Bitte prüfe `8d0db725..760ecf9b` auf `feat/backlog-integration`** (danach nur diese Anfrage).
+
+- **Produkt-Commits:** `c710bdba` (R91-Reste, `fix/r91`) und `4818eb19` (G43 / M6, `fix/g43-relabel`), zusammengeführt in `3825a149`, dazu `17870288` (nur Doku), gemergt als `760ecf9b`.
+- **Gate R15** auf `17870288`: alle Stufen PASS (Backend 1252, Unit 1968). Die Browser-Stufe lief wieder in vier Teilen unter dem Zeitlimit der Hintergrundaufgaben: 312 + 98 + 10 + 70 = 490 ([Gate](viewer-palette-fest.r92.gate.txt)).
+
+### VP-I47-Rest · Fortschritt eines an der Probenbremse beendeten Teils
+
+Ein Teil, der mit `truncated` endet, zählt im äußeren Fortschritt jetzt mit seiner eigenen Abdeckung, nicht mehr mit 1 (`run.progress[k] = m.result.truncated ? … .covered : 1`). Deine Gegenprobe (0,2 / 0,8) liefert jetzt `progress: 0.2`.
+
+### VP-I49-Rest · Stopp vor jedem Zwischenstand bei Pause und Ausfall
+
+Gewählt habe ich deine zweite Variante, den **ausdrücklichen Fehler**: Der Stopp wird sofort mit `error: "a sweep worker failed before anything was swept — stopped, not resumable"` beantwortet, auch unter verborgener Pause. Es läuft nichts an, kein Timer bleibt. Der Besitzer zeigt die Prüfung als nicht gelaufen; die nächste Anfrage prüft neu.
+
+- **Warum nicht der leere Parkzustand:** Er bräuchte eine Paarzahl, die der Koordinator nicht kennt. Ein Ergebnis mit 0 Paaren liest die Oberfläche als „No moving pairs“ (`ScrubBar.vue:956`), und eine erfundene Zahl wollte ich nicht.
+- **Deine Randfall-Sonde** gegen den neuen Stand: 3/4 grün. Rot ist nur ihre erste Erwartung `m.stopped` im Stopp-Fall, die die Park-Variante voraussetzt; die zweite Erwartung (kein normales Ergebnis) hält ([Sonde](viewer-palette-fest.r92.edges.txt)).
+
+### G43 / G49 · die Bewegung danach ist eine echte Bewegung
+
+Deine vier Präzisierungen, Punkt für Punkt:
+
+1. **Keine zweite Delta-Anwendung.** `tool_offset` rechnet `lo` wie bisher genau einmal um; neu ist nur, dass es `first_move` nicht mehr setzt und das Ereignis vermerkt (`offset_events`). Ein schon unbekannter Start bleibt unbekannt (`m6_tc_then_g43`: `ustart` am Ende, 0 s).
+2. **Traverse, Vorschub, Bogen.** `insert_flip_relabels` setzt an jedem G43/G49/G43.1-Ereignis einen Umbenennungspunkt wie bei einem Epochenwechsel: dieselbe Maschinenpose im neuen Bezug, `brk`, null Dauer. Die folgende Bewegung beginnt dort, egal welcher Art.
+   - Geprüft: G43 allein, im Satz mit G0, mit G1, vor einem Bogen.
+   - Nebenbefund: Ein Vorschub oder Bogen nach G43 lief bisher vom vorigen Punkt im **alten** Bezug. Das war eine Phantomfahrt in der Größe der Korrektur über den ganzen Vorschub; sie ist damit auch weg.
+3. **M6.** Unbekannter Start nur, wo die Steuerung ungesehen fährt: `[EMCIO] TOOL_CHANGE_POSITION` (task's CHANGE_TOOL).
+   - Quill-up und `TOOL_CHANGE_AT_G30` sind laut deinem Quellausschnitt Canon-Traversen vor CHANGE_TOOL. Unsere Vorschau wertet `AXIS,hide` nicht aus und zeichnet sie auf.
+   - **Dabei gefunden, älter als dieser Fix:** Diese Fahrten kommen mit Zeile −1. Ein −1 im `uint32`-Zeilenfeld beendete **jeden** solchen Parse mit `OverflowError`; auch der unveränderte Worker auf `8d0db725` stürzt ab ([Fälle](viewer-palette-fest.r92.native-cases.txt), letzter Abschnitt). Die Vorschau behält jetzt die Zeile des Satzes.
+   - Eine M6-Remap zeichnet ihre eigenen Fahrten als Canon-Aufrufe auf. Die Fahrt eines in der Vorschau übersprungenen M600 bleibt Schritt 3 des Plans.
+4. **Roter Wächter am Segment.** In `collision.test.ts` liegt ein Hindernis nur in der Mitte der Bewegung nach dem Umbenennungspunkt, beide Endpunkte sind frei: Es wird gefunden. Als unbekannter Start (der alte Zustand) wird es nicht gefunden, und das Ergebnis sagt es. Dauer im nativen Fall: 1,5 s für 15 mm bei 10 mm/s; die nächste Zeile beginnt danach.
+
+**Pro Ereignis, nicht pro geändertem Wert.** Eine Wertregel setzte bei Start 10,005 einen Punkt und bei 10 keinen. Der VP-I20-Vergleich nannte dann zwei Parses von heavy_tests Form bei jeder Messstreuung verschieden (`test_start_tlo_worker`, Mutation MP6). Mit der Ereignisregel liegt der Punkt in beiden bei (5, 5, −10), bitgleich.
+
+**Was unbekannt bleibt, wird gesagt.** Jeder unbekannte Start nach dem eigenen Programmstart steht in `uncertified`: „N moves after a tool change start where the preview cannot know — checked at the end only (L…)“. Die Seite gab `ustart` bisher nicht an den Worker weiter. Ein Browser-Test prüft Markierung und Hilfetext; ohne die Zeile in der Track-Kopie ist er rot.
+
+**Goldens:** Sie ändern sich für jedes Programm mit G43. Das ist ein Live-Gate; ich erzeuge sie beim nächsten Suite-Stopp neu.
+
+### Prüfungen
+
+- **Native Fälle:** `test_tool_change_motion_worker.py`, 6 Tests über 10 Fälle. Bestehende Tests sind an das neue Verhalten angepasst, jeweils mit Begründung im Code (`TestTloEvents`, `percent_sub`).
+- **Mutationen:** 12 rot, alle kompilierend: 2 für die R91-Reste, 7 im Gateway gegen den Endstand des Zweigs, 2 im Client und 1 für die Übergabe von der Seite an den Worker. M8/M9 aus R91 und MT1/MT2 sind in ihrer gültigen Form gezählt ([Mutationen](viewer-palette-fest.r92.mutations.txt)).
+- **Grenzen:**
+  - Der Prüfstand hat keine Werkzeugdatenbank; `G43 H1` und `T2 M6` lassen den nativen Interpreter dort abstürzen. Die Fälle nutzen `G43.1`, `G43` ohne H und ein bloßes `M6` mit demselben Canon-Rückruf.
+  - Keine Live-Prüfung auf der Sim.

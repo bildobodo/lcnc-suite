@@ -1,0 +1,12 @@
+# R92 — gate R15 on fix/g43-relabel 17870288 (fix/r91 merged in): every offline stage, the browser in four runs (the task limit is ~30 min)
+PASS backend (44.53s)
+PASS 5axis-model (0.68s)
+PASS audit-css (0.99s)
+PASS review-handshake (4.57s)
+backend: 1252 passed, 427 subtests passed in 44.24s
+frontend lint / build / unit: frontend-lint exit 0 frontend-build exit 0 frontend-test exit 0  — Tests  1968 passed (1968)
+browser A (--project=serial-guards): 312 passed (17.3m)
+browser serial-layout --no-deps: 98 passed (10.7m)
+browser serial-visual --no-deps: 10 passed (28.9s)
+browser serial-viewer --no-deps: 70 passed (6.0m)
+312 + 98 + 10 + 70 = 490
