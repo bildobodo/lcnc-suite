@@ -53,11 +53,12 @@ test("the list is the timeline's marks: one row each, in timeline order, each ki
   await expect(page.locator('.simPanel [data-sim-row="L20"] .colWhat')).toContainText("X 110 mm > max 100 mm");
   await expect(page.locator('.simPanel [data-sim-row="T10"] .colWhat')).toContainText("Tool change → T3");
   await expect(page.locator(".simPanel tr").filter({ hasText: "L26" }).locator(".colMove")).toHaveText("Rapid");
-  // The run stops at the first soft limit at the latest (operator 2026-10-08;
-  // LinuxCNC refuses that move when it is queued): its row says so, every row
-  // after it is marked, a tool change at the same moment and a row before it
-  // are not — and every row stays listed.
-  await expect(page.locator('.simPanel [data-sim-row="L20"] .colWhat')).toContainText("the run stops here at the latest");
+  // The run stops at the first soft limit at the latest (operator 2026-10-08):
+  // the boundary is the first point a move ends beyond the window at (the
+  // gateway's flag — L20's end); its row says so, every row after it is
+  // marked, a tool change at L20's start and a row before it are not — and
+  // every row stays listed.
+  await expect(page.locator('.simPanel [data-sim-row="L20"] .colWhat')).toContainText("the run stops in this line at the latest");
   await expect(page.locator(".simPanel tr").filter({ hasText: "L26" }).locator(".colWhat")).toContainText("after the limit stop at L20");
   await expect(page.locator('.simPanel [data-sim-row="L32"] .colWhat')).toContainText("after the limit stop at L20");
   await expect(page.locator('.simPanel [data-sim-row="T20"] .colWhat')).not.toContainText("limit stop");

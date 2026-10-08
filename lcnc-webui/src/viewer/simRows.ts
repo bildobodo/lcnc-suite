@@ -48,6 +48,10 @@ export interface SimRowInput {
   /** The displayed track's axis: seconds when time-based, else its length. */
   timeBased: boolean;
   axisEnd: number;
+  /** The latest moment the run can reach: the first track point a move
+   *  ENDS beyond the joint window at (the gateway's per-vertex flag — wire
+   *  feed_outside / rapid_outside), with its line; null without flags. */
+  stop?: { cum: number; line: number } | null;
 }
 
 const KIND_ORDER: Record<SimRowKind, number> = { tool: 0, limit: 1, clash: 2 };
@@ -90,25 +94,42 @@ export function buildSimRows(i: SimRowInput): SimRow[] {
       what: `Tool change → T${t.tool || "?"}`, note: "", rapid: null, at: at(t.cum) });
   }
   rows.sort(simRowOrder);
-  markLimitStop(rows);
+  markLimitStop(rows, i.stop ?? null);
   return rows;
+}
+
+/** The first point of a track a move ends beyond the joint window at (the
+ *  gateway's per-vertex flag) with its line — `SimRowInput.stop`; null
+ *  without flags or with none set. */
+export function limitStopOf(t: { count: number; cum: ArrayLike<number>; lines: ArrayLike<number>; outside?: ArrayLike<number> } | null | undefined):
+    { cum: number; line: number } | null {
+  const o = t?.outside;
+  if (!t || !o) return null;
+  for (let i = 0; i < t.count; i++) if (o[i]) return { cum: t.cum[i]!, line: t.lines[i]! };
+  return null;
 }
 
 /** The run stops at the first soft-limit violation AT THE LATEST (operator
  *  2026-10-08: a program past its first violation shows moments no machine
- *  reaches). LinuxCNC's motion module checks a move's end when the move is
- *  QUEUED and aborts what is running (2.9 command.c, SET_LINE / SET_CIRCLE:
- *  `inRange` → `tpAbort`), so with readahead the machine halts before that
- *  move — where exactly, no preview knows. The first limit row says so;
- *  every row that STARTS after it (strictly: a contact at its start is the
- *  pose the previous move reached) is marked, and stays listed — the check
- *  runs on. */
-function markLimitStop(rows: SimRow[]): void {
-  const stop = rows.find(r => r.kind === "limit");
+ *  reaches). LinuxCNC refuses a move whose END lies beyond the window when it
+ *  is queued and aborts what runs (2.9 command.c SET_LINE / SET_CIRCLE:
+ *  `inRange` → `tpAbort`) — with readahead before that move; an arc whose
+ *  ends lie inside runs until the commanded joint crosses the limit
+ *  (control.c's run-time check — Codex R96 VP-I55: the line's start was
+ *  claimed for it). So the boundary is the first track point a move ends
+ *  beyond the window at (`stop`, the gateway's per-vertex flag): every stop
+ *  lies at or before it — for an arc between its last point inside and it,
+ *  for a refused move earlier still. Rows that START after it are marked
+ *  (strictly: one at the point itself is the pose reached there); rows
+ *  between a refused move's start and its end go unmarked — the claim stays
+ *  on the safe side. The violating line's limit row says the run stops in it
+ *  at the latest. Everything stays listed — the check runs on. */
+function markLimitStop(rows: SimRow[], stop: { cum: number; line: number } | null): void {
   if (!stop) return;
   const add = (r: SimRow, text: string) => { r.note = r.note ? `${r.note} · ${text}` : text; };
-  add(stop, "the run stops here at the latest");
-  for (const r of rows) if (r !== stop && r.cum > stop.cum) add(r, `after the limit stop at ${stop.lineLabel}`);
+  const own = rows.find(r => r.kind === "limit" && r.line === stop.line && r.cum <= stop.cum);
+  if (own) add(own, "the run stops in this line at the latest");
+  for (const r of rows) if (r !== own && r.cum > stop.cum) add(r, `after the limit stop at L${stop.line}`);
 }
 
 /** The first row AFTER the position (the run's look-ahead and the

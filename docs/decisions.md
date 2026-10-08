@@ -8648,3 +8648,25 @@ when the text lists a write there; the payload says what stays untracked
 says it. A cause line is named once a move runs after it (M2 resets the
 offsets through the same callbacks). Per-axis precision past the first such
 write was dropped: one stale axis makes every move unknown already.
+
+## 2026-10-08 — Spellings, branches and arcs (Codex R96 VP-I53 rest, VP-I54, VP-I55)
+
+The text scan matched spellings, not values: `G92.0`, `G10.0`, `G28.10` and
+`G[90+2]` passed it, and with ordered text the missing record was then taken
+as leave to ignore the callback — exactly the R95 error back. The G / L / P
+words are now read as numbers (×10, LinuxCNC's own reading), a G word the
+text cannot settle counts as a write, and behind the scan the active
+registers' callbacks count any CHANGE on a line the text does not list —
+"not found" proves nothing; a re-selection changes nothing. With o-words the
+scan of the lines between two observed line numbers claimed a G92 inside an
+`if [0]` had run; out of text order the canon now trusts only what the
+callbacks report, and the payload says the rest (an inactive fixture's write
+inside a branch or a loop) is not tracked. And an arc whose ends lie inside
+the window is not refused at queue time — it runs until the commanded joint
+crosses the limit (control.c): the Sim tab's boundary is now the first track
+point a move ends beyond the window at (the gateway's per-vertex flag), not
+the violating line's start; a refused straight move's rows before that point
+go unmarked, the claim stays on the safe side. The inside-check plan was
+revised in the same round (Fassung 2: three-valued decision, one
+non-degenerate ray, an exact local-box point filter, the winding number as
+the independent check).

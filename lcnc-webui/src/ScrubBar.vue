@@ -37,7 +37,7 @@ import { fmtElapsed } from "./format";
 import { Play, Pause, X, Triangle, Circle } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
-import { buildSimRows, nextRowKey, simRowOrder, type SimRowKind } from "./viewer/simRows";
+import { buildSimRows, limitStopOf, nextRowKey, simRowOrder, type SimRowKind } from "./viewer/simRows";
 import { simRows, simView, claimSimActions, type SimSweepView } from "./simPanelStore";
 import MachineToggle from "./MachineToggle.vue";
 
@@ -931,10 +931,15 @@ onUnmounted(() => {
 function targetsOf(kind: SimRowKind): FindingTarget[] {
   return kind === "limit" ? violationTargets.value : kind === "clash" ? hitTargets.value : toolTargets.value;
 }
+/** The first point of the displayed track a move ends beyond the joint
+ *  window at — the latest moment the run can reach (simRows markLimitStop;
+ *  Codex R96 VP-I55). Null without the gateway's flags. */
+const limitStop = computed(() => limitStopOf(track.value));
 const rowsNow = computed(() => buildSimRows({
   clash: hitTargets.value, limit: violationTargets.value, tool: toolTargets.value,
   violations: violations.value ?? [], unit: linearUnit.value,
   timeBased: !!track.value?.timeBased, axisEnd: cumMax.value,
+  stop: limitStop.value,
 }));
 watch(rowsNow, r => { simRows.value = r; }, { immediate: true });
 // Per frame while playing, but it only CHANGES where the playhead passes a

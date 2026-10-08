@@ -2647,6 +2647,45 @@ class TestRotarySyncInitcode(unittest.TestCase):
 
 
 @unittest.skipUnless(_HAVE_RS274, "rs274 (LinuxCNC python) not importable")
+class TestOffsetWriteBackstop(unittest.TestCase):
+    """The callbacks behind the text scan (Codex R96 VP-I53 rest): with
+    ordered text a line the scan does not list that CHANGES the active
+    register is a write it did not recognise — "not found" is no proof of
+    none; unchanged values (a re-selection) and listed lines are not."""
+
+    def _canon(self, listed):
+        import gcode_canon
+        c = object.__new__(gcode_canon.PreviewCanon)
+        c.lineno = 2
+        c.set_g92_offset(0, 0, 0, 0, 0, 0, 0, 0, 0)
+        c.set_g5x_offset(1, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+        c.write_lines, c.writes_ordered = listed, True
+        c.stale = frozenset((0, 1, 2))
+        c.lineno = 4
+        return c
+
+    def test_an_unlisted_change_is_a_write(self):
+        c = self._canon({})
+        c.set_g92_offset(0, 0, 10, 0, 0, 0, 0, 0, 0)
+        self.assertEqual((c._frame_unknown, c._pending_offset_lines), (frozenset((0, 1, 2)), (4,)))
+        c = self._canon({})
+        c.set_g5x_offset(1, 0, 0, 30, 0, 0, 0, 0, 0, 0)
+        self.assertEqual(c._frame_unknown, frozenset((0, 1, 2)))
+
+    def test_no_change_a_listed_line_or_a_switch_is_not(self):
+        c = self._canon({})
+        c.set_g92_offset(0, 0, 0, 0, 0, 0, 0, 0, 0)             # the same values
+        c.set_g5x_offset(1, 0, 0, 0, 0, 0, 0, 0, 0, 0)          # G54 again
+        self.assertEqual(c._frame_unknown, frozenset())
+        for t in ("explicit", "all"):                          # the scan's own business
+            c = self._canon({4: t})
+            c.set_g92_offset(0, 0, 10, 0, 0, 0, 0, 0, 0)
+            self.assertEqual(c._frame_unknown, frozenset(), t)
+        c = self._canon({})
+        c.set_g5x_offset(2, 0, 0, 30, 0, 0, 0, 0, 0, 0)         # a switch reads the table
+        self.assertEqual(c._frame_unknown, frozenset())
+
+
 class TestCanonFirstMoveRearm(unittest.TestCase):
     """The rotary-sync initcode consumes the canon's one first-move
     suppression; next_line must re-arm it at the first REAL program line
@@ -3144,12 +3183,22 @@ class TestPositionWriteLines(unittest.TestCase):
             "G1 X1 F100",              # 19 nothing
             "/G92 X0",                 # 20 all (a block-delete line may run)
             "G1 0 L2 0 P1 X0",         # 21 fixture 1 — LinuxCNC reads G10 L20
+            "G92.0 Z10",               # 22 all — any spelling of the number (Codex R96)
+            "G092 Z10",                # 23 all
+            "G10.0 L20.0 P1.0 Z10",    # 24 fixture 1
+            "G28.10",                  # 25 all (G28.1)
+            "G[90+2] Z10",             # 26 all — a G word the text cannot settle
+            "G10.0 L2 P1 Z30",         # 27 explicit
+            "G#1 Z0",                  # 28 all
+            "G28 X0",                  # 29 nothing (a move, no store)
+            "G92.10",                  # 30 explicit (G92.1)
         ])
         out, ordered = gateway_util.position_write_lines(text)
         self.assertTrue(ordered)
         self.assertEqual(out, {2: "all", 3: "explicit", 4: "explicit", 5: 2, 6: 2, 7: "active", 8: "active",
                                9: "all", 10: "all", 11: "explicit", 12: "all", 13: "all", 14: "all",
-                               15: "explicit", 16: "all", 20: "all", 21: 1})
+                               15: "explicit", 16: "all", 20: "all", 21: 1, 22: "all", 23: "all",
+                               24: 1, 25: "all", 26: "all", 27: "explicit", 28: "all", 30: "explicit"})
 
     def test_order_is_lost_with_o_words_or_m98(self):
         for text in ("o100 repeat [2]\nG92 Z0\no100 endrepeat\n", "o<sub> call\n", "M98 P100\n", "M098 P1\n"):

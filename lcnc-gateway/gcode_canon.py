@@ -272,7 +272,10 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             # word runs before the block's motion), the lines without a canon
             # call after it under the set its end left.
             n = int(st.sequence_number or 0)
-            if self.write_lines and prev >= 1 and n > prev:
+            # Only where the lines run in text order: with o-words a gap
+            # between two line numbers proves nothing ran (a branch not
+            # taken — Codex R96 VP-I54); there the callbacks speak alone.
+            if self.write_lines and self.writes_ordered and prev >= 1 and n > prev:
                 for line in range(prev, n):
                     t = self.write_lines.get(line)
                     if t is not None and t != "explicit":
@@ -422,43 +425,55 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             self._reg_unknown = {**self._reg_unknown,
                                  target: ((had[0] | axes) if had else axes, had[1] if had else line)}
 
-    def _write_not_covered(self):
-        """An active register written (a callback) where the main file's
-        text cannot speak for the line: no text, or lines that do not run in
-        text order (another file's line may carry any number). With ordered
-        text every line is the main file's, and a callback on a line the text
-        does not list as a write is a reset or a re-selection (M2, `G54`)."""
-        if not (self.stale and self._program_line()):
+    def _write_not_covered(self, changed):
+        """An active register written (a callback) that the main file's
+        text does not account for. Without ordered text (no text; o-words or
+        M98 — another file's line may carry any number) every change counts.
+        With ordered text a line the text lists is its business (explicit or
+        handled at the next line); an unlisted line that CHANGED the register
+        is a write the scan did not recognise (Codex R96: a spelling or an
+        expression it cannot settle) — "not found" is no proof of none.
+        Unchanged values are a re-selection (`G54`) or a reset to the same."""
+        if not (self.stale and self._program_line() and changed):
             return False
-        return self.write_lines is None or not self.writes_ordered
+        if self.write_lines is None or not self.writes_ordered:
+            return True
+        return int(self.lineno or 0) not in self.write_lines
 
     # WCS basis writers (rs274.interpret.Translated): the ONLY paths that
     # change what wcs_basis() returns — flag, then let the parent assign.
+    def _register(self, kind):
+        return tuple(getattr(self, f"{kind}_offset_" + a, None) for a in "xyzabcuvw")
+
     def set_g5x_offset(self, *args, **kw):
         self._wcs_dirty = True
-        before = getattr(self, "g5x_index", None)
+        before, vals = getattr(self, "g5x_index", None), self._register("g5x")
         r = super().set_g5x_offset(*args, **kw)
         idx = getattr(self, "g5x_index", None)
         if self._program_line():
             if idx != before and idx in self._reg_unknown:
                 axes, line = self._reg_unknown[idx]
                 self._position_write(line, "all", axes)   # its offsets were the guess
-            elif idx == before and self._write_not_covered():
+            elif idx == before and self._write_not_covered(self._register("g5x") != vals):
                 self._position_write(self._backstop_line(), "all", self.stale)
         return r
 
     def set_g92_offset(self, *args, **kw):
         self._wcs_dirty = True
+        vals = self._register("g92")
         r = super().set_g92_offset(*args, **kw)
-        if self._write_not_covered():
+        if self._write_not_covered(self._register("g92") != vals):
             self._position_write(self._backstop_line(), "all", self.stale)
         return r
 
     def _backstop_line(self):
-        """The line a callback-caught write is named by: the main file's
-        line when its text lists a write there, else 0 — the number may be
-        another file's, and a note must not name the wrong main-file line."""
+        """The line a callback-caught write is named by: with ordered text
+        every line is the main file's; without, the main file's line only
+        when its text lists a write there, else 0 — the number may be another
+        file's, and a note must not name the wrong main-file line."""
         n = int(self.lineno or 0)
+        if self.write_lines is not None and self.writes_ordered:
+            return n
         return n if self.write_lines and n in self.write_lines else 0
 
     def set_xy_rotation(self, *args, **kw):

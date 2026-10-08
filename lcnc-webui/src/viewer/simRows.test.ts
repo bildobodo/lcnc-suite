@@ -43,31 +43,49 @@ describe("simRows", () => {
     expect([a!.at, c!.at]).toEqual(["25 %", "75 %"]);
   });
 
-  it("marks the first limit row as where the run stops at the latest, and every row after it", () => {
-    // LinuxCNC refuses a move whose end leaves the window when the move is
-    // queued and aborts the running motion: nothing after the first
-    // violation runs. A row AT its start (a contact in the pose the move
-    // before reached, a tool change before it) is not claimed unreached; the
-    // rows stay listed.
+  it("marks the rows after the first point a move ends beyond the window — the latest the run reaches", () => {
+    // LinuxCNC refuses a move whose end leaves the window when it is queued
+    // and aborts what runs: nothing after it runs. The boundary is the first
+    // track point flagged outside (here the end of L9's move at 45): a row
+    // starting after it is marked, one at or before it is not — a tool
+    // change and a contact at L9's start included; every row stays listed.
     const rows = buildSimRows({
       clash: [clash({ cum: 10, line: 4 }), clash({ cum: 40, line: 9, key: "C9|t|w|0" }),
+        clash({ cum: 45, line: 9, reentry: true, key: "C9|t|w|1" }),
         clash({ cum: 60, line: 12, reentry: true, key: "C12|t|w|1" })],
       limit: [{ key: "L30", line: 30, cum: 70, cumEnd: 75 }, { key: "L9", line: 9, cum: 40, cumEnd: 45 }],
       tool: [{ key: "T9", line: 9, tool: 2, cum: 40, cumEnd: 45 }, { key: "T20", line: 20, tool: 3, cum: 50, cumEnd: 55 }],
-      violations: [], unit: "mm", timeBased: true, axisEnd: 100,
+      violations: [], unit: "mm", timeBased: true, axisEnd: 100, stop: { cum: 45, line: 9 },
     });
     expect(rows.map(r => [r.key, r.note])).toEqual([
       ["C4|tool|a_yoke_casting|0", ""],
       ["T9", ""],
-      ["L9", "the run stops here at the latest"],
+      ["L9", "the run stops in this line at the latest"],
       ["C9|t|w|0", ""],
+      ["C9|t|w|1", "re-entry"],                       // AT the boundary: the pose reached there
       ["T20", "after the limit stop at L9"],
       ["C12|t|w|1", "re-entry · after the limit stop at L9"],
       ["L30", "after the limit stop at L9"],
     ]);
-    // no limit row: nothing is marked
-    expect(buildSimRows({ clash: [clash({ cum: 10, line: 4 })], limit: [], tool: [], violations: [],
-      unit: "mm", timeBased: true, axisEnd: 20 })[0]!.note).toBe("");
+    // no flags, no claim
+    expect(buildSimRows({ clash: [clash({ cum: 10, line: 4 })], limit: [{ key: "L3", line: 3, cum: 5, cumEnd: 6 }],
+      tool: [], violations: [], unit: "mm", timeBased: true, axisEnd: 20 }).map(r => r.note)).toEqual(["", ""]);
+  });
+
+  it("an arc whose ends lie inside the window stops where it crosses, not at its line's start (Codex R96 VP-I55)", () => {
+    // G2 from Z40 over Z60 back to Z40, max Z 50 (Codex's case): the limit
+    // row starts at 0, the first point beyond the window comes at 9.72 s.
+    // A contact at 1 s (Z 40.14) is reached; one at 12 s is not.
+    const rows = buildSimRows({
+      clash: [clash({ cum: 1, line: 3, key: "C3|t|w|0" }), clash({ cum: 12, line: 3, reentry: true, key: "C3|t|w|1" })],
+      limit: [{ key: "L3", line: 3, cum: 0, cumEnd: 30 }], tool: [],
+      violations: [], unit: "mm", timeBased: true, axisEnd: 30, stop: { cum: 9.7183, line: 3 },
+    });
+    expect(rows.map(r => [r.key, r.note])).toEqual([
+      ["L3", "the run stops in this line at the latest"],
+      ["C3|t|w|0", ""],
+      ["C3|t|w|1", "re-entry · after the limit stop at L3"],
+    ]);
   });
 
   it("the next row is the first after the position, none past the last", () => {
