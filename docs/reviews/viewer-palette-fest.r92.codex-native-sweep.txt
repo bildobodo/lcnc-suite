@@ -1,0 +1,32 @@
+
+ RUN  v4.1.8 /tmp/codex-r92-zvt_163_/archive/lcnc-webui
+
+ ❯ src/viewer/r92.native-payload.test.ts (7 tests | 4 failed) 29ms
+   × r92_m6_feed: a native unknown M6 start reaches the sweep as an explicit caveat 6ms
+   × r92_m6_feed_then_rapid: a native unknown M6 start reaches the sweep as an explicit caveat 1ms
+   × r92_m6_arc: a native unknown M6 start reaches the sweep as an explicit caveat 2ms
+   × r92_m6_g43_feed: a native unknown M6 start reaches the sweep as an explicit caveat 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r92.native-payload.test.ts > r92_m6_feed: a native unknown M6 start reaches the sweep as an explicit caveat
+ FAIL  src/viewer/r92.native-payload.test.ts > r92_m6_feed_then_rapid: a native unknown M6 start reaches the sweep as an explicit caveat
+ FAIL  src/viewer/r92.native-payload.test.ts > r92_m6_arc: a native unknown M6 start reaches the sweep as an explicit caveat
+ FAIL  src/viewer/r92.native-payload.test.ts > r92_m6_g43_feed: a native unknown M6 start reaches the sweep as an explicit caveat
+AssertionError: TOOL_CHANGE_POSITION made this start unknown; the payload must not certify a guessed feed/arc: expected null not to be null
+ ❯ src/viewer/r92.native-payload.test.ts:41:130
+     39|  it(name+': a native unknown M6 start reaches the sweep as an explicit…
+     40|   const {result}=sweep(name);
+     41|   expect(result.uncertified,'TOOL_CHANGE_POSITION made this start unkn…
+       |                                                                                                                                  ^
+     42|  });
+     43| }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 3 passed (7)
+   Start at  09:22:00
+   Duration  218ms (transform 104ms, setup 0ms, import 141ms, tests 29ms, environment 0ms)
+

@@ -1,0 +1,252 @@
+{
+  "finishedShard": [
+    {
+      "id": 1,
+      "progress": 0,
+      "partial": {
+        "hits": [
+          {
+            "line": 7,
+            "cum": 2,
+            "cumEnd": 3,
+            "a": "moving",
+            "b": "fixed",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                2,
+                3
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 20,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 2,
+        "pairsPrescreened": 0,
+        "bvhMs": 1,
+        "sweepMs": 20,
+        "truncated": {
+          "covered": 0,
+          "reason": "running"
+        },
+        "shards": 2
+      }
+    },
+    {
+      "id": 1,
+      "progress": 0.3
+    }
+  ],
+  "coverage": [
+    {
+      "id": 2,
+      "progress": 0,
+      "partial": {
+        "hits": [
+          {
+            "line": 7,
+            "cum": 2,
+            "cumEnd": 3,
+            "a": "moving",
+            "b": "fixed",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                2,
+                3
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 20,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 2,
+        "pairsPrescreened": 0,
+        "bvhMs": 1,
+        "sweepMs": 20,
+        "truncated": {
+          "covered": 0,
+          "reason": "running"
+        },
+        "shards": 2
+      }
+    }
+  ],
+  "sideFailure": {
+    "sent": [
+      {
+        "id": 3,
+        "result": {
+          "hits": [],
+          "staticContacts": [],
+          "samples": 4,
+          "coarsened": false,
+          "uncertified": null,
+          "pairCount": 1,
+          "pairsPrescreened": 0,
+          "bvhMs": 0,
+          "sweepMs": 0,
+          "truncated": null
+        }
+      },
+      {
+        "id": -3,
+        "result": {
+          "hits": [],
+          "staticContacts": [],
+          "samples": 4,
+          "coarsened": false,
+          "uncertified": null,
+          "pairCount": 1,
+          "pairsPrescreened": 0,
+          "bvhMs": 0,
+          "sweepMs": 0,
+          "truncated": null
+        }
+      }
+    ],
+    "terminated": [
+      true,
+      true
+    ]
+  },
+  "pausedFailure": {
+    "sent": []
+  },
+  "parkedFailure": {
+    "sent": []
+  },
+  "normal": [
+    {
+      "id": 6,
+      "progress": 0,
+      "partial": {
+        "hits": [
+          {
+            "line": 7,
+            "cum": 2,
+            "cumEnd": 3,
+            "a": "moving",
+            "b": "fixed",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                2,
+                3
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 20,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 2,
+        "pairsPrescreened": 0,
+        "bvhMs": 1,
+        "sweepMs": 20,
+        "truncated": {
+          "covered": 0,
+          "reason": "running"
+        },
+        "shards": 2
+      }
+    },
+    {
+      "id": 6,
+      "stopped": true,
+      "result": {
+        "hits": [
+          {
+            "line": 7,
+            "cum": 2,
+            "cumEnd": 3,
+            "a": "moving",
+            "b": "fixed",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                2,
+                3
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 40,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 2,
+        "pairsPrescreened": 0,
+        "bvhMs": 1,
+        "sweepMs": 20,
+        "truncated": {
+          "covered": 0.2,
+          "reason": "stopped"
+        },
+        "shards": 2
+      }
+    },
+    {
+      "id": 6,
+      "result": {
+        "hits": [
+          {
+            "line": 7,
+            "cum": 2,
+            "cumEnd": 3,
+            "a": "moving",
+            "b": "fixed",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                2,
+                3
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 40,
+        "coarsened": false,
+        "uncertified": null,
+        "pairCount": 2,
+        "pairsPrescreened": 0,
+        "bvhMs": 1,
+        "sweepMs": 20,
+        "truncated": null,
+        "shards": 2
+      }
+    },
+    {
+      "id": 7,
+      "error": "deliberate shard error"
+    }
+  ],
+  "firstSideCancel": {
+    "sent": [
+      {
+        "id": -1,
+        "progress": 0
+      },
+      {
+        "id": -1,
+        "cancelled": true
+      }
+    ],
+    "checks": [
+      false,
+      true
+    ]
+  }
+}

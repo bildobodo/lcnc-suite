@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r92-zvt_163_/archive/lcnc-webui
+
+
+ Test Files  8 passed (8)
+      Tests  142 passed (142)
+   Start at  09:16:51
+   Duration  65.17s (transform 208ms, setup 0ms, import 301ms, tests 64.51s, environment 0ms)
+

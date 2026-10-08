@@ -1,0 +1,38 @@
+[2m[WebServer] [22m(node:3914439) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:3914451) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3914451) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/collisions.viewer.spec.ts:83:1 › a move whose start no parse can know is named in the check (2.1s)
+(node:3914549) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3914549) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 e2e/collisions.viewer.spec.ts:107:1 › the sweep runs on several workers and finds what the single sweep finds (3.5s)
+
+
+  1) e2e/collisions.viewer.spec.ts:83:1 › a move whose start no parse can know is named in the check 
+
+    Error: page.evaluate: TypeError: window.__viewerDiag.getCollisionSummary is not a function
+        at eval (eval at evaluate (:302:30), <anonymous>:3:56)
+        at UtilityScript.evaluate (<anonymous>:304:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:302:30), <anonymous>:3:56)
+        at UtilityScript.evaluate (<anonymous>:304:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at expect.poll.timeout (/tmp/codex-r92-zvt_163_/archive/lcnc-webui/e2e/collisions.viewer.spec.ts:89:32)
+        at /tmp/codex-r92-zvt_163_/archive/lcnc-webui/e2e/collisions.viewer.spec.ts:89:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../evidence/r92-chromium-output/collisions.viewer-a-move-w-de78a--know-is-named-in-the-check/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../evidence/r92-chromium-output/collisions.viewer-a-move-w-de78a--know-is-named-in-the-check/error-context.md
+
+  1 failed
+    e2e/collisions.viewer.spec.ts:83:1 › a move whose start no parse can know is named in the check 
+  1 passed (6.5s)

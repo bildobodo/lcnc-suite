@@ -1,0 +1,62 @@
+[2m[WebServer] [22m(node:3915834) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:3915846) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3915846) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/r92.readiness.spec.ts:38:1 › original guard with delayed model loading (1.7s)
+(node:3915942) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3915942) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [chromium] › e2e/r92.readiness.spec.ts:56:1 › guard waits for the seam with delayed model loading (4.7s)
+(node:3916044) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3916044) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  3 [firefox] › e2e/r92.readiness.spec.ts:38:1 › original guard with delayed model loading (1.2s)
+(node:3916299) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3916299) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  4 [firefox] › e2e/r92.readiness.spec.ts:56:1 › guard waits for the seam with delayed model loading (5.2s)
+
+
+  1) [chromium] › e2e/r92.readiness.spec.ts:38:1 › original guard with delayed model loading ───────
+
+    Error: page.evaluate: TypeError: window.__viewerDiag.getCollisionSummary is not a function
+        at eval (eval at evaluate (:302:30), <anonymous>:3:56)
+        at UtilityScript.evaluate (<anonymous>:304:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at eval (eval at evaluate (:302:30), <anonymous>:3:56)
+        at UtilityScript.evaluate (<anonymous>:304:16)
+        at UtilityScript.<anonymous> (<anonymous>:1:44)
+        at expect.poll.timeout (/tmp/codex-r92-zvt_163_/archive/lcnc-webui/e2e/r92.readiness.spec.ts:44:32)
+        at /tmp/codex-r92-zvt_163_/archive/lcnc-webui/e2e/r92.readiness.spec.ts:44:3
+
+    Error Context: ../evidence/r92-readiness-output/r92.readiness-original-guard-with-delayed-model-loading-chromium/error-context.md
+
+  2) [firefox] › e2e/r92.readiness.spec.ts:38:1 › original guard with delayed model loading ────────
+
+    Error: page.evaluate: window.__viewerDiag.getCollisionSummary is not a function
+    @debugger eval code line 302 > eval:3:56
+    evaluate@debugger eval code:304:16
+    @debugger eval code:1:44
+    @debugger eval code:1:62
+
+        at @debugger eval code line 302 > eval:3:56
+        at evaluate@debugger eval code:304:16
+        at @debugger eval code:1:44
+        at @debugger eval code:1:62
+        at expect.poll.timeout (/tmp/codex-r92-zvt_163_/archive/lcnc-webui/e2e/r92.readiness.spec.ts:44:32)
+        at /tmp/codex-r92-zvt_163_/archive/lcnc-webui/e2e/r92.readiness.spec.ts:44:3
+
+    Error Context: ../evidence/r92-readiness-output/r92.readiness-original-guard-with-delayed-model-loading-firefox/error-context.md
+
+  2 failed
+    [chromium] › e2e/r92.readiness.spec.ts:38:1 › original guard with delayed model loading ────────
+    [firefox] › e2e/r92.readiness.spec.ts:38:1 › original guard with delayed model loading ─────────
+  2 passed (14.8s)

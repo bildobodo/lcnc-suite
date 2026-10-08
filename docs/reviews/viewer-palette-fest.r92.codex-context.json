@@ -1,0 +1,29 @@
+{
+  "request_head": "234a2968abcac82aefb9c042dd625e06a171a647",
+  "review_product_head": "760ecf9bce953b5adf4a4a620f91651a40fc6717",
+  "review_base": "8d0db725",
+  "archive": "/tmp/codex-r92-zvt_163_/archive",
+  "byte_equal_source_files": {
+    "lcnc-gateway": 87,
+    "lcnc-webui": 424
+  },
+  "hydrated_lfs_files_verified": {
+    "lcnc-gateway/machine/frame.stl": "3aaf95df66fcaf0bc8983336e06504911ae499fac4fbb347be2b3fa5b5a082f6",
+    "lcnc-gateway/machine/x_axis.stl": "a3979a190a5fe7da6f4d4fd24ee3cd346fc8dbb3deedb1a21be472077321661e",
+    "lcnc-gateway/machine/y_axis.stl": "cda9693aabba3261b0e49a40b87b2dd97d1599be8574042495cd436b93f7263f",
+    "lcnc-gateway/machine/z_axis.stl": "8ed2b203332a2036285afd797c2bc227f1745466b920fc6601383ce73b44f0aa"
+  },
+  "isolation_only_changes": [
+    "lcnc-webui/e2e/ctl.ts",
+    "lcnc-webui/tsconfig.app.json",
+    "lcnc-webui/tsconfig.node.json",
+    "lcnc-webui/tsconfig.test.json",
+    "lcnc-webui/vite.config.ts"
+  ],
+  "previous_evidence_unchanged": {
+    "r90": 37,
+    "r91": 24
+  },
+  "live_status_before": "",
+  "review_original_sha256": "a46fa41f81dc9b184097ae4f1c2f9bb18f0289fd9eb9f40dae423cc69fe9ec1c"
+}
