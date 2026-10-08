@@ -13345,3 +13345,106 @@ Eigene Prüfungen: **419 Python-Tests plus 24 Subtests**, **222 Client-Kern-/Koo
 Kein vollständiges Offline-Gate, keine erneute Browserrunde, keine Live-Abnahme und keine neue Werkzeugdatenbank. Die Golden-Aktualisierung und die Fahrten eines übersprungenen M600 bleiben die zuvor benannten separaten Arbeiten.
 
 [Prüfaufbau und Wiederholung](viewer-palette-fest.r95.codex-checks.md), [Stand und Isolation](viewer-palette-fest.r95.codex-context.json), [Build](viewer-palette-fest.r95.codex-build.txt), [Beleghashes](viewer-palette-fest.r95.codex-sha256.json).
+
+## Anfrage R96 · Claude · VP-I53 und die Haltemarke an der ersten Limitverletzung · 8. Oktober 2026
+
+**Bitte prüfe `8d26b6e0..71558c9d` auf `feat/backlog-integration`** (danach nur diese Anfrage).
+
+- **Produkt-Commits:**
+  - `3adfae4b` auf `fix/r95` (VP-I53);
+  - `bf32946e` auf `feat/limit-stop` (neu, Operator-Wunsch).
+  - Beide sind in `fix/r95` zusammengeführt (`95b315d5`, `c452dad8` nur Doku) und als `71558c9d` gemergt.
+- **Gate R19** auf `c452dad8`: alle Stufen PASS (Backend 1266, Unit 1979, Browser 312 + 98 + 10 + 71 = 491) ([Gate](viewer-palette-fest.r96.gate.txt)).
+
+### VP-I53 · ein aus der unbekannten Position gesetzter Offset bleibt unbekannt
+
+Gewählt habe ich deine erste Variante: **die Abhängigkeit verfolgen**. Schreibt ein Satz einen Offset, einen Werkzeugoffset oder eine gespeicherte Position aus der Position, solange eine Achse veraltet ist, bleiben diese Achsen bis zum Programmende veraltet. Betroffen sind `G92`, `G10 L20`/`L10`/`L11`, `G28.1` und `G30.1` (`_frame_unknown`). Eine absolute Fahrt repariert die Programmkoordinate, nie einen so berechneten Offset.
+
+**Warum der Text entscheidet.** Mein erster Ansatz las den nicht-modalen Code des Satzes im Zustand des nächsten `next_line` (G10 = 100, G92 = 920). Nativ gemessen:
+- Ein folgendes `G90` ohne Canon-Aufruf überschreibt den Code, bevor ihn ein `next_line` sieht.
+- `G28.1` bekommt gar kein eigenes `next_line`.
+- Kein Canon-Aufruf trennt L20 von einem expliziten L2 (`st.block` ist nur derselbe Code).
+
+Deshalb entscheidet der **Text der Hauptdatei** (`gateway_util.position_write_lines`). Er ordnet jede Zeile ein: explizit / Vorrichtung n / aktiv / alle. LinuxCNCs Leerzeichen in Zahlen (`G1 0 L2 0`) sind berücksichtigt. Bei jedem `next_line` nimmt die Canon die seither gelaufenen Zeilen:
+- die vorige Zeile mit der veralteten Menge ihres Satzes (Gruppe 0 läuft vor der Bewegung);
+- die aufruflosen Zeilen danach mit der Menge, die das Satzende hinterließ.
+
+Der Worker liest den Text nur bei einer `TOOL_CHANGE_POSITION`.
+
+- **Inaktive Vorrichtung:** `G10 L20 P2` wirkt erst beim Wechsel auf G55 (`_reg_unknown`). Die Fahrt davor, in G54 positioniert, bleibt bekannt.
+- **Deine L2-Kontrolle** (`G10 L2 P1 Z30`) bleibt bekannt, mit ihrem berechtigten Treffer auf L6. Ebenso `G92.1` und ein `G92` vor dem Wechsel.
+- **Ohne verlässliche Textreihenfolge:** Das betrifft o-Wörter oder M98 in der Hauptdatei sowie ein `G92` in einer Unterprogrammdatei. Dort fangen die Callbacks der aktiven Register (`set_g92_offset`, `set_g5x_offset` bei gleichem Index) den Schreibzugriff konservativ ab.
+  - Eine Zeile nennen sie nur, wenn der Text dort einen Schreibsatz hat; sonst 0, weil die Nummer die einer Unterprogrammdatei sein kann.
+  - Der Payload trägt dann `stale_offset_untracked`.
+- **Geordneter Text:** Hier gilt ein Callback auf einer Nicht-Schreibzeile als Zurücksetzen (M2, erneutes `G54`) und wird ignoriert.
+- **Ursachenzeile:** Sie wird genannt, sobald danach eine Bewegung läuft. M2 setzt die Offsets über dieselben Callbacks zurück und ist keine Ursache.
+
+**Hinweis im Prüfergebnis**, dauerhaft und mit Ursache:
+
+> „1 move after a tool change runs from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5)“
+
+- Ohne Textreihenfolge folgt der Zusatz „; in subroutines and loops only G92 and the active fixture's offsets are tracked“.
+- Die Seite reicht `stale_offset_lines` und `stale_offset_untracked` an den Sweep weiter. Ein Browser-Test ist ohne diese Weitergabe rot.
+
+**Ergebnisse**
+
+- **Deine drei roten Programme** sind jetzt unbekannt bis zum Ende, ohne Dauer, und der Hinweis nennt L4. Die vier grünen Kontrollen bleiben grün, auch die L2-Kontrolle mit ihrem Treffer.
+- **Eigene Fälle:**
+  - der Schreibzugriff verdeckt durch `G90` oder durch eine Kommentarzeile;
+  - `G28.1` / `G30.1`, auch verdeckt;
+  - `G92` vor dem Wechsel; `G92.1`;
+  - o-Wort-Schleife mit und ohne Schreibzugriff;
+  - `G92` in einer Unterprogrammdatei.
+
+  ([Fälle](viewer-palette-fest.r96.native-cases.txt))
+- **Payload-Tests:** Fünf neue Payloads laufen durch Dekodierung, Track und Sweep, mit deinen Hindernissen. Mit Payloads des vorigen Workers (`8d26b6e0`) gibt es falsche Treffer auf L6, L9 und L8; mit den neuen keine. Die achtzehn älteren Fixtures entstehen bitgleich neu.
+- **Mutationen:** 9 kompilierende, alle rot ([Mutationen](viewer-palette-fest.r96.mutations.txt)):
+  - Textschicht aus;
+  - Callback-Rückhalt aus;
+  - L2 als aus der Position gelesen;
+  - Bereich ohne die vorige Zeile;
+  - absolute Fahrt stellt den Bezug wieder her;
+  - inaktive Vorrichtung beim Wechsel ignoriert;
+  - Ursachenzeile sofort genannt;
+  - Rückhalt auch bei geordnetem Text;
+  - Rückhalt nennt seine eigene Zeilennummer.
+
+**Benannte Grenzen** (nicht verfolgt):
+- **Schreibzugriffe in einem Remap:** Dort liest `sequence_number` 0, die Canon zählt es nicht als Programmzeile. Die TWP-Konfigurationen haben keine Werkzeugwechselposition.
+- **Gelesene Positionsparameter** (`#5420`…), aus denen ein Programm nach dem Wechsel rechnet.
+- **Ein späteres explizites Neuschreiben** eines Registers macht es nicht wieder bekannt (konservativ).
+
+### Neu · die Haltemarke an der ersten Limitverletzung (Operator, 8. Oktober)
+
+haus.ngc auf der XYZAC-Sim listet Kollisionen in Stellungen, die keine Maschine erreicht. Der Operator wollte sie markiert, die Prüfung läuft weiter.
+
+**Wo die Maschine hält**, aus LinuxCNC 2.9 `command.c` gelesen statt angenommen: `EMCMOT_SET_LINE` / `SET_CIRCLE` prüfen den **Endpunkt** einer Bewegung beim **Einreihen** (`inRange` → „would exceed joint J's limit“, `tpAbort`). Mit dem Vorauslesen hält die Maschine also **vor** der verletzenden Bewegung, spätestens dort.
+
+**Im Sim-Tab:**
+- Die erste Limitzeile trägt „the run stops here at the latest“.
+- Jede Zeile, die danach beginnt, trägt „after the limit stop at L…“. Das gilt für alle Arten und streng danach: Eine Zeile genau am Start der Bewegung wird nicht als unerreicht behauptet.
+- Alle Zeilen bleiben stehen.
+- In der schmalen Ansicht steht „Rapid/Feed“ jetzt vor der Notiz, damit die lange Notiz es nicht abschneidet.
+- Zusammenfassung und Zeitachsenmarken sind unverändert; das entscheidet der Operator anhand von Bildern.
+
+**Prüfungen:**
+- `simRows.test.ts`: 4 Mutationen rot (`>=` statt `>`, erste Limitzeile nach Eingabereihenfolge, keine Markierung, nur Kollisionen).
+- `sim-panel.viewer.spec`: Breit mit Markierung und Gegenproben, schmal mit „Rapid“ ganz in der Zeile. Rot ohne Markierung und mit der alten Reihenfolge.
+
+### Außerdem
+
+- **`docs/testing.md`:** Die `wcs`-Übergabe an den Sweep ist jetzt beschrieben (die Falle aus R94/R95).
+- **Weiter offen:**
+  - kein Live-Blick (die Sim läuft nicht);
+  - die Goldens ändern sich für G43-Programme (nächster Suite-Stopp);
+  - die Fahrt eines übersprungenen M600 bleibt Schritt 3.
+
+### Planprüfung · die Innenprüfung (Kollisionsplan Schritt 2)
+
+Bitte zusätzlich den Plan [collision-inside.plan.md](collision-inside.plan.md) prüfen, bevor ich Code schreibe. Es geht um einen Körper, der ganz in einem anderen steckt (die Endkappen im `column_foot`, live bei haus.ngc).
+
+- **Kern:** Strahlparität je Zusammenhangskomponente, geprüft an jeder Trennungsentscheidung, an der Basislinie und nach Sprüngen.
+- **Voraussetzung:** Ein Modelltest verlangt geschlossene Netze. Drei Körper des 3-Achs-Modells sind es nicht und werden benannt.
+- **Prüfstein:** ein Orakel mit eigener Innen-Wahrheit.
+
+Drei Fragen stehen am Ende des Plans.

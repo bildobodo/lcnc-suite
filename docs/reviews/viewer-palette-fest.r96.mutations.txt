@@ -1,0 +1,66 @@
+# R96 — compiling mutations, each restored from a byte copy
+
+## VP-I53 (fix/r95): gcode_canon.py / gateway_util.py against test_tool_change_motion_worker.py + test_start_tlo_worker.py + test_gateway_util.py
+RED    MO1 the text layer off
+       1 failed, 423 passed, 24 subtests passed in 4.20s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_an_offset_set_from_the_unknown_position_keeps_the_rest_unknown
+RED    MO2 the callback backstop off
+       1 failed, 423 passed, 24 subtests passed in 4.51s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_lines_out_of_text_order_fall_back_to_the_callbacks_and_say_so
+RED    MO3 an L2 read as written from the position
+       3 failed, 421 passed, 24 subtests passed in 4.20s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_a_later_rotation_makes_a_known_x_or_y_unknown_again
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_an_explicit_offset_a_reset_or_an_earlier_one_stays_known
+       - test_gateway_util.py::TestPositionWriteLines::test_each_kind
+RED    MO4 the scan range starts after the previous line
+       1 failed, 423 passed, 24 subtests passed in 4.23s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_an_offset_set_from_the_unknown_position_keeps_the_rest_unknown
+RED    MO5 an absolute move re-establishes an unknown frame
+       2 failed, 422 passed, 24 subtests passed in 4.14s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_an_offset_set_from_the_unknown_position_keeps_the_rest_unknown
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_lines_out_of_text_order_fall_back_to_the_callbacks_and_say_so
+RED    MO6 an inactive fixture's write ignored at the switch
+       1 failed, 423 passed, 24 subtests passed in 4.34s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_an_offset_set_from_the_unknown_position_keeps_the_rest_unknown
+RED    MO7 the cause line named at once (no later move needed)
+       1 failed, 423 passed, 24 subtests passed in 4.49s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_lines_out_of_text_order_fall_back_to_the_callbacks_and_say_so
+RED    MO8 the backstop also with ordered text
+       3 failed, 421 passed, 24 subtests passed in 3.94s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_a_later_rotation_makes_a_known_x_or_y_unknown_again
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_an_explicit_offset_a_reset_or_an_earlier_one_stays_known
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_an_offset_set_from_the_unknown_position_keeps_the_rest_unknown
+RED    MO9 a callback-caught write named by its own line number
+       1 failed, 423 passed, 24 subtests passed in 4.54s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_lines_out_of_text_order_fall_back_to_the_callbacks_and_say_so
+
+## The page hands the offset line and the flag to the worker (collisions.viewer.spec, built per run)
+base: 2 passed; ThreeViewer's two option lines removed: 1 failed ("an offset set from the unknown position is named, to the program's end")
+
+## toolChangePayloads.test.ts on payloads the PREVIOUS worker (feat/backlog-integration 8d26b6e0, the R94 rule) writes for the R95 programs: the R95 test fails (last move ustart 0, expected 1); on the fixtures: 10 passed. The eighteen earlier fixtures regenerate bit-identical.
+# the same payloads swept on Codex R94's XYZ machine with Codex's obstacles on the paths a guessed offset invents (the track handed over the page's way):
+PRIOR r95_g92_from_stale hits [6] last ustart 0
+PRIOR r95_l20_inactive_hidden hits [9] last ustart 0
+PRIOR r95_l2_constant hits [6] last ustart 0
+PRIOR r95_oword_g92 hits [8] last ustart 0
+NEW   r95_g92_from_stale hits [] last ustart 1
+NEW   r95_l20_inactive_hidden hits [] last ustart 1
+NEW   r95_l2_constant hits [6] last ustart 0
+NEW   r95_oword_g92 hits [] last ustart 1
+# (r95_l2_constant: an explicit G10 L2 P1 Z30 — the box on its REAL path, found in both: Codex's green control)
+
+## Limit stop (feat/limit-stop bf32946e): simRows.ts against simRows.test.ts (vue-tsc per mutation: exit 0)
+RED   MS1 a row AT the stop counts as after it (>=) | vue-tsc exit 0 | Tests  1 failed | 4 passed (5)
+RED   MS2 the first limit in input order, not on the timeline | vue-tsc exit 0 | Tests  1 failed | 4 passed (5)
+RED   MS3 no marking | vue-tsc exit 0 | Tests  1 failed | 4 passed (5)
+RED   MS4 collisions only | vue-tsc exit 0 | Tests  1 failed | 4 passed (5)
+
+## sim-panel.viewer.spec (serial-viewer, built per run)
+base: exit 0 —   14 passed (51.2s) 
+mut-no-mark: exit 1 —   1 failed   13 passed (1.0m) 
+  ✘   1 [serial-viewer] › e2e/sim-panel.viewer.spec.ts:43:1 › the list is the timeline's marks: one row each, in timeline order, each kind in its words (12.5s)
+mut-old-order: exit 1 —   1 failed   13 passed (54.5s) 
+  ✘  13 [serial-viewer] › e2e/sim-panel.viewer.spec.ts:456:1 › the summary names each kind: words in the wide pane, the glyph and the number narrow; a capped list says so (5.2s)
+RESTORED
+rebuilt clean
+
