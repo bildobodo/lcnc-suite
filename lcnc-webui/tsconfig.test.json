@@ -32,6 +32,7 @@
     "noUncheckedSideEffectImports": true
   },
   "include": [
+    "src/viewer/toolChangePayloads.test.ts",
     "src/shims.d.ts",
     "src/bundledFonts.test.ts",
     "src/viewer/toolBasis.test.ts",

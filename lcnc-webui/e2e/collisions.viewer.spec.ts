@@ -86,14 +86,16 @@ test("a move whose start no parse can know is named in the check", async ({ page
     feed: [[0, 0, -100], [0, 0, -150], [20, 0, -150]],
     extra: { feed_seq: [1, 2, 4], rapid: [[10, 0, -150]], rapid_lines: [4], rapid_seq: [3],
              rapid_outside: new Uint8Array(1), rapid_ustart: new Uint8Array([1]) } });
-  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getCollisionSummary!()?.uncertified ?? null),
+  // The diagnostic exists once the model is built (Codex R92 VP-I52): poll
+  // through optional calls, never `!` — a cold model threw before it was there.
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getCollisionSummary?.()?.uncertified ?? null),
                     { timeout: 60_000 })
-    .toBe("1 move after a tool change start where the preview cannot know — checked at the end only (L4)");
+    .toBe("1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L4)");
   await openSimTab(page);
   const item = page.locator(".simPanel .simSummary .sumItem").first();
   await expect(item.locator('span[title^="Not certified"]'), "the marker").toHaveCount(1);
   await page.getByRole("button", { name: "Help: Collision check", exact: true }).click();
-  await expect(page.locator(".helpPopover:popover-open")).toContainText("after a tool change start where the preview cannot know");
+  await expect(page.locator(".helpPopover:popover-open")).toContainText("after a tool change runs from a position the preview cannot know");
   await page.keyboard.press("Tab");   // light dismiss without Escape (E-Stop)
   await ctl({ op: "reset" });
 });

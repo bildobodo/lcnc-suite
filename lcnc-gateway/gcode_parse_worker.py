@@ -222,8 +222,16 @@ def parse(ctx: dict) -> dict:
     canon = PreviewCanon(s, random_tc)
     # The controller's own motion at an M6 (gcode_canon.tool_change_moves):
     # only a tool change position makes the move after it start where no
-    # parse can know.
-    canon.tool_change_moves = bool((ini.find("EMCIO", "TOOL_CHANGE_POSITION") or "").strip())
+    # parse can know — on the axes it names (X Y Z [A B C [U V W]]).
+    _tcp = (ini.find("EMCIO", "TOOL_CHANGE_POSITION") or "").split()
+    canon.tool_change_moves = bool(_tcp)
+    if _tcp:
+        if len(_tcp) in (3, 6, 9):
+            canon.tool_change_axes = tuple(range(len(_tcp)))
+        else:
+            canon.tool_change_axes = tuple(range(9))
+            print(f"TOOL_CHANGE_POSITION has {len(_tcp)} values (3, 6 or 9 expected) — "
+                  "every axis taken as unknown after an M6", file=sys.stderr, flush=True)
     # The tool state the program STARTS with (VP-I20, Codex R51–R57): the
     # machine runs every move before the program's own G43/G49 under its
     # inherited modal G43, so the interpreter starts there too — read ONCE

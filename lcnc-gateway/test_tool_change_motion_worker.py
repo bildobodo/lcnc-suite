@@ -59,7 +59,8 @@ class TestToolOffsetMove(unittest.TestCase):
     def test_a_g43_does_not_make_an_unknown_start_known(self):
         r = probe("m6_tc_then_g43")
         self.assertEqual(r["rapid_ustart"][-1], 1)
-        self.assertEqual(r["rapid_tcum"], [0.0, 0.0, 0.0], "nothing timed across the unknown")
+        self.assertEqual(set(r["rapid_tcum"]), {0.0}, "nothing timed across the unknown")
+        self.assertNotIn(1, r["rapid_brk"] or [], "no relabel in front of an unknown start (R92)")
 
     def test_an_m6_that_moves_nothing_keeps_the_next_start(self):
         r = probe("m6_in_place")
@@ -86,6 +87,58 @@ class TestToolOffsetMove(unittest.TestCase):
         self.assertIsNone(r["parse_error"])
         self.assertEqual(r["rapid_ustart"], [1, 1])
         self.assertEqual(r["rapid_tcum"], [0.0, 0.0])
+
+
+class TestUnknownStartAfterAToolChange(unittest.TestCase):
+    """Codex R92 VP-I51: after an M6 at a tool change position the preview
+    interpreter computes every left-out axis, an arc's centre and every G91
+    move from its OLD position (it resyncs from its own last endpoint). While
+    an axis is stale every motion kind is a zero-length unknown-start
+    endpoint — no invented path, no duration; an absolute move re-establishes
+    the axes it moves."""
+
+    def test_every_motion_kind_from_an_unknown_start_is_an_endpoint(self):
+        for case, end in (("r92_m6_feed", [10, 5, 15]), ("r92_m6_arc", [10, 0, 40]),
+                          ("r92_m6_g43_feed", [10, 5, 15])):
+            r = probe(case)
+            self.assertIsNone(r["parse_error"], case)
+            self.assertEqual(r["feed"], [], f"{case}: no feed path from a guessed start")
+            self.assertEqual(r["rapid"][-1], end, case)
+            self.assertEqual(r["rapid_ustart"][-1], 1, case)
+            self.assertEqual(r["rapid_tcum"][-1], 0.0, f"{case}: no duration")
+            self.assertNotIn(1, r["rapid_brk"] or [], f"{case}: no relabel before an unknown start")
+
+    def test_the_position_is_known_again_once_every_stale_axis_is_commanded(self):
+        r = probe("r92_m6_feed_then_rapid")        # X Y Z all commanded by the feed
+        self.assertEqual(r["rapid_ustart"], [1, 1, 0])
+        self.assertAlmostEqual(r["rapid_tcum"][2] - r["rapid_tcum"][1], 0.5, places=5)
+        r = probe("m6_tc_partial")                 # G0 X Y leaves Z stale; G0 Z settles it
+        self.assertEqual(r["rapid_ustart"], [1, 1, 1, 0])
+        self.assertAlmostEqual(r["rapid_tcum"][3] - r["rapid_tcum"][2], 1.0, places=5)
+
+    def test_g91_never_re_establishes_an_axis(self):
+        # G91 before the move, and in the move's own block (seen at the next
+        # line): no axis comes back; under G90 an axis commanded to the value
+        # the preview already believes (Y5) cannot be told from one left out.
+        # A G91 drilling cycle is several motions in ONE block: an axis must
+        # not come back inside it (the correction at the next line would come
+        # after its feed and retract were recorded as known).
+        for case in ("m6_tc_g91", "m6_tc_g91_block", "m6_tc_g91_cycle"):
+            r = probe(case)
+            self.assertIsNone(r["parse_error"], case)
+            self.assertEqual(set(r["rapid_ustart"][1:]), {1}, case)
+            self.assertEqual(set(r["rapid_tcum"]), {0.0}, case)
+
+    def test_the_interpreter_s_own_tool_change_moves_stay_known(self):
+        # Codex R92's controls: quill-up, G30 twice, both — canon traverses on
+        # the M6's line, the move after them timed.
+        for case, lines in (("r92_m6_quill", [2, 3, 4]), ("r92_m6_g30_twice", [2, 3, 4, 5, 6]),
+                            ("r92_m6_quill_g30", [2, 3, 3, 4])):
+            r = probe(case)
+            self.assertIsNone(r["parse_error"], case)
+            self.assertEqual(r["rapid_lines"], lines, case)
+            self.assertEqual(r["rapid_ustart"][1:], [0] * (len(lines) - 1), case)
+            self.assertGreater(r["rapid_tcum"][-1], r["rapid_tcum"][-2], case)
 
 
 if __name__ == "__main__":
