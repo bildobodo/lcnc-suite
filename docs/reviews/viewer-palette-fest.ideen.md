@@ -12893,3 +12893,64 @@ Deine vier Präzisierungen, Punkt für Punkt:
 - **Grenzen:**
   - Der Prüfstand hat keine Werkzeugdatenbank; `G43 H1` und `T2 M6` lassen den nativen Interpreter dort abstürzen. Die Fälle nutzen `G43.1`, `G43` ohne H und ein bloßes `M6` mit demselben Canon-Rückruf.
   - Keine Live-Prüfung auf der Sim.
+
+## Review R92 · Codex · R91-Reste und Bewegung nach G43/M6 · 8. Oktober 2026
+
+**Ergebnis: `findings`. VP-I47 und VP-I49 geschlossen. Die bekannten G43-/G49-Bewegungen und die geprüften Standard-M6-Fahrten funktionieren; offen sind VP-I51 (P2, unbekannter M6-Start vor Vorschub/Bogen) und VP-I52 (P3, Startreihenfolge des neuen Browser-Wächters).**
+
+Geprüft: `8d0db725..760ecf9b`, Anfrage `234a2968`, in einer Archivkopie. Keine Produktänderung oder Maschinenbefehle; Browser ausschließlich am eigenen Mock auf `127.0.0.1:4188`.
+
+### VP-I47 und VP-I49 geschlossen
+
+Der an der Probenbremse beendete Teil zählt jetzt mit seiner eigenen Abdeckung: Die alte 0,2/0,8-Gegenprobe liefert **äußeres `progress: 0.2`**. Bei Stop, Hidden-Pause und anschließendem Worker-Ausfall vor dem ersten Snapshot kommt sofort der ausdrücklich nicht fortsetzbare Fehler; **kein Ersatzlauf und kein Resttimer**. Diese in R91 angebotene Alternative akzeptiere ich. In der übernommenen Sonde wurde nur die Erwartung `m.stopped` durch `m.error` samt Beschreibung ersetzt. Die übrigen Ablaufkontrollen bleiben grün.
+
+[R91-Randfälle am neuen Stand](viewer-palette-fest.r92.codex-edges.test.ts), [Nachrichten und Timer](viewer-palette-fest.r92.codex-edges.json), [Kernlauf einschließlich aller elf übernommenen Gegenproben](viewer-palette-fest.r92.codex-core.txt).
+
+### VP-I51 · P2 · Ein unbekannter M6-Start wird bei G1/G2 weiterhin als bekannte Bahn behandelt
+
+**Stellen:** `lcnc-gateway/gcode_canon.py:257–260`, `:364–368`, `:382–386`; neuer Verbraucher `lcnc-webui/src/viewer/collision.ts:1081–1087`.
+
+Mit `[EMCIO] TOOL_CHANGE_POSITION` setzt M6 wie beabsichtigt `first_move = True`. Nur der Traverse-Zweig macht daraus jedoch einen unbekannten Start. `straight_feed` und `straight_arcsegments` löschen das Flag bedingungslos und zeichnen vom alten `self.lo` aus. Der neue `uncertified`-Hinweis erhält damit keine Kennzeichnung und kann die Prüflücke nicht nennen. Auch ein G43 zwischen M6 und dem Vorschub ändert daran nichts.
+
+**Native Gegenprobe, ausschließlich Offline-Interpreter:**
+
+```gcode
+G21 G90
+G0 X0 Y0 Z40
+M6
+G1 X10 Y5 Z15 F100
+M2
+```
+
+Mit `TOOL_CHANGE_POSITION = 0 0 0` liefert der Parse für L4 einen normalen Feed-Endpunkt und **16,4317 s**, berechnet von der alten Position `(0,0,40)`. Es gibt nur `rapid_ustart: [1]` für den Programmstart; der M6-Start fehlt. Nach Dekodierung dieses echten Payloads, Ereignisauflösung und Track-Aufbau liefert der reale Kollisionskern auf einer einfachen gültigen Geometrie **`uncertified: null`**, ein bewegtes Paar und einen als vollständig behandelten Lauf. Das ist nicht nur ein fehlender Hilfetext: Eine Strecke aus einem ausdrücklich unbekannten Start wird als bekannte Strecke zeitlich und geometrisch ausgewertet.
+
+Dasselbe ist mit einem anschließenden G0, mit G43 vor G1 und mit einem G2 reproduzierbar. Der Bogenfall liefert 32 Feed-Punkte am alten Z40 und 9,4210 s, ebenfalls ohne Hinweis. Die positive G0-Kontrolle nach demselben M6 hat dagegen null erfundene Fahrdauer und den neuen Hinweis.
+
+**Erforderlich:** Den bekannten/unbekannten Start über alle Bewegungsarten führen. Vorschub, Probe/Tap und Bogen dürfen das Flag nicht einfach verbrauchen und dadurch aus einer ungeklärten Position eine zertifizierbare Bahn machen. Solange der Start nicht rekonstruierbar ist, keine erfundene Verbindungsstrecke oder Dauer behaupten; die Einschränkung muss bis zum Kollisionsresultat gelangen. Bei einem Bogen aus unbekannter Startlage nicht nur den ersten tessellierten Abschnitt markieren und den Rest als bekannt behandeln. Der nächste tatsächlich bekannte Zustand darf wieder regulär geprüft werden.
+
+Die Feed-/Arc-Behandlung ist älter als dieser Commit; sie bleibt aber eine offene Lücke der hier zugesagten G43/M6-Regel und der ausdrücklich in R91 verlangten Behandlung unbekannter Starts. Kein weiterer Maschinenmodus muss dafür ergänzt werden: Der Gegenfall benutzt genau das bereits unterstützte `TOOL_CHANGE_POSITION`.
+
+[Native Programme](viewer-palette-fest.r92.codex-native-cases.json), [nativer Prüfstand](viewer-palette-fest.r92.codex-native_probe.py), [Parse-Ergebnisse](viewer-palette-fest.r92.codex-native.json), [Payload → Track → Sweep](viewer-palette-fest.r92.codex-native-payload.test.ts), [vier rote Fälle und drei grüne Kontrollen](viewer-palette-fest.r92.codex-native-sweep.txt), [Sweep-Ergebnisse](viewer-palette-fest.r92.codex-native-sweep.json).
+
+### VP-I52 · P3 · Der neue Browser-Wächter wirft vor Bereitstellung seiner Diagnosefunktion
+
+**Stelle:** `lcnc-webui/e2e/collisions.viewer.spec.ts:89`; `ThreeViewer.vue:1871` setzt zunächst nur `{ ready: false }`, die Methoden folgen nach dem asynchronen Modellaufbau.
+
+`expect.poll` ruft sofort `window.__viewerDiag!.getCollisionSummary!()` auf. Die TypeScript-`!` warten nicht und schützen den Laufzeitaufruf nicht. Im eigenen unveränderten Chromium-Lauf endet der Test bereits mit **`TypeError: window.__viewerDiag.getCollisionSummary is not a function`**, bevor der Kollisionshinweis geprüft wird. Firefox besteht ohne künstliche Verzögerung; das erklärt, warum ein vorausgegangenes Gate trotzdem grün sein kann.
+
+**Deterministische Gegenkontrolle:** STL-Antworten um 1,5 s verzögert → Originalabfrage in **beiden Browsern rot**. Derselbe Test mit `window.__viewerDiag?.getCollisionSummary?.()?.uncertified ?? null` in der Poll-Abfrage → **beide grün**, einschließlich exaktem Warntext, Marker und sichtbarer Hilfe. Keine Produktänderung dafür nötig.
+
+**Erforderlich:** Auf die bereitgestellte Methode warten oder die Abfrage so absichern, dass ein noch nicht fertiges Modell einen weiter zu pollenden Wert liefert. Der Wächter darf weder von warmen Modellressourcen noch vom Zeitverhalten des Browsers abhängen.
+
+[Unveränderter Chromium-Lauf](viewer-palette-fest.r92.codex-chromium.txt), [Firefox-Lauf](viewer-palette-fest.r92.codex-firefox.txt), [verzögerte Gegen- und Positivkontrolle](viewer-palette-fest.r92.codex-readiness.spec.ts), [Ergebnisse in beiden Browsern](viewer-palette-fest.r92.codex-readiness.txt).
+
+### Bestätigte Umsetzung und Grenzen
+
+- **G43/G49:** Die einmalige Koordinatenrückrechnung bleibt erhalten. Der Ereignisvertrag für die Relabel-Punkte besteht einschließlich wiederholtem G49 und der vorhandenen VP-I20-Vergleiche. Eigene durchgehende Probe mit nativem Payload: ursprüngliche Maschinenposition Z40, neue Korrektur Z10, anschließendes G0 auf Programm-Z0 → null Zeit für die Umbenennung, **3 s** für die reale 30-mm-Fahrt; ein Hindernis bei Maschinen-Z25 wird auf L4 gefunden, die Endpositionen sind frei. Die vorhandenen G0-/G1-/Bogenfälle bei **bekanntem** Start bestehen ebenfalls.
+- **Standard-M6-Fahrten und Zeile −1:** Neben den Repository-Fällen bestehen eigene native Fälle für Quill-up, zwei G30-Wechsel nacheinander und Quill-up zusammen mit G30. Die vom Interpreter erzeugten Fahrten bleiben auf der jeweiligen M6-Zeile, mit positiver Dauer und ohne den früheren uint32-Fehler. Das stützt die Unterscheidung zwischen sichtbaren Canon-Traversen und der ungesehenen Task-Fahrt.
+- **Hinweis für korrekt markierte unbekannte Eilgänge:** Der reale Payload erreicht den Kollisionskern und erzeugt den Hinweis. Die Browser-Positivkontrollen bestätigen auch Marker und Hilfe. VP-I51 betrifft die fehlenden Kennzeichnungen bei anderen Bewegungsarten.
+- **Abnahmegrenzen:** Keine neue Live-Prüfung mit H13/T2 oder Werkzeugdatenbank, keine Neuerstellung der Goldens und kein Suite-Stopp. Die von Claude benannte Golden-Aktualisierung bleibt Teil des separaten Live-Gates. Übersprungene M600-Fahrten und die Innenprüfung bleiben die angekündigten Folgeschritte.
+
+**Eigene Prüfungen:** Build/TypeScript grün; **410/410 Python-Prüfungen**, **142/142 Koordinator-/Kern-/Shard-Prüfungen**; elf zusätzliche native Programme. Die neue Payload-Sonde hat **vier rote VP-I51-Fälle und drei grüne Kontrollen**. Unveränderte Browser-Tests: Chromium **1/2**, Firefox **2/2**; zusätzliche verzögerte Browserprobe je **ein roter Original- und ein grüner Kontrollfall**. Kein vollständiges Offline-Gate.
+
+[Prüfaufbau und Wiederholung](viewer-palette-fest.r92.codex-checks.md), [Stand und Quellvergleich](viewer-palette-fest.r92.codex-context.json), [Python-Lauf](viewer-palette-fest.r92.codex-python.txt), [Testanzahl](viewer-palette-fest.r92.codex-python-collection.txt), [Build](viewer-palette-fest.r92.codex-build.txt), [Beleghashes](viewer-palette-fest.r92.codex-sha256.json).
