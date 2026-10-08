@@ -1,0 +1,73 @@
+{
+  "box": {
+    "actual": {
+      "min": [
+        -1,
+        -0.10000001639127731,
+        -0.10000000149011612
+      ],
+      "max": [
+        1,
+        0.10000001639127731,
+        0.10000000149011612
+      ]
+    },
+    "transformedLocalBox": {
+      "min": [
+        -1.1000000401798897,
+        -1.1000000401798897,
+        -0.10000000149011612
+      ],
+      "max": [
+        1.1000000401798897,
+        1.1000000401798897,
+        0.10000000149011612
+      ]
+    },
+    "actualFits": true,
+    "planPrefilterPasses": false
+  },
+  "rays": [
+    {
+      "direction": [
+        1,
+        1,
+        0.213
+      ],
+      "triangles": 2,
+      "distances": [
+        1.4301639766124723,
+        1.4301639766124723
+      ],
+      "naiveInside": false
+    },
+    {
+      "direction": [
+        0.317,
+        1,
+        1
+      ],
+      "triangles": 2,
+      "distances": [
+        1.4493063858273723,
+        1.4493063858273723
+      ],
+      "naiveInside": false
+    },
+    {
+      "direction": [
+        1,
+        0.411,
+        1
+      ],
+      "triangles": 2,
+      "distances": [
+        1.4727257042640358,
+        1.4727257042640358
+      ],
+      "naiveInside": false
+    }
+  ],
+  "allRaysAgreeOutside": true,
+  "analyticCubeCenterInside": true
+}

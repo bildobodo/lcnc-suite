@@ -13448,3 +13448,145 @@ Bitte zusätzlich den Plan [collision-inside.plan.md](collision-inside.plan.md) 
 - **Prüfstein:** ein Orakel mit eigener Innen-Wahrheit.
 
 Drei Fragen stehen am Ende des Plans.
+
+## Review R96 · Codex · Offset-Herkunft, Limitmarke und Innenprüfung · 8. Oktober 2026
+
+**Ergebnis: `findings`. Die drei ursprünglichen VP-I53-Gegenfälle sind korrigiert, VP-I53 bleibt für gültige alternative Schreibweisen offen. Neu: VP-I54 (übersprungener Schreibsatz wird als ausgeführt behandelt), VP-I55 (zu frühe, definitive Haltemarke bei Bögen). Der Innenprüfungsplan braucht die drei unten genannten Präzisierungen VP96-01–03 vor der Umsetzung.**
+
+Geprüft: Produkt `8d26b6e0..71558c9d`, Anfrage und Plan `51ee829d`, ausschließlich in einer Archivkopie. Keine Produktänderung oder Maschinenbefehle; Browser nur am eigenen Mock `127.0.0.1:4188`, keine Zugriffe auf die Live-Suite.
+
+### Bestätigte Korrekturen
+
+Die R95-Fälle mit `G92`, `G10 L20 P1` und später aktiviertem P2 bleiben jetzt bis zum Ende unbekannt. Die falschen Treffer verschwinden, und das Ergebnis nennt die Offset-Ursache. Die vier grünen Kontrollen bleiben grün, insbesondere der berechtigte Treffer nach konstantem L2. Auch die früheren G90/G91-, G98/G99-, Rotations- und WCS-Kontrollen bestehen. Die Übergabe der beiden neuen Metadaten bis zur Browseranzeige besteht in Chromium und Firefox.
+
+Die gewählte konservative Fortführung des unbekannten Bezugs ist für VP-I53 geeignet. Die folgenden Gegenfälle betreffen ihre Erkennung, nicht die Grundentscheidung.
+
+[R95-Sonde am neuen Stand](viewer-palette-fest.r96.codex-offsets.test.ts), [Ergebnisse](viewer-palette-fest.r96.codex-offset-sweep.json), [Client-Lauf](viewer-palette-fest.r96.codex-core.txt).
+
+### VP-I53 · Rest · P2 · Gültige Schreibweisen umgehen die Herkunftserkennung
+
+**Stellen:** `lcnc-gateway/gateway_util.py:2291–2354`, `lcnc-gateway/gcode_canon.py:425–433`.
+
+Der Textscanner erkennt bestimmte Schreibweisen, nicht den Wert des G-Worts. `_G92_RE` und `_G10_WORD_RE` schließen einen folgenden Punkt aus; `_STORE_RE` schließt eine weitere Nachkommastelle aus. `G[90+2]` erreicht nicht einmal den Kandidatenfilter. Bei geordnetem Text gilt das fehlende Scanner-Ergebnis anschließend als Beleg, den aktiven Offset-Callback ignorieren zu dürfen.
+
+Im R95-Programm genügt es, die vierte Zeile zu ändern:
+
+```gcode
+G21 G90
+G0 X0 Y0 Z40
+M6
+G92.0 Z10
+G0 X10 Y5 Z15
+G0 X20
+M2
+```
+
+Mit `TOOL_CHANGE_POSITION = 0 20 30` akzeptiert der native Interpreter alle folgenden Formen ohne Parsefehler:
+
+| Schreibsatz auf L4 | Ergebnis am geprüften Stand |
+|---|---|
+| `G92 Z10` | korrekt: Ursache L4, L6 unbekannt, keine erfundene Dauer/kein Treffer |
+| `G92.0 Z10` | L6 wieder bekannt, 1 s und falscher Treffer auf Maschinen-Z45 |
+| `G[90+2] Z10` | derselbe Fehler |
+| `G10.0 L20 P1 Z10` | derselbe Fehler |
+| `G28.10`, später `G28` und `G0 X20` | gespeicherte falsche Position gilt wieder als bekannt; keine fortdauernde Erklärung |
+| `G10.0 L2 P1 Z30` | korrekt bekannte Kontrollfahrt mit berechtigtem Treffer |
+
+In den vier roten Fällen fehlen `stale_offset_lines` und `stale_offset_untracked`. Der Hinweis endet wieder bei der frühen Positionierung L5 und verspricht die Wiederherstellung einer bekannten Position. Bei den drei Offset-Varianten ist damit exakt der R95-Fehler zurück: Die Maschinenhöhe des Folgewegs ist laut Vorschau Z45 statt Z35.
+
+**Erforderlich:** Semantisch gleiche Zahlenformen müssen gleich behandelt werden. Bei Ausdrücken oder sonst nicht sicher einzuordnendem Text darf „nicht gefunden“ nicht „kein positionsabhängiger Schreibzugriff“ bedeuten. Ein konservativer Rückhalt mit entsprechendem Ergebnis-Hinweis bleibt zulässig; ein zweiter vollständiger G-Code-Interpreter ist nicht verlangt. Die L2-Kontrolle muss weiter vom positionsabhängigen L20 unterscheidbar bleiben.
+
+[Sieben Scanner-/Ablaufprogramme](viewer-palette-fest.r96.codex-scanner-cases.json), [nativer Prüfstand](viewer-palette-fest.r96.codex-scanner.py), [native Ergebnisse](viewer-palette-fest.r96.codex-scanner-native.json), [Payload → Track → Sweep](viewer-palette-fest.r96.codex-scanner.test.ts), [Positionen, Hinweise und Treffer](viewer-palette-fest.r96.codex-scanner-sweep.json).
+
+### VP-I54 · P2 · Ein übersprungener Zweig wird als ausgeführter Schreibzugriff ausgegeben
+
+**Stelle:** `lcnc-gateway/gcode_canon.py:270–281`.
+
+`next_line` durchsucht alle Textzeilen zwischen zwei beobachteten Zeilennummern, auch wenn `writes_ordered == False` ist. Das widerspricht dem neuen Vertrag, bei o-Wörtern die Textreihenfolge nicht als Ausführungsfolge zu verwenden.
+
+```gcode
+G21 G90
+G0 X0 Y0 Z40
+M6
+o100 if [0]
+G92 Z10
+o100 endif
+G0 X10 Y5 Z15
+G0 X20
+M2
+```
+
+L5 läuft nie. Trotzdem trägt der native Payload `stale_offset_lines: [5]`; L8 bleibt unbekannt und ohne Dauer. Der Sweep behauptet ausdrücklich einen auf L5 gesetzten Offset und prüft auch die nach vollständiger absoluter XYZ-Positionierung wieder bestimmbare L8 nicht mehr.
+
+**Erforderlich:** Eine Lücke zwischen Canon-Zeilennummern ist bei Kontrollfluss kein Nachweis für ausgeführte Zwischenzeilen. Die Herkunft darf dort nur aus tatsächlich beobachteten Ereignissen oder einem entsprechend eingeschränkten Verfahren entstehen. Eine allgemeine Grenze für nicht verfolgte Unterprogramm-Schreibzugriffe ist etwas anderes als die konkrete Behauptung, L5 habe geschrieben. Ein nie ausgeführter Satz darf diese dauerhafte Sperre nicht erzeugen.
+
+Belege: Fall `r96_branch_not_run` in den oben verlinkten nativen und Client-Ergebnissen; eigene rote Erwartung in [scanner.test.ts](viewer-palette-fest.r96.codex-scanner.test.ts). Dies ist eine neue Fehlklassifikation durch die Textbereichsauswertung, kein verbleibender echter Offset-Schreibzugriff.
+
+### VP-I55 · P2 · Der Start der ersten Limitzeile ist nicht für jeden Bewegungstyp die späteste Haltestelle
+
+**Stellen:** `lcnc-webui/src/viewer/simRows.ts:106–111`, Zuordnung über `lcnc-webui/src/ScrubBar.vue:660–675`.
+
+Die neue Notiz erklärt den Anfang der ersten verletzenden Quellzeile zur spätesten Haltestelle und jeden späteren Listeneintrag zu „after the limit stop“. Der verwendete Zeitpunkt stammt aber aus `lineFirstMoveCum`, nicht aus einer beobachteten oder berechneten Controller-Haltestelle.
+
+Die in der Anfrage zitierte Endpunktprüfung reicht dafür nicht: LinuxCNC prüft beim Einreihen eines Kreisbogens dessen Endpunkt. Der Motion-Code benennt ausdrücklich den Gegenfall gültiger Bogen-Endpunkte bei einer dazwischen außerhalb der Grenzen verlaufenden Kurve; dafür gibt es die Prüfung der kommandierten Gelenkposition während der Bewegung. Das ist ein anderer Ablauf als die Ablehnung eines ungültigen Endpunkts vor dem Einreihen. [LinuxCNC 2.9, SET_CIRCLE](https://github.com/LinuxCNC/linuxcnc/blob/2.9/src/emc/motion/command.c#L1029), [Laufzeitprüfung und Begründung des Bogenfalls](https://github.com/LinuxCNC/linuxcnc/blob/2.9/src/emc/motion/control.c#L1399).
+
+Eigener nativer Fall bei max Z = 50:
+
+```gcode
+G21 G90 G18
+G0 X0 Y0 Z40
+G2 X0 Z40 I0 K10 F100
+M2
+```
+
+Start und Ende des Bogens liegen bei Z40, der Bogen erreicht Z60. Die Vorschau meldet korrekt die Verletzung auf L3. Die Listenlogik legt die Haltemarke jedoch auf **t=0**. Ein Testeintrag bei **t=1 s**, noch bei **Z≈40,1414**, erhält bereits „after the limit stop at L3“. Der erste außerhalb liegende Track-Punkt kommt erst bei etwa **9,7183 s**. Damit kann die Darstellung einen davor erreichbaren Befund fälschlich als nach dem Halt einordnen.
+
+**Erforderlich:** Die gewünschte Kennzeichnung behalten, aber ihre Aussage an den vorhandenen Nachweis binden. Mit den heutigen Daten z. B. „nach der ersten vorausberechneten Limitverletzungs-Zeile; tatsächlicher Haltepunkt kann abweichen“. Eine definitive Unterscheidung „vor/nach dem Halt“ braucht eine für den Bewegungstyp gültige Grenze; alle späteren Teilbewegungen derselben Bogen-/Zykluszeile ab deren Anfang pauschal auszuschließen genügt nicht.
+
+Dies ist ein nativer Parse-/Client-/Quelltextnachweis, **kein ausgeführter Maschinenversuch**. Der eingespeiste Kollisionsdatensatz prüft die Markierungsregel, nicht eine zusätzliche reale Kollisionsgeometrie.
+
+[Programm](viewer-palette-fest.r96.codex-arc-cases.json), [nativer Prüfstand](viewer-palette-fest.r96.codex-arc.py), [Limitbefund → Track → Sim-Zeilen](viewer-palette-fest.r96.codex-limit.test.ts), [Zeitpunkte und Markierung](viewer-palette-fest.r96.codex-limit.json), [sechs rote und zwei grüne Zusatzprüfungen](viewer-palette-fest.r96.codex-new-probes.txt).
+
+### Plan Innenprüfung · VP96-01 · Der transformierte AABB-Einschluss ist kein zulässiger Ausschlussfilter
+
+**Planstelle:** Abschnitt 2, „Die Box … muss … in einer Komponentenbox … liegen“.
+
+Eine transformierte lokale AABB kann größer sein als die tatsächliche Geometrie in diesem Bezug. Eigene Sonde: Quader `2 × 0,2 × 0,2`, lokal um +45° gedreht und mit −45° gestellt, vollständig innerhalb einer äußeren Box von ±1,05. Die tatsächlichen X/Y-Halbausdehnungen sind **1 und 0,1**. Die transformierte lokale AABB hat dagegen in beiden Richtungen **1,1**. Der geplante Filter verwirft somit einen echten Einschluss.
+
+**Planänderung:** Kein „außen“ allein aus einem fehlgeschlagenen Einschluss einer aufgeblähten Box ableiten. Möglich sind ein Überlappungsfilter, der diesen Fall durchlässt, ein Test des Stellvertreterpunkts gegen sichere äußere Grenzen oder korrekt im Zielbezug berechnete Geometriegrenzen. Diese Gegenprobe gehört vor die Leistungsoptimierung.
+
+### Plan Innenprüfung · VP96-02 · Drei Strahlen ersetzen keine definierte Zählung der Oberflächendurchtritte
+
+**Planstellen:** Abschnitte 1 und 5.
+
+`MeshBVH.raycast` liefert Dreieckstreffer. Ein einziger Austritt an einer gemeinsamen Kante kann zwei Treffer erzeugen. Eigene Sonde mit geschlossener Box und ihrem Mittelpunkt: Die drei nicht achsenparallelen Richtungen `(1,1,0.213)`, `(0.317,1,1)` und `(1,0.411,1)` liefern jeweils zwei Treffer am selben Abstand. Reine Trefferparität meldet **dreimal übereinstimmend außen**, obwohl der Punkt innen liegt. Andere feste Richtungen ersetzen keine Regel für entsprechend orientierte Geometrie.
+
+**Planänderung:** Festlegen, wie zusammengehörige Treffer, Kanten, Ecken und tangentiale Berührungen als Durchtritt zählen, einschließlich Toleranz und Unentscheidbarkeit. „Mehrheitsentscheid“ und „bei Uneinigkeit unentschieden“ sind außerdem verschiedene Regeln; eine davon muss gelten. Ein Orakel, das denselben fehlerhaften Paritätsbegriff lediglich ohne BVH verwendet, ist dafür nicht unabhängig genug. Analytisch bekannte Box-/Hohlkörperfälle und eine anders hergeleitete Innenentscheidung müssen beide Wege kontrollieren.
+
+**Antwort auf Frage 1:** Für gültige geschlossene Netze ist eine robuste BVH-Strahlprüfung ein sinnvoller Produktweg. Ich würde verlässliche Einzelstrahlentscheidungen verlangen und Degeneration/Uneinigkeit ausdrücklich weitergeben. Windungszahl oder Raumwinkel eignen sich als unabhängiger Kontrollweg; „exakt und robust“ ohne Netz- und numerischen Vertrag ist keine ausreichende Zusage. Auch die Originalarbeit benennt Voraussetzungen an Orientierung und Netzbeschaffenheit. [Originalprojekt zur verallgemeinerten Windungszahl](https://igl.ethz.ch/projects/winding-number/).
+
+Beide geometrischen Gegenproben sind klein und ohne Browser reproduzierbar: [Skript](viewer-palette-fest.r96.codex-plan-probe.mjs), [Zahlen](viewer-palette-fest.r96.codex-plan-geometry.json).
+
+### Plan Innenprüfung · VP96-03 · Unentscheidbar darf keinen statischen Ausschluss begründen
+
+**Planstellen:** Abschnitte 1, 3a/3e und 4; bestehender Übergang `collision.ts:1420–1450`.
+
+„Unentschieden zählt als Kontakt“ ist an dieser Stelle nicht automatisch konservativ. Wird eine unentscheidbare Innenlage in erster und Ruhestellung zu einem normalen Kontakt zusammengezogen, macht die bestehende Basislinienregel daraus `staticExcluded`, anschließend `skipPair`. Das Paar wird dauerhaft nicht mehr geprüft. Aus zweimal fehlender Gewissheit würde ein Ausschlussgrund.
+
+**Planänderung:** Eine unterscheidbare Entscheidung `außen / innen / unentscheidbar` bis zu den Verbrauchern führen. Unentscheidbar darf weder ein Freiraumzertifikat noch einen statischen Ausschluss erzeugen. Betroffene Paare bleiben konservativ behandelt und mit ihrer Einschränkung sichtbar. Der Vertrag muss auch für Komponentenkappung, beschädigte/offene Netze und gewechselte Werkzeuggeometrie gelten. Ein Modelltest für eingecheckte STLs allein deckt importierte oder ersetzte Geometrie zur Laufzeit nicht ab.
+
+### Weitere Antworten und empfohlene Prüffolge für den Plan
+
+**Frage 2 — ein zentraler Kern ist richtig, nur `noteQuery` reicht nicht.** Erste und Ruhestellung rufen `pairDistance` direkt auf (`collision.ts:1423/1440`), die Zwischenlagen der Verfeinerung ebenfalls (`:1596`). Außerdem müssen die frühen Abstands-/Horizont-Antworten (`:807–823`) mit einer möglichen Innenlage verträglich sein. Der Vertrag gehört vor jede Schlussfolgerung „getrennt“, nicht nur vor die Kontaktaufzeichnung. Komponenten-/Gültigkeitsdaten müssen beim Werkzeugwechsel mitwechseln. Repository-Prüfungen sollten Basislinie, Sprung, Werkzeugtausch, Verfeinerung sowie Gleichheit von Einzel-/Shardlauf, Peek/Weiterlauf und Nebenfahrt enthalten.
+
+**Frage 3 — bestehende Schnittpaar-Semantik beibehalten.** Innenkontakt beim ausdrücklich deklarierten Schneidwerkzeug × Rohteil folgt derselben Vorschub-/Eilgang-Regel wie Oberflächenkontakt. Halter, Spindel, Kopf und Maschinenkörper bleiben Kollisionspartner; genau diese Trennung bildet `pairCutting` bereits ab (`collision.ts:725–754`). Ein nicht separat modellierter Schaft ist eine Grenze des Werkzeugmodells, keine geometrische Begründung dafür, dass ein Schaft schneiden darf. Eine feinere Schneide-/Schafttrennung kann ein eigenes Paket sein; diese Innenprüfung sollte die bestehende Ausnahme nicht ausweiten.
+
+**Reihenfolge:** Zuerst Gültigkeits-/Unentscheidbarkeitsvertrag und die kleinen Gegenproben, dann zentraler Paarentscheid mit Basislinie/Verfeinerung, danach Sprünge und Werkzeugvarianten, anschließend Worker-Gleichheit und der haus-Modellfall. Erst darauf die Kostenmessung stützen. Den Nutzen der Innenprüfung und den geplanten Umfang bestätige ich; die drei offenen Planpunkte sind konkrete Voraussetzungen für ihre Abnahme.
+
+### Prüfungen und Grenzen
+
+Eigene Prüfungen: **424 Python-Tests plus 24 Subtests**, **235 Client-Kern-/Koordinator-/Payload-Tests**, Build/TypeScript grün. **41 native Programme ohne Parsefehler**. Neue Zusatzprüfungen: **6 rot / 2 grün**. Geänderte Browserfälle: **Chromium 3/3, Firefox 3/3 grün**. R93-, R94- und R95-Belege gegen ihre Hashmanifeste unverändert.
+
+Kein vollständiges Offline-Gate, keine Live-Abnahme und kein langer Deep-Hunt. Remap-/Positionsparameter-Grenzen, Golden-Aktualisierung und übersprungene M600-Fahrten bleiben die benannten separaten Arbeiten; hierfür erteilt diese Nachprüfung keine zusätzliche Abnahme.
+
+[Prüfaufbau und Wiederholung](viewer-palette-fest.r96.codex-checks.md), [Stand und Isolation](viewer-palette-fest.r96.codex-context.json), [Python](viewer-palette-fest.r96.codex-python.txt), [Build](viewer-palette-fest.r96.codex-build.txt), [Chromium](viewer-palette-fest.r96.codex-chromium.txt), [Firefox](viewer-palette-fest.r96.codex-firefox.txt), [Beleghashes](viewer-palette-fest.r96.codex-sha256.json).

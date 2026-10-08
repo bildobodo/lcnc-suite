@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r96-qtn1i4st/archive/lcnc-webui
+
+
+ Test Files  10 passed (10)
+      Tests  235 passed (235)
+   Start at  14:14:48
+   Duration  2.17s (transform 228ms, setup 0ms, import 529ms, tests 1.20s, environment 0ms)
+
