@@ -1,0 +1,53 @@
+
+ RUN  v4.1.8 /tmp/codex-r99-v6ou5pqv/archive/lcnc-webui
+
+ ❯ src/viewer/r99.signed.test.ts (11 tests | 2 failed) 62ms
+   × r99_o_plus keeps a foreign write unknown with no invented main-file line 40ms
+   × r99_plus_skip does not claim a skipped G92 ran 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r99.signed.test.ts > r99_o_plus keeps a foreign write unknown with no invented main-file line
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/viewer/r99.signed.test.ts:48:48
+     46|
+     47| it.each(['r99_o_plus','r99_o_decimal','r99_o_expression','r99_o_space_…
+     48|  const r=inspect(name);expect(r.ustart.at(-1)).toBe(1);expect(r.staleO…
+       |                                                ^
+     49| });
+     50| it('the signed-call position control follows Z5 and misses the box on …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/viewer/r99.signed.test.ts > r99_plus_skip does not claim a skipped G92 ran
+AssertionError: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/viewer/r99.signed.test.ts:54:48
+     52| });
+     53| it.each(['r99_plus_skip','r99_plain_skip'])('%s does not claim a skipp…
+     54|  const r=inspect(name);expect(r.ustart.at(-1)).toBe(0);expect(r.staleO…
+       |                                                ^
+     55| });
+     56| it.each(['r99_plus_run','r99_plain_run'])('%s keeps an executed G92 un…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 9 passed (11)
+   Start at  16:57:25
+   Duration  327ms (transform 157ms, setup 0ms, import 209ms, tests 62ms, environment 0ms)
+

@@ -13937,3 +13937,58 @@ Im `foreign`-Modus nennt der Callback-Rückhalt jetzt immer 0 („an offset set 
 ### Innenprüfung
 
 Schritt 2 (zentraler Paarentscheid im Sweep) ist in Arbeit, auf eigenem Zweig. Er kommt als eigene Anfrage.
+
+## Review R99 · Codex · Herkunft vor dem o-Wort-Leser · 8. Oktober 2026
+
+**Ergebnis: `findings`. VP-I56 geschlossen. Beide roten R98-Erwartungen bestehen jetzt. VP-I53 bleibt mit einem gemeinsamen Rest offen: Der frühe Flussfilter übersieht gültige o-Namen, bevor die neue konservative Behandlung überhaupt erreicht wird.**
+
+Geprüft: `cb2db2b3..bfbd5d5c`, Anfrage `8ed8376a`, ausschließlich in einer Archivkopie. Keine Produktänderung, Maschinenbefehle oder Zugriffe auf die Live-Suite.
+
+### Bestätigte Korrekturen
+
+- **R98-Fremdaufruf:** `o<touch> call` und `o<touch> c a l l` werden als `foreign` gelesen. L6 und L7 bleiben unbekannt, kein falscher Treffer auf Z15. Die Positionskontrolle bleibt bekannt und läuft auf Maschinen-Z5.
+- **VP-I56 geschlossen:** Beide Aufrufe liefern `stale_offset_lines: [0]`; der Hinweis bezeichnet keine unbeteiligte Hauptdatei-L2 mehr. Der Rückhalt für tatsächlich als fremd klassifizierte Callbacks ist korrekt.
+- **Weitere Kontrollen:** `o100.0 call`, `o[100] call`, `o<to uch> c a l l` und normaler `M98 P100` behalten die unbekannte Herkunft. Normale nicht ausgeführte IF-Zweige und unabhängige explizite Schreibsätze bleiben richtig behandelt. Die zwei älteren Limit-Kommentare sind bereinigt; VP-I55 bleibt geschlossen.
+
+[R98-Sonde am neuen Stand](viewer-palette-fest.r99.codex-foreign-sweep.json), [275 grüne Client-Prüfungen](viewer-palette-fest.r99.codex-core.txt), [Sondenänderungen: nur Belegpfade](viewer-palette-fest.r99.codex-probe-changes.patch).
+
+### VP-I53 · Rest · P2 · Vorzeichen und Funktionsnamen umgehen bereits die Flusserkennung
+
+**Stellen:** `lcnc-gateway/gateway_util.py:2317–2318`, `:2395–2403`, `:2437`.
+
+`_FLOW_CANDIDATE_RE` und `_FLOW_RE` erkennen ein O nur vor Ziffer, `<`, `#` oder `[`. Dadurch endet `position_write_lines` bei `o+100 call` und `oABS[-100] call` bereits mit **`ordered`**. Die neue Regel „nicht verstanden ⇒ foreign“ läuft nicht. `_OWORD_START_RE` besitzt dieselbe Einschränkung; nur den frühen Kandidatenfilter zu erweitern würde daher nicht ausreichen.
+
+Beide Formen sind nativ gültig und führen dieselbe Unterdatei `100.ngc` aus. Auch der Interpreter-Quelltext zeigt die allgemeinere Grammatik: Nach O wird ein unbenannter Wert über `read_integer_value` und damit `read_real_value` gelesen, nicht nur als Ziffernfolge. [LinuxCNC 2.9, o-Wert](https://github.com/LinuxCNC/linuxcnc/blob/2.9/src/emc/rs274ngc/interp_read.cc#L1470), [Ganzzahlwert](https://github.com/LinuxCNC/linuxcnc/blob/2.9/src/emc/rs274ngc/interp_read.cc#L710).
+
+**A · Tatsächlicher Fremd-Schreibzugriff verschwindet:** Der R98-Aufbau, lediglich mit numerischem Unterprogrammnamen, lautet:
+
+```gcode
+G21 G90
+G10 L2 P1 Z0
+G0 X0 Y0 Z40
+M6
+o+100 call
+G0 X10 Y5 Z15
+G0 X20
+M2
+```
+
+`100.ngc` enthält `o100 sub`, auf L2 `G92 Z40` und danach `o100 endsub`. TOOL_CHANGE_POSITION bleibt `(0,20,30)`.
+
+Die fremde L2 wird wieder mit der expliziten Hauptdatei-L2 verwechselt. **L7 gilt als bekannt, dauert 1 s und liefert auf Maschinen-Z15 einen falschen Treffer.** Es fehlen `stale_offset_lines` **und** `stale_offset_untracked`; der Hinweis begrenzt nur die frühe unbekannte L6. Die Positionskontrolle läuft auf **Z5**, ohne Treffer. `oABS[-100] call` zeigt dieselbe Folgewirkung. Der normale `o100 call` bleibt dagegen unbekannt und nennt korrekt Herkunft 0.
+
+**B · Ein übersprungener Schreibzugriff wird erfunden:** Im R97-Zweigaufbau ersetzen `o+100 if [0]` und `o+100 endif` ausschließlich die beiden o-Nummern. L5 ist `G92 Z40`, L7 die absolute Positionierung, L8 `G0 X20`. Der native Interpreter überspringt L5. Der Modus `ordered` lässt den Bereichsscan aber über die übersprungene L5 laufen: `stale_offset_lines: [5]`, L8 unbekannt und 0 s, Hinweis auf einen nie gesetzten Offset. Mit den gleichbedeutenden `o100`-Zeilen bleibt L8 richtig bekannt und dauert 1 s. Die beiden `[1]`-Kontrollen behalten den tatsächlich ausgeführten Schreibzugriff korrekt.
+
+Die zwei Wirkungen haben dieselbe Ursache und bilden **einen** Restbefund. Sie betreffen die Herkunftszusage aus R98/R99, nicht eine neue Forderung nach vollständiger Unterprogrammanalyse.
+
+**Erforderlich:** Die Entscheidung `ordered` und die spätere o-Wort-Klassifikation müssen dieselbe tatsächliche Anweisungserkennung verwenden. Eine erkennbare O-Anweisung mit nicht sicher lesbarem Wert darf weder am frühen Filter vorbeigehen noch später als leere Menge lokaler Aufrufe gelten. Eine konservative `foreign`-Einordnung reicht für solche Werte; kein Auswerten beliebiger Ausdrücke verlangt. Als robuste Ansatzstelle bietet sich wie beim Interpreter der Blockanfang nach optionalem `/` und N-Wort an; so lassen sich O-Anweisungen von `ROUND`, `MOD`, `OR` und Namen innerhalb anderer Ausdrücke trennen. [LinuxCNC, Auswahl der O-Anweisung](https://github.com/LinuxCNC/linuxcnc/blob/2.9/src/emc/rs274ngc/interp_read.cc#L749).
+
+[Aufrufformen und Unterdateien](viewer-palette-fest.r99.codex-syntax-cases.json), [native Ergebnisse](viewer-palette-fest.r99.codex-syntax-native.json), [Zweig- und Positionskontrollen](viewer-palette-fest.r99.codex-signed-cases.json), [deren native Ergebnisse](viewer-palette-fest.r99.codex-signed-native.json), [Client-Gegenprobe](viewer-palette-fest.r99.codex-signed.test.ts), [vollständige Positionen und Treffer](viewer-palette-fest.r99.codex-signed-sweep.json), [2 rot / 9 grün](viewer-palette-fest.r99.codex-signed-sweep.txt). Die zusätzliche Funktionsform: [Programm](viewer-palette-fest.r99.codex-function-cases.json), [native Ausgabe](viewer-palette-fest.r99.codex-function-native.json), [Sweep](viewer-palette-fest.r99.codex-function-sweep.json), [rote Erwartung](viewer-palette-fest.r99.codex-function-sweep.txt).
+
+### Prüfungen und Grenzen
+
+**430 Python-Tests plus 24 Subtests**, **275 Client-Kern-/Payload-Prüfungen** sowie Build/TypeScript grün. **79 erfolgreiche native Programmläufe**, darunter alle 67 übernommenen Fälle. Die neuen Client-Sonden ergeben **3 rot / 9 grün**. Drei zusätzliche M98-Schreibversuche lehnt der native Interpreter syntaktisch ab; sie sind ausdrücklich keine Befunde. R93–R98-Belege sind gegen ihre Hashmanifeste unverändert.
+
+Browser nicht erneut ausgeführt: Die Frontend-Produktänderungen betreffen ausschließlich Kommentare; die neuen Payloads wurden durch Dekodierung, Track, WCS-Auflösung und Sweep geprüft. Kein vollständiges Offline-Gate, Live-Abnahme oder Deep-Hunt. Die bekannte native Werkzeugtabellen-Lookup-Grenze wurde nicht erneut untersucht. Die Innenprüfung bleibt außerhalb dieser Runde.
+
+[Prüfaufbau und Wiederholung](viewer-palette-fest.r99.codex-checks.md), [Stand und Isolation](viewer-palette-fest.r99.codex-context.json), [Python](viewer-palette-fest.r99.codex-python.txt), [Build](viewer-palette-fest.r99.codex-build.txt), [Beleghashes](viewer-palette-fest.r99.codex-sha256.json).

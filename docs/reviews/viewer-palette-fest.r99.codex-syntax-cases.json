@@ -1,0 +1,114 @@
+{
+  "r99_o_plus": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\no+100 call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "100.ngc": "o100 sub\nG92 Z40\no100 endsub\n"
+      }
+    }
+  ],
+  "r99_o_decimal": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\no100.0 call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "100.ngc": "o100 sub\nG92 Z40\no100 endsub\n"
+      }
+    }
+  ],
+  "r99_o_expression": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\no[100] call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "100.ngc": "o100 sub\nG92 Z40\no100 endsub\n"
+      }
+    }
+  ],
+  "r99_o_space_name": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\no<to uch> c a l l\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "touch.ngc": "o<touch> sub\nG92 Z40\no<touch> endsub\n"
+      }
+    }
+  ],
+  "r99_m98_plain": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\nM98 P100\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "100.ngc": "O100\nG92 Z40\nM99\n"
+      }
+    }
+  ],
+  "r99_m98_plus": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\nM+98 P100\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "100.ngc": "O100\nG92 Z40\nM99\n"
+      }
+    }
+  ],
+  "r99_m98_decimal": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\nM98.0 P100\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "100.ngc": "O100\nG92 Z40\nM99\n"
+      }
+    }
+  ],
+  "r99_m98_expression": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\nM[98] P100\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "100.ngc": "O100\nG92 Z40\nM99\n"
+      }
+    }
+  ]
+}
