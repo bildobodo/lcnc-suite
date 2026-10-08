@@ -1,0 +1,7 @@
+# R94 — compiling mutations of the block / program-frame rule (fix/r93 cf44874d), against test_tool_change_motion_worker.py; restored from a byte copy
+MR1 settle inside the block | red: TestUnknownStartAfterAToolChange::test_g91_never_re_establishes_an_axis;TestUnknownStartAfterAToolChange::test_the_mode_a_block_runs_in_decides_after_it_ran;
+MR2 compare translated points | red: TestUnknownStartAfterAToolChange::test_a_rotated_frame_never_confirms_an_axis_left_out;
+MR3 settle whatever the mode | red: TestUnknownStartAfterAToolChange::test_g91_never_re_establishes_an_axis;TestUnknownStartAfterAToolChange::test_the_mode_a_block_runs_in_decides_after_it_ran;
+MR4 never settle | red: TestUnknownStartAfterAToolChange::test_a_rotated_frame_never_confirms_an_axis_left_out;TestUnknownStartAfterAToolChange::test_the_mode_a_block_runs_in_decides_after_it_ran;TestUnknownStartAfterAToolChange::test_the_position_is_known_again_once_every_stale_axis_is_commanded;
+
+# toolChangePayloads.test.ts on payloads the PREVIOUS worker (feat/backlog-integration 1083235b, the R92 rule) writes for r93_inline_g91_cycle / r93_rotated_partial / r93_g90_same_block: 1 failed | 5 passed (the R93 case); on the fixtures: 6 passed. The ten earlier fixtures regenerate bit-identical.

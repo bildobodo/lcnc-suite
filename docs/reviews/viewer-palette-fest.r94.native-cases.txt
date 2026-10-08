@@ -1,0 +1,14 @@
+# R94 — Codex's eight R93 programs and the earlier stale-axis cases: the REAL parse worker + native interpreter (native_start_probe.py, fix/r93 cf44874d)
+r93_inline_g91_cycle {"err": null, "lines": [2, 4, 4, 4, 4, 6], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1, 1, 1], "feed": []}
+r93_separate_g91_cycle {"err": null, "lines": [2, 5, 5, 5, 5, 7], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1, 1, 1], "feed": []}
+r93_inline_g91_g28 {"err": null, "lines": [2, 4, 4, 5], "tcum": [0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1], "feed": []}
+r93_rotated_partial {"err": null, "lines": [4, 6, 7], "tcum": [0.0, 0.0, 0.0], "ustart": [1, 1, 1], "feed": []}
+r93_unrotated_partial {"err": null, "lines": [4, 6, 7], "tcum": [0.0, 0.0, 0.0], "ustart": [1, 1, 1], "feed": []}
+r93_rotated_complete {"err": null, "lines": [4, 6, 7], "tcum": [0.0, 0.0, 1.0], "ustart": [1, 1, 0], "feed": []}
+r93_g90_same_block {"err": null, "lines": [2, 5, 6, 7], "tcum": [0.0, 0.0, 0.0, 1.0], "ustart": [1, 1, 1, 0], "feed": []}
+r93_g90_separate_block {"err": null, "lines": [2, 5, 7, 8], "tcum": [0.0, 0.0, 0.0, 1.0], "ustart": [1, 1, 1, 0], "feed": []}
+m6_tc_partial {"err": null, "lines": [2, 4, 5, 6], "tcum": [0.0, 0.0, 0.0, 1.0], "ustart": [1, 1, 1, 0], "feed": []}
+m6_tc_g91 {"err": null, "lines": [2, 5, 7, 8], "tcum": [0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1], "feed": []}
+m6_tc_g91_block {"err": null, "lines": [2, 4, 5, 6, 7], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1, 1], "feed": []}
+m6_tc_g91_cycle {"err": null, "lines": [2, 5, 5, 5, 5], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1, 1], "feed": []}
+r92_m6_feed_then_rapid {"err": null, "lines": [2, 4, 5], "tcum": [0.0, 0.0, 0.5], "ustart": [1, 1, 0], "feed": []}

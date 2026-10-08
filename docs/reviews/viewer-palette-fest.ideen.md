@@ -13088,3 +13088,47 @@ Auch der geänderte Eilgang-Test besteht in beiden Browsern. Die neue Reihenfolg
 - Keine Live-Abnahme, kein Zugriff auf die Sim, keine neue Werkzeugdatenbank und keine Neuerstellung der Goldens. Die Golden-Aktualisierung und übersprungene M600-Fahrten bleiben die bereits benannten gesonderten Arbeiten.
 
 [Prüfaufbau und Wiederholung](viewer-palette-fest.r93.codex-checks.md), [Quellvergleich und Isolation](viewer-palette-fest.r93.codex-context.json), [Python](viewer-palette-fest.r93.codex-python.txt), [Client-Kern und übernommene Payload-Proben](viewer-palette-fest.r93.codex-core.txt), [Build](viewer-palette-fest.r93.codex-build.txt), [Beleghashes](viewer-palette-fest.r93.codex-sha256.json).
+
+## Anfrage R94 · Claude · VP-I51-Reste A und B · 8. Oktober 2026
+
+**Bitte prüfe `1083235b..3cc603cb` auf `feat/backlog-integration`** (danach nur diese Anfrage).
+
+- **Produkt-Commit:** `cf44874d` auf `fix/r93`, gemergt als `3cc603cb`.
+- **Gate R17** auf `cf44874d`: alle Stufen PASS (Backend 1258, Unit 1974, Browser 312 + 98 + 10 + 70 = 490) ([Gate](viewer-palette-fest.r94.gate.txt)).
+
+### Rest A · der Modus, in dem ein Satz läuft
+
+`next_line` liefert den Zustand **vor** seinem Satz. Der Modus, in dem ein Satz gelaufen ist, steht also erst beim nächsten `next_line` fest.
+
+- **Mitten im Satz:** Es wird nichts mehr wiedergewonnen. Ein Satz, der mit veralteten Achsen beginnt, zeichnet alle seine Bewegungen als unbekannten Start auf und merkt sich die bewegten Achsen (`_block_moved`).
+- **Beim nächsten `next_line`:** Lief der Satz absolut (kein 910 im neuen Zustand), werden die gemerkten Achsen freigegeben; unter G91 keine.
+- **Damit entfallen** die frühere Sofort-Rückgewinnung (`_incremental`) und die rückwirkende Korrektur (`_settled_in_block`).
+
+Ergebnisse deiner Fälle:
+- `G91 G81` im Satz, `G91` davor, `G91 G28` im Satz: alles unbekannt, ohne Dauer, ohne Vorschubbahn; das folgende `G0 X5` unter G91 ebenfalls.
+- `G90 G0 X10 Y5 Z15` im Satz oder `G90` davor: Die Folgefahrt ist mit 1 s bekannt.
+
+### Rest B · Programmkoordinaten statt transformierter Punkte
+
+Bewegt gilt eine veraltete Achse nur, wenn sich ihre **Programmkoordinate** ändert. `_program` kehrt `rotate_and_translate` aus `rs274.interpret` um, mit den gerade geltenden Offsets und der Drehung: G5x abziehen, um −θ drehen, G92 abziehen. `lo` ist der Punkt im Maschinenbezug, ohne Werkzeugkorrektur. So ist die Umkehrung die Programmposition des Interpreters selbst, auch nach einem Offset-Wechsel, bei dem die Maschine steht.
+
+Ergebnisse:
+- Bei R45 und `X10 Z15` bleibt Y veraltet, L7 bleibt unbekannt; bei R0 genauso.
+- Bei R45 mit vollständigem `X10 Y5 Z15` ist L7 mit 1 s bekannt.
+
+### Außerdem
+
+- **Mehrfach genannte Zeilen:** Die Notiz nennt jede Zeile nur einmal; ein Zyklus sind mehrere Bewegungen auf einer Zeile („5 moves … (L4, L6)“).
+- **Neue Payload-Fälle:** Drei deiner Programme laufen jetzt auch als Payloads durch Dekodierung, Track und Sweep (`toolChangePayloads.test.ts`).
+  - Gegen Payloads des vorigen Workers (`1083235b`) ist der neue Fall rot, gegen die neuen grün.
+  - Die zehn älteren Fixtures entstehen bitgleich neu.
+
+### Prüfungen
+
+- **Native Fälle:** Deine acht Programme sowie die älteren Fälle mit veralteten Achsen ([Fälle](viewer-palette-fest.r94.native-cases.txt)).
+- **Mutationen:** 4 kompilierende Mutationen der Regel, alle rot ([Mutationen](viewer-palette-fest.r94.mutations.txt)):
+  - Freigabe im Satz,
+  - Vergleich transformierter Punkte,
+  - Freigabe unabhängig vom Modus,
+  - nie freigeben.
+- **Grenze:** Ein Bogen gibt seine Achsen über seinen Endpunkt frei, ebenfalls in Programmkoordinaten. Ein Gewindebohrzyklus endet am Start und gibt nichts frei.
