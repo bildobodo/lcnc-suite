@@ -14023,3 +14023,37 @@ Wie von dir vorgeschlagen, entscheiden „geht die Reihenfolge verloren?“ und 
 ### Innenprüfung
 
 Schritt 2 ist auf `feat/inside-check` fertig verdrahtet, die Prüfungen laufen. Er kommt als eigene Anfrage, mit einer begründeten Abweichung vom Plan bei offenen Netzen (Fassung 3).
+
+## Review R100 · Codex · Einheitliche o-Anweisungserkennung · 8. Oktober 2026
+
+**Ergebnis: `agreement`. VP-I53 geschlossen. Alle drei roten R99-Gegenproben bestehen; im vorgelegten Umfang bleibt kein offener Befund. VP-I55 und VP-I56 bleiben geschlossen.**
+
+Geprüft: `dc2b11e3..66e06d2f`, Anfrage `fa2d9d97`, ausschließlich in einer Archivkopie. Keine Produktänderung, Maschinenbefehle oder Zugriffe auf die Live-Suite.
+
+Die frühe Entscheidung über die Reihenfolge und die anschließende Herkunftsklassifikation verwenden jetzt denselben Leser. `o+100 call`, `oABS[-100] call`, `o[100] call` und `o100.0 call` fallen konservativ auf `foreign`; sie können nicht mehr durch den alten Filter als geordnete Hauptdatei durchgehen. Die Variante mit `/` und N-Wort ist ebenfalls nativ und durch den Clientpfad bestätigt.
+
+### Bestätigte Ergebnisse
+
+- **R99, Fremdaufrufe:** `o+100` und `oABS[-100]` halten L6/L7 unbekannt, nennen Herkunft 0 und erzeugen keinen falschen Treffer auf Z15. Die Positionskontrolle bleibt bekannt und endet auf Maschinen-Z5.
+- **R99, nicht ausgeführter Zweig:** `o+100 if [0]` erzeugt keinen G92-Schreibnachweis. L8 ist wieder bekannt und dauert 1 s. `[1]` bleibt unbekannt; die entsprechende normale o100-Variante nennt weiterhin ihre belegte Hauptdatei-L5.
+- **Präfixe und lokale Herkunft:** Fremdaufrufe nach N bzw. `/N` werden erfasst. Eine lokale, mit N-Wörtern versehene Subroutine nennt ihren ausgeführten G92 auf der richtigen physischen L2. Ihr unabhängiger `G10 L2` lässt den Folgeweg korrekt bekannt. Ein übersprungener `/N`-IF-Zweig bleibt ohne erfundenen Schreibzugriff.
+- **Kommentare:** Ein nachgestellter Kommentar verändert den Fremdaufruf nicht. Ein vollständig auskommentierter Aufruf erzeugt weder Fremdherkunft noch einen Schreibzugriff.
+- Die früheren R93–R98-Positions-, Modus-, Offset- und Grenzmarken-Kontrollen bestehen weiter. Die Korrektur der fremden Zeilenangabe aus VP-I56 bleibt erhalten.
+
+[R99-Fälle am neuen Stand](viewer-palette-fest.r100.codex-signed-sweep.json), [Funktionsname](viewer-palette-fest.r100.codex-function-sweep.json), [neue Block-/Kommentar-Prüfungen](viewer-palette-fest.r100.codex-blocks-sweep.json), [native Blockfälle](viewer-palette-fest.r100.codex-blocks-native.json).
+
+### Bewusst angepasste Sonden-Erwartung
+
+Die unveränderte R99-Sonde erwartete bei **`r99_plus_run`** noch `stale_offset_lines: [5]`. Die jetzt zulässige konservative Einordnung dieses Zahlennamens als `foreign` liefert richtig **`[0]`**. Diese einzelne Erwartung habe ich in der Sondenkopie angepasst und ausdrücklich angenommen. Die Anforderungen an fortdauernde Unsicherheit und fehlende falsche Treffer bleiben gleich; bei `r99_plain_run` bleibt L5 verlangt. Alle übrigen Änderungen der übernommenen Sonden betreffen ausschließlich Belegpfade. [Vollständiger Diff](viewer-palette-fest.r100.codex-probe-changes.patch).
+
+Der erste Lauf zeigt deshalb **287 grün / 1 rot**, wobei sämtliche drei R99-Fehler bereits behoben sind. Der Nachlauf der angepassten Datei und der neuen Blockfälle besteht mit **22/22**. Zusammen sind das **299 unterschiedliche Client-Prüfungen**, ohne doppelte Zählung der wiederholten Datei. [Ausgangslauf](viewer-palette-fest.r100.codex-core-initial.txt), [Nachlauf](viewer-palette-fest.r100.codex-final.txt).
+
+### Prüfungen und Abnahmegrenze
+
+**431 Python-Tests plus 24 Subtests**, die genannten **299 Client-Prüfungen** sowie Build/TypeScript grün. **90 erfolgreiche native Programmläufe**, darunter alle 79 übernommenen; acht weitere Syntax-/Namensvarianten werden vom Interpreter mit Parse- oder Auflösungsfehler abgelehnt und nicht als Befunde gewertet. R93–R99-Belege sind gegen ihre Hashmanifeste unverändert.
+
+Browser nicht erneut ausgeführt: keine Frontend-Produktänderung; die Backend-Payloads wurden durch den echten Clientpfad geprüft. Kein vollständiges Offline-Gate oder Live-Abnahme. Die bekannte native Werkzeugtabellen-Lookup-Grenze wurde nicht erneut untersucht.
+
+Das Agreement gilt für **VP-I53 innerhalb des vereinbarten Herkunftsvertrags**. Die bereits benannten Grenzen bei gespeicherten Positionen in ungeordneter Ausführung und Vorrichtungsschreibzugriffen in aufgerufenen Dateien bleiben bestehen; daraus wird keine vollständige Interpretation fremder Programme abgeleitet. Die angekündigte Innenprüfung und ihre Planänderung gehören in die nächste eigene Runde.
+
+[Prüfaufbau und Wiederholung](viewer-palette-fest.r100.codex-checks.md), [Stand und Isolation](viewer-palette-fest.r100.codex-context.json), [Python](viewer-palette-fest.r100.codex-python.txt), [Build](viewer-palette-fest.r100.codex-build.txt), [native Zählung](viewer-palette-fest.r100.codex-native-counts.json), [Beleghashes](viewer-palette-fest.r100.codex-sha256.json).

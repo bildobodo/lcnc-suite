@@ -1,0 +1,55 @@
+{
+  "r100_name_literal": [
+    "o<touch> sub\nG10 L2 P1 Z0\no<touch> endsub\nG21 G90\nG0 X0 Y0 Z40\nM6\no<to(comment)uch> call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "to(comment)uch.ngc": "o<to(comment)uch> sub\nG92 Z40\no<to(comment)uch> endsub\n"
+      }
+    }
+  ],
+  "r100_name_plain": [
+    "o<touch> sub\nG10 L2 P1 Z0\no<touch> endsub\nG21 G90\nG0 X0 Y0 Z40\nM6\no<other> call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "other.ngc": "o<other> sub\nG92 Z40\no<other> endsub\n"
+      }
+    }
+  ],
+  "r100_name_position_control": [
+    "o<touch> sub\nG10 L2 P1 Z0\no<touch> endsub\nG21 G90\nG0 X0 Y0 Z40\nG0 X0 Y20 Z30\no<to(comment)uch> call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "to(comment)uch.ngc": "o<to(comment)uch> sub\nG92 Z40\no<to(comment)uch> endsub\n"
+      }
+    }
+  ],
+  "r100_name_local_control": [
+    "o<touch> sub\nG10 L2 P1 Z0\no<touch> endsub\nG21 G90\nG0 X0 Y0 Z40\nM6\no<touch> call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ]
+}

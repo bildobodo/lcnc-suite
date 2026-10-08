@@ -1,0 +1,57 @@
+{
+  "violations": [
+    {
+      "line": 3,
+      "axis": "Z",
+      "value": 60,
+      "limit": 50,
+      "kind": "max"
+    }
+  ],
+  "positionAtOneSecond": [
+    1.6586386492178886,
+    0,
+    40.14143383608267
+  ],
+  "firstOutsideTime": 9.718326568603516,
+  "firstArcPoint": [
+    0.49067673087120056,
+    0,
+    40.012046813964844
+  ],
+  "lastArcPoint": [
+    0,
+    0,
+    40
+  ],
+  "span": [
+    0,
+    0.29449474811553955
+  ],
+  "rows": [
+    {
+      "key": "L3",
+      "kind": "limit",
+      "line": 3,
+      "lineLabel": "L3",
+      "cum": 0,
+      "cumEnd": 0.29449474811553955,
+      "what": "Z 60 mm > max 50 mm",
+      "note": "first predicted limit crossing — where the run stops is not determined",
+      "rapid": null,
+      "at": "00:00"
+    },
+    {
+      "key": "C3|head|fixed",
+      "kind": "clash",
+      "line": 3,
+      "lineLabel": "L3",
+      "cum": 1,
+      "cumEnd": 1.1,
+      "what": "Head ↔ Fixed",
+      "note": "",
+      "rapid": false,
+      "at": "00:01"
+    }
+  ]
+}

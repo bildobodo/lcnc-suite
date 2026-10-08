@@ -1,0 +1,35 @@
+
+ RUN  v4.1.8 /tmp/codex-r100-hqzf1vx1/archive/lcnc-webui
+
+ ❯ src/viewer/r100.signed.test.ts (11 tests | 1 failed) 87ms
+   × r99_plus_run keeps an executed G92 unknown 9ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r100.signed.test.ts > r99_plus_run keeps an executed G92 unknown
+AssertionError: expected [ +0 ] to deeply equal [ 5 ]
+
+- Expected
++ Received
+
+  [
+-   5,
++   0,
+  ]
+
+ ❯ src/viewer/r100.signed.test.ts:57:83
+     55| });
+     56| it.each(['r99_plus_run','r99_plain_run'])('%s keeps an executed G92 un…
+     57|  const r=inspect(name);expect(r.ustart.at(-1)).toBe(1);expect(r.staleO…
+       |                                                                                   ^
+     58| });
+     59|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 17 passed (18)
+      Tests  1 failed | 287 passed (288)
+   Start at  17:18:30
+   Duration  6.42s (transform 715ms, setup 0ms, import 2.08s, tests 3.07s, environment 1ms)
+

@@ -1,0 +1,70 @@
+{
+  "groups": {
+    "prior": {
+      "success": 11,
+      "rejected": 0
+    },
+    "r93": {
+      "success": 8,
+      "rejected": 0
+    },
+    "r94": {
+      "success": 7,
+      "rejected": 0
+    },
+    "r95": {
+      "success": 7,
+      "rejected": 0
+    },
+    "r96": {
+      "success": 7,
+      "rejected": 0
+    },
+    "arc": {
+      "success": 1,
+      "rejected": 0
+    },
+    "r97": {
+      "success": 15,
+      "rejected": 0
+    },
+    "braking": {
+      "success": 1,
+      "rejected": 0
+    },
+    "modes": {
+      "success": 7,
+      "rejected": 0
+    },
+    "foreign": {
+      "success": 3,
+      "rejected": 0
+    },
+    "syntax": {
+      "success": 5,
+      "rejected": 3
+    },
+    "signed": {
+      "success": 6,
+      "rejected": 0
+    },
+    "function": {
+      "success": 1,
+      "rejected": 0
+    },
+    "blocks": {
+      "success": 7,
+      "rejected": 3
+    },
+    "names": {
+      "success": 2,
+      "rejected": 2
+    },
+    "comments": {
+      "success": 2,
+      "rejected": 0
+    }
+  },
+  "successful": 90,
+  "rejected": 8
+}

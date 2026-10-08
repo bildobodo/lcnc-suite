@@ -1,0 +1,63 @@
+{
+  "review": "R100",
+  "base": "dc2b11e3",
+  "product_commit": "66e06d2f6364f5c9ecc3254f673eb4ba97eb16a3",
+  "request_head": "fa2d9d9729f876320f09e8a2cabd2e4f0eebed21",
+  "archive": "/tmp/codex-r100-hqzf1vx1/archive",
+  "byte_equal_files": 513,
+  "byte_equal_by_root": {
+    "lcnc-gateway": 87,
+    "lcnc-webui": 426
+  },
+  "isolation_changes": [
+    "lcnc-webui/tsconfig.app.json",
+    "lcnc-webui/tsconfig.node.json",
+    "lcnc-webui/tsconfig.test.json",
+    "lcnc-webui/vite.config.ts"
+  ],
+  "hydrated_lfs_verified": [
+    "lcnc-gateway/machine/frame.stl",
+    "lcnc-gateway/machine/x_axis.stl",
+    "lcnc-gateway/machine/y_axis.stl",
+    "lcnc-gateway/machine/z_axis.stl"
+  ],
+  "previous_evidence": {
+    "r93": {
+      "files": 47,
+      "unchanged": true
+    },
+    "r94": {
+      "files": 52,
+      "unchanged": true
+    },
+    "r95": {
+      "files": 66,
+      "unchanged": true
+    },
+    "r96": {
+      "files": 91,
+      "unchanged": true
+    },
+    "r97": {
+      "files": 120,
+      "unchanged": true
+    },
+    "r98": {
+      "files": 142,
+      "unchanged": true
+    },
+    "r99": {
+      "files": 168,
+      "unchanged": true
+    }
+  },
+  "machine_commands": false,
+  "live_ports_accessed": false,
+  "mock": null,
+  "browser_runs": [],
+  "priority": "nice 19",
+  "workers": 1,
+  "native_programs_successful": 90,
+  "native_parse_or_lookup_rejections": 8,
+  "native_probe_limit": "R98 tool-table lookup limitation not re-tested; no native L10/L11 coverage claimed"
+}

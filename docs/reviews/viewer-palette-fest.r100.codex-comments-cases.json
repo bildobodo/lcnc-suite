@@ -1,0 +1,30 @@
+{
+  "r100_trailing_comment": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\nN50 o<touch> call (o<fake> sub)\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "touch.ngc": "o<touch> sub\nG92 Z40\no<touch> endsub\n"
+      }
+    }
+  ],
+  "r100_commented_call": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\n(o<touch> call)\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "touch.ngc": "o<touch> sub\nG92 Z40\no<touch> endsub\n"
+      }
+    }
+  ]
+}

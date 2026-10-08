@@ -1,0 +1,16 @@
+{
+  "r99_o_function": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\noABS[-100] call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "100.ngc": "o100 sub\nG92 Z40\no100 endsub\n"
+      }
+    }
+  ]
+}

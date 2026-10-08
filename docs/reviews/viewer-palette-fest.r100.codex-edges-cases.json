@@ -1,0 +1,79 @@
+{
+  "r94_g98_cycle": [
+    "G21 G90 G98\nG0 X0 Y0 Z40\nM6\nG81 X10 Y5 Z-5 R2 F100\nG80\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ],
+  "r94_g99_cycle": [
+    "G21 G90 G99\nG0 X0 Y0 Z40\nM6\nG81 X10 Y5 Z-5 R2 F100\nG80\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ],
+  "r94_rotated_after_partial": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\nG0 X10\nG10 L2 P1 R45\nG0 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 0"
+    }
+  ],
+  "r94_unrotated_after_partial": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\nG0 X10\nG10 L2 P1 R0\nG0 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 0"
+    }
+  ],
+  "r94_rotated_complete": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\nG0 X10\nG10 L2 P1 R45\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 0"
+    }
+  ],
+  "r94_g98_cycle_position_control": [
+    "G21 G90 G98\nG0 X0 Y0 Z40\nG0 X0 Y20 Z30\nG81 X10 Y5 Z-5 R2 F100\nG80\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ],
+  "r94_rotated_after_partial_position_control": [
+    "G21 G90\nG0 X0 Y0 Z40\nG0 X0 Y20 Z0\nG0 X10\nG10 L2 P1 R45\nG0 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 0"
+    }
+  ]
+}
