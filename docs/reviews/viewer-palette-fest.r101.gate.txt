@@ -1,0 +1,9 @@
+# R101 — gate R22 on feat/inside-check 57eaf302: every offline stage, the browser in four runs
+PASS backend, 5axis-model, audit-css, review-handshake
+backend: 1273 passed, 427 subtests passed in 49.58s
+frontend lint / build / unit: lint exit 0, build exit 0, unit exit 0 — Tests  2009 passed (2009)
+browser A (--project=serial-guards): 312 passed (17.6m)
+browser serial-layout --no-deps: 98 passed (10.7m)
+browser serial-visual --no-deps: 10 passed (28.6s)
+browser serial-viewer --no-deps: 71 passed (6.1m)
+312 + 98 + 10 + 71 = 491
