@@ -466,6 +466,7 @@ if len(sys.argv) > 2:
 print(json.dumps({
     "mmap_unchanged": _mmap_unchanged,
     "probe_unpredicted": out.get("probe_unpredicted"), "toollen_table": out.get("toollen_table"),
+    "feed_sub": u("feed_sub", "<u1"), "rapid_sub": u("rapid_sub", "<u1"), "sub_names": out.get("sub_names"),
     "feed_lines": u("feed_lines", "<u4"), "tool_change_lines": out.get("tool_change_lines"),
     "parse_error": out.get("parse_error"), "feed": pts("feed"), "rapid": pts("rapid"),
     "tlo_events": out.get("tlo_events"), "violations": out.get("violations"),

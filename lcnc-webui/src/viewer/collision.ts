@@ -59,6 +59,8 @@ import { jointSpeedBound, kinsForSegment, makeKins, worldModeForSpec, type KinsM
 import { installBoxDistanceFix } from "./bvhBoxDistance";
 import { assignPairs } from "./pairAssign";
 import { inLocalBoxes, meshClosure, pointInside, type InsideVerdict } from "./insideCheck";
+import { displayLineForPoint } from "./scrubTrack";
+import { probeStopTitle, type ProbeStop } from "./probeStop";
 
 // Every bounded closest-point query prunes by the library's box-to-box
 // distance, which came out too large (bvhBoxDistance.ts): corrected before
@@ -99,6 +101,14 @@ export interface CollisionTrack {
    *  CollisionOptions.tloEvents (TLO_NONE = live offset governs). The lift and
    *  the tool body's tip shift both use that segment's offset. */
   tlo?: Uint32Array;
+  /** 1 = after a tool measurement the preview cannot predict (M600): an
+   *  unknown start for that reason, named apart (CollisionOptions.probeStops). */
+  unpredicted?: Uint8Array;
+  /** The line a note names for a point (scrubTrack.displayLineForPoint):
+   *  its own where trusted, else the verified call line. */
+  lineOk?: Uint8Array;
+  sub?: Uint8Array;
+  cline?: Uint16Array;
 }
 
 export interface CollisionMachine {
@@ -260,6 +270,16 @@ export interface CollisionOptions {
   /** The program's offsets set from that position are not tracked (its
    *  lines do not run in text order — subroutines, loops): the note says so. */
   staleOffsetUntracked?: boolean;
+  /** Tool measurements the preview cannot predict (payload
+   *  `probe_unpredicted`, M600 in the preview): every move after the first is
+   *  an unknown start (the track's `unpredicted`) — the note names the
+   *  measurement and why, apart from those after an unseen tool change. */
+  probeStops?: Pick<ProbeStop, "tool" | "reason">[];
+  /** Program tools whose BODY is unknown — no length in the table, or no row
+   *  (M600 plan, state table row 3): while one is in the spindle the tool's
+   *  own pairs are not checked (the machine's still are) and the note says
+   *  so; a contact of the tool does not carry across such a stretch. */
+  unknownTools?: number[];
   /** Diagnostics (2026-09-13): when set, the sweep allocates and fills
    *  per-pair distance-query counts and milliseconds, indexed like
    *  `model.pairs` — the tool for finding which pairs a slow sweep spends its
@@ -1168,7 +1188,15 @@ export function* sweepCollisionsIter(
   // Such a move is not checked — said, never assumed (2026-10-07/08, Codex
   // R92 VP-I51; a G43 is no such move, gcode_canon.tool_offset).
   const unknownStarts: number[] = [];
-  if (track.ustart) for (let i = 1; i < n; i++) if (track.ustart[i]) unknownStarts.push(track.lines[i]!);
+  // ...and those after a tool measurement the preview cannot predict (M600):
+  // their position is unknown for the measurement's sake (probeStops).
+  const afterProbe: number[] = [];
+  const shownLine = (i: number) => displayLineForPoint(track, i, true).line ?? 0;
+  if (track.ustart) for (let i = 1; i < n; i++) if (track.ustart[i]) {
+    if (track.unpredicted?.[i]) afterProbe.push(shownLine(i));
+    else unknownStarts.push(track.lines[i]!);
+  }
+  const list = (ls: number[]) => `${ls.slice(0, 3).map(l => "L" + l).join(", ")}${ls.length > 3 ? " …" : ""}`;
   // An offset or a stored position set FROM that position is the preview's
   // guess for good — an absolute move does not repair it, a later fixture
   // may carry it — so from its line on nothing is checked to the end, and
@@ -1176,7 +1204,6 @@ export function* sweepCollisionsIter(
   if (unknownStarts.length) {
     const k = unknownStarts.length;
     const at = [...new Set(unknownStarts)];   // a cycle is several moves on one line
-    const list = (ls: number[]) => `${ls.slice(0, 3).map(l => "L" + l).join(", ")}${ls.length > 3 ? " …" : ""}`;
     // 0 = a write the parse caught without a main-file line to name
     const off = opts.staleOffsetLines ?? [], named = off.filter(l => l > 0);
     noteParts.push(`${k} move${k === 1 ? "" : "s"} after a tool change run${k === 1 ? "s" : ""} from a position the preview cannot know — `
@@ -1185,6 +1212,32 @@ export function* sweepCollisionsIter(
             + `stay${named.length === 1 ? "s" : ""} unknown whatever is positioned after (${list(at)})`
         : `not checked to the program's end: an offset set from that position stays unknown whatever is positioned after (${list(at)})`)
       + (opts.staleOffsetUntracked ? "; in subroutines and loops, stored positions (G28.1 / G30.1) and fixture writes in called files are not tracked" : ""));
+  }
+  if (opts.probeStops?.length || afterProbe.length) {
+    const stop = opts.probeStops?.[0];
+    const k = afterProbe.length, at = [...new Set(afterProbe.filter(l => l > 0))];
+    noteParts.push(`${stop ? probeStopTitle(stop) : "Tool measurement not predicted"} — `
+      + (k ? `${k} move${k === 1 ? "" : "s"} after it not checked to the program's end${at.length ? ` (${list(at)})` : ""}`
+           : "nothing after it is checked"));
+  }
+  // A program tool whose body is unknown (no table length): per real segment
+  // it is in the spindle for, the tool's own pairs are skipped.
+  const unknownTool = new Set((opts.unknownTools ?? []).filter(t => t > 0));
+  let segUnk: Uint8Array | undefined;
+  if (unknownTool.size && model.toolBodyIdx >= 0) {
+    const byTool = new Map<number, number[]>();
+    for (let i = 1; i < n; i++) {
+      const tn = toolFor(i);
+      if (tn == null || !unknownTool.has(tn) || track.brk?.[i]) continue;
+      (segUnk ??= new Uint8Array(n))[i] = 1;
+      let ls = byTool.get(tn);
+      if (!ls) byTool.set(tn, ls = []);
+      const l = shownLine(i);
+      if (l > 0 && !ls.includes(l)) ls.push(l);
+    }
+    for (const [tn, ls] of byTool) {
+      noteParts.push(`T${tn} has no length in the table: its own contacts are not checked${ls.length ? ` (${list(ls)})` : ""}`);
+    }
   }
   let fellBack = false;
   if (track.mode && !abortedInit) {
@@ -1835,6 +1888,23 @@ export function* sweepCollisionsIter(
     return dcum[lo]!;
   };
   const back = Math.max(MIN_ADV, EXPLORE / 4);
+  // Does a segment whose tool body is unknown lie between dist parameters a < b?
+  const unknownToolBetween = (a: number, b: number): boolean => {
+    for (let seg = segAtDist(a), end = segAtDist(b); seg <= end; seg++) if (segUnk![seg]) return true;
+    return false;
+  };
+  // The stretch of segments around a dist parameter whose tool body is known.
+  // A parameter ON an unknown segment's end (or start) belongs to the known
+  // segment beyond it — segAtDist hands a boundary to the segment ending there.
+  const knownToolSpan = (s: number): [number, number] => {
+    let a = segAtDist(s);
+    if (segUnk![a] && a < n - 1 && s >= dcum[a]! - 1e-9) a++;
+    else if (segUnk![a] && a > 1 && s <= dcum[a - 1]! + 1e-9) a--;
+    let b = a;
+    while (a > 1 && !segUnk![a - 1]) a--;
+    while (b < n - 1 && !segUnk![b + 1]) b++;
+    return [dcum[a - 1]!, dcum[b]!];
+  };
   // The refinement's predicate: touching OR wholly inside — and undecidable
   // counts as contact (the interval grows, it never shrinks over an answer
   // nobody has). Its boundaries are where the surfaces cross.
@@ -1933,6 +2003,9 @@ export function* sweepCollisionsIter(
       }
       const floor = lineStartDist(h.cum, h.line);
       const ceil = lineEndDist(Math.max(h.cumEnd, h.cum), h.line);
+      // A tool pair never walks into a stretch where the tool's body is
+      // unknown: every boundary stays inside its own cluster's known span.
+      const clampTool = !!segUnk && pairTool[h.pi]!;
 
       // Contact within one line can be INTERMITTENT. The advancement loop
       // samples every EXPLORE step while a pair sits inside the margin
@@ -1944,7 +2017,9 @@ export function* sweepCollisionsIter(
       const clusters: Array<[number, number]> = [];
       for (const s of h.samples) {
         const last = clusters[clusters.length - 1];
-        if (!last || s - last[1] > CLUSTER_GAP) clusters.push([s, s]);
+        // ...and a stretch whose tool body is unknown lies between two
+        // clusters, whatever its length: no interval spans what was not asked
+        if (!last || s - last[1] > CLUSTER_GAP || (clampTool && unknownToolBetween(last[1], s))) clusters.push([s, s]);
         else last[1] = s;
       }
       if (!clusters.length) clusters.push([h.cum, Math.max(h.cum, h.cumEnd)]);
@@ -1962,7 +2037,8 @@ export function* sweepCollisionsIter(
       for (let ci = 0; ci < clusters.length; ci++) {
         const [cs, ce] = clusters[ci]!;
         // ENTRY: walk back toward the previous interval's exit / line start.
-        const efloor = ci === 0 ? floor : intervals[ci - 1]![1];
+        const efloor0 = ci === 0 ? floor : intervals[ci - 1]![1];
+        const efloor = clampTool ? Math.max(efloor0, knownToolSpan(cs)[0]) : efloor0;
         let hi = cs, lo = hi, guard = 0, bracketed = false;
         while (guard++ < 128 && lo > efloor) {
           lo = Math.max(efloor, lo - back);
@@ -1970,9 +2046,10 @@ export function* sweepCollisionsIter(
           hi = lo;  // still in contact — earliest known contact moves back
         }
         const entry = bracketed ? bisectBoundary(hi, lo, h.pi) : hi;
-        if (ci === 0) fromLineStart = !bracketed && entry <= efloor;
+        if (ci === 0) fromLineStart = !bracketed && entry <= efloor0;
         // EXIT: walk forward toward the next cluster / line end.
-        const eceil = ci === clusters.length - 1 ? ceil : clusters[ci + 1]![0];
+        const eceil0 = ci === clusters.length - 1 ? ceil : clusters[ci + 1]![0];
+        const eceil = clampTool ? Math.min(eceil0, knownToolSpan(ce)[1]) : eceil0;
         let elo = Math.max(ce, entry), ehi = elo;
         guard = 0;
         let exitBracketed = false;
@@ -2085,6 +2162,7 @@ export function* sweepCollisionsIter(
   // its −TLO shift are those it was measured with.
   let prevTool = toolFor(0);
   let prevTlo = tloFor(0);
+  let prevUnknown = false;
   // A break crossed since the last swept segment (R-03, implementation review
   // 2026-09-15). `brk` carries TWO things: a kins/WCS relabel, which is a
   // stationary re-expression, and an unknown START (scrubTrack ORs `ustart`
@@ -2142,6 +2220,17 @@ export function* sweepCollisionsIter(
       }
     }
     prevTool = segTool; prevTlo = segTlo;
+    // The tool's body unknown here: its pairs are not checked. Out of such a
+    // stretch, a contact of the tool does not carry across it — a touch from
+    // here on is a new onset, never the stretch's continuation.
+    const segUnknown = segUnk?.[i] === 1;
+    if (prevUnknown && !segUnknown) {
+      for (let pi = 0; pi < pairs.length; pi++) {
+        if (!pairTool[pi]) continue;
+        inContact[pi] = 0; touching[pi] = 0; onsetLine[pi] = -1; onsetRapid[pi] = 0;
+      }
+    }
+    prevUnknown = segUnknown;
     const j = i * 3, k = j - 3;
     const dA = Math.abs(track.abc[j]! - track.abc[k]!);
     const dB = Math.abs(track.abc[j + 1]! - track.abc[k + 1]!);
@@ -2169,7 +2258,7 @@ export function* sweepCollisionsIter(
       // the second interpPose is about to overwrite the buffer.
       if (segBulges) for (let x = 0; x < 6; x++) chunkM0[x] = machineVals[x]!;
       for (let pi = 0; pi < pairs.length; pi++) {
-        if (skipPair[pi]) continue;
+        if (skipPair[pi] || (segUnknown && pairTool[pi])) continue;
         const [ai, bi] = pairs[pi]!;
         const list = pairDofs[pi]!;
         const lev = rotLever[pi]!;
@@ -2189,7 +2278,7 @@ export function* sweepCollisionsIter(
       else jointBulge.fill(0);
 
       for (let pi = 0; pi < pairs.length; pi++) {
-        if (skipPair[pi]) { pairV[pi] = 0; continue; }
+        if (skipPair[pi] || (segUnknown && pairTool[pi])) { pairV[pi] = 0; continue; }
         const [ai, bi] = pairs[pi]!;
         const A = bodies[ai]!, B = bodies[bi]!;
         const list = pairDofs[pi]!;
@@ -2224,7 +2313,7 @@ export function* sweepCollisionsIter(
       // pair inside the margin keeps its absolute re-probe cadence
       // (sSafe = s + EXPLORE), which needs no conversion.
       for (let pi = 0; pi < pairs.length; pi++) {
-        if (skipPair[pi]) continue;
+        if (skipPair[pi] || (segUnknown && pairTool[pi])) continue;
         sQ[pi] = s0;
         if (inContact[pi]) {
           // A tool/TLO boundary re-measures in-contact tool pairs at once
@@ -2275,7 +2364,7 @@ export function* sweepCollisionsIter(
         }
         let step = s1 - s;
         for (let pi = 0; pi < pairs.length; pi++) {
-          if (skipPair[pi]) continue;
+          if (skipPair[pi] || (segUnknown && pairTool[pi])) continue;
           if (sSafe[pi]! > s + 1e-9) {
             const remain = sSafe[pi]! - s;
             if (remain < step) step = remain;
@@ -2403,7 +2492,7 @@ export function* sweepCollisionsIter(
       // Chunk done: what this chunk could have consumed of each carried
       // clearance since its last query (or since the chunk start).
       for (let pi = 0; pi < pairs.length; pi++) {
-        if (skipPair[pi]) continue;
+        if (skipPair[pi] || (segUnknown && pairTool[pi])) continue;
         if (inClear[pi]! > 0) {
           inClear[pi] = inClear[pi]! - pairV[pi]! * (s1 - inQ[pi]!);
           inQ[pi] = s1;

@@ -164,6 +164,21 @@ class TestPredictedMeasurement(unittest.TestCase):
         self.assertEqual([(v["line"], v["axis"], v["value"]) for v in r["violations"]], [(4, "Z", 280.0)])
 
 
+class TestSubSpans(unittest.TestCase):
+
+    def test_the_program_after_the_call_is_outside_every_span(self):
+        # every way out of the routine — its end, the stop at an unpredicted
+        # probe, the T0 branch — closes its span: a return skips the
+        # endsub's marker, so the routine closes it before each return
+        for case in ("m600_known", "m600_length_unknown", "m600_t0", "m601_known"):
+            with self.subTest(case=case):
+                r = probe(case)
+                subs = dict(zip(r["feed_seq"], r["feed_sub"] or [])) | dict(zip(r["rapid_seq"], r["rapid_sub"] or []))
+                ev = path(r)
+                self.assertEqual(subs[ev[-1][0]], 0xff, f"{case}: {r['sub_names']}")
+                self.assertTrue(any(subs[q] != 0xff for q, *_ in ev[:-1]), "the routine's own points are in the span")
+
+
 class TestTableLengthPairing(unittest.TestCase):
 
     def test_the_marker_pairs_with_the_first_g43_of_its_call_only(self):

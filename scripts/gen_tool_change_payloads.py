@@ -7,7 +7,8 @@ case, synthetic STAT — no running LinuxCNC, no machine command), encoded as
 the gateway publishes it. lcnc-webui/src/viewer/toolChangePayloads.test.ts
 decodes them through the client's own path and sweeps them: the payload →
 track → collision layer the moves after a G43 / an M6 must hold in
-(operator 2026-10-07, haus.ngc L18; Codex R92–R99 VP-I51 / VP-I53–I56).
+(operator 2026-10-07, haus.ngc L18; Codex R92–R99 VP-I51 / VP-I53–I56), and
+the M600 routine's preview branch (Codex R102–R104).
 
     lcnc-gateway/.venv/bin/python scripts/gen_tool_change_payloads.py
 """
@@ -27,7 +28,9 @@ CASES = ("g43_mid", "g43_g1_block", "r92_m6_feed", "r92_m6_feed_then_rapid", "r9
          "r95_g92_from_stale", "r95_l20_inactive_hidden", "r95_l2_constant", "r95_oword_g92", "r95_sub_g92",
          "r96_arc_interior_limit", "r96_g92_decimal", "r96_branch_not_run",
          "r97_l_plus_active", "r97_branch_same_g92", "r97_arc_braking",
-         "r98_foreign_plain", "r98_foreign_spaced", "r99_o_plus", "r99_plus_skip")
+         "r98_foreign_plain", "r98_foreign_spaced", "r99_o_plus", "r99_plus_skip",
+         # M600 in the preview (docs/reviews/m600-preview.plan.md)
+         "m600_known", "m600_length_unknown", "m600_basis_unknown", "m600_unknown_then_high")
 
 
 def main():
