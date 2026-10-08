@@ -2312,10 +2312,10 @@ def _word_value(m):
     if m is None or m.group(1):
         return None
     return int(round(float(m.group(2)) * 10))
-#: An o-word (`o100 …`, `o<name> …`) or M98/M99: the main file's lines no
-#: longer run in text order (calls, loops, branches).
-_FLOW_RE = re.compile(r"O[\d<#\[]|M0*9[89](?![\d.])")
-_FLOW_CANDIDATE_RE = re.compile(r"O\s*[\d<#\[]|M\s*0*9\s*[89]", re.I)
+#: Lines that may hold an o-word or M98/M99 (the main file's lines then no
+#: longer run in text order: calls, loops, branches) — `_flow_of_block`
+#: decides on the line without comments and whitespace.
+_FLOW_CANDIDATE_RE = re.compile(r"O|M[\s0]*9\s*[89]", re.I)
 
 
 def position_write_lines(text):
@@ -2341,9 +2341,10 @@ def position_write_lines(text):
     this file's, but a gap between two of them proves nothing ran (a branch
     not taken, Codex R96 VP-I54); "foreign" — a call into another file (an
     `o<name> call` without its `sub` here), M98, or an o-word it cannot read
-    (a computed name, a word LinuxCNC does not know — Codex R98): a number
-    may be another file's. O-words are read without whitespace, as the
-    interpreter reads them (`o<touch> c a l l` is a call). Comments are stripped, named parameters and o-word
+    (a name that is no literal — `o+100`, `oABS[-100]` — or a word LinuxCNC
+    does not know, Codex R98/R99): a number may be another file's. Both
+    questions — is the order lost, and how — take ONE reading per line,
+    `_flow_of_block`. Comments are stripped, named parameters and o-word
     names neutralised; a block-delete line counts (it may run). Pure."""
     out = {}
     t = text or ""
@@ -2392,53 +2393,71 @@ def position_write_lines(text):
                                 p_no if p_no else "active")
             else:
                 out[line_no] = "all"
+    # ONE reading decides both whether the order is lost and how
+    # (`_flow_of_block`, the interpreter's): a line it cannot read is never
+    # "no o-word" (Codex R99: `o+100 call` passed the old early filter).
+    last = -1
     for m in _FLOW_CANDIDATE_RE.finditer(t):
         ls = t.rfind("\n", 0, m.start()) + 1
+        if ls == last:
+            continue
+        last = ls
         le = t.find("\n", m.start())
-        line = strip_gcode_comments(t[ls:(len(t) if le < 0 else le)])
-        if _FLOW_RE.search(_NAMED_PARAM_RE.sub("#0", re.sub(r"\s+", "", line)).upper()):
+        if _flow_of_block(t[ls:(len(t) if le < 0 else le)])[0] != "none":
             flow = True
             break
     if not flow:
         return out, "ordered"
-    # Every o-word read the interpreter's way — whitespace counts nowhere
-    # outside a comment (`o<touch> c a l l` is a call, Codex R98): "inline"
-    # only when each one is understood and each call's subroutine is defined
-    # here; a computed name, a word it does not know or an M98 is "foreign"
-    # (an empty set of calls it could read is no proof of none).
-    defined, called, foreign = set(), set(), False
+    # "inline" only when every o-word is read and every call's subroutine is
+    # defined here; anything it cannot read, or an M98, is "foreign" (an
+    # empty set of calls it could read is no proof of none, Codex R98).
+    defined, called = set(), set()
     for raw in t.splitlines():
-        s = _NAMED_PARAM_RE.sub("#0", re.sub(r"\s+", "", strip_gcode_comments(raw))).upper()
-        if _M98_RE.search(s):
-            foreign = True
-        pos = 0
-        while not foreign:
-            m = _OWORD_START_RE.search(s, pos)
-            if not m:
-                break
-            w = _OWORD_WORD_RE.match(s, m.start())
-            if not w or w.group(2) not in _OWORD_KEYWORDS:
-                foreign = True
-                break
-            if w.group(2) == "SUB":
-                defined.add(w.group(1))
-            elif w.group(2) == "CALL":
-                called.add(w.group(1))
-            pos = w.end()
-        if foreign:
-            break
-    return out, ("foreign" if foreign or called - defined else "inline")
+        kind, name = _flow_of_block(raw)
+        if kind == "foreign":
+            return out, "foreign"
+        if kind == "sub":
+            defined.add(name)
+        elif kind == "call":
+            called.add(name)
+    return out, ("foreign" if called - defined else "inline")
 
 
-#: Where an o-word begins in a block without whitespace, comments and named
-#: parameters (an O before a digit, `<`, `#` or `[` — ROUND, MOD, OR, XOR
-#: never put one there), its literal name and keyword (`O<TOUCH>CALL`,
-#: `O100IF`), and the keywords LinuxCNC knows (O-codes, 2.9).
-_OWORD_START_RE = re.compile(r"O(?=[\d<#\[])")
-_OWORD_WORD_RE = re.compile(r"O(<[^>]*>|\d+)([A-Z]*)")
+def _flow_of_block(raw):
+    """What one line of G-code says about the order lines run in, read the
+    interpreter's way (interp_read.cc read_items): comments out, whitespace
+    counting nowhere (`o<touch> c a l l` is a call, Codex R98), and an o-word
+    is the statement at the block's START, after an optional block delete
+    and line number — so `ROUND`, `MOD`, `OR` in an expression and an O
+    inside a name are none. (kind, name): "none"; "local" (a loop, a branch,
+    a return, M99); "sub" / "call" with the literal name; "foreign" — an
+    M98, or an o-word whose name is no literal `<name>` or digit string (a
+    sign, a function, an expression, a decimal: `o+100`, `oABS[-100]`,
+    `o[100]`, `o100.0`, Codex R99) or whose word LinuxCNC does not know."""
+    s = _NAMED_PARAM_RE.sub("#0", re.sub(r"\s+", "", strip_gcode_comments(raw))).upper()
+    if _M98_RE.search(s):
+        return "foreign", None
+    m = _OWORD_BLOCK_RE.match(s)
+    if m:
+        w = _OWORD_NAME_KW_RE.match(s, m.end())
+        if not w or w.group(2) not in _OWORD_KEYWORDS:
+            return "foreign", None
+        kw = w.group(2)
+        return ("sub" if kw == "SUB" else "call" if kw == "CALL" else "local"), w.group(1)
+    if _M99_RE.search(s):
+        return "local", None
+    return "none", None
+
+
+#: The o-word statement at a block's start (after `/` and an N word), its
+#: literal name and keyword (`<TOUCH>CALL`, `100IF`), and the keywords
+#: LinuxCNC knows (O-codes, 2.9).
+_OWORD_BLOCK_RE = re.compile(r"/?(?:N\d*(?:\.\d*)?)?O")
+_OWORD_NAME_KW_RE = re.compile(r"(<[^>]*>|\d+)([A-Z]+)")
 _OWORD_KEYWORDS = frozenset(("SUB", "ENDSUB", "RETURN", "CALL", "DO", "WHILE", "ENDWHILE", "IF", "ELSEIF",
                              "ELSE", "ENDIF", "BREAK", "CONTINUE", "REPEAT", "ENDREPEAT"))
 _M98_RE = re.compile(r"M0*98(?![\d.])")
+_M99_RE = re.compile(r"M0*99(?![\d.])")
 
 
 def wcs_rewrite_targets(text):

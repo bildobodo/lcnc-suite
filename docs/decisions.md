@@ -8671,6 +8671,20 @@ revised in the same round (Fassung 2: three-valued decision, one
 non-degenerate ray, an exact local-box point filter, the winding number as
 the independent check).
 
+## 2026-10-08 — One reading of an o-word for both questions (Codex R99)
+
+The R98 reader classified o-words conservatively, but an earlier filter
+decided first whether the file had any — and it knew only an O before a
+digit, `<`, `#` or `[`. `o+100 call` and `oABS[-100] call` (both valid: the
+interpreter reads the value with read_integer_value) left the file
+`ordered`: the sub file's G92 met the main file's explicit line 2 again, and
+an `o+100 if [0]` branch had its skipped G92 scanned as run. Now ONE function
+reads a line the interpreter's way (`_flow_of_block`: comments out,
+whitespace out, the o-word the statement at the block's start after `/` and
+an N word) and answers both questions; a name that is no literal or a word
+LinuxCNC does not know is `foreign`, never "no o-word". VP-I56 closed in the
+same round.
+
 ## 2026-10-08 — A call is a call however it is spelled; a foreign write names no main-file line (Codex R98)
 
 The text mode read `SUB` / `CALL` in the text with its whitespace, so

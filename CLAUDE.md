@@ -1043,10 +1043,14 @@ block's stale set, the call-less lines after it under the set its end left),
 are the file's, but a gap proves nothing ran — an `if [0]` branch, R96
 VP-I54 — so only the line that had its own `next_line` counts, as having
 run), `foreign` (a call into another file, or M98: a number may be that
-file's — no text). The o-words are read the interpreter's way — whitespace
-counts nowhere outside a comment (`o<touch> c a l l` is a call, Codex R98) —
-and an o-word with a computed name or a word it does not know is `foreign`
-too: a set of calls it could not read is no proof of none. An inactive fixture's write takes effect at the switch to
+file's — no text). The o-words are read the interpreter's way, by ONE
+reading for both questions (`gateway_util._flow_of_block`): whitespace counts
+nowhere outside a comment (`o<touch> c a l l` is a call, Codex R98), and an
+o-word is the statement at a block's start after an optional `/` and N word
+(so `ROUND` / `MOD` / `OR` and an O inside a name are none); one whose name is
+no literal `<name>` or digit string (`o+100`, `oABS[-100]`, `o[100]`,
+`o100.0` — all valid, R99) or whose word LinuxCNC does not know is `foreign`
+too: a line it could not read is never "no o-word". An inactive fixture's write takes effect at the switch to
 it (`_reg_unknown`). Behind the text, the active registers' callbacks
 (`set_g92_offset`, `set_g5x_offset` at an unchanged index) report a write
 as an EVENT — never judged by its value: a `G92 Z40` at a believed Z40
