@@ -1075,16 +1075,17 @@ export function* sweepCollisionsIter(
   // A move whose START no parse can know (an unknown-start point after the
   // first — the program's own start is the entry move's): the controller
   // moved the machine at a tool change ([EMCIO] TOOL_CHANGE_POSITION) where
-  // the preview does not see it. Its end is checked, the path into it is
-  // not — said, never assumed (2026-10-07; a G43 is no such move any more,
-  // gcode_canon.tool_offset).
+  // the preview does not see it, and until every axis it moved is commanded
+  // again the preview's positions are its own guess (gcode_canon `stale`).
+  // Such a move is not checked — said, never assumed (2026-10-07/08, Codex
+  // R92 VP-I51; a G43 is no such move, gcode_canon.tool_offset).
   const unknownStarts: number[] = [];
   if (track.ustart) for (let i = 1; i < n; i++) if (track.ustart[i]) unknownStarts.push(track.lines[i]!);
   if (unknownStarts.length) {
     const k = unknownStarts.length;
     uncertified = (uncertified ? uncertified + "; " : "")
-      + `${k} move${k === 1 ? "" : "s"} after a tool change start where the preview cannot know — `
-      + `checked at the end only (${unknownStarts.slice(0, 3).map(l => "L" + l).join(", ")}${k > 3 ? " …" : ""})`;
+      + `${k} move${k === 1 ? "" : "s"} after a tool change run${k === 1 ? "s" : ""} from a position the preview cannot know — `
+      + `not checked until the position is known again (${unknownStarts.slice(0, 3).map(l => "L" + l).join(", ")}${k > 3 ? " …" : ""})`;
   }
   let fellBack = false;
   if (track.mode && !abortedInit) {

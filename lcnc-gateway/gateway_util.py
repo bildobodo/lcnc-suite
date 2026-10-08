@@ -2622,7 +2622,8 @@ def insert_flip_relabels(feed, rapid, kins_events, kins_frames, wcs_events,
         tlo_n = nxt[4] if lst_n is feed else nxt[3]
         # a G43 / G49 between the previous tuple and this one (its event seq
         # is the previous tuple's raw seq — seqs are doubled here)
-        tlo_flip = k > 0 and (merged[k - 1][0] // 2) in offset_raw
+        # — not in front of an unknown start: no pose there to re-express
+        tlo_flip = k > 0 and (merged[k - 1][0] // 2) in offset_raw and seq_n not in ustart2
 
         if k == 0:
             # k=0 is a PATCH IN PLACE, never an insertion: the wire ships

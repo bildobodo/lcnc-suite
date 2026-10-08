@@ -8544,3 +8544,25 @@ M600's own motion is plan step 3.
 
 The preview goldens change for every program with a G43 — a live gate;
 regenerated at the next suite stop.
+
+Codex R92 found the M6 rule a move short (VP-I51): only a traverse turned
+`first_move` into an unknown start; a feed, a probe, a tap or an arc cleared
+it and ran from the old position — 16.4 s of invented feed after the change,
+an arc of 32 points at the old Z, the result "certified". And one move is
+not where it ends: the preview interpreter resyncs from its own last
+endpoint (gcodemodule answers GET_EXTERNAL_POSITION_* in C, not through the
+canon — read from the module's symbol table), so after a tool change at a
+position it cannot see, every left-out axis, an arc's centre and a G91 move
+are its guess. The canon now keeps the axes the tool change position names
+stale until an absolute move commands them, and records every motion meanwhile
+as a zero-length unknown-start endpoint; G91 re-establishes nothing — also
+inside a G91 block of several motions (a drilling cycle), and a block that
+switched to G91 is undone at the next line. The note says "not checked until
+the position is known again" — "checked at the end only" was wrong too: the
+end itself may carry a stale axis. Emulating the move to the tool change
+position is no fix while the preview interpreter keeps its own position: the
+moves after it would still be computed from the old one. Codex's payload →
+track → sweep probe is now a repository test on payloads the native worker
+writes; the browser test reads its diagnostic through optional calls (VP-I52:
+a cold model threw before the diagnostic existed).
+

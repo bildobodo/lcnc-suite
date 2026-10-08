@@ -996,17 +996,34 @@ payload's structure never depends on the start offset (the VP-I20 verify
 compares parses at two starts) — then the next move, traverse, feed or arc,
 is recorded from it: timed, limit-checked, swept along its path. An M6 is
 an unknown start only where the CONTROLLER moves at it unseen: [EMCIO]
-TOOL_CHANGE_POSITION (`canon.tool_change_moves`, from the INI); the
+TOOL_CHANGE_POSITION (`canon.tool_change_moves`, from the INI) — and then
+not just for one move: the preview interpreter resyncs from its OWN last
+endpoint (gcodemodule's GET_EXTERNAL_POSITION_* answer in C, never through
+the canon), so every axis a block leaves out, an arc's centre and every G91
+move are computed from the old position. The canon keeps the axes the tool
+change position names STALE (`canon.stale`, `tool_change_axes` from the
+value count 3 / 6 / 9; another count makes all nine stale, said on stderr);
+while one is, every motion — traverse, feed, probe, tap, arc (collapsed to
+its end) — is a zero-length unknown-start endpoint, and an ABSOLUTE move
+re-establishes the axes it moves (an axis commanded to the value the preview
+already believes cannot be told from one left out — it stays stale); under
+G91 none, also within a G91 block of several motions, and a block that
+switched to G91 is corrected at the next line (Codex R92 VP-I51); no relabel
+is inserted in front of an unknown start. The
 interpreter's own quill-up / G30 moves at an M6 are canon traverses and
 recorded — they arrive as line −1, which the canon keeps on the M6's line
 (`next_line`; a −1 ended every such parse in an OverflowError on the wire's
 uint32 lines). Every unknown start after the program's own is NAMED in the
-sweep's `uncertified` ("N moves after a tool change start where the preview
-cannot know — checked at the end only (L…)") — the page hands `ustart` to
+sweep's `uncertified` ("N moves after a tool change run from a position
+the preview cannot know — not checked until the position is known again
+(L…)") — the page hands `ustart` to
 the worker (`collisions.viewer.spec`). Tests: `test_tool_change_motion_worker.py`
 (the real worker + native interpreter: G43 alone, in the block of a G0 / G1,
 before an arc, after an unknown start; M6 in place, at G30, at a tool change
-position), `collision.test.ts` (an obstacle only in the middle of the move
+position; every motion kind after it, partial and G91 re-establishment),
+`toolChangePayloads.test.ts` (the native payloads, `scripts/gen_tool_change_payloads.py`,
+through the client's decode, track and sweep — red on the previous worker's
+payloads), `collision.test.ts` (an obstacle only in the middle of the move
 after the relabel is found; an unknown start is said). Not yet followed: a
 preview-skipped M600's own motion (plan step 3). The preview goldens change
 for every program with a G43 (the live gate; regenerate at the next suite

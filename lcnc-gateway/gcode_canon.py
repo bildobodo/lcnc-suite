@@ -37,6 +37,23 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     # stands. The worker sets it from the INI; the default keeps the unknown
     # start.
     tool_change_moves = True
+    # The axes that unseen move changes (canonical 0–8, X Y Z A B C U V W):
+    # the ones TOOL_CHANGE_POSITION names. The worker sets it; default all.
+    tool_change_axes = tuple(range(9))
+    # Axes whose REAL value the preview cannot know (Codex R92 VP-I51): after
+    # such an M6 the controller stands at the tool change position, but the
+    # preview interpreter resyncs from its own last endpoint (gcodemodule's
+    # GET_EXTERNAL_POSITION_* answer in C, never through this canon), so
+    # every axis a block leaves out, an arc's centre and an incremental move
+    # are computed from the old position. While any axis is stale, every
+    # motion — traverse, feed, probe, tap or arc — is recorded as a
+    # zero-length unknown-start endpoint at its end: no invented path, no
+    # duration, the sweep names it. An ABSOLUTE move re-establishes the axes
+    # it moves; under G91 none (next_line). Always REASSIGNED (frozenset):
+    # the class value is the shared default.
+    stale = frozenset()
+    _settled_in_block = frozenset()
+    _incremental = False
 
     """Lightweight canon that collects feed/rapid polylines for 3D preview."""
 
@@ -193,6 +210,15 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
 
     def next_line(self, st):
         self.state = st
+        # The distance mode BEFORE this block (the state arrives before it
+        # runs). A block that switched to G91 shows here only at the NEXT
+        # line: the axes it re-established go stale again, in time for the
+        # next block's moves.
+        incremental = 910 in (getattr(st, "gcodes", None) or ())
+        if incremental and self._settled_in_block:
+            self.stale = self.stale | self._settled_in_block
+        self._settled_in_block = frozenset()
+        self._incremental = incremental
         if (st.sequence_number or 0) < 0 and (self.lineno or 0) >= 1:
             # A motion the interpreter makes itself inside the current block —
             # an M6's quill-up or G30 move (TOOL_CHANGE_QUILL_UP /
@@ -256,8 +282,8 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
 
     def change_tool(self, idx):
         StatMixin.change_tool(self, idx)
-        if self.tool_change_moves:
-            self.first_move = True
+        if self.tool_change_moves and self._program_line():
+            self.stale = frozenset(self.tool_change_axes)
         self.tool_changes += 1
         # (lineno, tool) per executed M6 — timeline event markers. NOTE: only
         # canon-executed changes appear here (an M600 remap whose body is
@@ -333,9 +359,27 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self._wcs_dirty = True
         return super().set_xy_rotation(*args, **kw)
 
+    def _unknown_move(self, end):
+        """A motion from a position with a stale axis: its end as a
+        zero-length unknown-start endpoint (rapid stream, like the program's
+        own first move), and the axes an absolute move re-establishes."""
+        if self._program_line():
+            seq = self._next_seq()
+            self.rapid.append((self.lineno, end, end, (self.xo, self.yo, self.zo), seq))
+            self.unknown_start.append(seq)
+        if not self._incremental:
+            moved = frozenset(i for i in self.stale if abs(end[i] - self.lo[i]) > 1e-12)
+            self.stale = self.stale - moved
+            self._settled_in_block = self._settled_in_block | moved
+        self.lo = end
+
     def straight_traverse(self, x, y, z, a, b, c, u, v, w):
         if self.suppress > 0: return
         l = self.rotate_and_translate(x, y, z, a, b, c, u, v, w)
+        if self.stale:
+            self.first_move = False
+            self._unknown_move(l)
+            return
         if self.first_move:
             # First motion after program start / tool change / G43: the PRIOR
             # position is unknown (machine parked spot, post-M6 pre-position),
@@ -365,6 +409,9 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         if self.suppress > 0: return
         self.first_move = False
         l = self.rotate_and_translate(x, y, z, a, b, c, u, v, w)
+        if self.stale:
+            self._unknown_move(l)
+            return
         self.feed.append((self.lineno, self.lo, l, self.feedrate, (self.xo, self.yo, self.zo), self._next_seq()))
         self.lo = l
 
@@ -373,6 +420,9 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     def rigid_tap(self, x, y, z):
         if self.suppress > 0: return
         self.first_move = False
+        if self.stale:
+            self._unknown_move(self.lo)   # a tap ends where it began
+            return
         l = self.rotate_and_translate(x, y, z, 0, 0, 0, 0, 0, 0)[:3]
         l += (self.lo[3], self.lo[4], self.lo[5],
               self.lo[6], self.lo[7], self.lo[8])
@@ -381,6 +431,11 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
 
     def straight_arcsegments(self, segs):
         self.first_move = False
+        if self.stale and segs:
+            # The whole arc was computed from the old position (its centre is
+            # relative to it): only its end, and only as an unknown start.
+            self._unknown_move(segs[-1])
+            return
         lo = self.lo
         for l in segs:
             self.feed.append((self.lineno, lo, l, self.feedrate, (self.xo, self.yo, self.zo), self._next_seq()))

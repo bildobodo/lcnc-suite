@@ -90,6 +90,25 @@ CASES = {
     # An unknown start does not become known through a G43 after it.
     "m6_tc_then_g43": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG43\nG0 X10 Z15\nM2\n", "mm", 0.0, (490,),
                        {"emcio": "TOOL_CHANGE_POSITION = 0 0 0"}),
+    # Codex R92 VP-I51: after an M6 at a tool change position every motion
+    # kind stays an unknown start while an axis is stale (feed, arc, G43 then
+    # feed, and a rapid after the feed); an absolute move re-establishes the
+    # axes it moves, G91 none — also when the G91 is in the block itself.
+    "r92_m6_feed": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG1 X10 Y5 Z15 F100\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 0 0"}),
+    "r92_m6_feed_then_rapid": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG1 X10 Y5 Z15 F100\nG0 Z20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 0 0"}),
+    "r92_m6_arc": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG2 X10 Y0 I5 J0 F100\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 0 0"}),
+    "r92_m6_g43_feed": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG43\nG1 X10 Y5 Z15 F100\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 0 0"}),
+    "m6_tc_partial": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG0 X10 Y5\nG0 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 0 0"}),
+    "m6_tc_g91": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG91\nG0 X10 Y5 Z-5\nG90\nG0 X20 Y5 Z15\nG0 X30\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 0 0"}),
+    "m6_tc_g91_block": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG91 G0 X10 Y5 Z-5\nG0 X5\nG90 G0 X20 Y5 Z15\nG0 X30\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 0 0"}),
+    # A G91 block with several motions (a drilling cycle): no axis may come
+    # back INSIDE it — the correction at the next line comes too late there.
+    "m6_tc_g91_cycle": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG91\nG81 X10 Y5 Z-5 R2 F100\nG80\nG90\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 0 0"}),
+    # Codex R92's green controls: the interpreter's own tool-change moves
+    "r92_m6_quill": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG0 X10 Y5\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_QUILL_UP = 1"}),
+    "r92_m6_g30_twice": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG0 Z20\nM6\nG0 X10 Y5\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_AT_G30 = 1"}),
+    "r92_m6_quill_g30": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG0 X10 Y5\nM2\n", "mm", 0.0, (490,),
+                         {"emcio": "TOOL_CHANGE_QUILL_UP = 1\nTOOL_CHANGE_AT_G30 = 1"}),
     # The interpreter's own G30 move at an M6 (TOOL_CHANGE_AT_G30) is a canon
     # traverse: recorded, and the move after the change starts there.
     "m6_at_g30": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG0 X10 Y5\nM2\n", "mm", 0.0, (490,),

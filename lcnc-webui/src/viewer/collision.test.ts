@@ -1311,13 +1311,13 @@ describe("the move after a G43 or a tool change (operator 2026-10-07, haus.ngc L
     expect(r.uncertified).toBeNull();
   });
 
-  it("says which moves start unknown — checked at their end only", () => {
+  it("says which moves start unknown — not checked", () => {
     // The same move as an unknown start (what every G43 used to be): the
     // path into X-20 is not swept and X-20 itself is clear — so nothing is
     // found, and the result must not read as certified.
     const r = sweepCollisions(model(), rapids([20, -20], [1, 3], { ustart: [1, 1] }), WCS0, { margin: 0.1 });
     expect(r.hits).toHaveLength(0);
-    expect(r.uncertified).toMatch(/^1 move after a tool change start where the preview cannot know — checked at the end only \(L3\)$/);
+    expect(r.uncertified).toBe("1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L3)");
     // the program's own first point is the entry move's, never counted
     const first = sweepCollisions(model(), rapids([20, 30], [1, 3], { ustart: [1, 0] }), WCS0, { margin: 0.1 });
     expect(first.uncertified).toBeNull();
