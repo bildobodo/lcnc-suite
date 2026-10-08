@@ -1,0 +1,8 @@
+# R99 — Codex's three R98 programs through the real worker + native interpreter (native_start_probe.py)
+r98_foreign_plain                    parse_error None  rapid_ustart [1, 1, 1]  rapid_tcum [0.0, 0.0, 0.0]  stale_offset_lines [0]  untracked True
+r98_foreign_spaced                   parse_error None  rapid_ustart [1, 1, 1]  rapid_tcum [0.0, 0.0, 0.0]  stale_offset_lines [0]  untracked True
+r98_foreign_spaced_position_control  parse_error None  rapid_ustart [1, 0, 0, 0, 0]  rapid_tcum [0.0, 2.236, 2.236, 5.318, 6.318]  stale_offset_lines None  untracked None
+# the first two as payloads (scripts/test_fixtures/tool_change_payloads/r98_*.msgpack) → track → sweep:
+# L6 and L7 unknown, no hit on Codex's box at the preview's Z15 (15, 5, 15), the note
+# "not checked to the program's end: an offset set from that position stays unknown whatever is positioned after (L6, L7); in subroutines …"
+# — no "at L2".

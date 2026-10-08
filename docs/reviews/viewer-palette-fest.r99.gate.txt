@@ -1,0 +1,10 @@
+# R99 — offline gate on fix/r98 d12fef94: backend and frontend; the browser not rerun
+PASS backend (48.72s)
+PASS 5axis-model (0.72s)
+PASS audit-css (0.98s)
+PASS review-handshake (4.55s)
+backend: 1272 passed, 427 subtests passed in 48.49s
+frontend lint / build / unit: lint exit 0, build exit 0, unit exit 0 — Tests  1985 passed (1985)
+browser: not rerun — the change reaches the page only through two comments
+(ScrubBar.vue, simRows.ts); the last full browser run is R98's gate R21
+(312 + 98 + 10 + 71 = 491) on ae99ec4d.
