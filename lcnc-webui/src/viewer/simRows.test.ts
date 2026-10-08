@@ -43,6 +43,33 @@ describe("simRows", () => {
     expect([a!.at, c!.at]).toEqual(["25 %", "75 %"]);
   });
 
+  it("marks the first limit row as where the run stops at the latest, and every row after it", () => {
+    // LinuxCNC refuses a move whose end leaves the window when the move is
+    // queued and aborts the running motion: nothing after the first
+    // violation runs. A row AT its start (a contact in the pose the move
+    // before reached, a tool change before it) is not claimed unreached; the
+    // rows stay listed.
+    const rows = buildSimRows({
+      clash: [clash({ cum: 10, line: 4 }), clash({ cum: 40, line: 9, key: "C9|t|w|0" }),
+        clash({ cum: 60, line: 12, reentry: true, key: "C12|t|w|1" })],
+      limit: [{ key: "L30", line: 30, cum: 70, cumEnd: 75 }, { key: "L9", line: 9, cum: 40, cumEnd: 45 }],
+      tool: [{ key: "T9", line: 9, tool: 2, cum: 40, cumEnd: 45 }, { key: "T20", line: 20, tool: 3, cum: 50, cumEnd: 55 }],
+      violations: [], unit: "mm", timeBased: true, axisEnd: 100,
+    });
+    expect(rows.map(r => [r.key, r.note])).toEqual([
+      ["C4|tool|a_yoke_casting|0", ""],
+      ["T9", ""],
+      ["L9", "the run stops here at the latest"],
+      ["C9|t|w|0", ""],
+      ["T20", "after the limit stop at L9"],
+      ["C12|t|w|1", "re-entry · after the limit stop at L9"],
+      ["L30", "after the limit stop at L9"],
+    ]);
+    // no limit row: nothing is marked
+    expect(buildSimRows({ clash: [clash({ cum: 10, line: 4 })], limit: [], tool: [], violations: [],
+      unit: "mm", timeBased: true, axisEnd: 20 })[0]!.note).toBe("");
+  });
+
   it("the next row is the first after the position, none past the last", () => {
     const rows = buildSimRows({ clash: [clash({ cum: 10, line: 2 })], limit: [{ key: "L3", line: 3, cum: 20, cumEnd: 21 }],
       tool: [], violations: [], unit: "mm", timeBased: true, axisEnd: 30 });

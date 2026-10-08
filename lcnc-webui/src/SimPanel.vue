@@ -306,7 +306,7 @@ function onRootKey(e: KeyboardEvent) {
                       :tabindex="rowStop === r.key ? 0 : -1" @keydown="onPickKey($event, r)">{{ r.lineLabel }}</span>
               </td>
               <td class="colWhat" :title="r.note ? `${r.what} · ${r.note}` : r.what">
-                <span class="whatText">{{ r.what }}</span><span v-if="r.note" class="text-muted"> · {{ r.note }}</span><span v-if="r.rapid != null" class="moveInline text-muted"> · {{ r.rapid ? "Rapid" : "Feed" }}</span>
+                <span class="whatText">{{ r.what }}</span><span v-if="r.rapid != null" class="moveInline text-muted"> · {{ r.rapid ? "Rapid" : "Feed" }}</span><span v-if="r.note" class="text-muted"> · {{ r.note }}</span>
               </td>
               <td class="colMove" :class="r.rapid ? 'text-warn' : 'text-muted'">{{ r.rapid == null ? "" : r.rapid ? "Rapid" : "Feed" }}</td>
               <td class="colAt mono text-muted">{{ r.at }}</td>
@@ -369,7 +369,8 @@ tbody tr { cursor: pointer; }
 .colWhat { width: 100%; max-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .moveInline { display: none; }
 /* The narrow side pane (one threshold — .sidePane.narrow): the Move column
-   joins the What text. */
+   joins the What text, BEFORE the note — a long note (the limit stop) must
+   not cut "Rapid" off the line. */
 .sidePane.narrow .colMove { display: none; }
 .sidePane.narrow .moveInline { display: inline; }
 .sidePane.narrow .sumWide { display: none; }

@@ -89,7 +89,26 @@ export function buildSimRows(i: SimRowInput): SimRow[] {
     rows.push({ key: t.key, kind: "tool", line: t.line, lineLabel: `L${t.line}`, cum: t.cum, cumEnd: t.cumEnd,
       what: `Tool change → T${t.tool || "?"}`, note: "", rapid: null, at: at(t.cum) });
   }
-  return rows.sort(simRowOrder);
+  rows.sort(simRowOrder);
+  markLimitStop(rows);
+  return rows;
+}
+
+/** The run stops at the first soft-limit violation AT THE LATEST (operator
+ *  2026-10-08: a program past its first violation shows moments no machine
+ *  reaches). LinuxCNC's motion module checks a move's end when the move is
+ *  QUEUED and aborts what is running (2.9 command.c, SET_LINE / SET_CIRCLE:
+ *  `inRange` → `tpAbort`), so with readahead the machine halts before that
+ *  move — where exactly, no preview knows. The first limit row says so;
+ *  every row that STARTS after it (strictly: a contact at its start is the
+ *  pose the previous move reached) is marked, and stays listed — the check
+ *  runs on. */
+function markLimitStop(rows: SimRow[]): void {
+  const stop = rows.find(r => r.kind === "limit");
+  if (!stop) return;
+  const add = (r: SimRow, text: string) => { r.note = r.note ? `${r.note} · ${text}` : text; };
+  add(stop, "the run stops here at the latest");
+  for (const r of rows) if (r !== stop && r.cum > stop.cum) add(r, `after the limit stop at ${stop.lineLabel}`);
 }
 
 /** The first row AFTER the position (the run's look-ahead and the

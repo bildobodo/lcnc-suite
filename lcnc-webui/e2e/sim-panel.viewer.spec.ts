@@ -53,6 +53,15 @@ test("the list is the timeline's marks: one row each, in timeline order, each ki
   await expect(page.locator('.simPanel [data-sim-row="L20"] .colWhat')).toContainText("X 110 mm > max 100 mm");
   await expect(page.locator('.simPanel [data-sim-row="T10"] .colWhat')).toContainText("Tool change → T3");
   await expect(page.locator(".simPanel tr").filter({ hasText: "L26" }).locator(".colMove")).toHaveText("Rapid");
+  // The run stops at the first soft limit at the latest (operator 2026-10-08;
+  // LinuxCNC refuses that move when it is queued): its row says so, every row
+  // after it is marked, a tool change at the same moment and a row before it
+  // are not — and every row stays listed.
+  await expect(page.locator('.simPanel [data-sim-row="L20"] .colWhat')).toContainText("the run stops here at the latest");
+  await expect(page.locator(".simPanel tr").filter({ hasText: "L26" }).locator(".colWhat")).toContainText("after the limit stop at L20");
+  await expect(page.locator('.simPanel [data-sim-row="L32"] .colWhat')).toContainText("after the limit stop at L20");
+  await expect(page.locator('.simPanel [data-sim-row="T20"] .colWhat')).not.toContainText("limit stop");
+  await expect(page.locator(".simPanel tr").filter({ hasText: "L12" }).locator(".colWhat")).not.toContainText("limit stop");
   // the filter counts and narrows
   await expect(page.locator('.simPanel select[name="simFilter"] option[value="clash"]')).toHaveText("Collisions (2)");
   await simShow(page, "limit");
@@ -457,6 +466,15 @@ test("the summary names each kind: words in the wide pane, the glyph and the num
   await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
   await settleLayout(page);
   await expect(page.locator(".sidePane.narrow"), "150 % portrait: the narrow pane").toHaveCount(1);
+  // Narrow, the move joins the What text BEFORE the note: the limit stop's
+  // note (on every row after L20) never cuts "Rapid" off the line.
+  const move = await page.locator(".simPanel tr").filter({ hasText: "L26" }).evaluate(tr => {
+    const cell = tr.querySelector(".colWhat")!, inl = tr.querySelector(".moveInline")!;
+    const c = cell.getBoundingClientRect(), m = inl.getBoundingClientRect();
+    return { shown: getComputedStyle(inl).display !== "none", text: inl.textContent,
+      inside: m.right <= c.right - parseFloat(getComputedStyle(cell).paddingRight) + 0.5 };
+  });
+  expect(move, "narrow: the move whole in its row").toEqual({ shown: true, text: " · Rapid", inside: true });
   expect(await items.evaluateAll(els => els.map(e => e.getAttribute("aria-label"))))
     .toEqual(["2 collisions", "9000 limit violations · the first 2 lines listed", "2 tool changes"]);
   const shorts = page.locator(".simPanel .simSummary .sumShort");
