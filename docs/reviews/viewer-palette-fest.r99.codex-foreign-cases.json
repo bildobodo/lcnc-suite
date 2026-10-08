@@ -1,0 +1,44 @@
+{
+  "r98_foreign_collision_plain": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\no<touch> call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "touch.ngc": "o<touch> sub\nG92 Z40\no<touch> endsub\n"
+      }
+    }
+  ],
+  "r98_foreign_collision_spaced": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\no<touch> c a l l\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "touch.ngc": "o<touch> sub\nG92 Z40\no<touch> endsub\n"
+      }
+    }
+  ],
+  "r98_foreign_collision_position_control": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nG0 X0 Y20 Z30\no<touch> c a l l\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "touch.ngc": "o<touch> sub\nG92 Z40\no<touch> endsub\n"
+      }
+    }
+  ]
+}

@@ -1,0 +1,767 @@
+{
+  "r96_g92_decimal": {
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      10,
+      5,
+      15,
+      10,
+      5,
+      15,
+      20,
+      5,
+      15
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      1
+    ],
+    "brk": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "wcsEvents": [
+      {
+        "seq": 0,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": false,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "seq": 2,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": true,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          30,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "endMachine": [
+      20,
+      5,
+      45,
+      0,
+      0,
+      0
+    ],
+    "staleOffsetLines": [
+      4
+    ],
+    "obstacle": [
+      15,
+      5,
+      45
+    ],
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 1,
+      "coarsened": false,
+      "uncertified": "2 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L6)",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 1.395085999999992,
+      "sweepMs": 0.6400430000000057,
+      "truncated": null
+    }
+  },
+  "r96_g92_expression": {
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      10,
+      5,
+      15,
+      10,
+      5,
+      15,
+      20,
+      5,
+      15
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      1
+    ],
+    "brk": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "wcsEvents": [
+      {
+        "seq": 0,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": false,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "seq": 2,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": true,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          30,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "endMachine": [
+      20,
+      5,
+      45,
+      0,
+      0,
+      0
+    ],
+    "staleOffsetLines": [
+      4
+    ],
+    "obstacle": [
+      15,
+      5,
+      45
+    ],
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 1,
+      "coarsened": false,
+      "uncertified": "2 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L6)",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.37420899999999335,
+      "sweepMs": 0.23212599999999384,
+      "truncated": null
+    }
+  },
+  "r96_g10_decimal": {
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      10,
+      5,
+      15,
+      10,
+      5,
+      15,
+      20,
+      5,
+      15
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      1
+    ],
+    "brk": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "wcsEvents": [
+      {
+        "seq": 0,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": false,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "seq": 2,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": true,
+        "g5x": [
+          0,
+          0,
+          30,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "endMachine": [
+      20,
+      5,
+      45,
+      0,
+      0,
+      0
+    ],
+    "staleOffsetLines": [
+      4
+    ],
+    "obstacle": [
+      15,
+      5,
+      45
+    ],
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 1,
+      "coarsened": false,
+      "uncertified": "2 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L6)",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.40766800000000103,
+      "sweepMs": 0.1313339999999954,
+      "truncated": null
+    }
+  },
+  "r96_store_decimal": {
+    "lines": [
+      2,
+      5,
+      6,
+      6,
+      7
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      10,
+      5,
+      15,
+      10,
+      5,
+      15,
+      0,
+      0,
+      40,
+      20,
+      0,
+      40
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "ustart": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "brk": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "wcsEvents": [
+      {
+        "seq": 0,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": false,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "endMachine": [
+      20,
+      0,
+      40,
+      0,
+      0,
+      0
+    ],
+    "staleOffsetLines": [
+      4
+    ],
+    "obstacle": [
+      15,
+      5,
+      45
+    ],
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 1,
+      "coarsened": false,
+      "uncertified": "4 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L6, L7)",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.2147499999999951,
+      "sweepMs": 0.48871000000001175,
+      "truncated": null
+    }
+  },
+  "r96_g92_standard": {
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      10,
+      5,
+      15,
+      10,
+      5,
+      15,
+      20,
+      5,
+      15
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      1
+    ],
+    "brk": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "wcsEvents": [
+      {
+        "seq": 0,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": false,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "seq": 2,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": true,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          30,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "endMachine": [
+      20,
+      5,
+      45,
+      0,
+      0,
+      0
+    ],
+    "staleOffsetLines": [
+      4
+    ],
+    "obstacle": [
+      15,
+      5,
+      45
+    ],
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 1,
+      "coarsened": false,
+      "uncertified": "2 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L6)",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.4502920000000046,
+      "sweepMs": 0.07916699999999821,
+      "truncated": null
+    }
+  },
+  "r96_l2_decimal": {
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      10,
+      5,
+      15,
+      10,
+      5,
+      15,
+      20,
+      5,
+      15
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      0
+    ],
+    "brk": [
+      1,
+      1,
+      1,
+      0
+    ],
+    "wcsEvents": [
+      {
+        "seq": 0,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": false,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "seq": 2,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": true,
+        "g5x": [
+          0,
+          0,
+          30,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "endMachine": [
+      20,
+      5,
+      45,
+      0,
+      0,
+      0
+    ],
+    "obstacle": [
+      15,
+      5,
+      45
+    ],
+    "result": {
+      "hits": [
+        {
+          "line": 6,
+          "cum": 0.45004638671875,
+          "cumEnd": 0.550009765625,
+          "a": "head",
+          "b": "fixed",
+          "dist": 0,
+          "rapid": true,
+          "intervals": [
+            [
+              0.45004638671875,
+              0.550009765625
+            ]
+          ]
+        }
+      ],
+      "staticContacts": [],
+      "samples": 25,
+      "coarsened": false,
+      "uncertified": "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L5)",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.18845800000001134,
+      "sweepMs": 23.58443100000001,
+      "truncated": null
+    }
+  },
+  "r96_branch_not_run": {
+    "lines": [
+      2,
+      7,
+      8
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      10,
+      5,
+      15,
+      20,
+      5,
+      15
+    ],
+    "cum": [
+      0,
+      0,
+      1
+    ],
+    "ustart": [
+      1,
+      1,
+      0
+    ],
+    "brk": [
+      1,
+      1,
+      0
+    ],
+    "wcsEvents": [
+      {
+        "seq": 0,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": false,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "endMachine": [
+      20,
+      5,
+      15,
+      0,
+      0,
+      0
+    ],
+    "staleOffsetUntracked": true,
+    "obstacle": [
+      15,
+      5,
+      45
+    ],
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 3,
+      "coarsened": false,
+      "uncertified": "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L7); in subroutines and loops, stored positions (G28.1 / G30.1) and fixture writes in called files are not tracked",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.18108399999999847,
+      "sweepMs": 0.13104200000000787,
+      "truncated": null
+    }
+  }
+}

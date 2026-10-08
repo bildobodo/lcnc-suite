@@ -1,0 +1,74 @@
+{
+  "r99_o_plain": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\no100 call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "100.ngc": "o100 sub\nG92 Z40\no100 endsub\n"
+      }
+    }
+  ],
+  "r99_o_plus_position_control": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nG0 X0 Y20 Z30\no+100 call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "100.ngc": "o100 sub\nG92 Z40\no100 endsub\n"
+      }
+    }
+  ],
+  "r99_plus_skip": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\no+100 if [0]\nG92 Z40\no+100 endif\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ],
+  "r99_plus_run": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\no+100 if [1]\nG92 Z40\no+100 endif\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ],
+  "r99_plain_skip": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\no100 if [0]\nG92 Z40\no100 endif\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ],
+  "r99_plain_run": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\no100 if [1]\nG92 Z40\no100 endif\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ]
+}
