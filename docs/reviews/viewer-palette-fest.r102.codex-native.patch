@@ -1,0 +1,11 @@
+--- native_start_probe.py
++++ r102.native.py
+@@ -253,6 +253,8 @@
+     for _z in ("10", "10.005", "20"):
+         CASES[f"{_name}@{_z}"] = (_prog, "mm", float(_z), (430,), {})
+ 
++CASES.update({'g38_2': ('G21 G90 G49\nG0 Z0\nG38.2 Z-50 F100\nG0 X#5070 Y#5063\nM2\n', 'mm', 0.0, (490,), {}), 'g38_3': ('G21 G90 G49\nG0 Z0\nG38.3 Z-50 F100\nG0 X#5070 Y#5063\nM2\n', 'mm', 0.0, (490,), {}), 'g38_3_g54_z10': ('G21 G90 G49\nG10 L2 P1 Z10\nG54\nG53 G0 Z0\nG38.3 Z-50 F100\nG0 X#5070 Y#5063\nM2\n', 'mm', 0.0, (490,), {}), 'g43_without_measurement': ('G21 G90\nG0 Z40\nG43\nG1 Z10 F100\nM2\n', 'mm', 0.0, (490,), {})})
++
+ program, units, z_off, gcodes_live, extra = CASES[sys.argv[1]]
+ inch = units == "in"
+ ini = work / "machine.ini"

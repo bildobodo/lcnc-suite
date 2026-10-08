@@ -1,0 +1,2193 @@
+{
+  "base": {
+    "hits": [
+      {
+        "line": 2,
+        "cum": 17.500341796875,
+        "cumEnd": 20,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            17.500341796875,
+            20
+          ]
+        ],
+        "spanCumEnd": 26.399999618530273,
+        "spanEndLine": 66
+      },
+      {
+        "line": 3,
+        "cum": 20,
+        "cumEnd": 20.100000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            20,
+            20.100000381469727
+          ]
+        ]
+      },
+      {
+        "line": 4,
+        "cum": 20.100000381469727,
+        "cumEnd": 20.200000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            20.100000381469727,
+            20.200000762939453
+          ]
+        ]
+      },
+      {
+        "line": 5,
+        "cum": 20.200000762939453,
+        "cumEnd": 20.299999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            20.200000762939453,
+            20.299999237060547
+          ]
+        ]
+      },
+      {
+        "line": 6,
+        "cum": 20.299999237060547,
+        "cumEnd": 20.399999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            20.299999237060547,
+            20.399999618530273
+          ]
+        ]
+      },
+      {
+        "line": 7,
+        "cum": 20.399999618530273,
+        "cumEnd": 20.5,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            20.399999618530273,
+            20.5
+          ]
+        ]
+      },
+      {
+        "line": 8,
+        "cum": 20.5,
+        "cumEnd": 20.600000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            20.5,
+            20.600000381469727
+          ]
+        ]
+      },
+      {
+        "line": 9,
+        "cum": 20.600000381469727,
+        "cumEnd": 20.700000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            20.600000381469727,
+            20.700000762939453
+          ]
+        ]
+      },
+      {
+        "line": 10,
+        "cum": 20.700000762939453,
+        "cumEnd": 20.799999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            20.700000762939453,
+            20.799999237060547
+          ]
+        ]
+      },
+      {
+        "line": 11,
+        "cum": 20.799999237060547,
+        "cumEnd": 20.899999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            20.799999237060547,
+            20.899999618530273
+          ]
+        ]
+      },
+      {
+        "line": 12,
+        "cum": 20.899999618530273,
+        "cumEnd": 21,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            20.899999618530273,
+            21
+          ]
+        ]
+      },
+      {
+        "line": 13,
+        "cum": 21,
+        "cumEnd": 21.100000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            21,
+            21.100000381469727
+          ]
+        ]
+      },
+      {
+        "line": 14,
+        "cum": 21.100000381469727,
+        "cumEnd": 21.200000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            21.100000381469727,
+            21.200000762939453
+          ]
+        ]
+      },
+      {
+        "line": 15,
+        "cum": 21.200000762939453,
+        "cumEnd": 21.299999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            21.200000762939453,
+            21.299999237060547
+          ]
+        ]
+      },
+      {
+        "line": 16,
+        "cum": 21.299999237060547,
+        "cumEnd": 21.399999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            21.299999237060547,
+            21.399999618530273
+          ]
+        ]
+      },
+      {
+        "line": 17,
+        "cum": 21.399999618530273,
+        "cumEnd": 21.5,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            21.399999618530273,
+            21.5
+          ]
+        ]
+      },
+      {
+        "line": 18,
+        "cum": 21.5,
+        "cumEnd": 21.600000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            21.5,
+            21.600000381469727
+          ]
+        ]
+      },
+      {
+        "line": 19,
+        "cum": 21.600000381469727,
+        "cumEnd": 21.700000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            21.600000381469727,
+            21.700000762939453
+          ]
+        ]
+      },
+      {
+        "line": 20,
+        "cum": 21.700000762939453,
+        "cumEnd": 21.799999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            21.700000762939453,
+            21.799999237060547
+          ]
+        ]
+      },
+      {
+        "line": 21,
+        "cum": 21.799999237060547,
+        "cumEnd": 21.899999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            21.799999237060547,
+            21.899999618530273
+          ]
+        ]
+      },
+      {
+        "line": 22,
+        "cum": 21.899999618530273,
+        "cumEnd": 22,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            21.899999618530273,
+            22
+          ]
+        ]
+      },
+      {
+        "line": 23,
+        "cum": 22,
+        "cumEnd": 22.100000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            22,
+            22.100000381469727
+          ]
+        ]
+      },
+      {
+        "line": 24,
+        "cum": 22.100000381469727,
+        "cumEnd": 22.200000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            22.100000381469727,
+            22.200000762939453
+          ]
+        ]
+      },
+      {
+        "line": 25,
+        "cum": 22.200000762939453,
+        "cumEnd": 22.299999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            22.200000762939453,
+            22.299999237060547
+          ]
+        ]
+      },
+      {
+        "line": 26,
+        "cum": 22.299999237060547,
+        "cumEnd": 22.399999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            22.299999237060547,
+            22.399999618530273
+          ]
+        ]
+      },
+      {
+        "line": 27,
+        "cum": 22.399999618530273,
+        "cumEnd": 22.5,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            22.399999618530273,
+            22.5
+          ]
+        ]
+      },
+      {
+        "line": 28,
+        "cum": 22.5,
+        "cumEnd": 22.600000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            22.5,
+            22.600000381469727
+          ]
+        ]
+      },
+      {
+        "line": 29,
+        "cum": 22.600000381469727,
+        "cumEnd": 22.700000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            22.600000381469727,
+            22.700000762939453
+          ]
+        ]
+      },
+      {
+        "line": 30,
+        "cum": 22.700000762939453,
+        "cumEnd": 22.799999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            22.700000762939453,
+            22.799999237060547
+          ]
+        ]
+      },
+      {
+        "line": 31,
+        "cum": 22.799999237060547,
+        "cumEnd": 22.899999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            22.799999237060547,
+            22.899999618530273
+          ]
+        ]
+      },
+      {
+        "line": 32,
+        "cum": 22.899999618530273,
+        "cumEnd": 23,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            22.899999618530273,
+            23
+          ]
+        ]
+      },
+      {
+        "line": 33,
+        "cum": 23,
+        "cumEnd": 23.100000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            23,
+            23.100000381469727
+          ]
+        ]
+      },
+      {
+        "line": 34,
+        "cum": 23.100000381469727,
+        "cumEnd": 23.200000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            23.100000381469727,
+            23.200000762939453
+          ]
+        ]
+      },
+      {
+        "line": 35,
+        "cum": 23.200000762939453,
+        "cumEnd": 23.299999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            23.200000762939453,
+            23.299999237060547
+          ]
+        ]
+      },
+      {
+        "line": 36,
+        "cum": 23.299999237060547,
+        "cumEnd": 23.399999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            23.299999237060547,
+            23.399999618530273
+          ]
+        ]
+      },
+      {
+        "line": 37,
+        "cum": 23.399999618530273,
+        "cumEnd": 23.5,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            23.399999618530273,
+            23.5
+          ]
+        ]
+      },
+      {
+        "line": 38,
+        "cum": 23.5,
+        "cumEnd": 23.600000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            23.5,
+            23.600000381469727
+          ]
+        ]
+      },
+      {
+        "line": 39,
+        "cum": 23.600000381469727,
+        "cumEnd": 23.700000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            23.600000381469727,
+            23.700000762939453
+          ]
+        ]
+      },
+      {
+        "line": 40,
+        "cum": 23.700000762939453,
+        "cumEnd": 23.799999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            23.700000762939453,
+            23.799999237060547
+          ]
+        ]
+      },
+      {
+        "line": 41,
+        "cum": 23.799999237060547,
+        "cumEnd": 23.899999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            23.799999237060547,
+            23.899999618530273
+          ]
+        ]
+      },
+      {
+        "line": 42,
+        "cum": 23.899999618530273,
+        "cumEnd": 24,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            23.899999618530273,
+            24
+          ]
+        ]
+      },
+      {
+        "line": 43,
+        "cum": 24,
+        "cumEnd": 24.100000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24,
+            24.100000381469727
+          ]
+        ]
+      },
+      {
+        "line": 44,
+        "cum": 24.100000381469727,
+        "cumEnd": 24.200000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24.100000381469727,
+            24.200000762939453
+          ]
+        ]
+      },
+      {
+        "line": 45,
+        "cum": 24.200000762939453,
+        "cumEnd": 24.299999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24.200000762939453,
+            24.299999237060547
+          ]
+        ]
+      },
+      {
+        "line": 46,
+        "cum": 24.299999237060547,
+        "cumEnd": 24.399999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24.299999237060547,
+            24.399999618530273
+          ]
+        ]
+      },
+      {
+        "line": 47,
+        "cum": 24.399999618530273,
+        "cumEnd": 24.5,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24.399999618530273,
+            24.5
+          ]
+        ]
+      },
+      {
+        "line": 48,
+        "cum": 24.5,
+        "cumEnd": 24.600000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24.5,
+            24.600000381469727
+          ]
+        ]
+      },
+      {
+        "line": 49,
+        "cum": 24.600000381469727,
+        "cumEnd": 24.700000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24.600000381469727,
+            24.700000762939453
+          ]
+        ]
+      },
+      {
+        "line": 50,
+        "cum": 24.700000762939453,
+        "cumEnd": 24.799999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24.700000762939453,
+            24.799999237060547
+          ]
+        ]
+      },
+      {
+        "line": 51,
+        "cum": 24.799999237060547,
+        "cumEnd": 24.899999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24.799999237060547,
+            24.899999618530273
+          ]
+        ]
+      },
+      {
+        "line": 52,
+        "cum": 24.899999618530273,
+        "cumEnd": 25,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24.899999618530273,
+            25
+          ]
+        ]
+      },
+      {
+        "line": 53,
+        "cum": 25,
+        "cumEnd": 25.100000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            25,
+            25.100000381469727
+          ]
+        ]
+      },
+      {
+        "line": 54,
+        "cum": 25.100000381469727,
+        "cumEnd": 25.200000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            25.100000381469727,
+            25.200000762939453
+          ]
+        ]
+      },
+      {
+        "line": 55,
+        "cum": 25.200000762939453,
+        "cumEnd": 25.299999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            25.200000762939453,
+            25.299999237060547
+          ]
+        ]
+      },
+      {
+        "line": 56,
+        "cum": 25.299999237060547,
+        "cumEnd": 25.399999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            25.299999237060547,
+            25.399999618530273
+          ]
+        ]
+      },
+      {
+        "line": 57,
+        "cum": 25.399999618530273,
+        "cumEnd": 25.5,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            25.399999618530273,
+            25.5
+          ]
+        ]
+      },
+      {
+        "line": 58,
+        "cum": 25.5,
+        "cumEnd": 25.600000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            25.5,
+            25.600000381469727
+          ]
+        ]
+      },
+      {
+        "line": 59,
+        "cum": 25.600000381469727,
+        "cumEnd": 25.700000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            25.600000381469727,
+            25.700000762939453
+          ]
+        ]
+      },
+      {
+        "line": 60,
+        "cum": 25.700000762939453,
+        "cumEnd": 25.799999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            25.700000762939453,
+            25.799999237060547
+          ]
+        ]
+      },
+      {
+        "line": 61,
+        "cum": 25.799999237060547,
+        "cumEnd": 25.899999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            25.799999237060547,
+            25.899999618530273
+          ]
+        ]
+      },
+      {
+        "line": 62,
+        "cum": 25.899999618530273,
+        "cumEnd": 26,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            25.899999618530273,
+            26
+          ]
+        ]
+      },
+      {
+        "line": 63,
+        "cum": 26,
+        "cumEnd": 26.100000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            26,
+            26.100000381469727
+          ]
+        ]
+      },
+      {
+        "line": 64,
+        "cum": 26.100000381469727,
+        "cumEnd": 26.200000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            26.100000381469727,
+            26.200000762939453
+          ]
+        ]
+      },
+      {
+        "line": 65,
+        "cum": 26.200000762939453,
+        "cumEnd": 26.299999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            26.200000762939453,
+            26.299999237060547
+          ]
+        ]
+      },
+      {
+        "line": 66,
+        "cum": 26.299999237060547,
+        "cumEnd": 26.399999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            26.299999237060547,
+            26.399999618530273
+          ]
+        ]
+      }
+    ],
+    "staticContacts": [],
+    "samples": 133,
+    "coarsened": false,
+    "uncertified": "inside check undecidable for nub ↔ shell (L2) — a part wholly inside the other is not found there",
+    "notes": [
+      "inside check undecidable for nub ↔ shell (L2) — a part wholly inside the other is not found there"
+    ],
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 1.7798820000000006,
+    "sweepMs": 47.939430999999985,
+    "truncated": null
+  },
+  "final": {
+    "hits": [
+      {
+        "line": 2,
+        "cum": 17.500341796875,
+        "cumEnd": 20,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            17.500341796875,
+            20
+          ]
+        ],
+        "spanCumEnd": 26.399999618530273,
+        "spanEndLine": 66
+      },
+      {
+        "line": 3,
+        "cum": 20,
+        "cumEnd": 20.100000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            20,
+            20.100000381469727
+          ]
+        ]
+      },
+      {
+        "line": 4,
+        "cum": 20.100000381469727,
+        "cumEnd": 20.200000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            20.100000381469727,
+            20.200000762939453
+          ]
+        ]
+      },
+      {
+        "line": 5,
+        "cum": 20.200000762939453,
+        "cumEnd": 20.299999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            20.200000762939453,
+            20.299999237060547
+          ]
+        ]
+      },
+      {
+        "line": 6,
+        "cum": 20.299999237060547,
+        "cumEnd": 20.399999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            20.299999237060547,
+            20.399999618530273
+          ]
+        ]
+      },
+      {
+        "line": 7,
+        "cum": 20.399999618530273,
+        "cumEnd": 20.5,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            20.399999618530273,
+            20.5
+          ]
+        ]
+      },
+      {
+        "line": 8,
+        "cum": 20.5,
+        "cumEnd": 20.600000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            20.5,
+            20.600000381469727
+          ]
+        ]
+      },
+      {
+        "line": 9,
+        "cum": 20.600000381469727,
+        "cumEnd": 20.700000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            20.600000381469727,
+            20.700000762939453
+          ]
+        ]
+      },
+      {
+        "line": 10,
+        "cum": 20.700000762939453,
+        "cumEnd": 20.799999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            20.700000762939453,
+            20.799999237060547
+          ]
+        ]
+      },
+      {
+        "line": 11,
+        "cum": 20.799999237060547,
+        "cumEnd": 20.899999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            20.799999237060547,
+            20.899999618530273
+          ]
+        ]
+      },
+      {
+        "line": 12,
+        "cum": 20.899999618530273,
+        "cumEnd": 21,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            20.899999618530273,
+            21
+          ]
+        ]
+      },
+      {
+        "line": 13,
+        "cum": 21,
+        "cumEnd": 21.100000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            21,
+            21.100000381469727
+          ]
+        ]
+      },
+      {
+        "line": 14,
+        "cum": 21.100000381469727,
+        "cumEnd": 21.200000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            21.100000381469727,
+            21.200000762939453
+          ]
+        ]
+      },
+      {
+        "line": 15,
+        "cum": 21.200000762939453,
+        "cumEnd": 21.299999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            21.200000762939453,
+            21.299999237060547
+          ]
+        ]
+      },
+      {
+        "line": 16,
+        "cum": 21.299999237060547,
+        "cumEnd": 21.399999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            21.299999237060547,
+            21.399999618530273
+          ]
+        ]
+      },
+      {
+        "line": 17,
+        "cum": 21.399999618530273,
+        "cumEnd": 21.5,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            21.399999618530273,
+            21.5
+          ]
+        ]
+      },
+      {
+        "line": 18,
+        "cum": 21.5,
+        "cumEnd": 21.600000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            21.5,
+            21.600000381469727
+          ]
+        ]
+      },
+      {
+        "line": 19,
+        "cum": 21.600000381469727,
+        "cumEnd": 21.700000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            21.600000381469727,
+            21.700000762939453
+          ]
+        ]
+      },
+      {
+        "line": 20,
+        "cum": 21.700000762939453,
+        "cumEnd": 21.799999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            21.700000762939453,
+            21.799999237060547
+          ]
+        ]
+      },
+      {
+        "line": 21,
+        "cum": 21.799999237060547,
+        "cumEnd": 21.899999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            21.799999237060547,
+            21.899999618530273
+          ]
+        ]
+      },
+      {
+        "line": 22,
+        "cum": 21.899999618530273,
+        "cumEnd": 22,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            21.899999618530273,
+            22
+          ]
+        ]
+      },
+      {
+        "line": 23,
+        "cum": 22,
+        "cumEnd": 22.100000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            22,
+            22.100000381469727
+          ]
+        ]
+      },
+      {
+        "line": 24,
+        "cum": 22.100000381469727,
+        "cumEnd": 22.200000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            22.100000381469727,
+            22.200000762939453
+          ]
+        ]
+      },
+      {
+        "line": 25,
+        "cum": 22.200000762939453,
+        "cumEnd": 22.299999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            22.200000762939453,
+            22.299999237060547
+          ]
+        ]
+      },
+      {
+        "line": 26,
+        "cum": 22.299999237060547,
+        "cumEnd": 22.399999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            22.299999237060547,
+            22.399999618530273
+          ]
+        ]
+      },
+      {
+        "line": 27,
+        "cum": 22.399999618530273,
+        "cumEnd": 22.5,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            22.399999618530273,
+            22.5
+          ]
+        ]
+      },
+      {
+        "line": 28,
+        "cum": 22.5,
+        "cumEnd": 22.600000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            22.5,
+            22.600000381469727
+          ]
+        ]
+      },
+      {
+        "line": 29,
+        "cum": 22.600000381469727,
+        "cumEnd": 22.700000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            22.600000381469727,
+            22.700000762939453
+          ]
+        ]
+      },
+      {
+        "line": 30,
+        "cum": 22.700000762939453,
+        "cumEnd": 22.799999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            22.700000762939453,
+            22.799999237060547
+          ]
+        ]
+      },
+      {
+        "line": 31,
+        "cum": 22.799999237060547,
+        "cumEnd": 22.899999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            22.799999237060547,
+            22.899999618530273
+          ]
+        ]
+      },
+      {
+        "line": 32,
+        "cum": 22.899999618530273,
+        "cumEnd": 23,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            22.899999618530273,
+            23
+          ]
+        ]
+      },
+      {
+        "line": 33,
+        "cum": 23,
+        "cumEnd": 23.100000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            23,
+            23.100000381469727
+          ]
+        ]
+      },
+      {
+        "line": 34,
+        "cum": 23.100000381469727,
+        "cumEnd": 23.200000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            23.100000381469727,
+            23.200000762939453
+          ]
+        ]
+      },
+      {
+        "line": 35,
+        "cum": 23.200000762939453,
+        "cumEnd": 23.299999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            23.200000762939453,
+            23.299999237060547
+          ]
+        ]
+      },
+      {
+        "line": 36,
+        "cum": 23.299999237060547,
+        "cumEnd": 23.399999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            23.299999237060547,
+            23.399999618530273
+          ]
+        ]
+      },
+      {
+        "line": 37,
+        "cum": 23.399999618530273,
+        "cumEnd": 23.5,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            23.399999618530273,
+            23.5
+          ]
+        ]
+      },
+      {
+        "line": 38,
+        "cum": 23.5,
+        "cumEnd": 23.600000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            23.5,
+            23.600000381469727
+          ]
+        ]
+      },
+      {
+        "line": 39,
+        "cum": 23.600000381469727,
+        "cumEnd": 23.700000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            23.600000381469727,
+            23.700000762939453
+          ]
+        ]
+      },
+      {
+        "line": 40,
+        "cum": 23.700000762939453,
+        "cumEnd": 23.799999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            23.700000762939453,
+            23.799999237060547
+          ]
+        ]
+      },
+      {
+        "line": 41,
+        "cum": 23.799999237060547,
+        "cumEnd": 23.899999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            23.799999237060547,
+            23.899999618530273
+          ]
+        ]
+      },
+      {
+        "line": 42,
+        "cum": 23.899999618530273,
+        "cumEnd": 24,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            23.899999618530273,
+            24
+          ]
+        ]
+      },
+      {
+        "line": 43,
+        "cum": 24,
+        "cumEnd": 24.100000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24,
+            24.100000381469727
+          ]
+        ]
+      },
+      {
+        "line": 44,
+        "cum": 24.100000381469727,
+        "cumEnd": 24.200000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24.100000381469727,
+            24.200000762939453
+          ]
+        ]
+      },
+      {
+        "line": 45,
+        "cum": 24.200000762939453,
+        "cumEnd": 24.299999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24.200000762939453,
+            24.299997329748294
+          ]
+        ]
+      },
+      {
+        "line": 46,
+        "cum": 24.299999237060547,
+        "cumEnd": 24.399999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24.299997329748294,
+            24.39999771118164
+          ]
+        ]
+      },
+      {
+        "line": 47,
+        "cum": 24.399999618530273,
+        "cumEnd": 24.5,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24.39999771118164,
+            24.499998092651367
+          ]
+        ]
+      },
+      {
+        "line": 48,
+        "cum": 24.5,
+        "cumEnd": 24.600000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24.499998092651367,
+            24.599998474121094
+          ]
+        ]
+      },
+      {
+        "line": 49,
+        "cum": 24.600000381469727,
+        "cumEnd": 24.700000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24.599998474121094,
+            24.700000762939453
+          ]
+        ]
+      },
+      {
+        "line": 50,
+        "cum": 24.700000762939453,
+        "cumEnd": 24.799999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24.700000762939453,
+            24.799997329748294
+          ]
+        ]
+      },
+      {
+        "line": 51,
+        "cum": 24.799999237060547,
+        "cumEnd": 24.899999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24.799997329748294,
+            24.89999771118164
+          ]
+        ]
+      },
+      {
+        "line": 52,
+        "cum": 24.899999618530273,
+        "cumEnd": 25,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24.89999771118164,
+            24.999998092651367
+          ]
+        ]
+      },
+      {
+        "line": 53,
+        "cum": 25,
+        "cumEnd": 25.100000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            24.999998092651367,
+            25.099998474121094
+          ]
+        ]
+      },
+      {
+        "line": 54,
+        "cum": 25.100000381469727,
+        "cumEnd": 25.200000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            25.099998474121094,
+            25.200000762939453
+          ]
+        ]
+      },
+      {
+        "line": 55,
+        "cum": 25.200000762939453,
+        "cumEnd": 25.299999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            25.200000762939453,
+            25.299997329748294
+          ]
+        ]
+      },
+      {
+        "line": 56,
+        "cum": 25.299999237060547,
+        "cumEnd": 25.399999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            25.299997329748294,
+            25.39999771118164
+          ]
+        ]
+      },
+      {
+        "line": 57,
+        "cum": 25.399999618530273,
+        "cumEnd": 25.5,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            25.39999771118164,
+            25.499998092651367
+          ]
+        ]
+      },
+      {
+        "line": 58,
+        "cum": 25.5,
+        "cumEnd": 25.600000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            25.499998092651367,
+            25.599998474121094
+          ]
+        ]
+      },
+      {
+        "line": 59,
+        "cum": 25.600000381469727,
+        "cumEnd": 25.700000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            25.599998474121094,
+            25.700000762939453
+          ]
+        ]
+      },
+      {
+        "line": 60,
+        "cum": 25.700000762939453,
+        "cumEnd": 25.799999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            25.700000762939453,
+            25.799997329748294
+          ]
+        ]
+      },
+      {
+        "line": 61,
+        "cum": 25.799999237060547,
+        "cumEnd": 25.899999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            25.799997329748294,
+            25.89999771118164
+          ]
+        ]
+      },
+      {
+        "line": 62,
+        "cum": 25.899999618530273,
+        "cumEnd": 26,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            25.89999771118164,
+            25.999998092651367
+          ]
+        ]
+      },
+      {
+        "line": 63,
+        "cum": 26,
+        "cumEnd": 26.100000381469727,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            25.999998092651367,
+            26.099998474121094
+          ]
+        ]
+      },
+      {
+        "line": 64,
+        "cum": 26.100000381469727,
+        "cumEnd": 26.200000762939453,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            26.099998474121094,
+            26.200000762939453
+          ]
+        ]
+      },
+      {
+        "line": 65,
+        "cum": 26.200000762939453,
+        "cumEnd": 26.299999237060547,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            26.200000762939453,
+            26.299997329748294
+          ]
+        ]
+      },
+      {
+        "line": 66,
+        "cum": 26.299999237060547,
+        "cumEnd": 26.399999618530273,
+        "a": "nub",
+        "b": "shell",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            26.299997329748294,
+            26.39999771118164
+          ]
+        ]
+      }
+    ],
+    "staticContacts": [],
+    "samples": 133,
+    "coarsened": false,
+    "uncertified": "inside check undecidable for nub ↔ shell (L2) — a part wholly inside the other is not found there",
+    "notes": [
+      "inside check undecidable for nub ↔ shell (L2) — a part wholly inside the other is not found there"
+    ],
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 0.5310849999999903,
+    "sweepMs": 24.134217000000007,
+    "truncated": null
+  },
+  "snapshots": [
+    {
+      "notes": [],
+      "covered": 0
+    },
+    {
+      "notes": [],
+      "covered": 0
+    },
+    {
+      "notes": [
+        "inside check undecidable for nub ↔ shell (L2) — a part wholly inside the other is not found there"
+      ],
+      "covered": 0.8106060578693919
+    },
+    {
+      "notes": [
+        "inside check undecidable for nub ↔ shell (L2) — a part wholly inside the other is not found there"
+      ],
+      "covered": 0.8106060578693919
+    },
+    {
+      "notes": [
+        "inside check undecidable for nub ↔ shell (L2) — a part wholly inside the other is not found there"
+      ],
+      "covered": 0.8712121338007975
+    },
+    {
+      "notes": [
+        "inside check undecidable for nub ↔ shell (L2) — a part wholly inside the other is not found there"
+      ],
+      "covered": 0.8712121338007975
+    },
+    {
+      "notes": [
+        "inside check undecidable for nub ↔ shell (L2) — a part wholly inside the other is not found there"
+      ],
+      "covered": 0.9318182097322032
+    },
+    {
+      "notes": [
+        "inside check undecidable for nub ↔ shell (L2) — a part wholly inside the other is not found there"
+      ],
+      "covered": 0.9318182097322032
+    },
+    {
+      "notes": [
+        "inside check undecidable for nub ↔ shell (L2) — a part wholly inside the other is not found there"
+      ],
+      "covered": 0.9924242856636089
+    },
+    {
+      "notes": [
+        "inside check undecidable for nub ↔ shell (L2) — a part wholly inside the other is not found there"
+      ],
+      "covered": 0.9924242856636089
+    },
+    {
+      "notes": [
+        "inside check undecidable for nub ↔ shell (L2) — a part wholly inside the other is not found there"
+      ],
+      "covered": 1
+    },
+    {
+      "notes": [
+        "inside check undecidable for nub ↔ shell (L2) — a part wholly inside the other is not found there"
+      ],
+      "covered": 1
+    }
+  ],
+  "shardNotes": [
+    "inside check undecidable for nub ↔ shell (L2) — a part wholly inside the other is not found there"
+  ],
+  "entryNotes": [
+    "entry-only note",
+    "inside check undecidable for nub ↔ shell (L2) — a part wholly inside the other is not found there"
+  ]
+}

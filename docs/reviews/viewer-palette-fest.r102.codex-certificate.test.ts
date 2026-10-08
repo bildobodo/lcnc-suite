@@ -1,0 +1,21 @@
+import {writeFileSync} from "node:fs";
+import * as THREE from "three";
+import {expect,it,afterAll} from "vitest";
+import {buildCollisionModel,sweepCollisions,type CollisionMachine,type CollisionResult} from "./collision";
+import {sweepCollisions as withoutCertificate} from "./r102.noCert";
+const rows:any[]=[];
+afterAll(()=>writeFileSync("../evidence/viewer-palette-fest.r102.codex-certificate.json",JSON.stringify(rows,null,2)));
+const box=(s:number)=>{const g=new THREE.BoxGeometry(s,s,s).toNonIndexed();const p=new Float32Array(g.getAttribute("position").array as Float32Array);g.dispose();return p;};
+const wcs={g5x:[0,0,0,0,0,0],g92:[],rotationDeg:0};
+const shape=(r:CollisionResult)=>({hits:r.hits,static:r.staticContacts,notes:r.notes,samples:r.samples,truncated:r.truncated});
+for(const rotary of [false,true]) it(`certificate equals full re-query over ${rotary?"rotary":"linear"} chunks`,()=>{
+ const m:CollisionMachine={groups:[{id:"table",parent:"root"},{id:"part",parent:"table"},{id:"head",parent:"root",translate:rotary?[50,0,0]:[80,0,0]}],kinematics:[{group:"head",joint:0,type:rotary?"rotate":"translate",direction:rotary?"z":"x",sign:1}],workGroup:"part",toolGroup:"head",unitScale:1,axes:rotary?["C"]:["X","Y","Z"]};
+ const make=()=>buildCollisionModel(m,[{id:"outer",group:"table",positions:box(100)},{id:"inner",group:"head",positions:box(1),translate:rotary?[30,0,0]:undefined}]);
+ const vals=Array.from({length:91},(_,i)=>rotary?180+2*i:-80+i);
+ const n=vals.length,pos=new Float32Array(n*3),abc=new Float32Array(n*3),cum=new Float32Array(n);
+ vals.forEach((v,i)=>{(rotary?abc:pos)[i*3+(rotary?2:0)]=v;cum[i]=i*(rotary?2:1);});
+ const t={count:n,pos,abc,cum,lines:Uint32Array.from(vals,(_,i)=>i+1),rapid:new Uint8Array(n)};
+ const a=sweepCollisions(make(),t,wcs,{margin:.1}),b=withoutCertificate(make(),t,wcs,{margin:.1});
+ rows.push({rotary,with:shape(a),without:shape(b),times:{with:a.sweepMs,without:b.sweepMs}});
+ expect(a.hits.length).toBeGreaterThan(10);expect(shape(a)).toEqual(shape(b));
+});

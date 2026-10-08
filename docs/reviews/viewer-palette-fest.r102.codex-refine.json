@@ -1,0 +1,302 @@
+[
+  {
+    "unknown": false,
+    "calls": [
+      {
+        "p": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "stage": "sweep",
+        "original": "outside",
+        "forced": false
+      },
+      {
+        "p": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "stage": "sweep",
+        "original": "outside",
+        "forced": false
+      },
+      {
+        "p": [
+          18.9,
+          0.5,
+          0.5
+        ],
+        "stage": "refine",
+        "original": "outside",
+        "forced": false
+      },
+      {
+        "p": [
+          19.525,
+          0.5,
+          0.5
+        ],
+        "stage": "refine",
+        "original": "outside",
+        "forced": false
+      },
+      {
+        "p": [
+          19.8375,
+          0.5,
+          0.5
+        ],
+        "stage": "refine",
+        "original": "outside",
+        "forced": false
+      },
+      {
+        "p": [
+          19.99375,
+          0.5,
+          0.5
+        ],
+        "stage": "refine",
+        "original": "outside",
+        "forced": false
+      },
+      {
+        "p": [
+          19.9986328125,
+          0.5,
+          0.5
+        ],
+        "stage": "refine",
+        "original": "outside",
+        "forced": false
+      },
+      {
+        "p": [
+          19.999853515625,
+          0.5,
+          0.5
+        ],
+        "stage": "refine",
+        "original": "outside",
+        "forced": false
+      }
+    ],
+    "result": {
+      "hits": [
+        {
+          "line": 2,
+          "cum": 19.5004638671875,
+          "cumEnd": 20,
+          "a": "nub",
+          "b": "post",
+          "dist": 0,
+          "rapid": false,
+          "intervals": [
+            [
+              19.5004638671875,
+              20
+            ]
+          ]
+        }
+      ],
+      "staticContacts": [],
+      "samples": 5,
+      "coarsened": false,
+      "uncertified": null,
+      "notes": [],
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 1.7054229999999961,
+      "sweepMs": 25.286636999999985,
+      "truncated": null
+    }
+  },
+  {
+    "unknown": true,
+    "calls": [
+      {
+        "p": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "stage": "sweep",
+        "original": "outside",
+        "forced": false
+      },
+      {
+        "p": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "stage": "sweep",
+        "original": "outside",
+        "forced": false
+      },
+      {
+        "p": [
+          18.9,
+          0.5,
+          0.5
+        ],
+        "stage": "refine",
+        "original": "outside",
+        "forced": true
+      },
+      {
+        "p": [
+          17.65,
+          0.5,
+          0.5
+        ],
+        "stage": "refine",
+        "original": "outside",
+        "forced": false
+      },
+      {
+        "p": [
+          18.275,
+          0.5,
+          0.5
+        ],
+        "stage": "refine",
+        "original": "outside",
+        "forced": true
+      },
+      {
+        "p": [
+          17.9625,
+          0.5,
+          0.5
+        ],
+        "stage": "refine",
+        "original": "outside",
+        "forced": false
+      },
+      {
+        "p": [
+          18.11875,
+          0.5,
+          0.5
+        ],
+        "stage": "refine",
+        "original": "outside",
+        "forced": true
+      },
+      {
+        "p": [
+          18.040625,
+          0.5,
+          0.5
+        ],
+        "stage": "refine",
+        "original": "outside",
+        "forced": true
+      },
+      {
+        "p": [
+          18.0015625,
+          0.5,
+          0.5
+        ],
+        "stage": "refine",
+        "original": "outside",
+        "forced": true
+      },
+      {
+        "p": [
+          17.98203125,
+          0.5,
+          0.5
+        ],
+        "stage": "refine",
+        "original": "outside",
+        "forced": false
+      },
+      {
+        "p": [
+          17.991796875,
+          0.5,
+          0.5
+        ],
+        "stage": "refine",
+        "original": "outside",
+        "forced": false
+      },
+      {
+        "p": [
+          17.9966796875,
+          0.5,
+          0.5
+        ],
+        "stage": "refine",
+        "original": "outside",
+        "forced": false
+      },
+      {
+        "p": [
+          17.99912109375,
+          0.5,
+          0.5
+        ],
+        "stage": "refine",
+        "original": "outside",
+        "forced": false
+      },
+      {
+        "p": [
+          18.000341796875,
+          0.5,
+          0.5
+        ],
+        "stage": "refine",
+        "original": "outside",
+        "forced": true
+      },
+      {
+        "p": [
+          17.9997314453125,
+          0.5,
+          0.5
+        ],
+        "stage": "refine",
+        "original": "outside",
+        "forced": false
+      }
+    ],
+    "result": {
+      "hits": [
+        {
+          "line": 2,
+          "cum": 17.500341796875,
+          "cumEnd": 20,
+          "a": "nub",
+          "b": "post",
+          "dist": 0,
+          "rapid": false,
+          "intervals": [
+            [
+              17.500341796875,
+              20
+            ]
+          ]
+        }
+      ],
+      "staticContacts": [],
+      "samples": 5,
+      "coarsened": false,
+      "uncertified": "inside check undecidable for nub ↔ post (L2) — a part wholly inside the other is not found there",
+      "notes": [
+        "inside check undecidable for nub ↔ post (L2) — a part wholly inside the other is not found there"
+      ],
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.4825439999999901,
+      "sweepMs": 5.970230999999984,
+      "truncated": null
+    }
+  }
+]
