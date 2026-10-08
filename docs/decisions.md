@@ -8601,7 +8601,8 @@ unrotated; the tests now hand it over the page's way, with a hit on the
 rotated path as the control. Not followed, named: an offset register written
 from a stale position (G92, G10 L20 on a stale axis) is wrong in the
 preview, and the positions in its frame read as known — the canon sees the
-new offset, never whether it came from an L2 or an L20.
+new offset, never whether it came from an L2 or an L20. (Followed since R95:
+the main file's text tells them apart — the entry below.)
 
 ## 2026-10-08 — The run stops at the first soft limit at the latest
 
