@@ -1,0 +1,77 @@
+# R101 — compiling mutations of collision.ts / sweepShards.ts, each restored from a byte copy (cmp verified)
+# vue-tsc --noEmit -p tsconfig.app.json per mutation; tests: collision.test.ts + collisionInside.test.ts (+ collisionOracle.test.ts for MC1–MC4)
+
+## step 2 wiring (rerun on the step-5 tree; MI4/MI5 with the anchor that now resets the certificate too)
+RED    MI1 ask only undecided / after a jump (no separation decision)  (vue-tsc exit 0)
+       Tests  6 failed | 7 passed | 84 skipped (97)
+       - × is no record, no separation, and its stretch is named; the refinement counts it as contact 56ms
+       - × gives no clearance certificate: asked again at the contact cadence until a pose decides it 5ms
+       - × in, wholly inside and out: one contact, from the surface crossing in to the crossing out 46ms
+       - × through a wall inside one contact stride, across a line: the re-sampled stretch is asked too 7ms
+       - × an inside answer holds only while no surface crossing can have come — used up line by line 4ms
+       - × an inside answer does not cross a jump 2ms
+RED    MI2 no inside check at the first pose  (vue-tsc exit 0)
+       Tests  6 failed | 7 passed | 84 skipped (97)
+       - × gives no clearance certificate: asked again at the contact cadence until a pose decides it 5ms
+       - × at rest is never a static exclusion 2ms
+       - × is named by the shard that sweeps the pair, and the merge names every one 4ms
+       - × inside at the first pose and at rest: a static contact, never a finding 7ms
+       - × an inside answer holds only while no surface crossing can have come — used up line by line 4ms
+       - × an inside answer does not cross a jump 1ms
+RED    MI3 rest: surfaces only  (vue-tsc exit 0)
+       Tests  1 failed | 12 passed | 84 skipped (97)
+       - × inside at the first pose and at rest: a static contact, never a finding 7ms
+SKIP   MI4 no ask after a break (tool boundary only): anchor found 0x
+SKIP   MI5 no ask after a tool change (break only): anchor found 0x
+RED    MI6 refinement by the distance alone  (vue-tsc exit 0)
+       Tests  2 failed | 11 passed | 84 skipped (97)
+       - × is no record, no separation, and its stretch is named; the refinement counts it as contact 41ms
+       - × in, wholly inside and out: one contact, from the surface crossing in to the crossing out 35ms
+RED    MI7 refinement: undecidable as outside  (vue-tsc exit 0)
+       Tests  1 failed | 12 passed | 84 skipped (97)
+       - × is no record, no separation, and its stretch is named; the refinement counts it as contact 48ms
+RED    MI8 re-sampled stretch not asked  (vue-tsc exit 0)
+       Tests  2 failed | 11 passed | 84 skipped (97)
+       - × is no record, no separation, and its stretch is named; the refinement counts it as contact 48ms
+       - × through a wall inside one contact stride, across a line: the re-sampled stretch is asked too 13ms
+RED    MI9 undecidable keeps the surface certificate  (vue-tsc exit 0)
+       Tests  2 failed | 11 passed | 84 skipped (97)
+       - × is no record, no separation, and its stretch is named; the refinement counts it as contact 44ms
+       - × gives no clearance certificate: asked again at the contact cadence until a pose decides it 3ms
+RED    MI10 undecidable at rest is static  (vue-tsc exit 0)
+       Tests  1 failed | 12 passed | 84 skipped (97)
+       - × at rest is never a static exclusion 5ms
+RED    MI11 an open container answers undecidable  (vue-tsc exit 0)
+       Tests  1 failed | 12 passed | 84 skipped (97)
+       - × a container whose surface is not closed is named once for the model and keeps the surface's guarantee 18ms
+RED    MI12 another shard's baseline answer kept  (vue-tsc exit 0)
+       Tests  1 failed | 12 passed | 84 skipped (97)
+       - × is named by the shard that sweeps the pair, and the merge names every one 8ms
+RED    MI13 the merge takes shard 0's statements  (vue-tsc exit 0)
+       Tests  1 failed | 12 passed | 84 skipped (97)
+       - × is named by the shard that sweeps the pair, and the merge names every one 7ms
+RED    MI14 undecidable as a separation  (vue-tsc exit 0)
+       Tests  1 failed | 12 passed | 84 skipped (97)
+       - × is no record, no separation, and its stretch is named; the refinement counts it as contact 45ms
+restored: cmp ok
+RED    MI4 no ask after a break (tool boundary only) (vue-tsc exit 0) — anchor with the certificate's reset
+       - × a jump into the inside (a relabel break) is asked at once 9ms
+RED    MI5 no ask after a tool change (break only) (vue-tsc exit 0) — anchor with the certificate's reset
+       - × a tool change that swallows a pin is a contact at once 11ms
+
+## step 5 certificate
+RED    MC1 the certificate has no end (vue-tsc exit 0)
+       Tests  2 failed | 98 passed (100)
+       - × in, wholly inside and out: one contact, from the surface crossing in to the crossing out 7ms
+       - × starting inside, clear at rest: a crash from the first line to the crossing out 1ms
+GREEN  MC2 not used up across chunks (vue-tsc exit 0)
+       Tests  100 passed (100)
+RED    MC3 beyond the horizon read as far (vue-tsc exit 0)
+       Tests  1 failed | 99 passed (100)
+       - × starting inside, clear at rest: a crash from the first line to the crossing out 6ms
+GREEN  MC4 not dropped at a break (vue-tsc exit 0)
+       Tests  100 passed (100)
+RED    MC2 not used up across chunks (vue-tsc exit 0) — rerun with the two new tests
+       - × an inside answer holds only while no surface crossing can have come — used up line by line 11ms
+RED    MC4 not dropped at a break (vue-tsc exit 0) — rerun with the two new tests
+       - × an inside answer does not cross a jump 6ms

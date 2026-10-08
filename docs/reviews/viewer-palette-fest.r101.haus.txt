@@ -1,0 +1,11 @@
+# R101 — haus.ngc (the operator's program, not committed) on the XYZAC model, node sweep, one worker
+
+## the pair y_guide_endcaps × column_foot alone (pairMask), the whole program
+without the inside check: ms 2534 samples 407469 trackEnd 15960.302734375 timeBased true records 4 onsets 2 covered 0.50 
+inside check, no certificate: ms 267779 samples 428892 trackEnd 15960.302734375 timeBased true records 200 onsets 1 covered 25.50 
+inside check + certificate: ms 3310 samples 428892 trackEnd 15960.302734375 timeBased true records 200 onsets 1 covered 25.50 
+(records, intervals and notes of the last two byte-identical)
+
+## every pair, the whole program
+base:   onset intervals by pair [["column_foot/y_guide_blocks",1],["column_foot/y_guide_endcaps",2],["column_foot/y_saddle",1],["rear_column/a_bearing_pedestals",1],["rear_column/a_bearing_rings",2],["rear_column/a_drive_covers",20],["rear_column/a_trunnion_shafts",26],["rear_column/a_yoke_casting",1],["rear_column/c_bearing_lip",14],["rear_column/c_faceplate",16],["rear_column/y_saddle",1]] ms 625701 samples 1371021 trackEnd 15960.302734375 timeBased true 
+inside: onset intervals by pair [["column_foot/y_guide_blocks",1],["column_foot/y_guide_endcaps",1],["column_foot/y_saddle",1],["rear_column/a_bearing_pedestals",1],["rear_column/a_bearing_rings",2],["rear_column/a_drive_covers",20],["rear_column/a_trunnion_shafts",26],["rear_column/a_yoke_casting",1],["rear_column/c_bearing_lip",14],["rear_column/c_faceplate",16],["rear_column/y_saddle",1]] ms 621507 samples 1371002 trackEnd 15960.302734375 timeBased true 
