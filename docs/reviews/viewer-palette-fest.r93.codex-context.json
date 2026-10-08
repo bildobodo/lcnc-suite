@@ -1,0 +1,43 @@
+{
+  "review": "R93",
+  "base": "35a3afa2",
+  "request_head": "06097a83f9ba801c36def0aeb14eee8ca187796b",
+  "product_commit": "6e498e6cc8573dbb4a18e65455f54bf26f9b5389",
+  "archive": "/tmp/codex-r93-gwy9_721/archive",
+  "byte_equal_files": 512,
+  "byte_equal_by_root": {
+    "lcnc-webui": 425,
+    "lcnc-gateway": 87
+  },
+  "isolating_changes": [
+    "lcnc-webui/e2e/ctl.ts",
+    "lcnc-webui/tsconfig.app.json",
+    "lcnc-webui/tsconfig.node.json",
+    "lcnc-webui/tsconfig.test.json",
+    "lcnc-webui/vite.config.ts"
+  ],
+  "hydrated_lfs_verified": [
+    "lcnc-gateway/machine/frame.stl",
+    "lcnc-gateway/machine/x_axis.stl",
+    "lcnc-gateway/machine/y_axis.stl",
+    "lcnc-gateway/machine/z_axis.stl"
+  ],
+  "previous_evidence": {
+    "viewer-palette-fest.r92.codex-sha256.json": {
+      "files": 38,
+      "unchanged": true
+    },
+    "viewer-palette-fest.r91.codex-sha256.json": {
+      "files": 24,
+      "unchanged": true
+    },
+    "viewer-palette-fest.r90.sha256.json": {
+      "files": 37,
+      "unchanged": true
+    }
+  },
+  "live_access": "read-only repository; no live network or machine commands",
+  "mock": "127.0.0.1:4188",
+  "priority": "nice 19",
+  "workers": 1
+}

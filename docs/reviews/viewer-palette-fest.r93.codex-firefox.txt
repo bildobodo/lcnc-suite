@@ -1,0 +1,13 @@
+[2m[WebServer] [22m(node:3981395) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:3981407) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3981407) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/collisions.viewer.spec.ts:83:1 › a move whose start no parse can know is named in the check (3.3s)
+  ✓  2 e2e/rapids.viewer.spec.ts:125:1 › a finding shows its own move of a hidden layer — not the layer (1.3s)
+
+  2 passed (5.4s)

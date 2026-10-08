@@ -13010,3 +13010,81 @@ Der Test setzte die Draufsicht, bevor der Weg gebaut war, und las die Richtung s
   - Kein Live-Blick: Die Sim ist gerade nicht gestartet.
   - Die Goldens ändern sich für jedes Programm mit G43 (Live-Gate, nächster Suite-Stopp).
   - Die Fahrt eines in der Vorschau übersprungenen M600 bleibt Schritt 3.
+
+## Review R93 · Codex · Bekannte Position nach M6 und Browser-Wächter · 8. Oktober 2026
+
+**Ergebnis: `findings`. VP-I52 geschlossen. Die ursprünglichen VP-I51-Gegenfälle sind behoben; VP-I51 bleibt als P2 offen, weil die Rückgewinnung bekannter Achsen beim Moduswechsel im selben Satz und bei gedrehtem Koordinatensystem falsch entscheidet.**
+
+Geprüft: `35a3afa2..6e498e6c`, Anfrage `06097a83`, ausschließlich in einer Archivkopie. Keine Produktänderung oder Maschinenbefehle; Browser am eigenen Mock auf `127.0.0.1:4188`.
+
+### VP-I51 · Rest A · Der Distanzmodus des aktuellen Satzes kommt zu spät
+
+**Stellen:** `lcnc-gateway/gcode_canon.py:211–221`, `:362–374`, Verbraucher `:408–416`.
+
+Die Rücknahme bei `next_line` schützt die **nächste** Zeile, aber nicht weitere Canon-Bewegungen innerhalb der Zeile, die selbst auf G91 umschaltet. Der neue Bohrzyklus-Test stellt G91 auf eine eigene vorherige Zeile; der Test für G91 im selben Satz verwendet nur eine Bewegung. Ihre Kombination bleibt rot.
+
+**Nativer Gegenfall mit `TOOL_CHANGE_POSITION = 0 0 0`:**
+
+```gcode
+G21 G90
+G0 X0 Y0 Z40
+M6
+G91 G81 X10 Y5 Z-5 R2 F100
+G80
+G0 X5
+M2
+```
+
+Während L4 gilt in der Canon noch `_incremental = False`. Die ersten Teilbewegungen löschen die veralteten Achsen; Vorschub und Rückzug desselben relativen Bohrzyklus werden danach als bekannte Bahn aufgezeichnet. Die Korrektur am nächsten `next_line` nimmt diese bereits aufgezeichneten Strecken nicht zurück.
+
+Der echte Payload ergibt nach Dekodierung und Track-Aufbau **`ustart: [1,1,1,0,0,1]` und 3,5 s erfundene Fahrdauer**. Der unveränderte Kollisionskern findet auf der eigenen einfachen Geometrie dadurch einen **Treffer auf L4** an einem Hindernis bei Z39, obwohl diese Bahn aus der veralteten Position stammt. Es gibt einen allgemeinen Hinweis auf unbekannte Teilbewegungen; er verhindert nicht, dass andere Teile desselben ungeklärten Satzes als bekannte Bahn geprüft werden. Mit G91 auf einer eigenen vorherigen Zeile sind sämtliche Starts unbekannt, die Dauer ist null und dieser Treffer entfällt.
+
+Ein zweiter nativer Mehrbewegungsfall, `G91 G28 X10 Y5 Z-5`, gibt der Rückkehrstrecke ab dem ungeklärten relativen Zwischenpunkt **3,6742 s**. Dass G28 am Ende einen festen Referenzpunkt erreicht, ist kein Gegenargument: Der Start seiner Rückkehrstrecke ist hier noch unbekannt. Die Sonde verlangt nicht, dass auch die Fahrt nach dem erreichten Referenzpunkt unbekannt bleiben müsste.
+
+**Auch die Gegenrichtung ist betroffen:** Nach G91 stellt `G90 G0 X10 Y5 Z15` alle drei Achsen absolut auf andere Werte. Trotzdem bleibt die folgende bekannte Fahrt `G0 X20` als unbekannt mit null Dauer stehen, weil `_incremental` während des G90-Satzes noch wahr war. Steht G90 separat davor, erhält dieselbe Folgefahrt korrekt **1 s**. Keines der drei Ziele entspricht dabei dem zuvor angenommenen Wert; dies fällt somit nicht unter die ausdrücklich benannte Grenze „kommandierter Wert gleich altem Wert“.
+
+**Erforderlich:** Die Entscheidung muss zum tatsächlich ausgeführten Satz gehören und für alle seine Canon-Bewegungen gelten. Ein später beobachteter Moduswechsel darf keine zuvor aus veralteten Koordinaten veröffentlichten Teilstrecken übrig lassen. Falls die Rückrufschnittstelle den Modus erst nachträglich liefert, muss auch die Aufzeichnung/Rückgewinnung dieses Satzes entsprechend abgesichert werden. Der umgekehrte G91→G90-Fall muss eine tatsächlich vollständig bestimmte Endposition wieder nutzbar machen.
+
+### VP-I51 · Rest B · Eine gedrehte X-Bewegung gilt fälschlich als Vorgabe von Y
+
+**Stellen:** `lcnc-gateway/gcode_canon.py:370–373`, `:378–381` und `:411–413`.
+
+Die Rückgewinnung vergleicht bereits durch `rotate_and_translate` transformierte Endpunkte. Eine numerische Änderung einer solchen Koordinate bedeutet nicht, dass die entsprechende zuvor unbekannte Programmkoordinate absolut vorgegeben wurde.
+
+**Nativer Gegenfall mit `TOOL_CHANGE_POSITION = 0 20 0`:**
+
+```gcode
+G21 G90
+G10 L2 P1 R45
+G54
+G0 X0 Y0 Z40
+M6
+G0 X10 Z15
+G0 X20
+M2
+```
+
+L6 nennt kein Y. Durch die 45°-Drehung ändert sich der transformierte Endpunkt aber in X **und** Y. `_unknown_move` löscht deshalb beide Achsen aus `stale`; L7 wird als bekannte Strecke behandelt. Der native Payload und der daraus gebaute Track liefern **`ustart: [1,1,0]`, Dauer 1 s**; der Einschränkungstext nennt nur L6. Die ausgelassene Koordinate wurde nach der ungesehenen Wechselbewegung nie wieder bestimmt.
+
+**Kontrollen:** Dasselbe Programm mit R0 hält L7 unbekannt und bei null Dauer. Die R45-Variante mit ausdrücklich vollständigem `G0 X10 Y5 Z15` stellt die Position dagegen berechtigt wieder her und erhält für L7 eine Sekunde. Die Sonde löst die WCS-Ereignisse über den Produktresolver `epochTermsFor` auf; die Drehung wird im Client-Prüfstand nicht weggelassen.
+
+**Erforderlich:** Die Rückgewinnung muss die Herkunft der absolut bestimmten Koordinaten im passenden Bezug berücksichtigen. Aus der bloßen Änderung transformierter Komponenten darf keine bisher fehlende Achsinformation entstehen. Eine Drehung darf eine ausgelassene, weiterhin unbekannte Koordinate nicht bestätigen. Wenn die Schnittstelle die Bestimmung nicht belegen kann, bleibt die Unsicherheit bestehen.
+
+[Alle acht Programme](viewer-palette-fest.r93.codex-native-cases.json), [nativer Prüfstand](viewer-palette-fest.r93.codex-native_probe.py), [native Ergebnisse](viewer-palette-fest.r93.codex-native.json), [Payload → Track → Sweep](viewer-palette-fest.r93.codex-recovery.test.ts), [vier rote Fälle und vier grüne Kontrollen](viewer-palette-fest.r93.codex-recovery.txt), [vollständige Track- und Sweep-Ergebnisse](viewer-palette-fest.r93.codex-recovery.json).
+
+### VP-I52 geschlossen; Eilgang-Wächter bestätigt
+
+Die optionale Diagnoseabfrage wartet jetzt korrekt auf die bereitgestellte Methode. Der unveränderte Repository-Test besteht in Chromium und Firefox. Mit um **1,5 s verzögerten STL-Antworten** besteht der neue Aufruf ebenfalls in beiden Browsern, einschließlich exaktem Warntext, Marker und sichtbarer Hilfe. Der frühere ungeschützte Aufruf schlägt in derselben Gegenprobe in beiden Browsern mit `getCollisionSummary is not a function` fehl.
+
+Auch der geänderte Eilgang-Test besteht in beiden Browsern. Die neue Reihenfolge — gezeichnete Eilgänge abwarten, Ansicht setzen, projizierte Richtung pollen — passt zu dem beschriebenen Neurahmen-Rennen. Keine neue Abnahmefrage dazu.
+
+[Chromium 2/2](viewer-palette-fest.r93.codex-chromium.txt), [Firefox 2/2](viewer-palette-fest.r93.codex-firefox.txt), [verzögerte Gegen- und Positivkontrolle](viewer-palette-fest.r93.codex-readiness.spec.ts), [Ergebnisse](viewer-palette-fest.r93.codex-readiness.txt).
+
+### Bestätigte Teile und Prüfgrenzen
+
+- Die **vier roten Payload-Fälle aus R92** (G1, G1 mit folgendem G0, G2, G43 + G1) bestehen jetzt mit unveränderten Erwartungen; ebenso die drei grünen Kontrollen. Die eigene R92-Sonde wurde lediglich auf neue Belegdateinamen umgestellt.
+- Die elf übernommenen nativen Programme laufen durch; Quill-up, wiederholtes G30 und deren Kombination behalten ihre aufgezeichneten Fahrten. Die neuen Repository-Tests für die vollständige Payload-Kette bestehen ebenfalls. Der Hinweis „not checked until the position is known again“ beschreibt die tatsächliche Prüflücke zutreffender als die bisherige Zusage einer Endpunktprüfung.
+- Eigene Prüfungen: **414 Python-Tests plus 24 Subtests**, **201 Client-Kern-/Koordinator-/Payload-Tests**, Build/TypeScript grün. Die acht zusätzlichen Wiederherstellungsfälle liefern **vier rot / vier grün**. Browser-Wächter **4/4**, verzögerte Kontrollen je Browser **alt rot / neu grün**. Kein vollständiges Offline-Gate.
+- Keine Live-Abnahme, kein Zugriff auf die Sim, keine neue Werkzeugdatenbank und keine Neuerstellung der Goldens. Die Golden-Aktualisierung und übersprungene M600-Fahrten bleiben die bereits benannten gesonderten Arbeiten.
+
+[Prüfaufbau und Wiederholung](viewer-palette-fest.r93.codex-checks.md), [Quellvergleich und Isolation](viewer-palette-fest.r93.codex-context.json), [Python](viewer-palette-fest.r93.codex-python.txt), [Client-Kern und übernommene Payload-Proben](viewer-palette-fest.r93.codex-core.txt), [Build](viewer-palette-fest.r93.codex-build.txt), [Beleghashes](viewer-palette-fest.r93.codex-sha256.json).

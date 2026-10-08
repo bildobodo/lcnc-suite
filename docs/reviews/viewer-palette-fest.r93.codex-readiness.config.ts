@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'./e2e',testMatch:'r93.readiness.spec.ts',workers:1,fullyParallel:false,timeout:120000,expect:{timeout:10000},reporter:'list',outputDir:'../evidence/r93-readiness-output',projects:[{name:'chromium',use:{browserName:'chromium'}},{name:'firefox',use:{browserName:'firefox'}}],use:{headless:true,locale:'en-GB',timezoneId:'UTC',trace:'off'},webServer:{command:'MOCK_HOST=127.0.0.1 MOCK_PORT=4188 node e2e/mock-gateway.mjs',url:'http://127.0.0.1:4188',reuseExistingServer:false}});

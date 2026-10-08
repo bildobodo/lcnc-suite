@@ -1,0 +1,6 @@
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+e2e/r93.readiness.spec.ts(5,22): error TS6133: 'simLine' is declared but its value is never read.
+e2e/r93.readiness.spec.ts(5,40): error TS6133: 'simStepBtn' is declared but its value is never read.

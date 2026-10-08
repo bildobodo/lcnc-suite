@@ -1,0 +1,248 @@
+{
+  "r92_m6_feed": {
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 1,
+      "coarsened": false,
+      "uncertified": "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L4)",
+      "pairCount": 1,
+      "pairsPrescreened": 1,
+      "bvhMs": 1.3579640000000097,
+      "sweepMs": 0.5102940000000018,
+      "truncated": null
+    },
+    "lines": [
+      2,
+      4
+    ],
+    "cum": [
+      0,
+      0
+    ],
+    "brk": [
+      1,
+      1
+    ],
+    "ustart": [
+      1,
+      1
+    ]
+  },
+  "r92_m6_feed_then_rapid": {
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 3,
+      "coarsened": false,
+      "uncertified": "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L4)",
+      "pairCount": 1,
+      "pairsPrescreened": 1,
+      "bvhMs": 0.30316799999999944,
+      "sweepMs": 0.23695999999999628,
+      "truncated": null
+    },
+    "lines": [
+      2,
+      4,
+      5
+    ],
+    "cum": [
+      0,
+      0,
+      0.5
+    ],
+    "brk": [
+      1,
+      1,
+      0
+    ],
+    "ustart": [
+      1,
+      1,
+      0
+    ]
+  },
+  "r92_m6_arc": {
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 1,
+      "coarsened": false,
+      "uncertified": "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L4)",
+      "pairCount": 1,
+      "pairsPrescreened": 1,
+      "bvhMs": 0.2541670000000096,
+      "sweepMs": 0.1197920000000039,
+      "truncated": null
+    },
+    "lines": [
+      2,
+      4
+    ],
+    "cum": [
+      0,
+      0
+    ],
+    "brk": [
+      1,
+      1
+    ],
+    "ustart": [
+      1,
+      1
+    ]
+  },
+  "r92_m6_g43_feed": {
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 1,
+      "coarsened": false,
+      "uncertified": "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L5)",
+      "pairCount": 1,
+      "pairsPrescreened": 1,
+      "bvhMs": 0.2297930000000008,
+      "sweepMs": 0.04895899999999642,
+      "truncated": null
+    },
+    "lines": [
+      2,
+      5
+    ],
+    "cum": [
+      0,
+      0
+    ],
+    "brk": [
+      1,
+      1
+    ],
+    "ustart": [
+      1,
+      1
+    ]
+  },
+  "r92_g43_mid": {
+    "result": {
+      "hits": [
+        {
+          "line": 4,
+          "cum": 1.30004638671875,
+          "cumEnd": 1.700009765625,
+          "a": "head-shell",
+          "b": "fixed",
+          "dist": 0,
+          "rapid": true,
+          "intervals": [
+            [
+              1.30004638671875,
+              1.700009765625
+            ]
+          ]
+        }
+      ],
+      "staticContacts": [],
+      "samples": 28,
+      "coarsened": false,
+      "uncertified": null,
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.42521000000000697,
+      "sweepMs": 16.50357000000001,
+      "truncated": null
+    },
+    "lines": [
+      2,
+      4,
+      4
+    ],
+    "cum": [
+      0,
+      0,
+      3
+    ],
+    "brk": [
+      1,
+      1,
+      0
+    ],
+    "ustart": [
+      1,
+      0,
+      0
+    ]
+  },
+  "r92_m6_rapid": {
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 1,
+      "coarsened": false,
+      "uncertified": "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L4)",
+      "pairCount": 1,
+      "pairsPrescreened": 1,
+      "bvhMs": 0.15562500000000057,
+      "sweepMs": 0.05591700000000799,
+      "truncated": null
+    },
+    "lines": [
+      2,
+      4
+    ],
+    "cum": [
+      0,
+      0
+    ],
+    "brk": [
+      1,
+      1
+    ],
+    "ustart": [
+      1,
+      1
+    ]
+  },
+  "r92_g49_repeat": {
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 5,
+      "coarsened": false,
+      "uncertified": null,
+      "pairCount": 1,
+      "pairsPrescreened": 1,
+      "bvhMs": 0.13854299999999853,
+      "sweepMs": 0.1255000000000024,
+      "truncated": null
+    },
+    "lines": [
+      2,
+      4,
+      4,
+      6,
+      6
+    ],
+    "cum": [
+      0,
+      0,
+      3.640054941177368,
+      3.640054941177368,
+      4.140055179595947
+    ],
+    "brk": [
+      1,
+      1,
+      0,
+      1,
+      0
+    ],
+    "ustart": [
+      1,
+      0,
+      0,
+      0,
+      0
+    ]
+  }
+}
