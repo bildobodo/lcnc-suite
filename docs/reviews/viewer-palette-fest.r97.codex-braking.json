@@ -1,0 +1,42 @@
+{
+  "proof": "native geometry plus analytic stopping-distance lower bound; no controller run",
+  "speedAtCrossing": 5,
+  "maxAxisDeceleration": 10,
+  "minimumStopZ": 51.25,
+  "stop": {
+    "cum": 3.2394421100616455,
+    "line": 3
+  },
+  "at": 3.2494421100616453,
+  "positionAtClash": [
+    9.984275939706558,
+    0,
+    50.5405413069158
+  ],
+  "rows": [
+    {
+      "key": "L3",
+      "kind": "limit",
+      "line": 3,
+      "lineLabel": "L3",
+      "cum": 0,
+      "cumEnd": 0.09816491603851318,
+      "what": "Z 60 mm > max 50 mm",
+      "note": "the run stops in this line at the latest",
+      "rapid": null,
+      "at": "00:00"
+    },
+    {
+      "key": "C3|head|fixed",
+      "kind": "clash",
+      "line": 3,
+      "lineLabel": "L3",
+      "cum": 3.2494421100616453,
+      "cumEnd": 3.250442110061645,
+      "what": "Head ↔ Fixed",
+      "note": "after the limit stop at L3",
+      "rapid": false,
+      "at": "00:03"
+    }
+  ]
+}

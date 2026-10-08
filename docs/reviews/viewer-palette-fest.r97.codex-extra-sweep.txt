@@ -1,0 +1,41 @@
+
+ RUN  v4.1.8 /tmp/codex-r97-smu4q27y/archive/lcnc-webui
+
+ ❯ src/viewer/r97.extra.test.ts (15 tests | 5 failed) 48ms
+   × r97_l_plus_active: an executed position-derived write must not become a known frame 23ms
+   × r97_l_plus_inactive: an executed position-derived write must not become a known frame 6ms
+   × r97_store_plus: an executed position-derived write must not become a known frame 1ms
+   × r97_branch_same_g92: an executed position-derived write must not become a known frame 5ms
+   × r97_branch_same_l20: an executed position-derived write must not become a known frame 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r97.extra.test.ts > r97_l_plus_active: an executed position-derived write must not become a known frame
+ FAIL  src/viewer/r97.extra.test.ts > r97_l_plus_inactive: an executed position-derived write must not become a known frame
+ FAIL  src/viewer/r97.extra.test.ts > r97_store_plus: an executed position-derived write must not become a known frame
+ FAIL  src/viewer/r97.extra.test.ts > r97_branch_same_g92: an executed position-derived write must not become a known frame
+ FAIL  src/viewer/r97.extra.test.ts > r97_branch_same_l20: an executed position-derived write must not become a known frame
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/viewer/r97.extra.test.ts:49:49
+     47| for(const name of ['r97_l_plus_active','r97_l_plus_inactive','r97_stor…
+     48|  it(name+': an executed position-derived write must not become a known…
+     49|   const r=inspect(name);expect(r.ustart.at(-1)).toBe(1);
+       |                                                 ^
+     50|  });
+     51| }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  5 failed | 10 passed (15)
+   Start at  15:24:29
+   Duration  247ms (transform 112ms, setup 0ms, import 149ms, tests 48ms, environment 0ms)
+

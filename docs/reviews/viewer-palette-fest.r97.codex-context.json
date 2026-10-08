@@ -1,0 +1,54 @@
+{
+  "review": "R97",
+  "base": "e8b2f912",
+  "product_commit": "621eb25d7d4e8fbbd67d273207479d335d2833e7",
+  "request_head": "118696b64e0a863cd7169651f6e88b275d886f65",
+  "archive": "/tmp/codex-r97-smu4q27y/archive",
+  "byte_equal_files": 512,
+  "byte_equal_by_root": {
+    "lcnc-gateway": 87,
+    "lcnc-webui": 425
+  },
+  "isolation_changes": [
+    "lcnc-webui/e2e/ctl.ts",
+    "lcnc-webui/tsconfig.app.json",
+    "lcnc-webui/tsconfig.node.json",
+    "lcnc-webui/tsconfig.test.json",
+    "lcnc-webui/vite.config.ts"
+  ],
+  "hydrated_lfs_verified": [
+    "lcnc-gateway/machine/frame.stl",
+    "lcnc-gateway/machine/x_axis.stl",
+    "lcnc-gateway/machine/y_axis.stl",
+    "lcnc-gateway/machine/z_axis.stl"
+  ],
+  "previous_evidence": {
+    "r93": {
+      "files": 47,
+      "unchanged": true
+    },
+    "r94": {
+      "files": 52,
+      "unchanged": true
+    },
+    "r95": {
+      "files": 66,
+      "unchanged": true
+    },
+    "r96": {
+      "files": 91,
+      "unchanged": true
+    }
+  },
+  "machine_commands": false,
+  "live_ports_accessed": false,
+  "mock": "127.0.0.1:4188",
+  "browser_runs": [
+    "chromium",
+    "firefox"
+  ],
+  "priority": "nice 19",
+  "workers": 1,
+  "native_programs": 57,
+  "braking_evidence": "Native geometry and analytic lower bound, not a controller execution"
+}

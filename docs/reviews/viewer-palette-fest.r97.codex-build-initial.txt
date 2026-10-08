@@ -1,0 +1,5 @@
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+sh: 1: vue-tsc: not found

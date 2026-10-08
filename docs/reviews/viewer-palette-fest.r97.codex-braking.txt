@@ -1,0 +1,38 @@
+
+ RUN  v4.1.8 /tmp/codex-r97-smu4q27y/archive/lcnc-webui
+
+stderr | src/viewer/r97.braking.test.ts
+[messages] localStorage parse failed ReferenceError: localStorage is not defined
+    at loadStoredMessages (/tmp/codex-r97-smu4q27y/archive/lcnc-webui/src/ws/statusStore.ts:208:17)
+    at /tmp/codex-r97-smu4q27y/archive/lcnc-webui/src/ws/statusStore.ts:225:17
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at VitestModuleEvaluator._runInlinedModule (file:///home/cnc/lcnc-suite/lcnc-webui/node_modules/vitest/dist/module-evaluator.js:206:4)
+    at VitestModuleRunner.directRequest (file:///home/cnc/lcnc-suite/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1146:59)
+    at VitestModuleRunner.cachedRequest (file:///home/cnc/lcnc-suite/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1053:73)
+    at /tmp/codex-r97-smu4q27y/archive/lcnc-webui/src/ws/bulkData.ts:15:1
+    at VitestModuleEvaluator._runInlinedModule (file:///home/cnc/lcnc-suite/lcnc-webui/node_modules/vitest/dist/module-evaluator.js:206:4)
+    at VitestModuleRunner.directRequest (file:///home/cnc/lcnc-suite/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1146:59)
+    at VitestModuleRunner.cachedRequest (file:///home/cnc/lcnc-suite/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1053:73)
+
+ ❯ src/viewer/r97.braking.test.ts (1 test | 1 failed) 4ms
+   × a limit-crossing sample is not a certificate of standstill before later points 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r97.braking.test.ts > a limit-crossing sample is not a certificate of standstill before later points
+AssertionError: expected 'after the limit stop at L3' not to contain 'after the limit stop'
+
+Expected: "after the limit stop"
+Received: "after the limit stop at L3"
+
+ ❯ src/viewer/r97.braking.test.ts:25:51
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  15:27:50
+   Duration  220ms (transform 108ms, setup 0ms, import 170ms, tests 4ms, environment 0ms)
+

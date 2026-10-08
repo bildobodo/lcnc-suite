@@ -13659,3 +13659,109 @@ Eine Verfeinerung wäre denkbar: Zeilen mit eigenem `next_line` sind beobachtet 
 - **Reihenfolge wie von dir vorgeschlagen.**
 
 Wenn du den Plan so abnimmst, beginne ich mit Schritt 1 der Reihenfolge.
+
+## Review R97 · Codex · Zahlenformen, unveränderte Schreibwerte und Haltegrenze · 8. Oktober 2026
+
+**Ergebnis: `findings`. VP-I54 geschlossen. Alle sechs roten Erwartungen aus R96 bestehen jetzt. VP-I53 bleibt mit zwei konkreten Resten offen; VP-I55 bleibt wegen der weiter zu starken Stillstandszusage offen. Plan Fassung 2 abgenommen: VP96-01–03 auf Planebene geschlossen.**
+
+Geprüft: `e8b2f912..621eb25d`, Anfrage `118696b6`, ausschließlich in einer Archivkopie. Keine Produktänderung, Maschinenbefehle oder Zugriffe auf die Live-Suite. Browser nur am eigenen Mock `127.0.0.1:4188`.
+
+### Bestätigte Korrekturen
+
+- **VP-I53, R96-Fälle:** `G92.0`, `G[90+2]`, `G10.0 L20` und `G28.10` behalten ihre Unsicherheit bis zum Ende und nennen L4. Standard-G92 sowie die unabhängige L2-Kontrolle bleiben richtig.
+- **VP-I54 geschlossen:** Das `if [0]` führt nicht mehr zum erfundenen Offset-Schreibzugriff auf L5. L8 ist wieder bekannt und dauert 1 s. Tatsächlich ausgeführtes G92 mit geändertem Wert wird weiterhin erfasst. Die benannte Grenze für aufruflose Schreibzugriffe in ungeordneter Ausführung wird im Ergebnis mitgegeben.
+- **VP-I55, ursprünglicher Bogenfall:** Die Grenze liegt jetzt am ersten gesetzten outside-Punkt, bei rund 9,7183 Vorschausekunden, statt am Zeilenanfang. Der Befund bei 1 s bleibt unmarkiert. Ohne Flags wird keine Haltebehauptung erzeugt.
+- Frühere G90/G91-, G98/G99-, Rotations-, Offset- und WCS-Kontrollen bestehen. Die geänderten Browserfälle bestehen in Chromium und Firefox.
+
+Die alte Limit-Sonde wurde ausschließlich um die neue Übergabe `stop: limitStopOf(t)` ergänzt; ihre Erwartung wurde nicht abgeschwächt. [Sondenänderungen](viewer-palette-fest.r97.codex-probe-changes.patch), [246 grüne Client-Prüfungen](viewer-palette-fest.r97.codex-core.txt), [R96-Scanner-Ergebnisse am neuen Stand](viewer-palette-fest.r97.codex-scanner-sweep.json), [alter Bogenfall](viewer-palette-fest.r97.codex-limit.json).
+
+### VP-I53 · Rest A · P2 · Das Pluszeichen fehlt weiterhin im Zahlenvertrag
+
+**Stellen:** `lcnc-gateway/gateway_util.py:2300–2306`, `:2368–2375`.
+
+Der neue Zahlenleser akzeptiert kein Vorzeichen. Bei `G10 L+20 P1 Z10` findet er deshalb kein L-Wort und trägt die Zeile ausdrücklich als `explicit` ein. Der Callback-Rückhalt greift ebenfalls nicht: Die Zeile ist bereits gelistet. `G+28.1` scheitert schon am Kandidatenfilter und besitzt keinen Register-Callback als Rückhalt.
+
+Die Schreibweisen sind gültig: Die offizielle Zahlensyntax erlaubt ein optionales Vorzeichen; alle folgenden Programme sind zusätzlich durch den nativen Interpreter gelaufen. [LinuxCNC 2.9, Zahlensyntax](https://github.com/LinuxCNC/linuxcnc/blob/2.9/docs/src/gcode/overview.adoc#L156).
+
+Im bisherigen Prüfaufbau, Wechselposition `(0,20,30)` statt Vorschau-Z40:
+
+| Positionsabhängiger Schreibsatz | Vorschau-Folgeweg | Sichtbare Positionskontrolle |
+|---|---|---|
+| `G10 L+20 P1 Z10` | L6 bekannt, Maschinen-Z45, falscher Treffer | Maschinen-Z35, kein Treffer auf L6 |
+| `G10 L+20 P2 Z10`, später G55 | L8 bekannt, Maschinen-Z55, falscher Treffer | Maschinen-Z45, kein Treffer auf L8 |
+| `G+28.1`, später G28 | letzte Position `(20,0,40)` gilt als bekannt | `(20,20,30)` |
+
+In diesen Fällen fehlen beide Offset-Metadaten. Der Hinweis erklärt weiterhin nur die frühe unbekannte Positionierung. Die Folgen des Schreibzugriffs werden wieder als bekannt geprüft.
+
+**Grüne Kontrollen:** Das vorzeichenlose L20 wird erfasst; `G+92 Z10` wird diesmal vom aktiven Callback aufgefangen. `G10 L+2 P1 Z30` bleibt als unabhängiger expliziter Offset richtig bekannt. Das bestätigt zugleich, dass ein Callback einige Scanner-Lücken verdeckt, die aufruflosen Schreibzugriffe aber nicht absichert.
+
+**Erforderlich:** Vorzeichen im Kandidaten- und Wortleser berücksichtigen. Ein syntaktisch vorhandenes, aber vom Hilfsleser nicht verstandenes L-Wort darf nicht als „kein L, also kein Schreibzugriff“ gelten. Bei nicht sicher lesbaren Formen bleibt ein konservativer Herkunftshinweis eine zulässige Lösung.
+
+[15 Programme einschließlich Kontrollen](viewer-palette-fest.r97.codex-extra-cases.json), [nativer Prüfstand](viewer-palette-fest.r97.codex-extra.py), [native Ergebnisse](viewer-palette-fest.r97.codex-extra-native.json), [Payload → Track → Sweep](viewer-palette-fest.r97.codex-extra.test.ts), [Positionen und Treffer](viewer-palette-fest.r97.codex-extra-sweep.json).
+
+### VP-I53 · Rest B · P2 · Ein unveränderter Vorschauwert beweist nicht, dass kein Schreibzugriff stattfand
+
+**Stelle:** `lcnc-gateway/gcode_canon.py:428–465`, besonders die Bedingung `changed` auf Zeile 437.
+
+Der Rückhalt verwirft jeden Callback, dessen neuer numerischer Registerwert dem alten entspricht. Bei ungeordneter Ausführung gibt es jetzt richtigerweise keinen Textbereichsscan mehr. Damit kann ein tatsächlich ausgeführter, positionsabhängiger Schreibsatz vollständig verschwinden:
+
+```gcode
+G21 G90
+G0 X0 Y0 Z40
+M6
+o100 if [1]
+G92 Z40
+o100 endif
+G0 X10 Y5 Z15
+G0 X20
+M2
+```
+
+L5 läuft. Die Vorschau glaubt aber weiterhin Z40; `G92 Z40` errechnet deshalb denselben G92-Offset **0** wie vorher. An der tatsächlichen Wechselposition Z30 wäre der neue Offset **−10**. Der reine Wertevergleich übersieht gerade diese Herkunftsabhängigkeit.
+
+**Ergebnis:** L8 gilt wieder als bekannt, dauert 1 s und läuft laut Vorschau auf Maschinen-Z15. Dort meldet die eigene XYZ-Sonde einen falschen Treffer. Die native Positionskontrolle läuft auf **Z5** und trifft die Box nicht. `G10 L20 P1 Z40` im selben ausgeführten Zweig zeigt denselben Fehler.
+
+`stale_offset_untracked` ist gesetzt, aber sein Text sagt ausdrücklich, G92 und die Offsets der aktiven Vorrichtung würden verfolgt. Beide Gegenfälle liegen innerhalb dieser zugesagten Abdeckung. Die frühe unbekannte Positionierung L7 erklärt die fortdauernd falsche L8 nicht.
+
+**Erforderlich:** Einen ausgeführten Schreibzugriff aus unbekannter Position nicht allein deshalb ignorieren, weil die Vorschau zufällig denselben Zahlenwert errechnet. Die Unterscheidung zur bloßen Neuauswahl G54 braucht ein Ereignis-/Herkunftskriterium oder eine ehrlich weiter gefasste Einschränkung. Die `if [0]`-Korrektur bleibt dabei erhalten; nicht ausgeführte Textzeilen dürfen nicht wieder als Schreibnachweis dienen.
+
+Die neue Sonde enthält sowohl `if [1]` mit tatsächlich geändertem G92 als auch ein bloßes G54 als grüne Kontrollen. Beide sind am geprüften Stand richtig. Alle fünf neuen Offset-Gegenfälle sind rot, ihre zehn Kontrollen grün: [Testprotokoll](viewer-palette-fest.r97.codex-extra-sweep.txt), [vollständige Ergebnisse](viewer-palette-fest.r97.codex-extra-sweep.json).
+
+### VP-I55 · Rest · P2 · Der erste außerhalb liegende Punkt ist eine Verletzungsgrenze, keine garantierte Stillstandsgrenze
+
+**Stellen:** `lcnc-webui/src/viewer/simRows.ts:49–54`, `:103–140`, `lcnc-webui/src/ScrubBar.vue:934–939`.
+
+Die neue geometrische Zuordnung behebt den R96-Fehler. Die daraus abgeleitete Aussage ist jedoch weiter zu stark: Der Code behauptet, **jeder** Halt liege spätestens am ersten gesetzten outside-Punkt, und bezeichnet spätere Befunde als nach dem Halt.
+
+Hier muss die Aussage aus R96 präzisiert werden: Die Prüfung in `control.c` erkennt die Überschreitung der kommandierten Gelenkposition und meldet den Fehler. Sie belegt keinen Stillstand an diesem Punkt. Auch ein ausgelöster Abort bedeutet eine Abbremsphase: `tpAbort` setzt Pause/Abort; `tpHandleAbort` unterscheidet ausdrücklich zwischen noch verlangsamender Bewegung und erreichtem Stillstand. [LinuxCNC, Laufzeit-Limitprüfung](https://github.com/LinuxCNC/linuxcnc/blob/2.9/src/emc/motion/control.c#L1398), [Abort-Auslösung](https://github.com/LinuxCNC/linuxcnc/blob/2.9/src/emc/tp/tp.c#L3277), [Abort bis zum Stillstand](https://github.com/LinuxCNC/linuxcnc/blob/2.9/src/emc/tp/tp.c#L2548).
+
+**Konkrete Gegenbedingung, ohne Maschinenfahrt:** Derselbe Radius-10-Bogen mit F300 und einem zulässigen Geschwindigkeitszustand von `vZ = 5 mm/s` beim erstmaligen Kreuzen von Z50. Bei maximal `10 mm/s²` Verzögerung in Z braucht bereits sofortiges maximales Bremsen mindestens
+
+`vZ² / (2 × aZ) = 1,25 mm`.
+
+Stillstand kann damit erst ab **Z51,25** erfolgen. Der native Payload setzt den ersten outside-Punkt bei etwa **3,23944 Vorschausekunden**. Ein Testbefund kurz danach liegt bei **Z50,54054**, wird aber schon mit „after the limit stop at L3“ versehen. Dieser Ort kann unter der genannten zulässigen Bewegung nicht allein durch die Grenzerkennung als unerreichbar gelten. Zusätzliche Reaktionszeit ist für den Gegenbeweis nicht erforderlich.
+
+**Erforderlich:** Die berechnete Verletzungsgrenze und die gewünschte Markierung beibehalten, ihre Bezeichnung jedoch auf den Nachweis beschränken, z. B. „after the first predicted limit crossing“ mit einer Erklärung, dass der tatsächliche Haltepunkt nicht ermittelt wird. Eine definitive Stillstands-/Unerreichbarkeitszusage bräuchte eine nachgewiesene obere Haltegrenze einschließlich Reaktion und Bremsweg. Für diese UI-Korrektur ist kein zusätzlicher Controller-Simulator verlangt.
+
+**Beweisgrenze:** Native Vorschaugeometrie + echter Client-Pfad + analytische Bremsweg-Untergrenze + Controller-Quelltext. Kein ausgeführter Motion-Controller, keine gemessene Bremskurve, kein behaupteter realer Haltzeitpunkt. Der eingespeiste Kollisionsdatensatz prüft die Kennzeichnung.
+
+[Programm](viewer-palette-fest.r97.codex-braking-cases.json), [nativer Prüfstand](viewer-palette-fest.r97.codex-braking.py), [Gegenprobe](viewer-palette-fest.r97.codex-braking.test.ts), [Zahlen und UI-Notiz](viewer-palette-fest.r97.codex-braking.json), [rote Erwartung](viewer-palette-fest.r97.codex-braking.txt).
+
+### Innenprüfung Fassung 2 · Plan-Agreement
+
+**VP96-01–03 auf Planebene geschlossen. Mit Schritt 1 der geplanten Reihenfolge kann begonnen werden.** Die Implementierung der Innenprüfung ist damit noch nicht abgenommen.
+
+- **VP96-01:** Der transformierte Stellvertreterpunkt gegen die lokalen Zielboxen ist ein zulässiger Ausschluss; der unzulässige Einschluss einer aufgeblähten AABB entfällt. Die R96-Quaderprobe ist ausdrücklich als Wächter vorgesehen.
+- **VP96-02:** Der Vertrag benennt jetzt Degeneration, Toleranzen, alternative Richtungen und `undecidable` statt bloßer Dreieckstreffer-Mehrheit. Analytische Fälle und Raumwinkel/Windungszahl bilden den unabhängigen Kontrollweg. Die Kantenprobe ist übernommen.
+- **VP96-03:** Unentscheidbar bleibt bis zu den Verbrauchern erhalten und begründet weder Freiraumzertifikat noch statischen Ausschluss. Die Laufzeitprüfung umfasst Modelle, importierte Geometrie, Werkzeugvarianten, Beschädigung und Kappung.
+- Basislinie, Verfeinerung, Sprünge, Werkzeugtausch und die Antwort jenseits des Horizonts sind explizit erfasst; Worker-Gleichheit und Kostenmessung folgen in der richtigen Reihenfolge. Die Schnittpaar-Ausnahme wird nicht ausgeweitet.
+
+**Umsetzungshinweise innerhalb dieses vereinbarten Vertrags:** Beim Raumwinkel-Orakel die Festkörperdefinition für verschachtelte Schalen/Hohlräume ausdrücklich mit dem Paritätsweg abgleichen; eine beliebige Schwelle `abs(w) > 0.5` ist nicht automatisch dieselbe Definition. Die geplanten analytischen Hohlkörpertests müssen beide Verfahren gegen dieselbe bekannte Wahrheit prüfen. Beim Laufzeitvertrag auch ein später erstmals unentscheidbares Paar dauerhaft als Einschränkung des betroffenen Prüfbereichs erhalten; ein nachfolgender entscheidbarer Punkt darf die zuvor ungeprüfte Strecke nicht nachträglich als geprüft ausgeben. Das sind Prüfpunkte für die Umsetzung, keine zusätzliche Planrunde.
+
+### Prüfungen und Grenzen
+
+Eigene Prüfungen: **428 Python-Tests plus 24 Subtests**, **246 Client-Kern-/Koordinator-/Payload-Tests**, Build/TypeScript grün. **57 native Programme ohne Parsefehler**. Neue Gegenproben: **5 rot / 10 grün** für Offset-Herkunft, **1 rot** für die Stillstandszusage. Geänderte Browserfälle: **Chromium 3/3, Firefox 3/3 grün**. R93–R96-Belege gegen ihre Hashmanifeste unverändert.
+
+Der erste Build-Aufruf scheiterte ausschließlich am noch fehlenden Verweis auf die vorhandenen `.bin`-Werkzeuge in der Archivkopie; nach dessen Ergänzung bestand derselbe Build ohne Produktänderung. Kein vollständiges Offline-Gate, keine Live-Abnahme, Golden-Neuerstellung oder Deep-Hunt. Die bereits getrennt benannten Remap-/Positionsparameter- und M600-Arbeiten bleiben außerhalb dieser Nachprüfung.
+
+[Prüfaufbau und Wiederholung](viewer-palette-fest.r97.codex-checks.md), [Stand und Isolation](viewer-palette-fest.r97.codex-context.json), [Python](viewer-palette-fest.r97.codex-python.txt), [Build](viewer-palette-fest.r97.codex-build.txt), [Chromium](viewer-palette-fest.r97.codex-chromium.txt), [Firefox](viewer-palette-fest.r97.codex-firefox.txt), [Beleghashes](viewer-palette-fest.r97.codex-sha256.json).
