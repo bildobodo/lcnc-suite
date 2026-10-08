@@ -3124,9 +3124,19 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
     Caller must hold `_cmd_lock` — NML command channel is not thread-safe.
     """
     cancel = threading.Event()
-    if claim is None and _start_kind(cmd_fn, args):
+    kind = _start_kind(cmd_fn, args)
+    if kind:
+        # A start may write the toolsetter's values (M600 plan section 2,
+        # Codex R105 VP-I60): booked here — every MDI line and every AUTO
+        # run / step / resume passes this one place — and BEFORE the command
+        # can reach the interpreter, so neither a cancel nor a timeout after
+        # the write skips it (it was booked after the await, on four of five
+        # paths). A command that never went out costs only a confirmation.
+        _ts_mark_assumed(toolsetter_assigned_keys(args[0] if args else "")
+                         if kind == "mdi" else _ts_program_writes())
+    if claim is None and kind:
         async with _get_source_lock():
-            claim = _StartClaim(_start_kind(cmd_fn, args) or "")
+            claim = _StartClaim(kind)
             _source_claims.append(claim)
 
     def _run():
@@ -3843,7 +3853,6 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
         async with _get_cmd_lock():
             await set_mode(linuxcnc.MODE_AUTO)
             await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None)
-        _ts_mark_assumed(_ts_program_writes())
         # Consumed by the skim (o<450> self-clears #3116); _skip_flag_unknown
         # stays set — an abort in the skim leaves it, the next start clears.
         flag_armed = False
@@ -3918,8 +3927,9 @@ def _ts_ensure() -> None:
 
 def _ts_mark_assumed(keys) -> None:
     """An MDI line, a macro or a program that may write `keys` (None: any)
-    was started: the file's value is all that is known — until a confirmed
-    read (the interpreter writes the file only at its next synch)."""
+    is about to start (_cmd_blocking, before the send): the file's value is
+    all that is known — until a confirmed read (the interpreter writes the
+    file only at its next synch)."""
     _ts_ensure()
     ks = list(TOOLSETTER_BASIS_KEYS) if keys is None else [k for k in keys if k in TOOLSETTER_BASIS_KEYS]
     if ks:
@@ -4325,8 +4335,6 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 _skip_flag_unknown = True
             await set_mode(linuxcnc.MODE_MDI)
             await _cmd_blocking(CMD.mdi, text, wait=None)
-            # a line that may write the toolsetter's values: from the file now
-            _ts_mark_assumed(toolsetter_assigned_keys(text))
             return reply
 
         if cmd == "run_macro":
@@ -4396,8 +4404,6 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                     claim.state = "unsent"
                 raise
             _trace.emit("macros.run", name=name, line=call["line"], serial=claim.serial)
-            # a macro file is another file: it may write any toolsetter value
-            _ts_mark_assumed(None)
             return {"ok": True, "line": call["line"]}
 
         if cmd == "set_kins_mode":
@@ -4704,7 +4710,6 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                     return refused
                 await set_mode(linuxcnc.MODE_AUTO)
                 await _cmd_blocking(CMD.auto, linuxcnc.AUTO_STEP, wait=None)
-                _ts_mark_assumed(_ts_program_writes())
             return {"ok": True}
 
         if cmd == "auto_run":
@@ -4955,7 +4960,6 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 return refused
             await set_mode(linuxcnc.MODE_AUTO)
             await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, 0, wait=None)  # Start from beginning
-            _ts_mark_assumed(_ts_program_writes())
             return {"ok": True}
 
         if cmd == "cycle_pause":

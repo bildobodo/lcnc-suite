@@ -30,7 +30,8 @@ CASES = ("g43_mid", "g43_g1_block", "r92_m6_feed", "r92_m6_feed_then_rapid", "r9
          "r97_l_plus_active", "r97_branch_same_g92", "r97_arc_braking",
          "r98_foreign_plain", "r98_foreign_spaced", "r99_o_plus", "r99_plus_skip",
          # M600 in the preview (docs/reviews/m600-preview.plan.md)
-         "m600_known", "m600_length_unknown", "m600_basis_unknown", "m600_unknown_then_high")
+         "m600_known", "m600_length_unknown", "m600_basis_unknown", "m600_unknown_then_high",
+         "m600_unknown_first", "m600_repeat")
 
 
 def main():

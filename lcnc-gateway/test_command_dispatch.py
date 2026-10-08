@@ -580,6 +580,51 @@ class TestHandlerExecution(unittest.TestCase):
         self.prog = str(Path(tmp.name) / "a.ngc")
         Path(self.prog).write_text("T5 M600\nG0 X10 Y20\nG1 X11\nG1 X12\nM2\n")
 
+    def test_every_start_books_what_it_may_write_before_it_goes_out(self):
+        # Codex R105 VP-I60: the toolsetter basis is booked in _cmd_blocking —
+        # every MDI line and AUTO run / step passes it — BEFORE the command
+        # reaches the controller. A direct run from a line (no
+        # pre-measurement) left a program that writes #3009 under a `read`
+        # basis; MDI, cycle start and step booked only after their await.
+        from gateway_util import TOOLSETTER_BASIS_KEYS
+        saved = (dict(gateway._ts_basis), gateway._ts_basis_version, gateway._bulk.last_file,
+                 gateway._bulk.published_toolsetter)
+        self.addCleanup(lambda: [setattr(gateway, "_ts_basis", saved[0]),
+                                 setattr(gateway, "_ts_basis_version", saved[1]),
+                                 setattr(gateway._bulk, "last_file", saved[2]),
+                                 setattr(gateway._bulk, "published_toolsetter", saved[3])])
+        self._with_program()
+        Path(self.prog).write_text("G21 G90\nG0 X1 Y1 Z0\n#3009=4\nG0 X2\nM2\n")
+        gateway._bulk.last_file = self.prog
+        gateway._bulk.published_toolsetter = {"routine": False, "writes": [3009]}
+        cmd = self._rcs()
+        at_send = []
+        claims = list(gateway._source_claims)
+        self.addCleanup(lambda: gateway._source_claims.__setitem__(slice(None), claims))
+        for name in ("auto", "mdi"):
+            # named like the binding's methods: _start_kind reads the name
+            # (this double's generic recorder is called `record`)
+            def spy(*a, _orig=getattr(cmd, name), **k):
+                at_send.append(gateway._ts_basis[3009]["origin"])
+                return _orig(*a, **k)
+            spy.__name__ = name
+            setattr(cmd, name, spy)
+        for kind in ("auto_run", "cycle_start", "auto_step", "mdi"):
+            with self.subTest(kind=kind):
+                gateway._ts_book({k: 3.0 for k in TOOLSETTER_BASIS_KEYS}, "read")
+                at_send.clear()
+                if kind == "auto_run":
+                    r = self._auto_run(line=2)[0]
+                elif kind == "mdi":
+                    gateway.STAT.task_mode = linuxcnc.MODE_MDI
+                    r = self._send({"cmd": "mdi", "text": "#3 0 0 9=4"})
+                else:
+                    gateway.STAT.task_mode = linuxcnc.MODE_AUTO
+                    r = self._send({"cmd": kind})
+                self.assertTrue(r["ok"], r)
+                self.assertEqual(at_send, ["assumed"], "booked before the send")
+                self.assertEqual(gateway._ts_basis[3010]["origin"], "read", "a key it does not write keeps its basis")
+
     def test_auto_run_is_bound_to_the_program_it_was_confirmed_on(self):
         self._with_program()
         cmd = self._rcs()

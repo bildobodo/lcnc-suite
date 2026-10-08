@@ -86,6 +86,7 @@ class TestBooking(_BasisCase):
             mdi(text)
             if len(calls) == 2:
                 self.task._last = 3      # RCS_ERROR
+        failing_second.__name__ = "mdi"     # the binding's name: _cmd_blocking books before the send
         self.task.mdi = failing_second
         _file_ok, mdi_ok = _run(gateway._apply_probe_vars(vals, True))
         self.assertFalse(mdi_ok)
@@ -116,6 +117,7 @@ class TestBooking(_BasisCase):
                 entered.set()
                 release.wait(5)
             mdi(text)
+        blocking_second.__name__ = "mdi"     # the binding's name: _cmd_blocking books before the send
         self.task.mdi = blocking_second
 
         async def go():
@@ -260,3 +262,41 @@ class TestEdges(_BasisCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestStartWrites(_BasisCase):
+
+    def test_a_cancel_after_the_line_went_out_still_books_it(self):
+        # Codex R105 VP-I60: the interpreter took `#3009=4`, then an abort
+        # cancelled the handler while the command thread ran — _cmd_blocking
+        # waits for the thread and propagates the cancel; the booking after
+        # the await was skipped and #3009 stayed `read` 3 over an interpreter
+        # holding 4. Booked before the send, it is `assumed`.
+        from test_command_dispatch import _payload
+        gateway._ts_book({**FILE, 3009: 3.0}, "read")
+        self.task.params[3009] = 3.0
+        gateway._skip_flag_unknown = False
+        gateway._shared_status = _payload(inpos=True, current_vel=0.0)
+        entered, release = threading.Event(), threading.Event()
+        mdi = self.task.mdi
+
+        def blocked(text):
+            mdi(text)
+            entered.set()
+            release.wait(3)
+        blocked.__name__ = "mdi"      # the binding's method name: _start_kind reads it
+        self.task.mdi = blocked
+
+        async def go():
+            t = asyncio.ensure_future(gateway.handle_command({"cmd": "mdi", "text": "#3009=4"}, True))
+            while not entered.is_set():
+                await asyncio.sleep(0.01)
+            t.cancel()
+            release.set()
+            with self.assertRaises(asyncio.CancelledError):
+                await t
+        _run(go())
+        self.assertEqual(self.task.params[3009], 4.0, "the interpreter took it")
+        self.assertEqual(self.origin(3009), "assumed")
+        self.assertEqual(self.origin(3010), "read", "a key the line does not write keeps its basis")
+

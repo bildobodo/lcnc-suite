@@ -886,12 +886,21 @@ never "measured"). Only where the machine's probe would trip there too
 fast travel, positive probe feed and retract, a slow probe ending inside the
 Z limit (motion refuses a probe END outside, command.c). Else the routine
 stops at the probe's start with `(WEBUI_PROBE_UNPREDICTED=<reason>)` — canon
-`probe_events`, wire `probe_unpredicted` [seq, tool, reason]: from there
+`probe_events`, wire `probe_unpredicted` [seq, tool, reason, line]: from there
 EVERY axis is unknown to the program's end (`_frame_unknown`, so every later
 motion is a zero-length unknown-start endpoint: no path, time, collision or
 limit check — the worker skips them in every limit check; the sweep's note,
-the Sim tab's summary "*" and "?", the bar's time "+", the stats row and the
-tool-change row say why, `viewer/probeStop.ts`). The task path is pinned to
+the Sim tab's summary "*" and "?", the bar's time "+", the stats rows and the
+tool-change row say why, `viewer/probeStop.ts`). Each measurement event
+carries the verified MAIN-file call line it belongs to (the rows' 4th
+element, `main_file_event_lines` — the same walk as the tool changes; 0 when
+not verified): the Sim tab notes a length or a stop on THAT call's row of
+THAT tool only (`m600ToolNotes`); one without a verified line, or a line
+whose runs differ (a loop), is named in general — Program Stats' "Tool
+Lengths" lists every measurement, the summary's "?" counts them (Codex R105
+VP-I63: a per-tool note put a later stop on an earlier success and on an
+ordinary M6 of the number). A first drawn point after a stop gets no entry
+move (`prependEntry`; VP-I62). The task path is pinned to
 the routine before the change as a control structure
 (`test_tool_touch_off_paths.py`, `scripts/test_fixtures/tool_touch_off.before_preview.ngc`).
 `(WEBUI_SUB_END)` precedes every `return` (a return skips the endsub's
@@ -908,7 +917,9 @@ routine reads are the INTERPRETER's; the gateway books them per key
 unknown for one that failed / timed out / was cut short, read by a confirmed
 read — task_plan_synch RCS_DONE + a new inode, save_parameters writes every
 line from the interpreter — assumed from the file at the process's start and
-after an MDI line, a macro or a program start that may write it). The parse
+BEFORE any MDI line or AUTO run / step / resume that may write it —
+`_cmd_blocking`, the one place every start passes, so neither a cancel nor a
+timeout after the write skips it; Codex R105 VP-I60). The parse
 ctx carries `toolsetter_ctx` (confirmed values patched into the worker's
 parameter copy, #3116 = 0); unknown or never-stored values set
 `#<_webui_toolsetter_stop>` by initcode — the routine returns at once,
@@ -916,9 +927,25 @@ named from its start. An unconfirmed basis is read back once per version
 while a program that runs the routine is loaded (idle, nothing in flight; an
 abort cancels it); a change re-parses it (reason `toolsetter`). An M600 /
 M601 remap that is not the suite's (`foreign_m600_codes`) is unknown from
-its call (text order) or from the program's start. Named limits:
+its call (text order) or from the program's start — and from the start
+whenever the program calls another file (M98, an o-word of no sub defined
+in it), which may run it. What a text MAY write or call is read the
+interpreter's way by ONE word reader (`gateway_util.nc_block_norm`: comments
+out, whitespace nowhere, a value a number with a sign, `[…]`, a parameter
+or a function): `toolsetter_assigned_keys` (`#3 0 0 9=`, `#+3009=`,
+`#3009.0=`; a target it does not settle — `##1=`, `#[…]=` — or a line it
+cannot read is "any"), `m_code_lines` (`T2M600`, `M+600`; `M[600]`, `M#1`
+are candidates), the M98 / M99 flow test (`M[98]` is a call) and the call
+sites of `attribute_sub_callers` (`T2M600`, `N5 o <x> c a l l`; a line that
+MAY call it leaves a single site unclaimed — the regex missed `T2M600` and
+put two calls on the other line, found with VP-I61). Which spellings the
+interpreter takes is pinned natively (`scripts/test_fixtures/nc_spellings.json`,
+`TestNcSpellings`); the shipped remap bodies and every file they call write
+no basis key (`TestShippedRemapsWriteNoBasisKey`). Named limits:
 `#5064`–`#5066` are copied without the wrapped-rotary fold; another writer of
-the interpreter (a second GUI, halui) is not seen; a mid-run measurement's
+the interpreter (a second GUI, halui) is not seen, nor what a FOREIGN remap
+body (ngc or python) writes or calls (a remapped code's line is read, its
+body is not); a mid-run measurement's
 rest check is its own later plan. Tests: `test_m600_preview_worker.py`
 (native, `native_start_probe.py` with the shipped routine and a tool data
 mmap — libtooldata needs 1001 comment pointers — and a check that the

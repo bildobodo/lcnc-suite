@@ -329,6 +329,17 @@ CASES.update({
                            "mm", 0.0, (490,),
                            {"rs274ngc": "REMAP=M600 modalgroup=6 ngc=othertc",
                             "subs": {"othertc.ngc": "o<othertc> sub\nM6\no<othertc> endsub\nM2\n"}}),
+    # Codex R105 (found with VP-I61): the call site read the interpreter's way
+    # — `T2M600` is the M600 line; beside a second M600 line neither is
+    # unique, so neither call gets a line (the regex missed `T2M600` and put
+    # both calls on the other line)
+    "m600_compact": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2M600\nG0 X60 Y60\nM2\n"),
+    "m600_compact_pair": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2M600\nG0 X60\nT1 M600\nG0 X70\nM2\n"),
+    # Codex R105 VP-I63: the same tool measured twice — predicted, then (#3007
+    # = 1) not; VP-I62: the routine before the first drawn point, unknown
+    "m600_repeat": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG0 X60\n#3007=1\nT2 M600\nG0 X70\nM2\n"),
+    "m600_unknown_first": _m600(prog="G21 G90\nT2 M600\nG0 X60 Y60 Z-100\nG0 X70\nM2\n",
+                                ctx={"toolsetter_unpredictable": "toolsetter_unknown"}),
     # a move past Z max (50) after the call: a violation where the measurement
     # is predicted, no verdict where it is not
     "m600_known_then_high": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG0 X60 Y60 Z200\nM2\n"),
@@ -357,6 +368,20 @@ CASES.update({
         "o100 if [#5070 EQ 1]\n  G0 X5\no100 else\n  G0 X7\no100 endif\n"
         "G0 Y[#5063]\nM2\n")),
 })
+
+# Codex R105 VP-I59 / VP-I61: which spellings of a parameter setting and of
+# an M word the interpreter takes (scripts/test_fixtures/nc_spellings.json) —
+# a setting of #3009 (3 before it) read back by `G0 X#3009`; an M word with a
+# foreign M600 remap (no suite marker), whose call the preview must name.
+_SPELL = json.loads((HERE.parent / "scripts" / "test_fixtures" / "nc_spellings.json").read_text())
+for _n, _a in _SPELL["assign"].items():
+    CASES["assign_" + _n] = ("G21 G90\n#3009 = 3\n" + _a + "\nG0 X#3009 Y0 Z0\nM2\n", "mm", 0.0, (490,), {})
+for _n, _c in _SPELL["mword"].items():
+    CASES["mword_" + _n] = ("G21 G90\nG0 X50 Y50 Z-100\nG1 X55 F100\n" + _c + "\nG0 X60 Y60\nM2\n",
+                            "mm", 0.0, (490,),
+                            {"rs274ngc": "REMAP=M600 modalgroup=6 ngc=othertc",
+                             "subs": {"othertc.ngc": "o<othertc> sub\nG53 G0 Z0\no<othertc> endsub\nM2\n",
+                                      "child.ngc": "o<child> sub\nT2 M600\no<child> endsub\nM2\n"}})
 
 program, units, z_off, gcodes_live, extra = CASES[sys.argv[1]]
 inch = units == "in"

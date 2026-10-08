@@ -35,7 +35,7 @@ import MachineSelect from "./MachineSelect.vue";
 import OffsetPanel from "./OffsetPanel.vue";
 import Gate from "./Gate.vue";
 import { toolOffsetState } from "./viewer/toolOffsetState";
-import { parseProbeStops, probeStopWhy, type ProbeStop } from "./viewer/probeStop";
+import { m600Events, m600StatsText, parseProbeStops, probeStopWhy, type ProbeStop } from "./viewer/probeStop";
 import MachineBtn from "./MachineBtn.vue";
 import MacroBar from "./MacroBar.vue";
 import MacrosPanel from "./MacrosPanel.vue";
@@ -569,6 +569,10 @@ const gcodeWorldUnchecked = ref(0);
 // Tool measurements the preview cannot predict (M600): the limits are
 // validated up to the first only.
 const gcodeProbeStops = ref<ProbeStop[]>([]);
+// Every measurement of the routine in order, with its call line where
+// verified — the stats list them all; the Simulation tab puts a note only
+// on a verified call's row (Codex R105 VP-I63). Empty: no routine.
+const gcodeM600Text = ref("");
 // Kins-flip honesty counts from the parse worker: flips no twin could
 // resolve (segments keep phantom geometry) and frame-relabel CARRY spans
 // (geometry corrected under an assumption canon replay cannot verify —
@@ -1867,6 +1871,9 @@ watch(viewerGcode, (newGcode) => {
   gcodeViolationsTotal.value = newGcode?.violations_total ?? 0;
   gcodeWorldUnchecked.value = newGcode?.violations_world_unchecked ?? 0;
   gcodeProbeStops.value = parseProbeStops(newGcode?.probe_unpredicted);
+  gcodeM600Text.value = m600StatsText(m600Events(gcodeProbeStops.value, newGcode?.toollen_table,
+                                                 (newGcode?.stats?.unit as string) ?? "mm"),
+                                      (newGcode?.stats?.unit as string) ?? "mm");
   gcodeKinsUnresolved.value = newGcode?.kins_flips_unresolved ?? 0;
   gcodeKinsCarrySpans.value = newGcode?.kins_carry_spans ?? 0;
   gcodeUnmarkedSubs.value = newGcode?.unmarked_subs ?? [];
@@ -2256,6 +2263,10 @@ watch(viewerGcode, (newGcode) => {
                   <span class="statsValue val-status" :class="softLimitStatus.cls">
                     {{ softLimitStatus.text }}
                   </span>
+                  <template v-if="gcodeM600Text">
+                    <span class="statsLabel">Tool Lengths<HelpIcon label="Tool lengths">Each M600 measurement in order: the table length the preview assumes (never measured), or not predicted.</HelpIcon></span>
+                    <span class="statsValue mono">{{ gcodeM600Text }}</span>
+                  </template>
                   <template v-if="kinsFlipStatus">
                     <!-- The why of a stats row is a HelpIcon on its label, never
                          only a title (design wave D1, UI-N32). -->

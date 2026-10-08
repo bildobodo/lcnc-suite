@@ -429,14 +429,16 @@ export interface ViewerGcode {
   // is the program's only one, else none — gateway_util.main_file_tool_changes).
   tool_change_lines?: [number, number][];
   /** M600 in the preview (docs/reviews/m600-preview.plan.md): where the
-   *  bundled routine stopped predicting — [seq, tool, reason]
-   *  (gateway_util.PROBE_UNPREDICTED_REASONS). From the first one on every
+   *  bundled routine stopped predicting — [seq, tool, reason, line]
+   *  (gateway_util.PROBE_UNPREDICTED_REASONS; line = the verified main-file
+   *  call, 0 not verified — older payloads lack it). From the first one on every
    *  point is an unknown start (`ScrubTrack.unpredicted`) and nothing is
    *  limit-checked. Absent = every measurement predicted (or none). */
-  probe_unpredicted?: [number, number, string][];
+  probe_unpredicted?: [number, number, string, number?][];
   /** Where the routine's G43 applied the TABLE's length — [seq, tool,
-   *  length] (machine units): an assumption, never a measurement. */
-  toollen_table?: [number, number, number][];
+   *  length, line] (machine units; line as above): an assumption, never a
+   *  measurement. */
+  toollen_table?: [number, number, number, number?][];
   /** The toolsetter basis the routine was read with (plan section 2):
    *  `state` confirmed / assumed / unknown / not_set_up, the latest
    *  confirmation's `origin` (applied / read) and `t` (epoch s), the values

@@ -78,6 +78,7 @@ from gateway_util import (
     kins_marker_policy, mode_boundary_indices, event_boundary_indices,
     classify_motion_lines, line_trust_flags, resolve_sub_indices,
     attribute_sub_callers, resolve_sub_callers, refusal_payload, main_file_tool_changes,
+    main_file_event_lines,
     read_var_snapshot, TOOLSETTER_BASIS_KEYS, toolsetter_assigned_keys,
     foreign_m600_codes, m_code_lines, next_block_lines,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
@@ -241,11 +242,20 @@ def parse(ctx: dict) -> dict:
         try:
             with open(filename, "r", errors="replace") as f:
                 _ftext = f.read()
-            canon.foreign_m600_lines = m_code_lines(_ftext, _foreign)
+            # Every line that MAY call it (m_code_lines reads the words the
+            # interpreter's way); a call into another file (M98, an o-word
+            # of no sub defined here) may run it there — from the program's
+            # start then: no line of this text says when (Codex R105 VP-I61).
+            _flines = m_code_lines(_ftext, _foreign)
+            _, _fmode = position_write_lines(_ftext)
+            if _fmode == "foreign":
+                _flines = _flines | {0}
+            canon.foreign_m600_lines = _flines
             if canon.foreign_m600_lines:
-                _, canon.foreign_m600_mode = position_write_lines(_ftext)
+                canon.foreign_m600_mode = _fmode
                 canon._next_block = next_block_lines(_ftext)
-                print(f"foreign remap {sorted(_foreign)}: not predicted from its first call",
+                print(f"foreign remap {sorted(_foreign)}: not predicted from "
+                      f"{'the program start' if _fmode != 'ordered' else 'its first call'}",
                       file=sys.stderr, flush=True)
         except OSError as e:
             # unreadable: every line may be one — from the program's start
@@ -1367,9 +1377,16 @@ def parse(ctx: dict) -> dict:
               # every point is an unknown-start endpoint and nothing is
               # limit-checked — and where its G43 applied the TABLE's length
               # (assumed, never measured) — [seq, tool, length].
-              **({"probe_unpredicted": [[int(q), int(t), str(r)] for q, t, r in canon.probe_events]}
+              # [seq, tool, reason | length, line]: line = the verified
+              # MAIN-file call the event belongs to, 0 when not verified —
+              # the client puts a note on that call's row only (VP-I63).
+              **({"probe_unpredicted": [[int(q), int(t), str(r), int(at or 0)] for (q, t, r, _k), at in zip(
+                  canon.probe_events, main_file_event_lines([e[3] for e in canon.probe_events],
+                                                            canon.sub_events, _caller_map))]}
                  if canon.probe_events else {}),
-              **({"toollen_table": [[int(q), int(t), float(z) * unit_scale] for q, t, z in canon.toollen_events]}
+              **({"toollen_table": [[int(q), int(t), float(z) * unit_scale, int(at or 0)] for (q, t, z, _k), at in zip(
+                  canon.toollen_events, main_file_event_lines([e[3] for e in canon.toollen_events],
+                                                              canon.sub_events, _caller_map))]}
                  if canon.toollen_events else {}),
               # the toolsetter basis the routine was read with (state, origin,
               # time, the values) — present when the gateway sent one

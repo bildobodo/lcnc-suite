@@ -9,7 +9,11 @@
 // the stats dialog read the same words.
 import { fmtClock, fmtQty } from "../format";
 
-export interface ProbeStop { seq: number; tool: number; reason: string }
+/** `line`: the verified MAIN-file call the event belongs to (the rows' 4th
+ *  element), 0 when it is not verified (gateway_util.main_file_event_lines). */
+export interface ProbeStop { seq: number; tool: number; reason: string; line: number }
+
+const callLine = (v: unknown) => (typeof v === "number" && Number.isInteger(v) && v > 0 ? v : 0);
 
 /** Wire `probe_unpredicted` → stops in execution order; malformed rows are
  *  dropped (a row without a seq claims nothing). */
@@ -18,10 +22,10 @@ export function parseProbeStops(v: unknown): ProbeStop[] {
   const out: ProbeStop[] = [];
   for (const row of v) {
     if (!Array.isArray(row)) continue;
-    const [seq, tool, reason] = row;
+    const [seq, tool, reason, line] = row;
     if (typeof seq !== "number" || !Number.isInteger(seq) || seq < 0) continue;
     out.push({ seq, tool: typeof tool === "number" && Number.isInteger(tool) ? tool : -1,
-               reason: typeof reason === "string" ? reason : "" });
+               reason: typeof reason === "string" ? reason : "", line: callLine(line) });
   }
   return out.sort((a, b) => a.seq - b.seq);
 }
@@ -54,26 +58,59 @@ export function probeStopTitle(stop: { tool: number; reason: string }): string {
   return `Tool measurement not predicted (${probeStopWhy(stop)})`;
 }
 
-/** The Simulation tab's note per tool on its tool-change rows: a measurement
- *  not predicted says why; a predicted one says its length is the TABLE's —
- *  an assumption, never "measured" (plan section 5; payload `toollen_table`
- *  rows [seq, tool, length]). A stop without a tool (the routine's values
- *  unknown) annotates no row: the summary says it. */
-export function m600ToolNotes(stops: readonly ProbeStop[], toollen: unknown, unit: string): Map<number, string> {
-  const out = new Map<number, string>();
+/** One measurement of the routine, in execution order: a predicted one with
+ *  its length from the TABLE (`toollen_table` rows [seq, tool, length,
+ *  line]) — an assumption, never "measured" (plan section 5) — or one the
+ *  preview does not predict, with why. A stop without a tool (the routine's
+ *  values unknown) is none: the summary says it. */
+export interface M600Event { seq: number; tool: number; line: number; note: string; length: number | null }
+
+export function m600Events(stops: readonly ProbeStop[], toollen: unknown, unit: string): M600Event[] {
+  const out: M600Event[] = [];
   for (const st of stops) {
-    if (st.tool > 0 && !out.has(st.tool)) out.set(st.tool, `measurement not predicted: ${probeStopWhy(st)}`);
+    if (st.tool > 0) out.push({ seq: st.seq, tool: st.tool, line: st.line, length: null,
+                                note: `measurement not predicted: ${probeStopWhy(st)}` });
   }
   if (Array.isArray(toollen)) {
     for (const row of toollen) {
       if (!Array.isArray(row)) continue;
-      const [seq, tool, len] = row;
+      const [seq, tool, len, line] = row;
       if (typeof seq !== "number" || !Number.isInteger(seq) || seq < 0) continue;   // malformed: claims nothing
       if (typeof tool !== "number" || tool <= 0 || typeof len !== "number" || !Number.isFinite(len)) continue;
-      if (!out.has(tool)) out.set(tool, `${fmtQty(len, unit, 3)} from the table (assumed)`);
+      out.push({ seq, tool, line: callLine(line), length: len,
+                 note: `${fmtQty(len, unit, 3)} from the table (assumed)` });
     }
   }
-  return out;
+  return out.sort((a, b) => a.seq - b.seq);
+}
+
+/** The Simulation tab's notes, bound to the CALL each measurement belongs
+ *  to (Codex R105 VP-I63): by its verified line → the tool and the note,
+ *  for the tool-change row of that line and that tool only. A measurement
+ *  without a verified line, or a line whose runs say different things (a
+ *  loop), is `unbound` — named in general, never put on every row of the
+ *  tool (an earlier success, a later stop and an ordinary M6 of the same
+ *  number are other calls). */
+export function m600ToolNotes(events: readonly M600Event[]): {
+  byLine: Map<number, { tool: number; note: string }>; unbound: M600Event[];
+} {
+  const byLine = new Map<number, { tool: number; note: string }>();
+  const torn = new Set<number>();
+  for (const e of events) {
+    if (!e.line) continue;
+    const had = byLine.get(e.line);
+    if (had && (had.tool !== e.tool || had.note !== e.note)) torn.add(e.line);
+    else byLine.set(e.line, { tool: e.tool, note: e.note });
+  }
+  for (const l of torn) byLine.delete(l);
+  return { byLine, unbound: events.filter(e => !e.line || torn.has(e.line)) };
+}
+
+/** Program Stats' list: every measurement in order, its line where known
+ *  ("T2 80.000 mm (L3), T2 not predicted (L6)"). */
+export function m600StatsText(events: readonly M600Event[], unit: string): string {
+  return events.map(e => `T${e.tool} ${e.length == null ? "not predicted" : fmtQty(e.length, unit, 3)}`
+                         + (e.line ? ` (L${e.line})` : " (line not known)")).join(", ");
 }
 
 /** The toolsetter basis the routine was predicted with (payload

@@ -53,13 +53,19 @@ export interface SimRowInput {
    *  feed_outside / rapid_outside), with its line; null without flags. Where
    *  the run actually stops is not determined (Codex R97 VP-I55). */
   stop?: { cum: number; line: number } | null;
-  /** A note per tool for its tool-change rows (probeStop.m600ToolNotes):
-   *  where a tool measurement's length comes from, or why it is not
-   *  predicted. */
-  toolNotes?: ReadonlyMap<number, string>;
+  /** The note of the tool measurement a tool-change row's CALL made, by its
+   *  line (probeStop.m600ToolNotes): on that line's row of that tool only. */
+  toolNotes?: ReadonlyMap<number, { tool: number; note: string }>;
 }
 
 const KIND_ORDER: Record<SimRowKind, number> = { tool: 0, limit: 1, clash: 2 };
+
+/** The measurement note of a tool-change row: its line's, for its tool. */
+function toolNote(notes: SimRowInput["toolNotes"], t: { line: number; tool: number }): string {
+  const n = notes?.get(t.line);
+  return n && n.tool === t.tool ? n.note : "";
+}
+
 /** THE order of the list AND of the steps through it (Codex R78 VP-I38: the
  *  steps sorted by position alone and went down, then back up, where two
  *  marks share a moment): the position, then tool → limit → collision (a
@@ -96,7 +102,7 @@ export function buildSimRows(i: SimRowInput): SimRow[] {
   }
   for (const t of i.tool) {
     rows.push({ key: t.key, kind: "tool", line: t.line, lineLabel: `L${t.line}`, cum: t.cum, cumEnd: t.cumEnd,
-      what: `Tool change → T${t.tool || "?"}`, note: i.toolNotes?.get(t.tool) ?? "", rapid: null, at: at(t.cum) });
+      what: `Tool change → T${t.tool || "?"}`, note: toolNote(i.toolNotes, t), rapid: null, at: at(t.cum) });
   }
   rows.sort(simRowOrder);
   markLimitStop(rows, i.stop ?? null);

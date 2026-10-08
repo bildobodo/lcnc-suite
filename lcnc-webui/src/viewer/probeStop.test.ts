@@ -2,16 +2,20 @@
 // the preview cannot predict (payload `probe_unpredicted`) and for a length
 // the routine took from the table (`toollen_table`).
 import { describe, expect, it } from "vitest";
-import { firstProbeStopSeq, m600ToolNotes, parseProbeStops, probeStopTitle, probeStopWhy, toolsetterBasisLine } from "./probeStop";
+import { firstProbeStopSeq, m600Events, m600StatsText, m600ToolNotes, parseProbeStops, probeStopTitle, probeStopWhy,
+         toolsetterBasisLine } from "./probeStop";
 import { fmtClock } from "../format";
 import { buildSimRows } from "./simRows";
 
 describe("probe stops", () => {
   it("parses the wire rows in seq order and drops malformed ones", () => {
-    expect(parseProbeStops([[40, 3, "travel"], [14, 2, "length"], ["x", 1, "feed"], [5.5, 1, "feed"], [-1, 1, "feed"], "no"]))
-      .toEqual([{ seq: 14, tool: 2, reason: "length" }, { seq: 40, tool: 3, reason: "travel" }]);
+    expect(parseProbeStops([[40, 3, "travel", 6], [14, 2, "length"], ["x", 1, "feed"], [5.5, 1, "feed"], [-1, 1, "feed"], "no"]))
+      .toEqual([{ seq: 14, tool: 2, reason: "length", line: 0 }, { seq: 40, tool: 3, reason: "travel", line: 6 }]);
     expect(parseProbeStops(undefined)).toEqual([]);
-    expect(parseProbeStops([[7]])).toEqual([{ seq: 7, tool: -1, reason: "" }]);
+    expect(parseProbeStops([[7]])).toEqual([{ seq: 7, tool: -1, reason: "", line: 0 }]);
+    // a line that is no positive integer names no call
+    expect(parseProbeStops([[7, 2, "length", -3], [8, 2, "length", 2.5], [9, 2, "length", "4"]]).map(s => s.line))
+      .toEqual([0, 0, 0]);
     expect(firstProbeStopSeq([[40, 3, "travel"], [14, 2, "length"]])).toBe(14);
     expect(firstProbeStopSeq([])).toBeUndefined();
   });
@@ -33,26 +37,61 @@ describe("probe stops", () => {
     expect(probeStopTitle({ tool: 2, reason: "length" })).toBe("Tool measurement not predicted (T2 has no length in the table)");
   });
 
-  it("notes a tool's length as the table's, never as measured — and a stop's reason over it", () => {
-    const notes = m600ToolNotes(parseProbeStops([[30, 3, "travel"], [50, -1, "toolsetter_unknown"]]),
-                                [[22, 2, 80], [60, 3, 10], [70, 0, 5], ["x", 4, 1]], "mm");
-    expect([...notes]).toEqual([
-      [3, "measurement not predicted: T3's table length does not trip within the probe's travel"],
-      [2, "80.000 mm from the table (assumed)"],
+  it("notes a length as the table's, never as measured — and a stop's reason", () => {
+    const ev = m600Events(parseProbeStops([[30, 3, "travel", 5], [50, -1, "toolsetter_unknown", 0]]),
+                          [[22, 2, 80, 3], [60, 3, 10, 0], [70, 0, 5, 9], ["x", 4, 1, 9]], "mm");
+    // in execution order; a stop without a tool (the values unknown) is the summary's
+    expect(ev.map(e => [e.seq, e.tool, e.line, e.note])).toEqual([
+      [22, 2, 3, "80.000 mm from the table (assumed)"],
+      [30, 3, 5, "measurement not predicted: T3's table length does not trip within the probe's travel"],
+      [60, 3, 0, "10.000 mm from the table (assumed)"],
     ]);
-    for (const n of notes.values()) expect(n).not.toMatch(/measured(?! ?not)/i);
+    for (const e of ev) expect(e.note).not.toMatch(/measured(?! ?not)/i);
+    expect(m600StatsText(ev, "mm")).toBe("T2 80.000 mm (L3), T3 not predicted (L5), T3 10.000 mm (line not known)");
   });
 
-  it("puts the note on the tool's change rows", () => {
-    const rows = buildSimRows({
-      clash: [], limit: [], violations: [], unit: "mm", timeBased: true, axisEnd: 10,
-      tool: [{ key: "T3", line: 3, tool: 2, cum: 1, cumEnd: 2 }, { key: "T7", line: 7, tool: 5, cum: 4, cumEnd: 5 }],
-      toolNotes: m600ToolNotes([], [[22, 2, 65.04]], "mm"),
-    });
-    expect(rows.map(r => [r.what, r.note])).toEqual([
-      ["Tool change → T2", "65.040 mm from the table (assumed)"],
-      ["Tool change → T5", ""],
+  // Codex R105 VP-I63: a note belongs to the CALL it came from — the same
+  // tool measured twice, a success before a stop, an ordinary M6 of the same
+  // number before an M600 are other calls.
+  const rowsOf = (tool: { key: string; line: number; tool: number }[], notes: ReturnType<typeof m600ToolNotes>) =>
+    buildSimRows({ clash: [], limit: [], violations: [], unit: "mm", timeBased: true, axisEnd: 10,
+                   tool: tool.map((t, i) => ({ ...t, cum: i, cumEnd: i + 0.5 })), toolNotes: notes.byLine })
+      .map(r => [r.what, r.note]);
+
+  it("puts a note on its own call's row only", () => {
+    // T2 at L3 predicted, #3007=1, T2 at L6 not (the native repeat_same_tool payload's events)
+    const ev = m600Events(parseProbeStops([[42, 2, "travel", 6]]), [[22, 2, 80, 3]], "mm");
+    const notes = m600ToolNotes(ev);
+    expect(notes.unbound).toEqual([]);
+    expect(rowsOf([{ key: "T3", line: 3, tool: 2 }, { key: "T6", line: 6, tool: 2 }], notes)).toEqual([
+      ["Tool change → T2", "80.000 mm from the table (assumed)"],
+      ["Tool change → T2", "measurement not predicted: T2's table length does not trip within the probe's travel"],
     ]);
+    // an ordinary M6 of the same tool before the M600: no note
+    const one = m600ToolNotes(m600Events([], [[22, 2, 65.04, 5]], "mm"));
+    expect(rowsOf([{ key: "T2", line: 2, tool: 2 }, { key: "T5", line: 5, tool: 2 }], one)).toEqual([
+      ["Tool change → T2", ""],
+      ["Tool change → T2", "65.040 mm from the table (assumed)"],
+    ]);
+    // a row of another tool on the line takes nothing
+    expect(rowsOf([{ key: "T5", line: 5, tool: 7 }], one)).toEqual([["Tool change → T7", ""]]);
+  });
+
+  it("names a measurement in general where its call line is not verified, or its runs differ", () => {
+    // two M600 lines whose calls are not verified: no row carries either
+    const unv = m600ToolNotes(m600Events(parseProbeStops([[42, 2, "travel", 0]]), [[22, 2, 80, 0]], "mm"));
+    expect(unv.byLine.size).toBe(0);
+    expect(unv.unbound.map(e => e.seq)).toEqual([22, 42]);
+    expect(rowsOf([{ key: "T3", line: 3, tool: 2 }, { key: "T6", line: 6, tool: 2 }], unv))
+      .toEqual([["Tool change → T2", ""], ["Tool change → T2", ""]]);
+    // one line run twice (a loop) — predicted, then not: no single note is true
+    const loop = m600ToolNotes(m600Events(parseProbeStops([[42, 2, "travel", 4]]), [[22, 2, 80, 4]], "mm"));
+    expect(loop.byLine.has(4)).toBe(false);
+    expect(loop.unbound.map(e => e.seq)).toEqual([22, 42]);
+    // run twice saying the same: one note
+    const same = m600ToolNotes(m600Events([], [[22, 2, 80, 4], [52, 2, 80, 4]], "mm"));
+    expect(same.byLine.get(4)).toEqual({ tool: 2, note: "80.000 mm from the table (assumed)" });
+    expect(same.unbound).toEqual([]);
   });
 
   it("says where the toolsetter values come from, and when the Settings hold others", () => {

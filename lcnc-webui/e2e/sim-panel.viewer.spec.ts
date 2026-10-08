@@ -512,7 +512,8 @@ test("a predicted measurement: the summary's \"?\" says where the toolsetter val
 // length comes from (the table's, assumed) or why it is not predicted.
 test("a tool measurement the preview cannot predict: the summary, the time and the rows say what is not known", async ({ page, context }) => {
   await prepare(page, context, "desktop", Buffer.from(encode({ ...PREVIEW_FIELDS,
-    probe_unpredicted: [[20, 3, "length"]], toollen_table: [[12, 5, 65.04]] })));
+    // [seq, tool, …, the verified call line] (Codex R105 VP-I63)
+    probe_unpredicted: [[20, 3, "length", 10]], toollen_table: [[12, 5, 65.04, 20]] })));
   const items = page.locator(".simPanel .simSummary [role=img]");
   await expect(items.nth(1)).toHaveAttribute("aria-label", "2 limit violations · checked to the tool measurement");
   await expect(page.locator(".simPanel .simSummary .sumLimit .text-warn")).toHaveText("*");
@@ -529,6 +530,19 @@ test("a tool measurement the preview cannot predict: the summary, the time and t
   await expect(page.locator('.simPanel [data-sim-row="T10"] .colWhat')).toContainText("measurement not predicted: T3 has no length in the table");
   await expect(page.locator('.simPanel [data-sim-row="T20"] .colWhat')).toContainText("65.040 mm from the table (assumed)");
   await expect(page.locator(".simPanel")).not.toContainText(/\bmeasured\b/);
+});
+
+// Codex R105 VP-I63: a note belongs to its CALL — a measurement whose call
+// line is not verified (two M600 lines) is on no row of its tool: Program
+// Stats lists it, the summary's "?" says where.
+test("a measurement without a verified call line is on no row: the \"?\" points to Program Stats", async ({ page, context }) => {
+  await prepare(page, context, "desktop", Buffer.from(encode({ ...PREVIEW_FIELDS,
+    toollen_table: [[12, 5, 65.04, 0]] })));
+  await expect(page.locator('.simPanel [data-sim-row="T20"] .colWhat')).toHaveText("Tool change → T5");
+  const help = page.locator('.simPanel .simSummaryRow [aria-label="Help: Summary"]');
+  await help.click();
+  await expect(page.locator(".helpPopover:popover-open")).toContainText("Tool lengths: Program Stats.");
+  await help.click();
 });
 
 // Codex R83 VP-I43: with a full summary line the "?" sat at the tab

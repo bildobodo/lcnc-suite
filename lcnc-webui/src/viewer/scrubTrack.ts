@@ -914,7 +914,8 @@ export function sliceTrack(t: ScrubTrack, a: number, b: number): ScrubTrack {
  *  point gets line 0 ("entry" in the UI) and a rapid flag; cum and the line index
  *  shift by the entry length (SECONDS on a time-based track, given rapid
  *  `rates`; distance otherwise). Returns the original track unchanged when
- *  the machine already sits at the first point. */
+ *  the machine already sits at the first point, or when that point lies
+ *  after a tool measurement the preview does not predict (`unpredicted`). */
 export function prependEntry(
   t: ScrubTrack,
   entry: [number, number, number, number, number, number],
@@ -934,6 +935,12 @@ export function prependEntry(
     entryLen = Math.max(linear, rotDeg * DEG_AS_MM);
   }
   if (entryLen < 1e-6) return t;
+  // A first point AFTER a tool measurement the preview does not predict
+  // (M600 before the first drawn point): where the run is then — position,
+  // tool, offset — is not known, so there is no move to it to time or sweep;
+  // that stretch stays unchecked like the rest after the stop (Codex R105
+  // VP-I62: the entry move made it a timed, swept rapid again).
+  if (t.unpredicted?.[0]) return t;
 
   const n = t.count + 1;
   const pos = new Float32Array(n * 3);
@@ -988,7 +995,8 @@ export function prependEntry(
   }
   let unpredicted: Uint8Array | undefined;
   if (t.unpredicted) {
-    // The entry move runs before the program: never after its measurement.
+    // Its first point is known (checked above): the entry move runs before
+    // any measurement that is not predicted.
     unpredicted = new Uint8Array(n);
     unpredicted.set(t.unpredicted, 1);
     unpredicted[0] = 0;
