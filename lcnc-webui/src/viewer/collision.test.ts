@@ -1921,6 +1921,28 @@ describe("a body wholly inside another (the inside check, collision-inside.plan.
     expect(r.hits.map(h => h.line)).toEqual([2]);
   });
 
+  it("parked and continued (the worker's snapshots), an inside contact ends as the uninterrupted sweep", () => {
+    // In through the face, wholly inside and out again in 0.5 mm lines (240
+    // segments: a checkpoint every 16): a snapshot at every checkpoint
+    // refines copies — posing the model, asking the rays — while the sweep
+    // is suspended; continuing must end exactly as the sweep without them.
+    const pts: number[] = [];
+    for (let x = 60; x > 0; x -= 0.5) pts.push(x);
+    for (let x = 0; x <= 60; x += 0.5) pts.push(x);
+    const model = buildCollisionModel(machine(), [post(), nub]);
+    const sync = sweepCollisions(model, xs(pts), WCS0, { margin: 0.1 });
+    const snap: SnapshotHandle = { take: null, peek: null, records: null };
+    const it = sweepCollisionsIter(model, xs(pts), WCS0, { margin: 0.1, snapshot: snap });
+    let r = it.next(), parks = 0;
+    while (!r.done) { snap.take!("stopped"); snap.peek!(); parks++; r = it.next(); }
+    expect(parks).toBeGreaterThan(10);
+    const full = r.value as CollisionResult;
+    const shape = (x: CollisionResult) => x.hits.map(h => [h.line, h.continuation, h.intervals?.map(iv => iv.map(v => +v.toFixed(3)))]);
+    expect(shape(full)).toEqual(shape(sync));
+    expect([full.samples, full.notes]).toEqual([sync.samples, sync.notes]);
+    expect(sync.hits.filter(h => h.continuation === undefined)).toHaveLength(1);
+  });
+
   it("a container whose surface is not closed is named once for the model and keeps the surface's guarantee", () => {
     // The post without one facet: no inside to decide. The sweep sees the
     // two surface crossings as two contacts (the surface's reading), asks

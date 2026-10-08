@@ -266,6 +266,16 @@ export function insidePose(model: CollisionModel, c: Case, rand: () => number, t
   return null;
 }
 
+/** A short track from a pose where a body lies wholly inside another —
+ *  starting inside (the baseline's question), then two moves of up to 2 % of
+ *  the box that may leave it (the separation decisions). */
+export function insideTrack(c: Case, at: number[], rand: () => number): CollisionTrack {
+  const L = ["X", "Y", "Z", "A", "B", "C"];
+  const near = (p: number[]) => p.map((v, j) => { const b = c.box[L[j]!]; return b ? v + (rand() - 0.5) * (b[1] - b[0]) * 0.04 : v; });
+  const p1 = near(at);
+  return trackOf(c, [at, p1, near(p1)], rand);
+}
+
 /** The first pair at `at` with a body wholly inside the other and the
  *  surfaces apart; null when there is none. */
 export function insideAt(model: CollisionModel, c: Case, at: number[]): { at: number[]; a: string; b: string } | null {

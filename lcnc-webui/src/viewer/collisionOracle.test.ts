@@ -24,7 +24,7 @@ import * as path from "node:path";
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import { geometryNote, sweepCollisions, type CollisionHit, type CollisionTrack } from "./collision";
-import { CONTACT, MARGIN, MIN_ADV, insideAt, insidePose, insideTruth, loadShippedModel, randomTrack, rng, shippedCases, trackOf, trackTruth, type FixtureFiles } from "./collisionFixtures";
+import { CONTACT, MARGIN, MIN_ADV, insideAt, insidePose, insideTrack, insideTruth, loadShippedModel, randomTrack, rng, shippedCases, trackTruth, type FixtureFiles } from "./collisionFixtures";
 
 const ROOT = path.resolve(__dirname, "../../..");
 const TOL = 0.01;           // interval boundaries are bisected to 1e-3
@@ -62,19 +62,14 @@ describe("the sweep against a brute-force oracle", () => {
       for (let ti = 0; ti < (DEEP ? c.tracks : 1); ti++)
         tracks.push({ track: randomTrack(c, rand, DEEP ? c.segments : 3, DEEP ? 0.6 : 0.25), where: `${c.name} track ${ti}` });
       // A body wholly inside another: a pose the winding number finds, and a
-      // short track from it — starting inside (the baseline's question), then
-      // two moves of up to 2 % of the box that may leave it (the separation
-      // decisions).
+      // short track from it (`insideTrack`).
       // The gate takes the case's recorded pose (a case without one has none
       // to find: the 3-axis model's search costs 73 s for nothing); a hunt
       // searches afresh.
       const found = DEEP ? insidePose(model, c, rand, 4000) : c.inside ? insideAt(model, c, c.inside) : null;
       if (!DEEP && c.inside && !found) expect.fail(`${c.name}: the recorded inside pose has no body inside another any more — search again (COLLISION_HUNT=deep)`);
       if (found) {
-        const L = ["X", "Y", "Z", "A", "B", "C"];
-        const near = (p: number[]) => p.map((v, j) => { const b = c.box[L[j]!]; return b ? v + (rand() - 0.5) * (b[1] - b[0]) * 0.04 : v; });
-        const p1 = near(found.at);
-        tracks.push({ track: trackOf(c, [found.at, p1, near(p1)], rand), where: `${c.name} inside track (${found.a} in ${found.b})` });
+        tracks.push({ track: insideTrack(c, found.at, rand), where: `${c.name} inside track (${found.a} in ${found.b})` });
         insideCases.push(c.name);
       }
       for (const { track, where } of tracks) {
