@@ -1,0 +1,29 @@
+# R96 — Codex's seven R95 programs, own cases (hidden by G90 / a comment, G28.1 / G30.1, G92 before the change, G92.1, an o-word loop, a G92 in a sub file) and the R94 / R93 stale-axis cases: the REAL parse worker + native interpreter (native_start_probe.py, fix/r95 3adfae4b)
+r95_g92_from_stale {"err": null, "lines": [2, 5, 5, 6], "tcum": [0.0, 0.0, 0.0, 0.0], "ustart": [1, 0, 1, 1], "stale_offset_lines": [4], "untracked": null}
+r95_l20_from_stale {"err": null, "lines": [2, 5, 5, 6], "tcum": [0.0, 0.0, 0.0, 0.0], "ustart": [1, 0, 1, 1], "stale_offset_lines": [4], "untracked": null}
+r95_l20_inactive {"err": null, "lines": [2, 5, 7, 7, 8], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 0, 1, 1], "stale_offset_lines": [4], "untracked": null}
+r95_l2_constant {"err": null, "lines": [2, 5, 5, 6], "tcum": [0.0, 0.0, 0.0, 1.0], "ustart": [1, 0, 1, 0], "stale_offset_lines": null, "untracked": null}
+r95_g92_from_stale_position_control {"err": null, "lines": [2, 3, 5, 5, 6], "tcum": [0.0, 2.236068, 2.236068, 4.106897, 5.106897], "ustart": [1, 0, 0, 0, 0], "stale_offset_lines": null, "untracked": null}
+r95_l20_from_stale_position_control {"err": null, "lines": [2, 3, 5, 5, 6], "tcum": [0.0, 2.236068, 2.236068, 4.106897, 5.106897], "ustart": [1, 0, 0, 0, 0], "stale_offset_lines": null, "untracked": null}
+r95_l20_inactive_position_control {"err": null, "lines": [2, 3, 5, 7, 7, 8], "tcum": [0.0, 2.236068, 4.581276, 4.581276, 7.743554, 8.743553], "ustart": [1, 0, 0, 0, 0, 0], "stale_offset_lines": null, "untracked": null}
+r95_l20_inactive_comment {"err": null, "lines": [2, 6, 8, 8, 9], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 0, 1, 1], "stale_offset_lines": [4], "untracked": null}
+r95_l20_inactive_hidden {"err": null, "lines": [2, 6, 8, 8, 9], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 0, 1, 1], "stale_offset_lines": [4], "untracked": null}
+r95_g28_1_from_stale {"err": null, "lines": [2, 5, 6, 6, 7], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1, 1], "stale_offset_lines": [4], "untracked": null}
+r95_g28_1_hidden {"err": null, "lines": [2, 6, 7, 7, 8], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1, 1], "stale_offset_lines": [4], "untracked": null}
+r95_g30_1_from_stale {"err": null, "lines": [2, 5, 6, 6, 7], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1, 1], "stale_offset_lines": [4], "untracked": null}
+r95_g92_before_change {"err": null, "lines": [2, 5, 5, 6], "tcum": [0.0, 0.0, 0.0, 1.0], "ustart": [1, 0, 1, 0], "stale_offset_lines": null, "untracked": null}
+r95_g92_1_from_stale {"err": null, "lines": [2, 5, 6], "tcum": [0.0, 0.0, 1.0], "ustart": [1, 1, 0], "stale_offset_lines": null, "untracked": null}
+r95_oword_g92 {"err": null, "lines": [2, 7, 7, 8], "tcum": [0.0, 0.0, 0.0, 0.0], "ustart": [1, 0, 1, 1], "stale_offset_lines": [6], "untracked": true}
+r95_sub_g92 {"err": null, "lines": [2, 5, 5, 6], "tcum": [0.0, 0.0, 0.0, 0.0], "ustart": [1, 0, 1, 1], "stale_offset_lines": [0], "untracked": true}
+r95_oword_no_write {"err": null, "lines": [2, 6, 7], "tcum": [0.0, 0.0, 1.0], "ustart": [1, 1, 0], "stale_offset_lines": null, "untracked": true}
+r94_g98_cycle {"err": null, "lines": [2, 4, 4, 4, 4, 6], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1, 1, 1], "stale_offset_lines": null, "untracked": null}
+r94_g99_cycle {"err": null, "lines": [2, 4, 4, 4, 4, 6], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0, 1.0], "ustart": [1, 1, 1, 1, 1, 0], "stale_offset_lines": null, "untracked": null}
+r94_g98_below_r {"err": null, "lines": [2, 4, 4, 4, 4, 6], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1, 1, 1], "stale_offset_lines": null, "untracked": null}
+r94_rotated_after_partial {"err": null, "lines": [2, 4, 6, 6, 7], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 0, 1, 1], "stale_offset_lines": null, "untracked": null}
+r94_rotated_complete {"err": null, "lines": [2, 4, 6, 6, 7], "tcum": [0.0, 0.0, 0.0, 0.0, 1.0], "ustart": [1, 1, 0, 1, 0], "stale_offset_lines": null, "untracked": null}
+r94_g76_returns_x {"err": null, "lines": ["…", 6, 6, 6, 6, 6, 7], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1, 1, 1], "stale_offset_lines": null, "untracked": null}
+r94_fixture_rotated_after_partial {"err": null, "lines": [3, 5, 7, 7, 8], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 0, 1, 1], "stale_offset_lines": null, "untracked": null}
+r93_inline_g91_cycle {"err": null, "lines": [2, 4, 4, 4, 4, 6], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1, 1, 1], "stale_offset_lines": null, "untracked": null}
+r93_rotated_partial {"err": null, "lines": [4, 6, 7], "tcum": [0.0, 0.0, 0.0], "ustart": [1, 1, 1], "stale_offset_lines": null, "untracked": null}
+r93_g90_same_block {"err": null, "lines": [2, 5, 6, 7], "tcum": [0.0, 0.0, 0.0, 1.0], "ustart": [1, 1, 1, 0], "stale_offset_lines": null, "untracked": null}
+m6_tc_partial {"err": null, "lines": [2, 4, 5, 6], "tcum": [0.0, 0.0, 0.0, 1.0], "ustart": [1, 1, 1, 0], "stale_offset_lines": null, "untracked": null}
