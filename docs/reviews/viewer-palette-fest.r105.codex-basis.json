@@ -1,0 +1,64 @@
+[
+  {
+    "text": "#3009=4",
+    "assigned_keys": [
+      3009
+    ],
+    "basis_state": "assumed",
+    "3009": {
+      "value": 4.0,
+      "origin": "assumed",
+      "t": 1791492596.3903205
+    }
+  },
+  {
+    "text": "#1=3009\n##1=4",
+    "assigned_keys": [],
+    "basis_state": "confirmed",
+    "3009": {
+      "value": 3.0,
+      "origin": "read",
+      "t": 1791492596.3903518
+    }
+  },
+  {
+    "text": "#3 0 0 9=4",
+    "assigned_keys": [],
+    "basis_state": "confirmed",
+    "3009": {
+      "value": 3.0,
+      "origin": "read",
+      "t": 1791492596.390382
+    }
+  },
+  {
+    "text": "#+3009=4",
+    "assigned_keys": [],
+    "basis_state": "confirmed",
+    "3009": {
+      "value": 3.0,
+      "origin": "read",
+      "t": 1791492596.3903925
+    }
+  },
+  {
+    "text": "#3009.0=4",
+    "assigned_keys": [],
+    "basis_state": "confirmed",
+    "3009": {
+      "value": 3.0,
+      "origin": "read",
+      "t": 1791492596.3904014
+    }
+  },
+  {
+    "text": "#[3000+9]=4",
+    "assigned_keys": null,
+    "basis_state": "assumed",
+    "3009": {
+      "value": 4.0,
+      "origin": "assumed",
+      "t": 1791492596.3904362
+    }
+  }
+]

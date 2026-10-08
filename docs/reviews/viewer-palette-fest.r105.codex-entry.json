@@ -1,0 +1,63 @@
+{
+  "stop": [
+    [
+      0,
+      -1,
+      "toolsetter_unknown"
+    ]
+  ],
+  "base": {
+    "count": 2,
+    "ustart": [
+      1,
+      1
+    ],
+    "unpredicted": [
+      1,
+      1
+    ],
+    "cum": [
+      0,
+      0
+    ],
+    "hits": []
+  },
+  "entry": {
+    "count": 3,
+    "ustart": [
+      0,
+      0,
+      1
+    ],
+    "unpredicted": [
+      0,
+      0,
+      1
+    ],
+    "cum": [
+      0,
+      13.114876747131348,
+      13.114876747131348
+    ],
+    "hits": [
+      {
+        "line": 3,
+        "cum": 6.426301008679574,
+        "cumEnd": 6.688569063643018,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": true,
+        "intervals": [
+          [
+            6.426301008679574,
+            6.688569063643018
+          ]
+        ]
+      }
+    ],
+    "notes": [
+      "Tool measurement not predicted (the toolsetter values are not confirmed) — 1 move after it not checked to the program's end (L4)"
+    ]
+  }
+}
