@@ -1,0 +1,95 @@
+{
+  "missing_from_proposed_3100_3115_patch": {
+    "3004": "fastFeed",
+    "3005": "slowFeed",
+    "3006": "traverseFeed",
+    "3007": "maxZTravel",
+    "3009": "retractDist",
+    "3010": "spindleZeroHeight",
+    "3013": "offsetDirection"
+  },
+  "other_routine_inputs": {
+    "3014": "finder tool number (separate probe settings)",
+    "5181..5183": "G30 position",
+    "3116": "run-from-line skip",
+    "2000": "call mode"
+  },
+  "arithmetic_counterexamples": [
+    {
+      "name": "ordinary",
+      "touchZ": -100,
+      "length": 20,
+      "toolMinDis": 5,
+      "maxZTravel": 10,
+      "axisMin": -500,
+      "finderDiff": 0,
+      "start": -75,
+      "fastEnd": -85,
+      "planTarget": -80,
+      "targetStrictlyOnDownwardProbe": true,
+      "routineLengthAtPlanTarget": 20,
+      "planClaimsLength": 20
+    },
+    {
+      "name": "configured-travel-too-short",
+      "touchZ": -100,
+      "length": 20,
+      "toolMinDis": 5,
+      "maxZTravel": 1,
+      "axisMin": -500,
+      "finderDiff": 0,
+      "start": -75,
+      "fastEnd": -76,
+      "planTarget": -80,
+      "targetStrictlyOnDownwardProbe": false,
+      "routineLengthAtPlanTarget": 20,
+      "planClaimsLength": 20
+    },
+    {
+      "name": "axis-clamp-stops-before-target",
+      "touchZ": -100,
+      "length": 20,
+      "toolMinDis": 5,
+      "maxZTravel": 10,
+      "axisMin": -81,
+      "finderDiff": 0,
+      "start": -75,
+      "fastEnd": -79,
+      "planTarget": -80,
+      "targetStrictlyOnDownwardProbe": false,
+      "routineLengthAtPlanTarget": 20,
+      "planClaimsLength": 20
+    },
+    {
+      "name": "positive-reference",
+      "touchZ": 10,
+      "length": 20,
+      "toolMinDis": 5,
+      "maxZTravel": 10,
+      "axisMin": -500,
+      "finderDiff": 0,
+      "start": 35,
+      "fastEnd": 25,
+      "planTarget": 30,
+      "targetStrictlyOnDownwardProbe": true,
+      "routineLengthAtPlanTarget": 40,
+      "planClaimsLength": 20
+    },
+    {
+      "name": "edge-finder",
+      "touchZ": -100,
+      "length": 20,
+      "toolMinDis": 5,
+      "maxZTravel": 10,
+      "axisMin": -500,
+      "finderDiff": 3,
+      "start": -72,
+      "fastEnd": -82,
+      "planTarget": -77,
+      "targetStrictlyOnDownwardProbe": true,
+      "routineLengthAtPlanTarget": 20,
+      "planClaimsLength": 20
+    }
+  ],
+  "limits": "Arithmetic for plan only, not an implementation of a changed M600; tool table assumed to equal physical length."
+}

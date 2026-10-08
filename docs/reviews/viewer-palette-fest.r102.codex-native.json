@@ -1,0 +1,366 @@
+{
+  "g38_2": {
+    "exit": 0,
+    "stderr": "",
+    "out": {
+      "parse_error": null,
+      "feed": [
+        [
+          0.0,
+          0.0,
+          -50.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -50.0,
+          -50.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        2,
+        4
+      ],
+      "rapid_seq": [
+        2,
+        6
+      ],
+      "rapid_tcum": [
+        0.0,
+        5.0
+      ],
+      "rapid_brk": [
+        0,
+        0
+      ],
+      "rapid_ustart": [
+        1,
+        0
+      ],
+      "feed_seq": [
+        4
+      ],
+      "stale_offset_lines": null,
+      "stale_offset_untracked": null,
+      "feed_tcum": [
+        30.0
+      ],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "f7b82cab85add332cae2b6866590dbb95b5d4fb35df7d4264ec35c12cb3e379d"
+    }
+  },
+  "g38_3": {
+    "exit": 0,
+    "stderr": "",
+    "out": {
+      "parse_error": null,
+      "feed": [
+        [
+          0.0,
+          0.0,
+          -50.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -50.0,
+          -50.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        2,
+        4
+      ],
+      "rapid_seq": [
+        2,
+        6
+      ],
+      "rapid_tcum": [
+        0.0,
+        5.0
+      ],
+      "rapid_brk": [
+        0,
+        0
+      ],
+      "rapid_ustart": [
+        1,
+        0
+      ],
+      "feed_seq": [
+        4
+      ],
+      "stale_offset_lines": null,
+      "stale_offset_untracked": null,
+      "feed_tcum": [
+        30.0
+      ],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "f7b82cab85add332cae2b6866590dbb95b5d4fb35df7d4264ec35c12cb3e379d"
+    }
+  },
+  "g38_3_g54_z10": {
+    "exit": 0,
+    "stderr": "",
+    "out": {
+      "parse_error": null,
+      "feed": [
+        [
+          0.0,
+          0.0,
+          -50.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          -10.0
+        ],
+        [
+          0.0,
+          -50.0,
+          -50.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          0,
+          0.0,
+          0.0,
+          0.0,
+          -1
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        4,
+        6
+      ],
+      "rapid_seq": [
+        2,
+        6
+      ],
+      "rapid_tcum": [
+        0.0,
+        5.0
+      ],
+      "rapid_brk": [
+        0,
+        0
+      ],
+      "rapid_ustart": [
+        1,
+        0
+      ],
+      "feed_seq": [
+        4
+      ],
+      "stale_offset_lines": null,
+      "stale_offset_untracked": null,
+      "feed_tcum": [
+        24.0
+      ],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "933ea0b86ccea0a573ff6d5a22c24221815c0f1f9a6cb3bee53e76e4a69f07e9"
+    }
+  },
+  "g43_without_measurement": {
+    "exit": 0,
+    "stderr": "",
+    "out": {
+      "parse_error": null,
+      "feed": [
+        [
+          0.0,
+          0.0,
+          10.0
+        ]
+      ],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ],
+        [
+          0.0,
+          0.0,
+          30.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          2,
+          0.0,
+          0.0,
+          10.0,
+          -1
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [
+        0
+      ],
+      "rapid_outside": [
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        2,
+        4
+      ],
+      "rapid_seq": [
+        2,
+        3
+      ],
+      "rapid_tcum": [
+        0.0,
+        0.0
+      ],
+      "rapid_brk": [
+        0,
+        1
+      ],
+      "rapid_ustart": [
+        1,
+        0
+      ],
+      "feed_seq": [
+        4
+      ],
+      "stale_offset_lines": null,
+      "stale_offset_untracked": null,
+      "feed_tcum": [
+        12.0
+      ],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "9b546d4d34232c6fb258eeb25fa28b238054ae3ebb99b09c032bc84a586e3cff"
+    }
+  }
+}

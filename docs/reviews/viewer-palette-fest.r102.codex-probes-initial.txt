@@ -1,0 +1,357 @@
+
+ RUN  v4.1.8 /tmp/codex-r102-r5odx6ao/archive/lcnc-webui
+
+ ❯ src/viewer/r102.retention.test.ts (1 test | 1 failed) 87ms
+   × refinement-only warning survives repeated snapshots, memo reuse, resume, shards and entry merge 87ms
+ ❯ src/viewer/r102.bulge.test.ts (5 tests | 1 failed) 3ms
+   × without the inside certificate the first interval ends at the analytic exit 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r102.bulge.test.ts > without the inside certificate the first interval ends at the analytic exit
+AssertionError: expected 22.5 to be close to 3.680272591280805, received difference is 18.819727408719196, but expected 0.005
+ ❯ src/viewer/r102.bulge.test.ts:33:36
+     31| });
+     32| it("without the inside certificate the first interval ends at the anal…
+     33|  expect(r.without.hits[0]!.cumEnd).toBeCloseTo(r.exit,2);
+       |                                    ^
+     34| });
+     35| it("the inside certificate must not extend the first interval past the…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/viewer/r102.retention.test.ts > refinement-only warning survives repeated snapshots, memo reuse, resume, shards and entry merge
+AssertionError: expected { …(3) } to deeply equal { …(3) }
+
+- Expected
++ Received
+
+@@ -697,11 +697,11 @@
+        "cumEnd": 24.299999237060547,
+        "dist": 0,
+        "intervals": [
+          [
+            24.200000762939453,
+-           24.299999237060547,
++           24.299997329748294,
+          ],
+        ],
+        "line": 45,
+        "rapid": false,
+      },
+@@ -712,12 +712,12 @@
+        "cum": 24.299999237060547,
+        "cumEnd": 24.399999618530273,
+        "dist": 0,
+        "intervals": [
+          [
+-           24.299999237060547,
+-           24.399999618530273,
++           24.299997329748294,
++           24.39999771118164,
+          ],
+        ],
+        "line": 46,
+        "rapid": false,
+      },
+@@ -728,12 +728,12 @@
+        "cum": 24.399999618530273,
+        "cumEnd": 24.5,
+        "dist": 0,
+        "intervals": [
+          [
+-           24.399999618530273,
+-           24.5,
++           24.39999771118164,
++           24.499998092651367,
+          ],
+        ],
+        "line": 47,
+        "rapid": false,
+      },
+@@ -744,12 +744,12 @@
+        "cum": 24.5,
+        "cumEnd": 24.600000381469727,
+        "dist": 0,
+        "intervals": [
+          [
+-           24.5,
+-           24.600000381469727,
++           24.499998092651367,
++           24.599998474121094,
+          ],
+        ],
+        "line": 48,
+        "rapid": false,
+      },
+@@ -760,11 +760,11 @@
+        "cum": 24.600000381469727,
+        "cumEnd": 24.700000762939453,
+        "dist": 0,
+        "intervals": [
+          [
+-           24.600000381469727,
++           24.599998474121094,
+            24.700000762939453,
+          ],
+        ],
+        "line": 49,
+        "rapid": false,
+@@ -777,11 +777,11 @@
+        "cumEnd": 24.799999237060547,
+        "dist": 0,
+        "intervals": [
+          [
+            24.700000762939453,
+-           24.799999237060547,
++           24.799997329748294,
+          ],
+        ],
+        "line": 50,
+        "rapid": false,
+      },
+@@ -792,12 +792,12 @@
+        "cum": 24.799999237060547,
+        "cumEnd": 24.899999618530273,
+        "dist": 0,
+        "intervals": [
+          [
+-           24.799999237060547,
+-           24.899999618530273,
++           24.799997329748294,
++           24.89999771118164,
+          ],
+        ],
+        "line": 51,
+        "rapid": false,
+      },
+@@ -808,12 +808,12 @@
+        "cum": 24.899999618530273,
+        "cumEnd": 25,
+        "dist": 0,
+        "intervals": [
+          [
+-           24.899999618530273,
+-           25,
++           24.89999771118164,
++           24.999998092651367,
+          ],
+        ],
+        "line": 52,
+        "rapid": false,
+      },
+@@ -824,12 +824,12 @@
+        "cum": 25,
+        "cumEnd": 25.100000381469727,
+        "dist": 0,
+        "intervals": [
+          [
+-           25,
+-           25.100000381469727,
++           24.999998092651367,
++           25.099998474121094,
+          ],
+        ],
+        "line": 53,
+        "rapid": false,
+      },
+@@ -840,11 +840,11 @@
+        "cum": 25.100000381469727,
+        "cumEnd": 25.200000762939453,
+        "dist": 0,
+        "intervals": [
+          [
+-           25.100000381469727,
++           25.099998474121094,
+            25.200000762939453,
+          ],
+        ],
+        "line": 54,
+        "rapid": false,
+@@ -857,11 +857,11 @@
+        "cumEnd": 25.299999237060547,
+        "dist": 0,
+        "intervals": [
+          [
+            25.200000762939453,
+-           25.299999237060547,
++           25.299997329748294,
+          ],
+        ],
+        "line": 55,
+        "rapid": false,
+      },
+@@ -872,12 +872,12 @@
+        "cum": 25.299999237060547,
+        "cumEnd": 25.399999618530273,
+        "dist": 0,
+        "intervals": [
+          [
+-           25.299999237060547,
+-           25.399999618530273,
++           25.299997329748294,
++           25.39999771118164,
+          ],
+        ],
+        "line": 56,
+        "rapid": false,
+      },
+@@ -888,12 +888,12 @@
+        "cum": 25.399999618530273,
+        "cumEnd": 25.5,
+        "dist": 0,
+        "intervals": [
+          [
+-           25.399999618530273,
+-           25.5,
++           25.39999771118164,
++           25.499998092651367,
+          ],
+        ],
+        "line": 57,
+        "rapid": false,
+      },
+@@ -904,12 +904,12 @@
+        "cum": 25.5,
+        "cumEnd": 25.600000381469727,
+        "dist": 0,
+        "intervals": [
+          [
+-           25.5,
+-           25.600000381469727,
++           25.499998092651367,
++           25.599998474121094,
+          ],
+        ],
+        "line": 58,
+        "rapid": false,
+      },
+@@ -920,11 +920,11 @@
+        "cum": 25.600000381469727,
+        "cumEnd": 25.700000762939453,
+        "dist": 0,
+        "intervals": [
+          [
+-           25.600000381469727,
++           25.599998474121094,
+            25.700000762939453,
+          ],
+        ],
+        "line": 59,
+        "rapid": false,
+@@ -937,11 +937,11 @@
+        "cumEnd": 25.799999237060547,
+        "dist": 0,
+        "intervals": [
+          [
+            25.700000762939453,
+-           25.799999237060547,
++           25.799997329748294,
+          ],
+        ],
+        "line": 60,
+        "rapid": false,
+      },
+@@ -952,12 +952,12 @@
+        "cum": 25.799999237060547,
+        "cumEnd": 25.899999618530273,
+        "dist": 0,
+        "intervals": [
+          [
+-           25.799999237060547,
+-           25.899999618530273,
++           25.799997329748294,
++           25.89999771118164,
+          ],
+        ],
+        "line": 61,
+        "rapid": false,
+      },
+@@ -968,12 +968,12 @@
+        "cum": 25.899999618530273,
+        "cumEnd": 26,
+        "dist": 0,
+        "intervals": [
+          [
+-           25.899999618530273,
+-           26,
++           25.89999771118164,
++           25.999998092651367,
+          ],
+        ],
+        "line": 62,
+        "rapid": false,
+      },
+@@ -984,12 +984,12 @@
+        "cum": 26,
+        "cumEnd": 26.100000381469727,
+        "dist": 0,
+        "intervals": [
+          [
+-           26,
+-           26.100000381469727,
++           25.999998092651367,
++           26.099998474121094,
+          ],
+        ],
+        "line": 63,
+        "rapid": false,
+      },
+@@ -1000,11 +1000,11 @@
+        "cum": 26.100000381469727,
+        "cumEnd": 26.200000762939453,
+        "dist": 0,
+        "intervals": [
+          [
+-           26.100000381469727,
++           26.099998474121094,
+            26.200000762939453,
+          ],
+        ],
+        "line": 64,
+        "rapid": false,
+@@ -1017,11 +1017,11 @@
+        "cumEnd": 26.299999237060547,
+        "dist": 0,
+        "intervals": [
+          [
+            26.200000762939453,
+-           26.299999237060547,
++           26.299997329748294,
+          ],
+        ],
+        "line": 65,
+        "rapid": false,
+      },
+@@ -1032,12 +1032,12 @@
+        "cum": 26.299999237060547,
+        "cumEnd": 26.399999618530273,
+        "dist": 0,
+        "intervals": [
+          [
+-           26.299999237060547,
+-           26.399999618530273,
++           26.299997329748294,
++           26.39999771118164,
+          ],
+        ],
+        "line": 66,
+        "rapid": false,
+      },
+
+ ❯ src/viewer/r102.retention.test.ts:25:24
+     23|   const final=r.value as CollisionResult;
+     24|   expect(snapshots.length).toBeGreaterThan(3);
+     25|   expect(shape(final)).toEqual(shape(base));
+       |                        ^
+     26|   expect(final.uncertified).toContain('inside check undecidable for nu…
+     27|   const nonempty=snapshots.filter(s=>s.hits.length);expect(nonempty.le…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed | 3 passed (5)
+      Tests  2 failed | 12 passed (14)
+   Start at  20:05:04
+   Duration  887ms (transform 167ms, setup 0ms, import 392ms, tests 274ms, environment 0ms)
+

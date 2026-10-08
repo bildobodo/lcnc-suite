@@ -1,0 +1,11 @@
+--- collision.ts
++++ r102.noCert.ts
+@@ -2285,7 +2285,7 @@
+           const A = bodies[ai]!, B = bodies[bi]!;
+           let d: number;
+           let v: InsideVerdict | null = null;
+-          const inCert = inClear[pi]! > 0 && s - inQ[pi]! < inClear[pi]! / Math.max(pairV[pi]!, 1e-9);
++          const inCert = false; // R102: always re-query, copied R101 control.
+           const mayHaveCrossed = surf[pi]! - pairV[pi]! * (s - surfQ[pi]!) <= 0;
+           if (inCert) {
+             d = 0;   // still inside: no surface crossing since it was measured

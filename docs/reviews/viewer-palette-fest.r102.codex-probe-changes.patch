@@ -1,0 +1,67 @@
+--- r101.refine.test.ts
++++ r102.refine.test.ts
+@@ -68,7 +68,7 @@
+  try {
+   const result=sweepCollisions(buildCollisionModel(machine(40),[hollowPost(),nub()]),xs([-40,-20]),WCS0,{margin:0.1});
+   const row={unknown,calls:ctl.calls,result}; evidence.push(row);
+-  writeFileSync("../evidence/viewer-palette-fest.r101.codex-refine.json",JSON.stringify(evidence,null,2));
++  writeFileSync("../evidence/viewer-palette-fest.r102.codex-refine.json",JSON.stringify(evidence,null,2));
+   return row;
+  } finally { ctl.when=null; }
+ }
+--- r101.contracts.test.ts
++++ r102.contracts.test.ts
+@@ -6,7 +6,7 @@
+ import { mergeEntryResult } from "./sweepMerge";
+ import { mergeShardResults } from "./sweepShards";
+ const rows:any[]=[];
+-afterAll(()=>writeFileSync("../evidence/viewer-palette-fest.r101.codex-contracts.json",JSON.stringify(rows,null,2)));
++afterAll(()=>writeFileSync("../evidence/viewer-palette-fest.r102.codex-contracts.json",JSON.stringify(rows,null,2)));
+ const M:CollisionMachine={groups:[{id:"table",parent:"root"},{id:"part",parent:"table"},{id:"head",parent:"root"}],kinematics:[{group:"head",joint:0,type:"translate",direction:"x",sign:1}],workGroup:"part",toolGroup:"head",unitScale:1,axes:["X","Y","Z"]};
+ const box=(s:number,x=0,y=0,z=0)=>{const g=new THREE.BoxGeometry(s,s,s).toNonIndexed();g.translate(x,y,z);const p=new Float32Array(g.getAttribute("position").array as Float32Array);g.dispose();return p;};
+ const pair=(inner:Float32Array,outer:Float32Array)=>buildCollisionModel(M,[{id:"outer",group:"table",positions:outer},{id:"inner",group:"head",positions:inner}]);
+--- r101.certificate.test.ts
++++ r102.certificate.test.ts
+@@ -2,9 +2,9 @@
+ import * as THREE from "three";
+ import {expect,it,afterAll} from "vitest";
+ import {buildCollisionModel,sweepCollisions,type CollisionMachine,type CollisionResult} from "./collision";
+-import {sweepCollisions as withoutCertificate} from "./r101.noCert";
++import {sweepCollisions as withoutCertificate} from "./r102.noCert";
+ const rows:any[]=[];
+-afterAll(()=>writeFileSync("../evidence/viewer-palette-fest.r101.codex-certificate.json",JSON.stringify(rows,null,2)));
++afterAll(()=>writeFileSync("../evidence/viewer-palette-fest.r102.codex-certificate.json",JSON.stringify(rows,null,2)));
+ const box=(s:number)=>{const g=new THREE.BoxGeometry(s,s,s).toNonIndexed();const p=new Float32Array(g.getAttribute("position").array as Float32Array);g.dispose();return p;};
+ const wcs={g5x:[0,0,0,0,0,0],g92:[],rotationDeg:0};
+ const shape=(r:CollisionResult)=>({hits:r.hits,static:r.staticContacts,notes:r.notes,samples:r.samples,truncated:r.truncated});
+--- r101.bulge.test.ts
++++ r102.bulge.test.ts
+@@ -2,8 +2,8 @@
+ import * as THREE from "three";
+ import {expect,it} from "vitest";
+ import {buildCollisionModel,sweepCollisions,type CollisionMachine,poseModel,pairInside} from "./collision";
+-import {sweepCollisions as noCert} from "./r101.noCert";
+-import {sweepCollisions as speedBound} from "./r101.speedBound";
++import {sweepCollisions as noCert} from "./r102.noCert";
++import {sweepCollisions as speedBound} from "./r102.speedBound";
+ const box=(s:number)=>{const g=new THREE.BoxGeometry(s,s,s).toNonIndexed();return new Float32Array(g.getAttribute("position").array as Float32Array);};
+ function run() {
+  const x0=1000*Math.cos(11.25*Math.PI/180);
+@@ -21,7 +21,7 @@
+   return {s,C,x,inside:pairInside(posed.bodies[0]!,posed.bodies[1]!),clearanceLeftClaimed:clearance-s*V};
+  });
+  const artifact={x0,exit,expectedIntervals:[[0,exit],[22.5-exit,22.5]],V,bulge,maxActualSpeed:1000*Math.sin(11.25*Math.PI/180)*Math.PI/180,positions,with:a,without:b,derivativeBoundControl:fixed};
+- writeFileSync("../evidence/viewer-palette-fest.r101.codex-bulge.json",JSON.stringify(artifact,null,2));
++ writeFileSync("../evidence/viewer-palette-fest.r102.codex-bulge.json",JSON.stringify(artifact,null,2));
+  return artifact;
+ }
+ const r=run();
+@@ -30,7 +30,7 @@
+  expect(r.positions.find(p=>p.s===10)!.clearanceLeftClaimed).toBeGreaterThan(0);
+ });
+ it("without the inside certificate the first interval ends at the analytic exit",()=>{
+- expect(r.without.hits[0]!.cumEnd).toBeCloseTo(r.exit,2);
++ expect(r.without.hits[0]!.intervals![0]![1]).toBeCloseTo(r.exit,2);
+ });
+ it("the inside certificate must not extend the first interval past the real exit",()=>{
+  expect(r.with.hits[0]!.intervals![0]![1]).toBeCloseTo(r.exit,2);

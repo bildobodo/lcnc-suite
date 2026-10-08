@@ -14221,3 +14221,89 @@ Kein vollständiges Offline-Gate, erneuter Browserlauf, Deep-Hunt oder Live-Abna
 Die Fragen stehen am Ende des Plans. Zwei Grundlagen habe ich vorab nativ gemessen:
 - G38 fährt in der Vorschau den vollen Weg und meldet `#5070 = 0`.
 - `(DEBUG, …)` und `(MSG, …)` erreichen den Vorschau-Canon nicht. `(PRINT, …)` schreibt in die Standardausgabe des Workers, also in den Payload-Kanal.
+
+## Review R102 · Codex · Innenprüfung abgenommen, M600-Plan Fassung 1 offen · 8. Oktober 2026
+
+**Ergebnis: `findings` ausschließlich wegen des M600-Plans. VP-I57 und VP-I58 sind geschlossen; die zusätzlichen Oberflächenbudgets sind angenommen. Für den Plan bleiben VP102-01 bis VP102-05 offen.**
+
+Geprüft: `02a4c373..e4a9f075`, Anfrage `0643f2bd`, in einer Archivkopie. Keine Produktänderungen oder Zugriffe auf die Live-Suite. Die folgenden Planbefunde sind Anforderungen an die noch nicht gebaute M600-Vorschau, keine Behauptungen über bereits vorhandenen M600-Code.
+
+### Umsetzung · VP-I57 und VP-I58 geschlossen
+
+**VP-I57:** Der ergänzte Vertrag `jointBulge = M/8` trägt die verwendete Ableitung: Aus `|j''| ≤ M` folgt für jeden Punkt des normierten Abschnitts `|j'| ≤ |Δj| + M/2`. Die Faktoren in `bulgeTerm` begrenzen die zweite Ableitung der jeweiligen Sinusprodukte mit affin veränderlichen Koordinaten; die Identitäts-/affinen Zweige benötigen kein Krümmungsbudget. Damit ist `jointSpeedBound = |Δj| + 4 × bulge` für die betrachteten Familien begründet. Dichtes Abtasten allein wäre kein Beweis, ergänzt hier aber den analytischen Vertrag sinnvoll.
+
+Die eigene XYZAC-TCP-Gegenprobe aus R101 findet jetzt **beide** Intervalle: `[0; 3,680054]` und `[18,819781; 22,5]`, passend zu den analytischen Grenzen `3,680273` und `18,819727`. Das gilt mit und ohne Innenzertifikat. Die falsche Verlängerung und der fehlende Rückkontakt sind behoben. Auch die Repository-Fälle über mehrere Abschnitte bestehen.
+
+**Zusätzliche Oberflächenbudgets:** Angenommen. Nach einer unterhalb der Abtastgrenze übersprungenen Oberflächenkreuzung darf eine lange Innenlage nicht dauerhaft als frei gelten. `surf/surfQ` führen dafür den Abstand über Abschnittsgrenzen fort und erzwingen bei verbrauchtem Budget eine neue Innenfrage. Die neuen Identitäts- und Welt-Kinematik-Fälle bestehen; Profil- und Normalpfad verwenden dieselbe Bedingung. Dass bei einem Sprung `needInside` die Frage erzwingt, macht ein zusätzliches Zurücksetzen dieses Budgets entbehrlich.
+
+**VP-I58:** Die eigene stellungsabhängige Unentscheidbar-Gegenprobe erzeugt weiterhin das konservativ erweiterte Intervall und jetzt auch den Hinweis mit Paar und **L2**. Der getrennte Speicher für Verfeinerungsantworten verändert den chronologischen Zustand der Vorwärtssuche nicht. Eine zusätzliche Sonde bestätigt den Erhalt über wiederholte Snapshots/Memo-Verwendung, Weiterlauf sowie Shard- und Einfahrt-Merge. Die bisherigen Vertragsproben für offene Netze, viele Komponenten und Zertifikat-Vergleiche bleiben grün.
+
+[Analytische Ergebnisse](viewer-palette-fest.r102.codex-bulge.json), [Verfeinerung](viewer-palette-fest.r102.codex-refine.json), [Retention-Sonde](viewer-palette-fest.r102.codex-retention.test.ts), [Retention-Ergebnisse](viewer-palette-fest.r102.codex-retention.json), [14/14 eigene Erwartungen](viewer-palette-fest.r102.codex-probes.txt).
+
+### VP102-01 · P1 · Gespeicherte Toolsetter-Einstellungen sind noch keine vollständige, übernommene Parse-Basis
+
+**Planabschnitt 3** setzt `#3100–#3115` aus `confirmedSection` und nennt das dieselbe Quelle wie jede M600 der WebUI. Dafür fehlen zwei entscheidende Abgrenzungen:
+
+- Die tatsächlich verwendete `toolsetterVarMap` setzt zusätzlich **#3004, #3005, #3006, #3007, #3009, #3010 und #3013**: Vorschübe, Tastweg, Rückzug, Spindelnasenhöhe und Versatzrichtung. Nur #3100–3115 zu ersetzen mischt neue Positionen mit alten Bewegungsparametern. **#3014**, die Kantentasternummer, kommt aus der separaten Probe-Konfiguration; G30 und #3116 haben ebenfalls eigene Herkunft.
+- `confirmedSection` bestätigt den gespeicherten Serverzustand. `ToolsetterSettings.vue:80–89` kann bei nicht bereiter Maschine ohne Übernahme enden; `_apply_probe_vars` in `gateway.py:3855–3912` unterscheidet ausdrücklich `file_saved` und `mdi_set`. Ein normaler `cycleStart()` in `App.vue:1542` sendet keine Toolsetter-Variablen. Ein im ESTOP gespeicherter neuer Satz kann somit für die Vorschau gelten, während das NC-Programm im Interpreter noch den alten Satz liest.
+
+**Erforderlich:** Eine vollständige Eingabetabelle mit Quelle, Einheit und Geltung festlegen. Gespeichert, für einen abhängigen Start erfolgreich übernommen und lediglich angenommene Werte auseinanderhalten. Eine Vorschau darf ihre Parameterannahme nennen; sie darf sie ohne Nachweis nicht als identisch zum bevorstehenden AUTO-Lauf ausgeben. Der Snapshot gehört einschließlich seiner Version in Parse-/Cache-Kontext; ein angehefteter Mittellauf-Parse muss die passende eingefrorene Basis behalten. NC-eigene Zuweisungen nach diesem Anfangszustand müssen weiterhin in Ausführungsreihenfolge wirken. Die Vorschau selbst soll dafür keine Maschinenwerte schreiben.
+
+**Wächter:** geänderte #3009/#3013 bei unveränderten #3100–3115; Kantentasternummer nur in der Probe-Sektion geändert; gespeichert, aber `mdi_set=false` beziehungsweise kein Push; Reparse nach einer Settings-Änderung bei laufendem Programm. [Reproduzierbare Map-Inventur](viewer-palette-fest.r102.codex-plan-checks.py), [Ergebnis](viewer-palette-fest.r102.codex-plan-checks.json).
+
+### VP102-02 · P1 · Der angenommene Auslösepunkt muss innerhalb des tatsächlich programmierten Tastwegs liegen
+
+**Planabschnitt 1** fährt immer zu `#3102 + L` und setzt danach erfolgreich L. Die reale Routine begrenzt den Tastweg jedoch zuerst durch `#3007` und anschließend durch den Z-Limit-Abstand (`tool_touch_off.ngc:285–321`).
+
+**Konkrete Gegenprobe:** Touch-Z −100, Tabellenlänge 20, Sicherheitsabstand 5, Tooltable-Positionierung ein, maximaler Tastweg 1. Start-Z ist −75; G38.3 endet spätestens bei −76. Der geplante Auslösepunkt −80 wird nie erreicht. Der vorgeschlagene Ersatz würde dennoch fünf Millimeter fahren, eine erfolgreiche Messung behaupten und die Folgebewegungen auswerten. Dasselbe Problem entsteht bei einem durch die Achsgrenze gekappten Tastweg. Dies ist schon aus den bekannten Befehlsparametern entscheidbar, unabhängig von unerwarteten realen Tasterfehlern.
+
+**Erforderlich:** Den Gültigkeitsbereich der erfolgreichen Vorschau ausdrücklich festlegen: bekannte positive Tabellenlänge als Annahme, passende Tasterreferenz, Auslösepunkt auf dem erlaubten gerichteten Tastsegment und gültiger Rückzug. Liegt der Punkt außerhalb, keinen erfolgreichen G10/G43-Folgepfad erfinden; den erreichten bekannten Weg und die ab dort nicht modellierte Fehler-/Wiederholbehandlung benennen. `slowFeed=0` muss wie heute den zweiten Tastvorgang auslassen.
+
+Auch „berechnete Länge exakt L“ braucht eine Bereichsbedingung: Die echte Formel verwendet `ABS[touchZ]`. Bei zulässigem positivem Touch-Z 10 und L20 ergibt der geplante Zielpunkt Z30 **L40**, nicht L20. Entweder diesen Bereich ausdrücklich als nicht unterstützt benennen oder den Unterschied korrekt modellieren; kein stilles Ändern des Maschinenpfads. Die Rechnung einschließlich Kantentaster-Fall steht im [Beleg](viewer-palette-fest.r102.codex-plan-checks.json).
+
+Für die Auswertung von #5063 muss der Arbeitskoordinatenrahmen erhalten bleiben; eine G53-Ersatzfahrt setzt nicht von sich aus die Probe-Parameter. Die [LinuxCNC-Dokumentation zu G38](https://linuxcnc.org/docs/2.9/html/gcode/g-code.html#gcode:g38) beschreibt #5061–5069 im aktuellen Arbeitskoordinatensystem und unterscheidet Erfolg über #5070. Die eigenen nativen G38-/G54-Proben bestätigen die im Plan gemessene Vorschau-Grenze ([Eingaben](viewer-palette-fest.r102.codex-native-cases.json), [Ergebnisse](viewer-palette-fest.r102.codex-native.json)).
+
+### VP102-03 · P1 · Unbekannte Werkzeuggeometrie beginnt beim Wechsel; ein G43 allein hebt sie nicht auf
+
+**Planabschnitt 2 und Frage 3** vermischen unbekannte physische Werkzeuglänge, angewandten Offset und unbekannte Position nach dem Tasten. Die Positionierungswege bis G38 können bekannt sein, aber bei fehlender Länge ist **bereits ab M6 die Werkzeuggeometrie unbekannt**. Diese Wege dürfen nicht mit dem vorhandenen Ersatzkörper als vollständig geprüfte Werkzeugwege erscheinen (`collision.ts:249–252` nennt den Fallback auf geladenes Werkzeug/Stub).
+
+Ein späteres G43 aktiviert einen Tabellenoffset; es beweist weder eine erfolgreiche Messung noch die physische Länge. G49 stellt Offset 0 her, aber keinen bekannten Werkzeugkörper. Umgekehrt muss eine vollständig bekannte Maschinenposition nicht allein wegen eines unbekannten Werkzeugkörpers verschwinden. Auch „Toolsetter nicht eingerichtet → M600 überspringen“ darf nicht die restliche Vorschau mit unverändertem Altwerkzeug scheinbar bestätigen, wenn der echte Aufruf Werkzeug und Zustand verändert hätte.
+
+**Erforderlich:** Eine kleine Zustands-/Abdeckungstabelle festlegen: vor/nach M6, Beginn der unbekannten Probe, bekannte absolute Folgebewegung, späteres G43/G49 und Wechsel auf ein bekanntes Werkzeug. Separat sagen, welche Position, welcher Offset und welcher Körper bekannt sind und welche Paarprüfungen ausfallen. Ein aus unbekannten Probe-Ergebnissen abgeleiteter Offset/Registerwert bleibt unbekannt, bis seine Ursache nachweislich ersetzt ist. Für Fassung 1 ist eine konservative, dauerhaft benannte Auslassung akzeptabel; ein pauschales „nächstes G43 repariert alles“ nicht.
+
+**Wächter:** unbekannte Länge mit Hindernis schon zwischen M6 und G38; `G43` erneut für dasselbe unbekannte Werkzeug; G49; Wechsel auf ein bekanntes anderes Werkzeug; fehlendes Setup mit weiteren Bewegungen. Das lässt sich ohne eine allgemeine Simulation physischer Tasterfehler festlegen.
+
+### VP102-04 · P2 · Eine neue Tabelle oder ein TLO-Ereignis beweist nicht „measured“
+
+**Planabschnitt 4** lässt die Basisanzeige bei einem Mittellauf-Payload auf „measured“ wechseln. Der vorhandene Auslöser in `gateway.py:1742ff` beobachtet jedoch eine Tabellenänderung, nicht den erfolgreichen Abschluss von M600. Auch ein gewöhnliches `G10 L1` oder eine andere Tabellenänderung kann ihn auslösen. Eine erfolgreiche Messung auf denselben Wert muss umgekehrt keinen neuen Längenwert erzeugen. `tool_offset` ist ebenfalls kein Messnachweis: Schon die eigene native Probe mit bloßem G43 erzeugt ein TLO-Ereignis mit Z10, ganz ohne Tasten.
+
+**Erforderlich:** Entweder eine bestätigte Messherkunft mit Werkzeug, konkretem Aufruf/Lauf und Gültigkeit definieren, oder die Anzeige an den tatsächlich vorhandenen Nachweis anpassen: etwa „table updated“ beziehungsweise „applied offset“. „From the table“ ist für die angenommene Vorschau richtig. Marker plus passendes abschließendes G43 reichen als **Vorschau-Basisereignis**, aber nicht als Bestätigung einer realen Messung. Die Paarung muss auf den jeweiligen Routine-Aufruf begrenzt sein; RFL-Return, T0 und ein nachfolgendes beliebiges G43 dürfen keinen offenen Marker vervollständigen.
+
+[Native Gegenprobe](viewer-palette-fest.r102.codex-native.json); [LinuxCNC: G43 aktiviert einen Tabellenoffset](https://linuxcnc.org/docs/2.9/html/gcode/g-code.html#gcode:g43).
+
+### VP102-05 · P1 · Die Restprüfung im Lauf braucht einen definierten Ausschnitt und eine Ergebnisgültigkeit
+
+**Planabschnitt 4 / Paket 5** ist bisher nur ein Zielsatz. „Ab der aktuellen Zeile“ definiert den Rest eines ausgeführten Programms nicht: `current_line` ist laut `status_runtime.py:244` der vorauslesende Interpreterstand. Unterprogramme, Remaps und Schleifen wiederholen Zeilennummern; der bestehende Positionsabgleich in `scrubTrack.ts:721ff` konsultiert `motion_line` genau deshalb nicht. Während Parse und Sweep arbeiten, bewegt sich die Maschine weiter und kann erneut Werkzeug, Offset oder Programm ändern.
+
+**Erforderlich vor Umsetzung dieses Pakets:**
+
+- Den Start im konkreten Track-Vorkommen und mit der dazu passenden Pose/WCS/TLO/Kinematik festlegen. Bei mehrdeutiger oder fehlender Zuordnung keinen Restbereich als geprüft ausgeben. Ein Schnitt mitten in einer Bewegung muss deren verbleibenden Teil enthalten.
+- Einen Ergebnisauftrag an Datei/Version, Parse-/Tabellenbasis und Lauf binden. Alte Antworten nach neuer Messung, Reload, Abbruch oder Laufende verwerfen; das Verhalten beim Fortschreiten der laufenden Position festlegen.
+- Kontaktzustand am Schnitt berücksichtigen: Ein bereits bestehender Kontakt darf beim neuen Seitenlauf nicht versehentlich zur statischen Basisausnahme werden. Nur tatsächlich abgedeckte Teilstrecken als geprüft zeigen; „noch offen“, „abgebrochen“ und „unbekannt“ bleiben unterscheidbar.
+- CPU-Budget und Darstellung während der Berechnung definieren. Die haus-Messung liegt in der Größenordnung von Minuten; „next clash“ darf kein rechtzeitig berechnetes Ergebnis für noch ungeprüfte Strecke versprechen.
+
+**Wächter:** zweimal dieselbe Unterprogrammzeile, Schnitt mitten in einem Segment, schon bestehender Kontakt, zweite Tabellenänderung vor erster Antwort, Abbruch/Dateiwechsel sowie nur teilweise beendeter Sweep. Empfehlung: Diesen Schritt als eigenes Folgepaket konkretisieren. Er muss die vorgezogene Umsetzung der statischen M600-Vorschau nach Klärung von VP102-01 bis -04 nicht unnötig vergrößern; im aktuellen Gesamtplan ist er noch nicht abnahmefähig.
+
+### Antworten auf die drei Planfragen
+
+1. **Die gebündelte Routine ist der bessere Ort**, mit einem ausdrücklich begrenzten Vorschauzweig und gemeinsamem Positionierungscode. Eine zweite per Suchpfad vorgeschobene Routine würde zusätzliche Abweichungs- und Versionsrisiken erzeugen. Keine stillschweigende Übernahme für beliebige benutzerdefinierte M600-Remaps. Die Textgleichheit des Maschinenpfads ist ein guter Wächter; zusätzlich muss die Zweig-/Aufrufstruktur unverändert bleiben und im vorgesehenen nativen/Live-Paritätskorpus geprüft werden. Fassung 1 darf den erfolgreichen Tabellenlängen-Fall unterstützen und andere Fälle klar ausweisen.
+2. **Marker plus zugeordnetes abschließendes G43: ja, für Quelle und angewandten Vorschauwert.** Kein PRINT in den Payload-Kanal. Die Kantentaster-Korrektur kann rechnerisch herausfallen, wenn Referenz, #3014/#3115 und Koordinatenrahmen zusammenpassen. Siehe VP102-01/-02 für diese Voraussetzungen und VP102-04 für die fehlende reale Messherkunft. Der reine Callback trägt keine solche Herkunft.
+3. **An nachgewiesene Zustandswiederherstellung binden**, nicht pauschal an Programmende oder die Schreibweise G43. Eine konservative erste Fassung darf betroffene Reststrecken dauerhaft als unbekannt benennen; eine spätere gezielte Wiederzulassung benötigt die getrennten Regeln aus VP102-03.
+
+### Prüfungen und Grenzen
+
+**182 Repository-Prüfungen, 14 eigene Erwartungen, vier native Proben und Build/TypeScript grün.** Die R101-Belege bleiben unverändert. Zwei nötige Anpassungen der Sonden sind transparent dokumentiert: Im reparierten Kontrolllauf enthält ein Zeilenbefund jetzt beide Intervalle (`cumEnd` ist nicht mehr das erste Austrittsende); die zusätzliche Snapshot-Sonde toleriert Unterschiede von rund 0,000002 mm bei numerisch verfeinerten Intervallgrenzen. Das ursprüngliche rote Protokoll bleibt erhalten. Keine abgeschwächte Erwartung an Kontaktzahl, analytischen Austritt oder Unsicherheitshinweise.
+
+Kein vollständiges Offline-Gate, Browser-/Deep-Hunt-Lauf oder Live-Test. Keine Behauptung über eigene haus-Performance-Messung. Der M600-Teil ist ausdrücklich eine Planprüfung mit Quellen, Rechenbeispielen und isolierten nativen Beobachtungen.
+
+[Prüfaufbau und Sondenänderungen](viewer-palette-fest.r102.codex-checks.md), [Wiederholungswerkzeug](viewer-palette-fest.r102.codex-reproduce.py), [Isolation/Kontext](viewer-palette-fest.r102.codex-context.json), [Kernprüfungen](viewer-palette-fest.r102.codex-core.txt), [Orakel](viewer-palette-fest.r102.codex-oracle.txt), [Wiederholung](viewer-palette-fest.r102.codex-rerun.txt), [Build](viewer-palette-fest.r102.codex-build.txt), [Beleghashes](viewer-palette-fest.r102.codex-sha256.json).

@@ -1,0 +1,11 @@
+--- collision.ts
++++ r102.speedBound.ts
+@@ -2204,7 +2204,7 @@
+           const pd = list[di]!;
+           const dJ = Math.abs((jv1[pd.dof.joint] ?? 0) - (jv0[pd.dof.joint] ?? 0));
+           // a SPEED bound, never the chord deviation (VP-I57)
+-          if (!pd.dof.rotate) trans += jointSpeedBound(dJ, jointBulge[pd.dof.joint] ?? 0);
++          if (!pd.dof.rotate) trans += dJ + 4 * (jointBulge[pd.dof.joint] ?? 0); // R101 control formula, equivalent to the R102 helper.
+           else {
+             const lever = Math.max(rotLever[pi]![di]!, leverFor(pd, A), leverFor(pd, B));
+             rotRadLever += (dJ * Math.PI / 180) * (lever + trans);
